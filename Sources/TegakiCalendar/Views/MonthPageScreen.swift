@@ -47,7 +47,8 @@ struct MonthPageScreen: View {
     private static let weekdayLabels = ["月", "火", "水", "木", "金", "土", "日"]
 
     init() {
-        let current = YearMonth.current()
+        // CI screenshot mode (`ScreenshotMode`) opens the month it was asked for.
+        let current = ScreenshotMode.current?.month ?? YearMonth.current()
         _month = State(initialValue: current)
         _page = State(initialValue: InkPage.empty(pageId: current.inkPageId))
         _layout = State(initialValue: Self.makeLayout(month: current, events: [], inkBottoms: [:]))
@@ -277,7 +278,10 @@ struct MonthPageScreen: View {
             allowFingerChosen = true
             allowFinger = UIDevice.current.userInterfaceIdiom != .pad
         }
-        if !onboardingDone {
+        if let screenshot = ScreenshotMode.current {
+            // CI screenshots: no onboarding, no permission dialog; landscape when asked for.
+            if screenshot.landscape { ScreenshotMode.requestLandscape() }
+        } else if !onboardingDone {
             if model.status == .notDetermined {
                 showOnboarding = true
             } else {
@@ -304,7 +308,8 @@ struct MonthPageScreen: View {
         saveNow()
         month = newMonth
         holidayNames = JapaneseHolidays.names(for: MonthLayout.grid(for: newMonth).days)
-        page = store.load(newMonth.inkPageId)
+        // Screenshot mode injects its demo strokes in memory; the store is not read or written.
+        page = ScreenshotMode.isActive ? ScreenshotMode.demoPage(for: newMonth) : store.load(newMonth.inkPageId)
         pageDirty = false
         model.load(month: newMonth)
         relayout()
@@ -313,7 +318,7 @@ struct MonthPageScreen: View {
     // MARK: - Layout
 
     private static func makeLayout(month: YearMonth, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat]) -> MonthPageLayout {
-        MonthLayoutEngine.layout(MonthLayoutInput(month: month, events: events, inkBottoms: inkBottoms, now: Date()))
+        MonthLayoutEngine.layout(MonthLayoutInput(month: month, events: events, inkBottoms: inkBottoms, now: ScreenshotMode.current?.today ?? Date()))
     }
 
     private func relayout() {
@@ -388,7 +393,7 @@ struct MonthPageScreen: View {
     private func saveNow() {
         saveTask?.cancel()
         saveTask = nil
-        guard pageDirty else { return }
+        guard pageDirty, !ScreenshotMode.isActive else { return }
         do {
             try store.save(page)
             pageDirty = false

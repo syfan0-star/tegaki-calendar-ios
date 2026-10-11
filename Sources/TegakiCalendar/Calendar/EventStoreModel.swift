@@ -43,6 +43,8 @@ final class EventStoreModel: ObservableObject {
     let service: EventKitService
     private let defaults: UserDefaults
     private var cancellables: Set<AnyCancellable> = []
+    /// CI screenshot mode (`ScreenshotMode`): demo events instead of EventKit, no permission request.
+    private let screenshot: Bool
 
     static let hiddenKey = "hiddenCalendarIds"
 
@@ -52,7 +54,8 @@ final class EventStoreModel: ObservableObject {
         let service = service ?? EventKitService()
         self.service = service
         self.defaults = defaults
-        status = service.accessState
+        screenshot = ScreenshotMode.isActive
+        status = screenshot ? .fullAccess : service.accessState
         if let stored = defaults.array(forKey: Self.hiddenKey) as? [String] {
             hiddenCalendarIds = Set(stored)
         } else {
@@ -71,6 +74,7 @@ final class EventStoreModel: ObservableObject {
 
     /// Asks for full access (after the onboarding explanation, DESIGN §4.1), then loads.
     func requestAccess() async {
+        guard !screenshot else { return }
         await service.requestAccess()
         status = service.accessState
         reload()
@@ -78,6 +82,7 @@ final class EventStoreModel: ObservableObject {
 
     /// Re-reads the permission (e.g. after the Settings app) and reloads if it changed.
     func refreshStatus() {
+        guard !screenshot else { return }
         service.refreshAccessState()
         if status != service.accessState {
             status = service.accessState
@@ -98,6 +103,11 @@ final class EventStoreModel: ObservableObject {
     func reload() {
         guard status.canRead, let month = month else {
             events = []
+            calendars = []
+            return
+        }
+        if screenshot {
+            events = ScreenshotMode.demoEvents(for: month)
             calendars = []
             return
         }
@@ -155,7 +165,7 @@ final class EventStoreModel: ObservableObject {
             allDay: layoutEvent.allDay,
             start: layoutEvent.start,
             end: layoutEvent.end,
-            calendarTitle: ekEvent?.calendar?.title ?? "",
+            calendarTitle: ekEvent?.calendar?.title ?? (screenshot ? ScreenshotMode.calendarTitle(forCalendarId: layoutEvent.calendarId) : ""),
             colorHex: layoutEvent.colorHex,
             location: (location ?? "").isEmpty ? nil : location,
             notes: (notes ?? "").isEmpty ? nil : notes,
