@@ -1,6 +1,9 @@
 import XCTest
-@testable import TegakiCalendar
+import Foundation
+import Holidays
+import Layout
 
+/// Moved from the M1 app target (Tests/TegakiCalendarTests/JapaneseHolidaysTests.swift).
 /// Vectors copied from the web version (tests/holidays.test.mjs): 2019–2021 and 2024–2027 from the
 /// 内閣府 syukujitsu.csv (names normalized: 第3条第2項 → 振替休日, 第3条第3項 → 国民の休日);
 /// 2028–2030 computed (equinoxes agree with the NAOJ prediction table).

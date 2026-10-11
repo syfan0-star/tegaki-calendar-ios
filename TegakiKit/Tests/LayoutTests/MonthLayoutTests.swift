@@ -1,6 +1,9 @@
 import XCTest
-@testable import TegakiCalendar
+import Foundation
+import Layout
 
+/// Moved from the M1 app target (Tests/TegakiCalendarTests/MonthLayoutTests.swift): DayKey arithmetic
+/// and the Monday-start 42-day grid.
 final class MonthLayoutTests: XCTestCase {
     private func day(_ y: Int, _ m: Int, _ d: Int) -> DayKey { DayKey(year: y, month: m, day: d) }
 
@@ -27,6 +30,15 @@ final class MonthLayoutTests: XCTestCase {
         }
         XCTAssertTrue(day(2026, 9, 28) < day(2026, 10, 1))
         XCTAssertEqual(day(2026, 3, 5).description, "2026-03-05")
+    }
+
+    func testYMDParsing() {
+        XCTAssertEqual(DayKey(ymd: "2026-10-04"), day(2026, 10, 4))
+        XCTAssertEqual(DayKey(ymd: "2026-10-04")?.description, "2026-10-04")
+        XCTAssertNil(DayKey(ymd: "2026-02-30"))
+        XCTAssertNil(DayKey(ymd: "memo"))
+        XCTAssertNil(DayKey(ymd: "2026-10"))
+        XCTAssertNil(DayKey(ymd: ""))
     }
 
     func testDaysInMonth() {
@@ -60,6 +72,7 @@ final class MonthLayoutTests: XCTestCase {
         XCTAssertEqual(grid.days.last, day(2026, 11, 8))
         XCTAssertEqual(grid.rowCount, 5)
         XCTAssertEqual(grid.rows.count, 5)
+        XCTAssertEqual(grid.allRows.count, 6)
         XCTAssertEqual(grid.lastVisibleDay, day(2026, 11, 1))
         XCTAssertEqual(Array(grid.days.prefix(7).map(\.weekday)), [1, 2, 3, 4, 5, 6, 0], "Monday ... Sunday")
         XCTAssertTrue(grid.contains(day(2026, 10, 31)))
@@ -103,7 +116,27 @@ final class MonthLayoutTests: XCTestCase {
         XCTAssertEqual(YearMonth(year: 2026, month: 12).next, YearMonth(year: 2027, month: 1))
         XCTAssertEqual(YearMonth(year: 2027, month: 1).previous, YearMonth(year: 2026, month: 12))
         XCTAssertEqual(YearMonth(year: 2026, month: 10).title, "2026年10月")
+        XCTAssertEqual(YearMonth(year: 2026, month: 10).inkPageId, "m1-2026-10")
+        XCTAssertEqual(YearMonth(year: 2026, month: 1).inkPageId, "m1-2026-01")
         XCTAssertEqual(YearMonth(year: 2026, month: 10).firstDay, day(2026, 10, 1))
         XCTAssertEqual(YearMonth(year: 2026, month: 2).lastDay, day(2026, 2, 28))
+        XCTAssertTrue(YearMonth(year: 2026, month: 10).contains(day(2026, 10, 31)))
+        XCTAssertFalse(YearMonth(year: 2026, month: 10).contains(day(2026, 11, 1)))
+    }
+
+    // MARK: CellKey
+
+    func testCellKeys() {
+        XCTAssertEqual(CellKey.day(day(2026, 10, 4)).raw, "2026-10-04")
+        XCTAssertEqual(CellKey.day(day(2026, 10, 4)).day, day(2026, 10, 4))
+        XCTAssertEqual(CellKey.memo.raw, "memo")
+        XCTAssertNil(CellKey.memo.day)
+        XCTAssertTrue(CellKey.memo.isMemo)
+        XCTAssertFalse(CellKey.day(day(2026, 10, 4)).isMemo)
+        XCTAssertEqual(CellKey(raw: "2026-10-04"), CellKey.day(day(2026, 10, 4)))
+        let encoded = try? JSONEncoder().encode([CellKey.memo, .day(day(2026, 10, 4))])
+        XCTAssertEqual(encoded.map { String(decoding: $0, as: UTF8.self) }, "[\"memo\",\"2026-10-04\"]")
+        let decoded = try? JSONDecoder().decode([CellKey].self, from: Data("[\"memo\",\"2026-10-04\"]".utf8))
+        XCTAssertEqual(decoded, [CellKey.memo, .day(day(2026, 10, 4))])
     }
 }

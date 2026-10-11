@@ -1,4 +1,5 @@
 import Foundation
+@_exported import DayKit
 
 /// Japanese national holidays (国民の祝日・休日), rule-based, valid for 2000–2099.
 ///
@@ -8,25 +9,30 @@ import Foundation
 ///
 /// Labels: 第3条第2項 days are named 「振替休日」 and 第3条第3項 days 「国民の休日」 (the CSV says just 「休日」).
 /// Future special laws (like the 2019–2021 moves) belong in `specialDays(_:)` so the 第3条 rules see them.
-enum JapaneseHolidays {
-    static let minYear = 2000
-    static let maxYear = 2099
+public enum JapaneseHolidays {
+    public static let minYear = 2000
+    public static let maxYear = 2099
 
-    struct Holiday: Hashable {
-        let day: DayKey
-        let name: String
+    public struct Holiday: Hashable, Sendable {
+        public let day: DayKey
+        public let name: String
+
+        public init(day: DayKey, name: String) {
+            self.day = day
+            self.name = name
+        }
     }
 
     // MARK: - Public API
 
     /// All 祝日・休日 of year `y`, sorted by date. Empty for years outside 2000–2099.
-    static func holidays(ofYear y: Int) -> [Holiday] {
+    public static func holidays(ofYear y: Int) -> [Holiday] {
         let table = table(forYear: y)
         return table.keys.sorted().map { Holiday(day: $0, name: table[$0] ?? "") }
     }
 
     /// All 祝日・休日 of year `y` as a dictionary. Empty for years outside 2000–2099.
-    static func table(forYear y: Int) -> [DayKey: String] {
+    public static func table(forYear y: Int) -> [DayKey: String] {
         guard y >= minYear, y <= maxYear else { return [:] }
         let base = shukujitsu(y)
         var out = base
@@ -37,17 +43,17 @@ enum JapaneseHolidays {
 
     /// Holiday name of a day, e.g. '元日', '振替休日', '国民の休日'; nil if it is not a holiday
     /// (or the year is outside 2000–2099).
-    static func name(of day: DayKey) -> String? {
+    public static func name(of day: DayKey) -> String? {
         table(forYear: day.year)[day]
     }
 
     /// Holiday name of the local calendar day containing `date`.
-    static func name(of date: Date, calendar: Calendar = DayKey.deviceCalendar) -> String? {
+    public static func name(of date: Date, calendar: Calendar = DayKey.deviceCalendar) -> String? {
         name(of: DayKey(date, calendar: calendar))
     }
 
     /// Holidays between `start` and `end`, both inclusive, sorted by date.
-    static func holidays(from start: DayKey, through end: DayKey) -> [Holiday] {
+    public static func holidays(from start: DayKey, through end: DayKey) -> [Holiday] {
         guard start <= end else { return [] }
         let y0 = max(minYear, start.year)
         let y1 = min(maxYear, end.year)
@@ -62,7 +68,7 @@ enum JapaneseHolidays {
     }
 
     /// Holiday names for an arbitrary set of days (one table lookup per distinct year).
-    static func names(for days: [DayKey]) -> [DayKey: String] {
+    public static func names(for days: [DayKey]) -> [DayKey: String] {
         var tables: [Int: [DayKey: String]] = [:]
         var result: [DayKey: String] = [:]
         for day in days {

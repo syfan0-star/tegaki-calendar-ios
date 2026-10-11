@@ -1,4 +1,5 @@
-# Builds the app for the iOS Simulator and runs the unit tests on an iPad simulator.
+# Builds and tests the pure Swift package (TegakiKit) on macOS, then builds the app for the
+# iOS Simulator and runs the app's unit tests on an iPad simulator.
 # Public repository → GitHub-hosted macOS runners are free. No artifacts are uploaded.
 name: build
 
@@ -32,6 +33,25 @@ jobs:
           fi
           xcode-select -p
           xcodebuild -version
+
+      # The pure modules (TegakiKit: DayKit / Holidays / Layout / InkModel) build and test on macOS
+      # itself, before anything touches the Simulator. KitChecks is the same check set that runs on
+      # the owner's Mac without Xcode (docs/M2_CONTRACT.md §8); `swift test` runs the XCTest targets.
+      - name: Build TegakiKit (macOS)
+        run: |
+          set -euo pipefail
+          swift --version
+          swift build --package-path TegakiKit
+
+      - name: Run KitChecks (macOS)
+        run: |
+          set -euo pipefail
+          swift run --package-path TegakiKit KitChecks
+
+      - name: Test TegakiKit (macOS)
+        run: |
+          set -euo pipefail
+          swift test --package-path TegakiKit
 
       - name: Install XcodeGen
         run: |
