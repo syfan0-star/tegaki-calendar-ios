@@ -1,0 +1,256 @@
+import XCTest
+import Foundation
+import CoreGraphics
+import Layout
+
+/// Year page geometry (M3A_CONTRACT §1.8, DESIGN §2.2 / §2.6): 2026 with the screenshot-mode demo
+/// events; "today" is 10/7 at 10:00.
+final class YearLayoutEngineTests: XCTestCase {
+    private typealias F = M3aFixtures
+    private var demo: [LayoutEvent] { F.demo }
+    private let cellX10 = 56.0 + 9 * 112
+    private func key(_ raw: String) -> CellKey { CellKey(raw: raw) }
+
+    func testRowHeight() {
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: 0), 60)
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 1, inkBottom: 0), 60, "16 + 18 + 8 = 42 → base")
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 2, inkBottom: 0), 60, "16 + 36 + 8 = 60")
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 3, inkBottom: 0), 78)
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 4, inkBottom: 0), 96)
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: 100), 112)
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 40, inkBottom: 0), 400)
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: 5000), 400)
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: .nan), 60)
+    }
+
+    func testEmptyYear() {
+        let page = F.yearLayout([])
+        XCTAssertEqual(page.pageId, "y-2026")
+        XCTAssertEqual(page.kind, .year)
+        XCTAssertEqual(page.year, 2026)
+        XCTAssertEqual(page.rows.count, 31)
+        XCTAssertEqual(page.cells.count, 372)
+        XCTAssertEqual(page.invalidCells.map(\.raw), ["02-29", "02-30", "02-31", "04-31", "06-31", "09-31", "11-31"])
+        XCTAssertEqual(F.yearLayout([], year: 2028).invalidCells.map(\.raw), ["02-30", "02-31", "04-31", "06-31", "09-31", "11-31"], "2028 has a 2/29")
+        XCTAssertEqual(page.dateLabels.count, 365)
+        XCTAssertEqual(F.yearLayout([], year: 2028).dateLabels.count, 366)
+        XCTAssertEqual(page.size, CGSize(width: 1400, height: 1860))
+        XCTAssertEqual(page.rows.map(\.frame.minY).prefix(3).map { $0 }, [0, 60, 120])
+        XCTAssertEqual(page.rows.map(\.dayNumber), Array(1...31))
+        XCTAssertEqual(page.rows.map(\.laneCount), Array(repeating: 0, count: 31))
+        XCTAssertEqual(page.cellFrame(month: 10, day: 7), CGRect(x: 56 + 9 * 112, y: 6 * 60, width: 112, height: 60))
+        XCTAssertEqual(page.cellFrame(month: 1, day: 1), CGRect(x: 56, y: 0, width: 112, height: 60))
+        XCTAssertEqual(page.cellFrame(month: 2, day: 30), CGRect(x: 168, y: 29 * 60, width: 112, height: 60), "2/30 has a cell too")
+        XCTAssertNil(page.cellFrame(month: 13, day: 1))
+        XCTAssertNil(page.cellFrame(month: 0, day: 1))
+        XCTAssertNil(page.cellFrame(month: 1, day: 32))
+        XCTAssertNil(page.cellFrame(month: 1, day: 0))
+        XCTAssertEqual(page.columnFrame(month: 12), CGRect(x: 56 + 11 * 112, y: 0, width: 112, height: 1860))
+        XCTAssertEqual(page.columnFrame(month: 1), CGRect(x: 56, y: 0, width: 112, height: 1860))
+        XCTAssertEqual(page.columnFrame(month: 12).maxX, 1400)
+        XCTAssertEqual(page.chips.count, 0)
+        XCTAssertEqual(page.allDayBars.count, 0)
+        XCTAssertEqual(page.timedBoxes.count, 0)
+        XCTAssertNil(page.nowLine)
+        XCTAssertEqual(page.todayCell, key("10-07"))
+        XCTAssertNil(F.yearLayout([], year: 2025).todayCell)
+        XCTAssertEqual(F.yearLayout([], year: 2028).cells[key("02-29")]?.minY, 28 * 60)
+    }
+
+    func testDateLabels() {
+        let page = F.yearLayout([])
+        let labels = Dictionary(uniqueKeysWithValues: page.dateLabels.map { ($0.day, $0) })
+        XCTAssertEqual(labels[F.day(2026, 10, 7)]?.frame, CGRect(x: 56 + 9 * 112, y: 360, width: 40, height: 28))
+        XCTAssertEqual(labels[F.day(2026, 10, 7)]?.isToday, true)
+        XCTAssertEqual(labels[F.day(2026, 10, 12)]?.holidayName, "スポーツの日")
+        XCTAssertEqual(labels[F.day(2026, 10, 12)]?.tone, .sundayOrHoliday)
+        XCTAssertEqual(labels[F.day(2026, 10, 11)]?.tone, .sundayOrHoliday)
+        XCTAssertEqual(labels[F.day(2026, 10, 10)]?.tone, .saturday)
+        XCTAssertEqual(labels[F.day(2026, 10, 9)]?.tone, .normal)
+        XCTAssertEqual(labels[F.day(2026, 1, 1)]?.holidayName, "元日")
+        XCTAssertEqual(labels[F.day(2026, 12, 31)]?.frame.minY, 30 * 60)
+        XCTAssertEqual(page.dateLabels.filter(\.isToday).count, 1)
+        XCTAssertEqual(page.dateLabels.map(\.inMonth), Array(repeating: true, count: 365))
+        XCTAssertNil(labels[F.day(2026, 2, 29)])
+        XCTAssertEqual(page.dateLabels.first?.day, F.day(2026, 1, 1), "month by month, day by day")
+        XCTAssertEqual(page.dateLabels[31].day, F.day(2026, 2, 1))
+    }
+
+    func testCellsAndInkCells() {
+        let page = F.yearLayout([])
+        XCTAssertNil(page.cell(at: CGPoint(x: 30, y: 100)), "the day-number gutter belongs to no cell")
+        XCTAssertEqual(page.cell(at: CGPoint(x: 56, y: 100)), key("01-02"))
+        XCTAssertEqual(page.cell(at: CGPoint(x: 1400, y: 100)), key("12-02"), "the right edge is December")
+        XCTAssertNil(page.cell(at: CGPoint(x: 100, y: 1860)))
+        XCTAssertNil(page.cell(at: CGPoint(x: 1401, y: 100)))
+        XCTAssertNil(page.cell(at: CGPoint(x: 100, y: -1)))
+        XCTAssertNil(page.cell(at: CGPoint(x: CGFloat.nan, y: 100)))
+        XCTAssertEqual(page.cell(at: CGPoint(x: 56 + 112, y: 100)), key("02-02"), "a column boundary maps to its own column")
+        XCTAssertEqual(page.cell(at: CGPoint(x: 200, y: 1800)), key("02-31"), "an impossible date is a cell")
+        XCTAssertEqual(page.cell(at: CGPoint(x: 100, y: 1859.9)), key("01-31"))
+        XCTAssertEqual(page.inkCell(forCenter: CGPoint(x: 30, y: 100)), key("01-02"), "gutter → January")
+        XCTAssertEqual(page.inkCell(forCenter: CGPoint(x: -10, y: -10)), key("01-01"))
+        XCTAssertEqual(page.inkCell(forCenter: CGPoint(x: 1500, y: 100)), key("12-02"))
+        XCTAssertEqual(page.inkCell(forCenter: CGPoint(x: 100, y: 5000)), key("01-31"))
+        XCTAssertEqual(page.inkCell(forCenter: CGPoint(x: 500, y: 100)), key("04-02"))
+        XCTAssertEqual(page.inkCell(forCenter: CGPoint(x: CGFloat.nan, y: CGFloat.nan)), key("01-01"))
+        XCTAssertTrue(page.growsWithInk(key("02-30")))
+        XCTAssertTrue(page.growsWithInk(key("12-31")))
+        XCTAssertFalse(page.growsWithInk(.memo))
+        XCTAssertFalse(page.growsWithInk(.grid))
+        XCTAssertFalse(page.growsWithInk(key("13-01")))
+        XCTAssertEqual(page.row(atY: 0), 1)
+        XCTAssertEqual(page.row(atY: 1859.9), 31)
+        XCTAssertNil(page.row(atY: 1860))
+        XCTAssertNil(page.row(atY: -0.1))
+        XCTAssertNil(page.row(atY: .nan))
+    }
+
+    func testBandsAndHitTestingOnAnEmptyYear() {
+        let page = F.yearLayout([])
+        XCTAssertEqual(page.band(atY: 100), PageBand(raw: "row:2"))
+        XCTAssertEqual(page.band(atY: 0), PageBand(raw: "row:1"))
+        XCTAssertNil(page.band(atY: 1860))
+        XCTAssertEqual(page.bandTop(PageBand(raw: "row:2")), 60)
+        XCTAssertEqual(page.bandTop(PageBand(raw: "row:31")), 1800)
+        XCTAssertNil(page.bandTop(PageBand(raw: "row:0")))
+        XCTAssertNil(page.bandTop(PageBand(raw: "row:32")))
+        XCTAssertNil(page.bandTop(PageBand(raw: "memo")))
+        XCTAssertEqual(page.hit(at: CGPoint(x: 56 + 9 * 112 + 5, y: 365)), .date(F.day(2026, 10, 7)), "the weekday letter")
+        XCTAssertEqual(page.hit(at: CGPoint(x: 56 + 9 * 112 + 39, y: 360 + 27)), .date(F.day(2026, 10, 7)))
+        XCTAssertNil(page.hit(at: CGPoint(x: 168 + 5, y: 29 * 60 + 5)), "an impossible date has no weekday letter")
+        XCTAssertNil(page.hit(at: CGPoint(x: 56 + 9 * 112 + 100, y: 400)), "empty cell")
+        XCTAssertNil(page.hit(at: CGPoint(x: 20, y: 400)), "the gutter")
+    }
+
+    func testDemoEventsGrowRowsAndLinkChips() {
+        let plain = F.yearLayout([])
+        let page = F.yearLayout(demo)
+        XCTAssertEqual(page.rows[15].frame.height, 96, "10/16 has 4 all-day events → 16 + 4 × 18 + 8")
+        XCTAssertEqual(page.rows[15].laneCount, 4)
+        XCTAssertEqual(page.rows[16].frame.minY, plain.rows[16].frame.minY + 36)
+        XCTAssertEqual(page.cells[key("02-16")]?.height, 96, "February's 16th cell is as tall")
+        XCTAssertEqual(page.cells[key("02-16")]?.minY, 900)
+        XCTAssertEqual(page.cellFrame(month: 10, day: 7), CGRect(x: 56 + 9 * 112, y: 6 * 60, width: 112, height: 60), "10/7 stays 60 with one lane")
+        XCTAssertEqual(page.size.height, 1860 + 36)
+        XCTAssertEqual(page.rows[14].frame.height, 60)
+
+        let trip = page.chips.filter { $0.title == "家族旅行" }.sorted { $0.day < $1.day }
+        XCTAssertEqual(trip.count, 5)
+        XCTAssertEqual(trip.map(\.day.day), [9, 10, 11, 12, 13])
+        XCTAssertEqual(Set(trip.map(\.lane)).count, 1)
+        XCTAssertEqual(trip[0].lane, 0)
+        XCTAssertFalse(trip[0].continuesUp)
+        XCTAssertTrue(trip[0].continuesDown)
+        XCTAssertTrue(trip[2].continuesUp)
+        XCTAssertTrue(trip[2].continuesDown)
+        XCTAssertTrue(trip[4].continuesUp)
+        XCTAssertFalse(trip[4].continuesDown)
+        XCTAssertEqual(trip[0].linkToY, trip[1].frame.minY)
+        XCTAssertEqual(trip[3].linkToY, trip[4].frame.minY)
+        XCTAssertNil(trip[4].linkToY)
+        assertRect(trip[0].frame, CGRect(x: cellX10 + 50.4, y: 8 * 60 + 16, width: 58.6, height: 16), "chip in the right 55 % of the cell")
+        XCTAssertFalse(trip[0].isThin)
+        XCTAssertEqual(trip[0].fontScale, 1)
+        XCTAssertEqual(trip[0].colorHex, F.demoColors[1])
+        XCTAssertEqual(trip[0].eventId, F.demoId("家族旅行"))
+
+        let sixteenth = page.chips.filter { $0.day == F.day(2026, 10, 16) }.sorted { $0.lane < $1.lane }
+        XCTAssertEqual(sixteenth.count, 4)
+        XCTAssertEqual(sixteenth.map(\.lane), [0, 1, 2, 3])
+        XCTAssertEqual(sixteenth.map(\.title), ["ゴミの日", "健康診断", "誕生日", "資料提出締切"], "same day and length → by title (Unicode order)")
+        XCTAssertEqual(sixteenth[3].frame.minY, page.rows[15].frame.minY + 16 + 3 * 18, accuracy: 1e-9)
+        XCTAssertEqual(sixteenth.map { $0.linkToY == nil }, [true, true, true, true])
+        XCTAssertEqual(page.chips.filter { $0.title == "歯医者" }.count, 0, "timed events are not on the year page")
+        XCTAssertEqual(page.chips.count, 16, "運動会, キャンプ×2, 家族旅行×5, the 16th×4, 出張×2, 給料日, 締切")
+        let business = page.chips.filter { $0.title == "出張（大阪）" }.sorted { $0.day < $1.day }
+        XCTAssertEqual(business.map(\.day.day), [21, 22])
+        XCTAssertEqual(business[0].linkToY, business[1].frame.minY)
+    }
+
+    func testHitTestingBandsAndScrollWithDemoEvents() {
+        let plain = F.yearLayout([])
+        let page = F.yearLayout(demo)
+        let deadline = page.chips.first { $0.title == "締切" }
+        XCTAssertNotNil(deadline)
+        XCTAssertEqual(page.hit(at: CGPoint(x: cellX10 + 55, y: 360 + 20)), .allDayBar(deadline?.eventId ?? "?"), "a chip")
+        XCTAssertEqual(page.hit(at: CGPoint(x: cellX10 + 5, y: 365)), .date(F.day(2026, 10, 7)), "the weekday letter next to a chip")
+        XCTAssertNil(page.hit(at: CGPoint(x: cellX10 + 45, y: 360 + 50)), "the handwriting part of the cell")
+        XCTAssertEqual(page.band(atY: page.rows[16].frame.minY + 5), PageBand(raw: "row:17"))
+        XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: page, topVisibleY: 1000), 36, "a point on the 17th moves down")
+        XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: page, topVisibleY: 930), 0, "a point on the 16th stays")
+        XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: page, topVisibleY: 100), 0)
+        XCTAssertEqual(PageScroll.scrollDelta(old: page, new: plain, topVisibleY: 1800), -36)
+        XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: page, topVisibleY: 1860), 0, "below the paper")
+        XCTAssertFalse(plain.sameGeometry(as: page))
+        XCTAssertTrue(plain.sameGeometry(as: F.yearLayout([], now: F.october(20, 9))))
+        XCTAssertFalse(plain.sameGeometry(as: F.yearLayout([], year: 2027)))
+        XCTAssertEqual(page, F.yearLayout(demo))
+    }
+
+    func testInkGrowsRows() {
+        let page = F.yearLayout([], ink: [key("03-05"): 100, key("07-05"): 150, key("02-30"): 90, key("01-01"): .nan])
+        XCTAssertEqual(page.rows[4].frame.height, 162, "row 5: the deepest ink 150 + 12")
+        XCTAssertEqual(page.rows[29].frame.height, 102, "an impossible date's ink grows its row too")
+        XCTAssertEqual(page.rows[0].frame.height, 60, "NaN ink is ignored")
+        XCTAssertEqual(page.rows[5].frame.minY, 300 + 102)
+        XCTAssertEqual(page.cells[key("12-05")]?.height, 162, "every cell of the row grows")
+        XCTAssertEqual(page.size.height, 1860 + 102 + 42)
+        XCTAssertEqual(F.yearLayout([], ink: [key("01-01"): 5000]).rows[0].frame.height, 400, "capped at 400")
+    }
+
+    func testThinningAtTheCap() {
+        var pile: [LayoutEvent] = [LayoutEvent(id: "march", title: "3月", allDay: true, start: F.date(2026, 3, 20), end: F.date(2026, 3, 21), colorHex: "#000000", calendarId: "c")]
+        for i in 0..<40 { pile.append(F.allDay("pile\(i)", 20, 21, title: "p\(i)")) }
+        let page = F.yearLayout(pile)
+        XCTAssertEqual(page.rows[19].frame.height, 400)
+        XCTAssertEqual(page.rows[19].laneCount, 40)
+        let thin = page.chips.filter { $0.day == F.day(2026, 10, 20) }.sorted { $0.lane < $1.lane }
+        XCTAssertEqual(thin.count, 40)
+        let step = 378.0 / 40
+        XCTAssertEqual(thin[1].frame.minY - thin[0].frame.minY, step, accuracy: 1e-9, "thinned step 378 / 40")
+        XCTAssertEqual(thin[0].frame.height, step - 2, accuracy: 1e-9)
+        XCTAssertTrue(thin.allSatisfy(\.isThin), "lanes below 12 are thin")
+        XCTAssertEqual(thin[0].fontScale, (step - 2) / 16, accuracy: 1e-9)
+        XCTAssertEqual(thin[39].frame.maxY, page.rows[19].frame.minY + 16 + 39 * step + step - 2, accuracy: 1e-9)
+        XCTAssertEqual(thin[39].frame.maxY, page.rows[19].frame.maxY - 8, accuracy: 1e-9, "the last chip ends at the ink margin")
+        let march = page.chips.first { $0.eventId == "march" }
+        XCTAssertEqual(march?.frame.height, 16, "another month's chip on the same row is not thinned")
+        XCTAssertEqual(march?.isThin, false)
+        XCTAssertEqual(march?.fontScale, 1)
+        XCTAssertEqual(march?.frame.minY, page.rows[19].frame.minY + 16)
+        XCTAssertEqual(page.hit(at: CGPoint(x: cellX10 + 55, y: page.rows[19].frame.minY + 17)), .date(F.day(2026, 10, 20)), "a thin chip opens the day")
+        XCTAssertEqual(page.hit(at: CGPoint(x: 56 + 2 * 112 + 55, y: page.rows[19].frame.minY + 17)), .allDayBar("march"), "a normal chip opens the event")
+        // 21 lanes: the row is capped at 400 but the lanes still fit (16 + 20 × 18 + 16 = 392).
+        let twentyOne = F.yearLayout((0..<21).map { F.allDay("q\($0)", 20, 21) })
+        XCTAssertEqual(twentyOne.rows[19].frame.height, 400)
+        XCTAssertEqual(twentyOne.chips.filter { $0.day == F.day(2026, 10, 20) }.map(\.frame.height), Array(repeating: 16, count: 21))
+    }
+
+    func testMonthSpansAndInitialScroll() {
+        let spans = YearLayoutEngine.monthSpans(events: demo, year: 2026, month: 10, calendar: F.tokyo)
+        XCTAssertEqual(spans.first { $0.event.title == "家族旅行" }.map { [$0.startCol, $0.endCol, $0.lane] }, [8, 12, 0])
+        XCTAssertEqual(spans.filter { $0.startCol == 15 }.map(\.lane).sorted(), [0, 1, 2, 3])
+        XCTAssertEqual(spans.count, 10, "the 10 all-day demo events of October")
+        XCTAssertEqual(YearLayoutEngine.monthSpans(events: demo, year: 2026, month: 9, calendar: F.tokyo).count, 0)
+        XCTAssertEqual(YearLayoutEngine.monthSpans(events: demo, year: 2026, month: 13, calendar: F.tokyo).count, 0)
+        // An event crossing the month boundary is clipped per month.
+        let crossing = [F.allDay("x", 30, 34)] // 10/30 – 11/2
+        XCTAssertEqual(YearLayoutEngine.monthSpans(events: crossing, year: 2026, month: 10, calendar: F.tokyo).map { [$0.startCol, $0.endCol] }, [[29, 30]])
+        XCTAssertEqual(YearLayoutEngine.monthSpans(events: crossing, year: 2026, month: 11, calendar: F.tokyo).map { [$0.startCol, $0.endCol] }, [[0, 1]])
+        let crossingPage = F.yearLayout(crossing)
+        let oct31 = crossingPage.chips.first { $0.day == F.day(2026, 10, 31) }
+        XCTAssertEqual(oct31?.continuesDown, true)
+        XCTAssertNil(oct31?.linkToY, "no link past the month's last day")
+        XCTAssertEqual(crossingPage.chips.first { $0.day == F.day(2026, 11, 1) }?.continuesUp, true)
+
+        let page = F.yearLayout(demo)
+        XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.demoNow, calendar: F.tokyo), page.rows[4].frame.minY, "today 10/7 → the row of the 5th")
+        XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.date(2026, 1, 1, 9), calendar: F.tokyo), 0)
+        XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.date(2026, 1, 2, 9), calendar: F.tokyo), 0)
+        XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.date(2026, 1, 3, 9), calendar: F.tokyo), 0)
+        XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.date(2026, 1, 4, 9), calendar: F.tokyo), 60)
+        XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.date(2025, 10, 7, 9), calendar: F.tokyo), 0, "another year")
+        XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.date(2026, 10, 31, 9), calendar: F.tokyo), page.rows[28].frame.minY)
+    }
+}

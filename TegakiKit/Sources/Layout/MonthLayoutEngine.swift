@@ -283,8 +283,10 @@ public enum MonthLayoutEngine {
     /// result to `contentOffset.y` (× zoomScale). 0 when nothing moved or the point is above the paper.
     public static func scrollDelta(old: MonthPageLayout, new: MonthPageLayout, topVisibleY: CGFloat) -> CGFloat {
         guard topVisibleY.isFinite, topVisibleY >= 0 else { return 0 }
-        if let index = old.rowIndex(atY: topVisibleY), index < new.rows.count {
-            return new.rows[index].frame.minY - old.rows[index].frame.minY
+        // Since M3a the rule is the general one (PageScroll, M3A_CONTRACT §1.3); the M2 result is
+        // kept for a point below the paper, which follows the memo area.
+        if old.band(atY: topVisibleY) != nil {
+            return PageScroll.scrollDelta(old: old, new: new, topVisibleY: topVisibleY)
         }
         return new.memo.minY - old.memo.minY
     }

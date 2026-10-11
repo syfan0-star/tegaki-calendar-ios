@@ -83,11 +83,22 @@ final class EventKitService {
 
     // MARK: - Events
 
-    /// Events of the 42 days of the month page (Monday-start grid), normalised for the Layout module
-    /// and sorted all-day first, then by start, then by title. Empty without read access.
-    ///
-    /// - Parameter calendars: the calendars to read; nil = every calendar.
+    /// Events of the 42 days of the month page (Monday-start grid): a thin wrapper around
+    /// `events(from:to:calendars:)`.
     func events(in month: YearMonth, calendars: [EKCalendar]?) -> [LayoutEvent] {
+        let grid = MonthLayout.grid(for: month)
+        return events(from: grid.firstDay, to: grid.firstDay.adding(days: MonthLayout.gridDayCount), calendars: calendars)
+    }
+
+    /// Events of the days `[start, end)` (M3a contract §5), normalised for the Layout module and
+    /// sorted all-day first, then by start, then by title. Empty without read access. EventKit
+    /// answers ranges up to four years in one query, so the year page needs one call too.
+    ///
+    /// - Parameters:
+    ///   - calendars: the calendars to read; nil = every calendar.
+    ///   - allDayOnly: drop timed events before normalising them (the year page shows all-day events
+    ///     only, DESIGN §2.6, so a year's worth of meetings is never built).
+    func events(from start: DayKey, to end: DayKey, calendars: [EKCalendar]?, allDayOnly: Bool = false) -> [LayoutEvent] {
         guard accessState.canRead else {
             fetched = [:]
             return []
@@ -96,16 +107,16 @@ final class EventKitService {
             fetched = [:]
             return []
         }
-        let grid = MonthLayout.grid(for: month)
-        let start = grid.firstDay.startOfDay()
-        let end = grid.firstDay.adding(days: MonthLayout.gridDayCount).startOfDay()
-        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: calendars)
+        let startDate = start.startOfDay()
+        let endDate = max(end, start.adding(days: 1)).startOfDay()
+        let predicate = store.predicateForEvents(withStart: startDate, end: endDate, calendars: calendars)
         let found = store.events(matching: predicate)
 
         var map: [String: EKEvent] = [:]
         var result: [LayoutEvent] = []
         result.reserveCapacity(found.count)
         for event in found {
+            if allDayOnly, !event.isAllDay { continue }
             guard let layoutEvent = Self.makeLayoutEvent(event) else { continue }
             if map[layoutEvent.id] != nil { continue } // the same occurrence twice (defensive)
             map[layoutEvent.id] = event
@@ -119,7 +130,7 @@ final class EventKitService {
         }
     }
 
-    /// The EKEvent of a `LayoutEvent.id` from the last `events(in:calendars:)` call.
+    /// The EKEvent of a `LayoutEvent.id` from the last `events(from:to:calendars:)` call.
     func event(withLayoutId id: String) -> EKEvent? {
         fetched[id]
     }

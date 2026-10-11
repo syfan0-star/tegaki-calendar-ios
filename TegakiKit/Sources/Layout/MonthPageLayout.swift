@@ -96,13 +96,7 @@ public struct DateLabel: Equatable, Sendable {
     }
 }
 
-/// What a finger tap on the paper hits.
-public enum HitTarget: Equatable, Sendable {
-    case allDayBar(String)
-    case timedChip(String)
-    case moreChips(DayKey)
-    case date(DayKey)
-}
+// `HitTarget` lives in PageLayout.swift since M3a (it gained `.timedBox` for the week / day pages).
 
 /// The month page in paper coordinates (lu).
 public struct MonthPageLayout: Equatable, Sendable {
@@ -163,5 +157,62 @@ public struct MonthPageLayout: Equatable, Sendable {
     /// Row index containing paper y, or nil (memo area / outside).
     public func rowIndex(atY y: CGFloat) -> Int? {
         rows.first(where: { y >= $0.frame.minY && y < $0.frame.maxY })?.index
+    }
+}
+
+// MARK: - PageLayout conformance (M3A_CONTRACT §1.5; the M2 API above is unchanged)
+
+extension MonthPageLayout: PageLayout {
+    public var kind: PageKind { .month }
+
+    /// The month shown, derived from the grid: the 7th cell of the first row always lies in the
+    /// month (the first row contains the 1st).
+    public var month: YearMonth {
+        if let first = rows.first, first.days.count >= 7 {
+            let d = first.days[6]
+            return YearMonth(year: d.year, month: d.month)
+        }
+        if let d = rows.first?.days.first ?? cells.keys.compactMap(\.day).min() {
+            return YearMonth(year: d.year, month: d.month)
+        }
+        return YearMonth(year: 1970, month: 1)
+    }
+
+    /// "m1-2026-10" (`YearMonth.inkPageId`).
+    public var pageId: String { month.inkPageId }
+
+    public var timedBoxes: [TimedEventBox] { [] }
+
+    public var nowLine: NowLine? { nil }
+
+    /// Same as M2's `InkLedger.cellFor`: `cell(at:)`, else the point clamped into the paper, else
+    /// the memo area.
+    public func inkCell(forCenter point: CGPoint) -> CellKey {
+        if let cell = cell(at: point) { return cell }
+        let clamped = CGPoint(
+            x: LayoutMath.clamp(point.x, 0, max(size.width - 0.001, 0)),
+            y: LayoutMath.clamp(point.y, 0, max(size.height - 0.001, 0))
+        )
+        if let cell = cell(at: clamped) { return cell }
+        return .memo
+    }
+
+    /// The 42 day cells and the memo area grow with handwriting.
+    public func growsWithInk(_ cell: CellKey) -> Bool {
+        cells[cell] != nil
+    }
+
+    /// "row:r" / "memo" / nil.
+    public func band(atY y: CGFloat) -> PageBand? {
+        guard y.isFinite else { return nil }
+        if let index = rowIndex(atY: y) { return .row(index) }
+        if y >= memo.minY && y < memo.maxY { return .memo }
+        return nil
+    }
+
+    public func bandTop(_ band: PageBand) -> CGFloat? {
+        if band == .memo { return memo.minY }
+        guard let index = band.rowIndex, index >= 0, index < rows.count else { return nil }
+        return rows[index].frame.minY
     }
 }

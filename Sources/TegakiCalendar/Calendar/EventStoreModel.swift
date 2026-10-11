@@ -18,8 +18,8 @@ struct EventDetail: Identifiable, Equatable {
     var url: URL?
 }
 
-/// The month page's view of the calendar (contract §5): permission status, the events of the
-/// shown month (normalised), the calendars and which of them the person hid.
+/// The screen's view of the calendar (contract §5): permission status, the events of the shown
+/// page (normalised), the calendars and which of them the person hid.
 ///
 /// Reloads when EventKit reports a change (`.EKEventStoreChanged`, debounced 1 s — DESIGN §4.2).
 @MainActor
@@ -29,7 +29,7 @@ final class EventStoreModel: ObservableObject {
     @Published private(set) var status: AccessStatus
     @Published private(set) var events: [LayoutEvent] = []
     @Published private(set) var calendars: [EKCalendar] = []
-    /// Calendars the person turned off (persisted in UserDefaults). Changing it reloads the month.
+    /// Calendars the person turned off (persisted in UserDefaults). Changing it reloads the page.
     @Published var hiddenCalendarIds: Set<String> {
         didSet {
             guard hiddenCalendarIds != oldValue else { return }
@@ -37,8 +37,9 @@ final class EventStoreModel: ObservableObject {
             reload()
         }
     }
-    /// The month whose events are loaded.
-    private(set) var month: YearMonth?
+    /// The page whose events are loaded (`PageNavigation.dayRange(kind, focus:)`).
+    private(set) var kind: PageKind?
+    private(set) var focus: DayKey?
 
     let service: EventKitService
     private let defaults: UserDefaults
@@ -92,21 +93,25 @@ final class EventStoreModel: ObservableObject {
 
     // MARK: - Loading
 
-    /// Loads the events of `month` (the 42 days of its grid) from the visible calendars.
-    func load(month: YearMonth) {
-        self.month = month
+    /// Loads the events of the page `(kind, focus)` from the visible calendars: one day, the week's
+    /// 7 days, the month grid's 42 days, or the year's 365 / 366 days (all-day events only).
+    func load(kind: PageKind, focus: DayKey) {
+        self.kind = kind
+        self.focus = focus
         reload()
     }
 
-    /// Re-fetches the current month (after a change notification, a permission change, or a
+    /// Re-fetches the current page (after a change notification, a permission change, or a
     /// calendar being hidden/shown).
     func reload() {
-        guard status.canRead, let month = month else {
+        guard status.canRead, let kind = kind, let focus = focus else {
             events = []
             calendars = []
             return
         }
         if screenshot {
+            // The demo month whatever the range; the engines keep what overlaps the page.
+            let month = ScreenshotMode.current?.month ?? YearMonth(year: focus.year, month: focus.month)
             events = ScreenshotMode.demoEvents(for: month)
             calendars = []
             return
@@ -124,7 +129,8 @@ final class EventStoreModel: ObservableObject {
             defaults.set([String](), forKey: Self.hiddenKey)
         }
         let visible = all.filter { !hiddenCalendarIds.contains($0.calendarIdentifier) }
-        events = service.events(in: month, calendars: visible)
+        let range = PageNavigation.dayRange(kind, focus: focus)
+        events = service.events(from: range.start, to: range.end, calendars: visible, allDayOnly: kind == .year)
     }
 
     // MARK: - Details

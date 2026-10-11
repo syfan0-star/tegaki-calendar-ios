@@ -4,7 +4,9 @@ import PencilKit
 import SwiftUI
 import UIKit
 
-/// The paper + ink surface for SwiftUI (contract §3, DESIGN.md §3.2).
+/// The paper + ink surface for SwiftUI (M3A_CONTRACT.md §2.2, DESIGN.md §3.2). One instance shows
+/// one page of any kind (month / week / day / year); the owner re-creates it per page with
+/// `.id(layout.pageId)`.
 ///
 /// ```
 ///   InkCanvasContainerView (clips)
@@ -17,21 +19,28 @@ import UIKit
 /// Rules implemented here:
 /// - The drawing is never replaced while the Pencil is on the paper. Layout changes, page reloads
 ///   and undo / redo wait until 300 ms after the pen lifts, then land together with a scroll
-///   compensation from `MonthLayoutEngine.scrollDelta` so the first visible row stays put.
+///   compensation from `PageScroll.scrollDelta` so the band under the top of the viewport stays put.
 /// - `page` is written back after every change the ledger records; a `page` that arrives from
-///   outside (new month, merge) replaces the ledger's page.
+///   outside (merge, import) replaces the ledger's page.
+/// - A `page` and a `layout` of different page ids (a transient of SwiftUI's update order) are
+///   ignored until both agree; the ledger never mixes pages.
+/// - The fit-to-width zoom comes from `layout.size.width` (the day page is 1000 lu wide, the others
+///   1400). `initialScrollY` (paper lu) is applied once, when the first zoom is known.
 /// - Finger taps (direct touches only) are reported in paper coordinates through `onTap`.
 /// - PencilKit's own undo manager is emptied after every change; history is the ledger's.
 struct InkCanvasView: UIViewRepresentable {
-    var layout: MonthPageLayout
+    var layout: any PageLayout
+    /// What the paper draws (担当 U). Used here only for `==` and `PaperView(content:)`.
     var paper: PaperContent
     var tool: CanvasTool
     var allowFinger: Bool
     @Binding var page: InkPage
+    /// Paper y (lu) to show at the top when this canvas first appears (× zoom, clamped to the paper).
+    var initialScrollY: CGFloat
     /// A finger tap, in paper coordinates (lu). The owner resolves it with `layout.hit(at:)`.
     var onTap: (CGPoint) -> Void
-    /// Handwriting may have crossed the bottom of its row (or an erased stroke may have been holding
-    /// a row open). The owner re-runs the layout with fresh `page.inkBottoms()`.
+    /// Handwriting may have crossed the bottom of its cell (or an erased stroke may have been holding
+    /// a cell open). The owner re-runs the layout with fresh `page.inkBottoms()`.
     var onInkBoundsChanged: () -> Void
     /// Bump to undo / redo (the values themselves do not matter).
     var undoTrigger: Int
@@ -41,7 +50,7 @@ struct InkCanvasView: UIViewRepresentable {
     /// Whether undo / redo currently have anything to do (for the toolbar buttons).
     var onHistoryChanged: (_ canUndo: Bool, _ canRedo: Bool) -> Void = { _, _ in }
 
-    /// How long after the pen lifts a pending relayout is applied (contract §3).
+    /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
 
     func makeCoordinator() -> Coordinator {
@@ -147,7 +156,10 @@ extension InkCanvasView {
     @MainActor
     final class Coordinator: NSObject, PKCanvasViewDelegate, UIGestureRecognizerDelegate {
         var parent: InkCanvasView
-        let ledger: InkLedger
+        /// The ledger of the page shown. Replaced (never reloaded across pages) if a different page
+        /// id ever arrives in this canvas; normally the owner's `.id(pageId)` makes that impossible.
+        private(set) var ledger: InkLedger
+        private let deviceId: String?
 
         private weak var container: InkCanvasContainerView?
         private var canvas: PKCanvasView? { container?.canvasView }
@@ -164,7 +176,7 @@ extension InkCanvasView {
         }()
 
         /// The layout the canvas currently shows (strokes placed, contentSize set, paper drawn).
-        private var appliedLayout: MonthPageLayout
+        private var appliedLayout: any PageLayout
         private var appliedTool: CanvasTool?
         private var publishedSignature: PageSignature
         private var lastUndoTrigger: Int
@@ -176,24 +188,31 @@ extension InkCanvasView {
         private var settleGeneration = 0
         /// The drawing must be rebuilt (layout geometry, page reload, undo / redo).
         private var pendingDrawing = false
-        /// The paper content changed (titles, chips, lanes …); rebuilt together with the drawing.
+        /// The paper content changed (now line, chips, lanes …); rebuilt together with the drawing.
         private var pendingPaper = false
         private var pendingHistory: [HistoryAction] = []
-        /// A different page id arrived: scroll to the top instead of compensating.
+        /// A different page id arrived: fit the zoom again and scroll to `initialScrollY` instead
+        /// of compensating.
         private var resetScroll = false
         private var isApplyingDrawing = false
         private var isUpdating = false
+        /// The fit-to-width zoom (and with it `initialScrollY`) has been applied once.
         private var hasInitialZoom = false
 
         init(parent: InkCanvasView) {
             self.parent = parent
-            ledger = InkLedger(
-                page: parent.page,
-                layout: parent.layout,
-                deviceId: UIDevice.current.identifierForVendor?.uuidString
-            )
+            let deviceId = UIDevice.current.identifierForVendor?.uuidString
+            self.deviceId = deviceId
+            // The ledger never mixes pages: when the first `page` does not belong to `layout` yet
+            // (SwiftUI update order), start empty for the layout's page and wait for the real page
+            // (it arrives through `update(from:)` once both agree).
+            let page = parent.page.pageId == parent.layout.pageId
+                ? parent.page
+                : InkPage.empty(pageId: parent.layout.pageId)
+            let ledger = InkLedger(page: page, layout: parent.layout, deviceId: deviceId)
+            self.ledger = ledger
             appliedLayout = parent.layout
-            publishedSignature = PageSignature(parent.page)
+            publishedSignature = PageSignature(ledger.page)
             lastUndoTrigger = parent.undoTrigger
             lastRedoTrigger = parent.redoTrigger
             // A local so nothing on `self` is read before super.init (two-phase initialisation).
@@ -224,27 +243,32 @@ extension InkCanvasView {
         /// Called from `updateUIView`. Never touches the drawing directly: everything that would
         /// move the paper is queued and applied through `requestApply()`.
         func update(from newParent: InkCanvasView) {
+            // Contract §2.2: while `page` and `layout` disagree about the page, do nothing at all
+            // (not even keep the new values, so a pending apply cannot see a mixed pair).
+            guard newParent.page.pageId == newParent.layout.pageId else { return }
             parent = newParent
             guard let canvas else { return }
             isUpdating = true
             defer { isUpdating = false }
 
-            // 1. A page from outside (new month, merge, import)?
+            // 1. The page: another page id (new ledger), or the same page from outside (merge, import).
             let signature = PageSignature(newParent.page)
-            if signature != publishedSignature {
-                let samePage = signature.pageId == publishedSignature.pageId
-                ledger.reload(page: newParent.page, keepHistory: samePage)
+            if signature.pageId != ledger.page.pageId {
+                ledger = InkLedger(page: newParent.page, layout: newParent.layout, deviceId: deviceId)
                 publishedSignature = signature
                 pendingDrawing = true
-                if !samePage {
-                    resetScroll = true
-                    pendingHistory.removeAll()
-                }
+                resetScroll = true
+                pendingHistory.removeAll()
+                notifyHistory()
+            } else if signature != publishedSignature {
+                ledger.reload(page: newParent.page, keepHistory: true)
+                publishedSignature = signature
+                pendingDrawing = true
                 notifyHistory()
             }
 
-            // 2. Layout geometry (cells / size) and paper content.
-            if !Self.sameGeometry(appliedLayout, newParent.layout) {
+            // 2. Layout geometry (kind / page / size / cells) and paper content.
+            if !appliedLayout.sameGeometry(as: newParent.layout) {
                 pendingDrawing = true
             }
             if let paperView = container?.paperView, paperView.content != newParent.paper {
@@ -306,13 +330,15 @@ extension InkCanvasView {
             let newLayout = parent.layout
             let zoom = max(canvas.zoomScale, 0.0001)
             let topVisibleY = canvas.contentOffset.y / zoom
-            let geometryChanged = !Self.sameGeometry(oldLayout, newLayout)
+            let geometryChanged = !oldLayout.sameGeometry(as: newLayout)
 
             if drawingWork {
                 setDrawing(ledger.relayout(newLayout), on: canvas)
                 appliedLayout = newLayout
                 canvas.contentSize = Self.scaled(newLayout.size, by: zoom)
             }
+            // Paper-only changes (the now line moved, `isPast` flipped) land here without touching
+            // the drawing.
             if container.paperView.content != parent.paper {
                 container.paperView.content = parent.paper
             }
@@ -320,9 +346,12 @@ extension InkCanvasView {
 
             if resetScroll {
                 resetScroll = false
-                canvas.contentOffset = .zero
+                // A new page in this canvas: fit the zoom to its width (1000 or 1400) again and
+                // start at its `initialScrollY`, exactly like a freshly created canvas.
+                hasInitialZoom = false
+                containerDidLayout()
             } else if drawingWork, geometryChanged {
-                let delta = MonthLayoutEngine.scrollDelta(old: oldLayout, new: newLayout, topVisibleY: topVisibleY)
+                let delta = PageScroll.scrollDelta(old: oldLayout, new: newLayout, topVisibleY: topVisibleY)
                 let target = CGPoint(x: canvas.contentOffset.x, y: (topVisibleY + delta) * zoom)
                 canvas.contentOffset = clampedOffset(target)
             }
@@ -345,13 +374,14 @@ extension InkCanvasView {
         // MARK: Geometry
 
         /// Recomputes the fit-to-width zoom when the container's size changes (first layout,
-        /// rotation, split view). A paper at fit width stays at fit width; a zoomed-in paper keeps
-        /// the point at the centre of the viewport in the centre.
+        /// rotation, split view) or a page of another width replaced the layout. A paper at fit
+        /// width stays at fit width; a zoomed-in paper keeps the point at the centre of the viewport
+        /// in the centre. The very first time, the paper is scrolled to `initialScrollY`.
         func containerDidLayout() {
             guard let container, let canvas else { return }
             let viewport = container.bounds.size
             guard viewport.width > 0, viewport.height > 0 else { return }
-            let fit = viewport.width / PaperSpec.monthWidth
+            let fit = viewport.width / max(appliedLayout.size.width, 1)
             let oldMin = canvas.minimumZoomScale
             let oldZoom = max(canvas.zoomScale, 0.0001)
             if hasInitialZoom, abs(fit - oldMin) < 0.0005 {
@@ -374,7 +404,9 @@ extension InkCanvasView {
                     y: centerPaper.y * newZoom - viewport.height / 2
                 ))
             } else {
-                canvas.contentOffset = .zero
+                // Contract §2.2: the initial scroll is paper lu × the fit zoom, clamped to the paper.
+                let y = parent.initialScrollY.isFinite ? max(0, parent.initialScrollY) : 0
+                canvas.contentOffset = clampedOffset(CGPoint(x: 0, y: y * newZoom))
             }
             hasInitialZoom = true
             syncPaperFrame()
@@ -400,10 +432,6 @@ extension InkCanvasView {
             let maxX = max(0, canvas.contentSize.width - container.bounds.width)
             let maxY = max(0, canvas.contentSize.height - container.bounds.height)
             return CGPoint(x: min(max(point.x, 0), maxX), y: min(max(point.y, 0), maxY))
-        }
-
-        private static func sameGeometry(_ a: MonthPageLayout, _ b: MonthPageLayout) -> Bool {
-            a.size == b.size && a.cells == b.cells
         }
 
         private static func scaled(_ size: CGSize, by zoom: CGFloat) -> CGSize {
@@ -467,6 +495,8 @@ extension InkCanvasView {
             guard !change.isEmpty else { return }
             publishPage()
             notifyHistory()
+            // Only cells that grow with ink ask for a relayout (`needsMoreRoom` is false on the time
+            // grid); an erased stroke may have been holding any growing cell open.
             let needsRoom = change.added.contains { ledger.needsMoreRoom($0) }
             if needsRoom || !change.removedIds.isEmpty {
                 deliver { [weak self] in self?.parent.onInkBoundsChanged() }

@@ -5,9 +5,9 @@ import Layout
 import PencilKit
 
 // This file deliberately imports no UIKit so it can be type-checked against the macOS SDK on a Mac
-// without Xcode (docs/M2_CONTRACT.md §8). Colours go through InkColors (InkTools.swift).
+// without Xcode (docs/M2_CONTRACT.md §8, M3A_CONTRACT.md §2.2). Colours go through InkColors (InkTools.swift).
 
-/// What one `canvasViewDrawingDidChange` did to the ledger (contract §3).
+/// What one `canvasViewDrawingDidChange` did to the ledger (M2 contract §3).
 struct InkChange {
     var added: [InkStroke]
     var removedIds: [String]
@@ -99,6 +99,8 @@ enum InkOp {
 // MARK: - Ledger
 
 /// The ledger of one page's handwriting and its bridge to `PKCanvasView` (DESIGN.md §3.3–3.5, §3.13).
+/// Works for any page (month / week / day / year) through `PageLayout` (M3A_CONTRACT.md §2.1):
+/// the layout owns the cell rectangles, the cell a new stroke belongs to, and which cells grow.
 ///
 /// - `drawing()` turns the ledger into a `PKDrawing`: each stroke keeps its cell-relative control
 ///   points and is placed with a translation `transform` to its cell's top-left corner.
@@ -107,12 +109,20 @@ enum InkOp {
 ///   the canvas lost were erased (they get a tombstone).
 /// - History is the ledger's own (add / remove ops, newest 200). Undoing a deletion re-adds *clones
 ///   with new ids*, because a tombstoned id can never come back (same rule as the web version).
+/// - The ledger never mixes pages: `page.pageId == layout.pageId` always holds. A `reload` or
+///   `relayout` with another page id is a programming error of the owner; it is reported through
+///   `onPageMismatch` (an assertion in Debug) and ignored.
 @MainActor
 final class InkLedger {
     static let historyLimit = 200
 
+    /// Called with a message when a page / layout pair with different ids reaches the ledger. The
+    /// default is `assertionFailure` (contract §2.1: assert in Debug, ignore in Release); the unit
+    /// tests replace it to exercise the ignore path.
+    static var onPageMismatch: (String) -> Void = { message in assertionFailure(message) }
+
     private(set) var page: InkPage
-    private(set) var layout: MonthPageLayout
+    private(set) var layout: any PageLayout
     /// Written into `InkStroke.dev` of new strokes (the app passes `identifierForVendor`).
     var deviceId: String?
 
@@ -124,8 +134,16 @@ final class InkLedger {
     private var undoStack: [InkOp] = []
     private var redoStack: [InkOp] = []
 
-    init(page: InkPage, layout: MonthPageLayout, deviceId: String? = nil) {
-        self.page = page
+    /// `page` and `layout` must be the same page (`page.pageId == layout.pageId`). The owner builds
+    /// both from one page id, so a mismatch here is reported like `reload` / `relayout`; the ledger
+    /// then starts with an empty page for the layout rather than mixing two pages.
+    init(page: InkPage, layout: any PageLayout, deviceId: String? = nil) {
+        if page.pageId == layout.pageId {
+            self.page = page
+        } else {
+            Self.onPageMismatch("InkLedger: page \(page.pageId) does not belong to layout \(layout.pageId)")
+            self.page = InkPage.empty(pageId: layout.pageId)
+        }
         self.layout = layout
         self.deviceId = deviceId
     }
@@ -133,9 +151,14 @@ final class InkLedger {
     var canUndo: Bool { !undoStack.isEmpty }
     var canRedo: Bool { !redoStack.isEmpty }
 
-    /// Replaces the page (a new month, or a merge from elsewhere). The history is kept only when the
-    /// caller says so (same page id); its ops are harmless against a merged page.
+    /// Replaces the page (a merge from elsewhere, an import). The history is kept only when the
+    /// caller says so; its ops are harmless against a merged page.
+    /// A page of another id is ignored (reported through `onPageMismatch`): the ledger never mixes pages.
     func reload(page: InkPage, keepHistory: Bool) {
+        guard page.pageId == layout.pageId else {
+            Self.onPageMismatch("InkLedger.reload: page \(page.pageId) does not belong to layout \(layout.pageId)")
+            return
+        }
         self.page = page
         if !keepHistory {
             undoStack.removeAll()
@@ -155,10 +178,11 @@ final class InkLedger {
         var ids: [String] = []
         var strokes: [PKStroke] = []
         let live = page.liveStrokes
+        let cells = layout.cells
         map.reserveCapacity(live.count)
         strokes.reserveCapacity(live.count)
         for stroke in live {
-            guard !stroke.points.isEmpty, let cell = layout.cells[stroke.cell] else { continue }
+            guard !stroke.points.isEmpty, let cell = cells[stroke.cell] else { continue }
             let pk = Self.makePKStroke(stroke, cellOrigin: cell.origin, avoiding: map)
             map[StrokeGeometry.fingerprint(of: pk)] = stroke.id
             ids.append(stroke.id)
@@ -184,15 +208,22 @@ final class InkLedger {
     }
 
     /// Relayout (only while the pen is up): new cell rectangles, same points, new transforms.
-    func relayout(_ layout: MonthPageLayout) -> PKDrawing {
-        self.layout = layout
+    /// A layout of another page is ignored (reported through `onPageMismatch`); the drawing of the
+    /// current layout is returned so the canvas keeps showing what it already shows.
+    func relayout(_ layout: any PageLayout) -> PKDrawing {
+        if layout.pageId == page.pageId {
+            self.layout = layout
+        } else {
+            Self.onPageMismatch("InkLedger.relayout: layout \(layout.pageId) does not belong to page \(page.pageId)")
+        }
         return drawing()
     }
 
     // MARK: PKDrawing → ledger
 
-    /// Diffs the canvas against the map. New strokes get a UUID and a cell (the cell under the centre
-    /// of their paper-space bounds; the memo cell if none); erased strokes get tombstones.
+    /// Diffs the canvas against the map. New strokes get a UUID and a cell (the layout's
+    /// `inkCell(forCenter:)` of the centre of their paper-space bounds, which never fails);
+    /// erased strokes get tombstones.
     func applyCanvasChange(_ drawing: PKDrawing) -> InkChange {
         var seen = Set<StrokeFingerprint>()
         var added: [InkStroke] = []
@@ -243,9 +274,11 @@ final class InkLedger {
         return InkChange(added: added, removedIds: removedIds)
     }
 
-    /// True when the stroke's bottom needs more room than its cell currently has (the row must grow).
+    /// True when the stroke's bottom needs more room than its cell currently has (the cell must
+    /// grow). Always false for a cell that does not grow with ink (the week / day time grid, contract
+    /// §1.10): writing there never triggers a relayout.
     func needsMoreRoom(_ stroke: InkStroke) -> Bool {
-        guard let cell = layout.cells[stroke.cell] else { return false }
+        guard layout.growsWithInk(stroke.cell), let cell = layout.cells[stroke.cell] else { return false }
         let pad = stroke.cell.isMemo ? PaperSpec.memoInkPad : PaperSpec.inkPad
         return stroke.bottom + pad > cell.height
     }
@@ -348,7 +381,10 @@ final class InkLedger {
 
     private func makeInkStroke(from pk: PKStroke, now: Int) -> InkStroke {
         let bounds = StrokeGeometry.paperBounds(of: pk)
-        let cell = cellFor(bounds: bounds)
+        // The layout decides the cell, including every fallback (off the paper, the time gutter of
+        // the week / day page, the date gutter of the year page: contract §1.6–1.8). The point may
+        // then be left of or above the cell, so cell-relative coordinates can be negative.
+        let cell = layout.inkCell(forCenter: CGPoint(x: bounds.midX, y: bounds.midY))
         let origin = layout.cells[cell]?.origin ?? .zero
         let tool = InkModel.InkTool(inkType: pk.ink.inkType)
         let color = InkColors.hex(of: pk.ink.color) ?? InkPresets.fallbackColorHex(for: tool)
@@ -363,20 +399,6 @@ final class InkLedger {
             dev: deviceId,
             points: StrokeGeometry.cellRelativePoints(pk, cellOrigin: origin)
         )
-    }
-
-    /// The cell under the centre of the stroke's bounds; if the centre is off the paper, the nearest
-    /// cell (centre clamped into the paper); the memo cell as the last resort.
-    private func cellFor(bounds: CGRect) -> CellKey {
-        let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        if let cell = layout.cell(at: center) { return cell }
-        let size = layout.size
-        let clamped = CGPoint(
-            x: min(max(center.x, 0), max(size.width - 0.001, 0)),
-            y: min(max(center.y, 0), max(size.height - 0.001, 0))
-        )
-        if let cell = layout.cell(at: clamped) { return cell }
-        return CellKey.memo
     }
 
     private static func nowMs() -> Int {
