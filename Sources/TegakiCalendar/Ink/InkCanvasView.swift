@@ -104,6 +104,11 @@ final class InkCanvasContainerView: UIView {
         clipsToBounds = true
         addSubview(paperView)
         addSubview(canvasView)
+        // The canvas is a separate layer above the paper, so PencilKit's translucent marker would
+        // otherwise paint over the date numbers and event chips. Multiply-blending the whole canvas
+        // layer with what is below makes the marker behave like a real highlighter (text stays
+        // readable through it) while the dark pen colours look the same on the cream paper.
+        canvasView.layer.compositingFilter = "multiplyBlendMode"
     }
 
     @available(*, unavailable)
