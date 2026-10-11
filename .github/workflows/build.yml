@@ -1,0 +1,108 @@
+# Builds the app for the iOS Simulator and runs the unit tests on an iPad simulator.
+# Public repository → GitHub-hosted macOS runners are free. No artifacts are uploaded.
+name: build
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test (iOS Simulator)
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          xcodebuild -project TegakiCalendar.xcodeproj -list
+
+      - name: Build for the iOS Simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # Prefers "iPad Pro 13-inch (M4)", then any available iPad, then any available iPhone,
+      # and as a last resort the literal "iPhone 17" (so the step itself never fails).
+      - name: Pick a simulator (iPad preferred)
+        id: simulator
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices available
+          NAME="$(xcrun simctl list -j devices available | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          names = []
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name"):
+                      names.append(d["name"])
+          ipads = [n for n in names if n.startswith("iPad")]
+          iphones = [n for n in names if n.startswith("iPhone")]
+          preferred = "iPad Pro 13-inch (M4)"
+          if preferred in ipads:
+              print(preferred)
+          elif ipads:
+              print(ipads[0])
+          elif iphones:
+              print(iphones[0])
+          else:
+              print("")
+          ' || true)"
+          if [ -z "$NAME" ]; then
+            echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
+            NAME="iPhone 17"
+          fi
+          echo "Using simulator: $NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Run unit tests on the simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }}" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test
