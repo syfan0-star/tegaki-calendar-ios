@@ -147,7 +147,8 @@ final class WeekLayoutEngineTests: XCTestCase {
         var overlapping = page
         overlapping.allDayBars.append(AllDayBar(eventId: "fake-bar", frame: CGRect(x: colX2, y: 60 + 800, width: colW, height: 40), row: 0, lane: 0, continuesLeft: false, continuesRight: false, colorHex: "#000000", title: "x"))
         XCTAssertEqual(overlapping.hit(at: CGPoint(x: colX2 + 10, y: 60 + 810)), .timedBox(id("打合せ")), "a box wins over a bar at the same point")
-        XCTAssertEqual(overlapping.hit(at: CGPoint(x: colX2 + 10, y: 60 + 835)), .allDayBar("fake-bar"), "the bar is hit beside the box")
+        // Right of 打合せ's column (column 0 of 2) and above 電話 (which starts at 10:30 = grid y 840): only the bar is there.
+        XCTAssertEqual(overlapping.hit(at: CGPoint(x: colX2 + 2 + w2 + 10, y: 60 + 835)), .allDayBar("fake-bar"), "the bar is hit beside the box")
     }
 
     func testCellsAndInkCells() {
