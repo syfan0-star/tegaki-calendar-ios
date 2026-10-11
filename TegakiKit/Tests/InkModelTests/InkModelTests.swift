@@ -71,7 +71,11 @@ final class InkModelTests: XCTestCase {
         XCTAssertFalse(InkStroke.isValidId(""))
         XCTAssertFalse(InkStroke.isValidId(String(repeating: "x", count: 129)))
         XCTAssertEqual(InkStroke.newId().count, 36)
-        XCTAssertEqual(InkStroke.newId(), InkStroke.newId().lowercased() == InkStroke.newId() ? "" : InkStroke.newId(), "ids are random")
+        let id1 = InkStroke.newId()
+        let id2 = InkStroke.newId()
+        XCTAssertNotEqual(id1, id2, "ids are random")
+        XCTAssertEqual(id1, id1.lowercased(), "ids are lower case")
+        XCTAssertTrue(InkStroke.isValidId(id1))
         XCTAssertEqual(stroke("x", points: [point(0, 90, size: 3.5), point(5, 100, size: 18)]).bottom, 109)
         XCTAssertEqual(stroke("x", points: []).bottom, 0)
     }
