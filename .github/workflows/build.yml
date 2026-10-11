@@ -132,7 +132,8 @@ jobs:
       # ---- Screenshots of the running app (best effort; never fails the job) ----
       # The app is launched with "--screenshot-mode" (Sources/TegakiCalendar/Support/ScreenshotMode.swift):
       # no onboarding, no EventKit, deterministic demo events for 2026-10 and a few preloaded ink
-      # strokes. simctl cannot rotate or tap, so a second launch asks the app itself for landscape.
+      # strokes. simctl cannot tap or rotate the device, and iPadOS refuses a programmatic orientation
+      # change for an app that supports multitasking, so there is one portrait shot only.
       # The steps run even when the unit tests failed (the app was still built); the upload always runs.
       - name: Resolve the simulator UDID
         id: simudid
@@ -172,6 +173,8 @@ jobs:
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl ui "$UDID" appearance light
+          # A fixed status bar, so two runs produce the same pixels.
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
 
       - name: Install the app on the simulator
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
@@ -199,20 +202,6 @@ jobs:
           sleep 8
           pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (crashed?)"
           xcrun simctl io "$UDID" screenshot shots/ipad-portrait-month.png
-          ls -la shots
-
-      - name: Screenshot (landscape, best effort)
-        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          UDID="${{ steps.simudid.outputs.udid }}"
-          mkdir -p shots
-          xcrun simctl terminate "$UDID" com.syfan0.tegakicalendar 2>/dev/null || true
-          xcrun simctl launch "$UDID" com.syfan0.tegakicalendar --screenshot-mode --screenshot-month 2026-10 --screenshot-landscape
-          sleep 8
-          pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (crashed?)"
-          xcrun simctl io "$UDID" screenshot shots/ipad-landscape-month.png
           ls -la shots
 
       - name: Collect the app log and crash reports

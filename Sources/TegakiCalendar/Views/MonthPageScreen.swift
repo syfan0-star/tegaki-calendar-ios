@@ -278,10 +278,8 @@ struct MonthPageScreen: View {
             allowFingerChosen = true
             allowFinger = UIDevice.current.userInterfaceIdiom != .pad
         }
-        if let screenshot = ScreenshotMode.current {
-            // CI screenshots: no onboarding, no permission dialog; landscape when asked for.
-            if screenshot.landscape { ScreenshotMode.requestLandscape() }
-        } else if !onboardingDone {
+        // CI screenshot mode never shows the onboarding (and so never asks for calendar access).
+        if !onboardingDone, !ScreenshotMode.isActive {
             if model.status == .notDetermined {
                 showOnboarding = true
             } else {

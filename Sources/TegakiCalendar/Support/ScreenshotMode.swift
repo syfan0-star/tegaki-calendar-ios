@@ -1,17 +1,16 @@
 import Foundation
 import InkModel
 import Layout
-import UIKit
 
 /// Screenshot mode for CI (docs/M2.md §2.1): the app launched with `--screenshot-mode` skips the
 /// onboarding, never asks EventKit for anything, shows deterministic demo events for the month given
 /// by `--screenshot-month YYYY-MM` (default: the current month), treats a fixed instant as 「今日」, and
-/// preloads a few ink strokes in memory (nothing is saved). `--screenshot-landscape` additionally asks
-/// UIKit for a landscape interface. Never active unless `--screenshot-mode` is present.
+/// preloads a few ink strokes in memory (nothing is saved). Never active unless `--screenshot-mode`
+/// is present. (No landscape variant: iPadOS refuses a programmatic orientation change for an app
+/// that supports multitasking, and simctl cannot rotate the device.)
 enum ScreenshotMode {
     struct Config: Equatable, Sendable {
         var month: YearMonth
-        var landscape: Bool
         /// The instant that counts as "now" (the 「今日」 mark), so a screenshot never depends on the clock.
         var today: Date
     }
@@ -28,8 +27,7 @@ enum ScreenshotMode {
            let parsed = parseMonth(arguments[index + 1]) {
             month = parsed
         }
-        let landscape = arguments.contains("--screenshot-landscape")
-        return Config(month: month, landscape: landscape, today: todayInstant(for: month))
+        return Config(month: month, today: todayInstant(for: month))
     }
 
     /// "2026-10" → 2026年10月; nil for anything else.
@@ -180,28 +178,5 @@ enum ScreenshotMode {
         page.add(InkStroke(id: "demo-stroke-dot", cell: .memo, tool: .pen, color: "#dc2626", t: base + 2_000, points: dot))
 
         return page
-    }
-
-    // MARK: - Landscape
-
-    /// Asks every window scene for a landscape interface (iOS 16 public API). On an iPad whose app
-    /// supports multitasking the system may keep the device orientation; the error, if any, is logged.
-    @MainActor
-    static func requestLandscape() {
-        for scene in UIApplication.shared.connectedScenes {
-            guard let windowScene = scene as? UIWindowScene else { continue }
-            windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
-                NSLog("ScreenshotMode: landscape request failed: %@", error.localizedDescription)
-            }
-        }
-    }
-}
-
-/// The app delegate exists only to answer the supported orientations: landscape in
-/// `--screenshot-landscape`, otherwise everything (the same as the Info.plist).
-@MainActor
-final class ScreenshotAppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        ScreenshotMode.current?.landscape == true ? .landscapeRight : .all
     }
 }
