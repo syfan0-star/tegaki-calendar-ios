@@ -1,5 +1,5 @@
 // swift-tools-version:5.9
-// TegakiKit: the pure (Foundation-only) part of 手書きカレンダー.
+// TegakiKit: the pure (Foundation-only) part of てがきカレンダー.
 //
 // DayKit    — DayKey / YearMonth (calendar-day arithmetic shared by every other target)
 // Holidays  — Japanese national holidays (rule based, 2000–2099)

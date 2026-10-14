@@ -1,4 +1,4 @@
-# 手書きカレンダー（iPad アプリ版）
+# てがきカレンダー（iPad アプリ版）
 
 iPad の「カレンダー」に入っている予定（Google カレンダーを含む）の上に、Apple Pencil で手書きできる **iPad 用のアプリ** です。
 Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使い勝手を、App Store で売れる本物のアプリとして作り直しています。
@@ -166,7 +166,7 @@ docs/                               設計書・契約・実装結果・価格�
 
 ## 対応機種・条件
 
-- アプリ名: **手書きカレンダー**（Bundle ID: `com.syfan0.tegakicalendar`）
+- アプリ名: **てがきカレンダー**（Bundle ID: `com.syfan0.tegakicalendar`）
 - iPadOS / iOS 17 以降（iPhone でも動きますが、主役は iPad と Apple Pencil です）
 - 縦向き・横向きのどちらでも使えます
 - 配信は日本を中心に、EU を除く予定です（理由は [docs/APPLE_ENROLLMENT.md 4-5](docs/APPLE_ENROLLMENT.md)）
