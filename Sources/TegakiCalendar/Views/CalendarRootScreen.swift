@@ -219,7 +219,9 @@ struct CalendarRootScreen: View {
                 onImportWeb: importWeb,
                 onEraseAllInk: eraseAllInk,
                 onResolveAccountChange: resolveAccountChangeFromSettings,
-                onDone: { showSettings = false }
+                onDone: { showSettings = false },
+                // The CI's `sync` screenshot scrolls to the 「同期」 section (M4 contract §6.6).
+                scrollToSyncOnAppear: ScreenshotMode.current?.sheet == .sync
             )
         }
         .sheet(isPresented: $showImportPicker) {

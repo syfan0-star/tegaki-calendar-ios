@@ -21,6 +21,9 @@ struct SettingsScreen: View {
     /// 「新しいアカウントで使い始める…」: the owner shows the account question (§6.4).
     var onResolveAccountChange: () -> Void
     var onDone: () -> Void
+    /// Screenshot mode's `sync` sheet (M4 contract §6.6): scroll to the 「同期」 section once the form
+    /// is on screen, because the section sits below the fold on an iPad (DESIGN §2.8 order).
+    var scrollToSyncOnAppear: Bool = false
 
     @Environment(\.openURL) private var openURL
     @State private var eraseInkAfterConvert: Bool = ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
@@ -29,6 +32,9 @@ struct SettingsScreen: View {
     @State private var requestingAccess = false
     /// 「今すぐ同期」 shows a spinner for one second after the tap.
     @State private var syncingNow = false
+
+    /// The id of the first row of the 「同期」 section (the scroll target of `scrollToSyncOnAppear`).
+    private static let syncRowId = "sync-section"
 
     /// Provisional URLs (M5 fixes them).
     static let termsURL = URL(string: "https://syfan0-star.github.io/tegaki-calendar/ios/terms.html")!
@@ -87,41 +93,52 @@ struct SettingsScreen: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                calendarSection
-                inputSections
-                syncSection
-                dataSection
-                purchaseSection
-                infoSection
-            }
-            .navigationTitle("設定")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完了", action: onDone)
-                        .fontWeight(.semibold)
+            ScrollViewReader { proxy in
+                Form {
+                    calendarSection
+                    inputSections
+                    syncSection
+                    dataSection
+                    purchaseSection
+                    infoSection
                 }
-            }
-            .confirmationDialog(eraseQuestion, isPresented: $confirmEraseStep1, titleVisibility: .visible) {
-                Button("消す", role: .destructive) {
-                    // The second question is an alert; it can only appear once the dialog is gone.
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(0.35))
-                        confirmEraseStep2 = true
+                .navigationTitle("設定")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("完了", action: onDone)
+                            .fontWeight(.semibold)
                     }
                 }
-                Button("キャンセル", role: .cancel) {}
-            }
-            .alert("本当に消しますか？", isPresented: $confirmEraseStep2) {
-                Button("全て消す", role: .destructive, action: onEraseAllInk)
-                Button("キャンセル", role: .cancel) {}
-            } message: {
-                Text(eraseWarning)
-            }
-            .onChange(of: eraseInkAfterConvert) {
-                guard !ScreenshotMode.isActive else { return }
-                AppSettings.eraseInkAfterConvert = eraseInkAfterConvert
+                .confirmationDialog(eraseQuestion, isPresented: $confirmEraseStep1, titleVisibility: .visible) {
+                    Button("消す", role: .destructive) {
+                        // The second question is an alert; it can only appear once the dialog is gone.
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(0.35))
+                            confirmEraseStep2 = true
+                        }
+                    }
+                    Button("キャンセル", role: .cancel) {}
+                }
+                .alert("本当に消しますか？", isPresented: $confirmEraseStep2) {
+                    Button("全て消す", role: .destructive, action: onEraseAllInk)
+                    Button("キャンセル", role: .cancel) {}
+                } message: {
+                    Text(eraseWarning)
+                }
+                .onChange(of: eraseInkAfterConvert) {
+                    guard !ScreenshotMode.isActive else { return }
+                    AppSettings.eraseInkAfterConvert = eraseInkAfterConvert
+                }
+                .onAppear {
+                    guard scrollToSyncOnAppear else { return }
+                    // The list needs a layout pass before it can scroll; the row lands a little below
+                    // the top so the 「同期」 header stays in view.
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(0.4))
+                        proxy.scrollTo(Self.syncRowId, anchor: UnitPoint(x: 0.5, y: 0.08))
+                    }
+                }
             }
         }
     }
@@ -307,6 +324,7 @@ struct SettingsScreen: View {
                     .foregroundStyle(status.isError ? Color.red : Color.secondary)
                     .multilineTextAlignment(.trailing)
             }
+            .id(Self.syncRowId)
             HStack {
                 Text("最後に同期")
                 Spacer()
