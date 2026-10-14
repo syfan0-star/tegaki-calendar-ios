@@ -332,7 +332,7 @@ final class EventRangeTests: XCTestCase {
         let inked = F.monthLayout([], ink: [.day(F.day(2026, 10, 7)): 300])
         XCTAssertGreaterThan(inked.memo.minY, 1050)
         XCTAssertEqual(ymd(inked.eventRange(for: rect(300, inked.memo.minY + 10, 700, inked.memo.minY + 50), now: now14, calendar: tokyo)), "2026-10-14")
-        XCTAssertEqual(ymd(inked.eventRange(for: rect(300, 1050, 700, 1060), now: now14, calendar: tokyo)), "2026-11-02", "what used to be the memo area is now the last row")
+        XCTAssertEqual(ymd(inked.eventRange(for: rect(300, 1050, 700, 1060), now: now14, calendar: tokyo)), "2026-11-04", "what used to be the memo area is now the last row (row 5, col 2)")
         // February 2026 (Monday start: grid 1/26 – 3/8): the memo day is the 1st when today is in October.
         let feb = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 2), events: [], inkBottoms: [:], now: now14, calendar: tokyo))
         XCTAssertEqual(ymd(feb.eventRange(for: memo, now: now14, calendar: tokyo)), "2026-02-01")
