@@ -137,10 +137,13 @@ struct ToolbarView: View {
         }
     }
 
+    /// A concrete colour rather than the hierarchical `.secondary`: over the toolbar's material
+    /// SwiftUI renders `.secondary` with vibrancy, which the CI simulator (software rendering) does
+    /// not draw at all, so the hint was invisible in the screenshots.
     private func hint(_ text: String) -> some View {
         Text(text)
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color(uiColor: .secondaryLabel))
             .lineLimit(1)
             .frame(height: 44)
     }
