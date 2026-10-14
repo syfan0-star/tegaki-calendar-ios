@@ -9,7 +9,9 @@ import XCTest
 /// cell under its centre, an erased stroke gets a tombstone, undo re-adds a clone with a fresh id,
 /// a relayout moves the strokes without producing a diff; and on the week / day / year pages the
 /// strokes go to the all-day band, the time grid (which never grows) or the year cell of the date
-/// gutter (January, negative x), and the ledger never mixes pages.
+/// gutter (January, negative x), and the ledger never mixes pages. M4 (contract §5.4, §8.3): a
+/// `reload` keeps the fingerprint map, so a remote update landing while the pen is down neither
+/// duplicates the canvas's strokes nor revives a stroke another device erased.
 @MainActor
 final class InkLedgerTests: XCTestCase {
     private let month = YearMonth(year: 2026, month: 10)
@@ -600,5 +602,85 @@ final class InkLedgerTests: XCTestCase {
         XCTAssertEqual(drawing.strokes.first?.transform.ty ?? -1, grid.minY, accuracy: 0.001, "still placed on the week grid")
 
         XCTAssertEqual(reports.count, 2)
+    }
+
+    // MARK: Remote updates while the pen is down (M4 contract §5.4, §8.3)
+
+    /// A stored pen stroke (cell-relative points) with its own `t`, so its fingerprint is unique.
+    private func makeInkStroke(id: String, cell: CellKey, t: Int, x: CGFloat = 20, y: CGFloat = 30) -> InkStroke {
+        let points = (0..<5).map { i in
+            InkPoint(
+                x: x + CGFloat(i) * 3, y: y + CGFloat(i), dtMs: i * 10,
+                sizeW: 3.5, sizeH: 3.5, opacity: 1, force: 0.5, azimuth: 0, altitude: .pi / 2
+            )
+        }
+        return InkStroke(id: id, cell: cell, tool: .pen, color: "#1f2937", t: t, dev: "test-device", points: points)
+    }
+
+    /// (1) A reload with a page that gained a remote stroke, then the very same drawing the canvas
+    /// still holds: nothing is added (the two strokes are still known) and nothing is removed (the
+    /// remote stroke is not on the canvas yet, but it was never there to be erased).
+    func testReloadKeepsTheFingerprintMapSoTheSameDrawingIsNoChange() {
+        let layout = makeLayout()
+        let day = DayKey(year: 2026, month: 10, day: 7)
+        var page = InkPage.empty(pageId: pageId)
+        page.add(makeInkStroke(id: "local-a", cell: .day(day), t: 1_790_000_000_000))
+        page.add(makeInkStroke(id: "local-b", cell: .day(day), t: 1_790_000_001_000, y: 60))
+        let ledger = InkLedger(page: page, layout: layout)
+        let drawing = ledger.drawing()
+        XCTAssertEqual(drawing.strokes.count, 2)
+        ledger.bind(to: drawing)
+
+        var remote = page
+        remote.add(makeInkStroke(id: "remote-c", cell: .day(day), t: 1_790_000_002_000, y: 90))
+        ledger.reload(page: remote, keepHistory: true)
+        XCTAssertEqual(ledger.page.liveStrokes.count, 3)
+
+        let change = ledger.applyCanvasChange(drawing)
+        XCTAssertTrue(change.added.isEmpty, "the canvas strokes are still known: nothing is re-added under a new id")
+        XCTAssertTrue(change.removedIds.isEmpty, "the remote stroke is not on the canvas yet, but it is not erased either")
+        XCTAssertEqual(Set(ledger.page.liveStrokeIds), ["local-a", "local-b", "remote-c"])
+    }
+
+    /// (2) A reload with a page where another device erased one stroke (and wrote another), then the
+    /// pen lifts with the erased stroke still on the canvas plus one new stroke: only the new stroke
+    /// is added, the erased one stays a tombstone. (3) The rebuilt drawing then has no tombstoned
+    /// stroke and holds the new and the remote one.
+    func testReloadWithARemoteErasureDoesNotReviveItAndOnlyTheNewStrokeIsAdded() {
+        let layout = makeLayout()
+        let day = DayKey(year: 2026, month: 10, day: 7)
+        guard let cell = layout.cells[.day(day)] else { return XCTFail("no cell for \(day)") }
+        var page = InkPage.empty(pageId: pageId)
+        page.add(makeInkStroke(id: "local-a", cell: .day(day), t: 1_790_000_000_000))
+        page.add(makeInkStroke(id: "local-b", cell: .day(day), t: 1_790_000_001_000, y: 60))
+        let ledger = InkLedger(page: page, layout: layout)
+        let drawing = ledger.drawing()
+        XCTAssertEqual(drawing.strokes.count, 2)
+        ledger.bind(to: drawing)
+
+        var remote = page
+        remote.remove(ids: ["local-b"], at: 1_790_000_003_000)
+        remote.add(makeInkStroke(id: "remote-c", cell: .day(day), t: 1_790_000_002_000, y: 90))
+        ledger.reload(page: remote, keepHistory: true)
+        XCTAssertNil(ledger.page.strokes["local-b"])
+        XCTAssertNotNil(ledger.page.deleted["local-b"])
+
+        // The pen lifts: the canvas still shows local-a and local-b (not redrawn yet) plus the new stroke.
+        let fresh = makeStroke(at: CGPoint(x: cell.minX + 80, y: cell.minY + 100), creationDate: Date(timeIntervalSince1970: 1_790_000_010))
+        let change = ledger.applyCanvasChange(PKDrawing(strokes: drawing.strokes + [fresh]))
+        XCTAssertEqual(change.added.count, 1)
+        XCTAssertTrue(change.removedIds.isEmpty)
+        guard let added = change.added.first else { return }
+        XCTAssertEqual(added.cell, CellKey.day(day))
+        XCTAssertNil(ledger.page.strokes["local-b"], "the erased stroke is not revived under its id")
+        XCTAssertNotNil(ledger.page.deleted["local-b"], "its tombstone stays")
+        XCTAssertEqual(Set(ledger.page.liveStrokeIds), ["local-a", "remote-c", added.id], "nothing was re-added under a new id")
+
+        // (3) The rebuilt drawing: no tombstoned stroke; the new and the remote stroke are in it.
+        let rebuilt = ledger.drawing()
+        XCTAssertEqual(rebuilt.strokes.count, 3)
+        ledger.bind(to: rebuilt)
+        XCTAssertEqual(Set(rebuilt.strokes.compactMap { ledger.id(of: $0) }), ["local-a", "remote-c", added.id])
+        XCTAssertTrue(ledger.applyCanvasChange(rebuilt).isEmpty)
     }
 }

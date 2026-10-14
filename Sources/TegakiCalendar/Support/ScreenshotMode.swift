@@ -7,15 +7,18 @@ import Layout
 /// demo events for the month given by `--screenshot-month YYYY-MM` (default: the current month) on
 /// the page given by `--screenshot-page day|week|month|year` (default: month), treats a fixed instant
 /// as 「今日」, and preloads a few ink strokes in memory (nothing is saved). With
-/// `--screenshot-sheet create|edit|lasso|settings` the month page opens one of the M3b sheets (the
-/// create / edit sheet, the lasso selection with its menu, the settings screen) half a second after
-/// the canvas appeared; writes are no-ops. Never active unless `--screenshot-mode` is present.
+/// `--screenshot-sheet create|edit|lasso|settings|sync|import` the month page opens one of the M3b /
+/// M4 sheets (the create / edit sheet, the lasso selection with its menu, the settings screen, the
+/// settings screen with the demo sync engine, the finished web import) half a second after the
+/// canvas appeared; writes are no-ops. The sync engine is `SyncEngine.screenshotDemo(now:)` (M4
+/// contract §6.6): the header shows 「☁ 保存済み」 and nothing touches iCloud. Never active unless
+/// `--screenshot-mode` is present.
 /// (No landscape variant: iPadOS refuses a programmatic orientation change for an app that supports
 /// multitasking, and simctl cannot rotate the device.)
 enum ScreenshotMode {
-    /// The M3b sheets a screenshot can show (`--screenshot-sheet`).
+    /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6).
     enum Sheet: String, CaseIterable, Sendable {
-        case create, edit, lasso, settings
+        case create, edit, lasso, settings, sync, `import`
     }
 
     struct Config: Equatable, Sendable {
@@ -124,6 +127,17 @@ enum ScreenshotMode {
     static func createDemoDay(for month: YearMonth) -> DayKey {
         day(14, of: month)
     }
+
+    // MARK: - Demo sync (M4 contract §6.6)
+
+    /// The 「最後に同期」 of the demo engine (`SyncEngine.screenshotDemo(now:)`): 3 minutes before
+    /// `today` (10:00 on the 7th → 9:57), so the `sync` sheet shows a fixed 「保存済み」 time.
+    static func demoLastSyncAt(for today: Date) -> Date {
+        today.addingTimeInterval(-180)
+    }
+
+    /// What the `import` sheet shows as the finished import: 「Web 版の手書きを取り込みました（12 ページ・348 本）」.
+    static let importDemoOutcome = ImportOutcome(pagesChanged: 12, strokesAdded: 348, pagesSeen: 12)
 
     /// The sample month (designed around 2026-10, whose 1st is a Thursday; day numbers are reused
     /// for any month): timed events on several days, five of them on the 20th (→ 2 chips + 「+3件」);

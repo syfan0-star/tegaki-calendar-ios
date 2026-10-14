@@ -2,8 +2,9 @@ import Layout
 import XCTest
 @testable import TegakiCalendar
 
-/// Screenshot mode (M3a contract §8.3, M3b §6.3): the launch arguments, the fixed 「今日」, the demo
-/// page of every page kind, and the M3b sheets (`--screenshot-sheet`) with their demo calendars.
+/// Screenshot mode (M3a contract §8.3, M3b §6.3, M4 §8.3): the launch arguments, the fixed 「今日」,
+/// the demo page of every page kind, the M3b sheets (`--screenshot-sheet`) with their demo calendars,
+/// and the M4 sheets (`sync`, `import`) with the demo sync values.
 final class ScreenshotModeTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
 
@@ -131,5 +132,37 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(trip?.allDay, true)
         XCTAssertEqual(ScreenshotMode.createDemoDay(for: october), DayKey(year: 2026, month: 10, day: 14))
     }
-}
 
+    // MARK: M4 sheets (M4 contract §6.6, §8.3)
+
+    func testParseM4Sheets() {
+        let sheets: [(String, ScreenshotMode.Sheet)] = [("sync", .sync), ("import", .`import`)]
+        for (name, sheet) in sheets {
+            let config = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-sheet", name])
+            XCTAssertEqual(config?.sheet, sheet, name)
+            XCTAssertEqual(config?.page, .month, name)
+            XCTAssertEqual(config?.month, october, name)
+        }
+        // Unknown values still mean no sheet (the raw values are lower case).
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "Sync"])?.sheet)
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "export"])?.sheet)
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "bogus"])?.sheet)
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 6)
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import"])
+    }
+
+    func testDemoSyncValues() {
+        let today = ScreenshotMode.todayInstant(for: october)
+        XCTAssertEqual(ScreenshotMode.demoLastSyncAt(for: today), today.addingTimeInterval(-180))
+        XCTAssertEqual(ScreenshotMode.demoLastSyncAt(for: today).timeIntervalSince(today), -180, accuracy: 0.001)
+        // 10:00 on the 7th → 9:57 (「最後に同期」 in the `sync` sheet).
+        let minutes = Int(ScreenshotMode.demoLastSyncAt(for: today).timeIntervalSince(DayKey(year: 2026, month: 10, day: 7).startOfDay()) / 60)
+        XCTAssertEqual(minutes, 9 * 60 + 57)
+
+        XCTAssertEqual(ScreenshotMode.importDemoOutcome, ImportOutcome(pagesChanged: 12, strokesAdded: 348, pagesSeen: 12))
+        XCTAssertEqual(ScreenshotMode.importDemoOutcome.pagesChanged, 12)
+        XCTAssertEqual(ScreenshotMode.importDemoOutcome.strokesAdded, 348)
+        XCTAssertEqual(ScreenshotMode.importDemoOutcome.pagesSeen, 12)
+        XCTAssertEqual(WebImportSheet.resultText(ScreenshotMode.importDemoOutcome), "Web 版の手書きを取り込みました（12 ページ・348 本）")
+    }
+}

@@ -2,16 +2,24 @@ import Layout
 import SwiftUI
 import UIKit
 
-/// The settings sheet (M3b contract §4.8, DESIGN §2.8): calendars (shown, default, access, Google
-/// how-to), input (finger, Pencil, erase-after-convert), sync and purchase (「準備中」 until M4 / M5),
-/// data (erase everything, confirmed twice), and the info links.
+/// The settings sheet (M3b contract §4.8, M4 contract §6.2, DESIGN §2.8): calendars (shown, default,
+/// access, Google how-to), input (finger, Pencil, erase-after-convert), sync (the iCloud state, the
+/// last sync, 「今すぐ同期」, the account question), data (import from the web version, export
+/// 「準備中」, erase everything confirmed twice), purchase (「準備中」 until M5), and the info links.
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
+    @ObservedObject var sync: SyncEngine
     @Binding var allowFinger: Bool
     /// 「許可する」 while the permission is undecided.
     var onRequestAccess: () async -> Void
-    /// Called after the second confirmation; the owner removes the files and empties the page.
+    /// 「今すぐ同期」 (`Task { await sync.syncNow() }`).
+    var onSyncNow: () -> Void
+    /// 「Web 版の手書きを取り込む」: the owner closes this sheet and shows the file picker (§6.3).
+    var onImportWeb: () -> Void
+    /// Called after the second confirmation; the owner empties the page and asks the engine (§6.2).
     var onEraseAllInk: () -> Void
+    /// 「新しいアカウントで使い始める…」: the owner shows the account question (§6.4).
+    var onResolveAccountChange: () -> Void
     var onDone: () -> Void
 
     @Environment(\.openURL) private var openURL
@@ -19,6 +27,8 @@ struct SettingsScreen: View {
     @State private var confirmEraseStep1 = false
     @State private var confirmEraseStep2 = false
     @State private var requestingAccess = false
+    /// 「今すぐ同期」 shows a spinner for one second after the tap.
+    @State private var syncingNow = false
 
     /// Provisional URLs (M5 fixes them).
     static let termsURL = URL(string: "https://syfan0-star.github.io/tegaki-calendar/ios/terms.html")!
@@ -28,7 +38,10 @@ struct SettingsScreen: View {
     /// The same steps as the first onboarding card (OnboardingView, DESIGN §2.10).
     static let googleHowTo = "Google カレンダーの予定を出すには、iPad の設定で Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。"
 
-    /// "0.4.0 (1)" from the bundle.
+    /// The data section's footer (M4 contract §6.2).
+    static let importFooter = "Web 版の設定で「手書きを書き出す（iPad アプリ用）」をして、そのファイルを選びます。同じファイルを二度取り込んでも手書きは二重になりません。"
+
+    /// "0.5.0 (1)" from the bundle.
     static var versionText: String {
         let info = Bundle.main.infoDictionary
         let short = (info?["CFBundleShortVersionString"] as? String) ?? "—"
@@ -36,7 +49,41 @@ struct SettingsScreen: View {
         return "\(short) (\(build))"
     }
 
+    /// 「2026/10/07 9:57」 on a Japanese iPad, "10/7/26, 9:57 AM" in CI's English locale.
+    static func timeText(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(date: .numeric, time: .shortened))
+    }
+
+    /// The 「最後に同期」 value: the time, or 「まだありません」.
+    static func lastSyncText(_ date: Date?) -> String {
+        date.map(timeText) ?? "まだありません"
+    }
+
+    /// 「前回の取り込み: 2026/10/14 9:41」 under the data footer; nil when nothing was imported yet.
+    static func webImportedText(_ date: Date?) -> String? {
+        date.map { "前回の取り込み: " + timeText($0) }
+    }
+
+    /// 「今すぐ同期」 is inert while there is no account to sync with or a round is running.
+    static func canSyncNow(_ status: SyncStatus) -> Bool {
+        switch status {
+        case .localOnly, .accountMismatch, .syncing: return false
+        case .synced, .pending, .offline, .error: return true
+        }
+    }
+
+    /// Whether erasing also reaches iCloud (the engine deletes the records in these states; M4
+    /// contract §4.5 の 10). The two confirmations say so.
+    static func erasesCloud(_ status: SyncStatus) -> Bool {
+        switch status {
+        case .synced, .pending, .syncing, .offline, .error: return true
+        case .localOnly, .accountMismatch: return false
+        }
+    }
+
     private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
+    private var status: SyncStatus { sync.snapshot.status }
 
     var body: some View {
         NavigationStack {
@@ -56,7 +103,7 @@ struct SettingsScreen: View {
                         .fontWeight(.semibold)
                 }
             }
-            .confirmationDialog("この iPad に保存した手書きを全て消しますか？", isPresented: $confirmEraseStep1, titleVisibility: .visible) {
+            .confirmationDialog(eraseQuestion, isPresented: $confirmEraseStep1, titleVisibility: .visible) {
                 Button("消す", role: .destructive) {
                     // The second question is an alert; it can only appear once the dialog is gone.
                     Task { @MainActor in
@@ -70,7 +117,7 @@ struct SettingsScreen: View {
                 Button("全て消す", role: .destructive, action: onEraseAllInk)
                 Button("キャンセル", role: .cancel) {}
             } message: {
-                Text("この操作は元に戻せません。")
+                Text(eraseWarning)
             }
             .onChange(of: eraseInkAfterConvert) {
                 guard !ScreenshotMode.isActive else { return }
@@ -249,27 +296,88 @@ struct SettingsScreen: View {
         }
     }
 
-    // MARK: - 同期・データ・購入・情報
+    // MARK: - 同期 (M4 contract §6.2)
 
     private var syncSection: some View {
         Section {
-            preparingRow("iCloud 同期")
+            HStack {
+                Text("iCloud 同期")
+                Spacer()
+                Text(status.settingsText)
+                    .foregroundStyle(status.isError ? Color.red : Color.secondary)
+                    .multilineTextAlignment(.trailing)
+            }
+            HStack {
+                Text("最後に同期")
+                Spacer()
+                Text(Self.lastSyncText(sync.snapshot.lastSyncAt))
+                    .foregroundStyle(.secondary)
+            }
+            Button(action: syncNow) {
+                if syncingNow {
+                    ProgressView()
+                } else {
+                    Text("今すぐ同期")
+                }
+            }
+            .disabled(!Self.canSyncNow(status) || syncingNow)
+            if status == .accountMismatch {
+                Button("新しいアカウントで使い始める…", action: onResolveAccountChange)
+            }
         } header: {
             Text("同期")
         } footer: {
-            Text("iCloud での同期は次の段階で対応します。いまは手書きをこの iPad の中だけに保存しています。")
+            Text(status.settingsFooter)
         }
     }
 
+    /// 「今すぐ同期」: one round now, and a spinner for a second so the tap is seen.
+    private func syncNow() {
+        guard !syncingNow else { return }
+        syncingNow = true
+        onSyncNow()
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            syncingNow = false
+        }
+    }
+
+    // MARK: - データ
+
     private var dataSection: some View {
-        Section("データ") {
-            preparingRow("Web 版の手書きを取り込む")
+        Section {
+            Button("Web 版の手書きを取り込む", action: onImportWeb)
             preparingRow("手書きを書き出す")
             Button("この iPad の手書きを全て消す", role: .destructive) {
                 confirmEraseStep1 = true
             }
+        } header: {
+            Text("データ")
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Self.importFooter)
+                if let imported = Self.webImportedText(sync.snapshot.webImportedAt) {
+                    Text(imported)
+                }
+            }
         }
     }
+
+    /// The first confirmation: whether iCloud's copy goes too.
+    private var eraseQuestion: String {
+        Self.erasesCloud(status)
+            ? "この iPad と iCloud に保存した手書きを全て消しますか？"
+            : "この iPad に保存した手書きを全て消しますか？"
+    }
+
+    /// The second confirmation's message.
+    private var eraseWarning: String {
+        Self.erasesCloud(status)
+            ? "この操作は元に戻せません。ほかの iPad や iPhone の手書きも消えます。"
+            : "この操作は元に戻せません。"
+    }
+
+    // MARK: - 購入・情報
 
     private var purchaseSection: some View {
         Section {

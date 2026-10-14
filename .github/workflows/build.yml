@@ -1,7 +1,9 @@
 # Builds and tests the pure Swift package (TegakiKit) on macOS, then builds the app for the
 # iOS Simulator and runs the app's unit tests on an iPad simulator. Afterwards it launches the app
 # on that simulator in its screenshot mode and uploads the screenshots (artifact "screenshots",
-# kept 7 days) so the app can be looked at without Xcode. The screenshot steps never fail the job.
+# kept 7 days: 4 pages + 6 sheets) so the app can be looked at without Xcode. The screenshot steps
+# never fail the job. Nothing here touches iCloud: the Simulator build is unsigned (the entitlements
+# are not embedded) and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
 name: build
 
@@ -45,10 +47,15 @@ jobs:
           swift --version
           swift build --package-path TegakiKit
 
+      # The count is checked as a number (docs/M4_CONTRACT.md §8.4): M4 added the web import, the sync
+      # state and the backoff sections, so anything below 20400 means a section went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
-          swift run --package-path TegakiKit KitChecks
+          swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
+          N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
+          echo "KitChecks count: ${N:-0} (required: 20400 or more)"
+          test "${N:-0}" -ge 20400
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -136,8 +143,12 @@ jobs:
       # docs/M3A_CONTRACT.md §9), terminated between launches; since M3b four more times on the month
       # page with "--screenshot-sheet create|edit|lasso|settings" (docs/M3B_CONTRACT.md §5, §7), which
       # opens the create / edit sheet, the lasso selection with its menu, or the settings screen half a
-      # second after the canvas appeared. simctl cannot tap or rotate the device, and iPadOS refuses a
-      # programmatic orientation change for an app that supports multitasking, so every shot is portrait.
+      # second after the canvas appeared; since M4 two more sheets, "sync" (the settings screen with the
+      # demo sync engine: 「同期済み」 and 「最後に同期」) and "import" (the finished web import,
+      # docs/M4_CONTRACT.md §6.6). In screenshot mode the sync engine is an inert demo over an in-memory
+      # fake, so nothing here needs an iCloud account. simctl cannot tap or rotate the device, and
+      # iPadOS refuses a programmatic orientation change for an app that supports multitasking, so
+      # every shot is portrait.
       # The steps run even when the unit tests failed (the app was still built); the upload always runs.
       - name: Resolve the simulator UDID
         id: simudid
@@ -212,7 +223,7 @@ jobs:
           done
           ls -la shots
 
-      - name: Screenshots (portrait, 4 sheets on the month page)
+      - name: Screenshots (portrait, 6 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -220,7 +231,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
-          for SHEET in create edit lasso settings; do
+          for SHEET in create edit lasso settings sync import; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET"

@@ -18,13 +18,15 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 | [docs/M3A.md](docs/M3A.md) | M3a の実装結果（作ったもの・確かめ方・本人が見るもの・既知の制限） |
 | [docs/M3B_CONTRACT.md](docs/M3B_CONTRACT.md) | M3b の実装契約（予定の作成・編集・削除、予定ツール、投げなわ、設定画面、iPhone の見た目） |
 | [docs/M3B.md](docs/M3B.md) | M3b の実装結果（作ったもの・確かめ方・本人が見るもの・既知の制限） |
+| [docs/M4_CONTRACT.md](docs/M4_CONTRACT.md) | M4 の実装契約（iCloud 同期、Web 版からの手書きの引っ越し、CloudKit のスキーマ） |
+| [docs/M4.md](docs/M4.md) | M4 の実装結果（作ったもの・確かめ方・本人がやること（CloudKit Console の手順）・本人が見るもの・既知の制限） |
 | [docs/PRICING.md](docs/PRICING.md) | 価格の仮説（月 300 円・年 2,400 円・14 日間無料。数字は本人が決めます） |
 | [docs/APPLE_ENROLLMENT.md](docs/APPLE_ENROLLMENT.md) | Apple Developer Program の登録手順（本人向け） |
 | [docs/TERMS.md](docs/TERMS.md) ／ [docs/PRIVACY.md](docs/PRIVACY.md) ／ [docs/SUPPORT.md](docs/SUPPORT.md) | 利用規約・プライバシーポリシー・サポートページの下書き（公開前に専門家の確認を勧めます） |
 
-## いま出来ていること（第 3 段階 M3b）
+## いま出来ていること（第 4 段階 M4）
 
-月・週・日・年の 4 ページに手書きし、予定を読み取って紙の上に並べ、紙の上から予定を作る・直す・消すところまでです（詳しくは [docs/M2.md](docs/M2.md)、[docs/M3A.md](docs/M3A.md)、[docs/M3B.md](docs/M3B.md)）。
+月・週・日・年の 4 ページに手書きし、予定を読み取って紙の上に並べ、紙の上から予定を作る・直す・消し、手書きをご本人の iCloud でほかの iPad や iPhone と同期し、Web 版の手書きを取り込むところまでです（詳しくは [docs/M2.md](docs/M2.md)、[docs/M3A.md](docs/M3A.md)、[docs/M3B.md](docs/M3B.md)、[docs/M4.md](docs/M4.md)）。
 
 | 機能 | 内容 |
 | --- | --- |
@@ -39,18 +41,20 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 | 投げなわ | 手書きを囲んで選び、枠の中をドラッグで動かす（別の日のマスへ動かすとその日の手書きになります）、「削除」、「予定にする」（囲んだ手書きの画像が付いた作成シート。保存後にその手書きを消すかどうかは設定の初期値どおり）。どれも「元に戻す」が効きます |
 | 伸びる紙 | 月の行、週・日の終日帯、年の行は、予定が多いときと手書きがはみ出したときだけ伸びます（上限あり）。週・日の時間軸は伸びません。見えている場所が動かないようにスクロールも補正します |
 | 手書き | Apple Pencil で書きます。ペン（6 色 × 細・中・太）、マーカー（4 色）、消しゴム（触れた線をまるごと消す）、元に戻す／やり直す。指はスクロール・ピンチ拡大・タップ用（「指でも書く」で指でも書けます）。手書きはページごと（月・週・日・年）に iPad の中へ保存され、最後に見ていたページで開き直します |
+| iCloud 同期 | iPad で iCloud にサインインしていれば自動で、手書きがご本人の iCloud（CloudKit のプライベートデータベース）にも保存され、同じ Apple ID のほかの iPad や iPhone で同じ手書きが見えます。ヘッダー右の ☁ に状態（保存済み／同期中／オフライン／この iPad のみ／エラー／停止中。タップで設定画面）。書いてから約 3 秒で送り、相手の線はアプリを前面に戻したとき・ページを開いたとき・サイレントプッシュが届いたときに取り込みます。オフラインでも全部使え、回線が戻れば送ります。iPad の中のファイルが常に主で、iCloud は「ほかの端末へ届ける経路」と「バックアップ」。別の Apple ID にサインインし直したときは、残すか消すかを聞いてから使い始めます。開発者には手書きは見えません |
+| Web 版からの取り込み | Web 版の設定で「手書きを書き出す（iPad アプリ用）」をすると、全ページ・全端末の手書きが 1 つの JSON ファイルになり、iPad の「ファイル」アプリに入ります。アプリの設定 › データ › 「Web 版の手書きを取り込む」でそのファイルを選ぶと、月・週・日・年の 4 ページに Web 版と同じ位置で入ります（線の id をそのまま使うので、同じファイルを二度取り込んでも二重になりません。Web 版で消した線は戻りません） |
 | Apple Pencil のダブルタップ／スクイーズ | iPad の「設定 › Apple Pencil」で選んだ動作どおりにペン ⇄ 消しゴム |
-| 初回案内 | カレンダーのアカウント → フルアクセスの説明 → ペンと指の使い分け、の 3 枚。最後のボタンで許可の画面が出ます |
-| 設定画面 | ヘッダーの ⚙。表示するカレンダー（アカウントごと）、予定の登録先、カレンダーへのアクセス、Google カレンダーの使い方、指でも書く、予定にした手書きを消す、この iPad の手書きを全て消す（2 回確認）、利用規約・プライバシーポリシー・サポート・バージョン。同期・取り込み・書き出し・購入は「準備中」 |
-| iPhone | ヘッダーが 2 段（切替は 2 段目）、ツールバーは横にスクロール、最初は週ページ、「指でも書く」は最初からオン |
-まだ無いもの（M4 以降）: iCloud 同期、課金・閲覧専用モード、Web 版からの手書きの引っ越し・書き出し、初回案内の 4 枚目（iCloud の説明）。これらは[設計書の段階計画](docs/DESIGN.md#9-段階計画)の順に足していきます。
+| 初回案内 | カレンダーのアカウント → フルアクセスの説明 → ペンと指の使い分け → iCloud と手書きの保存、の 4 枚。最後のボタンで許可の画面が出ます（iCloud に許可の画面はありません） |
+| 設定画面 | ヘッダーの ⚙ か ☁。表示するカレンダー（アカウントごと）、予定の登録先、カレンダーへのアクセス、Google カレンダーの使い方、指でも書く、予定にした手書きを消す、iCloud 同期の状態と「最後に同期」「今すぐ同期」、Web 版の手書きを取り込む、この iPad の手書きを全て消す（2 回確認。iCloud が使える状態なら iCloud の分も消え、ほかの端末からも消えます）、利用規約・プライバシーポリシー・サポート・バージョン。アプリからの書き出しと購入は「準備中」 |
+| iPhone | ヘッダーが 2 段（切替は 2 段目。☁ は記号だけ）、ツールバーは横にスクロール、最初は週ページ、「指でも書く」は最初からオン |
+まだ無いもの（M5 以降）: 課金・閲覧専用モード、アプリからの手書きの書き出し（JSON・PDF・画像）、設定（表示するカレンダーなど）の同期。これらは[設計書の段階計画](docs/DESIGN.md#9-段階計画)の順に足していきます。
 
 ## 仕組み（Web 版との違い）
 
 | | Web 版 | iPad アプリ版 |
 | --- | --- | --- |
 | 予定の読み書き | Google カレンダー API（Google へのログインが必要） | iPad の「カレンダー」経由（EventKit）。iPad の設定で Google アカウントを追加しておけば、その予定がそのまま見えます。Google へのログイン画面は出ません |
-| 手書きの保存 | Google ドライブ | iPad の中（Application Support。JSON を LZFSE で圧縮）。（予定）ご本人の iCloud（CloudKit） |
+| 手書きの保存 | Google ドライブ（1 ページ × 1 端末 = 1 ファイル） | iPad の中（Application Support。JSON を LZFSE で圧縮）が主で、ご本人の iCloud（CloudKit のプライベートデータベース。1 ページ = 1 レコード、衝突は「和集合＋墓標」で merge）にも保存。Google へのログインは要りません |
 | 手書きの描画 | ブラウザの Canvas | iPad 標準の PencilKit（遅れの少ない描画、Apple Pencil のホバーにも対応） |
 | ペン ⇄ 消しゴムの切り替え | 2 本指でページを叩く | Apple Pencil のダブルタップ／スクイーズ（iPad の設定どおり） |
 
@@ -61,13 +65,13 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 このリポジトリは **手元の Mac に Xcode が無くてもビルドできる** ようにしてあります。
 
 - `git push` するたびに、GitHub の macOS マシン（`macos-26`、Xcode 26.6）が自動で次をします（[.github/workflows/build.yml](.github/workflows/build.yml)）。
-  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（20240 項目の検査）→ `swift test`
+  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（20659 項目の検査。20400 以上であることを数字で確かめる）→ `swift test`
   2. `brew install xcodegen` → `xcodegen generate` で Xcode プロジェクト（`TegakiCalendar.xcodeproj`）を作る
   3. iOS シミュレータ向けにビルド（署名なし）
-  4. iPad のシミュレータ（無ければ iPhone）でアプリのユニットテスト（PencilKit の台帳と選択の操作・手書きの画像・予定シートの状態・予定の書き込み・スクリーンショットモード）を実行
-  5. 同じシミュレータでアプリをスクリーンショットモードで 8 回起動し（月・週・日・年の 4 ページと、月ページで「予定を追加」「予定を編集」「投げなわの選択」「設定」の 4 つのシート）、画面を撮って成果物 `screenshots`（7 日保存）に置く
-- 結果は GitHub の「Actions」タブで見られます。緑のチェックなら成功です。成果物の 8 枚の画像で、Xcode が無くても画面を確かめられます。
-- [.github/workflows/testflight.yml](.github/workflows/testflight.yml) は **手動実行** で、署名付きでビルドして TestFlight へ送ります。Apple Developer Program の承認後に 7 つの Secrets（証明書・プロファイル・App Store Connect の API キー）を登録すると使えます。未設定のまま実行すると、何が足りないかを日本語で表示して止まります。
+  4. iPad のシミュレータ（無ければ iPhone）でアプリのユニットテスト（PencilKit の台帳と選択の操作・手書きの画像・予定シートの状態・予定の書き込み・スクリーンショットモード・同期エンジン（メモリ上の偽の iCloud に対して。iCloud アカウントは不要）・レコードの写像・CloudKit の誤りの写像・状態ファイル）を実行
+  5. 同じシミュレータでアプリをスクリーンショットモードで 10 回起動し（月・週・日・年の 4 ページと、月ページで「予定を追加」「予定を編集」「投げなわの選択」「設定」「同期（設定の「同期」の節）」「Web 版の取り込みの結果」の 6 つのシート）、画面を撮って成果物 `screenshots`（7 日保存）に置く
+- 結果は GitHub の「Actions」タブで見られます。緑のチェックなら成功です。成果物の 10 枚の画像で、Xcode が無くても画面を確かめられます。CI のシミュレータは iCloud に触りません（署名なしのビルドで entitlements は埋め込まれず、スクリーンショットモードとテストは偽の iCloud を使います）。
+- [.github/workflows/testflight.yml](.github/workflows/testflight.yml) は **手動実行** で、署名付きでビルドして TestFlight へ送ります。Apple Developer Program の承認後に 7 つの Secrets（証明書・プロファイル・App Store Connect の API キー）を登録すると使えます。未設定のまま実行すると、何が足りないかを日本語で表示して止まります。M4 からは App ID に iCloud（CloudKit）と Push Notifications を付けたプロファイルが必要です（[docs/M4.md §2.3](docs/M4.md)）。
 - 成果物（ビルドしたアプリ）は保存していません。
 
 ## 手元の Mac で確かめる（Xcode が無くても）
@@ -77,10 +81,10 @@ Command Line Tools の `swift` だけで、純粋な部分の検査が通りま�
 ```bash
 cd TegakiKit
 swift build            # DayKit / Holidays / Layout / InkModel / KitChecks をビルド
-swift run KitChecks    # 「KitChecks: all 20240 checks passed」と出れば OK
+swift run KitChecks    # 「KitChecks: all 20659 checks passed」と出れば OK
 ```
 
-アプリ側（UIKit / PencilKit / EventKit）は Xcode でしかコンパイルできないので、構文だけ確かめます。
+アプリ側（UIKit / PencilKit / EventKit / CloudKit）は Xcode でしかコンパイルできないので、構文だけ確かめます。
 
 ```bash
 for f in $(find Sources Tests -name '*.swift'); do swiftc -parse -swift-version 5 "$f"; done
@@ -111,29 +115,33 @@ xcodebuild -project TegakiCalendar.xcodeproj -scheme TegakiCalendar \
 ## フォルダの中身
 
 ```
-project.yml                         XcodeGen の設定（アプリ名・Bundle ID・Info.plist の内容・TegakiKit への依存・テスト）
+project.yml                         XcodeGen の設定（アプリ名・Bundle ID・Info.plist の内容・entitlements・TegakiKit への依存・テスト）
 Support/Info.plist                  xcodegen generate が作る（git には入れない。手では編集しない）
+Support/TegakiCalendar.entitlements iCloud（CloudKit、コンテナ iCloud.com.syfan0.tegakicalendar）とサイレントプッシュ（aps-environment）
 TegakiKit/                          ローカル Swift パッケージ（Foundation だけ。Xcode 無しの Mac でもビルド・検査できる）
   Package.swift
   Sources/DayKit/DayKey.swift       「年・月・日」だけの日付（時差に左右されない計算用）と YearMonth
   Sources/Holidays/JapaneseHolidays.swift  日本の祝日（2000〜2099 年、Web 版と同じ規則）
   Sources/Layout/                   紙の寸法・マスの鍵・予定の正規化形・4 ページの配置（PageLayout、月・週・日・年の engine、時間指定の重なり処理、レーンの間引き、ページの id と移動、矩形 ⇄ 予定の範囲 EventRange）
-  Sources/InkModel/                 手書きの台帳（InkPage / InkStroke、merge、JSON、LZFSE）と投げなわの数学（LassoGeometry）
+  Sources/InkModel/                 手書きの台帳（InkPage / InkStroke、merge、JSON、LZFSE）、投げなわの数学（LassoGeometry）、Web 版の書き出しの解析と変換（WebImport）、同期の状態ファイルの型（SyncState）と再試行の間隔（SyncBackoff）
   Sources/KitChecks/main.swift      Xcode 無しの Mac で走る検査（swift run KitChecks）
   Tests/                            LayoutTests / HolidaysTests / InkModelTests（swift test。CI で実行）
 Sources/TegakiCalendar/
-  App.swift                         アプリの入口
+  App.swift                         アプリの入口（AppDelegate を付ける）
   ContentView.swift                 CalendarRootScreen を出すだけ
+  PrivacyInfo.xcprivacy             プライバシーマニフェスト（追跡なし・収集なし、UserDefaults の理由 CA92.1）
   Views/CalendarRootScreen.swift    唯一の画面（表示と日付の状態、ヘッダー・固定見出し・キャンバス・投げなわのメニュー・ツールバー・トースト・シート・初回案内・ページごとの保存、予定の作成・編集・削除の流れ）
   Views/PageHeaderView.swift        ◀ 今日 ▶・題名・日/週/月/年 の切替・＋予定・⚙（幅 600 pt 未満は 2 段）
   Views/StickyHeaderView.swift      紙の上に固定する見出し（月の曜日行・週の日付見出し・日の日付・年の月名）
-  Views/OnboardingView.swift        初回案内 3 枚
+  Views/OnboardingView.swift        初回案内 4 枚
   Views/ToolbarView.swift           ペン・マーカー・消しゴム・投げなわ・予定・元に戻す／やり直す・指でも書く
   Views/EventEditorSheet.swift      予定の作成・編集・閲覧のシート
   Views/EventEditorForm.swift       シートの純粋な状態（終日 ⇄ 時間指定、開始を動かすと長さを保つ、検証）
   Views/RecurrenceScopeDialog.swift 繰り返しの予定の「この回だけ／以降すべて」
   Views/SelectionMenuView.swift     投げなわの「予定にする／削除／選択解除」と置き場所の計算
-  Views/SettingsScreen.swift        設定画面
+  Views/SettingsScreen.swift        設定画面（同期・データの節を含む）
+  Views/WebImportSheet.swift        Web 版の手書きの取り込み（ファイル選択、進捗、結果）
+  Views/AccountChangeDialog.swift   「別の iCloud アカウントです」の問い合わせ
   Views/ToastView.swift             画面下のトースト
   Views/EventDateText.swift         日時の日本語表記
   Paper/PaperView.swift             紙ビュー本体、PaperContent（月・週・日・年）、色の表
@@ -151,14 +159,27 @@ Sources/TegakiCalendar/
   Calendar/EventStoreModel.swift    画面用の予定モデル（許可状態・ページの予定・カレンダーの選択肢と登録先・書き込み・変更の購読）
   Calendar/EventDraft.swift         シートが扱う予定の内容、書き込みの失敗の文言、カレンダーの写し
   Persistence/AppSettings.swift     UserDefaults の鍵と既定値
-  Persistence/InkPageStore.swift    手書きの保存（Application Support/TegakiCalendar/ink/<pageId>.json.lzfse）と全消去
+  Persistence/InkPageStore.swift    手書きの保存（Application Support/TegakiCalendar/ink/<pageId>.json.lzfse）と全消去、ページの一覧
+  Persistence/SyncStateStore.swift  同期の状態ファイル（ink/state.json）の原子的な読み書き
+  Sync/CloudDatabase.swift          CloudKit を隠すプロトコルと値の型（CloudKit を import しない）
+  Sync/CloudKitDatabase.swift       本物の CKDatabase の adapter（CloudKit を import する唯一のファイル。CKError の写像、変更トークン、Asset）
+  Sync/InMemoryCloudDatabase.swift  メモリ上の偽の iCloud（テスト・スクリーンショットモード・XCTest のホスト用）
+  Sync/InkPageRecord.swift          InkPage ⇄ レコード、Meta レコード
+  Sync/SyncStatus.swift             同期の状態の型と、ヘッダー・設定画面の文言
+  Sync/SyncEngine.swift             同期エンジン（dirty の帳簿、1.5 秒デバウンス、差分取得、衝突の merge、再試行、全消去、取り込み、アカウントの切替）
   Support/ScreenshotMode.swift      CI のスクリーンショットモード（見本の予定と手書き、--screenshot-page、--screenshot-sheet）
+  Support/AppDelegate.swift         サイレントプッシュの登録と受け口、同期エンジンの開始
 Tests/TegakiCalendarTests/
   InkLedgerTests.swift              PencilKit の台帳のテスト（指紋・墓標・戻す・合成し直し・週日年のマス割り当て・選択の削除と移動）。シミュレータで実行
   InkSnapshotTests.swift            選んだ手書きの画像のテスト
   EventEditorFormTests.swift        予定シートの状態のテスト
   EventKitServiceTests.swift        終日の予定の正規化・色の変換・予定の書き込み（apply）のテスト
   ScreenshotModeTests.swift         スクリーンショットモードの起動引数と見本のテスト
+  SyncEngineTests.swift             同期エンジンのテスト（偽の iCloud と TestSleeper で。アカウント確認・デバウンス・衝突・取得・削除・再試行・ゾーン消失・プッシュ・アカウント切替・全消去・取り込み）
+  InkPageRecordTests.swift          レコードの写像のテスト
+  SyncStateStoreTests.swift         状態ファイルの読み書きのテスト
+  CloudKitDatabaseMapTests.swift    CKError → CloudError の写像のテスト
+  TestSleeper.swift                 テスト用の sleep
 .github/workflows/build.yml         GitHub Actions の設定（push ごと）
 .github/workflows/testflight.yml    TestFlight への配信（手動実行。Secrets が必要）
 docs/                               設計書・契約・実装結果・価格・登録手順・規約類（上の表）
@@ -169,4 +190,5 @@ docs/                               設計書・契約・実装結果・価格�
 - アプリ名: **てがきカレンダー**（Bundle ID: `com.syfan0.tegakicalendar`）
 - iPadOS / iOS 17 以降（iPhone でも動きますが、主役は iPad と Apple Pencil です）
 - 縦向き・横向きのどちらでも使えます
+- iCloud 同期は、iPad で iCloud にサインインしていれば自動で使われます（サインインしていなければ iPad の中だけに保存。アプリ側の設定は要りません）
 - 配信は日本を中心に、EU を除く予定です（理由は [docs/APPLE_ENROLLMENT.md 4-5](docs/APPLE_ENROLLMENT.md)）

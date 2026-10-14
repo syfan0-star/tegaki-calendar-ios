@@ -37,6 +37,29 @@ struct InkPageStore: Sendable {
         FileManager.default.fileExists(atPath: url(for: pageId).path)
     }
 
+    /// The page ids of every `*.json.lzfse` in `directory`, sorted (`.bak` files are not pages).
+    /// `fileName(for:)` only keeps letters, digits and `-_.`, which is all a page id ever uses, so
+    /// the name round-trips (M4_CONTRACT §5.1).
+    func allPageIds() -> [String] {
+        let suffix = ".json.lzfse"
+        guard let items = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else {
+            return []
+        }
+        var ids: [String] = []
+        for item in items {
+            let name = item.lastPathComponent
+            guard name.hasSuffix(suffix) else { continue }
+            let id = String(name.dropLast(suffix.count))
+            if !id.isEmpty { ids.append(id) }
+        }
+        return ids.sorted()
+    }
+
+    /// The sync ledger next to the pages: `directory/state.json` (M4_CONTRACT §1.1).
+    var stateFileURL: URL {
+        directory.appendingPathComponent("state.json", isDirectory: false)
+    }
+
     /// Loads a page. Missing → empty page. Unreadable → the file is renamed to `.bak` (never
     /// overwriting an older backup) and an empty page is returned.
     func load(_ pageId: String) -> InkPage {

@@ -1,15 +1,18 @@
 import Layout
 import SwiftUI
 
-/// The header above the paper (M3b contract §4.6, DESIGN §2.7):
+/// The header above the paper (M3b contract §4.6, M4 contract §6.1, DESIGN §2.7):
 ///
 /// ```
-/// width ≥ 600 pt:  ◀  今日  ▶   題名                 [日 | 週 | 月 | 年]   ＋予定   ⚙
-/// width < 600 pt:  ◀  今日  ▶   題名                                       ＋予定   ⚙
+/// width ≥ 600 pt:  ◀  今日  ▶   題名              [日 | 週 | 月 | 年]   ＋予定   ☁ 保存済み   ⚙
+/// width < 600 pt:  ◀  今日  ▶   題名                                    ＋予定   ☁   ⚙
 ///                  [      日      |      週      |      月      |      年      ]
 /// ```
 ///
 /// The title comes from `PageNavigation.title`; the owner measures the width and passes `compact`.
+/// The ☁ shows the sync state (`SyncStatus.header`): the text and the symbol at 600 pt and wider,
+/// the symbol alone below (iPhone, M4 contract §6.8); a tap opens the settings screen. It is redrawn
+/// only when `sync` changes (the engine publishes a new snapshot only when the status changed).
 /// (M3a's calendar menu moved to the settings screen.)
 struct PageHeaderView: View {
     var kind: PageKind
@@ -24,6 +27,10 @@ struct PageHeaderView: View {
     var onAddEvent: () -> Void
     /// ⚙
     var onSettings: () -> Void
+    /// The sync state for the ☁ (`SyncStatus.header`); nil shows no ☁. Below 600 pt only the symbol.
+    var sync: HeaderSync? = nil
+    /// ☁: opens the settings screen (`showSettings = true`).
+    var onSyncTap: () -> Void = {}
 
     var body: some View {
         if compact {
@@ -34,6 +41,7 @@ struct PageHeaderView: View {
                     titleText(.title3)
                     Spacer(minLength: 4)
                     addEventButton
+                    syncButton
                     settingsButton
                 }
                 kindPicker
@@ -48,6 +56,7 @@ struct PageHeaderView: View {
                 kindPicker
                     .frame(width: 220)
                 addEventButton
+                syncButton
                 settingsButton
             }
         }
@@ -89,6 +98,29 @@ struct PageHeaderView: View {
         }
         .buttonStyle(.bordered)
         .accessibilityLabel("予定を追加")
+    }
+
+    /// ☁ + the state (the symbol alone when compact). Red when the state is an error.
+    @ViewBuilder
+    private var syncButton: some View {
+        if let sync = sync {
+            Button(action: onSyncTap) {
+                HStack(spacing: 4) {
+                    Image(systemName: sync.symbol)
+                    if !compact {
+                        Text(sync.text)
+                            .lineLimit(1)
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(sync.isError ? Color.red : Color.secondary)
+                .padding(.horizontal, 4)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Self.syncLabel(sync))
+        }
     }
 
     private var settingsButton: some View {
@@ -134,5 +166,10 @@ struct PageHeaderView: View {
 
     static func nextLabel(_ kind: PageKind) -> String {
         "次の" + shortLabel(kind)
+    }
+
+    /// The ☁'s accessibility label: 「同期: 保存済み」.
+    static func syncLabel(_ sync: HeaderSync) -> String {
+        "同期: " + sync.text
     }
 }

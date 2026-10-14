@@ -1,8 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// The three first-run cards (M2 contract §6, DESIGN §2.10): the calendar account, the full-access
-/// permission, and pen vs. finger. The last card's button asks the OS for access.
+/// The four first-run cards (M2 contract §6, M4 contract §6.5, DESIGN §2.10): the calendar account,
+/// the full-access permission, pen vs. finger, and iCloud (where the handwriting is kept). The last
+/// card's button asks the OS for calendar access; iCloud itself needs no permission dialog (the
+/// private database is the person's own iCloud).
 struct OnboardingView: View {
     /// Called by the last card's button; it should request access and then dismiss this view.
     var onFinish: () async -> Void
@@ -10,6 +12,9 @@ struct OnboardingView: View {
     @Environment(\.openURL) private var openURL
     @State private var index = 0
     @State private var requesting = false
+
+    /// The index of the last card (the one with 「許可の画面を出す」).
+    static let lastIndex = 3
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,13 +47,21 @@ struct OnboardingView: View {
                     extra: nil
                 )
                 .tag(2)
+
+                card(
+                    symbol: "icloud",
+                    title: "iCloud と手書きの保存",
+                    text: "手書きはこの iPad と、あなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きが見られます。\n\niCloud にサインインしていないときは、この iPad の中だけに保存します。iCloud の設定は要りません（iPad でサインインしていれば自動で使われます）。\n\n手書きは開発者には見えません。iCloud の容量はあなたのものを使います。",
+                    extra: nil
+                )
+                .tag(3)
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
             .indexViewStyle(.page(backgroundDisplayMode: .always))
 
             HStack {
                 Spacer()
-                if index < 2 {
+                if index < Self.lastIndex {
                     Button("次へ") {
                         withAnimation { index += 1 }
                     }

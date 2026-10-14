@@ -1960,6 +1960,712 @@ do {
     checkEqual(fine.points.map(\.y), [20.1, 40.1, 90.1], "translated: 0.06 rounds up")
 }
 
+// MARK: - Web import (M4)
+
+section("web import (M4)")
+
+/// M4_CONTRACT §1.4 見本 1 (the same text as the web version's tests/fixtures/tegaki-web-export-sample.json).
+let webExportSample = #"""
+{ "format": "tegaki-web-export", "v": 1, "exportedAt": "2026-10-14T09:41:00.000+09:00", "app": "web/1.0.6", "includesDemo": false,
+  "pages": [
+    { "v": 1, "pageId": "m1-2026-10", "updatedAt": 1760000002000, "deleted": {},
+      "strokes": {
+        "a1": { "id": "a1", "tool": "pen", "color": "#1f2937", "size": 3.5, "pts": [410, 360, 0.4, 450, 380, 0.6, 490, 370, 0.8], "t": 1760000001000 },
+        "b2": { "id": "b2", "tool": "highlighter", "color": "#fde047", "size": 18, "pts": [100, 1100, 0.5, 300, 1100, 0.5], "t": 1760000002000 } } },
+    { "v": 1, "pageId": "w-2026-10-05", "updatedAt": 1760000003000, "deleted": {},
+      "strokes": { "c3": { "id": "c3", "tool": "pen", "color": "#2563eb", "size": 6, "pts": [700, 720, 0.5, 760, 840, 0.5], "t": 1760000003000 } } },
+    { "v": 1, "pageId": "d-2026-10-07", "updatedAt": 1760000004000, "deleted": { "zz": 1760000000500 },
+      "strokes": { "d4": { "id": "d4", "tool": "pen", "color": "#1f2937", "size": 2, "pts": [100, 900, 1, 300, 1050, 1], "t": 1760000004000 } } },
+    { "v": 1, "pageId": "y-2026", "updatedAt": 1760000005000, "deleted": {},
+      "strokes": { "e5": { "id": "e5", "tool": "pen", "color": "#1f2937", "size": 3.5, "pts": [1000, 540, 0.6, 1050, 560, 0.6], "t": 1760000005000 } } },
+    { "v": 1, "pageId": "m-2026-09", "updatedAt": 1760000006000, "deleted": {},
+      "strokes": { "f6": { "id": "f6", "tool": "pen", "color": "#1f2937", "size": 3.5, "pts": [10, 10, 0.5, 20, 20, 0.5], "t": 1760000006000 } } },
+    { "v": 1, "pageId": "d-2026-10-08", "updatedAt": 0, "deleted": {}, "strokes": {} }
+  ] }
+"""#
+
+/// M4_CONTRACT §1.4 見本 2 (tests/fixtures/tegaki-web-export-expected.json).
+let webExportExpected = #"""
+{ "format": "tegaki-web-export", "v": 1, "exportedAt": "2026-10-14T09:41:00.000+09:00", "app": "web/1.0.6", "includesDemo": false,
+  "pages": [
+    { "v": 1, "pageId": "d-2026-10-07", "updatedAt": 1760000004000, "deleted": { "zz": 1760000000500 },
+      "strokes": { "d4": { "id": "d4", "tool": "pen", "color": "#1f2937", "size": 2, "pts": [100, 900, 1, 300, 1050, 1], "t": 1760000004000 } } },
+    { "v": 1, "pageId": "m1-2026-10", "updatedAt": 1760000002000, "deleted": {},
+      "strokes": {
+        "a1": { "id": "a1", "tool": "pen", "color": "#1f2937", "size": 3.5, "pts": [410, 360, 0.4, 450, 380, 0.6, 490, 370, 0.8], "t": 1760000001000 },
+        "b2": { "id": "b2", "tool": "highlighter", "color": "#fde047", "size": 18, "pts": [100, 1100, 0.5, 300, 1100, 0.5], "t": 1760000002000 } } },
+    { "v": 1, "pageId": "w-2026-10-05", "updatedAt": 1760000003000, "deleted": {},
+      "strokes": { "c3": { "id": "c3", "tool": "pen", "color": "#2563eb", "size": 6, "pts": [700, 720, 0.5, 760, 840, 0.5], "t": 1760000003000 } } },
+    { "v": 1, "pageId": "y-2026", "updatedAt": 1760000005000, "deleted": {},
+      "strokes": { "e5": { "id": "e5", "tool": "pen", "color": "#1f2937", "size": 3.5, "pts": [1000, 540, 0.6, 1050, 560, 0.6], "t": 1760000005000 } } }
+  ] }
+"""#
+
+func webDoc(_ text: String) throws -> WebImport.Document { try WebImport.parse(Data(text.utf8)) }
+
+func webStroke(_ id: String, tool: WebImport.Stroke.Tool = .pen, color: String = "#1f2937", size: Double = 3.5, t: Int = 1_760_000_001_000, points: [(Double, Double, Double)]) -> WebImport.Stroke {
+    WebImport.Stroke(id: id, tool: tool, color: color, size: size, points: points.map { WebImport.Point(x: $0.0, y: $0.1, p: $0.2) }, t: t)
+}
+
+func webParseError(_ text: String) -> WebImport.ParseError? {
+    do {
+        _ = try webDoc(text)
+        return nil
+    } catch let e as WebImport.ParseError {
+        return e
+    } catch {
+        return nil
+    }
+}
+
+/// A one-page export around `strokes` (a JSON object text).
+func webExportText(pageId: String = "d-2026-10-07", strokes: String, deleted: String = "{}", updatedAt: Int = 1_760_000_004_000) -> String {
+    #"{ "format": "tegaki-web-export", "v": 1, "pages": [ { "v": 1, "pageId": "\#(pageId)", "updatedAt": \#(updatedAt), "deleted": \#(deleted), "strokes": \#(strokes) } ] }"#
+}
+
+do {
+    // 見本 1: six pages as written, strokes sorted by id.
+    let doc = try webDoc(webExportSample)
+    checkEqual(doc.pages.count, 6, "sample 1 has 6 pages")
+    checkEqual(doc.pages.map(\.pageId), ["m1-2026-10", "w-2026-10-05", "d-2026-10-07", "y-2026", "m-2026-09", "d-2026-10-08"], "sample 1 pages in document order")
+    checkEqual(doc.exportedAt, "2026-10-14T09:41:00.000+09:00", "exportedAt is kept as text")
+    checkEqual(doc.app, "web/1.0.6", "app is kept")
+    checkEqual(doc.includesDemo, false, "includesDemo")
+    checkEqual(doc.pages.map(\.strokes.count), [2, 1, 1, 1, 1, 0], "stroke count per page")
+    let month = doc.pages[0]
+    checkEqual(month.strokes.map(\.id), ["a1", "b2"], "strokes sorted by id")
+    checkEqual(month.updatedAt, 1_760_000_002_000, "page updatedAt")
+    checkEqual(month.deleted, [:], "no tombstones on the month page")
+    let a1 = month.strokes[0]
+    checkEqual(a1.tool, .pen, "a1 tool")
+    checkEqual(a1.color, "#1f2937", "a1 color")
+    checkEqual(a1.size, 3.5, "a1 size")
+    checkEqual(a1.t, 1_760_000_001_000, "a1 t")
+    checkEqual(a1.points, [WebImport.Point(x: 410, y: 360, p: 0.4), WebImport.Point(x: 450, y: 380, p: 0.6), WebImport.Point(x: 490, y: 370, p: 0.8)], "a1 points")
+    let b2 = month.strokes[1]
+    checkEqual(b2.tool, .highlighter, "b2 tool")
+    checkEqual(b2.color, "#fde047", "b2 color")
+    checkEqual(b2.size, 18, "b2 size")
+    checkEqual(b2.points.count, 2, "b2 points")
+    checkEqual(doc.pages[2].deleted, ["zz": 1_760_000_000_500], "tombstone zz is read")
+    checkEqual(doc.pages[2].strokes[0].size, 2, "d4 size")
+    checkEqual(doc.pages[2].strokes[0].points.map(\.p), [1, 1], "d4 pressure 1")
+    checkEqual(doc.pages[5].strokes, [], "the empty page has no strokes")
+    checkEqual(doc.pages[5].updatedAt, 0, "the empty page's updatedAt")
+
+    // 見本 2: four pages.
+    let expected = try webDoc(webExportExpected)
+    checkEqual(expected.pages.count, 4, "sample 2 has 4 pages")
+    checkEqual(expected.pages.map(\.pageId), ["d-2026-10-07", "m1-2026-10", "w-2026-10-05", "y-2026"], "sample 2 pages sorted by id")
+    checkEqual(expected.pages[1], month, "the month page reads the same from both samples")
+    checkEqual(expected.pages[0], doc.pages[2], "the day page reads the same from both samples")
+
+    // Reasons to throw: only format and v.
+    checkEqual(webParseError(#"{ "format": "something-else", "v": 1, "pages": [] }"#), .notAnExport, "wrong format → notAnExport")
+    checkEqual(webParseError(#"{ "v": 1, "pages": [] }"#), .notAnExport, "missing format → notAnExport")
+    checkEqual(webParseError(#"[1, 2, 3]"#), .notAnExport, "an array → notAnExport")
+    checkEqual(webParseError(#""tegaki-web-export""#), .notAnExport, "a bare string → notAnExport")
+    checkEqual(webParseError(#"{ "format": "tegaki-web-export", "v": 2, "pages": [] }"#), .unsupportedVersion(2), "v 2 → unsupportedVersion(2)")
+    checkEqual(webParseError(#"{ "format": "tegaki-web-export", "v": 7 }"#), .unsupportedVersion(7), "v 7 → unsupportedVersion(7)")
+    checkEqual(webParseError(#"{ "format": "tegaki-web-export", "v": 1, "pages": ["#), .invalidJSON, "truncated JSON → invalidJSON")
+    checkEqual(webParseError("not json at all"), .invalidJSON, "text → invalidJSON")
+    checkEqual(webParseError(""), .invalidJSON, "empty data → invalidJSON")
+    checkEqual(webParseError(#"{ "format": "tegaki-web-export" }"#), nil, "missing v counts as 1 and missing pages as none")
+    checkEqual(try webDoc(#"{ "format": "tegaki-web-export" }"#).pages.count, 0, "no pages")
+    checkEqual(try webDoc(#"{ "format": "tegaki-web-export", "v": 1, "pages": "x", "includesDemo": true, "app": 5 }"#).includesDemo, true, "includesDemo true")
+    checkEqual(try webDoc(#"{ "format": "tegaki-web-export", "v": 1, "pages": "x", "app": 5 }"#).app, nil, "a non-string app is nil")
+    checkEqual(try webDoc(#"{ "format": "tegaki-web-export", "v": 1, "pages": [1, "x", null] }"#).pages.count, 0, "pages that are not objects are dropped")
+} catch {
+    check(false, "web import parse threw: \(error)")
+}
+
+do {
+    // Broken strokes are dropped, the rest normalised (web deserializePage).
+    let good = ##""ok": { "id": "ok", "tool": "pen", "color": "#1f2937", "size": 3.5, "pts": [1, 2, 0.5, 3, 4, 0.5], "t": 5 }"##
+    func strokes(_ extra: String, deleted: String = "{}") throws -> [WebImport.Stroke] {
+        try webDoc(webExportText(strokes: "{ \(good), \(extra) }", deleted: deleted)).pages[0].strokes
+    }
+    checkEqual(try strokes(#""bad": { "id": "bad", "tool": "brush", "pts": [1, 2, 0.5] }"#).map(\.id), ["ok"], "unknown tool is dropped")
+    checkEqual(try strokes(#""bad": { "id": "bad", "pts": [1, 2, 0.5] }"#).map(\.id), ["ok"], "missing tool is dropped")
+    checkEqual(try strokes(#""bad": { "id": "bad", "tool": "pen", "pts": [1, 2] }"#).map(\.id), ["ok"], "two numbers are not a point")
+    checkEqual(try strokes(#""bad": { "id": "bad", "tool": "pen", "pts": [] }"#).map(\.id), ["ok"], "no points → dropped")
+    checkEqual(try strokes(#""bad": { "id": "bad", "tool": "pen" }"#).map(\.id), ["ok"], "missing pts → dropped")
+    checkEqual(try strokes(#""": { "id": "", "tool": "pen", "pts": [1, 2, 0.5] }"#).map(\.id), ["ok"], "empty id (and empty key) → dropped")
+    let long = String(repeating: "x", count: 129)
+    checkEqual(try strokes(#""\#(long)": { "id": "\#(long)", "tool": "pen", "pts": [1, 2, 0.5] }"#).map(\.id), ["ok"], "129-character id → dropped")
+    let max = String(repeating: "x", count: 128)
+    checkEqual(try strokes(#""\#(max)": { "id": "\#(max)", "tool": "pen", "pts": [1, 2, 0.5] }"#).map(\.id), ["ok", max], "128-character id is fine")
+    checkEqual(try strokes(#""key": { "tool": "pen", "pts": [1, 2, 0.5] }"#).map(\.id), ["key", "ok"], "a missing id falls back to the key")
+    checkEqual(try strokes(#""key": { "id": 7, "tool": "pen", "pts": [1, 2, 0.5] }"#).map(\.id), ["key", "ok"], "a non-string id falls back to the key")
+    checkEqual(try strokes(#""bad": 5"#).map(\.id), ["ok"], "a stroke that is not an object is dropped")
+    checkEqual(try strokes(#""gone": { "id": "gone", "tool": "pen", "pts": [1, 2, 0.5] }"#, deleted: #"{ "gone": 10 }"#).map(\.id), ["ok"], "a tombstoned stroke is dropped")
+    checkEqual(try webDoc(webExportText(strokes: "{ \(good) }", deleted: #"{ "": 1, "a": "x", "b": -5, "c": 1e20 }"#)).pages[0].deleted, ["a": 0, "b": 0, "c": 0], "tombstones: bad ids dropped, garbage times are 0")
+    checkEqual(try webDoc(webExportText(strokes: #"[{ "id": "l1", "tool": "pen", "pts": [1, 2, 0.5] }, { "tool": "pen", "pts": [1, 2, 0.5] }]"#)).pages[0].strokes.map(\.id), ["l1"], "an array of strokes is read (no key to fall back to)")
+
+    // Pressure.
+    func points(_ pts: String, tool: String = "pen", size: String = "3.5") throws -> WebImport.Stroke? {
+        try webDoc(webExportText(strokes: #"{ "s": { "id": "s", "tool": "\#(tool)", "size": \#(size), "pts": \#(pts) } }"#)).pages[0].strokes.first
+    }
+    checkEqual(try points("[0, 0, -1, 10, 10, 2]")?.points.map(\.p), [0, 1], "pressure clamped to 0…1")
+    checkEqual(try points(#"[0, 0, "x", 10, 10, null]"#)?.points.map(\.p), [0.5, 0.5], "non-numeric pressure → 0.5")
+    checkEqual(try points("[0, 0, 0.123, 10, 10, 0.456]")?.points.map(\.p), [0.12, 0.46], "pressure rounded to 0.01")
+    checkEqual(try points("[0.04, 0.06, 0.5, 10.15, 10.14, 0.5]")?.points.map { [$0.x, $0.y] }, [[0, 0.1], [10.2, 10.1]], "coordinates rounded to 0.1")
+    checkEqual(try points("[1, 1, 0.5, 1, 1, 0.7, 1, 1, 0.9, 2, 2, 0.5]")?.points.count, 2, "consecutive equal points are dropped")
+    checkEqual(try points("[1, 1, 0.5, 2, 2, 0.5, 1, 1, 0.5]")?.points.count, 3, "a return to an earlier point is kept")
+    checkEqual(try points("[1, 1, 0.5, 100001, 5, 0.5, 2, 2, 0.5]")?.points.count, 2, "|x| > 100000 is dropped")
+    checkEqual(try points("[1, 1, 0.5, 5, -100000.05, 0.5, 2, 2, 0.5]")?.points.count, 2, "|y| > 100000 is dropped")
+    checkEqual(try points("[1, 1, 0.5, 100000, -100000, 0.5]")?.points.count, 2, "|coordinate| = 100000 is kept")
+    checkEqual(try points(#"[1, 1, 0.5, "a", 5, 0.5, 2, 2, 0.5]"#)?.points.count, 2, "a non-numeric coordinate drops the point")
+    checkEqual(try points("[1, 1, 0.5, 2, 2, 0.5, 3, 3]")?.points.count, 2, "a trailing partial point is ignored")
+    checkEqual(try points("[100001, 1, 0.5]"), nil, "a stroke whose only point is absurd is dropped")
+
+    // Size.
+    checkEqual(try points("[0, 0, 0.5]", size: "0.05")?.size, 0.1, "size 0.05 → 0.1")
+    checkEqual(try points("[0, 0, 0.5]", size: "500")?.size, 200, "size 500 → 200")
+    checkEqual(try points("[0, 0, 0.5]", size: "2.345")?.size, 2.35, "size rounded to 0.01")
+    checkEqual(try points("[0, 0, 0.5]", size: "\"x\"")?.size, 3.5, "non-numeric size → pen default")
+    checkEqual(try points("[0, 0, 0.5]", size: "0")?.size, 3.5, "size 0 → pen default (not 0.1)")
+    checkEqual(try points("[0, 0, 0.5]", size: "-3")?.size, 3.5, "negative size → pen default")
+    checkEqual(try points("[0, 0, 0.5]", tool: "highlighter", size: "null")?.size, 18, "highlighter: non-numeric size → 18")
+    checkEqual(try points("[0, 0, 0.5]", tool: "highlighter", size: "0")?.size, 18, "highlighter: size 0 → 18")
+    checkEqual(try points("[0, 0, 0.5]", tool: "highlighter", size: "12")?.size, 12, "highlighter: a size is kept")
+    checkEqual(WebImport.normalizeSize(nil, tool: .pen), 3.5, "normalizeSize nil → 3.5")
+    checkEqual(WebImport.normalizeSize(.infinity, tool: .highlighter), 18, "normalizeSize ∞ → 18")
+    checkEqual(WebImport.normalizeSize(6, tool: .pen), 6, "normalizeSize 6")
+
+    // Colour and time.
+    func stroke(_ body: String) throws -> WebImport.Stroke? {
+        try webDoc(webExportText(strokes: #"{ "s": { "id": "s", "pts": [0, 0, 0.5], \#(body) } }"#)).pages[0].strokes.first
+    }
+    checkEqual(try stroke(##""tool": "pen", "color": "#ABC""##)?.color, "#aabbcc", "colour expanded and lower-cased")
+    checkEqual(try stroke(#""tool": "pen", "color": "red""#)?.color, "#1f2937", "bad colour → pen default")
+    checkEqual(try stroke(#""tool": "highlighter""#)?.color, "#fde047", "missing colour → highlighter default")
+    checkEqual(try stroke(#""tool": "pen", "t": -5"#)?.t, 0, "negative t → 0")
+    checkEqual(try stroke(#""tool": "pen", "t": "x""#)?.t, 0, "non-numeric t → 0")
+    checkEqual(try stroke(#""tool": "pen", "t": 1760000001000.4"#)?.t, 1_760_000_001_000, "t rounded")
+    checkEqual(try stroke(#""tool": "pen""#)?.t, 0, "missing t → 0")
+    checkEqual(try webDoc(webExportText(strokes: "{ \(good) }", updatedAt: -1)).pages[0].updatedAt, 0, "negative updatedAt → 0")
+    checkEqual(try webDoc(#"{ "format": "tegaki-web-export", "v": 1, "pages": [ { "strokes": {} } ] }"#).pages[0].pageId, "", "a page without pageId reads as \"\"")
+} catch {
+    check(false, "web import normalisation threw: \(error)")
+}
+
+do {
+    // PageId.parse: the four forms and their raw strings.
+    checkEqual(WebImport.PageId.parse("m1-2026-10"), .month(YearMonth(year: 2026, month: 10)), "m1- month")
+    checkEqual(WebImport.PageId.parse("w-2026-10-05"), .week(day(2026, 10, 5)), "w- Monday week")
+    checkEqual(WebImport.PageId.parse("d-2026-10-07"), .day(day(2026, 10, 7)), "d- day")
+    checkEqual(WebImport.PageId.parse("y-2026"), .year(2026), "y- year")
+    checkEqual(WebImport.PageId.parse("m1-2026-10")?.raw, "m1-2026-10", "raw month")
+    checkEqual(WebImport.PageId.parse("w-2026-10-05")?.raw, "w-2026-10-05", "raw week")
+    checkEqual(WebImport.PageId.parse("d-2026-10-07")?.raw, "d-2026-10-07", "raw day")
+    checkEqual(WebImport.PageId.parse("y-2026")?.raw, "y-2026", "raw year")
+    checkEqual(WebImport.PageId.parse("m-2026-09"), nil, "m- (Sunday-start month) → nil")
+    checkEqual(WebImport.PageId.parse("w-2026-10-04"), nil, "w- of a Sunday → nil")
+    checkEqual(WebImport.PageId.parse("w-2026-10-06"), nil, "w- of a Tuesday → nil")
+    checkEqual(WebImport.PageId.parse("y-26"), nil, "y-26 → nil")
+    checkEqual(WebImport.PageId.parse(""), nil, "empty → nil")
+    checkEqual(WebImport.PageId.parse("m1-2026-13"), nil, "month 13 → nil")
+    checkEqual(WebImport.PageId.parse("m1-2026-1"), nil, "unpadded month → nil")
+    checkEqual(WebImport.PageId.parse("d-2026-02-30"), nil, "impossible date → nil")
+    checkEqual(WebImport.PageId.parse("d-2026-10-7"), nil, "unpadded day → nil")
+    checkEqual(WebImport.PageId.parse("x-2026"), nil, "unknown prefix → nil")
+    checkEqual(WebImport.PageId.parse("y-2026x"), nil, "trailing junk → nil")
+    checkEqual(WebImport.PageId.parse("y-２０２６"), nil, "full-width digits → nil")
+    checkEqual(WebImport.PageId.parse("w-2025-12-29"), .week(day(2025, 12, 29)), "a Monday across the year end")
+    checkEqual(WebImport.PageId.parse("y-0999"), .year(999), "y-0999 → 999")
+    checkEqual(WebImport.PageId.year(999).raw, "y-0999", "raw pads the year")
+
+    // cell(for:center:): month.
+    let october = WebImport.PageId.month(YearMonth(year: 2026, month: 10))
+    var r = WebImport.cell(for: october, center: CGPoint(x: 450, y: 370))
+    checkEqual(r.cell, .day(day(2026, 10, 14)), "a1: row 2, column 2 → 10/14")
+    checkEqual(r.origin, CGPoint(x: 400, y: 350), "a1 origin")
+    r = WebImport.cell(for: october, center: CGPoint(x: 200, y: 1100))
+    checkEqual(r.cell, .memo, "b2: y ≥ 1050 → memo")
+    checkEqual(r.origin, CGPoint(x: 0, y: 1050), "memo origin")
+    r = WebImport.cell(for: october, center: CGPoint(x: -5, y: -5))
+    checkEqual(r.cell, .day(day(2026, 9, 28)), "outside top-left → row 0 column 0 = 9/28")
+    checkEqual(r.origin, .zero, "9/28 origin")
+    r = WebImport.cell(for: october, center: CGPoint(x: 1400, y: 1049.9))
+    checkEqual(r.cell, .day(day(2026, 11, 8)), "(1400, 1049.9) → row 5 column 6 = 11/8")
+    checkEqual(r.origin, CGPoint(x: 1200, y: 875), "11/8 origin")
+    r = WebImport.cell(for: october, center: CGPoint(x: 700, y: 1050))
+    checkEqual(r.cell, .memo, "(700, 1050) → memo")
+    r = WebImport.cell(for: october, center: CGPoint(x: CGFloat.nan, y: CGFloat.nan))
+    checkEqual(r.cell, .day(day(2026, 9, 28)), "NaN centre counts as (0, 0)")
+    r = WebImport.cell(for: october, center: CGPoint(x: 350, y: 175))
+    checkEqual(r.cell, .day(day(2026, 10, 6)), "(350, 175) is on row 1 (10/6)")
+    r = WebImport.cell(for: october, center: CGPoint(x: 199.9999999999, y: 174.9999999999))
+    checkEqual(r.cell, .day(day(2026, 10, 6)), "1e-9 below a boundary still counts as the next cell")
+    r = WebImport.cell(for: october, center: CGPoint(x: 5000, y: 100))
+    checkEqual(r.cell, .day(day(2026, 10, 4)), "far right → column 6 (10/4)")
+    r = WebImport.cell(for: WebImport.PageId.month(YearMonth(year: 2026, month: 2)), center: CGPoint(x: 100, y: 100))
+    checkEqual(r.cell, .day(day(2026, 1, 26)), "February 2026 starts on Monday 1/26")
+
+    // Week and day: always grid.
+    r = WebImport.cell(for: .week(day(2026, 10, 5)), center: CGPoint(x: 730, y: 780))
+    checkEqual(r.cell, .grid, "week → grid")
+    checkEqual(r.origin, .zero, "week origin (0, 0)")
+    r = WebImport.cell(for: .week(day(2026, 10, 5)), center: CGPoint(x: -100, y: 99999))
+    checkEqual(r.cell, .grid, "week → grid wherever")
+    r = WebImport.cell(for: .day(day(2026, 10, 7)), center: CGPoint(x: 200, y: 975))
+    checkEqual(r.cell, .grid, "day → grid")
+    checkEqual(r.origin, .zero, "day origin (0, 0)")
+    r = WebImport.cell(for: .day(day(2026, 10, 7)), center: CGPoint(x: 900, y: 2300))
+    checkEqual(r.cell, .grid, "day memo area → grid too")
+
+    // Year.
+    let year = WebImport.PageId.year(2026)
+    r = WebImport.cell(for: year, center: CGPoint(x: 1025, y: 550))
+    checkEqual(r.cell, .yearDay(month: 9, day: 10), "e5: month 8 → 9月, day 10")
+    checkEqual(r.origin, CGPoint(x: 952, y: 540), "e5 origin (56 + 112 × 8, 60 × 9)")
+    r = WebImport.cell(for: year, center: CGPoint(x: 10, y: 30))
+    checkEqual(r.cell, .yearDay(month: 1, day: 1), "the date gutter → 01-01")
+    checkEqual(r.origin, CGPoint(x: 56, y: 0), "01-01 origin")
+    r = WebImport.cell(for: year, center: CGPoint(x: 1399, y: 1859))
+    checkEqual(r.cell, .yearDay(month: 12, day: 31), "(1399, 1859) → 12-31")
+    checkEqual(r.origin, CGPoint(x: 1288, y: 1800), "12-31 origin")
+    r = WebImport.cell(for: year, center: CGPoint(x: 1399, y: 5000))
+    checkEqual(r.cell, .yearDay(month: 12, day: 31), "below the paper → 12-31")
+    r = WebImport.cell(for: year, center: CGPoint(x: 5000, y: -50))
+    checkEqual(r.cell, .yearDay(month: 12, day: 1), "right of the paper, above → 12-01")
+    r = WebImport.cell(for: year, center: CGPoint(x: 168 + 50, y: 1745))
+    checkEqual(r.cell, .yearDay(month: 2, day: 30), "the 2/30 cell exists")
+    checkEqual(r.origin, CGPoint(x: 168, y: 1740), "2/30 origin")
+    r = WebImport.cell(for: year, center: CGPoint(x: 56, y: 0))
+    checkEqual(r.cell, .yearDay(month: 1, day: 1), "(56, 0) → 01-01")
+    r = WebImport.cell(for: year, center: CGPoint(x: 168, y: 60))
+    checkEqual(r.cell, .yearDay(month: 2, day: 2), "(168, 60) → 02-02 (boundaries belong to the next cell)")
+
+    // Nib size.
+    checkClose(WebImport.nibSize(tool: .pen, size: 3.5, pressure: 0.4), 2.66, "nib 3.5 × (0.4 + 0.36)", tolerance: 1e-9)
+    checkClose(WebImport.nibSize(tool: .pen, size: 3.5, pressure: 0.6), 3.29, "nib 3.5 × (0.4 + 0.54)", tolerance: 1e-9)
+    checkClose(WebImport.nibSize(tool: .pen, size: 3.5, pressure: 0.8), 3.92, "nib 3.5 × (0.4 + 0.72)", tolerance: 1e-9)
+    checkClose(WebImport.nibSize(tool: .pen, size: 2, pressure: 1), 2.6, "nib 2 × 1.3", tolerance: 1e-9)
+    checkClose(WebImport.nibSize(tool: .pen, size: 6, pressure: 0.5), 5.1, "nib 6 × 0.85", tolerance: 1e-9)
+    checkClose(WebImport.nibSize(tool: .pen, size: 3.5, pressure: 0), 1.4, "nib at zero pressure", tolerance: 1e-9)
+    checkEqual(WebImport.nibSize(tool: .highlighter, size: 18, pressure: 0.5), 18, "highlighter nib = size")
+    checkEqual(WebImport.nibSize(tool: .highlighter, size: 18, pressure: 1), 18, "highlighter ignores pressure")
+    checkEqual(WebImport.nibSize(tool: .highlighter, size: 10, pressure: 0), 10, "highlighter nib follows size")
+    checkEqual(WebImport.highlighterWidth, 18, "highlighterWidth constant")
+    checkEqual(WebImport.format, "tegaki-web-export", "format constant")
+    checkEqual(WebImport.supportedVersion, 1, "supportedVersion constant")
+    checkEqual(WebImport.deviceId, "web", "deviceId constant")
+    checkEqual(WebImport.pointStepMs, 8, "pointStepMs constant")
+}
+
+do {
+    // convert(stroke:): every attribute of the §1.4 table.
+    let doc = try webDoc(webExportSample)
+    let october = WebImport.PageId.month(YearMonth(year: 2026, month: 10))
+    let a1 = WebImport.convert(stroke: doc.pages[0].strokes[0], page: october)
+    checkEqual(a1?.id, "a1", "a1: id kept")
+    checkEqual(a1?.cell, .day(day(2026, 10, 14)), "a1: cell 2026-10-14")
+    checkEqual(a1?.tool, .pen, "a1: pen")
+    checkEqual(a1?.color, "#1f2937", "a1: color")
+    checkEqual(a1?.t, 1_760_000_001_000, "a1: t")
+    checkEqual(a1?.dev, "web", "a1: dev web")
+    checkEqual(a1?.points.count, 3, "a1: 3 points")
+    checkEqual(a1?.points.map(\.x), [10, 50, 90], "a1: x relative to the cell")
+    checkEqual(a1?.points.map(\.y), [10, 30, 20], "a1: y relative to the cell")
+    checkEqual(a1?.points.map(\.dtMs), [0, 8, 16], "a1: dtMs 8 × n")
+    checkEqual(a1?.points.map(\.sizeW), [2.66, 3.29, 3.92], "a1: sizeW")
+    checkEqual(a1?.points.map(\.sizeH), [2.66, 3.29, 3.92], "a1: sizeH")
+    checkEqual(a1?.points.map(\.force), [0.4, 0.6, 0.8], "a1: force = p")
+    checkEqual(a1?.points.map(\.opacity), [1, 1, 1], "a1: opacity 1")
+    checkEqual(a1?.points.map(\.azimuth), [0, 0, 0], "a1: azimuth 0")
+    checkEqual(a1?.points.map(\.altitude), [1.571, 1.571, 1.571], "a1: altitude π/2 → 1.571")
+    checkEqual(a1?.inkStart, Date(timeIntervalSince1970: 1_760_000_001), "a1: inkStart from t")
+    let b2 = WebImport.convert(stroke: doc.pages[0].strokes[1], page: october)
+    checkEqual(b2?.cell, .memo, "b2: memo")
+    checkEqual(b2?.tool, .marker, "b2: highlighter → marker")
+    checkEqual(b2?.color, "#fde047", "b2: color")
+    checkEqual(b2?.points.map(\.x), [100, 300], "b2: x")
+    checkEqual(b2?.points.map(\.y), [50, 50], "b2: y − 1050")
+    checkEqual(b2?.points.map(\.sizeW), [18, 18], "b2: nib 18")
+    checkEqual(b2?.points.map(\.force), [0.5, 0.5], "b2: force")
+    checkEqual(b2?.t, 1_760_000_002_000, "b2: t")
+    let c3 = WebImport.convert(stroke: doc.pages[1].strokes[0], page: .week(day(2026, 10, 5)))
+    checkEqual(c3?.cell, .grid, "c3: grid")
+    checkEqual(c3?.color, "#2563eb", "c3: color")
+    checkEqual(c3?.points.map(\.x), [700, 760], "c3: x unchanged")
+    checkEqual(c3?.points.map(\.y), [720, 840], "c3: y unchanged")
+    checkEqual(c3?.points.map(\.sizeW), [5.1, 5.1], "c3: nib 6 × 0.85")
+    checkEqual(c3?.dev, "web", "c3: dev")
+    let d4 = WebImport.convert(stroke: doc.pages[2].strokes[0], page: .day(day(2026, 10, 7)))
+    checkEqual(d4?.cell, .grid, "d4: grid")
+    checkEqual(d4?.points.map(\.x), [100, 300], "d4: x")
+    checkEqual(d4?.points.map(\.y), [900, 1050], "d4: y")
+    checkEqual(d4?.points.map(\.sizeW), [2.6, 2.6], "d4: nib 2 × 1.3")
+    checkEqual(d4?.points.map(\.force), [1, 1], "d4: force 1")
+    let e5 = WebImport.convert(stroke: doc.pages[3].strokes[0], page: .year(2026))
+    checkEqual(e5?.cell, .yearDay(month: 9, day: 10), "e5: 09-10")
+    checkEqual(e5?.points.map(\.x), [48, 98], "e5: x − 952")
+    checkEqual(e5?.points.map(\.y), [0, 20], "e5: y − 540")
+    checkEqual(e5?.points.map(\.sizeW), [3.29, 3.29], "e5: nib")
+    checkEqual(e5?.t, 1_760_000_005_000, "e5: t")
+
+    // Edge cases of convert(stroke:).
+    checkEqual(WebImport.convert(stroke: webStroke("", points: [(1, 1, 0.5)]), page: october), nil, "an empty id → nil")
+    checkEqual(WebImport.convert(stroke: webStroke(String(repeating: "y", count: 129), points: [(1, 1, 0.5)]), page: october), nil, "a 129-character id → nil")
+    checkEqual(WebImport.convert(stroke: webStroke("p", points: []), page: october), nil, "no points → nil")
+    let odd = WebImport.convert(stroke: webStroke("odd", color: "nope", t: -7, points: [(1, 2, 0.5)]), page: october)
+    checkEqual(odd?.color, "#1f2937", "a bad colour → the tool default")
+    checkEqual(odd?.t, 0, "a negative t → 0")
+    checkEqual(odd?.points.map(\.x), [1], "a single point converts")
+    let hl = WebImport.convert(stroke: webStroke("hl", tool: .highlighter, color: "bad", size: 18, points: [(1, 2, 0.5)]), page: october)
+    checkEqual(hl?.color, "#fde047", "a bad highlighter colour → marker default")
+    checkEqual(hl?.tool, .marker, "highlighter → marker")
+    let fine = WebImport.convert(stroke: webStroke("fine", size: 3.5, points: [(410.04, 360.06, 0.123)]), page: october)
+    checkEqual(fine?.points.first?.x, 10, "x rounded to 0.1 (InkPoint)")
+    checkEqual(fine?.points.first?.y, 10.1, "y rounded to 0.1")
+    checkEqual(fine?.points.first?.force, 0.12, "force rounded to 0.01")
+    checkClose(fine?.points.first?.sizeW, 1.79, "nib 3.5 × (0.4 + 0.9 × 0.123) = 1.787 → 1.79", tolerance: 1e-9)
+    // The centre decides the cell, not the first point: a stroke from 10/13 into 10/15 whose centre is on 10/14.
+    let span = WebImport.convert(stroke: webStroke("span", points: [(300, 400, 0.5), (580, 400, 0.5)]), page: october)
+    checkEqual(span?.cell, .day(day(2026, 10, 14)), "the bounding-box centre (440, 400) decides the cell")
+    checkEqual(span?.points.map(\.x), [-100, 180], "points outside the cell keep their offset")
+    let many = WebImport.convert(stroke: webStroke("many", points: (0..<50).map { (Double($0), 5, 0.5) }), page: .week(day(2026, 10, 5)))
+    checkEqual(many?.points.map(\.dtMs), (0..<50).map { 8 * $0 }, "dtMs grows 8 ms per point")
+
+    // convert(_:) on 見本 1.
+    let conv = WebImport.convert(doc)
+    checkEqual(conv.pages.count, 4, "sample 1 converts to 4 pages")
+    checkEqual(conv.pageCount, 4, "pageCount")
+    checkEqual(conv.strokeCount, 5, "strokeCount 5")
+    checkEqual(conv.skipped, [WebImport.Skipped(pageId: "m-2026-09", reason: .legacyPageId), WebImport.Skipped(pageId: "d-2026-10-08", reason: .noStrokes)], "skipped pages and reasons")
+    checkEqual(conv.pages.map(\.pageId), ["m1-2026-10", "w-2026-10-05", "d-2026-10-07", "y-2026"], "pages in document order")
+    checkEqual(conv.pages.map(\.liveStrokeCount), [2, 1, 1, 1], "live strokes per page")
+    checkEqual(conv.pages.map(\.updatedAt), [1_760_000_002_000, 1_760_000_003_000, 1_760_000_004_000, 1_760_000_005_000], "updatedAt from the web")
+    checkEqual(conv.pages.map(\.v), [1, 1, 1, 1], "v 1")
+    checkEqual(conv.pages[2].deleted, ["zz": 1_760_000_000_500], "the day page keeps the tombstone zz")
+    checkEqual(conv.pages[2].strokes["d4"] != nil, true, "d4 is still there next to the tombstone")
+    checkEqual(conv.pages[0].liveStrokeIds, ["a1", "b2"], "month page ids")
+    checkEqual(conv.pages[0].strokes["a1"], a1, "the month page's a1 is the converted stroke")
+    checkEqual(conv.pages[0].strokes["b2"], b2, "the month page's b2")
+    checkEqual(conv.pages[1].strokes["c3"], c3, "the week page's c3")
+    checkEqual(conv.pages[2].strokes["d4"], d4, "the day page's d4")
+    checkEqual(conv.pages[3].strokes["e5"], e5, "the year page's e5")
+    check(conv.pages.allSatisfy { $0.strokes.values.allSatisfy { $0.dev == "web" } }, "every stroke has dev web")
+    check(conv.pages.allSatisfy { $0.unknown.isEmpty && $0.unknownStrokes.isEmpty }, "nothing unknown")
+    checkEqual(conv.pages[0].liveStrokes.map(\.id), ["b2", "a1"], "draw order: marker first")
+
+    // 見本 2 converts to the same pages.
+    let conv2 = WebImport.convert(try webDoc(webExportExpected))
+    checkEqual(conv2.pages.count, 4, "sample 2 converts to 4 pages")
+    checkEqual(conv2.strokeCount, 5, "sample 2 strokeCount 5")
+    checkEqual(conv2.skipped, [], "sample 2 skips nothing")
+    checkEqual(conv2.pages.map(\.pageId), ["d-2026-10-07", "m1-2026-10", "w-2026-10-05", "y-2026"], "sample 2 pages in its order")
+    checkEqual(conv.pages.sorted { $0.pageId < $1.pageId }, conv2.pages, "sorted by pageId the two conversions are equal")
+    check(conv.pages.sorted { $0.pageId < $1.pageId } != conv.pages, "(document order differs from sorted order)")
+
+    // Importing twice does not duplicate; a stroke erased on the iPad does not come back.
+    for page in conv.pages {
+        checkEqual(InkPage.merge(page, page).liveStrokeCount, page.liveStrokeCount, "merge(convert, convert) keeps the count on \(page.pageId)")
+        checkEqual(InkPage.merge(page, page), page, "merge(convert, convert) is the same page on \(page.pageId)")
+    }
+    var local = conv.pages[0]
+    local.remove(ids: ["a1"], at: 1_760_000_009_000)
+    local.add(stroke("ipad-stroke", t: 1_760_000_010_000))
+    let again = InkPage.merge(local, conv.pages[0])
+    checkEqual(again.liveStrokeIds, ["b2", "ipad-stroke"], "a1 erased on the iPad stays erased after a re-import")
+    checkEqual(again.deleted["a1"], 1_760_000_009_000, "the tombstone survives")
+    checkEqual(again.updatedAt, 1_760_000_010_000, "updatedAt is the max")
+    checkEqual(InkPage.merge(conv.pages[0], local), again, "merge is commutative here too")
+    checkEqual(InkPage.merge(again, conv.pages[0]), again, "a third import changes nothing")
+    let wiped = InkPage.merge(InkPage(pageId: "d-2026-10-07", deleted: ["d4": 1]), conv.pages[2])
+    checkEqual(wiped.liveStrokeCount, 0, "a tombstone wins over the imported stroke")
+    checkEqual(wiped.deleted, ["d4": 1, "zz": 1_760_000_000_500], "tombstones unite")
+    checkEqual(conv.pages[2].contentDiffers(from: wiped), true, "contentDiffers after the tombstone")
+    checkEqual(conv.pages[2].contentDiffers(from: InkPage.merge(conv.pages[2], conv.pages[2])), false, "contentDiffers: the same content")
+
+    // updatedAt = max(web updatedAt, the strokes' t).
+    let early = WebImport.convert(page: WebImport.Page(pageId: "d-2026-10-07", strokes: [webStroke("s", t: 100, points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 5))
+    checkEqual(early?.updatedAt, 100, "updatedAt = stroke t when the page's is older")
+    let late = WebImport.convert(page: WebImport.Page(pageId: "d-2026-10-07", strokes: [webStroke("s", t: 100, points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 200))
+    checkEqual(late?.updatedAt, 200, "updatedAt = the page's when it is later")
+    let two = WebImport.convert(page: WebImport.Page(pageId: "d-2026-10-07", strokes: [webStroke("s", t: 100, points: [(1, 1, 0.5)]), webStroke("u", t: 300, points: [(2, 2, 0.5)])], deleted: ["s": 50], updatedAt: 200))
+    checkEqual(two?.updatedAt, 300, "updatedAt = the latest stroke")
+    checkEqual(two?.deleted, ["s": 50], "web tombstones are carried over as they are")
+    checkEqual(two?.strokes.count, 2, "the strokes are not removed by the carried-over tombstone")
+    checkEqual(two?.liveStrokeIds, ["u"], "but the tombstoned one is not live")
+    checkEqual(two?.jsonValue["strokes"]?.objectValue?.keys.sorted(), ["u"], "and it is not written")
+    let zero = WebImport.convert(page: WebImport.Page(pageId: "d-2026-10-07", strokes: [webStroke("s", t: 0, points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 0))
+    checkEqual(zero?.updatedAt, 0, "all zero stays 0")
+    checkEqual(zero?.strokes["s"]?.t, 0, "t 0 is kept")
+
+    // convert(page:) nil cases.
+    checkEqual(WebImport.convert(page: WebImport.Page(pageId: "m-2026-09", strokes: [webStroke("s", points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 1)), nil, "legacy id → nil")
+    checkEqual(WebImport.convert(page: WebImport.Page(pageId: "d-2026-10-08", strokes: [], deleted: ["zz": 1], updatedAt: 1)), nil, "no strokes (only tombstones) → nil")
+    checkEqual(WebImport.convert(page: WebImport.Page(pageId: "d-2026-10-08", strokes: [webStroke("", points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 1)), nil, "only an unconvertible stroke → nil")
+    let reasons = WebImport.convert(WebImport.Document(exportedAt: nil, app: nil, includesDemo: false, pages: [
+        WebImport.Page(pageId: "m-2026-09", strokes: [webStroke("s", points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 1),
+        WebImport.Page(pageId: "w-2026-10-04", strokes: [webStroke("s", points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 1),
+        WebImport.Page(pageId: "w-2026-10-06", strokes: [webStroke("s", points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 1),
+        WebImport.Page(pageId: "", strokes: [webStroke("s", points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 1),
+        WebImport.Page(pageId: "q-2026", strokes: [webStroke("s", points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 1),
+        WebImport.Page(pageId: "y-2026", strokes: [], deleted: [:], updatedAt: 1),
+        WebImport.Page(pageId: "y-2026", strokes: [webStroke("s", points: [(1, 1, 0.5)])], deleted: [:], updatedAt: 1),
+    ]))
+    checkEqual(reasons.skipped.map(\.reason), [.legacyPageId, .legacyPageId, .unknownPageId, .unknownPageId, .unknownPageId, .noStrokes], "skip reasons: m-, Sunday w-, Tuesday w-, empty, unknown prefix, empty page")
+    checkEqual(reasons.skipped.map(\.pageId), ["m-2026-09", "w-2026-10-04", "w-2026-10-06", "", "q-2026", "y-2026"], "skipped ids")
+    checkEqual(reasons.pageCount, 1, "one page survives")
+    checkEqual(reasons.strokeCount, 1, "one stroke survives")
+    checkEqual(WebImport.convert(WebImport.Document(exportedAt: nil, app: nil, includesDemo: true, pages: [])), WebImport.Conversion(pages: [], skipped: [], strokeCount: 0, pageCount: 0), "an empty document converts to nothing")
+
+    // Round trip through the codec: the imported page is an ordinary page.
+    let data = try InkPageCodec.encode(conv.pages[0])
+    checkEqual(try InkPageCodec.decode(data), conv.pages[0], "an imported page survives the codec")
+    let compressed = try InkPageCodec.compress(data)
+    checkEqual(try InkPageCodec.decode(try InkPageCodec.decompress(compressed)), conv.pages[0], "and the compression")
+} catch {
+    check(false, "web import conversion threw: \(error)")
+}
+
+// MARK: - Sync state (M4)
+
+section("sync state (M4)")
+
+do {
+    let empty = SyncState.empty
+    checkEqual(empty.v, 1, "empty: v 1")
+    checkEqual(empty.dirty, [], "empty: no dirty pages")
+    checkEqual(empty.zoneToken, nil, "empty: no token")
+    checkEqual(empty.zoneReady, false, "empty: zone not ready")
+    checkEqual(empty.subscriptionReady, false, "empty: subscription not ready")
+    checkEqual(empty.account, nil, "empty: no account")
+    checkEqual(empty.pendingAccount, nil, "empty: no pending account")
+    checkEqual(empty.pendingCloudErase, false, "empty: no pending erase")
+    checkEqual(empty.seen, [:], "empty: nothing seen")
+    checkEqual(empty.lastSyncAt, nil, "empty: never synced")
+    checkEqual(empty.webImportedAt, nil, "empty: never imported")
+    checkEqual(empty.isDirty, false, "empty: not dirty")
+    checkEqual(empty.jsonValue.serialized(), #"{"account":null,"dirty":[],"lastSyncAt":null,"pendingAccount":null,"pendingCloudErase":false,"seen":{},"subscriptionReady":false,"v":1,"webImportedAt":null,"zoneReady":false,"zoneToken":null}"#, "empty: JSON with sorted keys")
+    checkEqual(SyncState(json: empty.jsonValue), empty, "empty: round trip")
+    checkEqual(SyncState(json: .object([:])), empty, "{} reads as empty")
+    checkEqual(SyncState(json: .array([])), empty, "an array reads as empty")
+    checkEqual(SyncState(json: .null), empty, "null reads as empty")
+    checkEqual(SyncState.currentVersion, 1, "currentVersion")
+    checkEqual(SyncState.knownKeys.count, 11, "11 known keys")
+    checkEqual(SyncState.knownKeys, ["v", "dirty", "zoneToken", "zoneReady", "subscriptionReady", "account", "pendingAccount", "pendingCloudErase", "seen", "lastSyncAt", "webImportedAt"], "the known keys of §1.1")
+
+    // The §1.1 example.
+    let example = #"""
+    { "v": 1, "dirty": ["m1-2026-10", "w-2026-10-05"],
+      "zoneToken": "YnBsaXN0MDDUAQID", "zoneReady": true, "subscriptionReady": true,
+      "account": "_0123456789abcdef0123456789abcdef", "pendingAccount": null, "pendingCloudErase": false,
+      "seen": { "m1-2026-10": { "tag": "jx3pq", "sys": "YnBsaXN0MDDUAQID" } },
+      "lastSyncAt": 1760150500000, "webImportedAt": 1760150000000 }
+    """#
+    let state = try SyncStateCodec.decode(Data(example.utf8))
+    checkEqual(state.v, 1, "example: v")
+    checkEqual(state.dirty, ["m1-2026-10", "w-2026-10-05"], "example: dirty in order")
+    checkEqual(state.zoneToken, Data(base64Encoded: "YnBsaXN0MDDUAQID"), "example: token decoded from base64")
+    checkEqual(state.zoneReady, true, "example: zoneReady")
+    checkEqual(state.subscriptionReady, true, "example: subscriptionReady")
+    checkEqual(state.account, "_0123456789abcdef0123456789abcdef", "example: account")
+    checkEqual(state.pendingAccount, nil, "example: pendingAccount null")
+    checkEqual(state.pendingCloudErase, false, "example: pendingCloudErase")
+    checkEqual(state.seen, ["m1-2026-10": SeenRecord(changeTag: "jx3pq", systemFields: Data(base64Encoded: "YnBsaXN0MDDUAQID"))], "example: seen")
+    checkEqual(state.lastSyncAt, 1_760_150_500_000, "example: lastSyncAt")
+    checkEqual(state.webImportedAt, 1_760_150_000_000, "example: webImportedAt")
+    checkEqual(state.unknown, [:], "example: nothing unknown")
+    checkEqual(state.isDirty, true, "example: dirty")
+    checkEqual(SyncState(json: state.jsonValue), state, "example: jsonValue → init(json:) round trip")
+    checkEqual(try SyncStateCodec.decode(try SyncStateCodec.encode(state)), state, "example: codec round trip")
+    checkEqual(try JSONValue.parse(try SyncStateCodec.encode(state)), state.jsonValue, "example: encode writes jsonValue")
+    let text = String(decoding: try SyncStateCodec.encode(state), as: UTF8.self)
+    check(text.hasPrefix(#"{"account":"_0123456789abcdef0123456789abcdef","dirty":["m1-2026-10","w-2026-10-05"],"lastSyncAt":1760150500000,"#), "example: keys sorted, numbers plain")
+    check(text.contains(#""seen":{"m1-2026-10":{"sys":"YnBsaXN0MDDUAQID","tag":"jx3pq"}}"#), "example: seen written with base64")
+    check(text.contains(#""zoneToken":"YnBsaXN0MDDUAQID""#), "example: token written as base64")
+    checkEqual(state.jsonValue["pendingAccount"], .null, "nil is written as null")
+
+    // Unknown keys are written back; broken items are dropped.
+    let odd = SyncState(json: try JSONValue.parse(Data(#"""
+    { "v": 3, "future": { "x": [1, 2] }, "note": "hi", "dirty": ["a", "b", "a", 5, "", "c", "b"],
+      "zoneToken": "***not base64***", "zoneReady": "yes", "account": "", "pendingAccount": "_other",
+      "seen": { "ok": { "tag": "t1" }, "noTag": { "sys": "AAAA" }, "emptyTag": { "tag": "" }, "notObject": "x", "badSys": { "tag": "t2", "sys": "%%%" }, "": { "tag": "t3" } },
+      "lastSyncAt": -5, "webImportedAt": "soon", "pendingCloudErase": true }
+    """#.utf8)))
+    checkEqual(odd.v, 3, "unknown version is kept")
+    checkEqual(odd.unknown, ["future": .object(["x": .array([.number(1), .number(2)])]), "note": .string("hi")], "unknown keys are kept")
+    checkEqual(odd.jsonValue["future"], .object(["x": .array([.number(1), .number(2)])]), "unknown keys are written back")
+    checkEqual(odd.jsonValue["v"], .number(3), "the version is written back")
+    checkEqual(odd.dirty, ["a", "b", "c"], "dirty: duplicates, non-strings and empty ids dropped, order kept")
+    checkEqual(odd.zoneToken, nil, "a token that is not base64 → nil")
+    checkEqual(odd.zoneReady, false, "a non-bool zoneReady → false")
+    checkEqual(odd.account, nil, "an empty account → nil")
+    checkEqual(odd.pendingAccount, "_other", "pendingAccount")
+    checkEqual(odd.seen.keys.sorted(), ["badSys", "ok"], "seen: items without a tag, with an empty tag, not an object or with an empty page id are dropped")
+    checkEqual(odd.seen["ok"], SeenRecord(changeTag: "t1"), "seen: sys is optional")
+    checkEqual(odd.seen["badSys"], SeenRecord(changeTag: "t2", systemFields: nil), "seen: sys that is not base64 → nil")
+    checkEqual(odd.jsonValue["seen"]?["ok"], .object(["tag": .string("t1"), "sys": .null]), "seen without sys is written with null")
+    checkEqual(odd.lastSyncAt, nil, "a negative lastSyncAt → nil")
+    checkEqual(odd.webImportedAt, nil, "a non-numeric webImportedAt → nil")
+    checkEqual(odd.pendingCloudErase, true, "pendingCloudErase true")
+    checkEqual(SyncState(json: odd.jsonValue), odd, "odd: round trip")
+    checkEqual(SeenRecord(changeTag: "x").systemFields, nil, "SeenRecord default systemFields nil")
+
+    // markDirty / clearDirty.
+    var s = SyncState.empty
+    s.markDirty("b")
+    s.markDirty("a")
+    s.markDirty("b")
+    checkEqual(s.dirty, ["b", "a"], "markDirty keeps the order and ignores duplicates")
+    s.markDirty("")
+    checkEqual(s.dirty, ["b", "a"], "markDirty ignores an empty id")
+    checkEqual(s.isDirty, true, "isDirty after markDirty")
+    s.clearDirty("b")
+    checkEqual(s.dirty, ["a"], "clearDirty removes the id")
+    s.clearDirty("zzz")
+    checkEqual(s.dirty, ["a"], "clearDirty of an unknown id is a no-op")
+    s.clearDirty("a")
+    checkEqual(s.isDirty, false, "not dirty once cleared")
+    checkEqual(SyncState(dirty: ["x", "x", "y"]).dirty, ["x", "y"], "init dedupes dirty")
+
+    // adoptAccount.
+    var adopted = state
+    adopted.unknown["keep"] = .bool(true)
+    adopted.pendingAccount = "_new"
+    adopted.pendingCloudErase = true
+    adopted.adoptAccount("_new", allLocalPageIds: ["d-2026-10-07", "m1-2026-10", "d-2026-10-07"])
+    checkEqual(adopted.account, "_new", "adoptAccount: account")
+    checkEqual(adopted.pendingAccount, nil, "adoptAccount: pendingAccount cleared")
+    checkEqual(adopted.zoneToken, nil, "adoptAccount: token dropped")
+    checkEqual(adopted.seen, [:], "adoptAccount: seen dropped")
+    checkEqual(adopted.zoneReady, false, "adoptAccount: zone to be made again")
+    checkEqual(adopted.subscriptionReady, false, "adoptAccount: subscription to be made again")
+    checkEqual(adopted.dirty, ["d-2026-10-07", "m1-2026-10"], "adoptAccount: every local page is dirty (deduped)")
+    checkEqual(adopted.webImportedAt, 1_760_150_000_000, "adoptAccount: webImportedAt kept")
+    checkEqual(adopted.unknown["keep"], .bool(true), "adoptAccount: unknown kept")
+    checkEqual(adopted.lastSyncAt, state.lastSyncAt, "adoptAccount: lastSyncAt kept")
+    checkEqual(adopted.pendingCloudErase, true, "adoptAccount: pendingCloudErase kept")
+
+    // resetAfterErase.
+    var erased = state
+    erased.resetAfterErase(cloudPending: true)
+    checkEqual(erased.dirty, [], "resetAfterErase: nothing dirty")
+    checkEqual(erased.seen, [:], "resetAfterErase: nothing seen")
+    checkEqual(erased.zoneToken, nil, "resetAfterErase: token dropped")
+    checkEqual(erased.pendingCloudErase, true, "resetAfterErase: cloud erase pending")
+    checkEqual(erased.webImportedAt, nil, "resetAfterErase: webImportedAt cleared")
+    checkEqual(erased.account, state.account, "resetAfterErase: account kept")
+    checkEqual(erased.zoneReady, true, "resetAfterErase: zoneReady kept")
+    checkEqual(erased.subscriptionReady, true, "resetAfterErase: subscriptionReady kept")
+    checkEqual(erased.lastSyncAt, state.lastSyncAt, "resetAfterErase: lastSyncAt kept")
+    var erasedOnline = state
+    erasedOnline.resetAfterErase(cloudPending: false)
+    checkEqual(erasedOnline.pendingCloudErase, false, "resetAfterErase(false): nothing pending")
+
+    // resetAfterZoneLoss.
+    var lost = state
+    lost.pendingCloudErase = true
+    lost.resetAfterZoneLoss(allLocalPageIds: ["y-2026", "m1-2026-10"])
+    checkEqual(lost.zoneToken, nil, "resetAfterZoneLoss: token dropped")
+    checkEqual(lost.seen, [:], "resetAfterZoneLoss: seen dropped")
+    checkEqual(lost.zoneReady, false, "resetAfterZoneLoss: zone to be made again")
+    checkEqual(lost.subscriptionReady, false, "resetAfterZoneLoss: subscription to be made again")
+    checkEqual(lost.dirty, ["y-2026", "m1-2026-10"], "resetAfterZoneLoss: every local page is dirty")
+    checkEqual(lost.account, state.account, "resetAfterZoneLoss: account kept")
+    checkEqual(lost.pendingCloudErase, true, "resetAfterZoneLoss: pendingCloudErase kept")
+    checkEqual(lost.webImportedAt, state.webImportedAt, "resetAfterZoneLoss: webImportedAt kept")
+    checkEqual(lost.pendingAccount, nil, "resetAfterZoneLoss: pendingAccount unchanged")
+
+    // Codec errors.
+    var threw = false
+    do { _ = try SyncStateCodec.decode(Data("{ not json".utf8)) } catch { threw = true }
+    checkEqual(threw, true, "decode throws for broken JSON")
+    threw = false
+    do { _ = try SyncStateCodec.decode(Data()) } catch { threw = true }
+    checkEqual(threw, true, "decode throws for empty data")
+    checkEqual(try SyncStateCodec.decode(Data("[]".utf8)), .empty, "decode of a non-object is empty")
+    checkEqual(try SyncStateCodec.decode(Data("{\"v\":1}".utf8)), .empty, "decode of {\"v\":1} is empty")
+    let keys = state.jsonValue.objectValue?.keys.sorted()
+    checkEqual(keys, ["account", "dirty", "lastSyncAt", "pendingAccount", "pendingCloudErase", "seen", "subscriptionReady", "v", "webImportedAt", "zoneReady", "zoneToken"], "every known key is written")
+    let bytes = try SyncStateCodec.encode(state)
+    let sorted = try JSONValue.parse(bytes).serializedData()
+    checkEqual(bytes, sorted, "encode is already the sorted, compact form")
+    var token = state
+    token.zoneToken = Data([0, 1, 2, 255])
+    checkEqual(token.jsonValue["zoneToken"], .string("AAEC/w=="), "token base64")
+    checkEqual(SyncState(json: token.jsonValue).zoneToken, Data([0, 1, 2, 255]), "token base64 round trip")
+
+    // InkPage additions for sync (§3.6): liveStrokeIds / contentDiffers.
+    var pa = InkPage(pageId: "m1-2026-10")
+    pa.add(stroke("z"))
+    pa.add(stroke("b"))
+    pa.add(stroke("m"))
+    checkEqual(pa.liveStrokeIds, ["b", "m", "z"], "liveStrokeIds is sorted")
+    var pb = pa
+    pb.updatedAt += 5
+    pb.unknown["x"] = .bool(true)
+    check(pa != pb, "== sees updatedAt / unknown")
+    checkEqual(pa.contentDiffers(from: pb), false, "contentDiffers ignores updatedAt and unknown")
+    checkEqual(pa.contentDiffers(from: pa), false, "contentDiffers: same page")
+    pb.remove(ids: ["m"], at: 1_760_000_002_000)
+    checkEqual(pb.liveStrokeIds, ["b", "z"], "liveStrokeIds after a removal")
+    checkEqual(pa.contentDiffers(from: pb), true, "contentDiffers: a removed stroke")
+    checkEqual(pb.contentDiffers(from: pa), true, "contentDiffers is symmetric")
+    var pc = pa
+    pc.deleted["ghost"] = 1
+    checkEqual(pa.contentDiffers(from: pc), true, "contentDiffers: a tombstone for an id not on the page")
+    var pd = pa
+    pd.add(stroke("new"))
+    checkEqual(pa.contentDiffers(from: pd), true, "contentDiffers: an added stroke")
+    var pe = pa
+    pe.strokes["z"] = stroke("z", t: 1)
+    checkEqual(pa.contentDiffers(from: pe), false, "contentDiffers does not compare the strokes' contents")
+    checkEqual(InkPage(pageId: "x").contentDiffers(from: InkPage(pageId: "y")), false, "contentDiffers does not compare the pageId")
+    let unknownStroke = InkPage(json: .object(["pageId": .string("m1-2026-10"), "strokes": .object(["u": .object(["id": .string("u"), "tool": .string("brush"), "pts": .array([])])])]))
+    checkEqual(unknownStroke.liveStrokeIds, [], "a stroke of an unknown tool is not a live stroke of this version")
+    checkEqual(unknownStroke.contentDiffers(from: InkPage(pageId: "m1-2026-10")), true, "but it is content that differs (it is written back)")
+} catch {
+    check(false, "sync state threw: \(error)")
+}
+
+// MARK: - Sync backoff (M4)
+
+section("sync backoff (M4)")
+
+do {
+    checkEqual((0...7).map { SyncBackoff.delay(afterFailures: $0) }, [15, 30, 60, 120, 240, 300, 300, 300], "delay doubles from 15 s and caps at 300 s")
+    checkEqual(SyncBackoff.delay(afterFailures: -3), 15, "negative failures count as 0")
+    checkEqual(SyncBackoff.delay(afterFailures: 30), 300, "30 failures → 300")
+    checkEqual(SyncBackoff.delay(afterFailures: 1_000_000), 300, "huge failures → 300 (no overflow)")
+    var b = SyncBackoff()
+    checkEqual(b.failures, 0, "starts at 0")
+    checkEqual(b.nextDelay, 15, "first retry after 15 s")
+    b.recordFailure()
+    checkEqual(b.failures, 1, "one failure")
+    checkEqual(b.nextDelay, 30, "then 30 s")
+    b.recordFailure()
+    b.recordFailure()
+    checkEqual(b.nextDelay, 120, "three failures → 120 s")
+    checkEqual(b.nextDelay(serverHint: 600), 600, "a longer server hint wins")
+    checkEqual(b.nextDelay(serverHint: 1), 120, "a shorter server hint loses")
+    checkEqual(b.nextDelay(serverHint: nil), 120, "no hint → nextDelay")
+    checkEqual(SyncBackoff().nextDelay(serverHint: 600), 600, "serverHint 600 at 0 failures = 600")
+    checkEqual(SyncBackoff().nextDelay(serverHint: 1), 15, "serverHint 1 at 0 failures = 15")
+    checkEqual(SyncBackoff().nextDelay(serverHint: .nan), 15, "a NaN hint is ignored")
+    for _ in 0..<100 { b.recordFailure() }
+    checkEqual(b.failures, 30, "failures cap at 30")
+    checkEqual(b.nextDelay, 300, "capped delay")
+    b.reset()
+    checkEqual(b.failures, 0, "reset → 0")
+    checkEqual(b.nextDelay, 15, "reset → 15 s")
+    checkEqual(SyncBackoff(failures: 2).nextDelay, 60, "init with failures")
+    checkEqual(SyncBackoff(failures: 99).failures, 30, "init caps at 30")
+    checkEqual(SyncBackoff(failures: -1).failures, 0, "init floors at 0")
+    checkEqual(SyncBackoff(failures: 2), SyncBackoff(failures: 2), "Equatable")
+    checkEqual(SyncBackoff.debounce, 1.5, "debounce 1.5 s")
+    checkEqual(SyncBackoff.minimum, 15, "minimum 15 s")
+    checkEqual(SyncBackoff.maximum, 300, "maximum 300 s")
+    checkEqual(SyncBackoff.maxConflictRetries, 3, "3 conflict retries")
+    checkEqual(SyncBackoff.pageFetchCooldown, 30, "page fetch cooldown 30 s")
+    checkEqual(SyncBackoff.notificationBudget, 20, "notification budget 20 s")
+}
+
 // MARK: - Summary
 
 print("")

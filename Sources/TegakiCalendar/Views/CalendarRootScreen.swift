@@ -17,16 +17,24 @@ struct EventEditorRequest: Identifiable {
     var pageId: String
 }
 
-/// The app's one screen (M3a contract §4.1, M3b §4.5): the header (◀ 今日 ▶, the title, the
-/// 日/週/月/年 switch, ＋予定, ⚙), the sticky heading of the page, the paper with the PencilKit canvas
-/// (`InkCanvasView`, 担当 I) and the lasso menu floating over it, the toolbar, the toast, and the
-/// sheets (event create / edit / view, settings).
+/// The app's one screen (M3a contract §4.1, M3b §4.5, M4 §5.3–§6.4): the header (◀ 今日 ▶, the
+/// title, the 日/週/月/年 switch, ＋予定, ☁ sync state, ⚙), the sticky heading of the page, the paper
+/// with the PencilKit canvas (`InkCanvasView`, 担当 I) and the lasso menu floating over it, the
+/// toolbar, the toast, and the sheets (event create / edit / view, settings, the web import's file
+/// picker and progress sheet, the iCloud account question).
 ///
-/// Flow: `(kind, focus)` is chosen → `saveNow()` → `InkPageStore.load(pageId)` →
-/// `EventStoreModel.load(kind:focus:)` → the page's layout engine → `InkCanvasView(...).id(pageId)`.
-/// Ink changes are saved 1.5 s after the last one, before leaving the page, and when the app goes to
-/// the background. Events changing or the ink growing past a band's bottom re-run the layout with
-/// fresh `inkBottoms`. On the week and day pages a 30 s tick moves the now line.
+/// Flow: `(kind, focus)` is chosen → `saveNow()` → `SyncEngine.load(pageId)` (+ `pageOpened`, which
+/// fetches that one page from iCloud) → `EventStoreModel.load(kind:focus:)` → the page's layout
+/// engine → `InkCanvasView(...).id(pageId)`. Ink changes are saved through `SyncEngine.save` 1.5 s
+/// after the last one, before leaving the page, and when the app goes to the background (the engine
+/// writes the file and sends it to iCloud 1.5 s later). Events changing or the ink growing past a
+/// band's bottom re-run the layout with fresh `inkBottoms`. On the week and day pages a 30 s tick
+/// moves the now line.
+///
+/// Sync (M4): a page the engine changed from iCloud (a pull, a push conflict, an import) arrives
+/// through `onRemoteUpdate` and is merged into the shown page without touching the canvas history
+/// (`applyRemote`). Erasing everything and importing go through the engine. When another iCloud
+/// account signs in, the engine stops with `.accountMismatch` and this screen asks (§6.4).
 ///
 /// Events (M3b): the 予定 tool's drag or tap, 「＋予定」 and the lasso's 「予定にする」 open the create
 /// sheet with the range `layout.eventRange(for:now:)` produced; a finger tap or a 予定-tool tap on a
@@ -36,6 +44,8 @@ struct EventEditorRequest: Identifiable {
 /// 「この手書きを消す」 is on (one undoable canvas command).
 struct CalendarRootScreen: View {
     @StateObject private var model = EventStoreModel()
+    /// The sync engine (M4 contract §5.3): the one store of the pages, and the ☁ state.
+    @ObservedObject private var sync = SyncEngine.shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
 
@@ -70,17 +80,25 @@ struct CalendarRootScreen: View {
     /// Measured size of the lasso menu (a guess until it has been laid out once).
     @State private var menuSize = CGSize(width: 300, height: 44)
 
+    // M4: the web import and the account question.
+    @State private var showImportPicker = false
+    /// The import sheet is up while this is not nil (M4 contract §6.3).
+    @State private var importPhase: WebImportPhase?
+    @State private var showAccountChange = false
+    /// The account question arrived while a sheet was up: ask once the sheet has closed.
+    @State private var accountChangePending = false
+
     @State private var saveTask: Task<Void, Never>?
     @State private var pageDirty = false
     @State private var saveError: String?
     @State private var appeared = false
 
-    private let store = InkPageStore()
-
     /// How often the now line is moved (M3a contract §4.1).
     static let nowTickSeconds: Double = 30
     /// Below this width the header takes two rows (M3b contract §4.6).
     static let compactWidth: CGFloat = 600
+    /// The pause between two sheets / dialogs (SwiftUI cannot present two at once).
+    static let sheetGap: Double = 0.35
 
     init() {
         let shot = ScreenshotMode.current
@@ -120,6 +138,11 @@ struct CalendarRootScreen: View {
         ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
     }
 
+    /// True while any sheet or cover is up (the account question waits for them; M4 contract §6.4).
+    private var sheetIsUp: Bool {
+        showSettings || editor != nil || showImportPicker || importPhase != nil || showOnboarding
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let compact = proxy.size.width < Self.compactWidth
@@ -133,7 +156,9 @@ struct CalendarRootScreen: View {
                     onNext: { move(by: 1) },
                     onKindChange: { show(kind: $0, focus: focus) },
                     onAddEvent: addEvent,
-                    onSettings: { showSettings = true }
+                    onSettings: { showSettings = true },
+                    sync: sync.snapshot.status.header,
+                    onSyncTap: { showSettings = true }
                 )
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -178,6 +203,8 @@ struct CalendarRootScreen: View {
         .onChange(of: tool) {
             if case .ink = tool { lastInkTool = tool }
         }
+        .onChange(of: sync.snapshot.status) { syncStatusChanged() }
+        .onChange(of: sheetIsUp) { sheetsChanged() }
         .task { await nowTicker() }
         .sheet(item: $editor) { request in
             editorSheet(request)
@@ -185,11 +212,22 @@ struct CalendarRootScreen: View {
         .sheet(isPresented: $showSettings) {
             SettingsScreen(
                 model: model,
+                sync: sync,
                 allowFinger: $allowFinger,
                 onRequestAccess: { await model.requestAccess() },
+                onSyncNow: { Task { await sync.syncNow() } },
+                onImportWeb: importWeb,
                 onEraseAllInk: eraseAllInk,
+                onResolveAccountChange: resolveAccountChangeFromSettings,
                 onDone: { showSettings = false }
             )
+        }
+        .sheet(isPresented: $showImportPicker) {
+            DocumentPickerView(onPick: pickedImportFile, onCancel: { showImportPicker = false })
+                .ignoresSafeArea()
+        }
+        .sheet(isPresented: importSheetBinding) {
+            WebImportSheet(phase: importPhase ?? .reading, onClose: closeImportSheet)
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView {
@@ -199,6 +237,7 @@ struct CalendarRootScreen: View {
             }
             .interactiveDismissDisabled()
         }
+        .accountChangeDialog(isPresented: $showAccountChange, onChoose: chooseAccount)
         .alert("手書きを保存できませんでした", isPresented: Binding(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
@@ -282,6 +321,15 @@ struct CalendarRootScreen: View {
         )
     }
 
+    /// The import sheet is presented while `importPhase` is set; swiping it away (possible only when
+    /// done or failed) counts as 「閉じる」.
+    private var importSheetBinding: Binding<Bool> {
+        Binding(
+            get: { importPhase != nil },
+            set: { if !$0 { closeImportSheet() } }
+        )
+    }
+
     /// A one-line notice while the calendar cannot be read (DESIGN §4.1).
     @ViewBuilder
     private var accessNotice: some View {
@@ -353,7 +401,14 @@ struct CalendarRootScreen: View {
                 onboardingDone = true
             }
         }
+        // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.
+        sync.onRemoteUpdate = { applyRemote($0) }
         show(kind: kind, focus: focus)
+        // The engine may already be waiting for the account answer (its first round ran before this
+        // screen appeared); `onChange` only sees changes from now on.
+        if sync.snapshot.status == .accountMismatch {
+            presentAccountChange()
+        }
         if let sheet = ScreenshotMode.current?.sheet {
             // M3b contract §5: open the requested sheet once the canvas is on screen.
             Task { @MainActor in
@@ -373,6 +428,9 @@ struct CalendarRootScreen: View {
                 model.reload()
                 relayout()
             }
+            // M4 contract §5.3: one sync round on every return to the foreground (catches up what a
+            // silent push did not deliver).
+            sync.applicationDidBecomeActive()
         @unknown default:
             break
         }
@@ -408,8 +466,15 @@ struct CalendarRootScreen: View {
         selection = nil
         remember()
         let id = PageNavigation.pageId(newKind, focus: newFocus)
-        // Screenshot mode injects its demo strokes in memory; the store is not read or written.
-        page = ScreenshotMode.isActive ? ScreenshotMode.demoPage(kind: newKind, focus: newFocus) : store.load(id)
+        if ScreenshotMode.isActive {
+            // Screenshot mode injects its demo strokes in memory; the store is not read or written.
+            page = ScreenshotMode.demoPage(kind: newKind, focus: newFocus)
+        } else {
+            page = sync.load(id)
+            // M4 contract §5.3: fetch this one page from iCloud (a page written on another device
+            // just before it was opened here); a change arrives through `onRemoteUpdate`.
+            sync.pageOpened(id)
+        }
         pageDirty = false
         if !ScreenshotMode.isActive { now = Date() }
         model.load(kind: newKind, focus: newFocus)
@@ -469,6 +534,25 @@ struct CalendarRootScreen: View {
         Task { @MainActor in
             relayout()
         }
+    }
+
+    // MARK: - Remote updates (M4 contract §5.4)
+
+    /// `SyncEngine.onRemoteUpdate`: the engine wrote `updated` (merged with the file) for some page.
+    /// Only the shown page matters here; it is merged with the page in memory (a stroke drawn in the
+    /// last 1.5 s is not yet in the file) and handed to the canvas, which reloads the ledger with
+    /// the history kept. The canvas's own `refreshSelection` drops the ids that died; the selection
+    /// is not cleared here.
+    private func applyRemote(_ updated: InkPage) {
+        guard updated.pageId == pageId else { return }
+        let merged = InkPage.merge(page, updated)          // ペンを離した直後の未保存の線を落とさない
+        guard merged.contentDiffers(from: page) || merged.updatedAt != page.updatedAt else { return }
+        page = merged                                       // Binding を通さない（dirty にしない）
+        if merged.contentDiffers(from: updated) {           // 端末内にしか無い線があった → いつもの経路で保存・送信
+            pageDirty = true
+            scheduleSave()
+        }
+        relayout()
     }
 
     // MARK: - Taps
@@ -648,28 +732,169 @@ struct CalendarRootScreen: View {
         }
     }
 
-    // MARK: - Settings
+    // MARK: - Settings: erase everything (M4 contract §6.2)
 
-    /// 「この iPad の手書きを全て消す」 after both confirmations: stop the pending save, delete every
-    /// page file, empty the shown page (the canvas reloads it), and say so. Screenshot mode only
-    /// empties the page in memory.
+    /// 「この iPad の手書きを全て消す」 after both confirmations: close the settings, stop the pending
+    /// save, empty the shown page (the canvas reloads it), then let the engine delete every page file
+    /// and every iCloud record. iCloud failing leaves the local part erased and the engine retries
+    /// the cloud part at the next sync. Screenshot mode only empties the page in memory.
     private func eraseAllInk() {
         showSettings = false
         saveTask?.cancel()
         saveTask = nil
-        if !ScreenshotMode.isActive {
-            do {
-                try store.removeAll()
-            } catch {
-                showToast("手書きを消せませんでした: \(error.localizedDescription)", isError: true)
-                return
-            }
-        }
         page = InkPage.empty(pageId: pageId)
         pageDirty = false
         selection = nil
         relayout()
-        showToast("手書きを全て消しました")
+        guard !ScreenshotMode.isActive else {
+            showToast("手書きを全て消しました")
+            return
+        }
+        Task { @MainActor in
+            do {
+                try await sync.eraseEverything()
+                showToast("手書きを全て消しました")
+            } catch {
+                showToast("iCloud の手書きを消せませんでした。この iPad の分は消しました。回線が戻ったらもう一度お試しください", isError: true)
+            }
+        }
+    }
+
+    // MARK: - Web import (M4 contract §6.3)
+
+    /// 「Web 版の手書きを取り込む」: close the settings, then show the file picker.
+    private func importWeb() {
+        showSettings = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.sheetGap))
+            showImportPicker = true
+        }
+    }
+
+    /// The picker returned a file (a temporary copy): read it, then show the progress sheet and run
+    /// the import.
+    private func pickedImportFile(_ url: URL) {
+        showImportPicker = false
+        let accessed = url.startAccessingSecurityScopedResource()
+        let read = Result { try Data(contentsOf: url) }
+        if accessed { url.stopAccessingSecurityScopedResource() }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.sheetGap))
+            importPhase = .reading
+            switch read {
+            case .failure:
+                importPhase = .failed(WebImportSheet.invalidJSONText)
+            case .success(let data):
+                await runImport(data)
+            }
+        }
+    }
+
+    /// Parse → convert (off the main actor: a big export takes a moment) → `sync.importPages`.
+    private func runImport(_ data: Data) async {
+        let parsed: Result<WebImport.Conversion, Error> = await Task.detached(priority: .userInitiated) {
+            Result { WebImport.convert(try WebImport.parse(data)) }
+        }.value
+        let conversion: WebImport.Conversion
+        switch parsed {
+        case .failure(let error):
+            importPhase = .failed(Self.importFailureText(error))
+            return
+        case .success(let value):
+            conversion = value
+        }
+        let skipped = conversion.skipped.count
+        guard !conversion.pages.isEmpty else {
+            importPhase = .done(ImportOutcome(pagesChanged: 0, strokesAdded: 0, pagesSeen: conversion.pageCount), skipped: skipped)
+            return
+        }
+        importPhase = .importing(done: 0, total: conversion.pages.count)
+        do {
+            let outcome = try await sync.importPages(conversion.pages) { done, total in
+                importPhase = .importing(done: done, total: total)
+            }
+            importPhase = .done(outcome, skipped: skipped)
+        } catch {
+            importPhase = .failed(WebImportSheet.saveFailedText(error))
+        }
+    }
+
+    /// The `.failed` text of a parse error (M4 contract §6.3, step 3).
+    private static func importFailureText(_ error: Error) -> String {
+        switch error as? WebImport.ParseError {
+        case .notAnExport:
+            return WebImportSheet.notAnExportText
+        case .unsupportedVersion(let version):
+            return WebImportSheet.unsupportedVersionText(version)
+        case .invalidJSON, .none:
+            return WebImportSheet.invalidJSONText
+        }
+    }
+
+    /// 「閉じる」 (or a swipe when done / failed): the result becomes a toast.
+    private func closeImportSheet() {
+        guard let phase = importPhase else { return }
+        importPhase = nil
+        if case .done(let outcome, let skipped) = phase {
+            showToast(WebImportSheet.toastText(outcome: outcome, skipped: skipped))
+        }
+    }
+
+    // MARK: - Account change (M4 contract §6.4)
+
+    /// The engine's status changed: the first time it becomes `.accountMismatch`, ask (after any
+    /// sheet that is up has closed).
+    private func syncStatusChanged() {
+        guard sync.snapshot.status == .accountMismatch else { return }
+        presentAccountChange()
+    }
+
+    /// 「新しいアカウントで使い始める…」 in the settings: close them, then ask.
+    private func resolveAccountChangeFromSettings() {
+        showSettings = false
+        accountChangePending = true
+    }
+
+    private func presentAccountChange() {
+        if sheetIsUp {
+            accountChangePending = true
+        } else {
+            showAccountChange = true
+        }
+    }
+
+    /// A sheet opened or closed: a waiting account question is asked once nothing is up.
+    private func sheetsChanged() {
+        guard accountChangePending, !sheetIsUp else { return }
+        accountChangePending = false
+        guard sync.snapshot.status == .accountMismatch else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.sheetGap))
+            guard !sheetIsUp, sync.snapshot.status == .accountMismatch else { return }
+            showAccountChange = true
+        }
+    }
+
+    /// The answer: the engine adopts the new account (keeping or erasing the ink) or waits; the shown
+    /// page is read again afterwards (empty after 「消して始める」).
+    private func chooseAccount(_ choice: AccountChangeChoice) {
+        if choice == .keepInk {
+            saveNow() // a stroke of the last 1.5 s goes along with the rest
+        }
+        Task { @MainActor in
+            await sync.resolveAccountChange(choice)
+            guard choice != .later, !ScreenshotMode.isActive else { return }
+            reloadShownPage()
+        }
+    }
+
+    /// Reads the shown page from the engine again (after the account answer).
+    private func reloadShownPage() {
+        saveTask?.cancel()
+        saveTask = nil
+        page = sync.load(pageId)
+        pageDirty = false
+        relayout()
     }
 
     // MARK: - Toast
@@ -686,7 +911,7 @@ struct CalendarRootScreen: View {
         }
     }
 
-    // MARK: - Screenshot mode (M3b contract §5)
+    // MARK: - Screenshot mode (M3b contract §5, M4 contract §6.6)
 
     private func showScreenshotSheet(_ sheet: ScreenshotMode.Sheet) {
         switch sheet {
@@ -697,8 +922,11 @@ struct CalendarRootScreen: View {
             openEdit(eventId: ScreenshotMode.editDemoEventId)
         case .lasso:
             tool = .lasso
-        case .settings:
+        case .settings, .sync:
+            // Both show the settings screen; the demo engine supplies 「同期済み」 and 「最後に同期」.
             showSettings = true
+        case .`import`:
+            importPhase = .done(ScreenshotMode.importDemoOutcome, skipped: 0)
         }
     }
 
@@ -713,13 +941,14 @@ struct CalendarRootScreen: View {
         }
     }
 
-    /// Writes the page now if it changed since the last save.
+    /// Writes the page now (through the engine, which also queues it for iCloud) if it changed since
+    /// the last save.
     private func saveNow() {
         saveTask?.cancel()
         saveTask = nil
         guard pageDirty, !ScreenshotMode.isActive else { return }
         do {
-            try store.save(page)
+            try sync.save(page)
             pageDirty = false
         } catch {
             saveError = error.localizedDescription

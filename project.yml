@@ -17,7 +17,7 @@ settings:
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     TARGETED_DEVICE_FAMILY: "1,2"
-    MARKETING_VERSION: "0.4.0"
+    MARKETING_VERSION: "0.5.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     # DEVELOPMENT_TEAM is intentionally unset: CI builds for the Simulator with CODE_SIGNING_ALLOWED=NO.
@@ -38,6 +38,8 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     sources:
+      # Also picks up Sources/TegakiCalendar/PrivacyInfo.xcprivacy as a resource (the privacy
+      # manifest, docs/M4_CONTRACT.md §8.4: UserDefaults, reason CA92.1).
       - path: Sources/TegakiCalendar
     dependencies:
       - package: TegakiKit
@@ -59,6 +61,9 @@ targets:
         NSCalendarsFullAccessUsageDescription: カレンダーの予定を手帳のページに表示し、手書きから予定を作るために使います。iPadOS には読み取りだけの許可が無いため、フルアクセスをお願いしています。予定は iPad の中だけで扱い、外部には送りません。
         UISupportsDocumentBrowser: false
         UILaunchScreen: {}
+        # Silent pushes of the CloudKit zone subscription (docs/M4_CONTRACT.md §2.1, §6.7).
+        UIBackgroundModes:
+          - remote-notification
         ITSAppUsesNonExemptEncryption: false
         UIRequiresFullScreen: false
         UIApplicationSupportsIndirectInputEvents: true
@@ -80,6 +85,10 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
+        # iCloud (CloudKit, container iCloud.com.syfan0.tegakicalendar) + aps-environment
+        # (docs/M4_CONTRACT.md §8.4). The Simulator build in CI does not sign, so the file is only
+        # embedded by testflight.yml, whose profile must carry the same capabilities.
+        CODE_SIGN_ENTITLEMENTS: Support/TegakiCalendar.entitlements
     scheme:
       testTargets:
         - TegakiCalendarTests

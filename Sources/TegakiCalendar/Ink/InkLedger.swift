@@ -183,9 +183,16 @@ final class InkLedger {
     var canUndo: Bool { !undoStack.isEmpty }
     var canRedo: Bool { !redoStack.isEmpty }
 
-    /// Replaces the page (a merge from elsewhere, an import). The history is kept only when the
-    /// caller says so; its ops are harmless against a merged page.
+    /// Replaces the page (a merge from elsewhere, an import, a remote update). The history is kept
+    /// only when the caller says so; its ops are harmless against a merged page.
     /// A page of another id is ignored (reported through `onPageMismatch`): the ledger never mixes pages.
+    ///
+    /// The fingerprint map and `builtIds` are **not** touched (M4 contract §5.4): they describe the
+    /// strokes the canvas is showing right now, not the page. The pen may be on the paper when a
+    /// remote update lands; when it lifts, `applyCanvasChange` then still knows every stroke the
+    /// canvas holds (nothing is re-added under a new id, and a stroke another device erased is not
+    /// revived) and only the stroke just drawn is new. The next `drawing()` rebuilds the map from
+    /// the page.
     func reload(page: InkPage, keepHistory: Bool) {
         guard page.pageId == layout.pageId else {
             Self.onPageMismatch("InkLedger.reload: page \(page.pageId) does not belong to layout \(layout.pageId)")
@@ -196,8 +203,6 @@ final class InkLedger {
             undoStack.removeAll()
             redoStack.removeAll()
         }
-        fingerprintToId.removeAll()
-        builtIds.removeAll()
     }
 
     // MARK: Ledger → PKDrawing

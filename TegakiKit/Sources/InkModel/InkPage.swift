@@ -68,6 +68,25 @@ public struct InkPage: Codable, Equatable, Sendable {
         strokes[id] != nil && deleted[id] == nil
     }
 
+    /// Ids of the live strokes, sorted (M4_CONTRACT §3.6).
+    public var liveStrokeIds: [String] {
+        strokes.keys.filter { deleted[$0] == nil }.sorted()
+    }
+
+    /// True when the set of live stroke ids or the set of tombstone ids differs (the negation of the
+    /// web version's `sameContent`). `updatedAt`, `unknown` and the strokes' contents are not compared.
+    /// Strokes of an unknown tool count as live ids too, so a newer app's ink is never ignored.
+    public func contentDiffers(from other: InkPage) -> Bool {
+        if Set(deleted.keys) != Set(other.deleted.keys) { return true }
+        return liveIdSet != other.liveIdSet
+    }
+
+    private var liveIdSet: Set<String> {
+        var ids = Set(strokes.keys.filter { deleted[$0] == nil })
+        for id in unknownStrokes.keys where deleted[id] == nil { ids.insert(id) }
+        return ids
+    }
+
     static func drawsBefore(_ a: InkStroke, _ b: InkStroke) -> Bool {
         let ka = a.tool == .marker ? 0 : 1
         let kb = b.tool == .marker ? 0 : 1
