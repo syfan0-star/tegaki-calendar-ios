@@ -158,7 +158,8 @@ struct CalendarRootScreen: View {
                     onAddEvent: addEvent,
                     onSettings: { showSettings = true },
                     sync: sync.snapshot.status.header,
-                    onSyncTap: { showSettings = true }
+                    onSyncTap: { showSettings = true },
+                    width: proxy.size.width
                 )
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)

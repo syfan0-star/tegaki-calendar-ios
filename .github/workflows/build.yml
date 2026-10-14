@@ -241,6 +241,53 @@ jobs:
           done
           ls -la shots
 
+      # The day page once more on an 11-inch iPad (834 pt wide in portrait): its title is the longest
+      # and the header row must still show 「今日」 (PageHeaderView.width). Skipped when no such
+      # simulator exists on the runner.
+      - name: Screenshot (portrait, day page, 11-inch iPad)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          SMALL="$(xcrun simctl list -j devices available | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          found = {}
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name"):
+                      found.setdefault(d["name"], d["udid"])
+          for prefix in ("iPad Pro 11-inch", "iPad Air 11-inch", "iPad (A", "iPad mini"):
+              for name, udid in found.items():
+                  if name.startswith(prefix):
+                      print(name + "|" + udid)
+                      raise SystemExit
+          print("")
+          ' || true)"
+          if [ -z "$SMALL" ]; then
+            echo "::warning::No 11-inch class iPad simulator; skipping the 11-inch screenshot."
+            exit 0
+          fi
+          NAME="${SMALL%%|*}"
+          UDID="${SMALL##*|}"
+          echo "11-inch simulator: $NAME ($UDID)"
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          BUNDLE="com.syfan0.tegakicalendar"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl ui "$UDID" appearance light
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p shots
+          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page day
+          sleep 8
+          xcrun simctl io "$UDID" screenshot "shots/ipad11-portrait-day.png"
+          xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+          xcrun simctl shutdown "$UDID" || true
+          ls -la shots
+
       - name: Collect the app log and crash reports
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true

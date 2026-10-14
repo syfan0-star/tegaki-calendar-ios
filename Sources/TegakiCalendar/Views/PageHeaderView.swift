@@ -27,10 +27,25 @@ struct PageHeaderView: View {
     var onAddEvent: () -> Void
     /// ⚙
     var onSettings: () -> Void
-    /// The sync state for the ☁ (`SyncStatus.header`); nil shows no ☁. Below 600 pt only the symbol.
+    /// The sync state for the ☁ (`SyncStatus.header`); nil shows no ☁. Below `syncTextWidth` only the symbol.
     var sync: HeaderSync? = nil
     /// ☁: opens the settings screen (`showSettings = true`).
     var onSyncTap: () -> Void = {}
+    /// The available width in points (the owner measures it). Decides which labels keep their text:
+    /// below `syncTextWidth` the ☁ is the symbol alone, below `addEventTextWidth` 「＋予定」 is the
+    /// 「＋」 alone. Without it (`.infinity`) everything shows its text. The day page has the longest
+    /// title (「2026年10月15日(木)」), and on an 11-inch iPad in portrait (834 pt) the single row did
+    /// not fit, so SwiftUI squeezed the 「今日」 label to nothing; the buttons now keep their size
+    /// (`fixedSize` / `layoutPriority`) and only the title shrinks or is cut.
+    var width: CGFloat = .infinity
+
+    /// Below this width the ☁ shows only its symbol (13-inch portrait is 1024 pt, 11-inch is 834 pt).
+    static let syncTextWidth: CGFloat = 980
+    /// Below this width 「＋予定」 shows only the 「＋」 (a 2/3 split view on a 13-inch iPad is 678 pt).
+    static let addEventTextWidth: CGFloat = 760
+
+    private var showsSyncText: Bool { !compact && width >= Self.syncTextWidth }
+    private var showsAddEventText: Bool { width >= Self.addEventTextWidth }
 
     var body: some View {
         if compact {
@@ -55,6 +70,7 @@ struct PageHeaderView: View {
                 Spacer(minLength: 8)
                 kindPicker
                     .frame(width: 220)
+                    .layoutPriority(1)
                 addEventButton
                 syncButton
                 settingsButton
@@ -72,8 +88,11 @@ struct PageHeaderView: View {
             }
             .accessibilityLabel(Self.previousLabel(kind))
 
+            // `fixedSize`: the label must never be squeezed away when the row is too narrow
+            // (the day page on an 11-inch iPad in portrait); the title gives way instead.
             Button("今日", action: onToday)
                 .buttonStyle(.bordered)
+                .fixedSize()
 
             Button(action: onNext) {
                 Image(systemName: "chevron.right")
@@ -81,6 +100,7 @@ struct PageHeaderView: View {
             }
             .accessibilityLabel(Self.nextLabel(kind))
         }
+        .layoutPriority(1)
     }
 
     private func titleText(_ font: Font) -> some View {
@@ -91,23 +111,32 @@ struct PageHeaderView: View {
             .accessibilityAddTraits(.isHeader)
     }
 
+    /// 「＋予定」, or the 「＋」 alone below `addEventTextWidth`.
     private var addEventButton: some View {
         Button(action: onAddEvent) {
-            Label("予定", systemImage: "plus")
-                .labelStyle(.titleAndIcon)
+            if showsAddEventText {
+                Label("予定", systemImage: "plus")
+                    .labelStyle(.titleAndIcon)
+            } else {
+                Image(systemName: "plus")
+                    .frame(minWidth: 28, minHeight: 28)
+            }
         }
         .buttonStyle(.bordered)
+        .fixedSize()
+        .layoutPriority(1)
         .accessibilityLabel("予定を追加")
     }
 
-    /// ☁ + the state (the symbol alone when compact). Red when the state is an error.
+    /// ☁ + the state (the symbol alone when compact or narrower than `syncTextWidth`). Red when
+    /// the state is an error.
     @ViewBuilder
     private var syncButton: some View {
         if let sync = sync {
             Button(action: onSyncTap) {
                 HStack(spacing: 4) {
                     Image(systemName: sync.symbol)
-                    if !compact {
+                    if showsSyncText {
                         Text(sync.text)
                             .lineLimit(1)
                     }
@@ -119,6 +148,8 @@ struct PageHeaderView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .fixedSize()
+            .layoutPriority(1)
             .accessibilityLabel(Self.syncLabel(sync))
         }
     }
@@ -128,6 +159,7 @@ struct PageHeaderView: View {
             Image(systemName: "gearshape")
                 .frame(minWidth: 44, minHeight: 44)
         }
+        .layoutPriority(1)
         .accessibilityLabel("設定")
     }
 
