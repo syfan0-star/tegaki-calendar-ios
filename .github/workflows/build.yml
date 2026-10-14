@@ -133,9 +133,11 @@ jobs:
       # The app is launched with "--screenshot-mode" (Sources/TegakiCalendar/Support/ScreenshotMode.swift):
       # no onboarding, no EventKit, deterministic demo events for 2026-10 and a few preloaded ink
       # strokes. Since M3a it is launched once per page ("--screenshot-page month|week|day|year",
-      # docs/M3A_CONTRACT.md §9), terminated between launches. simctl cannot tap or rotate the device,
-      # and iPadOS refuses a programmatic orientation change for an app that supports multitasking, so
-      # every shot is portrait.
+      # docs/M3A_CONTRACT.md §9), terminated between launches; since M3b four more times on the month
+      # page with "--screenshot-sheet create|edit|lasso|settings" (docs/M3B_CONTRACT.md §5, §7), which
+      # opens the create / edit sheet, the lasso selection with its menu, or the settings screen half a
+      # second after the canvas appeared. simctl cannot tap or rotate the device, and iPadOS refuses a
+      # programmatic orientation change for an app that supports multitasking, so every shot is portrait.
       # The steps run even when the unit tests failed (the app was still built); the upload always runs.
       - name: Resolve the simulator UDID
         id: simudid
@@ -210,6 +212,24 @@ jobs:
           done
           ls -la shots
 
+      - name: Screenshots (portrait, 4 sheets on the month page)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.simudid.outputs.udid }}"
+          BUNDLE="com.syfan0.tegakicalendar"
+          mkdir -p shots
+          for SHEET in create edit lasso settings; do
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET"
+            sleep 9
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 9 s (sheet $SHEET; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad-portrait-sheet-$SHEET.png"
+          done
+          ls -la shots
+
       - name: Collect the app log and crash reports
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -218,7 +238,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           mkdir -p shots
           xcrun simctl terminate "$UDID" com.syfan0.tegakicalendar 2>/dev/null || true
-          xcrun simctl spawn "$UDID" log show --last 6m --style compact \
+          xcrun simctl spawn "$UDID" log show --last 8m --style compact \
             --predicate 'process == "TegakiCalendar" OR eventMessage CONTAINS "tegakicalendar" OR eventMessage CONTAINS "TegakiCalendar"' \
             > shots/app-log.txt 2>&1 || true
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} shots/ \; 2>/dev/null || true

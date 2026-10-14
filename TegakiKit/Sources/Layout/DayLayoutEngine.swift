@@ -115,6 +115,31 @@ public struct DayPageLayout: PageLayout, Equatable, Sendable {
         if band == .grid { return grid.minY }
         return nil
     }
+
+    // MARK: Rect → event, event → rect (M3B_CONTRACT §1.6)
+
+    /// A timed event on this day with the minutes of `EventGeometry.timelineSlot` (y relative to the
+    /// grid's top). The column is always the timeline: a drag in the memo area or the time gutter
+    /// still means the day (web "column outside the timeline still uses the day").
+    public func eventRange(for rect: CGRect, now: Date, calendar: Calendar) -> EventRange? {
+        guard let r = EventGeometry.normalized(rect) else { return nil }
+        let slot = EventGeometry.timelineSlot(minY: r.minY - grid.minY, maxY: r.maxY - grid.minY, hourHeight: PaperSpec.dayHourHeight)
+        return .timed(day, startMinute: slot.startMinute, endMinute: slot.endMinute, calendar: calendar)
+    }
+
+    /// All-day: the band cell. Timed: the timeline column × the minutes of its start and end (clipped
+    /// to the day). nil when the range does not start on this day, or the clipped range is empty.
+    public func snapRect(for range: EventRange, calendar: Calendar) -> CGRect? {
+        guard DayKey(range.start, calendar: calendar) == day else { return nil }
+        if range.allDay { return cells[.allDayDay] }
+        let dayStart = day.startOfDay(in: calendar)
+        let dayEnd = day.adding(days: 1).startOfDay(in: calendar)
+        let startMinute = range.start < dayStart ? 0 : TimedEventEngine.minutesOfDay(range.start, calendar: calendar)
+        let endMinute = range.end >= dayEnd ? EventGeometry.dayMinutes : TimedEventEngine.minutesOfDay(range.end, calendar: calendar)
+        guard endMinute > startMinute else { return nil }
+        let top = minutesToY(startMinute)
+        return CGRect(x: timeline.minX, y: top, width: timeline.width, height: minutesToY(endMinute) - top)
+    }
 }
 
 /// Pure layout of the day page (DESIGN §2.2 / §2.5, M3A_CONTRACT §1.7).

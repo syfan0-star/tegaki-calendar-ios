@@ -229,6 +229,55 @@ public struct InkStroke: Hashable, Codable, Sendable, Identifiable {
         }
         return bottom
     }
+
+    // MARK: - Paper coordinates (M3B_CONTRACT §2.2)
+
+    /// The control points in paper coordinates (`cellOrigin` = the top-left corner of `cell`).
+    /// The lasso test uses these stored points, not the drawn outline.
+    public func paperPoints(cellOrigin: CGPoint) -> [CGPoint] {
+        points.map { CGPoint(x: $0.x + cellOrigin.x, y: $0.y + cellOrigin.y) }
+    }
+
+    /// Bounding rect of the control points in paper coordinates, grown on every side by half the
+    /// largest nib size (web strokeBBox). nil for a stroke without points.
+    public func paperBounds(cellOrigin: CGPoint) -> CGRect? {
+        guard let first = points.first else { return nil }
+        var minX = first.x
+        var minY = first.y
+        var maxX = first.x
+        var maxY = first.y
+        var maxSize: CGFloat = 0
+        for p in points {
+            minX = min(minX, p.x)
+            maxX = max(maxX, p.x)
+            minY = min(minY, p.y)
+            maxY = max(maxY, p.y)
+            maxSize = max(maxSize, max(p.sizeW, p.sizeH))
+        }
+        let half = maxSize / 2
+        return CGRect(
+            x: cellOrigin.x + minX - half,
+            y: cellOrigin.y + minY - half,
+            width: maxX - minX + maxSize,
+            height: maxY - minY + maxSize
+        )
+    }
+
+    /// A copy moved by `delta` (paper lu) with a **new id**, written at `ms`, in cell `newCell`
+    /// (points become relative to `newCellOrigin`). `dev` is kept; the 0.1 lu rounding is `InkPoint`'s
+    /// own. Used by the lasso move (M3B_CONTRACT §3.2 moveStrokes).
+    public func translated(by delta: CGVector, from cellOrigin: CGPoint, to newCell: CellKey, newCellOrigin: CGPoint, id: String = InkStroke.newId(), at ms: Int) -> InkStroke {
+        let dx = cellOrigin.x + delta.dx - newCellOrigin.x
+        let dy = cellOrigin.y + delta.dy - newCellOrigin.y
+        let moved = points.map { p in
+            InkPoint(
+                x: p.x + dx, y: p.y + dy, dtMs: p.dtMs,
+                sizeW: p.sizeW, sizeH: p.sizeH, opacity: p.opacity, force: p.force,
+                azimuth: p.azimuth, altitude: p.altitude
+            )
+        }
+        return InkStroke(id: id, cell: newCell, tool: tool, color: color, t: ms, dev: dev, points: moved)
+    }
 }
 
 /// Identity of a `PKStroke` on the canvas, independent of its `transform` (DESIGN §3.4): the path's

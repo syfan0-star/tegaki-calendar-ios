@@ -2,8 +2,8 @@ import Layout
 import XCTest
 @testable import TegakiCalendar
 
-/// Screenshot mode (M3a contract §8.3): the launch arguments, the fixed 「今日」, and the demo page
-/// of every page kind.
+/// Screenshot mode (M3a contract §8.3, M3b §6.3): the launch arguments, the fixed 「今日」, the demo
+/// page of every page kind, and the M3b sheets (`--screenshot-sheet`) with their demo calendars.
 final class ScreenshotModeTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
 
@@ -83,4 +83,53 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(events.first?.id, "demo-1")
         XCTAssertEqual(events.first?.title, "運動会")
     }
+
+    // MARK: M3b sheets
+
+    func testParseEverySheet() {
+        let sheets: [(String, ScreenshotMode.Sheet)] = [("create", .create), ("edit", .edit), ("lasso", .lasso), ("settings", .settings)]
+        for (name, sheet) in sheets {
+            let config = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-sheet", name])
+            XCTAssertEqual(config?.sheet, sheet, name)
+            XCTAssertEqual(config?.page, .month, name)
+            XCTAssertEqual(config?.month, october, name)
+        }
+        // A sheet wins over the page argument (sheets live on the month page).
+        let withPage = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-page", "week", "--screenshot-sheet", "edit"])
+        XCTAssertEqual(withPage?.sheet, .edit)
+        XCTAssertEqual(withPage?.page, .month)
+    }
+
+    func testSheetDefaultsAndBadValues() {
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode"])?.sheet)
+        let bad = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-page", "week", "--screenshot-sheet", "bogus"])
+        XCTAssertNil(bad?.sheet)
+        XCTAssertEqual(bad?.page, .week, "an unknown sheet leaves the page argument alone")
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet"])?.sheet)
+    }
+
+    func testDemoCalendarOptionsAndIds() {
+        let options = ScreenshotMode.calendarOptions
+        XCTAssertEqual(options.count, 4)
+        XCTAssertEqual(options.map { $0.id }, ["demo-work", "demo-family", "demo-personal", "demo-events"])
+        for option in options {
+            XCTAssertTrue(option.isWritable, option.id)
+            XCTAssertTrue(option.acceptsNewEvents, option.id)
+            XCTAssertFalse(option.isSubscribed)
+            XCTAssertFalse(option.isBirthday)
+            XCTAssertEqual(option.sourceTitle, "見本")
+        }
+        XCTAssertEqual(EventStoreModel.demoDefaultCalendarId, "demo-personal")
+        XCTAssertTrue(options.contains { $0.id == EventStoreModel.demoDefaultCalendarId })
+
+        // The lasso demo stroke is on the month page; the edit demo event is 家族旅行 in 家族.
+        let page = ScreenshotMode.demoPage(for: october)
+        XCTAssertTrue(page.isLive(ScreenshotMode.lassoDemoStrokeId))
+        let trip = ScreenshotMode.demoEvents(for: october).first { $0.id == ScreenshotMode.editDemoEventId }
+        XCTAssertEqual(trip?.title, "家族旅行")
+        XCTAssertEqual(trip?.calendarId, "demo-family")
+        XCTAssertEqual(trip?.allDay, true)
+        XCTAssertEqual(ScreenshotMode.createDemoDay(for: october), DayKey(year: 2026, month: 10, day: 14))
+    }
 }
+

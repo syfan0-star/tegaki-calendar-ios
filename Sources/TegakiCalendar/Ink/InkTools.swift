@@ -32,10 +32,15 @@ struct InkStyle: Equatable {
     }
 }
 
-/// What the canvas is currently doing with the Pencil: drawing with a style, or erasing whole strokes.
+/// What the canvas is currently doing with the Pencil: drawing with a style, erasing whole strokes,
+/// selecting with the lasso, or dragging the rect of a new event (M3B_CONTRACT.md §3.1).
 enum CanvasTool: Equatable {
     case ink(InkStyle)
     case eraser
+    /// 投げなわ (DESIGN.md §3.6): circle strokes to select them, drag inside the box to move them.
+    case lasso
+    /// 予定ツール: drag a rect (or tap) on the paper to create an event.
+    case eventRect
 }
 
 /// The palette and widths of the web version (`js/ink/render.js` PEN_COLORS / HIGHLIGHTER_COLORS,
@@ -101,14 +106,29 @@ extension CanvasTool {
         return nil
     }
 
+    /// A tool that draws no ink (lasso / eventRect). While one is selected the overlay view takes
+    /// the pen and `PKCanvasView.drawingGestureRecognizer` is disabled (DESIGN.md §3.6).
+    var isOverlayTool: Bool {
+        switch self {
+        case .lasso, .eventRect:
+            return true
+        case .ink, .eraser:
+            return false
+        }
+    }
+
     /// The PencilKit tool for `PKCanvasView.tool`. The eraser is the *vector* eraser: it removes a
     /// whole stroke on touch, exactly like the web version (no partial erasing, DESIGN.md §3.6).
+    /// For the lasso and the 予定 tool drawing is disabled, so the canvas tool does not matter: the
+    /// canvas keeps whatever ink tool it had (the coordinator does not set it); this is the default pen.
     var pkTool: PKTool {
         switch self {
         case .ink(let style):
             return style.pkInkingTool
         case .eraser:
             return PKEraserTool(.vector, width: InkPresets.eraserWidth)
+        case .lasso, .eventRect:
+            return InkPresets.defaultPen.pkInkingTool
         }
     }
 }

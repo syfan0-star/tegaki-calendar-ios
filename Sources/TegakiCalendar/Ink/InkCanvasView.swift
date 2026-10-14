@@ -4,22 +4,43 @@ import PencilKit
 import SwiftUI
 import UIKit
 
-/// The paper + ink surface for SwiftUI (M3A_CONTRACT.md §2.2, DESIGN.md §3.2). One instance shows
-/// one page of any kind (month / week / day / year); the owner re-creates it per page with
-/// `.id(layout.pageId)`.
+/// The strokes the lasso selected (M3B_CONTRACT.md §3.3). `bbox` is in paper coordinates (lu);
+/// `viewRect` is the same box in the `InkCanvasView`'s own coordinates (pt), updated on every scroll
+/// and zoom (the owner places the selection menu above it).
+struct InkSelection: Equatable {
+    var ids: [String]
+    var bbox: CGRect
+    var viewRect: CGRect
+}
+
+/// An order from the owner to the canvas (M3B_CONTRACT.md §3.3). Like `undoTrigger`: it is performed
+/// once each time `commandTrigger` changes.
+enum CanvasCommand: Equatable {
+    case clearSelection
+    /// Removes the selected strokes (one undoable op), then clears the selection.
+    case deleteSelection
+    /// Removes these strokes (one undoable op), e.g. after 「予定にする」; a selection is cleared.
+    case removeStrokes([String])
+}
+
+/// The paper + ink surface for SwiftUI (M3A_CONTRACT.md §2.2, M3B_CONTRACT.md §3.3, DESIGN.md §3.2).
+/// One instance shows one page of any kind (month / week / day / year); the owner re-creates it per
+/// page with `.id(layout.pageId)`.
 ///
 /// ```
 ///   InkCanvasContainerView (clips)
 ///     ├─ PaperView (担当 U)   below: frame = (−contentOffset, layout.size × zoom), redrawn from `paper`
-///     └─ PKCanvasView         above: transparent, fills the container, and *is* the scroll view
+///     ├─ PKCanvasView         middle: transparent, fills the container, and *is* the scroll view
+///     └─ InkOverlayView       above: the lasso / 予定 tool input and drawing (enabled for those tools only)
 /// ```
 /// `PKCanvasView` owns scrolling and pinch zoom; the paper view is a sibling that is moved under it
 /// on every `scrollViewDidScroll` / `scrollViewDidZoom` (public API only, no subview tricks).
 ///
 /// Rules implemented here:
-/// - The drawing is never replaced while the Pencil is on the paper. Layout changes, page reloads
-///   and undo / redo wait until 300 ms after the pen lifts, then land together with a scroll
-///   compensation from `PageScroll.scrollDelta` so the band under the top of the viewport stays put.
+/// - The drawing is never replaced while the Pencil is on the paper (on the canvas or on the
+///   overlay). Layout changes, page reloads, undo / redo and commands wait until 300 ms after the
+///   pen lifts, then land together with a scroll compensation from `PageScroll.scrollDelta` so the
+///   band under the top of the viewport stays put.
 /// - `page` is written back after every change the ledger records; a `page` that arrives from
 ///   outside (merge, import) replaces the ledger's page.
 /// - A `page` and a `layout` of different page ids (a transient of SwiftUI's update order) are
@@ -28,6 +49,9 @@ import UIKit
 ///   1400). `initialScrollY` (paper lu) is applied once, when the first zoom is known.
 /// - Finger taps (direct touches only) are reported in paper coordinates through `onTap`.
 /// - PencilKit's own undo manager is emptied after every change; history is the ledger's.
+/// - The selection follows the ledger: ids that stop being live (eraser, undo / redo, a reload)
+///   are dropped, its box is recomputed after every relayout, and it is cleared when the tool
+///   leaves the lasso, when the page changes, and on `.clearSelection`.
 struct InkCanvasView: UIViewRepresentable {
     var layout: any PageLayout
     /// What the paper draws (担当 U). Used here only for `==` and `PaperView(content:)`.
@@ -49,6 +73,19 @@ struct InkCanvasView: UIViewRepresentable {
     var onPencilToggle: () -> Void = {}
     /// Whether undo / redo currently have anything to do (for the toolbar buttons).
     var onHistoryChanged: (_ canUndo: Bool, _ canRedo: Bool) -> Void = { _, _ in }
+    /// The lasso selection changed, or its `viewRect` moved with a scroll / zoom; nil = no selection.
+    var onSelectionChange: (InkSelection?) -> Void = { _ in }
+    /// 予定 tool: the drag ended (`rect` paper coordinates, normalized). `isTap` when the pen moved
+    /// less than 8 lu from where it touched.
+    var onEventRect: (_ rect: CGRect, _ isTap: Bool) -> Void = { _, _ in }
+    /// 予定 tool: the rect being dragged (paper) → the snapped rect to show (the owner returns
+    /// `layout.previewRect(for:now:)`); nil shows the raw rect.
+    var onEventPreview: (CGRect) -> CGRect? = { _ in nil }
+    /// Performed once each time `commandTrigger` changes (after the pen lifts).
+    var command: CanvasCommand? = nil
+    var commandTrigger: Int = 0
+    /// Screenshot mode: once the first zoom is known, these strokes are selected (unknown ids are ignored).
+    var initialSelectionIds: [String] = []
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -78,8 +115,16 @@ struct InkCanvasView: UIViewRepresentable {
         canvas.maximumSupportedContentVersion = .version1
         canvas.drawingPolicy = allowFinger ? .anyInput : .pencilOnly
         canvas.tool = tool.pkTool
+        canvas.drawingGestureRecognizer.isEnabled = !tool.isOverlayTool
         canvas.addInteraction(coordinator.pencilInteraction)
         canvas.addGestureRecognizer(coordinator.tapRecognizer)
+
+        let overlay = container.overlayView
+        overlay.delegate = coordinator
+        overlay.scrollView = canvas
+        overlay.allowFinger = allowFinger
+        overlay.pageSize = layout.size
+        overlay.tool = tool
 
         coordinator.attach(container)
         container.onLayout = { [weak coordinator] in coordinator?.containerDidLayout() }
@@ -97,12 +142,13 @@ struct InkCanvasView: UIViewRepresentable {
 
 // MARK: - Container
 
-/// Holds the paper view under the transparent canvas and reports its own size changes
-/// (rotation, split view) so the fit-to-width zoom can be recomputed.
+/// Holds the paper view under the transparent canvas, the overlay above it, and reports its own
+/// size changes (rotation, split view) so the fit-to-width zoom can be recomputed.
 @MainActor
 final class InkCanvasContainerView: UIView {
     let paperView: PaperView
     let canvasView = PKCanvasView()
+    let overlayView = InkOverlayView()
     var onLayout: (() -> Void)?
 
     init(paperView: PaperView) {
@@ -113,6 +159,7 @@ final class InkCanvasContainerView: UIView {
         clipsToBounds = true
         addSubview(paperView)
         addSubview(canvasView)
+        addSubview(overlayView)
         // The canvas is a separate layer above the paper, so PencilKit's translucent marker would
         // otherwise paint over the date numbers and event chips. Multiply-blending the whole canvas
         // layer with what is below makes the marker behave like a real highlighter (text stays
@@ -129,6 +176,9 @@ final class InkCanvasContainerView: UIView {
         super.layoutSubviews()
         if canvasView.frame != bounds {
             canvasView.frame = bounds
+        }
+        if overlayView.frame != bounds {
+            overlayView.frame = bounds
         }
         onLayout?()
     }
@@ -154,7 +204,7 @@ extension InkCanvasView {
     }
 
     @MainActor
-    final class Coordinator: NSObject, PKCanvasViewDelegate, UIGestureRecognizerDelegate {
+    final class Coordinator: NSObject, PKCanvasViewDelegate, UIGestureRecognizerDelegate, InkOverlayViewDelegate {
         var parent: InkCanvasView
         /// The ledger of the page shown. Replaced (never reloaded across pages) if a different page
         /// id ever arrives in this canvas; normally the owner's `.id(pageId)` makes that impossible.
@@ -163,6 +213,7 @@ extension InkCanvasView {
 
         private weak var container: InkCanvasContainerView?
         private var canvas: PKCanvasView? { container?.canvasView }
+        private var overlay: InkOverlayView? { container?.overlayView }
 
         private let pencilHandler: PencilInteractionHandler
         /// Receives Apple Pencil double taps / squeezes. Added to the canvas in `makeUIView`.
@@ -181,6 +232,7 @@ extension InkCanvasView {
         private var publishedSignature: PageSignature
         private var lastUndoTrigger: Int
         private var lastRedoTrigger: Int
+        private var lastCommandTrigger: Int
 
         private enum HistoryAction { case undo, redo }
         private var isUsingTool = false
@@ -191,6 +243,8 @@ extension InkCanvasView {
         /// The paper content changed (now line, chips, lanes …); rebuilt together with the drawing.
         private var pendingPaper = false
         private var pendingHistory: [HistoryAction] = []
+        /// Commands from the owner, performed with the next apply (after the pen lifts).
+        private var pendingCommands: [CanvasCommand] = []
         /// A different page id arrived: fit the zoom again and scroll to `initialScrollY` instead
         /// of compensating.
         private var resetScroll = false
@@ -198,6 +252,19 @@ extension InkCanvasView {
         private var isUpdating = false
         /// The fit-to-width zoom (and with it `initialScrollY`) has been applied once.
         private var hasInitialZoom = false
+        /// `initialSelectionIds` have not been applied yet (they are, once, at the first zoom; a new
+        /// value arriving later is applied the same way, once).
+        private var initialSelectionPending: Bool
+        private var lastInitialSelectionIds: [String]
+
+        /// The lasso selection: live stroke ids (in selection order) and their paper bounds.
+        private var selectedIds: [String] = []
+        private var selectionBBox: CGRect?
+        /// What `onSelectionChange` last received (the same value is not sent twice).
+        private var lastNotifiedSelection: InkSelection?
+        /// The selected strokes are off the canvas while their picture follows the pen: a canvas
+        /// change in that window is not a diff.
+        private var isMovingSelection = false
 
         init(parent: InkCanvasView) {
             self.parent = parent
@@ -215,6 +282,9 @@ extension InkCanvasView {
             publishedSignature = PageSignature(ledger.page)
             lastUndoTrigger = parent.undoTrigger
             lastRedoTrigger = parent.redoTrigger
+            lastCommandTrigger = parent.commandTrigger
+            lastInitialSelectionIds = parent.initialSelectionIds
+            initialSelectionPending = !parent.initialSelectionIds.isEmpty
             // A local so nothing on `self` is read before super.init (two-phase initialisation).
             let handler = PencilInteractionHandler()
             pencilHandler = handler
@@ -236,6 +306,7 @@ extension InkCanvasView {
         func detach() {
             settleGeneration += 1
             isSettling = false
+            overlay?.delegate = nil
             canvas?.delegate = nil
             container = nil
         }
@@ -254,6 +325,8 @@ extension InkCanvasView {
             // 1. The page: another page id (new ledger), or the same page from outside (merge, import).
             let signature = PageSignature(newParent.page)
             if signature.pageId != ledger.page.pageId {
+                overlay?.cancelGesture()
+                clearSelection()
                 ledger = InkLedger(page: newParent.page, layout: newParent.layout, deviceId: deviceId)
                 publishedSignature = signature
                 pendingDrawing = true
@@ -280,9 +353,21 @@ extension InkCanvasView {
             if canvas.drawingPolicy != policy {
                 canvas.drawingPolicy = policy
             }
+            if let overlay, overlay.allowFinger != newParent.allowFinger {
+                overlay.allowFinger = newParent.allowFinger
+            }
             if appliedTool != newParent.tool {
                 appliedTool = newParent.tool
-                canvas.tool = newParent.tool.pkTool
+                // The overlay cancels its gesture (a move puts the strokes back) before anything else.
+                overlay?.tool = newParent.tool
+                canvas.drawingGestureRecognizer.isEnabled = !newParent.tool.isOverlayTool
+                // The lasso / 予定 tool leaves the canvas tool as it was (drawing is disabled anyway).
+                if !newParent.tool.isOverlayTool {
+                    canvas.tool = newParent.tool.pkTool
+                }
+                if newParent.tool != .lasso {
+                    clearSelection()
+                }
             }
 
             // 4. Undo / redo requests.
@@ -297,7 +382,23 @@ extension InkCanvasView {
                 pendingDrawing = true
             }
 
-            if pendingDrawing || pendingPaper {
+            // 5. Commands (once per trigger change; performed after the pen lifts, like the rest).
+            if newParent.commandTrigger != lastCommandTrigger {
+                lastCommandTrigger = newParent.commandTrigger
+                if let command = newParent.command {
+                    pendingCommands.append(command)
+                }
+            }
+
+            // 6. Screenshot mode: a selection to show. Usually set before the first zoom (applied in
+            // `containerDidLayout`); a value that arrives later is applied here, once.
+            if newParent.initialSelectionIds != lastInitialSelectionIds {
+                lastInitialSelectionIds = newParent.initialSelectionIds
+                initialSelectionPending = !newParent.initialSelectionIds.isEmpty
+                applyInitialSelectionIfPending()
+            }
+
+            if pendingDrawing || pendingPaper || !pendingCommands.isEmpty {
                 requestApply()
             }
         }
@@ -311,13 +412,22 @@ extension InkCanvasView {
 
         private func applyPending() {
             guard let canvas, let container else { return }
-            let drawingWork = pendingDrawing
+            let commands = pendingCommands
+            pendingCommands.removeAll()
+            var drawingWork = pendingDrawing
             let paperWork = pendingPaper
             pendingDrawing = false
             pendingPaper = false
-            guard drawingWork || paperWork else { return }
 
             var historyChanged = false
+            var inkBoundsChanged = false
+            for command in commands where perform(command) {
+                drawingWork = true
+                historyChanged = true
+                inkBoundsChanged = true
+            }
+            guard drawingWork || paperWork else { return }
+
             for action in pendingHistory {
                 switch action {
                 case .undo: if ledger.undo() != nil { historyChanged = true }
@@ -336,6 +446,7 @@ extension InkCanvasView {
                 setDrawing(ledger.relayout(newLayout), on: canvas)
                 appliedLayout = newLayout
                 canvas.contentSize = Self.scaled(newLayout.size, by: zoom)
+                overlay?.pageSize = newLayout.size
             }
             // Paper-only changes (the now line moved, `isPast` flipped) land here without touching
             // the drawing.
@@ -357,10 +468,38 @@ extension InkCanvasView {
             }
             syncPaperFrame()
 
+            if drawingWork {
+                // The selection follows the ledger (ids that died, cells that moved).
+                refreshSelection()
+                applyInitialSelectionIfPending()
+            }
             if historyChanged {
                 publishPage()
             }
             notifyHistory()
+            if inkBoundsChanged {
+                deliver { [weak self] in self?.parent.onInkBoundsChanged() }
+            }
+        }
+
+        /// Performs one owner command. Returns true when the ledger changed (the drawing must be
+        /// rebuilt and the page written back).
+        private func perform(_ command: CanvasCommand) -> Bool {
+            switch command {
+            case .clearSelection:
+                clearSelection()
+                return false
+            case .deleteSelection:
+                let ids = selectedIds
+                guard !ids.isEmpty else { return false }
+                let change = ledger.removeStrokes(ids: ids)
+                clearSelection()
+                return !change.isEmpty
+            case .removeStrokes(let ids):
+                let change = ledger.removeStrokes(ids: ids)
+                clearSelection()
+                return !change.isEmpty
+            }
         }
 
         private func setDrawing(_ drawing: PKDrawing, on canvas: PKCanvasView) {
@@ -408,11 +547,17 @@ extension InkCanvasView {
                 let y = parent.initialScrollY.isFinite ? max(0, parent.initialScrollY) : 0
                 canvas.contentOffset = clampedOffset(CGPoint(x: 0, y: y * newZoom))
             }
+            let firstZoom = !hasInitialZoom
             hasInitialZoom = true
             syncPaperFrame()
+            if firstZoom {
+                // Screenshot mode (contract §3.3): the selection to show, once the zoom is known.
+                applyInitialSelectionIfPending()
+            }
         }
 
-        /// Keeps the paper view exactly under the canvas content.
+        /// Keeps the paper view exactly under the canvas content, the overlay in step with it, and
+        /// the selection's `viewRect` current.
         private func syncPaperFrame() {
             guard let container, let canvas else { return }
             let zoom = canvas.zoomScale
@@ -425,6 +570,8 @@ extension InkCanvasView {
             if container.paperView.frame != frame {
                 container.paperView.frame = frame
             }
+            container.overlayView.viewportChanged()
+            notifySelection()
         }
 
         private func clampedOffset(_ point: CGPoint) -> CGPoint {
@@ -436,6 +583,84 @@ extension InkCanvasView {
 
         private static func scaled(_ size: CGSize, by zoom: CGFloat) -> CGSize {
             CGSize(width: size.width * zoom, height: size.height * zoom)
+        }
+
+        // MARK: Selection
+
+        /// Selects the live strokes among `ids` (in that order); nothing live clears the selection.
+        private func setSelection(ids: [String]) {
+            let live = ledger.strokes(ids: ids).map { $0.id }
+            guard !live.isEmpty, let bbox = ledger.paperBounds(ids: live) else {
+                clearSelection()
+                return
+            }
+            selectedIds = live
+            selectionBBox = bbox
+            overlay?.selectionBBox = bbox
+            notifySelection()
+        }
+
+        private func clearSelection() {
+            guard !selectedIds.isEmpty else { return }
+            selectedIds = []
+            selectionBBox = nil
+            overlay?.selectionBBox = nil // cancels a move in progress
+            notifySelection()
+        }
+
+        /// Drops ids that are no longer live (eraser, undo / redo, a reload: the web version's
+        /// `_reconcileSelection`) and recomputes the box after a relayout (cells may have moved).
+        private func refreshSelection() {
+            guard !selectedIds.isEmpty else { return }
+            let live = ledger.strokes(ids: selectedIds).map { $0.id }
+            if live.count != selectedIds.count {
+                setSelection(ids: live)
+                return
+            }
+            if let bbox = ledger.paperBounds(ids: live), bbox != selectionBBox {
+                selectionBBox = bbox
+                overlay?.selectionBBox = bbox
+            }
+            notifySelection()
+        }
+
+        private func applyInitialSelectionIfPending() {
+            guard initialSelectionPending, hasInitialZoom else { return }
+            let ids = parent.initialSelectionIds
+            if ids.isEmpty {
+                initialSelectionPending = false
+                return
+            }
+            // The page may still be on its way (a reload lands later): keep trying until it is there.
+            guard !ledger.strokes(ids: ids).isEmpty else { return }
+            initialSelectionPending = false
+            setSelection(ids: ids)
+        }
+
+        /// The selection as the owner sees it: ids, paper box and the box in container coordinates.
+        private func currentSelection() -> InkSelection? {
+            guard !selectedIds.isEmpty, let bbox = selectionBBox, let canvas else { return nil }
+            let zoom = canvas.zoomScale
+            let offset = canvas.contentOffset
+            let viewRect = CGRect(
+                x: bbox.minX * zoom - offset.x,
+                y: bbox.minY * zoom - offset.y,
+                width: bbox.width * zoom,
+                height: bbox.height * zoom
+            )
+            return InkSelection(ids: selectedIds, bbox: bbox, viewRect: viewRect)
+        }
+
+        /// Sends the selection when it (or its `viewRect`) changed since the last time. Always on
+        /// the next main-actor turn: a scroll or a layout pass may be running inside a UIKit layout
+        /// or a SwiftUI update, where the owner must not change its state. Order is kept.
+        private func notifySelection() {
+            let current = currentSelection()
+            guard current != lastNotifiedSelection else { return }
+            lastNotifiedSelection = current
+            Task { @MainActor [weak self] in
+                self?.parent.onSelectionChange(current)
+            }
         }
 
         // MARK: Writing back
@@ -485,31 +710,15 @@ extension InkCanvasView {
             return touch.type == .direct
         }
 
-        // MARK: PKCanvasViewDelegate
+        // MARK: The pen on the paper (canvas or overlay)
 
-        func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-            guard !isApplyingDrawing else { return }
-            // History is the ledger's; never let the system (3-finger swipe) undo through PencilKit.
-            canvasView.undoManager?.removeAllActions()
-            let change = ledger.applyCanvasChange(canvasView.drawing)
-            guard !change.isEmpty else { return }
-            publishPage()
-            notifyHistory()
-            // Only cells that grow with ink ask for a relayout (`needsMoreRoom` is false on the time
-            // grid); an erased stroke may have been holding any growing cell open.
-            let needsRoom = change.added.contains { ledger.needsMoreRoom($0) }
-            if needsRoom || !change.removedIds.isEmpty {
-                deliver { [weak self] in self?.parent.onInkBoundsChanged() }
-            }
-        }
-
-        func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+        private func penDidTouch() {
             isUsingTool = true
             isSettling = false
             settleGeneration += 1
         }
 
-        func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+        private func penDidLift() {
             isUsingTool = false
             isSettling = true
             settleGeneration += 1
@@ -521,6 +730,35 @@ extension InkCanvasView {
                 self.isSettling = false
                 self.applyPending()
             }
+        }
+
+        // MARK: PKCanvasViewDelegate
+
+        func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+            guard !isApplyingDrawing, !isMovingSelection else { return }
+            // History is the ledger's; never let the system (3-finger swipe) undo through PencilKit.
+            canvasView.undoManager?.removeAllActions()
+            let change = ledger.applyCanvasChange(canvasView.drawing)
+            guard !change.isEmpty else { return }
+            publishPage()
+            notifyHistory()
+            if !change.removedIds.isEmpty {
+                refreshSelection()
+            }
+            // Only cells that grow with ink ask for a relayout (`needsMoreRoom` is false on the time
+            // grid); an erased stroke may have been holding any growing cell open.
+            let needsRoom = change.added.contains { ledger.needsMoreRoom($0) }
+            if needsRoom || !change.removedIds.isEmpty {
+                deliver { [weak self] in self?.parent.onInkBoundsChanged() }
+            }
+        }
+
+        func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+            penDidTouch()
+        }
+
+        func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+            penDidLift()
         }
 
         // MARK: UIScrollViewDelegate (inherited by PKCanvasViewDelegate)
@@ -536,6 +774,96 @@ extension InkCanvasView {
                 canvas.contentSize = size
             }
             syncPaperFrame()
+        }
+
+        // MARK: InkOverlayViewDelegate (the lasso and the 予定 tool)
+
+        func overlayDidTouchOutsideSelection(_ overlay: InkOverlayView) {
+            clearSelection()
+        }
+
+        /// Selects the live strokes at least half of whose stored points lie inside the lasso
+        /// (DESIGN §3.6, web `_endLasso`); only strokes whose bounds overlap the lasso's are tested.
+        func overlay(_ overlay: InkOverlayView, didFinishLasso polygon: [CGPoint]) {
+            guard let bounds = LassoGeometry.bounds(of: polygon) else { return }
+            let cells = ledger.layout.cells
+            var ids: [String] = []
+            for stroke in ledger.page.liveStrokes {
+                guard let cell = cells[stroke.cell],
+                      let box = stroke.paperBounds(cellOrigin: cell.origin),
+                      Self.overlaps(box, bounds) else { continue }
+                if LassoGeometry.strokeInLasso(points: stroke.paperPoints(cellOrigin: cell.origin), polygon: polygon, bounds: bounds) {
+                    ids.append(stroke.id)
+                }
+            }
+            if !ids.isEmpty {
+                setSelection(ids: ids)
+            }
+        }
+
+        /// Takes the selected strokes off the canvas without a diff (the ledger keeps them) and
+        /// returns their picture for the overlay to drag around.
+        func overlayWillBeginMove(_ overlay: InkOverlayView) -> UIImage? {
+            guard let canvas, let bbox = selectionBBox, !selectedIds.isEmpty else { return nil }
+            let strokes = ledger.strokes(ids: selectedIds)
+            guard !strokes.isEmpty else { return nil }
+            let scale = container?.traitCollection.displayScale ?? 2
+            guard let image = InkSnapshot.image(strokes: strokes, cells: ledger.layout.cells, bounds: bbox, zoom: canvas.zoomScale, scale: scale > 0 ? scale : 2) else { return nil }
+            let hidden = Set(selectedIds)
+            let kept = canvas.drawing.strokes.filter { pk in
+                ledger.id(of: pk).map { !hidden.contains($0) } ?? true
+            }
+            isMovingSelection = true
+            isApplyingDrawing = true
+            canvas.drawing = PKDrawing(strokes: kept)
+            isApplyingDrawing = false
+            canvas.undoManager?.removeAllActions()
+            return image
+        }
+
+        /// Commits the move as one batch op; the selection moves on to the clones. A zero move (or
+        /// nothing live any more) only puts the original drawing back.
+        func overlay(_ overlay: InkOverlayView, didEndMoveBy delta: CGVector) {
+            guard let canvas else { return }
+            isMovingSelection = false
+            let result = ledger.moveStrokes(ids: selectedIds, by: delta)
+            setDrawing(ledger.drawing(), on: canvas)
+            guard !result.change.isEmpty else {
+                refreshSelection()
+                return
+            }
+            setSelection(ids: result.newIds)
+            publishPage()
+            notifyHistory()
+            // The cells the strokes left and the cells they landed in may shrink / grow.
+            deliver { [weak self] in self?.parent.onInkBoundsChanged() }
+        }
+
+        func overlayDidCancelMove(_ overlay: InkOverlayView) {
+            guard let canvas else { return }
+            isMovingSelection = false
+            setDrawing(ledger.drawing(), on: canvas)
+        }
+
+        func overlay(_ overlay: InkOverlayView, previewFor rect: CGRect) -> CGRect? {
+            parent.onEventPreview(rect)
+        }
+
+        func overlay(_ overlay: InkOverlayView, didEndEvent rect: CGRect, isTap: Bool) {
+            deliver { [weak self] in self?.parent.onEventRect(rect, isTap) }
+        }
+
+        func overlay(_ overlay: InkOverlayView, isTracking: Bool) {
+            if isTracking {
+                penDidTouch()
+            } else {
+                penDidLift()
+            }
+        }
+
+        /// Rects touch or overlap (edges count, like the web version's rectsOverlap).
+        private static func overlaps(_ a: CGRect, _ b: CGRect) -> Bool {
+            !(a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY)
         }
     }
 }

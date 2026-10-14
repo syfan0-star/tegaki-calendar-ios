@@ -215,4 +215,34 @@ extension MonthPageLayout: PageLayout {
         guard let index = band.rowIndex, index >= 0, index < rows.count else { return nil }
         return rows[index].frame.minY
     }
+
+    // MARK: Rect → event, event → rect (M3B_CONTRACT §1.4)
+
+    /// An all-day event on the cell under the rect's centre (clamped onto the paper). A centre in the
+    /// memo area (or below the paper) means the memo day: today when today is in this month, else
+    /// the 1st.
+    public func eventRange(for rect: CGRect, now: Date, calendar: Calendar) -> EventRange? {
+        guard let r = EventGeometry.normalized(rect), let day = eventDay(for: r, now: now, calendar: calendar) else { return nil }
+        return .allDay(day, calendar: calendar)
+    }
+
+    /// The cell of the day `range` starts on (a timed range too); nil when that day is not on the grid.
+    public func snapRect(for range: EventRange, calendar: Calendar) -> CGRect? {
+        cells[.day(DayKey(range.start, calendar: calendar))]
+    }
+
+    /// The day a rect means (web monthCellForRect + monthMemoCell): `cx` clamped to [0, W], `cy` to
+    /// [0, H]; `cy ≥ memo.minY` → the memo day; else the cell under (cx, cy).
+    public func eventDay(for rect: CGRect, now: Date, calendar: Calendar) -> DayKey? {
+        guard let r = EventGeometry.normalized(rect) else { return nil }
+        let cx = LayoutMath.clamp(r.midX, 0, size.width)
+        let cy = LayoutMath.clamp(r.midY, 0, size.height)
+        if cy >= memo.minY {
+            let today = DayKey(now, calendar: calendar)
+            return month.contains(today) ? today : month.firstDay
+        }
+        if let day = cell(at: CGPoint(x: cx, y: cy))?.day { return day }
+        // Only with a degenerate layout (no rows above the memo area): the first day of the grid.
+        return rows.first?.days.first
+    }
 }

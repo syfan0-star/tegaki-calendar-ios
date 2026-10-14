@@ -2,14 +2,22 @@ import Foundation
 import InkModel
 import Layout
 
-/// Screenshot mode for CI (docs/M2.md §2.1, M3a contract §7): the app launched with
+/// Screenshot mode for CI (docs/M2.md §2.1, M3a contract §7, M3b contract §5): the app launched with
 /// `--screenshot-mode` skips the onboarding, never asks EventKit for anything, shows deterministic
 /// demo events for the month given by `--screenshot-month YYYY-MM` (default: the current month) on
 /// the page given by `--screenshot-page day|week|month|year` (default: month), treats a fixed instant
-/// as 「今日」, and preloads a few ink strokes in memory (nothing is saved). Never active unless
-/// `--screenshot-mode` is present. (No landscape variant: iPadOS refuses a programmatic orientation
-/// change for an app that supports multitasking, and simctl cannot rotate the device.)
+/// as 「今日」, and preloads a few ink strokes in memory (nothing is saved). With
+/// `--screenshot-sheet create|edit|lasso|settings` the month page opens one of the M3b sheets (the
+/// create / edit sheet, the lasso selection with its menu, the settings screen) half a second after
+/// the canvas appeared; writes are no-ops. Never active unless `--screenshot-mode` is present.
+/// (No landscape variant: iPadOS refuses a programmatic orientation change for an app that supports
+/// multitasking, and simctl cannot rotate the device.)
 enum ScreenshotMode {
+    /// The M3b sheets a screenshot can show (`--screenshot-sheet`).
+    enum Sheet: String, CaseIterable, Sendable {
+        case create, edit, lasso, settings
+    }
+
     struct Config: Equatable, Sendable {
         var page: PageKind
         var month: YearMonth
@@ -17,6 +25,8 @@ enum ScreenshotMode {
         var today: Date
         /// The day the page opens on: the 7th of `month` (the week / day pages show that day).
         var focus: DayKey
+        /// The sheet to open on the month page; nil = none (`--screenshot-page` then decides the page).
+        var sheet: Sheet?
     }
 
     /// Parsed once from the launch arguments; nil in normal use.
@@ -36,7 +46,13 @@ enum ScreenshotMode {
            let parsed = PageKind(rawValue: arguments[index + 1]) {
             page = parsed
         }
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month))
+        var sheet: Sheet?
+        if let index = arguments.firstIndex(of: "--screenshot-sheet"), index + 1 < arguments.count {
+            sheet = Sheet(rawValue: arguments[index + 1]) // an unknown value → no sheet
+        }
+        // A sheet always sits on the month page (M3b contract §5): it wins over `--screenshot-page`.
+        if sheet != nil { page = .month }
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet)
     }
 
     /// "2026-10" → 2026年10月; nil for anything else.
@@ -79,6 +95,34 @@ enum ScreenshotMode {
 
     static func calendarTitle(forCalendarId id: String) -> String {
         calendars.first { $0.id == id }?.title ?? ""
+    }
+
+    /// The demo calendars as the settings screen and the sheets show them (M3b contract §5): all
+    /// four writable, under the source 「見本」.
+    static var calendarOptions: [CalendarOption] {
+        calendars.map { demo in
+            CalendarOption(
+                id: demo.id,
+                title: demo.title,
+                colorHex: demo.colorHex,
+                sourceTitle: "見本",
+                isWritable: true,
+                isSubscribed: false,
+                isBirthday: false
+            )
+        }
+    }
+
+    /// The stroke the `lasso` sheet selects: the wavy pen stroke in the cell of the 14th
+    /// (`demoPage(for:)`), so the frame and the 「予定にする／削除／選択解除」 menu are visible.
+    static let lassoDemoStrokeId = "demo-stroke-wave"
+
+    /// The event the `edit` sheet opens: 家族旅行 (all-day, the 9th–13th, calendar 家族).
+    static let editDemoEventId = "demo-3"
+
+    /// The day the `create` sheet proposes (all-day) in `month`: the 14th.
+    static func createDemoDay(for month: YearMonth) -> DayKey {
+        day(14, of: month)
     }
 
     /// The sample month (designed around 2026-10, whose 1st is a Thursday; day numbers are reused

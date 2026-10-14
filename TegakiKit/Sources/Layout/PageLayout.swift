@@ -128,6 +128,13 @@ public protocol PageLayout: Sendable {
     func band(atY y: CGFloat) -> PageBand?
     /// Top edge of a band; nil for a band the page does not have.
     func bandTop(_ band: PageBand) -> CGFloat?
+    /// Paper rect → the event it means (web rectToEventRange, M3B_CONTRACT §1). `now` only decides
+    /// the day the month page's memo area stands for. nil only for a non-finite rect (a rect outside
+    /// the paper snaps to the nearest cell / column).
+    func eventRange(for rect: CGRect, now: Date, calendar: Calendar) -> EventRange?
+    /// The paper rect an event range occupies (web snapEventRect, the 予定 tool's live preview); nil
+    /// when the range is not on this page (another week's day, another year, …).
+    func snapRect(for range: EventRange, calendar: Calendar) -> CGRect?
 }
 
 extension PageLayout {

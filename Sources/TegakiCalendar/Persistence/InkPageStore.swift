@@ -63,11 +63,25 @@ struct InkPageStore: Sendable {
         try compressed.write(to: url(for: page.pageId), options: [.atomic])
     }
 
-    /// Removes a page file (used by tests and, later, by "この iPad の手書きを全て消す").
+    /// Removes a page file (used by tests).
     func remove(_ pageId: String) throws {
         let fileURL = url(for: pageId)
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
         try FileManager.default.removeItem(at: fileURL)
+    }
+
+    /// 「この iPad の手書きを全て消す」 (M3b contract §4.8): deletes every page file (`*.json.lzfse`) and
+    /// every backup (`*.bak`) in `directory`. Other files and the directory itself stay. A missing
+    /// directory is nothing to do.
+    func removeAll() throws {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: directory.path) else { return }
+        let items = try fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+        for item in items {
+            let name = item.lastPathComponent
+            guard name.hasSuffix(".json.lzfse") || name.hasSuffix(".bak") else { continue }
+            try fm.removeItem(at: item)
+        }
     }
 
     // MARK: - Private

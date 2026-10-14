@@ -6,6 +6,7 @@ import Layout
 /// Reads events from the iOS calendar database (every account the person added in
 /// Settings > Calendar, Google included) through EventKit and normalises them into the
 /// `LayoutEvent` shape the Layout module expects (contract §5). No Google API is involved.
+/// Since M3b it also creates, updates and deletes events (M3b contract §4.1).
 ///
 /// Normalisation (DESIGN §4.4): an all-day event's `end` becomes the *exclusive* midnight after its
 /// last day (EventKit stores the end of the last day), colours are the calendar's colour as "#rrggbb",
@@ -29,7 +30,7 @@ final class EventKitService {
 
     let store = EKEventStore()
 
-    /// The EKEvent behind each `LayoutEvent.id` of the last fetch (for the detail sheet).
+    /// The EKEvent behind each `LayoutEvent.id` of the last fetch (for the sheets and the writes).
     private var fetched: [String: EKEvent] = [:]
 
     init() {
@@ -79,6 +80,34 @@ final class EventKitService {
     /// The ids of the calendars hidden by default among the current ones.
     func defaultHiddenCalendarIds() -> Set<String> {
         Set(calendars.filter(Self.isHiddenByDefault).map { $0.calendarIdentifier })
+    }
+
+    /// Can new events be put into this calendar? `allowsContentModifications`, and neither a
+    /// birthday nor a subscribed calendar (M3b contract §4.1).
+    static func acceptsNewEvents(_ calendar: EKCalendar) -> Bool {
+        calendar.allowsContentModifications && calendar.type != .birthday && calendar.type != .subscription
+    }
+
+    /// The calendars new events can go to, in the order of `calendars`.
+    func writableCalendars() -> [EKCalendar] {
+        calendars.filter(Self.acceptsNewEvents)
+    }
+
+    /// Where a new event goes: `preferredId` when that calendar accepts events, else the store's
+    /// `defaultCalendarForNewEvents` (when it does), else the first writable calendar.
+    func calendarForNewEvents(preferredId: String?) -> EKCalendar? {
+        let writable = writableCalendars()
+        if let id = preferredId, let found = writable.first(where: { $0.calendarIdentifier == id }) {
+            return found
+        }
+        if let fallback = store.defaultCalendarForNewEvents, Self.acceptsNewEvents(fallback) {
+            return fallback
+        }
+        return writable.first
+    }
+
+    func calendar(withId id: String) -> EKCalendar? {
+        store.calendar(withIdentifier: id)
     }
 
     // MARK: - Events
@@ -133,6 +162,100 @@ final class EventKitService {
     /// The EKEvent of a `LayoutEvent.id` from the last `events(from:to:calendars:)` call.
     func event(withLayoutId id: String) -> EKEvent? {
         fetched[id]
+    }
+
+    // MARK: - Writing (M3b contract §4.1)
+
+    /// Creates the event of `draft` in the calendar `draft.calendarId` and returns its layout id.
+    /// Requires full access, a writable calendar and `end > start`; EventKit's own failure is
+    /// wrapped in `.failed`.
+    @discardableResult
+    func create(_ draft: EventDraft) throws -> String {
+        guard accessState.canRead else { throw EventWriteError.noAccess }
+        guard !writableCalendars().isEmpty else { throw EventWriteError.noWritableCalendar }
+        guard draft.end > draft.start else { throw EventWriteError.invalidRange }
+        guard let calendar = calendar(withId: draft.calendarId) else { throw EventWriteError.calendarNotFound }
+        guard Self.acceptsNewEvents(calendar) else { throw EventWriteError.readOnlyCalendar }
+        let event = EKEvent(eventStore: store)
+        try Self.apply(draft, to: event, calendar: calendar)
+        do {
+            try store.save(event, span: .thisEvent, commit: true)
+        } catch {
+            throw EventWriteError.failed(error.localizedDescription)
+        }
+        let id = Self.layoutId(for: event)
+        fetched[id] = event
+        return id
+    }
+
+    /// Rewrites the fetched event `eventId` (a `LayoutEvent.id`, `calendarItemIdentifier@occurrence`)
+    /// with `draft` and saves it for `span`. The calendar is never changed.
+    func update(eventId: String, with draft: EventDraft, span: EventSpan) throws {
+        guard accessState.canRead else { throw EventWriteError.noAccess }
+        guard let event = fetched[eventId] else { throw EventWriteError.eventNotFound }
+        guard event.calendar?.allowsContentModifications ?? false else { throw EventWriteError.readOnlyCalendar }
+        guard draft.end > draft.start else { throw EventWriteError.invalidRange }
+        try Self.apply(draft, to: event, calendar: nil)
+        do {
+            try store.save(event, span: span.ekSpan, commit: true)
+        } catch {
+            throw EventWriteError.failed(error.localizedDescription)
+        }
+    }
+
+    /// Removes the fetched event `eventId` for `span`.
+    func delete(eventId: String, span: EventSpan) throws {
+        guard accessState.canRead else { throw EventWriteError.noAccess }
+        guard let event = fetched[eventId] else { throw EventWriteError.eventNotFound }
+        guard event.calendar?.allowsContentModifications ?? false else { throw EventWriteError.readOnlyCalendar }
+        do {
+            try store.remove(event, span: span.ekSpan, commit: true)
+        } catch {
+            throw EventWriteError.failed(error.localizedDescription)
+        }
+        fetched[eventId] = nil
+    }
+
+    /// `hasRecurrenceRules || isDetached` of the fetched event (false when it is not loaded).
+    func isRecurring(eventId: String) -> Bool {
+        guard let event = fetched[eventId] else { return false }
+        return event.hasRecurrenceRules || event.isDetached
+    }
+
+    /// `calendar.allowsContentModifications` of the fetched event (false when it is not loaded).
+    func isEditable(eventId: String) -> Bool {
+        fetched[eventId]?.calendar?.allowsContentModifications ?? false
+    }
+
+    /// Writes the draft's fields into `event` (nothing is saved):
+    /// - title trimmed (an empty title is stored empty: EventKit allows it), location trimmed (empty →
+    ///   nil), notes without trailing whitespace (empty → nil);
+    /// - timed: `startDate` / `endDate` as they are; all-day: `startDate` = the first day's 0:00,
+    ///   `endDate` = the last day's 23:59:59 (= `draft.end` − 1 s, the shape EventKit itself returns;
+    ///   `exclusiveAllDayEnd` turns it back into the next midnight when read);
+    /// - `calendar`: set when given (creation). An update passes nil and keeps the event's calendar.
+    ///   An event that would end up without a calendar throws `.calendarNotFound`.
+    static func apply(_ draft: EventDraft, to event: EKEvent, calendar: EKCalendar?) throws {
+        if let calendar = calendar {
+            event.calendar = calendar
+        } else if event.calendar == nil {
+            throw EventWriteError.calendarNotFound
+        }
+        event.title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let location = draft.location.trimmingCharacters(in: .whitespacesAndNewlines)
+        event.location = location.isEmpty ? nil : location
+        let notes = EventEditorForm.trimmingTrailingWhitespace(draft.notes)
+        event.notes = notes.isEmpty ? nil : notes
+        event.isAllDay = draft.allDay
+        if draft.allDay {
+            let first = DayKey(draft.start).startOfDay()
+            let lastMidnight = max(draft.end, first.addingTimeInterval(1))
+            event.startDate = first
+            event.endDate = lastMidnight.addingTimeInterval(-1)
+        } else {
+            event.startDate = draft.start
+            event.endDate = draft.end
+        }
     }
 
     // MARK: - Mapping
@@ -208,7 +331,8 @@ final class EventKitService {
     }
 
     /// "#rrggbb" of a CGColor (converted to sRGB); the web version's fallback blue when unknown.
-    static func hexString(from cgColor: CGColor?) -> String {
+    /// Pure, so `CalendarOption.init(calendar:)` can call it from any context.
+    nonisolated static func hexString(from cgColor: CGColor?) -> String {
         let fallback = "#039be5"
         guard let cgColor = cgColor else { return fallback }
         let srgb = CGColorSpace(name: CGColorSpace.sRGB)

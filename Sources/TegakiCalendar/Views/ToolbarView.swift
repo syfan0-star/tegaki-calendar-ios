@@ -2,10 +2,13 @@ import SwiftUI
 import UIKit
 
 /// The app's own tool palette (DESIGN §3.6: PKToolPicker is not used). Pen (6 colours × 3 widths),
-/// marker (4 colours), eraser, undo / redo, and the "draw with a finger" toggle.
+/// marker (4 colours), eraser, lasso, event tool (M3b contract §4.7), undo / redo, and the "draw
+/// with a finger" toggle. The context area in the middle shows the pen's colours and widths, the
+/// marker's colours, or a one-line hint for the eraser / lasso / event tool.
 ///
 /// The colours and widths are the web version's (js/ink/render.js). The last pen and marker styles
-/// are remembered in UserDefaults so switching back from the eraser restores them.
+/// are remembered in UserDefaults so switching back from the eraser restores them. On an iPhone the
+/// row scrolls horizontally (M2).
 struct ToolbarView: View {
     @Binding var tool: CanvasTool
     @Binding var allowFinger: Bool
@@ -20,13 +23,17 @@ struct ToolbarView: View {
     @AppStorage("toolbar.markerColor") private var markerColorHex: String = ToolbarPalette.markerColors[0].hex
 
     private enum Kind: Equatable {
-        case pen, marker, eraser
+        case pen, marker, eraser, lasso, eventRect
     }
 
     private var kind: Kind {
         switch tool {
         case .eraser:
             return .eraser
+        case .lasso:
+            return .lasso
+        case .eventRect:
+            return .eventRect
         case .ink(let style):
             return style.width >= ToolbarPalette.markerWidth - 0.001 ? .marker : .pen
         }
@@ -74,6 +81,8 @@ struct ToolbarView: View {
             toolButton(.pen, symbol: "pencil.tip", label: "ペン") { tool = .ink(penStyle) }
             toolButton(.marker, symbol: "highlighter", label: "マーカー") { tool = .ink(markerStyle) }
             toolButton(.eraser, symbol: "eraser", label: "消しゴム") { tool = .eraser }
+            toolButton(.lasso, symbol: "lasso", label: "投げなわ") { tool = .lasso }
+            toolButton(.eventRect, symbol: "calendar.badge.plus", label: "予定") { tool = .eventRect }
         }
     }
 
@@ -120,11 +129,20 @@ struct ToolbarView: View {
                 }
             }
         case .eraser:
-            Text("触れた線をまるごと消します")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(height: 44)
+            hint("触れた線をまるごと消します")
+        case .lasso:
+            hint("囲んで選びます。枠の中をドラッグで動かせます")
+        case .eventRect:
+            hint("なぞって予定を作ります。予定をタップすると編集します")
         }
+    }
+
+    private func hint(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .frame(height: 44)
     }
 
     private func swatch(_ entry: ToolbarPalette.Entry, selected: Bool, action: @escaping () -> Void) -> some View {

@@ -393,6 +393,179 @@ final class InkLedgerTests: XCTestCase {
         XCTAssertTrue(ledger.applyCanvasChange(drawing).isEmpty)
     }
 
+    // MARK: Selection ops (M3B_CONTRACT §3.2, §6.2)
+
+    func testRemoveStrokesIsOneUndoableOp() {
+        let layout = makeLayout()
+        let ledger = InkLedger(page: InkPage.empty(pageId: pageId), layout: layout)
+        _ = ledger.drawing()
+        let a = makeStroke(at: CGPoint(x: 30, y: 40), creationDate: Date(timeIntervalSince1970: 1_790_000_000))
+        let b = makeStroke(at: CGPoint(x: 300, y: 400), creationDate: Date(timeIntervalSince1970: 1_790_000_001))
+        let first = ledger.applyCanvasChange(PKDrawing(strokes: [a]))
+        let second = ledger.applyCanvasChange(PKDrawing(strokes: [a, b]))
+        guard let idA = first.added.first?.id, let idB = second.added.first?.id else { return XCTFail("strokes were not added") }
+        XCTAssertEqual(ledger.strokes(ids: [idB, idA, "nope", idA]).map { $0.id }, [idB, idA], "ids order, unknown and repeated ids skipped")
+
+        let change = ledger.removeStrokes(ids: [idA, "nope", idB])
+        XCTAssertEqual(change.removedIds, [idA, idB])
+        XCTAssertTrue(change.added.isEmpty)
+        XCTAssertNotNil(ledger.page.deleted[idA])
+        XCTAssertNotNil(ledger.page.deleted[idB])
+        XCTAssertTrue(ledger.page.liveStrokes.isEmpty)
+        XCTAssertTrue(ledger.strokes(ids: [idA, idB]).isEmpty)
+        XCTAssertNil(ledger.paperBounds(ids: [idA, idB]))
+        XCTAssertTrue(ledger.removeStrokes(ids: [idA]).isEmpty, "ids that are not live are ignored")
+        XCTAssertTrue(ledger.drawing().strokes.isEmpty)
+        XCTAssertFalse(ledger.canRedo)
+
+        // One undo brings both back, as clones with fresh ids (a tombstoned id never comes back).
+        XCTAssertNotNil(ledger.undo())
+        let restored = ledger.page.liveStrokes
+        XCTAssertEqual(restored.count, 2)
+        XCTAssertFalse(restored.contains { $0.id == idA || $0.id == idB })
+        XCTAssertEqual(Set(restored.map { $0.points }), Set([first.added[0].points, second.added[0].points]))
+        XCTAssertEqual(ledger.drawing().strokes.count, 2)
+        XCTAssertTrue(ledger.canRedo)
+
+        // One redo removes both again.
+        XCTAssertNotNil(ledger.redo())
+        XCTAssertTrue(ledger.page.liveStrokes.isEmpty)
+        for s in restored { XCTAssertNotNil(ledger.page.deleted[s.id]) }
+    }
+
+    func testMoveStrokesMakesClonesInOneBatchAndDecidesTheCellAgain() {
+        let layout = makeLayout()
+        let ledger = InkLedger(page: InkPage.empty(pageId: pageId), layout: layout)
+        _ = ledger.drawing()
+        let day = DayKey(year: 2026, month: 10, day: 7) // row 1, Wednesday
+        let target = DayKey(year: 2026, month: 10, day: 15) // one column right, one row down
+        guard let cell = layout.cells[.day(day)], let targetCell = layout.cells[.day(target)] else { return XCTFail("missing cells") }
+        XCTAssertEqual(targetCell.minX - cell.minX, 200, accuracy: 0.001)
+        XCTAssertEqual(targetCell.minY - cell.minY, 175, accuracy: 0.001)
+        let s1 = makeStroke(at: CGPoint(x: cell.minX + 50, y: cell.minY + 60))
+        let s2 = makeStroke(at: CGPoint(x: cell.minX + 80, y: cell.minY + 90), creationDate: Date(timeIntervalSince1970: 1_790_000_001))
+        let c1 = ledger.applyCanvasChange(PKDrawing(strokes: [s1]))
+        let c2 = ledger.applyCanvasChange(PKDrawing(strokes: [s1, s2]))
+        guard let id1 = c1.added.first?.id, let id2 = c2.added.first?.id else { return XCTFail("strokes were not added") }
+        // Paper bounds: the control points grown by half the 3.5 nib.
+        XCTAssertEqual(ledger.paperBounds(of: id1)?.minX ?? -1, cell.minX + 50 - 1.75, accuracy: 0.2)
+        XCTAssertEqual(ledger.paperBounds(of: id1)?.maxY ?? -1, cell.minY + 64 + 1.75, accuracy: 0.2)
+        XCTAssertEqual(ledger.paperBounds(ids: [id1, id2])?.maxX ?? -1, cell.minX + 92 + 1.75, accuracy: 0.2)
+
+        // A zero delta and ids that are not live do nothing (no history either).
+        let none = ledger.moveStrokes(ids: [id1, id2], by: .zero)
+        XCTAssertTrue(none.change.isEmpty)
+        XCTAssertTrue(none.newIds.isEmpty)
+        let dead = ledger.moveStrokes(ids: ["nope"], by: CGVector(dx: 10, dy: 0))
+        XCTAssertTrue(dead.change.isEmpty)
+        XCTAssertTrue(dead.newIds.isEmpty)
+        XCTAssertEqual(ledger.page.liveStrokes.count, 2)
+        XCTAssertFalse(ledger.canRedo)
+
+        // One cell right, one row down: the clones belong to the 15th, at the same place in their cell.
+        let result = ledger.moveStrokes(ids: [id2, id1, "nope"], by: CGVector(dx: 200, dy: 175))
+        XCTAssertEqual(result.change.added.count, 2)
+        XCTAssertEqual(result.change.removedIds, [id2, id1])
+        XCTAssertEqual(result.newIds, result.change.added.map { $0.id }, "newIds follow the order of ids")
+        XCTAssertFalse(result.newIds.contains(id1))
+        XCTAssertFalse(result.newIds.contains(id2))
+        let clone2 = result.change.added[0]
+        let clone1 = result.change.added[1]
+        XCTAssertEqual(clone1.cell, CellKey.day(target))
+        XCTAssertEqual(clone2.cell, CellKey.day(target))
+        XCTAssertEqual(clone1.points.count, 5)
+        XCTAssertEqual(clone1.points[0].x, 50, accuracy: 0.11)
+        XCTAssertEqual(clone1.points[0].y, 60, accuracy: 0.11)
+        XCTAssertEqual(clone2.points[0].x, 80, accuracy: 0.11)
+        XCTAssertEqual(clone2.points[0].y, 90, accuracy: 0.11)
+        XCTAssertEqual(clone1.points[4].dtMs, c1.added[0].points[4].dtMs)
+        XCTAssertEqual(clone1.tool, InkModel.InkTool.pen)
+        XCTAssertEqual(clone1.color, c1.added[0].color)
+        XCTAssertNotNil(ledger.page.deleted[id1])
+        XCTAssertNotNil(ledger.page.deleted[id2])
+        XCTAssertEqual(Set(ledger.page.liveStrokes.map { $0.id }), Set(result.newIds))
+        XCTAssertEqual(ledger.strokes(ids: result.newIds).map { $0.id }, result.newIds)
+        XCTAssertEqual(ledger.paperBounds(ids: result.newIds)?.minX ?? -1, targetCell.minX + 50 - 1.75, accuracy: 0.2)
+        XCTAssertEqual(ledger.paperBounds(ids: result.newIds)?.minY ?? -1, targetCell.minY + 60 - 1.75, accuracy: 0.2)
+        XCTAssertTrue(ledger.canUndo)
+        XCTAssertFalse(ledger.canRedo)
+
+        // The drawing places the clones in the new cell.
+        let drawing = ledger.drawing()
+        XCTAssertEqual(drawing.strokes.count, 2)
+        for pk in drawing.strokes {
+            XCTAssertEqual(pk.transform.tx, targetCell.minX, accuracy: 0.001)
+            XCTAssertEqual(pk.transform.ty, targetCell.minY, accuracy: 0.001)
+        }
+
+        // One undo (one batch): the clones are gone and the originals are back — as fresh ids
+        // (their own ids are tombstoned) in the old cell.
+        XCTAssertNotNil(ledger.undo())
+        let back = ledger.page.liveStrokes
+        XCTAssertEqual(back.count, 2)
+        XCTAssertFalse(back.contains { $0.id == id1 || $0.id == id2 || result.newIds.contains($0.id) })
+        for s in back {
+            XCTAssertEqual(s.cell, CellKey.day(day))
+            XCTAssertNil(ledger.page.deleted[s.id])
+        }
+        XCTAssertEqual(Set(back.map { $0.points }), Set([c1.added[0].points, c2.added[0].points]))
+        for id in result.newIds { XCTAssertNotNil(ledger.page.deleted[id]) }
+        XCTAssertTrue(ledger.canRedo)
+
+        // One redo moves them again (fresh ids once more), on the 15th.
+        XCTAssertNotNil(ledger.redo())
+        let again = ledger.page.liveStrokes
+        XCTAssertEqual(again.count, 2)
+        for s in again {
+            XCTAssertEqual(s.cell, CellKey.day(target))
+            XCTAssertFalse(result.newIds.contains(s.id))
+        }
+        XCTAssertEqual(ledger.drawing().strokes.count, 2)
+    }
+
+    func testMoveAcrossTheWeekBandKeepsGridStrokesOnTheGrid() {
+        let layout = makeWeekLayout()
+        let ledger = InkLedger(page: InkPage.empty(pageId: layout.pageId), layout: layout)
+        _ = ledger.drawing()
+        guard let grid = layout.cells[.grid] else { return XCTFail("no grid cell") }
+        let change = ledger.applyCanvasChange(PKDrawing(strokes: [makeStroke(at: CGPoint(x: 300, y: grid.minY + 500))]))
+        guard let id = change.added.first?.id else { return XCTFail("stroke was not added") }
+
+        // Down the grid: still the grid, the points moved by the delta.
+        let moved = ledger.moveStrokes(ids: [id], by: CGVector(dx: 0, dy: 160))
+        XCTAssertEqual(moved.newIds.count, 1)
+        XCTAssertEqual(moved.change.added[0].cell, CellKey.grid)
+        XCTAssertEqual(moved.change.added[0].points[0].y, 660, accuracy: 0.11)
+        XCTAssertFalse(ledger.needsMoreRoom(moved.change.added[0]), "the grid never grows")
+
+        // Up into the band: the clone belongs to the band cell of its column (x 300 is the second
+        // column, Tuesday 10/06: 64 + 190.86 ≤ 300 < 64 + 2 × 190.86).
+        let tuesday = DayKey(year: 2026, month: 10, day: 6)
+        guard let band = layout.cells[.allDay(tuesday)] else { return XCTFail("no band cell") }
+        XCTAssertTrue(band.minX <= 300 && 300 < band.maxX, "x 300 is Tuesday's column")
+        let up = ledger.moveStrokes(ids: moved.newIds, by: CGVector(dx: 0, dy: -(660 + grid.minY) + 10))
+        XCTAssertEqual(up.change.added.count, 1)
+        XCTAssertEqual(up.change.added[0].cell, CellKey.allDay(tuesday))
+        XCTAssertEqual(up.change.added[0].points[0].x, 300 - band.minX, accuracy: 0.11)
+        XCTAssertEqual(up.change.added[0].points[0].y, 10, accuracy: 0.11)
+    }
+
+    func testPaperBoundsIsNilForStrokesTheLayoutCannotPlace() {
+        let layout = makeLayout()
+        var page = InkPage.empty(pageId: pageId)
+        let point = InkPoint(x: 10, y: 10, dtMs: 0, sizeW: 3, sizeH: 3, opacity: 1, force: 0.5, azimuth: 0, altitude: 1)
+        let orphan = InkStroke(id: "orphan", cell: CellKey(raw: "allday:2026-10-07"), tool: .pen, color: "#000000", t: 1_790_000_000_000, points: [point])
+        let memo = InkStroke(id: "memo", cell: .memo, tool: .pen, color: "#000000", t: 1_790_000_000_000, points: [point])
+        page.add(orphan)
+        page.add(memo)
+        let ledger = InkLedger(page: page, layout: layout)
+        XCTAssertNil(ledger.paperBounds(of: "orphan"), "a week cell is not on the month page")
+        XCTAssertEqual(ledger.strokes(ids: ["orphan", "memo"]).map { $0.id }, ["orphan", "memo"], "still live, just not drawn")
+        guard let memoCell = layout.cells[.memo] else { return XCTFail("no memo cell") }
+        XCTAssertEqual(ledger.paperBounds(ids: ["orphan", "memo"])?.minX ?? -1, memoCell.minX + 10 - 1.5, accuracy: 0.001)
+        XCTAssertEqual(ledger.drawing().strokes.count, 1)
+    }
+
     // MARK: Pages are never mixed
 
     func testReloadOrRelayoutWithAnotherPageIsIgnored() {

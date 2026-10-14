@@ -179,6 +179,34 @@ public struct YearPageLayout: PageLayout, Equatable, Sendable {
         return rows[day - 1].frame.minY
     }
 
+    // MARK: Rect → event, event → rect (M3B_CONTRACT §1.7)
+
+    /// An all-day event on the date under the rect's centre, clamped onto the date columns (the
+    /// day-number gutter and the left outside → January, the right outside → December, above the
+    /// paper → day 1, below → day 31). A date that does not exist (2/30, 4/31, 2/29 of a common
+    /// year) becomes the month's last day (web yearCellForRect).
+    public func eventRange(for rect: CGRect, now: Date, calendar: Calendar) -> EventRange? {
+        guard let r = EventGeometry.normalized(rect) else { return nil }
+        return .allDay(eventDay(for: r), calendar: calendar)
+    }
+
+    /// The cell of the date the range starts on; nil when it is in another year.
+    public func snapRect(for range: EventRange, calendar: Calendar) -> CGRect? {
+        let day = DayKey(range.start, calendar: calendar)
+        guard day.year == year else { return nil }
+        return cellFrame(month: day.month, day: day.day)
+    }
+
+    /// The (existing) date a rect means; see `eventRange(for:now:calendar:)`.
+    public func eventDay(for rect: CGRect) -> DayKey {
+        let r = EventGeometry.normalized(rect) ?? CGRect(x: PaperSpec.yearGutter, y: 0, width: 0, height: 0)
+        let cx = LayoutMath.clamp(r.midX, PaperSpec.yearGutter, PaperSpec.yearWidth)
+        let cy = LayoutMath.clamp(r.midY, 0, size.height)
+        let month = min(PaperSpec.yearColumns - 1, Int(floor((cx - PaperSpec.yearGutter) / PaperSpec.yearColumnWidth + 1e-9))) + 1
+        let dayNumber = row(atY: min(cy, size.height - 0.001)) ?? PaperSpec.yearRows
+        return DayKey(year: year, month: month, day: min(dayNumber, DayKey.daysInMonth(year: year, month: month)))
+    }
+
     static func columnX(month: Int) -> CGFloat {
         PaperSpec.yearGutter + CGFloat(month - 1) * PaperSpec.yearColumnWidth
     }

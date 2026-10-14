@@ -1300,6 +1300,666 @@ do {
     checkEqual(erased.cell(at: CGPoint(x: 650, y: 10)), .day(day(2026, 10, 1)), "works through the existential")
 }
 
+// MARK: - M3b: rect → event range, event range → rect (M3B_CONTRACT §1 / §6.1; expectations from
+// the web tests/page-geometry.test.mjs, shifted by the band height where a page has one)
+
+section("event geometry (M3b)")
+
+/// "2026-10-04 09:00–2026-10-04 10:30" (+ " allDay") in the fixed calendar, for readable failures.
+let rangeFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.calendar = tokyo
+    f.timeZone = tokyo.timeZone
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.dateFormat = "yyyy-MM-dd HH:mm"
+    return f
+}()
+
+func fmt(_ r: EventRange?) -> String {
+    guard let r = r else { return "nil" }
+    return "\(rangeFormatter.string(from: r.start))–\(rangeFormatter.string(from: r.end))" + (r.allDay ? " allDay" : "")
+}
+
+/// The day the range starts on ("2026-10-04"), or "nil".
+func ymd(_ r: EventRange?) -> String {
+    r.map { DayKey($0.start, calendar: tokyo).description } ?? "nil"
+}
+
+/// A rect from two corners; a reversed drag gives a negative size (the engines normalize it).
+func rect(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> CGRect {
+    CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
+}
+
+do {
+    let d4 = day(2026, 10, 4)
+    let allDay4 = EventRange.allDay(d4, calendar: tokyo)
+    checkEqual(fmt(allDay4), "2026-10-04 00:00–2026-10-05 00:00 allDay", "EventRange.allDay")
+    checkEqual(allDay4.isValid, true, "allDay is valid")
+    let t = EventRange.timed(d4, startMinute: 540, endMinute: 630, calendar: tokyo)
+    checkEqual(fmt(t), "2026-10-04 09:00–2026-10-04 10:30", "EventRange.timed(540, 630)")
+    checkEqual(t.start, date(2026, 10, 4, 9), "timed start is the wall-clock time")
+    checkEqual(t.allDay, false, "timed is not all-day")
+    checkEqual(fmt(EventRange.timed(d4, startMinute: 1380, endMinute: 1440, calendar: tokyo)), "2026-10-04 23:00–2026-10-05 00:00", "endMinute 1440 is the next midnight")
+    checkEqual(fmt(EventRange.timed(d4, startMinute: 0, endMinute: 60, calendar: tokyo)), "2026-10-04 00:00–2026-10-04 01:00", "startMinute 0")
+    checkEqual(EventRange.timed(d4, startMinute: 600, endMinute: 600, calendar: tokyo).isValid, false, "zero length is invalid")
+    checkEqual(EventRange(start: date(2026, 10, 4, 10), end: date(2026, 10, 4, 9), allDay: false).isValid, false, "end before start is invalid")
+}
+
+do {
+    checkEqual(EventGeometry.tapMaxHeight, 12, "tapMaxHeight")
+    checkEqual(EventGeometry.minDragMinutes, 30, "minDragMinutes")
+    checkEqual(EventGeometry.defaultDurationMinutes, 60, "defaultDurationMinutes")
+    checkEqual(EventGeometry.dayMinutes, 1440, "dayMinutes")
+    checkEqual(EventGeometry.roundMinutes(547.5, step: 15), 555, "roundMinutes 547.5 → 555 (0.5 rounds up)")
+    checkEqual(EventGeometry.roundMinutes(552.49, step: 15), 555, "roundMinutes 552.49 → 555")
+    checkEqual(EventGeometry.roundMinutes(547.49, step: 15), 540, "roundMinutes 547.49 → 540")
+    checkEqual(EventGeometry.roundMinutes(540.0000001, step: 15), 540, "roundMinutes 540.0000001 → 540")
+    checkEqual(EventGeometry.roundMinutes(540.000000001, step: 15, .ceil), 540, "roundMinutes: within 1e-9 of a multiple counts as that multiple (ceil)")
+    checkEqual(EventGeometry.roundMinutes(539.999999999, step: 15, .floor), 540, "roundMinutes: within 1e-9 of a multiple counts as that multiple (floor)")
+    checkEqual(EventGeometry.roundMinutes(547, step: 30, .floor), 540, "roundMinutes floor")
+    checkEqual(EventGeometry.roundMinutes(541, step: 30, .ceil), 570, "roundMinutes ceil")
+    checkEqual(EventGeometry.roundMinutes(0, step: 15), 0, "roundMinutes 0")
+    checkEqual(EventGeometry.roundMinutes(1440, step: 15), 1440, "roundMinutes 1440")
+    checkEqual(EventGeometry.roundMinutes(7.5, step: 15), 15, "roundMinutes 7.5 → 15")
+    checkEqual(EventGeometry.roundMinutes(7.49, step: 15), 0, "roundMinutes 7.49 → 0")
+    checkEqual(EventGeometry.minutes(forY: 150, hourHeight: 100), 90, "minutes(forY:) day")
+    checkEqual(EventGeometry.minutes(forY: 80, hourHeight: 80), 60, "minutes(forY:) week")
+    checkEqual(EventGeometry.minutes(forY: -5, hourHeight: 100), 0, "minutes(forY:) clamped at 0")
+    checkEqual(EventGeometry.minutes(forY: 3000, hourHeight: 100), 1440, "minutes(forY:) clamped at 1440")
+    checkEqual(EventGeometry.minutes(forY: CGFloat.nan, hourHeight: 100), 0, "minutes(forY:) NaN → 0")
+    checkEqual(EventGeometry.normalized(rect(300, 1050, 100, 900)), CGRect(x: 100, y: 900, width: 200, height: 150), "normalized: a reversed drag")
+    checkEqual(EventGeometry.normalized(rect(100, 900, 300, 1050)), CGRect(x: 100, y: 900, width: 200, height: 150), "normalized: unchanged")
+    checkEqual(EventGeometry.normalized(CGRect(x: 0, y: CGFloat.nan, width: 10, height: 10)), nil, "normalized: NaN → nil")
+    checkEqual(EventGeometry.normalized(CGRect(x: 0, y: 0, width: CGFloat.infinity, height: 10)), nil, "normalized: infinite → nil")
+
+    func slot(_ y0: CGFloat, _ y1: CGFloat) -> [Int] {
+        let s = EventGeometry.timelineSlot(minY: y0, maxY: y1, hourHeight: 100)
+        return [s.startMinute, s.endMinute]
+    }
+    checkEqual(slot(900, 1050), [540, 630], "slot 9:00–10:30")
+    checkEqual(slot(910, 1060), [540, 630], "slot: nearest 15 (down)")
+    checkEqual(slot(915, 1065), [555, 645], "slot: nearest 15 (up)")
+    checkEqual(slot(900, 950), [540, 570], "slot: exactly 30 min stays")
+    checkEqual(slot(905, 925), [540, 600], "slot: shorter than 30 min → 1 hour")
+    checkEqual(slot(1050, 900), [540, 630], "slot: minY/maxY in either order")
+    checkEqual(slot(1398, 1504), [840, 900], "slot: slightly past the hour lines → the lines")
+    checkEqual(slot(1403, 1495), [840, 900], "slot: slightly short of the hour lines → the lines")
+    checkEqual(slot(1400, 1513), [840, 915], "slot: past 7.5 min the next line wins")
+    checkEqual(slot(1275, 1275), [750, 810], "slot: tap → the half hour under the point")
+    checkEqual(slot(1270, 1281.9), [750, 810], "slot: height 11.9 is a tap")
+    checkEqual(slot(1270, 1282), [765, 825], "slot: height 12 is a drag")
+    checkEqual(slot(2300, 2500), [1380, 1440], "slot: end clamped at 24:00")
+    checkEqual(slot(2390, 2390), [1410, 1440], "slot: tap at 23:54")
+    checkEqual(slot(2380, 2400), [1425, 1440], "slot: short drag at the bottom: +1h then clamp")
+    checkEqual(slot(2400, 2400), [1380, 1440], "slot: tap exactly at 24:00 never yields 0 min")
+    checkEqual(slot(2500, 2600), [1380, 1440], "slot: rect entirely below the page")
+    checkEqual(slot(-100, -50), [0, 60], "slot: above the page clamps to 0:00")
+    let w = EventGeometry.timelineSlot(minY: 1117, maxY: 1206, hourHeight: 80)
+    checkEqual([w.startMinute, w.endMinute], [840, 900], "slot (week, hourHeight 80): 13:57.75 → 15:04.5 is 14:00–15:00")
+}
+
+// MARK: Day page
+
+section("rect → event range: day page")
+do {
+    let page = dayLayout([], focus: day(2026, 10, 4))
+    let g = page.grid.minY
+    checkEqual(g, 60, "an empty band is 60 lu (the web expectations are shifted by it)")
+    func ev(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> String {
+        fmt(page.eventRange(for: rect(x0, y0 + g, x1, y1 + g), now: demoNow, calendar: tokyo))
+    }
+    checkEqual(ev(100, 900, 300, 1050), "2026-10-04 09:00–2026-10-04 10:30", "day: 9:00–10:30")
+    checkEqual(ev(100, 910, 300, 1060), "2026-10-04 09:00–2026-10-04 10:30", "day: nearest 15 (down)")
+    checkEqual(ev(100, 915, 300, 1065), "2026-10-04 09:15–2026-10-04 10:45", "day: nearest 15 (up)")
+    checkEqual(ev(100, 900, 300, 950), "2026-10-04 09:00–2026-10-04 09:30", "day: exactly 30 min stays")
+    checkEqual(ev(100, 905, 300, 925), "2026-10-04 09:00–2026-10-04 10:00", "day: shorter than 30 min → 1 hour")
+    checkEqual(ev(300, 1050, 100, 900), "2026-10-04 09:00–2026-10-04 10:30", "day: a reversed drag is normalized")
+    checkEqual(ev(100, 1398, 300, 1504), "2026-10-04 14:00–2026-10-04 15:00", "day: slightly past the hour lines")
+    checkEqual(ev(100, 1403, 300, 1495), "2026-10-04 14:00–2026-10-04 15:00", "day: slightly short of the hour lines")
+    checkEqual(ev(100, 1400, 300, 1513), "2026-10-04 14:00–2026-10-04 15:15", "day: past 7.5 min the next line wins")
+    checkEqual(ev(700, 900, 950, 1050), "2026-10-04 09:00–2026-10-04 10:30", "day: the memo area still means the day")
+    checkEqual(ev(0, 900, 40, 1050), "2026-10-04 09:00–2026-10-04 10:30", "day: the time gutter still means the day")
+    checkEqual(ev(200, 1275, 200, 1275), "2026-10-04 12:30–2026-10-04 13:30", "day: tap → the half hour under the point")
+    checkEqual(ev(200, 1270, 205, 1281.9), "2026-10-04 12:30–2026-10-04 13:30", "day: height 11.9 is a tap")
+    checkEqual(ev(200, 1270, 205, 1282), "2026-10-04 12:45–2026-10-04 13:45", "day: height 12 is a drag")
+    checkEqual(ev(200, 2300, 300, 2500), "2026-10-04 23:00–2026-10-05 00:00", "day: end clamped to 24:00")
+    checkEqual(ev(200, 2390, 200, 2390), "2026-10-04 23:30–2026-10-05 00:00", "day: tap at 23:54")
+    checkEqual(ev(200, 2380, 300, 2400), "2026-10-04 23:45–2026-10-05 00:00", "day: short drag at the bottom")
+    checkEqual(ev(200, 2400, 200, 2400), "2026-10-04 23:00–2026-10-05 00:00", "day: tap exactly at 24:00")
+    checkEqual(ev(200, 2500, 300, 2600), "2026-10-04 23:00–2026-10-05 00:00", "day: rect entirely below the page")
+    checkEqual(ev(200, -100, 300, -50), "2026-10-04 00:00–2026-10-04 01:00", "day: above the page clamps to 0:00")
+    checkEqual(fmt(page.eventRange(for: rect(200, 0, 300, 20), now: demoNow, calendar: tokyo)), "2026-10-04 00:00–2026-10-04 01:00", "day: a drag in the band clamps to 0:00")
+    checkEqual(page.eventRange(for: CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1), now: demoNow, calendar: tokyo), nil, "day: a NaN rect → nil")
+    checkEqual(page.eventRange(for: CGRect(x: 0, y: 0, width: CGFloat.infinity, height: 1), now: demoNow, calendar: tokyo), nil, "day: an infinite rect → nil")
+    if let dev = page.eventRange(for: rect(100, 900 + g, 300, 1050 + g), now: demoNow) {
+        checkEqual(DayKey(dev.start, calendar: DayKey.deviceCalendar), day(2026, 10, 4), "day: the device-calendar overload keeps the day")
+        checkEqual(TimedEventEngine.minutesOfDay(dev.start, calendar: DayKey.deviceCalendar), 540, "day: the device-calendar overload: 9:00 device time")
+        checkEqual(TimedEventEngine.minutesOfDay(dev.end, calendar: DayKey.deviceCalendar), 630, "day: the device-calendar overload: 10:30 device time")
+        checkEqual(page.snapRect(for: dev) != nil, true, "day: the device-calendar snapRect overload")
+    } else {
+        check(false, "day: the device-calendar overload returned nil")
+    }
+
+    let nine = EventRange.timed(day(2026, 10, 4), startMinute: 540, endMinute: 630, calendar: tokyo)
+    checkRect(page.snapRect(for: nine, calendar: tokyo), CGRect(x: 72, y: g + 900, width: 588, height: 150), "day snapRect 9:00–10:30 = the timeline column")
+    checkRect(page.previewRect(for: rect(700, 910 + g, 950, 1060 + g), now: demoNow, calendar: tokyo), CGRect(x: 72, y: g + 900, width: 588, height: 150), "day previewRect: a memo-area drag → the timeline column")
+    checkRect(page.snapRect(for: .allDay(day(2026, 10, 4), calendar: tokyo), calendar: tokyo), page.cells[.allDayDay]!, "day snapRect all-day → the band")
+    checkEqual(page.snapRect(for: .allDay(day(2026, 10, 5), calendar: tokyo), calendar: tokyo), nil, "day snapRect: another day → nil")
+    checkEqual(page.snapRect(for: .timed(day(2026, 10, 5), startMinute: 540, endMinute: 600, calendar: tokyo), calendar: tokyo), nil, "day snapRect: timed on another day → nil")
+    checkEqual(page.snapRect(for: EventRange(start: date(2026, 10, 3, 22), end: date(2026, 10, 4, 2), allDay: false), calendar: tokyo), nil, "day snapRect: starts the day before → nil")
+    checkRect(page.snapRect(for: EventRange(start: date(2026, 10, 4, 23), end: date(2026, 10, 5, 2), allDay: false), calendar: tokyo), CGRect(x: 72, y: g + 2300, width: 588, height: 100), "day snapRect: ends the next day → clipped to 24:00")
+    checkRect(page.snapRect(for: EventRange(start: date(2026, 10, 4, 23), end: date(2026, 10, 5, 0), allDay: false), calendar: tokyo), CGRect(x: 72, y: g + 2300, width: 588, height: 100), "day snapRect: ends exactly at midnight")
+    checkEqual(page.snapRect(for: EventRange(start: date(2026, 10, 4, 10), end: date(2026, 10, 4, 10), allDay: false), calendar: tokyo), nil, "day snapRect: zero length → nil")
+    checkEqual(page.snapRect(for: EventRange(start: date(2026, 10, 4, 10), end: date(2026, 10, 4, 9), allDay: false), calendar: tokyo), nil, "day snapRect: inverted → nil")
+    checkRect(page.snapRect(for: EventRange(start: date(2026, 10, 4, 10, 5), end: date(2026, 10, 4, 10, 35), allDay: false), calendar: tokyo), CGRect(x: 72, y: g + 1000 + 500 / 60, width: 588, height: 50), "day snapRect: minutes that are not on the 15 grid are drawn where they are")
+    // The band grows with its events: the grid moves down and the rects follow.
+    let busy = dayLayout([allDay("a", 4, 5), allDay("b", 4, 5), allDay("c", 4, 5), allDay("d", 4, 5)], focus: day(2026, 10, 4))
+    check(busy.grid.minY > g, "a busier band is taller")
+    checkEqual(fmt(busy.eventRange(for: rect(100, 900 + busy.grid.minY, 300, 1050 + busy.grid.minY), now: demoNow, calendar: tokyo)), "2026-10-04 09:00–2026-10-04 10:30", "day: y is relative to the grid's top")
+    checkRect(busy.snapRect(for: nine, calendar: tokyo), CGRect(x: 72, y: busy.grid.minY + 900, width: 588, height: 150), "day snapRect follows the band height")
+}
+
+// MARK: Week page
+
+section("rect → event range: week page")
+do {
+    let page = weekLayout([]) // Mon 10/5 – Sun 10/11 2026
+    let g = page.grid.minY
+    checkEqual(g, 60, "an empty band is 60 lu")
+    func center(_ i: Int) -> CGFloat { PaperSpec.weekGutter + (CGFloat(i) + 0.5) * colW }
+    func ev(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> String {
+        fmt(page.eventRange(for: rect(x0, y0 + g, x1, y1 + g), now: demoNow, calendar: tokyo))
+    }
+    func at(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> String {
+        ymd(page.eventRange(for: rect(x0, y0 + g, x1, y1 + g), now: demoNow, calendar: tokyo))
+    }
+    checkEqual(ev(700, 720, 760, 840), "2026-10-08 09:00–2026-10-08 10:30", "week: x 700 is column 3 (Thursday)")
+    checkEqual(ev(center(3), 1117, center(3), 1206), "2026-10-08 14:00–2026-10-08 15:00", "week: slightly past the hour lines")
+    checkRect(page.previewRect(for: rect(center(3), 1117 + g, center(3), 1206 + g), now: demoNow, calendar: tokyo), CGRect(x: page.columnFrame(3).minX, y: g + 1120, width: colW, height: 80), "week previewRect 14:00–15:00")
+    checkRect(page.snapRect(for: .timed(day(2026, 10, 8), startMinute: 840, endMinute: 900, calendar: tokyo), calendar: tokyo), CGRect(x: page.columnFrame(3).minX, y: g + 1120, width: colW, height: 80), "week snapRect 14:00–15:00")
+    checkEqual(ev(center(2), 1000, center(2), 1000), "2026-10-07 12:30–2026-10-07 13:30", "week: tap at 12:30")
+    checkEqual(at(0, 720, 60, 840), "2026-10-05", "week: the gutter → Monday (column 0)")
+    checkEqual(at(1450, 720, 1500, 840), "2026-10-11", "week: right of the paper → Sunday (column 6)")
+    checkEqual(at(1300, 720, 1390, 840), "2026-10-11", "week: column 6 is Sunday")
+    checkEqual(at(-100, 720, -50, 840), "2026-10-05", "week: left of the paper → Monday")
+    checkEqual(ev(700, 1800, 760, 2000), "2026-10-08 22:30–2026-10-09 00:00", "week: end clamped at 24:00")
+    checkEqual(ev(700, -100, 760, -50), "2026-10-08 00:00–2026-10-08 01:00", "week: above the grid clamps to 0:00")
+    checkEqual(fmt(page.eventRange(for: rect(700, 0, 760, 30), now: demoNow, calendar: tokyo)), "2026-10-08 00:00–2026-10-08 01:00", "week: a drag in the band clamps to 0:00")
+    for i in 0..<7 {
+        checkEqual(at(center(i) - 20, 720, center(i) + 20, 840), page.days[i].description, "week: column \(i)")
+    }
+    let c1 = page.columnFrame(1)
+    checkEqual(at(c1.minX - 10, 720, c1.minX + 30, 840), "2026-10-06", "week: a rect over two columns → the column under its centre (right)")
+    checkEqual(at(c1.minX - 30, 720, c1.minX + 10, 840), "2026-10-05", "week: … (left)")
+    checkEqual(page.nearestColumn(atX: 0), 0, "nearestColumn 0")
+    checkEqual(page.nearestColumn(atX: 63.9), 0, "nearestColumn in the gutter")
+    checkEqual(page.nearestColumn(atX: 64), 0, "nearestColumn 64")
+    checkEqual(page.nearestColumn(atX: 64 + colW), 1, "nearestColumn: the left edge of column 1")
+    checkEqual(page.nearestColumn(atX: 64 + colW - 0.001), 0, "nearestColumn: just left of it")
+    checkEqual(page.nearestColumn(atX: 1400), 6, "nearestColumn 1400")
+    checkEqual(page.nearestColumn(atX: 5000), 6, "nearestColumn far right")
+    checkEqual(page.nearestColumn(atX: -100), 0, "nearestColumn far left")
+    checkEqual(page.nearestColumn(atX: CGFloat.nan), 0, "nearestColumn NaN → 0")
+    checkRect(page.previewRect(for: rect(700, 725 + g, 760, 845 + g), now: demoNow, calendar: tokyo), CGRect(x: page.columnFrame(3).minX, y: g + 720, width: colW, height: 120), "week previewRect: 9:03.75 → 9:00, 10:33.75 → 10:30")
+    checkRect(page.previewRect(for: rect(10, 1900 + g, 20, 1900 + g), now: demoNow, calendar: tokyo), CGRect(x: 64, y: g + 1880, width: colW, height: 40), "week previewRect: gutter tap at 23:45 → column 0, 23:30–24:00")
+    checkRect(page.snapRect(for: .allDay(day(2026, 10, 7), calendar: tokyo), calendar: tokyo), page.cells[.allDay(day(2026, 10, 7))]!, "week snapRect all-day → the band cell")
+    checkEqual(page.snapRect(for: .allDay(day(2026, 10, 12), calendar: tokyo), calendar: tokyo), nil, "week snapRect: next week → nil")
+    checkEqual(page.snapRect(for: .allDay(day(2026, 10, 4), calendar: tokyo), calendar: tokyo), nil, "week snapRect: the Sunday before → nil")
+    checkEqual(page.snapRect(for: .timed(day(2026, 10, 12), startMinute: 540, endMinute: 600, calendar: tokyo), calendar: tokyo), nil, "week snapRect: timed next week → nil")
+    checkRect(page.snapRect(for: EventRange(start: date(2026, 10, 11, 23), end: date(2026, 10, 12, 2), allDay: false), calendar: tokyo), CGRect(x: page.columnFrame(6).minX, y: g + 1840, width: colW, height: 80), "week snapRect: ends after Sunday → clipped to 24:00")
+    checkEqual(page.snapRect(for: EventRange(start: date(2026, 10, 7, 10), end: date(2026, 10, 7, 10), allDay: false), calendar: tokyo), nil, "week snapRect: zero length → nil")
+    checkEqual(page.snapRect(for: EventRange(start: date(2026, 10, 4, 23), end: date(2026, 10, 5, 2), allDay: false), calendar: tokyo), nil, "week snapRect: starts before the week → nil")
+}
+
+// MARK: Month page
+
+section("rect → event range: month page")
+do {
+    let page = layout([]) // October 2026, Monday start: grid 9/28 – 11/8, rows of 175, memo from 1050
+    checkEqual(page.memo.minY, 1050, "memo starts at 1050")
+    checkEqual(page.size.height, 1750, "page height 1750")
+    let now14 = date(2026, 10, 14, 22, 30)
+    func ev(_ r: CGRect, now: Date = now14) -> String { fmt(page.eventRange(for: r, now: now, calendar: tokyo)) }
+    func at(_ r: CGRect, now: Date = now14) -> String { ymd(page.eventRange(for: r, now: now, calendar: tokyo)) }
+    checkEqual(ev(rect(850, 20, 950, 140)), "2026-10-02 00:00–2026-10-03 00:00 allDay", "month: row 0 col 4 = 10/02, all-day")
+    checkEqual(at(rect(410, 360, 490, 380)), "2026-10-14", "month: row 2 col 2 = 10/14")
+    checkEqual(at(rect(150, 150, 250, 200)), "2026-10-06", "month: centre (200, 175) → the next cell (row 1, col 1)")
+    checkEqual(at(rect(-100, -100, -50, -50)), "2026-09-28", "month: outside top-left → 9/28")
+    checkEqual(at(rect(1450, 1000, 1500, 1040)), "2026-11-08", "month: outside right → row 5 col 6 = 11/08")
+    checkEqual(at(rect(1250, 900, 1250, 900)), "2026-11-08", "month: a tap in row 5 col 6")
+    checkEqual(at(rect(1400, 1049.9, 1400, 1049.9)), "2026-11-08", "month: the right edge belongs to the last column")
+    checkEqual(at(rect(0, 0, 0, 0)), "2026-09-28", "month: a tap at the origin")
+    // The memo area means today when today is in the month, else the 1st.
+    let memo = rect(300, 1300, 700, 1420)
+    checkEqual(ev(memo), "2026-10-14 00:00–2026-10-15 00:00 allDay", "memo: today (10/14)")
+    checkRect(page.previewRect(for: memo, now: now14, calendar: tokyo), CGRect(x: 400, y: 350, width: 200, height: 175), "memo preview: 10/14 = row 2 col 2")
+    checkEqual(at(memo, now: date(2026, 11, 3)), "2026-10-01", "memo: today in a neighbouring month on the grid → the 1st")
+    checkEqual(at(memo, now: date(2026, 9, 29)), "2026-10-01", "memo: today in September → the 1st")
+    checkEqual(at(memo, now: date(2025, 10, 14)), "2026-10-01", "memo: the same month of another year → the 1st")
+    checkRect(page.previewRect(for: memo, now: date(2027, 1, 1), calendar: tokyo), CGRect(x: 600, y: 0, width: 200, height: 175), "memo preview: 10/1 = row 0 col 3")
+    checkEqual(at(memo, now: date(2026, 10, 31, 23, 59)), "2026-10-31", "memo: the last day of the month")
+    checkEqual(at(memo, now: date(2026, 10, 1, 0, 0)), "2026-10-01", "memo: the first instant of the month")
+    checkEqual(at(rect(100, 1040, 100, 1060)), "2026-10-14", "memo: a centre exactly at memo.minY is the memo")
+    checkEqual(at(rect(100, 1040, 100, 1059.8)), "2026-11-02", "memo: just above it is the last row")
+    for r in [rect(50, 1100, 50, 1100), rect(1390, 1749, 1395, 1750), rect(700, 1800, 720, 1900), rect(1450, 1100, 1500, 1200), rect(-50, 2000, -40, 2001)] {
+        checkEqual(at(r, now: date(2026, 10, 6)), "2026-10-06", "memo: taps, the page bottom and below the page \(r)")
+    }
+    // snapRect: the cell of the range's first day (a timed range too), nil off the grid.
+    checkRect(page.snapRect(for: .allDay(day(2026, 10, 14), calendar: tokyo), calendar: tokyo), CGRect(x: 400, y: 350, width: 200, height: 175), "month snapRect 10/14")
+    checkRect(page.snapRect(for: .timed(day(2026, 10, 14), startMinute: 540, endMinute: 600, calendar: tokyo), calendar: tokyo), CGRect(x: 400, y: 350, width: 200, height: 175), "month snapRect: a timed range → its day's cell")
+    checkRect(page.snapRect(for: .allDay(day(2026, 9, 28), calendar: tokyo), calendar: tokyo), CGRect(x: 0, y: 0, width: 200, height: 175), "month snapRect 9/28 (first cell)")
+    checkRect(page.snapRect(for: .allDay(day(2026, 11, 8), calendar: tokyo), calendar: tokyo), CGRect(x: 1200, y: 875, width: 200, height: 175), "month snapRect 11/8 (last cell)")
+    checkEqual(page.snapRect(for: .allDay(day(2026, 11, 9), calendar: tokyo), calendar: tokyo), nil, "month snapRect: 11/9 is off the grid")
+    checkEqual(page.snapRect(for: .allDay(day(2026, 9, 27), calendar: tokyo), calendar: tokyo), nil, "month snapRect: 9/27 is off the grid")
+    checkRect(page.previewRect(for: rect(850, 20, 950, 140), now: now14, calendar: tokyo), CGRect(x: 800, y: 0, width: 200, height: 175), "month previewRect 10/02")
+    checkRect(page.previewRect(for: rect(-50, 1000, -40, 1001), now: now14, calendar: tokyo), CGRect(x: 0, y: 875, width: 200, height: 175), "month previewRect: outside left → row 5 col 0")
+    checkRect(page.previewRect(for: rect(-50, 2000, -40, 2001), now: date(2027, 3, 1), calendar: tokyo), CGRect(x: 600, y: 0, width: 200, height: 175), "month previewRect: below the page → the memo day (10/1 = row 0 col 3)")
+    checkEqual(page.eventRange(for: CGRect(x: 0, y: CGFloat.nan, width: 1, height: 1), now: now14, calendar: tokyo), nil, "month: a NaN rect → nil")
+    // A grown row moves the cells below it; the rects follow the layout.
+    let inked = layout([], ink: [.day(day(2026, 10, 7)): 300])
+    let cell14 = inked.cells[.day(day(2026, 10, 14))]!
+    check(cell14.minY > 350, "ink on 10/7 moves row 2 down")
+    checkEqual(ymd(inked.eventRange(for: cell14.insetBy(dx: 20, dy: 20), now: now14, calendar: tokyo)), "2026-10-14", "month: a grown row moves the cells")
+    checkRect(inked.previewRect(for: cell14.insetBy(dx: 20, dy: 20), now: now14, calendar: tokyo), cell14, "month: … and the preview follows")
+    checkEqual(ymd(inked.eventRange(for: rect(300, inked.memo.minY + 10, 700, inked.memo.minY + 50), now: now14, calendar: tokyo)), "2026-10-14", "month: the memo area moved too")
+    // February 2026 (Monday start: grid 1/26 – 3/8): the memo day is the 1st when today is in October.
+    let feb = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 2), events: [], inkBottoms: [:], now: now14, calendar: tokyo))
+    checkEqual(ymd(feb.eventRange(for: memo, now: now14, calendar: tokyo)), "2026-02-01", "February page: memo → 2/1")
+    checkEqual(ymd(feb.eventRange(for: memo, now: date(2026, 2, 20), calendar: tokyo)), "2026-02-20", "February page: memo → today when today is in February")
+    checkEqual(ymd(feb.eventRange(for: rect(0, 0, 10, 10), now: now14, calendar: tokyo)), "2026-01-26", "February page: first cell is 1/26")
+    checkRect(feb.snapRect(for: .allDay(day(2026, 2, 1), calendar: tokyo), calendar: tokyo), CGRect(x: 1200, y: 0, width: 200, height: 175), "February page: 2/1 is row 0 col 6")
+}
+
+// MARK: Year page
+
+section("rect → event range: year page")
+do {
+    let y2026 = yearLayout([], year: 2026)
+    let y2028 = yearLayout([], year: 2028)
+    func center(_ page: YearPageLayout, _ m: Int, _ d: Int) -> CGPoint {
+        let c = page.cellFrame(month: m, day: d)!
+        return CGPoint(x: c.midX, y: c.midY)
+    }
+    func tap(_ page: YearPageLayout, _ m: Int, _ d: Int) -> String {
+        let c = center(page, m, d)
+        return ymd(page.eventRange(for: rect(c.x, c.y, c.x, c.y), now: demoNow, calendar: tokyo))
+    }
+    func at(_ page: YearPageLayout, _ r: CGRect) -> String { ymd(page.eventRange(for: r, now: demoNow, calendar: tokyo)) }
+    // Every day of a common and a leap year: a drag over the cell and a tap → that day, all-day; the preview is the cell.
+    for page in [y2026, y2028] {
+        for m in 1...12 {
+            for d in 1...DayKey.daysInMonth(year: page.year, month: m) {
+                let c = center(page, m, d)
+                let cell = page.cellFrame(month: m, day: d)!
+                let key = DayKey(year: page.year, month: m, day: d)
+                let expected = "\(key) 00:00–\(key.adding(days: 1)) 00:00 allDay"
+                for r in [rect(c.x - 40, c.y - 20, c.x + 30, c.y + 25), rect(c.x, c.y, c.x, c.y)] {
+                    let ev = page.eventRange(for: r, now: demoNow, calendar: tokyo)
+                    checkEqual(fmt(ev), expected, "year \(page.year) \(m)/\(d) \(r)")
+                    checkRect(ev.flatMap { page.snapRect(for: $0, calendar: tokyo) }, cell, "year \(page.year) \(m)/\(d) snapRect")
+                }
+            }
+        }
+    }
+    // Dates that do not exist become the month's last day.
+    checkEqual(tap(y2026, 2, 29), "2026-02-28", "year: 2/29 of a common year → 2/28")
+    checkEqual(tap(y2026, 2, 30), "2026-02-28", "year: 2/30 → 2/28")
+    checkEqual(tap(y2026, 2, 31), "2026-02-28", "year: 2/31 → 2/28")
+    checkEqual(tap(y2028, 2, 29), "2028-02-29", "year: 2/29 of a leap year exists")
+    checkEqual(tap(y2028, 2, 30), "2028-02-29", "year: 2/30 → 2/29 in 2028")
+    checkEqual(tap(y2028, 2, 31), "2028-02-29", "year: 2/31 → 2/29 in 2028")
+    checkEqual(tap(y2026, 4, 31), "2026-04-30", "year: 4/31 → 4/30")
+    checkEqual(tap(y2026, 6, 31), "2026-06-30", "year: 6/31 → 6/30")
+    checkEqual(tap(y2026, 9, 31), "2026-09-30", "year: 9/31 → 9/30")
+    checkEqual(tap(y2026, 11, 31), "2026-11-30", "year: 11/31 → 11/30")
+    let c231 = center(y2026, 2, 31)
+    checkRect(y2026.previewRect(for: rect(c231.x, c231.y, c231.x, c231.y), now: demoNow, calendar: tokyo), CGRect(x: 168, y: 27 * 60, width: 112, height: 60), "year preview: 2/31 → 2/28's cell")
+    let c231leap = center(y2028, 2, 31)
+    checkRect(y2028.previewRect(for: rect(c231leap.x, c231leap.y, c231leap.x, c231leap.y), now: demoNow, calendar: tokyo), CGRect(x: 168, y: 28 * 60, width: 112, height: 60), "year preview: 2/31 → 2/29's cell in 2028")
+    checkRect(y2026.snapRect(for: .allDay(day(2026, 2, 28), calendar: tokyo), calendar: tokyo), y2026.cellFrame(month: 2, day: 28)!, "year snapRect(2/28) = cellFrame(2, 28)")
+    checkRect(y2026.snapRect(for: .timed(day(2026, 7, 7), startMinute: 540, endMinute: 600, calendar: tokyo), calendar: tokyo), y2026.cellFrame(month: 7, day: 7)!, "year snapRect: a timed range → its day's cell")
+    checkEqual(y2026.snapRect(for: .allDay(day(2027, 1, 1), calendar: tokyo), calendar: tokyo), nil, "year snapRect: another year → nil")
+    checkEqual(y2026.snapRect(for: .allDay(day(2025, 12, 31), calendar: tokyo), calendar: tokyo), nil, "year snapRect: the year before → nil")
+    // The gutter → January; beyond the right edge → December; above / below the page → day 1 / 31 (clamped to the month).
+    checkEqual(at(y2026, rect(0, 130, 40, 150)), "2026-01-03", "year: the day-number gutter → January")
+    checkEqual(at(y2026, rect(-100, 130, -50, 150)), "2026-01-03", "year: left of the paper → January")
+    checkEqual(at(y2026, rect(1450, 130, 1500, 150)), "2026-12-03", "year: right of the paper → December")
+    checkEqual(at(y2026, rect(300, -100, 320, -50)), "2026-03-01", "year: above the paper → day 1")
+    checkEqual(at(y2026, rect(300, 1900, 320, 2000)), "2026-03-31", "year: below the paper → day 31")
+    checkEqual(at(y2026, rect(400, 1900, 420, 2000)), "2026-04-30", "year: below the paper in April → 4/30")
+    checkEqual(at(y2026, rect(200, 5000, 200, 5000)), "2026-02-28", "year: far below in February → 2/28")
+    checkEqual(at(y2026, rect(1400, 1860, 1400, 1860)), "2026-12-31", "year: the bottom-right corner → 12/31")
+    checkEqual(at(y2026, rect(56 + 112 * 4 - 30, 300, 56 + 112 * 4 + 50, 380)), "2026-05-06", "year: a rect over two cells → the one under its centre")
+    checkEqual(y2026.eventRange(for: CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1), now: demoNow, calendar: tokyo), nil, "year: a NaN rect → nil")
+    // Rows that grew (events / ink) move the cells: the rect follows the layout.
+    let inked = yearLayout([], year: 2026, ink: [.yearDay(month: 3, day: 5): 200])
+    let cell = inked.cellFrame(month: 7, day: 20)!
+    check(cell.minY > 19 * 60, "ink on 3/5 moves row 20 down")
+    checkEqual(ymd(inked.eventRange(for: cell.insetBy(dx: 10, dy: 10), now: demoNow, calendar: tokyo)), "2026-07-20", "year: a grown row moves the cells")
+    checkRect(inked.previewRect(for: cell.insetBy(dx: 10, dy: 10), now: demoNow, calendar: tokyo), cell, "year: … and the preview follows")
+}
+
+// MARK: Randomized invariant: eventRange(snapRect(eventRange(r))) == eventRange(r)
+
+section("event range ↔ snap rect (randomized)")
+do {
+    var rng = Rng(seed: 20_261_004)
+    let now = date(2026, 10, 14, 9) // the October page's memo area means 10/14; the other months' the 1st
+    let feb = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 2), events: [], inkBottoms: [:], now: now, calendar: tokyo))
+    let pages: [(String, any PageLayout)] = [
+        ("day", dayLayout([], focus: day(2026, 10, 4))),
+        ("week", weekLayout([])),
+        ("month-2026-10", layout([])),
+        ("month-2026-02", feb),
+        ("year-2026", yearLayout([], year: 2026)),
+        ("year-2028", yearLayout([], year: 2028)),
+    ]
+    for (name, page) in pages {
+        let W = page.size.width
+        let H = page.size.height
+        for i in 0..<300 {
+            // Coordinates up to 100 lu beyond the paper, 30 % tap-sized rects, some tall ones, either drag direction.
+            let x0 = CGFloat(rng.double()) * (W + 200) - 100
+            let y0 = CGFloat(rng.double()) * (H + 200) - 100
+            let tall = rng.double() < 0.3 ? CGFloat(rng.double()) * 20 : CGFloat(rng.double()) * H * 0.4
+            let r = rect(x0, y0, x0 + CGFloat(rng.double()) * 300 - 150, y0 + (rng.double() < 0.5 ? tall : -tall))
+            let label = "\(name) #\(i) \(r)"
+            guard let ev = page.eventRange(for: r, now: now, calendar: tokyo) else {
+                check(false, "\(label): eventRange is nil")
+                continue
+            }
+            check(ev.isValid, "\(label): valid range")
+            guard let snap = page.snapRect(for: ev, calendar: tokyo) else {
+                check(false, "\(label): snapRect is nil for \(fmt(ev))")
+                continue
+            }
+            check(snap.width > 0 && snap.height > 0, "\(label): the snapped rect has an area")
+            checkEqual(page.eventRange(for: snap, now: now, calendar: tokyo), ev, "\(label): idempotent (\(fmt(ev)) from \(snap))")
+            let startDay = DayKey(ev.start, calendar: tokyo)
+            if page.kind == .month || page.kind == .year {
+                check(ev.allDay, "\(label): all-day")
+                checkEqual(ev.start, startDay.startOfDay(in: tokyo), "\(label): starts at midnight")
+                checkEqual(DayKey(ev.end, calendar: tokyo), startDay.adding(days: 1), "\(label): one day long")
+            } else {
+                check(!ev.allDay, "\(label): timed")
+                let startMin = TimedEventEngine.minutesOfDay(ev.start, calendar: tokyo)
+                let endMin = DayKey(ev.end, calendar: tokyo) == startDay ? TimedEventEngine.minutesOfDay(ev.end, calendar: tokyo) : 1440
+                check(DayKey(ev.end, calendar: tokyo) == startDay || ev.end == startDay.adding(days: 1).startOfDay(in: tokyo), "\(label): ends on the day or at the next midnight")
+                check(startMin % 15 == 0 && endMin % 15 == 0, "\(label): on the 15-minute grid (\(startMin)–\(endMin))")
+                check(endMin - startMin >= 15, "\(label): at least 15 minutes (\(startMin)–\(endMin))")
+                check(startMin >= 0 && endMin <= 1440, "\(label): within the day")
+            }
+            if let m = page as? MonthPageLayout {
+                let cy = min(max(r.standardized.midY, 0), H)
+                if cy >= m.memo.minY {
+                    let memoDay = m.month == YearMonth(year: 2026, month: 10) ? "2026-10-14" : m.month.firstDay.description
+                    checkEqual(startDay.description, memoDay, "\(label): memo day")
+                }
+                checkEqual(m.cells[.day(startDay)], snap, "\(label): the snapped rect is the day's cell")
+            } else if let y = page as? YearPageLayout {
+                checkEqual(startDay.year, y.year, "\(label): same year")
+                check(startDay.isValid, "\(label): an existing date")
+                checkEqual(y.cellFrame(month: startDay.month, day: startDay.day), snap, "\(label): the snapped rect is the date's cell")
+            } else if let w = page as? WeekPageLayout {
+                let col = w.days.firstIndex(of: startDay)
+                check(col != nil, "\(label): the day is in the week")
+                let startMin = TimedEventEngine.minutesOfDay(ev.start, calendar: tokyo)
+                let endMin = DayKey(ev.end, calendar: tokyo) == startDay ? TimedEventEngine.minutesOfDay(ev.end, calendar: tokyo) : 1440
+                checkRect(snap, CGRect(x: w.columnFrame(col ?? 0).minX, y: w.minutesToY(startMin), width: colW, height: w.minutesToY(endMin) - w.minutesToY(startMin)), "\(label): column × snapped minutes")
+            } else if let d = page as? DayPageLayout {
+                checkEqual(startDay, d.day, "\(label): the page's day")
+                let startMin = TimedEventEngine.minutesOfDay(ev.start, calendar: tokyo)
+                let endMin = DayKey(ev.end, calendar: tokyo) == startDay ? TimedEventEngine.minutesOfDay(ev.end, calendar: tokyo) : 1440
+                checkRect(snap, CGRect(x: 72, y: d.minutesToY(startMin), width: 588, height: d.minutesToY(endMin) - d.minutesToY(startMin)), "\(label): timeline column × snapped minutes")
+            }
+        }
+    }
+}
+
+// MARK: - M3b: lasso geometry (M3B_CONTRACT §2 / §6.1; expectations from the web
+// tests/ink-geometry.test.mjs and tests/surface.test.mjs)
+
+section("lasso geometry (M3b)")
+
+/// A point list from flat [x0, y0, x1, y1, …] (the web tests' polygon format).
+func pts(_ v: [CGFloat]) -> [CGPoint] {
+    stride(from: 0, to: v.count - 1, by: 2).map { CGPoint(x: v[$0], y: v[$0 + 1]) }
+}
+
+do {
+    checkEqual(LassoGeometry.minStep, 2, "minStep")
+    checkEqual(LassoGeometry.minExtent, 4, "minExtent")
+    checkEqual(LassoGeometry.simplifyEpsilon, 1, "simplifyEpsilon")
+    checkEqual(LassoGeometry.maxVertices, 512, "maxVertices")
+    checkEqual(LassoGeometry.snapshotPadding, 12, "snapshotPadding")
+    checkEqual(LassoGeometry.snapshotMaxZoom, 4, "snapshotMaxZoom")
+
+    let square = pts([0, 0, 10, 0, 10, 10, 0, 10])
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: 5, y: 5), square), true, "pointInPolygon: inside the square")
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: 15, y: 5), square), false, "pointInPolygon: right of the square")
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: -1, y: -1), square), false, "pointInPolygon: outside top-left")
+    let concave = pts([0, 0, 10, 0, 10, 10, 5, 3, 0, 10]) // a notch from the bottom
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: 5, y: 8), concave), false, "pointInPolygon: in the notch")
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: 5, y: 1), concave), true, "pointInPolygon: inside the concave polygon")
+    var star: [CGPoint] = [] // a self-intersecting five-pointed star
+    for i in 0..<5 {
+        let a = CGFloat(i) * 4 * .pi / 5 - .pi / 2
+        star.append(CGPoint(x: cos(a) * 10, y: sin(a) * 10))
+    }
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: 0, y: 0), star), false, "pointInPolygon: the star's centre is outside under even-odd")
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: 0, y: -8), star), true, "pointInPolygon: a tip of the star is inside")
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: 1, y: 1), pts([0, 0, 5, 5])), false, "pointInPolygon: 2 vertices → false")
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: 1, y: 1), []), false, "pointInPolygon: empty → false")
+    checkEqual(LassoGeometry.pointInPolygon(CGPoint(x: CGFloat.nan, y: 1), square), false, "pointInPolygon: a NaN point → false")
+}
+
+do {
+    let lasso = pts([0, 0, 100, 0, 100, 100, 0, 100])
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([10, 10, 20, 20, 200, 200, 300, 300]), polygon: lasso), true, "strokeInLasso: 2 of 4 inside")
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([10, 10, 200, 20, 200, 200]), polygon: lasso), false, "strokeInLasso: 1 of 3 inside")
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([50, 50]), polygon: lasso), true, "strokeInLasso: one point inside")
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([150, 50]), polygon: lasso), false, "strokeInLasso: one point outside")
+    checkEqual(LassoGeometry.strokeInLasso(points: [], polygon: lasso), false, "strokeInLasso: no points")
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([50, 50]), polygon: pts([0, 0, 1, 1])), false, "strokeInLasso: a degenerate lasso")
+    checkEqual(LassoGeometry.strokeInLasso(points: [CGPoint(x: 50, y: 50), CGPoint(x: CGFloat.nan, y: 0), CGPoint(x: 500, y: 500)], polygon: lasso), true, "strokeInLasso: non-finite points are not counted")
+    checkEqual(LassoGeometry.strokeInLasso(points: [CGPoint(x: CGFloat.nan, y: 0), CGPoint(x: 0, y: CGFloat.infinity)], polygon: lasso), false, "strokeInLasso: only non-finite points → false")
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([50, 50]), polygon: lasso, bounds: CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1)), true, "strokeInLasso: a non-finite bounds is ignored")
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([50, 50]), polygon: lasso, bounds: CGRect(x: 0, y: 0, width: 100, height: 100)), true, "strokeInLasso: with the polygon's bounds")
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([50, 50, 150, 50, 250, 50]), polygon: lasso, bounds: CGRect(x: 0, y: 0, width: 100, height: 100)), false, "strokeInLasso: 1 of 3 with bounds")
+    // Randomized: precomputed bounds and the early exits give the same answer as counting every point.
+    var rng = Rng(seed: 42)
+    for k in 0..<200 {
+        var poly: [CGPoint] = []
+        let n = 3 + rng.int(12)
+        for i in 0..<n {
+            let a = 2 * CGFloat.pi * CGFloat(i) / CGFloat(n)
+            let radius = 20 + CGFloat(rng.double()) * 80
+            poly.append(CGPoint(x: 100 + radius * cos(a), y: 100 + radius * sin(a)))
+        }
+        var points: [CGPoint] = []
+        let m = 1 + rng.int(20)
+        for _ in 0..<m {
+            let x: CGFloat = rng.double() < 0.05 ? CGFloat.nan : CGFloat(rng.double()) * 220 - 10
+            points.append(CGPoint(x: x, y: CGFloat(rng.double()) * 220 - 10))
+        }
+        var valid = 0
+        var inside = 0
+        for p in points where p.x.isFinite && p.y.isFinite {
+            valid += 1
+            if LassoGeometry.pointInPolygon(p, poly) { inside += 1 }
+        }
+        let want = valid > 0 && inside * 2 >= valid
+        checkEqual(LassoGeometry.strokeInLasso(points: points, polygon: poly), want, "random lasso #\(k)")
+        checkEqual(LassoGeometry.strokeInLasso(points: points, polygon: poly, bounds: LassoGeometry.bounds(of: poly)), want, "random lasso #\(k) with bounds")
+    }
+}
+
+do {
+    checkEqual(LassoGeometry.closedPolygon(pts([0, 0, 10, 0, 10, 10])), pts([0, 0, 10, 0, 10, 10, 0, 0]), "closedPolygon closes the path")
+    checkEqual(LassoGeometry.closedPolygon(pts([0, 0, 10, 0, 10, 10, 0, 0])), pts([0, 0, 10, 0, 10, 10, 0, 0]), "closedPolygon: already closed")
+    checkEqual(LassoGeometry.closedPolygon(pts([0, 0, 1, 1])), nil, "closedPolygon: 2 vertices → nil")
+    checkEqual(LassoGeometry.closedPolygon(pts([0, 0, 1, 1, 2, 0])), nil, "closedPolygon: smaller than 4 lu in both directions → a tap")
+    checkEqual(LassoGeometry.closedPolygon(pts([0, 0, 5, 0, 5, 1])), pts([0, 0, 5, 0, 5, 1, 0, 0]), "closedPolygon: 4 lu in one direction is enough")
+    checkEqual(LassoGeometry.closedPolygon([CGPoint(x: CGFloat.nan, y: 0), CGPoint(x: 0, y: 0), CGPoint(x: 10, y: 0), CGPoint(x: 10, y: 10)]), pts([0, 0, 10, 0, 10, 10, 0, 0]), "closedPolygon: non-finite points are dropped")
+    checkEqual(LassoGeometry.closedPolygon([]), nil, "closedPolygon: empty → nil")
+
+    // A hand-drawn circle: one vertex every ~2 lu (as the lasso stores them), closed.
+    let R: CGFloat = 500
+    let n = Int(ceil(2 * CGFloat.pi * R / 2))
+    var circle: [CGPoint] = []
+    for i in 0..<n {
+        let a = 2 * CGFloat.pi * CGFloat(i) / CGFloat(n)
+        circle.append(CGPoint(x: 700 + R * cos(a), y: 900 + R * sin(a)))
+    }
+    let closed = LassoGeometry.closedPolygon(circle)!
+    checkEqual(closed.count, n + 1, "closed circle has n + 1 vertices")
+    let simple = LassoGeometry.simplified(closed, epsilon: 1)
+    check(simple.count < 120, "simplified circle has fewer than 120 vertices (\(simple.count))")
+    check(simple.count >= 8, "simplified circle has at least 8 vertices (\(simple.count))")
+    checkEqual(simple.first, closed.first, "simplified: the first vertex is kept")
+    checkEqual(simple.last, closed.last, "simplified: the last vertex is kept (still closed)")
+    func segmentDistance(_ p: CGPoint, _ a: CGPoint, _ b: CGPoint) -> CGFloat {
+        let vx = b.x - a.x
+        let vy = b.y - a.y
+        let len2 = vx * vx + vy * vy
+        let t = len2 > 0 ? min(max(((p.x - a.x) * vx + (p.y - a.y) * vy) / len2, 0), 1) : 0
+        return hypot(p.x - a.x - t * vx, p.y - a.y - t * vy)
+    }
+    var worst: CGFloat = 0
+    for p in closed {
+        var best = CGFloat.infinity
+        for j in 1..<simple.count { best = min(best, segmentDistance(p, simple[j - 1], simple[j])) }
+        worst = max(worst, best)
+    }
+    check(worst <= 1 + 1e-9, "simplified: every dropped vertex is within 1 lu of the outline (worst \(worst))")
+    let sq = pts([0, 0, 10, 0, 10, 10, 0, 10, 0, 0])
+    checkEqual(LassoGeometry.simplified(sq, epsilon: 1), sq, "simplified: a square (5 vertices) is unchanged")
+    let sliver = pts([0, 0, 50, 0.2, 100, 0, 50, -0.2, 0, 0, 0.1, 0])
+    checkEqual(LassoGeometry.simplified(sliver, epsilon: 1), sliver, "simplified: would collapse below 3 vertices → unchanged")
+    checkEqual(LassoGeometry.simplified([], epsilon: 1), [], "simplified: empty")
+    checkEqual(LassoGeometry.simplified(closed, epsilon: 0), closed, "simplified: ε 0 → unchanged")
+    checkEqual(LassoGeometry.simplified(closed, epsilon: CGFloat.nan), closed, "simplified: ε NaN → unchanged")
+    check(LassoGeometry.simplified(closed, epsilon: 4).count < simple.count, "simplified: a larger ε drops more vertices (\(LassoGeometry.simplified(closed, epsilon: 4).count) < \(simple.count))")
+    checkEqual(LassoGeometry.lassoPolygon(circle), simple, "lassoPolygon = closedPolygon → simplified(ε 1)")
+    checkEqual(LassoGeometry.lassoPolygon(pts([0, 0, 1, 1, 2, 0])), nil, "lassoPolygon: a tap → nil")
+    checkEqual(LassoGeometry.lassoPolygon(pts([0, 0, 10, 0, 10, 10])), pts([0, 0, 10, 0, 10, 10, 0, 0]), "lassoPolygon: a triangle")
+    // A very wiggly lasso (4000 vertices jittering ±1.5 lu) is simplified more coarsely (ε 2, 4, 8) until it has ≤ 512 vertices.
+    var wiggly: [CGPoint] = []
+    for i in 0..<4000 {
+        let a = 2 * CGFloat.pi * CGFloat(i) / 4000
+        let radius: CGFloat = i % 2 == 0 ? 601.5 : 598.5
+        wiggly.append(CGPoint(x: 700 + radius * cos(a), y: 900 + radius * sin(a)))
+    }
+    let wigglyClosed = LassoGeometry.closedPolygon(wiggly)!
+    check(LassoGeometry.simplified(wigglyClosed, epsilon: 1).count > 512, "ε 1 keeps the jitter (\(LassoGeometry.simplified(wigglyClosed, epsilon: 1).count) vertices)")
+    let coarse = LassoGeometry.lassoPolygon(wiggly)!
+    check(coarse.count <= 512, "lassoPolygon: ≤ 512 vertices (\(coarse.count))")
+    checkEqual(coarse.first, coarse.last, "lassoPolygon: still closed")
+    var expectedCoarse = LassoGeometry.simplified(wigglyClosed, epsilon: 1)
+    var eps: CGFloat = 2
+    while expectedCoarse.count > LassoGeometry.maxVertices && eps <= 8 {
+        expectedCoarse = LassoGeometry.simplified(wigglyClosed, epsilon: eps)
+        eps *= 2
+    }
+    check(eps > 2, "lassoPolygon: a coarser ε was needed (stopped at ε \(eps / 2))")
+    checkEqual(coarse, expectedCoarse, "lassoPolygon: the first of ε 2, 4, 8 that fits")
+    checkEqual(LassoGeometry.strokeInLasso(points: pts([700, 900, 710, 910]), polygon: coarse), true, "lassoPolygon: the centre is still inside")
+}
+
+do {
+    checkEqual(LassoGeometry.union([]), nil, "union: nothing → nil")
+    checkEqual(LassoGeometry.union([CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1)]), nil, "union: non-finite rects are ignored")
+    let a = CGRect(x: 0, y: 0, width: 10, height: 10)
+    checkEqual(LassoGeometry.union([a, CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1), CGRect(x: -5, y: 3, width: 9, height: 17)]), CGRect(x: -5, y: 0, width: 15, height: 20), "union")
+    checkEqual(LassoGeometry.union([a]), a, "union of one")
+    checkEqual(LassoGeometry.union([CGRect(x: 10, y: 10, width: -10, height: -10)]), a, "union: a negative size is standardized")
+    checkEqual(LassoGeometry.bounds(of: pts([0, 0, 10, 0, 10, 10, 0, 10])), a, "bounds(of:)")
+    checkEqual(LassoGeometry.bounds(of: [CGPoint(x: 3, y: 4)]), CGRect(x: 3, y: 4, width: 0, height: 0), "bounds of one point")
+    checkEqual(LassoGeometry.bounds(of: []), nil, "bounds of nothing")
+    checkEqual(LassoGeometry.bounds(of: [CGPoint(x: CGFloat.nan, y: 4)]), nil, "bounds of a NaN point")
+
+    let page = CGSize(width: 1400, height: 1920)
+    let box = CGRect(x: 100, y: 100, width: 100, height: 50)
+    checkEqual(LassoGeometry.clampedMoveDelta(bbox: box, dx: 50, dy: -20, pageSize: page), CGVector(dx: 50, dy: -20), "clampedMoveDelta: a move that stays on the paper")
+    checkEqual(LassoGeometry.clampedMoveDelta(bbox: box, dx: -500, dy: 5000, pageSize: page), CGVector(dx: -100, dy: 1770), "clampedMoveDelta: clamped to the edges")
+    let out = CGRect(x: -3, y: 10, width: 53, height: 10) // already sticking out on the left
+    checkEqual(LassoGeometry.clampedMoveDelta(bbox: out, dx: 0, dy: 0, pageSize: page), CGVector(dx: 0, dy: 0), "clampedMoveDelta: never pushes a box in")
+    checkEqual(LassoGeometry.clampedMoveDelta(bbox: out, dx: -10, dy: 0, pageSize: page), CGVector(dx: 0, dy: 0), "clampedMoveDelta: may not go further out")
+    checkEqual(LassoGeometry.clampedMoveDelta(bbox: out, dx: 10, dy: 0, pageSize: page), CGVector(dx: 10, dy: 0), "clampedMoveDelta: may come back in")
+    checkEqual(LassoGeometry.clampedMoveDelta(bbox: CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1), dx: 3, dy: 4, pageSize: page), CGVector(dx: 3, dy: 4), "clampedMoveDelta: a non-finite box is not clamped")
+    checkEqual(LassoGeometry.clampedMoveDelta(bbox: box, dx: CGFloat.nan, dy: 4, pageSize: page), CGVector(dx: 0, dy: 4), "clampedMoveDelta: a NaN delta counts as 0")
+    checkEqual(LassoGeometry.clampedMoveDelta(bbox: box, dx: 5000, dy: 5000, pageSize: CGSize(width: 0, height: 0)), CGVector(dx: 5000, dy: 5000), "clampedMoveDelta: an empty page does not clamp")
+
+    let l = LassoGeometry.snapshotLayout(bbox: CGRect(x: 100, y: 100, width: 376, height: 36))!
+    checkRect(l.rect, CGRect(x: 88, y: 88, width: 400, height: 60), "snapshotLayout: padded by 12 lu")
+    checkClose(l.zoom, 1.2, "snapshotLayout: zoom 1.2")
+    checkEqual(l.size, CGSize(width: 480, height: 72), "snapshotLayout: size 480 × 72")
+    let tiny = LassoGeometry.snapshotLayout(bbox: CGRect(x: 0, y: 0, width: 2, height: 2))!
+    checkEqual(tiny.zoom, 4, "snapshotLayout: never enlarged more than 4×")
+    check(tiny.size.width <= 480 && tiny.size.height <= 240, "snapshotLayout: tiny fits")
+    checkEqual(tiny.size, CGSize(width: 104, height: 104), "snapshotLayout: tiny is 26 × 4")
+    let tall = LassoGeometry.snapshotLayout(bbox: CGRect(x: 0, y: 0, width: 100, height: 2000))!
+    check(tall.size.height <= 240 && tall.size.width >= 1, "snapshotLayout: a tall box fits the height")
+    checkEqual(tall.size.height, 240, "snapshotLayout: a tall box uses the full height")
+    check(LassoGeometry.snapshotLayout(bbox: CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1)) == nil, "snapshotLayout: a non-finite box → nil")
+    let custom = LassoGeometry.snapshotLayout(bbox: CGRect(x: 0, y: 0, width: 100, height: 100), pad: 0, maxSize: CGSize(width: 50, height: 50))!
+    checkEqual(custom.zoom, 0.5, "snapshotLayout: custom maxSize")
+    checkEqual(custom.size, CGSize(width: 50, height: 50), "snapshotLayout: custom size")
+}
+
+// MARK: InkStroke in paper coordinates
+
+section("ink stroke paper geometry (M3b)")
+do {
+    let s = stroke("s1") // (10, 20), (30.1, 40), (50, 90), nib 3.5
+    let origin = CGPoint(x: 200, y: 350)
+    let pp = s.paperPoints(cellOrigin: origin)
+    checkEqual(pp.count, 3, "paperPoints: one per control point")
+    checkEqual(pp[0], CGPoint(x: 210, y: 370), "paperPoints adds the cell origin")
+    checkClose(pp[1].x, 230.1, "paperPoints x (2)")
+    checkClose(pp[1].y, 390, "paperPoints y (2)")
+    checkEqual(pp[2], CGPoint(x: 250, y: 440), "paperPoints (3)")
+    checkRect(s.paperBounds(cellOrigin: origin), CGRect(x: 208.25, y: 368.25, width: 43.5, height: 73.5), "paperBounds: the points grown by half the nib (1.75)")
+    checkRect(s.paperBounds(cellOrigin: .zero), CGRect(x: 8.25, y: 18.25, width: 43.5, height: 73.5), "paperBounds at the origin")
+    let marker = stroke("m", tool: .marker, points: [point(0, 0, size: 18), point(100, 0, size: 18)])
+    checkRect(marker.paperBounds(cellOrigin: origin), CGRect(x: 191, y: 341, width: 118, height: 18), "paperBounds: a marker's 18 lu nib")
+    let mixed = stroke("x", points: [point(0, 0, size: 2), point(10, 10, size: 6)])
+    checkRect(mixed.paperBounds(cellOrigin: .zero), CGRect(x: -3, y: -3, width: 16, height: 16), "paperBounds: the largest nib of the stroke")
+    let dot = stroke("d", points: [point(5, 5, size: 2)])
+    checkRect(dot.paperBounds(cellOrigin: .zero), CGRect(x: 4, y: 4, width: 2, height: 2), "paperBounds: a dot is the nib's square")
+    let empty = stroke("e", points: [])
+    checkEqual(empty.paperBounds(cellOrigin: origin), nil, "paperBounds: no points → nil")
+    checkEqual(empty.paperPoints(cellOrigin: origin), [], "paperPoints: no points → []")
+
+    let moved = s.translated(by: CGVector(dx: 250, dy: 10), from: origin, to: .day(day(2026, 10, 5)), newCellOrigin: CGPoint(x: 400, y: 350), at: 1_760_200_000_000)
+    check(moved.id != s.id, "translated: a new id")
+    checkEqual(InkStroke.isValidId(moved.id), true, "translated: a valid id")
+    checkEqual(moved.cell, .day(day(2026, 10, 5)), "translated: the new cell")
+    checkEqual(moved.t, 1_760_200_000_000, "translated: t = at")
+    checkEqual(moved.dev, "ipad-1", "translated: dev is kept")
+    checkEqual(moved.tool, s.tool, "translated: tool is kept")
+    checkEqual(moved.color, s.color, "translated: color is kept")
+    checkEqual(moved.points.map(\.x), [60, 80.1, 100], "translated: x relative to the new cell (250 − 200 = +50)")
+    checkEqual(moved.points.map(\.y), [30, 50, 100], "translated: y (+10)")
+    checkEqual(moved.points.map(\.dtMs), s.points.map(\.dtMs), "translated: dt is kept")
+    checkEqual(moved.points.map(\.sizeW), s.points.map(\.sizeW), "translated: nib is kept")
+    checkEqual(moved.points.map(\.force), s.points.map(\.force), "translated: force is kept")
+    let before = s.paperPoints(cellOrigin: origin)
+    let after = moved.paperPoints(cellOrigin: CGPoint(x: 400, y: 350))
+    for (b, a) in zip(before, after) {
+        checkClose(a.x - b.x, 250, "translated: paper x moved by dx", tolerance: 0.051)
+        checkClose(a.y - b.y, 10, "translated: paper y moved by dy", tolerance: 0.051)
+    }
+    checkEqual(s.points.map(\.x), [10, 30.1, 50], "translated: the original is untouched")
+    let named = s.translated(by: .zero, from: origin, to: s.cell, newCellOrigin: origin, id: "clone-1", at: 5)
+    checkEqual(named.id, "clone-1", "translated: an explicit id")
+    checkEqual(named.points, s.points, "translated: zero delta, same cell → the same points")
+    checkEqual(named.t, 5, "translated: t = at (explicit id)")
+    let fine = s.translated(by: CGVector(dx: 0.04, dy: 0.06), from: origin, to: s.cell, newCellOrigin: origin, at: 5)
+    checkEqual(fine.points.map(\.x), [10, 30.1, 50], "translated: 0.04 rounds away (0.1 lu grid)")
+    checkEqual(fine.points.map(\.y), [20.1, 40.1, 90.1], "translated: 0.06 rounds up")
+}
+
 // MARK: - Summary
 
 print("")

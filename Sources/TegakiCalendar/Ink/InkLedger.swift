@@ -85,6 +85,38 @@ enum StrokeGeometry {
         return r == 0 ? 0 : r
     }
 
+    /// A stored stroke as a `PKStroke`: the cell-relative control points unchanged, placed with a
+    /// translation `transform` to `cellOrigin` (the cell's top-left corner). Shared by the canvas
+    /// drawing (`InkLedger.drawing()`) and the snapshot pictures (`InkSnapshot`, M3B_CONTRACT §3.5).
+    ///
+    /// Two stored strokes with the same creation date, count, ink and first point would share a
+    /// fingerprint (possible for web-imported strokes). The creation date is nudged by a microsecond
+    /// until the fingerprint is not in `map`; the stored `inkStart` is left untouched.
+    static func makePKStroke(_ stroke: InkStroke, cellOrigin: CGPoint, avoiding map: [StrokeFingerprint: String]) -> PKStroke {
+        let style = InkStyle(tool: stroke.tool, colorHex: stroke.color, width: 0)
+        let ink = style.pkInk
+        let points = stroke.points.map { p in
+            PKStrokePoint(
+                location: CGPoint(x: p.x, y: p.y),
+                timeOffset: TimeInterval(p.dtMs) / 1000,
+                size: CGSize(width: p.sizeW, height: p.sizeH),
+                opacity: p.opacity,
+                force: p.force,
+                azimuth: p.azimuth,
+                altitude: p.altitude
+            )
+        }
+        let transform = CGAffineTransform(translationX: cellOrigin.x, y: cellOrigin.y)
+        var creationDate = stroke.inkStart
+        var pk = PKStroke(ink: ink, path: PKStrokePath(controlPoints: points, creationDate: creationDate), transform: transform, mask: nil)
+        var attempts = 0
+        while map[fingerprint(of: pk)] != nil, attempts < 64 {
+            creationDate = creationDate.addingTimeInterval(0.000_001)
+            pk = PKStroke(ink: ink, path: PKStrokePath(controlPoints: points, creationDate: creationDate), transform: transform, mask: nil)
+            attempts += 1
+        }
+        return pk
+    }
 }
 
 // MARK: - History ops
@@ -348,35 +380,99 @@ final class InkLedger {
         }
     }
 
+    // MARK: Selection (M3B_CONTRACT §3.2)
+
+    /// The live strokes among `ids` (no tombstone), in the order of `ids`. Unknown, tombstoned and
+    /// repeated ids are skipped.
+    func strokes(ids: [String]) -> [InkStroke] {
+        var seen = Set<String>()
+        var out: [InkStroke] = []
+        out.reserveCapacity(ids.count)
+        for id in ids where seen.insert(id).inserted {
+            if let s = page.strokes[id], page.deleted[id] == nil { out.append(s) }
+        }
+        return out
+    }
+
+    /// Paper-space bounds of a live stroke (`InkStroke.paperBounds`: its control points grown by half
+    /// the nib); nil when the stroke is not live or its cell is not in the layout (it is not drawn).
+    func paperBounds(of id: String) -> CGRect? {
+        guard let s = page.strokes[id], page.deleted[id] == nil, let cell = layout.cells[s.cell] else { return nil }
+        return s.paperBounds(cellOrigin: cell.origin)
+    }
+
+    /// The union of `paperBounds(of:)` over `ids`; nil when none of them has bounds.
+    func paperBounds(ids: [String]) -> CGRect? {
+        LassoGeometry.union(ids.compactMap { paperBounds(of: $0) })
+    }
+
+    /// The id of a stroke the canvas holds, by its fingerprint; nil for a stroke the ledger did not
+    /// build (one being drawn right now).
+    func id(of canvasStroke: PKStroke) -> String? {
+        fingerprintToId[StrokeGeometry.fingerprint(of: canvasStroke)]
+    }
+
+    /// Removes `ids` as **one** undoable op (`.remove`; undo re-adds clones with fresh ids, as after
+    /// the eraser). Ids that are not live are ignored; an empty `InkChange` when nothing was removed.
+    /// The caller puts `drawing()` on the canvas afterwards.
+    func removeStrokes(ids: [String]) -> InkChange {
+        let present = strokes(ids: ids)
+        guard !present.isEmpty else { return InkChange(added: [], removedIds: []) }
+        let removedIds = present.map { $0.id }
+        page.remove(ids: removedIds, at: Self.nowMs())
+        forget(ids: removedIds)
+        push(undo: .add(present))
+        redoStack.removeAll()
+        return InkChange(added: [], removedIds: removedIds)
+    }
+
+    /// Moves the selection: the originals get tombstones and clones translated by `delta` (paper lu)
+    /// are added with **new ids** (`t` = now), as **one** batch op. A clone's cell is decided again
+    /// from the centre of its moved bounds with `layout.inkCell(forCenter:)` (DESIGN §3.7), so a
+    /// stroke dragged onto another day belongs to that day. `newIds` follows the order of `ids`
+    /// (originals that were not live are dropped). Nothing happens for a zero or non-finite delta or
+    /// when no original is live. The caller puts `drawing()` on the canvas afterwards.
+    func moveStrokes(ids: [String], by delta: CGVector) -> (change: InkChange, newIds: [String]) {
+        let nothing = (change: InkChange(added: [], removedIds: []), newIds: [String]())
+        guard delta.dx.isFinite, delta.dy.isFinite, delta.dx != 0 || delta.dy != 0 else { return nothing }
+        let originals = strokes(ids: ids)
+        guard !originals.isEmpty else { return nothing }
+        let now = Self.nowMs()
+        var clones: [InkStroke] = []
+        clones.reserveCapacity(originals.count)
+        for s in originals {
+            // A stroke whose cell the layout lacks is not drawn (and so cannot be selected); should
+            // it ever get here, it is placed from the paper's origin like `makeInkStroke` does.
+            let origin = layout.cells[s.cell]?.origin ?? .zero
+            let bounds = s.paperBounds(cellOrigin: origin) ?? CGRect(origin: origin, size: .zero)
+            let moved = bounds.offsetBy(dx: delta.dx, dy: delta.dy)
+            let newCell = layout.inkCell(forCenter: CGPoint(x: moved.midX, y: moved.midY))
+            let newOrigin = layout.cells[newCell]?.origin ?? .zero
+            clones.append(s.translated(by: delta, from: origin, to: newCell, newCellOrigin: newOrigin, at: now))
+        }
+        let removedIds = originals.map { $0.id }
+        page.remove(ids: removedIds, at: now)
+        for c in clones { page.add(c) }
+        forget(ids: removedIds)
+        // Undo = put the originals back (as clones with fresh ids: their ids are tombstoned now) and
+        // take the moved copies away. One batch, one tap of ↶ (DESIGN §3.13).
+        push(undo: .batch([.add(originals), .remove(clones)]))
+        redoStack.removeAll()
+        return (change: InkChange(added: clones, removedIds: removedIds), newIds: clones.map { $0.id })
+    }
+
+    /// Drops `ids` from the fingerprint map (the caller rebuilds the canvas drawing anyway, which
+    /// rebuilds the map; this only keeps the map honest in between).
+    private func forget(ids: [String]) {
+        let gone = Set(ids)
+        builtIds.removeAll { gone.contains($0) }
+        fingerprintToId = fingerprintToId.filter { !gone.contains($0.value) }
+    }
+
     // MARK: Conversions
 
     private static func makePKStroke(_ stroke: InkStroke, cellOrigin: CGPoint, avoiding map: [StrokeFingerprint: String]) -> PKStroke {
-        let style = InkStyle(tool: stroke.tool, colorHex: stroke.color, width: 0)
-        let ink = style.pkInk
-        let points = stroke.points.map { p in
-            PKStrokePoint(
-                location: CGPoint(x: p.x, y: p.y),
-                timeOffset: TimeInterval(p.dtMs) / 1000,
-                size: CGSize(width: p.sizeW, height: p.sizeH),
-                opacity: p.opacity,
-                force: p.force,
-                azimuth: p.azimuth,
-                altitude: p.altitude
-            )
-        }
-        let transform = CGAffineTransform(translationX: cellOrigin.x, y: cellOrigin.y)
-        // Two stored strokes with the same creation date, count, ink and first point would share a
-        // fingerprint (possible for web-imported strokes). Nudge the creation date by a microsecond
-        // until the fingerprint is free; the stored `inkStart` is left untouched.
-        var creationDate = stroke.inkStart
-        var pk = PKStroke(ink: ink, path: PKStrokePath(controlPoints: points, creationDate: creationDate), transform: transform, mask: nil)
-        var attempts = 0
-        while map[StrokeGeometry.fingerprint(of: pk)] != nil, attempts < 64 {
-            creationDate = creationDate.addingTimeInterval(0.000_001)
-            pk = PKStroke(ink: ink, path: PKStrokePath(controlPoints: points, creationDate: creationDate), transform: transform, mask: nil)
-            attempts += 1
-        }
-        return pk
+        StrokeGeometry.makePKStroke(stroke, cellOrigin: cellOrigin, avoiding: map)
     }
 
     private func makeInkStroke(from pk: PKStroke, now: Int) -> InkStroke {

@@ -138,6 +138,43 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
         if band == .grid { return grid.minY }
         return nil
     }
+
+    // MARK: Rect → event, event → rect (M3B_CONTRACT §1.5)
+
+    /// The nearest day column for any x: the time gutter (x < 64) and the left outside → 0, the right
+    /// outside → 6 (web nearestWeekColumn). `clamp(floor((x − 64) / colW + 1e-9), 0, 6)`.
+    public func nearestColumn(atX x: CGFloat) -> Int {
+        let raw = floor((x - PaperSpec.weekGutter) / PaperSpec.weekColumnWidth + 1e-9)
+        return Int(LayoutMath.clamp(raw, 0, CGFloat(PaperSpec.weekColumns - 1)))
+    }
+
+    /// A timed event in the column under the rect's centre (the nearest column from the gutter or
+    /// outside the paper), with the minutes of `EventGeometry.timelineSlot` (y relative to the grid's
+    /// top: a drag started in the band clamps to 0:00).
+    public func eventRange(for rect: CGRect, now: Date, calendar: Calendar) -> EventRange? {
+        guard let r = EventGeometry.normalized(rect) else { return nil }
+        let col = column(atX: r.midX) ?? nearestColumn(atX: r.midX)
+        guard col < days.count else { return nil }
+        let slot = EventGeometry.timelineSlot(minY: r.minY - grid.minY, maxY: r.maxY - grid.minY, hourHeight: PaperSpec.weekHourHeight)
+        return .timed(days[col], startMinute: slot.startMinute, endMinute: slot.endMinute, calendar: calendar)
+    }
+
+    /// All-day: the band cell of the range's first day. Timed: its column × the minutes of its start
+    /// and end (clipped to the day). nil when the start day is not in this week, or the clipped
+    /// range is empty.
+    public func snapRect(for range: EventRange, calendar: Calendar) -> CGRect? {
+        let day = DayKey(range.start, calendar: calendar)
+        guard let col = days.firstIndex(of: day) else { return nil }
+        if range.allDay { return cells[.allDay(day)] }
+        let dayStart = day.startOfDay(in: calendar)
+        let dayEnd = day.adding(days: 1).startOfDay(in: calendar)
+        let startMinute = range.start < dayStart ? 0 : TimedEventEngine.minutesOfDay(range.start, calendar: calendar)
+        let endMinute = range.end >= dayEnd ? EventGeometry.dayMinutes : TimedEventEngine.minutesOfDay(range.end, calendar: calendar)
+        guard endMinute > startMinute else { return nil }
+        let frame = columnFrame(col)
+        let top = minutesToY(startMinute)
+        return CGRect(x: frame.minX, y: top, width: frame.width, height: minutesToY(endMinute) - top)
+    }
 }
 
 /// Pure layout of the week page (DESIGN §2.2 / §2.4, M3A_CONTRACT §1.6).
