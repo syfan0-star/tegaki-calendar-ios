@@ -290,7 +290,7 @@ func testOverviewGoesBelowFitWidthAndSurvivesLayoutPassesAndUpdates() async {
     XCTAssertEqual(canvas.contentOffset.x, -canvas.contentInset.left, accuracy: 0.01, "左上")
     XCTAssertLessThan(canvas.minimumZoomScale, canvas.maximumZoomScale)
     XCTAssertTrue(canvas.isScrollEnabled); XCTAssertEqual(canvas.drawingPolicy, .pencilOnly)
-    if canvas.pinchGestureRecognizer == nil { NSLog("zoom: pinchGestureRecognizer is nil (候補 5, M4C-23)") }   // 記録だけ。hard assert にしない
+    if canvas.pinchGestureRecognizer == nil { NSLog("zoom: pinchGestureRecognizer is nil (候補 5, M4C-23)") }   // §2.5 F4: hard assert（XCTAssertNotNil）に変更
     canvas.setZoomScale(fitWidth, animated: false)                                  // 0.5.1 の下限へ
     canvas.setZoomScale(fitAll, animated: false)                                    // 縮小ピンチの終点
     XCTAssertEqual(canvas.zoomScale, fitAll, accuracy: 1e-6, "幅ぴったりより下に行ける")
@@ -336,6 +336,15 @@ func testOverviewGoesBelowFitWidthAndSurvivesLayoutPassesAndUpdates() async {
 - NSLog（`print` ではなく。`log show --predicate process == "TegakiCalendar"`（build.yml 257-259 / 358）に残る）: 初回レイアウトの末尾に `#if DEBUG` で 1 行 `NSLog("zoom: kind=%@ pinch=%d enabled=%d min=%.4f max=%.4f zoom=%.4f fitAll=%.4f ratio=%.3f view=%.0fx%.0f overview=%.0fx%.0f", …)`。候補 5 の判定と §1.2 の実数の出所。加えて `scrollViewWillBeginZooming` に `zoom: begin`、`scrollViewDidEndZooming` に `zoom: end scale=…`（DEBUG。TestFlight の次の版で本人の実機のログを見るときの到達確認。M4C-21）。
 - 写真（§6。倍率は §1.2 の推定。**実数は `app-log.txt` の `zoom:` 行から C が M4C.md に写す**）: `ipad13-portrait-month-zoom2.png`（`--screenshot-zoom 2 --screenshot-offset 400,200`。倍率 1.4628、x 585 / y 293 pt → lu 400…1100 × 200…1007。月の列幅 200・月曜 = col 0 なので **水・木・金・土（土は半分）**、行は 10/5 週の下半分・10/12・10/19・10/26・11/2 週の上。見出しは 水〜土）、`ipad13-portrait-week-zoom2.png`（`2`、`300,700`。倍率 ≈ 1.20（帯 25 込みの fitAll 0.6016 × 2）> 0.818 なので帯のレーンが ≈ 26.5 pt に伸びる = §1.6 の経路。x 300…1151 lu → **火（途中）〜土（途中）**、8:45〜）、`ipad13-portrait-year-zoom2.png`（`2`、`1000,300`。見本の年 1896 lu で倍率 ≈ 1.245、内容 ≈ 1743 pt 幅なので x は ≈ 719 pt = 578 lu に clamp され **5 月（504…616）の右端〜12 月**。clamp を見る写真）、`iphone-portrait-week-zoom3.png`（`3`、`300,700`。倍率 0.8613（iPhone の週は帯込みでも幅拘束 0.2871）≥ readable で字は 10 pt 以上、x 258 / y 603 pt → 火〜木の 8:45 から。帯のレーン 18.9 pt）。
 - 確認項目: 固定見出し（PaperRow）と帯の列線が紙の列線と 1 pt 以内で揃う、文字が readable 以上で `minPoints`、窓の端に机の色が出ない、一覧の写真（既存の 16 枚）で紙全体が入り机の色の余白で中央に寄っている、罫線は 1 pt（M4C-2）。
+
+### 2.5 本人の答え（2026-10-16）「拡大も全く効かない」→ 追加の直し F4（担当 P。最初の版に入れ、1 コミットに隔離する）
+
+- 本人の確認: 0.5.1 の iPad・ペンツール・月ページで 2 本指を **開いても** 紙は大きくならない。原因 1（下限）と原因 2（道具の層）だけでは説明がつかないので、候補 5 を **本命に昇格** する。
+- 仕組み: `PKCanvasView` は `UIScrollView` で、その `delegate` は `PKCanvasViewDelegate: UIScrollViewDelegate`。アプリは Coordinator を `canvas.delegate` に設定している（`canvasViewDrawingDidChange` と `scrollViewDidZoom` / `scrollViewDidScroll` のため）。`UIScrollView` はズーム対象を delegate の `viewForZooming(in:)` から得るので、これを実装していない delegate を設定した時点で `pinchGestureRecognizer` は作られず、ピンチも `setZoomScale` も無効になる（delegate を設定しなければ PKCanvasView 自身が内部で描画ビューを返す。外部 delegate を設定すると問い合わせ先が替わる）。これは 0.5.1 の「拡大も縮小も全く効かない」と一致する。
+- **F4**: Coordinator に `func viewForZooming(in scrollView: UIScrollView) -> UIView?` を実装し、PKCanvasView の描画サブビューを返す。選び方: `canvas.subviews` のうち `NSStringFromClass(type(of: $0))` が `"PK"` で始まる最初のビュー、無ければ `UIImageView`（スクロールインジケータ）を除いた `canvas.subviews.first`。選んだビューは `zoomingView` として保持し一度決めたら変えない（nil のときは記録して nil を返す）。ズーム中の `contentSize` は `UIScrollView` が zoomingView の frame から更新するので、`scrollViewDidZoom` の `contentSize = size × zoom` の代入は UIScrollView の値と一致することを §2.3 のテストで確かめ、一致しなければ代入をやめる。`PKCanvasView.drawing` の座標は zoom に依らず紙の座標のままで、`paperView` / overlay / sticky header の同期（`syncPaperFrame`、`notifyViewport`）は従来の `zoomScale` / `contentOffset` を読むだけなので変更しない。
+- 検査: §2.3 の回帰テストで `XCTAssertNotNil(canvas.pinchGestureRecognizer)` と、`canvas.setZoomScale(2 × fitAll, animated: false)` のあと `canvas.zoomScale` が変わること・`contentSize` が紙 × 倍率になることを **hard assert** にする（M4C-23 の「別里程」は撤回）。`viewForZooming` が nil のままならシミュレータでも `setZoomScale` は何もしないので、このテストが F4 の有無を判定する。加えて、拡大後に `canvas.drawing` の線の `renderBounds` が紙座標のまま（zoom に依らない）ことを 1 本検査する。
+- CI: §2.4 の `pinch=%d` が 1 であること、zoom 写真 4 枚で紙が実際に拡大していて見本の線と予定の箱が同じマスにあること（手書きと紙がずれない）を C が確認し、M4C.md に書く。
+- 退路: 実機で描画がずれる等の副作用が出たら F4 のコミットだけを戻せば 0.5.1 の状態に戻る（ピンチは効かないまま）。
 
 ## 3. 文字の縮小（担当 P）
 
@@ -554,9 +563,9 @@ struct Config: Equatable, Sendable {
 | M4C-18 | 一覧の初期横位置 | **左上**（比率 1 なら紙全体が入るので今日の列は必ず見える。`initialScrollX` は比率 > 1 のときだけ） |
 | M4C-19 | 最初の 1 フレームの見出しの倍率が高さ無しの見積り（幅だけ）になりうる | **受け入れる**（次のターンの通知で揃う。M4b と同じ扱い） |
 | M4C-20 | ピンチ中に窓の外が容器の色で見える | **受け入れる**（机の色 M4C-25。終了時に 1 回描き直す。M4B-25 と同じ性質） |
-| M4C-21 | **本人に 1 分の確認**: 0.5.1（手元の TestFlight）で、ペンツール・iPad（指でも書くオフ）・月ページで 2 本指を **開いた**（拡大）とき紙は大きくなったか | 答えを前文に書く。**大きくなった** → 原因 1（＋ iPhone の原因 2）で確定、F3 は性能の改善として残す。**大きくならなかった** → F3（候補 3）が本命で、§2.4 の `zoom: begin` / `end` のログを TestFlight の次の版で本人の実機から取り（設定の「ログを書き出す」は無いので Xcode のコンソール: C が手順を M4C.md に）、それでも効かなければ候補 5（M4C-23）。答えが来るまで F1 と F3 の両方を P の最初の版に入れる |
+| M4C-21 | 本人の確認（2026-10-16 回答済み）: 0.5.1 で 2 本指を開いても紙は **大きくならない** | **答え: 拡大も全く効かない → 候補 5 を本命に昇格し F4（§2.5）を最初の版に入れる。F1・F3 も入れる** |
 | M4C-22 | 「指でも書く」オンの指のダブルタップが描く 2 点 | **消す**（`handleDoubleTap` で直前 0.5 秒の点を 1 op で `removeStrokes`。undo 可。§4.1）。実機で点が描かれなければこの処理は何もしない。「点が 2 つ残る」を既知の制限にする案は、ダブルタップが「飛ぶ」操作として常用されるので採らない |
-| M4C-23 | `pinchGestureRecognizer` が nil（PKCanvasView が zoom を提供していない）と判明したときの代替 | **別里程**。M4c はログ（§2.4 `pinch=%d`）と §2.3 の記録で確定するだけ。代替案: (a) `InkCanvasContainerView` を `UIScrollView` にして PKCanvasView を固定倍率のまま zoom view として入れる（M2 の設計案の逆）、(b) `PKCanvasView` の transform で倍率を自前管理。どちらも `PaperView` の窓・見出しの `PaperViewport` は変えない |
+| M4C-23 | `pinchGestureRecognizer` が nil（PKCanvasView が zoom を提供していない）と判明したときの代替 | **撤回: M4c で直す（F4、§2.5）。pinchGestureRecognizer が nil なら回帰テストが落ちる**。M4c はログ（§2.4 `pinch=%d`）と §2.3 の記録で確定するだけ。代替案: (a) `InkCanvasContainerView` を `UIScrollView` にして PKCanvasView を固定倍率のまま zoom view として入れる（M2 の設計案の逆）、(b) `PKCanvasView` の transform で倍率を自前管理。どちらも `PaperView` の窓・見出しの `PaperViewport` は変えない |
 | M4C-24 | **回転・幅の変化（D4 の精密化。リードの「比率を保つ」からの変更提案）**: 一覧なら一覧のまま、拡大中は絶対倍率を保って clamp、保存比率はピンチの終わりだけ | **この案**（根拠は D4 の本文: fitAll が縦横で 2.5 倍変わる、clamp で比率が書き換わると往復で戻らない）。リードが「比率を保つ」に戻すなら §1.3 の 4 を `newZoom = bounds.clamped(ratio × bounds.min)` に戻し、`targetZoom` は比率で持つ |
 | M4C-25 | 容器の背景（紙色のままだと中央寄せの余白が紙と見分けられない: 13 インチ縦の日は左右 271 pt の「紙に見える余白」）と、余白に書いた線 | **背景は机の色 #ecebe6、余白の線は捨てる**（§1.3。`inkCell(forCenter:)` が紙の外を端のマスに負の相対座標で保存し、別の倍率・Web 版で紙の外に出るため）。代案: (a) `PaperView` の縁に 1 pt の線＋薄い影（背景は紙色のまま）、(b) 余白の線を許して DESIGN §3.4 に明記 |
 | M4C-26 | iPhone 縦の一覧の文字（月チップ 5.7、週の箱 6.1、年チップ 3.7 pt）。iPhone は既定で週ページから始まる（DESIGN §2.11）ので初回起動が読めないサムネイルになる | **既定比率 1（一覧）のまま**（本人の言葉「基本的に全画面にして一覧」と D4 の既定 1 を優先。CI の写真 `iphone-portrait-*.png` で本人が判断）。代案: iPhone だけ `AppSettings.zoomRatio` の既定を readable / fitAll（月 1.74・週 1.64・日 2.43、年 1）にする（U の 1 行。ピンチで一覧まで縮めれば 1 が保存される） |
