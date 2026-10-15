@@ -1,10 +1,13 @@
+import InkModel
 import Layout
 import XCTest
 @testable import TegakiCalendar
 
-/// Screenshot mode (M3a contract §8.3, M3b §6.3, M4 §8.3): the launch arguments, the fixed 「今日」,
-/// the demo page of every page kind, the M3b sheets (`--screenshot-sheet`) with their demo calendars,
-/// and the M4 sheets (`sync`, `import`) with the demo sync values.
+/// Screenshot mode (M3a contract §8.3, M3b §6.3, M4 §8.3, M4B §7.3): the launch arguments, the fixed
+/// 「今日」, the demo page of every page kind, the M3b sheets (`--screenshot-sheet`) with their demo
+/// calendars, the M4 sheets (`sync`, `import`) with the demo sync values, and M4b's
+/// `--screenshot-landscape`, the Sunday week of `--screenshot-month 2026-06` and the demo strokes
+/// that already sit on the grid.
 final class ScreenshotModeTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
 
@@ -56,16 +59,88 @@ final class ScreenshotModeTests: XCTestCase {
 
     func testDemoStrokesSitInTheirPagesCells() {
         let focus = DayKey(year: 2026, month: 10, day: 7)
+        // M4b: the week / day paper has no band any more; every stroke is on the grid.
         let week = ScreenshotMode.demoPage(kind: .week, focus: focus)
-        XCTAssertEqual(Set(week.liveStrokes.map { $0.cell.raw }), ["allday:2026-10-07", "grid"])
+        XCTAssertEqual(Set(week.liveStrokes.map { $0.cell.raw }), ["grid"])
         let day = ScreenshotMode.demoPage(kind: .day, focus: focus)
-        XCTAssertEqual(Set(day.liveStrokes.map { $0.cell.raw }), ["allday", "grid"])
-        // The day page's memo strokes lie in the memo column (x ≥ 660).
+        XCTAssertEqual(Set(day.liveStrokes.map { $0.cell.raw }), ["grid"])
+        // The day page's strokes lie in the memo column (x ≥ 660).
         for stroke in day.liveStrokes where stroke.cell.isGrid {
             XCTAssertTrue(stroke.points.allSatisfy { $0.x >= PaperSpec.dayTimelineRight })
         }
         let year = ScreenshotMode.demoPage(kind: .year, focus: focus)
         XCTAssertEqual(Set(year.liveStrokes.map { $0.cell.raw }), ["10-07", "02-30"])
+    }
+
+    // MARK: M4b (M4B contract §2.7, §6.4, §7.3)
+
+    /// The demo strokes already sit where `BandMigration` would put the M3a–M4 band strokes: the
+    /// week wave at the top of the Wednesday column, the day circle at the top of the memo column.
+    func testDemoPagesNeedNoMigration() {
+        let focus = DayKey(year: 2026, month: 10, day: 7)
+        for kind in PageKind.allCases {
+            let page = ScreenshotMode.demoPage(kind: kind, focus: focus)
+            XCTAssertFalse(BandMigration.needsMigration(page), "\(kind)")
+            XCTAssertEqual(BandMigration.migrate(page), page, "\(kind)")
+        }
+        let week = ScreenshotMode.demoPage(kind: .week, focus: focus)
+        let wave = week.strokes["demo-stroke-week-wave"]
+        XCTAssertEqual(wave?.cell, .grid)
+        // x from 12 + 64 + 2 × 190.857… = 457.71…, y 40 ± 5 (just under 0:00 of the Wednesday).
+        XCTAssertEqual(wave?.points.first?.x ?? 0, 12 + PaperSpec.weekGutter + 2 * PaperSpec.weekColumnWidth, accuracy: 0.11)
+        XCTAssertEqual(wave?.points.first?.y ?? 0, 40, accuracy: 0.11)
+        XCTAssertTrue(wave?.points.allSatisfy { abs($0.y - 40) <= 5.1 } ?? false)
+        let day = ScreenshotMode.demoPage(kind: .day, focus: focus)
+        let circle = day.strokes["demo-stroke-day-circle"]
+        XCTAssertEqual(circle?.cell, .grid)
+        XCTAssertEqual(circle?.points.first?.x ?? 0, 814, accuracy: 0.11)   // (800, 30), radius 14
+        XCTAssertEqual(circle?.points.first?.y ?? 0, 30, accuracy: 0.11)
+    }
+
+    func testParseLandscape() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week"]
+        let portrait = ScreenshotMode.parse(base)
+        let landscape = ScreenshotMode.parse(base + ["--screenshot-landscape"])
+        XCTAssertEqual(portrait?.landscape, false)
+        XCTAssertEqual(landscape?.landscape, true)
+        // Everything else is unchanged by the flag.
+        XCTAssertEqual(landscape?.page, portrait?.page)
+        XCTAssertEqual(landscape?.month, portrait?.month)
+        XCTAssertEqual(landscape?.today, portrait?.today)
+        XCTAssertEqual(landscape?.focus, portrait?.focus)
+        XCTAssertEqual(landscape?.sheet, portrait?.sheet)
+        XCTAssertEqual(landscape?.page, .week)
+        XCTAssertEqual(landscape?.month, october)
+        // The flag alone, and with a sheet.
+        XCTAssertEqual(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-landscape"])?.landscape, true)
+        XCTAssertEqual(ScreenshotMode.parse(["--screenshot-mode"])?.landscape, false)
+        let sheet = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "edit", "--screenshot-landscape"])
+        XCTAssertEqual(sheet?.landscape, true)
+        XCTAssertEqual(sheet?.sheet, .edit)
+        XCTAssertEqual(sheet?.page, .month)
+        // Without `--screenshot-mode` the flag means nothing.
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-landscape"]))
+    }
+
+    /// `--screenshot-month 2026-06` (the CI's `iphone-portrait-week-sun.png`, M4B contract §6.3):
+    /// the focus is the 7th, a Sunday, so today's column is the last one of the week.
+    func testJuneFocusIsASunday() throws {
+        let config = try XCTUnwrap(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-06", "--screenshot-page", "week"]))
+        XCTAssertEqual(config.focus, DayKey(year: 2026, month: 6, day: 7))
+        XCTAssertEqual(config.focus.weekday, 0, "Sunday")
+        XCTAssertEqual(DayKey(config.today), DayKey(year: 2026, month: 6, day: 7))
+        XCTAssertEqual(DayKey(config.today).weekday, 0)
+        let expected = DayKey(year: 2026, month: 6, day: 7).startOfDay().addingTimeInterval(10 * 3600)
+        XCTAssertEqual(config.today, expected)
+        XCTAssertEqual(config.page, .week)
+        XCTAssertEqual(PageNavigation.pageId(config.page, focus: config.focus), "w-2026-06-01")
+        // The week's demo band (the month's all-day events overlapping 6/1〜6/7): 運動会 on the 3rd,
+        // キャンプ on the 4th–5th and 締切 on the 7th, one lane; 家族旅行 starts on the 9th.
+        let events = ScreenshotMode.demoEvents(for: YearMonth(year: 2026, month: 6))
+        let band = AllDayBandEngine.week(monday: DayKey(year: 2026, month: 6, day: 1), events: events, now: config.today)
+        XCTAssertEqual(band.todayColumn, 6)
+        XCTAssertEqual(band.bars.map { $0.title }, ["運動会", "キャンプ", "締切"])
+        XCTAssertEqual(band.laneCount, 1)
     }
 
     func testDemoEventsIncludeTheSeventh() {

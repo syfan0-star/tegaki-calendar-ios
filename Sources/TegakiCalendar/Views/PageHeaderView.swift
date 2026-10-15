@@ -1,19 +1,24 @@
 import Layout
 import SwiftUI
 
-/// The header above the paper (M3b contract §4.6, M4 contract §6.1, DESIGN §2.7):
+/// The header above the paper (M3b contract §4.6, M4 contract §6.1, M4B contract §5, DESIGN §2.7):
 ///
 /// ```
 /// width ≥ 600 pt:  ◀  今日  ▶   題名              [日 | 週 | 月 | 年]   ＋予定   ☁ 保存済み   ⚙
-/// width < 600 pt:  ◀  今日  ▶   題名                                    ＋予定   ☁   ⚙
+/// width < 600 pt:  ◀ 今日 ▶  10/5〜10/11  ＋ ☁ ⚙
 ///                  [      日      |      週      |      月      |      年      ]
 /// ```
 ///
-/// The title comes from `PageNavigation.title`; the owner measures the width and passes `compact`.
-/// The ☁ shows the sync state (`SyncStatus.header`): the text and the symbol at 600 pt and wider,
-/// the symbol alone below (iPhone, M4 contract §6.8); a tap opens the settings screen. It is redrawn
-/// only when `sync` changes (the engine publishes a new snapshot only when the status changed).
-/// (M3a's calendar menu moved to the settings screen.)
+/// The title comes from `PageNavigation.title` (`compactTitle` on the compact rows, M4b: the owner
+/// passes the short form); the owner measures the width and passes `compact`. On the compact first
+/// row the fixed parts (◀ 今日 ▶ ＋ ☁ ⚙ with their 44 pt tap targets and `.bordered` padding) take
+/// about 299 pt, so the spacing is 4, the spacers have no minimum and the title is `.headline`
+/// (17 pt): about 79 pt remain for it on a 402 pt iPhone, 67 pt on a 390 pt one, enough for every
+/// short title at `minimumScaleFactor(0.6)` (M4B-15). The ☁ shows the sync state
+/// (`SyncStatus.header`): the text and the symbol at 600 pt and wider, the symbol alone below
+/// (iPhone, M4 contract §6.8); a tap opens the settings screen. It is redrawn only when `sync`
+/// changes (the engine publishes a new snapshot only when the status changed). (M3a's calendar menu
+/// moved to the settings screen.)
 struct PageHeaderView: View {
     var kind: PageKind
     var title: String
@@ -50,11 +55,13 @@ struct PageHeaderView: View {
     var body: some View {
         if compact {
             VStack(spacing: 4) {
-                HStack(spacing: 6) {
+                // M4B contract §5: spacing 4, no spacer minimum, a 17 pt title (the buttons keep
+                // their 44 pt targets, `.bordered` and `fixedSize`).
+                HStack(spacing: 4) {
                     navigationButtons
-                    Spacer(minLength: 4)
-                    titleText(.title3)
-                    Spacer(minLength: 4)
+                    Spacer(minLength: 0)
+                    titleText(.headline)
+                    Spacer(minLength: 0)
                     addEventButton
                     syncButton
                     settingsButton

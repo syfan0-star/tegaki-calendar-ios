@@ -85,8 +85,49 @@ public enum PageNavigation {
         }
     }
 
+    /// The short title of the compact header (an iPhone in portrait, M4B_CONTRACT §5; `title` is
+    /// unchanged): day 「10月7日(水)」 (no holiday name: the paper's date heading shows it); week
+    /// 「10/5〜10/11」 (month/day on both sides, never the year: 「9/28〜10/4」, 「12/28〜1/3」);
+    /// month 「2026年10月」; year 「2026年」.
+    public static func compactTitle(_ kind: PageKind, focus: DayKey) -> String {
+        switch kind {
+        case .day:
+            return "\(focus.month)月\(focus.day)日(\(weekdayLetters[focus.weekday]))"
+        case .week:
+            let start = mondayOnOrBefore(focus)
+            let last = start.adding(days: 6)
+            return "\(start.month)/\(start.day)〜\(last.month)/\(last.day)"
+        case .month, .year:
+            return title(kind, focus: focus)
+        }
+    }
+
+    /// Paper x to scroll to when a page is first shown (lu; the caller multiplies by the zoom scale
+    /// and clamps, M4B_CONTRACT §1.2). `visibleWidth` = `ZoomPolicy.visibleWidth` (lu).
+    /// Month: the smallest x that shows all of today's column c (= index % 7), `max(0, 200c + 200 −
+    /// visibleWidth)`; 0 when today is not on the grid. Week: the same for today's column,
+    /// `max(0, 64 + (c + 1) × colW − visibleWidth)`; 0 without today. Year: the left edge of this
+    /// month's column, `56 + (m − 1) × 112`, 0 when today is not in that year. Day: 0.
+    /// The result is kept inside the paper (`min(x, paperWidth − visibleWidth)`, then `max(0, …)`);
+    /// 0 when `visibleWidth` is not finite or not positive.
+    public static func initialScrollX(_ layout: any PageLayout, now: Date, calendar: Calendar = DayKey.deviceCalendar, visibleWidth: CGFloat) -> CGFloat {
+        guard visibleWidth.isFinite, visibleWidth > 0 else { return 0 }
+        let today = DayKey(now, calendar: calendar)
+        var x: CGFloat = 0
+        if let month = layout as? MonthPageLayout {
+            if let cell = month.cells[.day(today)] { x = max(0, cell.maxX - visibleWidth) }
+        } else if let week = layout as? WeekPageLayout {
+            if let col = week.days.firstIndex(of: today) { x = max(0, week.columnFrame(col).maxX - visibleWidth) }
+        } else if let year = layout as? YearPageLayout {
+            if today.year == year.year { x = year.columnFrame(month: today.month).minX }
+        }
+        x = min(x, layout.size.width - visibleWidth)
+        return max(0, x)
+    }
+
     /// Paper y to scroll to when a page is first shown (the caller multiplies by the zoom scale
-    /// and clamps): week / day → an hour before now when today is on the page, else 7:00;
+    /// and clamps): week / day → an hour before now when today is on the page, else 7:00 (since M4b
+    /// the grid starts at the paper's top, so 10:00 today is 720 / 900, not today 560 / 700);
     /// year → the row two above today's when today is in that year, else 0; month → 0.
     public static func initialScrollY(_ layout: any PageLayout, now: Date, calendar: Calendar = DayKey.deviceCalendar) -> CGFloat {
         let today = DayKey(now, calendar: calendar)

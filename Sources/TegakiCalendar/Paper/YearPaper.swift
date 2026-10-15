@@ -3,8 +3,11 @@ import UIKit
 
 /// The year page's paper (contract §3.5): the 12 × 31 cells with their tints (Saturday, Sunday /
 /// holiday, today), hatching on dates that do not exist, the day numbers 1…31 down the gutter, the
-/// weekday letter and holiday name of every day, and the all-day chips in the right part of each
-/// cell. The month names are the sticky header's.
+/// day number and weekday letter and the holiday name of every day, and the all-day chips in the
+/// right part of each cell. The month names are the sticky header's. Since M4b the page scrolls
+/// horizontally on every device and starts at this month's column, so the gutter's 1…31 is often
+/// off screen: every cell's heading carries its day number before the weekday letter (「7 水」,
+/// M4B_CONTRACT §4.2, D2), and the text of a chip is clipped to its shape (D4).
 enum YearPaper: PaperRenderer {
     private static let weekdayNames = ["日", "月", "火", "水", "木", "金", "土"]
 
@@ -79,10 +82,14 @@ enum YearPaper: PaperRenderer {
                                color: isToday ? PaperPalette.accent : PaperPalette.ink2, alignment: .center)
         }
 
-        // 4. Weekday letters and holiday names.
+        // 4. Day number + weekday letter (「7 水」) and holiday names. The number takes 1.3 em
+        // right-aligned, the letter starts 0.3 em after it (1.3 + 0.3 + 1.4 = 3 em = 45 lu, inside
+        // the cell's left 45 % = 50.4 lu).
         let weekdaySize = PaperText.fontSize(PaperText.yearWeekday, zoom: zoom)
         let weekdayFont = UIFont.systemFont(ofSize: weekdaySize, weight: .semibold)
         let todayWeekdayFont = UIFont.systemFont(ofSize: weekdaySize, weight: .heavy)
+        let dayNumberFont = UIFont.monospacedDigitSystemFont(ofSize: weekdaySize, weight: .semibold)
+        let todayDayNumberFont = UIFont.monospacedDigitSystemFont(ofSize: weekdaySize, weight: .heavy)
         let holidaySize = PaperText.fontSize(PaperText.yearHoliday, zoom: zoom)
         let holidayFont = UIFont.systemFont(ofSize: holidaySize, weight: .regular)
         let leftWidth = PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft
@@ -96,7 +103,10 @@ enum YearPaper: PaperRenderer {
             } else {
                 color = PaperPalette.toneColor(label.tone, normal: PaperPalette.ink2)
             }
-            let letterRect = CGRect(x: frame.minX + pad, y: frame.minY + pad, width: weekdaySize * 1.4, height: weekdayFont.lineHeight)
+            let numberRect = CGRect(x: frame.minX + pad, y: frame.minY + pad, width: weekdaySize * 1.3, height: weekdayFont.lineHeight)
+            PaperText.drawLine("\(label.day.day)", in: numberRect, font: label.isToday ? todayDayNumberFont : dayNumberFont,
+                               color: color, alignment: .right)
+            let letterRect = CGRect(x: frame.minX + pad + weekdaySize * 1.6, y: frame.minY + pad, width: weekdaySize * 1.4, height: weekdayFont.lineHeight)
             PaperText.drawLine(letter, in: letterRect, font: label.isToday ? todayWeekdayFont : weekdayFont, color: color)
             if let name = label.holidayName, !name.isEmpty {
                 let nameRect = CGRect(x: frame.minX + pad, y: frame.minY + PaperSpec.yearHeader + 1,
@@ -115,8 +125,9 @@ enum YearPaper: PaperRenderer {
             let reach = CGRect(x: frame.minX, y: frame.minY, width: frame.width, height: max(frame.height, (chip.linkToY ?? frame.maxY) - frame.minY))
             guard reach.intersects(dirty), frame.width > 0, frame.height > 0 else { continue }
             let color = PaperPalette.color(hex: chip.colorHex)
+            let path = PaperText.roundedPath(frame, radius: chip.isThin ? 1 : 3, squareTop: chip.continuesUp, squareBottom: chip.continuesDown)
             ctx.setFillColor(color.cgColor)
-            ctx.addPath(PaperText.roundedPath(frame, radius: chip.isThin ? 1 : 3, squareTop: chip.continuesUp, squareBottom: chip.continuesDown))
+            ctx.addPath(path)
             ctx.fillPath()
             if let linkToY = chip.linkToY, linkToY > frame.maxY {
                 ctx.fill(CGRect(x: frame.minX, y: frame.maxY, width: linkWidth, height: linkToY - frame.maxY))
@@ -127,7 +138,12 @@ enum YearPaper: PaperRenderer {
             let textPad = size * (chip.isThin ? 0.2 : 0.3)
             let textRect = frame.insetBy(dx: textPad, dy: 0)
             if textRect.width > size * 0.6 {
+                // The title, clipped to the chip's shape.
+                ctx.saveGState()
+                ctx.addPath(path)
+                ctx.clip()
                 PaperText.drawLine(chip.title, in: textRect, font: font, color: PaperPalette.readableText(on: chip.colorHex))
+                ctx.restoreGState()
             }
         }
     }

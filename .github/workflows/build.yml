@@ -1,9 +1,12 @@
 # Builds and tests the pure Swift package (TegakiKit) on macOS, then builds the app for the
-# iOS Simulator and runs the app's unit tests on an iPad simulator. Afterwards it launches the app
-# on that simulator in its screenshot mode and uploads the screenshots (artifact "screenshots",
-# kept 7 days: 4 pages + 6 sheets) so the app can be looked at without Xcode. The screenshot steps
-# never fail the job. Nothing here touches iCloud: the Simulator build is unsigned (the entitlements
-# are not embedded) and the test host / screenshot mode use the in-memory fake database.
+# iOS Simulator and runs the app's unit tests on a 13-inch iPad simulator. Afterwards it launches
+# the app in its screenshot mode on four simulators (docs/M4B_CONTRACT.md §6: the 13-inch iPad
+# with 4 pages + 6 sheets, then an iPhone, an iPad mini and an 11-inch iPad with 4 pages each,
+# booted one at a time; the iPhone also shoots the week with a Sunday 「今日」 and tries the 4 pages
+# in landscape) and uploads the screenshots (artifact "screenshots", kept 7 days: up to 27 images +
+# 4 logs) so the app can be looked at without Xcode. The screenshot steps never fail the job.
+# Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
+# and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
 name: build
 
@@ -19,7 +22,7 @@ jobs:
   build-and-test:
     name: Build and test (iOS Simulator)
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 75
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -47,15 +50,15 @@ jobs:
           swift --version
           swift build --package-path TegakiKit
 
-      # The count is checked as a number (docs/M4_CONTRACT.md §8.4): M4 added the web import, the sync
-      # state and the backoff sections, so anything below 20400 means a section went missing.
+      # The count is checked as a number (docs/M4B_CONTRACT.md §7.1, M4B-9): M4b counts 21814 and the
+      # threshold is that number minus 50, so anything below 21764 means a section went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 20400 or more)"
-          test "${N:-0}" -ge 20400
+          echo "KitChecks count: ${N:-0} (required: 21764 or more)"
+          test "${N:-0}" -ge 21764
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -87,9 +90,11 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             build
 
-      # Prefers "iPad Pro 13-inch (M4)", then any available iPad, then any available iPhone,
-      # and as a last resort the literal "iPhone 17" (so the step itself never fails).
-      - name: Pick a simulator (iPad preferred)
+      # The primary simulator (unit tests, 4 pages, 6 sheets): the first name, in sorted order, that
+      # starts with "iPad Pro 13-inch", else "iPad Air 13-inch", else any iPad, else any iPhone
+      # (docs/M4B_CONTRACT.md §6.1: the runner has no "iPad Pro 13-inch (M4)", so the choice is by
+      # prefix and deterministic). As a last resort the literal "iPhone 17" (the step never fails).
+      - name: Pick a simulator (13-inch iPad preferred)
         id: simulator
         run: |
           set -euo pipefail
@@ -97,24 +102,19 @@ jobs:
           NAME="$(xcrun simctl list -j devices available | python3 -c '
           import json, sys
           devices = json.load(sys.stdin).get("devices", {})
-          names = []
+          names = set()
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if d.get("isAvailable") and d.get("name"):
-                      names.append(d["name"])
-          ipads = [n for n in names if n.startswith("iPad")]
-          iphones = [n for n in names if n.startswith("iPhone")]
-          preferred = "iPad Pro 13-inch (M4)"
-          if preferred in ipads:
-              print(preferred)
-          elif ipads:
-              print(ipads[0])
-          elif iphones:
-              print(iphones[0])
-          else:
-              print("")
+                      names.add(d["name"])
+          for prefix in ("iPad Pro 13-inch", "iPad Air 13-inch", "iPad", "iPhone"):
+              matches = sorted(n for n in names if n.startswith(prefix))
+              if matches:
+                  print(matches[0])
+                  raise SystemExit
+          print("")
           ' || true)"
           if [ -z "$NAME" ]; then
             echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
@@ -146,9 +146,10 @@ jobs:
       # second after the canvas appeared; since M4 two more sheets, "sync" (the settings screen with the
       # demo sync engine: 「同期済み」 and 「最後に同期」) and "import" (the finished web import,
       # docs/M4_CONTRACT.md §6.6). In screenshot mode the sync engine is an inert demo over an in-memory
-      # fake, so nothing here needs an iCloud account. simctl cannot tap or rotate the device, and
-      # iPadOS refuses a programmatic orientation change for an app that supports multitasking, so
-      # every shot is portrait.
+      # fake, so nothing here needs an iCloud account. simctl cannot tap or rotate the device; since
+      # M4b (docs/M4B_CONTRACT.md §6.4) only the iPhone turns with "--screenshot-landscape" (the app
+      # asks the window scene for landscape; iPadOS ignores that request for an app that supports
+      # multitasking, so the iPad shots are portrait only).
       # The steps run even when the unit tests failed (the app was still built); the upload always runs.
       - name: Resolve the simulator UDID
         id: simudid
@@ -205,7 +206,9 @@ jobs:
           echo "App bundle: $APP"
           xcrun simctl install "$UDID" "$APP"
 
-      - name: Screenshots (portrait, 4 pages)
+      # File names since M4b: ipad13-portrait-<page>.png (docs/M4B_CONTRACT.md §6.2; M4 and earlier
+      # wrote ipad-portrait-<page>.png, the mapping is in docs/M4B.md).
+      - name: Screenshots (13-inch iPad, portrait, 4 pages)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -219,11 +222,11 @@ jobs:
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE"
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page; crashed?)"
-            xcrun simctl io "$UDID" screenshot "shots/ipad-portrait-$PAGE.png"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE.png"
           done
           ls -la shots
 
-      - name: Screenshots (portrait, 6 sheets on the month page)
+      - name: Screenshots (13-inch iPad, portrait, 6 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -237,58 +240,13 @@ jobs:
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET"
             sleep 9
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 9 s (sheet $SHEET; crashed?)"
-            xcrun simctl io "$UDID" screenshot "shots/ipad-portrait-sheet-$SHEET.png"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-sheet-$SHEET.png"
           done
           ls -la shots
 
-      # The day page once more on an 11-inch iPad (834 pt wide in portrait): its title is the longest
-      # and the header row must still show 「今日」 (PageHeaderView.width). Skipped when no such
-      # simulator exists on the runner.
-      - name: Screenshot (portrait, day page, 11-inch iPad)
-        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          SMALL="$(xcrun simctl list -j devices available | python3 -c '
-          import json, sys
-          devices = json.load(sys.stdin).get("devices", {})
-          found = {}
-          for runtime, items in devices.items():
-              if "iOS" not in runtime:
-                  continue
-              for d in items:
-                  if d.get("isAvailable") and d.get("name"):
-                      found.setdefault(d["name"], d["udid"])
-          for prefix in ("iPad Pro 11-inch", "iPad Air 11-inch", "iPad (A", "iPad mini"):
-              for name, udid in found.items():
-                  if name.startswith(prefix):
-                      print(name + "|" + udid)
-                      raise SystemExit
-          print("")
-          ' || true)"
-          if [ -z "$SMALL" ]; then
-            echo "::warning::No 11-inch class iPad simulator; skipping the 11-inch screenshot."
-            exit 0
-          fi
-          NAME="${SMALL%%|*}"
-          UDID="${SMALL##*|}"
-          echo "11-inch simulator: $NAME ($UDID)"
-          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
-          BUNDLE="com.syfan0.tegakicalendar"
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b
-          xcrun simctl ui "$UDID" appearance light
-          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
-          xcrun simctl install "$UDID" "$APP"
-          mkdir -p shots
-          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page day
-          sleep 8
-          xcrun simctl io "$UDID" screenshot "shots/ipad11-portrait-day.png"
-          xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
-          xcrun simctl shutdown "$UDID" || true
-          ls -la shots
-
-      - name: Collect the app log and crash reports
+      # The 13-inch log is collected before the other devices boot (their 10 shots fit in the 8 min
+      # window; each extra device writes its own shots/<id>-log.txt below).
+      - name: Collect the app log and crash reports (13-inch iPad)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -302,6 +260,99 @@ jobs:
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} shots/ \; 2>/dev/null || true
           ls -la shots
           grep -c "" shots/app-log.txt || true
+
+      # The three other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
+      # down afterwards: iphone (iPhone 17, 402 pt), ipadmini (iPad mini (A17 Pro), 744 pt) and
+      # ipad11 (iPad Pro 11-inch (M5), 834 pt), 4 portrait pages each as <id>-portrait-<page>.png.
+      # The iPhone also shoots the week of 2026-06 (6/7 is a Sunday: the paper starts at the right
+      # edge, M4B-3) and tries the 4 pages in landscape ("--screenshot-landscape", §6.4; the file is
+      # still written when the request was ignored, the header then stays two rows). Every shot is
+      # best effort; a missing simulator or a failed boot only skips that device. The 13-inch
+      # simulator is shut down first to leave the runner's memory to the next one.
+      - name: Screenshots (iPhone, iPad mini, 11-inch iPad; portrait, 4 pages each)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          PRIMARY="${{ steps.simudid.outputs.udid }}"
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          BUNDLE="com.syfan0.tegakicalendar"
+          if [ -z "$APP" ]; then
+            echo "::warning::TegakiCalendar.app not found under build/DerivedData; skipping the extra devices."
+            exit 0
+          fi
+          mkdir -p shots
+          xcrun simctl shutdown "$PRIMARY" || true
+          # device-id | exact first choice | prefix fallbacks (in order)
+          for SPEC in "iphone|iPhone 17|iPhone 17,iPhone" \
+                      "ipadmini|iPad mini (A17 Pro)|iPad mini" \
+                      "ipad11|iPad Pro 11-inch (M5)|iPad Pro 11,iPad Air 11,iPad (A"; do
+            ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
+            FOUND="$(xcrun simctl list -j devices available | SIM_EXACT="$EXACT" SIM_PREFIXES="$PREFIXES" SIM_PRIMARY="$PRIMARY" python3 -c '
+          import json, os, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):                                  # "…iOS-26-5" → (26, 5)
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          primary_runtime = next((r for r, items in devices.items() for d in items if d.get("udid") == os.environ["SIM_PRIMARY"]), None)
+          found = {}                                             # name → (udid, key): same runtime as the 13-inch > newer iOS
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
+                      continue
+                  key = (runtime == primary_runtime, version(runtime))
+                  if d["name"] not in found or key > found[d["name"]][1]:
+                      found[d["name"]] = (d["udid"], key)
+          exact = os.environ["SIM_EXACT"]
+          if exact in found:
+              print(exact + "|" + found[exact][0])
+              raise SystemExit
+          for prefix in os.environ["SIM_PREFIXES"].split(","):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0])
+                      raise SystemExit
+          print("")
+          ' || true)"
+            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+            echo "$ID: $NAME ($UDID)"
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            if ! xcrun simctl install "$UDID" "$APP"; then
+              echo "::warning::install failed on $ID; skipping."
+              [ "$UDID" = "$PRIMARY" ] || xcrun simctl shutdown "$UDID" || true
+              continue
+            fi
+            shoot() {  # shoot <file> <launch args…>: one shot; a failure only loses this one file (never stops the step)
+              local FILE="$1"; shift
+              xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+              sleep 1
+              xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" || { echo "::warning::launch failed ($FILE)"; return 0; }
+              sleep 9
+              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($FILE)"
+              xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
+            }
+            for PAGE in month week day year; do
+              shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
+            done
+            if [ "$ID" = "iphone" ]; then
+              # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
+              # at the right edge and the time labels are off screen.
+              shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
+              for PAGE in month week day year; do        # §6.4: only the iPhone can turn
+                shoot "$ID-landscape-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-landscape
+              done
+            fi
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            xcrun simctl spawn "$UDID" log show --last 6m --style compact --predicate 'process == "TegakiCalendar"' > "shots/$ID-log.txt" 2>&1 || true
+            [ "$UDID" = "$PRIMARY" ] || xcrun simctl shutdown "$UDID" || true
+          done
+          ls -la shots
 
       - name: Upload screenshots
         if: always()

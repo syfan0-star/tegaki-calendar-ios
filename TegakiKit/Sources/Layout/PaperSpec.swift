@@ -40,17 +40,10 @@ public enum PaperSpec {
     /// 190.857142… (never rounded, as in the web version).
     public static var weekColumnWidth: CGFloat { (weekWidth - weekGutter) / CGFloat(weekColumns) }
     public static let weekHourHeight: CGFloat = 80
-    /// 1920. The time grid never grows.
+    /// 1920. The time grid never grows; since M4b it is the whole paper (the all-day band is a fixed
+    /// view outside the paper, M4B_CONTRACT §2, so the former weekBand* constants are gone).
     public static var weekGridHeight: CGFloat { weekHourHeight * 24 }
-    /// Base height of the all-day band.
-    public static let weekBandBase: CGFloat = 60
-    /// Cap of the all-day band.
-    public static let weekBandMax: CGFloat = 800
-    /// From the top of the band to the first lane.
-    public static let weekBandTopPad: CGFloat = 3
-    /// Handwriting room kept below the last lane.
-    public static let weekBandInkMargin: CGFloat = 30
-    /// Horizontal inset of a bar from the column edges (0 on a continuing side).
+    /// Horizontal inset of a band bar from the column edges (0 on a continuing side).
     public static let weekBarInset: CGFloat = 3
     /// Timed boxes: padding inside a day column and the gap between overlap columns.
     public static let weekBoxPadLeft: CGFloat = 2
@@ -65,16 +58,13 @@ public enum PaperSpec {
     /// The timeline column is x 72…660; the memo area is 660…1000.
     public static let dayTimelineRight: CGFloat = 660
     public static let dayHourHeight: CGFloat = 100
-    /// 2400. The time grid never grows.
+    /// 2400. The time grid never grows; since M4b it is the whole paper (the former dayBand*
+    /// constants are gone, M4B_CONTRACT §2.4).
     public static var dayGridHeight: CGFloat { dayHourHeight * 24 }
-    public static let dayBandBase: CGFloat = 60
-    public static let dayBandMax: CGFloat = 800
-    public static let dayBandTopPad: CGFloat = 2
-    public static let dayBandInkMargin: CGFloat = 30
-    /// Lane 22 + gap 2 = 24 (DESIGN §2.2 「24」).
+    /// Lane 22 + gap 2 = 24 (DESIGN §2.2 「24」). Used by the fixed band (`AllDayBandMetrics`).
     public static let dayLaneGap: CGFloat = 2
     public static var dayLaneStep: CGFloat { allDayLane + dayLaneGap }
-    /// All-day chips sit inside the timeline column (web .sh-allday-items).
+    /// The day band's bars sit inside the timeline column (web .sh-allday-items).
     public static let dayChipPadLeft: CGFloat = 4
     public static let dayChipPadRight: CGFloat = 12
     public static let dayBoxPadLeft: CGFloat = 4
@@ -122,8 +112,10 @@ public enum PaperSpec {
 }
 
 /// Key of one ink cell. Month page: "2026-10-04" for a day, "memo" for the memo area below the grid.
-/// Week page: "allday:2026-10-04" for a day of the all-day band, "grid" for the time grid.
-/// Day page: "allday", "grid". Year page: "MM-DD" (also for dates that do not exist, like "02-30").
+/// Week page: "grid" for the time grid. Day page: "grid". Year page: "MM-DD" (also for dates that
+/// do not exist, like "02-30"). The week / day band keys "allday:2026-10-04" / "allday" (M3a–M4) are
+/// no longer created: the band left the paper in M4b and `BandMigration` moves their strokes onto
+/// "grid" on load, but the keys stay readable forever (M4B_CONTRACT §2.4 / §3).
 /// Stored in JSON as the plain string (DESIGN §3.4); the persistence format never changes.
 public struct CellKey: Hashable, Codable, Sendable, CustomStringConvertible {
     public let raw: String
@@ -166,12 +158,13 @@ public struct CellKey: Hashable, Codable, Sendable, CustomStringConvertible {
 extension CellKey {
     private static let allDayPrefix = "allday:"
 
-    /// A day of the week page's all-day band: "allday:2026-10-04".
+    /// A day of the week page's former all-day band: "allday:2026-10-04" (read by `BandMigration`;
+    /// not created since M4b).
     public static func allDay(_ d: DayKey) -> CellKey {
         CellKey(raw: allDayPrefix + d.description)
     }
 
-    /// The day page's all-day band (one cell).
+    /// The day page's former all-day band (one cell; read by `BandMigration`, not created since M4b).
     public static let allDayDay = CellKey(raw: "allday")
 
     /// The time grid of the week and day pages (one cell; the time gutter and the day page's memo

@@ -233,7 +233,7 @@ final class PageLayoutTests: XCTestCase {
         XCTAssertFalse(plain.sameGeometry(as: F.weekLayout([])), "another kind")
         let week = F.weekLayout(F.demo)
         XCTAssertTrue(week.sameGeometry(as: F.weekLayout(F.demo, now: F.october(7, 11))))
-        XCTAssertFalse(week.sameGeometry(as: F.weekLayout(F.demo, ink: [.allDay(F.day(2026, 10, 6)): 68])))
+        XCTAssertTrue(week.sameGeometry(as: F.weekLayout(F.demo, ink: [.allDay(F.day(2026, 10, 6)): 68])), "since M4b nothing on the week page grows with ink")
         XCTAssertFalse(week.sameGeometry(as: F.weekLayout(F.demo, focus: F.day(2026, 10, 14))))
         let erased: any PageLayout = plain
         XCTAssertEqual(erased.cell(at: CGPoint(x: 650, y: 10)), .day(F.day(2026, 10, 1)))

@@ -4,8 +4,9 @@ import CoreGraphics
 import Layout
 
 /// Rect → event range and event range → rect on the four pages (M3B_CONTRACT §1 / §6.1). The
-/// expectations are the web version's tests/page-geometry.test.mjs (Monday-start grids), shifted by
-/// the all-day band's height where a page has one. The same checks run in KitChecks.
+/// expectations are the web version's tests/page-geometry.test.mjs (Monday-start grids). Since M4b
+/// the week / day grid starts at the paper's top (`g == 0`): the all-day band is not on the paper
+/// (M4B_CONTRACT §2.3), so an all-day range has no snap rect there. The same checks run in KitChecks.
 final class EventRangeTests: XCTestCase {
     private typealias F = M3aFixtures
     private var tokyo: Calendar { F.tokyo }
@@ -156,7 +157,7 @@ final class EventRangeTests: XCTestCase {
     func testDayPage() {
         let page = F.dayLayout([], focus: F.day(2026, 10, 4))
         let g = page.grid.minY
-        XCTAssertEqual(g, 60, "an empty band is 60 lu")
+        XCTAssertEqual(g, 0, "the band is not on the paper (M4b): the grid starts at 0")
         func ev(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> String {
             fmt(page.eventRange(for: rect(x0, y0 + g, x1, y1 + g), now: F.demoNow, calendar: tokyo))
         }
@@ -180,7 +181,7 @@ final class EventRangeTests: XCTestCase {
         XCTAssertEqual(ev(200, 2400, 200, 2400), "2026-10-04 23:00–2026-10-05 00:00", "tap exactly at 24:00")
         XCTAssertEqual(ev(200, 2500, 300, 2600), "2026-10-04 23:00–2026-10-05 00:00", "rect entirely below the page")
         XCTAssertEqual(ev(200, -100, 300, -50), "2026-10-04 00:00–2026-10-04 01:00", "above the page clamps to 0:00")
-        XCTAssertEqual(fmt(page.eventRange(for: rect(200, 0, 300, 20), now: F.demoNow, calendar: tokyo)), "2026-10-04 00:00–2026-10-04 01:00", "a drag in the band clamps to 0:00")
+        XCTAssertEqual(fmt(page.eventRange(for: rect(200, 0, 300, 20), now: F.demoNow, calendar: tokyo)), "2026-10-04 00:00–2026-10-04 01:00", "the paper's top is 0:00 (no band): a 20 lu drag there is 0:00–0:12 → one hour")
         XCTAssertNil(page.eventRange(for: CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1), now: F.demoNow, calendar: tokyo), "a NaN rect")
         XCTAssertNil(page.eventRange(for: CGRect(x: 0, y: 0, width: CGFloat.infinity, height: 1), now: F.demoNow, calendar: tokyo), "an infinite rect")
         // The device-calendar overloads (the device time zone may differ from the fixture's).
@@ -201,7 +202,7 @@ final class EventRangeTests: XCTestCase {
         let d4 = F.day(2026, 10, 4)
         assertRect(page.snapRect(for: timed(d4, 540, 630), calendar: tokyo), CGRect(x: 72, y: g + 900, width: 588, height: 150), "9:00–10:30 = the timeline column")
         assertRect(page.previewRect(for: rect(700, 910 + g, 950, 1060 + g), now: F.demoNow, calendar: tokyo), CGRect(x: 72, y: g + 900, width: 588, height: 150), "a memo-area drag previews in the timeline column")
-        assertRect(page.snapRect(for: allDay(d4), calendar: tokyo), page.cells[.allDayDay]!, "all-day → the band")
+        XCTAssertNil(page.snapRect(for: allDay(d4), calendar: tokyo), "all-day → nil (the band is not on the paper)")
         XCTAssertNil(page.snapRect(for: allDay(F.day(2026, 10, 5)), calendar: tokyo), "another day")
         XCTAssertNil(page.snapRect(for: timed(F.day(2026, 10, 5), 540, 600), calendar: tokyo), "timed on another day")
         XCTAssertNil(page.snapRect(for: range(F.date(2026, 10, 3, 22), F.date(2026, 10, 4, 2)), calendar: tokyo), "starts the day before")
@@ -210,11 +211,12 @@ final class EventRangeTests: XCTestCase {
         XCTAssertNil(page.snapRect(for: range(F.date(2026, 10, 4, 10), F.date(2026, 10, 4, 10)), calendar: tokyo), "zero length")
         XCTAssertNil(page.snapRect(for: range(F.date(2026, 10, 4, 10), F.date(2026, 10, 4, 9)), calendar: tokyo), "inverted")
         assertRect(page.snapRect(for: range(F.date(2026, 10, 4, 10, 5), F.date(2026, 10, 4, 10, 35)), calendar: tokyo), CGRect(x: 72, y: g + 1000 + 500 / 60, width: 588, height: 50), "minutes off the 15 grid are drawn where they are")
-        // The band grows with its events: the grid moves down and the rects follow.
+        // All-day events go to the fixed band: the grid stays at the paper's top and the rects do not move.
         let busy = F.dayLayout([F.allDay("a", 4, 5), F.allDay("b", 4, 5), F.allDay("c", 4, 5), F.allDay("d", 4, 5)], focus: d4)
-        XCTAssertGreaterThan(busy.grid.minY, g)
+        XCTAssertEqual(busy.grid.minY, 0, "a busy band does not move the grid")
+        XCTAssertEqual(busy.allDayBand.laneCount, 4)
         XCTAssertEqual(fmt(busy.eventRange(for: rect(100, 900 + busy.grid.minY, 300, 1050 + busy.grid.minY), now: F.demoNow, calendar: tokyo)), "2026-10-04 09:00–2026-10-04 10:30", "y is relative to the grid's top")
-        assertRect(busy.snapRect(for: timed(d4, 540, 630), calendar: tokyo), CGRect(x: 72, y: busy.grid.minY + 900, width: 588, height: 150))
+        assertRect(busy.snapRect(for: timed(d4, 540, 630), calendar: tokyo), CGRect(x: 72, y: 900, width: 588, height: 150))
     }
 
     // MARK: Week page
@@ -222,7 +224,7 @@ final class EventRangeTests: XCTestCase {
     func testWeekPage() {
         let page = F.weekLayout([]) // Mon 10/5 – Sun 10/11 2026
         let g = page.grid.minY
-        XCTAssertEqual(g, 60)
+        XCTAssertEqual(g, 0, "the band is not on the paper (M4b): the grid starts at 0")
         func center(_ i: Int) -> CGFloat { PaperSpec.weekGutter + (CGFloat(i) + 0.5) * colW }
         func ev(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> String {
             fmt(page.eventRange(for: rect(x0, y0 + g, x1, y1 + g), now: F.demoNow, calendar: tokyo))
@@ -240,7 +242,7 @@ final class EventRangeTests: XCTestCase {
         XCTAssertEqual(at(-100, 720, -50, 840), "2026-10-05", "left of the paper → Monday")
         XCTAssertEqual(ev(700, 1800, 760, 2000), "2026-10-08 22:30–2026-10-09 00:00", "end clamped at 24:00")
         XCTAssertEqual(ev(700, -100, 760, -50), "2026-10-08 00:00–2026-10-08 01:00", "above the grid clamps to 0:00")
-        XCTAssertEqual(fmt(page.eventRange(for: rect(700, 0, 760, 30), now: F.demoNow, calendar: tokyo)), "2026-10-08 00:00–2026-10-08 01:00", "a drag in the band clamps to 0:00")
+        XCTAssertEqual(fmt(page.eventRange(for: rect(700, 0, 760, 30), now: F.demoNow, calendar: tokyo)), "2026-10-08 00:00–2026-10-08 00:30", "the paper's top is 0:00 (no band): a 30 lu drag there is 0:00–0:30")
         for i in 0..<7 {
             XCTAssertEqual(at(center(i) - 20, 720, center(i) + 20, 840), page.days[i].description, "column \(i)")
         }
@@ -270,7 +272,7 @@ final class EventRangeTests: XCTestCase {
         assertRect(page.snapRect(for: timed(F.day(2026, 10, 8), 840, 900), calendar: tokyo), CGRect(x: page.columnFrame(3).minX, y: g + 1120, width: colW, height: 80), "14:00–15:00 on Thursday")
         assertRect(page.previewRect(for: rect(700, 725 + g, 760, 845 + g), now: F.demoNow, calendar: tokyo), CGRect(x: page.columnFrame(3).minX, y: g + 720, width: colW, height: 120), "9:03.75 → 9:00, 10:33.75 → 10:30")
         assertRect(page.previewRect(for: rect(10, 1900 + g, 20, 1900 + g), now: F.demoNow, calendar: tokyo), CGRect(x: 64, y: g + 1880, width: colW, height: 40), "gutter tap at 23:45 → column 0, 23:30–24:00")
-        assertRect(page.snapRect(for: allDay(F.day(2026, 10, 7)), calendar: tokyo), page.cells[.allDay(F.day(2026, 10, 7))]!, "all-day → the band cell")
+        XCTAssertNil(page.snapRect(for: allDay(F.day(2026, 10, 7)), calendar: tokyo), "all-day → nil (the band is not on the paper)")
         XCTAssertNil(page.snapRect(for: allDay(F.day(2026, 10, 12)), calendar: tokyo), "next week")
         XCTAssertNil(page.snapRect(for: allDay(F.day(2026, 10, 4)), calendar: tokyo), "the Sunday before")
         XCTAssertNil(page.snapRect(for: timed(F.day(2026, 10, 12), 540, 600), calendar: tokyo), "timed next week")

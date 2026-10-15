@@ -6,7 +6,7 @@ import Holidays
 public struct DayLayoutInput: Sendable {
     public var day: DayKey
     public var events: [LayoutEvent]
-    /// Only `.allDayDay` is read; the time grid never grows.
+    /// Kept for the callers (M4B-17); not read since M4b: nothing on the day page grows with ink.
     public var inkBottoms: [CellKey: CGFloat]
     public var now: Date
     public var calendar: Calendar
@@ -20,28 +20,26 @@ public struct DayLayoutInput: Sendable {
     }
 }
 
-/// The day page in paper coordinates (lu): the all-day band on top (one full-width cell), below it
-/// the timeline (x 72…660) and the memo area (660…1000) as one fixed 2400 lu cell.
+/// The day page in paper coordinates (lu): the timeline (x 72…660) and the memo area (660…1000) as
+/// one fixed 1000 × 2400 cell starting at 0:00. The all-day band is not on the paper since M4b:
+/// `allDayBand` describes the fixed band the screen draws above the paper (M4B_CONTRACT §2).
 public struct DayPageLayout: PageLayout, Equatable, Sendable {
     /// "d-2026-10-04".
     public var pageId: String
     public var day: DayKey
-    /// 1000 × (band height + 2400).
+    /// 1000 × 2400 (fixed).
     public var size: CGSize
-    /// (0, 0, 1000, bandH).
-    public var band: CGRect
-    /// (0, bandH, 1000, 2400).
+    /// (0, 0, 1000, 2400) = the whole paper.
     public var grid: CGRect
-    /// (72, bandH, 588, 2400).
+    /// (72, 0, 588, 2400).
     public var timeline: CGRect
-    /// (660, bandH, 340, 2400).
+    /// (660, 0, 340, 2400).
     public var memo: CGRect
-    public var laneCount: Int
-    /// lane 22 / step 24 / gap 2 unless the band reached its cap.
-    public var laneMetrics: LaneMetrics
-    /// `.allDayDay` + `.grid`.
+    /// The fixed all-day band above the paper (drawn by the screen, not on the paper).
+    public var allDayBand: AllDayBandLayout
+    /// `[.grid: grid]`.
     public var cells: [CellKey: CGRect]
-    /// All-day chips inside the timeline column; `row` 0, `lane` = display order.
+    /// Always empty (protocol requirement; the paper has no band).
     public var allDayBars: [AllDayBar]
     public var timedBoxes: [TimedEventBox]
     /// One label of height 0 (the sticky header draws the date).
@@ -49,16 +47,14 @@ public struct DayPageLayout: PageLayout, Equatable, Sendable {
     public var nowLine: NowLine?
     public var isToday: Bool
 
-    public init(pageId: String, day: DayKey, size: CGSize, band: CGRect, grid: CGRect, timeline: CGRect, memo: CGRect, laneCount: Int, laneMetrics: LaneMetrics, cells: [CellKey: CGRect], allDayBars: [AllDayBar], timedBoxes: [TimedEventBox], dateLabels: [DateLabel], nowLine: NowLine?, isToday: Bool) {
+    public init(pageId: String, day: DayKey, size: CGSize, grid: CGRect, timeline: CGRect, memo: CGRect, allDayBand: AllDayBandLayout, cells: [CellKey: CGRect], allDayBars: [AllDayBar], timedBoxes: [TimedEventBox], dateLabels: [DateLabel], nowLine: NowLine?, isToday: Bool) {
         self.pageId = pageId
         self.day = day
         self.size = size
-        self.band = band
         self.grid = grid
         self.timeline = timeline
         self.memo = memo
-        self.laneCount = laneCount
-        self.laneMetrics = laneMetrics
+        self.allDayBand = allDayBand
         self.cells = cells
         self.allDayBars = allDayBars
         self.timedBoxes = timedBoxes
@@ -69,51 +65,46 @@ public struct DayPageLayout: PageLayout, Equatable, Sendable {
 
     public var kind: PageKind { .day }
 
-    /// Paper y of a minute of the day: grid.minY + minutes × 100 / 60.
+    /// Paper y of a minute of the day: minutes × 100 / 60 (the grid starts at the paper's top).
     public func minutesToY(_ minutes: Int) -> CGFloat {
         grid.minY + CGFloat(minutes) * PaperSpec.dayHourHeight / 60
     }
 
-    /// Inside the band → `.allDayDay`; inside the grid → `.grid`; outside the paper → nil.
+    /// Inside the paper (the gutter and the memo area included) → `.grid`; outside → nil.
     public func cell(at point: CGPoint) -> CellKey? {
         guard point.x.isFinite, point.y.isFinite else { return nil }
         guard point.x >= 0, point.x <= size.width, point.y >= 0, point.y < size.height else { return nil }
-        return point.y < band.height ? .allDayDay : .grid
+        return .grid
     }
 
-    /// Above the grid (negative y included) → `.allDayDay`; else `.grid`.
+    /// Always `.grid` (above the paper, a negative y, included): the day page has one ink cell.
     public func inkCell(forCenter point: CGPoint) -> CellKey {
-        guard point.y.isFinite else { return .grid }
-        return point.y < band.height ? .allDayDay : .grid
+        .grid
     }
 
-    /// Only the all-day band grows.
+    /// Nothing on the day page grows with handwriting (the time grid is fixed).
     public func growsWithInk(_ cell: CellKey) -> Bool {
-        cell.isAllDayDay
+        false
     }
 
-    /// Boxes first, then the band's chips.
+    /// Boxes only; the band's bars are the screen's buttons.
     public func hit(at point: CGPoint) -> HitTarget? {
         guard point.x.isFinite, point.y.isFinite else { return nil }
         for box in timedBoxes where box.frame.contains(point) {
             return .timedBox(box.eventId)
         }
-        for bar in allDayBars where bar.frame.contains(point) {
-            return .allDayBar(bar.eventId)
-        }
         return nil
     }
 
-    /// "allday" / "grid" / nil.
+    /// "grid" inside the paper / nil.
     public func band(atY y: CGFloat) -> PageBand? {
         guard y.isFinite, y >= 0, y < size.height else { return nil }
-        return y < band.height ? .allDay : .grid
+        return .grid
     }
 
+    /// 0 for `.grid`; nil for every other band (the paper has no all-day band).
     public func bandTop(_ band: PageBand) -> CGFloat? {
-        if band == .allDay { return self.band.minY }
-        if band == .grid { return grid.minY }
-        return nil
+        band == .grid ? grid.minY : nil
     }
 
     // MARK: Rect → event, event → rect (M3B_CONTRACT §1.6)
@@ -127,11 +118,12 @@ public struct DayPageLayout: PageLayout, Equatable, Sendable {
         return .timed(day, startMinute: slot.startMinute, endMinute: slot.endMinute, calendar: calendar)
     }
 
-    /// All-day: the band cell. Timed: the timeline column × the minutes of its start and end (clipped
-    /// to the day). nil when the range does not start on this day, or the clipped range is empty.
+    /// Timed: the timeline column × the minutes of its start and end (clipped to the day). All-day:
+    /// nil (the paper has no band; the fixed band shows it). nil also when the range does not start
+    /// on this day, or the clipped range is empty.
     public func snapRect(for range: EventRange, calendar: Calendar) -> CGRect? {
         guard DayKey(range.start, calendar: calendar) == day else { return nil }
-        if range.allDay { return cells[.allDayDay] }
+        if range.allDay { return nil }
         let dayStart = day.startOfDay(in: calendar)
         let dayEnd = day.adding(days: 1).startOfDay(in: calendar)
         let startMinute = range.start < dayStart ? 0 : TimedEventEngine.minutesOfDay(range.start, calendar: calendar)
@@ -142,65 +134,20 @@ public struct DayPageLayout: PageLayout, Equatable, Sendable {
     }
 }
 
-/// Pure layout of the day page (DESIGN §2.2 / §2.5, M3A_CONTRACT §1.7).
+/// Pure layout of the day page (DESIGN §2.2 / §2.5, M3A_CONTRACT §1.7, M4B_CONTRACT §2.3).
 public enum DayLayoutEngine {
-    /// Height of the all-day band: `min(800, max(60, lanes × 24 + 30, inkBottom + 12))`.
-    public static func bandHeight(laneCount: Int, inkBottom: CGFloat) -> CGFloat {
-        let lanes = CGFloat(max(0, laneCount))
-        let content = lanes * PaperSpec.dayLaneStep + PaperSpec.dayBandInkMargin
-        let ink = LayoutMath.sanitizedInk(inkBottom) + PaperSpec.inkPad
-        return min(PaperSpec.dayBandMax, max(PaperSpec.dayBandBase, max(content, ink)))
-    }
-
     public static func layout(_ input: DayLayoutInput) -> DayPageLayout {
         let calendar = input.calendar
         let day = input.day
         let today = DayKey(input.now, calendar: calendar)
-        let dayStart = day.startOfDay(in: calendar)
-        let dayEnd = day.adding(days: 1).startOfDay(in: calendar)
         let timelineWidth = PaperSpec.dayTimelineRight - PaperSpec.dayGutter
 
-        // One-day range: every all-day event gets its own lane, in eventsOnDay order.
-        let spans = MonthLayoutEngine.packAllDayLanes(events: input.events, days: [day], calendar: calendar)
-        let laneCount = spans.reduce(0) { max($0, $1.lane + 1) }
-        let inkBottom = LayoutMath.sanitizedInk(input.inkBottoms[.allDayDay] ?? 0)
-        let bandH = bandHeight(laneCount: laneCount, inkBottom: inkBottom)
+        let grid = CGRect(x: 0, y: 0, width: PaperSpec.dayWidth, height: PaperSpec.dayGridHeight)
+        let timeline = CGRect(x: PaperSpec.dayGutter, y: 0, width: timelineWidth, height: PaperSpec.dayGridHeight)
+        let memo = CGRect(x: PaperSpec.dayTimelineRight, y: 0, width: PaperSpec.dayWidth - PaperSpec.dayTimelineRight, height: PaperSpec.dayGridHeight)
 
-        let laneMetrics: LaneMetrics
-        if CGFloat(laneCount) * PaperSpec.dayLaneStep + PaperSpec.dayBandInkMargin > PaperSpec.dayBandMax {
-            laneMetrics = LanePacking.metrics(
-                laneCount: laneCount,
-                lane: PaperSpec.allDayLane,
-                gap: PaperSpec.dayLaneGap,
-                available: PaperSpec.dayBandMax - PaperSpec.dayBandTopPad - PaperSpec.dayBandInkMargin
-            )
-        } else {
-            laneMetrics = .plain(lane: PaperSpec.allDayLane, gap: PaperSpec.dayLaneGap)
-        }
-
-        let band = CGRect(x: 0, y: 0, width: PaperSpec.dayWidth, height: bandH)
-        let grid = CGRect(x: 0, y: bandH, width: PaperSpec.dayWidth, height: PaperSpec.dayGridHeight)
-        let timeline = CGRect(x: PaperSpec.dayGutter, y: bandH, width: timelineWidth, height: PaperSpec.dayGridHeight)
-        let memo = CGRect(x: PaperSpec.dayTimelineRight, y: bandH, width: PaperSpec.dayWidth - PaperSpec.dayTimelineRight, height: PaperSpec.dayGridHeight)
-
-        var bars: [AllDayBar] = []
-        for span in spans {
-            bars.append(AllDayBar(
-                eventId: span.event.id,
-                frame: CGRect(
-                    x: PaperSpec.dayGutter + PaperSpec.dayChipPadLeft,
-                    y: PaperSpec.dayBandTopPad + CGFloat(span.lane) * laneMetrics.step,
-                    width: timelineWidth - PaperSpec.dayChipPadLeft - PaperSpec.dayChipPadRight,
-                    height: laneMetrics.lane
-                ),
-                row: 0,
-                lane: span.lane,
-                continuesLeft: span.event.start < dayStart,
-                continuesRight: span.event.end > dayEnd,
-                colorHex: span.event.colorHex,
-                title: span.event.title
-            ))
-        }
+        // The all-day band (one lane per event) lives outside the paper.
+        let band = AllDayBandEngine.day(day, events: input.events, now: input.now, calendar: calendar)
 
         var boxes: [TimedEventBox] = []
         for slot in TimedEventEngine.layout(events: input.events, day: day, calendar: calendar) {
@@ -258,15 +205,13 @@ public enum DayLayoutEngine {
         return DayPageLayout(
             pageId: PageNavigation.pageId(.day, focus: day),
             day: day,
-            size: CGSize(width: PaperSpec.dayWidth, height: bandH + PaperSpec.dayGridHeight),
-            band: band,
+            size: CGSize(width: PaperSpec.dayWidth, height: PaperSpec.dayGridHeight),
             grid: grid,
             timeline: timeline,
             memo: memo,
-            laneCount: laneCount,
-            laneMetrics: laneMetrics,
-            cells: [.allDayDay: band, .grid: grid],
-            allDayBars: bars,
+            allDayBand: band,
+            cells: [.grid: grid],
+            allDayBars: [],
             timedBoxes: boxes,
             dateLabels: labels,
             nowLine: nowLine,

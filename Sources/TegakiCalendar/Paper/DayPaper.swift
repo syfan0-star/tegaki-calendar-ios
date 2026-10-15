@@ -1,16 +1,16 @@
 import Layout
 import UIKit
 
-/// The day page's paper (contract §3.4): the timeline column (tinted on today / weekends), the
-/// all-day band with its chips, the hour grid, the memo area on the right with its ruled lines, the
-/// timed event boxes and the now line. The date header is the sticky header's.
+/// The day page's paper (contract §3.4, M4B_CONTRACT §2.5): the timeline column (tinted on today /
+/// weekends), the hour grid, the memo area on the right with its ruled lines, the timed event boxes
+/// and the now line. The date header and, since M4b, the all-day band are the fixed views above
+/// the paper (`StickyHeaderView`, `AllDayBandView`): the paper starts at 0:00.
 enum DayPaper: PaperRenderer {
     static func draw(_ content: DayPaperContent, in ctx: CGContext, dirty: CGRect, zoom: CGFloat, view: PaperView) {
         let layout = content.layout
         let scale = view.contentScaleFactor
         let gutter = PaperSpec.dayGutter
         let timelineRight = PaperSpec.dayTimelineRight
-        let width = PaperSpec.dayWidth
         let height = layout.size.height
 
         // 1. Timeline column tint (today over weekend / holiday), the whole height.
@@ -30,18 +30,13 @@ enum DayPaper: PaperRenderer {
             }
         }
 
-        // 2. All-day band: bottom line, 「終日」, chips (in the timeline column only).
-        let band = layout.band
+        // 2. The gutter's and the timeline's right lines run the whole height.
         ctx.setLineWidth(PaperText.hairline(zoom))
         ctx.setStrokeColor(PaperPalette.lineStrong.cgColor)
         ctx.beginPath()
-        PaperText.addHorizontal(ctx, y: band.maxY, from: 0, to: width, zoom: zoom, scale: scale)
         PaperText.addVertical(ctx, x: gutter, from: 0, to: height, zoom: zoom, scale: scale)
         PaperText.addVertical(ctx, x: timelineRight, from: 0, to: height, zoom: zoom, scale: scale)
         ctx.strokePath()
-        TimeGridPaper.drawBandLabel(ctx, rightX: gutter - 6, top: band.minY, dirty: dirty, zoom: zoom)
-        TimeGridPaper.drawAllDayBars(ctx, bars: layout.allDayBars, textSize: PaperText.dayEvent,
-                                     fontScale: layout.laneMetrics.fontScale, dirty: dirty, zoom: zoom)
 
         // 3. Hour grid in the timeline column, labels right-aligned at x = 64.
         let grid = layout.grid

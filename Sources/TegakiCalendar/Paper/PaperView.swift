@@ -13,7 +13,8 @@ struct MonthPaperContent: Equatable {
     var holidayNames: [DayKey: String]
 }
 
-/// The week page: the layout carries the bands, boxes, labels and the now line (contract §1.6).
+/// The week page: the layout carries the boxes, labels and the now line (contract §1.6). Since M4b
+/// the all-day band is not on the paper (`PaperContent.allDayBand`).
 struct WeekPaperContent: Equatable {
     var layout: WeekPageLayout
 }
@@ -49,6 +50,16 @@ enum PaperContent: Equatable {
         case .week(let content): return content.layout
         case .day(let content): return content.layout
         case .year(let content): return content.layout
+        }
+    }
+
+    /// The fixed all-day band above the paper (M4B_CONTRACT §2.5): the week / day layout's band,
+    /// nil on the month and year pages. The screen hands it to `AllDayBandView`.
+    var allDayBand: AllDayBandLayout? {
+        switch self {
+        case .week(let content): return content.layout.allDayBand
+        case .day(let content): return content.layout.allDayBand
+        case .month, .year: return nil
         }
     }
 }
@@ -146,9 +157,13 @@ protocol PaperRenderer {
 /// Draws the paper of the current page under the PencilKit canvas: grid lines, date numbers, event
 /// bars / chips / boxes, the now line … everything that is not ink.
 ///
-/// Everything is drawn in paper units (lu) through a CoreGraphics transform scaled by `zoomScale`,
-/// so the owner (`InkCanvasView`, 担当 I) just keeps `frame = content.size × zoomScale` and
-/// `zoomScale` in sync with the PencilKit scroll view (DESIGN §3.2).
+/// Everything is drawn in paper units (lu) through a CoreGraphics transform scaled by `zoomScale`.
+/// Since M4b the view does not cover the whole paper (at the year page's minimum zoom that would be
+/// a 1875 × 2491 pt backing store, M4B_CONTRACT §1.6 / M4B-25): it holds a **window** of at most
+/// 2 × 2 screens around the visible part, in content coordinates (paper × zoom, pt). The owner
+/// (`InkCanvasView`) calls `show(visible:zoom:contentSize:)` on every scroll, zoom and layout pass;
+/// while the visible rect stays inside the window at the same zoom only the frame moves (no
+/// redraw), otherwise a new window is made around it and drawn once.
 @MainActor
 final class PaperView: UIView {
     var content: PaperContent {
@@ -161,12 +176,21 @@ final class PaperView: UIView {
         }
     }
 
+    /// The range this view holds, in content coordinates (paper × zoom, pt);
+    /// `frame.size == contentWindow.size`. (Named `window` in M4B_CONTRACT §1.6; `UIView.window`
+    /// is taken.)
+    private(set) var contentWindow: CGRect = .zero
+    /// The zoom the window was made for (a different zoom makes a new window).
+    private var windowZoom: CGFloat = 0
+    /// How many times a redraw was requested (`setNeedsDisplay()`); the tests watch it.
+    private(set) var displayRequestCount = 0
+
     /// - Parameter zoomScale: the initial zoom (the owner sets it again whenever the scroll view zooms).
+    /// The frame starts at `.zero`: the first `show` decides it.
     init(content: PaperContent, zoomScale: CGFloat = 1) {
         self.content = content
         self.zoomScale = zoomScale
-        super.init(frame: CGRect(origin: .zero, size: CGSize(width: content.size.width * zoomScale,
-                                                              height: content.size.height * zoomScale)))
+        super.init(frame: .zero)
         isOpaque = true
         backgroundColor = PaperPalette.paper
         contentMode = .redraw
@@ -179,6 +203,11 @@ final class PaperView: UIView {
         return nil
     }
 
+    override func setNeedsDisplay() {
+        displayRequestCount += 1
+        super.setNeedsDisplay()
+    }
+
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if let scale = window?.screen.scale, scale > 0, scale != contentScaleFactor {
@@ -188,14 +217,54 @@ final class PaperView: UIView {
         }
     }
 
+    /// Tells the view what is visible (content coordinates). When the window already holds
+    /// `visible` at the same zoom, only `frame.origin` moves (nothing is redrawn). Otherwise the
+    /// window becomes `window(for:content:)`, the frame is `(window.origin − visible.origin,
+    /// window.size)` and the view is redrawn.
+    func show(visible: CGRect, zoom: CGFloat, contentSize: CGSize) {
+        if zoomScale != zoom {
+            zoomScale = zoom
+        }
+        let content = CGRect(origin: .zero, size: contentSize)
+        let needed = visible.intersection(content)
+        if windowZoom == zoom, !contentWindow.isEmpty, !needed.isNull, contentWindow.contains(needed) {
+            let origin = CGPoint(x: contentWindow.minX - visible.minX, y: contentWindow.minY - visible.minY)
+            if frame.origin != origin {
+                frame.origin = origin
+            }
+            return
+        }
+        contentWindow = Self.window(for: visible, content: contentSize)
+        windowZoom = zoom
+        frame = CGRect(x: contentWindow.minX - visible.minX, y: contentWindow.minY - visible.minY,
+                       width: contentWindow.width, height: contentWindow.height)
+        setNeedsDisplay()
+    }
+
+    /// `visible` grown by half its width to the left and right and half its height above and below
+    /// (at most 2 × 2 screens), intersected with `(0, 0, content)`. `.zero` when `visible` is not
+    /// finite or empty.
+    static func window(for visible: CGRect, content: CGSize) -> CGRect {
+        guard visible.minX.isFinite, visible.minY.isFinite, visible.width.isFinite, visible.height.isFinite,
+              visible.width > 0, visible.height > 0,
+              content.width.isFinite, content.height.isFinite else { return .zero }
+        let grown = visible.insetBy(dx: -visible.width / 2, dy: -visible.height / 2)
+        let clipped = grown.intersection(CGRect(origin: .zero, size: content))
+        guard !clipped.isNull, clipped.width > 0, clipped.height > 0 else { return .zero }
+        return clipped
+    }
+
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
         let zoom = max(zoomScale, 0.01)
 
         ctx.saveGState()
+        // View coordinates → content coordinates (the window's origin) → paper units.
+        ctx.translateBy(x: -contentWindow.minX, y: -contentWindow.minY)
         ctx.scaleBy(x: zoom, y: zoom)
         // The dirty area in paper units; elements outside it are skipped.
-        let dirty = CGRect(x: rect.minX / zoom, y: rect.minY / zoom, width: rect.width / zoom, height: rect.height / zoom)
+        let dirty = CGRect(x: (rect.minX + contentWindow.minX) / zoom, y: (rect.minY + contentWindow.minY) / zoom,
+                           width: rect.width / zoom, height: rect.height / zoom)
 
         ctx.setFillColor(PaperPalette.paper.cgColor)
         ctx.fill(dirty)

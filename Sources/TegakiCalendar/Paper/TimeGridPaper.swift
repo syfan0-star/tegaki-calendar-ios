@@ -2,7 +2,8 @@ import Layout
 import UIKit
 
 /// Pieces shared by the week and day papers (contract §3.2–3.4): the hour grid and its labels, the
-/// all-day bars / chips, the timed event boxes (web version `createEventBox`) and the now line.
+/// timed event boxes (web version `createEventBox`) and the now line. The all-day band left the
+/// paper in M4b (`AllDayBandView`), so there is nothing here for it any more.
 enum TimeGridPaper {
     // MARK: - Hour grid
 
@@ -36,8 +37,9 @@ enum TimeGridPaper {
         }
         ctx.strokePath()
 
-        // Labels "0:00"…"23:00", right-aligned, 3 lu below each hour line.
-        let size = PaperText.fontSize(labelSize, zoom: zoom)
+        // Labels "0:00"…"23:00", right-aligned, 3 lu below each hour line. The size is capped so
+        // "23:00" fits the gutter (`labelX` = gutter − 8; M4B_CONTRACT §4.1).
+        let size = PaperText.gutterLabelSize(labelSize, zoom: zoom, gutter: labelX + 8)
         let font = UIFont.monospacedDigitSystemFont(ofSize: size, weight: .medium)
         let labelWidth = labelX
         for hour in 0..<24 {
@@ -45,38 +47,6 @@ enum TimeGridPaper {
             let rect = CGRect(x: 0, y: top, width: labelWidth, height: font.lineHeight)
             guard rect.intersects(dirty) else { continue }
             PaperText.drawLine("\(hour):00", in: rect, font: font, color: PaperPalette.ink3, alignment: .right)
-        }
-    }
-
-    // MARK: - All-day band
-
-    /// The 「終日」 label right-aligned in the gutter, 3 lu below the band's top.
-    static func drawBandLabel(_ ctx: CGContext, rightX: CGFloat, top: CGFloat, dirty: CGRect, zoom: CGFloat) {
-        let size = PaperText.fontSize(PaperText.memoLabel, zoom: zoom)
-        let font = UIFont.systemFont(ofSize: size, weight: .semibold)
-        let rect = CGRect(x: 0, y: top + 3, width: rightX, height: font.lineHeight)
-        guard rect.intersects(dirty) else { return }
-        PaperText.drawLine("終日", in: rect, font: font, color: PaperPalette.memoLabel, alignment: .right, kern: size * 0.15)
-    }
-
-    /// All-day bars (week) or chips (day): the event colour, readable text, 4 lu corners that are
-    /// square on a continuing side. `fontScale` is the lane metrics' scale when lanes were thinned.
-    static func drawAllDayBars(_ ctx: CGContext, bars: [AllDayBar], textSize: PaperText.Size, fontScale: CGFloat,
-                               dirty: CGRect, zoom: CGFloat) {
-        let size = PaperText.fontSize(textSize, zoom: zoom) * max(0.1, min(1, fontScale))
-        let font = UIFont.systemFont(ofSize: size, weight: .semibold)
-        let radius: CGFloat = fontScale < 1 ? 2 : 4
-        for bar in bars {
-            let frame = bar.frame
-            guard frame.intersects(dirty), frame.width > 0, frame.height > 0 else { continue }
-            ctx.setFillColor(PaperPalette.color(hex: bar.colorHex).cgColor)
-            ctx.addPath(PaperText.roundedPath(frame, radius: radius, squareLeft: bar.continuesLeft, squareRight: bar.continuesRight))
-            ctx.fillPath()
-            let pad = size * 0.4
-            let textRect = frame.insetBy(dx: pad, dy: 0)
-            if textRect.width > size, frame.height >= size * 0.8 {
-                PaperText.drawLine(bar.title, in: textRect, font: font, color: PaperPalette.readableText(on: bar.colorHex))
-            }
         }
     }
 

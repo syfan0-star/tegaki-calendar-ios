@@ -3,7 +3,9 @@ import UIKit
 
 /// The month page's paper (M2's `PaperView.draw`, moved here unchanged in appearance): grid lines,
 /// date numbers (today / Saturday / Sunday-holiday / outside the month), holiday names, all-day bars,
-/// timed chips and the memo area below the grid.
+/// timed chips and the memo area below the grid. Since M4b the text of a bar or a chip is clipped
+/// to its frame (M4B_CONTRACT §4.2, D4): at the iPhone's minimum zoom a 10 pt label is as tall as
+/// a 20 lu chip, and it must never spill over its neighbours.
 enum MonthPaper: PaperRenderer {
     private static let ruleStep: CGFloat = 50
     private static let ruleInset: CGFloat = 20
@@ -142,15 +144,21 @@ enum MonthPaper: PaperRenderer {
             let alpha: CGFloat = barIsOutsideMonth(bar, layout: content.layout, inMonth: inMonth) ? 0.55 : 1
             let fill = PaperPalette.color(hex: bar.colorHex)
 
+            let path = PaperText.roundedPath(frame, radius: radius, squareLeft: bar.continuesLeft, squareRight: bar.continuesRight)
             ctx.setFillColor(fill.withAlphaComponent(alpha).cgColor)
-            ctx.addPath(PaperText.roundedPath(frame, radius: radius, squareLeft: bar.continuesLeft, squareRight: bar.continuesRight))
+            ctx.addPath(path)
             ctx.fillPath()
 
+            // The title, clipped to the bar's shape (like the week / day boxes).
             let pad = size * 0.4
             let textRect = frame.insetBy(dx: pad, dy: 0)
             if textRect.width > size {
                 let text = PaperPalette.readableText(on: bar.colorHex).withAlphaComponent(alpha)
+                ctx.saveGState()
+                ctx.addPath(path)
+                ctx.clip()
                 PaperText.drawLine(bar.title, in: textRect, font: font, color: text)
+                ctx.restoreGState()
             }
         }
     }
@@ -168,6 +176,11 @@ enum MonthPaper: PaperRenderer {
             let alpha: CGFloat = inMonth.contains(chip.day) ? 1 : 0.55
             let pad = size * 0.35
             var x = frame.minX + pad
+
+            // Everything of the chip (「+n件」, the dot, the time, the title) is clipped to its frame.
+            ctx.saveGState()
+            ctx.clip(to: frame)
+            defer { ctx.restoreGState() }
 
             if chip.moreCount > 0 {
                 let text = chip.title.isEmpty ? "+\(chip.moreCount)件" : chip.title

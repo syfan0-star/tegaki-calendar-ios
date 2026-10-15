@@ -8,10 +8,12 @@ import XCTest
 /// a `PKStroke` keeps its fingerprint when its `transform` changes, a new stroke gets an id and the
 /// cell under its centre, an erased stroke gets a tombstone, undo re-adds a clone with a fresh id,
 /// a relayout moves the strokes without producing a diff; and on the week / day / year pages the
-/// strokes go to the all-day band, the time grid (which never grows) or the year cell of the date
-/// gutter (January, negative x), and the ledger never mixes pages. M4 (contract §5.4, §8.3): a
-/// `reload` keeps the fingerprint map, so a remote update landing while the pen is down neither
-/// duplicates the canvas's strokes nor revives a stroke another device erased.
+/// strokes go to the time grid (the one cell of the week / day paper since M4b, which never grows;
+/// above it too, with a negative y) or the year cell of the date gutter (January, negative x), and
+/// the ledger never mixes pages. M4 (contract §5.4, §8.3): a `reload` keeps the fingerprint map, so
+/// a remote update landing while the pen is down neither duplicates the canvas's strokes nor
+/// revives a stroke another device erased. M4b (M4B_CONTRACT §3.3, §7.2): the strokes of the former
+/// all-day band are moved onto the grid on `init` and `reload`, with the fingerprint map kept.
 @MainActor
 final class InkLedgerTests: XCTestCase {
     private let month = YearMonth(year: 2026, month: 10)
@@ -231,39 +233,42 @@ final class InkLedgerTests: XCTestCase {
 
     // MARK: Week
 
-    func testWeekBandStrokeBelongsToThatDaysAllDayCell() {
+    func testWeekStrokeAboveTheGridBelongsToTheGrid() {
         let layout = makeWeekLayout()
         XCTAssertEqual(layout.pageId, "w-2026-10-05")
+        XCTAssertEqual(layout.cells.count, 1, "the week paper is one cell since M4b")
+        XCTAssertNil(layout.cells[.allDay(DayKey(year: 2026, month: 10, day: 7))], "no band cell on the paper")
         let ledger = InkLedger(page: InkPage.empty(pageId: layout.pageId), layout: layout)
         _ = ledger.drawing()
 
-        let wednesday = DayKey(year: 2026, month: 10, day: 7)
-        guard let cell = layout.cells[.allDay(wednesday)] else { return XCTFail("no all-day cell for \(wednesday)") }
-        XCTAssertEqual(cell.minY, 0, accuracy: 0.001)
-        let bandStroke = makeStroke(at: CGPoint(x: cell.minX + 20, y: cell.minY + 10))
-        let change = ledger.applyCanvasChange(PKDrawing(strokes: [bandStroke]))
+        // Above the paper (y −10, where the band used to be): the grid, with the negative y kept.
+        let aboveStroke = makeStroke(at: CGPoint(x: 64 + 2 * PaperSpec.weekColumnWidth + 20, y: -10))
+        let change = ledger.applyCanvasChange(PKDrawing(strokes: [aboveStroke]))
         XCTAssertEqual(change.added.count, 1)
         guard let added = change.added.first else { return }
-        XCTAssertEqual(added.cell, CellKey.allDay(wednesday))
-        XCTAssertEqual(added.cell.raw, "allday:2026-10-07")
-        XCTAssertEqual(added.points[0].x, 20, accuracy: 0.11)
-        XCTAssertEqual(added.points[0].y, 10, accuracy: 0.11)
-        XCTAssertFalse(ledger.needsMoreRoom(added), "10 lu of ink fits in a 60 lu band")
+        XCTAssertEqual(added.cell, CellKey.grid)
+        XCTAssertEqual(added.cell.raw, "grid")
+        XCTAssertEqual(added.points[0].x, 64 + 2 * PaperSpec.weekColumnWidth + 20, accuracy: 0.11)
+        XCTAssertEqual(added.points[0].y, -10, accuracy: 0.11)
+        XCTAssertFalse(ledger.needsMoreRoom(added), "the grid never grows")
 
-        // Writing near the bottom of the band asks the band to grow (it is a growing cell).
-        let lowStroke = makeStroke(at: CGPoint(x: cell.minX + 40, y: cell.maxY - 8), creationDate: Date(timeIntervalSince1970: 1_790_000_003))
-        let low = ledger.applyCanvasChange(PKDrawing(strokes: [bandStroke, lowStroke]))
-        XCTAssertEqual(low.added.count, 1)
-        XCTAssertTrue(low.removedIds.isEmpty)
-        XCTAssertEqual(low.added.first?.cell, CellKey.allDay(wednesday))
-        XCTAssertTrue(ledger.needsMoreRoom(low.added[0]))
-
-        // The time gutter above the band (x < 64) belongs to Monday's band, with a negative x.
+        // The time gutter (x < 64) belongs to the grid too, with its paper x.
         let gutterStroke = makeStroke(at: CGPoint(x: 10, y: 10), creationDate: Date(timeIntervalSince1970: 1_790_000_004))
-        let gutter = ledger.applyCanvasChange(PKDrawing(strokes: [bandStroke, lowStroke, gutterStroke]))
+        let gutter = ledger.applyCanvasChange(PKDrawing(strokes: [aboveStroke, gutterStroke]))
         XCTAssertEqual(gutter.added.count, 1)
-        XCTAssertEqual(gutter.added.first?.cell, CellKey.allDay(DayKey(year: 2026, month: 10, day: 5)))
-        XCTAssertEqual(gutter.added[0].points[0].x, 10 - PaperSpec.weekGutter, accuracy: 0.11)
+        XCTAssertTrue(gutter.removedIds.isEmpty)
+        XCTAssertEqual(gutter.added.first?.cell, CellKey.grid)
+        XCTAssertEqual(gutter.added[0].points[0].x, 10, accuracy: 0.11)
+        XCTAssertEqual(gutter.added[0].points[0].y, 10, accuracy: 0.11)
+        XCTAssertFalse(ledger.needsMoreRoom(gutter.added[0]))
+
+        // The drawing places both from the paper's origin (the grid is (0, 0, 1400, 1920)).
+        let drawing = ledger.drawing()
+        XCTAssertEqual(drawing.strokes.count, 2)
+        for pk in drawing.strokes {
+            XCTAssertEqual(pk.transform.tx, 0, accuracy: 0.001)
+            XCTAssertEqual(pk.transform.ty, 0, accuracy: 0.001)
+        }
     }
 
     func testWeekGridStrokeBelongsToGridAndNeverAsksForRoom() {
@@ -289,54 +294,34 @@ final class InkLedgerTests: XCTestCase {
         XCTAssertEqual(middle?.points[0].y ?? -1, 500, accuracy: 0.11)
     }
 
-    func testWeekBandGrowthMovesGridStrokesWithoutDiff() {
-        let layout = makeWeekLayout()
+    // MARK: Day
+
+    func testDayStrokesAllGoToTheGrid() {
+        let layout = makeDayLayout()
+        XCTAssertEqual(layout.pageId, "d-2026-10-07")
+        XCTAssertEqual(layout.cells.count, 1, "the day paper is one cell since M4b")
+        XCTAssertNil(layout.cells[.allDayDay], "no band cell on the paper")
         let ledger = InkLedger(page: InkPage.empty(pageId: layout.pageId), layout: layout)
         _ = ledger.drawing()
         guard let grid = layout.cells[.grid] else { return XCTFail("no grid cell") }
-        _ = ledger.applyCanvasChange(PKDrawing(strokes: [makeStroke(at: CGPoint(x: 300, y: grid.minY + 500))]))
-
-        // Ink down to 100 lu in Monday's band: the band becomes 112 (100 + 12), the grid moves by 52.
-        let monday = DayKey(year: 2026, month: 10, day: 5)
-        let taller = makeWeekLayout(inkBottoms: [.allDay(monday): 100, .grid: 5000])
-        guard let newGrid = taller.cells[.grid] else { return XCTFail("no grid cell after relayout") }
-        XCTAssertEqual(newGrid.minY - grid.minY, 52, accuracy: 0.001)
-        XCTAssertEqual(newGrid.height, PaperSpec.weekGridHeight, accuracy: 0.001, "inkBottoms of the grid are ignored")
-
-        let drawing = ledger.relayout(taller)
-        XCTAssertEqual(drawing.strokes.count, 1)
-        guard let placed = drawing.strokes.first else { return }
-        XCTAssertEqual(placed.transform.ty, newGrid.minY, accuracy: 0.001)
-        XCTAssertEqual(placed.path[0].location.applying(placed.transform).y, newGrid.minY + 500, accuracy: 0.11)
-
-        ledger.bind(to: drawing)
-        let change = ledger.applyCanvasChange(drawing)
-        XCTAssertTrue(change.isEmpty, "relayout must not add or remove strokes")
-        XCTAssertEqual(ledger.page.liveStrokes.count, 1)
-        XCTAssertEqual(PageScroll.scrollDelta(old: layout, new: taller, topVisibleY: grid.minY + 10), 52, accuracy: 0.001)
-        XCTAssertEqual(PageScroll.scrollDelta(old: layout, new: taller, topVisibleY: 10), 0, accuracy: 0.001)
-    }
-
-    // MARK: Day
-
-    func testDayStrokesGoToBandOrGrid() {
-        let layout = makeDayLayout()
-        XCTAssertEqual(layout.pageId, "d-2026-10-07")
-        let ledger = InkLedger(page: InkPage.empty(pageId: layout.pageId), layout: layout)
-        _ = ledger.drawing()
-        guard let band = layout.cells[.allDayDay], let grid = layout.cells[.grid] else { return XCTFail("no cells") }
-        XCTAssertEqual(band.width, PaperSpec.dayWidth, accuracy: 0.001, "the band is one cell across the whole width")
+        XCTAssertEqual(grid.minY, 0, accuracy: 0.001, "the grid starts at the paper's top")
+        XCTAssertEqual(grid.width, PaperSpec.dayWidth, accuracy: 0.001, "the grid is the whole width (memo area included)")
 
         let change = ledger.applyCanvasChange(PKDrawing(strokes: [
-            makeStroke(at: CGPoint(x: 900, y: 20)),                                                     // band, above the memo column
-            makeStroke(at: CGPoint(x: 900, y: grid.minY + 1000), creationDate: Date(timeIntervalSince1970: 1_790_000_006)),  // memo column of the grid
-            makeStroke(at: CGPoint(x: 30, y: grid.minY + 1000), creationDate: Date(timeIntervalSince1970: 1_790_000_007)),   // time gutter of the grid
+            makeStroke(at: CGPoint(x: 900, y: 20)),                                                     // top of the memo column
+            makeStroke(at: CGPoint(x: 900, y: grid.minY + 1000), creationDate: Date(timeIntervalSince1970: 1_790_000_006)),  // memo column
+            makeStroke(at: CGPoint(x: 30, y: grid.minY + 1000), creationDate: Date(timeIntervalSince1970: 1_790_000_007)),   // time gutter
         ]))
         XCTAssertEqual(change.added.count, 3)
-        let cells = change.added.map { $0.cell.raw }.sorted()
-        XCTAssertEqual(cells, ["allday", "grid", "grid"])
-        for stroke in change.added where stroke.cell == .grid {
+        let cells = change.added.map { $0.cell.raw }
+        XCTAssertEqual(cells, ["grid", "grid", "grid"])
+        for stroke in change.added {
             XCTAssertFalse(ledger.needsMoreRoom(stroke))
+        }
+        let top = change.added.first { $0.points[0].y < 100 }
+        XCTAssertEqual(top?.points[0].x ?? -1, 900, accuracy: 0.11)
+        XCTAssertEqual(top?.points[0].y ?? -1, 20, accuracy: 0.11)
+        for stroke in change.added where stroke.points[0].y > 100 {
             XCTAssertEqual(stroke.points[0].y, 1000, accuracy: 0.11)
         }
     }
@@ -525,11 +510,13 @@ final class InkLedgerTests: XCTestCase {
         XCTAssertEqual(ledger.drawing().strokes.count, 2)
     }
 
+    /// (The name is the contract's, M4B_CONTRACT §7.2: the "band" is the top of the paper now.)
     func testMoveAcrossTheWeekBandKeepsGridStrokesOnTheGrid() {
         let layout = makeWeekLayout()
         let ledger = InkLedger(page: InkPage.empty(pageId: layout.pageId), layout: layout)
         _ = ledger.drawing()
         guard let grid = layout.cells[.grid] else { return XCTFail("no grid cell") }
+        XCTAssertEqual(grid.minY, 0, accuracy: 0.001)
         let change = ledger.applyCanvasChange(PKDrawing(strokes: [makeStroke(at: CGPoint(x: 300, y: grid.minY + 500))]))
         guard let id = change.added.first?.id else { return XCTFail("stroke was not added") }
 
@@ -540,16 +527,20 @@ final class InkLedgerTests: XCTestCase {
         XCTAssertEqual(moved.change.added[0].points[0].y, 660, accuracy: 0.11)
         XCTAssertFalse(ledger.needsMoreRoom(moved.change.added[0]), "the grid never grows")
 
-        // Up into the band: the clone belongs to the band cell of its column (x 300 is the second
-        // column, Tuesday 10/06: 64 + 190.86 ≤ 300 < 64 + 2 × 190.86).
-        let tuesday = DayKey(year: 2026, month: 10, day: 6)
-        guard let band = layout.cells[.allDay(tuesday)] else { return XCTFail("no band cell") }
-        XCTAssertTrue(band.minX <= 300 && 300 < band.maxX, "x 300 is Tuesday's column")
-        let up = ledger.moveStrokes(ids: moved.newIds, by: CGVector(dx: 0, dy: -(660 + grid.minY) + 10))
+        // Up to the top of the paper (where the band used to be): still the grid, y 10.
+        let up = ledger.moveStrokes(ids: moved.newIds, by: CGVector(dx: 0, dy: -660 + 10))
         XCTAssertEqual(up.change.added.count, 1)
-        XCTAssertEqual(up.change.added[0].cell, CellKey.allDay(tuesday))
-        XCTAssertEqual(up.change.added[0].points[0].x, 300 - band.minX, accuracy: 0.11)
+        XCTAssertEqual(up.change.added[0].cell, CellKey.grid)
+        XCTAssertEqual(up.change.added[0].points[0].x, 300, accuracy: 0.11)
         XCTAssertEqual(up.change.added[0].points[0].y, 10, accuracy: 0.11)
+
+        // Above the paper: still the grid, with a negative y.
+        let above = ledger.moveStrokes(ids: up.newIds, by: CGVector(dx: 0, dy: -40))
+        XCTAssertEqual(above.change.added.count, 1)
+        XCTAssertEqual(above.change.added[0].cell, CellKey.grid)
+        XCTAssertEqual(above.change.added[0].points[0].y, -30, accuracy: 0.11)
+        XCTAssertFalse(ledger.needsMoreRoom(above.change.added[0]))
+        XCTAssertEqual(ledger.drawing().strokes.count, 1, "a stroke above the paper is still drawn (from the grid's origin)")
     }
 
     func testPaperBoundsIsNilForStrokesTheLayoutCannotPlace() {
@@ -566,6 +557,106 @@ final class InkLedgerTests: XCTestCase {
         guard let memoCell = layout.cells[.memo] else { return XCTFail("no memo cell") }
         XCTAssertEqual(ledger.paperBounds(ids: ["orphan", "memo"])?.minX ?? -1, memoCell.minX + 10 - 1.5, accuracy: 0.001)
         XCTAssertEqual(ledger.drawing().strokes.count, 1)
+    }
+
+    // MARK: The former band's strokes (M4B_CONTRACT §3.3, §3.5, §7.2)
+
+    /// A stored stroke with the given cell-relative points.
+    private func makeInkStroke(id: String, cell: CellKey, t: Int, points: [(CGFloat, CGFloat)]) -> InkStroke {
+        let pts = points.enumerated().map { i, p in
+            InkPoint(x: p.0, y: p.1, dtMs: i * 16, sizeW: 3.5, sizeH: 3.5, opacity: 1, force: 0.5, azimuth: 0, altitude: .pi / 2)
+        }
+        return InkStroke(id: id, cell: cell, tool: .pen, color: "#1f2937", t: t, dev: "ipad-1", points: pts)
+    }
+
+    /// The sample week page of M4B_CONTRACT §3.5 in its old form (the band's cells).
+    private func makeOldBandWeekPage() -> InkPage {
+        var page = InkPage.empty(pageId: "w-2026-10-05")
+        page.add(makeInkStroke(id: "a1", cell: .allDay(DayKey(year: 2026, month: 10, day: 7)), t: 1_760_150_400_123, points: [(12, 40), (17, 43), (22, 40)]))
+        page.add(makeInkStroke(id: "a2", cell: .allDay(DayKey(year: 2026, month: 10, day: 5)), t: 1_760_150_400_200, points: [(5, -5), (10, 2)]))
+        page.add(makeInkStroke(id: "a3", cell: .grid, t: 1_760_150_400_300, points: [(300, 500)]))
+        page.add(makeInkStroke(id: "a4", cell: .allDay(DayKey(year: 2026, month: 10, day: 19)), t: 1_760_150_400_400, points: [(0, 0)]))
+        page.add(makeInkStroke(id: "a5", cell: CellKey(raw: "allday:xx"), t: 1_760_150_400_500, points: [(1, 1)]))
+        page.remove(ids: ["zz"], at: 1_760_000_000_500)
+        return page
+    }
+
+    func testLedgerMigratesBandStrokesOnInitAndReload() {
+        let layout = makeWeekLayout()
+        let old = makeOldBandWeekPage()
+        XCTAssertTrue(BandMigration.needsMigration(old))
+        let colW = PaperSpec.weekColumnWidth
+
+        // init: the page comes in migrated (the ids are kept, the band strokes are on the grid).
+        let ledger = InkLedger(page: old, layout: layout)
+        XCTAssertFalse(BandMigration.needsMigration(ledger.page))
+        XCTAssertEqual(ledger.page.pageId, "w-2026-10-05")
+        XCTAssertEqual(Set(ledger.page.liveStrokeIds), ["a1", "a2", "a3", "a4", "a5"])
+        XCTAssertEqual(ledger.page.deleted, ["zz": 1_760_000_000_500], "the tombstones are untouched")
+        XCTAssertEqual(ledger.page.updatedAt, old.updatedAt, "updatedAt is untouched")
+        guard let a1 = ledger.page.strokes["a1"], let a2 = ledger.page.strokes["a2"] else { return XCTFail("a1 / a2 missing") }
+        XCTAssertEqual(a1.cell, CellKey.grid)
+        XCTAssertEqual(a1.points.count, 3)
+        XCTAssertEqual(a1.points[0].x, 457.7, accuracy: 0.11, "12 + 64 + 2 × 190.857")
+        XCTAssertEqual(a1.points[0].x, 12 + 64 + 2 * colW, accuracy: 0.11)
+        XCTAssertEqual(a1.points[0].y, 40, accuracy: 0.11)
+        XCTAssertEqual(a1.points[2].x, 22 + 64 + 2 * colW, accuracy: 0.11)
+        XCTAssertEqual(a1.points[2].y, 40, accuracy: 0.11)
+        XCTAssertEqual(a1.t, 1_760_150_400_123)
+        XCTAssertEqual(a1.dev, "ipad-1")
+        XCTAssertEqual(a2.cell, CellKey.grid)
+        XCTAssertEqual(a2.points[0].x, 69, accuracy: 0.11)
+        XCTAssertEqual(a2.points[0].y, -5, accuracy: 0.11, "a negative y is kept (M4B-26)")
+        XCTAssertEqual(ledger.page.strokes["a3"], old.strokes["a3"], "a grid stroke is untouched")
+        XCTAssertEqual(ledger.page.strokes["a4"]?.cell, CellKey.grid)
+        XCTAssertEqual(ledger.page.strokes["a4"]?.points[0].x ?? -1, 64 + 6 * colW, accuracy: 0.11, "a day outside the week → column 6")
+        XCTAssertEqual(ledger.page.strokes["a5"]?.cell, CellKey.grid)
+        XCTAssertEqual(ledger.page.strokes["a5"]?.points[0].x ?? -1, 65, accuracy: 0.11, "a broken key → column 0")
+
+        // All five strokes are drawn, from the grid's origin, at their migrated places.
+        let drawing = ledger.drawing()
+        XCTAssertEqual(drawing.strokes.count, 5)
+        ledger.bind(to: drawing)
+        let placedA1 = drawing.strokes.first { ledger.id(of: $0) == "a1" }
+        XCTAssertNotNil(placedA1)
+        XCTAssertEqual(placedA1?.transform.tx ?? -1, 0, accuracy: 0.001)
+        XCTAssertEqual(placedA1?.path[0].location.applying(placedA1?.transform ?? .identity).x ?? -1, 457.7, accuracy: 0.11)
+        XCTAssertEqual(placedA1?.path[0].location.applying(placedA1?.transform ?? .identity).y ?? -1, 40, accuracy: 0.11)
+        XCTAssertEqual(ledger.paperBounds(of: "a1")?.minX ?? -1, 457.7 - 1.75, accuracy: 0.2)
+        XCTAssertTrue(ledger.applyCanvasChange(drawing).isEmpty, "what the canvas holds is exactly what the ledger built")
+
+        // reload with the old form again (iCloud still has it): the same result, and the
+        // fingerprint map is kept, so the drawing the canvas holds is still no change.
+        ledger.reload(page: old, keepHistory: true)
+        XCTAssertFalse(BandMigration.needsMigration(ledger.page))
+        XCTAssertEqual(ledger.page.strokes["a1"], a1)
+        XCTAssertEqual(ledger.page.strokes["a2"], a2)
+        XCTAssertEqual(Set(ledger.page.liveStrokeIds), ["a1", "a2", "a3", "a4", "a5"])
+        XCTAssertTrue(ledger.applyCanvasChange(drawing).isEmpty, "the fingerprint map survives the reload")
+        XCTAssertEqual(ledger.drawing().strokes.count, 5)
+
+        // A page that needs no migration comes in as it is (==).
+        let migrated = BandMigration.migrate(old)
+        ledger.reload(page: migrated, keepHistory: true)
+        XCTAssertEqual(ledger.page, migrated)
+        XCTAssertEqual(ledger.page, BandMigration.migrate(ledger.page), "idempotent")
+    }
+
+    func testLedgerMigratesTheDayBandOnInit() {
+        let layout = makeDayLayout()
+        var old = InkPage.empty(pageId: "d-2026-10-07")
+        old.add(makeInkStroke(id: "b1", cell: .allDayDay, t: 1_760_150_400_123, points: [(800, 30)]))
+        old.add(makeInkStroke(id: "b2", cell: .allDayDay, t: 1_760_150_400_200, points: [(100, -20), (120, -10)]))
+        old.add(makeInkStroke(id: "b3", cell: .grid, t: 1_760_150_400_300, points: [(100, 500)]))
+        let ledger = InkLedger(page: old, layout: layout)
+        XCTAssertFalse(BandMigration.needsMigration(ledger.page))
+        XCTAssertEqual(ledger.page.strokes["b1"]?.cell, CellKey.grid)
+        XCTAssertEqual(ledger.page.strokes["b1"]?.points[0].x ?? -1, 800, accuracy: 0.11, "the day band's origin was the paper's: x unchanged")
+        XCTAssertEqual(ledger.page.strokes["b1"]?.points[0].y ?? -1, 30, accuracy: 0.11)
+        XCTAssertEqual(ledger.page.strokes["b2"]?.cell, CellKey.grid)
+        XCTAssertEqual(ledger.page.strokes["b2"]?.points[0].y ?? -1, -20, accuracy: 0.11)
+        XCTAssertEqual(ledger.page.strokes["b3"], old.strokes["b3"])
+        XCTAssertEqual(ledger.drawing().strokes.count, 3, "all three are on the grid and drawn")
     }
 
     // MARK: Pages are never mixed

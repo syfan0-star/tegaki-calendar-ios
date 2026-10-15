@@ -7,7 +7,8 @@ public enum PageKind: String, CaseIterable, Codable, Sendable {
 }
 
 /// A horizontal band of a page used as the reference of the scroll correction (DESIGN §3.5).
-/// Month: "row:0"…"row:5", "memo". Week / day: "allday", "grid". Year: "row:1"…"row:31".
+/// Month: "row:0"…"row:5", "memo". Week / day: "grid" (the "allday" band left the paper in M4b; the
+/// value stays as a type, the week / day pages no longer return it). Year: "row:1"…"row:31".
 public struct PageBand: Hashable, Sendable, CustomStringConvertible {
     public let raw: String
 
@@ -44,8 +45,8 @@ public enum HitTarget: Equatable, Sendable {
     case date(DayKey)
 }
 
-/// The current-time line (week / day). `y` is in paper coordinates (the band height is included);
-/// `x0…x1` is today's column (week) or the timeline column (day).
+/// The current-time line (week / day). `y` is in paper coordinates (the grid starts at the paper's
+/// top since M4b); `x0…x1` is today's column (week) or the timeline column (day).
 public struct NowLine: Equatable, Sendable {
     public var y: CGFloat
     public var x0: CGFloat

@@ -13,8 +13,9 @@ import Layout
 /// canvas appeared; writes are no-ops. The sync engine is `SyncEngine.screenshotDemo(now:)` (M4
 /// contract §6.6): the header shows 「☁ 保存済み」 and nothing touches iCloud. Never active unless
 /// `--screenshot-mode` is present.
-/// (No landscape variant: iPadOS refuses a programmatic orientation change for an app that supports
-/// multitasking, and simctl cannot rotate the device.)
+/// Landscape (M4B contract §6.4): only an iPhone turns with `--screenshot-landscape`
+/// (`UIWindowScene.requestGeometryUpdate`); an iPad cannot, because iPadOS ignores the request for
+/// an app that supports multitasking (and simctl cannot rotate the device).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6).
     enum Sheet: String, CaseIterable, Sendable {
@@ -30,6 +31,9 @@ enum ScreenshotMode {
         var focus: DayKey
         /// The sheet to open on the month page; nil = none (`--screenshot-page` then decides the page).
         var sheet: Sheet?
+        /// `--screenshot-landscape`: the screen asks the window scene for landscape once it is active
+        /// (M4B contract §6.4; an iPhone follows, an iPad does not).
+        var landscape: Bool = false
     }
 
     /// Parsed once from the launch arguments; nil in normal use.
@@ -55,7 +59,8 @@ enum ScreenshotMode {
         }
         // A sheet always sits on the month page (M3b contract §5): it wins over `--screenshot-page`.
         if sheet != nil { page = .month }
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet)
+        let landscape = arguments.contains("--screenshot-landscape")
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape)
     }
 
     /// "2026-10" → 2026年10月; nil for anything else.
@@ -255,15 +260,15 @@ enum ScreenshotMode {
         return page
     }
 
-    /// Week: a wavy pen stroke in the Wednesday band cell (below the bar lane, its ink bottom under
-    /// 48 so the band keeps its base height 60), a marker across the top of the 10:00 打合せ box of
-    /// `focus` (the box starts at grid y 800 in that day's column).
+    /// Week: a wavy pen stroke on the grid at the top of the Wednesday column (y 40 ± 5, just under
+    /// 0:00; the same place the M3a–M4 band stroke of that cell lands after `BandMigration`, so the
+    /// demo needs no migration itself, M4B contract §2.7), a marker across the top of the 10:00
+    /// 打合せ box of `focus` (the box starts at grid y 800 in that day's column).
     private static func weekDemoPage(focus: DayKey) -> InkPage {
         var page = InkPage.empty(pageId: PageNavigation.pageId(.week, focus: focus))
-        let monday = PageNavigation.mondayOnOrBefore(focus)
-        let wednesday = monday.adding(days: 2)
-        page.add(InkStroke(id: "demo-stroke-week-wave", cell: .allDay(wednesday), tool: .pen, color: "#1f2937", t: baseTime,
-                           points: wave(x0: 12, y0: 40, count: 30, step: 5.2, amplitude: 5)))
+        let wednesdayX = PaperSpec.weekGutter + 2 * PaperSpec.weekColumnWidth
+        page.add(InkStroke(id: "demo-stroke-week-wave", cell: .grid, tool: .pen, color: "#1f2937", t: baseTime,
+                           points: wave(x0: wednesdayX + 12, y0: 40, count: 30, step: 5.2, amplitude: 5)))
         let column = CGFloat((focus.weekday + 6) % 7)
         let columnX = PaperSpec.weekGutter + column * PaperSpec.weekColumnWidth
         let boxTop = 10 * PaperSpec.weekHourHeight + 10
@@ -272,11 +277,12 @@ enum ScreenshotMode {
         return page
     }
 
-    /// Day: a pen circle in the band (over the memo column, so it does not cover the chips) and two
-    /// wavy pen lines in the memo area of the grid (x ≥ 660).
+    /// Day: a pen circle at the top of the memo column (grid (800, 30): where the M3a–M4 band
+    /// stroke lands after `BandMigration`, M4B contract §2.7) and two wavy pen lines lower in the
+    /// memo area (x ≥ 660).
     private static func dayDemoPage(focus: DayKey) -> InkPage {
         var page = InkPage.empty(pageId: PageNavigation.pageId(.day, focus: focus))
-        page.add(InkStroke(id: "demo-stroke-day-circle", cell: .allDayDay, tool: .pen, color: "#2563eb", t: baseTime,
+        page.add(InkStroke(id: "demo-stroke-day-circle", cell: .grid, tool: .pen, color: "#2563eb", t: baseTime,
                            points: circle(cx: 800, cy: 30, radius: 14, count: 24, nib: 3.5)))
         let memoLeft = PaperSpec.dayTimelineRight + 30
         page.add(InkStroke(id: "demo-stroke-day-wave1", cell: .grid, tool: .pen, color: "#1f2937", t: baseTime + 1_000,

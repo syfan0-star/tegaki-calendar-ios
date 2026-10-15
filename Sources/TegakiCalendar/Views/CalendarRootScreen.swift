@@ -17,19 +17,28 @@ struct EventEditorRequest: Identifiable {
     var pageId: String
 }
 
-/// The app's one screen (M3a contract §4.1, M3b §4.5, M4 §5.3–§6.4): the header (◀ 今日 ▶, the
-/// title, the 日/週/月/年 switch, ＋予定, ☁ sync state, ⚙), the sticky heading of the page, the paper
+/// The app's one screen (M3a contract §4.1, M3b §4.5, M4 §5.3–§6.4, M4B §2.6 / §3.3 / §5 / §6.4):
+/// the header (◀ 今日 ▶, the title, the 日/週/月/年 switch, ＋予定, ☁ sync state, ⚙), the sticky
+/// heading of the page, the fixed all-day band of the week / day page (`AllDayBandView`), the paper
 /// with the PencilKit canvas (`InkCanvasView`, 担当 I) and the lasso menu floating over it, the
 /// toolbar, the toast, and the sheets (event create / edit / view, settings, the web import's file
 /// picker and progress sheet, the iCloud account question).
 ///
 /// Flow: `(kind, focus)` is chosen → `saveNow()` → `SyncEngine.load(pageId)` (+ `pageOpened`, which
-/// fetches that one page from iCloud) → `EventStoreModel.load(kind:focus:)` → the page's layout
-/// engine → `InkCanvasView(...).id(pageId)`. Ink changes are saved through `SyncEngine.save` 1.5 s
-/// after the last one, before leaving the page, and when the app goes to the background (the engine
-/// writes the file and sends it to iCloud 1.5 s later). Events changing or the ink growing past a
-/// band's bottom re-run the layout with fresh `inkBottoms`. On the week and day pages a 30 s tick
-/// moves the now line.
+/// fetches that one page from iCloud) → `BandMigration.migrate` (M4b: the week / day band's
+/// handwriting moves onto the grid; a page that changed is saved again) → `EventStoreModel.load
+/// (kind:focus:)` → the page's layout engine → `InkCanvasView(...).id(pageId)`. Ink changes are
+/// saved through `SyncEngine.save` 1.5 s after the last one, before leaving the page, and when the
+/// app goes to the background (the engine writes the file and sends it to iCloud 1.5 s later).
+/// Events changing or the ink growing past a cell's bottom re-run the layout with fresh
+/// `inkBottoms`. On the week and day pages a 30 s tick moves the now line.
+///
+/// Horizontal scrolling (M4b): the canvas reports its horizontal offset, zoom and width through
+/// `onViewportChange` (`PaperViewport`); the sticky header and the band are placed with it, so
+/// their columns stay over the paper's. Until the first report, `PaperViewport.initial` (offset 0
+/// at the page's minimum zoom) stands in. The first horizontal position of a page is
+/// `PageNavigation.initialScrollX` (today's column on the month / week page, this month's column on
+/// the year page). The compact header (< 600 pt) shows `PageNavigation.compactTitle`.
 ///
 /// Sync (M4): a page the engine changed from iCloud (a pull, a push conflict, an import) arrives
 /// through `onRemoteUpdate` and is merged into the shown page without touching the canvas history
@@ -93,6 +102,14 @@ struct CalendarRootScreen: View {
     @State private var saveError: String?
     @State private var appeared = false
 
+    // M4b: the paper's horizontal offset / zoom for the sticky header and the band, and the one-off
+    // landscape request of the CI's iPhone screenshots.
+    /// The canvas's last report (`onViewportChange`); `.zero` (width 0) until the first one, when
+    /// `PaperViewport.initial` stands in (M4B contract §2.6).
+    @State private var viewport = PaperViewport.zero
+    /// `--screenshot-landscape`: the orientation was requested once (M4B contract §6.4).
+    @State private var landscapeRequested = false
+
     /// How often the now line is moved (M3a contract §4.1).
     static let nowTickSeconds: Double = 30
     /// Below this width the header takes two rows (M3b contract §4.6).
@@ -146,10 +163,13 @@ struct CalendarRootScreen: View {
     var body: some View {
         GeometryReader { proxy in
             let compact = proxy.size.width < Self.compactWidth
+            // The first frame of a page has no report from its canvas yet: offset 0 at the page's
+            // minimum zoom, the same position the canvas starts from (M4B contract §2.6).
+            let shownViewport = viewport.width == 0 ? PaperViewport.initial(kind, viewportWidth: proxy.size.width) : viewport
             VStack(spacing: 0) {
                 PageHeaderView(
                     kind: kind,
-                    title: PageNavigation.title(kind, focus: focus),
+                    title: compact ? PageNavigation.compactTitle(kind, focus: focus) : PageNavigation.title(kind, focus: focus),
                     compact: compact,
                     onPrevious: { move(by: -1) },
                     onToday: goToday,
@@ -167,10 +187,27 @@ struct CalendarRootScreen: View {
                 StickyHeaderView(
                     paper: paper,
                     now: now,
+                    viewport: shownViewport,
                     onDayTap: { show(kind: .day, focus: $0) },
                     onMonthTap: { show(kind: .month, focus: $0.firstDay) }
                 )
-                canvas
+                // The band and the canvas share this area; its height is the base of the band's
+                // 35 % cap (M4B contract §2.2 / §2.6).
+                GeometryReader { area in
+                    VStack(spacing: 0) {
+                        if let band = paper.allDayBand {
+                            AllDayBandView(
+                                band: band,
+                                viewport: shownViewport,
+                                pageHeight: area.size.height,
+                                onBarTap: openEdit(eventId:),
+                                onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) }
+                            )
+                        }
+                        canvas(viewportWidth: proxy.size.width)
+                    }
+                    .frame(width: area.size.width, height: area.size.height, alignment: .top)
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -254,8 +291,10 @@ struct CalendarRootScreen: View {
     // MARK: - Pieces
 
     /// The canvas (担当 I) with the lasso menu floating over it. The argument order follows
-    /// M3B_CONTRACT.md §3.3 (the M3a arguments, then the M3b ones).
-    private var canvas: some View {
+    /// M3B_CONTRACT.md §3.3 (the M3a arguments, then the M3b ones) and M4B_CONTRACT.md §1.3
+    /// (`initialScrollX` right after `initialScrollY`, `onViewportChange` last). `viewportWidth` is
+    /// the screen's width: the canvas has no horizontal padding, so it is the canvas's width too.
+    private func canvas(viewportWidth: CGFloat) -> some View {
         InkCanvasView(
             layout: layout,
             paper: paper,
@@ -263,6 +302,11 @@ struct CalendarRootScreen: View {
             allowFinger: allowFinger,
             page: pageBinding,
             initialScrollY: PageNavigation.initialScrollY(layout, now: now),
+            initialScrollX: PageNavigation.initialScrollX(
+                layout,
+                now: now,
+                visibleWidth: ZoomPolicy.visibleWidth(kind, viewportWidth: viewportWidth)
+            ),
             onTap: handleTap,
             onInkBoundsChanged: inkBoundsChanged,
             undoTrigger: undoTrigger,
@@ -274,7 +318,8 @@ struct CalendarRootScreen: View {
             onEventPreview: eventPreview,
             command: command,
             commandTrigger: commandTrigger,
-            initialSelectionIds: initialSelectionIds
+            initialSelectionIds: initialSelectionIds,
+            onViewportChange: { viewport = $0 }
         )
         .id(pageId)
         .overlay(alignment: .topLeading) {
@@ -419,6 +464,8 @@ struct CalendarRootScreen: View {
                 showScreenshotSheet(sheet)
             }
         }
+        // M4B contract §6.4: the window scene may not exist yet here; `.active` tries again.
+        requestLandscapeOnce()
     }
 
     private func scenePhaseChanged() {
@@ -434,8 +481,23 @@ struct CalendarRootScreen: View {
             // M4 contract §5.3: one sync round on every return to the foreground (catches up what a
             // silent push did not deliver).
             sync.applicationDidBecomeActive()
+            requestLandscapeOnce()
         @unknown default:
             break
+        }
+    }
+
+    /// `--screenshot-landscape` (M4B contract §6.4): asks the window scene for landscape once. An
+    /// iPhone follows; iPadOS ignores it for a multitasking app, and the failure is only printed
+    /// (it lands in the CI's app log as 「screenshot-landscape failed」). Nothing happens until a
+    /// `UIWindowScene` is connected (the root view's first `onAppear` can be too early), so the
+    /// request counts as made only when it was actually sent.
+    private func requestLandscapeOnce() {
+        guard ScreenshotMode.current?.landscape == true, !landscapeRequested else { return }
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
+        landscapeRequested = true
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight)) { error in
+            print("screenshot-landscape failed: \(error)")
         }
     }
 
@@ -464,21 +526,34 @@ struct CalendarRootScreen: View {
     /// Saves the current page, then switches to `(newKind, newFocus)` (its ink, its events, its layout).
     private func show(kind newKind: PageKind, focus newFocus: DayKey) {
         saveNow()
+        let id = PageNavigation.pageId(newKind, focus: newFocus)
+        if id != pageId {
+            // A new canvas reports its own viewport next turn; until then the page starts from
+            // `PaperViewport.initial`, not from the previous page's offset and zoom.
+            viewport = .zero
+        }
         kind = newKind
         focus = newFocus
         selection = nil
         remember()
-        let id = PageNavigation.pageId(newKind, focus: newFocus)
+        let loaded: InkPage
         if ScreenshotMode.isActive {
             // Screenshot mode injects its demo strokes in memory; the store is not read or written.
-            page = ScreenshotMode.demoPage(kind: newKind, focus: newFocus)
+            loaded = ScreenshotMode.demoPage(kind: newKind, focus: newFocus)
         } else {
-            page = sync.load(id)
+            loaded = sync.load(id)
             // M4 contract §5.3: fetch this one page from iCloud (a page written on another device
             // just before it was opened here); a change arrives through `onRemoteUpdate`.
             sync.pageOpened(id)
         }
+        // M4B contract §3.3: the week / day band's handwriting moves onto the grid (idempotent; the
+        // ledger does the same). A page that changed is saved and sent right away (M4B-11).
+        page = BandMigration.migrate(loaded)
         pageDirty = false
+        if page != loaded {
+            pageDirty = true
+            scheduleSave()
+        }
         if !ScreenshotMode.isActive { now = Date() }
         model.load(kind: newKind, focus: newFocus)
         relayout()
@@ -548,7 +623,8 @@ struct CalendarRootScreen: View {
     /// is not cleared here.
     private func applyRemote(_ updated: InkPage) {
         guard updated.pageId == pageId else { return }
-        let merged = InkPage.merge(page, updated)          // ペンを離した直後の未保存の線を落とさない
+        // ペンを離した直後の未保存の線を落とさない。merge の後に帯の線を grid へ（M4B contract §3.3）
+        let merged = BandMigration.migrate(InkPage.merge(page, updated))
         guard merged.contentDiffers(from: page) || merged.updatedAt != page.updatedAt else { return }
         page = merged                                       // Binding を通さない（dirty にしない）
         if merged.contentDiffers(from: updated) {           // 端末内にしか無い線があった → いつもの経路で保存・送信
@@ -891,12 +967,19 @@ struct CalendarRootScreen: View {
         }
     }
 
-    /// Reads the shown page from the engine again (after the account answer).
+    /// Reads the shown page from the engine again (after the account answer). The band migration
+    /// runs here too (M4B contract §3.3): the ledger migrates on its `reload`, but the page in
+    /// memory would otherwise keep the old cells until the next stroke.
     private func reloadShownPage() {
         saveTask?.cancel()
         saveTask = nil
-        page = sync.load(pageId)
+        let loaded = sync.load(pageId)
+        page = BandMigration.migrate(loaded)
         pageDirty = false
+        if page != loaded {
+            pageDirty = true
+            scheduleSave()
+        }
         relayout()
     }
 

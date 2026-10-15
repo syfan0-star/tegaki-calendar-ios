@@ -1,9 +1,10 @@
 import Layout
 import UIKit
 
-/// The week page's paper (contract §3.3): column tints, the all-day band with its bars, the hour
-/// grid with the gutter labels, the timed event boxes and the now line. The weekday / date headers
-/// live in the sticky header (`StickyHeaderView`), not on the paper.
+/// The week page's paper (contract §3.3, M4B_CONTRACT §2.5): column tints, the hour grid with the
+/// gutter labels, the timed event boxes and the now line. The weekday / date headers and, since
+/// M4b, the all-day band live in the fixed views above the paper (`StickyHeaderView`,
+/// `AllDayBandView`), not on the paper: the paper starts at 0:00.
 enum WeekPaper: PaperRenderer {
     static func draw(_ content: WeekPaperContent, in ctx: CGContext, dirty: CGRect, zoom: CGFloat, view: PaperView) {
         let layout = content.layout
@@ -12,7 +13,7 @@ enum WeekPaper: PaperRenderer {
         let width = PaperSpec.weekWidth
         let height = layout.size.height
 
-        // 1. Column tints (today over weekend / holiday), band and grid alike.
+        // 1. Column tints (today over weekend / holiday), the whole height.
         for (column, label) in layout.dateLabels.enumerated() {
             let tint: UIColor?
             if layout.todayColumn == column {
@@ -30,18 +31,12 @@ enum WeekPaper: PaperRenderer {
             ctx.fill(rect)
         }
 
-        // 2. All-day band: the bottom line, the 「終日」 label, the bars.
-        let band = layout.band
+        // 2. The gutter's right line runs the whole height.
         ctx.setLineWidth(PaperText.hairline(zoom))
         ctx.setStrokeColor(PaperPalette.lineStrong.cgColor)
         ctx.beginPath()
-        PaperText.addHorizontal(ctx, y: band.maxY, from: 0, to: width, zoom: zoom, scale: scale)
-        // The gutter's right line runs the whole height (band included).
         PaperText.addVertical(ctx, x: gutter, from: 0, to: height, zoom: zoom, scale: scale)
         ctx.strokePath()
-        TimeGridPaper.drawBandLabel(ctx, rightX: gutter - 8, top: band.minY, dirty: dirty, zoom: zoom)
-        TimeGridPaper.drawAllDayBars(ctx, bars: layout.allDayBars, textSize: PaperText.weekEvent,
-                                     fontScale: layout.laneMetrics.fontScale, dirty: dirty, zoom: zoom)
 
         // 3. Hour grid, column lines and time labels.
         let grid = layout.grid

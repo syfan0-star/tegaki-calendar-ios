@@ -2,9 +2,12 @@ import Layout
 import SwiftUI
 import UIKit
 
-/// The fixed heading above the paper (contract §4.3). It never scrolls, cannot be written on, and
-/// its columns match the paper's at the fit-to-width zoom (the widths are fractions of the paper
-/// width: 64/1400 for the week gutter, 72/1000 for the day gutter, 56/1400 for the year gutter).
+/// The fixed heading above the paper (contract §4.3). It never scrolls vertically, cannot be
+/// written on, and its columns match the paper's: since M4b every row is a `PaperRow` placed with
+/// the canvas's horizontal offset and zoom (`viewport`, M4B_CONTRACT §1.4), so on an iPhone — and
+/// on every device on the year page — the heading follows the paper sideways and what lies outside
+/// the viewport is clipped. The gutter columns (the time labels, the year's day numbers) are part of
+/// the paper and move with it (D2).
 ///
 /// | page  | content                                                       | tap                  |
 /// | ----- | ------------------------------------------------------------- | -------------------- |
@@ -16,6 +19,11 @@ struct StickyHeaderView: View {
     var paper: PaperContent
     /// The current time (decides the current month of the year header).
     var now: Date
+    /// The paper's horizontal offset and zoom (M4B_CONTRACT §1.1). `.zero` (width 0) means the
+    /// canvas has not reported one yet: the rows then use `PaperViewport.initial` for the proposed
+    /// width, the same value the screen starts from. Defaulted so the screen builds before and
+    /// after it passes one.
+    var viewport: PaperViewport = .zero
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
 
@@ -38,7 +46,7 @@ struct StickyHeaderView: View {
     // MARK: - Month (M2's weekday row)
 
     private var monthRow: some View {
-        HStack(spacing: 0) {
+        PaperRow(kind: .month, viewport: viewport, columns: Array(repeating: PaperSpec.monthColumnWidth, count: PaperSpec.monthColumns)) {
             ForEach(0..<7, id: \.self) { column in
                 Text(Self.monthWeekdayLabels[column])
                     .font(.caption.weight(.semibold))
@@ -47,6 +55,7 @@ struct StickyHeaderView: View {
                     .padding(.vertical, 4)
             }
         }
+        .clipped()
         .background(Color(uiColor: .secondarySystemBackground))
         .overlay(alignment: .bottom) {
             Rectangle()
@@ -66,14 +75,14 @@ struct StickyHeaderView: View {
     // MARK: - Week
 
     private func weekRow(_ layout: WeekPageLayout) -> some View {
-        let gutter = PaperSpec.weekGutter / PaperSpec.weekWidth
-        let column = PaperSpec.weekColumnWidth / PaperSpec.weekWidth
-        return FractionRow(fractions: [gutter] + Array(repeating: column, count: PaperSpec.weekColumns)) {
+        let columns = [PaperSpec.weekGutter] + Array(repeating: PaperSpec.weekColumnWidth, count: PaperSpec.weekColumns)
+        return PaperRow(kind: .week, viewport: viewport, columns: columns) {
             Color.clear
             ForEach(layout.dateLabels, id: \.day) { label in
                 weekDayCell(label)
             }
         }
+        .clipped()
         .background(paperColor)
         .overlay(alignment: .bottom) { bottomLine }
     }
@@ -117,11 +126,10 @@ struct StickyHeaderView: View {
     // MARK: - Day
 
     private func dayRow(_ layout: DayPageLayout) -> some View {
-        let gutter = PaperSpec.dayGutter / PaperSpec.dayWidth
-        let timeline = (PaperSpec.dayTimelineRight - PaperSpec.dayGutter) / PaperSpec.dayWidth
-        let memo = 1 - gutter - timeline
+        let timeline = PaperSpec.dayTimelineRight - PaperSpec.dayGutter
+        let memo = PaperSpec.dayWidth - PaperSpec.dayTimelineRight
         let label = layout.dateLabels.first
-        return FractionRow(fractions: [gutter, timeline, memo]) {
+        return PaperRow(kind: .day, viewport: viewport, columns: [PaperSpec.dayGutter, timeline, memo]) {
             Color.clear
             if let label = label {
                 dayDateBlock(label)
@@ -131,6 +139,7 @@ struct StickyHeaderView: View {
             Color.clear
                 .overlay(alignment: .leading) { Rectangle().fill(lineStrongColor).frame(width: 1) }
         }
+        .clipped()
         .background(paperColor)
         .overlay(alignment: .bottom) { bottomLine }
         .accessibilityElement(children: .combine)
@@ -174,11 +183,10 @@ struct StickyHeaderView: View {
     // MARK: - Year
 
     private func yearRow(_ content: YearPaperContent) -> some View {
-        let gutter = PaperSpec.yearGutter / PaperSpec.yearWidth
-        let column = PaperSpec.yearColumnWidth / PaperSpec.yearWidth
+        let columns = [PaperSpec.yearGutter] + Array(repeating: PaperSpec.yearColumnWidth, count: PaperSpec.yearColumns)
         let year = content.layout.year
         let current = YearMonth.current(calendar: DayKey.deviceCalendar, now: now)
-        return FractionRow(fractions: [gutter] + Array(repeating: column, count: PaperSpec.yearColumns)) {
+        return PaperRow(kind: .year, viewport: viewport, columns: columns) {
             Color.clear
             ForEach(1...PaperSpec.yearColumns, id: \.self) { month in
                 let yearMonth = YearMonth(year: year, month: month)
@@ -200,6 +208,7 @@ struct StickyHeaderView: View {
                 .accessibilityLabel(yearMonth.title + "（月表示へ）")
             }
         }
+        .clipped()
         .background(paperColor)
         .overlay(alignment: .bottom) { bottomLine }
     }
@@ -253,16 +262,28 @@ extension YearMonth {
     }
 }
 
-/// A row whose children get fixed fractions of the available width (the paper's column geometry),
-/// all as tall as the tallest child.
-struct FractionRow: Layout {
-    var fractions: [CGFloat]
+/// A row whose children sit on the paper's columns (M4B_CONTRACT §1.4; it replaces M3a's
+/// `FractionRow`): child i is placed at x = (Σ_{j<i} columns[j]) × zoom − offsetX with the width
+/// columns[i] × zoom (pt), so the heading follows the paper's horizontal scroll and zoom exactly.
+/// `columns` are the paper's column widths in lu: month [200] × 7, week [64] + [190.857…] × 7, day
+/// [72, 588, 340], year [56] + [112] × 12. The row is as wide as proposed (the viewport) and as tall
+/// as its tallest child; what lies outside is clipped by the caller. At the fit-to-width zoom this is
+/// the same geometry as before (every column a fixed fraction of the width).
+///
+/// A viewport of width 0 (the first frame, before the canvas has reported one) is replaced by
+/// `PaperViewport.initial(kind, viewportWidth:)` for the proposed width — the value the screen
+/// starts from too, so the canvas's first report changes nothing visible.
+struct PaperRow: Layout {
+    var kind: PageKind
+    var viewport: PaperViewport
+    var columns: [CGFloat]
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? subviews.reduce(0) { $0 + $1.sizeThatFits(.unspecified).width }
+        let v = resolved(width: proposal.width)
+        let width = proposal.width ?? v.width
         var height: CGFloat = 0
         for (index, subview) in subviews.enumerated() {
-            let w = width * fraction(at: index)
+            let w = v.width(ofPaper: column(at: index))
             let size = subview.sizeThatFits(ProposedViewSize(width: w, height: nil))
             height = max(height, size.height)
         }
@@ -270,17 +291,27 @@ struct FractionRow: Layout {
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
+        let v = resolved(width: bounds.width)
+        var x: CGFloat = 0
         for (index, subview) in subviews.enumerated() {
-            let w = bounds.width * fraction(at: index)
-            subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,
-                          proposal: ProposedViewSize(width: w, height: bounds.height))
-            x += w
+            let lu = column(at: index)
+            subview.place(
+                at: CGPoint(x: bounds.minX + v.x(ofPaper: x), y: bounds.minY),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: v.width(ofPaper: lu), height: bounds.height)
+            )
+            x += lu
         }
     }
 
-    private func fraction(at index: Int) -> CGFloat {
-        guard index < fractions.count else { return 0 }
-        return max(0, fractions[index])
+    /// The viewport to lay out with: the canvas's, or the first-frame one for `width`.
+    private func resolved(width: CGFloat?) -> PaperViewport {
+        if viewport.width > 0 { return viewport }
+        return PaperViewport.initial(kind, viewportWidth: width ?? 0)
+    }
+
+    private func column(at index: Int) -> CGFloat {
+        guard index < columns.count else { return 0 }
+        return max(0, columns[index])
     }
 }

@@ -144,6 +144,9 @@ enum InkOp {
 /// - The ledger never mixes pages: `page.pageId == layout.pageId` always holds. A `reload` or
 ///   `relayout` with another page id is a programming error of the owner; it is reported through
 ///   `onPageMismatch` (an assertion in Debug) and ignored.
+/// - Every page that enters the ledger (`init`, `reload`) goes through `BandMigration.migrate`
+///   (M4B_CONTRACT §3.3): the strokes of the week / day pages' former all-day band move onto the
+///   `grid` cell, idempotently, so the canvas never has to know the old cells.
 @MainActor
 final class InkLedger {
     static let historyLimit = 200
@@ -168,10 +171,11 @@ final class InkLedger {
 
     /// `page` and `layout` must be the same page (`page.pageId == layout.pageId`). The owner builds
     /// both from one page id, so a mismatch here is reported like `reload` / `relayout`; the ledger
-    /// then starts with an empty page for the layout rather than mixing two pages.
+    /// then starts with an empty page for the layout rather than mixing two pages. The page is
+    /// migrated (`BandMigration.migrate`, M4B_CONTRACT §3.3) on the way in.
     init(page: InkPage, layout: any PageLayout, deviceId: String? = nil) {
         if page.pageId == layout.pageId {
-            self.page = page
+            self.page = BandMigration.migrate(page)
         } else {
             Self.onPageMismatch("InkLedger: page \(page.pageId) does not belong to layout \(layout.pageId)")
             self.page = InkPage.empty(pageId: layout.pageId)
@@ -192,13 +196,13 @@ final class InkLedger {
     /// remote update lands; when it lifts, `applyCanvasChange` then still knows every stroke the
     /// canvas holds (nothing is re-added under a new id, and a stroke another device erased is not
     /// revived) and only the stroke just drawn is new. The next `drawing()` rebuilds the map from
-    /// the page.
+    /// the page. The page is migrated (`BandMigration.migrate`) on the way in, like in `init`.
     func reload(page: InkPage, keepHistory: Bool) {
         guard page.pageId == layout.pageId else {
             Self.onPageMismatch("InkLedger.reload: page \(page.pageId) does not belong to layout \(layout.pageId)")
             return
         }
-        self.page = page
+        self.page = BandMigration.migrate(page)
         if !keepHistory {
             undoStack.removeAll()
             redoStack.removeAll()
