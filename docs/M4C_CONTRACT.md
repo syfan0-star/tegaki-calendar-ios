@@ -579,7 +579,7 @@ struct Config: Equatable, Sendable {
 - 13 インチ週 zoom2 の列: 第 1 版の「火〜木」は誤りで、1024 / 1.20 = 851 lu が x 300 から見えるので 火（途中）〜土（途中）。iPhone の zoom3（402 / 0.8613 = 467 lu → 火〜木）は正しい。
 - 年の写真: 見本の年は 10 月だけに見本の予定が入り（`EventStoreModel.swift:122-124`）16 日の行が 4 レーン（96 lu）なので 1896 lu。年の数字に「見本の年」の値を併記した。
 - `centeringInsets` の K の例「月 1024 × 1180 / 0.7314 → (0, 206)」は一覧矩形で計算した誤りで、紙全体なら (0, 0)。§1.1 に「paper は常に紙全体」と明記し、`PaperViewport.initial` に `paperSize:` を足した。
-- 「`XCTAssertNotNil(canvas.pinchGestureRecognizer)`」は hard assert をやめて記録だけ（nil でも里程を止めない。M4C-23）。
+- 「`XCTAssertNotNil(canvas.pinchGestureRecognizer)`」は第 2 版では記録だけにしたが、本人の答え（§2.5）を受けて **hard assert に戻した**（F4 で nil にならないはず。M4C-23 撤回）。
 - `scrollViewDidEndZooming` の clamp は `setZoomScale(animated: true)` ではなく代入（UIKit の bounce と二重に走らせない。XCTest で同期に確かめられる）。
 - `onZoomRatioChange` と `onZoomingChange` は常に次ターン配信（UIKit のデリゲートから同期に来るので、SwiftUI の状態に触る U の受け手を守る）。
 
