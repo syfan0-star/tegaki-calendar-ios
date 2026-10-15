@@ -28,9 +28,11 @@ enum PaperText {
     /// Event box line height relative to the font size (web version `EVENT_LINE_HEIGHT`).
     static let eventLineHeight: CGFloat = 1.25
 
-    /// "23:00" in SF's monospaced digits is about 2.48 em (four digits of 0.55 em and a colon of
-    /// 0.28 em); the label gets `gutter − 8` lu, so its size is capped at that width / 2.6.
-    static let gutterLabelEms: CGFloat = 2.6
+    /// "23:00" in SF's monospaced digits (medium) measures 2.705 em (tabular digits of 0.6 em and a
+    /// colon of 0.3 em; M4B_CONTRACT §4.1 estimated 2.48 em, and the first CI run showed 「10:…」 on
+    /// the iPhone's week); the label gets `gutter − 8` lu, so its size is capped at that width / 2.9
+    /// (the web version's divisor, 7 % of slack).
+    static let gutterLabelEms: CGFloat = 2.9
 
     /// Font size in paper units: proportional to the zoom, at least `minPoints` on screen.
     static func fontSize(_ size: Size, zoom: CGFloat) -> CGFloat {
@@ -38,10 +40,11 @@ enum PaperText {
     }
 
     /// Size (lu) of a time label ("0:00"…"23:00") in a gutter `gutter` lu wide:
-    /// `max(0, min(fontSize(size, zoom), (gutter − 8) / 2.6))` — week (64 − 8) / 2.6 = 21.54 lu, day
-    /// (72 − 8) / 2.6 = 24.6 lu (M4B_CONTRACT §4.1, M4B-10). At the M4b minimum zooms the cap is not
-    /// reached (week 10 / 0.4716 = 21.2 < 21.54, day 10.5 / 0.5612 = 18.7 < 24.6): it only works
-    /// during the pinch's bounce below the minimum, and as a safety valve should the minimum ever drop.
+    /// `max(0, min(fontSize(size, zoom), (gutter − 8) / 2.9))` — week (64 − 8) / 2.9 = 19.31 lu, day
+    /// (72 − 8) / 2.9 = 22.07 lu (M4B_CONTRACT §4.1, M4B-10 with the measured width). At the iPhone's
+    /// week minimum (0.4716) the cap bites: 19.31 lu = 9.1 pt instead of 10 pt (still ≥ 9 pt, D4), so
+    /// "10:00" (24.6 pt) fits the 26.4 pt label; the day (10.5 / 0.5612 = 18.7 < 22.07) and every iPad
+    /// keep their 10 / 10.5 pt.
     static func gutterLabelSize(_ size: Size, zoom: CGFloat, gutter: CGFloat) -> CGFloat {
         max(0, min(fontSize(size, zoom: zoom), (gutter - 8) / gutterLabelEms))
     }

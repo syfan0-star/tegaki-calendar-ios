@@ -135,7 +135,9 @@ enum YearPaper: PaperRenderer {
             let size = chipSize * max(0.1, min(1, chip.fontScale))
             guard frame.height >= size * 0.8 else { continue }
             let font = UIFont.systemFont(ofSize: size, weight: .semibold)
-            let textPad = size * (chip.isThin ? 0.2 : 0.3)
+            // 0.15 em of padding (not 0.3): the chip is 58.6 lu wide and a four-character title at
+            // 13 lu needs up to 52 lu, which the first CI run cut to 「家族…」 with 3.9 lu on each side.
+            let textPad = size * (chip.isThin ? 0.2 : 0.15)
             let textRect = frame.insetBy(dx: textPad, dy: 0)
             if textRect.width > size * 0.6 {
                 // The title, clipped to the chip's shape.

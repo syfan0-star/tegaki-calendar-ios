@@ -11,13 +11,16 @@ final class PaperTextTests: XCTestCase {
     // MARK: Gutter label size
 
     func testGutterLabelSizeIsCappedByTheGutter() {
-        // Week at the iPhone's minimum zoom: 10 / 0.4716 = 21.2 lu, under the cap (64 − 8) / 2.6 = 21.54.
-        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.4716, gutter: PaperSpec.weekGutter), 10 / 0.4716, accuracy: 0.01)
-        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.4716, gutter: PaperSpec.weekGutter), 21.2, accuracy: 0.05)
-        // Below the minimum (the pinch's bounce): the cap.
-        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.3, gutter: PaperSpec.weekGutter), (64 - 8) / 2.6, accuracy: 0.001)
-        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.3, gutter: PaperSpec.weekGutter), 21.54, accuracy: 0.01)
-        // Day at the iPhone's minimum zoom: 10.5 / 0.5612 = 18.7 lu, under (72 − 8) / 2.6 = 24.6.
+        // Week at the iPhone's minimum zoom: 10 / 0.4716 = 21.2 lu would exceed the cap
+        // (64 − 8) / 2.9 = 19.31 lu (= 9.1 pt, so "10:00" at 2.705 em fits the 26.4 pt label).
+        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.4716, gutter: PaperSpec.weekGutter), (64 - 8) / 2.9, accuracy: 0.001)
+        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.4716, gutter: PaperSpec.weekGutter), 19.31, accuracy: 0.01)
+        XCTAssertGreaterThanOrEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.4716, gutter: PaperSpec.weekGutter) * 0.4716, 9, "never under 9 pt (D4)")
+        // Below the minimum (the pinch's bounce): the same cap.
+        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.3, gutter: PaperSpec.weekGutter), 19.31, accuracy: 0.01)
+        // The iPad mini's week (0.5314): 10 pt = 18.8 lu, under the cap.
+        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.5314, gutter: PaperSpec.weekGutter), 10 / 0.5314, accuracy: 0.01)
+        // Day at the iPhone's minimum zoom: 10.5 / 0.5612 = 18.7 lu, under (72 − 8) / 2.9 = 22.07.
         XCTAssertEqual(PaperText.gutterLabelSize(PaperText.dayTimeLabel, zoom: 0.5612, gutter: PaperSpec.dayGutter), 10.5 / 0.5612, accuracy: 0.01)
         XCTAssertEqual(PaperText.gutterLabelSize(PaperText.dayTimeLabel, zoom: 0.5612, gutter: PaperSpec.dayGutter), 18.7, accuracy: 0.05)
         // At zoom 1 the lu size itself (the minimum points do not bite).
@@ -50,9 +53,9 @@ final class PaperTextTests: XCTestCase {
                 data: buffer.baseAddress, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size * 4,
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
             ) else { return }
-            // Flip so that row 0 is the top of the image.
-            ctx.translateBy(x: 0, y: CGFloat(size))
-            ctx.scaleBy(x: 1, y: -1)
+            // No flip: a CGImage drawn into a bitmap context lands with its first (top) row in the
+            // first row of the buffer, so row 0 of `bytes` is already the top of the image. (The first
+            // CI run flipped here and read the text at y ≈ 80 instead of 10.)
             ctx.draw(cg, in: CGRect(x: 0, y: 0, width: size, height: size))
         }
         return bytes

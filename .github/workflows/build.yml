@@ -347,6 +347,12 @@ jobs:
               for PAGE in month week day year; do        # §6.4: only the iPhone can turn
                 shoot "$ID-landscape-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-landscape
               done
+              # The simulator's framebuffer stays portrait (only the app's interface turned), so the
+              # landscape shots come out rotated by 90°; stand them up. When the request was ignored
+              # (header still two rows) they end up sideways instead, which is the tell.
+              for f in shots/"$ID"-landscape-*.png; do
+                [ -f "$f" ] && { sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"; }
+              done
             fi
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             xcrun simctl spawn "$UDID" log show --last 6m --style compact --predicate 'process == "TegakiCalendar"' > "shots/$ID-log.txt" 2>&1 || true

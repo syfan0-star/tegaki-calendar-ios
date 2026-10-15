@@ -27,8 +27,10 @@ final class PaperViewTests: XCTestCase {
 
     func testWindowIsTwoByTwoScreensClippedToTheContent() {
         // The iPhone's year page at its minimum zoom, scrolled to October: (1425, 0, 402, 600) in a
-        // 1875 × 2491 content → grown to (1224, −300, 804, 1200) → clipped to (1224, 0, 651, 1200).
-        assertRect(PaperView.window(for: CGRect(x: 1425, y: 0, width: 402, height: 600), content: CGSize(width: 1875, height: 2491)), 1224, 0, 651, 1200, "iPhone year")
+        // 1875 × 2491 content → grown to (1224, −300, 804, 1200) → clipped to (1224, 0, 651, 900).
+        // (M4B_CONTRACT §1.6 wrote 1200 for the height, but the grown rect reaches y = 900 and the
+        // window is the plain intersection, as in the other examples below; the window never slides.)
+        assertRect(PaperView.window(for: CGRect(x: 1425, y: 0, width: 402, height: 600), content: CGSize(width: 1875, height: 2491)), 1224, 0, 651, 900, "iPhone year")
         // The top-left corner: half a screen to the right and below only.
         assertRect(PaperView.window(for: CGRect(x: 0, y: 0, width: 402, height: 600), content: CGSize(width: 1875, height: 2491)), 0, 0, 603, 900, "top left")
         // An iPad at fit width: the content is exactly as wide as the viewport.
