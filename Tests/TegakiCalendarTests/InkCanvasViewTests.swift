@@ -478,16 +478,28 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertTrue(r.isEnabled)
         XCTAssertTrue(r.view === week.canvas, "on the canvas")
         XCTAssertEqual(week.coordinator.tapRecognizer.allowedTouchTypes, [NSNumber(value: UITouch.TouchType.direct.rawValue)])
+        XCTAssertFalse(week.coordinator.fingerRecognizer.isEnabled, "the eraser needs no finger recogniser")
+        XCTAssertTrue(week.coordinator.fingerRecognizer.view === week.container, "on the container")
 
         let day = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, doubleTapEnabled: false), paper: paper, probe: probe)
         XCTAssertFalse(day.coordinator.doubleTapRecognizer.isEnabled)
 
         let lasso = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, doubleTapEnabled: true, tool: .lasso, allowFinger: true), paper: paper, probe: probe)
         XCTAssertFalse(lasso.coordinator.doubleTapRecognizer.isEnabled, "off with an overlay tool")
+        XCTAssertTrue(lasso.coordinator.fingerRecognizer.isEnabled, "the lasso takes the finger")
+        XCTAssertEqual(lasso.coordinator.fingerRecognizer.allowedTouchTypes, [NSNumber(value: UITouch.TouchType.direct.rawValue)])
+        XCTAssertFalse(lasso.coordinator.fingerRecognizer.cancelsTouchesInView)
+
+        let pen = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .ink(InkPresets.defaultPen), allowFinger: true), paper: paper, probe: probe)
+        XCTAssertFalse(pen.coordinator.fingerRecognizer.isEnabled, "the pen draws through PencilKit")
+
+        let lassoPencil = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .lasso, allowFinger: false), paper: paper, probe: probe)
+        XCTAssertFalse(lassoPencil.coordinator.fingerRecognizer.isEnabled, "the finger scrolls when it may not write")
 
         // The tool changes under the same canvas: the recognisers follow.
         lasso.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, doubleTapEnabled: true, tool: .eraser, allowFinger: true))
         XCTAssertTrue(lasso.coordinator.doubleTapRecognizer.isEnabled)
+        XCTAssertFalse(lasso.coordinator.fingerRecognizer.isEnabled)
     }
 
     /// With 「指でも書く」 on, PencilKit's drawing recogniser begins on the finger's touch-down: the
@@ -502,6 +514,8 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertTrue(c.gestureRecognizer(c.doubleTapRecognizer, shouldRecognizeSimultaneouslyWith: drawing))
         XCTAssertFalse(c.gestureRecognizer(c.tapRecognizer, shouldRecognizeSimultaneouslyWith: rig.canvas.panGestureRecognizer))
         XCTAssertFalse(c.gestureRecognizer(c.doubleTapRecognizer, shouldRecognizeSimultaneouslyWith: rig.canvas.panGestureRecognizer))
+        XCTAssertFalse(c.gestureRecognizer(c.fingerRecognizer, shouldRecognizeSimultaneouslyWith: drawing))
+        XCTAssertFalse(c.gestureRecognizer(c.fingerRecognizer, shouldRecognizeSimultaneouslyWith: rig.canvas.panGestureRecognizer))
     }
 
     /// `dotStrokeIds` (M4C-22): the strokes of the last half second whose bounds fit in 16 pt and

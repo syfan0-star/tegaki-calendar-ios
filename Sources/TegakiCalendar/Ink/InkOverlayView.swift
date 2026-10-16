@@ -1,6 +1,7 @@
 import InkModel
 import Layout
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 
 /// What the overlay asks of its owner (`InkCanvasView.Coordinator`): everything that touches the
 /// ledger or the canvas. Geometry and drawing stay in the overlay; strokes stay in the coordinator.
@@ -29,13 +30,17 @@ protocol InkOverlayViewDelegate: AnyObject {
 
 /// The input view of the lasso and the 予定 tool (M3B_CONTRACT.md §3.4; the look of the web version's
 /// `js/ink/surface.js`). It lies over the `PKCanvasView`, fills the container, and is enabled only
-/// while `tool.isOverlayTool`. Its `hitTest` takes the Pencil (and the finger when `allowFinger`) and
-/// lets everything else fall through to the canvas (finger scroll, pinch, finger taps).
+/// while `tool.isOverlayTool`. Its `hitTest` takes the Pencil only and lets everything else fall
+/// through to the canvas (finger scroll, pinch, finger taps). Since M4c (M4C_CONTRACT §2.2 F2) a
+/// finger never hits the overlay — a touch the overlay took could never reach the scroll view again,
+/// so a second finger could not pinch — and its input arrives instead through the container's
+/// `InkFingerGestureRecognizer` (`beginFinger` / `moveFinger` / `endFinger` / `cancelFinger`), which
+/// fails as soon as a second finger touches.
 ///
-/// Input is tracked with `touchesBegan/Moved/Ended/Cancelled`: one contact at a time (a second one is
-/// ignored; the Pencil takes over from a finger). Positions are turned into paper coordinates with
-/// the canvas's `contentOffset` and `zoomScale`; what is drawn is sized in screen points, whatever
-/// the zoom.
+/// The Pencil is tracked with `touchesBegan/Moved/Ended/Cancelled`, the finger through the entry
+/// points above: one contact at a time (a second one is ignored; the Pencil takes over from a
+/// finger). Positions are turned into paper coordinates with the canvas's `contentOffset` and
+/// `zoomScale`; what is drawn is sized in screen points, whatever the zoom.
 ///
 /// | tool | gesture |
 /// | --- | --- |
@@ -57,6 +62,8 @@ final class InkOverlayView: UIView {
         }
     }
     /// Whether a finger is also accepted (otherwise only the Pencil; fingers scroll the canvas).
+    /// Since M4c the finger comes through the container's recogniser (enabled by the coordinator
+    /// under the same condition); `beginFinger` checks this as well.
     var allowFinger = false
     /// The paper size (lu): a move never takes the selection box off the paper.
     var pageSize: CGSize = .zero
@@ -93,8 +100,14 @@ final class InkOverlayView: UIView {
         case event(start: CGPoint, current: CGPoint, maxDistance: CGFloat, preview: CGRect?)
     }
 
+    /// What is on the overlay: the Pencil (its touch) or the finger (through the recogniser).
+    private enum Contact {
+        case pencil(UITouch)
+        case finger
+    }
+
     private var gesture: Gesture?
-    private var activeTouch: UITouch?
+    private var contact: Contact?
     /// The picture of the strokes being moved (transparent, multiplied like the canvas layer so the
     /// marker stays a highlighter over the paper's text).
     private let moveLayer = CALayer()
@@ -160,45 +173,83 @@ final class InkOverlayView: UIView {
 
     // MARK: - Hit testing
 
-    /// Takes the touch only for the Pencil, or for a finger when `allowFinger`; anything else (and a
-    /// touch whose type cannot be told) goes to the canvas below, which scrolls and pinches with it.
+    /// Takes the touch only for the Pencil; a finger (and a touch whose type cannot be told) goes to
+    /// the canvas below, which scrolls and pinches with it, and reaches this view through the
+    /// container's `InkFingerGestureRecognizer` when the tool wants it (F2).
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard isUserInteractionEnabled, !isHidden, alpha > 0.01, tool.isOverlayTool, bounds.contains(point) else { return nil }
         guard let touches = event?.allTouches, !touches.isEmpty else { return nil }
         let fresh = touches.filter { $0.phase == .began }
         let candidates = fresh.isEmpty ? Array(touches) : Array(fresh)
-        if candidates.contains(where: { $0.type == .pencil }) { return self }
-        if allowFinger, candidates.contains(where: { $0.type == .direct }) { return self }
-        return nil
+        return candidates.contains(where: { $0.type == .pencil }) ? self : nil
     }
 
-    private func accepts(_ touch: UITouch) -> Bool {
-        switch touch.type {
-        case .pencil: return true
-        case .direct: return allowFinger
-        default: return false
-        }
-    }
-
-    // MARK: - Touches
+    // MARK: - Touches (the Pencil)
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches {
-            guard accepts(touch), tool.isOverlayTool else { continue }
-            if let active = activeTouch {
-                // The Pencil wins over a finger (a palm) that is already tracked; a second contact
-                // of the same kind is ignored.
-                guard touch.type == .pencil, active.type != .pencil else { continue }
+        for touch in touches where touch.type == .pencil && tool.isOverlayTool {
+            switch contact {
+            case .pencil:
+                // A second Pencil contact is ignored.
+                continue
+            case .finger:
+                // The Pencil wins over a finger (a palm) that is already tracked.
                 cancelGesture()
+            case nil:
+                break
             }
-            begin(touch)
+            begin(.pencil(touch), at: paperPoint(fromView: touch.location(in: self)))
         }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let active = activeTouch, touches.contains(active), gesture != nil else { return }
+        guard case .pencil(let active)? = contact, touches.contains(active), gesture != nil else { return }
         let coalesced = event?.coalescedTouches(for: active) ?? [active]
-        let samples = coalesced.map { paperPoint(fromView: $0.location(in: self)) }
+        move(samples: coalesced.map { paperPoint(fromView: $0.location(in: self)) })
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard case .pencil(let active)? = contact, touches.contains(active) else { return }
+        finishGesture(at: paperPoint(fromView: active.location(in: self)))
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard case .pencil(let active)? = contact, touches.contains(active) else { return }
+        cancelGesture()
+    }
+
+    // MARK: - The finger (through InkFingerGestureRecognizer, F2)
+
+    /// A finger touched at `view` (overlay = container coordinates): the same as the finger branch
+    /// of `touchesBegan` used to be. Ignored while the Pencil is on the overlay, while another
+    /// finger is tracked, when the finger may not write, or with a tool that is not an overlay tool.
+    func beginFinger(at view: CGPoint) {
+        guard tool.isOverlayTool, allowFinger, contact == nil else { return }
+        begin(.finger, at: paperPoint(fromView: view))
+    }
+
+    /// The finger moved to `view`; `coalesced` are the intermediate positions (the last is `view`).
+    func moveFinger(to view: CGPoint, coalesced: [CGPoint]) {
+        guard case .finger? = contact, gesture != nil else { return }
+        let points = coalesced.isEmpty ? [view] : coalesced
+        move(samples: points.map { paperPoint(fromView: $0) })
+    }
+
+    /// The finger lifted at `view`: the gesture ends normally (a lasso closes, a 予定 drag reports).
+    func endFinger(at view: CGPoint) {
+        guard case .finger? = contact else { return }
+        finishGesture(at: paperPoint(fromView: view))
+    }
+
+    /// The finger's touch was cancelled, or a second finger touched (a scroll or a pinch begins):
+    /// the same as `cancelGesture`.
+    func cancelFinger() {
+        guard case .finger? = contact else { return }
+        cancelGesture()
+    }
+
+    /// The contact moved through `samples` (paper lu, the last one current).
+    private func move(samples: [CGPoint]) {
         guard let last = samples.last else { return }
         switch gesture {
         case .lasso(var points):
@@ -227,21 +278,11 @@ final class InkOverlayView: UIView {
         }
     }
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let active = activeTouch, touches.contains(active) else { return }
-        finishGesture(at: paperPoint(fromView: active.location(in: self)))
-    }
-
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let active = activeTouch, touches.contains(active) else { return }
-        cancelGesture()
-    }
-
-    private func begin(_ touch: UITouch) {
-        let p = paperPoint(fromView: touch.location(in: self))
+    /// `newContact` touched at `p` (paper): a move or a lasso, or a 予定 rect, by the tool.
+    private func begin(_ newContact: Contact, at p: CGPoint) {
         switch tool {
         case .lasso:
-            activeTouch = touch
+            contact = newContact
             let pad = Self.selectionHitPad / zoom
             if let bbox = selectionBBox, bbox.insetBy(dx: -pad, dy: -pad).contains(p) {
                 gesture = .move(start: p, delta: .zero, active: false)
@@ -252,7 +293,7 @@ final class InkOverlayView: UIView {
                 gesture = .lasso(points: [p])
             }
         case .eventRect:
-            activeTouch = touch
+            contact = newContact
             gesture = .event(start: p, current: p, maxDistance: 0, preview: nil)
             updateEventPreview()
         case .ink, .eraser:
@@ -262,14 +303,14 @@ final class InkOverlayView: UIView {
         setNeedsDisplay()
     }
 
-    /// The pen lifted at `p` (paper): the gesture ends normally.
+    /// The pen (or the finger) lifted at `p` (paper): the gesture ends normally.
     private func finishGesture(at p: CGPoint) {
         guard let g = gesture else {
-            activeTouch = nil
+            contact = nil
             return
         }
         gesture = nil
-        activeTouch = nil
+        contact = nil
         switch g {
         case .lasso(var points):
             if Self.shouldAppend(p, to: points) { points.append(p) }
@@ -296,7 +337,7 @@ final class InkOverlayView: UIView {
     func cancelGesture() {
         let g = gesture
         gesture = nil
-        activeTouch = nil
+        contact = nil
         guard let g else { return }
         if case .move(_, _, let active) = g {
             hideMovePicture()
@@ -352,7 +393,7 @@ final class InkOverlayView: UIView {
     private func beginMovePicture() -> Bool {
         guard let image = delegate?.overlayWillBeginMove(self) else {
             gesture = nil
-            activeTouch = nil
+            contact = nil
             delegate?.overlay(self, isTracking: false)
             return false
         }
@@ -418,5 +459,79 @@ final class InkOverlayView: UIView {
             path.stroke()
             drewSomething = true
         }
+    }
+}
+
+// MARK: - The finger recogniser (F2)
+
+/// Forwards one finger's (`.direct`) input to the overlay (M4C_CONTRACT §2.2 F2). It lives on the
+/// `InkCanvasContainerView`, so it sees the touches that are hit-tested to the canvas, and the
+/// canvas's pan and the coordinator's single tap `require(toFail:)` it. Its states follow
+/// `UILongPressGestureRecognizer`'s: while one finger is down it stays `.possible` (a `.possible`
+/// recogniser still receives `touchesMoved`) and forwards the touches; when the finger lifts it
+/// becomes `.ended` (recognised: the pan and the tap waiting on it fail, whether or not the finger
+/// moved — the 予定 tool's `isTap`); when a second finger touches it becomes `.failed` (the overlay
+/// gets `cancelFinger`, and UIKit, which was holding the touches for the pan, lets the pan and the
+/// pinch go on with the same touch sequence). It must never go `.began` on touch-down: a recognised
+/// recogniser makes the pan fail for the whole sequence, and failing later would not revive it.
+/// The Pencil's touches are not its business (`allowedTouchTypes` is `.direct`; the overlay's own
+/// `touches*` take the Pencil as before).
+@MainActor
+final class InkFingerGestureRecognizer: UIGestureRecognizer {
+    /// The overlay the finger is forwarded to (positions are `location(in: overlay)`).
+    weak var overlay: InkOverlayView?
+    private var tracked: UITouch?
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesBegan(touches, with: event)
+        guard state == .possible else { return }
+        for touch in touches where touch.type == .direct {
+            if let tracked {
+                guard touch !== tracked else { continue }
+                // A second finger: a scroll or a pinch. Fail, so the pan / pinch go on with these touches.
+                self.tracked = nil
+                overlay?.cancelFinger()
+                state = .failed
+                return
+            }
+            guard let overlay else {
+                state = .failed
+                return
+            }
+            tracked = touch
+            overlay.beginFinger(at: touch.location(in: overlay))
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesMoved(touches, with: event)
+        guard state == .possible, let tracked, touches.contains(tracked), let overlay else { return }
+        let coalesced = (event.coalescedTouches(for: tracked) ?? [tracked]).map { $0.location(in: overlay) }
+        overlay.moveFinger(to: tracked.location(in: overlay), coalesced: coalesced)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesEnded(touches, with: event)
+        guard state == .possible, let tracked, touches.contains(tracked) else { return }
+        if let overlay {
+            overlay.endFinger(at: tracked.location(in: overlay))
+        }
+        self.tracked = nil
+        state = .ended
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesCancelled(touches, with: event)
+        guard let tracked, touches.contains(tracked) else { return }
+        overlay?.cancelFinger()
+        self.tracked = nil
+        if state == .possible {
+            state = .failed
+        }
+    }
+
+    override func reset() {
+        super.reset()
+        tracked = nil
     }
 }

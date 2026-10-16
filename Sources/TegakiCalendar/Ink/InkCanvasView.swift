@@ -64,6 +64,8 @@ enum CanvasCommand: Equatable {
 ///   during a view update).
 /// - Finger taps (direct touches only) are reported in paper coordinates through `onTap`; a finger's
 ///   double tap through `onDoubleTap` (week / month / year, D5), the single tap waiting for it.
+/// - The finger input of the lasso / 予定 tool goes through the container's own recogniser
+///   (`InkFingerGestureRecognizer`, F2), so two fingers always reach the scroll view's pan and pinch.
 /// - Strokes whose centre lies outside the paper (in the centring margin) are dropped (M4C-25).
 /// - PencilKit's own undo manager is emptied after every change; history is the ledger's.
 /// - The selection follows the ledger: ids that stop being live (eraser, undo / redo, a reload)
@@ -247,7 +249,7 @@ extension InkCanvasView {
         /// Receives Apple Pencil double taps / squeezes. Added to the canvas in `attach`.
         let pencilInteraction: UIPencilInteraction
         /// Finger taps on the paper (direct touches only). Added to the canvas in `attach`; it waits
-        /// for `doubleTapRecognizer` to fail.
+        /// for `doubleTapRecognizer` and `fingerRecognizer` to fail.
         private(set) lazy var tapRecognizer: UITapGestureRecognizer = {
             let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
             recognizer.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
@@ -263,6 +265,16 @@ extension InkCanvasView {
             r.numberOfTouchesRequired = 1
             r.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
             r.delegate = self
+            return r
+        }()
+        /// The one-finger input of the lasso / 予定 tool (M4C_CONTRACT §2.2 F2), on the container. Enabled
+        /// while an overlay tool is up and `allowFinger`; the canvas's pan and `tapRecognizer` wait for
+        /// it to fail, which it does as soon as a second finger touches (a scroll or a pinch).
+        private(set) lazy var fingerRecognizer: InkFingerGestureRecognizer = {
+            let r = InkFingerGestureRecognizer()
+            r.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+            r.delegate = self
+            r.cancelsTouchesInView = false
             return r
         }()
 
@@ -399,6 +411,13 @@ extension InkCanvasView {
             // The single tap waits about 0.3 s for the double tap to fail (M4C-6); on the day page and
             // with an overlay tool the double tap is disabled and fails at once, so nothing waits.
             tapRecognizer.require(toFail: doubleTapRecognizer)
+            // F2: one finger of the lasso / 予定 tool goes to the overlay through this recogniser; the
+            // pan (and so the pinch) and the single tap wait for it. It must stay `.possible` while
+            // the finger is down (a `.began` would make the pan fail for the whole touch sequence).
+            fingerRecognizer.overlay = container.overlayView
+            container.addGestureRecognizer(fingerRecognizer)
+            canvas.panGestureRecognizer.require(toFail: fingerRecognizer)
+            tapRecognizer.require(toFail: fingerRecognizer)
             syncRecognizers()
 
             let overlay = container.overlayView
@@ -421,12 +440,17 @@ extension InkCanvasView {
             container = nil
         }
 
-        /// `doubleTapRecognizer` is on while the owner asks for it and no overlay tool is up. A disabled
-        /// recogniser fails at once, so the single tap waiting for it is not delayed.
+        /// `doubleTapRecognizer` is on while the owner asks for it and no overlay tool is up;
+        /// `fingerRecognizer` while an overlay tool is up and the finger may write. A disabled
+        /// recogniser fails at once, so the recognisers waiting for it are not delayed.
         private func syncRecognizers() {
             let doubleTap = parent.doubleTapEnabled && !parent.tool.isOverlayTool
             if doubleTapRecognizer.isEnabled != doubleTap {
                 doubleTapRecognizer.isEnabled = doubleTap
+            }
+            let finger = parent.tool.isOverlayTool && parent.allowFinger
+            if fingerRecognizer.isEnabled != finger {
+                fingerRecognizer.isEnabled = finger
             }
         }
 
@@ -1072,7 +1096,7 @@ extension InkCanvasView {
         // MARK: UIGestureRecognizerDelegate
 
         /// The tap recognisers take direct touches only (the Pencil never taps or double-taps the
-        /// paper).
+        /// paper); the finger recogniser is already limited by `allowedTouchTypes`.
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
             guard gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer else { return true }
             return touch.type == .direct
@@ -1080,7 +1104,7 @@ extension InkCanvasView {
 
         /// With 「指でも書く」 on, PencilKit's `drawingGestureRecognizer` begins on the finger's
         /// touch-down; the taps are recognised alongside it (M4C_CONTRACT §4.1) or they would never
-        /// fire. Nothing else runs simultaneously.
+        /// fire. Nothing else runs simultaneously (the finger recogniser of F2 in particular).
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
             guard let canvas else { return false }
             let isTap = gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer
