@@ -96,6 +96,11 @@ public struct DayPageLayout: PageLayout, Equatable, Sendable {
         return nil
     }
 
+    /// Always nil (M4C_CONTRACT §4.3, D5): a double tap on the day page does nothing.
+    public func dayAt(point: CGPoint) -> DayKey? {
+        nil
+    }
+
     /// "grid" inside the paper / nil.
     public func band(atY y: CGFloat) -> PageBand? {
         guard y.isFinite, y >= 0, y < size.height else { return nil }

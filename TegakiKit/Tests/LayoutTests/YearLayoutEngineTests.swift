@@ -123,6 +123,55 @@ final class YearLayoutEngineTests: XCTestCase {
         XCTAssertNil(page.hit(at: CGPoint(x: 20, y: 400)), "the gutter")
     }
 
+    func testDayAtRejectsMissingDates() {
+        // M4c, M4C_CONTRACT §4.3: the double tap's target is the cell's date; a date that does not
+        // exist, the day-number gutter, the outside and NaN are nil.
+        let page = F.yearLayout([])
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: cellX10 + 10, y: 6 * 60 + 10)), F.day(2026, 10, 7))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 168 + 10, y: 29 * 60 + 10)), "2/30")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 168 + 10, y: 28 * 60 + 10)), "2/29 of a common year")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 168 + 10, y: 27 * 60 + 10)), F.day(2026, 2, 28))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 56 + 3 * 112 + 5, y: 30 * 60 + 5)), "4/31")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 56 + 10 * 112 + 5, y: 30 * 60 + 5)), "11/31")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 700, y: 1859.9)), "6/31")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 1400, y: 1859.9)), F.day(2026, 12, 31), "the bottom-right cell")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 1400, y: 10)), F.day(2026, 12, 1), "x 1400 belongs to December")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 56, y: 0)), F.day(2026, 1, 1))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 400)), "the day-number gutter")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 55.9, y: 400)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 1401, y: 10)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 700, y: 1860)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 700, y: -0.1)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat.nan, y: 100)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 700, y: CGFloat.nan)))
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 56 + 112, y: 100)), F.day(2026, 2, 2), "a column boundary belongs to February")
+        XCTAssertEqual(F.yearLayout([], year: 2028).dayAt(point: CGPoint(x: 168 + 10, y: 28 * 60 + 10)), F.day(2028, 2, 29), "a leap year")
+        XCTAssertNil(F.yearLayout([], year: 2028).dayAt(point: CGPoint(x: 168 + 10, y: 29 * 60 + 10)))
+        XCTAssertEqual(F.yearLayout([], year: 2027).dayAt(point: CGPoint(x: cellX10 + 10, y: 6 * 60 + 10)), F.day(2027, 10, 7))
+        for m in 1...12 {
+            let daysInMonth = DayKey.daysInMonth(year: 2026, month: m)
+            let x = 56 + CGFloat(m - 1) * 112 + 56
+            XCTAssertEqual(page.dayAt(point: CGPoint(x: x, y: CGFloat(daysInMonth - 1) * 60 + 30)), F.day(2026, m, daysInMonth), "the last day of month \(m)")
+            if daysInMonth < 31 {
+                XCTAssertNil(page.dayAt(point: CGPoint(x: x, y: CGFloat(daysInMonth) * 60 + 30)), "month \(m) has no day \(daysInMonth + 1)")
+            }
+        }
+        let grown = F.yearLayout(demo) // the 16th's row is 96
+        XCTAssertEqual(grown.dayAt(point: CGPoint(x: cellX10 + 55, y: grown.rows[15].frame.minY + 20)), F.day(2026, 10, 16), "on a chip")
+        XCTAssertEqual(grown.dayAt(point: CGPoint(x: cellX10 + 5, y: grown.rows[16].frame.minY + 5)), F.day(2026, 10, 17), "under the grown row")
+        XCTAssertEqual(grown.dayAt(point: CGPoint(x: 56 + 5, y: grown.rows[16].frame.minY + 5)), F.day(2026, 1, 17))
+        var rng = M3aFixtures.Rng(seed: 0x4D34_6301)
+        for _ in 0..<40 {
+            let p = CGPoint(x: CGFloat(rng.int(1500)) - 50, y: CGFloat(rng.int(2000)) - 50)
+            let expected = page.cell(at: p)?.yearMonthDay.flatMap { md -> DayKey? in
+                let d = DayKey(year: 2026, month: md.month, day: md.day)
+                return d.isValid ? d : nil
+            }
+            XCTAssertEqual(page.dayAt(point: p), expected, "dayAt == the valid date of cell(at:) at \(p)")
+        }
+        XCTAssertEqual((page as any PageLayout).dayAt(point: CGPoint(x: cellX10 + 10, y: 6 * 60 + 10)), F.day(2026, 10, 7), "dynamic dispatch through any PageLayout")
+    }
+
     func testDemoEventsGrowRowsAndLinkChips() {
         let plain = F.yearLayout([])
         let page = F.yearLayout(demo)

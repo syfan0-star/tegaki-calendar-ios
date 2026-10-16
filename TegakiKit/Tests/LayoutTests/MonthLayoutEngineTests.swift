@@ -143,6 +143,44 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertNil(page.cell(at: CGPoint(x: CGFloat.nan, y: 10)))
     }
 
+    func testDayAt() {
+        // M4c, M4C_CONTRACT §4.3: the double tap's target is the cell's day (a day outside the month
+        // too); the memo area, the outside (the centring margins) and NaN are nil.
+        let page = layout([])
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 650, y: 10)), day(2026, 10, 1))
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 500, y: 225)), day(2026, 10, 7), "column 2 of row 1")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 0, y: 0)), day(2026, 9, 28), "outside the month, still a day")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 1400, y: 180)), day(2026, 10, 11), "x 1400 belongs to the last column")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 199.9, y: 174.9)), day(2026, 9, 28))
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 200, y: 175)), day(2026, 10, 6), "a cell boundary belongs to the next cell")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 100, y: 1049.9)), day(2026, 11, 2), "the last row")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 1400, y: 1049.9)), day(2026, 11, 8), "the grid's last cell")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 100, y: 1050)), "the memo area")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 100, y: 1100)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 1749)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: -1, y: 10)), "a centring margin (negative lu)")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 1401, y: 10)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: -1)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 1750)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat.nan, y: 10)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: CGFloat.nan)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat.infinity, y: 10)))
+        let busy = layout(M3aFixtures.demo)
+        XCTAssertEqual(busy.dayAt(point: CGPoint(x: 500, y: busy.memo.minY - 1)), day(2026, 11, 4), "the last row ends at memo.minY")
+        XCTAssertNil(busy.dayAt(point: CGPoint(x: 500, y: busy.memo.minY)))
+        XCTAssertEqual(busy.dayAt(point: CGPoint(x: 500, y: busy.rows[1].frame.minY + 10)), day(2026, 10, 7), "under a grown row")
+        for (key, rect) in busy.cells where !key.isMemo {
+            XCTAssertEqual(busy.dayAt(point: CGPoint(x: rect.midX, y: rect.midY)), key.day, "the centre of \(key)")
+        }
+        XCTAssertNil(busy.dayAt(point: CGPoint(x: busy.memo.midX, y: busy.memo.midY)))
+        var rng = M3aFixtures.Rng(seed: 0x4D34_6300)
+        for _ in 0..<40 {
+            let p = CGPoint(x: CGFloat(rng.int(1500)) - 50, y: CGFloat(rng.int(1900)) - 50)
+            XCTAssertEqual(busy.dayAt(point: p), busy.cell(at: p)?.day, "dayAt == cell(at:)?.day at \(p)")
+        }
+        XCTAssertEqual((page as any PageLayout).dayAt(point: CGPoint(x: 650, y: 10)), day(2026, 10, 1), "dynamic dispatch through any PageLayout")
+    }
+
     func testPaperPointAndCellRelative() {
         let page = layout([])
         XCTAssertEqual(MonthLayoutEngine.paperPoint(of: .day(day(2026, 10, 6)), in: page), CGPoint(x: 200, y: 175))

@@ -125,6 +125,12 @@ public protocol PageLayout: Sendable {
     func growsWithInk(_ cell: CellKey) -> Bool
     /// What a finger tap hits.
     func hit(at point: CGPoint) -> HitTarget?
+    /// Where a finger's double tap goes (M4C_CONTRACT §4.3, D5): the day under the point on the
+    /// month (a cell of the 6-row grid, a day outside the month included), week (a day column) and
+    /// year (an existing date) pages. nil = nothing happens: the month's memo area, the week's and
+    /// day's time gutter, the year's day-number gutter, a date that does not exist, outside the
+    /// paper (the centring margins are negative lu), a non-finite point, and always on the day page.
+    func dayAt(point: CGPoint) -> DayKey?
     /// The band containing paper y; nil outside the paper.
     func band(atY y: CGFloat) -> PageBand?
     /// Top edge of a band; nil for a band the page does not have.
@@ -143,6 +149,11 @@ extension PageLayout {
     /// the drawing has to be recomposed).
     public func sameGeometry(as other: any PageLayout) -> Bool {
         kind == other.kind && pageId == other.pageId && size == other.size && cells == other.cells
+    }
+
+    /// A page without a double-tap target (the four pages all decide for themselves).
+    public func dayAt(point: CGPoint) -> DayKey? {
+        nil
     }
 }
 

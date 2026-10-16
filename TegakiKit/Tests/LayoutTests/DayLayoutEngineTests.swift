@@ -115,6 +115,23 @@ final class DayLayoutEngineTests: XCTestCase {
         XCTAssertNil(withBar.hit(at: CGPoint(x: 500, y: 1030)), "a bar on the paper is never hit (the band is the screen's)")
     }
 
+    func testDayAtIsNil() {
+        // M4c, M4C_CONTRACT §4.3 / D5: a double tap on the day page does nothing.
+        let page = F.dayLayout(demo)
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 100, y: 1010)), "on a box")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 800, y: 1000)), "the memo area")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 30, y: 1000)), "the time gutter")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 0, y: 0)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 500, y: 2399)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat.nan, y: 100)))
+        XCTAssertNil(F.dayLayout([], focus: F.day(2026, 10, 8)).dayAt(point: CGPoint(x: 300, y: 300)), "another day")
+        XCTAssertNil((page as any PageLayout).dayAt(point: CGPoint(x: 100, y: 1010)), "through any PageLayout")
+        var rng = M3aFixtures.Rng(seed: 0x4D34_6302)
+        for _ in 0..<20 {
+            XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat(rng.int(1100)) - 50, y: CGFloat(rng.int(2500)) - 50)))
+        }
+    }
+
     func testCellsAndInkCells() {
         let page = F.dayLayout(demo)
         XCTAssertEqual(page.cell(at: CGPoint(x: 900, y: 30)), .grid, "the memo area's top is the grid")

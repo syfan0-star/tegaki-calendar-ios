@@ -2763,10 +2763,11 @@ do {
     checkEqual(SyncBackoff.notificationBudget, 20, "notification budget 20 s")
 }
 
-// MARK: - M4b: zoom policy (M4B_CONTRACT §1.1)
+// MARK: - M4c: zoom policy (M4C_CONTRACT §1.1 / §1.2: the overview, fitAll, is the lower limit)
 
-section("zoom policy (M4b)")
+section("zoom policy (M4c)")
 do {
+    // Unchanged since M4b: the readable threshold (D3) and the paper widths.
     checkClose(ZoomPolicy.readableZoom(.month), 0.5, "readable zoom: month 100 / 200", tolerance: 1e-4)
     checkClose(ZoomPolicy.readableZoom(.week), 0.47156, "readable zoom: week 90 / 190.857", tolerance: 1e-4)
     checkClose(ZoomPolicy.readableZoom(.day), 0.56122, "readable zoom: day 330 / 588", tolerance: 1e-4)
@@ -2783,76 +2784,168 @@ do {
     checkEqual(ZoomPolicy.paperWidth(.week), 1400, "paper width: week")
     checkEqual(ZoomPolicy.paperWidth(.day), 1000, "paper width: day")
     checkEqual(ZoomPolicy.paperWidth(.year), 1400, "paper width: year")
-    checkEqual(ZoomPolicy.fitTolerance, 0.95, "fit tolerance")
+    checkEqual(ZoomPolicy.maxStoredRatio, 64, "the largest stored ratio (M4C-9)")
 
-    // The table of §1.1 (portrait widths, the Split View edge cases and the landscape 13 inch).
     let readableWeek: CGFloat = 90 / (1336.0 / 7)
     let readableDay: CGFloat = 330.0 / 588
     let readableYear: CGFloat = 150.0 / 112
-    let table: [(width: CGFloat, month: CGFloat, week: CGFloat, day: CGFloat, year: CGFloat)] = [
-        (375, 0.5, readableWeek, readableDay, readableYear),
-        (390, 0.5, readableWeek, readableDay, readableYear),
-        (402, 0.5, readableWeek, readableDay, readableYear),
-        (664, 0.5, 664.0 / 1400, 0.664, readableYear),          // 1 pt below the 5 % boundary: the month jumps to readable
-        (665, 0.475, 665.0 / 1400, 0.665, readableYear),        // exactly 95 % of readable: fit is kept
-        (667, 667.0 / 1400, 667.0 / 1400, 0.667, readableYear), // iPhone SE landscape
-        (678, 678.0 / 1400, 678.0 / 1400, 0.678, readableYear), // 13 inch 2/3 Split View
-        (690, 690.0 / 1400, 690.0 / 1400, 0.69, readableYear),
-        (744, 744.0 / 1400, 744.0 / 1400, 0.744, readableYear), // iPad mini
-        (834, 834.0 / 1400, 834.0 / 1400, 0.834, readableYear), // iPad 11 inch
-        (1024, 1024.0 / 1400, 1024.0 / 1400, 1.024, readableYear), // iPad 13 inch
-        (1133, 1133.0 / 1400, 1133.0 / 1400, 1.133, readableYear),
-        (1210, 1210.0 / 1400, 1210.0 / 1400, 1.21, readableYear),
-        (1366, 1366.0 / 1400, 1366.0 / 1400, 1.366, readableYear), // 13 inch landscape: the year still scrolls
-    ]
-    for row in table {
-        let expected: [(PageKind, CGFloat)] = [(.month, row.month), (.week, row.week), (.day, row.day), (.year, row.year)]
-        for (kind, minZ) in expected {
-            let fit = row.width / ZoomPolicy.paperWidth(kind)
-            let paper = ZoomPolicy.paperWidth(kind)
-            checkClose(ZoomPolicy.fitZoom(kind, viewportWidth: row.width), fit, "fitZoom \(kind) at \(row.width)", tolerance: 1e-9)
-            checkClose(ZoomPolicy.minZoom(kind, viewportWidth: row.width), minZ, "minZoom \(kind) at \(row.width)", tolerance: 1e-4)
-            let maxZ = ZoomPolicy.maxZoom(kind, viewportWidth: row.width)
-            checkClose(maxZ, max(4 * fit, 2 * minZ), "maxZoom \(kind) at \(row.width) = max(4 × fit, 2 × min)", tolerance: 1e-4)
-            check(ZoomPolicy.minZoom(kind, viewportWidth: row.width) >= fit - 1e-12, "minZoom ≥ fit (\(kind) at \(row.width))")
-            check(maxZ >= 2 * ZoomPolicy.minZoom(kind, viewportWidth: row.width) - 1e-12 && maxZ >= 4 * fit - 1e-12, "maxZoom ≥ 2 × min and ≥ 4 × fit (\(kind) at \(row.width))")
-            let visible = ZoomPolicy.visibleWidth(kind, viewportWidth: row.width)
-            check(visible <= paper, "visibleWidth ≤ paper width (\(kind) at \(row.width))")
-            checkClose(visible, min(paper, row.width / minZ), "visibleWidth \(kind) at \(row.width)", tolerance: 0.5)
-            checkEqual(ZoomPolicy.bounds(kind, viewportWidth: row.width), ZoomPolicy.Bounds(fit: ZoomPolicy.fitZoom(kind, viewportWidth: row.width), min: ZoomPolicy.minZoom(kind, viewportWidth: row.width), max: maxZ), "bounds \(kind) at \(row.width)")
+
+    // The overview rectangle (D1): the month's 6 rows, the whole paper elsewhere.
+    let emptyMonth = layout([])
+    let busyMonth = layout(demo)
+    let inkedMonth = layout([], ink: [.day(day(2026, 10, 7)): 500])
+    let week = weekLayout(demo)
+    let dayPage = dayLayout(demo)
+    let emptyYear = yearLayout([])
+    let demoYear = yearLayout(demo)
+    checkEqual(ZoomPolicy.overviewSize(emptyMonth), CGSize(width: 1400, height: 1050), "overview: an empty October = 1400 × 1050 (6 × 175)")
+    checkEqual(ZoomPolicy.overviewSize(emptyMonth).height, emptyMonth.memo.minY, "overview: the month's height is memo.minY")
+    checkEqual(ZoomPolicy.overviewSize(busyMonth), CGSize(width: 1400, height: busyMonth.memo.minY), "overview: a busy month = 1400 × memo.minY")
+    check(ZoomPolicy.overviewSize(busyMonth).height > 1050, "overview: the demo month's rows grew (\(busyMonth.memo.minY))")
+    checkEqual(ZoomPolicy.overviewSize(inkedMonth), CGSize(width: 1400, height: 1050 - 175 + 512), "overview: handwriting grows a row (175 → 512) and the overview")
+    check(ZoomPolicy.overviewSize(busyMonth).height < busyMonth.size.height, "overview: the memo area is not in the month's overview (M4C-12)")
+    checkEqual(ZoomPolicy.overviewSize(week), CGSize(width: 1400, height: 1920), "overview: week = the whole paper")
+    checkEqual(ZoomPolicy.overviewSize(weekLayout([])), CGSize(width: 1400, height: 1920), "overview: an empty week")
+    checkEqual(ZoomPolicy.overviewSize(dayPage), CGSize(width: 1000, height: 2400), "overview: day = the whole paper")
+    checkEqual(ZoomPolicy.overviewSize(emptyYear), CGSize(width: 1400, height: 1860), "overview: an empty year = 31 × 60")
+    checkEqual(ZoomPolicy.overviewSize(demoYear), CGSize(width: 1400, height: 1896), "overview: the demo year (the 16th's row is 96) = 1896")
+    checkEqual(ZoomPolicy.overviewSize(demoYear), demoYear.size, "overview: the year is layout.size")
+    checkEqual(ZoomPolicy.overviewSize(yearLayout([], ink: [CellKey(raw: "03-05"): 1000])), CGSize(width: 1400, height: 1860 - 60 + 400), "overview: a year row capped at 400")
+
+    // fitZoom, maxZoom (unchanged from M4b, M4C-16), visibleWidth and bounds at the M4b widths
+    // (portrait widths, the Split View edge cases and the landscape 13 inch).
+    func overview(_ kind: PageKind) -> CGSize {
+        switch kind {
+        case .month: return CGSize(width: 1400, height: 1050)
+        case .week: return CGSize(width: 1400, height: 1920)
+        case .day: return CGSize(width: 1000, height: 2400)
+        case .year: return CGSize(width: 1400, height: 1860)
         }
     }
-    // The lu that fit at minZoom (the table's last column).
-    let visibleTable: [(width: CGFloat, month: CGFloat, week: CGFloat, day: CGFloat, year: CGFloat)] = [
-        (402, 804, 852, 716, 300),
-        (390, 780, 827, 695, 291),
-        (744, 1400, 1400, 1000, 555),
-        (834, 1400, 1400, 1000, 623),
-        (1024, 1400, 1400, 1000, 765),
-        (1366, 1400, 1400, 1000, 1020),
-        (678, 1400, 1400, 1000, 506),
-        (690, 1400, 1400, 1000, 515),
-        (667, 1400, 1400, 1000, 498),
-        (664, 1328, 1400, 1000, 496),
-    ]
-    for row in visibleTable {
-        checkClose(ZoomPolicy.visibleWidth(.month, viewportWidth: row.width), row.month, "visible lu: month at \(row.width)", tolerance: 1)
-        checkClose(ZoomPolicy.visibleWidth(.week, viewportWidth: row.width), row.week, "visible lu: week at \(row.width)", tolerance: 1)
-        checkClose(ZoomPolicy.visibleWidth(.day, viewportWidth: row.width), row.day, "visible lu: day at \(row.width)", tolerance: 1)
-        checkClose(ZoomPolicy.visibleWidth(.year, viewportWidth: row.width), row.year, "visible lu: year at \(row.width)", tolerance: 1)
+    let widths: [CGFloat] = [375, 390, 402, 664, 665, 667, 678, 690, 744, 834, 1024, 1133, 1210, 1366]
+    for width in widths {
+        for kind in PageKind.allCases {
+            let paper = ZoomPolicy.paperWidth(kind)
+            let fit = width / paper
+            let readable = ZoomPolicy.readableZoom(kind)
+            checkClose(ZoomPolicy.fitZoom(kind, viewportWidth: width), fit, "fitZoom \(kind) at \(width)", tolerance: 1e-9)
+            let maxZ = ZoomPolicy.maxZoom(kind, viewportWidth: width)
+            checkClose(maxZ, max(4 * fit, 2 * readable), "maxZoom \(kind) at \(width) = max(4 × fit, 2 × readable)", tolerance: 1e-9)
+            check(maxZ >= 4 * fit - 1e-12 && maxZ >= 2 * readable - 1e-12, "maxZoom ≥ 4 × fit and ≥ 2 × readable (\(kind) at \(width))")
+            checkClose(ZoomPolicy.visibleWidth(kind, viewportWidth: width, zoom: fit), paper, "visibleWidth at fit = the paper's width (\(kind) at \(width))", tolerance: 1e-9)
+            checkClose(ZoomPolicy.visibleWidth(kind, viewportWidth: width, zoom: 2 * fit), paper / 2, "visibleWidth at 2 × fit = half the paper (\(kind) at \(width))", tolerance: 1e-9)
+            checkClose(ZoomPolicy.visibleWidth(kind, viewportWidth: width, zoom: maxZ), min(paper, width / maxZ), "visibleWidth at maxZoom (\(kind) at \(width))", tolerance: 1e-9)
+            check(ZoomPolicy.visibleWidth(kind, viewportWidth: width, zoom: fit / 2) <= paper, "visibleWidth never exceeds the paper (\(kind) at \(width))")
+            // A paper area taller than the overview: the width decides, min = fit (the M4b fit-to-width).
+            let tall = ZoomPolicy.bounds(kind, overview: overview(kind), viewport: CGSize(width: width, height: 100_000))
+            checkClose(tall.fit, fit, "bounds.fit \(kind) at \(width)", tolerance: 1e-9)
+            checkClose(tall.min, fit, "bounds.min = fit when the height does not bind (\(kind) at \(width))", tolerance: 1e-9)
+            checkClose(tall.max, maxZ, "bounds.max = maxZoom (\(kind) at \(width))", tolerance: 1e-9)
+            // A square paper area: the height binds the tall pages.
+            let square = ZoomPolicy.bounds(kind, overview: overview(kind), viewport: CGSize(width: width, height: width))
+            checkClose(square.min, min(fit, width / overview(kind).height), "bounds.min = fitAll in a square area (\(kind) at \(width))", tolerance: 1e-9)
+            check(square.min <= fit + 1e-12, "fitAll ≤ fit (\(kind) at \(width))")
+            check(square.max >= square.min, "bounds.max ≥ bounds.min (\(kind) at \(width))")
+            checkClose(square.max, max(maxZ, square.min), "bounds.max in a square area (\(kind) at \(width))", tolerance: 1e-9)
+            checkEqual(square.fit, tall.fit, "bounds.fit does not depend on the height (\(kind) at \(width))")
+        }
     }
-    checkEqual(ZoomPolicy.visibleWidth(.month, viewportWidth: 744), 1400, "visibleWidth is exactly the paper's width when fit is the minimum")
-    checkEqual(ZoomPolicy.visibleWidth(.day, viewportWidth: 1024), 1000, "visibleWidth is exactly the paper's width (day)")
-    // The 5 % boundary and the maxZoom examples.
-    check(ZoomPolicy.minZoom(.month, viewportWidth: 664) > ZoomPolicy.fitZoom(.month, viewportWidth: 664), "664 pt month: readable beats fit")
-    checkEqual(ZoomPolicy.minZoom(.month, viewportWidth: 665), ZoomPolicy.fitZoom(.month, viewportWidth: 665), "665 pt month: fit is kept (the exact boundary)")
-    checkEqual(ZoomPolicy.minZoom(.week, viewportWidth: 744), ZoomPolicy.fitZoom(.week, viewportWidth: 744), "iPad mini week: fit")
-    checkClose(ZoomPolicy.maxZoom(.month, viewportWidth: 402), 1.1486, "iPhone month maxZoom = 4 × fit", tolerance: 1e-3)
-    checkClose(ZoomPolicy.maxZoom(.year, viewportWidth: 402), 2.6786, "iPhone year maxZoom = 2 × min", tolerance: 1e-3)
-    checkClose(ZoomPolicy.maxZoom(.year, viewportWidth: 1024), 2.9257, "13 inch year maxZoom = 4 × fit", tolerance: 1e-3)
-    checkClose(ZoomPolicy.maxZoom(.week, viewportWidth: 402), 1.1486, "iPhone week maxZoom = 4 × fit", tolerance: 1e-3)
-    checkClose(ZoomPolicy.maxZoom(.day, viewportWidth: 402), 1.608, "iPhone day maxZoom = 4 × fit", tolerance: 1e-3)
-    // Bounds.
+
+    // fitAll of the devices (M4C_CONTRACT §1.2; the week and day heights include a one-lane band, 25 pt).
+    // (width, month height, week / day height, month, week, day, year)
+    let devices: [(name: String, width: CGFloat, height: CGFloat, bandHeight: CGFloat, month: CGFloat, week: CGFloat, day: CGFloat, year: CGFloat)] = [
+        ("iPhone 17 portrait", 402, 580, 555, 0.2871, 0.2871, 0.2313, 0.2871),
+        ("iPhone 390 portrait", 390, 580, 555, 0.2786, 0.2786, 0.2313, 0.2786),
+        ("iPad mini portrait", 744, 950, 925, 0.5314, 0.4818, 0.3854, 0.5108),
+        ("iPad 11 portrait", 834, 1020, 995, 0.5957, 0.5182, 0.4146, 0.5484),
+        ("iPad 13 portrait", 1024, 1180, 1155, 0.7314, 0.6016, 0.4813, 0.6344),
+        ("iPad 13 landscape", 1366, 830, 805, 0.7905, 0.4193, 0.3354, 0.4462),
+        ("iPad 11 landscape", 1210, 640, 615, 0.6095, 0.3203, 0.2563, 0.3441),
+        ("iPad mini landscape", 1133, 550, 525, 0.5238, 0.2734, 0.2188, 0.2957),
+        ("iPhone 17 landscape", 874, 230, 205, 0.2190, 0.1068, 0.0854, 0.1237),
+    ]
+    for d in devices {
+        let full = CGSize(width: d.width, height: d.height)
+        let band = CGSize(width: d.width, height: d.bandHeight)
+        let expected: [(PageKind, CGSize, CGFloat)] = [(.month, full, d.month), (.week, band, d.week), (.day, band, d.day), (.year, full, d.year)]
+        for (kind, viewport, fitAll) in expected {
+            let got = ZoomPolicy.fitAll(kind, overview: overview(kind), viewport: viewport)
+            checkClose(got, fitAll, "fitAll \(kind), \(d.name) (\(Int(viewport.width)) × \(Int(viewport.height)))", tolerance: 1e-3)
+            check(got <= ZoomPolicy.fitZoom(kind, viewportWidth: viewport.width) + 1e-12, "fitAll ≤ fit-to-width (\(kind), \(d.name))")
+            checkClose(got, min(viewport.width / overview(kind).width, viewport.height / overview(kind).height), "fitAll = min(w / W, h / H) (\(kind), \(d.name))", tolerance: 1e-9)
+            let b = ZoomPolicy.bounds(kind, overview: overview(kind), viewport: viewport)
+            checkClose(b.min, got, "bounds.min = fitAll (\(kind), \(d.name))", tolerance: 1e-9)
+            check(b.max >= b.min && b.max >= 2 * b.min - 1e-9, "bounds: max ≥ 2 × min, a pinch always has room (\(kind), \(d.name))")
+        }
+    }
+    // The month stays fit-to-width on every device (6 rows never hit the height first), so an iPad's month is unchanged.
+    checkClose(ZoomPolicy.fitAll(.month, overview: overview(.month), viewport: CGSize(width: 1024, height: 1180)), 1024.0 / 1400, "13 inch month: fitAll = fit-to-width (unchanged from M4b)", tolerance: 1e-9)
+    checkClose(ZoomPolicy.fitAll(.month, overview: overview(.month), viewport: CGSize(width: 744, height: 950)), 744.0 / 1400, "iPad mini month: fitAll = fit-to-width", tolerance: 1e-9)
+    checkClose(ZoomPolicy.fitAll(.month, overview: overview(.month), viewport: CGSize(width: 1366, height: 830)), 830.0 / 1050, "13 inch landscape month: the height binds (0.7905)", tolerance: 1e-9)
+    checkClose(ZoomPolicy.fitAll(.month, overview: CGSize(width: 1400, height: 1275), viewport: CGSize(width: 1366, height: 830)), 830.0 / 1275, "13 inch landscape month: a row grown to 400 lowers the overview (0.651)", tolerance: 1e-9)
+    checkClose(ZoomPolicy.fitAll(.week, overview: overview(.week), viewport: CGSize(width: 1024, height: 1180)), 1180.0 / 1920, "13 inch week without a band: 0.6146", tolerance: 1e-9)
+    checkClose(ZoomPolicy.fitAll(.week, overview: overview(.week), viewport: CGSize(width: 1024, height: 1150)), 1150.0 / 1920, "13 inch week, the band grew: 0.599", tolerance: 1e-9)
+    checkClose(ZoomPolicy.fitAll(.day, overview: overview(.day), viewport: CGSize(width: 402, height: 580)), 580.0 / 2400, "iPhone day without a band: 0.2417", tolerance: 1e-9)
+    checkClose(ZoomPolicy.fitAll(.month, overview: overview(.month), viewport: CGSize(width: 402, height: 700)), 402.0 / 1400, "iPhone month 402 × 700: 0.2871", tolerance: 1e-9)
+    checkClose(ZoomPolicy.fitAll(.month, overview: overview(.month), viewport: CGSize(width: 874, height: 402)), 402.0 / 1050, "iPhone landscape month 874 × 402: 0.3829", tolerance: 1e-9)
+    // No height yet (the first frame): the width alone. Unusable widths and overviews: readable.
+    for kind in PageKind.allCases {
+        let readable = ZoomPolicy.readableZoom(kind)
+        let byWidth = 402 / overview(kind).width
+        for noHeight in [CGFloat.nan, 0, -1, .infinity, -.infinity] {
+            checkClose(ZoomPolicy.fitAll(kind, overview: overview(kind), viewport: CGSize(width: 402, height: noHeight)), byWidth, "fitAll \(kind) with height \(noHeight) → the width alone", tolerance: 1e-9)
+        }
+        for bad in [CGFloat.nan, 0, -1, .infinity, -.infinity] {
+            checkEqual(ZoomPolicy.fitAll(kind, overview: overview(kind), viewport: CGSize(width: bad, height: 580)), readable, "fitAll \(kind) with width \(bad) → readable")
+            checkEqual(ZoomPolicy.fitAll(kind, overview: overview(kind), viewport: CGSize(width: bad, height: bad)), readable, "fitAll \(kind) with no viewport → readable")
+            checkEqual(ZoomPolicy.fitAll(kind, overview: CGSize(width: bad, height: 1000), viewport: CGSize(width: 402, height: 580)), readable, "fitAll \(kind) with an overview width \(bad) → readable")
+            checkEqual(ZoomPolicy.fitAll(kind, overview: CGSize(width: 1400, height: bad), viewport: CGSize(width: 402, height: 580)), readable, "fitAll \(kind) with an overview height \(bad) → readable")
+            checkEqual(ZoomPolicy.fitZoom(kind, viewportWidth: bad), readable, "fitZoom \(kind) at \(bad) → readable")
+            checkEqual(ZoomPolicy.maxZoom(kind, viewportWidth: bad), 4 * readable, "maxZoom \(kind) at \(bad) → 4 × readable")
+            checkEqual(ZoomPolicy.visibleWidth(kind, viewportWidth: bad, zoom: 0.5), 0, "visibleWidth \(kind) at width \(bad) → 0")
+            checkEqual(ZoomPolicy.visibleWidth(kind, viewportWidth: 402, zoom: bad), 0, "visibleWidth \(kind) at zoom \(bad) → 0")
+            let b = ZoomPolicy.bounds(kind, overview: overview(kind), viewport: CGSize(width: bad, height: bad))
+            checkEqual(b, ZoomPolicy.Bounds(fit: readable, min: readable, max: 4 * readable), "bounds \(kind) with no viewport → readable … 4 × readable")
+        }
+    }
+
+    // maxZoom of the devices (width alone, no band): month / week, day, year (M4C_CONTRACT §1.2).
+    let maxTable: [(name: String, width: CGFloat, monthWeek: CGFloat, day: CGFloat, year: CGFloat)] = [
+        ("iPhone", 402, 1.1486, 1.608, 2.6786),
+        ("iPad mini", 744, 2.1257, 2.976, 2.6786),
+        ("iPad 11", 834, 2.3829, 3.336, 2.6786),
+        ("iPad 13", 1024, 2.9257, 4.096, 2.9257),
+    ]
+    for m in maxTable {
+        checkClose(ZoomPolicy.maxZoom(.month, viewportWidth: m.width), m.monthWeek, "maxZoom month, \(m.name)", tolerance: 1e-3)
+        checkClose(ZoomPolicy.maxZoom(.week, viewportWidth: m.width), m.monthWeek, "maxZoom week, \(m.name)", tolerance: 1e-3)
+        checkClose(ZoomPolicy.maxZoom(.day, viewportWidth: m.width), m.day, "maxZoom day, \(m.name)", tolerance: 1e-3)
+        checkClose(ZoomPolicy.maxZoom(.year, viewportWidth: m.width), m.year, "maxZoom year, \(m.name)", tolerance: 1e-3)
+    }
+    checkClose(ZoomPolicy.maxZoom(.year, viewportWidth: 402), 2 * readableYear, "iPhone year maxZoom = 2 × readable", tolerance: 1e-9)
+    checkClose(ZoomPolicy.maxZoom(.year, viewportWidth: 1024), 4 * 1024.0 / 1400, "13 inch year maxZoom = 4 × fit", tolerance: 1e-9)
+    checkClose(ZoomPolicy.maxZoom(.week, viewportWidth: 402), 4 * 402.0 / 1400, "iPhone week maxZoom = 4 × fit (2 × readable 0.943 is smaller)", tolerance: 1e-9)
+    checkClose(ZoomPolicy.maxZoom(.day, viewportWidth: 402), 4 * 0.402, "iPhone day maxZoom = 4 × fit", tolerance: 1e-9)
+    checkClose(ZoomPolicy.maxZoom(.week, viewportWidth: 300), 2 * readableWeek, "a 300 pt week: 2 × readable wins", tolerance: 1e-9)
+    checkClose(ZoomPolicy.maxZoom(.day, viewportWidth: 250), 2 * readableDay, "a 250 pt day: 2 × readable wins", tolerance: 1e-9)
+    // The room a pinch has above the overview (maxZoom / fitAll, §1.2).
+    let iphoneMonthBounds = ZoomPolicy.bounds(.month, overview: overview(.month), viewport: CGSize(width: 402, height: 580))
+    let iphoneDayBounds = ZoomPolicy.bounds(.day, overview: overview(.day), viewport: CGSize(width: 402, height: 555))
+    let iphoneYearBounds = ZoomPolicy.bounds(.year, overview: overview(.year), viewport: CGSize(width: 402, height: 580))
+    let ipadWeekBounds = ZoomPolicy.bounds(.week, overview: overview(.week), viewport: CGSize(width: 1024, height: 1155))
+    let ipadDayBounds = ZoomPolicy.bounds(.day, overview: overview(.day), viewport: CGSize(width: 1024, height: 1155))
+    let ipadYearBounds = ZoomPolicy.bounds(.year, overview: overview(.year), viewport: CGSize(width: 1024, height: 1180))
+    checkClose(iphoneMonthBounds.max / iphoneMonthBounds.min, 4.0, "iPhone month: maxZoom / fitAll = 4.0", tolerance: 0.1)
+    checkClose(iphoneDayBounds.max / iphoneDayBounds.min, 7.0, "iPhone day: maxZoom / fitAll ≈ 7.0", tolerance: 0.1)
+    checkClose(iphoneYearBounds.max / iphoneYearBounds.min, 9.3, "iPhone year: maxZoom / fitAll ≈ 9.3", tolerance: 0.1)
+    checkClose(ipadWeekBounds.max / ipadWeekBounds.min, 4.9, "13 inch week: maxZoom / fitAll ≈ 4.9", tolerance: 0.1)
+    checkClose(ipadDayBounds.max / ipadDayBounds.min, 8.5, "13 inch day: maxZoom / fitAll ≈ 8.5", tolerance: 0.1)
+    checkClose(ipadYearBounds.max / ipadYearBounds.min, 4.6, "13 inch year: maxZoom / fitAll ≈ 4.6", tolerance: 0.1)
+    let landscapeDay = ZoomPolicy.bounds(.day, overview: overview(.day), viewport: CGSize(width: 874, height: 205))
+    check(landscapeDay.max / landscapeDay.min < ZoomPolicy.maxStoredRatio, "the largest ratio (iPhone landscape day ≈ 41) is below maxStoredRatio 64")
+    checkClose(landscapeDay.max / landscapeDay.min, 41, "iPhone landscape day: maxZoom / fitAll ≈ 41", tolerance: 1)
+
+    // Bounds (the type is unchanged).
     let b = ZoomPolicy.Bounds(fit: 0.3, min: 0.5, max: 1.2)
     checkEqual(b.fit, 0.3, "Bounds.fit")
     checkEqual(b.min, 0.5, "Bounds.min")
@@ -2867,19 +2960,100 @@ do {
     checkEqual(b.clamped(-.infinity), 0.5, "clamped: −∞ → min")
     checkEqual(b, ZoomPolicy.Bounds(fit: 0.3, min: 0.5, max: 1.2), "Bounds is Equatable")
     checkEqual(b == ZoomPolicy.Bounds(fit: 0.3, min: 0.5, max: 1.3), false, "Bounds inequality")
-    let iphoneMonth = ZoomPolicy.bounds(.month, viewportWidth: 402)
-    checkEqual(iphoneMonth.clamped(0.2), 0.5, "iPhone month: a pinch below minZoom clamps to 0.5")
-    checkClose(iphoneMonth.clamped(3), iphoneMonth.max, "iPhone month: above maxZoom clamps to max")
-    // Widths that are not usable: fit and min fall back to readable.
-    for kind in PageKind.allCases {
-        let readable = ZoomPolicy.readableZoom(kind)
-        for bad in [CGFloat.nan, 0, -1, .infinity, -.infinity] {
-            checkEqual(ZoomPolicy.fitZoom(kind, viewportWidth: bad), readable, "fitZoom \(kind) at \(bad) → readable")
-            checkEqual(ZoomPolicy.minZoom(kind, viewportWidth: bad), readable, "minZoom \(kind) at \(bad) → readable")
-            checkEqual(ZoomPolicy.maxZoom(kind, viewportWidth: bad), 4 * readable, "maxZoom \(kind) at \(bad) → 4 × readable")
-            checkEqual(ZoomPolicy.visibleWidth(kind, viewportWidth: bad), 0, "visibleWidth \(kind) at \(bad) → 0")
-        }
+    checkClose(iphoneMonthBounds.clamped(0.2), 402.0 / 1400, "iPhone month: a pinch below fitAll clamps to the overview (0.2871, not M4b's 0.5)", tolerance: 1e-9)
+    checkClose(iphoneMonthBounds.clamped(3), iphoneMonthBounds.max, "iPhone month: above maxZoom clamps to max")
+    checkClose(iphoneMonthBounds.fit, iphoneMonthBounds.min, "iPhone month: the overview is fit-to-width", tolerance: 1e-9)
+    check(iphoneDayBounds.min < iphoneDayBounds.fit, "iPhone day: the overview (0.2313) is below fit-to-width (0.402)")
+    checkClose(ipadWeekBounds.min, 1155.0 / 1920, "13 inch week with a band: fitAll 0.6016", tolerance: 1e-9)
+    check(ipadWeekBounds.min < ipadWeekBounds.fit, "13 inch week: the overview is below fit-to-width (M4b's minimum)")
+    let degenerate = ZoomPolicy.bounds(.year, overview: CGSize(width: 1400, height: 1860), viewport: CGSize(width: 1, height: 1))
+    check(degenerate.max >= degenerate.min, "a 1 pt area: max is raised to min if needed")
+    checkClose(degenerate.min, 1.0 / 1860, "a 1 pt area: fitAll = 1 / 1860", tolerance: 1e-12)
+
+    // Stored ratio ↔ zoom (D4).
+    let db = iphoneDayBounds // min 0.2313, max 1.608
+    checkClose(ZoomPolicy.zoom(forRatio: 1, bounds: db), db.min, "ratio 1 → min (the overview)", tolerance: 1e-12)
+    checkClose(ZoomPolicy.zoom(forRatio: 2, bounds: db), 2 * db.min, "ratio 2 → 2 × min", tolerance: 1e-12)
+    checkClose(ZoomPolicy.zoom(forRatio: 100, bounds: db), db.max, "ratio 100 → clamped to max", tolerance: 1e-12)
+    let ipadMonthBounds = ZoomPolicy.bounds(.month, overview: overview(.month), viewport: CGSize(width: 1024, height: 1180)) // min 0.7314 = fit, max 2.9257
+    checkClose(ZoomPolicy.zoom(forRatio: 2, bounds: ipadMonthBounds), 1.4628, "13 inch month, ratio 2 → 1.4628", tolerance: 1e-3)
+    checkClose(ZoomPolicy.zoom(forRatio: 3, bounds: ipadMonthBounds), 3 * 1024.0 / 1400, "13 inch month, ratio 3 → 2.1943 (inside the range: max is 4 × fit)", tolerance: 1e-9)
+    checkClose(ZoomPolicy.zoom(forRatio: 4, bounds: ipadMonthBounds), 2.9257, "13 inch month, ratio 4 → max 2.9257 (the month's max is 4 × fitAll)", tolerance: 1e-3)
+    checkClose(ZoomPolicy.zoom(forRatio: 5, bounds: ipadMonthBounds), 2.9257, "13 inch month, ratio 5 → clamped to 2.9257", tolerance: 1e-3)
+    for bad in [CGFloat.nan, 0, -1, .infinity, -.infinity] {
+        checkClose(ZoomPolicy.zoom(forRatio: bad, bounds: db), db.min, "ratio \(bad) → min", tolerance: 1e-12)
     }
+    checkClose(ZoomPolicy.zoom(forRatio: 0.5, bounds: db), db.min, "ratio 0.5 → clamped to min", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: db.min, bounds: db), 1, "zoom min → ratio 1", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: db.max, bounds: db), db.max / db.min, "zoom max → max / min", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: 2 * db.min, bounds: db), 2, "zoom 2 × min → 2", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: db.min * 0.5, bounds: db), 1, "zoom below min → 1", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: db.min * 1.0005, bounds: db), 1, "zoom within 0.1 % of min → 1", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: .nan, bounds: db), 1, "zoom NaN → 1", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: db.min * 100, bounds: db), 1, "zoom 100 × min → 1 (above maxStoredRatio)", tolerance: 1e-12)
+    checkEqual(ZoomPolicy.ratio(forZoom: 1, bounds: ZoomPolicy.Bounds(fit: 0, min: 0, max: 1)), 1, "min 0 → 1")
+    checkEqual(ZoomPolicy.ratio(forZoom: 1, bounds: ZoomPolicy.Bounds(fit: 0, min: .nan, max: 1)), 1, "min NaN → 1")
+    checkEqual(ZoomPolicy.ratio(forZoom: 1, bounds: ZoomPolicy.Bounds(fit: 0, min: -1, max: 1)), 1, "min negative → 1")
+    checkClose(ZoomPolicy.ratio(forZoom: ZoomPolicy.zoom(forRatio: 2, bounds: db), bounds: db), 2, "ratio → zoom → ratio round trip (2)", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: ZoomPolicy.zoom(forRatio: 6.5, bounds: db), bounds: db), 6.5, "ratio → zoom → ratio round trip (6.5)", tolerance: 1e-12)
+    checkClose(ZoomPolicy.ratio(forZoom: ZoomPolicy.zoom(forRatio: 100, bounds: db), bounds: db), db.max / db.min, "ratio 100 → clamped → max / min", tolerance: 1e-12)
+    checkEqual(ZoomPolicy.sanitizedRatio(.nan), 1, "sanitizedRatio NaN → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(0), 1, "sanitizedRatio 0 → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(0.5), 1, "sanitizedRatio 0.5 → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(-2), 1, "sanitizedRatio −2 → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(1.0005), 1, "sanitizedRatio 1.0005 → 1 (1 ± 0.001)")
+    checkEqual(ZoomPolicy.sanitizedRatio(0.9995), 1, "sanitizedRatio 0.9995 → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(1.001), 1, "sanitizedRatio 1.001 → 1 (the edge of the band)")
+    checkEqual(ZoomPolicy.sanitizedRatio(1.002), 1.002, "sanitizedRatio 1.002 → itself")
+    checkEqual(ZoomPolicy.sanitizedRatio(1), 1, "sanitizedRatio 1 → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(2), 2, "sanitizedRatio 2 → 2")
+    checkEqual(ZoomPolicy.sanitizedRatio(41), 41, "sanitizedRatio 41 → 41")
+    checkEqual(ZoomPolicy.sanitizedRatio(64), 64, "sanitizedRatio 64 → 64 (the limit itself)")
+    checkEqual(ZoomPolicy.sanitizedRatio(64.5), 1, "sanitizedRatio 64.5 → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(65), 1, "sanitizedRatio 65 → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(.infinity), 1, "sanitizedRatio ∞ → 1")
+    checkEqual(ZoomPolicy.sanitizedRatio(-.infinity), 1, "sanitizedRatio −∞ → 1")
+
+    // Centring margins (the paper is always the whole paper, never the overview).
+    let dayFitAll = ZoomPolicy.fitAll(.day, overview: overview(.day), viewport: CGSize(width: 402, height: 580)) // 0.2417
+    let dayInset = ZoomPolicy.centeringInsets(paper: CGSize(width: 1000, height: 2400), zoom: dayFitAll, viewport: CGSize(width: 402, height: 580))
+    checkClose(dayInset.width, (402 - 1000 * dayFitAll) / 2, "iPhone day: left / right margin 80.2 (≈ 80.1 of §7.1)", tolerance: 1e-9)
+    checkClose(dayInset.width, 80.1, "iPhone day: left / right margin ≈ 80.1", tolerance: 0.1)
+    checkClose(dayInset.height, 0, "iPhone day: no vertical margin (the paper's height is the area's)", tolerance: 1e-9)
+    let ipadMonthInset = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 1024.0 / 1400, viewport: CGSize(width: 1024, height: 1180))
+    checkClose(ipadMonthInset.width, 0, "13 inch month: no horizontal margin (fit-to-width)", tolerance: 1e-9)
+    checkClose(ipadMonthInset.height, 0, "13 inch month: no vertical margin (the paper 1280 pt > 1180: the memo area scrolls)", tolerance: 1e-9)
+    checkEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 0.7314, viewport: CGSize(width: 1024, height: 1180)).height, 0, "13 inch month at 0.7314: no vertical margin")
+    let iphoneMonthInset = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 402.0 / 1400, viewport: CGSize(width: 402, height: 580))
+    checkClose(iphoneMonthInset.width, 0, "iPhone month: no horizontal margin", tolerance: 1e-9)
+    checkClose(iphoneMonthInset.height, 38.8, "iPhone month: top / bottom margin 38.8 (the whole paper 502 pt fits)", tolerance: 0.1)
+    let ipadWeekInset = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1920), zoom: 1180.0 / 1920, viewport: CGSize(width: 1024, height: 1180))
+    checkClose(ipadWeekInset.width, 81.8, "13 inch week: left / right margin 81.8", tolerance: 0.1)
+    checkClose(ipadWeekInset.height, 0, "13 inch week: no vertical margin", tolerance: 1e-9)
+    checkEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1920), zoom: 1.2, viewport: CGSize(width: 1024, height: 1180)), .zero, "zoomed in: the paper is larger both ways → no margin")
+    checkEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1000, height: 2400), zoom: 0.25, viewport: CGSize(width: 402, height: 580)), CGSize(width: 76, height: 0), "a 250 pt paper in 402: 76 pt each side, 600 pt tall → no vertical margin")
+    for bad in [CGFloat.nan, 0, -1, .infinity, -.infinity] {
+        checkEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1000, height: 2400), zoom: bad, viewport: CGSize(width: 402, height: 580)), .zero, "centeringInsets with zoom \(bad) → 0")
+        checkEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1000, height: 2400), zoom: 0.2, viewport: CGSize(width: bad, height: bad)), .zero, "centeringInsets with viewport \(bad) → 0")
+        checkEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: bad, height: bad), zoom: 0.2, viewport: CGSize(width: 402, height: 580)).width, bad.isFinite && bad <= 0 ? 201 : 0, "centeringInsets with paper \(bad): a non-finite paper → 0, an empty paper → half the viewport")
+    }
+    checkEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1000, height: 2400), zoom: 0.25, viewport: CGSize(width: 402, height: 0)), CGSize(width: 76, height: 0), "no height yet: only the horizontal margin")
+
+    // visibleWidth (lu) at a given zoom (the 3-argument form; the M4b 2-argument form is gone).
+    checkClose(ZoomPolicy.visibleWidth(.month, viewportWidth: 402, zoom: 0.5742), 700, "visibleWidth: iPhone month at 2 × fitAll (0.5742) → 700 lu", tolerance: 0.5)
+    checkClose(ZoomPolicy.visibleWidth(.month, viewportWidth: 402, zoom: 2 * (402.0 / 1400)), 700, "visibleWidth: iPhone month at exactly 2 × fit → 700", tolerance: 1e-9)
+    checkEqual(ZoomPolicy.visibleWidth(.month, viewportWidth: 1024, zoom: 0.7314), 1400, "visibleWidth: 13 inch month at 0.7314 stops at the paper's width")
+    checkEqual(ZoomPolicy.visibleWidth(.month, viewportWidth: 402, zoom: 0.2871), 1400, "visibleWidth: the overview shows the whole width")
+    checkClose(ZoomPolicy.visibleWidth(.month, viewportWidth: 402, zoom: 1.1486), 350, "visibleWidth: iPhone month at maxZoom → 350 lu", tolerance: 0.1)
+    checkClose(ZoomPolicy.visibleWidth(.month, viewportWidth: 402, zoom: 0.5), 804, "visibleWidth: iPhone month at readable → 804 (M4b's value)", tolerance: 1e-9)
+    checkClose(ZoomPolicy.visibleWidth(.week, viewportWidth: 402, zoom: readableWeek), 852.5, "visibleWidth: iPhone week at readable → 852.5", tolerance: 0.5)
+    checkClose(ZoomPolicy.visibleWidth(.year, viewportWidth: 402, zoom: readableYear), 300.2, "visibleWidth: iPhone year at readable → 300.2", tolerance: 0.5)
+    checkClose(ZoomPolicy.visibleWidth(.year, viewportWidth: 1024, zoom: readableYear), 764.6, "visibleWidth: 13 inch year at readable → 764.6", tolerance: 0.5)
+    checkClose(ZoomPolicy.visibleWidth(.year, viewportWidth: 744, zoom: readableYear), 555.5, "visibleWidth: iPad mini year at readable → 555.5", tolerance: 0.5)
+    checkEqual(ZoomPolicy.visibleWidth(.day, viewportWidth: 1024, zoom: 2), 512, "visibleWidth: day at zoom 2 → 512")
+    checkEqual(ZoomPolicy.visibleWidth(.day, viewportWidth: 500, zoom: 0.4), 1000, "visibleWidth: day never exceeds 1000")
+    checkClose(ZoomPolicy.visibleWidth(.day, viewportWidth: 1024, zoom: 1.024), 1000, "visibleWidth: day at fit → 1000", tolerance: 1e-9)
+
     // PaperViewport.
     let v = PaperViewport(offsetX: 100, zoom: 0.5, width: 402)
     checkEqual(v.x(ofPaper: 400), 100, "x(ofPaper:) = lu × zoom − offsetX")
@@ -2895,15 +3069,210 @@ do {
     checkEqual(PaperViewport.zero.width, 0, ".zero has width 0 (the views substitute `initial`)")
     checkEqual(v == PaperViewport.zero, false, "PaperViewport inequality")
     checkEqual(v, PaperViewport(offsetX: 100, zoom: 0.5, width: 402), "PaperViewport is Equatable")
-    checkEqual(PaperViewport.initial(.month, viewportWidth: 402), PaperViewport(offsetX: 0, zoom: 0.5, width: 402), "initial(.month, 402) = (0, 0.5, 402)")
-    checkClose(PaperViewport.initial(.year, viewportWidth: 1024).zoom, readableYear, "initial(.year, 1024).zoom = readable")
+    let centred = PaperViewport(offsetX: -80, zoom: 0.2417, width: 402)
+    checkEqual(centred.x(ofPaper: 0), 80, "a negative offsetX (the centring margin) puts the paper's left edge at 80 pt")
+    checkClose(centred.x(ofPaper: 1000), 80 + 241.7, "… and its right edge at 321.7 pt", tolerance: 1e-9)
+    // The first frame from the width alone: fitZoom (M4b: minZoom).
+    checkEqual(PaperViewport.initial(.month, viewportWidth: 402), PaperViewport(offsetX: 0, zoom: 402.0 / 1400, width: 402), "initial(.month, 402) = (0, fit 0.2871, 402)")
+    checkClose(PaperViewport.initial(.year, viewportWidth: 1024).zoom, 1024.0 / 1400, "initial(.year, 1024).zoom = fit (M4b: readable)", tolerance: 1e-9)
     checkEqual(PaperViewport.initial(.year, viewportWidth: 1024).width, 1024, "initial(.year, 1024).width")
     checkEqual(PaperViewport.initial(.year, viewportWidth: 1024).offsetX, 0, "initial offsetX is 0")
     checkEqual(PaperViewport.initial(.week, viewportWidth: 744).zoom, 744.0 / 1400, "initial(.week, 744).zoom = fit")
+    checkClose(PaperViewport.initial(.day, viewportWidth: 402).zoom, 0.402, "initial(.day, 402).zoom = fit (the height is unknown)", tolerance: 1e-9)
     checkEqual(PaperViewport.initial(.month, viewportWidth: 0), PaperViewport(offsetX: 0, zoom: 0.5, width: 0), "initial at width 0: readable zoom, width 0")
     checkEqual(PaperViewport.initial(.month, viewportWidth: .nan), PaperViewport(offsetX: 0, zoom: 0.5, width: 0), "initial at NaN: no NaN in the viewport")
     checkEqual(PaperViewport.initial(.month, viewportWidth: -3), PaperViewport(offsetX: 0, zoom: 0.5, width: 0), "initial at a negative width")
-    checkEqual(PaperViewport.initial(.month, viewportWidth: 402).x(ofPaper: 1400), 700, "the first frame: the paper's right edge at 700 pt")
+    checkEqual(PaperViewport.initial(.month, viewportWidth: 402).x(ofPaper: 1400), 402, "the first frame: the paper's right edge at 402 pt (M4b: 700)")
+    // The first frame with the height and the overview.
+    let dayFirst = PaperViewport.initial(.day, overview: overview(.day), paperSize: CGSize(width: 1000, height: 2400), viewport: CGSize(width: 402, height: 580), ratio: 1)
+    checkClose(dayFirst.zoom, 0.2417, "initial(day, 402 × 580, ratio 1).zoom = fitAll 0.2417", tolerance: 1e-3)
+    checkClose(dayFirst.offsetX, -80.1, "initial(day, 402 × 580, ratio 1).offsetX = −80.1 (centred)", tolerance: 0.1)
+    checkClose(dayFirst.offsetX, -dayInset.width, "initial.offsetX = −centeringInsets.width", tolerance: 1e-9)
+    checkEqual(dayFirst.width, 402, "initial(day, 402 × 580).width")
+    checkClose(dayFirst.x(ofPaper: 0), 80.1, "the paper's left edge at 80.1 pt", tolerance: 0.1)
+    let monthTwice = PaperViewport.initial(.month, overview: overview(.month), paperSize: CGSize(width: 1400, height: 1750), viewport: CGSize(width: 1024, height: 1180), ratio: 2)
+    checkClose(monthTwice.zoom, 1.4628, "initial(month, 1024 × 1180, ratio 2).zoom = 1.4628", tolerance: 1e-3)
+    checkEqual(monthTwice.offsetX, 0, "initial(month, ratio 2).offsetX = 0 (the paper is wider than the area)")
+    checkEqual(monthTwice.width, 1024, "initial(month, ratio 2).width")
+    let weekFirst = PaperViewport.initial(.week, overview: overview(.week), paperSize: CGSize(width: 1400, height: 1920), viewport: CGSize(width: 1024, height: 1180), ratio: 1)
+    checkClose(weekFirst.zoom, 1180.0 / 1920, "initial(week, 1024 × 1180, ratio 1).zoom = 0.6146", tolerance: 1e-9)
+    checkClose(weekFirst.offsetX, -81.8, "initial(week, 1024 × 1180).offsetX = −81.8", tolerance: 0.1)
+    let noHeight = PaperViewport.initial(.month, overview: overview(.month), paperSize: CGSize(width: 1400, height: 1750), viewport: CGSize(width: 402, height: 0), ratio: 1)
+    checkEqual(noHeight.zoom, PaperViewport.initial(.month, viewportWidth: 402).zoom, "height 0 → the width alone (the zoom of initial(_:viewportWidth:))")
+    checkClose(noHeight.offsetX, 0, "height 0 → no centring (fit-to-width)", tolerance: 1e-9)
+    checkEqual(noHeight.width, 402, "height 0 → width 402")
+    let noHeightDay = PaperViewport.initial(.day, overview: overview(.day), paperSize: CGSize(width: 1000, height: 2400), viewport: CGSize(width: 402, height: 0), ratio: 1)
+    checkClose(noHeightDay.zoom, 0.402, "day, height 0 → fit-to-width (the real value comes next turn)", tolerance: 1e-9)
+    checkClose(noHeightDay.offsetX, 0, "day, height 0 → no centring", tolerance: 1e-9)
+    checkClose(PaperViewport.initial(.day, overview: overview(.day), paperSize: CGSize(width: 1000, height: 2400), viewport: CGSize(width: 402, height: 580), ratio: .nan).zoom, dayFirst.zoom, "ratio NaN → the overview", tolerance: 1e-12)
+    checkClose(PaperViewport.initial(.day, overview: overview(.day), paperSize: CGSize(width: 1000, height: 2400), viewport: CGSize(width: 402, height: 580), ratio: 100).zoom, 1.608, "ratio 100 → maxZoom 1.608", tolerance: 1e-3)
+    checkEqual(PaperViewport.initial(.day, overview: overview(.day), paperSize: CGSize(width: 1000, height: 2400), viewport: CGSize(width: 402, height: 580), ratio: 100).offsetX, 0, "ratio 100 → no centring (the paper is wider)")
+    let noWidth = PaperViewport.initial(.month, overview: overview(.month), paperSize: CGSize(width: 1400, height: 1750), viewport: CGSize(width: CGFloat.nan, height: 580), ratio: 1)
+    checkEqual(noWidth, PaperViewport(offsetX: 0, zoom: 0.5, width: 0), "width NaN → (0, readable, 0): no NaN in the viewport")
+    checkEqual(PaperViewport.initial(.month, overview: overview(.month), paperSize: CGSize(width: 1400, height: 1750), viewport: CGSize(width: -3, height: 580), ratio: 1).width, 0, "a negative width → 0")
+}
+
+// MARK: - M4c: the double tap's target (M4C_CONTRACT §4.3, D5)
+
+section("double tap target (M4c)")
+do {
+    // Month: the cell's day (a day outside the month too); the memo area, the outside and NaN → nil.
+    let month = layout([]) // October 2026: the grid is 9/28 … 11/8, the memo area starts at 1050
+    checkEqual(month.dayAt(point: CGPoint(x: 650, y: 10)), day(2026, 10, 1), "month: 10/1's cell")
+    checkEqual(month.dayAt(point: CGPoint(x: 500, y: 225)), day(2026, 10, 7), "month: 10/7 (column 2 of row 1)")
+    checkEqual(month.dayAt(point: CGPoint(x: 0, y: 0)), day(2026, 9, 28), "month: the top-left cell is 9/28 (outside the month, still a day)")
+    checkEqual(month.dayAt(point: CGPoint(x: 1400, y: 180)), day(2026, 10, 11), "month: x 1400 belongs to the last column (10/11)")
+    checkEqual(month.dayAt(point: CGPoint(x: 199.9, y: 174.9)), day(2026, 9, 28), "month: just inside the first cell")
+    checkEqual(month.dayAt(point: CGPoint(x: 200, y: 175)), day(2026, 10, 6), "month: a cell boundary belongs to the next cell")
+    checkEqual(month.dayAt(point: CGPoint(x: 100, y: 1049.9)), day(2026, 11, 2), "month: the last row (11/2)")
+    checkEqual(month.dayAt(point: CGPoint(x: 1400, y: 1049.9)), day(2026, 11, 8), "month: the grid's last cell (11/8)")
+    checkEqual(month.dayAt(point: CGPoint(x: 100, y: 1050)), nil, "month: the memo area → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: 100, y: 1100)), nil, "month: the memo area → nil (1100)")
+    checkEqual(month.dayAt(point: CGPoint(x: 10, y: 1749)), nil, "month: the bottom of the memo area → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: -1, y: 10)), nil, "month: left of the paper → nil (a centring margin)")
+    checkEqual(month.dayAt(point: CGPoint(x: 1401, y: 10)), nil, "month: right of the paper → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: 10, y: -1)), nil, "month: above the paper → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: 10, y: 1750)), nil, "month: below the paper → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: CGFloat.nan, y: 10)), nil, "month: NaN x → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: 10, y: CGFloat.nan)), nil, "month: NaN y → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: CGFloat.infinity, y: 10)), nil, "month: ∞ → nil")
+    let busy = layout(demo)
+    checkEqual(busy.dayAt(point: CGPoint(x: 500, y: busy.memo.minY - 1)), day(2026, 11, 4), "month (demo): the last row ends at memo.minY (11/4)")
+    checkEqual(busy.dayAt(point: CGPoint(x: 500, y: busy.memo.minY)), nil, "month (demo): memo.minY is the memo area")
+    checkEqual(busy.dayAt(point: CGPoint(x: 500, y: busy.rows[1].frame.minY + 10)), day(2026, 10, 7), "month (demo): 10/7 under a grown row")
+    for cell in busy.cells where !cell.key.isMemo {
+        let centre = CGPoint(x: cell.value.midX, y: cell.value.midY)
+        checkEqual(busy.dayAt(point: centre), cell.key.day, "month (demo): the centre of \(cell.key) → its day")
+    }
+    checkEqual(busy.dayAt(point: CGPoint(x: busy.memo.midX, y: busy.memo.midY)), nil, "month (demo): the centre of the memo area → nil")
+    var rng = Rng(seed: 0x4D34_6300)
+    for _ in 0..<40 {
+        let p = CGPoint(x: CGFloat(rng.double()) * 1500 - 50, y: CGFloat(rng.double()) * 1900 - 50)
+        checkEqual(busy.dayAt(point: p), busy.cell(at: p)?.day, "month: dayAt == cell(at:)?.day at \(p)")
+    }
+
+    // Week: the column's day while 0 ≤ y < 1920; the time gutter, the outside and NaN → nil.
+    let week = weekLayout(demo) // 10/5 … 10/11
+    checkEqual(week.dayAt(point: CGPoint(x: 64 + 2.5 * colW, y: 100)), day(2026, 10, 7), "week: the middle of column 2 → 10/7")
+    checkEqual(week.dayAt(point: CGPoint(x: 10, y: 100)), nil, "week: the time gutter → nil")
+    checkEqual(week.dayAt(point: CGPoint(x: 63.9, y: 100)), nil, "week: just left of the first column → nil")
+    checkEqual(week.dayAt(point: CGPoint(x: 64, y: 0)), day(2026, 10, 5), "week: the first column's left edge at 0:00 → 10/5")
+    checkEqual(week.dayAt(point: CGPoint(x: 1400, y: 100)), day(2026, 10, 11), "week: x 1400 → Sunday")
+    checkEqual(week.dayAt(point: CGPoint(x: 1401, y: 100)), nil, "week: right of the paper → nil")
+    checkEqual(week.dayAt(point: CGPoint(x: 700, y: 1920)), nil, "week: y 1920 (below the paper) → nil")
+    checkEqual(week.dayAt(point: CGPoint(x: 700, y: 1919.9)), day(2026, 10, 8), "week: the bottom of column 3 → 10/8")
+    checkEqual(week.dayAt(point: CGPoint(x: 700, y: -0.1)), nil, "week: above the paper → nil (the fixed band resolves itself)")
+    checkEqual(week.dayAt(point: CGPoint(x: 64 + 2 * colW, y: 500)), day(2026, 10, 7), "week: a column boundary belongs to its own column")
+    checkEqual(week.dayAt(point: CGPoint(x: 64 + 2 * colW - 0.01, y: 500)), day(2026, 10, 6), "week: just left of the boundary → 10/6")
+    checkEqual(week.dayAt(point: CGPoint(x: 64 + 2.1 * colW, y: 810)), day(2026, 10, 7), "week: on a box (打合せ) the column still decides")
+    checkEqual(week.dayAt(point: CGPoint(x: CGFloat.nan, y: 100)), nil, "week: NaN x → nil")
+    checkEqual(week.dayAt(point: CGPoint(x: 700, y: CGFloat.nan)), nil, "week: NaN y → nil")
+    checkEqual(week.dayAt(point: CGPoint(x: CGFloat.infinity, y: 100)), nil, "week: ∞ x → nil")
+    checkEqual(week.dayAt(point: CGPoint(x: 700, y: CGFloat.infinity)), nil, "week: ∞ y → nil")
+    for col in 0..<7 {
+        checkEqual(week.dayAt(point: CGPoint(x: 64 + (CGFloat(col) + 0.5) * colW, y: 960)), day(2026, 10, 5 + col), "week: column \(col) → 10/\(5 + col)")
+        checkEqual(week.dayAt(point: CGPoint(x: week.columnFrame(col).minX, y: 1)), week.days[col], "week: columnFrame(\(col)).minX → days[\(col)]")
+    }
+    let holidayWeek = weekLayout([], focus: day(2026, 10, 12))
+    checkEqual(holidayWeek.dayAt(point: CGPoint(x: 64, y: 5)), day(2026, 10, 12), "week of 10/12: the first column → the holiday")
+    checkEqual(holidayWeek.dayAt(point: CGPoint(x: 1399, y: 1919)), day(2026, 10, 18), "week of 10/12: the last column → 10/18")
+    checkEqual(weekLayout([]).dayAt(point: CGPoint(x: 64 + 2.5 * colW, y: 100)), day(2026, 10, 7), "an empty week → the same column")
+
+    // Year: the cell's date; impossible dates, the day-number gutter, the outside and NaN → nil.
+    let year = yearLayout([]) // 2026, rows of 60
+    let cellX10 = 56.0 + 9 * 112
+    checkEqual(year.dayAt(point: CGPoint(x: cellX10 + 10, y: 6 * 60 + 10)), day(2026, 10, 7), "year: the cell of 10/7")
+    checkEqual(year.dayAt(point: CGPoint(x: 168 + 10, y: 29 * 60 + 10)), nil, "year: 2/30 does not exist → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 168 + 10, y: 28 * 60 + 10)), nil, "year: 2/29 of 2026 (a common year) → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 168 + 10, y: 27 * 60 + 10)), day(2026, 2, 28), "year: 2/28 exists")
+    checkEqual(year.dayAt(point: CGPoint(x: 56 + 3 * 112 + 5, y: 30 * 60 + 5)), nil, "year: 4/31 → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 56 + 10 * 112 + 5, y: 30 * 60 + 5)), nil, "year: 11/31 → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 700, y: 1859.9)), nil, "year: the last row of June (6/31) → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 1400, y: 1859.9)), day(2026, 12, 31), "year: the bottom-right cell → 12/31")
+    checkEqual(year.dayAt(point: CGPoint(x: 1400, y: 10)), day(2026, 12, 1), "year: x 1400 belongs to December")
+    checkEqual(year.dayAt(point: CGPoint(x: 56, y: 0)), day(2026, 1, 1), "year: the gutter's right edge at the top → 1/1")
+    checkEqual(year.dayAt(point: CGPoint(x: 10, y: 400)), nil, "year: the day-number gutter → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 55.9, y: 400)), nil, "year: just inside the gutter → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 1401, y: 10)), nil, "year: right of the paper → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 700, y: 1860)), nil, "year: below the paper → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 700, y: -0.1)), nil, "year: above the paper → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: CGFloat.nan, y: 100)), nil, "year: NaN x → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 700, y: CGFloat.nan)), nil, "year: NaN y → nil")
+    checkEqual(year.dayAt(point: CGPoint(x: 56 + 112, y: 100)), day(2026, 2, 2), "year: a column boundary belongs to February")
+    checkEqual(yearLayout([], year: 2028).dayAt(point: CGPoint(x: 168 + 10, y: 28 * 60 + 10)), day(2028, 2, 29), "year 2028: 2/29 exists")
+    checkEqual(yearLayout([], year: 2028).dayAt(point: CGPoint(x: 168 + 10, y: 29 * 60 + 10)), nil, "year 2028: 2/30 → nil")
+    checkEqual(yearLayout([], year: 2027).dayAt(point: CGPoint(x: cellX10 + 10, y: 6 * 60 + 10)), day(2027, 10, 7), "year 2027: the same cell → 2027-10-07")
+    let grown = yearLayout(demo) // the 16th's row is 96
+    checkEqual(grown.dayAt(point: CGPoint(x: cellX10 + 55, y: grown.rows[15].frame.minY + 20)), day(2026, 10, 16), "year (demo): on a chip of the 16th → 10/16")
+    checkEqual(grown.dayAt(point: CGPoint(x: cellX10 + 5, y: grown.rows[16].frame.minY + 5)), day(2026, 10, 17), "year (demo): the 17th under the grown row")
+    checkEqual(grown.dayAt(point: CGPoint(x: 56 + 5, y: grown.rows[16].frame.minY + 5)), day(2026, 1, 17), "year (demo): January's 17th")
+    for m in 1...12 {
+        let daysInMonth = DayKey.daysInMonth(year: 2026, month: m)
+        let x = 56 + CGFloat(m - 1) * 112 + 56
+        checkEqual(year.dayAt(point: CGPoint(x: x, y: CGFloat(daysInMonth - 1) * 60 + 30)), day(2026, m, daysInMonth), "year: the last day of month \(m)")
+        if daysInMonth < 31 {
+            checkEqual(year.dayAt(point: CGPoint(x: x, y: CGFloat(daysInMonth) * 60 + 30)), nil, "year: month \(m) has no day \(daysInMonth + 1)")
+        }
+    }
+    for _ in 0..<40 {
+        let p = CGPoint(x: CGFloat(rng.double()) * 1500 - 50, y: CGFloat(rng.double()) * 2000 - 50)
+        let expected = year.cell(at: p)?.yearMonthDay.flatMap { md -> DayKey? in
+            let d = DayKey(year: 2026, month: md.month, day: md.day)
+            return d.isValid ? d : nil
+        }
+        checkEqual(year.dayAt(point: p), expected, "year: dayAt == the valid date of cell(at:) at \(p)")
+    }
+
+    // Day: never (D5).
+    let dayPage = dayLayout(demo)
+    checkEqual(dayPage.dayAt(point: CGPoint(x: 100, y: 1010)), nil, "day: on a box → nil")
+    checkEqual(dayPage.dayAt(point: CGPoint(x: 800, y: 1000)), nil, "day: the memo area → nil")
+    checkEqual(dayPage.dayAt(point: CGPoint(x: 30, y: 1000)), nil, "day: the time gutter → nil")
+    checkEqual(dayPage.dayAt(point: CGPoint(x: 0, y: 0)), nil, "day: the top-left corner → nil")
+    checkEqual(dayPage.dayAt(point: CGPoint(x: 500, y: 2399)), nil, "day: the bottom → nil")
+    checkEqual(dayPage.dayAt(point: CGPoint(x: CGFloat.nan, y: 100)), nil, "day: NaN → nil")
+    checkEqual(dayLayout([], focus: day(2026, 10, 8)).dayAt(point: CGPoint(x: 300, y: 300)), nil, "another day → nil")
+    // Through `any PageLayout` the page's own answer wins over the protocol's nil default.
+    let pages: [any PageLayout] = [month, week, year, dayPage]
+    checkEqual(pages[0].dayAt(point: CGPoint(x: 650, y: 10)), day(2026, 10, 1), "any PageLayout (month): dynamic dispatch")
+    checkEqual(pages[1].dayAt(point: CGPoint(x: 64 + 2.5 * colW, y: 100)), day(2026, 10, 7), "any PageLayout (week): dynamic dispatch")
+    checkEqual(pages[2].dayAt(point: CGPoint(x: cellX10 + 10, y: 6 * 60 + 10)), day(2026, 10, 7), "any PageLayout (year): dynamic dispatch")
+    checkEqual(pages[3].dayAt(point: CGPoint(x: 100, y: 1010)), nil, "any PageLayout (day): nil")
+    for page in pages {
+        checkEqual(page.dayAt(point: CGPoint(x: -10, y: 100)), nil, "\(page.kind): a centring margin (negative lu) → nil")
+        checkEqual(page.dayAt(point: CGPoint(x: page.size.width + 10, y: 100)), nil, "\(page.kind): right of the paper → nil")
+        checkEqual(page.dayAt(point: CGPoint(x: 100, y: page.size.height)), nil, "\(page.kind): the paper's bottom edge → nil")
+        checkEqual(page.dayAt(point: CGPoint(x: CGFloat.nan, y: CGFloat.nan)), nil, "\(page.kind): NaN → nil")
+    }
+
+    // The fixed all-day band: the column under paper x (lu).
+    let band = week.allDayBand
+    checkEqual(band.day(atPaperX: 64), day(2026, 10, 5), "band: x 64 (the first column's left edge) → Monday")
+    checkEqual(band.day(atPaperX: 64 + 6.5 * colW), day(2026, 10, 11), "band: the middle of the last column → Sunday")
+    checkEqual(band.day(atPaperX: 1400), day(2026, 10, 11), "band: x 1400 → Sunday")
+    checkEqual(band.day(atPaperX: 10), nil, "band: the 「終日」 gutter → nil")
+    checkEqual(band.day(atPaperX: 63.9), nil, "band: just left of the first column → nil")
+    checkEqual(band.day(atPaperX: 1401), nil, "band: right of the paper → nil")
+    checkEqual(band.day(atPaperX: -5), nil, "band: a centring margin → nil")
+    checkEqual(band.day(atPaperX: .nan), nil, "band: NaN → nil")
+    checkEqual(band.day(atPaperX: .infinity), nil, "band: ∞ → nil")
+    checkEqual(band.day(atPaperX: 64 + 2 * colW), day(2026, 10, 7), "band: a column boundary belongs to its own column (10/7)")
+    checkEqual(band.day(atPaperX: 64 + 2 * colW - 0.01), day(2026, 10, 6), "band: just left of the boundary → 10/6")
+    for col in 0..<7 {
+        checkEqual(band.day(atPaperX: band.columnMinX[col] + 5), day(2026, 10, 5 + col), "band: column \(col) → 10/\(5 + col)")
+        checkEqual(band.day(atPaperX: band.columnMinX[col] + 5), week.dayAt(point: CGPoint(x: band.columnMinX[col] + 5, y: 100)), "band and paper agree on column \(col)")
+    }
+    checkEqual(AllDayBandLayout.empty(kind: .week, days: week.days).day(atPaperX: 700), day(2026, 10, 8), "an empty band has the same columns")
+    checkEqual(AllDayBandLayout.empty(kind: .week, days: []).day(atPaperX: 700), nil, "a band without days → nil")
+    let dayBand = dayPage.allDayBand
+    checkEqual(dayBand.day(atPaperX: 72), day(2026, 10, 7), "day band: x 72 (the column's left edge) → the day")
+    checkEqual(dayBand.day(atPaperX: 500), day(2026, 10, 7), "day band: x 500 → the day")
+    checkEqual(dayBand.day(atPaperX: 1000), day(2026, 10, 7), "day band: x 1000 (the paper's right edge, the memo area) → the day")
+    checkEqual(dayBand.day(atPaperX: 71), nil, "day band: x 71 (the gutter) → nil")
+    checkEqual(dayBand.day(atPaperX: 71.9), nil, "day band: just left of the column → nil")
+    checkEqual(dayBand.day(atPaperX: 1001), nil, "day band: right of the paper → nil")
+    checkEqual(dayBand.day(atPaperX: .nan), nil, "day band: NaN → nil")
+    checkEqual(AllDayBandEngine.day(day(2026, 10, 12), events: [], now: demoNow, calendar: tokyo).day(atPaperX: 300), day(2026, 10, 12), "another day's band → that day")
 }
 
 // MARK: - M4b: initial horizontal position (M4B_CONTRACT §1.2)
@@ -2962,13 +3331,15 @@ do {
         checkEqual(sx(dayPage, demoNow, bad), 0, "day: visibleWidth \(bad) → 0")
     }
     checkEqual(PageNavigation.initialScrollX(dayPage, now: demoNow, visibleWidth: 716), 0, "the device-calendar overload (day)")
-    // With the real `ZoomPolicy.visibleWidth` of the devices.
-    checkEqual(sx(month, october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 402)), 596, "iPhone 17 month, Sunday → 596")
-    checkClose(sx(week, october(11), ZoomPolicy.visibleWidth(.week, viewportWidth: 402)), 548, "iPhone 17 week, Sunday → 548", tolerance: 1)
-    checkEqual(sx(year, demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 402)), 1064, "iPhone 17 year → 1064")
-    checkClose(sx(year, demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 1024)), 635.4, "13 inch year → 635.4", tolerance: 1)
-    checkClose(sx(year, demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 744)), 844.5, "iPad mini year → 844.5", tolerance: 1)
-    checkEqual(sx(month, october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 744)), 0, "iPad mini month: fit → 0")
+    // With the real `ZoomPolicy.visibleWidth` of the devices (M4c: the 3-argument form at the zoom
+    // M4b's minimum used to be — readable on the iPhone and for the year, fit-to-width on the iPad
+    // mini's month. The expected values are unchanged).
+    checkEqual(sx(month, october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 402, zoom: ZoomPolicy.readableZoom(.month))), 596, "iPhone 17 month, Sunday → 596")
+    checkClose(sx(week, october(11), ZoomPolicy.visibleWidth(.week, viewportWidth: 402, zoom: ZoomPolicy.readableZoom(.week))), 548, "iPhone 17 week, Sunday → 548", tolerance: 1)
+    checkEqual(sx(year, demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 402, zoom: ZoomPolicy.readableZoom(.year))), 1064, "iPhone 17 year → 1064")
+    checkClose(sx(year, demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 1024, zoom: ZoomPolicy.readableZoom(.year))), 635.4, "13 inch year → 635.4", tolerance: 1)
+    checkClose(sx(year, demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 744, zoom: ZoomPolicy.readableZoom(.year))), 844.5, "iPad mini year → 844.5", tolerance: 1)
+    checkEqual(sx(month, october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 744, zoom: ZoomPolicy.fitZoom(.month, viewportWidth: 744))), 0, "iPad mini month: fit → 0")
 }
 
 // MARK: - M4b: the fixed all-day band (M4B_CONTRACT §2.1 / §2.2)

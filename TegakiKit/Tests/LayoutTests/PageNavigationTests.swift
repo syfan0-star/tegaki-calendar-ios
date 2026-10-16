@@ -162,12 +162,13 @@ final class PageNavigationTests: XCTestCase {
             XCTAssertEqual(sx(dayPage, F.demoNow, bad), 0, "day: visibleWidth \(bad)")
         }
         XCTAssertEqual(PageNavigation.initialScrollX(dayPage, now: F.demoNow, visibleWidth: 716), 0, "the device-calendar overload")
-        // With the real `ZoomPolicy.visibleWidth` of the devices.
-        XCTAssertEqual(sx(month, F.october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 402)), 596, "iPhone 17 month, Sunday")
-        XCTAssertEqual(sx(week, F.october(11), ZoomPolicy.visibleWidth(.week, viewportWidth: 402)), 548, accuracy: 1, "iPhone 17 week, Sunday")
-        XCTAssertEqual(sx(year, F.demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 402)), 1064, "iPhone 17 year")
-        XCTAssertEqual(sx(year, F.demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 1024)), 635.4, accuracy: 1, "13 inch year")
-        XCTAssertEqual(sx(year, F.demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 744)), 844.5, accuracy: 1, "iPad mini year")
-        XCTAssertEqual(sx(month, F.october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 744)), 0, "iPad mini month: fit")
+        // With the real `ZoomPolicy.visibleWidth` of the devices (M4c: the 3-argument form at the
+        // zoom M4b's minimum used to be; the expected values are unchanged).
+        XCTAssertEqual(sx(month, F.october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 402, zoom: ZoomPolicy.readableZoom(.month))), 596, "iPhone 17 month, Sunday")
+        XCTAssertEqual(sx(week, F.october(11), ZoomPolicy.visibleWidth(.week, viewportWidth: 402, zoom: ZoomPolicy.readableZoom(.week))), 548, accuracy: 1, "iPhone 17 week, Sunday")
+        XCTAssertEqual(sx(year, F.demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 402, zoom: ZoomPolicy.readableZoom(.year))), 1064, "iPhone 17 year")
+        XCTAssertEqual(sx(year, F.demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 1024, zoom: ZoomPolicy.readableZoom(.year))), 635.4, accuracy: 1, "13 inch year")
+        XCTAssertEqual(sx(year, F.demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 744, zoom: ZoomPolicy.readableZoom(.year))), 844.5, accuracy: 1, "iPad mini year")
+        XCTAssertEqual(sx(month, F.october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 744, zoom: ZoomPolicy.fitZoom(.month, viewportWidth: 744))), 0, "iPad mini month: fit")
     }
 }

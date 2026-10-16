@@ -180,6 +180,37 @@ final class AllDayBandTests: XCTestCase {
         XCTAssertEqual(F.dayLayout(demo + [F.allDay("a", 7, 8), F.allDay("b", 1, 20)]).size.height, 2400, "the paper does not grow with the band")
     }
 
+    func testDayAtPaperX() {
+        // M4c, M4C_CONTRACT §4.3: the double tap on a column of the fixed band → that day.
+        let band = weekBand(demo)
+        XCTAssertEqual(band.day(atPaperX: 64), monday, "the first column's left edge")
+        XCTAssertEqual(band.day(atPaperX: 64 + 6.5 * colW), F.day(2026, 10, 11), "the middle of the last column")
+        XCTAssertEqual(band.day(atPaperX: 1400), F.day(2026, 10, 11), "x 1400 is Sunday")
+        XCTAssertNil(band.day(atPaperX: 10), "the 「終日」 gutter")
+        XCTAssertNil(band.day(atPaperX: 63.9))
+        XCTAssertNil(band.day(atPaperX: 1401))
+        XCTAssertNil(band.day(atPaperX: -5), "a centring margin (negative lu)")
+        XCTAssertNil(band.day(atPaperX: .nan))
+        XCTAssertNil(band.day(atPaperX: .infinity))
+        XCTAssertEqual(band.day(atPaperX: 64 + 2 * colW), F.day(2026, 10, 7), "a column boundary belongs to its own column")
+        XCTAssertEqual(band.day(atPaperX: 64 + 2 * colW - 0.01), F.day(2026, 10, 6))
+        for col in 0..<7 {
+            XCTAssertEqual(band.day(atPaperX: band.columnMinX[col] + 5), F.day(2026, 10, 5 + col), "column \(col)")
+            XCTAssertEqual(band.day(atPaperX: band.columnMinX[col] + 5), F.weekLayout(demo).dayAt(point: CGPoint(x: band.columnMinX[col] + 5, y: 100)), "the band and the paper agree on column \(col)")
+        }
+        XCTAssertEqual(AllDayBandLayout.empty(kind: .week, days: band.days).day(atPaperX: 700), F.day(2026, 10, 8), "an empty band has the same columns")
+        XCTAssertNil(AllDayBandLayout.empty(kind: .week, days: []).day(atPaperX: 700), "a band without days")
+        let single = dayBand(demo)
+        XCTAssertEqual(single.day(atPaperX: 72), F.day(2026, 10, 7), "the column's left edge")
+        XCTAssertEqual(single.day(atPaperX: 500), F.day(2026, 10, 7))
+        XCTAssertEqual(single.day(atPaperX: 1000), F.day(2026, 10, 7), "the paper's right edge (the memo area) is still the day")
+        XCTAssertNil(single.day(atPaperX: 71), "the gutter")
+        XCTAssertNil(single.day(atPaperX: 71.9))
+        XCTAssertNil(single.day(atPaperX: 1001))
+        XCTAssertNil(single.day(atPaperX: .nan))
+        XCTAssertEqual(dayBand([], day: F.day(2026, 10, 12)).day(atPaperX: 300), F.day(2026, 10, 12), "another day's band")
+    }
+
     func testMetricsConstants() {
         XCTAssertEqual(M.minLanePoints, 18)
         XCTAssertEqual(M.minGapPoints, 2)

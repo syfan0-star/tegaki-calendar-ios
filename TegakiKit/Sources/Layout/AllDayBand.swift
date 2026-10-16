@@ -111,6 +111,19 @@ public struct AllDayBandLayout: Equatable, Sendable {
             todayColumn: nil
         )
     }
+
+    /// The day of the band column under paper x (lu; M4C_CONTRACT §4.3, the double tap on the fixed
+    /// band): nil left of the first column (the 「終日」 gutter, x < columnMinX[0]), right of the paper
+    /// (x > paperWidth) or for a non-finite x; else `days[min(days.count − 1, floor((x −
+    /// columnMinX[0]) / columnWidth))]`, so x == paperWidth is the last column (the day page's one
+    /// column is [72]). The floor allows 1e-9 of noise like `WeekPageLayout.column(atX:)`, so a
+    /// column boundary maps to its own column.
+    public func day(atPaperX x: CGFloat) -> DayKey? {
+        guard x.isFinite, let first = columnMinX.first, !days.isEmpty, columnWidth > 0 else { return nil }
+        guard x >= first, x <= paperWidth else { return nil }
+        let index = Int(floor((x - first) / columnWidth + 1e-9))
+        return days[min(days.count - 1, max(0, index))]
+    }
 }
 
 /// Pure layout of the fixed all-day band (M4B_CONTRACT §2.1).

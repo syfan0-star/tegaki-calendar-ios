@@ -158,6 +158,13 @@ public struct MonthPageLayout: Equatable, Sendable {
     public func rowIndex(atY y: CGFloat) -> Int? {
         rows.first(where: { y >= $0.frame.minY && y < $0.frame.maxY })?.index
     }
+
+    /// The day of the cell under a double tap (M4C_CONTRACT §4.3): `cell(at:)?.day`, so a day
+    /// outside the month (9/28 on October's grid) counts, the memo area (`.memo.day` is nil), the
+    /// outside of the paper and a non-finite point do not. x == 1400 is the last column.
+    public func dayAt(point: CGPoint) -> DayKey? {
+        cell(at: point)?.day
+    }
 }
 
 // MARK: - PageLayout conformance (M3A_CONTRACT §1.5; the M2 API above is unchanged)

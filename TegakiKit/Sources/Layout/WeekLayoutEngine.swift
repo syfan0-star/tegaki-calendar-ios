@@ -106,6 +106,16 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
         return nil
     }
 
+    /// The day of the column under a double tap (M4C_CONTRACT §4.3): `days[column(atX:)]` while
+    /// 0 ≤ y < 1920; nil in the time gutter (x < 64), right of the paper (x > 1400; x == 1400 is
+    /// Sunday), above or below the paper, or for a non-finite point. The fixed all-day band above
+    /// the paper resolves its own columns (`AllDayBandLayout.day(atPaperX:)`).
+    public func dayAt(point: CGPoint) -> DayKey? {
+        guard point.y.isFinite, point.y >= 0, point.y < size.height else { return nil }
+        guard let col = column(atX: point.x), col < days.count else { return nil }
+        return days[col]
+    }
+
     /// "grid" inside the paper / nil.
     public func band(atY y: CGFloat) -> PageBand? {
         guard y.isFinite, y >= 0, y < size.height else { return nil }

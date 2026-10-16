@@ -165,6 +165,38 @@ final class WeekLayoutEngineTests: XCTestCase {
         XCTAssertNil(withBar.hit(at: CGPoint(x: colX2 + 2 + w2 + 10, y: 835)), "a bar on the paper is never hit (the band is the screen's)")
     }
 
+    func testDayAt() {
+        // M4c, M4C_CONTRACT §4.3: the double tap's target is the column's day while 0 ≤ y < 1920;
+        // the time gutter, the outside and NaN are nil. The fixed band resolves its own columns.
+        let page = F.weekLayout(demo)
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 64 + 2.5 * colW, y: 100)), F.day(2026, 10, 7))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 100)), "the time gutter")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 63.9, y: 100)))
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 64, y: 0)), F.day(2026, 10, 5))
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 1400, y: 100)), F.day(2026, 10, 11), "x 1400 is Sunday")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 1401, y: 100)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 700, y: 1920)), "below the paper")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 700, y: 1919.9)), F.day(2026, 10, 8))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 700, y: -0.1)), "above the paper (the band is the screen's)")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 64 + 2 * colW, y: 500)), F.day(2026, 10, 7), "a column boundary belongs to its own column")
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 64 + 2 * colW - 0.01, y: 500)), F.day(2026, 10, 6))
+        XCTAssertEqual(page.dayAt(point: CGPoint(x: 64 + 2.1 * colW, y: 810)), F.day(2026, 10, 7), "on a box the column still decides")
+        XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat.nan, y: 100)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 700, y: CGFloat.nan)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat.infinity, y: 100)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 700, y: CGFloat.infinity)))
+        for col in 0..<7 {
+            XCTAssertEqual(page.dayAt(point: CGPoint(x: 64 + (CGFloat(col) + 0.5) * colW, y: 960)), F.day(2026, 10, 5 + col), "column \(col)")
+            XCTAssertEqual(page.dayAt(point: CGPoint(x: page.columnFrame(col).minX, y: 1)), page.days[col])
+            XCTAssertEqual(page.allDayBand.day(atPaperX: page.columnFrame(col).midX), page.dayAt(point: CGPoint(x: page.columnFrame(col).midX, y: 100)), "the band and the paper agree on column \(col)")
+        }
+        let holidayWeek = F.weekLayout([], focus: F.day(2026, 10, 12))
+        XCTAssertEqual(holidayWeek.dayAt(point: CGPoint(x: 64, y: 5)), F.day(2026, 10, 12))
+        XCTAssertEqual(holidayWeek.dayAt(point: CGPoint(x: 1399, y: 1919)), F.day(2026, 10, 18))
+        XCTAssertEqual(F.weekLayout([]).dayAt(point: CGPoint(x: 64 + 2.5 * colW, y: 100)), F.day(2026, 10, 7), "an empty week")
+        XCTAssertEqual((page as any PageLayout).dayAt(point: CGPoint(x: 64 + 2.5 * colW, y: 100)), F.day(2026, 10, 7), "dynamic dispatch through any PageLayout")
+    }
+
     func testCellsAndInkCells() {
         let page = F.weekLayout(demo)
         XCTAssertEqual(page.cell(at: CGPoint(x: 10, y: 10)), .grid, "the gutter is part of the grid")

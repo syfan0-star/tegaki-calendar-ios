@@ -168,6 +168,15 @@ public struct YearPageLayout: PageLayout, Equatable, Sendable {
         return nil
     }
 
+    /// The date of the cell under a double tap (M4C_CONTRACT §4.3): `cell(at:)` (nil in the
+    /// day-number gutter, x < 56, and outside the paper) → (month, day) → `DayKey(year:month:day:)`,
+    /// nil when that date does not exist (2/30, 4/31, 2/29 of a common year; `DayKey.isValid`).
+    public func dayAt(point: CGPoint) -> DayKey? {
+        guard let md = cell(at: point)?.yearMonthDay else { return nil }
+        let day = DayKey(year: year, month: md.month, day: md.day)
+        return day.isValid ? day : nil
+    }
+
     /// "row:d" (d = 1…31) / nil.
     public func band(atY y: CGFloat) -> PageBand? {
         guard let day = row(atY: y) else { return nil }
