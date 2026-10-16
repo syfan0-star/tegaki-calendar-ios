@@ -196,6 +196,11 @@ struct PaywallSheet: View {
         if UIDevice.current.userInterfaceIdiom == .phone {
             // iPhone: full height. iPad: the standard form sheet.
             content.presentationDetents([.large])
+        } else if #available(iOS 18.0, *) {
+            // iPad: the form sheet's width, the content's height (clamped to the screen). iOS 17's fixed
+            // form sheet (≈ 650 pt on the 13-inch) leaves the EULA row and the bottom 「あとで」 below the
+            // fold (CI run 38958098578); on iOS 17 the sheet still scrolls to them.
+            content.presentationSizing(.form.fitted(horizontal: false, vertical: true))
         } else {
             content
         }

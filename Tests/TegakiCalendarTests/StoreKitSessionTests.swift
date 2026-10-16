@@ -28,8 +28,31 @@ final class StoreKitSessionTests: XCTestCase {
         session.resetToDefaultState()
         session.storefront = "JPN"
         session.locale = Locale(identifier: "ja_JP")
+        try await skipUnlessTheTestEnvironmentWorks()
         client = LiveStoreClient()
         model = StoreModel(client: client, cache: NoopAccessCache())
+    }
+
+    /// The simulators of Xcode 26.3–26.6 reject every SKTestSession write ("[SKTestSession] Error saving
+    /// configuration file: Error Domain=SKInternalErrorDomain Code=3", the same for clearTransactions /
+    /// storefront / locale; Apple forums 830493 and 836842, FB22836426 / FB23566876, fixed in the iOS 26.6
+    /// simulator runtime): the storefront then stays USA (the products come back as $1.99 / $14.99) and
+    /// `buyProduct` throws `StoreKitError.notEntitled` (CI run 38958098578). Until the runner has a working
+    /// runtime these tests are skipped instead of failing (M5_CONTRACT §7.3.3; the fakes of
+    /// StoreModelTests stay the required coverage; docs/M5.md §3).
+    private func skipUnlessTheTestEnvironmentWorks() async throws {
+        var storefront = await Storefront.current?.countryCode
+        let deadline = Date().addingTimeInterval(3)
+        while storefront != "JPN", Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(100))
+            storefront = await Storefront.current?.countryCode
+        }
+        if storefront == "JPN" { return }
+        // The storefront may lag the first product request in a working environment: the file's price
+        // (¥300 under JPN) is the second witness.
+        let monthly = try? await Product.products(for: [Plan.monthly.productID]).first
+        if monthly?.price == 300 { return }
+        throw XCTSkip("StoreKit test environment unavailable on this simulator: SKTestSession's storefront stayed \(storefront ?? "nil"), monthly price \(monthly.map { "\($0.price)" } ?? "nil") (Xcode 26.3–26.6 defect; docs/M5.md §3)")
     }
 
     override func tearDown() async throws {

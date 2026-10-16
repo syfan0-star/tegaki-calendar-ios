@@ -753,10 +753,15 @@ final class InkCanvasViewTests: XCTestCase {
 
     /// The read-only touch report runs alongside everything — drawing, pan, pinch, the taps and the
     /// finger recogniser — in both directions, while the other pairs keep their §4.1 answers.
-    func testBlockedInputRecognizerRecognizesSimultaneously() throws {
+    func testBlockedInputRecognizerRecognizesSimultaneously() async throws {
         let (layout, paper) = makeMonth()
         let probe = Probe()
         let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, doubleTapEnabled: true, readOnly: true), paper: paper, probe: probe)
+        // UIScrollView creates its pinch recogniser lazily, once the zoom limits differ: the first
+        // layout pass sets them (the same path as the F4 assert of §4.1; CI run 38958098578 found it
+        // nil on an unlaid-out canvas).
+        rig.layout(width: 1024, height: 1180)
+        await settle()
         let c = rig.coordinator
         let blocked = c.blockedInputRecognizer
         let pinch = try XCTUnwrap(rig.canvas.pinchGestureRecognizer, "F4: the canvas offers a pinch")
