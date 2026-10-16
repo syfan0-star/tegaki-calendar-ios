@@ -35,10 +35,20 @@ struct EventEditorRequest: Identifiable {
 ///
 /// Horizontal scrolling (M4b): the canvas reports its horizontal offset, zoom and width through
 /// `onViewportChange` (`PaperViewport`); the sticky header and the band are placed with it, so
-/// their columns stay over the paper's. Until the first report, `PaperViewport.initial` (offset 0
-/// at the page's minimum zoom) stands in. The first horizontal position of a page is
-/// `PageNavigation.initialScrollX` (today's column on the month / week page, this month's column on
-/// the year page). The compact header (< 600 pt) shows `PageNavigation.compactTitle`.
+/// their columns stay over the paper's. Until the first report, `PaperViewport.initial` stands in.
+/// The first horizontal position of a zoomed-in page is `PageNavigation.initialScrollX` (today's
+/// column on the month / week page, this month's column on the year page). The compact header
+/// (< 600 pt) shows `PageNavigation.compactTitle`.
+///
+/// Overview and zoom (M4c, M4C contract §5.1): a page opens at the ratio stored for its kind
+/// (`AppSettings.zoomRatio(for:)`, D4; 1 = the overview `fitAll`, or `--screenshot-zoom`) and the
+/// canvas reports the ratio at the end of every pinch (`onZoomRatioChange`), which is the only time
+/// it is written. The first frame's stand-in viewport is `PaperViewport.initial(_:overview:paperSize:
+/// viewport:ratio:)` over the paper area measured under the band (`paperArea`; the width alone until
+/// it is measured). While a pinch is in progress (`onZoomingChange`) the band's lane height is frozen
+/// at the zoom the pinch started from (`frozenLaneZoom`, M4C-27). A finger double tap on the week /
+/// month / year canvas (`onDoubleTap` → `layout.dayAt(point:)`) or on a week band column goes to
+/// that day's page (D5); the day page ignores it.
 ///
 /// Sync (M4): a page the engine changed from iCloud (a pull, a push conflict, an import) arrives
 /// through `onRemoteUpdate` and is merged into the shown page without touching the canvas history
@@ -110,12 +120,25 @@ struct CalendarRootScreen: View {
     /// `--screenshot-landscape`: the orientation was requested once (M4B contract §6.4).
     @State private var landscapeRequested = false
 
+    // M4c: the overview (`fitAll`) needs the paper area's height; the band freezes during a pinch.
+    /// The area the paper is shown in (pt): the band-and-canvas area minus the band's height at the
+    /// overview (`paperAreaHeight`). `.zero` until measured, when the overview is estimated from the
+    /// width alone (M4C contract §5.1, M4C-19).
+    @State private var paperArea: CGSize = .zero
+    /// The zoom the band's lanes are frozen at while the canvas is zooming (M4C-27); nil otherwise.
+    @State private var frozenLaneZoom: CGFloat?
+
     /// How often the now line is moved (M3a contract §4.1).
     static let nowTickSeconds: Double = 30
     /// Below this width the header takes two rows (M3b contract §4.6).
     static let compactWidth: CGFloat = 600
     /// The pause between two sheets / dialogs (SwiftUI cannot present two at once).
     static let sheetGap: Double = 0.35
+    /// The zoom `paperAreaHeight` measures the band at (M4C contract §5.1 / §1.6): every week / day
+    /// overview zoom of §1.2 is at most 0.6016, and below 0.667 the lanes (max(22 × zoom, 18)) and
+    /// the gaps (max(3 × zoom, 2)) sit at their point minimums, so the band is exactly as tall as at
+    /// `fitAll` without knowing the width.
+    static let overviewBandZoom: CGFloat = 0.6
 
     init() {
         let shot = ScreenshotMode.current
@@ -155,6 +178,64 @@ struct CalendarRootScreen: View {
         ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
     }
 
+    /// The ratio to the overview the shown page opens at (M4C contract §5.1): `--screenshot-zoom`
+    /// in screenshot mode, else the ratio stored for the page's kind (1 = the overview).
+    private var currentRatio: CGFloat {
+        ScreenshotMode.current?.zoomRatio ?? AppSettings.zoomRatio(for: kind)
+    }
+
+    /// The viewport of a page's first frame, before its canvas has reported one: `currentRatio` over
+    /// the overview that fits `width` × the paper area (the width alone while `paperArea` is still
+    /// `.zero`), centred as the canvas will centre the paper (M4C contract §5.1).
+    private func initialViewport(width: CGFloat) -> PaperViewport {
+        PaperViewport.initial(
+            kind,
+            overview: ZoomPolicy.overviewSize(layout),
+            paperSize: layout.size,
+            viewport: CGSize(width: width, height: paperArea.height),
+            ratio: currentRatio
+        )
+    }
+
+    /// The viewport the sticky header and the band are placed with: the canvas's last report, or the
+    /// first-frame one for `width` until there is a report (M4B contract §2.6, M4C §5.1).
+    private func shownViewport(width: CGFloat) -> PaperViewport {
+        viewport.width == 0 ? initialViewport(width: width) : viewport
+    }
+
+    /// The zoom the page is expected to open at (`currentRatio` over the overview's bounds for
+    /// `viewportWidth` × the paper area): the estimate `initialScrollX` is computed with (M4C
+    /// contract §5.1 / §1.6). The real value may differ by the band's height; the canvas applies
+    /// `initialScrollX` only when the ratio is above 1.
+    private func estimatedZoom(viewportWidth: CGFloat) -> CGFloat {
+        ZoomPolicy.zoom(
+            forRatio: currentRatio,
+            bounds: ZoomPolicy.bounds(
+                kind,
+                overview: ZoomPolicy.overviewSize(layout),
+                viewport: CGSize(width: viewportWidth, height: paperArea.height)
+            )
+        )
+    }
+
+    /// The height (pt) left for the paper under the band (M4C contract §5.1): `area` minus the
+    /// band's visible height at the overview (`overviewBandZoom`; a band without lanes, or none, takes
+    /// nothing). The estimate is exact at the overview on every device of §1.2; a page opened zoomed
+    /// in past 0.818 has a taller band, which only moves the first frame's estimate (M4C-19).
+    static func paperAreaHeight(area: CGFloat, band: AllDayBandLayout?, kind: PageKind) -> CGFloat {
+        guard let band, band.laneCount > 0 else { return area }
+        let metrics = AllDayBandMetrics.metrics(kind: kind, laneCount: band.laneCount, zoom: overviewBandZoom, pageHeight: area)
+        return area - metrics.visibleHeight
+    }
+
+    /// Writes `paperArea` for the band-and-canvas area `size` (only when it changed).
+    private func updatePaperArea(_ size: CGSize) {
+        let next = CGSize(width: size.width, height: Self.paperAreaHeight(area: size.height, band: paper.allDayBand, kind: kind))
+        if next != paperArea {
+            paperArea = next
+        }
+    }
+
     /// True while any sheet or cover is up (the account question waits for them; M4 contract §6.4).
     private var sheetIsUp: Bool {
         showSettings || editor != nil || showImportPicker || importPhase != nil || showOnboarding
@@ -163,9 +244,9 @@ struct CalendarRootScreen: View {
     var body: some View {
         GeometryReader { proxy in
             let compact = proxy.size.width < Self.compactWidth
-            // The first frame of a page has no report from its canvas yet: offset 0 at the page's
-            // minimum zoom, the same position the canvas starts from (M4B contract §2.6).
-            let shownViewport = viewport.width == 0 ? PaperViewport.initial(kind, viewportWidth: proxy.size.width) : viewport
+            // The first frame of a page has no report from its canvas yet: the stored ratio over the
+            // overview, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
+            let shownViewport = self.shownViewport(width: proxy.size.width)
             VStack(spacing: 0) {
                 PageHeaderView(
                     kind: kind,
@@ -200,13 +281,22 @@ struct CalendarRootScreen: View {
                                 band: band,
                                 viewport: shownViewport,
                                 pageHeight: area.size.height,
+                                laneZoom: frozenLaneZoom,
                                 onBarTap: openEdit(eventId:),
-                                onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) }
+                                onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) },
+                                onColumnDoubleTap: { day in
+                                    guard kind != .day else { return }
+                                    show(kind: .day, focus: day)
+                                }
                             )
                         }
                         canvas(viewportWidth: proxy.size.width)
                     }
                     .frame(width: area.size.width, height: area.size.height, alignment: .top)
+                    // M4C contract §5.1: the paper area under the band, the base of the overview.
+                    .onAppear { updatePaperArea(area.size) }
+                    .onChange(of: area.size) { updatePaperArea(area.size) }
+                    .onChange(of: paper.allDayBand?.laneCount) { updatePaperArea(area.size) }
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -291,9 +381,10 @@ struct CalendarRootScreen: View {
     // MARK: - Pieces
 
     /// The canvas (担当 I) with the lasso menu floating over it. The argument order follows
-    /// M3B_CONTRACT.md §3.3 (the M3a arguments, then the M3b ones) and M4B_CONTRACT.md §1.3
-    /// (`initialScrollX` right after `initialScrollY`, `onViewportChange` last). `viewportWidth` is
-    /// the screen's width: the canvas has no horizontal padding, so it is the canvas's width too.
+    /// M3B_CONTRACT.md §3.3 (the M3a arguments, then the M3b ones), M4B_CONTRACT.md §1.3
+    /// (`initialScrollX` right after `initialScrollY`, then `onViewportChange`) and M4C_CONTRACT.md
+    /// §1.3 (the six zoom / double-tap arguments after it). `viewportWidth` is the screen's width:
+    /// the canvas has no horizontal padding, so it is the canvas's width too.
     private func canvas(viewportWidth: CGFloat) -> some View {
         InkCanvasView(
             layout: layout,
@@ -305,7 +396,7 @@ struct CalendarRootScreen: View {
             initialScrollX: PageNavigation.initialScrollX(
                 layout,
                 now: now,
-                visibleWidth: ZoomPolicy.visibleWidth(kind, viewportWidth: viewportWidth)
+                visibleWidth: ZoomPolicy.visibleWidth(kind, viewportWidth: viewportWidth, zoom: estimatedZoom(viewportWidth: viewportWidth))
             ),
             onTap: handleTap,
             onInkBoundsChanged: inkBoundsChanged,
@@ -319,7 +410,20 @@ struct CalendarRootScreen: View {
             command: command,
             commandTrigger: commandTrigger,
             initialSelectionIds: initialSelectionIds,
-            onViewportChange: { viewport = $0 }
+            onViewportChange: { viewport = $0 },
+            // M4c (M4C contract §1.3 / §5.1): the ratio the page opens at, the screenshot offset, the
+            // double tap (not on the day page), the ratio of a finished pinch, the pinch in progress.
+            initialZoomRatio: currentRatio,
+            initialPaperOffset: ScreenshotMode.current?.offset,
+            doubleTapEnabled: kind != .day,
+            onDoubleTap: handleDoubleTap,
+            onZoomRatioChange: { ratio in
+                guard !ScreenshotMode.isActive else { return }
+                AppSettings.setZoomRatio(ratio, for: kind)
+            },
+            onZoomingChange: { zooming in
+                frozenLaneZoom = zooming ? shownViewport(width: viewportWidth).zoom : nil
+            }
         )
         .id(pageId)
         .overlay(alignment: .topLeading) {
@@ -532,6 +636,7 @@ struct CalendarRootScreen: View {
             // `PaperViewport.initial`, not from the previous page's offset and zoom.
             viewport = .zero
         }
+        frozenLaneZoom = nil
         kind = newKind
         focus = newFocus
         selection = nil
@@ -646,6 +751,14 @@ struct CalendarRootScreen: View {
         case .moreChips(let day), .date(let day):
             show(kind: .day, focus: day)
         }
+    }
+
+    /// M4C contract §5.1 (D5): a finger double tap on the week / month / year canvas goes to the day
+    /// under it (`layout.dayAt(point:)`: nil on the memo area, the gutters, a date that does not exist
+    /// and the centring margins). The day page never gets here (`doubleTapEnabled: false`).
+    private func handleDoubleTap(at point: CGPoint) {
+        guard kind != .day, let day = layout.dayAt(point: point) else { return }
+        show(kind: .day, focus: day)
     }
 
     // MARK: - Canvas callbacks

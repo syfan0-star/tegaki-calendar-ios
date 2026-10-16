@@ -1,7 +1,11 @@
 import Foundation
+import Layout
 
 /// The app's UserDefaults keys and defaults in one place (M3b contract §4.0). Screenshot mode never
-/// reads or writes them (the callers check `ScreenshotMode.isActive`).
+/// reads or writes them (the callers check `ScreenshotMode.isActive`). M4c adds the zoom ratio of
+/// each page kind (`zoomRatio.<kind>`, D4): the zoom relative to the page's overview (`fitAll`),
+/// written only at the end of a pinch (`InkCanvasView.onZoomRatioChange`), read when a page of
+/// that kind opens.
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -18,6 +22,13 @@ enum AppSettings {
     static let hiddenCalendarIdsKey = "hiddenCalendarIds"
     static let onboardingDoneKey = "onboardingDone"
     // "toolbar.penColor" / "toolbar.penWidth" / "toolbar.markerColor" stay in ToolbarView.
+
+    /// M4c (M4C contract §1.5): "zoomRatio.month" / "zoomRatio.week" / "zoomRatio.day" / "zoomRatio.year",
+    /// a `Double` ≥ 1 (the zoom / `fitAll` of the last pinch on a page of that kind; absent = 1, the
+    /// overview). One key per page kind, not per page (M4C-17).
+    static func zoomRatioKey(_ kind: PageKind) -> String {
+        "zoomRatio." + kind.rawValue
+    }
 
     /// The store behind the typed accessors (tests may point it at a scratch suite).
     static var defaults: UserDefaults = .standard
@@ -40,5 +51,27 @@ enum AppSettings {
             return defaults.bool(forKey: eraseInkAfterConvertKey)
         }
         set { defaults.set(newValue, forKey: eraseInkAfterConvertKey) }
+    }
+
+    // MARK: - Zoom ratio (M4C contract §1.5, D4)
+
+    /// The stored ratio to the overview of pages of `kind`; 1 (the overview) when nothing is stored.
+    /// Normalised with `ZoomPolicy.sanitizedRatio` (a value that is not finite, below 1 or above
+    /// `maxStoredRatio` reads as 1).
+    static func zoomRatio(for kind: PageKind) -> CGFloat {
+        let key = zoomRatioKey(kind)
+        guard defaults.object(forKey: key) != nil else { return 1 }
+        return ZoomPolicy.sanitizedRatio(CGFloat(defaults.double(forKey: key)))
+    }
+
+    /// Stores `ratio` normalised with `ZoomPolicy.sanitizedRatio`; 1 (the overview) removes the key.
+    static func setZoomRatio(_ ratio: CGFloat, for kind: PageKind) {
+        let key = zoomRatioKey(kind)
+        let sanitized = ZoomPolicy.sanitizedRatio(ratio)
+        if sanitized == 1 {
+            defaults.removeObject(forKey: key)
+        } else {
+            defaults.set(Double(sanitized), forKey: key)
+        }
     }
 }

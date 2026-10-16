@@ -16,6 +16,9 @@ import Layout
 /// Landscape (M4B contract §6.4): only an iPhone turns with `--screenshot-landscape`
 /// (`UIWindowScene.requestGeometryUpdate`); an iPad cannot, because iPadOS ignores the request for
 /// an app that supports multitasking (and simctl cannot rotate the device).
+/// Zoom (M4C contract §2.4 / §5.3): `--screenshot-zoom <ratio>` opens the page at that ratio to its
+/// overview (`fitAll`; 1 = the overview, clamped by the canvas) and `--screenshot-offset <x>,<y>` puts
+/// that paper point (lu) at the top left, so the CI's photos share the canvas's zoom path.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6).
     enum Sheet: String, CaseIterable, Sendable {
@@ -34,6 +37,13 @@ enum ScreenshotMode {
         /// `--screenshot-landscape`: the screen asks the window scene for landscape once it is active
         /// (M4B contract §6.4; an iPhone follows, an iPad does not).
         var landscape: Bool = false
+        /// `--screenshot-zoom`: the ratio to the page's overview the canvas opens at (M4C contract
+        /// §5.3). 1 unless the value is finite and positive; a ratio past `maxZoom` is clamped by the
+        /// canvas (担当 P).
+        var zoomRatio: CGFloat = 1
+        /// `--screenshot-offset "x,y"`: the paper point (lu) shown at the top left; nil when the value
+        /// is not two finite numbers (the canvas then uses its usual first position).
+        var offset: CGPoint? = nil
     }
 
     /// Parsed once from the launch arguments; nil in normal use.
@@ -60,7 +70,31 @@ enum ScreenshotMode {
         // A sheet always sits on the month page (M3b contract §5): it wins over `--screenshot-page`.
         if sheet != nil { page = .month }
         let landscape = arguments.contains("--screenshot-landscape")
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape)
+        // M4c: the zoom ratio and the paper offset stay even with a sheet (they act on the month page).
+        var zoomRatio: CGFloat = 1
+        if let index = arguments.firstIndex(of: "--screenshot-zoom"), index + 1 < arguments.count,
+           let parsed = parseZoomRatio(arguments[index + 1]) {
+            zoomRatio = parsed
+        }
+        var offset: CGPoint?
+        if let index = arguments.firstIndex(of: "--screenshot-offset"), index + 1 < arguments.count {
+            offset = parseOffset(arguments[index + 1]) // an unreadable value → nil
+        }
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset)
+    }
+
+    /// "2" → 2; nil unless the text is a finite positive number ("abc", "0", "-1", "inf" are nil).
+    static func parseZoomRatio(_ text: String) -> CGFloat? {
+        guard let value = Double(text), value.isFinite, value > 0 else { return nil }
+        return CGFloat(value)
+    }
+
+    /// "400,200" → (400, 200); nil unless the text is exactly two finite numbers joined by a comma
+    /// ("400", "a,b" and "1,2,3" are nil).
+    static func parseOffset(_ text: String) -> CGPoint? {
+        let parts = text.split(separator: ",", omittingEmptySubsequences: false)
+        guard parts.count == 2, let x = Double(parts[0]), let y = Double(parts[1]), x.isFinite, y.isFinite else { return nil }
+        return CGPoint(x: x, y: y)
     }
 
     /// "2026-10" → 2026年10月; nil for anything else.

@@ -3,11 +3,11 @@ import Layout
 import XCTest
 @testable import TegakiCalendar
 
-/// Screenshot mode (M3a contract §8.3, M3b §6.3, M4 §8.3, M4B §7.3): the launch arguments, the fixed
-/// 「今日」, the demo page of every page kind, the M3b sheets (`--screenshot-sheet`) with their demo
-/// calendars, the M4 sheets (`sync`, `import`) with the demo sync values, and M4b's
+/// Screenshot mode (M3a contract §8.3, M3b §6.3, M4 §8.3, M4B §7.3, M4C §7.3): the launch arguments,
+/// the fixed 「今日」, the demo page of every page kind, the M3b sheets (`--screenshot-sheet`) with
+/// their demo calendars, the M4 sheets (`sync`, `import`) with the demo sync values, M4b's
 /// `--screenshot-landscape`, the Sunday week of `--screenshot-month 2026-06` and the demo strokes
-/// that already sit on the grid.
+/// that already sit on the grid, and M4c's `--screenshot-zoom` / `--screenshot-offset`.
 final class ScreenshotModeTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
 
@@ -120,6 +120,71 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(sheet?.page, .month)
         // Without `--screenshot-mode` the flag means nothing.
         XCTAssertNil(ScreenshotMode.parse(["--screenshot-landscape"]))
+    }
+
+    // MARK: M4c (M4C contract §2.4, §5.3, §7.3)
+
+    /// `--screenshot-zoom <ratio>` (a finite positive number, else 1) and `--screenshot-offset x,y`
+    /// (two finite numbers, else nil); nothing else changes, and a sheet keeps them.
+    func testParseZoomAndOffset() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "month"]
+        let plain = ScreenshotMode.parse(base)
+        XCTAssertEqual(plain?.zoomRatio, 1, "no argument → the overview")
+        XCTAssertNil(plain?.offset)
+
+        let zoomed = ScreenshotMode.parse(base + ["--screenshot-zoom", "2", "--screenshot-offset", "400,200"])
+        XCTAssertEqual(zoomed?.zoomRatio, 2)
+        XCTAssertEqual(zoomed?.offset, CGPoint(x: 400, y: 200))
+        // Everything else is unchanged by the two arguments.
+        XCTAssertEqual(zoomed?.page, plain?.page)
+        XCTAssertEqual(zoomed?.month, plain?.month)
+        XCTAssertEqual(zoomed?.today, plain?.today)
+        XCTAssertEqual(zoomed?.focus, plain?.focus)
+        XCTAssertEqual(zoomed?.sheet, plain?.sheet)
+        XCTAssertEqual(zoomed?.landscape, plain?.landscape)
+        XCTAssertEqual(zoomed?.page, .month)
+        XCTAssertEqual(zoomed?.month, october)
+
+        // The zoom: decimals are read; a value that is not a finite positive number is 1.
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-zoom", "1.5"])?.zoomRatio ?? 0, 1.5, accuracy: 1e-9)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-zoom", "3"])?.zoomRatio, 3)
+        for bad in ["abc", "0", "-1", "inf", "nan", ""] {
+            XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-zoom", bad])?.zoomRatio, 1, "zoom \(bad)")
+        }
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-zoom"])?.zoomRatio, 1, "no value")
+        XCTAssertEqual(ScreenshotMode.parseZoomRatio("2"), 2)
+        XCTAssertNil(ScreenshotMode.parseZoomRatio("inf"))
+        XCTAssertNil(ScreenshotMode.parseZoomRatio("0"))
+
+        // The offset: exactly two finite numbers joined by a comma.
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-offset", "300,700"])?.offset, CGPoint(x: 300, y: 700))
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-offset", "0,0"])?.offset, CGPoint(x: 0, y: 0))
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-offset", "12.5,-3"])?.offset, CGPoint(x: 12.5, y: -3))
+        for bad in ["400", "a,b", "1,2,3", "1,", ",2", "inf,2", "1,nan", ""] {
+            XCTAssertNil(ScreenshotMode.parse(base + ["--screenshot-offset", bad])?.offset, "offset \(bad)")
+        }
+        XCTAssertNil(ScreenshotMode.parse(base + ["--screenshot-offset"])?.offset, "no value")
+        XCTAssertEqual(ScreenshotMode.parseOffset("400,200"), CGPoint(x: 400, y: 200))
+        XCTAssertNil(ScreenshotMode.parseOffset("400"))
+
+        // With a sheet the values stay (they act on the month page the sheet sits on).
+        let sheet = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "edit", "--screenshot-zoom", "2", "--screenshot-offset", "400,200"])
+        XCTAssertEqual(sheet?.zoomRatio, 2)
+        XCTAssertEqual(sheet?.offset, CGPoint(x: 400, y: 200))
+        XCTAssertEqual(sheet?.sheet, .edit)
+        XCTAssertEqual(sheet?.page, .month)
+        // The CI's week / year photos (M4C contract §2.4).
+        let week = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week", "--screenshot-zoom", "3", "--screenshot-offset", "300,700"])
+        XCTAssertEqual(week?.page, .week)
+        XCTAssertEqual(week?.zoomRatio, 3)
+        XCTAssertEqual(week?.offset, CGPoint(x: 300, y: 700))
+        // Without `--screenshot-mode` the arguments mean nothing.
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-zoom", "2", "--screenshot-offset", "400,200"]))
+        // The defaults of the fields themselves.
+        let config = ScreenshotMode.Config(page: .week, month: october, today: Date(), focus: DayKey(year: 2026, month: 10, day: 7), sheet: nil)
+        XCTAssertEqual(config.zoomRatio, 1)
+        XCTAssertNil(config.offset)
+        XCTAssertFalse(config.landscape)
     }
 
     /// `--screenshot-month 2026-06` (the CI's `iphone-portrait-week-sun.png`, M4B contract §6.3):

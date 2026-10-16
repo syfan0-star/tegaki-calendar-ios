@@ -15,16 +15,29 @@ import UIKit
 /// (`onColumnTap`, M4B-14); a tap on the gutter does nothing. Without all-day events the band is
 /// an `EmptyView` (height 0, no line; M4B-2). The view never judges weekdays or holidays itself:
 /// `band.tones` and `band.todayColumn` decide the column tints.
+///
+/// M4c (M4C contract §4.2 / §5.2): on the week page a double tap on a column goes to that day's page
+/// (`onColumnDoubleTap`, D5 / M4C-15; a SwiftUI `TapGesture` cannot tell the Pencil from a finger,
+/// so the Pencil's double tap goes too). The day page's band keeps the plain tap (a double tap does
+/// nothing there, so the tap is not delayed either). While a pinch is in progress the screen passes
+/// `laneZoom` (the zoom at the start of the pinch): the lane height, gap and text are frozen at it so
+/// the band's height does not change under the pinch (M4C-27); the column x and widths keep
+/// following `viewport` (D6).
 struct AllDayBandView: View {
     var band: AllDayBandLayout
     /// The paper's horizontal offset, zoom and container width (§1.1).
     var viewport: PaperViewport
     /// Height (pt) of the area holding the band and the canvas: the base of the 35 % cap.
     var pageHeight: CGFloat
+    /// The zoom the lane height / gap / text are computed at instead of `viewport.zoom` (frozen
+    /// during a pinch, M4C-27); nil = `viewport.zoom`.
+    var laneZoom: CGFloat? = nil
     /// eventId → the edit sheet.
     var onBarTap: (String) -> Void
     /// A column's empty part → the create sheet for that day's all-day event.
     var onColumnTap: (DayKey) -> Void
+    /// A finger (or Pencil) double tap on a week column → that day's page (M4C-15).
+    var onColumnDoubleTap: (DayKey) -> Void = { _ in }
 
     /// Corner radius of a bar (0 on a side that continues past the band's range).
     static let barCorner: CGFloat = 4
@@ -32,7 +45,7 @@ struct AllDayBandView: View {
     static let textPad: CGFloat = 6
 
     private var metrics: AllDayBandMetrics.Metrics {
-        AllDayBandMetrics.metrics(kind: band.kind, laneCount: band.laneCount, zoom: viewport.zoom, pageHeight: pageHeight)
+        AllDayBandMetrics.metrics(kind: band.kind, laneCount: band.laneCount, zoom: laneZoom ?? viewport.zoom, pageHeight: pageHeight)
     }
 
     /// The container width; never negative or non-finite (a `frame` must not get those).
@@ -75,19 +88,33 @@ struct AllDayBandView: View {
     }
 
     /// One day column: the today / weekend tint over the whole content height, tappable for 「その日の
-    /// 終日予定を追加」.
+    /// 終日予定を追加」. On the week page a double tap goes to the day page instead (M4C-15): the two
+    /// taps are one exclusive gesture, so the single tap waits for the double tap to fail (about 0.3 s,
+    /// M4C-6); the day page's band keeps the plain tap.
     private func column(_ index: Int, _ metrics: AllDayBandMetrics.Metrics) -> some View {
         let day = band.days[index]
         let x = index < band.columnMinX.count ? viewport.x(ofPaper: band.columnMinX[index]) : 0
         let columnWidth = max(0, viewport.width(ofPaper: band.columnWidth))
-        return Rectangle()
+        let shape = Rectangle()
             .fill(columnTint(index) ?? Color.clear)
             .frame(width: columnWidth, height: metrics.contentHeight)
             .contentShape(Rectangle())
-            .onTapGesture { onColumnTap(day) }
-            .accessibilityLabel(Self.columnLabel(day))
-            .accessibilityAddTraits(.isButton)
-            .offset(x: x)
+        return Group {
+            if band.kind == .day {
+                shape.onTapGesture { onColumnTap(day) }
+            } else {
+                shape
+                    .gesture(
+                        TapGesture(count: 2).onEnded { onColumnDoubleTap(day) }
+                            .exclusively(before: TapGesture(count: 1).onEnded { onColumnTap(day) })
+                    )
+                    // VoiceOver's activate is the single tap (`.gesture` does not add one itself).
+                    .accessibilityAction { onColumnTap(day) }
+            }
+        }
+        .accessibilityLabel(Self.columnLabel(day))
+        .accessibilityAddTraits(.isButton)
+        .offset(x: x)
     }
 
     /// 「終日」 in the gutter `[paper 0, paper gutter]`, right-aligned, on the first lane. It moves
