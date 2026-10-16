@@ -199,7 +199,8 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertEqual(canvas.minimumZoomScale, fitAll, accuracy: 1e-6)
         XCTAssertEqual(canvas.zoomScale, fitAll, accuracy: 1e-6, "opens at the overview")
         XCTAssertEqual(canvas.contentInset.left, (1024 - 1400 * fitAll) / 2, accuracy: 0.01) // 81.8
-        XCTAssertEqual(canvas.contentOffset.x, -canvas.contentInset.left, accuracy: 0.01, "the top-left")
+        // UIKit snaps contentOffset to the pixel grid (−82.0 for −81.79 on the CI simulator): ± 0.5 pt.
+        XCTAssertEqual(canvas.contentOffset.x, -canvas.contentInset.left, accuracy: 0.5, "the top-left")
         XCTAssertLessThan(canvas.minimumZoomScale, canvas.maximumZoomScale)
         XCTAssertTrue(canvas.isScrollEnabled)
         XCTAssertEqual(canvas.drawingPolicy, .pencilOnly)
@@ -464,9 +465,10 @@ final class InkCanvasViewTests: XCTestCase {
                                 initialZoomRatio: 2, initialPaperOffset: CGPoint(x: 400, y: 200), clear: false)
         let zoom = 2 * fitAll(week, 1024, 1180) // 1.2292
         XCTAssertEqual(rig.canvas.zoomScale, zoom, accuracy: 1e-6)
-        XCTAssertEqual(rig.canvas.contentOffset.x, 400 * zoom, accuracy: 0.05)
-        XCTAssertEqual(rig.canvas.contentOffset.y, 200 * zoom, accuracy: 0.05)
-        XCTAssertEqual(rig.probe.last?.offsetX ?? 0, 400 * zoom, accuracy: 0.05, "the heading's viewport")
+        // UIKit snaps contentOffset to the pixel grid ((491.5, 246.0) for (491.67, 245.83) on the CI simulator): ± 0.5 pt.
+        XCTAssertEqual(rig.canvas.contentOffset.x, 400 * zoom, accuracy: 0.5)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 200 * zoom, accuracy: 0.5)
+        XCTAssertEqual(rig.probe.last?.offsetX ?? 0, 400 * zoom, accuracy: 0.5, "the heading's viewport")
         XCTAssertEqual(rig.probe.last?.zoom ?? 0, zoom, accuracy: 1e-6)
         XCTAssertEqual(rig.probe.ratios.count, 1, "the first layout's own end-of-pinch call")
         XCTAssertEqual(rig.probe.ratios.first ?? 0, 2, accuracy: 1e-3)
@@ -665,7 +667,7 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertEqual(container.canvasView.zoomScale, zoom, accuracy: 1e-6)
         XCTAssertEqual(probe.last?.offsetX ?? -1, 700 * zoom, accuracy: 0.05)
         XCTAssertEqual(probe.last?.offsetX ?? -1, 402, accuracy: 0.1, "today's column at the right edge of the screen")
-        XCTAssertEqual(container.canvasView.contentOffset.x, 700 * zoom, accuracy: 0.05)
+        XCTAssertEqual(container.canvasView.contentOffset.x, 700 * zoom, accuracy: 0.5) // pixel grid, as above
         XCTAssertEqual(container.canvasView.contentOffset.y, 0, accuracy: 0.01)
     }
 
