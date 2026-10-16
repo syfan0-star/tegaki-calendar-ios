@@ -3,8 +3,11 @@
 # the app in its screenshot mode on four simulators (docs/M4B_CONTRACT.md §6: the 13-inch iPad
 # with 4 pages + 6 sheets, then an iPhone, an iPad mini and an 11-inch iPad with 4 pages each,
 # booted one at a time; the iPhone also shoots the week with a Sunday 「今日」 and tries the 4 pages
-# in landscape) and uploads the screenshots (artifact "screenshots", kept 7 days: up to 27 images +
-# 4 logs) so the app can be looked at without Xcode. The screenshot steps never fail the job.
+# in landscape; since M4c (docs/M4C_CONTRACT.md §6) the 13-inch iPad also shoots the month, week and
+# year zoomed in to twice their overview and the iPhone the week at three times, plus the week of
+# 6/1, and the app logs are grepped for the canvas's `zoom:` lines) and uploads the screenshots
+# (artifact "screenshots", kept 7 days: up to 32 images + 4 logs) so the app can be looked at without
+# Xcode. The screenshot steps never fail the job.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -50,15 +53,16 @@ jobs:
           swift --version
           swift build --package-path TegakiKit
 
-      # The count is checked as a number (docs/M4B_CONTRACT.md §7.1, M4B-9): M4b counts 21814 and the
-      # threshold is that number minus 50, so anything below 21764 means a section went missing.
+      # The count is checked as a number (docs/M4B_CONTRACT.md §7.1, M4B-9; docs/M4C_CONTRACT.md §6,
+      # M4C-10): M4c counts 22900 and the threshold is that number minus 50, so anything below 22850
+      # means a section went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 21764 or more)"
-          test "${N:-0}" -ge 21764
+          echo "KitChecks count: ${N:-0} (required: 22850 or more)"
+          test "${N:-0}" -ge 22850
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -207,8 +211,12 @@ jobs:
           xcrun simctl install "$UDID" "$APP"
 
       # File names since M4b: ipad13-portrait-<page>.png (docs/M4B_CONTRACT.md §6.2; M4 and earlier
-      # wrote ipad-portrait-<page>.png, the mapping is in docs/M4B.md).
-      - name: Screenshots (13-inch iPad, portrait, 4 pages)
+      # wrote ipad-portrait-<page>.png, the mapping is in docs/M4B.md). Since M4c the 4 pages open at
+      # the overview (the whole page fits the paper area, docs/M4C_CONTRACT.md D1) and three more shots
+      # open the month, the week and the year at twice the overview with a paper point (lu) at the top
+      # left ("--screenshot-zoom 2 --screenshot-offset x,y", §2.4: the photo shares the canvas's zoom
+      # path with a pinch; the year's offset is clamped to the paper's right edge on purpose).
+      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -223,6 +231,18 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE.png"
+          done
+          # page|offset: month lu (400, 200) → the Wed–Sat columns from the second half of the 10/5 week;
+          # week (300, 700) → Tue–Sat from 8:45 (the band's lanes grow past zoom 0.818, §1.6);
+          # year (1000, 300) → clamped to the right edge: May's end to December.
+          for SPEC in "month|400,200" "week|300,700" "year|1000,300"; do
+            PAGE="${SPEC%%|*}"; OFFSET="${SPEC##*|}"
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-zoom 2 --screenshot-offset "$OFFSET"
+            sleep 8
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page, zoom 2; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE-zoom2.png"
           done
           ls -la shots
 
@@ -260,15 +280,22 @@ jobs:
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} shots/ \; 2>/dev/null || true
           ls -la shots
           grep -c "" shots/app-log.txt || true
+          # M4c (docs/M4C_CONTRACT.md §2.4): the canvas's first layout logs "zoom: kind=… pinch=%d
+          # enabled=%d min max zoom fitAll ratio view overview" (DEBUG), a pinch "zoom: begin" /
+          # "zoom: end …"; pinch=1 means PKCanvasView offers a pinch (F4). C copies the numbers into docs/M4C.md.
+          grep 'zoom: ' shots/app-log.txt || true
 
       # The three other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
       # down afterwards: iphone (iPhone 17, 402 pt), ipadmini (iPad mini (A17 Pro), 744 pt) and
       # ipad11 (iPad Pro 11-inch (M5), 834 pt), 4 portrait pages each as <id>-portrait-<page>.png.
       # The iPhone also shoots the week of 2026-06 (6/7 is a Sunday: the paper starts at the right
-      # edge, M4B-3) and tries the 4 pages in landscape ("--screenshot-landscape", §6.4; the file is
-      # still written when the request was ignored, the header then stays two rows). Every shot is
-      # best effort; a missing simulator or a failed boot only skips that device. The 13-inch
-      # simulator is shut down first to leave the runner's memory to the next one.
+      # edge, M4B-3; since M4c the overview shows the whole week, and the same week is shot again as
+      # -week-jun for the "6/1" heading of the narrow column, M4C-28), the week at three times its
+      # overview ("--screenshot-zoom 3 --screenshot-offset 300,700", docs/M4C_CONTRACT.md §6) and
+      # tries the 4 pages in landscape ("--screenshot-landscape", §6.4; the file is still written when
+      # the request was ignored, the header then stays two rows). Every shot is best effort; a
+      # missing simulator or a failed boot only skips that device. The 13-inch simulator is shut down
+      # first to leave the runner's memory to the next one.
       - name: Screenshots (iPhone, iPad mini, 11-inch iPad; portrait, 4 pages each)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -344,6 +371,10 @@ jobs:
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.
               shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
+              # M4c: the week at 3 × fitAll (0.8613: Tue–Thu from 8:45, the text at its minPoints) and
+              # the week of 6/1–6/7 (M4C-28: the first heading is "6/1" without its weekday).
+              shoot "$ID-portrait-week-zoom3.png" --screenshot-month 2026-10 --screenshot-page week --screenshot-zoom 3 --screenshot-offset 300,700
+              shoot "$ID-portrait-week-jun.png" --screenshot-month 2026-06 --screenshot-page week
               for PAGE in month week day year; do        # §6.4: only the iPhone can turn
                 shoot "$ID-landscape-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-landscape
               done
@@ -356,6 +387,7 @@ jobs:
             fi
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             xcrun simctl spawn "$UDID" log show --last 6m --style compact --predicate 'process == "TegakiCalendar"' > "shots/$ID-log.txt" 2>&1 || true
+            grep 'zoom: ' "shots/$ID-log.txt" || true     # M4c: the canvas's zoom lines of this device
             [ "$UDID" = "$PRIMARY" ] || xcrun simctl shutdown "$UDID" || true
           done
           ls -la shots
