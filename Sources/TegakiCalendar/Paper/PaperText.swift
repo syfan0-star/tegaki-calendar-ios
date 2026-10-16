@@ -34,22 +34,32 @@ enum PaperText {
     /// (the web version's divisor, 7 % of slack).
     static let gutterLabelEms: CGFloat = 2.9
 
-    /// Font size in paper units: proportional to the zoom, at least `minPoints` on screen.
-    static func fontSize(_ size: Size, zoom: CGFloat) -> CGFloat {
-        max(size.lu, size.minPoints / max(zoom, 0.0001))
+    /// Font size in paper units. At or above `readable` (the page's `ZoomPolicy.readableZoom`):
+    /// proportional to the zoom, at least `minPoints` on screen (M4b). Below it: the size the text
+    /// had at `readable` is frozen, `max(lu, minPoints / readable)`, so on screen it shrinks in
+    /// proportion with no lower limit (M4C_CONTRACT §3.1, D3 / M4C-3: the overview is the readable
+    /// paper scaled down, continuous at the threshold, and nothing grows out of its bar, chip or box).
+    /// `readable` 0 (the default) is the M4b rule itself.
+    static func fontSize(_ size: Size, zoom: CGFloat, readable: CGFloat = 0) -> CGFloat {
+        let z = max(zoom, 0.0001)
+        if readable > 0, z < readable {
+            return max(size.lu, size.minPoints / readable)
+        }
+        return max(size.lu, size.minPoints / z)
     }
 
     /// Size (lu) of a time label ("0:00"…"23:00") in a gutter `gutter` lu wide:
-    /// `max(0, min(fontSize(size, zoom), (gutter − 8) / 2.9))` — week (64 − 8) / 2.9 = 19.31 lu, day
-    /// (72 − 8) / 2.9 = 22.07 lu (M4B_CONTRACT §4.1, M4B-10 with the measured width). At the iPhone's
-    /// week minimum (0.4716) the cap bites: 19.31 lu = 9.1 pt instead of 10 pt (still ≥ 9 pt, D4), so
-    /// "10:00" (24.6 pt) fits the 26.4 pt label; the day (10.5 / 0.5612 = 18.7 < 22.07) and every iPad
-    /// keep their 10 / 10.5 pt.
-    static func gutterLabelSize(_ size: Size, zoom: CGFloat, gutter: CGFloat) -> CGFloat {
-        max(0, min(fontSize(size, zoom: zoom), (gutter - 8) / gutterLabelEms))
+    /// `max(0, min(fontSize(size, zoom, readable), (gutter − 8) / 2.9))` — week (64 − 8) / 2.9 = 19.31 lu,
+    /// day (72 − 8) / 2.9 = 22.07 lu (M4B_CONTRACT §4.1, M4B-10 with the measured width). At the
+    /// iPhone's readable week zoom (0.4716) the cap bites: 19.31 lu = 9.1 pt instead of 10 pt (still
+    /// ≥ 9 pt, D4), so "10:00" (24.6 pt) fits the 26.4 pt label; the day (10.5 / 0.5612 = 18.7 < 22.07)
+    /// and every iPad keep their 10 / 10.5 pt. Below `readable` the frozen size is capped the same way.
+    static func gutterLabelSize(_ size: Size, zoom: CGFloat, gutter: CGFloat, readable: CGFloat = 0) -> CGFloat {
+        max(0, min(fontSize(size, zoom: zoom, readable: readable), (gutter - 8) / gutterLabelEms))
     }
 
-    /// A one-point line on screen, in paper units.
+    /// A one-point line on screen, in paper units (also below the readable zoom: M4C-2, 1 pt rather
+    /// than one device pixel, which would be too faint on a 3x iPhone).
     static func hairline(_ zoom: CGFloat) -> CGFloat {
         1 / max(zoom, 0.0001)
     }

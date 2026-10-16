@@ -18,6 +18,9 @@ enum YearPaper: PaperRenderer {
         let width = PaperSpec.yearWidth
         let height = layout.size.height
         let pad = PaperSpec.yearPad
+        // Below the readable zoom (1.339: the overview on every device) the text keeps the size it
+        // has there — the lu sizes themselves, since 11 / 1.339 < 22 — and shrinks with the paper (M4c D3).
+        let readable = ZoomPolicy.readableZoom(.year)
 
         // 1. Cell tints and the hatched cells.
         var todayFrame: CGRect?
@@ -70,7 +73,7 @@ enum YearPaper: PaperRenderer {
         }
 
         // 3. Day numbers 1…31 down the gutter (today's in the accent colour).
-        let numberSize = PaperText.fontSize(PaperText.yearDayNum, zoom: zoom)
+        let numberSize = PaperText.fontSize(PaperText.yearDayNum, zoom: zoom, readable: readable)
         let numberFont = UIFont.monospacedDigitSystemFont(ofSize: numberSize, weight: .semibold)
         let todayNumberFont = UIFont.monospacedDigitSystemFont(ofSize: numberSize, weight: .bold)
         let todayDay = layout.todayCell?.yearMonthDay?.day
@@ -85,12 +88,12 @@ enum YearPaper: PaperRenderer {
         // 4. Day number + weekday letter (「7 水」) and holiday names. The number takes 1.3 em
         // right-aligned, the letter starts 0.3 em after it (1.3 + 0.3 + 1.4 = 3 em = 45 lu, inside
         // the cell's left 45 % = 50.4 lu).
-        let weekdaySize = PaperText.fontSize(PaperText.yearWeekday, zoom: zoom)
+        let weekdaySize = PaperText.fontSize(PaperText.yearWeekday, zoom: zoom, readable: readable)
         let weekdayFont = UIFont.systemFont(ofSize: weekdaySize, weight: .semibold)
         let todayWeekdayFont = UIFont.systemFont(ofSize: weekdaySize, weight: .heavy)
         let dayNumberFont = UIFont.monospacedDigitSystemFont(ofSize: weekdaySize, weight: .semibold)
         let todayDayNumberFont = UIFont.monospacedDigitSystemFont(ofSize: weekdaySize, weight: .heavy)
-        let holidaySize = PaperText.fontSize(PaperText.yearHoliday, zoom: zoom)
+        let holidaySize = PaperText.fontSize(PaperText.yearHoliday, zoom: zoom, readable: readable)
         let holidayFont = UIFont.systemFont(ofSize: holidaySize, weight: .regular)
         let leftWidth = PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft
         for label in layout.dateLabels {
@@ -118,7 +121,7 @@ enum YearPaper: PaperRenderer {
         }
 
         // 5. Chips: colour, square corners on a continuing side, a link band down to the next day's chip.
-        let chipSize = PaperText.fontSize(PaperText.yearChip, zoom: zoom)
+        let chipSize = PaperText.fontSize(PaperText.yearChip, zoom: zoom, readable: readable)
         let linkWidth = max(2 / zoom, 4)
         for chip in layout.chips {
             let frame = chip.frame

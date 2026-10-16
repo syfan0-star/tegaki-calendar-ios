@@ -3,11 +3,42 @@ import UIKit
 import XCTest
 @testable import TegakiCalendar
 
-/// Simulator tests of the paper's text helpers (M4B_CONTRACT §4.1, §7.2): the time-label size is
-/// capped by the gutter's width, and `drawLine` / `drawLines` never paint outside their rect
-/// (D4: text never leaves its bar, chip or box).
+/// Simulator tests of the paper's text helpers (M4B_CONTRACT §4.1, §7.2; M4C_CONTRACT §3.1, §7.2):
+/// the time-label size is capped by the gutter's width, below the readable zoom the text keeps its
+/// readable size in lu and shrinks with the paper (D3 / M4C-3), and `drawLine` / `drawLines` never
+/// paint outside their rect (D4: text never leaves its bar, chip or box).
 @MainActor
 final class PaperTextTests: XCTestCase {
+    // MARK: Font size below the readable zoom (M4c)
+
+    func testFontSizeBelowReadableIsFrozen() {
+        let readable = ZoomPolicy.readableZoom(.month) // 0.5
+        // At the readable zoom the M4b rule gives 10 pt / 0.5 = 20 lu for a month chip …
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthChip, zoom: 0.5, readable: readable), 20, accuracy: 0.001)
+        // … and below it those 20 lu are frozen: on screen the text shrinks with the paper, no floor.
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthChip, zoom: 0.49, readable: readable), 20, accuracy: 0.001)
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthChip, zoom: 0.2871, readable: readable), 20, accuracy: 0.001)
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthChip, zoom: 0.2871, readable: readable) * 0.2871, 5.74, accuracy: 0.01, "the iPhone's overview: 5.74 pt")
+        // Above it the M4b rule: 10 pt / 0.7314 = 13.67 lu (the 13-inch month).
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthChip, zoom: 0.7314, readable: readable), 10 / 0.7314, accuracy: 0.001)
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthChip, zoom: 0.7314, readable: readable), 13.67, accuracy: 0.01)
+        // readable 0 (the default) is the M4b rule itself: 10 / 0.3 = 33.3 lu.
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthChip, zoom: 0.3), 10 / 0.3, accuracy: 0.001)
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthChip, zoom: 0.3, readable: 0), 33.3, accuracy: 0.05)
+        // The frozen sizes of §3.1: monthDate 24, monthHoliday 18, weekEvent 21.2, dayEvent 19.6; the
+        // year's lu are above its minimum points at readable 1.339, so they stay 22 / 15 / 13 / 11.
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthDate, zoom: 0.1, readable: readable), 24, accuracy: 0.001)
+        XCTAssertEqual(PaperText.fontSize(PaperText.monthHoliday, zoom: 0.1, readable: readable), 18, accuracy: 0.001)
+        XCTAssertEqual(PaperText.fontSize(PaperText.weekEvent, zoom: 0.1, readable: ZoomPolicy.readableZoom(.week)), 21.2, accuracy: 0.01)
+        XCTAssertEqual(PaperText.fontSize(PaperText.dayEvent, zoom: 0.1, readable: ZoomPolicy.readableZoom(.day)), 19.6, accuracy: 0.01)
+        XCTAssertEqual(PaperText.fontSize(PaperText.yearDayNum, zoom: 0.5, readable: ZoomPolicy.readableZoom(.year)), 22, accuracy: 0.001)
+        XCTAssertEqual(PaperText.fontSize(PaperText.yearChip, zoom: 0.5, readable: ZoomPolicy.readableZoom(.year)), 13, accuracy: 0.001)
+        // Gutter labels: the frozen size is capped by the gutter the same way — the week's 21.2 lu →
+        // 19.31 (the cap), the day's 18.7 lu stays under 22.07.
+        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.weekTimeLabel, zoom: 0.2871, gutter: PaperSpec.weekGutter, readable: ZoomPolicy.readableZoom(.week)), 19.31, accuracy: 0.01)
+        XCTAssertEqual(PaperText.gutterLabelSize(PaperText.dayTimeLabel, zoom: 0.2313, gutter: PaperSpec.dayGutter, readable: ZoomPolicy.readableZoom(.day)), 18.7, accuracy: 0.05)
+    }
+
     // MARK: Gutter label size
 
     func testGutterLabelSizeIsCappedByTheGutter() {

@@ -4,11 +4,14 @@ import UIKit
 /// The month page's paper (M2's `PaperView.draw`, moved here unchanged in appearance): grid lines,
 /// date numbers (today / Saturday / Sunday-holiday / outside the month), holiday names, all-day bars,
 /// timed chips and the memo area below the grid. Since M4b the text of a bar or a chip is clipped
-/// to its frame (M4B_CONTRACT §4.2, D4): at the iPhone's minimum zoom a 10 pt label is as tall as
-/// a 20 lu chip, and it must never spill over its neighbours.
+/// to its frame (M4B_CONTRACT §4.2, D4): at the iPhone's readable zoom a 10 pt label is as tall as
+/// a 20 lu chip, and it must never spill over its neighbours. Below the readable zoom (the M4c
+/// overview) every text keeps its readable size in lu and shrinks with the paper (M4C_CONTRACT §3).
 enum MonthPaper: PaperRenderer {
     private static let ruleStep: CGFloat = 50
     private static let ruleInset: CGFloat = 20
+    /// Below this zoom the text keeps the size it has here and shrinks in proportion (M4c D3, §3.2).
+    private static var readable: CGFloat { ZoomPolicy.readableZoom(.month) }
 
     static func draw(_ content: MonthPaperContent, in ctx: CGContext, dirty: CGRect, zoom: CGFloat, view: PaperView) {
         let scale = view.contentScaleFactor
@@ -81,7 +84,7 @@ enum MonthPaper: PaperRenderer {
         ctx.strokePath()
 
         // Small 「メモ」 label at the top-left, as on the web version.
-        let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom)
+        let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom, readable: readable)
         let labelFont = UIFont.systemFont(ofSize: labelSize, weight: .semibold)
         let labelRect = CGRect(x: ruleInset, y: memo.minY + 6, width: 200, height: labelFont.lineHeight + 2)
         if labelRect.intersects(dirty) {
@@ -90,9 +93,9 @@ enum MonthPaper: PaperRenderer {
     }
 
     private static func drawDateLabels(_ ctx: CGContext, content: MonthPaperContent, dirty: CGRect, zoom: CGFloat) {
-        let dateSize = PaperText.fontSize(PaperText.monthDate, zoom: zoom)
+        let dateSize = PaperText.fontSize(PaperText.monthDate, zoom: zoom, readable: readable)
         let dateFont = UIFont.monospacedDigitSystemFont(ofSize: dateSize, weight: .semibold)
-        let holidaySize = PaperText.fontSize(PaperText.monthHoliday, zoom: zoom)
+        let holidaySize = PaperText.fontSize(PaperText.monthHoliday, zoom: zoom, readable: readable)
         let holidayFont = UIFont.systemFont(ofSize: holidaySize, weight: .regular)
 
         for label in content.labels {
@@ -133,7 +136,7 @@ enum MonthPaper: PaperRenderer {
     }
 
     private static func drawAllDayBars(_ ctx: CGContext, content: MonthPaperContent, dirty: CGRect, zoom: CGFloat) {
-        let size = PaperText.fontSize(PaperText.monthChip, zoom: zoom)
+        let size = PaperText.fontSize(PaperText.monthChip, zoom: zoom, readable: readable)
         let font = UIFont.systemFont(ofSize: size, weight: .semibold)
         let radius: CGFloat = 4
         let inMonth = Set(content.labels.filter { $0.inMonth }.map { $0.day })
@@ -164,7 +167,7 @@ enum MonthPaper: PaperRenderer {
     }
 
     private static func drawTimedChips(_ ctx: CGContext, content: MonthPaperContent, dirty: CGRect, zoom: CGFloat) {
-        let size = PaperText.fontSize(PaperText.monthChip, zoom: zoom)
+        let size = PaperText.fontSize(PaperText.monthChip, zoom: zoom, readable: readable)
         let titleFont = UIFont.systemFont(ofSize: size, weight: .medium)
         let timeFont = UIFont.monospacedDigitSystemFont(ofSize: size, weight: .regular)
         let moreFont = UIFont.systemFont(ofSize: size, weight: .semibold)

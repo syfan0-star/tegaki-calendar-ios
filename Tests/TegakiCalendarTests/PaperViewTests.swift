@@ -3,10 +3,11 @@ import UIKit
 import XCTest
 @testable import TegakiCalendar
 
-/// Simulator tests of the paper's windowed backing store (M4B_CONTRACT §1.6, §7.2, M4B-25): the
-/// window is at most 2 × 2 screens around the visible rect, clipped to the content; `show` moves
-/// the frame without redrawing while the visible rect stays inside the window at the same zoom, and
-/// makes a new window (and redraws) when it leaves it or the zoom changes.
+/// Simulator tests of the paper's windowed backing store (M4B_CONTRACT §1.6, §7.2, M4B-25; M4C_CONTRACT
+/// §2.2 F3, §7.2): the window is at most 2 × 2 screens around the visible rect, clipped to the content;
+/// `show` moves the frame without redrawing while the visible rect stays inside the window at the same
+/// zoom, and makes a new window (and redraws) when it leaves it or the zoom changes; while a pinch is
+/// live the window is stretched with a transform instead and redrawn once at the end.
 @MainActor
 final class PaperViewTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_790_000_000)
@@ -116,6 +117,74 @@ final class PaperViewTests: XCTestCase {
         XCTAssertEqual(view.frame.origin.x, 30, accuracy: 0.001)
         XCTAssertEqual(view.frame.origin.y, 40, accuracy: 0.001)
         XCTAssertEqual(view.displayRequestCount, requests)
+
+        // A paper narrower than the viewport (M4c D1: the iPhone's day page at 0.2417, 242 pt in 402)
+        // rests at a negative offset — the centring margin: the window is the whole paper, the frame
+        // starts at the margin, and a vertical bounce only moves it.
+        let narrow = PaperView(content: makeContent())
+        let dayContent = CGSize(width: 241.67, height: 580)
+        narrow.show(visible: CGRect(x: -80, y: 0, width: 402, height: 580), zoom: 0.2417, contentSize: dayContent)
+        assertRect(narrow.contentWindow, 0, 0, 241.67, 580, "the whole paper")
+        XCTAssertEqual(narrow.frame.origin.x, 80, accuracy: 0.001)
+        XCTAssertEqual(narrow.frame.origin.y, 0, accuracy: 0.001)
+        let narrowRequests = narrow.displayRequestCount
+        narrow.show(visible: CGRect(x: -80, y: -40, width: 402, height: 580), zoom: 0.2417, contentSize: dayContent)
+        assertRect(narrow.contentWindow, 0, 0, 241.67, 580, "window kept while bouncing in the margin")
+        XCTAssertEqual(narrow.frame.origin.x, 80, accuracy: 0.001)
+        XCTAssertEqual(narrow.frame.origin.y, 40, accuracy: 0.001)
+        XCTAssertEqual(narrow.displayRequestCount, narrowRequests)
+    }
+
+    // MARK: show(…, live:) — M4c F3
+
+    func testLiveShowStretchesWithoutRedraw() {
+        let view = PaperView(content: makeContent())
+        let content = CGSize(width: 700, height: 875)
+        view.show(visible: CGRect(x: 0, y: 0, width: 402, height: 600), zoom: 0.5, contentSize: content)
+        assertRect(view.contentWindow, 0, 0, 603, 875, "the window drawn at 0.5")
+        let requests = view.displayRequestCount
+
+        // A pinch doubled the zoom: the window is not remade, the view keeps its zoom and its bounds
+        // and is stretched ×2; its centre is where the window's centre lands at the new zoom.
+        let visible = CGRect(x: 100, y: 150, width: 402, height: 600)
+        view.show(visible: visible, zoom: 1.0, contentSize: CGSize(width: 1400, height: 1750), live: true)
+        XCTAssertEqual(view.displayRequestCount, requests, "no redraw while live")
+        XCTAssertEqual(view.zoomScale, 0.5, "the zoom is left alone")
+        assertRect(view.contentWindow, 0, 0, 603, 875, "window kept")
+        XCTAssertEqual(view.transform.a, 2, accuracy: 1e-6)
+        XCTAssertEqual(view.transform.d, 2, accuracy: 1e-6)
+        XCTAssertEqual(view.bounds.size.width, 603, accuracy: 0.001)
+        XCTAssertEqual(view.bounds.size.height, 875, accuracy: 0.001)
+        XCTAssertEqual(view.center.x, 603 / 2 * 2 - 100, accuracy: 0.001)
+        XCTAssertEqual(view.center.y, 875 / 2 * 2 - 150, accuracy: 0.001)
+
+        // The same frame again: nothing changes.
+        view.show(visible: visible, zoom: 1.0, contentSize: CGSize(width: 1400, height: 1750), live: true)
+        XCTAssertEqual(view.displayRequestCount, requests)
+
+        // The end of the pinch: the transform goes back, the zoom is taken, a new window is drawn.
+        view.show(visible: visible, zoom: 1.0, contentSize: CGSize(width: 1400, height: 1750), live: false)
+        XCTAssertEqual(view.transform, .identity)
+        XCTAssertEqual(view.zoomScale, 1.0)
+        assertRect(view.contentWindow, 0, 0, 703, 1050, "window for the new zoom")
+        XCTAssertEqual(view.frame.size, view.contentWindow.size)
+        XCTAssertEqual(view.frame.origin.x, -100, accuracy: 0.001)
+        XCTAssertEqual(view.frame.origin.y, -150, accuracy: 0.001)
+        XCTAssertGreaterThan(view.displayRequestCount, requests, "drawn once at the end")
+    }
+
+    func testLiveShowWithoutAWindowFallsBackToADraw() {
+        // Right after `attach` the window is empty (s would not be finite): the live call takes the
+        // ordinary path and makes the first window.
+        let view = PaperView(content: makeContent())
+        XCTAssertEqual(view.contentWindow, .zero)
+        let requests = view.displayRequestCount
+        view.show(visible: CGRect(x: 0, y: 0, width: 402, height: 600), zoom: 0.5, contentSize: CGSize(width: 700, height: 875), live: true)
+        assertRect(view.contentWindow, 0, 0, 603, 875, "a window is made")
+        XCTAssertGreaterThan(view.displayRequestCount, requests, "and drawn")
+        XCTAssertEqual(view.transform, .identity)
+        XCTAssertEqual(view.zoomScale, 0.5)
+        XCTAssertEqual(view.frame.size, view.contentWindow.size)
     }
 
     func testContentChangeRedraws() {

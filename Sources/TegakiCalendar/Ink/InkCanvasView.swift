@@ -28,11 +28,11 @@ enum CanvasCommand: Equatable {
 /// page with `.id(layout.pageId)`.
 ///
 /// ```
-///   InkCanvasContainerView (clips)
+///   InkCanvasContainerView (clips; the desk colour)
 ///     ├─ PaperView (担当 P)   below: a window of at most 2 × 2 screens around the visible part of the
-///     │                        paper (`show(visible:zoom:contentSize:)`, M4B_CONTRACT §1.6), redrawn from `paper`
+///     │                        paper (`show(visible:zoom:contentSize:live:)`, M4B_CONTRACT §1.6), redrawn from `paper`
 ///     ├─ PKCanvasView         middle: transparent, fills the container, and *is* the scroll view
-///     └─ InkOverlayView       above: the lasso / 予定 tool input and drawing (enabled for those tools only)
+///     └─ InkOverlayView       above: the lasso / 予定 tool drawing; the Pencil's input for those tools
 /// ```
 /// `PKCanvasView` owns scrolling and pinch zoom; the paper view is a sibling that is moved under it
 /// on every `scrollViewDidScroll` / `scrollViewDidZoom` (public API only, no subview tricks).
@@ -46,16 +46,25 @@ enum CanvasCommand: Equatable {
 ///   outside (merge, import) replaces the ledger's page.
 /// - A `page` and a `layout` of different page ids (a transient of SwiftUI's update order) are
 ///   ignored until both agree; the ledger never mixes pages.
-/// - The zoom limits come from `ZoomPolicy` (M4B_CONTRACT §1.1): the minimum is fit-to-width or
-///   the page's readable zoom, whichever is larger, so an iPhone's month / week / day page and the
-///   year page everywhere scroll horizontally. `initialScrollX` / `initialScrollY` (paper lu) are
-///   applied once, when the first zoom is known.
+/// - The zoom limits come from `ZoomPolicy` (M4C_CONTRACT §1.1, D1): the minimum is the overview
+///   (`fitAll`: the page's overview rectangle fits the paper area both ways), the maximum
+///   `max(4 × fit-to-width, 2 × readable)`. Every page opens at its stored ratio of the overview
+///   (`initialZoomRatio`, 1 = the overview, top-left); at a ratio above 1 `initialScrollX` /
+///   `initialScrollY` (paper lu) are applied once, when the first zoom is known. A paper smaller than
+///   the viewport is centred with `contentInset` (the margins are the desk colour, M4C-25).
+/// - A pinch keeps its absolute zoom across rotations and height changes (D4 / M4C-24: the overview
+///   follows the new overview, a zoomed-in paper is only clamped, and `targetZoom` remembers what the
+///   clamp cut off); the ratio is reported (`onZoomRatioChange`) only at the end of a pinch.
+/// - While the canvas is zooming or bouncing (`isLive`) the paper window is stretched, not redrawn
+///   (F3); the end of the pinch (`scrollViewDidEndZooming`) centres, clamps, redraws once and reports.
 /// - Whenever `contentOffset.x`, the zoom or the container's width changes, the owner gets a
 ///   `PaperViewport` (`onViewportChange`) so the sticky header and the all-day band follow the paper
 ///   (M4B_CONTRACT §1.3). Finger-driven changes are delivered at once; changes made inside a layout
 ///   pass or a SwiftUI update are delivered on the next main-actor turn (a `@State` must not change
 ///   during a view update).
-/// - Finger taps (direct touches only) are reported in paper coordinates through `onTap`.
+/// - Finger taps (direct touches only) are reported in paper coordinates through `onTap`; a finger's
+///   double tap through `onDoubleTap` (week / month / year, D5), the single tap waiting for it.
+/// - Strokes whose centre lies outside the paper (in the centring margin) are dropped (M4C-25).
 /// - PencilKit's own undo manager is emptied after every change; history is the ledger's.
 /// - The selection follows the ledger: ids that stop being live (eraser, undo / redo, a reload)
 ///   are dropped, its box is recomputed after every relayout, and it is cleared when the tool
@@ -67,10 +76,11 @@ struct InkCanvasView: UIViewRepresentable {
     var tool: CanvasTool
     var allowFinger: Bool
     @Binding var page: InkPage
-    /// Paper y (lu) to show at the top when this canvas first appears (× zoom, clamped to the paper).
+    /// Paper y (lu) to show at the top when this canvas first appears at a ratio above 1 (× zoom,
+    /// clamped to the paper). At the overview (ratio 1) the paper starts at the top-left.
     var initialScrollY: CGFloat
-    /// Paper x (lu) to show at the left when this canvas first appears (`PageNavigation.initialScrollX`;
-    /// × the first zoom, clamped to the paper). M4B_CONTRACT §1.3.
+    /// Paper x (lu) to show at the left when this canvas first appears at a ratio above 1
+    /// (`PageNavigation.initialScrollX`; × the first zoom, clamped to the paper). M4B_CONTRACT §1.3.
     var initialScrollX: CGFloat = 0
     /// A finger tap, in paper coordinates (lu). The owner resolves it with `layout.hit(at:)`.
     var onTap: (CGPoint) -> Void
@@ -100,6 +110,28 @@ struct InkCanvasView: UIViewRepresentable {
     /// `contentOffset.x`, `zoomScale` or the container's width changed (never for a change of y
     /// alone). The owner hands the value to `StickyHeaderView` and `AllDayBandView` (M4B_CONTRACT §1.3).
     var onViewportChange: (PaperViewport) -> Void = { _ in }
+    /// The zoom to open with, as a ratio of the overview (`fitAll`; M4C_CONTRACT §1.3, D4). Applied
+    /// once, at the first layout (a later value is not applied again). The stored ratio of the page
+    /// kind, or `--screenshot-zoom`.
+    var initialZoomRatio: CGFloat = 1
+    /// The paper point (lu) to put at the top-left at the first layout. nil: the rule of §1.3 — the
+    /// overview (ratio 1) starts at the top-left, a zoomed-in page at `initialScrollX` / `initialScrollY`.
+    /// The way in for `--screenshot-offset`.
+    var initialPaperOffset: CGPoint? = nil
+    /// true on the week / month / year pages. false leaves `doubleTapRecognizer` disabled, so the
+    /// single tap is not delayed (the day page).
+    var doubleTapEnabled: Bool = false
+    /// A finger's double tap, in paper coordinates (lu). The owner turns it into a day with
+    /// `layout.dayAt(point:)` (D5).
+    var onDoubleTap: (CGPoint) -> Void = { _ in }
+    /// Once at the end of a pinch (after the bounce): the new ratio (zoom / fitAll). Never for a
+    /// rotation or a change of the overview's height (D4). Always delivered on the next main-actor
+    /// turn; the receiver only writes it to `AppSettings`.
+    var onZoomRatioChange: (CGFloat) -> Void = { _ in }
+    /// true when a pinch begins (`scrollViewWillBeginZooming`), false when it is over (together with
+    /// the redraw after the bounce). The owner freezes the all-day band's lane height in between
+    /// (M4C_CONTRACT §1.6, M4C-27). Delivered on the next main-actor turn.
+    var onZoomingChange: (Bool) -> Void = { _ in }
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -116,33 +148,8 @@ struct InkCanvasView: UIViewRepresentable {
         paperView.isUserInteractionEnabled = false
 
         let container = InkCanvasContainerView(paperView: paperView)
-        let canvas = container.canvasView
-        canvas.delegate = coordinator
-        canvas.backgroundColor = .clear
-        canvas.isOpaque = false
-        // The paper is always light; never let PencilKit invert ink colours (DESIGN.md §3.2).
-        canvas.overrideUserInterfaceStyle = .light
-        canvas.contentInsetAdjustmentBehavior = .never
-        canvas.alwaysBounceVertical = true
-        canvas.alwaysBounceHorizontal = false
-        // Shown only while the content is wider than the view (an iPhone, the year page; M4B-5).
-        canvas.showsHorizontalScrollIndicator = true
-        // A vertical flick does not drift sideways (M4B-6).
-        canvas.isDirectionalLockEnabled = true
-        canvas.maximumSupportedContentVersion = .version1
-        canvas.drawingPolicy = allowFinger ? .anyInput : .pencilOnly
-        canvas.tool = tool.pkTool
-        canvas.drawingGestureRecognizer.isEnabled = !tool.isOverlayTool
-        canvas.addInteraction(coordinator.pencilInteraction)
-        canvas.addGestureRecognizer(coordinator.tapRecognizer)
-
-        let overlay = container.overlayView
-        overlay.delegate = coordinator
-        overlay.scrollView = canvas
-        overlay.allowFinger = allowFinger
-        overlay.pageSize = layout.size
-        overlay.tool = tool
-
+        // Everything the canvas, the overlay and the recognisers need is wired in `attach` (the
+        // tests build the same container without a `Context`).
         coordinator.attach(container)
         return container
     }
@@ -159,7 +166,7 @@ struct InkCanvasView: UIViewRepresentable {
 // MARK: - Container
 
 /// Holds the paper view under the transparent canvas, the overlay above it, and reports its own
-/// size changes (rotation, split view) so the fit-to-width zoom can be recomputed.
+/// size changes (rotation, split view, the all-day band growing) so the zoom limits can be recomputed.
 @MainActor
 final class InkCanvasContainerView: UIView {
     let paperView: PaperView
@@ -167,11 +174,16 @@ final class InkCanvasContainerView: UIView {
     let overlayView = InkOverlayView()
     var onLayout: (() -> Void)?
 
+    /// The desk behind the paper (M4C-25): #ecebe6, the same in dark mode (the paper is always light,
+    /// DESIGN §3.2). The paper view paints its own window in the paper colour, so only the paper is
+    /// paper-coloured; the centring margins, overscroll and the outside of the window during a pinch
+    /// (M4C-20) show the desk.
+    static let deskColor = UIColor(red: 0xec / 255.0, green: 0xeb / 255.0, blue: 0xe6 / 255.0, alpha: 1)
+
     init(paperView: PaperView) {
         self.paperView = paperView
         super.init(frame: .zero)
-        // Paper colour (web views.css) behind everything, so overscroll looks like more paper.
-        backgroundColor = UIColor(red: 0xff / 255.0, green: 0xfd / 255.0, blue: 0xf8 / 255.0, alpha: 1)
+        backgroundColor = Self.deskColor
         clipsToBounds = true
         addSubview(paperView)
         addSubview(canvasView)
@@ -232,14 +244,26 @@ extension InkCanvasView {
         private var overlay: InkOverlayView? { container?.overlayView }
 
         private let pencilHandler: PencilInteractionHandler
-        /// Receives Apple Pencil double taps / squeezes. Added to the canvas in `makeUIView`.
+        /// Receives Apple Pencil double taps / squeezes. Added to the canvas in `attach`.
         let pencilInteraction: UIPencilInteraction
-        /// Finger taps on the paper (direct touches only). Added to the canvas in `makeUIView`.
+        /// Finger taps on the paper (direct touches only). Added to the canvas in `attach`; it waits
+        /// for `doubleTapRecognizer` to fail.
         private(set) lazy var tapRecognizer: UITapGestureRecognizer = {
             let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
             recognizer.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
             recognizer.delegate = self
             return recognizer
+        }()
+        /// A finger's double tap on the paper (M4C_CONTRACT §4.1, D5): the week / month / year pages
+        /// jump to the day under it. Direct touches only, so the Pencil never triggers it. Enabled
+        /// while `doubleTapEnabled` and no overlay tool is up (`syncRecognizers`).
+        private(set) lazy var doubleTapRecognizer: UITapGestureRecognizer = {
+            let r = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+            r.numberOfTapsRequired = 2
+            r.numberOfTouchesRequired = 1
+            r.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+            r.delegate = self
+            return r
         }()
 
         /// The layout the canvas currently shows (strokes placed, contentSize set, paper drawn).
@@ -266,7 +290,8 @@ extension InkCanvasView {
         private var resetScroll = false
         private var isApplyingDrawing = false
         private var isUpdating = false
-        /// The first zoom (and with it `initialScrollX` / `initialScrollY`) has been applied once.
+        /// The first zoom (and with it `initialZoomRatio` / `initialPaperOffset` / `initialScrollX` /
+        /// `initialScrollY`) has been applied once.
         private var hasInitialZoom = false
         /// `containerDidLayout()` / `applyPending()` are running: they may be inside a UIKit layout
         /// pass or a SwiftUI update, and the `zoomScale` / `contentOffset` they assign make UIKit
@@ -281,6 +306,28 @@ extension InkCanvasView {
         /// value arriving later is applied the same way, once).
         private var initialSelectionPending: Bool
         private var lastInitialSelectionIds: [String]
+
+        // Zoom (M4C_CONTRACT §1.3)
+        /// The container size the limits were last computed for (a change of width is a rotation or
+        /// Split View; a change of height alone is the all-day band growing or shrinking).
+        private var lastLayoutSize: CGSize = .zero
+        /// The limits last applied (`containerDidLayout` returns early when they did not change).
+        private var lastBounds: ZoomPolicy.Bounds?
+        /// The absolute zoom the user last chose (the end of a pinch, or the first layout). A
+        /// rotation may clamp the canvas below it; it is kept, and restored when the range allows
+        /// again (D4 / M4C-24).
+        private var targetZoom: CGFloat?
+        /// The pinch ended in a bounce: the first `scrollViewDidZoom` after it redraws the paper once.
+        private var needsFinalRedraw = false
+        /// Tests only: nil reads the canvas's `isZooming` / `isZoomBouncing` (XCTest cannot pinch).
+        var liveOverride: Bool? = nil
+        /// The canvas is pinching or bouncing: the paper window is stretched, not redrawn (F3), the
+        /// zoom and the offset are not touched by layout passes (UIKit is driving them).
+        private var isLive: Bool {
+            if let liveOverride { return liveOverride }
+            guard let canvas else { return false }
+            return canvas.isZooming || canvas.isZoomBouncing
+        }
 
         /// The lasso selection: live stroke ids (in selection order) and their paper bounds.
         private var selectedIds: [String] = []
@@ -320,10 +367,47 @@ extension InkCanvasView {
 
         // MARK: Lifecycle
 
+        /// Wires the container: the canvas's settings, delegate, interactions and recognisers, the
+        /// overlay, the first drawing. Called from `makeUIView` (and directly by the tests).
         func attach(_ container: InkCanvasContainerView) {
             self.container = container
             container.onLayout = { [weak self] in self?.containerDidLayout() }
+
             let canvas = container.canvasView
+            canvas.delegate = self
+            canvas.backgroundColor = .clear
+            canvas.isOpaque = false
+            // The paper is always light; never let PencilKit invert ink colours (DESIGN.md §3.2).
+            canvas.overrideUserInterfaceStyle = .light
+            // The centring margins are set by hand (`applyInsets`), never by the safe area.
+            canvas.contentInsetAdjustmentBehavior = .never
+            canvas.alwaysBounceVertical = true
+            canvas.alwaysBounceHorizontal = false
+            // Shown only while the content is wider than the view (an iPhone, the year page; M4B-5).
+            canvas.showsHorizontalScrollIndicator = true
+            // A vertical flick does not drift sideways (M4B-6).
+            canvas.isDirectionalLockEnabled = true
+            // `bouncesZoom` stays at its default (true): with the overview as the lower limit the
+            // bounce means "never smaller than the overview" (M4C-13).
+            canvas.maximumSupportedContentVersion = .version1
+            canvas.drawingPolicy = parent.allowFinger ? .anyInput : .pencilOnly
+            canvas.tool = parent.tool.pkTool
+            canvas.drawingGestureRecognizer.isEnabled = !parent.tool.isOverlayTool
+            canvas.addInteraction(pencilInteraction)
+            canvas.addGestureRecognizer(tapRecognizer)
+            canvas.addGestureRecognizer(doubleTapRecognizer)
+            // The single tap waits about 0.3 s for the double tap to fail (M4C-6); on the day page and
+            // with an overlay tool the double tap is disabled and fails at once, so nothing waits.
+            tapRecognizer.require(toFail: doubleTapRecognizer)
+            syncRecognizers()
+
+            let overlay = container.overlayView
+            overlay.delegate = self
+            overlay.scrollView = canvas
+            overlay.allowFinger = parent.allowFinger
+            overlay.pageSize = parent.layout.size
+            overlay.tool = parent.tool
+
             setDrawing(ledger.drawing(), on: canvas)
             canvas.contentSize = appliedLayout.size // zoom 1 until the first layout pass
             syncPaperFrame()
@@ -337,8 +421,18 @@ extension InkCanvasView {
             container = nil
         }
 
+        /// `doubleTapRecognizer` is on while the owner asks for it and no overlay tool is up. A disabled
+        /// recogniser fails at once, so the single tap waiting for it is not delayed.
+        private func syncRecognizers() {
+            let doubleTap = parent.doubleTapEnabled && !parent.tool.isOverlayTool
+            if doubleTapRecognizer.isEnabled != doubleTap {
+                doubleTapRecognizer.isEnabled = doubleTap
+            }
+        }
+
         /// Called from `updateUIView`. Never touches the drawing directly: everything that would
-        /// move the paper is queued and applied through `requestApply()`.
+        /// move the paper is queued and applied through `requestApply()`. `initialZoomRatio` and
+        /// `initialPaperOffset` are read by the first layout only (and again after `resetScroll`).
         func update(from newParent: InkCanvasView) {
             // Contract §2.2: while `page` and `layout` disagree about the page, do nothing at all
             // (not even keep the new values, so a pending apply cannot see a mixed pair).
@@ -395,6 +489,8 @@ extension InkCanvasView {
                     clearSelection()
                 }
             }
+            // The double tap (off with an overlay tool) and the finger input of the overlay tools.
+            syncRecognizers()
 
             // 4. Undo / redo requests.
             if newParent.undoTrigger != lastUndoTrigger {
@@ -486,14 +582,23 @@ extension InkCanvasView {
 
             if resetScroll {
                 resetScroll = false
-                // A new page in this canvas: fit the zoom to its width (1000 or 1400) again and
-                // start at its `initialScrollY`, exactly like a freshly created canvas.
+                // A new page in this canvas: compute the limits for its overview again, open it at
+                // its `initialZoomRatio` and `initialScrollX` / `Y`, exactly like a freshly created canvas.
                 hasInitialZoom = false
                 containerDidLayout()
             } else if drawingWork, geometryChanged {
+                // The overview rectangle grew or shrank with handwriting / events (a month row, a
+                // year row): new limits, and the overview follows the new overview (M4C_CONTRACT §1.3).
+                let viewport = container.bounds.size
+                if hasInitialZoom, viewport.width > 0, viewport.height > 0 {
+                    applyBounds(ZoomPolicy.bounds(newLayout.kind, overview: ZoomPolicy.overviewSize(newLayout), viewport: viewport))
+                }
+                let zoomNow = max(canvas.zoomScale, 0.0001)
                 let delta = PageScroll.scrollDelta(old: oldLayout, new: newLayout, topVisibleY: topVisibleY)
-                let target = CGPoint(x: canvas.contentOffset.x, y: (topVisibleY + delta) * zoom)
-                canvas.contentOffset = clampedOffset(target)
+                let target = CGPoint(x: canvas.contentOffset.x, y: (topVisibleY + delta) * zoomNow)
+                if !isLive {
+                    canvas.contentOffset = clampedOffset(target)
+                }
             }
             syncPaperFrame()
 
@@ -541,11 +646,24 @@ extension InkCanvasView {
 
         // MARK: Geometry
 
-        /// Recomputes the zoom limits (`ZoomPolicy.bounds`, M4B_CONTRACT §1.3) when the container's
-        /// size changes (first layout, rotation, split view) or a page of another kind replaced the
-        /// layout. A paper at the minimum zoom stays at the (new) minimum; a zoomed-in paper keeps
-        /// the point at the centre of the viewport in the centre, clamped to the new limits. The
-        /// very first time, the paper is scrolled to `initialScrollX` / `initialScrollY`.
+        /// Recomputes the zoom limits (`ZoomPolicy.bounds`, M4C_CONTRACT §1.3) when the container's
+        /// size changes (first layout, rotation, split view, the all-day band growing) or a page of
+        /// another kind replaced the layout.
+        ///
+        /// 1. The overview and the limits for the container's size.
+        /// 2. Same limits as last time: only the centring margins and the paper window are refreshed.
+        /// 3. The first time: the limits, the zoom for `initialZoomRatio` (assigned through
+        ///    `zoomScale`, so UIKit's `scrollViewDidZoom` does the same synchronisation as a pinch),
+        ///    the margins, the content size, the first offset (`initialPaperOffset`; the top-left at
+        ///    the overview; `initialScrollX` / `Y` above it), then the end-of-pinch path once
+        ///    (`scrollViewDidEndZooming`: margins, clamp, the ratio report) and the DEBUG log.
+        /// 4. The width changed (rotation, Split View): the overview stays the overview, a zoomed-in
+        ///    paper keeps its absolute zoom (`targetZoom`, which a clamp does not change) with the
+        ///    point at the centre of the viewport in the centre (D4 / M4C-24). Nothing of the zoom
+        ///    while a pinch is live (the limits only). No ratio report.
+        /// 5. Only the height changed (the band grew or shrank): `applyBounds`.
+        /// 6. Margins, the offset clamped (not while live: UIKit holds it at the pinch's anchor), the
+        ///    paper window.
         func containerDidLayout() {
             let wasApplyingGeometry = isApplyingGeometry
             isApplyingGeometry = true
@@ -553,60 +671,153 @@ extension InkCanvasView {
             guard let container, let canvas else { return }
             let viewport = container.bounds.size
             guard viewport.width > 0, viewport.height > 0 else { return }
-            let bounds = ZoomPolicy.bounds(appliedLayout.kind, viewportWidth: viewport.width)
-            let oldMin = canvas.minimumZoomScale
-            let oldMax = canvas.maximumZoomScale
-            let oldZoom = max(canvas.zoomScale, 0.0001)
-            if hasInitialZoom, abs(bounds.min - oldMin) < 0.0005, abs(bounds.max - oldMax) < 0.0005 {
-                // Same limits (a rotation of the year page: 1.339 → 1.339): only the width may have
-                // changed, and `syncPaperFrame` reports it.
+            let overview = ZoomPolicy.overviewSize(appliedLayout)
+            let bounds = ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport)
+
+            // 2. Same limits (a layout pass during a pinch, a height change the width-bound month
+            // ignores): the margins may still differ (the height changed), the window follows.
+            if hasInitialZoom, let last = lastBounds, Self.sameBounds(last, bounds) {
+                lastLayoutSize = viewport
+                applyInsets()
                 syncPaperFrame()
                 return
             }
-            let wasAtMin = !hasInitialZoom || abs(oldZoom - oldMin) < 0.0005
-            let centerPaper = CGPoint(
-                x: (canvas.contentOffset.x + viewport.width / 2) / oldZoom,
-                y: (canvas.contentOffset.y + viewport.height / 2) / oldZoom
-            )
-            canvas.minimumZoomScale = bounds.min
-            canvas.maximumZoomScale = bounds.max
-            let newZoom = wasAtMin ? bounds.min : bounds.clamped(oldZoom)
-            canvas.zoomScale = newZoom
-            canvas.contentSize = Self.scaled(appliedLayout.size, by: newZoom)
-            if hasInitialZoom {
-                canvas.contentOffset = clampedOffset(CGPoint(
-                    x: centerPaper.x * newZoom - viewport.width / 2,
-                    y: centerPaper.y * newZoom - viewport.height / 2
-                ))
-            } else {
-                // The initial scroll is paper lu × the first zoom, clamped to the paper (M3A §2.2
-                // for y, M4B_CONTRACT §1.3 for x). Not finite → 0, negative → 0.
-                let x = parent.initialScrollX.isFinite ? max(0, parent.initialScrollX) : 0
-                let y = parent.initialScrollY.isFinite ? max(0, parent.initialScrollY) : 0
-                canvas.contentOffset = clampedOffset(CGPoint(x: x * newZoom, y: y * newZoom))
-            }
-            let firstZoom = !hasInitialZoom
-            hasInitialZoom = true
-            syncPaperFrame()
-            if firstZoom {
+
+            if !hasInitialZoom {
+                // 3. The first zoom.
+                canvas.minimumZoomScale = bounds.min
+                canvas.maximumZoomScale = bounds.max
+                let zoom = ZoomPolicy.zoom(forRatio: parent.initialZoomRatio, bounds: bounds)
+                canvas.zoomScale = zoom // → scrollViewDidZoom: contentSize, margins, window, heading
+                targetZoom = zoom
+                applyInsets()
+                canvas.contentSize = Self.scaled(appliedLayout.size, by: zoom)
+                let inset = canvas.contentInset
+                if let offset = parent.initialPaperOffset {
+                    let x = offset.x.isFinite ? offset.x : 0
+                    let y = offset.y.isFinite ? offset.y : 0
+                    canvas.contentOffset = clampedOffset(CGPoint(x: x * zoom, y: y * zoom))
+                } else if ZoomPolicy.ratio(forZoom: zoom, bounds: bounds) <= 1.0005 {
+                    // The overview: the top-left (M4C-18), inside the centring margins.
+                    canvas.contentOffset = CGPoint(x: -inset.left, y: -inset.top)
+                } else {
+                    // Zoomed in: paper lu × the zoom, clamped to the paper (M3A §2.2 for y,
+                    // M4B_CONTRACT §1.3 for x). Not finite → 0, negative → 0.
+                    let x = parent.initialScrollX.isFinite ? max(0, parent.initialScrollX) : 0
+                    let y = parent.initialScrollY.isFinite ? max(0, parent.initialScrollY) : 0
+                    canvas.contentOffset = clampedOffset(CGPoint(x: x * zoom, y: y * zoom))
+                }
+                hasInitialZoom = true
+                lastLayoutSize = viewport
+                lastBounds = bounds
+                syncPaperFrame()
+                // The screenshot and the first layout share the end-of-pinch path (M4C_CONTRACT §2.4).
+                scrollViewDidEndZooming(canvas, with: nil, atScale: zoom)
                 // Screenshot mode (contract §3.3): the selection to show, once the zoom is known.
                 applyInitialSelectionIfPending()
+                #if DEBUG
+                let pinch = canvas.pinchGestureRecognizer
+                NSLog("zoom: kind=%@ pinch=%d enabled=%d min=%.4f max=%.4f zoom=%.4f fitAll=%.4f ratio=%.3f view=%.0fx%.0f overview=%.0fx%.0f",
+                      appliedLayout.kind.rawValue as NSString, Int32(pinch == nil ? 0 : 1), Int32((pinch?.isEnabled ?? false) ? 1 : 0),
+                      bounds.min, bounds.max, canvas.zoomScale, bounds.min,
+                      ZoomPolicy.ratio(forZoom: canvas.zoomScale, bounds: bounds),
+                      viewport.width, viewport.height, overview.width, overview.height)
+                #endif
+                return
+            }
+
+            let live = isLive
+            if viewport.width != lastLayoutSize.width {
+                // 4. The width changed.
+                let oldMin = canvas.minimumZoomScale
+                let oldZoom = max(canvas.zoomScale, 0.0001)
+                let atOverview = abs(oldZoom - oldMin) < 0.0005
+                canvas.minimumZoomScale = bounds.min
+                canvas.maximumZoomScale = bounds.max
+                if !live {
+                    let centerPaper = CGPoint(
+                        x: (canvas.contentOffset.x + viewport.width / 2) / oldZoom,
+                        y: (canvas.contentOffset.y + viewport.height / 2) / oldZoom
+                    )
+                    let newZoom = atOverview ? bounds.min : bounds.clamped(targetZoom ?? oldZoom)
+                    canvas.zoomScale = newZoom
+                    canvas.contentSize = Self.scaled(appliedLayout.size, by: newZoom)
+                    applyInsets()
+                    canvas.contentOffset = clampedOffset(CGPoint(
+                        x: centerPaper.x * newZoom - viewport.width / 2,
+                        y: centerPaper.y * newZoom - viewport.height / 2
+                    ))
+                }
+            } else {
+                // 5. Only the height changed.
+                applyBounds(bounds)
+            }
+
+            // 6. The common tail.
+            lastLayoutSize = viewport
+            lastBounds = bounds
+            applyInsets()
+            if !live {
+                canvas.contentOffset = clampedOffset(canvas.contentOffset)
+            }
+            syncPaperFrame()
+        }
+
+        /// True when fit, min and max all differ by less than 0.0005.
+        private static func sameBounds(_ a: ZoomPolicy.Bounds, _ b: ZoomPolicy.Bounds) -> Bool {
+            abs(a.fit - b.fit) < 0.0005 && abs(a.min - b.min) < 0.0005 && abs(a.max - b.max) < 0.0005
+        }
+
+        /// New limits without a change of width (the band grew, a month / year row grew with ink or
+        /// events; M4C_CONTRACT §1.3). The limits are always updated; the zoom only when no pinch is
+        /// live: a paper at the overview follows the new overview (D1; `targetZoom` with it), a
+        /// zoomed-in paper is clamped only when it fell outside the new range (a paper that was at
+        /// the old minimum by chance is *not* re-applied). The ratio is not reported.
+        private func applyBounds(_ bounds: ZoomPolicy.Bounds) {
+            guard let canvas else { return }
+            let atOverview = abs(canvas.zoomScale - canvas.minimumZoomScale) < 0.0005
+            canvas.minimumZoomScale = bounds.min
+            canvas.maximumZoomScale = bounds.max
+            lastBounds = bounds
+            guard !isLive else { return }
+            if atOverview {
+                if abs(canvas.zoomScale - bounds.min) >= 0.0005 {
+                    canvas.zoomScale = bounds.min
+                }
+                targetZoom = bounds.min
+            } else if canvas.zoomScale < bounds.min || canvas.zoomScale > bounds.max {
+                canvas.zoomScale = bounds.clamped(canvas.zoomScale)
+            }
+        }
+
+        /// The centring margins of the whole paper (`layout.size`, never the overview rectangle) at
+        /// the current zoom (M4C_CONTRACT §1.3). `contentInsetAdjustmentBehavior` is `.never`, so the
+        /// inset is ours to set. Margins under 1 µpt are 0 (fit-to-width leaves floating-point dust).
+        private func applyInsets() {
+            guard let container, let canvas else { return }
+            let inset = ZoomPolicy.centeringInsets(paper: appliedLayout.size, zoom: canvas.zoomScale, viewport: container.bounds.size)
+            let horizontal = inset.width < 1e-6 ? 0 : inset.width
+            let vertical = inset.height < 1e-6 ? 0 : inset.height
+            let edges = UIEdgeInsets(top: vertical, left: horizontal, bottom: vertical, right: horizontal)
+            if canvas.contentInset != edges {
+                canvas.contentInset = edges
             }
         }
 
         /// Keeps the paper view's window under the visible part of the canvas content (M4B_CONTRACT
         /// §1.6), the overlay in step with it, the selection's `viewRect` current, and reports the
-        /// viewport. Every scroll, zoom, layout pass and `applyPending` comes through here.
+        /// viewport. Every scroll, zoom, layout pass and `applyPending` comes through here. While a
+        /// pinch is live the window is stretched (`show(live: true)`) and the paper's `zoomScale` is
+        /// left alone (F3: its `didSet` would redraw the window every frame and the transform would
+        /// scale it twice); the end of the pinch comes back here with `live` false.
         private func syncPaperFrame() {
             guard let container, let canvas else { return }
             let zoom = canvas.zoomScale
-            if container.paperView.zoomScale != zoom {
-                container.paperView.zoomScale = zoom
-            }
             container.paperView.show(
                 visible: CGRect(origin: canvas.contentOffset, size: container.bounds.size),
                 zoom: zoom,
-                contentSize: canvas.contentSize
+                contentSize: canvas.contentSize,
+                live: isLive
             )
             container.overlayView.viewportChanged()
             notifySelection()
@@ -638,15 +849,55 @@ extension InkCanvasView {
             }
         }
 
+        /// `point` kept inside the scrollable range, margins included: x in [−inset.left,
+        /// max(−inset.left, contentSize.width + inset.right − width)], y likewise. A centred paper
+        /// therefore rests at a negative offset. Not finite → the top-left.
         private func clampedOffset(_ point: CGPoint) -> CGPoint {
             guard let container, let canvas else { return point }
-            let maxX = max(0, canvas.contentSize.width - container.bounds.width)
-            let maxY = max(0, canvas.contentSize.height - container.bounds.height)
-            return CGPoint(x: min(max(point.x, 0), maxX), y: min(max(point.y, 0), maxY))
+            let inset = canvas.contentInset
+            let minX = -inset.left
+            let minY = -inset.top
+            let maxX = max(minX, canvas.contentSize.width + inset.right - container.bounds.width)
+            let maxY = max(minY, canvas.contentSize.height + inset.bottom - container.bounds.height)
+            let x = point.x.isFinite ? point.x : minX
+            let y = point.y.isFinite ? point.y : minY
+            return CGPoint(x: min(max(x, minX), maxX), y: min(max(y, minY), maxY))
         }
 
         private static func scaled(_ size: CGSize, by zoom: CGFloat) -> CGSize {
             CGSize(width: size.width * zoom, height: size.height * zoom)
+        }
+
+        // MARK: The end of a pinch (M4C_CONTRACT §1.3)
+
+        /// The limits now in force (`lastBounds`, or computed afresh).
+        private func currentBounds() -> ZoomPolicy.Bounds? {
+            if let lastBounds { return lastBounds }
+            guard let container else { return nil }
+            return ZoomPolicy.bounds(appliedLayout.kind, overview: ZoomPolicy.overviewSize(appliedLayout), viewport: container.bounds.size)
+        }
+
+        /// The pinch (or the bounce after it) is over: the offset clamped, the paper redrawn once at
+        /// the final zoom, the ratio and the end of zooming reported on the next turn.
+        private func finishZoom() {
+            guard let canvas else { return }
+            canvas.contentOffset = clampedOffset(canvas.contentOffset)
+            syncPaperFrame()
+            let bounds = currentBounds()
+            let ratio = bounds.map { ZoomPolicy.ratio(forZoom: canvas.zoomScale, bounds: $0) } ?? 1
+            deliverNextTurn { [weak self] in
+                guard let self else { return }
+                self.parent.onZoomRatioChange(ratio)
+                self.parent.onZoomingChange(false)
+            }
+        }
+
+        /// Always the next main-actor turn (unlike `deliver`): the ratio and the zooming flag come
+        /// synchronously out of UIKit's scroll-view delegate, and the receiver touches SwiftUI state.
+        private func deliverNextTurn(_ block: @escaping @MainActor () -> Void) {
+            Task { @MainActor in
+                block()
+            }
         }
 
         // MARK: Selection
@@ -769,9 +1020,71 @@ extension InkCanvasView {
             parent.onTap(CGPoint(x: location.x / zoom, y: location.y / zoom))
         }
 
+        /// A finger's double tap (M4C_CONTRACT §4.1): the point in paper coordinates goes to the
+        /// owner. With 「指でも書く」 on, PencilKit drew a dot for each tap (the drawing recogniser
+        /// runs alongside): the dots of the last half second around the point are removed first, as
+        /// one undoable op (M4C-22).
+        @objc private func handleDoubleTap(_ r: UITapGestureRecognizer) {
+            guard r.state == .ended, let canvas else { return }
+            let p = r.location(in: canvas)
+            let z = max(canvas.zoomScale, 0.0001)
+            let paperPoint = CGPoint(x: p.x / z, y: p.y / z)
+            if parent.allowFinger {
+                removeDots(near: paperPoint, zoom: z)
+            }
+            parent.onDoubleTap(paperPoint)
+        }
+
+        /// The ids of the strokes that entered the ledger in the last `within` seconds whose paper
+        /// bounds fit in 16 pt on screen (16 / zoom lu) and whose centre is within 24 pt (24 / zoom
+        /// lu) of `near`: the dots a finger's taps drew.
+        func dotStrokeIds(near: CGPoint, zoom: CGFloat, within: TimeInterval = 0.5) -> [String] {
+            let z = max(zoom, 0.0001)
+            let maxSide = 16 / z
+            let maxDistance = 24 / z
+            let cutoff = Int(((Date().timeIntervalSince1970 - within) * 1000).rounded())
+            var ids: [String] = []
+            for stroke in ledger.page.liveStrokes where stroke.t >= cutoff {
+                guard let box = ledger.paperBounds(of: stroke.id),
+                      box.width <= maxSide, box.height <= maxSide else { continue }
+                let dx = box.midX - near.x
+                let dy = box.midY - near.y
+                guard (dx * dx + dy * dy).squareRoot() <= maxDistance else { continue }
+                ids.append(stroke.id)
+            }
+            return ids
+        }
+
+        /// Removes `dotStrokeIds` as one `.removeStrokes` op (undoable). Nothing when there are none.
+        private func removeDots(near: CGPoint, zoom: CGFloat) {
+            guard let canvas else { return }
+            let ids = dotStrokeIds(near: near, zoom: zoom)
+            guard !ids.isEmpty else { return }
+            let change = ledger.removeStrokes(ids: ids)
+            guard !change.isEmpty else { return }
+            setDrawing(ledger.drawing(), on: canvas)
+            refreshSelection()
+            publishPage()
+            notifyHistory()
+            deliver { [weak self] in self?.parent.onInkBoundsChanged() }
+        }
+
+        // MARK: UIGestureRecognizerDelegate
+
+        /// The tap recognisers take direct touches only (the Pencil never taps or double-taps the
+        /// paper).
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-            guard gestureRecognizer === tapRecognizer else { return true }
+            guard gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer else { return true }
             return touch.type == .direct
+        }
+
+        /// With 「指でも書く」 on, PencilKit's `drawingGestureRecognizer` begins on the finger's
+        /// touch-down; the taps are recognised alongside it (M4C_CONTRACT §4.1) or they would never
+        /// fire. Nothing else runs simultaneously.
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let canvas else { return false }
+            let isTap = gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer
+            return isTap && otherGestureRecognizer === canvas.drawingGestureRecognizer
         }
 
         // MARK: The pen on the paper (canvas or overlay)
@@ -802,6 +1115,7 @@ extension InkCanvasView {
             guard !isApplyingDrawing, !isMovingSelection else { return }
             // History is the ledger's; never let the system (3-finger swipe) undo through PencilKit.
             canvasView.undoManager?.removeAllActions()
+            dropStrokesOutsideThePaper(on: canvasView)
             let change = ledger.applyCanvasChange(canvasView.drawing)
             guard !change.isEmpty else { return }
             publishPage()
@@ -815,6 +1129,27 @@ extension InkCanvasView {
             if needsRoom || !change.removedIds.isEmpty {
                 deliver { [weak self] in self?.parent.onInkBoundsChanged() }
             }
+        }
+
+        /// A new stroke whose paper bounds are centred outside the paper (x < 0, x > width, y < 0,
+        /// y > height: the centring margin) never reaches the ledger and leaves the canvas at once,
+        /// with no undo (M4C-25): `inkCell(forCenter:)` would file it on an edge cell with negative
+        /// cell coordinates, and at another zoom or in the web version it would stick out of the paper.
+        private func dropStrokesOutsideThePaper(on canvasView: PKCanvasView) {
+            let size = appliedLayout.size
+            let strokes = canvasView.drawing.strokes
+            let kept = strokes.filter { pk in
+                if ledger.id(of: pk) != nil { return true }
+                let box = StrokeGeometry.paperBounds(of: pk)
+                let cx = box.midX
+                let cy = box.midY
+                return cx >= 0 && cx <= size.width && cy >= 0 && cy <= size.height
+            }
+            guard kept.count != strokes.count else { return }
+            isApplyingDrawing = true
+            canvasView.drawing = PKDrawing(strokes: kept)
+            isApplyingDrawing = false
+            canvasView.undoManager?.removeAllActions()
         }
 
         func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
@@ -831,13 +1166,56 @@ extension InkCanvasView {
             syncPaperFrame()
         }
 
+        /// Every frame of a pinch, and synchronously after every `zoomScale` assignment: the content
+        /// size, the centring margins and the paper window. The first frame after a bounce redraws.
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
             guard let canvas else { return }
             let size = Self.scaled(appliedLayout.size, by: canvas.zoomScale)
             if canvas.contentSize != size {
                 canvas.contentSize = size
             }
+            applyInsets()
             syncPaperFrame()
+            if needsFinalRedraw, !isLive {
+                needsFinalRedraw = false
+                finishZoom()
+            }
+        }
+
+        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+            deliverNextTurn { [weak self] in self?.parent.onZoomingChange(true) }
+            #if DEBUG
+            NSLog("zoom: begin")
+            #endif
+        }
+
+        /// The end of a pinch (also called once by the first layout): margins; a clamp only when
+        /// `bouncesZoom` is not going to do it (the minimum rose during the pinch, §1.6); the chosen
+        /// zoom remembered; then `finishZoom` — at once, or after the bounce (the first
+        /// `scrollViewDidZoom` that is not live, with a 0.4 s safety net in case none comes).
+        func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+            guard let canvas else { return }
+            applyInsets()
+            let zoom = canvas.zoomScale
+            if !canvas.isZoomBouncing,
+               zoom < canvas.minimumZoomScale - 0.0005 || zoom > canvas.maximumZoomScale + 0.0005 {
+                canvas.zoomScale = min(max(zoom, canvas.minimumZoomScale), canvas.maximumZoomScale)
+            }
+            targetZoom = canvas.zoomScale
+            if isLive {
+                needsFinalRedraw = true
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: .seconds(0.4))
+                    guard let self, self.needsFinalRedraw, !self.isLive else { return }
+                    self.needsFinalRedraw = false
+                    self.finishZoom()
+                }
+            } else {
+                finishZoom()
+            }
+            #if DEBUG
+            NSLog("zoom: end scale=%.4f min=%.4f max=%.4f", canvas.zoomScale, canvas.minimumZoomScale, canvas.maximumZoomScale)
+            #endif
         }
 
         // MARK: InkOverlayViewDelegate (the lasso and the 予定 tool)

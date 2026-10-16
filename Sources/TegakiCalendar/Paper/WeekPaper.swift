@@ -40,8 +40,10 @@ enum WeekPaper: PaperRenderer {
 
         // 3. Hour grid, column lines and time labels.
         let grid = layout.grid
+        let readable = ZoomPolicy.readableZoom(.week)
         TimeGridPaper.drawHourGrid(ctx, gridTop: grid.minY, hourHeight: PaperSpec.weekHourHeight, x0: gutter, x1: width,
-                                   labelX: gutter - 8, labelSize: PaperText.weekTimeLabel, dirty: dirty, zoom: zoom, scale: scale)
+                                   labelX: gutter - 8, labelSize: PaperText.weekTimeLabel, dirty: dirty, zoom: zoom, scale: scale,
+                                   readable: readable)
         ctx.setLineWidth(PaperText.hairline(zoom))
         ctx.setStrokeColor(PaperPalette.line.cgColor)
         ctx.beginPath()
@@ -52,7 +54,7 @@ enum WeekPaper: PaperRenderer {
         ctx.strokePath()
 
         // 4. Timed boxes.
-        TimeGridPaper.drawBoxes(ctx, boxes: layout.timedBoxes, textSize: PaperText.weekEvent, dirty: dirty, zoom: zoom)
+        TimeGridPaper.drawBoxes(ctx, boxes: layout.timedBoxes, textSize: PaperText.weekEvent, dirty: dirty, zoom: zoom, readable: readable)
 
         // 5. The now line, above the boxes.
         if let line = layout.nowLine, line.y >= dirty.minY - 8, line.y <= dirty.maxY + 8 {

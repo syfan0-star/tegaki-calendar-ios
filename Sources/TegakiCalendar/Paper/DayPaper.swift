@@ -40,8 +40,10 @@ enum DayPaper: PaperRenderer {
 
         // 3. Hour grid in the timeline column, labels right-aligned at x = 64.
         let grid = layout.grid
+        let readable = ZoomPolicy.readableZoom(.day)
         TimeGridPaper.drawHourGrid(ctx, gridTop: grid.minY, hourHeight: PaperSpec.dayHourHeight, x0: gutter, x1: timelineRight,
-                                   labelX: gutter - 8, labelSize: PaperText.dayTimeLabel, dirty: dirty, zoom: zoom, scale: scale)
+                                   labelX: gutter - 8, labelSize: PaperText.dayTimeLabel, dirty: dirty, zoom: zoom, scale: scale,
+                                   readable: readable)
 
         // 4. Memo area: ruled lines every 50 lu and the 「メモ」 label (same look as the month's memo area).
         let memo = layout.memo
@@ -57,7 +59,7 @@ enum DayPaper: PaperRenderer {
             y += PaperSpec.dayRuleStep
         }
         ctx.strokePath()
-        let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom)
+        let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom, readable: readable)
         let labelFont = UIFont.systemFont(ofSize: labelSize, weight: .semibold)
         let labelRect = CGRect(x: memo.minX + PaperSpec.dayRuleInset, y: grid.minY + 6, width: 200, height: labelFont.lineHeight + 2)
         if labelRect.intersects(dirty) {
@@ -65,7 +67,7 @@ enum DayPaper: PaperRenderer {
         }
 
         // 5. Timed boxes, then the now line across the timeline column.
-        TimeGridPaper.drawBoxes(ctx, boxes: layout.timedBoxes, textSize: PaperText.dayEvent, dirty: dirty, zoom: zoom)
+        TimeGridPaper.drawBoxes(ctx, boxes: layout.timedBoxes, textSize: PaperText.dayEvent, dirty: dirty, zoom: zoom, readable: readable)
         if let line = layout.nowLine, line.y >= dirty.minY - 8, line.y <= dirty.maxY + 8 {
             TimeGridPaper.drawNowLine(ctx, line: line, dotRadius: max(6, 4 / zoom), zoom: zoom)
         }

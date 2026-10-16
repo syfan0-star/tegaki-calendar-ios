@@ -10,7 +10,8 @@ enum TimeGridPaper {
     /// Hour lines (solid), half-hour lines (dashed) over x0…x1 and the "0:00"…"23:00" labels right-aligned
     /// at `labelX` just below each hour line (web version `appendTimeAxis`).
     static func drawHourGrid(_ ctx: CGContext, gridTop: CGFloat, hourHeight: CGFloat, x0: CGFloat, x1: CGFloat,
-                             labelX: CGFloat, labelSize: PaperText.Size, dirty: CGRect, zoom: CGFloat, scale: CGFloat) {
+                             labelX: CGFloat, labelSize: PaperText.Size, dirty: CGRect, zoom: CGFloat, scale: CGFloat,
+                             readable: CGFloat) {
         let hairline = PaperText.hairline(zoom)
         ctx.setLineWidth(hairline)
 
@@ -38,8 +39,9 @@ enum TimeGridPaper {
         ctx.strokePath()
 
         // Labels "0:00"…"23:00", right-aligned, 3 lu below each hour line. The size is capped so
-        // "23:00" fits the gutter (`labelX` = gutter − 8; M4B_CONTRACT §4.1).
-        let size = PaperText.gutterLabelSize(labelSize, zoom: zoom, gutter: labelX + 8)
+        // "23:00" fits the gutter (`labelX` = gutter − 8; M4B_CONTRACT §4.1); below the readable zoom
+        // it is frozen and shrinks with the paper (M4C_CONTRACT §3.1).
+        let size = PaperText.gutterLabelSize(labelSize, zoom: zoom, gutter: labelX + 8, readable: readable)
         let font = UIFont.monospacedDigitSystemFont(ofSize: size, weight: .medium)
         let labelWidth = labelX
         for hour in 0..<24 {
@@ -55,8 +57,12 @@ enum TimeGridPaper {
     /// Timed event boxes (web version `createEventBox` + `.event` in views.css): background = event
     /// colour at α .85, a 3 lu solid left edge, 6 lu corners, a 1 pt paper-coloured ring, text in
     /// three modes by height (contract §3.3 item 4); the whole box at α .75 when the event is past.
-    static func drawBoxes(_ ctx: CGContext, boxes: [TimedEventBox], textSize: PaperText.Size, dirty: CGRect, zoom: CGFloat) {
-        let fontLu = PaperText.fontSize(textSize, zoom: zoom)
+    /// `readable` is the page's `ZoomPolicy.readableZoom`: below it the text keeps its readable size
+    /// (lu) and shrinks with the box (M4C_CONTRACT §3.1); the paddings, the edge, the ring and the
+    /// compact threshold stay in screen points as before.
+    static func drawBoxes(_ ctx: CGContext, boxes: [TimedEventBox], textSize: PaperText.Size, dirty: CGRect, zoom: CGFloat,
+                          readable: CGFloat) {
+        let fontLu = PaperText.fontSize(textSize, zoom: zoom, readable: readable)
         let lineHeight = fontLu * PaperText.eventLineHeight
         let titleFont = UIFont.systemFont(ofSize: fontLu, weight: .semibold)
         let timeFont = UIFont.monospacedDigitSystemFont(ofSize: fontLu * 0.85, weight: .regular)

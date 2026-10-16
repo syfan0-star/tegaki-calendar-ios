@@ -20,9 +20,13 @@ struct StickyHeaderView: View {
     /// The current time (decides the current month of the year header).
     var now: Date
     /// The paper's horizontal offset and zoom (M4B_CONTRACT §1.1). `.zero` (width 0) means the
-    /// canvas has not reported one yet: the rows then use `PaperViewport.initial` for the proposed
-    /// width, the same value the screen starts from. Defaulted so the screen builds before and
-    /// after it passes one.
+    /// canvas has not reported one yet: the rows then use `PaperViewport.initial(_:viewportWidth:)`
+    /// (fit-to-width since M4c) for the proposed width, the value the screen starts from too (it
+    /// passes a width > 0 viewport from its first frame, so this only covers the moment right after
+    /// `attach`). Since M4c `offsetX` is negative when the paper is narrower than the viewport and
+    /// centred (M4C_CONTRACT §1.4): `x(ofPaper:)` then shifts the columns right by the margin, so the
+    /// heading lines up with the paper on its own. Defaulted so the screen builds before and after
+    /// it passes one.
     var viewport: PaperViewport = .zero
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
@@ -87,17 +91,26 @@ struct StickyHeaderView: View {
         .overlay(alignment: .bottom) { bottomLine }
     }
 
+    /// Below this column width (pt) the first of a month (「10/1」, about 75 pt with its weekday) does
+    /// not fit: its weekday letter is dropped and the row may scale its text down to 60 % (M4C-28,
+    /// M4C_CONTRACT §1.4). An iPhone's overview has 54.8 pt columns; 「水 7」 (about 50 pt) still fits.
+    static let narrowWeekColumnPoints: CGFloat = 75
+
     private func weekDayCell(_ label: DateLabel) -> some View {
-        let number = label.day.day == 1 ? "\(label.day.month)/1" : "\(label.day.day)"
+        let firstOfMonth = label.day.day == 1
+        let number = firstOfMonth ? "\(label.day.month)/1" : "\(label.day.day)"
+        let showsWeekday = !(firstOfMonth && viewport.width(ofPaper: PaperSpec.weekColumnWidth) < Self.narrowWeekColumnPoints)
         let tone = Self.toneColor(label.tone)
         return Button {
             onDayTap(label.day)
         } label: {
             VStack(spacing: 1) {
                 HStack(spacing: 4) {
-                    Text(Self.weekdayNames[label.day.weekday])
-                        .font(.system(size: 12, weight: label.isToday ? .bold : .medium))
-                        .foregroundStyle(label.isToday ? accentColor : (tone ?? ink2))
+                    if showsWeekday {
+                        Text(Self.weekdayNames[label.day.weekday])
+                            .font(.system(size: 12, weight: label.isToday ? .bold : .medium))
+                            .foregroundStyle(label.isToday ? accentColor : (tone ?? ink2))
+                    }
                     Text(number)
                         .font(.system(size: 18, weight: .semibold).monospacedDigit())
                         .foregroundStyle(label.isToday ? Color.white : (tone ?? ink1))
@@ -105,6 +118,8 @@ struct StickyHeaderView: View {
                         .frame(minWidth: 30, minHeight: 30)
                         .background(label.isToday ? Capsule().fill(accentColor) : nil)
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 if let holiday = label.holidayName, !holiday.isEmpty {
                     Text(holiday)
                         .font(.system(size: 10))
@@ -271,8 +286,9 @@ extension YearMonth {
 /// the same geometry as before (every column a fixed fraction of the width).
 ///
 /// A viewport of width 0 (the first frame, before the canvas has reported one) is replaced by
-/// `PaperViewport.initial(kind, viewportWidth:)` for the proposed width — the value the screen
-/// starts from too, so the canvas's first report changes nothing visible.
+/// `PaperViewport.initial(kind, viewportWidth:)` (fit-to-width since M4c) for the proposed width —
+/// the value the screen starts from too, so the canvas's first report changes nothing visible. A
+/// negative `offsetX` (the paper centred in a wider viewport, M4c D1) moves every column right.
 struct PaperRow: Layout {
     var kind: PageKind
     var viewport: PaperViewport

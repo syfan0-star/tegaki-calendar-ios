@@ -161,9 +161,11 @@ protocol PaperRenderer {
 /// Since M4b the view does not cover the whole paper (at the year page's minimum zoom that would be
 /// a 1875 × 2491 pt backing store, M4B_CONTRACT §1.6 / M4B-25): it holds a **window** of at most
 /// 2 × 2 screens around the visible part, in content coordinates (paper × zoom, pt). The owner
-/// (`InkCanvasView`) calls `show(visible:zoom:contentSize:)` on every scroll, zoom and layout pass;
-/// while the visible rect stays inside the window at the same zoom only the frame moves (no
-/// redraw), otherwise a new window is made around it and drawn once.
+/// (`InkCanvasView`) calls `show(visible:zoom:contentSize:live:)` on every scroll, zoom and layout
+/// pass; while the visible rect stays inside the window at the same zoom only the frame moves (no
+/// redraw), otherwise a new window is made around it and drawn once. While the canvas is pinching
+/// or bouncing (`live`) the window is only stretched with a transform and redrawn once at the end
+/// (M4C_CONTRACT §2.2 F3: no 2 × 2-screen backing store per frame).
 @MainActor
 final class PaperView: UIView {
     var content: PaperContent {
@@ -220,10 +222,40 @@ final class PaperView: UIView {
     /// Tells the view what is visible (content coordinates). When the window already holds
     /// `visible` at the same zoom, only `frame.origin` moves (nothing is redrawn). Otherwise the
     /// window becomes `window(for:content:)`, the frame is `(window.origin − visible.origin,
-    /// window.size)` and the view is redrawn.
-    func show(visible: CGRect, zoom: CGFloat, contentSize: CGSize) {
+    /// window.size)` and the view is redrawn — once: a zoom change requests the redraw through
+    /// `zoomScale`'s `didSet`, and the new window then asks for no second one.
+    ///
+    /// `live` (M4C_CONTRACT §2.2 F3): the canvas is pinching or bouncing (`Coordinator.isLive`). The
+    /// window is neither remade nor redrawn and `zoomScale` is left alone; the window drawn at
+    /// `windowZoom` is stretched by s = zoom / windowZoom instead: `bounds.size` stays
+    /// `contentWindow.size`, `transform` = scale(s), `center` = (contentWindow.midX × s − visible.minX,
+    /// contentWindow.midY × s − visible.minY). Only when `windowZoom > 0 && !contentWindow.isEmpty`
+    /// (right after `attach` the window is empty and s would not be finite); otherwise it falls
+    /// through to the `live: false` path. `live: false` first puts `transform` back to `.identity`,
+    /// then updates `zoomScale` and does the usual work (a zoom that differs from `windowZoom` makes
+    /// and draws a new window once).
+    func show(visible: CGRect, zoom: CGFloat, contentSize: CGSize, live: Bool = false) {
+        if live, windowZoom > 0, !contentWindow.isEmpty {
+            let s = zoom / windowZoom
+            if s.isFinite, s > 0 {
+                let stretched = CGAffineTransform(scaleX: s, y: s)
+                if transform != stretched {
+                    transform = stretched
+                }
+                let c = CGPoint(x: contentWindow.midX * s - visible.minX, y: contentWindow.midY * s - visible.minY)
+                if center != c {
+                    center = c
+                }
+                return
+            }
+        }
+        if transform != .identity {
+            transform = .identity
+        }
+        var redrawRequested = false
         if zoomScale != zoom {
-            zoomScale = zoom
+            zoomScale = zoom // didSet → setNeedsDisplay()
+            redrawRequested = true
         }
         let content = CGRect(origin: .zero, size: contentSize)
         let needed = visible.intersection(content)
@@ -238,7 +270,9 @@ final class PaperView: UIView {
         windowZoom = zoom
         frame = CGRect(x: contentWindow.minX - visible.minX, y: contentWindow.minY - visible.minY,
                        width: contentWindow.width, height: contentWindow.height)
-        setNeedsDisplay()
+        if !redrawRequested {
+            setNeedsDisplay()
+        }
     }
 
     /// `visible` grown by half its width to the left and right and half its height above and below
