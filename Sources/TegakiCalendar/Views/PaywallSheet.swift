@@ -206,53 +206,68 @@ struct PaywallSheet: View {
         }
     }
 
+    /// The fitted sheet takes the content's ideal height, and a `NavigationStack` or a `ScrollView`
+    /// reports a tiny one (the sheet collapsed to the 「あとで」 bar and the title in CI run 38965068987).
+    /// So the column is laid out bare whenever it fits, and only a sheet that is shorter than the
+    /// column (an iPhone, iOS 17's fixed form sheet, a landscape iPad) wraps it in a scroll view.
+    /// 「あとで」 sits in a plain top bar instead of a navigation bar for the same reason.
     private var content: some View {
-        NavigationStack {
+        ViewThatFits(in: .vertical) {
+            page
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(Self.title)
-                        .font(.title.weight(.semibold))
-                        .accessibilityAddTraits(.isHeader)
-                    Text(Self.lead(reason, eligible: eligible, readOnlyReason: readOnlyReason))
-                    featureList
-                    planCards
-                    if !offers.isEmpty {
-                        trialLineView
-                    }
-                    if isBillingRetry {
-                        // Paying again would not fix a failed payment: send the person to Apple's screen.
-                        manageButton
-                    }
-                    cta
-                    if offers.isEmpty {
-                        reloadButton
-                    }
-                    messageLine
-                    if let offer = selectedOffer {
-                        Text(Self.afterLine(offer, eligible: eligible))
-                            .font(.footnote)
-                    }
-                    Text(Self.disclosure(eligible: eligible))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    linkRows
-                    Button(Self.laterTitle, action: onClose)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 4)
-                }
-                .padding(20)
+                page
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(Self.laterTitle, action: onClose)
-                }
-            }
-            .manageSubscriptionsSheet(isPresented: $showManage)
         }
         .presentationDragIndicator(.visible)
+        .manageSubscriptionsSheet(isPresented: $showManage)
         .onChange(of: snapshot.message) { messageChanged() }
         .onDisappear { store.clearMessage() }
+    }
+
+    /// The one column: the 「あとで」 bar, then §4.1's 1–10.
+    private var page: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            topBar
+            Text(Self.title)
+                .font(.title.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            Text(Self.lead(reason, eligible: eligible, readOnlyReason: readOnlyReason))
+            featureList
+            planCards
+            if !offers.isEmpty {
+                trialLineView
+            }
+            if isBillingRetry {
+                // Paying again would not fix a failed payment: send the person to Apple's screen.
+                manageButton
+            }
+            cta
+            if offers.isEmpty {
+                reloadButton
+            }
+            messageLine
+            if let offer = selectedOffer {
+                Text(Self.afterLine(offer, eligible: eligible))
+                    .font(.footnote)
+            }
+            Text(Self.disclosure(eligible: eligible))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            linkRows
+            Button(Self.laterTitle, action: onClose)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+        }
+        .padding([.horizontal, .bottom], 20)
+        .padding(.top, 14) // below the drag indicator
+    }
+
+    /// 「あとで」 at the top left, where the navigation bar's cancel button used to be.
+    private var topBar: some View {
+        HStack {
+            Button(Self.laterTitle, action: onClose)
+            Spacer()
+        }
     }
 
     // MARK: - Pieces
