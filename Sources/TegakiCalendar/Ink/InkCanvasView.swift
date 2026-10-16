@@ -340,6 +340,15 @@ extension InkCanvasView {
             guard let canvas else { return false }
             return canvas.isZooming || canvas.isZoomBouncing
         }
+        /// F4 (M4C_CONTRACT §2.5): the view the scroll view zooms, chosen once from the canvas's
+        /// subviews (see `viewForZooming(in:)`).
+        private var zoomingView: UIView?
+        private var loggedMissingZoomingView = false
+        /// The canvas's `contentSize` as `scrollViewDidZoom` last found it: the value UIScrollView
+        /// itself derived from the zooming view's frame, before this coordinator sets paper × zoom
+        /// (F4, §2.5). The regression test compares the two; should they disagree on a device, the
+        /// assignment in `scrollViewDidZoom` is the one to drop.
+        private(set) var contentSizeFromUIKit: CGSize?
 
         /// The lasso selection: live stroke ids (in selection order) and their paper bounds.
         private var selectedIds: [String] = []
@@ -1194,6 +1203,7 @@ extension InkCanvasView {
         /// size, the centring margins and the paper window. The first frame after a bounce redraws.
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
             guard let canvas else { return }
+            contentSizeFromUIKit = canvas.contentSize
             let size = Self.scaled(appliedLayout.size, by: canvas.zoomScale)
             if canvas.contentSize != size {
                 canvas.contentSize = size
@@ -1240,6 +1250,37 @@ extension InkCanvasView {
             #if DEBUG
             NSLog("zoom: end scale=%.4f min=%.4f max=%.4f", canvas.zoomScale, canvas.minimumZoomScale, canvas.maximumZoomScale)
             #endif
+        }
+
+        // MARK: F4 — the view the scroll view zooms (M4C_CONTRACT §2.5)
+
+        /// `PKCanvasView` is a `UIScrollView`, and a scroll view asks its delegate for the view to
+        /// zoom. The person's 0.5.1 could not pinch at all, so the canvas's own drawing subview is
+        /// handed back here: the first subview whose class name starts with "PK", else the first
+        /// that is not a scroll indicator. Chosen once and kept; nil (logged once) when the canvas
+        /// has no such subview yet. Everything else (`paperView`, the overlay, the heading) keeps
+        /// reading `zoomScale` / `contentOffset`, and the drawing's coordinates stay paper coordinates.
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            if let zoomingView { return zoomingView }
+            let subviews = scrollView.subviews
+            let chosen = subviews.first { NSStringFromClass(type(of: $0)).hasPrefix("PK") }
+                ?? subviews.first { !($0 is UIImageView) && !NSStringFromClass(type(of: $0)).contains("Indicator") }
+            if let chosen {
+                zoomingView = chosen
+                #if DEBUG
+                // Which subview UIScrollView zooms (the CI log shows it next to `zoom: kind=… pinch=%d`).
+                NSLog("zoom: zoomingView=%@ subviews=%@", NSStringFromClass(type(of: chosen)) as NSString,
+                      subviews.map { NSStringFromClass(type(of: $0)) }.joined(separator: ",") as NSString)
+                #endif
+                return chosen
+            }
+            #if DEBUG
+            if !loggedMissingZoomingView {
+                loggedMissingZoomingView = true
+                NSLog("zoom: no subview to zoom (subviews=%@)", subviews.map { NSStringFromClass(type(of: $0)) }.joined(separator: ",") as NSString)
+            }
+            #endif
+            return nil
         }
 
         // MARK: InkOverlayViewDelegate (the lasso and the 予定 tool)

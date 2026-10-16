@@ -203,14 +203,31 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertLessThan(canvas.minimumZoomScale, canvas.maximumZoomScale)
         XCTAssertTrue(canvas.isScrollEnabled)
         XCTAssertEqual(canvas.drawingPolicy, .pencilOnly)
+        // F4 (§2.5): zooming is enabled — the limits differ and the delegate hands back a view to zoom.
+        XCTAssertNotNil(canvas.pinchGestureRecognizer, "F4: PKCanvasView must offer a pinch (M4C-23 withdrawn)")
+        XCTAssertNotNil(coordinator.viewForZooming(in: canvas), "F4: the canvas's drawing subview is the view to zoom")
+
+        // A stroke on the paper: its render bounds are paper coordinates and must not change with the zoom.
+        canvas.drawing = PKDrawing(strokes: [makeStroke(at: CGPoint(x: 300, y: 400))])
+        guard let boundsBefore = canvas.drawing.strokes.first?.renderBounds else { return XCTFail("no stroke") }
+
         canvas.setZoomScale(fitWidth, animated: false) // 0.5.1's lower limit
         canvas.setZoomScale(fitAll, animated: false) // the end of a pinch-in
         XCTAssertEqual(canvas.zoomScale, fitAll, accuracy: 1e-6, "goes below fit-to-width")
         let target = fitAll * 2 // 1.2292
         canvas.setZoomScale(target, animated: false)
-        XCTAssertEqual(canvas.zoomScale, target, accuracy: 1e-6)
-        XCTAssertEqual(canvas.contentSize.width, 1400 * target, accuracy: 0.5, "the content size is paper × zoom")
+        XCTAssertEqual(canvas.zoomScale, target, accuracy: 1e-6, "F4: setZoomScale takes effect")
+        XCTAssertEqual(canvas.contentSize.width, 1400 * target, accuracy: 0.5, "F4: the content size is paper × zoom")
         XCTAssertEqual(canvas.contentSize.height, 1920 * target, accuracy: 0.5)
+        guard let fromUIKit = coordinator.contentSizeFromUIKit else { return XCTFail("scrollViewDidZoom did not run") }
+        XCTAssertEqual(fromUIKit.width, 1400 * target, accuracy: 1,
+                       "F4 (§2.5): UIScrollView's own contentSize (from the zooming view's frame) disagrees with paper × zoom — drop the assignment in scrollViewDidZoom")
+        XCTAssertEqual(fromUIKit.height, 1920 * target, accuracy: 1)
+        guard let boundsAfter = canvas.drawing.strokes.first?.renderBounds else { return XCTFail("the stroke vanished") }
+        XCTAssertEqual(boundsAfter.minX, boundsBefore.minX, accuracy: 0.01, "F4: the drawing stays in paper coordinates")
+        XCTAssertEqual(boundsAfter.minY, boundsBefore.minY, accuracy: 0.01)
+        XCTAssertEqual(boundsAfter.width, boundsBefore.width, accuracy: 0.01)
+        XCTAssertEqual(boundsAfter.height, boundsBefore.height, accuracy: 0.01)
 
         container.setNeedsLayout()
         container.layoutSubviews() // the parent's layout pass of every pinch frame
