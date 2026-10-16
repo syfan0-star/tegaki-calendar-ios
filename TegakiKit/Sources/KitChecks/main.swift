@@ -6,6 +6,7 @@ import CoreGraphics
 import Layout
 import Holidays
 import InkModel
+import Access
 
 // MARK: - Tiny check harness
 
@@ -3721,6 +3722,298 @@ do {
     erased.remove(ids: ["a1"], at: 1_760_150_500_000)
     checkEqual(InkPage.merge(old, erased).strokes["a1"], nil, "a tombstone on the moved id removes the old form too")
     checkEqual(InkPage.merge(old, erased).deleted["a1"], 1_760_150_500_000, "the tombstone survives the merge")
+}
+
+// MARK: - M5: access state (M5_CONTRACT §1.1–1.3, §1.5; the same checks run in Tests/AccessTests)
+
+section("access state (M5)")
+
+do {
+    // `now` is fixed (2025-10-09T08:53:20Z); every date is a whole second so the ISO 8601 cache round-trips exactly.
+    let now = Date(timeIntervalSince1970: 1_760_000_000)
+    func days(_ n: Double) -> TimeInterval { n * 86_400 }
+    let future = now.addingTimeInterval(days(20))
+    let past = now.addingTimeInterval(-days(1))
+    let monthlyID = Plan.monthly.productID
+    let yearlyID = Plan.yearly.productID
+    let reasons: [ReadOnlyReason] = [.notSubscribed, .expired, .billingRetry, .revoked, .unknown]
+    func ent(_ id: UInt64, _ productID: String, expires: Date?, revoked: Date? = nil, intro: Bool = false) -> EntitlementInput {
+        EntitlementInput(id: id, productID: productID, subscriptionGroupID: "21700001", purchaseDate: now.addingTimeInterval(-days(10)), expirationDate: expires, revocationDate: revoked, isIntroductory: intro)
+    }
+    func ren(_ productID: String, _ state: RenewalState, auto: Bool = true, grace: Date? = nil, renews: Date? = nil, latest: EntitlementInput? = nil) -> RenewalInput {
+        RenewalInput(productID: productID, state: state, willAutoRenew: auto, gracePeriodExpirationDate: grace, renewalDate: renews, autoRenewPreference: nil, latestTransaction: latest)
+    }
+    func resolve(_ entitlements: [EntitlementInput], _ renewals: [RenewalInput]?) -> AccessState {
+        AccessPolicy.resolve(entitlements: entitlements, renewals: renewals, now: now)
+    }
+    func sub(_ plan: Plan, _ until: Date, auto: Bool = true, grace: Bool = false) -> AccessState {
+        .subscribed(Subscription(plan: plan, until: until, willAutoRenew: auto, inGrace: grace))
+    }
+    func trial(_ plan: Plan, _ until: Date, auto: Bool = true) -> AccessState {
+        .trial(Trial(plan: plan, until: until, willAutoRenew: auto))
+    }
+
+    // MARK: Plan / ProductIDs (§1.1)
+    checkEqual(Plan.monthly.productID, "com.syfan0.tegakicalendar.monthly", "monthly product ID")
+    checkEqual(Plan.yearly.productID, "com.syfan0.tegakicalendar.yearly", "yearly product ID")
+    checkEqual(Plan(productID: "com.syfan0.tegakicalendar.monthly"), .monthly, "monthly from its product ID")
+    checkEqual(Plan(productID: "com.syfan0.tegakicalendar.yearly"), .yearly, "yearly from its product ID")
+    for plan in Plan.allCases {
+        checkEqual(Plan(productID: plan.productID), plan, "\(plan.rawValue) round-trips through its product ID")
+    }
+    checkEqual(Plan(productID: "com.syfan0.tegakicalendar.weekly"), nil, "an unknown product → nil")
+    checkEqual(Plan(productID: "monthly"), nil, "a bare raw value → nil")
+    checkEqual(Plan(productID: "com.syfan0.tegakicalendar.Monthly"), nil, "case matters → nil")
+    checkEqual(Plan(productID: ""), nil, "an empty ID → nil")
+    checkEqual(Plan.monthly.months, 1, "monthly: 1 month")
+    checkEqual(Plan.yearly.months, 12, "yearly: 12 months")
+    checkEqual(Plan.allCases, [.monthly, .yearly], "allCases in the contract's order")
+    checkEqual(Plan.monthly.rawValue, "monthly", "monthly raw value (Codable)")
+    checkEqual(Plan.yearly.rawValue, "yearly", "yearly raw value (Codable)")
+    checkEqual(ProductIDs.prefix, "com.syfan0.tegakicalendar.", "prefix")
+    checkEqual(ProductIDs.groupReferenceName, "てがきカレンダー", "group reference name")
+    checkEqual(ProductIDs.all, ["com.syfan0.tegakicalendar.monthly", "com.syfan0.tegakicalendar.yearly"], "all = both product IDs")
+    checkEqual(ProductIDs.all.count, 2, "2 products")
+    checkEqual(ProductIDs.contractPrice[.monthly], 300, "contract price: monthly ¥300")
+    checkEqual(ProductIDs.contractPrice[.yearly], 2400, "contract price: yearly ¥2,400")
+    checkEqual(ProductIDs.contractPrice.count, 2, "a contract price for each plan")
+    checkEqual(ProductIDs.trialDays, 14, "14 trial days")
+
+    // MARK: AccessState (§1.2)
+    let paid = sub(.yearly, now.addingTimeInterval(days(300)))
+    let trying = trial(.monthly, now.addingTimeInterval(days(10)))
+    checkEqual(paid.canEdit, true, "subscribed: canEdit")
+    checkEqual(paid.plan, .yearly, "subscribed: plan")
+    checkEqual(paid.until, now.addingTimeInterval(days(300)), "subscribed: until")
+    checkEqual(trying.canEdit, true, "trial: canEdit")
+    checkEqual(trying.plan, .monthly, "trial: plan")
+    checkEqual(trying.until, now.addingTimeInterval(days(10)), "trial: until")
+    for reason in reasons {
+        checkEqual(AccessState.readOnly(reason).canEdit, false, "readOnly(\(reason.rawValue)): cannot edit")
+    }
+    checkEqual(AccessState.readOnly(.expired).plan, nil, "readOnly: no plan")
+    checkEqual(AccessState.readOnly(.expired).until, nil, "readOnly: no date")
+    checkEqual(sub(.yearly, future, grace: true).canEdit, true, "in grace: still canEdit (no badge, M5-16)")
+    checkEqual(ReadOnlyReason.billingRetry.rawValue, "billingRetry", "reasons are stored by name")
+
+    // MARK: AccessPolicy.resolve — the truth table of §1.2 (row numbers as in the contract)
+    let activeYearly = ent(1, yearlyID, expires: future)
+    let activeMonthly = ent(2, monthlyID, expires: now.addingTimeInterval(days(5)))
+    let trialMonthly = ent(3, monthlyID, expires: now.addingTimeInterval(days(7)), intro: true)
+    let expiredYearly = ent(4, yearlyID, expires: past)
+    let revokedYearly = ent(5, yearlyID, expires: future, revoked: past)
+    let unknownProduct = ent(6, "com.syfan0.tegakicalendar.lifetime", expires: future)
+    let unknownID = "com.syfan0.tegakicalendar.lifetime"
+
+    // 1: revoked only
+    checkEqual(resolve([revokedYearly], []), .readOnly(.revoked), "1: a revoked entitlement alone → revoked")
+    checkEqual(resolve([revokedYearly], nil), .readOnly(.revoked), "1: … even without renewal info")
+    checkEqual(resolve([revokedYearly], [ren(yearlyID, .inGracePeriod, grace: future)]), .readOnly(.revoked), "1: comes before the grace row")
+    checkEqual(resolve([], [ren(yearlyID, .expired, latest: revokedYearly)]), .readOnly(.revoked), "1: the revocation may arrive as R.latestTransaction")
+    checkEqual(resolve([revokedYearly, activeMonthly], []), sub(.monthly, now.addingTimeInterval(days(5))), "1 → 10: a revoked one plus a valid one → the valid one")
+    checkEqual(resolve([ent(7, "com.other.app", expires: future, revoked: past)], []), .readOnly(.notSubscribed), "an unknown product's revocation is ignored")
+    // 2: nothing at all
+    checkEqual(resolve([], []), .readOnly(.notSubscribed), "2: nothing, renewals known → notSubscribed")
+    checkEqual(resolve([], nil), .readOnly(.unknown), "2: nothing, renewals unavailable → unknown")
+    checkEqual(resolve([unknownProduct], [ren(unknownID, .subscribed, renews: future)]), .readOnly(.notSubscribed), "2: an unknown product's entitlement and status are both ignored")
+    // 3: grace, no entitlement
+    checkEqual(resolve([], [ren(yearlyID, .inGracePeriod, grace: future)]), sub(.yearly, future, grace: true), "3: in grace → subscribed(inGrace) until the grace date")
+    checkEqual(resolve([], [ren(monthlyID, .inGracePeriod, auto: false, grace: future)]), sub(.monthly, future, auto: false, grace: true), "3: carries R.willAutoRenew")
+    // 4
+    checkEqual(resolve([], [ren(yearlyID, .inBillingRetryPeriod)]), .readOnly(.billingRetry), "4: billing retry, no entitlement → billingRetry")
+    // 5
+    checkEqual(resolve([], [ren(yearlyID, .subscribed, renews: future)]), sub(.yearly, future), "5: status subscribed with a future renewalDate → subscribed (the sandbox's empty currentEntitlements)")
+    checkEqual(resolve([], [ren(monthlyID, .subscribed, auto: false, renews: future)]), sub(.monthly, future, auto: false), "5: carries R.willAutoRenew")
+    // 6
+    checkEqual(resolve([], [ren(yearlyID, .subscribed)]), .readOnly(.unknown), "6: status subscribed without a renewalDate (iOS 17) → unknown")
+    checkEqual(resolve([], [ren(yearlyID, .subscribed, renews: now)]), .readOnly(.unknown), "6: renewalDate == now → unknown")
+    checkEqual(resolve([], [ren(yearlyID, .subscribed, renews: past)]), .readOnly(.unknown), "6: renewalDate in the past → unknown")
+    // 7
+    checkEqual(resolve([], [ren(yearlyID, .revoked)]), .readOnly(.revoked), "7: status revoked → revoked")
+    // 8
+    checkEqual(resolve([], [ren(yearlyID, .expired)]), .readOnly(.expired), "8: status expired → expired")
+    checkEqual(resolve([], [ren(yearlyID, .unknown)]), .readOnly(.expired), "8: status unknown → expired")
+    checkEqual(resolve([], [ren(yearlyID, .inGracePeriod, grace: past)]), .readOnly(.expired), "8: grace already over → expired")
+    checkEqual(resolve([], [ren(yearlyID, .inGracePeriod, grace: now)]), .readOnly(.expired), "8: grace ending exactly now → expired")
+    checkEqual(resolve([], [ren(yearlyID, .inGracePeriod)]), .readOnly(.expired), "8: in grace without a date → expired")
+    // 9: trial
+    checkEqual(resolve([trialMonthly], []), trial(.monthly, now.addingTimeInterval(days(7))), "9: introductory → trial until its expiration, willAutoRenew true by default")
+    checkEqual(resolve([trialMonthly], nil), trial(.monthly, now.addingTimeInterval(days(7))), "9: … also without renewal info")
+    checkEqual(resolve([trialMonthly], [ren(monthlyID, .subscribed, auto: false)]), trial(.monthly, now.addingTimeInterval(days(7)), auto: false), "9: cancelled during the trial → willAutoRenew false")
+    checkEqual(resolve([ent(8, yearlyID, expires: nil, intro: true)], []), trial(.yearly, now.addingTimeInterval(days(14))), "9: no expiration → now + 14 days")
+    // 10: paid
+    checkEqual(resolve([activeYearly], []), sub(.yearly, future), "10: paid and current → subscribed until its expiration")
+    checkEqual(resolve([activeYearly], nil), sub(.yearly, future), "10: … also without renewal info (willAutoRenew defaults to true)")
+    checkEqual(resolve([activeYearly], [ren(yearlyID, .subscribed, renews: now.addingTimeInterval(days(21)))]), sub(.yearly, now.addingTimeInterval(days(21))), "10: R.renewalDate wins over expirationDate")
+    checkEqual(resolve([activeYearly], [ren(yearlyID, .subscribed, auto: false)]), sub(.yearly, future, auto: false), "10: cancelled → willAutoRenew false, until = expiration")
+    checkEqual(resolve([ent(9, yearlyID, expires: nil)], []), sub(.yearly, .distantFuture), "10: no expiration → distantFuture")
+    checkEqual(resolve([activeMonthly, activeYearly], []), sub(.yearly, future), "10: two entitlements → the later expiration")
+    checkEqual(resolve([activeYearly, activeMonthly], []), sub(.yearly, future), "10: … in either order")
+    checkEqual(resolve([activeYearly, ent(10, monthlyID, expires: nil)], []), sub(.monthly, .distantFuture), "10: a nil expiration counts as the latest")
+    checkEqual(resolve([activeYearly, unknownProduct], []), sub(.yearly, future), "10: an unknown product's entitlement is ignored")
+    checkEqual(resolve([activeYearly], [ren(unknownID, .subscribed, auto: false)]), sub(.yearly, future), "10: an unknown product's status is ignored")
+    checkEqual(resolve([activeYearly], [ren(monthlyID, .subscribed, auto: false), ren(yearlyID, .subscribed, auto: true)]), sub(.yearly, future), "R: the status of E's product is used (yearly)")
+    checkEqual(resolve([activeMonthly], [ren(monthlyID, .subscribed, auto: false), ren(yearlyID, .subscribed)]), sub(.monthly, now.addingTimeInterval(days(5)), auto: false), "R: the status of E's product is used (monthly)")
+    checkEqual(resolve([activeMonthly], [ren(yearlyID, .subscribed, auto: false)]), sub(.monthly, now.addingTimeInterval(days(5)), auto: false), "R: no status for E's product → the first known one")
+    checkEqual(resolve([activeYearly, revokedYearly], []), sub(.yearly, future), "a revoked copy beside a valid one does not matter")
+    // dedup and the latestTransaction merge
+    checkEqual(resolve([], [ren(yearlyID, .subscribed, latest: activeYearly)]), sub(.yearly, future), "R.latestTransaction fills in an empty currentEntitlements (row 10, not 5)")
+    checkEqual(resolve([activeYearly], [ren(yearlyID, .subscribed, latest: ent(1, yearlyID, expires: future, revoked: past))]), sub(.yearly, future), "same id: the entitlements side wins over latestTransaction")
+    checkEqual(resolve([], [ren(yearlyID, .subscribed, latest: ent(1, yearlyID, expires: future, revoked: past))]), .readOnly(.revoked), "… and without the entitlement the revoked copy counts (row 1)")
+    checkEqual(resolve([trialMonthly], [ren(monthlyID, .subscribed, latest: trialMonthly)]), trial(.monthly, now.addingTimeInterval(days(7))), "the same transaction in both places is counted once")
+    checkEqual(resolve([expiredYearly], [ren(yearlyID, .subscribed, latest: activeYearly)]), sub(.yearly, future), "a newer latestTransaction outranks an expired entitlement")
+    // 11
+    checkEqual(resolve([expiredYearly], [ren(yearlyID, .inGracePeriod, grace: future)]), sub(.yearly, future, grace: true), "11: expired entitlement + grace → subscribed(inGrace) until the grace date")
+    checkEqual(resolve([expiredYearly], [ren(yearlyID, .inGracePeriod, auto: false, grace: future)]), sub(.yearly, future, auto: false, grace: true), "11: carries R.willAutoRenew")
+    // 12
+    checkEqual(resolve([expiredYearly], [ren(yearlyID, .inBillingRetryPeriod)]), .readOnly(.billingRetry), "12: expired entitlement + billing retry → billingRetry")
+    // 13
+    checkEqual(resolve([expiredYearly], []), .readOnly(.expired), "13: expired, renewals known → expired")
+    checkEqual(resolve([expiredYearly], [ren(yearlyID, .expired)]), .readOnly(.expired), "13: expired with an expired status → expired")
+    checkEqual(resolve([expiredYearly], nil), .readOnly(.unknown), "13: expired, renewals unavailable → unknown (may be in grace)")
+    checkEqual(resolve([ent(11, yearlyID, expires: now)], []), .readOnly(.expired), "13: expiring exactly now counts as expired")
+    checkEqual(resolve([expiredYearly], [ren(yearlyID, .inGracePeriod, grace: past)]), .readOnly(.expired), "13: grace over → expired")
+    checkEqual(resolve([expiredYearly], [ren(yearlyID, .subscribed)]), .readOnly(.expired), "13: an expired entitlement with a bare subscribed status → expired (row 5 needs an empty E)")
+    checkEqual(resolve([ent(12, monthlyID, expires: now, intro: true)], []), .readOnly(.expired), "13: a trial expiring exactly now → expired")
+
+    // MARK: AccessCache (§1.3)
+    let snapPaid = AccessSnapshot(state: paid, savedAt: now)
+    let snapTrial = AccessSnapshot(state: trial(.monthly, now.addingTimeInterval(days(3)), auto: false), savedAt: now)
+    let snapReadOnly = AccessSnapshot(state: .readOnly(.revoked), savedAt: now)
+    let snapGrace = AccessSnapshot(state: sub(.monthly, future, auto: false, grace: true), savedAt: past)
+    checkEqual(AccessCache.decode(AccessCache.encode(snapPaid)), snapPaid, "cache: subscribed round-trips")
+    checkEqual(AccessCache.decode(AccessCache.encode(snapTrial)), snapTrial, "cache: trial round-trips")
+    checkEqual(AccessCache.decode(AccessCache.encode(snapReadOnly)), snapReadOnly, "cache: readOnly round-trips")
+    checkEqual(AccessCache.decode(AccessCache.encode(snapGrace)), snapGrace, "cache: inGrace round-trips")
+    let json = String(decoding: AccessCache.encode(snapPaid), as: UTF8.self)
+    check(json.contains("\"subscribed\""), "cache: the JSON names the case")
+    check(json.contains("\"plan\":\"yearly\""), "cache: the plan is its raw value")
+    check(json.contains("\"savedAt\":\"2025-10-09T08:53:20Z\""), "cache: dates are ISO 8601")
+    check(json.contains("\"inGrace\":false"), "cache: inGrace is written")
+    checkEqual(AccessCache.decode(Data()), nil, "cache: empty data → nil")
+    checkEqual(AccessCache.decode(Data("not json".utf8)), nil, "cache: garbage → nil")
+    checkEqual(AccessCache.decode(Data("{}".utf8)), nil, "cache: {} → nil")
+    checkEqual(AccessCache.decode(Data(#"{"state":{"readOnly":"expired"},"savedAt":1}"#.utf8)), nil, "cache: the wrong shape → nil")
+    checkEqual(AccessCache.decode(Data(json.dropLast().utf8)), nil, "cache: a truncated document → nil")
+
+    func launch(_ state: AccessState?, at t: Date) -> AccessState {
+        AccessCache.stateForLaunch(cached: state.map { AccessSnapshot(state: $0, savedAt: now) }, now: t)
+    }
+    checkEqual(AccessCache.offlineRenewalAllowanceDays, 3, "3 days of offline allowance (M5-30)")
+    checkEqual(launch(nil, at: now), .readOnly(.unknown), "launch: no cache → unknown")
+    checkEqual(launch(paid, at: now), paid, "launch: a current subscription stays")
+    checkEqual(launch(trying, at: now), trying, "launch: a current trial stays")
+    let autoRenewing = sub(.monthly, now)
+    checkEqual(launch(autoRenewing, at: now), autoRenewing, "launch: auto-renewing, until == now → still usable (allowance)")
+    checkEqual(launch(autoRenewing, at: now.addingTimeInterval(days(2))), autoRenewing, "launch: until + 2 days → still usable")
+    checkEqual(launch(autoRenewing, at: now.addingTimeInterval(days(3)) - 1), autoRenewing, "launch: 1 s before until + 3 days → still usable")
+    checkEqual(launch(autoRenewing, at: now.addingTimeInterval(days(3))), .readOnly(.expired), "launch: until + 3 days → expired")
+    checkEqual(launch(sub(.monthly, now, auto: false), at: now), .readOnly(.expired), "launch: cancelled and past → expired at once (no allowance)")
+    checkEqual(launch(sub(.monthly, now, auto: false), at: now - 1), sub(.monthly, now, auto: false), "launch: cancelled, 1 s before the end → stays")
+    checkEqual(launch(sub(.monthly, now, grace: true), at: now), .readOnly(.billingRetry), "launch: grace over → billingRetry")
+    checkEqual(launch(sub(.monthly, now, grace: true), at: now.addingTimeInterval(days(1))), .readOnly(.billingRetry), "launch: grace over, no allowance even with willAutoRenew")
+    checkEqual(launch(sub(.monthly, future, grace: true), at: now), sub(.monthly, future, grace: true), "launch: in grace before its end → stays")
+    let autoTrial = trial(.yearly, now)
+    checkEqual(launch(autoTrial, at: now.addingTimeInterval(days(2))), autoTrial, "launch: a trial about to convert gets the allowance too")
+    checkEqual(launch(autoTrial, at: now.addingTimeInterval(days(3))), .readOnly(.expired), "launch: … until + 3 days → expired")
+    checkEqual(launch(trial(.yearly, now, auto: false), at: now), .readOnly(.expired), "launch: a cancelled trial past its end → expired")
+    for reason in reasons {
+        checkEqual(launch(.readOnly(reason), at: now), .readOnly(reason), "launch: readOnly(\(reason.rawValue)) stays")
+    }
+
+    // MARK: AccessPolicy.reconcile — §1.3 rows a–g
+    func reconcile(_ live: AccessState, _ cached: AccessState?, reachable: Bool) -> AccessState {
+        AccessPolicy.reconcile(live: live, cached: cached.map { AccessSnapshot(state: $0, savedAt: now) }, storeReachable: reachable, now: now)
+    }
+    checkEqual(reconcile(.readOnly(.expired), paid, reachable: true), .readOnly(.expired), "a: reachable → live, even against a valid cache")
+    checkEqual(reconcile(paid, nil, reachable: true), paid, "a: reachable → live")
+    checkEqual(reconcile(.readOnly(.notSubscribed), paid, reachable: true), .readOnly(.notSubscribed), "a: reachable, live not subscribed → live")
+    checkEqual(reconcile(paid, .readOnly(.expired), reachable: false), paid, "b: unreachable, live can edit → live")
+    checkEqual(reconcile(trying, nil, reachable: false), trying, "b: unreachable, live trial → live")
+    checkEqual(reconcile(.readOnly(.revoked), paid, reachable: false), .readOnly(.revoked), "c: unreachable, live revoked → live (the cache does not undo a refund)")
+    checkEqual(reconcile(.readOnly(.notSubscribed), paid, reachable: false), paid, "d: unreachable, cache valid, live not subscribed → cache")
+    checkEqual(reconcile(.readOnly(.expired), sub(.monthly, future, grace: true), reachable: false), sub(.monthly, future, grace: true), "d: unreachable, live expired, cache in grace → cache")
+    checkEqual(reconcile(.readOnly(.unknown), paid, reachable: false), paid, "d: unreachable, live unknown → cache")
+    checkEqual(reconcile(.readOnly(.billingRetry), trying, reachable: false), trying, "d: unreachable, live billing retry, cache trial → cache")
+    let justLapsed = sub(.yearly, past)
+    checkEqual(reconcile(.readOnly(.notSubscribed), justLapsed, reachable: false), justLapsed, "d: the 3-day allowance applies through reconcile")
+    checkEqual(reconcile(.readOnly(.notSubscribed), .readOnly(.revoked), reachable: false), .readOnly(.revoked), "e: unreachable, cache revoked, live not subscribed → revoked")
+    checkEqual(reconcile(.readOnly(.unknown), .readOnly(.expired), reachable: false), .readOnly(.expired), "e: unreachable, cache expired, live unknown → expired")
+    checkEqual(reconcile(.readOnly(.unknown), sub(.monthly, past, auto: false), reachable: false), .readOnly(.expired), "e: a lapsed cancelled cache reads as expired")
+    checkEqual(reconcile(.readOnly(.notSubscribed), .readOnly(.billingRetry), reachable: false), .readOnly(.billingRetry), "e: keeps the cache's reason")
+    checkEqual(reconcile(.readOnly(.notSubscribed), nil, reachable: false), .readOnly(.unknown), "f: unreachable, no cache, live not subscribed → unknown")
+    checkEqual(reconcile(.readOnly(.unknown), nil, reachable: false), .readOnly(.unknown), "f: unreachable, no cache, live unknown → unknown")
+    checkEqual(reconcile(.readOnly(.expired), nil, reachable: false), .readOnly(.unknown), "f: unreachable, no cache, live expired → unknown")
+    checkEqual(reconcile(.readOnly(.billingRetry), nil, reachable: false), .readOnly(.unknown), "f: unreachable, no cache, live billing retry → unknown")
+    checkEqual(reconcile(.readOnly(.expired), sub(.monthly, past, auto: false), reachable: false), .readOnly(.expired), "g: unreachable, cache lapsed, live expired → live")
+    checkEqual(reconcile(.readOnly(.billingRetry), .readOnly(.expired), reachable: false), .readOnly(.billingRetry), "g: unreachable, live billing retry, cache read only → live")
+    checkEqual(reconcile(.readOnly(.expired), .readOnly(.revoked), reachable: false), .readOnly(.expired), "g: live expired over a revoked cache → live")
+
+    // MARK: PlanText (§1.5)
+    checkEqual(PlanText.name(.monthly), "月額", "name: monthly")
+    checkEqual(PlanText.name(.yearly), "年額", "name: yearly")
+    checkEqual(PlanText.perPeriod(.monthly), "/月", "perPeriod: monthly")
+    checkEqual(PlanText.perPeriod(.yearly), "/年", "perPeriod: yearly")
+    checkEqual(PlanText.savingsMonths(monthly: 300, yearly: 2400), 4, "savings: 300 / 2400 → 4 months (0-1)")
+    checkEqual(PlanText.savingsMonths(monthly: 300, yearly: 3600), 0, "savings: no discount → 0")
+    checkEqual(PlanText.savingsMonths(monthly: 300, yearly: 4000), 0, "savings: dearer than 12 months → 0")
+    checkEqual(PlanText.savingsMonths(monthly: 0, yearly: 2400), 0, "savings: monthly 0 → 0")
+    checkEqual(PlanText.savingsMonths(monthly: -300, yearly: 2400), 0, "savings: negative monthly → 0")
+    checkEqual(PlanText.savingsMonths(monthly: 250, yearly: 2000), 4, "savings: 250 / 2000 → 4")
+    checkEqual(PlanText.savingsMonths(monthly: 300, yearly: 2300), 4, "savings: 300 / 2300 → 4 (M5-7)")
+    checkEqual(PlanText.savingsMonths(monthly: 300, yearly: 2500), 3, "savings: 300 / 2500 → 3 (M5-7)")
+    checkEqual(PlanText.savingsMonths(monthly: 300, yearly: 300), 11, "savings: a yearly price equal to one month → 11")
+    checkEqual(PlanText.savingsMonths(monthly: ProductIDs.contractPrice[.monthly]!, yearly: ProductIDs.contractPrice[.yearly]!), 4, "savings: from the contract prices")
+    checkEqual(PlanText.savingsText(months: 4), "4 か月分お得", "savingsText(4)")
+    checkEqual(PlanText.savingsText(months: 3), "3 か月分お得", "savingsText(3)")
+    checkEqual(PlanText.savingsText(months: 0), nil, "savingsText(0) → nil")
+    checkEqual(PlanText.savingsText(months: -1), nil, "savingsText(-1) → nil")
+    checkEqual(PlanText.savingsText(months: PlanText.savingsMonths(monthly: 300, yearly: 2400)), PlanText.yearlyBadge, "the computed text equals the fixed badge")
+    checkEqual(PlanText.perMonth(yearly: 2400), 200, "perMonth(2400) → 200")
+    checkEqual(PlanText.perMonth(yearly: 2300), 192, "perMonth(2300) → 192")
+    checkEqual(PlanText.perMonth(yearly: 2500), 208, "perMonth(2500) → 208")
+    checkEqual(PlanText.perMonth(yearly: 0), 0, "perMonth(0) → 0")
+    checkEqual(PlanText.statusTitle(paid), "年額・有効", "statusTitle: yearly subscribed")
+    checkEqual(PlanText.statusTitle(sub(.monthly, future)), "月額・有効", "statusTitle: monthly subscribed")
+    checkEqual(PlanText.statusTitle(sub(.yearly, future, grace: true)), "年額・請求に問題（猶予中）", "statusTitle: in grace")
+    checkEqual(PlanText.statusTitle(sub(.monthly, future, auto: false)), "月額・有効", "statusTitle: cancelled but current is still 有効")
+    checkEqual(PlanText.statusTitle(trying), "月額・試用中", "statusTitle: monthly trial")
+    checkEqual(PlanText.statusTitle(trial(.yearly, future, auto: false)), "年額・試用中", "statusTitle: yearly trial")
+    checkEqual(PlanText.statusTitle(.readOnly(.notSubscribed)), "未購入（閲覧専用）", "statusTitle: notSubscribed")
+    checkEqual(PlanText.statusTitle(.readOnly(.expired)), "期限切れ（閲覧専用）", "statusTitle: expired")
+    checkEqual(PlanText.statusTitle(.readOnly(.billingRetry)), "お支払いに問題（閲覧専用）", "statusTitle: billingRetry")
+    checkEqual(PlanText.statusTitle(.readOnly(.revoked)), "返金済み（閲覧専用）", "statusTitle: revoked")
+    checkEqual(PlanText.statusTitle(.readOnly(.unknown)), "確認中（閲覧専用）", "statusTitle: unknown")
+    checkEqual(PlanText.dateLabel(sub(.yearly, future)), "次回更新", "dateLabel: auto-renewing")
+    checkEqual(PlanText.dateLabel(sub(.yearly, future, auto: false)), "有効期限", "dateLabel: cancelled")
+    checkEqual(PlanText.dateLabel(sub(.yearly, future, grace: true)), "猶予の期限", "dateLabel: in grace")
+    checkEqual(PlanText.dateLabel(sub(.yearly, future, auto: false, grace: true)), "猶予の期限", "dateLabel: inGrace wins over willAutoRenew false")
+    checkEqual(PlanText.dateLabel(trial(.monthly, future)), "試用の終了（有料に移行）", "dateLabel: trial converting")
+    checkEqual(PlanText.dateLabel(trial(.monthly, future, auto: false)), "試用の終了", "dateLabel: trial cancelled")
+    for reason in reasons {
+        checkEqual(PlanText.dateLabel(.readOnly(reason)), nil, "dateLabel: readOnly(\(reason.rawValue)) → nil")
+    }
+    checkEqual(PlanText.readOnlyNote(.notSubscribed), "まだ購読していません。", "readOnlyNote: notSubscribed")
+    checkEqual(PlanText.readOnlyNote(.expired), "サブスクリプションの期限が切れています。", "readOnlyNote: expired")
+    checkEqual(PlanText.readOnlyNote(.billingRetry), "お支払いに問題があります。「設定」›「Apple Account」›「お支払いと配送先」でお支払い方法を確認してください。", "readOnlyNote: billingRetry")
+    check(PlanText.readOnlyNote(.billingRetry).contains(PlanText.paymentPath), "readOnlyNote: billingRetry names the payment path")
+    checkEqual(PlanText.readOnlyNote(.revoked), "購入が返金または取り消されました。", "readOnlyNote: revoked")
+    checkEqual(PlanText.readOnlyNote(.unknown), "購入の状態を確認できていません。回線が戻ると自動で確認します。", "readOnlyNote: unknown")
+    checkEqual(PlanText.yearlyBadge, "4 か月分お得", "yearlyBadge")
+    checkEqual(PlanText.readOnlyBadge, "閲覧専用", "readOnlyBadge")
+    checkEqual(PlanText.cancelPath, "「設定」›「Apple Account」›「サブスクリプション」", "cancelPath (0-6)")
+    checkEqual(PlanText.paymentPath, "「設定」›「Apple Account」›「お支払いと配送先」", "paymentPath")
+    check(!PlanText.cancelPath.contains("Apple ID"), "the in-app path has no iPadOS 17 parenthesis (M5-29)")
+
+    // MARK: LegalLinks (§1.5, D5)
+    checkEqual(LegalLinks.base.absoluteString, "https://syfan0-star.github.io/tegaki-calendar/app/", "base URL (app/, not ios/: 0-2)")
+    checkEqual(LegalLinks.terms.absoluteString, "https://syfan0-star.github.io/tegaki-calendar/app/terms.html", "terms URL")
+    checkEqual(LegalLinks.privacy.absoluteString, "https://syfan0-star.github.io/tegaki-calendar/app/privacy.html", "privacy URL")
+    checkEqual(LegalLinks.support.absoluteString, "https://syfan0-star.github.io/tegaki-calendar/app/support.html", "support URL")
+    checkEqual(LegalLinks.appleEULA.absoluteString, "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/", "Apple standard EULA URL (M5-8)")
+    checkEqual(LegalLinks.appleEULATitle, "使用許諾契約（Apple 標準 EULA）", "Apple EULA title")
+    checkEqual(LegalLinks.supportEmail, "syfan0@gmail.com", "support email (M5-1)")
+    check([LegalLinks.terms, LegalLinks.privacy, LegalLinks.support].allSatisfy { $0.scheme == "https" }, "every public page is https")
 }
 
 // MARK: - Summary

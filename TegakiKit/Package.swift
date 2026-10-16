@@ -5,6 +5,8 @@
 // Holidays  — Japanese national holidays (rule based, 2000–2099)
 // Layout    — month page geometry: row heights, cell rects, all-day lanes, chips, hit testing
 // InkModel  — InkPage / InkStroke, CRDT merge, JSON codec, LZFSE compression
+// Access    — subscription plans, the access state machine, cache rules, paywall words and URLs
+//             (M5; Foundation only, depends on nothing else, not even DayKit)
 // KitChecks — an executable that re-runs the key checks on a Mac without Xcode (XCTest is not
 //             shipped with the Command Line Tools), see docs/M2_CONTRACT.md §0 and §8.
 //
@@ -20,16 +22,19 @@ let package = Package(
         .library(name: "Layout", targets: ["Layout"]),
         .library(name: "Holidays", targets: ["Holidays"]),
         .library(name: "InkModel", targets: ["InkModel"]),
+        .library(name: "Access", targets: ["Access"]),
     ],
     targets: [
         .target(name: "DayKit"),
         .target(name: "Holidays", dependencies: ["DayKit"]),
         .target(name: "Layout", dependencies: ["DayKit", "Holidays"]),
         .target(name: "InkModel", dependencies: ["Layout"]),
-        .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel"]),
+        .target(name: "Access"),
+        .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel", "Access"]),
         .testTarget(name: "LayoutTests", dependencies: ["Layout"]),
         .testTarget(name: "HolidaysTests", dependencies: ["Holidays", "Layout"]),
         .testTarget(name: "InkModelTests", dependencies: ["InkModel"]),
+        .testTarget(name: "AccessTests", dependencies: ["Access"]),
     ],
     swiftLanguageVersions: [.v5]
 )
