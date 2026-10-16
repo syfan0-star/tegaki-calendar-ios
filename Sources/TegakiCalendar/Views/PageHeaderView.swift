@@ -1,13 +1,19 @@
+import Access
 import Layout
 import SwiftUI
 
 /// The header above the paper (M3b contract §4.6, M4 contract §6.1, M4B contract §5, DESIGN §2.7):
 ///
 /// ```
-/// width ≥ 600 pt:  ◀  今日  ▶   題名              [日 | 週 | 月 | 年]   ＋予定   ☁ 保存済み   ⚙
+/// width ≥ 600 pt:  ◀  今日  ▶   題名              [日 | 週 | 月 | 年]   🔒閲覧専用  ＋予定   ☁ 保存済み   ⚙
 /// width < 600 pt:  ◀ 今日 ▶  10/5〜10/11  ＋ ☁ ⚙
 ///                  [      日      |      週      |      月      |      年      ]
 /// ```
+///
+/// M5 (M5_CONTRACT §3.2): while the app is read only (`readOnly`) an orange 「閲覧専用」 badge sits
+/// left of 「＋予定」 on the wide row (the symbol alone below `readOnlyTextWidth`); a tap opens the
+/// paywall (`onReadOnlyTap`). The compact rows have no room for it (M4B-15), so there the owner shows
+/// a notice row under the header instead (M5-13).
 ///
 /// The title comes from `PageNavigation.title` (`compactTitle` on the compact rows, M4b: the owner
 /// passes the short form); the owner measures the width and passes `compact`. On the compact first
@@ -43,14 +49,26 @@ struct PageHeaderView: View {
     /// not fit, so SwiftUI squeezed the 「今日」 label to nothing; the buttons now keep their size
     /// (`fixedSize` / `layoutPriority`) and only the title shrinks or is cut.
     var width: CGFloat = .infinity
+    /// M5 (M5_CONTRACT §3.2): the app is read only (unsubscribed, expired, …): the badge is shown on the
+    /// wide row. Never shown while in the billing grace period (`canEdit` stays true then, M5-16).
+    var readOnly: Bool = false
+    /// バッジのタップ: ペイウォール（reason .badge）
+    var onReadOnlyTap: () -> Void = {}
 
     /// Below this width the ☁ shows only its symbol (13-inch portrait is 1024 pt, 11-inch is 834 pt).
     static let syncTextWidth: CGFloat = 980
     /// Below this width 「＋予定」 shows only the 「＋」 (a 2/3 split view on a 13-inch iPad is 678 pt).
     static let addEventTextWidth: CGFloat = 760
+    /// この幅未満ではバッジは記号（lock.fill）だけ（☁ が記号だけになる幅と同じ。11 インチ縦 834 と mini 744 は
+    /// 記号だけ、13 インチ縦 1024 と 11 インチ横 1194 は文字つき。M5-32: 760 にすると 11 インチ縦の日ページの
+    /// 題名（上の `width` の注記）がさらに縮む）
+    static let readOnlyTextWidth: CGFloat = syncTextWidth
+    /// The badge's accessibility label.
+    static let readOnlyLabel = "閲覧専用。購読の案内を開く"
 
     private var showsSyncText: Bool { !compact && width >= Self.syncTextWidth }
     private var showsAddEventText: Bool { width >= Self.addEventTextWidth }
+    private var showsReadOnlyText: Bool { width >= Self.readOnlyTextWidth }
 
     var body: some View {
         if compact {
@@ -78,6 +96,7 @@ struct PageHeaderView: View {
                 kindPicker
                     .frame(width: 220)
                     .layoutPriority(1)
+                readOnlyBadge
                 addEventButton
                 syncButton
                 settingsButton
@@ -86,6 +105,29 @@ struct PageHeaderView: View {
     }
 
     // MARK: - Pieces
+
+    /// M5 (M5_CONTRACT §3.2): the orange 「閲覧専用」 badge (the lock alone below `readOnlyTextWidth`),
+    /// on the wide row only. Not an error colour: read only is a state, not a fault.
+    @ViewBuilder
+    private var readOnlyBadge: some View {
+        if readOnly {
+            Button(action: onReadOnlyTap) {
+                if showsReadOnlyText {
+                    Label(PlanText.readOnlyBadge, systemImage: "lock.fill")
+                        .font(.footnote)
+                } else {
+                    Image(systemName: "lock.fill")
+                        .font(.footnote)
+                }
+            }
+            .buttonStyle(.bordered)
+            .tint(.orange)
+            .controlSize(.small)
+            .fixedSize()
+            .layoutPriority(1)
+            .accessibilityLabel(Self.readOnlyLabel)
+        }
+    }
 
     private var navigationButtons: some View {
         HStack(spacing: 6) {

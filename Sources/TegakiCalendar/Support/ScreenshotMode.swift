@@ -19,10 +19,13 @@ import Layout
 /// Zoom (M4C contract §2.4 / §5.3): `--screenshot-zoom <ratio>` opens the page at that ratio to its
 /// overview (`fitAll`; 1 = the overview, clamped by the canvas) and `--screenshot-offset <x>,<y>` puts
 /// that paper point (lu) at the top left, so the CI's photos share the canvas's zoom path.
+/// Purchase (M5_CONTRACT §7.5): `--screenshot-sheet paywall` opens the purchase sheet on the month page
+/// (trial-eligible sample); `--screenshot-readonly` starts the store as `.readOnly(.notSubscribed)` (badge, 20 s toast).
 enum ScreenshotMode {
-    /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6).
+    /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
+    /// M5 contract §7.5: `paywall`).
     enum Sheet: String, CaseIterable, Sendable {
-        case create, edit, lasso, settings, sync, `import`
+        case create, edit, lasso, settings, sync, `import`, paywall
     }
 
     struct Config: Equatable, Sendable {
@@ -44,6 +47,10 @@ enum ScreenshotMode {
         /// `--screenshot-offset "x,y"`: the paper point (lu) shown at the top left; nil when the value
         /// is not two finite numbers (the canvas then uses its usual first position).
         var offset: CGPoint? = nil
+        /// `--screenshot-readonly` (M5 contract §7.5): the store is
+        /// `StoreModel.screenshotDemo(access: .readOnly(.notSubscribed))` (`CalendarRootScreen` passes
+        /// this to `StoreModel.make(screenshotReadOnly:)`, M5-34). Combines with a sheet.
+        var readOnly: Bool = false
     }
 
     /// Parsed once from the launch arguments; nil in normal use.
@@ -80,7 +87,9 @@ enum ScreenshotMode {
         if let index = arguments.firstIndex(of: "--screenshot-offset"), index + 1 < arguments.count {
             offset = parseOffset(arguments[index + 1]) // an unreadable value → nil
         }
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset)
+        // M5: the read-only sample (M5_CONTRACT §7.5).
+        let readOnly = arguments.contains("--screenshot-readonly")
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly)
     }
 
     /// "2" → 2; nil unless the text is a finite positive number ("abc", "0", "-1", "inf" are nil).

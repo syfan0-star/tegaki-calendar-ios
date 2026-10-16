@@ -1,3 +1,4 @@
+import Access
 import Holidays
 import InkModel
 import Layout
@@ -15,6 +16,27 @@ struct EventEditorRequest: Identifiable {
     var inkIds: [String]
     /// The page the strokes belong to (they are erased only while that page is still shown).
     var pageId: String
+}
+
+/// The operations the subscription gates (M5_CONTRACT §3.1, D3): the first eleven stop while the
+/// app is read only (a paywall once per session, then a toast); the other eight are always allowed
+/// (`export` is reserved for M6's handwriting export, which read only will allow too, M5-27).
+enum GatedAction: Equatable, CaseIterable {
+    case draw, erase, moveSelection, deleteSelection, convertSelection, createEvent, editEvent, deleteEvent,
+         undoRedo, overlayTool, webImport,                       // 止める（11）
+         eraseAll, settings, navigate, zoom, receiveCloud, viewEvent, pencilToggle,   // 許す
+         export                                                   // 許す（将来の手書きの書き出し。M5-27）。許す = 8、全部で 19
+
+    /// Stops while the app is read only.
+    var isGated: Bool {
+        switch self {
+        case .draw, .erase, .moveSelection, .deleteSelection, .convertSelection, .createEvent, .editEvent, .deleteEvent,
+             .undoRedo, .overlayTool, .webImport:
+            return true
+        case .eraseAll, .settings, .navigate, .zoom, .receiveCloud, .viewEvent, .pencilToggle, .export:
+            return false
+        }
+    }
 }
 
 /// The app's one screen (M3a contract §4.1, M3b §4.5, M4 §5.3–§6.4, M4B §2.6 / §3.3 / §5 / §6.4):
@@ -61,10 +83,23 @@ struct EventEditorRequest: Identifiable {
 /// sheet's `onSubmit` writes through `EventStoreModel`; a throw stays in the sheet, success closes it
 /// and shows a toast. Converting handwriting erases the strokes afterwards when the sheet's
 /// 「この手書きを消す」 is on (one undoable canvas command).
+///
+/// Subscription (M5, M5_CONTRACT §3 / §4.2): `store.snapshot.access` decides whether the app is read
+/// only. The gated operations (`GatedAction`, `isAllowed`) are guarded at their entry points: the
+/// canvas stops drawing and reports a Pencil touch (`onBlockedInput`), the lasso / 予定 tool cannot
+/// be chosen, undo / redo are greyed, 「＋予定」 / the event tool / the editor's save and delete / the
+/// web import are refused. The first refused operation of a session shows the paywall, later ones a
+/// toast (`blocked`). The header shows the 「閲覧専用」 badge (a compact iPhone a notice row instead),
+/// the paywall also opens after the onboarding once the first refresh confirmed there is no
+/// subscription (`scheduleFirstLaunchPaywall`, M5-33), from 設定 › 購入 and from the badge. Every
+/// return to the foreground refreshes the store (M5-9).
 struct CalendarRootScreen: View {
     @StateObject private var model = EventStoreModel()
     /// The sync engine (M4 contract §5.3): the one store of the pages, and the ☁ state.
     @ObservedObject private var sync = SyncEngine.shared
+    /// The subscription (M5 contract §2.3, M5-22): the live StoreKit model, or the screenshot mode's
+    /// demo (`--screenshot-readonly` picks the unsubscribed sample; M5-34: this screen passes it).
+    @StateObject private var store = StoreModel.make(screenshotReadOnly: ScreenshotMode.current?.readOnly ?? false)
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
 
@@ -128,6 +163,17 @@ struct CalendarRootScreen: View {
     /// The zoom the band's lanes are frozen at while the canvas is zooming (M4C-27); nil otherwise.
     @State private var frozenLaneZoom: CGFloat?
 
+    // M5: the paywall and the read-only mode (M5 contract §3.1, §4.2).
+    @State private var showPaywall = false
+    @State private var paywallReason: PaywallReason = .settings
+    /// A refused operation showed the paywall in this session; the next ones are toasts.
+    @State private var blockedPaywallShownThisSession = false
+    /// The paywall after the onboarding was shown, or a subscriber was found (M5-33). Stays false when
+    /// the first refresh did not finish, the store was unreachable or the prices were missing.
+    @AppStorage(AppSettings.paywallShownAfterOnboardingKey) private var paywallShownAfterOnboarding = false
+    /// The last Pencil touch the canvas reported while read only (`blocked(.draw)` at most every 2 s).
+    @State private var lastBlockedInputAt: Date?
+
     /// How often the now line is moved (M3a contract §4.1).
     static let nowTickSeconds: Double = 30
     /// Below this width the header takes two rows (M3b contract §4.6).
@@ -139,6 +185,17 @@ struct CalendarRootScreen: View {
     /// the gaps (max(3 × zoom, 2)) sit at their point minimums, so the band is exactly as tall as at
     /// `fitAll` without knowing the width.
     static let overviewBandZoom: CGFloat = 0.6
+    /// M5 (M5_CONTRACT §3.3): the toast of the second and later refused operations of a session.
+    static let readOnlyToast = "閲覧専用です。書く・消す・予定を作るには購読が必要です"
+    /// The compact (iPhone) notice row under the header while read only (§3.2, M5-13).
+    static let readOnlyNoticeText = "閲覧専用です。手書きと予定の作成は購読すると使えます。"
+    static let readOnlyNoticeButton = "購読する"
+    /// A Pencil touch on the read-only paper is reported at most this often (§3.1).
+    static let blockedInputInterval: TimeInterval = 2
+    /// How long `scheduleFirstLaunchPaywall` waits for the first refresh (§4.2, M5-33).
+    static let firstRefreshTimeout: Double = 3
+    /// The screenshot mode's read-only toast stays this long so it is in the photo (§7.5, M5-24).
+    static let screenshotReadOnlyToastDuration: TimeInterval = 20
 
     init() {
         let shot = ScreenshotMode.current
@@ -238,8 +295,12 @@ struct CalendarRootScreen: View {
 
     /// True while any sheet or cover is up (the account question waits for them; M4 contract §6.4).
     private var sheetIsUp: Bool {
-        showSettings || editor != nil || showImportPicker || importPhase != nil || showOnboarding
+        showSettings || editor != nil || showImportPicker || importPhase != nil || showOnboarding || showPaywall
     }
+
+    /// M5 (M5_CONTRACT §3.1): the access state and whether the app is read only.
+    private var access: AccessState { store.snapshot.access }
+    private var readOnly: Bool { !access.canEdit }
 
     var body: some View {
         GeometryReader { proxy in
@@ -260,11 +321,14 @@ struct CalendarRootScreen: View {
                     onSettings: { showSettings = true },
                     sync: sync.snapshot.status.header,
                     onSyncTap: { showSettings = true },
-                    width: proxy.size.width
+                    width: proxy.size.width,
+                    readOnly: readOnly,
+                    onReadOnlyTap: { showPaywall(reason: .badge) }
                 )
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 accessNotice
+                readOnlyNotice(compact: compact)
                 StickyHeaderView(
                     paper: paper,
                     now: now,
@@ -315,12 +379,19 @@ struct CalendarRootScreen: View {
         .background(Color(uiColor: .systemBackground))
         .safeAreaInset(edge: .bottom) {
             ToolbarView(
-                tool: $tool,
+                tool: toolBinding,
                 allowFinger: $allowFinger,
-                canUndo: canUndo,
-                canRedo: canRedo,
-                onUndo: { undoTrigger += 1 },
-                onRedo: { redoTrigger += 1 }
+                // M5 (M5_CONTRACT §3.1): greyed while read only; the guards are the insurance.
+                canUndo: canUndo && !readOnly,
+                canRedo: canRedo && !readOnly,
+                onUndo: {
+                    guard isAllowed(.undoRedo) else { blocked(.undoRedo); return }
+                    undoTrigger += 1
+                },
+                onRedo: {
+                    guard isAllowed(.undoRedo) else { blocked(.undoRedo); return }
+                    redoTrigger += 1
+                }
             )
             .padding(.horizontal, 12)
             .padding(.bottom, 6)
@@ -333,6 +404,9 @@ struct CalendarRootScreen: View {
         }
         .onChange(of: sync.snapshot.status) { syncStatusChanged() }
         .onChange(of: sheetIsUp) { sheetsChanged() }
+        // M5 (M5_CONTRACT §4.2 / §3.1): the purchase toasts, and the moment the app turns read only.
+        .onChange(of: store.snapshot.message) { messageChanged() }
+        .onChange(of: readOnly) { readOnlyChanged() }
         .task { await nowTicker() }
         .sheet(item: $editor) { request in
             editorSheet(request)
@@ -349,8 +423,20 @@ struct CalendarRootScreen: View {
                 onResolveAccountChange: resolveAccountChangeFromSettings,
                 onDone: { showSettings = false },
                 // The CI's `sync` screenshot scrolls to the 「同期」 section (M4 contract §6.6).
-                scrollToSyncOnAppear: ScreenshotMode.current?.sheet == .sync
+                scrollToSyncOnAppear: ScreenshotMode.current?.sheet == .sync,
+                store: store,
+                // 設定 › 購入 › 「購読する」: close the settings, then the paywall (M5 contract §4.2).
+                onShowPaywall: {
+                    showSettings = false
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(Self.sheetGap))
+                        showPaywall(reason: .settings)
+                    }
+                }
             )
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallSheet(store: store, reason: paywallReason, onClose: { showPaywall = false })
         }
         .sheet(isPresented: $showImportPicker) {
             DocumentPickerView(onPick: pickedImportFile, onCancel: { showImportPicker = false })
@@ -364,6 +450,8 @@ struct CalendarRootScreen: View {
                 await model.requestAccess()
                 onboardingDone = true
                 showOnboarding = false
+                // M5 (M5_CONTRACT §4.2): the paywall once, after the first refresh says 未購読.
+                scheduleFirstLaunchPaywall()
             }
             .interactiveDismissDisabled()
         }
@@ -423,7 +511,10 @@ struct CalendarRootScreen: View {
             },
             onZoomingChange: { zooming in
                 frozenLaneZoom = zooming ? shownViewport(width: viewportWidth).zoom : nil
-            }
+            },
+            // M5 (M5_CONTRACT §3.1): no ink while read only; a Pencil touch asks for the paywall.
+            readOnly: readOnly,
+            onBlockedInput: blockedInput
         )
         .id(pageId)
         .overlay(alignment: .topLeading) {
@@ -437,7 +528,7 @@ struct CalendarRootScreen: View {
     /// contract §4.2), hidden while a sheet is up. `bounds` is the canvas's own frame.
     @ViewBuilder
     private func selectionMenu(in bounds: CGRect) -> some View {
-        if let selection = selection, editor == nil, !showSettings, tool == .lasso {
+        if let selection = selection, editor == nil, !showSettings, tool == .lasso, !readOnly {
             let origin = SelectionMenuView.placement(
                 anchor: selection.viewRect,
                 size: menuSize,
@@ -469,7 +560,17 @@ struct CalendarRootScreen: View {
             showEraseOption: !request.inkIds.isEmpty,
             eraseDefault: eraseDefault,
             onSubmit: { result in try await handleSubmit(request, result) },
-            onCancel: { editor = nil }
+            onCancel: { editor = nil },
+            // M5 (M5_CONTRACT §3.3, M5-31): the read-only sheet names the subscription as the cause and
+            // offers it; an explicit tap, so the paywall opens every time (not through `blocked`).
+            readOnlyNote: readOnly ? EventEditorSheet.subscriptionNote : nil,
+            onSubscribe: readOnly ? {
+                editor = nil
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(Self.sheetGap))
+                    showPaywall(reason: .blocked(.editEvent))
+                }
+            } : nil
         )
     }
 
@@ -540,6 +641,8 @@ struct CalendarRootScreen: View {
     private func appear() {
         guard !appeared else { return }
         appeared = true
+        // M5 (M5_CONTRACT §2.4 / §4.2): the cached access state first, then the store's own refresh.
+        store.start()
         if !allowFingerChosen {
             // Pencil only on iPad by default; iPhones and Macs have no Pencil (DESIGN §2.1, §2.11).
             allowFingerChosen = true
@@ -551,7 +654,11 @@ struct CalendarRootScreen: View {
                 showOnboarding = true
             } else {
                 onboardingDone = true
+                scheduleFirstLaunchPaywall()
             }
+        } else {
+            // 0.5.2 からの更新・再インストール・新しい端末 (M5 contract §4.2); nothing in screenshot mode.
+            scheduleFirstLaunchPaywall()
         }
         // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.
         sync.onRemoteUpdate = { applyRemote($0) }
@@ -566,6 +673,13 @@ struct CalendarRootScreen: View {
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(0.5))
                 showScreenshotSheet(sheet)
+            }
+        }
+        // M5 contract §7.5: the read-only photo shows the badge and the toast together (20 s, M5-24).
+        if ScreenshotMode.current?.readOnly == true {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.5))
+                showToast(Self.readOnlyToast, duration: Self.screenshotReadOnlyToastDuration)
             }
         }
         // M4B contract §6.4: the window scene may not exist yet here; `.active` tries again.
@@ -585,6 +699,9 @@ struct CalendarRootScreen: View {
             // M4 contract §5.3: one sync round on every return to the foreground (catches up what a
             // silent push did not deliver).
             sync.applicationDidBecomeActive()
+            // M5 contract §1.4 / M5-9: the subscription is checked on every return to the foreground
+            // (an expiry, a cancellation or a renewal shows up here, never from a timer).
+            Task { await store.refresh() }
             requestLandscapeOnce()
         @unknown default:
             break
@@ -800,6 +917,9 @@ struct CalendarRootScreen: View {
                 break
             }
         }
+        // M5 (M5_CONTRACT §3.1): insurance — the tool cannot be chosen while read only (a tap on an
+        // existing event above still opens the read-only sheet).
+        guard isAllowed(.createEvent) else { blocked(.createEvent); return }
         openCreate(range: layout.eventRange(for: rect, now: now), snapshot: nil, inkIds: [])
     }
 
@@ -840,6 +960,9 @@ struct CalendarRootScreen: View {
     }
 
     private func openCreate(range: EventRange?, snapshot: UIImage?, inkIds: [String]) {
+        // M5 (M5_CONTRACT §3.1): every way of creating an event (＋予定, the event tool, 「予定にする」,
+        // a band column, the screenshot mode's `.create`) is stopped here while read only.
+        guard isAllowed(.createEvent) else { blocked(.createEvent); return }
         guard model.status.canRead else {
             showToast("予定を登録するには、設定でカレンダーへのアクセスを許可してください", isError: true)
             return
@@ -863,9 +986,12 @@ struct CalendarRootScreen: View {
 
     private func openEdit(eventId: String) {
         guard let detail = model.detail(forEventId: eventId) else { return }
-        let mode: EventEditorMode = model.isEditable(eventId: eventId)
-            ? .edit(eventId: eventId, recurring: model.isRecurring(eventId: eventId))
-            : .readOnly(eventId: eventId)
+        // M5 (M5_CONTRACT §3.1): viewing is allowed while read only; editing is not.
+        let mode: EventEditorMode = readOnly
+            ? .readOnly(eventId: eventId)
+            : (model.isEditable(eventId: eventId)
+                ? .edit(eventId: eventId, recurring: model.isRecurring(eventId: eventId))
+                : .readOnly(eventId: eventId))
         let option = model.calendarOptions.first { $0.id == detail.calendarId } ?? CalendarOption(
             id: detail.calendarId,
             title: detail.calendarTitle,
@@ -894,6 +1020,8 @@ struct CalendarRootScreen: View {
             editor = nil
 
         case .save(let draft, let span, let eraseInk):
+            // M5 (M5_CONTRACT §3.1): insurance (the sheet is read only while the app is).
+            guard isAllowed(.editEvent) else { blocked(.editEvent); editor = nil; return }
             switch request.mode {
             case .create:
                 try model.create(draft)
@@ -914,6 +1042,7 @@ struct CalendarRootScreen: View {
             }
 
         case .delete(let span):
+            guard isAllowed(.editEvent) else { blocked(.editEvent); editor = nil; return }
             guard case .edit(let eventId, _) = request.mode else {
                 editor = nil
                 return
@@ -956,6 +1085,10 @@ struct CalendarRootScreen: View {
 
     /// 「Web 版の手書きを取り込む」: close the settings, then show the file picker.
     private func importWeb() {
+        // M5 (M5_CONTRACT §3.1, M5-15): the import is a feature of the paid notebook. `blocked` runs
+        // while the settings are still up so the paywall waits for them to close (or the toast shows
+        // once they have); then the settings close either way.
+        guard isAllowed(.webImport) else { blocked(.webImport); showSettings = false; return }
         showSettings = false
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(Self.sheetGap))
@@ -1096,15 +1229,138 @@ struct CalendarRootScreen: View {
         relayout()
     }
 
+    // MARK: - Subscription and read only (M5 contract §3.1, §4.2)
+
+    /// 許す操作は access に依らず true。止める操作は access.canEdit
+    static func isAllowed(_ action: GatedAction, access: AccessState) -> Bool {
+        !action.isGated || access.canEdit
+    }
+
+    private func isAllowed(_ action: GatedAction) -> Bool {
+        Self.isAllowed(action, access: access)
+    }
+
+    /// 止めた: 1 セッション 1 回はペイウォール（reason .blocked(action)）、2 回目以降はトースト（§3.3）。写真モードはトーストだけ
+    private func blocked(_ action: GatedAction) {
+        if !ScreenshotMode.isActive, !blockedPaywallShownThisSession {
+            blockedPaywallShownThisSession = true
+            showPaywall(reason: .blocked(action))
+        } else {
+            showToast(Self.readOnlyToast)
+        }
+    }
+
+    /// The canvas reports a Pencil touch on the read-only paper: `blocked(.draw)` at most every 2 s.
+    private func blockedInput() {
+        let now = Date()
+        if let last = lastBlockedInputAt, now.timeIntervalSince(last) < Self.blockedInputInterval { return }
+        lastBlockedInputAt = now
+        blocked(.draw)
+    }
+
+    /// Presents the paywall. Another sheet up (settings, the editor, the file picker) is closed first
+    /// and the paywall follows after `sheetGap` (SwiftUI cannot present two at once; the `importWeb()`
+    /// way). The reason is updated even while the paywall is already up.
+    private func showPaywall(reason: PaywallReason) {
+        paywallReason = reason
+        guard !showPaywall else { return }
+        if showSettings || editor != nil || showImportPicker {
+            showSettings = false
+            editor = nil
+            showImportPicker = false
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(Self.sheetGap))
+                showPaywall = true
+            }
+        } else {
+            showPaywall = true
+        }
+    }
+
+    /// Once after the onboarding (and on every launch until it happened), when the first `refresh()`
+    /// finishes within 3 s and says: not subscribed, store reached, prices present (M5-33). A
+    /// subscriber only sets the flag. Not finished / unreachable / no prices: nothing, and the flag
+    /// stays false so the next launch tries again (a 「—」 price screen is never the first meeting).
+    private func scheduleFirstLaunchPaywall() {
+        guard !ScreenshotMode.isActive, !paywallShownAfterOnboarding else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.sheetGap))
+            let done = await store.awaitFirstRefresh(timeout: .seconds(Self.firstRefreshTimeout))
+            let s = store.snapshot
+            if done && s.access.canEdit {
+                paywallShownAfterOnboarding = true // a subscriber never sees it (§8-6 の 9)
+                return
+            }
+            guard done, !s.access.canEdit, s.storeReachable, !s.offers.isEmpty else { return }
+            paywallShownAfterOnboarding = true
+            showPaywall(reason: .firstLaunch)
+        }
+    }
+
+    /// `store.snapshot.message` changed: a purchase or a restore that succeeded becomes a toast (the
+    /// paywall closes itself on the same message). The toast comes one turn later so the paywall's own
+    /// `onChange` sees the message before it is cleared. While the settings are up, their footer shows
+    /// the restore's result instead (cleared when they close).
+    private func messageChanged() {
+        guard let message = store.snapshot.message else { return }
+        switch message {
+        case .purchased, .restored:
+            guard !showSettings else { return }
+            let text = StoreStrings.text(for: message, access: access)
+            Task { @MainActor in
+                store.clearMessage()
+                showToast(text)
+            }
+        case .nothingToRestore, .pending, .productsUnavailable, .failed:
+            break
+        }
+    }
+
+    /// The app turned read only: the lasso / 予定 tool goes back to the last pen, the selection is cleared.
+    private func readOnlyChanged() {
+        guard readOnly else { return }
+        if tool.isOverlayTool {
+            tool = lastInkTool
+        }
+        send(.clearSelection)
+    }
+
+    /// The toolbar's tool: while read only the lasso / 予定 tool cannot be chosen (`blocked(.overlayTool)`);
+    /// the pen / marker colours and widths and the eraser may change (harmless).
+    private var toolBinding: Binding<CanvasTool> {
+        Binding(
+            get: { tool },
+            set: { newValue in
+                if readOnly, newValue.isOverlayTool {
+                    blocked(.overlayTool)
+                    return
+                }
+                tool = newValue
+            }
+        )
+    }
+
+    /// The compact (iPhone) notice row under the header while read only (§3.2, M5-13): the wide
+    /// header shows the badge instead.
+    @ViewBuilder
+    private func readOnlyNotice(compact: Bool) -> some View {
+        if compact, readOnly {
+            noticeRow(Self.readOnlyNoticeText, buttonTitle: Self.readOnlyNoticeButton) {
+                showPaywall(reason: .badge)
+            }
+        }
+    }
+
     // MARK: - Toast
 
-    /// Shows `text` above the toolbar for 3 s (errors 6 s); a newer toast replaces an older one.
-    private func showToast(_ text: String, isError: Bool = false) {
+    /// Shows `text` above the toolbar for 3 s (errors 6 s, or `duration`); a newer toast replaces an
+    /// older one. M5-24: the screenshot mode's read-only toast passes 20 s.
+    private func showToast(_ text: String, isError: Bool = false, duration: TimeInterval? = nil) {
         let message = ToastMessage(text: text, isError: isError)
         toast = message
         toastTask?.cancel()
         toastTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(isError ? ToastView.errorDuration : ToastView.duration))
+            try? await Task.sleep(for: .seconds(duration ?? (isError ? ToastView.errorDuration : ToastView.duration)))
             if Task.isCancelled { return }
             if toast?.id == message.id { toast = nil }
         }
@@ -1126,6 +1382,10 @@ struct CalendarRootScreen: View {
             showSettings = true
         case .`import`:
             importPhase = .done(ScreenshotMode.importDemoOutcome, skipped: 0)
+        case .paywall:
+            // M5 contract §7.5: the trial-eligible sample over the month page.
+            paywallReason = .firstLaunch
+            showPaywall = true
         }
     }
 

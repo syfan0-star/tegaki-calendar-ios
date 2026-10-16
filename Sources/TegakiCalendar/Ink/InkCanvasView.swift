@@ -134,6 +134,15 @@ struct InkCanvasView: UIViewRepresentable {
     /// the redraw after the bounce). The owner freezes the all-day band's lane height in between
     /// (M4C_CONTRACT §1.6, M4C-27). Delivered on the next main-actor turn.
     var onZoomingChange: (Bool) -> Void = { _ in }
+    /// M5 (M5_CONTRACT §3.1): the app is read only. PencilKit's drawing recogniser, the overlay's
+    /// input and the finger recogniser are off (`drawingPolicy` and `isUserInteractionEnabled` of
+    /// the canvas are not touched: scrolling, pinching and taps keep working); a Pencil touch is
+    /// reported through `onBlockedInput`.
+    var readOnly: Bool = false
+    /// The Pencil touched the read-only paper (`.began` of `blockedInputRecognizer`; a finger never
+    /// reports, so an iPhone's finger scroll stays quiet). The owner shows the paywall or a toast
+    /// and throttles it (2 s).
+    var onBlockedInput: () -> Void = {}
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -277,6 +286,19 @@ extension InkCanvasView {
             r.cancelsTouchesInView = false
             return r
         }()
+        /// M5 (M5_CONTRACT §3.1): a Pencil touch on the read-only paper, on the canvas. Recognised at
+        /// touch-down (`minimumPressDuration` 0), never fails on movement, Pencil only (a finger
+        /// scroll must not report), lets the touches through, and runs alongside every other
+        /// recogniser (see the delegate). Enabled while `readOnly` (`syncRecognizers`).
+        private(set) lazy var blockedInputRecognizer: UILongPressGestureRecognizer = {
+            let r = UILongPressGestureRecognizer(target: self, action: #selector(handleBlockedInput(_:)))
+            r.minimumPressDuration = 0
+            r.allowableMovement = .greatestFiniteMagnitude
+            r.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.pencil.rawValue)]
+            r.cancelsTouchesInView = false
+            r.delegate = self
+            return r
+        }()
 
         /// The layout the canvas currently shows (strokes placed, contentSize set, paper drawn).
         private var appliedLayout: any PageLayout
@@ -413,10 +435,12 @@ extension InkCanvasView {
             canvas.maximumSupportedContentVersion = .version1
             canvas.drawingPolicy = parent.allowFinger ? .anyInput : .pencilOnly
             canvas.tool = parent.tool.pkTool
-            canvas.drawingGestureRecognizer.isEnabled = !parent.tool.isOverlayTool
+            // M5 (M5_CONTRACT §3.1): no new ink while read only.
+            canvas.drawingGestureRecognizer.isEnabled = !parent.tool.isOverlayTool && !parent.readOnly
             canvas.addInteraction(pencilInteraction)
             canvas.addGestureRecognizer(tapRecognizer)
             canvas.addGestureRecognizer(doubleTapRecognizer)
+            canvas.addGestureRecognizer(blockedInputRecognizer)
             // The single tap waits about 0.3 s for the double tap to fail (M4C-6); on the day page and
             // with an overlay tool the double tap is disabled and fails at once, so nothing waits.
             tapRecognizer.require(toFail: doubleTapRecognizer)
@@ -435,6 +459,8 @@ extension InkCanvasView {
             overlay.allowFinger = parent.allowFinger
             overlay.pageSize = parent.layout.size
             overlay.tool = parent.tool
+            // M5 (M5_CONTRACT §3.1): after `tool` (its didSet sets this from the tool alone).
+            overlay.isUserInteractionEnabled = parent.tool.isOverlayTool && !parent.readOnly
 
             setDrawing(ledger.drawing(), on: canvas)
             canvas.contentSize = appliedLayout.size // zoom 1 until the first layout pass
@@ -450,16 +476,34 @@ extension InkCanvasView {
         }
 
         /// `doubleTapRecognizer` is on while the owner asks for it and no overlay tool is up;
-        /// `fingerRecognizer` while an overlay tool is up and the finger may write. A disabled
-        /// recogniser fails at once, so the recognisers waiting for it are not delayed.
+        /// `fingerRecognizer` while an overlay tool is up, the finger may write and the app is not
+        /// read only. A disabled recogniser fails at once, so the recognisers waiting for it are not
+        /// delayed. M5 (M5_CONTRACT §3.1): the read-only rule is applied here too (`readOnly` alone
+        /// may change under the same tool): `blockedInputRecognizer` on, PencilKit's drawing
+        /// recogniser and the overlay's input off.
         private func syncRecognizers() {
             let doubleTap = parent.doubleTapEnabled && !parent.tool.isOverlayTool
             if doubleTapRecognizer.isEnabled != doubleTap {
                 doubleTapRecognizer.isEnabled = doubleTap
             }
-            let finger = parent.tool.isOverlayTool && parent.allowFinger
+            let finger = parent.tool.isOverlayTool && parent.allowFinger && !parent.readOnly
             if fingerRecognizer.isEnabled != finger {
                 fingerRecognizer.isEnabled = finger
+            }
+            if blockedInputRecognizer.isEnabled != parent.readOnly {
+                blockedInputRecognizer.isEnabled = parent.readOnly
+            }
+            if let canvas {
+                let drawing = !parent.tool.isOverlayTool && !parent.readOnly
+                if canvas.drawingGestureRecognizer.isEnabled != drawing {
+                    canvas.drawingGestureRecognizer.isEnabled = drawing
+                }
+            }
+            if let overlay {
+                let interactive = parent.tool.isOverlayTool && !parent.readOnly
+                if overlay.isUserInteractionEnabled != interactive {
+                    overlay.isUserInteractionEnabled = interactive
+                }
             }
         }
 
@@ -513,7 +557,9 @@ extension InkCanvasView {
                 appliedTool = newParent.tool
                 // The overlay cancels its gesture (a move puts the strokes back) before anything else.
                 overlay?.tool = newParent.tool
-                canvas.drawingGestureRecognizer.isEnabled = !newParent.tool.isOverlayTool
+                // M5 (M5_CONTRACT §3.1): right after `tool` (its didSet sets this from the tool alone).
+                overlay?.isUserInteractionEnabled = newParent.tool.isOverlayTool && !newParent.readOnly
+                canvas.drawingGestureRecognizer.isEnabled = !newParent.tool.isOverlayTool && !newParent.readOnly
                 // The lasso / 予定 tool leaves the canvas tool as it was (drawing is disabled anyway).
                 if !newParent.tool.isOverlayTool {
                     canvas.tool = newParent.tool.pkTool
@@ -1102,10 +1148,19 @@ extension InkCanvasView {
             deliver { [weak self] in self?.parent.onInkBoundsChanged() }
         }
 
+        // MARK: Read only (M5_CONTRACT §3.1)
+
+        /// `blockedInputRecognizer` began: the Pencil touched the read-only paper.
+        @objc private func handleBlockedInput(_ recognizer: UILongPressGestureRecognizer) {
+            guard recognizer.state == .began else { return }
+            parent.onBlockedInput()
+        }
+
         // MARK: UIGestureRecognizerDelegate
 
         /// The tap recognisers take direct touches only (the Pencil never taps or double-taps the
-        /// paper); the finger recogniser is already limited by `allowedTouchTypes`.
+        /// paper); the finger recogniser is already limited by `allowedTouchTypes`, and so is
+        /// `blockedInputRecognizer` (Pencil only): both take the default true here.
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
             guard gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer else { return true }
             return touch.type == .direct
@@ -1113,8 +1168,11 @@ extension InkCanvasView {
 
         /// With 「指でも書く」 on, PencilKit's `drawingGestureRecognizer` begins on the finger's
         /// touch-down; the taps are recognised alongside it (M4C_CONTRACT §4.1) or they would never
-        /// fire. Nothing else runs simultaneously (the finger recogniser of F2 in particular).
+        /// fire. Nothing else runs simultaneously (the finger recogniser of F2 in particular) —
+        /// except M5's `blockedInputRecognizer`, which only reports and runs alongside everything
+        /// (drawing, pan, pinch, taps; M5_CONTRACT §3.1).
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            if gestureRecognizer === blockedInputRecognizer || otherGestureRecognizer === blockedInputRecognizer { return true }
             guard let canvas else { return false }
             let isTap = gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer
             return isTap && otherGestureRecognizer === canvas.drawingGestureRecognizer

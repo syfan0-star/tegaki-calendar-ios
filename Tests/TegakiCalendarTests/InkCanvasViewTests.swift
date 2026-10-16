@@ -54,7 +54,9 @@ final class InkCanvasViewTests: XCTestCase {
                           initialZoomRatio: CGFloat = 1, initialPaperOffset: CGPoint? = nil, doubleTapEnabled: Bool = false,
                           tool: CanvasTool = .eraser, allowFinger: Bool = false, page: InkPage? = nil,
                           onZoomRatioChange: @escaping (CGFloat) -> Void = { _ in },
-                          onZoomingChange: @escaping (Bool) -> Void = { _ in }) -> InkCanvasView {
+                          onZoomingChange: @escaping (Bool) -> Void = { _ in },
+                          readOnly: Bool = false,
+                          onBlockedInput: @escaping () -> Void = {}) -> InkCanvasView {
         let page = page ?? InkPage.empty(pageId: layout.pageId)
         return InkCanvasView(
             layout: layout,
@@ -79,7 +81,9 @@ final class InkCanvasViewTests: XCTestCase {
             initialPaperOffset: initialPaperOffset,
             doubleTapEnabled: doubleTapEnabled,
             onZoomRatioChange: onZoomRatioChange,
-            onZoomingChange: onZoomingChange
+            onZoomingChange: onZoomingChange,
+            readOnly: readOnly,
+            onBlockedInput: onBlockedInput
         )
     }
 
@@ -688,5 +692,113 @@ final class InkCanvasViewTests: XCTestCase {
         view.onDoubleTap(.zero)
         view.onZoomRatioChange(1)
         view.onZoomingChange(false)
+        // M5_CONTRACT §3.1: writable, and a no-op report.
+        XCTAssertFalse(view.readOnly)
+        view.onBlockedInput()
+    }
+
+    // MARK: M5 — read only (M5_CONTRACT §3.1, §7.6)
+
+    /// Read only: PencilKit's drawing recogniser is off (with the pen and with the lasso), the
+    /// Pencil-only touch report is on, the finger recogniser is off even for the lasso with 「指でも
+    /// 書く」, the overlay takes no input; `update(from:)` back to writable (the tool unchanged) turns
+    /// drawing on and the report off, and read only again reverses it.
+    func testReadOnlyDisablesDrawingAndOverlay() {
+        let (layout, paper) = makeMonth()
+        let probe = Probe()
+        let pen = CanvasTool.ink(InkPresets.defaultPen)
+
+        let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, doubleTapEnabled: true, tool: pen, readOnly: true), paper: paper, probe: probe)
+        let blocked = rig.coordinator.blockedInputRecognizer
+        XCTAssertFalse(rig.canvas.drawingGestureRecognizer.isEnabled, "no new ink while read only")
+        XCTAssertTrue(blocked.isEnabled)
+        XCTAssertEqual(blocked.allowedTouchTypes, [NSNumber(value: UITouch.TouchType.pencil.rawValue)], "the Pencil only: a finger scroll never reports")
+        XCTAssertEqual(blocked.minimumPressDuration, 0, "recognised at touch-down")
+        XCTAssertEqual(blocked.allowableMovement, .greatestFiniteMagnitude, "never fails on movement")
+        XCTAssertFalse(blocked.cancelsTouchesInView)
+        XCTAssertTrue(blocked.view === rig.canvas, "on the canvas")
+        XCTAssertTrue(blocked.delegate === rig.coordinator)
+        XCTAssertEqual(rig.canvas.drawingPolicy, .pencilOnly, "the drawing policy is not touched")
+        XCTAssertTrue(rig.canvas.isUserInteractionEnabled, "scrolling and pinching keep working")
+        XCTAssertTrue(rig.coordinator.doubleTapRecognizer.isEnabled, "the double tap is not gated (navigation)")
+        XCTAssertTrue(rig.coordinator.tapRecognizer.isEnabled)
+
+        // The lasso with 「指でも書く」: nothing takes input.
+        let lasso = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .lasso, allowFinger: true, readOnly: true), paper: paper, probe: probe)
+        XCTAssertFalse(lasso.canvas.drawingGestureRecognizer.isEnabled, ".lasso: drawing is off anyway")
+        XCTAssertFalse(lasso.coordinator.fingerRecognizer.isEnabled, "the finger recogniser is off while read only")
+        XCTAssertTrue(lasso.coordinator.blockedInputRecognizer.isEnabled)
+        XCTAssertFalse(lasso.container.overlayView.isUserInteractionEnabled, "the overlay takes no input while read only")
+
+        // Back to writable under the same canvas (only `readOnly` changes).
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, doubleTapEnabled: true, tool: pen, readOnly: false))
+        XCTAssertTrue(rig.canvas.drawingGestureRecognizer.isEnabled)
+        XCTAssertFalse(blocked.isEnabled)
+        // And read only again.
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, doubleTapEnabled: true, tool: pen, readOnly: true))
+        XCTAssertFalse(rig.canvas.drawingGestureRecognizer.isEnabled)
+        XCTAssertTrue(blocked.isEnabled)
+        // The lasso becomes writable: the finger recogniser comes back with it.
+        lasso.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .lasso, allowFinger: true, readOnly: false))
+        XCTAssertTrue(lasso.coordinator.fingerRecognizer.isEnabled)
+        XCTAssertFalse(lasso.coordinator.blockedInputRecognizer.isEnabled)
+        XCTAssertFalse(lasso.canvas.drawingGestureRecognizer.isEnabled, ".lasso: still no PencilKit drawing")
+
+        // A writable canvas has the recogniser attached but off.
+        let writable = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: pen), paper: paper, probe: probe)
+        XCTAssertFalse(writable.coordinator.blockedInputRecognizer.isEnabled)
+        XCTAssertTrue(writable.coordinator.blockedInputRecognizer.view === writable.canvas)
+        XCTAssertTrue(writable.canvas.drawingGestureRecognizer.isEnabled)
+    }
+
+    /// The read-only touch report runs alongside everything — drawing, pan, pinch, the taps and the
+    /// finger recogniser — in both directions, while the other pairs keep their §4.1 answers.
+    func testBlockedInputRecognizerRecognizesSimultaneously() throws {
+        let (layout, paper) = makeMonth()
+        let probe = Probe()
+        let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, doubleTapEnabled: true, readOnly: true), paper: paper, probe: probe)
+        let c = rig.coordinator
+        let blocked = c.blockedInputRecognizer
+        let pinch = try XCTUnwrap(rig.canvas.pinchGestureRecognizer, "F4: the canvas offers a pinch")
+        let others: [UIGestureRecognizer] = [rig.canvas.drawingGestureRecognizer, rig.canvas.panGestureRecognizer, pinch, c.tapRecognizer, c.doubleTapRecognizer, c.fingerRecognizer]
+        for other in others {
+            XCTAssertTrue(c.gestureRecognizer(blocked, shouldRecognizeSimultaneouslyWith: other), "\(type(of: other))")
+            XCTAssertTrue(c.gestureRecognizer(other, shouldRecognizeSimultaneouslyWith: blocked), "\(type(of: other)) (the other way round)")
+        }
+        // The §4.1 answers are unchanged.
+        XCTAssertTrue(c.gestureRecognizer(c.tapRecognizer, shouldRecognizeSimultaneouslyWith: rig.canvas.drawingGestureRecognizer))
+        XCTAssertFalse(c.gestureRecognizer(c.tapRecognizer, shouldRecognizeSimultaneouslyWith: rig.canvas.panGestureRecognizer))
+        XCTAssertFalse(c.gestureRecognizer(c.fingerRecognizer, shouldRecognizeSimultaneouslyWith: rig.canvas.drawingGestureRecognizer))
+    }
+
+    /// The overlay's input follows `readOnly` without the tool changing: on with the lasso, off once
+    /// read only, on again when writable (the overlay's own `tool` didSet must not win).
+    func testOverlayInteractionFollowsReadOnly() {
+        let (layout, paper) = makeMonth()
+        let probe = Probe()
+        let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .lasso, allowFinger: true), paper: paper, probe: probe)
+        let overlay = rig.container.overlayView
+        XCTAssertTrue(overlay.isUserInteractionEnabled, ".lasso takes the pen")
+        XCTAssertTrue(rig.coordinator.fingerRecognizer.isEnabled)
+
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .lasso, allowFinger: true, readOnly: true))
+        XCTAssertFalse(overlay.isUserInteractionEnabled, "read only: the overlay takes nothing")
+        XCTAssertFalse(rig.coordinator.fingerRecognizer.isEnabled)
+        XCTAssertTrue(rig.coordinator.blockedInputRecognizer.isEnabled)
+        XCTAssertEqual(overlay.tool, .lasso, "the tool did not change")
+
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .lasso, allowFinger: true, readOnly: false))
+        XCTAssertTrue(overlay.isUserInteractionEnabled, "writable again")
+        XCTAssertTrue(rig.coordinator.fingerRecognizer.isEnabled)
+        XCTAssertFalse(rig.coordinator.blockedInputRecognizer.isEnabled)
+
+        // A tool change while read only: the didSet's value is overridden right after it.
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .eraser, allowFinger: true, readOnly: true))
+        XCTAssertFalse(overlay.isUserInteractionEnabled)
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .eventRect, allowFinger: true, readOnly: true))
+        XCTAssertFalse(overlay.isUserInteractionEnabled, ".eventRect while read only: still nothing")
+        XCTAssertEqual(overlay.tool, .eventRect)
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .eventRect, allowFinger: true, readOnly: false))
+        XCTAssertTrue(overlay.isUserInteractionEnabled)
     }
 }

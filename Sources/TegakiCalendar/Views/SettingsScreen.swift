@@ -1,11 +1,15 @@
+import Access
 import Layout
+import StoreKit
 import SwiftUI
 import UIKit
 
-/// The settings sheet (M3b contract §4.8, M4 contract §6.2, DESIGN §2.8): calendars (shown, default,
-/// access, Google how-to), input (finger, Pencil, erase-after-convert), sync (the iCloud state, the
-/// last sync, 「今すぐ同期」, the account question), data (import from the web version, export
-/// 「準備中」, erase everything confirmed twice), purchase (「準備中」 until M5), and the info links.
+/// The settings sheet (M3b contract §4.8, M4 contract §6.2, M5 contract §4.3, DESIGN §2.8): calendars
+/// (shown, default, access, Google how-to), input (finger, Pencil, erase-after-convert), sync (the
+/// iCloud state, the last sync, 「今すぐ同期」, the account question), data (import from the web version,
+/// erase everything confirmed twice; the export row comes with the feature, M5-27), purchase (the
+/// plan and its date from `store.snapshot`, 「購読する」 while read only, 「サブスクリプションを管理」,
+/// 「購入を復元」 with the result under the footer), and the info links (`LegalLinks`).
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
     @ObservedObject var sync: SyncEngine
@@ -24,6 +28,12 @@ struct SettingsScreen: View {
     /// Screenshot mode's `sync` sheet (M4 contract §6.6): scroll to the 「同期」 section once the form
     /// is on screen, because the section sits below the fold on an iPad (DESIGN §2.8 order).
     var scrollToSyncOnAppear: Bool = false
+    /// M5 (M5_CONTRACT §4.3): the store behind 「購入」 (the plan, its date, 「購入を復元」, the result line).
+    @ObservedObject var store: StoreModel
+    /// 「購読する」/「14 日間無料で試す」: the owner closes this sheet and shows the paywall (reason .settings).
+    var onShowPaywall: () -> Void = {}
+    /// Reserved for a screenshot of the 「購入」 section (M5 does not use it): scroll there on appear.
+    var scrollToPurchaseOnAppear: Bool = false
 
     @Environment(\.openURL) private var openURL
     @State private var eraseInkAfterConvert: Bool = ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
@@ -32,14 +42,13 @@ struct SettingsScreen: View {
     @State private var requestingAccess = false
     /// 「今すぐ同期」 shows a spinner for one second after the tap.
     @State private var syncingNow = false
+    /// 「サブスクリプションを管理」 → `.manageSubscriptionsSheet` (M5-21).
+    @State private var showManage = false
 
     /// The id of the first row of the 「同期」 section (the scroll target of `scrollToSyncOnAppear`).
     private static let syncRowId = "sync-section"
-
-    /// Provisional URLs (M5 fixes them).
-    static let termsURL = URL(string: "https://syfan0-star.github.io/tegaki-calendar/ios/terms.html")!
-    static let privacyURL = URL(string: "https://syfan0-star.github.io/tegaki-calendar/ios/privacy.html")!
-    static let supportURL = URL(string: "https://syfan0-star.github.io/tegaki-calendar/ios/support.html")!
+    /// The id of the first row of the 「購入」 section (`scrollToPurchaseOnAppear`).
+    private static let purchaseRowId = "purchase-section"
 
     /// The same steps as the first onboarding card (OnboardingView, DESIGN §2.10).
     static let googleHowTo = "Google カレンダーの予定を出すには、iPad の設定で Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。"
@@ -131,16 +140,20 @@ struct SettingsScreen: View {
                     AppSettings.eraseInkAfterConvert = eraseInkAfterConvert
                 }
                 .onAppear {
-                    guard scrollToSyncOnAppear else { return }
+                    guard scrollToSyncOnAppear || scrollToPurchaseOnAppear else { return }
                     // The list needs a layout pass before it can scroll; the row lands a little below
-                    // the top so the 「同期」 header stays in view.
+                    // the top so the section header stays in view.
+                    let target = scrollToSyncOnAppear ? Self.syncRowId : Self.purchaseRowId
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(0.4))
-                        proxy.scrollTo(Self.syncRowId, anchor: UnitPoint(x: 0.5, y: 0.08))
+                        proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.08))
                     }
                 }
+                .manageSubscriptionsSheet(isPresented: $showManage)
             }
         }
+        // A restore's result line is for this visit only (the paywall does the same).
+        .onDisappear { store.clearMessage() }
     }
 
     // MARK: - カレンダー
@@ -364,8 +377,12 @@ struct SettingsScreen: View {
 
     private var dataSection: some View {
         Section {
-            Button("Web 版の手書きを取り込む", action: onImportWeb)
-            preparingRow("手書きを書き出す")
+            // M5 (M5_CONTRACT §3.1): greyed while read only, but still tappable (the owner then shows
+            // the paywall or a toast). The export row returns with the feature (M5-27).
+            Button(action: onImportWeb) {
+                Text("Web 版の手書きを取り込む")
+                    .foregroundStyle(store.isReadOnly ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+            }
             Button("この iPad の手書きを全て消す", role: .destructive) {
                 confirmEraseStep1 = true
             }
@@ -395,25 +412,74 @@ struct SettingsScreen: View {
             : "この操作は元に戻せません。"
     }
 
-    // MARK: - 購入・情報
+    // MARK: - 購入 (M5 contract §4.3)
 
+    private var access: AccessState { store.snapshot.access }
+
+    /// 現在のプラン / the date row / 「購読する」 (read only) / サブスクリプションを管理 / 購入を復元, the
+    /// footer (`purchaseFooter`) and the last result (`store.snapshot.message`, red when it failed).
     private var purchaseSection: some View {
-        Section {
-            preparingRow("現在のプラン")
-            preparingRow("購入を復元")
-            preparingRow("サブスクリプションの管理")
+        let eligible = store.snapshot.offers.first?.isEligibleForIntroOffer ?? false
+        let restoring = store.snapshot.phase == .restoring
+        let busy = store.snapshot.phase != .idle && store.snapshot.phase != .loadingProducts
+        return Section {
+            HStack {
+                Text("現在のプラン")
+                Spacer()
+                Text(Self.planText(access))
+                    .foregroundStyle(Self.planIsProblem(access) ? Color.red : Color.secondary)
+                    .multilineTextAlignment(.trailing)
+            }
+            .id(Self.purchaseRowId)
+            if let label = Self.dateLabel(access), let until = access.until {
+                HStack {
+                    Text(label)
+                    Spacer()
+                    Text(Self.dateText(until))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if let title = Self.purchaseButtonTitle(access, eligible: eligible) {
+                Button(title, action: onShowPaywall)
+            }
+            // Also while read only: the place to check a cancelled subscription (M5-21).
+            Button("サブスクリプションを管理") {
+                guard !ScreenshotMode.isActive else { return }
+                showManage = true
+            }
+            Button(action: restore) {
+                if restoring {
+                    ProgressView()
+                } else {
+                    Text("購入を復元")
+                }
+            }
+            .disabled(busy)
         } header: {
             Text("購入")
         } footer: {
-            Text("購入は次の段階で対応します。")
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Self.purchaseFooter(access))
+                if let message = store.snapshot.message {
+                    Text(StoreStrings.text(for: message, access: access))
+                        .foregroundStyle(Self.isFailure(message) ? Color.red : Color.secondary)
+                }
+            }
         }
     }
 
+    private func restore() {
+        Task { await store.restore() }
+    }
+
+    // MARK: - 情報
+
     private var infoSection: some View {
         Section("情報") {
-            Link("利用規約", destination: Self.termsURL)
-            Link("プライバシーポリシー", destination: Self.privacyURL)
-            Link("サポート", destination: Self.supportURL)
+            Link("利用規約", destination: LegalLinks.terms)
+            Link("プライバシーポリシー", destination: LegalLinks.privacy)
+            Link(LegalLinks.appleEULATitle, destination: LegalLinks.appleEULA)
+            Link("サポート", destination: LegalLinks.support)
             HStack {
                 Text("バージョン")
                 Spacer()
@@ -423,20 +489,69 @@ struct SettingsScreen: View {
         }
     }
 
-    /// A row of a feature that comes in a later milestone: greyed, 「準備中」 on the right, inert.
-    private func preparingRow(_ title: String) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text("準備中")
-        }
-        .foregroundStyle(.secondary)
-        .accessibilityElement(children: .combine)
-    }
-
     private func openSettingsApp() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             openURL(url)
         }
     }
+}
+
+// MARK: - 購入 の純関数 (M5 contract §4.3, §7.6)
+
+extension SettingsScreen {
+    /// 「現在のプラン」の値（`PlanText.statusTitle`）
+    static func planText(_ access: AccessState) -> String {
+        PlanText.statusTitle(access)
+    }
+
+    /// 日付行のラベル（readOnly は nil。`PlanText.dateLabel`）
+    static func dateLabel(_ access: AccessState) -> String? {
+        PlanText.dateLabel(access)
+    }
+
+    /// 「2026/10/25」 in ja_JP (numeric date, no time). `locale` is an argument so the CI's English
+    /// locale can be overridden in the tests.
+    static func dateText(_ date: Date, locale: Locale = .current) -> String {
+        date.formatted(Date.FormatStyle(date: .numeric, time: .omitted).locale(locale))
+    }
+
+    /// The value of 「現在のプラン」 is red while the payment is the problem: `.billingRetry` and `inGrace`.
+    static func planIsProblem(_ access: AccessState) -> Bool {
+        switch access {
+        case .subscribed(let subscription): return subscription.inGrace
+        case .trial: return false
+        case .readOnly(let reason): return reason == .billingRetry
+        }
+    }
+
+    /// The footer of 「購入」: how to cancel (plus the trial's reassurance), the payment problem
+    /// while in grace, or the read-only reason and what read only still allows.
+    static func purchaseFooter(_ access: AccessState) -> String {
+        switch access {
+        case .subscribed(let subscription):
+            if subscription.inGrace {
+                return "お支払いに問題があります。端末の\(PlanText.paymentPath)でお支払い方法を確認してください。猶予の期限までは使えます。"
+            }
+            return cancelFooter
+        case .trial:
+            return cancelFooter + "試用中に解約すれば料金はかかりません。"
+        case .readOnly(let reason):
+            return PlanText.readOnlyNote(reason) + readOnlyFooter
+        }
+    }
+
+    /// 「購読する」 / 「14 日間無料で試す」 while read only; nil otherwise (no row).
+    static func purchaseButtonTitle(_ access: AccessState, eligible: Bool) -> String? {
+        guard !access.canEdit else { return nil }
+        return eligible ? "\(ProductIDs.trialDays) 日間無料で試す" : "購読する"
+    }
+
+    /// Red under the footer.
+    static func isFailure(_ message: StoreMessage) -> Bool {
+        if case .failed = message { return true }
+        return false
+    }
+
+    private static let cancelFooter = "解約は端末の\(PlanText.cancelPath)から。解約しても期間の終わりまで使えます。"
+    private static let readOnlyFooter = "閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この iPad の手書きを全て消す、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"
 }

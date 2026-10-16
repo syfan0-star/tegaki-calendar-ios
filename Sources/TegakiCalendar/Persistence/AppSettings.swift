@@ -5,7 +5,9 @@ import Layout
 /// reads or writes them (the callers check `ScreenshotMode.isActive`). M4c adds the zoom ratio of
 /// each page kind (`zoomRatio.<kind>`, D4): the zoom relative to the page's overview (`fitAll`),
 /// written only at the end of a pinch (`InkCanvasView.onZoomRatioChange`), read when a page of
-/// that kind opens.
+/// that kind opens. M5 adds one flag, `paywallShownAfterOnboardingKey` (M5_CONTRACT §4.2); the
+/// cached access state is kept by the Store layer itself (`UserDefaultsAccessCache.defaultKey`,
+/// M5-34), not here.
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -21,6 +23,12 @@ enum AppSettings {
     /// Existing (`EventStoreModel.hiddenKey`).
     static let hiddenCalendarIdsKey = "hiddenCalendarIds"
     static let onboardingDoneKey = "onboardingDone"
+    /// M5 (M5_CONTRACT §4.2, M5-33): `Bool`, default false. True once the first-launch paywall was
+    /// actually shown after the onboarding, or once the first refresh found a subscriber (it is then
+    /// never shown). Left false when the first refresh did not finish, the store was unreachable or
+    /// the prices were missing, so the next launch tries again. `CalendarRootScreen` reads it with
+    /// `@AppStorage`.
+    static let paywallShownAfterOnboardingKey = "paywallShownAfterOnboarding"
     // "toolbar.penColor" / "toolbar.penWidth" / "toolbar.markerColor" stay in ToolbarView.
 
     /// M4c (M4C contract §1.5): "zoomRatio.month" / "zoomRatio.week" / "zoomRatio.day" / "zoomRatio.year",

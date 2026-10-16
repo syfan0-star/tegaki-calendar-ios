@@ -87,4 +87,23 @@ final class AppSettingsTests: XCTestCase {
         AppSettings.defaults.set(1000.0, forKey: "zoomRatio.year")
         XCTAssertEqual(AppSettings.zoomRatio(for: .year), 1)
     }
+
+    // MARK: M5 (M5_CONTRACT §4.2 / §7.6)
+
+    /// The first-launch paywall flag: false until written, written back as a `Bool`, one key.
+    /// `CalendarRootScreen` keeps it with `@AppStorage`; the cached access state is the Store layer's
+    /// own key (`UserDefaultsAccessCache.defaultKey`, M5-34), not one of these.
+    func testPaywallShownAfterOnboarding() {
+        let key = AppSettings.paywallShownAfterOnboardingKey
+        XCTAssertEqual(key, "paywallShownAfterOnboarding")
+        XCTAssertNil(AppSettings.defaults.object(forKey: key), "nothing stored")
+        XCTAssertFalse(AppSettings.defaults.bool(forKey: key), "default false")
+        AppSettings.defaults.set(true, forKey: key)
+        XCTAssertTrue(AppSettings.defaults.bool(forKey: key))
+        AppSettings.defaults.set(false, forKey: key)
+        XCTAssertFalse(AppSettings.defaults.bool(forKey: key))
+        XCTAssertNotNil(AppSettings.defaults.object(forKey: key), "false is a written value, not the default")
+        XCTAssertNotEqual(key, AppSettings.onboardingDoneKey)
+        XCTAssertNotEqual(key, UserDefaultsAccessCache.defaultKey)
+    }
 }

@@ -287,8 +287,64 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "Sync"])?.sheet)
         XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "export"])?.sheet)
         XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "bogus"])?.sheet)
-        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 6)
-        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import"])
+        // M5 contract §7.5: `paywall` is the seventh sheet.
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 7)
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import", "paywall"])
+    }
+
+    // MARK: M5 (M5_CONTRACT §7.5, §7.6)
+
+    /// `--screenshot-readonly`: false without the flag, true with it, nothing else changes; it combines
+    /// with `--screenshot-sheet paywall` (the month page, `.paywall`, read only), and the paywall sheet
+    /// alone is not read only.
+    func testParseReadOnly() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "month"]
+        let plain = ScreenshotMode.parse(base)
+        let readOnly = ScreenshotMode.parse(base + ["--screenshot-readonly"])
+        XCTAssertEqual(plain?.readOnly, false)
+        XCTAssertEqual(readOnly?.readOnly, true)
+        XCTAssertEqual(readOnly?.page, plain?.page)
+        XCTAssertEqual(readOnly?.month, plain?.month)
+        XCTAssertEqual(readOnly?.today, plain?.today)
+        XCTAssertEqual(readOnly?.focus, plain?.focus)
+        XCTAssertEqual(readOnly?.sheet, plain?.sheet)
+        XCTAssertNil(readOnly?.sheet)
+        XCTAssertEqual(readOnly?.landscape, plain?.landscape)
+        XCTAssertEqual(readOnly?.zoomRatio, plain?.zoomRatio)
+        XCTAssertEqual(readOnly?.offset, plain?.offset)
+        XCTAssertEqual(readOnly?.page, .month)
+        XCTAssertEqual(readOnly?.month, october)
+
+        let both = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "paywall", "--screenshot-readonly"])
+        XCTAssertEqual(both?.page, .month)
+        XCTAssertEqual(both?.sheet, .paywall)
+        XCTAssertEqual(both?.readOnly, true)
+        let paywall = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "paywall"])
+        XCTAssertEqual(paywall?.sheet, .paywall)
+        XCTAssertEqual(paywall?.page, .month)
+        XCTAssertEqual(paywall?.readOnly, false)
+        XCTAssertEqual(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-sheet", "paywall"])?.month, october)
+
+        // The CI's photos (§7.5): the 11-inch day page and the iPhone's week page, read only.
+        let day = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "day", "--screenshot-readonly"])
+        XCTAssertEqual(day?.page, .day)
+        XCTAssertEqual(day?.readOnly, true)
+        XCTAssertEqual(day?.focus, DayKey(year: 2026, month: 10, day: 7))
+        let week = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week", "--screenshot-readonly"])
+        XCTAssertEqual(week?.page, .week)
+        XCTAssertEqual(week?.readOnly, true)
+        // With the other flags.
+        let all = ScreenshotMode.parse(base + ["--screenshot-landscape", "--screenshot-zoom", "2", "--screenshot-offset", "400,200", "--screenshot-readonly"])
+        XCTAssertEqual(all?.readOnly, true)
+        XCTAssertEqual(all?.landscape, true)
+        XCTAssertEqual(all?.zoomRatio, 2)
+        XCTAssertEqual(all?.offset, CGPoint(x: 400, y: 200))
+        // Without `--screenshot-mode` the flag means nothing.
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-readonly"]))
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-sheet", "paywall", "--screenshot-readonly"]))
+        // The field's default.
+        let config = ScreenshotMode.Config(page: .week, month: october, today: Date(), focus: DayKey(year: 2026, month: 10, day: 7), sheet: nil)
+        XCTAssertFalse(config.readOnly)
     }
 
     func testDemoSyncValues() {

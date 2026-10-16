@@ -38,6 +38,22 @@ struct EventEditorSheet: View {
     /// Performs the save / delete. A throw keeps the sheet open with the error in the footer.
     var onSubmit: (EventEditorResult) async throws -> Void
     var onCancel: () -> Void
+    /// M5 (M5_CONTRACT §3.3, M5-31): the footnote of the `.readOnly` sheet while the *app* is read only
+    /// (`subscriptionNote`). nil keeps the calendar's own 「このカレンダーは変更できません（読み取り専用）」,
+    /// which would tell an unsubscribed person the wrong cause.
+    var readOnlyNote: String? = nil
+    /// 「購読する」 under that footnote (the owner closes this sheet and shows the paywall); nil = no button.
+    var onSubscribe: (() -> Void)? = nil
+
+    /// The footnote while the app is read only (M5_CONTRACT §3.3).
+    static let subscriptionNote = "予定の作成・編集は購読すると使えます。"
+    /// The footnote of a calendar that cannot be modified (`allowsContentModifications == false`).
+    static let calendarReadOnlyNote = "このカレンダーは変更できません（読み取り専用）"
+
+    /// The text of the read-only sheet's footnote: `note` when given, else the calendar's (M5_CONTRACT §7.6).
+    static func readOnlyFootnote(note: String?) -> String {
+        note ?? calendarReadOnlyNote
+    }
 
     @State private var form: EventEditorForm
     @State private var calendarId: String
@@ -61,7 +77,9 @@ struct EventEditorSheet: View {
         showEraseOption: Bool = false,
         eraseDefault: Bool = true,
         onSubmit: @escaping (EventEditorResult) async throws -> Void,
-        onCancel: @escaping () -> Void
+        onCancel: @escaping () -> Void,
+        readOnlyNote: String? = nil,
+        onSubscribe: (() -> Void)? = nil
     ) {
         self.mode = mode
         self.draft = draft
@@ -71,6 +89,8 @@ struct EventEditorSheet: View {
         self.eraseDefault = eraseDefault
         self.onSubmit = onSubmit
         self.onCancel = onCancel
+        self.readOnlyNote = readOnlyNote
+        self.onSubscribe = onSubscribe
         _form = State(initialValue: EventEditorForm(draft: draft))
         _calendarId = State(initialValue: draft.calendarId)
         _eraseInk = State(initialValue: eraseDefault)
@@ -161,9 +181,13 @@ struct EventEditorSheet: View {
                 }
                 if isReadOnly {
                     Section {
-                        Text("このカレンダーは変更できません（読み取り専用）")
+                        Text(Self.readOnlyFootnote(note: readOnlyNote))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                        if let onSubscribe {
+                            // M5 (M5_CONTRACT §3.3): the subscription is what unlocks editing here.
+                            Button("購読する", action: onSubscribe)
+                        }
                     }
                 }
                 if let footerError = footerError {
