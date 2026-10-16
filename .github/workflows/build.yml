@@ -5,9 +5,12 @@
 # booted one at a time; the iPhone also shoots the week with a Sunday 「今日」 and tries the 4 pages
 # in landscape; since M4c (docs/M4C_CONTRACT.md §6) the 13-inch iPad also shoots the month, week and
 # year zoomed in to twice their overview and the iPhone the week at three times, plus the week of
-# 6/1, and the app logs are grepped for the canvas's `zoom:` lines) and uploads the screenshots
-# (artifact "screenshots", kept 7 days: up to 32 images + 4 logs) so the app can be looked at without
-# Xcode. The screenshot steps never fail the job.
+# 6/1, and the app logs are grepped for the canvas's `zoom:` lines; since M5 (docs/M5_CONTRACT.md §7.5,
+# §7.7) a seventh sheet "paywall" and three read-only shots ("--screenshot-readonly": the 13-inch month
+# with the 「閲覧専用」 badge and the toast, the 11-inch day page with the symbol-only badge, the iPhone
+# week with the notice row), and the logs are grepped for the store's `store:` lines) and uploads the
+# screenshots (artifact "screenshots", kept 7 days: up to 36 images + 4 logs) so the app can be looked
+# at without Xcode. The screenshot steps never fail the job.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -54,15 +57,16 @@ jobs:
           swift build --package-path TegakiKit
 
       # The count is checked as a number (docs/M4B_CONTRACT.md §7.1, M4B-9; docs/M4C_CONTRACT.md §6,
-      # M4C-10): M4c counts 22900 and the threshold is that number minus 50, so anything below 22850
-      # means a section went missing.
+      # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25): M5 counts 23114 (M4c's 22900 + 214 for the
+      # "access state (M5)" section) and the threshold is that number minus 50, so anything below
+      # 23064 means a section went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 22850 or more)"
-          test "${N:-0}" -ge 22850
+          echo "KitChecks count: ${N:-0} (required: 23064 or more)"
+          test "${N:-0}" -ge 23064
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -149,8 +153,12 @@ jobs:
       # opens the create / edit sheet, the lasso selection with its menu, or the settings screen half a
       # second after the canvas appeared; since M4 two more sheets, "sync" (the settings screen with the
       # demo sync engine: 「同期済み」 and 「最後に同期」) and "import" (the finished web import,
-      # docs/M4_CONTRACT.md §6.6). In screenshot mode the sync engine is an inert demo over an in-memory
-      # fake, so nothing here needs an iCloud account. simctl cannot tap or rotate the device; since
+      # docs/M4_CONTRACT.md §6.6); since M5 a seventh, "paywall" (the subscription sheet of
+      # docs/M5_CONTRACT.md §4.1 over the month page), and "--screenshot-readonly" (the demo store starts
+      # unsubscribed: the 「閲覧専用」 badge in the header, the toast of §3.3 for 20 s, docs/M5_CONTRACT.md
+      # §7.5). In screenshot mode the sync engine is an inert demo over an in-memory fake and the store
+      # is an inert demo client (no StoreKit, no UserDefaults), so nothing here needs an iCloud account
+      # or App Store Connect. simctl cannot tap or rotate the device; since
       # M4b (docs/M4B_CONTRACT.md §6.4) only the iPhone turns with "--screenshot-landscape" (the app
       # asks the window scene for landscape; iPadOS ignores that request for an app that supports
       # multitasking, so the iPad shots are portrait only).
@@ -215,8 +223,10 @@ jobs:
       # the overview (the whole page fits the paper area, docs/M4C_CONTRACT.md D1) and three more shots
       # open the month, the week and the year at twice the overview with a paper point (lu) at the top
       # left ("--screenshot-zoom 2 --screenshot-offset x,y", §2.4: the photo shares the canvas's zoom
-      # path with a pinch; the year's offset is clamped to the paper's right edge on purpose).
-      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed)
+      # path with a pinch; the year's offset is clamped to the paper's right edge on purpose). Since M5
+      # one more: the month page in read-only mode (docs/M5_CONTRACT.md §7.5: the orange 「閲覧専用」 badge
+      # left of 「＋予定」 (1024 pt ≥ 980, so with its text), the 20 s toast, undo/redo greyed).
+      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -244,9 +254,15 @@ jobs:
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page, zoom 2; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE-zoom2.png"
           done
+          xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+          sleep 1
+          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-readonly
+          sleep 8
+          pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (month page, read only; crashed?)"
+          xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-readonly.png"
           ls -la shots
 
-      - name: Screenshots (13-inch iPad, portrait, 6 sheets on the month page)
+      - name: Screenshots (13-inch iPad, portrait, 7 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -254,7 +270,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
-          for SHEET in create edit lasso settings sync import; do
+          for SHEET in create edit lasso settings sync import paywall; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET"
@@ -264,7 +280,7 @@ jobs:
           done
           ls -la shots
 
-      # The 13-inch log is collected before the other devices boot (their 10 shots fit in the 8 min
+      # The 13-inch log is collected before the other devices boot (its 15 shots fit in the 8 min
       # window; each extra device writes its own shots/<id>-log.txt below).
       - name: Collect the app log and crash reports (13-inch iPad)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
@@ -284,10 +300,17 @@ jobs:
           # enabled=%d min max zoom fitAll ratio view overview" (DEBUG), a pinch "zoom: begin" /
           # "zoom: end …"; pinch=1 means PKCanvasView offers a pinch (F4). C copies the numbers into docs/M4C.md.
           grep 'zoom: ' shots/app-log.txt || true
+          # M5 (docs/M5_CONTRACT.md §2.2, §7.7): LiveStoreClient logs "store: …" (DEBUG: environment,
+          # product count, states). Screenshot mode uses the inert demo client, so 0 lines here is the
+          # expected result; the grep is the reach check for a device log read the same way.
+          grep 'store: ' shots/app-log.txt || true
 
       # The three other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
       # down afterwards: iphone (iPhone 17, 402 pt), ipadmini (iPad mini (A17 Pro), 744 pt) and
       # ipad11 (iPad Pro 11-inch (M5), 834 pt), 4 portrait pages each as <id>-portrait-<page>.png.
+      # Since M5 (docs/M5_CONTRACT.md §7.5) the 11-inch iPad also shoots the day page in read-only mode
+      # (the longest title next to the symbol-only badge: 834 < 980, M5-32) and the iPhone the week in
+      # read-only mode (no badge in the two-row header; the notice row 「閲覧専用です。…」 + 「購読する」).
       # The iPhone also shoots the week of 2026-06 (6/7 is a Sunday: the paper starts at the right
       # edge, M4B-3; since M4c the overview shows the whole week, and the same week is shot again as
       # -week-jun for the "6/1" heading of the narrow column, M4C-28), the week at three times its
@@ -367,7 +390,13 @@ jobs:
             for PAGE in month week day year; do
               shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
             done
+            if [ "$ID" = "ipad11" ]; then
+              # M5-32: the day page's title 「2026年10月7日(水)」 must stay on one line next to the lock-only badge.
+              shoot "$ID-portrait-readonly.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-readonly
+            fi
             if [ "$ID" = "iphone" ]; then
+              # M5-13: compact width → no badge, the notice row under the header instead.
+              shoot "$ID-portrait-readonly.png" --screenshot-month 2026-10 --screenshot-page week --screenshot-readonly
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.
               shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
@@ -388,6 +417,7 @@ jobs:
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             xcrun simctl spawn "$UDID" log show --last 6m --style compact --predicate 'process == "TegakiCalendar"' > "shots/$ID-log.txt" 2>&1 || true
             grep 'zoom: ' "shots/$ID-log.txt" || true     # M4c: the canvas's zoom lines of this device
+            grep 'store: ' "shots/$ID-log.txt" || true    # M5: the store's lines (0 in screenshot mode, see above)
             [ "$UDID" = "$PRIMARY" ] || xcrun simctl shutdown "$UDID" || true
           done
           ls -la shots
