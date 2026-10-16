@@ -1,0 +1,66 @@
+{
+  "identifier": "TegakiCalendarStore",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_applicationInternalID": "6822762089",
+    "_developerTeamID": "",
+    "_lastSynchronizedDate": 0,
+    "_locale": "ja_JP",
+    "_storefront": "JPN",
+    "_storeKitErrors": [],
+    "_askToBuyEnabled": false,
+    "_billingGracePeriodEnabled": true,
+    "_billingIssuesEnabled": false,
+    "_failTransactionsEnabled": false,
+    "_timeRate": 0
+  },
+  "subscriptionGroups": [
+    {
+      "id": "21700001",
+      "name": "てがきカレンダー",
+      "localizations": [
+        { "locale": "ja_JP", "displayName": "てがきカレンダー", "description": "" }
+      ],
+      "subscriptions": [
+        {
+          "internalID": "21700002",
+          "subscriptionGroupID": "21700001",
+          "productID": "com.syfan0.tegakicalendar.monthly",
+          "referenceName": "月額",
+          "type": "RecurringSubscription",
+          "recurringSubscriptionPeriod": "P1M",
+          "displayPrice": "300",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "introductoryOffer": { "internalID": "21700004", "paymentMode": "free", "subscriptionPeriod": "P2W" },
+          "localizations": [
+            { "locale": "ja_JP", "displayName": "てがきカレンダー 月額", "description": "手書き・予定の作成・iCloud 同期が使える月額プラン" }
+          ],
+          "adHocOffers": [],
+          "codeOffers": [],
+          "winbackOffers": []
+        },
+        {
+          "internalID": "21700003",
+          "subscriptionGroupID": "21700001",
+          "productID": "com.syfan0.tegakicalendar.yearly",
+          "referenceName": "年額",
+          "type": "RecurringSubscription",
+          "recurringSubscriptionPeriod": "P1Y",
+          "displayPrice": "2400",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "introductoryOffer": { "internalID": "21700005", "paymentMode": "free", "subscriptionPeriod": "P2W" },
+          "localizations": [
+            { "locale": "ja_JP", "displayName": "てがきカレンダー 年額", "description": "同じ機能の年額プラン（月あたり 200 円・4 か月分お得）" }
+          ],
+          "adHocOffers": [],
+          "codeOffers": [],
+          "winbackOffers": []
+        }
+      ]
+    }
+  ],
+  "version": { "major": 3, "minor": 0 }
+}
