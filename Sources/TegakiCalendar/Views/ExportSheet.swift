@@ -197,6 +197,10 @@ struct ExportSheet: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
+                    // C (CI run 39031277533, ipad13-portrait-sheet-export.png): without this the bordered
+                    // button proposes the label a two-line height and the longer JSON note ends in "…"
+                    // (M6_CONTRACT §8-5 wants no clipped text); the Text now takes its full height.
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
