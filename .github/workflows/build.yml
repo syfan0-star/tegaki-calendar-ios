@@ -8,9 +8,12 @@
 # 6/1, and the app logs are grepped for the canvas's `zoom:` lines; since M5 (docs/M5_CONTRACT.md §7.5,
 # §7.7) a seventh sheet "paywall" and three read-only shots ("--screenshot-readonly": the 13-inch month
 # with the 「閲覧専用」 badge and the toast, the 11-inch day page with the symbol-only badge, the iPhone
-# week with the notice row), and the logs are grepped for the store's `store:` lines) and uploads the
-# screenshots (artifact "screenshots", kept 7 days: up to 36 images + 4 logs) so the app can be looked
-# at without Xcode. The screenshot steps never fail the job.
+# week with the notice row), and the logs are grepped for the store's `store:` lines; since M6
+# (docs/M6_CONTRACT.md §4.2, §7.4) an eighth sheet "export" (the export sheet in its choose state), the
+# iPhone's paywall sheet, five shots on a 6.9-inch iPhone (iPhone 17 Pro Max) and a "Store listing set"
+# step that converts the App Store shots into JPEGs under store/<device>/) and uploads the
+# screenshots (artifact "screenshots", kept 7 days: up to 43 images + 5 logs + store/) so the app can be
+# looked at without Xcode. The screenshot steps never fail the job.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -57,16 +60,16 @@ jobs:
           swift build --package-path TegakiKit
 
       # The count is checked as a number (docs/M4B_CONTRACT.md §7.1, M4B-9; docs/M4C_CONTRACT.md §6,
-      # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25): M5 counts 23114 (M4c's 22900 + 214 for the
-      # "access state (M5)" section) and the threshold is that number minus 50, so anything below
-      # 23064 means a section went missing.
+      # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25; docs/M6_CONTRACT.md §7.1, M6-18): M6 counts 23378
+      # (M5's 23114 + 264 for the "app export (M6)" section) and the threshold is that number minus 50,
+      # so anything below 23328 means a section went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 23064 or more)"
-          test "${N:-0}" -ge 23064
+          echo "KitChecks count: ${N:-0} (required: 23328 or more)"
+          test "${N:-0}" -ge 23328
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -156,7 +159,9 @@ jobs:
       # docs/M4_CONTRACT.md §6.6); since M5 a seventh, "paywall" (the subscription sheet of
       # docs/M5_CONTRACT.md §4.1 over the month page), and "--screenshot-readonly" (the demo store starts
       # unsubscribed: the 「閲覧専用」 badge in the header, the toast of §3.3 for 20 s, docs/M5_CONTRACT.md
-      # §7.5). In screenshot mode the sync engine is an inert demo over an in-memory fake and the store
+      # §7.5); since M6 an eighth sheet, "export" (the export sheet of docs/M6_CONTRACT.md §3.2 in its
+      # choose state — two actions with a one-line note each — over the month page, 0-6).
+      # In screenshot mode the sync engine is an inert demo over an in-memory fake and the store
       # is an inert demo client (no StoreKit, no UserDefaults), so nothing here needs an iCloud account
       # or App Store Connect. simctl cannot tap or rotate the device; since
       # M4b (docs/M4B_CONTRACT.md §6.4) only the iPhone turns with "--screenshot-landscape" (the app
@@ -262,7 +267,7 @@ jobs:
           xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-readonly.png"
           ls -la shots
 
-      - name: Screenshots (13-inch iPad, portrait, 7 sheets on the month page)
+      - name: Screenshots (13-inch iPad, portrait, 8 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -270,7 +275,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
-          for SHEET in create edit lasso settings sync import paywall; do
+          for SHEET in create edit lasso settings sync import paywall export; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET"
@@ -280,7 +285,7 @@ jobs:
           done
           ls -la shots
 
-      # The 13-inch log is collected before the other devices boot (its 15 shots fit in the 8 min
+      # The 13-inch log is collected before the other devices boot (its 16 shots fit in the 8 min
       # window; each extra device writes its own shots/<id>-log.txt below).
       - name: Collect the app log and crash reports (13-inch iPad)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
@@ -305,9 +310,14 @@ jobs:
           # expected result; the grep is the reach check for a device log read the same way.
           grep 'store: ' shots/app-log.txt || true
 
-      # The three other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
-      # down afterwards: iphone (iPhone 17, 402 pt), ipadmini (iPad mini (A17 Pro), 744 pt) and
+      # The four other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
+      # down afterwards: iphone (iPhone 17, 402 pt), iphone69 (iPhone 17 Pro Max, 440 pt; since M6,
+      # docs/M6_CONTRACT.md 0-15 / M6-2: the 6.9-inch App Store shots, 1320×2868 — the prefix fallbacks
+      # are iPhone 17 Pro Max, iPhone 17 Pro, iPhone 16 Pro Max in that order; on "iPhone 17 Pro" the
+      # pixels are 6.3-inch and the store step below warns), ipadmini (iPad mini (A17 Pro), 744 pt) and
       # ipad11 (iPad Pro 11-inch (M5), 834 pt), 4 portrait pages each as <id>-portrait-<page>.png.
+      # Since M6 the iPhone and the 6.9-inch iPhone also shoot the paywall sheet over the month page
+      # (docs/M6_CONTRACT.md §4.2: store/iphone/05-paywall.jpg and store/iphone69/05-paywall.jpg).
       # Since M5 (docs/M5_CONTRACT.md §7.5) the 11-inch iPad also shoots the day page in read-only mode
       # (the longest title next to the symbol-only badge: 834 < 980, M5-32) and the iPhone the week in
       # read-only mode (no badge in the two-row header; the notice row 「閲覧専用です。…」 + 「購読する」).
@@ -319,7 +329,7 @@ jobs:
       # the request was ignored, the header then stays two rows). Every shot is best effort; a
       # missing simulator or a failed boot only skips that device. The 13-inch simulator is shut down
       # first to leave the runner's memory to the next one.
-      - name: Screenshots (iPhone, iPad mini, 11-inch iPad; portrait, 4 pages each)
+      - name: Screenshots (iPhone, 6.9-inch iPhone, iPad mini, 11-inch iPad; portrait, 4 pages each)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -335,6 +345,7 @@ jobs:
           xcrun simctl shutdown "$PRIMARY" || true
           # device-id | exact first choice | prefix fallbacks (in order)
           for SPEC in "iphone|iPhone 17|iPhone 17,iPhone" \
+                      "iphone69|iPhone 17 Pro Max|iPhone 17 Pro Max,iPhone 17 Pro,iPhone 16 Pro Max" \
                       "ipadmini|iPad mini (A17 Pro)|iPad mini" \
                       "ipad11|iPad Pro 11-inch (M5)|iPad Pro 11,iPad Air 11,iPad (A"; do
             ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
@@ -397,6 +408,13 @@ jobs:
             if [ "$ID" = "iphone" ]; then
               # M5-13: compact width → no badge, the notice row under the header instead.
               shoot "$ID-portrait-readonly.png" --screenshot-month 2026-10 --screenshot-page week --screenshot-readonly
+            fi
+            if [ "$ID" = "iphone" ] || [ "$ID" = "iphone69" ]; then
+              # M6 (docs/M6_CONTRACT.md §4.2, §7.4): the full-height paywall sheet (.large detent) over the
+              # month page — the App Store shot 05-paywall of both iPhone classes.
+              shoot "$ID-portrait-sheet-paywall.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet paywall
+            fi
+            if [ "$ID" = "iphone" ]; then
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.
               shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
@@ -421,6 +439,66 @@ jobs:
             [ "$UDID" = "$PRIMARY" ] || xcrun simctl shutdown "$UDID" || true
           done
           ls -la shots
+
+      # M6 (docs/M6_CONTRACT.md §4.1, §4.2, §7.4): the App Store listing set. The shots of §4.2 are
+      # converted to JPEG (no alpha: `simctl io screenshot` PNGs are usually opaque but that is not
+      # guaranteed, and Apple rejects alpha) under shots/store/<device>/NN-<name>.jpg, and each file's
+      # pixel size is compared with Apple's accepted portrait sizes for that device class (help page
+      # "Screenshot specifications", read 2026-10-17): iPad 13-inch 2064×2752 or 2048×2732, iPhone
+      # Dynamic Island (medium) 1206×2622 or 1179×2556, iPhone Dynamic Island (large) 1320×2868 /
+      # 1290×2796 / 1260×2736, iPad 11-inch 1668×2420 / 1668×2388 / 1640×2360 / 1488×2266. A size
+      # outside its set is a ::warning (a run that fell back to "iPad Air 13-inch" gives 2048×2732 and
+      # passes; one that fell back to "iPhone 17 Pro" for iphone69 gives 1206×2622 and warns). The
+      # numbers are the provisional listing order (§4.2 — the lead may reorder at §8-5). Always runs,
+      # never fails the job; a missing source only skips that one file.
+      - name: Store listing set (JPEG, App Store sizes)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          mkdir -p shots/store/ipad13 shots/store/iphone shots/store/iphone69 shots/store/ipad11
+          accepted() {  # accepted <device>: Apple's accepted portrait pixel sizes (docs/M6_CONTRACT.md §4.1)
+            case "$1" in
+              ipad13)   echo "2064x2752 2048x2732" ;;
+              iphone)   echo "1206x2622 1179x2556" ;;
+              iphone69) echo "1320x2868 1290x2796 1260x2736" ;;
+              ipad11)   echo "1668x2420 1668x2388 1640x2360 1488x2266" ;;
+              *)        echo "" ;;
+            esac
+          }
+          store() {  # store <device> <NN-name> <source shot without .png>: convert, then check the size
+            local DEV="$1" NAME="$2" SRC="shots/$3.png" OUT="shots/store/$1/$2.jpg" W H SIZE
+            if [ ! -f "$SRC" ]; then echo "::warning::store/$DEV/$NAME.jpg: source $SRC is missing; skipped."; return 0; fi
+            if ! sips -s format jpeg -s formatOptions 100 "$SRC" --out "$OUT" > /dev/null; then echo "::warning::store/$DEV/$NAME.jpg: sips could not convert $SRC."; return 0; fi
+            W="$(sips -g pixelWidth "$OUT" | awk '/pixelWidth/ {print $2}')"
+            H="$(sips -g pixelHeight "$OUT" | awk '/pixelHeight/ {print $2}')"
+            SIZE="${W}x${H}"
+            case " $(accepted "$DEV") " in
+              *" $SIZE "*) echo "store/$DEV/$NAME.jpg: ${SIZE} (accepted for $DEV)" ;;
+              *) echo "::warning::store/$DEV/$NAME.jpg is ${SIZE}, not one of the accepted sizes for $DEV ($(accepted "$DEV"))." ;;
+            esac
+          }
+          store ipad13   01-month    ipad13-portrait-month
+          store ipad13   02-week     ipad13-portrait-week
+          store ipad13   03-day      ipad13-portrait-day
+          store ipad13   04-year     ipad13-portrait-year
+          store ipad13   05-paywall  ipad13-portrait-sheet-paywall
+          store ipad13   06-settings ipad13-portrait-sheet-settings
+          store iphone   01-week     iphone-portrait-week
+          store iphone   02-month    iphone-portrait-month
+          store iphone   03-day      iphone-portrait-day
+          store iphone   04-year     iphone-portrait-year
+          store iphone   05-paywall  iphone-portrait-sheet-paywall
+          store iphone69 01-week     iphone69-portrait-week
+          store iphone69 02-month    iphone69-portrait-month
+          store iphone69 03-day      iphone69-portrait-day
+          store iphone69 04-year     iphone69-portrait-year
+          store iphone69 05-paywall  iphone69-portrait-sheet-paywall
+          store ipad11   01-month    ipad11-portrait-month
+          store ipad11   02-week     ipad11-portrait-week
+          store ipad11   03-day      ipad11-portrait-day
+          store ipad11   04-year     ipad11-portrait-year
+          ls -la shots/store/*
 
       - name: Upload screenshots
         if: always()

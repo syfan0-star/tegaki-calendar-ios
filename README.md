@@ -26,13 +26,15 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 | [docs/M4C.md](docs/M4C.md) | M4c の実装結果（作ったもの・確かめ方・ピンチの診断（CI のログ）・本人が見るもの（写真の確認表）・既知の制限） |
 | [docs/M5_CONTRACT.md](docs/M5_CONTRACT.md) | M5 の実装契約（サブスクリプション（StoreKit 2）、権利の状態機械と控え、閲覧専用モード、ペイウォール、設定 › 購入、規約類の公開版、App Store Connect の手順、サンドボックスの試験） |
 | [docs/M5.md](docs/M5.md) | M5 の実装結果（作ったもの・確かめ方・CI の結果と写真の確認表・StoreKitTest の可否・本人がやること（Connect・サンドボックス試験）・既知の制限） |
+| [docs/M6_CONTRACT.md](docs/M6_CONTRACT.md) | M6 の実装契約（手書きの書き出し（データファイル `tegaki-app-export` v1 と PDF）、取り込み口の 2 形式化、App Store の審査資料（写真・サブタイトル・キーワード・審査メモ・年齢区分・App Privacy）、App Store Connect の手順、規約類の「提供中」への更新、版 1.0） |
+| [docs/M6.md](docs/M6.md) | M6 の実装結果（作ったもの・確かめ方・CI の結果と写真の確認表・`store/` の一覧・大きなファイルの実測・本人とリードがやること（Connect の入力・TestFlight 1.0 の実機確認・提出）・既知の制限） |
 | [docs/PRICING.md](docs/PRICING.md) | 価格（月 300 円・年 2,400 円・14 日間無料。2026-10-11 の決定、M5 で実装） |
 | [docs/APPLE_ENROLLMENT.md](docs/APPLE_ENROLLMENT.md) | Apple Developer Program の登録手順（本人向け） |
 | [docs/TERMS.md](docs/TERMS.md) ／ [docs/PRIVACY.md](docs/PRIVACY.md) ／ [docs/SUPPORT.md](docs/SUPPORT.md) | 利用規約・プライバシーポリシー・サポートページ（M5 で公開版に。Web 版の Pages の `app/` に HTML で公開する。専門家の確認は本人の任意） |
 
-## いま出来ていること（第 5 段階 M5）
+## いま出来ていること（第 6 段階 M6）
 
-月・週・日・年の 4 ページに手書きし、予定を読み取って紙の上に並べ、紙の上から予定を作る・直す・消し、手書きをご本人の iCloud でほかの iPad や iPhone と同期し、Web 版の手書きを取り込み、iPhone・iPad mini・11 インチ・13 インチのどれでも、ページ全体が画面に入る「一覧」で開いてピンチで拡大縮小し、週・月・年の指のダブルタップでその日へ飛び、App Store のサブスクリプション（14 日間無料）で手帳の機能を解放し、購読していないときは閲覧専用で使えるところまでです（詳しくは [docs/M2.md](docs/M2.md)、[docs/M3A.md](docs/M3A.md)、[docs/M3B.md](docs/M3B.md)、[docs/M4.md](docs/M4.md)、[docs/M4B.md](docs/M4B.md)、[docs/M4C.md](docs/M4C.md)、[docs/M5.md](docs/M5.md)）。
+月・週・日・年の 4 ページに手書きし、予定を読み取って紙の上に並べ、紙の上から予定を作る・直す・消し、手書きをご本人の iCloud でほかの iPad や iPhone と同期し、Web 版の手書きを取り込み、iPhone・iPad mini・11 インチ・13 インチのどれでも、ページ全体が画面に入る「一覧」で開いてピンチで拡大縮小し、週・月・年の指のダブルタップでその日へ飛び、App Store のサブスクリプション（14 日間無料）で手帳の機能を解放し、購読していないときは閲覧専用で使え、手書きを全ページのデータファイル（JSON）や開いているページの PDF に書き出せるところまでです（詳しくは [docs/M2.md](docs/M2.md)、[docs/M3A.md](docs/M3A.md)、[docs/M3B.md](docs/M3B.md)、[docs/M4.md](docs/M4.md)、[docs/M4B.md](docs/M4B.md)、[docs/M4C.md](docs/M4C.md)、[docs/M5.md](docs/M5.md)、[docs/M6.md](docs/M6.md)）。
 
 | 機能 | 内容 |
 | --- | --- |
@@ -49,13 +51,14 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 | 手書き | Apple Pencil で書きます。ペン（6 色 × 細・中・太）、マーカー（4 色）、消しゴム（触れた線をまるごと消す）、元に戻す／やり直す。指はスクロール・ピンチ拡大・タップ用（「指でも書く」で指でも書けます）。手書きはページごと（月・週・日・年）に iPad の中へ保存され、最後に見ていたページで開き直します |
 | 一覧とピンチ | どのページも、ページ全体（月は 6 行の格子、週は 24 時間、日と年は紙全体）が画面に入る **一覧** の倍率で開きます（iPad の月は幅ぴったりのまま）。ピンチで一覧（これより小さくはならない）〜幅ぴったりの 4 倍まで拡大縮小でき、一覧のままでも書けます。一覧では文字が比例して小さくなり（罫線は 1 pt のまま）、iPhone の一覧は地図のような縮図で、ピンチで拡大して読みます。指を離した倍率はページの種類（月・週・日・年）ごとに覚え、同じ種類の次のページも同じ倍率で開きます。向きを変えても一覧は一覧のまま、拡大中は手書きの大きさが変わりません。紙が画面より小さいときは机の色の余白の中央に寄せ、余白に書いた線は保存しません |
 | iCloud 同期 | iPad で iCloud にサインインしていれば自動で、手書きがご本人の iCloud（CloudKit のプライベートデータベース）にも保存され、同じ Apple ID のほかの iPad や iPhone で同じ手書きが見えます。ヘッダー右の ☁ に状態（保存済み／同期中／オフライン／この iPad のみ／エラー／停止中。タップで設定画面）。書いてから約 3 秒で送り、相手の線はアプリを前面に戻したとき・ページを開いたとき・サイレントプッシュが届いたときに取り込みます。オフラインでも全部使え、回線が戻れば送ります。iPad の中のファイルが常に主で、iCloud は「ほかの端末へ届ける経路」と「バックアップ」。別の Apple ID にサインインし直したときは、残すか消すかを聞いてから使い始めます。開発者には手書きは見えません |
-| Web 版からの取り込み | Web 版の設定で「手書きを書き出す（iPad アプリ用）」をすると、全ページ・全端末の手書きが 1 つの JSON ファイルになり、iPad の「ファイル」アプリに入ります。アプリの設定 › データ › 「Web 版の手書きを取り込む」でそのファイルを選ぶと、月・週・日・年の 4 ページに Web 版と同じ位置で入ります（線の id をそのまま使うので、同じファイルを二度取り込んでも二重になりません。Web 版で消した線は戻りません） |
+| Web 版からの取り込み | Web 版の設定で「手書きを書き出す（iPad アプリ用）」をすると、全ページ・全端末の手書きが 1 つの JSON ファイルになり、iPad の「ファイル」アプリに入ります。アプリの設定 › データ › 「Web 版の手書きを取り込む」でそのファイルを選ぶと、月・週・日・年の 4 ページに Web 版と同じ位置で入ります（線の id をそのまま使うので、同じファイルを二度取り込んでも二重になりません。Web 版で消した線は戻りません）。M6 からは同じ行で、このアプリ自身が書き出したデータファイル（下の行）も取り込めます（復元。完成文は「手書きを取り込みました（N ページ・M 本）」。取り込みは購読中に） |
+| 手書きの書き出し | 設定 › データ › 「手書きを書き出す」（閲覧専用でも使えます。iPhone でも）。**データファイル（JSON、すべてのページ）** は、この端末に保存されている手書きの全ページ（月・週・日・年）を 1 つの読める整形 JSON（形式 `tegaki-app-export` v1。[設計書 §3.9](docs/DESIGN.md#39-保存形式とバージョン)）にしたもので、ファイル名は「てがきカレンダー 手書き YYYY-MM-DD.json」。「Web 版の手書きを取り込む」から取り込み直せます（同じファイルを二度取り込んでも二重にならず、書き出した後に消した線は戻りません。全部を元に戻すときは「この iPad の手書きを全て消す」の後に取り込みます）。**このページを PDF** は、いま開いているページを 1 枚の PDF に（紙・予定・祝日・手書きが画面のとおり。紙と文字はベクタ、手書きは 2 倍の画像。現在時刻の赤線は入れません。ファイル名は「てがきカレンダー 2026年10月 月.pdf」の形）。できあがると「共有…」で「ファイル」アプリに保存、AirDrop、メールなどへ |
 | Apple Pencil のダブルタップ／スクイーズ | iPad の「設定 › Apple Pencil」で選んだ動作どおりにペン ⇄ 消しゴム |
 | 初回案内 | カレンダーのアカウント → フルアクセスの説明 → ペンと指の使い分け → iCloud と手書きの保存、の 4 枚。最後のボタンで許可の画面が出ます（iCloud に許可の画面はありません） |
-| 設定画面 | ヘッダーの ⚙ か ☁。表示するカレンダー（アカウントごと）、予定の登録先、カレンダーへのアクセス、Google カレンダーの使い方、指でも書く、予定にした手書きを消す、iCloud 同期の状態と「最後に同期」「今すぐ同期」、Web 版の手書きを取り込む、この iPad の手書きを全て消す（2 回確認。iCloud が使える状態なら iCloud の分も消え、ほかの端末からも消えます）、購入（現在のプラン・購入を復元・サブスクリプションの管理）、利用規約・プライバシーポリシー・使用許諾契約（Apple 標準 EULA）・サポート・バージョン。アプリからの書き出しは「準備中」（M6。設定にはその行を置かず、規約・サポートに「未提供」と書いてあります） |
+| 設定画面 | ヘッダーの ⚙ か ☁。表示するカレンダー（アカウントごと）、予定の登録先、カレンダーへのアクセス、Google カレンダーの使い方、指でも書く、予定にした手書きを消す、iCloud 同期の状態と「最後に同期」「今すぐ同期」、Web 版の手書きを取り込む（Web 版の書き出しと、このアプリの書き出したデータファイルの 2 形式）、手書きを書き出す（データファイル `tegaki-app-export` v1（JSON、すべてのページ）か、いま開いているページの PDF。閲覧専用でも青いまま押せます）、この iPad の手書きを全て消す（2 回確認。iCloud が使える状態なら iCloud の分も消え、ほかの端末からも消えます）、購入（現在のプラン・購入を復元・サブスクリプションの管理）、利用規約・プライバシーポリシー・使用許諾契約（Apple 標準 EULA）・サポート・バージョン |
 | 購入と閲覧専用 | 月額 300 円・年額 2,400 円・14 日間無料のサブスクリプション。購読していないときは閲覧専用（予定と手書きの閲覧、ページ移動、拡大はできる。書く・消す・予定の作成はペイウォールの案内）。購入画面は初回案内の後（未購読と確認できたとき）、ヘッダーの「閲覧専用」バッジ、止めた操作を試みたとき（1 セッション 1 回、2 回目以降はトースト）、設定 › 購入 から。権利の判定は Apple（StoreKit 2）が正で、最後に分かった状態を端末に控えるので機内モードでも書けます |
 | iPhone | ヘッダーが 2 段（切替は 2 段目。☁ は記号だけ）、ツールバーは横にスクロール、最初は週ページ、「指でも書く」は最初からオン。一覧ではページ全体が画面に入り（文字は 4〜7 pt の縮図）、拡大すると月・週・日は今日の列から、年は今月の列から横にスクロール。「指でも書く」がオンのときは 2 本指で動かす（ツールバーで切れる）。投げなわ・予定の道具を使っているときも 1 本指が道具、2 本指がスクロールとピンチ |
-まだ無いもの（M6 以降）: アプリからの手書きの書き出し（JSON・PDF・画像。App Store 公開までに最低限を入れる）、設定（表示するカレンダーなど）の同期。これらは[設計書の段階計画](docs/DESIGN.md#9-段階計画)の順に足していきます。
+まだ無いもの（公開後）: 設定（表示するカレンダーなど）の同期。[設計書の段階計画](docs/DESIGN.md#9-段階計画)の順に足していきます。
 
 ## 仕組み（Web 版との違い）
 
@@ -73,12 +76,12 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 このリポジトリは **手元の Mac に Xcode が無くてもビルドできる** ようにしてあります。
 
 - `git push` するたびに、GitHub の macOS マシン（`macos-26`、Xcode 26.6）が自動で次をします（[.github/workflows/build.yml](.github/workflows/build.yml)）。
-  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（23114 項目の検査。23064 以上であることを数字で確かめる）→ `swift test`
+  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（23378 項目の検査。23328 以上であることを数字で確かめる）→ `swift test`
   2. `brew install xcodegen` → `xcodegen generate` で Xcode プロジェクト（`TegakiCalendar.xcodeproj`）を作る
   3. iOS シミュレータ向けにビルド（署名なし）
   4. 13 インチ iPad のシミュレータでアプリのユニットテスト（PencilKit の台帳と選択の操作・手書きの画像・予定シートの状態・予定の書き込み・スクリーンショットモード・同期エンジン（メモリ上の偽の iCloud に対して。iCloud アカウントは不要）・レコードの写像・CloudKit の誤りの写像・状態ファイル・紙の文字のクリップと窓・キャンバスの viewport の通知・一覧の倍率とピンチの終端の経路・ダブルタップの認識器・保存比率・スクリーンショットの倍率の引数・購読の状態機械と `StoreModel`（偽の App Store と、StoreKit のテスト環境 `SKTestSession` に対して。App Store Connect は不要）・ペイウォールと設定の文言・閲覧専用の判定）を実行
-  5. 同じ 13 インチのシミュレータでアプリをスクリーンショットモードで 15 回起動し（月・週・日・年の 4 ページ（一覧）、月・週・年を 2 倍に拡大した 3 枚、閲覧専用の月ページ（「閲覧専用」バッジとトースト）、月ページで「予定を追加」「予定を編集」「投げなわの選択」「設定」「同期（設定の「同期」の節）」「Web 版の取り込みの結果」「購入（ペイウォール）」の 7 つのシート）、続けて iPhone 17・iPad mini・11 インチ iPad を 1 台ずつ起動して 4 ページずつ（11 インチはさらに閲覧専用の日ページ、iPhone はさらに今日が日曜の週・6/1 の週・週を 3 倍に拡大した 1 枚ずつ・閲覧専用の週と横向き 4 枚）、画面を撮って成果物 `screenshots`（7 日保存）に置く。13 インチ 15 枚 + iPad mini 4 枚 + 11 インチ 5 枚 + iPhone 縦 8 枚 + iPhone 横 4 枚 = 36 枚。アプリのログ（4 本）には倍率の診断行（`zoom:`）が残る（購入の診断行 `store:` はスクリーンショットモードでは偽の App Store なので 0 行）
-- 結果は GitHub の「Actions」タブで見られます。緑のチェックなら成功です。成果物の 36 枚の画像（4 機種）で、Xcode が無くても画面を確かめられます。CI のシミュレータは iCloud に触りません（署名なしのビルドで entitlements は埋め込まれず、スクリーンショットモードとテストは偽の iCloud を使います）。
+  5. 同じ 13 インチのシミュレータでアプリをスクリーンショットモードで 16 回起動し（月・週・日・年の 4 ページ（一覧）、月・週・年を 2 倍に拡大した 3 枚、閲覧専用の月ページ（「閲覧専用」バッジとトースト）、月ページで「予定を追加」「予定を編集」「投げなわの選択」「設定」「同期（設定の「同期」の節）」「Web 版の取り込みの結果」「購入（ペイウォール）」「手書きを書き出す（書き出しのシート）」の 8 つのシート）、続けて iPhone 17・iPhone 17 Pro Max（6.9 インチ）・iPad mini・11 インチ iPad を 1 台ずつ起動して 4 ページずつ（11 インチはさらに閲覧専用の日ページ、iPhone と 6.9 インチはさらに購入画面のシート、iPhone はさらに今日が日曜の週・6/1 の週・週を 3 倍に拡大した 1 枚ずつ・閲覧専用の週と横向き 4 枚）、画面を撮って成果物 `screenshots`（7 日保存）に置く。13 インチ 16 枚 + iPad mini 4 枚 + 11 インチ 5 枚 + iPhone 縦 9 枚 + iPhone 横 4 枚 + 6.9 インチ 5 枚 = 43 枚。さらに App Store の掲載用に `store/<機種>/NN-<名前>.jpg`（13 インチ 6 枚・iPhone 5 枚・6.9 インチ 5 枚・11 インチ 4 枚 = 20 枚。アルファ無しの JPEG。画素が Apple の受理サイズのどれかであることを照合し、違えば警告）。アプリのログ（5 本）には倍率の診断行（`zoom:`）が残る（購入の診断行 `store:` はスクリーンショットモードでは偽の App Store なので 0 行）
+- 結果は GitHub の「Actions」タブで見られます。緑のチェックなら成功です。成果物の 43 枚の画像（5 機種）と `store/` の 20 枚で、Xcode が無くても画面を確かめられます。CI のシミュレータは iCloud に触りません（署名なしのビルドで entitlements は埋め込まれず、スクリーンショットモードとテストは偽の iCloud を使います）。
 - [.github/workflows/testflight.yml](.github/workflows/testflight.yml) は **手動実行** で、署名付きでビルドして TestFlight へ送ります。Apple Developer Program の承認後に 7 つの Secrets（証明書・プロファイル・App Store Connect の API キー）を登録すると使えます。未設定のまま実行すると、何が足りないかを日本語で表示して止まります。M4 からは App ID に iCloud（CloudKit）と Push Notifications を付けたプロファイルが必要です（[docs/M4.md §2.3](docs/M4.md)）。
 - 成果物（ビルドしたアプリ）は保存していません。
 
@@ -89,7 +92,7 @@ Command Line Tools の `swift` だけで、純粋な部分の検査が通りま�
 ```bash
 cd TegakiKit
 swift build            # DayKit / Holidays / Layout / InkModel / Access / KitChecks をビルド
-swift run KitChecks    # 「KitChecks: all 23114 checks passed」と出れば OK
+swift run KitChecks    # 「KitChecks: all 23378 checks passed」と出れば OK
 ```
 
 アプリ側（UIKit / PencilKit / EventKit / CloudKit）は Xcode でしかコンパイルできないので、構文だけ確かめます。
@@ -132,7 +135,7 @@ TegakiKit/                          ローカル Swift パッケージ（Foundat
   Sources/DayKit/DayKey.swift       「年・月・日」だけの日付（時差に左右されない計算用）と YearMonth
   Sources/Holidays/JapaneseHolidays.swift  日本の祝日（2000〜2099 年、Web 版と同じ規則）
   Sources/Layout/                   紙の寸法・マスの鍵・予定の正規化形・4 ページの配置（PageLayout、月・週・日・年の engine、時間指定の重なり処理、レーンの間引き、ページの id と移動と初期位置、矩形 ⇄ 予定の範囲 EventRange）、ページごとの一覧の倍率・上限・保存比率と見えている範囲（ZoomPolicy / PaperViewport）、ダブルタップの点から日を引く dayAt、週・日の固定の終日帯（AllDayBand）
-  Sources/InkModel/                 手書きの台帳（InkPage / InkStroke、merge、JSON、LZFSE）、投げなわの数学（LassoGeometry）、Web 版の書き出しの解析と変換（WebImport）、同期の状態ファイルの型（SyncState）と再試行の間隔（SyncBackoff）、週・日の帯の手書きの移し替え（BandMigration）
+  Sources/InkModel/                 手書きの台帳（InkPage / InkStroke、merge、JSON（圧縮形と整形）、LZFSE）、投げなわの数学（LassoGeometry）、Web 版の書き出しの解析と変換（WebImport）、このアプリの書き出しファイル tegaki-app-export v1 の組み立て・解析・ファイル名（AppExport）、取り込み口の 2 形式の入口とページ単位の切り分け（InkImport）、同期の状態ファイルの型（SyncState）と再試行の間隔（SyncBackoff）、週・日の帯の手書きの移し替え（BandMigration）
   Sources/Access/                   購読の権利（Plan / ProductIDs、AccessState、AccessPolicy の状態機械と控えとの突き合わせ、AccessSnapshot / AccessCache、文言と数字の純関数 PlanText、公開文書の URL LegalLinks）
   Sources/KitChecks/main.swift      Xcode 無しの Mac で走る検査（swift run KitChecks）
   Tests/                            LayoutTests / HolidaysTests / InkModelTests / AccessTests（swift test。CI で実行）
@@ -152,7 +155,10 @@ Sources/TegakiCalendar/
   Views/SelectionMenuView.swift     投げなわの「予定にする／削除／選択解除」と置き場所の計算
   Views/SettingsScreen.swift        設定画面（同期・データ・購入・情報の節を含む）
   Views/PaywallSheet.swift          購入画面（ペイウォール: 2 プラン・試用の行・自動更新の説明・購入を復元・規約へのリンク・あとで）
-  Views/WebImportSheet.swift        Web 版の手書きの取り込み（ファイル選択、進捗、結果）
+  Views/WebImportSheet.swift        手書きの取り込み（Web 版の書き出しと、このアプリの書き出し。ファイル選択、進捗、結果の出し分け）
+  Views/ExportSheet.swift           手書きの書き出し（「データファイル（JSON、すべてのページ）」「このページを PDF」の選択、進行、完成（共有…）、失敗）
+  Export/ExportBuilder.swift        書き出しの実行（JSON をページ 1 枚ずつ tmp/TegakiCalendarExport に流し書き、PDF を書く、前回の後始末、失敗の種類）
+  Export/PDFPageRenderer.swift      いま開いているページ 1 枚を PDF に（見出し帯（題名・曜日／日付／月名・終日帯）＋紙の描画（ベクタ）＋手書き（2 倍の画像）。現在時刻の線は描かない）
   Views/AccountChangeDialog.swift   「別の iCloud アカウントです」の問い合わせ
   Views/ToastView.swift             画面下のトースト
   Views/EventDateText.swift         日時の日本語表記
@@ -196,7 +202,10 @@ Tests/TegakiCalendarTests/
   EventKitServiceTests.swift        終日の予定の正規化・色の変換・予定の書き込み（apply）のテスト
   ScreenshotModeTests.swift         スクリーンショットモードの起動引数と見本のテスト
   AppSettingsTests.swift            表示倍率の比率の保存のテスト
-  CalendarRootScreenTests.swift     紙の領域の高さ（帯を引く）のテスト
+  CalendarRootScreenTests.swift     紙の領域の高さ（帯を引く）・閲覧専用の判定・取り込みの失敗文のテスト
+  ExportBuilderTests.swift          書き出しのテスト（全ページの JSON と pageId 順・帯の線の移し替え・取り込み口との往復・進行・空のとき・後始末・大きなファイル（8 ページ × 1,000 本）の常駐メモリ・PDF の 1 ページと大きさ・4 種の PDF・ファイル名と題名）
+  ExportSheetTests.swift            書き出しシートの文言・進行・完成文・大きさの表記・失敗文のテスト
+  WebImportSheetTests.swift         取り込みの完成文の出し分け（Web 版／このアプリ）のテスト
   SyncEngineTests.swift             同期エンジンのテスト（偽の iCloud と TestSleeper で。アカウント確認・デバウンス・衝突・取得・削除・再試行・ゾーン消失・プッシュ・アカウント切替・全消去・取り込み）
   InkPageRecordTests.swift          レコードの写像のテスト
   SyncStateStoreTests.swift         状態ファイルの読み書きのテスト
