@@ -4016,6 +4016,509 @@ do {
     check([LegalLinks.terms, LegalLinks.privacy, LegalLinks.support].allSatisfy { $0.scheme == "https" }, "every public page is https")
 }
 
+// MARK: - App export (M6_CONTRACT §1.1–§1.3, §1.5, §7.1)
+
+section("app export (M6)")
+
+/// `AppExport.parse(json:)`'s error, nil when it parses.
+func appParseError(_ json: JSONValue) -> WebImport.ParseError? {
+    do {
+        _ = try AppExport.parse(json: json)
+        return nil
+    } catch let e as WebImport.ParseError {
+        return e
+    } catch {
+        return nil
+    }
+}
+
+/// `InkImport.parse`'s error for `text`, nil when it parses.
+func importError(_ text: String) -> WebImport.ParseError? {
+    do {
+        _ = try InkImport.parse(Data(text.utf8))
+        return nil
+    } catch let e as WebImport.ParseError {
+        return e
+    } catch {
+        return nil
+    }
+}
+
+do {
+    let jst = TimeZone(identifier: "Asia/Tokyo")!
+    let utc = TimeZone(identifier: "UTC")!
+    var utcCalendar = Calendar(identifier: .gregorian)
+    utcCalendar.timeZone = utc
+    func utcDate(_ y: Int, _ m: Int, _ d: Int, _ h: Int, _ mi: Int) -> Date {
+        var c = DateComponents()
+        c.year = y
+        c.month = m
+        c.day = d
+        c.hour = h
+        c.minute = mi
+        return utcCalendar.date(from: c)!
+    }
+    func text(_ data: Data) -> String { String(decoding: data, as: UTF8.self) }
+    /// `topLevelMembers` as key → the member's text.
+    func members(_ s: String) -> [String: String]? {
+        let data = Data(s.utf8)
+        return InkImport.topLevelMembers(data)?.mapValues { String(decoding: data[$0], as: UTF8.self) }
+    }
+    /// `arrayElements` of the whole text as element texts.
+    func elements(_ s: String) -> [String]? {
+        let data = Data(s.utf8)
+        return InkImport.arrayElements(data, in: data.startIndex..<data.endIndex)?.map { String(decoding: data[$0], as: UTF8.self) }
+    }
+
+    // The sample pages: a month page with a pen, a marker, a tombstone, unknown items; a week page
+    // written before M4b (band cells, migrated on the way in and out); a day page with tombstones only.
+    var month = InkPage.empty(pageId: "m1-2026-10")
+    month.add(stroke("a", points: [point(10, 20), point(30.06, 40.04, dt: 16)]))
+    month.add(stroke("b", cell: .memo, tool: .marker, color: "#FDE047", t: 7, dev: nil, points: [point(0, 100, size: 18), point(5, 120, dt: 16, size: 18)]))
+    month.remove(ids: ["c"], at: 1_760_150_500_000)
+    month.unknown["future"] = .object(["a": .array([.number(1), .number(2.5), .string("x"), .null, .bool(true)])])
+    month.unknownStrokes["u"] = .object(["id": .string("u"), "cell": .string("memo"), "tool": .string("crayon"), "pts": .array([.number(1), .number(2)]), "wax": .bool(true)])
+    var oldWeek = InkPage.empty(pageId: "w-2026-10-05")
+    oldWeek.add(stroke("w1", cell: .allDay(day(2026, 10, 7)), points: [point(12, 40), point(17, 43, dt: 16)]))
+    oldWeek.add(stroke("w2", cell: .grid, points: [point(300, 500)]))
+    let week = BandMigration.migrate(oldWeek)
+    var dayPage = InkPage.empty(pageId: "d-2026-10-07")
+    dayPage.remove(ids: ["zz"], at: 1_760_000_000_500)
+    let one = AppExport.Document(exportedAt: "2026-10-17T21:03:00+09:00", app: "ios/1.0 (12)", pages: [month])
+    let three = AppExport.Document(exportedAt: "2026-10-17T21:03:00+09:00", app: "ios/1.0 (12)", pages: [dayPage, month, week])
+    let none = AppExport.Document(exportedAt: "2026-10-17T21:03:00+09:00", app: "ios/1.0 (12)", pages: [])
+
+    // MARK: Constants and exportedAt (§1.1)
+    checkEqual(AppExport.format, "tegaki-app-export", "format")
+    checkEqual(AppExport.supportedVersion, 1, "supportedVersion")
+    checkEqual(AppExport.pageSeparator, ",\n", "pageSeparator")
+    checkEqual(AppExport.footer, "\n  ],\n  \"v\": 1\n}\n", "footer")
+    checkEqual(AppExport.exportedAtText(date(2026, 10, 17, 21, 3), timeZone: jst), "2026-10-17T21:03:00+09:00", "exportedAtText: JST with its offset")
+    checkEqual(AppExport.exportedAtText(date(2026, 10, 17, 21, 3), timeZone: utc), "2026-10-17T12:03:00Z", "exportedAtText: UTC ends in Z")
+    checkEqual(AppExport.exportedAtText(date(2026, 10, 17, 21, 3), timeZone: TimeZone(identifier: "America/New_York")!), "2026-10-17T08:03:00-04:00", "exportedAtText: a negative offset")
+    checkEqual(AppExport.exportedAtText(Date(timeIntervalSince1970: 1_760_000_000.7), timeZone: utc), "2025-10-09T08:53:20Z", "exportedAtText: to the second")
+
+    // MARK: isWorthExporting
+    check(!AppExport.isWorthExporting(InkPage.empty(pageId: "m1-2026-10")), "an empty page is not worth exporting")
+    check(AppExport.isWorthExporting(month), "a page with strokes is")
+    check(AppExport.isWorthExporting(dayPage), "a page with only tombstones is (M6-6)")
+    check(AppExport.isWorthExporting(InkPage(pageId: "m1-2026-10", unknownStrokes: ["u": .object(["id": .string("u")])])), "a page with only unknown strokes is")
+    check(!AppExport.isWorthExporting(InkPage(pageId: "m1-2026-10", updatedAt: 5, unknown: ["future": .bool(true)])), "unknown top-level keys alone are not")
+    do {
+        var erased = month
+        erased.remove(ids: ["a", "b", "u"], at: 1_760_150_600_000)
+        check(AppExport.isWorthExporting(erased), "a page whose strokes were all erased keeps its tombstones and is")
+        checkEqual(erased.liveStrokeCount, 0, "(no live stroke left)")
+    }
+
+    // MARK: jsonValue (the 5 keys)
+    do {
+        let json = AppExport.jsonValue(three)
+        checkEqual(json.objectValue?.keys.sorted(), ["app", "exportedAt", "format", "pages", "v"], "jsonValue has the 5 keys")
+        checkEqual(json["format"], .string("tegaki-app-export"), "jsonValue format")
+        checkEqual(json["v"], .number(1), "jsonValue v")
+        checkEqual(json["exportedAt"], .string("2026-10-17T21:03:00+09:00"), "jsonValue exportedAt")
+        checkEqual(json["app"], .string("ios/1.0 (12)"), "jsonValue app")
+        checkEqual(json["pages"]?.arrayValue?.count, 3, "jsonValue pages count")
+        checkEqual(json["pages"]?.arrayValue?[1], month.jsonValue, "pages[i] is InkPage.jsonValue itself")
+        checkEqual(json["pages"]?.arrayValue?[0], dayPage.jsonValue, "a tombstone-only page is written")
+        checkEqual(AppExport.jsonValue(none)["pages"], .array([]), "no pages → an empty array")
+    }
+
+    // MARK: encode, header, pageText, footer (§1.1 流し書き)
+    do {
+        let encoded = text(AppExport.encode(three))
+        check(encoded.hasPrefix("{\n  \"app\": "), "encode starts with {\\n  \"app\": ")
+        check(encoded.hasSuffix("  \"v\": 1\n}\n"), "encode ends with   \"v\": 1\\n}\\n")
+        check(encoded.hasPrefix("{\n  \"app\": \"ios/1.0 (12)\",\n  \"exportedAt\": \"2026-10-17T21:03:00+09:00\",\n  \"format\": \"tegaki-app-export\",\n  \"pages\": [\n    {\n"), "encode: the header lines then the first page at 4 spaces")
+        checkEqual(AppExport.header(exportedAt: "2026-10-17T21:03:00+09:00", app: "ios/1.0 (12)"), "{\n  \"app\": \"ios/1.0 (12)\",\n  \"exportedAt\": \"2026-10-17T21:03:00+09:00\",\n  \"format\": \"tegaki-app-export\",\n  \"pages\": [\n", "header text")
+        checkEqual(AppExport.header(exportedAt: "a\"b", app: "c\\d"), "{\n  \"app\": \"c\\\\d\",\n  \"exportedAt\": \"a\\\"b\",\n  \"format\": \"tegaki-app-export\",\n  \"pages\": [\n", "header escapes its strings")
+        func streamed(_ document: AppExport.Document) -> Data {
+            Data((AppExport.header(exportedAt: document.exportedAt, app: document.app) + document.pages.map(AppExport.pageText).joined(separator: AppExport.pageSeparator) + AppExport.footer).utf8)
+        }
+        checkEqual(streamed(one), AppExport.encode(one), "header + pageText + footer == encode (1 page)")
+        checkEqual(streamed(three), AppExport.encode(three), "header + pageText + footer == encode (3 pages)")
+        checkEqual(streamed(none), AppExport.encode(none), "header + footer == encode (0 pages)")
+        checkEqual(AppExport.encode(one), Data((AppExport.jsonValue(one).serialized(pretty: true) + "\n").utf8), "encode == the pretty tree + newline (1 page)")
+        checkEqual(AppExport.encode(three), Data((AppExport.jsonValue(three).serialized(pretty: true) + "\n").utf8), "encode == the pretty tree + newline (3 pages)")
+        checkEqual(try AppExport.parse(json: try JSONValue.parse(AppExport.encode(three))), three, "encode parses back to the same document (3 pages)")
+        checkEqual(try AppExport.parse(json: try JSONValue.parse(AppExport.encode(one))), one, "encode parses back (1 page)")
+        checkEqual(try AppExport.parse(json: try JSONValue.parse(AppExport.encode(none))), none, "encode parses back (0 pages: the opened array is valid JSON)")
+        checkEqual(try AppExport.parse(json: try JSONValue.parse(AppExport.jsonValue(three).serializedData())), three, "the compact tree parses back too")
+        let pageText = AppExport.pageText(month)
+        check(pageText.hasPrefix("    {\n"), "pageText starts with 4 spaces and {")
+        check(pageText.hasSuffix("\n    }"), "pageText ends with } at 4 spaces, no newline")
+        check(pageText.split(separator: "\n", omittingEmptySubsequences: false).allSatisfy { $0.hasPrefix("    ") }, "every line of pageText is indented 4 spaces")
+        checkEqual(pageText, """
+            {
+              "deleted": {
+                "c": 1760150500000
+              },
+              "future": {
+                "a": [
+                  1,
+                  2.5,
+                  "x",
+                  null,
+                  true
+                ]
+              },
+              "pageId": "m1-2026-10",
+              "strokes": {
+                "a": {
+                  "cell": "2026-10-04",
+                  "color": "#1f2937",
+                  "dev": "ipad-1",
+                  "id": "a",
+                  "pts": [10, 20, 0, 3.5, 3.5, 1, 0.5, 1.571, 0.785, 30.1, 40, 16, 3.5, 3.5, 1, 0.5, 1.571, 0.785],
+                  "t": 1760150400123,
+                  "tool": "pen"
+                },
+                "b": {
+                  "cell": "memo",
+                  "color": "#fde047",
+                  "id": "b",
+                  "pts": [0, 100, 0, 18, 18, 1, 0.5, 1.571, 0.785, 5, 120, 16, 18, 18, 1, 0.5, 1.571, 0.785],
+                  "t": 7,
+                  "tool": "marker"
+                },
+                "u": {
+                  "cell": "memo",
+                  "id": "u",
+                  "pts": [1, 2],
+                  "tool": "crayon",
+                  "wax": true
+                }
+              },
+              "updatedAt": 1760150500000,
+              "v": 1
+            }
+        """, "pageText of the month page, line by line")
+        checkEqual(AppExport.pageText(dayPage), "    {\n      \"deleted\": {\n        \"zz\": 1760000000500\n      },\n      \"pageId\": \"d-2026-10-07\",\n      \"strokes\": {},\n      \"updatedAt\": 1760000000500,\n      \"v\": 1\n    }", "pageText of a tombstone-only page: empty strokes are {}")
+        // Round trip of a page's text.
+        for page in [month, week, dayPage] {
+            checkEqual(InkPage(json: try JSONValue.parse(Data(AppExport.pageText(page).utf8))), page, "pageText round-trips \(page.pageId)")
+            checkEqual(AppExport.parsePage(try JSONValue.parse(Data(AppExport.pageText(page).utf8))), page, "parsePage of pageText is the page \(page.pageId)")
+        }
+        checkEqual(InkPage(json: try JSONValue.parse(Data(AppExport.pageText(month).utf8))).unknownStrokes["u"], month.unknownStrokes["u"], "unknown strokes come back")
+        checkEqual(InkPage(json: try JSONValue.parse(Data(AppExport.pageText(month).utf8))).unknown["future"], month.unknown["future"], "unknown keys come back")
+        checkEqual(InkPage(json: try JSONValue.parse(Data(AppExport.pageText(month).utf8))).strokes["b"]?.dev, nil, "a stroke without dev stays without")
+        checkEqual(InkPage(json: try JSONValue.parse(Data(AppExport.pageText(month).utf8))).strokes["a"]?.dev, "ipad-1", "dev is kept (§1.1)")
+    } catch {
+        check(false, "app export encode threw: \(error)")
+    }
+
+    // MARK: serialized(pretty:) rules (§1.3) and the compact form (unchanged)
+    do {
+        let value: JSONValue = .object(["b": .array([.number(1), .number(2.5), .number(-0.0), .number(1e21)]), "a": .object([:]), "c": .array([.string("x"), .number(1), .null]), "d": .array([]), "e": .object(["f": .object(["g": .array([.array([.number(1)]), .object([:])])])]), "s": .string("a\"b\\c\n\u{1}"), "n": .null, "t": .bool(false)])
+        checkEqual(value.serialized(pretty: true), """
+        {
+          "a": {},
+          "b": [1, 2.5, 0, 1e+21],
+          "c": [
+            "x",
+            1,
+            null
+          ],
+          "d": [],
+          "e": {
+            "f": {
+              "g": [
+                [1],
+                {}
+              ]
+            }
+          },
+          "n": null,
+          "s": "a\\"b\\\\c\\n\\u0001",
+          "t": false
+        }
+        """, "pretty: one key per line, number arrays on one line, {} and [] for empty, nested indentation")
+        checkEqual(JSONValue.object(["n": .number(.nan)]).serialized(pretty: true), "{\n  \"n\": null\n}", "pretty: a non-finite number is null")
+        checkEqual(JSONValue.array([.number(1), .number(2), .number(3)]).serialized(pretty: true), "[1, 2, 3]", "pretty: a number array is one line with \", \"")
+        checkEqual(JSONValue.array([.number(3), .number(0.1), .number(.infinity)]).serialized(pretty: true), "[3, 0.1, null]", "pretty: numbers use format(_:) (3, 0.1, non-finite → null)")
+        checkEqual(JSONValue.array([]).serialized(pretty: true), "[]", "pretty: empty array")
+        checkEqual(JSONValue.object([:]).serialized(pretty: true), "{}", "pretty: empty object")
+        checkEqual(JSONValue.array([.number(1), .string("x")]).serialized(pretty: true), "[\n  1,\n  \"x\"\n]", "pretty: a mixed array is one element per line")
+        checkEqual(JSONValue.array([.array([.number(1)])]).serialized(pretty: true), "[\n  [1]\n]", "pretty: an array of arrays is one element per line")
+        checkEqual(JSONValue.object(["k": .number(1)]).serialized(pretty: true), "{\n  \"k\": 1\n}", "pretty: a one-key object")
+        checkEqual(JSONValue.object(["k": .object(["m": .number(1)])]).serialized(pretty: true, indent: 4), "{\n      \"k\": {\n        \"m\": 1\n      }\n    }", "pretty: indent 4 puts the inner lines at 6 / 8 spaces and the closer at 4")
+        checkEqual(JSONValue.array([.array([.number(1)]), .string("x")]).serialized(pretty: true, indent: 2), "[\n    [1],\n    \"x\"\n  ]", "pretty: indent 2 for a mixed array")
+        checkEqual(JSONValue.string("x").serialized(pretty: true), "\"x\"", "pretty: a string")
+        checkEqual(JSONValue.null.serialized(pretty: true), "null", "pretty: null")
+        checkEqual(JSONValue.bool(true).serialized(pretty: true), "true", "pretty: true")
+        checkEqual(JSONValue.number(3).serialized(pretty: true), "3", "pretty: 3 not 3.0")
+        checkEqual(try JSONValue.parse(Data(value.serialized(pretty: true).utf8)), value, "pretty text parses back to the same tree")
+        // The compact form is exactly what M2–M5 fixed.
+        checkEqual(value.serialized(), "{\"a\":{},\"b\":[1,2.5,0,1e+21],\"c\":[\"x\",1,null],\"d\":[],\"e\":{\"f\":{\"g\":[[1],{}]}},\"n\":null,\"s\":\"a\\\"b\\\\c\\n\\u0001\",\"t\":false}", "compact serialized() is unchanged")
+        checkEqual(JSONValue.object(["b": .array([.number(1), .number(2.5), .number(-0.0), .number(1e21), .string("a\"b\\c\n\u{1}"), .null, .bool(false)]), "a": .object([:])]).serialized(), "{\"a\":{},\"b\":[1,2.5,0,1e+21,\"a\\\"b\\\\c\\n\\u0001\",null,false]}", "compact: the M2 fixed string")
+        checkEqual(value.serialized(pretty: false), value.serialized(), "pretty: false is the compact form")
+        checkEqual(value.serialized(pretty: false, indent: 4), value.serialized(), "indent is ignored in the compact form")
+        checkEqual(value.serializedData(), Data(value.serialized().utf8), "serializedData() is the compact bytes")
+        checkEqual(value.serializedData(pretty: true), Data(value.serialized(pretty: true).utf8), "serializedData(pretty: true) is the pretty bytes")
+        let stored = text(try InkPageCodec.encode(month))
+        checkEqual(stored, month.jsonValue.serialized(), "InkPageCodec.encode is still the compact form")
+        check(stored.hasPrefix("{\"deleted\":{\"c\":1760150500000},\"future\":{\"a\":[1,2.5,\"x\",null,true]},\"pageId\":\"m1-2026-10\",\"strokes\":{\"a\":{\"cell\":\"2026-10-04\",\"color\":\"#1f2937\",\"dev\":\"ipad-1\",\"id\":\"a\",\"pts\":[10,20,0,3.5,3.5,1,0.5,1.571,0.785,"), "the stored page bytes are unchanged (M2 shape)")
+        check(!stored.contains("\n"), "the stored page has no newline")
+    } catch {
+        check(false, "pretty JSON threw: \(error)")
+    }
+
+    // MARK: parse(json:) and parsePage (§1.2)
+    do {
+        func json(_ s: String) throws -> JSONValue { try JSONValue.parse(Data(s.utf8)) }
+        checkEqual(appParseError(try json(#"[1, 2]"#)), .notAnExport, "parse(json:): an array → notAnExport")
+        checkEqual(appParseError(try json(#""tegaki-app-export""#)), .notAnExport, "parse(json:): a bare string → notAnExport")
+        checkEqual(appParseError(try json(#"{ "format": "tegaki-web-export", "v": 1, "pages": [] }"#)), .notAnExport, "parse(json:): the web format → notAnExport")
+        checkEqual(appParseError(try json(#"{ "v": 1, "pages": [] }"#)), .notAnExport, "parse(json:): no format → notAnExport")
+        checkEqual(appParseError(try json(#"{ "format": 1, "pages": [] }"#)), .notAnExport, "parse(json:): a non-string format → notAnExport")
+        checkEqual(appParseError(try json(#"{ "format": "tegaki-app-export", "v": 2, "pages": [] }"#)), .unsupportedVersion(2), "parse(json:): v 2 → unsupportedVersion(2)")
+        checkEqual(appParseError(try json(#"{ "format": "tegaki-app-export", "v": 7 }"#)), .unsupportedVersion(7), "parse(json:): v 7 → unsupportedVersion(7)")
+        checkEqual(appParseError(try json(#"{ "format": "tegaki-app-export", "v": 1.4 }"#)), nil, "parse(json:): v 1.4 rounds to 1")
+        checkEqual(appParseError(try json(#"{ "format": "tegaki-app-export", "v": "x" }"#)), nil, "parse(json:): an unusable v counts as 1")
+        checkEqual(appParseError(try json(#"{ "format": "tegaki-app-export", "pages": "x" }"#)), .notAnExport, "parse(json:): pages that is not an array → notAnExport")
+        checkEqual(appParseError(try json(#"{ "format": "tegaki-app-export" }"#)), nil, "parse(json:): no v and no pages is fine")
+        checkEqual(try AppExport.parse(json: try json(#"{ "format": "tegaki-app-export" }"#)), AppExport.Document(exportedAt: "", app: "", pages: []), "parse(json:): missing exportedAt / app read as \"\", no pages")
+        checkEqual(try AppExport.parse(json: try json(#"{ "format": "tegaki-app-export", "exportedAt": 5, "app": null, "pages": [] }"#)), AppExport.Document(exportedAt: "", app: "", pages: []), "parse(json:): non-string exportedAt / app read as \"\"")
+        checkEqual(try AppExport.parse(json: try json(#"{ "format": "tegaki-app-export", "v": 1, "exportedAt": "2026-10-17T21:03:00+09:00", "app": "ios/1.0 (12)", "pages": [1, "x", null, [], { "strokes": {} }, { "pageId": "" }] }"#)), AppExport.Document(exportedAt: "2026-10-17T21:03:00+09:00", app: "ios/1.0 (12)", pages: []), "parse(json:): elements that are not objects or have no pageId are dropped")
+        let long = String(repeating: "x", count: 257)
+        let max = String(repeating: "x", count: 256)
+        checkEqual(try AppExport.parse(json: try json(#"{ "format": "tegaki-app-export", "pages": [{ "pageId": "\#(long)" }, { "pageId": "\#(max)" }] }"#)).pages.map(\.pageId), [max], "parse(json:): a 257-character pageId is dropped, 256 is kept")
+        let parsed = try AppExport.parse(json: AppExport.jsonValue(three))
+        checkEqual(parsed, three, "parse(json:) of jsonValue is the document")
+        checkEqual(parsed.pages.map(\.pageId), ["d-2026-10-07", "m1-2026-10", "w-2026-10-05"], "parse(json:) keeps document order")
+        checkEqual(parsed.pages[1].strokes["a"], month.strokes["a"], "a pen stroke survives")
+        checkEqual(parsed.pages[1].strokes["b"], month.strokes["b"], "a marker stroke without dev survives")
+        checkEqual(parsed.pages[1].deleted, ["c": 1_760_150_500_000], "tombstones survive")
+        checkEqual(parsed.pages[1].unknownStrokes, month.unknownStrokes, "unknown strokes survive")
+        checkEqual(parsed.pages[1].unknown, month.unknown, "unknown keys survive")
+        // Band migration on the way in (0-7).
+        let oldDoc = AppExport.Document(exportedAt: "", app: "", pages: [oldWeek])
+        let migrated = try AppExport.parse(json: AppExport.jsonValue(oldDoc))
+        checkEqual(migrated.pages.count, 1, "parse(json:) keeps the old week page")
+        checkEqual(migrated.pages[0], week, "parse(json:) migrates allday: cells onto the grid")
+        checkEqual(migrated.pages[0].strokes["w1"]?.cell, .grid, "the band stroke is on the grid")
+        checkClose(migrated.pages[0].strokes["w1"]?.points.first?.x, 12 + 64 + 2 * colW, "its x moved by the column origin", tolerance: 0.11)
+        checkEqual(migrated.pages[0].strokes["w2"], oldWeek.strokes["w2"], "a grid stroke is untouched")
+        check(!BandMigration.needsMigration(migrated.pages[0]), "nothing left to migrate")
+        var oldDay = InkPage.empty(pageId: "d-2026-10-07")
+        oldDay.add(stroke("b1", cell: .allDayDay, points: [point(800, 30)]))
+        checkEqual(try AppExport.parse(json: AppExport.jsonValue(AppExport.Document(exportedAt: "", app: "", pages: [oldDay]))).pages[0].strokes["b1"]?.cell, .grid, "a day page's allday cell → grid")
+        // parsePage alone.
+        checkEqual(AppExport.parsePage(.number(1)), nil, "parsePage: not an object → nil")
+        checkEqual(AppExport.parsePage(.array([])), nil, "parsePage: an array → nil")
+        checkEqual(AppExport.parsePage(.object([:])), nil, "parsePage: no pageId → nil")
+        checkEqual(AppExport.parsePage(.object(["pageId": .string("")])), nil, "parsePage: empty pageId → nil")
+        checkEqual(AppExport.parsePage(.object(["pageId": .string(long)])), nil, "parsePage: 257-character pageId → nil")
+        checkEqual(AppExport.parsePage(.object(["pageId": .string("m1-2026-10")])), InkPage.empty(pageId: "m1-2026-10"), "parsePage: a bare pageId is an empty page")
+        checkEqual(AppExport.parsePage(oldWeek.jsonValue), week, "parsePage migrates")
+        checkEqual(AppExport.parsePage(month.jsonValue), month, "parsePage reads a month page")
+        let elements = AppExport.jsonValue(three)["pages"]?.arrayValue ?? []
+        checkEqual(elements.compactMap(AppExport.parsePage), parsed.pages, "parsePage per element == parse(json:).pages")
+    } catch {
+        check(false, "app export parse threw: \(error)")
+    }
+
+    // MARK: InkImport.parse — the two formats (§1.2)
+    do {
+        let webData = Data(webExportSample.utf8)
+        checkEqual(try InkImport.parse(webData), .web(try WebImport.parse(webData)), "InkImport.parse: the web sample → .web, the same document as WebImport.parse")
+        checkEqual(try InkImport.parse(Data(webExportExpected.utf8)), .web(try WebImport.parse(Data(webExportExpected.utf8))), "InkImport.parse: web sample 2 → .web")
+        checkEqual(try WebImport.parse(json: try JSONValue.parse(webData)), try WebImport.parse(webData), "WebImport.parse(json:) == parse(_ data:)")
+        let appData = AppExport.encode(three)
+        checkEqual(try InkImport.parse(appData), .app(three, skipped: 0), "InkImport.parse: an app export → .app with nothing skipped")
+        checkEqual(try InkImport.parse(AppExport.jsonValue(three).serializedData()), .app(three, skipped: 0), "InkImport.parse: the compact form too")
+        checkEqual(try InkImport.parse(AppExport.encode(none)), .app(none, skipped: 0), "InkImport.parse: no pages")
+        checkEqual(try InkImport.parse(Data(#"{ "format": "tegaki-app-export" }"#.utf8)), .app(AppExport.Document(exportedAt: "", app: "", pages: []), skipped: 0), "InkImport.parse: a bare app export")
+        // Errors, the same type and values as WebImport.parse(_ data:).
+        checkEqual(importError(#"{ "format": "something-else", "v": 1, "pages": [] }"#), .notAnExport, "InkImport.parse: another format → notAnExport")
+        checkEqual(importError(#"{ "v": 1, "pages": [] }"#), .notAnExport, "InkImport.parse: no format → notAnExport")
+        checkEqual(importError(#"{ "format": 7, "pages": [] }"#), .notAnExport, "InkImport.parse: a non-string format → notAnExport")
+        checkEqual(importError(#"[1, 2, 3]"#), .notAnExport, "InkImport.parse: an array → notAnExport")
+        checkEqual(importError(#""tegaki-app-export""#), .notAnExport, "InkImport.parse: a bare string → notAnExport")
+        checkEqual(importError(#"{ "format": "tegaki-web-export", "v": 2, "pages": [] }"#), .unsupportedVersion(2), "InkImport.parse: web v 2 → unsupportedVersion(2)")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "v": 2, "pages": [] }"#), .unsupportedVersion(2), "InkImport.parse: app v 2 → unsupportedVersion(2)")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "v": 7 }"#), .unsupportedVersion(7), "InkImport.parse: app v 7 → unsupportedVersion(7)")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "v": "x" }"#), nil, "InkImport.parse: an unusable v counts as 1")
+        checkEqual(importError(#"{ "format": "tegaki-web-export", "v": 1, "pages": ["#), .invalidJSON, "InkImport.parse: truncated → invalidJSON")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "v": 1, "pages": [ { "pageId": "m1-2026-10" "#), .invalidJSON, "InkImport.parse: a truncated app export → invalidJSON")
+        checkEqual(importError("not json at all"), .invalidJSON, "InkImport.parse: text → invalidJSON")
+        checkEqual(importError(""), .invalidJSON, "InkImport.parse: empty → invalidJSON")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": "x" }"#), .notAnExport, "InkImport.parse: pages that is not an array → notAnExport")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": { "a": 1 } }"#), .notAnExport, "InkImport.parse: pages that is an object → notAnExport")
+        // Whether a trailing comma is JSON is JSONSerialization's call (it differs between OS versions): the
+        // page-by-page read hands such an array to the whole-tree path, so the two agree either way.
+        let trailing = Data(#"{ "format": "tegaki-app-export", "v": 1, "pages": [ { "pageId": "m1-2026-10" }, ] }"#.utf8)
+        if let wholeJSON = try? JSONValue.parse(trailing) {
+            checkEqual(try InkImport.parse(trailing), .app(try AppExport.parse(json: wholeJSON), skipped: 0), "InkImport.parse: a trailing comma JSONSerialization accepts → the same document as the whole-tree read")
+        } else {
+            checkEqual(importError(String(decoding: trailing, as: UTF8.self)), .invalidJSON, "InkImport.parse: a trailing comma JSONSerialization rejects → invalidJSON")
+        }
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "v": 1, "pages": [ { "pageId": "m1-2026-10" } { "pageId": "y-2026" } ] }"#), .invalidJSON, "InkImport.parse: elements without a comma → invalidJSON")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": [ { "pageId": "m1-2026-10", "strokes": { "a": tru } } ] }"#), .invalidJSON, "InkImport.parse: a broken page element → invalidJSON")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "v": tru }"#), .invalidJSON, "InkImport.parse: a broken v → invalidJSON")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": [], "junk": abc }"#), .invalidJSON, "InkImport.parse: a broken member the reader does not use → invalidJSON (as the whole-tree read)")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": [], "junk": { "a": [1, 2] } }"#), nil, "InkImport.parse: an unknown member that is JSON is ignored")
+        for s in [#"{ "format": "something-else", "v": 1, "pages": [] }"#, #"{ "v": 1 }"#, #"[1]"#, #""x""#, #"{ "format": "tegaki-web-export", "v": 3 }"#, "{", "", "nope"] {
+            checkEqual(importError(s), webParseError(s), "InkImport.parse and WebImport.parse agree on \(s.isEmpty ? "empty data" : s)")
+        }
+        // Dropped elements are counted.
+        let mixed = #"{ "format": "tegaki-app-export", "v": 1, "exportedAt": "2026-10-17T21:03:00+09:00", "app": "ios/1.0 (12)", "pages": [ 5, { "pageId": "" }, \#(AppExport.pageText(month)), "x", \#(AppExport.pageText(oldWeek)) ] }"#
+        let mixedParsed = try InkImport.parse(Data(mixed.utf8))
+        checkEqual(mixedParsed, .app(AppExport.Document(exportedAt: "2026-10-17T21:03:00+09:00", app: "ios/1.0 (12)", pages: [month, week]), skipped: 3), "InkImport.parse: 3 unusable elements skipped, the band page migrated")
+        if case .app(let doc, let skipped) = mixedParsed {
+            checkEqual(doc, try AppExport.parse(json: try JSONValue.parse(Data(mixed.utf8))), "the page-by-page read equals the whole-tree read (with dropped elements)")
+            checkEqual(skipped, 5 - doc.pages.count, "skipped = elements − pages")
+        } else {
+            check(false, "mixed document is .app")
+        }
+    } catch {
+        check(false, "InkImport.parse threw: \(error)")
+    }
+
+    // MARK: InkImport.pages (§1.2, 0-12)
+    do {
+        let webDocument = try WebImport.parse(Data(webExportSample.utf8))
+        let conversion = WebImport.convert(webDocument)
+        let outcome = InkImport.pages(.web(webDocument))
+        checkEqual(outcome.pages, conversion.pages, "pages(.web): the converted pages")
+        checkEqual(outcome.pages.count, 4, "pages(.web): 4 pages")
+        checkEqual(outcome.skipped, conversion.skipped.count, "pages(.web): skipped = skipped.count")
+        checkEqual(outcome.skipped, 2, "pages(.web): 2 skipped (legacy id, no strokes)")
+        checkEqual(outcome.pageCount, conversion.pageCount, "pages(.web): pageCount")
+        checkEqual(outcome.pageCount, 4, "pages(.web): pageCount 4")
+        checkEqual(outcome.isAppExport, false, "pages(.web): not an app export")
+        let appOutcome = InkImport.pages(.app(three, skipped: 2))
+        checkEqual(appOutcome.pages, three.pages, "pages(.app): the document's pages")
+        checkEqual(appOutcome.skipped, 2, "pages(.app): skipped as counted by parse")
+        checkEqual(appOutcome.pageCount, 5, "pages(.app): pageCount = pages + skipped")
+        checkEqual(appOutcome.isAppExport, true, "pages(.app): an app export")
+        checkEqual(InkImport.pages(.app(none, skipped: 0)), InkImport.Outcome(pages: [], skipped: 0, pageCount: 0, isAppExport: true), "pages(.app): nothing")
+        checkEqual(InkImport.pages(try InkImport.parse(AppExport.encode(three))), InkImport.Outcome(pages: three.pages, skipped: 0, pageCount: 3, isAppExport: true), "pages(parse(encode)) — the restore path")
+        // Restoring is idempotent and tombstones win (SyncEngine merges with InkPage.merge).
+        for page in three.pages {
+            checkEqual(InkPage.merge(page, page), page, "merge(p, p) == p for \(page.pageId)")
+        }
+        var local = month
+        local.remove(ids: ["a"], at: 1_760_150_600_000)
+        checkEqual(InkPage.merge(local, month).liveStrokeIds, ["b"], "a stroke erased after the export does not come back")
+    } catch {
+        check(false, "InkImport.pages threw: \(error)")
+    }
+
+    // MARK: topLevelMembers / arrayElements (0-11)
+    checkEqual(members(#"{"a":1,"b":"x","c":[1,2],"d":{"e":[]},"f":null,"g":true}"#), ["a": "1", "b": "\"x\"", "c": "[1,2]", "d": "{\"e\":[]}", "f": "null", "g": "true"], "topLevelMembers: compact object")
+    checkEqual(members(" \n{\n  \"a\": 1,\n  \"b\": [\n    1,\n    2\n  ],\n  \"c\": -1.5e3\n}\n"), ["a": "1", "b": "[\n    1,\n    2\n  ]", "c": "-1.5e3"], "topLevelMembers: pretty object (ranges without the surrounding whitespace)")
+    checkEqual(members(#"{"s":"a}b]c{d[e","t":"q\"r\\","u":"\\\\","v":"\"{\"","w":"[\\\"]"}"#), ["s": #""a}b]c{d[e""#, "t": #""q\"r\\""#, "u": #""\\\\""#, "v": #""\"{\"""#, "w": #""[\\\"]""#], "topLevelMembers: brackets and escaped quotes inside strings")
+    checkEqual(members(#"{"k\"ey":1,"k\\":2,"A":3}"#), ["k\"ey": "1", "k\\": "2", "A": "3"], "topLevelMembers: keys are decoded as JSON strings")
+    checkEqual(members(#"{"a":1,"a":2}"#), ["a": "2"], "topLevelMembers: a repeated key keeps the later value")
+    checkEqual(members("{}"), [:], "topLevelMembers: empty object")
+    checkEqual(members(" { } "), [:], "topLevelMembers: empty object with whitespace")
+    checkEqual(members(#"{"p":[{"x":[[1,[2]],{"y":{}}]}],"q":{"r":{"s":[[],{}]}}}"#), ["p": #"[{"x":[[1,[2]],{"y":{}}]}]"#, "q": #"{"r":{"s":[[],{}]}}"#], "topLevelMembers: nested containers")
+    checkEqual(members(#"{"a":[],"b":{},"c":""}"#), ["a": "[]", "b": "{}", "c": "\"\""], "topLevelMembers: empty array, object and string")
+    checkEqual(members("{\"a\":1}\n\n"), ["a": "1"], "topLevelMembers: trailing newlines are fine")
+    checkEqual(members("\u{FEFF}{\"a\":1}"), nil, "topLevelMembers: a byte order mark is not whitespace → nil (the whole-tree path decides)")
+    checkEqual(members(#"[1, 2]"#), nil, "topLevelMembers: an array → nil")
+    checkEqual(members(#""x""#), nil, "topLevelMembers: a string → nil")
+    checkEqual(members("1"), nil, "topLevelMembers: a number → nil")
+    checkEqual(members(""), nil, "topLevelMembers: empty → nil")
+    checkEqual(members("   "), nil, "topLevelMembers: whitespace → nil")
+    checkEqual(members(#"{"a":[1,2}"#), nil, "topLevelMembers: a mismatched bracket → nil")
+    checkEqual(members(#"{"a":{"b":1]}"#), nil, "topLevelMembers: a mismatched brace → nil")
+    checkEqual(members(#"{"a":1"#), nil, "topLevelMembers: unclosed → nil")
+    checkEqual(members(#"{"a":[1,2"#), nil, "topLevelMembers: unclosed array → nil")
+    checkEqual(members(#"{"a":"unterminated}"#), nil, "topLevelMembers: an unterminated string → nil")
+    checkEqual(members(#"{"a" 1}"#), nil, "topLevelMembers: no colon → nil")
+    checkEqual(members(#"{"a":}"#), nil, "topLevelMembers: no value → nil")
+    checkEqual(members(#"{"a":,"b":1}"#), nil, "topLevelMembers: a missing value before a comma → nil")
+    checkEqual(members(#"{"a":1,}"#), nil, "topLevelMembers: a trailing comma → nil")
+    checkEqual(members(#"{,"a":1}"#), nil, "topLevelMembers: a leading comma → nil")
+    checkEqual(members(#"{a:1}"#), nil, "topLevelMembers: an unquoted key → nil")
+    checkEqual(members(#"{"a":1} x"#), nil, "topLevelMembers: trailing garbage → nil")
+    checkEqual(members(#"{"a":1}}"#), nil, "topLevelMembers: an extra closer → nil")
+    checkEqual(members(#"{"a":1 "b":2}"#), nil, "topLevelMembers: members without a comma → nil")
+    do {
+        let data = AppExport.encode(three)
+        let found = InkImport.topLevelMembers(data)
+        checkEqual(found?.keys.sorted(), ["app", "exportedAt", "format", "pages", "v"], "topLevelMembers of an export: the 5 keys")
+        checkEqual(found.flatMap { $0["format"] }.map { String(decoding: data[$0], as: UTF8.self) }, "\"tegaki-app-export\"", "topLevelMembers of an export: format range")
+        checkEqual(found.flatMap { $0["v"] }.map { String(decoding: data[$0], as: UTF8.self) }, "1", "topLevelMembers of an export: v range")
+        checkEqual(found.flatMap { $0["pages"] }.map { String(decoding: data[$0], as: UTF8.self) }, "[\n" + three.pages.map(AppExport.pageText).joined(separator: ",\n") + "\n  ]", "topLevelMembers of an export: the pages array")
+        let pageRanges = found.flatMap { $0["pages"] }.flatMap { InkImport.arrayElements(data, in: $0) }
+        checkEqual(pageRanges?.count, 3, "arrayElements of an export: 3 pages")
+        checkEqual(pageRanges?.map { String(decoding: data[$0], as: UTF8.self) }, three.pages.map { String(AppExport.pageText($0).dropFirst(4)) }, "arrayElements of an export: each page's text (without the 4-space indent of its first line)")
+        // A slice whose startIndex is not 0 works the same (ranges are indices of the data given).
+        let padded = Data("xxxx".utf8) + data
+        let slice = padded[4...]
+        checkEqual(slice.startIndex, 4, "(the slice starts at 4)")
+        checkEqual(InkImport.topLevelMembers(slice)?["v"].map { String(decoding: slice[$0], as: UTF8.self) }, "1", "topLevelMembers on a slice: ranges index the slice")
+        checkEqual(InkImport.topLevelMembers(slice)?["pages"].flatMap { InkImport.arrayElements(slice, in: $0) }?.count, 3, "arrayElements on a slice")
+    }
+    checkEqual(elements("[1, 2 ,3]"), ["1", "2", "3"], "arrayElements: numbers with odd spacing")
+    checkEqual(elements("[]"), [], "arrayElements: empty")
+    checkEqual(elements("[ \n ]"), [], "arrayElements: empty with whitespace")
+    checkEqual(elements("  [1]  "), ["1"], "arrayElements: whitespace around the array")
+    checkEqual(elements("[\n    {\"a\":1},\n    {\"b\":[1,2]}\n  ]"), ["{\"a\":1}", "{\"b\":[1,2]}"], "arrayElements: pretty objects")
+    checkEqual(elements(#"["a]b", "c,d", "e\"]", "\\"]"#), [#""a]b""#, #""c,d""#, #""e\"]""#, #""\\""#], "arrayElements: brackets, commas and escapes inside strings")
+    checkEqual(elements(#"[[1,[2,3]],{"x":[]},[],{}]"#), ["[1,[2,3]]", #"{"x":[]}"#, "[]", "{}"], "arrayElements: nested and empty containers")
+    checkEqual(elements("[true,false,null,-0.5e-3]"), ["true", "false", "null", "-0.5e-3"], "arrayElements: scalars")
+    checkEqual(elements("1"), nil, "arrayElements: a number → nil")
+    checkEqual(elements(#"{"a":1}"#), nil, "arrayElements: an object → nil")
+    checkEqual(elements(#""x""#), nil, "arrayElements: a string → nil")
+    checkEqual(elements(""), nil, "arrayElements: empty data → nil")
+    checkEqual(elements("[1,2"), nil, "arrayElements: unclosed → nil")
+    checkEqual(elements("[1,2}"), nil, "arrayElements: a mismatched closer → nil")
+    checkEqual(elements("[[1]"), nil, "arrayElements: an unclosed inner array → nil")
+    checkEqual(elements("[1,]"), nil, "arrayElements: a trailing comma → nil")
+    checkEqual(elements("[,1]"), nil, "arrayElements: a leading comma → nil")
+    checkEqual(elements("[1,,2]"), nil, "arrayElements: a missing element → nil")
+    checkEqual(elements("[1 2]"), nil, "arrayElements: elements without a comma → nil")
+    checkEqual(elements("[1] x"), nil, "arrayElements: trailing garbage → nil")
+    checkEqual(elements("[\"a]"), nil, "arrayElements: an unterminated string → nil")
+    do {
+        let data = Data("[1,2]".utf8)
+        checkEqual(InkImport.arrayElements(data, in: 0..<6), nil, "arrayElements: a range past the end → nil")
+        checkEqual(InkImport.arrayElements(data, in: 0..<5)?.count, 2, "arrayElements: the exact range")
+        checkEqual(InkImport.arrayElements(data, in: 1..<4)?.count, nil, "arrayElements: a range that does not start at [ → nil")
+    }
+
+    // MARK: Streamed == whole (0-11)
+    do {
+        for (name, data) in [("pretty", AppExport.encode(three)), ("compact", AppExport.jsonValue(three).serializedData()), ("mixed whitespace", Data(("\n\n" + text(AppExport.encode(three)).replacingOccurrences(of: "\n", with: "\r\n") + "\t\n").utf8))] {
+            let streamed = try InkImport.parse(data)
+            let whole = try AppExport.parse(json: try JSONValue.parse(data))
+            checkEqual(streamed, .app(whole, skipped: 0), "streamed parse == whole parse (\(name))")
+            checkEqual(whole, three, "whole parse is the document (\(name))")
+        }
+    } catch {
+        check(false, "streamed parse threw: \(error)")
+    }
+
+    // MARK: File names (§1.5)
+    checkEqual(AppExport.jsonFileName(exportedAt: date(2026, 10, 17, 23, 30), calendar: tokyo), "てがきカレンダー 手書き 2026-10-17.json", "jsonFileName: JST 2026-10-17 23:30")
+    checkEqual(AppExport.jsonFileName(exportedAt: utcDate(2026, 10, 17, 15, 30), calendar: tokyo), "てがきカレンダー 手書き 2026-10-18.json", "jsonFileName: UTC 2026-10-17 15:30 is 10-18 in JST")
+    checkEqual(AppExport.jsonFileName(exportedAt: utcDate(2026, 10, 17, 15, 30), calendar: utcCalendar), "てがきカレンダー 手書き 2026-10-17.json", "jsonFileName: the same instant in a UTC calendar is 10-17")
+    checkEqual(AppExport.jsonFileName(exportedAt: date(2026, 1, 5, 0, 0), calendar: tokyo), "てがきカレンダー 手書き 2026-01-05.json", "jsonFileName: zero padded")
+    checkEqual(AppExport.pdfFileName(kind: .month, focus: day(2026, 10, 7)), "てがきカレンダー 2026年10月 月.pdf", "pdfFileName: month")
+    checkEqual(AppExport.pdfFileName(kind: .week, focus: day(2026, 10, 7)), "てがきカレンダー 2026年10月5日〜10月11日 週.pdf", "pdfFileName: week")
+    checkEqual(AppExport.pdfFileName(kind: .week, focus: day(2026, 12, 30)), "てがきカレンダー 2026年12月28日〜2027年1月3日 週.pdf", "pdfFileName: a week across the year end")
+    checkEqual(AppExport.pdfFileName(kind: .day, focus: day(2026, 10, 7)), "てがきカレンダー 2026年10月7日(水) 日.pdf", "pdfFileName: day")
+    checkEqual(AppExport.pdfFileName(kind: .day, focus: day(2026, 11, 3)), "てがきカレンダー 2026年11月3日(火) 文化の日 日.pdf", "pdfFileName: a holiday")
+    checkEqual(AppExport.pdfFileName(kind: .year, focus: day(2026, 10, 7)), "てがきカレンダー 2026年 年.pdf", "pdfFileName: year")
+    for kind in PageKind.allCases {
+        checkEqual(AppExport.pdfFileName(kind: kind, focus: day(2026, 10, 7)), "てがきカレンダー " + PageNavigation.title(kind, focus: day(2026, 10, 7)) + " " + AppExport.kindLabel(kind) + ".pdf", "pdfFileName(\(kind.rawValue)) is the title and the kind label")
+    }
+    checkEqual(AppExport.kindLabel(.month), "月", "kindLabel month")
+    checkEqual(AppExport.kindLabel(.week), "週", "kindLabel week")
+    checkEqual(AppExport.kindLabel(.day), "日", "kindLabel day")
+    checkEqual(AppExport.kindLabel(.year), "年", "kindLabel year")
+    checkEqual(AppExport.safeFileName("a/b:c\\d"), "a-b-c-d", "safeFileName replaces / : \\")
+    checkEqual(AppExport.safeFileName("てがきカレンダー 2026年10月 月.pdf"), "てがきカレンダー 2026年10月 月.pdf", "safeFileName keeps a normal name")
+    checkEqual(AppExport.safeFileName(""), "", "safeFileName of empty")
+    checkEqual(AppExport.safeFileName("〜 ( ) . - _ 日"), "〜 ( ) . - _ 日", "safeFileName keeps the other characters")
+    checkEqual(AppExport.safeFileName("//::\\\\"), "------", "safeFileName: every occurrence")
+}
+
 // MARK: - Summary
 
 print("")

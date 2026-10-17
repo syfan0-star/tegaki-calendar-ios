@@ -76,14 +76,71 @@ public enum JSONValue: Hashable, Sendable {
     /// Compact JSON text with object keys sorted, so equal values give byte-equal output on every
     /// platform. Integral numbers are written without a fraction ("3", not "3.0"); non-finite numbers
     /// become null.
-    public func serialized() -> String {
+    ///
+    /// `pretty: false` (the default) is the compact form the stored files and iCloud use; its bytes
+    /// never change. `pretty: true` is the readable form of the export file (M6_CONTRACT §1.3):
+    /// - object: `{`, one key per line indented `indent + 2` spaces as `"key": value`, keys sorted,
+    ///   `,` between members, then `}` on its own line at `indent`; an empty object is `{}`.
+    /// - array: when every element is a number (or there is none) one line `[1, 2, 3]` (so a
+    ///   stroke's `pts` stays on one line); otherwise one element per line like an object; an empty
+    ///   array is `[]`.
+    /// - numbers are `format(_:)` as in the compact form; strings and the other scalars too.
+    /// `indent` is the indentation of the line the value starts on (its first line is not indented
+    /// by this method: the caller has already written the key or the array's indentation).
+    public func serialized(pretty: Bool = false, indent: Int = 0) -> String {
         var out = ""
-        write(into: &out)
+        if pretty {
+            writePretty(into: &out, indent: indent)
+        } else {
+            write(into: &out)
+        }
         return out
     }
 
-    public func serializedData() -> Data {
-        Data(serialized().utf8)
+    public func serializedData(pretty: Bool = false) -> Data {
+        Data(serialized(pretty: pretty).utf8)
+    }
+
+    private func writePretty(into out: inout String, indent: Int) {
+        switch self {
+        case .null, .bool, .number, .string:
+            write(into: &out)
+        case .array(let a):
+            if a.isEmpty {
+                out += "[]"
+            } else if a.allSatisfy({ if case .number = $0 { return true } else { return false } }) {
+                out += "["
+                for (i, v) in a.enumerated() {
+                    if i > 0 { out += ", " }
+                    v.write(into: &out)
+                }
+                out += "]"
+            } else {
+                let inner = String(repeating: " ", count: indent + 2)
+                out += "[\n"
+                for (i, v) in a.enumerated() {
+                    if i > 0 { out += ",\n" }
+                    out += inner
+                    v.writePretty(into: &out, indent: indent + 2)
+                }
+                out += "\n" + String(repeating: " ", count: indent) + "]"
+            }
+        case .object(let o):
+            if o.isEmpty {
+                out += "{}"
+                return
+            }
+            let inner = String(repeating: " ", count: indent + 2)
+            out += "{\n"
+            for (i, key) in o.keys.sorted().enumerated() {
+                if i > 0 { out += ",\n" }
+                out += inner
+                JSONValue.writeString(key, into: &out)
+                out += ": "
+                o[key]?.writePretty(into: &out, indent: indent + 2)
+            }
+            out += "\n" + String(repeating: " ", count: indent) + "}"
+        }
     }
 
     private func write(into out: inout String) {

@@ -134,6 +134,13 @@ public enum WebImport {
         } catch {
             throw ParseError.invalidJSON
         }
+        return try parse(json: json)
+    }
+
+    /// The same read from an already parsed tree (M6_CONTRACT §1.2: `InkImport.parse` dispatches on
+    /// `format` and calls this for the web form). `format` ≠ "tegaki-web-export" or a top level that
+    /// is not an object → `notAnExport`; `v` > 1 → `unsupportedVersion`. Nothing else throws.
+    public static func parse(json: JSONValue) throws -> Document {
         guard let obj = json.objectValue, obj["format"]?.stringValue == format else {
             throw ParseError.notAnExport
         }
