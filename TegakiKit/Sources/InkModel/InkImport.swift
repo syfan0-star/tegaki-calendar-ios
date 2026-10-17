@@ -41,29 +41,20 @@ public enum InkImport {
 
     /// Dispatches on `format`. Throws `WebImport.ParseError`: not JSON → `invalidJSON`; not an object,
     /// no `format`, or a `format` that is neither of the two → `notAnExport`; `v` > 1 →
-    /// `unsupportedVersion(v)`. The app form is read page by page (see the type comment); when the
-    /// light scan cannot split the data (not an object, unbalanced, a `pages` array with a stray
-    /// comma) the old whole-tree path decides, so the result and the errors are the same as
-    /// `AppExport.parse(json: JSONValue.parse(data))` would give.
+    /// `unsupportedVersion(v)`. Only the app form is read page by page (see the type comment);
+    /// everything else (the web form, no `format`, another `format`, data the light scan cannot
+    /// split) goes through the old whole-tree path, so for anything that is not an app export the
+    /// error is exactly what `WebImport.parse(_ data:)` reports, and for an app export the result is
+    /// what `AppExport.parse(json: JSONValue.parse(data))` would give (except that a version above 1
+    /// is reported before the pages are looked at, §1.2 step 3).
     public static func parse(_ data: Data) throws -> Parsed {
         guard let members = topLevelMembers(data) else {
             return try parseWholeTree(data)
         }
-        guard let formatRange = members["format"] else { throw WebImport.ParseError.notAnExport }
-        guard let format = try value(data, formatRange).stringValue else { throw WebImport.ParseError.notAnExport }
-        switch format {
-        case WebImport.format:
-            let json: JSONValue
-            do {
-                json = try JSONValue.parse(data)
-            } catch {
-                throw WebImport.ParseError.invalidJSON
-            }
-            return .web(try WebImport.parse(json: json))
-        case AppExport.format:
-            break
-        default:
-            throw WebImport.ParseError.notAnExport
+        // No `format`, or a `format` that is not the app's: the whole-tree read decides between
+        // `invalidJSON` (the file is not JSON after all) and `notAnExport`, as before M6.
+        guard let formatRange = members["format"], try value(data, formatRange).stringValue == AppExport.format else {
+            return try parseWholeTree(data)
         }
 
         let version = WebImport.versionNumber(try members["v"].map { try value(data, $0) })
@@ -78,27 +69,31 @@ public enum InkImport {
             _ = try autoreleasepool { try value(data, range) }
         }
 
-        var elements: [Range<Int>] = []
-        if let pagesRange = members["pages"] {
-            guard let found = arrayElements(data, in: pagesRange) else {
-                // An array the scan cannot split (a trailing comma, a missing element) is broken JSON:
-                // the whole-tree path decides (`invalidJSON`). Anything that is not an array → notAnExport.
-                if data[pagesRange].first(where: { !Scanner.isWhitespace($0) }) == Scanner.openBracket {
-                    return try parseWholeTree(data)
-                }
-                throw WebImport.ParseError.notAnExport
-            }
-            elements = found
-        }
         var pages: [InkPage] = []
-        pages.reserveCapacity(elements.count)
-        for range in elements {
-            let page: InkPage? = try autoreleasepool {
-                AppExport.parsePage(try value(data, range))
+        var elementCount = 0
+        if let pagesRange = members["pages"] {
+            if let elements = arrayElements(data, in: pagesRange) {
+                elementCount = elements.count
+                pages.reserveCapacity(elements.count)
+                for range in elements {
+                    let page: InkPage? = try autoreleasepool {
+                        AppExport.parsePage(try value(data, range))
+                    }
+                    if let page = page { pages.append(page) }
+                }
+            } else {
+                // The scan cannot split `pages` (not an array, or an array with a stray comma): the
+                // member alone is parsed as a tree, which decides as the whole-tree read does — not
+                // JSON → `invalidJSON`, not an array → `notAnExport`, an array `JSONSerialization`
+                // accepts (a trailing comma on a lenient OS) → its elements.
+                guard let list = try value(data, pagesRange).arrayValue else { throw WebImport.ParseError.notAnExport }
+                elementCount = list.count
+                for raw in list {
+                    if let page = AppExport.parsePage(raw) { pages.append(page) }
+                }
             }
-            if let page = page { pages.append(page) }
         }
-        return .app(AppExport.Document(exportedAt: exportedAt, app: app, pages: pages), skipped: elements.count - pages.count)
+        return .app(AppExport.Document(exportedAt: exportedAt, app: app, pages: pages), skipped: elementCount - pages.count)
     }
 
     /// The pages to merge: `.web` → `WebImport.convert` (`pages`, `skipped.count`, `pageCount`);
@@ -113,8 +108,9 @@ public enum InkImport {
         }
     }
 
-    /// The old path (the whole tree at once), for data the light scan could not split: the same
-    /// errors as `WebImport.parse(_ data:)`, with the app form read by `AppExport.parse(json:)`.
+    /// The old path (the whole tree at once), for data the light scan could not split and for
+    /// everything that is not an app export: the same errors as `WebImport.parse(_ data:)`, with the
+    /// app form read by `AppExport.parse(json:)`.
     static func parseWholeTree(_ data: Data) throws -> Parsed {
         let json: JSONValue
         do {

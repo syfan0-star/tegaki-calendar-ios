@@ -4359,7 +4359,13 @@ do {
         checkEqual(importError(#"{ "format": "tegaki-app-export", "v": tru }"#), .invalidJSON, "InkImport.parse: a broken v → invalidJSON")
         checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": [], "junk": abc }"#), .invalidJSON, "InkImport.parse: a broken member the reader does not use → invalidJSON (as the whole-tree read)")
         checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": [], "junk": { "a": [1, 2] } }"#), nil, "InkImport.parse: an unknown member that is JSON is ignored")
-        for s in [#"{ "format": "something-else", "v": 1, "pages": [] }"#, #"{ "v": 1 }"#, #"[1]"#, #""x""#, #"{ "format": "tegaki-web-export", "v": 3 }"#, "{", "", "nope"] {
+        // Broken JSON that is not an app export: invalidJSON as WebImport.parse(_ data:), not notAnExport.
+        checkEqual(importError(#"{ "v": 1, "junk": abc }"#), .invalidJSON, "InkImport.parse: no format and broken JSON → invalidJSON (the whole-tree read decides)")
+        checkEqual(importError(#"{ "format": "foo", "x": abc }"#), .invalidJSON, "InkImport.parse: another format and broken JSON → invalidJSON")
+        checkEqual(importError(#"{ "format": 7, "x": abc }"#), .invalidJSON, "InkImport.parse: a non-string format and broken JSON → invalidJSON")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": abc }"#), .invalidJSON, "InkImport.parse: pages that is not JSON → invalidJSON")
+        checkEqual(importError(#"{ "format": "tegaki-app-export", "pages": null }"#), .notAnExport, "InkImport.parse: pages that is null → notAnExport")
+        for s in [#"{ "format": "something-else", "v": 1, "pages": [] }"#, #"{ "v": 1 }"#, #"[1]"#, #""x""#, #"{ "format": "tegaki-web-export", "v": 3 }"#, "{", "", "nope", #"{ "v": 1, "junk": abc }"#, #"{ "format": "foo", "x": abc }"#, #"{ "format": 7, "x": abc }"#] {
             checkEqual(importError(s), webParseError(s), "InkImport.parse and WebImport.parse agree on \(s.isEmpty ? "empty data" : s)")
         }
         // Dropped elements are counted.

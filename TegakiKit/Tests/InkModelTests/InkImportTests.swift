@@ -112,8 +112,12 @@ final class InkImportTests: XCTestCase {
         XCTAssertEqual(importError(#"{ "format": "tegaki-app-export", "v": tru }"#), .invalidJSON, "a broken v")
         XCTAssertEqual(importError(#"{ "format": "tegaki-app-export", "pages": [], "junk": abc }"#), .invalidJSON, "a broken member the reader does not use (as the whole-tree read)")
         XCTAssertNil(importError(#"{ "format": "tegaki-app-export", "pages": [], "junk": { "a": [1, 2] } }"#), "an unknown member that is JSON is ignored")
+        XCTAssertEqual(importError(#"{ "v": 1, "junk": abc }"#), .invalidJSON, "no format and broken JSON → invalidJSON, not notAnExport (the whole-tree read decides)")
+        XCTAssertEqual(importError(#"{ "format": "foo", "x": abc }"#), .invalidJSON, "another format and broken JSON → invalidJSON")
+        XCTAssertEqual(importError(#"{ "format": 7, "x": abc }"#), .invalidJSON, "a non-string format and broken JSON → invalidJSON")
+        XCTAssertEqual(importError(#"{ "format": "tegaki-app-export", "pages": abc }"#), .invalidJSON, "pages that is not JSON → invalidJSON")
         // The same type and values as WebImport.parse(_ data:) for everything that is not an app export.
-        for s in [#"{ "format": "something-else", "v": 1, "pages": [] }"#, #"{ "v": 1 }"#, #"[1]"#, #""x""#, #"{ "format": "tegaki-web-export", "v": 3 }"#, #"{ "format": "tegaki-web-export", "v": 1, "pages": ["#, "{", "", "nope", #"{ "format": "tegaki-web-export" }"#] {
+        for s in [#"{ "format": "something-else", "v": 1, "pages": [] }"#, #"{ "v": 1 }"#, #"[1]"#, #""x""#, #"{ "format": "tegaki-web-export", "v": 3 }"#, #"{ "format": "tegaki-web-export", "v": 1, "pages": ["#, "{", "", "nope", #"{ "format": "tegaki-web-export" }"#, #"{ "v": 1, "junk": abc }"#, #"{ "format": "foo", "x": abc }"#, #"{ "format": 7, "x": abc }"#] {
             XCTAssertEqual(importError(s), webError(s), s.isEmpty ? "empty data" : s)
         }
     }
@@ -286,6 +290,8 @@ final class InkImportTests: XCTestCase {
         XCTAssertEqual(importError(#"{ "format": "tegaki-app-export", "v": 1, "pages": [ { "pageId": "m1-2026-10" } { "pageId": "y-2026" } ] }"#), .invalidJSON, "elements without a comma")
         XCTAssertEqual(importError(#"{ "format": "tegaki-app-export", "v": 1, "pages": "x" }"#), .notAnExport)
         XCTAssertEqual(importError(#"{ "format": "tegaki-app-export", "v": 1, "pages": { "a": 1 } }"#), .notAnExport)
+        XCTAssertEqual(importError(#"{ "format": "tegaki-app-export", "v": 1, "pages": null }"#), .notAnExport)
+        XCTAssertEqual(importError(#"{ "format": "tegaki-app-export", "v": 1, "pages": abc }"#), .invalidJSON, "pages that is not JSON: invalidJSON as the whole-tree read")
         XCTAssertThrowsError(try AppExport.parse(json: try JSONValue.parse(Data(#"{ "format": "tegaki-app-export", "v": 1, "pages": "x" }"#.utf8)))) { error in
             XCTAssertEqual(error as? WebImport.ParseError, .notAnExport, "the whole-tree read agrees")
         }
