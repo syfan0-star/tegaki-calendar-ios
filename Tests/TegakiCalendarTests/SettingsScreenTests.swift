@@ -4,7 +4,7 @@ import XCTest
 
 /// 設定 › 購入 の純関数 (M5_CONTRACT §4.3 / §7.6): the plan line of the eight states, the date label of
 /// the six states that have a date, the numeric date in ja_JP, the purchase button while read only,
-/// and the footer's three branches.
+/// and the footer's three branches. M6 (M6_CONTRACT §7.2): the data section's export paragraph.
 @MainActor
 final class SettingsScreenTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_760_000_000)
@@ -96,7 +96,8 @@ final class SettingsScreenTests: XCTestCase {
         for reason in reasons {
             let text = SettingsScreen.purchaseFooter(.readOnly(reason))
             XCTAssertTrue(text.hasPrefix(PlanText.readOnlyNote(reason)), "\(reason): \(text)")
-            XCTAssertTrue(text.contains("閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この iPad の手書きを全て消す、設定の変更ができます。"), text)
+            // M6 (M6_CONTRACT §3.1 / §3.6): 「手書きの書き出し」 joined the list (利用規約 第 5 条 5 項).
+            XCTAssertTrue(text.contains("閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この iPad の手書きを全て消す、手書きの書き出し、設定の変更ができます。"), text)
             XCTAssertTrue(text.hasSuffix("新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"), text)
         }
         XCTAssertTrue(SettingsScreen.purchaseFooter(.readOnly(.billingRetry)).contains(PlanText.paymentPath))
@@ -115,6 +116,18 @@ final class SettingsScreenTests: XCTestCase {
         XCTAssertTrue(SettingsScreen.isFailure(.failed(StoreStrings.offline)))
         XCTAssertFalse(SettingsScreen.isFailure(.restored))
         XCTAssertFalse(SettingsScreen.isFailure(.nothingToRestore))
+    }
+
+    /// 設定 › データ (M6_CONTRACT §3.1 / §3.6 / §7.2): the export paragraph under the import one; the
+    /// new words say 「この端末」, and the import footer is unchanged.
+    func testDataSectionTexts() {
+        XCTAssertEqual(SettingsScreen.exportFooter, "「手書きを書き出す」は、この端末に保存されている手書きを 1 つのデータファイル（JSON）にするか、いま開いているページを PDF にします。データファイルは「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。")
+        XCTAssertFalse(SettingsScreen.exportFooter.contains("iPad"))
+        XCTAssertEqual(SettingsScreen.importFooter, "Web 版の設定で「手書きを書き出す（iPad アプリ用）」をして、そのファイルを選びます。同じファイルを二度取り込んでも手書きは二重になりません。")
+        // The read-only footer lists the export for every reason (`readOnlyFooter` is private: through `purchaseFooter`).
+        let readOnly = SettingsScreen.purchaseFooter(.readOnly(.notSubscribed))
+        XCTAssertTrue(readOnly.contains("手書きの書き出し、設定の変更ができます。"), readOnly)
+        XCTAssertFalse(readOnly.contains("手書きの書き出しは"), "not in the 「購読すると使えます」 half")
     }
 
     /// 設定 › 情報 opens the public pages and Apple's standard EULA (`LegalLinks`, D5 / M5-8).

@@ -21,11 +21,13 @@ import Layout
 /// that paper point (lu) at the top left, so the CI's photos share the canvas's zoom path.
 /// Purchase (M5_CONTRACT §7.5): `--screenshot-sheet paywall` opens the purchase sheet on the month page
 /// (trial-eligible sample); `--screenshot-readonly` starts the store as `.readOnly(.notSubscribed)` (badge, 20 s toast).
+/// Export (M6_CONTRACT §3.5, 0-6): `--screenshot-sheet export` opens `ExportSheet` in its `.choose`
+/// state on the month page (the two buttons and their notes; nothing is written).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
-    /// M5 contract §7.5: `paywall`).
+    /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`).
     enum Sheet: String, CaseIterable, Sendable {
-        case create, edit, lasso, settings, sync, `import`, paywall
+        case create, edit, lasso, settings, sync, `import`, paywall, export
     }
 
     struct Config: Equatable, Sendable {

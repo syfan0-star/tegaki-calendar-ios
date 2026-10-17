@@ -4,12 +4,13 @@ import StoreKit
 import SwiftUI
 import UIKit
 
-/// The settings sheet (M3b contract §4.8, M4 contract §6.2, M5 contract §4.3, DESIGN §2.8): calendars
-/// (shown, default, access, Google how-to), input (finger, Pencil, erase-after-convert), sync (the
-/// iCloud state, the last sync, 「今すぐ同期」, the account question), data (import from the web version,
-/// erase everything confirmed twice; the export row comes with the feature, M5-27), purchase (the
-/// plan and its date from `store.snapshot`, 「購読する」 while read only, 「サブスクリプションを管理」,
-/// 「購入を復元」 with the result under the footer), and the info links (`LegalLinks`).
+/// The settings sheet (M3b contract §4.8, M4 contract §6.2, M5 contract §4.3, M6 contract §3.1,
+/// DESIGN §2.8): calendars (shown, default, access, Google how-to), input (finger, Pencil,
+/// erase-after-convert), sync (the iCloud state, the last sync, 「今すぐ同期」, the account question),
+/// data (import from the web version or the app's own data file, 「手書きを書き出す」 (M6, usable while
+/// read only too), erase everything confirmed twice), purchase (the plan and its date from
+/// `store.snapshot`, 「購読する」 while read only, 「サブスクリプションを管理」, 「購入を復元」 with the
+/// result under the footer), and the info links (`LegalLinks`).
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
     @ObservedObject var sync: SyncEngine
@@ -34,6 +35,9 @@ struct SettingsScreen: View {
     var onShowPaywall: () -> Void = {}
     /// Reserved for a screenshot of the 「購入」 section (M5 does not use it): scroll there on appear.
     var scrollToPurchaseOnAppear: Bool = false
+    /// 「手書きを書き出す」 (M6 contract §3.1): the owner closes this sheet and shows `ExportSheet`.
+    /// Allowed while read only (`GatedAction.export`), so the row is never greyed.
+    var onExport: () -> Void = {}
 
     @Environment(\.openURL) private var openURL
     @State private var eraseInkAfterConvert: Bool = ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
@@ -55,6 +59,10 @@ struct SettingsScreen: View {
 
     /// The data section's footer (M4 contract §6.2).
     static let importFooter = "Web 版の設定で「手書きを書き出す（iPad アプリ用）」をして、そのファイルを選びます。同じファイルを二度取り込んでも手書きは二重になりません。"
+
+    /// The data section's second paragraph (M6 contract §3.1 / §3.6): what 「手書きを書き出す」 makes,
+    /// and that the data file goes back in through the import row (while subscribed).
+    static let exportFooter = "「手書きを書き出す」は、この端末に保存されている手書きを 1 つのデータファイル（JSON）にするか、いま開いているページを PDF にします。データファイルは「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。"
 
     /// "0.5.0 (1)" from the bundle.
     static var versionText: String {
@@ -378,10 +386,16 @@ struct SettingsScreen: View {
     private var dataSection: some View {
         Section {
             // M5 (M5_CONTRACT §3.1): greyed while read only, but still tappable (the owner then shows
-            // the paywall or a toast). The export row returns with the feature (M5-27).
+            // the paywall or a toast).
             Button(action: onImportWeb) {
                 Text("Web 版の手書きを取り込む")
                     .foregroundStyle(store.isReadOnly ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+            }
+            // M6 (M6_CONTRACT §3.1, D1): the export is allowed while read only (`GatedAction.export`),
+            // so the row keeps its tint in every access state.
+            Button(action: onExport) {
+                Text("手書きを書き出す")
+                    .foregroundStyle(.tint)
             }
             Button("この iPad の手書きを全て消す", role: .destructive) {
                 confirmEraseStep1 = true
@@ -391,6 +405,7 @@ struct SettingsScreen: View {
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Self.importFooter)
+                Text(Self.exportFooter)
                 if let imported = Self.webImportedText(sync.snapshot.webImportedAt) {
                     Text(imported)
                 }
@@ -553,5 +568,6 @@ extension SettingsScreen {
     }
 
     private static let cancelFooter = "解約は端末の\(PlanText.cancelPath)から。解約しても期間の終わりまで使えます。"
-    private static let readOnlyFooter = "閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この iPad の手書きを全て消す、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"
+    /// The same list as 利用規約 第 5 条 5 項 (M6_CONTRACT §3.1 / §5.1: 「手書きの書き出し」 since M6).
+    private static let readOnlyFooter = "閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この iPad の手書きを全て消す、手書きの書き出し、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"
 }

@@ -47,10 +47,12 @@ struct DocumentPickerView: UIViewControllerRepresentable {
 }
 
 /// Where the import is (M4 contract §6.3): reading the file, importing (with progress), done, failed.
+/// `done` carries whether the file was the app's own export (M6_CONTRACT §1.2, 0-12), which picks
+/// the finished sentence.
 enum WebImportPhase: Equatable {
     case reading
     case importing(done: Int, total: Int)
-    case done(ImportOutcome, skipped: Int)
+    case done(ImportOutcome, skipped: Int, isAppExport: Bool)
     case failed(String)
 
     /// Reading and importing: the sheet cannot be swiped away (the work would carry on behind it).
@@ -63,8 +65,11 @@ enum WebImportPhase: Equatable {
 }
 
 /// The sheet that shows the import's progress and result (M4 contract §6.3, §6.8). It has no state
-/// of its own: `CalendarRootScreen` drives `phase` (file → `WebImport.parse` / `convert` →
-/// `SyncEngine.importPages`) and shows the same result text as a toast after 「閉じる」.
+/// of its own: `CalendarRootScreen` drives `phase` (file → `InkImport.parse` / `pages` →
+/// `SyncEngine.importPages`) and shows the same result text as a toast after 「閉じる」. Since M6 the
+/// door takes two formats (M6_CONTRACT §1.2): the web version's export and the app's own data file
+/// (a restore); the title stays 「Web 版の手書きを取り込む」 (M6-4) and the finished sentence says
+/// which one it was (`resultText(_:isAppExport:)`, 0-12).
 struct WebImportSheet: View {
     var phase: WebImportPhase
     var onClose: () -> Void
@@ -73,8 +78,8 @@ struct WebImportSheet: View {
 
     // MARK: Texts (M4 contract §6.3; the owner uses them for the phases and the toast)
 
-    /// `ParseError.notAnExport`.
-    static let notAnExportText = "このファイルは Web 版の書き出しではありません"
+    /// `ParseError.notAnExport` (neither format, M6_CONTRACT §3.6).
+    static let notAnExportText = "このファイルは手書きの書き出し（Web 版またはこのアプリ）ではありません"
     /// `ParseError.invalidJSON`.
     static let invalidJSONText = "ファイルを読めませんでした"
     /// `ParseError.unsupportedVersion(v)`.
@@ -86,10 +91,13 @@ struct WebImportSheet: View {
         "保存できませんでした: \(error.localizedDescription)"
     }
 
-    /// The result line: what was imported, or that everything was already there.
-    static func resultText(_ outcome: ImportOutcome) -> String {
+    /// The result line: what was imported (the app's own data file 「手書きを取り込みました（…）」, the
+    /// web version's 「Web 版の手書きを取り込みました（…）」; M6_CONTRACT §3.6, 0-12), or that everything
+    /// was already there.
+    static func resultText(_ outcome: ImportOutcome, isAppExport: Bool = false) -> String {
         if outcome.pagesChanged > 0 {
-            return "Web 版の手書きを取り込みました（\(outcome.pagesChanged) ページ・\(outcome.strokesAdded) 本）"
+            let lead = isAppExport ? "手書きを取り込みました" : "Web 版の手書きを取り込みました"
+            return "\(lead)（\(outcome.pagesChanged) ページ・\(outcome.strokesAdded) 本）"
         }
         return "取り込むものはありませんでした（すべて取り込み済みです）"
     }
@@ -100,11 +108,11 @@ struct WebImportSheet: View {
     }
 
     /// The toast after the sheet closed: the result line, the skipped line under it when there is one.
-    static func toastText(outcome: ImportOutcome, skipped: Int) -> String {
+    static func toastText(outcome: ImportOutcome, skipped: Int, isAppExport: Bool = false) -> String {
         if let second = skippedText(skipped) {
-            return resultText(outcome) + "\n" + second
+            return resultText(outcome, isAppExport: isAppExport) + "\n" + second
         }
-        return resultText(outcome)
+        return resultText(outcome, isAppExport: isAppExport)
     }
 
     /// 「取り込んでいます… 3 / 12 ページ」 (no numbers while the file is still being read).
@@ -151,11 +159,11 @@ struct WebImportSheet: View {
                 .font(.body)
                 .multilineTextAlignment(.center)
 
-        case .done(let outcome, let skipped):
+        case .done(let outcome, let skipped, let isAppExport):
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(Color.green)
-            Text(Self.resultText(outcome))
+            Text(Self.resultText(outcome, isAppExport: isAppExport))
                 .font(.body)
                 .multilineTextAlignment(.center)
             if let second = Self.skippedText(skipped) {

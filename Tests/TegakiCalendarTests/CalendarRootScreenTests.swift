@@ -1,12 +1,13 @@
 import Access
+import InkModel
 import Layout
 import XCTest
 @testable import TegakiCalendar
 
 /// The screen's pure helpers: the height left for the paper under the fixed all-day band (M4C
 /// contract §5.1 / §7.3; measured at the overview: lanes 18 pt, gaps 2 pt, padding 3 + 4, so `fitAll`
-/// on the screen matches the canvas's paper area), and M5's gate of the 19 operations (M5_CONTRACT
-/// §3.1 / §7.6).
+/// on the screen matches the canvas's paper area), M5's gate of the 19 operations (M5_CONTRACT
+/// §3.1 / §7.6), and M6's failure texts of the two-format import door (M6_CONTRACT §1.2 / §7.2).
 @MainActor
 final class CalendarRootScreenTests: XCTestCase {
     private let week: [DayKey] = (0..<7).map { DayKey(year: 2026, month: 10, day: 5).adding(days: $0) }
@@ -104,5 +105,35 @@ final class CalendarRootScreenTests: XCTestCase {
         XCTAssertEqual(CalendarRootScreen.screenshotReadOnlyToastDuration, 20)
         XCTAssertEqual(CalendarRootScreen.blockedInputInterval, 2)
         XCTAssertEqual(CalendarRootScreen.firstRefreshTimeout, 3)
+    }
+
+    // MARK: M6 (M6_CONTRACT §1.2 / §7.2)
+
+    /// The `.failed` text of the import door's parse errors (`InkImport.parse` throws the same
+    /// `WebImport.ParseError` as before): the two-format wording of `notAnExport`, the version, and
+    /// 「ファイルを読めませんでした」 for invalid JSON and for any error that is not a parse error.
+    func testImportFailureTexts() {
+        XCTAssertEqual(CalendarRootScreen.importFailureText(WebImport.ParseError.notAnExport), WebImportSheet.notAnExportText)
+        XCTAssertEqual(CalendarRootScreen.importFailureText(WebImport.ParseError.notAnExport), "このファイルは手書きの書き出し（Web 版またはこのアプリ）ではありません")
+        XCTAssertEqual(CalendarRootScreen.importFailureText(WebImport.ParseError.unsupportedVersion(2)), WebImportSheet.unsupportedVersionText(2))
+        XCTAssertEqual(CalendarRootScreen.importFailureText(WebImport.ParseError.unsupportedVersion(2)), "このファイルは新しい形式です（v2）。アプリを更新してください")
+        XCTAssertEqual(CalendarRootScreen.importFailureText(WebImport.ParseError.invalidJSON), WebImportSheet.invalidJSONText)
+        XCTAssertEqual(CalendarRootScreen.importFailureText(WebImport.ParseError.invalidJSON), "ファイルを読めませんでした")
+        let unrelated = NSError(domain: "CalendarRootScreenTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "x"])
+        XCTAssertEqual(CalendarRootScreen.importFailureText(unrelated), WebImportSheet.invalidJSONText)
+        XCTAssertEqual(CalendarRootScreen.importFailureText(CancellationError()), WebImportSheet.invalidJSONText)
+        // The door's own errors are the same type and values (K's `InkImport.parse`).
+        XCTAssertThrowsError(try InkImport.parse(Data("not json".utf8))) { error in
+            XCTAssertEqual(error as? WebImport.ParseError, .invalidJSON)
+            XCTAssertEqual(CalendarRootScreen.importFailureText(error), WebImportSheet.invalidJSONText)
+        }
+        XCTAssertThrowsError(try InkImport.parse(Data(#"{"format":"something-else","v":1}"#.utf8))) { error in
+            XCTAssertEqual(error as? WebImport.ParseError, .notAnExport)
+            XCTAssertEqual(CalendarRootScreen.importFailureText(error), WebImportSheet.notAnExportText)
+        }
+        XCTAssertThrowsError(try InkImport.parse(Data(#"{"format":"tegaki-app-export","v":2,"pages":[]}"#.utf8))) { error in
+            XCTAssertEqual(error as? WebImport.ParseError, .unsupportedVersion(2))
+            XCTAssertEqual(CalendarRootScreen.importFailureText(error), WebImportSheet.unsupportedVersionText(2))
+        }
     }
 }

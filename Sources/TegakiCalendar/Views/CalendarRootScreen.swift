@@ -20,12 +20,12 @@ struct EventEditorRequest: Identifiable {
 
 /// The operations the subscription gates (M5_CONTRACT §3.1, D3): the first eleven stop while the
 /// app is read only (a paywall once per session, then a toast); the other eight are always allowed
-/// (`export` is reserved for M6's handwriting export, which read only will allow too, M5-27).
+/// (`export` is M6's handwriting export, which read only allows too, M5-27 / M6_CONTRACT D1).
 enum GatedAction: Equatable, CaseIterable {
     case draw, erase, moveSelection, deleteSelection, convertSelection, createEvent, editEvent, deleteEvent,
          undoRedo, overlayTool, webImport,                       // 止める（11）
          eraseAll, settings, navigate, zoom, receiveCloud, viewEvent, pencilToggle,   // 許す
-         export                                                   // 許す（将来の手書きの書き出し。M5-27）。許す = 8、全部で 19
+         export                                                   // 許す（手書きの書き出し。M5-27、M6）。許す = 8、全部で 19
 
     /// Stops while the app is read only.
     var isGated: Bool {
@@ -44,7 +44,14 @@ enum GatedAction: Equatable, CaseIterable {
 /// heading of the page, the fixed all-day band of the week / day page (`AllDayBandView`), the paper
 /// with the PencilKit canvas (`InkCanvasView`, 担当 I) and the lasso menu floating over it, the
 /// toolbar, the toast, and the sheets (event create / edit / view, settings, the web import's file
-/// picker and progress sheet, the iCloud account question).
+/// picker and progress sheet, the export sheet, the iCloud account question).
+///
+/// Export (M6, M6_CONTRACT §3.3): 設定 › データ › 「手書きを書き出す」 saves the shown page, closes the
+/// settings and opens `ExportSheet` (`exportPhase`); a choice runs `ExportBuilder` (the JSON of every
+/// stored page with its progress, or the PDF of the shown page) and the sheet ends on `.done` with a
+/// `ShareLink`, or on `.failed` whose text becomes an error toast after 「閉じる」. Allowed while read
+/// only. The import door (`runImport`) takes the app's own data file as well as the web export since
+/// M6 (`InkImport`), and says which one it took.
 ///
 /// Flow: `(kind, focus)` is chosen → `saveNow()` → `SyncEngine.load(pageId)` (+ `pageOpened`, which
 /// fetches that one page from iCloud) → `BandMigration.migrate` (M4b: the week / day band's
@@ -138,6 +145,11 @@ struct CalendarRootScreen: View {
     @State private var showImportPicker = false
     /// The import sheet is up while this is not nil (M4 contract §6.3).
     @State private var importPhase: WebImportPhase?
+    // M6: the export (M6_CONTRACT §3.3).
+    /// The export sheet is up while this is not nil (`.choose` → `.building` → `.done` / `.failed`).
+    @State private var exportPhase: ExportPhase?
+    /// The running export (`runExport`); cancelled if the sheet is closed while building.
+    @State private var exportTask: Task<Void, Never>?
     @State private var showAccountChange = false
     /// The account question arrived while a sheet was up: ask once the sheet has closed.
     @State private var accountChangePending = false
@@ -295,7 +307,7 @@ struct CalendarRootScreen: View {
 
     /// True while any sheet or cover is up (the account question waits for them; M4 contract §6.4).
     private var sheetIsUp: Bool {
-        showSettings || editor != nil || showImportPicker || importPhase != nil || showOnboarding || showPaywall
+        showSettings || editor != nil || showImportPicker || importPhase != nil || exportPhase != nil || showOnboarding || showPaywall
     }
 
     /// M5 (M5_CONTRACT §3.1): the access state and whether the app is read only.
@@ -432,7 +444,9 @@ struct CalendarRootScreen: View {
                         try? await Task.sleep(for: .seconds(Self.sheetGap))
                         showPaywall(reason: .settings)
                     }
-                }
+                },
+                // M6 (M6_CONTRACT §3.3): 設定 › データ › 「手書きを書き出す」.
+                onExport: openExport
             )
         }
         .sheet(isPresented: $showPaywall) {
@@ -444,6 +458,15 @@ struct CalendarRootScreen: View {
         }
         .sheet(isPresented: importSheetBinding) {
             WebImportSheet(phase: importPhase ?? .reading, onClose: closeImportSheet)
+        }
+        .sheet(isPresented: exportSheetBinding) {
+            ExportSheet(
+                phase: exportPhase ?? .choose,
+                pageTitle: PageNavigation.title(kind, focus: focus),
+                pageKind: kind,
+                onChoose: runExport,
+                onClose: closeExportSheet
+            )
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView {
@@ -580,6 +603,15 @@ struct CalendarRootScreen: View {
         Binding(
             get: { importPhase != nil },
             set: { if !$0 { closeImportSheet() } }
+        )
+    }
+
+    /// The export sheet is presented while `exportPhase` is set; swiping it away (possible only when
+    /// choosing, done or failed) counts as 「閉じる」 (M6_CONTRACT §3.3).
+    private var exportSheetBinding: Binding<Bool> {
+        Binding(
+            get: { exportPhase != nil },
+            set: { if !$0 { closeExportSheet() } }
         )
     }
 
@@ -1115,37 +1147,40 @@ struct CalendarRootScreen: View {
         }
     }
 
-    /// Parse → convert (off the main actor: a big export takes a moment) → `sync.importPages`.
+    /// Parse (off the main actor: a big export takes a moment; `InkImport` reads the app's own
+    /// format page by page, M6_CONTRACT §1.2) → `sync.importPages`. The finished sentence says which
+    /// format it was (`isAppExport`, 0-12).
     private func runImport(_ data: Data) async {
-        let parsed: Result<WebImport.Conversion, Error> = await Task.detached(priority: .userInitiated) {
-            Result { WebImport.convert(try WebImport.parse(data)) }
+        let parsed: Result<InkImport.Outcome, Error> = await Task.detached(priority: .userInitiated) {
+            Result { InkImport.pages(try InkImport.parse(data)) }
         }.value
-        let conversion: WebImport.Conversion
+        let outcome: InkImport.Outcome
         switch parsed {
         case .failure(let error):
             importPhase = .failed(Self.importFailureText(error))
             return
         case .success(let value):
-            conversion = value
+            outcome = value
         }
-        let skipped = conversion.skipped.count
-        guard !conversion.pages.isEmpty else {
-            importPhase = .done(ImportOutcome(pagesChanged: 0, strokesAdded: 0, pagesSeen: conversion.pageCount), skipped: skipped)
+        let skipped = outcome.skipped
+        guard !outcome.pages.isEmpty else {
+            importPhase = .done(ImportOutcome(pagesChanged: 0, strokesAdded: 0, pagesSeen: outcome.pageCount), skipped: skipped, isAppExport: outcome.isAppExport)
             return
         }
-        importPhase = .importing(done: 0, total: conversion.pages.count)
+        importPhase = .importing(done: 0, total: outcome.pages.count)
         do {
-            let outcome = try await sync.importPages(conversion.pages) { done, total in
+            let imported = try await sync.importPages(outcome.pages) { done, total in
                 importPhase = .importing(done: done, total: total)
             }
-            importPhase = .done(outcome, skipped: skipped)
+            importPhase = .done(imported, skipped: skipped, isAppExport: outcome.isAppExport)
         } catch {
             importPhase = .failed(WebImportSheet.saveFailedText(error))
         }
     }
 
-    /// The `.failed` text of a parse error (M4 contract §6.3, step 3).
-    private static func importFailureText(_ error: Error) -> String {
+    /// The `.failed` text of a parse error (M4 contract §6.3, step 3; `InkImport.parse` throws the
+    /// same `WebImport.ParseError`, M6_CONTRACT §1.2). Internal so `CalendarRootScreenTests` can pin it.
+    static func importFailureText(_ error: Error) -> String {
         switch error as? WebImport.ParseError {
         case .notAnExport:
             return WebImportSheet.notAnExportText
@@ -1160,8 +1195,78 @@ struct CalendarRootScreen: View {
     private func closeImportSheet() {
         guard let phase = importPhase else { return }
         importPhase = nil
-        if case .done(let outcome, let skipped) = phase {
-            showToast(WebImportSheet.toastText(outcome: outcome, skipped: skipped))
+        if case .done(let outcome, let skipped, let isAppExport) = phase {
+            showToast(WebImportSheet.toastText(outcome: outcome, skipped: skipped, isAppExport: isAppExport))
+        }
+    }
+
+    // MARK: - Export (M6_CONTRACT §3.3)
+
+    /// 「手書きを書き出す」: the page on the screen is saved now (its last 1.5 s go into the store the
+    /// JSON reads), the settings close, then the sheet opens on its two choices. Allowed while read
+    /// only (`GatedAction.export`, D1), so there is no guard.
+    private func openExport() {
+        saveNow()
+        showSettings = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.sheetGap))
+            exportPhase = .choose
+        }
+    }
+
+    /// One of the two buttons: the JSON of every stored page (with its page progress) or the PDF
+    /// of the shown page (after a 50 ms pause so SwiftUI draws the spinner first: the render is
+    /// synchronous on the main actor, about a second). Success → `.done`; a failure with a text →
+    /// `.failed`; a cancellation → the sheet just closes.
+    private func runExport(_ exportKind: ExportKind) {
+        exportPhase = .building(exportKind, done: 0, total: exportKind == .pdf ? 1 : 0)
+        exportTask?.cancel()
+        exportTask = Task { @MainActor in
+            let builder = ExportBuilder(store: sync.store)
+            let outcome: Result<ExportResult, Error>
+            do {
+                switch exportKind {
+                case .json:
+                    outcome = .success(try await builder.exportJSON { done, total in
+                        // A late report of a cancelled export, or one after the sheet closed, must not
+                        // reopen the sheet (the closure runs as part of the builder's worker task).
+                        guard !Task.isCancelled, case .building = exportPhase else { return }
+                        exportPhase = .building(.json, done: done, total: total)
+                    })
+                case .pdf:
+                    try? await Task.sleep(for: .milliseconds(50))
+                    try Task.checkCancellation()
+                    outcome = .success(try builder.exportPDF(paper: paper, page: page, kind: kind, focus: focus))
+                }
+            } catch {
+                outcome = .failure(error)
+            }
+            // Cancelled (the sheet was closed while building, or a newer export started): the sheet's
+            // state belongs to whoever cancelled; nothing here may touch it.
+            guard !Task.isCancelled else { return }
+            switch outcome {
+            case .success(let result):
+                exportPhase = .done(result)
+            case .failure(let error):
+                if let text = ExportSheet.failureText(error) {
+                    exportPhase = .failed(text)
+                } else {
+                    exportPhase = nil
+                }
+            }
+        }
+    }
+
+    /// 「閉じる」 (or a swipe): a failure's text becomes an error toast (6 s). The export directory is
+    /// not emptied here (0-14: the share sheet's destination may still be reading the file; the
+    /// next export cleans up first).
+    private func closeExportSheet() {
+        guard let phase = exportPhase else { return }
+        exportTask?.cancel()
+        exportTask = nil
+        exportPhase = nil
+        if case .failed(let text) = phase {
+            showToast(text, isError: true)
         }
     }
 
@@ -1381,11 +1486,14 @@ struct CalendarRootScreen: View {
             // Both show the settings screen; the demo engine supplies 「同期済み」 and 「最後に同期」.
             showSettings = true
         case .`import`:
-            importPhase = .done(ScreenshotMode.importDemoOutcome, skipped: 0)
+            importPhase = .done(ScreenshotMode.importDemoOutcome, skipped: 0, isAppExport: false)
         case .paywall:
             // M5 contract §7.5: the trial-eligible sample over the month page.
             paywallReason = .firstLaunch
             showPaywall = true
+        case .export:
+            // M6 contract §3.5 / 0-6: the two choices as the reviewer sees them (nothing is written).
+            exportPhase = .choose
         }
     }
 

@@ -7,7 +7,8 @@ import XCTest
 /// the fixed 「今日」, the demo page of every page kind, the M3b sheets (`--screenshot-sheet`) with
 /// their demo calendars, the M4 sheets (`sync`, `import`) with the demo sync values, M4b's
 /// `--screenshot-landscape`, the Sunday week of `--screenshot-month 2026-06` and the demo strokes
-/// that already sit on the grid, and M4c's `--screenshot-zoom` / `--screenshot-offset`.
+/// that already sit on the grid, M4c's `--screenshot-zoom` / `--screenshot-offset`, M5's `paywall` and
+/// `--screenshot-readonly`, and M6's `export` sheet (M6_CONTRACT §3.5 / §7.2).
 final class ScreenshotModeTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
 
@@ -285,11 +286,16 @@ final class ScreenshotModeTests: XCTestCase {
         }
         // Unknown values still mean no sheet (the raw values are lower case).
         XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "Sync"])?.sheet)
-        XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "export"])?.sheet)
         XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "bogus"])?.sheet)
-        // M5 contract §7.5: `paywall` is the seventh sheet.
-        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 7)
-        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import", "paywall"])
+        // M6 contract §3.5 / §7.2: `export` is a sheet now (the choice state over the month page).
+        let export = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week", "--screenshot-sheet", "export"])
+        XCTAssertEqual(export?.sheet, .export)
+        XCTAssertEqual(export?.page, .month)
+        XCTAssertEqual(export?.month, october)
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "Export"])?.sheet)
+        // M5 contract §7.5: `paywall` is the seventh sheet; M6 contract §3.5: `export` the eighth.
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 8)
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import", "paywall", "export"])
     }
 
     // MARK: M5 (M5_CONTRACT §7.5, §7.6)
