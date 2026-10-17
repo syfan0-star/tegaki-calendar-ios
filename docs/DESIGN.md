@@ -844,7 +844,7 @@ Web の点列は制御点ではなく「ならした通過点」なので、Penc
 | **4.2 最低限の機能（Web の再梱包ではないこと）** | PencilKit の手書き、EventKit、Apple Pencil のダブルタップ／スクイーズ、ホバー、完全オフライン、CloudKit 同期、StoreKit。WebView は一切使わない。審査メモに「Web 版とは別物で、iPad の部品だけで作っている」と書く |
 | **3.1.1 アプリ内課金** | 機能の解放は StoreKit のサブスクリプションのみ。外部の支払い導線なし。復元あり |
 | **3.1.2 サブスクリプション** | §7.5 のチェックリスト。説明欄に規約（Apple 標準 EULA の URL `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/` と、サービス規約 `https://syfan0-star.github.io/tegaki-calendar/app/terms.html`）とプライバシーポリシーの URL（M5-8。アプリ内の URL は `TegakiKit/Sources/Access/LegalLinks.swift`） |
-| **5.1.1(i) プライバシーポリシー** | [PRIVACY.md](PRIVACY.md) を公開 URL `https://syfan0-star.github.io/tegaki-calendar/app/privacy.html` にし（M5。Web リポジトリの `m5-legal` に HTML を用意済み。**公開待ち（m5-legal）**: リードが main に merge して `curl -sI` で 200 を確認したら「公開済み」に直す）、App Store Connect の欄とアプリ内（設定 › 情報、ペイウォール）の両方からリンク |
+| **5.1.1(i) プライバシーポリシー** | [PRIVACY.md](PRIVACY.md) を公開 URL `https://syfan0-star.github.io/tegaki-calendar/app/privacy.html` にし（M5。Web リポジトリの `m5-legal` に HTML を用意済み。**公開済み（2026-10-17）**）、App Store Connect の欄とアプリ内（設定 › 情報、ペイウォール）の両方からリンク |
 | **5.1.1(ii) 許可の目的** | `NSCalendarsFullAccessUsageDescription` の文面（§4.1）。許可を求める前に理由を画面で説明（§2.10）。拒否されてもアプリが使える |
 | **5.1.1(iii) 最小限のデータ** | 収集ゼロ。ログイン不要。アカウント作成なし |
 | **5.1.2 データの利用と共有** | 第三者 SDK 無し、解析ツール無し、広告無し |
@@ -853,7 +853,7 @@ Web の点列は制御点ではなく「ならした通過点」なので、Penc
 | **年齢区分** | 4+（暴力・課金以外の要素なし） |
 | **地域** | 日本を主。EU 27 か国を除外（DSA の販売者情報公開を避ける）。[APPLE_ENROLLMENT.md 4-5](APPLE_ENROLLMENT.md) |
 | **販売者名** | 個人登録のため戸籍上の氏名が表示される（本人了承済み） |
-| **サポート URL** | [SUPPORT.md](SUPPORT.md) の公開版 `https://syfan0-star.github.io/tegaki-calendar/app/support.html`（**公開待ち（m5-legal）**）。メールアドレス `syfan0@gmail.com`（M5-1）を載せる。利用規約も同じ場所 `https://syfan0-star.github.io/tegaki-calendar/app/terms.html`（**公開待ち（m5-legal）**） |
+| **サポート URL** | [SUPPORT.md](SUPPORT.md) の公開版 `https://syfan0-star.github.io/tegaki-calendar/app/support.html`（公開済み）。メールアドレス `syfan0@gmail.com`（M5-1）を載せる。利用規約も同じ場所 `https://syfan0-star.github.io/tegaki-calendar/app/terms.html`（公開済み） |
 | **輸出コンプライアンス** | 暗号化は Apple の標準（HTTPS・CloudKit）のみ → `ITSAppUsesNonExemptEncryption = false` |
 | **Designed for iPad（Mac）** | 何もしなければ提供される。初版は提供のまま。苦情が出たら Connect でオフ |
 
