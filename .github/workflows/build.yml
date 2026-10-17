@@ -60,16 +60,16 @@ jobs:
           swift build --package-path TegakiKit
 
       # The count is checked as a number (docs/M4B_CONTRACT.md §7.1, M4B-9; docs/M4C_CONTRACT.md §6,
-      # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25; docs/M6_CONTRACT.md §7.1, M6-18): M6 counts 23378
-      # (M5's 23114 + 264 for the "app export (M6)" section) and the threshold is that number minus 50,
-      # so anything below 23328 means a section went missing.
+      # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25; docs/M6_CONTRACT.md §7.1, M6-18): M6 counts 23386
+      # (M5's 23114 + 272 for the "app export (M6)" section) and the threshold is that number minus 50,
+      # so anything below 23336 means a section went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 23328 or more)"
-          test "${N:-0}" -ge 23328
+          echo "KitChecks count: ${N:-0} (required: 23336 or more)"
+          test "${N:-0}" -ge 23336
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -328,7 +328,10 @@ jobs:
       # tries the 4 pages in landscape ("--screenshot-landscape", §6.4; the file is still written when
       # the request was ignored, the header then stays two rows). Every shot is best effort; a
       # missing simulator or a failed boot only skips that device. The 13-inch simulator is shut down
-      # first to leave the runner's memory to the next one.
+      # first to leave the runner's memory to the next one. Since M6 (docs/M6.md §5.1) every device
+      # waits 40 s after its boot with the app in front before the first shot and shoots its four pages
+      # again at the end: a freshly booted iOS 26 simulator posts a system banner once, 15–35 s after
+      # the boot, and two runs caught it on an App Store source (see the step body).
       - name: Screenshots (iPhone, 6.9-inch iPhone, iPad mini, 11-inch iPad; portrait, 4 pages each)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -398,6 +401,13 @@ jobs:
               xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
             }
+            # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s
+            # after the boot ("Ready for Apple Intelligence" — run 39034481760 caught it on
+            # iphone-portrait-week.png, run 39031277533 on ipad11-portrait-day.png, both App Store
+            # sources). Wait that window out with the app in front before the first shot (settle) …
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month || true
+            sleep 40
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             for PAGE in month week day year; do
               shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
             done
@@ -414,6 +424,11 @@ jobs:
               # month page — the App Store shot 05-paywall of both iPhone classes.
               shoot "$ID-portrait-sheet-paywall.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet paywall
             fi
+            # … and shoot the four pages (the store/ sources) once more now, 1.5–2 min after the boot, so
+            # a banner that still slipped into a first take is not in the file that is kept (retake).
+            for PAGE in month week day year; do
+              shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
+            done
             if [ "$ID" = "iphone" ]; then
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.

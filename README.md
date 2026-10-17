@@ -76,7 +76,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 このリポジトリは **手元の Mac に Xcode が無くてもビルドできる** ようにしてあります。
 
 - `git push` するたびに、GitHub の macOS マシン（`macos-26`、Xcode 26.6）が自動で次をします（[.github/workflows/build.yml](.github/workflows/build.yml)）。
-  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（23378 項目の検査。23328 以上であることを数字で確かめる）→ `swift test`
+  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（23386 項目の検査。23336 以上であることを数字で確かめる）→ `swift test`
   2. `brew install xcodegen` → `xcodegen generate` で Xcode プロジェクト（`TegakiCalendar.xcodeproj`）を作る
   3. iOS シミュレータ向けにビルド（署名なし）
   4. 13 インチ iPad のシミュレータでアプリのユニットテスト（PencilKit の台帳と選択の操作・手書きの画像・予定シートの状態・予定の書き込み・スクリーンショットモード・同期エンジン（メモリ上の偽の iCloud に対して。iCloud アカウントは不要）・レコードの写像・CloudKit の誤りの写像・状態ファイル・紙の文字のクリップと窓・キャンバスの viewport の通知・一覧の倍率とピンチの終端の経路・ダブルタップの認識器・保存比率・スクリーンショットの倍率の引数・購読の状態機械と `StoreModel`（偽の App Store と、StoreKit のテスト環境 `SKTestSession` に対して。App Store Connect は不要）・ペイウォールと設定の文言・閲覧専用の判定）を実行
@@ -92,7 +92,7 @@ Command Line Tools の `swift` だけで、純粋な部分の検査が通りま�
 ```bash
 cd TegakiKit
 swift build            # DayKit / Holidays / Layout / InkModel / Access / KitChecks をビルド
-swift run KitChecks    # 「KitChecks: all 23378 checks passed」と出れば OK
+swift run KitChecks    # 「KitChecks: all 23386 checks passed」と出れば OK
 ```
 
 アプリ側（UIKit / PencilKit / EventKit / CloudKit）は Xcode でしかコンパイルできないので、構文だけ確かめます。
