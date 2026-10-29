@@ -3,6 +3,8 @@
 iPad の「カレンダー」に入っている予定（Google カレンダーを含む）の上に、Apple Pencil で手書きできる **iPad 用のアプリ** です。
 Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使い勝手を、App Store で売れる本物のアプリとして作り直しています。
 
+**2026-10-30 に 1.0（ビルド 10）を App Store で公開しました**（審査は 10-18 提出 → 2 回の差し戻し（掲載写真の価格、サブタイトルの Apple Pencil）→ 10-29 承認。App Store のページ: <https://apps.apple.com/jp/app/id6822762089>。反映まで最大 24 時間）。
+
 - Web 版の使い方・画面の考え方: [tegaki-calendar/README.md](https://github.com/syfan0-star/tegaki-calendar/blob/main/README.md)
 - Web 版の設計書: [tegaki-calendar/docs/SPEC.md](https://github.com/syfan0-star/tegaki-calendar/blob/main/docs/SPEC.md)
 - Web 版はこれからも、ご本人用・お試し用としてそのまま使えます。

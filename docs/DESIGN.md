@@ -877,7 +877,7 @@ Web の点列は制御点ではなく「ならした通過点」なので、Penc
 | **M4 同期＋Web からの移行** | Sync（CloudKit）、Web 版の「書き出し」（Web リポジトリ）、アプリの「取り込む」 | iPad と iPhone で同じ手書きが見える。Web 版の手書きが月・週・日・年のページに正しい位置で出る | CloudKit コンテナを Developer サイトで作る（Claude が手順を書く）。Web 版で書き出し → アプリで取り込み → ずれが無いか確認 |
 | **M5 課金＋規約** | Store、ペイウォール、閲覧専用モード、設定 › 購入、[TERMS.md](TERMS.md)・[PRIVACY.md](PRIVACY.md)・[SUPPORT.md](SUPPORT.md) の公開 | サンドボックスで購入・試用・復元・解約が通る | 価格の決定（[PRICING.md](PRICING.md)）、App Store Connect で商品を作る、Paid Apps Agreement・税務・銀行、Small Business Program の申込、規約類の文面の最終判断、公開先の URL（**要確認 B-6**） |
 | **M6 手書きの書き出し＋審査資料**（[契約](M6_CONTRACT.md)・[結果](M6.md)）**済**（実装・CI・写真・文面。Connect の入力はリード、提出は本人の残作業） | 手書きの書き出し（データファイル `tegaki-app-export` v1 と PDF、`ExportSheet`、取り込み口の 2 形式化）、スクリーンショット（CI が iPad 13 インチ・11 インチ・iPhone 6.3 / 6.9 インチを撮り `store/` に JPEG）、サブタイトル・プロモーション・キーワード・説明の追記、App Privacy の回答、審査メモ、年齢区分、規約類の「提供中」への更新、版 1.0 | 提出ボタンを押せる状態 | App Store Connect で各項目を入力・確認（Claude が文面を用意し、本人の Chrome で入力）。TestFlight 1.0 で書き出しの実機確認。提出 |
-| 提出後 | 審査の指摘への対応 | 公開 | 審査の返事を読んで Claude に渡す。公開日を決める |
+| 提出後 | 審査の指摘への対応 | 公開 | 審査の返事を読んで Claude に渡す。公開日を決める。**結果（2026-10）**: 10-18 提出 → 10-23 差し戻し（2.3.7 掲載写真の価格）→ 10-27 差し戻し（5.2.5 サブタイトルの Apple Pencil）→ 10-29 承認 → **10-30 公開（1.0 ビルド 10、READY_FOR_SALE）** |
 
 目安の期間は M1 で 1 週、M2 で 2〜3 週、M3a で 1〜2 週、M3b で 1〜2 週、M4 で 2 週、M5 で 1〜2 週、M6 で 1 週。Apple の承認待ち（登録、審査）は別に見込みます。
 
