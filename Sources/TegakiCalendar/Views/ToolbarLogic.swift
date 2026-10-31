@@ -265,8 +265,9 @@ enum ToolbarLogic {
 extension ToolbarLogic {
     /// 1.1 (docs/M7A.md ずれ 45): the horizontal sizes of the expanded and the peeking bar
     /// (`ToolbarView`). 「しまう」 outside the scrolling row (0-10) takes 1 px + 4 + 48 + 8 of the bar;
-    /// the row wins it back by packing its pieces (the pen row 980.5 → 868.5 pt), so every device
-    /// shows at least what 1.0.1 showed (11-inch with the pen: up to ↷; iPhone 17: the first colour
+    /// the row wins it back by packing its pieces (the pen row 980.5 → 868.5 pt), so every iPhone and
+    /// every iPad window at least 334 pt wide shows at least what 1.0.1 showed (11-inch with the
+    /// pen: up to ↷; iPhone 17: the first colour
     /// with its ring and half of the next one, fading; 13-inch: everything). The row height
     /// (44 + 8 + 8) does not change (`barHeight`; YearTapUITests reads the top of 「ペン」).
     enum Row {

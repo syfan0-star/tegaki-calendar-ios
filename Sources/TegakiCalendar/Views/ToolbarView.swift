@@ -19,7 +19,9 @@ import UIKit
 /// 1.1 (docs/M7A.md ずれ 45): the horizontal sizes are `ToolbarLogic.Row`. 「しまう」 outside the row
 /// took 72.5 pt from it, so the row is packed (tools 48 with nothing between, swatches 38, 細中太 44,
 /// ↶↷ 44, 6 on each side of a divider, leading 8), the hints take two lines and the row's last 12 pt
-/// fade out; every device shows at least what 1.0.1 showed. The height is unchanged (44 + 8 + 8).
+/// fade out; every iPhone and every iPad window at least 334 pt wide shows at least what 1.0.1
+/// showed (in a narrower iPad window the end of 「予定」 fades, and at 320 pt its last 1 pt is cut).
+/// The height is unchanged (44 + 8 + 8).
 struct ToolbarView: View {
     @Binding var tool: CanvasTool
     @Binding var allowFinger: Bool
@@ -202,7 +204,7 @@ struct ToolbarView: View {
     /// SwiftUI renders `.secondary` with vibrancy, which the CI simulator (software rendering) does
     /// not draw at all, so the hint was invisible in the screenshots. Two lines at most (the texts
     /// carry their "\n", ずれ 45); the size stops at xLarge (14 pt), so two lines stay inside the
-    /// 44 pt row (xxLarge's 16 pt would need about 45).
+    /// 44 pt row (xxLarge's 16 pt would need about 43 — too close to 44 with the device's fonts).
     private func hint(_ text: String) -> some View {
         Text(text)
             .font(.caption)
