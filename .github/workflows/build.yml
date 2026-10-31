@@ -12,10 +12,17 @@
 # (docs/M6_CONTRACT.md §4.2, §7.4) an eighth sheet "export" (the export sheet in its choose state), the
 # iPhone's paywall sheet, five shots on a 6.9-inch iPhone (iPhone 17 Pro Max) and a "Store listing set"
 # step that converts the App Store shots into JPEGs under store/<device>/) and uploads the
-# screenshots (artifact "screenshots", kept 7 days: up to 43 images + 5 logs + store/) so the app can be
-# looked at without Xcode. The screenshot steps never fail the job. Since 1.0.1 (docs/R1_0_1.md §5.1)
+# screenshots (artifact "screenshots", kept 7 days: up to 53 images + 5 logs + store/ + fixtures/) so the
+# app can be looked at without Xcode. The screenshot steps never fail the job. Since 1.0.1 (docs/R1_0_1.md §5.1)
 # a UI test (YearTapUITests) runs on an iPhone after the screenshots and does fail the job; its log
-# and screenshots go to shots/ui-tests/.
+# and screenshots go to shots/ui-tests/. Since 1.1 (docs/M7A_CONTRACT.md §7.4, §7.5) the 13-inch iPad
+# also shoots the folded toolbar (bottom left and bottom right), the eraser chosen from the toolbar, the
+# grown month memo, the day's free memo below 24:00 and a ninth sheet "info" (the settings' stroke
+# counts), and the iPhone the folded toolbar (portrait and landscape), the grown month memo and the
+# free memo; `swift test` is followed by the check of the frozen 1.0 copy (Compat10, FROZEN.sha256);
+# the unit tests write the page JSON of a missing or changed ledger-* / screenshot-* fixture into
+# shots/fixtures/; and a second job, compat-v1.0, runs the 1.1 fixtures on the real 1.0 (commit
+# a21e469: its TegakiKit and its app's ledger and sync engine) next to the frozen copy (K-7).
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -33,7 +40,9 @@ jobs:
   build-and-test:
     name: Build and test (iOS Simulator)
     runs-on: macos-26
-    timeout-minutes: 75
+    # 1.1: 75 → 90 (1.0.1's run took 56 min; 1.1 adds Compat10Tests, more unit tests and 10 shots, and a
+    # simulator boot alone has taken 4 min).
+    timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -62,21 +71,33 @@ jobs:
           swift build --package-path TegakiKit
 
       # The count is checked as a number (docs/M4B_CONTRACT.md §7.1, M4B-9; docs/M4C_CONTRACT.md §6,
-      # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25; docs/M6_CONTRACT.md §7.1, M6-18): M6 counts 23386
-      # (M5's 23114 + 272 for the "app export (M6)" section) and the threshold is that number minus 50,
-      # so anything below 23336 means a section went missing.
+      # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25; docs/M6_CONTRACT.md §7.1, M6-18; docs/M7A_CONTRACT.md
+      # §7.1): 1.1 counts 24302 (1.0.1's 23446 + 578 for the "growing paper", "date taps" and "stroke
+      # budget (1.1)" sections + 278 for "compat with 1.0 (K-7)") and the threshold is that number
+      # minus 50, so anything below 24252 means a section went missing. (The fixtures of the ledger and
+      # the screenshot mode, once committed, only add to the compat section.)
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 23336 or more)"
-          test "${N:-0}" -ge 23336
+          echo "KitChecks count: ${N:-0} (required: 24252 or more)"
+          grep -E 'compat10: [0-9]+ checks' kitchecks.log || true
+          test "${N:-0}" -ge 24252
 
       - name: Test TegakiKit (macOS)
         run: |
           set -euo pipefail
           swift test --package-path TegakiKit
+
+      # 1.1 (docs/M7A_CONTRACT.md §1.4, §7.4, K-7): the frozen copy of 1.0's InkModel (TegakiKit/Tests/
+      # Compat10, made from commit a21e469) is never edited; FROZEN.sha256 lists its 11 files (not
+      # Checks/), so every line is found in that directory. The compat-v1.0 job below checks the copy
+      # against the real 1.0.
+      - name: Frozen 1.0 copy
+        run: |
+          set -euo pipefail
+          cd TegakiKit/Tests/Compat10 && shasum -a 256 -c FROZEN.sha256
 
       - name: Install XcodeGen
         run: |
@@ -136,11 +157,18 @@ jobs:
           echo "Using simulator: $NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
-      # The iPhone UI test (1.0.1) has its own step below, on an iPhone.
+      # The iPhone UI test (1.0.1) has its own step below, on an iPhone. 1.1 (docs/M7A_CONTRACT.md §7.4,
+      # 0-23): InkLedgerTests.testLedgerWritesTheCompatShapes (ledger-*.json) and ScreenshotModeTests.
+      # testDemoPagesMatchCompatFixtures (screenshot-*.json) compare the page JSON they make with the
+      # committed fixture in TegakiKit/Tests/Fixtures/compat11 and, when it is missing or differs, write
+      # theirs into TEGAKI_FIXTURE_OUT and fail (xcodebuild hands a TEST_RUNNER_-prefixed variable to the
+      # test runner without the prefix). shots/fixtures goes up with the screenshots; the lead reads the
+      # files and commits them.
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
-          xcodebuild \
+          mkdir -p shots/fixtures
+          TEST_RUNNER_TEGAKI_FIXTURE_OUT="$PWD/shots/fixtures" xcodebuild \
             -project TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
             -configuration Debug \
@@ -285,8 +313,13 @@ jobs:
       # left ("--screenshot-zoom 2 --screenshot-offset x,y", §2.4: the photo shares the canvas's zoom
       # path with a pinch; the year's offset is clamped to the paper's right edge on purpose). Since M5
       # one more: the month page in read-only mode (docs/M5_CONTRACT.md §7.5: the orange 「閲覧専用」 badge
-      # left of 「＋予定」 (1024 pt ≥ 980, so with its text), the 20 s toast, undo/redo greyed).
-      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only)
+      # left of 「＋予定」 (1024 pt ≥ 980, so with its text), the 20 s toast, undo/redo greyed). Since 1.1
+      # (docs/M7A_CONTRACT.md §7.4, §8 6) five more: the toolbar folded into the dock button at the
+      # bottom left and at the bottom right ("--screenshot-toolbar collapsed|collapsed-right"), the eraser
+      # chosen from the toolbar (its hint ends in 「（消すとペンに戻ります）」; the 「しまう」 button at the
+      # right end), and the grown month memo and the day's free memo below 24:00 ("--screenshot-grown")
+      # scrolled to the end of the paper ("--screenshot-offset 0,9999" is clamped to the paper).
+      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -320,9 +353,25 @@ jobs:
           sleep 8
           pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (month page, read only; crashed?)"
           xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-readonly.png"
+          for SPEC in "toolbar-collapsed|--screenshot-page month --screenshot-toolbar collapsed" \
+                      "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
+                      "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
+                      "month-memo|--screenshot-page month --screenshot-grown --screenshot-offset 0,9999" \
+                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,9999"; do
+            SHOT="${SPEC%%|*}"; ARGS="${SPEC#*|}"
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            # $ARGS is split on purpose (the values have no spaces).
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 $ARGS
+            sleep 8
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($SHOT; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$SHOT.png"
+          done
           ls -la shots
 
-      - name: Screenshots (13-inch iPad, portrait, 8 sheets on the month page)
+      # Since 1.1 (docs/M7A_CONTRACT.md §7.3) a ninth sheet, "info": the settings scrolled to 「情報」 with
+      # the demo stroke counts (「いちばん線の多いページ」 and 「今年の年のページ」).
+      - name: Screenshots (13-inch iPad, portrait, 9 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -330,7 +379,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
-          for SHEET in create edit lasso settings sync import paywall export; do
+          for SHEET in create edit lasso settings sync import paywall export info; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET"
@@ -340,8 +389,8 @@ jobs:
           done
           ls -la shots
 
-      # The 13-inch log is collected before the other devices boot (its 16 shots fit in the 8 min
-      # window; each extra device writes its own shots/<id>-log.txt below).
+      # The 13-inch log is collected before the other devices boot (its 22 shots since 1.1 fit in the
+      # 10 min window; each extra device writes its own shots/<id>-log.txt below).
       - name: Collect the app log and crash reports (13-inch iPad)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -350,7 +399,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           mkdir -p shots
           xcrun simctl terminate "$UDID" com.syfan0.tegakicalendar 2>/dev/null || true
-          xcrun simctl spawn "$UDID" log show --last 8m --style compact \
+          xcrun simctl spawn "$UDID" log show --last 10m --style compact \
             --predicate 'process == "TegakiCalendar" OR eventMessage CONTAINS "tegakicalendar" OR eventMessage CONTAINS "TegakiCalendar"' \
             > shots/app-log.txt 2>&1 || true
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} shots/ \; 2>/dev/null || true
@@ -364,6 +413,13 @@ jobs:
           # product count, states). Screenshot mode uses the inert demo client, so 0 lines here is the
           # expected result; the grep is the reach check for a device log read the same way.
           grep 'store: ' shots/app-log.txt || true
+          # 1.1 (docs/M7A_CONTRACT.md §2.2, §5.3, §7.3, §8 3): screenshot mode logs the window's safe area
+          # and the paper area with the toolbar's state ("toolbar: safeArea=<top>,<left>,<bottom>,<right>",
+          # "toolbar: paperArea=<w>x<h> mode=<expanded|collapsed|peek>"; docs/M7A.md compares a folded shot
+          # with the expanded one of the same page), the settings' stroke count ("budget: largest=…") and
+          # the tail-only path ("canvas: tail-only": 0 lines is fine, screenshot mode opens the grown paper
+          # directly). Shown only; no count is expected.
+          grep -E 'toolbar: (safeArea|paperArea)=|budget: largest=|canvas: tail-only' shots/app-log.txt || true
 
       # The four other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
       # down afterwards: iphone (iPhone 17, 402 pt), iphone69 (iPhone 17 Pro Max, 440 pt; since M6,
@@ -485,6 +541,12 @@ jobs:
               shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
             done
             if [ "$ID" = "iphone" ]; then
+              # 1.1 (docs/M7A_CONTRACT.md §7.4, §8 6): the folded toolbar (the dock button above the home
+              # indicator), the grown month memo and the day's free memo below 24:00 at the paper's end,
+              # and (below, with the landscape shots) the folded toolbar in landscape.
+              shoot "$ID-portrait-toolbar-collapsed.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-toolbar collapsed
+              shoot "$ID-portrait-month-memo.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-grown --screenshot-offset 0,9999
+              shoot "$ID-portrait-day-extra.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-grown --screenshot-offset 0,9999
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.
               shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
@@ -495,6 +557,7 @@ jobs:
               for PAGE in month week day year; do        # §6.4: only the iPhone can turn
                 shoot "$ID-landscape-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-landscape
               done
+              shoot "$ID-landscape-month-toolbar-collapsed.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-toolbar collapsed --screenshot-landscape
               # The simulator's framebuffer stays portrait (only the app's interface turned), so the
               # landscape shots come out rotated by 90°; stand them up. When the request was ignored
               # (header still two rows) they end up sideways instead, which is the tell.
@@ -503,9 +566,11 @@ jobs:
               done
             fi
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
-            xcrun simctl spawn "$UDID" log show --last 6m --style compact --predicate 'process == "TegakiCalendar"' > "shots/$ID-log.txt" 2>&1 || true
+            # 1.1: 6 → 8 min (the iPhone takes about 21 shots now, plus the 40 s wait).
+            xcrun simctl spawn "$UDID" log show --last 8m --style compact --predicate 'process == "TegakiCalendar"' > "shots/$ID-log.txt" 2>&1 || true
             grep 'zoom: ' "shots/$ID-log.txt" || true     # M4c: the canvas's zoom lines of this device
             grep 'store: ' "shots/$ID-log.txt" || true    # M5: the store's lines (0 in screenshot mode, see above)
+            grep -E 'toolbar: (safeArea|paperArea)=|budget: largest=|canvas: tail-only' "shots/$ID-log.txt" || true   # 1.1 (see the 13-inch log)
             [ "$UDID" = "$PRIMARY" ] || xcrun simctl shutdown "$UDID" || true
           done
           ls -la shots
@@ -623,3 +688,122 @@ jobs:
           path: shots
           retention-days: 7
           if-no-files-found: warn
+
+  # 1.1 (docs/M7A_CONTRACT.md §1.4, §7.4, §8 2; K-7 of docs/M7_PLAN.md §1.3): the compatibility checks
+  # on the REAL 1.0. A 1.0 / 1.0.1 device and a 1.1 device share one iCloud, so the 1.1 fixtures
+  # (TegakiKit/Tests/Fixtures/compat11: K's pages, the ledger's and the screenshot mode's) are read by
+  # the code of commit a21e4692109e504701b507ad9c695181fdecddfd (1.0, checked out at v10 by SHA — there
+  # is no tag, M7A-8): ② the frozen copy (TegakiKit/Tests/Compat10) is checked against the files and
+  # line ranges it was made from, and against what tools/compat10/freeze.py makes from them; ③ K's
+  # large fixtures are made again and the committed digests.json must come out byte for byte; ④⑤
+  # tools/compat10/run.sh runs Compat10Checks on 1.0's real TegakiKit (RunReal) and on the frozen copy
+  # (RunFrozen) — the same N, 0 failed, N ≥ tools/compat10/EXPECTED_MIN; ⑥ 1.0's app ledger and sync
+  # engine run tools/compat10/AppTests/Real10LedgerTests.swift on the simulator (only that class).
+  # Runs next to the build job (no `needs`). The job id has no dot (GitHub allows only letters, digits,
+  # `-` and `_`); its name is the contract's "compat-v1.0".
+  compat-v1-0:
+    name: compat-v1.0
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Must be the repository root's v10: tools/compat10/Package.swift uses ../../v10/TegakiKit.
+      - name: Check out 1.0 (a21e469) at v10
+        uses: actions/checkout@v4
+        with:
+          ref: a21e4692109e504701b507ad9c695181fdecddfd
+          path: v10
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+          git -C v10 log -1 --format='v10: %H %s'
+
+      # ② ORIGIN.sha256 (18 whole files of 1.0), ORIGIN.ranges (28 line ranges copied in part or
+      # transcribed by LedgerV10 / LayoutFactsV10), FROZEN.sha256 (11 files), and the copy made again
+      # from v10 by freeze.py must equal the committed one byte for byte.
+      - name: The frozen copy against 1.0
+        run: |
+          set -euo pipefail
+          (cd v10 && shasum -a 256 -c ../TegakiKit/Tests/Compat10/ORIGIN.sha256)
+          tools/compat10/check-origin.sh v10
+          python3 -I tools/compat10/freeze.py --check --from-dir v10
+
+      # ③ K's large fixtures (y-2026.*, not committed) are made again next to a copy of the committed
+      # ones; the committed files (K's pages, digests.json, and the ledger's / screenshot mode's once
+      # committed) must come out unchanged.
+      - name: The fixtures (K's large ones made again)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/compat11"
+          cp TegakiKit/Tests/Fixtures/compat11/*.json "$RUNNER_TEMP/compat11/"
+          swift run --package-path TegakiKit KitChecks --write-compat-fixtures --out "$RUNNER_TEMP/compat11"
+          for f in TegakiKit/Tests/Fixtures/compat11/*.json; do
+            cmp "$f" "$RUNNER_TEMP/compat11/$(basename "$f")"
+          done
+          ls -la "$RUNNER_TEMP/compat11"
+
+      # ④⑤ The copies into tools/compat10 (ignored by git), RunReal and RunFrozen, the comparison.
+      - name: The checks on the real 1.0 and on the frozen copy
+        run: |
+          set -euo pipefail
+          tools/compat10/run.sh "$RUNNER_TEMP/compat11"
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      # ⑥ 1.0's app (v10, its own project.yml) with Real10LedgerTests.swift added to its unit tests, on
+      # the same 13-inch iPad the build job picks; only that class runs.
+      - name: 1.0's ledger and sync on the fixtures (Real10LedgerTests)
+        run: |
+          set -euo pipefail
+          cp tools/compat10/AppTests/Real10LedgerTests.swift v10/Tests/TegakiCalendarTests/
+          (cd v10 && xcodegen generate)
+          NAME="$(xcrun simctl list -j devices available | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          names = set()
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name"):
+                      names.add(d["name"])
+          for prefix in ("iPad Pro 13-inch", "iPad Air 13-inch", "iPad", "iPhone"):
+              matches = sorted(n for n in names if n.startswith(prefix))
+              if matches:
+                  print(matches[0])
+                  raise SystemExit
+          print("")
+          ' || true)"
+          if [ -z "$NAME" ]; then
+            echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
+            NAME="iPhone 17"
+          fi
+          echo "Using simulator: $NAME"
+          TEST_RUNNER_TEGAKI_COMPAT_FIXTURES="$RUNNER_TEMP/compat11" xcodebuild \
+            -project v10/TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=$NAME" \
+            -derivedDataPath "$RUNNER_TEMP/v10-derived" \
+            -only-testing:TegakiCalendarTests/Real10LedgerTests \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test 2>&1 | tee "$RUNNER_TEMP/real10.log"
+          grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real10.log" || true

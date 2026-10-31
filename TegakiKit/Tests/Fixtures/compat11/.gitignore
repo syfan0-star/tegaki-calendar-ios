@@ -1,0 +1,5 @@
+# K's large fixtures are made again on every run (KitChecks --write-compat-fixtures, CompatFixtures);
+# only their sha256 is committed (digests.json). M7A_CONTRACT §1.4.
+y-2026.n15000.json
+y-2026.n20500.json
+y-2026.tomb200500.json

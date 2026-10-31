@@ -10,7 +10,10 @@ import UIKit
 /// data (import from the web version or the app's own data file, 「手書きを書き出す」 (M6, usable while
 /// read only too), erase everything confirmed twice), purchase (the plan and its date from
 /// `store.snapshot`, 「購読する」 while read only, 「サブスクリプションを管理」, 「購入を復元」 with the
-/// result under the footer), and the info links (`LegalLinks`).
+/// result under the footer), and the info links (`LegalLinks`). 1.1 (M7A_CONTRACT §2.6 / §5.3 / §6.1):
+/// 入力 has 「消しゴムで消したらペンに戻る」 (`AppSettings.eraserAutoReturn`), 情報 has the two stroke
+/// counts of this device (`StrokeCensus`, counted in the background while the sheet is open) and a
+/// footer, and the device is 「この端末」 everywhere (an iPhone too).
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
     @ObservedObject var sync: SyncEngine
@@ -38,9 +41,16 @@ struct SettingsScreen: View {
     /// 「手書きを書き出す」 (M6 contract §3.1): the owner closes this sheet and shows `ExportSheet`.
     /// Allowed while read only (`GatedAction.export`), so the row is never greyed.
     var onExport: () -> Void = {}
+    /// Screenshot mode's `info` sheet (1.1, M7A_CONTRACT §7.3): scroll to the 「情報」 section once the
+    /// form is on screen (the same way as `scrollToSyncOnAppear`).
+    var scrollToInfoOnAppear: Bool = false
 
     @Environment(\.openURL) private var openURL
     @State private var eraseInkAfterConvert: Bool = ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
+    /// 1.1 (§2.6): 「消しゴムで消したらペンに戻る」, on in screenshot mode (nothing is stored there).
+    @State private var eraserAutoReturn: Bool = ScreenshotMode.isActive ? true : AppSettings.eraserAutoReturn
+    /// 1.1 (§5.3): the stroke counts of 情報; nil until `StrokeCensus` has counted (「数えています…」).
+    @State private var census: StrokeCensus.Result?
     @State private var confirmEraseStep1 = false
     @State private var confirmEraseStep2 = false
     @State private var requestingAccess = false
@@ -53,9 +63,31 @@ struct SettingsScreen: View {
     private static let syncRowId = "sync-section"
     /// The id of the first row of the 「購入」 section (`scrollToPurchaseOnAppear`).
     private static let purchaseRowId = "purchase-section"
+    /// The id of the first row of the 「情報」 section (`scrollToInfoOnAppear`).
+    private static let infoRowId = "info-section"
 
-    /// The same steps as the first onboarding card (OnboardingView, DESIGN §2.10).
-    static let googleHowTo = "Google カレンダーの予定を出すには、iPad の設定で Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。"
+    /// The same steps as the first onboarding card (OnboardingView, DESIGN §2.10). 1.1 (§6.1): the
+    /// 「設定」 app of whichever device, and the OS name of both.
+    static let googleHowTo = "Google カレンダーの予定を出すには、「設定」アプリで Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iOS・iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。"
+
+    // MARK: 1.1 texts (M7A_CONTRACT §2.6 / §5.3 / §6.2)
+
+    /// 設定 › 入力: the row of the eraser's return to the pen.
+    static let eraserAutoReturnTitle = "消しゴムで消したらペンに戻る"
+
+    /// The footer of that row: the Apple Pencil sentences only on an iPad (an iPhone's settings never
+    /// speak of the Pencil, like the 「Apple Pencil」 row, which only an iPad has).
+    static func eraserAutoReturnFooter(isPad: Bool) -> String {
+        isPad
+            ? "ツールバーで選んだ消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムは戻りません。"
+            : "ツールバーで選んだ消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。"
+    }
+
+    /// 設定 › 情報: the two rows of the stroke counts (values: `StrokeCensus.rowText` / `yearRowText`).
+    static let largestPageTitle = "いちばん線の多いページ"
+    static let yearPageTitle = "今年の年のページ"
+    /// The footer of 情報.
+    static let infoFooter = "線の数は、この端末に保存されているページを数えたものです（どこにも送りません）。1 ページに書ける線は 19,000 本までです。"
 
     /// The data section's footer (M4 contract §6.2).
     static let importFooter = "Web 版の設定で「手書きを書き出す（iPad アプリ用）」をして、そのファイルを選びます。同じファイルを二度取り込んでも手書きは二重になりません。"
@@ -147,16 +179,22 @@ struct SettingsScreen: View {
                     guard !ScreenshotMode.isActive else { return }
                     AppSettings.eraseInkAfterConvert = eraseInkAfterConvert
                 }
+                .onChange(of: eraserAutoReturn) {
+                    guard !ScreenshotMode.isActive else { return }
+                    AppSettings.eraserAutoReturn = eraserAutoReturn
+                }
                 .onAppear {
-                    guard scrollToSyncOnAppear || scrollToPurchaseOnAppear else { return }
+                    guard scrollToSyncOnAppear || scrollToPurchaseOnAppear || scrollToInfoOnAppear else { return }
                     // The list needs a layout pass before it can scroll; the row lands a little below
                     // the top so the section header stays in view.
-                    let target = scrollToSyncOnAppear ? Self.syncRowId : Self.purchaseRowId
+                    let target = scrollToSyncOnAppear ? Self.syncRowId : scrollToInfoOnAppear ? Self.infoRowId : Self.purchaseRowId
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(0.4))
                         proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.08))
                     }
                 }
+                // 1.1 (§5.3): count the pages while the sheet is open; closing it cancels the count.
+                .task { await countStrokes() }
                 .manageSubscriptionsSheet(isPresented: $showManage)
             }
         }
@@ -275,7 +313,7 @@ struct SettingsScreen: View {
         case .notDetermined: return "まだ許可していません"
         case .denied: return "許可されていません"
         case .writeOnly: return "追加のみ（予定を表示できません）"
-        case .restricted: return "この iPad では制限されています"
+        case .restricted: return "この端末では制限されています"
         }
     }
 
@@ -315,6 +353,12 @@ struct SettingsScreen: View {
             Text("入力")
         } footer: {
             Text("オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします。手書きは iPad と Apple Pencil で書くのに向いています")
+        }
+        // 1.1 (§2.6): on the iPad and the iPhone; the footer speaks of the Pencil only on an iPad.
+        Section {
+            Toggle(Self.eraserAutoReturnTitle, isOn: $eraserAutoReturn)
+        } footer: {
+            Text(Self.eraserAutoReturnFooter(isPad: isPad))
         }
         if isPad {
             Section {
@@ -397,7 +441,7 @@ struct SettingsScreen: View {
                 Text("手書きを書き出す")
                     .foregroundStyle(.tint)
             }
-            Button("この iPad の手書きを全て消す", role: .destructive) {
+            Button("この端末の手書きを全て消す", role: .destructive) {
                 confirmEraseStep1 = true
             }
         } header: {
@@ -416,8 +460,8 @@ struct SettingsScreen: View {
     /// The first confirmation: whether iCloud's copy goes too.
     private var eraseQuestion: String {
         Self.erasesCloud(status)
-            ? "この iPad と iCloud に保存した手書きを全て消しますか？"
-            : "この iPad に保存した手書きを全て消しますか？"
+            ? "この端末と iCloud に保存した手書きを全て消しますか？"
+            : "この端末に保存した手書きを全て消しますか？"
     }
 
     /// The second confirmation's message.
@@ -490,8 +534,9 @@ struct SettingsScreen: View {
     // MARK: - 情報
 
     private var infoSection: some View {
-        Section("情報") {
+        Section {
             Link("利用規約", destination: LegalLinks.terms)
+                .id(Self.infoRowId)
             Link("プライバシーポリシー", destination: LegalLinks.privacy)
             Link(LegalLinks.appleEULATitle, destination: LegalLinks.appleEULA)
             Link("サポート", destination: LegalLinks.support)
@@ -501,7 +546,41 @@ struct SettingsScreen: View {
                 Text(Self.versionText)
                     .foregroundStyle(.secondary)
             }
+            // 1.1 (§5.3): counted on this device, before the read cap; 「数えています…」 until done.
+            countRow(Self.largestPageTitle, StrokeCensus.rowText(census?.largest, counting: census == nil))
+            countRow(Self.yearPageTitle, StrokeCensus.yearRowText(census?.year, year: currentYear, counting: census == nil))
+        } header: {
+            Text("情報")
+        } footer: {
+            Text(Self.infoFooter)
         }
+    }
+
+    /// A two-line row: the title, and the value under it (footnote, secondary).
+    private func countRow(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+            Text(value)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The year of 「今年の年のページ」 (the fixed 「今日」 in screenshot mode).
+    private var currentYear: Int {
+        DayKey(ScreenshotMode.current?.today ?? Date()).year
+    }
+
+    /// Counts the pages of this device (`StrokeCensus.run`, in the background; nil when the sheet
+    /// closed first, then nothing changes). Screenshot mode shows the demo pages' counts.
+    private func countStrokes() async {
+        if ScreenshotMode.isActive {
+            census = StrokeCensus.demo(year: currentYear)
+            return
+        }
+        guard let result = await StrokeCensus.run(store: sync.store, year: currentYear) else { return }
+        census = result
     }
 
     private func openSettingsApp() {
@@ -569,5 +648,5 @@ extension SettingsScreen {
 
     private static let cancelFooter = "解約は端末の\(PlanText.cancelPath)から。解約しても期間の終わりまで使えます。"
     /// The same list as 利用規約 第 5 条 5 項 (M6_CONTRACT §3.1 / §5.1: 「手書きの書き出し」 since M6).
-    private static let readOnlyFooter = "閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この iPad の手書きを全て消す、手書きの書き出し、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"
+    private static let readOnlyFooter = "閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この端末の手書きを全て消す、手書きの書き出し、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"
 }

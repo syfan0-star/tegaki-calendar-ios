@@ -17,7 +17,7 @@ settings:
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     TARGETED_DEVICE_FAMILY: "1,2"
-    MARKETING_VERSION: "1.0.1"
+    MARKETING_VERSION: "1.1"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     # DEVELOPMENT_TEAM is intentionally unset: CI builds for the Simulator with CODE_SIGNING_ALLOWED=NO.
@@ -61,7 +61,7 @@ targets:
         CFBundleDevelopmentRegion: ja
         LSRequiresIPhoneOS: true
         # Same wording as docs/DESIGN.md §4.1 and docs/PRIVACY.md 付録 B (keep the three in sync).
-        NSCalendarsFullAccessUsageDescription: カレンダーの予定を手帳のページに表示し、手書きから予定を作るために使います。iPadOS には読み取りだけの許可が無いため、フルアクセスをお願いしています。予定は iPad の中だけで扱い、外部には送りません。
+        NSCalendarsFullAccessUsageDescription: カレンダーの予定を手帳のページに表示し、手書きから予定を作るために使います。iOS と iPadOS には読み取りだけの許可が無いため、フルアクセスをお願いしています。予定はこの端末の中だけで扱い、外部には送りません。
         UISupportsDocumentBrowser: false
         UILaunchScreen: {}
         # Silent pushes of the CloudKit zone subscription (docs/M4_CONTRACT.md §2.1, §6.7).

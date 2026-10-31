@@ -366,4 +366,66 @@ final class YearLayoutEngineTests: XCTestCase {
         XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.date(2025, 10, 7, 9), calendar: F.tokyo), 0, "another year")
         XCTAssertEqual(PageNavigation.initialScrollY(page, now: F.date(2026, 10, 31, 9), calendar: F.tokyo), page.rows[28].frame.minY)
     }
+
+    // MARK: The left gutter's day numbers (1.1, P-13, M7A_CONTRACT §4.3)
+
+    func testGutterDay() {
+        let page = F.yearLayout([])
+        // Row 15 is y 840…900 (middle 870); the number is the middle ± 14.
+        XCTAssertEqual(page.gutterDay(at: CGPoint(x: 10, y: 841), numberOnly: false), 15, "the whole row")
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: 10, y: 841), numberOnly: true), "the row's top edge is outside the number")
+        XCTAssertEqual(page.gutterDay(at: CGPoint(x: 10, y: 856), numberOnly: true), 15, "middle − 14")
+        XCTAssertEqual(page.gutterDay(at: CGPoint(x: 10, y: 884), numberOnly: true), 15, "middle + 14")
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: 10, y: 855.99), numberOnly: true))
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: 10, y: 884.01), numberOnly: true))
+        XCTAssertEqual(page.gutterDay(at: CGPoint(x: 0, y: 870), numberOnly: false), 15, "x 0")
+        XCTAssertEqual(page.gutterDay(at: CGPoint(x: 55.99, y: 870), numberOnly: true), 15, "x 55.99")
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: 56, y: 870), numberOnly: false), "x 56 is January's column")
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: -0.1, y: 870), numberOnly: false), "the paper's left margin (x < 0)")
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: 10, y: -1), numberOnly: false), "above the paper")
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: 10, y: 1860), numberOnly: false), "below the paper")
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: CGFloat.nan, y: 870), numberOnly: false))
+        XCTAssertNil(page.gutterDay(at: CGPoint(x: 10, y: CGFloat.infinity), numberOnly: false))
+        XCTAssertEqual(page.gutterDay(at: CGPoint(x: 10, y: 0), numberOnly: false), 1)
+        XCTAssertEqual(page.gutterDay(at: CGPoint(x: 10, y: 1859.9), numberOnly: false), 31)
+        for d in 1...31 {
+            let row = page.rows[d - 1].frame
+            XCTAssertEqual(page.gutterDay(at: CGPoint(x: 28, y: row.midY), numberOnly: true), d, "the number \(d)")
+            XCTAssertEqual(page.gutterDay(at: CGPoint(x: 28, y: row.minY), numberOnly: false), d, "the top of row \(d)")
+        }
+        // A grown row: its middle moves with it.
+        let grown = F.yearLayout([], ink: [CellKey(raw: "03-15"): 100]) // row 15 → 112
+        let row15 = grown.rows[14].frame
+        XCTAssertEqual(row15.height, 112)
+        XCTAssertEqual(grown.gutterDay(at: CGPoint(x: 10, y: row15.midY + 14), numberOnly: true), 15)
+        XCTAssertNil(grown.gutterDay(at: CGPoint(x: 10, y: row15.minY + 2), numberOnly: true))
+        XCTAssertEqual(grown.gutterDay(at: CGPoint(x: 10, y: row15.minY + 2), numberOnly: false), 15)
+        // The gutter is still not a cell: double taps and hit(at:) do nothing there.
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 870)))
+        XCTAssertNil(page.hit(at: CGPoint(x: 10, y: 870)))
+        XCTAssertNil(page.hit(at: CGPoint(x: 10, y: 870), minTarget: 153))
+    }
+
+    func testGutterHitUsesTheGivenMonth() {
+        let page = F.yearLayout([])
+        let p15 = CGPoint(x: 10, y: 870)
+        XCTAssertEqual(page.gutterHit(at: p15, numberOnly: false, month: 10), .date(F.day(2026, 10, 15)), "this month's 15th")
+        XCTAssertEqual(page.gutterHit(at: p15, numberOnly: false, month: 1), .date(F.day(2026, 1, 15)))
+        XCTAssertEqual(page.gutterHit(at: p15, numberOnly: true, month: 12), .date(F.day(2026, 12, 15)))
+        XCTAssertNil(page.gutterHit(at: p15, numberOnly: false, month: 0))
+        XCTAssertNil(page.gutterHit(at: p15, numberOnly: false, month: 13))
+        XCTAssertNil(page.gutterHit(at: CGPoint(x: 10, y: 841), numberOnly: true, month: 10), "outside the number")
+        let p31 = CGPoint(x: 10, y: 30 * 60 + 30)
+        XCTAssertNil(page.gutterHit(at: p31, numberOnly: false, month: 11), "11/31 does not exist: nothing happens (M7A-3)")
+        XCTAssertNil(page.gutterHit(at: p31, numberOnly: false, month: 4), "4/31")
+        XCTAssertEqual(page.gutterHit(at: p31, numberOnly: false, month: 12), .date(F.day(2026, 12, 31)))
+        let p29 = CGPoint(x: 10, y: 28 * 60 + 30)
+        let p30 = CGPoint(x: 10, y: 29 * 60 + 30)
+        XCTAssertNil(page.gutterHit(at: p29, numberOnly: false, month: 2), "2026-02-29 (a common year)")
+        let leap = F.yearLayout([], year: 2028)
+        XCTAssertEqual(leap.gutterHit(at: p29, numberOnly: false, month: 2), .date(F.day(2028, 2, 29)), "a leap year")
+        XCTAssertNil(leap.gutterHit(at: p30, numberOnly: false, month: 2), "2/30")
+        XCTAssertNil(page.gutterHit(at: CGPoint(x: 100, y: 870), numberOnly: false, month: 10), "January's cell is not the gutter")
+        XCTAssertNil(page.gutterHit(at: CGPoint(x: -5, y: 870), numberOnly: false, month: 10), "the left margin")
+    }
 }

@@ -56,7 +56,7 @@ final class ZoomPolicyTests: XCTestCase {
         XCTAssertLessThan(ZoomPolicy.overviewSize(busyMonth).height, busyMonth.size.height, "the memo area is not in the overview (M4C-12)")
         XCTAssertEqual(ZoomPolicy.overviewSize(F.monthLayout([], ink: [.day(F.day(2026, 10, 7)): 500])), CGSize(width: 1400, height: 1050 - 175 + 512), "handwriting grows a row and the overview")
         XCTAssertEqual(ZoomPolicy.overviewSize(F.weekLayout(F.demo)), CGSize(width: 1400, height: 1920), "week: the whole paper")
-        XCTAssertEqual(ZoomPolicy.overviewSize(F.dayLayout(F.demo)), CGSize(width: 1000, height: 2400), "day: the whole paper")
+        XCTAssertEqual(ZoomPolicy.overviewSize(F.dayLayout(F.demo)), CGSize(width: 1000, height: 2400), "day: the 24-hour grid (K-6)")
         XCTAssertEqual(ZoomPolicy.overviewSize(F.yearLayout([])), CGSize(width: 1400, height: 1860), "an empty year: 31 × 60")
         XCTAssertEqual(ZoomPolicy.overviewSize(F.yearLayout(F.demo)), CGSize(width: 1400, height: 1896), "the demo year: the 16th's row is 96")
         XCTAssertEqual(ZoomPolicy.overviewSize(F.yearLayout(F.demo)), F.yearLayout(F.demo).size)

@@ -192,4 +192,19 @@ final class BandMigrationTests: XCTestCase {
         XCTAssertNil(InkPage.merge(old, erased).strokes["a1"], "a tombstone on the moved id removes the old form too")
         XCTAssertEqual(InkPage.merge(old, erased).deleted["a1"], 1_760_150_500_000)
     }
+
+    func testExtraIsNotABandCell() {
+        // K-1 (1.1, M7A_CONTRACT §1.2): the day page's new cell "extra" never starts with "allday", so
+        // no device (1.0 included) moves its strokes onto the grid.
+        XCTAssertFalse(BandMigration.isBandCell(.extra))
+        XCTAssertFalse("extra".hasPrefix("allday"))
+        XCTAssertFalse(CellKey.extra.raw.hasPrefix("allday"))
+        let deep = stroke("x1", cell: .extra, points: [point(30, 40), point(60, 5950, dt: 16)])
+        XCTAssertNil(BandMigration.migrated(deep, pageId: "d-2026-10-07"))
+        var page = InkPage.empty(pageId: "d-2026-10-07")
+        page.add(deep)
+        page.add(stroke("g1", cell: .grid, points: [point(300, 2350)]))
+        XCTAssertFalse(BandMigration.needsMigration(page))
+        XCTAssertEqual(BandMigration.migrate(page), page, "a 1.1 day page is left as it is")
+    }
 }

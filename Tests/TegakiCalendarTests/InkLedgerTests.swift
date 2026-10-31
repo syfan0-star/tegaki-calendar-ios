@@ -14,6 +14,12 @@ import XCTest
 /// a remote update landing while the pen is down neither duplicates the canvas's strokes nor
 /// revives a stroke another device erased. M4b (M4B_CONTRACT §3.3, §7.2): the strokes of the former
 /// all-day band are moved onto the grid on `init` and `reload`, with the fingerprint map kept.
+/// 1.1 (M7A_CONTRACT §2.4, §3.1, §3.6, §7.2): the last cell of a page (the month's memo area, the
+/// day's free memo area below 24:00, `extra`) asks for room by the 400 lu step rule of
+/// `PaperGrowth`; `adopt` takes a layout without touching the fingerprints; `undoIfTopRestores` puts
+/// back exactly what one eraser touch took; and the ledger's own path (`applyCanvasChange` →
+/// `inkCell` → `cellRelativePoints`, `moveStrokes`) writes the shapes of the compat fixtures
+/// `ledger-day.json` / `ledger-month.json` (K-7, 0-23).
 @MainActor
 final class InkLedgerTests: XCTestCase {
     private let month = YearMonth(year: 2026, month: 10)
@@ -299,7 +305,7 @@ final class InkLedgerTests: XCTestCase {
     func testDayStrokesAllGoToTheGrid() {
         let layout = makeDayLayout()
         XCTAssertEqual(layout.pageId, "d-2026-10-07")
-        XCTAssertEqual(layout.cells.count, 1, "the day paper is one cell since M4b")
+        XCTAssertEqual(layout.cells.count, 2, "grid and extra (1.1: the free memo area below 24:00); no band cell since M4b")
         XCTAssertNil(layout.cells[.allDayDay], "no band cell on the paper")
         let ledger = InkLedger(page: InkPage.empty(pageId: layout.pageId), layout: layout)
         _ = ledger.drawing()
@@ -773,5 +779,383 @@ final class InkLedgerTests: XCTestCase {
         ledger.bind(to: rebuilt)
         XCTAssertEqual(Set(rebuilt.strokes.compactMap { ledger.id(of: $0) }), ["local-a", "remote-c", added.id])
         XCTAssertTrue(ledger.applyCanvasChange(rebuilt).isEmpty)
+    }
+
+    // MARK: 1.1 — the growing last cell, adopt, the eraser tap's undo (M7A_CONTRACT §2.4, §3.1, §3.6)
+
+    /// A stored pen stroke of `cell` whose lowest point, half of its 4 lu nib included, is `bottom`
+    /// (cell-relative): `InkStroke.bottom == bottom`.
+    private func makeStoredStroke(cell: CellKey, bottom: CGFloat, id: String = InkStroke.newId()) -> InkStroke {
+        let points = [
+            InkPoint(x: 100, y: bottom - 12, dtMs: 0, sizeW: 4, sizeH: 4, opacity: 1, force: 0.5, azimuth: 0, altitude: 1.571),
+            InkPoint(x: 110, y: bottom - 2, dtMs: 16, sizeW: 4, sizeH: 4, opacity: 1, force: 0.5, azimuth: 0, altitude: 1.571),
+        ]
+        return InkStroke(id: id, cell: cell, tool: .pen, color: "#1f2937", t: 1_790_000_000_000, points: points)
+    }
+
+    /// 0-2: the ledger asks for room with the rule the engines grow the cells with
+    /// (`PaperGrowth.needsMoreRoom`): the last cell in 400 lu steps — a memo area of 1,100 grows for a
+    /// stroke down to 750 (1.0's `b + 50` = 800 would not have asked) — the month and year cells by
+    /// `b + 12` as before, the day's free memo area like the month's memo area, the time grid never.
+    func testNeedsMoreRoomFollowsTheStepRule() {
+        // The month's memo area: 700 when empty.
+        let empty = makeLayout()
+        XCTAssertEqual(empty.memo.height, 700, accuracy: 0.001)
+        let ledger = InkLedger(page: InkPage.empty(pageId: pageId), layout: empty)
+        XCTAssertEqual(makeStoredStroke(cell: .memo, bottom: 301).bottom, 301, accuracy: 0.001)
+        XCTAssertFalse(ledger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 300)), "b ≤ 300 fits 700")
+        XCTAssertTrue(ledger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 301)), "b 301 → 1,100")
+
+        // Ink down to 650: 1,100. 700 still fits it; 750 asks (→ 1,500), where 1.0 asked only past 1,050.
+        let grown = makeLayout(inkBottoms: [.memo: 650])
+        XCTAssertEqual(grown.memo.height, 1100, accuracy: 0.001)
+        let grownLedger = InkLedger(page: InkPage.empty(pageId: pageId), layout: grown)
+        XCTAssertFalse(grownLedger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 700)))
+        XCTAssertTrue(grownLedger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 750)), "0-2: 750 + 50 = 800 < 1,100, but the step rule wants 1,500")
+        XCTAssertEqual(PaperGrowth.tailHeight(inkBottom: 750), 1500, accuracy: 0.001)
+
+        // A day cell of the month: the row rule `b + 12` (the 175 lu row).
+        let day = DayKey(year: 2026, month: 10, day: 7)
+        guard let cell = empty.cells[.day(day)] else { return XCTFail("no cell for \(day)") }
+        XCTAssertFalse(ledger.needsMoreRoom(makeStoredStroke(cell: .day(day), bottom: cell.height - 12)))
+        XCTAssertTrue(ledger.needsMoreRoom(makeStoredStroke(cell: .day(day), bottom: cell.height - 11)))
+
+        // The day page: the free memo area below 24:00 grows like the memo area; the grid never.
+        let dayLayout = makeDayLayout()
+        XCTAssertEqual(dayLayout.extra.height, 700, accuracy: 0.001)
+        let dayLedger = InkLedger(page: InkPage.empty(pageId: dayLayout.pageId), layout: dayLayout)
+        XCTAssertFalse(dayLedger.needsMoreRoom(makeStoredStroke(cell: .extra, bottom: 300)))
+        XCTAssertTrue(dayLedger.needsMoreRoom(makeStoredStroke(cell: .extra, bottom: 301)))
+        XCTAssertFalse(dayLedger.needsMoreRoom(makeStoredStroke(cell: .grid, bottom: 5000)), "the time grid never grows")
+
+        // The year: the row rule, unchanged.
+        let year = makeYearLayout()
+        let yearLedger = InkLedger(page: InkPage.empty(pageId: year.pageId), layout: year)
+        let oct7 = CellKey.yearDay(month: 10, day: 7)
+        guard let yearCell = year.cells[oct7] else { return XCTFail("no cell 10-07") }
+        XCTAssertFalse(yearLedger.needsMoreRoom(makeStoredStroke(cell: oct7, bottom: yearCell.height - 12)))
+        XCTAssertTrue(yearLedger.needsMoreRoom(makeStoredStroke(cell: oct7, bottom: yearCell.height - 11)))
+    }
+
+    /// §3.6: `adopt` takes a layout in which only the last cell's height changed — no drawing is
+    /// built, the canvas's strokes are still known (the same drawing is no change), the new height is
+    /// what `needsMoreRoom` reads, the strokes are placed from the same origin. A layout of another
+    /// page is ignored and reported.
+    func testAdoptKeepsFingerprints() {
+        let previousHook = InkLedger.onPageMismatch
+        var reports: [String] = []
+        InkLedger.onPageMismatch = { reports.append($0) }
+        defer { InkLedger.onPageMismatch = previousHook }
+
+        let layout = makeLayout()
+        let ledger = InkLedger(page: InkPage.empty(pageId: pageId), layout: layout)
+        _ = ledger.drawing()
+        let memo = layout.memo
+        // Low in the memo area (bottom ≈ 495.75): the area must grow to 1,100.
+        let pk = makeStroke(at: CGPoint(x: 100, y: memo.minY + 490), creationDate: Date(timeIntervalSince1970: 1_790_000_020))
+        let change = ledger.applyCanvasChange(PKDrawing(strokes: [pk]))
+        guard let added = change.added.first else { return XCTFail("stroke was not added") }
+        XCTAssertEqual(added.cell, CellKey.memo)
+        XCTAssertTrue(ledger.needsMoreRoom(added))
+
+        let grown = makeLayout(inkBottoms: ledger.page.inkBottoms())
+        XCTAssertEqual(grown.memo.height, 1100, accuracy: 0.001)
+        XCTAssertTrue(PaperGrowth.onlyTailHeightChanged(old: layout, new: grown))
+        ledger.adopt(grown)
+        XCTAssertEqual(ledger.layout.cells[.memo]?.height ?? 0, 1100, accuracy: 0.001)
+        XCTAssertEqual(ledger.layout.size.height, grown.size.height, accuracy: 0.001)
+        XCTAssertFalse(ledger.needsMoreRoom(added), "the adopted height is read")
+        XCTAssertTrue(ledger.applyCanvasChange(PKDrawing(strokes: [pk])).isEmpty, "the fingerprint map is kept")
+        XCTAssertEqual(ledger.page.liveStrokeIds, [added.id])
+        let drawing = ledger.drawing()
+        XCTAssertEqual(drawing.strokes.count, 1)
+        XCTAssertEqual(drawing.strokes.first?.transform.ty ?? -1, memo.minY, accuracy: 0.001, "the memo area did not move")
+
+        // Another page's layout: ignored, reported once.
+        ledger.adopt(makeDayLayout())
+        XCTAssertEqual(ledger.layout.pageId, pageId)
+        XCTAssertEqual(ledger.layout.cells[.memo]?.height ?? 0, 1100, accuracy: 0.001)
+        XCTAssertEqual(reports.count, 1)
+    }
+
+    /// §2.4 (0-22): `undoIfTopRestores` undoes only an erasure of exactly `ids` — the newest op, or
+    /// the newest few `.add`s of one touch the eraser reported in several changes. Anything else on
+    /// top (a stroke drawn, an erasure of other strokes, more or fewer ids) is left alone. The strokes
+    /// come back as clones with new ids (`makeId`); the erased ids keep their tombstones.
+    func testUndoIfTopRestores() {
+        let layout = makeLayout()
+        let ledger = InkLedger(page: InkPage.empty(pageId: pageId), layout: layout)
+        var seed = 0
+        ledger.makeId = {
+            seed += 1
+            return "00000000-0000-4000-8000-00000000000\(seed)"
+        }
+        _ = ledger.drawing()
+        let a = makeStroke(at: CGPoint(x: 30, y: 40), creationDate: Date(timeIntervalSince1970: 1_790_000_030))
+        let b = makeStroke(at: CGPoint(x: 300, y: 400), creationDate: Date(timeIntervalSince1970: 1_790_000_031))
+        let c = makeStroke(at: CGPoint(x: 600, y: 400), creationDate: Date(timeIntervalSince1970: 1_790_000_032))
+        guard let strokeA = ledger.applyCanvasChange(PKDrawing(strokes: [a])).added.first,
+              let strokeB = ledger.applyCanvasChange(PKDrawing(strokes: [a, b])).added.first else { return XCTFail("strokes were not added") }
+        let ida = strokeA.id
+        let idb = strokeB.id
+        XCTAssertEqual(ida, "00000000-0000-4000-8000-000000000001", "new strokes take makeId's ids")
+
+        XCTAssertNil(ledger.undoIfTopRestores(ids: []))
+        XCTAssertNil(ledger.undoIfTopRestores(ids: [idb]), "the newest op takes b away (it was drawn); it does not put it back")
+        XCTAssertEqual(ledger.page.liveStrokeIds.sorted(), [ida, idb].sorted())
+
+        // The eraser takes b: the newest op puts back exactly b.
+        let erased = ledger.applyCanvasChange(PKDrawing(strokes: [a]))
+        XCTAssertEqual(erased.removedIds, [idb])
+        XCTAssertNil(ledger.undoIfTopRestores(ids: [ida]), "another stroke")
+        XCTAssertNil(ledger.undoIfTopRestores(ids: [ida, idb]), "more than the op puts back")
+        XCTAssertEqual(ledger.page.liveStrokeIds, [ida], "nothing changed")
+        guard let restored = ledger.undoIfTopRestores(ids: [idb]) else { return XCTFail("b was not put back") }
+        XCTAssertEqual(restored.strokes.count, 2)
+        XCTAssertEqual(ledger.page.liveStrokes.count, 2)
+        XCTAssertNotNil(ledger.page.deleted[idb], "the erased id stays tombstoned")
+        guard let clone = ledger.page.liveStrokes.first(where: { $0.id != ida }) else { return XCTFail("no clone") }
+        XCTAssertEqual(clone.id, "00000000-0000-4000-8000-000000000003", "a clone with a new id")
+        XCTAssertEqual(clone.points, strokeB.points)
+        XCTAssertTrue(ledger.canRedo)
+
+        // A stroke drawn on top: nothing.
+        var canvas = restored.strokes
+        canvas.append(c)
+        guard let strokeC = ledger.applyCanvasChange(PKDrawing(strokes: canvas)).added.first else { return XCTFail("c was not added") }
+        let idc = strokeC.id
+        XCTAssertNil(ledger.undoIfTopRestores(ids: [idc]))
+        XCTAssertNil(ledger.undoIfTopRestores(ids: [clone.id]))
+        XCTAssertEqual(ledger.page.liveStrokes.count, 3)
+
+        // One touch, reported in two changes (a, then c): the two `.add`s on top go back together.
+        canvas.removeAll { ledger.id(of: $0) == ida }
+        XCTAssertEqual(ledger.applyCanvasChange(PKDrawing(strokes: canvas)).removedIds, [ida])
+        canvas.removeAll { ledger.id(of: $0) == idc }
+        XCTAssertEqual(ledger.applyCanvasChange(PKDrawing(strokes: canvas)).removedIds, [idc])
+        XCTAssertNil(ledger.undoIfTopRestores(ids: [ida]), "the newest op puts back c, not a")
+        XCTAssertNil(ledger.undoIfTopRestores(ids: [ida, idc, clone.id]), "the clone was never erased")
+        guard let both = ledger.undoIfTopRestores(ids: [ida, idc]) else { return XCTFail("a and c were not put back") }
+        XCTAssertEqual(both.strokes.count, 3)
+        XCTAssertEqual(ledger.page.liveStrokes.count, 3)
+        XCTAssertTrue(ledger.page.isLive(clone.id), "the clone of b was not touched")
+        XCTAssertFalse(ledger.page.isLive(ida))
+        XCTAssertFalse(ledger.page.isLive(idc))
+    }
+
+    // MARK: 1.1 — the compat fixtures (M7A_CONTRACT §1.4, §7.2, 0-23)
+
+    /// Ids and times from a seed: lower-case UUID shapes `<prefix>-0000-4000-8000-<n>` and
+    /// `baseMs + n`, so the fixture is the same on every run.
+    private final class Seed {
+        private let prefix: String
+        private let baseMs: Int
+        private var ids = 0
+        private var ms = 0
+
+        init(prefix: String, baseMs: Int) {
+            self.prefix = prefix
+            self.baseMs = baseMs
+        }
+
+        func nextId() -> String {
+            ids += 1
+            let hex = String(ids, radix: 16)
+            return prefix + "-0000-4000-8000-" + String(repeating: "0", count: max(0, 12 - hex.count)) + hex
+        }
+
+        func nextMs() -> Int {
+            ms += 1
+            return baseMs + ms
+        }
+    }
+
+    /// A pen stroke through `points` (paper coordinates), a 3.5 lu nib, written at `creationDate`.
+    private func makeStroke(through points: [CGPoint], creationDate: Date) -> PKStroke {
+        let controlPoints = points.enumerated().map { i, p in
+            PKStrokePoint(location: p, timeOffset: TimeInterval(i) * 0.016, size: CGSize(width: 3.5, height: 3.5),
+                          opacity: 1, force: 0.5, azimuth: 0, altitude: .pi / 2)
+        }
+        return PKStroke(ink: PKInk(.pen, color: .black), path: PKStrokePath(controlPoints: controlPoints, creationDate: creationDate),
+                        transform: .identity, mask: nil)
+    }
+
+    /// The keys a stroke and a page of the 1.0 format may have (K-5: 1.1 adds none).
+    private static let strokeKeys: Set<String> = ["id", "cell", "tool", "color", "t", "dev", "pts"]
+
+    /// K-1 and K-5 on a page: no cell name starts with "allday" (`BandMigration` leaves it alone),
+    /// the page's keys are the known ones, every stroke's keys are 1.0's, nothing unknown is carried.
+    private func assertKnownShapes(_ page: InkPage, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertFalse(BandMigration.needsMigration(page), "K-1", file: file, line: line)
+        XCTAssertTrue(page.unknown.isEmpty, file: file, line: line)
+        XCTAssertTrue(page.unknownStrokes.isEmpty, file: file, line: line)
+        guard let object = page.jsonValue.objectValue else { return XCTFail("not an object", file: file, line: line) }
+        XCTAssertEqual(Set(object.keys), InkPage.knownKeys, "K-5: the page's keys", file: file, line: line)
+        for (id, value) in object["strokes"]?.objectValue ?? [:] {
+            let keys = Set(value.objectValue?.keys.map { $0 } ?? [])
+            XCTAssertTrue(keys.isSubset(of: Self.strokeKeys), "K-5: \(id) has \(keys.subtracting(Self.strokeKeys))", file: file, line: line)
+            XCTAssertFalse(BandMigration.isBandCell(CellKey(raw: value.objectValue?["cell"]?.stringValue ?? "")), "K-1: \(id)", file: file, line: line)
+        }
+    }
+
+    /// The folder of the compat fixtures (`TegakiKit/Tests/Fixtures/compat11/`), found from this
+    /// file's path (no bundle resources: the same way on the simulator, macOS and KitChecks).
+    private static var fixtureFolder: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // TegakiCalendarTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // the repository
+            .appendingPathComponent("TegakiKit/Tests/Fixtures/compat11", isDirectory: true)
+    }
+
+    /// The page's stored JSON (`InkPageCodec.encode`: keys sorted, compact — the bytes a device writes
+    /// and sends) must be the fixture `name` byte for byte. When the fixture is missing or differs,
+    /// the JSON is written to `$TEGAKI_FIXTURE_OUT/<name>` (the CI's `shots/fixtures/`) and the test
+    /// fails: the lead reads it and commits it (§8 3; the first CI is red on purpose).
+    private func assertMatchesFixture(_ page: InkPage, named name: String, file: StaticString = #filePath, line: UInt = #line) {
+        let data: Data
+        do {
+            data = try InkPageCodec.encode(page)
+        } catch {
+            return XCTFail("\(name): could not encode the page: \(error)", file: file, line: line)
+        }
+        let url = Self.fixtureFolder.appendingPathComponent(name)
+        let stored = try? Data(contentsOf: url)
+        guard stored != data else { return }
+        var written = "TEGAKI_FIXTURE_OUT is not set, nothing written"
+        if let out = ProcessInfo.processInfo.environment["TEGAKI_FIXTURE_OUT"], !out.isEmpty {
+            let folder = URL(fileURLWithPath: out, isDirectory: true)
+            let target = folder.appendingPathComponent(name)
+            do {
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                try data.write(to: target, options: .atomic)
+                written = "wrote \(target.path)"
+            } catch {
+                written = "could not write \(target.path): \(error)"
+            }
+        }
+        XCTFail("\(name): the fixture \(stored == nil ? "is missing" : "differs") at \(url.path) (\(data.count) bytes now); \(written)",
+                file: file, line: line)
+    }
+
+    /// K-7 / 0-23: the app's own path writes the shapes a 1.0 device must survive. With the 1.1
+    /// engines' layouts, PencilKit strokes go through `applyCanvasChange` (→ `inkCell(forCenter:)` →
+    /// `StrokeGeometry.cellRelativePoints`) one at a time, as the canvas sends them, and a `grid`
+    /// stroke is moved below 24:00 with `moveStrokes`; ids, times and the device id are seeded.
+    /// - The day (`ledger-day.json`, d-2026-11-05): two strokes of the 23:00 hour (`grid`, one of them
+    ///   reaching below 24:00 with its centre above), one crossing 24:00 with its centre below
+    ///   (`extra`, a negative y), four from paper y 2,430 to 8,350 (`extra`, y − 2,400), and the
+    ///   10:00 stroke moved 2,000 lu down (its id tombstoned, a clone in `extra`).
+    /// - The month (`ledger-month.json`, m1-2027-01): a stroke of 1/15 and five low in the memo area
+    ///   (centres 380 … 5,990 below its top), the layout adopted as the area grows.
+    /// Then the cells, the cell-relative points and the 1.0 shapes are checked, and the page JSON is
+    /// compared with the fixture byte for byte.
+    func testLedgerWritesTheCompatShapes() {
+        // The day.
+        let dayLayout = DayLayoutEngine.layout(DayLayoutInput(day: DayKey(year: 2026, month: 11, day: 5), events: [], inkBottoms: [:], now: now))
+        XCTAssertEqual(dayLayout.pageId, "d-2026-11-05")
+        let day = InkLedger(page: InkPage.empty(pageId: dayLayout.pageId), layout: dayLayout, deviceId: "compat-ipad")
+        let daySeed = Seed(prefix: "11d00000", baseMs: 1_790_100_000_000)
+        day.makeId = { daySeed.nextId() }
+        day.nowMs = { daySeed.nextMs() }
+        _ = day.drawing()
+        func line(x: CGFloat, y: CGFloat) -> [CGPoint] {
+            (0..<5).map { CGPoint(x: x + CGFloat($0) * 3, y: y + CGFloat($0)) }
+        }
+        func upright(x: CGFloat, from y0: CGFloat, to y1: CGFloat) -> [CGPoint] {
+            (0..<5).map { CGPoint(x: x + CGFloat($0), y: y0 + (y1 - y0) * CGFloat($0) / 4) }
+        }
+        let dayStrokes: [(name: String, points: [CGPoint], cell: CellKey)] = [
+            ("23:30", line(x: 120, y: 2330), .grid),
+            ("into 24:00, centre above", upright(x: 300, from: 2380, to: 2412), .grid),
+            ("across 24:00, centre below", upright(x: 500, from: 2388, to: 2420), .extra),
+            ("y 2,430", line(x: 100, y: 2428), .extra),
+            ("y 3,100", line(x: 200, y: 3098), .extra),
+            ("y 5,600", line(x: 300, y: 5598), .extra),
+            ("y 8,350", line(x: 400, y: 8348), .extra),
+            ("10:00 (moved below)", line(x: 700, y: 998), .grid),
+        ]
+        var canvas: [PKStroke] = []
+        var dayIds: [String: String] = [:]
+        for (index, entry) in dayStrokes.enumerated() {
+            canvas.append(makeStroke(through: entry.points, creationDate: Date(timeIntervalSince1970: 1_790_100_000 + TimeInterval(index))))
+            let change = day.applyCanvasChange(PKDrawing(strokes: canvas))
+            XCTAssertEqual(change.added.count, 1, entry.name)
+            XCTAssertTrue(change.removedIds.isEmpty, entry.name)
+            guard let added = change.added.first else { continue }
+            XCTAssertEqual(added.cell, entry.cell, entry.name)
+            XCTAssertEqual(added.dev, "compat-ipad")
+            XCTAssertEqual(added.t, 1_790_100_000_000 + index * 1000, "t comes from the stroke's creation date")
+            let origin = dayLayout.cells[entry.cell]?.origin ?? .zero
+            XCTAssertEqual(added.points.first?.y ?? -1, entry.points[0].y - origin.y, accuracy: 0.11, "\(entry.name): cell-relative")
+            XCTAssertEqual(added.points.last?.y ?? -1, entry.points[4].y - origin.y, accuracy: 0.11, "\(entry.name): cell-relative")
+            dayIds[entry.name] = added.id
+        }
+        XCTAssertEqual(dayLayout.cells[.extra]?.origin ?? .zero, CGPoint(x: 0, y: 2400))
+        XCTAssertEqual(day.page.strokes[dayIds["across 24:00, centre below"] ?? ""]?.points.first?.y ?? 0, -12, accuracy: 0.11,
+                       "an extra stroke may start above its cell")
+        XCTAssertEqual(day.page.strokes[dayIds["into 24:00, centre above"] ?? ""]?.points.last?.y ?? 0, 2412, accuracy: 0.11,
+                       "K-2: a grid stroke reaching below 24:00 stays grid")
+        XCTAssertEqual(day.page.strokes[dayIds["y 8,350"] ?? ""]?.points.first?.y ?? 0, 5948, accuracy: 0.11)
+        guard let movedId = dayIds["10:00 (moved below)"] else { return XCTFail("no 10:00 stroke") }
+        let moved = day.moveStrokes(ids: [movedId], by: CGVector(dx: 0, dy: 2000))
+        XCTAssertEqual(moved.change.removedIds, [movedId])
+        guard let clone = moved.change.added.first else { return XCTFail("the 10:00 stroke was not moved") }
+        XCTAssertEqual(clone.cell, CellKey.extra, "moved below 24:00: a new id in extra (K-2: never the same id in another cell)")
+        XCTAssertNotEqual(clone.id, movedId)
+        XCTAssertEqual(clone.points.first?.y ?? -1, 998 + 2000 - 2400, accuracy: 0.11)
+        XCTAssertNotNil(day.page.deleted[movedId], "the original is tombstoned")
+        XCTAssertEqual(day.page.liveStrokes.count, 8)
+        XCTAssertEqual(day.page.liveStrokes.filter { $0.cell == .extra }.count, 6)
+        XCTAssertEqual(day.page.liveStrokes.filter { $0.cell == .grid }.count, 2)
+        assertKnownShapes(day.page)
+        assertMatchesFixture(day.page, named: "ledger-day.json")
+
+        // The month.
+        let monthLayout = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2027, month: 1), events: [], inkBottoms: [:], now: now))
+        XCTAssertEqual(monthLayout.pageId, "m1-2027-01")
+        let month = InkLedger(page: InkPage.empty(pageId: monthLayout.pageId), layout: monthLayout, deviceId: "compat-ipad")
+        let monthSeed = Seed(prefix: "11e00000", baseMs: 1_790_200_000_000)
+        month.makeId = { monthSeed.nextId() }
+        month.nowMs = { monthSeed.nextMs() }
+        _ = month.drawing()
+        let memoTop = monthLayout.memo.minY
+        let jan15 = CellKey.day(DayKey(year: 2027, month: 1, day: 15))
+        guard let jan15Cell = monthLayout.cells[jan15] else { return XCTFail("no cell for 1/15") }
+        var monthStrokes: [(name: String, points: [CGPoint], cell: CellKey)] = [
+            ("1/15", line(x: jan15Cell.minX + 40, y: jan15Cell.minY + 60), jan15),
+        ]
+        for depth in [380, 790, 3190, 5590, 5990] as [CGFloat] {
+            monthStrokes.append(("memo \(Int(depth))", line(x: 300, y: memoTop + depth - 2), .memo))
+        }
+        var monthCanvas: [PKStroke] = []
+        var layout: MonthPageLayout = monthLayout
+        for (index, entry) in monthStrokes.enumerated() {
+            monthCanvas.append(makeStroke(through: entry.points, creationDate: Date(timeIntervalSince1970: 1_790_200_000 + TimeInterval(index))))
+            let change = month.applyCanvasChange(PKDrawing(strokes: monthCanvas))
+            guard let added = change.added.first else {
+                XCTFail("\(entry.name) was not added")
+                continue
+            }
+            XCTAssertEqual(added.cell, entry.cell, entry.name)
+            let origin = layout.cells[entry.cell]?.origin ?? .zero
+            XCTAssertEqual(added.points.first?.y ?? -1, entry.points[0].y - origin.y, accuracy: 0.11, "\(entry.name): cell-relative")
+            if month.needsMoreRoom(added) {
+                // What the canvas does when the owner lays the page out again: only the memo area grew.
+                let grown = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2027, month: 1), events: [],
+                                                                      inkBottoms: month.page.inkBottoms(), now: now))
+                XCTAssertTrue(PaperGrowth.onlyTailHeightChanged(old: layout, new: grown), entry.name)
+                month.adopt(grown)
+                layout = grown
+            }
+        }
+        let deepest = month.page.inkBottoms()[.memo] ?? 0
+        XCTAssertEqual(deepest, 5990 + 2 + 1.75, accuracy: 0.11)
+        XCTAssertTrue(PaperGrowth.reachesCap(inkBottom: deepest))
+        XCTAssertEqual(month.layout.cells[.memo]?.height ?? 0, PaperGrowth.tailHeight(inkBottom: deepest), accuracy: 0.001)
+        XCTAssertEqual(month.layout.cells[.memo]?.minY ?? 0, memoTop, accuracy: 0.001, "the memo area never moved")
+        XCTAssertEqual(month.page.liveStrokes.filter { $0.cell == .memo }.count, 5)
+        assertKnownShapes(month.page)
+        assertMatchesFixture(month.page, named: "ledger-month.json")
     }
 }

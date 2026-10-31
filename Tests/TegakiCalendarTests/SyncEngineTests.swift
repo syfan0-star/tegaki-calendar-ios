@@ -147,7 +147,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(sleeper.recorded, [])
         XCTAssertEqual(stateStore.load().dirty, [month])
         XCTAssertEqual(store.load(month).liveStrokeIds, ["a"])
-        XCTAssertEqual(status.header.text, "この iPad のみ")
+        XCTAssertEqual(status.header.text, "この端末のみ")
     }
 
     func test02StartWithAccount() async throws {
@@ -931,7 +931,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(SyncStatus.pending.header, HeaderSync(text: "同期中", symbol: "icloud", isError: false))
         XCTAssertEqual(SyncStatus.syncing.header, HeaderSync(text: "同期中", symbol: "arrow.triangle.2.circlepath.icloud", isError: false))
         XCTAssertEqual(SyncStatus.offline.header, HeaderSync(text: "オフライン", symbol: "icloud.slash", isError: false))
-        XCTAssertEqual(SyncStatus.localOnly(.noAccount).header, HeaderSync(text: "この iPad のみ", symbol: "icloud.slash", isError: false))
+        XCTAssertEqual(SyncStatus.localOnly(.noAccount).header, HeaderSync(text: "この端末のみ", symbol: "icloud.slash", isError: false))
         XCTAssertEqual(SyncStatus.error(.quota).header, HeaderSync(text: "エラー", symbol: "exclamationmark.icloud", isError: true))
         XCTAssertEqual(SyncStatus.accountMismatch.header, HeaderSync(text: "停止中", symbol: "person.crop.circle.badge.exclamationmark", isError: true))
 
@@ -940,7 +940,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(SyncStatus.syncing.settingsText, "同期中…")
         XCTAssertEqual(SyncStatus.offline.settingsText, "オフライン")
         XCTAssertEqual(SyncStatus.localOnly(.noAccount).settingsText, "iCloud にサインインしていません")
-        XCTAssertEqual(SyncStatus.localOnly(.restricted).settingsText, "この iPad では iCloud が制限されています")
+        XCTAssertEqual(SyncStatus.localOnly(.restricted).settingsText, "この端末では iCloud が制限されています")
         XCTAssertEqual(SyncStatus.localOnly(.unknown).settingsText, "iCloud を確認できません")
         XCTAssertEqual(SyncStatus.localOnly(.notAuthenticated).settingsText, "iCloud を確認できません")
         XCTAssertEqual(SyncStatus.error(.quota).settingsText, "iCloud の容量が足りません")
@@ -948,17 +948,17 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(SyncStatus.error(.server("m")).settingsText, "同期に失敗しました")
         XCTAssertEqual(SyncStatus.accountMismatch.settingsText, "別の iCloud アカウントです")
 
-        XCTAssertEqual(SyncStatus.synced.settingsFooter, "手書きはこの iPad と、あなたの iCloud に保存されています。ほかの iPad や iPhone でも同じ手書きが見られます。")
+        XCTAssertEqual(SyncStatus.synced.settingsFooter, "手書きはこの端末と、あなたの iCloud に保存されています。ほかの iPad や iPhone でも同じ手書きが見られます。")
         XCTAssertEqual(SyncStatus.pending.settingsFooter, "書いた手書きを iCloud へ送っています。")
         XCTAssertEqual(SyncStatus.syncing.settingsFooter, SyncStatus.pending.settingsFooter)
-        XCTAssertEqual(SyncStatus.offline.settingsFooter, "オフラインです。手書きはこの iPad に保存され、接続が戻ると同期されます。")
-        XCTAssertEqual(SyncStatus.localOnly(.noAccount).settingsFooter, "iCloud にサインインするとほかの端末と同期できます。手書きはこの iPad の中だけに保存しています。")
-        XCTAssertEqual(SyncStatus.localOnly(.restricted).settingsFooter, "手書きはこの iPad の中だけに保存しています。")
-        XCTAssertEqual(SyncStatus.localOnly(.unknown).settingsFooter, "iPad の設定で iCloud を確認してください。手書きはこの iPad の中だけに保存しています。")
-        XCTAssertEqual(SyncStatus.error(.quota).settingsFooter, "iCloud の容量が不足しているため、手書きを同期できません。この iPad には保存されています。")
+        XCTAssertEqual(SyncStatus.offline.settingsFooter, "オフラインです。手書きはこの端末に保存され、接続が戻ると同期されます。")
+        XCTAssertEqual(SyncStatus.localOnly(.noAccount).settingsFooter, "iCloud にサインインするとほかの端末と同期できます。手書きはこの端末の中だけに保存しています。")
+        XCTAssertEqual(SyncStatus.localOnly(.restricted).settingsFooter, "手書きはこの端末の中だけに保存しています。")
+        XCTAssertEqual(SyncStatus.localOnly(.unknown).settingsFooter, "「設定」アプリで iCloud を確認してください。手書きはこの端末の中だけに保存しています。")
+        XCTAssertEqual(SyncStatus.error(.quota).settingsFooter, "iCloud の容量が不足しているため、手書きを同期できません。この端末には保存されています。")
         XCTAssertEqual(SyncStatus.error(.permission).settingsFooter, "iCloud の設定でこのアプリの利用が許可されていません。")
-        XCTAssertEqual(SyncStatus.error(.server("zone")).settingsFooter, "手書きの同期に失敗しました。この iPad には保存されています（あとで再試行します）。\nzone")
-        XCTAssertEqual(SyncStatus.accountMismatch.settingsFooter, "この iPad の手書きは、前に同期していた iCloud アカウントのものです。「新しいアカウントで使い始める」から選んでください。")
+        XCTAssertEqual(SyncStatus.error(.server("zone")).settingsFooter, "手書きの同期に失敗しました。この端末には保存されています（あとで再試行します）。\nzone")
+        XCTAssertEqual(SyncStatus.accountMismatch.settingsFooter, "この端末の手書きは、前に同期していた iCloud アカウントのものです。「新しいアカウントで使い始める」から選んでください。")
 
         XCTAssertFalse(SyncStatus.synced.isError)
         XCTAssertFalse(SyncStatus.offline.isError)
@@ -966,5 +966,67 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertTrue(SyncStatus.error(.permission).isError)
         XCTAssertTrue(SyncStatus.accountMismatch.isError)
         XCTAssertEqual(ImportOutcome(pagesChanged: 12, strokesAdded: 348, pagesSeen: 12).strokesAdded, 348)
+
+        // 1.1 (M7A_CONTRACT §6.1): the device is 「この端末」 in every sentence; only 「ほかの iPad や
+        // iPhone」 (both kinds by name) keeps the word.
+        let every: [SyncStatus] = [.synced, .pending, .syncing, .offline, .localOnly(.noAccount), .localOnly(.restricted),
+                                   .localOnly(.unknown), .localOnly(.notAuthenticated), .error(.quota), .error(.permission),
+                                   .error(.server("m")), .accountMismatch]
+        for status in every {
+            for text in [status.header.text, status.settingsText, status.settingsFooter] {
+                XCTAssertFalse(text.contains("この iPad"), "\(status): \(text)")
+                XCTAssertFalse(text.replacingOccurrences(of: "ほかの iPad や iPhone", with: "").contains("iPad"), "\(status): \(text)")
+            }
+        }
+    }
+
+    // MARK: - 1.1: a page a 1.0 device cut at 20,000 strokes (M7A_CONTRACT §1.3 / §5.1, K-9)
+
+    /// A 1.0 device keeps only the first 20,000 strokes (in id order) each time it reads a page and
+    /// sends that back when it edits it (F8). 1.1 reads up to 60,000, so the device that has all
+    /// 20,500 keeps them when the cut record arrives, marks the page dirty (the merge differs from the
+    /// record) and sends the 20,500 again — `SyncEngine` is unchanged; `InkPage.maxStrokes` does it.
+    func testMergeRemoteOfATruncatedPageMarksDirty() async throws {
+        let id = "y-2026"
+        var full = InkPage.empty(pageId: id)
+        for i in 0..<20_500 {
+            let point = InkPoint(x: CGFloat(i % 50), y: CGFloat(i / 50), dtMs: 0, sizeW: 2, sizeH: 2, opacity: 1, force: 0.5, azimuth: 0, altitude: 1.4)
+            full.add(InkStroke(id: String(format: "s%05d", i), cell: .yearDay(month: 1 + i % 12, day: 1 + i % 28), tool: .pen,
+                               color: "#1f2937", t: 1_760_000_001_000 + i, points: [point]))
+        }
+        XCTAssertEqual(full.liveStrokeCount, 20_500)
+
+        // This 1.1 device wrote the page and sent it.
+        await startSynced()
+        try engine.save(full)
+        await flushDebounce()
+        XCTAssertEqual(engine.state.dirty, [])
+        XCTAssertEqual(try storedPage(id).liveStrokeCount, 20_500)
+
+        // A 1.0 device read it (the first 20,000 ids), edited and sent the cut page: no tombstones.
+        var cut = InkPage.empty(pageId: id)
+        for strokeId in full.strokes.keys.sorted().prefix(StrokeBudget.legacyReadCap) {
+            cut.add(full.strokes[strokeId]!)
+        }
+        XCTAssertEqual(cut.liveStrokeCount, 20_000)
+        XCTAssertTrue(cut.deleted.isEmpty)
+        db.simulateRemoteSave(try record(cut))
+
+        // Fetched (the page was opened): the file keeps all 20,500 and the page is queued again.
+        engine.pageOpened(id)
+        await engine.waitUntilIdle()
+        XCTAssertEqual(store.load(id).liveStrokeCount, 20_500, "1.1 reads past 20,000 (InkPage.maxStrokes)")
+        XCTAssertEqual(store.peek(id)?.strokeIds.count, 20_500)
+        XCTAssertEqual(store.peek(id)?.tombstones, 0)
+        XCTAssertEqual(engine.state.dirty, [id], "the merge differs from the cut record")
+
+        // The next round sends the 20,500 back; nothing was tombstoned on the way.
+        await engine.syncNow()
+        let sent = try storedPage(id)
+        XCTAssertEqual(sent.liveStrokeCount, 20_500)
+        XCTAssertEqual(Set(sent.liveStrokeIds), Set(full.liveStrokeIds))
+        XCTAssertTrue(sent.deleted.isEmpty)
+        XCTAssertEqual(engine.state.dirty, [])
+        XCTAssertEqual(store.load(id).liveStrokeCount, 20_500)
     }
 }

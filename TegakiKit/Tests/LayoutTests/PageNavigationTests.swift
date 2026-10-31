@@ -171,4 +171,33 @@ final class PageNavigationTests: XCTestCase {
         XCTAssertEqual(sx(year, F.demoNow, ZoomPolicy.visibleWidth(.year, viewportWidth: 744, zoom: ZoomPolicy.readableZoom(.year))), 844.5, accuracy: 1, "iPad mini year")
         XCTAssertEqual(sx(month, F.october(11), ZoomPolicy.visibleWidth(.month, viewportWidth: 744, zoom: ZoomPolicy.fitZoom(.month, viewportWidth: 744))), 0, "iPad mini month: fit")
     }
+
+    // MARK: Page id → page (1.1, M7A_CONTRACT §5.3)
+
+    func testParsePageId() {
+        func parsed(_ id: String) -> String {
+            guard let p = PageNavigation.parse(pageId: id) else { return "nil" }
+            return "\(p.kind.rawValue) \(p.focus)"
+        }
+        XCTAssertEqual(parsed("d-2026-10-07"), "day 2026-10-07")
+        XCTAssertEqual(parsed("w-2026-10-05"), "week 2026-10-05")
+        XCTAssertEqual(parsed("m1-2026-10"), "month 2026-10-01", "the 1st")
+        XCTAssertEqual(parsed("y-2026"), "year 2026-01-01", "January 1")
+        XCTAssertEqual(parsed("d-2028-02-29"), "day 2028-02-29", "a leap day")
+        for bad in ["wb-2026-10-05", "d-2026-13-01", "d-2026-02-29", "d-2026-02-30", "d-2026-1-7", "d-2026-10-07x", "d-2026-10-7",
+                    "m1-2026-13", "m1-2026-1", "m1-2026-00", "m1-2026-10-01", "m-2026-10", "y-26", "y-2026x", "y-", "d-", "w-",
+                    "", "memo", "W-2026-10-05", "d-2026-10-0７", " d-2026-10-07"] {
+            XCTAssertEqual(parsed(bad), "nil", "\"\(bad)\"")
+        }
+        // The inverse of pageId(_:focus:).
+        for kind in PageKind.allCases {
+            for d in [day(2026, 10, 7), day(2028, 2, 29), day(2026, 12, 31), day(2027, 1, 1), day(2026, 10, 4)] {
+                let id = PageNavigation.pageId(kind, focus: d)
+                let p = PageNavigation.parse(pageId: id)
+                XCTAssertEqual(p?.kind, kind, id)
+                XCTAssertEqual(p.map { PageNavigation.pageId(kind, focus: $0.focus) }, id, id)
+                XCTAssertEqual(p.map { PageNavigation.dayRange(kind, focus: $0.focus).start }, PageNavigation.dayRange(kind, focus: d).start, id)
+            }
+        }
+    }
 }

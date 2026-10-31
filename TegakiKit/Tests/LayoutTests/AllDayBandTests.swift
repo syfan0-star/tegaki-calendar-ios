@@ -177,7 +177,7 @@ final class AllDayBandTests: XCTestCase {
         XCTAssertEqual(busy.bars.map(\.minX), [76, 76, 76])
         XCTAssertTrue(busy.bars[0].continuesLeft)
         XCTAssertTrue(busy.bars[0].continuesRight)
-        XCTAssertEqual(F.dayLayout(demo + [F.allDay("a", 7, 8), F.allDay("b", 1, 20)]).size.height, 2400, "the paper does not grow with the band")
+        XCTAssertEqual(F.dayLayout(demo + [F.allDay("a", 7, 8), F.allDay("b", 1, 20)]).size.height, 3100, "the paper does not grow with the band (1.1: 2400 + the free memo area 700)")
     }
 
     func testDayAtPaperX() {

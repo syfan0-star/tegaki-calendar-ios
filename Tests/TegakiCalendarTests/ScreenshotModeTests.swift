@@ -8,7 +8,9 @@ import XCTest
 /// their demo calendars, the M4 sheets (`sync`, `import`) with the demo sync values, M4b's
 /// `--screenshot-landscape`, the Sunday week of `--screenshot-month 2026-06` and the demo strokes
 /// that already sit on the grid, M4c's `--screenshot-zoom` / `--screenshot-offset`, M5's `paywall` and
-/// `--screenshot-readonly`, and M6's `export` sheet (M6_CONTRACT §3.5 / §7.2).
+/// `--screenshot-readonly`, and M6's `export` sheet (M6_CONTRACT §3.5 / §7.2). 1.1 (M7A_CONTRACT §7.2 /
+/// §7.3): `--screenshot-toolbar`, `--screenshot-tool`, `--screenshot-grown`, the `info` sheet with its
+/// demo counts, and the demo pages as JSON fixtures that the 1.0 copy reads (0-23).
 final class ScreenshotModeTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
 
@@ -293,9 +295,10 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(export?.page, .month)
         XCTAssertEqual(export?.month, october)
         XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "Export"])?.sheet)
-        // M5 contract §7.5: `paywall` is the seventh sheet; M6 contract §3.5: `export` the eighth.
-        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 8)
-        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import", "paywall", "export"])
+        // M5 contract §7.5: `paywall` is the seventh sheet; M6 contract §3.5: `export` the eighth;
+        // 1.1 (M7A_CONTRACT §7.3): `info` the ninth.
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 9)
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import", "paywall", "export", "info"])
     }
 
     // MARK: M5 (M5_CONTRACT §7.5, §7.6)
@@ -351,6 +354,237 @@ final class ScreenshotModeTests: XCTestCase {
         // The field's default.
         let config = ScreenshotMode.Config(page: .week, month: october, today: Date(), focus: DayKey(year: 2026, month: 10, day: 7), sheet: nil)
         XCTAssertFalse(config.readOnly)
+    }
+
+    // MARK: 1.1 (M7A_CONTRACT §7.2, §7.3)
+
+    /// `--screenshot-toolbar collapsed|collapsed-right`, `--screenshot-tool eraser|marker|lasso|event`
+    /// (unknown values → nil; the `lasso` sheet wins), `--screenshot-grown`, and the `info` sheet.
+    func testParseToolbarToolAndGrown() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "month"]
+        let plain = ScreenshotMode.parse(base)
+        XCTAssertNil(plain?.toolbar)
+        XCTAssertNil(plain?.tool)
+        XCTAssertEqual(plain?.grown, false)
+
+        // The toolbar.
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-toolbar", "collapsed"])?.toolbar, .collapsed)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-toolbar", "collapsed-right"])?.toolbar, .collapsedRight)
+        for bad in ["expanded", "peek", "Collapsed", "collapsedRight", "right", ""] {
+            XCTAssertNil(ScreenshotMode.parse(base + ["--screenshot-toolbar", bad])?.toolbar, "toolbar \(bad)")
+        }
+        XCTAssertNil(ScreenshotMode.parse(base + ["--screenshot-toolbar"])?.toolbar, "no value")
+        XCTAssertEqual(ScreenshotMode.ToolbarShot.collapsed.mode, .collapsed)
+        XCTAssertEqual(ScreenshotMode.ToolbarShot.collapsedRight.mode, .collapsed)
+        XCTAssertEqual(ScreenshotMode.ToolbarShot.collapsed.edge, .leading)
+        XCTAssertEqual(ScreenshotMode.ToolbarShot.collapsedRight.edge, .trailing)
+
+        // The first tool.
+        let tools: [(String, ScreenshotMode.ToolShot, CanvasTool)] = [
+            ("eraser", .eraser, .eraser), ("marker", .marker, .ink(InkPresets.defaultMarker)),
+            ("lasso", .lasso, .lasso), ("event", .event, .eventRect),
+        ]
+        for (name, shot, tool) in tools {
+            let config = ScreenshotMode.parse(base + ["--screenshot-tool", name])
+            XCTAssertEqual(config?.tool, shot, name)
+            XCTAssertEqual(shot.canvasTool, tool, name)
+            XCTAssertEqual(config.map(ScreenshotMode.startTool), tool, name)
+            XCTAssertEqual(config?.page, .month, name)
+            XCTAssertNil(config?.sheet, name)
+        }
+        XCTAssertEqual(ScreenshotMode.ToolShot.eraser.eraserOrigin, .toolbar, "the toolbar's eraser: its note shows the return")
+        XCTAssertNil(ScreenshotMode.ToolShot.marker.eraserOrigin)
+        for bad in ["pen", "Eraser", "eventRect", ""] {
+            XCTAssertNil(ScreenshotMode.parse(base + ["--screenshot-tool", bad])?.tool, "tool \(bad)")
+        }
+        XCTAssertNil(ScreenshotMode.parse(base + ["--screenshot-tool"])?.tool, "no value")
+        XCTAssertEqual(plain.map(ScreenshotMode.startTool), .ink(ToolbarPalette.defaultPen), "the default pen (黒・中)")
+        // The lasso sheet needs the lasso: it wins over the tool argument.
+        let lassoSheet = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "lasso", "--screenshot-tool", "eraser"])
+        XCTAssertEqual(lassoSheet?.sheet, .lasso)
+        XCTAssertEqual(lassoSheet?.tool, .lasso)
+        XCTAssertEqual(lassoSheet.map(ScreenshotMode.startTool), .lasso)
+        XCTAssertEqual(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "lasso"])?.tool, .lasso)
+        XCTAssertEqual(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "settings", "--screenshot-tool", "eraser"])?.tool, .eraser)
+
+        // Grown.
+        let grown = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "day", "--screenshot-grown", "--screenshot-offset", "0,9999"])
+        XCTAssertEqual(grown?.grown, true)
+        XCTAssertEqual(grown?.page, .day)
+        XCTAssertEqual(grown?.offset, CGPoint(x: 0, y: 9999))
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-grown"]), "without `--screenshot-mode` nothing")
+
+        // The CI's photos (§7.4): everything else is unchanged by the three arguments.
+        let all = ScreenshotMode.parse(base + ["--screenshot-toolbar", "collapsed", "--screenshot-tool", "marker", "--screenshot-grown"])
+        XCTAssertEqual(all?.toolbar, .collapsed)
+        XCTAssertEqual(all?.tool, .marker)
+        XCTAssertEqual(all?.grown, true)
+        XCTAssertEqual(all?.page, plain?.page)
+        XCTAssertEqual(all?.month, plain?.month)
+        XCTAssertEqual(all?.today, plain?.today)
+        XCTAssertEqual(all?.focus, plain?.focus)
+        XCTAssertEqual(all?.sheet, plain?.sheet)
+        XCTAssertEqual(all?.zoomRatio, plain?.zoomRatio)
+        XCTAssertEqual(all?.offset, plain?.offset)
+        XCTAssertEqual(all?.readOnly, plain?.readOnly)
+        XCTAssertEqual(all?.landscape, plain?.landscape)
+
+        // The `info` sheet sits on the month page like the others.
+        let info = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week", "--screenshot-sheet", "info"])
+        XCTAssertEqual(info?.sheet, .info)
+        XCTAssertEqual(info?.page, .month)
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "Info"])?.sheet)
+
+        // The fields' defaults.
+        let config = ScreenshotMode.Config(page: .week, month: october, today: Date(), focus: DayKey(year: 2026, month: 10, day: 7), sheet: nil)
+        XCTAssertNil(config.toolbar)
+        XCTAssertNil(config.tool)
+        XCTAssertFalse(config.grown)
+    }
+
+    /// `--screenshot-grown` adds one stroke deep in the month's memo area (bottom ≈ 1,009 → the memo
+    /// area 1,500) and one in the day's free memo area (`extra`, → 1,100); without it the demo pages
+    /// are those of 1.0.1 (the month's memo dot keeps the memo area at 700, the day has no `extra` ink).
+    func testGrownDemoPages() {
+        let focus = DayKey(year: 2026, month: 10, day: 7)
+        let now = ScreenshotMode.todayInstant(for: october)
+        // The usual pages: unchanged, and the default follows the (absent) `--screenshot-grown`.
+        for kind in PageKind.allCases {
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus), ScreenshotMode.demoPage(kind: kind, focus: focus, grown: false), "\(kind)")
+        }
+        XCTAssertEqual(ScreenshotMode.demoPage(for: october), ScreenshotMode.demoPage(kind: .month, focus: focus))
+        let month = ScreenshotMode.demoPage(kind: .month, focus: focus)
+        XCTAssertEqual(month.liveStrokeIds, ["demo-stroke-dot", "demo-stroke-marker", "demo-stroke-wave"])
+        XCTAssertEqual(month.inkBottoms()[.memo] ?? 0, 64.5, accuracy: 0.001)
+        let monthLayout = MonthLayoutEngine.layout(MonthLayoutInput(month: october, events: ScreenshotMode.demoEvents(for: october), inkBottoms: month.inkBottoms(), now: now))
+        XCTAssertEqual(monthLayout.memo.height, 700, "the month paper of the photos is that of 1.0.1 (0-1)")
+        let day = ScreenshotMode.demoPage(kind: .day, focus: focus)
+        XCTAssertEqual(day.liveStrokeIds, ["demo-stroke-day-circle", "demo-stroke-day-wave1", "demo-stroke-day-wave2"])
+        XCTAssertNil(day.inkBottoms()[.extra])
+        let dayLayout = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: ScreenshotMode.demoEvents(for: october), inkBottoms: day.inkBottoms(), now: now))
+        XCTAssertEqual(dayLayout.extra.height, 700)
+
+        // The grown month: the three strokes as before and the red wave in the memo area.
+        let grownMonth = ScreenshotMode.demoPage(kind: .month, focus: focus, grown: true)
+        XCTAssertEqual(ScreenshotMode.demoPage(for: october, grown: true), grownMonth)
+        XCTAssertEqual(grownMonth.liveStrokeIds, ["demo-stroke-dot", "demo-stroke-marker", "demo-stroke-memo-deep", "demo-stroke-wave"])
+        let deep = grownMonth.strokes[ScreenshotMode.grownMemoStrokeId]
+        XCTAssertEqual(ScreenshotMode.grownMemoStrokeId, "demo-stroke-memo-deep")
+        XCTAssertEqual(deep?.cell, .memo)
+        XCTAssertEqual(deep?.tool, .pen)
+        XCTAssertEqual(deep?.color, "#dc2626")
+        XCTAssertEqual(deep?.points.count, 40)
+        XCTAssertEqual(deep?.points.first?.x, 60)
+        XCTAssertEqual(deep?.points.first?.y, 1_000)
+        for (id, stroke) in month.strokes {
+            XCTAssertEqual(grownMonth.strokes[id], stroke, id)
+        }
+        let memoBottom = grownMonth.inkBottoms()[.memo] ?? 0
+        XCTAssertEqual(memoBottom, 1_009, accuracy: 0.5)
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: memoBottom), 1_500)
+        let grownMonthLayout = MonthLayoutEngine.layout(MonthLayoutInput(month: october, events: ScreenshotMode.demoEvents(for: october), inkBottoms: grownMonth.inkBottoms(), now: now))
+        XCTAssertEqual(grownMonthLayout.memo.height, 1_500)
+        XCTAssertEqual(grownMonthLayout.memo.minY, monthLayout.memo.minY, "the rows do not move")
+        XCTAssertEqual(grownMonthLayout.size.height, monthLayout.size.height + 800)
+
+        // The grown day: the three strokes as before and the black wave in `extra`.
+        let grownDay = ScreenshotMode.demoPage(kind: .day, focus: focus, grown: true)
+        XCTAssertEqual(grownDay.liveStrokeIds, ["demo-stroke-day-circle", "demo-stroke-day-extra", "demo-stroke-day-wave1", "demo-stroke-day-wave2"])
+        let extra = grownDay.strokes[ScreenshotMode.grownDayStrokeId]
+        XCTAssertEqual(ScreenshotMode.grownDayStrokeId, "demo-stroke-day-extra")
+        XCTAssertEqual(extra?.cell, .extra)
+        XCTAssertEqual(extra?.color, "#1f2937")
+        XCTAssertEqual(extra?.points.first?.x, 30)
+        XCTAssertEqual(extra?.points.first?.y, 300)
+        for (id, stroke) in day.strokes {
+            XCTAssertEqual(grownDay.strokes[id], stroke, id)
+        }
+        let extraBottom = grownDay.inkBottoms()[.extra] ?? 0
+        XCTAssertEqual(extraBottom, 309, accuracy: 0.5)
+        let grownDayLayout = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: ScreenshotMode.demoEvents(for: october), inkBottoms: grownDay.inkBottoms(), now: now))
+        XCTAssertEqual(grownDayLayout.extra, CGRect(x: 0, y: 2_400, width: 1_000, height: 1_100))
+        XCTAssertEqual(grownDayLayout.size.height, 3_500)
+        XCTAssertEqual(grownDayLayout.grid, dayLayout.grid, "the 24-hour grid does not move (K-4)")
+        // The stroke's centre lies below 24:00, so the canvas would file it under `extra` too.
+        let centreY = 2_400 + ((extra?.points.map { $0.y }.min() ?? 0) + (extra?.points.map { $0.y }.max() ?? 0)) / 2
+        XCTAssertEqual(grownDayLayout.inkCell(forCenter: CGPoint(x: 150, y: centreY)), .extra)
+
+        // The other kinds do not grow; no page needs a band migration (K-1).
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .week, focus: focus, grown: true), ScreenshotMode.demoPage(kind: .week, focus: focus))
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .year, focus: focus, grown: true), ScreenshotMode.demoPage(kind: .year, focus: focus))
+        for page in [grownMonth, grownDay] {
+            XCTAssertFalse(BandMigration.needsMigration(page), page.pageId)
+            XCTAssertFalse(page.liveStrokes.contains { BandMigration.isBandCell($0.cell) }, page.pageId)
+        }
+    }
+
+    /// The `info` sheet (§7.3): `StrokeCensus.demo(year:)` counts the four demo pages — the largest is
+    /// the day page (3 strokes, a tie with the month page, whose pageId is larger), and this year's
+    /// year page has 2 strokes (the n of 「年のページ（2026年）・n 本」 in the photo).
+    func testInfoSheetDemoCounts() {
+        let demo = StrokeCensus.demo(year: 2026)
+        XCTAssertEqual(demo.largest, StrokeBudget.Entry(pageId: "d-2026-10-07", strokes: 3, tombstones: 0))
+        XCTAssertEqual(demo.year, StrokeBudget.Entry(pageId: "y-2026", strokes: 2, tombstones: 0))
+        XCTAssertEqual(demo.unreadable, 0)
+        XCTAssertEqual(StrokeCensus.rowText(demo.largest, counting: false), "日のページ（2026年10月7日）・3 本")
+        XCTAssertEqual(StrokeCensus.yearRowText(demo.year, year: 2026, counting: false), "年のページ（2026年）・2 本")
+        // The same pages the screen shows.
+        let focus = DayKey(year: 2026, month: 10, day: 7)
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .month, focus: focus).budgetCount, 3)
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .week, focus: focus).budgetCount, 2)
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .year, focus: focus).budgetCount, 2)
+    }
+
+    /// The demo pages as the JSON a stored page is (`InkPageCodec.encode`), compared byte for byte
+    /// with `TegakiKit/Tests/Fixtures/compat11/screenshot-*.json`, which the 1.0 copy reads in K's
+    /// compat checks (M7A_CONTRACT §1.4, 0-23: only this test makes them). A missing or different file
+    /// is a failure; the JSON is then written to `$TEGAKI_FIXTURE_OUT` (the CI's `shots/fixtures/`),
+    /// from where the lead reads it and commits it. Never write the fixtures by hand.
+    func testDemoPagesMatchCompatFixtures() throws {
+        let focus = DayKey(year: 2026, month: 10, day: 7)
+        let pages: [(name: String, page: InkPage)] = [
+            ("screenshot-day", ScreenshotMode.demoPage(kind: .day, focus: focus, grown: false)),
+            ("screenshot-week", ScreenshotMode.demoPage(kind: .week, focus: focus, grown: false)),
+            ("screenshot-month", ScreenshotMode.demoPage(kind: .month, focus: focus, grown: false)),
+            ("screenshot-year", ScreenshotMode.demoPage(kind: .year, focus: focus, grown: false)),
+            ("screenshot-month-grown", ScreenshotMode.demoPage(kind: .month, focus: focus, grown: true)),
+            ("screenshot-day-grown", ScreenshotMode.demoPage(kind: .day, focus: focus, grown: true)),
+        ]
+        let repository = URL(fileURLWithPath: "\(#filePath)").deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let folder = repository.appendingPathComponent("TegakiKit/Tests/Fixtures/compat11", isDirectory: true)
+        let outPath = ProcessInfo.processInfo.environment["TEGAKI_FIXTURE_OUT"] ?? ""
+        let out = outPath.isEmpty ? nil : URL(fileURLWithPath: outPath, isDirectory: true)
+
+        var problems: [String] = []
+        for (name, page) in pages {
+            // What the fixture must be (K-1, K-5): known cells only, no band cell, nothing unknown, and
+            // the JSON reads back to the same page.
+            XCTAssertTrue(page.unknown.isEmpty, name)
+            XCTAssertTrue(page.unknownStrokes.isEmpty, name)
+            XCTAssertTrue(page.deleted.isEmpty, name)
+            XCTAssertFalse(page.liveStrokes.contains { BandMigration.isBandCell($0.cell) || $0.cell.raw.hasPrefix("allday") }, name)
+            let json = try InkPageCodec.encode(page)
+            XCTAssertEqual(try InkPageCodec.decode(json), page, name)
+
+            let file = folder.appendingPathComponent("\(name).json", isDirectory: false)
+            let stored = try? Data(contentsOf: file)
+            if stored == json { continue }
+            problems.append(stored == nil ? "\(name).json is missing" : "\(name).json differs")
+            if let out = out {
+                try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+                try json.write(to: out.appendingPathComponent("\(name).json", isDirectory: false), options: [.atomic])
+            }
+        }
+        let where_ = out.map { "written to \($0.path)" } ?? "set TEGAKI_FIXTURE_OUT to have them written"
+        XCTAssertTrue(problems.isEmpty, "\(problems.joined(separator: ", ")) in \(folder.path) (\(where_))")
+        // The cells each page carries (what K's checks expect the 1.0 copy to draw or keep).
+        let cells = Dictionary(uniqueKeysWithValues: pages.map { ($0.name, Set($0.page.liveStrokes.map { $0.cell.raw })) })
+        XCTAssertEqual(cells["screenshot-day"], ["grid"])
+        XCTAssertEqual(cells["screenshot-day-grown"], ["grid", "extra"])
+        XCTAssertEqual(cells["screenshot-week"], ["grid"])
+        XCTAssertEqual(cells["screenshot-month"], ["2026-10-14", "2026-10-20", "memo"])
+        XCTAssertEqual(cells["screenshot-month-grown"], ["2026-10-14", "2026-10-20", "memo"])
+        XCTAssertEqual(cells["screenshot-year"], ["10-07", "02-30"])
     }
 
     func testDemoSyncValues() {

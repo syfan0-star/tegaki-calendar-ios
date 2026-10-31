@@ -7,6 +7,39 @@ import Layout
 import Holidays
 import InkModel
 import Access
+import Compat10
+import CompatFixtures
+
+// MARK: - 1.1: --write-compat-fixtures [--out <folder>] (M7A_CONTRACT §1.4, §7.1)
+//
+// Writes K's golden fixtures with the new code (the small ones, the large ones made again and
+// digests.json) into TegakiKit/Tests/Fixtures/compat11/ or <folder>, lists each file as new,
+// unchanged or changed, and exits without running the checks. The fixtures of P (ledger-*.json) and
+// U (screenshot-*.json) are never written, removed or compared (0-23).
+if CommandLine.arguments.contains("--write-compat-fixtures") {
+    let arguments = CommandLine.arguments
+    var folder = CompatFixtures.committedFolder
+    if let i = arguments.firstIndex(of: "--out") {
+        guard i + 1 < arguments.count else {
+            print("KitChecks: --out needs a folder")
+            exit(2)
+        }
+        folder = URL(fileURLWithPath: arguments[i + 1], isDirectory: true)
+    }
+    do {
+        let results = try CompatFixtures.write(to: folder)
+        for (name, result) in results {
+            print("\(result.rawValue.padding(toLength: 10, withPad: " ", startingAt: 0))\(name)")
+        }
+        let changed = results.filter { $0.result == .changed }.count
+        let new = results.filter { $0.result == .new }.count
+        print("KitChecks: wrote the compat fixtures to \(folder.path) (\(results.count) files: \(new) new, \(changed) changed)")
+        exit(0)
+    } catch {
+        print("KitChecks: writing the compat fixtures failed: \(error)")
+        exit(1)
+    }
+}
 
 // MARK: - Tiny check harness
 
@@ -101,7 +134,7 @@ checkEqual(MonthLayoutEngine.rowHeight(laneCount: 60, maxChips: 3, inkBottom: 0)
 checkEqual(MonthLayoutEngine.rowHeight(laneCount: 0, maxChips: 0, inkBottom: .nan), 175, "NaN ink bottom is ignored")
 checkEqual(MonthLayoutEngine.rowHeight(laneCount: 0, maxChips: 0, inkBottom: -50), 175, "negative ink bottom is ignored")
 checkEqual(MonthLayoutEngine.memoHeight(inkBottom: 0), 700, "memo minimum")
-checkEqual(MonthLayoutEngine.memoHeight(inkBottom: 900), 950, "memo ink bottom + 50")
+checkEqual(MonthLayoutEngine.memoHeight(inkBottom: 900), 1500, "memo: 400 lu steps (1.1): ink bottom 900 → 1,500")
 check(MonthLayoutEngine.shownChipCount(for: 3) == (3, 0), "3 timed events: all shown")
 check(MonthLayoutEngine.shownChipCount(for: 4) == (2, 2), "4 timed events: 2 + 「+2件」")
 check(MonthLayoutEngine.shownChipCount(for: 9) == (2, 7), "9 timed events: 2 + 「+7件」")
@@ -333,8 +366,8 @@ do {
     checkEqual(inked.rows[3].frame.minY, 525 + 137, "row 3 moves down by 137")
     checkEqual(inked.rows[1].frame, plain.rows[1].frame, "row 1 unchanged")
     checkEqual(inked.memo.minY, 1050 + 137, "memo moves down")
-    checkEqual(inked.memo.height, 950, "memo grows with its ink")
-    checkEqual(inked.size.height, 1050 + 137 + 950, "paper height")
+    checkEqual(inked.memo.height, 1500, "memo grows with its ink (1.1: 900 → 1,500)")
+    checkEqual(inked.size.height, 1050 + 137 + 1500, "paper height")
     checkEqual(inked.cells[.day(day(2026, 10, 20))]?.minY, 525 + 137, "cell rects follow the rows")
 
     checkEqual(MonthLayoutEngine.scrollDelta(old: plain, new: inked, topVisibleY: 600), 137, "a row below the change moves down")
@@ -1071,10 +1104,12 @@ do {
     checkEqual(page.kind, .day, "kind")
     checkEqual(page.day, day(2026, 10, 7), "day")
     checkEqual(page.isToday, true, "today")
-    checkEqual(page.size, CGSize(width: 1000, height: 2400), "1000 × 2400 (M4b: no band on the paper)")
-    checkEqual(page.cells.count, 1, "one cell: the grid")
+    checkEqual(page.size, CGSize(width: 1000, height: 3100), "1000 × 3,100 (M4b: no band on the paper; 1.1: 24 hours + the free memo area 700)")
+    checkEqual(page.cells.count, 2, "two cells: the grid and the free memo area (1.1)")
     checkEqual(page.cells[.allDayDay], nil, "no band cell")
     checkEqual(page.cells[.grid], CGRect(x: 0, y: 0, width: 1000, height: 2400), "grid cell")
+    checkEqual(page.cells[.extra], CGRect(x: 0, y: 2400, width: 1000, height: 700), "extra cell below 24:00 (1.1)")
+    checkEqual(page.extra, CGRect(x: 0, y: 2400, width: 1000, height: 700), "extra (1.1)")
     checkEqual(page.grid, CGRect(x: 0, y: 0, width: 1000, height: 2400), "grid")
     checkEqual(page.timeline, CGRect(x: 72, y: 0, width: 588, height: 2400), "timeline")
     checkEqual(page.memo, CGRect(x: 660, y: 0, width: 340, height: 2400), "memo area")
@@ -1137,21 +1172,23 @@ do {
     checkEqual(page.cell(at: CGPoint(x: 900, y: 1000)), .grid, "grid cell (memo area)")
     checkEqual(page.cell(at: CGPoint(x: 1000, y: 0)), .grid, "the top-right corner belongs to the grid")
     checkEqual(page.cell(at: CGPoint(x: 1001, y: 60)), nil, "right of the paper")
-    checkEqual(page.cell(at: CGPoint(x: 100, y: 2400)), nil, "below the paper")
+    checkEqual(page.cell(at: CGPoint(x: 100, y: 2400)), .extra, "24:00 is the free memo area (1.1)")
+    checkEqual(page.cell(at: CGPoint(x: 100, y: 3100)), nil, "below the paper")
     checkEqual(page.cell(at: CGPoint(x: -1, y: 100)), nil, "left of the paper")
     checkEqual(page.cell(at: CGPoint(x: 100, y: -0.1)), nil, "above the paper")
     checkEqual(page.inkCell(forCenter: CGPoint(x: 900, y: 30)), .grid, "ink at the top → grid")
     checkEqual(page.inkCell(forCenter: CGPoint(x: 900, y: 1000)), .grid, "ink in the memo area → grid")
     checkEqual(page.inkCell(forCenter: CGPoint(x: 30, y: 1000)), .grid, "ink in the gutter → grid")
     checkEqual(page.inkCell(forCenter: CGPoint(x: -10, y: -10)), .grid, "ink above the paper → grid (negative y)")
-    checkEqual(page.inkCell(forCenter: CGPoint(x: 2000, y: 9000)), .grid, "ink below the paper → grid")
+    checkEqual(page.inkCell(forCenter: CGPoint(x: 2000, y: 9000)), .extra, "ink below the paper → extra (1.1)")
     checkEqual(page.inkCell(forCenter: CGPoint(x: 500, y: CGFloat.nan)), .grid, "NaN → grid")
     checkEqual(page.growsWithInk(.allDayDay), false, "the former band cell does not grow")
     checkEqual(page.growsWithInk(.grid), false, "the grid never grows")
     checkEqual(page.growsWithInk(.memo), false, "memo is not a day cell")
     checkEqual(page.band(atY: 30), PageBand(raw: "grid"), "band grid at the top")
     checkEqual(page.band(atY: 2399), PageBand(raw: "grid"), "band grid at the bottom")
-    checkEqual(page.band(atY: 2400), nil, "band below")
+    checkEqual(page.band(atY: 2400), PageBand(raw: "extra"), "band extra at 24:00 (1.1)")
+    checkEqual(page.band(atY: 3100), nil, "band below")
     checkEqual(page.band(atY: -1), nil, "band above")
     checkEqual(page.bandTop(PageBand(raw: "grid")), 0, "bandTop grid is 0")
     checkEqual(page.bandTop(PageBand(raw: "allday")), nil, "bandTop allday: the paper has no band")
@@ -1165,7 +1202,7 @@ do {
     checkEqual(busy.allDayBand.bars[0].continuesRight, true, "b continues after the day")
     checkEqual(busy.allDayBand.bars.map(\.minX), [76, 76, 76], "every bar spans the timeline column")
     checkEqual(busy.cells[.grid]?.minY, 0, "the grid stays at the top")
-    checkEqual(busy.size.height, 2400, "the paper does not grow with the band")
+    checkEqual(busy.size.height, 3100, "the paper does not grow with the band")
     checkEqual(busy.nowLine?.y, 1000, "the now line stays")
     checkEqual(PageScroll.scrollDelta(old: page, new: busy, topVisibleY: 500), 0, "scrollDelta is always 0")
     checkEqual(PageScroll.scrollDelta(old: page, new: busy, topVisibleY: 30), 0, "scrollDelta at the top")
@@ -1174,7 +1211,7 @@ do {
     checkEqual(page.sameGeometry(as: dayLayout(demo, focus: day(2026, 10, 8))), false, "another day")
 
     let inked = dayLayout(demo, ink: [.allDayDay: 200, .grid: 9000])
-    checkEqual(inked.size.height, 2400, "ink does not grow the paper")
+    checkEqual(inked.size.height, 3100, "grid ink does not grow the paper (the free memo area stays 700)")
     checkEqual(inked.timeline.minY, 0, "the timeline stays at the top")
     checkEqual(inked.memo.minY, 0, "the memo area stays at the top")
     checkEqual(inked, page, "ink bottoms are not read")
@@ -1185,7 +1222,7 @@ do {
     checkEqual(tomorrow.allDayBand.bars.count, 0, "no bar on the 8th")
     checkEqual(tomorrow.allDayBand.todayColumn, nil, "not today in the band")
     checkEqual(tomorrow.timedBoxes.map(\.title), ["資料提出"], "the 8th's timed event")
-    checkEqual(tomorrow.size.height, 2400, "the 8th's paper")
+    checkEqual(tomorrow.size.height, 3100, "the 8th's paper")
     checkEqual(PageNavigation.initialScrollY(page, now: demoNow, calendar: tokyo), 900, "today at 10:00 → 9:00 (100 lu per hour)")
     checkEqual(PageNavigation.initialScrollY(tomorrow, now: demoNow, calendar: tokyo), 700, "not today → 7:00")
     checkEqual(PageNavigation.initialScrollY(page, now: october(7, 0, 10), calendar: tokyo), 0, "clamped to 0:00")
@@ -2842,7 +2879,7 @@ do {
     check(ZoomPolicy.overviewSize(busyMonth).height < busyMonth.size.height, "overview: the memo area is not in the month's overview (M4C-12)")
     checkEqual(ZoomPolicy.overviewSize(week), CGSize(width: 1400, height: 1920), "overview: week = the whole paper")
     checkEqual(ZoomPolicy.overviewSize(weekLayout([])), CGSize(width: 1400, height: 1920), "overview: an empty week")
-    checkEqual(ZoomPolicy.overviewSize(dayPage), CGSize(width: 1000, height: 2400), "overview: day = the whole paper")
+    checkEqual(ZoomPolicy.overviewSize(dayPage), CGSize(width: 1000, height: 2400), "overview: day = the 24-hour grid (K-6)")
     checkEqual(ZoomPolicy.overviewSize(emptyYear), CGSize(width: 1400, height: 1860), "overview: an empty year = 31 × 60")
     checkEqual(ZoomPolicy.overviewSize(demoYear), CGSize(width: 1400, height: 1896), "overview: the demo year (the 16th's row is 96) = 1896")
     checkEqual(ZoomPolicy.overviewSize(demoYear), demoYear.size, "overview: the year is layout.size")
@@ -4558,6 +4595,684 @@ do {
     checkEqual(AppExport.safeFileName(""), "", "safeFileName of empty")
     checkEqual(AppExport.safeFileName("〜 ( ) . - _ 日"), "〜 ( ) . - _ 日", "safeFileName keeps the other characters")
     checkEqual(AppExport.safeFileName("//::\\\\"), "------", "safeFileName: every occurrence")
+}
+
+// MARK: - 1.1: the growing last cell (M7A_CONTRACT D3, §3.1–§3.6; the same checks run in Tests/LayoutTests)
+
+section("growing paper (1.1)")
+do {
+    checkEqual(PaperSpec.growStep, 400, "growStep")
+    checkEqual(PaperSpec.growMax, 6000, "growMax (K-9)")
+    checkEqual(PaperSpec.dayExtraMin, 700, "dayExtraMin")
+    checkEqual(PaperSpec.dayExtraMin, PaperSpec.memoMin, "dayExtraMin = memoMin (M7A-9)")
+    checkEqual(CellKey.extra.raw, "extra", "the new cell's name")
+    checkEqual(CellKey.extra.isExtra, true, "isExtra")
+    checkEqual(CellKey.grid.isExtra, false, "grid is not extra")
+    checkEqual(CellKey.memo.isExtra, false, "memo is not extra")
+    checkEqual(CellKey(raw: "extra").isExtra, true, "a read key \"extra\" is extra")
+    checkEqual(PageBand.extra.raw, "extra", "PageBand.extra")
+    checkEqual(PaperGrowth.isTail(.memo), true, "isTail: memo")
+    checkEqual(PaperGrowth.isTail(.extra), true, "isTail: extra")
+    checkEqual(PaperGrowth.isTail(.grid), false, "isTail: grid")
+    checkEqual(PaperGrowth.isTail(.day(day(2026, 10, 7))), false, "isTail: a month day")
+    checkEqual(PaperGrowth.isTail(CellKey(raw: "10-07")), false, "isTail: a year cell")
+
+    // K-1: the new name never starts with "allday", so 1.0's BandMigration never touches it.
+    checkEqual(BandMigration.isBandCell(.extra), false, "K-1: extra is not a band cell")
+    checkEqual("extra".hasPrefix("allday"), false, "K-1: \"extra\" does not start with allday")
+    let extraStroke = stroke("x1", cell: .extra, points: [point(30, 40), point(60, 5950, dt: 16)])
+    checkEqual(BandMigration.migrated(extraStroke, pageId: "d-2026-10-07"), nil, "K-1: an extra stroke is not migrated")
+    var extraPage = InkPage(pageId: "d-2026-10-07")
+    extraPage.add(extraStroke)
+    checkEqual(BandMigration.needsMigration(extraPage), false, "K-1: a page with extra needs no migration")
+    checkEqual(BandMigration.migrate(extraPage), extraPage, "K-1: migrate leaves extra unchanged")
+
+    // The table of §3.1 (5,600 → 6,000: the formula; 5,500 → 5,900 is the last full step).
+    let table: [(CGFloat, CGFloat)] = [(0, 700), (300, 700), (301, 1100), (700, 1100), (701, 1500), (1100, 1500),
+                                       (5500, 5900), (5600, 6000), (5601, 6000), (5950, 6000), (5990, 6040), (6420, 6470)]
+    for (b, h) in table {
+        checkEqual(PaperGrowth.tailHeight(inkBottom: b), h, "tailHeight(\(b)) = \(h)")
+        checkEqual(MonthLayoutEngine.memoHeight(inkBottom: b), h, "memoHeight(\(b)) = tailHeight")
+    }
+    checkEqual(PaperGrowth.tailHeight(inkBottom: .nan), 700, "tailHeight(NaN) = 700")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: .infinity), 700, "tailHeight(∞) = 700")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: -.infinity), 700, "tailHeight(−∞) = 700")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: -50), 700, "tailHeight(−50) = 700")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: 64.5), 700, "the screenshot month's memo dot (64.5) keeps 700 (0-1)")
+    var stepOK = true
+    var floorOK = true
+    var blankOK = true
+    var monotoneOK = true
+    var previous: CGFloat = 0
+    var b: CGFloat = 0
+    while b <= 7000 {
+        let h = PaperGrowth.tailHeight(inkBottom: b)
+        if h < b + 50 || h < 700 { floorOK = false }
+        if b <= 5600 && (h - b < 400 || h - b > 800) { blankOK = false }
+        if h <= 6000 && h != b + 50 && (h - 700).truncatingRemainder(dividingBy: 400) != 0 && h != 6000 { stepOK = false }
+        if h < previous { monotoneOK = false }
+        previous = h
+        b += 3.7
+    }
+    check(floorOK, "tailHeight ≥ max(700, b + 50) for every b (the 1.0 rule)")
+    check(blankOK, "tailHeight − b is 400…800 for b ≤ 5,600")
+    check(stepOK, "tailHeight is 700 + 400k, 6,000 or b + 50")
+    check(monotoneOK, "tailHeight never shrinks as b grows")
+
+    // needsMoreRoom: the last cell's step rule, the rows' + 12 rule.
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 700, inkBottom: 300), false, "needsMoreRoom: memo 700, b 300 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 700, inkBottom: 300.5), true, "needsMoreRoom: memo 700, b 300.5 → yes")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1100, inkBottom: 700), false, "needsMoreRoom: memo 1,100, b 700 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1100, inkBottom: 750), true, "needsMoreRoom: memo 1,100, b 750 → yes (0-2)")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1500, inkBottom: 750), false, "needsMoreRoom: memo 1,500, b 750 → no (shrinks later, not now)")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .extra, cellHeight: 700, inkBottom: 301), true, "needsMoreRoom: extra 700, b 301 → yes")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .extra, cellHeight: 700, inkBottom: 250), false, "needsMoreRoom: extra 700, b 250 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 6000, inkBottom: 5950), false, "needsMoreRoom: memo 6,000, b 5,950 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 6000, inkBottom: 5951), true, "needsMoreRoom: memo 6,000, b 5,951 → yes (b + 50)")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 700, inkBottom: .nan), false, "needsMoreRoom: NaN → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1099.9995, inkBottom: 700), false, "needsMoreRoom: a cell 0.0005 short of 1,100 → no (0.001)")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1099.998, inkBottom: 700), true, "needsMoreRoom: a cell 0.002 short of 1,100 → yes")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .day(day(2026, 10, 7)), cellHeight: 175, inkBottom: 163), false, "needsMoreRoom: a row cell, 163 + 12 = 175 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .day(day(2026, 10, 7)), cellHeight: 175, inkBottom: 163.5), true, "needsMoreRoom: a row cell, 163.5 + 12 > 175 → yes")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: CellKey(raw: "10-07"), cellHeight: 60, inkBottom: 48.0005), false, "needsMoreRoom: a year cell within 0.001 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: CellKey(raw: "10-07"), cellHeight: 60, inkBottom: 49), true, "needsMoreRoom: a year cell, 49 + 12 > 60 → yes")
+
+    // reachesCap: no more 400 lu of blank below.
+    checkEqual(PaperGrowth.reachesCap(inkBottom: 5600), false, "reachesCap(5,600) = false")
+    checkEqual(PaperGrowth.reachesCap(inkBottom: 5601), true, "reachesCap(5,601) = true")
+    checkEqual(PaperGrowth.reachesCap(inkBottom: 5500), false, "reachesCap(5,500) = false")
+    checkEqual(PaperGrowth.reachesCap(inkBottom: 0), false, "reachesCap(0) = false")
+    checkEqual(PaperGrowth.reachesCap(inkBottom: 6420), true, "reachesCap(6,420) = true")
+    checkEqual(PaperGrowth.reachesCap(inkBottom: .nan), false, "reachesCap(NaN) = false")
+    checkEqual(PaperGrowth.reachesCap(inkBottom: .infinity), false, "reachesCap(∞) = false")
+    checkEqual(PaperGrowth.reachesCap(inkBottom: -1), false, "reachesCap(−1) = false")
+    var capOK = true
+    b = 0
+    while b <= 7000 {
+        if PaperGrowth.reachesCap(inkBottom: b) != (PaperGrowth.tailHeight(inkBottom: b) - b < PaperSpec.growStep) { capOK = false }
+        b += 3.7
+    }
+    check(capOK, "reachesCap ⇔ the blank below b is less than 400")
+
+    // The month memo area.
+    let plainMonth = layout([])
+    let grownMonth = layout([], ink: [.memo: 500])
+    checkEqual(grownMonth.memo, CGRect(x: 0, y: 1050, width: 1400, height: 1100), "month memo: ink 500 → (0, 1050, 1400, 1,100)")
+    checkEqual(grownMonth.size, CGSize(width: 1400, height: 2150), "month paper: 1050 + 1,100")
+    checkEqual(grownMonth.cells[.memo], grownMonth.memo, "month memo cell")
+    checkEqual(ZoomPolicy.overviewSize(grownMonth), CGSize(width: 1400, height: 1050), "month overview: the memo area does not count")
+    checkEqual(MonthLayoutEngine.scrollDelta(old: plainMonth, new: grownMonth, topVisibleY: 1100), 0, "month: the memo area's growth does not scroll")
+    checkEqual(MonthLayoutEngine.scrollDelta(old: plainMonth, new: grownMonth, topVisibleY: 300), 0, "month: a row stays")
+    checkEqual(layout([], ink: [.memo: 64.5]).memo.height, 700, "month: the screenshot dot keeps the 700 memo area (0-1)")
+    checkEqual(layout([], ink: [.memo: 6420]).memo.height, 6470, "month: ink from 1.0 below the cap stays visible (b + 50)")
+
+    // The day page's extra (§3.3).
+    let dayPage = dayLayout(demo)
+    let grownDay = dayLayout(demo, ink: [.extra: 800])
+    checkEqual(dayPage.extra, CGRect(x: 0, y: 2400, width: 1000, height: 700), "day extra: (0, 2400, 1000, 700)")
+    checkEqual(grownDay.extra, CGRect(x: 0, y: 2400, width: 1000, height: 1500), "day extra: ink 800 → 1,500")
+    checkEqual(grownDay.size, CGSize(width: 1000, height: 3900), "day paper: 2400 + 1,500")
+    checkEqual(grownDay.cells[.extra], grownDay.extra, "day extra cell")
+    checkEqual(Set(grownDay.cells.keys), [CellKey.grid, CellKey.extra], "day cells: grid and extra")
+    checkEqual(grownDay.grid, CGRect(x: 0, y: 0, width: 1000, height: 2400), "K-4: the grid keeps (0, 0, 1000, 2400)")
+    checkEqual(grownDay.timeline, CGRect(x: 72, y: 0, width: 588, height: 2400), "K-4: the timeline keeps its rect")
+    checkEqual(grownDay.memo, CGRect(x: 660, y: 0, width: 340, height: 2400), "K-4: the right memo column keeps its rect")
+    checkEqual(dayLayout(demo, ink: [.grid: 9000, .allDayDay: 300]).extra.height, 700, "day: grid ink does not grow extra")
+    checkEqual(dayLayout(demo, ink: [.extra: .nan]).extra.height, 700, "day: NaN ink → 700")
+    checkEqual(grownDay.cell(at: CGPoint(x: 500, y: 2399.9)), .grid, "day cell: 2,399.9 → grid")
+    checkEqual(grownDay.cell(at: CGPoint(x: 500, y: 2400)), .extra, "day cell: 2,400 → extra")
+    checkEqual(grownDay.cell(at: CGPoint(x: 0, y: 3899.9)), .extra, "day cell: the bottom-left → extra")
+    checkEqual(grownDay.cell(at: CGPoint(x: 1000, y: 2500)), .extra, "day cell: the right edge → extra")
+    checkEqual(grownDay.cell(at: CGPoint(x: 500, y: 3900)), nil, "day cell: below the paper → nil")
+    checkEqual(grownDay.cell(at: CGPoint(x: 1000.1, y: 2500)), nil, "day cell: right of the paper → nil")
+    checkEqual(grownDay.cell(at: CGPoint(x: -0.1, y: 2500)), nil, "day cell: left of the paper → nil")
+    checkEqual(grownDay.cell(at: CGPoint(x: 500, y: CGFloat.nan)), nil, "day cell: NaN → nil")
+    checkEqual(grownDay.inkCell(forCenter: CGPoint(x: 500, y: 2400)), .extra, "day ink: centre at 24:00 → extra")
+    checkEqual(grownDay.inkCell(forCenter: CGPoint(x: 500, y: 2399.99)), .grid, "day ink: centre just above 24:00 → grid")
+    checkEqual(grownDay.inkCell(forCenter: CGPoint(x: -50, y: 3000)), .extra, "day ink: beside the paper below 24:00 → extra")
+    checkEqual(grownDay.inkCell(forCenter: CGPoint(x: 1200, y: 100)), .grid, "day ink: beside the paper above 24:00 → grid")
+    checkEqual(grownDay.inkCell(forCenter: CGPoint(x: 500, y: -10)), .grid, "day ink: above the paper → grid")
+    checkEqual(grownDay.inkCell(forCenter: CGPoint(x: 500, y: 20000)), .extra, "day ink: far below the paper → extra")
+    checkEqual(grownDay.inkCell(forCenter: CGPoint(x: 500, y: CGFloat.nan)), .grid, "day ink: NaN → grid")
+    checkEqual(grownDay.growsWithInk(.extra), true, "day: extra grows with ink")
+    checkEqual(grownDay.growsWithInk(.grid), false, "day: the grid never grows")
+    checkEqual(grownDay.band(atY: 2399.9), PageBand.grid, "day band: 2,399.9 → grid")
+    checkEqual(grownDay.band(atY: 2400), PageBand.extra, "day band: 2,400 → extra")
+    checkEqual(grownDay.band(atY: 3899), PageBand.extra, "day band: 3,899 → extra")
+    checkEqual(grownDay.band(atY: 3900), nil, "day band: below the paper → nil")
+    checkEqual(grownDay.bandTop(.grid), 0, "day bandTop grid = 0")
+    checkEqual(grownDay.bandTop(.extra), 2400, "day bandTop extra = 2400")
+    checkEqual(grownDay.bandTop(.memo), nil, "day bandTop memo = nil")
+    checkEqual(PageScroll.scrollDelta(old: dayPage, new: grownDay, topVisibleY: 2500), 0, "day: the extra's growth does not scroll")
+    checkEqual(PageScroll.scrollDelta(old: dayPage, new: grownDay, topVisibleY: 500), 0, "day: the grid does not scroll")
+    checkEqual(grownDay.hit(at: CGPoint(x: 300, y: 2500)), nil, "day hit: the free memo area hits nothing")
+    checkEqual(grownDay.dayAt(point: CGPoint(x: 300, y: 2500)), nil, "day dayAt: still nil")
+    checkEqual(grownDay.nowLine, dayPage.nowLine, "day: the now line is unchanged")
+    checkEqual(PageNavigation.initialScrollY(grownDay, now: demoNow, calendar: tokyo), 900, "day: the start position is unchanged")
+    checkEqual(ZoomPolicy.overviewSize(grownDay), CGSize(width: 1000, height: 2400), "day overview: the 24-hour grid (K-6)")
+    checkEqual(ZoomPolicy.overviewSize(dayLayout(demo, ink: [.extra: 5000])), CGSize(width: 1000, height: 2400), "day overview: a long extra does not count")
+
+    // startsBelowDay (0-4) and the unchanged eventRange.
+    checkEqual(dayPage.startsBelowDay(CGRect(x: 100, y: 2399.9, width: 200, height: 100)), false, "startsBelowDay: minY 2,399.9 → false")
+    checkEqual(dayPage.startsBelowDay(CGRect(x: 100, y: 2400, width: 200, height: 100)), true, "startsBelowDay: minY 2,400 → true")
+    checkEqual(dayPage.startsBelowDay(CGRect(x: 100, y: 2900, width: 0, height: 0)), true, "startsBelowDay: a tap below 24:00 → true")
+    checkEqual(dayPage.startsBelowDay(CGRect(x: 100, y: 2500, width: 100, height: -300)), false, "startsBelowDay: a drag upward from the free memo area → false")
+    checkEqual(dayPage.startsBelowDay(CGRect(x: 100, y: 2600, width: 100, height: -150)), true, "startsBelowDay: an upward drag that stays below 24:00 → true")
+    checkEqual(dayPage.startsBelowDay(CGRect(x: 100, y: CGFloat.nan, width: 100, height: 100)), false, "startsBelowDay: NaN → false")
+    checkEqual(dayPage.startsBelowDay(CGRect(x: 100, y: CGFloat.infinity, width: 100, height: 100)), false, "startsBelowDay: ∞ → false")
+    checkEqual(dayPage.startsBelowDay(.null), false, "startsBelowDay: CGRect.null → false")
+    checkEqual(dayPage.startsBelowDay(CGRect(x: 100, y: 1000, width: 100, height: 2000)), false, "startsBelowDay: a rect across 24:00 → false")
+    checkEqual(fmt(dayPage.eventRange(for: CGRect(x: 100, y: 2400, width: 200, height: 100), now: demoNow, calendar: tokyo)), "2026-10-07 23:00–2026-10-08 00:00", "eventRange below 24:00 is still 23:00–24:00 (0-4)")
+    checkEqual(fmt(dayPage.eventRange(for: CGRect(x: 100, y: 2399.9, width: 200, height: 100), now: demoNow, calendar: tokyo)), "2026-10-07 23:00–2026-10-08 00:00", "eventRange from 2,399.9 is 23:00–24:00")
+
+    // drop(center:in:) (§3.4).
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 500), in: plainMonth), nil, "drop: inside the paper → keep")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 0, y: 0), in: plainMonth), nil, "drop: the top-left corner → keep")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 1400, y: 1750), in: plainMonth), nil, "drop: the bottom-right corner → keep")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: -1, y: 500), in: plainMonth), .outsidePaper, "drop: left of the paper")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 1401, y: 500), in: plainMonth), .outsidePaper, "drop: right of the paper")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: -1), in: plainMonth), .outsidePaper, "drop: above the paper")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1751), in: plainMonth), .outsidePaper, "drop: below the paper, above the cap")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1050 + 6000.5), in: plainMonth), .beyondCap, "drop: below the cap (beyondCap first)")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: -1, y: 9000), in: plainMonth), .outsidePaper, "drop: beside the paper below the cap → outsidePaper")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: CGFloat.nan, y: 500), in: plainMonth), .outsidePaper, "drop: NaN → outsidePaper")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: CGFloat.infinity), in: plainMonth), .outsidePaper, "drop: ∞ → outsidePaper")
+    let deepMonth = layout([], ink: [.memo: 6420]) // a 1.0 device's deep memo: the paper is 1050 + 6,470
+    checkEqual(deepMonth.size.height, 1050 + 6470, "drop: the deep month's paper")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1050 + 6100), in: deepMonth), .beyondCap, "drop: inside a longer paper, below the cap → beyondCap")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1050 + 5999), in: deepMonth), nil, "drop: inside a longer paper, above the cap → keep")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 2400 + 6000.5), in: dayPage), .beyondCap, "drop: the day's cap is 24:00 + 6,000")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 3000), in: dayPage), nil, "drop: inside the day's extra → keep")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 3101), in: dayPage), .outsidePaper, "drop: below the day's paper, above the cap")
+    let weekPage = weekLayout(demo)
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 9000), in: weekPage), .outsidePaper, "drop: the week has no last cell")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1000), in: weekPage), nil, "drop: inside the week")
+    let yearPage = yearLayout([])
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 9000), in: yearPage), .outsidePaper, "drop: the year has no last cell")
+
+    // tail(of:) and onlyTailHeightChanged (§3.6).
+    checkEqual(PaperGrowth.tail(of: plainMonth)?.key, .memo, "tail: month → memo")
+    checkEqual(PaperGrowth.tail(of: plainMonth)?.rect, plainMonth.memo, "tail: month rect")
+    checkEqual(PaperGrowth.tail(of: grownDay)?.key, .extra, "tail: day → extra")
+    checkEqual(PaperGrowth.tail(of: grownDay)?.rect, grownDay.extra, "tail: day rect")
+    check(PaperGrowth.tail(of: weekPage) == nil, "tail: week → nil")
+    check(PaperGrowth.tail(of: yearPage) == nil, "tail: year → nil")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: plainMonth, new: grownMonth), true, "onlyTail: the month's memo only → true")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: grownMonth, new: plainMonth), true, "onlyTail: the month's memo shrinks → true")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: plainMonth, new: plainMonth), false, "onlyTail: nothing changed → false")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: plainMonth, new: layout([], ink: [.day(day(2026, 10, 14)): 300])), false, "onlyTail: a month row grew → false")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: plainMonth, new: layout([], ink: [.day(day(2026, 10, 14)): 300, .memo: 500])), false, "onlyTail: a row and the memo → false")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: dayPage, new: grownDay), true, "onlyTail: the day's extra → true")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: dayPage, new: dayLayout(demo, focus: day(2026, 10, 8), ink: [.extra: 800])), false, "onlyTail: another pageId → false")
+    var wider = grownDay
+    wider.size.width = 1200
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: dayPage, new: wider), false, "onlyTail: another width → false")
+    var movedExtra = grownDay
+    movedExtra.extra.origin.y = 2500
+    movedExtra.cells[.extra] = movedExtra.extra
+    movedExtra.size.height = 2500 + movedExtra.extra.height
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: dayPage, new: movedExtra), false, "onlyTail: the last cell moved → false")
+    var taller = grownDay
+    taller.size.height += 10
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: dayPage, new: taller), false, "onlyTail: the paper does not end with the last cell → false")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: weekPage, new: weekLayout(demo, ink: [.grid: 3000])), false, "onlyTail: week → false")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: yearPage, new: yearLayout([], ink: [CellKey(raw: "03-05"): 100])), false, "onlyTail: year → false")
+    checkEqual(PaperGrowth.onlyTailHeightChanged(old: plainMonth, new: dayPage), false, "onlyTail: another kind → false")
+}
+
+// MARK: - 1.1: a finger's single tap on a date (M7A_CONTRACT D4, §4.1–§4.3)
+
+section("date taps (1.1)")
+do {
+    checkEqual(DateTap.minPoints, 44, "DateTap.minPoints")
+    // minTarget: 4 kinds × small screen × 「指でも書く」 (zoom 0.5 → 88 lu).
+    for small in [false, true] {
+        for finger in [false, true] {
+            let tag = "small \(small), finger \(finger)"
+            checkEqual(DateTap.minTarget(kind: .month, zoom: 0.5, smallScreen: small, allowFinger: finger), finger ? nil : 88, "minTarget month (\(tag))")
+            checkEqual(DateTap.minTarget(kind: .year, zoom: 0.5, smallScreen: small, allowFinger: finger), small || !finger ? 88 : nil, "minTarget year (\(tag))")
+            checkEqual(DateTap.minTarget(kind: .week, zoom: 0.5, smallScreen: small, allowFinger: finger), nil, "minTarget week (\(tag))")
+            checkEqual(DateTap.minTarget(kind: .day, zoom: 0.5, smallScreen: small, allowFinger: finger), nil, "minTarget day (\(tag))")
+            for bad: CGFloat in [.nan, 0, -1, .infinity] {
+                checkEqual(DateTap.minTarget(kind: .month, zoom: bad, smallScreen: small, allowFinger: false), nil, "minTarget month, zoom \(bad) → nil (\(tag))")
+                checkEqual(DateTap.minTarget(kind: .year, zoom: bad, smallScreen: true, allowFinger: finger), nil, "minTarget year, zoom \(bad) → nil (\(tag))")
+            }
+        }
+    }
+
+    // The month's target (§4.2) on 10/14 (row 2, column 2: x 400…600, y 350…525) at the five zooms.
+    let month = layout([])
+    let d14 = day(2026, 10, 14)
+    guard let c14 = month.cells[.day(d14)] else { fatalError("10/14 is on the grid") }
+    checkEqual(c14, CGRect(x: 400, y: 350, width: 200, height: 175), "month: 10/14's cell")
+    let machines: [(String, CGFloat)] = [("iPhone", 0.2871), ("mini", 0.5314), ("11 inch", 0.5957), ("13 inch", 0.7371), ("iPhone landscape", 0.2190)]
+    for (name, zoom) in machines {
+        let m = 44 / zoom
+        let h = min(175, max(28, m))
+        checkEqual(month.hit(at: CGPoint(x: c14.minX + 1, y: c14.minY + h - 0.01), minTarget: m), .date(d14), "month \(name): the target's bottom-left (h \(h))")
+        checkEqual(month.hit(at: CGPoint(x: c14.maxX - 0.01, y: c14.minY + h - 0.01), minTarget: m), .date(d14), "month \(name): the target's bottom-right")
+        checkEqual(month.hit(at: CGPoint(x: c14.midX, y: c14.minY + 30), minTarget: m), .date(d14), "month \(name): just below the 1.0 date frame")
+        if h < 175 {
+            checkEqual(month.hit(at: CGPoint(x: c14.midX, y: c14.minY + h + 0.01), minTarget: m), nil, "month \(name): just below the target → nil")
+            checkClose(h * zoom, 44, "month \(name): the target is 44 pt high", tolerance: 1e-6)
+        } else {
+            checkEqual(month.hit(at: CGPoint(x: c14.midX, y: c14.maxY - 0.01), minTarget: m), .date(d14), "month \(name): the whole cell")
+        }
+        checkEqual(DateTap.target(layout: month, point: CGPoint(x: c14.midX, y: c14.minY + h - 0.01), zoom: zoom, smallScreen: name.hasPrefix("iPhone"), allowFinger: false, currentMonth: 10), .date(d14), "DateTap month \(name), finger off → the 44 pt target")
+        checkEqual(DateTap.target(layout: month, point: CGPoint(x: c14.midX, y: c14.minY + 40), zoom: zoom, smallScreen: name.hasPrefix("iPhone"), allowFinger: true, currentMonth: 10), nil, "DateTap month \(name), finger on → only the 1.0 frame")
+        checkEqual(DateTap.target(layout: month, point: CGPoint(x: c14.midX, y: c14.minY + 10), zoom: zoom, smallScreen: name.hasPrefix("iPhone"), allowFinger: true, currentMonth: 10), .date(d14), "DateTap month \(name), finger on → the date frame")
+    }
+    checkEqual(month.hit(at: CGPoint(x: 50, y: 100), minTarget: 153.3), .date(day(2026, 9, 28)), "month: a day outside the month counts")
+    checkEqual(month.hit(at: CGPoint(x: 700, y: 1060), minTarget: 153.3), nil, "month: the memo area → nil")
+    checkEqual(month.hit(at: CGPoint(x: -5, y: 10), minTarget: 153.3), nil, "month: left of the paper → nil")
+    checkEqual(month.hit(at: CGPoint(x: 700, y: -1), minTarget: 153.3), nil, "month: above the paper → nil")
+    checkEqual(month.hit(at: CGPoint(x: CGFloat.nan, y: 10), minTarget: 153.3), nil, "month: NaN → nil")
+    for bad: CGFloat in [.nan, 0, -10, .infinity] {
+        checkEqual(month.hit(at: CGPoint(x: c14.midX, y: c14.minY + 40), minTarget: bad), nil, "month: minTarget \(bad) → hit(at:) only")
+        checkEqual(month.hit(at: CGPoint(x: c14.midX, y: c14.minY + 10), minTarget: bad), .date(d14), "month: minTarget \(bad) keeps the date frame")
+        checkEqual(DateTap.target(layout: month, point: CGPoint(x: c14.midX, y: c14.minY + 40), zoom: bad, smallScreen: true, allowFinger: false, currentMonth: 10), nil, "DateTap month: zoom \(bad) → hit(at:)")
+    }
+    // Chips and bars come first inside the target.
+    let busy = layout(demo)
+    for chip in busy.timedChips {
+        let p = CGPoint(x: chip.frame.midX, y: chip.frame.midY)
+        checkEqual(busy.hit(at: p, minTarget: 153.3), busy.hit(at: p), "month: a chip inside the target keeps its hit (\(chip.day))")
+    }
+    for bar in busy.allDayBars {
+        let p = CGPoint(x: bar.frame.midX, y: bar.frame.midY)
+        checkEqual(busy.hit(at: p, minTarget: 153.3), .allDayBar(bar.eventId), "month: a bar inside the target opens the event (\(bar.title))")
+    }
+
+    // The year page: iPad 13 inch, 「指でも書く」 off → 44 pt (M7A-2); on → the 1.0 frames.
+    let year = yearLayout([])
+    guard let c107 = year.cellFrame(month: 10, day: 7) else { fatalError("10/07 is on the year page") }
+    let inCell = CGPoint(x: c107.minX + 70, y: c107.minY + 50)
+    checkEqual(DateTap.target(layout: year, point: inCell, zoom: 0.607, smallScreen: false, allowFinger: false, currentMonth: 10), .date(day(2026, 10, 7)), "year iPad, finger off: 44 pt (72.5 lu)")
+    checkEqual(DateTap.target(layout: year, point: inCell, zoom: 0.607, smallScreen: false, allowFinger: true, currentMonth: 10), nil, "year iPad, finger on: the 1.0 frames only")
+    checkEqual(DateTap.target(layout: year, point: inCell, zoom: 0.2871, smallScreen: true, allowFinger: true, currentMonth: 10), .date(day(2026, 10, 7)), "year iPhone, finger on: 44 pt (1.0.1)")
+    checkEqual(DateTap.target(layout: year, point: CGPoint(x: c107.minX + 100, y: c107.minY + 55), zoom: 0.607, smallScreen: false, allowFinger: false, currentMonth: 10), nil, "year iPad, finger off: outside the 72.5 lu target")
+    checkEqual(DateTap.target(layout: year, point: CGPoint(x: c107.minX + 10, y: c107.minY + 10), zoom: 0.607, smallScreen: false, allowFinger: true, currentMonth: 10), .date(day(2026, 10, 7)), "year iPad, finger on: the weekday frame")
+    for bad: CGFloat in [.nan, 0, -1] {
+        checkEqual(DateTap.target(layout: year, point: inCell, zoom: bad, smallScreen: true, allowFinger: false, currentMonth: 10), nil, "year: zoom \(bad) → hit(at:) and the gutter only")
+        checkEqual(DateTap.target(layout: year, point: CGPoint(x: c107.minX + 10, y: c107.minY + 10), zoom: bad, smallScreen: true, allowFinger: false, currentMonth: 10), .date(day(2026, 10, 7)), "year: zoom \(bad) keeps the weekday frame")
+        checkEqual(DateTap.target(layout: year, point: CGPoint(x: 20, y: 14 * 60 + 2), zoom: bad, smallScreen: true, allowFinger: false, currentMonth: 10), .date(day(2026, 10, 15)), "year: zoom \(bad) keeps the gutter")
+    }
+
+    // The gutter (P-13): row 15 is y 840…900 (middle 870).
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 841), numberOnly: false), 15, "gutter: the row's top edge → 15")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 841), numberOnly: true), nil, "gutter: number only, the row's top edge → nil")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 856), numberOnly: true), 15, "gutter: number only, middle − 14 → 15")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 884), numberOnly: true), 15, "gutter: number only, middle + 14 → 15")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 884.01), numberOnly: true), nil, "gutter: number only, below the number → nil")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 855.99), numberOnly: true), nil, "gutter: number only, above the number → nil")
+    checkEqual(year.gutterDay(at: CGPoint(x: 0, y: 870), numberOnly: false), 15, "gutter: x 0")
+    checkEqual(year.gutterDay(at: CGPoint(x: 55.99, y: 870), numberOnly: false), 15, "gutter: x 55.99")
+    checkEqual(year.gutterDay(at: CGPoint(x: 56, y: 870), numberOnly: false), nil, "gutter: x 56 is January's cell")
+    checkEqual(year.gutterDay(at: CGPoint(x: -0.1, y: 870), numberOnly: false), nil, "gutter: the left margin (x < 0) → nil")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: -1), numberOnly: false), nil, "gutter: above the paper → nil")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 1860), numberOnly: false), nil, "gutter: below the paper → nil")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 0), numberOnly: false), 1, "gutter: the top row is 1")
+    checkEqual(year.gutterDay(at: CGPoint(x: 10, y: 1859.9), numberOnly: false), 31, "gutter: the bottom row is 31")
+    checkEqual(year.gutterDay(at: CGPoint(x: CGFloat.nan, y: 870), numberOnly: false), nil, "gutter: NaN → nil")
+    checkEqual(year.gutterHit(at: CGPoint(x: 10, y: 870), numberOnly: false, month: 10), .date(day(2026, 10, 15)), "gutterHit: this month's 15th")
+    checkEqual(year.gutterHit(at: CGPoint(x: 10, y: 870), numberOnly: false, month: 1), .date(day(2026, 1, 15)), "gutterHit: the given month")
+    checkEqual(year.gutterHit(at: CGPoint(x: 10, y: 870), numberOnly: false, month: 0), nil, "gutterHit: month 0 → nil")
+    checkEqual(year.gutterHit(at: CGPoint(x: 10, y: 870), numberOnly: false, month: 13), nil, "gutterHit: month 13 → nil")
+    let row31 = CGPoint(x: 10, y: 30 * 60 + 30)
+    checkEqual(year.gutterHit(at: row31, numberOnly: false, month: 11), nil, "gutterHit: 11/31 does not exist → nil (M7A-3)")
+    checkEqual(year.gutterHit(at: row31, numberOnly: false, month: 12), .date(day(2026, 12, 31)), "gutterHit: 12/31")
+    checkEqual(year.gutterHit(at: CGPoint(x: 10, y: 28 * 60 + 30), numberOnly: false, month: 2), nil, "gutterHit: 2026-02-29 → nil")
+    let leap = yearLayout([], year: 2028)
+    checkEqual(leap.gutterHit(at: CGPoint(x: 10, y: 28 * 60 + 30), numberOnly: false, month: 2), .date(day(2028, 2, 29)), "gutterHit: 2028-02-29 → .date")
+    checkEqual(leap.gutterHit(at: CGPoint(x: 10, y: 29 * 60 + 30), numberOnly: false, month: 2), nil, "gutterHit: 2028-02-30 → nil")
+    // DateTap: the whole row on a small screen even with 「指でも書く」 on; the number only on a large screen with it on.
+    let rowEdge = CGPoint(x: 20, y: 842)
+    checkEqual(DateTap.target(layout: year, point: rowEdge, zoom: 0.2871, smallScreen: true, allowFinger: true, currentMonth: 10), .date(day(2026, 10, 15)), "DateTap gutter: iPhone, finger on → the whole row")
+    checkEqual(DateTap.target(layout: year, point: rowEdge, zoom: 0.2871, smallScreen: true, allowFinger: false, currentMonth: 10), .date(day(2026, 10, 15)), "DateTap gutter: iPhone, finger off → the whole row")
+    checkEqual(DateTap.target(layout: year, point: rowEdge, zoom: 0.607, smallScreen: false, allowFinger: false, currentMonth: 10), .date(day(2026, 10, 15)), "DateTap gutter: iPad, finger off → the whole row")
+    checkEqual(DateTap.target(layout: year, point: rowEdge, zoom: 0.607, smallScreen: false, allowFinger: true, currentMonth: 10), nil, "DateTap gutter: iPad, finger on → the number only")
+    checkEqual(DateTap.target(layout: year, point: CGPoint(x: 20, y: 870), zoom: 0.607, smallScreen: false, allowFinger: true, currentMonth: 10), .date(day(2026, 10, 15)), "DateTap gutter: iPad, finger on, on the number")
+    checkEqual(DateTap.target(layout: year, point: row31, zoom: 0.2871, smallScreen: true, allowFinger: true, currentMonth: 11), nil, "DateTap gutter: 31 in November → nil")
+    checkEqual(DateTap.target(layout: year, point: rowEdge, zoom: 0.2871, smallScreen: true, allowFinger: true, currentMonth: 0), nil, "DateTap gutter: no current month → nil")
+    // Chips first on the year page.
+    let busyYear = yearLayout(demo)
+    for chip in busyYear.chips {
+        let p = CGPoint(x: chip.frame.midX, y: chip.frame.midY)
+        checkEqual(DateTap.target(layout: busyYear, point: p, zoom: 0.2871, smallScreen: true, allowFinger: true, currentMonth: 10), busyYear.hit(at: p), "DateTap year: a chip keeps its hit (\(chip.title) \(chip.day))")
+    }
+
+    // Week and day: unchanged (`hit(at:)` whatever the zoom and the settings).
+    let week = weekLayout(demo)
+    let dayPage = dayLayout(demo)
+    var rng = Rng(seed: 0x0D47_E7A9)
+    for _ in 0..<40 {
+        let p = CGPoint(x: CGFloat(rng.double()) * 1500 - 50, y: CGFloat(rng.double()) * 3200 - 50)
+        let small = rng.int(2) == 0
+        let finger = rng.int(2) == 0
+        checkEqual(DateTap.target(layout: week, point: p, zoom: 0.3, smallScreen: small, allowFinger: finger, currentMonth: 10), week.hit(at: p), "DateTap week = hit(at:) at \(p)")
+        checkEqual(DateTap.target(layout: dayPage, point: p, zoom: 0.3, smallScreen: small, allowFinger: finger, currentMonth: 10), dayPage.hit(at: p), "DateTap day = hit(at:) at \(p)")
+    }
+    for box in week.timedBoxes {
+        checkEqual(DateTap.target(layout: week, point: CGPoint(x: box.frame.midX, y: box.frame.midY), zoom: 0.5, smallScreen: false, allowFinger: false, currentMonth: 10), .timedBox(box.eventId), "DateTap week: a box (\(box.title))")
+    }
+}
+
+// MARK: - 1.1: the stroke budget (K-9, M7A_CONTRACT D5, §5)
+
+section("stroke budget (1.1)")
+do {
+    checkEqual(StrokeBudget.noticeAt, 15_000, "noticeAt")
+    checkEqual(StrokeBudget.refuseAt, 19_000, "refuseAt")
+    checkEqual(StrokeBudget.legacyReadCap, 20_000, "legacyReadCap (1.0)")
+    checkEqual(StrokeBudget.readCap, 60_000, "readCap (1.1)")
+    checkEqual(InkPage.maxStrokes, 60_000, "InkPage.maxStrokes is 60,000 in 1.1")
+    checkEqual(InkPage.maxTombstones, 200_000, "InkPage.maxTombstones is unchanged")
+    checkEqual(WebImport.maxStrokesPerPage, 20_000, "WebImport.maxStrokesPerPage keeps 20,000")
+
+    // budgetCount counts the strokes of an unknown tool.
+    var counted = InkPage(pageId: "d-2026-10-07")
+    for i in 0..<3 { counted.add(stroke("live-\(i)", cell: .grid)) }
+    counted.add(stroke("gone", cell: .grid))
+    counted.remove(ids: ["gone"], at: 1_790_000_000_000)
+    counted.unknownStrokes["tape-1"] = .object(["id": .string("tape-1"), "cell": .string("extra"), "tool": .string("tape"), "pts": .array([])])
+    counted.unknownStrokes["tape-2"] = .object(["id": .string("tape-2"), "cell": .string("grid"), "tool": .string("tape"), "pts": .array([])])
+    checkEqual(counted.liveStrokeCount, 3, "budget: 3 live strokes")
+    checkEqual(counted.budgetCount, 5, "budget: live + unknown tool = 5")
+    checkEqual(InkPage(json: counted.jsonValue).budgetCount, 5, "budget: the same after a round trip")
+    checkEqual(InkPage(pageId: "y-2026").budgetCount, 0, "budget: an empty page")
+
+    // accepted / crossesNotice.
+    checkEqual(StrokeBudget.accepted(incoming: 1, count: 18_999), 1, "accepted: 18,999 + 1")
+    checkEqual(StrokeBudget.accepted(incoming: 1, count: 19_000), 0, "accepted: 19,000 + 1 → 0")
+    checkEqual(StrokeBudget.accepted(incoming: 1, count: 19_001), 0, "accepted: 19,001 + 1 → 0")
+    checkEqual(StrokeBudget.accepted(incoming: 2, count: 18_999), 1, "accepted: 18,999 + 2 → 1")
+    checkEqual(StrokeBudget.accepted(incoming: 5, count: 18_995), 5, "accepted: up to 19,000 exactly")
+    checkEqual(StrokeBudget.accepted(incoming: 3, count: 0), 3, "accepted: an empty page")
+    checkEqual(StrokeBudget.accepted(incoming: 0, count: 25_000), 0, "accepted: nothing incoming")
+    checkEqual(StrokeBudget.accepted(incoming: -1, count: 0), 0, "accepted: a negative count is 0")
+    checkEqual(StrokeBudget.crossesNotice(from: 14_999, to: 15_000), true, "crossesNotice: 14,999 → 15,000")
+    checkEqual(StrokeBudget.crossesNotice(from: 10, to: 20_000), true, "crossesNotice: 10 → 20,000")
+    checkEqual(StrokeBudget.crossesNotice(from: 15_000, to: 15_001), false, "crossesNotice: already over")
+    checkEqual(StrokeBudget.crossesNotice(from: 14_999, to: 14_999), false, "crossesNotice: still below")
+    checkEqual(StrokeBudget.crossesNotice(from: 15_000, to: 15_000), false, "crossesNotice: no change at 15,000")
+    checkEqual(StrokeBudget.crossesNotice(from: 16_000, to: 14_000), false, "crossesNotice: going down")
+
+    // largest / pageLabel / countText.
+    let entries = [StrokeBudget.Entry(pageId: "m1-2026-10", strokes: 3, tombstones: 1),
+                   StrokeBudget.Entry(pageId: "y-2026", strokes: 5, tombstones: 0),
+                   StrokeBudget.Entry(pageId: "d-2026-10-07", strokes: 5, tombstones: 2)]
+    checkEqual(StrokeBudget.largest(entries), entries[2], "largest: a tie → the smaller pageId")
+    checkEqual(StrokeBudget.largest([entries[0]]), entries[0], "largest: one page")
+    checkEqual(StrokeBudget.largest([]), nil, "largest: no page → nil")
+    checkEqual(StrokeBudget.largest([StrokeBudget.Entry(pageId: "y-2026", strokes: 0, tombstones: 9)]), nil, "largest: every page 0 → nil")
+    checkEqual(StrokeBudget.pageLabel("y-2026"), "年のページ（2026年）", "pageLabel: year")
+    checkEqual(StrokeBudget.pageLabel("m1-2026-10"), "月のページ（2026年10月）", "pageLabel: month")
+    checkEqual(StrokeBudget.pageLabel("w-2026-10-05"), "週のページ（2026年10月5日〜10月11日）", "pageLabel: week")
+    checkEqual(StrokeBudget.pageLabel("w-2026-12-28"), "週のページ（2026年12月28日〜2027年1月3日）", "pageLabel: a week across the year end")
+    checkEqual(StrokeBudget.pageLabel("d-2026-10-07"), "日のページ（2026年10月7日）", "pageLabel: day")
+    checkEqual(StrokeBudget.pageLabel("d-2026-11-03"), "日のページ（2026年11月3日）", "pageLabel: a holiday (no holiday name)")
+    checkEqual(StrokeBudget.pageLabel("wb-2026-10-05"), "wb-2026-10-05", "pageLabel: an unreadable id as it is")
+    checkEqual(StrokeBudget.pageLabel("d-2026-02-30"), "d-2026-02-30", "pageLabel: an invalid date as it is")
+    checkEqual(StrokeBudget.pageLabel(""), "", "pageLabel: empty")
+    checkEqual(StrokeBudget.countText(0), "0 本", "countText 0")
+    checkEqual(StrokeBudget.countText(3), "3 本", "countText 3")
+    checkEqual(StrokeBudget.countText(999), "999 本", "countText 999")
+    checkEqual(StrokeBudget.countText(1000), "1,000 本", "countText 1,000")
+    checkEqual(StrokeBudget.countText(12_345), "12,345 本", "countText 12,345")
+    checkEqual(StrokeBudget.countText(20_500), "20,500 本", "countText 20,500")
+    checkEqual(StrokeBudget.countText(1_234_567), "1,234,567 本", "countText 1,234,567")
+    checkEqual(StrokeBudget.countText(-1234), "-1,234 本", "countText −1,234")
+
+    // PageNavigation.parse.
+    func parsed(_ id: String) -> String {
+        guard let p = PageNavigation.parse(pageId: id) else { return "nil" }
+        return "\(p.kind.rawValue) \(p.focus)"
+    }
+    checkEqual(parsed("d-2026-10-07"), "day 2026-10-07", "parse: day")
+    checkEqual(parsed("w-2026-10-05"), "week 2026-10-05", "parse: week")
+    checkEqual(parsed("m1-2026-10"), "month 2026-10-01", "parse: month → the 1st")
+    checkEqual(parsed("y-2026"), "year 2026-01-01", "parse: year → January 1")
+    for bad in ["wb-2026-10-05", "d-2026-13-01", "d-2026-02-29", "d-2026-1-7", "d-2026-10-07x", "m1-2026-13", "m1-2026-1", "m1-2026-00",
+                "m-2026-10", "y-26", "y-2026x", "y-", "d-", "", "memo", "W-2026-10-05", "d-2026-10-0７"] {
+        checkEqual(parsed(bad), "nil", "parse: \"\(bad)\" → nil")
+    }
+    for kind in PageKind.allCases {
+        for d in [day(2026, 10, 7), day(2028, 2, 29), day(2026, 12, 31), day(2027, 1, 1)] {
+            let id = PageNavigation.pageId(kind, focus: d)
+            let p = PageNavigation.parse(pageId: id)
+            checkEqual(p?.kind, kind, "parse(pageId(\(kind), \(d))) kind")
+            checkEqual(p.map { PageNavigation.pageId(kind, focus: $0.focus) }, id, "parse(pageId(\(kind), \(d))) round trip")
+        }
+    }
+
+    // The reader of 1.1 keeps more than 20,000 strokes (§5.1).
+    func bigPage(strokes n: Int, unknown u: Int) -> JSONValue {
+        var obj: [String: JSONValue] = [:]
+        let pts: JSONValue = .array(InkPoint.flat([point(10, 20)]).map { .number($0) })
+        for i in 0..<n {
+            let id = String(format: "s%05d", i)
+            obj[id] = .object(["id": .string(id), "cell": .string("03-05"), "tool": .string("pen"), "color": .string("#1f2937"), "t": .number(1_790_000_000_000), "pts": pts])
+        }
+        for i in 0..<u {
+            let id = String(format: "u%05d", i)
+            obj[id] = .object(["id": .string(id), "cell": .string("03-05"), "tool": .string("tape"), "pts": pts])
+        }
+        return .object(["v": .number(1), "pageId": .string("y-2026"), "strokes": .object(obj), "deleted": .object([:]), "updatedAt": .number(1_790_000_000_000)])
+    }
+    let p20500 = InkPage(json: bigPage(strokes: 20_300, unknown: 200))
+    checkEqual(p20500.strokes.count, 20_300, "reader: 20,300 strokes are all read")
+    checkEqual(p20500.unknownStrokes.count, 200, "reader: 200 unknown-tool strokes are all read")
+    checkEqual(p20500.budgetCount, 20_500, "reader: budgetCount 20,500")
+    let p60001 = InkPage(json: bigPage(strokes: 60_001, unknown: 0))
+    checkEqual(p60001.strokes.count, 60_000, "reader: 60,001 strokes → 60,000")
+    checkEqual(p60001.strokes["s60000"] == nil, true, "reader: the last key in key order is dropped")
+    checkEqual(p60001.strokes["s00000"] != nil && p60001.strokes["s59999"] != nil, true, "reader: the first 60,000 keys are kept")
+    let mixed = InkPage(json: bigPage(strokes: 59_995, unknown: 10))
+    checkEqual(mixed.budgetCount, 60_000, "reader: strokes + unknown tools are capped together at 60,000")
+    checkEqual(mixed.strokes.count, 59_995, "reader: the pen strokes (\"s…\") come first in key order")
+    checkEqual(mixed.unknownStrokes.count, 5, "reader: then the unknown tools (\"u…\")")
+    checkEqual(mixed.deleted.count, 0, "reader: the cap makes no tombstone")
+
+    // The import check (§5.2).
+    func ids(_ prefix: String, _ n: Int) -> Set<String> { Set((0..<n).map { "\(prefix)\($0)" }) }
+    let local = ids("a", 19_990)
+    var incoming = InkPage(pageId: "y-2026")
+    for i in 0..<10 { incoming.add(stroke("n\(i)", cell: CellKey(raw: "03-05"))) }
+    checkEqual(StrokeBudget.importExceedsLegacyCap(localIds: local, incoming: incoming), nil, "import: 19,990 + 10 = 20,000 → nil")
+    incoming.add(stroke("n10", cell: CellKey(raw: "03-05")))
+    checkEqual(StrokeBudget.importExceedsLegacyCap(localIds: local, incoming: incoming), 20_001, "import: 19,990 + 11 = 20,001")
+    var same = InkPage(pageId: "y-2026")
+    for i in 0..<20 { same.add(stroke("a\(i)", cell: CellKey(raw: "03-05"))) }
+    checkEqual(StrokeBudget.importExceedsLegacyCap(localIds: local, incoming: same), nil, "import: the same ids are not counted twice")
+    var withTombstone = incoming
+    withTombstone.remove(ids: ["a0"], at: 1_790_000_000_000)
+    checkEqual(StrokeBudget.importExceedsLegacyCap(localIds: local, incoming: withTombstone), nil, "import: a tombstone of the import takes away a local stroke")
+    var withUnknown = incoming
+    withUnknown.unknownStrokes["tape-9"] = .object(["id": .string("tape-9"), "tool": .string("tape")])
+    checkEqual(StrokeBudget.importExceedsLegacyCap(localIds: local, incoming: withUnknown), 20_002, "import: unknown-tool strokes count")
+    checkEqual(StrokeBudget.importExceedsLegacyCap(localIds: [], incoming: InkPage(pageId: "y-2026")), nil, "import: nothing → nil")
+
+    // The web import keeps reading at most 20,000 strokes of one page.
+    var webStrokes: [String] = []
+    webStrokes.reserveCapacity(20_001)
+    for i in 0..<20_001 {
+        webStrokes.append(String(format: "\"w%05d\": { \"id\": \"w%05d\", \"tool\": \"pen\", \"pts\": [10, 20, 0.5] }", i, i))
+    }
+    let webText = webExportText(pageId: "y-2026", strokes: "{" + webStrokes.joined(separator: ",") + "}")
+    if let doc = try? webDoc(webText) {
+        checkEqual(doc.pages.first?.strokes.count, 20_000, "web import: one page still reads 20,000 strokes")
+        checkEqual(doc.pages.first?.strokes.last?.id, "w19999", "web import: the first 20,000 ids in key order")
+    } else {
+        check(false, "web import: the 20,001-stroke export parses")
+    }
+}
+
+// MARK: - 1.1: compatibility with 1.0 (K-7, M7A_CONTRACT §1.4, §7.1; the same checks run in Tests/Compat10Tests)
+//
+// The frozen copy of the 1.0 InkModel (Tests/Compat10) is unchanged, K's fixtures are what the new
+// code writes, `Compat10Checks.run` passes item by item on the fixtures (K's large ones made again in
+// a temporary folder), and the 1.1 side of the contract's table holds for the same files.
+
+section("compat with 1.0 (K-7)")
+do {
+    let fm = FileManager.default
+    let kitTests = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()   // KitChecks/
+        .deletingLastPathComponent()   // Sources/
+        .deletingLastPathComponent()   // TegakiKit/
+        .appendingPathComponent("Tests", isDirectory: true)
+
+    // The frozen copy: every file of FROZEN.sha256 has its digest, and every copy is listed.
+    let frozen = kitTests.appendingPathComponent("Compat10", isDirectory: true)
+    let digestLines = ((try? String(contentsOf: frozen.appendingPathComponent("FROZEN.sha256"), encoding: .utf8)) ?? "")
+        .split(separator: "\n").map { $0.split(separator: " ", omittingEmptySubsequences: true).map(String.init) }
+    check(digestLines.count == 11 && digestLines.allSatisfy { $0.count == 2 }, "frozen copy: FROZEN.sha256 lists the 11 copies")
+    for line in digestLines where line.count == 2 {
+        let data = try? Data(contentsOf: frozen.appendingPathComponent(line[1]))
+        checkEqual(data.map(CompatFixtures.sha256Hex), line[0], "frozen copy: \(line[1]) is unchanged (FROZEN.sha256)")
+    }
+    let copies = ((try? fm.contentsOfDirectory(atPath: frozen.path)) ?? []).filter { $0.hasSuffix(".swift") }.sorted()
+    checkEqual(copies, digestLines.map { $0.last ?? "" }.sorted(), "frozen copy: every copy (Checks/ aside) is in FROZEN.sha256")
+
+    // K's fixtures are what the new code writes (byte for byte), digests.json included.
+    let committed = CompatFixtures.committedFolder
+    for (name, data) in CompatFixtures.make() {
+        check((try? Data(contentsOf: committed.appendingPathComponent(name))) == data, "compat11: \(name) is what CompatFixtures.make() writes")
+    }
+    check((try? Data(contentsOf: committed.appendingPathComponent(CompatFixtures.digests))) == CompatFixtures.digestsData(),
+          "compat11: digests.json holds the sha256 of the large fixtures made again")
+    checkEqual(CompatFixtures.smallNames, Compat10Checks.smallFixtures, "compat11: the two lists of K's small fixtures agree")
+    checkEqual(CompatFixtures.largeNames, Compat10Checks.largeFixtures, "compat11: the two lists of K's large fixtures agree")
+
+    // Compat10Checks, item by item, on the committed fixtures + the large ones made again.
+    let folder = fm.temporaryDirectory.appendingPathComponent("KitChecks-compat11-\(UUID().uuidString)", isDirectory: true)
+    defer { try? fm.removeItem(at: folder) }
+    do {
+        try CompatFixtures.prepare(from: committed, into: folder)
+        let result = Compat10Checks.run(fixtures: folder) { name, ok in check(ok, "compat10: \(name)") }
+        print("   compat10: \(result.passed + result.failed) checks, \(result.failed) failed")
+        // A folder with K's small fixtures and digests.json but no large fixture: each missing one fails.
+        let small = fm.temporaryDirectory.appendingPathComponent("KitChecks-compat11-small-\(UUID().uuidString)", isDirectory: true)
+        defer { try? fm.removeItem(at: small) }
+        try fm.createDirectory(at: small, withIntermediateDirectories: true)
+        for name in CompatFixtures.smallNames + [CompatFixtures.digests] {
+            try fm.copyItem(at: committed.appendingPathComponent(name), to: small.appendingPathComponent(name))
+        }
+        var missingNames: [String] = []
+        let missing = Compat10Checks.run(fixtures: small) { name, ok in if !ok { missingNames.append(name) } }
+        check(CompatFixtures.largeNames.allSatisfy { large in missingNames.contains { $0.hasPrefix(large) } } && missing.failed >= 3,
+              "compat10: a folder without the large fixtures fails for each of them (\(missing.failed) failures)")
+    } catch {
+        check(false, "compat10: preparing the fixture folder (\(error))")
+    }
+
+    // The 1.1 side of the table (the new code reading the same files).
+    func fixture(_ name: String) -> Data? {
+        (try? Data(contentsOf: folder.appendingPathComponent(name)))
+    }
+    func new(_ name: String) -> InkPage? {
+        fixture(name).flatMap { try? InkPageCodec.decode($0) }
+    }
+    func old(_ name: String) -> InkPageV10? {
+        fixture(name).flatMap { try? InkPageCodecV10.decode($0) }
+    }
+    func center(_ s: InkStroke, in layout: any PageLayout) -> CGPoint? {
+        guard let origin = layout.cells[s.cell]?.origin, let b = s.paperBounds(cellOrigin: origin) else { return nil }
+        return CGPoint(x: b.midX, y: b.midY)
+    }
+    /// Every stroke sits in the cell 1.1 gives its centre and would not be dropped by 1.1.
+    func writtenBy11(_ page: InkPage, _ layout: any PageLayout) -> Bool {
+        page.liveStrokes.allSatisfy { s in
+            guard let c = center(s, in: layout) else { return false }
+            return layout.inkCell(forCenter: c) == s.cell && PaperGrowth.drop(center: c, in: layout) == nil
+        }
+    }
+
+    // Every page fixture (the large ones below): 1.1 reads what 1.0 writes, and both write the same bytes.
+    let pageNames = ((try? fm.contentsOfDirectory(atPath: folder.path)) ?? [])
+        .filter { $0.hasSuffix(".json") && $0 != CompatFixtures.digests && $0 != CompatFixtures.export11 && !CompatFixtures.largeNames.contains($0) }
+        .sorted()
+    for name in pageNames {
+        guard let o = old(name), let back = try? InkPageCodecV10.encode(o) else {
+            check(false, "1.1 side: \(name) reads on 1.0")
+            continue
+        }
+        let n = try? InkPageCodec.decode(back)
+        check(n.flatMap { try? InkPageCodec.encode($0) } == back, "1.1 side: \(name) as 1.0 writes it is read and written back unchanged by 1.1")
+    }
+
+    if let day = new(CompatFixtures.dayPage), let day10 = old(CompatFixtures.dayPage) {
+        let layout = CompatFixtures.dayLayout(CompatFixtures.dayKey, ink: day.inkBottoms())
+        checkEqual(layout.extra.height, 6005, "1.1 side: d-2026-11-02 extra is 6,005 (5,955 + 50)")
+        check(writtenBy11(day, layout), "1.1 side: d-2026-11-02 every stroke is in the cell 1.1 gives it and inside the cap")
+        checkEqual(day.budgetCount, 15, "1.1 side: d-2026-11-02 budget 14 + the unknown tool")
+        if let from10 = new(CompatFixtures.dayFrom10), let from10V10 = old(CompatFixtures.dayFrom10) {
+            let a = try? InkPageCodec.encode(InkPage.merge(day, from10))
+            let b = try? InkPageCodec.encode(InkPage.merge(from10, day))
+            let c = try? InkPageCodecV10.encode(InkPageV10.merge(day10, from10V10))
+            check(a != nil && a == b && a == c, "1.1 side: d-2026-11-02 + from10 merge to the same bytes in 1.1 (both orders) and in 1.0")
+        }
+    }
+    if let moved = new(CompatFixtures.dayMoved) {
+        let layout = CompatFixtures.dayLayout(CompatFixtures.movedDayKey, ink: moved.inkBottoms())
+        let copy = moved.liveStrokes.first { $0.cell == .extra }
+        check(copy != nil && layout.cells[.extra] != nil && writtenBy11(moved, layout), "1.1 side: d-2026-11-04 the moved copy is in extra and 1.1 draws it")
+    }
+    if let month = new(CompatFixtures.monthPage) {
+        let layout = CompatFixtures.monthLayout(2026, 11, ink: month.inkBottoms())
+        checkEqual(layout.memo.height, 6040, "1.1 side: m1-2026-11 memo is 6,040 (b + 50 wins)")
+        check(writtenBy11(month, layout), "1.1 side: m1-2026-11 every stroke is in the cell 1.1 gives it and inside the cap")
+    }
+    if let from10 = new(CompatFixtures.monthFrom10) {
+        let layout = CompatFixtures.monthLayout(2026, 12, ink: from10.inkBottoms())
+        checkEqual(layout.memo.height, 6470, "1.1 side: m1-2026-12.from10 memo is 6,470 (the 1.0 line stays visible)")
+        checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: layout.memo.minY + 6100), in: layout), .beyondCap,
+                   "1.1 side: m1-2026-12.from10 a new stroke centred at 6,100 is beyondCap")
+        checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: layout.memo.minY + 5900), in: layout), nil,
+                   "1.1 side: m1-2026-12.from10 a new stroke centred at 5,900 is kept")
+    }
+    if let legacy = new(CompatFixtures.weekLegacy), let legacy10 = old(CompatFixtures.weekLegacy) {
+        let a = try? InkPageCodec.encode(BandMigration.migrate(legacy))
+        let b = try? InkPageCodecV10.encode(BandMigrationV10.migrate(legacy10))
+        check(a != nil && a == b, "1.1 side: w-2026-11-02 the new BandMigration moves the band stroke exactly as 1.0 does")
+        checkEqual(BandMigration.migrate(legacy).liveStrokes.first?.points.first?.x, 455.7, "1.1 side: w-2026-11-02 x0 455.7 on grid")
+    }
+    if let p = new(CompatFixtures.n15000) {
+        checkEqual(p.budgetCount, 15_000, "1.1 side: y-2026.n15000 budgetCount 15,000")
+    }
+    if let data = fixture(CompatFixtures.n20500), let p = try? InkPageCodec.decode(data) {
+        checkEqual(p.budgetCount, 20_500, "1.1 side: y-2026.n20500 1.1 reads all 20,500 (budgetCount)")
+        checkEqual(p.unknownStrokes.count, 200, "1.1 side: y-2026.n20500 with the 200 unknown-tool strokes")
+        if let truncated = old(CompatFixtures.n20500), let written = try? InkPageCodecV10.encode(truncated),
+           let back = try? InkPageCodec.decode(written) {
+            checkEqual(back.budgetCount, 20_000, "1.1 side: y-2026.n20500 what 1.0 writes back has 20,000")
+            let restored = InkPage.merge(p, back)
+            check(restored.budgetCount == 20_500 && restored.deleted.isEmpty && (try? InkPageCodec.encode(restored)) == data,
+                  "1.1 side: y-2026.n20500 merged with the 1.1 page it is 20,500 again, no tombstone, the original bytes")
+            check(restored.contentDiffers(from: back), "1.1 side: y-2026.n20500 the restored page differs from 1.0's (so 1.1 sends it again)")
+        } else {
+            check(false, "1.1 side: y-2026.n20500 1.0 reads and writes it")
+        }
+    }
+    if let data = fixture(CompatFixtures.tomb200500), let p = try? InkPageCodec.decode(data) {
+        checkEqual(p.deleted.count, InkPage.maxTombstones, "1.1 side: y-2026.tomb200500 1.1 also keeps 200,000 tombstones")
+    }
+    if let data = fixture(CompatFixtures.export11), let json = try? JSONValue.parse(data), let json10 = try? JSONValueV10.parse(data),
+       let doc = try? AppExport.parse(json: json), let doc10 = try? AppExportV10.parse(json: json10) {
+        check(AppExport.encode(doc) == data && AppExportV10.encode(doc10) == data,
+              "1.1 side: export-1.1 1.0 and 1.1 write the same export bytes")
+        check(doc.pages.count == 3 && zip(doc.pages, doc10.pages).allSatisfy { (try? InkPageCodec.encode($0.0)) == (try? InkPageCodecV10.encode($0.1)) },
+              "1.1 side: export-1.1 1.0 and 1.1 read the same pages")
+        if case .app(let streamed, let skipped)? = try? InkImport.parse(data) {
+            check(streamed == doc && skipped == 0, "1.1 side: export-1.1 the streamed import reads what AppExport.parse reads")
+        } else {
+            check(false, "1.1 side: export-1.1 the streamed import reads it")
+        }
+    } else {
+        check(false, "1.1 side: export-1.1 parses on 1.0 and 1.1")
+    }
+    check(!BandMigration.isBandCell(.extra) && !BandMigrationV10.isBandCell(CellKeyV10(raw: CellKey.extra.raw)),
+          "1.1 side: K-1 extra is no band cell for 1.1 nor for 1.0")
 }
 
 // MARK: - Summary

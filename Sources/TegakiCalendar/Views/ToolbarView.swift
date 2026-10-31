@@ -9,6 +9,12 @@ import UIKit
 /// The colours and widths are the web version's (js/ink/render.js). The last pen and marker styles
 /// are remembered in UserDefaults so switching back from the eraser restores them. On an iPhone the
 /// row scrolls horizontally (M2).
+///
+/// 1.1 (docs/M7A_CONTRACT.md §2.2): with `showsCollapseButton` a 「しまう」 button sits at the right
+/// end, outside the scrolling row (so it stays visible when the row is wider than the screen, 0-10),
+/// and `onCollapse` folds the bar into the dock button (`ToolbarDock`). The eraser's hint says where
+/// it returns to (`eraserReturnsTo`, §2.4). The kind of a tool is `ToolbarLogic.kind(of:)`. Every new
+/// parameter has a default, so a caller that passes none gets the 1.0.1 bar.
 struct ToolbarView: View {
     @Binding var tool: CanvasTool
     @Binding var allowFinger: Bool
@@ -16,31 +22,25 @@ struct ToolbarView: View {
     var canRedo: Bool = true
     var onUndo: () -> Void
     var onRedo: () -> Void
+    /// 1.1: the 「しまう」 button at the right end (expanded and peek, §2.2). Pressable while read only.
+    var showsCollapseButton: Bool = false
+    var onCollapse: () -> Void = {}
+    /// 1.1: the ink the eraser returns to after it erased (§2.4); nil = no bracket in the hint.
+    var eraserReturnsTo: CanvasTool? = nil
 
-    @AppStorage("toolbar.penColor") private var penColorHex: String = ToolbarPalette.penColors[0].hex
+    @AppStorage(ToolbarPalette.penColorKey) private var penColorHex: String = ToolbarPalette.penColors[0].hex
     // Double, not CGFloat: AppStorage only stores Double (CGFloat is a distinct type on 64-bit).
-    @AppStorage("toolbar.penWidth") private var penWidth: Double = Double(ToolbarPalette.penWidths[1].width)
-    @AppStorage("toolbar.markerColor") private var markerColorHex: String = ToolbarPalette.markerColors[0].hex
+    @AppStorage(ToolbarPalette.penWidthKey) private var penWidth: Double = Double(ToolbarPalette.penWidths[1].width)
+    @AppStorage(ToolbarPalette.markerColorKey) private var markerColorHex: String = ToolbarPalette.markerColors[0].hex
 
-    private enum Kind: Equatable {
-        case pen, marker, eraser, lasso, eventRect
+    private var kind: ToolKind {
+        ToolbarLogic.kind(of: tool)
     }
 
-    private var kind: Kind {
-        switch tool {
-        case .eraser:
-            return .eraser
-        case .lasso:
-            return .lasso
-        case .eventRect:
-            return .eventRect
-        case .ink(let style):
-            return style.width >= ToolbarPalette.markerWidth - 0.001 ? .marker : .pen
-        }
-    }
-
+    /// The remembered pen, checked against the tables exactly like the pen the app starts with
+    /// (`ToolbarPalette.rememberedPen`, 0-13), so the lit swatch and width are the starting pen's.
     private var penStyle: InkStyle {
-        InkStyle(tool: .pen, colorHex: penColorHex, width: CGFloat(penWidth))
+        ToolbarPalette.pen(colorHex: penColorHex, width: penWidth)
     }
 
     private var markerStyle: InkStyle {
@@ -48,6 +48,32 @@ struct ToolbarView: View {
     }
 
     var body: some View {
+        bar
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.08))
+            )
+            .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// The scrolling row, with the 「しまう」 button outside it at the right end when asked for (§2.2).
+    @ViewBuilder
+    private var bar: some View {
+        if showsCollapseButton {
+            HStack(spacing: 0) {
+                scrollingRow
+                Divider().frame(height: 24)
+                collapseButton
+                    .padding(.horizontal, 8)
+            }
+        } else {
+            scrollingRow
+        }
+    }
+
+    private var scrollingRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 toolButtons
@@ -65,16 +91,27 @@ struct ToolbarView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08))
-        )
-        .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - Pieces
+
+    /// 「しまう」: the same shape as the tool buttons (symbol 18 pt over a 10 pt label, 56 × 44).
+    /// Never disabled — folding the bar is harmless while read only.
+    private var collapseButton: some View {
+        Button(action: onCollapse) {
+            VStack(spacing: 2) {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 18, weight: .medium))
+                Text(ToolbarLogic.collapseTitle)
+                    .font(.system(size: 10))
+            }
+            .frame(width: 56, height: 44)
+            .foregroundStyle(Color.primary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(ToolbarLogic.collapseAccessibilityLabel)
+    }
 
     private var toolButtons: some View {
         HStack(spacing: 4) {
@@ -86,7 +123,7 @@ struct ToolbarView: View {
         }
     }
 
-    private func toolButton(_ target: Kind, symbol: String, label: String, action: @escaping () -> Void) -> some View {
+    private func toolButton(_ target: ToolKind, symbol: String, label: String, action: @escaping () -> Void) -> some View {
         let selected = kind == target
         return Button(action: action) {
             VStack(spacing: 2) {
@@ -113,7 +150,7 @@ struct ToolbarView: View {
         case .pen:
             HStack(spacing: 6) {
                 ForEach(ToolbarPalette.penColors, id: \.hex) { entry in
-                    swatch(entry, selected: entry.hex == penColorHex) {
+                    swatch(entry, selected: entry.hex == penStyle.colorHex) {
                         penColorHex = entry.hex
                         tool = .ink(penStyle)
                     }
@@ -129,7 +166,7 @@ struct ToolbarView: View {
                 }
             }
         case .eraser:
-            hint("触れた線をまるごと消します")
+            hint(ToolbarLogic.eraserHint(returnsTo: eraserReturnsTo))
         case .lasso:
             hint("囲んで選びます。枠の中をドラッグで動かせます")
         case .eventRect:
@@ -171,7 +208,7 @@ struct ToolbarView: View {
     private var widthButtons: some View {
         HStack(spacing: 4) {
             ForEach(ToolbarPalette.penWidths, id: \.width) { entry in
-                let selected = abs(Double(entry.width) - penWidth) < 0.001
+                let selected = abs(entry.width - penStyle.width) < 0.001
                 Button {
                     penWidth = Double(entry.width)
                     tool = .ink(penStyle)
@@ -231,6 +268,11 @@ struct ToolbarView: View {
 
 /// The toolbar's colours and widths (the web version's, js/ink/render.js and js/ui/toolbar.js).
 enum ToolbarPalette {
+    /// The remembered pen / marker (UserDefaults, per device). `rememberedPen` reads the first two.
+    static let penColorKey = "toolbar.penColor"
+    static let penWidthKey = "toolbar.penWidth"
+    static let markerColorKey = "toolbar.markerColor"
+
     struct Entry: Hashable {
         var hex: String
         var name: String

@@ -183,6 +183,33 @@ public struct YearPageLayout: PageLayout, Equatable, Sendable {
         return target.contains(point) ? .date(day) : nil
     }
 
+    /// Half the height of the day number's tap area in the gutter (56 × 28 lu around the row's middle:
+    /// the number is 22 lu, the weekday frame 28).
+    static let gutterNumberHalfHeight: CGFloat = 14
+
+    /// The day number (1…31) of the left gutter's row under the point (1.1, P-13, M7A_CONTRACT §4.3):
+    /// x and y finite, 0 ≤ x < 56 and `row(atY:)` is a row. With `numberOnly` only the row's middle
+    /// ± 14 lu counts (the number itself; the screen asks for it only with 「指でも書く」 on a large
+    /// screen). nil elsewhere: the date columns, the paper's left margin (x < 0) and outside the paper.
+    public func gutterDay(at point: CGPoint, numberOnly: Bool) -> Int? {
+        guard point.x.isFinite, point.y.isFinite else { return nil }
+        guard point.x >= 0, point.x < PaperSpec.yearGutter else { return nil }
+        guard let row = rows.first(where: { point.y >= $0.frame.minY && point.y < $0.frame.maxY }),
+              (1...PaperSpec.yearRows).contains(row.dayNumber) else { return nil }
+        if numberOnly, abs(point.y - row.frame.midY) > Self.gutterNumberHalfHeight { return nil }
+        return row.dayNumber
+    }
+
+    /// A tap on the gutter's day number → that day of `month` (the screen passes this month, 1…12) in
+    /// this year: `.date(DayKey(year, month, d))`. nil when `gutterDay` is nil, `month` is not 1…12 or
+    /// the day does not exist in that month (11/31, 2/29 of a common year: nothing happens, M7A-3).
+    public func gutterHit(at point: CGPoint, numberOnly: Bool, month: Int) -> HitTarget? {
+        guard (1...PaperSpec.yearColumns).contains(month),
+              let d = gutterDay(at: point, numberOnly: numberOnly) else { return nil }
+        let day = DayKey(year: year, month: month, day: d)
+        return day.isValid ? .date(day) : nil
+    }
+
     /// The date of the cell under a double tap (M4C_CONTRACT §4.3): `cell(at:)` (nil in the
     /// day-number gutter, x < 56, and outside the paper) → (month, day) → `DayKey(year:month:day:)`,
     /// nil when that date does not exist (2/30, 4/31, 2/29 of a common year; `DayKey.isValid`).

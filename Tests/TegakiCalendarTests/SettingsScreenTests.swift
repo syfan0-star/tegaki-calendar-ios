@@ -1,10 +1,13 @@
 import Access
+import InkModel
 import XCTest
 @testable import TegakiCalendar
 
 /// 設定 › 購入 の純関数 (M5_CONTRACT §4.3 / §7.6): the plan line of the eight states, the date label of
 /// the six states that have a date, the numeric date in ja_JP, the purchase button while read only,
 /// and the footer's three branches. M6 (M6_CONTRACT §7.2): the data section's export paragraph.
+/// 1.1 (M7A_CONTRACT §7.2): 「この端末」, the row of the eraser's return to the pen with its footer on an
+/// iPhone and an iPad, and the two stroke-count rows of 情報 with their footer.
 @MainActor
 final class SettingsScreenTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_760_000_000)
@@ -97,7 +100,8 @@ final class SettingsScreenTests: XCTestCase {
             let text = SettingsScreen.purchaseFooter(.readOnly(reason))
             XCTAssertTrue(text.hasPrefix(PlanText.readOnlyNote(reason)), "\(reason): \(text)")
             // M6 (M6_CONTRACT §3.1 / §3.6): 「手書きの書き出し」 joined the list (利用規約 第 5 条 5 項).
-            XCTAssertTrue(text.contains("閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この iPad の手書きを全て消す、手書きの書き出し、設定の変更ができます。"), text)
+            // 1.1 (M7A_CONTRACT §6.1): the row's new name 「この端末の手書きを全て消す」.
+            XCTAssertTrue(text.contains("閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この端末の手書きを全て消す、手書きの書き出し、設定の変更ができます。"), text)
             XCTAssertTrue(text.hasSuffix("新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"), text)
         }
         XCTAssertTrue(SettingsScreen.purchaseFooter(.readOnly(.billingRetry)).contains(PlanText.paymentPath))
@@ -128,6 +132,47 @@ final class SettingsScreenTests: XCTestCase {
         let readOnly = SettingsScreen.purchaseFooter(.readOnly(.notSubscribed))
         XCTAssertTrue(readOnly.contains("手書きの書き出し、設定の変更ができます。"), readOnly)
         XCTAssertFalse(readOnly.contains("手書きの書き出しは"), "not in the 「購読すると使えます」 half")
+    }
+
+    /// 1.1 (M7A_CONTRACT §2.6 / §5.3 / §6.2): 設定 › 入力 「消しゴムで消したらペンに戻る」 and its footer
+    /// (the Apple Pencil sentences only on an iPad), 設定 › 情報 「いちばん線の多いページ」「今年の年の
+    /// ページ」 with their values and the footer, and the Google how-to of both systems.
+    func testInputAndInfoTexts() {
+        XCTAssertEqual(SettingsScreen.eraserAutoReturnTitle, "消しゴムで消したらペンに戻る")
+        let phone = SettingsScreen.eraserAutoReturnFooter(isPad: false)
+        let pad = SettingsScreen.eraserAutoReturnFooter(isPad: true)
+        XCTAssertEqual(phone, "ツールバーで選んだ消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。")
+        XCTAssertEqual(pad, "ツールバーで選んだ消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムは戻りません。")
+        XCTAssertFalse(phone.contains("Apple Pencil"), "an iPhone's settings never speak of the Pencil")
+        XCTAssertFalse(phone.contains("iPad"))
+
+        XCTAssertEqual(SettingsScreen.largestPageTitle, "いちばん線の多いページ")
+        XCTAssertEqual(SettingsScreen.yearPageTitle, "今年の年のページ")
+        XCTAssertEqual(SettingsScreen.infoFooter, "線の数は、この端末に保存されているページを数えたものです（どこにも送りません）。1 ページに書ける線は 19,000 本までです。")
+        // The values (StrokeCensus): counting, nothing, a page.
+        XCTAssertEqual(StrokeCensus.rowText(nil, counting: true), "数えています…")
+        XCTAssertEqual(StrokeCensus.yearRowText(nil, year: 2026, counting: true), "数えています…")
+        XCTAssertEqual(StrokeCensus.rowText(nil, counting: false), "まだ手書きがありません")
+        XCTAssertEqual(StrokeCensus.rowText(StrokeBudget.Entry(pageId: "m1-2026-10", strokes: 3, tombstones: 0), counting: false), "月のページ（2026年10月）・3 本")
+        XCTAssertEqual(StrokeCensus.yearRowText(StrokeBudget.Entry(pageId: "y-2026", strokes: 12, tombstones: 4), year: 2026, counting: false), "年のページ（2026年）・12 本")
+        XCTAssertEqual(StrokeCensus.yearRowText(nil, year: 2026, counting: false), "年のページ（2026年）・0 本")
+
+        // 「この端末」 (§6.1); the Google how-to names the 「設定」 app and both systems.
+        XCTAssertEqual(SettingsScreen.googleHowTo, "Google カレンダーの予定を出すには、「設定」アプリで Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iOS・iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。")
+        XCTAssertTrue(OnboardingView.accountText.hasPrefix("このアプリは、この端末の「カレンダー」に入っている予定を表示します。\n\n"))
+        XCTAssertTrue(OnboardingView.accountText.hasSuffix(SettingsScreen.googleHowTo), "the first card's steps are the settings screen's")
+        XCTAssertTrue(OnboardingView.accessText.hasSuffix("iOS と iPadOS には読み取りだけの許可が無いため、フルアクセスになります。予定はこの端末の中だけで扱い、開発者やほかの誰にも送りません。"))
+        XCTAssertTrue(OnboardingView.penText.hasSuffix("年のページは日付や左端の数字（今月のその日）、月のページは日付の数字を指でタップ、週・月・年のページはマスを指でダブルタップすると、その日のページが開きます。"))
+        XCTAssertTrue(OnboardingView.iCloudText.contains("（この端末でサインインしていれば自動で使われます）"))
+        XCTAssertEqual(AccountChangeDialogModifier.message, "この端末の手書きは、前に同期していた iCloud アカウントのものです。いまサインインしているアカウントで使い始めますか？ 手書きを残すと、新しいアカウントの iCloud に送られます。")
+        XCTAssertEqual(AccountChangeDialogModifier.eraseMessage, "この端末の手書きを全て消して、新しいアカウントで始めます。この操作は元に戻せません。")
+        for text in [SettingsScreen.googleHowTo, SettingsScreen.infoFooter, OnboardingView.accountText, OnboardingView.accessText,
+                     OnboardingView.iCloudText, AccountChangeDialogModifier.message, AccountChangeDialogModifier.eraseMessage] {
+            XCTAssertFalse(text.contains("この iPad"), text)
+        }
+        for reason in reasons {
+            XCTAssertFalse(SettingsScreen.purchaseFooter(.readOnly(reason)).contains("iPad"), "\(reason)")
+        }
     }
 
     /// 設定 › 情報 opens the public pages and Apple's standard EULA (`LegalLinks`, D5 / M5-8).

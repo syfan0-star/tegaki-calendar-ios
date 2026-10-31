@@ -160,6 +160,14 @@ final class InkLedger {
     private(set) var layout: any PageLayout
     /// Written into `InkStroke.dev` of new strokes (the app passes `identifierForVendor`).
     var deviceId: String?
+    /// The id of every stroke the ledger makes: a new stroke (`makeInkStroke`), a moved clone
+    /// (`moveStrokes`) and an undo's clone (`perform`). 1.1 (M7A_CONTRACT §0, §7.2): the tests seed it
+    /// (`testLedgerWritesTheCompatShapes`); the default is a fresh lower-case UUID, as before.
+    var makeId: () -> String = { InkStroke.newId() }
+    /// "Now" in ms since the epoch for tombstones, moved clones' `t` and the fallback `t` of a new
+    /// stroke (`applyCanvasChange`, `moveStrokes`, `perform`, `removeStrokes`). The tests pin it; the
+    /// default is the wall clock, as before.
+    var nowMs: () -> Int = { InkLedger.wallClockMs() }
 
     /// Fingerprint → stroke id for every stroke that is currently *in the canvas drawing*.
     private var fingerprintToId: [StrokeFingerprint: String] = [:]
@@ -260,6 +268,19 @@ final class InkLedger {
         return drawing()
     }
 
+    /// 1.1 (M7A_CONTRACT §3.6): takes `layout` without building a drawing, for a layout in which only
+    /// the height of the page's last cell changed (`PaperGrowth.onlyTailHeightChanged`). Every cell
+    /// keeps its origin, so the strokes' transforms and the fingerprint map stay valid; the new layout
+    /// is still needed for `needsMoreRoom`, `inkCell` and `moveStrokes`. A layout of another page is
+    /// ignored (reported through `onPageMismatch`, like `relayout`).
+    func adopt(_ layout: any PageLayout) {
+        guard layout.pageId == page.pageId else {
+            Self.onPageMismatch("InkLedger.adopt: layout \(layout.pageId) does not belong to page \(page.pageId)")
+            return
+        }
+        self.layout = layout
+    }
+
     // MARK: PKDrawing → ledger
 
     /// Diffs the canvas against the map. New strokes get a UUID and a cell (the layout's
@@ -269,7 +290,7 @@ final class InkLedger {
         var seen = Set<StrokeFingerprint>()
         var added: [InkStroke] = []
         var addedFingerprints: [(StrokeFingerprint, String)] = []
-        let now = Self.nowMs()
+        let now = nowMs()
         for pk in drawing.strokes {
             let fp = StrokeGeometry.fingerprint(of: pk)
             if fingerprintToId[fp] != nil {
@@ -317,11 +338,13 @@ final class InkLedger {
 
     /// True when the stroke's bottom needs more room than its cell currently has (the cell must
     /// grow). Always false for a cell that does not grow with ink (the week / day time grid, contract
-    /// §1.10): writing there never triggers a relayout.
+    /// §1.10): writing there never triggers a relayout. 1.1 (M7A_CONTRACT 0-2): the rule is
+    /// `PaperGrowth.needsMoreRoom`, the same function the layout engines grow the cells with — the
+    /// page's last cell (the month's memo area, the day's free memo area below 24:00) by
+    /// `PaperGrowth.tailHeight` (400 lu steps), the other cells by `bottom + 12`.
     func needsMoreRoom(_ stroke: InkStroke) -> Bool {
         guard layout.growsWithInk(stroke.cell), let cell = layout.cells[stroke.cell] else { return false }
-        let pad = stroke.cell.isMemo ? PaperSpec.memoInkPad : PaperSpec.inkPad
-        return stroke.bottom + pad > cell.height
+        return PaperGrowth.needsMoreRoom(cell: stroke.cell, cellHeight: cell.height, inkBottom: stroke.bottom)
     }
 
     // MARK: History
@@ -346,6 +369,33 @@ final class InkLedger {
         return drawing()
     }
 
+    /// 1.1 (M7A_CONTRACT §2.4, 0-22): undoes what one touch of the eraser erased, and nothing else.
+    /// Only when the newest undo op puts back exactly the strokes `ids` (an `.add` of them, what
+    /// `applyCanvasChange` pushes for an erasure) — or, when PencilKit reported that touch's erasure
+    /// in several changes, when the newest ops are all such `.add`s and together put back exactly
+    /// `ids`. Then those ops are undone like ↶ (the strokes come back as clones with new ids,
+    /// `perform`) and the rebuilt drawing is returned. nil (nothing changes) for empty `ids` or when
+    /// the top of the stack is any other op: a stroke drawn, a move, a deletion of other strokes.
+    func undoIfTopRestores(ids: Set<String>) -> PKDrawing? {
+        guard !ids.isEmpty else { return nil }
+        var remaining = ids
+        var count = 0
+        for op in undoStack.reversed() {
+            guard case .add(let strokes) = op else { break }
+            let opIds = Set(strokes.map { $0.id })
+            guard !opIds.isEmpty, opIds.isSubset(of: remaining) else { break }
+            remaining.subtract(opIds)
+            count += 1
+            if remaining.isEmpty { break }
+        }
+        guard remaining.isEmpty, count > 0 else { return nil }
+        var rebuilt: PKDrawing?
+        for _ in 0..<count {
+            rebuilt = undo()
+        }
+        return rebuilt
+    }
+
     private func push(undo op: InkOp) {
         undoStack.append(op)
         Self.trim(&undoStack)
@@ -361,14 +411,14 @@ final class InkLedger {
     /// (nil when nothing changed). Re-adding a stroke whose id is tombstoned or still live adds a
     /// clone with a fresh id instead.
     private func perform(_ op: InkOp) -> InkOp? {
-        let now = Self.nowMs()
+        let now = nowMs()
         switch op {
         case .add(let strokes):
             var actuallyAdded: [InkStroke] = []
             for var s in strokes {
                 guard !s.points.isEmpty else { continue }
                 if page.deleted[s.id] != nil || page.strokes[s.id] != nil {
-                    s.id = InkStroke.newId()
+                    s.id = makeId()
                 }
                 page.add(s)
                 if page.strokes[s.id] != nil { actuallyAdded.append(s) }
@@ -428,7 +478,7 @@ final class InkLedger {
         let present = strokes(ids: ids)
         guard !present.isEmpty else { return InkChange(added: [], removedIds: []) }
         let removedIds = present.map { $0.id }
-        page.remove(ids: removedIds, at: Self.nowMs())
+        page.remove(ids: removedIds, at: nowMs())
         forget(ids: removedIds)
         push(undo: .add(present))
         redoStack.removeAll()
@@ -446,7 +496,7 @@ final class InkLedger {
         guard delta.dx.isFinite, delta.dy.isFinite, delta.dx != 0 || delta.dy != 0 else { return nothing }
         let originals = strokes(ids: ids)
         guard !originals.isEmpty else { return nothing }
-        let now = Self.nowMs()
+        let now = nowMs()
         var clones: [InkStroke] = []
         clones.reserveCapacity(originals.count)
         for s in originals {
@@ -457,7 +507,7 @@ final class InkLedger {
             let moved = bounds.offsetBy(dx: delta.dx, dy: delta.dy)
             let newCell = layout.inkCell(forCenter: CGPoint(x: moved.midX, y: moved.midY))
             let newOrigin = layout.cells[newCell]?.origin ?? .zero
-            clones.append(s.translated(by: delta, from: origin, to: newCell, newCellOrigin: newOrigin, at: now))
+            clones.append(s.translated(by: delta, from: origin, to: newCell, newCellOrigin: newOrigin, id: makeId(), at: now))
         }
         let removedIds = originals.map { $0.id }
         page.remove(ids: removedIds, at: now)
@@ -496,7 +546,7 @@ final class InkLedger {
         // `t` doubles as the creation date of the rebuilt path (`InkStroke.inkStart` derives from it).
         let t = Int((pk.path.creationDate.timeIntervalSince1970 * 1000).rounded())
         return InkStroke(
-            id: InkStroke.newId(),
+            id: makeId(),
             cell: cell,
             tool: tool,
             color: color,
@@ -506,7 +556,8 @@ final class InkLedger {
         )
     }
 
-    private static func nowMs() -> Int {
+    /// The wall clock in ms since the epoch (the default of `nowMs`).
+    nonisolated static func wallClockMs() -> Int {
         Int((Date().timeIntervalSince1970 * 1000).rounded())
     }
 }

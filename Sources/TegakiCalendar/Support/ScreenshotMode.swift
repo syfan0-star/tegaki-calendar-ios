@@ -23,11 +23,66 @@ import Layout
 /// (trial-eligible sample); `--screenshot-readonly` starts the store as `.readOnly(.notSubscribed)` (badge, 20 s toast).
 /// Export (M6_CONTRACT §3.5, 0-6): `--screenshot-sheet export` opens `ExportSheet` in its `.choose`
 /// state on the month page (the two buttons and their notes; nothing is written).
+/// 1.1 (M7A_CONTRACT §7.3): `--screenshot-toolbar collapsed|collapsed-right` starts with the toolbar
+/// folded into the dock button (bottom left / right), `--screenshot-tool eraser|marker|lasso|event`
+/// starts with that tool (the eraser as the toolbar's, so its note shows the return to the pen),
+/// `--screenshot-grown` adds two strokes that grow the month's memo area and the day's free memo
+/// area below 24:00, and `--screenshot-sheet info` opens the settings at 「情報」 (the stroke counts of
+/// `StrokeCensus.demo(year:)`). The toolbar, eraser and notice memories are never read or written.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
-    /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`).
+    /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`).
     enum Sheet: String, CaseIterable, Sendable {
-        case create, edit, lasso, settings, sync, `import`, paywall, export
+        case create, edit, lasso, settings, sync, `import`, paywall, export, info
+    }
+
+    /// `--screenshot-toolbar` (1.1, §7.3): the toolbar starts collapsed, its dock button in the bottom
+    /// left (`collapsed`) or the bottom right (`collapsed-right`). nil (no value or an unknown one) =
+    /// the expanded bar, as before.
+    enum ToolbarShot: String, Equatable, Sendable, CaseIterable {
+        case collapsed
+        case collapsedRight = "collapsed-right"
+
+        /// The state the screen starts in (`ToolbarMode.collapsed` for both).
+        var mode: ToolbarMode { .collapsed }
+
+        /// The corner of the dock button.
+        var edge: ToolbarEdge {
+            switch self {
+            case .collapsed: return .leading
+            case .collapsedRight: return .trailing
+            }
+        }
+    }
+
+    /// `--screenshot-tool` (1.1, §7.3): the tool the screen starts with. nil (no value or an unknown
+    /// one) = the default pen. `--screenshot-sheet lasso` wins (it needs the lasso; `parse` then
+    /// reports `.lasso` here).
+    enum ToolShot: String, Equatable, Sendable, CaseIterable {
+        case eraser, marker, lasso, event
+
+        /// The canvas tool: the eraser, the default marker (黄), the lasso, the 予定 tool.
+        var canvasTool: CanvasTool {
+            switch self {
+            case .eraser: return .eraser
+            case .marker: return .ink(InkPresets.defaultMarker)
+            case .lasso: return .lasso
+            case .event: return .eventRect
+            }
+        }
+
+        /// The eraser starts as the toolbar's (`EraserOrigin.toolbar`), so the toolbar's note shows
+        /// 「（消すとペンに戻ります）」; nil for the other tools.
+        var eraserOrigin: EraserOrigin? {
+            self == .eraser ? .toolbar : nil
+        }
+    }
+
+    /// The tool a screenshot starts with (§7.3): the lasso for the `lasso` sheet, else `config.tool`'s,
+    /// else the default pen (黒・中; the remembered pen is never read in screenshot mode).
+    static func startTool(_ config: Config) -> CanvasTool {
+        if config.sheet == .lasso { return .lasso }
+        return config.tool?.canvasTool ?? .ink(ToolbarPalette.defaultPen)
     }
 
     struct Config: Equatable, Sendable {
@@ -53,6 +108,13 @@ enum ScreenshotMode {
         /// `StoreModel.screenshotDemo(access: .readOnly(.notSubscribed))` (`CalendarRootScreen` passes
         /// this to `StoreModel.make(screenshotReadOnly:)`, M5-34). Combines with a sheet.
         var readOnly: Bool = false
+        /// `--screenshot-toolbar` (1.1, §7.3): nil = the expanded bar.
+        var toolbar: ToolbarShot? = nil
+        /// `--screenshot-tool` (1.1, §7.3): nil = the default pen; `.lasso` with the `lasso` sheet.
+        var tool: ToolShot? = nil
+        /// `--screenshot-grown` (1.1, §7.3): the demo pages carry the two strokes that grow the memo
+        /// area of the month and the free memo area of the day (`demoPage(kind:focus:grown:)`).
+        var grown: Bool = false
     }
 
     /// Parsed once from the launch arguments; nil in normal use.
@@ -91,7 +153,19 @@ enum ScreenshotMode {
         }
         // M5: the read-only sample (M5_CONTRACT §7.5).
         let readOnly = arguments.contains("--screenshot-readonly")
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly)
+        // 1.1 (§7.3): the folded toolbar, the first tool, the grown demo pages. Unknown values → nil.
+        var toolbar: ToolbarShot?
+        if let index = arguments.firstIndex(of: "--screenshot-toolbar"), index + 1 < arguments.count {
+            toolbar = ToolbarShot(rawValue: arguments[index + 1])
+        }
+        var tool: ToolShot?
+        if let index = arguments.firstIndex(of: "--screenshot-tool"), index + 1 < arguments.count {
+            tool = ToolShot(rawValue: arguments[index + 1])
+        }
+        // The lasso sheet needs the lasso (its preselected stroke keeps its frame): it wins.
+        if sheet == .lasso { tool = .lasso }
+        let grown = arguments.contains("--screenshot-grown")
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown)
     }
 
     /// "2" → 2; nil unless the text is a finite positive number ("abc", "0", "-1", "inf" are nil).
@@ -268,26 +342,37 @@ enum ScreenshotMode {
 
     /// A few strokes for the page `kind` opened on `focus` (contract §7), so PencilKit's rendering
     /// path and the cell anchoring of every page are exercised. Points are cell-relative lu, as in a
-    /// stored page.
-    static func demoPage(kind: PageKind, focus: DayKey) -> InkPage {
+    /// stored page. `grown` (1.1, M7A_CONTRACT §7.3; by default `--screenshot-grown` of the running
+    /// screenshot mode, so false in normal use and in the tests) adds one stroke deep in the month's
+    /// memo area and one in the day's free memo area below 24:00; without it the pages are exactly
+    /// those of 1.0.1 (the paper of the photos does not change).
+    static func demoPage(kind: PageKind, focus: DayKey, grown: Bool = ScreenshotMode.current?.grown ?? false) -> InkPage {
         switch kind {
         case .month:
-            return demoPage(for: YearMonth(year: focus.year, month: focus.month))
+            return demoPage(for: YearMonth(year: focus.year, month: focus.month), grown: grown)
         case .week:
             return weekDemoPage(focus: focus)
         case .day:
-            return dayDemoPage(focus: focus)
+            return dayDemoPage(focus: focus, grown: grown)
         case .year:
             return yearDemoPage(focus: focus)
         }
     }
 
+    /// The id of the `grown` month stroke: a red wave deep in the memo area (its bottom ≈ 1,009 lu,
+    /// so the memo area is 1,500 lu high, `PaperGrowth.tailHeight`).
+    static let grownMemoStrokeId = "demo-stroke-memo-deep"
+    /// The id of the `grown` day stroke: a black wave in the free memo area below 24:00 (`extra`,
+    /// its bottom ≈ 309 lu, so the area is 1,100 lu high).
+    static let grownDayStrokeId = "demo-stroke-day-extra"
+
     /// A fixed ms epoch; each stroke gets its own `t`.
     private static let baseTime = 1_760_000_000_000
 
     /// The month page with three strokes: a wavy pen stroke in the cell of the 14th, a marker line
-    /// over the 「+3件」 chip of the 20th, and a dot in the memo area.
-    static func demoPage(for month: YearMonth) -> InkPage {
+    /// over the 「+3件」 chip of the 20th, and a dot in the memo area. `grown` adds a fourth, a red wave
+    /// deep in the memo area (`grownMemoStrokeId`).
+    static func demoPage(for month: YearMonth, grown: Bool = false) -> InkPage {
         var page = InkPage.empty(pageId: month.inkPageId)
 
         // 1. Pen, wavy, 36 points across the 14th (y ≈ 141…159, below the chip area of that row).
@@ -301,6 +386,12 @@ enum ScreenshotMode {
         // 3. A dot (a tiny loop) in the memo area, red, 太 nib.
         page.add(InkStroke(id: "demo-stroke-dot", cell: .memo, tool: .pen, color: "#dc2626", t: baseTime + 2_000,
                            points: circle(cx: 80, cy: 60, radius: 1.5, count: 8, nib: 6)))
+
+        // 4. `--screenshot-grown` (1.1): red, 40 points from (60, 1000), ±7 → bottom 1007 + 1.75.
+        if grown {
+            page.add(InkStroke(id: grownMemoStrokeId, cell: .memo, tool: .pen, color: "#dc2626", t: baseTime + 3_000,
+                               points: wave(x0: 60, y0: 1_000, count: 40, step: 6.5, amplitude: 7)))
+        }
 
         return page
     }
@@ -324,8 +415,9 @@ enum ScreenshotMode {
 
     /// Day: a pen circle at the top of the memo column (grid (800, 30): where the M3a–M4 band
     /// stroke lands after `BandMigration`, M4B contract §2.7) and two wavy pen lines lower in the
-    /// memo area (x ≥ 660).
-    private static func dayDemoPage(focus: DayKey) -> InkPage {
+    /// memo area (x ≥ 660). `grown` adds a black wave in the free memo area below 24:00
+    /// (`grownDayStrokeId`, cell `extra`).
+    private static func dayDemoPage(focus: DayKey, grown: Bool) -> InkPage {
         var page = InkPage.empty(pageId: PageNavigation.pageId(.day, focus: focus))
         page.add(InkStroke(id: "demo-stroke-day-circle", cell: .grid, tool: .pen, color: "#2563eb", t: baseTime,
                            points: circle(cx: 800, cy: 30, radius: 14, count: 24, nib: 3.5)))
@@ -334,6 +426,11 @@ enum ScreenshotMode {
                            points: wave(x0: memoLeft, y0: 120, count: 40, step: 6.5, amplitude: 7)))
         page.add(InkStroke(id: "demo-stroke-day-wave2", cell: .grid, tool: .pen, color: "#1f2937", t: baseTime + 2_000,
                            points: wave(x0: memoLeft, y0: 180, count: 40, step: 6.5, amplitude: 7)))
+        // `--screenshot-grown` (1.1): 40 points from (30, 300) of `extra` (paper y 2,700), ±7.
+        if grown {
+            page.add(InkStroke(id: grownDayStrokeId, cell: .extra, tool: .pen, color: "#1f2937", t: baseTime + 3_000,
+                               points: wave(x0: 30, y0: 300, count: 40, step: 6.5, amplitude: 7)))
+        }
         return page
     }
 

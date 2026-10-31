@@ -534,7 +534,7 @@ PencilKit は「紙全体にひとつの絵」を扱う部品で、「行が伸�
 - タイミング: 初回案内の 3 枚目（§2.10）で説明してから、本人がボタンを押したときに `EKEventStore.requestFullAccessToEvents()`。起動直後にいきなり出しません。
 - 状態は `EKEventStore.authorizationStatus(for: .event)`。`.fullAccess` 以外（`.denied` `.restricted` `.writeOnly`）なら、紙は手書き専用で使え、ヘッダーに「予定を表示するには設定でカレンダーを許可」のバナー（「設定を開く」で `UIApplication.openSettingsURLString`）。
 - Info.plist の目的文（`NSCalendarsFullAccessUsageDescription`）:
-  「カレンダーの予定を手帳のページに表示し、手書きから予定を作るために使います。iPadOS には読み取りだけの許可が無いため、フルアクセスをお願いしています。予定は iPad の中だけで扱い、外部には送りません。」
+  「カレンダーの予定を手帳のページに表示し、手書きから予定を作るために使います。iOS と iPadOS には読み取りだけの許可が無いため、フルアクセスをお願いしています。予定はこの端末の中だけで扱い、外部には送りません。」
 - 書き込み専用の許可（`.writeOnly`）は求めません（表示ができないので意味がない）。
 
 ### 4.2 変更の購読

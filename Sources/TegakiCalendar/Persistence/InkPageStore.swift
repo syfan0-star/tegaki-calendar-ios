@@ -93,7 +93,7 @@ struct InkPageStore: Sendable {
         try FileManager.default.removeItem(at: fileURL)
     }
 
-    /// 「この iPad の手書きを全て消す」 (M3b contract §4.8): deletes every page file (`*.json.lzfse`) and
+    /// 「この端末の手書きを全て消す」 (M3b contract §4.8; 「この iPad の…」 until 1.0.1): deletes every page file (`*.json.lzfse`) and
     /// every backup (`*.bak`) in `directory`. Other files and the directory itself stay. A missing
     /// directory is nothing to do.
     func removeAll() throws {
@@ -122,5 +122,46 @@ struct InkPageStore: Sendable {
         } catch {
             // Leave the broken file where it is rather than deleting it; the next load tries again.
         }
+    }
+}
+
+// MARK: - Counting without reading (1.1, M7A_CONTRACT §5.3, 0-17)
+
+extension InkPageStore {
+    /// What `peek(_:)` found in a page file: the ids of its strokes that carry no tombstone (strokes
+    /// of every tool, also those this version does not know) and the number of tombstones.
+    struct Peek: Equatable, Sendable {
+        var strokeIds: Set<String>
+        var tombstones: Int
+    }
+
+    /// Reads the page file of `pageId` (the same file as `load`), decompresses it, parses the JSON and
+    /// collects the keys of `strokes` (for the list form of `strokes`, the `id` of each element) that
+    /// are not keys of `deleted`, and counts the keys of `deleted`. No `InkPage` is built, so nothing
+    /// is cut at the read cap (`InkPage.maxStrokes`): the numbers are those of the file.
+    ///
+    /// Only reads: a missing file, one that cannot be read, decompressed or parsed, or JSON that is
+    /// not an object gives nil, and the file stays where it is — it is never moved to `.bak` (`load`'s
+    /// `moveAside` is not on this path), never rewritten, never removed. Counting must not touch a
+    /// file that is being saved or that the person needs. `load` and `save` are unchanged.
+    func peek(_ pageId: String) -> Peek? {
+        let fileURL = url(for: pageId)
+        guard let compressed = try? Data(contentsOf: fileURL),
+              let data = try? InkPageCodec.decompress(compressed),
+              let json = try? JSONValue.parse(data),
+              let object = json.objectValue else {
+            return nil
+        }
+        let deleted: Set<String> = object["deleted"]?.objectValue.map { Set($0.keys) } ?? []
+        var ids = Set<String>()
+        if let strokes = object["strokes"]?.objectValue {
+            ids = Set(strokes.keys)
+        } else if let list = object["strokes"]?.arrayValue {
+            for item in list {
+                if let id = item["id"]?.stringValue { ids.insert(id) }
+            }
+        }
+        ids.subtract(deleted)
+        return Peek(strokeIds: ids, tombstones: deleted.count)
     }
 }

@@ -154,6 +154,21 @@ public struct MonthPageLayout: Equatable, Sendable {
         return nil
     }
 
+    /// The screen's finger tap (1.1, M7A_CONTRACT §4.2): `hit(at:)` first (chips, then bars, then the
+    /// 192 × 24 date frame), then the date area of the day under the point — from the cell's top-left
+    /// corner, the cell's width (200) × `min(cell height, max(28, minTarget))` (`minTarget` = 44 pt ÷
+    /// zoom). A day outside the month counts (`dayAt(point:)`); nil in the memo area, outside the paper,
+    /// below the date area and when `minTarget` is not finite or not positive.
+    public func hit(at point: CGPoint, minTarget: CGFloat) -> HitTarget? {
+        if let hit = hit(at: point) { return hit }
+        guard minTarget.isFinite, minTarget > 0,
+              let day = dayAt(point: point),
+              let cell = cells[.day(day)] else { return nil }
+        let target = CGRect(x: cell.minX, y: cell.minY, width: cell.width,
+                            height: min(cell.height, max(PaperSpec.monthDateHeader, minTarget)))
+        return target.contains(point) ? .date(day) : nil
+    }
+
     /// Row index containing paper y, or nil (memo area / outside).
     public func rowIndex(atY y: CGFloat) -> Int? {
         rows.first(where: { y >= $0.frame.minY && y < $0.frame.maxY })?.index

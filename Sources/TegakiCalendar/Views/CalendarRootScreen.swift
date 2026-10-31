@@ -100,6 +100,24 @@ enum GatedAction: Equatable, CaseIterable {
 /// the paywall also opens after the onboarding once the first refresh confirmed there is no
 /// subscription (`scheduleFirstLaunchPaywall`, M5-33), from 設定 › 購入 and from the badge. Every
 /// return to the foreground refreshes the store (M5-9).
+///
+/// 1.1 (docs/M7A_CONTRACT.md §2.7, §3.7, §4.5, §5.2):
+/// - The app starts with the remembered pen (`ToolbarPalette.rememberedPen`, 0-13).
+/// - The toolbar has three states (`toolbarMode`, `ToolbarLogic`):
+///   - `expanded`: the bar in the bottom safe-area inset, with 「しまう」.
+///   - `collapsed`: the round `ToolbarDock` in a bottom corner, laid over the paper.
+///   - `peek`: the bar laid over the paper; a pen-down folds it again.
+///   The inset modifier always stays; only its content and `spacing` follow the state (the canvas
+///   keeps its identity). While the dock shows, the canvas keeps 60 pt free at the bottom and the
+///   toasts sit above the dock.
+/// - The toolbar's eraser returns to the last pen or marker after it erased (`eraseEnded`,
+///   `ToolbarLogic.toolAfterErase`).
+/// - A finger's single tap follows `DateTap.target` with 「指でも書く」 and this month; the year's
+///   gutter numbers open this month's day.
+/// - 24:00 and below on the day page refuses a new event (`newEventPlan`).
+/// - The canvas's stroke budget and the memo area's limit become toasts: once per page per device,
+///   at most every 2 s, once per opened page.
+/// - An import that takes a page past 20,000 strokes asks first (`WebImportPhase.confirmLarge`).
 struct CalendarRootScreen: View {
     @StateObject private var model = EventStoreModel()
     /// The sync engine (M4 contract §5.3): the one store of the pages, and the ☁ state.
@@ -118,8 +136,12 @@ struct CalendarRootScreen: View {
     /// The instant the layout was last computed for (fixed in screenshot mode).
     @State private var now: Date
     @State private var tool: CanvasTool
-    /// The last pen / marker, so the Pencil's double tap can go back to it from the eraser.
-    @State private var lastInkTool: CanvasTool = .ink(ToolbarPalette.defaultPen)
+    /// The last pen / marker, so the Pencil's double tap can go back to it from the eraser (and, in
+    /// 1.1, the toolbar's eraser after it erased). Set in `init`: the remembered pen (0-13).
+    @State private var lastInkTool: CanvasTool
+    /// 1.1 (§2.4): where the current eraser came from — the toolbar's returns to `lastInkTool` after
+    /// it erased, the Pencil's does not. nil until an eraser is chosen.
+    @State private var eraserOrigin: EraserOrigin?
     @State private var undoTrigger = 0
     @State private var redoTrigger = 0
     @State private var canUndo = false
@@ -129,6 +151,22 @@ struct CalendarRootScreen: View {
     @AppStorage(AppSettings.allowFingerChosenKey) private var allowFingerChosen = false
     @AppStorage(AppSettings.onboardingDoneKey) private var onboardingDone = false
     @State private var showOnboarding = false
+
+    // 1.1 (M7A_CONTRACT §2.3 / §2.7): the toolbar's state and its memories (per device; never read
+    // or written in screenshot mode, where `--screenshot-toolbar` decides).
+    @AppStorage(AppSettings.toolbarCollapsedKey) private var toolbarCollapsedStored = false
+    @AppStorage(AppSettings.toolbarEdgeKey) private var toolbarEdgeRaw = ToolbarEdge.leading.rawValue
+    /// 設定 › 入力 「消しゴムで消したらペンに戻る」 (the same key as the settings, so a change applies at once).
+    @AppStorage(AppSettings.eraserAutoReturnKey) private var eraserAutoReturn = true
+    /// expanded / collapsed / peek (§2.1). Set in `init` from the stored `toolbar.collapsed`.
+    @State private var toolbarMode: ToolbarMode
+    /// Screenshot mode's corner of the dock button (`--screenshot-toolbar collapsed-right`); nil in
+    /// normal use, where `toolbarEdgeRaw` decides.
+    @State private var screenshotEdge: ToolbarEdge?
+    /// The page whose 「メモ欄はここまでです」 was shown while it is open (§3.4); nil after a page change.
+    @State private var capNoticedPageId: String?
+    /// The last 「このページはいっぱいです」 toast (at most every 2 s, like `lastBlockedInputAt`).
+    @State private var lastBudgetFullAt: Date?
 
     // M3b: selection, sheets, commands, toast.
     @State private var selection: InkSelection?
@@ -150,6 +188,8 @@ struct CalendarRootScreen: View {
     @State private var exportPhase: ExportPhase?
     /// The running export (`runExport`); cancelled if the sheet is closed while building.
     @State private var exportTask: Task<Void, Never>?
+    /// 1.1 (§5.2): the file that was read while the sheet asks about its large pages (`confirmLarge`).
+    @State private var pendingImport: InkImport.Outcome?
     @State private var showAccountChange = false
     /// The account question arrived while a sheet was up: ask once the sheet has closed.
     @State private var accountChangePending = false
@@ -209,6 +249,56 @@ struct CalendarRootScreen: View {
     /// The screenshot mode's read-only toast stays this long so it is in the photo (§7.5, M5-24).
     static let screenshotReadOnlyToastDuration: TimeInterval = 20
 
+    // 1.1 (M7A_CONTRACT §6.2): the four new toasts.
+    /// A new stroke was dropped below the last cell's limit, or reached its last step (§3.4; 3 s, once
+    /// while the page is open).
+    static let growthCapToast = "メモ欄はここまでです"
+    /// The 予定 tool or 「予定にする」 below 24:00 on the day page (§3.7, 0-4; 3 s).
+    static let eventBelowDayToast = "24 時の下の自由メモ欄では予定を作れません"
+    /// The page reached 15,000 strokes (§5.2; 6 s, not an error, once per page on this device).
+    static let strokeBudgetManyToast = "このページに書いた線が 15,000 本を超えました。1 ページに書ける線は 19,000 本までです。"
+    /// New strokes were refused at 19,000 (§5.2; an error toast, 6 s, at most every 2 s).
+    static let strokeBudgetFullToast = "このページはいっぱいです（線 19,000 本）。線を消すと、また書けます。"
+    /// How long the 15,000-stroke notice stays (the error toasts' 6 s, without the error colour).
+    static let strokeBudgetNoticeDuration: TimeInterval = 6
+
+    /// The tool, the last ink, the toolbar's state and the eraser's origin the screen starts with
+    /// (1.1, M7A_CONTRACT §2.3 / §2.7 / §7.3).
+    struct StartState: Equatable {
+        var tool: CanvasTool
+        var lastInkTool: CanvasTool
+        var toolbarMode: ToolbarMode
+        var eraserOrigin: EraserOrigin?
+        /// The dock's corner in screenshot mode; nil in normal use (the stored corner decides).
+        var screenshotEdge: ToolbarEdge?
+    }
+
+    /// Normal use (0-13): the remembered pen (also the last ink, so the Pencil's double tap and the
+    /// eraser go back to it) and the stored `toolbar.collapsed` (a peek is never stored).
+    static func startState(collapsedStored: Bool, rememberedPen: InkStyle) -> StartState {
+        StartState(
+            tool: .ink(rememberedPen),
+            lastInkTool: .ink(rememberedPen),
+            toolbarMode: ToolbarLogic.startMode(collapsedStored: collapsedStored),
+            eraserOrigin: nil,
+            screenshotEdge: nil
+        )
+    }
+
+    /// Screenshot mode (§7.3): `ScreenshotMode.startTool` (the lasso sheet's lasso, `--screenshot-tool`,
+    /// else the default pen), the default pen as the last ink (the remembered pen is never read), the
+    /// eraser as the toolbar's (its note shows the return to the pen), and `--screenshot-toolbar`
+    /// (collapsed bottom left / right; nil = expanded).
+    static func startState(shot: ScreenshotMode.Config) -> StartState {
+        StartState(
+            tool: ScreenshotMode.startTool(shot),
+            lastInkTool: .ink(ToolbarPalette.defaultPen),
+            toolbarMode: shot.toolbar?.mode ?? .expanded,
+            eraserOrigin: shot.tool?.eraserOrigin,
+            screenshotEdge: shot.toolbar?.edge ?? .leading
+        )
+    }
+
     init() {
         let shot = ScreenshotMode.current
         let startNow = shot?.today ?? Date()
@@ -228,10 +318,25 @@ struct CalendarRootScreen: View {
         _kind = State(initialValue: startKind)
         _focus = State(initialValue: startFocus)
         _now = State(initialValue: startNow)
-        // The lasso screenshot starts with the lasso tool so the preselected strokes keep their frame.
-        _tool = State(initialValue: shot?.sheet == .lasso ? .lasso : .ink(ToolbarPalette.defaultPen))
-        _page = State(initialValue: InkPage.empty(pageId: PageNavigation.pageId(startKind, focus: startFocus)))
-        _paper = State(initialValue: Self.makePaper(kind: startKind, focus: startFocus, events: [], inkBottoms: [:], now: startNow))
+        // 1.1 (0-13, §2.7): the remembered pen and the stored toolbar state. `@AppStorage` cannot be read
+        // before every stored property is set, so `AppSettings` reads `UserDefaults.standard` directly.
+        // Screenshot mode reads neither (the lasso screenshot keeps starting with the lasso, so the
+        // preselected strokes keep their frame).
+        let start = shot.map { Self.startState(shot: $0) }
+            ?? Self.startState(collapsedStored: AppSettings.toolbarCollapsed, rememberedPen: ToolbarPalette.rememberedPen(.standard))
+        _tool = State(initialValue: start.tool)
+        _lastInkTool = State(initialValue: start.lastInkTool)
+        _toolbarMode = State(initialValue: start.toolbarMode)
+        _eraserOrigin = State(initialValue: start.eraserOrigin)
+        _screenshotEdge = State(initialValue: start.screenshotEdge)
+        // 1.1 (§7.3): screenshot mode starts from its demo page (`--screenshot-grown` included), so the
+        // first layout is already the grown paper and `--screenshot-offset` is clamped to it. `show()`
+        // loads the same page again (nothing changes, nothing is dirty).
+        let startPage = shot != nil
+            ? ScreenshotMode.demoPage(kind: startKind, focus: startFocus)
+            : InkPage.empty(pageId: PageNavigation.pageId(startKind, focus: startFocus))
+        _page = State(initialValue: startPage)
+        _paper = State(initialValue: Self.makePaper(kind: startKind, focus: startFocus, events: [], inkBottoms: startPage.inkBottoms(), now: startNow))
     }
 
     private var pageId: String { PageNavigation.pageId(kind, focus: focus) }
@@ -297,12 +402,44 @@ struct CalendarRootScreen: View {
         return area - metrics.visibleHeight
     }
 
-    /// Writes `paperArea` for the band-and-canvas area `size` (only when it changed).
+    /// Writes `paperArea` for the band-and-canvas area `size` (only when it changed). 1.1 (§2.2): in
+    /// screenshot mode the change is logged with the window's safe area and the toolbar's state, so the
+    /// CI's log shows the folded toolbar's paper area next to the expanded one.
     private func updatePaperArea(_ size: CGSize) {
         let next = CGSize(width: size.width, height: Self.paperAreaHeight(area: size.height, band: paper.allDayBand, kind: kind))
         if next != paperArea {
             paperArea = next
+            logToolbarArea(next)
         }
+    }
+
+    /// Screenshot mode's `toolbar: safeArea=` and `toolbar: paperArea=` lines (§2.2). Also written once
+    /// a second after the screen appeared (`appear`): at the first `onAppear` the window scene may not
+    /// be connected yet, and its safe area would read zero.
+    private func logToolbarArea(_ area: CGSize) {
+        guard ScreenshotMode.isActive else { return }
+        NSLog("%@", Self.safeAreaLogLine(Self.windowSafeArea()))
+        NSLog("%@", Self.paperAreaLogLine(area, mode: toolbarMode))
+    }
+
+    /// 「toolbar: safeArea=<上>,<左>,<下>,<右>」 (pt, two decimals; §2.2).
+    static func safeAreaLogLine(_ insets: UIEdgeInsets) -> String {
+        "toolbar: safeArea=" + [insets.top, insets.left, insets.bottom, insets.right].map(logNumber).joined(separator: ",")
+    }
+
+    /// 「toolbar: paperArea=<幅>x<高さ> mode=<expanded|collapsed|peek>」 (pt, two decimals; §2.2).
+    static func paperAreaLogLine(_ size: CGSize, mode: ToolbarMode) -> String {
+        "toolbar: paperArea=\(logNumber(size.width))x\(logNumber(size.height)) mode=\(mode.rawValue)"
+    }
+
+    private static func logNumber(_ value: CGFloat) -> String {
+        String(format: "%.2f", Double(value))
+    }
+
+    /// The device's safe area (the window's, without the toolbar's inset); zero before a window exists.
+    private static func windowSafeArea() -> UIEdgeInsets {
+        let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
+        return (windows.first(where: \.isKeyWindow) ?? windows.first)?.safeAreaInsets ?? .zero
     }
 
     /// True while any sheet or cover is up (the account question waits for them; M4 contract §6.4).
@@ -313,6 +450,26 @@ struct CalendarRootScreen: View {
     /// M5 (M5_CONTRACT §3.1): the access state and whether the app is read only.
     private var access: AccessState { store.snapshot.access }
     private var readOnly: Bool { !access.canEdit }
+
+    // MARK: 1.1 toolbar (M7A_CONTRACT §2)
+
+    /// The dock button's corner: `--screenshot-toolbar` in screenshot mode, else the stored one.
+    private var toolbarEdge: ToolbarEdge {
+        screenshotEdge ?? ToolbarEdge(stored: toolbarEdgeRaw)
+    }
+
+    /// 「消しゴムで消したらペンに戻る」: always on in screenshot mode (the memory is not read there).
+    private var eraserAutoReturnOn: Bool {
+        ScreenshotMode.isActive ? true : eraserAutoReturn
+    }
+
+    /// The ink the toolbar's eraser will return to (the bracket of its note, §2.4); nil otherwise.
+    static func eraserReturnTarget(tool: CanvasTool, origin: EraserOrigin?, setting: Bool, lastInk: CanvasTool) -> CanvasTool? {
+        tool.isEraser && origin == .toolbar && setting ? lastInk : nil
+    }
+
+    /// This month (the year gutter's day numbers open this month's day, P-13; fixed in screenshot mode).
+    private var currentMonth: Int { DayKey(now).month }
 
     var body: some View {
         GeometryReader { proxy in
@@ -377,11 +534,44 @@ struct CalendarRootScreen: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
+        // 1.1 (§2.2): the peeking bar and the dock button lie over the paper (the paper area does not
+        // change), inside the safe area, 12 pt from the side and 6 pt above the bottom.
+        .overlay(alignment: .bottom) {
+            ZStack {
+                if toolbarMode == .peek {
+                    toolbar
+                        .padding(.horizontal, ToolbarLogic.sidePadding)
+                        .padding(.bottom, ToolbarLogic.bottomPadding)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: toolbarMode)
+        }
+        .overlay(alignment: toolbarEdge == .leading ? .bottomLeading : .bottomTrailing) {
+            ZStack {
+                if toolbarMode == .collapsed {
+                    ToolbarDock(
+                        tool: tool,
+                        canUndo: canUndo && !readOnly,
+                        edge: toolbarEdge,
+                        onExpand: { toolbarEvent(.dockToolTapped) },
+                        onUndo: undo,
+                        onMoveEdge: { toolbarEvent(.moveEdgeChosen) },
+                        onPin: { toolbarEvent(.pinChosen) }
+                    )
+                    .padding(.horizontal, ToolbarLogic.sidePadding)
+                    .padding(.bottom, ToolbarLogic.bottomPadding)
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: toolbarMode)
+        }
         .overlay(alignment: .bottom) {
             ZStack {
                 if let toast = toast {
                     ToastView(message: toast)
-                        .padding(.bottom, 8)
+                        // 1.1 (0-15): above the dock button / the peeking bar (8 pt while expanded).
+                        .padding(.bottom, ToolbarLogic.toastBottomPadding(toolbarMode))
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .id(toast.id)
                 }
@@ -389,24 +579,15 @@ struct CalendarRootScreen: View {
             .animation(.easeInOut(duration: 0.2), value: toast)
         }
         .background(Color(uiColor: .systemBackground))
-        .safeAreaInset(edge: .bottom) {
-            ToolbarView(
-                tool: toolBinding,
-                allowFinger: $allowFinger,
-                // M5 (M5_CONTRACT §3.1): greyed while read only; the guards are the insurance.
-                canUndo: canUndo && !readOnly,
-                canRedo: canRedo && !readOnly,
-                onUndo: {
-                    guard isAllowed(.undoRedo) else { blocked(.undoRedo); return }
-                    undoTrigger += 1
-                },
-                onRedo: {
-                    guard isAllowed(.undoRedo) else { blocked(.undoRedo); return }
-                    redoTrigger += 1
-                }
-            )
-            .padding(.horizontal, 12)
-            .padding(.bottom, 6)
+        // 1.1 (§2.7, §9.1): the modifier always stays (adding or removing it would rebuild the canvas
+        // and lose its ledger, zoom and scroll); only the expanded state puts the bar in it, with the
+        // default spacing as before, and the other states leave it empty with no spacing (height 0).
+        .safeAreaInset(edge: .bottom, spacing: toolbarMode == .expanded ? nil : 0) {
+            if toolbarMode == .expanded {
+                toolbar
+                    .padding(.horizontal, ToolbarLogic.sidePadding)
+                    .padding(.bottom, ToolbarLogic.bottomPadding)
+            }
         }
         .onAppear(perform: appear)
         .onChange(of: model.events) { relayout() }
@@ -446,7 +627,9 @@ struct CalendarRootScreen: View {
                     }
                 },
                 // M6 (M6_CONTRACT §3.3): 設定 › データ › 「手書きを書き出す」.
-                onExport: openExport
+                onExport: openExport,
+                // 1.1 (M7A_CONTRACT §7.3): the CI's `info` screenshot scrolls to 「情報」.
+                scrollToInfoOnAppear: ScreenshotMode.current?.sheet == .info
             )
         }
         .sheet(isPresented: $showPaywall) {
@@ -457,7 +640,8 @@ struct CalendarRootScreen: View {
                 .ignoresSafeArea()
         }
         .sheet(isPresented: importSheetBinding) {
-            WebImportSheet(phase: importPhase ?? .reading, onClose: closeImportSheet)
+            // 1.1 (§5.2): 〔取り込む〕 of the large-page question imports; 〔やめる〕 is `onClose`.
+            WebImportSheet(phase: importPhase ?? .reading, onClose: closeImportSheet, onConfirmLarge: confirmLargeImport)
         }
         .sheet(isPresented: exportSheetBinding) {
             ExportSheet(
@@ -491,13 +675,113 @@ struct CalendarRootScreen: View {
 
     // MARK: - Pieces
 
+    /// The bar: in the bottom inset while expanded, laid over the paper while peeking (the same view,
+    /// with 「しまう」 in both; §2.2). The eraser's note says where it returns to (§2.4).
+    private var toolbar: some View {
+        ToolbarView(
+            tool: toolBinding,
+            allowFinger: $allowFinger,
+            // M5 (M5_CONTRACT §3.1): greyed while read only; the guards are the insurance.
+            canUndo: canUndo && !readOnly,
+            canRedo: canRedo && !readOnly,
+            onUndo: undo,
+            onRedo: redo,
+            showsCollapseButton: true,
+            onCollapse: { toolbarEvent(.collapseTapped) },
+            eraserReturnsTo: Self.eraserReturnTarget(tool: tool, origin: eraserOrigin, setting: eraserAutoReturnOn, lastInk: lastInkTool)
+        )
+    }
+
+    /// ↶ of the bar and of the dock button.
+    private func undo() {
+        guard isAllowed(.undoRedo) else { blocked(.undoRedo); return }
+        undoTrigger += 1
+    }
+
+    /// ↷ of the bar.
+    private func redo() {
+        guard isAllowed(.undoRedo) else { blocked(.undoRedo); return }
+        redoTrigger += 1
+    }
+
+    /// One row of the table of §2.1 (`ToolbarLogic.step`): the next mode, `toolbar.collapsed` and the
+    /// corner. Screenshot mode never writes the memories (its corner is `screenshotEdge`).
+    private func toolbarEvent(_ event: ToolbarEvent) {
+        let step = ToolbarLogic.step(toolbarMode, on: event)
+        if step.flipsEdge {
+            let next = toolbarEdge.opposite
+            if ScreenshotMode.isActive {
+                screenshotEdge = next
+            } else {
+                toolbarEdgeRaw = next.rawValue
+            }
+        }
+        if let stored = step.storeCollapsed, !ScreenshotMode.isActive {
+            toolbarCollapsedStored = stored
+        }
+        if step.mode != toolbarMode {
+            toolbarMode = step.mode
+        }
+    }
+
+    /// The canvas: the pen or a writing finger touched the paper. A peeking bar folds back into the
+    /// dock button (animated, 0.2 s); an expanded bar stays (§2.1). Nothing is written otherwise, so
+    /// a pen-down does not update the screen.
+    private func penDown() {
+        guard ToolbarLogic.modeAfterPenDown(toolbarMode) != toolbarMode else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            toolbarEvent(.penDown)
+        }
+    }
+
+    /// The canvas: the eraser erased `erased` strokes and the settle wait after the lift is over
+    /// (§2.4 / §2.5, D2). The toolbar's eraser goes back to the last pen or marker when the setting is
+    /// on; a tool the person chose during the wait stays (`toolAfterErase` is nil unless the tool is
+    /// still the eraser).
+    private func eraseEnded(_ erased: Int) {
+        if let next = ToolbarLogic.toolAfterErase(origin: eraserOrigin, erased: erased, setting: eraserAutoReturnOn,
+                                                  current: tool, lastInk: lastInkTool) {
+            tool = next
+        }
+    }
+
+    /// The canvas reached the stroke budget (§5.2, K-9). `.many`: the 15,000 notice once per page on
+    /// this device (screenshot mode shows it without reading or writing the memory). `.full`: the
+    /// refusal as an error toast, at most every 2 s.
+    private func strokeBudgetReached(_ event: StrokeBudget.Event) {
+        switch event {
+        case .many:
+            if !ScreenshotMode.isActive {
+                let id = pageId
+                guard !AppSettings.strokeBudgetNoticed(id) else { return }
+                AppSettings.markStrokeBudgetNoticed(id)
+            }
+            showToast(Self.strokeBudgetManyToast, duration: Self.strokeBudgetNoticeDuration)
+        case .full:
+            let now = Date()
+            if let last = lastBudgetFullAt, now.timeIntervalSince(last) < Self.blockedInputInterval { return }
+            lastBudgetFullAt = now
+            showToast(Self.strokeBudgetFullToast, isError: true)
+        }
+    }
+
+    /// The canvas dropped a stroke below the last cell's limit, or a stroke reached its last step
+    /// (§3.4): 「メモ欄はここまでです」 once while this page is open (`show` forgets it on a page change).
+    private func growthCapReached() {
+        let id = pageId
+        guard capNoticedPageId != id else { return }
+        capNoticedPageId = id
+        showToast(Self.growthCapToast)
+    }
+
     /// The canvas (担当 I) with the lasso menu floating over it. The argument order follows
     /// M3B_CONTRACT.md §3.3 (the M3a arguments, then the M3b ones), M4B_CONTRACT.md §1.3
     /// (`initialScrollX` right after `initialScrollY`, then `onViewportChange`) and M4C_CONTRACT.md
     /// §1.3 (the six zoom / double-tap arguments after it). `viewportWidth` is the screen's width:
     /// the canvas has no horizontal padding, so it is the canvas's width too.
     private func canvas(viewportWidth: CGFloat) -> some View {
-        // 1.0.1: the year's 44 pt date target is for an iPhone and a narrow window only (iPad unchanged).
+        // 1.0.1: an iPhone and a narrow window are small screens (the year's 44 pt date target whatever
+        // 「指でも書く」 says); 1.1 (`DateTap`) also reads 「指でも書く」 and this month.
         let smallScreen = Self.usesMinTapTarget(isPhone: UIDevice.current.userInterfaceIdiom == .phone, width: viewportWidth)
         return InkCanvasView(
             layout: layout,
@@ -540,8 +824,20 @@ struct CalendarRootScreen: View {
             // M5 (M5_CONTRACT §3.1): no ink while read only; a Pencil touch asks for the paywall.
             readOnly: readOnly,
             onBlockedInput: blockedInput,
-            // 1.0.1: a tap that opens the day page removes the dot 「指でも書く」 drew for it.
-            tapLeavesPage: { Self.leavesPage(Self.tapTarget(layout: layout, point: $0, zoom: $1, smallScreen: smallScreen)) }
+            // 1.0.1: a tap that opens the day page removes the dot 「指でも書く」 drew for it (1.1: with
+            // the same rule as `handleTap`, so a gutter number removes its dot too).
+            tapLeavesPage: {
+                Self.leavesPage(Self.tapTarget(layout: layout, point: $0, zoom: $1, smallScreen: smallScreen,
+                                               allowFinger: allowFinger, currentMonth: currentMonth))
+            },
+            // 1.1 (M7A_CONTRACT §2.7 / §3.4 / §5.2): pen-down folds a peeking bar, the eraser's end
+            // returns to the pen, the budget and the memo limit become toasts, and the dock keeps
+            // 60 pt free at the bottom of the paper (also while peeking, so the insets do not move).
+            onPenDown: penDown,
+            onEraseEnded: eraseEnded,
+            onStrokeBudget: strokeBudgetReached,
+            onGrowthCapReached: growthCapReached,
+            bottomClearance: ToolbarLogic.paperBottomClearance(toolbarMode)
         )
         .id(pageId)
         .overlay(alignment: .topLeading) {
@@ -634,7 +930,7 @@ struct CalendarRootScreen: View {
                 if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
             }
         case .restricted:
-            noticeRow("この iPad ではカレンダーへのアクセスが制限されています。手書きだけ使えます。", buttonTitle: nil, action: {})
+            noticeRow("この端末ではカレンダーへのアクセスが制限されています。手書きだけ使えます。", buttonTitle: nil, action: {})
         }
     }
 
@@ -720,12 +1016,23 @@ struct CalendarRootScreen: View {
         }
         // M4B contract §6.4: the window scene may not exist yet here; `.active` tries again.
         requestLandscapeOnce()
+        // 1.1 (§2.2): the toolbar's log lines once the window and the first layout are there.
+        if ScreenshotMode.isActive {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                logToolbarArea(paperArea)
+            }
+        }
     }
 
     private func scenePhaseChanged() {
         switch scenePhase {
         case .background, .inactive:
             saveNow()
+            // 1.1 (§2.1): a peeking bar folds when the app goes to the background.
+            if scenePhase == .background {
+                toolbarEvent(.wentToBackground)
+            }
         case .active:
             model.refreshStatus()
             if appeared {
@@ -788,6 +1095,8 @@ struct CalendarRootScreen: View {
             // A new canvas reports its own viewport next turn; until then the page starts from
             // `PaperViewport.initial`, not from the previous page's offset and zoom.
             viewport = .zero
+            // 1.1 (§3.4): 「メモ欄はここまでです」 may show again on the next opened page.
+            capNoticedPageId = nil
         }
         frozenLaneZoom = nil
         kind = newKind
@@ -894,8 +1203,9 @@ struct CalendarRootScreen: View {
 
     // MARK: - Taps
 
-    /// The smallest date target of the year page on screen (pt; 1.0.1).
-    static let minTapTarget: CGFloat = 44
+    /// The smallest date target on screen (pt; 1.0.1's year page, 1.1 `DateTap.minPoints` for the month
+    /// and the year).
+    static let minTapTarget: CGFloat = DateTap.minPoints
 
     /// 1.0.1: the screens whose year page gets the 44 pt date target — an iPhone in either orientation,
     /// and any window narrower than `compactWidth` (an iPad's narrow split view, where the header takes
@@ -905,15 +1215,22 @@ struct CalendarRootScreen: View {
         isPhone || width < compactWidth
     }
 
-    /// What a finger tap at `point` (lu) does at `zoom` (1.0.1): on a small screen
-    /// (`usesMinTapTarget`) the year page's date area is at least 44 pt on screen
-    /// (`YearPageLayout.hit(at:minTarget:)`); everything else — the other pages, the year on a large
-    /// screen, a zoom that is not a positive number — is `layout.hit(at:)` unchanged.
-    static func tapTarget(layout: any PageLayout, point: CGPoint, zoom: CGFloat, smallScreen: Bool) -> HitTarget? {
-        if smallScreen, let year = layout as? YearPageLayout, zoom.isFinite, zoom > 0 {
-            return year.hit(at: point, minTarget: minTapTarget / zoom)
-        }
-        return layout.hit(at: point)
+    /// What a finger tap at `point` (lu) does at `zoom` (1.1, M7A_CONTRACT §4.1 / §4.5, D4): exactly
+    /// `DateTap.target` (the name is 1.0.1's).
+    /// - With 「指でも書く」 off, the month's and the year's dates are at least 44 pt on screen.
+    /// - On a small screen (`usesMinTapTarget`) the year's are 44 pt whatever the setting (1.0.1).
+    /// - With 「指でも書く」 on, the month keeps 1.0's date frame (M7A-1), and so does the year on a
+    ///   large screen (M7A-2: an iPad with it off gets 44 pt).
+    /// - The year's left gutter number opens that day of `currentMonth` (P-13). It is the whole row,
+    ///   except with 「指でも書く」 on a large screen, where only the number counts. A day this month
+    ///   does not have is nothing (M7A-3).
+    /// - The week and the day are `layout.hit(at:)` unchanged.
+    /// - A zoom that is not a positive number leaves the month and the year at `hit(at:)` (plus the
+    ///   gutter).
+    static func tapTarget(layout: any PageLayout, point: CGPoint, zoom: CGFloat,
+                          smallScreen: Bool, allowFinger: Bool, currentMonth: Int) -> HitTarget? {
+        DateTap.target(layout: layout, point: point, zoom: zoom, smallScreen: smallScreen,
+                       allowFinger: allowFinger, currentMonth: currentMonth)
     }
 
     /// 1.0.1: whether a tap on `target` takes the screen to another page (`handleTap`: 「+n件」 and a
@@ -925,11 +1242,12 @@ struct CalendarRootScreen: View {
         }
     }
 
-    /// M3b contract §4.5: bars, chips and boxes open the edit sheet; 「+n件」, date numbers, the year's
-    /// date area (1.0.1: at least 44 pt on a small screen, `tapTarget`) and thin chips open the day
-    /// page. `zoom` is the canvas's when it recognised the tap (the one `tapLeavesPage` used).
+    /// M3b contract §4.5: bars, chips and boxes open the edit sheet; 「+n件」, date numbers, the date
+    /// areas of `tapTarget` (1.0.1 / 1.1), the year's gutter numbers and thin chips open the day page.
+    /// `zoom` is the canvas's when it recognised the tap (the one `tapLeavesPage` used).
     private func handleTap(at point: CGPoint, zoom: CGFloat, smallScreen: Bool) {
-        guard let hit = Self.tapTarget(layout: layout, point: point, zoom: zoom, smallScreen: smallScreen) else { return }
+        guard let hit = Self.tapTarget(layout: layout, point: point, zoom: zoom, smallScreen: smallScreen,
+                                       allowFinger: allowFinger, currentMonth: currentMonth) else { return }
         switch hit {
         case .allDayBar(let id), .timedChip(let id), .timedBox(let id):
             openEdit(eventId: id)
@@ -949,12 +1267,14 @@ struct CalendarRootScreen: View {
     // MARK: - Canvas callbacks
 
     /// Apple Pencil double tap / squeeze (DESIGN §3.11): the current tool (pen, marker, lasso, event
-    /// tool) ⇄ eraser; back to the last pen / marker (M3b contract §4.7).
+    /// tool) ⇄ eraser; back to the last pen / marker (M3b contract §4.7). 1.1 (§2.4): the Pencil's
+    /// eraser never returns to the pen by itself (`EraserOrigin.pencil`).
     private func togglePencilTool() {
         if tool.isEraser {
             tool = lastInkTool
         } else {
             tool = .eraser
+            eraserOrigin = .pencil
         }
     }
 
@@ -988,7 +1308,29 @@ struct CalendarRootScreen: View {
         // M5 (M5_CONTRACT §3.1): insurance — the tool cannot be chosen while read only (a tap on an
         // existing event above still opens the read-only sheet).
         guard isAllowed(.createEvent) else { blocked(.createEvent); return }
-        openCreate(range: layout.eventRange(for: rect, now: now), snapshot: nil, inkIds: [])
+        switch Self.newEventPlan(layout: layout, rect: rect, now: now) {
+        case .refusedBelowDay:
+            showToast(Self.eventBelowDayToast)
+        case .create(let range):
+            openCreate(range: range, snapshot: nil, inkIds: [])
+        }
+    }
+
+    /// What a rect for a new event gives (1.1, M7A_CONTRACT §3.7, 0-4): on the day page a rect that
+    /// starts at or below 24:00 (`DayPageLayout.startsBelowDay`, asked before `eventRange`) is refused
+    /// — the screen shows `eventBelowDayToast` and opens nothing. Everything else is
+    /// `layout.eventRange(for:now:)` unchanged (a day rect across 24:00, or from 2,399.9, is still a
+    /// 23:00 event).
+    enum NewEventPlan: Equatable {
+        case refusedBelowDay
+        case create(EventRange?)
+    }
+
+    static func newEventPlan(layout: any PageLayout, rect: CGRect, now: Date) -> NewEventPlan {
+        if let day = layout as? DayPageLayout, day.startsBelowDay(rect) {
+            return .refusedBelowDay
+        }
+        return .create(layout.eventRange(for: rect, now: now))
     }
 
     /// The 予定 tool's live preview: the rect the event made from `rect` would occupy.
@@ -1021,7 +1363,11 @@ struct CalendarRootScreen: View {
     /// of the sheet, and the strokes to erase after a successful save.
     private func convertSelection() {
         guard let selection = selection, !selection.ids.isEmpty else { return }
-        let range = layout.eventRange(for: selection.bbox, now: now)
+        // 1.1 (§3.7): handwriting below 24:00 on the day page does not become an event.
+        guard case .create(let range) = Self.newEventPlan(layout: layout, rect: selection.bbox, now: now) else {
+            showToast(Self.eventBelowDayToast)
+            return
+        }
         let strokes = selection.ids.compactMap { page.strokes[$0] }
         let snapshot = InkSnapshot.render(strokes: strokes, cells: layout.cells)
         openCreate(range: range, snapshot: snapshot, inkIds: selection.ids)
@@ -1123,7 +1469,7 @@ struct CalendarRootScreen: View {
 
     // MARK: - Settings: erase everything (M4 contract §6.2)
 
-    /// 「この iPad の手書きを全て消す」 after both confirmations: close the settings, stop the pending
+    /// 「この端末の手書きを全て消す」 after both confirmations: close the settings, stop the pending
     /// save, empty the shown page (the canvas reloads it), then let the engine delete every page file
     /// and every iCloud record. iCloud failing leaves the local part erased and the engine retries
     /// the cloud part at the next sync. Screenshot mode only empties the page in memory.
@@ -1144,7 +1490,7 @@ struct CalendarRootScreen: View {
                 try await sync.eraseEverything()
                 showToast("手書きを全て消しました")
             } catch {
-                showToast("iCloud の手書きを消せませんでした。この iPad の分は消しました。回線が戻ったらもう一度お試しください", isError: true)
+                showToast("iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください", isError: true)
             }
         }
     }
@@ -1185,7 +1531,10 @@ struct CalendarRootScreen: View {
 
     /// Parse (off the main actor: a big export takes a moment; `InkImport` reads the app's own
     /// format page by page, M6_CONTRACT §1.2) → `sync.importPages`. The finished sentence says which
-    /// format it was (`isAppExport`, 0-12).
+    /// format it was (`isAppExport`, 0-12). 1.1 (M7A_CONTRACT §5.2): when a page would have more than
+    /// 20,000 strokes on this device afterwards (`StrokeCensus.pagesOverLegacyCap`, counted off the main
+    /// actor without writing anything), the sheet asks first (`confirmLarge`); the read file waits in
+    /// `pendingImport`. Nothing is stopped: 1.1 shows every stroke, only an older device would not.
     private func runImport(_ data: Data) async {
         let parsed: Result<InkImport.Outcome, Error> = await Task.detached(priority: .userInitiated) {
             Result { InkImport.pages(try InkImport.parse(data)) }
@@ -1203,14 +1552,37 @@ struct CalendarRootScreen: View {
             importPhase = .done(ImportOutcome(pagesChanged: 0, strokesAdded: 0, pagesSeen: outcome.pageCount), skipped: skipped, isAppExport: outcome.isAppExport)
             return
         }
+        let large = await StrokeCensus.pagesOverLegacyCap(outcome.pages, store: sync.store)
+        if !large.isEmpty {
+            pendingImport = outcome
+            importPhase = .confirmLarge(pages: large.map(StrokeBudget.pageLabel))
+            return
+        }
+        await importPages(of: outcome)
+    }
+
+    /// `sync.importPages` with its progress, then `.done` or `.failed` (unchanged from M4 / M6).
+    private func importPages(of outcome: InkImport.Outcome) async {
         importPhase = .importing(done: 0, total: outcome.pages.count)
         do {
             let imported = try await sync.importPages(outcome.pages) { done, total in
                 importPhase = .importing(done: done, total: total)
             }
-            importPhase = .done(imported, skipped: skipped, isAppExport: outcome.isAppExport)
+            importPhase = .done(imported, skipped: outcome.skipped, isAppExport: outcome.isAppExport)
         } catch {
             importPhase = .failed(WebImportSheet.saveFailedText(error))
+        }
+    }
+
+    /// 〔取り込む〕 of the large-page question (1.1, §5.2): the file that was read is imported as usual.
+    private func confirmLargeImport() {
+        guard case .confirmLarge = importPhase, let outcome = pendingImport else { return }
+        pendingImport = nil
+        // In progress at once: the sheet can no longer be swiped away (or 〔取り込む〕 pressed again)
+        // before the task below starts.
+        importPhase = .importing(done: 0, total: outcome.pages.count)
+        Task { @MainActor in
+            await importPages(of: outcome)
         }
     }
 
@@ -1227,8 +1599,10 @@ struct CalendarRootScreen: View {
         }
     }
 
-    /// 「閉じる」 (or a swipe when done / failed): the result becomes a toast.
+    /// 「閉じる」 (or a swipe when done / failed): the result becomes a toast. 1.1 (§5.2): 〔やめる〕 of the
+    /// large-page question (or a swipe) comes here too — nothing was imported and there is no toast.
     private func closeImportSheet() {
+        pendingImport = nil
         guard let phase = importPhase else { return }
         importPhase = nil
         if case .done(let outcome, let skipped, let isAppExport) = phase {
@@ -1467,7 +1841,8 @@ struct CalendarRootScreen: View {
     }
 
     /// The toolbar's tool: while read only the lasso / 予定 tool cannot be chosen (`blocked(.overlayTool)`);
-    /// the pen / marker colours and widths and the eraser may change (harmless).
+    /// the pen / marker colours and widths and the eraser may change (harmless). 1.1 (§2.4): an eraser
+    /// chosen here (also when it was already the eraser) is the toolbar's, which returns to the pen.
     private var toolBinding: Binding<CanvasTool> {
         Binding(
             get: { tool },
@@ -1475,6 +1850,9 @@ struct CalendarRootScreen: View {
                 if readOnly, newValue.isOverlayTool {
                     blocked(.overlayTool)
                     return
+                }
+                if newValue.isEraser {
+                    eraserOrigin = .toolbar
                 }
                 tool = newValue
             }
@@ -1518,8 +1896,9 @@ struct CalendarRootScreen: View {
             openEdit(eventId: ScreenshotMode.editDemoEventId)
         case .lasso:
             tool = .lasso
-        case .settings, .sync:
-            // Both show the settings screen; the demo engine supplies 「同期済み」 and 「最後に同期」.
+        case .settings, .sync, .info:
+            // All three show the settings screen; the demo engine supplies 「同期済み」 and 「最後に同期」,
+            // `info` (1.1) scrolls to 「情報」 with `StrokeCensus.demo(year:)`.
             showSettings = true
         case .`import`:
             importPhase = .done(ScreenshotMode.importDemoOutcome, skipped: 0, isAppExport: false)

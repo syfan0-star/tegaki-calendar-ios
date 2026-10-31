@@ -71,7 +71,7 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(MonthLayoutEngine.rowHeight(laneCount: 0, maxChips: 0, inkBottom: .infinity), 175)
         XCTAssertEqual(MonthLayoutEngine.rowHeight(laneCount: -3, maxChips: -1, inkBottom: -50), 175)
         XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 0), 700)
-        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 900), 950)
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 900), 1500, "1.1: 400 lu steps (PaperGrowth.tailHeight)")
     }
 
     func testShownChipCount() {
@@ -393,8 +393,8 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(inked.rows[3].frame.minY, 662)
         XCTAssertEqual(inked.rows[1].frame, plain.rows[1].frame)
         XCTAssertEqual(inked.memo.minY, 1187)
-        XCTAssertEqual(inked.memo.height, 950)
-        XCTAssertEqual(inked.size.height, 1187 + 950)
+        XCTAssertEqual(inked.memo.height, 1500, "1.1: 900 → 1,500")
+        XCTAssertEqual(inked.size.height, 1187 + 1500)
         XCTAssertEqual(inked.cells[.day(day(2026, 10, 20))]?.minY, 662)
         XCTAssertEqual(inked.cells[.day(day(2026, 10, 14))]?.height, 312)
 
@@ -403,6 +403,80 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(withEvents.rows[2].frame.height, 262)
         // Ink below the cap.
         XCTAssertEqual(layout([], ink: [.day(day(2026, 10, 13)): 5000]).rows[2].frame.height, 1200)
+    }
+
+    // MARK: The memo area grows in steps (1.1, M7A_CONTRACT §3.2)
+
+    func testMemoGrowsInSteps() {
+        for (b, h) in [(0, 700), (300, 700), (301, 1100), (700, 1100), (701, 1500), (1100, 1500), (5500, 5900), (5600, 6000), (5601, 6000), (5950, 6000), (5990, 6040), (6420, 6470)] as [(CGFloat, CGFloat)] {
+            XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: b), h, "memo ink bottom \(b)")
+            XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: b), PaperGrowth.tailHeight(inkBottom: b))
+            let page = layout([], ink: [.memo: b])
+            XCTAssertEqual(page.memo, CGRect(x: 0, y: 1050, width: 1400, height: h), "the memo area's rect (ink \(b))")
+            XCTAssertEqual(page.size, CGSize(width: 1400, height: 1050 + h))
+            XCTAssertEqual(page.cells[.memo], page.memo)
+        }
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 64.5), 700, "the screenshot month's dot (0-1)")
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: .nan), 700)
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: -40), 700)
+        let plain = layout([])
+        let grown = layout([], ink: [.memo: 500])
+        XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: grown, topVisibleY: 1100), 0, "the memo area's top does not move")
+        XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: grown, topVisibleY: 600), 0)
+        XCTAssertEqual(ZoomPolicy.overviewSize(grown), CGSize(width: 1400, height: 1050), "the overview is the 6 rows")
+        XCTAssertTrue(PaperGrowth.onlyTailHeightChanged(old: plain, new: grown))
+        XCTAssertFalse(PaperGrowth.onlyTailHeightChanged(old: plain, new: layout([], ink: [.day(day(2026, 10, 14)): 300])), "a row grew")
+    }
+
+    // MARK: The finger's tap target (1.1, M7A_CONTRACT §4.2)
+
+    func testHitWithMinTarget() {
+        let page = layout([])
+        let d14 = day(2026, 10, 14)
+        let cell = page.cells[.day(d14)]!
+        XCTAssertEqual(cell, CGRect(x: 400, y: 350, width: 200, height: 175))
+        // iPhone portrait, mini, 11 inch, 13 inch, iPhone landscape (the month's overview zooms).
+        for zoom: CGFloat in [0.2871, 0.5314, 0.5957, 0.7371, 0.2190] {
+            let m = 44 / zoom
+            let h = min(175, max(28, m))
+            XCTAssertEqual(page.hit(at: CGPoint(x: cell.minX + 1, y: cell.minY + h - 0.01), minTarget: m), .date(d14), "zoom \(zoom): the bottom-left of the target")
+            XCTAssertEqual(page.hit(at: CGPoint(x: cell.maxX - 0.01, y: cell.minY + h - 0.01), minTarget: m), .date(d14), "zoom \(zoom): the bottom-right")
+            XCTAssertEqual(page.hit(at: CGPoint(x: cell.midX, y: cell.minY + 30), minTarget: m), .date(d14), "zoom \(zoom): just below the 1.0 date frame")
+            if h < 175 {
+                XCTAssertNil(page.hit(at: CGPoint(x: cell.midX, y: cell.minY + h + 0.01), minTarget: m), "zoom \(zoom): below the target")
+                XCTAssertEqual(h * zoom, 44, accuracy: 1e-9, "zoom \(zoom): 44 pt on screen")
+            } else {
+                XCTAssertEqual(page.hit(at: CGPoint(x: cell.midX, y: cell.maxY - 0.01), minTarget: m), .date(d14), "zoom \(zoom): the whole cell (iPhone landscape)")
+            }
+        }
+        // At 1.57× and more the target is back to the date row (28 lu).
+        XCTAssertEqual(page.hit(at: CGPoint(x: 590, y: 377.9), minTarget: 20), .date(d14))
+        XCTAssertNil(page.hit(at: CGPoint(x: 590, y: 378.1), minTarget: 20))
+        // A day outside the month counts; the memo area and the outside of the paper do not.
+        XCTAssertEqual(page.hit(at: CGPoint(x: 50, y: 100), minTarget: 153.3), .date(day(2026, 9, 28)))
+        XCTAssertEqual(page.hit(at: CGPoint(x: 1399, y: 900), minTarget: 153.3), .date(day(2026, 11, 8)), "the grid's last cell")
+        XCTAssertNil(page.hit(at: CGPoint(x: 700, y: 1060), minTarget: 153.3), "the memo area")
+        XCTAssertNil(page.hit(at: CGPoint(x: -5, y: 10), minTarget: 153.3))
+        XCTAssertNil(page.hit(at: CGPoint(x: 700, y: -1), minTarget: 153.3))
+        XCTAssertNil(page.hit(at: CGPoint(x: 700, y: 1750), minTarget: 153.3))
+        XCTAssertNil(page.hit(at: CGPoint(x: CGFloat.nan, y: 10), minTarget: 153.3))
+        // A minTarget that is not a positive number: the same as hit(at:).
+        for bad: CGFloat in [.nan, .infinity, 0, -10] {
+            for p in [CGPoint(x: 500, y: 390), CGPoint(x: 500, y: 360), CGPoint(x: 700, y: 1100)] {
+                XCTAssertEqual(page.hit(at: p, minTarget: bad), page.hit(at: p), "minTarget \(bad) at \(p)")
+            }
+        }
+        // Chips and bars come first (the event opens, not the day).
+        let trip = allDay("trip", 5, 8)
+        let meeting = timed("meeting", 6, 9, 0, 10, 0)
+        var many: [LayoutEvent] = []
+        for i in 0..<5 { many.append(timed("m\(i)", 7, 8 + i, 0, 9 + i, 0)) }
+        let busy = layout([trip, meeting] + many)
+        XCTAssertEqual(busy.hit(at: CGPoint(x: 300, y: 203 + 25 + 10), minTarget: 153.3), .timedChip("meeting"))
+        XCTAssertEqual(busy.hit(at: CGPoint(x: 100, y: 203 + 10), minTarget: 153.3), .allDayBar("trip"))
+        XCTAssertEqual(busy.hit(at: CGPoint(x: 500, y: 203 + 25 + 40 + 5), minTarget: 153.3), .moreChips(day(2026, 10, 7)))
+        XCTAssertEqual(busy.hit(at: CGPoint(x: 100, y: 175 + 150), minTarget: 153.3), .date(day(2026, 10, 5)), "below the chips, inside the target")
+        XCTAssertNil(busy.hit(at: CGPoint(x: 100, y: 175 + 160), minTarget: 153.3), "below the target (153.3 lu)")
     }
 
     func testScrollDelta() {
