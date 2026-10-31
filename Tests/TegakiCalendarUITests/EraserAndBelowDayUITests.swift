@@ -107,7 +107,8 @@ final class EraserAndBelowDayUITests: XCTestCase {
 
     /// The eraser touches the line first (the way a Pencil is put on a word): ① a stroke that starts
     /// on the line and follows it, ② a tap on the line. Each erases a fresh line with the default pen
-    /// and must go back to 「ペン」 within 3 s. Both trials run even when the first one fails.
+    /// and must go back to 「ペン」 within 3 s; when the simulator's PencilKit erases nothing on the tap
+    /// (seen in CI), the eraser must stay instead. Both trials run even when the first one fails.
     func testToolbarEraserReturnsToThePenWhenItStartsOnTheLine() throws {
         continueAfterFailure = true
         let app = launchApp(["--screenshot-page", "month"])
@@ -126,6 +127,14 @@ final class EraserAndBelowDayUITests: XCTestCase {
             }
             choose(Self.eraserLabel, in: app, name)
             let outcome = eraseAndWatch(line, with: gesture, in: app, name) { app.buttons[Self.penLabel].isSelected }
+            if gesture == .tap, !outcome.erasedOnCanvas {
+                // The simulator's PencilKit erased nothing on a finger's tap (CI run 41243566032, before the
+                // fix as well): nothing went, so the toolbar's eraser staying is right — that is checked.
+                log("\(name): PencilKit erased nothing on the tap; the eraser must stay")
+                XCTAssertFalse(app.buttons[Self.penLabel].isSelected, "\(name): nothing was erased, so the toolbar's eraser stays")
+                XCTAssertTrue(app.buttons[Self.eraserLabel].isSelected, "\(name): the eraser is still chosen")
+                continue
+            }
             assertErasedAndReturned(outcome, name)
         }
     }

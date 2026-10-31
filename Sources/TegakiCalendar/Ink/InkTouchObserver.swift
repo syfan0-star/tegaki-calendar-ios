@@ -10,10 +10,10 @@ import UIKit.UIGestureRecognizerSubclass
 /// (`cancelsTouchesInView`, `delaysTouchesBegan`, `delaysTouchesEnded` off), takes the Pencil, fingers
 /// and a pointer together, prevents nothing and is prevented by nothing, and the coordinator lets it
 /// run alongside every recogniser. The pointer (the review): with `UIApplicationSupportsIndirectInputEvents`
-/// a mouse's or a trackpad's press on the paper is an `.indirectPointer` touch, and PencilKit's drawing
-/// recogniser takes it (`[0, 2, 3]` on a Mac, in every drawing policy); the coordinator counts it on its
-/// own, as a touch that writes whatever 「指でも書く」 says (the lead's review), and waits for it like a
-/// finger after it lifts. Tried on a real Mac Catalyst window: PencilKit erased as before with it on
+/// a mouse's or a trackpad's press on the paper is an `.indirectPointer` touch. On a Mac PencilKit draws
+/// with it (and with a finger) in every drawing policy (`[0, 2, 3]`); on an iOS it is not known yet, so
+/// the coordinator counts it on its own as a touch that writes whatever 「指でも書く」 says (the lead's
+/// review; the safe side) and waits for it like a finger after it lifts. Tried on a real Mac Catalyst window: PencilKit erased as before with it on
 /// the container, and its `up` arrived before PencilKit's end of the tool.
 @MainActor
 final class InkTouchObserver: UIGestureRecognizer {

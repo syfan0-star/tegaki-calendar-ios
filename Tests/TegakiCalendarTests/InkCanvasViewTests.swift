@@ -2130,8 +2130,9 @@ final class InkCanvasViewTests: XCTestCase {
     /// fingers and (the review) a pointer together, never cancels or delays a touch, never prevents and
     /// is never prevented, and runs alongside every recogniser. (`testFingerTapGraphOnAnIPhoneYearPage`
     /// is unchanged.) The lead's review: the `repro: A17` line prints the touch types PencilKit's drawing
-    /// recogniser takes in either drawing policy (on a Mac `[0, 2, 3]` in both: a pointer writes with
-    /// 「指でも書く」 off too, which is why the coordinator counts it as writing whatever the setting says).
+    /// recogniser takes in either drawing policy (on a Mac `[0, 2, 3]` in both, and a finger drew under
+    /// `.pencilOnly` too; an iOS is not known yet, so the coordinator counts a pointer as writing whatever
+    /// the setting says — the safe side).
     func testTouchObserverSetup() async throws {
         let (layout, paper) = makeMonth()
         let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true)
@@ -2295,6 +2296,8 @@ final class InkCanvasViewTests: XCTestCase {
     /// canvas shows November. The same with a late change of PencilKit on October's drawing
     /// (`canvasViewDrawingDidChange`) right after the page change. Before the review, the end of the
     /// wait took b and c in as new lines of November and wrote them back, and so did the late change.
+    /// Two guards stand there (the end of the settle wait and the entry of `applyCanvasDrawing`): the
+    /// first case stays green with either of them; taking the entry's guard away turns the second red.
     func testAPageChangeDuringTheSettleWaitCopiesNothingIntoTheNewPage() async {
         let (october, octoberPaper) = makeMonth()
         let november = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 11), events: [], inkBottoms: [:], now: now))
@@ -2325,12 +2328,15 @@ final class InkCanvasViewTests: XCTestCase {
             }
 
             await wait(1)
+            // "Came" is looked at with `eventually` (a busy simulator may take longer than the settle
+            // wait and the rebuild); "nothing copied" after it, on the latest state.
+            let shown = await eventually { rig.canvas.drawing.strokes.map { rig.coordinator.ledger.id(of: $0) } == ["x"] }
+            XCTAssertTrue(shown, "the canvas shows November (\(what))")
             let page = rig.coordinator.ledger.page
             XCTAssertEqual(page.pageId, november.pageId, what)
             XCTAssertEqual(page.liveStrokeIds, ["x"], "November keeps its own line only (\(what))")
             XCTAssertEqual(Array(page.strokes.keys), ["x"], "no line of October was added to November (\(what))")
             XCTAssertTrue(page.deleted.isEmpty, "nothing of November was erased (\(what))")
-            XCTAssertEqual(rig.canvas.drawing.strokes.map { rig.coordinator.ledger.id(of: $0) }, ["x"], "the canvas shows November (\(what))")
             for write in written.pages {
                 XCTAssertEqual(write.pageId, november.pageId, what)
                 XCTAssertEqual(Array(write.strokes.keys), ["x"], "nothing of October was written back into November's page (\(what))")

@@ -500,9 +500,10 @@ extension InkCanvasView {
         // `touchObserver` saw; PencilKit's `isUsingTool` only until it has seen one.
         /// The Pencil touches, the finger touches and the pointer's presses (a mouse, a trackpad) that are
         /// on the paper (`touchObserved`; never < 0). The lead's review: a pointer is counted on its own
-        /// and always writes — PencilKit's drawing recogniser takes `.indirectPointer` whatever
-        /// 「指でも書く」 says (`[0, 2, 3]` on a Mac in both drawing policies; A17's `repro:` line prints
-        /// what an iOS gives).
+        /// and always writes. On a Mac PencilKit draws with any touch whatever 「指でも書く」 says (its
+        /// drawing recogniser takes `[0, 2, 3]` in both drawing policies and a finger drew under
+        /// `.pencilOnly` too); an iOS is not known yet (A17's `repro:` line prints its types), so a pointer
+        /// is taken as writing — the safe side: at worst a report waits until it lifts.
         private var pencilsDown = 0
         private var fingersDown = 0
         private var pointersDown = 0
