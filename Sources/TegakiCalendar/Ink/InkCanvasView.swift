@@ -46,7 +46,9 @@ enum CanvasCommand: Equatable {
 /// - `page` is written back after every change the ledger records; a `page` that arrives from
 ///   outside (merge, import) replaces the ledger's page.
 /// - A `page` and a `layout` of different page ids (a transient of SwiftUI's update order) are
-///   ignored until both agree; the ledger never mixes pages.
+///   ignored until both agree; the ledger never mixes pages. 1.1 fix (the lead's review): when another
+///   page id arrives while the pen is down or settling, the canvas keeps the old page's drawing until
+///   the rebuild, and nothing compares that drawing with the new ledger meanwhile.
 /// - The zoom limits come from `ZoomPolicy` (M4C_CONTRACT §1.1, D1): the minimum is the overview
 ///   (`fitAll`: the page's overview rectangle fits the paper area both ways), the maximum
 ///   `max(4 × fit-to-width, 2 × readable)`. Every page opens at its stored ratio of the overview
@@ -404,7 +406,9 @@ extension InkCanvasView {
         /// Commands from the owner, performed with the next apply (after the pen lifts).
         private var pendingCommands: [CanvasCommand] = []
         /// A different page id arrived: fit the zoom again and scroll to `initialScrollY` instead
-        /// of compensating.
+        /// of compensating. 1.1 fix (the lead's review, docs/M7A.md ずれ 46): until `applyPending`
+        /// rebuilds the drawing, the canvas still shows the old page, which the new ledger's
+        /// fingerprints do not describe, so nothing compares the two meanwhile (`applyCanvasDrawing`).
         private var resetScroll = false
         private var isApplyingDrawing = false
         private var isUpdating = false
@@ -662,7 +666,8 @@ extension InkCanvasView {
         /// using its tool, `C+a-r` a drawing change the ledger applied (a added, r removed; then `u`
         /// while the tool is in use, `s` while settling, `e` when the tool is the eraser — ⑥ counts
         /// r − a of a change with `e` when it is positive), `C0` a change that changed nothing, `c` one
-        /// the guard skipped (our own drawing, a lasso move), `r` a settle wait a new touch cut short,
+        /// the guard skipped (our own drawing, a lasso move, the old page's drawing before the rebuild
+        /// after a page change), `r` a settle wait a new touch cut short,
         /// `O` / `o` the overlay began / stopped tracking, `L<n>` a lasso selected n strokes, `T` a
         /// finger tap. 1.1 fix (ずれ 46): `Dp` / `Df` / `Di` a Pencil / finger / pointer (a mouse, a
         /// trackpad) came down and `Up` / `Uf` / `Ui` lifted (`touchObserver`), `S<s>` the eraser's report
@@ -1626,7 +1631,10 @@ extension InkCanvasView {
         /// of is taken into the ledger first (`canvasViewDrawingDidChange`'s work once more, with the
         /// eraser or after a touch that began with it — the report may have put the pen back by then:
         /// a rebuilt drawing must not bring the stroke back), then the queued work runs, then the
-        /// report is scheduled again for whatever came in during the wait.
+        /// report is scheduled again for whatever came in during the wait. The lead's review: never
+        /// while the ledger is another page's (`resetScroll`: `update(from:)` replaced it during the
+        /// touch or the wait, and the queued work rebuilds the drawing) — the canvas still shows the old
+        /// page, and comparing the two would copy its strokes into the new page.
         private func penDidLift() {
             isUsingTool = false
             isSettling = true
@@ -1642,7 +1650,7 @@ extension InkCanvasView {
                     return
                 }
                 if self.parent.tool.isEraser || self.touchBeganWithEraser, !self.parent.readOnly, !self.isMovingSelection,
-                   let canvas = self.canvas, self.applyCanvasDrawing(canvas) {
+                   !self.resetScroll, let canvas = self.canvas, self.applyCanvasDrawing(canvas) {
                     self.probeNote("K")
                 }
                 self.isSettling = false
@@ -1771,10 +1779,15 @@ extension InkCanvasView {
         }
 
         /// `canvasViewDrawingDidChange`'s work; true when the ledger changed (1.1 fix: the end of the
-        /// settle wait calls it too, to take in an erasure PencilKit never told of).
+        /// settle wait calls it too, to take in an erasure PencilKit never told of). The lead's review:
+        /// nothing is compared while the ledger is another page's than the canvas (`resetScroll`, until
+        /// `applyPending` rebuilds the drawing): its fingerprints do not describe the strokes on the
+        /// canvas, so every stroke of the old page would be taken in as a new stroke of the new page. A
+        /// stroke PencilKit finishes on the old page then is dropped by the rebuild (the old page's
+        /// ledger is gone; it never reaches either page).
         @discardableResult
         private func applyCanvasDrawing(_ canvasView: PKCanvasView) -> Bool {
-            guard !isApplyingDrawing, !isMovingSelection else {
+            guard !isApplyingDrawing, !isMovingSelection, !resetScroll else {
                 probeNote("c")
                 return false
             }

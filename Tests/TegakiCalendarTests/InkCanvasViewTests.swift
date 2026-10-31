@@ -83,7 +83,8 @@ final class InkCanvasViewTests: XCTestCase {
     }
 
     /// The canvas as the screen builds it. `initialScrollX` is computed for the readable zoom (it is
-    /// not used at the default ratio 1; a test that needs it computes its own).
+    /// not used at the default ratio 1; a test that needs it computes its own). `pageBinding` replaces
+    /// the constant `page` binding (a test that looks at what the canvas wrote back, `PageWrites`).
     private func makeView(layout: any PageLayout, paper: PaperContent, viewportWidth: CGFloat, probe: Probe,
                           initialZoomRatio: CGFloat = 1, initialPaperOffset: CGPoint? = nil, doubleTapEnabled: Bool = false,
                           tool: CanvasTool = .eraser, allowFinger: Bool = false, page: InkPage? = nil,
@@ -93,14 +94,15 @@ final class InkCanvasViewTests: XCTestCase {
                           onBlockedInput: @escaping () -> Void = {},
                           onTap: @escaping (CGPoint, CGFloat) -> Void = { _, _ in },
                           tapLeavesPage: @escaping (CGPoint, CGFloat) -> Bool = { _, _ in false },
-                          undoTrigger: Int = 0, bottomClearance: CGFloat = 0) -> InkCanvasView {
+                          undoTrigger: Int = 0, bottomClearance: CGFloat = 0,
+                          pageBinding: Binding<InkPage>? = nil) -> InkCanvasView {
         let page = page ?? InkPage.empty(pageId: layout.pageId)
         return InkCanvasView(
             layout: layout,
             paper: paper,
             tool: tool,
             allowFinger: allowFinger,
-            page: .constant(page),
+            page: pageBinding ?? .constant(page),
             initialScrollY: PageNavigation.initialScrollY(layout, now: now),
             initialScrollX: PageNavigation.initialScrollX(
                 layout, now: now,
@@ -2247,6 +2249,77 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertTrue(reported, "reported after the lift")
         XCTAssertEqual(rig.probe.erased, [1])
         XCTAssertTrue(rig.coordinator.probeValue().contains("down=0p0f"), rig.coordinator.probeValue())
+    }
+
+    /// The `page` binding of a canvas that keeps every page the canvas wrote back (`publishPage`).
+    /// `@unchecked Sendable` for `Binding`'s closures: only the main actor touches it (the canvas writes
+    /// back on the main actor, the test reads there).
+    private final class PageWrites: @unchecked Sendable {
+        private(set) var page: InkPage
+        private(set) var pages: [InkPage] = []
+
+        init(_ page: InkPage) {
+            self.page = page
+        }
+
+        var binding: Binding<InkPage> {
+            Binding(get: { self.page }, set: { page in
+                self.page = page
+                self.pages.append(page)
+            })
+        }
+    }
+
+    /// A20 (the lead's review; the data's safety): the eraser takes line a of October and lifts, and
+    /// right then `update(from:)` brings November (another page id, its own layout and page with line x)
+    /// into this canvas, inside the settle wait — the canvas still shows October's b and c. The end of
+    /// the settle wait compares nothing with November's ledger: a second later November has only x
+    /// (nothing added, nothing erased), nothing of October was written into November's `page`, and the
+    /// canvas shows November. The same with a late change of PencilKit on October's drawing
+    /// (`canvasViewDrawingDidChange`) right after the page change. Before the review, the end of the
+    /// wait took b and c in as new lines of November and wrote them back, and so did the late change.
+    func testAPageChangeDuringTheSettleWaitCopiesNothingIntoTheNewPage() async {
+        let (october, octoberPaper) = makeMonth()
+        let november = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 11), events: [], inkBottoms: [:], now: now))
+        let novemberPaper = PaperContent.month(MonthPaperContent(layout: november, labels: november.dateLabels, bars: november.allDayBars,
+                                                                 chips: november.timedChips, holidayNames: [:]))
+        XCTAssertNotEqual(november.pageId, october.pageId)
+        var other = InkPage.empty(pageId: november.pageId)
+        other.add(makeInkStroke(id: "x", cell: .day(DayKey(year: 2026, month: 11, day: 4)), t: 1_790_000_000_100,
+                                points: [(20, 40), (50, 40), (80, 40)]))
+
+        for lateChange in [false, true] {
+            let what = lateChange ? "with a late change" : "the settle wait"
+            let rig = await makeRig(layout: october, paper: octoberPaper, width: 1024, height: 1180, tool: .eraser,
+                                    page: monthPage(strokes: ["a", "b", "c"]))
+            observe(rig, .down, .pencil)
+            touch(rig)
+            erase(["a"], on: rig)
+            observe(rig, .up, .pencil)
+            lift(rig)
+            let written = PageWrites(other)
+            rig.coordinator.update(from: makeView(layout: november, paper: novemberPaper, viewportWidth: 1024, probe: rig.probe,
+                                                  tool: .eraser, page: other, pageBinding: written.binding))
+            XCTAssertEqual(rig.coordinator.ledger.page.pageId, november.pageId, "November's ledger (\(what))")
+            XCTAssertEqual(rig.canvas.drawing.strokes.count, 2, "the canvas still shows October's b and c (\(what))")
+            if lateChange {
+                rig.coordinator.canvasViewDrawingDidChange(rig.canvas) // PencilKit, late, on October's drawing
+                XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["x"], "the late change took nothing of October in")
+            }
+
+            await wait(1)
+            let page = rig.coordinator.ledger.page
+            XCTAssertEqual(page.pageId, november.pageId, what)
+            XCTAssertEqual(page.liveStrokeIds, ["x"], "November keeps its own line only (\(what))")
+            XCTAssertEqual(Array(page.strokes.keys), ["x"], "no line of October was added to November (\(what))")
+            XCTAssertTrue(page.deleted.isEmpty, "nothing of November was erased (\(what))")
+            XCTAssertEqual(rig.canvas.drawing.strokes.map { rig.coordinator.ledger.id(of: $0) }, ["x"], "the canvas shows November (\(what))")
+            for write in written.pages {
+                XCTAssertEqual(write.pageId, november.pageId, what)
+                XCTAssertEqual(Array(write.strokes.keys), ["x"], "nothing of October was written back into November's page (\(what))")
+            }
+            XCTAssertEqual(Array(written.page.strokes.keys), ["x"], what)
+        }
     }
 
     // MARK: 1.1 fix — the Pencil on the lasso and the 予定 tool (TestFlight build 12: 確認 12; M7A.md ずれ 47)
