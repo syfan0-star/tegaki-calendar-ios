@@ -1655,12 +1655,13 @@ final class InkCanvasViewTests: XCTestCase {
     /// PencilKit's drawing view (on the Mac, `window.hitTest` answered a plain view inside the canvas
     /// that PencilKit does not watch). The `repro:` line prints what the container and the canvas saw.
     /// Skipped when this iOS lacks one of the private pieces, when no touch reached the container or
-    /// when PencilKit erased nothing (the touches did not drive it: this test's problem, not the report's).
+    /// when PencilKit erased nothing (the touches did not drive it: this test's problem, not the report's);
+    /// a skip says why on a `repro: U1 skipped:` line first (`UIKitTouches.skip`).
     func testRealPencilEraserThroughUIKitReportsTheErasure() async throws {
         // TestFlight build 12: the report may be missing (the device); the fix removes this line.
         XCTExpectFailure("1.1 build 12 (不具合 A): the eraser's report may be missing", strict: false)
-        let touches = try UIKitTouches()
-        let window = try makeWindow()
+        let touches = try UIKitTouches("U1")
+        let window = try makeWindow(for: "U1")
         defer { window.isHidden = true }
         let (layout, paper) = makeMonth()
         let size = window.bounds.size
@@ -1676,7 +1677,7 @@ final class InkCanvasViewTests: XCTestCase {
         await settle()
         rig.coordinator.startProbe()
         guard let cell = layout.cells[.day(wednesday)], let drawingView = rig.canvas.drawingGestureRecognizer.view else {
-            throw XCTSkip("no cell for 10/7, or PencilKit's drawing recogniser has no view")
+            throw UIKitTouches.skip("U1", "no cell for 10/7, or PencilKit's drawing recogniser has no view")
         }
         let zoom = rig.canvas.zoomScale
         // Line a is at cell y 40, b at 70 (`monthPage`): down across a, stopping well above b.
@@ -1690,8 +1691,8 @@ final class InkCanvasViewTests: XCTestCase {
         let line = "repro: U1 eraser across a: erased=\(probe.erased) canvas=\(left) ledger=\(rig.coordinator.ledger.page.liveStrokeIds) seen=[\(seen.lines.joined(separator: " "))] \(rig.coordinator.probeValue())"
         print(line)
         NSLog("%@", line)
-        guard seen.downs > 0 else { throw XCTSkip("the touches never reached the container: \(line)") }
-        guard left < 2 else { throw XCTSkip("PencilKit's eraser took nothing (the touches did not drive it): \(line)") }
+        guard seen.downs > 0 else { throw UIKitTouches.skip("U1", "the touches never reached the container: \(line)") }
+        guard left < 2 else { throw UIKitTouches.skip("U1", "PencilKit's eraser took nothing (the touches did not drive it): \(line)") }
         XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, left, "the ledger erased what PencilKit erased (\(line))")
         XCTAssertEqual(probe.erased, [2 - left], "reported once within a second of the lift (\(line))")
     }
@@ -1702,12 +1703,12 @@ final class InkCanvasViewTests: XCTestCase {
     /// asks it for a touch that begins (the app's touches event, emptied: UIKit hit-tests before it adds
     /// the touch). Both strokes are selected. In 1.1 build 12 nothing is: the overlay took the Pencil
     /// only when the event already held it. Skipped when a private piece is missing or no touch
-    /// reached the container.
+    /// reached the container (with a `repro: U2 skipped:` line first).
     func testRealPencilLassoThroughUIKitSelectsTheFreeMemo() async throws {
         // TestFlight build 12: nothing is selected; the fix removes this line.
         XCTExpectFailure("1.1 build 12 (不具合 B): the Pencil does not reach the lasso", strict: false)
-        let touches = try UIKitTouches()
-        let window = try makeWindow()
+        let touches = try UIKitTouches("U2")
+        let window = try makeWindow(for: "U2")
         defer { window.isHidden = true }
         let log = SelectionLog()
         let (rig, _) = await freeMemoRig(allowFinger: false, log: log, window: window)
@@ -1724,7 +1725,7 @@ final class InkCanvasViewTests: XCTestCase {
         let line = "repro: U2 Pencil lasso below 24:00: selected=\(log.last?.ids ?? []) seen=[\(seen.lines.joined(separator: " "))] \(rig.coordinator.probeValue())"
         print(line)
         NSLog("%@", line)
-        guard seen.downs > 0 else { throw XCTSkip("the touches never reached the container: \(line)") }
+        guard seen.downs > 0 else { throw UIKitTouches.skip("U2", "the touches never reached the container: \(line)") }
         XCTAssertEqual(Set(log.last?.ids ?? []), ["memo-a", "memo-b"], "the Pencil's lasso selected the free memo (\(line))")
     }
 
@@ -1791,10 +1792,10 @@ final class InkCanvasViewTests: XCTestCase {
     }
 
     /// A window of the test host's scene (the unit tests run inside the app), shown above the app's
-    /// own. The caller hides it again.
-    private func makeWindow() throws -> UIWindow {
+    /// own. The caller (`test`: `U1`, `U2`) hides it again.
+    private func makeWindow(for test: String) throws -> UIWindow {
         guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else {
-            throw XCTSkip("the test host has no window scene")
+            throw UIKitTouches.skip(test, "the test host has no window scene")
         }
         let window = UIWindow(windowScene: scene)
         window.frame = scene.coordinateSpace.bounds
@@ -1876,7 +1877,13 @@ final class InkCanvasViewTests: XCTestCase {
     /// setters (`setWindow:`, `_setLocationInWindow:resetPrevious:`, `setView:`, `_setType:` …) and an
     /// `IOHIDEvent` from IOKit's `IOHIDEventCreateDigitizer…` (found with `dlsym`), put into the app's own
     /// touches event (`_touchesEvent`, `_clearTouches`, `_addTouch:forDelayedDelivery:`). Test code only;
-    /// `init` throws `XCTSkip` when this iOS lacks a piece. The bug investigation drove a real Mac
+    /// `init` throws `XCTSkip` when this iOS lacks a piece a touch cannot do without. The setters that
+    /// only one platform has are called where they exist, never required, as KIF does: KIF calls
+    /// `_setIsFirstTouchForView:` and `setIsTap:` only on a Mac (this Mac's Mac Catalyst has both) and
+    /// `_setIsTapToClick:` on iOS (this Mac's Mac Catalyst does not have it); requiring the first two
+    /// skipped U1 and U2 on the iOS simulator (inferred: they are not on iOS 14 and later). Every skip
+    /// says why on a `repro: <test> skipped:` line first (`skip`): a skip fails nothing, so the CI log
+    /// would not otherwise show that the test tried nothing. The bug investigation drove a real Mac
     /// Catalyst window this way (PencilKit began, erased and ended). The few hundred bytes of each
     /// `IOHIDEvent` are not released (what UIKit keeps of them is its own business).
     @MainActor
@@ -1901,36 +1908,54 @@ final class InkCanvasViewTests: XCTestCase {
         /// `kIOHIDEventFieldDigitizerIsDisplayIntegrated` (digitizer events are type 11).
         private static let displayIntegrated: UInt32 = (11 << 16) | 25
 
+        /// The test that sends the touches (`U1`, `U2`): it names the `repro:` line of a skip.
+        let test: String
         private let createHand: HandEvent
         private let createFinger: FingerEvent
         private let setField: SetField
         private let appendEvent: AppendEvent
         private let setSender: SetSender?
 
-        init() throws {
+        /// The skip of `test` for `reason`, said first on a `repro: <test> skipped: <reason>` line (stdout
+        /// and the log, like the tests' other `repro:` lines).
+        static func skip(_ test: String, _ reason: String) -> XCTSkip {
+            let line = "repro: \(test) skipped: \(reason)"
+            print(line)
+            NSLog("%@", line)
+            return XCTSkip(reason)
+        }
+
+        init(_ test: String) throws {
+            self.test = test
             guard let iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW),
                   let hand = dlsym(iokit, "IOHIDEventCreateDigitizerEvent"),
                   let finger = dlsym(iokit, "IOHIDEventCreateDigitizerFingerEvent"),
                   let field = dlsym(iokit, "IOHIDEventSetIntegerValue"),
                   let append = dlsym(iokit, "IOHIDEventAppendEvent") else {
-                throw XCTSkip("IOKit's IOHIDEvent functions are missing")
+                throw Self.skip(test, "IOKit's IOHIDEvent functions are missing")
             }
             createHand = unsafeBitCast(hand, to: HandEvent.self)
             createFinger = unsafeBitCast(finger, to: FingerEvent.self)
             setField = unsafeBitCast(field, to: SetField.self)
             appendEvent = unsafeBitCast(append, to: AppendEvent.self)
             setSender = dlsym(iokit, "IOHIDEventSetSenderID").map { unsafeBitCast($0, to: SetSender.self) }
+            // Required: what every touch needs. `_setIsFirstTouchForView:`, `setIsTap:` (a Mac's) and
+            // `_setIsTapToClick:` (iOS's) are set in `stroke` where they exist.
             let touch = UITouch()
             for name in ["setWindow:", "setView:", "setTapCount:", "_setLocationInWindow:resetPrevious:", "setPhase:",
-                         "_setIsFirstTouchForView:", "setIsTap:", "setTimestamp:", "_setType:", "_setHidEvent:"]
+                         "setTimestamp:", "_setType:", "_setHidEvent:"]
             where Self.method(touch, name) == nil {
-                throw XCTSkip("UITouch has no \(name)")
+                throw Self.skip(test, "UITouch has no \(name)")
             }
-            guard let event = Self.touchesEvent() else { throw XCTSkip("UIApplication has no _touchesEvent") }
+            guard let event = Self.touchesEvent() else { throw Self.skip(test, "UIApplication has no _touchesEvent") }
             for name in ["_clearTouches", "_setHIDEvent:", "_setTimestamp:", "_addTouch:forDelayedDelivery:"]
             where Self.method(event, name) == nil {
-                throw XCTSkip("the touches event has no \(name)")
+                throw Self.skip(test, "the touches event has no \(name)")
             }
+            let optional = ["_setIsFirstTouchForView:", "setIsTap:", "_setIsTapToClick:", "setGestureView:"]
+            let line = "repro: \(test) touches: optional setters present=[\(optional.filter { Self.method(touch, $0) != nil }.joined(separator: " "))]"
+            print(line)
+            NSLog("%@", line)
         }
 
         private static func method(_ object: AnyObject, _ name: String) -> (IMP, Selector)? {
@@ -1991,7 +2016,7 @@ final class InkCanvasViewTests: XCTestCase {
         func stroke(_ path: [CGPoint], type: UITouch.TouchType, in window: UIWindow, step: Duration = .milliseconds(16),
                     view: (CGPoint) -> UIView?) async throws {
             guard let first = path.first, let target = view(first) else {
-                throw XCTSkip("no view to touch at \(path.first ?? .zero)")
+                throw Self.skip(test, "no view to touch at \(path.first ?? .zero)")
             }
             let touch = UITouch()
             Self.set(touch, "setWindow:", object: window) // resets other values: first
@@ -2000,8 +2025,10 @@ final class InkCanvasViewTests: XCTestCase {
             Self.set(touch, "setView:", object: target)
             Self.set(touch, "setGestureView:", object: target) // KIF does it where it exists
             Self.set(touch, "setPhase:", int: UITouch.Phase.began.rawValue)
+            // Each where it exists (`set` does nothing otherwise): a Mac's two, iOS's one (KIF's split).
             Self.set(touch, "_setIsFirstTouchForView:", bool: true)
             Self.set(touch, "setIsTap:", bool: false)
+            Self.set(touch, "_setIsTapToClick:", bool: false)
             Self.set(touch, "setTimestamp:", double: ProcessInfo.processInfo.systemUptime)
             Self.set(touch, "_setType:", int: type.rawValue)
             send(touch, phase: .began, at: first)

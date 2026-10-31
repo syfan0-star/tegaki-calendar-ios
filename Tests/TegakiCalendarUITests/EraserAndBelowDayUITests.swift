@@ -15,7 +15,9 @@ import XCTest
 /// the content offset (paper lu → screen points: frame origin + lu × zoom − offset), the paper size,
 /// the strokes PencilKit holds (`pk`) and the ledger's live strokes (`ink`), the tool, and the last
 /// canvas events with their times (`trace`: B / E PencilKit began / ended using its tool, C+a-r a
-/// drawing change, R<n> the end of the settle wait with n erased, O / o / L<n> the lasso …). Every
+/// drawing change, R<n> the eraser's report of n erased strokes — in build 12's design the end of
+/// the settle wait, `R0` when nothing was erased; after the fix only a report that goes out —,
+/// O / o / L<n> the lasso …; `InkCanvasView.Coordinator.probeNote` has them all). Every
 /// step logs it (`eraser-memo UI:` lines), so a red run says where it stopped. Every toast stays 20 s
 /// with the probe, so a slow simulator cannot miss the notice.
 ///
@@ -38,7 +40,8 @@ final class EraserAndBelowDayUITests: XCTestCase {
     /// simulator (YearTapUITests, run 41172398011): it is tried once more.
     private let slowGesture: TimeInterval = 2.5
     /// How long the tool may take to go back to the pen after the lift (s). The design is 0.3 s (the
-    /// settle wait) and a turn; the rest is a slow CI.
+    /// settle wait) in build 12 and at most 0.5 s after the fix (a finger on the week, month and year
+    /// pages), and a turn; the rest is a slow CI.
     private let returnTimeout: TimeInterval = 3
 
     private static let penLabel = "ペン"
