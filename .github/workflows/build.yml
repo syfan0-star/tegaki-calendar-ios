@@ -522,6 +522,12 @@ jobs:
           set -euo pipefail
           UDID="${{ steps.uibuild.outputs.udid }}"
           echo "UI tests on: ${{ steps.uibuild.outputs.name }} ($UDID)"
+          # A freshly booted simulator stays busy for a while (and posts a system banner 15–35 s after
+          # the boot, docs/M6.md §5.1). In run 41172398011 the last UI test met that load (5–10 s per
+          # query) and its tap never reached the app. Boot first and let it settle.
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+          sleep 60
           mkdir -p shots/ui-tests
           rm -rf build/ui-tests.xcresult
           xcodebuild \

@@ -26,6 +26,8 @@ final class YearTapUITests: XCTestCase {
     private let rowMiddle: CGFloat = 948
     /// Column 3's width (lu, `PaperSpec.yearColumnWidth`).
     private let columnWidth: CGFloat = 112
+    /// A tap whose synthesis took longer than this (s) met an overloaded simulator (see `runJump`).
+    private let slowTap: TimeInterval = 2.5
 
     // MARK: Tests
 
@@ -94,16 +96,27 @@ final class YearTapUITests: XCTestCase {
             XCTAssertLessThan(heading.width, heading.height, "\(name): a column narrower than the 44 pt heading row (\(heading))")
         }
         keepScreenshot(app, "\(name) — before")
+        log("\(name): waited \(waitUntilResponsive(march)) s for the app to answer quickly")
 
-        // The middle of 3/16, relative to the heading's bottom centre.
+        // The middle of 3/16, relative to the heading's bottom centre. One more try only when the
+        // simulator was overloaded: the tap's synthesis itself took over `slowTap` seconds (run
+        // 41172398011: 7 s, against at most 1.2 s otherwise), so the touches may not have reached the
+        // app as a tap. A fast tap that does not open the day page fails at once.
         let point = march.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1.0)).withOffset(CGVector(dx: 0, dy: dy))
-        if double {
-            point.doubleTap()
-        } else {
-            point.tap()
+        var opened = false
+        for attempt in 1...2 {
+            let started = Date()
+            if double {
+                point.doubleTap()
+            } else {
+                point.tap()
+            }
+            let took = Date().timeIntervalSince(started)
+            opened = app.buttons["前の日"].waitForExistence(timeout: 6)
+            log("\(name): attempt \(attempt): the \(double ? "double tap" : "tap") took \(String(format: "%.2f", took)) s; the day page \(opened ? "opened" : "did not open")")
+            if opened || took <= slowTap || !app.buttons["前の年"].exists { break }
+            log("\(name): RETRY (the simulator was overloaded); waited \(waitUntilResponsive(march)) s")
         }
-
-        let opened = app.buttons["前の日"].waitForExistence(timeout: 6)
         keepScreenshot(app, "\(name) — after")
         if !opened {
             log("\(name): the day page did not open. Elements:\n\(app.debugDescription)")
@@ -125,6 +138,21 @@ final class YearTapUITests: XCTestCase {
             last = now
         }
         return last
+    }
+
+    /// Waits (at most `timeout` seconds) until a query of `element` answers within 1 s: a freshly
+    /// booted simulator can be busy for a minute or two (run 41172398011: 5–10 s per query). Returns
+    /// the seconds waited, rounded.
+    @discardableResult
+    private func waitUntilResponsive(_ element: XCUIElement, timeout: TimeInterval = 60) -> Int {
+        let start = Date()
+        while Date().timeIntervalSince(start) < timeout {
+            let queried = Date()
+            _ = element.frame
+            if Date().timeIntervalSince(queried) < 1 { break }
+            Thread.sleep(forTimeInterval: 1)
+        }
+        return Int(Date().timeIntervalSince(start).rounded())
     }
 
     private func keepScreenshot(_ app: XCUIApplication, _ name: String) {
