@@ -7,7 +7,8 @@ import XCTest
 /// 1.1 (docs/M7A_CONTRACT.md §2, §7.2 T): the pure logic of the toolbar — the eraser's return to the
 /// last pen (D2), the three states and their table (§2.1, D1), the toast padding and the paper's
 /// clearance above the dock (0-15), the dock button's mark (§2.2), the pen the app starts with
-/// (0-13), the eraser's hint (§6.2) and the kind of a tool (moved from `ToolbarView`).
+/// (0-13), the eraser's hint (§6.2), the bar's two-line hints and the sizes of its row (docs/M7A.md
+/// ずれ 45) and the kind of a tool (moved from `ToolbarView`).
 final class ToolbarLogicTests: XCTestCase {
     private let redThick = CanvasTool.ink(InkStyle(tool: .pen, colorHex: "#dc2626", width: 6))
     private let yellowMarker = CanvasTool.ink(InkStyle(tool: .marker, colorHex: "#fde047", width: 18))
@@ -298,6 +299,59 @@ final class ToolbarLogicTests: XCTestCase {
         XCTAssertEqual(ToolbarLogic.eraserHint(returnsTo: .eraser), "触れた線をまるごと消します")
         XCTAssertEqual(ToolbarLogic.eraserHint(returnsTo: .lasso), "触れた線をまるごと消します")
         XCTAssertEqual(ToolbarLogic.eraserHint(returnsTo: .eventRect), "触れた線をまるごと消します")
+    }
+
+    // MARK: The bar's hints and row (M7A.md ずれ 45)
+
+    /// The bar shows each hint as one whole string with at most one line break (the eraser's bracket
+    /// on the second line); without it, each is the §6.2 / 1.0.1 sentence.
+    func testBarHintsAreTheOneLineSentencesOnTwoLines() {
+        XCTAssertEqual(ToolbarLogic.eraserBarHint(returnsTo: nil), "触れた線をまるごと消します")
+        XCTAssertEqual(ToolbarLogic.eraserBarHint(returnsTo: redThick), "触れた線をまるごと消します\n（消すとペンに戻ります）")
+        XCTAssertEqual(ToolbarLogic.eraserBarHint(returnsTo: yellowMarker), "触れた線をまるごと消します\n（消すとマーカーに戻ります）")
+        XCTAssertEqual(ToolbarLogic.eraserBarHint(returnsTo: .lasso), "触れた線をまるごと消します")
+        XCTAssertEqual(ToolbarLogic.lassoBarHint, "囲んで選びます。\n枠の中をドラッグで動かせます")
+        XCTAssertEqual(ToolbarLogic.eventBarHint, "なぞって予定を作ります。\n予定をタップすると編集します")
+        // Without the line break: the 1.0.1 sentences (the lasso's and the 予定 tool's were in
+        // ToolbarView).
+        XCTAssertEqual(ToolbarLogic.lassoBarHint.replacingOccurrences(of: "\n", with: ""), "囲んで選びます。枠の中をドラッグで動かせます")
+        XCTAssertEqual(ToolbarLogic.eventBarHint.replacingOccurrences(of: "\n", with: ""), "なぞって予定を作ります。予定をタップすると編集します")
+        let all = [ToolbarLogic.eraserBarHint(returnsTo: nil), ToolbarLogic.eraserBarHint(returnsTo: redThick),
+                   ToolbarLogic.eraserBarHint(returnsTo: yellowMarker), ToolbarLogic.lassoBarHint, ToolbarLogic.eventBarHint]
+        for text in all {
+            let lines = text.components(separatedBy: "\n")
+            XCTAssertLessThanOrEqual(lines.count, 2, text)
+            for line in lines {
+                XCTAssertLessThanOrEqual(line.count, 14, line)   // ≤ 14 × 11.54 = 161.6 pt (CI photos)
+            }
+        }
+    }
+
+    /// The row's sizes keep what 1.0.1 showed (Japanese, portrait, no side safe area; a divider is
+    /// 1 px, counted as 1 pt here; 「指でも書く」 is 108.5 pt and ↶ / ↷ draw from +13.5 to +30.5,
+    /// measured in the CI photos of run 41195642254).
+    func testRowWinsBackTheCollapseButton() {
+        typealias Row = ToolbarLogic.Row
+        XCTAssertGreaterThanOrEqual(Row.buttonMinWidth, 44)
+        XCTAssertGreaterThanOrEqual(Row.historyButtonWidth, 44)
+        XCTAssertGreaterThanOrEqual(Row.swatchWidth, 36)          // 36 in 1.0.1
+        XCTAssertGreaterThanOrEqual(Row.widthButtonMinWidth, 40)  // 40 in 1.0.1
+        XCTAssertGreaterThanOrEqual(Row.paddingTrailing, Row.fadeWidth)
+        let gap = 2 * Row.groupSpacing + 1
+        func visible(_ screen: CGFloat) -> CGFloat {
+            screen - 2 * ToolbarLogic.sidePadding - (1 + Row.collapseLeading + Row.buttonMinWidth + Row.collapseTrailing)
+        }
+        let swatches = Row.paddingLeading + 5 * Row.buttonMinWidth + gap      // 261
+        let ringEnd = swatches + (Row.swatchWidth + 32) / 2                    // 296: the first colour's ring
+        let widths = swatches + 6 * Row.swatchWidth + gap                      // 502
+        let thickEnd = widths + 3 * Row.widthButtonMinWidth                    // 634
+        let undo = thickEnd + gap                                              // 647
+        let redoArrowEnd = undo + 2 * Row.historyButtonWidth - 13.5            // 721.5
+        let rowEnd = undo + 2 * Row.historyButtonWidth + gap + 108.5 + Row.paddingTrailing   // 870.5
+        XCTAssertLessThanOrEqual(redoArrowEnd, visible(834) - Row.fadeWidth)   // 11-inch: ↶ ↷, clear of the fade
+        XCTAssertLessThanOrEqual(ringEnd, visible(402) - Row.fadeWidth)        // iPhone 17: 黒 with its ring
+        XCTAssertLessThanOrEqual(thickEnd, visible(744) - Row.fadeWidth)       // iPad mini: 細中太
+        XCTAssertLessThanOrEqual(rowEnd, visible(1032))                        // 13-inch: all of it
     }
 
     // MARK: Kind (moved from ToolbarView)

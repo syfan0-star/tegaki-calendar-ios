@@ -2,9 +2,10 @@ import CoreGraphics
 import Foundation
 
 // 1.1 (docs/M7A_CONTRACT.md §2, D1 / D2): the toolbar's three states, the eraser's return to the
-// last pen, the mark of the round dock button and the paddings that depend on the state. Everything
-// here is pure (no SwiftUI) so `ToolbarLogicTests` can check it; `ToolbarView`, `ToolbarDock` and
-// `CalendarRootScreen` only read it.
+// last pen, the mark of the round dock button and the paddings that depend on the state; since
+// docs/M7A.md ずれ 45 also the bar's hints (whole strings of at most two lines) and the horizontal
+// sizes of its row (`ToolbarLogic.Row`). Everything here is pure (no SwiftUI) so `ToolbarLogicTests`
+// can check it; `ToolbarView`, `ToolbarDock` and `CalendarRootScreen` only read it.
 
 /// The three states of the toolbar (§2.1). `expanded` is today's bar in the bottom safe-area inset
 /// (it pushes the paper up by 66 pt) plus the 「しまう」 button; `collapsed` is the round dock button
@@ -112,6 +113,10 @@ enum ToolbarLogic {
     static let dockAccessibilityLabel = "ツールバーを出す"
     static let pinTitle = "ツールバーをいつも出す"
     static let eraserHintText = "触れた線をまるごと消します"
+    /// The lasso's and the 予定 tool's hints as the bar shows them: two lines (M7A.md ずれ 45). Without
+    /// the "\n" they are the 1.0.1 sentences. Each is one whole string (1.2 makes each one key).
+    static let lassoBarHint = "囲んで選びます。\n枠の中をドラッグで動かせます"
+    static let eventBarHint = "なぞって予定を作ります。\n予定をタップすると編集します"
 
     /// The dock's menu item that moves it to the other bottom corner.
     static func moveEdgeTitle(from edge: ToolbarEdge) -> String {
@@ -154,18 +159,25 @@ enum ToolbarLogic {
         current.isEraser && origin == .toolbar && erased > 0 && setting ? lastInk : nil
     }
 
-    /// The eraser's hint in the bar (§6.2): 「触れた線をまるごと消します」 plus
-    /// 「（消すとペンに戻ります）」 / 「（消すとマーカーに戻ります）」 when it will return to that ink.
-    static func eraserHint(returnsTo: CanvasTool?) -> String {
+    /// The eraser's hint as the bar shows it (§6.2, M7A.md ずれ 45): 「触れた線をまるごと消します」, and
+    /// when it will return to an ink 「（消すとペンに戻ります）」 / 「（消すとマーカーに戻ります）」 on a
+    /// second line, so the bracket does not push ↶ ↷ and 「指でも書く」 out of sight. One whole string
+    /// per case (1.2 makes each one key).
+    static func eraserBarHint(returnsTo: CanvasTool?) -> String {
         guard let target = returnsTo else { return eraserHintText }
         switch kind(of: target) {
         case .pen:
-            return eraserHintText + "（消すとペンに戻ります）"
+            return "触れた線をまるごと消します\n（消すとペンに戻ります）"
         case .marker:
-            return eraserHintText + "（消すとマーカーに戻ります）"
+            return "触れた線をまるごと消します\n（消すとマーカーに戻ります）"
         case .eraser, .lasso, .eventRect:
             return eraserHintText
         }
+    }
+
+    /// The same hint on one line (the §6.2 sentence): `eraserBarHint` without its line break.
+    static func eraserHint(returnsTo: CanvasTool?) -> String {
+        eraserBarHint(returnsTo: returnsTo).replacingOccurrences(of: "\n", with: "")
     }
 
     /// The mark of the dock button (§2.2). Colour names come from `ToolbarPalette` (「その他の色」
@@ -247,6 +259,44 @@ enum ToolbarLogic {
     /// the dock is shown — also during a peek, so peeking never changes the canvas insets.
     static func paperBottomClearance(_ mode: ToolbarMode) -> CGFloat {
         mode == .expanded ? 0 : dockClearance
+    }
+}
+
+extension ToolbarLogic {
+    /// 1.1 (docs/M7A.md ずれ 45): the horizontal sizes of the expanded and the peeking bar
+    /// (`ToolbarView`). 「しまう」 outside the scrolling row (0-10) takes 1 px + 4 + 48 + 8 of the bar;
+    /// the row wins it back by packing its pieces (the pen row 980.5 → 868.5 pt), so every device
+    /// shows at least what 1.0.1 showed (11-inch with the pen: up to ↷; iPhone 17: the first colour
+    /// with its ring and half of the next one, fading; 13-inch: everything). The row height
+    /// (44 + 8 + 8) does not change (`barHeight`; YearTapUITests reads the top of 「ペン」).
+    enum Row {
+        /// The scrolling row's padding: leading 14 → 8 (the selected tool sits 8 from the bar's edge,
+        /// as from its top and bottom), trailing 14 as before (≥ `fadeWidth`, so the last piece is
+        /// never faded when the row is scrolled to its end).
+        static let paddingLeading: CGFloat = 8
+        static let paddingTrailing: CGFloat = 14
+        /// The last 12 pt before 「しまう」's divider fade out, so a piece cut there reads as "more to
+        /// the right" instead of being sliced by the divider.
+        static let fadeWidth: CGFloat = 12
+        /// Each side of a divider in the row: 10 → 6.
+        static let groupSpacing: CGFloat = 6
+        /// Tool buttons and 「しまう」: the label + 5 + 5, at least 48 (was 56 with 4 between; now 0).
+        /// Every Japanese label fits the 48 (「マーカー」 36.9 pt at 10 pt).
+        static let buttonMinWidth: CGFloat = 48
+        static let labelInset: CGFloat = 5
+        /// The symbol's box in those buttons: as tall as the tools' symbols at 18 pt (22, measured in
+        /// the CI photos), so 「しまう」's label (chevron.down alone is 12) sits level with the others.
+        static let symbolHeight: CGFloat = 22
+        /// A colour swatch: 36 + 6 between → 38 with nothing between (the whole 38 × 44 is the button).
+        static let swatchWidth: CGFloat = 38
+        /// 細 / 中 / 太: the label + 3 + 3, at least 44 (was 40 with 4 between; now 0).
+        static let widthButtonMinWidth: CGFloat = 44
+        static let widthLabelInset: CGFloat = 3
+        /// ↶ / ↷: 44 each (4 between → 0).
+        static let historyButtonWidth: CGFloat = 44
+        /// 「しまう」 after its divider: 8 → 4 before it, 8 after it as before (its right edge stays).
+        static let collapseLeading: CGFloat = 4
+        static let collapseTrailing: CGFloat = 8
     }
 }
 
