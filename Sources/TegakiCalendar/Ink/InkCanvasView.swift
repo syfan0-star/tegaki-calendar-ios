@@ -498,13 +498,18 @@ extension InkCanvasView {
         // the change comes while the tool is the eraser (⑥), and the report goes out when nothing
         // touches the paper any more (`touchingPaper`, `scheduleEraseReport`) — by the touches
         // `touchObserver` saw; PencilKit's `isUsingTool` only until it has seen one.
-        /// The Pencil touches and the finger touches that are on the paper (`touchObserved`; never < 0).
-        /// A pointer's press (a mouse, a trackpad) counts as a finger (the review).
+        /// The Pencil touches, the finger touches and the pointer's presses (a mouse, a trackpad) that are
+        /// on the paper (`touchObserved`; never < 0). The lead's review: a pointer is counted on its own
+        /// and always writes — PencilKit's drawing recogniser takes `.indirectPointer` whatever
+        /// 「指でも書く」 says (`[0, 2, 3]` on a Mac in both drawing policies; A17's `repro:` line prints
+        /// what an iOS gives).
         private var pencilsDown = 0
         private var fingersDown = 0
+        private var pointersDown = 0
         /// `touchObserver` has seen a touch: from then on it alone tells whether the paper is touched.
         private var observerReady = false
-        /// The writing touch that lifted last was a finger (`fingerEraseReportDelay`, not the Pencil's).
+        /// The writing touch that lifted last was a finger or a pointer (`fingerEraseReportDelay`, not
+        /// the Pencil's).
         private var lastLiftWasFinger = false
         /// The report scheduled last (`scheduleEraseReport`): a newer schedule, a new writing touch and
         /// `detach` move it on, so the older one does nothing.
@@ -537,11 +542,11 @@ extension InkCanvasView {
             parent.doubleTapEnabled ? Self.fingerEraseReportDelayWithDoubleTap : InkCanvasView.settleDelay
         }
 
-        /// Something that writes (or erases) touches the paper: the Pencil, or a finger (or a pointer)
-        /// with 「指でも書く」. Decides the eraser's report only.
+        /// Something that writes (or erases) touches the paper: the Pencil, a pointer's press, or a finger
+        /// with 「指でも書く」 (`writes`). Decides the eraser's report and the lift watch only.
         private var touchingPaper: Bool {
             guard observerReady else { return isUsingTool }
-            return pencilsDown > 0 || (parent.allowFinger && fingersDown > 0)
+            return pencilsDown > 0 || pointersDown > 0 || (parent.allowFinger && fingersDown > 0)
         }
 
         // The UI tests only (`--screenshot-probe`, `EraserAndBelowDayUITests`): the last canvas events
@@ -707,8 +712,9 @@ extension InkCanvasView {
                 "ink=\(ledger.page.liveStrokeCount)",
                 "tool=\(Self.probeName(parent.tool))",
                 "pending=\(erasedSinceReport)",
-                // 1.1 fix: the touches `touchObserver` counts (`-` until it has seen one).
-                "down=\(observerReady ? "\(pencilsDown)p\(fingersDown)f" : "-")",
+                // 1.1 fix: the touches `touchObserver` counts (`-` until it has seen one): Pencils,
+                // fingers and (the lead's review) the pointer's presses.
+                "down=\(observerReady ? "\(pencilsDown)p\(fingersDown)f\(pointersDown)i" : "-")",
                 "trace=\(probeTrace.joined(separator: " "))",
             ].joined(separator: ";")
         }
@@ -739,6 +745,7 @@ extension InkCanvasView {
             liftWatchGeneration += 1
             pencilsDown = 0
             fingersDown = 0
+            pointersDown = 0
             overlay?.delegate = nil
             canvas?.delegate = nil
             container = nil
@@ -1704,17 +1711,19 @@ extension InkCanvasView {
         }
 
         /// `touchObserver` saw a touch of `type` come down or lift. Internal: the tests stand in for
-        /// UIKit with it. A writing touch coming down (the Pencil, or a finger or a pointer with
+        /// UIKit with it. A writing touch coming down (`writes`: the Pencil, a pointer, or a finger with
         /// 「指でも書く」) cuts a waiting report short (the count is carried over); the last one lifting
-        /// schedules the report and watches for an End that does not come. The review: a pointer (a
-        /// mouse, a trackpad) is counted and waited for like a finger.
+        /// schedules the report and watches for an End that does not come. A pointer (a mouse, a
+        /// trackpad) is waited for like a finger after it lifts; the lead's review: it writes with
+        /// 「指でも書く」 off too, so it always holds the report and the lift watch while it is pressed.
         func touchObserved(_ change: InkTouchObserver.Change) {
             switch change {
             case .down(let type):
                 observerReady = true
                 switch type {
                 case .pencil: pencilsDown += 1
-                case .direct, .indirectPointer: fingersDown += 1
+                case .direct: fingersDown += 1
+                case .indirectPointer: pointersDown += 1
                 default: return
                 }
                 probeNote("D\(Self.touchToken(type))")
@@ -1725,7 +1734,8 @@ extension InkCanvasView {
             case .up(let type):
                 switch type {
                 case .pencil: pencilsDown = max(0, pencilsDown - 1)
-                case .direct, .indirectPointer: fingersDown = max(0, fingersDown - 1)
+                case .direct: fingersDown = max(0, fingersDown - 1)
+                case .indirectPointer: pointersDown = max(0, pointersDown - 1)
                 default: return
                 }
                 probeNote("U\(Self.touchToken(type))")
@@ -1745,10 +1755,11 @@ extension InkCanvasView {
             }
         }
 
-        /// A touch of this type writes or erases on the canvas: the Pencil, or a finger or a pointer
-        /// with 「指でも書く」.
+        /// A touch of this type writes or erases on the canvas: the Pencil, a pointer (the lead's review:
+        /// whatever 「指でも書く」 says, as PencilKit's drawing recogniser takes it), or a finger with
+        /// 「指でも書く」.
         private func writes(_ type: UITouch.TouchType) -> Bool {
-            type == .pencil || ((type == .direct || type == .indirectPointer) && parent.allowFinger)
+            type == .pencil || type == .indirectPointer || (type == .direct && parent.allowFinger)
         }
 
         /// In `liftWithoutEndGrace`, if nothing touches the paper and PencilKit (or the overlay) still

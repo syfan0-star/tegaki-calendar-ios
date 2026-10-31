@@ -2129,7 +2129,9 @@ final class InkCanvasViewTests: XCTestCase {
     /// A17: the touch observer: on the container, always on (every tool, read only too), the Pencil,
     /// fingers and (the review) a pointer together, never cancels or delays a touch, never prevents and
     /// is never prevented, and runs alongside every recogniser. (`testFingerTapGraphOnAnIPhoneYearPage`
-    /// is unchanged.)
+    /// is unchanged.) The lead's review: the `repro: A17` line prints the touch types PencilKit's drawing
+    /// recogniser takes in either drawing policy (on a Mac `[0, 2, 3]` in both: a pointer writes with
+    /// 「指でも書く」 off too, which is why the coordinator counts it as writing whatever the setting says).
     func testTouchObserverSetup() async throws {
         let (layout, paper) = makeMonth()
         let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true)
@@ -2154,6 +2156,14 @@ final class InkCanvasViewTests: XCTestCase {
             XCTAssertTrue(c.gestureRecognizer(observer, shouldRecognizeSimultaneouslyWith: other), "\(type(of: other))")
             XCTAssertTrue(c.gestureRecognizer(other, shouldRecognizeSimultaneouslyWith: observer), "\(type(of: other)) (the other way round)")
         }
+        XCTAssertEqual(rig.canvas.drawingPolicy, .pencilOnly)
+        let pencilOnly = rig.canvas.drawingGestureRecognizer.allowedTouchTypes.map(\.intValue).sorted()
+        c.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: rig.probe, doubleTapEnabled: true, allowFinger: true))
+        XCTAssertEqual(rig.canvas.drawingPolicy, .anyInput)
+        let anyInput = rig.canvas.drawingGestureRecognizer.allowedTouchTypes.map(\.intValue).sorted()
+        let line = "repro: A17 PencilKit's drawingGestureRecognizer.allowedTouchTypes pencilOnly=\(pencilOnly) anyInput=\(anyInput) (direct 0, pencil 2, indirectPointer 3)"
+        print(line)
+        NSLog("%@", line)
         let states: [(tool: CanvasTool, readOnly: Bool)] = [(.lasso, false), (.eventRect, true), (.ink(InkPresets.defaultPen), true), (.eraser, false)]
         for (tool, readOnly) in states {
             c.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: rig.probe, doubleTapEnabled: true, tool: tool,
@@ -2229,26 +2239,33 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertEqual(left.changes.count, 4, "once")
     }
 
-    /// A19 (the review): a pointer — a mouse's or a trackpad's press, `.indirectPointer` with the app's
-    /// indirect input — counts like a finger. With 「指でも書く」 the report waits while it is pressed (D2;
-    /// before the review the observer did not count it and the first change was reported at once) and
-    /// goes out after the finger's wait once it lifts; no lift watch ends the touch meanwhile.
-    func testAPointerHoldsTheReportLikeAFinger() async {
+    /// A19 (the review, and the lead's review): a pointer — a mouse's or a trackpad's press,
+    /// `.indirectPointer` with the app's indirect input — writes whatever 「指でも書く」 says (PencilKit's
+    /// drawing recogniser takes it in both drawing policies, A17), so with the setting off and on the
+    /// report waits while it is pressed (D2) and no lift watch ends the touch meanwhile; once it lifts the
+    /// report goes out after the finger's wait. Before the review the observer did not count a pointer
+    /// (the first change was reported at once); before the lead's review it counted one only with
+    /// 「指でも書く」 (off, the report went out under the pressed pointer and the lift watch took it as lifted).
+    func testAPointerHoldsTheReportWhetherOrNotFingersWrite() async {
         let (layout, paper) = makeMonth()
-        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true, tool: .eraser,
-                                allowFinger: true, page: monthPage(strokes: ["a", "b"]))
-        observe(rig, .down, .indirectPointer)
-        touch(rig)
-        erase(["a"], on: rig)
-        await wait(0.7)
-        XCTAssertEqual(rig.probe.erased, [], "not while the pointer is pressed")
-        XCTAssertTrue(rig.coordinator.isUsingTool, "no lift watch while it is pressed")
-        observe(rig, .up, .indirectPointer)
-        lift(rig)
-        let reported = await eventually { !rig.probe.erased.isEmpty }
-        XCTAssertTrue(reported, "reported after the lift")
-        XCTAssertEqual(rig.probe.erased, [1])
-        XCTAssertTrue(rig.coordinator.probeValue().contains("down=0p0f"), rig.coordinator.probeValue())
+        for allowFinger in [false, true] {
+            let what = "「指でも書く」 \(allowFinger ? "on" : "off")"
+            let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true, tool: .eraser,
+                                    allowFinger: allowFinger, page: monthPage(strokes: ["a", "b"]))
+            observe(rig, .down, .indirectPointer)
+            touch(rig)
+            erase(["a"], on: rig)
+            await wait(0.7)
+            XCTAssertEqual(rig.probe.erased, [], "not while the pointer is pressed (\(what))")
+            XCTAssertTrue(rig.coordinator.isUsingTool, "no lift watch while it is pressed (\(what))")
+            XCTAssertTrue(rig.coordinator.probeValue().contains("down=0p0f1i"), "\(what): \(rig.coordinator.probeValue())")
+            observe(rig, .up, .indirectPointer)
+            lift(rig)
+            let reported = await eventually { !rig.probe.erased.isEmpty }
+            XCTAssertTrue(reported, "reported after the lift (\(what))")
+            XCTAssertEqual(rig.probe.erased, [1], what)
+            XCTAssertTrue(rig.coordinator.probeValue().contains("down=0p0f0i"), "\(what): \(rig.coordinator.probeValue())")
+        }
     }
 
     /// The `page` binding of a canvas that keeps every page the canvas wrote back (`publishPage`).
