@@ -58,6 +58,8 @@ struct SettingsScreen: View {
     @State private var syncingNow = false
     /// 「サブスクリプションを管理」 → `.manageSubscriptionsSheet` (M5-21).
     @State private var showManage = false
+    /// 1.1 fix (TestFlight only, docs/M7A.md ずれ 46): the 「記録」 sheet (`InkTrace`).
+    @State private var showTrace = false
 
     /// The id of the first row of the 「同期」 section (the scroll target of `scrollToSyncOnAppear`).
     private static let syncRowId = "sync-section"
@@ -199,6 +201,9 @@ struct SettingsScreen: View {
                 // 1.1 (§5.3): count the pages while the sheet is open; closing it cancels the count.
                 .task { await countStrokes() }
                 .manageSubscriptionsSheet(isPresented: $showManage)
+                .sheet(isPresented: $showTrace) {
+                    InkTraceSheet(text: InkTrace.text, onDone: { showTrace = false })
+                }
             }
         }
         // A restore's result line is for this visit only (the paywall does the same).
@@ -542,13 +547,8 @@ struct SettingsScreen: View {
             Link("プライバシーポリシー", destination: LegalLinks.privacy)
             Link(LegalLinks.appleEULATitle, destination: LegalLinks.appleEULA)
             Link("サポート", destination: LegalLinks.support)
-            HStack {
-                Text("バージョン")
-                Spacer()
-                Text(Self.versionText)
-                    .foregroundStyle(.secondary)
-            }
-            .id(Self.infoRowId)
+            versionRow
+                .id(Self.infoRowId)
             // 1.1 (§5.3): counted on this device, before the read cap; 「数えています…」 until done.
             countRow(Self.largestPageTitle, StrokeCensus.rowText(census?.largest, counting: census == nil))
             countRow(Self.yearPageTitle, StrokeCensus.yearRowText(census?.year, year: currentYear, counting: census == nil))
@@ -556,6 +556,25 @@ struct SettingsScreen: View {
             Text("情報")
         } footer: {
             Text(Self.infoFooter)
+        }
+    }
+
+    /// 「バージョン」. 1.1 fix (docs/M7A.md ずれ 46): in a TestFlight build, holding it opens 「記録」
+    /// (`InkTrace`); everywhere else it is the plain row it always was.
+    @ViewBuilder
+    private var versionRow: some View {
+        let row = HStack {
+            Text("バージョン")
+            Spacer()
+            Text(Self.versionText)
+                .foregroundStyle(.secondary)
+        }
+        if InkTrace.isAvailable {
+            row
+                .contentShape(Rectangle())
+                .onLongPressGesture { showTrace = true }
+        } else {
+            row
         }
     }
 

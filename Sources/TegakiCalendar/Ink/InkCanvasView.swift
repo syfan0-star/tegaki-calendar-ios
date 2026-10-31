@@ -32,7 +32,8 @@ enum CanvasCommand: Equatable {
 ///     ├─ PaperView (担当 P)   below: a window of at most 2 × 2 screens around the visible part of the
 ///     │                        paper (`show(visible:zoom:contentSize:live:)`, M4B_CONTRACT §1.6), redrawn from `paper`
 ///     ├─ PKCanvasView         middle: transparent, fills the container, and *is* the scroll view
-///     └─ InkOverlayView       above: the lasso / 予定 tool drawing; the Pencil's input for those tools
+///     └─ InkOverlayView       above: the lasso / 予定 tool drawing (its input comes through the
+///                              container's recognisers: the Pencil's, a writing finger's)
 /// ```
 /// `PKCanvasView` owns scrolling and pinch zoom; the paper view is a sibling that is moved under it
 /// on every `scrollViewDidScroll` / `scrollViewDidZoom` (public API only, no subview tricks).
@@ -67,6 +68,8 @@ enum CanvasCommand: Equatable {
 ///   (week / month / year, D5), the single tap waiting for it.
 /// - The finger input of the lasso / 予定 tool goes through the container's own recogniser
 ///   (`InkFingerGestureRecognizer`, F2), so two fingers always reach the scroll view's pan and pinch.
+///   1.1 fix (docs/M7A.md ずれ 47): so does the Pencil's (`InkPencilGestureRecognizer`); the overlay
+///   takes no touch itself.
 /// - Strokes whose centre lies outside the paper (in the centring margin) are dropped (M4C-25).
 /// - 1.1 (M7A_CONTRACT §3.4, §5.2, K-9): of the strokes *drawn on this canvas* (never one that came
 ///   from iCloud, an import or undo), one centred more than 6,000 lu below the top of the page's last
@@ -78,11 +81,15 @@ enum CanvasCommand: Equatable {
 ///   the ledger adopts the layout and the content size follows (`PaperGrowth.onlyTailHeightChanged`).
 ///   The centring margins are recomputed on both paths (0-6), the bottom one at least
 ///   `bottomClearance` (the collapsed toolbar's round button, §2.2).
-/// - 1.1 (§2.5): an erasure with the eraser (1 stroke or more) is reported once, when the settle wait
-///   after the pen lifts is over (`onEraseEnded`); a touch of the pen or a writing finger is reported
-///   at once (`onPenDown`). A finger tap that leaves the page with the eraser first undoes what that
-///   very touch erased (0-22). The dots a leaving tap removes are only strokes this canvas added in
-///   the last second, timed by the device's monotonic clock (0-21).
+/// - 1.1 (§2.5): an erasure with the eraser (1 stroke or more) is reported once (`onEraseEnded`); a
+///   touch of the pen or a writing finger is reported at once (`onPenDown`). A finger tap that leaves
+///   the page with the eraser first undoes what that very touch erased (0-22). The dots a leaving tap
+///   removes are only strokes this canvas added in the last second, timed by the device's monotonic
+///   clock (0-21). 1.1 fix (TestFlight build 12; docs/M7A.md ずれ 46): what the eraser erased is
+///   counted whenever PencilKit tells of it while the tool is the eraser, and reported once nothing
+///   touches the paper — by the touches the container's `InkTouchObserver` saw (PencilKit's
+///   Begin / End only until it has seen one): at once after the Pencil, after `fingerEraseReportDelay`
+///   after a finger; an erasure PencilKit never told of is found when the settle wait ends.
 /// - PencilKit's own undo manager is emptied after every change; history is the ledger's.
 /// - The selection follows the ledger: ids that stop being live (eraser, undo / redo, a reload)
 ///   are dropped, its box is recomputed after every relayout, and it is cleared when the tool
@@ -170,10 +177,11 @@ struct InkCanvasView: UIViewRepresentable {
     /// a finger that only scrolls or taps without 「指でも書く」, never while read only. The owner
     /// folds a toolbar it unfolded from the round button.
     var onPenDown: () -> Void = {}
-    /// 1.1 (§2.5): the eraser erased `erased` strokes (1 or more, every touch of one settle wait added
-    /// up), reported once when the wait after the pen lifted is over. Undo / redo, iCloud, a reload,
-    /// the dots a finger tap removes, a lasso move and the strokes a leaving eraser tap put back are
-    /// not counted; nothing is reported while read only.
+    /// 1.1 (§2.5): the eraser erased `erased` strokes (1 or more, the touches before the report added
+    /// up), reported once when nothing touches the paper any more (1.1 fix, docs/M7A.md ずれ 46: right
+    /// after the Pencil lifts, `fingerEraseReportDelay` after a finger; never while something touches).
+    /// Undo / redo, iCloud, a reload, the dots a finger tap removes, a lasso move and the strokes a
+    /// leaving eraser tap put back are not counted; nothing is reported while read only.
     var onEraseEnded: (_ erased: Int) -> Void = { _ in }
     /// 1.1 (§5.2, K-9): `.many(n)` this canvas's stroke took the page to `StrokeBudget.noticeAt`
     /// (n strokes now); `.full(n)` new strokes were refused (the page had n strokes).
@@ -337,6 +345,25 @@ extension InkCanvasView {
             r.cancelsTouchesInView = false
             return r
         }()
+        /// 1.1 fix (TestFlight build 12; docs/M7A.md ずれ 47): the Pencil's input of the lasso / 予定 tool,
+        /// on the container (the overlay takes no touch: a touch's type cannot be told while UIKit
+        /// hit-tests it). Enabled while an overlay tool is up and the app is not read only, whatever
+        /// `allowFinger` says (`syncRecognizers`). It never recognises, so nothing waits for it: the pan
+        /// takes only fingers here (the Pencil writes), so it needs no `require(toFail:)`.
+        private(set) lazy var pencilOverlayRecognizer: InkPencilGestureRecognizer = {
+            let r = InkPencilGestureRecognizer(target: nil, action: nil)
+            r.delegate = self
+            return r
+        }()
+        /// 1.1 fix (TestFlight build 12; docs/M7A.md ずれ 46): the touches on the paper as they come down
+        /// and lift (`touchObserved`), on the container. Always on; it never recognises, never delays
+        /// or cancels a touch and runs alongside every recogniser (`InkTouchObserver`).
+        private(set) lazy var touchObserver: InkTouchObserver = {
+            let r = InkTouchObserver(target: nil, action: nil)
+            r.delegate = self
+            r.onChange = { [weak self] change in self?.touchObserved(change) }
+            return r
+        }()
         /// M5 (M5_CONTRACT §3.1): a Pencil touch on the read-only paper, on the canvas. Recognised at
         /// touch-down (`minimumPressDuration` 0), never fails on movement, Pencil only (a finger
         /// scroll must not report), lets the touches through, and runs alongside every other
@@ -360,7 +387,8 @@ extension InkCanvasView {
         private var lastCommandTrigger: Int
 
         private enum HistoryAction { case undo, redo }
-        private var isUsingTool = false
+        /// PencilKit's tool is in use (Begin → End) or the overlay is tracking. Readable for the tests.
+        private(set) var isUsingTool = false
         private var isSettling = false
         private var settleGeneration = 0
         /// The drawing must be rebuilt (page reload, undo / redo, a new page).
@@ -440,9 +468,8 @@ extension InkCanvasView {
         /// How many times `setDrawing` put a drawing on the canvas (tests: the light path of §3.6
         /// must not rebuild it).
         private(set) var setDrawingCount = 0
-        /// Strokes the eraser erased since the last report (§2.5): added up over the touches of one
-        /// settle wait, reported and reset when the wait is over, carried over when a new touch cuts
-        /// the wait short.
+        /// Strokes the eraser erased since the last report (§2.5): added up until the report goes out
+        /// (`scheduleEraseReport`), carried over when a new touch cuts the wait for it short.
         private var erasedSinceReport = 0
         /// The ids the eraser erased during the current (or last) touch (§2.4), emptied when a touch
         /// begins.
@@ -459,6 +486,54 @@ extension InkCanvasView {
         /// The device's monotonic clock (s; `systemUptime`, the clock of `UITouch.timestamp`). Replaces
         /// 1.0.1's `clock`; the tests pin it.
         var uptime: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+
+        // 1.1 fix (TestFlight build 12, 確認 4・5・6b; docs/M7A.md ずれ 46). On a device the eraser did
+        // not go back to the pen: the report hung on PencilKit's Begin / change / End coming in the
+        // order and within the times the tests assumed. Now what the eraser erased is counted whenever
+        // the change comes while the tool is the eraser (⑥), and the report goes out when nothing
+        // touches the paper any more (`touchingPaper`, `scheduleEraseReport`) — by the touches
+        // `touchObserver` saw; PencilKit's `isUsingTool` only until it has seen one.
+        /// The Pencil touches and the finger touches that are on the paper (`touchObserved`; never < 0).
+        private var pencilsDown = 0
+        private var fingersDown = 0
+        /// `touchObserver` has seen a touch: from then on it alone tells whether the paper is touched.
+        private var observerReady = false
+        /// The writing touch that lifted last was a finger (`fingerEraseReportDelay`, not the Pencil's).
+        private var lastLiftWasFinger = false
+        /// The report scheduled last (`scheduleEraseReport`): a newer schedule, a new writing touch and
+        /// `detach` move it on, so the older one does nothing.
+        private var eraseReportGeneration = 0
+        /// A report is scheduled and has not run: it also carries what is counted in the meantime.
+        private var eraseReportPending = false
+        /// The watch for an End that never comes (`startLiftWatch`).
+        private var liftWatchGeneration = 0
+        /// The current (or last) touch began with the eraser: the end of its settle wait takes in an
+        /// erasure PencilKit never told of, even when the report has already put the pen back.
+        private var touchBeganWithEraser = false
+
+        /// The eraser's report after the Pencil lifts: at once (the next turn), so the stroke a quick
+        /// hand writes next is ink (確認 6b; of §2.4's two answers, "go back at the lift").
+        static let pencilEraseReportDelay: TimeInterval = 0
+        /// After a writing finger lifts on the week, month and year pages: a single tap on a date waits
+        /// about 0.35 s for the double tap to fail (M4C-6), and it must put back what its own touch
+        /// erased (0-22) before the report (docs/M7A.md ずれ 38). The day page has no double tap.
+        static let fingerEraseReportDelayWithDoubleTap: TimeInterval = 0.5
+        /// Nothing has touched the paper for this long while PencilKit still says its tool is in use
+        /// (its End never came, or it began for the Pencil's hover): the pen is taken as lifted
+        /// (`penDidLift`), so undo / redo and a growing memo area are not held up.
+        static let liftWithoutEndGrace: TimeInterval = 0.5
+
+        /// `settleDelay` on the day page (no double tap to wait for).
+        private var fingerEraseReportDelay: TimeInterval {
+            parent.doubleTapEnabled ? Self.fingerEraseReportDelayWithDoubleTap : InkCanvasView.settleDelay
+        }
+
+        /// Something that writes (or erases) touches the paper: the Pencil, or a finger with 「指でも書く」.
+        /// Decides the eraser's report only.
+        private var touchingPaper: Bool {
+            guard observerReady else { return isUsingTool }
+            return pencilsDown > 0 || (parent.allowFinger && fingersDown > 0)
+        }
 
         // The UI tests only (`--screenshot-probe`, `EraserAndBelowDayUITests`): the last canvas events
         // as short tokens with their time (ms since `attach`), read out with the counts and the
@@ -539,6 +614,11 @@ extension InkCanvasView {
             container.addGestureRecognizer(fingerRecognizer)
             canvas.panGestureRecognizer.require(toFail: fingerRecognizer)
             tapRecognizer.require(toFail: fingerRecognizer)
+            // 1.1 fix (ずれ 47): the Pencil of the lasso / 予定 tool reaches the overlay through this one
+            // (nothing waits for it). 1.1 fix (ずれ 46): the touches on the paper, for the eraser's report.
+            pencilOverlayRecognizer.overlay = container.overlayView
+            container.addGestureRecognizer(pencilOverlayRecognizer)
+            container.addGestureRecognizer(touchObserver)
             syncRecognizers()
 
             let overlay = container.overlayView
@@ -553,6 +633,7 @@ extension InkCanvasView {
             setDrawing(ledger.drawing(), on: canvas)
             canvas.contentSize = appliedLayout.size // zoom 1 until the first layout pass
             syncPaperFrame()
+            InkTrace.note("A:\(appliedLayout.kind.rawValue)")
 
             // The UI tests' probe (never in the photos or in normal use).
             if ScreenshotMode.current?.probe == true {
@@ -574,16 +655,22 @@ extension InkCanvasView {
 
         /// Notes one canvas event for the UI tests (`probeOn` only): `B` / `E` PencilKit began / ended
         /// using its tool, `C+a-r` a drawing change the ledger applied (a added, r removed; then `u`
-        /// while the tool is in use, `s` while settling, `e` when the tool is the eraser — ⑥ counts a
-        /// change with `e`, `u` or `s`, a = 0 and r > 0), `C0` a change that changed nothing, `c` one
-        /// the guard skipped (our own drawing, a lasso move), `R<n>` the settle wait ended with n
-        /// erased strokes to report (`R0`: nothing), `r` a wait a new touch cut short, `O` / `o` the
-        /// overlay began / stopped tracking, `L<n>` a lasso selected n strokes, `T` a finger tap. Each
-        /// token ends in `@<ms since attach>`; the last 48 are kept.
+        /// while the tool is in use, `s` while settling, `e` when the tool is the eraser — ⑥ counts
+        /// r − a of a change with `e` when it is positive), `C0` a change that changed nothing, `c` one
+        /// the guard skipped (our own drawing, a lasso move), `r` a settle wait a new touch cut short,
+        /// `O` / `o` the overlay began / stopped tracking, `L<n>` a lasso selected n strokes, `T` a
+        /// finger tap. 1.1 fix (ずれ 46): `Dp` / `Df` a Pencil / finger came down and `Up` / `Uf` lifted
+        /// (`touchObserver`), `S<s>` the eraser's report scheduled in s seconds, `R<n>` the report of n
+        /// erased strokes, `W` the lift watch took the pen as lifted (no End came), `K` the end of the
+        /// settle wait found an erasure PencilKit never told of. Each token ends in
+        /// `@<ms since attach>`; the last 48 are kept.
+        /// 1.1 fix (ずれ 46): every token also goes to `InkTrace` (always; TestFlight's 「記録」).
         private func probeNote(_ token: @autoclosure () -> String) {
+            let text = token()
+            InkTrace.note(text)
             guard probeOn else { return }
             let ms = Int(((uptime() - probeStart) * 1000).rounded())
-            probeTrace.append("\(token())@\(ms)")
+            probeTrace.append("\(text)@\(ms)")
             if probeTrace.count > 48 {
                 probeTrace.removeFirst(probeTrace.count - 48)
             }
@@ -592,7 +679,8 @@ extension InkCanvasView {
         /// What the probed container reads out (`key=value` pairs joined by `;`): the page, the zoom and
         /// the content offset (pt) that map paper lu to the container (screen = frame origin + lu ×
         /// zoom − offset), the paper size (lu), the strokes PencilKit holds (`pk`) and the ledger's live
-        /// strokes (`ink`), the tool, the erasures not yet reported (`pending`) and the event trace.
+        /// strokes (`ink`), the tool, the erasures not yet reported (`pending`), the touches on the
+        /// paper (`down`) and the event trace.
         func probeValue() -> String {
             guard let canvas else { return "detached" }
             func number(_ value: CGFloat) -> String { String(format: "%.3f", Double(value)) }
@@ -608,6 +696,8 @@ extension InkCanvasView {
                 "ink=\(ledger.page.liveStrokeCount)",
                 "tool=\(Self.probeName(parent.tool))",
                 "pending=\(erasedSinceReport)",
+                // 1.1 fix: the touches `touchObserver` counts (`-` until it has seen one).
+                "down=\(observerReady ? "\(pencilsDown)p\(fingersDown)f" : "-")",
                 "trace=\(probeTrace.joined(separator: " "))",
             ].joined(separator: ";")
         }
@@ -632,6 +722,12 @@ extension InkCanvasView {
             erasedSinceReport = 0
             removedSinceTouch = []
             recentAdds.removeAll()
+            // 1.1 fix (ずれ 46): no report and no lift watch after this.
+            eraseReportGeneration += 1
+            eraseReportPending = false
+            liftWatchGeneration += 1
+            pencilsDown = 0
+            fingersDown = 0
             overlay?.delegate = nil
             canvas?.delegate = nil
             container = nil
@@ -639,10 +735,11 @@ extension InkCanvasView {
 
         /// `doubleTapRecognizer` is on while the owner asks for it and no overlay tool is up;
         /// `fingerRecognizer` while an overlay tool is up, the finger may write and the app is not
+        /// read only; 1.1 fix: `pencilOverlayRecognizer` while an overlay tool is up and the app is not
         /// read only. A disabled recogniser fails at once, so the recognisers waiting for it are not
         /// delayed. M5 (M5_CONTRACT §3.1): the read-only rule is applied here too (`readOnly` alone
         /// may change under the same tool): `blockedInputRecognizer` on, PencilKit's drawing
-        /// recogniser and the overlay's input off.
+        /// recogniser and the overlay's input off. `touchObserver` is always on.
         private func syncRecognizers() {
             let doubleTap = parent.doubleTapEnabled && !parent.tool.isOverlayTool
             if doubleTapRecognizer.isEnabled != doubleTap {
@@ -651,6 +748,10 @@ extension InkCanvasView {
             let finger = parent.tool.isOverlayTool && parent.allowFinger && !parent.readOnly
             if fingerRecognizer.isEnabled != finger {
                 fingerRecognizer.isEnabled = finger
+            }
+            let pencil = parent.tool.isOverlayTool && !parent.readOnly
+            if pencilOverlayRecognizer.isEnabled != pencil {
+                pencilOverlayRecognizer.isEnabled = pencil
             }
             if blockedInputRecognizer.isEnabled != parent.readOnly {
                 blockedInputRecognizer.isEnabled = parent.readOnly
@@ -723,6 +824,7 @@ extension InkCanvasView {
             }
             if appliedTool != newParent.tool {
                 appliedTool = newParent.tool
+                probeNote("T:\(Self.probeName(newParent.tool))")
                 // The overlay cancels its gesture (a move puts the strokes back) before anything else.
                 overlay?.tool = newParent.tool
                 // M5 (M5_CONTRACT §3.1): right after `tool` (its didSet sets this from the tool alone).
@@ -1458,10 +1560,15 @@ extension InkCanvasView {
         /// touch-down; the taps are recognised alongside it (M4C_CONTRACT §4.1) or they would never
         /// fire. Nothing else runs simultaneously (the finger recogniser of F2 in particular) —
         /// except M5's `blockedInputRecognizer`, which only reports and runs alongside everything
-        /// (drawing, pan, pinch, taps; M5_CONTRACT §3.1). (Unchanged in 1.0.1: PencilKit's second
-        /// drawing recogniser allows the taps itself, docs/R1_0_1.md §5.2, and the iPhone UI test
-        /// taps through all of them.)
+        /// (drawing, pan, pinch, taps; M5_CONTRACT §3.1), and 1.1 fix's `touchObserver` and
+        /// `pencilOverlayRecognizer`, which never recognise and run alongside everything too.
+        /// (Unchanged in 1.0.1: PencilKit's second drawing recogniser allows the taps itself,
+        /// docs/R1_0_1.md §5.2, and the iPhone UI test taps through all of them.)
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            if gestureRecognizer === touchObserver || otherGestureRecognizer === touchObserver
+                || gestureRecognizer === pencilOverlayRecognizer || otherGestureRecognizer === pencilOverlayRecognizer {
+                return true
+            }
             if gestureRecognizer === blockedInputRecognizer || otherGestureRecognizer === blockedInputRecognizer { return true }
             guard let canvas else { return false }
             let isTap = gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer
@@ -1471,24 +1578,39 @@ extension InkCanvasView {
         // MARK: The pen on the paper (canvas or overlay)
 
         /// A touch begins (PencilKit's tool or the overlay's tracking). 1.1: the eraser's touch starts
-        /// empty and is timed (§2.4), the owner hears of it (`onPenDown`, §2.1).
+        /// empty and is timed (§2.4), the owner hears of it (`onPenDown`, §2.1). 1.1 fix (ずれ 46):
+        /// until `touchObserver` has seen a touch, a new touch cuts a waiting report short (the count
+        /// is carried over), as before; after that the touches decide, and a Begin with nothing on the
+        /// paper (the Pencil's hover, or a Begin ahead of its touch) is watched (`startLiftWatch`).
         private func penDidTouch() {
             isUsingTool = true
             isSettling = false
             settleGeneration += 1
             removedSinceTouch = []
             touchBeganAt = uptime()
+            touchBeganWithEraser = parent.tool.isEraser
+            if !observerReady {
+                eraseReportGeneration += 1
+                eraseReportPending = false
+            } else if !touchingPaper {
+                startLiftWatch()
+            }
             deliver { [weak self] in self?.parent.onPenDown() }
         }
 
-        /// The touch ended: the queued work waits `settleDelay`. 1.1 (§2.5): when the wait is over
-        /// (it counts the erasures that land inside it) and after the queued work, what the eraser
-        /// erased is reported once. A touch that cuts the wait short carries the count over.
+        /// The touch ended: the queued work waits `settleDelay`. 1.1 (§2.5) and its fix (ずれ 46): the
+        /// eraser's report is scheduled at once (`scheduleEraseReport`; nothing is scheduled while
+        /// something still touches the paper). When the wait is over, an erasure PencilKit never told
+        /// of is taken into the ledger first (`canvasViewDrawingDidChange`'s work once more, with the
+        /// eraser or after a touch that began with it — the report may have put the pen back by then:
+        /// a rebuilt drawing must not bring the stroke back), then the queued work runs, then the
+        /// report is scheduled again for whatever came in during the wait.
         private func penDidLift() {
             isUsingTool = false
             isSettling = true
             settleGeneration += 1
             let generation = settleGeneration
+            scheduleEraseReport(.lift)
             let delay = InkCanvasView.settleDelay
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(delay))
@@ -1497,14 +1619,110 @@ extension InkCanvasView {
                     self.probeNote("r")
                     return
                 }
+                if self.parent.tool.isEraser || self.touchBeganWithEraser, !self.parent.readOnly, !self.isMovingSelection,
+                   let canvas = self.canvas, self.applyCanvasDrawing(canvas) {
+                    self.probeNote("K")
+                }
                 self.isSettling = false
                 self.applyPending()
-                self.probeNote("R\(self.erasedSinceReport)")
-                if self.erasedSinceReport > 0 {
-                    let erased = self.erasedSinceReport
-                    self.erasedSinceReport = 0
-                    self.deliver { [weak self] in self?.parent.onEraseEnded(erased) }
+                self.scheduleEraseReport(.settleEnd)
+            }
+        }
+
+        // MARK: The eraser's report (1.1 §2.5; the fix of TestFlight build 12, docs/M7A.md ずれ 46)
+
+        /// What asks for the report: a count (⑥), a lift (the last writing touch, or PencilKit's End),
+        /// the end of the settle wait.
+        private enum EraseReportTrigger {
+            case count, lift, settleEnd
+        }
+
+        /// Schedules `onEraseEnded` with what was counted, unless nothing was or something still
+        /// touches the paper (D2: the tool never changes under the pen; the lift schedules it then).
+        /// A report already waiting carries a new count, so only a lift schedules anew (and starts its
+        /// wait again). The wait: with the observer, `pencilEraseReportDelay` (the next turn) after the
+        /// Pencil and `fingerEraseReportDelay` after a finger; before it has seen a touch, `settleDelay`
+        /// (none at the end of the settle wait: the pen lifted that long ago). The report itself goes
+        /// out only when it is still the latest, the canvas is attached, nothing touches the paper and
+        /// the app is not read only; otherwise the count waits for the next one. Times are never
+        /// compared (the tests pin `uptime`): only `Task.sleep` and the generation decide.
+        private func scheduleEraseReport(_ trigger: EraseReportTrigger) {
+            guard erasedSinceReport > 0, !touchingPaper else { return }
+            if trigger != .lift, eraseReportPending { return }
+            let delay: TimeInterval
+            if observerReady {
+                delay = lastLiftWasFinger ? fingerEraseReportDelay : Self.pencilEraseReportDelay
+            } else {
+                delay = trigger == .settleEnd ? 0 : InkCanvasView.settleDelay
+            }
+            eraseReportGeneration += 1
+            eraseReportPending = true
+            let generation = eraseReportGeneration
+            probeNote("S\(String(format: "%g", delay))")
+            Task { @MainActor [weak self] in
+                if delay > 0 {
+                    try? await Task.sleep(for: .seconds(delay))
                 }
+                guard let self, self.eraseReportGeneration == generation, self.container != nil else { return }
+                self.eraseReportPending = false
+                guard self.erasedSinceReport > 0, !self.touchingPaper, !self.parent.readOnly else { return }
+                let erased = self.erasedSinceReport
+                self.erasedSinceReport = 0
+                self.probeNote("R\(erased)")
+                self.deliver { [weak self] in self?.parent.onEraseEnded(erased) }
+            }
+        }
+
+        /// `touchObserver` saw a touch of `type` come down or lift. Internal: the tests stand in for
+        /// UIKit with it. A writing touch coming down (the Pencil, or a finger with 「指でも書く」) cuts a
+        /// waiting report short (the count is carried over); the last one lifting schedules the report
+        /// and watches for an End that does not come.
+        func touchObserved(_ change: InkTouchObserver.Change) {
+            switch change {
+            case .down(let type):
+                observerReady = true
+                switch type {
+                case .pencil: pencilsDown += 1
+                case .direct: fingersDown += 1
+                default: return
+                }
+                probeNote(type == .pencil ? "Dp" : "Df")
+                if writes(type) {
+                    eraseReportGeneration += 1
+                    eraseReportPending = false
+                }
+            case .up(let type):
+                switch type {
+                case .pencil: pencilsDown = max(0, pencilsDown - 1)
+                case .direct: fingersDown = max(0, fingersDown - 1)
+                default: return
+                }
+                probeNote(type == .pencil ? "Up" : "Uf")
+                guard writes(type), !touchingPaper else { return }
+                lastLiftWasFinger = type == .direct
+                scheduleEraseReport(.lift)
+                startLiftWatch()
+            }
+        }
+
+        /// A touch of this type writes or erases on the canvas: the Pencil, or a finger with 「指でも書く」.
+        private func writes(_ type: UITouch.TouchType) -> Bool {
+            type == .pencil || (type == .direct && parent.allowFinger)
+        }
+
+        /// In `liftWithoutEndGrace`, if nothing touches the paper and PencilKit (or the overlay) still
+        /// says the tool is in use, the pen is taken as lifted (`penDidLift`): an End that never came,
+        /// or a Begin of the hover, must not hold up undo / redo and the growing memo area. A newer
+        /// watch replaces this one.
+        private func startLiftWatch() {
+            liftWatchGeneration += 1
+            let generation = liftWatchGeneration
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(Self.liftWithoutEndGrace))
+                guard let self, self.liftWatchGeneration == generation, self.observerReady,
+                      !self.touchingPaper, self.isUsingTool else { return }
+                self.probeNote("W")
+                self.penDidLift()
             }
         }
 
@@ -1516,9 +1734,16 @@ extension InkCanvasView {
         /// strokes added remembered as dot candidates → ⑤ the 15,000 notice → ⑥ the eraser's count →
         /// ⑦ the relayout request and the cap notice.
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+            applyCanvasDrawing(canvasView)
+        }
+
+        /// `canvasViewDrawingDidChange`'s work; true when the ledger changed (1.1 fix: the end of the
+        /// settle wait calls it too, to take in an erasure PencilKit never told of).
+        @discardableResult
+        private func applyCanvasDrawing(_ canvasView: PKCanvasView) -> Bool {
             guard !isApplyingDrawing, !isMovingSelection else {
                 probeNote("c")
-                return
+                return false
             }
             // History is the ledger's; never let the system (3-finger swipe) undo through PencilKit.
             canvasView.undoManager?.removeAllActions()
@@ -1535,10 +1760,9 @@ extension InkCanvasView {
             let change = ledger.applyCanvasChange(canvasView.drawing)
             guard !change.isEmpty else {
                 probeNote("C0")
-                return
+                return false
             }
-            // The UI tests' probe: `e` = the tool is the eraser (⑥ counts it when `u` or `s` is there
-            // too, nothing was added and something was removed).
+            // The UI tests' probe: `e` = the tool is the eraser (⑥ counts r − a when it is positive).
             probeNote("C+\(change.added.count)-\(change.removedIds.count)\(isUsingTool ? "u" : "")\(isSettling ? "s" : "")\(parent.tool.isEraser ? "e" : "")")
             // ④' Only what this canvas added itself can be a finger tap's dot (§4.1, 0-21).
             let addedAt = uptime()
@@ -1558,13 +1782,19 @@ extension InkCanvasView {
                     deliver { [weak self] in self?.parent.onStrokeBudget(.many(after)) }
                 }
             }
-            // ⑥ The eraser (§2.5): only while a touch is on or settling, never read only; undo / redo,
-            // iCloud, a rebuilt drawing and the dots of a finger tap come through `setDrawing` and a
-            // lasso move through `isMovingSelection`, so the guard above already returned for them.
-            if parent.tool.isEraser, !parent.readOnly, isUsingTool || isSettling,
-               change.added.isEmpty, !change.removedIds.isEmpty {
-                erasedSinceReport += change.removedIds.count
-                removedSinceTouch.append(contentsOf: change.removedIds)
+            // ⑥ The eraser (§2.5), never read only; undo / redo, iCloud, a rebuilt drawing and the dots
+            // of a finger tap come through `setDrawing` and a lasso move through `isMovingSelection`, so
+            // the guard above already returned for them. 1.1 fix (ずれ 46): whenever the change comes
+            // while the tool is the eraser — before PencilKit's Begin, after its End and the settle wait,
+            // or with no Begin at all — and by what it removed beyond what it added (PencilKit may
+            // hand back a stroke it touched as a new one). Only a pure erasure is the touch's own (0-22).
+            let erasedNow = change.removedIds.count - change.added.count
+            if parent.tool.isEraser, !parent.readOnly, erasedNow > 0 {
+                erasedSinceReport += erasedNow
+                if change.added.isEmpty {
+                    removedSinceTouch.append(contentsOf: change.removedIds)
+                }
+                scheduleEraseReport(.count)
             }
             // ⑦ Only cells that grow with ink ask for a relayout (`needsMoreRoom` is false on the time
             // grid); an erased stroke may have been holding any growing cell open.
@@ -1576,6 +1806,7 @@ extension InkCanvasView {
             if change.added.contains(where: { PaperGrowth.isTail($0.cell) && PaperGrowth.reachesCap(inkBottom: $0.bottom) }) {
                 capReached = true
             }
+            return true
         }
 
         /// What `screenNewStrokes` did: a stroke went beyond the last cell's limit; the budget count
