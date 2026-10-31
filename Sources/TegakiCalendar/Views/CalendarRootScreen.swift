@@ -735,10 +735,12 @@ struct CalendarRootScreen: View {
         }
     }
 
-    /// The canvas: the eraser erased `erased` strokes and the settle wait after the lift is over
-    /// (§2.4 / §2.5, D2). The toolbar's eraser goes back to the last pen or marker when the setting is
-    /// on; a tool the person chose during the wait stays (`toolAfterErase` is nil unless the tool is
-    /// still the eraser).
+    /// The canvas: the eraser erased `erased` strokes and nothing touches the paper any more (§2.4 /
+    /// §2.5, D2). 1.1 fix (docs/M7A.md ずれ 46): the report comes on the turn after the Pencil lifts, and
+    /// the canvas's `fingerEraseReportDelay` after a finger (0.5 s on the week, month and year pages —
+    /// after a single tap's undo of what its own touch erased, 0-22 — and 0.3 s on the day page). The
+    /// toolbar's eraser goes back to the last pen or marker when the setting is on; a tool the person
+    /// chose before the report stays (`toolAfterErase` is nil unless the tool is still the eraser).
     private func eraseEnded(_ erased: Int) {
         if let next = ToolbarLogic.toolAfterErase(origin: eraserOrigin, erased: erased, setting: eraserAutoReturnOn,
                                                   current: tool, lastInk: lastInkTool) {

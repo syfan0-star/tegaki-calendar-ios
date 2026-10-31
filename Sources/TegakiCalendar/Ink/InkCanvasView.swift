@@ -1485,10 +1485,13 @@ extension InkCanvasView {
         /// taken off `erasedSinceReport`, so the tool does not return to the pen for them. Nothing when
         /// the top of the history is any other op.
         ///
-        /// The tool is deliberately not asked again here: on the week, month and year pages the single
-        /// tap waits about 0.3 s for the double tap to fail (M4C-6), as long as the settle wait, so the
-        /// end of the erasure may already have been reported and the toolbar's eraser may already be
-        /// back on the pen when this tap arrives. The strokes that touch erased still come back.
+        /// The tool is deliberately not asked again here (docs/M7A.md ずれ 33). The tap normally comes
+        /// before the eraser's report and takes its strokes off the count, so nothing is reported and
+        /// the tool stays the eraser: on the day page it does not wait (no double tap) and the report
+        /// after a finger waits 0.3 s; on the week, month and year pages it waits about 0.35 s for the
+        /// double tap to fail (M4C-6) and the report waits 0.5 s (`fingerEraseReportDelay`; 1.1 fix,
+        /// ずれ 46). Should the tap come later (a busy device), the report has gone out and the
+        /// toolbar's eraser may already be back on the pen; the strokes that touch erased still come back.
         private func undoEraserTap() {
             guard !removedSinceTouch.isEmpty,
                   touchBeganAt >= tapTouchBeganAt - Self.eraserTapLead,
