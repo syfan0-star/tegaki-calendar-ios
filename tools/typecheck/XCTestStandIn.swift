@@ -49,25 +49,49 @@ public func XCTUnwrap<T>(_ expression: @autoclosure () throws -> T?, _ message: 
     return value
 }
 
+/// The rest of the test may fail without failing the run (non-strict: passing is fine too).
+public func XCTExpectFailure(_ failureReason: String? = nil, enabled: Bool? = nil, strict: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) {}
+
 // MARK: - UI testing (1.0.1: Tests/TegakiCalendarUITests, type-checked as its own module)
 
 open class XCTAttachment: NSObject {
     public enum Lifetime: Int { case keepAlways, deleteOnSuccess }
     public init(screenshot: XCUIScreenshot) {}
+    public init(string: String) {}
     open var name: String?
     open var lifetime: Lifetime = .deleteOnSuccess
 }
 
 extension XCTestCase {
     public func add(_ attachment: XCTAttachment) {}
+    public func wait(for expectations: [XCTestExpectation], timeout seconds: TimeInterval) {}
+}
+
+open class XCTestExpectation: NSObject {
+    public init(description expectationDescription: String) {}
+    open func fulfill() {}
 }
 
 open class XCUIScreenshot: NSObject {}
+
+/// Points per second (the real one is an NS_TYPED_EXTENSIBLE_ENUM of CGFloat).
+public struct XCUIGestureVelocity: RawRepresentable, Hashable {
+    public var rawValue: CGFloat
+    public init(rawValue: CGFloat) { self.rawValue = rawValue }
+    public init(_ rawValue: CGFloat) { self.rawValue = rawValue }
+    public static let slow = XCUIGestureVelocity(rawValue: 0)
+    public static let `default` = XCUIGestureVelocity(rawValue: 0)
+    public static let fast = XCUIGestureVelocity(rawValue: 0)
+}
 
 open class XCUICoordinate: NSObject {
     public func withOffset(_ offsetVector: CGVector) -> XCUICoordinate { self }
     public func tap() {}
     public func doubleTap() {}
+    public func press(forDuration duration: TimeInterval) {}
+    public func press(forDuration duration: TimeInterval, thenDragTo otherCoordinate: XCUICoordinate) {}
+    public func press(forDuration duration: TimeInterval, thenDragTo otherCoordinate: XCUICoordinate,
+                      withVelocity velocity: XCUIGestureVelocity, thenHoldForDuration holdDuration: TimeInterval) {}
 }
 
 open class XCUIElement: NSObject {

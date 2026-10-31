@@ -1,8 +1,10 @@
 import InkModel
 import Layout
+import ObjectiveC
 import PencilKit
 import SwiftUI
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 import XCTest
 @testable import TegakiCalendar
 
@@ -1641,6 +1643,406 @@ final class InkCanvasViewTests: XCTestCase {
             XCTAssertTrue(rig.coordinator.ledger.page.liveStrokes.isEmpty)
             XCTAssertNotNil(rig.coordinator.ledger.page.deleted["line"])
             XCTAssertEqual(rig.probe.erased, [1], "reported as an ordinary erasure")
+        }
+    }
+
+    // MARK: 1.1 fix — real touches through UIKit (TestFlight build 12: 確認 4・5・6b, 確認 12)
+
+    /// U1 (不具合 A; 確認 4・5・6b): the toolbar's eraser on the month in a window of the test host, line a
+    /// erased by a Pencil touch sent through `UIApplication.sendEvent` (`UIKitTouches`): PencilKit's
+    /// own recogniser begins, erases and ends in iOS's own order, not in the order the other tests
+    /// assume. One second after the lift the erasure has been reported once. The touch's view is
+    /// PencilKit's drawing view (on the Mac, `window.hitTest` answered a plain view inside the canvas
+    /// that PencilKit does not watch). The `repro:` line prints what the container and the canvas saw.
+    /// Skipped when this iOS lacks one of the private pieces, when no touch reached the container or
+    /// when PencilKit erased nothing (the touches did not drive it: this test's problem, not the report's).
+    func testRealPencilEraserThroughUIKitReportsTheErasure() async throws {
+        // TestFlight build 12: the report may be missing (the device); the fix removes this line.
+        XCTExpectFailure("1.1 build 12 (不具合 A): the eraser's report may be missing", strict: false)
+        let touches = try UIKitTouches()
+        let window = try makeWindow()
+        defer { window.isHidden = true }
+        let (layout, paper) = makeMonth()
+        let size = window.bounds.size
+        let probe = Probe()
+        let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: size.width, probe: probe, tool: .eraser,
+                                  page: monthPage(strokes: ["a", "b"])),
+                         paper: paper, probe: probe)
+        let seen = PassiveTouchRecognizer(target: nil, action: nil)
+        rig.container.addGestureRecognizer(seen)
+        rig.canvas.drawingGestureRecognizer.addTarget(seen, action: #selector(PassiveTouchRecognizer.watch(_:)))
+        window.rootViewController?.view.addSubview(rig.container)
+        rig.layout(width: size.width, height: size.height)
+        await settle()
+        rig.coordinator.startProbe()
+        guard let cell = layout.cells[.day(wednesday)], let drawingView = rig.canvas.drawingGestureRecognizer.view else {
+            throw XCTSkip("no cell for 10/7, or PencilKit's drawing recogniser has no view")
+        }
+        let zoom = rig.canvas.zoomScale
+        // Line a is at cell y 40, b at 70 (`monthPage`): down across a, stopping well above b.
+        let path = stride(from: CGFloat(16), through: 56, by: 8).map { y in
+            rig.canvas.convert(CGPoint(x: (cell.minX + 50) * zoom, y: (cell.minY + y) * zoom), to: window)
+        }
+        try await touches.stroke(path, type: .pencil, in: window) { _ in drawingView }
+        try await Task.sleep(for: .seconds(1))
+        await settle()
+        let left = rig.canvas.drawing.strokes.count
+        let line = "repro: U1 eraser across a: erased=\(probe.erased) canvas=\(left) ledger=\(rig.coordinator.ledger.page.liveStrokeIds) seen=[\(seen.lines.joined(separator: " "))] \(rig.coordinator.probeValue())"
+        print(line)
+        NSLog("%@", line)
+        guard seen.downs > 0 else { throw XCTSkip("the touches never reached the container: \(line)") }
+        guard left < 2 else { throw XCTSkip("PencilKit's eraser took nothing (the touches did not drive it): \(line)") }
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, left, "the ledger erased what PencilKit erased (\(line))")
+        XCTAssertEqual(probe.erased, [2 - left], "reported once within a second of the lift (\(line))")
+    }
+
+    /// U2 (不具合 B; 確認 12): the lasso on the day page with 「指でも書く」 off, the free memo area below
+    /// 24:00 on screen, and a Pencil touch sent through `UIApplication.sendEvent` drawing a loop around
+    /// its two strokes. The touch's view is what the window's own hit test answers, asked the way UIKit
+    /// asks it for a touch that begins (the app's touches event, emptied: UIKit hit-tests before it adds
+    /// the touch). Both strokes are selected. In 1.1 build 12 nothing is: the overlay took the Pencil
+    /// only when the event already held it. Skipped when a private piece is missing or no touch
+    /// reached the container.
+    func testRealPencilLassoThroughUIKitSelectsTheFreeMemo() async throws {
+        // TestFlight build 12: nothing is selected; the fix removes this line.
+        XCTExpectFailure("1.1 build 12 (不具合 B): the Pencil does not reach the lasso", strict: false)
+        let touches = try UIKitTouches()
+        let window = try makeWindow()
+        defer { window.isHidden = true }
+        let log = SelectionLog()
+        let (rig, _) = await freeMemoRig(allowFinger: false, log: log, window: window)
+        let seen = PassiveTouchRecognizer(target: nil, action: nil)
+        rig.container.addGestureRecognizer(seen)
+        rig.coordinator.startProbe()
+        guard let box = rig.coordinator.ledger.paperBounds(ids: ["memo-a", "memo-b"]) else { return XCTFail("no bounds") }
+        let path = loop(around: rig.container.overlayView.viewRect(fromPaper: box)).map { rig.container.convert($0, to: window) }
+        try await touches.stroke(path + [path[0]], type: .pencil, in: window) { point in
+            window.hitTest(point, with: touches.emptyTouchesEvent())
+        }
+        try await Task.sleep(for: .seconds(0.5))
+        await settle()
+        let line = "repro: U2 Pencil lasso below 24:00: selected=\(log.last?.ids ?? []) seen=[\(seen.lines.joined(separator: " "))] \(rig.coordinator.probeValue())"
+        print(line)
+        NSLog("%@", line)
+        guard seen.downs > 0 else { throw XCTSkip("the touches never reached the container: \(line)") }
+        XCTAssertEqual(Set(log.last?.ids ?? []), ["memo-a", "memo-b"], "the Pencil's lasso selected the free memo (\(line))")
+    }
+
+    // MARK: 1.1 fix — helpers
+
+    /// Collects `onSelectionChange`.
+    private final class SelectionLog {
+        var selections: [InkSelection?] = []
+        var last: InkSelection? { selections.last ?? nil }
+    }
+
+    /// The 11-inch iPad's day page (834 × 1000 pt of paper area) with `tool` and two strokes in the free
+    /// memo area below 24:00 (`extra`, cell origin (0, 2400)). It opens with the 700 lu area and then
+    /// grows to 1,100 through the light path (§3.6, no new drawing), as after writing there; then it is
+    /// scrolled to the end of the paper, where the strokes are on screen. With `window` the container is
+    /// put in it first (the touches then go through UIKit).
+    private func freeMemoRig(tool: CanvasTool = .lasso, allowFinger: Bool, log: SelectionLog, window: UIWindow? = nil,
+                             readOnly: Bool = false,
+                             onEventRect: @escaping (CGRect, Bool) -> Void = { _, _ in }) async -> (rig: Rig, layout: DayPageLayout) {
+        var page = InkPage.empty(pageId: "d-2026-10-07")
+        page.add(makeInkStroke(id: "memo-a", cell: .extra, t: 1_790_000_000_000, points: [(300, 200), (340, 230), (380, 200), (420, 230)]))
+        page.add(makeInkStroke(id: "memo-b", cell: .extra, t: 1_790_000_000_001, points: [(300, 280), (360, 300), (420, 280)]))
+        let probe = Probe()
+        func view(_ layout: DayPageLayout, _ paper: PaperContent) -> InkCanvasView {
+            var view = makeView(layout: layout, paper: paper, viewportWidth: 834, probe: probe, tool: tool, allowFinger: allowFinger,
+                                page: page, readOnly: readOnly)
+            view.onSelectionChange = { log.selections.append($0) }
+            view.onEventRect = onEventRect
+            return view
+        }
+        let (small, smallPaper) = makeDay()
+        let rig = attach(view(small, smallPaper), paper: smallPaper, probe: probe)
+        window?.rootViewController?.view.addSubview(rig.container)
+        rig.layout(width: 834, height: 1000)
+        await settle()
+
+        let (grown, grownPaper) = makeDay(inkBottoms: page.inkBottoms())
+        XCTAssertEqual(grown.extra.height, 1100, accuracy: 0.01)
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: view(grown, grownPaper))
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path")
+        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.extra]?.height ?? 0, 1100, accuracy: 0.01)
+
+        let maxY = rig.canvas.contentSize.height + rig.canvas.contentInset.bottom - rig.container.bounds.height
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: maxY)
+        await settle()
+        return (rig, grown)
+    }
+
+    /// A closed loop 24 pt outside `rect` (container points), a point every 4 pt, clockwise from its
+    /// top-left corner.
+    private func loop(around rect: CGRect) -> [CGPoint] {
+        let r = rect.insetBy(dx: -24, dy: -24)
+        var points: [CGPoint] = []
+        var x = r.minX
+        while x <= r.maxX { points.append(CGPoint(x: x, y: r.minY)); x += 4 }
+        var y = r.minY
+        while y <= r.maxY { points.append(CGPoint(x: r.maxX, y: y)); y += 4 }
+        x = r.maxX
+        while x >= r.minX { points.append(CGPoint(x: x, y: r.maxY)); x -= 4 }
+        y = r.maxY
+        while y >= r.minY { points.append(CGPoint(x: r.minX, y: y)); y -= 4 }
+        return points
+    }
+
+    /// A window of the test host's scene (the unit tests run inside the app), shown above the app's
+    /// own. The caller hides it again.
+    private func makeWindow() throws -> UIWindow {
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else {
+            throw XCTSkip("the test host has no window scene")
+        }
+        let window = UIWindow(windowScene: scene)
+        window.frame = scene.coordinateSpace.bounds
+        let root = UIViewController()
+        root.view.backgroundColor = .white
+        window.rootViewController = root
+        window.isHidden = false
+        root.view.frame = window.bounds
+        return window
+    }
+
+    /// A recogniser of the tests that never recognises, never prevents and is never prevented (the bug
+    /// investigation's observer): it logs what UIKit handed the container (`down<type>`, `up`), and
+    /// PencilKit's drawing recogniser's states (`pk<state>`) once it is that recogniser's target.
+    private final class PassiveTouchRecognizer: UIGestureRecognizer, UIGestureRecognizerDelegate {
+        private(set) var downs = 0
+        private(set) var lines: [String] = []
+        private var down = 0
+        private let start = ProcessInfo.processInfo.systemUptime
+
+        override init(target: Any?, action: Selector?) {
+            super.init(target: target, action: action)
+            cancelsTouchesInView = false
+            delaysTouchesBegan = false
+            delaysTouchesEnded = false
+            requiresExclusiveTouchType = false
+            delegate = self
+        }
+
+        private func note(_ text: String) {
+            lines.append("\(text)@\(Int(((ProcessInfo.processInfo.systemUptime - start) * 1000).rounded()))")
+        }
+
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            super.touchesBegan(touches, with: event)
+            downs += touches.count
+            down += touches.count
+            note("down\(touches.first?.type.rawValue ?? -1)")
+        }
+
+        override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+            super.touchesEnded(touches, with: event)
+            lift(touches, "up")
+        }
+
+        override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+            super.touchesCancelled(touches, with: event)
+            lift(touches, "cancelled")
+        }
+
+        private func lift(_ touches: Set<UITouch>, _ text: String) {
+            down -= touches.count
+            note(text)
+            if down <= 0 {
+                down = 0
+                state = .failed
+            }
+        }
+
+        override func reset() {
+            super.reset()
+            down = 0
+        }
+
+        override func canPrevent(_ preventedGestureRecognizer: UIGestureRecognizer) -> Bool { false }
+        override func canBePrevented(by preventingGestureRecognizer: UIGestureRecognizer) -> Bool { false }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            true
+        }
+
+        @objc func watch(_ recognizer: UIGestureRecognizer) {
+            note("pk\(recognizer.state.rawValue)")
+        }
+    }
+
+    /// Real `UITouch`es through `UIApplication.sendEvent`, made the way KIF makes them: UIKit's private
+    /// setters (`setWindow:`, `_setLocationInWindow:resetPrevious:`, `setView:`, `_setType:` …) and an
+    /// `IOHIDEvent` from IOKit's `IOHIDEventCreateDigitizer…` (found with `dlsym`), put into the app's own
+    /// touches event (`_touchesEvent`, `_clearTouches`, `_addTouch:forDelayedDelivery:`). Test code only;
+    /// `init` throws `XCTSkip` when this iOS lacks a piece. The bug investigation drove a real Mac
+    /// Catalyst window this way (PencilKit began, erased and ended). The few hundred bytes of each
+    /// `IOHIDEvent` are not released (what UIKit keeps of them is its own business).
+    @MainActor
+    private struct UIKitTouches {
+        private typealias CallIMP = @convention(c) (AnyObject, Selector) -> Void
+        private typealias GetIMP = @convention(c) (AnyObject, Selector) -> AnyObject?
+        private typealias SetObjectIMP = @convention(c) (AnyObject, Selector, AnyObject?) -> Void
+        private typealias SetPointerIMP = @convention(c) (AnyObject, Selector, OpaquePointer?) -> Void
+        private typealias SetIntIMP = @convention(c) (AnyObject, Selector, Int) -> Void
+        private typealias SetBoolIMP = @convention(c) (AnyObject, Selector, Bool) -> Void
+        private typealias SetDoubleIMP = @convention(c) (AnyObject, Selector, Double) -> Void
+        private typealias SetPointIMP = @convention(c) (AnyObject, Selector, CGPoint, Bool) -> Void
+        private typealias AddTouchIMP = @convention(c) (AnyObject, Selector, AnyObject, Bool) -> Void
+        private typealias HandEvent = @convention(c) (CFAllocator?, UInt64, UInt32, UInt32, UInt32, UInt32, UInt32,
+                                                      Double, Double, Double, Double, Double, Bool, Bool, UInt32) -> OpaquePointer?
+        private typealias FingerEvent = @convention(c) (CFAllocator?, UInt64, UInt32, UInt32, UInt32,
+                                                        Double, Double, Double, Double, Double, Bool, Bool, UInt32) -> OpaquePointer?
+        private typealias SetField = @convention(c) (OpaquePointer, UInt32, Int) -> Void
+        private typealias AppendEvent = @convention(c) (OpaquePointer, OpaquePointer, UInt32) -> Void
+        private typealias SetSender = @convention(c) (OpaquePointer, UInt64) -> Void
+
+        /// `kIOHIDEventFieldDigitizerIsDisplayIntegrated` (digitizer events are type 11).
+        private static let displayIntegrated: UInt32 = (11 << 16) | 25
+
+        private let createHand: HandEvent
+        private let createFinger: FingerEvent
+        private let setField: SetField
+        private let appendEvent: AppendEvent
+        private let setSender: SetSender?
+
+        init() throws {
+            guard let iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW),
+                  let hand = dlsym(iokit, "IOHIDEventCreateDigitizerEvent"),
+                  let finger = dlsym(iokit, "IOHIDEventCreateDigitizerFingerEvent"),
+                  let field = dlsym(iokit, "IOHIDEventSetIntegerValue"),
+                  let append = dlsym(iokit, "IOHIDEventAppendEvent") else {
+                throw XCTSkip("IOKit's IOHIDEvent functions are missing")
+            }
+            createHand = unsafeBitCast(hand, to: HandEvent.self)
+            createFinger = unsafeBitCast(finger, to: FingerEvent.self)
+            setField = unsafeBitCast(field, to: SetField.self)
+            appendEvent = unsafeBitCast(append, to: AppendEvent.self)
+            setSender = dlsym(iokit, "IOHIDEventSetSenderID").map { unsafeBitCast($0, to: SetSender.self) }
+            let touch = UITouch()
+            for name in ["setWindow:", "setView:", "setTapCount:", "_setLocationInWindow:resetPrevious:", "setPhase:",
+                         "_setIsFirstTouchForView:", "setIsTap:", "setTimestamp:", "_setType:", "_setHidEvent:"]
+            where Self.method(touch, name) == nil {
+                throw XCTSkip("UITouch has no \(name)")
+            }
+            guard let event = Self.touchesEvent() else { throw XCTSkip("UIApplication has no _touchesEvent") }
+            for name in ["_clearTouches", "_setHIDEvent:", "_setTimestamp:", "_addTouch:forDelayedDelivery:"]
+            where Self.method(event, name) == nil {
+                throw XCTSkip("the touches event has no \(name)")
+            }
+        }
+
+        private static func method(_ object: AnyObject, _ name: String) -> (IMP, Selector)? {
+            let selector = NSSelectorFromString(name)
+            guard let method = class_getInstanceMethod(object_getClass(object), selector) else { return nil }
+            return (method_getImplementation(method), selector)
+        }
+
+        private static func touchesEvent() -> UIEvent? {
+            guard let (imp, selector) = method(UIApplication.shared, "_touchesEvent") else { return nil }
+            return unsafeBitCast(imp, to: GetIMP.self)(UIApplication.shared, selector) as? UIEvent
+        }
+
+        private static func call(_ object: AnyObject, _ name: String) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: CallIMP.self)(object, selector)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, object value: AnyObject?) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetObjectIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, pointer value: OpaquePointer?) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetPointerIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, int value: Int) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetIntIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, bool value: Bool) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetBoolIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, double value: Double) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetDoubleIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, point: CGPoint, flag: Bool) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetPointIMP.self)(object, selector, point, flag)
+        }
+
+        /// The app's touches event emptied: what UIKit's own hit test sees for a touch that begins.
+        func emptyTouchesEvent() -> UIEvent? {
+            guard let event = Self.touchesEvent() else { return nil }
+            Self.call(event, "_clearTouches")
+            return event
+        }
+
+        /// One touch of `type`: down at `path[0]` (window points) on the view `view` answers for that
+        /// point, moved through the rest `step` apart, lifted at the last point.
+        func stroke(_ path: [CGPoint], type: UITouch.TouchType, in window: UIWindow, step: Duration = .milliseconds(16),
+                    view: (CGPoint) -> UIView?) async throws {
+            guard let first = path.first, let target = view(first) else {
+                throw XCTSkip("no view to touch at \(path.first ?? .zero)")
+            }
+            let touch = UITouch()
+            Self.set(touch, "setWindow:", object: window) // resets other values: first
+            Self.set(touch, "setTapCount:", int: 1)
+            Self.set(touch, "_setLocationInWindow:resetPrevious:", point: first, flag: true)
+            Self.set(touch, "setView:", object: target)
+            Self.set(touch, "setGestureView:", object: target) // KIF does it where it exists
+            Self.set(touch, "setPhase:", int: UITouch.Phase.began.rawValue)
+            Self.set(touch, "_setIsFirstTouchForView:", bool: true)
+            Self.set(touch, "setIsTap:", bool: false)
+            Self.set(touch, "setTimestamp:", double: ProcessInfo.processInfo.systemUptime)
+            Self.set(touch, "_setType:", int: type.rawValue)
+            send(touch, phase: .began, at: first)
+            for point in path.dropFirst() {
+                try await Task.sleep(for: step)
+                send(touch, phase: .moved, at: point)
+            }
+            try await Task.sleep(for: .milliseconds(2))
+            send(touch, phase: .ended, at: path[path.count - 1])
+        }
+
+        private func send(_ touch: UITouch, phase: UITouch.Phase, at point: CGPoint) {
+            if phase != .began {
+                Self.set(touch, "_setLocationInWindow:resetPrevious:", point: point, flag: false)
+                Self.set(touch, "setPhase:", int: phase.rawValue)
+                Self.set(touch, "setTimestamp:", double: ProcessInfo.processInfo.systemUptime)
+            }
+            guard let event = Self.touchesEvent(), let (imp, selector) = Self.method(event, "_addTouch:forDelayedDelivery:") else { return }
+            let hid = hidEvent(at: point, phase: phase)
+            Self.set(touch, "_setHidEvent:", pointer: hid)
+            Self.call(event, "_clearTouches")
+            Self.set(event, "_setHIDEvent:", pointer: hid)
+            Self.set(event, "_setTimestamp:", double: ProcessInfo.processInfo.systemUptime)
+            unsafeBitCast(imp, to: AddTouchIMP.self)(event, selector, touch, false)
+            UIApplication.shared.sendEvent(event)
+        }
+
+        /// A hand event with one finger at `point` (window points), as KIF builds it.
+        private func hidEvent(at point: CGPoint, phase: UITouch.Phase) -> OpaquePointer? {
+            let time = mach_absolute_time()
+            guard let hand = createHand(kCFAllocatorDefault, time, 3, 0, 0, 1 << 1, 0, 0, 0, 0, 0, 0, false, true, 0) else { return nil }
+            setField(hand, Self.displayIntegrated, 1)
+            setSender?(hand, 0x0000_0001_2345_6789)
+            let touching = phase != .ended && phase != .cancelled
+            let mask: UInt32 = phase == .moved ? 1 << 2 : (1 << 0) | (1 << 1)
+            if let finger = createFinger(kCFAllocatorDefault, time, 1, 2, mask, Double(point.x), Double(point.y), 0,
+                                         touching ? 1 : 0, 0, touching, touching, 0) {
+                setField(finger, Self.displayIntegrated, 1)
+                appendEvent(hand, finger, 0)
+            }
+            return hand
         }
     }
 }

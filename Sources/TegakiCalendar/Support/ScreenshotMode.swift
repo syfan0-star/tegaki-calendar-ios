@@ -29,6 +29,13 @@ import Layout
 /// `--screenshot-grown` adds two strokes that grow the month's memo area and the day's free memo
 /// area below 24:00, and `--screenshot-sheet info` opens the settings at 「情報」 (the stroke counts of
 /// `StrokeCensus.demo(year:)`). The toolbar, eraser and notice memories are never read or written.
+/// 1.1 fix (the UI tests of the eraser and of the free memo area, `EraserAndBelowDayUITests`): two
+/// arguments the CI's photos never pass, so the photos do not change. `--screenshot-probe` makes the
+/// canvas an accessibility element 「ink-canvas」 whose value reads out its zoom, offset, stroke counts,
+/// tool and the last canvas events (`InkCanvasView.Coordinator.probeValue()`), and keeps every toast
+/// for 20 s (`probeToastDuration`, so a slow simulator cannot miss it); `--screenshot-select <ids>`
+/// starts with the lasso and these strokes selected (any page; the `lasso` sheet does the same for
+/// the month's wave).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`).
@@ -78,11 +85,19 @@ enum ScreenshotMode {
         }
     }
 
-    /// The tool a screenshot starts with (§7.3): the lasso for the `lasso` sheet, else `config.tool`'s,
-    /// else the default pen (黒・中; the remembered pen is never read in screenshot mode).
+    /// The tool a screenshot starts with (§7.3): the lasso for the `lasso` sheet or a preselection
+    /// (`--screenshot-select`), else `config.tool`'s, else the default pen (黒・中; the remembered pen
+    /// is never read in screenshot mode).
     static func startTool(_ config: Config) -> CanvasTool {
-        if config.sheet == .lasso { return .lasso }
+        if config.sheet == .lasso || !config.select.isEmpty { return .lasso }
         return config.tool?.canvasTool ?? .ink(ToolbarPalette.defaultPen)
+    }
+
+    /// The strokes the canvas selects once its zoom is known: the month's wave for the `lasso` sheet,
+    /// else `--screenshot-select`'s ids (unknown ids are ignored by the canvas); none in normal use.
+    static func initialSelection(_ config: Config?) -> [String] {
+        guard let config else { return [] }
+        return config.sheet == .lasso ? [lassoDemoStrokeId] : config.select
     }
 
     struct Config: Equatable, Sendable {
@@ -115,7 +130,16 @@ enum ScreenshotMode {
         /// `--screenshot-grown` (1.1, §7.3): the demo pages carry the two strokes that grow the memo
         /// area of the month and the free memo area of the day (`demoPage(kind:focus:grown:)`).
         var grown: Bool = false
+        /// `--screenshot-probe` (the UI tests): the canvas reads out its state as an accessibility value
+        /// and the toasts stay `probeToastDuration`. Never passed by the photos.
+        var probe: Bool = false
+        /// `--screenshot-select "id1,id2"` (the UI tests): the strokes selected with the lasso at the
+        /// start (`initialSelection`); empty = none. The `lasso` sheet keeps its own stroke.
+        var select: [String] = []
     }
+
+    /// How long a toast stays with `--screenshot-probe` (the read-only photo's 20 s, M5-24).
+    static let probeToastDuration: TimeInterval = 20
 
     /// Parsed once from the launch arguments; nil in normal use.
     static let current: Config? = parse(ProcessInfo.processInfo.arguments)
@@ -162,10 +186,16 @@ enum ScreenshotMode {
         if let index = arguments.firstIndex(of: "--screenshot-tool"), index + 1 < arguments.count {
             tool = ToolShot(rawValue: arguments[index + 1])
         }
-        // The lasso sheet needs the lasso (its preselected stroke keeps its frame): it wins.
-        if sheet == .lasso { tool = .lasso }
+        // The UI tests' preselection: ids separated by commas (empty pieces dropped).
+        var select: [String] = []
+        if let index = arguments.firstIndex(of: "--screenshot-select"), index + 1 < arguments.count {
+            select = arguments[index + 1].split(separator: ",").map(String.init)
+        }
+        // The lasso sheet and a preselection need the lasso (the selected strokes keep their frame): it wins.
+        if sheet == .lasso || !select.isEmpty { tool = .lasso }
         let grown = arguments.contains("--screenshot-grown")
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown)
+        let probe = arguments.contains("--screenshot-probe")
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select)
     }
 
     /// "2" → 2; nil unless the text is a finite positive number ("abc", "0", "-1", "inf" are nil).

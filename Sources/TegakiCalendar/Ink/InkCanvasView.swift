@@ -227,6 +227,14 @@ final class InkCanvasContainerView: UIView {
     let canvasView = PKCanvasView()
     let overlayView = InkOverlayView()
     var onLayout: (() -> Void)?
+    /// The UI tests only (`--screenshot-probe`): the coordinator's `probeValue()`, read out as this
+    /// view's accessibility value at the moment it is asked (never stale). nil otherwise.
+    var probe: (() -> String)?
+
+    override var accessibilityValue: String? {
+        get { probe?() ?? super.accessibilityValue }
+        set { super.accessibilityValue = newValue }
+    }
 
     /// The desk behind the paper (M4C-25): #ecebe6, the same in dark mode (the paper is always light,
     /// DESIGN §3.2). The paper view paints its own window in the paper colour, so only the paper is
@@ -452,6 +460,15 @@ extension InkCanvasView {
         /// 1.0.1's `clock`; the tests pin it.
         var uptime: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
 
+        // The UI tests only (`--screenshot-probe`, `EraserAndBelowDayUITests`): the last canvas events
+        // as short tokens with their time (ms since `attach`), read out with the counts and the
+        // geometry through the container's accessibility value (`probeValue()`). Off and empty otherwise.
+        /// The accessibility identifier of the probed container.
+        static let probeIdentifier = "ink-canvas"
+        private var probeOn = false
+        private var probeStart: TimeInterval = 0
+        private var probeTrace: [String] = []
+
         init(parent: InkCanvasView) {
             self.parent = parent
             let deviceId = UIDevice.current.identifierForVendor?.uuidString
@@ -536,6 +553,77 @@ extension InkCanvasView {
             setDrawing(ledger.drawing(), on: canvas)
             canvas.contentSize = appliedLayout.size // zoom 1 until the first layout pass
             syncPaperFrame()
+
+            // The UI tests' probe (never in the photos or in normal use).
+            if ScreenshotMode.current?.probe == true {
+                startProbe()
+                container.isAccessibilityElement = true
+                container.accessibilityIdentifier = Self.probeIdentifier
+                container.accessibilityLabel = "手書きの紙"
+                container.probe = { [weak self] in self?.probeValue() ?? "detached" }
+            }
+        }
+
+        /// Starts the trace of `probeNote` (times from now). `attach` calls it for `--screenshot-probe`;
+        /// the unit tests that send real touches through UIKit call it to print what the canvas saw.
+        func startProbe() {
+            guard !probeOn else { return }
+            probeOn = true
+            probeStart = uptime()
+        }
+
+        /// Notes one canvas event for the UI tests (`probeOn` only): `B` / `E` PencilKit began / ended
+        /// using its tool, `C+a-r` a drawing change the ledger applied (a added, r removed; then `u`
+        /// while the tool is in use, `s` while settling, `e` when the tool is the eraser — ⑥ counts a
+        /// change with `e`, `u` or `s`, a = 0 and r > 0), `C0` a change that changed nothing, `c` one
+        /// the guard skipped (our own drawing, a lasso move), `R<n>` the settle wait ended with n
+        /// erased strokes to report (`R0`: nothing), `r` a wait a new touch cut short, `O` / `o` the
+        /// overlay began / stopped tracking, `L<n>` a lasso selected n strokes, `T` a finger tap. Each
+        /// token ends in `@<ms since attach>`; the last 48 are kept.
+        private func probeNote(_ token: @autoclosure () -> String) {
+            guard probeOn else { return }
+            let ms = Int(((uptime() - probeStart) * 1000).rounded())
+            probeTrace.append("\(token())@\(ms)")
+            if probeTrace.count > 48 {
+                probeTrace.removeFirst(probeTrace.count - 48)
+            }
+        }
+
+        /// What the probed container reads out (`key=value` pairs joined by `;`): the page, the zoom and
+        /// the content offset (pt) that map paper lu to the container (screen = frame origin + lu ×
+        /// zoom − offset), the paper size (lu), the strokes PencilKit holds (`pk`) and the ledger's live
+        /// strokes (`ink`), the tool, the erasures not yet reported (`pending`) and the event trace.
+        func probeValue() -> String {
+            guard let canvas else { return "detached" }
+            func number(_ value: CGFloat) -> String { String(format: "%.3f", Double(value)) }
+            let size = appliedLayout.size
+            return [
+                "page=\(appliedLayout.pageId)",
+                "zoom=\(String(format: "%.5f", Double(canvas.zoomScale)))",
+                "ox=\(number(canvas.contentOffset.x))",
+                "oy=\(number(canvas.contentOffset.y))",
+                "pw=\(number(size.width))",
+                "ph=\(number(size.height))",
+                "pk=\(canvas.drawing.strokes.count)",
+                "ink=\(ledger.page.liveStrokeCount)",
+                "tool=\(Self.probeName(parent.tool))",
+                "pending=\(erasedSinceReport)",
+                "trace=\(probeTrace.joined(separator: " "))",
+            ].joined(separator: ";")
+        }
+
+        /// `pen:#dc2626:6`, `marker:#fde047:18`, `eraser`, `lasso`, `event`.
+        static func probeName(_ tool: CanvasTool) -> String {
+            switch tool {
+            case .ink(let style):
+                return "\(style.tool.rawValue):\(style.colorHex):\(String(format: "%g", Double(style.width)))"
+            case .eraser:
+                return "eraser"
+            case .lasso:
+                return "lasso"
+            case .eventRect:
+                return "event"
+            }
         }
 
         func detach() {
@@ -1230,6 +1318,7 @@ extension InkCanvasView {
         /// (`undoEraserTap`): the person would otherwise leave the page without seeing it go.
         /// `tapLeavesPage` is still asked once at most.
         func fingerTapped(atPaper point: CGPoint, zoom: CGFloat) {
+            probeNote("T")
             if parent.allowFinger, !parent.readOnly, parent.tapLeavesPage(point, zoom) {
                 undoEraserTap()
                 removeDots(near: point, zoom: zoom, within: Self.singleTapDotWindow)
@@ -1403,9 +1492,14 @@ extension InkCanvasView {
             let delay = InkCanvasView.settleDelay
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(delay))
-                guard let self, self.settleGeneration == generation, !self.isUsingTool else { return }
+                guard let self else { return }
+                guard self.settleGeneration == generation, !self.isUsingTool else {
+                    self.probeNote("r")
+                    return
+                }
                 self.isSettling = false
                 self.applyPending()
+                self.probeNote("R\(self.erasedSinceReport)")
                 if self.erasedSinceReport > 0 {
                     let erased = self.erasedSinceReport
                     self.erasedSinceReport = 0
@@ -1422,7 +1516,10 @@ extension InkCanvasView {
         /// strokes added remembered as dot candidates → ⑤ the 15,000 notice → ⑥ the eraser's count →
         /// ⑦ the relayout request and the cap notice.
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-            guard !isApplyingDrawing, !isMovingSelection else { return }
+            guard !isApplyingDrawing, !isMovingSelection else {
+                probeNote("c")
+                return
+            }
             // History is the ledger's; never let the system (3-finger swipe) undo through PencilKit.
             canvasView.undoManager?.removeAllActions()
             let screening = screenNewStrokes(on: canvasView)
@@ -1436,7 +1533,13 @@ extension InkCanvasView {
                 }
             }
             let change = ledger.applyCanvasChange(canvasView.drawing)
-            guard !change.isEmpty else { return }
+            guard !change.isEmpty else {
+                probeNote("C0")
+                return
+            }
+            // The UI tests' probe: `e` = the tool is the eraser (⑥ counts it when `u` or `s` is there
+            // too, nothing was added and something was removed).
+            probeNote("C+\(change.added.count)-\(change.removedIds.count)\(isUsingTool ? "u" : "")\(isSettling ? "s" : "")\(parent.tool.isEraser ? "e" : "")")
             // ④' Only what this canvas added itself can be a finger tap's dot (§4.1, 0-21).
             let addedAt = uptime()
             for stroke in change.added {
@@ -1535,10 +1638,12 @@ extension InkCanvasView {
         }
 
         func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+            probeNote("B")
             penDidTouch()
         }
 
         func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+            probeNote("E")
             penDidLift()
         }
 
@@ -1652,6 +1757,7 @@ extension InkCanvasView {
                     ids.append(stroke.id)
                 }
             }
+            probeNote("L\(ids.count)")
             if !ids.isEmpty {
                 setSelection(ids: ids)
             }
@@ -1710,6 +1816,7 @@ extension InkCanvasView {
         }
 
         func overlay(_ overlay: InkOverlayView, isTracking: Bool) {
+            probeNote(isTracking ? "O" : "o")
             if isTracking {
                 penDidTouch()
             } else {

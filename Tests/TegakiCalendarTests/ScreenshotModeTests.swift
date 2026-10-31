@@ -442,6 +442,49 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertFalse(config.grown)
     }
 
+    /// The UI tests' two arguments (EraserAndBelowDayUITests): `--screenshot-probe` and
+    /// `--screenshot-select <ids>` (the lasso with those strokes selected; the `lasso` sheet keeps its
+    /// own stroke). Neither changes anything the photos pass.
+    func testParseProbeAndSelect() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "day"]
+        let plain = ScreenshotMode.parse(base)
+        XCTAssertEqual(plain?.probe, false)
+        XCTAssertEqual(plain?.select, [])
+        XCTAssertEqual(ScreenshotMode.initialSelection(plain), [])
+        XCTAssertEqual(ScreenshotMode.initialSelection(nil), [], "normal use")
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-probe"])?.probe, true)
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-probe"]), "without `--screenshot-mode` nothing")
+
+        let one = ScreenshotMode.parse(base + ["--screenshot-select", ScreenshotMode.grownDayStrokeId])
+        XCTAssertEqual(one?.select, [ScreenshotMode.grownDayStrokeId])
+        XCTAssertEqual(one?.page, .day, "any page")
+        XCTAssertEqual(one?.tool, .lasso)
+        XCTAssertEqual(one.map(ScreenshotMode.startTool), .lasso)
+        XCTAssertEqual(ScreenshotMode.initialSelection(one), [ScreenshotMode.grownDayStrokeId])
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-select", "a,,b,"])?.select, ["a", "b"])
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-select", "a", "--screenshot-tool", "eraser"])?.tool, .lasso, "the selection needs the lasso")
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-select"])?.select, [], "no value")
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-select", ""])?.select, [])
+        XCTAssertNil(ScreenshotMode.parse(base + ["--screenshot-select", ""])?.tool, "an empty selection is no lasso")
+
+        // The lasso sheet keeps the month's wave.
+        let sheet = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "lasso", "--screenshot-select", "x"])
+        XCTAssertEqual(ScreenshotMode.initialSelection(sheet), [ScreenshotMode.lassoDemoStrokeId])
+        XCTAssertEqual(ScreenshotMode.initialSelection(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "lasso"])),
+                       [ScreenshotMode.lassoDemoStrokeId])
+
+        // Everything else is unchanged by the two arguments.
+        let all = ScreenshotMode.parse(base + ["--screenshot-probe", "--screenshot-select", "x"])
+        XCTAssertEqual(all?.page, plain?.page)
+        XCTAssertEqual(all?.month, plain?.month)
+        XCTAssertEqual(all?.sheet, plain?.sheet)
+        XCTAssertEqual(all?.zoomRatio, plain?.zoomRatio)
+        XCTAssertEqual(all?.offset, plain?.offset)
+        XCTAssertEqual(all?.toolbar, plain?.toolbar)
+        XCTAssertEqual(all?.grown, plain?.grown)
+        XCTAssertEqual(all?.readOnly, plain?.readOnly)
+    }
+
     /// `--screenshot-grown` adds one stroke deep in the month's memo area (bottom ≈ 1,009 → the memo
     /// area 1,500) and one in the day's free memo area (`extra`, → 1,100); without it the demo pages
     /// are those of 1.0.1 (the month's memo dot keeps the memo area at 700, the day has no `extra` ink).

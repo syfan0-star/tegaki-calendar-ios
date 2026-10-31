@@ -343,9 +343,10 @@ struct CalendarRootScreen: View {
 
     private var layout: any PageLayout { paper.layout }
 
-    /// Screenshot mode's `lasso` sheet: the canvas selects this stroke once its zoom is known.
+    /// Screenshot mode's `lasso` sheet (and the UI tests' `--screenshot-select`): the canvas selects
+    /// these strokes once its zoom is known.
     private var initialSelectionIds: [String] {
-        ScreenshotMode.current?.sheet == .lasso ? [ScreenshotMode.lassoDemoStrokeId] : []
+        ScreenshotMode.initialSelection(ScreenshotMode.current)
     }
 
     private var eraseDefault: Bool {
@@ -1873,13 +1874,17 @@ struct CalendarRootScreen: View {
     // MARK: - Toast
 
     /// Shows `text` above the toolbar for 3 s (errors 6 s, or `duration`); a newer toast replaces an
-    /// older one. M5-24: the screenshot mode's read-only toast passes 20 s.
+    /// older one. M5-24: the screenshot mode's read-only toast passes 20 s. The UI tests
+    /// (`--screenshot-probe`) keep every toast 20 s, so a slow simulator still finds it.
     private func showToast(_ text: String, isError: Bool = false, duration: TimeInterval? = nil) {
         let message = ToastMessage(text: text, isError: isError)
         toast = message
         toastTask?.cancel()
+        let shown = ScreenshotMode.current?.probe == true
+            ? ScreenshotMode.probeToastDuration
+            : duration ?? (isError ? ToastView.errorDuration : ToastView.duration)
         toastTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(duration ?? (isError ? ToastView.errorDuration : ToastView.duration)))
+            try? await Task.sleep(for: .seconds(shown))
             if Task.isCancelled { return }
             if toast?.id == message.id { toast = nil }
         }
