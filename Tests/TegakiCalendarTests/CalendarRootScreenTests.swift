@@ -107,6 +107,100 @@ final class CalendarRootScreenTests: XCTestCase {
         XCTAssertEqual(CalendarRootScreen.firstRefreshTimeout, 3)
     }
 
+    // MARK: 1.0.1 — the year page's tap target on an iPhone
+
+    /// `usesMinTapTarget(isPhone:width:)`: an iPhone in portrait (390–440 pt) and landscape (750–
+    /// 812 pt inside the safe area), and a window narrower than 600 pt; never an iPad at full width.
+    func testTheMinimumTapTargetIsForSmallScreensOnly() {
+        XCTAssertEqual(CalendarRootScreen.compactWidth, 600)
+        for width: CGFloat in [390, 402, 440, 750, 812] {
+            XCTAssertTrue(CalendarRootScreen.usesMinTapTarget(isPhone: true, width: width), "iPhone \(width)")
+        }
+        for width: CGFloat in [320, 375, 507, 599.5] {
+            XCTAssertTrue(CalendarRootScreen.usesMinTapTarget(isPhone: false, width: width), "narrow window \(width)")
+        }
+        for width: CGFloat in [600, 678, 744, 834, 1024, 1366] {
+            XCTAssertFalse(CalendarRootScreen.usesMinTapTarget(isPhone: false, width: width), "iPad \(width)")
+        }
+    }
+
+    /// `tapTarget(layout:point:zoom:smallScreen:)`: on a small screen the year page's date area is at
+    /// least 44 pt on screen (the middle of 10/7 opens the day at an iPhone's overview, in portrait and
+    /// in landscape, not at the readable zoom); a zoom that is not a positive number falls back to
+    /// `hit(at:)`. A large screen (an iPad) is `hit(at:)` at every zoom, and so are the month and the
+    /// week on both. `leavesPage`: a date and 「+n件」 leave the page, bars, chips, boxes and nothing do not.
+    func testTapTargetUsesTheOnScreenMinimumOnlyOnTheYearPageOfASmallScreen() {
+        let now = wednesday.startOfDay().addingTimeInterval(10 * 3600)
+        let year = YearLayoutEngine.layout(YearLayoutInput(year: 2026, events: [], inkBottoms: [:], now: now))
+        let middle = CGPoint(x: 1120, y: 390)
+        let letter = CGPoint(x: 1069, y: 365)
+        XCTAssertEqual(CalendarRootScreen.minTapTarget, 44)
+        XCTAssertNil(year.hit(at: middle), "1.0: the middle of the cell is outside the 40 × 28 target")
+        for zoom: CGFloat in [402.0 / 1400, 390.0 / 1400, 440.0 / 1400, 0.1098, 0.1237] {
+            XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: middle, zoom: zoom, smallScreen: true), .date(wednesday), "an iPhone's overview \(zoom): the whole cell")
+        }
+        XCTAssertNil(CalendarRootScreen.tapTarget(layout: year, point: middle, zoom: ZoomPolicy.readableZoom(.year), smallScreen: true), "zoomed in: the middle of the cell is for writing")
+        for bad: CGFloat in [0, -1, .nan, .infinity] {
+            XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: middle, zoom: bad, smallScreen: true), year.hit(at: middle), "zoom \(bad)")
+            XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: letter, zoom: bad, smallScreen: true), year.hit(at: letter), "zoom \(bad): the weekday letter")
+        }
+        XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: letter, zoom: 0, smallScreen: true), .date(wednesday))
+        // An iPad (a large screen): exactly 1.0's target at its overviews (13-inch 0.6065, 11-inch 0.5190,
+        // mini 0.4784), at the readable zoom and at an iPhone-sized zoom.
+        let yearPoints = [middle, letter, CGPoint(x: 1109, y: 372), CGPoint(x: 1134, y: 410), CGPoint(x: 20, y: 390), CGPoint(x: 224, y: 1770)]
+        for p in yearPoints {
+            for zoom: CGFloat in [0.6065, 0.5190, 0.4784, ZoomPolicy.readableZoom(.year), 402.0 / 1400] {
+                XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: p, zoom: zoom, smallScreen: false), year.hit(at: p), "iPad: year at \(p), zoom \(zoom)")
+            }
+        }
+
+        // The month and the week: exactly `hit(at:)` (date numbers, empty cells, the memo area, bars,
+        // chips and boxes), whatever the zoom and the screen.
+        let calendar = DayKey.deviceCalendar
+        func at(_ day: DayKey, _ hour: Int) -> Date { day.startOfDay(in: calendar).addingTimeInterval(TimeInterval(hour) * 3600) }
+        let events = [
+            LayoutEvent(id: "trip", title: "旅行", allDay: true, start: at(wednesday, 0), end: at(wednesday.adding(days: 2), 0), colorHex: "#2563eb", calendarId: "c"),
+            LayoutEvent(id: "meeting", title: "打合せ", allDay: false, start: at(wednesday, 10), end: at(wednesday, 11), colorHex: "#16a34a", calendarId: "c"),
+        ]
+        let month = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 10), events: events, inkBottoms: [:], now: now))
+        let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: wednesday, events: events, inkBottoms: [:], now: now))
+        func centre(_ r: CGRect?) -> CGPoint? { r.map { CGPoint(x: $0.midX, y: $0.midY) } }
+        let monthPoints = [
+            centre(month.dateLabels.first { $0.day == wednesday }?.frame),
+            centre(month.cells[.day(wednesday)]).map { CGPoint(x: $0.x + 40, y: $0.y + 60) },
+            centre(month.memo),
+            centre(month.allDayBars.first?.frame),
+            centre(month.timedChips.first?.frame),
+        ].compactMap { $0 }
+        XCTAssertEqual(monthPoints.count, 5)
+        XCTAssertNotNil(month.hit(at: monthPoints[0]), "the date number of 10/7 opens the day")
+        let weekPoints = [
+            centre(week.dateLabels.first { $0.day == wednesday }?.frame),
+            centre(week.cells.values.first),
+            centre(week.timedBoxes.first?.frame),
+            CGPoint(x: 700, y: 1900),
+        ].compactMap { $0 }
+        XCTAssertGreaterThanOrEqual(weekPoints.count, 3)
+        let pages: [(any PageLayout, [CGPoint])] = [(month, monthPoints), (week, weekPoints)]
+        for (layout, points) in pages {
+            for p in points {
+                for zoom: CGFloat in [402.0 / 1400, 1, 3] {
+                    for small in [true, false] {
+                        XCTAssertEqual(CalendarRootScreen.tapTarget(layout: layout, point: p, zoom: zoom, smallScreen: small), layout.hit(at: p), "\(layout.kind) at \(p), zoom \(zoom), small \(small)")
+                    }
+                }
+            }
+        }
+
+        // Which taps leave the page (the dot of 「指でも書く」 is removed only for these).
+        XCTAssertTrue(CalendarRootScreen.leavesPage(.date(wednesday)))
+        XCTAssertTrue(CalendarRootScreen.leavesPage(.moreChips(wednesday)))
+        XCTAssertFalse(CalendarRootScreen.leavesPage(.allDayBar("trip")))
+        XCTAssertFalse(CalendarRootScreen.leavesPage(.timedChip("meeting")))
+        XCTAssertFalse(CalendarRootScreen.leavesPage(.timedBox("meeting")))
+        XCTAssertFalse(CalendarRootScreen.leavesPage(nil))
+    }
+
     // MARK: M6 (M6_CONTRACT §1.2 / §7.2)
 
     /// The `.failed` text of the import door's parse errors (`InkImport.parse` throws the same

@@ -497,7 +497,9 @@ struct CalendarRootScreen: View {
     /// §1.3 (the six zoom / double-tap arguments after it). `viewportWidth` is the screen's width:
     /// the canvas has no horizontal padding, so it is the canvas's width too.
     private func canvas(viewportWidth: CGFloat) -> some View {
-        InkCanvasView(
+        // 1.0.1: the year's 44 pt date target is for an iPhone and a narrow window only (iPad unchanged).
+        let smallScreen = Self.usesMinTapTarget(isPhone: UIDevice.current.userInterfaceIdiom == .phone, width: viewportWidth)
+        return InkCanvasView(
             layout: layout,
             paper: paper,
             tool: tool,
@@ -509,7 +511,7 @@ struct CalendarRootScreen: View {
                 now: now,
                 visibleWidth: ZoomPolicy.visibleWidth(kind, viewportWidth: viewportWidth, zoom: estimatedZoom(viewportWidth: viewportWidth))
             ),
-            onTap: handleTap,
+            onTap: { handleTap(at: $0, zoom: $1, smallScreen: smallScreen) },
             onInkBoundsChanged: inkBoundsChanged,
             undoTrigger: undoTrigger,
             redoTrigger: redoTrigger,
@@ -537,7 +539,9 @@ struct CalendarRootScreen: View {
             },
             // M5 (M5_CONTRACT §3.1): no ink while read only; a Pencil touch asks for the paywall.
             readOnly: readOnly,
-            onBlockedInput: blockedInput
+            onBlockedInput: blockedInput,
+            // 1.0.1: a tap that opens the day page removes the dot 「指でも書く」 drew for it.
+            tapLeavesPage: { Self.leavesPage(Self.tapTarget(layout: layout, point: $0, zoom: $1, smallScreen: smallScreen)) }
         )
         .id(pageId)
         .overlay(alignment: .topLeading) {
@@ -890,10 +894,42 @@ struct CalendarRootScreen: View {
 
     // MARK: - Taps
 
+    /// The smallest date target of the year page on screen (pt; 1.0.1).
+    static let minTapTarget: CGFloat = 44
+
+    /// 1.0.1: the screens whose year page gets the 44 pt date target — an iPhone in either orientation,
+    /// and any window narrower than `compactWidth` (an iPad's narrow split view, where the header takes
+    /// two rows as on an iPhone). An iPad at full width keeps 1.0's target (it works there: about
+    /// 24 × 17 pt at the 13-inch overview, docs/R1_0_1.md §2).
+    static func usesMinTapTarget(isPhone: Bool, width: CGFloat) -> Bool {
+        isPhone || width < compactWidth
+    }
+
+    /// What a finger tap at `point` (lu) does at `zoom` (1.0.1): on a small screen
+    /// (`usesMinTapTarget`) the year page's date area is at least 44 pt on screen
+    /// (`YearPageLayout.hit(at:minTarget:)`); everything else — the other pages, the year on a large
+    /// screen, a zoom that is not a positive number — is `layout.hit(at:)` unchanged.
+    static func tapTarget(layout: any PageLayout, point: CGPoint, zoom: CGFloat, smallScreen: Bool) -> HitTarget? {
+        if smallScreen, let year = layout as? YearPageLayout, zoom.isFinite, zoom > 0 {
+            return year.hit(at: point, minTarget: minTapTarget / zoom)
+        }
+        return layout.hit(at: point)
+    }
+
+    /// 1.0.1: whether a tap on `target` takes the screen to another page (`handleTap`: 「+n件」 and a
+    /// date open the day page; a bar, a chip or a box opens the edit sheet over this page).
+    static func leavesPage(_ target: HitTarget?) -> Bool {
+        switch target {
+        case .moreChips, .date: return true
+        case .allDayBar, .timedChip, .timedBox, nil: return false
+        }
+    }
+
     /// M3b contract §4.5: bars, chips and boxes open the edit sheet; 「+n件」, date numbers, the year's
-    /// weekday letters and thin chips open the day page.
-    private func handleTap(at point: CGPoint) {
-        guard let hit = layout.hit(at: point) else { return }
+    /// date area (1.0.1: at least 44 pt on a small screen, `tapTarget`) and thin chips open the day
+    /// page. `zoom` is the canvas's when it recognised the tap (the one `tapLeavesPage` used).
+    private func handleTap(at point: CGPoint, zoom: CGFloat, smallScreen: Bool) {
+        guard let hit = Self.tapTarget(layout: layout, point: point, zoom: zoom, smallScreen: smallScreen) else { return }
         switch hit {
         case .allDayBar(let id), .timedChip(let id), .timedBox(let id):
             openEdit(eventId: id)

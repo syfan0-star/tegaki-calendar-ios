@@ -17,7 +17,7 @@ settings:
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     TARGETED_DEVICE_FAMILY: "1,2"
-    MARKETING_VERSION: "1.0"
+    MARKETING_VERSION: "1.0.1"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     # DEVELOPMENT_TEAM is intentionally unset: CI builds for the Simulator with CODE_SIGNING_ALLOWED=NO.
@@ -95,6 +95,9 @@ targets:
     scheme:
       testTargets:
         - TegakiCalendarTests
+        # 1.0.1 (docs/R1_0_1.md §5.1): the iPhone UI test. CI's iPad unit-test step skips it
+        # (`-skip-testing:TegakiCalendarUITests`) and the "UI tests on an iPhone" step runs only it.
+        - TegakiCalendarUITests
       gatherCoverageData: false
       # Local Xcode runs (Run / Test from the IDE) use the StoreKit configuration file instead of
       # App Store Connect (docs/M5_CONTRACT.md §7.2; XcodeGen prepends its schemePathPrefix ../../).
@@ -132,3 +135,21 @@ targets:
         # `#if STOREKIT_TEST` and this condition is what turns it back on for a local Xcode run:
         #   SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) STOREKIT_TEST"
         # (left off by default; the decision is recorded in docs/M5.md).
+
+  # 1.0.1 (docs/R1_0_1.md §5.1): XCUITest of the year page's tap on an iPhone (YearTapUITests: a real
+  # finger tap / double tap opens the day page, through UIKit's recognisers and PencilKit). It drives
+  # the app in its screenshot mode; on an iPad it skips itself.
+  TegakiCalendarUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Tests/TegakiCalendarUITests
+    dependencies:
+      - target: TegakiCalendar
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.syfan0.tegakicalendar.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        TEST_TARGET_NAME: TegakiCalendar

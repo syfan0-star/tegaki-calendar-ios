@@ -168,6 +168,21 @@ public struct YearPageLayout: PageLayout, Equatable, Sendable {
         return nil
     }
 
+    /// The screen's finger tap (1.0.1): `hit(at:)` first (chips keep precedence; the 40 × 28 weekday
+    /// frames are unchanged), then the date area of the cell under the point — the cell's left 45 %
+    /// (50.4 lu, where 「7 水」 is drawn) × 28 lu, grown to `minTarget` lu (44 pt ÷ zoom) and clipped
+    /// to the cell. Nil in the gutter, outside the paper and on a date that does not exist.
+    public func hit(at point: CGPoint, minTarget: CGFloat) -> HitTarget? {
+        if let hit = hit(at: point) { return hit }
+        guard minTarget.isFinite, minTarget > 0,
+              let day = dayAt(point: point),
+              let cell = cellFrame(month: day.month, day: day.day) else { return nil }
+        let target = CGRect(x: cell.minX, y: cell.minY,
+                            width: min(cell.width, max(PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft, minTarget)),
+                            height: min(cell.height, max(28, minTarget)))
+        return target.contains(point) ? .date(day) : nil
+    }
+
     /// The date of the cell under a double tap (M4C_CONTRACT §4.3): `cell(at:)` (nil in the
     /// day-number gutter, x < 56, and outside the paper) → (month, day) → `DayKey(year:month:day:)`,
     /// nil when that date does not exist (2/30, 4/31, 2/29 of a common year; `DayKey.isValid`).
