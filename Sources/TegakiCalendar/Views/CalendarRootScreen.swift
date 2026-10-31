@@ -537,7 +537,9 @@ struct CalendarRootScreen: View {
             },
             // M5 (M5_CONTRACT §3.1): no ink while read only; a Pencil touch asks for the paywall.
             readOnly: readOnly,
-            onBlockedInput: blockedInput
+            onBlockedInput: blockedInput,
+            // 1.0.1: a tap that does something removes the dot 「指でも書く」 drew for it.
+            tapActs: { Self.tapTarget(layout: layout, point: $0, zoom: viewport.zoom) != nil }
         )
         .id(pageId)
         .overlay(alignment: .topLeading) {
@@ -890,10 +892,23 @@ struct CalendarRootScreen: View {
 
     // MARK: - Taps
 
+    /// The smallest date target of the year page on screen (pt; 1.0.1).
+    static let minTapTarget: CGFloat = 44
+
+    /// What a finger tap at `point` (lu) does at `zoom` (1.0.1): the year page's date area is at least
+    /// 44 pt on screen (`YearPageLayout.hit(at:minTarget:)`); every other page, and a zoom that is not
+    /// a positive number, is `layout.hit(at:)` unchanged.
+    static func tapTarget(layout: any PageLayout, point: CGPoint, zoom: CGFloat) -> HitTarget? {
+        if let year = layout as? YearPageLayout, zoom.isFinite, zoom > 0 {
+            return year.hit(at: point, minTarget: minTapTarget / zoom)
+        }
+        return layout.hit(at: point)
+    }
+
     /// M3b contract §4.5: bars, chips and boxes open the edit sheet; 「+n件」, date numbers, the year's
-    /// weekday letters and thin chips open the day page.
+    /// date area (1.0.1: at least 44 pt, `tapTarget`) and thin chips open the day page.
     private func handleTap(at point: CGPoint) {
-        guard let hit = layout.hit(at: point) else { return }
+        guard let hit = Self.tapTarget(layout: layout, point: point, zoom: viewport.zoom) else { return }
         switch hit {
         case .allDayBar(let id), .timedChip(let id), .timedBox(let id):
             openEdit(eventId: id)

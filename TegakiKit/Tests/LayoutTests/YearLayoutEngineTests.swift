@@ -123,6 +123,70 @@ final class YearLayoutEngineTests: XCTestCase {
         XCTAssertNil(page.hit(at: CGPoint(x: 20, y: 400)), "the gutter")
     }
 
+    /// 1.0.1: the screen's finger tap on the year page (`hit(at:minTarget:)`, minTarget = 44 pt ÷
+    /// zoom). At the overview the 40 × 28 weekday frame was 11.5 × 8 pt on an iPhone (the jump to
+    /// the day page was lost there); the date area is now the cell's left 45 % × 28 lu, grown to
+    /// 44 pt on screen and clipped to the cell. Chips keep precedence, nothing else changes.
+    func testDateTargetIsAtLeast44PointsOnScreen() {
+        let page = F.yearLayout([])
+        let oct7 = F.day(2026, 10, 7)
+        XCTAssertEqual(page.cellFrame(month: 10, day: 7), CGRect(x: 1064, y: 360, width: 112, height: 60))
+        // The weekday frame alone misses the middle of the cell (the 1.0 behaviour).
+        XCTAssertNil(page.hit(at: CGPoint(x: 1120, y: 390)), "the old target: the middle of the cell is outside 40 × 28")
+
+        // (1) iPhone overviews (portrait 402 / 390 / 440 pt, landscape 0.1237): the whole cell.
+        for zoom: CGFloat in [402.0 / 1400, 390.0 / 1400, 440.0 / 1400, 0.1237] {
+            let target = 44 / zoom
+            XCTAssertEqual(page.hit(at: CGPoint(x: 1120, y: 390), minTarget: target), .date(oct7), "zoom \(zoom): the middle of 10/7")
+            XCTAssertEqual(page.hit(at: CGPoint(x: 1174, y: 418), minTarget: target), .date(oct7), "zoom \(zoom): the bottom-right of 10/7")
+            XCTAssertEqual(page.hit(at: CGPoint(x: 112, y: 30), minTarget: target), .date(F.day(2026, 1, 1)), "zoom \(zoom): the middle of 1/1")
+            XCTAssertEqual(page.hit(at: CGPoint(x: 1344, y: 1830), minTarget: target), .date(F.day(2026, 12, 31)), "zoom \(zoom): the middle of 12/31")
+            // (5) Still nil: a date that does not exist, the gutter, outside the paper.
+            XCTAssertNil(page.hit(at: CGPoint(x: 224, y: 1770), minTarget: target), "zoom \(zoom): 2/30")
+            XCTAssertNil(page.hit(at: CGPoint(x: 20, y: 390), minTarget: target), "zoom \(zoom): the day-number gutter")
+            XCTAssertNil(page.hit(at: CGPoint(x: 1401, y: 390), minTarget: target), "zoom \(zoom): right of the paper")
+            XCTAssertNil(page.hit(at: CGPoint(x: 700, y: 1860), minTarget: target), "zoom \(zoom): below the paper")
+        }
+
+        // (2) The 13-inch overview (0.6065): 72.5 lu × the cell's 60 lu (44 × 36 pt).
+        let ipad13: CGFloat = 44 / 0.6065
+        XCTAssertEqual(page.hit(at: CGPoint(x: 1134, y: 410), minTarget: ipad13), .date(oct7), "70 lu from the left edge")
+        XCTAssertNil(page.hit(at: CGPoint(x: 1145, y: 380), minTarget: ipad13), "81 lu is beyond 72.5 lu")
+
+        // (3) The readable zoom (1.339): 50.4 lu (「7 水」) × 32.9 lu.
+        let readable = 44 / ZoomPolicy.readableZoom(.year)
+        XCTAssertEqual(page.hit(at: CGPoint(x: 1109, y: 372), minTarget: readable), .date(oct7), "the right half of 「水」")
+        XCTAssertNil(page.hit(at: CGPoint(x: 1164, y: 410), minTarget: readable), "the handwriting part of the cell")
+        XCTAssertNil(page.hit(at: CGPoint(x: 1109, y: 395), minTarget: readable), "35 lu is below 32.9 lu")
+
+        // (4) 4×: back to 50.4 × 28 lu (the old frame plus the right of 「水」).
+        XCTAssertEqual(page.hit(at: CGPoint(x: 1109, y: 387), minTarget: 11), .date(oct7))
+        XCTAssertNil(page.hit(at: CGPoint(x: 1109, y: 389), minTarget: 11))
+
+        // (6) A minTarget that is not a positive number: the same as `hit(at:)`.
+        let probes = [CGPoint(x: 1120, y: 390), CGPoint(x: 1069, y: 365), CGPoint(x: 20, y: 390), CGPoint(x: 224, y: 1770)]
+        for bad: CGFloat in [.nan, .infinity, 0, -5] {
+            for p in probes {
+                XCTAssertEqual(page.hit(at: p, minTarget: bad), page.hit(at: p), "minTarget \(bad) at \(p)")
+            }
+        }
+        XCTAssertNil(page.hit(at: CGPoint(x: CGFloat.nan, y: 390), minTarget: 44 / (402.0 / 1400)), "NaN x")
+
+        // (7) Chips first, at an iPhone's overview: a normal chip opens the event, a thin chip its day.
+        let iphone: CGFloat = 44 / (402.0 / 1400)
+        let demoPage = F.yearLayout(demo)
+        let deadline = demoPage.chips.first { $0.title == "締切" }
+        XCTAssertNotNil(deadline)
+        XCTAssertEqual(demoPage.hit(at: CGPoint(x: cellX10 + 55, y: 360 + 20), minTarget: iphone), .allDayBar(deadline?.eventId ?? "?"), "a chip")
+        XCTAssertEqual(demoPage.hit(at: CGPoint(x: cellX10 + 5, y: 365), minTarget: iphone), .date(oct7), "the weekday letter next to a chip")
+        XCTAssertEqual(demoPage.hit(at: CGPoint(x: cellX10 + 45, y: 360 + 50), minTarget: iphone), .date(oct7), "the rest of the cell at the overview")
+        var pile: [LayoutEvent] = [LayoutEvent(id: "march", title: "3月", allDay: true, start: F.date(2026, 3, 20), end: F.date(2026, 3, 21), colorHex: "#000000", calendarId: "c")]
+        for i in 0..<40 { pile.append(F.allDay("pile\(i)", 20, 21, title: "p\(i)")) }
+        let capped = F.yearLayout(pile)
+        XCTAssertEqual(capped.hit(at: CGPoint(x: cellX10 + 55, y: capped.rows[19].frame.minY + 17), minTarget: iphone), .date(F.day(2026, 10, 20)), "a thin chip opens the day")
+        XCTAssertEqual(capped.hit(at: CGPoint(x: 56 + 2 * 112 + 55, y: capped.rows[19].frame.minY + 17), minTarget: iphone), .allDayBar("march"), "a normal chip opens the event")
+    }
+
     func testDayAtRejectsMissingDates() {
         // M4c, M4C_CONTRACT §4.3: the double tap's target is the cell's date; a date that does not
         // exist, the day-number gutter, the outside and NaN are nil.

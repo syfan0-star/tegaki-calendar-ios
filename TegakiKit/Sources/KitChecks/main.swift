@@ -1346,6 +1346,41 @@ do {
     checkEqual(capped.hit(at: CGPoint(x: cellX10 + 55, y: capped.rows[19].frame.minY + 17)), .date(day(2026, 10, 20)), "a thin chip opens the day")
     checkEqual(capped.hit(at: CGPoint(x: 56 + 2 * 112 + 55, y: capped.rows[19].frame.minY + 17)), .allDayBar("march"), "a normal chip opens the event")
 
+    // 1.0.1: the screen's finger tap (`hit(at:minTarget:)`, minTarget = 44 pt ÷ zoom). The date area
+    // is the cell's left 45 % × 28 lu grown to 44 pt on screen and clipped to the cell; chips first.
+    let oct7 = day(2026, 10, 7)
+    checkEqual(plain.hit(at: CGPoint(x: 1120, y: 390)), nil, "tap 1.0.1: the old 40 × 28 target misses the middle of 10/7")
+    for zoom: CGFloat in [402.0 / 1400, 390.0 / 1400, 440.0 / 1400, 0.1237] {
+        let target = 44 / zoom
+        checkEqual(plain.hit(at: CGPoint(x: 1120, y: 390), minTarget: target), .date(oct7), "tap 1.0.1 zoom \(zoom): the middle of 10/7")
+        checkEqual(plain.hit(at: CGPoint(x: 1174, y: 418), minTarget: target), .date(oct7), "tap 1.0.1 zoom \(zoom): the bottom-right of 10/7")
+        checkEqual(plain.hit(at: CGPoint(x: 112, y: 30), minTarget: target), .date(day(2026, 1, 1)), "tap 1.0.1 zoom \(zoom): the middle of 1/1")
+        checkEqual(plain.hit(at: CGPoint(x: 1344, y: 1830), minTarget: target), .date(day(2026, 12, 31)), "tap 1.0.1 zoom \(zoom): the middle of 12/31")
+        checkEqual(plain.hit(at: CGPoint(x: 224, y: 1770), minTarget: target), nil, "tap 1.0.1 zoom \(zoom): 2/30")
+        checkEqual(plain.hit(at: CGPoint(x: 20, y: 390), minTarget: target), nil, "tap 1.0.1 zoom \(zoom): the gutter")
+        checkEqual(plain.hit(at: CGPoint(x: 1401, y: 390), minTarget: target), nil, "tap 1.0.1 zoom \(zoom): right of the paper")
+        checkEqual(plain.hit(at: CGPoint(x: 700, y: 1860), minTarget: target), nil, "tap 1.0.1 zoom \(zoom): below the paper")
+    }
+    let ipad13Target: CGFloat = 44 / 0.6065
+    checkEqual(plain.hit(at: CGPoint(x: 1134, y: 410), minTarget: ipad13Target), .date(oct7), "tap 1.0.1 13-inch overview: 70 lu in")
+    checkEqual(plain.hit(at: CGPoint(x: 1145, y: 380), minTarget: ipad13Target), nil, "tap 1.0.1 13-inch overview: 81 lu is beyond 72.5 lu")
+    let readableTarget = 44 / ZoomPolicy.readableZoom(.year)
+    checkEqual(plain.hit(at: CGPoint(x: 1109, y: 372), minTarget: readableTarget), .date(oct7), "tap 1.0.1 1.339×: the right half of 「水」")
+    checkEqual(plain.hit(at: CGPoint(x: 1164, y: 410), minTarget: readableTarget), nil, "tap 1.0.1 1.339×: the handwriting part")
+    checkEqual(plain.hit(at: CGPoint(x: 1109, y: 395), minTarget: readableTarget), nil, "tap 1.0.1 1.339×: 35 lu is below 32.9 lu")
+    checkEqual(plain.hit(at: CGPoint(x: 1109, y: 387), minTarget: 11), .date(oct7), "tap 1.0.1 4×: inside 50.4 × 28")
+    checkEqual(plain.hit(at: CGPoint(x: 1109, y: 389), minTarget: 11), nil, "tap 1.0.1 4×: below 28 lu")
+    for bad: CGFloat in [.nan, .infinity, 0, -5] {
+        for p in [CGPoint(x: 1120, y: 390), CGPoint(x: 1069, y: 365), CGPoint(x: 20, y: 390), CGPoint(x: 224, y: 1770)] {
+            checkEqual(plain.hit(at: p, minTarget: bad), plain.hit(at: p), "tap 1.0.1 minTarget \(bad) at \(p) == hit(at:)")
+        }
+    }
+    let iphoneTarget: CGFloat = 44 / (402.0 / 1400)
+    checkEqual(page.hit(at: CGPoint(x: cellX10 + 55, y: 360 + 20), minTarget: iphoneTarget), .allDayBar(deadline?.eventId ?? "?"), "tap 1.0.1: a chip comes first")
+    checkEqual(page.hit(at: CGPoint(x: cellX10 + 45, y: 360 + 50), minTarget: iphoneTarget), .date(oct7), "tap 1.0.1: the rest of the cell at an iPhone's overview")
+    checkEqual(capped.hit(at: CGPoint(x: cellX10 + 55, y: capped.rows[19].frame.minY + 17), minTarget: iphoneTarget), .date(day(2026, 10, 20)), "tap 1.0.1: a thin chip opens the day")
+    checkEqual(capped.hit(at: CGPoint(x: 56 + 2 * 112 + 55, y: capped.rows[19].frame.minY + 17), minTarget: iphoneTarget), .allDayBar("march"), "tap 1.0.1: a normal chip opens the event")
+
     // monthSpans and initial scroll.
     let spans = YearLayoutEngine.monthSpans(events: demo, year: 2026, month: 10, calendar: tokyo)
     checkEqual(spans.first { $0.event.title == "家族旅行" }.map { [$0.startCol, $0.endCol, $0.lane] }, [8, 12, 0], "家族旅行 spans day indices 8…12")

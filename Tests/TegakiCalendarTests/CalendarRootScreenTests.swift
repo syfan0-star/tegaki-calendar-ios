@@ -107,6 +107,63 @@ final class CalendarRootScreenTests: XCTestCase {
         XCTAssertEqual(CalendarRootScreen.firstRefreshTimeout, 3)
     }
 
+    // MARK: 1.0.1 — the year page's tap target on an iPhone
+
+    /// `tapTarget(layout:point:zoom:)`: on the year page the date area is at least 44 pt on screen
+    /// (the middle of 10/7 opens the day at an iPhone's overview, not at the readable zoom); a zoom
+    /// that is not a positive number falls back to `hit(at:)`; the month and week pages are
+    /// `layout.hit(at:)` unchanged at every zoom.
+    func testTapTargetUsesTheOnScreenMinimumOnlyOnTheYearPage() {
+        let now = wednesday.startOfDay().addingTimeInterval(10 * 3600)
+        let year = YearLayoutEngine.layout(YearLayoutInput(year: 2026, events: [], inkBottoms: [:], now: now))
+        let middle = CGPoint(x: 1120, y: 390)
+        XCTAssertEqual(CalendarRootScreen.minTapTarget, 44)
+        XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: middle, zoom: 402.0 / 1400), .date(wednesday), "an iPhone's overview: the whole cell")
+        XCTAssertNil(CalendarRootScreen.tapTarget(layout: year, point: middle, zoom: ZoomPolicy.readableZoom(.year)), "zoomed in: the middle of the cell is for writing")
+        let letter = CGPoint(x: 1069, y: 365)
+        for bad: CGFloat in [0, -1, .nan, .infinity] {
+            XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: middle, zoom: bad), year.hit(at: middle), "zoom \(bad)")
+            XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: letter, zoom: bad), year.hit(at: letter), "zoom \(bad): the weekday letter")
+        }
+        XCTAssertEqual(CalendarRootScreen.tapTarget(layout: year, point: letter, zoom: 0), .date(wednesday))
+
+        // The month and the week: exactly `hit(at:)` (date numbers, empty cells, the memo area, bars,
+        // chips and boxes), whatever the zoom.
+        let calendar = DayKey.deviceCalendar
+        func at(_ day: DayKey, _ hour: Int) -> Date { day.startOfDay(in: calendar).addingTimeInterval(TimeInterval(hour) * 3600) }
+        let events = [
+            LayoutEvent(id: "trip", title: "旅行", allDay: true, start: at(wednesday, 0), end: at(wednesday.adding(days: 2), 0), colorHex: "#2563eb", calendarId: "c"),
+            LayoutEvent(id: "meeting", title: "打合せ", allDay: false, start: at(wednesday, 10), end: at(wednesday, 11), colorHex: "#16a34a", calendarId: "c"),
+        ]
+        let month = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 10), events: events, inkBottoms: [:], now: now))
+        let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: wednesday, events: events, inkBottoms: [:], now: now))
+        func centre(_ r: CGRect?) -> CGPoint? { r.map { CGPoint(x: $0.midX, y: $0.midY) } }
+        let monthPoints = [
+            centre(month.dateLabels.first { $0.day == wednesday }?.frame),
+            centre(month.cells[.day(wednesday)]).map { CGPoint(x: $0.x + 40, y: $0.y + 60) },
+            centre(month.memo),
+            centre(month.allDayBars.first?.frame),
+            centre(month.timedChips.first?.frame),
+        ].compactMap { $0 }
+        XCTAssertEqual(monthPoints.count, 5)
+        XCTAssertNotNil(month.hit(at: monthPoints[0]), "the date number of 10/7 opens the day")
+        let weekPoints = [
+            centre(week.dateLabels.first { $0.day == wednesday }?.frame),
+            centre(week.cells.values.first),
+            centre(week.timedBoxes.first?.frame),
+            CGPoint(x: 700, y: 1900),
+        ].compactMap { $0 }
+        XCTAssertGreaterThanOrEqual(weekPoints.count, 3)
+        let pages: [(any PageLayout, [CGPoint])] = [(month, monthPoints), (week, weekPoints)]
+        for (layout, points) in pages {
+            for p in points {
+                for zoom: CGFloat in [402.0 / 1400, 1, 3] {
+                    XCTAssertEqual(CalendarRootScreen.tapTarget(layout: layout, point: p, zoom: zoom), layout.hit(at: p), "\(layout.kind) at \(p), zoom \(zoom)")
+                }
+            }
+        }
+    }
+
     // MARK: M6 (M6_CONTRACT §1.2 / §7.2)
 
     /// The `.failed` text of the import door's parse errors (`InkImport.parse` throws the same

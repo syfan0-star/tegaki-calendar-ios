@@ -24,6 +24,13 @@ final class InkCanvasViewTests: XCTestCase {
         var zooming: [Bool] = []
     }
 
+    /// Collects `onTap` (1.0.1), with the ledger's live stroke ids at the moment of each report.
+    private final class TapLog {
+        weak var coordinator: InkCanvasView.Coordinator?
+        var points: [CGPoint] = []
+        var liveIds: [Set<String>] = []
+    }
+
     /// 2026-10-07 (a Wednesday) at 10:00 in the device's time zone, like the screenshot mode.
     private let now = DayKey(year: 2026, month: 10, day: 7).startOfDay().addingTimeInterval(10 * 3600)
     private let wednesday = DayKey(year: 2026, month: 10, day: 7)
@@ -48,6 +55,12 @@ final class InkCanvasViewTests: XCTestCase {
         return (layout, .day(DayPaperContent(layout: layout)))
     }
 
+    /// 2026, no events: 1400 × 1860 lu (10/7's cell is (1064, 360, 112, 60)).
+    private func makeYear() -> (layout: YearPageLayout, paper: PaperContent) {
+        let layout = YearLayoutEngine.layout(YearLayoutInput(year: 2026, events: [], inkBottoms: [:], now: now))
+        return (layout, .year(YearPaperContent(layout: layout, monthNames: (1...12).map { "\($0)月" })))
+    }
+
     /// The canvas as the screen builds it. `initialScrollX` is computed for the readable zoom (it is
     /// not used at the default ratio 1; a test that needs it computes its own).
     private func makeView(layout: any PageLayout, paper: PaperContent, viewportWidth: CGFloat, probe: Probe,
@@ -56,7 +69,9 @@ final class InkCanvasViewTests: XCTestCase {
                           onZoomRatioChange: @escaping (CGFloat) -> Void = { _ in },
                           onZoomingChange: @escaping (Bool) -> Void = { _ in },
                           readOnly: Bool = false,
-                          onBlockedInput: @escaping () -> Void = {}) -> InkCanvasView {
+                          onBlockedInput: @escaping () -> Void = {},
+                          onTap: @escaping (CGPoint) -> Void = { _ in },
+                          tapActs: @escaping (CGPoint) -> Bool = { _ in false }) -> InkCanvasView {
         let page = page ?? InkPage.empty(pageId: layout.pageId)
         return InkCanvasView(
             layout: layout,
@@ -69,7 +84,7 @@ final class InkCanvasViewTests: XCTestCase {
                 layout, now: now,
                 visibleWidth: ZoomPolicy.visibleWidth(layout.kind, viewportWidth: viewportWidth, zoom: ZoomPolicy.readableZoom(layout.kind))
             ),
-            onTap: { _ in },
+            onTap: onTap,
             onInkBoundsChanged: {},
             undoTrigger: 0,
             redoTrigger: 0,
@@ -83,7 +98,8 @@ final class InkCanvasViewTests: XCTestCase {
             onZoomRatioChange: onZoomRatioChange,
             onZoomingChange: onZoomingChange,
             readOnly: readOnly,
-            onBlockedInput: onBlockedInput
+            onBlockedInput: onBlockedInput,
+            tapActs: tapActs
         )
     }
 
@@ -116,14 +132,19 @@ final class InkCanvasViewTests: XCTestCase {
     /// collects only what it causes.
     private func makeRig(layout: any PageLayout, paper: PaperContent, width: CGFloat, height: CGFloat,
                          initialZoomRatio: CGFloat = 1, initialPaperOffset: CGPoint? = nil, doubleTapEnabled: Bool = false,
-                         tool: CanvasTool = .eraser, allowFinger: Bool = false, page: InkPage? = nil, clear: Bool = true) async -> Rig {
+                         tool: CanvasTool = .eraser, allowFinger: Bool = false, page: InkPage? = nil, clear: Bool = true,
+                         readOnly: Bool = false, onTap: @escaping (CGPoint) -> Void = { _ in },
+                         tapActs: @escaping (CGPoint) -> Bool = { _ in false }) async -> Rig {
         let probe = Probe()
         let view = makeView(
             layout: layout, paper: paper, viewportWidth: width, probe: probe,
             initialZoomRatio: initialZoomRatio, initialPaperOffset: initialPaperOffset, doubleTapEnabled: doubleTapEnabled,
             tool: tool, allowFinger: allowFinger, page: page,
             onZoomRatioChange: { probe.ratios.append($0) },
-            onZoomingChange: { probe.zooming.append($0) }
+            onZoomingChange: { probe.zooming.append($0) },
+            readOnly: readOnly,
+            onTap: onTap,
+            tapActs: tapActs
         )
         let rig = attach(view, paper: paper, probe: probe)
         rig.layout(width: width, height: height)
@@ -566,6 +587,118 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertEqual(Set(rig.coordinator.dotStrokeIds(near: near, zoom: 2, within: 0.5)), ["dot1", "dot2"])
     }
 
+    // MARK: 1.0.1 — the single tap on an iPhone's year page
+
+    /// A finger tap the owner acts on (`tapActs`) with 「指でも書く」 removes the dot PencilKit drew for
+    /// it before `onTap` (the owner leaves the page right after), as one undoable op; an old dot and a
+    /// line stay. Nothing is removed when the tap does nothing, without 「指でも書く」, or read only —
+    /// `onTap` is called once in every case. The iPhone's conditions: 402 × 569, `.anyInput`, the
+    /// year's overview (zoom 402 / 1400).
+    func testActingFingerTapRemovesItsDotBeforeReporting() async {
+        let (layout, paper) = makeYear()
+        let cell = CellKey.yearDay(month: 10, day: 7)
+        XCTAssertEqual(layout.cells[cell], CGRect(x: 1064, y: 360, width: 112, height: 60))
+        let nowMs = Int(Date().timeIntervalSince1970 * 1000)
+        var page = InkPage.empty(pageId: layout.pageId)
+        page.add(makeInkStroke(id: "dot", cell: cell, t: nowMs - 300, points: [(56, 30), (57.5, 31.5)]))
+        page.add(makeInkStroke(id: "old", cell: cell, t: nowMs - 10_000, points: [(56, 30), (57.5, 31.5)]))
+        page.add(makeInkStroke(id: "line", cell: cell, t: nowMs - 300, points: [(5, 40), (100, 40)]))
+        let pen = CanvasTool.ink(InkPresets.defaultPen)
+        let tap = CGPoint(x: 1120.75, y: 390.75)
+
+        func tapRig(acts: Bool, allowFinger: Bool = true, readOnly: Bool = false) async -> (rig: Rig, log: TapLog) {
+            let log = TapLog()
+            let rig = await makeRig(
+                layout: layout, paper: paper, width: 402, height: 569, doubleTapEnabled: true,
+                tool: pen, allowFinger: allowFinger, page: page, readOnly: readOnly,
+                onTap: { point in
+                    log.points.append(point)
+                    log.liveIds.append(Set(log.coordinator?.ledger.page.liveStrokes.map(\.id) ?? []))
+                },
+                tapActs: { _ in acts }
+            )
+            log.coordinator = rig.coordinator
+            return (rig, log)
+        }
+
+        let (rig, log) = await tapRig(acts: true)
+        XCTAssertEqual(rig.canvas.drawingPolicy, .anyInput, "「指でも書く」")
+        XCTAssertEqual(rig.canvas.zoomScale, 402.0 / 1400, accuracy: 1e-3, "the year's overview on an iPhone")
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.count, 3)
+        XCTAssertFalse(rig.coordinator.ledger.canUndo)
+        rig.coordinator.fingerTapped(atPaper: tap, zoom: rig.canvas.zoomScale)
+        XCTAssertEqual(log.points, [tap], "reported once, at the point")
+        XCTAssertEqual(log.liveIds, [["old", "line"]], "the dot was gone before the report")
+        XCTAssertEqual(Set(rig.coordinator.ledger.page.liveStrokes.map(\.id)), ["old", "line"])
+        XCTAssertTrue(rig.coordinator.ledger.canUndo, "one undoable op (M4C-22)")
+
+        let others: [(name: String, acts: Bool, allowFinger: Bool, readOnly: Bool)] = [
+            ("a tap that does nothing", false, true, false),
+            ("Pencil only", true, false, false),
+            ("read only", true, true, true),
+        ]
+        for case let (name, acts, allowFinger, readOnly) in others {
+            let (other, otherLog) = await tapRig(acts: acts, allowFinger: allowFinger, readOnly: readOnly)
+            other.coordinator.fingerTapped(atPaper: tap, zoom: other.canvas.zoomScale)
+            XCTAssertEqual(otherLog.points, [tap], name)
+            XCTAssertEqual(Set(other.coordinator.ledger.page.liveStrokes.map(\.id)), ["dot", "old", "line"], "\(name): the dot stays")
+            XCTAssertFalse(other.coordinator.ledger.canUndo, name)
+        }
+    }
+
+    /// The safety net of 1.0.1: with 「指でも書く」 (`.anyInput`) every enabled recogniser inside the
+    /// canvas that takes the finger (PencilKit's own) runs alongside the taps — a permission only:
+    /// none of them makes a tap wait for it, nor waits for a tap. Each is logged ("finger-tap graph")
+    /// so the CI log records what iOS really has. Unchanged: the taps stay exclusive of the canvas's
+    /// pan / pinch and the finger recogniser (F2), and run alongside the public drawing recogniser;
+    /// the finger recogniser runs alongside nothing; the read-only report alongside everything.
+    func testFingerTapsRunAlongsidePencilKitOnAnIPhoneYearPage() async throws {
+        let (layout, paper) = makeYear()
+        let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 569, doubleTapEnabled: true,
+                                tool: .ink(InkPresets.defaultPen), allowFinger: true)
+        let c = rig.coordinator
+        let canvas = rig.canvas
+        XCTAssertEqual(canvas.drawingPolicy, .anyInput)
+        XCTAssertEqual(canvas.zoomScale, 402.0 / 1400, accuracy: 1e-3)
+        let direct = NSNumber(value: UITouch.TouchType.direct.rawValue)
+        func recognizers(below view: UIView) -> [UIGestureRecognizer] {
+            view.subviews.flatMap { ($0.gestureRecognizers ?? []) + recognizers(below: $0) }
+        }
+        let fingerTaking = recognizers(below: canvas).filter { $0.isEnabled && $0.allowedTouchTypes.contains(direct) }
+        XCTAssertFalse(fingerTaking.isEmpty, "PencilKit takes the finger inside the canvas with .anyInput")
+        let taps: [UIGestureRecognizer] = [c.tapRecognizer, c.doubleTapRecognizer]
+        for g in fingerTaking {
+            let name = "\(type(of: g)) on \(g.view.map { "\(type(of: $0))" } ?? "nil")"
+            for tap in taps {
+                let theirSim = g.delegate?.gestureRecognizer?(g, shouldRecognizeSimultaneouslyWith: tap)
+                let theirFail = g.delegate?.gestureRecognizer?(g, shouldBeRequiredToFailBy: tap)
+                let line = "finger-tap graph: \(name) delegate=\(g.delegate.map { "\(type(of: $0))" } ?? "nil") theirSim=\(theirSim.map { "\($0)" } ?? "nil") theirFail=\(theirFail.map { "\($0)" } ?? "nil") tap=\(tap === c.tapRecognizer ? "single" : "double") public=\(g === canvas.drawingGestureRecognizer)"
+                NSLog("%@", line)
+                print(line)
+                XCTAssertTrue(c.gestureRecognizer(tap, shouldRecognizeSimultaneouslyWith: g), "\(name): alongside the tap")
+                XCTAssertFalse(g.shouldBeRequiredToFail(by: tap), "\(name): the tap does not wait for it")
+                XCTAssertNotEqual(theirFail, true, "\(name): its delegate does not make the tap wait")
+                XCTAssertFalse(tap.shouldRequireFailure(of: g), "\(name): the tap does not wait for it (the tap's side)")
+            }
+            XCTAssertFalse(c.gestureRecognizer(c.fingerRecognizer, shouldRecognizeSimultaneouslyWith: g), "\(name): F2 stays exclusive")
+        }
+
+        let pinch = try XCTUnwrap(canvas.pinchGestureRecognizer, "F4: the canvas offers a pinch")
+        for tap in taps {
+            XCTAssertFalse(c.gestureRecognizer(tap, shouldRecognizeSimultaneouslyWith: canvas.panGestureRecognizer))
+            XCTAssertFalse(c.gestureRecognizer(tap, shouldRecognizeSimultaneouslyWith: pinch))
+            XCTAssertFalse(c.gestureRecognizer(tap, shouldRecognizeSimultaneouslyWith: c.fingerRecognizer))
+            XCTAssertTrue(c.gestureRecognizer(tap, shouldRecognizeSimultaneouslyWith: canvas.drawingGestureRecognizer))
+        }
+        XCTAssertFalse(c.gestureRecognizer(c.fingerRecognizer, shouldRecognizeSimultaneouslyWith: canvas.drawingGestureRecognizer))
+        XCTAssertFalse(c.gestureRecognizer(c.fingerRecognizer, shouldRecognizeSimultaneouslyWith: canvas.panGestureRecognizer))
+        let blocked = c.blockedInputRecognizer
+        for other in [canvas.drawingGestureRecognizer, canvas.panGestureRecognizer, pinch, c.tapRecognizer, c.doubleTapRecognizer, c.fingerRecognizer] + fingerTaking {
+            XCTAssertTrue(c.gestureRecognizer(blocked, shouldRecognizeSimultaneouslyWith: other), "\(type(of: other))")
+            XCTAssertTrue(c.gestureRecognizer(other, shouldRecognizeSimultaneouslyWith: blocked), "\(type(of: other)) (the other way round)")
+        }
+    }
+
     // MARK: M4C-25 — the centring margin is not paper
 
     /// A new stroke whose bounds are centred outside the paper never reaches the ledger, leaves the
@@ -695,6 +828,8 @@ final class InkCanvasViewTests: XCTestCase {
         // M5_CONTRACT §3.1: writable, and a no-op report.
         XCTAssertFalse(view.readOnly)
         view.onBlockedInput()
+        // 1.0.1: by default no tap "does something" (no dot is ever removed).
+        XCTAssertFalse(view.tapActs(.zero))
     }
 
     // MARK: M5 — read only (M5_CONTRACT §3.1, §7.6)

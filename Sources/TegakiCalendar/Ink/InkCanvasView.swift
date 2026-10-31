@@ -143,6 +143,9 @@ struct InkCanvasView: UIViewRepresentable {
     /// reports, so an iPhone's finger scroll stays quiet). The owner shows the paywall or a toast
     /// and throttles it (2 s).
     var onBlockedInput: () -> Void = {}
+    /// 1.0.1: whether a finger tap at this paper point does something (the owner's hit test). With
+    /// 「指でも書く」 the canvas removes the tap's dot before `onTap`. Default: never.
+    var tapActs: (CGPoint) -> Bool = { _ in false }
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -1096,7 +1099,18 @@ extension InkCanvasView {
             // location(in:) of a scroll view is already in content coordinates (bounds.origin = contentOffset).
             let location = recognizer.location(in: canvas)
             let zoom = max(canvas.zoomScale, 0.0001)
-            parent.onTap(CGPoint(x: location.x / zoom, y: location.y / zoom))
+            fingerTapped(atPaper: CGPoint(x: location.x / zoom, y: location.y / zoom), zoom: zoom)
+        }
+
+        /// 1.0.1: a tap the owner acts on (`tapActs`) first removes the dot 「指でも書く」 drew for it
+        /// (M4C-22, one undoable op; not while read only), then reports — before the owner saves and
+        /// leaves the page (the same order as the double tap). The window is 1 s because the single
+        /// tap waits about 0.3 s for the double tap to fail (M4C-6).
+        func fingerTapped(atPaper point: CGPoint, zoom: CGFloat) {
+            if parent.allowFinger, !parent.readOnly, parent.tapActs(point) {
+                removeDots(near: point, zoom: zoom, within: 1.0)
+            }
+            parent.onTap(point)
         }
 
         /// A finger's double tap (M4C_CONTRACT §4.1): the point in paper coordinates goes to the
@@ -1135,9 +1149,9 @@ extension InkCanvasView {
         }
 
         /// Removes `dotStrokeIds` as one `.removeStrokes` op (undoable). Nothing when there are none.
-        private func removeDots(near: CGPoint, zoom: CGFloat) {
+        private func removeDots(near: CGPoint, zoom: CGFloat, within: TimeInterval = 0.5) {
             guard let canvas else { return }
-            let ids = dotStrokeIds(near: near, zoom: zoom)
+            let ids = dotStrokeIds(near: near, zoom: zoom, within: within)
             guard !ids.isEmpty else { return }
             let change = ledger.removeStrokes(ids: ids)
             guard !change.isEmpty else { return }
@@ -1168,14 +1182,20 @@ extension InkCanvasView {
 
         /// With 「指でも書く」 on, PencilKit's `drawingGestureRecognizer` begins on the finger's
         /// touch-down; the taps are recognised alongside it (M4C_CONTRACT §4.1) or they would never
-        /// fire. Nothing else runs simultaneously (the finger recogniser of F2 in particular) —
-        /// except M5's `blockedInputRecognizer`, which only reports and runs alongside everything
-        /// (drawing, pan, pinch, taps; M5_CONTRACT §3.1).
+        /// fire. 1.0.1: the same for PencilKit's other recognisers inside the canvas (views below it;
+        /// a permission only, no failure requirement). Nothing else runs simultaneously (the canvas's
+        /// own pan / pinch and the finger recogniser of F2 in particular) — except M5's
+        /// `blockedInputRecognizer`, which only reports and runs alongside everything (drawing, pan,
+        /// pinch, taps; M5_CONTRACT §3.1).
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
             if gestureRecognizer === blockedInputRecognizer || otherGestureRecognizer === blockedInputRecognizer { return true }
             guard let canvas else { return false }
-            let isTap = gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer
-            return isTap && otherGestureRecognizer === canvas.drawingGestureRecognizer
+            guard gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer else { return false }
+            if otherGestureRecognizer === canvas.drawingGestureRecognizer { return true }
+            // 1.0.1: with `.anyInput` PencilKit's own recognisers inside the canvas also take the finger.
+            // The canvas's own pan / pinch (`view === canvas`) and the container's finger recogniser stay exclusive.
+            if let view = otherGestureRecognizer.view, view !== canvas, view.isDescendant(of: canvas) { return true }
+            return false
         }
 
         // MARK: The pen on the paper (canvas or overlay)
