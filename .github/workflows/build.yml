@@ -72,18 +72,18 @@ jobs:
 
       # The count is checked as a number (docs/M4B_CONTRACT.md §7.1, M4B-9; docs/M4C_CONTRACT.md §6,
       # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25; docs/M6_CONTRACT.md §7.1, M6-18; docs/M7A_CONTRACT.md
-      # §7.1): 1.1 counts 24302 (1.0.1's 23446 + 578 for the "growing paper", "date taps" and "stroke
-      # budget (1.1)" sections + 278 for "compat with 1.0 (K-7)") and the threshold is that number
-      # minus 50, so anything below 24252 means a section went missing. (The fixtures of the ledger and
-      # the screenshot mode, once committed, only add to the compat section.)
+      # §7.1): 1.1 counts 24446 (1.0.1's 23446 + 578 for the "growing paper", "date taps" and "stroke
+      # budget (1.1)" sections + 278 for "compat with 1.0 (K-7)" on K's fixtures + 144 for the 8
+      # fixtures of the ledger and the screenshot mode) and the threshold is that number minus 50, so
+      # anything below 24396 means a section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 24252 or more)"
+          echo "KitChecks count: ${N:-0} (required: 24396 or more)"
           grep -E 'compat10: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 24252
+          test "${N:-0}" -ge 24396
 
       - name: Test TegakiKit (macOS)
         run: |

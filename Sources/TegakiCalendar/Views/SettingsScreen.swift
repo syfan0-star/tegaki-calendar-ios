@@ -63,7 +63,10 @@ struct SettingsScreen: View {
     private static let syncRowId = "sync-section"
     /// The id of the first row of the 「購入」 section (`scrollToPurchaseOnAppear`).
     private static let purchaseRowId = "purchase-section"
-    /// The id of the first row of the 「情報」 section (`scrollToInfoOnAppear`).
+    /// The id of the 「バージョン」 row of the 「情報」 section (`scrollToInfoOnAppear`). Not the first row:
+    /// in the 13-inch form sheet the scroll leaves its target about half way down (CI run 41191448391:
+    /// 「利用規約」 landed there and 「今年の年のページ」 and the footer stayed below the sheet), so the
+    /// row above the two stroke-count rows is the target and the whole section with its footer shows.
     private static let infoRowId = "info-section"
 
     /// The same steps as the first onboarding card (OnboardingView, DESIGN §2.10). 1.1 (§6.1): the
@@ -536,7 +539,6 @@ struct SettingsScreen: View {
     private var infoSection: some View {
         Section {
             Link("利用規約", destination: LegalLinks.terms)
-                .id(Self.infoRowId)
             Link("プライバシーポリシー", destination: LegalLinks.privacy)
             Link(LegalLinks.appleEULATitle, destination: LegalLinks.appleEULA)
             Link("サポート", destination: LegalLinks.support)
@@ -546,6 +548,7 @@ struct SettingsScreen: View {
                 Text(Self.versionText)
                     .foregroundStyle(.secondary)
             }
+            .id(Self.infoRowId)
             // 1.1 (§5.3): counted on this device, before the read cap; 「数えています…」 until done.
             countRow(Self.largestPageTitle, StrokeCensus.rowText(census?.largest, counting: census == nil))
             countRow(Self.yearPageTitle, StrokeCensus.yearRowText(census?.year, year: currentYear, counting: census == nil))
