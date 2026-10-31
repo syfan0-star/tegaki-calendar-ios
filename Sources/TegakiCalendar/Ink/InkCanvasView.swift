@@ -518,6 +518,11 @@ extension InkCanvasView {
         private var eraseReportPending = false
         /// The watch for an End that never comes (`startLiftWatch`).
         private var liftWatchGeneration = 0
+        /// The lead's review (案 a): the lift watch took the pen as lifted (`W`) and PencilKit has said
+        /// nothing since (no Begin, no End). For PencilKit its tool may still be in use, and it may write
+        /// the next touch without a Begin: the next writing touch that comes down with PencilKit's tool
+        /// (not read only) is taken as the tool in use (`touchObserved`), so nothing queued lands under it.
+        private var liftTakenByWatch = false
         /// The current (or last) touch began with the eraser: the end of its settle wait takes in an
         /// erasure PencilKit never told of, even when the report has already put the pen back.
         private var touchBeganWithEraser = false
@@ -672,14 +677,14 @@ extension InkCanvasView {
         /// while the tool is in use, `s` while settling, `e` when the tool is the eraser — ⑥ counts
         /// r − a of a change with `e` when it is positive), `C0` a change that changed nothing, `c` one
         /// the guard skipped (our own drawing, a lasso move, the old page's drawing before the rebuild
-        /// after a page change), `r` a settle wait a new touch cut short,
-        /// `O` / `o` the overlay began / stopped tracking, `L<n>` a lasso selected n strokes, `T` a
-        /// finger tap. 1.1 fix (ずれ 46): `Dp` / `Df` / `Di` a Pencil / finger / pointer (a mouse, a
-        /// trackpad) came down and `Up` / `Uf` / `Ui` lifted (`touchObserver`), `S<s>` the eraser's report
-        /// scheduled in s seconds, `R<n>` the report of n erased strokes, `W` the lift watch took the pen
-        /// as lifted (no End came; a `D…` after it with no `B` is a touch PencilKit may write without a
-        /// Begin), `K` the end of the settle wait found an erasure PencilKit never told of. Each token
-        /// ends in `@<ms since attach>`; the last 48 are kept.
+        /// after a page change), `r` a settle wait a new touch cut short, `O` / `o` the overlay began /
+        /// stopped tracking, `L<n>` a lasso selected n strokes, `T` a finger tap. 1.1 fix (ずれ 46): `Dp` /
+        /// `Df` / `Di` a Pencil / finger / pointer (a mouse, a trackpad) came down and `Up` / `Uf` / `Ui`
+        /// lifted (`touchObserver`), `S<s>` the eraser's report scheduled in s seconds, `R<n>` the report
+        /// of n erased strokes, `W` the lift watch took the pen as lifted (no End came), `Bw` a writing
+        /// touch came down after it with no `B` and is taken as the tool in use (PencilKit may write it
+        /// without a Begin; the lead's review, 案 a), `K` the end of the settle wait found an erasure
+        /// PencilKit never told of. Each token ends in `@<ms since attach>`; the last 48 are kept.
         /// 1.1 fix (ずれ 46): every token also goes to `InkTrace` (always; TestFlight's 「記録」).
         private func probeNote(_ token: @autoclosure () -> String) {
             let text = token()
@@ -743,6 +748,7 @@ extension InkCanvasView {
             eraseReportGeneration += 1
             eraseReportPending = false
             liftWatchGeneration += 1
+            liftTakenByWatch = false
             pencilsDown = 0
             fingersDown = 0
             pointersDown = 0
@@ -1730,6 +1736,16 @@ extension InkCanvasView {
                 if writes(type) {
                     eraseReportGeneration += 1
                     eraseReportPending = false
+                    // The lead's review (案 a): after `W` PencilKit may write this touch without a Begin.
+                    // It is taken as the tool in use (the settle wait `W` started is cut short, like a
+                    // Begin does), so a page from iCloud, ↶ ↷ and a rebuild wait until it lifts.
+                    if liftTakenByWatch, !parent.tool.isOverlayTool, !parent.readOnly {
+                        liftTakenByWatch = false
+                        isUsingTool = true
+                        isSettling = false
+                        settleGeneration += 1
+                        probeNote("Bw")
+                    }
                 }
             case .up(let type):
                 switch type {
@@ -1765,7 +1781,9 @@ extension InkCanvasView {
         /// In `liftWithoutEndGrace`, if nothing touches the paper and PencilKit (or the overlay) still
         /// says the tool is in use, the pen is taken as lifted (`penDidLift`): an End that never came,
         /// or a Begin of the hover, must not hold up undo / redo and the growing memo area. A newer
-        /// watch replaces this one.
+        /// watch replaces this one. The lead's review (案 a): PencilKit, its tool still in use for it,
+        /// may then write the next touch without a Begin; that touch is taken as the tool in use as it
+        /// comes down (`liftTakenByWatch`, `touchObserved`), so nothing queued lands in its stroke.
         private func startLiftWatch() {
             liftWatchGeneration += 1
             let generation = liftWatchGeneration
@@ -1775,6 +1793,7 @@ extension InkCanvasView {
                       !self.touchingPaper, self.isUsingTool else { return }
                 self.probeNote("W")
                 self.penDidLift()
+                self.liftTakenByWatch = true
             }
         }
 
@@ -1925,13 +1944,17 @@ extension InkCanvasView {
             return result
         }
 
+        /// PencilKit's Begin and End (the lead's review: after either, PencilKit and the canvas agree
+        /// again on whether its tool is in use; `liftTakenByWatch` is over).
         func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
             probeNote("B")
+            liftTakenByWatch = false
             penDidTouch()
         }
 
         func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
             probeNote("E")
+            liftTakenByWatch = false
             penDidLift()
         }
 

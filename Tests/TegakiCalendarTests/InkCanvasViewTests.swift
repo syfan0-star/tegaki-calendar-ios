@@ -2339,6 +2339,49 @@ final class InkCanvasViewTests: XCTestCase {
         }
     }
 
+    /// A21 (the lead's review, 案 a): the Pencil writes a line and lifts, and PencilKit's End never comes:
+    /// the lift watch takes the pen as lifted (`W`). A finger with 「指でも書く」 off then changes nothing.
+    /// The Pencil comes down again and PencilKit, its tool still in use for it, sends no Begin: the touch
+    /// is taken as the tool in use as it comes down (`Bw`), so ↶ asked during its stroke waits (no
+    /// rebuild under the pen) and lands after the lift (the lift watch, then the settle wait; looked at
+    /// for up to 3 s), taking that stroke away. Before the review ↶ landed at once, in the stroke.
+    func testAWritingTouchAfterTheLiftWatchHoldsTheQueuedWork() async {
+        let (layout, paper) = makeMonth()
+        let pen = CanvasTool.ink(InkPresets.defaultPen)
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: pen, page: monthPage(strokes: ["a"]))
+        rig.coordinator.startProbe()
+        observe(rig, .down, .pencil)
+        touch(rig)
+        draw(makeStroke(at: CGPoint(x: 300, y: 600)), on: rig)
+        observe(rig, .up, .pencil) // PencilKit's End never comes
+        let watched = await eventually { !rig.coordinator.isUsingTool }
+        XCTAssertTrue(watched, "the lift watch took the pen as lifted")
+        await wait(0.5) // past the settle wait it started
+        XCTAssertTrue(rig.coordinator.probeValue().contains(" W@"), rig.coordinator.probeValue())
+
+        observe(rig, .down, .direct)
+        XCTAssertFalse(rig.coordinator.isUsingTool, "a finger that does not write (「指でも書く」 off) changes nothing")
+        observe(rig, .up, .direct)
+
+        observe(rig, .down, .pencil) // no Begin: PencilKit writes on, its tool still in use for it
+        XCTAssertTrue(rig.coordinator.isUsingTool, "the writing touch after the lift watch is the tool in use")
+        XCTAssertTrue(rig.coordinator.probeValue().contains(" Bw@"), rig.coordinator.probeValue())
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: rig.probe, tool: pen,
+                                              page: rig.coordinator.ledger.page, undoTrigger: 1))
+        await wait(0.8)
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "↶ waits while the Pencil writes")
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, 2, "↶ has not landed")
+        draw(makeStroke(at: CGPoint(x: 300, y: 700)), on: rig) // the stroke PencilKit wrote without a Begin
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, 3)
+        observe(rig, .up, .pencil)
+        let landed = await eventually { rig.coordinator.setDrawingCount > builds }
+        XCTAssertTrue(landed, "↶ landed after the lift (the lift watch and the settle wait)")
+        XCTAssertFalse(rig.coordinator.isUsingTool)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, 2, "↶ took the stroke written after the lift watch away")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 2)
+    }
+
     // MARK: 1.1 fix — the Pencil on the lasso and the 予定 tool (TestFlight build 12: 確認 12; M7A.md ずれ 47)
 
     /// Feeds one stand-in touch of `type` along `path` (container points) to `recognizer`, as UIKit would.
