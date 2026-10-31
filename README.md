@@ -152,7 +152,7 @@ TegakiKit/                          ローカル Swift パッケージ（Foundat
 Sources/TegakiCalendar/
   App.swift                         アプリの入口（AppDelegate を付ける）
   ContentView.swift                 CalendarRootScreen を出すだけ
-  PrivacyInfo.xcprivacy             プライバシーマニフェスト（追跡なし・収集なし、UserDefaults の理由 CA92.1）
+  PrivacyInfo.xcprivacy             プライバシーマニフェスト（追跡なし・収集なし、UserDefaults の理由 CA92.1、1.1 から端末の起動からの時間 System boot time の理由 35F9.1）
   Views/CalendarRootScreen.swift    唯一の画面（表示と日付の状態、ヘッダー・固定見出し・キャンバス・投げなわのメニュー・ツールバー・トースト・シート・初回案内・ページごとの保存、予定の作成・編集・削除の流れ）
   Views/PageHeaderView.swift        ◀ 今日 ▶・題名・日/週/月/年 の切替・＋予定・⚙（幅 600 pt 未満は 2 段）
   Views/StickyHeaderView.swift      紙の上に固定する見出し（月の曜日行・週の日付見出し・日の日付・年の月名。紙の横スクロールと倍率に追随）

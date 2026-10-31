@@ -40,7 +40,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       # Also picks up Sources/TegakiCalendar/PrivacyInfo.xcprivacy as a resource (the privacy
-      # manifest, docs/M4_CONTRACT.md §8.4: UserDefaults, reason CA92.1).
+      # manifest, docs/M4_CONTRACT.md §8.4: UserDefaults, reason CA92.1; since 1.1 also the system boot
+      # time, reason 35F9.1, docs/M7A.md ずれ 48).
       - path: Sources/TegakiCalendar
     dependencies:
       - package: TegakiKit
