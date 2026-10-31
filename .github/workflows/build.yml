@@ -41,7 +41,10 @@ jobs:
     name: Build and test (iOS Simulator)
     runs-on: macos-26
     # 1.1: 75 → 90 (1.0.1's run took 56 min; 1.1 adds Compat10Tests, more unit tests and 10 shots, and a
-    # simulator boot alone has taken 4 min).
+    # simulator boot alone has taken 4 min). 1.1 fix, the lead's review: kept at 90. The last runs took
+    # 52 min (run 41195642254) and 56 min (1.0.1), their UI test step about 4 min (estimated: the boot,
+    # the 60 s wait, YearTapUITests' 97 s); the 8 new UI tests make that step about 7 min, its own limit
+    # of 25 min adds at most 21 min to those runs (≈ 77 min), and the new unit tests well under a minute.
     timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -163,7 +166,8 @@ jobs:
       # committed fixture in TegakiKit/Tests/Fixtures/compat11 and, when it is missing or differs, write
       # theirs into TEGAKI_FIXTURE_OUT and fail (xcodebuild hands a TEST_RUNNER_-prefixed variable to the
       # test runner without the prefix). shots/fixtures goes up with the screenshots; the lead reads the
-      # files and commits them.
+      # files and commits them. 1.1 fix (the lead's review): the output is also kept in
+      # $RUNNER_TEMP/unit-tests.log (not uploaded) for the next step.
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
@@ -177,7 +181,22 @@ jobs:
             -skip-testing:TegakiCalendarUITests \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            test
+            test 2>&1 | tee "$RUNNER_TEMP/unit-tests.log"
+
+      # 1.1 fix (docs/M7A.md ずれ 46・47; the lead's review): the lines the canvas tests print for the
+      # run's reader — `repro:` (U1 / U2: the touches UIKit and PencilKit saw, and why a test skipped;
+      # A17 / B8: the touch types iOS's PencilKit gives) — and XCTest's "expected failure" lines, pulled
+      # out of the unit tests' log, each once (a test prints a line and NSLogs it). Prints nothing when
+      # there are none; runs after a red unit test step too, and never fails the job.
+      - name: The unit tests' repro lines
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          LOG="$RUNNER_TEMP/unit-tests.log"
+          if [ -f "$LOG" ]; then
+            grep -iE 'repro:|expected failure' "$LOG" | awk '{ i = index($0, "repro:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
+          fi
 
       # 1.0.1 (docs/R1_0_1.md §5.1): the iPhone UI test is built now and run after the screenshots
       # ("UI tests on an iPhone" below, `test-without-building`). Built now because a build late in the
@@ -581,8 +600,14 @@ jobs:
       # or double tap — 「指でも書く」 on and off, portrait and landscape — and expects the day page. It
       # runs after the screenshots, so their devices start exactly as before (the shots are compared
       # pixel by pixel with 1.0's), and it fails the job when a test fails. The log and the screenshots
-      # the test keeps (before / after each tap) go to shots/ui-tests/.
+      # the test keeps (before / after each tap) go to shots/ui-tests/. 1.1 fix (docs/M7A.md ずれ 46・47):
+      # EraserAndBelowDayUITests (8 tests: the toolbar's eraser goes back to the pen, nothing below 24:00
+      # becomes an event) runs here too; its steps are the `eraser-memo UI:` lines. The lead's review: the
+      # step stops after 25 minutes (normally about 7: the boot, the 60 s wait, YearTapUITests 97 s in
+      # run 41164839330 and about 3–4 min for the 8; an overloaded simulator stretches every wait of the
+      # tests, each of which is bounded).
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
+        timeout-minutes: 25
         run: |
           set -euo pipefail
           UDID="${{ steps.uibuild.outputs.udid }}"
@@ -604,7 +629,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
