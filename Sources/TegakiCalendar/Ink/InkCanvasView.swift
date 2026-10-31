@@ -348,8 +348,9 @@ extension InkCanvasView {
         /// 1.1 fix (TestFlight build 12; docs/M7A.md ずれ 47): the Pencil's input of the lasso / 予定 tool,
         /// on the container (the overlay takes no touch: a touch's type cannot be told while UIKit
         /// hit-tests it). Enabled while an overlay tool is up and the app is not read only, whatever
-        /// `allowFinger` says (`syncRecognizers`). It never recognises, so nothing waits for it: the pan
-        /// takes only fingers here (the Pencil writes), so it needs no `require(toFail:)`.
+        /// `allowFinger` says (`syncRecognizers`). It never recognises, so nothing waits for it, and the
+        /// pan needs no `require(toFail:)`: the pan takes no Pencil while it is on (PencilKit's takes
+        /// only fingers on a Mac; `syncRecognizers` leaves the Pencil out should an iOS's take it).
         private(set) lazy var pencilOverlayRecognizer: InkPencilGestureRecognizer = {
             let r = InkPencilGestureRecognizer(target: nil, action: nil)
             r.delegate = self
@@ -494,6 +495,7 @@ extension InkCanvasView {
         // touches the paper any more (`touchingPaper`, `scheduleEraseReport`) — by the touches
         // `touchObserver` saw; PencilKit's `isUsingTool` only until it has seen one.
         /// The Pencil touches and the finger touches that are on the paper (`touchObserved`; never < 0).
+        /// A pointer's press (a mouse, a trackpad) counts as a finger (the review).
         private var pencilsDown = 0
         private var fingersDown = 0
         /// `touchObserver` has seen a touch: from then on it alone tells whether the paper is touched.
@@ -510,6 +512,9 @@ extension InkCanvasView {
         /// The current (or last) touch began with the eraser: the end of its settle wait takes in an
         /// erasure PencilKit never told of, even when the report has already put the pen back.
         private var touchBeganWithEraser = false
+        /// The review (ずれ 47): PencilKit's pan took the Pencil, and `syncRecognizers` left it out for an
+        /// overlay tool; it is given back when the overlay no longer takes the Pencil.
+        private var panPencilLeftOut = false
 
         /// The eraser's report after the Pencil lifts: at once (the next turn), so the stroke a quick
         /// hand writes next is ink (確認 6b; of §2.4's two answers, "go back at the lift").
@@ -528,8 +533,8 @@ extension InkCanvasView {
             parent.doubleTapEnabled ? Self.fingerEraseReportDelayWithDoubleTap : InkCanvasView.settleDelay
         }
 
-        /// Something that writes (or erases) touches the paper: the Pencil, or a finger with 「指でも書く」.
-        /// Decides the eraser's report only.
+        /// Something that writes (or erases) touches the paper: the Pencil, or a finger (or a pointer)
+        /// with 「指でも書く」. Decides the eraser's report only.
         private var touchingPaper: Bool {
             guard observerReady else { return isUsingTool }
             return pencilsDown > 0 || (parent.allowFinger && fingersDown > 0)
@@ -659,11 +664,12 @@ extension InkCanvasView {
         /// r − a of a change with `e` when it is positive), `C0` a change that changed nothing, `c` one
         /// the guard skipped (our own drawing, a lasso move), `r` a settle wait a new touch cut short,
         /// `O` / `o` the overlay began / stopped tracking, `L<n>` a lasso selected n strokes, `T` a
-        /// finger tap. 1.1 fix (ずれ 46): `Dp` / `Df` a Pencil / finger came down and `Up` / `Uf` lifted
-        /// (`touchObserver`), `S<s>` the eraser's report scheduled in s seconds, `R<n>` the report of n
-        /// erased strokes, `W` the lift watch took the pen as lifted (no End came), `K` the end of the
-        /// settle wait found an erasure PencilKit never told of. Each token ends in
-        /// `@<ms since attach>`; the last 48 are kept.
+        /// finger tap. 1.1 fix (ずれ 46): `Dp` / `Df` / `Di` a Pencil / finger / pointer (a mouse, a
+        /// trackpad) came down and `Up` / `Uf` / `Ui` lifted (`touchObserver`), `S<s>` the eraser's report
+        /// scheduled in s seconds, `R<n>` the report of n erased strokes, `W` the lift watch took the pen
+        /// as lifted (no End came; a `D…` after it with no `B` is a touch PencilKit may write without a
+        /// Begin), `K` the end of the settle wait found an erasure PencilKit never told of. Each token
+        /// ends in `@<ms since attach>`; the last 48 are kept.
         /// 1.1 fix (ずれ 46): every token also goes to `InkTrace` (always; TestFlight's 「記録」).
         private func probeNote(_ token: @autoclosure () -> String) {
             let text = token()
@@ -739,7 +745,8 @@ extension InkCanvasView {
         /// read only. A disabled recogniser fails at once, so the recognisers waiting for it are not
         /// delayed. M5 (M5_CONTRACT §3.1): the read-only rule is applied here too (`readOnly` alone
         /// may change under the same tool): `blockedInputRecognizer` on, PencilKit's drawing
-        /// recogniser and the overlay's input off. `touchObserver` is always on.
+        /// recogniser and the overlay's input off. `touchObserver` is always on. The review (ずれ 47): the
+        /// canvas's pan takes no Pencil while `pencilOverlayRecognizer` is on (below).
         private func syncRecognizers() {
             let doubleTap = parent.doubleTapEnabled && !parent.tool.isOverlayTool
             if doubleTapRecognizer.isEnabled != doubleTap {
@@ -760,6 +767,21 @@ extension InkCanvasView {
                 let drawing = !parent.tool.isOverlayTool && !parent.readOnly
                 if canvas.drawingGestureRecognizer.isEnabled != drawing {
                     canvas.drawingGestureRecognizer.isEnabled = drawing
+                }
+                // The review (ずれ 47): the Pencil's loop or rect must not scroll the paper under it.
+                // PencilKit's pan takes fingers only on a Mac (`[direct]` in every drawing policy,
+                // measured); should an iOS's take the Pencil, it is left out while the overlay takes
+                // the Pencil and given back after. This runs after every `drawingPolicy` change.
+                let pan = canvas.panGestureRecognizer
+                let pencilType = NSNumber(value: UITouch.TouchType.pencil.rawValue)
+                if pencil, pan.allowedTouchTypes.contains(pencilType) {
+                    pan.allowedTouchTypes = pan.allowedTouchTypes.filter { $0 != pencilType }
+                    panPencilLeftOut = true
+                } else if !pencil, panPencilLeftOut {
+                    panPencilLeftOut = false
+                    if !pan.allowedTouchTypes.contains(pencilType) {
+                        pan.allowedTouchTypes.append(pencilType)
+                    }
                 }
             }
             if let overlay {
@@ -1674,19 +1696,20 @@ extension InkCanvasView {
         }
 
         /// `touchObserver` saw a touch of `type` come down or lift. Internal: the tests stand in for
-        /// UIKit with it. A writing touch coming down (the Pencil, or a finger with 「指でも書く」) cuts a
-        /// waiting report short (the count is carried over); the last one lifting schedules the report
-        /// and watches for an End that does not come.
+        /// UIKit with it. A writing touch coming down (the Pencil, or a finger or a pointer with
+        /// 「指でも書く」) cuts a waiting report short (the count is carried over); the last one lifting
+        /// schedules the report and watches for an End that does not come. The review: a pointer (a
+        /// mouse, a trackpad) is counted and waited for like a finger.
         func touchObserved(_ change: InkTouchObserver.Change) {
             switch change {
             case .down(let type):
                 observerReady = true
                 switch type {
                 case .pencil: pencilsDown += 1
-                case .direct: fingersDown += 1
+                case .direct, .indirectPointer: fingersDown += 1
                 default: return
                 }
-                probeNote(type == .pencil ? "Dp" : "Df")
+                probeNote("D\(Self.touchToken(type))")
                 if writes(type) {
                     eraseReportGeneration += 1
                     eraseReportPending = false
@@ -1694,20 +1717,30 @@ extension InkCanvasView {
             case .up(let type):
                 switch type {
                 case .pencil: pencilsDown = max(0, pencilsDown - 1)
-                case .direct: fingersDown = max(0, fingersDown - 1)
+                case .direct, .indirectPointer: fingersDown = max(0, fingersDown - 1)
                 default: return
                 }
-                probeNote(type == .pencil ? "Up" : "Uf")
+                probeNote("U\(Self.touchToken(type))")
                 guard writes(type), !touchingPaper else { return }
-                lastLiftWasFinger = type == .direct
+                lastLiftWasFinger = type != .pencil
                 scheduleEraseReport(.lift)
                 startLiftWatch()
             }
         }
 
-        /// A touch of this type writes or erases on the canvas: the Pencil, or a finger with 「指でも書く」.
+        /// The trace's letter of a touch type: `p` the Pencil, `f` a finger, `i` a pointer.
+        private static func touchToken(_ type: UITouch.TouchType) -> String {
+            switch type {
+            case .pencil: return "p"
+            case .indirectPointer: return "i"
+            default: return "f"
+            }
+        }
+
+        /// A touch of this type writes or erases on the canvas: the Pencil, or a finger or a pointer
+        /// with 「指でも書く」.
         private func writes(_ type: UITouch.TouchType) -> Bool {
-            type == .pencil || (type == .direct && parent.allowFinger)
+            type == .pencil || ((type == .direct || type == .indirectPointer) && parent.allowFinger)
         }
 
         /// In `liftWithoutEndGrace`, if nothing touches the paper and PencilKit (or the overlay) still

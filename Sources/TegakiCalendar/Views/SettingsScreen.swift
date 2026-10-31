@@ -559,8 +559,9 @@ struct SettingsScreen: View {
         }
     }
 
-    /// 「バージョン」. 1.1 fix (docs/M7A.md ずれ 46): in a TestFlight build, holding it opens 「記録」
-    /// (`InkTrace`); everywhere else it is the plain row it always was.
+    /// 「バージョン」. 1.1 fix (docs/M7A.md ずれ 46): where `InkTrace.isAvailable` (the sandbox receipt: a
+    /// TestFlight build, and also Xcode's, the simulator's and App Review's), holding it opens 「記録」
+    /// (`InkTrace`); in an App Store build and in screenshot mode it is the plain row it always was.
     @ViewBuilder
     private var versionRow: some View {
         let row = HStack {

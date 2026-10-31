@@ -2,15 +2,18 @@ import UIKit
 import UIKit.UIGestureRecognizerSubclass
 
 /// 1.1 fix (TestFlight build 12, 確認 4・5・6b; docs/M7A.md ずれ 46): tells the canvas's coordinator when
-/// the Pencil or a finger touches the paper and when it lifts — physically, whatever PencilKit says
-/// about its tool and whenever it says it (`InkCanvasView.Coordinator.touchObserved`). It lives on the
-/// `InkCanvasContainerView` and never takes part in recognition: it stays `.possible` while something
-/// touches and becomes `.failed` when the last touch lifts, never `.began` or `.ended` (it holds
-/// nothing up and makes nothing fail); it lets every touch through at once (`cancelsTouchesInView`,
-/// `delaysTouchesBegan`, `delaysTouchesEnded` off), takes the Pencil and fingers together, prevents
-/// nothing and is prevented by nothing, and the coordinator lets it run alongside every recogniser.
-/// Tried on a real Mac Catalyst window: PencilKit erased as before with it on the container, and its
-/// `up` arrived before PencilKit's end of the tool.
+/// the Pencil, a finger or a pointer touches the paper and when it lifts — physically, whatever
+/// PencilKit says about its tool and whenever it says it (`InkCanvasView.Coordinator.touchObserved`).
+/// It lives on the `InkCanvasContainerView` and never takes part in recognition: it stays `.possible`
+/// while something touches and becomes `.failed` when the last touch lifts, never `.began` or `.ended`
+/// (it holds nothing up and makes nothing fail); it lets every touch through at once
+/// (`cancelsTouchesInView`, `delaysTouchesBegan`, `delaysTouchesEnded` off), takes the Pencil, fingers
+/// and a pointer together, prevents nothing and is prevented by nothing, and the coordinator lets it
+/// run alongside every recogniser. The pointer (the review): with `UIApplicationSupportsIndirectInputEvents`
+/// a mouse's or a trackpad's press on the paper is an `.indirectPointer` touch, and PencilKit's drawing
+/// recogniser takes it (`[0, 2, 3]` on a Mac, in every drawing policy); the coordinator counts it like
+/// a finger. Tried on a real Mac Catalyst window: PencilKit erased as before with it on the container,
+/// and its `up` arrived before PencilKit's end of the tool.
 @MainActor
 final class InkTouchObserver: UIGestureRecognizer {
     /// A touch of this type came down, or lifted (ended or cancelled).
@@ -26,7 +29,7 @@ final class InkTouchObserver: UIGestureRecognizer {
 
     override init(target: Any?, action: Selector?) {
         super.init(target: target, action: action)
-        allowedTouchTypes = [NSNumber(value: UITouch.TouchType.pencil.rawValue), NSNumber(value: UITouch.TouchType.direct.rawValue)]
+        allowedTouchTypes = [UITouch.TouchType.pencil, .direct, .indirectPointer].map { NSNumber(value: $0.rawValue) }
         cancelsTouchesInView = false
         delaysTouchesBegan = false
         delaysTouchesEnded = false
