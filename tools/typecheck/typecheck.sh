@@ -17,7 +17,8 @@
 #      because the CLT have no plugin for the macro the SDK's `@State` now expands through.
 #   4. `swiftc -typecheck -swift-version 5` of the app (all of the copy + StateStandIn.swift).
 #   5. The app copy emitted as module `TegakiCalendar` (so `@testable import` resolves), then
-#      `swiftc -typecheck` of Tests/TegakiCalendarTests against it and the stand-ins.
+#      `swiftc -typecheck` of each folder of Tests/ (TegakiCalendarTests; since 1.0.1 also
+#      TegakiCalendarUITests) as its own module against it and the stand-ins.
 #   6. `swiftc -typecheck` of TegakiKit's XCTest targets against the stand-in XCTest (macOS target).
 # Exit status: non-zero when any step fails. Warnings are printed and counted, not fatal.
 set -euo pipefail
@@ -99,15 +100,22 @@ fi
 xcrun swiftc -emit-module -parse-as-library -module-name TegakiCalendar -enable-testing \
   -emit-module-path "$KIT/TegakiCalendar.swiftmodule" "${CATALYST[@]}" "${APP_FILES[@]}" \
   2> "$LOG/emit-app.log" || { grep -E 'error:' "$LOG/emit-app.log" | head -40; echo "typecheck: emitting the app module FAILED"; exit 1; }
-TEST_FILES=()
-while IFS= read -r f; do TEST_FILES+=("$f"); done < <(find "$REPO/Tests" -name '*.swift' | sort)
-if xcrun swiftc -typecheck -module-name TegakiCalendarTests "${CATALYST[@]}" "${TEST_FILES[@]}" 2> "$LOG/tests.log"; then
-  echo "app tests: typecheck OK (${#TEST_FILES[@]} files, $(grep -c 'warning:' "$LOG/tests.log" || true) warnings; $LOG/tests.log)"
-else
-  grep -E 'error:' "$LOG/tests.log" | head -60
-  echo "app tests: typecheck FAILED ($LOG/tests.log)"
-  exit 1
-fi
+# Each folder of Tests/ is its own test target (module): TegakiCalendarTests (unit tests, @testable
+# import of the app) and, since 1.0.1, TegakiCalendarUITests (XCUITest; the stand-in has the XCUI
+# types it uses).
+for dir in "$REPO"/Tests/*/; do
+  module="$(basename "$dir")"
+  TEST_FILES=()
+  while IFS= read -r f; do TEST_FILES+=("$f"); done < <(find "$dir" -name '*.swift' | sort)
+  [ "${#TEST_FILES[@]}" -gt 0 ] || continue
+  if xcrun swiftc -typecheck -module-name "$module" "${CATALYST[@]}" "${TEST_FILES[@]}" 2> "$LOG/tests-$module.log"; then
+    echo "$module: typecheck OK (${#TEST_FILES[@]} files, $(grep -c 'warning:' "$LOG/tests-$module.log" || true) warnings; $LOG/tests-$module.log)"
+  else
+    grep -E 'error:' "$LOG/tests-$module.log" | head -60
+    echo "$module: typecheck FAILED ($LOG/tests-$module.log)"
+    exit 1
+  fi
+done
 
 # 6. TegakiKit's XCTest targets (macOS) against the stand-in XCTest.
 MAC=(-sdk "$SDK" -swift-version 5 -I "$WORK/kitmac")
