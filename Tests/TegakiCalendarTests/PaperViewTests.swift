@@ -7,7 +7,9 @@ import XCTest
 /// §2.2 F3, §7.2): the window is at most 2 × 2 screens around the visible rect, clipped to the content;
 /// `show` moves the frame without redrawing while the visible rect stays inside the window at the same
 /// zoom, and makes a new window (and redraws) when it leaves it or the zoom changes; while a pinch is
-/// live the window is stretched with a transform instead and redrawn once at the end.
+/// live the window is stretched with a transform instead and redrawn once at the end. 1.1
+/// (M7A_CONTRACT §3.3): the day's paper stops its timeline at 24:00 and draws the free memo area
+/// 「自由メモ」 below it.
 @MainActor
 final class PaperViewTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_790_000_000)
@@ -194,5 +196,96 @@ final class PaperViewTests: XCTestCase {
         let otherLayout = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 11), events: [], inkBottoms: [:], now: now))
         view.content = .month(MonthPaperContent(layout: otherLayout, labels: otherLayout.dateLabels, bars: [], chips: [], holidayNames: [:]))
         XCTAssertGreaterThan(view.displayRequestCount, requests)
+    }
+
+    // MARK: 1.1 — the day's free memo area (M7A_CONTRACT §3.3)
+
+    /// RGBA bytes (row 0 at the top) of `rect` of the day's paper drawn by `DayPaper` at zoom 1 and
+    /// scale 1 (one pixel per lu), on the paper colour as `PaperView.draw` lays it.
+    private func renderDayPaper(_ content: DayPaperContent, rect: CGRect) -> (bytes: [UInt8], width: Int) {
+        let width = Int(rect.width)
+        let height = Int(rect.height)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        format.preferredRange = .standard
+        let view = PaperView(content: .day(content))
+        view.contentScaleFactor = 1
+        let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { context in
+            let ctx = context.cgContext
+            ctx.translateBy(x: -rect.minX, y: -rect.minY)
+            ctx.setFillColor(PaperPalette.paper.cgColor)
+            ctx.fill(rect)
+            DayPaper.draw(content, in: ctx, dirty: rect, zoom: 1, view: view)
+        }
+        guard let cg = image.cgImage else { return ([], width) }
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        bytes.withUnsafeMutableBytes { buffer in
+            guard let ctx = CGContext(
+                data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return }
+            // No flip: the image's top row lands in the first row of the buffer (PaperTextTests).
+            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        return (bytes, width)
+    }
+
+    /// Weekend 2026-10-11 (a Sunday, not today): the timeline's tint and its vertical lines run to
+    /// 24:00 and stop there; a strong line at y 2,400; below it the paper colour with the ruled lines
+    /// and the label 「自由メモ」 at (20, 2,406). (The points are 20 lu off the contract's (100, 2,300) and
+    /// (100, 2,500), which lie on the 23:00 hour line and on a ruled line.)
+    func testDayPaperStopsTheTimelineAt24() {
+        let sunday = DayKey(year: 2026, month: 10, day: 11)
+        let layout = DayLayoutEngine.layout(DayLayoutInput(day: sunday, events: [], inkBottoms: [:], now: now))
+        XCTAssertFalse(layout.isToday)
+        XCTAssertNotEqual(layout.dateLabels.first?.tone, .normal, "a weekend day: the timeline is tinted")
+        XCTAssertEqual(layout.extra, CGRect(x: 0, y: 2400, width: 1000, height: 700))
+        XCTAssertEqual(DayPaper.freeMemoLabel, "自由メモ")
+        let rect = CGRect(x: 0, y: 2200, width: 1000, height: 500)
+        let (bytes, width) = renderDayPaper(DayPaperContent(layout: layout), rect: rect)
+        XCTAssertEqual(bytes.count, 1000 * 500 * 4)
+        func pixel(_ x: Int, _ y: Int) -> (r: Int, g: Int, b: Int) {
+            let i = ((y - Int(rect.minY)) * width + x) * 4
+            guard i >= 0, i + 2 < bytes.count else { return (-1, -1, -1) }
+            return (Int(bytes[i]), Int(bytes[i + 1]), Int(bytes[i + 2]))
+        }
+        func near(_ p: (r: Int, g: Int, b: Int), _ hex: (Int, Int, Int), _ tolerance: Int = 3) -> Bool {
+            abs(p.r - hex.0) <= tolerance && abs(p.g - hex.1) <= tolerance && abs(p.b - hex.2) <= tolerance
+        }
+        let paperColor = (0xff, 0xfd, 0xf8) // PaperPalette.paper
+        let strong = (0xd7, 0xda, 0xde) // PaperPalette.lineStrong
+
+        // Above 24:00: the timeline (x 72…660) is tinted, the memo column (x 660…1000) is not.
+        let timeline = pixel(100, 2320)
+        let memoColumn = pixel(800, 2320)
+        XCTAssertTrue(near(memoColumn, paperColor), "the right column is paper: \(memoColumn)")
+        XCTAssertLessThan(timeline.b, memoColumn.b - 2, "the timeline is tinted above 24:00: \(timeline) vs \(memoColumn)")
+        // Below 24:00: paper colour across the width, where the timeline was.
+        XCTAssertTrue(near(pixel(100, 2520), paperColor), "no tint below 24:00: \(pixel(100, 2520))")
+        XCTAssertTrue(near(pixel(800, 2520), paperColor))
+        // The vertical lines (x 72 the gutter's, x 660 the timeline's) stop at 24:00.
+        XCTAssertTrue(near(pixel(72, 2320), strong, 6), "the gutter line above 24:00: \(pixel(72, 2320))")
+        XCTAssertTrue(near(pixel(660, 2320), strong, 6), "the timeline's right line above 24:00: \(pixel(660, 2320))")
+        XCTAssertTrue(near(pixel(72, 2520), paperColor), "not below: \(pixel(72, 2520))")
+        XCTAssertTrue(near(pixel(660, 2520), paperColor), "not below: \(pixel(660, 2520))")
+        // The strong line at 24:00, across the whole width.
+        XCTAssertTrue(near(pixel(30, 2400), strong, 6), "24:00 at x 30: \(pixel(30, 2400))")
+        XCTAssertTrue(near(pixel(500, 2400), strong, 6), "24:00 at x 500: \(pixel(500, 2400))")
+        XCTAssertTrue(near(pixel(990, 2400), strong, 6), "24:00 at x 990: \(pixel(990, 2400))")
+        // A ruled line every 50 lu below it, inset 20 lu (2,450 and 2,500), not at the very edge.
+        let rule = (0xeb, 0xe7, 0xde) // PaperPalette.rule
+        XCTAssertTrue(near(pixel(500, 2450), rule, 4), "a ruled line at 2,450: \(pixel(500, 2450))")
+        XCTAssertTrue(near(pixel(500, 2500), rule, 4), "a ruled line at 2,500: \(pixel(500, 2500))")
+        XCTAssertTrue(near(pixel(10, 2450), paperColor), "inset 20 lu: \(pixel(10, 2450))")
+        // 「自由メモ」 at (20, 2,406): something darker than the ruled lines in its box.
+        var labelPixels = 0
+        for y in 2406..<2426 {
+            for x in 20..<110 {
+                let p = pixel(x, y)
+                if p.r < 220 { labelPixels += 1 }
+            }
+        }
+        XCTAssertGreaterThan(labelPixels, 20, "the label 「自由メモ」 is drawn")
     }
 }

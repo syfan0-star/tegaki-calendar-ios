@@ -23,6 +23,45 @@ public enum PageNavigation {
         }
     }
 
+    /// The page a page id names (1.1, M7A_CONTRACT §5.3; the inverse of `pageId(_:focus:)`):
+    /// "d-YYYY-MM-DD" → (.day, that day), "w-YYYY-MM-DD" → (.week, that day), "m1-YYYY-MM" →
+    /// (.month, the 1st), "y-YYYY" → (.year, January 1). Only the exact forms `pageId` writes (4-digit
+    /// year, 2-digit month and day, a date that exists); anything else ("wb-…", an invalid date, another
+    /// spelling) → nil.
+    public static func parse(pageId: String) -> (kind: PageKind, focus: DayKey)? {
+        if pageId.hasPrefix("d-"), let d = exactDay(pageId.dropFirst(2)) {
+            return (.day, d)
+        }
+        if pageId.hasPrefix("w-"), let d = exactDay(pageId.dropFirst(2)) {
+            return (.week, d)
+        }
+        if pageId.hasPrefix("m1-") {
+            let rest = String(pageId.dropFirst(3))
+            let parts = rest.split(separator: "-", omittingEmptySubsequences: false)
+            guard parts.count == 2, parts[0].count == 4, parts[1].count == 2,
+                  parts.allSatisfy({ $0.allSatisfy { $0.isASCII && $0.isNumber } }),
+                  let y = Int(parts[0]), let m = Int(parts[1]), (1...12).contains(m) else { return nil }
+            let first = DayKey(year: y, month: m, day: 1)
+            guard first.isValid, YearMonth(year: y, month: m).inkPageId == pageId else { return nil }
+            return (.month, first)
+        }
+        if pageId.hasPrefix("y-") {
+            let rest = pageId.dropFirst(2)
+            guard rest.count == 4, rest.allSatisfy({ $0.isASCII && $0.isNumber }), let y = Int(rest) else { return nil }
+            let first = DayKey(year: y, month: 1, day: 1)
+            guard String(format: "y-%04d", y) == pageId else { return nil }
+            return (.year, first)
+        }
+        return nil
+    }
+
+    /// "YYYY-MM-DD" exactly as `DayKey.description` writes it, of a date that exists.
+    private static func exactDay(_ text: Substring) -> DayKey? {
+        guard text.count == 10, text.allSatisfy({ $0.isASCII && ($0.isNumber || $0 == "-") }),
+              let d = DayKey(ymd: String(text)), d.description == text else { return nil }
+        return d
+    }
+
     /// The Monday on or before `day` (= `MonthLayout.mondayOnOrBefore`).
     public static func mondayOnOrBefore(_ day: DayKey) -> DayKey {
         MonthLayout.mondayOnOrBefore(day)

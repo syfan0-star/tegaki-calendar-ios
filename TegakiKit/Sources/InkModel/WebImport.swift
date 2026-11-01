@@ -25,6 +25,9 @@ public enum WebImport {
     public static let maxSize: Double = 200
     /// Coordinates beyond this are garbage (web `MAX_COORD`).
     public static let maxCoordinate: Double = 100_000
+    /// At most this many strokes are read from one web page (the cap of the reader before 1.1; 1.1
+    /// raised `InkPage.maxStrokes` to 60,000 but the web import keeps its behaviour, M7A_CONTRACT §5.1).
+    public static let maxStrokesPerPage = 20_000
 
     /// invalidJSON = not readable as JSON / notAnExport = `format` differs or the top level is not an
     /// object / unsupportedVersion = `v` > 1.
@@ -184,7 +187,7 @@ public enum WebImport {
 
         var byId: [String: Stroke] = [:]
         func take(_ raw: JSONValue, fallbackId: String?) {
-            guard byId.count < InkPage.maxStrokes, let stroke = parseStroke(raw, fallbackId: fallbackId) else { return }
+            guard byId.count < maxStrokesPerPage, let stroke = parseStroke(raw, fallbackId: fallbackId) else { return }
             if deleted[stroke.id] != nil { return }
             if byId[stroke.id] == nil { byId[stroke.id] = stroke }
         }

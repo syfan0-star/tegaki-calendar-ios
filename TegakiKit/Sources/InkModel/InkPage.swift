@@ -11,7 +11,7 @@ import CoreGraphics
 /// - Items the reader does not understand (`unknown` top-level keys, strokes with an unknown `tool`)
 ///   are kept and written back, so an older app never destroys a newer app's data.
 public struct InkPage: Codable, Equatable, Sendable {
-    public static let maxStrokes = 20_000
+    public static let maxStrokes = 60_000
     public static let maxTombstones = 200_000
     public static let maxPageIdLength = 256
     public static let knownKeys: Set<String> = ["v", "pageId", "strokes", "deleted", "updatedAt"]

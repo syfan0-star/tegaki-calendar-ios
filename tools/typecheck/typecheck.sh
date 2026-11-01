@@ -20,6 +20,11 @@
 #      `swiftc -typecheck` of each folder of Tests/ (TegakiCalendarTests; since 1.0.1 also
 #      TegakiCalendarUITests) as its own module against it and the stand-ins.
 #   6. `swiftc -typecheck` of TegakiKit's XCTest targets against the stand-in XCTest (macOS target).
+#      Since 1.1 (docs/M7A_CONTRACT.md §1.4) also the two test-only library targets: the frozen 1.0
+#      copy Compat10 (every .swift under TegakiKit/Tests/Compat10, Checks/ included) and
+#      CompatFixtures are emitted as modules, and the folders Compat10, CompatFixtures and Fixtures
+#      (JSON only) are not type-checked as test targets. Each test folder's files are found with
+#      `find`, so sub-folders count too.
 # Exit status: non-zero when any step fails. Warnings are printed and counted, not fatal.
 set -euo pipefail
 
@@ -126,16 +131,39 @@ emitmac() {
     -emit-module-path "$WORK/kitmac/$name.swiftmodule" "${MAC[@]}" "$@" \
     2> "$LOG/emitmac-$name.log" || { cat "$LOG/emitmac-$name.log"; echo "typecheck: emitting $name (macOS) FAILED"; exit 1; }
 }
+swift_files() { # swift_files <dir>: every .swift under <dir>, sorted (one per line)
+  find "$1" -name '*.swift' | sort
+}
 emitmac DayKit "$REPO"/TegakiKit/Sources/DayKit/*.swift
 emitmac Holidays "$REPO"/TegakiKit/Sources/Holidays/*.swift
 emitmac Layout "$REPO"/TegakiKit/Sources/Layout/*.swift
 emitmac InkModel "$REPO"/TegakiKit/Sources/InkModel/*.swift
+COMPAT_FIXTURES=()
+while IFS= read -r f; do COMPAT_FIXTURES+=("$f"); done < <(swift_files "$REPO/TegakiKit/Tests/CompatFixtures")
+emitmac CompatFixtures "${COMPAT_FIXTURES[@]}"
 emitmac Access "$REPO"/TegakiKit/Sources/Access/*.swift
-emitmac XCTest "$HERE/XCTestStandIn.swift"
+COMPAT10=()
+while IFS= read -r f; do COMPAT10+=("$f"); done < <(swift_files "$REPO/TegakiKit/Tests/Compat10")
+emitmac Compat10 "${COMPAT10[@]}"
+echo "emitted Compat10 (${#COMPAT10[@]} files) and CompatFixtures (${#COMPAT_FIXTURES[@]} files) (macOS)"
+# The stand-in XCTest of this step also has `measure` (Compat10BudgetTests measures a decode; XCTest
+# runs the block 10 times, the stand-in only type-checks the call).
+cat > "$WORK/XCTestStandInMeasure.swift" <<'SWIFT'
+extension XCTestCase {
+    public func measure(_ block: () -> Void) {}
+}
+SWIFT
+emitmac XCTest "$HERE/XCTestStandIn.swift" "$WORK/XCTestStandInMeasure.swift"
 for t in "$REPO"/TegakiKit/Tests/*/; do
   name="$(basename "$t")"
-  if xcrun swiftc -typecheck -module-name "$name" "${MAC[@]}" "$t"*.swift 2> "$LOG/kit-$name.log"; then
-    echo "TegakiKit $name: typecheck OK"
+  case "$name" in
+    Compat10|CompatFixtures|Fixtures) continue ;; # library targets (emitted above) and the JSON fixtures
+  esac
+  KIT_TEST_FILES=()
+  while IFS= read -r f; do KIT_TEST_FILES+=("$f"); done < <(swift_files "$t")
+  [ "${#KIT_TEST_FILES[@]}" -gt 0 ] || continue
+  if xcrun swiftc -typecheck -module-name "$name" "${MAC[@]}" "${KIT_TEST_FILES[@]}" 2> "$LOG/kit-$name.log"; then
+    echo "TegakiKit $name: typecheck OK (${#KIT_TEST_FILES[@]} files, $(grep -c 'warning:' "$LOG/kit-$name.log" || true) warnings)"
   else
     grep -E 'error:' "$LOG/kit-$name.log" | head -40
     echo "TegakiKit $name: typecheck FAILED ($LOG/kit-$name.log)"

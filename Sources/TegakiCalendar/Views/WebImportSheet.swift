@@ -48,18 +48,22 @@ struct DocumentPickerView: UIViewControllerRepresentable {
 
 /// Where the import is (M4 contract §6.3): reading the file, importing (with progress), done, failed.
 /// `done` carries whether the file was the app's own export (M6_CONTRACT §1.2, 0-12), which picks
-/// the finished sentence.
+/// the finished sentence. 1.1 (M7A_CONTRACT §5.2): `confirmLarge` — the file was read and some of its
+/// pages would have more than 20,000 strokes on this device after the import (`pages` are their
+/// labels, `StrokeBudget.pageLabel`); the sheet asks 〔取り込む〕〔やめる〕 before anything is imported.
 enum WebImportPhase: Equatable {
     case reading
     case importing(done: Int, total: Int)
     case done(ImportOutcome, skipped: Int, isAppExport: Bool)
     case failed(String)
+    case confirmLarge(pages: [String])
 
     /// Reading and importing: the sheet cannot be swiped away (the work would carry on behind it).
+    /// The question of `confirmLarge` can be swiped away: that is 〔やめる〕 (nothing was imported yet).
     var isInProgress: Bool {
         switch self {
         case .reading, .importing: return true
-        case .done, .failed: return false
+        case .done, .failed, .confirmLarge: return false
         }
     }
 }
@@ -69,10 +73,15 @@ enum WebImportPhase: Equatable {
 /// `SyncEngine.importPages`) and shows the same result text as a toast after 「閉じる」. Since M6 the
 /// door takes two formats (M6_CONTRACT §1.2): the web version's export and the app's own data file
 /// (a restore); the title stays 「Web 版の手書きを取り込む」 (M6-4) and the finished sentence says
-/// which one it was (`resultText(_:isAppExport:)`, 0-12).
+/// which one it was (`resultText(_:isAppExport:)`, 0-12). 1.1 (M7A_CONTRACT §5.2): in `confirmLarge`
+/// the sheet shows `confirmLargeTitle` / `confirmLargeText(_:)` and two buttons: 〔取り込む〕 calls
+/// `onConfirmLarge` (the owner then imports as before), 〔やめる〕 calls `onClose` (the owner closes
+/// the sheet; no result toast, nothing imported) — the same as swiping the question away.
 struct WebImportSheet: View {
     var phase: WebImportPhase
     var onClose: () -> Void
+    /// 〔取り込む〕 of `confirmLarge`.
+    var onConfirmLarge: () -> Void = {}
 
     static let title = "Web 版の手書きを取り込む"
 
@@ -113,6 +122,30 @@ struct WebImportSheet: View {
             return resultText(outcome, isAppExport: isAppExport) + "\n" + second
         }
         return resultText(outcome, isAppExport: isAppExport)
+    }
+
+    // MARK: The large-page question (1.1, M7A_CONTRACT §5.2 / §6.2)
+
+    /// The heading of `confirmLarge`.
+    static let confirmLargeTitle = "線がとても多いページがあります"
+    /// The buttons of `confirmLarge`.
+    static let confirmLargeImportTitle = "取り込む"
+    static let confirmLargeCancelTitle = "やめる"
+    /// At most this many page names are listed; the rest are 「ほか n ページ」.
+    static let confirmLargeListedPages = 4
+
+    /// 「取り込むと、線が 20,000 本を超えるページがあります（月のページ（2026年10月）、…）。この版では
+    /// 全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？」: the page names
+    /// joined by 「、」, and past four names the first four and 「ほか n ページ」.
+    static func confirmLargeText(_ pages: [String]) -> String {
+        "取り込むと、線が 20,000 本を超えるページがあります（\(confirmLargeList(pages))）。この版では全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？"
+    }
+
+    /// 「A、B、C、D」, or 「A、B、C、D、ほか 2 ページ」 for six names.
+    static func confirmLargeList(_ pages: [String]) -> String {
+        guard pages.count > confirmLargeListedPages else { return pages.joined(separator: "、") }
+        let shown = pages.prefix(confirmLargeListedPages).joined(separator: "、")
+        return shown + "、ほか \(pages.count - confirmLargeListedPages) ページ"
     }
 
     /// 「取り込んでいます… 3 / 12 ページ」 (no numbers while the file is still being read).
@@ -182,6 +215,26 @@ struct WebImportSheet: View {
                 .font(.body)
                 .multilineTextAlignment(.center)
             closeButton
+
+        case .confirmLarge(let pages):
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 44))
+                .foregroundStyle(Color.orange)
+            Text(Self.confirmLargeTitle)
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            Text(Self.confirmLargeText(pages))
+                .font(.body)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 520)
+            HStack(spacing: 16) {
+                Button(Self.confirmLargeCancelTitle, action: onClose)
+                    .buttonStyle(.bordered)
+                Button(Self.confirmLargeImportTitle, action: onConfirmLarge)
+                    .buttonStyle(.borderedProminent)
+            }
+            .padding(.top, 8)
         }
     }
 

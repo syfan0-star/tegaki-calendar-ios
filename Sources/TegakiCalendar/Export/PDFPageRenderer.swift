@@ -49,7 +49,9 @@ enum PDFPageRenderer {
 
     /// The part of the paper that goes on the page, in paper units from the paper's origin. Month:
     /// the whole paper (6 rows + the memo area) when the memo area holds handwriting, else the
-    /// overview rectangle (1400 × `memo.minY`, `ZoomPolicy.overviewSize`; 0-3 / M6-3). Week, day and
+    /// overview rectangle (1400 × `memo.minY`, `ZoomPolicy.overviewSize`; 0-3 / M6-3). Day (1.1,
+    /// M7A_CONTRACT §3.5): the same rule for the free memo area below 24:00 — the whole paper when
+    /// `extra` holds handwriting, else the 24 hours (1000 × 2400, `ZoomPolicy.overviewSize`). Week and
     /// year: the whole paper (`layout.size`).
     static func paperRect(_ paper: PaperContent, page: InkPage) -> CGRect {
         switch paper {
@@ -57,7 +59,11 @@ enum PDFPageRenderer {
             let memoHasInk = page.liveStrokes.contains { $0.cell.isMemo }
             let size = memoHasInk ? content.layout.size : ZoomPolicy.overviewSize(content.layout)
             return CGRect(origin: .zero, size: size)
-        case .week, .day, .year:
+        case .day(let content):
+            let extraHasInk = page.liveStrokes.contains { $0.cell.isExtra }
+            let size = extraHasInk ? content.layout.size : ZoomPolicy.overviewSize(content.layout)
+            return CGRect(origin: .zero, size: size)
+        case .week, .year:
             return CGRect(origin: .zero, size: paper.layout.size)
         }
     }

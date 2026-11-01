@@ -18,9 +18,9 @@ struct AccountChangeDialogModifier: ViewModifier {
     @State private var confirmErase = false
 
     static let title = "別の iCloud アカウントです"
-    static let message = "この iPad の手書きは、前に同期していた iCloud アカウントのものです。いまサインインしているアカウントで使い始めますか？ 手書きを残すと、新しいアカウントの iCloud に送られます。"
+    static let message = "この端末の手書きは、前に同期していた iCloud アカウントのものです。いまサインインしているアカウントで使い始めますか？ 手書きを残すと、新しいアカウントの iCloud に送られます。"
     static let eraseTitle = "本当に消しますか？"
-    static let eraseMessage = "この iPad の手書きを全て消して、新しいアカウントで始めます。この操作は元に戻せません。"
+    static let eraseMessage = "この端末の手書きを全て消して、新しいアカウントで始めます。この操作は元に戻せません。"
 
     func body(content: Content) -> some View {
         content

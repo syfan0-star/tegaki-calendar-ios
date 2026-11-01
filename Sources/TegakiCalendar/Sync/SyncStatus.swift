@@ -4,7 +4,8 @@ import Foundation
 /// `header`, the settings screen `settingsText` / `settingsFooter` (§6.1). The views only read these;
 /// the engine is the only writer.
 enum SyncStatus: Equatable, Sendable {
-    /// iCloud is not used: the handwriting stays on this device (DESIGN §5.4 「この iPad のみ」).
+    /// iCloud is not used: the handwriting stays on this device (DESIGN §5.4 「この iPad のみ」; since 1.1
+    /// 「この端末のみ」, M7A_CONTRACT §6.1).
     case localOnly(LocalOnlyReason)
     /// Nothing queued and the last round trip succeeded.
     case synced
@@ -56,7 +57,7 @@ struct ImportOutcome: Equatable, Sendable {
     var pagesSeen: Int
 }
 
-// MARK: - Wording (M4_CONTRACT §6.1)
+// MARK: - Wording (M4_CONTRACT §6.1; 1.1 says 「この端末」 for the device, M7A_CONTRACT §6.1)
 
 extension SyncStatus {
     var header: HeaderSync {
@@ -70,7 +71,7 @@ extension SyncStatus {
         case .offline:
             return HeaderSync(text: "オフライン", symbol: "icloud.slash", isError: false)
         case .localOnly:
-            return HeaderSync(text: "この iPad のみ", symbol: "icloud.slash", isError: false)
+            return HeaderSync(text: "この端末のみ", symbol: "icloud.slash", isError: false)
         case .error:
             return HeaderSync(text: "エラー", symbol: "exclamationmark.icloud", isError: true)
         case .accountMismatch:
@@ -90,7 +91,7 @@ extension SyncStatus {
         case .localOnly(.noAccount):
             return "iCloud にサインインしていません"
         case .localOnly(.restricted):
-            return "この iPad では iCloud が制限されています"
+            return "この端末では iCloud が制限されています"
         case .localOnly(.unknown), .localOnly(.notAuthenticated):
             return "iCloud を確認できません"
         case .error(.quota):
@@ -108,25 +109,25 @@ extension SyncStatus {
     var settingsFooter: String {
         switch self {
         case .synced:
-            return "手書きはこの iPad と、あなたの iCloud に保存されています。ほかの iPad や iPhone でも同じ手書きが見られます。"
+            return "手書きはこの端末と、あなたの iCloud に保存されています。ほかの iPad や iPhone でも同じ手書きが見られます。"
         case .pending, .syncing:
             return "書いた手書きを iCloud へ送っています。"
         case .offline:
-            return "オフラインです。手書きはこの iPad に保存され、接続が戻ると同期されます。"
+            return "オフラインです。手書きはこの端末に保存され、接続が戻ると同期されます。"
         case .localOnly(.noAccount):
-            return "iCloud にサインインするとほかの端末と同期できます。手書きはこの iPad の中だけに保存しています。"
+            return "iCloud にサインインするとほかの端末と同期できます。手書きはこの端末の中だけに保存しています。"
         case .localOnly(.restricted):
-            return "手書きはこの iPad の中だけに保存しています。"
+            return "手書きはこの端末の中だけに保存しています。"
         case .localOnly(.unknown), .localOnly(.notAuthenticated):
-            return "iPad の設定で iCloud を確認してください。手書きはこの iPad の中だけに保存しています。"
+            return "「設定」アプリで iCloud を確認してください。手書きはこの端末の中だけに保存しています。"
         case .error(.quota):
-            return "iCloud の容量が不足しているため、手書きを同期できません。この iPad には保存されています。"
+            return "iCloud の容量が不足しているため、手書きを同期できません。この端末には保存されています。"
         case .error(.permission):
             return "iCloud の設定でこのアプリの利用が許可されていません。"
         case .error(.server(let message)):
-            return "手書きの同期に失敗しました。この iPad には保存されています（あとで再試行します）。\n\(message)"
+            return "手書きの同期に失敗しました。この端末には保存されています（あとで再試行します）。\n\(message)"
         case .accountMismatch:
-            return "この iPad の手書きは、前に同期していた iCloud アカウントのものです。「新しいアカウントで使い始める」から選んでください。"
+            return "この端末の手書きは、前に同期していた iCloud アカウントのものです。「新しいアカウントで使い始める」から選んでください。"
         }
     }
 

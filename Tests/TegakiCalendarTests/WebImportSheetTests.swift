@@ -1,3 +1,4 @@
+import InkModel
 import XCTest
 @testable import TegakiCalendar
 
@@ -37,5 +38,36 @@ final class WebImportSheetTests: XCTestCase {
         XCTAssertNotEqual(WebImportPhase.done(imported, skipped: 0, isAppExport: true), .done(imported, skipped: 0, isAppExport: false))
         XCTAssertTrue(WebImportPhase.reading.isInProgress)
         XCTAssertTrue(WebImportPhase.importing(done: 1, total: 3).isInProgress)
+    }
+
+    /// 1.1 (M7A_CONTRACT §5.2 / §6.2): the question before an import that takes a page past 20,000
+    /// strokes — the heading, the sentence with the page names joined by 「、」 (past four names, the
+    /// first four and 「ほか n ページ」), the two buttons; the question can be swiped away (= 〔やめる〕).
+    func testConfirmLargeTexts() {
+        XCTAssertEqual(WebImportSheet.confirmLargeTitle, "線がとても多いページがあります")
+        XCTAssertEqual(WebImportSheet.confirmLargeImportTitle, "取り込む")
+        XCTAssertEqual(WebImportSheet.confirmLargeCancelTitle, "やめる")
+
+        let lead = "取り込むと、線が 20,000 本を超えるページがあります（"
+        let tail = "）。この版では全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？"
+        XCTAssertEqual(WebImportSheet.confirmLargeText(["月のページ（2026年10月）"]), lead + "月のページ（2026年10月）" + tail)
+        XCTAssertEqual(WebImportSheet.confirmLargeText(["年のページ（2026年）", "日のページ（2026年10月7日）"]),
+                       "取り込むと、線が 20,000 本を超えるページがあります（年のページ（2026年）、日のページ（2026年10月7日））。この版では全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？")
+        let four = ["A", "B", "C", "D"]
+        XCTAssertEqual(WebImportSheet.confirmLargeList(four), "A、B、C、D", "four names are all listed")
+        XCTAssertEqual(WebImportSheet.confirmLargeList(four + ["E"]), "A、B、C、D、ほか 1 ページ")
+        XCTAssertEqual(WebImportSheet.confirmLargeList(four + ["E", "F", "G"]), "A、B、C、D、ほか 3 ページ")
+        XCTAssertEqual(WebImportSheet.confirmLargeText(four + ["E", "F"]), lead + "A、B、C、D、ほか 2 ページ" + tail)
+        XCTAssertEqual(WebImportSheet.confirmLargeListedPages, 4)
+
+        // The labels come from the page ids (StrokeBudget.pageLabel).
+        let labels = ["y-2026", "m1-2026-10", "w-2026-10-05", "d-2026-10-07", "m1-2026-11"].map(StrokeBudget.pageLabel)
+        XCTAssertEqual(WebImportSheet.confirmLargeList(labels), "年のページ（2026年）、月のページ（2026年10月）、週のページ（2026年10月5日〜10月11日）、日のページ（2026年10月7日）、ほか 1 ページ")
+
+        // The phase: not in progress (it can be swiped away), compared by its pages.
+        XCTAssertFalse(WebImportPhase.confirmLarge(pages: ["A"]).isInProgress)
+        XCTAssertEqual(WebImportPhase.confirmLarge(pages: ["A"]), .confirmLarge(pages: ["A"]))
+        XCTAssertNotEqual(WebImportPhase.confirmLarge(pages: ["A"]), .confirmLarge(pages: ["B"]))
+        XCTAssertNotEqual(WebImportPhase.confirmLarge(pages: []), .reading)
     }
 }

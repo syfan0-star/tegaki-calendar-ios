@@ -24,6 +24,17 @@ public enum PaperSpec {
     public static let memoMin: CGFloat = 700
     public static let memoInkPad: CGFloat = 50
 
+    // MARK: - The growing last cell (1.1, M7A_CONTRACT D3 / §3.1)
+
+    /// The step of the last cell of a page (the month's `memo`, the day's `extra`): the blank paper
+    /// below the handwriting grows 400 lu at a time (`PaperGrowth.tailHeight`).
+    public static let growStep: CGFloat = 400
+    /// The largest height the steps reach (K-9). Only handwriting already below it (from a 1.0 device
+    /// or the web version) makes the cell taller (`inkBottom + 50`); new strokes below it are dropped.
+    public static let growMax: CGFloat = 6000
+    /// The least height of the day page's `extra` cell below 24:00 (= `memoMin`, M7A-9).
+    public static let dayExtraMin: CGFloat = 700
+
     /// Height of one all-day lane including its gap (25).
     public static var allDayLaneStep: CGFloat { allDayLane + allDayGap }
     /// Horizontal inset of bars, chips and date labels from the cell edges (4).
@@ -112,7 +123,8 @@ public enum PaperSpec {
 }
 
 /// Key of one ink cell. Month page: "2026-10-04" for a day, "memo" for the memo area below the grid.
-/// Week page: "grid" for the time grid. Day page: "grid". Year page: "MM-DD" (also for dates that
+/// Week page: "grid" for the time grid. Day page: "grid" (0:00–24:00) and, since 1.1, "extra" (the
+/// free memo area below 24:00). Year page: "MM-DD" (also for dates that
 /// do not exist, like "02-30"). The week / day band keys "allday:2026-10-04" / "allday" (M3a–M4) are
 /// no longer created: the band left the paper in M4b and `BandMigration` moves their strokes onto
 /// "grid" on load, but the keys stay readable forever (M4B_CONTRACT §2.4 / §3).
@@ -195,6 +207,13 @@ extension CellKey {
     }
 
     public var isGrid: Bool { raw == CellKey.grid.raw }
+
+    /// The day page's free memo area below 24:00 (1.1, M7A_CONTRACT §3.3). K-1: the name never starts
+    /// with "allday", so `BandMigration` never touches it and a 1.0 device keeps it unchanged (an
+    /// unknown cell: read, kept, written back, not drawn).
+    public static let extra = CellKey(raw: "extra")
+
+    public var isExtra: Bool { raw == CellKey.extra.raw }
 
     public var isAllDayDay: Bool { raw == CellKey.allDayDay.raw }
 }

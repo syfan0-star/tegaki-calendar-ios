@@ -443,14 +443,17 @@ final class ExportBuilderTests: XCTestCase {
         XCTAssertEqual(weekBox.width, 1400, accuracy: 0.5)
         XCTAssertEqual(weekBox.height, weekHeight, accuracy: 0.5)
 
-        // Day: the band's lanes are 24 apart.
+        // Day: the band's lanes are 24 apart. 1.1 (M7A_CONTRACT §3.5): without handwriting in the free
+        // memo area below 24:00 (`extra`) the page holds the 24 hours, 2,400 lu.
         let day = dayPaper()
         guard case .day(let dayContent) = day else { return XCTFail("day paper") }
         let dayPage = ScreenshotMode.demoPage(kind: .day, focus: wednesday)
+        XCTAssertFalse(dayPage.liveStrokes.contains { $0.cell.isExtra }, "the demo day page writes nothing below 24:00")
         let dayLanes = dayContent.layout.allDayBand.laneCount
         XCTAssertGreaterThan(dayLanes, 0)
         XCTAssertNotNil(dayContent.layout.nowLine, "the day is today")
-        let dayHeight = 36 + 40 + CGFloat(dayLanes) * 24 + 6 + dayContent.layout.size.height
+        XCTAssertEqual(PDFPageRenderer.paperRect(day, page: dayPage), CGRect(x: 0, y: 0, width: 1000, height: 2400))
+        let dayHeight = 36 + 40 + CGFloat(dayLanes) * 24 + 6 + 2400
         XCTAssertEqual(PDFPageRenderer.pageSize(day, page: dayPage), CGSize(width: 1000, height: dayHeight))
         let dayData = PDFPageRenderer.render(day, page: dayPage, title: PageNavigation.title(.day, focus: wednesday))
         let dayBox = try mediaBox(dayData)
@@ -496,6 +499,44 @@ final class ExportBuilderTests: XCTestCase {
         let noLineDay = PDFPageRenderer.render(.day(DayPaperContent(layout: noLineDayLayout)), page: dayPage, title: PageNavigation.title(.day, focus: wednesday))
         XCTAssertEqual(dayData.count, noLineDay.count)
         XCTAssertEqual(Self.stableBytes(dayData), Self.stableBytes(noLineDay), "the day PDF ignores the now line")
+    }
+
+    /// 1.1 (M7A_CONTRACT §3.5): the day's PDF holds the free memo area below 24:00 only when it has
+    /// handwriting — the whole paper (2400 + the area's height), as the month does with its memo area;
+    /// otherwise the 24 hours (1000 × 2400, the overview). A `grid` stroke below 24:00 (a deep stroke
+    /// of the web version, K-2) does not count, nor does a tombstoned `extra` stroke.
+    func testDayPDFIncludesTheExtraOnlyWithInk() throws {
+        var page = InkPage.empty(pageId: PageNavigation.pageId(.day, focus: wednesday))
+        page.add(InkStroke(id: "below-24", cell: .extra, tool: .pen, color: "#1f2937", t: 1_760_000_001_000,
+                           points: points(from: CGPoint(x: 40, y: 400), to: CGPoint(x: 400, y: 480))))
+        let bottom = page.inkBottoms()[.extra] ?? 0
+        XCTAssertEqual(bottom, 481.75, accuracy: 0.01)
+        let layout = DayLayoutEngine.layout(DayLayoutInput(day: wednesday, events: [], inkBottoms: page.inkBottoms(), now: now))
+        XCTAssertEqual(layout.extra.height, 1100, accuracy: 0.01)
+        XCTAssertEqual(layout.size.height, 3500, accuracy: 0.01)
+        let paper = PaperContent.day(DayPaperContent(layout: layout))
+
+        // With ink below 24:00: the whole paper, heading included (no band: no all-day event).
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: page), CGRect(x: 0, y: 0, width: 1000, height: 3500))
+        XCTAssertEqual(PDFPageRenderer.pageSize(paper, page: page), CGSize(width: 1000, height: 36 + 40 + 3500))
+        let data = PDFPageRenderer.render(paper, page: page, title: PageNavigation.title(.day, focus: wednesday))
+        let box = try mediaBox(data)
+        XCTAssertEqual(box.width, 1000, accuracy: 0.5)
+        XCTAssertEqual(box.height, 36 + 40 + 3500, accuracy: 0.5)
+
+        // Without it: the 24 hours.
+        var erased = page
+        erased.remove(ids: ["below-24"], at: 1_760_000_002_000)
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: erased), CGRect(x: 0, y: 0, width: 1000, height: 2400))
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: erased).size, ZoomPolicy.overviewSize(layout))
+        var gridOnly = InkPage.empty(pageId: page.pageId)
+        gridOnly.add(InkStroke(id: "deep-grid", cell: .grid, tool: .pen, color: "#1f2937", t: 1_760_000_003_000,
+                               points: points(from: CGPoint(x: 40, y: 2600), to: CGPoint(x: 400, y: 2650))))
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: gridOnly).height, 2400, accuracy: 0.001, "a grid stroke is not the free memo area")
+        let quiet = PDFPageRenderer.render(paper, page: erased, title: PageNavigation.title(.day, focus: wednesday))
+        let quietBox = try mediaBox(quiet)
+        XCTAssertEqual(quietBox.height, 36 + 40 + 2400, accuracy: 0.5)
+        XCTAssertLessThan(quietBox.height, box.height)
     }
 
     func testPDFFileNameAndMetadata() throws {

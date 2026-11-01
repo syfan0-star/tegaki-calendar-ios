@@ -1,8 +1,10 @@
 import InkModel
 import Layout
+import ObjectiveC
 import PencilKit
 import SwiftUI
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 import XCTest
 @testable import TegakiCalendar
 
@@ -13,15 +15,30 @@ import XCTest
 /// once and reports the ratio on the next turn; a rotation keeps the overview or the absolute zoom
 /// (D4 / M4C-24); the paper window is stretched, not redrawn, while a pinch is live (F3); the viewport
 /// is never delivered inside a layout pass; the double tap and the finger recogniser are wired as
-/// §4.1 / §2.2 say; strokes centred outside the paper are dropped (M4C-25).
+/// §4.1 / §2.2 say; strokes centred outside the paper are dropped (M4C-25). 1.1 (M7A_CONTRACT §7.2):
+/// a growing last cell takes the light path (no new drawing, the margins and the offset follow); the
+/// end of an erasure is reported once after the settle wait; the pen's touch is reported; new strokes
+/// beyond the last cell's limit or over the budget are refused (never another device's); the
+/// round button's clearance; only this canvas's own strokes are a finger tap's dots; a leaving
+/// eraser tap puts back what it erased. 1.1 fix (TestFlight build 12; docs/M7A.md ずれ 46・47): the
+/// eraser's report whatever the order of PencilKit's Begin / change / End and the touches
+/// (`touchObserved` stands in for UIKit), the Pencil's way to the lasso and the 予定 tool (stand-in
+/// touches fed to the container's recognisers), and two tests that send real touches through UIKit
+/// (`UIKitTouches`).
 @MainActor
 final class InkCanvasViewTests: XCTestCase {
-    /// Counts the deliveries of `onViewportChange`, and collects `onZoomRatioChange` / `onZoomingChange`.
+    /// Counts the deliveries of `onViewportChange`, and collects `onZoomRatioChange` / `onZoomingChange`
+    /// and (1.1) `onEraseEnded`, `onPenDown`, `onStrokeBudget`, `onGrowthCapReached`, `onInkBoundsChanged`.
     private final class Probe {
         var count = 0
         var last: PaperViewport?
         var ratios: [CGFloat] = []
         var zooming: [Bool] = []
+        var erased: [Int] = []
+        var penDowns = 0
+        var budget: [StrokeBudget.Event] = []
+        var caps = 0
+        var inkBounds = 0
     }
 
     /// Collects `onTap` (1.0.1), with the zoom and the ledger's live stroke ids at the moment of each
@@ -52,9 +69,10 @@ final class InkCanvasViewTests: XCTestCase {
         return (layout, .week(WeekPaperContent(layout: layout)))
     }
 
-    /// 10/7: 1000 × 2400 lu.
-    private func makeDay() -> (layout: DayPageLayout, paper: PaperContent) {
-        let layout = DayLayoutEngine.layout(DayLayoutInput(day: wednesday, events: [], inkBottoms: [:], now: now))
+    /// 10/7: 1000 × 3100 lu (1.1: the 24 hours, 2400, and the empty free memo area below them, 700;
+    /// the overview is the 24 hours).
+    private func makeDay(inkBottoms: [CellKey: CGFloat] = [:]) -> (layout: DayPageLayout, paper: PaperContent) {
+        let layout = DayLayoutEngine.layout(DayLayoutInput(day: wednesday, events: [], inkBottoms: inkBottoms, now: now))
         return (layout, .day(DayPaperContent(layout: layout)))
     }
 
@@ -65,7 +83,8 @@ final class InkCanvasViewTests: XCTestCase {
     }
 
     /// The canvas as the screen builds it. `initialScrollX` is computed for the readable zoom (it is
-    /// not used at the default ratio 1; a test that needs it computes its own).
+    /// not used at the default ratio 1; a test that needs it computes its own). `pageBinding` replaces
+    /// the constant `page` binding (a test that looks at what the canvas wrote back, `PageWrites`).
     private func makeView(layout: any PageLayout, paper: PaperContent, viewportWidth: CGFloat, probe: Probe,
                           initialZoomRatio: CGFloat = 1, initialPaperOffset: CGPoint? = nil, doubleTapEnabled: Bool = false,
                           tool: CanvasTool = .eraser, allowFinger: Bool = false, page: InkPage? = nil,
@@ -74,22 +93,24 @@ final class InkCanvasViewTests: XCTestCase {
                           readOnly: Bool = false,
                           onBlockedInput: @escaping () -> Void = {},
                           onTap: @escaping (CGPoint, CGFloat) -> Void = { _, _ in },
-                          tapLeavesPage: @escaping (CGPoint, CGFloat) -> Bool = { _, _ in false }) -> InkCanvasView {
+                          tapLeavesPage: @escaping (CGPoint, CGFloat) -> Bool = { _, _ in false },
+                          undoTrigger: Int = 0, bottomClearance: CGFloat = 0,
+                          pageBinding: Binding<InkPage>? = nil) -> InkCanvasView {
         let page = page ?? InkPage.empty(pageId: layout.pageId)
         return InkCanvasView(
             layout: layout,
             paper: paper,
             tool: tool,
             allowFinger: allowFinger,
-            page: .constant(page),
+            page: pageBinding ?? .constant(page),
             initialScrollY: PageNavigation.initialScrollY(layout, now: now),
             initialScrollX: PageNavigation.initialScrollX(
                 layout, now: now,
                 visibleWidth: ZoomPolicy.visibleWidth(layout.kind, viewportWidth: viewportWidth, zoom: ZoomPolicy.readableZoom(layout.kind))
             ),
             onTap: onTap,
-            onInkBoundsChanged: {},
-            undoTrigger: 0,
+            onInkBoundsChanged: { probe.inkBounds += 1 },
+            undoTrigger: undoTrigger,
             redoTrigger: 0,
             onViewportChange: { viewport in
                 probe.count += 1
@@ -102,7 +123,12 @@ final class InkCanvasViewTests: XCTestCase {
             onZoomingChange: onZoomingChange,
             readOnly: readOnly,
             onBlockedInput: onBlockedInput,
-            tapLeavesPage: tapLeavesPage
+            tapLeavesPage: tapLeavesPage,
+            onPenDown: { probe.penDowns += 1 },
+            onEraseEnded: { probe.erased.append($0) },
+            onStrokeBudget: { probe.budget.append($0) },
+            onGrowthCapReached: { probe.caps += 1 },
+            bottomClearance: bottomClearance
         )
     }
 
@@ -567,7 +593,8 @@ final class InkCanvasViewTests: XCTestCase {
 
     /// `dotStrokeIds` (M4C-22): the strokes of the last half second whose bounds fit in 16 pt and
     /// whose centre is within 24 pt of the double tap — the two dots a finger's taps drew; not an old
-    /// dot, not a line.
+    /// dot, not a line. 1.1 (0-21): "of the last half second" is what this canvas added itself
+    /// (`noteRecentAdd`) by the device's monotonic clock (`uptime`, pinned here), not the strokes' `t`.
     func testDotsDrawnByTheDoubleTapAreFound() {
         let (layout, paper) = makeMonth()
         let cell = CellKey.day(wednesday)
@@ -581,6 +608,12 @@ final class InkCanvasViewTests: XCTestCase {
         let probe = Probe()
         let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, page: page), paper: paper, probe: probe)
         XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.count, 4)
+        let tapUptime: TimeInterval = 1_000
+        rig.coordinator.uptime = { tapUptime }
+        rig.coordinator.noteRecentAdd("old", at: tapUptime - 10)
+        rig.coordinator.noteRecentAdd("dot1", at: tapUptime - 0.1)
+        rig.coordinator.noteRecentAdd("dot2", at: tapUptime - 0.1)
+        rig.coordinator.noteRecentAdd("line", at: tapUptime - 0.1)
         let near = CGPoint(x: origin.x + 103, y: origin.y + 103)
         let ids = rig.coordinator.dotStrokeIds(near: near, zoom: 0.5, within: 0.5)
         XCTAssertEqual(Set(ids), ["dot1", "dot2"])
@@ -598,13 +631,15 @@ final class InkCanvasViewTests: XCTestCase {
     /// 0.3 s and one of 0.8 s go, one of 1.5 s, an old dot and a line stay. Nothing is removed when the
     /// tap stays on the page (the edit sheet), without 「指でも書く」, or read only. `onTap` is called once
     /// in every case, with the zoom `tapLeavesPage` was asked with. The iPhone's conditions: 402 × 569,
-    /// `.anyInput`, the year's overview (zoom 402 / 1400).
+    /// `.anyInput`, the year's overview (zoom 402 / 1400). 1.1 (0-21): the dots' ages are the times
+    /// this canvas added them (`noteRecentAdd`, the monotonic `uptime` pinned), not their `t`.
     func testLeavingFingerTapRemovesItsDotBeforeReporting() async {
         let (layout, paper) = makeYear()
         let cell = CellKey.yearDay(month: 10, day: 7)
         XCTAssertEqual(layout.cells[cell], CGRect(x: 1064, y: 360, width: 112, height: 60))
         XCTAssertEqual(InkCanvasView.Coordinator.singleTapDotWindow, 1.0)
         let tapTime = Date()
+        let tapUptime: TimeInterval = 5_000
         let nowMs = Int(tapTime.timeIntervalSince1970 * 1000)
         var page = InkPage.empty(pageId: layout.pageId)
         page.add(makeInkStroke(id: "dot", cell: cell, t: nowMs - 300, points: [(56, 30), (57.5, 31.5)]))
@@ -632,8 +667,14 @@ final class InkCanvasViewTests: XCTestCase {
                 }
             )
             log.coordinator = rig.coordinator
-            // The tap happens at `tapTime`, however long the rig took to build.
-            rig.coordinator.clock = { tapTime }
+            // The tap happens at `tapUptime`, however long the rig took to build; the canvas added the
+            // strokes that long before it (an old dot and the line too: only size and time decide).
+            rig.coordinator.uptime = { tapUptime }
+            rig.coordinator.noteRecentAdd("old", at: tapUptime - 10)
+            rig.coordinator.noteRecentAdd("dot1500", at: tapUptime - 1.5)
+            rig.coordinator.noteRecentAdd("dot800", at: tapUptime - 0.8)
+            rig.coordinator.noteRecentAdd("dot", at: tapUptime - 0.3)
+            rig.coordinator.noteRecentAdd("line", at: tapUptime - 0.3)
             return (rig, log)
         }
 
@@ -858,6 +899,12 @@ final class InkCanvasViewTests: XCTestCase {
         // 1.0.1: by default no tap leaves the page (no dot is ever removed); the tap reports its zoom.
         XCTAssertFalse(view.tapLeavesPage(.zero, 1))
         view.onTap(.zero, 1)
+        // 1.1 (M7A_CONTRACT §0): four no-op reports and no clearance (today's CalendarRootScreen builds).
+        view.onPenDown()
+        view.onEraseEnded(1)
+        view.onStrokeBudget(.many(StrokeBudget.noticeAt))
+        view.onGrowthCapReached()
+        XCTAssertEqual(view.bottomClearance, 0)
     }
 
     // MARK: M5 — read only (M5_CONTRACT §3.1, §7.6)
@@ -968,5 +1015,2043 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertEqual(overlay.tool, .eventRect)
         rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: probe, tool: .eventRect, allowFinger: true, readOnly: false))
         XCTAssertTrue(overlay.isUserInteractionEnabled)
+    }
+
+    // MARK: 1.1 — helpers
+
+    /// A pen stroke through `points` (paper coordinates) with a `nib` lu nib, written now.
+    private func makeStroke(through points: [CGPoint], nib: CGFloat = 3.5) -> PKStroke {
+        let controlPoints = points.enumerated().map { i, p in
+            PKStrokePoint(location: p, timeOffset: TimeInterval(i) * 0.01, size: CGSize(width: nib, height: nib),
+                          opacity: 1, force: 0.5, azimuth: 0, altitude: .pi / 2)
+        }
+        return PKStroke(ink: PKInk(.pen, color: .black), path: PKStrokePath(controlPoints: controlPoints, creationDate: Date()),
+                        transform: .identity, mask: nil)
+    }
+
+    /// The month of October with stored strokes `ids` on 10/7 (a 60 lu line each, 30 lu apart).
+    private func monthPage(strokes ids: [String]) -> InkPage {
+        var page = InkPage.empty(pageId: "m1-2026-10")
+        for (i, id) in ids.enumerated() {
+            let y = 40 + CGFloat(i) * 30
+            page.add(makeInkStroke(id: id, cell: .day(wednesday), t: 1_790_000_000_000 + i, points: [(20, y), (50, y), (80, y)]))
+        }
+        return page
+    }
+
+    /// `count` stored strokes in a cell no layout has: the budget counts them (`budgetCount`), the
+    /// canvas never draws them (no 19,000 PKStrokes to build).
+    private func budgetPage(pageId: String, count: Int) -> InkPage {
+        var page = InkPage.empty(pageId: pageId)
+        let point = InkPoint(x: 1, y: 1, dtMs: 0, sizeW: 2, sizeH: 2, opacity: 1, force: 0.5, azimuth: 0, altitude: 1.571)
+        for i in 0..<count {
+            page.add(InkStroke(id: "budget-\(i)", cell: CellKey(raw: "zz-budget"), tool: .pen, color: "#1f2937",
+                               t: 1_790_000_000_000 + i, points: [point]))
+        }
+        return page
+    }
+
+    /// The pen's touch on the canvas as PencilKit reports it (begin / end of the tool).
+    private func touch(_ rig: Rig) {
+        rig.coordinator.canvasViewDidBeginUsingTool(rig.canvas)
+    }
+
+    private func lift(_ rig: Rig) {
+        rig.coordinator.canvasViewDidEndUsingTool(rig.canvas)
+    }
+
+    /// What PencilKit's vector eraser does: the strokes `ids` leave the canvas, then the change is reported.
+    private func erase(_ ids: Set<String>, on rig: Rig) {
+        let kept = rig.canvas.drawing.strokes.filter { pk in
+            rig.coordinator.ledger.id(of: pk).map { !ids.contains($0) } ?? true
+        }
+        rig.canvas.drawing = PKDrawing(strokes: kept)
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+    }
+
+    /// A new stroke on the canvas, reported as PencilKit reports it.
+    private func draw(_ stroke: PKStroke, on rig: Rig) {
+        rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes + [stroke])
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+    }
+
+    /// Past the settle wait after a lift (`settleDelay`, 0.3 s), with the deliveries run.
+    private func waitPastTheSettle() async {
+        try? await Task.sleep(for: .seconds(InkCanvasView.settleDelay + 0.3))
+        await settle()
+    }
+
+    // MARK: 1.1 — the light path of a growing last cell (M7A_CONTRACT §3.6, 0-6)
+
+    /// The iPhone's month (402 × 591, fit-to-width 0.2871): 1750 lu of paper are 502 pt, centred with
+    /// 44 pt above and below. A stroke low in the memo area (bottom ≈ 496 lu) makes it 1,100: the
+    /// layout comes back with only the memo area taller, and the canvas keeps its drawing (no
+    /// `setDrawing`), the ledger adopts the layout, the content is (1050 + 1100) × zoom = 617 pt and
+    /// the margins are recomputed (0-6: 0, the paper is taller than the screen now).
+    func testTailOnlyGrowthKeepsTheDrawing() async {
+        let (layout, paper) = makeMonth()
+        XCTAssertEqual(layout.memo.minY, 1050, accuracy: 0.01)
+        XCTAssertEqual(layout.memo.height, 700, accuracy: 0.01)
+        let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 591)
+        let zoom = rig.canvas.zoomScale
+        XCTAssertEqual(zoom, 402.0 / 1400, accuracy: 1e-4)
+        XCTAssertEqual(rig.canvas.contentInset.top, 44, accuracy: 0.5, "1750 lu × 0.2871 = 502 pt in 591: centred")
+        XCTAssertEqual(rig.canvas.contentInset.bottom, 44, accuracy: 0.5)
+
+        draw(makeStroke(at: CGPoint(x: 300, y: 1050 + 490)), on: rig)
+        let page = rig.coordinator.ledger.page
+        XCTAssertEqual(page.liveStrokes.first?.cell, CellKey.memo)
+        XCTAssertEqual(rig.probe.inkBounds, 1, "the memo area asks for room")
+        let (grown, grownPaper) = makeMonth(inkBottoms: page.inkBottoms())
+        XCTAssertEqual(grown.memo.height, 1100, accuracy: 0.01)
+        XCTAssertTrue(PaperGrowth.onlyTailHeightChanged(old: layout, new: grown))
+
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: makeView(layout: grown, paper: grownPaper, viewportWidth: 402, probe: rig.probe, page: page))
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the drawing is not rebuilt")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.memo]?.height ?? 0, 1100, accuracy: 0.01, "the ledger adopted the layout")
+        XCTAssertEqual(rig.canvas.contentSize.height, (1050 + 1100) * zoom, accuracy: 0.5)
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001, "0-6: 617 pt of paper in 591 — no margin")
+        XCTAssertEqual(rig.canvas.contentInset.bottom, 0, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.zoomScale, zoom, accuracy: 1e-6, "the overview rectangle did not change")
+        XCTAssertEqual(rig.paperView.content, grownPaper, "the paper got its new content")
+        // What the canvas holds is still what the ledger knows.
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.count, 1)
+        XCTAssertFalse(rig.coordinator.ledger.canRedo)
+    }
+
+    /// The memo area shrinks (1,500 → 700) while the iPad's month is scrolled to its end: the light
+    /// path clamps the offset to the new end (1750 × 0.7314 − 1180 = 100 pt), still without a new drawing.
+    func testTailOnlyShrinkClampsTheOffset() async {
+        var page = InkPage.empty(pageId: "m1-2026-10")
+        page.add(makeInkStroke(id: "memo-low", cell: .memo, t: 1_790_000_000_000, points: [(100, 880), (110, 898.25)]))
+        XCTAssertEqual(page.inkBottoms()[.memo] ?? 0, 900, accuracy: 0.1, "898.25 is stored as 898.3 (0.1 lu)")
+        let (grown, grownPaper) = makeMonth(inkBottoms: page.inkBottoms())
+        XCTAssertEqual(grown.memo.height, 1500, accuracy: 0.01)
+        let rig = await makeRig(layout: grown, paper: grownPaper, width: 1024, height: 1180, page: page)
+        let zoom = rig.canvas.zoomScale
+        XCTAssertEqual(zoom, 1024.0 / 1400, accuracy: 1e-4)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+        rig.canvas.contentOffset = CGPoint(x: 0, y: (1050 + 1500) * zoom - 1180)
+
+        erase(["memo-low"], on: rig)
+        XCTAssertTrue(rig.coordinator.ledger.page.liveStrokes.isEmpty)
+        let (shrunk, shrunkPaper) = makeMonth(inkBottoms: rig.coordinator.ledger.page.inkBottoms())
+        XCTAssertEqual(shrunk.memo.height, 700, accuracy: 0.01)
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: makeView(layout: shrunk, paper: shrunkPaper, viewportWidth: 1024, probe: rig.probe,
+                                              page: rig.coordinator.ledger.page))
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path")
+        XCTAssertEqual(rig.canvas.contentSize.height, 1750 * zoom, accuracy: 0.5)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 1750 * zoom - 1180, accuracy: 0.5, "clamped to the new end")
+        XCTAssertEqual(rig.canvas.contentInset, .zero)
+    }
+
+    /// The day's free memo area grows (700 → 1,100) and the paper's picture is handed in unchanged:
+    /// the geometry alone still reaches `applyPending` (`requestApply` and its guard know
+    /// `pendingGeometry`) and takes the light path. The day's overview is the 24 hours (K-6): the zoom stays.
+    func testDayExtraGrowthUsesTheTailPath() async {
+        let (layout, paper) = makeDay()
+        XCTAssertEqual(layout.size.height, 3100, accuracy: 0.01)
+        let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 580)
+        let zoom = rig.canvas.zoomScale
+        XCTAssertEqual(zoom, fitAll(layout, 402, 580), accuracy: 1e-6)
+
+        draw(makeStroke(at: CGPoint(x: 300, y: 2400 + 490)), on: rig)
+        let page = rig.coordinator.ledger.page
+        XCTAssertEqual(page.liveStrokes.first?.cell, CellKey.extra, "below 24:00")
+        XCTAssertEqual(page.liveStrokes.first?.points.first?.y ?? -1, 490, accuracy: 0.11, "cell-relative: paper y − 2400")
+        XCTAssertEqual(rig.probe.inkBounds, 1)
+        let (grown, _) = makeDay(inkBottoms: page.inkBottoms())
+        XCTAssertEqual(grown.extra.height, 1100, accuracy: 0.01)
+
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: makeView(layout: grown, paper: paper, viewportWidth: 402, probe: rig.probe, page: page))
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path, although the paper's picture is the same")
+        XCTAssertEqual(rig.canvas.contentSize.height, (2400 + 1100) * zoom, accuracy: 0.5)
+        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.extra]?.height ?? 0, 1100, accuracy: 0.01)
+        XCTAssertEqual(rig.canvas.zoomScale, zoom, accuracy: 1e-6, "the overview is the 24 hours")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+    }
+
+    /// A row of the month grows (the memo area moves down): the drawing is rebuilt as before (one
+    /// `setDrawing`), the content follows the new paper.
+    func testRowGrowthStillRebuilds() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180)
+        guard let cell = layout.cells[.day(wednesday)] else { return XCTFail("no cell for 10/7") }
+        draw(makeStroke(at: CGPoint(x: cell.minX + 50, y: cell.minY + 168)), on: rig)
+        let page = rig.coordinator.ledger.page
+        XCTAssertEqual(page.liveStrokes.first?.cell, CellKey.day(wednesday))
+        let (grown, grownPaper) = makeMonth(inkBottoms: page.inkBottoms())
+        XCTAssertGreaterThan(grown.memo.minY, layout.memo.minY, "the row grew")
+        XCTAssertFalse(PaperGrowth.onlyTailHeightChanged(old: layout, new: grown))
+
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: makeView(layout: grown, paper: grownPaper, viewportWidth: 1024, probe: rig.probe, page: page))
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds + 1, "rebuilt: the rows below moved")
+        XCTAssertEqual(rig.canvas.contentSize.height, grown.size.height * rig.canvas.zoomScale, accuracy: 0.5)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.memo]?.minY ?? 0, grown.memo.minY, accuracy: 0.01)
+    }
+
+    // MARK: 1.1 — the end of an erasure (M7A_CONTRACT §2.5)
+
+    /// Begin → the eraser takes a stroke → end: `onEraseEnded(1)` once, after the settle wait (not before).
+    func testEraseEndedIsReportedOnceAfterTheLift() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 2)
+        touch(rig)
+        erase(["a"], on: rig)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["b"])
+        lift(rig)
+        await settle()
+        XCTAssertEqual(rig.probe.erased, [], "not before the settle wait is over")
+        await waitPastTheSettle()
+        XCTAssertEqual(rig.probe.erased, [1], "once, with the count")
+        await waitPastTheSettle()
+        XCTAssertEqual(rig.probe.erased, [1], "only once")
+    }
+
+    /// Touches inside one settle wait add up — a touch that erased nothing in between included — and
+    /// are reported once, after the last lift.
+    func testErasesWithinTheSettleWindowAddUp() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser,
+                                page: monthPage(strokes: ["a", "b", "c"]))
+        touch(rig)
+        erase(["a"], on: rig)
+        lift(rig)
+        touch(rig) // within 0.3 s: the wait starts again, the count is carried over
+        lift(rig)
+        touch(rig)
+        erase(["b", "c"], on: rig)
+        lift(rig)
+        XCTAssertTrue(rig.coordinator.ledger.page.liveStrokes.isEmpty)
+        await settle()
+        XCTAssertEqual(rig.probe.erased, [])
+        await waitPastTheSettle()
+        XCTAssertEqual(rig.probe.erased, [3], "one report for the three")
+    }
+
+    /// No report for: a touch that erased nothing; ↶ taking a stroke away while the eraser is the tool;
+    /// read only; the dots a leaving finger tap removes; a stroke lost while the pen is the tool.
+    func testEraseEndedIsNotReportedForNothingErasedUndoReadOnlyDotsOrPen() async {
+        let (layout, paper) = makeMonth()
+
+        // Nothing erased.
+        let quiet = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a"]))
+        touch(quiet)
+        lift(quiet)
+        await waitPastTheSettle()
+        XCTAssertEqual(quiet.probe.erased, [], "nothing erased")
+
+        // ↶ while the touch settles: the undo lands through `setDrawing`, not as an erasure.
+        let undo = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a"]))
+        draw(makeStroke(at: CGPoint(x: 300, y: 600)), on: undo) // drawn earlier (no touch around it): what ↶ takes away
+        XCTAssertEqual(undo.coordinator.ledger.page.liveStrokes.count, 2)
+        touch(undo)
+        lift(undo)
+        undo.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: undo.probe, tool: .eraser,
+                                               page: undo.coordinator.ledger.page, undoTrigger: 1))
+        await waitPastTheSettle()
+        XCTAssertEqual(undo.coordinator.ledger.page.liveStrokeIds, ["a"], "↶ took the stroke away")
+        XCTAssertEqual(undo.probe.erased, [], "undo")
+
+        // Read only.
+        let readOnly = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser,
+                                     page: monthPage(strokes: ["a"]), readOnly: true)
+        touch(readOnly)
+        erase(["a"], on: readOnly)
+        lift(readOnly)
+        await waitPastTheSettle()
+        XCTAssertEqual(readOnly.probe.erased, [], "read only")
+
+        // The dot of a leaving finger tap (removed through the ledger, one undoable op).
+        var dotPage = InkPage.empty(pageId: "m1-2026-10")
+        dotPage.add(makeInkStroke(id: "dot", cell: .day(wednesday), t: 1_790_000_000_000, points: [(100, 100), (101.5, 101.5)]))
+        let dots = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true, tool: .eraser,
+                                 allowFinger: true, page: dotPage, tapLeavesPage: { _, _ in true })
+        dots.coordinator.noteRecentAdd("dot", at: dots.coordinator.uptime())
+        guard let origin = layout.cells[.day(wednesday)]?.origin else { return XCTFail("no cell for 10/7") }
+        touch(dots)
+        lift(dots)
+        dots.coordinator.fingerTapped(atPaper: CGPoint(x: origin.x + 100.75, y: origin.y + 100.75), zoom: dots.canvas.zoomScale)
+        XCTAssertTrue(dots.coordinator.ledger.page.liveStrokes.isEmpty, "the dot went")
+        await waitPastTheSettle()
+        XCTAssertEqual(dots.probe.erased, [], "dots")
+
+        // The pen is the tool.
+        let pen = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .ink(InkPresets.defaultPen),
+                                page: monthPage(strokes: ["a"]))
+        touch(pen)
+        erase(["a"], on: pen)
+        lift(pen)
+        await waitPastTheSettle()
+        XCTAssertEqual(pen.probe.erased, [], "pen")
+    }
+
+    /// §2.1: the pen's touch on the canvas and the overlay's tracking are reported at once, the lifts never.
+    func testPenDownIsReported() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .ink(InkPresets.defaultPen))
+        XCTAssertEqual(rig.probe.penDowns, 0)
+        touch(rig)
+        XCTAssertEqual(rig.probe.penDowns, 1, "the canvas: at once")
+        lift(rig)
+        XCTAssertEqual(rig.probe.penDowns, 1, "not when it lifts")
+        rig.coordinator.overlay(rig.container.overlayView, isTracking: true)
+        XCTAssertEqual(rig.probe.penDowns, 2, "the lasso / 予定 overlay")
+        rig.coordinator.overlay(rig.container.overlayView, isTracking: false)
+        await waitPastTheSettle()
+        XCTAssertEqual(rig.probe.penDowns, 2)
+    }
+
+    // MARK: 1.1 — the limit of the last cell and the budget (M7A_CONTRACT §3.4, §5.2, 0-5, K-9)
+
+    /// A memo stroke from a 1.0 device at 6,420 lu makes the paper longer than the limit (6,470): it
+    /// stays and is drawn. New strokes centred more than 6,000 lu below the memo area's top are dropped
+    /// there anyway — off the canvas, never in the ledger, not undoable — with one notice per change;
+    /// one above the limit is kept without a notice; one off the paper is dropped without it.
+    func testNewStrokesBeyondTheCapAreDropped() async {
+        var page = InkPage.empty(pageId: "m1-2026-10")
+        page.add(makeInkStroke(id: "from-1.0", cell: .memo, t: 1_790_000_000_000, points: [(100, 6400), (120, 6418.25)]))
+        let (layout, paper) = makeMonth(inkBottoms: page.inkBottoms())
+        XCTAssertEqual(layout.memo.height, 6470, accuracy: 0.1, "b + 50: the 1.0 stroke stays visible")
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .ink(InkPresets.defaultPen), page: page)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1, "the 1.0 stroke is drawn")
+        let top = layout.memo.minY
+
+        draw(makeStroke(at: CGPoint(x: 400, y: top + 6098)), on: rig)
+        await settle()
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1, "gone from the canvas")
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["from-1.0"], "never in the ledger; the 1.0 stroke stays")
+        XCTAssertFalse(rig.coordinator.ledger.canUndo)
+        XCTAssertEqual(rig.probe.caps, 1)
+
+        rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes + [
+            makeStroke(at: CGPoint(x: 400, y: top + 6200)),
+            makeStroke(at: CGPoint(x: 600, y: top + 6300)),
+        ])
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        await settle()
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+        XCTAssertEqual(rig.probe.caps, 2, "one notice for one change")
+
+        draw(makeStroke(at: CGPoint(x: 400, y: top + 4998)), on: rig)
+        await settle()
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.count, 2, "above the limit: kept")
+        XCTAssertEqual(rig.probe.caps, 2, "its bottom leaves room for another step")
+
+        draw(makeStroke(at: CGPoint(x: -30, y: top + 6100)), on: rig)
+        await settle()
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.count, 2, "off the paper: dropped (M4C-25)")
+        XCTAssertEqual(rig.probe.caps, 2, "without the notice")
+    }
+
+    /// The second trigger of 「メモ欄はここまでです」: a new memo stroke whose bottom is past 5,600 lu
+    /// (no further 400 lu step fits below it) is kept and reported once; at 5,600 it is not.
+    func testCapNoticeWhenTheTailReachesItsLastStep() async {
+        let (layout, paper) = makeMonth(inkBottoms: [.memo: 5500])
+        XCTAssertEqual(layout.memo.height, 5900, accuracy: 0.01)
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .ink(InkPresets.defaultPen))
+        let top = layout.memo.minY
+
+        draw(makeStroke(through: (0..<5).map { CGPoint(x: 100 + CGFloat($0) * 10, y: top + 5598) }, nib: 4), on: rig)
+        await settle()
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.first?.bottom ?? 0, 5600, accuracy: 0.001)
+        XCTAssertEqual(rig.probe.caps, 0, "5,600: the last step still fits")
+
+        draw(makeStroke(through: (0..<5).map { CGPoint(x: 300 + CGFloat($0) * 10, y: top + 5599) }, nib: 4), on: rig)
+        await settle()
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.count, 2, "kept")
+        XCTAssertEqual(rig.coordinator.ledger.page.inkBottoms()[.memo] ?? 0, 5601, accuracy: 0.001)
+        XCTAssertEqual(rig.probe.caps, 1, "5,601: once")
+    }
+
+    /// K-9: at 19,000 strokes (in a cell no layout has, so nothing is drawn) a new stroke is taken off
+    /// the canvas and `.full(19000)` is reported; at 14,999 the new one reaches 15,000 and `.many(15000)`
+    /// is reported once. iCloud and ↶ are never stopped: a page brought to 19,000 from outside takes
+    /// the stroke ↶ puts back (19,001).
+    func testStrokesOverTheBudgetAreRefused() async {
+        let (layout, paper) = makeDay()
+        let pen = CanvasTool.ink(InkPresets.defaultPen)
+
+        let full = budgetPage(pageId: layout.pageId, count: 19_000)
+        XCTAssertEqual(full.budgetCount, 19_000)
+        let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 580, tool: pen, page: full)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 0, "a cell the layout lacks is not drawn")
+        draw(makeStroke(at: CGPoint(x: 300, y: 600)), on: rig)
+        await settle()
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 0, "taken off the canvas")
+        XCTAssertEqual(rig.coordinator.ledger.page.budgetCount, 19_000)
+        XCTAssertFalse(rig.coordinator.ledger.canUndo)
+        XCTAssertEqual(rig.probe.budget, [.full(19_000)])
+
+        let many = budgetPage(pageId: layout.pageId, count: 14_999)
+        let rig2 = await makeRig(layout: layout, paper: paper, width: 402, height: 580, tool: pen, page: many)
+        draw(makeStroke(at: CGPoint(x: 300, y: 600)), on: rig2)
+        await settle()
+        XCTAssertEqual(rig2.coordinator.ledger.page.budgetCount, 15_000)
+        XCTAssertEqual(rig2.canvas.drawing.strokes.count, 1)
+        XCTAssertEqual(rig2.probe.budget, [.many(15_000)])
+        draw(makeStroke(at: CGPoint(x: 300, y: 900)), on: rig2)
+        await settle()
+        XCTAssertEqual(rig2.coordinator.ledger.page.budgetCount, 15_001)
+        XCTAssertEqual(rig2.probe.budget, [.many(15_000)], "once")
+
+        var near = budgetPage(pageId: layout.pageId, count: 18_998)
+        near.add(makeInkStroke(id: "a", cell: .grid, t: 1_790_000_100_000, points: [(300, 600), (330, 600), (360, 600)]))
+        let rig3 = await makeRig(layout: layout, paper: paper, width: 402, height: 580, tool: .eraser, page: near)
+        XCTAssertEqual(rig3.canvas.drawing.strokes.count, 1)
+        erase(["a"], on: rig3)
+        XCTAssertEqual(rig3.coordinator.ledger.page.budgetCount, 18_998)
+        var remote = rig3.coordinator.ledger.page
+        let point = InkPoint(x: 1, y: 1, dtMs: 0, sizeW: 2, sizeH: 2, opacity: 1, force: 0.5, azimuth: 0, altitude: 1.571)
+        for i in 0..<2 {
+            remote.add(InkStroke(id: "remote-\(i)", cell: CellKey(raw: "zz-budget"), tool: .pen, color: "#1f2937",
+                                 t: 1_790_000_200_000 + i, points: [point]))
+        }
+        rig3.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 402, probe: rig3.probe, tool: .eraser, page: remote))
+        XCTAssertEqual(rig3.coordinator.ledger.page.budgetCount, 19_000, "iCloud is not stopped")
+        rig3.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 402, probe: rig3.probe, tool: .eraser,
+                                               page: remote, undoTrigger: 1))
+        await settle()
+        XCTAssertEqual(rig3.coordinator.ledger.page.budgetCount, 19_001, "↶ is not stopped either")
+        XCTAssertEqual(rig3.probe.budget, [])
+    }
+
+    // MARK: 1.1 — the round button's clearance (M7A_CONTRACT §2.2)
+
+    /// The iPhone's week (1920 lu at 0.2871 = 551 pt in 580: 14.5 pt above and below): with a
+    /// clearance of 60 the bottom margin is 60 at once (the others unchanged), and stays through a
+    /// layout pass; a larger centring margin wins; 0 gives the centring margin back.
+    func testBottomClearanceAddsToTheBottomInset() async {
+        let (layout, paper) = makeWeek()
+        let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 580)
+        let zoom = rig.canvas.zoomScale
+        let margin = (580 - 1920 * zoom) / 2
+        XCTAssertEqual(margin, 14.5, accuracy: 0.5)
+        XCTAssertEqual(rig.canvas.contentInset.bottom, margin, accuracy: 0.01)
+
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 402, probe: rig.probe, bottomClearance: 60))
+        XCTAssertEqual(rig.canvas.contentInset.bottom, 60, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.contentInset.top, margin, accuracy: 0.01, "the top margin is the centring one")
+        XCTAssertEqual(rig.canvas.contentInset.left, 0, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.contentSize.height + rig.canvas.contentInset.top + rig.canvas.contentInset.bottom - 580, 60 - margin,
+                       accuracy: 0.5, "the paper's bottom can be scrolled above the button")
+
+        // The toolbar folded: the paper area is 66 pt taller (still width-bound): max(47.4, 60).
+        rig.layout(width: 402, height: 646)
+        XCTAssertEqual(rig.canvas.contentInset.bottom, 60, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.contentInset.top, (646 - 1920 * zoom) / 2, accuracy: 0.01)
+        // A centring margin larger than the clearance wins.
+        rig.layout(width: 402, height: 800)
+        XCTAssertEqual(rig.canvas.contentInset.bottom, (800 - 1920 * zoom) / 2, accuracy: 0.01)
+
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 402, probe: rig.probe, bottomClearance: 0))
+        rig.layout(width: 402, height: 580)
+        XCTAssertEqual(rig.canvas.contentInset.bottom, margin, accuracy: 0.01, "the centring margin alone")
+        XCTAssertEqual(rig.canvas.contentInset.top, margin, accuracy: 0.01)
+    }
+
+    // MARK: 1.1 — whose dots, and the eraser's tap (M7A_CONTRACT §2.4, §4.1, 0-21, 0-22)
+
+    /// 0-21: a small stroke another device wrote, its clock an hour ahead (1.0.1 picked its dots by
+    /// `t`), comes in from iCloud: it is drawn, but it is not a dot candidate and a leaving tap leaves
+    /// it alone (no tombstone that would reach a 1.0 device). A dot this canvas drew is still taken.
+    func testDotsFromAnotherDeviceAreNotCandidates() async {
+        let (layout, paper) = makeYear()
+        let cell = CellKey.yearDay(month: 10, day: 7)
+        let tap = CGPoint(x: 1120.75, y: 390.75)
+        let pen = CanvasTool.ink(InkPresets.defaultPen)
+        let log = TapLog()
+        let leaves: (CGPoint, CGFloat) -> Bool = { _, _ in true }
+        let onTap: (CGPoint, CGFloat) -> Void = { point, _ in log.points.append(point) }
+        let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 569, doubleTapEnabled: true, tool: pen,
+                                allowFinger: true, onTap: onTap, tapLeavesPage: leaves)
+        var remote = InkPage.empty(pageId: layout.pageId)
+        let ahead = Int(Date().timeIntervalSince1970 * 1000) + 3_600_000
+        remote.add(makeInkStroke(id: "far-dot", cell: cell, t: ahead, points: [(56, 30), (57.5, 31.5)]))
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 402, probe: rig.probe, doubleTapEnabled: true,
+                                              tool: pen, allowFinger: true, page: remote, onTap: onTap, tapLeavesPage: leaves))
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["far-dot"])
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1, "drawn")
+        let zoom = rig.canvas.zoomScale
+        XCTAssertEqual(rig.coordinator.dotStrokeIds(near: tap, zoom: zoom, within: InkCanvasView.Coordinator.singleTapDotWindow), [])
+        rig.coordinator.fingerTapped(atPaper: tap, zoom: zoom)
+        XCTAssertEqual(log.points, [tap])
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["far-dot"], "not erased")
+        XCTAssertNil(rig.coordinator.ledger.page.deleted["far-dot"], "no tombstone")
+        XCTAssertFalse(rig.coordinator.ledger.canUndo)
+
+        // This canvas's own dot at the same place: found and removed by the next leaving tap.
+        draw(makeStroke(through: [CGPoint(x: 1120, y: 390), CGPoint(x: 1121.5, y: 391.5)]), on: rig)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.count, 2)
+        XCTAssertEqual(rig.coordinator.dotStrokeIds(near: tap, zoom: zoom, within: InkCanvasView.Coordinator.singleTapDotWindow).count, 1)
+        rig.coordinator.fingerTapped(atPaper: tap, zoom: zoom)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["far-dot"], "only the canvas's own dot went")
+    }
+
+    /// 0-22: with the eraser and 「指でも書く」, a finger tap on a date erases the line under it and leaves
+    /// the page: what that very touch erased is put back (as a clone, a new id; the old id keeps its
+    /// tombstone) before `onTap`, and the tool does not go back to the pen for it. A tap that stays on
+    /// the page, read only, or a stroke an earlier touch erased: nothing is put back.
+    func testEraserTapThatLeavesThePageRestoresWhatItErased() async {
+        let (layout, paper) = makeYear()
+        let cell = CellKey.yearDay(month: 10, day: 7)
+        var page = InkPage.empty(pageId: layout.pageId)
+        page.add(makeInkStroke(id: "line", cell: cell, t: 1_790_000_000_000, points: [(10, 30), (50, 30), (100, 30)]))
+        let tap = CGPoint(x: 1120, y: 390)
+
+        func eraserRig(leaves: Bool, readOnly: Bool = false) async -> (rig: Rig, log: TapLog) {
+            let log = TapLog()
+            let rig = await makeRig(
+                layout: layout, paper: paper, width: 402, height: 569, doubleTapEnabled: true, tool: .eraser, allowFinger: true,
+                page: page, readOnly: readOnly,
+                onTap: { point, zoom in
+                    log.points.append(point)
+                    log.zooms.append(zoom)
+                    log.liveIds.append(Set(log.coordinator?.ledger.page.liveStrokes.map(\.id) ?? []))
+                },
+                tapLeavesPage: { _, _ in leaves }
+            )
+            log.coordinator = rig.coordinator
+            rig.coordinator.uptime = { 500 }
+            return (rig, log)
+        }
+
+        let (rig, log) = await eraserRig(leaves: true)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+        touch(rig)
+        erase(["line"], on: rig)
+        XCTAssertTrue(rig.coordinator.ledger.page.liveStrokes.isEmpty)
+        lift(rig)
+        rig.coordinator.tapTouchBeganAt = 500.02 // the tap's own finger
+        rig.coordinator.fingerTapped(atPaper: tap, zoom: rig.canvas.zoomScale)
+        XCTAssertEqual(log.points, [tap], "reported once")
+        XCTAssertEqual(log.liveIds.first?.count, 1, "put back before the report")
+        XCTAssertFalse(log.liveIds.first?.contains("line") ?? true, "as a clone with a new id")
+        XCTAssertNotNil(rig.coordinator.ledger.page.deleted["line"], "the old id keeps its tombstone")
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.first?.points, page.strokes["line"]?.points)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1, "on the canvas again")
+        await waitPastTheSettle()
+        XCTAssertEqual(rig.probe.erased, [], "the tool does not go back to the pen for it")
+
+        // A tap that stays on the page: the erasure stays (and is reported as usual).
+        let (stay, _) = await eraserRig(leaves: false)
+        touch(stay)
+        erase(["line"], on: stay)
+        lift(stay)
+        stay.coordinator.tapTouchBeganAt = 500.02
+        stay.coordinator.fingerTapped(atPaper: tap, zoom: stay.canvas.zoomScale)
+        XCTAssertTrue(stay.coordinator.ledger.page.liveStrokes.isEmpty)
+        await waitPastTheSettle()
+        XCTAssertEqual(stay.probe.erased, [1])
+
+        // Read only: nothing is put back.
+        let (readOnly, _) = await eraserRig(leaves: true, readOnly: true)
+        touch(readOnly)
+        erase(["line"], on: readOnly)
+        lift(readOnly)
+        readOnly.coordinator.tapTouchBeganAt = 500.02
+        readOnly.coordinator.fingerTapped(atPaper: tap, zoom: readOnly.canvas.zoomScale)
+        XCTAssertTrue(readOnly.coordinator.ledger.page.liveStrokes.isEmpty, "read only")
+
+        // An earlier touch erased it; the tap is a touch of its own a second later.
+        let (earlier, earlierLog) = await eraserRig(leaves: true)
+        touch(earlier)
+        erase(["line"], on: earlier)
+        lift(earlier)
+        earlier.coordinator.tapTouchBeganAt = 501
+        earlier.coordinator.fingerTapped(atPaper: tap, zoom: earlier.canvas.zoomScale)
+        XCTAssertEqual(earlierLog.liveIds, [[]], "what an earlier touch erased stays erased")
+        XCTAssertTrue(earlier.coordinator.ledger.page.liveStrokes.isEmpty)
+
+        // The settle wait ended before the single tap (on the week, month and year pages the tap waits
+        // about 0.3 s for the double tap to fail, M4C-6): the end of the erasure was reported and the
+        // owner put the pen back. The tap still puts back what its own touch erased.
+        let (late, lateLog) = await eraserRig(leaves: true)
+        touch(late)
+        erase(["line"], on: late)
+        lift(late)
+        await waitPastTheSettle()
+        XCTAssertEqual(late.probe.erased, [1], "reported before the tap arrived")
+        late.coordinator.update(from: makeView(
+            layout: layout, paper: paper, viewportWidth: 402, probe: late.probe, doubleTapEnabled: true,
+            tool: .ink(InkPresets.defaultPen), allowFinger: true, page: late.coordinator.ledger.page,
+            onTap: { point, zoom in
+                lateLog.points.append(point)
+                lateLog.zooms.append(zoom)
+                lateLog.liveIds.append(Set(lateLog.coordinator?.ledger.page.liveStrokes.map(\.id) ?? []))
+            },
+            tapLeavesPage: { _, _ in true }
+        ))
+        late.coordinator.tapTouchBeganAt = 500.02
+        late.coordinator.fingerTapped(atPaper: tap, zoom: late.canvas.zoomScale)
+        XCTAssertEqual(lateLog.points, [tap])
+        XCTAssertEqual(lateLog.liveIds.first?.count, 1, "put back before the report, the pen already chosen")
+        XCTAssertNotNil(late.coordinator.ledger.page.deleted["line"])
+        XCTAssertEqual(late.canvas.drawing.strokes.count, 1)
+    }
+
+    /// 0-22 with the real timing: the tap's finger is timed when it touches down (`UITouch.timestamp`),
+    /// the eraser's touch when PencilKit tells of the tool (`uptime()` at Begin), which may be well over
+    /// 0.1 s later in an ordinary tap. Begin 0.15 s or 0.49 s after the touch-down: what the touch erased
+    /// is still put back before `onTap`. A touch that began 0.5 s or more after the finger (not the
+    /// tap's own, e.g. the Pencil while the tap waited for the double tap to fail) or more than 0.05 s
+    /// before it (an earlier touch): nothing is put back.
+    func testEraserTapRestoresWhenPencilKitBeginsLate() async {
+        let (layout, paper) = makeYear()
+        let cell = CellKey.yearDay(month: 10, day: 7)
+        var page = InkPage.empty(pageId: layout.pageId)
+        page.add(makeInkStroke(id: "line", cell: cell, t: 1_790_000_000_000, points: [(10, 30), (50, 30), (100, 30)]))
+        let tap = CGPoint(x: 1120, y: 390)
+
+        /// Begin at uptime 500, the eraser takes "line", lift, then the tap whose finger touched down
+        /// at `fingerDown`. Returns the live ids `onTap` saw and the rig after the settle wait.
+        func eraserTap(fingerDown: TimeInterval) async -> (seen: [Set<String>], rig: Rig) {
+            let log = TapLog()
+            let rig = await makeRig(
+                layout: layout, paper: paper, width: 402, height: 569, doubleTapEnabled: true, tool: .eraser, allowFinger: true,
+                page: page,
+                onTap: { _, _ in
+                    log.liveIds.append(Set(log.coordinator?.ledger.page.liveStrokes.map(\.id) ?? []))
+                },
+                tapLeavesPage: { _, _ in true }
+            )
+            log.coordinator = rig.coordinator
+            rig.coordinator.uptime = { 500 }
+            touch(rig)
+            erase(["line"], on: rig)
+            lift(rig)
+            rig.coordinator.tapTouchBeganAt = fingerDown
+            rig.coordinator.fingerTapped(atPaper: tap, zoom: rig.canvas.zoomScale)
+            await waitPastTheSettle()
+            return (log.liveIds, rig)
+        }
+
+        for fingerDown in [499.85, 499.51] {
+            let (seen, rig) = await eraserTap(fingerDown: fingerDown)
+            XCTAssertEqual(seen.count, 1, "reported once (finger down at \(fingerDown))")
+            XCTAssertEqual(seen.first?.count, 1, "put back before the report (finger down at \(fingerDown))")
+            XCTAssertFalse(seen.first?.contains("line") ?? true, "as a clone with a new id")
+            XCTAssertNotNil(rig.coordinator.ledger.page.deleted["line"], "the old id keeps its tombstone")
+            XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+            XCTAssertEqual(rig.probe.erased, [], "the tool does not go back to the pen for it")
+        }
+        for fingerDown in [499.5, 499.0, 500.06, 501.0] {
+            let (seen, rig) = await eraserTap(fingerDown: fingerDown)
+            XCTAssertEqual(seen, [[]], "not the tap's own touch (finger down at \(fingerDown)): it stays erased")
+            XCTAssertTrue(rig.coordinator.ledger.page.liveStrokes.isEmpty)
+            XCTAssertNotNil(rig.coordinator.ledger.page.deleted["line"])
+            XCTAssertEqual(rig.probe.erased, [1], "reported as an ordinary erasure")
+        }
+    }
+
+    // MARK: 1.1 fix — the eraser's report in any order (TestFlight build 12: 確認 4・5・6b; M7A.md ずれ 46)
+
+    private enum Edge {
+        case down, up
+    }
+
+    /// What `touchObserver` reports for a touch of `type` (the tests stand in for UIKit).
+    private func observe(_ rig: Rig, _ edge: Edge, _ type: UITouch.TouchType) {
+        rig.coordinator.touchObserved(edge == .down ? .down(type) : .up(type))
+    }
+
+    /// The eraser takes `ids` and PencilKit never tells (no `canvasViewDrawingDidChange`).
+    private func eraseSilently(_ ids: Set<String>, on rig: Rig) {
+        let kept = rig.canvas.drawing.strokes.filter { pk in
+            rig.coordinator.ledger.id(of: pk).map { !ids.contains($0) } ?? true
+        }
+        rig.canvas.delegate = nil
+        rig.canvas.drawing = PKDrawing(strokes: kept)
+        rig.canvas.delegate = rig.coordinator
+    }
+
+    /// One change: the stroke `erasing` leaves the canvas and `renewing` is replaced by a copy whose
+    /// creation date is 1 µs later (a new fingerprint: the ledger sees it removed and a new one added).
+    private func replace(erasing: String, renewing: String, on rig: Rig) {
+        var strokes: [PKStroke] = []
+        for pk in rig.canvas.drawing.strokes {
+            let id = rig.coordinator.ledger.id(of: pk)
+            if id == erasing { continue }
+            if id == renewing {
+                let path = PKStrokePath(controlPoints: Array(pk.path), creationDate: pk.path.creationDate.addingTimeInterval(0.000_001))
+                strokes.append(PKStroke(ink: pk.ink, path: path, transform: pk.transform, mask: pk.mask))
+            } else {
+                strokes.append(pk)
+            }
+        }
+        rig.canvas.drawing = PKDrawing(strokes: strokes)
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+    }
+
+    /// `seconds` of real time, then the queued main-actor work.
+    private func wait(_ seconds: Double) async {
+        try? await Task.sleep(for: .seconds(seconds))
+        await settle()
+    }
+
+    /// The review: `condition`, looked at every 0.05 s (the queued main-actor work run first) for at
+    /// most `seconds` of real time; true as soon as it holds. For the "it has come" checks behind the
+    /// 0.5 s waits (the lift watch, a finger's report), which a busy CI simulator may overrun; a "not
+    /// yet" check stays a fixed wait.
+    private func eventually(within seconds: Double = 3, _ condition: () -> Bool) async -> Bool {
+        let clock = ContinuousClock()
+        let deadline = clock.now + .milliseconds(Int(seconds * 1000))
+        while true {
+            await settle()
+            if condition() { return true }
+            if clock.now >= deadline { return false }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
+    /// A2: PencilKit's change comes long after its End (after the settle wait): it still counts and is
+    /// reported (0.3 s later: the observer has seen no touch). Build 12 counted only during a touch
+    /// or the wait after it.
+    func testEraseChangeAfterTheSettleWaitIsReported() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        touch(rig)
+        lift(rig)
+        await wait(0.6)
+        erase(["a"], on: rig)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["b"])
+        await wait(0.6)
+        XCTAssertEqual(rig.probe.erased, [1])
+    }
+
+    /// A3: the change comes before PencilKit's Begin (Begin → End follow): reported once.
+    func testEraseChangeBeforeTheBeginIsReported() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        erase(["a"], on: rig)
+        touch(rig)
+        lift(rig)
+        await wait(0.7)
+        XCTAssertEqual(rig.probe.erased, [1])
+    }
+
+    /// A4: a change with neither Begin nor End: reported once (after `settleDelay`, not at once).
+    func testEraseChangeWithoutBeginOrEndIsReported() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        erase(["a"], on: rig)
+        await settle()
+        XCTAssertEqual(rig.probe.erased, [])
+        await wait(0.6)
+        XCTAssertEqual(rig.probe.erased, [1])
+    }
+
+    /// A5: one touch erases a, b and c one change at a time: one report of 3.
+    func testOneTouchErasingOneByOneIsReportedOnce() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b", "c"]))
+        touch(rig)
+        erase(["a"], on: rig)
+        erase(["b"], on: rig)
+        erase(["c"], on: rig)
+        lift(rig)
+        await settle()
+        XCTAssertEqual(rig.probe.erased, [])
+        await wait(0.6)
+        XCTAssertEqual(rig.probe.erased, [3])
+        await wait(0.4)
+        XCTAssertEqual(rig.probe.erased, [3], "once")
+    }
+
+    /// A6: in one change the eraser takes a and PencilKit hands c back as a new stroke (its creation
+    /// date 1 µs later): the ledger sees two removed and one added, and the eraser counts the one. Build
+    /// 12 counted only a change that added nothing. The same change with the pen counts nothing.
+    func testEraserChangeThatAlsoRenewsAStrokeCountsWhatItRemoved() async {
+        let (layout, paper) = makeMonth()
+        let cases: [(tool: CanvasTool, erased: [Int])] = [(.eraser, [1]), (.ink(InkPresets.defaultPen), [])]
+        for (tool, erased) in cases {
+            let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: tool, page: monthPage(strokes: ["a", "b", "c"]))
+            touch(rig)
+            replace(erasing: "a", renewing: "c", on: rig)
+            lift(rig)
+            await wait(0.7)
+            let live = rig.coordinator.ledger.page.liveStrokeIds
+            XCTAssertEqual(live.count, 2, "b and the new copy of c (\(tool))")
+            XCTAssertTrue(live.contains("b") && !live.contains("a") && !live.contains("c"), "\(live)")
+            XCTAssertEqual(rig.probe.erased, erased, "\(tool)")
+        }
+    }
+
+    /// A7: the eraser takes a and PencilKit never tells: the end of the settle wait takes it into the
+    /// ledger and reports it, and a rebuilt drawing (a row grows) does not bring it back. Build 12
+    /// never reported it, and the rebuild brought a back from the ledger.
+    func testSilentErasureIsTakenInWhenTheSettleWaitEnds() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        touch(rig)
+        eraseSilently(["a"], on: rig)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["a", "b"], "PencilKit did not tell")
+        lift(rig)
+        await wait(1)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["b"])
+        XCTAssertEqual(rig.probe.erased, [1])
+
+        let (grown, grownPaper) = makeMonth(inkBottoms: [.day(wednesday): 200])
+        XCTAssertFalse(PaperGrowth.onlyTailHeightChanged(old: layout, new: grown), "a row grew")
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: makeView(layout: grown, paper: grownPaper, viewportWidth: 1024, probe: rig.probe, tool: .eraser,
+                                              page: rig.coordinator.ledger.page))
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds + 1, "rebuilt from the ledger")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1, "a stays erased")
+    }
+
+    /// A8: Begin → a → End, 0.1 s later Begin → b → End (inside the wait): one report of 2.
+    func testASecondTouchInsideTheWaitAddsUp() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b", "c"]))
+        touch(rig)
+        erase(["a"], on: rig)
+        lift(rig)
+        try? await Task.sleep(for: .seconds(0.1))
+        touch(rig)
+        erase(["b"], on: rig)
+        lift(rig)
+        await wait(0.6)
+        XCTAssertEqual(rig.probe.erased, [2])
+    }
+
+    /// A9 (確認 6b): Pencil down → Begin → the eraser's change → the Pencil lifts → End: reported on the
+    /// next turn, without the 0.3 s wait, so the stroke written right after is ink. Once.
+    func testPencilEraseIsReportedRightAfterTheLift() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        observe(rig, .down, .pencil)
+        touch(rig)
+        erase(["a"], on: rig)
+        observe(rig, .up, .pencil)
+        lift(rig)
+        await settle()
+        XCTAssertEqual(rig.probe.erased, [1], "the next turn")
+        await wait(0.6)
+        XCTAssertEqual(rig.probe.erased, [1], "once")
+    }
+
+    /// A10: the order measured on a Mac: down → Begin → up → the change → End. Reported on the next turn.
+    func testPencilEraseIsReportedWhenTheChangeComesAfterTheLift() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        observe(rig, .down, .pencil)
+        touch(rig)
+        observe(rig, .up, .pencil)
+        erase(["a"], on: rig)
+        lift(rig)
+        await settle()
+        XCTAssertEqual(rig.probe.erased, [1])
+        await wait(0.6)
+        XCTAssertEqual(rig.probe.erased, [1], "once")
+    }
+
+    /// A11: PencilKit's End never comes. Down → Begin → change → up: reported at once. The Pencil stays
+    /// on the paper 2 s: nothing (D2: the tool never changes under the pen); it lifts: reported. ↶ asked
+    /// after the lift waits for the pen; the lift watch takes it as lifted after 0.5 s and the undo
+    /// lands after the settle wait (0.3 s more; looked at for up to 3 s, `eventually`).
+    func testEraseIsReportedAndUndoLandsWhenTheEndNeverComes() async {
+        let (layout, paper) = makeMonth()
+        let one = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        observe(one, .down, .pencil)
+        touch(one)
+        erase(["a"], on: one)
+        observe(one, .up, .pencil)
+        await settle()
+        XCTAssertEqual(one.probe.erased, [1])
+
+        let held = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        observe(held, .down, .pencil)
+        touch(held)
+        erase(["a"], on: held)
+        await wait(2)
+        XCTAssertEqual(held.probe.erased, [], "not while the Pencil is on the paper")
+        observe(held, .up, .pencil)
+        await settle()
+        XCTAssertEqual(held.probe.erased, [1])
+
+        let undo = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        observe(undo, .down, .pencil)
+        touch(undo)
+        erase(["a"], on: undo)
+        observe(undo, .up, .pencil)
+        undo.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: undo.probe, tool: .eraser,
+                                               page: undo.coordinator.ledger.page, undoTrigger: 1))
+        XCTAssertEqual(undo.coordinator.ledger.page.liveStrokeIds, ["b"], "↶ waits while PencilKit's tool is in use")
+        XCTAssertTrue(undo.coordinator.isUsingTool)
+        let landed = await eventually { undo.coordinator.ledger.page.liveStrokeCount == 2 }
+        XCTAssertTrue(landed, "↶ landed after the lift watch and the settle wait")
+        XCTAssertFalse(undo.coordinator.isUsingTool, "the lift watch")
+        XCTAssertEqual(undo.coordinator.ledger.page.liveStrokeCount, 2, "↶ put a back (as a copy)")
+        XCTAssertEqual(undo.probe.erased, [1])
+    }
+
+    /// A12: after the lift and the End, a Begin with nothing on the paper (PencilKit's hover): the report
+    /// still goes out, and 0.5 s later the tool is no longer taken as in use (looked at for up to 3 s).
+    func testABeginWithoutATouchDoesNotHoldTheReportOrTheTool() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .eraser, page: monthPage(strokes: ["a", "b"]))
+        observe(rig, .down, .pencil)
+        touch(rig)
+        erase(["a"], on: rig)
+        observe(rig, .up, .pencil)
+        lift(rig)
+        touch(rig) // nothing on the paper
+        await settle()
+        XCTAssertEqual(rig.probe.erased, [1])
+        XCTAssertTrue(rig.coordinator.isUsingTool)
+        let ended = await eventually { !rig.coordinator.isUsingTool }
+        XCTAssertTrue(ended, "the lift watch ended it")
+        XCTAssertEqual(rig.probe.erased, [1])
+    }
+
+    /// A13: a finger with 「指でも書く」. On the month (the double tap is on) the report waits 0.5 s: not
+    /// there at 0.35 s, there afterwards. On the day page (no double tap) it waits `settleDelay`: not
+    /// there at 0.15 s, there afterwards. (A check of "not yet" is made only when the simulator did not
+    /// overrun the sleep; "there" is looked at for up to 3 s, `eventually`.)
+    func testFingerEraseWaitsLongerWhereTheDoubleTapIs() async {
+        let clock = ContinuousClock()
+        let (month, monthPaper) = makeMonth()
+        let rig = await makeRig(layout: month, paper: monthPaper, width: 1024, height: 1180, doubleTapEnabled: true, tool: .eraser,
+                                allowFinger: true, page: monthPage(strokes: ["a", "b"]))
+        observe(rig, .down, .direct)
+        touch(rig)
+        erase(["a"], on: rig)
+        observe(rig, .up, .direct)
+        lift(rig)
+        let lifted = clock.now
+        try? await Task.sleep(for: .seconds(0.35))
+        if clock.now - lifted < .milliseconds(450) {
+            XCTAssertEqual(rig.probe.erased, [], "the month: not before the double tap could fail")
+        }
+        let monthReported = await eventually { !rig.probe.erased.isEmpty }
+        XCTAssertTrue(monthReported, "the month: reported after the wait")
+        XCTAssertEqual(rig.probe.erased, [1])
+
+        let (day, dayPaper) = makeDay()
+        let dayRig = await makeRig(layout: day, paper: dayPaper, width: 834, height: 1000, tool: .eraser, allowFinger: true)
+        draw(makeStroke(at: CGPoint(x: 300, y: 600)), on: dayRig)
+        let ids = Set(dayRig.coordinator.ledger.page.liveStrokeIds)
+        XCTAssertEqual(ids.count, 1)
+        observe(dayRig, .down, .direct)
+        touch(dayRig)
+        erase(ids, on: dayRig)
+        observe(dayRig, .up, .direct)
+        lift(dayRig)
+        let dayLifted = clock.now
+        try? await Task.sleep(for: .seconds(0.15))
+        if clock.now - dayLifted < .milliseconds(250) {
+            XCTAssertEqual(dayRig.probe.erased, [], "the day page: not at once")
+        }
+        let dayReported = await eventually { !dayRig.probe.erased.isEmpty }
+        XCTAssertTrue(dayReported, "the day page: reported after the wait")
+        XCTAssertEqual(dayRig.probe.erased, [1])
+    }
+
+    /// A14 (0-22): the year page, a finger with the eraser takes the line under a tap that leaves the
+    /// page; the single tap arrives 0.35 s later (it waited for the double tap to fail) and puts the
+    /// line back first, so no report goes out and the tool stays the eraser (docs/M7A.md ずれ 38).
+    func testLeavingFingerTapPutsTheLineBackBeforeTheReport() async throws {
+        let (layout, paper) = makeYear()
+        let cell = CellKey.yearDay(month: 10, day: 7)
+        var page = InkPage.empty(pageId: layout.pageId)
+        page.add(makeInkStroke(id: "line", cell: cell, t: 1_790_000_000_000, points: [(10, 30), (50, 30), (100, 30)]))
+        let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 569, doubleTapEnabled: true, tool: .eraser,
+                                allowFinger: true, page: page, tapLeavesPage: { _, _ in true })
+        rig.coordinator.uptime = { 500 }
+        let clock = ContinuousClock()
+        observe(rig, .down, .direct)
+        touch(rig)
+        erase(["line"], on: rig)
+        observe(rig, .up, .direct)
+        lift(rig)
+        let lifted = clock.now
+        try? await Task.sleep(for: .seconds(0.35))
+        guard clock.now - lifted < .milliseconds(480) else {
+            throw XCTSkip("the simulator overran the 0.35 s sleep (the 0.5 s report may have gone first)")
+        }
+        XCTAssertTrue(rig.coordinator.ledger.page.liveStrokes.isEmpty)
+        rig.coordinator.tapTouchBeganAt = 500.02
+        rig.coordinator.fingerTapped(atPaper: CGPoint(x: 1120, y: 390), zoom: rig.canvas.zoomScale)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, 1, "put back (a copy)")
+        XCTAssertNotNil(rig.coordinator.ledger.page.deleted["line"])
+        await wait(1)
+        XCTAssertEqual(rig.probe.erased, [], "nothing to report: the tool stays the eraser")
+    }
+
+    /// A15: a finger touches again during the 0.5 s wait and erases more: one report of 2 (looked at
+    /// for up to 3 s after the second lift).
+    func testFingerTouchingAgainDuringTheWaitAddsUp() async throws {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true, tool: .eraser,
+                                allowFinger: true, page: monthPage(strokes: ["a", "b", "c"]))
+        let clock = ContinuousClock()
+        observe(rig, .down, .direct)
+        touch(rig)
+        erase(["a"], on: rig)
+        observe(rig, .up, .direct)
+        lift(rig)
+        let lifted = clock.now
+        try? await Task.sleep(for: .seconds(0.2))
+        guard clock.now - lifted < .milliseconds(450) else {
+            throw XCTSkip("the simulator overran the 0.2 s sleep")
+        }
+        XCTAssertEqual(rig.probe.erased, [])
+        observe(rig, .down, .direct)
+        touch(rig)
+        erase(["b"], on: rig)
+        observe(rig, .up, .direct)
+        lift(rig)
+        let reported = await eventually { !rig.probe.erased.isEmpty }
+        XCTAssertTrue(reported, "reported after the second lift's wait")
+        XCTAssertEqual(rig.probe.erased, [2])
+    }
+
+    /// A16: no report for — a touch that erased nothing; ↶ with the eraser and no touch; iCloud's page
+    /// without b arriving while the eraser is on the paper (the end of the settle wait finds nothing
+    /// the ledger does not know); the dot a leaving finger tap removes; read only, with and without the
+    /// observer; a change that only removed with the pen or the marker; a report still waiting when
+    /// the canvas goes away.
+    func testTheEraserReportHasNoSideEffects() async {
+        let (layout, paper) = makeMonth()
+        func eraserRig(_ ids: [String] = ["a", "b"], tool: CanvasTool = .eraser, readOnly: Bool = false) async -> Rig {
+            await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: tool, page: monthPage(strokes: ids), readOnly: readOnly)
+        }
+
+        let nothing = await eraserRig()
+        observe(nothing, .down, .pencil)
+        touch(nothing)
+        observe(nothing, .up, .pencil)
+        lift(nothing)
+        await wait(0.6)
+        XCTAssertEqual(nothing.probe.erased, [], "nothing erased")
+
+        let undo = await eraserRig()
+        draw(makeStroke(at: CGPoint(x: 300, y: 600)), on: undo)
+        undo.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: undo.probe, tool: .eraser,
+                                               page: undo.coordinator.ledger.page, undoTrigger: 1))
+        await wait(0.6)
+        XCTAssertEqual(undo.coordinator.ledger.page.liveStrokeIds, ["a", "b"], "↶ took the stroke away")
+        XCTAssertEqual(undo.probe.erased, [], "↶")
+
+        let cloud = await eraserRig()
+        observe(cloud, .down, .pencil)
+        touch(cloud)
+        cloud.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: cloud.probe, tool: .eraser,
+                                                page: monthPage(strokes: ["a"])))
+        XCTAssertEqual(cloud.canvas.drawing.strokes.count, 2, "the page waits for the pen")
+        observe(cloud, .up, .pencil)
+        lift(cloud)
+        await wait(0.8)
+        XCTAssertEqual(cloud.canvas.drawing.strokes.count, 1, "iCloud's page is on the canvas")
+        XCTAssertEqual(cloud.probe.erased, [], "iCloud")
+
+        var dotPage = InkPage.empty(pageId: "m1-2026-10")
+        dotPage.add(makeInkStroke(id: "dot", cell: .day(wednesday), t: 1_790_000_000_000, points: [(100, 100), (101.5, 101.5)]))
+        let dots = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true, tool: .eraser,
+                                 allowFinger: true, page: dotPage, tapLeavesPage: { _, _ in true })
+        dots.coordinator.noteRecentAdd("dot", at: dots.coordinator.uptime())
+        guard let origin = layout.cells[.day(wednesday)]?.origin else { return XCTFail("no cell for 10/7") }
+        observe(dots, .down, .direct)
+        touch(dots)
+        observe(dots, .up, .direct)
+        lift(dots)
+        dots.coordinator.fingerTapped(atPaper: CGPoint(x: origin.x + 100.75, y: origin.y + 100.75), zoom: dots.canvas.zoomScale)
+        XCTAssertTrue(dots.coordinator.ledger.page.liveStrokes.isEmpty, "the dot went")
+        await wait(0.8)
+        XCTAssertEqual(dots.probe.erased, [], "dots")
+
+        for watched in [false, true] {
+            let readOnly = await eraserRig(readOnly: true)
+            if watched { observe(readOnly, .down, .pencil) }
+            touch(readOnly)
+            erase(["a"], on: readOnly)
+            if watched { observe(readOnly, .up, .pencil) }
+            lift(readOnly)
+            await wait(0.6)
+            XCTAssertEqual(readOnly.probe.erased, [], "read only (observer \(watched))")
+        }
+
+        for tool in [CanvasTool.ink(InkPresets.defaultPen), .ink(InkPresets.defaultMarker)] {
+            let ink = await eraserRig(tool: tool)
+            observe(ink, .down, .pencil)
+            touch(ink)
+            erase(["a"], on: ink)
+            observe(ink, .up, .pencil)
+            lift(ink)
+            await wait(0.6)
+            XCTAssertEqual(ink.probe.erased, [], "\(tool)")
+        }
+
+        let gone = await eraserRig()
+        observe(gone, .down, .pencil)
+        touch(gone)
+        erase(["a"], on: gone)
+        observe(gone, .up, .pencil)
+        lift(gone)
+        gone.coordinator.detach()
+        await wait(0.6)
+        XCTAssertEqual(gone.probe.erased, [], "detached")
+    }
+
+    /// A16 (the lasso): moving a selected stroke with the lasso is not an erasure (the tool is not the
+    /// eraser, and the canvas changes inside `isMovingSelection` / `setDrawing`).
+    func testLassoMoveIsNotReportedAsAnErasure() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .lasso, allowFinger: true,
+                                page: monthPage(strokes: ["a"]))
+        let overlay = rig.container.overlayView
+        guard let box = rig.coordinator.ledger.paperBounds(ids: ["a"]) else { return XCTFail("no bounds") }
+        let path = loop(around: overlay.viewRect(fromPaper: box))
+        overlay.beginFinger(at: path[0])
+        for p in path.dropFirst() { overlay.moveFinger(to: p, coalesced: [p]) }
+        overlay.endFinger(at: path[0])
+        await settle()
+        let center = CGPoint(x: overlay.viewRect(fromPaper: box).midX, y: overlay.viewRect(fromPaper: box).midY)
+        overlay.beginFinger(at: center)
+        let moved = CGPoint(x: center.x, y: center.y + 40)
+        overlay.moveFinger(to: moved, coalesced: [moved])
+        overlay.endFinger(at: moved)
+        await wait(0.6)
+        XCTAssertNotEqual(rig.coordinator.ledger.page.liveStrokeIds, ["a"], "moved (a copy with a new id)")
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, 1)
+        XCTAssertEqual(rig.probe.erased, [])
+    }
+
+    /// A17: the touch observer: on the container, always on (every tool, read only too), the Pencil,
+    /// fingers and (the review) a pointer together, never cancels or delays a touch, never prevents and
+    /// is never prevented, and runs alongside every recogniser. (`testFingerTapGraphOnAnIPhoneYearPage`
+    /// is unchanged.) The lead's review: the `repro: A17` line prints the touch types PencilKit's drawing
+    /// recogniser takes in either drawing policy (on a Mac `[0, 2, 3]` in both, and a finger drew under
+    /// `.pencilOnly` too; an iOS is not known yet, so the coordinator counts a pointer as writing whatever
+    /// the setting says — the safe side).
+    func testTouchObserverSetup() async throws {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true)
+        let c = rig.coordinator
+        let observer = c.touchObserver
+        XCTAssertTrue(observer.view === rig.container, "on the container")
+        XCTAssertTrue(observer.delegate === c)
+        XCTAssertTrue(observer.isEnabled)
+        XCTAssertEqual(Set(observer.allowedTouchTypes), [NSNumber(value: UITouch.TouchType.pencil.rawValue),
+                                                         NSNumber(value: UITouch.TouchType.direct.rawValue),
+                                                         NSNumber(value: UITouch.TouchType.indirectPointer.rawValue)])
+        XCTAssertFalse(observer.cancelsTouchesInView)
+        XCTAssertFalse(observer.delaysTouchesBegan)
+        XCTAssertFalse(observer.delaysTouchesEnded)
+        XCTAssertFalse(observer.requiresExclusiveTouchType)
+        let pinch = try XCTUnwrap(rig.canvas.pinchGestureRecognizer, "F4: the canvas offers a pinch")
+        let others: [UIGestureRecognizer] = [rig.canvas.drawingGestureRecognizer, rig.canvas.panGestureRecognizer, pinch, c.tapRecognizer,
+                                             c.doubleTapRecognizer, c.fingerRecognizer, c.blockedInputRecognizer, c.pencilOverlayRecognizer]
+        for other in others {
+            XCTAssertFalse(observer.canPrevent(other), "\(type(of: other))")
+            XCTAssertFalse(observer.canBePrevented(by: other), "\(type(of: other))")
+            XCTAssertTrue(c.gestureRecognizer(observer, shouldRecognizeSimultaneouslyWith: other), "\(type(of: other))")
+            XCTAssertTrue(c.gestureRecognizer(other, shouldRecognizeSimultaneouslyWith: observer), "\(type(of: other)) (the other way round)")
+        }
+        XCTAssertEqual(rig.canvas.drawingPolicy, .pencilOnly)
+        let pencilOnly = rig.canvas.drawingGestureRecognizer.allowedTouchTypes.map(\.intValue).sorted()
+        c.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: rig.probe, doubleTapEnabled: true, allowFinger: true))
+        XCTAssertEqual(rig.canvas.drawingPolicy, .anyInput)
+        let anyInput = rig.canvas.drawingGestureRecognizer.allowedTouchTypes.map(\.intValue).sorted()
+        let line = "repro: A17 PencilKit's drawingGestureRecognizer.allowedTouchTypes pencilOnly=\(pencilOnly) anyInput=\(anyInput) (direct 0, pencil 2, indirectPointer 3)"
+        print(line)
+        NSLog("%@", line)
+        let states: [(tool: CanvasTool, readOnly: Bool)] = [(.lasso, false), (.eventRect, true), (.ink(InkPresets.defaultPen), true), (.eraser, false)]
+        for (tool, readOnly) in states {
+            c.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: rig.probe, doubleTapEnabled: true, tool: tool,
+                                    readOnly: readOnly))
+            XCTAssertTrue(observer.isEnabled, "\(tool) read only \(readOnly)")
+        }
+    }
+
+    /// A touch that only has a type and a place (`point` in `space`'s coordinates), for the tests'
+    /// calls of a recogniser's `touches…` methods.
+    private final class StandInTouch: UITouch {
+        let kind: UITouch.TouchType
+        var point: CGPoint
+        weak var space: UIView?
+
+        init(_ kind: UITouch.TouchType, at point: CGPoint = .zero, in space: UIView? = nil) {
+            self.kind = kind
+            self.point = point
+            self.space = space
+            super.init()
+        }
+
+        override var type: UITouch.TouchType { kind }
+
+        override func location(in view: UIView?) -> CGPoint {
+            guard let space else { return point }
+            return space.convert(point, to: view)
+        }
+
+        override func preciseLocation(in view: UIView?) -> CGPoint {
+            location(in: view)
+        }
+    }
+
+    /// An event without coalesced touches.
+    private final class StandInEvent: UIEvent {
+        override func coalescedTouches(for touch: UITouch) -> [UITouch]? { nil }
+    }
+
+    /// A18: `InkTouchObserver` alone: each touch down once and up once, in order (a touch seen again is
+    /// not reported again, one never seen is not reported up); it never recognises; `reset` reports what
+    /// is still down, once. (Its `.failed` after the last lift is UIKit's to take: outside UIKit's own
+    /// delivery of touches the state stays `.possible`, as a Mac Catalyst run showed. U1 sends two
+    /// touches through UIKit, and the observer sees the second as well.)
+    func testTouchObserverReportsEachTouchDownAndUpOnce() {
+        final class Log {
+            var changes: [InkTouchObserver.Change] = []
+        }
+        let log = Log()
+        let observer = InkTouchObserver(target: nil, action: nil)
+        observer.onChange = { log.changes.append($0) }
+        let pencil = StandInTouch(.pencil)
+        let finger = StandInTouch(.direct)
+        observer.touchesBegan([pencil], with: StandInEvent())
+        observer.touchesBegan([finger, pencil], with: StandInEvent())
+        XCTAssertEqual(log.changes, [.down(.pencil), .down(.direct)])
+        observer.touchesEnded([StandInTouch(.pencil)], with: StandInEvent())
+        observer.touchesEnded([finger], with: StandInEvent())
+        XCTAssertEqual(log.changes, [.down(.pencil), .down(.direct), .up(.direct)])
+        XCTAssertEqual(observer.state, .possible, "the Pencil is still down: possible")
+        observer.touchesCancelled([pencil], with: StandInEvent())
+        XCTAssertEqual(log.changes, [.down(.pencil), .down(.direct), .up(.direct), .up(.pencil)])
+        XCTAssertFalse([UIGestureRecognizer.State.began, .changed, .ended].contains(observer.state), "never recognised")
+
+        let left = Log()
+        let second = InkTouchObserver(target: nil, action: nil)
+        second.onChange = { left.changes.append($0) }
+        second.touchesBegan([StandInTouch(.pencil), StandInTouch(.direct)], with: StandInEvent())
+        second.reset()
+        XCTAssertEqual(left.changes.count, 4)
+        XCTAssertEqual(left.changes.filter { if case .up = $0 { return true } else { return false } }.count, 2, "both reported up")
+        second.reset()
+        XCTAssertEqual(left.changes.count, 4, "once")
+    }
+
+    /// A19 (the review, and the lead's review): a pointer — a mouse's or a trackpad's press,
+    /// `.indirectPointer` with the app's indirect input — writes whatever 「指でも書く」 says (PencilKit's
+    /// drawing recogniser takes it in both drawing policies, A17), so with the setting off and on the
+    /// report waits while it is pressed (D2) and no lift watch ends the touch meanwhile; once it lifts the
+    /// report goes out after the finger's wait. Before the review the observer did not count a pointer
+    /// (the first change was reported at once); before the lead's review it counted one only with
+    /// 「指でも書く」 (off, the report went out under the pressed pointer and the lift watch took it as lifted).
+    func testAPointerHoldsTheReportWhetherOrNotFingersWrite() async {
+        let (layout, paper) = makeMonth()
+        for allowFinger in [false, true] {
+            let what = "「指でも書く」 \(allowFinger ? "on" : "off")"
+            let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, doubleTapEnabled: true, tool: .eraser,
+                                    allowFinger: allowFinger, page: monthPage(strokes: ["a", "b"]))
+            observe(rig, .down, .indirectPointer)
+            touch(rig)
+            erase(["a"], on: rig)
+            await wait(0.7)
+            XCTAssertEqual(rig.probe.erased, [], "not while the pointer is pressed (\(what))")
+            XCTAssertTrue(rig.coordinator.isUsingTool, "no lift watch while it is pressed (\(what))")
+            XCTAssertTrue(rig.coordinator.probeValue().contains("down=0p0f1i"), "\(what): \(rig.coordinator.probeValue())")
+            observe(rig, .up, .indirectPointer)
+            lift(rig)
+            let reported = await eventually { !rig.probe.erased.isEmpty }
+            XCTAssertTrue(reported, "reported after the lift (\(what))")
+            XCTAssertEqual(rig.probe.erased, [1], what)
+            XCTAssertTrue(rig.coordinator.probeValue().contains("down=0p0f0i"), "\(what): \(rig.coordinator.probeValue())")
+        }
+    }
+
+    /// The `page` binding of a canvas that keeps every page the canvas wrote back (`publishPage`).
+    /// `@unchecked Sendable` for `Binding`'s closures: only the main actor touches it (the canvas writes
+    /// back on the main actor, the test reads there).
+    private final class PageWrites: @unchecked Sendable {
+        private(set) var page: InkPage
+        private(set) var pages: [InkPage] = []
+
+        init(_ page: InkPage) {
+            self.page = page
+        }
+
+        var binding: Binding<InkPage> {
+            Binding(get: { self.page }, set: { page in
+                self.page = page
+                self.pages.append(page)
+            })
+        }
+    }
+
+    /// A20 (the lead's review; the data's safety): the eraser takes line a of October and lifts, and
+    /// right then `update(from:)` brings November (another page id, its own layout and page with line x)
+    /// into this canvas, inside the settle wait — the canvas still shows October's b and c. The end of
+    /// the settle wait compares nothing with November's ledger: a second later November has only x
+    /// (nothing added, nothing erased), nothing of October was written into November's `page`, and the
+    /// canvas shows November. The same with a late change of PencilKit on October's drawing
+    /// (`canvasViewDrawingDidChange`) right after the page change. Before the review, the end of the
+    /// wait took b and c in as new lines of November and wrote them back, and so did the late change.
+    /// Two guards stand there (the end of the settle wait and the entry of `applyCanvasDrawing`): the
+    /// first case stays green with either of them; taking the entry's guard away turns the second red.
+    func testAPageChangeDuringTheSettleWaitCopiesNothingIntoTheNewPage() async {
+        let (october, octoberPaper) = makeMonth()
+        let november = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 11), events: [], inkBottoms: [:], now: now))
+        let novemberPaper = PaperContent.month(MonthPaperContent(layout: november, labels: november.dateLabels, bars: november.allDayBars,
+                                                                 chips: november.timedChips, holidayNames: [:]))
+        XCTAssertNotEqual(november.pageId, october.pageId)
+        var other = InkPage.empty(pageId: november.pageId)
+        other.add(makeInkStroke(id: "x", cell: .day(DayKey(year: 2026, month: 11, day: 4)), t: 1_790_000_000_100,
+                                points: [(20, 40), (50, 40), (80, 40)]))
+
+        for lateChange in [false, true] {
+            let what = lateChange ? "with a late change" : "the settle wait"
+            let rig = await makeRig(layout: october, paper: octoberPaper, width: 1024, height: 1180, tool: .eraser,
+                                    page: monthPage(strokes: ["a", "b", "c"]))
+            observe(rig, .down, .pencil)
+            touch(rig)
+            erase(["a"], on: rig)
+            observe(rig, .up, .pencil)
+            lift(rig)
+            let written = PageWrites(other)
+            rig.coordinator.update(from: makeView(layout: november, paper: novemberPaper, viewportWidth: 1024, probe: rig.probe,
+                                                  tool: .eraser, page: other, pageBinding: written.binding))
+            XCTAssertEqual(rig.coordinator.ledger.page.pageId, november.pageId, "November's ledger (\(what))")
+            XCTAssertEqual(rig.canvas.drawing.strokes.count, 2, "the canvas still shows October's b and c (\(what))")
+            if lateChange {
+                rig.coordinator.canvasViewDrawingDidChange(rig.canvas) // PencilKit, late, on October's drawing
+                XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeIds, ["x"], "the late change took nothing of October in")
+            }
+
+            await wait(1)
+            // "Came" is looked at with `eventually` (a busy simulator may take longer than the settle
+            // wait and the rebuild); "nothing copied" after it, on the latest state.
+            let shown = await eventually { rig.canvas.drawing.strokes.map { rig.coordinator.ledger.id(of: $0) } == ["x"] }
+            XCTAssertTrue(shown, "the canvas shows November (\(what))")
+            let page = rig.coordinator.ledger.page
+            XCTAssertEqual(page.pageId, november.pageId, what)
+            XCTAssertEqual(page.liveStrokeIds, ["x"], "November keeps its own line only (\(what))")
+            XCTAssertEqual(Array(page.strokes.keys), ["x"], "no line of October was added to November (\(what))")
+            XCTAssertTrue(page.deleted.isEmpty, "nothing of November was erased (\(what))")
+            for write in written.pages {
+                XCTAssertEqual(write.pageId, november.pageId, what)
+                XCTAssertEqual(Array(write.strokes.keys), ["x"], "nothing of October was written back into November's page (\(what))")
+            }
+            XCTAssertEqual(Array(written.page.strokes.keys), ["x"], what)
+        }
+    }
+
+    /// A21 (the lead's review, 案 a): the Pencil writes a line and lifts, and PencilKit's End never comes:
+    /// the lift watch takes the pen as lifted (`W`). A finger with 「指でも書く」 off then changes nothing.
+    /// The Pencil comes down again and PencilKit, its tool still in use for it, sends no Begin: the touch
+    /// is taken as the tool in use as it comes down (`Bw`), so ↶ asked during its stroke waits (no
+    /// rebuild under the pen) and lands after the lift (the lift watch, then the settle wait; looked at
+    /// for up to 3 s), taking that stroke away. Before the review ↶ landed at once, in the stroke.
+    func testAWritingTouchAfterTheLiftWatchHoldsTheQueuedWork() async {
+        let (layout, paper) = makeMonth()
+        let pen = CanvasTool.ink(InkPresets.defaultPen)
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: pen, page: monthPage(strokes: ["a"]))
+        rig.coordinator.startProbe()
+        observe(rig, .down, .pencil)
+        touch(rig)
+        draw(makeStroke(at: CGPoint(x: 300, y: 600)), on: rig)
+        observe(rig, .up, .pencil) // PencilKit's End never comes
+        let watched = await eventually { !rig.coordinator.isUsingTool }
+        XCTAssertTrue(watched, "the lift watch took the pen as lifted")
+        await wait(0.5) // past the settle wait it started
+        XCTAssertTrue(rig.coordinator.probeValue().contains(" W@"), rig.coordinator.probeValue())
+
+        observe(rig, .down, .direct)
+        XCTAssertFalse(rig.coordinator.isUsingTool, "a finger that does not write (「指でも書く」 off) changes nothing")
+        observe(rig, .up, .direct)
+
+        observe(rig, .down, .pencil) // no Begin: PencilKit writes on, its tool still in use for it
+        XCTAssertTrue(rig.coordinator.isUsingTool, "the writing touch after the lift watch is the tool in use")
+        XCTAssertTrue(rig.coordinator.probeValue().contains(" Bw@"), rig.coordinator.probeValue())
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 1024, probe: rig.probe, tool: pen,
+                                              page: rig.coordinator.ledger.page, undoTrigger: 1))
+        await wait(0.8)
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "↶ waits while the Pencil writes")
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, 2, "↶ has not landed")
+        draw(makeStroke(at: CGPoint(x: 300, y: 700)), on: rig) // the stroke PencilKit wrote without a Begin
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, 3)
+        observe(rig, .up, .pencil)
+        let landed = await eventually { rig.coordinator.setDrawingCount > builds }
+        XCTAssertTrue(landed, "↶ landed after the lift (the lift watch and the settle wait)")
+        XCTAssertFalse(rig.coordinator.isUsingTool)
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, 2, "↶ took the stroke written after the lift watch away")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 2)
+    }
+
+    // MARK: 1.1 fix — the Pencil on the lasso and the 予定 tool (TestFlight build 12: 確認 12; M7A.md ずれ 47)
+
+    /// Feeds one stand-in touch of `type` along `path` (container points) to `recognizer`, as UIKit would.
+    private func stroke(_ path: [CGPoint], type: UITouch.TouchType = .pencil, to recognizer: UIGestureRecognizer, in container: UIView) {
+        guard let first = path.first else { return }
+        let touch = StandInTouch(type, at: first, in: container)
+        recognizer.touchesBegan([touch], with: StandInEvent())
+        for point in path.dropFirst() {
+            touch.point = point
+            recognizer.touchesMoved([touch], with: StandInEvent())
+        }
+        recognizer.touchesEnded([touch], with: StandInEvent())
+    }
+
+    /// What the owner sees after a lasso below 24:00: both strokes selected, their box on screen, the
+    /// selection menu inside the canvas, and 「予定にする」 refused with the notice (§3.7).
+    private func assertFreeMemoSelected(_ log: SelectionLog, rig: Rig, layout: DayPageLayout, box: CGRect,
+                                        file: StaticString = #filePath, line: UInt = #line) {
+        guard let selection = log.last else { return XCTFail("nothing selected below 24:00", file: file, line: line) }
+        XCTAssertEqual(Set(selection.ids), ["memo-a", "memo-b"], file: file, line: line)
+        XCTAssertEqual(selection.bbox, box, file: file, line: line)
+        XCTAssertGreaterThanOrEqual(selection.bbox.minY, 2400, "below 24:00", file: file, line: line)
+        XCTAssertTrue(rig.container.bounds.contains(selection.viewRect), "the box is on screen", file: file, line: line)
+        let menu = CGSize(width: 300, height: 44)
+        let inside = rig.container.bounds.insetBy(dx: SelectionMenuView.margin, dy: SelectionMenuView.margin)
+        let origin = SelectionMenuView.placement(anchor: selection.viewRect, size: menu, bounds: inside)
+        XCTAssertTrue(inside.contains(CGRect(origin: origin, size: menu)), "the menu is inside the canvas", file: file, line: line)
+        XCTAssertEqual(CalendarRootScreen.newEventPlan(layout: layout, rect: selection.bbox, now: now), .refusedBelowDay,
+                       file: file, line: line)
+    }
+
+    /// B1: the overlay takes no touch — its hit test answers nil (UIKit asks with an event that does not
+    /// hold the touch yet; build 12 needed a Pencil touch in it). B2: the Pencil's recogniser of the
+    /// overlay is on the container, Pencil only, lets touches through at once, prevents nothing, runs
+    /// alongside everything; on with the lasso and the 予定 tool (「指でも書く」 or not), off with the
+    /// pen, the marker, the eraser and while read only, and off again when the pen comes back.
+    func testThePencilReachesTheOverlayThroughTheContainer() {
+        let (layout, paper) = makeDay()
+        let probe = Probe()
+        func rig(_ tool: CanvasTool, allowFinger: Bool = false, readOnly: Bool = false) -> Rig {
+            let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: 834, probe: probe, tool: tool, allowFinger: allowFinger,
+                                      readOnly: readOnly),
+                             paper: paper, probe: probe)
+            rig.layout(width: 834, height: 1000)
+            return rig
+        }
+        let lasso = rig(.lasso)
+        let overlay = lasso.container.overlayView
+        XCTAssertTrue(overlay.isUserInteractionEnabled, "the lasso is up")
+        XCTAssertNil(overlay.hitTest(CGPoint(x: 400, y: 500), with: UIEvent()), "B1: what UIKit's hit test sees")
+        XCTAssertNil(overlay.hitTest(CGPoint(x: 400, y: 500), with: nil))
+        let pencils = lasso.coordinator.pencilOverlayRecognizer
+        XCTAssertTrue(pencils.view === lasso.container, "on the container")
+        XCTAssertTrue(pencils.overlay === overlay)
+        XCTAssertTrue(pencils.delegate === lasso.coordinator)
+        XCTAssertTrue(pencils.isEnabled, "the lasso (「指でも書く」 off)")
+        XCTAssertEqual(pencils.allowedTouchTypes, [NSNumber(value: UITouch.TouchType.pencil.rawValue)])
+        XCTAssertFalse(pencils.cancelsTouchesInView)
+        XCTAssertFalse(pencils.delaysTouchesBegan)
+        XCTAssertFalse(pencils.delaysTouchesEnded)
+        for other in [lasso.canvas.panGestureRecognizer, lasso.canvas.drawingGestureRecognizer, lasso.coordinator.fingerRecognizer,
+                      lasso.coordinator.tapRecognizer] {
+            XCTAssertFalse(pencils.canPrevent(other), "\(type(of: other))")
+            XCTAssertFalse(pencils.canBePrevented(by: other), "\(type(of: other))")
+            XCTAssertTrue(lasso.coordinator.gestureRecognizer(pencils, shouldRecognizeSimultaneouslyWith: other), "\(type(of: other))")
+        }
+        XCTAssertTrue(rig(.eventRect).coordinator.pencilOverlayRecognizer.isEnabled, "the 予定 tool")
+        XCTAssertTrue(rig(.lasso, allowFinger: true).coordinator.pencilOverlayRecognizer.isEnabled, "「指でも書く」 on")
+        for tool in [CanvasTool.ink(InkPresets.defaultPen), .ink(InkPresets.defaultMarker), .eraser] {
+            XCTAssertFalse(rig(tool).coordinator.pencilOverlayRecognizer.isEnabled, "PencilKit writes: \(tool)")
+        }
+        XCTAssertFalse(rig(.lasso, readOnly: true).coordinator.pencilOverlayRecognizer.isEnabled, "read only")
+        lasso.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 834, probe: probe, tool: .ink(InkPresets.defaultPen)))
+        XCTAssertFalse(pencils.isEnabled, "off when the pen comes back")
+    }
+
+    /// B3 (確認 12): 「指でも書く」 off, the day page at the end of its paper, a stand-in Pencil touch fed to
+    /// the container's Pencil recogniser draws a loop around the two strokes of the free memo area:
+    /// both are selected (their box below 24:00 and on screen), the touch is reported once (a peeking
+    /// toolbar folds), the selection menu fits in the canvas and 「予定にする」 is refused there.
+    func testPencilLassoSelectsTheFreeMemoBelow24() async {
+        let log = SelectionLog()
+        let (rig, layout) = await freeMemoRig(allowFinger: false, log: log)
+        guard let box = rig.coordinator.ledger.paperBounds(ids: ["memo-a", "memo-b"]) else { return XCTFail("no bounds") }
+        XCTAssertGreaterThanOrEqual(box.minY, 2400, "below 24:00")
+        let path = loop(around: rig.container.overlayView.viewRect(fromPaper: box))
+        stroke(path + [path[0]], to: rig.coordinator.pencilOverlayRecognizer, in: rig.container)
+        await settle()
+        XCTAssertEqual(rig.probe.penDowns, 1)
+        assertFreeMemoSelected(log, rig: rig, layout: layout, box: box)
+    }
+
+    /// B4: the 予定 tool with the Pencil (「指でも書く」 off): a drag through the container's Pencil
+    /// recogniser reports its rect (paper, normalized, not a tap); in the free memo area the owner
+    /// refuses it (§3.7).
+    func testPencilDragOfTheEventToolReportsItsRect() async {
+        let log = SelectionLog()
+        let (rig, layout) = await freeMemoRig(tool: .eventRect, allowFinger: false, log: log,
+                                              onEventRect: { log.eventRects.append((rect: $0, isTap: $1)) })
+        let overlay = rig.container.overlayView
+        let from = overlay.viewRect(fromPaper: CGRect(x: 300, y: 2500, width: 0, height: 0)).origin
+        let to = overlay.viewRect(fromPaper: CGRect(x: 600, y: 2650, width: 0, height: 0)).origin
+        let middle = CGPoint(x: (from.x + to.x) / 2, y: (from.y + to.y) / 2)
+        stroke([from, middle, to], to: rig.coordinator.pencilOverlayRecognizer, in: rig.container)
+        await settle()
+        XCTAssertEqual(rig.probe.penDowns, 1)
+        XCTAssertEqual(log.eventRects.count, 1, "reported once")
+        guard let event = log.eventRects.first else { return }
+        XCTAssertFalse(event.isTap)
+        XCTAssertEqual(event.rect.minX, 300, accuracy: 0.5)
+        XCTAssertEqual(event.rect.minY, 2500, accuracy: 0.5)
+        XCTAssertEqual(event.rect.maxX, 600, accuracy: 0.5)
+        XCTAssertEqual(event.rect.maxY, 2650, accuracy: 0.5)
+        XCTAssertEqual(CalendarRootScreen.newEventPlan(layout: layout, rect: event.rect, now: now), .refusedBelowDay)
+    }
+
+    /// B5: 「指でも書く」 on: a finger (a palm) begins a lasso elsewhere, then the Pencil touches — the
+    /// Pencil wins (the finger's gesture is dropped, its later moves and its lift change nothing) and
+    /// the Pencil's loop selects the free memo.
+    func testThePencilWinsOverAFingerOnTheLasso() async {
+        let log = SelectionLog()
+        let (rig, layout) = await freeMemoRig(allowFinger: true, log: log)
+        guard let box = rig.coordinator.ledger.paperBounds(ids: ["memo-a", "memo-b"]) else { return XCTFail("no bounds") }
+        let fingers = rig.coordinator.fingerRecognizer
+        let pencils = rig.coordinator.pencilOverlayRecognizer
+        let finger = StandInTouch(.direct, at: CGPoint(x: 100, y: 100), in: rig.container)
+        fingers.touchesBegan([finger], with: StandInEvent())
+        finger.point = CGPoint(x: 140, y: 120)
+        fingers.touchesMoved([finger], with: StandInEvent())
+        let path = loop(around: rig.container.overlayView.viewRect(fromPaper: box))
+        let pencil = StandInTouch(.pencil, at: path[0], in: rig.container)
+        pencils.touchesBegan([pencil], with: StandInEvent())
+        for point in path.dropFirst() {
+            pencil.point = point
+            pencils.touchesMoved([pencil], with: StandInEvent())
+            finger.point.x += 1 // the palm drifts
+            fingers.touchesMoved([finger], with: StandInEvent())
+        }
+        pencil.point = path[0]
+        pencils.touchesEnded([pencil], with: StandInEvent())
+        fingers.touchesEnded([finger], with: StandInEvent())
+        await settle()
+        XCTAssertEqual(rig.probe.penDowns, 2, "the finger's lasso began, then the Pencil's")
+        assertFreeMemoSelected(log, rig: rig, layout: layout, box: box)
+    }
+
+    /// B6: read only: the Pencil's recogniser is off, and the overlay ignores a Pencil that reaches it anyway.
+    func testThePencilLassoIsOffWhileReadOnly() async {
+        let log = SelectionLog()
+        let (rig, _) = await freeMemoRig(allowFinger: false, log: log, readOnly: true)
+        XCTAssertFalse(rig.coordinator.pencilOverlayRecognizer.isEnabled)
+        guard let box = rig.coordinator.ledger.paperBounds(ids: ["memo-a", "memo-b"]) else { return XCTFail("no bounds") }
+        let path = loop(around: rig.container.overlayView.viewRect(fromPaper: box))
+        stroke(path + [path[0]], to: rig.coordinator.pencilOverlayRecognizer, in: rig.container)
+        await settle()
+        XCTAssertNil(log.last, "nothing selected")
+        XCTAssertEqual(rig.probe.penDowns, 0)
+    }
+
+    /// B7: the selection itself works below 24:00, also after the light path: a finger's lasso
+    /// (「指でも書く」; the finger's way never depended on the hit test) selects the free memo's strokes at
+    /// the end of the day page. Passes before and after the fix: what failed on the device was the
+    /// Pencil's way to the overlay, not the selection below 24:00.
+    func testFingerLassoSelectsTheFreeMemoBelow24() async {
+        let log = SelectionLog()
+        let (rig, layout) = await freeMemoRig(allowFinger: true, log: log)
+        let overlay = rig.container.overlayView
+        guard let box = rig.coordinator.ledger.paperBounds(ids: ["memo-a", "memo-b"]) else { return XCTFail("no bounds") }
+        let path = loop(around: overlay.viewRect(fromPaper: box))
+        overlay.beginFinger(at: path[0])
+        for p in path.dropFirst() { overlay.moveFinger(to: p, coalesced: [p]) }
+        overlay.endFinger(at: path[0])
+        await settle()
+        assertFreeMemoSelected(log, rig: rig, layout: layout, box: box)
+    }
+
+    /// B8 (the review): the Pencil's loop or rect never scrolls the paper: the canvas's pan takes no Pencil
+    /// while the lasso or the 予定 tool is up (also after 「指でも書く」 changed the drawing policy), and has
+    /// PencilKit's own touch types again with the pen; read only leaves them alone. On a Mac PencilKit's
+    /// pan takes fingers only (`[0]`) and nothing changes; the `repro: B8` line prints what the iOS
+    /// simulator's PencilKit gives. Then a stand-in for a PencilKit whose pan takes the Pencil (its
+    /// touch types set by hand with the pen up): the lasso leaves the Pencil out, the pen gives it back.
+    func testThePanTakesNoPencilWhileAnOverlayToolIsUp() async {
+        let pencil = NSNumber(value: UITouch.TouchType.pencil.rawValue)
+        let (layout, paper) = makeDay()
+        let rig = await makeRig(layout: layout, paper: paper, width: 834, height: 1000, tool: .ink(InkPresets.defaultPen))
+        let pan = rig.canvas.panGestureRecognizer
+        let own = pan.allowedTouchTypes
+        let line = "repro: B8 PencilKit's pan.allowedTouchTypes=\(own.map(\.intValue)) (pencilOnly; direct 0, pencil 2, indirectPointer 3)"
+        print(line)
+        NSLog("%@", line)
+        func update(_ tool: CanvasTool, allowFinger: Bool = false, readOnly: Bool = false) {
+            rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 834, probe: rig.probe, tool: tool,
+                                                  allowFinger: allowFinger, readOnly: readOnly))
+        }
+        update(.lasso)
+        XCTAssertFalse(pan.allowedTouchTypes.contains(pencil), "the lasso (\(line))")
+        update(.lasso, allowFinger: true)
+        XCTAssertEqual(rig.canvas.drawingPolicy, .anyInput)
+        XCTAssertFalse(pan.allowedTouchTypes.contains(pencil), "the lasso after the drawing policy changed (\(line))")
+        update(.eventRect)
+        XCTAssertFalse(pan.allowedTouchTypes.contains(pencil), "the 予定 tool (\(line))")
+        update(.ink(InkPresets.defaultPen))
+        XCTAssertEqual(Set(pan.allowedTouchTypes), Set(own), "the pen: PencilKit's own again (\(line))")
+        update(.lasso, readOnly: true)
+        XCTAssertEqual(Set(pan.allowedTouchTypes), Set(own), "read only: the overlay takes no Pencil (\(line))")
+        update(.ink(InkPresets.defaultPen))
+        XCTAssertEqual(Set(pan.allowedTouchTypes), Set(own), "\(line)")
+
+        // A PencilKit whose pan takes the Pencil (a stand-in: set by hand while the pen is up).
+        let withPencil = own.contains(pencil) ? own : own + [pencil]
+        pan.allowedTouchTypes = withPencil
+        update(.lasso)
+        XCTAssertFalse(pan.allowedTouchTypes.contains(pencil), "left out for the lasso")
+        XCTAssertEqual(Set(pan.allowedTouchTypes), Set(withPencil).subtracting([pencil]), "the rest kept")
+        update(.lasso, allowFinger: true)
+        XCTAssertFalse(pan.allowedTouchTypes.contains(pencil), "still out after the drawing policy changed")
+        update(.ink(InkPresets.defaultPen))
+        XCTAssertEqual(Set(pan.allowedTouchTypes), Set(withPencil), "given back with the pen")
+        update(.lasso, readOnly: true)
+        XCTAssertEqual(Set(pan.allowedTouchTypes), Set(withPencil), "read only: left alone")
+    }
+
+    // MARK: 1.1 fix — real touches through UIKit (TestFlight build 12: 確認 4・5・6b, 確認 12)
+
+    /// U1 (不具合 A; 確認 4・5・6b): the toolbar's eraser on the month in a window of the test host, line a
+    /// erased by a Pencil touch sent through `UIApplication.sendEvent` (`UIKitTouches`): PencilKit's
+    /// own recogniser begins, erases and ends in iOS's own order, not in the order the other tests
+    /// assume. One second after the lift the erasure has been reported once; a second touch across line
+    /// b is reported once more (the container's recognisers took the next touch sequence too). The
+    /// touch's view is PencilKit's drawing view (on the Mac, `window.hitTest` answered a plain view
+    /// inside the canvas that PencilKit does not watch). The `repro:` lines print what the container
+    /// and the canvas saw.
+    /// Skipped when this iOS lacks one of the private pieces, when no touch reached the container or
+    /// when PencilKit erased nothing (the touches did not drive it: this test's problem, not the report's);
+    /// a skip says why on a `repro: U1 skipped:` line first (`UIKitTouches.skip`).
+    /// (Before the fix, TestFlight build 12, it was expected to fail, not strictly: `XCTExpectFailure`.)
+    func testRealPencilEraserThroughUIKitReportsTheErasure() async throws {
+        let touches = try UIKitTouches("U1")
+        let window = try makeWindow(for: "U1")
+        defer { window.isHidden = true }
+        let (layout, paper) = makeMonth()
+        let size = window.bounds.size
+        let probe = Probe()
+        let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: size.width, probe: probe, tool: .eraser,
+                                  page: monthPage(strokes: ["a", "b"])),
+                         paper: paper, probe: probe)
+        let seen = PassiveTouchRecognizer(target: nil, action: nil)
+        rig.container.addGestureRecognizer(seen)
+        rig.canvas.drawingGestureRecognizer.addTarget(seen, action: #selector(PassiveTouchRecognizer.watch(_:)))
+        window.rootViewController?.view.addSubview(rig.container)
+        rig.layout(width: size.width, height: size.height)
+        await settle()
+        rig.coordinator.startProbe()
+        guard let cell = layout.cells[.day(wednesday)], let drawingView = rig.canvas.drawingGestureRecognizer.view else {
+            throw UIKitTouches.skip("U1", "no cell for 10/7, or PencilKit's drawing recogniser has no view")
+        }
+        let zoom = rig.canvas.zoomScale
+        // Line a is at cell y 40, b at 70 (`monthPage`): down across a, stopping well above b.
+        let path = stride(from: CGFloat(16), through: 56, by: 8).map { y in
+            rig.canvas.convert(CGPoint(x: (cell.minX + 50) * zoom, y: (cell.minY + y) * zoom), to: window)
+        }
+        try await touches.stroke(path, type: .pencil, in: window) { _ in drawingView }
+        try await Task.sleep(for: .seconds(1))
+        await settle()
+        let left = rig.canvas.drawing.strokes.count
+        let line = "repro: U1 eraser across a: erased=\(probe.erased) canvas=\(left) ledger=\(rig.coordinator.ledger.page.liveStrokeIds) seen=[\(seen.lines.joined(separator: " "))] \(rig.coordinator.probeValue())"
+        print(line)
+        NSLog("%@", line)
+        guard seen.downs > 0 else { throw UIKitTouches.skip("U1", "the touches never reached the container: \(line)") }
+        guard left < 2 else { throw UIKitTouches.skip("U1", "PencilKit's eraser took nothing (the touches did not drive it): \(line)") }
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokeCount, left, "the ledger erased what PencilKit erased (\(line))")
+        XCTAssertEqual(probe.erased, [2 - left], "reported once within a second of the lift (\(line))")
+        guard left == 1 else { return }
+
+        // A second touch, across line b (still the eraser: nothing here puts the pen back).
+        let second = stride(from: CGFloat(58), through: 82, by: 6).map { y in
+            rig.canvas.convert(CGPoint(x: (cell.minX + 50) * zoom, y: (cell.minY + y) * zoom), to: window)
+        }
+        try await touches.stroke(second, type: .pencil, in: window) { _ in drawingView }
+        try await Task.sleep(for: .seconds(1))
+        await settle()
+        let again = "repro: U1 eraser across b: erased=\(probe.erased) canvas=\(rig.canvas.drawing.strokes.count) seen=[\(seen.lines.joined(separator: " "))] \(rig.coordinator.probeValue())"
+        print(again)
+        NSLog("%@", again)
+        guard seen.downs > 1, rig.canvas.drawing.strokes.isEmpty else {
+            throw UIKitTouches.skip("U1", "the second touch did not erase line b: \(again)")
+        }
+        XCTAssertTrue(rig.coordinator.ledger.page.liveStrokes.isEmpty, again)
+        XCTAssertEqual(probe.erased, [1, 1], "the second touch reported too (\(again))")
+    }
+
+    /// U2 (不具合 B; 確認 12): the lasso on the day page with 「指でも書く」 off, the free memo area below
+    /// 24:00 on screen, and a Pencil touch sent through `UIApplication.sendEvent` drawing a loop around
+    /// its two strokes. The touch's view is what the window's own hit test answers, asked the way UIKit
+    /// asks it for a touch that begins (the app's touches event, emptied: UIKit hit-tests before it adds
+    /// the touch). Both strokes are selected. In 1.1 build 12 nothing was (expected to fail before the
+    /// fix): the overlay took the Pencil only when the event already held it. Skipped when a private
+    /// piece is missing or no touch reached the container (with a `repro: U2 skipped:` line first).
+    func testRealPencilLassoThroughUIKitSelectsTheFreeMemo() async throws {
+        let touches = try UIKitTouches("U2")
+        let window = try makeWindow(for: "U2")
+        defer { window.isHidden = true }
+        let log = SelectionLog()
+        let (rig, _) = await freeMemoRig(allowFinger: false, log: log, window: window)
+        let seen = PassiveTouchRecognizer(target: nil, action: nil)
+        rig.container.addGestureRecognizer(seen)
+        rig.coordinator.startProbe()
+        guard let box = rig.coordinator.ledger.paperBounds(ids: ["memo-a", "memo-b"]) else { return XCTFail("no bounds") }
+        let path = loop(around: rig.container.overlayView.viewRect(fromPaper: box)).map { rig.container.convert($0, to: window) }
+        try await touches.stroke(path + [path[0]], type: .pencil, in: window) { point in
+            window.hitTest(point, with: touches.emptyTouchesEvent())
+        }
+        try await Task.sleep(for: .seconds(0.5))
+        await settle()
+        let line = "repro: U2 Pencil lasso below 24:00: selected=\(log.last?.ids ?? []) seen=[\(seen.lines.joined(separator: " "))] \(rig.coordinator.probeValue())"
+        print(line)
+        NSLog("%@", line)
+        guard seen.downs > 0 else { throw UIKitTouches.skip("U2", "the touches never reached the container: \(line)") }
+        XCTAssertEqual(Set(log.last?.ids ?? []), ["memo-a", "memo-b"], "the Pencil's lasso selected the free memo (\(line))")
+    }
+
+    // MARK: 1.1 fix — helpers
+
+    /// Collects `onSelectionChange` (and `onEventRect`).
+    private final class SelectionLog {
+        var selections: [InkSelection?] = []
+        var last: InkSelection? { selections.last ?? nil }
+        var eventRects: [(rect: CGRect, isTap: Bool)] = []
+    }
+
+    /// The 11-inch iPad's day page (834 × 1000 pt of paper area) with `tool` and two strokes in the free
+    /// memo area below 24:00 (`extra`, cell origin (0, 2400)). It opens with the 700 lu area and then
+    /// grows to 1,100 through the light path (§3.6, no new drawing), as after writing there; then it is
+    /// scrolled to the end of the paper, where the strokes are on screen. With `window` the container is
+    /// put in it first (the touches then go through UIKit).
+    private func freeMemoRig(tool: CanvasTool = .lasso, allowFinger: Bool, log: SelectionLog, window: UIWindow? = nil,
+                             readOnly: Bool = false,
+                             onEventRect: @escaping (CGRect, Bool) -> Void = { _, _ in }) async -> (rig: Rig, layout: DayPageLayout) {
+        var page = InkPage.empty(pageId: "d-2026-10-07")
+        page.add(makeInkStroke(id: "memo-a", cell: .extra, t: 1_790_000_000_000, points: [(300, 200), (340, 230), (380, 200), (420, 230)]))
+        page.add(makeInkStroke(id: "memo-b", cell: .extra, t: 1_790_000_000_001, points: [(300, 280), (360, 300), (420, 280)]))
+        let probe = Probe()
+        func view(_ layout: DayPageLayout, _ paper: PaperContent) -> InkCanvasView {
+            var view = makeView(layout: layout, paper: paper, viewportWidth: 834, probe: probe, tool: tool, allowFinger: allowFinger,
+                                page: page, readOnly: readOnly)
+            view.onSelectionChange = { log.selections.append($0) }
+            view.onEventRect = onEventRect
+            return view
+        }
+        let (small, smallPaper) = makeDay()
+        let rig = attach(view(small, smallPaper), paper: smallPaper, probe: probe)
+        window?.rootViewController?.view.addSubview(rig.container)
+        rig.layout(width: 834, height: 1000)
+        await settle()
+
+        let (grown, grownPaper) = makeDay(inkBottoms: page.inkBottoms())
+        XCTAssertEqual(grown.extra.height, 1100, accuracy: 0.01)
+        let builds = rig.coordinator.setDrawingCount
+        rig.coordinator.update(from: view(grown, grownPaper))
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path")
+        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.extra]?.height ?? 0, 1100, accuracy: 0.01)
+
+        let maxY = rig.canvas.contentSize.height + rig.canvas.contentInset.bottom - rig.container.bounds.height
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: maxY)
+        await settle()
+        return (rig, grown)
+    }
+
+    /// A closed loop 24 pt outside `rect` (container points), a point every 4 pt, clockwise from its
+    /// top-left corner.
+    private func loop(around rect: CGRect) -> [CGPoint] {
+        let r = rect.insetBy(dx: -24, dy: -24)
+        var points: [CGPoint] = []
+        var x = r.minX
+        while x <= r.maxX { points.append(CGPoint(x: x, y: r.minY)); x += 4 }
+        var y = r.minY
+        while y <= r.maxY { points.append(CGPoint(x: r.maxX, y: y)); y += 4 }
+        x = r.maxX
+        while x >= r.minX { points.append(CGPoint(x: x, y: r.maxY)); x -= 4 }
+        y = r.maxY
+        while y >= r.minY { points.append(CGPoint(x: r.minX, y: y)); y -= 4 }
+        return points
+    }
+
+    /// A window of the test host's scene (the unit tests run inside the app), shown above the app's
+    /// own. The caller (`test`: `U1`, `U2`) hides it again.
+    private func makeWindow(for test: String) throws -> UIWindow {
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else {
+            throw UIKitTouches.skip(test, "the test host has no window scene")
+        }
+        let window = UIWindow(windowScene: scene)
+        window.frame = scene.coordinateSpace.bounds
+        let root = UIViewController()
+        root.view.backgroundColor = .white
+        window.rootViewController = root
+        window.isHidden = false
+        root.view.frame = window.bounds
+        return window
+    }
+
+    /// A recogniser of the tests that never recognises, never prevents and is never prevented (the bug
+    /// investigation's observer): it logs what UIKit handed the container (`down<type>`, `up`), and
+    /// PencilKit's drawing recogniser's states (`pk<state>`) once it is that recogniser's target.
+    private final class PassiveTouchRecognizer: UIGestureRecognizer, UIGestureRecognizerDelegate {
+        private(set) var downs = 0
+        private(set) var lines: [String] = []
+        private var down = 0
+        private let start = ProcessInfo.processInfo.systemUptime
+
+        override init(target: Any?, action: Selector?) {
+            super.init(target: target, action: action)
+            cancelsTouchesInView = false
+            delaysTouchesBegan = false
+            delaysTouchesEnded = false
+            requiresExclusiveTouchType = false
+            delegate = self
+        }
+
+        private func note(_ text: String) {
+            lines.append("\(text)@\(Int(((ProcessInfo.processInfo.systemUptime - start) * 1000).rounded()))")
+        }
+
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            super.touchesBegan(touches, with: event)
+            downs += touches.count
+            down += touches.count
+            note("down\(touches.first?.type.rawValue ?? -1)")
+        }
+
+        override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+            super.touchesEnded(touches, with: event)
+            lift(touches, "up")
+        }
+
+        override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+            super.touchesCancelled(touches, with: event)
+            lift(touches, "cancelled")
+        }
+
+        private func lift(_ touches: Set<UITouch>, _ text: String) {
+            down -= touches.count
+            note(text)
+            if down <= 0 {
+                down = 0
+                state = .failed
+            }
+        }
+
+        override func reset() {
+            super.reset()
+            down = 0
+        }
+
+        override func canPrevent(_ preventedGestureRecognizer: UIGestureRecognizer) -> Bool { false }
+        override func canBePrevented(by preventingGestureRecognizer: UIGestureRecognizer) -> Bool { false }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            true
+        }
+
+        @objc func watch(_ recognizer: UIGestureRecognizer) {
+            note("pk\(recognizer.state.rawValue)")
+        }
+    }
+
+    /// Real `UITouch`es through `UIApplication.sendEvent`, made the way KIF makes them: UIKit's private
+    /// setters (`setWindow:`, `_setLocationInWindow:resetPrevious:`, `setView:`, `_setType:` …) and an
+    /// `IOHIDEvent` from IOKit's `IOHIDEventCreateDigitizer…` (found with `dlsym`), put into the app's own
+    /// touches event (`_touchesEvent`, `_clearTouches`, `_addTouch:forDelayedDelivery:`). Test code only;
+    /// `init` throws `XCTSkip` when this iOS lacks a piece a touch cannot do without. The setters that
+    /// only one platform has are called where they exist, never required, as KIF does: KIF calls
+    /// `_setIsFirstTouchForView:` and `setIsTap:` only on a Mac (this Mac's Mac Catalyst has both) and
+    /// `_setIsTapToClick:` on iOS (this Mac's Mac Catalyst does not have it); requiring the first two
+    /// skipped U1 and U2 on the iOS simulator (inferred: they are not on iOS 14 and later). Every skip
+    /// says why on a `repro: <test> skipped:` line first (`skip`): a skip fails nothing, so the CI log
+    /// would not otherwise show that the test tried nothing. The bug investigation drove a real Mac
+    /// Catalyst window this way (PencilKit began, erased and ended). The few hundred bytes of each
+    /// `IOHIDEvent` are not released (what UIKit keeps of them is its own business).
+    @MainActor
+    private struct UIKitTouches {
+        private typealias CallIMP = @convention(c) (AnyObject, Selector) -> Void
+        private typealias GetIMP = @convention(c) (AnyObject, Selector) -> AnyObject?
+        private typealias SetObjectIMP = @convention(c) (AnyObject, Selector, AnyObject?) -> Void
+        private typealias SetPointerIMP = @convention(c) (AnyObject, Selector, OpaquePointer?) -> Void
+        private typealias SetIntIMP = @convention(c) (AnyObject, Selector, Int) -> Void
+        private typealias SetBoolIMP = @convention(c) (AnyObject, Selector, Bool) -> Void
+        private typealias SetDoubleIMP = @convention(c) (AnyObject, Selector, Double) -> Void
+        private typealias SetPointIMP = @convention(c) (AnyObject, Selector, CGPoint, Bool) -> Void
+        private typealias AddTouchIMP = @convention(c) (AnyObject, Selector, AnyObject, Bool) -> Void
+        private typealias HandEvent = @convention(c) (CFAllocator?, UInt64, UInt32, UInt32, UInt32, UInt32, UInt32,
+                                                      Double, Double, Double, Double, Double, Bool, Bool, UInt32) -> OpaquePointer?
+        private typealias FingerEvent = @convention(c) (CFAllocator?, UInt64, UInt32, UInt32, UInt32,
+                                                        Double, Double, Double, Double, Double, Bool, Bool, UInt32) -> OpaquePointer?
+        private typealias SetField = @convention(c) (OpaquePointer, UInt32, Int) -> Void
+        private typealias AppendEvent = @convention(c) (OpaquePointer, OpaquePointer, UInt32) -> Void
+        private typealias SetSender = @convention(c) (OpaquePointer, UInt64) -> Void
+
+        /// `kIOHIDEventFieldDigitizerIsDisplayIntegrated` (digitizer events are type 11).
+        private static let displayIntegrated: UInt32 = (11 << 16) | 25
+
+        /// The test that sends the touches (`U1`, `U2`): it names the `repro:` line of a skip.
+        let test: String
+        private let createHand: HandEvent
+        private let createFinger: FingerEvent
+        private let setField: SetField
+        private let appendEvent: AppendEvent
+        private let setSender: SetSender?
+
+        /// The skip of `test` for `reason`, said first on a `repro: <test> skipped: <reason>` line (stdout
+        /// and the log, like the tests' other `repro:` lines).
+        static func skip(_ test: String, _ reason: String) -> XCTSkip {
+            let line = "repro: \(test) skipped: \(reason)"
+            print(line)
+            NSLog("%@", line)
+            return XCTSkip(reason)
+        }
+
+        init(_ test: String) throws {
+            self.test = test
+            guard let iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW),
+                  let hand = dlsym(iokit, "IOHIDEventCreateDigitizerEvent"),
+                  let finger = dlsym(iokit, "IOHIDEventCreateDigitizerFingerEvent"),
+                  let field = dlsym(iokit, "IOHIDEventSetIntegerValue"),
+                  let append = dlsym(iokit, "IOHIDEventAppendEvent") else {
+                throw Self.skip(test, "IOKit's IOHIDEvent functions are missing")
+            }
+            createHand = unsafeBitCast(hand, to: HandEvent.self)
+            createFinger = unsafeBitCast(finger, to: FingerEvent.self)
+            setField = unsafeBitCast(field, to: SetField.self)
+            appendEvent = unsafeBitCast(append, to: AppendEvent.self)
+            setSender = dlsym(iokit, "IOHIDEventSetSenderID").map { unsafeBitCast($0, to: SetSender.self) }
+            // Required: what every touch needs. `_setIsFirstTouchForView:`, `setIsTap:` (a Mac's) and
+            // `_setIsTapToClick:` (iOS's) are set in `stroke` where they exist.
+            let touch = UITouch()
+            for name in ["setWindow:", "setView:", "setTapCount:", "_setLocationInWindow:resetPrevious:", "setPhase:",
+                         "setTimestamp:", "_setType:", "_setHidEvent:"]
+            where Self.method(touch, name) == nil {
+                throw Self.skip(test, "UITouch has no \(name)")
+            }
+            guard let event = Self.touchesEvent() else { throw Self.skip(test, "UIApplication has no _touchesEvent") }
+            for name in ["_clearTouches", "_setHIDEvent:", "_setTimestamp:", "_addTouch:forDelayedDelivery:"]
+            where Self.method(event, name) == nil {
+                throw Self.skip(test, "the touches event has no \(name)")
+            }
+            let optional = ["_setIsFirstTouchForView:", "setIsTap:", "_setIsTapToClick:", "setGestureView:"]
+            let line = "repro: \(test) touches: optional setters present=[\(optional.filter { Self.method(touch, $0) != nil }.joined(separator: " "))]"
+            print(line)
+            NSLog("%@", line)
+        }
+
+        private static func method(_ object: AnyObject, _ name: String) -> (IMP, Selector)? {
+            let selector = NSSelectorFromString(name)
+            guard let method = class_getInstanceMethod(object_getClass(object), selector) else { return nil }
+            return (method_getImplementation(method), selector)
+        }
+
+        private static func touchesEvent() -> UIEvent? {
+            guard let (imp, selector) = method(UIApplication.shared, "_touchesEvent") else { return nil }
+            return unsafeBitCast(imp, to: GetIMP.self)(UIApplication.shared, selector) as? UIEvent
+        }
+
+        private static func call(_ object: AnyObject, _ name: String) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: CallIMP.self)(object, selector)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, object value: AnyObject?) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetObjectIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, pointer value: OpaquePointer?) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetPointerIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, int value: Int) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetIntIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, bool value: Bool) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetBoolIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, double value: Double) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetDoubleIMP.self)(object, selector, value)
+        }
+
+        private static func set(_ object: AnyObject, _ name: String, point: CGPoint, flag: Bool) {
+            guard let (imp, selector) = method(object, name) else { return }
+            unsafeBitCast(imp, to: SetPointIMP.self)(object, selector, point, flag)
+        }
+
+        /// The app's touches event emptied: what UIKit's own hit test sees for a touch that begins.
+        func emptyTouchesEvent() -> UIEvent? {
+            guard let event = Self.touchesEvent() else { return nil }
+            Self.call(event, "_clearTouches")
+            return event
+        }
+
+        /// One touch of `type`: down at `path[0]` (window points) on the view `view` answers for that
+        /// point, moved through the rest `step` apart, lifted at the last point.
+        func stroke(_ path: [CGPoint], type: UITouch.TouchType, in window: UIWindow, step: Duration = .milliseconds(16),
+                    view: (CGPoint) -> UIView?) async throws {
+            guard let first = path.first, let target = view(first) else {
+                throw Self.skip(test, "no view to touch at \(path.first ?? .zero)")
+            }
+            let touch = UITouch()
+            Self.set(touch, "setWindow:", object: window) // resets other values: first
+            Self.set(touch, "setTapCount:", int: 1)
+            Self.set(touch, "_setLocationInWindow:resetPrevious:", point: first, flag: true)
+            Self.set(touch, "setView:", object: target)
+            Self.set(touch, "setGestureView:", object: target) // KIF does it where it exists
+            Self.set(touch, "setPhase:", int: UITouch.Phase.began.rawValue)
+            // Each where it exists (`set` does nothing otherwise): a Mac's two, iOS's one (KIF's split).
+            Self.set(touch, "_setIsFirstTouchForView:", bool: true)
+            Self.set(touch, "setIsTap:", bool: false)
+            Self.set(touch, "_setIsTapToClick:", bool: false)
+            Self.set(touch, "setTimestamp:", double: ProcessInfo.processInfo.systemUptime)
+            Self.set(touch, "_setType:", int: type.rawValue)
+            send(touch, phase: .began, at: first)
+            for point in path.dropFirst() {
+                try await Task.sleep(for: step)
+                send(touch, phase: .moved, at: point)
+            }
+            try await Task.sleep(for: .milliseconds(2))
+            send(touch, phase: .ended, at: path[path.count - 1])
+        }
+
+        private func send(_ touch: UITouch, phase: UITouch.Phase, at point: CGPoint) {
+            if phase != .began {
+                Self.set(touch, "_setLocationInWindow:resetPrevious:", point: point, flag: false)
+                Self.set(touch, "setPhase:", int: phase.rawValue)
+                Self.set(touch, "setTimestamp:", double: ProcessInfo.processInfo.systemUptime)
+            }
+            guard let event = Self.touchesEvent(), let (imp, selector) = Self.method(event, "_addTouch:forDelayedDelivery:") else { return }
+            let hid = hidEvent(at: point, phase: phase)
+            Self.set(touch, "_setHidEvent:", pointer: hid)
+            Self.call(event, "_clearTouches")
+            Self.set(event, "_setHIDEvent:", pointer: hid)
+            Self.set(event, "_setTimestamp:", double: ProcessInfo.processInfo.systemUptime)
+            unsafeBitCast(imp, to: AddTouchIMP.self)(event, selector, touch, false)
+            UIApplication.shared.sendEvent(event)
+        }
+
+        /// A hand event with one finger at `point` (window points), as KIF builds it.
+        private func hidEvent(at point: CGPoint, phase: UITouch.Phase) -> OpaquePointer? {
+            let time = mach_absolute_time()
+            guard let hand = createHand(kCFAllocatorDefault, time, 3, 0, 0, 1 << 1, 0, 0, 0, 0, 0, 0, false, true, 0) else { return nil }
+            setField(hand, Self.displayIntegrated, 1)
+            setSender?(hand, 0x0000_0001_2345_6789)
+            let touching = phase != .ended && phase != .cancelled
+            let mask: UInt32 = phase == .moved ? 1 << 2 : (1 << 0) | (1 << 1)
+            if let finger = createFinger(kCFAllocatorDefault, time, 1, 2, mask, Double(point.x), Double(point.y), 0,
+                                         touching ? 1 : 0, 0, touching, touching, 0) {
+                setField(finger, Self.displayIntegrated, 1)
+                appendEvent(hand, finger, 0)
+            }
+            return hand
+        }
     }
 }

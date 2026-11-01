@@ -57,10 +57,15 @@ public enum ZoomPolicy {
 
     /// The overview rectangle (lu, D1): the part of the paper the lower limit fits into the paper
     /// area. Month: 1400 × `MonthPageLayout.memo.minY` (the 6 rows; the memo area is reached by
-    /// scrolling, M4C-12). Week, day and year: the whole paper (`layout.size`).
+    /// scrolling, M4C-12). Day: 1000 × `grid.height` (the 24 hours; the free memo area below 24:00 is
+    /// reached by scrolling, 1.1 K-6, so the overview's zoom never depends on its height). Week and
+    /// year: the whole paper (`layout.size`).
     public static func overviewSize(_ layout: any PageLayout) -> CGSize {
         if let month = layout as? MonthPageLayout {
             return CGSize(width: month.size.width, height: month.memo.minY)
+        }
+        if let day = layout as? DayPageLayout {
+            return CGSize(width: day.size.width, height: day.grid.height)
         }
         return layout.size
     }

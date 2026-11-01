@@ -8,7 +8,8 @@ public enum PageKind: String, CaseIterable, Codable, Sendable {
 
 /// A horizontal band of a page used as the reference of the scroll correction (DESIGN §3.5).
 /// Month: "row:0"…"row:5", "memo". Week / day: "grid" (the "allday" band left the paper in M4b; the
-/// value stays as a type, the week / day pages no longer return it). Year: "row:1"…"row:31".
+/// value stays as a type, the week / day pages no longer return it); day since 1.1 also "extra" (below
+/// 24:00). Year: "row:1"…"row:31".
 public struct PageBand: Hashable, Sendable, CustomStringConvertible {
     public let raw: String
 
@@ -21,6 +22,8 @@ public struct PageBand: Hashable, Sendable, CustomStringConvertible {
     public static let memo = PageBand(raw: "memo")
     public static let allDay = PageBand(raw: "allday")
     public static let grid = PageBand(raw: "grid")
+    /// The day page's free memo area below 24:00 (1.1).
+    public static let extra = PageBand(raw: "extra")
 
     /// The index of a "row:<index>" band; nil for the others.
     public var rowIndex: Int? {

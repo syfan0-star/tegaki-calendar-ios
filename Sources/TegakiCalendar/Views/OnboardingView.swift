@@ -4,7 +4,9 @@ import UIKit
 /// The four first-run cards (M2 contract §6, M4 contract §6.5, DESIGN §2.10): the calendar account,
 /// the full-access permission, pen vs. finger, and iCloud (where the handwriting is kept). The last
 /// card's button asks the OS for calendar access; iCloud itself needs no permission dialog (the
-/// private database is the person's own iCloud).
+/// private database is the person's own iCloud). 1.1 (M7A_CONTRACT §6.1 / §6.2): the cards say
+/// 「この端末」 (they are shown on an iPhone too), the first card's how-to is the settings screen's
+/// (`SettingsScreen.googleHowTo`), and the third card ends with the taps that open a day page.
 struct OnboardingView: View {
     /// Called by the last card's button; it should request access and then dismiss this view.
     var onFinish: () async -> Void
@@ -16,13 +18,24 @@ struct OnboardingView: View {
     /// The index of the last card (the one with 「許可の画面を出す」).
     static let lastIndex = 3
 
+    /// The first card: the device's 「カレンダー」, then the same steps as the settings screen.
+    static let accountText = "このアプリは、この端末の「カレンダー」に入っている予定を表示します。\n\n" + SettingsScreen.googleHowTo
+    /// The second card: why full access.
+    static let accessText = "次の画面で、カレンダーへの「フルアクセス」を求めます。予定を手帳のページに表示し、手書きから予定を作るためです。\n\niOS と iPadOS には読み取りだけの許可が無いため、フルアクセスになります。予定はこの端末の中だけで扱い、開発者やほかの誰にも送りません。"
+    /// The third card: pen and finger; 1.1 adds the last sentence (the taps that open a day page).
+    static let penText = "Apple Pencil で紙に書きます。指はスクロール・ピンチ拡大・予定のタップに使います。手のひらが触れても線は引かれません。\n\n指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。Apple Pencil のダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作どおりにペンと消しゴムを切り替えます。\n\n" + dayPageTapText
+    /// The sentence of 1.1 at the end of the third card (§6.2).
+    static let dayPageTapText = "年のページは日付や左端の数字（今月のその日）、月のページは日付の数字を指でタップ、週・月・年のページはマスを指でダブルタップすると、その日のページが開きます。"
+    /// The fourth card: where the handwriting is kept.
+    static let iCloudText = "手書きはこの端末と、あなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きが見られます。\n\niCloud にサインインしていないときは、この端末の中だけに保存します。iCloud の設定は要りません（この端末でサインインしていれば自動で使われます）。\n\n手書きは開発者には見えません。iCloud の容量はあなたのものを使います。"
+
     var body: some View {
         VStack(spacing: 0) {
             TabView(selection: $index) {
                 card(
                     symbol: "person.crop.circle.badge.plus",
                     title: "カレンダーのアカウント",
-                    text: "このアプリは iPad の「カレンダー」に入っている予定を表示します。\n\nGoogle カレンダーの予定を出すには、iPad の設定で Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。",
+                    text: Self.accountText,
                     extra: AnyView(
                         Button("設定アプリを開く") {
                             if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
@@ -35,7 +48,7 @@ struct OnboardingView: View {
                 card(
                     symbol: "lock.open",
                     title: "カレンダーへのアクセス",
-                    text: "次の画面で、カレンダーへの「フルアクセス」を求めます。予定を手帳のページに表示し、手書きから予定を作るためです。\n\niPadOS には読み取りだけの許可が無いため、フルアクセスになります。予定は iPad の中だけで扱い、開発者やほかの誰にも送りません。",
+                    text: Self.accessText,
                     extra: nil
                 )
                 .tag(1)
@@ -43,7 +56,7 @@ struct OnboardingView: View {
                 card(
                     symbol: "pencil.and.scribble",
                     title: "ペンで書き、指で動かす",
-                    text: "Apple Pencil で紙に書きます。指はスクロール・ピンチ拡大・予定のタップに使います。手のひらが触れても線は引かれません。\n\n指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。Apple Pencil のダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作どおりにペンと消しゴムを切り替えます。",
+                    text: Self.penText,
                     extra: nil
                 )
                 .tag(2)
@@ -51,7 +64,7 @@ struct OnboardingView: View {
                 card(
                     symbol: "icloud",
                     title: "iCloud と手書きの保存",
-                    text: "手書きはこの iPad と、あなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きが見られます。\n\niCloud にサインインしていないときは、この iPad の中だけに保存します。iCloud の設定は要りません（iPad でサインインしていれば自動で使われます）。\n\n手書きは開発者には見えません。iCloud の容量はあなたのものを使います。",
+                    text: Self.iCloudText,
                     extra: nil
                 )
                 .tag(3)

@@ -1,0 +1,28 @@
+8cc8a8be4f3f3e739e7b782028b6cd5e4356629de0c768acc9fd4ae76df6cd84  TegakiKit/Sources/Layout/PaperSpec.swift:1-2  imports
+0e6b42726255c26e7807ed8db5bb03ee8db54ca3ab590a50d1acc7148181ed4c  TegakiKit/Sources/Layout/PaperSpec.swift:36-41  PaperSpecV10.weekWidth / weekGutter / weekColumns / weekColumnWidth
+9f54206bc01fa9fcf185ae3234ea46a4f51a7cb7d708710960e57f0ea4203682  TegakiKit/Sources/Layout/PaperSpec.swift:114-200  CellKeyV10
+06c0c058294f962747e72ed90c81e9e9e4f0197895e6f651a9142e868e7c13d1  TegakiKit/Sources/DayKit/DayKey.swift:1-93  DayKeyV10
+dda9b75f64b106eb544de201f599122d75abc483c5b156bba6c05c0f956dbc3c  TegakiKit/Sources/InkModel/WebImport.swift:1-1  imports
+fceeab57b191432aa7e1ea386000742249033ab15344dfe9986bfdf849dbab37  TegakiKit/Sources/InkModel/WebImport.swift:10-10  WebImportV10
+213d4d44b5236b587d6a966754482a3519cfde5cacfaa16db651d8a808913d6c  TegakiKit/Sources/InkModel/WebImport.swift:12-12  WebImportV10.supportedVersion
+14ef5b2ce14da03da534cee07c8662b18fde2224aa37e22ad0d56d5ec84548e0  TegakiKit/Sources/InkModel/WebImport.swift:29-35  WebImportV10.ParseError
+96a69c80ce0dc2655f74b3daf2c016484c4375e227757f0db7212e606210364f  TegakiKit/Sources/InkModel/WebImport.swift:165-169  WebImportV10.versionNumber
+abb3a511749ddc505b3ba1ed76b8412afc8f95c7256914e3e1f4630c2361d17c  TegakiKit/Sources/InkModel/AppExport.swift:1-132  AppExportV10
+1140a042ca1890c307e0da3c4ddfd0595844a0b59273aa0be59afcd841345986  Sources/TegakiCalendar/Ink/InkLedger.swift:217-235  LedgerV10.drawnIds
+11610ab5df1c69e6146c9865f5f53be5b95fd9dabb8d24d5ffde45e810d12bc2  Sources/TegakiCalendar/Ink/InkLedger.swift:285-290  LedgerV10.drawnIds (what an erase can remove)
+f0679de45f12fb0ce1d74a9d0efa25377a0bff1aeb7e8a9caada1ce7cd37c2ad  Sources/TegakiCalendar/Ink/InkCanvasView.swift:1352-1367  LedgerV10.lassoCandidates
+563b5f2e3f0342a37145108cc2810ca66ea0ba702911d626ed7b4d5acfdf94a4  Sources/TegakiCalendar/Ink/InkCanvasView.swift:1120-1135  LedgerV10.dotCandidates
+d3f7cc26cb384cc4dca7282dfe14fa7bc18059043453fb7f28f1f7cfb744219e  Sources/TegakiCalendar/Ink/InkLedger.swift:408-411  LedgerV10.dotCandidates (paperBounds of a live stroke)
+a0388effce65f927a93d3905bd24fef13ea6a058895c90107861624eff8faaa2  Sources/TegakiCalendar/Ink/InkLedger.swift:321-325  LedgerV10.needsMoreRoom
+76c899b9374f3203416373a9bc6f1ee687838d3fe1677065e337dc33dff0fb38  TegakiKit/Sources/Layout/PaperSpec.swift:23-25  LedgerV10.needsMoreRoom (inkPad, memoInkPad)
+ae12adcc60dff60dd5e381fe14008d4b40493f5313def3ceadfdb07b0b769609  Sources/TegakiCalendar/Views/CalendarRootScreen.swift:805-810  LedgerV10.displayWouldSave
+9646dddea024b70a198f064527abb226909108c2cb9e44bc576b21c37e685b03  Sources/TegakiCalendar/Views/CalendarRootScreen.swift:1327-1333  LedgerV10.displayWouldSave (reloadShownPage)
+31d57deb5845fe351713981a8fd34286ca5fa4bdf627a41951f5c88765617ded  Sources/TegakiCalendar/Views/CalendarRootScreen.swift:878-889  LedgerV10.applyRemoteWouldSave
+ebc87f69167ac07d80873c135b8e9f9a99336318751465b241358aa5c3c60e60  Sources/TegakiCalendar/Sync/SyncEngine.swift:633-647  LedgerV10.mergeRemoteOutcome
+aefc002421c52cfc54e3d0f1888f5c4f0ece19f4be4fdec9cb94a1f583452bb4  TegakiKit/Sources/Layout/MonthLayoutEngine.swift:23-26  memoHeightV10
+9ad5f87df987e55420de984fa04e62097dd128ab02a417939d3d8f3116addb0a  TegakiKit/Sources/Layout/DayLayoutEngine.swift:210-218  cellsV10 (day: grid)
+e969ab123df355828d59ff152825ce30528596055510e63eea4bf14ea05c395c  TegakiKit/Sources/Layout/WeekLayoutEngine.swift:235-241  cellsV10 (week: grid)
+958d7cbe3117bf787be45f007b50542d921971547de28685c4a83dd5dab9ebb3  TegakiKit/Sources/Layout/MonthLayoutEngine.swift:90-92  cellsV10 (month: the 42 day cells)
+fe149768f9e148b1a67091b338c1f445cf67ea7a014c9d30cf69c65567b99834  TegakiKit/Sources/Layout/MonthLayoutEngine.swift:162-164  cellsV10 (month: memo)
+d182e97ed71808c02e047d20fbc0655fa310580cc4538213841e8bd5eb50ec87  TegakiKit/Sources/Layout/MonthLayout.swift:45-55  cellsV10 (month: 42 days from the Monday)
+8a3f3ddb10fcb18cc4571c0242760617214b539e5f287095969e8b5800043550  TegakiKit/Sources/Layout/YearLayoutEngine.swift:300-308  cellsV10 (year: 372 cells)
