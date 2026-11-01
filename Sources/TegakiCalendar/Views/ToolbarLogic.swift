@@ -32,8 +32,10 @@ enum ToolbarEdge: String, Equatable, Sendable {
     }
 }
 
-/// Where the current eraser came from (§2.4): the toolbar's eraser returns to the last pen after it
-/// erased something; the Apple Pencil's double tap / squeeze keeps toggling as before.
+/// Where the current eraser came from (§2.4): the toolbar, or the Apple Pencil's double tap / squeeze.
+/// It no longer decides the return (the owner, 2026-11-01, docs/M7A.md ずれ 49: an eraser chosen with
+/// the Pencil goes back to the pen after it erased something too); kept so the screen still knows how
+/// the eraser was chosen (the screenshot states, a later change of mind).
 enum EraserOrigin: Equatable, Sendable {
     case toolbar, pencil
 }
@@ -153,12 +155,14 @@ enum ToolbarLogic {
     /// The tool after the canvas reported an erasure (§2.4, D2; 1.1 fix, docs/M7A.md ずれ 46: once
     /// nothing touches the paper — on the turn after the Pencil lifts, the canvas's
     /// `fingerEraseReportDelay` after a finger, on the week, month and year pages after a single tap's
-    /// undo of 0-22): the last pen or marker when the current tool is still the eraser, the eraser was
-    /// chosen on the toolbar, at least one stroke was erased and the setting 「消しゴムで消したらペンに戻る」
-    /// is on; nil = leave the tool alone (also when the person picked another tool before the report).
+    /// undo of 0-22): the last pen or marker when the current tool is still the eraser, at least one
+    /// stroke was erased and the setting 「消しゴムで消したらペンに戻る」 is on — however the eraser was
+    /// chosen (`origin` no longer matters: the owner, 2026-11-01, ずれ 49; before, only the toolbar's
+    /// eraser returned and the Pencil's stayed); nil = leave the tool alone (also when the person picked
+    /// another tool before the report).
     static func toolAfterErase(origin: EraserOrigin?, erased: Int, setting: Bool,
                                current: CanvasTool, lastInk: CanvasTool) -> CanvasTool? {
-        current.isEraser && origin == .toolbar && erased > 0 && setting ? lastInk : nil
+        current.isEraser && erased > 0 && setting ? lastInk : nil
     }
 
     /// The eraser's hint as the bar shows it (§6.2, M7A.md ずれ 45): 「触れた線をまるごと消します」, and

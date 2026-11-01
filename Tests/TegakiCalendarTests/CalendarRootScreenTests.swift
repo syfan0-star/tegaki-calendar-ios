@@ -439,8 +439,9 @@ final class CalendarRootScreenTests: XCTestCase {
         XCTAssertNil(try shot(["--screenshot-sheet", "lasso", "--screenshot-tool", "eraser"]).eraserOrigin)
     }
 
-    /// §2.4: the bar's eraser note names the ink it returns to only for the toolbar's eraser with the
-    /// setting on — and then `toolAfterErase` (what `eraseEnded` applies) returns to that same ink.
+    /// §2.4: the bar's eraser note names the ink it returns to for any eraser with the setting on (the
+    /// toolbar's and, since ずれ 49, the Pencil's) — and then `toolAfterErase` (what `eraseEnded`
+    /// applies) returns to that same ink.
     func testEraserReturnTarget() {
         let red = CanvasTool.ink(InkStyle(tool: .pen, colorHex: "#dc2626", width: 6))
         let marker = CanvasTool.ink(InkPresets.defaultMarker)
@@ -451,7 +452,9 @@ final class CalendarRootScreenTests: XCTestCase {
         XCTAssertEqual(ToolbarLogic.eraserHint(returnsTo: CalendarRootScreen.eraserReturnTarget(tool: .eraser, origin: .toolbar, setting: true, lastInk: marker)),
                        "触れた線をまるごと消します（消すとマーカーに戻ります）")
         XCTAssertEqual(ToolbarLogic.eraserHint(returnsTo: CalendarRootScreen.eraserReturnTarget(tool: .eraser, origin: .pencil, setting: true, lastInk: red)),
-                       "触れた線をまるごと消します")
+                       "触れた線をまるごと消します（消すとペンに戻ります）", "the Pencil's eraser returns too (ずれ 49)")
+        XCTAssertEqual(ToolbarLogic.eraserHint(returnsTo: CalendarRootScreen.eraserReturnTarget(tool: .eraser, origin: .pencil, setting: false, lastInk: red)),
+                       "触れた線をまるごと消します", "the setting off: no bracket")
         let tools: [CanvasTool] = [.eraser, red, marker, .lasso, .eventRect]
         let origins: [EraserOrigin?] = [.toolbar, .pencil, nil]
         for tool in tools {
@@ -459,7 +462,7 @@ final class CalendarRootScreenTests: XCTestCase {
                 for setting in [true, false] {
                     for lastInk in [red, marker] {
                         let target = CalendarRootScreen.eraserReturnTarget(tool: tool, origin: origin, setting: setting, lastInk: lastInk)
-                        let returns = tool == .eraser && origin == .toolbar && setting
+                        let returns = tool == .eraser && setting
                         XCTAssertEqual(target, returns ? lastInk : nil, "\(tool) \(String(describing: origin)) \(setting)")
                         XCTAssertEqual(ToolbarLogic.toolAfterErase(origin: origin, erased: 1, setting: setting, current: tool, lastInk: lastInk), target,
                                        "the note and the return agree: \(tool) \(String(describing: origin)) \(setting)")

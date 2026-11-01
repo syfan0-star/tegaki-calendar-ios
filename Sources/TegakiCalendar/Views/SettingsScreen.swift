@@ -84,8 +84,8 @@ struct SettingsScreen: View {
     /// speak of the Pencil, like the 「Apple Pencil」 row, which only an iPad has).
     static func eraserAutoReturnFooter(isPad: Bool) -> String {
         isPad
-            ? "ツールバーで選んだ消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムは戻りません。"
-            : "ツールバーで選んだ消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。"
+            ? "消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムも同じです。"
+            : "消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。"
     }
 
     /// 設定 › 情報: the two rows of the stroke counts (values: `StrokeCensus.rowText` / `yearRowText`).

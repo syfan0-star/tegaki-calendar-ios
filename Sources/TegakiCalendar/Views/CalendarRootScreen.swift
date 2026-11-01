@@ -464,9 +464,10 @@ struct CalendarRootScreen: View {
         ScreenshotMode.isActive ? true : eraserAutoReturn
     }
 
-    /// The ink the toolbar's eraser will return to (the bracket of its note, §2.4); nil otherwise.
+    /// The ink the eraser will return to (the bracket of its note, §2.4) — the toolbar's and, since the
+    /// owner's decision of 2026-11-01 (ずれ 49), the Apple Pencil's double tap / squeeze too; nil otherwise.
     static func eraserReturnTarget(tool: CanvasTool, origin: EraserOrigin?, setting: Bool, lastInk: CanvasTool) -> CanvasTool? {
-        tool.isEraser && origin == .toolbar && setting ? lastInk : nil
+        tool.isEraser && setting ? lastInk : nil
     }
 
     /// This month (the year gutter's day numbers open this month's day, P-13; fixed in screenshot mode).

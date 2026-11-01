@@ -141,8 +141,8 @@ final class SettingsScreenTests: XCTestCase {
         XCTAssertEqual(SettingsScreen.eraserAutoReturnTitle, "消しゴムで消したらペンに戻る")
         let phone = SettingsScreen.eraserAutoReturnFooter(isPad: false)
         let pad = SettingsScreen.eraserAutoReturnFooter(isPad: true)
-        XCTAssertEqual(phone, "ツールバーで選んだ消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。")
-        XCTAssertEqual(pad, "ツールバーで選んだ消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムは戻りません。")
+        XCTAssertEqual(phone, "消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。")
+        XCTAssertEqual(pad, "消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムも同じです。")
         XCTAssertFalse(phone.contains("Apple Pencil"), "an iPhone's settings never speak of the Pencil")
         XCTAssertFalse(phone.contains("iPad"))
 

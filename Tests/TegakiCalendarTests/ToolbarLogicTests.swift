@@ -28,7 +28,7 @@ final class ToolbarLogicTests: XCTestCase {
                                                                      current: current, lastInk: lastInk)
                             let label = "origin \(String(describing: origin)) erased \(erased) setting \(setting) "
                                 + "last \(lastInk) current \(current)"
-                            if origin == .toolbar, erased > 0, setting, current == .eraser {
+                            if erased > 0, setting, current == .eraser {
                                 XCTAssertEqual(result, lastInk, label)
                                 returned += 1
                             } else {
@@ -39,9 +39,9 @@ final class ToolbarLogicTests: XCTestCase {
                 }
             }
         }
-        // Only the toolbar's eraser with 1 or 3 erased, the setting on and the eraser still chosen:
-        // 2 counts × 2 last inks.
-        XCTAssertEqual(returned, 4)
+        // Any eraser (the toolbar's, the Pencil's, none recorded — the owner, 2026-11-01, ずれ 49) with
+        // 1 or 3 erased, the setting on and the eraser still chosen: 3 origins × 2 counts × 2 last inks.
+        XCTAssertEqual(returned, 12)
 
         // The rows of §2.4 in words.
         XCTAssertEqual(ToolbarLogic.toolAfterErase(origin: .toolbar, erased: 1, setting: true,
@@ -52,8 +52,9 @@ final class ToolbarLogicTests: XCTestCase {
                        "a marker comes back as the marker")
         XCTAssertNil(ToolbarLogic.toolAfterErase(origin: .toolbar, erased: 0, setting: true,
                                                  current: .eraser, lastInk: redThick), "nothing erased")
-        XCTAssertNil(ToolbarLogic.toolAfterErase(origin: .pencil, erased: 5, setting: true,
-                                                 current: .eraser, lastInk: redThick), "the Pencil's eraser stays")
+        XCTAssertEqual(ToolbarLogic.toolAfterErase(origin: .pencil, erased: 5, setting: true,
+                                                   current: .eraser, lastInk: redThick), redThick,
+                       "the Pencil's eraser (double tap / squeeze) returns too (ずれ 49)")
         XCTAssertNil(ToolbarLogic.toolAfterErase(origin: .toolbar, erased: 5, setting: false,
                                                  current: .eraser, lastInk: redThick), "the setting is off")
         XCTAssertNil(ToolbarLogic.toolAfterErase(origin: .toolbar, erased: 5, setting: true,
@@ -64,8 +65,9 @@ final class ToolbarLogicTests: XCTestCase {
         XCTAssertNil(ToolbarLogic.toolAfterErase(origin: .toolbar, erased: 5, setting: true,
                                                  current: yellowMarker, lastInk: redThick),
                      "another ink was picked during the settle delay: keep it")
-        XCTAssertNil(ToolbarLogic.toolAfterErase(origin: nil, erased: 5, setting: true,
-                                                 current: .eraser, lastInk: redThick), "no origin recorded")
+        XCTAssertEqual(ToolbarLogic.toolAfterErase(origin: nil, erased: 5, setting: true,
+                                                   current: .eraser, lastInk: redThick), redThick,
+                       "no origin recorded: returns too")
     }
 
     // MARK: Modes (§2.1)
