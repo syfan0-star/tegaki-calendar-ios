@@ -1,0 +1,456 @@
+{
+  "owner": "K",
+  "keys": {
+    "kit.weekday.letter.0": {
+      "ja": "日",
+      "target": "kit",
+      "comment": "曜日の記号（日曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "日",
+        "en": "Su",
+        "zh-Hans": "日",
+        "zh-Hant": "日",
+        "ko": "일",
+        "fr": "di",
+        "de": "So",
+        "es": "do",
+        "it": "do",
+        "pt-BR": "dom"
+      }
+    },
+    "kit.weekday.letter.1": {
+      "ja": "月",
+      "target": "kit",
+      "comment": "曜日の記号（月曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "月",
+        "en": "Mo",
+        "zh-Hans": "一",
+        "zh-Hant": "一",
+        "ko": "월",
+        "fr": "lu",
+        "de": "Mo",
+        "es": "lu",
+        "it": "lu",
+        "pt-BR": "seg"
+      }
+    },
+    "kit.weekday.letter.2": {
+      "ja": "火",
+      "target": "kit",
+      "comment": "曜日の記号（火曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "火",
+        "en": "Tu",
+        "zh-Hans": "二",
+        "zh-Hant": "二",
+        "ko": "화",
+        "fr": "ma",
+        "de": "Di",
+        "es": "ma",
+        "it": "ma",
+        "pt-BR": "ter"
+      }
+    },
+    "kit.weekday.letter.3": {
+      "ja": "水",
+      "target": "kit",
+      "comment": "曜日の記号（水曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "水",
+        "en": "We",
+        "zh-Hans": "三",
+        "zh-Hant": "三",
+        "ko": "수",
+        "fr": "me",
+        "de": "Mi",
+        "es": "mi",
+        "it": "me",
+        "pt-BR": "qua"
+      }
+    },
+    "kit.weekday.letter.4": {
+      "ja": "木",
+      "target": "kit",
+      "comment": "曜日の記号（木曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "木",
+        "en": "Th",
+        "zh-Hans": "四",
+        "zh-Hant": "四",
+        "ko": "목",
+        "fr": "je",
+        "de": "Do",
+        "es": "ju",
+        "it": "gi",
+        "pt-BR": "qui"
+      }
+    },
+    "kit.weekday.letter.5": {
+      "ja": "金",
+      "target": "kit",
+      "comment": "曜日の記号（金曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "金",
+        "en": "Fr",
+        "zh-Hans": "五",
+        "zh-Hant": "五",
+        "ko": "금",
+        "fr": "ve",
+        "de": "Fr",
+        "es": "vi",
+        "it": "ve",
+        "pt-BR": "sex"
+      }
+    },
+    "kit.weekday.letter.6": {
+      "ja": "土",
+      "target": "kit",
+      "comment": "曜日の記号（土曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "土",
+        "en": "Sa",
+        "zh-Hans": "六",
+        "zh-Hant": "六",
+        "ko": "토",
+        "fr": "sa",
+        "de": "Sa",
+        "es": "sá",
+        "it": "sa",
+        "pt-BR": "sáb"
+      }
+    },
+    "kit.date.ja.dayTitle": {
+      "ja": "%1$@年%2$@月%3$@日(%4$@)",
+      "target": "kit",
+      "comment": "日のページの題名の日付「2026年10月4日(日)」（祝日名は呼ぶ側が後ろに足す）と、日付の読み上げ（spokenDay）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:110",
+        "Views/EventDateText.swift:12"
+      ],
+      "args": [
+        "年",
+        "月",
+        "日",
+        "曜日の記号（kit.weekday.letter.*）"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.shortDay": {
+      "ja": "%1$@月%2$@日(%3$@)",
+      "target": "kit",
+      "comment": "短い日付「10月7日(水)」（iPhone の縦の見出しの日のページ、予定の終わりの日）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:134",
+        "Views/EventDateText.swift:21"
+      ],
+      "args": [
+        "月",
+        "日",
+        "曜日の記号（kit.weekday.letter.*）"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.monthTitle": {
+      "ja": "%1$@年%2$@月",
+      "target": "kit",
+      "comment": "月のページの題名「2026年10月」（compact も同じ）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:121"
+      ],
+      "args": [
+        "年",
+        "月"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.yearTitle": {
+      "ja": "%@年",
+      "target": "kit",
+      "comment": "年のページの題名「2026年」。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:123"
+      ],
+      "args": [
+        "年（区切りなしの数）"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.weekTitle": {
+      "ja": "%1$@年%2$@月%3$@日〜%4$@月%5$@日",
+      "target": "kit",
+      "comment": "週のページの題名「2026年9月28日〜10月4日」（月曜から日曜。同じ年のとき）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:116",
+        "Layout/PageNavigation.swift:117",
+        "Layout/PageNavigation.swift:119"
+      ],
+      "args": [
+        "月曜の年",
+        "月曜の月",
+        "月曜の日",
+        "日曜の月",
+        "日曜の日"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.weekTitleCrossYear": {
+      "ja": "%1$@年%2$@月%3$@日〜%4$@年%5$@月%6$@日",
+      "target": "kit",
+      "comment": "年をまたぐ週の題名「2026年12月28日〜2027年1月3日」（両側に年）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:116",
+        "Layout/PageNavigation.swift:117",
+        "Layout/PageNavigation.swift:118",
+        "Layout/PageNavigation.swift:119"
+      ],
+      "args": [
+        "月曜の年",
+        "月曜の月",
+        "月曜の日",
+        "日曜の年",
+        "日曜の月",
+        "日曜の日"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.weekTitleCompact": {
+      "ja": "%1$@/%2$@〜%3$@/%4$@",
+      "target": "kit",
+      "comment": "iPhone の縦の見出しの週の題名「9/28〜10/4」（年は書かない。年をまたいでも「12/28〜1/3」）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:138"
+      ],
+      "args": [
+        "月曜の月",
+        "月曜の日",
+        "日曜の月",
+        "日曜の日"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.weekdayFull": {
+      "ja": "%@曜日",
+      "target": "kit",
+      "comment": "曜日の名前「水曜日」（日のページの見出し、WeekdayStyle.full）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Views/StickyHeaderView.swift:177"
+      ],
+      "args": [
+        "曜日の記号（kit.weekday.letter.*）"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.monthName": {
+      "ja": "%@月",
+      "target": "kit",
+      "comment": "月の名前「10月」（日のページの見出し・年のページの月の列・PDF。MonthNameStyle の short も full も同じ）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Views/StickyHeaderView.swift:174",
+        "Views/StickyHeaderView.swift:208",
+        "Export/PDFPageRenderer.swift:252",
+        "Views/CalendarRootScreen.swift:1172"
+      ],
+      "args": [
+        "月"
+      ],
+      "jaOnly": true
+    },
+    "kit.layout.more.one": {
+      "ja": "+%@件",
+      "target": "kit",
+      "comment": "月のページのマスで、入りきらない時刻の予定の数のチップ（「+3件」）。%@ は隠れた予定の数（2 以上）。one は 1 のときの形（0-8 の規則の言語だけで使う。ja・ko・zh は other と同じ文）。上限は「+99 …」が 7 em（F-5、§4.1）。en「+3 more」・de「+3 weitere」の型",
+      "where": [
+        "Layout/LayoutWords.swift"
+      ],
+      "composedOf": [
+        "Layout/MonthLayoutEngine.swift:138"
+      ],
+      "args": [
+        "隠れた予定の数"
+      ],
+      "maxEm": 7
+    },
+    "kit.layout.more.other": {
+      "ja": "+%@件",
+      "target": "kit",
+      "comment": "月のページのマスで、入りきらない時刻の予定の数のチップ（「+3件」）。%@ は隠れた予定の数（2 以上）。other はそれ以外の数の形。上限は「+99 …」が 7 em（F-5、§4.1）。en「+3 more」・de「+3 weitere」の型",
+      "where": [
+        "Layout/LayoutWords.swift"
+      ],
+      "composedOf": [
+        "Layout/MonthLayoutEngine.swift:138"
+      ],
+      "args": [
+        "隠れた予定の数"
+      ],
+      "maxEm": 7
+    },
+    "kit.layout.tailPrefix": {
+      "ja": "〜",
+      "target": "kit",
+      "comment": "日をまたぐ予定の終わりの時刻の前に付ける印（月のページのチップ「〜11:00」）。契約が 10 言語の値を決めた（§3.1 の 4。ja「〜」、ko「~」、ほかは「–」）",
+      "where": [
+        "Layout/LayoutWords.swift"
+      ],
+      "was": [
+        "Layout/MonthLayoutEngine.swift:192"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "〜",
+        "en": "–",
+        "zh-Hans": "–",
+        "zh-Hant": "–",
+        "ko": "~",
+        "fr": "–",
+        "de": "–",
+        "es": "–",
+        "it": "–",
+        "pt-BR": "–"
+      }
+    },
+    "kit.layout.timeRange": {
+      "ja": "%1$@〜%2$@",
+      "target": "kit",
+      "comment": "時刻の範囲（週・日のページの予定「9:00〜10:30」、予定の日時の文）。契約が 10 言語の値を決めた（§3.1 の 4。ja「%1$@〜%2$@」、ko「%1$@~%2$@」、ほかは「%1$@–%2$@」）",
+      "where": [
+        "Layout/LayoutWords.swift"
+      ],
+      "composedOf": [
+        "Layout/TimedEventEngine.swift:152"
+      ],
+      "args": [
+        "始まり",
+        "終わり"
+      ],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "%1$@〜%2$@",
+        "en": "%1$@–%2$@",
+        "zh-Hans": "%1$@–%2$@",
+        "zh-Hant": "%1$@–%2$@",
+        "ko": "%1$@~%2$@",
+        "fr": "%1$@–%2$@",
+        "de": "%1$@–%2$@",
+        "es": "%1$@–%2$@",
+        "it": "%1$@–%2$@",
+        "pt-BR": "%1$@–%2$@"
+      }
+    },
+    "kit.app.name": {
+      "ja": "てがきカレンダー",
+      "target": "kit",
+      "comment": "アプリの名前。PDF のファイル名の先頭「<アプリ名> <題名> <種類>.pdf」（§2.6）。ja は「てがきカレンダー」、ほかの言語は既定で「Tegaki」（M7B-1・M7B-2。ホーム画面の名前と同じ）",
+      "where": [
+        "InkModel/AppExport.swift"
+      ],
+      "args": []
+    }
+  }
+}
