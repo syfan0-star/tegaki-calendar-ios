@@ -1,10 +1,10 @@
 # 生成物。直さない。tools/l10n/baseline.py
-# The Japanese strings of 1.1 (docs/M7B_CONTRACT.md §1.3 J-1; lint L-3: each row is one key's "was"
+# The Japanese strings of 1.1.1 (docs/M7B_CONTRACT.md §1.3 J-1; lint L-3: each row is one key's "was"
 # or "composedOf", or an exception of ja-exceptions.txt). Sources/TegakiCalendar and TegakiKit/Sources
 # without KitChecks, comments excluded. Columns: the file (without Sources/TegakiCalendar/ or
 # TegakiKit/Sources/), the line, the string as the Swift source writes it between its quotes.
-# commit: e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d
-# strings: 515 in 42 files
+# commit: 31d243c725f141f60ff62c9ad8d12148d5f7e86d
+# strings: 516 in 42 files
 Calendar/EventDraft.swift	73	カレンダーへのアクセスが許可されていません
 Calendar/EventDraft.swift	74	予定を登録できるカレンダーがありません
 Calendar/EventDraft.swift	75	登録先のカレンダーが見つかりません
@@ -24,9 +24,9 @@ Export/PDFPageRenderer.swift	36	木
 Export/PDFPageRenderer.swift	36	金
 Export/PDFPageRenderer.swift	36	土
 Export/PDFPageRenderer.swift	36	日
-Export/PDFPageRenderer.swift	252	\(index + 1)月
-Export/PDFPageRenderer.swift	284	終日
-Ink/InkCanvasView.swift	663	手書きの紙
+Export/PDFPageRenderer.swift	256	\(index + 1)月
+Export/PDFPageRenderer.swift	288	終日
+Ink/InkCanvasView.swift	679	手書きの紙
 Ink/InkTrace.swift	33	てがきカレンダー \(SettingsScreen.versionText) / \(device.systemName) \(device.systemVersion) / \(device.model)
 Ink/InkTrace.swift	61	記録
 Ink/InkTrace.swift	65	閉じる
@@ -59,37 +59,37 @@ Store/StoreStrings.swift	22	購入できませんでした（\(error.localizedDe
 Store/StoreStrings.swift	27	購入を復元しました
 Store/StoreStrings.swift	28	復元できる購入がありません。購入したときと同じ Apple Account でサインインしているか確認してください
 Store/StoreStrings.swift	32	App Store から価格を取得できませんでした。回線を確認して「再読み込み」を押してください
-Support/ScreenshotMode.swift	247	仕事
-Support/ScreenshotMode.swift	248	家族
-Support/ScreenshotMode.swift	249	個人
-Support/ScreenshotMode.swift	250	行事
-Support/ScreenshotMode.swift	265	見本
-Support/ScreenshotMode.swift	337	運動会
-Support/ScreenshotMode.swift	338	キャンプ
-Support/ScreenshotMode.swift	339	家族旅行
-Support/ScreenshotMode.swift	340	資料提出締切
-Support/ScreenshotMode.swift	341	健康診断
-Support/ScreenshotMode.swift	342	ゴミの日
-Support/ScreenshotMode.swift	343	誕生日
-Support/ScreenshotMode.swift	344	出張（大阪）
-Support/ScreenshotMode.swift	345	給料日
-Support/ScreenshotMode.swift	348	歯医者
-Support/ScreenshotMode.swift	349	週次定例
-Support/ScreenshotMode.swift	350	資料提出
-Support/ScreenshotMode.swift	351	通院
-Support/ScreenshotMode.swift	352	週次定例
-Support/ScreenshotMode.swift	353	朝会
-Support/ScreenshotMode.swift	354	週次定例
-Support/ScreenshotMode.swift	355	面談
-Support/ScreenshotMode.swift	356	レビュー
-Support/ScreenshotMode.swift	357	送別会
-Support/ScreenshotMode.swift	358	飲み会
-Support/ScreenshotMode.swift	359	週次定例
-Support/ScreenshotMode.swift	360	ランチ
-Support/ScreenshotMode.swift	363	締切
-Support/ScreenshotMode.swift	364	打合せ
-Support/ScreenshotMode.swift	365	電話
-Support/ScreenshotMode.swift	366	歯科
+Support/ScreenshotMode.swift	265	仕事
+Support/ScreenshotMode.swift	266	家族
+Support/ScreenshotMode.swift	267	個人
+Support/ScreenshotMode.swift	268	行事
+Support/ScreenshotMode.swift	283	見本
+Support/ScreenshotMode.swift	357	運動会
+Support/ScreenshotMode.swift	358	キャンプ
+Support/ScreenshotMode.swift	359	家族旅行
+Support/ScreenshotMode.swift	360	資料提出締切
+Support/ScreenshotMode.swift	361	健康診断
+Support/ScreenshotMode.swift	362	ゴミの日
+Support/ScreenshotMode.swift	363	誕生日
+Support/ScreenshotMode.swift	364	出張（大阪）
+Support/ScreenshotMode.swift	365	給料日
+Support/ScreenshotMode.swift	368	歯医者
+Support/ScreenshotMode.swift	369	週次定例
+Support/ScreenshotMode.swift	370	資料提出
+Support/ScreenshotMode.swift	371	通院
+Support/ScreenshotMode.swift	372	週次定例
+Support/ScreenshotMode.swift	373	朝会
+Support/ScreenshotMode.swift	374	週次定例
+Support/ScreenshotMode.swift	375	面談
+Support/ScreenshotMode.swift	376	レビュー
+Support/ScreenshotMode.swift	377	送別会
+Support/ScreenshotMode.swift	378	飲み会
+Support/ScreenshotMode.swift	379	週次定例
+Support/ScreenshotMode.swift	380	ランチ
+Support/ScreenshotMode.swift	383	締切
+Support/ScreenshotMode.swift	384	打合せ
+Support/ScreenshotMode.swift	385	電話
+Support/ScreenshotMode.swift	386	歯科
 Sync/SyncStatus.swift	66	保存済み
 Sync/SyncStatus.swift	68	同期中
 Sync/SyncStatus.swift	70	同期中
@@ -129,28 +129,29 @@ Views/AccountChangeDialog.swift	49	キャンセル
 Views/AllDayBandView.swift	123	終日
 Views/AllDayBandView.swift	189	（予定を編集）
 Views/AllDayBandView.swift	194	 の終日予定を追加
-Views/CalendarRootScreen.swift	241	閲覧専用です。書く・消す・予定を作るには購読が必要です
-Views/CalendarRootScreen.swift	243	閲覧専用です。手書きと予定の作成は購読すると使えます。
-Views/CalendarRootScreen.swift	244	購読する
-Views/CalendarRootScreen.swift	255	メモ欄はここまでです
-Views/CalendarRootScreen.swift	257	24 時の下の自由メモ欄では予定を作れません
-Views/CalendarRootScreen.swift	259	このページに書いた線が 15,000 本を超えました。1 ページに書ける線は 19,000 本までです。
-Views/CalendarRootScreen.swift	261	このページはいっぱいです（線 19,000 本）。線を消すと、また書けます。
-Views/CalendarRootScreen.swift	668	手書きを保存できませんでした
-Views/CalendarRootScreen.swift	929	予定を表示するにはカレンダーの読み取りを許可してください。
-Views/CalendarRootScreen.swift	929	許可する
-Views/CalendarRootScreen.swift	933	予定を表示するには設定でカレンダーを「フルアクセス」にしてください。
-Views/CalendarRootScreen.swift	933	設定を開く
-Views/CalendarRootScreen.swift	937	この端末ではカレンダーへのアクセスが制限されています。手書きだけ使えます。
-Views/CalendarRootScreen.swift	1172	\($0)月
-Views/CalendarRootScreen.swift	1385	予定を登録するには、設定でカレンダーへのアクセスを許可してください
-Views/CalendarRootScreen.swift	1390	予定を登録できるカレンダーがありません
-Views/CalendarRootScreen.swift	1453	予定を登録しました
-Views/CalendarRootScreen.swift	1457	予定を更新しました
-Views/CalendarRootScreen.swift	1470	予定を削除しました
-Views/CalendarRootScreen.swift	1489	手書きを全て消しました
-Views/CalendarRootScreen.swift	1495	手書きを全て消しました
-Views/CalendarRootScreen.swift	1497	iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください
+Views/CalendarRootScreen.swift	257	閲覧専用です。書く・消す・予定を作るには購読が必要です
+Views/CalendarRootScreen.swift	259	閲覧専用です。手書きと予定の作成は購読すると使えます。
+Views/CalendarRootScreen.swift	260	購読する
+Views/CalendarRootScreen.swift	271	メモ欄はここまでです
+Views/CalendarRootScreen.swift	273	24 時の下の自由メモ欄では予定を作れません
+Views/CalendarRootScreen.swift	275	このページに書いた線が 15,000 本を超えました。1 ページに書ける線は 19,000 本までです。
+Views/CalendarRootScreen.swift	277	このページはいっぱいです（線 19,000 本）。線を消すと、また書けます。
+Views/CalendarRootScreen.swift	282	2 本の指を広げると拡大、つまむと縮小します
+Views/CalendarRootScreen.swift	697	手書きを保存できませんでした
+Views/CalendarRootScreen.swift	962	予定を表示するにはカレンダーの読み取りを許可してください。
+Views/CalendarRootScreen.swift	962	許可する
+Views/CalendarRootScreen.swift	966	予定を表示するには設定でカレンダーを「フルアクセス」にしてください。
+Views/CalendarRootScreen.swift	966	設定を開く
+Views/CalendarRootScreen.swift	970	この端末ではカレンダーへのアクセスが制限されています。手書きだけ使えます。
+Views/CalendarRootScreen.swift	1222	\($0)月
+Views/CalendarRootScreen.swift	1435	予定を登録するには、設定でカレンダーへのアクセスを許可してください
+Views/CalendarRootScreen.swift	1440	予定を登録できるカレンダーがありません
+Views/CalendarRootScreen.swift	1503	予定を登録しました
+Views/CalendarRootScreen.swift	1507	予定を更新しました
+Views/CalendarRootScreen.swift	1520	予定を削除しました
+Views/CalendarRootScreen.swift	1539	手書きを全て消しました
+Views/CalendarRootScreen.swift	1545	手書きを全て消しました
+Views/CalendarRootScreen.swift	1547	iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください
 Views/EventDateText.swift	12	yyyy年M月d日(E)
 Views/EventDateText.swift	21	M月d日(E)
 Views/EventDateText.swift	46	\(dayFormatter.string(from: start)) 終日
@@ -220,21 +221,21 @@ Views/OnboardingView.swift	58	ペンで書き、指で動かす
 Views/OnboardingView.swift	66	iCloud と手書きの保存
 Views/OnboardingView.swift	78	次へ
 Views/OnboardingView.swift	94	許可の画面を出す
-Views/PageHeaderView.swift	67	閲覧専用。購読の案内を開く
-Views/PageHeaderView.swift	142	今日
-Views/PageHeaderView.swift	167	予定
-Views/PageHeaderView.swift	177	予定を追加
-Views/PageHeaderView.swift	212	設定
-Views/PageHeaderView.swift	217	表示の切替
-Views/PageHeaderView.swift	225	表示の切替
-Views/PageHeaderView.swift	233	日
-Views/PageHeaderView.swift	234	週
-Views/PageHeaderView.swift	235	月
-Views/PageHeaderView.swift	236	年
-Views/PageHeaderView.swift	241	表示
-Views/PageHeaderView.swift	245	前の
-Views/PageHeaderView.swift	249	次の
-Views/PageHeaderView.swift	254	同期: 
+Views/PageHeaderView.swift	69	閲覧専用。購読の案内を開く
+Views/PageHeaderView.swift	156	今日
+Views/PageHeaderView.swift	174	予定
+Views/PageHeaderView.swift	184	予定を追加
+Views/PageHeaderView.swift	219	設定
+Views/PageHeaderView.swift	224	表示の切替
+Views/PageHeaderView.swift	232	表示の切替
+Views/PageHeaderView.swift	240	日
+Views/PageHeaderView.swift	241	週
+Views/PageHeaderView.swift	242	月
+Views/PageHeaderView.swift	243	年
+Views/PageHeaderView.swift	248	表示
+Views/PageHeaderView.swift	252	前の
+Views/PageHeaderView.swift	256	次の
+Views/PageHeaderView.swift	261	同期: 
 Views/PaywallSheet.swift	39	てがきカレンダー
 Views/PaywallSheet.swift	41	iPad のカレンダーの上に、Apple Pencil で自由に書ける手帳です。
 Views/PaywallSheet.swift	43	書く・消す・予定を作るには購読が必要です。

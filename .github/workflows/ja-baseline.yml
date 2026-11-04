@@ -1,20 +1,22 @@
-# J-4 of docs/M7B_CONTRACT.md (§1.3, §7.5, 0-32): 1.1's Japanese screenshots taken again the way 1.2's CI
-# takes them, as the reference for the pixel comparison of 1.2's photos (tools/l10n/compare_shots.swift,
-# run by the lead on the Mac). 1.1's own CI shot on an English simulator (the kanji fell back to
-# PingFang SC and the sync sheet's dates were English), so its photos are not the reference.
+# J-4 of docs/M7B_CONTRACT.md (§1.3, §1.5, §7.5, 0-32): 1.1.1's Japanese screenshots taken again the way
+# 1.2's CI takes them, as the reference for the pixel comparison of 1.2's photos
+# (tools/l10n/compare_shots.swift, run by the lead on the Mac). 1.1.1's own CI shot on an English simulator
+# (the kanji fell back to PingFang SC and the sync sheet's dates were English), so its photos are not the
+# reference; neither are e7b4d2f's (1.1.1 moved the paper to the top and 「今日」 to the right).
 #
-# The job reads the commit in tools/l10n/ja-baseline-ref.txt (one full sha: the commit that merged 1.1
-# into main, e7b4d2f; 0-39 may replace it), checks it out into baseline/, generates its Xcode project,
-# builds the app for the Simulator and takes the photos with the screenshot steps of build.yml, copied
-# from e7b4d2f's build.yml with their comments: the 13-inch iPad (4 pages, 3 zoomed, read-only, the 5
-# shots of 1.1, the 9 sheets), the iPhone, the 6.9-inch iPhone, the iPad mini and the 11-inch iPad, and
-# the "Store listing set". Every `simctl launch` ends with the same JA_ARGS as 1.2's build.yml
-# (-AppleLanguages (ja) -AppleLocale ja_JP). 1.1's app does not know `--screenshot-sheet holidays`, so
-# that sheet (1.2 only) is not shot. No tests run. As in 1.2's build.yml (§7.5), the 13-inch step and
+# The job reads the commit in tools/l10n/ja-baseline-ref.txt (one full sha: <1.1.1> of §1.5, the commit
+# that merged 1.1.1 into main; 0-39 may replace it), checks it out into baseline/, generates its Xcode
+# project, builds the app for the Simulator and takes the photos with the screenshot steps of build.yml,
+# copied from that commit's build.yml with their comments: the 13-inch iPad (4 pages, 3 zoomed, read-only,
+# the 5 shots of 1.1, the pinch hint of 1.1.1, the 9 sheets), the iPhone, the 6.9-inch iPhone, the iPad
+# mini and the 11-inch iPad, and the "Store listing set". Every `simctl launch` ends with the same JA_ARGS
+# as 1.2's build.yml (-AppleLanguages (ja) -AppleLocale ja_JP). 1.1.1's app does not know
+# `--screenshot-sheet holidays` or `week-start`, so those two sheets (1.2 only) are not shot. No tests
+# run (so neither is 1.1.1's blank-paper job here). As in 1.2's build.yml (§7.5), the 13-inch step and
 # the other devices' step write env.txt: `xcodebuild -version` and each device's simulator runtime,
 # the same lines in both workflows, so the lead can `diff` the two env.txt before comparing.
 # Artifact: ja-baseline-<the first 7 characters of the sha>, kept 30 days, with the file names of
-# build.yml's `screenshots` (but no sheet-holidays, fixtures/ or ui-tests/).
+# build.yml's `screenshots` (but no sheet-holidays, sheet-week-start, fixtures/ or ui-tests/).
 #
 # Known (docs/M7B.md, C1): the 13-inch iPad is booted just before its photos (the unit tests run on
 # another simulator), and in 2 of 3 runs of 1.0.1 the system banner "Ready for Apple Intelligence"
@@ -48,7 +50,7 @@ permissions:
 
 jobs:
   ja-baseline:
-    name: ja-baseline (1.1's photos with JA_ARGS)
+    name: ja-baseline (1.1.1's photos with JA_ARGS)
     runs-on: macos-26
     # In nine runs of 1.1 (2026-10-31 and 11-01) build.yml's photo steps took 36–45 min: the build 42–71 s,
     # the 13-inch boot 111–193 s, the 13-inch photos 5–7 min, the other devices 26–33 min. No tests run
@@ -110,7 +112,7 @@ jobs:
           git log -1 --format='baseline: %H %s'
           grep -E 'MARKETING_VERSION|CURRENT_PROJECT_VERSION' project.yml || true
 
-      # ---- From here to the "Store listing set", the steps of build.yml (e7b4d2f), in its order ----
+      # ---- From here to the "Store listing set", the steps of the reference commit's build.yml, in its order ----
       - name: Select Xcode
         run: |
           set -euo pipefail
@@ -266,8 +268,10 @@ jobs:
       # bottom left and at the bottom right ("--screenshot-toolbar collapsed|collapsed-right"), the eraser
       # chosen from the toolbar (its hint ends in 「（消すとペンに戻ります）」; the 「しまう」 button at the
       # right end), and the grown month memo and the day's free memo below 24:00 ("--screenshot-grown")
-      # scrolled to the end of the paper ("--screenshot-offset 0,9999" is clamped to the paper).
-      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1)
+      # scrolled to their strokes ("--screenshot-offset 0,1700" and "0,2300": 1.1.1 opens the two areas
+      # to 6,000 lu, so the end of the paper is blank; the red wave is at y ≈ 2,063, the black at ≈ 2,700).
+      # 1.1.1 (docs/R1_1_1.md): the one-time pinch hint ("--screenshot-pinch-hint", 20 s).
+      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1 + the hint)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -325,8 +329,9 @@ jobs:
           for SPEC in "toolbar-collapsed|--screenshot-page month --screenshot-toolbar collapsed" \
                       "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
                       "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
-                      "month-memo|--screenshot-page month --screenshot-grown --screenshot-offset 0,9999" \
-                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,9999"; do
+                      "month-memo|--screenshot-page month --screenshot-grown --screenshot-offset 0,1700" \
+                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,2300" \
+                      "pinch-hint|--screenshot-page month --screenshot-pinch-hint"; do
             SHOT="${SPEC%%|*}"; ARGS="${SPEC#*|}"
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
@@ -530,11 +535,13 @@ jobs:
             done
             if [ "$ID" = "iphone" ]; then
               # 1.1 (docs/M7A_CONTRACT.md §7.4, §8 6): the folded toolbar (the dock button above the home
-              # indicator), the grown month memo and the day's free memo below 24:00 at the paper's end,
-              # and (below, with the landscape shots) the folded toolbar in landscape.
+              # indicator), the grown month memo and the day's free memo below 24:00 at their strokes,
+              # the one-time pinch hint (1.1.1), and (below, with the landscape shots) the folded toolbar
+              # in landscape.
               shoot "$ID-portrait-toolbar-collapsed.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-toolbar collapsed
-              shoot "$ID-portrait-month-memo.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-grown --screenshot-offset 0,9999
-              shoot "$ID-portrait-day-extra.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-grown --screenshot-offset 0,9999
+              shoot "$ID-portrait-month-memo.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-grown --screenshot-offset 0,1700
+              shoot "$ID-portrait-day-extra.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-grown --screenshot-offset 0,2300
+              shoot "$ID-portrait-pinch-hint.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-pinch-hint
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.
               shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
@@ -649,7 +656,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # The artifact's name carries the commit (J-4 compares 1.2's `screenshots` with
-      # ja-baseline-e7b4d2f). overwrite: a re-run of this run (gh run rerun) replaces the photos instead
+      # ja-baseline-<sha>). overwrite: a re-run of this run (gh run rerun) replaces the photos instead
       # of failing on the existing name.
       - name: Upload the photos
         if: always()

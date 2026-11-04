@@ -352,8 +352,8 @@
       "composedOf": [
         "Views/StickyHeaderView.swift:174",
         "Views/StickyHeaderView.swift:208",
-        "Export/PDFPageRenderer.swift:252",
-        "Views/CalendarRootScreen.swift:1172"
+        "Export/PDFPageRenderer.swift:256",
+        "Views/CalendarRootScreen.swift:1222"
       ],
       "args": [
         "月"

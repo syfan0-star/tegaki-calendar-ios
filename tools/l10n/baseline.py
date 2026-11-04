@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""The Japanese strings of 1.1, for J-1 (docs/M7B_CONTRACT.md §1.3; lint L-3).
+"""The Japanese strings of 1.1.1, for J-1 (docs/M7B_CONTRACT.md §1.3, §1.5; lint L-3).
 
     python3 -I tools/l10n/baseline.py [<repo>] [--commit <rev>] [--tree <dir>] [--check]
 
-<repo> defaults to the repository this script is in. Reads the Swift sources of the 1.1 commit
-(--commit, default e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d: the merge of 1.1 into main, 0-32, 0-39)
-with `git archive`, and writes tools/l10n/ja-baseline.tsv: one line for every string literal of
+<repo> defaults to the repository this script is in. Reads the Swift sources of the <1.1.1> commit
+(--commit, default BASE_COMMIT below: the head of fix-1-1-1 for now, §1.5 moves it to the merge of 1.1.1
+into main) with `git archive`, and writes tools/l10n/ja-baseline.tsv: one line for every string literal of
 Sources/TegakiCalendar and TegakiKit/Sources (KitChecks excluded; the tests are outside both) that
 has Japanese in its text, comments excluded. With --check nothing is written: the exit status is 1
 when the file is not what the commit gives.
@@ -43,7 +43,7 @@ import tarfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
 
-BASE_COMMIT = "e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d"  # 1.1 merged into main (0-32); 0-39 may move it
+BASE_COMMIT = "31d243c725f141f60ff62c9ad8d12148d5f7e86d"  # <1.1.1> (§1.5): the provisional one until 1.1.1 is on main
 TSV = "tools/l10n/ja-baseline.tsv"
 
 APP_ROOT = "Sources/TegakiCalendar/"
@@ -337,7 +337,7 @@ def baseline_rows(files):
 
 TSV_HEADER = """\
 # 生成物。直さない。tools/l10n/baseline.py
-# The Japanese strings of 1.1 (docs/M7B_CONTRACT.md §1.3 J-1; lint L-3: each row is one key's "was"
+# The Japanese strings of 1.1.1 (docs/M7B_CONTRACT.md §1.3 J-1; lint L-3: each row is one key's "was"
 # or "composedOf", or an exception of ja-exceptions.txt). Sources/TegakiCalendar and TegakiKit/Sources
 # without KitChecks, comments excluded. Columns: the file (without Sources/TegakiCalendar/ or
 # TegakiKit/Sources/), the line, the string as the Swift source writes it between its quotes.
@@ -388,12 +388,12 @@ def read_tsv(path):
 def main(argv):
     parser = argparse.ArgumentParser(
         prog="baseline.py",
-        description="Writes tools/l10n/ja-baseline.tsv: the Japanese string literals of the 1.1 "
+        description="Writes tools/l10n/ja-baseline.tsv: the Japanese string literals of the <1.1.1> "
                     "commit (docs/M7B_CONTRACT.md §1.3 J-1).")
     parser.add_argument("repo", nargs="?", default=DEFAULT_REPO,
                         help="the repository (default: the one this script is in)")
     parser.add_argument("--commit", default=BASE_COMMIT,
-                        help=f"the 1.1 commit (default {BASE_COMMIT}); with --tree, its full id")
+                        help=f"the <1.1.1> commit (default {BASE_COMMIT}); with --tree, its full id")
     parser.add_argument("--tree", help="read the sources from this folder (an extracted git archive "
                                        "of the commit) instead of running git")
     parser.add_argument("--check", action="store_true",

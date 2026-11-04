@@ -633,3 +633,91 @@ J-4 の比べる相手の commit: **e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d**�
 - **作業の木が一時フォルダにある**: 2026-11-05 00:00 ごろ、10-31 に作った 0.83 の venv（`/private/tmp` の下）の `.py` と `pyvenv.cfg` が消えていた（ディレクトリと一部のファイルだけ残る）。古いファイルが消される動きがあるらしい。`wt-m7b` の未 commit の成果と `hol3/venv` も、数日触らないと同じことが起きるかもしれない。**早めに commit すること**（B11 の手順 1）。venv は `~/.local/share/tegaki-python` の wheel からいつでも作り直せる（README）。0.83 の差の比較には、消える前に作ったデータ（`m7b-impl/H/gen/out083`）を使い、`coverage` だけ今の規則で計算し直した。
 - データは python-holidays の誤りをそのまま持つ。日本以外の祝日は公開データにもとづく参考の情報（T-9・§6.4）。特に新しく売る EU の国の祝日は本人もリードも目で確かめていない（2026 年の件数と主な国の一覧を見て不自然な物は無かった、という程度）。
 - 台湾の「2026 年は発表前の推定」は言い過ぎの可能性がある（上の表）。§8 の 8 の台湾の写真は月のページなので、この文は写らない。
+
+## B11（1.1.1 の取り込みと基準の移し替え。§1.5 の 1 回目）
+
+**基準を移した。** この節より後の「1.1 と同じ」は、仮の `<1.1.1>` と同じを指す（例外は §1.5）。
+
+- **仮の `<1.1.1>`**: `31d243c725f141f60ff62c9ad8d12148d5f7e86d`（`fix-1-1-1` の先頭、リードが渡した。§1.5 の「いつ」の定義の commit。main にはまだ入っていない。1.1.1 の CI と本人の確かめはこれから）。
+
+### 手順 1: 済んだ役の commit（`git add` はファイル名で。push なし）
+
+| commit | 役 | 中身 |
+| --- | --- | --- |
+| 9c056fd | 契約 | `docs/M7B_CONTRACT.md` の第 4 版 |
+| f0c3970 | S0 | `tools/l10n/build.py`（S0 の版）、この文書の S0 の節 |
+| 1c30384 | K1 | `Package.swift`・`UILanguage`・`DateText`・`LayoutWords`・`Text11`・`kit-K.json`・`main.swift`・`DATA_1_1.sha256`（e7b4d2f）・生成物（K の元だけ） |
+| 81383e8 | S1 | `baseline.py`・`ja-baseline.tsv`（e7b4d2f）・`ja-exceptions.txt`・`lint.py`・`build.py`（S0 ＋ S1）・`L10n.swift`・カタログ 2 つ（0 キー）・生成物 |
+| 8db61c2 | C1 | `ja-baseline.yml`・`compare_shots.swift`・`ja-baseline-ref.txt` |
+| d00dd86 | LA | 規約類と英語版・`docs/store/`・`docs/support-replies/` |
+| 58de668 | H | `tools/holidays/` の 6 つ・`TegakiKit/HolidayData/`（254）・`Holidays` の 6 つ・`HolidayChecks`・`main.swift` の呼び出しの 1 行・`HolidaysTests` の 2 つ・`kit-H.json`・生成物（K と H の元） |
+
+1 つのファイルに 2 つの役が入っている物は、役ごとの中身を別に作って入れた（作業の木のファイルは変えない）: この文書（節ごと）、`build.py`（S0 の版は `m7b-impl/S0/tree` の写し）、`main.swift`（K1 の commit は H の 1 行なし）、生成物（その commit の元と `build.py` で作り直した）。K1 の commit を別のフォルダに取り出して走らせると KitChecks「all 25220 checks passed」（K1 の節の数と同じ）。58de668 の木は commit の前の作業の木と同じ。
+
+### 手順 2: merge（3588793）
+
+**衝突は 0。** `TegakiKit/Sources/KitChecks/main.swift` と `docs/SUPPORT.md` は自動で合わさった。
+
+- `docs/SUPPORT.md`: 1.1.1 の FAQ の 2 か所の直しと「拡大・縮小するには？」、m7b の FAQ の両方が残り、最終更新は m7b の側（2026年11月1日）。契約の決め方どおり。
+- `main.swift`: 節の順は「opening zoom and top-aligned paper (1.1.1)」が 1.1 の節の間、1.2 の 3 節と `runHolidayChecks()` は Summary の前。
+- `project.yml` は 1.1.1（1）、`build.yml` は 1.1.1 のまま（`git diff 31d243c HEAD` が空）。
+- 凍結の 18 ファイルと `InkCanvasViewTests` は 1.1.1 と同じバイト。m7b は 1.1.1 に対して `Tests` を 1 行も消していない（足したのは `HolidaysTests` の 2 ファイルだけ。J-2 の下ごしらえ）。
+
+### 手順 3〜6 の差の結果
+
+| 手順 | 結果 |
+| --- | --- |
+| 3（D14） | 18 のパスで変わったのは `Ink/InkCanvasView.swift`（+138 −72）と `Ink/InkLedger.swift`（注記の 1 文、+2 −1）**だけ**。InkModel の 7・`SyncEngine`・`InkPageRecord`・`InkPageStore` は同じ。`DATA_1_1.sha256` を 31d243c の git の中身から作り直した（18 行、辞書順、注記なし。変わった行は上の 2 つ）。基準の commit はファイルでなくこの節に書く |
+| 3（凍結のテスト） | `InkCanvasViewTests.swift` は 3,057 行 → **3,371 行**（1.1.1 のものを新しい凍結に。契約 §0 の行数の読み替え） |
+| 4（K-7） | `git diff --quiet e7b4d2f 31d243c -- TegakiKit/Tests/Fixtures TegakiKit/Tests/Compat10 TegakiKit/Tests/CompatFixtures` は空。`tools/compat10/` の差は `DATA_1_1.sha256` だけ |
+| 5（J-3） | **写した関数の本体に差は無い。** 7 つのファイルで差があるのは `PageNavigation.swift`（末尾に `todayRect` を足しただけ。既存の行は動かない）と `MonthLayoutEngine.swift`（`memoHeight` の注記 2 行、行数は同じ）だけ。`Text11.swift` は変えていない。KitChecks の「date text (1.2)」の J-3 も通った |
+| 6（J-1） | `ja-baseline.tsv` を 31d243c で作り直した: 515 → **516 行・42 ファイル**。増えたのは見込みどおり `Views/CalendarRootScreen.swift:282`「2 本の指を広げると拡大、つまむと縮小します」の 1 行だけ。消えた字は無い。行が動いたファイルは `Export/PDFPageRenderer.swift`・`Ink/InkCanvasView.swift`・`Support/ScreenshotMode.swift`・`Views/CalendarRootScreen.swift`・`Views/PageHeaderView.swift`。`ja-exceptions.txt` は変えていない（行を持たないので全部当たる） |
+| 6（キー） | `kit-K.json` の `composedOf` を 2 つ直した: `Export/PDFPageRenderer.swift:252` → `:256`、`Views/CalendarRootScreen.swift:1172` → `:1222`（どちらも `kit.date.ja.monthName`）。K1 の節の「10」の行番号はこの読み替えで読む。`kit-H.json` は `was` も `composedOf` も無いので変わらない。`lint.py --only L-3,L-4`: K のキーは 47 行に当たって指摘なし、L-4 ok。L-3 の 416 行（前は 415）はまだキーの無い役の分で、増えた 1 行は `toast.pinchHint`（U） |
+
+`baseline.py` は既定の commit（`BASE_COMMIT`）を直し、説明の「1.1」を「1.1.1」に読み替えた。S1 の試験の材料（`cases_s0.py`・`cases_s1.py`・`cases_lint.py`）は全部合格。
+
+### 手順 7: 写真の基準（J-4）
+
+- `tools/l10n/ja-baseline-ref.txt` を 31d243c の 40 字に。成果物の名前は `ja-baseline-31d243c` になる（C1 の節の `ja-baseline-e7b4d2f` はこれに読み替える）。
+- `ja-baseline.yml` の写真の手順を 31d243c の `build.yml` に合わせた: offset の 4 か所（`0,1700`・`0,2300`）、pinch-hint の 2 枚（13 インチと iPhone）、段の名前「… + 5 of 1.1 + the hint」、その段のコメント。頭のコメントとジョブの名前も 1.1.1 に。頭のコメントは sha を書かず「`ja-baseline-ref.txt` の commit」と書いたので、手順 8 で直さなくてよい。
+- 写真は 53 → **55 枚**（13 インチ 23・iPhone 18・6.9 インチ 5・mini 4・11 インチ 5）。`store/` の 20 枚は同じ。`blank-paper` のジョブは写さない（テストなので。J-4 の比べる相手ではない）。
+- `diff_steps.rb`（C1 の材料）で 31d243c の `build.yml` と段ごとに比べて、`run` の差は `$JA_ARGS` と env.txt の行だけ。ほかの 10 段は同じ。写した段の前のコメントも同じ。`check_workflow.rb` は OK（19 段、`run` は全部 `bash -n` が通る）。走らせていない（CI-0 と同じとき）。
+
+### 手順 7b: 古い版で確かめる材料（`tools/weekstart-compat/`）
+
+`m7b-v4/probe-week/` から `common.swift` と `v10/run`・`v11/run` の `Package.swift`・`Sources/Probe/main.swift` を移した。`tools/compat10` は変えていない。段を足すのは C。走らせ方は同じ場所の `README.md`。
+
+この Mac で本物の Kit に対して走らせた: **1.0（a21e469）で 16 件・失敗 0、31d243c で 18 件・失敗 0**（`git archive` で取り出した木の中に `run/` を置く形）。
+
+### 手順 9: 確かめ（merge の後の木。この Mac、Swift 6.4.2、Command Line Tools。push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `swift build --package-path TegakiKit` | 成功。新しい警告 0（`main.swift`:2256・2277・2308 の 3 つは e7b4d2f からある、この版の Swift だけの物。ld の search path の警告はこの Mac の Command Line Tools の物） |
+| `swift run --package-path TegakiKit KitChecks` の N | **merge の前 25,467 → merge の後 25,950**（= 1.1.1 の 24,929 ＋ これまでの 1.2 の 1,021）。失敗 0。compat10 は 361 件・失敗 0 |
+| `tools/typecheck/typecheck.sh`（リポジトリの外の空のフォルダ） | all OK・警告 0。この段階の XCTest は型だけ（走るのは CI-0） |
+| `shasum -a 256 -c tools/compat10/DATA_1_1.sha256` | 18 件 OK |
+| `python3 -I tools/l10n/baseline.py . --check` | 一致（516 行・42 ファイル・31d243c）。`/usr/bin/python3` で（S1 のずれの 12） |
+| `python3 -I tools/l10n/build.py . --check` | 一致 |
+| `python3 -I tools/l10n/lint.py . --only L-4,L-10` | ok。L-1 は 463 件、L-3 は 416 件で、どちらも 1.1 のときより 1 件多い（`pinchHintToast`）。全員の移しの後で緑 |
+
+### 契約からのずれ
+
+1. **merge の形**: 契約の `git merge --no-ff --no-edit` でなく `--no-ff --no-commit` の後に `git commit -F`。第 4 版の読み替えの「メッセージは日本語、最後の行は Co-Authored-By」に合わせるため。結果の木は同じ。
+2. **`tools/weekstart-compat` の材料を 3 か所変えた**（ほかは同じバイト）: 2 つの `main.swift` の最後に `exit(fails == 0 ? 0 : 1)`（CI の段が終了の状態で判定できるように）、`v11` の最後の行の字を「1.1 real code (e7b4d2f)」から「<1.1.1> real code (tools/l10n/ja-baseline-ref.txt)」に（読む commit が変わったので）。`README.md` を足した。フォルダの名前 `v11` は契約のとおり残した。
+3. **commit を 2 つ足した**（merge の後の `tools/weekstart-compat` と、基準の移し替え ＋ この節）。契約は手順 2 の後の commit を書いていないが、S2・U・P がこの上で始めるのと、H の「残る危険」のとおり作業の木が一時フォルダにあるため。
+
+### 次の役へ
+
+- **B11 の 2 回目（手順 8）**: main を merge する。木が 31d243c と同じなら、直すのは `tools/l10n/ja-baseline-ref.txt`・`baseline.py` の `BASE_COMMIT` の 1 行（`baseline.py .` で `ja-baseline.tsv` の頭も）・この文書の commit だけ。`ja-baseline.yml` は直さなくてよい。**ただし `fix-1-1-1` は作り直されることがある**（commit 0 は d0fdbff → 69ac828 になった）。31d243c より前の 1.1.1 の commit が履歴に入っているので、作り直された物を merge すると同じ場所に別の commit が並ぶ。木を `git diff 31d243c main` で見て、違えば手順の 3〜7 をもう一度。
+- **U**: `toast.pinchHint` の `was` は `Views/CalendarRootScreen.swift:282`。`Support/ScreenshotMode.swift`（写真モードの 31 の字、`demo.*`）と `Views/PageHeaderView.swift`（15 の字）には行の動いた字があるので、`was` は今の `ja-baseline.tsv` の行で書く。
+- **K2**: 1.1.1 の `todayRect`・`ZoomPolicy`・`PaperGrowth` の上で始める。J-3 の `Text11` は変えない。KitChecks の N は 25,950 から数える。
+- **LA2**: `docs/SUPPORT.md` の 1.1.1 の 3 か所は入った。`docs/SUPPORT.en.md` はまだ（:70 の「Tap the date in the header」と FAQ「拡大・縮小するには？」の英訳）。`docs/store/review-note.txt` は診断の記録の文を既に持っている（:12。§1.5 のとおり足さない。`R1_1_1.md` §9 は「§7.2 の診断の段落を足す」と書くが、1.2 の原稿には LA が入れた同じ趣旨の文があるので、言い方が 1.1.1 の文と合っているかだけ見る）。
+- **C**: `compat-v1.0` の段は `tools/weekstart-compat/README.md` の形（`cp -R` して `swift run --package-path … Probe`、終了の状態で判定）。読む commit は `ja-baseline-ref.txt`。`build.yml` の閾値は今 24,879（1.1.1 の 24,929 − 50）で、1.2 は最後に数え直す。`build.yml` の写真の段に `$JA_ARGS` を入れた後の確かめは、今の `ja-baseline.yml` と `diff_steps.rb` で。
+- **リード**: J-2 の比べる相手は今 31d243c。今の差は足しただけ（消した行 0）。
+
+### 残る危険
+
+- 31d243c は仮の物で、1.1.1 の CI も本人の確かめもまだ。直しが入れば手順 8 で 3〜7 をやり直す。
+- この Mac では XCTest は型だけ。1.1.1 と 1.2 の分を合わせた `swift test` とアプリのテストは CI-0 で初めて走る。
+- `ja-baseline.yml` の変更は `bash -n` と段ごとの比べまで。実際の写真は CI-0 で初めて撮る。
