@@ -22,7 +22,10 @@
 # free memo; `swift test` is followed by the check of the frozen 1.0 copy (Compat10, FROZEN.sha256);
 # the unit tests write the page JSON of a missing or changed ledger-* / screenshot-* fixture into
 # shots/fixtures/; and a second job, compat-v1.0, runs the 1.1 fixtures on the real 1.0 (commit
-# a21e469: its TegakiKit and its app's ledger and sync engine) next to the frozen copy (K-7).
+# a21e469: its TegakiKit and its app's ledger and sync engine) next to the frozen copy (K-7). Since 1.1.1
+# (docs/R1_1_1.md) a third job, blank-paper, runs BlankPaperShotsUITests: the paper with no events and
+# no handwriting on four devices (artifact "blank-paper", kept 7 days; that test skips itself in the UI
+# test step of the first job, whose steps and photos do not change).
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -832,3 +835,143 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             test 2>&1 | tee "$RUNNER_TEMP/real10.log"
           grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real10.log" || true
+
+  # 1.1.1 (docs/R1_1_1.md): the paper with no events and no handwriting on the owner's four kinds of
+  # device, portrait and landscape, toolbar out and folded, to compare before and after the fix. Its
+  # own job so the 53 shots and the 90-minute job do not change. Best effort: never fails the run.
+  # The limits, from run 41264726309: a build took 0.9 min (8 is allowed for), a device 5.8–9.6 min
+  # (its boot 1.9–3.2, the 60 s wait, xcodebuild up to the first test 1.1, 10 or 13 shots of 11–15 s, and
+  # at most 1 for a slow first test), so 24–36 min for the four. The shots stop after 36 min, which
+  # leaves the upload inside the 45.
+  blank-paper:
+    name: Blank paper shots (1.1.1)
+    runs-on: macos-26
+    timeout-minutes: 45
+    continue-on-error: true
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      # Built once, before anything boots: the products run on all four devices (one platform, one
+      # architecture; TARGETED_DEVICE_FAMILY is 1,2).
+      - name: Build the UI tests
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=iPad Pro 13-inch (M5)" \
+            -derivedDataPath build/BlankData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build-for-testing
+
+      # One device at a time, the iPhone and the 13-inch iPad first: if the limit stops the step, the
+      # photos of the two questions still open are already taken (Upload always runs). The test writes
+      # <id>-<portrait|landscape>-<expanded|collapsed>-<page>.png (4 × 8, the iPhone's week 4, the year that
+      # grew 4, the iPads' month after 「ツールバーをいつも出す」 3: 43) and one `blank UI:` line for each,
+      # shown here once (a test prints a line and NSLogs it). ipad11 is the
+      # owner's iPad Air 11-inch (820 × 1180); the first job's ipad11 photos stay the iPad Pro 11-inch.
+      # If no PNG arrived, the attachments are taken out of the result bundle instead.
+      - name: Shots on four devices
+        timeout-minutes: 36
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          mkdir -p shots/blank
+          # device-id | exact first choice | prefix fallbacks (in order)
+          for SPEC in "iphone69|iPhone 17 Pro Max|iPhone 17 Pro Max,iPhone 16 Pro Max" \
+                      "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13" \
+                      "ipadmini|iPad mini (A17 Pro)|iPad mini" \
+                      "ipad11|iPad Air 11-inch (M4)|iPad Air 11,iPad Pro 11"; do
+            ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
+            FOUND="$(xcrun simctl list -j devices available | SIM_EXACT="$EXACT" SIM_PREFIXES="$PREFIXES" python3 -c '
+          import json, os, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):                                  # "…iOS-26-5" → (26, 5)
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          found = {}                                             # name → (udid, version): the newest iOS
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
+                      continue
+                  key = version(runtime)
+                  if d["name"] not in found or key > found[d["name"]][1]:
+                      found[d["name"]] = (d["udid"], key)
+          exact = os.environ["SIM_EXACT"]
+          if exact in found:
+              print(exact + "|" + found[exact][0])
+              raise SystemExit
+          for prefix in os.environ["SIM_PREFIXES"].split(","):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0])
+                      raise SystemExit
+          print("")
+          ' || true)"
+            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+            echo "$ID: $NAME ($UDID)"
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            sleep 60    # the banner of a freshly booted simulator, docs/M6.md §5.1
+            TEST_RUNNER_TEGAKI_SHOT_OUT="$PWD/shots/blank" TEST_RUNNER_TEGAKI_SHOT_DEVICE="$ID" xcodebuild \
+              -project TegakiCalendar.xcodeproj \
+              -scheme TegakiCalendar \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$UDID" \
+              -derivedDataPath build/BlankData \
+              -resultBundlePath "build/blank-$ID.xcresult" \
+              -only-testing:TegakiCalendarUITests/BlankPaperShotsUITests \
+              test-without-building 2>&1 | tee "shots/blank/$ID-log.txt" || true
+            grep 'blank UI:' "shots/blank/$ID-log.txt" | awk '{ i = index($0, "blank UI:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
+            SHOTS="$(find shots/blank -name "$ID-*.png" | wc -l | tr -d ' ')"
+            echo "$ID: $SHOTS shots"
+            if [ "$SHOTS" = "0" ]; then
+              echo "::warning::No PNG from $ID; taking the attachments out of its result bundle."
+              mkdir -p "shots/blank/attachments-$ID"
+              xcrun xcresulttool export attachments --path "build/blank-$ID.xcresult" --output-path "shots/blank/attachments-$ID" || echo "::warning::xcresulttool could not export the attachments of $ID"
+            fi
+            xcrun simctl shutdown "$UDID" || true
+          done
+          ls -la shots/blank
+
+      - name: Upload the shots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blank-paper
+          path: shots/blank
+          retention-days: 7
+          if-no-files-found: warn

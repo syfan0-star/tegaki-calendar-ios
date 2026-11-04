@@ -10,7 +10,8 @@ import XCTest
 /// that already sit on the grid, M4c's `--screenshot-zoom` / `--screenshot-offset`, M5's `paywall` and
 /// `--screenshot-readonly`, and M6's `export` sheet (M6_CONTRACT §3.5 / §7.2). 1.1 (M7A_CONTRACT §7.2 /
 /// §7.3): `--screenshot-toolbar`, `--screenshot-tool`, `--screenshot-grown`, the `info` sheet with its
-/// demo counts, and the demo pages as JSON fixtures that the 1.0 copy reads (0-23).
+/// demo counts, and the demo pages as JSON fixtures that the 1.0 copy reads (0-23). 1.1.1
+/// (docs/R1_1_1.md): `--screenshot-empty`, `--screenshot-tall-year`.
 final class ScreenshotModeTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
 
@@ -483,6 +484,53 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(all?.toolbar, plain?.toolbar)
         XCTAssertEqual(all?.grown, plain?.grown)
         XCTAssertEqual(all?.readOnly, plain?.readOnly)
+    }
+
+    /// 1.1.1 (docs/R1_1_1.md): `--screenshot-empty` opens the paper with no demo events and no demo ink,
+    /// on every page; without it (the 53 photos, the tests) both stay as they are.
+    func testParseEmpty() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-12", "--screenshot-page", "year"]
+        let plain = ScreenshotMode.parse(base)
+        XCTAssertEqual(plain?.empty, false)
+        var empty = ScreenshotMode.parse(base + ["--screenshot-empty"])
+        XCTAssertEqual(empty?.empty, true)
+        empty?.empty = false
+        XCTAssertEqual(empty, plain, "it changes nothing else")
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-empty"]), "without `--screenshot-mode` nothing")
+
+        let focus = DayKey(year: 2026, month: 12, day: 7)
+        for kind in PageKind.allCases {
+            let page = ScreenshotMode.demoPage(kind: kind, focus: focus, empty: true)
+            XCTAssertEqual(page, InkPage.empty(pageId: PageNavigation.pageId(kind, focus: focus)), "\(kind)")
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus, grown: true, empty: true), page, "\(kind): empty wins over grown")
+            // The default follows the (absent) `--screenshot-empty`.
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus), ScreenshotMode.demoPage(kind: kind, focus: focus, empty: false), "\(kind)")
+        }
+        XCTAssertTrue(ScreenshotMode.demoEvents(for: october, empty: true).isEmpty)
+        XCTAssertEqual(ScreenshotMode.demoEvents(for: october), ScreenshotMode.demoEvents(for: october, empty: false))
+        XCTAssertFalse(ScreenshotMode.demoEvents(for: october).isEmpty)
+    }
+
+    /// 1.1.1 (docs/R1_1_1.md §5.4): `--screenshot-tall-year` makes the year page about 2,600 lu with no
+    /// events, with or without `--screenshot-empty`, and changes no other page.
+    func testParseTallYear() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2027-01", "--screenshot-page", "year", "--screenshot-empty"]
+        let plain = ScreenshotMode.parse(base)
+        XCTAssertEqual(plain?.tallYear, false)
+        var tall = ScreenshotMode.parse(base + ["--screenshot-tall-year"])
+        XCTAssertEqual(tall?.tallYear, true)
+        tall?.tallYear = false
+        XCTAssertEqual(tall, plain, "it changes nothing else")
+
+        let focus = DayKey(year: 2027, month: 1, day: 7)
+        let page = ScreenshotMode.demoPage(kind: .year, focus: focus, empty: true, tallYear: true)
+        XCTAssertEqual(page, ScreenshotMode.demoPage(kind: .year, focus: focus, empty: false, tallYear: true), "whatever `empty` says")
+        XCTAssertEqual(page.pageId, PageNavigation.pageId(.year, focus: focus))
+        let layout = YearLayoutEngine.layout(YearLayoutInput(year: 2027, events: [], inkBottoms: page.inkBottoms(), now: Date()))
+        XCTAssertEqual(layout.size.height, 2600, accuracy: 5)
+        for kind in PageKind.allCases where kind != .year {
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus, tallYear: true), ScreenshotMode.demoPage(kind: kind, focus: focus, tallYear: false), "\(kind)")
+        }
     }
 
     /// `--screenshot-grown` adds one stroke deep in the month's memo area (bottom ≈ 1,009 → the memo

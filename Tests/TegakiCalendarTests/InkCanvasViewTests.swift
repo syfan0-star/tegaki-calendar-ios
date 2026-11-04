@@ -2710,6 +2710,50 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertEqual(Set(log.last?.ids ?? []), ["memo-a", "memo-b"], "the Pencil's lasso selected the free memo (\(line))")
     }
 
+    // MARK: 1.1.1 — the long paper (docs/R1_1_1.md)
+
+    /// Recorded, not judged: the day page's whole paper at its largest zoom on the widest paper area
+    /// (a 13-inch iPad in landscape, 1376 × 798 pt), scrolled to its end, in a real window. The `repro:
+    /// long paper` line says how high the paper is, at what zoom, and this process's `phys_footprint`
+    /// before and after (build.yml, "The unit tests' repro lines"), so a run on 1.1's paper (3,100 lu) and
+    /// a run on 1.1.1's (8,400 lu) can be compared: the zoomed view's frame is the paper × the zoom.
+    func testLongPaperAtTheMaximumZoomIsRecorded() async throws {
+        let window = try makeWindow(for: "long paper")
+        defer { window.isHidden = true }
+        let (layout, paper) = makeDay()
+        let probe = Probe()
+        let rig = attach(makeView(layout: layout, paper: paper, viewportWidth: 1376, probe: probe), paper: paper, probe: probe)
+        window.rootViewController?.view.addSubview(rig.container)
+        rig.layout(width: 1376, height: 798)
+        await settle()
+        let before = Self.footprintInMegabytes()
+        let maximum = rig.canvas.maximumZoomScale
+        rig.canvas.setZoomScale(maximum, animated: false)
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x,
+                                           y: rig.canvas.contentSize.height + rig.canvas.contentInset.bottom - rig.container.bounds.height)
+        // A second of the run loop, so what the window shows at this zoom has been drawn.
+        try await Task.sleep(for: .seconds(1))
+        await settle()
+        let line = "repro: long paper \(Int(layout.size.height))×\(String(format: "%.3f", Double(maximum))) footprint \(before)→\(Self.footprintInMegabytes()) MB"
+        print(line)
+        NSLog("%@", line)
+        XCTAssertEqual(rig.canvas.zoomScale, maximum, accuracy: 1e-6)
+        XCTAssertEqual(rig.canvas.contentSize.height, layout.size.height * maximum, accuracy: 0.5)
+    }
+
+    /// `phys_footprint` of this process (`ExportBuilderTests.physicalFootprint`), in MB; "?" when unknown.
+    private static func footprintInMegabytes() -> String {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
+        let result = withUnsafeMutablePointer(to: &info) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { rebound in
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), rebound, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return "?" }
+        return String(format: "%.1f", Double(info.phys_footprint) / 1_048_576)
+    }
+
     // MARK: 1.1 fix — helpers
 
     /// Collects `onSelectionChange` (and `onEventRect`).

@@ -72,7 +72,9 @@ open class XCTestExpectation: NSObject {
     open func fulfill() {}
 }
 
-open class XCUIScreenshot: NSObject {}
+open class XCUIScreenshot: NSObject {
+    public var pngRepresentation: Data { Data() }
+}
 
 /// Points per second (the real one is an NS_TYPED_EXTENSIBLE_ENUM of CGFloat).
 public struct XCUIGestureVelocity: RawRepresentable, Hashable {
