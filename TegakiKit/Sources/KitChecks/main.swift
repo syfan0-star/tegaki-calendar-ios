@@ -133,8 +133,8 @@ checkEqual(MonthLayoutEngine.rowHeight(laneCount: 0, maxChips: 0, inkBottom: 500
 checkEqual(MonthLayoutEngine.rowHeight(laneCount: 60, maxChips: 3, inkBottom: 0), 1200, "content capped at 1200")
 checkEqual(MonthLayoutEngine.rowHeight(laneCount: 0, maxChips: 0, inkBottom: .nan), 175, "NaN ink bottom is ignored")
 checkEqual(MonthLayoutEngine.rowHeight(laneCount: 0, maxChips: 0, inkBottom: -50), 175, "negative ink bottom is ignored")
-checkEqual(MonthLayoutEngine.memoHeight(inkBottom: 0), 700, "memo minimum")
-checkEqual(MonthLayoutEngine.memoHeight(inkBottom: 900), 1500, "memo: 400 lu steps (1.1): ink bottom 900 → 1,500")
+checkEqual(MonthLayoutEngine.memoHeight(inkBottom: 0), 6000, "memo: open to its full length from the start (1.1.1)")
+checkEqual(MonthLayoutEngine.memoHeight(inkBottom: 900), 6000, "memo: ink bottom 900 stays inside the 6,000 (1.1.1)")
 check(MonthLayoutEngine.shownChipCount(for: 3) == (3, 0), "3 timed events: all shown")
 check(MonthLayoutEngine.shownChipCount(for: 4) == (2, 2), "4 timed events: 2 + 「+2件」")
 check(MonthLayoutEngine.shownChipCount(for: 9) == (2, 7), "9 timed events: 2 + 「+7件」")
@@ -151,9 +151,9 @@ do {
     checkEqual(page.rows.map(\.days.count), [7, 7, 7, 7, 7, 7], "7 days per row")
     checkEqual(page.rows[0].days.map(\.weekday), [1, 2, 3, 4, 5, 6, 0], "Monday ... Sunday")
     checkEqual(page.cells.count, 43, "42 days + memo")
-    checkEqual(page.size, CGSize(width: 1400, height: 1750), "empty month: 6 × 175 + 700 (the web page's 1750)")
+    checkEqual(page.size, CGSize(width: 1400, height: 7050), "empty month: 6 × 175 + 6,000 (1.1.1: the memo area is open from the start)")
     checkEqual(page.rows.map { $0.frame.minY }, [0, 175, 350, 525, 700, 875], "rows stack")
-    checkEqual(page.memo, CGRect(x: 0, y: 1050, width: 1400, height: 700), "memo below the grid")
+    checkEqual(page.memo, CGRect(x: 0, y: 1050, width: 1400, height: 6000), "memo below the grid")
     checkEqual(page.cells[.day(day(2026, 10, 1))], CGRect(x: 600, y: 0, width: 200, height: 175), "cell rect of 10/1")
     checkEqual(page.cells[.memo], page.memo, "memo cell")
     checkEqual(page.dateLabels.count, 42, "a label per day")
@@ -176,8 +176,8 @@ do {
     checkEqual(page.cell(at: CGPoint(x: 1400, y: 180)), .day(day(2026, 10, 11)), "right edge belongs to the last column")
     checkEqual(page.cell(at: CGPoint(x: 100, y: 1100)), .memo, "memo area")
     checkEqual(page.cell(at: CGPoint(x: -1, y: 10)), nil, "left of the paper")
-    checkEqual(page.cell(at: CGPoint(x: 10, y: 1750)), nil, "below the paper")
-    checkEqual(page.cell(at: CGPoint(x: 10, y: 1749)), .memo, "last point of the memo area")
+    checkEqual(page.cell(at: CGPoint(x: 10, y: 7050)), nil, "below the paper")
+    checkEqual(page.cell(at: CGPoint(x: 10, y: 7049)), .memo, "last point of the memo area")
     checkEqual(MonthLayoutEngine.paperPoint(of: .day(day(2026, 10, 6)), in: page), CGPoint(x: 200, y: 175), "paperPoint")
     checkEqual(MonthLayoutEngine.cellRelative(CGPoint(x: 250, y: 200), cell: .day(day(2026, 10, 6)), in: page), CGPoint(x: 50, y: 25), "cellRelative")
 }
@@ -353,7 +353,7 @@ do {
     checkEqual(busyPage.rows[2].frame.height, 28 + 75 + 60 + 40, "row grows to 203")
     checkEqual(busyPage.rows[3].frame.minY, 175 * 2 + 203, "next row moves down")
     checkEqual(busyPage.rows[1].frame.minY, 175, "rows above are untouched")
-    checkEqual(busyPage.size.height, 175 * 5 + 203 + 700, "paper grows")
+    checkEqual(busyPage.size.height, 175 * 5 + 203 + 6000, "paper grows")
 }
 
 // MARK: - Ink bottoms grow rows; scroll delta
@@ -366,8 +366,8 @@ do {
     checkEqual(inked.rows[3].frame.minY, 525 + 137, "row 3 moves down by 137")
     checkEqual(inked.rows[1].frame, plain.rows[1].frame, "row 1 unchanged")
     checkEqual(inked.memo.minY, 1050 + 137, "memo moves down")
-    checkEqual(inked.memo.height, 1500, "memo grows with its ink (1.1: 900 → 1,500)")
-    checkEqual(inked.size.height, 1050 + 137 + 1500, "paper height")
+    checkEqual(inked.memo.height, 6000, "memo: ink 900 stays inside the 6,000 (1.1.1)")
+    checkEqual(inked.size.height, 1050 + 137 + 6000, "paper height")
     checkEqual(inked.cells[.day(day(2026, 10, 20))]?.minY, 525 + 137, "cell rects follow the rows")
 
     checkEqual(MonthLayoutEngine.scrollDelta(old: plain, new: inked, topVisibleY: 600), 137, "a row below the change moves down")
@@ -1104,12 +1104,12 @@ do {
     checkEqual(page.kind, .day, "kind")
     checkEqual(page.day, day(2026, 10, 7), "day")
     checkEqual(page.isToday, true, "today")
-    checkEqual(page.size, CGSize(width: 1000, height: 3100), "1000 × 3,100 (M4b: no band on the paper; 1.1: 24 hours + the free memo area 700)")
+    checkEqual(page.size, CGSize(width: 1000, height: 8400), "1000 × 8,400 (M4b: no band on the paper; 1.1.1: 24 hours + the free memo area 6,000)")
     checkEqual(page.cells.count, 2, "two cells: the grid and the free memo area (1.1)")
     checkEqual(page.cells[.allDayDay], nil, "no band cell")
     checkEqual(page.cells[.grid], CGRect(x: 0, y: 0, width: 1000, height: 2400), "grid cell")
-    checkEqual(page.cells[.extra], CGRect(x: 0, y: 2400, width: 1000, height: 700), "extra cell below 24:00 (1.1)")
-    checkEqual(page.extra, CGRect(x: 0, y: 2400, width: 1000, height: 700), "extra (1.1)")
+    checkEqual(page.cells[.extra], CGRect(x: 0, y: 2400, width: 1000, height: 6000), "extra cell below 24:00 (1.1.1: open from the start)")
+    checkEqual(page.extra, CGRect(x: 0, y: 2400, width: 1000, height: 6000), "extra (1.1.1)")
     checkEqual(page.grid, CGRect(x: 0, y: 0, width: 1000, height: 2400), "grid")
     checkEqual(page.timeline, CGRect(x: 72, y: 0, width: 588, height: 2400), "timeline")
     checkEqual(page.memo, CGRect(x: 660, y: 0, width: 340, height: 2400), "memo area")
@@ -1173,7 +1173,7 @@ do {
     checkEqual(page.cell(at: CGPoint(x: 1000, y: 0)), .grid, "the top-right corner belongs to the grid")
     checkEqual(page.cell(at: CGPoint(x: 1001, y: 60)), nil, "right of the paper")
     checkEqual(page.cell(at: CGPoint(x: 100, y: 2400)), .extra, "24:00 is the free memo area (1.1)")
-    checkEqual(page.cell(at: CGPoint(x: 100, y: 3100)), nil, "below the paper")
+    checkEqual(page.cell(at: CGPoint(x: 100, y: 8400)), nil, "below the paper")
     checkEqual(page.cell(at: CGPoint(x: -1, y: 100)), nil, "left of the paper")
     checkEqual(page.cell(at: CGPoint(x: 100, y: -0.1)), nil, "above the paper")
     checkEqual(page.inkCell(forCenter: CGPoint(x: 900, y: 30)), .grid, "ink at the top → grid")
@@ -1188,7 +1188,7 @@ do {
     checkEqual(page.band(atY: 30), PageBand(raw: "grid"), "band grid at the top")
     checkEqual(page.band(atY: 2399), PageBand(raw: "grid"), "band grid at the bottom")
     checkEqual(page.band(atY: 2400), PageBand(raw: "extra"), "band extra at 24:00 (1.1)")
-    checkEqual(page.band(atY: 3100), nil, "band below")
+    checkEqual(page.band(atY: 8400), nil, "band below")
     checkEqual(page.band(atY: -1), nil, "band above")
     checkEqual(page.bandTop(PageBand(raw: "grid")), 0, "bandTop grid is 0")
     checkEqual(page.bandTop(PageBand(raw: "allday")), nil, "bandTop allday: the paper has no band")
@@ -1202,7 +1202,7 @@ do {
     checkEqual(busy.allDayBand.bars[0].continuesRight, true, "b continues after the day")
     checkEqual(busy.allDayBand.bars.map(\.minX), [76, 76, 76], "every bar spans the timeline column")
     checkEqual(busy.cells[.grid]?.minY, 0, "the grid stays at the top")
-    checkEqual(busy.size.height, 3100, "the paper does not grow with the band")
+    checkEqual(busy.size.height, 8400, "the paper does not grow with the band")
     checkEqual(busy.nowLine?.y, 1000, "the now line stays")
     checkEqual(PageScroll.scrollDelta(old: page, new: busy, topVisibleY: 500), 0, "scrollDelta is always 0")
     checkEqual(PageScroll.scrollDelta(old: page, new: busy, topVisibleY: 30), 0, "scrollDelta at the top")
@@ -1211,7 +1211,7 @@ do {
     checkEqual(page.sameGeometry(as: dayLayout(demo, focus: day(2026, 10, 8))), false, "another day")
 
     let inked = dayLayout(demo, ink: [.allDayDay: 200, .grid: 9000])
-    checkEqual(inked.size.height, 3100, "grid ink does not grow the paper (the free memo area stays 700)")
+    checkEqual(inked.size.height, 8400, "grid ink does not grow the paper (the free memo area stays 6,000)")
     checkEqual(inked.timeline.minY, 0, "the timeline stays at the top")
     checkEqual(inked.memo.minY, 0, "the memo area stays at the top")
     checkEqual(inked, page, "ink bottoms are not read")
@@ -1222,7 +1222,7 @@ do {
     checkEqual(tomorrow.allDayBand.bars.count, 0, "no bar on the 8th")
     checkEqual(tomorrow.allDayBand.todayColumn, nil, "not today in the band")
     checkEqual(tomorrow.timedBoxes.map(\.title), ["資料提出"], "the 8th's timed event")
-    checkEqual(tomorrow.size.height, 3100, "the 8th's paper")
+    checkEqual(tomorrow.size.height, 8400, "the 8th's paper")
     checkEqual(PageNavigation.initialScrollY(page, now: demoNow, calendar: tokyo), 900, "today at 10:00 → 9:00 (100 lu per hour)")
     checkEqual(PageNavigation.initialScrollY(tomorrow, now: demoNow, calendar: tokyo), 700, "not today → 7:00")
     checkEqual(PageNavigation.initialScrollY(page, now: october(7, 0, 10), calendar: tokyo), 0, "clamped to 0:00")
@@ -1443,7 +1443,7 @@ do {
     checkEqual(plain.inkCell(forCenter: CGPoint(x: -5, y: 10)), .day(day(2026, 9, 28)), "ink left of the paper → the nearest cell")
     checkEqual(plain.inkCell(forCenter: CGPoint(x: 1500, y: 200)), .day(day(2026, 10, 11)), "ink right of the paper → the last column")
     checkEqual(plain.inkCell(forCenter: CGPoint(x: 100, y: -20)), .day(day(2026, 9, 28)), "ink above the paper → row 0")
-    checkEqual(plain.inkCell(forCenter: CGPoint(x: 100, y: 5000)), .memo, "ink below the paper → memo")
+    checkEqual(plain.inkCell(forCenter: CGPoint(x: 100, y: 9000)), .memo, "ink below the paper → memo")
     checkEqual(plain.inkCell(forCenter: CGPoint(x: 100, y: 1100)), .memo, "ink in the memo area")
     checkEqual(plain.growsWithInk(.memo), true, "memo grows")
     checkEqual(plain.growsWithInk(.day(day(2026, 10, 1))), true, "day cells grow")
@@ -1451,7 +1451,7 @@ do {
     checkEqual(plain.band(atY: 10), PageBand(raw: "row:0"), "band row:0")
     checkEqual(plain.band(atY: 1049.9), PageBand(raw: "row:5"), "band row:5")
     checkEqual(plain.band(atY: 1100), PageBand(raw: "memo"), "band memo")
-    checkEqual(plain.band(atY: 1750), nil, "band below")
+    checkEqual(plain.band(atY: 7050), nil, "band below")
     checkEqual(plain.band(atY: -1), nil, "band above")
     checkEqual(plain.bandTop(PageBand(raw: "row:3")), 525, "bandTop row:3")
     checkEqual(plain.bandTop(PageBand(raw: "memo")), 1050, "bandTop memo")
@@ -1687,7 +1687,7 @@ section("rect → event range: month page")
 do {
     let page = layout([]) // October 2026, Monday start: grid 9/28 – 11/8, rows of 175, memo from 1050
     checkEqual(page.memo.minY, 1050, "memo starts at 1050")
-    checkEqual(page.size.height, 1750, "page height 1750")
+    checkEqual(page.size.height, 7050, "page height 7,050")
     let now14 = date(2026, 10, 14, 22, 30)
     func ev(_ r: CGRect, now: Date = now14) -> String { fmt(page.eventRange(for: r, now: now, calendar: tokyo)) }
     func at(_ r: CGRect, now: Date = now14) -> String { ymd(page.eventRange(for: r, now: now, calendar: tokyo)) }
@@ -1711,7 +1711,7 @@ do {
     checkEqual(at(memo, now: date(2026, 10, 1, 0, 0)), "2026-10-01", "memo: the first instant of the month")
     checkEqual(at(rect(100, 1040, 100, 1060)), "2026-10-14", "memo: a centre exactly at memo.minY is the memo")
     checkEqual(at(rect(100, 1040, 100, 1059.8)), "2026-11-02", "memo: just above it is the last row")
-    for r in [rect(50, 1100, 50, 1100), rect(1390, 1749, 1395, 1750), rect(700, 1800, 720, 1900), rect(1450, 1100, 1500, 1200), rect(-50, 2000, -40, 2001)] {
+    for r in [rect(50, 1100, 50, 1100), rect(1390, 7049, 1395, 7050), rect(700, 7100, 720, 7200), rect(1450, 1100, 1500, 1200), rect(-50, 7300, -40, 7301)] {
         checkEqual(at(r, now: date(2026, 10, 6)), "2026-10-06", "memo: taps, the page bottom and below the page \(r)")
     }
     // snapRect: the cell of the range's first day (a timed range too), nil off the grid.
@@ -3018,9 +3018,10 @@ do {
     check(landscapeDay.max / landscapeDay.min < ZoomPolicy.maxStoredRatio, "the largest ratio (iPhone landscape day ≈ 41) is below maxStoredRatio 64")
     checkClose(landscapeDay.max / landscapeDay.min, 41, "iPhone landscape day: maxZoom / fitAll ≈ 41", tolerance: 1)
 
-    // Bounds (the type is unchanged).
+    // Bounds (1.1.1 added `open`; without it a page opens at its lower limit).
     let b = ZoomPolicy.Bounds(fit: 0.3, min: 0.5, max: 1.2)
     checkEqual(b.fit, 0.3, "Bounds.fit")
+    checkEqual(b.open, 0.5, "Bounds.open: nil is min")
     checkEqual(b.min, 0.5, "Bounds.min")
     checkEqual(b.max, 1.2, "Bounds.max")
     checkEqual(b.clamped(.nan), 0.5, "clamped: NaN → min")
@@ -3043,7 +3044,7 @@ do {
     check(degenerate.max >= degenerate.min, "a 1 pt area: max is raised to min if needed")
     checkClose(degenerate.min, 1.0 / 1860, "a 1 pt area: fitAll = 1 / 1860", tolerance: 1e-12)
 
-    // Stored ratio ↔ zoom (D4).
+    // Stored ratio ↔ zoom (D4). These pages hold nothing that grows their overview, so open = min here.
     let db = iphoneDayBounds // min 0.2313, max 1.608
     checkClose(ZoomPolicy.zoom(forRatio: 1, bounds: db), db.min, "ratio 1 → min (the overview)", tolerance: 1e-12)
     checkClose(ZoomPolicy.zoom(forRatio: 2, bounds: db), 2 * db.min, "ratio 2 → 2 × min", tolerance: 1e-12)
@@ -3099,7 +3100,7 @@ do {
     checkEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 0.7314, viewport: CGSize(width: 1024, height: 1180)).height, 0, "13 inch month at 0.7314: no vertical margin")
     let iphoneMonthInset = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 402.0 / 1400, viewport: CGSize(width: 402, height: 580))
     checkClose(iphoneMonthInset.width, 0, "iPhone month: no horizontal margin", tolerance: 1e-9)
-    checkClose(iphoneMonthInset.height, 38.8, "iPhone month: top / bottom margin 38.8 (the whole paper 502 pt fits)", tolerance: 0.1)
+    checkEqual(iphoneMonthInset.height, 0, "1.1.1: the paper starts at the top")
     let ipadWeekInset = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1920), zoom: 1180.0 / 1920, viewport: CGSize(width: 1024, height: 1180))
     checkClose(ipadWeekInset.width, 81.8, "13 inch week: left / right margin 81.8", tolerance: 0.1)
     checkClose(ipadWeekInset.height, 0, "13 inch week: no vertical margin", tolerance: 1e-9)
@@ -3201,11 +3202,11 @@ do {
     checkEqual(month.dayAt(point: CGPoint(x: 1400, y: 1049.9)), day(2026, 11, 8), "month: the grid's last cell (11/8)")
     checkEqual(month.dayAt(point: CGPoint(x: 100, y: 1050)), nil, "month: the memo area → nil")
     checkEqual(month.dayAt(point: CGPoint(x: 100, y: 1100)), nil, "month: the memo area → nil (1100)")
-    checkEqual(month.dayAt(point: CGPoint(x: 10, y: 1749)), nil, "month: the bottom of the memo area → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: 10, y: 7049)), nil, "month: the bottom of the memo area → nil")
     checkEqual(month.dayAt(point: CGPoint(x: -1, y: 10)), nil, "month: left of the paper → nil (a centring margin)")
     checkEqual(month.dayAt(point: CGPoint(x: 1401, y: 10)), nil, "month: right of the paper → nil")
     checkEqual(month.dayAt(point: CGPoint(x: 10, y: -1)), nil, "month: above the paper → nil")
-    checkEqual(month.dayAt(point: CGPoint(x: 10, y: 1750)), nil, "month: below the paper → nil")
+    checkEqual(month.dayAt(point: CGPoint(x: 10, y: 7050)), nil, "month: below the paper → nil")
     checkEqual(month.dayAt(point: CGPoint(x: CGFloat.nan, y: 10)), nil, "month: NaN x → nil")
     checkEqual(month.dayAt(point: CGPoint(x: 10, y: CGFloat.nan)), nil, "month: NaN y → nil")
     checkEqual(month.dayAt(point: CGPoint(x: CGFloat.infinity, y: 10)), nil, "month: ∞ → nil")
@@ -4627,51 +4628,72 @@ do {
     checkEqual(BandMigration.needsMigration(extraPage), false, "K-1: a page with extra needs no migration")
     checkEqual(BandMigration.migrate(extraPage), extraPage, "K-1: migrate leaves extra unchanged")
 
-    // The table of §3.1 (5,600 → 6,000: the formula; 5,500 → 5,900 is the last full step).
-    let table: [(CGFloat, CGFloat)] = [(0, 700), (300, 700), (301, 1100), (700, 1100), (701, 1500), (1100, 1500),
-                                       (5500, 5900), (5600, 6000), (5601, 6000), (5950, 6000), (5990, 6040), (6420, 6470)]
+    // The table of 1.1.1 (docs/R1_1_1.md): open to 6,000 from the start; only a line past 5,950 (a
+    // 1.0 device's, say) makes it taller (b + 50).
+    let table: [(CGFloat, CGFloat)] = [(0, 6000), (300, 6000), (301, 6000), (700, 6000), (701, 6000), (1100, 6000),
+                                       (5500, 6000), (5600, 6000), (5601, 6000), (5950, 6000), (5990, 6040), (6420, 6470)]
     for (b, h) in table {
         checkEqual(PaperGrowth.tailHeight(inkBottom: b), h, "tailHeight(\(b)) = \(h)")
         checkEqual(MonthLayoutEngine.memoHeight(inkBottom: b), h, "memoHeight(\(b)) = tailHeight")
     }
-    checkEqual(PaperGrowth.tailHeight(inkBottom: .nan), 700, "tailHeight(NaN) = 700")
-    checkEqual(PaperGrowth.tailHeight(inkBottom: .infinity), 700, "tailHeight(∞) = 700")
-    checkEqual(PaperGrowth.tailHeight(inkBottom: -.infinity), 700, "tailHeight(−∞) = 700")
-    checkEqual(PaperGrowth.tailHeight(inkBottom: -50), 700, "tailHeight(−50) = 700")
-    checkEqual(PaperGrowth.tailHeight(inkBottom: 64.5), 700, "the screenshot month's memo dot (64.5) keeps 700 (0-1)")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: .nan), 6000, "tailHeight(NaN) = 6,000")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: .infinity), 6000, "tailHeight(∞) = 6,000")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: -.infinity), 6000, "tailHeight(−∞) = 6,000")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: -50), 6000, "tailHeight(−50) = 6,000")
+    checkEqual(PaperGrowth.tailHeight(inkBottom: 64.5), 6000, "the screenshot month's memo dot (64.5) stays inside the 6,000")
+    // The PDF keeps 1.1's table of §3.1 (5,600 → 6,000: the formula; 5,500 → 5,900 is the last full step).
+    let exportTable: [(CGFloat, CGFloat)] = [(0, 700), (300, 700), (301, 1100), (700, 1100), (701, 1500), (1100, 1500),
+                                             (5500, 5900), (5600, 6000), (5601, 6000), (5950, 6000), (5990, 6040), (6420, 6470)]
+    for (b, h) in exportTable {
+        checkEqual(PaperGrowth.exportTailHeight(inkBottom: b), h, "exportTailHeight(\(b)) = \(h)")
+    }
+    checkEqual(PaperGrowth.exportTailHeight(inkBottom: .nan), 700, "exportTailHeight(NaN) = 700")
+    checkEqual(PaperGrowth.exportTailHeight(inkBottom: .infinity), 700, "exportTailHeight(∞) = 700")
+    checkEqual(PaperGrowth.exportTailHeight(inkBottom: -.infinity), 700, "exportTailHeight(−∞) = 700")
+    checkEqual(PaperGrowth.exportTailHeight(inkBottom: -50), 700, "exportTailHeight(−50) = 700")
+    checkEqual(PaperGrowth.exportTailHeight(inkBottom: 64.5), 700, "exportTailHeight: the screenshot month's memo dot (64.5) keeps 700 (0-1)")
     var stepOK = true
     var floorOK = true
     var blankOK = true
     var monotoneOK = true
+    var tailFloorOK = true
+    var tailMonotoneOK = true
     var previous: CGFloat = 0
+    var previousTail: CGFloat = 0
     var b: CGFloat = 0
     while b <= 7000 {
-        let h = PaperGrowth.tailHeight(inkBottom: b)
+        let h = PaperGrowth.exportTailHeight(inkBottom: b)
         if h < b + 50 || h < 700 { floorOK = false }
         if b <= 5600 && (h - b < 400 || h - b > 800) { blankOK = false }
         if h <= 6000 && h != b + 50 && (h - 700).truncatingRemainder(dividingBy: 400) != 0 && h != 6000 { stepOK = false }
         if h < previous { monotoneOK = false }
         previous = h
+        let tail = PaperGrowth.tailHeight(inkBottom: b)
+        if tail < b + 50 || tail < 6000 { tailFloorOK = false }
+        if tail < previousTail { tailMonotoneOK = false }
+        previousTail = tail
         b += 3.7
     }
-    check(floorOK, "tailHeight ≥ max(700, b + 50) for every b (the 1.0 rule)")
-    check(blankOK, "tailHeight − b is 400…800 for b ≤ 5,600")
-    check(stepOK, "tailHeight is 700 + 400k, 6,000 or b + 50")
-    check(monotoneOK, "tailHeight never shrinks as b grows")
+    check(floorOK, "exportTailHeight ≥ max(700, b + 50) for every b (the 1.0 rule)")
+    check(blankOK, "exportTailHeight − b is 400…800 for b ≤ 5,600")
+    check(stepOK, "exportTailHeight is 700 + 400k, 6,000 or b + 50")
+    check(monotoneOK, "exportTailHeight never shrinks as b grows")
+    check(tailFloorOK, "tailHeight ≥ max(6,000, b + 50) for every b (the 1.0 rule)")
+    check(tailMonotoneOK, "tailHeight never shrinks as b grows")
 
-    // needsMoreRoom: the last cell's step rule, the rows' + 12 rule.
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 700, inkBottom: 300), false, "needsMoreRoom: memo 700, b 300 → no")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 700, inkBottom: 300.5), true, "needsMoreRoom: memo 700, b 300.5 → yes")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1100, inkBottom: 700), false, "needsMoreRoom: memo 1,100, b 700 → no")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1100, inkBottom: 750), true, "needsMoreRoom: memo 1,100, b 750 → yes (0-2)")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1500, inkBottom: 750), false, "needsMoreRoom: memo 1,500, b 750 → no (shrinks later, not now)")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .extra, cellHeight: 700, inkBottom: 301), true, "needsMoreRoom: extra 700, b 301 → yes")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .extra, cellHeight: 700, inkBottom: 250), false, "needsMoreRoom: extra 700, b 250 → no")
+    // needsMoreRoom: the last cell's rule (open to 6,000, so only a line below it asks), the rows' + 12 rule.
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 6000, inkBottom: 300), false, "needsMoreRoom: memo 6,000, b 300 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 6000, inkBottom: 3000), false, "needsMoreRoom: memo 6,000, b 3,000 → no (1.1.1: no relayout while writing)")
     checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 6000, inkBottom: 5950), false, "needsMoreRoom: memo 6,000, b 5,950 → no")
     checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 6000, inkBottom: 5951), true, "needsMoreRoom: memo 6,000, b 5,951 → yes (b + 50)")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 700, inkBottom: .nan), false, "needsMoreRoom: NaN → no")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1099.9995, inkBottom: 700), false, "needsMoreRoom: a cell 0.0005 short of 1,100 → no (0.001)")
-    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 1099.998, inkBottom: 700), true, "needsMoreRoom: a cell 0.002 short of 1,100 → yes")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 6040, inkBottom: 5951), false, "needsMoreRoom: memo 6,040, b 5,951 → no (shrinks later, not now)")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .extra, cellHeight: 6000, inkBottom: 250), false, "needsMoreRoom: extra 6,000, b 250 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .extra, cellHeight: 6000, inkBottom: 5950), false, "needsMoreRoom: extra 6,000, b 5,950 → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .extra, cellHeight: 6000, inkBottom: 5951), true, "needsMoreRoom: extra 6,000, b 5,951 → yes (b + 50)")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 6000, inkBottom: .nan), false, "needsMoreRoom: memo, NaN → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .extra, cellHeight: 6000, inkBottom: .nan), false, "needsMoreRoom: extra, NaN → no")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 5999.9995, inkBottom: 0), false, "needsMoreRoom: a cell 0.0005 short of 6,000 → no (0.001)")
+    checkEqual(PaperGrowth.needsMoreRoom(cell: .memo, cellHeight: 5999.998, inkBottom: 0), true, "needsMoreRoom: a cell 0.002 short of 6,000 → yes")
     checkEqual(PaperGrowth.needsMoreRoom(cell: .day(day(2026, 10, 7)), cellHeight: 175, inkBottom: 163), false, "needsMoreRoom: a row cell, 163 + 12 = 175 → no")
     checkEqual(PaperGrowth.needsMoreRoom(cell: .day(day(2026, 10, 7)), cellHeight: 175, inkBottom: 163.5), true, "needsMoreRoom: a row cell, 163.5 + 12 > 175 → yes")
     checkEqual(PaperGrowth.needsMoreRoom(cell: CellKey(raw: "10-07"), cellHeight: 60, inkBottom: 48.0005), false, "needsMoreRoom: a year cell within 0.001 → no")
@@ -4693,37 +4715,40 @@ do {
         b += 3.7
     }
     check(capOK, "reachesCap ⇔ the blank below b is less than 400")
+    // A line written low in the memo (1.1.1) stays visible on a 1.1 device (the steps) and a 1.0 device (b + 50).
+    check(PaperGrowth.exportTailHeight(inkBottom: 5000) >= 5000 + PaperSpec.memoInkPad, "a line at 5,000 is inside 1.1's steps")
 
     // The month memo area.
     let plainMonth = layout([])
-    let grownMonth = layout([], ink: [.memo: 500])
-    checkEqual(grownMonth.memo, CGRect(x: 0, y: 1050, width: 1400, height: 1100), "month memo: ink 500 → (0, 1050, 1400, 1,100)")
-    checkEqual(grownMonth.size, CGSize(width: 1400, height: 2150), "month paper: 1050 + 1,100")
+    let grownMonth = layout([], ink: [.memo: 6100]) // a 1.0 device's line below the cap
+    checkEqual(grownMonth.memo, CGRect(x: 0, y: 1050, width: 1400, height: 6150), "month memo: ink 6,100 → (0, 1050, 1400, 6,150)")
+    checkEqual(grownMonth.size, CGSize(width: 1400, height: 7200), "month paper: 1050 + 6,150")
     checkEqual(grownMonth.cells[.memo], grownMonth.memo, "month memo cell")
     checkEqual(ZoomPolicy.overviewSize(grownMonth), CGSize(width: 1400, height: 1050), "month overview: the memo area does not count")
     checkEqual(MonthLayoutEngine.scrollDelta(old: plainMonth, new: grownMonth, topVisibleY: 1100), 0, "month: the memo area's growth does not scroll")
     checkEqual(MonthLayoutEngine.scrollDelta(old: plainMonth, new: grownMonth, topVisibleY: 300), 0, "month: a row stays")
-    checkEqual(layout([], ink: [.memo: 64.5]).memo.height, 700, "month: the screenshot dot keeps the 700 memo area (0-1)")
+    checkEqual(layout([], ink: [.memo: 64.5]).memo.height, 6000, "month: the screenshot dot stays inside the 6,000 memo area")
+    checkEqual(layout([]).memo.height, 6000, "month: an empty memo area is 6,000")
     checkEqual(layout([], ink: [.memo: 6420]).memo.height, 6470, "month: ink from 1.0 below the cap stays visible (b + 50)")
 
     // The day page's extra (§3.3).
     let dayPage = dayLayout(demo)
-    let grownDay = dayLayout(demo, ink: [.extra: 800])
-    checkEqual(dayPage.extra, CGRect(x: 0, y: 2400, width: 1000, height: 700), "day extra: (0, 2400, 1000, 700)")
-    checkEqual(grownDay.extra, CGRect(x: 0, y: 2400, width: 1000, height: 1500), "day extra: ink 800 → 1,500")
-    checkEqual(grownDay.size, CGSize(width: 1000, height: 3900), "day paper: 2400 + 1,500")
+    let grownDay = dayLayout(demo, ink: [.extra: 6100]) // a 1.0 device's line below the cap
+    checkEqual(dayPage.extra, CGRect(x: 0, y: 2400, width: 1000, height: 6000), "day extra: (0, 2400, 1000, 6,000)")
+    checkEqual(grownDay.extra, CGRect(x: 0, y: 2400, width: 1000, height: 6150), "day extra: ink 6,100 → 6,150")
+    checkEqual(grownDay.size, CGSize(width: 1000, height: 8550), "day paper: 2400 + 6,150")
     checkEqual(grownDay.cells[.extra], grownDay.extra, "day extra cell")
     checkEqual(Set(grownDay.cells.keys), [CellKey.grid, CellKey.extra], "day cells: grid and extra")
     checkEqual(grownDay.grid, CGRect(x: 0, y: 0, width: 1000, height: 2400), "K-4: the grid keeps (0, 0, 1000, 2400)")
     checkEqual(grownDay.timeline, CGRect(x: 72, y: 0, width: 588, height: 2400), "K-4: the timeline keeps its rect")
     checkEqual(grownDay.memo, CGRect(x: 660, y: 0, width: 340, height: 2400), "K-4: the right memo column keeps its rect")
-    checkEqual(dayLayout(demo, ink: [.grid: 9000, .allDayDay: 300]).extra.height, 700, "day: grid ink does not grow extra")
-    checkEqual(dayLayout(demo, ink: [.extra: .nan]).extra.height, 700, "day: NaN ink → 700")
+    checkEqual(dayLayout(demo, ink: [.grid: 9000, .allDayDay: 300]).extra.height, 6000, "day: grid ink does not grow extra")
+    checkEqual(dayLayout(demo, ink: [.extra: .nan]).extra.height, 6000, "day: NaN ink → 6,000")
     checkEqual(grownDay.cell(at: CGPoint(x: 500, y: 2399.9)), .grid, "day cell: 2,399.9 → grid")
     checkEqual(grownDay.cell(at: CGPoint(x: 500, y: 2400)), .extra, "day cell: 2,400 → extra")
-    checkEqual(grownDay.cell(at: CGPoint(x: 0, y: 3899.9)), .extra, "day cell: the bottom-left → extra")
+    checkEqual(grownDay.cell(at: CGPoint(x: 0, y: 8549.9)), .extra, "day cell: the bottom-left → extra")
     checkEqual(grownDay.cell(at: CGPoint(x: 1000, y: 2500)), .extra, "day cell: the right edge → extra")
-    checkEqual(grownDay.cell(at: CGPoint(x: 500, y: 3900)), nil, "day cell: below the paper → nil")
+    checkEqual(grownDay.cell(at: CGPoint(x: 500, y: 8550)), nil, "day cell: below the paper → nil")
     checkEqual(grownDay.cell(at: CGPoint(x: 1000.1, y: 2500)), nil, "day cell: right of the paper → nil")
     checkEqual(grownDay.cell(at: CGPoint(x: -0.1, y: 2500)), nil, "day cell: left of the paper → nil")
     checkEqual(grownDay.cell(at: CGPoint(x: 500, y: CGFloat.nan)), nil, "day cell: NaN → nil")
@@ -4738,8 +4763,8 @@ do {
     checkEqual(grownDay.growsWithInk(.grid), false, "day: the grid never grows")
     checkEqual(grownDay.band(atY: 2399.9), PageBand.grid, "day band: 2,399.9 → grid")
     checkEqual(grownDay.band(atY: 2400), PageBand.extra, "day band: 2,400 → extra")
-    checkEqual(grownDay.band(atY: 3899), PageBand.extra, "day band: 3,899 → extra")
-    checkEqual(grownDay.band(atY: 3900), nil, "day band: below the paper → nil")
+    checkEqual(grownDay.band(atY: 8549), PageBand.extra, "day band: 8,549 → extra")
+    checkEqual(grownDay.band(atY: 8550), nil, "day band: below the paper → nil")
     checkEqual(grownDay.bandTop(.grid), 0, "day bandTop grid = 0")
     checkEqual(grownDay.bandTop(.extra), 2400, "day bandTop extra = 2400")
     checkEqual(grownDay.bandTop(.memo), nil, "day bandTop memo = nil")
@@ -4768,11 +4793,12 @@ do {
     // drop(center:in:) (§3.4).
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 500), in: plainMonth), nil, "drop: inside the paper → keep")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 0, y: 0), in: plainMonth), nil, "drop: the top-left corner → keep")
-    checkEqual(PaperGrowth.drop(center: CGPoint(x: 1400, y: 1750), in: plainMonth), nil, "drop: the bottom-right corner → keep")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 1400, y: 7050), in: plainMonth), nil, "drop: the bottom-right corner → keep")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: -1, y: 500), in: plainMonth), .outsidePaper, "drop: left of the paper")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 1401, y: 500), in: plainMonth), .outsidePaper, "drop: right of the paper")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: -1), in: plainMonth), .outsidePaper, "drop: above the paper")
-    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1751), in: plainMonth), .outsidePaper, "drop: below the paper, above the cap")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 7051), in: plainMonth), .beyondCap, "drop: below the paper (1.1.1: it ends at the cap)")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 7049), in: plainMonth), nil, "drop: just above the end of the paper → keep")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1050 + 6000.5), in: plainMonth), .beyondCap, "drop: below the cap (beyondCap first)")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: -1, y: 9000), in: plainMonth), .outsidePaper, "drop: beside the paper below the cap → outsidePaper")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: CGFloat.nan, y: 500), in: plainMonth), .outsidePaper, "drop: NaN → outsidePaper")
@@ -4783,7 +4809,8 @@ do {
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1050 + 5999), in: deepMonth), nil, "drop: inside a longer paper, above the cap → keep")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 2400 + 6000.5), in: dayPage), .beyondCap, "drop: the day's cap is 24:00 + 6,000")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 3000), in: dayPage), nil, "drop: inside the day's extra → keep")
-    checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 3101), in: dayPage), .outsidePaper, "drop: below the day's paper, above the cap")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 8401), in: dayPage), .beyondCap, "drop: below the day's paper (1.1.1: it ends at the cap)")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 8399), in: dayPage), nil, "drop: just above the end of the day's paper → keep")
     let weekPage = weekLayout(demo)
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 9000), in: weekPage), .outsidePaper, "drop: the week has no last cell")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 700, y: 1000), in: weekPage), nil, "drop: inside the week")
@@ -4818,6 +4845,142 @@ do {
     checkEqual(PaperGrowth.onlyTailHeightChanged(old: weekPage, new: weekLayout(demo, ink: [.grid: 3000])), false, "onlyTail: week → false")
     checkEqual(PaperGrowth.onlyTailHeightChanged(old: yearPage, new: yearLayout([], ink: [CellKey(raw: "03-05"): 100])), false, "onlyTail: year → false")
     checkEqual(PaperGrowth.onlyTailHeightChanged(old: plainMonth, new: dayPage), false, "onlyTail: another kind → false")
+}
+
+// MARK: - 1.1.1: the opening zoom, the paper at the top, 「今日」 (docs/R1_1_1.md; the same checks run in Tests/LayoutTests)
+
+section("opening zoom and top-aligned paper (1.1.1)")
+do {
+    // The paper the opening zoom is computed from: the overview of an empty page, and no overview is smaller.
+    checkEqual(ZoomPolicy.baseSize(.month), CGSize(width: 1400, height: 1050), "baseSize: month, 6 rows of 175")
+    checkEqual(ZoomPolicy.baseSize(.week), CGSize(width: 1400, height: 1920), "baseSize: week, 24 hours")
+    checkEqual(ZoomPolicy.baseSize(.day), CGSize(width: 1000, height: 2400), "baseSize: day, 24 hours")
+    checkEqual(ZoomPolicy.baseSize(.year), CGSize(width: 1400, height: 1860), "baseSize: year, 31 rows of 60")
+    checkEqual(ZoomPolicy.overviewSize(layout([])), ZoomPolicy.baseSize(.month), "baseSize = the overview of an empty month")
+    checkEqual(ZoomPolicy.overviewSize(weekLayout([])), ZoomPolicy.baseSize(.week), "baseSize = the overview of an empty week")
+    checkEqual(ZoomPolicy.overviewSize(dayLayout([])), ZoomPolicy.baseSize(.day), "baseSize = the overview of an empty day")
+    checkEqual(ZoomPolicy.overviewSize(yearLayout([])), ZoomPolicy.baseSize(.year), "baseSize = the overview of an empty year")
+    check(ZoomPolicy.overviewSize(layout(demo)).height >= ZoomPolicy.baseSize(.month).height, "the demo month's overview is not smaller than the base")
+    check(ZoomPolicy.overviewSize(yearLayout(demo)).height >= ZoomPolicy.baseSize(.year).height, "the demo year's overview is not smaller than the base")
+
+    // An iPhone's year (440 × 651): the size does not change between a year nobody wrote on and a long one.
+    let phone = CGSize(width: 440, height: 651)
+    let shortYear = ZoomPolicy.bounds(.year, overview: CGSize(width: 1400, height: 1860), viewport: phone)
+    let tallYear = ZoomPolicy.bounds(.year, overview: CGSize(width: 1400, height: 2600), viewport: phone)
+    checkClose(shortYear.open, 440.0 / 1400, "iPhone year 1,860 lu: open 0.3143", tolerance: 1e-9)
+    checkEqual(tallYear.open, shortYear.open, "iPhone year 2,600 lu: open is the same")
+    checkClose(shortYear.min, 440.0 / 1400, "iPhone year 1,860 lu: min 0.3143", tolerance: 1e-9)
+    checkClose(tallYear.min, 651.0 / 2600, "iPhone year 2,600 lu: min 0.2504 (a pinch shows the whole page)", tolerance: 1e-9)
+    checkEqual(ZoomPolicy.zoom(forRatio: 1, bounds: tallYear), ZoomPolicy.zoom(forRatio: 1, bounds: shortYear), "iPhone year: ratio 1 is the same on both")
+    checkClose(ZoomPolicy.zoom(forRatio: 2, bounds: tallYear), 2 * 440.0 / 1400, "ratio 2 → 2 × open", tolerance: 1e-9)
+    checkClose(ZoomPolicy.zoom(forRatio: .nan, bounds: tallYear), tallYear.open, "ratio NaN → open", tolerance: 1e-12)
+    checkClose(ZoomPolicy.zoom(forRatio: 0, bounds: tallYear), tallYear.open, "ratio 0 → open", tolerance: 1e-12)
+    checkClose(ZoomPolicy.zoom(forRatio: 0.5, bounds: tallYear), tallYear.min, "ratio 0.5 → clamped to min", tolerance: 1e-12)
+    checkEqual(tallYear == ZoomPolicy.Bounds(fit: tallYear.fit, min: tallYear.min, max: tallYear.max), false, "Bounds: open counts in ==")
+    checkEqual(ZoomPolicy.Bounds(fit: 0.3, open: 0.4, min: 0.2, max: 1).open, 0.4, "Bounds.open as given")
+    checkEqual(ZoomPolicy.Bounds(fit: 0.3, open: 0.4, min: 0.2, max: 1).clamped(.nan), 0.2, "clamped: NaN → min, not open")
+
+    // The four kinds of device the owner has, portrait and landscape (the table in docs/R1_1_1.md):
+    // the width, the paper area of the month and the year, what they open at, and the lower limit of a
+    // month of 1,518 lu and a year of 2,600 lu.
+    let devices: [(name: String, width: CGFloat, month: CGFloat, year: CGFloat, openMonth: CGFloat, openYear: CGFloat, minMonth: CGFloat, minYear: CGFloat)] = [
+        ("iPhone 18 Pro Max portrait", 440, 672.67, 651, 0.3143, 0.3143, 0.3143, 0.2504),
+        ("iPhone 18 Pro Max landscape", 832, 267.67, 246, 0.2549, 0.1323, 0.1763, 0.0946),
+        ("iPad mini portrait", 744, 928.5, 907, 0.5314, 0.4876, 0.5314, 0.3488),
+        ("iPad mini landscape", 1133, 539.5, 518, 0.5138, 0.2785, 0.3554, 0.1992),
+        ("iPad Air 11 portrait", 820, 975.5, 954, 0.5857, 0.5129, 0.5857, 0.3669),
+        ("iPad Air 11 landscape", 1180, 615.5, 594, 0.5862, 0.3194, 0.4055, 0.2285),
+        ("iPad Pro 13 portrait", 1032, 1171.5, 1150, 0.7371, 0.6183, 0.7371, 0.4423),
+        ("iPad Pro 13 landscape", 1376, 827.5, 806, 0.7881, 0.4333, 0.5451, 0.3100),
+    ]
+    for d in devices {
+        let cases: [(PageKind, CGSize, CGFloat, CGFloat, CGFloat, CGFloat)] = [
+            (.month, CGSize(width: d.width, height: d.month), 1050, 1518, d.openMonth, d.minMonth),
+            (.year, CGSize(width: d.width, height: d.year), 1860, 2600, d.openYear, d.minYear),
+        ]
+        for (kind, viewport, base, long, open, minimum) in cases {
+            let label = "\(kind), \(d.name)"
+            let plain = ZoomPolicy.bounds(kind, overview: CGSize(width: 1400, height: base), viewport: viewport)
+            let tall = ZoomPolicy.bounds(kind, overview: CGSize(width: 1400, height: long), viewport: viewport)
+            checkClose(plain.open, open, "open \(label)", tolerance: 1e-4)
+            checkEqual(tall.open, plain.open, "the same open whatever the page holds: \(label)")
+            checkEqual(ZoomPolicy.zoom(forRatio: 1, bounds: tall), ZoomPolicy.zoom(forRatio: 1, bounds: plain), "ratio 1 is the same: \(label)")
+            checkEqual(plain.min, plain.open, "the base paper opens at its lower limit: \(label)")
+            checkClose(tall.min, minimum, "min of the long page: \(label)", tolerance: 1e-4)
+            check(tall.min <= tall.open && tall.open <= tall.fit && tall.fit <= tall.max, "min ≤ open ≤ fit ≤ max: \(label)")
+            checkEqual(ZoomPolicy.ratio(forZoom: tall.open * 0.8, bounds: tall), 1, "a pinch below open is not stored: \(label)")
+            checkClose(ZoomPolicy.ratio(forZoom: tall.open * 2, bounds: tall), 2, "ratio of 2 × open: \(label)", tolerance: 1e-9)
+            check(tall.max / tall.open < ZoomPolicy.maxStoredRatio, "max / open is below maxStoredRatio: \(label)")
+        }
+    }
+    // A week and a day never grow their overview: open = min, as before.
+    for kind in [PageKind.week, .day] {
+        let b = ZoomPolicy.bounds(kind, overview: ZoomPolicy.baseSize(kind), viewport: CGSize(width: 744, height: 878))
+        checkEqual(b.open, b.min, "\(kind): open = min")
+    }
+    // An overview smaller than the base (no page has one): the lower limit never passes the opening zoom.
+    let smallOverview = ZoomPolicy.bounds(.month, overview: CGSize(width: 1400, height: 500), viewport: CGSize(width: 1366, height: 830))
+    checkEqual(smallOverview.min, smallOverview.open, "min is at most open")
+
+    // The paper starts at the top: only the left and right margins are left.
+    let phoneMonth = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 440.0 / 1400, viewport: CGSize(width: 440, height: 673))
+    checkEqual(phoneMonth.height, 0, "iPhone 440 × 673, a 1,750 lu paper: no margin above it (61 pt in 1.1)")
+    checkClose(phoneMonth.width, 0, "iPhone 440 × 673: fit-to-width", tolerance: 1e-9)
+    let phoneYear = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 2600), zoom: tallYear.min, viewport: phone)
+    checkClose(phoneYear.width, (440 - 1400 * tallYear.min) / 2, "iPhone year at its minimum: 44.7 pt each side", tolerance: 1e-9)
+    checkClose(phoneYear.width, 44.7, "iPhone year at its minimum: ≈ 44.7", tolerance: 0.1)
+    checkEqual(phoneYear.height, 0, "iPhone year at its minimum: no margin above it")
+
+    // The first frame goes through the same numbers.
+    let firstTall = PaperViewport.initial(.year, overview: CGSize(width: 1400, height: 2600), paperSize: CGSize(width: 1400, height: 2600), viewport: phone, ratio: 1)
+    checkClose(firstTall.zoom, 440.0 / 1400, "initial(year 2,600, 440 × 651): zoom 0.3143 (0.2504 in 1.1)", tolerance: 1e-9)
+    checkClose(firstTall.offsetX, 0, "initial(year 2,600, 440 × 651): offsetX 0 (−44.7 in 1.1)", tolerance: 1e-9)
+    checkEqual(firstTall.width, 440, "initial(year 2,600, 440 × 651): width")
+
+    // The empty pages (the memo area and the free memo area are open from the start).
+    checkEqual(layout([]).size, CGSize(width: 1400, height: 7050), "an empty month is 1400 × 7,050")
+    checkEqual(dayLayout([]).size, CGSize(width: 1000, height: 8400), "an empty day is 1000 × 8,400")
+    checkEqual(ZoomPolicy.overviewSize(layout([])).height, 1050, "the memo area is not in the month's overview")
+    checkEqual(ZoomPolicy.overviewSize(dayLayout([])).height, 2400, "the free memo area is not in the day's overview")
+
+    // revealOffset (「今日」): iPad mini 744 × 907 at 0.4876, a 2,600 lu year with rows of 2600 / 31.
+    let rowHeight: CGFloat = 2600.0 / 31
+    let row28 = CGRect(x: 1283, y: rowHeight * 27, width: 117, height: rowHeight)
+    let row4 = CGRect(x: 1283, y: rowHeight * 3, width: 117, height: rowHeight)
+    let mini = CGSize(width: 744, height: 907)
+    func checkPoint(_ actual: CGPoint, _ x: CGFloat, _ y: CGFloat, _ message: String) {
+        checkClose(actual.x, x, message + " (x)", tolerance: 0.01)
+        checkClose(actual.y, y, message + " (y)", tolerance: 0.01)
+    }
+    checkEqual(ZoomPolicy.revealMargin, 8, "revealMargin")
+    checkPoint(ZoomPolicy.revealOffset(rect: row28, zoom: 0.4876, viewport: mini, current: CGPoint(x: -31, y: 0)), -31, 246.07, "reveal: row 28 from the top")
+    checkEqual(ZoomPolicy.revealOffset(rect: row4, zoom: 0.4876, viewport: mini, current: CGPoint(x: -31, y: 0)), CGPoint(x: -31, y: 0), "reveal: row 4 on screen → does not move")
+    checkPoint(ZoomPolicy.revealOffset(rect: row4, zoom: 0.4876, viewport: mini, current: CGPoint(x: -31, y: 361)), -31, 114.69, "reveal: row 4 from below")
+    checkPoint(ZoomPolicy.revealOffset(rect: CGRect(x: 0, y: 100, width: 10, height: 4000), zoom: 0.5, viewport: mini, current: CGPoint(x: 0, y: 300)), -8, 42, "reveal: a rect longer than the viewport lines up with its start")
+    checkPoint(ZoomPolicy.revealOffset(rect: CGRect(x: 1000, y: 100, width: 200, height: 100), zoom: 1, viewport: CGSize(width: 500, height: 500), current: .zero), 708, 0, "reveal: a rect right of the viewport")
+    checkPoint(ZoomPolicy.revealOffset(rect: CGRect(x: 100, y: 100, width: 200, height: 100), zoom: 1, viewport: CGSize(width: 500, height: 500), current: CGPoint(x: 600, y: 0)), 92, 0, "reveal: a rect left of the viewport")
+    checkPoint(ZoomPolicy.revealOffset(rect: CGRect(x: 100, y: 0, width: 200, height: 100), zoom: 1, viewport: CGSize(width: 500, height: 500), current: .zero), 0, -8, "reveal: a rect at the top of the paper (the caller clamps)")
+    let here = CGPoint(x: 5, y: 6)
+    for bad in [CGFloat.nan, 0, -1, .infinity, -.infinity] {
+        checkEqual(ZoomPolicy.revealOffset(rect: row4, zoom: bad, viewport: mini, current: here), here, "reveal: zoom \(bad) → current")
+    }
+    for bad in [CGFloat.nan, .infinity, -.infinity] {
+        checkEqual(ZoomPolicy.revealOffset(rect: CGRect(x: bad, y: 10, width: 10, height: 10), zoom: 1, viewport: mini, current: here), here, "reveal: rect x \(bad) → current")
+        checkEqual(ZoomPolicy.revealOffset(rect: CGRect(x: 10, y: 10, width: 10, height: bad), zoom: 1, viewport: mini, current: here), here, "reveal: rect height \(bad) → current")
+    }
+    checkEqual(ZoomPolicy.revealOffset(rect: row4, zoom: 1, viewport: CGSize(width: 0, height: 907), current: here), here, "reveal: width 0 → current")
+    checkEqual(ZoomPolicy.revealOffset(rect: row4, zoom: 1, viewport: CGSize(width: 744, height: -1), current: here), here, "reveal: a negative height → current")
+
+    // todayRect: today's cell on the month and year pages only.
+    let monthPage = layout(demo, now: demoNow)
+    checkEqual(PageNavigation.todayRect(monthPage, now: demoNow, calendar: tokyo), monthPage.cells[.day(day(2026, 10, 7))], "todayRect: month, today's cell")
+    checkEqual(PageNavigation.todayRect(monthPage, now: date(2026, 11, 8, 9), calendar: tokyo), monthPage.cells[.day(day(2026, 11, 8))], "todayRect: month, a day of the grid outside the month")
+    checkEqual(PageNavigation.todayRect(monthPage, now: date(2026, 11, 9, 9), calendar: tokyo), nil, "todayRect: month, today is not on the grid")
+    let yearPage2026 = yearLayout(demo)
+    checkEqual(PageNavigation.todayRect(yearPage2026, now: demoNow, calendar: tokyo), yearPage2026.cells[.yearDay(month: 10, day: 7)], "todayRect: year, today's cell")
+    checkEqual(PageNavigation.todayRect(yearPage2026, now: date(2027, 1, 1, 9), calendar: tokyo), nil, "todayRect: another year → nil")
+    checkEqual(PageNavigation.todayRect(weekLayout(demo), now: demoNow, calendar: tokyo), nil, "todayRect: week → nil")
+    checkEqual(PageNavigation.todayRect(dayLayout(demo), now: demoNow, calendar: tokyo), nil, "todayRect: day → nil")
 }
 
 // MARK: - 1.1: a finger's single tap on a date (M7A_CONTRACT D4, §4.1–§4.3)

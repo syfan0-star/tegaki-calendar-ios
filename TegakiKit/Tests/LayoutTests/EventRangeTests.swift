@@ -289,7 +289,7 @@ final class EventRangeTests: XCTestCase {
     func testMonthPage() {
         let page = F.monthLayout([]) // October 2026, Monday start: grid 9/28 – 11/8, rows of 175, memo from 1050
         XCTAssertEqual(page.memo.minY, 1050)
-        XCTAssertEqual(page.size.height, 1750)
+        XCTAssertEqual(page.size.height, 7050)
         let now14 = F.date(2026, 10, 14, 22, 30)
         func ev(_ r: CGRect) -> String { fmt(page.eventRange(for: r, now: now14, calendar: tokyo)) }
         func at(_ r: CGRect) -> String { ymd(page.eventRange(for: r, now: now14, calendar: tokyo)) }
@@ -326,7 +326,7 @@ final class EventRangeTests: XCTestCase {
         XCTAssertEqual(at(memo, now: F.date(2026, 10, 1, 0, 0)), "2026-10-01", "the first instant of the month")
         XCTAssertEqual(at(rect(100, 1040, 100, 1060), now: now14), "2026-10-14", "a centre exactly at memo.minY is the memo")
         XCTAssertEqual(at(rect(100, 1040, 100, 1059.8), now: now14), "2026-11-02", "just above it is the last row")
-        for r in [rect(50, 1100, 50, 1100), rect(1390, 1749, 1395, 1750), rect(700, 1800, 720, 1900), rect(1450, 1100, 1500, 1200), rect(-50, 2000, -40, 2001)] {
+        for r in [rect(50, 1100, 50, 1100), rect(1390, 7049, 1395, 7050), rect(700, 7100, 720, 7200), rect(1450, 1100, 1500, 1200), rect(-50, 7300, -40, 7301)] {
             XCTAssertEqual(at(r, now: F.date(2026, 10, 6)), "2026-10-06", "taps, the page bottom and below the page: \(r)")
         }
         assertRect(page.previewRect(for: rect(-50, 2000, -40, 2001), now: F.date(2027, 3, 1), calendar: tokyo), CGRect(x: 600, y: 0, width: 200, height: 175), "below the page → the memo day's cell")

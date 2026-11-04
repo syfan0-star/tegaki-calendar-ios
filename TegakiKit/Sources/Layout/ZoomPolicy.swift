@@ -1,13 +1,14 @@
 import Foundation
 import CoreGraphics
 
-/// The zoom-scale limits of a page (M4C_CONTRACT §1.1, DESIGN §2.2 / §3.8). Since M4c the lower
-/// limit is the overview (`fitAll`, D1): the zoom at which the page's overview rectangle (the month's
-/// 6 rows, the week's and day's 24 hours, the whole year) fits the paper area both ways, so every
-/// page opens as a thumbnail of itself and a pinch enlarges it. The M4b `readableZoom` stays as the
-/// text threshold (D3) but no longer binds the zoom. Pure functions of the page kind, the overview
-/// rectangle and the viewport, so the same numbers reach the canvas, the sticky header and the
-/// all-day band.
+/// The zoom-scale limits of a page (M4C_CONTRACT §1.1, DESIGN §2.2 / §3.8, docs/R1_1_1.md). Since
+/// 1.1.1 a page opens at the zoom that fits its `baseSize` into the paper area both ways, so what a
+/// page holds never changes the size it opens at; a page that holds more is reached by scrolling.
+/// The lower limit is still the overview (`fitAll`, M4c D1: the page's overview rectangle, the month's
+/// 6 rows, the week's and day's 24 hours, the whole year), so a pinch shows the whole page, and the
+/// paper starts at the top of the paper area. The M4b `readableZoom` stays as the text threshold (D3)
+/// but does not bind the zoom. Pure functions of the page kind, the overview rectangle and the
+/// viewport, so the same numbers reach the canvas, the sticky header and the all-day band.
 public enum ZoomPolicy {
     /// Width of the key column (lu): month 200 (a day), week 190.857… (a day), day 588 (the
     /// timeline, 72…660), year 112 (a month).
@@ -55,6 +56,19 @@ public enum ZoomPolicy {
         return viewportWidth / paperWidth(kind)
     }
 
+    /// The paper the opening zoom is computed from (1.1.1, docs/R1_1_1.md): month 1400 × 1050 (6 rows of
+    /// 175), week 1400 × 1920, day 1000 × 2400, year 1400 × 1860 (31 rows of 60). What a page holds never
+    /// changes it, so every month and every year opens at the same size on a device. It is the
+    /// `overviewSize` of an empty page, and rows only grow, so no `overviewSize` is smaller.
+    public static func baseSize(_ kind: PageKind) -> CGSize {
+        switch kind {
+        case .month: return CGSize(width: PaperSpec.monthWidth, height: PaperSpec.monthRowBase * CGFloat(PaperSpec.monthRows))
+        case .week: return CGSize(width: PaperSpec.weekWidth, height: PaperSpec.weekGridHeight)
+        case .day: return CGSize(width: PaperSpec.dayWidth, height: PaperSpec.dayGridHeight)
+        case .year: return CGSize(width: PaperSpec.yearWidth, height: PaperSpec.yearRowBase * CGFloat(PaperSpec.yearRows))
+        }
+    }
+
     /// The overview rectangle (lu, D1): the part of the paper the lower limit fits into the paper
     /// area. Month: 1400 × `MonthPageLayout.memo.minY` (the 6 rows; the memo area is reached by
     /// scrolling, M4C-12). Day: 1000 × `grid.height` (the 24 hours; the free memo area below 24:00 is
@@ -71,10 +85,11 @@ public enum ZoomPolicy {
     }
 
     /// min(viewport.width / overview.width, viewport.height / overview.height): the zoom at which the
-    /// overview fits the paper area both ways. When `viewport.height` is not finite or not positive
-    /// (the first frame, before the screen has measured the paper area) the width alone decides
-    /// (viewport.width / overview.width). `readableZoom` when the width is not usable either, or
-    /// when `overview` is not finite or not positive.
+    /// rectangle (a page's overview, or its `baseSize` for the opening zoom) fits the paper area both
+    /// ways. When `viewport.height` is not finite or not positive (the first frame, before the screen
+    /// has measured the paper area) the width alone decides (viewport.width / overview.width).
+    /// `readableZoom` when the width is not usable either, or when `overview` is not finite or not
+    /// positive.
     public static func fitAll(_ kind: PageKind, overview: CGSize, viewport: CGSize) -> CGFloat {
         guard overview.width.isFinite, overview.width > 0, overview.height.isFinite, overview.height > 0 else { return readableZoom(kind) }
         guard viewport.width.isFinite, viewport.width > 0 else { return readableZoom(kind) }
@@ -89,15 +104,20 @@ public enum ZoomPolicy {
         Swift.max(4 * fitZoom(kind, viewportWidth: viewportWidth), 2 * readableZoom(kind))
     }
 
-    /// The three zoom scales of a page: `fit` (fit-to-width), `min` (the overview, `fitAll`) and
-    /// `max` (`maxZoom`).
+    /// The four zoom scales of a page: `fit` (fit-to-width), `open` (the zoom it opens at, ratio 1),
+    /// `min` (the lower limit) and `max` (`maxZoom`).
     public struct Bounds: Equatable, Sendable {
         public var fit: CGFloat
+        /// The zoom a page opens at (ratio 1): `fitAll` of `baseSize`.
+        public var open: CGFloat
+        /// The lower limit: min(open, `fitAll` of the page's overview), so a pinch shows the whole page.
         public var min: CGFloat
         public var max: CGFloat
 
-        public init(fit: CGFloat, min: CGFloat, max: CGFloat) {
+        /// `open` nil is `min`: a page that opens at its lower limit.
+        public init(fit: CGFloat, open: CGFloat? = nil, min: CGFloat, max: CGFloat) {
             self.fit = fit
+            self.open = open ?? min
             self.min = min
             self.max = max
         }
@@ -109,48 +129,53 @@ public enum ZoomPolicy {
         }
     }
 
-    /// fit = `fitZoom(viewport.width)`, min = `fitAll`, max = `maxZoom`. No combination makes
-    /// max < min (fitAll ≤ fit ≤ 4 × fit), but max is raised to min just in case.
+    /// fit = `fitZoom(viewport.width)`, open = `fitAll` of `baseSize`, min = min(open, `fitAll` of
+    /// `overview`), max = `maxZoom`. No combination makes max < min (min ≤ fitAll ≤ fit ≤ 4 × fit), but
+    /// max is raised to min just in case.
     public static func bounds(_ kind: PageKind, overview: CGSize, viewport: CGSize) -> Bounds {
-        let minZ = fitAll(kind, overview: overview, viewport: viewport)
+        let openZ = fitAll(kind, overview: baseSize(kind), viewport: viewport)
+        let minZ = Swift.min(openZ, fitAll(kind, overview: overview, viewport: viewport))
         let maxZ = maxZoom(kind, viewportWidth: viewport.width)
         return Bounds(
             fit: fitZoom(kind, viewportWidth: viewport.width),
+            open: openZ,
             min: minZ,
             max: Swift.max(maxZ, minZ)
         )
     }
 
-    /// A stored ratio (relative to the overview, D4) → the zoom: `bounds.clamped(ratio × bounds.min)`.
-    /// `bounds.min` when the ratio is not finite or not positive.
+    /// A stored ratio (relative to the opening zoom since 1.1.1; D4) → the zoom:
+    /// `bounds.clamped(ratio × bounds.open)`. `bounds.open` when the ratio is not finite or not positive.
     public static func zoom(forRatio ratio: CGFloat, bounds: Bounds) -> CGFloat {
-        guard ratio.isFinite, ratio > 0 else { return bounds.min }
-        return bounds.clamped(ratio * bounds.min)
+        guard ratio.isFinite, ratio > 0 else { return bounds.open }
+        return bounds.clamped(ratio * bounds.open)
     }
 
-    /// A zoom → the ratio to store: `sanitizedRatio(zoom / bounds.min)`; 1 when `bounds.min` is not
-    /// finite or not positive.
+    /// A zoom → the ratio to store: `sanitizedRatio(zoom / bounds.open)`, so a pinch below the opening
+    /// zoom is not stored (ratio 1); 1 when `bounds.open` is not finite or not positive.
     public static func ratio(forZoom zoom: CGFloat, bounds: Bounds) -> CGFloat {
-        guard bounds.min.isFinite, bounds.min > 0 else { return 1 }
-        return sanitizedRatio(zoom / bounds.min)
+        guard bounds.open.isFinite, bounds.open > 0 else { return 1 }
+        return sanitizedRatio(zoom / bounds.open)
     }
 
     /// The stored ratio made safe: 1 unless it is finite and 1 ≤ r ≤ `maxStoredRatio` (NaN, a
-    /// negative or zero value, below 1 and far too large all become 1); 1 ± 0.001 is 1 (the overview).
+    /// negative or zero value, below 1 and far too large all become 1); 1 ± 0.001 is 1 (the opening zoom).
     public static func sanitizedRatio(_ ratio: CGFloat) -> CGFloat {
         guard ratio.isFinite, ratio >= 1, ratio <= maxStoredRatio else { return 1 }
         if abs(ratio - 1) <= 0.001 { return 1 }
         return ratio
     }
 
-    /// The largest ratio a page can store (M4C-9): the largest maxZoom / fitAll is the iPhone's
+    /// The largest ratio a page can store (M4C-9): the largest maxZoom / opening zoom is the iPhone's
     /// landscape day page, 3.50 / 0.085 ≈ 41 (with a one-lane band).
     public static let maxStoredRatio: CGFloat = 64
 
-    /// The margins that centre a paper smaller than the viewport (pt): width = left and right =
-    /// (viewport.width − paper.width × zoom) / 2, height = top and bottom = (viewport.height −
-    /// paper.height × zoom) / 2. A negative margin (the paper is larger) is 0; so is one computed
-    /// from a value that is not finite or not positive (a negative paper side counts as 0).
+    /// The margins that centre a paper narrower than the viewport (pt): width = left and right =
+    /// (viewport.width − paper.width × zoom) / 2. A negative margin (the paper is wider) is 0; so is one
+    /// computed from a value that is not finite or not positive (a negative paper side counts as 0).
+    /// height is always 0: since 1.1.1 the paper starts at the top of the viewport (M4C-1 was reversed,
+    /// docs/R1_1_1.md: a short paper showed a band of the desk colour under the heading) and what is
+    /// left stays below it.
     /// `paper` is always the whole paper (`layout.size`), never the overview rectangle.
     public static func centeringInsets(paper: CGSize, zoom: CGFloat, viewport: CGSize) -> CGSize {
         guard zoom.isFinite, zoom > 0 else { return .zero }
@@ -160,7 +185,28 @@ public enum ZoomPolicy {
             guard scaled.isFinite else { return 0 }
             return Swift.max(0, (side - scaled) / 2)
         }
-        return CGSize(width: margin(viewport.width, paper.width), height: margin(viewport.height, paper.height))
+        return CGSize(width: margin(viewport.width, paper.width), height: 0)
+    }
+
+    /// How far (pt) a revealed rect stays from the edge of the viewport.
+    public static let revealMargin: CGFloat = 8
+
+    /// The content offset that brings `rect` (paper lu) on screen with the least movement: `current` when
+    /// it is already there, on each axis. A rect longer than the viewport lines up with its start. The
+    /// caller clamps the result to the paper. Not finite or not positive → `current` (1.1.1, 「今日」,
+    /// docs/R1_1_1.md).
+    public static func revealOffset(rect: CGRect, zoom: CGFloat, viewport: CGSize, current: CGPoint) -> CGPoint {
+        guard zoom.isFinite, zoom > 0, viewport.width > 0, viewport.height > 0,
+              rect.minX.isFinite, rect.minY.isFinite, rect.width.isFinite, rect.height.isFinite else { return current }
+        func axis(_ low: CGFloat, _ high: CGFloat, _ length: CGFloat, _ now: CGFloat) -> CGFloat {
+            let lo = low * zoom - revealMargin
+            let hi = high * zoom + revealMargin
+            if hi - lo >= length || lo < now { return lo }
+            if hi > now + length { return hi - length }
+            return now
+        }
+        return CGPoint(x: axis(rect.minX, rect.maxX, viewport.width, current.x),
+                       y: axis(rect.minY, rect.maxY, viewport.height, current.y))
     }
 
     /// The paper width (lu) that fits the viewport at `zoom`: min(paperWidth, viewportWidth / zoom).
