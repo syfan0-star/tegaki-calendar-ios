@@ -38,6 +38,83 @@ commit の前なので、`git archive HEAD` で scratchpad に取り出した木
 - H: `kit-H.json`（`owner` は "H"）に `kit.holiday.estimatedSuffix`・`kit.holiday.dayOff` を書いて同じく生成する。生成物は `UILanguage` が要る（K の `UILanguage.swift` の後）。
 - S1: `build_outputs(repo)` が {出力のパス: (中身, 要約)} を返すので、アプリの出力を足し、`--check` は書かずに比べるだけにできる。`app-*.json` の検査（`infoplist` のキーは §2.4 の形の外、アプリのキーは `kit.` で始まらない）と lint は S1。`ESCAPED_RANGES`（Swift の literal で `\u{…}` にする字）は、Python の版で結果が変わらないように Unicode の表に頼らない固定の表にしてある。
 
+## LA（規約類の原稿・App Store の原稿・サポートの返事の定型文。統合の順番の「L・A」）
+
+### 入れたもの
+
+- **L（§6.4）**: `docs/TERMS.md`・`docs/PRIVACY.md`・`docs/SUPPORT.md`（e7b4d2f の文に §6.4 の 4 つを足し、3 つとも「最終更新」を 2026年11月1日 に）。新規 `docs/TERMS.en.md`・`docs/PRIVACY.en.md`・`docs/SUPPORT.en.md`（直した日本語版の英訳。冒頭は契約の 1 文 “This is a translation for convenience. The Japanese version prevails.” と、日本語版へのリンク「日本語版（正本）」）。
+- **A（§6.6）**: 新規 `docs/store/`: `README.md`（置き方・欄の決まり・名前の 3 案・新機能の文の組み立て・サブスクリプション・審査メモ・X への手引き・英語の画面の名前の表）、`locales.json`（13 のロケールと ja、Connect の名前、店頭、写し、新機能の文の元）、`ja/whatsnew.txt`（§6.3 の文そのまま）、`en-US/` の 7 つの欄、`source-ja/`（ja 以外の 8 言語の日本語の元。名前・サブタイトル・キーワードの語の意味・promo・説明・新機能の文 2 つ）、`subscriptions/en-US.json`・`subscriptions/source-ja.json`、`review-note.txt`。
+- **A（§6.7）**: 新規 `docs/support-replies/`: `README.md`（返事の流れ＝本人の手順、決まり）と、英文と逆翻訳の組の定型文 6 つ（`cancel.md`・`refund.md`・`restore.md`・`language.md`・`holiday-error.md`（「python-holidays に報告する／次の版で直す」の判断表つき）・`translation-error.md`）。
+
+訳（ja・en 以外の 8 言語のストアの文とサブスクリプション）は、この作業の分け方で X がする（契約 §6.3・§6.6 は「A が他の言語へ」。A は日本語と英語の元まで）。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+規約類（L）:
+
+1. **① 消費者保護の 1 文**（「第 12 条の後」）は、第 12 条の **4 項** として足した。新しい条を立てると第 13 条「連絡先」の番号が変わり、Web の差分も増える。中身は第 12 条（準拠法と裁判所）の続き。
+2. **② 日本以外の祝日の 1 文**（「免責の条」）は、第 9 条の **1 項**（その時点の状態で提供・保証しない）の最後に足した。項を足すと 2〜6 項の番号が変わる。中身は 1 項の「保証しない」の具体化。
+3. **③ PRIVACY の 1 文**は、§1 の 2 つ目の点（通信する相手は iCloud と App Store だけ）のすぐ後に、点として足した。
+4. **④ FAQ の 2 つ**は、よくある質問の最後（「iPad と iPhone で版が違うと？」の後）に、契約の順で足した。契約が決めた 2 文（言語を足すとき）と python-holidays の 1 文（§5.9）は 1 字も変えずに入れた。契約が挙げた中身のほかに足したもの: iOS・iPadOS 17 の道（新機能の文と同じ）、**英語の端末の道「Settings › Apps › Tegaki › Language」と「日本語以外の端末ではアプリの名前が Tegaki」**（1.2 で英語の表示になった日本の人がいちばん読む答えなので）、アプリの中の設定に言語の項目が無いこと、言語・祝日を変えても紙の形と手書きの位置が変わらないこと、週はどの言語でも月曜始まり、祝日の設定は端末ごと、1.1 からの人は日本のまま、名前の言語、利用規約 第 9 条へのリンク。注記の例の年（「2027 年は発表前の推定」「2026 年以降のデータがありません」）はただの例。
+5. **最終更新の日付**: 3 文書とも 2026年11月1日（原稿の日。1.1 も原稿の日の 10月31日 にした、21ceba5）。公開の前に文を直したら、その日に直す。施行日の行（本アプリの App Store 公開日）は変えない。
+6. **第 11 条（変更の 30 日前の知らせ）**: ① は利用者に有利な変更、② は第 9 条 1 項の具体化で 1.2 の新しい機能にだけ関わる軽い変更、③・④ は規約ではないので、30 日前の知らせは要らない見込み。判断はリード（公開の前の確認で、本人にこの見方を平易に伝える）。
+7. **第 3 条 4 の「日本の祝日の表示」**は、1.2 の世界の祝日を書いていない。日本語に足すのは §6.4 の 4 つだけなので直していない（「おおむね次の機能」なので誤りではない）。英語版もそのまま訳した。直すなら次の版で、本人に聞いてから。
+
+英語の 3 文書（L）:
+
+8. **iOS の画面の名前は英語の iOS の語**（Settings > your name > Subscriptions、Privacy & Security、Language & Region など）。解約の道は Apple の 118428 の英語版（公開のページを読んだだけ）の “Settings > [your name] > Subscriptions > … > Cancel Subscription” に合わせた。アプリの名前は英語の端末に出る「Tegaki」。「[your name]」の角括弧は check-legal が英語のページで拒む（`[`）ので使わず、「your name」と書いた。同じ理由で「draft」（DRAFT）も使っていない。
+9. **英語版だけにある所**（契約が SUPPORT.en に求めたもの）: 連絡の節の機械翻訳の 1 文（契約の英文そのまま）、解約の節の Apple の 118428 へのリンク、「About the translations」の節（訳が AI で母語の人の確認が無いこと、§6.1）、「Holiday data license」の節（python-holidays 0.107 の MIT の全文。LICENSE と 1 バイトも違わない。CONTRIBUTORS は `https://github.com/vacanza/holidays/blob/v0.107/CONTRIBUTORS`。開くことを確かめた）。FAQ「How do I change the display language?」の 2 つ目の点は、日本語版の「英語の端末の道」の裏返しで「日本語の端末の道」にした。
+10. **英語版で URL を英語の同じものに替えた所**: PRIVACY §6 の Apple のプライバシーポリシー（`/jp/legal/privacy/` → `/legal/privacy/`）、連絡先のサポートページ（`app/en/support.html`。英語の 3 ページは一緒に公開する）。Apple メディアサービス利用規約は日本の店頭の規約なので `/jp/` のまま。
+11. **作成の経緯の 1 文**: 日本語版の「開発者が AI の草稿をもとに作成し、内容を確認しています」は、英語版では「日本語版は開発者が AI の文をもとに書いて確かめた。英語版は AI が訳し、日本語へ訳し戻して確かめた。英語を母語とする人の確認は無い」にした（開発者は英語を読まないので、英語の中身を確かめたとは書けない）。
+12. **PRIVACY.en の付録 B の許可の文**は、日本語の文を引いて意味を添え、「他の言語の端末ではその訳が出る」を足した（英語の許可の文は X が InfoPlist の訳に書くので、ここでは英語の文を決めない）。
+13. 価格は日本語版のとおり円で書いた（「価格は App Store の表示が正」も訳した）。
+
+App Store（A）:
+
+14. **置き方**: en-GB・en-AU・en-CA・fr-CA はフォルダを作らず、`locales.json` の `copyOf`。`source-ja/` は入力しない元。キーワードの元は語の意味の一覧なので `keyword-ideas.txt`（ロケールの `keywords.txt` と取り違えないように）。
+15. **L-9 の読み方**（S が lint を書くとき用。README にも書いた）: 字数はファイルの末尾の改行 1 つを除いて数える。L-9 が見るのは `locales.json` の code のフォルダ（`source-ja` は見ない）。キーワードの「アプリ名の語」は `name.txt` の 3 行すべての 3 字以上の語（en-US は Tegaki・Calendar・Handwritten・Planner・Ink・Your）。どの案が通っても重ならないように。
+16. **サブタイトル**（en-US）は “A planner you write by hand”（27 字）。ja の「予定の上にそのまま手書きできる手帳」は 30 字に入らないので「予定の上に」を落とした。キーワードに名前の語の「planner」を入れられないので、サブタイトルに持たせた。
+17. **ja 以外の新機能の文**: 2 つ目の点の「アプリだけ日本語のままにしたいときは」を「アプリだけ端末と違う言語で使いたいときは」に、道のアプリの名前を「Tegaki」に読み替えた（ja 以外の端末で読む人には、日本語に戻す話は当てはまらない）。1 つ目の点に「これまでの日本語に加えて」。
+18. **en-US の新機能の文**の並びは、4 つの点 → 端末の言語の 1 文 → 訳の 1 行 → 日本語の 1 文。**日本語の 1 文には、英語の画面の名前を括弧で足した**（「設定」アプリ（Settings）›「アプリ」（Apps）›「てがきカレンダー」（Tegaki）›「言語」（Language））。読むのは英語などの端末の人で、「設定」アプリの画面は英語、アプリの名前も「Tegaki」と出るため。契約の文は「そのまま」なので、ずれとして書く。
+19. **説明**: 価格の額を書かない（「価格は App Store に、お住まいの国の通貨で表示されます」）。規約とプライバシーポリシーの URL に “(in Japanese)”。書き出しは “Tegaki is…”（名前の退き先を使っても合う）。ja の説明に無い 4 点（世界の祝日・10 の言語・週は月曜始まりで時刻は 24 時間（米国などで不具合と思われないように）・アカウントの登録が無い）を足した。最後の 1 文は訳についての文。
+20. **promo**: ja の 127 字の文を 1.2 に合わせて短くした（世界の祝日は 170 字に入らないので説明だけに）。
+21. **サブスクリプション**: 表示名「Tegaki Monthly」「Tegaki Yearly」、グループの表示名「Tegaki」（App 名を使う）。名前の退き先を使っても合う。英語の月額の説明は 45 字に入れるため「月額プラン」を表示名に任せた。価格は書かない（M7B-16）。
+22. **審査メモ**: §6.6 の中身のほかに、週は月曜始まりで時刻は 24 時間（設計の上の決め。手書きの位置を変えないため）と、規約とプライバシーポリシーのページが日本語（正本）であることを足した。3,883 バイト（4,000 バイト以内）。
+23. **英語の画面の名前**（Settings > Purchase > Restore Purchases、Holidays to Show、Open Source Licenses など）は仮。`docs/store/README.md` の表に一覧を置いた（★ は §6.2 の用語集が決めた語）。X の用語集が固まったら合わせる。
+
+サポートの返事（A）:
+
+24. 定型文の逆翻訳は A が英文を訳し戻したもの（日本語の元を見ない R の逆翻訳ではない）。英語以外の言語の返事は、そのとき Claude が英語の定型文から訳し、その言語の文から逆翻訳を作る。
+25. 本人の手順（§6.7）は `docs/support-replies/README.md` に書いた。日本語の SUPPORT には足していない（足すのは §6.4 の 4 つだけ）。英語の SUPPORT には契約の 1 文（返事は英語か日本語、機械翻訳の助け）だけ。python-holidays への報告（GitHub の issue）は公開の場に書くので、毎回本人の「はい」を得てから出す、と判断表に書いた。
+
+### 本人の手順（英語などの問い合わせ、§6.7）
+
+1. 英語などのメールが届く。2. 本人が Claude に「訳して」と頼む。3. Claude が日本語の訳と要点を出す。4. 本人が返事の中身を日本語で決める。5. Claude が相手の言語の返事と逆翻訳（日本語）を付けて、Gmail の **下書き** を作る。6. 本人が逆翻訳を読み、自分で送る（Claude は送らない）。定型文は `docs/support-replies/`。
+
+### 確かめたこと
+
+コードは変えていないので、swift build・KitChecks・typecheck は走らせていない（この役のファイルはコードに入らない）。commit の前なので、作業の木のファイルをリポジトリの外の使い捨てのスクリプト 2 つで確かめた（e7b4d2f の 3 文書は `git show` で取り出して比べた）。
+
+- 日本語の 3 文書: e7b4d2f からの差は、足した 4 つ（TERMS 2 文・PRIVACY 1 文・SUPPORT の FAQ 2 つ）と 3 つの日付だけ（消えた・変わった行は日付の 3 行と第 9 条 1 項の 1 行）。価格・試用・解約の道・連絡先・氏名など 17 の文字列の数が編集の前と同じ（`grep -c '「設定」›「Apple Account」›「サブスクリプション」' docs/TERMS.md` は 1 のまま）。【 と「下書き」は無い。契約が決めた 3 つの文がそのまま入っている。
+- 英語の 3 文書: リンク先のファイルと見出しの id（GitHub の作り方で作った id）が全部ある。リンクの外に `TODO`・`DRAFT`・`【`・`[` が無い（大文字小文字を区別せず）。冒頭の 1 文が契約の英文そのまま、日本語版へのリンク・“Last updated: November 1, 2026”・連絡先がある。見出しの数が日本語版と同じ（SUPPORT は英語だけの 2 節の分だけ多い）。MIT の文が LICENSE（venv の `holidays-0.107.dist-info/licenses/LICENSE`）と 1 バイトも違わない。Apple EULA の URL は TERMS.en にある（PRIVACY.en・SUPPORT.en には無い。日本語版と同じ）。
+- ストア（L-9 の文のとおりに数えた）: en-US の名前 15・27・29 字、サブタイトル 27 字、キーワード 98 バイト（13 語。3 字以上、名前の語と重ならない、禁止語なし）、promo 164 字、説明 2,596 字、新機能の文 1,565 字、URL 2 行は日本語のページ、説明に日本語の規約の URL と EULA の URL。ja の新機能の文が契約 §6.3 と 1 字も違わない。訳の 1 文と端末の言語の 1 文が契約の英文そのまま（説明は訳の 1 文で終わる）。サブスクリプションの表示名 14・13 字・説明 43・32 字（数字と通貨の記号なし）。審査メモ 3,333 字・3,883 バイト。`source-ja` も字数・禁止語は通る。
+
+### 次の役へ
+
+- **X**: `docs/store/source-ja/` と `subscriptions/source-ja.json` から 8 言語（`docs/store/README.md` の「X への手引き」）。英語の画面の名前の表（同じ README）をアプリの英語の訳とそろえ、違えば英語の 3 文書・en-US の文・審査メモ・定型文も直す。en の訳についての 1 文と端末の言語の 1 文は契約の英文のまま。
+- **R**: `docs/TERMS.en.md`・`PRIVACY.en.md`・`SUPPORT.en.md` だけを読んで `docs/i18n/back/legal-en.md`、`docs/store/en-US/*`・`subscriptions/en-US.json`・`review-note.txt` から `docs/i18n/back/store-en-US.md`。その後、L が元の日本語との食い違いを表にして REVIEW.md に足す（§6.4）。上の 8〜13・16〜19 は「意図した違い」として書く。
+- **W**: 日本語の 3 ページは Markdown と文字単位で一致させる（差は 4 つと日付）。英語の 3 ページは `docs/*.en.md` から作る（リンクは `TERMS.en.md` → `terms.html`、`TERMS.md` → `../terms.html`、見出しの id は GitHub の作り方、例 `article-5-fees-subscription`）。`tests/app-pages.test.mjs` の (10) は、Apple EULA の URL を terms にだけ求めるのがよい（PRIVACY.en・SUPPORT.en には無い）。連絡先・“Last updated”・日本語版へのリンクは 3 つとも。SUPPORT.en の MIT の文は改行を保つ（`<pre>` など）。
+- **S**: `Support/Products.storekit` の en_US の localizations は `docs/store/subscriptions/en-US.json` の値（グループ「Tegaki」、月額「Tegaki Monthly」、年額「Tegaki Yearly」と説明）。L-9 の読み方は上の 15。
+- **リード**: 「設定」アプリの道（iOS 18 以降の「アプリ」›「言語」、iOS 17 の「優先する言語」、英語の Settings > Apps > Tegaki > Language）を TestFlight で確かめたら、`docs/store/ja/whatsnew.txt`・`en-US/whatsnew.txt`・`source-ja/whatsnew*.txt`・SUPPORT の FAQ（日本語・英語）・`docs/support-replies/language.md` を一緒に直す。公開の日（1.2 を出す日）の前の確認で、日付と第 11 条の見方（上の 5・6）を本人に伝える。Connect が名前の第 1 案を拒んだら、英語の 3 文書の題名（Tegaki Calendar）を見直す（「てがきカレンダー」の英語の言い方なので残してもよい）。
+- **C**: この節の整え。
+
+### 残る危険
+
+- 英語の画面の名前（仮）が X の訳と食い違うと、英語のページ・ストアの文・審査メモ・定型文が実際の画面と合わない（X の用語集が固まった後に一度そろえる）。
+- 「設定」アプリの道と、言語を足すときに出る問いの言い方は、この Mac で確かめられない（§2.1。リードが TestFlight で）。
+- 規約の英語版は、英語を母語とする人も法律の専門家も見ていない（D11・M7B-4 で受け入れた危険。冒頭で「日本語版が優先する」と書いた）。第 11 条の扱いも法律の判断を経ていない。
+- 名前の 3 案がどれも重複で拒まれることがありうる（そのときは確認表を作り直して本人に聞く）。キーワードの語は検索の実績を見て選んだものではない。
+
 ## C1（J-4 の道具: `ja-baseline.yml`・`compare_shots.swift`・`ja-baseline-ref.txt`。統合の順番の「C の前半」）
 
 J-4 の比べる相手の commit: **e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d**（1.1 を main に merge した commit。親は 6f5ac42（1.0.1）と adc1fd4（m7a の最後）。今の origin/main もこの commit）。

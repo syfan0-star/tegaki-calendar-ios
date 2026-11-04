@@ -1,0 +1,131 @@
+{
+  "about": "1.2 の App Store の文のロケール（M7B_CONTRACT §6.6・D12）。L-9 はこの表の code のうちフォルダがあるものを見る。copyOf のロケールはフォルダを作らず、Connect には copyOf の文をそのまま入れる。source は ja 以外の文の日本語の元（入力しない）。",
+  "primary": "ja",
+  "source": "source-ja",
+  "fields": ["name.txt", "subtitle.txt", "keywords.txt", "promo.txt", "description.txt", "whatsnew.txt", "urls.txt"],
+  "locales": [
+    {
+      "code": "ja",
+      "connectJa": "日本語",
+      "connectEn": "Japanese",
+      "language": "ja",
+      "storefronts": "日本",
+      "fields": ["whatsnew.txt"],
+      "writer": "A",
+      "whatsnewSource": "§6.3 の ja の文そのまま（ほかの欄は 1.0 から変えない）"
+    },
+    {
+      "code": "en-US",
+      "connectJa": "英語（米国）",
+      "connectEn": "English (U.S.)",
+      "language": "en",
+      "storefronts": "米国",
+      "writer": "A",
+      "whatsnewSource": "source-ja/whatsnew.en-US.txt"
+    },
+    {
+      "code": "en-GB",
+      "connectJa": "英語（英国）",
+      "connectEn": "English (U.K.)",
+      "language": "en",
+      "storefronts": "英国・シンガポール・インド・東南アジア・中東・アフリカ・ノルウェーなど（既定）と香港・台湾・韓国・ブラジル・メキシコ・スイスなど（追加）",
+      "copyOf": "en-US"
+    },
+    {
+      "code": "en-AU",
+      "connectJa": "英語（オーストラリア）",
+      "connectEn": "English (Australia)",
+      "language": "en",
+      "storefronts": "豪州・ニュージーランド",
+      "copyOf": "en-US"
+    },
+    {
+      "code": "en-CA",
+      "connectJa": "英語（カナダ）",
+      "connectEn": "English (Canada)",
+      "language": "en",
+      "storefronts": "カナダ",
+      "copyOf": "en-US"
+    },
+    {
+      "code": "zh-Hans",
+      "connectJa": "中国語（簡体字）",
+      "connectEn": "Chinese (Simplified)",
+      "language": "zh-Hans",
+      "storefronts": "中国本土・シンガポール",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "zh-Hant",
+      "connectJa": "中国語（繁体字）",
+      "connectEn": "Chinese (Traditional)",
+      "language": "zh-Hant",
+      "storefronts": "台湾・香港・マカオ",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "ko",
+      "connectJa": "韓国語",
+      "connectEn": "Korean",
+      "language": "ko",
+      "storefronts": "韓国",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "fr-FR",
+      "connectJa": "フランス語",
+      "connectEn": "French",
+      "language": "fr",
+      "storefronts": "スイス（追加の言語。フランスは EU なので売らない）",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "fr-CA",
+      "connectJa": "フランス語（カナダ）",
+      "connectEn": "French (Canada)",
+      "language": "fr",
+      "storefronts": "カナダ",
+      "copyOf": "fr-FR"
+    },
+    {
+      "code": "de-DE",
+      "connectJa": "ドイツ語",
+      "connectEn": "German",
+      "language": "de",
+      "storefronts": "スイス（既定の言語）",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "it",
+      "connectJa": "イタリア語",
+      "connectEn": "Italian",
+      "language": "it",
+      "storefronts": "スイス（追加の言語）",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "pt-BR",
+      "connectJa": "ポルトガル語（ブラジル）",
+      "connectEn": "Portuguese (Brazil)",
+      "language": "pt-BR",
+      "storefronts": "ブラジル",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "es-MX",
+      "connectJa": "スペイン語（メキシコ）",
+      "connectEn": "Spanish (Mexico)",
+      "language": "es",
+      "storefronts": "メキシコ・中南米・米国（追加の言語）",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    }
+  ]
+}

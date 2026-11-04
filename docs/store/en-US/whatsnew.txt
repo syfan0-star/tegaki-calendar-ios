@@ -1,0 +1,9 @@
+• In addition to Japanese, the app can now be shown in English, Chinese (Simplified and Traditional), Korean, French, German, Spanish, Italian and Portuguese. It switches to match your device language (on devices set to other languages, it is shown in English).
+• To use a different language for this app only, choose it in the Settings app > Apps > Tegaki > Language (on iOS and iPadOS 17: Settings > Tegaki > Preferred Language). If the item is not there, it appears after you add the language you want to use in Settings > General > Language & Region (when you add it, if you are asked which language to use for the display of your device, choose to keep your current language).
+• The app can now show the public holidays of countries and regions around the world. In the app, go to Settings > Holidays > “Holidays to Show” to choose a country (and also a region, such as a US state) or “None”. In countries with states or regions, choosing a state or region adds the holidays of that region. Japanese holidays work as before. If you have been using the app, it keeps showing Japanese holidays.
+• Holiday and language settings are saved on each device. Your handwriting stays in the same place with any setting.
+
+The app now follows your device language. The name on the Home Screen is now “Tegaki”.
+Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.
+
+これまで日本語でお使いの方へ：端末の言語が日本語以外のときは、その言語（対応していない言語は英語）で表示されるようになりました。日本語に戻すには「設定」アプリ（Settings）›「アプリ」（Apps）›「てがきカレンダー」（Tegaki）›「言語」（Language）で日本語を選んでください。
