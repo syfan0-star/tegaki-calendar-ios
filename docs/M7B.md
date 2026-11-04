@@ -98,3 +98,57 @@ commit の前なので、`git archive HEAD` で scratchpad に取り出した木
 - §3.1 の en_US の見本は ICU の字そのものを比べている（空白の種類だけ寄せた）。CI の macos-26 の ICU で月の略し方などが変われば KitChecks が落ちる。落ちたら CI の字を見て、ICU の違いなら見本を構造の確かめに替える。
 - `numericDateTime` の ja の「2026/10/25 12:00」は、Mac の言語が日本語なら Mac の「24 時間表示」の設定がそのまま効く（契約どおり）。この Mac を 12 時間表示にすると、この 1 件がこの Mac でだけ落ちる。
 
+## S1（S の前半: `baseline.py`・`ja-baseline.tsv`・`ja-exceptions.txt`、`build.py` のアプリ用の出力と `--check`、`lint.py` の L-1・L-3・L-4・L-10、`L10n.swift`）
+
+### 入れたもの
+
+- `tools/l10n/baseline.py`（新規・実行権つき）: `python3 -I tools/l10n/baseline.py [<リポジトリ>] [--commit <rev>] [--tree <フォルダ>] [--check]`。既定の commit は e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d（0-39 で動いたら `--commit`）。`git archive` で取り出した `Sources/TegakiCalendar` と `TegakiKit/Sources`（KitChecks を除く）の文字列のうち、日本語を含むものを全部 `ja-baseline.tsv` に書く。文字列は正規表現でなく小さな Swift の字句解析で拾う（埋め込み `\(…)` の中の文字列も 1 つと数える、文字列の中の `//` はコメントにしない、入れ子の `/* */`、生の文字列 `#"…"#`、複数行 `"""`）。lint の L-1 も同じ解析を使う。「日本語」の字は、かな・漢字・ハングル・全角の記号（U+3000–303F、U+FF00–FFEF）とその近くの CJK の区画（`JA_RANGES` の固定の表）。
+- `tools/l10n/ja-baseline.tsv`（生成物）: e7b4d2f の **515 行・42 ファイル**。頭に `# commit: <40 字>`・`# strings: 515 in 42 files`。1 行は「ファイル（`Sources/TegakiCalendar/`・`TegakiKit/Sources/` を省いた形。`Views/SettingsScreen.swift`・`Access/PlanText.swift`）TAB 行（開きの引用符の行）TAB 字（Swift のソースの書き方のまま、引用符の内側）」。1 つの行の字はソースの左から順。
+- `tools/l10n/ja-exceptions.txt`（新規）: 契約（§2.5・§2.6）が列挙したものだけの 31 行。凍結した Ink の 6 件（`Ink/InkTrace.swift` の記録の 1 行目・「記録」「閉じる」「コピーしました」「コピー」、`Ink/InkCanvasView.swift` の「手書きの紙」）、§5.8 の判定の語 5 つ（「祝日」は 1.1 にある。「节假日」「節假日」「假日」「공휴일」は U が足す語で、足すまでは L-1 の警告）、Kit の 1.1 の公開 API（`PlanText` の 4・`LegalLinks.appleEULATitle`・`PageNavigation.weekdayLetters` の 7・`YearMonth.title`）、`Plan.swift` の参照名、`Holidays/JapaneseHolidays.swift|*`。
+- `tools/l10n/build.py`（S0 の上に足した）:
+  - `app-*.json` を読む。`target` は `"app"`（Localizable）か `"infoplist"`（InfoPlist）。アプリのキーは §2.4 の形で `kit.` で始まらない、`infoplist` のキーは Info.plist のキーの形（`^[A-Z][A-Za-z0-9]*$`）、`jaOnly` はアプリのキーに付けられない、`allowJapanese` は契約の 2 つの字だけで、その字が ja にあること（Kit のキーにも効く）。1 つのキーはアプリと Kit を通して 1 つのファイルだけ。
+  - アプリ用の出力: `Sources/TegakiCalendar/Resources/Localizable.xcstrings`・`InfoPlist.xcstrings`。`"sourceLanguage": "en"`、`"version": "1.0"`、全キー `"extractionState": "manual"`、値のある言語だけ `stringUnit`（`"state": "translated"`）、`comment` は元の `comment`。Xcode と同じ形（2 字下げ・`" : "`・名前の辞書順・末尾に改行）。
+  - `--format strings`（0-4 の退き先）: 10 の `<言語>.lproj/Localizable.strings`・`InfoPlist.strings`（UTF-8、キーの辞書順、comment 付き）を書き、カタログを消す。`--format` を省くと今ある形を保つ（どちらも無ければカタログ）。`--format xcstrings` で戻すと 10 の `.lproj` の 2 つの `.strings` を消す（空になった `.lproj` も。ほかのファイルは触らない）。
+  - `--check`: 何も書かずに比べ、違う・無い・他方の形が残っているファイルを 1 行ずつ出して終了状態 1。lint の L-10 も同じ関数（`check_outputs`）。
+- `tools/l10n/lint.py`（新規・実行権つき）: `python3 -I tools/l10n/lint.py [<リポジトリ>] [--only L-1,L-3,…]`。この版は L-1・L-3・L-4・L-10。ほかの L は最後の行に「not in this lint yet」と出す。`build.py` と `baseline.py` をパスで読み込む（`-I` では script のフォルダが `sys.path` に無いため）。`__pycache__` を書かない。
+- `Sources/TegakiCalendar/Support/L10n.swift`（新規）: `enum L`（§0 の `language`・`locale`・`text(_:)`・`text(_:in:)`・`format`・`plural` と、下のずれの 7 の `value(_:in:)`）。
+- 作業の木の生成物を作り直した: `KitStrings.generated.swift`（K・H の今の元から。S0 の版の build.py で作られていたもので、`fill` が public になった分だけ違う）と、空の `Localizable.xcstrings`・`InfoPlist.xcstrings`（アプリの元がまだ無いので 0 キー）。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **`was`・`composedOf` の書き方**: 1 つは「<ファイル>:<行>」（ファイルは ja-baseline.tsv の形。`Sources/TegakiCalendar/`・`TegakiKit/Sources/` を付けても同じに読む）。1.1 には日本語の字が 1 行に 2 つ以上ある行が 26 ある（曜日の表、三項演算子など）ので、`was` はその行の字のうち **ja と同じ字** を指す。同じ字が 2 つある行（`Views/A.swift:6` の "同じ" + "同じ" のような）・ja と同じ字が無い行・`composedOf` で行に字が 2 つ以上あるときは「<ファイル>:<行>#<n>」（左から n 番目）と書く。契約は `file:line` の形しか書いていない。
+2. **「ちょうど 1 つのキー」の数え方**（L-3）: 1.1 の 1 つの字を `was` に書けるのは 1 つのキーだけ（`.one` と `.other` は 1 つと数える）。`composedOf` には何本のキーが同じ字を書いてもよい（部品を別の文でも使う場合。そのキーのほかに `was` を書くキーがあってもよい）。キーと例外の両方に当たる行もよい（Kit の `static let yearlyBadge` などは例外のまま残り、同じ字のキーも `was` で 1.1 の字と照らせる）。どの持ち主のキーも、どのファイルの行を書いてもよい（アプリのファイルの曜日の字は K の `kit.weekday.letter.*` の `was` が指す。K は既にそうしている）。
+3. `was` の字に `\(…)` があれば失敗（C 型は `composedOf` へ）。`was` の字は、Swift の escape（`\n`・`\t`・`\"`・`\\`・`\0`・`\'`・`\u{…}`）をほどいて JSON の ja と比べる。`composedOf` の字は lint では照らさない（組み上がった ja は持ち主のテスト、§1.3）。
+4. 例外は「パス|字」で当たる（契約の形のまま。行を持たないので、そのファイルの同じ字は全部当たる）。「理由」は最後の `|` の後ろなので `|` を書けない。どの字にも当たらない例外は警告（失敗にしない）。
+5. **L-4 で `args` も照らす**: ja の埋め込みの番号の集まりが 1〜（`args` の数）と同じこと（`args` があるときだけ）。契約は「全言語で同じ」とだけ書いている。複数形の `.one`・`.other` は同じファイルに置く。埋め込みの数え方は `KitStrings.fill` と同じ（`%@` は前から順に 1, 2, …、`%n$@` は n）。
+6. **`KitStrings.fill(_:_:)` を public にした**（S0 の private の `fill`。§0 に無い public の関数）。アプリの `L.format`・`L.plural` が Kit と同じ埋め込みの規則（`%@`・`%n$@` だけを置き換え、`String(format:)` を使わない。訳の中の `%` で落ちない・引数を食わない）を使うため。中身は 1 バイトも変えていない。
+7. **`L.value(_:in:)` を足した**（§0 に無い）。その言語の `.lproj` の値そのもの（受け皿なし、無ければ nil）。S の `testEveryLanguageBundleHasEveryKey` は、`text(_:in:)` の受け皿（en → キー）では訳し漏れが見えないため（S0 の `KitStrings.value` と同じ理由）。
+8. **`L.text(_:)` の引き方**: `Bundle.main.localizedString`（iOS が選んだ `.lproj`。`L.language` と同じ）で引き、無ければ `en.lproj` の bundle、それも無ければキー。`text(_:in:)`・`value(_:in:)` は `Bundle(path: <言語>.lproj)`。無い印に渡す値は大文字の無い私用の字 3 つ: この Mac の Foundation で測ると、`-NSShowNonLocalizedStrings YES`（l10n-shots の訳し漏れの数え方）では **渡した値を大文字にして** 返し（英字の印だと「L10N-MISSING」が画面に出た）、`-NSDoubleLocalizedStrings YES` では値を 2 回にして返す。どちらでも印で始まるので受け皿が働く。見つかった字は、`-NSDoubleLocalizedStrings` で最初の `%` が落ちて 2 回になる（「%@ Striche」→「@ Striche %@ Striche」。埋め込みの数を保つための Foundation の作り。二倍長の写真ではそう見える）。「l10n: missing <キー>」のログは DEBUG と写真モードで、キーごとに 1 回だけ。
+9. **非文字を止める**: 値に非文字（U+FDD0–U+FDEF・U+FFFE・U+FFFF・U+1FFFE など）があれば build.py が止まる。S0 の `ESCAPED_RANGES` は U+FDD0–U+FDEF を `\u{FDD0}` と書くが、swiftc はそれを "invalid unicode scalar" で拒む（この Mac で実測。生の字なら通る）ので、そのままだと Kit が組み立たない。字ではないので止めることにした。
+10. `infoplist` のキーは形だけを見る（2 つに固定しない）。ja が project.yml の値と同じかは lint では見ない（S の後半の `testInfoPlistIsLocalized` で `Bundle.main.infoDictionary` の値と比べるのがよい）。
+11. ja-baseline.tsv は、生の改行・タブの無い普通の 1 行の文字列だけを持つ（1.1 は KitChecks の外に生の文字列・複数行の文字列が無い。あれば baseline.py が止まる）。
+12. この Mac の `python3` は x86_64 の python.org 3.9.6（Rosetta）で、そこから `/usr/bin/git` を動かすと xcrun が libxcrun を読めずに落ちる。baseline.py は `/usr/bin/python3`（arm64 の 3.9.6）で走らせるか、`git archive <commit> | tar -x -C <フォルダ>` で取り出して `--tree <フォルダ> --commit <40 字>` を渡す（どちらも同じ結果を確かめた）。build.py と lint.py は git を使わないので、どの Python でも走る。
+
+### 確かめたこと
+
+- baseline.py: e7b4d2f で 515 行・42 ファイル。偵察の `l10n_lint.py` の出力（`scratchpad/m7b/lint-e7b4d2f.txt`）と、ファイル・行・字が 1 行ずつ同じ。`--check` が `/usr/bin/python3`・3.12.16 の venv・`--tree`（Rosetta の `python3`）で一致。
+- build.py: S0 の 66 項目（app-*.json を読むようになったので、そのうち 1 項目は期待を「読んで止まる」に変えた）、S1 の 53 項目（app-*.json の誤り 34 通り・非文字 7 通り・カタログの中身と形・2 回目は書かない・並べ替えた元でも同じ bytes・`--check`・`--format strings` と戻し・残った `.strings`・元が無いとき）が、Python 3.9.6（`python3`・`/usr/bin/python3`）と 3.12.16 で全部合格。3 つの Python の生成物が同じ bytes。`.strings` は `plutil -convert json` で読み戻すと元の値と同じ（改行・引用符・バックスラッシュ・タブ・`%@`）。S0 の版との Kit の生成物の差は `fill` の所だけ（表は同じ）。
+- lint.py: 作り物の木で 21 項目が合格（L-1: 字句の難所 6 種類とコメント・KitChecks と生成物とテストを見ない・`*`・例外の形 6 種類・UTF-8 でないファイル・例外のファイルが無い。L-3: `was` を ja で選ぶ・長いパス・`#n`・`composedOf`・escape・誤り 11 種類・2 つのキーの `was`・複数形の対・キーと例外の重なり・TSV が無い・頭と行の数が合わない。L-4: 10 種類。L-10: 一致・元の変更・壊れた元）。`__pycache__` を書かない。
+- e7b4d2f の木で lint: L-1 は 462 件（515 − 例外に当たる 53）、L-3 は 53 が例外・462 がどれにも当たらない、L-4・L-10 は緑。今の作業の木（K と H の途中の元）で、L-3 は 47 行が K の `was` に当たり参照の誤り 0、L-1 で K の新しい `DateText.swift`・`LayoutWords.swift` と `L10n.swift` に日本語の字は無い。
+- `L10n.swift`: 実際のファイルを macOS の .app に入れ（`-D DEBUG` と `-O`。`ScreenshotMode` だけ代わり）、`--format strings` で作った 10 の `.lproj` で動かした（`scratchpad/m7b-impl/S1/lprobe`）: ja・de・fr の字、en への受け皿、キーへの受け皿、ログはキーごとに 1 回で release は写真モードだけ、`format` の順番（`%2$@ %1$@`）、複数形（fr の 0 は one、de の 0 は other）、`text(_:in:)`・`value(_:in:)`、言語の選ばれ方（th → en、(ru, ja) → ja、zh-HK → zh-Hant、pt-PT → pt-BR、es-MX → es、ar → en。§2.1 の表と同じ）、`-NSShowNonLocalizedStrings YES`・`-NSDoubleLocalizedStrings YES` でも受け皿が働く。
+- 型と Kit: `git archive HEAD`（88df31c）に私のファイル（tools/l10n の 5 つと `L10n.swift`）と、`L10n.swift` と生成物が使う K の `UILanguage.swift` を重ね、build.py で生成した写し（`scratchpad/m7b-impl/S1/overlay`）で、`swift build --package-path TegakiKit` 緑、KitChecks「all 24446 checks passed」（1.1 と同じ数）、`tools/typecheck/typecheck.sh scratchpad/m7b-impl/S1/tc` all OK・警告 0（アプリ 60 ファイル、TegakiCalendarTests 26、UI テスト 2、Kit のテスト 5 つ）。作業の木そのままでは、手順 1〜5（`L10n.swift` を含むアプリと 2 つのテスト）は OK・警告 0 で、手順 6 が H の書きかけの `HolidayCalendar.swift` で落ちた（私のファイルではない）。
+- 試験の材料は `/private/tmp/claude-501/-Users-ikedamasataka-Documents-Codex/1d1a8054-037e-4e4c-982f-6008fda67420/scratchpad/m7b-impl/S1/pytest/`（`cases_s0.py`・`cases_s1.py`・`cases_lint.py`。`python3 -I cases_lint.py <作業の木>/tools/l10n <python>`）。
+
+### 次の役へ
+
+- **キーを足す人（S・U・P・K・H）**: 1.1 の字を 1 つの文のまま移したキーは `was` に ja-baseline.tsv の行を、つないでいた字（`\(…)` のある字、`+` でつないだ字）は `composedOf` に。行に字が 2 つ以上あって `composedOf` に書くとき、同じ字が 2 つあるときは `#n`。元を変えたら `python3 -I tools/l10n/build.py .` → `python3 -I tools/l10n/lint.py . --only L-3,L-4,L-10`（L-1 と L-3 は全員の移しが終わるまで落ちる。自分のファイルは L-1・L-3 の最後の行の「<ファイル> <件数>」と、行ごとの出力で見る）。
+- **U**: §5.8 の語（`["祝日", "holiday", "feiertag", "ferie", "festiv", "feriado", "节假日", "節假日", "假日", "공휴일"]`）の漢字とハングルの 5 つは例外に入れてある（`Calendar/EventKitService.swift|<語>|…`）。字を変えるなら S に（ja-exceptions.txt は S の持ち物）。写真モードの 31 の字は例外に無い（契約のとおり `demo.*` のキーへ）。
+- **S（後半）**: L-2・L-5〜L-9・L-11・L-12 を lint.py に足す（`CHECKS` に名前、`check_l<n>` を足し、`LATER` から消す。元と訳は `build.load_sources`・`build.load_translations`・`build.values_of`、Swift の字は `baseline.swift_literals`）。`L10nTests`・`LocalizationBundleTests`（`L.value(_:in:)` を使う。TSV の形は上の「入れたもの」、escape のほどき方は `baseline.unescape`）。InfoPlist の 2 キーは app-S.json に（ja は project.yml の値のまま）。
+- **C**: CI の「Localization lint」は `python3 -I tools/l10n/lint.py .`（git も書き込みも無い）。生成物の確かめは `python3 -I tools/l10n/build.py --check .` でもよい（lint の L-10 と同じ）。
+
+### 残る危険
+
+- `text(_:in:)`・`value(_:in:)` の `Bundle(path: <言語>.lproj)` の引き方は、macOS の同じ API で確かめただけ。iOS では S の `LocalizationBundleTests`（CI）で確かめる。Xcode がカタログを `.lproj/*.strings` でない形に組むと、この 2 つが nil を返す（`text(_:)` は `Bundle.main` なので影響しない）。そのときは `--format strings`（0-4）。
+- カタログの形（Xcode の並び、`"version": "1.0"`）が CI の Xcode 26 で書き換えられないかは、CI の `git diff --exit-code -- Sources/TegakiCalendar/Resources`（0-5）で。
+- 例外は「パス|字」で当たるので、例外のあるファイルで同じ字を新しく書いても L-1 は見逃す（例: `Layout/PageNavigation.swift` に新しく `"日"` を書く）。
+

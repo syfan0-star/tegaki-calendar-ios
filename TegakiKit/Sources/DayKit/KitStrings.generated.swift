@@ -35,11 +35,7 @@ public enum KitStrings {
         table(language)[key] ?? en[key] ?? key
     }
 
-    /// `text(key, language)` with its placeholders filled from `args`, without `String(format:)`:
-    /// `%@` takes the next argument (the first `%@` takes `args[0]`, the second `args[1]`, …; a
-    /// `%n$@` does not move this count) and `%n$@` takes `args[n - 1]` (n from 1 to 99). Nothing
-    /// else is a placeholder: `%%`, `%d` and any other `%` stay as they are (numbers are formatted
-    /// before they are passed, D5). A placeholder whose argument is missing stays as it is.
+    /// `text(key, language)` with its placeholders filled from `args` (`fill`).
     public static func format(_ key: String, _ language: UILanguage, _ args: [String]) -> String {
         fill(text(key, language), args)
     }
@@ -58,22 +54,13 @@ public enum KitStrings {
         table(language)[key]
     }
 
-    private static func table(_ language: UILanguage) -> [String: String] {
-        switch language {
-        case .ja: return ja
-        case .en: return en
-        case .zhHans: return zhHans
-        case .zhHant: return zhHant
-        case .ko: return ko
-        case .fr: return fr
-        case .de: return de
-        case .es: return es
-        case .it: return it
-        case .ptBR: return ptBR
-        }
-    }
-
-    private static func fill(_ template: String, _ args: [String]) -> String {
+    /// `template` with its placeholders filled from `args`, without `String(format:)` (D5): `%@`
+    /// takes the next argument (the first `%@` takes `args[0]`, the second `args[1]`, …; a `%n$@`
+    /// does not move this count) and `%n$@` takes `args[n - 1]` (n from 1 to 99). Nothing else is a
+    /// placeholder: `%%`, `%d` and any other `%` stay as they are (numbers are formatted before they
+    /// are passed). A placeholder whose argument is missing stays as it is, and a `%@` inside an
+    /// argument is not filled again. The app's `L.format` and `L.plural` use the same rule.
+    public static func fill(_ template: String, _ args: [String]) -> String {
         let percent = UInt8(ascii: "%"), at = UInt8(ascii: "@"), dollar = UInt8(ascii: "$")
         let zero = UInt8(ascii: "0"), nine = UInt8(ascii: "9")
         guard template.utf8.contains(percent) else { return template }
@@ -118,6 +105,21 @@ public enum KitStrings {
         if copied == 0 { return template }
         result.append(contentsOf: bytes[copied...])
         return String(decoding: result, as: UTF8.self)
+    }
+
+    private static func table(_ language: UILanguage) -> [String: String] {
+        switch language {
+        case .ja: return ja
+        case .en: return en
+        case .zhHans: return zhHans
+        case .zhHant: return zhHant
+        case .ko: return ko
+        case .fr: return fr
+        case .de: return de
+        case .es: return es
+        case .it: return it
+        case .ptBR: return ptBR
+        }
     }
 
     // MARK: - The tables

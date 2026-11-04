@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """The string tables of 1.2, made from their sources (docs/M7B_CONTRACT.md §2.3; D3, D4, D5).
 
-    python3 -I tools/l10n/build.py [<repo>]
+    python3 -I tools/l10n/build.py [<repo>] [--check] [--format xcstrings|strings]
 
 <repo> defaults to the repository this script is in. Reads
 
     tools/l10n/source/kit-<owner>.json       the Kit's keys with their ja text and notes, one file
                                              per owner (kit-K.json, kit-H.json)
+    tools/l10n/source/app-<owner>.json       the app's keys (app-S.json, app-U.json, app-P.json):
+                                             target "app" (Localizable) or "infoplist" (InfoPlist;
+                                             the key is the Info.plist key, CFBundleDisplayName)
     tools/l10n/translations/<language>.json  the nine other languages (en zh-Hans zh-Hant ko fr de
                                              es it pt-BR), written by X
 
@@ -15,33 +18,46 @@ and writes
     TegakiKit/Sources/DayKit/KitStrings.generated.swift
         `enum KitStrings` (§0): the keys whose target is "kit" as one [String: String] table per
         language, picked with a switch over `UILanguage`, and text / format / plural on top.
+    Sources/TegakiCalendar/Resources/Localizable.xcstrings, InfoPlist.xcstrings
+        the String Catalogs of the app (sourceLanguage "en"; every key "extractionState": "manual",
+        each language that has a text as a "translated" stringUnit, the key's comment).
+    or, with --format strings (the fallback of 0-4, the lead's call),
+    Sources/TegakiCalendar/Resources/<language>.lproj/Localizable.strings, InfoPlist.strings
+        the same texts as .strings files for the ten languages; the catalogs are removed.
+        Without --format the format the repository has is kept (the catalogs when it has neither),
+        and --format xcstrings switches back (the .strings files of the ten .lproj are removed).
+
+--check writes nothing: the exit status is 1, with one line for each file, when an output is not
+what the sources give (or a file of the other format is left). Lint L-10 runs the same check.
 
 The same files give the same bytes (keys in code point order, no dates or machine paths, and the
 escapes of the Swift literals come from a fixed list, not from Python's Unicode tables, so every
 Python writes the same), and a file whose text is already right is not written again. A missing
 source or translations folder, or a source file without keys, is not an error: the tables are then
-empty, and the generated file still compiles (it needs only `UILanguage` and `PluralCategory` of
-DayKit/UILanguage.swift). Anything malformed stops the build with a message and exit status 1
+empty, and the generated Swift file still compiles (it needs only `UILanguage` and `PluralCategory`
+of DayKit/UILanguage.swift). Anything malformed stops the build with a message and exit status 1
 before anything is written.
 
 What goes into the tables:
   - a plain key: ja from the source; each other language from its translation file when that has
-    the key (at run time a language without it falls back to en, then to the key: KitStrings.text);
+    the key (at run time a language without it falls back to en, then to the key: KitStrings.text
+    and the app's L.text);
   - `fixed: true`: `fixedValues`, in all ten languages (a translation of the key is not used);
-  - `jaOnly: true`: the ja table only (a translation of the key is not used). It is not listed in
-    `KitStrings.keys`, which holds the keys that must have all ten languages (L-2 asks ten
-    languages of every key but the jaOnly ones; KitChecks walks `keys` for the same check).
-Translations of keys that no Kit source has (the app's keys, old keys) are not used here.
+  - `jaOnly: true` (Kit keys only): the ja table only (a translation of the key is not used). It is
+    not listed in `KitStrings.keys`, which holds the keys that must have all ten languages (L-2 asks
+    ten languages of every key but the jaOnly ones; KitChecks walks `keys` for the same check).
+  - `allowJapanese` and `lines` do not change a table: they are checked here for their form (the
+    contract allows only two texts in allowJapanese, and each must be in the ja) and by the lint
+    for the languages (L-2, L-4).
+Translations of keys that no source has (old keys) are not used.
 
 Every *.json of the source folder is named app-<owner>.json or kit-<owner>.json, and every *.json
 of the translations folder <language>.json for one of the nine languages; any other name (an iCloud
-copy such as "kit-K 2.json") stops the build. Names that start with "." are skipped. The app-*.json
-files are not read yet.
+copy such as "kit-K 2.json") stops the build. Names that start with "." are skipped. A key is in
+one source file only, across the app and the Kit.
 
-This is the first part of the generator (S0 in "統合の順番" at the end of docs/M7B_CONTRACT.md):
-the Kit output only. The app's outputs (Localizable.xcstrings, InfoPlist.xcstrings and
-`--format strings`), `--check` (lint L-10) and the lint come next (S1); `build_outputs` returns
-every output as text, so `--check` can compare without writing.
+`build_outputs` and `check_outputs` are also used by lint.py (L-10); `load_sources` and
+`load_translations` by its L-3 and L-4.
 """
 import argparse
 import json
@@ -56,6 +72,8 @@ SOURCE_DIR = "tools/l10n/source"
 TRANSLATIONS_DIR = "tools/l10n/translations"
 KIT_OUTPUT = "TegakiKit/Sources/DayKit/KitStrings.generated.swift"
 UI_LANGUAGE_FILE = "TegakiKit/Sources/DayKit/UILanguage.swift"  # K's; the output needs its types
+APP_DIR = "Sources/TegakiCalendar"
+APP_RESOURCES = APP_DIR + "/Resources"
 
 # The ten languages (O-1) in the order of UILanguage's cases (§0), with the names of the cases.
 LANGUAGES = ["ja", "en", "zh-Hans", "zh-Hant", "ko", "fr", "de", "es", "it", "pt-BR"]
@@ -65,8 +83,15 @@ SWIFT_CASE = {
 }
 TRANSLATED = LANGUAGES[1:]
 
+# The app's two tables: the target of a key → the name of its table (Localizable.xcstrings, …).
+APP_TABLES = {"app": "Localizable", "infoplist": "InfoPlist"}
+FORMATS = ("xcstrings", "strings")
+
 KEY_RE = re.compile(r"^[a-z][a-zA-Z0-9]*(\.[a-z0-9][a-zA-Z0-9]*)+$")  # §2.4
+INFOPLIST_KEY_RE = re.compile(r"^[A-Z][A-Za-z0-9]*$")  # an Info.plist key: CFBundleDisplayName, …
 SOURCE_FILE_RE = re.compile(r"^(app|kit)-([A-Z][A-Za-z0-9]*)\.json$")  # app-S.json, kit-K.json, …
+# The only texts a value other than ja may keep in kana and kanji (§2.3, L-2).
+ALLOWED_JAPANESE = ("手書きを書き出す（iPad アプリ用）", "てがきカレンダー")
 
 
 class BuildError(Exception):
@@ -145,23 +170,39 @@ def read_json(path, rel):
         raise BuildError(f"{rel}:{e.lineno}:{e.colno}: not JSON ({e.msg})")
 
 
+def _noncharacter(code):
+    return 0xFDD0 <= code <= 0xFDEF or code & 0xFFFE == 0xFFFE
+
+
 def check_text(value, where):
     """A text that goes into a table: a non-empty string that UTF-8 can hold (a lone \\ud800–\\udfff
-    escape cannot be written to a Swift file)."""
+    escape cannot be written to a Swift file) and without a noncharacter (U+FDD0–U+FDEF, U+FFFE,
+    U+FFFF, U+1FFFE, …: not text; swiftc rejects "\\u{FDD0}" as an invalid scalar, so the Kit's table
+    would not compile)."""
     if not isinstance(value, str) or value == "":
         raise BuildError(f"{where}: must be a non-empty string")
     try:
         value.encode("utf-8")
     except UnicodeEncodeError:
         raise BuildError(f"{where}: has a lone surrogate (a \\ud800–\\udfff escape without its pair)")
+    for ch in value:
+        if _noncharacter(ord(ch)):
+            raise BuildError(f"{where}: has the noncharacter U+{ord(ch):04X}, which is not text")
 
 
-def check_kit_key(key, entry, where):
-    """One key of a kit-*.json file (§2.3, §2.4)."""
-    if not KEY_RE.match(key):
-        raise BuildError(f"{where}: a key looks like kit.plan.monthly ({KEY_RE.pattern}, §2.4)")
-    if not key.startswith("kit."):
-        raise BuildError(f"{where}: a key of the Kit starts with \"kit.\" (§2.4)")
+def check_key_name(key, kind, where):
+    """The name of a key: §2.4 for the Kit and the app's Localizable, the Info.plist key for
+    InfoPlist. `kind` is "kit" or "app" (the file); the target is checked after the fields."""
+    if kind == "kit":
+        if not KEY_RE.match(key):
+            raise BuildError(f"{where}: a key looks like kit.plan.monthly ({KEY_RE.pattern}, §2.4)")
+        if not key.startswith("kit."):
+            raise BuildError(f"{where}: a key of the Kit starts with \"kit.\" (§2.4)")
+
+
+def check_key(key, entry, kind, where):
+    """One key of a kit-*.json (kind "kit") or app-*.json (kind "app") file (§2.3, §2.4)."""
+    check_key_name(key, kind, where)
     if not isinstance(entry, dict):
         raise BuildError(f"{where}: must be an object")
     for field in sorted(entry):
@@ -171,8 +212,28 @@ def check_kit_key(key, entry, where):
         ok, what = KEY_FIELDS[field]
         if not ok(entry[field]):
             raise BuildError(f"{where}: \"{field}\" must be {what}")
-    if entry.get("target") != "kit":
-        raise BuildError(f"{where}: \"target\" must be \"kit\" in a kit-*.json file")
+    target = entry.get("target")
+    if kind == "kit":
+        if target != "kit":
+            raise BuildError(f"{where}: \"target\" must be \"kit\" in a kit-*.json file")
+    else:
+        if target not in APP_TABLES:
+            raise BuildError(f"{where}: \"target\" must be \"app\" or \"infoplist\" in an app-*.json "
+                             f"file (a Kit key, target \"kit\", goes into a kit-*.json file)")
+        if target == "infoplist":
+            if not INFOPLIST_KEY_RE.match(key):
+                raise BuildError(f"{where}: an \"infoplist\" key is the Info.plist key itself "
+                                 f"(CFBundleDisplayName, NSCalendarsFullAccessUsageDescription)")
+        else:
+            if not KEY_RE.match(key):
+                raise BuildError(f"{where}: a key looks like settings.input.eraserAutoReturn.title "
+                                 f"({KEY_RE.pattern}, §2.4)")
+            if key.startswith("kit."):
+                raise BuildError(f"{where}: a key that starts with \"kit.\" is the Kit's "
+                                 f"(target \"kit\", in a kit-*.json file)")
+        if entry.get("jaOnly", False):
+            raise BuildError(f"{where}: \"jaOnly\" is for the Kit's ja-only formats (kit.date.ja.*, "
+                             f"§2.3); a key of the app has all ten languages")
     if "ja" not in entry:
         raise BuildError(f"{where}: has no \"ja\"")
     check_text(entry["ja"], f"{where}: \"ja\"")
@@ -190,14 +251,20 @@ def check_kit_key(key, entry, where):
             raise BuildError(f"{where}: fixedValues.ja is not the same as \"ja\"")
     elif "fixedValues" in entry:
         raise BuildError(f"{where}: \"fixedValues\" belongs to a key with \"fixed\": true")
+    for text in entry.get("allowJapanese", []):
+        if text not in ALLOWED_JAPANESE:
+            raise BuildError(f"{where}: \"allowJapanese\" may hold only "
+                             f"{' and '.join(repr(t) for t in ALLOWED_JAPANESE)} (§2.3), not {text!r}")
+        if text not in entry["ja"]:
+            raise BuildError(f"{where}: \"allowJapanese\" lists {text!r}, which the ja does not have")
 
 
-def load_kit_sources(repo):
-    """The keys of tools/l10n/source/kit-*.json: ({key: entry}, [(file, number of keys)])."""
+def load_sources(repo):
+    """Every key of tools/l10n/source/*.json: ({key: entry}, {key: file}, [(file, number of keys)])."""
     folder = os.path.join(repo, SOURCE_DIR)
-    keys, files, origin = {}, [], {}
+    keys, origin, files = {}, {}, []
     if not os.path.isdir(folder):
-        return keys, files
+        return keys, origin, files
     for name in sorted(os.listdir(folder)):
         if name.startswith(".") or not name.endswith(".json"):
             continue  # .DS_Store, an editor's lock file, notes
@@ -206,8 +273,7 @@ def load_kit_sources(repo):
         if not match:
             raise BuildError(f"{rel}: a source file is app-<owner>.json or kit-<owner>.json "
                              f"(remove a copy such as \"kit-K 2.json\")")
-        if match.group(1) != "kit":
-            continue  # the app's keys (app-*.json) are for the app's outputs (S1)
+        kind = match.group(1)
         data = read_json(os.path.join(folder, name), rel)
         if not isinstance(data, dict) or set(data) != {"owner", "keys"}:
             raise BuildError(f"{rel}: must be an object with just \"owner\" and \"keys\"")
@@ -220,16 +286,16 @@ def load_kit_sources(repo):
             where = f"{rel}: {key}"
             if key in origin:
                 raise BuildError(f"{where}: the key is also in {origin[key]} (a key has one file)")
-            check_kit_key(key, data["keys"][key], where)
+            check_key(key, data["keys"][key], kind, where)
             keys[key] = data["keys"][key]
             origin[key] = rel
         files.append((rel, len(data["keys"])))
-    return keys, files
+    return keys, origin, files
 
 
 def load_translations(repo):
-    """{language: {key: text}} from tools/l10n/translations/<language>.json, every key of the files
-    (the app's too); a language without a file has none."""
+    """{language: {key: text}} from tools/l10n/translations/<language>.json, every key of the files;
+    a language without a file has none."""
     folder = os.path.join(repo, TRANSLATIONS_DIR)
     texts = {language: {} for language in TRANSLATED}
     if not os.path.isdir(folder):
@@ -262,6 +328,22 @@ def load_translations(repo):
             texts[language][key] = entry["text"]
     return texts
 
+
+def values_of(key, entry, translations):
+    """{language: text} of one key: what its tables hold (the languages without a text are left
+    out). Used by the outputs and by the lint (L-4)."""
+    if entry.get("fixed", False):
+        return {language: entry["fixedValues"][language] for language in LANGUAGES}
+    values = {"ja": entry["ja"]}
+    if entry.get("jaOnly", False):
+        return values
+    for language in TRANSLATED:
+        if key in translations[language]:
+            values[language] = translations[language][key]
+    return values
+
+
+# ── The Kit's Swift table ─────────────────────────────────────────────────────────────────────
 
 # Code points that the Swift literals write as \u{…}, so that no invisible character sits in the
 # generated source and every unusual space or separate accent can be seen: the controls, the spaces
@@ -325,11 +407,7 @@ public enum KitStrings {
         table(language)[key] ?? en[key] ?? key
     }
 
-    /// `text(key, language)` with its placeholders filled from `args`, without `String(format:)`:
-    /// `%@` takes the next argument (the first `%@` takes `args[0]`, the second `args[1]`, …; a
-    /// `%n$@` does not move this count) and `%n$@` takes `args[n - 1]` (n from 1 to 99). Nothing
-    /// else is a placeholder: `%%`, `%d` and any other `%` stay as they are (numbers are formatted
-    /// before they are passed, D5). A placeholder whose argument is missing stays as it is.
+    /// `text(key, language)` with its placeholders filled from `args` (`fill`).
     public static func format(_ key: String, _ language: UILanguage, _ args: [String]) -> String {
         fill(text(key, language), args)
     }
@@ -348,13 +426,13 @@ public enum KitStrings {
         table(language)[key]
     }
 
-    private static func table(_ language: UILanguage) -> [String: String] {
-        switch language {
-@CASES@
-        }
-    }
-
-    private static func fill(_ template: String, _ args: [String]) -> String {
+    /// `template` with its placeholders filled from `args`, without `String(format:)` (D5): `%@`
+    /// takes the next argument (the first `%@` takes `args[0]`, the second `args[1]`, …; a `%n$@`
+    /// does not move this count) and `%n$@` takes `args[n - 1]` (n from 1 to 99). Nothing else is a
+    /// placeholder: `%%`, `%d` and any other `%` stay as they are (numbers are formatted before they
+    /// are passed). A placeholder whose argument is missing stays as it is, and a `%@` inside an
+    /// argument is not filled again. The app's `L.format` and `L.plural` use the same rule.
+    public static func fill(_ template: String, _ args: [String]) -> String {
         let percent = UInt8(ascii: "%"), at = UInt8(ascii: "@"), dollar = UInt8(ascii: "$")
         let zero = UInt8(ascii: "0"), nine = UInt8(ascii: "9")
         guard template.utf8.contains(percent) else { return template }
@@ -401,6 +479,12 @@ public enum KitStrings {
         return String(decoding: result, as: UTF8.self)
     }
 
+    private static func table(_ language: UILanguage) -> [String: String] {
+        switch language {
+@CASES@
+        }
+    }
+
     // MARK: - The tables
 """
 
@@ -432,18 +516,11 @@ def kit_swift(keys, files, translations):
     for key in sorted(keys):
         entry = keys[key]
         if entry.get("jaOnly", False):
-            tables["ja"][key] = entry["ja"]
             ja_only += 1
-            continue
-        listed.append(key)
-        if entry.get("fixed", False):
-            for language in LANGUAGES:
-                tables[language][key] = entry["fixedValues"][language]
-            continue
-        tables["ja"][key] = entry["ja"]
-        for language in TRANSLATED:
-            if key in translations[language]:
-                tables[language][key] = translations[language][key]
+        else:
+            listed.append(key)
+        for language, text in values_of(key, entry, translations).items():
+            tables[language][key] = text
 
     parts = [KIT_HEADER]
     if files:
@@ -467,15 +544,154 @@ def kit_swift(keys, files, translations):
     return "".join(parts), summary
 
 
-def build_outputs(repo):
-    """{path relative to the repository: (text, summary)} of every output; nothing is written."""
-    keys, files = load_kit_sources(repo)
+# ── The app's tables ──────────────────────────────────────────────────────────────────────────
+
+def xcstrings_path(table):
+    return f"{APP_RESOURCES}/{table}.xcstrings"
+
+
+def strings_path(language, table):
+    return f"{APP_RESOURCES}/{language}.lproj/{table}.strings"
+
+
+def _values_summary(count_keys, per_language):
+    return (f"{_count(count_keys, 'key')}; texts: "
+            + ", ".join(f"{language} {per_language[language]}" for language in LANGUAGES))
+
+
+def catalog_json(entries, translations):
+    """A String Catalog (.xcstrings) of `entries` ({key: entry}) and a one-line summary. Xcode's own
+    layout: two-space indent, " : " between a name and its value, names sorted."""
+    strings = {}
+    per_language = {language: 0 for language in LANGUAGES}
+    for key in sorted(entries):
+        entry = entries[key]
+        unit = {"extractionState": "manual", "localizations": {}}
+        if entry.get("comment"):
+            unit["comment"] = entry["comment"]
+        for language, text in values_of(key, entry, translations).items():
+            unit["localizations"][language] = {"stringUnit": {"state": "translated", "value": text}}
+            per_language[language] += 1
+        strings[key] = unit
+    document = {"sourceLanguage": "en", "strings": strings, "version": "1.0"}
+    text = json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True, separators=(",", " : ")) + "\n"
+    return text, _values_summary(len(entries), per_language)
+
+
+def _strings_escape(text):
+    out = []
+    for ch in text:
+        if ch == "\\":
+            out.append("\\\\")
+        elif ch == "\"":
+            out.append("\\\"")
+        elif ch == "\n":
+            out.append("\\n")
+        elif ch == "\r":
+            out.append("\\r")
+        elif ch == "\t":
+            out.append("\\t")
+        elif ord(ch) < 0x20 or ord(ch) == 0x7F:
+            out.append("\\U%04X" % ord(ch))
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def strings_text(entries, translations, language, table):
+    """A .strings file of one language of `entries` (the keys that have a text in it)."""
+    lines = [f"/* 生成物。直さない。tools/l10n/build.py ({table}, {language}; docs/M7B_CONTRACT.md §2.3) */\n"]
+    count = 0
+    for key in sorted(entries):
+        text = values_of(key, entries[key], translations).get(language)
+        if text is None:
+            continue
+        comment = entries[key].get("comment")
+        lines.append("\n")
+        if comment:
+            lines.append("/* " + comment.replace("*/", "* /") + " */\n")
+        lines.append(f"\"{_strings_escape(key)}\" = \"{_strings_escape(text)}\";\n")
+        count += 1
+    return "".join(lines), f"{_count(count, 'text')}"
+
+
+def present_format(repo):
+    """The format the repository has: "xcstrings" when a catalog is there, else "strings" when a
+    .strings file of the ten .lproj is, else "xcstrings"."""
+    if any(os.path.exists(os.path.join(repo, xcstrings_path(table))) for table in APP_TABLES.values()):
+        return "xcstrings"
+    for language in LANGUAGES:
+        for table in APP_TABLES.values():
+            if os.path.exists(os.path.join(repo, strings_path(language, table))):
+                return "strings"
+    return "xcstrings"
+
+
+def app_outputs(keys, translations, fmt):
+    """{path: (text, summary)} of the app's tables in the format `fmt`."""
+    outputs = {}
+    for target, table in APP_TABLES.items():
+        entries = {key: entry for key, entry in keys.items() if entry["target"] == target}
+        if fmt == "xcstrings":
+            outputs[xcstrings_path(table)] = catalog_json(entries, translations)
+        else:
+            for language in LANGUAGES:
+                outputs[strings_path(language, table)] = strings_text(entries, translations, language, table)
+    return outputs
+
+
+def other_format_files(fmt):
+    """The paths of the format that is not `fmt` (removed when `fmt` is written)."""
+    if fmt == "xcstrings":
+        return [strings_path(language, table) for language in LANGUAGES for table in APP_TABLES.values()]
+    return [xcstrings_path(table) for table in APP_TABLES.values()]
+
+
+def check_repo(repo):
+    for needed in (os.path.dirname(KIT_OUTPUT), APP_DIR):
+        if not os.path.isdir(os.path.join(repo, needed)):
+            raise BuildError(f"{repo} is not the repository (it has no {needed})")
+
+
+def build_outputs(repo, fmt=None):
+    """{path relative to the repository: (text, summary)} of every output; nothing is written.
+    `fmt` is "xcstrings" or "strings" for the app's tables (None: the one the repository has)."""
+    keys, origin, files = load_sources(repo)
     translations = load_translations(repo)
-    return {KIT_OUTPUT: kit_swift(keys, files, translations)}
+    kit_keys = {key: entry for key, entry in keys.items() if entry["target"] == "kit"}
+    kit_files = [(rel, count) for rel, count in files if os.path.basename(rel).startswith("kit-")]
+    outputs = {KIT_OUTPUT: kit_swift(kit_keys, kit_files, translations)}
+    outputs.update(app_outputs(keys, translations, fmt or present_format(repo)))
+    return outputs
 
 
-def write_outputs(repo, outputs):
-    """Writes the outputs whose text changed; prints one line per output."""
+def check_outputs(repo, fmt=None):
+    """[problem] of the outputs on disk against what the sources give (L-10, --check): a file that
+    differs or is missing, and a file of the other format that is left. Raises BuildError when the
+    sources are malformed."""
+    check_repo(repo)
+    fmt = fmt or present_format(repo)
+    problems = []
+    for rel, (text, _) in sorted(build_outputs(repo, fmt).items()):
+        try:
+            with open(os.path.join(repo, rel), "rb") as f:
+                same = f.read() == text.encode("utf-8")
+        except FileNotFoundError:
+            problems.append(f"{rel} is missing")
+            continue
+        if not same:
+            problems.append(f"{rel} is not what the sources give")
+    for rel in other_format_files(fmt):
+        if os.path.exists(os.path.join(repo, rel)):
+            problems.append(f"{rel} is left from the {'strings' if fmt == 'xcstrings' else 'xcstrings'} format")
+    return problems
+
+
+def write_outputs(repo, outputs, fmt=None):
+    """Writes the outputs whose text changed and removes the files of the other format; prints one
+    line per output (the .strings files of one table in one line)."""
+    fmt = fmt or present_format(repo)
+    grouped = {}
     for rel in sorted(outputs):
         text, summary = outputs[rel]
         path = os.path.join(repo, rel)
@@ -485,32 +701,70 @@ def write_outputs(repo, outputs):
                 same = f.read() == data
         except FileNotFoundError:
             same = False
+        if not same:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as f:
+                f.write(data)
+        if rel.endswith(".strings"):
+            table = os.path.basename(rel)
+            group = grouped.setdefault(table, {"wrote": 0, "parts": []})
+            group["wrote"] += 0 if same else 1
+            group["parts"].append(f"{rel.split('/')[-2][:-len('.lproj')]} {summary.split()[0]}")
+            continue
         if same:
             print(f"build.py: {rel} is up to date ({summary})")
-            continue
-        with open(path, "wb") as f:
-            f.write(data)
-        print(f"build.py: wrote {rel} ({summary})")
+        else:
+            print(f"build.py: wrote {rel} ({summary})")
+    for table in sorted(grouped):
+        group = grouped[table]
+        state = f"wrote {group['wrote']} of" if group["wrote"] else "up to date:"
+        print(f"build.py: {APP_RESOURCES}/<language>.lproj/{table} {state} {len(group['parts'])} "
+              f"({', '.join(group['parts'])})")
+    for rel in other_format_files(fmt):
+        path = os.path.join(repo, rel)
+        if os.path.exists(path):
+            os.remove(path)
+            print(f"build.py: removed {rel} (the {fmt} format is written)")
+            folder = os.path.dirname(path)
+            if folder.endswith(".lproj") and os.path.isdir(folder) and not os.listdir(folder):
+                os.rmdir(folder)
 
 
 def main(argv):
     parser = argparse.ArgumentParser(
         prog="build.py",
-        description="Writes TegakiKit/Sources/DayKit/KitStrings.generated.swift from "
-                    "tools/l10n/source/kit-*.json and tools/l10n/translations/*.json "
-                    "(docs/M7B_CONTRACT.md §2.3).")
+        description="Writes TegakiKit/Sources/DayKit/KitStrings.generated.swift and the app's "
+                    "Localizable / InfoPlist tables from tools/l10n/source/*.json and "
+                    "tools/l10n/translations/*.json (docs/M7B_CONTRACT.md §2.3).")
     parser.add_argument("repo", nargs="?", default=DEFAULT_REPO,
                         help="the repository (default: the one this script is in)")
+    parser.add_argument("--check", action="store_true",
+                        help="write nothing; exit 1 when an output is not what the sources give (L-10)")
+    parser.add_argument("--format", choices=FORMATS,
+                        help="the app's tables as String Catalogs (xcstrings) or as .strings files of "
+                             "the ten .lproj (strings, 0-4); default: the format the repository has")
     args = parser.parse_args(argv)
     repo = os.path.abspath(args.repo)
     try:
-        if not os.path.isdir(os.path.join(repo, os.path.dirname(KIT_OUTPUT))):
-            raise BuildError(f"{repo} is not the repository (it has no {os.path.dirname(KIT_OUTPUT)})")
-        outputs = build_outputs(repo)
+        check_repo(repo)
+        fmt = args.format or present_format(repo)
+        if args.check:
+            problems = check_outputs(repo, fmt)
+        else:
+            outputs = build_outputs(repo, fmt)
     except BuildError as e:
         print(f"build.py: {e}", file=sys.stderr)
         return 1
-    write_outputs(repo, outputs)
+    if args.check:
+        for problem in problems:
+            print(f"build.py: {problem}", file=sys.stderr)
+        if problems:
+            print(f"build.py: run python3 -I tools/l10n/build.py{' --format ' + fmt if args.format else ''}",
+                  file=sys.stderr)
+            return 1
+        print(f"build.py: every output is what the sources give ({fmt})")
+        return 0
+    write_outputs(repo, outputs, fmt)
     if not os.path.isfile(os.path.join(repo, UI_LANGUAGE_FILE)):
         print(f"build.py: note: {UI_LANGUAGE_FILE} is not there yet; {KIT_OUTPUT} uses its "
               f"UILanguage and PluralCategory (§0, K) and does not compile without them",
