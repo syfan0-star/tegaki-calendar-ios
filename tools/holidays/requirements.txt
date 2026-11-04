@@ -1,0 +1,13 @@
+# The python-holidays of the 1.2 data and its dependencies, pinned by version and wheel hash
+# (docs/M7B_CONTRACT.md §5.1). Fetched once from PyPI on 2026-11-01; install them into a venv
+# outside the repository without the network:
+#     pip install --require-hashes --no-index --find-links <the folder of the wheels> -r tools/holidays/requirements.txt
+# holidays 0.107 needs Python >= 3.10 (the data was made with 3.12.16). gen.py stops when the venv
+# has other versions. To update (once a year, §5.11), fetch the new wheels only with the owner's
+# consent and write their versions and sha256 here.
+holidays==0.107 \
+    --hash=sha256:5e4582d543b145d8ebb80ce8943e60ea5c8b6a30b74201ad0f95af0cbe67cb14
+python-dateutil==2.9.0.post0 \
+    --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
+six==1.17.0 \
+    --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274

@@ -5732,6 +5732,7 @@ do {
 
 // 1.2, still to come here (docs/M7B_CONTRACT.md §7.1, in this order): H's "holidays (1.2)"
 // (HolidayChecks.swift, called from here) and K's "holiday geometry (1.2)" (G-1 to G-4).
+runHolidayChecks()
 
 // MARK: - Summary
 

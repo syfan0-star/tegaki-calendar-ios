@@ -4,7 +4,7 @@
 // sources and tools/l10n/translations/<language>.json. To change a text, change those files and
 // run the generator again: this file is written over.
 //
-// Sources: tools/l10n/source/kit-K.json (21 keys).
+// Sources: tools/l10n/source/kit-H.json (2 keys), tools/l10n/source/kit-K.json (21 keys).
 
 /// The strings of TegakiKit, one table per language (D4: no `.strings`, `.xcstrings` or
 /// `Bundle.module`, so the language is always the one passed in, the same on a Mac, in CI and in
@@ -16,6 +16,8 @@ public enum KitStrings {
     /// table has). Until a language is translated, `value` is nil for its keys and `text` falls back.
     public static let keys: [String] = [
         "kit.app.name",
+        "kit.holiday.dayOff",
+        "kit.holiday.estimatedSuffix",
         "kit.layout.more.one",
         "kit.layout.more.other",
         "kit.layout.tailPrefix",
@@ -124,7 +126,7 @@ public enum KitStrings {
 
     // MARK: - The tables
 
-    // ja: 21 texts
+    // ja: 23 texts
     private static let ja: [String: String] = [
         "kit.app.name": "てがきカレンダー",
         "kit.date.ja.dayTitle": "%1$@年%2$@月%3$@日(%4$@)",
@@ -136,6 +138,8 @@ public enum KitStrings {
         "kit.date.ja.weekTitleCrossYear": "%1$@年%2$@月%3$@日〜%4$@年%5$@月%6$@日",
         "kit.date.ja.weekdayFull": "%@曜日",
         "kit.date.ja.yearTitle": "%@年",
+        "kit.holiday.dayOff": "振替の休み",
+        "kit.holiday.estimatedSuffix": "（推定）",
         "kit.layout.more.one": "+%@件",
         "kit.layout.more.other": "+%@件",
         "kit.layout.tailPrefix": "〜",
