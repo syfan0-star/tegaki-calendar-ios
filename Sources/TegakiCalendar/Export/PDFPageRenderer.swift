@@ -48,21 +48,25 @@ enum PDFPageRenderer {
     // MARK: - Geometry (§1.4)
 
     /// The part of the paper that goes on the page, in paper units from the paper's origin. Month:
-    /// the whole paper (6 rows + the memo area) when the memo area holds handwriting, else the
-    /// overview rectangle (1400 × `memo.minY`, `ZoomPolicy.overviewSize`; 0-3 / M6-3). Day (1.1,
-    /// M7A_CONTRACT §3.5): the same rule for the free memo area below 24:00 — the whole paper when
-    /// `extra` holds handwriting, else the 24 hours (1000 × 2400, `ZoomPolicy.overviewSize`). Week and
-    /// year: the whole paper (`layout.size`).
+    /// the 6 rows and as much of the memo area as its handwriting needs when it holds handwriting
+    /// (`PaperGrowth.exportTailHeight`), else the overview rectangle (1400 × `memo.minY`,
+    /// `ZoomPolicy.overviewSize`; 0-3 / M6-3). Day (1.1, M7A_CONTRACT §3.5): the same rule for the free
+    /// memo area below 24:00, else the 24 hours (1000 × 2400, `ZoomPolicy.overviewSize`). 1.1.1
+    /// (docs/R1_1_1.md): the same length as 1.1's PDF: the blank of the area open to 6,000 lu stays out
+    /// of the PDF, and a 1.0 device's deep line goes in (`b + 50`). Week and year: the whole paper
+    /// (`layout.size`).
     static func paperRect(_ paper: PaperContent, page: InkPage) -> CGRect {
         switch paper {
         case .month(let content):
             let memoHasInk = page.liveStrokes.contains { $0.cell.isMemo }
-            let size = memoHasInk ? content.layout.size : ZoomPolicy.overviewSize(content.layout)
-            return CGRect(origin: .zero, size: size)
+            guard memoHasInk else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
+            let tail = PaperGrowth.exportTailHeight(inkBottom: page.inkBottoms()[.memo] ?? 0)
+            return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.memo.minY + tail)
         case .day(let content):
             let extraHasInk = page.liveStrokes.contains { $0.cell.isExtra }
-            let size = extraHasInk ? content.layout.size : ZoomPolicy.overviewSize(content.layout)
-            return CGRect(origin: .zero, size: size)
+            guard extraHasInk else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
+            let tail = PaperGrowth.exportTailHeight(inkBottom: page.inkBottoms()[.extra] ?? 0)
+            return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.grid.maxY + tail)
         case .week, .year:
             return CGRect(origin: .zero, size: paper.layout.size)
         }

@@ -5,21 +5,23 @@ import SwiftUI
 /// The header above the paper (M3b contract §4.6, M4 contract §6.1, M4B contract §5, DESIGN §2.7):
 ///
 /// ```
-/// width ≥ 600 pt:  ◀  今日  ▶   題名              [日 | 週 | 月 | 年]   🔒閲覧専用  ＋予定   ☁ 保存済み   ⚙
-/// width < 600 pt:  ◀ 今日 ▶  10/5〜10/11  ＋ ☁ ⚙
+/// width ≥ 600 pt:  ◀  ▶   題名              [日 | 週 | 月 | 年]   🔒閲覧専用  今日  ＋予定   ☁ 保存済み   ⚙
+/// width < 600 pt:  ◀ ▶  10/5〜10/11  今日 ＋ ☁ ⚙
 ///                  [      日      |      週      |      月      |      年      ]
 /// ```
 ///
+/// 1.1.1 (the owner's request, docs/R1_1_1.md): 「今日」 sits on the right, left of 「＋予定」.
+///
 /// M5 (M5_CONTRACT §3.2): while the app is read only (`readOnly`) an orange 「閲覧専用」 badge sits
-/// left of 「＋予定」 on the wide row (the symbol alone below `readOnlyTextWidth`); a tap opens the
+/// left of 「今日」 on the wide row (the symbol alone below `readOnlyTextWidth`); a tap opens the
 /// paywall (`onReadOnlyTap`). The compact rows have no room for it (M4B-15), so there the owner shows
 /// a notice row under the header instead (M5-13).
 ///
 /// The title comes from `PageNavigation.title` (`compactTitle` on the compact rows, M4b: the owner
 /// passes the short form); the owner measures the width and passes `compact`. On the compact first
-/// row the fixed parts (◀ 今日 ▶ ＋ ☁ ⚙ with their 44 pt tap targets and `.bordered` padding) take
-/// about 299 pt, so the spacing is 4, the spacers have no minimum and the title is `.headline`
-/// (17 pt): about 79 pt remain for it on a 402 pt iPhone, 67 pt on a 390 pt one, enough for every
+/// row the fixed parts (◀ ▶ 今日 ＋ ☁ ⚙ with their 44 pt tap targets and `.bordered` padding) take
+/// about 297 pt, so the spacing is 4, the spacers have no minimum and the title is `.headline`
+/// (17 pt): about 81 pt remain for it on a 402 pt iPhone, 69 pt on a 390 pt one, enough for every
 /// short title at `minimumScaleFactor(0.6)` (M4B-15). The ☁ shows the sync state
 /// (`SyncStatus.header`): the text and the symbol at 600 pt and wider, the symbol alone below
 /// (iPhone, M4 contract §6.8); a tap opens the settings screen. It is redrawn only when `sync`
@@ -80,6 +82,7 @@ struct PageHeaderView: View {
                     Spacer(minLength: 0)
                     titleText(.headline)
                     Spacer(minLength: 0)
+                    todayButton
                     addEventButton
                     syncButton
                     settingsButton
@@ -97,6 +100,7 @@ struct PageHeaderView: View {
                     .frame(width: 220)
                     .layoutPriority(1)
                 readOnlyBadge
+                todayButton
                 addEventButton
                 syncButton
                 settingsButton
@@ -137,12 +141,6 @@ struct PageHeaderView: View {
             }
             .accessibilityLabel(Self.previousLabel(kind))
 
-            // `fixedSize`: the label must never be squeezed away when the row is too narrow
-            // (the day page on an 11-inch iPad in portrait); the title gives way instead.
-            Button("今日", action: onToday)
-                .buttonStyle(.bordered)
-                .fixedSize()
-
             Button(action: onNext) {
                 Image(systemName: "chevron.right")
                     .frame(minWidth: 44, minHeight: 44)
@@ -150,6 +148,15 @@ struct PageHeaderView: View {
             .accessibilityLabel(Self.nextLabel(kind))
         }
         .layoutPriority(1)
+    }
+
+    /// 1.1.1: on the right. `fixedSize`: the label must never be squeezed away when the row is too
+    /// narrow (the day page on an 11-inch iPad in portrait); the title gives way instead.
+    private var todayButton: some View {
+        Button("今日", action: onToday)
+            .buttonStyle(.bordered)
+            .fixedSize()
+            .layoutPriority(1)
     }
 
     private func titleText(_ font: Font) -> some View {

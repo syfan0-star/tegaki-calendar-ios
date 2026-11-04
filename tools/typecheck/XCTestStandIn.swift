@@ -112,6 +112,7 @@ open class XCUIElement: NSObject {
     public func descendants(matching type: ElementType) -> XCUIElementQuery { XCUIElementQuery() }
     public var buttons: XCUIElementQuery { XCUIElementQuery() }
     public var staticTexts: XCUIElementQuery { XCUIElementQuery() }
+    public var segmentedControls: XCUIElementQuery { XCUIElementQuery() }
     public var windows: XCUIElementQuery { XCUIElementQuery() }
     public var scrollViews: XCUIElementQuery { XCUIElementQuery() }
 }

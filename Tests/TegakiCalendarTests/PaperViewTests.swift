@@ -240,7 +240,7 @@ final class PaperViewTests: XCTestCase {
         let layout = DayLayoutEngine.layout(DayLayoutInput(day: sunday, events: [], inkBottoms: [:], now: now))
         XCTAssertFalse(layout.isToday)
         XCTAssertNotEqual(layout.dateLabels.first?.tone, .normal, "a weekend day: the timeline is tinted")
-        XCTAssertEqual(layout.extra, CGRect(x: 0, y: 2400, width: 1000, height: 700))
+        XCTAssertEqual(layout.extra, CGRect(x: 0, y: 2400, width: 1000, height: 6000))
         XCTAssertEqual(DayPaper.freeMemoLabel, "自由メモ")
         let rect = CGRect(x: 0, y: 2200, width: 1000, height: 500)
         let (bytes, width) = renderDayPaper(DayPaperContent(layout: layout), rect: rect)

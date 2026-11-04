@@ -8,7 +8,7 @@ import XCTest
 /// iPhone"); simulator taps are finger (direct) touches.
 ///
 /// The app runs in its screenshot mode (no onboarding, no EventKit, the demo month 2026-10, nothing
-/// saved) on the year page at its overview (the whole year in view). The cell is 3/16 — column 3,
+/// saved) on the year page at its opening zoom (1.1.1: the size every year opens at). The cell is 3/16 — column 3,
 /// row 16, a Monday with no events and no ink — tapped in its middle, which is outside 1.0's
 /// 40 × 28 lu target (1.0 stays on the year page there) and inside the whole-cell target of 1.0.1.
 ///
@@ -16,14 +16,14 @@ import XCTest
 /// is column 3 (its width is 112 lu × the zoom, its bottom is the canvas's top), the toolbar's 「ペン」
 /// button is 16 pt below the canvas's bottom (the toolbar's 8 pt padding and the 8 pt inset gap),
 /// and the paper (1400 × 1896 lu with the demo month: row 16 grows by 36 lu for 10/16's four all-day
-/// events) is centred in the canvas. Row 16 is 900…996 lu, so its middle (948 lu) is also the
-/// paper's: ±48 lu of room, 14 pt in portrait and 5 pt in landscape.
+/// events) starts at the canvas's top (1.1.1). Row 16 is 900…996 lu, so its middle is 948 lu below it:
+/// ±48 lu of room, 14 pt in portrait and 5 pt in landscape.
 @MainActor
 final class YearTapUITests: XCTestCase {
-    /// The paper's height (lu) with the demo month (the CI's iPhone log: "overview=1400x1896").
-    private let paperHeight: CGFloat = 1896
     /// The middle of row 16 (900…996 lu).
     private let rowMiddle: CGFloat = 948
+    /// The bottom of row 16.
+    private let rowBottom: CGFloat = 996
     /// Column 3's width (lu, `PaperSpec.yearColumnWidth`).
     private let columnWidth: CGFloat = 112
     /// A tap whose synthesis took longer than this (s) met an overloaded simulator (see `runJump`).
@@ -87,11 +87,10 @@ final class YearTapUITests: XCTestCase {
         let zoom = heading.width / columnWidth
         let canvasTop = heading.maxY
         let canvasBottom = penFrame.minY - 16
-        let inset = max(0, (canvasBottom - canvasTop - paperHeight * zoom) / 2)
-        let dy = inset + rowMiddle * zoom
-        log("\(name): window=\(app.windows.firstMatch.frame) march=\(heading) pen=\(penFrame) zoom=\(zoom) canvas=\(canvasTop)…\(canvasBottom) inset=\(inset) tap=(\(heading.midX), \(canvasTop + dy))")
-        XCTAssertTrue(zoom > 0.05 && zoom < 0.6, "\(name): the overview's zoom (\(zoom), heading \(heading))")
-        XCTAssertGreaterThan(canvasBottom - canvasTop, paperHeight * zoom - 4, "\(name): the canvas holds the paper (\(canvasTop)…\(canvasBottom), zoom \(zoom))")
+        let dy = rowMiddle * zoom
+        log("\(name): window=\(app.windows.firstMatch.frame) march=\(heading) pen=\(penFrame) zoom=\(zoom) canvas=\(canvasTop)…\(canvasBottom) tap=(\(heading.midX), \(canvasTop + dy))")
+        XCTAssertTrue(zoom > 0.05 && zoom < 0.6, "\(name): the opening zoom (\(zoom), heading \(heading))")
+        XCTAssertGreaterThan(canvasBottom - canvasTop, rowBottom * zoom, "\(name): row 16 is inside the canvas (\(canvasTop)…\(canvasBottom), zoom \(zoom))")
         if landscape {
             XCTAssertLessThan(heading.width, heading.height, "\(name): a column narrower than the 44 pt heading row (\(heading))")
         }

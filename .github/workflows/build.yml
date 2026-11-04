@@ -12,7 +12,7 @@
 # (docs/M6_CONTRACT.md §4.2, §7.4) an eighth sheet "export" (the export sheet in its choose state), the
 # iPhone's paywall sheet, five shots on a 6.9-inch iPhone (iPhone 17 Pro Max) and a "Store listing set"
 # step that converts the App Store shots into JPEGs under store/<device>/) and uploads the
-# screenshots (artifact "screenshots", kept 7 days: up to 53 images + 5 logs + store/ + fixtures/) so the
+# screenshots (artifact "screenshots", kept 7 days: up to 55 images + 5 logs + store/ + fixtures/) so the
 # app can be looked at without Xcode. The screenshot steps never fail the job. Since 1.0.1 (docs/R1_0_1.md §5.1)
 # a UI test (YearTapUITests) runs on an iPhone after the screenshots and does fail the job; its log
 # and screenshots go to shots/ui-tests/. Since 1.1 (docs/M7A_CONTRACT.md §7.4, §7.5) the 13-inch iPad
@@ -25,7 +25,8 @@
 # a21e469: its TegakiKit and its app's ledger and sync engine) next to the frozen copy (K-7). Since 1.1.1
 # (docs/R1_1_1.md) a third job, blank-paper, runs BlankPaperShotsUITests: the paper with no events and
 # no handwriting on four devices (artifact "blank-paper", kept 7 days; that test skips itself in the UI
-# test step of the first job, whose steps and photos do not change).
+# test step of the first job). In the first job 1.1.1 adds two photos of the one-time pinch hint and
+# HeaderAndPaperUITests, and the grown memo's photos scroll to the stroke (the paper ends far below it).
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -80,16 +81,18 @@ jobs:
       # M4C-10; docs/M5_CONTRACT.md §7.4, M5-25; docs/M6_CONTRACT.md §7.1, M6-18; docs/M7A_CONTRACT.md
       # §7.1): 1.1 counts 24446 (1.0.1's 23446 + 578 for the "growing paper", "date taps" and "stroke
       # budget (1.1)" sections + 278 for "compat with 1.0 (K-7)" on K's fixtures + 144 for the 8
-      # fixtures of the ledger and the screenshot mode) and the threshold is that number minus 50, so
-      # anything below 24396 means a section or a fixture went missing.
+      # fixtures of the ledger and the screenshot mode); 1.1.1 (docs/R1_1_1.md) counts 24929 (+ 244 for
+      # the loops over the taller paper + 239 for the changed checks and the section "opening zoom and
+      # top-aligned paper (1.1.1)") and the threshold is that number minus 50, so anything below 24879
+      # means a section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 24396 or more)"
+          echo "KitChecks count: ${N:-0} (required: 24879 or more)"
           grep -E 'compat10: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 24396
+          test "${N:-0}" -ge 24879
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -340,8 +343,10 @@ jobs:
       # bottom left and at the bottom right ("--screenshot-toolbar collapsed|collapsed-right"), the eraser
       # chosen from the toolbar (its hint ends in 「（消すとペンに戻ります）」; the 「しまう」 button at the
       # right end), and the grown month memo and the day's free memo below 24:00 ("--screenshot-grown")
-      # scrolled to the end of the paper ("--screenshot-offset 0,9999" is clamped to the paper).
-      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1)
+      # scrolled to their strokes ("--screenshot-offset 0,1700" and "0,2300": 1.1.1 opens the two areas
+      # to 6,000 lu, so the end of the paper is blank; the red wave is at y ≈ 2,063, the black at ≈ 2,700).
+      # 1.1.1 (docs/R1_1_1.md): the one-time pinch hint ("--screenshot-pinch-hint", 20 s).
+      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1 + the hint)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -378,8 +383,9 @@ jobs:
           for SPEC in "toolbar-collapsed|--screenshot-page month --screenshot-toolbar collapsed" \
                       "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
                       "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
-                      "month-memo|--screenshot-page month --screenshot-grown --screenshot-offset 0,9999" \
-                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,9999"; do
+                      "month-memo|--screenshot-page month --screenshot-grown --screenshot-offset 0,1700" \
+                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,2300" \
+                      "pinch-hint|--screenshot-page month --screenshot-pinch-hint"; do
             SHOT="${SPEC%%|*}"; ARGS="${SPEC#*|}"
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
@@ -564,11 +570,13 @@ jobs:
             done
             if [ "$ID" = "iphone" ]; then
               # 1.1 (docs/M7A_CONTRACT.md §7.4, §8 6): the folded toolbar (the dock button above the home
-              # indicator), the grown month memo and the day's free memo below 24:00 at the paper's end,
-              # and (below, with the landscape shots) the folded toolbar in landscape.
+              # indicator), the grown month memo and the day's free memo below 24:00 at their strokes,
+              # the one-time pinch hint (1.1.1), and (below, with the landscape shots) the folded toolbar
+              # in landscape.
               shoot "$ID-portrait-toolbar-collapsed.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-toolbar collapsed
-              shoot "$ID-portrait-month-memo.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-grown --screenshot-offset 0,9999
-              shoot "$ID-portrait-day-extra.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-grown --screenshot-offset 0,9999
+              shoot "$ID-portrait-month-memo.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-grown --screenshot-offset 0,1700
+              shoot "$ID-portrait-day-extra.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-grown --screenshot-offset 0,2300
+              shoot "$ID-portrait-pinch-hint.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-pinch-hint
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.
               shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
@@ -608,7 +616,9 @@ jobs:
       # becomes an event) runs here too; its steps are the `eraser-memo UI:` lines. The lead's review: the
       # step stops after 25 minutes (normally about 7: the boot, the 60 s wait, YearTapUITests 97 s in
       # run 41164839330 and about 3–4 min for the 8; an overloaded simulator stretches every wait of the
-      # tests, each of which is bounded).
+      # tests, each of which is bounded). 1.1.1 (docs/R1_1_1.md): HeaderAndPaperUITests (3 tests, about a
+      # minute: where 「今日」 sits and that it works, an empty page at the top of the real paper area);
+      # its steps are the `header-paper UI:` lines.
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 25
         run: |
@@ -632,7 +642,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
@@ -838,7 +848,7 @@ jobs:
 
   # 1.1.1 (docs/R1_1_1.md): the paper with no events and no handwriting on the owner's four kinds of
   # device, portrait and landscape, toolbar out and folded, to compare before and after the fix. Its
-  # own job so the 53 shots and the 90-minute job do not change. Best effort: never fails the run.
+  # own job so the other shots and the 90-minute job do not change. Best effort: never fails the run.
   # The limits, from run 41264726309: a build took 0.9 min (8 is allowed for), a device 5.8–9.6 min
   # (its boot 1.9–3.2, the 60 s wait, xcodebuild up to the first test 1.1, 10 or 13 shots of 11–15 s, and
   # at most 1 for a slow first test), so 24–36 min for the four. The shots stop after 36 min, which

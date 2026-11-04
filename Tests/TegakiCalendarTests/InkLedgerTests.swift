@@ -794,25 +794,26 @@ final class InkLedgerTests: XCTestCase {
     }
 
     /// 0-2: the ledger asks for room with the rule the engines grow the cells with
-    /// (`PaperGrowth.needsMoreRoom`): the last cell in 400 lu steps — a memo area of 1,100 grows for a
-    /// stroke down to 750 (1.0's `b + 50` = 800 would not have asked) — the month and year cells by
-    /// `b + 12` as before, the day's free memo area like the month's memo area, the time grid never.
-    func testNeedsMoreRoomFollowsTheStepRule() {
-        // The month's memo area: 700 when empty.
+    /// (`PaperGrowth.needsMoreRoom`): the last cell is open to 6,000 lu from the start (1.1.1) and asks
+    /// only when `b + 50` passes it, the month and year cells by `b + 12` as before, the day's free memo
+    /// area like the month's memo area, the time grid never.
+    func testNeedsMoreRoomFollowsTheOpenTailRule() {
+        // The month's memo area: 6,000 when empty.
         let empty = makeLayout()
-        XCTAssertEqual(empty.memo.height, 700, accuracy: 0.001)
+        XCTAssertEqual(empty.memo.height, 6000, accuracy: 0.001)
         let ledger = InkLedger(page: InkPage.empty(pageId: pageId), layout: empty)
-        XCTAssertEqual(makeStoredStroke(cell: .memo, bottom: 301).bottom, 301, accuracy: 0.001)
-        XCTAssertFalse(ledger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 300)), "b ≤ 300 fits 700")
-        XCTAssertTrue(ledger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 301)), "b 301 → 1,100")
+        XCTAssertEqual(makeStoredStroke(cell: .memo, bottom: 5951).bottom, 5951, accuracy: 0.001)
+        XCTAssertFalse(ledger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 301)), "1.1 asked here")
+        XCTAssertFalse(ledger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 5950)), "b ≤ 5,950 fits 6,000")
+        XCTAssertTrue(ledger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 5951)), "b 5,951 → 6,001")
 
-        // Ink down to 650: 1,100. 700 still fits it; 750 asks (→ 1,500), where 1.0 asked only past 1,050.
-        let grown = makeLayout(inkBottoms: [.memo: 650])
-        XCTAssertEqual(grown.memo.height, 1100, accuracy: 0.001)
+        // A 1.0 device's line down to 6,000: 6,050. 6,000 still fits it; 6,010 asks (→ 6,060).
+        let grown = makeLayout(inkBottoms: [.memo: 6000])
+        XCTAssertEqual(grown.memo.height, 6050, accuracy: 0.001)
         let grownLedger = InkLedger(page: InkPage.empty(pageId: pageId), layout: grown)
-        XCTAssertFalse(grownLedger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 700)))
-        XCTAssertTrue(grownLedger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 750)), "0-2: 750 + 50 = 800 < 1,100, but the step rule wants 1,500")
-        XCTAssertEqual(PaperGrowth.tailHeight(inkBottom: 750), 1500, accuracy: 0.001)
+        XCTAssertFalse(grownLedger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 6000)))
+        XCTAssertTrue(grownLedger.needsMoreRoom(makeStoredStroke(cell: .memo, bottom: 6010)))
+        XCTAssertEqual(PaperGrowth.tailHeight(inkBottom: 6010), 6060, accuracy: 0.001)
 
         // A day cell of the month: the row rule `b + 12` (the 175 lu row).
         let day = DayKey(year: 2026, month: 10, day: 7)
@@ -822,10 +823,10 @@ final class InkLedgerTests: XCTestCase {
 
         // The day page: the free memo area below 24:00 grows like the memo area; the grid never.
         let dayLayout = makeDayLayout()
-        XCTAssertEqual(dayLayout.extra.height, 700, accuracy: 0.001)
+        XCTAssertEqual(dayLayout.extra.height, 6000, accuracy: 0.001)
         let dayLedger = InkLedger(page: InkPage.empty(pageId: dayLayout.pageId), layout: dayLayout)
-        XCTAssertFalse(dayLedger.needsMoreRoom(makeStoredStroke(cell: .extra, bottom: 300)))
-        XCTAssertTrue(dayLedger.needsMoreRoom(makeStoredStroke(cell: .extra, bottom: 301)))
+        XCTAssertFalse(dayLedger.needsMoreRoom(makeStoredStroke(cell: .extra, bottom: 5950)))
+        XCTAssertTrue(dayLedger.needsMoreRoom(makeStoredStroke(cell: .extra, bottom: 5951)))
         XCTAssertFalse(dayLedger.needsMoreRoom(makeStoredStroke(cell: .grid, bottom: 5000)), "the time grid never grows")
 
         // The year: the row rule, unchanged.
@@ -851,18 +852,18 @@ final class InkLedgerTests: XCTestCase {
         let ledger = InkLedger(page: InkPage.empty(pageId: pageId), layout: layout)
         _ = ledger.drawing()
         let memo = layout.memo
-        // Low in the memo area (bottom ≈ 495.75): the area must grow to 1,100.
-        let pk = makeStroke(at: CGPoint(x: 100, y: memo.minY + 490), creationDate: Date(timeIntervalSince1970: 1_790_000_020))
+        // At the very end of the memo area (bottom ≈ 5,989.75): the area must grow to about 6,040.
+        let pk = makeStroke(at: CGPoint(x: 100, y: memo.minY + 5984), creationDate: Date(timeIntervalSince1970: 1_790_000_020))
         let change = ledger.applyCanvasChange(PKDrawing(strokes: [pk]))
         guard let added = change.added.first else { return XCTFail("stroke was not added") }
         XCTAssertEqual(added.cell, CellKey.memo)
         XCTAssertTrue(ledger.needsMoreRoom(added))
 
         let grown = makeLayout(inkBottoms: ledger.page.inkBottoms())
-        XCTAssertEqual(grown.memo.height, 1100, accuracy: 0.001)
+        XCTAssertEqual(grown.memo.height, 6040, accuracy: 0.5)
         XCTAssertTrue(PaperGrowth.onlyTailHeightChanged(old: layout, new: grown))
         ledger.adopt(grown)
-        XCTAssertEqual(ledger.layout.cells[.memo]?.height ?? 0, 1100, accuracy: 0.001)
+        XCTAssertEqual(ledger.layout.cells[.memo]?.height ?? 0, grown.memo.height, accuracy: 0.001)
         XCTAssertEqual(ledger.layout.size.height, grown.size.height, accuracy: 0.001)
         XCTAssertFalse(ledger.needsMoreRoom(added), "the adopted height is read")
         XCTAssertTrue(ledger.applyCanvasChange(PKDrawing(strokes: [pk])).isEmpty, "the fingerprint map is kept")
@@ -874,7 +875,7 @@ final class InkLedgerTests: XCTestCase {
         // Another page's layout: ignored, reported once.
         ledger.adopt(makeDayLayout())
         XCTAssertEqual(ledger.layout.pageId, pageId)
-        XCTAssertEqual(ledger.layout.cells[.memo]?.height ?? 0, 1100, accuracy: 0.001)
+        XCTAssertEqual(ledger.layout.cells[.memo]?.height ?? 0, grown.memo.height, accuracy: 0.001)
         XCTAssertEqual(reports.count, 1)
     }
 

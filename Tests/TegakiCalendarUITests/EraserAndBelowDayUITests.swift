@@ -21,9 +21,10 @@ import XCTest
 /// step logs it (`eraser-memo UI:` lines), so a red run says where it stopped. Every toast stays 20 s
 /// with the probe, so a slow simulator cannot miss the notice.
 ///
-/// Positions are paper points (lu) mapped with the probe: the month's memo area is the last 700 lu of
-/// its paper (`PaperGrowth.tailHeight` of the demo memo), the day's free memo area starts at 2,400.
-/// Lines stay above 300 lu in those areas, so nothing grows under the gestures.
+/// Positions are paper points (lu) mapped with the probe: the month's memo area is the last 6,000 lu of
+/// its paper (`PaperGrowth.tailHeight` of the demo memo, 1.1.1), the day's free memo area starts at
+/// 2,400. Lines stay near the top of those areas, which are open from the start, so nothing grows under
+/// the gestures.
 ///
 /// Two tests (確認 6b and the lasso of 確認 12) need touches the public API cannot make — a closed loop,
 /// and a touch 0.1 s after a lift — and use XCTest's own event synthesiser (`TouchSynthesizer`, private
@@ -31,9 +32,10 @@ import XCTest
 /// tool (B0) and the preselected strokes (B2, B3: `--screenshot-select`) cover the rest without it.
 @MainActor
 final class EraserAndBelowDayUITests: XCTestCase {
-    /// The height (lu) of the month's memo area and of the day's free memo area with the demo pages
-    /// (`PaperGrowth.tailHeight` of a bottom under 300).
-    private let tailHeight: CGFloat = 700
+    /// The height (lu) of the month's memo area with the demo pages (`PaperGrowth.tailHeight`, 1.1.1).
+    private let memoHeight: CGFloat = 6000
+    /// The top part of the day's free memo area (lu) that has to be on screen for the tests below.
+    private let freeMemoProbe: CGFloat = 700
     /// The top of the day's free memo area (lu, `PaperSpec.dayGridHeight`).
     private let dayExtraTop: CGFloat = 2400
     /// A gesture whose synthesis took longer than this (s) beyond its own length met an overloaded
@@ -76,7 +78,7 @@ final class EraserAndBelowDayUITests: XCTestCase {
         XCTAssertNotNil(waitForProbe(app, timeout: 3, "\(name): 赤・太 chosen") { $0.tool == redThick },
                         "\(name): the toolbar chose 赤・太 (\(probe(app)?.tool ?? "?"))")
 
-        let memoTop = start.paperSize.height - tailHeight
+        let memoTop = start.paperSize.height - memoHeight
         let line = Line(from: CGPoint(x: 500, y: memoTop + 150), to: CGPoint(x: 900, y: memoTop + 150))
         guard drawLine(line, in: app, name) != nil else { return }
 
@@ -113,7 +115,7 @@ final class EraserAndBelowDayUITests: XCTestCase {
         continueAfterFailure = true
         let app = launchApp(["--screenshot-page", "month"])
         guard let start = waitForCanvas(app, "A2") else { return }
-        let memoTop = start.paperSize.height - tailHeight
+        let memoTop = start.paperSize.height - memoHeight
         for (index, gesture) in [EraseGesture.along, .tap].enumerated() {
             let name = "A2 \(gesture.rawValue)"
             let y = memoTop + 120 + CGFloat(index) * 120
@@ -153,7 +155,7 @@ final class EraserAndBelowDayUITests: XCTestCase {
         log("\(name): the round button's mark is 「\(penMark)」")
         XCTAssertTrue(penMark.hasPrefix(Self.penLabel), "\(name): it starts with the pen (\(penMark))")
 
-        let memoTop = start.paperSize.height - tailHeight
+        let memoTop = start.paperSize.height - memoHeight
         let line = Line(from: CGPoint(x: 500, y: memoTop + 150), to: CGPoint(x: 900, y: memoTop + 150))
         guard drawLine(line, in: app, name) != nil else { return }
 
@@ -185,7 +187,7 @@ final class EraserAndBelowDayUITests: XCTestCase {
         let name = "A4 6b"
         let app = launchApp(["--screenshot-page", "month"])
         guard let start = waitForCanvas(app, name) else { return }
-        let memoTop = start.paperSize.height - tailHeight
+        let memoTop = start.paperSize.height - memoHeight
         let first = Line(from: CGPoint(x: 500, y: memoTop + 120), to: CGPoint(x: 900, y: memoTop + 120))
         let second = Line(from: CGPoint(x: 500, y: memoTop + 240), to: CGPoint(x: 900, y: memoTop + 240))
         guard drawLine(first, in: app, name) != nil, drawLine(second, in: app, name) != nil else { return }
@@ -302,10 +304,11 @@ final class EraserAndBelowDayUITests: XCTestCase {
 
     // MARK: - Launching and the probe
 
-    /// The day page at twice its overview, scrolled to the end of the paper: the free memo area below
-    /// 24:00 (700 lu, about 315 pt on an iPhone 17) fills the lower part of the canvas.
+    /// The day page at twice its opening zoom, scrolled to just above the free memo area below 24:00:
+    /// the first 700 lu of it (about 315 pt on an iPhone 17) are in the canvas. (Its end, 6,000 lu
+    /// further down since 1.1.1, is only blank paper.)
     private var dayBottomArguments: [String] {
-        ["--screenshot-page", "day", "--screenshot-zoom", "2", "--screenshot-offset", "0,9999"]
+        ["--screenshot-page", "day", "--screenshot-zoom", "2", "--screenshot-offset", "0,2380"]
     }
 
     private func launchApp(_ extra: [String]) -> XCUIApplication {
@@ -385,11 +388,11 @@ final class EraserAndBelowDayUITests: XCTestCase {
         return settled
     }
 
-    /// The free memo area (2,400 … 2,400 + 700 lu) is inside the canvas (the day page at the end).
+    /// The top of the free memo area (2,400 … 2,400 + 700 lu) is inside the canvas (`dayBottomArguments`).
     private func freeMemoIsVisible(_ probe: CanvasProbe, _ name: String) -> Bool {
         let top = probe.screen(CGPoint(x: 0, y: dayExtraTop)).y
-        let bottom = probe.screen(CGPoint(x: 0, y: dayExtraTop + tailHeight)).y
-        let visible = top >= probe.frame.minY - 0.5 && bottom <= probe.frame.maxY + 0.5 && probe.paperSize.height >= dayExtraTop + tailHeight - 0.5
+        let bottom = probe.screen(CGPoint(x: 0, y: dayExtraTop + freeMemoProbe)).y
+        let visible = top >= probe.frame.minY - 0.5 && bottom <= probe.frame.maxY + 0.5 && probe.paperSize.height >= dayExtraTop + freeMemoProbe - 0.5
         log("\(name): the free memo area is \(top)…\(bottom) pt in the canvas \(probe.frame.minY)…\(probe.frame.maxY)")
         XCTAssertTrue(visible, "\(name): the free memo area below 24:00 is on screen (\(top)…\(bottom) in \(probe.frame))")
         return visible

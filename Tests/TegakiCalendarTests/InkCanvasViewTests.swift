@@ -69,17 +69,25 @@ final class InkCanvasViewTests: XCTestCase {
         return (layout, .week(WeekPaperContent(layout: layout)))
     }
 
-    /// 10/7: 1000 × 3100 lu (1.1: the 24 hours, 2400, and the empty free memo area below them, 700;
-    /// the overview is the 24 hours).
+    /// 10/7: 1000 × 8400 lu (1.1: the 24 hours, 2400, and the free memo area below them, open to 6,000
+    /// since 1.1.1; the overview is the 24 hours).
     private func makeDay(inkBottoms: [CellKey: CGFloat] = [:]) -> (layout: DayPageLayout, paper: PaperContent) {
         let layout = DayLayoutEngine.layout(DayLayoutInput(day: wednesday, events: [], inkBottoms: inkBottoms, now: now))
         return (layout, .day(DayPaperContent(layout: layout)))
     }
 
     /// 2026, no events: 1400 × 1860 lu (10/7's cell is (1064, 360, 112, 60)).
-    private func makeYear() -> (layout: YearPageLayout, paper: PaperContent) {
-        let layout = YearLayoutEngine.layout(YearLayoutInput(year: 2026, events: [], inkBottoms: [:], now: now))
+    private func makeYear(inkBottoms: [CellKey: CGFloat] = [:]) -> (layout: YearPageLayout, paper: PaperContent) {
+        let layout = YearLayoutEngine.layout(YearLayoutInput(year: 2026, events: [], inkBottoms: inkBottoms, now: now))
         return (layout, .year(YearPaperContent(layout: layout, monthNames: (1...12).map { "\($0)月" })))
+    }
+
+    /// 1.1.1: a year that has grown with handwriting, 1400 × 2600 lu: rows 1…10 are 134 lu (ink down to
+    /// 122 lu in January), the other 21 are 60. Row 4 is 402…536 lu, row 28 is 2,360…2,420 lu.
+    private func makeTallYear() -> (layout: YearPageLayout, paper: PaperContent) {
+        var bottoms: [CellKey: CGFloat] = [:]
+        for day in 1...10 { bottoms[.yearDay(month: 1, day: day)] = 122 }
+        return makeYear(inkBottoms: bottoms)
     }
 
     /// The canvas as the screen builds it. `initialScrollX` is computed for the readable zoom (it is
@@ -475,16 +483,17 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertEqual(rig.probe.last?.zoom ?? 0, 1150.0 / 1920, accuracy: 1e-4)
     }
 
-    /// `applyPending`'s `applyBounds`: a month row grown by ink (175 → 400 lu) lowers the overview
-    /// of a height-bound landscape iPad (830 / 1050 → 830 / 1275); the overview follows, a zoomed-in
-    /// paper only gets the new limits.
-    func testMonthRowGrowthLowersTheOverviewZoomInLandscape() async {
+    /// `applyPending`'s `applyBounds`: a month row grown by ink (175 → 400 lu) lowers the lower limit
+    /// of a height-bound landscape iPad (830 / 1050 → 830 / 1275). 1.1.1: the opening zoom is the
+    /// month's `baseSize`, so the paper being written on does not shrink; a zoomed-in paper only gets
+    /// the new limits.
+    func testMonthRowGrowthKeepsTheOpeningZoomInLandscape() async {
         let (layout, paper) = makeMonth()
         let (grown, grownPaper) = makeMonth(inkBottoms: [.day(wednesday): 388])
         XCTAssertEqual(grown.memo.minY, 1275, accuracy: 0.01, "one row of 400 lu")
         let lowered = 830.0 / 1275 // 0.651
 
-        // At the overview.
+        // At the opening zoom.
         let rig = await makeRig(layout: layout, paper: paper, width: 1366, height: 830)
         XCTAssertEqual(rig.canvas.zoomScale, 830.0 / 1050, accuracy: 1e-4)
         let grownView = makeView(layout: grown, paper: grownPaper, viewportWidth: 1366, probe: rig.probe,
@@ -492,9 +501,9 @@ final class InkCanvasViewTests: XCTestCase {
         rig.coordinator.update(from: grownView)
         await settle()
         XCTAssertEqual(rig.canvas.minimumZoomScale, lowered, accuracy: 1e-4)
-        XCTAssertEqual(rig.canvas.zoomScale, lowered, accuracy: 1e-4, "the overview follows")
-        XCTAssertEqual(rig.probe.last?.zoom ?? 0, lowered, accuracy: 1e-4)
-        XCTAssertEqual(rig.probe.ratios, [], "the overview's change is not a pinch")
+        XCTAssertEqual(rig.canvas.zoomScale, 830.0 / 1050, accuracy: 1e-4, "the paper being written on does not shrink")
+        XCTAssertEqual(rig.probe.last?.zoom ?? 0, 830.0 / 1050, accuracy: 1e-4)
+        XCTAssertEqual(rig.probe.ratios, [], "a change of the limit is not a pinch")
 
         // Zoomed in (ratio 2 = 1.581): the limits only.
         let rig2 = await makeRig(layout: layout, paper: paper, width: 1366, height: 830, initialZoomRatio: 2)
@@ -886,9 +895,12 @@ final class InkCanvasViewTests: XCTestCase {
         )
         XCTAssertEqual(view.initialScrollX, 0)
         view.onViewportChange(.zero)
-        // M4C_CONTRACT §1.3: 1 (the overview) / nil / false / three no-ops.
+        // M4C_CONTRACT §1.3: 1 (the opening zoom) / nil / false / three no-ops.
         XCTAssertEqual(view.initialZoomRatio, 1)
         XCTAssertNil(view.initialPaperOffset)
+        // 1.1.1: nothing to bring on screen.
+        XCTAssertNil(view.revealRect)
+        XCTAssertEqual(view.revealTrigger, 0)
         XCTAssertFalse(view.doubleTapEnabled)
         view.onDoubleTap(.zero)
         view.onZoomRatioChange(1)
@@ -1083,36 +1095,36 @@ final class InkCanvasViewTests: XCTestCase {
 
     // MARK: 1.1 — the light path of a growing last cell (M7A_CONTRACT §3.6, 0-6)
 
-    /// The iPhone's month (402 × 591, fit-to-width 0.2871): 1750 lu of paper are 502 pt, centred with
-    /// 44 pt above and below. A stroke low in the memo area (bottom ≈ 496 lu) makes it 1,100: the
-    /// layout comes back with only the memo area taller, and the canvas keeps its drawing (no
-    /// `setDrawing`), the ledger adopts the layout, the content is (1050 + 1100) × zoom = 617 pt and
-    /// the margins are recomputed (0-6: 0, the paper is taller than the screen now).
+    /// The iPhone's month (402 × 591, fit-to-width 0.2871): 7,050 lu of paper (1.1.1: the memo area is
+    /// open to 6,000 from the start), no margin above or below. A stroke at the very end of the memo
+    /// area (bottom ≈ 5,990 lu) makes it 6,040 (`b + 50`): the layout comes back with only the memo
+    /// area taller, and the canvas keeps its drawing (no `setDrawing`), the ledger adopts the layout,
+    /// the content is (1050 + 6040) × zoom and the margins are recomputed (0-6: still 0).
     func testTailOnlyGrowthKeepsTheDrawing() async {
         let (layout, paper) = makeMonth()
         XCTAssertEqual(layout.memo.minY, 1050, accuracy: 0.01)
-        XCTAssertEqual(layout.memo.height, 700, accuracy: 0.01)
+        XCTAssertEqual(layout.memo.height, 6000, accuracy: 0.01)
         let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 591)
         let zoom = rig.canvas.zoomScale
         XCTAssertEqual(zoom, 402.0 / 1400, accuracy: 1e-4)
-        XCTAssertEqual(rig.canvas.contentInset.top, 44, accuracy: 0.5, "1750 lu × 0.2871 = 502 pt in 591: centred")
-        XCTAssertEqual(rig.canvas.contentInset.bottom, 44, accuracy: 0.5)
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.contentInset.bottom, 0, accuracy: 0.001)
 
-        draw(makeStroke(at: CGPoint(x: 300, y: 1050 + 490)), on: rig)
+        draw(makeStroke(at: CGPoint(x: 300, y: 1050 + 5984)), on: rig)
         let page = rig.coordinator.ledger.page
         XCTAssertEqual(page.liveStrokes.first?.cell, CellKey.memo)
         XCTAssertEqual(rig.probe.inkBounds, 1, "the memo area asks for room")
         let (grown, grownPaper) = makeMonth(inkBottoms: page.inkBottoms())
-        XCTAssertEqual(grown.memo.height, 1100, accuracy: 0.01)
+        XCTAssertEqual(grown.memo.height, 6040, accuracy: 0.5)
         XCTAssertTrue(PaperGrowth.onlyTailHeightChanged(old: layout, new: grown))
 
         let builds = rig.coordinator.setDrawingCount
         rig.coordinator.update(from: makeView(layout: grown, paper: grownPaper, viewportWidth: 402, probe: rig.probe, page: page))
         XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the drawing is not rebuilt")
         XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
-        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.memo]?.height ?? 0, 1100, accuracy: 0.01, "the ledger adopted the layout")
-        XCTAssertEqual(rig.canvas.contentSize.height, (1050 + 1100) * zoom, accuracy: 0.5)
-        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001, "0-6: 617 pt of paper in 591 — no margin")
+        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.memo]?.height ?? 0, grown.memo.height, accuracy: 0.01, "the ledger adopted the layout")
+        XCTAssertEqual(rig.canvas.contentSize.height, grown.size.height * zoom, accuracy: 0.5)
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001, "0-6: no margin")
         XCTAssertEqual(rig.canvas.contentInset.bottom, 0, accuracy: 0.001)
         XCTAssertEqual(rig.canvas.zoomScale, zoom, accuracy: 1e-6, "the overview rectangle did not change")
         XCTAssertEqual(rig.paperView.content, grownPaper, "the paper got its new content")
@@ -1122,58 +1134,75 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertFalse(rig.coordinator.ledger.canRedo)
     }
 
-    /// The memo area shrinks (1,500 → 700) while the iPad's month is scrolled to its end: the light
-    /// path clamps the offset to the new end (1750 × 0.7314 − 1180 = 100 pt), still without a new drawing.
+    /// The memo area shrinks (6,470 → 6,000: a 1.0 device's line below the limit is erased) while the
+    /// iPad's month is scrolled to its end: the light path clamps the offset to the new end
+    /// (7,050 × 0.7314 − 1180 pt), still without a new drawing.
     func testTailOnlyShrinkClampsTheOffset() async {
         var page = InkPage.empty(pageId: "m1-2026-10")
-        page.add(makeInkStroke(id: "memo-low", cell: .memo, t: 1_790_000_000_000, points: [(100, 880), (110, 898.25)]))
-        XCTAssertEqual(page.inkBottoms()[.memo] ?? 0, 900, accuracy: 0.1, "898.25 is stored as 898.3 (0.1 lu)")
+        page.add(makeInkStroke(id: "memo-low", cell: .memo, t: 1_790_000_000_000, points: [(100, 6400), (110, 6418.25)]))
+        XCTAssertEqual(page.inkBottoms()[.memo] ?? 0, 6420, accuracy: 0.1, "6418.25 is stored as 6418.3 (0.1 lu)")
         let (grown, grownPaper) = makeMonth(inkBottoms: page.inkBottoms())
-        XCTAssertEqual(grown.memo.height, 1500, accuracy: 0.01)
+        XCTAssertEqual(grown.memo.height, 6470, accuracy: 0.1)
         let rig = await makeRig(layout: grown, paper: grownPaper, width: 1024, height: 1180, page: page)
         let zoom = rig.canvas.zoomScale
         XCTAssertEqual(zoom, 1024.0 / 1400, accuracy: 1e-4)
         XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
-        rig.canvas.contentOffset = CGPoint(x: 0, y: (1050 + 1500) * zoom - 1180)
+        rig.canvas.contentOffset = CGPoint(x: 0, y: grown.size.height * zoom - 1180)
 
         erase(["memo-low"], on: rig)
         XCTAssertTrue(rig.coordinator.ledger.page.liveStrokes.isEmpty)
         let (shrunk, shrunkPaper) = makeMonth(inkBottoms: rig.coordinator.ledger.page.inkBottoms())
-        XCTAssertEqual(shrunk.memo.height, 700, accuracy: 0.01)
+        XCTAssertEqual(shrunk.memo.height, 6000, accuracy: 0.01)
         let builds = rig.coordinator.setDrawingCount
         rig.coordinator.update(from: makeView(layout: shrunk, paper: shrunkPaper, viewportWidth: 1024, probe: rig.probe,
                                               page: rig.coordinator.ledger.page))
         XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path")
-        XCTAssertEqual(rig.canvas.contentSize.height, 1750 * zoom, accuracy: 0.5)
-        XCTAssertEqual(rig.canvas.contentOffset.y, 1750 * zoom - 1180, accuracy: 0.5, "clamped to the new end")
+        XCTAssertEqual(rig.canvas.contentSize.height, 7050 * zoom, accuracy: 0.5)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 7050 * zoom - 1180, accuracy: 0.5, "clamped to the new end")
         XCTAssertEqual(rig.canvas.contentInset, .zero)
     }
 
-    /// The day's free memo area grows (700 → 1,100) and the paper's picture is handed in unchanged:
+    /// The day's free memo area grows (6,000 → 6,040) and the paper's picture is handed in unchanged:
     /// the geometry alone still reaches `applyPending` (`requestApply` and its guard know
     /// `pendingGeometry`) and takes the light path. The day's overview is the 24 hours (K-6): the zoom stays.
     func testDayExtraGrowthUsesTheTailPath() async {
         let (layout, paper) = makeDay()
-        XCTAssertEqual(layout.size.height, 3100, accuracy: 0.01)
+        XCTAssertEqual(layout.size.height, 8400, accuracy: 0.01)
         let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 580)
         let zoom = rig.canvas.zoomScale
         XCTAssertEqual(zoom, fitAll(layout, 402, 580), accuracy: 1e-6)
 
-        draw(makeStroke(at: CGPoint(x: 300, y: 2400 + 490)), on: rig)
+        draw(makeStroke(at: CGPoint(x: 300, y: 2400 + 5984)), on: rig)
         let page = rig.coordinator.ledger.page
         XCTAssertEqual(page.liveStrokes.first?.cell, CellKey.extra, "below 24:00")
-        XCTAssertEqual(page.liveStrokes.first?.points.first?.y ?? -1, 490, accuracy: 0.11, "cell-relative: paper y − 2400")
+        XCTAssertEqual(page.liveStrokes.first?.points.first?.y ?? -1, 5984, accuracy: 0.11, "cell-relative: paper y − 2400")
         XCTAssertEqual(rig.probe.inkBounds, 1)
         let (grown, _) = makeDay(inkBottoms: page.inkBottoms())
-        XCTAssertEqual(grown.extra.height, 1100, accuracy: 0.01)
+        XCTAssertEqual(grown.extra.height, 6040, accuracy: 0.5)
 
         let builds = rig.coordinator.setDrawingCount
         rig.coordinator.update(from: makeView(layout: grown, paper: paper, viewportWidth: 402, probe: rig.probe, page: page))
         XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path, although the paper's picture is the same")
-        XCTAssertEqual(rig.canvas.contentSize.height, (2400 + 1100) * zoom, accuracy: 0.5)
-        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.extra]?.height ?? 0, 1100, accuracy: 0.01)
+        XCTAssertEqual(rig.canvas.contentSize.height, grown.size.height * zoom, accuracy: 0.5)
+        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.extra]?.height ?? 0, grown.extra.height, accuracy: 0.01)
         XCTAssertEqual(rig.canvas.zoomScale, zoom, accuracy: 1e-6, "the overview is the 24 hours")
         XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+    }
+
+    /// 1.1.1: writing low in the memo area asks for nothing: the area is open to 6,000 from the start,
+    /// so a line at y 3,000 makes no relayout and no new drawing.
+    func testWritingLowInTheMemoDoesNotAskForRoom() async {
+        let (layout, paper) = makeMonth()
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .ink(InkPresets.defaultPen))
+        let builds = rig.coordinator.setDrawingCount
+        draw(makeStroke(at: CGPoint(x: 300, y: layout.memo.minY + 3000)), on: rig)
+        await settle()
+        XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.first?.cell, CellKey.memo)
+        XCTAssertEqual(rig.probe.inkBounds, 0, "the memo area does not ask for room")
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds)
+        XCTAssertEqual(rig.probe.caps, 0)
+        let (same, _) = makeMonth(inkBottoms: rig.coordinator.ledger.page.inkBottoms())
+        XCTAssertTrue(same.sameGeometry(as: layout), "the same paper")
     }
 
     /// A row of the month grows (the memo area moves down): the drawing is rebuilt as before (one
@@ -1344,7 +1373,7 @@ final class InkCanvasViewTests: XCTestCase {
         draw(makeStroke(at: CGPoint(x: 400, y: top + 4998)), on: rig)
         await settle()
         XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.count, 2, "above the limit: kept")
-        XCTAssertEqual(rig.probe.caps, 2, "its bottom leaves room for another step")
+        XCTAssertEqual(rig.probe.caps, 2, "its bottom leaves more than 400 lu below it")
 
         draw(makeStroke(at: CGPoint(x: -30, y: top + 6100)), on: rig)
         await settle()
@@ -1353,17 +1382,17 @@ final class InkCanvasViewTests: XCTestCase {
     }
 
     /// The second trigger of 「メモ欄はここまでです」: a new memo stroke whose bottom is past 5,600 lu
-    /// (no further 400 lu step fits below it) is kept and reported once; at 5,600 it is not.
+    /// (less than 400 lu is left below it) is kept and reported once; at 5,600 it is not.
     func testCapNoticeWhenTheTailReachesItsLastStep() async {
         let (layout, paper) = makeMonth(inkBottoms: [.memo: 5500])
-        XCTAssertEqual(layout.memo.height, 5900, accuracy: 0.01)
+        XCTAssertEqual(layout.memo.height, 6000, accuracy: 0.01)
         let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, tool: .ink(InkPresets.defaultPen))
         let top = layout.memo.minY
 
         draw(makeStroke(through: (0..<5).map { CGPoint(x: 100 + CGFloat($0) * 10, y: top + 5598) }, nib: 4), on: rig)
         await settle()
         XCTAssertEqual(rig.coordinator.ledger.page.liveStrokes.first?.bottom ?? 0, 5600, accuracy: 0.001)
-        XCTAssertEqual(rig.probe.caps, 0, "5,600: the last step still fits")
+        XCTAssertEqual(rig.probe.caps, 0, "5,600: 400 lu are left")
 
         draw(makeStroke(through: (0..<5).map { CGPoint(x: 300 + CGFloat($0) * 10, y: top + 5599) }, nib: 4), on: rig)
         await settle()
@@ -1426,36 +1455,276 @@ final class InkCanvasViewTests: XCTestCase {
 
     // MARK: 1.1 — the round button's clearance (M7A_CONTRACT §2.2)
 
-    /// The iPhone's week (1920 lu at 0.2871 = 551 pt in 580: 14.5 pt above and below): with a
-    /// clearance of 60 the bottom margin is 60 at once (the others unchanged), and stays through a
-    /// layout pass; a larger centring margin wins; 0 gives the centring margin back.
+    /// The iPhone's week (1920 lu at 0.2871 = 551 pt in 580). 1.1.1: the paper starts at the top, so the
+    /// top margin is always 0 and what is left stays below the paper. With a clearance of 60 the bottom
+    /// margin is 60 at once, and stays through layout passes; 0 gives none.
     func testBottomClearanceAddsToTheBottomInset() async {
         let (layout, paper) = makeWeek()
         let rig = await makeRig(layout: layout, paper: paper, width: 402, height: 580)
         let zoom = rig.canvas.zoomScale
-        let margin = (580 - 1920 * zoom) / 2
-        XCTAssertEqual(margin, 14.5, accuracy: 0.5)
-        XCTAssertEqual(rig.canvas.contentInset.bottom, margin, accuracy: 0.01)
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.contentInset.bottom, 0, accuracy: 0.001)
 
         rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 402, probe: rig.probe, bottomClearance: 60))
         XCTAssertEqual(rig.canvas.contentInset.bottom, 60, accuracy: 0.001)
-        XCTAssertEqual(rig.canvas.contentInset.top, margin, accuracy: 0.01, "the top margin is the centring one")
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001)
         XCTAssertEqual(rig.canvas.contentInset.left, 0, accuracy: 0.001)
-        XCTAssertEqual(rig.canvas.contentSize.height + rig.canvas.contentInset.top + rig.canvas.contentInset.bottom - 580, 60 - margin,
+        XCTAssertEqual(rig.canvas.contentSize.height + rig.canvas.contentInset.bottom - 580, 1920 * zoom + 60 - 580,
                        accuracy: 0.5, "the paper's bottom can be scrolled above the button")
 
-        // The toolbar folded: the paper area is 66 pt taller (still width-bound): max(47.4, 60).
+        // The toolbar folded: the paper area is 66 pt taller (still width-bound).
         rig.layout(width: 402, height: 646)
         XCTAssertEqual(rig.canvas.contentInset.bottom, 60, accuracy: 0.001)
-        XCTAssertEqual(rig.canvas.contentInset.top, (646 - 1920 * zoom) / 2, accuracy: 0.01)
-        // A centring margin larger than the clearance wins.
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001)
         rig.layout(width: 402, height: 800)
-        XCTAssertEqual(rig.canvas.contentInset.bottom, (800 - 1920 * zoom) / 2, accuracy: 0.01)
+        XCTAssertEqual(rig.canvas.contentInset.bottom, 60, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001)
 
         rig.coordinator.update(from: makeView(layout: layout, paper: paper, viewportWidth: 402, probe: rig.probe, bottomClearance: 0))
         rig.layout(width: 402, height: 580)
-        XCTAssertEqual(rig.canvas.contentInset.bottom, margin, accuracy: 0.01, "the centring margin alone")
-        XCTAssertEqual(rig.canvas.contentInset.top, margin, accuracy: 0.01)
+        XCTAssertEqual(rig.canvas.contentInset.bottom, 0, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001)
+    }
+
+    // MARK: 1.1.1 — the paper starts at the top, opens at one size (docs/R1_1_1.md)
+
+    /// The iPhone's empty year and week (440 × 651 and 440 × 647: 585 and 603 pt of paper) start at the
+    /// top; what is left stays below the paper. Folding the toolbar and bringing it back (+ 74 pt and
+    /// back) leaves no band above the paper either: before the fix a folded month or year kept a
+    /// negative offset. (The month is no example: with its memo area open the paper is longer than the
+    /// screen.)
+    func testShortPaperStartsAtTheTop() async {
+        let (year, yearPaper) = makeYear()
+        let (week, weekPaper) = makeWeek()
+        for (layout, paper, height) in [(year as any PageLayout, yearPaper, CGFloat(651)), (week as any PageLayout, weekPaper, CGFloat(647))] {
+            let name = "\(layout.kind)"
+            let rig = await makeRig(layout: layout, paper: paper, width: 440, height: height)
+            XCTAssertEqual(rig.canvas.zoomScale, 440.0 / 1400, accuracy: 1e-4, name)
+            XCTAssertLessThan(layout.size.height * rig.canvas.zoomScale, height, "\(name): the paper is shorter than the area")
+            XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001, name)
+            XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.001, name)
+            XCTAssertEqual(rig.paperView.frame.origin.y, 0, accuracy: 0.01, name)
+            rig.layout(width: 440, height: height + 74)
+            XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.001, "\(name): folded")
+            rig.layout(width: 440, height: height)
+            XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.001, "\(name): out again")
+            XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001, name)
+        }
+    }
+
+    /// A year that has grown (2,600 lu) opens at the same size as an empty one (0.3143 on an iPhone,
+    /// where 1.1 opened it at 0.2504) with its top at the top; the rest is reached by scrolling, and the
+    /// lower limit still shows the whole page.
+    func testTallYearOpensAtTheSameZoom() async {
+        let (tall, tallPaper) = makeTallYear()
+        XCTAssertEqual(tall.size.height, 2600, accuracy: 0.01)
+        let rig = await makeRig(layout: tall, paper: tallPaper, width: 440, height: 651)
+        XCTAssertEqual(rig.canvas.zoomScale, 440.0 / 1400, accuracy: 1e-4)
+        XCTAssertEqual(rig.canvas.minimumZoomScale, 651.0 / 2600, accuracy: 1e-4)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.001)
+        XCTAssertEqual(rig.canvas.contentInset.left, 0, accuracy: 0.001)
+        XCTAssertGreaterThan(rig.canvas.contentSize.height, 651, "reached by scrolling")
+        rig.canvas.contentOffset = CGPoint(x: 0, y: rig.canvas.contentSize.height - 651)
+        await settle()
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 2600 * 440.0 / 1400 - 651, accuracy: 0.5)
+        let (empty, emptyPaper) = makeYear()
+        let emptyRig = await makeRig(layout: empty, paper: emptyPaper, width: 440, height: 651)
+        XCTAssertEqual(emptyRig.canvas.zoomScale, rig.canvas.zoomScale, accuracy: 1e-6, "the size does not change from year to year")
+    }
+
+    /// A pinch down to the lower limit shows the whole page: centred across, at the top. It is not stored:
+    /// the ratio reported is 1, so the page opens at the opening zoom again.
+    func testPinchToTheMinimumShowsTheWholePageAndIsNotStored() async {
+        let (tall, tallPaper) = makeTallYear()
+        let rig = await makeRig(layout: tall, paper: tallPaper, width: 440, height: 651)
+        let minimum = rig.canvas.minimumZoomScale
+        XCTAssertLessThan(minimum, rig.canvas.zoomScale)
+        pinch(rig, to: minimum)
+        await settle()
+        XCTAssertEqual(rig.canvas.zoomScale, minimum, accuracy: 1e-6)
+        XCTAssertEqual(rig.probe.ratios, [1], "below the opening zoom nothing is stored")
+        XCTAssertEqual(rig.canvas.contentInset.left, (440 - 1400 * minimum) / 2, accuracy: 0.01)
+        XCTAssertEqual(rig.canvas.contentInset.left, 44.7, accuracy: 0.1)
+        XCTAssertEqual(rig.canvas.contentInset.top, 0, accuracy: 0.001)
+        XCTAssertLessThanOrEqual(rig.canvas.contentSize.height, 651.5, "the whole page")
+        rig.canvas.contentOffset = CGPoint(x: -rig.canvas.contentInset.left, y: 0)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.001)
+    }
+
+    /// Rotation: the opening zoom goes to the new opening zoom, the minimum to the new minimum, a
+    /// zoomed-in paper keeps its absolute zoom. At the opening zoom or the minimum the top of the view
+    /// stays on the same paper y: 0 stays 0 (before the fix, going from landscape to portrait on an
+    /// iPhone, 78 pt on the month, 547 pt on the day, 166 pt on the tall year), and a view scrolled to
+    /// the memo area keeps its top.
+    func testRotationAtTheOpeningZoomAndAtTheMinimum() async {
+        let (month, monthPaper) = makeMonth()
+        let (day, dayPaper) = makeDay()
+        let (tall, tallPaper) = makeTallYear()
+        let cases: [(layout: any PageLayout, paper: PaperContent, landscape: CGFloat, portrait: CGFloat, open: CGFloat)] = [
+            (month, monthPaper, 268, 673, 440.0 / 1400),
+            (day, dayPaper, 238, 643, 643.0 / 2400),
+            (tall, tallPaper, 246, 651, 440.0 / 1400),
+        ]
+        for item in cases {
+            let name = "\(item.layout.kind)"
+            let rig = await makeRig(layout: item.layout, paper: item.paper, width: 832, height: item.landscape)
+            XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.001, name)
+            rig.layout(width: 440, height: item.portrait)
+            XCTAssertEqual(rig.canvas.zoomScale, item.open, accuracy: 1e-4, "\(name): the new opening zoom")
+            XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.5, "\(name): the top of the paper stays at the top")
+            await settle()
+            XCTAssertEqual(rig.probe.ratios, [], "\(name): a rotation reports no ratio")
+        }
+
+        // Scrolled to the memo area: the top of the view stays on paper y 1,500.
+        let scrolled = await makeRig(layout: month, paper: monthPaper, width: 832, height: 268)
+        scrolled.canvas.contentOffset = CGPoint(x: scrolled.canvas.contentOffset.x, y: 1500 * scrolled.canvas.zoomScale)
+        scrolled.layout(width: 440, height: 673)
+        XCTAssertEqual(scrolled.canvas.contentOffset.y, 1500 * 440.0 / 1400, accuracy: 0.5)
+
+        // Pinched to the minimum: the new minimum, both ways, with the opening zoom left for the next page.
+        let minimum = await makeRig(layout: tall, paper: tallPaper, width: 440, height: 651)
+        pinch(minimum, to: minimum.canvas.minimumZoomScale)
+        await settle()
+        XCTAssertEqual(minimum.canvas.zoomScale, 651.0 / 2600, accuracy: 1e-4)
+        minimum.layout(width: 832, height: 246)
+        XCTAssertEqual(minimum.canvas.zoomScale, 246.0 / 2600, accuracy: 1e-4, "the new minimum")
+        XCTAssertEqual(minimum.canvas.contentOffset.y, 0, accuracy: 0.5)
+        minimum.layout(width: 440, height: 651)
+        XCTAssertEqual(minimum.canvas.zoomScale, 651.0 / 2600, accuracy: 1e-4)
+
+        // Zoomed in: the absolute zoom, whatever the limits (D4).
+        let zoomedIn = await makeRig(layout: day, paper: dayPaper, width: 440, height: 643)
+        pinch(zoomedIn, to: 1.0)
+        await settle()
+        zoomedIn.layout(width: 832, height: 238)
+        XCTAssertEqual(zoomedIn.canvas.zoomScale, 1.0, accuracy: 1e-6, "the handwriting keeps its size")
+    }
+
+    /// Only the height changes at the opening zoom (the toolbar folds, on a height-bound page: the tall
+    /// year at 744 × 907 → 981): the zoom follows, the top of the view stays on the same paper y.
+    func testHeightChangeAtTheOpeningZoomKeepsTheTop() async {
+        let (tall, tallPaper) = makeTallYear()
+        let rig = await makeRig(layout: tall, paper: tallPaper, width: 744, height: 907)
+        XCTAssertEqual(rig.canvas.zoomScale, 907.0 / 1860, accuracy: 1e-4)
+        rig.layout(width: 744, height: 981)
+        XCTAssertEqual(rig.canvas.zoomScale, 981.0 / 1860, accuracy: 1e-4, "the opening zoom follows")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.5)
+
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: 100 * rig.canvas.zoomScale)
+        rig.layout(width: 744, height: 907)
+        XCTAssertEqual(rig.canvas.zoomScale, 907.0 / 1860, accuracy: 1e-4)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 100 * 907.0 / 1860, accuracy: 0.5, "still 100 lu")
+        await settle()
+        XCTAssertEqual(rig.probe.ratios, [], "no ratio")
+    }
+
+    /// A paper pinched to the minimum when the minimum rises (a month grown by a row, an iPad mini in
+    /// landscape, the toolbar folded): the zoom goes up to the new minimum and the top of the view stays
+    /// on the same paper y. At the top that is 0; the memo area makes the paper long, so the clamp would
+    /// not bring it back.
+    func testHeightChangeAtTheMinimumKeepsTheTop() async {
+        let (grown, grownPaper) = makeMonth(inkBottoms: [.day(wednesday): 388])
+        let rig = await makeRig(layout: grown, paper: grownPaper, width: 1133, height: 540)
+        pinch(rig, to: 540.0 / 1275)
+        await settle()
+        XCTAssertEqual(rig.canvas.zoomScale, 540.0 / 1275, accuracy: 1e-4)
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: 0)
+        let ratios = rig.probe.ratios
+
+        rig.layout(width: 1133, height: 614)
+        XCTAssertEqual(rig.canvas.minimumZoomScale, 614.0 / 1275, accuracy: 1e-4)
+        XCTAssertEqual(rig.canvas.zoomScale, 614.0 / 1275, accuracy: 1e-4, "the new minimum")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.5, "the top stays at the top")
+
+        // Scrolled: the same paper y. Going back the zoom is inside the new range, and nothing moves.
+        rig.layout(width: 1133, height: 540)
+        pinch(rig, to: 540.0 / 1275)
+        await settle()
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: 100 * rig.canvas.zoomScale)
+        rig.layout(width: 1133, height: 614)
+        XCTAssertEqual(rig.canvas.zoomScale, 614.0 / 1275, accuracy: 1e-4)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 100 * 614.0 / 1275, accuracy: 0.5, "still 100 lu")
+        rig.layout(width: 1133, height: 540)
+        XCTAssertEqual(rig.canvas.zoomScale, 614.0 / 1275, accuracy: 1e-4, "above the lowered minimum")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 100 * 614.0 / 1275, accuracy: 0.5)
+        await settle()
+        XCTAssertEqual(rig.probe.ratios, ratios + [1], "the second pinch only: a change of the limit is not a pinch")
+    }
+
+    // MARK: 1.1.1 — 「今日」 (docs/R1_1_1.md)
+
+    /// 「今日」 on the page already shown: scrolled to the bottom of the tall year, row 4 comes on screen.
+    /// A row already there does not move the paper; the same trigger does nothing.
+    func testTodayBringsTheRowOnScreen() async {
+        let (tall, tallPaper) = makeTallYear()
+        guard let row4 = tall.cells[.yearDay(month: 1, day: 4)] else { return XCTFail("no cell 1/4") }
+        let rig = await makeRig(layout: tall, paper: tallPaper, width: 744, height: 907)
+        let zoom = rig.canvas.zoomScale
+        let end = rig.canvas.contentSize.height - 907
+        XCTAssertGreaterThan(end, row4.maxY * zoom, "at the bottom row 4 is above the view")
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: end)
+
+        func view(_ trigger: Int, rect: CGRect?) -> InkCanvasView {
+            var view = makeView(layout: tall, paper: tallPaper, viewportWidth: 744, probe: rig.probe)
+            view.revealRect = rect
+            view.revealTrigger = trigger
+            return view
+        }
+        rig.coordinator.update(from: view(1, rect: row4))
+        let revealed = rig.canvas.contentOffset.y
+        XCTAssertLessThanOrEqual(revealed, row4.minY * zoom, "row 4 is under the top")
+        XCTAssertGreaterThanOrEqual(revealed + 907, row4.maxY * zoom, "and above the bottom")
+        XCTAssertLessThan(rig.canvas.contentOffset.x, 0, "the paper stays centred across")
+
+        rig.coordinator.update(from: view(1, rect: row4))
+        XCTAssertEqual(rig.canvas.contentOffset.y, revealed, accuracy: 0.001, "the same trigger does nothing")
+        rig.coordinator.update(from: view(2, rect: row4))
+        XCTAssertEqual(rig.canvas.contentOffset.y, revealed, accuracy: 0.5, "a row on screen does not move the paper")
+
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: end)
+        rig.coordinator.update(from: view(2, rect: row4))
+        XCTAssertEqual(rig.canvas.contentOffset.y, end, accuracy: 0.5, "the trigger has not changed")
+        rig.coordinator.update(from: view(3, rect: nil))
+        XCTAssertEqual(rig.canvas.contentOffset.y, end, accuracy: 0.5, "nothing to bring on screen (the week and the day)")
+    }
+
+    /// 「今日」 opening a page: the new canvas goes on to row 28. Any other way in starts at the top (M4C-18).
+    func testTodayOpeningAPageBringsTheRowOnScreen() async {
+        let (tall, tallPaper) = makeTallYear()
+        guard let row28 = tall.cells[.yearDay(month: 1, day: 28)] else { return XCTFail("no cell 1/28") }
+        let probe = Probe()
+        var view = makeView(layout: tall, paper: tallPaper, viewportWidth: 744, probe: probe)
+        view.revealRect = row28
+        view.revealTrigger = 5
+        let rig = attach(view, paper: tallPaper, probe: probe)
+        rig.layout(width: 744, height: 907)
+        await settle()
+        let zoom = rig.canvas.zoomScale
+        XCTAssertEqual(zoom, 907.0 / 1860, accuracy: 1e-4, "the page still opens at the opening zoom")
+        XCTAssertGreaterThan(rig.canvas.contentOffset.y, 0)
+        XCTAssertLessThanOrEqual(rig.canvas.contentOffset.y, row28.minY * zoom)
+        XCTAssertGreaterThanOrEqual(rig.canvas.contentOffset.y + 907, row28.maxY * zoom)
+        // A layout pass does not repeat it, and the trigger the canvas was made with does nothing.
+        let offset = rig.canvas.contentOffset.y
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: 0)
+        rig.coordinator.update(from: view)
+        rig.container.layoutSubviews()
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.001)
+        XCTAssertGreaterThan(offset, 0)
+
+        let plain = await makeRig(layout: tall, paper: tallPaper, width: 744, height: 907)
+        XCTAssertEqual(plain.canvas.contentOffset.y, 0, accuracy: 0.001, "M4C-18: from the top")
+
+        // Above the round button: the bottom margin is not a place to show it in.
+        let probe2 = Probe()
+        var folded = makeView(layout: tall, paper: tallPaper, viewportWidth: 744, probe: probe2, bottomClearance: 60)
+        folded.revealRect = row28
+        let foldedRig = attach(folded, paper: tallPaper, probe: probe2)
+        foldedRig.layout(width: 744, height: 907)
+        await settle()
+        XCTAssertGreaterThanOrEqual(foldedRig.canvas.contentOffset.y + 907 - 60, row28.maxY * zoom, "above the round button")
     }
 
     // MARK: 1.1 — whose dots, and the eraser's tap (M7A_CONTRACT §2.4, §4.1, 0-21, 0-22)
@@ -2464,7 +2733,7 @@ final class InkCanvasViewTests: XCTestCase {
         XCTAssertFalse(pencils.isEnabled, "off when the pen comes back")
     }
 
-    /// B3 (確認 12): 「指でも書く」 off, the day page at the end of its paper, a stand-in Pencil touch fed to
+    /// B3 (確認 12): 「指でも書く」 off, the day page at its free memo area, a stand-in Pencil touch fed to
     /// the container's Pencil recogniser draws a loop around the two strokes of the free memo area:
     /// both are selected (their box below 24:00 and on screen), the touch is reported once (a peeking
     /// toolbar folds), the selection menu fits in the canvas and 「予定にする」 is refused there.
@@ -2548,8 +2817,8 @@ final class InkCanvasViewTests: XCTestCase {
     }
 
     /// B7: the selection itself works below 24:00, also after the light path: a finger's lasso
-    /// (「指でも書く」; the finger's way never depended on the hit test) selects the free memo's strokes at
-    /// the end of the day page. Passes before and after the fix: what failed on the device was the
+    /// (「指でも書く」; the finger's way never depended on the hit test) selects the free memo's strokes
+    /// on the day page. Passes before and after the fix: what failed on the device was the
     /// Pencil's way to the overlay, not the selection below 24:00.
     func testFingerLassoSelectsTheFreeMemoBelow24() async {
         let log = SelectionLog()
@@ -2764,10 +3033,12 @@ final class InkCanvasViewTests: XCTestCase {
     }
 
     /// The 11-inch iPad's day page (834 × 1000 pt of paper area) with `tool` and two strokes in the free
-    /// memo area below 24:00 (`extra`, cell origin (0, 2400)). It opens with the 700 lu area and then
-    /// grows to 1,100 through the light path (§3.6, no new drawing), as after writing there; then it is
-    /// scrolled to the end of the paper, where the strokes are on screen. With `window` the container is
-    /// put in it first (the touches then go through UIKit).
+    /// memo area below 24:00 (`extra`, cell origin (0, 2400)). It opens without them and is then handed
+    /// them, as after writing there: 1.1.1: the area is open to 6,000 lu from the start, so it is the
+    /// same paper and no new drawing; then it is scrolled to the top of the area, where the strokes are
+    /// on screen. (The end of the paper would leave them about 1,400 pt above the view: U2's touches
+    /// would then find no view and skip it.) With `window` the container is put in it first (the touches
+    /// then go through UIKit).
     private func freeMemoRig(tool: CanvasTool = .lasso, allowFinger: Bool, log: SelectionLog, window: UIWindow? = nil,
                              readOnly: Bool = false,
                              onEventRect: @escaping (CGRect, Bool) -> Void = { _, _ in }) async -> (rig: Rig, layout: DayPageLayout) {
@@ -2788,17 +3059,16 @@ final class InkCanvasViewTests: XCTestCase {
         rig.layout(width: 834, height: 1000)
         await settle()
 
-        let (grown, grownPaper) = makeDay(inkBottoms: page.inkBottoms())
-        XCTAssertEqual(grown.extra.height, 1100, accuracy: 0.01)
+        let (same, samePaper) = makeDay(inkBottoms: page.inkBottoms())
+        XCTAssertEqual(same.extra.height, 6000, accuracy: 0.01)
         let builds = rig.coordinator.setDrawingCount
-        rig.coordinator.update(from: view(grown, grownPaper))
-        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path")
-        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.extra]?.height ?? 0, 1100, accuracy: 0.01)
+        rig.coordinator.update(from: view(same, samePaper))
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the same paper")
+        XCTAssertEqual(rig.coordinator.ledger.layout.cells[.extra]?.height ?? 0, 6000, accuracy: 0.01)
 
-        let maxY = rig.canvas.contentSize.height + rig.canvas.contentInset.bottom - rig.container.bounds.height
-        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: maxY)
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x, y: 2400 * rig.canvas.zoomScale)
         await settle()
-        return (rig, grown)
+        return (rig, same)
     }
 
     /// A closed loop 24 pt outside `rect` (container points), a point every 4 pt, clockwise from its

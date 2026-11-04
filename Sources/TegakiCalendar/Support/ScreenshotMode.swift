@@ -16,9 +16,10 @@ import Layout
 /// Landscape (M4B contract §6.4): only an iPhone turns with `--screenshot-landscape`
 /// (`UIWindowScene.requestGeometryUpdate`); an iPad cannot, because iPadOS ignores the request for
 /// an app that supports multitasking (and simctl cannot rotate the device).
-/// Zoom (M4C contract §2.4 / §5.3): `--screenshot-zoom <ratio>` opens the page at that ratio to its
-/// overview (`fitAll`; 1 = the overview, clamped by the canvas) and `--screenshot-offset <x>,<y>` puts
-/// that paper point (lu) at the top left, so the CI's photos share the canvas's zoom path.
+/// Zoom (M4C contract §2.4 / §5.3; 1.1.1): `--screenshot-zoom <ratio>` opens the page at that ratio to
+/// its opening zoom (`ZoomPolicy.Bounds.open`; 1 = the opening zoom, clamped by the canvas, so 0.1 is the
+/// whole page as a pinch to the minimum shows it) and `--screenshot-offset <x>,<y>` puts that paper
+/// point (lu) at the top left, so the CI's photos share the canvas's zoom path.
 /// Purchase (M5_CONTRACT §7.5): `--screenshot-sheet paywall` opens the purchase sheet on the month page
 /// (trial-eligible sample); `--screenshot-readonly` starts the store as `.readOnly(.notSubscribed)` (badge, 20 s toast).
 /// Export (M6_CONTRACT §3.5, 0-6): `--screenshot-sheet export` opens `ExportSheet` in its `.choose`
@@ -37,9 +38,11 @@ import Layout
 /// starts with the lasso and these strokes selected (any page; the `lasso` sheet does the same for
 /// the month's wave).
 /// 1.1.1 (docs/R1_1_1.md): `--screenshot-empty` opens the paper with no demo events and no demo ink, for
-/// `BlankPaperShotsUITests` (the `blank-paper` job of build.yml). The CI's 53 photos never pass it.
+/// `BlankPaperShotsUITests` (the `blank-paper` job of build.yml). The CI's other photos never pass it.
 /// `--screenshot-tall-year` (same job) writes a line in every row of January on the year page, so its
 /// paper is about 2,600 lu (`tallYearDemoPage`): a year that grew, before and after the fix.
+/// `--screenshot-pinch-hint` shows the one-time pinch hint half a second after the canvas appeared, for
+/// the photos of the hint (normal use decides with `CalendarRootScreen.pinchHintDue`, never here).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`).
@@ -116,9 +119,9 @@ enum ScreenshotMode {
         /// `--screenshot-landscape`: the screen asks the window scene for landscape once it is active
         /// (M4B contract §6.4; an iPhone follows, an iPad does not).
         var landscape: Bool = false
-        /// `--screenshot-zoom`: the ratio to the page's overview the canvas opens at (M4C contract
-        /// §5.3). 1 unless the value is finite and positive; a ratio past `maxZoom` is clamped by the
-        /// canvas (担当 P).
+        /// `--screenshot-zoom`: the ratio to the page's opening zoom the canvas opens at (M4C contract
+        /// §5.3, 1.1.1). 1 unless the value is finite and positive; a ratio past `maxZoom` or below the
+        /// minimum is clamped by the canvas (担当 P).
         var zoomRatio: CGFloat = 1
         /// `--screenshot-offset "x,y"`: the paper point (lu) shown at the top left; nil when the value
         /// is not two finite numbers (the canvas then uses its usual first position).
@@ -146,6 +149,8 @@ enum ScreenshotMode {
         /// `--screenshot-tall-year` (1.1.1, docs/R1_1_1.md): the year page with a line in every row of
         /// January (`tallYearDemoPage`), with or without `empty`.
         var tallYear: Bool = false
+        /// `--screenshot-pinch-hint` (1.1.1, docs/R1_1_1.md): the one-time pinch hint, for its photos.
+        var pinchHint: Bool = false
     }
 
     /// How long a toast stays with `--screenshot-probe` (the read-only photo's 20 s, M5-24).
@@ -207,7 +212,8 @@ enum ScreenshotMode {
         let probe = arguments.contains("--screenshot-probe")
         let empty = arguments.contains("--screenshot-empty")
         let tallYear = arguments.contains("--screenshot-tall-year")
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear)
+        let pinchHint = arguments.contains("--screenshot-pinch-hint")
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint)
     }
 
     /// "2" → 2; nil unless the text is a finite positive number ("abc", "0", "-1", "inf" are nil).
@@ -409,11 +415,11 @@ enum ScreenshotMode {
         }
     }
 
-    /// The id of the `grown` month stroke: a red wave deep in the memo area (its bottom ≈ 1,009 lu,
-    /// so the memo area is 1,500 lu high, `PaperGrowth.tailHeight`).
+    /// The id of the `grown` month stroke: a red wave deep in the memo area (its bottom ≈ 1,009 lu;
+    /// the memo area is 6,000 lu high since 1.1.1, `PaperGrowth.tailHeight`, and its PDF 1,500 lu).
     static let grownMemoStrokeId = "demo-stroke-memo-deep"
     /// The id of the `grown` day stroke: a black wave in the free memo area below 24:00 (`extra`,
-    /// its bottom ≈ 309 lu, so the area is 1,100 lu high).
+    /// its bottom ≈ 309 lu; the area is 6,000 lu high since 1.1.1, and its PDF 1,100 lu).
     static let grownDayStrokeId = "demo-stroke-day-extra"
 
     /// A fixed ms epoch; each stroke gets its own `t`.
