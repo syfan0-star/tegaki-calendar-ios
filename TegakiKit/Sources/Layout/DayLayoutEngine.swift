@@ -7,7 +7,7 @@ public struct DayLayoutInput: Sendable {
     public var day: DayKey
     public var events: [LayoutEvent]
     /// Bottom edge of the handwriting of each cell (cell-relative lu). Since 1.1 only `.extra` is read:
-    /// it makes the free memo area below 24:00 grow (`PaperGrowth.tailHeight`); the time grid never
+    /// the free memo area below 24:00 is `PaperGrowth.tailHeight` of it; the time grid never
     /// grows (M4B-17).
     public var inkBottoms: [CellKey: CGFloat]
     public var now: Date
@@ -24,7 +24,7 @@ public struct DayLayoutInput: Sendable {
 
 /// The day page in paper coordinates (lu): the timeline (x 72…660) and the memo area (660…1000) as
 /// one fixed 1000 × 2400 cell starting at 0:00, and since 1.1 the free memo area 「自由メモ」 below
-/// 24:00 (`extra`, the whole width, at least 700 lu, growing with its handwriting; M7A_CONTRACT §3.3).
+/// 24:00 (`extra`, the whole width, 6,000 lu since 1.1.1; M7A_CONTRACT §3.3, docs/R1_1_1.md).
 /// The all-day band is not on the paper since M4b: `allDayBand` describes the fixed band the screen
 /// draws above the paper (M4B_CONTRACT §2).
 public struct DayPageLayout: PageLayout, Equatable, Sendable {
@@ -51,7 +51,7 @@ public struct DayPageLayout: PageLayout, Equatable, Sendable {
     public var nowLine: NowLine?
     public var isToday: Bool
     /// (0, 2400, 1000, h), h = `PaperGrowth.tailHeight(inkBottom: inkBottoms[.extra] ?? 0)` (at least
-    /// 700): the free memo area below 24:00 (1.1). A layout made without it (the default `.zero`, no
+    /// 6,000): the free memo area below 24:00 (1.1). A layout made without it (the default `.zero`, no
     /// `.extra` in `cells`) behaves like 1.0's.
     public var extra: CGRect
 
@@ -178,7 +178,7 @@ public enum DayLayoutEngine {
         let grid = CGRect(x: 0, y: 0, width: PaperSpec.dayWidth, height: PaperSpec.dayGridHeight)
         let timeline = CGRect(x: PaperSpec.dayGutter, y: 0, width: timelineWidth, height: PaperSpec.dayGridHeight)
         let memo = CGRect(x: PaperSpec.dayTimelineRight, y: 0, width: PaperSpec.dayWidth - PaperSpec.dayTimelineRight, height: PaperSpec.dayGridHeight)
-        // The free memo area below 24:00 (1.1): the whole width, at least 700, growing in 400 lu steps.
+        // The free memo area below 24:00 (1.1): the whole width, open to 6,000 from the start (1.1.1).
         let extraHeight = PaperGrowth.tailHeight(inkBottom: input.inkBottoms[.extra] ?? 0)
         let extra = CGRect(x: 0, y: grid.maxY, width: PaperSpec.dayWidth, height: extraHeight)
 

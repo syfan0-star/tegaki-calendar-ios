@@ -192,7 +192,7 @@ final class PageLayoutTests: XCTestCase {
         XCTAssertEqual(plain.inkCell(forCenter: CGPoint(x: -5, y: 10)), .day(F.day(2026, 9, 28)), "left of the paper → the nearest cell")
         XCTAssertEqual(plain.inkCell(forCenter: CGPoint(x: 1500, y: 200)), .day(F.day(2026, 10, 11)), "right of the paper → the last column")
         XCTAssertEqual(plain.inkCell(forCenter: CGPoint(x: 100, y: -20)), .day(F.day(2026, 9, 28)), "above the paper → row 0")
-        XCTAssertEqual(plain.inkCell(forCenter: CGPoint(x: 100, y: 5000)), .memo, "below the paper → memo")
+        XCTAssertEqual(plain.inkCell(forCenter: CGPoint(x: 100, y: 9000)), .memo, "below the paper → memo")
         XCTAssertEqual(plain.inkCell(forCenter: CGPoint(x: 100, y: 1100)), .memo)
         XCTAssertEqual(plain.inkCell(forCenter: CGPoint(x: CGFloat.nan, y: CGFloat.nan)), .day(F.day(2026, 9, 28)), "NaN clamps to the top-left cell")
         XCTAssertTrue(plain.growsWithInk(.memo))
@@ -202,7 +202,7 @@ final class PageLayoutTests: XCTestCase {
         XCTAssertEqual(plain.band(atY: 10), PageBand(raw: "row:0"))
         XCTAssertEqual(plain.band(atY: 1049.9), PageBand(raw: "row:5"))
         XCTAssertEqual(plain.band(atY: 1100), PageBand(raw: "memo"))
-        XCTAssertNil(plain.band(atY: 1750))
+        XCTAssertNil(plain.band(atY: 7050))
         XCTAssertNil(plain.band(atY: -1))
         XCTAssertEqual(plain.bandTop(PageBand(raw: "row:3")), 525)
         XCTAssertEqual(plain.bandTop(PageBand(raw: "memo")), 1050)
@@ -218,8 +218,8 @@ final class PageLayoutTests: XCTestCase {
         }
         XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: inked, topVisibleY: 600), 137)
         XCTAssertEqual(PageScroll.scrollDelta(old: inked, new: plain, topVisibleY: 700), -137)
-        XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: inked, topVisibleY: 5000), 0, "outside the paper (PageScroll)")
-        XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: inked, topVisibleY: 5000), 137, "the M2 rule is kept for the month engine")
+        XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: inked, topVisibleY: 9000), 0, "outside the paper (PageScroll)")
+        XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: inked, topVisibleY: 9000), 137, "the M2 rule is kept for the month engine")
         XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: inked, topVisibleY: .nan), 0)
         // A band missing from `new` moves nothing.
         XCTAssertEqual(PageScroll.scrollDelta(old: plain, new: F.weekLayout([]), topVisibleY: 1100), 0)
@@ -228,7 +228,8 @@ final class PageLayoutTests: XCTestCase {
     func testSameGeometry() {
         let plain = F.monthLayout([])
         XCTAssertTrue(plain.sameGeometry(as: F.monthLayout([])))
-        XCTAssertFalse(plain.sameGeometry(as: F.monthLayout([], ink: [.memo: 900])))
+        XCTAssertTrue(plain.sameGeometry(as: F.monthLayout([], ink: [.memo: 900])), "1.1.1: ink inside the 6,000 does not change the geometry")
+        XCTAssertFalse(plain.sameGeometry(as: F.monthLayout([], ink: [.memo: 6100])), "a 1.0 device's line below the cap")
         XCTAssertTrue(plain.sameGeometry(as: F.monthLayout([], now: F.date(2026, 10, 20, 9))), "`now` does not change the geometry")
         XCTAssertFalse(plain.sameGeometry(as: F.weekLayout([])), "another kind")
         let week = F.weekLayout(F.demo)

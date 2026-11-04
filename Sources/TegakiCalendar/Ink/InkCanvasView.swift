@@ -49,15 +49,22 @@ enum CanvasCommand: Equatable {
 ///   ignored until both agree; the ledger never mixes pages. 1.1 fix (the lead's review): when another
 ///   page id arrives while the pen is down or settling, the canvas keeps the old page's drawing until
 ///   the rebuild, and nothing compares that drawing with the new ledger meanwhile.
-/// - The zoom limits come from `ZoomPolicy` (M4C_CONTRACT §1.1, D1): the minimum is the overview
-///   (`fitAll`: the page's overview rectangle fits the paper area both ways), the maximum
-///   `max(4 × fit-to-width, 2 × readable)`. Every page opens at its stored ratio of the overview
-///   (`initialZoomRatio`, 1 = the overview, top-left); at a ratio above 1 `initialScrollX` /
-///   `initialScrollY` (paper lu) are applied once, when the first zoom is known. A paper smaller than
-///   the viewport is centred with `contentInset` (the margins are the desk colour, M4C-25).
-/// - A pinch keeps its absolute zoom across rotations and height changes (D4 / M4C-24: the overview
-///   follows the new overview, a zoomed-in paper is only clamped, and `targetZoom` remembers what the
-///   clamp cut off); the ratio is reported (`onZoomRatioChange`) only at the end of a pinch.
+/// - The zoom limits come from `ZoomPolicy` (M4C_CONTRACT §1.1, D1; 1.1.1, docs/R1_1_1.md): the minimum
+///   is the overview (`fitAll`: the page's overview rectangle fits the paper area both ways), the
+///   maximum `max(4 × fit-to-width, 2 × readable)`. Every page opens at its stored ratio of the opening
+///   zoom (`Bounds.open`: the `fitAll` of the kind's `baseSize`, so what a page holds does not change
+///   it; `initialZoomRatio`, 1 = the opening zoom, top-left); at a ratio above 1 `initialScrollX` /
+///   `initialScrollY` (paper lu) are applied once, when the first zoom is known. A paper narrower than
+///   the viewport is centred across with `contentInset` (the margins are the desk colour, M4C-25); it
+///   always starts at the top of the viewport (1.1.1).
+/// - A pinch keeps its absolute zoom across rotations and height changes (D4 / M4C-24: the opening zoom
+///   follows the new opening zoom, a paper pinched to the minimum follows the new minimum across a
+///   rotation only, a zoomed-in paper is only clamped, and `targetZoom` remembers what the clamp cut
+///   off); the ratio is reported (`onZoomRatioChange`) only at the end of a pinch. 1.1.1: at the opening
+///   zoom or the minimum the top of the view stays on the same paper y.
+/// - 1.1.1: 「今日」 brings today's cell on screen (`revealRect`, `revealTrigger`): at the first layout of
+///   the page it opened, and once per trigger on the page already shown. A page opened any other way
+///   starts at the top (M4C-18).
 /// - While the canvas is zooming or bouncing (`isLive`) the paper window is stretched, not redrawn
 ///   (F3); the end of the pinch (`scrollViewDidEndZooming`) centres, clamps, redraws once and reports.
 /// - Whenever `contentOffset.x`, the zoom or the container's width changes, the owner gets a
@@ -72,17 +79,18 @@ enum CanvasCommand: Equatable {
 ///   (`InkFingerGestureRecognizer`, F2), so two fingers always reach the scroll view's pan and pinch.
 ///   1.1 fix (docs/M7A.md ずれ 47): so does the Pencil's (`InkPencilGestureRecognizer`); the overlay
 ///   takes no touch itself.
-/// - Strokes whose centre lies outside the paper (in the centring margin) are dropped (M4C-25).
+/// - Strokes whose centre lies outside the paper (in a margin) are dropped (M4C-25).
 /// - 1.1 (M7A_CONTRACT §3.4, §5.2, K-9): of the strokes *drawn on this canvas* (never one that came
 ///   from iCloud, an import or undo), one centred more than 6,000 lu below the top of the page's last
 ///   cell is dropped too (`PaperGrowth.drop`, `onGrowthCapReached`), and so are the newest ones that
 ///   would take the page past 19,000 strokes (`StrokeBudget.accepted`, `onStrokeBudget(.full)`).
-///   Reaching 15,000 (`.many`) and a stroke whose bottom leaves the last cell no further 400 lu step
-///   (`PaperGrowth.reachesCap`, `onGrowthCapReached`) are reported.
+///   Reaching 15,000 (`.many`) and a stroke whose bottom leaves less than 400 lu of the last cell below
+///   it (`PaperGrowth.reachesCap`, `onGrowthCapReached`) are reported.
 /// - 1.1 (§3.6): when only the height of the page's last cell changed, the drawing is not rebuilt:
-///   the ledger adopts the layout and the content size follows (`PaperGrowth.onlyTailHeightChanged`).
-///   The centring margins are recomputed on both paths (0-6), the bottom one at least
-///   `bottomClearance` (the collapsed toolbar's round button, §2.2).
+///   the ledger adopts the layout and the content size follows (`PaperGrowth.onlyTailHeightChanged`;
+///   since 1.1.1 the cell is open to its full length, so only a line below 5,950 lu comes this way).
+///   The margins are recomputed on both paths (0-6), the bottom one is `bottomClearance` (the collapsed
+///   toolbar's round button, §2.2).
 /// - 1.1 (§2.5): an erasure with the eraser (1 stroke or more) is reported once (`onEraseEnded`); a
 ///   touch of the pen or a writing finger is reported at once (`onPenDown`). A finger tap that leaves
 ///   the page with the eraser first undoes what that very touch erased (0-22). The dots a leaving tap
@@ -104,7 +112,7 @@ struct InkCanvasView: UIViewRepresentable {
     var allowFinger: Bool
     @Binding var page: InkPage
     /// Paper y (lu) to show at the top when this canvas first appears at a ratio above 1 (× zoom,
-    /// clamped to the paper). At the overview (ratio 1) the paper starts at the top-left.
+    /// clamped to the paper). At the opening zoom (ratio 1) the paper starts at the top-left.
     var initialScrollY: CGFloat
     /// Paper x (lu) to show at the left when this canvas first appears at a ratio above 1
     /// (`PageNavigation.initialScrollX`; × the first zoom, clamped to the paper). M4B_CONTRACT §1.3.
@@ -138,23 +146,28 @@ struct InkCanvasView: UIViewRepresentable {
     /// `contentOffset.x`, `zoomScale` or the container's width changed (never for a change of y
     /// alone). The owner hands the value to `StickyHeaderView` and `AllDayBandView` (M4B_CONTRACT §1.3).
     var onViewportChange: (PaperViewport) -> Void = { _ in }
-    /// The zoom to open with, as a ratio of the overview (`fitAll`; M4C_CONTRACT §1.3, D4). Applied
-    /// once, at the first layout (a later value is not applied again). The stored ratio of the page
-    /// kind, or `--screenshot-zoom`.
+    /// The zoom to open with, as a ratio of the opening zoom (`Bounds.open`; M4C_CONTRACT §1.3, D4,
+    /// 1.1.1). Applied once, at the first layout (a later value is not applied again). The stored ratio
+    /// of the page kind, or `--screenshot-zoom`.
     var initialZoomRatio: CGFloat = 1
     /// The paper point (lu) to put at the top-left at the first layout. nil: the rule of §1.3 — the
-    /// overview (ratio 1) starts at the top-left, a zoomed-in page at `initialScrollX` / `initialScrollY`.
+    /// opening zoom (ratio 1) starts at the top-left, a zoomed-in page at `initialScrollX` / `initialScrollY`.
     /// The way in for `--screenshot-offset`.
     var initialPaperOffset: CGPoint? = nil
+    /// 1.1.1: what 「今日」 asks to bring on screen (paper lu): at the first layout of the page it opened,
+    /// and once per `revealTrigger` on the page already shown. nil otherwise.
+    var revealRect: CGRect? = nil
+    var revealTrigger: Int = 0
     /// true on the week / month / year pages. false leaves `doubleTapRecognizer` disabled, so the
     /// single tap is not delayed (the day page).
     var doubleTapEnabled: Bool = false
     /// A finger's double tap, in paper coordinates (lu). The owner turns it into a day with
     /// `layout.dayAt(point:)` (D5).
     var onDoubleTap: (CGPoint) -> Void = { _ in }
-    /// Once at the end of a pinch (after the bounce): the new ratio (zoom / fitAll). Never for a
-    /// rotation or a change of the overview's height (D4). Always delivered on the next main-actor
-    /// turn; the receiver only writes it to `AppSettings`.
+    /// Once at the end of a pinch (after the bounce): the new ratio (zoom / the opening zoom; below the
+    /// opening zoom it is 1, so nothing is stored, 1.1.1). Never for a rotation or a change of the
+    /// overview's height (D4). Always delivered on the next main-actor turn; the receiver only writes
+    /// it to `AppSettings`.
     var onZoomRatioChange: (CGFloat) -> Void = { _ in }
     /// true when a pinch begins (`scrollViewWillBeginZooming`), false when it is over (together with
     /// the redraw after the bounce). The owner freezes the all-day band's lane height in between
@@ -189,12 +202,12 @@ struct InkCanvasView: UIViewRepresentable {
     /// (n strokes now); `.full(n)` new strokes were refused (the page had n strokes).
     var onStrokeBudget: (StrokeBudget.Event) -> Void = { _ in }
     /// 1.1 (§3.4): a new stroke was dropped beyond the last cell's limit, or a new stroke in the last
-    /// cell went so low that no further 400 lu step can be added (`PaperGrowth.reachesCap`). At most
+    /// cell went so low that less than 400 lu is left below it (`PaperGrowth.reachesCap`). At most
     /// once per canvas change; the owner shows 「メモ欄はここまでです」 once per page.
     var onGrowthCapReached: () -> Void = {}
-    /// 1.1 (§2.2): the bottom margin of the paper is at least this (pt) — the collapsed toolbar's
-    /// round button (60), so the bottom of the paper can be scrolled above it. 0 = the centring
-    /// margin alone, as before.
+    /// 1.1 (§2.2): the bottom margin of the paper (pt) — the collapsed toolbar's round button (60), so
+    /// the bottom of the paper can be scrolled above it. 0 = none. (1.1.1: the paper starts at the top,
+    /// so there is no centring margin below it to compare with.)
     var bottomClearance: CGFloat = 0
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
@@ -388,6 +401,7 @@ extension InkCanvasView {
         private var lastUndoTrigger: Int
         private var lastRedoTrigger: Int
         private var lastCommandTrigger: Int
+        private var lastRevealTrigger: Int
 
         private enum HistoryAction { case undo, redo }
         /// PencilKit's tool is in use (Begin → End) or the overlay is tracking. Readable for the tests.
@@ -581,6 +595,7 @@ extension InkCanvasView {
             lastUndoTrigger = parent.undoTrigger
             lastRedoTrigger = parent.redoTrigger
             lastCommandTrigger = parent.commandTrigger
+            lastRevealTrigger = parent.revealTrigger
             lastInitialSelectionIds = parent.initialSelectionIds
             initialSelectionPending = !parent.initialSelectionIds.isEmpty
             // A local so nothing on `self` is read before super.init (two-phase initialisation).
@@ -614,7 +629,8 @@ extension InkCanvasView {
             // A vertical flick does not drift sideways (M4B-6).
             canvas.isDirectionalLockEnabled = true
             // `bouncesZoom` stays at its default (true): with the overview as the lower limit the
-            // bounce means "never smaller than the overview" (M4C-13).
+            // bounce means "never smaller than the overview" (M4C-13). 1.1.1: a page that holds no more
+            // than its `baseSize` opens at that limit, so a pinch inward only bounces there.
             canvas.maximumSupportedContentVersion = .version1
             canvas.drawingPolicy = parent.allowFinger ? .anyInput : .pencilOnly
             canvas.tool = parent.tool.pkTool
@@ -917,6 +933,14 @@ extension InkCanvasView {
             if pendingDrawing || pendingPaper || pendingGeometry || !pendingCommands.isEmpty {
                 requestApply()
             }
+
+            // 7. 1.1.1: 「今日」 on the page already shown (once per trigger; never under the pen or a pinch).
+            if newParent.revealTrigger != lastRevealTrigger {
+                lastRevealTrigger = newParent.revealTrigger
+                if hasInitialZoom, !isLive, !isUsingTool, let rect = newParent.revealRect {
+                    reveal(rect)
+                }
+            }
         }
 
         // MARK: Applying queued work (pen up only)
@@ -973,7 +997,9 @@ extension InkCanvasView {
 
             if tailOnly {
                 // The light path: no `setDrawing`, no `applyBounds` (the overview rectangle is the fixed
-                // part of the page, K-6), no scroll compensation (no band's top moved).
+                // part of the page, K-6), no scroll compensation (no band's top moved). 1.1.1: only a line
+                // past 5,950 lu comes this way (the cell is open to 6,000 from the start): a 1.0 device's, or
+                // this device's written near the end of the cell or moved there with the lasso.
                 ledger.adopt(newLayout)
                 appliedLayout = newLayout
                 canvas.contentSize = Self.scaled(newLayout.size, by: zoom)
@@ -993,8 +1019,8 @@ extension InkCanvasView {
                 appliedLayout = newLayout
                 canvas.contentSize = Self.scaled(newLayout.size, by: zoom)
                 overlay?.pageSize = newLayout.size
-                // 1.1 (0-6): a paper that only got taller or shorter at the same zoom gets its centring
-                // margins again (1.0 kept the old ones until the next layout pass).
+                // 1.1 (0-6): a paper that only got taller or shorter at the same zoom gets its margins
+                // again (1.0 kept the old ones until the next layout pass).
                 applyInsets()
             }
             // Paper-only changes (the now line moved, `isPast` flipped) land here without touching
@@ -1008,11 +1034,14 @@ extension InkCanvasView {
                 resetScroll = false
                 // A new page in this canvas: compute the limits for its overview again, open it at
                 // its `initialZoomRatio` and `initialScrollX` / `Y`, exactly like a freshly created canvas.
+                // (The opening zoom does not depend on the page, `revealRect` is read again.)
                 hasInitialZoom = false
                 containerDidLayout()
             } else if drawingWork, geometryChanged {
                 // The overview rectangle grew or shrank with handwriting / events (a month row, a
-                // year row): new limits, and the overview follows the new overview (M4C_CONTRACT §1.3).
+                // year row): only the lower limit changes (1.1.1). The opening zoom comes from the
+                // kind's `baseSize`, so a page at that zoom keeps it and the paper being written on
+                // does not shrink (a zoom below a raised limit is clamped).
                 let viewport = container.bounds.size
                 if hasInitialZoom, viewport.width > 0, viewport.height > 0 {
                     applyBounds(ZoomPolicy.bounds(newLayout.kind, overview: ZoomPolicy.overviewSize(newLayout), viewport: viewport))
@@ -1076,13 +1105,15 @@ extension InkCanvasView {
         /// another kind replaced the layout.
         ///
         /// 1. The overview and the limits for the container's size.
-        /// 2. Same limits as last time: only the centring margins and the paper window are refreshed.
+        /// 2. Same limits as last time: only the margins and the paper window are refreshed.
         /// 3. The first time: the limits, the zoom for `initialZoomRatio` (assigned through
         ///    `zoomScale`, so UIKit's `scrollViewDidZoom` does the same synchronisation as a pinch),
         ///    the margins, the content size, the first offset (`initialPaperOffset`; the top-left at
-        ///    the overview; `initialScrollX` / `Y` above it), then the end-of-pinch path once
-        ///    (`scrollViewDidEndZooming`: margins, clamp, the ratio report) and the DEBUG log.
-        /// 4. The width changed (rotation, Split View): the overview stays the overview, a zoomed-in
+        ///    the opening zoom; `initialScrollX` / `Y` above it; then `revealRect`, 1.1.1), then the
+        ///    end-of-pinch path once (`scrollViewDidEndZooming`: margins, clamp, the ratio report) and
+        ///    the DEBUG log.
+        /// 4. The width changed (rotation, Split View): the opening zoom stays the opening zoom and the
+        ///    minimum the minimum, with the top of the view on the same paper y (1.1.1); a zoomed-in
         ///    paper keeps its absolute zoom (`targetZoom`, which a clamp does not change) with the
         ///    point at the centre of the viewport in the centre (D4 / M4C-24). Nothing of the zoom
         ///    while a pinch is live (the limits only). No ratio report.
@@ -1123,7 +1154,7 @@ extension InkCanvasView {
                     let y = offset.y.isFinite ? offset.y : 0
                     canvas.contentOffset = clampedOffset(CGPoint(x: x * zoom, y: y * zoom))
                 } else if ZoomPolicy.ratio(forZoom: zoom, bounds: bounds) <= 1.0005 {
-                    // The overview: the top-left (M4C-18), inside the centring margins.
+                    // The opening zoom: the top-left (M4C-18), inside the left margin.
                     canvas.contentOffset = CGPoint(x: -inset.left, y: -inset.top)
                 } else {
                     // Zoomed in: paper lu × the zoom, clamped to the paper (M3A §2.2 for y,
@@ -1131,6 +1162,10 @@ extension InkCanvasView {
                     let x = parent.initialScrollX.isFinite ? max(0, parent.initialScrollX) : 0
                     let y = parent.initialScrollY.isFinite ? max(0, parent.initialScrollY) : 0
                     canvas.contentOffset = clampedOffset(CGPoint(x: x * zoom, y: y * zoom))
+                }
+                // 1.1.1: the page 「今日」 opened goes on to today's cell (any other opening stays at the top).
+                if parent.initialPaperOffset == nil, let rect = parent.revealRect {
+                    reveal(rect)
                 }
                 hasInitialZoom = true
                 lastLayoutSize = viewport
@@ -1142,11 +1177,12 @@ extension InkCanvasView {
                 applyInitialSelectionIfPending()
                 #if DEBUG
                 let pinch = canvas.pinchGestureRecognizer
-                NSLog("zoom: kind=%@ pinch=%d enabled=%d min=%.4f max=%.4f zoom=%.4f fitAll=%.4f ratio=%.3f view=%.0fx%.0f overview=%.0fx%.0f",
+                let base = ZoomPolicy.baseSize(appliedLayout.kind)
+                NSLog("zoom: kind=%@ pinch=%d enabled=%d min=%.4f max=%.4f zoom=%.4f fitAll=%.4f open=%.4f ratio=%.3f view=%.0fx%.0f overview=%.0fx%.0f base=%.0fx%.0f",
                       appliedLayout.kind.rawValue as NSString, Int32(pinch == nil ? 0 : 1), Int32((pinch?.isEnabled ?? false) ? 1 : 0),
-                      bounds.min, bounds.max, canvas.zoomScale, bounds.min,
+                      bounds.min, bounds.max, canvas.zoomScale, bounds.min, bounds.open,
                       ZoomPolicy.ratio(forZoom: canvas.zoomScale, bounds: bounds),
-                      viewport.width, viewport.height, overview.width, overview.height)
+                      viewport.width, viewport.height, overview.width, overview.height, base.width, base.height)
                 #endif
                 return
             }
@@ -1156,21 +1192,29 @@ extension InkCanvasView {
                 // 4. The width changed.
                 let oldMin = canvas.minimumZoomScale
                 let oldZoom = max(canvas.zoomScale, 0.0001)
-                let atOverview = abs(oldZoom - oldMin) < 0.0005
+                let oldOpen = lastBounds?.open ?? oldMin
+                let atOpen = abs(oldZoom - oldOpen) < 0.0005
+                let atMin = abs(oldZoom - oldMin) < 0.0005
+                // Read before the limits change: UIKit may move the zoom and the offset with them.
+                let oldOffset = canvas.contentOffset
                 canvas.minimumZoomScale = bounds.min
                 canvas.maximumZoomScale = bounds.max
                 if !live {
                     let centerPaper = CGPoint(
-                        x: (canvas.contentOffset.x + viewport.width / 2) / oldZoom,
-                        y: (canvas.contentOffset.y + viewport.height / 2) / oldZoom
+                        x: (oldOffset.x + viewport.width / 2) / oldZoom,
+                        y: (oldOffset.y + viewport.height / 2) / oldZoom
                     )
-                    let newZoom = atOverview ? bounds.min : bounds.clamped(targetZoom ?? oldZoom)
+                    let topY = oldOffset.y / oldZoom
+                    let newZoom = atOpen ? bounds.open : (atMin ? bounds.min : bounds.clamped(targetZoom ?? oldZoom))
                     canvas.zoomScale = newZoom
                     canvas.contentSize = Self.scaled(appliedLayout.size, by: newZoom)
                     applyInsets()
                     canvas.contentOffset = clampedOffset(CGPoint(
                         x: centerPaper.x * newZoom - viewport.width / 2,
-                        y: centerPaper.y * newZoom - viewport.height / 2
+                        // 1.1.1: at the opening zoom or the minimum the top of the view stays on the same
+                        // paper y: the paper is longer than the viewport now, so the clamp no longer
+                        // brings it back to the top.
+                        y: (atOpen || atMin) ? topY * newZoom : centerPaper.y * newZoom - viewport.height / 2
                     ))
                 }
             } else {
@@ -1188,46 +1232,57 @@ extension InkCanvasView {
             syncPaperFrame()
         }
 
-        /// True when fit, min and max all differ by less than 0.0005.
+        /// True when fit, open, min and max all differ by less than 0.0005.
         private static func sameBounds(_ a: ZoomPolicy.Bounds, _ b: ZoomPolicy.Bounds) -> Bool {
-            abs(a.fit - b.fit) < 0.0005 && abs(a.min - b.min) < 0.0005 && abs(a.max - b.max) < 0.0005
+            abs(a.fit - b.fit) < 0.0005 && abs(a.open - b.open) < 0.0005 && abs(a.min - b.min) < 0.0005 && abs(a.max - b.max) < 0.0005
         }
 
         /// New limits without a change of width (the band grew, a month / year row grew with ink or
         /// events; M4C_CONTRACT §1.3). The limits are always updated; the zoom only when no pinch is
-        /// live: a paper at the overview follows the new overview (D1; `targetZoom` with it), a
-        /// zoomed-in paper is clamped only when it fell outside the new range (a paper that was at
-        /// the old minimum by chance is *not* re-applied). The ratio is not reported.
+        /// live: a paper at the opening zoom follows the new opening zoom with the top of the view on
+        /// the same paper y (1.1.1; `targetZoom` with it), any other paper — a paper pinched to the
+        /// minimum too, so the paper being written on does not move — is clamped only when it fell
+        /// outside the new range, and then keeps the top of the view on the same paper y too. The ratio
+        /// is not reported.
         private func applyBounds(_ bounds: ZoomPolicy.Bounds) {
             guard let canvas else { return }
-            let atOverview = abs(canvas.zoomScale - canvas.minimumZoomScale) < 0.0005
+            let oldZoom = max(canvas.zoomScale, 0.0001)
+            let atOpen = abs(oldZoom - (lastBounds?.open ?? canvas.minimumZoomScale)) < 0.0005
+            // Read before the limits change: UIKit may move the zoom and the offset with them.
+            let topY = canvas.contentOffset.y / oldZoom
             canvas.minimumZoomScale = bounds.min
             canvas.maximumZoomScale = bounds.max
             lastBounds = bounds
             guard !isLive else { return }
-            if atOverview {
-                if abs(canvas.zoomScale - bounds.min) >= 0.0005 {
-                    canvas.zoomScale = bounds.min
+            if atOpen {
+                if abs(oldZoom - bounds.open) >= 0.0005 {
+                    canvas.zoomScale = bounds.open
+                    canvas.contentOffset = clampedOffset(CGPoint(x: canvas.contentOffset.x, y: topY * bounds.open))
                 }
-                targetZoom = bounds.min
-            } else if canvas.zoomScale < bounds.min || canvas.zoomScale > bounds.max {
-                canvas.zoomScale = bounds.clamped(canvas.zoomScale)
+                targetZoom = bounds.open
+            } else {
+                if canvas.zoomScale < bounds.min || canvas.zoomScale > bounds.max {
+                    canvas.zoomScale = bounds.clamped(canvas.zoomScale)
+                }
+                // By the zoom it ended on, not by the test above: UIKit may have clamped it with the limits.
+                if abs(canvas.zoomScale - oldZoom) >= 0.0005 {
+                    canvas.contentOffset = clampedOffset(CGPoint(x: canvas.contentOffset.x, y: topY * canvas.zoomScale))
+                }
             }
         }
 
-        /// The centring margins of the whole paper (`layout.size`, never the overview rectangle) at
-        /// the current zoom (M4C_CONTRACT §1.3). `contentInsetAdjustmentBehavior` is `.never`, so the
-        /// inset is ours to set. Margins under 1 µpt are 0 (fit-to-width leaves floating-point dust).
-        /// 1.1 (M7A_CONTRACT §2.2): the bottom one is `max(the centring margin, bottomClearance)`, so
-        /// the bottom of the paper can be scrolled above the collapsed toolbar's round button; the
-        /// top, left and right ones are unchanged.
+        /// The margins of the whole paper (`layout.size`, never the overview rectangle) at the current
+        /// zoom (M4C_CONTRACT §1.3). `contentInsetAdjustmentBehavior` is `.never`, so the inset is ours to
+        /// set. Margins under 1 µpt are 0 (fit-to-width leaves floating-point dust). 1.1.1
+        /// (docs/R1_1_1.md): centred across only. The top is 0 and the bottom `bottomClearance` (1.1,
+        /// M7A_CONTRACT §2.2: the bottom of the paper can be scrolled above the collapsed toolbar's
+        /// round button), so a short paper starts under the heading and what is left stays below it.
         private func applyInsets() {
             guard let container, let canvas else { return }
             let inset = ZoomPolicy.centeringInsets(paper: appliedLayout.size, zoom: canvas.zoomScale, viewport: container.bounds.size)
             let horizontal = inset.width < 1e-6 ? 0 : inset.width
-            let vertical = inset.height < 1e-6 ? 0 : inset.height
             let clearance = parent.bottomClearance.isFinite ? max(0, parent.bottomClearance) : 0
-            let edges = UIEdgeInsets(top: vertical, left: horizontal, bottom: max(vertical, clearance), right: horizontal)
+            let edges = UIEdgeInsets(top: 0, left: horizontal, bottom: clearance, right: horizontal)
             if canvas.contentInset != edges {
                 canvas.contentInset = edges
             }
@@ -1279,8 +1334,8 @@ extension InkCanvasView {
         }
 
         /// `point` kept inside the scrollable range, margins included: x in [−inset.left,
-        /// max(−inset.left, contentSize.width + inset.right − width)], y likewise. A centred paper
-        /// therefore rests at a negative offset. Not finite → the top-left.
+        /// max(−inset.left, contentSize.width + inset.right − width)], y likewise. A paper centred across
+        /// therefore rests at a negative x. Not finite → the top-left.
         private func clampedOffset(_ point: CGPoint) -> CGPoint {
             guard let container, let canvas else { return point }
             let inset = canvas.contentInset
@@ -1291,6 +1346,17 @@ extension InkCanvasView {
             let x = point.x.isFinite ? point.x : minX
             let y = point.y.isFinite ? point.y : minY
             return CGPoint(x: min(max(x, minX), maxX), y: min(max(y, minY), maxY))
+        }
+
+        /// 1.1.1: brings `rect` (paper lu) on screen with the least movement, above the round button's
+        /// clearance (`ZoomPolicy.revealOffset`, then the clamp to the paper). `setContentOffset` rather
+        /// than the property: it also stops a scroll still decelerating or bouncing, which would carry
+        /// the row away again (「今日」 right after a flick).
+        private func reveal(_ rect: CGRect) {
+            guard let container, let canvas else { return }
+            var viewport = container.bounds.size
+            viewport.height -= canvas.contentInset.bottom
+            canvas.setContentOffset(clampedOffset(ZoomPolicy.revealOffset(rect: rect, zoom: canvas.zoomScale, viewport: viewport, current: canvas.contentOffset)), animated: false)
         }
 
         private static func scaled(_ size: CGSize, by zoom: CGFloat) -> CGSize {
@@ -1882,7 +1948,7 @@ extension InkCanvasView {
             if needsRoom || !change.removedIds.isEmpty {
                 deliver { [weak self] in self?.parent.onInkBoundsChanged() }
             }
-            // The last cell can take no further 400 lu step below this stroke (§3.4).
+            // Less than 400 lu of the last cell is left below this stroke (§3.4).
             if change.added.contains(where: { PaperGrowth.isTail($0.cell) && PaperGrowth.reachesCap(inkBottom: $0.bottom) }) {
                 capReached = true
             }
@@ -1902,12 +1968,12 @@ extension InkCanvasView {
         /// on this canvas just now — never one that came from iCloud, an import or undo, which the
         /// ledger built). Such a stroke never reaches the ledger and leaves the canvas at once, with
         /// no undo, when:
-        /// - its paper bounds are centred outside the paper (x < 0, x > width, y < 0, y > height: the
-        ///   centring margin; M4C-25): `inkCell(forCenter:)` would file it on an edge cell with
+        /// - its paper bounds are centred outside the paper (x < 0, x > width, y < 0, y > height: a
+        ///   margin; M4C-25): `inkCell(forCenter:)` would file it on an edge cell with
         ///   negative cell coordinates, and at another zoom or in the web version it would stick out
         ///   of the paper;
         /// - 1.1 (§3.4, 0-5): it is centred more than `growMax` below the top of the page's last cell,
-        ///   even when the paper is longer (deep strokes from a 1.0 device) — `.beyondCap`;
+        ///   even when the paper is longer (a line past 5,950 lu) — `.beyondCap`;
         /// - 1.1 (§5.2, K-9): it is one of the newest strokes that would take the page past
         ///   `StrokeBudget.refuseAt` (`accepted(incoming:count:)`; the last ones go).
         private func screenNewStrokes(on canvasView: PKCanvasView) -> Screening {
@@ -1969,7 +2035,7 @@ extension InkCanvasView {
         }
 
         /// Every frame of a pinch, and synchronously after every `zoomScale` assignment: the content
-        /// size, the centring margins and the paper window. The first frame after a bounce redraws.
+        /// size, the margins and the paper window. The first frame after a bounce redraws.
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
             guard let canvas else { return }
             contentSizeFromUIKit = canvas.contentSize

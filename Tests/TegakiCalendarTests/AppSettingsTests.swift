@@ -88,6 +88,27 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(AppSettings.zoomRatio(for: .year), 1)
     }
 
+    // MARK: 1.1.1 (docs/R1_1_1.md)
+
+    /// The pinch hint's key, and `hasPinched`: some page kind stored zoomed in. A ratio of 1 (nothing
+    /// stored) is not a pinch.
+    func testPinchHintKeys() {
+        XCTAssertEqual(AppSettings.pinchHintShownKey, "hint.pinchShown")
+        XCTAssertFalse(AppSettings.defaults.bool(forKey: AppSettings.pinchHintShownKey), "default false")
+        XCTAssertFalse(AppSettings.hasPinched)
+        AppSettings.setZoomRatio(1, for: .year)
+        XCTAssertFalse(AppSettings.hasPinched, "1 is the opening zoom")
+        for kind in PageKind.allCases {
+            AppSettings.setZoomRatio(1.5, for: kind)
+            XCTAssertTrue(AppSettings.hasPinched, "\(kind)")
+            AppSettings.setZoomRatio(1, for: kind)
+            XCTAssertFalse(AppSettings.hasPinched, "\(kind)")
+        }
+        // A bad value on disk reads as 1.
+        AppSettings.defaults.set(0.5, forKey: "zoomRatio.month")
+        XCTAssertFalse(AppSettings.hasPinched)
+    }
+
     // MARK: M5 (M5_CONTRACT §4.2 / §7.6)
 
     /// The first-launch paywall flag: false until written, written back as a `Bool`, one key.

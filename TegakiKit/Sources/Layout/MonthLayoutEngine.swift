@@ -20,8 +20,8 @@ public enum MonthLayoutEngine {
         return min(PaperSpec.monthRowMax, height)
     }
 
-    /// Height of the memo area (1.1, M7A_CONTRACT §3.2): `PaperGrowth.tailHeight(inkBottom:)` — 700,
-    /// then 400 lu steps of blank paper below the handwriting up to 6,000, never less than the 1.0
+    /// Height of the memo area (1.1, M7A_CONTRACT §3.2; 1.1.1, docs/R1_1_1.md):
+    /// `PaperGrowth.tailHeight(inkBottom:)` — open to 6,000 from the start, never less than the 1.0
     /// rule `max(700, inkBottom + 50)`.
     public static func memoHeight(inkBottom: CGFloat) -> CGFloat {
         PaperGrowth.tailHeight(inkBottom: inkBottom)

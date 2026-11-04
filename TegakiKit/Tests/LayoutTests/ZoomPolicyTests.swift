@@ -4,8 +4,9 @@ import CoreGraphics
 import Layout
 
 /// The zoom-scale limits of the four pages and the viewport the sticky header follows
-/// (M4C_CONTRACT §1.1 / §1.2: the overview, fitAll, is the lower limit since M4c). The numbers are
-/// the tables of §1.2; the same checks run in KitChecks.
+/// (M4C_CONTRACT §1.1 / §1.2: the overview, fitAll, is the lower limit since M4c; since 1.1.1 a page
+/// opens at the fitAll of its base paper, docs/R1_1_1.md). The numbers are the tables of §1.2; the same
+/// checks run in KitChecks.
 final class ZoomPolicyTests: XCTestCase {
     private typealias F = M3aFixtures
     private let readableWeek: CGFloat = 90 / (1336.0 / 7)
@@ -159,6 +160,7 @@ final class ZoomPolicyTests: XCTestCase {
     func testBounds() {
         let b = ZoomPolicy.Bounds(fit: 0.3, min: 0.5, max: 1.2)
         XCTAssertEqual(b.fit, 0.3)
+        XCTAssertEqual(b.open, 0.5, "nil is min")
         XCTAssertEqual(b.min, 0.5)
         XCTAssertEqual(b.max, 1.2)
         XCTAssertEqual(b.clamped(.nan), 0.5, "NaN → min")
@@ -241,7 +243,7 @@ final class ZoomPolicyTests: XCTestCase {
         XCTAssertEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 0.7314, viewport: CGSize(width: 1024, height: 1180)).height, 0)
         let iphoneMonth = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 402.0 / 1400, viewport: CGSize(width: 402, height: 580))
         XCTAssertEqual(iphoneMonth.width, 0, accuracy: 1e-9)
-        XCTAssertEqual(iphoneMonth.height, 38.8, accuracy: 0.1, "iPhone month: the whole paper (502 pt) fits")
+        XCTAssertEqual(iphoneMonth.height, 0, "1.1.1: the paper starts at the top")
         let ipadWeek = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1920), zoom: 1180.0 / 1920, viewport: CGSize(width: 1024, height: 1180))
         XCTAssertEqual(ipadWeek.width, 81.8, accuracy: 0.1)
         XCTAssertEqual(ipadWeek.height, 0, accuracy: 1e-9)
@@ -253,7 +255,130 @@ final class ZoomPolicyTests: XCTestCase {
             XCTAssertEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: 1000, height: 2400), zoom: 0.2, viewport: CGSize(width: bad, height: bad)), .zero, "viewport \(bad)")
         }
         XCTAssertEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: CGFloat.nan, height: CGFloat.nan), zoom: 0.2, viewport: CGSize(width: 402, height: 580)), .zero, "a NaN paper")
-        XCTAssertEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: -1, height: -1), zoom: 0.2, viewport: CGSize(width: 402, height: 580)), CGSize(width: 201, height: 290), "a negative paper counts as empty")
+        XCTAssertEqual(ZoomPolicy.centeringInsets(paper: CGSize(width: -1, height: -1), zoom: 0.2, viewport: CGSize(width: 402, height: 580)), CGSize(width: 201, height: 0), "a negative paper counts as empty")
+    }
+
+    // MARK: The opening zoom and the paper at the top (1.1.1, docs/R1_1_1.md)
+
+    func testOpeningZoomIgnoresWhatThePageHolds() {
+        XCTAssertEqual(ZoomPolicy.baseSize(.month), CGSize(width: 1400, height: 1050), "6 rows of 175")
+        XCTAssertEqual(ZoomPolicy.baseSize(.week), CGSize(width: 1400, height: 1920), "24 hours")
+        XCTAssertEqual(ZoomPolicy.baseSize(.day), CGSize(width: 1000, height: 2400), "24 hours")
+        XCTAssertEqual(ZoomPolicy.baseSize(.year), CGSize(width: 1400, height: 1860), "31 rows of 60")
+        XCTAssertEqual(ZoomPolicy.overviewSize(F.monthLayout([])), ZoomPolicy.baseSize(.month), "the overview of an empty page")
+        XCTAssertEqual(ZoomPolicy.overviewSize(F.weekLayout([])), ZoomPolicy.baseSize(.week))
+        XCTAssertEqual(ZoomPolicy.overviewSize(F.dayLayout([])), ZoomPolicy.baseSize(.day))
+        XCTAssertEqual(ZoomPolicy.overviewSize(F.yearLayout([])), ZoomPolicy.baseSize(.year))
+        XCTAssertGreaterThanOrEqual(ZoomPolicy.overviewSize(F.monthLayout(F.demo)).height, ZoomPolicy.baseSize(.month).height)
+        XCTAssertGreaterThanOrEqual(ZoomPolicy.overviewSize(F.yearLayout(F.demo)).height, ZoomPolicy.baseSize(.year).height)
+
+        // An iPhone's year: the size does not change between a year nobody wrote on and a long one.
+        let phone = CGSize(width: 440, height: 651)
+        let shortYear = ZoomPolicy.bounds(.year, overview: CGSize(width: 1400, height: 1860), viewport: phone)
+        let tallYear = ZoomPolicy.bounds(.year, overview: CGSize(width: 1400, height: 2600), viewport: phone)
+        XCTAssertEqual(shortYear.open, 440.0 / 1400, accuracy: 1e-9, "0.3143")
+        XCTAssertEqual(tallYear.open, shortYear.open, "the same on both")
+        XCTAssertEqual(shortYear.min, 440.0 / 1400, accuracy: 1e-9)
+        XCTAssertEqual(tallYear.min, 651.0 / 2600, accuracy: 1e-9, "0.2504: a pinch shows the whole page")
+        XCTAssertEqual(ZoomPolicy.zoom(forRatio: 1, bounds: tallYear), ZoomPolicy.zoom(forRatio: 1, bounds: shortYear))
+        XCTAssertEqual(ZoomPolicy.zoom(forRatio: 2, bounds: tallYear), 2 * 440.0 / 1400, accuracy: 1e-9, "2 × open")
+        XCTAssertEqual(ZoomPolicy.zoom(forRatio: .nan, bounds: tallYear), tallYear.open, accuracy: 1e-12, "NaN → open")
+        XCTAssertEqual(ZoomPolicy.zoom(forRatio: 0, bounds: tallYear), tallYear.open, accuracy: 1e-12, "0 → open")
+        XCTAssertEqual(ZoomPolicy.zoom(forRatio: 0.5, bounds: tallYear), tallYear.min, accuracy: 1e-12, "clamped to min")
+        XCTAssertNotEqual(tallYear, ZoomPolicy.Bounds(fit: tallYear.fit, min: tallYear.min, max: tallYear.max), "open counts in ==")
+        XCTAssertEqual(ZoomPolicy.Bounds(fit: 0.3, open: 0.4, min: 0.2, max: 1).open, 0.4)
+        XCTAssertEqual(ZoomPolicy.Bounds(fit: 0.3, open: 0.4, min: 0.2, max: 1).clamped(.nan), 0.2, "NaN → min, not open")
+
+        // The owner's four kinds of device, portrait and landscape (the table in docs/R1_1_1.md): the width, the
+        // paper area of the month and the year, what they open at, and the lower limit of a month of
+        // 1,518 lu and a year of 2,600 lu.
+        let devices: [(name: String, width: CGFloat, month: CGFloat, year: CGFloat, openMonth: CGFloat, openYear: CGFloat, minMonth: CGFloat, minYear: CGFloat)] = [
+            ("iPhone 18 Pro Max portrait", 440, 672.67, 651, 0.3143, 0.3143, 0.3143, 0.2504),
+            ("iPhone 18 Pro Max landscape", 832, 267.67, 246, 0.2549, 0.1323, 0.1763, 0.0946),
+            ("iPad mini portrait", 744, 928.5, 907, 0.5314, 0.4876, 0.5314, 0.3488),
+            ("iPad mini landscape", 1133, 539.5, 518, 0.5138, 0.2785, 0.3554, 0.1992),
+            ("iPad Air 11 portrait", 820, 975.5, 954, 0.5857, 0.5129, 0.5857, 0.3669),
+            ("iPad Air 11 landscape", 1180, 615.5, 594, 0.5862, 0.3194, 0.4055, 0.2285),
+            ("iPad Pro 13 portrait", 1032, 1171.5, 1150, 0.7371, 0.6183, 0.7371, 0.4423),
+            ("iPad Pro 13 landscape", 1376, 827.5, 806, 0.7881, 0.4333, 0.5451, 0.3100),
+        ]
+        for d in devices {
+            let cases: [(PageKind, CGSize, CGFloat, CGFloat, CGFloat, CGFloat)] = [
+                (.month, CGSize(width: d.width, height: d.month), 1050, 1518, d.openMonth, d.minMonth),
+                (.year, CGSize(width: d.width, height: d.year), 1860, 2600, d.openYear, d.minYear),
+            ]
+            for (kind, viewport, base, long, open, minimum) in cases {
+                let label = "\(kind), \(d.name)"
+                let plain = ZoomPolicy.bounds(kind, overview: CGSize(width: 1400, height: base), viewport: viewport)
+                let tall = ZoomPolicy.bounds(kind, overview: CGSize(width: 1400, height: long), viewport: viewport)
+                XCTAssertEqual(plain.open, open, accuracy: 1e-4, label)
+                XCTAssertEqual(tall.open, plain.open, "the same whatever the page holds: \(label)")
+                XCTAssertEqual(ZoomPolicy.zoom(forRatio: 1, bounds: tall), ZoomPolicy.zoom(forRatio: 1, bounds: plain), label)
+                XCTAssertEqual(plain.min, plain.open, "the base paper opens at its lower limit: \(label)")
+                XCTAssertEqual(tall.min, minimum, accuracy: 1e-4, label)
+                XCTAssertLessThanOrEqual(tall.min, tall.open, label)
+                XCTAssertLessThanOrEqual(tall.open, tall.fit, label)
+                XCTAssertLessThanOrEqual(tall.fit, tall.max, label)
+                XCTAssertEqual(ZoomPolicy.ratio(forZoom: tall.open * 0.8, bounds: tall), 1, "a pinch below open is not stored: \(label)")
+                XCTAssertEqual(ZoomPolicy.ratio(forZoom: tall.open * 2, bounds: tall), 2, accuracy: 1e-9, label)
+                XCTAssertLessThan(tall.max / tall.open, ZoomPolicy.maxStoredRatio, label)
+            }
+        }
+        // A week and a day never grow their overview.
+        for kind in [PageKind.week, .day] {
+            let b = ZoomPolicy.bounds(kind, overview: ZoomPolicy.baseSize(kind), viewport: CGSize(width: 744, height: 878))
+            XCTAssertEqual(b.open, b.min, "\(kind)")
+        }
+        // An overview smaller than the base (no page has one): the lower limit never passes the opening zoom.
+        let smallOverview = ZoomPolicy.bounds(.month, overview: CGSize(width: 1400, height: 500), viewport: CGSize(width: 1366, height: 830))
+        XCTAssertEqual(smallOverview.min, smallOverview.open)
+
+        // The paper starts at the top: only the left and right margins are left.
+        let phoneMonth = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 1750), zoom: 440.0 / 1400, viewport: CGSize(width: 440, height: 673))
+        XCTAssertEqual(phoneMonth.height, 0, "no margin above a 1,750 lu paper (61 pt in 1.1)")
+        XCTAssertEqual(phoneMonth.width, 0, accuracy: 1e-9)
+        let phoneYear = ZoomPolicy.centeringInsets(paper: CGSize(width: 1400, height: 2600), zoom: tallYear.min, viewport: phone)
+        XCTAssertEqual(phoneYear.width, 44.7, accuracy: 0.1, "at its minimum: 44.7 pt each side")
+        XCTAssertEqual(phoneYear.height, 0)
+
+        // The first frame goes through the same numbers.
+        let first = PaperViewport.initial(.year, overview: CGSize(width: 1400, height: 2600), paperSize: CGSize(width: 1400, height: 2600), viewport: phone, ratio: 1)
+        XCTAssertEqual(first.zoom, 440.0 / 1400, accuracy: 1e-9, "0.2504 in 1.1")
+        XCTAssertEqual(first.offsetX, 0, accuracy: 1e-9, "−44.7 in 1.1")
+        XCTAssertEqual(first.width, 440)
+    }
+
+    func testRevealOffset() {
+        // iPad mini 744 × 907 at 0.4876, a 2,600 lu year with rows of 2600 / 31.
+        let rowHeight: CGFloat = 2600.0 / 31
+        let row28 = CGRect(x: 1283, y: rowHeight * 27, width: 117, height: rowHeight)
+        let row4 = CGRect(x: 1283, y: rowHeight * 3, width: 117, height: rowHeight)
+        let mini = CGSize(width: 744, height: 907)
+        XCTAssertEqual(ZoomPolicy.revealMargin, 8)
+        let fromTop = ZoomPolicy.revealOffset(rect: row28, zoom: 0.4876, viewport: mini, current: CGPoint(x: -31, y: 0))
+        XCTAssertEqual(fromTop.x, -31, accuracy: 0.01)
+        XCTAssertEqual(fromTop.y, 246.07, accuracy: 0.01, "row 28 from the top")
+        XCTAssertEqual(ZoomPolicy.revealOffset(rect: row4, zoom: 0.4876, viewport: mini, current: CGPoint(x: -31, y: 0)), CGPoint(x: -31, y: 0), "on screen: does not move")
+        let fromBelow = ZoomPolicy.revealOffset(rect: row4, zoom: 0.4876, viewport: mini, current: CGPoint(x: -31, y: 361))
+        XCTAssertEqual(fromBelow.x, -31, accuracy: 0.01)
+        XCTAssertEqual(fromBelow.y, 114.69, accuracy: 0.01, "row 4 from below")
+        let long = ZoomPolicy.revealOffset(rect: CGRect(x: 0, y: 100, width: 10, height: 4000), zoom: 0.5, viewport: mini, current: CGPoint(x: 0, y: 300))
+        XCTAssertEqual(long.x, -8, accuracy: 0.01)
+        XCTAssertEqual(long.y, 42, accuracy: 0.01, "a rect longer than the viewport lines up with its start")
+        let square = CGSize(width: 500, height: 500)
+        XCTAssertEqual(ZoomPolicy.revealOffset(rect: CGRect(x: 1000, y: 100, width: 200, height: 100), zoom: 1, viewport: square, current: .zero), CGPoint(x: 708, y: 0), "right of the viewport")
+        XCTAssertEqual(ZoomPolicy.revealOffset(rect: CGRect(x: 100, y: 100, width: 200, height: 100), zoom: 1, viewport: square, current: CGPoint(x: 600, y: 0)), CGPoint(x: 92, y: 0), "left of the viewport")
+        XCTAssertEqual(ZoomPolicy.revealOffset(rect: CGRect(x: 100, y: 0, width: 200, height: 100), zoom: 1, viewport: square, current: .zero), CGPoint(x: 0, y: -8), "the top of the paper: the caller clamps")
+        let here = CGPoint(x: 5, y: 6)
+        for bad in [CGFloat.nan, 0, -1, .infinity, -.infinity] {
+            XCTAssertEqual(ZoomPolicy.revealOffset(rect: row4, zoom: bad, viewport: mini, current: here), here, "zoom \(bad)")
+        }
+        for bad in [CGFloat.nan, .infinity, -.infinity] {
+            XCTAssertEqual(ZoomPolicy.revealOffset(rect: CGRect(x: bad, y: 10, width: 10, height: 10), zoom: 1, viewport: mini, current: here), here, "rect x \(bad)")
+            XCTAssertEqual(ZoomPolicy.revealOffset(rect: CGRect(x: 10, y: 10, width: 10, height: bad), zoom: 1, viewport: mini, current: here), here, "rect height \(bad)")
+        }
+        XCTAssertEqual(ZoomPolicy.revealOffset(rect: row4, zoom: 1, viewport: CGSize(width: 0, height: 907), current: here), here, "width 0")
+        XCTAssertEqual(ZoomPolicy.revealOffset(rect: row4, zoom: 1, viewport: CGSize(width: 744, height: -1), current: here), here, "a negative height")
     }
 
     func testVisibleWidths() {

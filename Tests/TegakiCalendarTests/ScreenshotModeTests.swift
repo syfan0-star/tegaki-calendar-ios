@@ -10,7 +10,8 @@ import XCTest
 /// that already sit on the grid, M4c's `--screenshot-zoom` / `--screenshot-offset`, M5's `paywall` and
 /// `--screenshot-readonly`, and M6's `export` sheet (M6_CONTRACT §3.5 / §7.2). 1.1 (M7A_CONTRACT §7.2 /
 /// §7.3): `--screenshot-toolbar`, `--screenshot-tool`, `--screenshot-grown`, the `info` sheet with its
-/// demo counts, and the demo pages as JSON fixtures that the 1.0 copy reads (0-23).
+/// demo counts, and the demo pages as JSON fixtures that the 1.0 copy reads (0-23). 1.1.1
+/// (docs/R1_1_1.md): `--screenshot-empty`, `--screenshot-tall-year`, `--screenshot-pinch-hint`.
 final class ScreenshotModeTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
 
@@ -485,9 +486,63 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(all?.readOnly, plain?.readOnly)
     }
 
-    /// `--screenshot-grown` adds one stroke deep in the month's memo area (bottom ≈ 1,009 → the memo
-    /// area 1,500) and one in the day's free memo area (`extra`, → 1,100); without it the demo pages
-    /// are those of 1.0.1 (the month's memo dot keeps the memo area at 700, the day has no `extra` ink).
+    /// 1.1.1 (docs/R1_1_1.md): `--screenshot-empty` opens the paper with no demo events and no demo ink,
+    /// on every page; without it (the 53 photos, the tests) both stay as they are.
+    /// `--screenshot-pinch-hint` changes nothing else either.
+    func testParseEmptyAndPinchHint() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-12", "--screenshot-page", "year"]
+        let plain = ScreenshotMode.parse(base)
+        XCTAssertEqual(plain?.empty, false)
+        var empty = ScreenshotMode.parse(base + ["--screenshot-empty"])
+        XCTAssertEqual(empty?.empty, true)
+        empty?.empty = false
+        XCTAssertEqual(empty, plain, "it changes nothing else")
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-empty"]), "without `--screenshot-mode` nothing")
+        XCTAssertEqual(plain?.pinchHint, false)
+        var hint = ScreenshotMode.parse(base + ["--screenshot-pinch-hint"])
+        XCTAssertEqual(hint?.pinchHint, true)
+        hint?.pinchHint = false
+        XCTAssertEqual(hint, plain, "it changes nothing else")
+
+        let focus = DayKey(year: 2026, month: 12, day: 7)
+        for kind in PageKind.allCases {
+            let page = ScreenshotMode.demoPage(kind: kind, focus: focus, empty: true)
+            XCTAssertEqual(page, InkPage.empty(pageId: PageNavigation.pageId(kind, focus: focus)), "\(kind)")
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus, grown: true, empty: true), page, "\(kind): empty wins over grown")
+            // The default follows the (absent) `--screenshot-empty`.
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus), ScreenshotMode.demoPage(kind: kind, focus: focus, empty: false), "\(kind)")
+        }
+        XCTAssertTrue(ScreenshotMode.demoEvents(for: october, empty: true).isEmpty)
+        XCTAssertEqual(ScreenshotMode.demoEvents(for: october), ScreenshotMode.demoEvents(for: october, empty: false))
+        XCTAssertFalse(ScreenshotMode.demoEvents(for: october).isEmpty)
+    }
+
+    /// 1.1.1 (docs/R1_1_1.md §5.4): `--screenshot-tall-year` makes the year page about 2,600 lu with no
+    /// events, with or without `--screenshot-empty`, and changes no other page.
+    func testParseTallYear() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2027-01", "--screenshot-page", "year", "--screenshot-empty"]
+        let plain = ScreenshotMode.parse(base)
+        XCTAssertEqual(plain?.tallYear, false)
+        var tall = ScreenshotMode.parse(base + ["--screenshot-tall-year"])
+        XCTAssertEqual(tall?.tallYear, true)
+        tall?.tallYear = false
+        XCTAssertEqual(tall, plain, "it changes nothing else")
+
+        let focus = DayKey(year: 2027, month: 1, day: 7)
+        let page = ScreenshotMode.demoPage(kind: .year, focus: focus, empty: true, tallYear: true)
+        XCTAssertEqual(page, ScreenshotMode.demoPage(kind: .year, focus: focus, empty: false, tallYear: true), "whatever `empty` says")
+        XCTAssertEqual(page.pageId, PageNavigation.pageId(.year, focus: focus))
+        let layout = YearLayoutEngine.layout(YearLayoutInput(year: 2027, events: [], inkBottoms: page.inkBottoms(), now: Date()))
+        XCTAssertEqual(layout.size.height, 2600, accuracy: 5)
+        for kind in PageKind.allCases where kind != .year {
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus, tallYear: true), ScreenshotMode.demoPage(kind: kind, focus: focus, tallYear: false), "\(kind)")
+        }
+    }
+
+    /// `--screenshot-grown` adds one stroke deep in the month's memo area (bottom ≈ 1,009) and one in the
+    /// day's free memo area (`extra`); without it the demo pages are those of 1.0.1. 1.1.1: the two areas
+    /// are open to 6,000 lu with or without them, so the paper does not change; the PDF's areas are
+    /// 1,500 and 1,100 (`PaperGrowth.exportTailHeight`).
     func testGrownDemoPages() {
         let focus = DayKey(year: 2026, month: 10, day: 7)
         let now = ScreenshotMode.todayInstant(for: october)
@@ -500,12 +555,12 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(month.liveStrokeIds, ["demo-stroke-dot", "demo-stroke-marker", "demo-stroke-wave"])
         XCTAssertEqual(month.inkBottoms()[.memo] ?? 0, 64.5, accuracy: 0.001)
         let monthLayout = MonthLayoutEngine.layout(MonthLayoutInput(month: october, events: ScreenshotMode.demoEvents(for: october), inkBottoms: month.inkBottoms(), now: now))
-        XCTAssertEqual(monthLayout.memo.height, 700, "the month paper of the photos is that of 1.0.1 (0-1)")
+        XCTAssertEqual(monthLayout.memo.height, 6000, "1.1.1: open from the start")
         let day = ScreenshotMode.demoPage(kind: .day, focus: focus)
         XCTAssertEqual(day.liveStrokeIds, ["demo-stroke-day-circle", "demo-stroke-day-wave1", "demo-stroke-day-wave2"])
         XCTAssertNil(day.inkBottoms()[.extra])
         let dayLayout = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: ScreenshotMode.demoEvents(for: october), inkBottoms: day.inkBottoms(), now: now))
-        XCTAssertEqual(dayLayout.extra.height, 700)
+        XCTAssertEqual(dayLayout.extra.height, 6000)
 
         // The grown month: the three strokes as before and the red wave in the memo area.
         let grownMonth = ScreenshotMode.demoPage(kind: .month, focus: focus, grown: true)
@@ -524,11 +579,12 @@ final class ScreenshotModeTests: XCTestCase {
         }
         let memoBottom = grownMonth.inkBottoms()[.memo] ?? 0
         XCTAssertEqual(memoBottom, 1_009, accuracy: 0.5)
-        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: memoBottom), 1_500)
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: memoBottom), 6_000)
+        XCTAssertEqual(PaperGrowth.exportTailHeight(inkBottom: memoBottom), 1_500)
         let grownMonthLayout = MonthLayoutEngine.layout(MonthLayoutInput(month: october, events: ScreenshotMode.demoEvents(for: october), inkBottoms: grownMonth.inkBottoms(), now: now))
-        XCTAssertEqual(grownMonthLayout.memo.height, 1_500)
+        XCTAssertEqual(grownMonthLayout.memo.height, 6_000)
         XCTAssertEqual(grownMonthLayout.memo.minY, monthLayout.memo.minY, "the rows do not move")
-        XCTAssertEqual(grownMonthLayout.size.height, monthLayout.size.height + 800)
+        XCTAssertEqual(grownMonthLayout.size.height, monthLayout.size.height, "the same paper")
 
         // The grown day: the three strokes as before and the black wave in `extra`.
         let grownDay = ScreenshotMode.demoPage(kind: .day, focus: focus, grown: true)
@@ -545,8 +601,9 @@ final class ScreenshotModeTests: XCTestCase {
         let extraBottom = grownDay.inkBottoms()[.extra] ?? 0
         XCTAssertEqual(extraBottom, 309, accuracy: 0.5)
         let grownDayLayout = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: ScreenshotMode.demoEvents(for: october), inkBottoms: grownDay.inkBottoms(), now: now))
-        XCTAssertEqual(grownDayLayout.extra, CGRect(x: 0, y: 2_400, width: 1_000, height: 1_100))
-        XCTAssertEqual(grownDayLayout.size.height, 3_500)
+        XCTAssertEqual(PaperGrowth.exportTailHeight(inkBottom: extraBottom), 1_100)
+        XCTAssertEqual(grownDayLayout.extra, CGRect(x: 0, y: 2_400, width: 1_000, height: 6_000))
+        XCTAssertEqual(grownDayLayout.size.height, 8_400)
         XCTAssertEqual(grownDayLayout.grid, dayLayout.grid, "the 24-hour grid does not move (K-4)")
         // The stroke's centre lies below 24:00, so the canvas would file it under `extra` too.
         let centreY = 2_400 + ((extra?.points.map { $0.y }.min() ?? 0) + (extra?.points.map { $0.y }.max() ?? 0)) / 2

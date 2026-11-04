@@ -189,4 +189,15 @@ public enum PageNavigation {
         let minute = TimedEventEngine.minutesOfDay(now, calendar: calendar) - 60
         return min(max(minute, 0), TimedEventEngine.dayMinutes)
     }
+
+    /// 1.1.1 (docs/R1_1_1.md): the paper rect 「今日」 brings on screen: today's cell on the month and year
+    /// pages; nil when today is not on the page, and on the week and day pages.
+    public static func todayRect(_ layout: any PageLayout, now: Date, calendar: Calendar = DayKey.deviceCalendar) -> CGRect? {
+        let today = DayKey(now, calendar: calendar)
+        if let month = layout as? MonthPageLayout { return month.cells[.day(today)] }
+        if let year = layout as? YearPageLayout, today.year == year.year {
+            return year.cells[.yearDay(month: today.month, day: today.day)]
+        }
+        return nil
+    }
 }
