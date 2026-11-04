@@ -1,0 +1,662 @@
+# J-4 of docs/M7B_CONTRACT.md (§1.3, §7.5, 0-32): 1.1's Japanese screenshots taken again the way 1.2's CI
+# takes them, as the reference for the pixel comparison of 1.2's photos (tools/l10n/compare_shots.swift,
+# run by the lead on the Mac). 1.1's own CI shot on an English simulator (the kanji fell back to
+# PingFang SC and the sync sheet's dates were English), so its photos are not the reference.
+#
+# The job reads the commit in tools/l10n/ja-baseline-ref.txt (one full sha: the commit that merged 1.1
+# into main, e7b4d2f; 0-39 may replace it), checks it out into baseline/, generates its Xcode project,
+# builds the app for the Simulator and takes the photos with the screenshot steps of build.yml, copied
+# from e7b4d2f's build.yml with their comments: the 13-inch iPad (4 pages, 3 zoomed, read-only, the 5
+# shots of 1.1, the 9 sheets), the iPhone, the 6.9-inch iPhone, the iPad mini and the 11-inch iPad, and
+# the "Store listing set". Every `simctl launch` ends with the same JA_ARGS as 1.2's build.yml
+# (-AppleLanguages (ja) -AppleLocale ja_JP). 1.1's app does not know `--screenshot-sheet holidays`, so
+# that sheet (1.2 only) is not shot. No tests run. As in 1.2's build.yml (§7.5), the 13-inch step and
+# the other devices' step write env.txt: `xcodebuild -version` and each device's simulator runtime,
+# the same lines in both workflows, so the lead can `diff` the two env.txt before comparing.
+# Artifact: ja-baseline-<the first 7 characters of the sha>, kept 30 days, with the file names of
+# build.yml's `screenshots` (but no sheet-holidays, fixtures/ or ui-tests/).
+#
+# Known (docs/M7B.md, C1): the 13-inch iPad is booted just before its photos (the unit tests run on
+# another simulator), and in 2 of 3 runs of 1.0.1 the system banner "Ready for Apple Intelligence"
+# (about 85–105 s after the boot) landed in its week or day photo: a comparison then shows strong
+# differences in the top 240 rows of that photo and of store/ipad13/02-week or 03-day.
+#
+# The photo steps must stay the same as build.yml's: when one of the two changes, change the other one
+# too (1.2's build.yml points back here). Added to the copy: JA_ARGS, the env.txt lines, the working
+# directory baseline/.
+#
+# When it runs: on a push to the branch `ja-baseline` (the lead pushes m7b under that name, for example
+# `git push origin m7b:ja-baseline`; workflow_dispatch only starts a workflow that is on the default
+# branch, so it is there for after 1.2's merge). Twice: at the start of 1.2 (an early reference and a
+# check of the photo steps) and again on the same UTC day as 1.2's last CI, the run J-4 compares with
+# (a newer Xcode or simulator runtime on the runner image changes the pixels, and the iPads' status bar
+# shows the date). How to run it and compare: docs/M7B.md, section C1.
+name: ja-baseline
+
+on:
+  push:
+    branches:
+      - ja-baseline
+  workflow_dispatch:
+
+concurrency:
+  group: ja-baseline-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ja-baseline:
+    name: ja-baseline (1.1's photos with JA_ARGS)
+    runs-on: macos-26
+    # In nine runs of 1.1 (2026-10-31 and 11-01) build.yml's photo steps took 36–45 min: the build 42–71 s,
+    # the 13-inch boot 111–193 s, the 13-inch photos 5–7 min, the other devices 26–33 min. No tests run
+    # here. 75 leaves room for slow boots; a job cut by its limit would not reach the upload.
+    timeout-minutes: 75
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+      # J-4: every screenshot launch ends with these, as in 1.2's build.yml (the runner's simulator is
+      # English; without them the kanji fall back to PingFang SC and the dates are English). Expanded
+      # unquoted on purpose: four words, none with a space.
+      JA_ARGS: "-AppleLanguages (ja) -AppleLocale ja_JP"
+    defaults:
+      run:
+        working-directory: baseline
+
+    steps:
+      # The pushed commit: only tools/l10n/ja-baseline-ref.txt is read from it.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Read the reference commit
+        id: ref
+        working-directory: .
+        run: |
+          set -euo pipefail
+          FILE=tools/l10n/ja-baseline-ref.txt
+          LINES="$(grep -c . "$FILE" || true)"
+          REF="$(tr -d '[:space:]' < "$FILE")"
+          if [ "$LINES" != "1" ] || ! printf '%s' "$REF" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::$FILE must hold exactly one full commit sha (40 lowercase hex digits)."
+            exit 1
+          fi
+          echo "J-4 reference commit: $REF"
+          echo "sha=$REF" >> "$GITHUB_OUTPUT"
+          echo "short=${REF:0:7}" >> "$GITHUB_OUTPUT"
+
+      # The app is built and photographed from that commit, in baseline/ (where every `run` step below runs).
+      - name: Check out the reference commit at baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.sha }}
+          path: baseline
+          persist-credentials: false
+
+      - name: Show the reference commit
+        env:
+          REF: ${{ steps.ref.outputs.sha }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "$HEAD_SHA" != "$REF" ]; then
+            echo "::error::baseline/ is at $HEAD_SHA, not $REF."
+            exit 1
+          fi
+          git log -1 --format='baseline: %H %s'
+          grep -E 'MARKETING_VERSION|CURRENT_PROJECT_VERSION' project.yml || true
+
+      # ---- From here to the "Store listing set", the steps of build.yml (e7b4d2f), in its order ----
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          xcodebuild -project TegakiCalendar.xcodeproj -list
+
+      - name: Build for the iOS Simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # The primary simulator (unit tests, 4 pages, 6 sheets): the first name, in sorted order, that
+      # starts with "iPad Pro 13-inch", else "iPad Air 13-inch", else any iPad, else any iPhone
+      # (docs/M4B_CONTRACT.md §6.1: the runner has no "iPad Pro 13-inch (M4)", so the choice is by
+      # prefix and deterministic). As a last resort the literal "iPhone 17" (the step never fails).
+      - name: Pick a simulator (13-inch iPad preferred)
+        id: simulator
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices available
+          NAME="$(xcrun simctl list -j devices available | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          names = set()
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name"):
+                      names.add(d["name"])
+          for prefix in ("iPad Pro 13-inch", "iPad Air 13-inch", "iPad", "iPhone"):
+              matches = sorted(n for n in names if n.startswith(prefix))
+              if matches:
+                  print(matches[0])
+                  raise SystemExit
+          print("")
+          ' || true)"
+          if [ -z "$NAME" ]; then
+            echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
+            NAME="iPhone 17"
+          fi
+          echo "Using simulator: $NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      # ---- Screenshots of the running app (best effort; never fails the job) ----
+      # The app is launched with "--screenshot-mode" (Sources/TegakiCalendar/Support/ScreenshotMode.swift):
+      # no onboarding, no EventKit, deterministic demo events for 2026-10 and a few preloaded ink
+      # strokes. Since M3a it is launched once per page ("--screenshot-page month|week|day|year",
+      # docs/M3A_CONTRACT.md §9), terminated between launches; since M3b four more times on the month
+      # page with "--screenshot-sheet create|edit|lasso|settings" (docs/M3B_CONTRACT.md §5, §7), which
+      # opens the create / edit sheet, the lasso selection with its menu, or the settings screen half a
+      # second after the canvas appeared; since M4 two more sheets, "sync" (the settings screen with the
+      # demo sync engine: 「同期済み」 and 「最後に同期」) and "import" (the finished web import,
+      # docs/M4_CONTRACT.md §6.6); since M5 a seventh, "paywall" (the subscription sheet of
+      # docs/M5_CONTRACT.md §4.1 over the month page), and "--screenshot-readonly" (the demo store starts
+      # unsubscribed: the 「閲覧専用」 badge in the header, the toast of §3.3 for 20 s, docs/M5_CONTRACT.md
+      # §7.5); since M6 an eighth sheet, "export" (the export sheet of docs/M6_CONTRACT.md §3.2 in its
+      # choose state — two actions with a one-line note each — over the month page, 0-6).
+      # In screenshot mode the sync engine is an inert demo over an in-memory fake and the store
+      # is an inert demo client (no StoreKit, no UserDefaults), so nothing here needs an iCloud account
+      # or App Store Connect. simctl cannot tap or rotate the device; since
+      # M4b (docs/M4B_CONTRACT.md §6.4) only the iPhone turns with "--screenshot-landscape" (the app
+      # asks the window scene for landscape; iPadOS ignores that request for an app that supports
+      # multitasking, so the iPad shots are portrait only).
+      # The steps run even when the unit tests failed (the app was still built); the upload always runs.
+      - name: Resolve the simulator UDID
+        id: simudid
+        if: ${{ !cancelled() && steps.simulator.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          NAME="${{ steps.simulator.outputs.name }}"
+          UDID="$(xcrun simctl list -j devices available | SIM_NAME="$NAME" python3 -c '
+          import json, os, sys
+          name = os.environ["SIM_NAME"]
+          devices = json.load(sys.stdin).get("devices", {})
+          found = ""
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name") == name and d.get("udid"):
+                      # Prefer the one xcodebuild already booted for the tests.
+                      if d.get("state") == "Booted" or not found:
+                          found = d["udid"]
+          print(found)
+          ')"
+          if [ -z "$UDID" ]; then
+            echo "::warning::No simulator UDID found for '$NAME'; skipping screenshots."
+            exit 1
+          fi
+          echo "Simulator: $NAME ($UDID)"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Boot the simulator
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.simudid.outputs.udid }}"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl ui "$UDID" appearance light
+          # A fixed status bar, so two runs produce the same pixels.
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+
+      - name: Install the app on the simulator
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.simudid.outputs.udid }}"
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          if [ -z "$APP" ]; then
+            echo "::warning::TegakiCalendar.app not found under build/DerivedData; skipping screenshots."
+            exit 1
+          fi
+          echo "App bundle: $APP"
+          xcrun simctl install "$UDID" "$APP"
+
+      # File names since M4b: ipad13-portrait-<page>.png (docs/M4B_CONTRACT.md §6.2; M4 and earlier
+      # wrote ipad-portrait-<page>.png, the mapping is in docs/M4B.md). Since M4c the 4 pages open at
+      # the overview (the whole page fits the paper area, docs/M4C_CONTRACT.md D1) and three more shots
+      # open the month, the week and the year at twice the overview with a paper point (lu) at the top
+      # left ("--screenshot-zoom 2 --screenshot-offset x,y", §2.4: the photo shares the canvas's zoom
+      # path with a pinch; the year's offset is clamped to the paper's right edge on purpose). Since M5
+      # one more: the month page in read-only mode (docs/M5_CONTRACT.md §7.5: the orange 「閲覧専用」 badge
+      # left of 「＋予定」 (1024 pt ≥ 980, so with its text), the 20 s toast, undo/redo greyed). Since 1.1
+      # (docs/M7A_CONTRACT.md §7.4, §8 6) five more: the toolbar folded into the dock button at the
+      # bottom left and at the bottom right ("--screenshot-toolbar collapsed|collapsed-right"), the eraser
+      # chosen from the toolbar (its hint ends in 「（消すとペンに戻ります）」; the 「しまう」 button at the
+      # right end), and the grown month memo and the day's free memo below 24:00 ("--screenshot-grown")
+      # scrolled to the end of the paper ("--screenshot-offset 0,9999" is clamped to the paper).
+      - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.simudid.outputs.udid }}"
+          BUNDLE="com.syfan0.tegakicalendar"
+          mkdir -p shots
+          # J-4 (docs/M7B_CONTRACT.md §1.3, §7.5): the Xcode and the simulator runtimes the photos were drawn
+          # with. build.yml and ja-baseline.yml write the same lines (keep them the same), so a `diff` of the
+          # two env.txt tells whether two runs drew with the same Xcode and runtimes. No UDIDs (they differ
+          # from one runner image to the next).
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          xcodebuild -version > shots/env.txt || echo "::warning::xcodebuild -version failed"
+          sim_env ipad13 "$UDID" >> shots/env.txt || echo "::warning::no runtime line for ipad13"
+          cat shots/env.txt || true
+          for PAGE in month week day year; do
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" $JA_ARGS
+            sleep 8
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE.png"
+          done
+          # page|offset: month lu (400, 200) → the Wed–Sat columns from the second half of the 10/5 week;
+          # week (300, 700) → Tue–Sat from 8:45 (the band's lanes grow past zoom 0.818, §1.6);
+          # year (1000, 300) → clamped to the right edge: May's end to December.
+          for SPEC in "month|400,200" "week|300,700" "year|1000,300"; do
+            PAGE="${SPEC%%|*}"; OFFSET="${SPEC##*|}"
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-zoom 2 --screenshot-offset "$OFFSET" $JA_ARGS
+            sleep 8
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page, zoom 2; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE-zoom2.png"
+          done
+          xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+          sleep 1
+          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-readonly $JA_ARGS
+          sleep 8
+          pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (month page, read only; crashed?)"
+          xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-readonly.png"
+          for SPEC in "toolbar-collapsed|--screenshot-page month --screenshot-toolbar collapsed" \
+                      "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
+                      "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
+                      "month-memo|--screenshot-page month --screenshot-grown --screenshot-offset 0,9999" \
+                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,9999"; do
+            SHOT="${SPEC%%|*}"; ARGS="${SPEC#*|}"
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            # $ARGS (and $JA_ARGS) is split on purpose (the values have no spaces).
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 $ARGS $JA_ARGS
+            sleep 8
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($SHOT; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$SHOT.png"
+          done
+          ls -la shots
+
+      # Since 1.1 (docs/M7A_CONTRACT.md §7.3) a ninth sheet, "info": the settings scrolled to 「情報」 with
+      # the demo stroke counts (「いちばん線の多いページ」 and 「今年の年のページ」).
+      - name: Screenshots (13-inch iPad, portrait, 9 sheets on the month page)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.simudid.outputs.udid }}"
+          BUNDLE="com.syfan0.tegakicalendar"
+          mkdir -p shots
+          for SHEET in create edit lasso settings sync import paywall export info; do
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET" $JA_ARGS
+            sleep 9
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 9 s (sheet $SHEET; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-sheet-$SHEET.png"
+          done
+          ls -la shots
+
+      # The 13-inch log is collected before the other devices boot (its 22 shots since 1.1 fit in the
+      # 10 min window; each extra device writes its own shots/<id>-log.txt below).
+      - name: Collect the app log and crash reports (13-inch iPad)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          UDID="${{ steps.simudid.outputs.udid }}"
+          mkdir -p shots
+          xcrun simctl terminate "$UDID" com.syfan0.tegakicalendar 2>/dev/null || true
+          xcrun simctl spawn "$UDID" log show --last 10m --style compact \
+            --predicate 'process == "TegakiCalendar" OR eventMessage CONTAINS "tegakicalendar" OR eventMessage CONTAINS "TegakiCalendar"' \
+            > shots/app-log.txt 2>&1 || true
+          find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} shots/ \; 2>/dev/null || true
+          ls -la shots
+          grep -c "" shots/app-log.txt || true
+          # M4c (docs/M4C_CONTRACT.md §2.4): the canvas's first layout logs "zoom: kind=… pinch=%d
+          # enabled=%d min max zoom fitAll ratio view overview" (DEBUG), a pinch "zoom: begin" /
+          # "zoom: end …"; pinch=1 means PKCanvasView offers a pinch (F4). C copies the numbers into docs/M4C.md.
+          grep 'zoom: ' shots/app-log.txt || true
+          # M5 (docs/M5_CONTRACT.md §2.2, §7.7): LiveStoreClient logs "store: …" (DEBUG: environment,
+          # product count, states). Screenshot mode uses the inert demo client, so 0 lines here is the
+          # expected result; the grep is the reach check for a device log read the same way.
+          grep 'store: ' shots/app-log.txt || true
+          # 1.1 (docs/M7A_CONTRACT.md §2.2, §5.3, §7.3, §8 3): screenshot mode logs the window's safe area
+          # and the paper area with the toolbar's state ("toolbar: safeArea=<top>,<left>,<bottom>,<right>",
+          # "toolbar: paperArea=<w>x<h> mode=<expanded|collapsed|peek>"; docs/M7A.md compares a folded shot
+          # with the expanded one of the same page), the settings' stroke count ("budget: largest=…") and
+          # the tail-only path ("canvas: tail-only": 0 lines is fine, screenshot mode opens the grown paper
+          # directly). Shown only; no count is expected.
+          grep -E 'toolbar: (safeArea|paperArea)=|budget: largest=|canvas: tail-only' shots/app-log.txt || true
+
+      # The four other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
+      # down afterwards: iphone (iPhone 17, 402 pt), iphone69 (iPhone 17 Pro Max, 440 pt; since M6,
+      # docs/M6_CONTRACT.md 0-15 / M6-2: the 6.9-inch App Store shots, 1320×2868 — the prefix fallbacks
+      # are iPhone 17 Pro Max, iPhone 17 Pro, iPhone 16 Pro Max in that order; on "iPhone 17 Pro" the
+      # pixels are 6.3-inch and the store step below warns), ipadmini (iPad mini (A17 Pro), 744 pt) and
+      # ipad11 (iPad Pro 11-inch (M5), 834 pt), 4 portrait pages each as <id>-portrait-<page>.png.
+      # Since M6 the iPhone and the 6.9-inch iPhone also shoot the paywall sheet over the month page
+      # (docs/M6_CONTRACT.md §4.2: store/iphone/05-paywall.jpg and store/iphone69/05-paywall.jpg).
+      # Since M5 (docs/M5_CONTRACT.md §7.5) the 11-inch iPad also shoots the day page in read-only mode
+      # (the longest title next to the symbol-only badge: 834 < 980, M5-32) and the iPhone the week in
+      # read-only mode (no badge in the two-row header; the notice row 「閲覧専用です。…」 + 「購読する」).
+      # The iPhone also shoots the week of 2026-06 (6/7 is a Sunday: the paper starts at the right
+      # edge, M4B-3; since M4c the overview shows the whole week, and the same week is shot again as
+      # -week-jun for the "6/1" heading of the narrow column, M4C-28), the week at three times its
+      # overview ("--screenshot-zoom 3 --screenshot-offset 300,700", docs/M4C_CONTRACT.md §6) and
+      # tries the 4 pages in landscape ("--screenshot-landscape", §6.4; the file is still written when
+      # the request was ignored, the header then stays two rows). Every shot is best effort; a
+      # missing simulator or a failed boot only skips that device. The 13-inch simulator is shut down
+      # first to leave the runner's memory to the next one. Since M6 (docs/M6.md §5.1) every device
+      # waits 40 s after its boot with the app in front before the first shot and shoots its four pages
+      # again at the end: a freshly booted iOS 26 simulator posts a system banner once, 15–35 s after
+      # the boot, and two runs caught it on an App Store source (see the step body).
+      - name: Screenshots (iPhone, 6.9-inch iPhone, iPad mini, 11-inch iPad; portrait, 4 pages each)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          PRIMARY="${{ steps.simudid.outputs.udid }}"
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          BUNDLE="com.syfan0.tegakicalendar"
+          if [ -z "$APP" ]; then
+            echo "::warning::TegakiCalendar.app not found under build/DerivedData; skipping the extra devices."
+            exit 0
+          fi
+          mkdir -p shots
+          # J-4 (docs/M7B_CONTRACT.md §1.3, §7.5): the Xcode and the simulator runtimes the photos were drawn
+          # with. build.yml and ja-baseline.yml write the same lines (keep them the same), so a `diff` of the
+          # two env.txt tells whether two runs drew with the same Xcode and runtimes. No UDIDs (they differ
+          # from one runner image to the next).
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          xcrun simctl shutdown "$PRIMARY" || true
+          # device-id | exact first choice | prefix fallbacks (in order)
+          for SPEC in "iphone|iPhone 17|iPhone 17,iPhone" \
+                      "iphone69|iPhone 17 Pro Max|iPhone 17 Pro Max,iPhone 17 Pro,iPhone 16 Pro Max" \
+                      "ipadmini|iPad mini (A17 Pro)|iPad mini" \
+                      "ipad11|iPad Pro 11-inch (M5)|iPad Pro 11,iPad Air 11,iPad (A"; do
+            ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
+            FOUND="$(xcrun simctl list -j devices available | SIM_EXACT="$EXACT" SIM_PREFIXES="$PREFIXES" SIM_PRIMARY="$PRIMARY" python3 -c '
+          import json, os, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):                                  # "…iOS-26-5" → (26, 5)
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          primary_runtime = next((r for r, items in devices.items() for d in items if d.get("udid") == os.environ["SIM_PRIMARY"]), None)
+          found = {}                                             # name → (udid, key): same runtime as the 13-inch > newer iOS
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
+                      continue
+                  key = (runtime == primary_runtime, version(runtime))
+                  if d["name"] not in found or key > found[d["name"]][1]:
+                      found[d["name"]] = (d["udid"], key)
+          exact = os.environ["SIM_EXACT"]
+          if exact in found:
+              print(exact + "|" + found[exact][0])
+              raise SystemExit
+          for prefix in os.environ["SIM_PREFIXES"].split(","):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0])
+                      raise SystemExit
+          print("")
+          ' || true)"
+            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+            echo "$ID: $NAME ($UDID)"
+            sim_env "$ID" "$UDID" >> shots/env.txt || echo "::warning::no runtime line for $ID"
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            if ! xcrun simctl install "$UDID" "$APP"; then
+              echo "::warning::install failed on $ID; skipping."
+              [ "$UDID" = "$PRIMARY" ] || xcrun simctl shutdown "$UDID" || true
+              continue
+            fi
+            shoot() {  # shoot <file> <launch args…>: one shot; a failure only loses this one file (never stops the step)
+              local FILE="$1"; shift
+              xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+              sleep 1
+              xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" $JA_ARGS || { echo "::warning::launch failed ($FILE)"; return 0; }
+              sleep 9
+              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($FILE)"
+              xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
+            }
+            # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s
+            # after the boot ("Ready for Apple Intelligence" — run 39034481760 caught it on
+            # iphone-portrait-week.png, run 39031277533 on ipad11-portrait-day.png, both App Store
+            # sources). Wait that window out with the app in front before the first shot (settle) …
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
+            sleep 40
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            for PAGE in month week day year; do
+              shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
+            done
+            if [ "$ID" = "ipad11" ]; then
+              # M5-32: the day page's title 「2026年10月7日(水)」 must stay on one line next to the lock-only badge.
+              shoot "$ID-portrait-readonly.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-readonly
+            fi
+            if [ "$ID" = "iphone" ]; then
+              # M5-13: compact width → no badge, the notice row under the header instead.
+              shoot "$ID-portrait-readonly.png" --screenshot-month 2026-10 --screenshot-page week --screenshot-readonly
+            fi
+            if [ "$ID" = "iphone" ] || [ "$ID" = "iphone69" ]; then
+              # M6 (docs/M6_CONTRACT.md §4.2, §7.4): the full-height paywall sheet (.large detent) over the
+              # month page — the App Store shot 05-paywall of both iPhone classes.
+              shoot "$ID-portrait-sheet-paywall.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet paywall
+            fi
+            # … and shoot the four pages (the store/ sources) once more now, 1.5–2 min after the boot, so
+            # a banner that still slipped into a first take is not in the file that is kept (retake).
+            for PAGE in month week day year; do
+              shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
+            done
+            if [ "$ID" = "iphone" ]; then
+              # 1.1 (docs/M7A_CONTRACT.md §7.4, §8 6): the folded toolbar (the dock button above the home
+              # indicator), the grown month memo and the day's free memo below 24:00 at the paper's end,
+              # and (below, with the landscape shots) the folded toolbar in landscape.
+              shoot "$ID-portrait-toolbar-collapsed.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-toolbar collapsed
+              shoot "$ID-portrait-month-memo.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-grown --screenshot-offset 0,9999
+              shoot "$ID-portrait-day-extra.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-grown --screenshot-offset 0,9999
+              # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
+              # at the right edge and the time labels are off screen.
+              shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
+              # M4c: the week at 3 × fitAll (0.8613: Tue–Thu from 8:45, the text at its minPoints) and
+              # the week of 6/1–6/7 (M4C-28: the first heading is "6/1" without its weekday).
+              shoot "$ID-portrait-week-zoom3.png" --screenshot-month 2026-10 --screenshot-page week --screenshot-zoom 3 --screenshot-offset 300,700
+              shoot "$ID-portrait-week-jun.png" --screenshot-month 2026-06 --screenshot-page week
+              for PAGE in month week day year; do        # §6.4: only the iPhone can turn
+                shoot "$ID-landscape-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-landscape
+              done
+              shoot "$ID-landscape-month-toolbar-collapsed.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-toolbar collapsed --screenshot-landscape
+              # The simulator's framebuffer stays portrait (only the app's interface turned), so the
+              # landscape shots come out rotated by 90°; stand them up. When the request was ignored
+              # (header still two rows) they end up sideways instead, which is the tell.
+              for f in shots/"$ID"-landscape-*.png; do
+                [ -f "$f" ] && { sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"; }
+              done
+            fi
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            # 1.1: 6 → 8 min (the iPhone takes about 21 shots now, plus the 40 s wait).
+            xcrun simctl spawn "$UDID" log show --last 8m --style compact --predicate 'process == "TegakiCalendar"' > "shots/$ID-log.txt" 2>&1 || true
+            grep 'zoom: ' "shots/$ID-log.txt" || true     # M4c: the canvas's zoom lines of this device
+            grep 'store: ' "shots/$ID-log.txt" || true    # M5: the store's lines (0 in screenshot mode, see above)
+            grep -E 'toolbar: (safeArea|paperArea)=|budget: largest=|canvas: tail-only' "shots/$ID-log.txt" || true   # 1.1 (see the 13-inch log)
+            [ "$UDID" = "$PRIMARY" ] || xcrun simctl shutdown "$UDID" || true
+          done
+          ls -la shots
+
+      # M6 (docs/M6_CONTRACT.md §4.1, §4.2, §7.4): the App Store listing set. The shots of §4.2 are
+      # converted to JPEG (no alpha: `simctl io screenshot` PNGs are usually opaque but that is not
+      # guaranteed, and Apple rejects alpha) under shots/store/<device>/NN-<name>.jpg, and each file's
+      # pixel size is compared with Apple's accepted portrait sizes for that device class (help page
+      # "Screenshot specifications", read 2026-10-17): iPad 13-inch 2064×2752 or 2048×2732, iPhone
+      # Dynamic Island (medium) 1206×2622 or 1179×2556, iPhone Dynamic Island (large) 1320×2868 /
+      # 1290×2796 / 1260×2736, iPad 11-inch 1668×2420 / 1668×2388 / 1640×2360 / 1488×2266. A size
+      # outside its set is a ::warning (a run that fell back to "iPad Air 13-inch" gives 2048×2732 and
+      # passes; one that fell back to "iPhone 17 Pro" for iphone69 gives 1206×2622 and warns). The
+      # numbers are the provisional listing order (§4.2 — the lead may reorder at §8-5). Always runs,
+      # never fails the job; a missing source only skips that one file.
+      - name: Store listing set (JPEG, App Store sizes)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          mkdir -p shots/store/ipad13 shots/store/iphone shots/store/iphone69 shots/store/ipad11
+          accepted() {  # accepted <device>: Apple's accepted portrait pixel sizes (docs/M6_CONTRACT.md §4.1)
+            case "$1" in
+              ipad13)   echo "2064x2752 2048x2732" ;;
+              iphone)   echo "1206x2622 1179x2556" ;;
+              iphone69) echo "1320x2868 1290x2796 1260x2736" ;;
+              ipad11)   echo "1668x2420 1668x2388 1640x2360 1488x2266" ;;
+              *)        echo "" ;;
+            esac
+          }
+          store() {  # store <device> <NN-name> <source shot without .png>: convert, then check the size
+            local DEV="$1" NAME="$2" SRC="shots/$3.png" OUT="shots/store/$1/$2.jpg" W H SIZE
+            if [ ! -f "$SRC" ]; then echo "::warning::store/$DEV/$NAME.jpg: source $SRC is missing; skipped."; return 0; fi
+            if ! sips -s format jpeg -s formatOptions 100 "$SRC" --out "$OUT" > /dev/null; then echo "::warning::store/$DEV/$NAME.jpg: sips could not convert $SRC."; return 0; fi
+            W="$(sips -g pixelWidth "$OUT" | awk '/pixelWidth/ {print $2}')"
+            H="$(sips -g pixelHeight "$OUT" | awk '/pixelHeight/ {print $2}')"
+            SIZE="${W}x${H}"
+            case " $(accepted "$DEV") " in
+              *" $SIZE "*) echo "store/$DEV/$NAME.jpg: ${SIZE} (accepted for $DEV)" ;;
+              *) echo "::warning::store/$DEV/$NAME.jpg is ${SIZE}, not one of the accepted sizes for $DEV ($(accepted "$DEV"))." ;;
+            esac
+          }
+          store ipad13   01-month    ipad13-portrait-month
+          store ipad13   02-week     ipad13-portrait-week
+          store ipad13   03-day      ipad13-portrait-day
+          store ipad13   04-year     ipad13-portrait-year
+          store ipad13   05-paywall  ipad13-portrait-sheet-paywall
+          store ipad13   06-settings ipad13-portrait-sheet-settings
+          store iphone   01-week     iphone-portrait-week
+          store iphone   02-month    iphone-portrait-month
+          store iphone   03-day      iphone-portrait-day
+          store iphone   04-year     iphone-portrait-year
+          store iphone   05-paywall  iphone-portrait-sheet-paywall
+          store iphone69 01-week     iphone69-portrait-week
+          store iphone69 02-month    iphone69-portrait-month
+          store iphone69 03-day      iphone69-portrait-day
+          store iphone69 04-year     iphone69-portrait-year
+          store iphone69 05-paywall  iphone69-portrait-sheet-paywall
+          store ipad11   01-month    ipad11-portrait-month
+          store ipad11   02-week     ipad11-portrait-week
+          store ipad11   03-day      ipad11-portrait-day
+          store ipad11   04-year     ipad11-portrait-year
+          ls -la shots/store/*
+
+      # ---- End of the steps of build.yml ----
+
+      # What the run made, on the run's summary page.
+      - name: Summary
+        if: always()
+        continue-on-error: true
+        env:
+          REF: ${{ steps.ref.outputs.sha }}
+          ARTIFACT: ja-baseline-${{ steps.ref.outputs.short }}
+        run: |
+          set -uo pipefail
+          {
+            echo "### ja-baseline (J-4)"
+            echo ""
+            echo "- reference commit: \`$REF\` ($(git log -1 --format=%s 2>/dev/null || echo '?'))"
+            echo "- artifact: \`$ARTIFACT\` (kept 30 days)"
+            echo "- PNG files: $(find shots -name '*.png' 2>/dev/null | wc -l | tr -d ' '); JPEG files in store/: $(find shots/store -name '*.jpg' 2>/dev/null | wc -l | tr -d ' ')"
+            echo ""
+            echo "env.txt:"
+            echo ""
+            echo '```'
+            cat shots/env.txt 2>/dev/null || echo "(none)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The artifact's name carries the commit (J-4 compares 1.2's `screenshots` with
+      # ja-baseline-e7b4d2f). overwrite: a re-run of this run (gh run rerun) replaces the photos instead
+      # of failing on the existing name.
+      - name: Upload the photos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ja-baseline-${{ steps.ref.outputs.short }}
+          path: baseline/shots
+          retention-days: 30
+          if-no-files-found: warn
+          overwrite: true

@@ -38,6 +38,70 @@ commit の前なので、`git archive HEAD` で scratchpad に取り出した木
 - H: `kit-H.json`（`owner` は "H"）に `kit.holiday.estimatedSuffix`・`kit.holiday.dayOff` を書いて同じく生成する。生成物は `UILanguage` が要る（K の `UILanguage.swift` の後）。
 - S1: `build_outputs(repo)` が {出力のパス: (中身, 要約)} を返すので、アプリの出力を足し、`--check` は書かずに比べるだけにできる。`app-*.json` の検査（`infoplist` のキーは §2.4 の形の外、アプリのキーは `kit.` で始まらない）と lint は S1。`ESCAPED_RANGES`（Swift の literal で `\u{…}` にする字）は、Python の版で結果が変わらないように Unicode の表に頼らない固定の表にしてある。
 
+## C1（J-4 の道具: `ja-baseline.yml`・`compare_shots.swift`・`ja-baseline-ref.txt`。統合の順番の「C の前半」）
+
+J-4 の比べる相手の commit: **e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d**（1.1 を main に merge した commit。親は 6f5ac42（1.0.1）と adc1fd4（m7a の最後）。今の origin/main もこの commit）。
+
+### 入れたもの
+
+- `tools/l10n/ja-baseline-ref.txt`（新規）: 上の sha の 1 行だけ。0-39 で比べる相手を読み替えるときは、この 1 行を直す（成果物の名前も `ja-baseline-<先頭 7 字>` に変わる）。
+- `.github/workflows/ja-baseline.yml`（新規、662 行）: ブランチ `ja-baseline` への push と workflow_dispatch で走る（workflow_dispatch は main に入った後の分）。手順: push された commit から `ja-baseline-ref.txt` を読む（中身が 40 字の小文字の 16 進の 1 行でなければ失敗）→ その commit を `baseline/` に取り出し、HEAD が同じかを確かめる → Xcode を選ぶ → XcodeGen → 組み立て → build.yml と同じ写真の段（13 インチの 4 ページ・拡大 3・閲覧専用・1.1 の 5 枚・シート 9、iPhone・6.9 インチ・mini・11 インチ、「Store listing set」）→ 要約（run の Summary に commit・成果物の名前・枚数・env.txt）→ 成果物 `ja-baseline-e7b4d2f`（30 日）。テストは走らせない。ジョブの上限 75 分。
+  - 写真の段は、e7b4d2f の build.yml から行の範囲で切り出す小さな script で写した（手で写していない）。build.yml と違うのは 3 つだけ: (1) 7 つの `simctl launch`（契約の :352・:364・:371・:384・:404・:529・:538）の最後に `$JA_ARGS`。`JA_ARGS` はジョブの `env` に `"-AppleLanguages (ja) -AppleLocale ja_JP"` の 1 行で置き、引用符なしで展開して 4 語にする（この Mac の /bin/bash 3.2 で 4 語になることを確かめた）。(2) 13 インチの写真の段の最初と他機種の段で env.txt を書く（下の「ずれ」の 1）。(3) `run` の段の作業フォルダが `baseline/`（ジョブの `defaults`）。段の名前・`if`・`id`・`continue-on-error` と、ほかの 10 段の `run` は 1 字も違わない（Ruby の YAML で読んで段ごとに比べた）。シートは 1.1 の 9 つ（`holidays` は 1.1 の app が知らないので撮らない）。
+  - 成果物の中身（1.1 の CI の `screenshots` と同じ名前・同じ数）: 写真 53 枚（13 インチ 22・iPhone 17・6.9 インチ 5・mini 4・11 インチ 5）、`store/` の JPEG 20 枚、記録 5 つ（`app-log.txt` と `<機種>-log.txt`）、`env.txt`。`fixtures/` と `ui-tests/` は無い（テストを走らせないため）。
+- `tools/l10n/compare_shots.swift`（新規、563 行）: `swift tools/l10n/compare_shots.swift <基準のフォルダ> <新しいフォルダ> <出力のフォルダ>`。2 つのフォルダを下のフォルダまでたどり、同じ相対パスの `.png`・`.jpg`・`.jpeg` を 1 画素ずつ比べる（ほかのファイルと隠しファイルは見ない）。2 枚とも基準の写真の色の空間（シミュレータの PNG は 8 bit の sRGB なので変換は起きない）の 8 bit RGBA に拡大縮小なしで描き、R・G・B・A のどれかが違えば「違う画素」。出力のフォルダ（新しいか空で、比べる 2 つのフォルダの外。無ければ、親があるときだけ最後の 1 段を作る）に書くもの:
+  - `report.tsv`: 写真ごとに、結果（同じ・違う・大きさが違う・基準だけ・新だけ・読めない）・大きさ・違う画素・強い差（どれかの色の差が 32 を超える画素）・最大の差（255 まで）・違いの範囲（違いのある行を、16 行より近ければまとめた帯ごとに「y 上端-下端 x 左端-右端 (画素数)」。y は上から）・書いた画像・注記（色の空間や bit の深さが違ったとき）。
+  - `<写真>.diff.png`: 新の写真を薄くし、弱い差を青・強い差を赤で塗り、帯を紫の枠で囲んだ印の画像。
+  - `<写真>.crop-<n>.png`: 違いの大きい帯（3 つまで）の原寸の切り抜きを横に 3 つ並べたもの（左 = 基準・中 = 新・右 = 印。1 つ 1600 × 1200 px まで）。縮めて見ると 1 画素の差が見えなくなるので、中身はこれで見る。
+  - 画面には、結果ごとの数、違う写真ごとの画素の数と帯、片方だけの写真（1 つのフォルダに 6 枚以上あれば 1 行にまとめる）。終了の状態は 0 = 全部同じ、1 = 違う・片方だけ・読めない写真がある、2 = 引数やファイルの誤り。.html は書かない（書くと本人の画面に開くため）。
+
+### 走らせ方（リード）
+
+この Mac の作業は書類フォルダの外（scratchpad）で行う。下の `<j4>` は scratchpad の中の新しいフォルダ。
+
+1. **push**: `.github/workflows/ja-baseline.yml` と `tools/l10n/ja-baseline-ref.txt` の入った commit を push する（写真は ref の commit から作るので、push する commit のほかの中身は写真に関係しない）。例: `git push origin m7b:ja-baseline`。2 回目は、`ja-baseline` より先に進んだ commit ならそのまま、進んでいなければ `--force`。同じ commit のまま撮り直すなら `gh run rerun <run の番号>`（成果物は `overwrite: true` で上書きされる）。
+   - この push で build.yml（`on: push` は全部の枝）も `ja-baseline` の枝でもう 1 本走る。要らなければ `gh run cancel <run の番号>`（下の「次の役へ」の 3）。
+2. **待つ**: `gh run list --workflow ja-baseline.yml --branch ja-baseline --limit 3` → `gh run watch <run の番号>`。見込み 40 分ほど（e7b4d2f の CI（run 41264726309、57.6 分）を含む 1.1 の 9 回の CI で、写真の段は組み立てを含めて 36〜45 分）。
+3. **取り出す**: `gh run download <ja-baseline の run> -n ja-baseline-e7b4d2f -D <j4>/base` と `gh run download <1.2 の最後の CI の run> -n screenshots -D <j4>/new`（成果物の中身がそのフォルダの直下に出る。`screenshots` は 7 日、`ja-baseline-…` は 30 日で消える）。
+4. **環境を照らす**: `diff <j4>/base/env.txt <j4>/new/env.txt`。違えば（Xcode・runtime・機種のどれか）ja-baseline を撮り直してから比べる（§1.3）。env.txt は `xcodebuild -version` の 2 行と、機種ごとの「`<id>: <機種名> | <runtime の名前> (<runtime の build>)`」の 5 行（ipad13・iphone・iphone69・ipadmini・ipad11 の順）。runner の image の版は入れていない（同じ日でも 2 つの image が混ざって使われる（11-01 の実測: 20261021.0445.8 と 20261026.0455.2）ので、入れると env.txt が無駄に違う）。見たいときは run の記録の「Set up job › Runner Image」。
+5. **比べる**: `swift tools/l10n/compare_shots.swift <j4>/base <j4>/new <j4>/out`（73 枚どうしで約 9 秒・メモリ約 0.9 GB。出力のフォルダは毎回新しく）。
+6. **読み方**（1.0.1 の CI の 3 つの run（41164839330・41172398011・41176284773、どれも 10-31）を互いに比べた実測から）:
+   - コードが同じでも、run ごとに **弱い差だけ**（強い差 0、最大 11〜20/255）の写真が 14〜22 枚出る（シートのガラスとぼかし、年の拡大、iPhone の横向きなど）。後戻りではない（M7A の比べ方の「最大 9/255」と同じ種類）。
+   - **強い差** が出たのは、13 インチの週か日の写真の上の 240 行（と、それから作る `store/ipad13/02-week`・`03-day`）だけで、中身はシステムの通知「Ready for Apple Intelligence」（切り抜きの左か中に見える）。3 回のうち 2 回で入った（「Boot the simulator」の終わりから約 85〜105 秒。13 インチは写真の直前に boot している、下の「ずれ」の 3）。写真の撮り方の揺れで、アプリの差ではない。入っていたら、入った方を撮り直して比べ直す（「次の役へ」の 1 で減らせる見込み）。
+   - iPad の状態の帯の日付（13 インチで y 21〜42・x 176〜321 のあたり）は、2 つの run の **UTC の日** が違うと全部の iPad の写真で強い差になる（1.0 と 1.0.1 の 2 つの run の実測）。日本時間の 9:00 から翌日の 8:59 までが同じ UTC の日。
+   - これら以外の **強い差** は本物の違いとして、切り抜きで中身を見る。J-4 で違ってよいのは `ipad13-portrait-sheet-settings.png`・`ipad13-portrait-sheet-info.png`・`store/ipad13/06-settings.jpg` と、「新だけ」の `ipad13-portrait-sheet-holidays.png`。`ipad13-portrait-sheet-sync.png` は変わらない見込みで、違ったら祝日の節の分だけかを見る（§1.3）。
+   - 「新だけ」には 1.2 の CI の `ui-tests/attachments/`（UI テストが残した写真）が 1 行にまとめて出る。`fixtures/` は JSON なので比べない。
+7. **1 回目の run の後の確かめ**（写真の手順の誤りを早く見つける）: e7b4d2f の CI（run 41264726309、成果物 `screenshots`、2026-11-08 に消える）の写真を基準、ja-baseline の写真を新にして比べる。53 枚と `store/` の 20 枚が両方にそろい（「基準だけ」は `ui-tests/attachments/` だけ、「新だけ」は無し）、違いは漢字・かなの書体（中国語用 → 日本語用）と日時の書式だけのはず。
+8. M7B.md に書くもの（§1.3、§8 の 3）: 2 つの run の番号、2 つの env.txt、compare_shots の数の表と、違った写真の名前と画素の数（強い差と弱い差）、「1.1 の CI の写真は英語の環境で撮っていたので、漢字が中国語用の書体だった」こと。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **env.txt の形**（契約は「`xcodebuild -version` と使ったシミュレータの runtime」とだけ書いている）: 上の「走らせ方」の 4 の 7 行。UDID と時刻は入れない（環境が同じなら 2 つの run の `diff` が空になるように）。build.yml にも **同じ行を同じ場所に** 入れる（13 インチの写真の段の `mkdir -p shots` の後に `sim_env` の関数と 3 行、他機種の段では `mkdir -p shots` の後に同じ関数、`echo "$ID: $NAME ($UDID)"` の次に 1 行）。
+2. **`JA_ARGS` の置き方**（契約は「変数 `JA_ARGS` で」）: ジョブの `env` の 1 行と、各 `simctl launch` の最後の `$JA_ARGS`（引用符なし）。build.yml も同じ形にする。
+3. **テストを走らせない**（契約の手順のとおり）ので、13 インチの状態が build.yml と違わないかを CI の記録で確かめた: e7b4d2f の CI では、13 インチの写真は単体テストの機（iOS 26.5。xcodebuild はいちばん新しい runtime を選ぶ）とは別の機（iOS 26.4。何も起動していないときの simctl の JSON の最初の 1 台）で、写真の直前に boot していた（「Boot the simulator」が毎回 111〜193 秒）。ja-baseline も何も起動していない所で同じ選び方（段は写したまま）をするので、同じ runtime の同じ機種を選び、同じく boot の直後に撮る。1.1 の 9 回の CI（2 つの runner image）で写真の機は全部 iOS 26.4。違えば env.txt に出る。
+4. **成果物の `overwrite: true`**: `gh run rerun` で撮り直したとき、同じ名前の成果物で上げ損ねないため。
+5. **ジョブの上限 75 分**（契約に数が無い）: 1.1 の 9 回の CI で写真の段は 36〜45 分（組み立て 42〜71 秒、13 インチの boot 111〜193 秒、13 インチの写真 5〜7 分、他機種 26〜33 分）。上限で切られると成果物を上げる段まで行かないので余裕を取った。
+6. `permissions: contents: read`、2 つの checkout は `persist-credentials: false`（書き込みも push もしない仕事なので）。
+7. **compare_shots の細部**（契約は「違う画素の数と違いの印の画像」）: 強い差（32 を超える）と弱い差を分けて数え、帯と原寸の切り抜きを足した（1.1 の比べ方では、ガラスの揺れが最大 9/255、本物の字のずれが 176/255 で、画素の数だけでは見分けにくい）。出力のフォルダは新しいか空で入力の外（前の結果と混ざらず、入力を汚さない）。無いときは親があるときだけ最後の 1 段を作る（下の「事故」のため）。
+
+### 確かめたこと（push・CI は無し。指示のとおり）
+
+- compare_shots: `swiftc -typecheck -warnings-as-errors`（Swift 5 と 6 の mode）で警告 0。作り物の写真で 46 項目（終了の状態 0・1・2、出力のフォルダの決まり（空でない・入力の中・`/tmp` と `/private/tmp` の言い換え・親が無い）、差 32 は弱く 33 は強い、1 画素の 1 段の差、JPEG、sRGB と Display P3、16 bit、半透明、隠しファイルと文字のファイルを見ない、印の色と枠、切り抜きの 3 つの絵が基準・新・印の同じ場所と 1 画素も違わない（上下が逆になっていない））が全部合格。本物の写真（1.0.1 の CI の 3 つの run、73 枚ずつ）で上の「読み方」の結果。試験の材料と script は `/private/tmp/claude-501/-Users-ikedamasataka-Documents-Codex/1d1a8054-037e-4e4c-982f-6008fda67420/scratchpad/m7b-impl/C1/tests/`（作業のファイル。commit しない）。
+- ja-baseline.yml: Ruby の YAML で読めて 19 段、`run` の 16 本が `bash -n` で通る。build.yml（e7b4d2f）から写した 13 段を段ごとに比べて、10 段の `run` が同じ・3 段の差が上の (1)(2) だけ（切り出しと比べの script は `/private/tmp/claude-501/-Users-ikedamasataka-Documents-Codex/1d1a8054-037e-4e4c-982f-6008fda67420/scratchpad/m7b-impl/C1/assemble/`）。参照の読み取りを 8 通り（正しい・2 行・大文字・短い・前後の空白・空・無い・CRLF）、`sim_env` を作り物の `simctl list -j` で、要約の段を作り物の `shots/` で動かした。この Mac に actionlint と shellcheck は無い。本物の runner ではまだ走らせていない（1 回目の run が最初の確かめ）。
+- **事故（報告）**: compare_shots の試験の 1 つで、私の試験のパスの書き誤り（`\/tmp/…`）が相対パスになり、書類フォルダの作業ツリー（`tegaki-calendar-ios`）に `\` という名前のフォルダ（中は試験の `report.tsv` 1 つ）を作ってしまった（11-01 19:01）。すぐに消し、`git status` が元のとおり（未追跡は前からの複製 6 つだけ）であることを確かめた。iCloud に一時上がった可能性はある。これを受けて compare_shots は、出力のフォルダの親が無ければ何も作らずに止まるようにし、試験の script は書類フォルダの下では走らないようにした。
+
+### 次の役へ（C の後半・リード）
+
+1. **13 インチの通知の待ち（勧め。入れるなら build.yml と ja-baseline.yml の両方に同時に、同じ行で）**: 上の「読み方」のとおり、13 インチの週か日の写真に「Ready for Apple Intelligence」が 3 回に 2 回入る。J-4 は 2 つの run を比べるので、どちらかに入る見込みが高い。13 インチの写真の段の最初（env.txt の行の後）に、他機種と同じ形の待ちを入れれば避けられる見込み:
+   ```
+   xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
+   sleep 120
+   xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+   ```
+   他機種の 40 秒では足りない（通知は boot の段の終わりから約 85〜105 秒で、13 インチの最初の写真は 3 回の実測で boot の段の終わりから 71・90・166 秒）。入れると 13 インチの段が 2 分延び、「Collect the app log」の `--last 10m` に 13 インチの写真の全部が入るかが際どくなる（今 5〜7 分 ＋ 2 分 ＋ 1.2 の祝日のシート）ので、両方の `10m` を `12m` にする。入れるかはリードが決める。入れないなら、上の「読み方」のとおり、通知の入った方を撮り直す。
+2. **build.yml の 1.2 の写真の段**（§7.5）: `JA_ARGS` をジョブの `env` に（ja-baseline.yml と同じ 1 行）、7 つの launch に `$JA_ARGS`、env.txt の行（ja-baseline.yml の 13 インチと他機種の段から写す）、シートに `holidays`（ja-baseline.yml は 9 のまま）、ja-baseline.yml を指すコメント（ja-baseline.yml の頭のコメントは「1.2's build.yml points back here」と書いてある）。写した後、段ごとに `run` を比べて、違いが `holidays` とその段の名前（9 → 10 sheets）・コメントだけであることを確かめる（私の比べ方: `/usr/bin/ruby /private/tmp/claude-501/-Users-ikedamasataka-Documents-Codex/1d1a8054-037e-4e4c-982f-6008fda67420/scratchpad/m7b-impl/C1/assemble/diff_steps.rb .github/workflows/ja-baseline.yml .github/workflows/build.yml`。build.yml のジョブの名前 `build-and-test` を読む）。
+3. **build.yml の `on: push`** に `branches-ignore: [ja-baseline, store-shots]` を足すかどうか（足さないと、その 2 つの枝への push で build.yml がもう 1 本走る。害は無いが runner の時間を使い、m7b と同じ CI の結果が 2 つ並ぶ）。
+4. 日付の揺れを無くす案（未確認）: `xcrun simctl status_bar … override --time` は ISO 8601 の日時を受けると日付も固定する、と simctl の説明にあったはず（覚えの範囲。この Mac には simctl が無く確かめられない）。runner で `xcrun simctl help status_bar` を見て、使えるなら両方の workflow に同じ値で入れる。入れれば「同じ UTC の日」の縛りが無くなる。
+
 ## K1（Kit の土台: `Package.swift`・`UILanguage`・`kit-K.json`・`Text11`・`DateText`・`LayoutWords`・`DATA_1_1.sha256`。統合の順番の「K の前半」）
 
 ### 入れたもの
