@@ -1927,3 +1927,5 @@ blocker 0・major 0。祝日名を下げる件は、10 言語 × 12 地域の 20
 | ジョブ 60 分は遅い runner で変換と upload の前に切れうる | 70 分に |
 
 確かめ: `ScreenshotModeTests`・`PaperFitTests` 48 本・失敗 0（Mac Catalyst の代わり）、typecheck all OK、`store-shots.yml` の段の bash -n、日本語の絵 89 枚が前と同じ（`m7b-impl/FIX5/jcmp2`）。
+
+CI（`d896799`、run 42104420665）: 4 段とも成功。単体 445 本・スキップ 8・失敗 0、UI 29 本・スキップ 1、「app is not running after 9 s」の警告 11 件（前は 14 件）。ビルド 17（`75326db`）との違いは、アプリの中では zh-Hans・zh-Hant・ko の年の祝日名の位置と、写真の見本（引数のあるときだけ）。提出のビルドは写真の確認の後に作る。
