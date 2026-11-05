@@ -70,6 +70,7 @@ final class BlankPaperShotsUITests: XCTestCase {
         app.launchArguments = [
             "--screenshot-mode", "--screenshot-month", month, "--screenshot-page", page,
             "--screenshot-empty", "--screenshot-probe",
+            "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP",
         ] + arguments + (toolbar.map { ["--screenshot-toolbar", $0] } ?? [])
         app.launch()
         defer { app.terminate() }

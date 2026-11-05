@@ -181,5 +181,16 @@ final class EventKitServiceTests: XCTestCase {
         let right = SelectionMenuView.placement(anchor: CGRect(x: 900, y: 400, width: 20, height: 20), size: size, bounds: bounds)
         XCTAssertEqual(right.x, 792 - 300, accuracy: 0.001)
     }
-}
 
+    /// 1.2 (§5.8): a subscribed holiday calendar's title in the ten languages is found ignoring case and
+    /// accents; what is not one stays shown.
+    func testHolidayCalendarWords() {
+        for title in ["日本の祝日", "US Holidays", "Feiertage in Deutschland", "Jours fériés", "JOURS FÉRIÉS", "대한민국 공휴일", "中国节假日", "台灣節假日", "香港假日",
+                      "Festività italiane", "Días festivos", "Feriados no Brasil"] {
+            XCTAssertTrue(EventKitService.isHolidayCalendarTitle(title), title)
+        }
+        for title in ["仕事", "Work", "Family", ""] {
+            XCTAssertFalse(EventKitService.isHolidayCalendarTitle(title), title)
+        }
+    }
+}

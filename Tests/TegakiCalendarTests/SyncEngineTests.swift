@@ -1029,4 +1029,85 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(engine.state.dirty, [])
         XCTAssertEqual(store.load(id).liveStrokeCount, 20_500)
     }
+
+    // MARK: - 1.2: the week start (docs/M7B_CONTRACT.md §10.3, §10.8)
+
+    /// A Sunday week page is a page like any other: nothing in the engine looks at the id's form (K-11).
+    func testSundayPageSyncsLikeAnyPage() async throws {
+        await startSynced()
+        let sunday = "w-2026-10-04"
+        try engine.save(page(sunday, ["a"]))
+        await flushDebounce()
+        XCTAssertEqual(status, .synced)
+        XCTAssertEqual(engine.state.dirty, [])
+        XCTAssertEqual(try storedPage(sunday).liveStrokeIds, ["a"])
+
+        // Another device adds a stroke; the merge keeps both.
+        var other = page(sunday, ["a"])
+        other.add(stroke("b", t: 1_760_000_002_000))
+        db.simulateRemoteSave(try record(other))
+        await engine.syncNow()
+        XCTAssertEqual(Set(store.load(sunday).liveStrokeIds), ["a", "b"])
+        XCTAssertEqual(store.allPageIds(), [sunday])
+    }
+
+    /// F7: 「全て消す」 takes both forms (and it means it: the sentence says everything).
+    func testEraseEverythingRemovesBothForms() async throws {
+        await startSynced()
+        try engine.save(page(week, ["a"]))
+        try engine.save(page("w-2026-10-04", ["b"]))
+        await flushDebounce()
+        XCTAssertEqual(Set(store.allPageIds()), [week, "w-2026-10-04"])
+        try await engine.eraseEverything()
+        XCTAssertEqual(store.allPageIds(), [])
+        XCTAssertEqual(db.records.keys.filter { $0 != "meta" }, [])
+    }
+
+    /// K-11: switching opens another page and touches nothing: Monday's strokes are there on the way
+    /// back, and neither page has the other's.
+    func testSwitchKeepsBothForms() async throws {
+        await startSynced()
+        let wednesday = DayKey(year: 2026, month: 10, day: 7)
+        let mondayId = PageNavigation.pageId(.week, focus: wednesday, weekStart: .monday)
+        let sundayId = PageNavigation.pageId(.week, focus: wednesday, weekStart: .sunday)
+        XCTAssertEqual(mondayId, "w-2026-10-05")
+        XCTAssertEqual(sundayId, "w-2026-10-04")
+
+        try engine.save(page(mondayId, ["monday"]))
+        XCTAssertTrue(engine.load(sundayId).liveStrokeIds.isEmpty, "the other form starts empty")
+        try engine.save(page(sundayId, ["sunday"]))
+        await flushDebounce()
+        XCTAssertEqual(engine.load(mondayId).liveStrokeIds, ["monday"])
+        XCTAssertEqual(engine.load(sundayId).liveStrokeIds, ["sunday"])
+        XCTAssertEqual(engine.load(mondayId).deleted, [:], "nothing is tombstoned")
+        XCTAssertEqual(WeekStartImpact.weekPages(engine.allLocalPageIds()).monday, 1)
+        XCTAssertEqual(WeekStartImpact.weekPages(engine.allLocalPageIds()).sunday, 1)
+    }
+
+    /// §10.3, 4 (1), the premise: after a failed pull a stroke's push reaches `.synced` and writes
+    /// `lastSyncAt`, yet nothing came from iCloud. Only `zoneToken` tells: a pull writes it.
+    func testPushOnlyLeavesNoZoneToken() async throws {
+        db.failNext[.fetchChanges] = .networkUnavailable
+        engine.start()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .offline)
+        XCTAssertNil(engine.state.zoneToken)
+
+        // The retry's pull fails again; the debounced push goes through.
+        try engine.save(page(month, ["a"]))
+        db.failNext[.fetchChanges] = .networkUnavailable
+        await flushDebounce()
+        XCTAssertEqual(status, .synced)
+        XCTAssertEqual(engine.state.dirty, [])
+        XCTAssertNotNil(engine.snapshot.lastSyncAt, "a push writes it too: no mark of a pull")
+        XCTAssertNil(engine.state.zoneToken)
+        XCTAssertFalse(WeekStartChoice.readyToCheck(status: status, zoneToken: engine.state.zoneToken))
+
+        // The next retry's pull succeeds: now it is ready.
+        sleeper.advance()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .synced)
+        XCTAssertNotNil(engine.state.zoneToken)
+        XCTAssertTrue(WeekStartChoice.readyToCheck(status: status, zoneToken: engine.state.zoneToken))
+    }
 }

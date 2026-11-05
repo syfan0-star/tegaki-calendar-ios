@@ -1,3 +1,4 @@
+import Holidays
 import InkModel
 import Layout
 import XCTest
@@ -298,8 +299,8 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertNil(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "Export"])?.sheet)
         // M5 contract §7.5: `paywall` is the seventh sheet; M6 contract §3.5: `export` the eighth;
         // 1.1 (M7A_CONTRACT §7.3): `info` the ninth.
-        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 9)
-        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import", "paywall", "export", "info"])
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.count, 11)
+        XCTAssertEqual(ScreenshotMode.Sheet.allCases.map { $0.rawValue }, ["create", "edit", "lasso", "settings", "sync", "import", "paywall", "export", "info", "holidays", "week-start"])
     }
 
     // MARK: M5 (M5_CONTRACT §7.5, §7.6)
@@ -484,6 +485,8 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(all?.toolbar, plain?.toolbar)
         XCTAssertEqual(all?.grown, plain?.grown)
         XCTAssertEqual(all?.readOnly, plain?.readOnly)
+        XCTAssertEqual(all?.holidays, plain?.holidays)
+        XCTAssertEqual(all?.weekStart, plain?.weekStart)
     }
 
     /// 1.1.1 (docs/R1_1_1.md): `--screenshot-empty` opens the paper with no demo events and no demo ink,
@@ -700,5 +703,101 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(ScreenshotMode.importDemoOutcome.strokesAdded, 348)
         XCTAssertEqual(ScreenshotMode.importDemoOutcome.pagesSeen, 12)
         XCTAssertEqual(WebImportSheet.resultText(ScreenshotMode.importDemoOutcome), "Web 版の手書きを取り込みました（12 ページ・348 本）")
+    }
+
+    // MARK: 1.2 (docs/M7B_CONTRACT.md §7.2, §7.4, §10.7)
+
+    /// `--screenshot-holidays`: Japan without it and with a broken value, whatever the simulator's
+    /// region (0-26); it does not touch the other arguments.
+    func testParseHolidays() throws {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-10"]
+        let japan = HolidaySetting.region(try XCTUnwrap(HolidayRegion(code: "JP")))
+        XCTAssertEqual(ScreenshotMode.parse(base)?.holidays, japan)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-holidays", "auto"])?.holidays, .automatic)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-holidays", "none"])?.holidays, HolidaySetting.none)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-holidays", "JP"])?.holidays, japan)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-holidays", "US-CA"])?.holidays, .region(try XCTUnwrap(HolidayRegion(code: "US-CA"))))
+        for broken in ["", "-", "US-", "J", "JPN", "US-C@"] {
+            XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-holidays", broken])?.holidays, japan, "\(broken)")
+        }
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-holidays"])?.holidays, japan, "no value")
+        // The sheet is the tenth; a sheet sits on the month page.
+        let sheet = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "holidays", "--screenshot-page", "week"])
+        XCTAssertEqual(sheet?.sheet, .holidays)
+        XCTAssertEqual(sheet?.page, .month)
+    }
+
+    /// `--screenshot-week-start`: Monday without it and with a broken value (0-46); "auto" is what the
+    /// region gives; the demo week page's id follows the week start, and Monday is the fixture's page.
+    func testParseWeekStart() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-10"]
+        XCTAssertEqual(ScreenshotMode.parse(base)?.weekStart, .monday)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-week-start", "monday"])?.weekStart, .monday)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-week-start", "sunday"])?.weekStart, .sunday)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-week-start", "auto"])?.weekStart, WeekStartChoice.launchAutomatic)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-week-start", "Friday"])?.weekStart, .monday)
+        XCTAssertEqual(ScreenshotMode.parse(base + ["--screenshot-week-start"])?.weekStart, .monday, "no value")
+        let sheet = ScreenshotMode.parse(["--screenshot-mode", "--screenshot-sheet", "week-start"])
+        XCTAssertEqual(sheet?.sheet, .weekStart)
+        XCTAssertEqual(sheet?.page, .month)
+
+        let wednesday = DayKey(year: 2026, month: 10, day: 7)
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .week, focus: wednesday, grown: false, empty: false, tallYear: false).pageId, "w-2026-10-05")
+        let sunday = ScreenshotMode.demoPage(kind: .week, focus: wednesday, grown: false, empty: false, tallYear: false, weekStart: .sunday)
+        XCTAssertEqual(sunday.pageId, "w-2026-10-04")
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .week, focus: wednesday, grown: false, empty: true, tallYear: false, weekStart: .sunday).pageId, "w-2026-10-04")
+        // Wednesday is one column further right on a Sunday week; both its strokes follow.
+        let monday = ScreenshotMode.demoPage(kind: .week, focus: wednesday, grown: false, empty: false, tallYear: false)
+        for id in ["demo-stroke-week-wave", "demo-stroke-week-marker"] {
+            guard let a = monday.strokes[id]?.points.first?.x, let b = sunday.strokes[id]?.points.first?.x else {
+                XCTFail(id)
+                continue
+            }
+            XCTAssertEqual(b - a, PaperSpec.weekColumnWidth, accuracy: 0.1, id) // the stored points are rounded
+        }
+        // Not the week: the same page whatever the week start.
+        for kind in [PageKind.month, .day, .year] {
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: wednesday, grown: false, empty: false, tallYear: false, weekStart: .sunday),
+                           ScreenshotMode.demoPage(kind: kind, focus: wednesday, grown: false, empty: false, tallYear: false), "\(kind)")
+        }
+    }
+
+    /// K-7: the demo ink takes no language. Whatever `demoEvents(for:language:)` was built with in the ten
+    /// languages, the demo pages' JSON is the fixtures', byte for byte.
+    func testDemoInkIsTheSameInEveryLanguage() throws {
+        let focus = DayKey(year: 2026, month: 10, day: 7)
+        let repository = URL(fileURLWithPath: "\(#filePath)").deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let folder = repository.appendingPathComponent("TegakiKit/Tests/Fixtures/compat11", isDirectory: true)
+        for language in UILanguage.allCases {
+            XCTAssertEqual(ScreenshotMode.demoEvents(for: october, empty: false, language: language).count, 26, "\(language)")
+            for (name, kind) in [("screenshot-day", PageKind.day), ("screenshot-week", .week), ("screenshot-month", .month), ("screenshot-year", .year)] {
+                let json = try InkPageCodec.encode(ScreenshotMode.demoPage(kind: kind, focus: focus, grown: false))
+                let stored = try Data(contentsOf: folder.appendingPathComponent("\(name).json", isDirectory: false))
+                XCTAssertEqual(json, stored, "\(language) \(name)")
+            }
+        }
+    }
+
+    /// `demoEvents(for:language:)` and `calendarTitle(forCalendarId:language:)` in the ten languages: the
+    /// same events and ids, a title on every one.
+    func testDemoTitlesExistInEveryLanguage() {
+        let japanese = ScreenshotMode.demoEvents(for: october, empty: false, language: .ja)
+        XCTAssertEqual(japanese.first { $0.id == ScreenshotMode.editDemoEventId }?.title, "家族旅行")
+        for language in UILanguage.allCases {
+            let events = ScreenshotMode.demoEvents(for: october, empty: false, language: language)
+            XCTAssertEqual(events.map(\.id), japanese.map(\.id), "\(language)")
+            XCTAssertEqual(events.map(\.start), japanese.map(\.start), "\(language)")
+            XCTAssertEqual(events.map(\.colorHex), japanese.map(\.colorHex), "\(language)")
+            for event in events {
+                XCTAssertFalse(event.title.isEmpty, "\(language) \(event.id)")
+            }
+            for id in ["demo-work", "demo-family", "demo-personal", "demo-events"] {
+                XCTAssertFalse(ScreenshotMode.calendarTitle(forCalendarId: id, language: language).isEmpty, "\(language) \(id)")
+            }
+            XCTAssertEqual(ScreenshotMode.calendarOptions(language: language).map(\.id), ["demo-work", "demo-family", "demo-personal", "demo-events"], "\(language)")
+        }
+        XCTAssertEqual(ScreenshotMode.calendarTitle(forCalendarId: "demo-family", language: .ja), "家族")
+        XCTAssertEqual(ScreenshotMode.calendarTitle(forCalendarId: "nothing", language: .ja), "")
+        XCTAssertEqual(ScreenshotMode.calendarOptions(language: .ja).first?.sourceTitle, "見本")
     }
 }

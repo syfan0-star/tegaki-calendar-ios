@@ -904,6 +904,60 @@ commit・push はしていない（C）。.html は書いていない。契約�
 - **審査メモは上限まで 58 バイト**: Connect の数え方がバイトでなく字なら余裕はもっとあるが、確かめていない（A の測り方はバイト）。
 - 週の始まりの英語の文は、英語を母語とする人が読んでいない（R の逆翻訳だけ）。「設定」アプリの道はこれまでどおり TestFlight で確かめるまで仮。
 
+## U（§1.4・§5.6〜§5.9・§7.3・§7.4・§10.3〜§10.5・§10.7、§1.5 の U の分。§12.1 の U）
+
+commit・push・CI なし。凍結の 18 ファイルと `InkCanvasViewTests` は変えていない（`shasum -a 256 -c tools/compat10/DATA_1_1.sha256` 全部 OK、`git diff --quiet HEAD -- Tests/TegakiCalendarTests/InkCanvasViewTests.swift`）。§0 の接点の名前（`ScreenshotMode.current`・`isActive`・`Config.probe`・`Config.today`・`SettingsScreen.versionText`・`CalendarRootScreen.newEventPlan` など）も変えていない。
+
+### 入れたもの
+
+- **祝日**: `Persistence/HolidayChoice.swift`（`current`・`store`・`setting`・`migrateIfNeeded`（§1.4。新しい人にも "auto" を書く）・`calendar`・`summary`）。`CalendarRootScreen` の `holidaySettingRaw`・計算プロパティ `holidays`・1 つの暦を受ける `makePaper(…, holidays:, weekStart:)`（§5.6）。`Views/HolidaySettingsSection.swift`・`HolidayPickerScreen.swift`（州の画面 `HolidaySubdivisionScreen` を含む）・`LicenseScreen.swift`（読めなければ `HolidayDataLicense.mitText` と URL）。起動のログ `l10n: ui=… locale=… holidays=…`・`l10n: holidays loaded <ms> ms`（写真モードと DEBUG）。
+- **週の始まり**: `Persistence/WeekStartChoice.swift`（`WeekStartChoice`・`WeekStartNotice`・`WeekStartNotices`）。`CalendarRootScreen` の `@State weekStart`・`weekStartRaw`・`penTouchedThisLaunch`・`pendingAdoption`・`weekStartNotices`、純関数 `weekStartSwitch`（save → apply → reload）。`runWeekStartCheck`（§10.3 の 4）を `syncStatusChanged`・`appear`・`show` の入口（`saveNow` の直後、`pendingAdoption` のとき）・`.active` の入口・取り込みの後で呼ぶ。キャンバスの `.id` はページの id と週の始まりの組。`Views/WeekStartSettingsSection.swift`（節と問い `weekStartQuestion`）。`EventStoreModel.load(kind:focus:weekStart:)`。
+- **文字**: `tools/l10n/source/app-U.json` 171 キー（1.1 の字をそのまま引き受けた `was` が 109、つないでいた字の `composedOf` が 10、うち `demo.*` が 28。残りは §10.4 の 21 キーと §6.3 の新しい文）。`toast.pinchHint` は `was` が `Views/CalendarRootScreen.swift:282`、ja は 1.1.1 の文のまま。15,000 / 19,000 は `DateText.number` で埋める C 型（`composedOf`）。
+- **その他**: `ScreenshotMode`（`Config.holidays`・`weekStart`（1.1.1 の `pinchHint` の後ろ）、`Sheet.holidays`・`.weekStart`、`demoEvents(…language:)`・`calendarTitle(…language:)`・`calendarOptions(language:)`、`demoPage(…, weekStart:)`、水曜の列を `weekStart.column(of:)` で）、`l10n.state` の部品（1 × 1 pt）、§5.8 の語（`EventKitService.holidayCalendarWords`・`isHolidayCalendarTitle`）、`events(in:calendars:)` を消した、`SettingsScreen.timeText`・`dateText`、`large.map` の直し、`otherWeekStart` を作って渡す・`closeImportSheet` のパターン 4 つ、`XCTestStandIn` に `otherElements`・`identifier` だけ。
+- **テスト**: 新規 `HolidayChoiceTests`・`WeekStartChoiceTests`・`WeekStartLedgerTests`・`LanguageUITests`・`WeekStartUITests`。足しただけ: `CalendarRootScreenTests`・`SettingsScreenTests`・`ScreenshotModeTests`・`EventKitServiceTests`・`AppSettingsTests`・`SyncEngineTests`。UI テストの 4 つは起動の引数を足しただけ（日本語のコメントの行は変えていない）。`git diff HEAD -- Tests` の削除行は `Sheet.allCases` の 2 行（§7.2 の指定）と、末尾の `}` の付け直し 1 行だけ。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **`demoPage` の `weekStart:` は `empty:` の直後でなく一番後ろ**（1.1.1 が `empty:` の後ろに `tallYear:` を足したので。§0 の「`empty:` の後ろ」は満たす）。
+2. **`testSummaryTexts` の国名はシステムに聞く**（日本だけ字で確かめる）。この Mac の `localizedString(forRegionCode: "CN")` の ja は「中国本土」で、契約の例の「中国（…）」とは字が違う。Apple の表記なので直さない。例の年は H の申し送りのとおり（スリランカ・中国は 2027 年、台湾は 2026 年、データの無い地域は `AC`）。
+3. **合わせる操作は `.onChange` を待たず、同じ `weekStartSwitch` をその場で呼ぶ**（`syncStatusChanged`・`appear`・`.active`・取り込み）。§10.3 の 4 の「設定を書いて `.onChange` の同じ道を通る」の道は同じで、1 ターン分短い。後から来る `.onChange` は `new == old` で何もしない（`show` の入口の道と同じ）。
+4. **取り込みの後の判定の条件を決めた**（`WeekStartChoice.checksAfterImport`）: アプリの形式で、`.localOnly` か `readyToCheck` のときだけ。§10.5 の (2) は「まだのとき」だけ書いているが、§10.3 の (1) は iCloud を使わない人のための道と書いている。iCloud を使う人が offline で取り込んで判定すると、最初の pull の前に 1 回きりの判定を使い切って、月曜のページを知らせなしで見失う道が残る。Web の形式は常に月曜のページに入るので判定しない。`otherWeekStart` は両方の形式で作る（§10.2）。
+5. **トーストの機会を 1 つ足し、出さない条件を 1 つ足した**: `.onChange(of: showAccountChange)`（§10.4 の 3 つの機会の外。問いが閉じた後に待っている知らせが次の機会まで残らないように）と、`accountChangePending` の間は出さない（問いが来る直前に出すと問いの下になり、`hiddenInk` が案内済みになる）。
+6. **`WeekStartNotices.dropHiddenInk()` を足した**（§0 に無い）。月のページは両方の形で id が同じなので、シートの中で日曜 → 月曜と戻すと、日曜で数えた `hiddenInk` が月曜で（誤った本数で）出ていた。`show` の判定の頭で捨てて数え直す。
+7. **§0 に無い小さな関数**: `AppSettings.isExistingUser`（3 つのキー。`hint.pinchShown` は見ない）、`WeekStartChoice.needsDataCheck`・`regionChange`・`checksAfterImport`・`otherForm`・`name`、`HolidayChoice.yearNote`・`noteText`・`countryName`・`deviceCountry`、`SettingsScreen.translationNote`。`yearNote` は一覧の 250 か国のファイルを読まないために index から決める（`note(forYear:)` と同じ結果であることをテストで照らす）。
+8. **選ぶ画面の検索は `.searchable` でなく一覧の中の欄**（§5.7 の並び「近道の次に検索の欄」のとおり）。州の画面の欄の字は同じキー `holidayPicker.search`（§6.3 に州の画面の検索の文が無い）。
+9. **問いは行でなくフォームに付けた**（`weekStartQuestion`）。`Form` は画面の外の行を持たないので、iPhone の `--screenshot-sheet week-start` で出ないことがある。ピッカーの一覧が戻る間は alert が出せないので、選んでから `sheetGap` 待つ。
+10. **`monthNames` は `DateText.monthName($0, .short, L.language)`**（§3.2 の「U が P の関数を呼ぶ」の読み替え）。`makePaper` は幅を知らず、P の見出しは ja のときだけこの値を読む。ja の字は 1.1 と同じ。
+11. **F-11 のために `PageHeaderView` に `titleHoliday` を渡す**（`!compact && kind == .day ? holidays.name(of: focus) : nil`）。F-11 は祝日名を別の `Text` にするので、題名だけでは足りない。ja は `titleParts` が nil で 1.1 の道。
+12. **`dateText(_:locale:)` の既定は `L.locale`**（1.1 は `.current`）。形は残した。`.current` だと画面の言語と書式がずれる端末がある。
+13. **§6.3 に文の無いキーを足した**: `alert.saveFailed.ok`「OK」、`settings.input.pencil`「Apple Pencil」、`license.contributors`「Contributors: %@」、`settings.holidays.note.join`、`settings.purchase.trial.one/.other`（`ProductIDs.trialDays` は複数形の 2 キーで）。`info.translationNote` の ja は契約に無いので書いた（日本語の画面には出ない。訳の元は §6.3 の英語の文）。〔やめる〕は S の `import.confirmLarge.cancel`（§10.4 の「今の語のキー」）。
+14. **`testWeekStartToastsFitThreeLines` は 402 pt（iPhone 17）で落とす**。375 pt は `print` するだけ。字の大きさは既定（`.large`）に固定。行数は高さの割り算でなく `NSLayoutManager` の行で数える（漢字の代わりの書体は行が高く、3 行を 4 行と数えた）。ja は今の文で 375 pt でも 3 行に入る。
+
+### 確かめたこと（この Mac、Swift 6.4.2、Command Line Tools。push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `tools/typecheck/typecheck.sh`（リポジトリの外の空のフォルダ。S2・P の途中の作業の木のまま） | all OK・警告 0（アプリ 67 ファイル、TegakiCalendarTests 34、UI テスト 6、Kit のテスト 6 つ） |
+| **アプリの XCTest を本物の UIKit で走らせた**（Mac Catalyst で Kit とアプリを組み、XCTest の小さな代わりで。`@State` は typecheck と同じ代わり。リポジトリの外 `m7b-impl/U/run/run.sh`。訳は無し） | `AppSettingsTests`・`CalendarRootScreenTests`・`EventKitServiceTests`・`HolidayChoiceTests`・`ScreenshotModeTests`・`SettingsScreenTests`・`SyncEngineTests`・`WeekStartChoiceTests`・`WeekStartLedgerTests` の 159 本・2,941 件。失敗は `testEraserFooterNeverNamesThePencilOnAnIPhone` の 9 件だけ（9 言語の `.footer.pad` に「Apple Pencil」があることを見るので、X の訳が要る）。`testPushOnlyLeavesNoZoneToken`（§10.3 の 4 の前提）・`testSwitchKeepsBothForms`・`testHiddenStrokeIsNotErased`・`testStrokeFollowsItsDateWhenLayoutChanges` は凍結のコードで本当に通った。`ExportBuilderTests` などを足して 210 本にしても新しい失敗は無い（`testPDFRendersEveryKind` の「now line」は P の節のとおり、Mac の PDF のバイトの差） |
+| `python3 -I tools/l10n/lint.py .` | L-1・L-3〜L-14 が ok。L-2 は訳が無いので失敗（X の前は当然） |
+| `python3 -I tools/l10n/build.py . --check` | 一致（S2・P の元と一緒に作り直した） |
+| J-2 | `git diff HEAD -- Tests TegakiKit/Tests` の U の分の削除行に日本語・`w-20`・`Monday`・`Sunday` は無い（`Sheet.allCases` の 2 行と `}` の 1 行だけ） |
+
+**動かしていないもの**: 画面そのもの（SwiftUI の `@State` がこの Mac で組めないので、`body` は型だけ）、UI テスト（`LanguageUITests`・`WeekStartUITests`・起動の引数を足した 4 つ）。CI-0 で初めて走る。
+
+### 次の役へ
+
+- **X**: U のキーで訳すのは 171（`app-U.json`）。§10.4 の 21 キーの英語は各キーの `comment` に書いた。トーストは 402 pt・15 pt で 3 行以内（`testWeekStartToastsFitThreeLines`。`m7b-impl/U/run/run.sh` か P の手順で訳の後に先に測れる）。`settings.input.eraserAutoReturn.footer.phone` に Apple Pencil・iPad を書かない、`.pad` には Apple Pencil を書く。`settings.data.importFooter` は `allowJapanese`。`settings.purchase.footer.readOnly` の `%@` の後ろの空白は語の間に空白を置く言語で。`settings.weekStart.monday`・`.sunday` は文の中の括弧にも入る。`demo.*` は `maxEm`（終日 4.2、時刻 5.7）。`demo.event.businessTrip` の大阪は各言語の地名。
+- **C**: `project.yml` に `HolidayData` のフォルダ（`Bundle.main.url(forResource: "HolidayData", withExtension: nil)`。無くても日本は動くが、他の国は「なし」、ライセンスは退き先になる）。UI テストの grep に `l10n UI:` と `week-start UI:`、ジョブの UI テストの一覧に `LanguageUITests`・`WeekStartUITests`。写真の引数は `--screenshot-holidays`・`--screenshot-week-start`・`--screenshot-sheet holidays`・`--screenshot-sheet week-start`。`l10n: holidays loaded <ms> ms` の CI の値を M7B.md に（目安 50 ms、§5.3）。
+- **リード**: 本人に見せる例の字: 中国の行は「中国本土（2027 年は発表前の推定）」になる（システムの表記）。問いの文（`settings.weekStart.confirm.message.*`）は §10.4 のまま。
+- **検証**: 順番の確かめは `CalendarRootScreen.weekStartSwitch`・`switchWeekStart`・`runWeekStartCheck`・`show` の入口・`scenePhaseChanged` の `.active`・`penDown` の頭。ずれの 3・4・5・6 を見てほしい。
+
+### 残る危険
+
+- **画面の動きは CI-0 と本人の確かめまで未確認**: 州の画面で選んだときに 2 段戻るのは親の `.onChange(of: raw) { dismiss() }` に頼っている（戻らなければ、選択は記録されていて、戻るボタンで戻れる）。ピッカーの後の alert は 0.35 秒待つ作り。`l10n.state` は `otherElements` で見つかる前提（見つからなければ §7.3 のとおり 1 pt の `Text` に替える）。
+- `testWeekStartToastsFitThreeLines` の字の幅は Mac Catalyst の測り。X の訳の長さで落ちたら X が短くする（§10.4）。`ToastView` は持ち主の無いファイルなので変えない。
+- `l10n: holidays loaded` は未測定。50 ms を超えたら §5.3 のとおり main の外で先に読む直しが要る。
+
 ## S2（S の後半: 文字列の移し・lint の残り・ツールバーと投げなわのメニューの字・週の始まりの S の分。§12.1 の S2）
 
 commit はしていない（S2 は commit しない役）。`git add` は C が、次の **S2 のまとまり** をファイル名で: `tools/l10n/source/app-S.json`、`tools/l10n/lint.py`、`Support/Products.storekit`、`Sources/TegakiCalendar/` の `Views/{ToolbarView,ToolbarLogic,ToolbarDock,EventEditorSheet,EventEditorForm,PaywallSheet,WebImportSheet,ExportSheet,OnboardingView,AccountChangeDialog,RecurrenceScopeDialog,SelectionMenuView,EventDateText}.swift`・`Sync/SyncStatus.swift`・`Store/StoreStrings.swift`・`Store/LiveStoreClient.swift`・`Calendar/EventDraft.swift`・`Persistence/StrokeCensus.swift`・`Export/ExportBuilder.swift`・`Support/L10n.swift`（`count` を足した）、`Tests/TegakiCalendarTests/` の新規 `L10nTests`・`LocalizationBundleTests`・`EventDateTextTests`・`ToolbarFitTests` と足すだけの `WebImportSheetTests`・`ExportBuilderTests`・`ExportSheetTests`・`StrokeCensusTests`・`PaywallSheetTests`・`StoreKitSessionTests`。生成物（`Resources/*.xcstrings`）は最後に元を足した人が作り直す。

@@ -109,6 +109,30 @@
         }
       }
     },
+    "alert.saveFailed.ok" : {
+      "comment" : "上の警告を閉じるボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "alert.saveFailed.title" : {
+      "comment" : "警告の題名。端末に手書きを保存できなかったとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きを保存できませんでした"
+          }
+        }
+      }
+    },
     "census.counting" : {
       "comment" : "設定 › 情報 の線の数の行。数えている間",
       "extractionState" : "manual",
@@ -153,6 +177,342 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "まだ手書きがありません"
+          }
+        }
+      }
+    },
+    "demo.calendar.events" : {
+      "comment" : "ストアの写真の見本の予定表の名前。短く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行事"
+          }
+        }
+      }
+    },
+    "demo.calendar.family" : {
+      "comment" : "ストアの写真の見本の予定表の名前。短く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "家族"
+          }
+        }
+      }
+    },
+    "demo.calendar.personal" : {
+      "comment" : "ストアの写真の見本の予定表の名前。短く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "個人"
+          }
+        }
+      }
+    },
+    "demo.calendar.work" : {
+      "comment" : "ストアの写真の見本の予定表の名前。短く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仕事"
+          }
+        }
+      }
+    },
+    "demo.event.birthday" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "誕生日"
+          }
+        }
+      }
+    },
+    "demo.event.businessTrip" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）。「大阪」は Osaka のように各言語の地名で",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出張（大阪）"
+          }
+        }
+      }
+    },
+    "demo.event.call" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電話"
+          }
+        }
+      }
+    },
+    "demo.event.camping" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンプ"
+          }
+        }
+      }
+    },
+    "demo.event.checkup" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "健康診断"
+          }
+        }
+      }
+    },
+    "demo.event.clinic" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通院"
+          }
+        }
+      }
+    },
+    "demo.event.deadline" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "締切"
+          }
+        }
+      }
+    },
+    "demo.event.dentalCheck" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "歯科"
+          }
+        }
+      }
+    },
+    "demo.event.dentist" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "歯医者"
+          }
+        }
+      }
+    },
+    "demo.event.drinks" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "飲み会"
+          }
+        }
+      }
+    },
+    "demo.event.familyTrip" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "家族旅行"
+          }
+        }
+      }
+    },
+    "demo.event.farewell" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送別会"
+          }
+        }
+      }
+    },
+    "demo.event.lunch" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ランチ"
+          }
+        }
+      }
+    },
+    "demo.event.meeting" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打合せ"
+          }
+        }
+      }
+    },
+    "demo.event.morningMeeting" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "朝会"
+          }
+        }
+      }
+    },
+    "demo.event.oneOnOne" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "面談"
+          }
+        }
+      }
+    },
+    "demo.event.payday" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "給料日"
+          }
+        }
+      }
+    },
+    "demo.event.report" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料提出"
+          }
+        }
+      }
+    },
+    "demo.event.reportDeadline" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料提出締切"
+          }
+        }
+      }
+    },
+    "demo.event.review" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レビュー"
+          }
+        }
+      }
+    },
+    "demo.event.sportsDay" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "運動会"
+          }
+        }
+      }
+    },
+    "demo.event.trashDay" : {
+      "comment" : "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ゴミの日"
+          }
+        }
+      }
+    },
+    "demo.event.weeklyMeeting" : {
+      "comment" : "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週次定例"
+          }
+        }
+      }
+    },
+    "demo.source" : {
+      "comment" : "ストアの写真の見本の予定表のアカウントの名前（「サンプル」の意味）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見本"
           }
         }
       }
@@ -589,6 +949,18 @@
         }
       }
     },
+    "event.untitled" : {
+      "comment" : "題名の無い予定に紙とシートで出す字。短く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（無題）"
+          }
+        }
+      }
+    },
     "event.when.dateTime" : {
       "comment" : "予定の読み上げの日時。日付と時刻（「2026年10月4日(日) 9:00」）。日付の字は DateText から来る。区切りはその言語の普通の書き方で",
       "extractionState" : "manual",
@@ -837,6 +1209,138 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ファイルを書けませんでした: %@"
+          }
+        }
+      }
+    },
+    "holidayPicker.auto" : {
+      "comment" : "祝日を選ぶ画面の最初の行。%@ は国の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動（この端末の地域：%@）"
+          }
+        }
+      }
+    },
+    "holidayPicker.countries" : {
+      "comment" : "一覧の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "国・地域"
+          }
+        }
+      }
+    },
+    "holidayPicker.deviceRegion" : {
+      "comment" : "祝日を選ぶ画面の近道の行。%@ は国の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末の地域：%@"
+          }
+        }
+      }
+    },
+    "holidayPicker.localAreas" : {
+      "comment" : "州の画面の、州でない地域（市など）の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他の地域（市など）"
+          }
+        }
+      }
+    },
+    "holidayPicker.none" : {
+      "comment" : "祝日を選ぶ画面の行。祝日を出さない",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なし"
+          }
+        }
+      }
+    },
+    "holidayPicker.search" : {
+      "comment" : "検索の欄の薄い字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "国・地域を検索"
+          }
+        }
+      }
+    },
+    "holidayPicker.subdivisionHint" : {
+      "comment" : "州・地域で祝日が違う国の行の下の小さな字と、州の画面の先頭",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "州・地域を選ぶと、その地域の祝日が加わります"
+          }
+        }
+      }
+    },
+    "holidayPicker.subdivisions" : {
+      "comment" : "州の画面の一覧の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "州・地域"
+          }
+        }
+      }
+    },
+    "holidayPicker.subdivisions.footer" : {
+      "comment" : "州の画面の脚注",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "州・地域の名前は、データのままの表記（英語や現地の言葉）です。"
+          }
+        }
+      }
+    },
+    "holidayPicker.title" : {
+      "comment" : "祝日を選ぶ画面の題名。settings.holidays.row と同じ語に",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示する祝日"
+          }
+        }
+      }
+    },
+    "holidayPicker.wholeCountry" : {
+      "comment" : "州の画面の最初の行",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "国全体"
           }
         }
       }
@@ -1161,6 +1665,126 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このファイルは新しい形式です（v%@）。アプリを更新してください"
+          }
+        }
+      }
+    },
+    "info.translationNote" : {
+      "comment" : "情報の節の説明の下の文。日本語の画面には出ない。英語の元は “The translations in this app were made with AI and checked by translating them back into Japanese. No native speaker has reviewed them yet. If you find a mistake, please write to syfan0@gmail.com.”。この英語の文を元に訳す。メールアドレスはそのまま",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリの訳は AI で作り、日本語に訳し戻して確かめました。まだネイティブの確認は受けていません。誤りを見つけたら syfan0@gmail.com までお知らせください。"
+          }
+        }
+      }
+    },
+    "license.contributors" : {
+      "comment" : "ライセンスの画面で、CONTRIBUTORS のファイルが読めないときだけ出る行。%@ は URL",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contributors: %@"
+          }
+        }
+      }
+    },
+    "license.holidayData" : {
+      "comment" : "ライセンスの画面の見出し。python-holidays はそのまま",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "祝日データ：python-holidays（MIT ライセンス）"
+          }
+        }
+      }
+    },
+    "notice.calendar.denied" : {
+      "comment" : "見出しの下の案内（2 行まで）。「フルアクセス」は iOS の「設定」のカレンダーの項目の、その言語の表記に合わせる",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を表示するには設定でカレンダーを「フルアクセス」にしてください。"
+          }
+        }
+      }
+    },
+    "notice.calendar.denied.openSettings" : {
+      "comment" : "上の案内の右の小さなボタン。iOS の「設定」アプリを開く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を開く"
+          }
+        }
+      }
+    },
+    "notice.calendar.notDetermined" : {
+      "comment" : "見出しの下の 1 行の案内（2 行まで）。カレンダーへのアクセスをまだ聞いていないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を表示するにはカレンダーの読み取りを許可してください。"
+          }
+        }
+      }
+    },
+    "notice.calendar.notDetermined.allow" : {
+      "comment" : "上の案内の右の小さなボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可する"
+          }
+        }
+      }
+    },
+    "notice.calendar.restricted" : {
+      "comment" : "見出しの下の案内（2 行まで）。保護者の管理などでカレンダーを使えないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末ではカレンダーへのアクセスが制限されています。手書きだけ使えます。"
+          }
+        }
+      }
+    },
+    "notice.readOnly.button" : {
+      "comment" : "上の案内の右の小さなボタン。短く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読する"
+          }
+        }
+      }
+    },
+    "notice.readOnly.text" : {
+      "comment" : "iPhone の見出しの下の 1 行の案内（2 行まで）。購読していないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閲覧専用です。手書きと予定の作成は購読すると使えます。"
           }
         }
       }
@@ -1789,6 +2413,1182 @@
         }
       }
     },
+    "settings.calendar.a11y.hidden" : {
+      "comment" : "読み上げの値。カレンダーの行が非表示のとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示"
+          }
+        }
+      }
+    },
+    "settings.calendar.a11y.shown" : {
+      "comment" : "読み上げの値。カレンダーの行が表示中のとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示中"
+          }
+        }
+      }
+    },
+    "settings.calendar.access.allow" : {
+      "comment" : "ボタン。カレンダーへのアクセスを iOS に尋ねる",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可する"
+          }
+        }
+      }
+    },
+    "settings.calendar.access.denied" : {
+      "comment" : "カレンダーへのアクセスの状態",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可されていません"
+          }
+        }
+      }
+    },
+    "settings.calendar.access.full" : {
+      "comment" : "カレンダーへのアクセスの状態。「フルアクセス」は iOS の表記に合わせる",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可されています（フルアクセス）"
+          }
+        }
+      }
+    },
+    "settings.calendar.access.notDetermined" : {
+      "comment" : "カレンダーへのアクセスの状態",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ許可していません"
+          }
+        }
+      }
+    },
+    "settings.calendar.access.restricted" : {
+      "comment" : "カレンダーへのアクセスの状態",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末では制限されています"
+          }
+        }
+      }
+    },
+    "settings.calendar.access.title" : {
+      "comment" : "行の名前。右に今の状態が出る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カレンダーへのアクセス"
+          }
+        }
+      }
+    },
+    "settings.calendar.access.writeOnly" : {
+      "comment" : "カレンダーへのアクセスの状態",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加のみ（予定を表示できません）"
+          }
+        }
+      }
+    },
+    "settings.calendar.default" : {
+      "comment" : "行の名前。新しい予定を入れるカレンダーを選ぶ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定の登録先"
+          }
+        }
+      }
+    },
+    "settings.calendar.empty" : {
+      "comment" : "カレンダーが 1 つも無いときの説明",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カレンダーがありません"
+          }
+        }
+      }
+    },
+    "settings.calendar.google.howTo" : {
+      "comment" : "手順の説明。初回案内の 1 枚目の後半と同じ文。「」の中は iOS の画面の名前なので、その言語の iOS の実際の表記に合わせる（§6.1 の 4）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google カレンダーの予定を出すには、「設定」アプリで Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iOS・iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。"
+          }
+        }
+      }
+    },
+    "settings.calendar.google.title" : {
+      "comment" : "開閉する行の名前。Google カレンダーは製品名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google カレンダーを使うには"
+          }
+        }
+      }
+    },
+    "settings.calendar.header" : {
+      "comment" : "設定の節の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カレンダー"
+          }
+        }
+      }
+    },
+    "settings.calendar.noAccess" : {
+      "comment" : "カレンダーへのアクセスが無いときの説明",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カレンダーへのアクセスを許可すると、ここに一覧が出ます"
+          }
+        }
+      }
+    },
+    "settings.calendar.otherSource" : {
+      "comment" : "カレンダーのアカウントの名前が空のときの見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他"
+          }
+        }
+      }
+    },
+    "settings.calendar.shown" : {
+      "comment" : "節の中の小見出し。下に各カレンダーの行が並ぶ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示するカレンダー"
+          }
+        }
+      }
+    },
+    "settings.data.erase.all" : {
+      "comment" : "2 回目の確認のボタン（赤）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全て消す"
+          }
+        }
+      }
+    },
+    "settings.data.erase.cancel" : {
+      "comment" : "確認のやめるボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
+        }
+      }
+    },
+    "settings.data.erase.confirm" : {
+      "comment" : "1 回目の確認のボタン（赤）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消す"
+          }
+        }
+      }
+    },
+    "settings.data.erase.question.cloud" : {
+      "comment" : "1 回目の確認の題名。iCloud の分も消えるとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末と iCloud に保存した手書きを全て消しますか？"
+          }
+        }
+      }
+    },
+    "settings.data.erase.question.local" : {
+      "comment" : "1 回目の確認の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末に保存した手書きを全て消しますか？"
+          }
+        }
+      }
+    },
+    "settings.data.erase.title" : {
+      "comment" : "2 回目の確認の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本当に消しますか？"
+          }
+        }
+      }
+    },
+    "settings.data.erase.warning.cloud" : {
+      "comment" : "2 回目の確認の本文。iCloud の分も消えるとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この操作は元に戻せません。ほかの iPad や iPhone の手書きも消えます。"
+          }
+        }
+      }
+    },
+    "settings.data.erase.warning.local" : {
+      "comment" : "2 回目の確認の本文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この操作は元に戻せません。"
+          }
+        }
+      }
+    },
+    "settings.data.eraseAll" : {
+      "comment" : "ボタン（赤）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末の手書きを全て消す"
+          }
+        }
+      }
+    },
+    "settings.data.export" : {
+      "comment" : "ボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きを書き出す"
+          }
+        }
+      }
+    },
+    "settings.data.exportFooter" : {
+      "comment" : "データの節の説明の 2 段落目。「」の中は同じ節のボタンの名前（settings.data.export・settings.data.import）と同じ語に",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「手書きを書き出す」は、この端末に保存されている手書きを 1 つのデータファイル（JSON）にするか、いま開いているページを PDF にします。データファイルは「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。"
+          }
+        }
+      }
+    },
+    "settings.data.header" : {
+      "comment" : "設定の節の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データ"
+          }
+        }
+      }
+    },
+    "settings.data.import" : {
+      "comment" : "ボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web 版の手書きを取り込む"
+          }
+        }
+      }
+    },
+    "settings.data.importFooter" : {
+      "comment" : "データの節の説明。「手書きを書き出す（iPad アプリ用）」は Web 版の機能の名前で、Web 版は日本語だけなので、訳の中でも括弧で日本語のまま添える（§6.2）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web 版の設定で「手書きを書き出す（iPad アプリ用）」をして、そのファイルを選びます。同じファイルを二度取り込んでも手書きは二重になりません。"
+          }
+        }
+      }
+    },
+    "settings.data.lastImport" : {
+      "comment" : "データの節の説明の下の行。%@ は日付と時刻（書式はこちらで作る）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回の取り込み: %@"
+          }
+        }
+      }
+    },
+    "settings.done" : {
+      "comment" : "設定の画面を閉じるボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        }
+      }
+    },
+    "settings.holidays.footer" : {
+      "comment" : "祝日の節の説明。「（推定）」は kit.holiday.estimatedSuffix と同じ印に",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本の祝日は、このアプリが計算しています（内閣府の発表と照らし合わせて確かめています）。ほかの国の祝日は、公開されているデータ（python-holidays）にもとづきます。旧暦やイスラム暦の祝日など一部は推定で、「（推定）」と付けています。政府の最新の発表と違うことがあります。祝日の設定はこの端末だけに保存します。"
+          }
+        }
+      }
+    },
+    "settings.holidays.header" : {
+      "comment" : "設定の節の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "祝日"
+          }
+        }
+      }
+    },
+    "settings.holidays.note.beforeNotice" : {
+      "comment" : "注記。政府が毎年発表する休みの表がまだデータに無い年。%@ は年（区切りなしの数字）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 年は発表前の推定"
+          }
+        }
+      }
+    },
+    "settings.holidays.note.join" : {
+      "comment" : "注記が 2 つあるときのつなぎ方",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@・%2$@"
+          }
+        }
+      }
+    },
+    "settings.holidays.note.nationalOnly" : {
+      "comment" : "注記。州・地域で祝日が違う国で、国全体を選んでいるとき。短く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全国共通のみ"
+          }
+        }
+      }
+    },
+    "settings.holidays.note.nationalOnlyAuto" : {
+      "comment" : "注記。州・地域で祝日が違う国で、自動で国全体を見ているとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全国共通の祝日のみ"
+          }
+        }
+      }
+    },
+    "settings.holidays.note.noData" : {
+      "comment" : "注記。その国の祝日のデータが無い、または読めないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "祝日のデータがありません"
+          }
+        }
+      }
+    },
+    "settings.holidays.note.noDataFrom" : {
+      "comment" : "注記。データの揃っている年の範囲を過ぎたとき。%@ は年（区切りなしの数字）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 年以降のデータがありません"
+          }
+        }
+      }
+    },
+    "settings.holidays.row" : {
+      "comment" : "行の名前。右に今の選択が出る。押すと選ぶ画面",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示する祝日"
+          }
+        }
+      }
+    },
+    "settings.holidays.value.auto" : {
+      "comment" : "「表示する祝日」の値。%@ は国の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動（%@）"
+          }
+        }
+      }
+    },
+    "settings.holidays.value.autoNote" : {
+      "comment" : "「表示する祝日」の値。%2$@ は注記（settings.holidays.note.*）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動（%1$@・%2$@）"
+          }
+        }
+      }
+    },
+    "settings.holidays.value.none" : {
+      "comment" : "「表示する祝日」の値。祝日を出さない",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なし"
+          }
+        }
+      }
+    },
+    "settings.holidays.value.regionNote" : {
+      "comment" : "「表示する祝日」の値。%1$@ は国の名前（州を含むことがある）、%2$@ は注記（settings.holidays.note.*）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "settings.holidays.value.subdivision" : {
+      "comment" : "「表示する祝日」の値。国と州・地域。例「アメリカ合衆国・California」。州の名前はデータのままの表記",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@・%2$@"
+          }
+        }
+      }
+    },
+    "settings.info.footer" : {
+      "comment" : "情報の節の説明",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "線の数は、この端末に保存されているページを数えたものです（どこにも送りません）。1 ページに書ける線は %@ 本までです。"
+          }
+        }
+      }
+    },
+    "settings.info.header" : {
+      "comment" : "設定の節の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "情報"
+          }
+        }
+      }
+    },
+    "settings.info.largestPage" : {
+      "comment" : "行の名前。下に値が小さく出る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いちばん線の多いページ"
+          }
+        }
+      }
+    },
+    "settings.info.licenses" : {
+      "comment" : "情報の節の行の名前。押すと同じ題名の画面が開く。その画面の題名にも使う",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オープンソースのライセンス"
+          }
+        }
+      }
+    },
+    "settings.info.privacy" : {
+      "comment" : "リンクの行",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシーポリシー"
+          }
+        }
+      }
+    },
+    "settings.info.support" : {
+      "comment" : "リンクの行",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サポート"
+          }
+        }
+      }
+    },
+    "settings.info.terms" : {
+      "comment" : "リンクの行",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用規約"
+          }
+        }
+      }
+    },
+    "settings.info.version" : {
+      "comment" : "行の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バージョン"
+          }
+        }
+      }
+    },
+    "settings.info.yearPage" : {
+      "comment" : "行の名前。下に値が小さく出る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今年の年のページ"
+          }
+        }
+      }
+    },
+    "settings.input.allowFinger" : {
+      "comment" : "スイッチの名前。ツールバーの同じ語と合わせる",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指でも書く"
+          }
+        }
+      }
+    },
+    "settings.input.allowFinger.footer" : {
+      "comment" : "上のスイッチの説明",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします。手書きは iPad と Apple Pencil で書くのに向いています"
+          }
+        }
+      }
+    },
+    "settings.input.eraseAfterConvert" : {
+      "comment" : "スイッチの名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定にした手書きを消す"
+          }
+        }
+      }
+    },
+    "settings.input.eraseAfterConvert.footer" : {
+      "comment" : "上のスイッチの説明",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投げなわで囲んだ手書きを予定にしたあと、その手書きを消すかどうかの初期値です"
+          }
+        }
+      }
+    },
+    "settings.input.eraserAutoReturn.footer.pad" : {
+      "comment" : "上のスイッチの説明（iPad）。ダブルタップ・スクイーズで選んだ消しゴムも「戻る」という意味（戻らないのではない）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムも同じです。"
+          }
+        }
+      }
+    },
+    "settings.input.eraserAutoReturn.footer.phone" : {
+      "comment" : "上のスイッチの説明（iPhone）。**どの言語でも Apple Pencil と iPad を書かない**",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。"
+          }
+        }
+      }
+    },
+    "settings.input.eraserAutoReturn.title" : {
+      "comment" : "設定 › 入力 のスイッチの名前。iPad と iPhone の両方",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消しゴムで消したらペンに戻る"
+          }
+        }
+      }
+    },
+    "settings.input.header" : {
+      "comment" : "設定の節の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力"
+          }
+        }
+      }
+    },
+    "settings.input.pencil" : {
+      "comment" : "行の名前。製品名なのでそのまま",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Pencil"
+          }
+        }
+      }
+    },
+    "settings.input.pencil.footer" : {
+      "comment" : "説明。「設定 › Apple Pencil」は iOS の表記に合わせる",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作に従います"
+          }
+        }
+      }
+    },
+    "settings.openSettingsApp" : {
+      "comment" : "ボタン。iOS の「設定」アプリを開く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定アプリを開く"
+          }
+        }
+      }
+    },
+    "settings.purchase.footer.cancel" : {
+      "comment" : "購入の節の説明（購読中）。%@ は iOS の画面の道順（kit.plan.cancelPath）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解約は端末の%@から。解約しても期間の終わりまで使えます。"
+          }
+        }
+      }
+    },
+    "settings.purchase.footer.grace" : {
+      "comment" : "購入の節の説明（請求に問題があり、猶予の期間のとき）。%@ は iOS の画面の道順（kit.plan.paymentPath）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お支払いに問題があります。端末の%@でお支払い方法を確認してください。猶予の期限までは使えます。"
+          }
+        }
+      }
+    },
+    "settings.purchase.footer.readOnly" : {
+      "comment" : "購入の節の説明（閲覧専用のとき）。%@ は閲覧専用の理由の 1 文（kit.plan.note.*。句点で終わる）で、この文の前につなぐ。語の間に空白を置く言語は %@ の後ろに空白を入れる。利用規約の第 5 条 5 項と同じ一覧",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この端末の手書きを全て消す、手書きの書き出し、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"
+          }
+        }
+      }
+    },
+    "settings.purchase.footer.trial" : {
+      "comment" : "購入の節の説明（試用中）。%@ は iOS の画面の道順（kit.plan.cancelPath）。前半は settings.purchase.footer.cancel と同じ文に",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解約は端末の%@から。解約しても期間の終わりまで使えます。試用中に解約すれば料金はかかりません。"
+          }
+        }
+      }
+    },
+    "settings.purchase.header" : {
+      "comment" : "設定の節の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入"
+          }
+        }
+      }
+    },
+    "settings.purchase.manage" : {
+      "comment" : "ボタン。「サブスクリプション」は iOS の表記に合わせる",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サブスクリプションを管理"
+          }
+        }
+      }
+    },
+    "settings.purchase.plan" : {
+      "comment" : "行の名前。右に今の状態が出る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のプラン"
+          }
+        }
+      }
+    },
+    "settings.purchase.restore" : {
+      "comment" : "ボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入を復元"
+          }
+        }
+      }
+    },
+    "settings.purchase.subscribe" : {
+      "comment" : "ボタン。購読していないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読する"
+          }
+        }
+      }
+    },
+    "settings.purchase.trial.one" : {
+      "comment" : "ボタン。無料の試用を使えるとき。%@ は日数（14）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間無料で試す"
+          }
+        }
+      }
+    },
+    "settings.purchase.trial.other" : {
+      "comment" : "ボタン。無料の試用を使えるとき。%@ は日数（14）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間無料で試す"
+          }
+        }
+      }
+    },
+    "settings.sync.header" : {
+      "comment" : "設定の節の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期"
+          }
+        }
+      }
+    },
+    "settings.sync.icloud" : {
+      "comment" : "行の名前。右に状態が出る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud 同期"
+          }
+        }
+      }
+    },
+    "settings.sync.lastSync" : {
+      "comment" : "行の名前。右に日時が出る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最後に同期"
+          }
+        }
+      }
+    },
+    "settings.sync.lastSync.none" : {
+      "comment" : "「最後に同期」の値。まだ 1 度も同期していないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだありません"
+          }
+        }
+      }
+    },
+    "settings.sync.newAccount" : {
+      "comment" : "ボタン。iCloud のアカウントが変わったとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいアカウントで使い始める…"
+          }
+        }
+      }
+    },
+    "settings.sync.now" : {
+      "comment" : "ボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今すぐ同期"
+          }
+        }
+      }
+    },
+    "settings.title" : {
+      "comment" : "設定の画面の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
+          }
+        }
+      }
+    },
+    "settings.weekStart.auto" : {
+      "comment" : "週の始まりの選択肢。%@ は今の結果（月曜・日曜）。英語 Automatic (%@)",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動（%@）"
+          }
+        }
+      }
+    },
+    "settings.weekStart.confirm.message.monday" : {
+      "comment" : "週の始まりを月曜にする前の説明。本人の手順で読んでもらう文。「消えません」をはっきり。英語 Week pages are separate for weeks that start on Monday and weeks that start on Sunday. The week handwriting you have now stays hidden until you go back to Sunday (it is not deleted). Month page handwriting moves to the cell with the same date. However, some handwriting in cells for days of the previous or next month may stay hidden until you go back (it is not deleted).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週のページは、月曜始まりと日曜始まりで別のページになります。いま書いてある週の手書きは、日曜始まりに戻すまで見えません（消えません）。月のページの手書きは、同じ日付のマスに移ります。ただし、前後の月の日のマスに書いたものは、一部が戻すまで見えなくなることがあります（消えません）。"
+          }
+        }
+      }
+    },
+    "settings.weekStart.confirm.message.sunday" : {
+      "comment" : "週の始まりを日曜にする前の説明。本人の手順で読んでもらう文。「消えません」をはっきり。英語 Week pages are separate for weeks that start on Monday and weeks that start on Sunday. The week handwriting you have now stays hidden until you go back to Monday (it is not deleted). Month page handwriting moves to the cell with the same date. However, some handwriting in cells for days of the previous or next month may stay hidden until you go back (it is not deleted).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週のページは、月曜始まりと日曜始まりで別のページになります。いま書いてある週の手書きは、月曜始まりに戻すまで見えません（消えません）。月のページの手書きは、同じ日付のマスに移ります。ただし、前後の月の日のマスに書いたものは、一部が戻すまで見えなくなることがあります（消えません）。"
+          }
+        }
+      }
+    },
+    "settings.weekStart.confirm.ok.monday" : {
+      "comment" : "切り替えの確認のボタン。英語 Use Monday",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月曜にする"
+          }
+        }
+      }
+    },
+    "settings.weekStart.confirm.ok.sunday" : {
+      "comment" : "切り替えの確認のボタン。英語 Use Sunday",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日曜にする"
+          }
+        }
+      }
+    },
+    "settings.weekStart.confirm.title.monday" : {
+      "comment" : "切り替えの確認の題名。英語 Start weeks on Monday?",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週の始まりを月曜にしますか？"
+          }
+        }
+      }
+    },
+    "settings.weekStart.confirm.title.sunday" : {
+      "comment" : "切り替えの確認の題名。英語 Start weeks on Sunday?",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週の始まりを日曜にしますか？"
+          }
+        }
+      }
+    },
+    "settings.weekStart.footer" : {
+      "comment" : "週の始まりの節の説明。英語 Automatic follows your device region. This setting is per device. Use the same setting on each device to see the same week handwriting.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動は端末の地域に合わせます（日本は月曜）。この設定は端末ごとです。週の手書きをどの端末でも見られるように、同じ設定にしてください。"
+          }
+        }
+      }
+    },
+    "settings.weekStart.monday" : {
+      "comment" : "週の始まりの選択肢。文の中の括弧にも入る。英語 Monday",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月曜"
+          }
+        }
+      }
+    },
+    "settings.weekStart.otherPages.one" : {
+      "comment" : "週の始まりの節の説明の下の行（0 ページなら出ない）。週のページの数だけを数えているので、線を全部消したページも入る。だから「手書きが」と言わず「週のページが」と言う。英語 1 week page uses the other week start (%1$@). Switch to see it. の型",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。切り替えると見えます。"
+          }
+        }
+      }
+    },
+    "settings.weekStart.otherPages.other" : {
+      "comment" : "週の始まりの節の説明の下の行（0 ページなら出ない）。週のページの数だけを数えているので、線を全部消したページも入る。だから「手書きが」と言わず「週のページが」と言う。英語 %2$@ week pages use the other week start (%1$@). Switch to see them.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。切り替えると見えます。"
+          }
+        }
+      }
+    },
+    "settings.weekStart.sunday" : {
+      "comment" : "週の始まりの選択肢。文の中の括弧にも入る。英語 Sunday",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日曜"
+          }
+        }
+      }
+    },
+    "settings.weekStart.title" : {
+      "comment" : "設定の行の名前。英語 Week Starts On。ここと toast.weekStart.otherForm の「設定 › 週の始まり」を同じ語に",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週の始まり"
+          }
+        }
+      }
+    },
     "store.error.productNotFound" : {
       "comment" : "購入の失敗の理由（商品が無い）",
       "extractionState" : "manual",
@@ -2253,6 +4053,258 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "iCloud を確認できません"
+          }
+        }
+      }
+    },
+    "toast.eraseCloudFailed" : {
+      "comment" : "トースト（誤り）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください"
+          }
+        }
+      }
+    },
+    "toast.erased" : {
+      "comment" : "トースト。設定の「この端末の手書きを全て消す」の後",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きを全て消しました"
+          }
+        }
+      }
+    },
+    "toast.event.created" : {
+      "comment" : "トースト",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を登録しました"
+          }
+        }
+      }
+    },
+    "toast.event.deleted" : {
+      "comment" : "トースト",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を削除しました"
+          }
+        }
+      }
+    },
+    "toast.event.noAccess" : {
+      "comment" : "トースト（誤り）。カレンダーへのアクセスが無いのに予定を作ろうとしたとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を登録するには、設定でカレンダーへのアクセスを許可してください"
+          }
+        }
+      }
+    },
+    "toast.event.noCalendar" : {
+      "comment" : "トースト（誤り）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を登録できるカレンダーがありません"
+          }
+        }
+      }
+    },
+    "toast.event.updated" : {
+      "comment" : "トースト",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を更新しました"
+          }
+        }
+      }
+    },
+    "toast.eventBelowDay" : {
+      "comment" : "トースト。日のページの 24 時より下は予定にできない",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 時の下の自由メモ欄では予定を作れません"
+          }
+        }
+      }
+    },
+    "toast.growthCap" : {
+      "comment" : "トースト。月のメモ欄や日の自由メモ欄の下の端まで書いたとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ欄はここまでです"
+          }
+        }
+      }
+    },
+    "toast.pinchHint" : {
+      "comment" : "トースト（6 秒、1 回だけ）。紙の拡大と縮小の方法。「ピンチ」という名詞を使わず、2 本の指の動きで書く。広げる = 拡大、つまむ = 縮小の向きを間違えない",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 本の指を広げると拡大、つまむと縮小します"
+          }
+        }
+      }
+    },
+    "toast.readOnly" : {
+      "comment" : "トースト。購読が切れていて、書く・消す・予定を作るなどの操作を断ったとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閲覧専用です。書く・消す・予定を作るには購読が必要です"
+          }
+        }
+      }
+    },
+    "toast.strokeBudget.full" : {
+      "comment" : "トースト（誤りの色、6 秒）。線の本数が上限に達して、新しい線を受け付けなかったとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このページはいっぱいです（線 %@ 本）。線を消すと、また書けます。"
+          }
+        }
+      }
+    },
+    "toast.strokeBudget.many" : {
+      "comment" : "トースト（6 秒）。1 つのページの線の本数が多くなったときの案内。誤りではない。線 = 手書きの 1 筆",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このページに書いた線が %1$@ 本を超えました。1 ページに書ける線は %2$@ 本までです。"
+          }
+        }
+      }
+    },
+    "toast.weekStart.adopted.monday" : {
+      "comment" : "トースト（6 秒、3 行まで）。英語 Week start set to Monday to match your iCloud handwriting. You can change it in Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud の手書きに合わせて、週の始まりを月曜にしました。設定で変えられます。"
+          }
+        }
+      }
+    },
+    "toast.weekStart.adopted.sunday" : {
+      "comment" : "トースト（6 秒、3 行まで）。英語 Week start set to Sunday to match your iCloud handwriting. You can change it in Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud の手書きに合わせて、週の始まりを日曜にしました。設定で変えられます。"
+          }
+        }
+      }
+    },
+    "toast.weekStart.hiddenInk.one" : {
+      "comment" : "トースト（6 秒、3 行まで。iPhone の幅に 3 行で入る長さに）。月のページの、片方の並びにしか無い日のマスの線。英語 This month page has %@ stroke on a day the current week start does not show. It is not deleted. It comes back when you switch back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この月のページには、いまの週の始まりでは表示されない日に書いた線が %@ 本あります。消えていません。週の始まりを戻すと見えます。"
+          }
+        }
+      }
+    },
+    "toast.weekStart.hiddenInk.other" : {
+      "comment" : "トースト（6 秒、3 行まで。iPhone の幅に 3 行で入る長さに）。月のページの、片方の並びにしか無い日のマスの線。英語 This month page has %@ strokes on days the current week start does not show. They are not deleted. They come back when you switch back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この月のページには、いまの週の始まりでは表示されない日に書いた線が %@ 本あります。消えていません。週の始まりを戻すと見えます。"
+          }
+        }
+      }
+    },
+    "toast.weekStart.otherForm.one" : {
+      "comment" : "トースト（6 秒、3 行まで）。「週の始まり」は settings.weekStart.title と同じ語に。英語 1 week page uses the other week start (%1$@). It is not deleted. Switch in Settings > Week Starts On to see it. の型",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。"
+          }
+        }
+      }
+    },
+    "toast.weekStart.otherForm.other" : {
+      "comment" : "トースト（6 秒、3 行まで）。「週の始まり」は settings.weekStart.title と同じ語に。英語 %2$@ week pages use the other week start (%1$@). They are not deleted. Switch in Settings > Week Starts On to see them.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。"
+          }
+        }
+      }
+    },
+    "toast.weekStart.regionChanged.monday" : {
+      "comment" : "トースト（6 秒、3 行まで）。英語 Week start set to Monday to match your device region. Your Sunday week handwriting is not deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端末の地域に合わせて、週の始まりを月曜にしました。日曜始まりの週の手書きは消えていません。"
+          }
+        }
+      }
+    },
+    "toast.weekStart.regionChanged.sunday" : {
+      "comment" : "トースト（6 秒、3 行まで）。英語 Week start set to Sunday to match your device region. Your Monday week handwriting is not deleted.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端末の地域に合わせて、週の始まりを日曜にしました。月曜始まりの週の手書きは消えていません。"
           }
         }
       }

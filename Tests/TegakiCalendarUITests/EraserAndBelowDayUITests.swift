@@ -316,6 +316,7 @@ final class EraserAndBelowDayUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = [
             "--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-probe",
+            "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP",
             // UserDefaults' argument domain (YearTapUITests): 「指でも書く」 on and already chosen, so a
             // simulator finger draws and erases.
             "-allowFingerDrawing", "YES", "-allowFingerDrawingChosen", "YES",
