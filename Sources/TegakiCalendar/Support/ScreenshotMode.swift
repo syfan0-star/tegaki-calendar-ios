@@ -51,6 +51,9 @@ import Layout
 /// `--screenshot-sheet week-start` the settings with the question of switching the week start. The demo
 /// events' and calendars' titles follow the language (`demo.*`); the demo ink never does (K-7). The
 /// language is `-AppleLanguages` and `-AppleLocale` (the app's UserDefaults argument domain).
+/// `--screenshot-store-ink` (docs/M7B.md, FIX4; only `store-shots.yml` passes it): the richer handwriting of
+/// the App Store's photos (`ScreenshotStoreInk.swift`) and the 7th's call away from its meeting. Without
+/// it the demo pages and events are what the fixtures and the Japanese photos have seen (K-7, J-4).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -167,6 +170,8 @@ enum ScreenshotMode {
         /// `--screenshot-week-start` (1.2, §10.7): the only week start screenshot mode knows. Monday
         /// unless asked, whatever the simulator's region (0-46).
         var weekStart: WeekStart = .monday
+        /// `--screenshot-store-ink` (docs/M7B.md, FIX4): the App Store's demo ink and events.
+        var storeInk: Bool = false
     }
 
     /// Screenshot mode's holidays unless `--screenshot-holidays` says otherwise (0-26).
@@ -241,7 +246,8 @@ enum ScreenshotMode {
         if let index = arguments.firstIndex(of: "--screenshot-week-start"), index + 1 < arguments.count {
             weekStart = parseWeekStart(arguments[index + 1]) ?? .monday
         }
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart)
+        let storeInk = arguments.contains("--screenshot-store-ink")
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk)
     }
 
     /// "auto", "none", "JP", "US-CA", "NZ-South Canterbury"; nil for anything else. (`HolidaySetting`
@@ -371,7 +377,10 @@ enum ScreenshotMode {
     /// to run; the M3a events come last so the M2 ids do not move. `empty` (1.1.1; by default
     /// `--screenshot-empty` of the running screenshot mode, so false in normal use and in the tests): none.
     /// `language` (1.2, §7.4) only changes the titles; the events and their ids are the same.
-    static func demoEvents(for month: YearMonth, empty: Bool = ScreenshotMode.current?.empty ?? false, language: UILanguage = L.language) -> [LayoutEvent] {
+    /// `storeInk` (docs/M7B.md, FIX4; by default `--screenshot-store-ink`, so false in normal use and in the
+    /// tests) moves the 7th's call to 12:30: side by side with the meeting, the words of both were cut in
+    /// the App Store's week photo. Everything else is the same, ids included.
+    static func demoEvents(for month: YearMonth, empty: Bool = ScreenshotMode.current?.empty ?? false, language: UILanguage = L.language, storeInk: Bool = ScreenshotMode.current?.storeInk ?? false) -> [LayoutEvent] {
         if empty { return [] }
         let calendar = DayKey.deviceCalendar
         let demoCalendars = calendars(language: language)
@@ -435,7 +444,11 @@ enum ScreenshotMode {
         // The 7th, 「今日」 (M3a): the month row stays 175 high (28 + 25 + 3×20 + 40 = 153).
         allDay(L.text("demo.event.deadline", in: language), 7, in: personal)
         timed(L.text("demo.event.meeting", in: language), 7, 10, minutes: 90, in: work)
-        timed(L.text("demo.event.call", in: language), 7, 10, 30, minutes: 30, in: personal)
+        if storeInk {
+            timed(L.text("demo.event.call", in: language), 7, 12, 30, minutes: 30, in: personal)
+        } else {
+            timed(L.text("demo.event.call", in: language), 7, 10, 30, minutes: 30, in: personal)
+        }
         timed(L.text("demo.event.dentalCheck", in: language), 7, 14, in: personal)
 
         return out
@@ -454,12 +467,17 @@ enum ScreenshotMode {
     /// `weekStart` (1.2, §10.5): the week page's id and columns; **without it the paper and the page id
     /// would disagree and the ledger stops on `onPageMismatch`**. The default Monday is the page of the
     /// fixtures, byte for byte (K-7). No language: the demo ink is the same in every language.
+    /// `storeInk` (docs/M7B.md, FIX4; likewise `--screenshot-store-ink`): the App Store's page
+    /// (`storeInkPage`), whatever `grown` says; `tallYear` and `empty` win over it. Without it the pages are
+    /// unchanged, bit for bit.
     static func demoPage(kind: PageKind, focus: DayKey, grown: Bool = ScreenshotMode.current?.grown ?? false,
                          empty: Bool = ScreenshotMode.current?.empty ?? false,
                          tallYear: Bool = ScreenshotMode.current?.tallYear ?? false,
-                         weekStart: WeekStart = .monday) -> InkPage {
+                         weekStart: WeekStart = .monday,
+                         storeInk: Bool = ScreenshotMode.current?.storeInk ?? false) -> InkPage {
         if tallYear, kind == .year { return tallYearDemoPage(focus: focus) }
         if empty { return InkPage.empty(pageId: PageNavigation.pageId(kind, focus: focus, weekStart: weekStart)) }
+        if storeInk { return storeInkPage(kind: kind, focus: focus, weekStart: weekStart) }
         switch kind {
         case .month:
             return demoPage(for: YearMonth(year: focus.year, month: focus.month), grown: grown)

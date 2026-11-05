@@ -6,7 +6,9 @@
 # listing photo must not show prices (docs/M7_PLAN.md §1.1, docs/M6.md §4.6).
 #
 # Each photo shows what a new user of that storefront sees: the screen's language, the region's holidays and
-# week start (`auto`). The sets and the storefronts they go to:
+# week start (`auto`), and the handwriting of a listing (`--screenshot-store-ink`, only here: build.yml and
+# ja-baseline.yml do not pass it, so J-4 and the fixtures never see it; docs/M7B.md FIX4). The sets and the
+# storefronts they go to:
 #   en (en_US): en-US, en-CA            en-GB (en_GB): en-GB, en-AU        zh-Hans (zh_CN), zh-Hant (zh_TW),
 #   ko (ko_KR)                          fr (fr_FR): fr-FR, fr-CA (fr-CA's region starts on a Sunday; same photo)
 #   de (de_DE), it (it_IT)              es (es_MX): es-MX                  es-ES (es_ES): es-ES
@@ -121,7 +123,7 @@ jobs:
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$1" \
-              --screenshot-holidays auto --screenshot-week-start auto \
+              --screenshot-holidays auto --screenshot-week-start auto --screenshot-store-ink \
               -AppleLanguages "($SET_LANGUAGE)" -AppleLocale "$SET_LOCALE" || { echo "::warning::launch failed ($ID, $1)"; return 0; }
             sleep 9
             xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($ID, $1)"

@@ -800,4 +800,241 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(ScreenshotMode.calendarTitle(forCalendarId: "nothing", language: .ja), "")
         XCTAssertEqual(ScreenshotMode.calendarOptions(language: .ja).first?.sourceTitle, "見本")
     }
+
+    // MARK: The App Store's ink (`--screenshot-store-ink`, docs/M7B.md FIX4)
+
+    private func storePage(_ kind: PageKind, _ weekStart: WeekStart = .monday, focus: DayKey = DayKey(year: 2026, month: 10, day: 7)) -> InkPage {
+        ScreenshotMode.demoPage(kind: kind, focus: focus, grown: false, empty: false, tallYear: false, weekStart: weekStart, storeInk: true)
+    }
+
+    /// The "<what>" of "store-<page>-<what>-<n>", with how many strokes have it.
+    private func parts(of page: InkPage, prefix: String) -> [String: Int] {
+        var out: [String: Int] = [:]
+        for id in page.liveStrokeIds {
+            XCTAssertTrue(id.hasPrefix(prefix + "-"), id)
+            let what = id.dropFirst(prefix.count + 1).split(separator: "-").dropLast().joined(separator: "-")
+            out[what, default: 0] += 1
+        }
+        return out
+    }
+
+    func testParseStoreInk() {
+        let base = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week", "--screenshot-holidays", "auto"]
+        let plain = ScreenshotMode.parse(base)
+        XCTAssertEqual(plain?.storeInk, false)
+        var store = ScreenshotMode.parse(base + ["--screenshot-store-ink"])
+        XCTAssertEqual(store?.storeInk, true)
+        store?.storeInk = false
+        XCTAssertEqual(store, plain, "it changes nothing else")
+        XCTAssertNil(ScreenshotMode.parse(["--screenshot-store-ink"]), "without `--screenshot-mode` nothing")
+        XCTAssertFalse(ScreenshotMode.Config(page: .week, month: october, today: Date(), focus: DayKey(year: 2026, month: 10, day: 7), sheet: nil).storeInk)
+    }
+
+    /// Without the argument nothing changes, bit for bit: the pages are the fixtures' (K-7) and the events the
+    /// ones of J-4's photos. The other switches keep winning over it.
+    func testNoStoreInkWithoutTheArgument() throws {
+        let focus = DayKey(year: 2026, month: 10, day: 7)
+        let repository = URL(fileURLWithPath: "\(#filePath)").deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let folder = repository.appendingPathComponent("TegakiKit/Tests/Fixtures/compat11", isDirectory: true)
+        for (name, kind) in [("screenshot-day", PageKind.day), ("screenshot-week", .week), ("screenshot-month", .month), ("screenshot-year", .year)] {
+            let plain = ScreenshotMode.demoPage(kind: kind, focus: focus, grown: false, empty: false, tallYear: false, weekStart: .monday, storeInk: false)
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus), plain, "\(kind): the default follows the (absent) argument")
+            let stored = try Data(contentsOf: folder.appendingPathComponent("\(name).json", isDirectory: false))
+            XCTAssertEqual(try InkPageCodec.encode(plain), stored, name)
+            XCTAssertFalse(plain.liveStrokeIds.contains { $0.hasPrefix("store-") }, name)
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus, grown: false, empty: true, tallYear: false, weekStart: .monday, storeInk: true),
+                           InkPage.empty(pageId: PageNavigation.pageId(kind, focus: focus)), "\(kind): empty wins")
+        }
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .year, focus: focus, grown: false, empty: false, tallYear: true, weekStart: .monday, storeInk: true),
+                       ScreenshotMode.demoPage(kind: .year, focus: focus, grown: false, empty: false, tallYear: true, weekStart: .monday, storeInk: false), "tallYear wins")
+        for language in UILanguage.allCases {
+            XCTAssertEqual(ScreenshotMode.demoEvents(for: october, empty: false, language: language),
+                           ScreenshotMode.demoEvents(for: october, empty: false, language: language, storeInk: false), "\(language)")
+        }
+        let plainCall = ScreenshotMode.demoEvents(for: october).first { $0.title == "電話" }
+        XCTAssertEqual(plainCall?.start, focus.startOfDay().addingTimeInterval(10.5 * 3600))
+        XCTAssertTrue(ScreenshotMode.demoEvents(for: october, empty: true, storeInk: true).isEmpty)
+    }
+
+    /// Only the 7th's call moves, so the two events of 10:00 stop sharing the week's narrow column.
+    func testStoreInkEvents() {
+        let plain = ScreenshotMode.demoEvents(for: october, storeInk: false)
+        let store = ScreenshotMode.demoEvents(for: october, storeInk: true)
+        XCTAssertEqual(store.map(\.id), plain.map(\.id))
+        XCTAssertEqual(store.map(\.title), plain.map(\.title))
+        let seventh = DayKey(year: 2026, month: 10, day: 7)
+        let moved = zip(plain, store).filter { $0 != $1 }
+        XCTAssertEqual(moved.map { $0.0.title }, ["電話"])
+        XCTAssertEqual(moved.first?.1.start, seventh.startOfDay().addingTimeInterval(12.5 * 3600))
+        XCTAssertEqual(moved.first?.1.end, seventh.startOfDay().addingTimeInterval(13 * 3600))
+        let slots = TimedEventEngine.layout(events: store, day: seventh)
+        XCTAssertEqual(slots.map(\.columns), [1, 1, 1], "nothing shares a column on the 7th")
+        XCTAssertEqual(TimedEventEngine.layout(events: plain, day: seventh).map(\.columns), [2, 2, 1])
+    }
+
+    /// Everything the listing's pages were asked to have (docs/M7B.md FIX4); drawings, digits and signs only;
+    /// the same every time; no red dot; the colours and the widths of the toolbar.
+    func testStoreInkHasEverything() throws {
+        let colors: Set<String> = ["#1f2937", "#2563eb", "#dc2626", "#16a34a", "#fde047"]
+        let wanted: [(PageKind, String, [String])] = [
+            (.month, "store-month", ["circle", "check", "star", "heart", "arrow", "time", "tent", "tree", "marker", "wave", "memo-box", "memo-check", "memo-wave", "memo-mountain", "memo-sun"]),
+            (.week, "store-week", ["circle", "check", "star", "heart", "arrow", "time", "tent", "tree", "marker", "wave", "mountain", "sun"]),
+            (.day, "store-day", ["check", "star", "heart", "arrow", "time", "marker", "wave", "memo-box", "memo-check", "memo-wave", "memo-mountain", "memo-sun"]),
+            (.year, "store-year", ["circle", "check", "marker"]),
+        ]
+        for (kind, prefix, names) in wanted {
+            for weekStart in WeekStart.allCases {
+                let page = storePage(kind, weekStart)
+                let found = parts(of: page, prefix: prefix)
+                for name in names {
+                    XCTAssertGreaterThan(found[name] ?? 0, 0, "\(kind): \(name)")
+                }
+                XCTAssertEqual(page, storePage(kind, weekStart), "\(kind): the same every time")
+                XCTAssertEqual(try InkPageCodec.encode(page), try InkPageCodec.encode(storePage(kind, weekStart)), "\(kind)")
+                XCTAssertFalse(BandMigration.needsMigration(page), "\(kind)")
+                XCTAssertEqual(page.pageId, PageNavigation.pageId(kind, focus: DayKey(year: 2026, month: 10, day: 7), weekStart: weekStart), "\(kind)")
+                for stroke in page.liveStrokes {
+                    XCTAssertTrue(colors.contains(stroke.color), "\(stroke.id) \(stroke.color)")
+                    XCTAssertGreaterThan(stroke.points.count, 1, stroke.id)
+                    let widest = stroke.points.map(\.sizeW).max() ?? 0
+                    XCTAssertLessThanOrEqual(widest, stroke.tool == .marker ? InkPresets.markerWidth : InkPresets.penWidths[1], stroke.id)
+                    XCTAssertEqual(stroke.tool == .marker, stroke.id.hasPrefix(prefix + "-marker"), stroke.id)
+                }
+            }
+        }
+        // The month's notes: three lines with a box and a check.
+        let month = parts(of: storePage(.month), prefix: "store-month")
+        XCTAssertEqual(month["memo-box"], 3)
+        XCTAssertEqual(month["memo-check"], 3)
+        XCTAssertGreaterThanOrEqual(month["time"] ?? 0, 3 * 4, "three times in digits")
+        let page = storePage(.month)
+        XCTAssertFalse(page.liveStrokeIds.contains { $0.hasPrefix("demo-") }, "not the old strokes: no red dot, no marker on 「+3件」")
+        XCTAssertTrue(page.liveStrokes.contains { $0.id.hasPrefix("store-month-circle") && $0.cell == .day(DayKey(year: 2026, month: 10, day: 7)) }, "around today's number")
+        XCTAssertTrue(page.liveStrokes.contains { $0.id.hasPrefix("store-month-tent") && $0.cell == .day(DayKey(year: 2026, month: 10, day: 4)) }, "the camping days")
+        XCTAssertTrue(page.liveStrokes.contains { $0.id.hasPrefix("store-month-tree") && $0.cell == .day(DayKey(year: 2026, month: 10, day: 5)) }, "the camping days")
+        // The arrow leaves the 14th for the 15th, side by side for both week starts.
+        let arrow = try XCTUnwrap(page.liveStrokes.first { $0.id.hasPrefix("store-month-arrow") })
+        XCTAssertEqual(arrow.cell, .day(DayKey(year: 2026, month: 10, day: 14)))
+        XCTAssertGreaterThan(arrow.points.map(\.x).max() ?? 0, PaperSpec.monthColumnWidth, "into the next column")
+        for weekStart in WeekStart.allCases {
+            let layout = MonthLayoutEngine.layout(MonthLayoutInput(month: october, events: [], inkBottoms: [:], now: Date(), weekStart: weekStart))
+            let from = try XCTUnwrap(layout.cells[.day(DayKey(year: 2026, month: 10, day: 14))])
+            let to = try XCTUnwrap(layout.cells[.day(DayKey(year: 2026, month: 10, day: 15))])
+            XCTAssertEqual(from.minY, to.minY, "\(weekStart)")
+            XCTAssertEqual(to.minX - from.minX, PaperSpec.monthColumnWidth, "\(weekStart)")
+        }
+    }
+
+    /// No stroke on the words of an event or on a day's number (today's circle goes around its number), and no
+    /// row grows, on both week starts: the layouts are the ones of the photos.
+    func testStoreInkKeepsOffTheEventsAndTheRows() throws {
+        let now = ScreenshotMode.todayInstant(for: october)
+        let events = ScreenshotMode.demoEvents(for: october, storeInk: true)
+        let focus = DayKey(year: 2026, month: 10, day: 7)
+        for weekStart in WeekStart.allCases {
+            // Month.
+            let monthPage = storePage(.month, weekStart)
+            let month = MonthLayoutEngine.layout(MonthLayoutInput(month: october, events: events, inkBottoms: monthPage.inkBottoms(), now: now, weekStart: weekStart))
+            let bareMonth = MonthLayoutEngine.layout(MonthLayoutInput(month: october, events: events, inkBottoms: [:], now: now, weekStart: weekStart))
+            XCTAssertEqual(month.rows.map(\.frame), bareMonth.rows.map(\.frame), "\(weekStart): no row of the month grows")
+            XCTAssertEqual(month.size, bareMonth.size, "\(weekStart)")
+            for stroke in monthPage.liveStrokes {
+                XCTAssertTrue(stroke.cell.isMemo || stroke.cell.day.map { october.contains($0) } == true, stroke.id)
+                let bounds = try XCTUnwrap(stroke.paperBounds(cellOrigin: try XCTUnwrap(month.cells[stroke.cell]).origin))
+                if stroke.id.hasPrefix("store-month-circle") { continue }
+                for bar in month.allDayBars {
+                    XCTAssertFalse(bounds.intersects(bar.frame), "\(weekStart) \(stroke.id) on the band \(bar.title)")
+                }
+                for chip in month.timedChips {
+                    XCTAssertFalse(bounds.intersects(chip.frame), "\(weekStart) \(stroke.id) on the chip \(chip.title)")
+                }
+                for label in month.dateLabels {
+                    let number = CGRect(x: label.frame.minX, y: label.frame.minY, width: 32, height: label.frame.height)
+                    XCTAssertFalse(bounds.intersects(number), "\(weekStart) \(stroke.id) on the number \(label.day)")
+                }
+            }
+
+            // Week: nothing on a box, nothing left at midnight, each in the paper.
+            let weekPage = storePage(.week, weekStart)
+            let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: focus, events: events, inkBottoms: [:], now: now, weekStart: weekStart))
+            for stroke in weekPage.liveStrokes {
+                XCTAssertEqual(stroke.cell, .grid, stroke.id)
+                let bounds = try XCTUnwrap(stroke.paperBounds(cellOrigin: .zero))
+                XCTAssertGreaterThanOrEqual(bounds.minY, 8 * PaperSpec.weekHourHeight, "\(stroke.id): in the hours one sees")
+                XCTAssertGreaterThanOrEqual(bounds.minX, PaperSpec.weekGutter, stroke.id)
+                XCTAssertLessThanOrEqual(bounds.maxX, PaperSpec.weekWidth, stroke.id)
+                for box in week.timedBoxes {
+                    XCTAssertFalse(bounds.intersects(box.frame), "\(weekStart) \(stroke.id) on the box \(box.title)")
+                }
+            }
+
+            // Day.
+            let dayPage = storePage(.day, weekStart)
+            let day = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: events, inkBottoms: dayPage.inkBottoms(), now: now))
+            for stroke in dayPage.liveStrokes {
+                XCTAssertEqual(stroke.cell, .grid, stroke.id)
+                let bounds = try XCTUnwrap(stroke.paperBounds(cellOrigin: .zero))
+                XCTAssertLessThanOrEqual(bounds.maxY, PaperSpec.dayGridHeight, stroke.id)
+                if stroke.id.contains("-memo-") {
+                    XCTAssertGreaterThanOrEqual(bounds.minX, PaperSpec.dayTimelineRight, "\(stroke.id): in the memo column")
+                    XCTAssertLessThanOrEqual(bounds.maxX, PaperSpec.dayWidth, stroke.id)
+                } else {
+                    XCTAssertGreaterThanOrEqual(bounds.minX, PaperSpec.dayGutter, stroke.id)
+                    XCTAssertLessThanOrEqual(bounds.maxX, PaperSpec.dayTimelineRight, "\(stroke.id): in the timeline")
+                    for box in day.timedBoxes {
+                        XCTAssertFalse(bounds.intersects(box.frame), "\(stroke.id) on the box \(box.title)")
+                    }
+                }
+            }
+        }
+    }
+
+    /// The year: only cells of dates that exist, whatever the month the page opens on; several red circles,
+    /// today's among them; the marker down the five days of the trip, left of its chips; no row grows.
+    func testStoreInkYearKeepsToRealDates() throws {
+        let now = ScreenshotMode.todayInstant(for: october)
+        let events = ScreenshotMode.demoEvents(for: october, storeInk: true)
+        let focus = DayKey(year: 2026, month: 10, day: 7)
+        let page = storePage(.year)
+        let layout = YearLayoutEngine.layout(YearLayoutInput(year: 2026, events: events, inkBottoms: page.inkBottoms(), now: now))
+        let bare = YearLayoutEngine.layout(YearLayoutInput(year: 2026, events: events, inkBottoms: [:], now: now))
+        XCTAssertEqual(layout.rows.map(\.frame), bare.rows.map(\.frame), "no row of the year grows")
+        XCTAssertEqual(layout.size, bare.size)
+
+        let circles = page.liveStrokes.filter { $0.id.hasPrefix("store-year-circle") }
+        XCTAssertGreaterThanOrEqual(circles.count, 4, "several days")
+        XCTAssertTrue(circles.contains { $0.cell == .yearDay(month: 10, day: 7) }, "today")
+        XCTAssertGreaterThanOrEqual(page.liveStrokes.filter { $0.id.hasPrefix("store-year-check") }.count, 4)
+        XCTAssertTrue(circles.allSatisfy { $0.color == "#dc2626" })
+
+        for (name, year, day) in [("today", 2026, focus), ("February", 2026, DayKey(year: 2026, month: 2, day: 7)), ("a leap year", 2028, DayKey(year: 2028, month: 2, day: 7)), ("April", 2026, DayKey(year: 2026, month: 4, day: 7))] {
+            let other = ScreenshotMode.demoPage(kind: .year, focus: day, grown: false, empty: false, tallYear: false, weekStart: .monday, storeInk: true)
+            let otherLayout = YearLayoutEngine.layout(YearLayoutInput(year: year, events: [], inkBottoms: other.inkBottoms(), now: now))
+            for stroke in other.liveStrokes {
+                let md = try XCTUnwrap(stroke.cell.yearMonthDay, stroke.id)
+                XCTAssertTrue(DayKey(year: year, month: md.month, day: md.day).isValid, "\(name) \(stroke.id) in \(stroke.cell.raw)")
+                XCTAssertFalse(otherLayout.invalidCells.contains(stroke.cell), "\(name) \(stroke.id) in \(stroke.cell.raw)")
+            }
+        }
+
+        // The marker is over the five days of the trip and left of the chips (x 50.4…); the others keep off them.
+        let trip = try XCTUnwrap(ScreenshotMode.demoEvents(for: october, empty: false, language: .ja, storeInk: true).first { $0.id == ScreenshotMode.editDemoEventId })
+        XCTAssertEqual(DayKey(trip.start).day, 9)
+        let marker = try XCTUnwrap(page.liveStrokes.first { $0.tool == .marker })
+        let cell = try XCTUnwrap(layout.cells[marker.cell])
+        let paperY = marker.points.map { $0.y + cell.minY }
+        let ninth = try XCTUnwrap(layout.cells[.yearDay(month: 10, day: 9)])
+        let thirteenth = try XCTUnwrap(layout.cells[.yearDay(month: 10, day: 13)])
+        XCTAssertGreaterThanOrEqual(paperY.min() ?? 0, ninth.minY, "from the 9th")
+        XCTAssertLessThan(paperY.min() ?? 0, ninth.midY, "from the 9th")
+        XCTAssertLessThanOrEqual(paperY.max() ?? 0, thirteenth.maxY, "to the 13th")
+        XCTAssertGreaterThan(paperY.max() ?? 0, thirteenth.midY, "to the 13th")
+        XCTAssertLessThanOrEqual(marker.points.map(\.x).max() ?? 99, PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft, "left of the chips")
+        for stroke in page.liveStrokes where stroke.tool == .pen {
+            let bounds = try XCTUnwrap(stroke.paperBounds(cellOrigin: try XCTUnwrap(layout.cells[stroke.cell]).origin))
+            for chip in layout.chips {
+                XCTAssertFalse(bounds.intersects(chip.frame), "\(stroke.id) on the chip of \(chip.day)")
+            }
+        }
+    }
 }

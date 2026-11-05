@@ -236,7 +236,6 @@ final class PaperFitTests: XCTestCase {
         let day = DayKey(year: 2026, month: 10, day: 7)
         let numberFont = UIFont.monospacedDigitSystemFont(ofSize: 21, weight: .semibold)
         for (language, name) in names {
-            let fit = PaperWords.dayHeadingFit(language)
             let number = max(36, width("7", numberFont) + 2 * 6)
             let lines = max(width(DateText.monthName(day.month, .full, language), UIFont.systemFont(ofSize: 11)),
                             width(DateText.weekdays(.full, language)[day.weekday], UIFont.systemFont(ofSize: 14, weight: .semibold)))
