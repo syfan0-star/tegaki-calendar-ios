@@ -177,6 +177,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `demo.event.checkup` | en | Exam | △ | 見本。Checkup は 44.2 pt で 4.2 em を超える |
 | `demo.event.camping` | es | Carpa | △ | 見本。前の Acampar は CI の年の写真で「Acam...」に切れたので短い語にした（FIX3、10）。Mac Catalyst の字で 31.2 pt（上限 4.2 em は 42 pt）。スペインではテントは tienda がふつうだが、見本の語なので es-ES でも同じ字 |
 | `demo.event.deadline` | es・it | Plazo・Scad. | △ | 見本。前の Entrega・Termine は iPhone の週の 1 日の帯で切れたので短い語にした（FIX3、10）。it の Scad. は scadenza の略 |
+| `demo.event.drinks` | pt-BR | Chope | △ | 見本。前の Happy hour は CI の iPhone の月の写真で「Happy h...」に切れたので短い語にした（FIX4、10）。Chope はブラジルの生ビールの語で、飲み会そのものの語ではない（母語の人の確認は無い。O-6）。見本の語で写真にだけ出るので、短さを取った |
 | `pt-PT/description.txt` の 10 行目 | pt-PT | | △ | §11.2 の指定 |
 | `en-US/whatsnew.txt` の 6・8 行目 | en-US | | ○ | §6.3 の指定 |
 | `SUPPORT.en.md` の「Month DD」 | en | | △ | S-5。W の検査の対象 |
@@ -352,7 +353,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 |  |  | de | 仕事の後の飲み会 | △ |  |
 |  |  | es | 乾杯（飲み会） | △ |  |
 |  |  | it | アペリティーヴォ（軽い飲み会） | △ |  |
-|  |  | pt-BR | ハッピーアワー（仕事の後の飲み） | △ |  |
+|  |  | pt-BR | 生ビール（飲みに行く予定） | △ |  |
 | `demo.event.familyTrip` | 家族旅行 | en・fr・es・it・pt-BR | 旅行 | △ |  |
 |  |  | zh-Hans・zh-Hant・ko | 家族旅行 | ○ |  |
 |  |  | de | 休暇の旅行 | △ |  |
@@ -1824,6 +1825,14 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `demo.event.deadline` | it | Termine | Scad. | 期限（scadenza の略） | 42.0 → 29.6 pt |
 
 この 4 件は下の R5 で元を見ない逆翻訳を通しました（全部 △）。ブラジルでテントの意味なら Barraca の方がふつうです。見本の語なので、母語の人の確認が得られるまでこのままにします。
+
+### 2 回目の写真の確認の後に直した見本の語（FIX4、2026-11-06）
+
+CI の写真（`store-pt-BR/iphone69/02-month.jpg`）で切れた語です。判定は前と同じ △ で、合計の数（1 の表）は変わりません。**元を見ない逆翻訳は通っていません**（Chope は R5 の後の字）。見本の語で写真にだけ出ます。
+
+| キー | 言語 | 前の字 | 今の字 | 逆翻訳（FIX4 が元を見て書いた） | 幅（Mac Catalyst の 10 pt semibold。上限 4.2 em は 42 pt） |
+| --- | --- | --- | --- | --- | --- |
+| `demo.event.drinks` | pt-BR | Happy hour | Chope | 生ビール（飲みに行く予定） | 60.5 → 33.6 pt |
 
 ### 元を見ない逆翻訳と判定のもう 1 回（R4、2026-11-05）
 
