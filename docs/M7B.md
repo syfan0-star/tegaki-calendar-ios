@@ -1,6 +1,6 @@
 # M7b（1.2）の実装結果
 
-各役が自分の節を足す（C が最後に整える）。
+各役が自分の節を足し、C が最後に整えた。**今の状態、commit の一覧、確かめ、CI で初めて分かること、リードの残作業は最後の「C」の節を先に読む。** 各節は書いた時点の記録で、書き直していない。後の役が変えた物は C の節の「節の記録の読み替え」で読む。節の順は書いた順で、S0・LA・C1・K1・S1・H（前半の役）→ B11（1.1.1 の取り込み）→ K2・LA2・P・U・S2 → X1・R・X2・R2（訳）→ W（Web）→ FIX（検証の直し）→ C。
 
 ## S0（`tools/l10n/build.py` の Kit 用の出力。統合の順番の「S の最初」）
 
@@ -1333,3 +1333,134 @@ commit はしていない（commit は C）。push・CI も無し。Web の作�
 - UI テストの 2 本の直しは型しか確かめていない。`app.staticTexts["土曜日"]` は `.accessibilityLabel` の付いた `Text` が staticTexts に出る前提で、CI-0 で初めて分かる。
 - 訳の字の幅は Mac Catalyst の測りで、シミュレータとの差は CI-0 まで分からない。
 - FIX の訳の直しは、母語の人の確認も、元を見ない逆翻訳も通っていない。
+
+## C（統合・CI・文書・最後の確かめ。§12.1 の C）
+
+**今の状態（2026-11-05）**: 実装は全部 `m7b` に commit した。push・CI・Web の公開・Connect への入力はしていない。main にも Web の main にも merge していない。**単体テストと UI テストはまだ 1 度も本物で走っていない**（次の CI-0 が最初）。基準は仮の `<1.1.1>`（31d243c）のまま。
+
+### commit（`git add` はファイル名で。メッセージは日本語、最後の行は Co-Authored-By）
+
+| commit | 役 | 中身 |
+| --- | --- | --- |
+| d85e399 | K2 | Kit の後半と週の始まり。FIX の Kit の直しを含む |
+| 945aa4a | LA2 | 規約類・ストア・サポートの原稿の直し（EU の分と残りを 1 つに。同じファイルに両方が入っているため） |
+| 20c6641 | S2 | アプリの文字列の移し、lint の残り、F-12〜F-15、取り込みと書き出しの週の始まり |
+| 9ed9ceb | U | 祝日と週の始まりの設定と移行、ライセンス、写真モード、UI テスト |
+| 9e2c89e | P | 紙と見出しの字、`PaperFitTests` |
+| d48c6a1 | FIX | FIX だけが変えたファイル（`HolidayFile`・`WorldHolidaysTests`・`SOURCE.json`・`gen.py`）。ほかの FIX の直しは持ち主の commit に入っている |
+| 8a108a1 | X・R（と W の記録） | 用語集・訳・ストアの 10 ロケール・逆翻訳・`REVIEW.md`・生成物 |
+| 492e442 | C | `project.yml`・`build.yml`・`store-shots.yml` |
+| 9adf328 | C | `README.md`・`DESIGN.md`・`APPLE_ENROLLMENT.md`・`M7_PLAN.md` |
+| この節の commit | C | この文書の頭とこの節 |
+
+- この文書と生成物は、B11 と同じく、commit ごとにその時点の中身を作って入れた（作業の木のファイルは変えていない）。この文書は「その役の節まで」、生成物（`KitStrings.generated.swift`・カタログ 2 つ）は「その commit の元から `build.py` で作った物」。8a108a1 で作業の木と同じになった。
+- **途中の commit の確かめ**: d85e399 は `swift build` が通り、KitChecks は 29,436 件のうち「10 言語そろっている」の 44 件だけ落ちる（訳は 8a108a1 で入る）。9e2c89e（S2・U・P がそろう所）は下の表のとおり型の確かめが通る。S2 と U の commit は単独では組み立たないことがある（3 つを同時に作ったため）。全部の確かめは最後の commit で通した。
+
+### 入れたもの
+
+- **`project.yml`（§2.2）**: `developmentLanguage: en`、`MARKETING_VERSION "1.2"`、`SWIFT_EMIT_LOC_STRINGS: NO`、`CFBundleDevelopmentRegion: en`、`CFBundleLocalizations` に 10 言語、`TegakiKit/HolidayData` を `type: folder`・`buildPhase: resources` で、`TegakiCalendarTests` の依存に `Holidays`。残した行: `UIApplicationSupportsIndirectInputEvents`、`CURRENT_PROJECT_VERSION "1"`、PrivacyInfo の注記、日本語の `CFBundleDisplayName` と許可の文。**PrivacyInfo は変えていない**。
+- **`build.yml`（§7.5。1.1.1 の上に）**: 頭のコメント、ジョブ 110 分、`JA_ARGS`、閾値 **29,386**（N 29,436 − 50）、段「Localization lint」「Data code frozen since 1.1.1」「The project's known regions」「Localized bundle check」「The app's l10n lines」、単体テストに `-testLanguage ja -testRegion JP`、写真の 3 段（`$JA_ARGS`・`env.txt`・シート 11）、UI テストの段 40 分と `l10n UI:`・`week-start UI:` の行、`compat-v1.0` に `tools/weekstart-compat` の 3 段、新しいジョブ `l10n-shots`（62 枚）。**`blank-paper` のジョブと `header-paper UI:` の grep は変えていない**。
+- **`store-shots.yml`（§7.5）**: push のブランチ `store-shots` と workflow_dispatch。matrix で 11 組。成果物 `store-<組>`（30 日）。購入画面は撮らない。
+- **`ja-baseline.yml` の相互の確かめ**: 変えていない。`diff_steps.rb`（名前の 9 / 11 sheets だけ読み替えた写し `m7b-impl/C/diff_steps.rb`）で、`Select Xcode` から `Store listing set` までの 13 段のうち 12 段の `run` が同じで、残り 1 段の差はシートの `holidays week-start` だけ。
+- **README・DESIGN・APPLE_ENROLLMENT**: 版の行、1.1 の後半の分（Ink の 2 行、`InkPencilGestureRecognizer` の文、CI の `EraserAndBelowDayUITests`・repro の段）、言語・祝日・週の始まりの行、CI の説明、フォルダの中身。DESIGN は §2.3・§2.8・§3.9・§4.1・§4.8・§6.3・§8.3・§9・§10 の注記と新しい **§11 世界対応**（§11.1 言語・§11.2 祝日・§11.3 週の始まり・§11.4 EU）。「EU を除く」の文は本人の決定に直した。古い版の記録（`M5*`・`M6*`・`M7A*`）は直していない。
+- **`M7_PLAN.md` 第 3 版（§6.8）**: §0・§4 の表に 1.1.1 と 1.2、新しい順、本文の版の番号、順の文、K-11 の全文と 1.2 の注記、§1.2 の 2 行、§1.3 の表に週の始まり、2/15 の決まり（中身の名前で）、次の版の訳とストアの分、1.3 の注（§10.6、主言語、nl-NL・sv）、CRA の見直し、B の 1 行（§0 の番号 4・§3 の H・§4.8 の頭・§5 の P-9）、155 本、P-12 は使わない。
+
+### 節の記録の読み替え（各節は書いた時点の記録なので直していない。今はこう読む）
+
+| 節 | 記録 | 今 |
+| --- | --- | --- |
+| C1 | 成果物 `ja-baseline-e7b4d2f`、写真 53 枚、シート 9 の段の名前 | `ja-baseline-31d243c`（本物の 1.1.1 で変わる）、**55 枚**。1.2 の `screenshots` は **57 枚**（13 インチに `sheet-holidays`・`sheet-week-start`）。J-4 で「新だけ」は `sheet-holidays` と `sheet-week-start` |
+| C1 の「走らせ方」1 | `ja-baseline` の push で `build.yml` がもう 1 本走る | 走らない（`branches-ignore`。下のずれの 1） |
+| K1・C1 | 段の名前「Data code frozen since 1.1」 | 「Data code frozen since 1.1.1」（§1.5） |
+| K2 | N = 29,432、閾値 29,382 | **N = 29,436**（FIX）、**閾値 29,386** |
+| LA の 7 | 第 3 条 4 項 | T-9 で直った（LA2-EU の節） |
+| LA の 19・22、LA2-EU の「週は月曜始まり」 | 説明と審査メモの週の文 | LA2-rest の節 |
+| H のずれ 2、契約 §11.8 の 3 | 契約は「175 のうち 174、無いのはコソボだけ」 | **0.107 ではコソボにもデータがあるので 175 全部にある**。`holidayCheckSoldRegions` は 175、H の節の表も 175 行。§11.8 の 3 の「M7B.md の表が 174」はこれで読む |
+| 契約 0-13 など | 249 の国・地域 | **250**、254 ファイル（H） |
+| P のずれ 1、契約 §1 | F-1 の数字の枠は「31 日」だけ違う見込み | 広げるのは今日のマスだけで幅は 0.1 em。2 桁の今日の字の差は「31 日」より広い。J-4 の写真の今日は 7 日なので、年の写真に差は出ない見込み（P のずれの 1・2 は実測を根拠に契約から変えた） |
+| B11 | `InkCanvasViewTests` 3,057 行 | 3,371 行（1.1.1 の物が新しい凍結） |
+| 契約 §7.5 | :411 のコメントの「22 shots」を 24 に | 25（1.1.1 で 23 になっていたので。下のずれの 3） |
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **`build.yml` の `on.push` に `branches-ignore: [ja-baseline, store-shots]`**（C1 の申し送りの 3。契約に無い）。その 2 つの枝は別の workflow を動かすためだけの物で、同じ CI がもう 1 本走ると 4 ジョブ分の runner を取る。CI-0 の J-4 が比べる `screenshots` は `m7b` の run から取る。
+2. **段を分けた**: `knownRegions` は「Generate the Xcode project」に足さず別の段に、`l10n:` の行は「Collect the app log」に足さず別の段に（どちらの段も `ja-baseline.yml` と 1 字も同じままにするため）。
+3. **13 インチの枚数のコメントは 25**（上の表）。`--last 10m` のままで入る（1.1.1 の run で 13 インチの写真は 4.6 ＋ 2.0 分）。
+4. **ジョブの上限は 110 のまま**。契約の式「e7b4d2f の時間 − UI の段 ＋ 3 ＋ 40 ＋ 10」は 57.6 − 9.6 ＋ 53 = 101。実際にいちばん長い 1.1.1 の run（41922318959）でも 67.9 − 11.9 ＋ 53 = 109。
+5. **`grep` に `week-start UI:` も足した**（U の申し送り。契約の表は `l10n UI:` だけ）。
+6. **`l10n-shots` の細部**（契約は枚数と引数まで）: 組み立ては `generic/platform=iOS Simulator` で 1 回。機種の選び方は `blank-paper` と同じ形（新しい iOS。13 インチは `iPad Pro 13-inch (M5)`、無ければ `iPad Pro 13`・`iPad Air 13` で始まる物）。boot の後に 120 秒（C1 の実測の通知のため）。訳し漏れの起動は **機種ごとに 1 回**、de の設定のシートで（契約は「1 回」。キーの多い画面で、de なら de と en の両方の漏れが出る）。`log show --last 40m` を両機種の分まとめて `pseudo/l10n-log.txt` に（§7.6 の書き方はどちらにも読める）。「`l10n: missing` のキーの数」「アプリの bundle の `not found in strings table` の行の数」「写真の数」「`l10n: holidays loaded` のいちばん遅い値」を Job Summary に。上限は 75 分のまま（見込み 30 分）。写真の失敗ではジョブを落とさない（組み立てが落ちれば落ちる）。
+7. **`store-shots.yml` の細部**: `max-parallel: 4`（macOS の runner の同時の数を使い切らないように）、機種ごとに 120 秒待ち、4 ページを 2 回撮って後を残す（ストアの写真に通知を入れないため）、成果物 30 日、`overwrite: true`。言語の引数は契約の組の名前どおり `(en-GB)`・`(es-ES)`（iOS は `en`・`es` の `.lproj` を選ぶ）。
+8. **`compat-v1.0` の段の場所**: ⑤ の後、XcodeGen の前（⑥ が `v10` に手を入れる前で、⑤ までの結果を変えない）。`git archive` でなく `actions/checkout`（`v10` と同じ）で取り出し、`run/` を中に写して `swift run`。上限 45 分は変えない（1.1.1 の run で 7.6 分。2 回の `swift run` の分は足りる）。
+9. **C1 の勧め（13 インチの通知の待ち）と、`status_bar` の日付の固定は入れていない**。リードが決めることで、入れるなら `build.yml` と `ja-baseline.yml` の両方に同じ行で（C1 の節の「次の役へ」の 1・4）。今のままなら、通知の入った方を撮り直して比べる。
+10. **`M7_PLAN.md` の「前の版の番号を残す」**: 見出しと表は「（計画の第 2 版では 1.2）」の形で残し、本文の 100 か所ほどには付けず、文書の頭に読み替えの表を置いた（読みにくくなるので）。§4 の 1.3 の規模は B_DESIGN §10 の段 0 と B-1 の和（4.35〜5.0）、1.6・1.7 は同じ節の値。§4.5 の確かめ直しの数字と次の版の訳の目安はリードの分のまま。`docs/B_DESIGN.md` は repo に入れていない（§6.8 のとおりリードが決める。1.3 の契約まで待ってよい）。凍結した Ink の 6 件と主言語は 1.3 の注に書いた。
+11. **DESIGN は新しい §11 にまとめた**（契約は「言語」と「祝日」の節、「週の始まり」の節とだけ書いている）。今ある節の番号を動かさないため。
+12. **LA2 を 1 つの commit に**（EU の分と残りが同じファイルに混ざっているため）。
+
+### 確かめ（この Mac、Swift 6.4.2、Command Line Tools。`git archive HEAD` で取り出した木で。push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `swift build --package-path TegakiKit` | 成功。新しい警告 0（`main.swift`:2256・2277・2308 の 3 つは e7b4d2f からある、この版の Swift だけの物） |
+| `swift run --package-path TegakiKit KitChecks` | **all 29436 checks passed**。compat10 は 361 件・失敗 0。閾値 29,386 |
+| `tools/typecheck/typecheck.sh`（リポジトリの外の空のフォルダ） | all OK・警告 0（アプリ、TegakiCalendarTests 34 ファイル、UI テスト 6、Kit のテスト 6 つ）。9e2c89e でも all OK |
+| `python3 -I tools/l10n/lint.py .` | **L-1〜L-14 すべて ok**（Python 3.9.6 と 3.12.16）。L-12 の警告は 59 件 |
+| `build.py . --check`・`baseline.py . --check`（`/usr/bin/python3`） | 一致（xcstrings。基準は 516 行・42 ファイル・31d243c） |
+| `shasum -a 256 -c tools/compat10/DATA_1_1.sha256`、`FROZEN.sha256` | 18 件 OK、11 件 OK（D14、K-7） |
+| `HolidayData` の 2 回の生成（`hol3/venv` の Python 3.12.16、`-I`） | 2 回の `diff -r` が空で、commit の 254 ファイルとも同じ（4.5 MB） |
+| `tools/weekstart-compat`（README の形で） | 1.0（a21e469）failures 0、31d243c failures 0。終了の状態 0 |
+| K-7・凍結 | `git diff --quiet 31d243c HEAD -- TegakiKit/Tests/Fixtures TegakiKit/Tests/Compat10 TegakiKit/Tests/CompatFixtures TegakiKit/Tests/Compat10Tests Tests/TegakiCalendarTests/InkCanvasViewTests.swift` が同じ。`Sources/TegakiCalendar/Ink` も同じ。`tools/compat10` の差は `DATA_1_1.sha256` だけ |
+| J-2 | `git diff 31d243c HEAD -- Tests TegakiKit/Tests` の削除行は 3 行（`EventKitServiceTests` の `}`、`ScreenshotModeTests` の `Sheet.allCases` の 2 行。§7.2 のとおり）。日本語・`w-20`・`Monday`・`Sunday` は無い |
+| §10.10 の 3・§11.8 の 1 と 2 と 4 の grep | 週の文 0 件、EU の文 0 件、「ß を使わず」0 件、定型文 7 つ |
+| workflow の形（Ruby の YAML と `bash -n`、`check_workflow.rb`） | `build`・`ja-baseline`・`store-shots`・`testflight` の全部の `run` が通る。この Mac に actionlint は無い |
+| `diff_steps.rb`（`ja-baseline.yml` と `build.yml`） | 写した 13 段のうち 12 段の `run` が同じ。残り 1 段の差はシートの `holidays week-start` だけ |
+| 作り物の `xcrun`・`sleep` で段を動かした（`m7b-impl/C/sim`。本物の simctl ではない） | `l10n-shots`: 62 枚の名前が §7.6 と同じ、引数の組、Job Summary の数。`store-shots`: 8 枚の名前、引数、`sips` の JPEG と大きさの確かめ（違う大きさで警告）。「Localized bundle check」: そろった形で 0、`.lproj`・`US.json` が無い・`UK.json`・`ar.lproj` がある・カタログが変わった形でそれぞれ `::error` |
+
+### CI で初めて分かること（§12.2 の CI-0。この Mac に XCTest と Xcode が無いので、ここまでは型と、Mac Catalyst の小さな代わりでしか確かめていない）
+
+1. **組み立ての形**: XcodeGen が `TegakiKit/HolidayData` を `type: folder` で受けるか、`knownRegions` に 10 言語が入るか、String Catalog から 10 の `.lproj` ができるか。「Localized bundle check」が落ちたら、カタログは 0-4（`build.py --format strings`）、データは §2.2（`Resources/HolidayData`）。Xcode がカタログを書き換えないか（0-5）。
+2. **本物の XCTest**: `swift test`（`Compat12Tests`・`WorldHolidaysTests`・`DateTextTests` などの ICU の字は macos-26 で違いうる。K1・K2 の「残る危険」）、アプリの単体テスト（`-testLanguage ja`、`LocalizationBundleTests`、`ToolbarFitTests`・`PaperFitTests` の幅。Catalyst の字との差）、`testPDFRendersEveryKind`（Mac でバイトが揺れた）。
+3. **UI テスト**: `LanguageUITests`（iOS が選ぶ言語。特に pt-PT → pt-BR、0-2）・`WeekStartUITests`（`staticTexts["土曜日"]`）・`testEnglish`。`tool.pen` の後も `app.buttons["ペン"]` が見つかるか（§7.3）。`page.title` の後も `HeaderAndPaperUITests` が通るか（「▶ once」で落ちたら FIX の節の FIX2 へ）。段の時間（40 分に入るか）。
+4. **`compat-v1.0`** の新しい 3 段（この Mac では同じ `swift run` が 16 件・18 件で通っている。`actions/checkout` で 31d243c を取れるかは本物で）。
+5. **`l10n-shots`**: 62 枚そろうか、訳し漏れが 0 か（`-NSShowNonLocalizedStrings` の行の形はこの Mac で確かめていない。grep の語が違えば数が 0 のままになるので、1 回目は `pseudo/l10n-log.txt` を目で見る）。es・es-ES・pt-BR の年の写真の「Acampar」（FIX の節）。
+6. **`ja-baseline.yml` の 1 回目**: 写真の手順の確かめ。`env.txt` が 2 つの run で同じか。
+7. **数字**: `l10n: holidays loaded` の ms（目安 50 ms）、`repro: F-1 two digits`（P）、`ToolbarFitTests` が 38 pt を超えたと出す名前、F-15・F-16 の幅、ジョブの時間（110 分に入るか）。
+8. **macos-26 の `python3`** で lint が通るか（3.9.6 と 3.12.16 では通る）。
+
+### CI-0 の後に書く欄（§8 の 10。リードか FIX2 が埋める。分かっている物は埋めた）
+
+| 項目 | 値 |
+| --- | --- |
+| e7b4d2f の CI | run 41264726309、ジョブ 57.6 分、UI テストの段 9.6 分、`EraserAndBelowDayUITests` 8 本とも合格、`repro: A17 PencilKit's drawingGestureRecognizer.allowedTouchTypes pencilOnly=[2] anyInput=[0, 2, 3]`、`repro: B8 PencilKit's pan.allowedTouchTypes=[0]`（direct 0、pencil 2、indirectPointer 3） |
+| 1.1.1 の CI（参考） | run 41922318959（8d81b89）、ジョブ 67.9 分、UI テストの段 11.9 分、`compat-v1.0` 7.6 分 |
+| `xcodegen --version`、`knownRegions` | CI-0 |
+| Localized bundle check | CI-0（xcstrings か strings か、`HolidayData` の場所） |
+| `LanguageUITests`（0-2 の pt-PT を含む）、週の始まりの地域の値 | CI-0 |
+| 「言語」の項目が出る条件 | TestFlight（§2.1） |
+| 祝日データを読んだ時間 | CI-0 |
+| J-4 の 2 つの run の `env.txt`、写真の比較、F-1 の数字の枠 | CI-0 と本物の `<1.1.1>` の後（1.1 の CI の写真は英語の環境で撮っていたので、漢字が中国語用の書体だった） |
+| ツールバーの L-12 の警告 | 今 59 件（全部で。ツールバーの分は 49 件）。字数 × 0.6 の目安で、本当の幅は `ToolbarFitTests`。一覧は `python3 -I tools/l10n/lint.py .` の出力 |
+| `ToolbarFitTests` が 38 pt を超えたと出した名前、F-15・F-16 の幅 | CI-0 |
+| `tools/weekstart-compat` | この Mac: 1.0（a21e469）16 件・失敗 0、31d243c 18 件・失敗 0。CI-0 |
+| `englishPagesPublished` | false（1.2）。英語の規約の URL にするのは 1.3 の説明から（0-38）。公開の日に Connect の URL を替えたかは公開の日に |
+| 記録のシート | 英語などの TestFlight と審査の端末でも、「バージョン」の長押しの記録は日本語で出る（§2.5、0-37。使うのは本人だけ） |
+| `REVIEW.md` | ○ 3,811・△ 473・× 0（§8 の 5）。R の 2 回目の後。FIX の 25 件は元を見ない逆翻訳を通っていない（FIX の節のずれの 8） |
+| 隠れる線のトースト | 本人の確かめ（§8 の 9 の 4d） |
+| P-B9 の答え、1.3 以降の訳とストアの目安 | TestFlight の手順 13、リード |
+| EU の届け出の日付と日数、`contentStatuses`、`PATCH` が効いたか、ロシアの店頭 | 公開の日まで（§11.1） |
+| CRA の報告の手順 | 悪用された弱点か重大な事故が分かったら、本人が 24 時間以内に ENISA の窓口へ早期の警告、72 時間以内に通知する（零細企業は 24 時間の遅れに罰金なし。§11.6。リードが案内する） |
+
+### 本人の答え（§11.8 の 6）
+
+- **M7B-23**: 「足してよい」（(ア)、2026-11-05）。日本語の 3 ページの上に `English` のリンク（Web の commit ③ 0a932b3）。公開は 1.2 を出す日で、公開の直前に全文を見せる。
+- **M7B-24**: 「予定どおり 1.2 で出す」（2026-11-05）。1.2 を出してから 1 年以内、遅くとも 2027 年 12 月より前に 1 回専門家に聞く（§11.6 の 2・5・8。問いはリードが英語の相談票にまとめる）。
+
+### リードの残作業（順に）
+
+1. **CI-0**: `git push origin m7b`、続けて `git push origin m7b:ja-baseline`（どちらも本人の了承の範囲か確かめてから。main には入れない）。`build.yml` は `ja-baseline` の枝では走らない。失敗は FIX2 へ（J と K-7 の期待は変えない）。
+2. **Web**: `wt-m7b-legal` に `m7b-impl/FIX/web-m7b-legal.patch` を当てて commit ④（FIX の節の「Web」。足すまでサポートとプライバシーの文が `docs/` と食い違う）。
+3. **契約に入れる**: §11.3 の P-2 の 2 文と、FIX の節の「契約からのずれ」1〜9、P のずれ 1・2・4、この節のずれ。
+4. **決めること**: 台湾の「発表前」の表示（FIX の節。`gen.py` の `NOTICE` から外す案）、13 インチの通知の待ち（上のずれの 9）、元を見ない逆翻訳をもう一度させるか（`REVIEW.md` の 10）、`docs/B_DESIGN.md` を入れるか、§4.5 の規模の数字。
+5. **本人に聞く・知らせる**: 公開の直前の確認で「日本語のメールを Claude に読ませることは無いか」（P-2）。中国の行は「中国本土（2027 年は発表前の推定）」と出る（U）。
+6. **§8 の 11 の確認表に足す**: de-DE の新しいサブタイトルと名前の退き先、es・es-ES・pt-BR の年の写真の Acampar。
+7. **B11 の 2 回目**: `fix-1-1-1` は今 b2f34b5（ビルド 15）。31d243c からの差は `build.yml` の `blank-paper` の上限（45 → 55 分、36 → 46 分）と `docs/R1_1_1.md` だけで、この節の `build.yml` の変更とは別の行。木の差はそれだけなので、main に入ったら手順 8 の軽い方で済む見込み（`git diff 31d243c main` で確かめる）。
+8. その後は §12.2 のとおり（`ja-baseline.yml` の 2 回目 → J-4 → 写真の確認ページ → TestFlight → `store-shots` → 確認表 → 入力 → merge の「はい」→ 提出 → 公開の日）。`store-shots` は `git push origin m7b:store-shots`。
