@@ -108,17 +108,17 @@ jobs:
       # fixtures of the ledger and the screenshot mode); 1.1.1 (docs/R1_1_1.md) counts 24929 (+ 244 for
       # the loops over the taller paper + 239 for the changed checks and the section "opening zoom and
       # top-aligned paper (1.1.1)"); 1.2 (docs/M7B_CONTRACT.md §7.1, §10.8; the split is in docs/M7B.md, K2)
-      # counts 29436 (+ 4507 for the sections "languages", "kit strings", "date text", "holidays", "holiday
-      # geometry" and "week start"). The threshold is that number minus 50, so anything below 29386 means a
+      # counts 29447 (+ 4518 for the sections "languages", "kit strings", "date text", "holidays", "holiday
+      # geometry" and "week start"). The threshold is that number minus 50, so anything below 29397 means a
       # section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 29386 or more)"
+          echo "KitChecks count: ${N:-0} (required: 29397 or more)"
           grep -E 'compat10: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 29386
+          test "${N:-0}" -ge 29397
 
       - name: Test TegakiKit (macOS)
         run: |
