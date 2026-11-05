@@ -104,6 +104,15 @@ final class StrokeCensusTests: XCTestCase {
         XCTAssertEqual(store.peek("m1-2026-10"), InkPageStore.Peek(strokeIds: [], tombstones: 3))
     }
 
+    /// 1.2 (docs/M7B_CONTRACT.md §10.2): a week page's label reads its form from the date (not from the
+    /// setting), so a Sunday page is named after the week it really is.
+    func testSundayWeekLabel() {
+        let sunday = StrokeBudget.Entry(pageId: "w-2026-11-01", strokes: 3, tombstones: 0)
+        XCTAssertEqual(StrokeCensus.entryText(sunday), "週のページ（2026年11月1日〜11月7日）・3 本")
+        let monday = StrokeBudget.Entry(pageId: "w-2026-10-26", strokes: 3, tombstones: 0)
+        XCTAssertEqual(StrokeCensus.entryText(monday), "週のページ（2026年10月26日〜11月1日）・3 本")
+    }
+
     func testRowText() {
         XCTAssertEqual(StrokeCensus.rowText(nil, counting: true), "数えています…")
         XCTAssertEqual(StrokeCensus.rowText(StrokeBudget.Entry(pageId: "m1-2026-10", strokes: 3, tombstones: 0), counting: true), "数えています…", "counting wins")

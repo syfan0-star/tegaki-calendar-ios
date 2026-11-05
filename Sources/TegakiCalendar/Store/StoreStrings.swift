@@ -10,26 +10,26 @@ import StoreKit
 enum StoreStrings {
     // MARK: Purchase
 
-    static let purchased = "購読を開始しました。ありがとうございます"
+    static let purchased = L.text("store.purchased")
     /// `.purchased` while `access` is `.trial`.
-    static let trialStarted = "\(ProductIDs.trialDays) 日間の無料試用を開始しました"
-    static let pending = "承認待ちです。承認されると自動で使えるようになります"
-    static let unverified = "購入を確認できませんでした。しばらくしてから「購入を復元」をお試しください"
-    static let offline = "App Store に接続できません。回線を確認してもう一度お試しください"
-    static let notAvailable = "お住まいの地域ではこのプランを購入できません"
+    static let trialStarted = L.plural("store.trialStarted", count: ProductIDs.trialDays, L.count(ProductIDs.trialDays))
+    static let pending = L.text("store.pending")
+    static let unverified = L.text("store.unverified")
+    static let offline = L.text("store.offline")
+    static let notAvailable = L.text("store.notAvailable")
 
     static func generic(_ error: Error) -> String {
-        "購入できませんでした（\(error.localizedDescription)）"
+        L.format("store.generic", error.localizedDescription)
     }
 
     // MARK: Restore
 
-    static let restored = "購入を復元しました"
-    static let nothingToRestore = "復元できる購入がありません。購入したときと同じ Apple Account でサインインしているか確認してください"
+    static let restored = L.text("store.restored")
+    static let nothingToRestore = L.text("store.nothingToRestore")
 
     // MARK: Prices
 
-    static let productsUnavailable = "App Store から価格を取得できませんでした。回線を確認して「再読み込み」を押してください"
+    static let productsUnavailable = L.text("store.productsUnavailable")
 
     /// 写真モードの固定値（記号は U+00A5）
     static let demoMonthlyPrice = "¥300"

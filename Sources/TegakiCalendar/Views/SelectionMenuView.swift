@@ -15,11 +15,11 @@ struct SelectionMenuView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            item("予定にする", symbol: "calendar.badge.plus", primary: true, action: onConvert)
+            item(L.text("selection.makeEvent"), symbol: "calendar.badge.plus", primary: true, action: onConvert)
             divider
-            item("削除", symbol: "trash", primary: false, action: onDelete)
+            item(L.text("selection.delete"), symbol: "trash", primary: false, action: onDelete)
             divider
-            item("選択解除", symbol: "xmark", primary: false, action: onDeselect)
+            item(L.text("selection.deselect"), symbol: "xmark", primary: false, action: onDeselect)
         }
         .frame(height: 44)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -29,7 +29,7 @@ struct SelectionMenuView: View {
         )
         .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("選択した手書き")
+        .accessibilityLabel(L.text("selection.handwriting"))
     }
 
     private var divider: some View {

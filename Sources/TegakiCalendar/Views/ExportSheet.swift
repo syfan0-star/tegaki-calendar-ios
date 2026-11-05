@@ -39,14 +39,14 @@ struct ExportSheet: View {
 
     // MARK: Texts (M6_CONTRACT §3.2 / §3.6; the owner uses `failureText` for the toast too)
 
-    static let title = "手書きを書き出す"
-    static let jsonTitle = "データファイル（JSON、すべてのページ）"
-    static let jsonNote = "この端末に保存されている手書きをすべて 1 つのファイルにまとめます。設定 › データ › 「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。"
-    static let pdfTitle = "このページを PDF"
+    static let title = L.text("export.title")
+    static let jsonTitle = L.text("export.json.title")
+    static let jsonNote = L.text("export.json.note")
+    static let pdfTitle = L.text("export.pdf.title")
 
     /// 「いま開いているページ（2026年10月・月）を 1 枚の PDF にします。紙・予定・祝日・手書きが画面のとおりに入ります。」
     static func pdfNote(pageTitle: String, kind: PageKind) -> String {
-        "いま開いているページ（\(pageTitle)・\(AppExport.kindLabel(kind))）を 1 枚の PDF にします。紙・予定・祝日・手書きが画面のとおりに入ります。"
+        L.format("export.pdf.note", pageTitle, AppExport.kindLabel(kind, language: L.language))
     }
 
     /// `.building(.json, 3, 12)` → 「書き出しています… 3 / 12 ページ」, `.building(.pdf, …)` →
@@ -54,41 +54,49 @@ struct ExportSheet: View {
     static func progressText(_ phase: ExportPhase) -> String {
         guard case .building(let kind, let done, let total) = phase else { return "" }
         switch kind {
-        case .json: return "書き出しています… \(done) / \(total) ページ"
-        case .pdf: return "PDF を作っています…"
+        case .json: return L.plural("export.progress", count: total, L.count(done), L.count(total))
+        case .pdf: return L.text("export.pdf.building")
         }
     }
 
-    static let doneTitle = "書き出しました"
+    static let doneTitle = L.text("export.done.title")
 
     /// JSON 「てがきカレンダー 手書き 2026-10-17.json（12 ページ・1.2 MB）」, PDF 「てがきカレンダー 2026年10月 月.pdf（1.2 MB）」.
     static func doneText(_ result: ExportResult) -> String {
         switch result.kind {
-        case .json: return "\(result.fileName)（\(result.pageCount) ページ・\(byteText(result.byteCount))）"
-        case .pdf: return "\(result.fileName)（\(byteText(result.byteCount))）"
+        case .json: return L.plural("export.done.json", count: result.pageCount, result.fileName, L.count(result.pageCount), byteText(result.byteCount))
+        case .pdf: return L.format("export.done.pdf", result.fileName, byteText(result.byteCount))
         }
     }
 
     /// Under 1,024 「512 B」, under 1 MB 「512 KB」 (whole kilobytes), from 1 MB 「1.2 MB」 (one decimal;
-    /// 1024-based throughout).
-    static func byteText(_ count: Int) -> String {
-        if count < 1_024 { return "\(count) B" }
-        if count < 1_048_576 { return "\(count / 1_024) KB" }
+    /// 1024-based throughout). The numbers are written in `language` (de 「1,2 MB」, §3.2); ja is 1.1's
+    /// (no grouping, J-1).
+    static func byteText(_ count: Int, language: UILanguage = L.language) -> String {
+        if count < 1_024 { return "\(L.count(count, in: language)) B" }
+        if count < 1_048_576 { return "\(L.count(count / 1_024, in: language)) KB" }
         let tenths = Int((Double(count) / 1_048_576 * 10).rounded())
-        return "\(tenths / 10).\(tenths % 10) MB"
+        if language == .ja { return "\(tenths / 10).\(tenths % 10) MB" }
+        let formatter = NumberFormatter()
+        formatter.locale = language.locale()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 1
+        formatter.maximumFractionDigits = 1
+        let number = formatter.string(from: NSNumber(value: Double(tenths) / 10)) ?? "\(tenths / 10).\(tenths % 10)"
+        return number + " MB"
     }
 
-    static let shareTitle = "共有…"
-    static let closeTitle = "閉じる"
+    static let shareTitle = L.text("export.share")
+    static let closeTitle = L.text("export.close")
 
     /// `ExportError.nothingToExport`.
-    static let nothingToExportText = "書き出す手書きがありません"
+    static let nothingToExportText = L.text("export.nothing")
     /// `ExportError.writeFailed(detail)`.
     static func writeFailedText(_ detail: String) -> String {
-        "ファイルを書けませんでした: \(detail)"
+        L.format("export.writeFailed", detail)
     }
     /// `ExportError.renderFailed`.
-    static let renderFailedText = "PDF を作れませんでした"
+    static let renderFailedText = L.text("export.renderFailed")
 
     /// The red line of `.failed` and the toast after it closed (§2.5): nil for `.cancelled` (the sheet
     /// just closes), 「書き出せませんでした: …」 for an error that is not an `ExportError`.
@@ -98,7 +106,7 @@ struct ExportSheet: View {
         case .writeFailed(let detail): return writeFailedText(detail)
         case .renderFailed: return renderFailedText
         case .cancelled: return nil
-        case .none: return "書き出せませんでした: \(error.localizedDescription)"
+        case .none: return L.format("export.failed", error.localizedDescription)
         }
     }
 

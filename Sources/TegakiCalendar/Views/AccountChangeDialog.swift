@@ -17,18 +17,18 @@ struct AccountChangeDialogModifier: ViewModifier {
 
     @State private var confirmErase = false
 
-    static let title = "別の iCloud アカウントです"
-    static let message = "この端末の手書きは、前に同期していた iCloud アカウントのものです。いまサインインしているアカウントで使い始めますか？ 手書きを残すと、新しいアカウントの iCloud に送られます。"
-    static let eraseTitle = "本当に消しますか？"
-    static let eraseMessage = "この端末の手書きを全て消して、新しいアカウントで始めます。この操作は元に戻せません。"
+    static let title = L.text("account.title")
+    static let message = L.text("account.message")
+    static let eraseTitle = L.text("account.eraseTitle")
+    static let eraseMessage = L.text("account.eraseMessage")
 
     func body(content: Content) -> some View {
         content
             .confirmationDialog(Self.title, isPresented: $isPresented, titleVisibility: .visible) {
-                Button("手書きを残して使い始める") {
+                Button(L.text("account.keep")) {
                     onChoose(.keepInk)
                 }
-                Button("手書きを消して使い始める", role: .destructive) {
+                Button(L.text("account.erase"), role: .destructive) {
                     // The second question is an alert; it can only appear once the dialog is gone
                     // (the same 0.35 s as the settings screen's double confirmation).
                     Task { @MainActor in
@@ -36,17 +36,17 @@ struct AccountChangeDialogModifier: ViewModifier {
                         confirmErase = true
                     }
                 }
-                Button("あとで", role: .cancel) {
+                Button(L.text("account.later"), role: .cancel) {
                     onChoose(.later)
                 }
             } message: {
                 Text(Self.message)
             }
             .alert(Self.eraseTitle, isPresented: $confirmErase) {
-                Button("消して始める", role: .destructive) {
+                Button(L.text("account.eraseConfirm"), role: .destructive) {
                     onChoose(.eraseInk)
                 }
-                Button("キャンセル", role: .cancel) {
+                Button(L.text("account.cancel"), role: .cancel) {
                     onChoose(.later)
                 }
             } message: {

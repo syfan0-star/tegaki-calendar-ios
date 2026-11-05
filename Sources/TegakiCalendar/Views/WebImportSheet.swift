@@ -1,3 +1,5 @@
+import InkModel
+import Layout
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -51,10 +53,12 @@ struct DocumentPickerView: UIViewControllerRepresentable {
 /// the finished sentence. 1.1 (M7A_CONTRACT §5.2): `confirmLarge` — the file was read and some of its
 /// pages would have more than 20,000 strokes on this device after the import (`pages` are their
 /// labels, `StrokeBudget.pageLabel`); the sheet asks 〔取り込む〕〔やめる〕 before anything is imported.
+/// 1.2 (docs/M7B_CONTRACT.md §0, §10.5): `done` also carries the other week start when the import brought
+/// week pages of that form (`CalendarRootScreen.runImport` works it out); nil for everything else.
 enum WebImportPhase: Equatable {
     case reading
     case importing(done: Int, total: Int)
-    case done(ImportOutcome, skipped: Int, isAppExport: Bool)
+    case done(ImportOutcome, skipped: Int, isAppExport: Bool, otherWeekStart: WeekStart? = nil)
     case failed(String)
     case confirmLarge(pages: [String])
 
@@ -83,21 +87,21 @@ struct WebImportSheet: View {
     /// 〔取り込む〕 of `confirmLarge`.
     var onConfirmLarge: () -> Void = {}
 
-    static let title = "Web 版の手書きを取り込む"
+    static let title = L.text("import.title")
 
     // MARK: Texts (M4 contract §6.3; the owner uses them for the phases and the toast)
 
     /// `ParseError.notAnExport` (neither format, M6_CONTRACT §3.6).
-    static let notAnExportText = "このファイルは手書きの書き出し（Web 版またはこのアプリ）ではありません"
+    static let notAnExportText = L.text("import.notAnExport")
     /// `ParseError.invalidJSON`.
-    static let invalidJSONText = "ファイルを読めませんでした"
+    static let invalidJSONText = L.text("import.invalidJSON")
     /// `ParseError.unsupportedVersion(v)`.
     static func unsupportedVersionText(_ version: Int) -> String {
-        "このファイルは新しい形式です（v\(version)）。アプリを更新してください"
+        L.format("import.unsupportedVersion", String(version))
     }
     /// `SyncEngine.importPages` threw.
     static func saveFailedText(_ error: Error) -> String {
-        "保存できませんでした: \(error.localizedDescription)"
+        L.format("import.saveFailed", error.localizedDescription)
     }
 
     /// The result line: what was imported (the app's own data file 「手書きを取り込みました（…）」, the
@@ -105,32 +109,49 @@ struct WebImportSheet: View {
     /// was already there.
     static func resultText(_ outcome: ImportOutcome, isAppExport: Bool = false) -> String {
         if outcome.pagesChanged > 0 {
-            let lead = isAppExport ? "手書きを取り込みました" : "Web 版の手書きを取り込みました"
-            return "\(lead)（\(outcome.pagesChanged) ページ・\(outcome.strokesAdded) 本）"
+            let pages = L.plural("import.result.pages", count: outcome.pagesChanged, L.count(outcome.pagesChanged))
+            let strokes = L.plural("import.result.strokes", count: outcome.strokesAdded, L.count(outcome.strokesAdded))
+            return isAppExport
+                ? L.format("import.result.app", pages, strokes)
+                : L.format("import.result.web", pages, strokes)
         }
-        return "取り込むものはありませんでした（すべて取り込み済みです）"
+        return L.text("import.nothing")
     }
 
     /// The second line, when pages were skipped (an old page id, no strokes); nil otherwise.
     static func skippedText(_ skipped: Int) -> String? {
-        skipped > 0 ? "\(skipped) ページは対象外のため飛ばしました" : nil
+        skipped > 0 ? L.plural("import.skipped", count: skipped, L.count(skipped)) : nil
     }
 
-    /// The toast after the sheet closed: the result line, the skipped line under it when there is one.
-    static func toastText(outcome: ImportOutcome, skipped: Int, isAppExport: Bool = false) -> String {
-        if let second = skippedText(skipped) {
-            return resultText(outcome, isAppExport: isAppExport) + "\n" + second
+    /// The last line when the import brought week pages of the other week start (§10.4); nil otherwise.
+    static func otherWeekStartText(_ other: WeekStart?) -> String? {
+        switch other {
+        case .sunday: return L.text("import.otherWeekStart.sunday")
+        case .monday: return L.text("import.otherWeekStart.monday")
+        case nil: return nil
         }
-        return resultText(outcome, isAppExport: isAppExport)
+    }
+
+    /// The toast after the sheet closed: the result line, then the skipped line and the other week
+    /// start's line under it when there are.
+    static func toastText(outcome: ImportOutcome, skipped: Int, isAppExport: Bool = false, otherWeekStart: WeekStart? = nil) -> String {
+        var lines = [resultText(outcome, isAppExport: isAppExport)]
+        if let second = skippedText(skipped) {
+            lines.append(second)
+        }
+        if let last = otherWeekStartText(otherWeekStart) {
+            lines.append(last)
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: The large-page question (1.1, M7A_CONTRACT §5.2 / §6.2)
 
     /// The heading of `confirmLarge`.
-    static let confirmLargeTitle = "線がとても多いページがあります"
+    static let confirmLargeTitle = L.text("import.confirmLarge.title")
     /// The buttons of `confirmLarge`.
-    static let confirmLargeImportTitle = "取り込む"
-    static let confirmLargeCancelTitle = "やめる"
+    static let confirmLargeImportTitle = L.text("import.confirmLarge.import")
+    static let confirmLargeCancelTitle = L.text("import.confirmLarge.cancel")
     /// At most this many page names are listed; the rest are 「ほか n ページ」.
     static let confirmLargeListedPages = 4
 
@@ -138,22 +159,24 @@ struct WebImportSheet: View {
     /// 全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？」: the page names
     /// joined by 「、」, and past four names the first four and 「ほか n ページ」.
     static func confirmLargeText(_ pages: [String]) -> String {
-        "取り込むと、線が 20,000 本を超えるページがあります（\(confirmLargeList(pages))）。この版では全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？"
+        L.format("import.confirmLarge.text", DateText.number(StrokeBudget.legacyReadCap, L.language), confirmLargeList(pages))
     }
 
     /// 「A、B、C、D」, or 「A、B、C、D、ほか 2 ページ」 for six names.
     static func confirmLargeList(_ pages: [String]) -> String {
-        guard pages.count > confirmLargeListedPages else { return pages.joined(separator: "、") }
-        let shown = pages.prefix(confirmLargeListedPages).joined(separator: "、")
-        return shown + "、ほか \(pages.count - confirmLargeListedPages) ページ"
+        let separator = L.text("import.confirmLarge.separator")
+        guard pages.count > confirmLargeListedPages else { return pages.joined(separator: separator) }
+        let rest = pages.count - confirmLargeListedPages
+        let more = L.plural("import.confirmLarge.more", count: rest, L.count(rest))
+        return (pages.prefix(confirmLargeListedPages) + [more]).joined(separator: separator)
     }
 
     /// 「取り込んでいます… 3 / 12 ページ」 (no numbers while the file is still being read).
     static func progressText(_ phase: WebImportPhase) -> String {
         if case .importing(let done, let total) = phase {
-            return "取り込んでいます… \(done) / \(total) ページ"
+            return L.plural("import.progress", count: total, L.count(done), L.count(total))
         }
-        return "取り込んでいます…"
+        return L.text("import.progress.reading")
     }
 
     var body: some View {
@@ -192,7 +215,7 @@ struct WebImportSheet: View {
                 .font(.body)
                 .multilineTextAlignment(.center)
 
-        case .done(let outcome, let skipped, let isAppExport):
+        case .done(let outcome, let skipped, let isAppExport, let otherWeekStart):
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(Color.green)
@@ -201,6 +224,12 @@ struct WebImportSheet: View {
                 .multilineTextAlignment(.center)
             if let second = Self.skippedText(skipped) {
                 Text(second)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            if let last = Self.otherWeekStartText(otherWeekStart) {
+                Text(last)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -239,7 +268,7 @@ struct WebImportSheet: View {
     }
 
     private var closeButton: some View {
-        Button("閉じる", action: onClose)
+        Button(L.text("import.close"), action: onClose)
             .buttonStyle(.borderedProminent)
             .padding(.top, 8)
     }

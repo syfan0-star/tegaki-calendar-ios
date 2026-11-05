@@ -1,5 +1,2730 @@
 {
   "sourceLanguage" : "en",
-  "strings" : {},
+  "strings" : {
+    "account.cancel" : {
+      "comment" : "もう一度の確認の取り消しのボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
+        }
+      }
+    },
+    "account.erase" : {
+      "comment" : "問いの選択肢",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きを消して使い始める"
+          }
+        }
+      }
+    },
+    "account.eraseConfirm" : {
+      "comment" : "もう一度の確認のボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消して始める"
+          }
+        }
+      }
+    },
+    "account.eraseMessage" : {
+      "comment" : "同じ確認の本文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末の手書きを全て消して、新しいアカウントで始めます。この操作は元に戻せません。"
+          }
+        }
+      }
+    },
+    "account.eraseTitle" : {
+      "comment" : "手書きを消す前のもう一度の確認の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本当に消しますか？"
+          }
+        }
+      }
+    },
+    "account.keep" : {
+      "comment" : "問いの選択肢",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きを残して使い始める"
+          }
+        }
+      }
+    },
+    "account.later" : {
+      "comment" : "問いの選択肢。次の起動でまた聞く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あとで"
+          }
+        }
+      }
+    },
+    "account.message" : {
+      "comment" : "同じ問いの本文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末の手書きは、前に同期していた iCloud アカウントのものです。いまサインインしているアカウントで使い始めますか？ 手書きを残すと、新しいアカウントの iCloud に送られます。"
+          }
+        }
+      }
+    },
+    "account.title" : {
+      "comment" : "iCloud のアカウントが変わったときの問いの題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別の iCloud アカウントです"
+          }
+        }
+      }
+    },
+    "census.counting" : {
+      "comment" : "設定 › 情報 の線の数の行。数えている間",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数えています…"
+          }
+        }
+      }
+    },
+    "census.entry" : {
+      "comment" : "線の数の行の値（月のページ（2026年10月）・3 本）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@・%2$@"
+          }
+        }
+      }
+    },
+    "census.legacyNote" : {
+      "comment" : "線の数の行の後ろに付く注記。行の字にそのまま続く（語の間に空白を置く言語は値の頭に空白を入れる）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（古い版の端末では一部が表示されません）"
+          }
+        }
+      }
+    },
+    "census.noInk" : {
+      "comment" : "設定 › 情報 の線の数の行。線が 1 本も無いとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ手書きがありません"
+          }
+        }
+      }
+    },
+    "event.allDay" : {
+      "comment" : "予定の終日のスイッチと、日付の後ろの「終日」（「2026年10月4日(日) 終日」）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終日"
+          }
+        }
+      }
+    },
+    "event.calendar" : {
+      "comment" : "予定の登録先のカレンダーの節の見出しと選び方の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カレンダー"
+          }
+        }
+      }
+    },
+    "event.calendarReadOnlyNote" : {
+      "comment" : "予定のシートの脚注。そのカレンダーが変更できないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このカレンダーは変更できません（読み取り専用）"
+          }
+        }
+      }
+    },
+    "event.cancel" : {
+      "comment" : "予定のシートと確認の取り消しのボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
+        }
+      }
+    },
+    "event.close" : {
+      "comment" : "見るだけの予定のシートを閉じるボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
+          }
+        }
+      }
+    },
+    "event.delete" : {
+      "comment" : "予定のシートの削除のボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        }
+      }
+    },
+    "event.deleteConfirm" : {
+      "comment" : "削除の確認の問い",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この予定を削除しますか？"
+          }
+        }
+      }
+    },
+    "event.end" : {
+      "comment" : "時刻のある予定の終了の選び方の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終了"
+          }
+        }
+      }
+    },
+    "event.endDay" : {
+      "comment" : "終日の予定の終了の日の選び方の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終了日"
+          }
+        }
+      }
+    },
+    "event.eraseInk" : {
+      "comment" : "投げなわから予定を作るときのスイッチ。元の手書きを消す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この手書きを消す"
+          }
+        }
+      }
+    },
+    "event.error.calendarNotFound" : {
+      "comment" : "予定を保存できないとき（登録先が無い）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登録先のカレンダーが見つかりません"
+          }
+        }
+      }
+    },
+    "event.error.emptyTitle" : {
+      "comment" : "題名が空のときの赤い字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルを入力してください"
+          }
+        }
+      }
+    },
+    "event.error.endBeforeStart" : {
+      "comment" : "終了が開始より前のときの赤い字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終了は開始より後にしてください"
+          }
+        }
+      }
+    },
+    "event.error.endDayBeforeStart" : {
+      "comment" : "終日の予定で終了の日が開始の日より前のときの赤い字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終了日は開始日以降にしてください"
+          }
+        }
+      }
+    },
+    "event.error.eventNotFound" : {
+      "comment" : "予定を保存できないとき（予定が見つからない）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定が見つかりません（別の端末で削除されたかもしれません）"
+          }
+        }
+      }
+    },
+    "event.error.failed" : {
+      "comment" : "予定を保存できないとき。後ろは iOS の英語などの理由の文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存できませんでした: %@"
+          }
+        }
+      }
+    },
+    "event.error.noAccess" : {
+      "comment" : "予定を保存できないとき（カレンダーの許可が無い）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カレンダーへのアクセスが許可されていません"
+          }
+        }
+      }
+    },
+    "event.error.noWritableCalendar" : {
+      "comment" : "予定を保存できないとき（書けるカレンダーが無い）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を登録できるカレンダーがありません"
+          }
+        }
+      }
+    },
+    "event.error.readOnlyCalendar" : {
+      "comment" : "予定を保存できないとき（読み取り専用のカレンダー）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このカレンダーは変更できません"
+          }
+        }
+      }
+    },
+    "event.location" : {
+      "comment" : "予定のシートの節の見出しと入力欄の案内",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所"
+          }
+        }
+      }
+    },
+    "event.notes" : {
+      "comment" : "予定のシートの節の見出し。予定のメモ（iOS のカレンダーの語に合わせる）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ"
+          }
+        }
+      }
+    },
+    "event.recurringNote" : {
+      "comment" : "繰り返しの予定を編集するときの注記。「この回だけ」「以降すべて」は recurrence.thisEvent・recurrence.futureEvents と同じ語で",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繰り返しの予定です。保存・削除のときに「この回だけ」か「以降すべて」を選びます"
+          }
+        }
+      }
+    },
+    "event.save" : {
+      "comment" : "保存のボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
+    "event.saveFailed" : {
+      "comment" : "保存か削除に失敗したときの赤い字（理由の分からないとき）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存できませんでした"
+          }
+        }
+      }
+    },
+    "event.saving" : {
+      "comment" : "保存のボタン。保存している間",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存中…"
+          }
+        }
+      }
+    },
+    "event.scribbleNote" : {
+      "comment" : "題名の入力欄の下の注記（iPad だけ）。スクリブルは iOS のその言語の語に合わせる",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Pencil で欄の上に書くと、文字に変換されます（スクリブル）"
+          }
+        }
+      }
+    },
+    "event.snapshotCaption" : {
+      "comment" : "予定のシートの見本の画像の下の字。投げなわで選んだ手書き",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書いた内容"
+          }
+        }
+      }
+    },
+    "event.start" : {
+      "comment" : "時刻のある予定の開始の選び方の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始"
+          }
+        }
+      }
+    },
+    "event.startDay" : {
+      "comment" : "終日の予定の開始の日の選び方の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始日"
+          }
+        }
+      }
+    },
+    "event.subscribe" : {
+      "comment" : "閲覧専用の脚注の下のボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読する"
+          }
+        }
+      }
+    },
+    "event.subscriptionNote" : {
+      "comment" : "予定のシートの脚注。アプリが閲覧専用のとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定の作成・編集は購読すると使えます。"
+          }
+        }
+      }
+    },
+    "event.title.create" : {
+      "comment" : "予定のシートの題名（新しく作る）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を追加"
+          }
+        }
+      }
+    },
+    "event.title.detail" : {
+      "comment" : "予定のシートの題名（見るだけ）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定の詳細"
+          }
+        }
+      }
+    },
+    "event.title.edit" : {
+      "comment" : "予定のシートの題名（編集）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を編集"
+          }
+        }
+      }
+    },
+    "event.titleHeader" : {
+      "comment" : "題名の入力欄の節の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトル"
+          }
+        }
+      }
+    },
+    "event.titlePlaceholder" : {
+      "comment" : "題名の入力欄の案内。ペンで欄の上に書くと文字になる（スクリブル）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここにペンで書くと文字になります"
+          }
+        }
+      }
+    },
+    "event.when.dateTime" : {
+      "comment" : "予定の読み上げの日時。日付と時刻（「2026年10月4日(日) 9:00」）。日付の字は DateText から来る。区切りはその言語の普通の書き方で",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "export.close" : {
+      "comment" : "シートを閉じるボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
+          }
+        }
+      }
+    },
+    "export.done.json.one" : {
+      "comment" : "完了の下の字（JSON）。.one / .other はページ数で選ぶ（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（%2$@ ページ・%3$@）"
+          }
+        }
+      }
+    },
+    "export.done.json.other" : {
+      "comment" : "完了の下の字（JSON）。.one / .other はページ数で選ぶ（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（%2$@ ページ・%3$@）"
+          }
+        }
+      }
+    },
+    "export.done.pdf" : {
+      "comment" : "完了の下の字（PDF）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "export.done.title" : {
+      "comment" : "書き出しの完了の見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出しました"
+          }
+        }
+      }
+    },
+    "export.error.closed" : {
+      "comment" : "書き出しの失敗の理由（中の不具合のとき）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルは閉じられています"
+          }
+        }
+      }
+    },
+    "export.error.createFailed" : {
+      "comment" : "書き出しの失敗の理由",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルを作成できません: %@"
+          }
+        }
+      }
+    },
+    "export.failed" : {
+      "comment" : "そのほかの失敗。後ろは iOS の理由の文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出せませんでした: %@"
+          }
+        }
+      }
+    },
+    "export.json.note" : {
+      "comment" : "1 つ目の選択肢の説明。「設定 › データ › Web 版の手書きを取り込む」は設定の画面の語と同じに",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末に保存されている手書きをすべて 1 つのファイルにまとめます。設定 › データ › 「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。"
+          }
+        }
+      }
+    },
+    "export.json.title" : {
+      "comment" : "書き出しのシートの 1 つ目の選択肢。データファイル",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データファイル（JSON、すべてのページ）"
+          }
+        }
+      }
+    },
+    "export.nothing" : {
+      "comment" : "書き出すものが無いとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出す手書きがありません"
+          }
+        }
+      }
+    },
+    "export.pdf.building" : {
+      "comment" : "PDF を作っている間の字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF を作っています…"
+          }
+        }
+      }
+    },
+    "export.pdf.note" : {
+      "comment" : "2 つ目の選択肢の説明",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いま開いているページ（%1$@・%2$@）を 1 枚の PDF にします。紙・予定・祝日・手書きが画面のとおりに入ります。"
+          }
+        }
+      }
+    },
+    "export.pdf.title" : {
+      "comment" : "書き出しのシートの 2 つ目の選択肢",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このページを PDF"
+          }
+        }
+      }
+    },
+    "export.progress.one" : {
+      "comment" : "JSON を書き出している間の字。.one / .other は全部のページ数（%2$@）で選ぶ（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出しています… %1$@ / %2$@ ページ"
+          }
+        }
+      }
+    },
+    "export.progress.other" : {
+      "comment" : "JSON を書き出している間の字。.one / .other は全部のページ数（%2$@）で選ぶ（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出しています… %1$@ / %2$@ ページ"
+          }
+        }
+      }
+    },
+    "export.renderFailed" : {
+      "comment" : "PDF の失敗",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF を作れませんでした"
+          }
+        }
+      }
+    },
+    "export.share" : {
+      "comment" : "完了の後の共有のボタン。iOS の普通の語で",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共有…"
+          }
+        }
+      }
+    },
+    "export.title" : {
+      "comment" : "書き出しのシートの題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きを書き出す"
+          }
+        }
+      }
+    },
+    "export.writeFailed" : {
+      "comment" : "書き出しの失敗。後ろは理由の文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルを書けませんでした: %@"
+          }
+        }
+      }
+    },
+    "import.close" : {
+      "comment" : "シートを閉じるボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
+          }
+        }
+      }
+    },
+    "import.confirmLarge.cancel" : {
+      "comment" : "問いのボタン。やめる（何も取り込まない）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "やめる"
+          }
+        }
+      }
+    },
+    "import.confirmLarge.import" : {
+      "comment" : "問いのボタン。取り込む",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込む"
+          }
+        }
+      }
+    },
+    "import.confirmLarge.more.one" : {
+      "comment" : "ページの名前が 5 つ以上のときの並びの最後（A、B、C、D、ほか 2 ページ）（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほか %@ ページ"
+          }
+        }
+      }
+    },
+    "import.confirmLarge.more.other" : {
+      "comment" : "ページの名前が 5 つ以上のときの並びの最後（A、B、C、D、ほか 2 ページ）（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほか %@ ページ"
+          }
+        }
+      }
+    },
+    "import.confirmLarge.separator" : {
+      "comment" : "ページの名前の並びの区切り（A、B、C）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "、"
+          }
+        }
+      }
+    },
+    "import.confirmLarge.text" : {
+      "comment" : "問いの本文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込むと、線が %1$@ 本を超えるページがあります（%2$@）。この版では全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？"
+          }
+        }
+      }
+    },
+    "import.confirmLarge.title" : {
+      "comment" : "線がとても多いページの問いの見出し",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "線がとても多いページがあります"
+          }
+        }
+      }
+    },
+    "import.invalidJSON" : {
+      "comment" : "読み込めないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルを読めませんでした"
+          }
+        }
+      }
+    },
+    "import.notAnExport" : {
+      "comment" : "読み込んだファイルが違うとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルは手書きの書き出し（Web 版またはこのアプリ）ではありません"
+          }
+        }
+      }
+    },
+    "import.nothing" : {
+      "comment" : "取り込むものが無かったとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込むものはありませんでした（すべて取り込み済みです）"
+          }
+        }
+      }
+    },
+    "import.otherWeekStart.monday" : {
+      "comment" : "取り込みの結果の最後の 1 行（週の始まりが日曜の設定で、月曜始まりの週のページが入ったとき。§10.4）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込んだ週のページの一部は、週の始まりを月曜にすると見えます。"
+          }
+        }
+      }
+    },
+    "import.otherWeekStart.sunday" : {
+      "comment" : "取り込みの結果の最後の 1 行（週の始まりが月曜の設定で、日曜始まりの週のページが入ったとき。§10.4）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込んだ週のページの一部は、週の始まりを日曜にすると見えます。"
+          }
+        }
+      }
+    },
+    "import.progress.one" : {
+      "comment" : "取り込んでいる間の字。.one / .other は全部のページ数（%2$@）で選ぶ（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込んでいます… %1$@ / %2$@ ページ"
+          }
+        }
+      }
+    },
+    "import.progress.other" : {
+      "comment" : "取り込んでいる間の字。.one / .other は全部のページ数（%2$@）で選ぶ（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込んでいます… %1$@ / %2$@ ページ"
+          }
+        }
+      }
+    },
+    "import.progress.reading" : {
+      "comment" : "ファイルを読んでいる間の字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込んでいます…"
+          }
+        }
+      }
+    },
+    "import.result.app" : {
+      "comment" : "取り込みの結果（このアプリの書き出し）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きを取り込みました（%1$@・%2$@）"
+          }
+        }
+      }
+    },
+    "import.result.pages.one" : {
+      "comment" : "取り込みの結果の括弧の中のページ数（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ページ"
+          }
+        }
+      }
+    },
+    "import.result.pages.other" : {
+      "comment" : "取り込みの結果の括弧の中のページ数（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ページ"
+          }
+        }
+      }
+    },
+    "import.result.strokes.one" : {
+      "comment" : "取り込みの結果の括弧の中の線の数（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 本"
+          }
+        }
+      }
+    },
+    "import.result.strokes.other" : {
+      "comment" : "取り込みの結果の括弧の中の線の数（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 本"
+          }
+        }
+      }
+    },
+    "import.result.web" : {
+      "comment" : "取り込みの結果（Web 版の書き出し）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web 版の手書きを取り込みました（%1$@・%2$@）"
+          }
+        }
+      }
+    },
+    "import.saveFailed" : {
+      "comment" : "保存の失敗。後ろは iOS の理由の文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存できませんでした: %@"
+          }
+        }
+      }
+    },
+    "import.skipped.one" : {
+      "comment" : "結果の 2 行目（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ページは対象外のため飛ばしました"
+          }
+        }
+      }
+    },
+    "import.skipped.other" : {
+      "comment" : "結果の 2 行目（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ページは対象外のため飛ばしました"
+          }
+        }
+      }
+    },
+    "import.title" : {
+      "comment" : "取り込みのシートの題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web 版の手書きを取り込む"
+          }
+        }
+      }
+    },
+    "import.unsupportedVersion" : {
+      "comment" : "新しい形式のファイルのとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルは新しい形式です（v%@）。アプリを更新してください"
+          }
+        }
+      }
+    },
+    "onboarding.access.text" : {
+      "comment" : "初回案内の 2 枚目。空行で 2 段落。「フルアクセス」は iOS のその言語の語",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の画面で、カレンダーへの「フルアクセス」を求めます。予定を手帳のページに表示し、手書きから予定を作るためです。\n\niOS と iPadOS には読み取りだけの許可が無いため、フルアクセスになります。予定はこの端末の中だけで扱い、開発者やほかの誰にも送りません。"
+          }
+        }
+      }
+    },
+    "onboarding.access.title" : {
+      "comment" : "初回案内の 2 枚目の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カレンダーへのアクセス"
+          }
+        }
+      }
+    },
+    "onboarding.account.text" : {
+      "comment" : "初回案内の 1 枚目。「カレンダー」は iOS のカレンダーアプリの名前。%@ に設定の画面と同じ手順（settings の Google の手順の文）が入る。空行を 1 つ空ける",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリは、この端末の「カレンダー」に入っている予定を表示します。\n\n%@"
+          }
+        }
+      }
+    },
+    "onboarding.account.title" : {
+      "comment" : "初回案内の 1 枚目の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カレンダーのアカウント"
+          }
+        }
+      }
+    },
+    "onboarding.askPermission" : {
+      "comment" : "最後のボタン。カレンダーの許可を求める iOS の画面を出す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可の画面を出す"
+          }
+        }
+      }
+    },
+    "onboarding.dayPageTap" : {
+      "comment" : "初回案内の 3 枚目の最後の文。日のページの開き方",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年のページは日付や左端の数字（今月のその日）、月のページは日付の数字を指でタップ、週・月・年のページはマスを指でダブルタップすると、その日のページが開きます。"
+          }
+        }
+      }
+    },
+    "onboarding.icloud.text" : {
+      "comment" : "初回案内の 4 枚目。空行で 3 段落",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きはこの端末と、あなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きが見られます。\n\niCloud にサインインしていないときは、この端末の中だけに保存します。iCloud の設定は要りません（この端末でサインインしていれば自動で使われます）。\n\n手書きは開発者には見えません。iCloud の容量はあなたのものを使います。"
+          }
+        }
+      }
+    },
+    "onboarding.icloud.title" : {
+      "comment" : "初回案内の 4 枚目の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud と手書きの保存"
+          }
+        }
+      }
+    },
+    "onboarding.next" : {
+      "comment" : "初回案内の次へのボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次へ"
+          }
+        }
+      }
+    },
+    "onboarding.openSettings" : {
+      "comment" : "1 枚目のボタン。iOS の設定アプリを開く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定アプリを開く"
+          }
+        }
+      }
+    },
+    "onboarding.pen.text" : {
+      "comment" : "初回案内の 3 枚目。%@ に onboarding.dayPageTap が入る。「設定 › Apple Pencil」は iOS のその言語の語",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Pencil で紙に書きます。指はスクロール・ピンチ拡大・予定のタップに使います。手のひらが触れても線は引かれません。\n\n指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。Apple Pencil のダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作どおりにペンと消しゴムを切り替えます。\n\n%@"
+          }
+        }
+      }
+    },
+    "onboarding.pen.title" : {
+      "comment" : "初回案内の 3 枚目の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペンで書き、指で動かす"
+          }
+        }
+      }
+    },
+    "paywall.after.paid" : {
+      "comment" : "主のボタンの下の行。試用の対象外の人",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@。自動更新です。いつでも解約できます。"
+          }
+        }
+      }
+    },
+    "paywall.after.trial" : {
+      "comment" : "主のボタンの下の行。試用できる人",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "試用後は %@。いつでも解約できます。"
+          }
+        }
+      }
+    },
+    "paywall.billingRetryLead" : {
+      "comment" : "支払いに問題があるときの最初の 1 文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お支払いに問題があります。%@でお支払い方法を確認してください。"
+          }
+        }
+      }
+    },
+    "paywall.blockedLead" : {
+      "comment" : "閲覧専用で書こうとしたときの最初の 1 文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書く・消す・予定を作るには購読が必要です。"
+          }
+        }
+      }
+    },
+    "paywall.blockedTrial.one" : {
+      "comment" : "paywall.blockedLead にそのまま続く 1 文（文の間に空白を置く言語は値の頭に空白を入れる）。試用できる人だけ（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間無料で試せます。"
+          }
+        }
+      }
+    },
+    "paywall.blockedTrial.other" : {
+      "comment" : "paywall.blockedLead にそのまま続く 1 文（文の間に空白を置く言語は値の頭に空白を入れる）。試用できる人だけ（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間無料で試せます。"
+          }
+        }
+      }
+    },
+    "paywall.cta.buy" : {
+      "comment" : "主のボタン。試用の対象外の人",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入する"
+          }
+        }
+      }
+    },
+    "paywall.cta.trial.one" : {
+      "comment" : "主のボタン。試用できる人（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間無料で試す"
+          }
+        }
+      }
+    },
+    "paywall.cta.trial.other" : {
+      "comment" : "主のボタン。試用できる人（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間無料で試す"
+          }
+        }
+      }
+    },
+    "paywall.disclosure.paid" : {
+      "comment" : "自動更新の説明（審査 3.1.2 の必須の文）。試用の対象外の人。Apple Account は iOS のその言語の語",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サブスクリプションは自動更新です。現在の期間が終わる 24 時間前までに解約しない限り、同じ期間・同じ価格で更新され、Apple Account に請求されます。料金は購入の確認時に請求されます。解約は端末の%@からいつでもできます。解約しても、支払い済みの期間が終わるまで使えます。"
+          }
+        }
+      }
+    },
+    "paywall.disclosure.trial" : {
+      "comment" : "自動更新の説明（審査 3.1.2 の必須の文）。試用できる人。Apple Account は iOS のその言語の語",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サブスクリプションは自動更新です。現在の期間が終わる 24 時間前までに解約しない限り、同じ期間・同じ価格で更新され、Apple Account に請求されます。料金は無料試用の終了時に請求されます。解約は端末の%@からいつでもできます。解約しても、支払い済みの期間が終わるまで使えます。"
+          }
+        }
+      }
+    },
+    "paywall.feature.events" : {
+      "comment" : "機能の 2 行目",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きから予定を作る。予定の作成・編集"
+          }
+        }
+      }
+    },
+    "paywall.feature.ink" : {
+      "comment" : "機能の 1 行目",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書き（ペン・マーカー・消しゴム・投げなわ）"
+          }
+        }
+      }
+    },
+    "paywall.feature.sync" : {
+      "comment" : "機能の 3 行目",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud で iPad・iPhone と同期"
+          }
+        }
+      }
+    },
+    "paywall.intro" : {
+      "comment" : "購入のシートの最初の 1 文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPad のカレンダーの上に、Apple Pencil で自由に書ける手帳です。"
+          }
+        }
+      }
+    },
+    "paywall.later" : {
+      "comment" : "シートを閉じるボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あとで"
+          }
+        }
+      }
+    },
+    "paywall.manage" : {
+      "comment" : "支払いに問題があるときのボタン。iOS の普通の語で",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サブスクリプションを管理"
+          }
+        }
+      }
+    },
+    "paywall.noPriceNote" : {
+      "comment" : "価格が取れないときのカードの下の字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "価格を取得できません"
+          }
+        }
+      }
+    },
+    "paywall.privacy" : {
+      "comment" : "プライバシーポリシーを開くボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシーポリシー"
+          }
+        }
+      }
+    },
+    "paywall.recommended" : {
+      "comment" : "年額のカードの札。短く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめ"
+          }
+        }
+      }
+    },
+    "paywall.reload" : {
+      "comment" : "価格が取れないときのボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再読み込み"
+          }
+        }
+      }
+    },
+    "paywall.restore" : {
+      "comment" : "購入を復元するボタン。iOS の普通の語で",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入を復元"
+          }
+        }
+      }
+    },
+    "paywall.revokedLead" : {
+      "comment" : "返金か取り消しの後の最初の 1 文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入が返金または取り消されました。再び使うには購読してください。"
+          }
+        }
+      }
+    },
+    "paywall.terms" : {
+      "comment" : "利用規約を開くボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用規約"
+          }
+        }
+      }
+    },
+    "paywall.title" : {
+      "comment" : "購入のシートの題名。アプリの名前（en は Tegaki）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "てがきカレンダー"
+          }
+        }
+      }
+    },
+    "paywall.trialIneligible" : {
+      "comment" : "試用の対象外の人の行",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無料試用の対象外です（お試しは 1 つの Apple Account につき 1 回）。"
+          }
+        }
+      }
+    },
+    "paywall.trialLead.one" : {
+      "comment" : "試用の行の太字の最初の文（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間無料でお試し。"
+          }
+        }
+      }
+    },
+    "paywall.trialLead.other" : {
+      "comment" : "試用の行の太字の最初の文（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間無料でお試し。"
+          }
+        }
+      }
+    },
+    "paywall.trialRest" : {
+      "comment" : "試用の行の続き。paywall.trialLead にそのまま続く（文の間に空白を置く言語は値の頭に空白を入れる）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "試用期間が終わると自動的に有料になります。試用中に解約すれば料金はかかりません。"
+          }
+        }
+      }
+    },
+    "paywall.yearlyNote.both" : {
+      "comment" : "年額のカードの下の字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月あたり %1$@・%2$@"
+          }
+        }
+      }
+    },
+    "paywall.yearlyNote.perMonth" : {
+      "comment" : "年額のカードの下の字（お得の月数が無いとき）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月あたり %@"
+          }
+        }
+      }
+    },
+    "recurrence.futureEvents" : {
+      "comment" : "問いの選択肢。この回から後のすべて（過去は変えない）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以降すべて"
+          }
+        }
+      }
+    },
+    "recurrence.message.delete" : {
+      "comment" : "繰り返しの予定を削除するときの問い",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この回だけ削除しますか？ 以降すべて削除しますか？"
+          }
+        }
+      }
+    },
+    "recurrence.message.save" : {
+      "comment" : "繰り返しの予定を保存するときの問い",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この回だけ変更しますか？ 以降すべてに適用しますか？"
+          }
+        }
+      }
+    },
+    "recurrence.thisEvent" : {
+      "comment" : "問いの選択肢。この回だけ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この回だけ"
+          }
+        }
+      }
+    },
+    "recurrence.title" : {
+      "comment" : "繰り返しの予定の問いの題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繰り返しの予定です"
+          }
+        }
+      }
+    },
+    "selection.delete" : {
+      "comment" : "投げなわのメニューの項目。14 pt（「予定にする」は semibold）で、3 つの合計が 220 pt 以内（F-15）。選んだ手書きを消す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        }
+      }
+    },
+    "selection.deselect" : {
+      "comment" : "投げなわのメニューの項目。14 pt（「予定にする」は semibold）で、3 つの合計が 220 pt 以内（F-15）。選択をやめる",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択解除"
+          }
+        }
+      }
+    },
+    "selection.handwriting" : {
+      "comment" : "読み上げの名前。投げなわで選んだ手書き（メニューと、予定のシートの見本の画像）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択した手書き"
+          }
+        }
+      }
+    },
+    "selection.makeEvent" : {
+      "comment" : "投げなわのメニューの項目。14 pt（「予定にする」は semibold）で、3 つの合計が 220 pt 以内（F-15）。選んだ手書きから予定を作る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定にする"
+          }
+        }
+      }
+    },
+    "store.error.productNotFound" : {
+      "comment" : "購入の失敗の理由（商品が無い）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品が見つかりません"
+          }
+        }
+      }
+    },
+    "store.error.unknownPurchaseResult" : {
+      "comment" : "購入の失敗の理由（結果が分からない）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入の結果を解釈できません"
+          }
+        }
+      }
+    },
+    "store.generic" : {
+      "comment" : "そのほかの失敗。括弧の中は iOS の理由の文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入できませんでした（%@）"
+          }
+        }
+      }
+    },
+    "store.notAvailable" : {
+      "comment" : "その店頭で買えないとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お住まいの地域ではこのプランを購入できません"
+          }
+        }
+      }
+    },
+    "store.nothingToRestore" : {
+      "comment" : "復元するものが無いとき。Apple Account は iOS のその言語の語",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復元できる購入がありません。購入したときと同じ Apple Account でサインインしているか確認してください"
+          }
+        }
+      }
+    },
+    "store.offline" : {
+      "comment" : "回線の問題のとき",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store に接続できません。回線を確認してもう一度お試しください"
+          }
+        }
+      }
+    },
+    "store.pending" : {
+      "comment" : "承認待ち（ファミリーの承認など）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "承認待ちです。承認されると自動で使えるようになります"
+          }
+        }
+      }
+    },
+    "store.productsUnavailable" : {
+      "comment" : "価格が取れないとき。「再読み込み」は paywall.reload と同じ語で",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store から価格を取得できませんでした。回線を確認して「再読み込み」を押してください"
+          }
+        }
+      }
+    },
+    "store.purchased" : {
+      "comment" : "購入の後のトースト",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読を開始しました。ありがとうございます"
+          }
+        }
+      }
+    },
+    "store.restored" : {
+      "comment" : "復元の後のトースト",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入を復元しました"
+          }
+        }
+      }
+    },
+    "store.trialStarted.one" : {
+      "comment" : "試用を始めた後のトースト（1 のときの形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間の無料試用を開始しました"
+          }
+        }
+      }
+    },
+    "store.trialStarted.other" : {
+      "comment" : "試用を始めた後のトースト（1 以外の形。0-8）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 日間の無料試用を開始しました"
+          }
+        }
+      }
+    },
+    "store.unverified" : {
+      "comment" : "購入を確かめられないとき。「購入を復元」は paywall.restore と同じ語で",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入を確認できませんでした。しばらくしてから「購入を復元」をお試しください"
+          }
+        }
+      }
+    },
+    "sync.footer.accountMismatch" : {
+      "comment" : "設定の「同期」の節の脚注。「新しいアカウントで使い始める」は設定の画面のボタンの語と同じに（U のキー）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末の手書きは、前に同期していた iCloud アカウントのものです。「新しいアカウントで使い始める」から選んでください。"
+          }
+        }
+      }
+    },
+    "sync.footer.noAccount" : {
+      "comment" : "設定の「同期」の節の脚注。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud にサインインするとほかの端末と同期できます。手書きはこの端末の中だけに保存しています。"
+          }
+        }
+      }
+    },
+    "sync.footer.offline" : {
+      "comment" : "設定の「同期」の節の脚注。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフラインです。手書きはこの端末に保存され、接続が戻ると同期されます。"
+          }
+        }
+      }
+    },
+    "sync.footer.permission" : {
+      "comment" : "設定の「同期」の節の脚注。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud の設定でこのアプリの利用が許可されていません。"
+          }
+        }
+      }
+    },
+    "sync.footer.quota" : {
+      "comment" : "設定の「同期」の節の脚注。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud の容量が不足しているため、手書きを同期できません。この端末には保存されています。"
+          }
+        }
+      }
+    },
+    "sync.footer.restricted" : {
+      "comment" : "設定の「同期」の節の脚注。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きはこの端末の中だけに保存しています。"
+          }
+        }
+      }
+    },
+    "sync.footer.serverError" : {
+      "comment" : "設定の「同期」の節の脚注。改行の後ろは iOS の理由の文",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きの同期に失敗しました。この端末には保存されています（あとで再試行します）。\n%@"
+          }
+        }
+      }
+    },
+    "sync.footer.synced" : {
+      "comment" : "設定の「同期」の節の脚注。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手書きはこの端末と、あなたの iCloud に保存されています。ほかの iPad や iPhone でも同じ手書きが見られます。"
+          }
+        }
+      }
+    },
+    "sync.footer.syncing" : {
+      "comment" : "設定の「同期」の節の脚注。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書いた手書きを iCloud へ送っています。"
+          }
+        }
+      }
+    },
+    "sync.footer.unknown" : {
+      "comment" : "設定の「同期」の節の脚注。「設定」は iOS の設定アプリの名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「設定」アプリで iCloud を確認してください。手書きはこの端末の中だけに保存しています。"
+          }
+        }
+      }
+    },
+    "sync.header.error" : {
+      "comment" : "ページの見出しの ☁ の横の短い字（広い行だけに出る）。エラー",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エラー"
+          }
+        }
+      }
+    },
+    "sync.header.localOnly" : {
+      "comment" : "ページの見出しの ☁ の横の短い字（広い行だけに出る）。iCloud を使わない",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末のみ"
+          }
+        }
+      }
+    },
+    "sync.header.offline" : {
+      "comment" : "ページの見出しの ☁ の横の短い字（広い行だけに出る）。回線が無い",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフライン"
+          }
+        }
+      }
+    },
+    "sync.header.saved" : {
+      "comment" : "ページの見出しの ☁ の横の短い字（広い行だけに出る）。全部 iCloud に入った",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存済み"
+          }
+        }
+      }
+    },
+    "sync.header.stopped" : {
+      "comment" : "ページの見出しの ☁ の横の短い字（広い行だけに出る）。同期を止めている",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止中"
+          }
+        }
+      }
+    },
+    "sync.header.syncing" : {
+      "comment" : "ページの見出しの ☁ の横の短い字（広い行だけに出る）。同期している",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期中"
+          }
+        }
+      }
+    },
+    "sync.status.accountMismatch" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別の iCloud アカウントです"
+          }
+        }
+      }
+    },
+    "sync.status.noAccount" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud にサインインしていません"
+          }
+        }
+      }
+    },
+    "sync.status.offline" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフライン"
+          }
+        }
+      }
+    },
+    "sync.status.permission" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud を使えません"
+          }
+        }
+      }
+    },
+    "sync.status.quota" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud の容量が足りません"
+          }
+        }
+      }
+    },
+    "sync.status.restricted" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末では iCloud が制限されています"
+          }
+        }
+      }
+    },
+    "sync.status.serverError" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期に失敗しました"
+          }
+        }
+      }
+    },
+    "sync.status.synced" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期済み"
+          }
+        }
+      }
+    },
+    "sync.status.syncing" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期中…"
+          }
+        }
+      }
+    },
+    "sync.status.unknown" : {
+      "comment" : "設定の「iCloud 同期」の行の値。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud を確認できません"
+          }
+        }
+      }
+    },
+    "toolbar.badge.marker" : {
+      "comment" : "丸ボタンの読み上げの値。マーカーと色",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マーカー・%@"
+          }
+        }
+      }
+    },
+    "toolbar.badge.pen" : {
+      "comment" : "丸ボタンの読み上げの値。ペンと色（太さが表に無いとき）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペン・%@"
+          }
+        }
+      }
+    },
+    "toolbar.badge.penWidth" : {
+      "comment" : "丸ボタンの読み上げの値。ペンと色と太さ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペン・%1$@・%2$@"
+          }
+        }
+      }
+    },
+    "toolbar.collapse.spoken" : {
+      "comment" : "同じボタンの読み上げの名前（en: Hide toolbar）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツールバーをしまう"
+          }
+        }
+      }
+    },
+    "toolbar.collapse.title" : {
+      "comment" : "ツールバーを丸ボタンにしまうボタンの名前。F-12 と同じ上限",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "しまう"
+          }
+        }
+      }
+    },
+    "toolbar.color.black" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "黒"
+          }
+        }
+      }
+    },
+    "toolbar.color.blue" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "青"
+          }
+        }
+      }
+    },
+    "toolbar.color.green" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "緑"
+          }
+        }
+      }
+    },
+    "toolbar.color.lightBlue" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水色"
+          }
+        }
+      }
+    },
+    "toolbar.color.orange" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オレンジ"
+          }
+        }
+      }
+    },
+    "toolbar.color.pink" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピンク"
+          }
+        }
+      }
+    },
+    "toolbar.color.purple" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紫"
+          }
+        }
+      }
+    },
+    "toolbar.color.red" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "赤"
+          }
+        }
+      }
+    },
+    "toolbar.color.unknown" : {
+      "comment" : "表に無い色のときの読み上げの名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他の色"
+          }
+        }
+      }
+    },
+    "toolbar.color.yellow" : {
+      "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "黄"
+          }
+        }
+      }
+    },
+    "toolbar.dock.hint.toLeft" : {
+      "comment" : "丸ボタンが右下にあるときの読み上げのヒント（toolbar.moveEdge.toLeft と toolbar.pin の語で）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長押しで、左下へ移すか、ツールバーをいつも出すかを選べます"
+          }
+        }
+      }
+    },
+    "toolbar.dock.hint.toRight" : {
+      "comment" : "丸ボタンが左下にあるときの読み上げのヒント（toolbar.moveEdge.toRight と toolbar.pin の語で）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長押しで、右下へ移すか、ツールバーをいつも出すかを選べます"
+          }
+        }
+      }
+    },
+    "toolbar.dock.spoken" : {
+      "comment" : "丸ボタンの読み上げの名前。押すとツールバーが出る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツールバーを出す"
+          }
+        }
+      }
+    },
+    "toolbar.fingerToggle" : {
+      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない。ja の幅 ＋ 76 pt（約 136 pt、10.5 em）まで（F-13）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指でも書く"
+          }
+        }
+      }
+    },
+    "toolbar.fingerToggle.hint" : {
+      "comment" : "同じスイッチの読み上げのヒント",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします"
+          }
+        }
+      }
+    },
+    "toolbar.hint.eraser" : {
+      "comment" : "消しゴムを選んでいるときの説明。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 144 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "触れた線をまるごと消します"
+          }
+        }
+      }
+    },
+    "toolbar.hint.eraser.toMarker" : {
+      "comment" : "消しゴムの説明で、消したらマーカーに戻るとき。2 行で、1 行目は toolbar.hint.eraser と同じ文にする。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 144 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "触れた線をまるごと消します\n（消すとマーカーに戻ります）"
+          }
+        }
+      }
+    },
+    "toolbar.hint.eraser.toPen" : {
+      "comment" : "消しゴムの説明で、消したらペンに戻るとき。2 行で、1 行目は toolbar.hint.eraser と同じ文にする。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 144 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "触れた線をまるごと消します\n（消すとペンに戻ります）"
+          }
+        }
+      }
+    },
+    "toolbar.hint.event" : {
+      "comment" : "予定の道具を選んでいるときの説明。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 155 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なぞって予定を作ります。\n予定をタップすると編集します"
+          }
+        }
+      }
+    },
+    "toolbar.hint.lasso" : {
+      "comment" : "投げなわを選んでいるときの説明。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 155 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "囲んで選びます。\n枠の中をドラッグで動かせます"
+          }
+        }
+      }
+    },
+    "toolbar.moveEdge.toLeft" : {
+      "comment" : "丸ボタンの長押しのメニュー。丸ボタンを左下へ移す。読み上げの操作の名前にも使う",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左下へ移す"
+          }
+        }
+      }
+    },
+    "toolbar.moveEdge.toRight" : {
+      "comment" : "丸ボタンの長押しのメニュー。丸ボタンを右下へ移す。読み上げの操作の名前にも使う",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右下へ移す"
+          }
+        }
+      }
+    },
+    "toolbar.pin" : {
+      "comment" : "丸ボタンの長押しのメニュー。ツールバーを広げたままにする。読み上げの操作の名前にも使う",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツールバーをいつも出す"
+          }
+        }
+      }
+    },
+    "toolbar.redo" : {
+      "comment" : "↷ のボタンの読み上げの名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "やり直す"
+          }
+        }
+      }
+    },
+    "toolbar.tool.eraser" : {
+      "comment" : "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字。丸ボタンの読み上げの値にも使う",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消しゴム"
+          }
+        }
+      }
+    },
+    "toolbar.tool.event" : {
+      "comment" : "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字。丸ボタンの読み上げの値にも使う",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定"
+          }
+        }
+      }
+    },
+    "toolbar.tool.lasso" : {
+      "comment" : "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字。丸ボタンの読み上げの値にも使う",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投げなわ"
+          }
+        }
+      }
+    },
+    "toolbar.tool.marker" : {
+      "comment" : "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マーカー"
+          }
+        }
+      }
+    },
+    "toolbar.tool.pen" : {
+      "comment" : "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペン"
+          }
+        }
+      }
+    },
+    "toolbar.undo" : {
+      "comment" : "↶ のボタンの読み上げの名前（ツールバーと丸ボタン）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元に戻す"
+          }
+        }
+      }
+    },
+    "toolbar.width.medium" : {
+      "comment" : "ペンの太さのボタンの名前。F-12 と同じ上限（10 pt で 38 pt 以内を先に選ぶ。47.5 pt まで）。読み上げにも入る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中"
+          }
+        }
+      }
+    },
+    "toolbar.width.spoken" : {
+      "comment" : "ペンの太さのボタンの読み上げの名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太さ: %@"
+          }
+        }
+      }
+    },
+    "toolbar.width.thick" : {
+      "comment" : "ペンの太さのボタンの名前。F-12 と同じ上限（10 pt で 38 pt 以内を先に選ぶ。47.5 pt まで）。読み上げにも入る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太"
+          }
+        }
+      }
+    },
+    "toolbar.width.thin" : {
+      "comment" : "ペンの太さのボタンの名前。F-12 と同じ上限（10 pt で 38 pt 以内を先に選ぶ。47.5 pt まで）。読み上げにも入る",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "細"
+          }
+        }
+      }
+    }
+  },
   "version" : "1.0"
 }

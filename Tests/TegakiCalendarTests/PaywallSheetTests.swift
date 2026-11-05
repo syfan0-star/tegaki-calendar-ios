@@ -26,6 +26,19 @@ final class PaywallSheetTests: XCTestCase {
         perMonthDisplayPrice: nil
     )
 
+    /// The numbers of a US storefront on the yearly card (§7.2; the session test `testUSStorefrontPrices`
+    /// needs a working StoreKit test environment, this one does not): the prices are StoreKit's words,
+    /// the months to save come from the prices (floor(12 − 14.99 / 1.99) = 4).
+    func testUSPricesOnTheYearlyNote() {
+        let usYearly = PlanOffer(plan: .yearly, displayPrice: "$14.99", price: Decimal(string: "14.99")!, isEligibleForIntroOffer: true,
+                                 introDays: ProductIDs.trialDays, perMonthDisplayPrice: "$1.25")
+        let usMonthly = PlanOffer(plan: .monthly, displayPrice: "$1.99", price: Decimal(string: "1.99")!, isEligibleForIntroOffer: true,
+                                  introDays: ProductIDs.trialDays, perMonthDisplayPrice: nil)
+        XCTAssertEqual(PaywallSheet.yearlyNote(usYearly, monthly: usMonthly), "月あたり $1.25・4 か月分お得")
+        XCTAssertEqual(PaywallSheet.priceLine(usYearly), "$14.99/年")
+        XCTAssertEqual(PaywallSheet.priceLine(usMonthly), "$1.99/月")
+    }
+
     func testCtaTitle() {
         XCTAssertEqual(PaywallSheet.ctaTitle(eligible: true), "14 日間無料で試す")
         XCTAssertEqual(PaywallSheet.ctaTitle(eligible: false), "購入する")

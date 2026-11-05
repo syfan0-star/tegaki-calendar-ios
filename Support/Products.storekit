@@ -20,7 +20,8 @@
       "id": "21700001",
       "name": "てがきカレンダー",
       "localizations": [
-        { "locale": "ja_JP", "displayName": "てがきカレンダー", "description": "" }
+        { "locale": "ja_JP", "displayName": "てがきカレンダー", "description": "" },
+        { "locale": "en_US", "displayName": "Tegaki", "description": "" }
       ],
       "subscriptions": [
         {
@@ -35,7 +36,8 @@
           "groupNumber": 1,
           "introductoryOffer": { "internalID": "21700004", "paymentMode": "free", "subscriptionPeriod": "P2W" },
           "localizations": [
-            { "locale": "ja_JP", "displayName": "てがきカレンダー 月額", "description": "手書き・予定の作成・iCloud 同期が使える月額プラン" }
+            { "locale": "ja_JP", "displayName": "てがきカレンダー 月額", "description": "手書き・予定の作成・iCloud 同期が使える月額プラン" },
+            { "locale": "en_US", "displayName": "Tegaki Monthly", "description": "Handwriting, event creation and iCloud sync" }
           ],
           "adHocOffers": [],
           "codeOffers": [],
@@ -53,7 +55,8 @@
           "groupNumber": 1,
           "introductoryOffer": { "internalID": "21700005", "paymentMode": "free", "subscriptionPeriod": "P2W" },
           "localizations": [
-            { "locale": "ja_JP", "displayName": "てがきカレンダー 年額", "description": "同じ機能の年額プラン（月あたり 200 円・4 か月分お得）" }
+            { "locale": "ja_JP", "displayName": "てがきカレンダー 年額", "description": "同じ機能の年額プラン（月あたり 200 円・4 か月分お得）" },
+            { "locale": "en_US", "displayName": "Tegaki Yearly", "description": "The same features, billed yearly" }
           ],
           "adHocOffers": [],
           "codeOffers": [],

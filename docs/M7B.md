@@ -904,3 +904,61 @@ commit・push はしていない（C）。.html は書いていない。契約�
 - **審査メモは上限まで 58 バイト**: Connect の数え方がバイトでなく字なら余裕はもっとあるが、確かめていない（A の測り方はバイト）。
 - 週の始まりの英語の文は、英語を母語とする人が読んでいない（R の逆翻訳だけ）。「設定」アプリの道はこれまでどおり TestFlight で確かめるまで仮。
 
+## S2（S の後半: 文字列の移し・lint の残り・ツールバーと投げなわのメニューの字・週の始まりの S の分。§12.1 の S2）
+
+commit はしていない（S2 は commit しない役）。`git add` は C が、次の **S2 のまとまり** をファイル名で: `tools/l10n/source/app-S.json`、`tools/l10n/lint.py`、`Support/Products.storekit`、`Sources/TegakiCalendar/` の `Views/{ToolbarView,ToolbarLogic,ToolbarDock,EventEditorSheet,EventEditorForm,PaywallSheet,WebImportSheet,ExportSheet,OnboardingView,AccountChangeDialog,RecurrenceScopeDialog,SelectionMenuView,EventDateText}.swift`・`Sync/SyncStatus.swift`・`Store/StoreStrings.swift`・`Store/LiveStoreClient.swift`・`Calendar/EventDraft.swift`・`Persistence/StrokeCensus.swift`・`Export/ExportBuilder.swift`・`Support/L10n.swift`（`count` を足した）、`Tests/TegakiCalendarTests/` の新規 `L10nTests`・`LocalizationBundleTests`・`EventDateTextTests`・`ToolbarFitTests` と足すだけの `WebImportSheetTests`・`ExportBuilderTests`・`ExportSheetTests`・`StrokeCensusTests`・`PaywallSheetTests`・`StoreKitSessionTests`。生成物（`Resources/*.xcstrings`）は最後に元を足した人が作り直す。
+
+### 入れたもの
+
+- **`app-S.json`: 229 キー**（227 が Localizable、2 が InfoPlist。複数形は 11 組 22 キー）。S のファイルの 1.1 の 233 行を全部引き受けた（`was` か `composedOf`。`EventDateText.swift:12, 21` の 2 行は K の `kit.date.ja.*` の `composedOf` のまま）。1.2 の新しい文は `import.otherWeekStart.*` の 2 つだけ。ja は 1.1 の字（`was` のものは ja-baseline.tsv の行から作ったので打ち間違いが無い。L-3 も照らす）。
+- **持ち主のコードを全部 `L` へ**（§0 の S のファイル）。`EventDateText` は `DateText`・`LayoutWords.range`・`event.allDay`・`DateText.time` で組み直し、3 つの DateFormatter を消した（形は §0 の 2 つ）。`PaywallSheet` は `PlanText.*(language:)`・`LegalLinks.terms(for:)`・`privacy(for:)`・`appleEULATitle(_:)`。`StrokeCensus` は `StrokeBudget.pageLabel(_:language:)`・`countText(_:language:)`。`ExportSheet.byteText(_:language:)` は ja 以外の数を `NumberFormatter`（§3.2。単位の B・KB・MB は訳さない）。`WebImportSheet.confirmLargeText` の 20,000 は `DateText.number`（§3.2）。
+- **F-12〜F-15**: `ToolbarLogic.Row.labelFrameWidth(for:)`・`labelMinScale`（§0）、`ToolbarView.rowLabel`（ja は 1.1 のコードの道、ほかは 38 pt の枠で 0.8 倍まで）。`tool.pen` の識別子（§7.3）。F-13・F-14・F-15 は寸法を変えず、上限を `ToolbarFitTests` で測る。`eraserHint(returnsTo:)` はキーにせず今の形のまま（§4.4）。
+- **週の始まりの S の分**（§10.5、§0）: `WebImportPhase.done(…, otherWeekStart: WeekStart? = nil)`、`toastText(…otherWeekStart:)`、`otherWeekStartText(_:)`。シートの完了の画面にも同じ 1 行を出す。`ExportBuilder` の題名とファイル名に `holidays: HolidayChoice.current`・`weekStart: WeekStartChoice.current`。
+- **`lint.py` に L-2・L-5〜L-9・L-11〜L-14**（第 4 版の `.map(StrokeBudget.pageLabel`・L-9 の価格も）。これで §2.7 の 14 が全部入った。コードを読む L-7・L-8・L-13・L-14 は、コメントと文字列の中身を除いた写しで照らし、呼び出しは閉じ括弧まで読む（文字列の埋め込みの中のコードは読む）。
+- **テスト**: §7.2 の S の全部（`testUSStorefrontPrices` を含む）、§10.8 の S2 の 3 本。足した分は `WebImportSheetTests.testJapaneseCountsAreNotGrouped`、`StrokeCensusTests.testSundayWeekLabel`、`PaywallSheetTests.testUSPricesOnTheYearlyNote`、`L10nTests.testCount`・`testTheTestsRunInJapanese`。既存の行は 1 つも変えていない（削除行 0、J-2）。
+- `Support/Products.storekit`: グループと 2 つのプランに en_US（`docs/store/subscriptions/en-US.json` の字。§6.6）。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **`L.count(_:in:)` を足した**（§0 に無い）。1.1 の `\(n)` は区切りなしで、1,000 以上で「1234 ページ」。契約の例（§2.5 の `DateText.number`）のまま ja に通すと「1,234 ページ」になり J-1 に反する。だから文に埋め込むふつうの数は ja は `String(n)`、ほかは `DateText.number`。1.1 がカンマで書いていた 20,000 だけ `DateText.number`（§3.2）。
+2. **取り込みの結果は 2 つの数を別の複数形のキーで**: `import.result.app`・`.web`「手書きを取り込みました（%1$@・%2$@）」に `import.result.pages.*`「%@ ページ」・`import.result.strokes.*`「%@ 本」を入れる。§2.4 の「文全体を 1 つのキー」のままだと、数が 2 つで .one / .other が 4 通りになる（D5 の 2 キーでは選べない）。`.one`・`.other` を 2 つの数で持つ形はほかに無い。
+3. **`event.when.dateTime`「%1$@ %2$@」を足した**: ja-baseline の `EventDateText.swift:54, 56` は「〜」だけが日本語で、「〜」は `LayoutWords` から来るのでキーが無い。日付と時刻の並べ方のキーとして行を引き受けた。`:46, :48` は `event.allDay`（§3.2）の `composedOf`。
+4. **並びの区切り**: `WebImportSheet.swift:146-148` は `import.confirmLarge.separator`「、」と `import.confirmLarge.more.*`「ほか %@ ページ」。ページの数が決まらない並びで、文全体のキーにできない。
+5. **`paywall.title` は `app.name` と別のキー**（`app.name` は §4.3 で P の物。同じキーを 2 つのファイルに置くと build.py が止まる）。
+6. **試用の 14 日にも複数形のキー**（`paywall.cta.trial.*` は §2.4 の例の形。`paywall.blockedTrial.*`・`paywall.trialLead.*`・`store.trialStarted.*` も同じに）。14 は定数なので `.one` は今は使わないが、D5 の形にそろえた。
+7. **文をつなぐ所が 3 つ残る**: `paywall.blockedLead` ＋ `paywall.blockedTrial`、`paywall.trialLead` ＋ `paywall.trialRest`（太字の分け目。§4.1 の画面の作りのまま）、線の数の行 ＋ `census.legacyNote`。文の間に空白を置く言語は、後ろのキーの値の頭に空白を入れる（キーの comment に書いた。build.py と L-2 は頭の空白を許す）。
+8. **キーの名前は `.one` / `.other` で終えない**: 「その他の色」は `toolbar.color.unknown`（`toolbar.color.other` は L-4 が複数形の片割れと読む）。
+9. **L-7 の読み方**: `PlanText.savingsMonths`・`perMonth` は数を返すので除いた（契約は `PlanText.` とだけ）。「言語の引数」は引数の中に `language`・`L.language`・`.ja` などの語があること（型は見られない）。`YearMonth` の `.title(` は `.title(` の呼び出し全部を見る。引数なしの性質 `month.title` は lint では見分けられないので、今のアプリに無いことを grep で見た。**凍結の 18 ファイルは L-7・L-8・L-13・L-14 で読まない**（直せないので。今は当たりも無い）。
+10. **L-8**: `L.text("x." + y)` のように文字列の直書きでないキーは、**その行か上の 3 行以内**に `// l10n-dynamic: <接頭辞>` が要る。InfoPlist のキーは「使われている」を見ない。`Support/L10n.swift` は定義なので読まない。
+11. **L-2**: 訳の無いキーは言語ごとに 1 行にまとめて出す（X の前は 1 行ずつだと 3,000 行を超えるため）。ko の値の漢字も失敗にした（§2.7 は「zh・ko 以外では漢字・ハングル」と書くが、ko の漢字は意図が無い。逆の指摘があれば緩める）。
+12. **L-9**: 名前の語は 3 つの案の全部から（ラテン文字は 3 字以上、漢字・かな・ハングルは 2 字以上。`docs/store/README.md` と同じ）。`Apple` などの商標は大文字小文字を区別しない部分一致、`free` などは語の一致（`freehand` を通す）。審査メモの 4,000 はバイト（§10.4 の測り方）。通貨のコードは契約の例に CNY KRW TWD HKD BRL MXN CAD AUD CHF を足した。`source-ja` はロケールでないので見ない。`copyOf` のロケールと、まだフォルダの無いロケールも見ない（`locales.json` の about のとおり）。
+13. **`testUSStorefrontPrices`**: `Products.storekit` の価格は円なので、壊れていない StoreKit の試験環境で storefront を USA にしても $1.99 にならない（M5 の注記の $1.99 は壊れた環境が App Store の値を返した場合）。だから $1.99 が返らないときは skip にし、数の確かめは試験環境に頼らない `PaywallSheetTests.testUSPricesOnTheYearlyNote` で常に行う。**CI でも skip のままになる見込み。**
+14. **`de_JP` の数**: この Mac の Foundation で `Locale("de_JP")` の小数点は「.」（地域の値が勝つ。`de_DE` は「,」）。§3.1 の「言語 ＋ 端末の地域」のとおりなので直さない。`byteText` のテストは字を決め打ちせず同じ locale の `NumberFormatter` と比べた。ドイツ語で日本の地域の端末は「1.2 MB」になる。
+
+### 確かめたこと（この Mac、push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `tools/typecheck/typecheck.sh`（外の空のフォルダ） | all OK・警告 0（アプリ、TegakiCalendarTests 31、UI テスト 4、Kit のテスト 6 つ。U・P の成果が同じ木にある状態で） |
+| `swift build`・`swift run KitChecks` | 成功、**all 29432 checks passed**（Kit のソースは変えていない） |
+| `shasum -a 256 -c tools/compat10/DATA_1_1.sha256` | 18 件 OK |
+| `python3 -I tools/l10n/lint.py .` | **L-2 だけ失敗**（X の訳がまだ無いので 9 言語とも無い）。L-1・L-3〜L-14 は ok（L-1: 114 ファイル、L-3: 516 行が全部キーか例外、L-7: 80 か所、L-8: 504 か所・495 キー、L-13: 14 か所、L-14、L-9: 2 ロケール） |
+| lint の作り物の木の確かめ（`m7b-impl/S2/pytest/cases_lint2.py`） | 134 件合格（コメントと文字列の中で当たらない、埋め込みの中は当たる、複数行の呼び出し、定義の行を除く、凍結のファイルを読まない、L-9 の上限ちょうど、など）。S1 の `cases_lint.py` は、L-2 が入ったことを前提にしない 2 件の期待のほかは合格 |
+| **アプリの XCTest を実際に走らせた**（この Mac に XCTest が無いので、リポジトリの外の代わり `m7b-impl/S2/apprun/run.sh`。Mac Catalyst の実行ファイルに組み、`.app` に build.py `--format strings` の `.lproj` を入れ、`-AppleLanguages (ja) -AppleLocale ja_JP`、TZ は東京。XCTest の意味だけを写した小さな代わりなので、本番は CI-0） | 427 本。**S の範囲で失敗 0**（日本語: `testJapaneseEventTextIsUnchanged` 2026 年の全部の日 × 14 通り、`ToolbarLogicTests`・`WebImportSheetTests`・`ExportSheetTests`・`ExportBuilderTests`・`PaywallSheetTests`・`StrokeCensusTests`・`EventEditor*Tests`）。仮の訳（§6.2 の英語の語、ほかは ja の写し）を入れると `ToolbarFitTests`・`LocalizationBundleTests`・`L10nTests`・`testEnglishEventText` も合格。残りの失敗は次の 3 種類で S の外: 本物の訳が要る（`PaperFitTests`）、test host でないと成り立たない（`SyncEngineTests.test00TestHostUsesTheFake`・`StoreModelTests.testMakeInTheTestHostIsInert`）、`ExportBuilderTests.testPDFRendersEveryKind` の `stableBytes` の比較（Catalyst の PDF の字のバイトが run ごとに揺れる。週か日の 1〜2 件。同じ大きさで違う。iOS のシミュレータでは 1.1 の CI で通っている） |
+| J-2 | 既存のテストの行を消していない（足しただけ） |
+
+**訳が入るまで落ちるテスト**（CI-0 は X の後なので問題にならない）: `LocalizationBundleTests.testEveryLanguageBundleHasEveryKey`、`ToolbarFitTests` の全部（ja の 1 本を除く）、`L10nTests.testMissingKeyFallsBackToEnglish`・`testPluralPicksOneOrOther`、`EventDateTextTests.testEnglishEventText`。
+
+### 次の役へ
+
+- **X**: S のキーで訳すのは 229（InfoPlist の 2 つを含む）。長さの上限はキーの `maxEm` と comment にある。測るのは `ToolbarFitTests` で、言い換えが要りそうな語は §4.4 の実測のとおり。**崩さない形**: `toolbar.hint.eraser.toPen`・`.toMarker` は `toolbar.hint.eraser` の字で始める（`testEraserHintsShareTheFirstLine`）。`toolbar.hint.*` は改行 1 つまで、各行が ja の幅以内（消しゴム 144 pt、投げなわと予定 155 pt）。`selection.makeEvent`・`.delete`・`.deselect` は 14 pt で 3 つの合計 220 pt 以内。`toolbar.tool.*`・`toolbar.collapse.title`・`toolbar.width.thin`・`.medium`・`.thick` は 10 pt で 47.5 pt まで。`toolbar.fingerToggle` は 13 pt で ja ＋ 76 pt まで（de は Mit Finger zeichnen）。頭に空白を入れるのが `paywall.blockedTrial.*`・`paywall.trialRest`・`census.legacyNote`（ずれの 7）。`import.result.pages.one` と `.other` は en で別の字（`testPluralPicksOneOrOther`）。`export.close` は en に値があること。
+- **C**: 上の「S2 のまとまり」。`lint.py` の頭の説明に 14 の全部を書いた。CI の「Localization lint」は `python3 -I tools/l10n/lint.py .` のまま。XCTest を CI の前に見たいときは `m7b-impl/S2/apprun/run.sh [--translated] [テストのクラス…]`（REBUILD_KIT=0 で Kit の組み立てを省く。約 1.5 分。作業の木を写して組むので木には書かない）。
+- **リード・検証**: `tool.pen` の識別子を足した後に `app.buttons["ペン"]`（YearTapUITests・EraserAndBelowDayUITests）が見つかるかは CI でしか分からない（§7.3。見つからなければ識別子をやめて LanguageUITests は名前で探す）。
+
+### 残る危険
+
+- `ToastView` は 3 行まで（`lineLimit(3)`）。取り込みのトーストは最大で 3 つの文（結果・飛ばした・週の始まり）で、iPhone で文が折り返すと最後の文が切れうる。シートの完了の画面には全文が出る。文を削る話ではないので 1.2 ではこのまま。
+- `L.value`・`text(_:in:)` が `.lproj` を見つけるかは、Xcode の xcstrings の組み込みに依る（S1 の節の「残る危険」と同じ。CI の `LocalizationBundleTests` で見る）。
+- `ToolbarFitTests` の幅は測る端末の書体で動く（±3%）。この Mac の Catalyst と CI の iOS シミュレータで少し違う。
+- フランス語の「MB」（本来は Mo）は §3.2 のとおり訳していない。
+

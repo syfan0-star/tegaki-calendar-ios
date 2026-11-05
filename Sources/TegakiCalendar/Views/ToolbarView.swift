@@ -123,13 +123,29 @@ struct ToolbarView: View {
             Image(systemName: symbol)
                 .font(.system(size: 18, weight: .medium))
                 .frame(height: ToolbarLogic.Row.symbolHeight)
-            Text(label)
-                .font(.system(size: 10))
-                .lineLimit(1)
+            rowLabel(label)
         }
         .padding(.horizontal, ToolbarLogic.Row.labelInset)
         .frame(minWidth: ToolbarLogic.Row.buttonMinWidth)
         .frame(height: 44)
+    }
+
+    /// The 10 pt name under a tool, 「しまう」 and 細中太 (F-12, docs/M7B_CONTRACT.md §4.4): Japanese as in 1.1
+    /// (the name sets the button's width); every other language in a fixed 38 pt frame, shrinking to
+    /// 0.8, so the button never widens and the row keeps what 1.1 showed.
+    @ViewBuilder
+    private func rowLabel(_ label: String) -> some View {
+        if let width = ToolbarLogic.Row.labelFrameWidth(for: L.language) {
+            Text(label)
+                .font(.system(size: 10))
+                .lineLimit(1)
+                .minimumScaleFactor(ToolbarLogic.Row.labelMinScale)
+                .frame(width: width)
+        } else {
+            Text(label)
+                .font(.system(size: 10))
+                .lineLimit(1)
+        }
     }
 
     /// 「しまう」: the same face as the tool buttons. Never disabled — folding the bar is harmless
@@ -146,11 +162,12 @@ struct ToolbarView: View {
 
     private var toolButtons: some View {
         HStack(spacing: 0) {
-            toolButton(.pen, symbol: "pencil.tip", label: "ペン") { tool = .ink(penStyle) }
-            toolButton(.marker, symbol: "highlighter", label: "マーカー") { tool = .ink(markerStyle) }
-            toolButton(.eraser, symbol: "eraser", label: "消しゴム") { tool = .eraser }
-            toolButton(.lasso, symbol: "lasso", label: "投げなわ") { tool = .lasso }
-            toolButton(.eventRect, symbol: "calendar.badge.plus", label: "予定") { tool = .eventRect }
+            toolButton(.pen, symbol: "pencil.tip", label: L.text("toolbar.tool.pen")) { tool = .ink(penStyle) }
+                .accessibilityIdentifier("tool.pen")
+            toolButton(.marker, symbol: "highlighter", label: L.text("toolbar.tool.marker")) { tool = .ink(markerStyle) }
+            toolButton(.eraser, symbol: "eraser", label: L.text("toolbar.tool.eraser")) { tool = .eraser }
+            toolButton(.lasso, symbol: "lasso", label: L.text("toolbar.tool.lasso")) { tool = .lasso }
+            toolButton(.eventRect, symbol: "calendar.badge.plus", label: L.text("toolbar.tool.event")) { tool = .eventRect }
         }
     }
 
@@ -247,9 +264,7 @@ struct ToolbarView: View {
                         Capsule()
                             .fill(Color.primary)
                             .frame(width: 22, height: max(2, entry.width * 1.2))
-                        Text(entry.name)
-                            .font(.system(size: 10))
-                            .lineLimit(1)
+                        rowLabel(entry.name)
                     }
                     .padding(.horizontal, ToolbarLogic.Row.widthLabelInset)
                     .frame(minWidth: ToolbarLogic.Row.widthButtonMinWidth)
@@ -262,7 +277,7 @@ struct ToolbarView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("太さ: \(entry.name)")
+                .accessibilityLabel(L.format("toolbar.width.spoken", entry.name))
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
@@ -278,7 +293,7 @@ struct ToolbarView: View {
             }
             .buttonStyle(.plain)
             .disabled(!canUndo)
-            .accessibilityLabel("元に戻す")
+            .accessibilityLabel(L.text("toolbar.undo"))
 
             Button(action: onRedo) {
                 Image(systemName: "arrow.uturn.forward")
@@ -288,18 +303,18 @@ struct ToolbarView: View {
             }
             .buttonStyle(.plain)
             .disabled(!canRedo)
-            .accessibilityLabel("やり直す")
+            .accessibilityLabel(L.text("toolbar.redo"))
         }
     }
 
     private var fingerToggle: some View {
         Toggle(isOn: $allowFinger) {
-            Label("指でも書く", systemImage: "hand.draw")
+            Label(L.text("toolbar.fingerToggle"), systemImage: "hand.draw")
                 .font(.system(size: 13))
                 .lineLimit(1)
         }
         .toggleStyle(.button)
-        .accessibilityHint("オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします")
+        .accessibilityHint(L.text("toolbar.fingerToggle.hint"))
     }
 }
 
@@ -321,26 +336,26 @@ enum ToolbarPalette {
     }
 
     static let penColors: [Entry] = [
-        Entry(hex: "#1f2937", name: "黒"),
-        Entry(hex: "#2563eb", name: "青"),
-        Entry(hex: "#dc2626", name: "赤"),
-        Entry(hex: "#16a34a", name: "緑"),
-        Entry(hex: "#ea580c", name: "オレンジ"),
-        Entry(hex: "#7c3aed", name: "紫"),
+        Entry(hex: "#1f2937", name: L.text("toolbar.color.black")),
+        Entry(hex: "#2563eb", name: L.text("toolbar.color.blue")),
+        Entry(hex: "#dc2626", name: L.text("toolbar.color.red")),
+        Entry(hex: "#16a34a", name: L.text("toolbar.color.green")),
+        Entry(hex: "#ea580c", name: L.text("toolbar.color.orange")),
+        Entry(hex: "#7c3aed", name: L.text("toolbar.color.purple")),
     ]
 
     static let markerColors: [Entry] = [
-        Entry(hex: "#fde047", name: "黄"),
-        Entry(hex: "#f9a8d4", name: "ピンク"),
-        Entry(hex: "#86efac", name: "緑"),
-        Entry(hex: "#93c5fd", name: "水色"),
+        Entry(hex: "#fde047", name: L.text("toolbar.color.yellow")),
+        Entry(hex: "#f9a8d4", name: L.text("toolbar.color.pink")),
+        Entry(hex: "#86efac", name: L.text("toolbar.color.green")),
+        Entry(hex: "#93c5fd", name: L.text("toolbar.color.lightBlue")),
     ]
 
     /// Pen widths in lu (DESIGN §3.6: 細 2 / 中 3.5 / 太 6).
     static let penWidths: [Width] = [
-        Width(width: 2, name: "細"),
-        Width(width: 3.5, name: "中"),
-        Width(width: 6, name: "太"),
+        Width(width: 2, name: L.text("toolbar.width.thin")),
+        Width(width: 3.5, name: L.text("toolbar.width.medium")),
+        Width(width: 6, name: L.text("toolbar.width.thick")),
     ]
 
     /// Marker width in lu.

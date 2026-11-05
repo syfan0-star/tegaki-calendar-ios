@@ -64,6 +64,13 @@ enum L {
         return lookUp(key, in: bundle)
     }
 
+    /// A count inside a sentence (「3 ページ」): ja keeps what 1.1's `\(n)` wrote, without grouping
+    /// (「1234 ページ」, J-1), every other language groups it (`DateText.number`, D5). The fixed numbers
+    /// 1.1 wrote with a comma (20,000) use `DateText.number` directly (§3.2).
+    static func count(_ n: Int, in language: UILanguage = L.language) -> String {
+        language == .ja ? String(n) : DateText.number(n, language)
+    }
+
     // MARK: - Looking up
 
     /// What `localizedString` returns for a key its table does not have: three private-use

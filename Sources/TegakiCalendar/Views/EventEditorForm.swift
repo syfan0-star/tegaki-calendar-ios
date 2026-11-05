@@ -1,8 +1,8 @@
 import Foundation
 import Layout
 
-/// A validation failure of the event sheet (M3b contract §4.3). `errorDescription` is the Japanese
-/// text shown under the field.
+/// A validation failure of the event sheet (M3b contract §4.3). `errorDescription` is the text shown
+/// under the field.
 enum EventFormError: Equatable, LocalizedError {
     case emptyTitle
     case endBeforeStart
@@ -10,9 +10,9 @@ enum EventFormError: Equatable, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .emptyTitle: return "タイトルを入力してください"
-        case .endBeforeStart: return "終了は開始より後にしてください"
-        case .endDayBeforeStart: return "終了日は開始日以降にしてください"
+        case .emptyTitle: return L.text("event.error.emptyTitle")
+        case .endBeforeStart: return L.text("event.error.endBeforeStart")
+        case .endDayBeforeStart: return L.text("event.error.endDayBeforeStart")
         }
     }
 }

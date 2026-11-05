@@ -57,7 +57,7 @@ enum EventSpan: Equatable {
     }
 }
 
-/// A failed write. `errorDescription` is Japanese and is shown as it is (toast, sheet footer).
+/// A failed write. `errorDescription` is shown as it is (toast, sheet footer).
 enum EventWriteError: LocalizedError, Equatable {
     case noAccess
     case noWritableCalendar
@@ -70,13 +70,13 @@ enum EventWriteError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .noAccess: return "カレンダーへのアクセスが許可されていません"
-        case .noWritableCalendar: return "予定を登録できるカレンダーがありません"
-        case .calendarNotFound: return "登録先のカレンダーが見つかりません"
-        case .readOnlyCalendar: return "このカレンダーは変更できません"
-        case .eventNotFound: return "予定が見つかりません（別の端末で削除されたかもしれません）"
-        case .invalidRange: return "終了は開始より後にしてください"
-        case .failed(let message): return "保存できませんでした: \(message)"
+        case .noAccess: return L.text("event.error.noAccess")
+        case .noWritableCalendar: return L.text("event.error.noWritableCalendar")
+        case .calendarNotFound: return L.text("event.error.calendarNotFound")
+        case .readOnlyCalendar: return L.text("event.error.readOnlyCalendar")
+        case .eventNotFound: return L.text("event.error.eventNotFound")
+        case .invalidRange: return L.text("event.error.endBeforeStart")
+        case .failed(let message): return L.format("event.error.failed", message)
         }
     }
 }

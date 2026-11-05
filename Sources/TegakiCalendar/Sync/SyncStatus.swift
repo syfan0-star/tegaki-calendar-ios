@@ -63,19 +63,19 @@ extension SyncStatus {
     var header: HeaderSync {
         switch self {
         case .synced:
-            return HeaderSync(text: "保存済み", symbol: "icloud", isError: false)
+            return HeaderSync(text: L.text("sync.header.saved"), symbol: "icloud", isError: false)
         case .pending:
-            return HeaderSync(text: "同期中", symbol: "icloud", isError: false)
+            return HeaderSync(text: L.text("sync.header.syncing"), symbol: "icloud", isError: false)
         case .syncing:
-            return HeaderSync(text: "同期中", symbol: "arrow.triangle.2.circlepath.icloud", isError: false)
+            return HeaderSync(text: L.text("sync.header.syncing"), symbol: "arrow.triangle.2.circlepath.icloud", isError: false)
         case .offline:
-            return HeaderSync(text: "オフライン", symbol: "icloud.slash", isError: false)
+            return HeaderSync(text: L.text("sync.header.offline"), symbol: "icloud.slash", isError: false)
         case .localOnly:
-            return HeaderSync(text: "この端末のみ", symbol: "icloud.slash", isError: false)
+            return HeaderSync(text: L.text("sync.header.localOnly"), symbol: "icloud.slash", isError: false)
         case .error:
-            return HeaderSync(text: "エラー", symbol: "exclamationmark.icloud", isError: true)
+            return HeaderSync(text: L.text("sync.header.error"), symbol: "exclamationmark.icloud", isError: true)
         case .accountMismatch:
-            return HeaderSync(text: "停止中", symbol: "person.crop.circle.badge.exclamationmark", isError: true)
+            return HeaderSync(text: L.text("sync.header.stopped"), symbol: "person.crop.circle.badge.exclamationmark", isError: true)
         }
     }
 
@@ -83,25 +83,25 @@ extension SyncStatus {
     var settingsText: String {
         switch self {
         case .synced:
-            return "同期済み"
+            return L.text("sync.status.synced")
         case .pending, .syncing:
-            return "同期中…"
+            return L.text("sync.status.syncing")
         case .offline:
-            return "オフライン"
+            return L.text("sync.status.offline")
         case .localOnly(.noAccount):
-            return "iCloud にサインインしていません"
+            return L.text("sync.status.noAccount")
         case .localOnly(.restricted):
-            return "この端末では iCloud が制限されています"
+            return L.text("sync.status.restricted")
         case .localOnly(.unknown), .localOnly(.notAuthenticated):
-            return "iCloud を確認できません"
+            return L.text("sync.status.unknown")
         case .error(.quota):
-            return "iCloud の容量が足りません"
+            return L.text("sync.status.quota")
         case .error(.permission):
-            return "iCloud を使えません"
+            return L.text("sync.status.permission")
         case .error(.server):
-            return "同期に失敗しました"
+            return L.text("sync.status.serverError")
         case .accountMismatch:
-            return "別の iCloud アカウントです"
+            return L.text("sync.status.accountMismatch")
         }
     }
 
@@ -109,25 +109,25 @@ extension SyncStatus {
     var settingsFooter: String {
         switch self {
         case .synced:
-            return "手書きはこの端末と、あなたの iCloud に保存されています。ほかの iPad や iPhone でも同じ手書きが見られます。"
+            return L.text("sync.footer.synced")
         case .pending, .syncing:
-            return "書いた手書きを iCloud へ送っています。"
+            return L.text("sync.footer.syncing")
         case .offline:
-            return "オフラインです。手書きはこの端末に保存され、接続が戻ると同期されます。"
+            return L.text("sync.footer.offline")
         case .localOnly(.noAccount):
-            return "iCloud にサインインするとほかの端末と同期できます。手書きはこの端末の中だけに保存しています。"
+            return L.text("sync.footer.noAccount")
         case .localOnly(.restricted):
-            return "手書きはこの端末の中だけに保存しています。"
+            return L.text("sync.footer.restricted")
         case .localOnly(.unknown), .localOnly(.notAuthenticated):
-            return "「設定」アプリで iCloud を確認してください。手書きはこの端末の中だけに保存しています。"
+            return L.text("sync.footer.unknown")
         case .error(.quota):
-            return "iCloud の容量が不足しているため、手書きを同期できません。この端末には保存されています。"
+            return L.text("sync.footer.quota")
         case .error(.permission):
-            return "iCloud の設定でこのアプリの利用が許可されていません。"
+            return L.text("sync.footer.permission")
         case .error(.server(let message)):
-            return "手書きの同期に失敗しました。この端末には保存されています（あとで再試行します）。\n\(message)"
+            return L.format("sync.footer.serverError", message)
         case .accountMismatch:
-            return "この端末の手書きは、前に同期していた iCloud アカウントのものです。「新しいアカウントで使い始める」から選んでください。"
+            return L.text("sync.footer.accountMismatch")
         }
     }
 

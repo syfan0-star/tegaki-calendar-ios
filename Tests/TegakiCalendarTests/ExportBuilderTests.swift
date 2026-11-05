@@ -566,6 +566,51 @@ final class ExportBuilderTests: XCTestCase {
         XCTAssertLessThan(quietBox.height, box.height)
     }
 
+    /// 1.2 (docs/M7B_CONTRACT.md §10.2): the data file holds every page of both week forms, whatever the
+    /// setting is, and nothing about the setting (K-5).
+    func testExportKeepsBothWeekForms() async throws {
+        WeekStartChoice.current = .sunday
+        defer { WeekStartChoice.current = .monday }
+        let stroke = { (id: String) in
+            InkStroke(id: id, cell: .grid, tool: .pen, color: "#2563eb", t: 1_760_000_003_000,
+                      points: self.points(from: CGPoint(x: 10, y: 10), to: CGPoint(x: 60, y: 40)))
+        }
+        var mondayPage = InkPage.empty(pageId: "w-2026-10-26")
+        mondayPage.add(stroke("on-monday-form"))
+        var sundayPage = InkPage.empty(pageId: "w-2026-11-01")
+        sundayPage.add(stroke("on-sunday-form"))
+        try store.save(mondayPage)
+        try store.save(sundayPage)
+
+        let result = try await builder.exportJSON { _, _ in }
+        XCTAssertEqual(result.pageCount, 2)
+        let data = try Data(contentsOf: result.url)
+        let (document, skipped) = try parseApp(data)
+        XCTAssertEqual(skipped, 0)
+        XCTAssertEqual(document.pages.map(\.pageId), ["w-2026-10-26", "w-2026-11-01"])
+        XCTAssertEqual(document.pages[0], mondayPage)
+        XCTAssertEqual(document.pages[1], sundayPage)
+        XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("weekStart"), "the setting stays out of the file (K-5)")
+    }
+
+    /// 1.2 (§10.5): the week PDF's title and file name follow `WeekStartChoice.current`, as the paper
+    /// on the screen does; the file name's week starts on the Sunday.
+    func testSundayPDFFileName() throws {
+        WeekStartChoice.current = .sunday
+        defer { WeekStartChoice.current = .monday }
+        let page = ScreenshotMode.demoPage(kind: .week, focus: wednesday)
+        let result = try builder.exportPDF(paper: weekPaper(), page: page, kind: .week, focus: wednesday)
+        XCTAssertEqual(result.fileName, "てがきカレンダー 2026年10月4日〜10月10日 週.pdf")
+        XCTAssertEqual(result.fileName, AppExport.pdfFileName(kind: .week, focus: wednesday, holidays: .japan, language: .ja, weekStart: .sunday))
+        let document = try XCTUnwrap(PDFDocument(url: result.url))
+        let title = (document.documentAttributes?[PDFDocumentAttribute.titleAttribute] as? String) ?? (document.documentAttributes?["Title"] as? String)
+        XCTAssertEqual(title, "2026年10月4日〜10月10日")
+
+        WeekStartChoice.current = .monday
+        let monday = try builder.exportPDF(paper: weekPaper(), page: page, kind: .week, focus: wednesday)
+        XCTAssertEqual(monday.fileName, "てがきカレンダー 2026年10月5日〜10月11日 週.pdf", "Monday stays 1.1's name")
+    }
+
     func testPDFFileNameAndMetadata() throws {
         let page = ScreenshotMode.demoPage(for: month)
         let result = try builder.exportPDF(paper: monthPaper(page: page), page: page, kind: .month, focus: wednesday)

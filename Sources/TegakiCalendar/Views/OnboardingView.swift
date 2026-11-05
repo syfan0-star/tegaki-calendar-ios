@@ -19,25 +19,25 @@ struct OnboardingView: View {
     static let lastIndex = 3
 
     /// The first card: the device's 「カレンダー」, then the same steps as the settings screen.
-    static let accountText = "このアプリは、この端末の「カレンダー」に入っている予定を表示します。\n\n" + SettingsScreen.googleHowTo
+    static let accountText = L.format("onboarding.account.text", SettingsScreen.googleHowTo)
     /// The second card: why full access.
-    static let accessText = "次の画面で、カレンダーへの「フルアクセス」を求めます。予定を手帳のページに表示し、手書きから予定を作るためです。\n\niOS と iPadOS には読み取りだけの許可が無いため、フルアクセスになります。予定はこの端末の中だけで扱い、開発者やほかの誰にも送りません。"
+    static let accessText = L.text("onboarding.access.text")
     /// The third card: pen and finger; 1.1 adds the last sentence (the taps that open a day page).
-    static let penText = "Apple Pencil で紙に書きます。指はスクロール・ピンチ拡大・予定のタップに使います。手のひらが触れても線は引かれません。\n\n指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。Apple Pencil のダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作どおりにペンと消しゴムを切り替えます。\n\n" + dayPageTapText
+    static let penText = L.format("onboarding.pen.text", dayPageTapText)
     /// The sentence of 1.1 at the end of the third card (§6.2).
-    static let dayPageTapText = "年のページは日付や左端の数字（今月のその日）、月のページは日付の数字を指でタップ、週・月・年のページはマスを指でダブルタップすると、その日のページが開きます。"
+    static let dayPageTapText = L.text("onboarding.dayPageTap")
     /// The fourth card: where the handwriting is kept.
-    static let iCloudText = "手書きはこの端末と、あなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きが見られます。\n\niCloud にサインインしていないときは、この端末の中だけに保存します。iCloud の設定は要りません（この端末でサインインしていれば自動で使われます）。\n\n手書きは開発者には見えません。iCloud の容量はあなたのものを使います。"
+    static let iCloudText = L.text("onboarding.icloud.text")
 
     var body: some View {
         VStack(spacing: 0) {
             TabView(selection: $index) {
                 card(
                     symbol: "person.crop.circle.badge.plus",
-                    title: "カレンダーのアカウント",
+                    title: L.text("onboarding.account.title"),
                     text: Self.accountText,
                     extra: AnyView(
-                        Button("設定アプリを開く") {
+                        Button(L.text("onboarding.openSettings")) {
                             if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                         }
                         .buttonStyle(.bordered)
@@ -47,7 +47,7 @@ struct OnboardingView: View {
 
                 card(
                     symbol: "lock.open",
-                    title: "カレンダーへのアクセス",
+                    title: L.text("onboarding.access.title"),
                     text: Self.accessText,
                     extra: nil
                 )
@@ -55,7 +55,7 @@ struct OnboardingView: View {
 
                 card(
                     symbol: "pencil.and.scribble",
-                    title: "ペンで書き、指で動かす",
+                    title: L.text("onboarding.pen.title"),
                     text: Self.penText,
                     extra: nil
                 )
@@ -63,7 +63,7 @@ struct OnboardingView: View {
 
                 card(
                     symbol: "icloud",
-                    title: "iCloud と手書きの保存",
+                    title: L.text("onboarding.icloud.title"),
                     text: Self.iCloudText,
                     extra: nil
                 )
@@ -75,7 +75,7 @@ struct OnboardingView: View {
             HStack {
                 Spacer()
                 if index < Self.lastIndex {
-                    Button("次へ") {
+                    Button(L.text("onboarding.next")) {
                         withAnimation { index += 1 }
                     }
                     .buttonStyle(.borderedProminent)
@@ -91,7 +91,7 @@ struct OnboardingView: View {
                         if requesting {
                             ProgressView()
                         } else {
-                            Text("許可の画面を出す")
+                            Text(L.text("onboarding.askPermission"))
                         }
                     }
                     .buttonStyle(.borderedProminent)
