@@ -14,17 +14,17 @@
 | zh-Hans | 440 | 36 | 0 |
 | zh-Hant | 439 | 37 | 0 |
 | ko | 439 | 37 | 0 |
-| fr | 412 | 64 | 0 |
+| fr | 410 | 66 | 0 |
 | de | 416 | 60 | 0 |
 | es | 407 | 69 | 0 |
 | it | 413 | 63 | 0 |
 | pt-BR | 409 | 67 | 0 |
-| 合計（476 キー × 9 言語） | 3809 | 475 | 0 |
+| 合計（476 キー × 9 言語） | 3807 | 477 | 0 |
 
 - **アプリの文字列**: × は 0 件です（1 回目の × は 2 の表のとおり直し、R の 2 回目で確かめました）。
 - **ストアの文（11 組と審査メモ）**: × は 0 件（4）。「か月分」にあたる語は 0 件です。
 - **英語の 3 文書（§11.3 の文を含む）**: × は 0 件（5）。
-- **検証の後に FIX が変えた訳とストアの字**は 10 にあります。FIX の逆翻訳は元を見て書いたものなので、2026-11-05 に別の Claude が元を見ずに 33 件を訳し戻し、判定しました（○ 12・△ 19・× 2）。× の 2 件（de の `toast.weekStart.otherForm.*`）は直しました。直した字は元を見ない逆翻訳を通っていません。
+- **検証の後に FIX が変えた訳とストアの字**は 10 にあります。FIX の逆翻訳は元を見て書いたものなので、2026-11-05 に別の Claude が元を見ずに 33 件を訳し戻し、判定しました（○ 12・△ 19・× 2）。× の 2 件（de の `toast.weekStart.otherForm.*`）は直し、直した字を含む 6 件をもう一度元を見ずに訳し戻しました（R4。○ 0・△ 6・× 0）。**元を見ない逆翻訳を通っていないのは、その後に直した fr の `toast.weekStart.otherForm.*` の 2 件、ストアの de-DE の `whatsnew.txt` の「in Tegaki」の 2 か所、FIX3 の見本の語 4 件です**（10）。
 - **審査メモの TestFlight と審査のビルドの段落**は R の 2 回目で訳し戻し、○ と判定しました（6）。
 
 ## 2. × と直した訳
@@ -41,9 +41,9 @@
 | `settings.weekStart.confirm.message.monday` | it | 週のページは、月曜始まりと日曜始まりで別のページになります。いま書いてある週の手書きは、日曜始まりに戻すまで見えません（消えません）。月のページの手書きは、同じ日付のマスに移ります。ただし、前後の月の日のマスに書いたものは、一部が戻すまで見えなくなることがあります（消えません）。 | 週のページは、月曜に始まる週と日曜に始まる週で別々です。今の週の手書きは、日曜に戻すまで隠れたままです（削除されません）。月のページの手書きは、同じ日付のマスへ移ります。ただし、前後の月の日のマスに書いたものの一部は、戻すまで隠れたままのことがあります（削除されません）。 | ○（2 回目） | 「いま書いてある週の手書き（全部の週）」が「今の週の手書き」になり、今週の分だけと読める。切り替えの文で、隠れる物を取り違えるのは危ない | Le pagine della settimana sono separate per le settimane che iniziano di lunedì e quelle che iniziano di domenica. La scrittura a mano già presente nelle pagine della settimana resta nascosta finché non torna a domenica (non viene eliminata). La scrittura delle pagine del mese passa nella casella con la stessa data. Tuttavia, parte di ciò che è scritto nelle caselle dei giorni del mese precedente o successivo può restare nascosta finché non torna indietro (non viene eliminata). | 週のページは、月曜に始まる週と日曜に始まる週とで分かれています。週のページにすでにある手書きは、日曜に戻るまで隠れたままです（削除されません）。月のページに書いたものは、同じ日付のマスに移ります。ただし、前の月か次の月の日のマスに書かれたものの一部は、元に戻るまで隠れたままのことがあります（削除されません）。 |
 | `settings.weekStart.confirm.message.monday` | pt-BR | 週のページは、月曜始まりと日曜始まりで別のページになります。いま書いてある週の手書きは、日曜始まりに戻すまで見えません（消えません）。月のページの手書きは、同じ日付のマスに移ります。ただし、前後の月の日のマスに書いたものは、一部が戻すまで見えなくなることがあります（消えません）。 | 週のページは、月曜に始まる週と日曜に始まる週で別々です。今の週の手書きは、日曜に戻すまで隠れたままです（消えません）。月のページの手書きは、同じ日付のマスへ移ります。ただし、前後の月の日のマスに書いたものの一部は、戻すまで隠れたままのことがあります（消えません）。 | ○（2 回目） | 「いま書いてある週の手書き（全部の週）」が「今の週の手書き」になり、今週の分だけと読める。切り替えの文で、隠れる物を取り違えるのは危ない | As páginas da semana são separadas para semanas que começam na segunda-feira e semanas que começam no domingo. A escrita à mão que você já tem nas páginas da semana fica oculta até você voltar para domingo (ela não é apagada). A escrita das páginas do mês passa para a célula da mesma data. No entanto, parte do que foi escrito em células de dias do mês anterior ou seguinte pode ficar oculta até você voltar (não é apagada). | 週のページは、月曜に始まる週と日曜に始まる週とで分かれています。週のページにすでにある手書きは、日曜に戻るまで隠れます（消されません）。月のページに書いたものは、同じ日付のセルに移ります。ただし、前の月か次の月の日のセルに書かれたものの一部は、戻るまで隠れることがあります（消されません）。 |
 | `settings.weekStart.confirm.message.monday` | ko | 週のページは、月曜始まりと日曜始まりで別のページになります。いま書いてある週の手書きは、日曜始まりに戻すまで見えません（消えません）。月のページの手書きは、同じ日付のマスに移ります。ただし、前後の月の日のマスに書いたものは、一部が戻すまで見えなくなることがあります（消えません）。 | 週のページは、月曜始まりと日曜始まりで別のページです。今書いた週の手書きは、日曜始まりに戻すまで見えません（消えません）。月のページの手書きは同じ日付のマスへ移ります。ただし、前後の月の日付のマスに書いたものは、一部が戻すまで見えないことがあります（消えません）。 | ○（2 回目） | 「いま書いてある」が「たった今書いた」（지금 쓴）になり、さっき書いた分だけと読める | 주 페이지는 월요일 시작과 일요일 시작이 서로 다른 페이지예요. 지금까지 쓴 주 손글씨는 일요일 시작으로 되돌릴 때까지 보이지 않아요(지워지지 않아요). 월 페이지의 손글씨는 같은 날짜의 칸으로 옮겨져요. 다만 앞뒤 달의 날짜 칸에 쓴 것은 일부가 되돌릴 때까지 보이지 않을 수 있어요(지워지지 않아요). | 週のページは、月曜始まりと日曜始まりが互いに別のページです。これまでに書いた週の手書きは、日曜始まりに戻すまで見えません（消えません）。月のページの手書きは、同じ日付のマスに移ります。ただし、前後の月の日付のマスに書いたものは、一部が戻すまで見えないことがあります（消えません）。 |
-| `toast.weekStart.otherForm.one` | fr | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ の週のページはもう一方の最初の日（%1$@）で、削除されていません。設定 > 週の最初の日。 | ○（2 回目） | 文が「設定 > 週の最初の日」で終わり、「切り替えると見える」が落ちていた（3 行に入れるための短縮が行きすぎ） | %2$@ page de semaine a l’autre premier jour (%1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine. | 週のページ %2$@ ページは、もう一方の週の最初の日（%1$@）になっています。削除されていません。それを見るには: 設定 > 週の最初の日。 |
+| `toast.weekStart.otherForm.one` | fr | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ の週のページはもう一方の最初の日（%1$@）で、削除されていません。設定 > 週の最初の日。 | △（R4） | 文が「設定 > 週の最初の日」で終わり、「切り替えると見える」が落ちていた（3 行に入れるための短縮が行きすぎ） | %2$@ page de semaine (1er jour : %1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine. | 週のページが %2$@ ページ（最初の日: %1$@）、削除されていません。見るには：設定 > 週の最初の日。 |
 | `toast.weekStart.otherForm.one` | it | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ の週のページはもう一方の最初の日（%1$@）を使っていて、削除されていません。設定 > 週の最初の日 を見てください。 | △（2 回目） | 文が「設定 > 週の最初の日 を見てください」で終わり、「切り替えると見える」が落ちていた | %2$@ pagina settimanale con inizio %1$@, non eliminata. Per vederla: Impostazioni > Primo giorno della settimana. | 開始が %1$@ の週間ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 |
-| `toast.weekStart.otherForm.other` | fr | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ の週のページはもう一方の最初の日（%1$@）で、削除されていません。設定 > 週の最初の日。 | ○（2 回目） | 文が「設定 > 週の最初の日」で終わり、「切り替えると見える」が落ちていた（3 行に入れるための短縮が行きすぎ） | %2$@ pages de semaine ont l’autre premier jour (%1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine. | 週のページ %2$@ ページは、もう一方の週の最初の日（%1$@）になっています。削除されていません。それらを見るには: 設定 > 週の最初の日。 |
+| `toast.weekStart.otherForm.other` | fr | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ の週のページはもう一方の最初の日（%1$@）で、削除されていません。設定 > 週の最初の日。 | △（R4） | 文が「設定 > 週の最初の日」で終わり、「切り替えると見える」が落ちていた（3 行に入れるための短縮が行きすぎ） | %2$@ pages de semaine (1er jour : %1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine. | 週のページが %2$@ ページ（最初の日: %1$@）、削除されていません。見るには：設定 > 週の最初の日。 |
 | `toast.weekStart.otherForm.other` | it | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ の週のページはもう一方の最初の日（%1$@）を使っていて、削除されていません。設定 > 週の最初の日 を見てください。 | △（2 回目） | 文が「設定 > 週の最初の日 を見てください」で終わり、「切り替えると見える」が落ちていた | %2$@ pagine settimanali con inizio %1$@, non eliminate. Per vederle: Impostazioni > Primo giorno della settimana. | 開始が %1$@ の週間ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 |
 | `onboarding.dayPageTap` | en | 年のページは日付や左端の数字（今月のその日）、月のページは日付の数字を指でタップ、週・月・年のページはマスを指でダブルタップすると、その日のページが開きます。 | 日のページを開くには、年のページで日付か左端の数字（今月のその日）をタップするか、月のページで日付の数字をタップするか、週・月・年のページのマスを指でダブルタップします。 | ○（2 回目） | 「指で」が最後のダブルタップにしか掛からず、日付のタップは Apple Pencil でもよいと読める。元は 3 つとも指 | To open a day page with your finger, tap a date or the number on the left edge (that day of this month) on the year page, tap a date number on the month page, or double-tap a cell on the week, month or year page. | 指で日のページを開くには、年のページで日付か左端の数字（今月のその日）をタップするか、月のページで日付の数字をタップするか、週・月・年のページでセルをダブルタップします。 |
 | `onboarding.dayPageTap` | fr | 年のページは日付や左端の数字（今月のその日）、月のページは日付の数字を指でタップ、週・月・年のページはマスを指でダブルタップすると、その日のページが開きます。 | 日のページを開くには: 年のページで日付か左端の数字（今月のその日）をタップ、月のページで日付の数字をタップ、週・月・年のページでマスを指でダブルタップします。 | ○（2 回目） | 「指で」が最後のダブルタップにしか掛からず、日付のタップは Apple Pencil でもよいと読める。元は 3 つとも指 | Pour ouvrir une page du jour avec le doigt : sur la page de l’année, touchez une date ou le chiffre du bord gauche (ce jour du mois en cours) ; sur la page du mois, touchez le chiffre d’une date ; sur les pages de semaine, de mois et d’année, touchez deux fois une case. | 指で日のページを開くには: 年のページでは、日付か左端の数字（今の月のその日）をタップしてください。月のページでは、日付の数字をタップしてください。週・月・年のページでは、マスを 2 回タップしてください。 |
@@ -59,6 +59,8 @@
 測り直し: `toast.weekStart.otherForm.*` の直しの後、Mac Catalyst の字で `ToolbarFitTests`・`PaperFitTests`・`WeekStartChoiceTests` を走らせて 38 本すべて通りました（`testWeekStartToastsFitThreeLines` は 402 pt で 3 行以内。375 pt で 4 行になっていた de・it・pt-BR の文は、検証の後に FIX が短くして、この Mac では 3 行に入ります。10）。本当の判定は CI-0 のシミュレータです。見本の語の幅（10 pt）: Daily 25.0、Zahncheck 55.3（5.7 em まで）、Nómina 38.0（4.2 em まで）、Addio 28.9（5.7 em まで）。
 
 it の `toast.weekStart.otherForm.*` の判定と「逆翻訳（2 回目）」は、FIX が短くした今の字を 2026-11-05 に別の Claude が元を見ずに訳し戻したものです（10）。「もう一方の」が無いので ○ から △ に変えました。
+
+fr の同じキーの「直した訳」は、311 pt の 3 行に入れるために短くした後、R4 が直した今の字です（10 の R4 の表）。「逆翻訳（2 回目）」は判定した Claude が元を見て書いたもので、**元を見ない逆翻訳を通っていません**。「もう一方の」が無いので ○ から △ に変えました。
 
 ## 3. §6.1 で特に見ること
 
@@ -121,7 +123,7 @@ it の `toast.weekStart.otherForm.*` の判定と「逆翻訳（2 回目）」�
 | `description.txt` の利用規約の行 | ○ | Apple 標準 EULA の URL と今の日本語の `app/terms.html`（0-38） |
 | `description.txt` の最後の 1 文 | ○ | 11 組とも「訳は AI、母語の人の確認はまだ、誤りを知らせてほしい」（§6.1） |
 | `pt-PT/description.txt` の 10 行目 | △ | 元に無い行。「アプリの画面のポルトガル語はブラジルのもの」（§11.2 の指定） |
-| `whatsnew.txt` の 5 点 | ○ | 言語・言語の戻し方・祝日・週の始まり（元に戻すまで見えないが消えない、古い版の端末の注）・端末ごとの設定。11 組とも元と同じ。pt-PT の「ポルトガル語（ブラジル）」は §11.2 の指定 |
+| `whatsnew.txt` の 5 点 | ○ | 言語・言語の戻し方・祝日・週の始まり（元に戻すまで見えないが消えない、古い版の端末の注）・端末ごとの設定。11 組とも元と同じ。pt-PT の「ポルトガル語（ブラジル）」は §11.2 の指定。de-DE は全文を 2026-11-05 に元を見ずに訳し戻した（R4、10。アプリ内の設定の 2 か所を「in Tegaki」に直した） |
 | `en-US/whatsnew.txt` の 6・8 行目 | ○ | ホーム画面の名前と日本語の段落（§6.3 の指定で en-US だけ） |
 | `whatsnew.txt` の最後の 1 文 | ○ | `description.txt` と同じ |
 | `subscriptions/*.json` の表示名 | ○ | 「Tegaki ＋ 月額／年額」の語。価格なし |
@@ -163,8 +165,8 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `toolbar.collapse.title` | de | Ablegen | △ | 幅（F-12）。読み上げは ausblenden |
 | `allday.label.short` | it | 24h | △ | 幅（F-7）。正式な形は Tutto il giorno |
 | `selection.makeEvent`・`toolbar.tool.event` | fr | RDV | △ | 幅。用語集に書いた略 |
-| `toast.weekStart.otherForm.*` | fr | 動詞を省いた短い文 | ○（2 回目） | 「切り替えると見える」が落ちていた。直した（it も同じ） |
-| `toast.weekStart.otherForm.*` | de | 動詞を省いた短い文 | △ | 元を見ない逆翻訳（10）で「見える」が落ちていると分かり、Wechseln（切り替え）を Ansehen（見る）に直した |
+| `toast.weekStart.otherForm.*` | fr | 動詞を省いた短い文 | △（R4） | 「切り替えると見える」が落ちていた。直した（it も同じ）。その後 311 pt の 3 行に入れるため `avec début %1$@` にしたが、元を見ない逆翻訳（10）で「何の始まりか書かれていない」と言われ、`(1er jour : %1$@)` に直した |
+| `toast.weekStart.otherForm.*` | de | 動詞を省いた短い文 | △ | 元を見ない逆翻訳（10）で「見える」が落ちていると分かり、Wechseln（切り替え）を Ansehen（見る）に直した。直した字は R4 の元を見ない逆翻訳で「見るには」と読まれた |
 | `demo.event.birthday` | de | Feier | △ | 見本。Geburtstag は 4.2 em に入らない（56.6 pt） |
 | `demo.event.morningMeeting` | de | Morgen | △（2 回目） | 「明日」と読める。Daily に直した |
 | `demo.event.morningMeeting` | it | Mattutina | △ | 形容詞だけで予定の名に見えにくいので、FIX が Riunione に直した（10） |
@@ -204,6 +206,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `toolbar.moveEdge.*` | de | ボタンの短い形（「左下へ」）。動きは同じ |
 | `toast.weekStart.hiddenInk.*` | zh-Hans・zh-Hant・ko・fr・de・es・it・pt-BR | iPhone の幅に 3 行で入れる短い言い方（§10.4）。「いまの週の始まり」が「今の設定」など。消えていないこと・戻すと見えることは残した |
 | `toast.weekStart.otherForm.*` | de | 3 行に入れるため 1 文にまとめた（§10.4）。「もう一方の」は曜日で分かる形に。「消えていません」と「見る（Ansehen）: 設定 > 週の最初の日」は残した。「切り替えると」は設定の名前で分かる形 |
+| `toast.weekStart.otherForm.*` | fr | 幅 375 pt で 3 行に入れるため 1 文にまとめた（§10.4）。「もう一方の」は曜日で分かる形に。曜日の %1$@ は設定の行と同じ大文字の字（Lundi・Dimanche）なので、設定の値を括弧に置く形（1er jour : Dimanche）にした。「消えていません」と「見るには: 設定 > 週の最初の日」は残した |
 | `toast.weekStart.otherForm.*` | it | 幅 375 pt で 3 行に入れるため 1 文にまとめた（§10.4）。「もう一方の」は曜日で分かる形に。「消えていません」と「見るには: 設定 > 週の最初の日」は残した |
 | `toast.weekStart.otherForm.*` | pt-BR | 幅 375 pt で 3 行に入れるため 1 文にまとめた（§10.4）。「別の始まり（曜日）」「消えていません」「見るには: 設定 > 週の最初の日」は残した |
 | `holidayPicker.subdivisions`・`holidayPicker.subdivisionHint`・`holidayPicker.subdivisions.footer` | de | 「州」にあたる語が国で違う（Bundesland はドイツとオーストリア、米国などは Bundesstaat）ので、国を問わず Regionen（地域）にした |
@@ -229,7 +232,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 
 ## 9. アプリの文字列の全部の表
 
-同じ逆翻訳の言語は 1 行にまとめました。「全部」は 9 言語です。△ の理由は 8、× の理由は 2 にあります。10 の表の 25 件の逆翻訳は、2026-11-05 に別の Claude が元を見ずに書いたものです（de の `toast.weekStart.otherForm.*` だけは、直した字を判定した Claude が元を見て書きました）。
+同じ逆翻訳の言語は 1 行にまとめました。「全部」は 9 言語です。△ の理由は 8、× の理由は 2 にあります。10 の表の 25 件の逆翻訳は、2026-11-05 に別の Claude が元を見ずに書いたものです（de の `toast.weekStart.otherForm.*` と pt-BR の `toast.weekStart.regionChanged.sunday` は、同じ日のもう 1 回〔R4〕で今の字を元を見ずに訳し戻したもの。fr の `toast.weekStart.otherForm.*` だけは、R4 の後に直した字を判定した Claude が元を見て書きました）。
 
 | キー | 元の日本語 | 言語 | 逆翻訳 | 判定 | 直した訳 |
 | --- | --- | --- | --- | --- | --- |
@@ -1577,16 +1580,16 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `toast.weekStart.otherForm.one` | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | en | %2$@ の週のページは、もう一方の週の始まり（%1$@）を使っています。削除されていません。設定 > 週の始まり で切り替えると見られます。 | ○ |  |
 |  |  | zh-Hans・zh-Hant | %2$@ の週のページは、もう一方の週の最初の日（%1$@）を使っています。消えていません。「設定」> 週の最初の日 で切り替えると見られます。 | ○ |  |
 |  |  | ko | もう一方の週の最初の日（%1$@）の週のページが %2$@ あります。消えていません。設定 > 週の最初の日 で切り替えると見えます。 | ○ |  |
-|  |  | fr | 週のページ %2$@ ページは、もう一方の週の最初の日（%1$@）になっています。削除されていません。それを見るには: 設定 > 週の最初の日。 | ○（2 回目） |  |
-|  |  | de | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。 | △ |  |
+|  |  | fr | 週のページが %2$@ ページ（最初の日: %1$@）、削除されていません。見るには：設定 > 週の最初の日。 | △ |  |
+|  |  | de | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 | △ |  |
 |  |  | es | %2$@ の週のページは、もう一方の最初の日（%1$@）を使っています。削除されていません。見るには: 設定 > 週の最初の日。 | ○ |  |
 |  |  | it | 開始が %1$@ の週間ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 | △（2 回目） |  |
 |  |  | pt-BR | 別の始まり（%1$@）の週のページが %2$@ ページ、消去されていません。見るには：設定 > 週の最初の日。 | △ |  |
 | `toast.weekStart.otherForm.other` | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | en | %2$@ の週のページは、もう一方の週の始まり（%1$@）を使っています。削除されていません。設定 > 週の始まり で切り替えると見られます。 | ○ |  |
 |  |  | zh-Hans・zh-Hant | %2$@ の週のページは、もう一方の週の最初の日（%1$@）を使っています。消えていません。「設定」> 週の最初の日 で切り替えると見られます。 | ○ |  |
 |  |  | ko | もう一方の週の最初の日（%1$@）の週のページが %2$@ あります。消えていません。設定 > 週の最初の日 で切り替えると見えます。 | ○ |  |
-|  |  | fr | 週のページ %2$@ ページは、もう一方の週の最初の日（%1$@）になっています。削除されていません。それらを見るには: 設定 > 週の最初の日。 | ○（2 回目） |  |
-|  |  | de | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。 | △ |  |
+|  |  | fr | 週のページが %2$@ ページ（最初の日: %1$@）、削除されていません。見るには：設定 > 週の最初の日。 | △ |  |
+|  |  | de | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 | △ |  |
 |  |  | es | %2$@ の週のページは、もう一方の最初の日（%1$@）を使っています。削除されていません。見るには: 設定 > 週の最初の日。 | ○ |  |
 |  |  | it | 開始が %1$@ の週間ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 | △（2 回目） |  |
 |  |  | pt-BR | 別の始まり（%1$@）の週のページが %2$@ ページ、消去されていません。見るには：設定 > 週の最初の日。 | △ |  |
@@ -1601,7 +1604,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 |  |  | ko | 端末の地域に合わせて、週の最初の日を日曜に設定しました。月曜始まりの週の手書きは消えていません。 | ○ |  |
 |  |  | fr・it | 端末の地域に合わせて、週を日曜に設定しました。月曜の週の手書きは削除されていません。 | △ |  |
 |  |  | es | デバイスの地域に従って、週は日曜日に始まります。あなたの月曜日の週の書き込みは削除されていません。 | △ |  |
-|  |  | pt-BR | デバイスの地域により、週は日曜日に始まります。月曜日の週の書き込みは消去されていません。 | △ |  |
+|  |  | pt-BR | デバイスの地域により、週は日曜日に始まります。月曜日の週の書いたものは消されていません。 | △ |  |
 | `toolbar.badge.marker` | マーカー・%@ | en・zh-Hans・zh-Hant・ko・de・es・it・pt-BR | マーカー、%@ | ○ |  |
 |  |  | fr | マーカー（フェルトペン）、%@ | △ |  |
 | `toolbar.badge.pen` | ペン・%@ | 全部 | ペン、%@ | ○ |  |
@@ -1701,7 +1704,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 
 ## 10. 検証の後に FIX が変えた字
 
-6 観点の検証（言葉の観点）の指摘で FIX が変えた字です。次の 3 つの表の「逆翻訳（FIX）」は、FIX が日本語の元を読んで書いたものです。**2026-11-05 に、別の Claude が日本語の元と前の逆翻訳を見ずに、アプリの 25 件・ストアの 5 欄・英語の 3 文の今の字を訳し戻しました。** その逆翻訳と判定は、この節の「元を見ない逆翻訳と判定」にあります。`docs/i18n/back/<言語>.json` と `docs/i18n/back/legal-en.md` の該当の行も、今はこの逆翻訳です（直した de の 2 件を除く）。`docs/i18n/back/store-*.md` の行は FIX の字のままです。
+6 観点の検証（言葉の観点）の指摘で FIX が変えた字です。次の 3 つの表の「逆翻訳（FIX）」は、FIX が日本語の元を読んで書いたものです。**2026-11-05 に、別の Claude が日本語の元と前の逆翻訳を見ずに、アプリの 25 件・ストアの 5 欄・英語の 3 文の今の字を訳し戻しました。** その逆翻訳と判定は、この節の「元を見ない逆翻訳と判定」にあります。`docs/i18n/back/<言語>.json` と `docs/i18n/back/legal-en.md` の該当の行も、今はこの逆翻訳です（de の `otherForm` と pt-BR の `regionChanged.sunday` はその後のもう 1 回〔R4〕の逆翻訳）。`docs/i18n/back/store-*.md` の行は、de-DE の `whatsnew.txt` だけが R4 の逆翻訳で、ほかは FIX の字のままです。**R4 の後に直した fr の `otherForm` の 2 件と de-DE の `whatsnew.txt` の 2 か所は、元を見ない逆翻訳を通っていません**（この節の最後の表）。
 
 ### アプリの文字列
 
@@ -1715,7 +1718,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `toast.weekStart.regionChanged.sunday` | es | Semanas puestas en domingo según la región del dispositivo. Su escritura de las semanas de lunes no se ha eliminado. | La semana empieza en domingo según la región del dispositivo. Su escritura de las semanas de lunes no se ha eliminado. | 端末の地域に合わせて、週は日曜に始まります。月曜の週の手書きは削除されていません。 | 同じ |
 | `toast.event.noAccess` | es | Para añadir eventos, permita el acceso a los calendarios en Ajustes | Para añadir eventos, permita el acceso a los calendarios en Ajustes (Configuración) | 予定を追加するには、設定（Ajustes／Configuración）でカレンダーへのアクセスを許可してください | `notice.calendar.denied` と同じ Ajustes (Configuración) に |
 | `toast.weekStart.regionChanged.monday` | pt-BR | Semanas na segunda-feira conforme a região do dispositivo. Sua escrita das semanas de domingo não foi apagada. | A semana começa na segunda-feira pela região do dispositivo. A escrita das semanas de domingo não foi apagada. | 端末の地域により、週は月曜に始まります。日曜の週の手書きは消えていません。 | 動詞が無かった |
-| `toast.weekStart.regionChanged.sunday` | pt-BR | Semanas no domingo conforme a região do dispositivo. Sua escrita das semanas de segunda não foi apagada. | A semana começa no domingo pela região do dispositivo. A escrita das semanas de segunda não foi apagada. | 端末の地域により、週は日曜に始まります。月曜の週の手書きは消えていません。 | 同じ |
+| `toast.weekStart.regionChanged.sunday` | pt-BR | Semanas no domingo conforme a região do dispositivo. Sua escrita das semanas de segunda não foi apagada. | A semana começa no domingo pela região do dispositivo. A escrita das semanas de segunda-feira não foi apagada. | 端末の地域により、週は日曜に始まります。月曜の週の手書きは消えていません。 | 同じ。2026-11-05 に de segunda を de segunda-feira にした（単独では「第 2 の」とも読めると訳者が注をつけたため） |
 | `event.scribbleNote` | pt-BR | Escreva sobre o campo com o Apple Pencil para virar texto (Escrever à Mão) | Escreva sobre o campo com o Apple Pencil para converter em texto (Escrever à Mão) | Apple Pencil で欄の上に書くと文字に変換されます（手書き入力） | para virar texto は口語 |
 | `event.titlePlaceholder` | pt-BR | Escreva aqui com a caneta para virar texto | Escreva aqui com a caneta para converter em texto | ここにペンで書くと文字に変換されます | 同じ |
 | `toast.weekStart.otherForm.one` | pt-BR | %2$@ página da semana usa o outro primeiro dia (%1$@). Não foi apagada. Para vê-la: Ajustes > Primeiro dia da semana. | %2$@ página da semana com outro início (%1$@), não apagada. Para vê-la: Ajustes > Primeiro dia da semana. | %2$@ の週のページは別の始まり（%1$@）で、消えていません。見るには: 設定 > 週の最初の日。 | 375 pt で 3 行に |
@@ -1735,7 +1738,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 
 **今の字の × は 0 件です。** 判定は「元を見ない逆翻訳と判定」の表に、△ の理由は 8 にもあります。
 
-幅: Mac Catalyst の字で、週の始まりのトーストは 10 言語のどの文も幅 375 − 64 = 311 pt と 402 − 64 = 338 pt で 3 行以内です（数は `.one` が 1、`.other` が 99。曜日は月曜）。**曜日を日曜にして測ると（2026-11-05、ja を除く 9 言語）、fr の `otherForm.other` だけが 311 pt で 4 行です（10 ページ以上のとき。9 ページまでと 338 pt は 3 行）。** 本当の判定は CI-0 のシミュレータです。`testWeekStartToastsFitThreeLines` がジョブを落とす判定は 402 pt のままです。余裕の少ない文があるので（it の `hiddenInk.other` は 311 pt で最後の行が 310 pt）、375 pt はログだけにしています。
+幅: Mac Catalyst の字で、週の始まりのトーストは 10 言語のどの文も幅 375 − 64 = 311 pt と 402 − 64 = 338 pt で 3 行以内です（ja は FIX の測り。数は `.one` が 1、`.other` が 99。曜日は月曜）。**2026-11-05 に、R4 の後の字で ja を除く 9 言語の 8 種類を、曜日は月曜と日曜、数は `.one` が 1、`.other` が 2・9・10・99 で測り直し、504 行とも 3 行以内でした（`m7b-impl/R4/out_all.txt`）。** 前に fr の `otherForm.other` が日曜・10 ページ以上・311 pt で 4 行になった件は、e1073ae で短くして直りました（R4 の字で最後の行は 192 pt）。本当の判定は CI のシミュレータです。`testWeekStartToastsFitThreeLines` がジョブを落とす判定は 402 pt のままです。余裕の少ない文があるので（it の `hiddenInk.other` は 311 pt で最後の行が 310 pt）、375 pt はログだけにしています。
 
 ### ストアの字
 
@@ -1762,7 +1765,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 
 別の Claude に渡したのは今の字と言語だけで、日本語の元と前の逆翻訳は入っていません（入力は `m7b-impl/R3/input.json`、結果は `m7b-impl/R3/back.json`）。判定は、その結果と日本語の元を、訳した Claude とは別の Claude が照らしたものです。母語の人の確認ではありません。
 
-**33 件: ○ 12・△ 19・× 2。** ストアの表の `whatsnew.txt`（de-DE）の Bundesland の文は入力に入っていないので、元を見ない逆翻訳を通っていません。`docs/i18n/back/store-*.md` の行は FIX の字のままで、この表の逆翻訳との違いは語の言い換えだけです（「手書きのプランナー」と「手書きプランナー」、「作る」と「作成する」、「聞かれたら」と「もし求められたら」）。
+**33 件: ○ 12・△ 19・× 2。** ストアの表の `whatsnew.txt`（de-DE）の Bundesland の文はこの入力に入っていませんでした（後の R4 の全文の逆翻訳で通しました）。`docs/i18n/back/store-*.md` の行は、de-DE の `whatsnew.txt` を除いて FIX の字のままで、この表の逆翻訳との違いは語の言い換えだけです（「手書きのプランナー」と「手書きプランナー」、「作る」と「作成する」、「聞かれたら」と「もし求められたら」）。
 
 | 場所 | 言語 | 元の日本語 | 逆翻訳（元を見ない） | 判定 | 理由 |
 | --- | --- | --- | --- | --- | --- |
@@ -1774,7 +1777,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `toast.weekStart.regionChanged.sunday` | es | 端末の地域に合わせて、週の始まりを日曜にしました。月曜始まりの週の手書きは消えていません。 | デバイスの地域に従って、週は日曜日に始まります。あなたの月曜日の週の書き込みは削除されていません。 | △ | 同じ |
 | `toast.event.noAccess` | es | 予定を登録するには、設定でカレンダーへのアクセスを許可してください | イベントを追加するには、設定（Configuración）でカレンダーへのアクセスを許可してください | △ | 「設定」を Ajustes (Configuración) と両方書いた（8、GLOSSARY の 3）。「イベント」は eventos の読みで、用語集の「予定」の語。文末に句点が無いのは元と同じ |
 | `toast.weekStart.regionChanged.monday` | pt-BR | 端末の地域に合わせて、週の始まりを月曜にしました。日曜始まりの週の手書きは消えていません。 | デバイスの地域により、週は月曜日に始まります。日曜日の週の書き込みは消去されていません。 | △ | 「週の始まりを月曜にしました」が「週は月曜に始まります」、「日曜始まりの週」が「日曜の週」に（3 行に入れる短い言い方）。向きは元と同じ |
-| `toast.weekStart.regionChanged.sunday` | pt-BR | 端末の地域に合わせて、週の始まりを日曜にしました。月曜始まりの週の手書きは消えていません。 | デバイスの地域により、週は日曜日に始まります。月曜日の週の書き込みは消去されていません。 | △ | 同じ。de segunda は単独では「第 2 の」「二流の」とも読めると訳者が注をつけたが、訳者自身も「月曜の週」と読んだ。曜日の話の文なので読める |
+| `toast.weekStart.regionChanged.sunday` | pt-BR | 端末の地域に合わせて、週の始まりを日曜にしました。月曜始まりの週の手書きは消えていません。 | デバイスの地域により、週は日曜日に始まります。月曜日の週の書き込みは消去されていません。 | △ | 同じ。de segunda は単独では「第 2 の」「二流の」とも読めると訳者が注をつけたが、訳者自身も「月曜の週」と読んだ。曜日の話の文なので読める（この字はこの後 de segunda-feira に変えた。今の字の判定は R4 の表） |
 | `event.scribbleNote` | pt-BR | Apple Pencil で欄の上に書くと、文字に変換されます（スクリブル） | テキストに変換するには、Apple Pencil で欄の上に書いてください（手で書く） | △ | 「（スクリブル）」が Escrever à Mão（直訳は「手で書く」）。Apple の pt-BR の機能名（8、GLOSSARY の 3）。「書くと変換される」が「変換するには書いて」で、中身は同じ |
 | `event.titlePlaceholder` | pt-BR | ここにペンで書くと文字になります | テキストに変換するには、ここにペンで書いてください | ○ | 「書くと文字になる」と「文字にするには書いて」で同じ。元もここは「ペン」で、Apple Pencil と書き分けている |
 | `toast.weekStart.otherForm.one` | pt-BR | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | 別の始まり（%1$@）の週のページが %2$@ ページ、消去されていません。見るには：設定 > 週の最初の日。 | △ | 1 文にまとめた（375 pt で 3 行、§10.4）。「もう一方の」が「別の」、「切り替えると見えます」が「見るには: 設定 > 週の最初の日」。曜日・ページ数・消えていないことは残る |
@@ -1807,7 +1810,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `toast.weekStart.otherForm.one` | de | %2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche. | %2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche. | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。 | 元の「切り替えると見えます」の「見えます」を入れた。Wechseln（切り替え）を Ansehen（見る）に。「切り替える」は設定の名前で分かる |
 | `toast.weekStart.otherForm.other` | de | %2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche. | %2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche. | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。 | 元の「切り替えると見えます」の「見えます」を入れた。Wechseln（切り替え）を Ansehen（見る）に。「切り替える」は設定の名前で分かる |
 
-**直した字は元を見ない逆翻訳を通っていません。** 判定した Claude が元と照らして △ にしました（理由は 8）。1 字短くなる直しです。幅: Mac Catalyst の字で 311 pt・338 pt とも 3 行です（数は 1 と 99、曜日は月曜と日曜。最後の行の幅は前の字以下）。本当の判定は CI-0 のシミュレータです。
+**直した字は、この節の最後の R4 の表で元を見ない逆翻訳を通しました（△、× なし。理由は 8）。** 1 字短くなる直しです。幅: Mac Catalyst の字で 311 pt・338 pt とも 3 行です（数は 1 と 99、曜日は月曜と日曜。最後の行の幅は前の字以下）。本当の判定は CI-0 のシミュレータです。
 
 ### 写真の確認の後に直した見本の語（FIX3、2026-11-05）
 
@@ -1820,4 +1823,39 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `demo.event.deadline` | es | Entrega | Plazo | 期限 | 40.7 → 28.5 pt（切れずに入っている pt-BR の Prazo は 29.8 pt） |
 | `demo.event.deadline` | it | Termine | Scad. | 期限（scadenza の略） | 42.0 → 29.6 pt |
 
-**この 4 件は元を見ない逆翻訳を通っていません。** ブラジルでテントの意味なら Barraca の方がふつうです。見本の語なので、母語の人の確認が得られるまでこのままにします。
+**この 4 件は元を見ない逆翻訳を通っていません**（下の R4 の入力にも入っていません）。ブラジルでテントの意味なら Barraca の方がふつうです。見本の語なので、母語の人の確認が得られるまでこのままにします。
+
+### 元を見ない逆翻訳と判定のもう 1 回（R4、2026-11-05）
+
+別の Claude に渡したのは、そのときの字と言語だけで、日本語の元と前の逆翻訳は入っていません（入力は `m7b-impl/R4/input.json`、結果は `m7b-impl/R4/back.json`）。判定は、その結果と日本語の元（`tools/l10n/source/app-U.json`・`docs/store/source-ja/whatsnew.txt`）を、訳した Claude とは別の Claude が照らしたものです。母語の人の確認ではありません。
+
+**6 件: ○ 0・△ 6・× 0。** ストアの `whatsnew.txt` は全文で 1 件で、全文の判定が △ です。下の表では 1 行ずつに分けました（○ 4・△ 2）。
+
+| 場所 | 言語 | 元の日本語 | 渡した字 | 逆翻訳（元を見ない） | 判定 | 理由 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `toast.weekStart.otherForm.one` | de | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche. | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 | △ | 「もう一方の」が無い（曜日で分かる）。「切り替えると見えます」が「見るには: 設定 > 週の最初の日」。ページ数・曜日・消えていないこと・設定の道は残る。**R3 の × の「見えます」の抜けは直っている**。it・pt-BR と同じ形。訳者の注の「動詞が無い」「Ansehen: の置き方がやや不自然」は 3 行に入れる短さの差で、意味は違わない |
+| `toast.weekStart.otherForm.other` | de | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche. | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 | △ | 同じ。nicht gelöscht が何を指すかは語形で決まらないが、ページとしか読めない |
+| `toast.weekStart.otherForm.one` | fr | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ page de semaine avec début %1$@, non supprimée. Pour la voir : Réglages > Premier jour de la semaine. | 始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 | △ | de と同じ短い形で、意味は違わない。ただし訳者が「avec début は何の始まりか書かれておらず不自然」と注をつけたので、下の表のとおり直した。**この判定は前の字のもの。今の字の判定も △**（下の表） |
+| `toast.weekStart.otherForm.other` | fr | もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。 | %2$@ pages de semaine avec début %1$@, non supprimées. Pour les voir : Réglages > Premier jour de la semaine. | 始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。 | △ | 同じ |
+| `toast.weekStart.regionChanged.sunday` | pt-BR | 端末の地域に合わせて、週の始まりを日曜にしました。月曜始まりの週の手書きは消えていません。 | A semana começa no domingo pela região do dispositivo. A escrita das semanas de segunda-feira não foi apagada. | デバイスの地域により、週は日曜日に始まります。月曜日の週の書いたものは消されていません。 | △ | 「週の始まりを日曜にしました」が「週は日曜に始まります」、「月曜始まりの週」が「月曜日の週」（3 行に入れる短い言い方）。向きは元と同じ。R3 の注の de segunda は segunda-feira で消えた。訳者の注の「pela região は原因とも準拠とも読める」「A escrita は手書きと限らない」は言い回しの差で、手帳のアプリの中の文として読み違えるほどではない |
+| `whatsnew.txt` の 1 行目 | de-DE | ・これまでの日本語に加えて、英語、中国語（簡体字・繁体字）、韓国語、フランス語、ドイツ語、スペイン語、イタリア語、ポルトガル語で表示できるようになりました。端末の言語に合わせて切り替わります（ほかの言語の端末では英語になります）。 | • Zusätzlich zu Japanisch kann die App jetzt auf Englisch, Chinesisch (vereinfacht und traditionell), Koreanisch, Französisch, Deutsch, Spanisch, Italienisch und Portugiesisch angezeigt werden. Sie folgt der Sprache Ihres Geräts (auf Geräten mit einer anderen Sprache erscheint sie auf Englisch). | • 日本語に加えて、アプリを英語、中国語（簡体字と繁体字）、韓国語、フランス語、ドイツ語、スペイン語、イタリア語、ポルトガル語で表示できるようになりました。アプリはお使いのデバイスの言語に従います（別の言語のデバイスでは英語で表示されます）。 | ○ | 同じ。「別の言語」が挙げた言語の外を指すと書かれていないのは元も同じ |
+| `whatsnew.txt` の 2 行目 | de-DE | ・アプリだけ端末と違う言語で使いたいときは、「設定」アプリ ›「アプリ」›「Tegaki」›「言語」で選んでください（iOS・iPadOS 17 では「設定」›「Tegaki」›「優先する言語」）。項目が無いときは、「設定」›「一般」›「言語と地域」で使いたい言語を追加すると出ます（追加するときに、端末の表示をどちらの言語にするか聞かれたら、今の言語のままを選んでください）。 | • Um nur für diese App eine andere Sprache zu verwenden, wählen Sie sie in der App „Einstellungen“ > „Apps“ > „Tegaki“ > „Sprache“ (bei iOS und iPadOS 17: „Einstellungen“ > „Tegaki“ > „Bevorzugte Sprache“). Fehlt der Eintrag, erscheint er, nachdem Sie unter „Einstellungen“ > „Allgemein“ > „Sprache & Region“ die gewünschte Sprache hinzugefügt haben (wenn Sie dabei gefragt werden, welche Sprache das Gerät anzeigen soll, behalten Sie die aktuelle Sprache). | • このアプリだけ別の言語を使うには、「設定」アプリ >「アプリ」>「Tegaki」>「言語」で選びます（iOS および iPadOS 17 では「設定」>「Tegaki」>「優先する言語」）。項目がない場合は、「設定」>「一般」>「言語と地域」で希望の言語を追加すると現れます（その際に、デバイスをどの言語で表示するか尋ねられたら、現在の言語のままにしてください）。 | ○ | 道も手順も同じ。「iOS und iPadOS 17」のかかり方は元の「iOS・iPadOS 17」も同じ |
+| `whatsnew.txt` の 3 行目 | de-DE | ・世界の国と地域の祝日を表示できるようになりました。アプリの設定 › 祝日 ›「表示する祝日」で、国（アメリカの州などの地域も）や「なし」を選べます。州・地域のある国は、州・地域を選ぶとその地域の祝日が加わります。日本の祝日はこれまでどおりです。これまでお使いの方は、日本の祝日のままです。 | • Die App kann jetzt die Feiertage von Ländern und Regionen weltweit anzeigen. Gehen Sie in der App zu Einstellungen > Feiertage > „Angezeigte Feiertage“, um ein Land (auch eine Region, etwa einen US-Bundesstaat) oder „Keine“ zu wählen. In Ländern mit Bundesländern, Bundesstaaten oder Regionen kommen deren Feiertage dazu, wenn Sie eines davon wählen. Japanische Feiertage funktionieren wie bisher. Wenn Sie die App schon genutzt haben, zeigt sie weiter japanische Feiertage an. | • アプリは世界の国と地域の祝日を表示できるようになりました。アプリ内で 設定 > 祝日 >「表示する祝日」へ進み、国（米国の州のような地域も）または「なし」を選んでください。連邦州、州、または地域がある国では、そのうちの一つを選ぶと、それらの祝日が加わります。日本の祝日はこれまでどおり機能します。すでにアプリを使っていた場合は、引き続き日本の祝日を表示します。 | △ | × は無い。「それらの祝日」（deren）は選んだ 1 つとも全部とも読めるが、wenn Sie eines davon wählen が続くので選んだものと読める。「日本の祝日はこれまでどおりです」が「機能します」で少し不自然。「in der App zu Einstellungen」は前の行の「in der App „Einstellungen“」（iOS の設定）と紛らわしいので下の表のとおり直した |
+| `whatsnew.txt` の 4 行目 | de-DE | ・週の始まりを月曜・日曜から選べるようになりました（設定 › 週の始まり）。これまでお使いの方は月曜始まりのままです。新しく使い始める方は端末の地域に合わせます。週のページの手書きは月曜始まりと日曜始まりで別々に保存します。切り替えると、もう一方の手書きは元に戻すまで見えませんが、消えません。月のページの手書きは日付についていきます。日曜始まりで書いた週の手書きは、古い版の端末では見えません（消えてはいません）。 | • Wochen können jetzt am Montag oder am Sonntag beginnen (Einstellungen > Erster Tag der Woche). Wenn Sie die App schon genutzt haben, bleibt es beim Montag. Wenn Sie neu sind, folgt die App der Region Ihres Geräts. Handschrift auf Wochenseiten wird für Wochen mit Montagsbeginn und Wochen mit Sonntagsbeginn getrennt gesichert. Beim Wechsel bleibt die Handschrift der anderen Einstellung ausgeblendet, bis Sie zurückwechseln, sie wird aber nicht gelöscht. Handschrift auf Monatsseiten folgt ihrem Datum. Wochenhandschrift mit Sonntagsbeginn ist auf Geräten mit einer älteren Version der App nicht zu sehen (sie ist nicht gelöscht). | • 週は月曜日または日曜日に始められるようになりました（設定 > 週の最初の日）。すでにアプリを使っていた場合は、月曜日のままです。新しく使う場合は、アプリはデバイスの地域に従います。週ページの手書きは、月曜始まりの週と日曜始まりの週で別々に保存されます。切り替えると、もう一方の設定の手書きは、戻すまで隠れたままになりますが、削除はされません。月ページの手書きは、その日付に従います。日曜始まりの週の手書きは、古いバージョンのアプリのデバイスでは見えません（削除されてはいません）。 | △ | × は無い。消えないこと・戻すまで見えないこと・古い版の注は全部ある。Wenn Sie neu sind は舌足らず、Wochenhandschrift は辞書に無い造語、folgt ihrem Datum は元の「日付についていく」より短いが、どれも意味は違わない。gesichert は保存の語で、アプリの `sync.header.saved` と同じ。設定の括弧はアプリ内の設定と書かれておらず、iOS の「言語と地域」にも同じ名前の項目があるので下の表のとおり直した |
+| `whatsnew.txt` の 5 行目 | de-DE | ・祝日・言語・週の始まりの設定は端末ごとです。祝日と言語を変えても、手書きは同じ位置に残ります。 | • Die Einstellungen für Feiertage, Sprache und ersten Tag der Woche gelten pro Gerät. Wenn Sie Feiertage oder Sprache ändern, bleibt Ihre Handschrift an derselben Stelle. | • 祝日、言語、週の最初の日の設定はデバイスごとに適用されます。祝日や言語を変更しても、手書きは同じ場所にとどまります。 | ○ | 同じ。und ersten Tag に冠詞が無いのは言い回し |
+| `whatsnew.txt` の最後の 1 文 | de-DE | 訳は AI が作り、まだ母語の人の確認を受けていません。誤りがあればお知らせください。 | Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit. | 翻訳は AI で作成され、まだネイティブスピーカーの確認を受けていません。誤りがあればお知らせください。 | ○ | 同じ |
+
+### R4 の後に直した字（2026-11-05）
+
+| 場所 | 言語 | 前の字 | 今の字 | 逆翻訳（判定した Claude が元を見て書いた） | 判定 | 直した理由 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `toast.weekStart.otherForm.one` | fr | %2$@ page de semaine avec début %1$@, non supprimée. Pour la voir : Réglages > Premier jour de la semaine. | %2$@ page de semaine (1er jour : %1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine. | 週のページが %2$@ ページ（最初の日: %1$@）、削除されていません。見るには：設定 > 週の最初の日。 | △ | 「何の始まりか書かれておらず不自然」の注。「1er jour」で何の始まりかが分かり、続きの設定の名前（Premier jour de la semaine）と同じ語になる。「もう一方の」が無く、「切り替えると見えます」が「見るには: 設定 > 週の最初の日」なのは de・it・pt-BR と同じ。その前の字は `a l’autre premier jour (%1$@)` で、311 pt の 4 行を直すため e1073ae で `avec début` にした |
+| `toast.weekStart.otherForm.other` | fr | %2$@ pages de semaine avec début %1$@, non supprimées. Pour les voir : Réglages > Premier jour de la semaine. | %2$@ pages de semaine (1er jour : %1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine. | 週のページが %2$@ ページ（最初の日: %1$@）、削除されていません。見るには：設定 > 週の最初の日。 | △ | 同じ |
+| `whatsnew.txt` の 3 行目 | de-DE | Gehen Sie in der App zu Einstellungen > Feiertage | Gehen Sie in Tegaki zu Einstellungen > Feiertage | Tegaki で 設定 > 祝日 > へ進み | △ | 前の行の「in der App „Einstellungen“」（iOS の設定アプリ）と語がほぼ同じで、アプリ内の設定を iOS の設定と読み違えやすい。アプリの名前で分ける。1 字短くなる |
+| `whatsnew.txt` の 4 行目 | de-DE | (Einstellungen > Erster Tag der Woche) | (in Tegaki: Einstellungen > Erster Tag der Woche) | （Tegaki で: 設定 > 週の最初の日） | △ | iOS の「言語と地域」にも同じ名前の項目がある（GLOSSARY の 2）。こちらはアプリ内の設定と読めるようにする。11 字増える |
+
+**この 4 か所は元を見ない逆翻訳を通っていません。** de-DE の `whatsnew.txt` は 2,169 字（上限 4,000 字）で、L-9 は ok です。× に当たる物（意味が違う、抜け）は無かったので、ほかの字は変えていません（`funktionieren`・`Wenn Sie neu sind`・`Wochenhandschrift`・`und ersten Tag` は言い回しのまま残しました。母語の人に見てもらうときの候補です）。
+
+**fr の案を変えた理由**: 案は `%2$@ page de semaine débutant le %1$@`。%1$@ に入る字を見ると、呼ぶ所は `WeekStartNotice.text` の `WeekStartChoice.name(form)` で、中身は `L.text("settings.weekStart.monday")`・`.sunday`。fr は設定の行の字の **Lundi・Dimanche（大文字）** です。`L.plural` と `KitStrings.fill` は字を変えず、Kit の字（`KitStrings.generated.swift`）に fr の曜日の全名はありません。案のままだと「débutant le Dimanche」になり、文の中で曜日を大文字で書くのは fr の誤りです。小文字にするには設定の行の字か呼ぶ所のコードを変えることになるので、訳だけで済む形にしました。括弧の中に設定の値を置く形は、元の「週の始まり（%1$@）」と同じ形で、キーの `comment` の「文の中の括弧にも入る」にも合います。「débutant le dimanche」にしたければ、呼ぶ所のコードを fr だけ変える必要があります。
+
+**幅**（`m7b-impl/FIX/measure/lines`、Mac Catalyst の字、15 pt）: 今の fr の字は、日曜と月曜、1・2・9・10・99 ページで、311 pt と 338 pt とも 3 行です。311 pt の最後の行は全部 192 pt（前の `avec début` は日曜・10 ページ以上で 276 pt）。338 pt の最後の行は 133 pt（99 ページ・日曜だけ 192 pt）。本当の判定は CI のシミュレータです。

@@ -1736,11 +1736,11 @@
   },
   "toast.weekStart.otherForm.one": {
    "text": "%2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche.",
-   "back": "週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。"
+   "back": "週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。"
   },
   "toast.weekStart.otherForm.other": {
    "text": "%2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche.",
-   "back": "週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。"
+   "back": "週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。"
   },
   "toast.weekStart.regionChanged.monday": {
    "text": "Wochenstart auf Montag gesetzt, passend zur Region des Geräts. Ihre Handschrift der Sonntagswochen ist nicht gelöscht.",

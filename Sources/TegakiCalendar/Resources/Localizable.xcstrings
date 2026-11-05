@@ -25568,7 +25568,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ page de semaine avec début %1$@, non supprimée. Pour la voir : Réglages > Premier jour de la semaine."
+            "value" : "%2$@ page de semaine (1er jour : %1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine."
           }
         },
         "it" : {
@@ -25634,7 +25634,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ pages de semaine avec début %1$@, non supprimées. Pour les voir : Réglages > Premier jour de la semaine."
+            "value" : "%2$@ pages de semaine (1er jour : %1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine."
           }
         },
         "it" : {

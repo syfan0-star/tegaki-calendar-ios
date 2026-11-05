@@ -208,5 +208,5 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 - **メモ（幅 ＋ 0.15 em × 字数 が 8.0 em まで。F-6）**: いちばん長いのは de Freie Notizen 7.98 em（契約の語。余裕はほとんどありません）。
 - **「+99 …」（7 em まで。F-5）**: いちばん長いのは de +99 weitere 5.52 em。
 - **ツールバーの説明（12 pt。消しゴムは 144、投げなわと予定は 155。F-14）**: いちばん長いのは de Löscht berührte Striche 140、fr Tracez pour créer un RDV. 154。全部測ってテストが通っています。
-- **週の始まりのトースト（15 pt、幅 402 − 64 = 338 で 3 行まで。§10.4）**: 全部入ります。幅 375 − 64 = 311 でも、Mac Catalyst の字では全部 3 行に入ります（検証の後に de・it・pt-BR の `otherForm` と pt-BR の `regionChanged` を短くしました）。311 は 1 pt も余らない文があるので（it の `hiddenInk.other`）、`testWeekStartToastsFitThreeLines` はログだけで、判定は 402 pt です。
+- **週の始まりのトースト（15 pt、幅 402 − 64 = 338 で 3 行まで。§10.4）**: 全部入ります。幅 375 − 64 = 311 でも、Mac Catalyst の字では全部 3 行に入ります（検証の後に de・it・pt-BR・fr の `otherForm` と pt-BR の `regionChanged` を短くしました。fr は日曜でも入ります。`REVIEW.md` の 10）。311 は 1 pt も余らない文があるので（it の `hiddenInk.other`）、`testWeekStartToastsFitThreeLines` はログだけで、判定は 402 pt です。
 - **`demo.*`（ストアの写真の見本。終日 4.2 em、時刻 5.7 em）**: 入るように短い語にしました（「出張（大阪）」は Osaka だけなど）。見本なので元の意味に厳密でない語があります。

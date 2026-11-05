@@ -1735,12 +1735,12 @@
    "back": "このページには、今の設定で隠れている日に %@ 本の線があります。削除されていません。見るには設定を戻してください。"
   },
   "toast.weekStart.otherForm.one": {
-   "text": "%2$@ page de semaine a l’autre premier jour (%1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine.",
-   "back": "週のページ %2$@ ページは、もう一方の週の最初の日（%1$@）になっています。削除されていません。それを見るには: 設定 > 週の最初の日。"
+   "text": "%2$@ page de semaine (1er jour : %1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine.",
+   "back": "週のページが %2$@ ページ（最初の日: %1$@）、削除されていません。見るには：設定 > 週の最初の日。"
   },
   "toast.weekStart.otherForm.other": {
-   "text": "%2$@ pages de semaine ont l’autre premier jour (%1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine.",
-   "back": "週のページ %2$@ ページは、もう一方の週の最初の日（%1$@）になっています。削除されていません。それらを見るには: 設定 > 週の最初の日。"
+   "text": "%2$@ pages de semaine (1er jour : %1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine.",
+   "back": "週のページが %2$@ ページ（最初の日: %1$@）、削除されていません。見るには：設定 > 週の最初の日。"
   },
   "toast.weekStart.regionChanged.monday": {
    "text": "Semaines réglées sur lundi selon la région de l’appareil. Votre écriture des semaines du dimanche n’est pas supprimée.",

@@ -1685,3 +1685,58 @@ CI の 1 回目（`build.yml` は全部緑、run 42013412254。`ja-baseline.yml`
 4. 基準の撮り直し（`ja-baseline.yml`）: 月に手書きがあり、週に通知が無いこと。段が `--last 14m` に入ること。
 
 資料: [Legge 1 marzo 2024, n. 27（Normattiva）](https://www.normattiva.it/eli/id/2024/03/16/24G00044/ORIGINAL)。1977 年の法は検索の要約だけで、本文は開いていない。
+
+## R4（直した訳を元と照らす。元を見ない逆翻訳のもう 1 回。2026-11-05）
+
+別の Claude が日本語の元と前の逆翻訳を見ずに訳し戻した 6 件を、日本語の元と照らした（入力 `m7b-impl/R4/input.json`、結果 `m7b-impl/R4/back.json`）。**push していない。CI はこの節の変更を通っていない**。変えた訳は fr の 2 キーとストアの de-DE の `whatsnew.txt` だけで、ja の字とコードは変えていない。凍結の 18 ファイル、`InkCanvasViewTests`、`Compat10`・`Fixtures`、既存の月曜の期待、K-1〜K-11 は触っていない。
+
+### 判定（6 件: ○ 0・△ 6・× 0。全文は `REVIEW.md` の 10）
+
+| 対象 | 判定 | 見たこと |
+| --- | --- | --- |
+| de の `toast.weekStart.otherForm.one`・`.other` | △ | R3 が直した字の初めての元を見ない逆翻訳。「見るには」と読まれ、× の抜けは直っている。「もう一方の」が無いのは it・pt-BR と同じ |
+| fr の同じキー（`avec début %1$@`） | △ | 意味は違わないが、「何の始まりか書かれておらず不自然」と言われたので直した |
+| pt-BR の `toast.weekStart.regionChanged.sunday` | △ | 向きは元と同じ。`segunda-feira` で R3 の注は消えた |
+| de-DE の `whatsnew.txt` の全文 | △ | **× に当たる物（意味が違う、抜け）は無い**。1 行ずつだと ○ 4・△ 2（祝日の行と週の始まりの行） |
+
+`REVIEW.md` の合計は **○ 3,807・△ 477・× 0**。fr の `otherForm` の 2 件が ○ から △ へ（fr は 410・66）。1 の表と 9 の表を機械で照らして一致（`m7b-impl/R4/verify.py`）。
+
+### 直したもの
+
+1. **fr の `toast.weekStart.otherForm.*`**: `%2$@ page de semaine (1er jour : %1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine.`（`.other` は pages・supprimées・les voir）。%2$@ と %1$@ の順は元のまま。**案（`débutant le %1$@`）を変えた**: %1$@ は `WeekStartNotice.text` の `WeekStartChoice.name(form)` で、設定の行と同じ `settings.weekStart.monday`・`.sunday`。fr は **Lundi・Dimanche（大文字）**で、小文字ではない。`L.plural` と `KitStrings.fill` は字を変えず、Kit の字にこの曜日は無い。案のままだと「débutant le Dimanche」になり、fr の誤りになる。コードも設定の行の字も変えずに済むよう、設定の値を括弧に置く形にした（元の「週の始まり（%1$@）」と同じ形で、キーの `comment` の「文の中の括弧にも入る」にも合う）。
+2. **de-DE の `whatsnew.txt`**: 「in der App zu Einstellungen」を「in Tegaki zu Einstellungen」に、「(Einstellungen > Erster Tag der Woche)」を「(in Tegaki: Einstellungen > Erster Tag der Woche)」に。前の行の「in der App „Einstellungen“」（iOS の設定アプリ）と語がほぼ同じで、iOS の「言語と地域」にも同じ名前の項目があるので、読み違えを招くと判断した。2,159 字 → 2,169 字（上限 4,000 字）。ほかの字は変えていない。
+3. **記録**: `back/de.json`・`back/pt-BR.json` の該当は元を見ない逆翻訳に。`back/fr.json` の `text` が 2 代前の字のままだったので今の字に（`back` は判定した Claude が元を見て書いた字）。`back/pt-BR.json` の `text` も e1073ae の前の字だったので直した。`back/store-de-DE.md` の新機能の表も今回の逆翻訳に（2 か所の語を除く。表の上に書いた）。`REVIEW.md` は 1・2・4・7・8・9・10 を直した。**X2 の `review.py` は通していない**（FIX3 の字を持たないので、走らせると消える）。
+
+### 元を見ない逆翻訳を通っていない字（今の事実）
+
+- **この節で直した fr の 2 件と de-DE の 2 か所**。元を見ない逆翻訳をもう一度させるかはリードが決める。
+- FIX3 の見本の語 4 件（es Carpa・Plazo、pt-BR Tenda、it Scad.）。
+- 母語の人の確認は今も無い（O-6）。
+
+### 節の記録の読み替え
+
+| 節 | 記録 | 今 |
+| --- | --- | --- |
+| C の節の「節の記録の読み替え」「CI-0 の後に書く欄」「リードの残作業」の 4、「リード」の節の数と「残り」の 3 | ○ 3,809・△ 475。de の直した 2 件は通っていない、もう一度させるかはリードが決める | ○ 3,807・△ 477。de の 2 件は通した |
+| 「リード」の節の「残り」の 3 | fr の `otherForm.other` が日曜・10 ページ以上・311 pt で 4 行。pt-BR の `semanas de segunda` は △ のまま | e1073ae で短くして 3 行に。この節の字でも 3 行。pt-BR は `segunda-feira` で △ のまま |
+
+### リードへ
+
+- **it の `toast.weekStart.otherForm.*` も同じ形**（`con inizio %1$@` で「con inizio Domenica」と文の中で大文字）。今回は頼まれていないので変えていない。直すなら fr と同じ `(1° giorno: %1$@)` の形が候補で、幅を測る。es・pt-BR は括弧、de は名詞なので大文字でよい。
+- de の「Ansehen:」は単独だと少し不自然と言われた。「Zum Ansehen:」なら自然だが × ではないので変えていない。311 pt の余裕は測っていない。
+- de-DE の新機能の文で言い回しのまま残した語: `funktionieren`、`Wenn Sie neu sind`、`Wochenhandschrift`、`und ersten Tag`。母語の人に見てもらうときの候補。
+- 「débutant le dimanche」の方がよければ、呼ぶ所のコードを fr だけ変える必要がある。
+- iOS の設定とアプリ内の設定の紛らわしさは de-DE で見つかった話で、ほかのロケールの全文は今回の入力に入っていない。fr-FR・en-US・pt-BR の祝日の行は「Dans l’app」「In the app」「No app」で始まる形だった（it・es-ES はこの探し方では当たらず、見ていない）。訳者の注は無いので変えていない。
+
+### 確かめ（この Mac。push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `python3 -I tools/l10n/build.py`・`--check` | 変わったのは `Localizable.xcstrings` の fr の 2 キーだけ。`KitStrings.generated.swift` は変わらない。一致 |
+| `python3 -I tools/l10n/lint.py` | L-1〜L-14 すべて ok（L-12 は目安の警告だけ）。L-9 は de-DE の字数を含む |
+| `baseline.py --check`（`/usr/bin/python3`）・`shasum -a 256 -c`（`m7b-impl/Record/data-abs.sha256`） | 基準は 516 行のまま一致。18 件とも一致 |
+| トーストの行数（`m7b-impl/FIX/measure/lines`、Mac Catalyst の字、`m7b-impl/R4/out_all.txt`） | ja を除く 9 言語の 8 種類、月曜と日曜、数は 1・2・9・10・99、311 pt と 338 pt の 504 行が全部 3 行以内。fr の今の字は 311 pt の最後の行が 192 pt（前の字は日曜・10 ページ以上で 276 pt） |
+| Mac Catalyst の代わりで XCTest（`m7b-impl/S2/apprun/run.sh WeekStartChoiceTests LocalizationBundleTests`。XCTest の意味だけを写した小さな代わり） | 24 本・1,566 件・失敗 0。`testWeekStartToastsFitThreeLines` を含む（判定は月曜の字） |
+| `m7b-impl/R4/verify.py` | `REVIEW.md` の 1 の表と 9 の表が一致、`back/*.json` の `text` が全キーで今の訳と同じ、元を見ない逆翻訳が該当の所に入っている、`whatsnew.txt` は渡した字に 2 か所を足しただけ |
+
+**走らせていないもの**: 本物の XCTest、UI テスト、シミュレータ、CI。Swift を変えていないので `swift build`・KitChecks・typecheck は走らせていない。

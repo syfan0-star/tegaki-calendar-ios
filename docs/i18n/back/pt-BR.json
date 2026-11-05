@@ -1747,8 +1747,8 @@
    "back": "デバイスの地域により、週は月曜日に始まります。日曜日の週の書き込みは消去されていません。"
   },
   "toast.weekStart.regionChanged.sunday": {
-   "text": "A semana começa no domingo pela região do dispositivo. A escrita das semanas de segunda não foi apagada.",
-   "back": "デバイスの地域により、週は日曜日に始まります。月曜日の週の書き込みは消去されていません。"
+   "text": "A semana começa no domingo pela região do dispositivo. A escrita das semanas de segunda-feira não foi apagada.",
+   "back": "デバイスの地域により、週は日曜日に始まります。月曜日の週の書いたものは消されていません。"
   },
   "toolbar.badge.marker": {
    "text": "Marcador, %@",
