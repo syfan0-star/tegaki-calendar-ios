@@ -1,0 +1,231 @@
+# The App Store's photos of 1.2 in the other languages (docs/M7B_CONTRACT.md §6.6, §7.5, §7.6, §10.7, §11.2).
+# One job per set of the matrix: it builds the app and shoots the 13-inch iPad (01-month, 02-week, 03-day,
+# 04-year) and the 6.9-inch iPhone (01-week, 02-month, 03-day, 04-year), converts the photos to JPEG (no
+# alpha) and compares each one's pixels with Apple's accepted sizes, as "Store listing set" in build.yml does.
+# Artifact: store-<set>/{ipad13,iphone69}/0{1..4}-*.jpg, kept 30 days. The purchase screen is not shot: a
+# listing photo must not show prices (docs/M7_PLAN.md §1.1, docs/M6.md §4.6).
+#
+# Each photo shows what a new user of that storefront sees: the screen's language, the region's holidays and
+# week start (`auto`). The sets and the storefronts they go to:
+#   en (en_US): en-US, en-CA            en-GB (en_GB): en-GB, en-AU        zh-Hans (zh_CN), zh-Hant (zh_TW),
+#   ko (ko_KR)                          fr (fr_FR): fr-FR, fr-CA (fr-CA's region starts on a Sunday; same photo)
+#   de (de_DE), it (it_IT)              es (es_MX): es-MX                  es-ES (es_ES): es-ES
+#   pt-BR (pt_BR): pt-BR, pt-PT
+# en and es are two sets each because the regions differ in the week start and the holidays, not in the words.
+# ja's photos stay as they are in App Store Connect; nothing here touches Connect.
+#
+# When it runs: on a push to the branch `store-shots` (the lead pushes m7b under that name, for example
+# `git push origin m7b:store-shots`: workflow_dispatch only starts a workflow that is on the default branch,
+# and 1.2 reaches main only after the owner's check, 0-40). build.yml ignores this branch.
+#
+# A first boot's system banner (docs/M6.md §5.1; about 85–105 s after the boot on the 13-inch, docs/M7B.md C1)
+# must not be in a listing photo: every device waits 120 s with the app in front before the first shot and
+# shoots its four pages again at the end, like the other devices in build.yml.
+name: store-shots
+
+on:
+  push:
+    branches:
+      - store-shots
+  workflow_dispatch:
+
+concurrency:
+  group: store-shots-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  store-shots:
+    name: store-shots (${{ matrix.set.id }})
+    runs-on: macos-26
+    # A build and XcodeGen about 3 min, two boots up to 3.5 each (run 41922318959), the two waits 4 min, 16
+    # shots of 11–15 s at most 4 min: about 18 min. A job cut by this limit would not reach the upload.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        set:
+          - { id: en, language: en, locale: en_US }
+          - { id: en-GB, language: en-GB, locale: en_GB }
+          - { id: zh-Hans, language: zh-Hans, locale: zh_CN }
+          - { id: zh-Hant, language: zh-Hant, locale: zh_TW }
+          - { id: ko, language: ko, locale: ko_KR }
+          - { id: fr, language: fr, locale: fr_FR }
+          - { id: de, language: de, locale: de_DE }
+          - { id: it, language: it, locale: it_IT }
+          - { id: es, language: es, locale: es_MX }
+          - { id: es-ES, language: es-ES, locale: es_ES }
+          - { id: pt-BR, language: pt-BR, locale: pt_BR }
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+      SET_LANGUAGE: ${{ matrix.set.language }}
+      SET_LOCALE: ${{ matrix.set.locale }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      - name: Build for the iOS Simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Shots (13-inch iPad and 6.9-inch iPhone)
+        timeout-minutes: 30
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          BUNDLE="com.syfan0.tegakicalendar"
+          mkdir -p shots
+          if [ -z "$APP" ]; then
+            echo "::warning::TegakiCalendar.app not found under build/DerivedData; no shots."
+            exit 0
+          fi
+          shoot() {  # shoot <page>: one photo; a failure only loses this one file
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$1" \
+              --screenshot-holidays auto --screenshot-week-start auto \
+              -AppleLanguages "($SET_LANGUAGE)" -AppleLocale "$SET_LOCALE" || { echo "::warning::launch failed ($ID, $1)"; return 0; }
+            sleep 9
+            xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($ID, $1)"
+            xcrun simctl io "$UDID" screenshot "shots/$ID-portrait-$1.png" || echo "::warning::screenshot failed ($ID, $1)"
+          }
+          # device-id | exact first choice | prefix fallbacks (in order). As in build.yml, on "iPad Air 13-inch"
+          # the pixels are still accepted; on "iPhone 17 Pro" they are 6.3-inch and the next step warns.
+          for SPEC in "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13" \
+                      "iphone69|iPhone 17 Pro Max|iPhone 17 Pro Max,iPhone 17 Pro,iPhone 16 Pro Max"; do
+            ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
+            FOUND="$(xcrun simctl list -j devices available | SIM_EXACT="$EXACT" SIM_PREFIXES="$PREFIXES" python3 -c '
+          import json, os, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):                                  # "…iOS-26-5" → (26, 5)
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          found = {}                                             # name → (udid, version): the newest iOS
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
+                      continue
+                  key = version(runtime)
+                  if d["name"] not in found or key > found[d["name"]][1]:
+                      found[d["name"]] = (d["udid"], key)
+          exact = os.environ["SIM_EXACT"]
+          if exact in found:
+              print(exact + "|" + found[exact][0])
+              raise SystemExit
+          for prefix in os.environ["SIM_PREFIXES"].split(","):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0])
+                      raise SystemExit
+          print("")
+          ' || true)"
+            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+            echo "$ID: $NAME ($UDID)"
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            if ! xcrun simctl install "$UDID" "$APP"; then
+              echo "::warning::install failed on $ID; skipping."
+              xcrun simctl shutdown "$UDID" || true
+              continue
+            fi
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month || true
+            sleep 120
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            for ROUND in first retake; do   # the retake is the file that is kept (see the head of this file)
+              for PAGE in month week day year; do
+                shoot "$PAGE"
+              done
+            done
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            xcrun simctl shutdown "$UDID" || true
+          done
+          ls -la shots
+
+      # The same conversion and the same sizes as "Store listing set" in build.yml (docs/M6_CONTRACT.md §4.1).
+      - name: Store listing set (JPEG, App Store sizes)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          mkdir -p shots/store/ipad13 shots/store/iphone69
+          accepted() {  # accepted <device>: Apple's accepted portrait pixel sizes (docs/M6_CONTRACT.md §4.1)
+            case "$1" in
+              ipad13)   echo "2064x2752 2048x2732" ;;
+              iphone69) echo "1320x2868 1290x2796 1260x2736" ;;
+              *)        echo "" ;;
+            esac
+          }
+          store() {  # store <device> <NN-name> <source shot without .png>: convert, then check the size
+            local DEV="$1" NAME="$2" SRC="shots/$3.png" OUT="shots/store/$1/$2.jpg" W H SIZE
+            if [ ! -f "$SRC" ]; then echo "::warning::store/$DEV/$NAME.jpg: source $SRC is missing; skipped."; return 0; fi
+            if ! sips -s format jpeg -s formatOptions 100 "$SRC" --out "$OUT" > /dev/null; then echo "::warning::store/$DEV/$NAME.jpg: sips could not convert $SRC."; return 0; fi
+            W="$(sips -g pixelWidth "$OUT" | awk '/pixelWidth/ {print $2}')"
+            H="$(sips -g pixelHeight "$OUT" | awk '/pixelHeight/ {print $2}')"
+            SIZE="${W}x${H}"
+            case " $(accepted "$DEV") " in
+              *" $SIZE "*) echo "store/$DEV/$NAME.jpg: ${SIZE} (accepted for $DEV)" ;;
+              *) echo "::warning::store/$DEV/$NAME.jpg is ${SIZE}, not one of the accepted sizes for $DEV ($(accepted "$DEV"))." ;;
+            esac
+          }
+          store ipad13   01-month ipad13-portrait-month
+          store ipad13   02-week  ipad13-portrait-week
+          store ipad13   03-day   ipad13-portrait-day
+          store ipad13   04-year  ipad13-portrait-year
+          store iphone69 01-week  iphone69-portrait-week
+          store iphone69 02-month iphone69-portrait-month
+          store iphone69 03-day   iphone69-portrait-day
+          store iphone69 04-year  iphone69-portrait-year
+          ls -la shots/store/*
+
+      - name: Upload the photos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-${{ matrix.set.id }}
+          path: shots/store
+          retention-days: 30
+          if-no-files-found: warn
+          overwrite: true
