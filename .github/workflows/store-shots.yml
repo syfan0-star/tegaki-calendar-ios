@@ -25,7 +25,8 @@
 # shoots its four pages again at the end, like the other devices in build.yml.
 #
 # The status bar (the iPad's has a date): the device boots twice, the second time in the set's language and
-# region, and its bar is fixed at 9:41 on 2026-10-07, the app's 「今日」 (docs/M7B.md FIX4). Only here: build.yml and
+# region, and its bar's time is fixed at 9:41 (docs/M7B.md FIX4, FIX5); the iPad's date stays the day of the shoot
+# (simctl did not set it from an ISO date). Only here: build.yml and
 # ja-baseline.yml keep their bar, whose date J-4 does not look at beyond comparing two runs of one day.
 name: store-shots
 
@@ -51,7 +52,7 @@ jobs:
     # 25 min. A job cut by this limit would not reach the upload.
     # A slow runner took 8 minutes for a boot (fr, 2026-11-06) and ran out of the step's 30; the two boots of
     # each device (FIX4) made it longer.
-    timeout-minutes: 60
+    timeout-minutes: 70
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -133,7 +134,7 @@ jobs:
           STATUS_TIME="${STAMP:0:22}:${STAMP:22:2}"
           echo "runner: $(date) TZ=${TZ:-unset}; the status bar's time: $STATUS_TIME"
           # The ISO time came out as "9:41 AM" on the ko and zh-Hant iPads (run 42077397646): the AM in English.
-          # The 12-hour regions get their own words as plain text first (not checked: look at the photos).
+          # The 12-hour regions' iPads get their own words as plain text first (not checked: look at the photos).
           case "$SET_LOCALE" in
             ko_KR) STATUS_TEXT="오전 9:41" ;;
             zh_TW) STATUS_TEXT="上午9:41" ;;
@@ -198,14 +199,19 @@ jobs:
             xcrun simctl ui "$UDID" appearance light || true
             # The status bar's time. simctl's help says an ISO date string also sets the date "on relevant
             # devices"; on the iPad of run 42077397646 (2026-11-06) it set the time, in the set's own form (09:41,
-            # 9:41 AM), and left the date at the day of the shoot. Full cellular bars (the iPhones showed four grey
-            # dots). Each later line is the way back if the one before fails; the last two are the earlier ones.
-            BARS=(--batteryState charged --batteryLevel 100 --wifiBars 3)
-            CELL=(--dataNetwork wifi --cellularMode active --cellularBars 4 --operatorName "")
-            { [ -n "$STATUS_TEXT" ] && xcrun simctl status_bar "$UDID" override --time "$STATUS_TEXT" "${BARS[@]}" "${CELL[@]}"; } \
-              || xcrun simctl status_bar "$UDID" override --time "$STATUS_TIME" "${BARS[@]}" "${CELL[@]}" \
-              || xcrun simctl status_bar "$UDID" override --time "$STATUS_TIME" "${BARS[@]}" \
-              || xcrun simctl status_bar "$UDID" override --time "9:41" "${BARS[@]}" \
+            # 9:41 AM), and left the date at the day of the shoot. The iPhone's bar has no AM/PM in any region and a
+            # Wi-Fi iPad no cellular bars, so the region's words go to the iPad and full cellular bars (the iPhones
+            # showed four grey dots) to the iPhone, in a call before the time's: an override adds what it is given
+            # (if it replaced instead, the time's call, last, still wins). Each later time line is the way back.
+            if [ "$ID" = iphone69 ]; then
+              xcrun simctl status_bar "$UDID" override --dataNetwork wifi --cellularMode active --cellularBars 4 --operatorName "" \
+                || echo "::warning::$ID: the cellular bars were not set."
+            fi
+            TEXT=""
+            if [ "$ID" = ipad13 ]; then TEXT="$STATUS_TEXT"; fi
+            { [ -n "$TEXT" ] && xcrun simctl status_bar "$UDID" override --time "$TEXT" --batteryState charged --batteryLevel 100 --wifiBars 3; } \
+              || xcrun simctl status_bar "$UDID" override --time "$STATUS_TIME" --batteryState charged --batteryLevel 100 --wifiBars 3 \
+              || xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 \
               || true
             if ! xcrun simctl install "$UDID" "$APP"; then
               echo "::warning::install failed on $ID; skipping."

@@ -186,18 +186,19 @@ private enum StoreInk {
     static func yearPage(focus: DayKey) -> InkPage {
         var book = InkBook(prefix: "store-year", pageId: PageNavigation.pageId(.year, focus: focus), seed: 404)
 
-        // One marker stroke down five free days of November (the 9th–13th), the wide way of its nib (18 lu: the
-        // narrow one read as a stray line), right of the letters: the trip's own days have no room for it, its
+        // One marker stroke down five free days of November (the 9th–13th), the wide way of its nib (18 lu, about
+        // 26 drawn by PencilKit: the narrow one read as a stray line), right of the letters: the trip's own days have no room for it, its
         // chips start where a long weekday ends. It is filed under the last day, so that no row grows (a stroke's
         // bottom counts, and the rows above it stay 60 high: the points above the cell are negative).
         book.marker("marker", cell: .yearDay(month: 11, day: 13), from: CGPoint(x: 80, y: -230), to: CGPoint(x: 80, y: 36))
 
-        // Red circles around a one-digit number (x 14–22; the letter starts at 27). Two digits start at x 3, so a
-        // circle around them ran over the digits and out of the cell (the photos of run 42077397646). The days
-        // have no holiday and no workday mark in the regions of the eleven sets (2026), and no other stroke. Not
-        // on today: it has its frame, and in zh-Hans a name (休息日).
+        // Red circles around a one-digit number (its glyph at about x 13.5–22.5; the letter starts at 27, the
+        // ink's outer edge, with half the pen, stays left of it). Two digits start at x 3, so a circle around them
+        // ran over the digits and out of the cell (the photos of run 42077397646). The days have no holiday and
+        // no workday mark in the regions of the eleven sets (2026), and no other stroke. Not on today: it has its
+        // frame, and in zh-Hans a name (休息日).
         for (month, day) in [(2, 4), (4, 8), (6, 9), (8, 6), (9, 5), (11, 3), (12, 4)] {
-            book.loop("circle", cell: .yearDay(month: month, day: day), center: CGPoint(x: 18, y: 12.5), rx: 8.5, ry: 10.5, color: InkBook.red)
+            book.loop("circle", cell: .yearDay(month: month, day: day), center: CGPoint(x: 17.5, y: 13), rx: 7, ry: 10, color: InkBook.red)
         }
 
         // Checks on the empty right part of a few days.

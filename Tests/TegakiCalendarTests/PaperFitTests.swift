@@ -325,6 +325,10 @@ final class PaperFitTests: XCTestCase {
         // F-2b: only the Chinese and Korean names move down; ja is 1.1's place.
         for language in languages {
             XCTAssertEqual(PaperWords.yearHolidayNameDrop(language), [.zhHans, .zhHant, .ko].contains(language) ? 3 : 0, "\(language)")
+            let name = YearPaper.holidayNameRect(frame: frame, pad: pad, leftWidth: 50.4, lineHeight: 13, language)
+            XCTAssertEqual(name.minY, frame.minY + PaperSpec.yearHeader + 1 + ([.zhHans, .zhHant, .ko].contains(language) ? 3 : 0), accuracy: 0.0001, "\(language): the name's place")
+            XCTAssertEqual(name.minX, frame.minX + pad, "\(language)")
+            XCTAssertEqual(name.width, 50.4 - 2 * pad, "\(language)")
         }
         XCTAssertEqual(PaperWords.monthHolidayFit(.ja), .oneOne)
         for language in languages where language != .ja {

@@ -1006,6 +1006,9 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertFalse(circles.contains { $0.cell == .yearDay(month: 10, day: 7) }, "today has its frame, and in zh-Hans a name under the number")
         XCTAssertTrue(circles.allSatisfy { ($0.cell.yearMonthDay?.day ?? 10) < 10 }, "one digit: a circle around two runs over them and out of the cell")
         XCTAssertTrue(circles.allSatisfy { ($0.points.map(\.x).min() ?? 0) > 2 }, "inside the cell")
+        // The ink's right edge (with half the pen) left of the weekday's letter (pad + 1.6 em of 15 lu = 27).
+        let letterLeft = PaperSpec.yearPad + PaperText.yearWeekday.lu * 1.6
+        XCTAssertTrue(circles.allSatisfy { ($0.points.map { $0.x + $0.sizeW / 2 }.max() ?? 99) < letterLeft }, "off the weekday's letter")
         XCTAssertGreaterThanOrEqual(page.liveStrokes.filter { $0.id.hasPrefix("store-year-check") }.count, 4)
         XCTAssertTrue(circles.allSatisfy { $0.color == "#dc2626" })
 
@@ -1030,8 +1033,10 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertLessThan(paperY.min() ?? 0, ninth.midY, "from the 9th")
         XCTAssertLessThanOrEqual(paperY.max() ?? 0, thirteenth.maxY, "to the 13th")
         XCTAssertGreaterThan(paperY.max() ?? 0, thirteenth.midY, "to the 13th")
-        XCTAssertGreaterThan((marker.points.map(\.x).min() ?? 0) - InkPresets.markerWidth / 2, PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft, "right of the letters, with its width")
-        XCTAssertLessThan((marker.points.map(\.x).max() ?? 999) + InkPresets.markerWidth / 2, PaperSpec.yearColumnWidth, "inside the cell")
+        // PencilKit draws the wide way about 26.5 lu across (FIX5's verify): 13 on each side.
+        XCTAssertGreaterThan((marker.points.map(\.x).min() ?? 0) - 13, PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft, "right of the letters, with its width")
+        XCTAssertLessThan((marker.points.map(\.x).max() ?? 999) + 13, PaperSpec.yearColumnWidth, "inside the cell")
+        XCTAssertTrue(marker.points.allSatisfy { abs(cos($0.azimuth)) > 0.99 }, "the wide way: the nib across a stroke down the page")
         for stroke in page.liveStrokes {
             let bounds = try XCTUnwrap(stroke.paperBounds(cellOrigin: try XCTUnwrap(layout.cells[stroke.cell]).origin))
             for chip in layout.chips {

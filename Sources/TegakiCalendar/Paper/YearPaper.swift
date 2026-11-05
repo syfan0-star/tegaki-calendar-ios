@@ -100,7 +100,6 @@ enum YearPaper: PaperRenderer {
         let letters = (0..<7).map { PaperWords.yearWeekday($0, language) }
         let letterScale = PaperWords.yearWeekdayScale(boxWidth: weekdayBoxWidth(weekdaySize: weekdaySize, pad: pad, language), fontSize: weekdaySize, language)
         let holidayFit = PaperWords.yearHolidayFit(language)
-        let holidayDrop = PaperWords.yearHolidayNameDrop(language)
         for label in layout.dateLabels {
             let frame = label.frame
             guard frame.intersects(dirty) else { continue }
@@ -122,8 +121,7 @@ enum YearPaper: PaperRenderer {
                 PaperText.drawLine(letter, in: letterRect, font: letterFont, color: color)
             }
             if let name = label.holidayName, !name.isEmpty {
-                let nameRect = CGRect(x: frame.minX + pad, y: frame.minY + PaperSpec.yearHeader + 1 + holidayDrop,
-                                      width: max(0, leftWidth - 2 * pad), height: holidayFont.lineHeight)
+                let nameRect = holidayNameRect(frame: frame, pad: pad, leftWidth: leftWidth, lineHeight: holidayFont.lineHeight, language)
                 if nameRect.width > holidaySize {
                     PaperText.drawLine(name, in: nameRect, font: holidayFont, color: PaperPalette.red, fit: holidayFit)
                 }
@@ -170,6 +168,13 @@ enum YearPaper: PaperRenderer {
     /// digits (19.8 lu on a Mac) only just overflow it and would move left in a wider one, on every
     /// Japanese year page (docs/M7B.md, P). The number is right-aligned, so a one-digit today stays
     /// where it was.
+    /// F-2, F-2b: the box of a cell's holiday name, under the number and the letter: 1.1's place (the header + 1)
+    /// for ja, lower by `PaperWords.yearHolidayNameDrop` for the Chinese and Korean letters and names.
+    static func holidayNameRect(frame: CGRect, pad: CGFloat, leftWidth: CGFloat, lineHeight: CGFloat, _ language: UILanguage) -> CGRect {
+        CGRect(x: frame.minX + pad, y: frame.minY + PaperSpec.yearHeader + 1 + PaperWords.yearHolidayNameDrop(language),
+               width: max(0, leftWidth - 2 * pad), height: lineHeight)
+    }
+
     static func numberRect(frame: CGRect, pad: CGFloat, weekdaySize: CGFloat, lineHeight: CGFloat, isToday: Bool) -> CGRect {
         let wider = isToday ? weekdaySize * 0.1 : 0
         return CGRect(x: frame.minX + pad - wider, y: frame.minY + pad, width: weekdaySize * 1.3 + wider, height: lineHeight)
