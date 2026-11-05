@@ -1004,6 +1004,8 @@ final class ScreenshotModeTests: XCTestCase {
         let circles = page.liveStrokes.filter { $0.id.hasPrefix("store-year-circle") }
         XCTAssertGreaterThanOrEqual(circles.count, 4, "several days")
         XCTAssertFalse(circles.contains { $0.cell == .yearDay(month: 10, day: 7) }, "today has its frame, and in zh-Hans a name under the number")
+        XCTAssertTrue(circles.allSatisfy { ($0.cell.yearMonthDay?.day ?? 10) < 10 }, "one digit: a circle around two runs over them and out of the cell")
+        XCTAssertTrue(circles.allSatisfy { ($0.points.map(\.x).min() ?? 0) > 2 }, "inside the cell")
         XCTAssertGreaterThanOrEqual(page.liveStrokes.filter { $0.id.hasPrefix("store-year-check") }.count, 4)
         XCTAssertTrue(circles.allSatisfy { $0.color == "#dc2626" })
 
@@ -1028,7 +1030,8 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertLessThan(paperY.min() ?? 0, ninth.midY, "from the 9th")
         XCTAssertLessThanOrEqual(paperY.max() ?? 0, thirteenth.maxY, "to the 13th")
         XCTAssertGreaterThan(paperY.max() ?? 0, thirteenth.midY, "to the 13th")
-        XCTAssertGreaterThan((marker.points.map(\.x).min() ?? 0) - 4, PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft, "right of the letters, with its width of about 8")
+        XCTAssertGreaterThan((marker.points.map(\.x).min() ?? 0) - InkPresets.markerWidth / 2, PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft, "right of the letters, with its width")
+        XCTAssertLessThan((marker.points.map(\.x).max() ?? 999) + InkPresets.markerWidth / 2, PaperSpec.yearColumnWidth, "inside the cell")
         for stroke in page.liveStrokes {
             let bounds = try XCTUnwrap(stroke.paperBounds(cellOrigin: try XCTUnwrap(layout.cells[stroke.cell]).origin))
             for chip in layout.chips {

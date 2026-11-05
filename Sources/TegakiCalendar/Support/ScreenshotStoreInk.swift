@@ -186,19 +186,18 @@ private enum StoreInk {
     static func yearPage(focus: DayKey) -> InkPage {
         var book = InkBook(prefix: "store-year", pageId: PageNavigation.pageId(.year, focus: focus), seed: 404)
 
-        // One marker stroke down five free days of November (the 9th–13th), in the narrow way of its nib (about
-        // 8 lu), right of the letters: the trip's own days have no room for it, its chips start where a long
-        // weekday ends. It is filed under the last day, so that no row grows (a stroke's bottom counts, and the
-        // rows above it stay 60 high: the points above the cell are negative).
-        book.marker("marker", cell: .yearDay(month: 11, day: 13), from: CGPoint(x: 80, y: -230), to: CGPoint(x: 80, y: 36), wide: false)
+        // One marker stroke down five free days of November (the 9th–13th), the wide way of its nib (18 lu: the
+        // narrow one read as a stray line), right of the letters: the trip's own days have no room for it, its
+        // chips start where a long weekday ends. It is filed under the last day, so that no row grows (a stroke's
+        // bottom counts, and the rows above it stay 60 high: the points above the cell are negative).
+        book.marker("marker", cell: .yearDay(month: 11, day: 13), from: CGPoint(x: 80, y: -230), to: CGPoint(x: 80, y: 36))
 
-        // Red circles around the number (two digits at x 3–22, one digit at x 14–22; the letter starts at 27), on
-        // a few days with no holiday's name under the number (from y 17) in any set. Not on today: it has its
-        // frame, and in zh-Hans a name (休息日).
-        let circled = [(2, 14), (4, 18), (6, 13), (8, 22), (9, 12), (11, 14), (12, 24)]
-        for (month, day) in circled {
-            let center = CGPoint(x: day < 10 ? 18 : 12, y: 12.5)
-            book.loop("circle", cell: .yearDay(month: month, day: day), center: center, rx: day < 10 ? 8.5 : 11.5, ry: 10.5, color: InkBook.red)
+        // Red circles around a one-digit number (x 14–22; the letter starts at 27). Two digits start at x 3, so a
+        // circle around them ran over the digits and out of the cell (the photos of run 42077397646). The days
+        // have no holiday and no workday mark in the regions of the eleven sets (2026), and no other stroke. Not
+        // on today: it has its frame, and in zh-Hans a name (休息日).
+        for (month, day) in [(2, 4), (4, 8), (6, 9), (8, 6), (9, 5), (11, 3), (12, 4)] {
+            book.loop("circle", cell: .yearDay(month: month, day: day), center: CGPoint(x: 18, y: 12.5), rx: 8.5, ry: 10.5, color: InkBook.red)
         }
 
         // Checks on the empty right part of a few days.

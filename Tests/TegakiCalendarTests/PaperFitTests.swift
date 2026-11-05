@@ -322,6 +322,10 @@ final class PaperFitTests: XCTestCase {
 
         // F-2, F-3: drawLine; the other languages shrink.
         XCTAssertEqual(PaperWords.yearHolidayFit(.ja), .oneOne)
+        // F-2b: only the Chinese and Korean names move down; ja is 1.1's place.
+        for language in languages {
+            XCTAssertEqual(PaperWords.yearHolidayNameDrop(language), [.zhHans, .zhHant, .ko].contains(language) ? 3 : 0, "\(language)")
+        }
         XCTAssertEqual(PaperWords.monthHolidayFit(.ja), .oneOne)
         for language in languages where language != .ja {
             XCTAssertEqual(PaperWords.yearHolidayFit(language), .fitted(minScale: 0.8))

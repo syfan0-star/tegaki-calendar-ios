@@ -138,6 +138,18 @@ enum PaperWords {
 
     // MARK: - Which way a line is drawn
 
+    /// F-2b (docs/M7B.md FIX5): how far a year cell's holiday name sits below 1.1's place (the header + 1).
+    /// The weekday letter's line (15 lu from y 3, 17.9 high) already reaches into the name's (from y 17): with
+    /// ja's font the glyphs keep apart, but the Chinese and Korean ones of a letter (四・五・토) and of a name
+    /// (国庆节・개천절) met on the App Store's photos (run 42077397646, zh-Hans worst). 3 lu clears them; the
+    /// name still ends near y 33 of the 60. ja stays where 1.1 draws it, and Latin names have room already.
+    static func yearHolidayNameDrop(_ language: UILanguage) -> CGFloat {
+        switch language {
+        case .zhHans, .zhHant, .ko: return 3
+        default: return 0
+        }
+    }
+
     /// F-2: a holiday name in a year cell: ja 1.1's `drawLine`, the others down to 0.8.
     static func yearHolidayFit(_ language: UILanguage) -> PaperText.LineFit {
         language == .ja ? .oneOne : .fitted(minScale: 0.8)
