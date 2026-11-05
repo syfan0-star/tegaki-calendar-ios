@@ -49,7 +49,9 @@ jobs:
     # A build and XcodeGen about 3 min, four boots up to 3.5 each (run 41922318959; a device boots twice, for its
     # language, and the second is shorter), the two waits 4 min, 16 shots of 11–15 s at most 4 min: at most about
     # 25 min. A job cut by this limit would not reach the upload.
-    timeout-minutes: 45
+    # A slow runner took 8 minutes for a boot (fr, 2026-11-06) and ran out of the step's 30; the two boots of
+    # each device (FIX4) made it longer.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -113,7 +115,7 @@ jobs:
             build
 
       - name: Shots (13-inch iPad and 6.9-inch iPhone)
-        timeout-minutes: 30
+        timeout-minutes: 45
         continue-on-error: true
         run: |
           set -uo pipefail
@@ -186,9 +188,9 @@ jobs:
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot again; skipping."; continue; }
             xcrun simctl ui "$UDID" appearance light || true
-            # The status bar shows the app's 「今日」. By simctl's help an ISO date string sets the date as well as
-            # the time (not checked: the Mac this was written on has no simctl; look at the photos). The plain
-            # "9:41" is the way back if the command fails.
+            # The status bar's time. simctl's help says an ISO date string also sets the date "on relevant
+            # devices"; on the iPad of run 42077397646 (2026-11-06) it set the time, in the set's own form (09:41,
+            # 9:41 AM), and left the date at the day of the shoot. The plain "9:41" is the way back if it fails.
             xcrun simctl status_bar "$UDID" override --time "$STATUS_TIME" --batteryState charged --batteryLevel 100 --wifiBars 3 \
               || xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 \
               || true

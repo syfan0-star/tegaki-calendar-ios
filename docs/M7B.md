@@ -1892,3 +1892,9 @@ CI の 2 回目の `store-shots`（`ci-store1/shots/`）の 88 枚を別の役�
 
 - `75326db` の build（run 42077363605）: Build and test 成功（単体 445 本・スキップ 8・失敗 0、UI 29 本・スキップ 1。`testDayHeadingNameIsReadInAnIPhoneColumn`・`testStoreInk*`・`testJapaneseTakesTheOneOnePath`・`testGermanPaywallReachesItsLinks` は passed。KitChecks 29470）、Localized shots 成功、compat-v1.0 成功。Blank paper shots は **runner が 1 度も付かずに取り消し**（「The job was not acquired by Runner of type hosted even after multiple attempts」。macOS arm64 の混雑の注記つき）。コードの失敗ではないので、その段だけ再実行した。「app is not running after 9 s」の警告は 14 件で、前の回と同じ数。
 - TestFlight: run 42089228883（#17）成功。ビルド 17（`bface196-35e5-4f03-acfd-9cbc10b4f4f3`）は VALID、1.2、暗号化の申告なし。16 を本人が試す前に 17 にしたのは、日の見出しの直しが iPhone の画面を変えるから。Things の確認表（`8DmMPpchFWZGAbdrqNoBcD`）をビルド 17 に書き換え、手順 10 に英語の日のページの祝日名を見る 1 行を足した（契約 §8 の 9 の手順 10 にも同じ字）。
+
+### App Store の写真の撮り直し（75326db、run 42077397646）
+
+- 11 組のうち 9 組は撮れた。**es は runner が付かずに取り消し**（build の blank と同じ混雑）、**fr は遅い runner で段の上限 30 分に掛かり、iPhone の 4 枚が無い**（iPad の boot に 8 分。en は 1 分）。2 組だけ再実行した。次の push から段の上限を 45 分、ジョブを 60 分にする（`store-shots.yml`）。
+- **状態の帯**: 言語と地域は効いた（de の iPad は「09:41 Donnerstag 5. Nov.」、zh-Hans の iPhone は「09:41」）。**日付は撮った日のまま**（ISO の日時で時刻だけが変わった）。紙の今日（10 月 7 日）と帯の日付は合わない。runner の時計を変える手（sudo date）は、ジョブと GitHub の通信の証明書と期限を壊しかねないので取らない。iPhone の帯には日付が出ない。
+- zh-Hans の iPhone の 03-day は見出しに「休息日」が赤い字で出た（FIX4 の 1）。
