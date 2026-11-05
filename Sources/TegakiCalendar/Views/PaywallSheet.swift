@@ -254,10 +254,12 @@ struct PaywallSheet: View {
             Text(Self.disclosure(eligible: eligible))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("paywall.disclosure")
             linkRows
             Button(Self.laterTitle, action: onClose)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
+                .accessibilityIdentifier("paywall.laterBottom")
         }
         .padding([.horizontal, .bottom], 20)
         .padding(.top, 14) // below the drag indicator
@@ -431,10 +433,14 @@ struct PaywallSheet: View {
                     }
                 }
                 .disabled(isBusy)
+                .accessibilityIdentifier("paywall.restore")
                 Button(Self.termsTitle) { openURL(LegalLinks.terms(for: L.language)) }
+                    .accessibilityIdentifier("paywall.terms")
                 Button(Self.privacyTitle) { openURL(LegalLinks.privacy(for: L.language)) }
+                    .accessibilityIdentifier("paywall.privacy")
             }
             Button(LegalLinks.appleEULATitle(L.language)) { openURL(LegalLinks.appleEULA) }
+                .accessibilityIdentifier("paywall.eula")
         }
         .font(.footnote)
         .buttonStyle(.borderless)

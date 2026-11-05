@@ -21,7 +21,10 @@
 # Known (docs/M7B.md, C1): the 13-inch iPad is booted just before its photos (the unit tests run on
 # another simulator), and in 2 of 3 runs of 1.0.1 the system banner "Ready for Apple Intelligence"
 # (about 85–105 s after the boot) landed in its week or day photo: a comparison then shows strong
-# differences in the top 240 rows of that photo and of store/ipad13/02-week or 03-day.
+# differences in the top 240 rows of that photo and of store/ipad13/02-week or 03-day. Since FIX3
+# (docs/M7B.md) the 13-inch step and build.yml's wait 120 s with the app in front before the first photo,
+# for that banner and for the shaders of a first launch (a month photo without its handwriting). If a
+# banner still shows, take the photos again.
 #
 # The photo steps must stay the same as build.yml's: when one of the two changes, change the other one
 # too (1.2's build.yml points back here). Added to the copy: JA_ARGS, the env.txt lines, the working
@@ -53,8 +56,9 @@ jobs:
     name: ja-baseline (1.1.1's photos with JA_ARGS)
     runs-on: macos-26
     # In nine runs of 1.1 (2026-10-31 and 11-01) build.yml's photo steps took 36–45 min: the build 42–71 s,
-    # the 13-inch boot 111–193 s, the 13-inch photos 5–7 min, the other devices 26–33 min. No tests run
-    # here. 75 leaves room for slow boots; a job cut by its limit would not reach the upload.
+    # the 13-inch boot 111–193 s, the 13-inch photos 5–7 min (and since FIX3 a wait of 2 min), the other
+    # devices 26–33 min. No tests run here. 75 leaves room for slow boots; a job cut by its limit would not
+    # reach the upload.
     timeout-minutes: 75
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -300,6 +304,14 @@ jobs:
           xcodebuild -version > shots/env.txt || echo "::warning::xcodebuild -version failed"
           sim_env ipad13 "$UDID" >> shots/env.txt || echo "::warning::no runtime line for ipad13"
           cat shots/env.txt || true
+          # docs/M7B.md (FIX3), docs/M7B_CONTRACT.md §12.6: a first launch after the install compiles PencilKit's
+          # 34 Metal shaders (the next launches none). In run 42013415033 that took until 19 s after the launch,
+          # so the month photo of 8 s had no handwriting. And a freshly booted simulator posts the banner "Ready
+          # for Apple Intelligence" once, about 85–105 s after the boot (docs/M7B.md, C1), which that run caught
+          # on the week photo. 120 s with the app in front outlasts both. Same lines in the other workflow.
+          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
+          sleep 120
+          xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
           for PAGE in month week day year; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
@@ -363,8 +375,8 @@ jobs:
           done
           ls -la shots
 
-      # The 13-inch log is collected before the other devices boot (its 22 shots since 1.1 fit in the
-      # 10 min window; each extra device writes its own shots/<id>-log.txt below).
+      # The 13-inch log is collected before the other devices boot (its 2 min wait and its shots fit in the
+      # 14 min window of build.yml; each extra device writes its own shots/<id>-log.txt below).
       - name: Collect the app log and crash reports (13-inch iPad)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -373,7 +385,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           mkdir -p shots
           xcrun simctl terminate "$UDID" com.syfan0.tegakicalendar 2>/dev/null || true
-          xcrun simctl spawn "$UDID" log show --last 10m --style compact \
+          xcrun simctl spawn "$UDID" log show --last 14m --style compact \
             --predicate 'process == "TegakiCalendar" OR eventMessage CONTAINS "tegakicalendar" OR eventMessage CONTAINS "TegakiCalendar"' \
             > shots/app-log.txt 2>&1 || true
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} shots/ \; 2>/dev/null || true

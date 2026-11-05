@@ -151,6 +151,58 @@ final class LanguageUITests: XCTestCase {
         XCTAssertEqual(state(of: app)["week"], "monday")
     }
 
+    /// App Review 3.1.2 (docs/M7B_CONTRACT.md §8, step 8): on an iPhone the purchase sheet of the longest
+    /// language is taller than the screen, so `PaywallSheet.content` scrolls it. Sending it to the end
+    /// must reach the renewal text, restore, the terms, the privacy policy and the EULA, in German, on the
+    /// screen and hittable. A person at the top of the sheet does not see them; the photo of the job
+    /// `l10n-shots` only shows the top, so the two screenshots this keeps are the record of the bottom.
+    func testGermanPaywallReachesItsLinks() {
+        let app = launch(["de"], "de_DE", extra: ["--screenshot-sheet", "paywall"])
+        defer { app.terminate() }
+        let restore = app.buttons["paywall.restore"]
+        XCTAssertTrue(restore.waitForExistence(timeout: 30), "the purchase sheet is up")
+        keepScreenshot(app, "paywall-de-top")
+
+        let links: [(id: String, label: String)] = [
+            ("paywall.restore", "Käufe wiederherstellen"),
+            ("paywall.terms", "Nutzungsbedingungen des Dienstes"),
+            ("paywall.privacy", "Datenschutzerklärung"),
+            ("paywall.eula", "Nutzungsbedingungen (Apple Standard-EULA)"),
+            ("paywall.laterBottom", "Später"),
+        ]
+        let buttons = links.map { app.buttons[$0.id] }
+        let screen = app.windows.firstMatch.frame
+        XCTAssertGreaterThan(screen.height, 0, "the window")
+        func reached(_ element: XCUIElement) -> Bool { element.isHittable && screen.contains(element.frame) }
+        var drags = 0
+        while drags < 6, !buttons.allSatisfy(reached) {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)))
+            drags += 1
+        }
+        log("paywall: \(drags) drags, window \(screen)")
+        keepScreenshot(app, "paywall-de-bottom")
+        for (link, button) in zip(links, buttons) {
+            log("paywall: \(link.id) \"\(button.label)\" at \(button.frame) hittable=\(button.isHittable)")
+            XCTAssertTrue(button.exists, link.id)
+            XCTAssertEqual(button.label, link.label, link.id)
+            XCTAssertTrue(button.isHittable, "\(link.id) can be tapped")
+            XCTAssertTrue(screen.contains(button.frame), "\(link.id) lies on the screen: \(button.frame)")
+        }
+        let disclosure = app.staticTexts["paywall.disclosure"]
+        log("paywall: the renewal text at \(disclosure.frame): \(disclosure.label)")
+        XCTAssertTrue(disclosure.exists, "the renewal text")
+        XCTAssertTrue(screen.contains(disclosure.frame), "the renewal text lies on the screen: \(disclosure.frame)")
+        XCTAssertTrue(disclosure.label.hasPrefix("Das Abo verlängert sich automatisch."), disclosure.label)
+    }
+
+    private func keepScreenshot(_ app: XCUIApplication, _ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     private func log(_ line: String) {
         print("l10n UI: \(line)")
         NSLog("l10n UI: %@", line)

@@ -66,8 +66,9 @@ jobs:
     # 1.2 (docs/M7B_CONTRACT.md §7.5): 90 → 110. The UI test step may now take 40 min (below). The longest
     # run so far is 1.1.1's 67.9 min with a UI test step of 11.9 (run 41922318959; e7b4d2f took 57.6, run
     # 41264726309): 67.9 − 11.9 + 3 (the lint, the data check, the bundle check, 2 more sheets, the new unit
-    # tests) + 40 = 99, and 11 min for a slow boot (one alone has taken 4 min). A job cut by this limit does
-    # not reach "Upload screenshots", so J-4's photos and the UI tests' log would be lost with it.
+    # tests) + 2 (the 13-inch iPad's wait) + 40 = 101, and 9 min for a slow boot (one alone has taken 4 min).
+    # A job cut by this limit does not reach "Upload screenshots", so J-4's photos and the UI tests' log would
+    # be lost with it.
     timeout-minutes: 110
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -108,17 +109,17 @@ jobs:
       # fixtures of the ledger and the screenshot mode); 1.1.1 (docs/R1_1_1.md) counts 24929 (+ 244 for
       # the loops over the taller paper + 239 for the changed checks and the section "opening zoom and
       # top-aligned paper (1.1.1)"); 1.2 (docs/M7B_CONTRACT.md §7.1, §10.8; the split is in docs/M7B.md, K2)
-      # counts 29447 (+ 4518 for the sections "languages", "kit strings", "date text", "holidays", "holiday
-      # geometry" and "week start"). The threshold is that number minus 50, so anything below 29397 means a
+      # counts 29470 (+ 4541 for the sections "languages", "kit strings", "date text", "holidays", "holiday
+      # geometry" and "week start"). The threshold is that number minus 50, so anything below 29420 means a
       # section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 29397 or more)"
+          echo "KitChecks count: ${N:-0} (required: 29420 or more)"
           grep -E 'compat10: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 29397
+          test "${N:-0}" -ge 29420
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -472,6 +473,14 @@ jobs:
           xcodebuild -version > shots/env.txt || echo "::warning::xcodebuild -version failed"
           sim_env ipad13 "$UDID" >> shots/env.txt || echo "::warning::no runtime line for ipad13"
           cat shots/env.txt || true
+          # docs/M7B.md (FIX3), docs/M7B_CONTRACT.md §12.6: a first launch after the install compiles PencilKit's
+          # 34 Metal shaders (the next launches none). In run 42013415033 that took until 19 s after the launch,
+          # so the month photo of 8 s had no handwriting. And a freshly booted simulator posts the banner "Ready
+          # for Apple Intelligence" once, about 85–105 s after the boot (docs/M7B.md, C1), which that run caught
+          # on the week photo. 120 s with the app in front outlasts both. Same lines in the other workflow.
+          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
+          sleep 120
+          xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
           for PAGE in month week day year; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
@@ -537,8 +546,9 @@ jobs:
           done
           ls -la shots
 
-      # The 13-inch log is collected before the other devices boot (its 25 shots since 1.2 fit in the
-      # 10 min window; each extra device writes its own shots/<id>-log.txt below).
+      # The 13-inch log is collected before the other devices boot (its 2 min wait and 25 shots since 1.2 took
+      # about 11 min in CI-0, 8.9 of them the shots, so a 14 min window; each extra device writes its own
+      # shots/<id>-log.txt below).
       - name: Collect the app log and crash reports (13-inch iPad)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -547,7 +557,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           mkdir -p shots
           xcrun simctl terminate "$UDID" com.syfan0.tegakicalendar 2>/dev/null || true
-          xcrun simctl spawn "$UDID" log show --last 10m --style compact \
+          xcrun simctl spawn "$UDID" log show --last 14m --style compact \
             --predicate 'process == "TegakiCalendar" OR eventMessage CONTAINS "tegakicalendar" OR eventMessage CONTAINS "TegakiCalendar"' \
             > shots/app-log.txt 2>&1 || true
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} shots/ \; 2>/dev/null || true
@@ -768,8 +778,8 @@ jobs:
       # tests, each of which is bounded). 1.1.1 (docs/R1_1_1.md): HeaderAndPaperUITests (3 tests, about a
       # minute: where 「今日」 sits and that it works, an empty page at the top of the real paper area);
       # its steps are the `header-paper UI:` lines. 1.2 (docs/M7B_CONTRACT.md §7.3, §10.8): LanguageUITests
-      # (about 9 min: 24 launches of about 20 s; which language iOS chooses, its steps are the `l10n UI:`
-      # lines) and WeekStartUITests (the `week-start UI:` lines) run here too, so the step normally takes about
+      # (about 9 min: 25 launches of about 20 s; which language iOS chooses and, in German, that the purchase
+      # sheet reaches its links, its steps are the `l10n UI:` lines) and WeekStartUITests (the `week-start UI:` lines) run here too, so the step normally takes about
       # 25 min (1.1.1's took 11.9 in run 41922318959) and stops after 40. The tests pass their own language in their launch arguments.
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 40
@@ -1031,13 +1041,14 @@ jobs:
 
   # 1.2 (docs/M7B_CONTRACT.md §7.5, §7.6, §4.4, §4.5, §10.7, §8 8): the other nine languages, seen by the
   # lead and the owner without being able to read them. Next to the other jobs (no `needs`). No test here;
-  # a photo that fails is only a warning, so this job fails only when the app does not build. 62 photos in
+  # a photo that fails is only a warning, so this job fails only when the app does not build. 63 photos in
   # shots/l10n (artifact "l10n-screenshots", kept 7 days), each language with its region's holidays and week
   # start (en_US, zh_*, ko_KR, es_MX and pt_BR start on a Sunday, fr_FR, de_DE and it_IT on a Monday):
   #   <language>/ipad13-portrait-{month,day}.png, iphone-portrait-{week,year}.png     36
   #   {en,de}/ipad13-portrait-sheet-{settings,holidays,paywall,week-start}.png         8
   #   {de,fr}/{ipad13,iphone}-portrait-tool-eraser.png (the toolbar's two lines)       4
   #   {fr,de}/iphone-portrait-sheet-lasso.png (the three words of the menu)            2
+  #   de/iphone-portrait-sheet-paywall.png (the longest real language)                 1
   #   en/ipad13-portrait-week.png, en/iphone-portrait-month.png (Sunday first)         2
   #   ja-sunday/{ipad13,iphone}-portrait-{month,week}.png (Japanese, Sunday first)     4
   #   pseudo/{ipad13,iphone}-portrait-{month,sheet-settings,sheet-paywall}.png         6
@@ -1045,7 +1056,7 @@ jobs:
   # That and `-NSShowNonLocalizedStrings YES` only reach the app's own words (Localizable): the Kit's table
   # (titles, plan texts, +n, holiday marks) neither doubles nor logs. Its lengths are for PaperFitTests and
   # L-12, its gaps for L-2 and KitStringsTests.
-  # The limit: a build and XcodeGen 3 min, two boots 3.5 each (run 41922318959), the two waits 4 min, 62
+  # The limit: a build and XcodeGen 3 min, two boots 3.5 each (run 41922318959), the two waits 4 min, 63
   # photos of 11–15 s at most 16: about 30 min. It stays at 75 because the job's last step is the upload.
   l10n-shots:
     name: Localized shots (1.2)
@@ -1205,6 +1216,9 @@ jobs:
                 shoot "$L" iphone-portrait-sheet-lasso.png --screenshot-page month --screenshot-sheet lasso $(lang_args "$L")
               done
               shoot en iphone-portrait-month.png --screenshot-page month $(lang_args en)
+              # The longest real language's purchase sheet on an iPhone (the top of it; that sending it down
+              # reaches the links is LanguageUITests.testGermanPaywallReachesItsLinks, with its own photos).
+              shoot de iphone-portrait-sheet-paywall.png --screenshot-page month --screenshot-sheet paywall $(lang_args de)
             fi
             for L in de fr; do
               shoot "$L" "$ID-portrait-tool-eraser.png" --screenshot-page month --screenshot-tool eraser $(lang_args "$L")
@@ -1243,13 +1257,13 @@ jobs:
           HOLIDAYS="$(grep -E 'l10n: holidays loaded' "$LOG" | sed 's/.*l10n: holidays loaded //' | sort -n | tail -1)"
           grep 'l10n: missing' "$LOG" | sed 's/.*l10n: missing //' | sort -u || true
           grep 'not found in strings table' "$LOG" | grep 'TegakiCalendar.app' | head -50 || true
-          [ "$PHOTOS" = "62" ] || echo "::warning::$PHOTOS photos, 62 expected."
+          [ "$PHOTOS" = "63" ] || echo "::warning::$PHOTOS photos, 63 expected."
           [ "$MISSING" = "0" ] || echo "::warning::$MISSING keys the app did not find (l10n: missing)."
           [ "${NOT_LOCALIZED:-0}" = "0" ] || echo "::warning::$NOT_LOCALIZED non-localized lines of the app's bundle."
           {
             echo "### l10n-shots"
             echo ""
-            echo "- photos: $PHOTOS (62 expected)"
+            echo "- photos: $PHOTOS (63 expected)"
             echo "- keys the app did not find (\`l10n: missing\`): $MISSING (0 expected)"
             echo "- non-localized lines of the app's bundle: ${NOT_LOCALIZED:-0} (0 expected)"
             echo "- the slowest \`l10n: holidays loaded\`: ${HOLIDAYS:-none}"
