@@ -119,8 +119,8 @@
    "back": "電話"
   },
   "demo.event.camping": {
-   "text": "Acampar",
-   "back": "キャンプする"
+   "text": "Carpa",
+   "back": "テント"
   },
   "demo.event.checkup": {
    "text": "Control",
@@ -131,8 +131,8 @@
    "back": "クリニック"
   },
   "demo.event.deadline": {
-   "text": "Entrega",
-   "back": "提出（締め切り）"
+   "text": "Plazo",
+   "back": "期限"
   },
   "demo.event.dentalCheck": {
    "text": "Dental",

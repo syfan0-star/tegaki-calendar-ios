@@ -1802,7 +1802,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acampar"
+            "value" : "Carpa"
           }
         },
         "fr" : {
@@ -1832,7 +1832,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acampar"
+            "value" : "Tenda"
           }
         },
         "zh-Hans" : {
@@ -2000,7 +2000,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Entrega"
+            "value" : "Plazo"
           }
         },
         "fr" : {
@@ -2012,7 +2012,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Termine"
+            "value" : "Scad."
           }
         },
         "ja" : {

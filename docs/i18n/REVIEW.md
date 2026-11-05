@@ -168,12 +168,13 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `demo.event.birthday` | de | Feier | △ | 見本。Geburtstag は 4.2 em に入らない（56.6 pt） |
 | `demo.event.morningMeeting` | de | Morgen | △（2 回目） | 「明日」と読める。Daily に直した |
 | `demo.event.morningMeeting` | it | Mattutina | △ | 形容詞だけで予定の名に見えにくいので、FIX が Riunione に直した（10） |
-| `demo.event.camping` | it | Tenda | △ | 見本。Camping は 44.4 pt で 4.2 em を超える |
+| `demo.event.camping` | it・pt-BR | Tenda | △ | 見本。Camping は 44.4 pt で 4.2 em を超える。pt-BR は FIX3（10）。ブラジルでは Barraca の方がふつうの語だが、40.7 pt で写真の 2 日の帯に切れないかが写真でしか分からず、Tenda にした |
 | `demo.event.farewell` | it | Saluti | △（2 回目） | あいさつと読める。Addio に直した |
 | `demo.event.farewell` | fr | Départ | △ | 見本。pot de départ の略として通じる |
 | `demo.event.payday` | es | Pago | △（2 回目） | 支払いと読める。Nómina に直した |
 | `demo.event.checkup` | en | Exam | △ | 見本。Checkup は 44.2 pt で 4.2 em を超える |
-| `demo.event.camping` | es・pt-BR | Acampar | △ | 見本。AppKit で 42.5 pt、上限 4.2 em（42 pt）を少し超える。2 日の予定なので切れるかは写真で見る（§8 の 11 の確認の項目。切れていれば短い語に） |
+| `demo.event.camping` | es | Carpa | △ | 見本。前の Acampar は CI の年の写真で「Acam...」に切れたので短い語にした（FIX3、10）。Mac Catalyst の字で 31.2 pt（上限 4.2 em は 42 pt）。スペインではテントは tienda がふつうだが、見本の語なので es-ES でも同じ字 |
+| `demo.event.deadline` | es・it | Plazo・Scad. | △ | 見本。前の Entrega・Termine は iPhone の週の 1 日の帯で切れたので短い語にした（FIX3、10）。it の Scad. は scadenza の略 |
 | `pt-PT/description.txt` の 10 行目 | pt-PT | | △ | §11.2 の指定 |
 | `en-US/whatsnew.txt` の 6・8 行目 | en-US | | ○ | §6.3 の指定 |
 | `SUPPORT.en.md` の「Month DD」 | en | | △ | S-5。W の検査の対象 |
@@ -217,7 +218,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `settings.calendar.google.howTo` | 全部 | 「データの取得方法」は各言語の iOS の実際の名前（GLOSSARY の 3）。es は Ajustes (Configuración) と Añadir / Agregar を両方。「15 分ごと」と語の一部は TestFlight で確かめる（GLOSSARY の「確かめられなかった語」） |
 | `event.scribbleNote` | ko・es・it・pt-BR | スクリブルの各言語の名前（Apple の記事の語、GLOSSARY の 3） |
 | `export.json.note`・`settings.data.exportFooter`・`settings.data.import`・`import.title` | en・fr・de・es・it・pt-BR | 「Web 版の手書きを取り込む」の英語は契約の語 Import from the Web Version（§6.2）で、ほかも同じ形 |
-| `kit.holiday.dayOff` | 全部 | 英語は H の指定の Day off、中国語は 休息日（M7B.md の H の節）。データの短い名前が空のときだけ年のマスに出す短い語で、0.107 ではこの語が出る型が無い（次の版の受け皿） |
+| `kit.holiday.dayOff` | 全部 | 英語は H の指定の Day off、中国語は 休息日（M7B.md の H の節）。データの短い名前が空のときだけ出す短い語で（FIX3 で年のマスのほか日・週・月の見出しにも）、0.107 ではこの語が出る型が無い（次の版の受け皿） |
 | `kit.legal.appleEULATitle` | 全部 | Apple の店頭と審査の語 Terms of Use（利用規約）に EULA を括弧で添えた。指す文書は同じ |
 | `notice.calendar.notDetermined` | 全部 | 「読み取りを許可」を「アクセスを許可」に。実際に出る許可の画面はフルアクセスなので、この方が画面と合う |
 | `notice.calendar.restricted` | 全部 | 「手書きだけ使えます」を「手書きは使えます」に。予定が使えないことは前の文で分かる |
@@ -318,8 +319,7 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `demo.event.call` | 電話 | 全部 | 電話 | ○ |  |
 | `demo.event.camping` | キャンプ | en・zh-Hans・zh-Hant・ko・fr | キャンプ | ○ |  |
 |  |  | de | キャンプ（テント泊） | △ |  |
-|  |  | es・pt-BR | キャンプする | △ |  |
-|  |  | it | テント | △ |  |
+|  |  | es・it・pt-BR | テント | △ |  |
 | `demo.event.checkup` | 健康診断 | en | 検査（試験とも読める） | △ |  |
 |  |  | zh-Hans・zh-Hant・ko | 健康診断 | ○ |  |
 |  |  | fr | 健康診断（検査の結果の確認） | △ |  |
@@ -335,8 +335,8 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `demo.event.deadline` | 締切 | en・ko | 締め切り | △ |  |
 |  |  | zh-Hans・zh-Hant | 締め切りの日 | △ |  |
 |  |  | fr | 締め切り（期限） | △ |  |
-|  |  | de・it・pt-BR | 期限 | △ |  |
-|  |  | es | 提出（締め切り） | △ |  |
+|  |  | de・es・pt-BR | 期限 | △ |  |
+|  |  | it | 期限（scadenza の略） | △ |  |
 | `demo.event.dentalCheck` | 歯科 | en・zh-Hans・zh-Hant・ko・fr・es・it・pt-BR | 歯科 | ○ |  |
 |  |  | de | 歯のチェック（Zahncheck。歯の検診のくだけた言い方） | △（2 回目） |  |
 | `demo.event.dentist` | 歯医者 | en・fr・de・es・it・pt-BR | 歯医者 | ○ |  |
@@ -1808,3 +1808,16 @@ R が元を見ずに「訳し戻すときに引っかかった」と申し送っ
 | `toast.weekStart.otherForm.other` | de | %2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche. | %2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche. | 週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。 | 元の「切り替えると見えます」の「見えます」を入れた。Wechseln（切り替え）を Ansehen（見る）に。「切り替える」は設定の名前で分かる |
 
 **直した字は元を見ない逆翻訳を通っていません。** 判定した Claude が元と照らして △ にしました（理由は 8）。1 字短くなる直しです。幅: Mac Catalyst の字で 311 pt・338 pt とも 3 行です（数は 1 と 99、曜日は月曜と日曜。最後の行の幅は前の字以下）。本当の判定は CI-0 のシミュレータです。
+
+### 写真の確認の後に直した見本の語（FIX3、2026-11-05）
+
+見本の予定の名前は写真とストアにだけ出ます。CI の 1 回目の写真で切れた語を短くしました。判定は 4 件とも前と同じ △ で、合計の数（1 の表）は変わりません。
+
+| キー | 言語 | 前の字 | 今の字 | 逆翻訳（FIX3 が元を見て書いた） | 幅（Mac Catalyst の 10 pt semibold。上限 4.2 em は 42 pt） |
+| --- | --- | --- | --- | --- | --- |
+| `demo.event.camping` | es | Acampar | Carpa | テント | 46.2 → 31.2 pt |
+| `demo.event.camping` | pt-BR | Acampar | Tenda | テント | 46.2 → 31.5 pt |
+| `demo.event.deadline` | es | Entrega | Plazo | 期限 | 40.7 → 28.5 pt（切れずに入っている pt-BR の Prazo は 29.8 pt） |
+| `demo.event.deadline` | it | Termine | Scad. | 期限（scadenza の略） | 42.0 → 29.6 pt |
+
+**この 4 件は元を見ない逆翻訳を通っていません。** ブラジルでテントの意味なら Barraca の方がふつうです。見本の語なので、母語の人の確認が得られるまでこのままにします。
