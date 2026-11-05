@@ -1776,3 +1776,97 @@ CI の 1 回目（`build.yml` は全部緑、run 42013412254。`ja-baseline.yml`
 - **手順 5 の、言語を足すときの iOS の問いのボタンの字は確かめていない**（実機が無い。「『日本語』と書いてある方」と書いた）。本人の返事で「言語」の項目が最初からあったかを聞く。
 - 見本の語と fr・it・de-DE の字は `REVIEW.md` の 10 の R5（× 0・△ 10）。de-DE の新機能の文の言い回しは母語の人に見てもらうときの候補で、変えない。
 
+## FIX4（App Store の写真 88 枚の確認で直す物。2026-11-06）
+
+CI の 2 回目の `store-shots`（`ci-store1/shots/`）の 88 枚を別の役が開いた判定のうち、リードが頼んだ 4 件を直した。**push していない。CI はこの節の変更を通っていない。TestFlight 1.2 (16) には入っていない**（1 と 2 はアプリの変更なので、出すには build を作り直す）。ja の見た目は変えていない（下の確かめ）。凍結の 18 ファイル、`InkCanvasViewTests`、Fixtures、K-1〜K-11 は触っていない。契約は §12.6 の 43〜47。
+
+### commit（push なし）
+
+| commit | 中身 |
+| --- | --- |
+| 486c679 | 1. 日の見出しの祝日名 |
+| 9469976 | 2. pt-BR の見本の語 |
+| 4ba1f1b | 3. 手書きの見本（`--screenshot-store-ink`）、7 日の電話、テスト。486c679 のテストの使っていない変数を 1 つ消した分もここ |
+| 17737f9 | 4. 状態の帯 |
+| 0be45e1 | 3 の続き: 今日の丸を祝日名と帯に触れない大きさに（zh-Hans の絵で「休」に触れていた）、年の赤い丸の日を 6/13・11/14 に（pt-BR の 11/20 の祝日名に重なっていた）、使わなくなった細の定数を消す。`store-shots.yml` のコメントの字 |
+| この節の commit | 契約 §12.6 の 43〜47 と本文の指し先、`docs/store/README.md`、この節 |
+
+### 直したもの
+
+1. **iPhone の日の見出しの祝日名**: 写真の zh-Hans の「…」は語の問題でなく、`layoutPriority(-1)` の札が列に負けていた。ja 以外だけ `ViewThatFits(in: .horizontal)` で、札まで全部入れば今の形、入らなければ札を出さず、月名の行（小さい灰色の字。月は題名に出ている）を祝日の名前（赤、11 pt、1 行）に替える。**案から 2 つ足した**: (a) 名前が上の行にあるときは数字との間を 10 → 6 pt（名前の幅が 4 pt 増える。Christmas Day・Columbus Day が iPhone 17 に 1 行で入る）。(b) その行に入らない長い名前は 9 pt の 2 行にする。案の「0.8 倍まで縮めて 1 行」だと、iPhone 17 の列で en の 12 件のうち 7 件、it の 13 件のうち 8 件が「…」になった（Thanksgiving…、Nossa Senhora…）。**理由**: ここが iPhone の日のページで名前が読める唯一の場所で、2 行でも高さが変わらないから（9 pt 2 行 ＋ 曜日で約 38 pt。`.frame(maxHeight: 40)` で越えない）。高さは 3 つの形とも 52 pt。読み上げの文は今のまま名前を含む。ja は `PaperWords.dayHeadingHolidayLine` が nil で今の 1 つの行を通る（`testJapaneseTakesTheOneOnePath` が見る）。テストが全部の言語を測れるよう、`StickyHeaderView` に `language`（既定 `L.language`。日の見出しの字だけが読む）を足した。
+2. **pt-BR の見本の語**: `demo.event.drinks` を Happy hour から Chope に。`REVIEW.md` の 7・9・10、`back/pt-BR.json`、`build.py`。判定は △ のままで合計は ○ 3,807・△ 477・× 0 のまま（`m7b-impl/R4/verify.py` で 1 の表と 9 の表が一致）。**元を見ない逆翻訳は通っていない**。ブラジルの生ビールの語というのはリードの案のとおりで、母語の人の確認は無い（O-6）。
+
+   | キー | 言語 | 前の字 | 今の字 | 幅（Mac Catalyst の 10 pt semibold。上限 4.2 em は 42 pt） |
+   | --- | --- | --- | --- | --- |
+   | `demo.event.drinks` | pt-BR | Happy hour | Chope | 60.5 → 33.6 pt（12 pt で 70.8 → 39.5 pt） |
+
+3. **App Store の写真の手書き**: 新しい引数 `--screenshot-store-ink` で `Support/ScreenshotStoreInk.swift` の見本にする。線は節（点）の列を Catmull-Rom でつなぎ、約 2.4 lu ごとの点にし、節を少しずらし（固定の疑似乱数 SplitMix64。ページごとに種が決まっている）、ゆっくりした横の揺れと筆圧の変化と両端の抜きを足す（決まった式）。数字はこの見本のための 1 筆の字形（`glyph`）で、少し右に傾け、字ごとに大きさと基線を揺らす。**色は #1f2937・#2563eb・#dc2626・#16a34a・#fde047、太さは `InkPresets` の中（3.5）とマーカー 18 だけ**。細（2）は Mac Catalyst の絵で薄い灰色に見えたので波線にも中を使う。
+   - **マーカーの向き**: PencilKit のマーカーの先は平たい。今の見本（azimuth 0）を横に引くと約 8 lu の細い線で、字に重ねると取り消し線に見える（判定の指摘）。azimuth を線の向きから 90° 回すと 18 lu の帯になる。月・週・日の手書きの時刻の下は帯、年は細い向きで、曜日の字と予定の帯の間に通す。
+   - **置き場所**: 月は `cell` の座標で、両方の週の始まりで空いている所を選んだ。行の高さ（175。16 日の行は 188）を超えない。14 日 → 15 日の矢印は水曜と木曜で、どちらの週の始まりでも隣り合う。キャンプの 4・5 日は月曜始まりで行が分かれるので、テントと木を日ごとに置いた。週は `weekStart` の列に従い、曜日で置く。年のマーカーは最後の日（13 日）に属し、上へ負の y で伸ばす（`bottom` だけが行の高さに効くので 5 行とも 60 lu のまま）。
+   - **引数が無いとき**: `demoPage` は今までの道で、`empty`・`tallYear` が先に効く。`testDemoPagesMatchCompatFixtures` はそのまま、足した `testNoStoreInkWithoutTheArgument` も fixtures と 1 バイトずつ比べる。
+   - **予定**: 引数があるときだけ 7 日の電話を 12:30–13:00 に。id と題名は同じ。
+4. **状態の帯**（`store-shots.yml` だけ）: 最初の boot の後に端末全体の言語と地域を書き、`shutdown`・`boot`、その後に `status_bar`。`--time` は `2026-10-07T09:41:00` にランナーの時間帯の offset を付けた ISO の字（`date -j` で、その日の offset を取る。4 つの時間帯でこの Mac で字を確かめた: UTC は `+00:00`、ニューヨークは `-04:00`、東京は `+09:00`、コルカタは `+05:30`）。ランナーの時間帯は段の最初に `runner: … TZ=…; the status bar's time: …` として記録に出る。ランナーは GitHub の説明で UTC（**実物は CI の記録で見る**）。`defaults` と `shutdown` の失敗は警告だけで続く。ISO の `--time` が失敗すれば `--time "9:41"`。**2 回目の boot が失敗した機種は今までどおり警告を出して飛ばす**（1 回目の失敗と同じ扱い。`bootstatus -b` が boot し直すので、起きるとすれば機種の故障）。`build.yml` と `ja-baseline.yml` は変えていない。
+
+### 確かめ（この Mac、Swift 6.4.2、Command Line Tools。push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `swift run --package-path TegakiKit KitChecks` | **all 29470 checks passed**（Kit を変えていないので数も閾値 29,420 も同じ）。compat10 は 361 件・失敗 0 |
+| `tools/typecheck/typecheck.sh`（`m7b-impl/FIX4/tc2`） | all OK・警告 0（アプリ 68 ファイル、TegakiCalendarTests 34、UI テスト 6、Kit のテスト） |
+| `python3 -I tools/l10n/lint.py` | L-1〜L-14 すべて ok（L-12 は目安の警告だけ） |
+| `build.py --check`・`baseline.py --check`（516 行） | 一致 |
+| `shasum -a 256 -c`（`m7b-impl/Record/data-abs.sha256`） | 18 件とも一致 |
+| `check_workflow.rb`（Ruby の YAML と `bash -n`。`store-shots.yml`） | OK。この Mac に actionlint は無い |
+| `git diff --stat f9ad04d HEAD -- .github/workflows` | `store-shots.yml` だけ |
+| **Mac Catalyst の代わりで XCTest**（`m7b-impl/FIX4/apprun/run.sh`。XCTest の意味だけを写した小さな代わり。S2 のを木を選べるようにした物） | **全部で 437 本・49,437 件・失敗 8（2 本）・スキップ 3**。失敗は `StoreModelTests.testMakeInTheTestHostIsInert` と `SyncEngineTests.test00TestHostUsesTheFake` で、本物の XCTest の入れ物かどうかを見るテスト（代わりでは必ず落ちる。S2 の `log5.txt` の 1 回目と同じ行）。スキップは `InkCanvasViewTests` の窓が要る 3 本。**代わりの起動は `RunLoop.main.run()` に変えた**: S2 の `dispatchMain()` のままだと本物の主スレッドがいなくなり、全部を流すと新しいテストの `ImageRenderer.uiImage` が SwiftUI の `_MovableLockSyncMain` で止まった（`m7b-impl/FIX4/sample.txt`）。本物の XCTest はテストを本物の主スレッドで走らせる。**CI で止まった場合、`build.yml` の単体テストの段に段の上限が無いのでジョブの上限まで待つ**（下の「CI で見ること」の 10） |
+| 新しいテストが不具合で落ちること | 見出しを前の形に戻した写し（`m7b-impl/FIX4/mutant`）で `testDayHeadingNameIsReadInAnIPhoneColumn` が 34 件落ちる（zh-Hans の「休息日」は赤い画素が 175 必要で、131.3 pt で 0、151.3 pt で 25。写真の「…」） |
+| **日本語の絵の、この役の前（f9ad04d）との比較**（J-4 の代わりの先取り。`m7b-impl/FIX4/harness/ja-compare.sh`、`compare_shots.swift`。紙・PDF 4 種・`StickyHeaderView`・`AllDayBandView`・`PageHeaderView` を今日 3 通りで 89 枚。日の見出しは 10/12 のスポーツの日を含む） | **順に描くと 89 枚すべて同じ**（`j3/old2`・`j3/new2`。新は 17737f9 の木で、0be45e1 は見本だけなので ja の道を通らない）。KitChecks と並行に描いた 1 回目は `header-*` の 11 枚に最大 1/255・強い差 0 の揺れ（FIX3 の節のとおり。`PageHeaderView` は変えていない） |
+| 見出しの高さ（Mac Catalyst の `ImageRenderer`、9 言語、祝日あり・なし 8 日、列 131.3・151.3・273 pt） | 216 枚とも 52.0 pt（`m7b-impl/FIX4/harness/shots6.log`）。2 行の形の zh-Hant「臺灣光復暨金門古寧頭大捷紀念日」、pt-BR「Nossa Senhora Aparecida」も 52.0 |
+| 手書きの絵（本物の PencilKit の `PKDrawing.image`、Mac Catalyst。紙の上に重ねた。写真のズームで iPad と iPhone の幅。`m7b-impl/FIX4/harness/shots6/<言語>/{month,week,day,year}-{ipad,iphone}.png`） | 9 言語を描いて、途中の版も含めて次を開いて見た（全部の組み合わせではない）: en の 4 ページ、zh-Hans の月と年、zh-Hant の日、ko の年、pt-BR の月と週と年、es の月（日曜始まり）、de の月と週、fr の週、it の年（月曜始まり）。予定の字に重ならない。月の行の高さ 1,063 lu・年 1,896 lu は手書きなしと同じ。en-GB・es-ES は描いていない（字の表が `UILanguage` の 10 言語なので）。**題名・ツールバー・帯は入っていない絵**で、字はこの Mac の書体 |
+
+**祝日の名前が iPhone の列でどう出るか**（9 言語の地域の 2026 年の名前。Mac Catalyst の字。2 行に入らない分は UIKit の折り返しの見積もり）:
+
+| 地域 | 名前の数 | 131.3 pt（iPhone 17）: 11 pt の 1 行 / 2 行でも「…」 | 151.3 pt（6.9 インチ）: 11 pt の 1 行 / 2 行でも「…」 |
+| --- | --- | --- | --- |
+| US (en) | 12 | 1 / 2 | 6 / 1 |
+| CN (zh-Hans) | 12 | 9 / 0 | 12 / 0 |
+| TW (zh-Hant) | 19 | 10 / 2 | 14 / 0 |
+| KR (ko) | 22 | 18 / 0 | 21 / 0 |
+| FR (fr) | 11 | 6 / 0 | 8 / 0 |
+| DE (de) | 9 | 3 / 3 | 5 / 0 |
+| IT (it) | 13 | 4 / 4 | 5 / 3 |
+| MX (es) | 7 | 2 / 1 | 3 / 0 |
+| BR (pt-BR) | 10 | 3 / 2 | 3 / 1 |
+
+2 行でも「…」になる例は Juneteenth National Independence Day、Tag der Deutschen Einheit（131.3 pt）、Festa nazionale di San Francesco d'Assisi, patrono d'Italia。ピンチで広げると全部読める。列は写真で測った（CI の写真の日のページの縦線の間。6.9 インチ 151.3 pt、iPhone 17 131.3 pt、13 インチ iPad 273 pt）。
+
+**走らせていないもの**: 本物の XCTest（`ImageRenderer` を使う `testDayHeadingNameIsReadInAnIPhoneColumn` は Mac Catalyst の代わりだけ）、UI テスト、シミュレータ、CI、`store-shots.yml` の新しい段（`simctl` がこの Mac に無い。`defaults write -g` が帯に効くか、`--time` の ISO の字が日付になるか、再起動の時間は **どれも未確認**）、本物の `<1.1.1>` との J-4、`swift test`（Kit は変えていない）。
+
+### CI で見ること（`store-shots` を走らせて、リードが写真で）
+
+1. **状態の帯**（13 インチ全部）: 時刻が 9:41 で日付が 10 月 7 日の水曜（en「9:41 AM Wed Oct 7」の形）、その組の言語か。**ISO の字がそのまま帯に出ていたら simctl が日付と読まなかったということで、失敗扱いにならない**ので写真で見る（その時は `--time "9:41"` に戻す）。de・fr などは「09:41」の形になるかもしれない（時刻の字は端末の地域に従う）。iPhone は 9:41 のまま。段の記録の `runner:` の行で TZ を見る。`::warning::` の有無。
+2. **再起動の後の通知**: boot が 2 回に増えたので、120 秒の待ちで足りるか（13 インチの通知は boot の後 85〜105 秒だった）。ジョブの時間（見積もり約 25 分、上限 45 分、段の上限 30 分）。
+3. **手書き**（11 組とも同じ絵）: `ipad13/01-month`・`iphone69/02-month`・`01-week`・`02-week`・`03-day`・`04-year`。本物の iOS の PencilKit で線の太さとマーカーの帯の幅が Mac の絵と同じか。予定の字に重なっていないか（iPhone の月は字の大きさが紙の縮尺と違う）。**手書きは上品か、多すぎないか**はリードの目で。
+4. **週の始まり**: 月曜始まりの組（en-GB・fr・de・it・es-ES）で、テントが 4 日（1 行目の右端）、木が 5 日（2 行目の左端）に分かれる絵。
+5. **zh-Hans の日**: `iphone69/03-day` で「休息日」が上の行に赤で読める、`ipad13/03-day` は札のまま。見出しの高さが他の組と同じ。
+6. **pt-BR の月**: `iphone69/02-month` の 10/23 が「19:00 Chope」。
+7. **水曜の週**: 10:00 の打合せと 12:30 の電話が 1 列ずつで切れない。
+8. **年**: 2/30 に線が無い。5 日のマーカーが曜日の字を隠していない（pt-BR の 3 字が細いマーカーに触れないか）。
+9. `build.yml` の `screenshots` と `ja-baseline.yml` は手書きの見本も帯も今までどおりで、J-4 の差は増えない見込み（日本語の絵はここで 0 画素）。本人に渡した §8 の 8 の確認ページ（e3b0407 の写真）で古くなるのは、見本の語が出る pt-BR の月の Chope の見込み（13 インチの日の札は変わらない。ページを開いて照らしてはいない）。§8 の 11 のストアの確認はこの後の写真で。
+10. **単体テストの時間**: 足したのは 7 本（`testDayHeadingNameIsReadInAnIPhoneColumn` は `ImageRenderer` を約 150 回）。この種の描画はこのテストが初めてで、シミュレータの本物の主スレッドでは止まらない見込みだが確かめていない。単体テストの段が今までの長さ（build-and-test 全体で 78 分）を大きく超えたら、ここを疑う。`--test-timeouts` は入れていない（`build.yml` を変えない約束）。
+
+### 節の記録の読み替え
+
+| 節 | 記録 | 今 |
+| --- | --- | --- |
+| FIX3 の節の 5、§12.6 の 33 | `status_bar` の日付の固定は入れない | `build.yml` と `ja-baseline.yml` はそのまま。`store-shots.yml` は入れた（§12.6 の 47） |
+| §7.4 | 言語はシミュレータ全体を変えない | `store-shots.yml` は全体も変える |
+| FIX3 の節の 4、`REVIEW.md` の R5 | 見本の語は全部 R5 を通した | Chope は通っていない |
+| 「リード」の節（2026-11-06） | TestFlight 1.2 (16) | 見出しと Chope は入っていない。次の build で |
+
+### この役が気づいた分（直していない）
+
+- 判定の note のうち頼まれていない物はそのまま: iPhone の帯の電波の灰色の点と充電中の電池（`status_bar` に `--cellularMode active`・`--batteryState discharging` を足せば消える見込み。未確認）、iPad の右下の窓の取っ手、iPad の年の 31 日の行、iPhone の月の日付の数字と帯の接し方。
+- iPhone の日の見出しの曜日は、祝日が無くても長い語が「…」になる（pt-BR の segunda-feira が 131.3 pt で「segunda…」。F-10 の 0.8 倍まで。写真の組では出ない）。
+- `--screenshot-sheet lasso` は見本の波線の id を選ぶので、`--screenshot-store-ink` と一緒だと何も選ばれない。今はどの写真も組み合わせない。
+
