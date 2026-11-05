@@ -880,7 +880,7 @@ final class ScreenshotModeTests: XCTestCase {
             (.month, "store-month", ["circle", "check", "star", "heart", "arrow", "time", "tent", "tree", "marker", "wave", "memo-box", "memo-check", "memo-wave", "memo-mountain", "memo-sun"]),
             (.week, "store-week", ["circle", "check", "star", "heart", "arrow", "time", "tent", "tree", "marker", "wave", "mountain", "sun"]),
             (.day, "store-day", ["check", "star", "heart", "arrow", "time", "marker", "wave", "memo-box", "memo-check", "memo-wave", "memo-mountain", "memo-sun"]),
-            (.year, "store-year", ["circle", "check", "marker"]),
+            (.year, "store-year", ["star", "heart", "check", "marker"]),
         ]
         for (kind, prefix, names) in wanted {
             for weekStart in WeekStart.allCases {
@@ -989,8 +989,9 @@ final class ScreenshotModeTests: XCTestCase {
         }
     }
 
-    /// The year: only cells of dates that exist, whatever the month the page opens on; several red circles,
-    /// not today's; the marker down five free days, right of the weekdays' letters; no row grows.
+    /// The year: only cells of dates that exist, whatever the month the page opens on; red stars and hearts on
+    /// several days, not today, right of the letters; the marker down five free days, right of the weekdays'
+    /// letters; no row grows.
     func testStoreInkYearKeepsToRealDates() throws {
         let now = ScreenshotMode.todayInstant(for: october)
         let events = ScreenshotMode.demoEvents(for: october, storeInk: true)
@@ -1001,16 +1002,18 @@ final class ScreenshotModeTests: XCTestCase {
         XCTAssertEqual(layout.rows.map(\.frame), bare.rows.map(\.frame), "no row of the year grows")
         XCTAssertEqual(layout.size, bare.size)
 
-        let circles = page.liveStrokes.filter { $0.id.hasPrefix("store-year-circle") }
-        XCTAssertGreaterThanOrEqual(circles.count, 4, "several days")
-        XCTAssertFalse(circles.contains { $0.cell == .yearDay(month: 10, day: 7) }, "today has its frame, and in zh-Hans a name under the number")
-        XCTAssertTrue(circles.allSatisfy { ($0.cell.yearMonthDay?.day ?? 10) < 10 }, "one digit: a circle around two runs over them and out of the cell")
-        XCTAssertTrue(circles.allSatisfy { ($0.points.map(\.x).min() ?? 0) > 2 }, "inside the cell")
-        // The ink's right edge (with half the pen) left of the weekday's letter (pad + 1.6 em of 15 lu = 27).
-        let letterLeft = PaperSpec.yearPad + PaperText.yearWeekday.lu * 1.6
-        XCTAssertTrue(circles.allSatisfy { ($0.points.map { $0.x + $0.sizeW / 2 }.max() ?? 99) < letterLeft }, "off the weekday's letter")
+        let marks = page.liveStrokes.filter { $0.id.hasPrefix("store-year-star") || $0.id.hasPrefix("store-year-heart") }
+        XCTAssertGreaterThanOrEqual(Set(marks.map(\.cell)).count, 4, "several days")
+        XCTAssertFalse(page.liveStrokes.contains { $0.id.hasPrefix("store-year-circle") }, "no circle: none fits between the number and the letter")
+        XCTAssertFalse(marks.contains { $0.cell == .yearDay(month: 10, day: 7) }, "today has its frame")
+        // The ink (with half the pen) right of the letters and the chips' x, inside the cell, above the row's 48.
+        let chipLeft = PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft
+        XCTAssertTrue(marks.allSatisfy { ($0.points.map { $0.x - $0.sizeW / 2 }.min() ?? 0) > chipLeft }, "right of the letters")
+        XCTAssertTrue(marks.allSatisfy { ($0.points.map { $0.x + $0.sizeW / 2 }.max() ?? 999) < PaperSpec.yearColumnWidth }, "inside the cell")
+        XCTAssertTrue(marks.allSatisfy { ($0.points.map { $0.y + $0.sizeH / 2 }.max() ?? 999) < 48 }, "no row grows")
+        XCTAssertTrue(marks.allSatisfy { ($0.points.map { $0.y - $0.sizeH / 2 }.min() ?? -1) > 0 }, "below the cell's top")
         XCTAssertGreaterThanOrEqual(page.liveStrokes.filter { $0.id.hasPrefix("store-year-check") }.count, 4)
-        XCTAssertTrue(circles.allSatisfy { $0.color == "#dc2626" })
+        XCTAssertTrue(marks.allSatisfy { $0.color == "#dc2626" })
 
         for (name, year, day) in [("today", 2026, focus), ("February", 2026, DayKey(year: 2026, month: 2, day: 7)), ("a leap year", 2028, DayKey(year: 2028, month: 2, day: 7)), ("April", 2026, DayKey(year: 2026, month: 4, day: 7))] {
             let other = ScreenshotMode.demoPage(kind: .year, focus: day, grown: false, empty: false, tallYear: false, weekStart: .monday, storeInk: true)

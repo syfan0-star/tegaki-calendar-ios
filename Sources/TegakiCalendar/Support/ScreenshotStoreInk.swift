@@ -192,13 +192,18 @@ private enum StoreInk {
         // bottom counts, and the rows above it stay 60 high: the points above the cell are negative).
         book.marker("marker", cell: .yearDay(month: 11, day: 13), from: CGPoint(x: 80, y: -230), to: CGPoint(x: 80, y: 36))
 
-        // Red circles around a one-digit number (its glyph at about x 13.5–22.5; the letter starts at 27, the
-        // ink's outer edge, with half the pen, stays left of it). Two digits start at x 3, so a circle around them
-        // ran over the digits and out of the cell (the photos of run 42077397646). The days have no holiday and
-        // no workday mark in the regions of the eleven sets (2026), and no other stroke. Not on today: it has its
-        // frame, and in zh-Hans a name (休息日).
-        for (month, day) in [(2, 4), (4, 8), (6, 9), (8, 6), (9, 5), (11, 3), (12, 4)] {
-            book.loop("circle", cell: .yearDay(month: month, day: day), center: CGPoint(x: 17.5, y: 13), rx: 7, ry: 10, color: InkBook.red)
+        // Small red stars and hearts on the free right part of a few days (from x 67: right of where a weekday's
+        // letters end and the chips start, 50.4; no chip on these days; bottom above 48). A circle around the
+        // number had no room: two digits ran over and out of the cell, one digit touched both the digit and the
+        // letter (the photos of runs 42077397646 and 42104489470). The days have no holiday and no workday mark in
+        // the regions of the eleven sets (2026), and no other stroke; not today, which has its frame.
+        for (index, (month, day)) in [(2, 4), (4, 8), (6, 9), (8, 6), (9, 5), (11, 3), (12, 4)].enumerated() {
+            let cell = CellKey.yearDay(month: month, day: day)
+            if index % 2 == 0 {
+                book.star("star", cell: cell, center: CGPoint(x: 80, y: 26), radius: 13, color: InkBook.red)
+            } else {
+                book.heart("heart", cell: cell, center: CGPoint(x: 80, y: 26), size: 12)
+            }
         }
 
         // Checks on the empty right part of a few days.
