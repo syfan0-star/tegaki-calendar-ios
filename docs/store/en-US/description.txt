@@ -8,7 +8,7 @@ Tegaki is a planner app that lets you write by hand, right over the events in yo
 • All-day events are always shown in full. None are left out.
 • See the public holidays of countries and regions around the world. You can also choose a state or region, such as a US state, or choose “None” to show no holidays.
 • The app is shown in 10 languages (Japanese, English, Chinese (Simplified and Traditional), Korean, French, German, Spanish, Italian and Portuguese) and switches to match your device language.
-• In every language, weeks start on Monday, and times on the pages use the 24-hour clock.
+• Weeks can start on Monday or Sunday. Times on the pages use the 24-hour clock.
 • Double-tap or squeeze Apple Pencil to switch between the pen and the eraser.
 • Your handwriting is saved on your device and in your own iCloud (and syncs between iPad and iPhone). It is not sent to any server of the developer. There is no account to sign up for.
 • Export your handwriting in Settings > Data > “Export Handwriting”, as a data file (JSON) of all pages or as a PDF of the page that is open. Export works without a subscription.

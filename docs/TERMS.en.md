@@ -1,14 +1,14 @@
 # Tegaki Calendar Terms of Service
 
-This is a translation for convenience. The Japanese version prevails.
+This is a translation for convenience. The Japanese version prevails. This does not limit rights that you cannot waive under the consumer protection laws of the country where you live.
 
 [日本語版（正本）](TERMS.md)
 
-**Summary**: This is a paid app for individuals (a subscription) that lets you write by hand, with Apple Pencil or your finger, over the events in the Calendar app on your iPad or iPhone. There is no account to create. Your handwriting and settings are saved only on your device (iPad or iPhone) and in your own iCloud. The developer cannot see their contents. Apple handles billing, cancellation and refunds. The developer makes every effort to support new versions of iOS and iPadOS, but features may change when Apple's or Google's systems change. If the App is discontinued, you will be told 90 days in advance. You can export your handwriting at any time. Of course, the developer is not exempt from liability for damage caused intentionally or through serious carelessness. These terms follow the laws of Japan.
+**Summary**: This is a paid app for individuals (a subscription) that lets you write by hand, with Apple Pencil or your finger, over the events in the Calendar app on your iPad or iPhone. There is no account to create. Your handwriting and settings are saved only on your device (iPad or iPhone) and in your own iCloud. The developer cannot see their contents. Apple handles billing, cancellation and refunds. The developer makes every effort to support new versions of iOS and iPadOS, but features may change when Apple's or Google's systems change. If the App is discontinued, you will be told 90 days in advance. You can export your handwriting at any time. Of course, the developer is not exempt from liability for damage caused intentionally or through serious carelessness. These terms follow the laws of Japan (this does not limit rights that you cannot waive under the consumer protection laws of the country where you live).
 
 Related documents: [Privacy Policy](PRIVACY.en.md) / [Support](SUPPORT.en.md)
 
-Last updated: November 1, 2026. Effective date: the date the App was released on the App Store.
+Last updated: November 5, 2026. Effective date: the date the App was released on the App Store.
 
 ---
 
@@ -16,7 +16,7 @@ Last updated: November 1, 2026. Effective date: the date the App was released on
 
 1. These terms are the rules for using “Tegaki Calendar” (てがきカレンダー; the “App”). By downloading the App from the App Store, or by starting to use it, you agree to these terms.
 2. The license to use the App is Apple's standard license agreement (Licensed Application End User License Agreement, <https://www.apple.com/legal/internet-services/itunes/dev/stdeula/>). These terms add the details of the service, the fees and the scope of responsibility. If the two conflict, Apple's agreement prevails in matters between you and Apple.
-3. The App is sold mainly in Japan. It is not distributed in the EU (European Union).
+3. The App is available in the countries and regions where it is offered on the App Store. The App Store shows which countries and regions these are.
 
 ## Article 2. Supported devices and OS
 
@@ -30,7 +30,7 @@ The App provides roughly the following features. The details are described in th
 1. **Handwriting**: You can write freely on the day, week, month and year pages with the pen, marker, eraser and lasso (to circle and move). Handwriting is saved linked to the date cells, so even when a cell grows because more all-day events are added, the handwriting follows the place where you wrote it.
 2. **Showing and creating events**: The App shows the events in the Calendar app on your device (events of the accounts added in the Settings app, such as iCloud and Google). All-day events are all shown; none are left out. You can also create events by tracing over or circling your handwriting.
 3. **iCloud sync**: Your handwriting syncs through your iCloud (private database) between devices signed in with the same Apple Account.
-4. **Showing the public holidays of Japan**, **importing handwriting from the web version “手書きカレンダー”**, and **exporting handwriting** (a data file (JSON) of all the handwriting saved on this device, and a PDF of the page that is open; Settings > Data > “Export Handwriting”).
+4. **Showing public holidays**, **importing handwriting from the web version “手書きカレンダー”**, and **exporting handwriting** (a data file (JSON) of all the handwriting saved on this device, and a PDF of the page that is open; Settings > Data > “Export Handwriting”).
 
 The App does not communicate directly with Google's servers. Google Calendar events are shown after iOS or iPadOS syncs them through the Google account added in the Settings app on your device.
 
@@ -47,9 +47,10 @@ The App does not communicate directly with Google's servers. Google Calendar eve
 2. **Automatic renewal**: The subscription renews automatically unless you cancel it at least 24 hours before the end of the current period, and the fee for the next period is charged to your Apple Account.
 3. **Apple handles billing, cancellation and refunds**:
    - Apple charges the fee to your Apple Account. The developer does not receive card details or similar information.
-   - You can cancel in the Settings app on your device: tap your name (your Apple Account; called Apple ID on iOS and iPadOS 17), then Subscriptions. After you cancel, you can keep using the App until the end of the period you have paid for. If you cancel in the middle of a period, the rest of that period is, as a rule, not refunded (Apple decides whether a refund is possible).
+   - You can cancel in the Settings app on your device: tap your name (your Apple Account; called Apple ID on iOS and iPadOS 17), then Subscriptions. After you cancel, you can keep using the App until the end of the period you have paid for. If you cancel in the middle of a period, the rest of that period is, as a rule, not refunded (Apple decides whether a refund is possible. If Apple's terms for your country or the law there say otherwise, those apply.)
    - Refunds follow Apple's rules, and you request them from Apple (<https://reportaproblem.apple.com/>). The developer cannot give refunds directly.
-   - The seller of the App's subscriptions is Apple (in Japan, iTunes K.K.). Purchases are made under the Apple Media Services Terms and Conditions (<https://www.apple.com/jp/legal/internet-services/itunes/jp/terms.html>), and the information required by Japan's Act on Specified Commercial Transactions is Apple's information contained in those terms. As the provider of the App, the developer is responsible within the scope of these terms.
+   - If you live in the EU (European Union), the law gives you a right of withdrawal (a right to cancel a purchase within a set period without giving a reason). Other countries may have a similar right. Apple sets how the period is counted and the conditions, and they are in the Apple Media Services Terms and Conditions for your country. For subscriptions, this applies only to the first subscription, not to each renewal. For digital items, this right can end once the supply has started. The developer cannot carry out these steps, so please follow Apple's steps.
+   - The seller of the App's subscriptions is Apple (in Japan, iTunes K.K.). Purchases are made under the Apple Media Services Terms and Conditions (<https://www.apple.com/jp/legal/internet-services/itunes/jp/terms.html>), and the information required by Japan's Act on Specified Commercial Transactions is Apple's information contained in those terms. As the provider of the App, the developer is responsible within the scope of these terms. In the EU (European Union), the seller is Apple Distribution International Ltd., and purchases are made under the Apple Media Services Terms and Conditions for your country (Irish version: <https://www.apple.com/legal/internet-services/itunes/ie/terms.html>. For other countries, use “Choose your country/region” on that page).
 4. **Free trial**: If you are new, you can try all the features free for 14 days (once per Apple Account; if you have used the trial before, you are charged when you buy). When the trial ends, it automatically becomes a paid period. If you do not want to move to a paid period, cancel at least 24 hours before the trial ends.
 5. **After the trial or after cancellation: “View Only”**: Even when your subscription is not active, the App does not disappear.
    - You can: view events and handwriting, move between pages and zoom, receive from iCloud, erase all handwriting on this device, **export handwriting (data file, PDF)**, and change settings.
@@ -96,6 +97,7 @@ Please do not do the following.
    - billing, renewal and refunds of App Store subscriptions, which Apple handles and in which the developer cannot take part
 5. We recommend keeping copies of important handwriting with device backups and iCloud (and with the data file from “Export Handwriting”).
 6. These terms do not limit the rights that Japanese laws, such as the Consumer Contract Act, give you.
+7. Paragraphs 1, 3 and 4 do not limit the rights that consumers have under the laws of the country where they live, including rights about defects and rights about liability for damage caused by defective products.
 
 ## Article 10. Rights
 
@@ -114,12 +116,14 @@ Please do not do the following.
 2. If a problem arises about the App, we will first try to solve it by talking it through via the [support contact](SUPPORT.en.md).
 3. If it is still not solved, the district court or summary court with jurisdiction over the developer's address is the court of first instance. However, this does not prevent you from bringing a case before a court that the law allows you to use as a consumer.
 4. Rights that you cannot waive under the consumer protection laws of the country where you live are not limited by these terms.
+5. If you are a consumer living in the EU (European Union), the consumer protection rules of the country where you live that cannot be changed by contract apply to you, even though paragraph 1 chooses the laws of Japan. Despite paragraph 3, you can also bring a case before the courts of the country where you live.
 
 ## Article 13. Contact
 
 - Developer (provider): Masataka Ikeda (池田 雅高), an individual
 - Email: syfan0@gmail.com
 - Support page: [Support](SUPPORT.en.md) (<https://syfan0-star.github.io/tegaki-calendar/app/en/support.html>)
+- While the App is offered in the EU (European Union), the developer's address and phone number are also shown on the App's page in the EU App Store.
 
 ## Supplementary provision
 

@@ -8,7 +8,7 @@ This is a translation for convenience. The Japanese version prevails.
 
 Related documents: [Terms of Service](TERMS.en.md) / [Privacy Policy](PRIVACY.en.md)
 
-Last updated: November 1, 2026
+Last updated: November 5, 2026
 
 ---
 
@@ -22,7 +22,7 @@ Last updated: November 1, 2026
   - the version of the App (shown in the App's settings)
   - what you did and what happened (with screenshots, if possible)
   - the type of your Apple Pencil (1st generation / 2nd generation / USB-C / Pro)
-- You do not need to send the contents of your handwriting or events by email. If you do send them, they are not kept; they are deleted after checking.
+- You do not need to send the contents of your handwriting or events by email. If you do send them, they are deleted once your question has been dealt with (Section 12 of the [Privacy Policy](PRIVACY.en.md)).
 
 ## Reply time
 
@@ -40,13 +40,12 @@ Last updated: November 1, 2026
 
 ## What the developer cannot help with
 
-- **Refunds**: Apple decides on refunds. Please request one at <https://reportaproblem.apple.com/>. The developer cannot process refunds.
+- **Refunds**: Apple decides on refunds. Please request one at <https://reportaproblem.apple.com/>. The developer cannot process refunds. The right of withdrawal for people in the EU (European Union) is also handled by Apple (see “How do I cancel a purchase in the EU?” below).
 - **Restoring handwriting**: Your handwriting exists only on your device and in your iCloud, and the developer can neither see it nor take it out. The developer cannot bring back handwriting that has disappeared.
 - **Problems with your Google account, iCloud or Apple Account itself** (passwords, two-factor authentication, full storage and so on): please ask Google or Apple support.
 - **Breakdown or repair of an iPad, iPhone or Apple Pencil**
 - **Bugs in the Calendar app on your device itself** (the events in the App are what the Calendar app on your device has synced. Anything that does not appear in the Calendar app does not appear in the App either.)
 - **Custom work** (changes for companies, features for particular people)
-- **Use from the EU (European Union)**: the App is not distributed in the EU.
 
 ## Frequently asked questions
 
@@ -67,7 +66,7 @@ Please check these in order.
 1. Does the event appear in the built-in Calendar app on your iPad or iPhone? If not, it is a sync problem (check the steps above, and Settings > Apps > Calendar > Calendar Accounts > Fetch New Data).
 2. Is Settings > Privacy & Security > Calendars > Tegaki set to **Full Access**?
 3. Is that calendar ticked in the App's settings?
-4. Are you looking at the right date, week or month? (Tap the date in the header to go back to today.)
+4. Are you looking at the right date, week or month? (Tap “Today” at the top of the screen to go back to today.)
 5. If it still does not appear, close the App once and open it again.
 
 ### Handwriting does not sync with my other device
@@ -83,6 +82,14 @@ Please check these in order.
 1. Settings > your name > Subscriptions > the subscription of this App > Cancel Subscription (on iOS and iPadOS 17, your name opens Apple ID). Apple's guide: <https://support.apple.com/en-us/118428>
 2. After you cancel, you can keep using the App until the end of the period you have paid for. After that, it becomes “View Only” ([Terms of Service, Article 5](TERMS.en.md#article-5-fees-subscription)).
 3. If you cancel during the free trial, you are not charged. Please cancel at least 24 hours before the trial ends.
+
+### How do I cancel a purchase in the EU?
+
+If you live in the EU (European Union), the law gives you a right of withdrawal. Within 14 days of receiving your receipt, you may be able to cancel your first subscription without giving a reason (this does not apply to each renewal). Apple carries out this process, and the developer cannot.
+
+1. Please follow the steps under “Right of withdrawal” in the Apple Media Services Terms and Conditions for your country (Irish version: https://www.apple.com/legal/internet-services/itunes/ie/terms.html. For other countries, use “Choose your country/region” on that page). You choose the order from the purchase history of your Apple Account.
+2. For digital items, this right can end once the supply has started. Apple decides whether the purchase can be cancelled.
+3. Canceling a subscription is a separate step (see “How do I cancel?”).
 
 ### When the free trial ends, does my handwriting disappear?
 
@@ -102,7 +109,7 @@ If renewing a paid period fails, for example because your card has expired, Appl
 - **Deleting only the iCloud data by hand**: Settings > your name > iCloud > Manage Account Storage > Tegaki > Delete Data (on iOS and iPadOS 17, your name opens Apple ID)
 - **Data on the device**: it is deleted when you delete the App (the data in iCloud remains).
 - **Events**: events created in the App are ordinary calendar events, so delete them in the Calendar app or in Google Calendar.
-- Nothing is stored with the developer, so there is no need to ask the developer to delete anything.
+- The App's data does not reach the developer, so there is no need to ask the developer to delete it. If you want an email you sent to support deleted, please let us know by email.
 
 ### When I change my iPad or iPhone
 
@@ -144,9 +151,13 @@ A **PDF** is the page that is open now, as one sheet (paper, events, holidays an
 
 Tap “Hide” at the right end of the toolbar, and the toolbar becomes a small round button at the bottom left. Tap the tool mark on the round button to bring the toolbar back; it hides again automatically when you start writing on the paper. The ↶ on the round button is “Undo”. Touch and hold the round button to move it to the bottom right, or to go back to always showing the toolbar. This setting is remembered on each device.
 
+### How do I zoom in and out?
+
+Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open at the same size, no matter how many events or how much handwriting they have. Pages with many events or a lot of handwriting can be scrolled down (with two fingers when “Draw with Finger” is on). When you pinch to zoom out, you can see the whole calendar. The device remembers the zoomed-in size for each page type. It does not remember the zoomed-out size.
+
 ### How much can I write on one page?
 
-You can write up to 19,000 strokes on one page (when you go past 15,000, you are told once). The Notes area of the month page and the “Free Notes” area below 24:00 on the day page continue with blank paper below as you write further down, but their length has a limit (about 4 screens on the month page of an iPad). You can check the current number in Settings > About > “Page with the Most Strokes”.
+You can write up to 19,000 strokes on one page (when you go past 15,000, you are told once). The Notes area of the month page and the “Free Notes” area below 24:00 on the day page are open all the way down from the start. Their length has a limit (about 4 screens on the month page of an iPad). You can check the current number in Settings > About > “Page with the Most Strokes”.
 
 ### What if my iPad and iPhone have different versions?
 
@@ -163,7 +174,7 @@ There is no language item in the App's own settings. To use a different language
 
 If the item is not there, it appears after you add the language you want to use in Settings > General > Language & Region. When you add it, if you are asked which language to use for the display of your device, choose to keep your current language.
 
-Changing the language does not change the shape of the paper or the position of your handwriting (in every language, weeks start on Monday).
+Changing the language does not change the shape of the paper or the position of your handwriting (you can choose the week start in the App's settings).
 
 ### How do I change the holiday country?
 
@@ -188,6 +199,10 @@ The holiday setting is saved only on this device (you can choose separately on y
 
 If you find a mistake in a holiday, please tell us by email at the [contact](#contact) above, with the country or region, the date and the correct name of the holiday.
 
+### My week handwriting is gone. What should I do?
+
+Handwriting on week pages is saved separately for weeks that start on Monday and weeks that start on Sunday. Check that Settings > Week Starts On is the same as when you wrote it. This setting is per device, so use the same setting on your iPad and iPhone to see the same week handwriting. Switching never deletes handwriting. Handwriting in a month page's cells for days of the previous or next month also comes back when you switch back. Words written across a weekend appear split into a Saturday part and a Sunday part when weeks start on Sunday. They join up again when you return to Monday.
+
 ## Known limitations
 
 | Item | Details |
@@ -199,7 +214,6 @@ If you find a mistake in a holiday, please tell us by email at the [contact](#co
 | iCloud needed | Syncing handwriting needs a sign-in to iCloud. Without signing in, you can still use the App on the device only. |
 | Handwriting across cells | Handwriting is saved for each date cell. When the height of the cells changes because more all-day events are added, strokes written across cell borders may look slightly out of place. |
 | Relation to the web version | The web version and the app version are separate apps, and their handwriting does not sync. |
-| Distribution area | The App is distributed mainly in Japan. It is not distributed in the EU. |
 
 ## About the translations
 
@@ -237,7 +251,7 @@ THE SOFTWARE.
 
 ## News
 
-- There are no important notices at this time.
+- Month DD, 2026: We updated the Terms of Service and Privacy Policy for version 1.2.
 
 ---
 

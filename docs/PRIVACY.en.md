@@ -4,15 +4,15 @@ This is a translation for convenience. The Japanese version prevails.
 
 [日本語版（正本）](PRIVACY.md)
 
-**Summary**: “Tegaki Calendar”, the app for iPad and iPhone, collects **no information** about you. There is no developer server, no account registration, and no advertising or analytics. Your handwriting and settings are saved only on your device (iPad or iPhone) and in your own iCloud, and the developer cannot see them. The App reads and writes events through the Calendar on your device, but that data is never sent outside the App. Apple handles payments, and the developer does not receive card details.
+**Summary**: “Tegaki Calendar”, the app for iPad and iPhone, collects **no information** about you. There is no developer server, no account registration, and no advertising or analytics. Your handwriting and settings are saved only on your device (iPad or iPhone) and in your own iCloud, and the developer cannot see them. The App reads and writes events through the Calendar on your device, but that data is never sent outside the App. Apple handles payments, and the developer does not receive card details. Section 12 explains what happens when you email support.
 
 Related documents: [Terms of Service](TERMS.en.md) / [Support](SUPPORT.en.md)
 
-Last updated: November 1, 2026
+Last updated: November 5, 2026
 
 ---
 
-## 1. Information the developer collects: none
+## 1. Information the App collects: none
 
 - The App collects none of your name, email address, location, device identifiers, records of how you use it, or similar information.
 - There is no developer server. The App communicates only with Apple's iCloud (your own storage space) and Apple's App Store (to check purchases).
@@ -60,9 +60,9 @@ In the guide shown when you first use the App, tapping the button that shows the
 - What the developer receives from Apple is only sales totals in a form that cannot identify individuals.
 - Apple decides whether you can use the free trial (whether you have tried it before), and the App is told only whether you are eligible.
 
-## 6. Sharing with third parties: none
+## 6. Sharing the App's data with third parties: none
 
-- The developer does not give your data to anyone (the developer does not have it in the first place).
+- The developer does not give the App's data (your handwriting, events and settings) to anyone (the developer does not have it in the first place). Emails to support are covered in Section 12.
 - Apple's iCloud and App Store work under your agreement with Apple. They follow Apple's privacy policy (<https://www.apple.com/legal/privacy/>).
 
 ## 7. Information that may reach the developer through Apple
@@ -79,7 +79,7 @@ The App is not made for children, and it is not listed in the categories for chi
 - “Erase All Handwriting on This Device” in the App's settings erases your handwriting from both the device and iCloud.
 - Deleting the App removes the data on the device. The iCloud data can be deleted in Settings > your name (your Apple Account; called Apple ID on iOS and iPadOS 17) > iCloud > Manage Account Storage > Tegaki.
 - Events you created in the App remain as ordinary calendar events. To delete them, delete them in the Calendar app or in Google Calendar.
-- The detailed steps are on the [support page](SUPPORT.en.md#how-do-i-delete-all-my-data). The developer has no data, so there is no need to ask the developer to delete it.
+- The detailed steps are on the [support page](SUPPORT.en.md#how-do-i-delete-all-my-data). The App's data does not reach the developer, so there is no need to ask the developer to delete it. If you want an email you sent to support deleted, please write to the email address in Section 11 (see Sections 12 and 13).
 
 ## 10. Changes to this policy
 
@@ -90,6 +90,25 @@ For major changes, such as a change in the kinds of information collected, the d
 - Developer: Masataka Ikeda (池田 雅高), an individual
 - Email: syfan0@gmail.com
 - Support page: [Support](SUPPORT.en.md) (<https://syfan0-star.github.io/tegaki-calendar/app/en/support.html>)
+
+## 12. Emails to support, and opening these pages
+
+- When you email support, the developer receives your email address, any name you write, the text of your email and any attachments (such as screenshots). This is not information that the App collects. The developer uses it only to answer your question.
+- Emails are stored in Google's Gmail. To read emails that are not in Japanese and to write replies, the developer may pass the text of your email and its attachments to an AI translation service (Claude, by Anthropic).
+- Emails are kept only as long as they are needed to deal with your question, and are deleted when they are no longer needed.
+- The Terms of Service, Privacy Policy and Support pages are published on GitHub Pages. When you open a page, GitHub records your IP address for security. The developer cannot see this record. The pages use no cookies or analytics.
+
+## 13. If you live in the EU (European Union), Iceland, Norway, the UK or Switzerland
+
+- For the email information in Section 12, the controller (the person who decides how it is used) is the developer. The contact details are in Section 11.
+- The legal basis for using this information is the legitimate interest in answering your question (GDPR Article 6(1)(f)).
+- You have the right to see your information, have it corrected or deleted, have its use restricted, receive a copy of it, and object to its use. Please write to the email address in Section 11.
+- You can make a complaint to the data protection authority of your country.
+- The developer is in Japan. Your email information is handled in Japan and in the countries where Google and Anthropic handle information. For Japan, there is an adequacy decision by the European Commission. This decision does not cover the countries where Google and Anthropic handle information.
+- Sending an email is up to you. You can use the App without sending one. If you do not send one, we simply cannot answer your question.
+- This information is not used for automated decisions or profiling.
+- Your handwriting, events and settings in the App do not reach the developer, so the developer cannot show or delete them. Section 9 explains how to delete them.
+- Apple decides how information is handled in iCloud and the App Store. Please see Apple's privacy policy (https://www.apple.com/legal/privacy/).
 
 ---
 

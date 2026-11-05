@@ -796,3 +796,111 @@ J-4 の比べる相手の commit: **e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d**�
 - `HolidayCalendar.japan` の `name(of:)` は 1.1 の `JapaneseHolidays.name(of:)` と同じく呼ぶたびに年の表を作る（橋の分だけ少し重い）。題名は 1 回に 1 度で問題にならない見込み（KitChecks の J-3 は 36,525 日 × 複数でも全体で約 10 秒増えただけ）。
 - 祝日の暦を読む時間（§5.3 の `l10n: holidays loaded`）は U の接続の後に CI で測る。年のページは 365 回 `isWorkday` を呼ぶ（中で lock と辞書を引くだけ）。
 
+## LA2-EU（§12.1 の LA2 のうち EU の分。docs だけ。英語版も同じまとまり）
+
+週の始まりの文と 1.1.1 の文は触っていない（LA2 の残り）。commit・push はしていない（C）。
+
+### 入れたもの
+
+- **規約類（§11.3）**: `docs/TERMS.md`・`TERMS.en.md` に T-1〜T-9（T-4b、英語だけの T-8 を含む）、`docs/PRIVACY.md`・`PRIVACY.en.md` に P-1〜P-4（第 12 節・第 13 節を第 11 節の後に）、`docs/SUPPORT.md`・`SUPPORT.en.md` に S-1〜S-6（S-5 の `XX`・`Month DD` は残した）。文は契約の §11.3 から script で取り出して入れた（打ち直していない。`m7b-impl/LA2-EU/apply_legal.py`）。
+- **ストア**: `docs/store/locales.json`（es-ES・pt-PT を足して ja のほかに 15。fr-FR・de-DE・it・en-GB の店頭を §6.6 の表に。上げる写真の組 `shots`）。`docs/store/README.md`（EU を入れる順の 1 段落、15 ロケール、価格の決まりの足し、審査メモに EU の文を足さないこと、新しい「写真」の節（11 組と 15 ロケールの対応）、「X への手引き」の店頭の書き方を de・fr・it・es・pt の読み手に）。「EU では売らない」と、ドイツ語についてのスイスの書き方の指示はやめた。es-ES・pt-PT のフォルダの中身は X が書く。
+- **定型文**: `docs/support-replies/refund.md`（EU の段落とドイツの 1 文と逆翻訳）、新しい `privacy-request.md`（中身と本人の手順）、`README.md`（一覧を 7 つに、流れの 7）。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **最終更新**: 6 文書とも 2026年11月5日・November 5, 2026 にした（LA の 5「公開の前に文を直したら、その日に直す」、§1.5「W・LA2 が決める」）。公開の日にリードが公開の日付に入れ直す（§11.1 の順 5）。LA2 の残りで文を直したら、その日にまた直す。
+2. **T-4b の英語の句点**: 案文の括弧は文で終わる（“…those apply.)”）ので、「.).」にならないよう、括弧の後の「.」を落とした。日本語は「（…従います）。」のまま。
+3. **P-3 の日本語の URL だけ `<…>` で囲んだ**（字は案文のまま）。裸の URL だと GitHub の表示でリンクが「）をご覧ください。」まで伸びる。文書のほかの URL と同じ書き方。英語の P-3 と S-4 は伸びないので案文のまま。
+4. **S-5 は「足す」でなく「置き換え」**: 「現在、重要なお知らせはありません。」のまま足すと同じ節で食い違うので、今の 1 行を S-5 の行に置き換えた（英語も）。Web の ② は今の 1 行のまま（§6.5）で、**公開の日にリードがその 1 行を置き換える**。
+5. **T-8 の場所**: 冒頭の文と同じ行に続けた。`TERMS.en.md` だけ（§11.3 の利用規約の表の行なので、PRIVACY.en・SUPPORT.en には足さない）。
+6. **`locales.json` に足した項目**: `shots`（§7.5 の組）、es-ES・pt-PT の `writerNote`。`language` は画面の言語と読み、pt-PT は `pt-BR`、es-ES は `es` にした（`about` に書いた）。ja は組に入らないので `shots` なし。L-9 が見ない項目なので lint には響かない。
+7. **pt-PT の説明の 1 文の元**: 契約は「説明に正直に書く」だけなので、日本語の元を README の手引きに書いた（言語の点のすぐ後に「・アプリの画面のポルトガル語は、ブラジルのポルトガル語です。」）。`source-ja/description.txt` は pt-PT 以外に要らないので変えていない。新機能の文の言語の点も「ポルトガル語（ブラジル）」と手引きに書いた（契約は説明だけ。更新のときに読まれる文なので合わせた）。
+8. **手引きに足した注意**: iOS の画面の名前は同じ言語でも国で違う（「設定」が pt-BR の Ajustes と pt-PT の Definições、es-ES の Ajustes と中南米の Configuración）。**この語は Apple の記事で確かめていない**（覚えている語。X が §6.1 の 4 で確かめる）。pt-PT の文でも、アプリの中の画面の名前はアプリの pt-BR の語のまま書く（そう表示されるため）。
+9. **`privacy-request.md` で契約に足した所**: 誰から来ても同じに答える（EU に限らない）／依頼が同じアドレスから来ているかを見る（別の人に渡さないため）／メモに相手の名前やアドレスを書いていないかを見る／今回の依頼のメールと返事は送った後で消す（返事に「送った後で消す」と書く。「消せたものだけ消したと書く」と両立させるため）／Claude Code で渡した本文はこの Mac の記録にも残る／Google と Anthropic の側の写しは「しばらく持っていることがある」（期間は確かめていないので書かない）／第 13 節のほかの権利の答え方／消すのは本人。URL は `app/en/privacy.html`（この定型文を使うのは 1.2 の公開の後）。
+10. **`support-replies/README.md`**: 「公開していない情報は書かない」を「電話番号・住所は書かない（EU の App Store のページには出るが、返事には書かない）」にした（EU に出すと「公開していない」では守れないため）。流れに 7（解決したら本人が消す。§6.7、§12.4 の (11)）を足した。
+
+### 本人の手順（§6.7・§11.3）
+
+`docs/support-replies/README.md` の流れの 7 と、`docs/support-replies/privacy-request.md` の「本人の手順」。**届いた日から 1 か月以内に答える。** メールを消すのも送るのも本人。
+
+### 確かめたこと（コードは変えていないので swift build・KitChecks・typecheck は走らせていない）
+
+| 確かめ | 結果 |
+| --- | --- |
+| §11.3 の文（`m7b-impl/LA2-EU/check_eu.py`。契約から取り出して字で照らす。結果は同じ場所の `check_eu.out`） | T-1〜T-9・P-1〜P-4・S-1〜S-6 の日本語と英語が各 1 回だけある。置き場所（第 9 条 7 項・第 12 条 5 項・返金の行の後・第 11 節の後・「解約するには？」の後）と古い文が無いことも見た。問題 0 |
+| §11.8 の 1 の grep（`EU には配信`・`not distributed in the EU`。PRIVACY も足して） | 0 件 |
+| §6.4 | `grep -c '「設定」›「Apple Account」›「サブスクリプション」' docs/TERMS.md` は編集の前後とも 1。価格・試用・解約の経路・連絡先・氏名など 33 の字の数を前後で比べ、変わったのは `SUPPORT.en.md` の “14 days”（0 → 1）だけ（S-4 の撤回の期間で、試用の字ではない）。日本語の「14 日間」は変わらず |
+| リンクと見出しの id | 6 文書の内側のリンクと id が全部ある。`.en.md` のリンクの外に `TODO`・`DRAFT`・`【`・`[` が無い。【 と「下書き」は 6 文書に無い。見出しの数は TERMS 14/14、PRIVACY 15/15 |
+| `XX`・`Month DD` | S-5 の行だけ |
+| Apple の規約の URL（`curl -sL` で読むだけ。2026-11-05） | `…/itunes/ie/terms.html` に `Right of withdrawal`・`Withdraw Transaction`・`Choose your country/region`、14 日と初回だけの文がある（§11.9 と同じ。版は September 14, 2026）。国を選ばない URL はどの文書にも書いていない |
+| 定型文 | 7 つで README の一覧と一致。`refund.md` の EU の段落とドイツの 1 文は契約の英文と字で一致。7 つとも機械翻訳の 1 文がある |
+| `locales.json` | JSON として読める。ja ＋ 15 の順。15 ロケールが 11 組に対応（§7.5 と同じ） |
+| 審査メモ | 変えていない（3,884 バイト、改行を除くと 3,883）。EU の文なし |
+| `m7b-impl/LA/check_store.py`（LA の確かめ） | `ja/whatsnew.txt` が §6.3 と違うとだけ出る（契約の第 4 版で週の始まりの点が足されたため。LA2 の残りの分）。ほかは問題なし |
+
+**X も R もまだなので、es-ES・pt-PT の文の確かめは無い**（L-9 はフォルダのあるロケールを見る。L-9 自体もまだ S2 の分）。
+
+### 次の役へ
+
+- **LA2 の残り**: `docs/SUPPORT.en.md` の `Tap the date in the header`（FAQ “Events do not appear” の 4）と FAQ「拡大・縮小するには？」の英訳（SUPPORT の `###` が ja 20・en 19 なのはこの 1 つの差）、§10.4 の文、§6.3 の新機能の文（`ja/whatsnew.txt` は今 §6.3 と違う）、README の「4 つの点」と審査メモの節の「週は月曜始まり」、SUPPORT の言語の FAQ の括弧。文を直したら最終更新の日も。
+- **X**: `docs/store/README.md` の「X への手引き」（10 のロケール）と「写真」。`locales.json` の `writerNote`。GLOSSARY に店頭の注（§6.1 の 9）。
+- **R**: `docs/i18n/back/legal-en.md` の対象に §11.3 の英文が入った。S-5 の “Month DD, 2026” は公開の日に埋める字。
+- **W**: 上の 4（S-5 は Web に入れない）。写すときの字の差は 3 のとおり URL をリンクにするだけ。変わる見出しの id: PRIVACY の日本語 `1-アプリが集める情報ありません`・`6-アプリのデータの第三者への提供ありません`、英語 `1-information-the-app-collects-none`・`6-sharing-the-apps-data-with-third-parties-none`。新しい id: 日本語 `12-問い合わせのメールとこのページを開いたとき`・`13-eu欧州連合アイスランドノルウェー英国スイスにお住まいの方へ`・`eu-で購入を取り消すには`、英語 `12-emails-to-support-and-opening-these-pages`・`13-if-you-live-in-the-eu-european-union-iceland-norway-the-uk-or-switzerland`・`how-do-i-cancel-a-purchase-in-the-eu`。S-3 の「下の「EU で購入を取り消すには？」」は案文ではただの字（リンクにするかは W が決めてよい）。
+- **S2**: L-9 は `locales.json` の `shots`・`writerNote` を読まなくてよい。
+- **リード**: 公開の日の S-5 は「今の 1 行を置き換える」（上の 4）。最終更新の日付も（上の 1）。公開の直前に Apple の URL をもう一度（§6.5）。下の「残る危険」の最初の 2 つは、公開の直前の確認で本人に見せる。
+- **C**: LA の節の 7（第 3 条 4 項）は T-9 で直ったので整えるときに読み替える。commit のファイル名: `docs/TERMS.md`・`docs/TERMS.en.md`・`docs/PRIVACY.md`・`docs/PRIVACY.en.md`・`docs/SUPPORT.md`・`docs/SUPPORT.en.md`・`docs/store/README.md`・`docs/store/locales.json`・`docs/support-replies/README.md`・`docs/support-replies/refund.md`・`docs/support-replies/privacy-request.md`（と `docs/M7B.md` のこの節）。
+
+### 残る危険
+
+- **SUPPORT の窓口の節の 1 文**（`docs/SUPPORT.md`「送っていただいても、こちらで預かることはせず、確認後に削除します。」、英語も同じ）は、手書きや予定の中身を送られたときの文で、第 12 節（メールは必要な間だけ保存）と直接には矛盾しないと読んで変えていない。ただし、その本文も Claude を通りうる。契約の外の文なので、直すなら本人に聞いてから。
+- **消す約束は本人の作業**: 第 12 節に「必要がなくなったら消します」と書くと、消す手間が公の約束になる（§12.4 の (11)）。忘れると文と事実が食い違う。
+- 規約類と `privacy-request.md` は法律の専門家に見てもらっていない（§11.6、M7B-24 の答えのとおり 1.2 の後に 1 回聞く）。Google と Anthropic の側の保存の期間も確かめていない。
+- `refund.md` のドイツの 1 文は、手続きが確かめられないので Apple のサポートに案内するだけ（§11.9）。
+
+## LA2-rest（§12.1 の LA2 の残り: 週の始まりの文と 1.1.1 の文。docs だけ。英語版も同じまとまり）
+
+commit・push はしていない（C）。.html は書いていない。契約の文は `m7b-impl/LA2-rest/apply_docs.py` で契約から取り出して入れた（打ち直していない）。
+
+### 入れたもの
+
+- **週の始まり（§10.4・§6.3）**: `docs/store/ja/whatsnew.txt`（§6.3 の 5 つの点そのまま）、`source-ja/whatsnew.txt`・`source-ja/whatsnew.en-US.txt`・`en-US/whatsnew.txt`、`source-ja/description.txt`・`en-US/description.txt`、`review-note.txt`、`docs/SUPPORT.md`・`SUPPORT.en.md` の括弧と FAQ、`docs/store/README.md`（5 つの点、ja の説明の 1 行の案、審査メモの節、英語の画面の名前の 2 行）。
+- **1.1.1（§1.5、§6.4）**: `docs/SUPPORT.en.md` の “Tap the date in the header”、FAQ “How do I zoom in and out?”（「ツールバーをしまうには？」の後。日本語と同じ場所）、FAQ “How much can I write on one page?” のメモ欄の文。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **1.1.1 の英訳は 3 か所直した**: §1.5 の LA2 の行は 2 つだけ書いているが、§6.4 は「英語版に同じ直し」で、`R1_1_1.md` §7.3 の直しは 3 か所。3 つ目の「最初から下まで開いています」を訳さないと、英語だけが 1.1.1 と違う動き（“continue with blank paper below as you write further down”）を説明し続けるので直した。
+2. **「（日本は月曜）」は ja だけ**: `source-ja/whatsnew*.txt` と `en-US/whatsnew.txt` から落とした。ほかの店頭で読む人には当てはまらず、§10.4 の設定の脚注の英語にも無い（LA の 17 と同じ読み替え。README にも書いた）。R の照合では「意図した違い」。
+3. **契約に英語が無い文は LA2 が書いた**（R の逆翻訳の対象）: `en-US/whatsnew.txt` の 2 つの点、`en-US/description.txt` の 1 行（§10.4 の審査メモの英文に合わせた）、`SUPPORT.en.md` の括弧 “(you can choose the week start in the App's settings)”、FAQ の “How do I zoom in and out?”。§10.10 の grep に当たらないよう、英語は “weeks start on Monday” の形を使っていない。
+4. **週の始まりの FAQ の場所**: 契約は場所を決めていない。FAQ の最後（「祝日の国を変えるには？」の後）に置いた。LA が 1.2 の FAQ を最後に足したのと同じ。W も同じ場所に。
+5. **審査メモの形**: §10.4 の英文は、元の “By design…” の行の場所に 1 字も変えずに入れた。“What is new” の 1 項目は “3. Week start:” として、既定と、週のページを別々に保存すること、切り替えても消えないことを書いた（審査の人が手書きの消えた不具合と取らないように）。元の行の「手書きが紙の決まった位置に結び付いているから」は、週の始まりを選べるので消した。
+6. **審査メモの 4,000 バイト**: 足すだけだと 4,000 バイトを超える見込みだったので（概算で約 4,200）、次で詰めた（結果は 3,942 バイト。ファイルは改行を入れて 3,943）。(a) 日本語の要約を短くした（600 バイト台。1 字 3 バイトでいちばん高い。落としたのは「設定」アプリの項目・設定の道・購入画面と規約の場所で、英語の本文には残る。週の始まりの 1 文を足した）。(b) “users updating from 1.1” を “existing users” に、“the same products and prices as 1.1” を “Subscriptions and prices are unchanged” に（1.1.1 が先に出るので、版の番号を書かない方が正しい）。
+7. **診断の記録の文を 1.1.1 と合わせた**（§1.5「足さない」のとおり段落は足していない）: 1.1.1 の審査メモ（`R1_1_1.md` §7.2）と比べると、1.2 の文の “it holds only …” の一覧に **アプリと OS の版・機種名が抜けていた**（`InkTrace.text` の頭の行に実際に入る）。「only」と書いて本人の名で Apple に出す文なので足した。1.1.1 の “nothing is sent automatically” も足した。1.1.1 の “never … which page” と 1.2 の “page types” は食い違わない（入るのは `A:<page kind>` の種類だけで、ページの id と日付は入らない）。**§6.6 の日本語の説明（「道具・ページの種類・本数・触れ方の種類と時刻だけ」）にも同じ抜けがある**（契約は直していない。リードの読み替え）。“EU excluded” の文は審査メモに無い。
+8. **最終更新**: SUPPORT の 2 文書は既に 2026年11月5日 で、直した日も同じなのでそのまま。TERMS・PRIVACY は変えていない。公開の日にリードが入れ直す（§11.1 の順 5）。
+
+### 確かめたこと（コードは変えていないので swift build・KitChecks・typecheck は走らせていない）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `m7b-impl/LA/check_store.py`（A の測り方。結果は `m7b-impl/LA2-rest/check_store.out`） | 問題なし。審査メモ 3,500 字・3,942 バイト（上限 4,000）。`ja/whatsnew.txt` が §6.3 と 1 字も違わない（709 字）。`en-US` の説明 2,587 字・新機能の文 2,189 字 |
+| `m7b-impl/LA2-rest/check_rest.py`（契約から取り出して字で照らす。結果は同じ場所の `check_rest.out`） | §10.4 の説明・審査メモの英文・括弧・FAQ の日本語と英語が各 1 回、§6.3 の週の始まりの点、5 つの点、1.1.1 の 3 か所（古い文 0 件）、FAQ の数が ja 21・en 21 で並びも同じ、内側のリンク。問題 0 |
+| §10.10 の 3 の grep（`docs/store`・`docs/SUPPORT*.md`） | 0 件（grep の終了の状態 1）。例外なし |
+| §6.4 | TERMS・PRIVACY は変えていない。`SUPPORT` の価格・試用・解約の経路・連絡先などの 14 の字の数は LA2-EU の前の写しと同じ（違うのは LA2-EU の S-4 の “14 days” だけ） |
+| `m7b-impl/LA2-EU/check_eu.py`（戻りの確かめ） | 問題なし（§11.3 の文はそのまま） |
+| `SUPPORT.en.md` の禁止の字 | リンクの外に `TODO`・`DRAFT`・`【`・`[` なし。`Month DD` は S-5 の行だけ |
+
+**確かめていないこと**: 英語の文の読み手の確認（R がこれから）。L-9 はまだ S2 の分なので、A の測り方だけ。
+
+### 次の役へ
+
+- **X**: `source-ja/whatsnew.txt` の 4・5 つ目の点と `source-ja/description.txt` の週の始まりの行が新しい元。画面の名前「週の始まり」はアプリの `settings.weekStart.title` の訳と同じ語に。README の「英語の画面の名前」に Week Starts On・Today を足した。審査メモの余裕は 58 バイトなので、英語の画面の名前を審査メモで直して長くなるときは測る。
+- **R**: `legal-en.md` の対象に SUPPORT.en の FAQ 2 つと直した 2 文が入った。`store-en-US.md` の対象に新機能の文の 2 点・説明の 1 行・審査メモの項目 3 と診断の記録の文。意図した違いは上の 2。`toast.pinchHint` と同じく、FAQ の “Spread … zoom in / pinch … zoom out” の向きも見る。
+- **W**: 英語の 3 ページは今の `docs/*.en.md` から（1.1.1 の 3 か所と FAQ 2 つ）。日本語の `support.html` に足すのは言語の FAQ の括弧と FAQ「週の手書きが見えなくなったときは？」（1.1.1 の 3 か所は `r111-legal` にある）。新しい id: `週の手書きが見えなくなったときは`・`my-week-handwriting-is-gone-what-should-i-do`・`how-do-i-zoom-in-and-out`。
+- **リード**: §8 の 11 の確認表の ja の説明の 1 行（§6.6）は README の `ja/whatsnew.txt` の行に書いた。
+- **C**: LA の節の 19・22 と LA2-EU の節の「週は月曜始まり」は、この節で読み替える。commit のファイル名: `docs/SUPPORT.md`・`docs/SUPPORT.en.md`・`docs/store/README.md`・`docs/store/review-note.txt`・`docs/store/ja/whatsnew.txt`・`docs/store/en-US/whatsnew.txt`・`docs/store/en-US/description.txt`・`docs/store/source-ja/whatsnew.txt`・`docs/store/source-ja/whatsnew.en-US.txt`・`docs/store/source-ja/description.txt`（と `docs/M7B.md` のこの節。SUPPORT の 2 つと README は LA2-EU の未 commit の分も入っている）。
+
+### 残る危険
+
+- **古い版の端末の案内が新機能の文にしか無い**: 「日曜始まりで書いた週の手書きは、古い版の端末では見えません」は §6.3 の新機能の文にあるが、次の版で消える。SUPPORT の FAQ（§10.4 の固定の文と「iPad と iPhone で版が違うと？」）には無い。§6.4 が「足すのはこれだけ」と決めているので足していない。足すなら本人に聞いてから。
+- **審査メモは上限まで 58 バイト**: Connect の数え方がバイトでなく字なら余裕はもっとあるが、確かめていない（A の測り方はバイト）。
+- 週の始まりの英語の文は、英語を母語とする人が読んでいない（R の逆翻訳だけ）。「設定」アプリの道はこれまでどおり TestFlight で確かめるまで仮。
+

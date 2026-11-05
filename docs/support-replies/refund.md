@@ -1,6 +1,6 @@
 # 返金してほしい（refund）
 
-使う場面: 返金を求められたとき。開発者は返金できない（App Store の購入は Apple が扱い、返金も Apple が決める。利用規約 第 5 条 3 項）。理由がアプリの不具合なら、最後の段落を足して、何が起きたかを聞く。
+使う場面: 返金を求められたとき。開発者は返金できない（App Store の購入は Apple が扱い、返金も Apple が決める。利用規約 第 5 条 3 項）。理由がアプリの不具合なら、不具合の段落を足して、何が起きたかを聞く。相手が EU（欧州連合）にいるなら EU の段落を足し、ドイツならもう 1 文足す。
 
 ## English
 
@@ -30,6 +30,18 @@ Developer of Tegaki (てがきカレンダー)
 If the reason is a problem in the app, could you tell me what happened? The model of your device, its iOS or iPadOS version and a screenshot would help. I would like to fix it.
 ```
 
+相手が EU にいるときに足す段落（「Sign in with…」の段落の後）。相手の国が分からなくても、「If you live in the EU」で始まるので足してよい:
+
+```text
+If you live in the EU, you may also be able to withdraw from your first subscription within 14 days of receiving your receipt (this does not apply to each renewal). Apple handles this as well. The steps are in the Apple Media Services Terms and Conditions for your country: https://www.apple.com/legal/internet-services/itunes/ie/terms.html (this is the Irish version; choose your country under “Choose your country/region” on that page).
+```
+
+相手がドイツにいるときは、EU の段落に続けてもう 1 文。ドイツ向けの Apple の規約には、いつでも解約して残りの期間の分を返してもらう定めがある（アイルランド版・フランス版の同じ節には見当たらない。実際の手続きは確かめられなかったので、手順は書かず Apple のサポートへ。契約 §11.6、§11.9）:
+
+```text
+If you live in Germany, Apple's terms for Germany also cover ending a subscription early and a refund for the rest of the period, so please ask Apple Support.
+```
+
 ## 日本語（逆翻訳）
 
 ```text
@@ -52,8 +64,20 @@ https://reportaproblem.apple.com/
 Tegaki（てがきカレンダー）の開発者
 ```
 
-足す段落の逆翻訳:
+不具合の段落の逆翻訳:
 
 ```text
 理由がアプリの不具合なら、何が起きたかを教えていただけますか。端末の機種、iOS か iPadOS のバージョン、画面の写真があると助かります。直したいと思います。
+```
+
+EU の段落の逆翻訳:
+
+```text
+EU にお住まいなら、領収書を受け取ってから 14 日以内は、最初のサブスクリプションを撤回できることもあります（更新のたびには使えません）。これも Apple が扱います。手順は、お住まいの国の Apple メディアサービス利用規約に書かれています。https://www.apple.com/legal/internet-services/itunes/ie/terms.html （これはアイルランド版です。そのページの “Choose your country/region” で国を選んでください）。
+```
+
+ドイツの 1 文の逆翻訳:
+
+```text
+ドイツにお住まいなら、ドイツ向けの Apple の規約には、サブスクリプションを期間の途中で終えることと、残りの期間の分の返金についての定めもあるので、Apple のサポートにお尋ねください。
 ```
