@@ -546,9 +546,9 @@ jobs:
           done
           ls -la shots
 
-      # The 13-inch log is collected before the other devices boot (its 2 min wait and 25 shots since 1.2 took
-      # about 11 min in CI-0, 8.9 of them the shots, so a 14 min window; each extra device writes its own
-      # shots/<id>-log.txt below).
+      # The 13-inch log is collected before the other devices boot (its 25 shots since 1.2 took 8.9 min in
+      # CI-0; with the 2 min wait added after CI-0 that is about 11, so a 14 min window; each extra device
+      # writes its own shots/<id>-log.txt below).
       - name: Collect the app log and crash reports (13-inch iPad)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -778,9 +778,9 @@ jobs:
       # tests, each of which is bounded). 1.1.1 (docs/R1_1_1.md): HeaderAndPaperUITests (3 tests, about a
       # minute: where 「今日」 sits and that it works, an empty page at the top of the real paper area);
       # its steps are the `header-paper UI:` lines. 1.2 (docs/M7B_CONTRACT.md §7.3, §10.8): LanguageUITests
-      # (about 9 min: 25 launches of about 20 s; which language iOS chooses and, in German, that the purchase
-      # sheet reaches its links, its steps are the `l10n UI:` lines) and WeekStartUITests (the `week-start UI:` lines) run here too, so the step normally takes about
-      # 25 min (1.1.1's took 11.9 in run 41922318959) and stops after 40. The tests pass their own language in their launch arguments.
+      # (3.8 min in CI-0 for 29 launches of about 8 s, now 30; which language iOS chooses and, in German, that the purchase
+      # sheet reaches its links, its steps are the `l10n UI:` lines) and WeekStartUITests (the `week-start UI:` lines) run here too; the xcodebuild of the
+      # step took 10.2 min in CI-0 (1.1.1's whole step took 11.9 in run 41922318959) and the step stops after 40. The tests pass their own language in their launch arguments.
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 40
         run: |

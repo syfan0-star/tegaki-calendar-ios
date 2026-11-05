@@ -1735,11 +1735,11 @@
     },
     "toast.weekStart.otherForm.one": {
       "jaSha1": "19ef2be677",
-      "text": "%2$@ pagina settimanale con inizio %1$@, non eliminata. Per vederla: Impostazioni > Primo giorno della settimana."
+      "text": "%2$@ pagina settimanale (inizio: %1$@), non eliminata. Per vederla: Impostazioni > Primo giorno della settimana."
     },
     "toast.weekStart.otherForm.other": {
       "jaSha1": "19ef2be677",
-      "text": "%2$@ pagine settimanali con inizio %1$@, non eliminate. Per vederle: Impostazioni > Primo giorno della settimana."
+      "text": "%2$@ pagine settimanali (inizio: %1$@), non eliminate. Per vederle: Impostazioni > Primo giorno della settimana."
     },
     "toast.weekStart.regionChanged.monday": {
       "jaSha1": "857c24a261",

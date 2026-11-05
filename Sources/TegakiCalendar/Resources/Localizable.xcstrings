@@ -25574,7 +25574,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ pagina settimanale con inizio %1$@, non eliminata. Per vederla: Impostazioni > Primo giorno della settimana."
+            "value" : "%2$@ pagina settimanale (inizio: %1$@), non eliminata. Per vederla: Impostazioni > Primo giorno della settimana."
           }
         },
         "ja" : {
@@ -25640,7 +25640,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ pagine settimanali con inizio %1$@, non eliminate. Per vederle: Impostazioni > Primo giorno della settimana."
+            "value" : "%2$@ pagine settimanali (inizio: %1$@), non eliminate. Per vederle: Impostazioni > Primo giorno della settimana."
           }
         },
         "ja" : {

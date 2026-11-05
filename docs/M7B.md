@@ -1672,7 +1672,7 @@ CI の 1 回目（`build.yml` は全部緑、run 42013412254。`ja-baseline.yml`
 | `diff_steps.rb`（`ja-baseline.yml` と `build.yml`） | 写した 13 段のうち 12 段の `run` が同じ（13 インチの写真の段を含む）。残り 1 段の差はシートの `holidays week-start` だけ |
 | `check_workflow.rb`（Ruby の YAML と `bash -n`） | `build`・`ja-baseline` とも OK。この Mac に actionlint は無い |
 | **Mac Catalyst の代わりで XCTest**（`m7b-impl/S2/apprun/run.sh PaperFitTests PaywallSheetTests`。XCTest の意味だけを写した小さな代わり） | 25 本・1,319 件・失敗 0。新しい `testWeekColumnWeekdaysFit`・`testWeekColumnShortHoliday` を含む |
-| **日本語の絵の、この役の前の HEAD（e1073ae）との比較**（J-4 の代わりの先取り。`m7b-impl/FIX3/harness/ja-compare.sh`。紙・PDF 4 種・`StickyHeaderView`・`AllDayBandView`・`PageHeaderView` を今日 3 通りで 89 枚。週の見出しは 10/12 のスポーツの日を含む） | 77 枚が 0 画素。12 枚は `header-*` だけで最大 1/255・強い差 0。**同じ HEAD を 2 回描いて比べても同じ 12 枚が同じ画素数で違う**ので、描き直しの揺れ（P の節と同じ）で、変更の差ではない。`sticky-*` は全部 0 画素 |
+| **日本語の絵の、この役の前の HEAD（e1073ae）との比較**（J-4 の代わりの先取り。`m7b-impl/FIX3/harness/ja-compare.sh`。紙・PDF 4 種・`StickyHeaderView`・`AllDayBandView`・`PageHeaderView` を今日 3 通りで 89 枚。週の見出しは 10/12 のスポーツの日を含む） | **順に描くと 89 枚すべて 0 画素**（検証の役が old2 と new2 で確かめた）。並列や別の時に描くと、最大 1/255・強い差 0 の揺れが 12 枚出て、その組は比べる対象で変わる（`header-*` が多く、`sticky-week-iphone-oct07` も入ることがある）。変更の差ではない |
 | 他の言語の絵（Mac Catalyst の `ImageRenderer`。`m7b-impl/FIX3/harness`） | pt-BR の週を前後で見た（前は 402 pt の幅、後は iPhone 17 の 53.7 pt の列、40 pt の列、1024 pt の幅）: 後は 7 列が同じ大きさで切れない。zh-Hans の 10/5〜7「国庆节」「休息日」、zh-Hant の 10/9「國慶日」、ko の 10/5「개천절」が切れない |
 
 **走らせていないもの**: 本物の XCTest（`swift test` の `WorldHolidaysTests`・`HolidayGeometryTests` の新しい期待はこの Mac では型だけ、アプリの単体テストは上の代わりだけ）、UI テスト（`testGermanPaywallReachesItsLinks` は型だけ）、シミュレータ、CI、新しい写真の手順、本物の `<1.1.1>` との J-4。
@@ -1707,10 +1707,9 @@ CI の 1 回目（`build.yml` は全部緑、run 42013412254。`ja-baseline.yml`
 2. **de-DE の `whatsnew.txt`**: 「in der App zu Einstellungen」を「in Tegaki zu Einstellungen」に、「(Einstellungen > Erster Tag der Woche)」を「(in Tegaki: Einstellungen > Erster Tag der Woche)」に。前の行の「in der App „Einstellungen“」（iOS の設定アプリ）と語がほぼ同じで、iOS の「言語と地域」にも同じ名前の項目があるので、読み違えを招くと判断した。2,159 字 → 2,169 字（上限 4,000 字）。ほかの字は変えていない。
 3. **記録**: `back/de.json`・`back/pt-BR.json` の該当は元を見ない逆翻訳に。`back/fr.json` の `text` が 2 代前の字のままだったので今の字に（`back` は判定した Claude が元を見て書いた字）。`back/pt-BR.json` の `text` も e1073ae の前の字だったので直した。`back/store-de-DE.md` の新機能の表も今回の逆翻訳に（2 か所の語を除く。表の上に書いた）。`REVIEW.md` は 1・2・4・7・8・9・10 を直した。**X2 の `review.py` は通していない**（FIX3 の字を持たないので、走らせると消える）。
 
-### 元を見ない逆翻訳を通っていない字（今の事実）
+### 元を見ない逆翻訳（今の事実）
 
-- **この節で直した fr の 2 件と de-DE の 2 か所**。元を見ない逆翻訳をもう一度させるかはリードが決める。
-- FIX3 の見本の語 4 件（es Carpa・Plazo、pt-BR Tenda、it Scad.）。
+- **この節で直した fr の 2 件と de-DE の 2 か所、FIX3 の見本の語 4 件、it の 2 件は、リードが R5 で通した**（10 件、× 0・△ 10。`REVIEW.md` の 10 の R5 の表。`m7b-impl/R5/`）。
 - 母語の人の確認は今も無い（O-6）。
 
 ### 節の記録の読み替え
@@ -1722,7 +1721,7 @@ CI の 1 回目（`build.yml` は全部緑、run 42013412254。`ja-baseline.yml`
 
 ### リードへ
 
-- **it の `toast.weekStart.otherForm.*` も同じ形**（`con inizio %1$@` で「con inizio Domenica」と文の中で大文字）。今回は頼まれていないので変えていない。直すなら fr と同じ `(1° giorno: %1$@)` の形が候補で、幅を測る。es・pt-BR は括弧、de は名詞なので大文字でよい。
+- **it の `toast.weekStart.otherForm.*` も同じ形**（`con inizio %1$@` で「con inizio Domenica」と文の中で大文字）。リードが R5 で `(inizio: %1$@)` に直した（1 字短い）。この役の時点の案は fr と同じ `(1° giorno: %1$@)` で、幅を測る。es・pt-BR は括弧、de は名詞なので大文字でよい。
 - de の「Ansehen:」は単独だと少し不自然と言われた。「Zum Ansehen:」なら自然だが × ではないので変えていない。311 pt の余裕は測っていない。
 - de-DE の新機能の文で言い回しのまま残した語: `funktionieren`、`Wenn Sie neu sind`、`Wochenhandschrift`、`und ersten Tag`。母語の人に見てもらうときの候補。
 - 「débutant le dimanche」の方がよければ、呼ぶ所のコードを fr だけ変える必要がある。
