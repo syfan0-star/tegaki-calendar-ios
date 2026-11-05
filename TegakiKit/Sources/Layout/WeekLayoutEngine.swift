@@ -4,20 +4,29 @@ import Holidays
 
 /// Input of the week page layout.
 public struct WeekLayoutInput: Sendable {
-    /// The week's Monday (normalized from `focus`).
-    public var monday: DayKey
+    /// The week's first day (normalized from `focus` by `weekStart`): a Monday or a Sunday.
+    public var firstDay: DayKey
     public var events: [LayoutEvent]
     /// Kept for the callers (M4B-17); not read since M4b: nothing on the week page grows with ink.
     public var inkBottoms: [CellKey: CGFloat]
     public var now: Date
     public var calendar: Calendar
+    /// Where the colour and the name of a day come from; never the shape of the paper (D9, §5.4).
+    public var holidays: HolidayCalendar
+    /// The words of the boxes (D9, §3.1 rule 4).
+    public var words: LayoutWords
+    /// The first column (§10.1). The two week starts are two pages with their own ids (K-11).
+    public var weekStart: WeekStart
 
-    public init(focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar) {
-        monday = MonthLayout.mondayOnOrBefore(focus)
+    public init(focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday) {
+        firstDay = weekStart.firstDay(of: focus)
         self.events = events
         self.inkBottoms = inkBottoms
         self.now = now
         self.calendar = calendar
+        self.holidays = holidays
+        self.words = words
+        self.weekStart = weekStart
     }
 }
 
@@ -25,9 +34,9 @@ public struct WeekLayoutInput: Sendable {
 /// The all-day band is not on the paper since M4b: `allDayBand` describes the fixed band the screen
 /// draws above the paper (M4B_CONTRACT §2).
 public struct WeekPageLayout: PageLayout, Equatable, Sendable {
-    /// "w-2026-09-28" (the Monday).
+    /// "w-2026-09-28" (the first day of the week: a Monday or a Sunday, K-11).
     public var pageId: String
-    /// 7 days, Monday first.
+    /// 7 days, the week start's day first (read the order of the columns from here).
     public var days: [DayKey]
     /// 1400 × 1920 (fixed).
     public var size: CGSize
@@ -107,8 +116,8 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
     }
 
     /// The day of the column under a double tap (M4C_CONTRACT §4.3): `days[column(atX:)]` while
-    /// 0 ≤ y < 1920; nil in the time gutter (x < 64), right of the paper (x > 1400; x == 1400 is
-    /// Sunday), above or below the paper, or for a non-finite point. The fixed all-day band above
+    /// 0 ≤ y < 1920; nil in the time gutter (x < 64), right of the paper (x > 1400; x == 1400 is the
+    /// last column), above or below the paper, or for a non-finite point. The fixed all-day band above
     /// the paper resolves its own columns (`AllDayBandLayout.day(atPaperX:)`).
     public func dayAt(point: CGPoint) -> DayKey? {
         guard point.y.isFinite, point.y >= 0, point.y < size.height else { return nil }
@@ -169,19 +178,19 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
 public enum WeekLayoutEngine {
     public static func layout(_ input: WeekLayoutInput) -> WeekPageLayout {
         let calendar = input.calendar
-        let monday = input.monday
-        let days = (0..<PaperSpec.weekColumns).map { monday.adding(days: $0) }
+        let first = input.firstDay
+        let days = (0..<PaperSpec.weekColumns).map { first.adding(days: $0) }
         let colW = PaperSpec.weekColumnWidth
         let gutter = PaperSpec.weekGutter
         let today = DayKey(input.now, calendar: calendar)
         let grid = CGRect(x: 0, y: 0, width: PaperSpec.weekWidth, height: PaperSpec.weekGridHeight)
 
         // The all-day band (the web version's allDayRowsForRange) lives outside the paper.
-        let band = AllDayBandEngine.week(monday: monday, events: input.events, now: input.now, calendar: calendar)
+        let band = AllDayBandEngine.week(firstDay: first, weekStart: input.weekStart, events: input.events, now: input.now, calendar: calendar, holidays: input.holidays)
 
         var labels: [DateLabel] = []
         var boxes: [TimedEventBox] = []
-        let holidays = JapaneseHolidays.names(for: days)
+        let holidays = input.holidays.names(for: days)
         for (i, day) in days.enumerated() {
             let x = gutter + CGFloat(i) * colW
             let holiday = holidays[day]
@@ -190,7 +199,7 @@ public enum WeekLayoutEngine {
                 frame: CGRect(x: x, y: 0, width: colW, height: 0),
                 isToday: day == today,
                 inMonth: true,
-                tone: LayoutMath.tone(of: day, holiday: holiday),
+                tone: LayoutMath.tone(of: day, holiday: holiday, workday: input.holidays.isWorkday(day)),
                 holidayName: holiday
             ))
             for slot in TimedEventEngine.layout(events: input.events, day: day, calendar: calendar) {
@@ -216,7 +225,7 @@ public enum WeekLayoutEngine {
                     column: slot.column,
                     columns: slot.columns,
                     title: slot.event.title,
-                    timeText: TimedEventEngine.timeRangeText(start: slot.event.start, end: slot.event.end, calendar: calendar),
+                    timeText: TimedEventEngine.timeRangeText(start: slot.event.start, end: slot.event.end, calendar: calendar, words: input.words),
                     startText: TimedEventEngine.timeText(slot.event.start, calendar: calendar),
                     colorHex: slot.event.colorHex,
                     isPast: slot.event.end <= input.now
@@ -233,7 +242,7 @@ public enum WeekLayoutEngine {
         }
 
         return WeekPageLayout(
-            pageId: PageNavigation.pageId(.week, focus: monday),
+            pageId: PageNavigation.pageId(.week, focus: first, weekStart: input.weekStart),
             days: days,
             size: CGSize(width: PaperSpec.weekWidth, height: PaperSpec.weekGridHeight),
             grid: grid,

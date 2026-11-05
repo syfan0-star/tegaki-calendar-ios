@@ -33,17 +33,19 @@ public enum MonthNameStyle: Sendable {
 /// - The calendar is always Gregorian (0-11): a device set to the Japanese or the Buddhist calendar,
 ///   or a region whose default calendar is another (en_TH is Buddhist), still shows 2026. The
 ///   formatting locale carries `calendar=gregorian` too, so the patterns have no era (no "AD").
-/// - The order of the weekdays is the code's (Monday first, O-2, `mondayFirst`); nothing here reads
-///   `Calendar.firstWeekday`.
+/// - The order of the weekdays comes from the caller's `WeekStart` (§10.1: `WeekStart.order`, and
+///   `mondayFirst` is its Monday value); nothing here reads `Calendar.firstWeekday` or the region's
+///   first day of the week (D6, §3.1 rule 5).
 ///
 /// A `DayKey` is formatted as noon UTC of that day in a Gregorian calendar in UTC, so the text does
 /// not depend on the device's time zone. Formatters are made once per pattern and locale.
 public enum DateText {
     /// The weekdays of a Monday-start week, as `DayKey.weekday` (0 = Sunday): [1, 2, 3, 4, 5, 6, 0].
+    /// The same value as `WeekStart.monday.order` (kept for the callers of 1.2's first part).
     public static let mondayFirst: [Int] = [1, 2, 3, 4, 5, 6, 0]
 
     /// The calendar for formatting: Gregorian (whatever the device's calendar), with
-    /// `language.locale(region:)` and `timeZone`. Its `firstWeekday` is not used (O-2).
+    /// `language.locale(region:)` and `timeZone`. Its `firstWeekday` is not used (§3.1 rule 5).
     public static func calendar(_ language: UILanguage, region: String? = Locale.current.region?.identifier, timeZone: TimeZone = .current) -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = language.locale(region: region)
@@ -54,7 +56,7 @@ public enum DateText {
     // MARK: - Weekdays and months
 
     /// The 7 names of the weekdays in `DayKey.weekday` order (index 0 = Sunday; reorder with
-    /// `mondayFirst` for a Monday-start row). `.letter`: the fixed signs of §3.3; `.short` and `.full`:
+    /// `WeekStart.order` for a row of a week). `.letter`: the fixed signs of §3.3; `.short` and `.full`:
     /// the standalone names of the language (ja: the sign and 「日曜日」…, by hand).
     public static func weekdays(_ style: WeekdayStyle, _ language: UILanguage) -> [String] {
         switch style {
@@ -104,6 +106,15 @@ public enum DateText {
         return formatted(day, template: "yMMMMEd", language, region: region)
     }
 
+    /// A date without the weekday, for a label that only names a day (`StrokeBudget.pageLabel`):
+    /// ja 「2026年10月7日」; others `yMMMMd` (en_US "October 7, 2026").
+    public static func plainDay(_ day: DayKey, _ language: UILanguage, region: String? = Locale.current.region?.identifier) -> String {
+        if language == .ja {
+            return KitStrings.format("kit.date.ja.plainDay", .ja, [String(day.year), String(day.month), String(day.day)])
+        }
+        return formatted(day, template: "yMMMMd", language, region: region)
+    }
+
     /// A short date: ja 「10月7日(水)」; others `MMMEd` (en_US "Wed, Oct 7").
     public static func shortDay(_ day: DayKey, _ language: UILanguage, region: String? = Locale.current.region?.identifier) -> String {
         if language == .ja {
@@ -131,29 +142,29 @@ public enum DateText {
         return String(year)
     }
 
-    /// The week from `monday` to the Sunday 6 days later (the caller passes the Monday, e.g.
-    /// `PageNavigation.mondayOnOrBefore`). ja: 「2026年9月28日〜10月4日」, the year on both sides when
-    /// the week crosses a year (「2026年12月28日〜2027年1月3日」), compact 「9/28〜10/4」 (never the
-    /// year); others the interval of `yMMMd` ("Sep 28 – Oct 4, 2026"), compact `Md` ("9/28 – 10/4",
-    /// fr "28/09 – 04/10"; ICU adds the years when the week crosses one).
-    public static func weekTitle(monday: DayKey, _ language: UILanguage, compact: Bool, region: String? = Locale.current.region?.identifier) -> String {
-        let last = monday.adding(days: 6)
+    /// The week from `first` to the day 6 days later (the caller passes the first day of the week,
+    /// `WeekStart.firstDay(of:)`: a Monday or a Sunday). ja: 「2026年9月28日〜10月4日」, the year on both
+    /// sides when the week crosses a year (「2026年12月28日〜2027年1月3日」), compact 「9/28〜10/4」
+    /// (never the year); others the interval of `yMMMd` ("Sep 28 – Oct 4, 2026"), compact `Md`
+    /// ("9/28 – 10/4", fr "28/09 – 04/10"; ICU adds the years when the week crosses one).
+    public static func weekTitle(first: DayKey, _ language: UILanguage, compact: Bool, region: String? = Locale.current.region?.identifier) -> String {
+        let last = first.adding(days: 6)
         if language == .ja {
             if compact {
                 return KitStrings.format("kit.date.ja.weekTitleCompact", .ja,
-                                         [String(monday.month), String(monday.day), String(last.month), String(last.day)])
+                                         [String(first.month), String(first.day), String(last.month), String(last.day)])
             }
-            if last.year == monday.year {
+            if last.year == first.year {
                 return KitStrings.format("kit.date.ja.weekTitle", .ja,
-                                         [String(monday.year), String(monday.month), String(monday.day),
+                                         [String(first.year), String(first.month), String(first.day),
                                           String(last.month), String(last.day)])
             }
             return KitStrings.format("kit.date.ja.weekTitleCrossYear", .ja,
-                                     [String(monday.year), String(monday.month), String(monday.day),
+                                     [String(first.year), String(first.month), String(first.day),
                                       String(last.year), String(last.month), String(last.day)])
         }
         let formatter = Formatters.shared.interval(template: compact ? "Md" : "yMMMd", formattingLocale(language, region: region))
-        return formatter.string(from: noon(monday), to: noon(last))
+        return formatter.string(from: noon(first), to: noon(last))
     }
 
     /// The date as it is read out (VoiceOver): ja = `dayTitle` (1.1's spoken text); others

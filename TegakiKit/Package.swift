@@ -49,6 +49,7 @@ let package = Package(
         .testTarget(name: "InkModelTests", dependencies: ["InkModel", "Holidays"]),
         .testTarget(name: "AccessTests", dependencies: ["Access", "DayKit"]),
         .testTarget(name: "Compat10Tests", dependencies: ["Compat10", "CompatFixtures", "InkModel", "Layout"], path: "Tests/Compat10Tests"),
+        .testTarget(name: "Compat12Tests", dependencies: ["Compat10", "InkModel", "Layout"], path: "Tests/Compat12Tests"),
     ],
     swiftLanguageVersions: [.v5]
 )

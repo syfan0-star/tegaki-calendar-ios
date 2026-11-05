@@ -6,7 +6,7 @@ public struct RowLayout: Equatable, Sendable {
     public var index: Int
     /// Paper rect of the row: x 0, width 1400.
     public var frame: CGRect
-    /// The 7 days of the row, Monday first.
+    /// The 7 days of the row, the week start's day first (read the order of the columns from here).
     public var days: [DayKey]
     /// Number of all-day lanes used by the row (0 when it has no all-day event).
     public var laneCount: Int
@@ -28,9 +28,9 @@ public struct AllDayBar: Equatable, Sendable {
     public var frame: CGRect
     public var row: Int
     public var lane: Int
-    /// The event started before this row's Monday (draw an open left end).
+    /// The event started before this row's first day (draw an open left end).
     public var continuesLeft: Bool
-    /// The event continues after this row's Sunday (draw an open right end).
+    /// The event continues after this row's last day (draw an open right end).
     public var continuesRight: Bool
     public var colorHex: String
     public var title: String

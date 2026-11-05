@@ -8,14 +8,15 @@ public enum PageNavigation {
     /// 日 月 火 水 木 金 土, indexed by `DayKey.weekday` (0 = Sunday).
     public static let weekdayLetters = ["日", "月", "火", "水", "木", "金", "土"]
 
-    /// "d-2026-10-04" / "w-2026-09-28" (the Monday of the week containing `focus`) / "m1-2026-10" /
-    /// "y-2026". Same strings as the web version's pageIdFor (Monday start).
-    public static func pageId(_ kind: PageKind, focus: DayKey) -> String {
+    /// "d-2026-10-04" / "w-2026-09-28" (the first day of the week containing `focus`: a Monday or a
+    /// Sunday, K-11) / "m1-2026-10" / "y-2026". With `.monday` the same strings as the web version's
+    /// pageIdFor.
+    public static func pageId(_ kind: PageKind, focus: DayKey, weekStart: WeekStart = .monday) -> String {
         switch kind {
         case .day:
             return "d-" + focus.description
         case .week:
-            return "w-" + mondayOnOrBefore(focus).description
+            return "w-" + weekStart.firstDay(of: focus).description
         case .month:
             return YearMonth(year: focus.year, month: focus.month).inkPageId
         case .year:
@@ -27,7 +28,7 @@ public enum PageNavigation {
     /// "d-YYYY-MM-DD" → (.day, that day), "w-YYYY-MM-DD" → (.week, that day), "m1-YYYY-MM" →
     /// (.month, the 1st), "y-YYYY" → (.year, January 1). Only the exact forms `pageId` writes (4-digit
     /// year, 2-digit month and day, a date that exists); anything else ("wb-…", an invalid date, another
-    /// spelling) → nil.
+    /// spelling) → nil. The date of a week page is read as it is: a Sunday id stays that Sunday.
     public static func parse(pageId: String) -> (kind: PageKind, focus: DayKey)? {
         if pageId.hasPrefix("d-"), let d = exactDay(pageId.dropFirst(2)) {
             return (.day, d)
@@ -67,17 +68,17 @@ public enum PageNavigation {
         MonthLayout.mondayOnOrBefore(day)
     }
 
-    /// The days shown on the page (`end` exclusive): day → 1 day; week → 7 days from the Monday;
+    /// The days shown on the page (`end` exclusive): day → 1 day; week → 7 days from its first day;
     /// month → the 42 days of the grid; year → Jan 1 to the next Jan 1.
-    public static func dayRange(_ kind: PageKind, focus: DayKey) -> (start: DayKey, end: DayKey) {
+    public static func dayRange(_ kind: PageKind, focus: DayKey, weekStart: WeekStart = .monday) -> (start: DayKey, end: DayKey) {
         switch kind {
         case .day:
             return (focus, focus.adding(days: 1))
         case .week:
-            let monday = mondayOnOrBefore(focus)
-            return (monday, monday.adding(days: 7))
+            let first = weekStart.firstDay(of: focus)
+            return (first, first.adding(days: 7))
         case .month:
-            let first = MonthLayout.firstGridDay(year: focus.year, month: focus.month)
+            let first = MonthLayout.firstGridDay(year: focus.year, month: focus.month, weekStart: weekStart)
             return (first, first.adding(days: MonthLayout.gridDayCount))
         case .year:
             return (DayKey(year: focus.year, month: 1, day: 1), DayKey(year: focus.year + 1, month: 1, day: 1))
@@ -101,43 +102,40 @@ public enum PageNavigation {
         }
     }
 
-    /// The header title (DESIGN §2.7): day 「2026年10月4日(日) 体育の日」 (the holiday name after a
-    /// space, only when there is one); week 「2026年9月28日〜10月4日」 (the year on both sides when
-    /// the week crosses a year, the month always on both sides); month 「2026年10月」; year 「2026年」.
-    public static func title(_ kind: PageKind, focus: DayKey) -> String {
+    /// The header title (DESIGN §2.7, §3.2 of the 1.2 contract; `DateText`): day 「2026年10月4日(日)
+    /// 体育の日」 (the holiday name of `holidays` after a space, only when there is one); week
+    /// 「2026年9月28日〜10月4日」 (from `weekStart`'s first day; the year on both sides when the week
+    /// crosses a year, the month always on both sides); month 「2026年10月」; year 「2026年」. The
+    /// defaults give 1.1's text (J-3).
+    public static func title(_ kind: PageKind, focus: DayKey, holidays: HolidayCalendar = .japan, language: UILanguage = .ja, weekStart: WeekStart = .monday) -> String {
         switch kind {
         case .day:
-            var text = "\(focus.year)年\(focus.month)月\(focus.day)日(\(weekdayLetters[focus.weekday]))"
-            if let holiday = JapaneseHolidays.name(of: focus) { text += " " + holiday }
+            var text = DateText.dayTitle(focus, language)
+            if let holiday = holidays.name(of: focus) { text += " " + holiday }
             return text
         case .week:
-            let start = mondayOnOrBefore(focus)
-            let last = start.adding(days: 6)
-            let head = "\(start.year)年\(start.month)月\(start.day)日"
-            let tailDay = "\(last.month)月\(last.day)日"
-            let tail = last.year == start.year ? tailDay : "\(last.year)年" + tailDay
-            return head + "〜" + tail
+            return DateText.weekTitle(first: weekStart.firstDay(of: focus), language, compact: false)
         case .month:
-            return "\(focus.year)年\(focus.month)月"
+            return DateText.monthTitle(YearMonth(year: focus.year, month: focus.month), language)
         case .year:
-            return "\(focus.year)年"
+            return DateText.yearTitle(focus.year, language)
         }
     }
 
     /// The short title of the compact header (an iPhone in portrait, M4B_CONTRACT §5; `title` is
     /// unchanged): day 「10月7日(水)」 (no holiday name: the paper's date heading shows it); week
     /// 「10/5〜10/11」 (month/day on both sides, never the year: 「9/28〜10/4」, 「12/28〜1/3」);
-    /// month 「2026年10月」; year 「2026年」.
-    public static func compactTitle(_ kind: PageKind, focus: DayKey) -> String {
+    /// month 「2026年10月」; year 「2026年」. The defaults give 1.1's text (J-3).
+    public static func compactTitle(_ kind: PageKind, focus: DayKey, language: UILanguage = .ja, weekStart: WeekStart = .monday) -> String {
         switch kind {
         case .day:
-            return "\(focus.month)月\(focus.day)日(\(weekdayLetters[focus.weekday]))"
+            return DateText.shortDay(focus, language)
         case .week:
-            let start = mondayOnOrBefore(focus)
-            let last = start.adding(days: 6)
-            return "\(start.month)/\(start.day)〜\(last.month)/\(last.day)"
-        case .month, .year:
-            return title(kind, focus: focus)
+            return DateText.weekTitle(first: weekStart.firstDay(of: focus), language, compact: true)
+        case .month:
+            return DateText.monthTitle(YearMonth(year: focus.year, month: focus.month), language, compact: true)
+        case .year:
+            return DateText.yearTitle(focus.year, language)
         }
     }
 

@@ -147,8 +147,8 @@ public enum TimedEventEngine {
         MonthLayoutEngine.formatTime(date, calendar: calendar)
     }
 
-    /// "9:00〜10:30" (web formatTimeRangeJa).
-    public static func timeRangeText(start: Date, end: Date, calendar: Calendar = DayKey.deviceCalendar) -> String {
-        timeText(start, calendar: calendar) + "〜" + timeText(end, calendar: calendar)
+    /// "9:00〜10:30" (web formatTimeRangeJa; the separator is `words.timeRange`, §3.1 rule 4).
+    public static func timeRangeText(start: Date, end: Date, calendar: Calendar = DayKey.deviceCalendar, words: LayoutWords = .japanese) -> String {
+        words.range(timeText(start, calendar: calendar), timeText(end, calendar: calendar))
     }
 }

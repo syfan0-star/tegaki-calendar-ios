@@ -90,4 +90,47 @@ final class PlanTextTests: XCTestCase {
         XCTAssertEqual(LegalLinks.supportEmail, "syfan0@gmail.com")
         XCTAssertFalse(LegalLinks.terms.absoluteString.contains("/ios/"), "0-2: app/")
     }
+
+    // MARK: Other languages and other currencies (1.2, docs/M7B_CONTRACT.md §2.6, §7.2, §11)
+
+    func testPlanTextInEnglish() {
+        XCTAssertEqual(PlanText.perPeriod(.monthly, language: .en), "/month")
+        XCTAssertEqual(PlanText.perPeriod(.yearly, language: .en), "/year")
+        XCTAssertEqual(PlanText.name(.monthly, language: .en), "Monthly")
+        XCTAssertEqual(PlanText.name(.yearly, language: .en), "Yearly")
+        XCTAssertEqual(PlanText.savingsText(months: 4, language: .en), "Save 4 months")
+        XCTAssertEqual(PlanText.savingsText(months: 1, language: .en), "Save 1 month")
+        XCTAssertNil(PlanText.savingsText(months: 0, language: .en))
+        XCTAssertEqual(PlanText.yearlyBadge(language: .en), "Save 4 months")
+        XCTAssertTrue(PlanText.statusTitle(sub(.monthly, future), language: .en).contains("Monthly"), "the plan's name goes in")
+        XCTAssertTrue(PlanText.readOnlyNote(.billingRetry, language: .en).contains(PlanText.paymentPath(language: .en)), "the path goes in")
+        // Nothing Japanese is left in the words of an English screen.
+        let words = [PlanText.statusTitle(sub(.yearly, future), language: .en), PlanText.statusTitle(trial(.yearly, future), language: .en),
+                     PlanText.statusTitle(.readOnly(.expired), language: .en), PlanText.dateLabel(sub(.yearly, future), language: .en) ?? "",
+                     PlanText.readOnlyNote(.expired, language: .en), PlanText.readOnlyBadgeText(language: .en),
+                     PlanText.cancelPath(language: .en), PlanText.paymentPath(language: .en)]
+        for word in words {
+            XCTAssertFalse(word.isEmpty)
+            XCTAssertFalse(word.hasPrefix("kit."), word)
+            XCTAssertFalse(word.unicodeScalars.contains { (0x3000...0x9FFF).contains($0.value) }, word)
+        }
+    }
+
+    /// "N か月分お得" is computed from the storefront's prices and rounded down, so it is true in the
+    /// EU's currencies too (§11): 12 − 17.99 / 1.99 = 2.96 → 2.
+    func testEuroSavings() {
+        func months(_ monthly: String, _ yearly: String) -> Int {
+            let posix = Locale(identifier: "en_US_POSIX")
+            return PlanText.savingsMonths(monthly: Decimal(string: monthly, locale: posix)!, yearly: Decimal(string: yearly, locale: posix)!)
+        }
+        XCTAssertEqual(months("1.99", "17.99"), 2, "euro")
+        XCTAssertEqual(PlanText.savingsText(months: months("1.99", "17.99")), "2 か月分お得")
+        XCTAssertEqual(months("49", "399"), 3, "CZK")
+        XCTAssertEqual(months("19", "129"), 5, "DKK")
+        XCTAssertEqual(months("999", "6990"), 5, "HUF")
+        XCTAssertEqual(months("9.99", "69.99"), 4, "PLN")
+        XCTAssertEqual(months("9.99", "79.99"), 3, "RON")
+        XCTAssertEqual(months("29", "199"), 5, "SEK")
+        XCTAssertEqual(months("1.99", "14.99"), 4, "USD (§7.2's testUSStorefrontPrices)")
+    }
 }

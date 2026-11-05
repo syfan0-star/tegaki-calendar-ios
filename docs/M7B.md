@@ -412,6 +412,7 @@ J-4 の比べる相手の commit: **e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d**�
 | 2026 年でも推定の祝日がある国 | 販売中の 48 か国（モルディブ・イエメン 13 件、オマーン 12、イラク 11、バーレーン・ヨルダン・クウェート 10、アラブ首長国連邦 9、エジプト 6 など）。**パキスタン・インドネシア・マレーシア・インドは 0.107 で 2026 年の公式の表が入って推定でなくなった**（契約の 0.83 の例から変わった） | 名前に「（推定）」（0-17） |
 | 州の振替出勤 | アルメニアの AM-LO・AM-SH は振替出勤の日が全国と違うが、§5.2 の形に州の `workdays` が無いので書いていない（色だけの差。名前と休みは正しい）。gen.py が標準エラーに出す | 無し |
 | 訳の照らし合わせ | 台湾の zh-Hans の列の 23 日（臺灣光復… の振替）は、ライブラリの訳に照らせず同じ日の名前を使った（名前は正しい）。ほかの 106 万件は訳の表で照らせた | 無し |
+| 祝日がほぼ無い地域（FIX が足した） | ブーベ島・ハード島とマクドナルド諸島・英領インド洋地域（BV・HM・IO。販売外）は祝日が 0 件で、`coverage` は 2000〜2099。ギニアビサウ（GW。販売中）はデータが 2023 年からなのに `coverage` は 2000〜2099。どれも 2015〜2024 年の中央値が 0 なので、`coverage_range` が全部の年を「揃っている」と見る | 知らせは出ない。BV・HM・IO は選べて、選ぶと何も出ない（0-20 の「祝日のデータがありません」も出ない。ほぼ無人の地域）。GW は 2026 年に祝日があるので今年は問題ない |
 
 **販売中の地域でデータが無い所は無い**（0.107 でコソボが入った。ずれの 2）。
 
@@ -721,3 +722,77 @@ J-4 の比べる相手の commit: **e7b4d2f9c99dcfe4f7ba27ef9f81fe0466bf093d**�
 - 31d243c は仮の物で、1.1.1 の CI も本人の確かめもまだ。直しが入れば手順 8 で 3〜7 をやり直す。
 - この Mac では XCTest は型だけ。1.1.1 と 1.2 の分を合わせた `swift test` とアプリのテストは CI-0 で初めて走る。
 - `ja-baseline.yml` の変更は `bash -n` と段ごとの比べまで。実際の写真は CI-0 で初めて撮る。
+
+## K2（K1+・K の後半・週の始まりの Kit の全部。§12.1 の K2）
+
+**実数 N = 29,432**（`swift run --package-path TegakiKit KitChecks`「all 29432 checks passed」。B11 の後の 25,950 から +3,482。閾値は C が最後に数え直して N − 50。今の数なら 29,382）。commit はしていない（K2 は commit しない役）。
+
+| 節 | 件数 | 内訳 |
+| --- | --- | --- |
+| 1.1.1 まで | 24,929 | B11 の節のまま |
+| `languages (1.2)` | 113 | K1 のまま |
+| `kit strings (1.2)` | 583 | K1 の確かめ（キーの数で動く。K2 で 61 キーに）＋ ずれの 8 の「各言語の字はキーから」 |
+| `date text (1.2)` | 708 | K1 の 435 ＋ J-3 に足した `language: .ja`・`weekStart: .monday` の呼び出しと、ja だけの `plainDay` |
+| `holidays (1.2)` | 243 | H のまま |
+| `holiday geometry (1.2)` | 2,159 | G-1 1,293（431 ページ × 3 つの暦）、G-2 431 ＋ 字が届く確かめ、G-3 390、G-4 ＋ 本物のデータ（米国の週・中国の出勤日）。§7.1 の見込み +1,900〜2,200 の中 |
+| `week start (1.2)` | 697 | 型、W-1〜W-5、G-5。W-1・W-3 は関数ごと・10 年ごとに 1 件（試しの 504,367 件をそのまま数えない） |
+
+### 入れたもの
+
+- **K1+**: `DateText.weekTitle(first:…)`（KitChecks の呼び出しも）。`DateText` の注記（曜日の並びは `WeekStart.order` から、`firstWeekday` を読まない）。`kit-K.json` の `kit.date.ja.weekTitle` の comment と `weekTitle*` の 3 つの `args`（値は変えていない）。
+- **§5.4 の 12 か所と tone**: 全部 `holidays` から。`LayoutMath.tone(of:holiday:workday:)`（既定値なし）を 5 か所が渡す。月のエンジンのその場の式は消した。`MonthLayoutInput`・`WeekLayoutInput`・`DayLayoutInput`・`YearLayoutInput` に `holidays:`・`words:`（既定 `.japan`・`.japanese`）。`words` はチップの「+n件」・日をまたぐ印・箱の時刻の範囲に効く。`Layout` の中に `JapaneseHolidays` の呼び出しは残っていない。
+- **`PageNavigation`**: `title(_:focus:holidays:language:weekStart:)`・`compactTitle(_:focus:language:weekStart:)` は `DateText` で組む。`pageId`・`dayRange` に `weekStart:`。`parse`・`move`・`initialScroll*` は変えていない。
+- **`PlanText`**: §0 の全部（`name`・`perPeriod`・`savingsText`・`statusTitle`・`dateLabel`・`readOnlyNote` に `language:`、`yearlyBadge(language:)`・`readOnlyBadgeText(language:)`・`cancelPath(language:)`・`paymentPath(language:)`。今の `static let` は残した）。字は全部 `KitStrings` から。
+- **`LegalLinks`**: `englishPagesPublished = false`、`terms(for:published:)`・`privacy(for:published:)`・`support(for:published:)`・`appleEULATitle(_:)`。ja は published でも日本語のページ。`Access/Plan.swift:2` の注記も直した（K1 の申し送り）。M7B-23 の答えは (ア) なので `LegalLinks` には関係しない。
+- **`StrokeBudget`**: `pageLabel(_:)` と `pageLabel(_:language:)` の 2 つの形（週の形は日付から読む）、`countText(_:language:)`。**`AppExport`**: `jsonFileName(exportedAt:calendar:language:)`・`pdfFileName(kind:focus:holidays:language:weekStart:)`・`kindLabel(_:language:)`。データの関数は 1 行も変えていない。InkModel の凍結 7 ファイルは同じバイト。
+- **`kit-K.json`**: 21 → **61 キー**。X が訳すのは K の分で 42（`kit.plan.*` 27、`kit.budget.*` 6、`kit.export.*` 5、`kit.legal.appleEULATitle`、K1 の 3）。`jaOnly` は `kit.date.ja.plainDay` を足して 10。`build.py` で生成済み。Kit の日本語の文字列は L-1 で 0 件、Kit の行は L-3 で全部キーか例外に当たる（K のキーが引き受けた行は全部で 85）。
+- **§10.1**: `DayKit/WeekStart.swift`（`firstWeekday`・`order`・`column(of:)`・`firstDay(of:)`・`init?(weekPageDate:)`・`automatic(region:firstDayOfWeek:)`）、`InkModel/WeekStartImpact.swift`（`hiddenStrokeIds(in:weekStart:)`・`weekPages(_:)`）。`MonthLayout.firstGridDay`・`rowCount`・`grid`（2 つ）・`MonthLayoutInput`・`WeekLayoutInput`（項目 `monday` は `firstDay` に）に最後の引数 `weekStart: WeekStart = .monday`。`AllDayBandEngine.week(firstDay:weekStart:events:now:calendar:holidays:)` を本体にし、`week(monday:…)` は `.monday` で呼ぶだけ。「Monday」の注記（`MonthLayout`・`MonthPageLayout`・`AllDayBand`・`WeekLayoutEngine`・`PageLayout`・`DayKey`）。
+- **KitChecks**: J-3 に新しい呼び出し、§7.1 の G-1〜G-4（「X」「W」「40 字」の作り物の暦 `MadeUpHolidays`）、§10.8 の W-1〜W-5・G-5。
+- **XCTest**: 新規 `DateTextTests`・`KitStringsTests`・`LayoutWordsTests`・`WeekStartLayoutTests`（LayoutTests）、`HolidayGeometryTests`（HolidaysTests）、`LegalLinksTests`（AccessTests）、`WeekStartImpactTests`（InkModelTests）、`Compat12Tests`（新しいターゲット。`Package.swift` に 1 行）。足すだけ: `PageNavigationTests.testTitlesInEnglish`、`PlanTextTests.testPlanTextInEnglish`・`testEuroSavings`、`StrokeBudgetTests.testCountTextInGerman`、`AppExportTests.testPdfFileNameInEnglish`。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **`DateText.plainDay(_:_:region:)` と `kit.date.ja.plainDay` を足した**（§0 に無い public）。1.1 の日のページの呼び方「日のページ（2026年10月7日）」は曜日が無く、`dayTitle`・`shortDay` では作れない。他の言語は雛形 `yMMMMd`（en_US「October 7, 2026」）。
+2. **`testHolidayInTheDayTitle` は `PageNavigationTests` でなく `HolidayGeometryTests`（HolidaysTests）に置いた**。LayoutTests の依存は `Layout` だけで（§0 の「`Package.swift` をこれ以上変えない」）、`HolidayCalendar` を名前で使えず、米国のデータの場所の関数も HolidaysTests にある。
+3. **§7.2 の英語の日付の字は、地域を渡せない関数では字のまま比べない**: `PageNavigation.title(…language: .en)` の形は端末の地域に従う（契約の形に `region:` が無い。en_JP なら「Thu, 26 November 2026」）。CI の地域に左右されないよう、`testTitlesInEnglish`・`testHolidayInTheDayTitle`・`testPdfFileNameInEnglish` は `DateText` の結果と比べ、契約の「Thu, November 26, 2026 Thanksgiving Day」は `region: "US"` を渡した `dayTitle` ＋ 祝日名で確かめる。
+4. **W-4 の `WebImportV10`**: 凍結の写しの `WebImportV10` は `ParseError` だけで、Web の形式を読む処理が無い（`PageId` も `convert` も無い）。写しでは「Web のファイルは `.notAnExport`」だけを確かめ、「Web の形式の日曜 `w-` を断る」は新しいコードの `WebImport`（W-5）と、本物の 1.0 の `tools/weekstart-compat`（A9）で確かめる。
+5. **StrokeBudget の中の `PageNavigation.title` は `holidays: .none` を渡す**（年・月・週の題名に祝日は出ないので意味は同じ。L-7 の Kit の規則が `holidays:` を求めるため）。
+6. **`kit-K.json` の引き受け方**: `kit.app.name` に `composedOf` `InkModel/AppExport.swift:144` を足した（ファイル名の空白はコードで置く）。`kit.budget.count.*` は「 本」の行（字が空白つき）を `composedOf` で引き受ける。`kit.plan.badge.readOnly`・`cancelPath`・`paymentPath`・`kit.legal.appleEULATitle` の `was` は例外の行でもある（1.1 の `static let` を残すため。L-3 はどちらでも通る）。
+7. **`LayoutWords.fill` を消した**: K1 の申し送りのとおり、S1 で public になった `KitStrings.fill` に寄せた（KitChecks の `layout words` が同じ規則を確かめている）。
+8. **KitChecks に足した節の外の確かめ**: `kit strings (1.2)` の末尾に、10 言語で「`PlanText`・`StrokeBudget`・`AppExport`・題名の字がキーと `DateText` から来る」「`LegalLinks` の URL」を置いた。X の前でも通る形（字そのものは見ない）で、件数は X の後も変わらない。
+9. **G-3 の日のページは 12 日**（各月の 1 日）。月 12・週 53・年 1 は全部。5 つの暦 × 365 日は増やしても見つかるものが増えない（`calendar` を読む道は同じ）。
+10. **`WeekStartImpact.hiddenStrokeIds` は id の順に並べて返す**（§10.1 は順を書いていない。テストとトーストで安定するように）。
+
+### 確かめたこと（この Mac、Swift 6.4.2、Command Line Tools。push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `swift build --package-path TegakiKit` | 成功。新しい警告 0（`main.swift` の「no calls to throwing functions」の 3 つは e7b4d2f からある、この版の Swift だけの物） |
+| `swift run --package-path TegakiKit KitChecks` | **all 29432 checks passed**。compat10 は 361 件・失敗 0。debug で約 48 秒（前は 37 秒） |
+| `tools/typecheck/typecheck.sh`（リポジトリの外の空のフォルダ） | all OK・警告 0（アプリ 60 ファイル、TegakiCalendarTests 26、UI テスト 4、Kit のテスト 6 つ。`Compat12Tests` を含む） |
+| XCTest を**実際に走らせた**（この Mac に XCTest が無いので、リポジトリの外の小さな代わり `m7b-impl/K2/xctrun` で。木を写して `LayoutTests`・`HolidaysTests`・`InkModelTests`・`AccessTests`・`Compat10Tests`・`Compat12Tests` の全部を組み、テストの関数を順に呼ぶ） | 翻訳なし: 343 本・失敗は**下の 5 本だけ**（X の訳が要る）。写しの中に仮の訳（en・de と、残りは en の写し）を入れると 320 本（`Compat10Tests` の 23 本を除く）・65,737 件・**失敗 0**。`Compat10Tests` は翻訳なしで 23 本・失敗 0。本番は CI-0 の `swift test` |
+| `shasum -a 256 -c tools/compat10/DATA_1_1.sha256` | 18 件 OK（D14） |
+| K-7 | `Tests/Fixtures`・`Tests/Compat10`・`Tests/CompatFixtures`・`Tests/Compat10Tests`・`tools/compat10` は HEAD と同じ。`testFixturesAreWhatTheNewCodeWrites` は作り直さずに通った |
+| J-2 | `git diff 31d243c -- Tests TegakiKit/Tests` の削除行 **0**（足しただけ。§10.8 の 2） |
+| `Text11.swift` | HEAD と同じ（J-3 の基準は変えていない） |
+| `python3 -I tools/l10n/build.py . --check`・`baseline.py . --check` | 一致（516 行・31d243c） |
+| `lint.py --only L-1,L-3,L-4,L-10` | Kit の行の指摘 0、L-4・L-10 ok。L-1・L-3 の失敗（417・382）はアプリの、まだキーの無い役の分 |
+| L-7 の Kit の規則 | lint にはまだ無いので（S2）、同じ規則の小さな script で見た: `Layout`・`InkModel` の呼び出し 8 か所に漏れなし |
+
+**X の訳が入るまで落ちるテスト**（CI-0 は X の後なので問題にならない。訳の字を決めているので X は下の「次の役へ」を見る）: `KitStringsTests.testEveryKeyHasTenLanguages`、`LayoutWordsTests.testMoreChipsPerLanguage`、`PlanTextTests.testPlanTextInEnglish`、`StrokeBudgetTests.testCountTextInGerman`、`AppExportTests.testPdfFileNameInEnglish`。
+
+### 次の役へ
+
+- **X**: K のキーで訳すのは 42（`fixed`・`jaOnly` を除く）。テストが字を見ているので次は崩さない: `kit.plan.monthly`・`yearly`「Monthly」「Yearly」（§6.2）、`kit.plan.perPeriod.*`「/month」「/year」、`kit.plan.savings.*`「Save %@ month」「Save %@ months」、`kit.layout.more.*` の en「+%@ more」・de「+%@ weitere」、`kit.budget.count.*` の en「%@ stroke」「%@ strokes」・de「%@ Strich」「%@ Striche」、`kit.export.kind.*` の en「Month」「Week」「Day」「Year」（§6.2）、`kit.app.name` の en「Tegaki」、`kit.export.jsonFileName` の en は「Tegaki 」で始まり「 %@.json」で終わる、`kit.budget.page.*` の en は「Year page」などの語を含む（§6.2）。`kit.plan.cancelPath`・`paymentPath` は §6.1 の 4。ja 以外の値に漢字・かなを入れない（L-2）。
+- **S2**: `ExportBuilder` は `title(…holidays:language:weekStart:)`・`pdfFileName(kind:focus:holidays:language:weekStart:)`・`jsonFileName(exportedAt:calendar:language:)`。`StrokeCensus.pageLabel(_:language:)` は `StrokeBudget.pageLabel(_:language:)` と `countText(_:language:)` を呼ぶ。`EventDateText` の「〜」は `LayoutWords.of(language).range(_:_:)`。**L-8**: Kit の `KitStrings.plural("kit.plan.savings", …)`・`("kit.budget.count", …)`・`("kit.layout.more", …)` は `.one`・`.other` を付けない形で呼んでいる。`kit.plan.status.*`・`kit.plan.note.*`・`kit.plan.date.*`・`kit.export.kind.*` はみな文字列の直書きで引いている（`KitStrings.text("kit.…", language)`）。**L-7 の Kit の規則**: 上の 8 か所は今通る。`Views/ExportSheet.swift:49` の `AppExport.kindLabel(kind)` は S2 の C 型のまま。
+- **U**: `MonthLayoutInput`・`WeekLayoutInput` の引数の順は `calendar:, holidays:, words:, weekStart:`、`DayLayoutInput`・`YearLayoutInput` は `calendar:, holidays:, words:`。`PageNavigation.pageId`・`dayRange`・`title`・`compactTitle`・`MonthLayout.grid` の `weekStart:` は最後。`LegalLinks.terms(for: L.language)` など（`published:` は渡さない）。`WeekStart.automatic(region:firstDayOfWeek:)`、`WeekStartImpact.weekPages(_:)`（`(monday:, sunday:)`）。`large.map(StrokeBudget.pageLabel)` は `{ StrokeBudget.pageLabel($0, language: L.language) }` に（§2.7）。
+- **P**: 並びは `layout.rows[0].days`（月）・`layout.days`（週）から読む（レイアウトに `weekStart` の項目は足していない、§10.1）。曜日は `DateText.weekdays(_:_:)` を `WeekStart.order` で並べる。年の `DateLabel.holidayName` は `short`、ほかは `full`（§5.4 の表の 6）。`TimedChip.title` には `words.more(_)` の字が入る。`Paper/MonthPaper.swift:189` の「+\(n)件」は `title` が空のときの受け皿で、行の引き受けは K1 の節の 11 のまま（P が自分のキーか `composedOf` で）。
+- **C**: 閾値は最後に数え直す（今は N = 29,432）。`Compat12Tests` は `swift test` で自動で走る。KitChecks は debug で約 48 秒。`build.yml` の数の説明の行に、1.2 の節の内訳（上の表）を書ける。
+- **リード**: J-2 の相手は今 31d243c で、K2 の分のテストは足しただけ。
+
+### 残る危険
+
+- XCTest は CI-0 まで本物で走らない。この Mac の代わりは `XCTAssert*` の意味だけを写した物で、`testEnglishSamples` などの ICU の字（en_US・es_ES・fr_FR）はこの Mac の ICU の値（K1 の「残る危険」と同じ。CI の macos-26 で字が違えば、KitChecks と同じく構造の確かめに替える）。
+- `HolidayCalendar.japan` の `name(of:)` は 1.1 の `JapaneseHolidays.name(of:)` と同じく呼ぶたびに年の表を作る（橋の分だけ少し重い）。題名は 1 回に 1 度で問題にならない見込み（KitChecks の J-3 は 36,525 日 × 複数でも全体で約 10 秒増えただけ）。
+- 祝日の暦を読む時間（§5.3 の `l10n: holidays loaded`）は U の接続の後に CI で測る。年のページは 365 回 `isWorkday` を呼ぶ（中で lock と辞書を引くだけ）。
+

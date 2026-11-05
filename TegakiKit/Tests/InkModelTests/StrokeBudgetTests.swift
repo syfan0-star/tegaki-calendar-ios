@@ -151,4 +151,21 @@ final class StrokeBudgetTests: XCTestCase {
         let alone = InkPage(json: bigPageJSON(strokes: 20_300, unknown: 200))
         XCTAssertEqual(StrokeBudget.importExceedsLegacyCap(localIds: [], incoming: alone), 20_500, "a new page over the cap")
     }
+
+    // MARK: Other languages (1.2, docs/M7B_CONTRACT.md §2.6)
+
+    func testCountTextInGerman() {
+        XCTAssertEqual(StrokeBudget.countText(12_345), "12,345 本", "ja by default")
+        XCTAssertEqual(StrokeBudget.countText(12_345, language: .ja), "12,345 本")
+        XCTAssertEqual(StrokeBudget.countText(12_345, language: .de), DateText.number(12_345, .de) + " Striche")
+        XCTAssertEqual(StrokeBudget.countText(1, language: .de), "1 Strich")
+        XCTAssertEqual(DateText.number(12_345, .de, region: "DE") + " Striche", "12.345 Striche")
+        XCTAssertEqual(StrokeBudget.countText(1, language: .en), "1 stroke")
+        XCTAssertEqual(StrokeBudget.countText(12_345, language: .en), DateText.number(12_345, .en) + " strokes")
+        let yearPage = StrokeBudget.pageLabel("y-2026", language: .en)
+        XCTAssertTrue(yearPage.lowercased().contains("year page") && yearPage.contains("2026"), yearPage)
+        let dayPage = StrokeBudget.pageLabel("d-2026-10-07", language: .en)
+        XCTAssertTrue(dayPage.lowercased().contains("day page") && dayPage.contains(DateText.plainDay(DayKey(year: 2026, month: 10, day: 7), .en)), dayPage)
+        XCTAssertEqual(StrokeBudget.pageLabel("wb-2026-10-05", language: .en), "wb-2026-10-05", "an id it cannot read stays as it is")
+    }
 }

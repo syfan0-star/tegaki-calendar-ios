@@ -393,4 +393,17 @@ final class AppExportTests: XCTestCase {
         XCTAssertEqual(AppExport.safeFileName("〜 ( ) . - _ 日"), "〜 ( ) . - _ 日")
         XCTAssertEqual(AppExport.safeFileName(""), "")
     }
+
+    // MARK: Other languages (1.2, docs/M7B_CONTRACT.md §2.6)
+
+    func testPdfFileNameInEnglish() {
+        let oct7 = day(2026, 10, 7)
+        XCTAssertEqual(AppExport.pdfFileName(kind: .year, focus: oct7, language: .en), "Tegaki 2026 Year.pdf")
+        XCTAssertEqual(AppExport.pdfFileName(kind: .month, focus: oct7, language: .en), "Tegaki " + DateText.monthTitle(YearMonth(year: 2026, month: 10), .en) + " Month.pdf")
+        XCTAssertEqual(AppExport.pdfFileName(kind: .week, focus: oct7, language: .en), AppExport.safeFileName("Tegaki " + DateText.weekTitle(first: day(2026, 10, 5), .en, compact: false) + " Week.pdf"))
+        XCTAssertEqual(AppExport.pdfFileName(kind: .day, focus: oct7, language: .en, weekStart: .sunday), AppExport.safeFileName("Tegaki " + PageNavigation.title(.day, focus: oct7, language: .en) + " Day.pdf"))
+        XCTAssertEqual(AppExport.kindLabel(.month, language: .en), "Month")
+        let json = AppExport.jsonFileName(exportedAt: date(2026, 10, 17, 23, 30), calendar: tokyo, language: .en)
+        XCTAssertTrue(json.hasPrefix("Tegaki ") && json.hasSuffix(" 2026-10-17.json"), json)
+    }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import Holidays
 
 /// The stroke budget of one page (1.1, K-9, M7A_CONTRACT D5 / §5): the numbers, how strokes are
 /// counted, and the words of 設定 › 情報. Pure functions; the canvas (担当 P) decides with them, the
@@ -80,34 +81,37 @@ public enum StrokeBudget {
         return best
     }
 
-    /// 「年のページ（2026年）」「月のページ（2026年10月）」「週のページ（2026年10月5日〜10月11日）」
-    /// (the header's week title, `PageNavigation.title(.week, focus:)`) 「日のページ（2026年10月7日）」
-    /// (no weekday, no holiday name). A page id `PageNavigation.parse` cannot read is returned as it is.
+    /// `pageLabel(_:language:)` in Japanese. Two functions rather than a default argument, so that
+    /// `.map(StrokeBudget.pageLabel)` still compiles (§0).
     public static func pageLabel(_ pageId: String) -> String {
+        pageLabel(pageId, language: .ja)
+    }
+
+    /// 「年のページ（2026年）」「月のページ（2026年10月）」「週のページ（2026年10月5日〜10月11日）」
+    /// (the header's week title; the week's form is read from the page's date, a Sunday id runs from
+    /// that Sunday, K-11 rule 1) 「日のページ（2026年10月7日）」 (no weekday, no holiday name). A page
+    /// id `PageNavigation.parse` cannot read is returned as it is.
+    public static func pageLabel(_ pageId: String, language: UILanguage) -> String {
         guard let page = PageNavigation.parse(pageId: pageId) else { return pageId }
         let d = page.focus
         switch page.kind {
         case .year:
-            return "年のページ（\(PageNavigation.title(.year, focus: d))）"
+            return KitStrings.format("kit.budget.page.year", language, [PageNavigation.title(.year, focus: d, holidays: .none, language: language)])
         case .month:
-            return "月のページ（\(PageNavigation.title(.month, focus: d))）"
+            return KitStrings.format("kit.budget.page.month", language, [PageNavigation.title(.month, focus: d, holidays: .none, language: language)])
         case .week:
-            return "週のページ（\(PageNavigation.title(.week, focus: d))）"
+            let title = PageNavigation.title(.week, focus: d, holidays: .none, language: language, weekStart: WeekStart(weekPageDate: d) ?? .monday)
+            return KitStrings.format("kit.budget.page.week", language, [title])
         case .day:
-            return "日のページ（\(d.year)年\(d.month)月\(d.day)日）"
+            return KitStrings.format("kit.budget.page.day", language, [DateText.plainDay(d, language)])
         }
     }
 
-    /// 「12,345 本」: the number grouped by three digits with a half-width comma (whatever the locale),
-    /// a space, 本.
-    public static func countText(_ n: Int) -> String {
-        let digits = String(n.magnitude)
-        var grouped = ""
-        for (i, ch) in digits.enumerated() {
-            if i > 0 && (digits.count - i) % 3 == 0 { grouped.append(",") }
-            grouped.append(ch)
-        }
-        return (n < 0 ? "-" : "") + grouped + " 本"
+    /// 「12,345 本」: ja the number grouped by three digits with a half-width comma (whatever the
+    /// locale), a space, 本; the other languages `DateText.number` and their word, one or other
+    /// (en "1 stroke", "12,345 strokes"; de "12.345 Striche").
+    public static func countText(_ n: Int, language: UILanguage = .ja) -> String {
+        KitStrings.plural("kit.budget.count", language, count: n, [DateText.number(n, language)])
     }
 }
 

@@ -216,4 +216,25 @@ final class PageNavigationTests: XCTestCase {
         XCTAssertNil(PageNavigation.todayRect(F.weekLayout(F.demo), now: F.demoNow, calendar: F.tokyo), "the week page")
         XCTAssertNil(PageNavigation.todayRect(F.dayLayout(F.demo), now: F.demoNow, calendar: F.tokyo), "the day page")
     }
+
+    // MARK: The titles in other languages (1.2, docs/M7B_CONTRACT.md §3.2)
+
+    func testTitlesInEnglish() {
+        let oct7 = day(2026, 10, 7)
+        // The forms follow the device's region (`DateText`'s default): compared with DateText, and by their words.
+        XCTAssertEqual(PageNavigation.title(.day, focus: oct7, holidays: .none, language: .en), DateText.dayTitle(oct7, .en))
+        XCTAssertEqual(PageNavigation.title(.week, focus: oct7, language: .en), DateText.weekTitle(first: day(2026, 10, 5), .en, compact: false))
+        XCTAssertEqual(PageNavigation.title(.month, focus: oct7, language: .en), DateText.monthTitle(YearMonth(year: 2026, month: 10), .en))
+        XCTAssertEqual(PageNavigation.title(.year, focus: oct7, language: .en), "2026")
+        XCTAssertEqual(PageNavigation.compactTitle(.day, focus: oct7, language: .en), DateText.shortDay(oct7, .en))
+        XCTAssertEqual(PageNavigation.compactTitle(.week, focus: oct7, language: .en), DateText.weekTitle(first: day(2026, 10, 5), .en, compact: true))
+        XCTAssertEqual(PageNavigation.compactTitle(.month, focus: oct7, language: .en), DateText.monthTitle(YearMonth(year: 2026, month: 10), .en, compact: true))
+        XCTAssertEqual(PageNavigation.compactTitle(.year, focus: oct7, language: .en), "2026")
+        XCTAssertTrue(PageNavigation.title(.day, focus: oct7, holidays: .none, language: .en).contains("October"))
+        XCTAssertTrue(PageNavigation.title(.month, focus: oct7, language: .en).contains("October"))
+        XCTAssertFalse(PageNavigation.title(.month, focus: oct7, language: .en).contains("年"))
+        // Japanese stays what the default gives.
+        XCTAssertEqual(PageNavigation.title(.month, focus: oct7, language: .ja), PageNavigation.title(.month, focus: oct7))
+        XCTAssertEqual(PageNavigation.compactTitle(.week, focus: oct7, language: .ja), PageNavigation.compactTitle(.week, focus: oct7))
+    }
 }
