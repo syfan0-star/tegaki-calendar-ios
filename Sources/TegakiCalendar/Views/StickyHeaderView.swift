@@ -31,13 +31,10 @@ struct StickyHeaderView: View {
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
 
-    private static let weekdayNames = ["日", "月", "火", "水", "木", "金", "土"]
-    private static let monthWeekdayLabels = ["月", "火", "水", "木", "金", "土", "日"]
-
     var body: some View {
         switch paper {
-        case .month:
-            monthRow
+        case .month(let content):
+            monthRow(content.layout)
         case .week(let content):
             weekRow(content.layout)
         case .day(let content):
@@ -49,14 +46,17 @@ struct StickyHeaderView: View {
 
     // MARK: - Month (M2's weekday row)
 
-    private var monthRow: some View {
+    /// 1.2 (§10.5): the order is the layout's first row and the colour goes with the weekday, so a
+    /// Sunday-first page has its red Sunday in the first column and its blue Saturday in the last.
+    private func monthRow(_ layout: MonthPageLayout) -> some View {
         PaperRow(kind: .month, viewport: viewport, columns: Array(repeating: PaperSpec.monthColumnWidth, count: PaperSpec.monthColumns)) {
-            ForEach(0..<7, id: \.self) { column in
-                Text(Self.monthWeekdayLabels[column])
+            ForEach(PaperWords.monthHeaderColumns(layout, L.language), id: \.weekday) { column in
+                Text(column.name)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Self.monthWeekdayColor(column: column))
+                    .foregroundStyle(Self.toneColor(column.tone) ?? .primary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
+                    .accessibilityLabel(column.fullName)
             }
         }
         .clipped()
@@ -65,14 +65,6 @@ struct StickyHeaderView: View {
             Rectangle()
                 .fill(Color(uiColor: .separator))
                 .frame(height: 0.5)
-        }
-    }
-
-    private static func monthWeekdayColor(column: Int) -> Color {
-        switch column {
-        case 5: return Color(uiColor: PaperPalette.blue)
-        case 6: return Color(uiColor: PaperPalette.red)
-        default: return .primary
         }
     }
 
@@ -94,7 +86,7 @@ struct StickyHeaderView: View {
     /// Below this column width (pt) the first of a month (「10/1」, about 75 pt with its weekday) does
     /// not fit: its weekday letter is dropped and the row may scale its text down to 60 % (M4C-28,
     /// M4C_CONTRACT §1.4). An iPhone's overview has 54.8 pt columns; 「水 7」 (about 50 pt) still fits.
-    static let narrowWeekColumnPoints: CGFloat = 75
+    static let narrowWeekColumnPoints: CGFloat = PaperWords.narrowWeekColumnPoints
 
     private func weekDayCell(_ label: DateLabel) -> some View {
         let firstOfMonth = label.day.day == 1
@@ -107,7 +99,7 @@ struct StickyHeaderView: View {
             VStack(spacing: 1) {
                 HStack(spacing: 4) {
                     if showsWeekday {
-                        Text(Self.weekdayNames[label.day.weekday])
+                        Text(PaperWords.weekColumnWeekday(label.day.weekday, columnWidth: viewport.width(ofPaper: PaperSpec.weekColumnWidth), L.language))
                             .font(.system(size: 12, weight: label.isToday ? .bold : .medium))
                             .foregroundStyle(label.isToday ? accentColor : (tone ?? ink2))
                     }
@@ -135,7 +127,7 @@ struct StickyHeaderView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Self.dayLabel(label) + "（日表示へ）")
+        .accessibilityLabel(L.format("header.day.spoken", Self.dayLabel(label)))
     }
 
     // MARK: - Day
@@ -158,11 +150,12 @@ struct StickyHeaderView: View {
         .background(paperColor)
         .overlay(alignment: .bottom) { bottomLine }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(label.map(Self.dayLabel) ?? "")
+        .accessibilityLabel(label.map { Self.dayLabel($0) } ?? "")
     }
 
     private func dayDateBlock(_ label: DateLabel) -> some View {
         let tone = Self.toneColor(label.tone)
+        let fit = PaperWords.dayHeadingFit(L.language) // F-10
         return HStack(spacing: 10) {
             Text("\(label.day.day)")
                 .font(.system(size: 21, weight: .semibold).monospacedDigit())
@@ -171,12 +164,16 @@ struct StickyHeaderView: View {
                 .frame(minWidth: 36, minHeight: 36)
                 .background(label.isToday ? Capsule().fill(accentColor) : nil)
             VStack(alignment: .leading, spacing: 0) {
-                Text("\(label.day.month)月")
+                Text(DateText.monthName(label.day.month, .full, L.language))
                     .font(.system(size: 11))
                     .foregroundStyle(ink3)
-                Text(Self.weekdayNames[label.day.weekday] + "曜日")
+                    .lineLimit(fit.lineLimit)
+                    .minimumScaleFactor(fit.minScale)
+                Text(DateText.weekdays(.full, L.language)[label.day.weekday])
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(label.isToday ? accentColor : (tone ?? ink1))
+                    .lineLimit(fit.lineLimit)
+                    .minimumScaleFactor(fit.minScale)
             }
             if let holiday = label.holidayName, !holiday.isEmpty {
                 Text(holiday)
@@ -186,6 +183,7 @@ struct StickyHeaderView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
                     .background(Capsule().fill(redColor.opacity(0.08)))
+                    .layoutPriority(fit.holidayPriority)
             }
         }
         .padding(.horizontal, 12)
@@ -201,16 +199,20 @@ struct StickyHeaderView: View {
         let columns = [PaperSpec.yearGutter] + Array(repeating: PaperSpec.yearColumnWidth, count: PaperSpec.yearColumns)
         let year = content.layout.year
         let current = YearMonth.current(calendar: DayKey.deviceCalendar, now: now)
+        // F-8: ja is 1.1's (the content's names, each down to 0.7); the others fit this zoom's column
+        // at one scale for the twelve, or show numbers. The first frame has no viewport yet: the paper's width.
+        let columnWidth = viewport.width > 0 ? viewport.width(ofPaper: PaperSpec.yearColumnWidth) : PaperSpec.yearColumnWidth
+        let fitted = PaperWords.yearColumnTitles(columnWidth: columnWidth, fontSize: Self.yearMonthFontSize, L.language)
         return PaperRow(kind: .year, viewport: viewport, columns: columns) {
             Color.clear
             ForEach(1...PaperSpec.yearColumns, id: \.self) { month in
                 let yearMonth = YearMonth(year: year, month: month)
-                let name = month - 1 < content.monthNames.count ? content.monthNames[month - 1] : "\(month)月"
+                let name = fitted.scale == nil && month - 1 < content.monthNames.count ? content.monthNames[month - 1] : fitted.titles[month - 1]
                 Button {
                     onMonthTap(yearMonth)
                 } label: {
                     Text(name)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: Self.yearMonthFontSize * (fitted.scale ?? 1), weight: .semibold))
                         .foregroundStyle(yearMonth == current ? accentColor : ink1)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
@@ -220,7 +222,7 @@ struct StickyHeaderView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(yearMonth.title + "（月表示へ）")
+                .accessibilityLabel(L.format("header.month.spoken", yearMonth.title(language: L.language)))
             }
         }
         .clipped()
@@ -230,11 +232,15 @@ struct StickyHeaderView: View {
 
     // MARK: - Helpers
 
-    /// "2026年10月4日(日) 体育の日" (the holiday name only when there is one).
-    static func dayLabel(_ label: DateLabel) -> String {
-        var text = EventDateText.dayTitle(label.day)
+    /// The year page's month row (pt).
+    static let yearMonthFontSize: CGFloat = 13
+
+    /// The spoken day (§4.2): "2026年10月4日(日) 体育の日", the holiday name only when there is one. The
+    /// other languages: "Sunday, October 4, 2026, Thanksgiving Day".
+    static func dayLabel(_ label: DateLabel, language: UILanguage = L.language) -> String {
+        var text = DateText.spokenDay(label.day, language)
         if let holiday = label.holidayName, !holiday.isEmpty {
-            text += " " + holiday
+            text += (language == .ja ? " " : ", ") + holiday
         }
         return text
     }

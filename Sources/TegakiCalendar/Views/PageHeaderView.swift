@@ -56,6 +56,9 @@ struct PageHeaderView: View {
     var readOnly: Bool = false
     /// バッジのタップ: ペイウォール（reason .badge）
     var onReadOnlyTap: () -> Void = {}
+    /// 1.2 (F-11): the holiday name `title` ends with, on the day page's wide row. The languages other
+    /// than ja draw it as its own text that gives way first, so the date keeps its size. nil: one text.
+    var titleHoliday: String? = nil
 
     /// Below this width the ☁ shows only its symbol (13-inch portrait is 1024 pt, 11-inch is 834 pt).
     static let syncTextWidth: CGFloat = 980
@@ -66,7 +69,7 @@ struct PageHeaderView: View {
     /// 題名（上の `width` の注記）がさらに縮む）
     static let readOnlyTextWidth: CGFloat = syncTextWidth
     /// The badge's accessibility label.
-    static let readOnlyLabel = "閲覧専用。購読の案内を開く"
+    static let readOnlyLabel = L.text("header.readOnly.spoken")
 
     private var showsSyncText: Bool { !compact && width >= Self.syncTextWidth }
     private var showsAddEventText: Bool { width >= Self.addEventTextWidth }
@@ -117,7 +120,7 @@ struct PageHeaderView: View {
         if readOnly {
             Button(action: onReadOnlyTap) {
                 if showsReadOnlyText {
-                    Label(PlanText.readOnlyBadge, systemImage: "lock.fill")
+                    Label(PlanText.readOnlyBadgeText(language: L.language), systemImage: "lock.fill")
                         .font(.footnote)
                 } else {
                     Image(systemName: "lock.fill")
@@ -153,25 +156,56 @@ struct PageHeaderView: View {
     /// 1.1.1: on the right. `fixedSize`: the label must never be squeezed away when the row is too
     /// narrow (the day page on an 11-inch iPad in portrait); the title gives way instead.
     private var todayButton: some View {
-        Button("今日", action: onToday)
+        Button(L.text("header.today"), action: onToday)
             .buttonStyle(.bordered)
             .fixedSize()
             .layoutPriority(1)
     }
 
+    /// F-11: one text in ja (1.1), and whenever there is no holiday; otherwise the date and the
+    /// holiday are two texts and the holiday is cut first.
+    @ViewBuilder
     private func titleText(_ font: Font) -> some View {
-        Text(title)
-            .font(font.weight(.semibold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
+        if let parts = Self.titleParts(title, holiday: titleHoliday, language: L.language) {
+            HStack(spacing: 6) {
+                Text(parts.date)
+                    .font(font.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .layoutPriority(1)
+                Text(parts.holiday)
+                    .font(font.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier(Self.titleIdentifier)
+        } else {
+            Text(title)
+                .font(font.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier(Self.titleIdentifier)
+        }
+    }
+
+    /// The title's identifier for the language UI tests (§7.3).
+    static let titleIdentifier = "page.title"
+
+    /// F-11: `title` split into the date and the holiday name it ends with; nil for ja, and when there
+    /// is nothing to split (no holiday, or a title without it, as the compact rows have).
+    static func titleParts(_ title: String, holiday: String?, language: UILanguage) -> (date: String, holiday: String)? {
+        guard language != .ja, let holiday = holiday, !holiday.isEmpty, title.hasSuffix(" " + holiday) else { return nil }
+        return (String(title.dropLast(holiday.count + 1)), holiday)
     }
 
     /// 「＋予定」, or the 「＋」 alone below `addEventTextWidth`.
     private var addEventButton: some View {
         Button(action: onAddEvent) {
             if showsAddEventText {
-                Label("予定", systemImage: "plus")
+                Label(L.text("header.addEvent"), systemImage: "plus")
                     .labelStyle(.titleAndIcon)
             } else {
                 Image(systemName: "plus")
@@ -181,7 +215,7 @@ struct PageHeaderView: View {
         .buttonStyle(.bordered)
         .fixedSize()
         .layoutPriority(1)
-        .accessibilityLabel("予定を追加")
+        .accessibilityLabel(L.text("header.addEvent.spoken"))
     }
 
     /// ☁ + the state (the symbol alone when compact or narrower than `syncTextWidth`). Red when
@@ -216,12 +250,12 @@ struct PageHeaderView: View {
                 .frame(minWidth: 44, minHeight: 44)
         }
         .layoutPriority(1)
-        .accessibilityLabel("設定")
+        .accessibilityLabel(L.text("header.settings.spoken"))
     }
 
     /// The 日/週/月/年 switch. Switching keeps the focus day (M3a contract §4.2).
     private var kindPicker: some View {
-        Picker("表示の切替", selection: Binding(get: { kind }, set: { onKindChange($0) })) {
+        Picker(L.text("header.picker.spoken"), selection: Binding(get: { kind }, set: { onKindChange($0) })) {
             ForEach(Self.pickerOrder, id: \.self) { item in
                 Text(Self.shortLabel(item))
                     .accessibilityLabel(Self.pickerItemLabel(item))
@@ -229,7 +263,7 @@ struct PageHeaderView: View {
             }
         }
         .pickerStyle(.segmented)
-        .accessibilityLabel("表示の切替")
+        .accessibilityLabel(L.text("header.picker.spoken"))
     }
 
     /// The order of the segments.
@@ -237,27 +271,43 @@ struct PageHeaderView: View {
 
     static func shortLabel(_ kind: PageKind) -> String {
         switch kind {
-        case .day: return "日"
-        case .week: return "週"
-        case .month: return "月"
-        case .year: return "年"
+        case .day: return L.text("header.picker.day")
+        case .week: return L.text("header.picker.week")
+        case .month: return L.text("header.picker.month")
+        case .year: return L.text("header.picker.year")
         }
     }
 
     static func pickerItemLabel(_ kind: PageKind) -> String {
-        shortLabel(kind) + "表示"
+        switch kind {
+        case .day: return L.text("header.pickerItem.day")
+        case .week: return L.text("header.pickerItem.week")
+        case .month: return L.text("header.pickerItem.month")
+        case .year: return L.text("header.pickerItem.year")
+        }
     }
 
+    /// 「前の日」: one sentence per kind (§4.2), never 「前の」 + a word.
     static func previousLabel(_ kind: PageKind) -> String {
-        "前の" + shortLabel(kind)
+        switch kind {
+        case .day: return L.text("header.previous.day")
+        case .week: return L.text("header.previous.week")
+        case .month: return L.text("header.previous.month")
+        case .year: return L.text("header.previous.year")
+        }
     }
 
     static func nextLabel(_ kind: PageKind) -> String {
-        "次の" + shortLabel(kind)
+        switch kind {
+        case .day: return L.text("header.next.day")
+        case .week: return L.text("header.next.week")
+        case .month: return L.text("header.next.month")
+        case .year: return L.text("header.next.year")
+        }
     }
 
     /// The ☁'s accessibility label: 「同期: 保存済み」.
     static func syncLabel(_ sync: HeaderSync) -> String {
-        "同期: " + sync.text
+        L.format("header.sync.spoken", sync.text)
     }
 }

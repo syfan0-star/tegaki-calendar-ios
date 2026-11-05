@@ -133,6 +133,66 @@
         }
       }
     },
+    "allday.bar.spoken" : {
+      "comment" : "読み上げ。終日の帯の予定のボタン。%@ は予定の題名",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（予定を編集）"
+          }
+        }
+      }
+    },
+    "allday.column.spoken" : {
+      "comment" : "読み上げ。終日の帯の、予定の無い所のボタン。%@ は日付（「2026年10月7日(水)」、en「Wednesday, October 7, 2026」の型）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の終日予定を追加"
+          }
+        }
+      }
+    },
+    "allday.label" : {
+      "comment" : "週・日のページの終日の帯の左端の字（正式の形）。画面は 10 pt で「左の欄の幅 − 6 pt」に入るときだけ出し、入らなければ allday.label.short。PDF は 11 pt で週 58 pt（5.2 em）・日 66 pt（6.0 em）まで（F-7）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終日"
+          }
+        }
+      }
+    },
+    "allday.label.short" : {
+      "comment" : "allday.label が入らないときの短い形。10 pt で 24 pt（2.4 em）以内（F-7）。ja はこの形を使わない（1.1 の道で allday.label を切れたまま出す）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終日"
+          }
+        }
+      }
+    },
+    "app.name" : {
+      "comment" : "アプリの名前。PDF の作成者の欄（§4.3）に入る。ja 以外は kit.app.name と同じ名前（既定 Tegaki。M7B-1）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "てがきカレンダー"
+          }
+        }
+      }
+    },
     "census.counting" : {
       "comment" : "設定 › 情報 の線の数の行。数えている間",
       "extractionState" : "manual",
@@ -1213,6 +1273,306 @@
         }
       }
     },
+    "header.addEvent" : {
+      "comment" : "見出しの「＋」の隣の字（幅の広い画面だけ）。予定を足すボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定"
+          }
+        }
+      }
+    },
+    "header.addEvent.spoken" : {
+      "comment" : "読み上げ。見出しの「＋予定」のボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定を追加"
+          }
+        }
+      }
+    },
+    "header.day.spoken" : {
+      "comment" : "読み上げ。週のページの見出しの日付のボタン。%1$@ は日付（祝日があれば祝日の名前も）。押すとその日のページへ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（日表示へ）"
+          }
+        }
+      }
+    },
+    "header.month.spoken" : {
+      "comment" : "読み上げ。年のページの見出しの月のボタン。%1$@ は年と月（「2026年3月」、en「March 2026」の型）。押すとその月のページへ",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@（月表示へ）"
+          }
+        }
+      }
+    },
+    "header.next.day" : {
+      "comment" : "読み上げ。見出しの ▶ のボタン。次の日のページへ。単語をつながず、1 つの文として訳す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の日"
+          }
+        }
+      }
+    },
+    "header.next.month" : {
+      "comment" : "読み上げ。見出しの ▶ のボタン。次の月のページへ。単語をつながず、1 つの文として訳す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の月"
+          }
+        }
+      }
+    },
+    "header.next.week" : {
+      "comment" : "読み上げ。見出しの ▶ のボタン。次の週のページへ。単語をつながず、1 つの文として訳す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の週"
+          }
+        }
+      }
+    },
+    "header.next.year" : {
+      "comment" : "読み上げ。見出しの ▶ のボタン。次の年のページへ。単語をつながず、1 つの文として訳す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の年"
+          }
+        }
+      }
+    },
+    "header.picker.day" : {
+      "comment" : "見出しの切り替えの 1 つ（ページの種類）。iPad では 220 pt に 4 つ並ぶ。13 pt の semibold で 44 pt 以内（F-16）。fr・es・pt・it の「週」は略した形（「Sem.」「Sett.」など）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日"
+          }
+        }
+      }
+    },
+    "header.picker.month" : {
+      "comment" : "見出しの切り替えの 1 つ（ページの種類）。iPad では 220 pt に 4 つ並ぶ。13 pt の semibold で 44 pt 以内（F-16）。fr・es・pt・it の「週」は略した形（「Sem.」「Sett.」など）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月"
+          }
+        }
+      }
+    },
+    "header.picker.spoken" : {
+      "comment" : "読み上げ。日・週・月・年の切り替えの部品全体の名前",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示の切替"
+          }
+        }
+      }
+    },
+    "header.picker.week" : {
+      "comment" : "見出しの切り替えの 1 つ（ページの種類）。iPad では 220 pt に 4 つ並ぶ。13 pt の semibold で 44 pt 以内（F-16）。fr・es・pt・it の「週」は略した形（「Sem.」「Sett.」など）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週"
+          }
+        }
+      }
+    },
+    "header.picker.year" : {
+      "comment" : "見出しの切り替えの 1 つ（ページの種類）。iPad では 220 pt に 4 つ並ぶ。13 pt の semibold で 44 pt 以内（F-16）。fr・es・pt・it の「週」は略した形（「Sem.」「Sett.」など）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年"
+          }
+        }
+      }
+    },
+    "header.pickerItem.day" : {
+      "comment" : "読み上げ。見出しの切り替えの 1 つ（日のページへ）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日表示"
+          }
+        }
+      }
+    },
+    "header.pickerItem.month" : {
+      "comment" : "読み上げ。見出しの切り替えの 1 つ（月のページへ）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月表示"
+          }
+        }
+      }
+    },
+    "header.pickerItem.week" : {
+      "comment" : "読み上げ。見出しの切り替えの 1 つ（週のページへ）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週表示"
+          }
+        }
+      }
+    },
+    "header.pickerItem.year" : {
+      "comment" : "読み上げ。見出しの切り替えの 1 つ（年のページへ）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年表示"
+          }
+        }
+      }
+    },
+    "header.previous.day" : {
+      "comment" : "読み上げ。見出しの ◀ のボタン。前の日のページへ。単語をつながず、1 つの文として訳す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の日"
+          }
+        }
+      }
+    },
+    "header.previous.month" : {
+      "comment" : "読み上げ。見出しの ◀ のボタン。前の月のページへ。単語をつながず、1 つの文として訳す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の月"
+          }
+        }
+      }
+    },
+    "header.previous.week" : {
+      "comment" : "読み上げ。見出しの ◀ のボタン。前の週のページへ。単語をつながず、1 つの文として訳す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の週"
+          }
+        }
+      }
+    },
+    "header.previous.year" : {
+      "comment" : "読み上げ。見出しの ◀ のボタン。前の年のページへ。単語をつながず、1 つの文として訳す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の年"
+          }
+        }
+      }
+    },
+    "header.readOnly.spoken" : {
+      "comment" : "読み上げ。見出しの「閲覧専用」の札のボタン。押すと購読の案内が開く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閲覧専用。購読の案内を開く"
+          }
+        }
+      }
+    },
+    "header.settings.spoken" : {
+      "comment" : "読み上げ。見出しの歯車のボタン",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
+          }
+        }
+      }
+    },
+    "header.sync.spoken" : {
+      "comment" : "読み上げ。見出しの雲のボタン。%@ は同期の状態（保存済み など）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期: %@"
+          }
+        }
+      }
+    },
+    "header.today" : {
+      "comment" : "見出しのボタン。押すと今日のページの今日の所へ。17 pt で ja の幅 ＋ 16 pt 以内（約 47 pt。F-16）。iPhone の 1 段目で題名の幅を削るので、fr は略した形（「Auj.」など）にして REVIEW.md に理由を書く",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日"
+          }
+        }
+      }
+    },
     "holidayPicker.auto" : {
       "comment" : "祝日を選ぶ画面の最初の行。%@ は国の名前",
       "extractionState" : "manual",
@@ -1929,6 +2289,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ペンで書き、指で動かす"
+          }
+        }
+      }
+    },
+    "paper.freeMemo" : {
+      "comment" : "日のページの 24 時より下の欄の見出し。同じページに「メモ」もあるので別の語にする。字間 0.15 em/字。上限は「幅 ＋ 0.15 em × 字数」が 8.0 em（F-6。de「Freie Notizen」で 7.73 em）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自由メモ"
+          }
+        }
+      }
+    },
+    "paper.memo" : {
+      "comment" : "月のページの下と日のページの右の欄の小さな見出し。字間 0.15 em/字で描く。上限は「幅 ＋ 0.15 em × 字数」が 8.0 em（F-6）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ"
           }
         }
       }

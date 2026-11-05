@@ -1,0 +1,483 @@
+{
+  "keys": {
+    "allday.bar.spoken": {
+      "args": [
+        "予定の題名"
+      ],
+      "comment": "読み上げ。終日の帯の予定のボタン。%@ は予定の題名",
+      "composedOf": [
+        "Views/AllDayBandView.swift:189"
+      ],
+      "glossary": [
+        "予定"
+      ],
+      "ja": "%@（予定を編集）",
+      "target": "app",
+      "where": [
+        "Views/AllDayBandView.swift"
+      ]
+    },
+    "allday.column.spoken": {
+      "args": [
+        "日付"
+      ],
+      "comment": "読み上げ。終日の帯の、予定の無い所のボタン。%@ は日付（「2026年10月7日(水)」、en「Wednesday, October 7, 2026」の型）",
+      "composedOf": [
+        "Views/AllDayBandView.swift:194"
+      ],
+      "glossary": [
+        "終日",
+        "予定"
+      ],
+      "ja": "%@ の終日予定を追加",
+      "target": "app",
+      "where": [
+        "Views/AllDayBandView.swift"
+      ]
+    },
+    "allday.label": {
+      "args": [],
+      "comment": "週・日のページの終日の帯の左端の字（正式の形）。画面は 10 pt で「左の欄の幅 − 6 pt」に入るときだけ出し、入らなければ allday.label.short。PDF は 11 pt で週 58 pt（5.2 em）・日 66 pt（6.0 em）まで（F-7）",
+      "glossary": [
+        "終日"
+      ],
+      "ja": "終日",
+      "target": "app",
+      "was": [
+        "Views/AllDayBandView.swift:123",
+        "Export/PDFPageRenderer.swift:288"
+      ],
+      "where": [
+        "Views/AllDayBandView.swift",
+        "Export/PDFPageRenderer.swift",
+        "Views/PaperWords.swift"
+      ]
+    },
+    "allday.label.short": {
+      "args": [],
+      "comment": "allday.label が入らないときの短い形。10 pt で 24 pt（2.4 em）以内（F-7）。ja はこの形を使わない（1.1 の道で allday.label を切れたまま出す）",
+      "glossary": [
+        "終日"
+      ],
+      "ja": "終日",
+      "maxEm": 2.4,
+      "target": "app",
+      "where": [
+        "Views/PaperWords.swift"
+      ]
+    },
+    "app.name": {
+      "args": [],
+      "comment": "アプリの名前。PDF の作成者の欄（§4.3）に入る。ja 以外は kit.app.name と同じ名前（既定 Tegaki。M7B-1）",
+      "glossary": [
+        "てがきカレンダー"
+      ],
+      "ja": "てがきカレンダー",
+      "target": "app",
+      "was": [
+        "Export/PDFPageRenderer.swift:26"
+      ],
+      "where": [
+        "Export/PDFPageRenderer.swift"
+      ]
+    },
+    "header.addEvent": {
+      "args": [],
+      "comment": "見出しの「＋」の隣の字（幅の広い画面だけ）。予定を足すボタン",
+      "glossary": [
+        "予定"
+      ],
+      "ja": "予定",
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:174"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.addEvent.spoken": {
+      "args": [],
+      "comment": "読み上げ。見出しの「＋予定」のボタン",
+      "glossary": [
+        "予定"
+      ],
+      "ja": "予定を追加",
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:184"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.day.spoken": {
+      "args": [
+        "日付（祝日の名前を含む）"
+      ],
+      "comment": "読み上げ。週のページの見出しの日付のボタン。%1$@ は日付（祝日があれば祝日の名前も）。押すとその日のページへ",
+      "composedOf": [
+        "Views/StickyHeaderView.swift:138"
+      ],
+      "ja": "%1$@（日表示へ）",
+      "target": "app",
+      "where": [
+        "Views/StickyHeaderView.swift"
+      ]
+    },
+    "header.month.spoken": {
+      "args": [
+        "年と月"
+      ],
+      "comment": "読み上げ。年のページの見出しの月のボタン。%1$@ は年と月（「2026年3月」、en「March 2026」の型）。押すとその月のページへ",
+      "composedOf": [
+        "Views/StickyHeaderView.swift:223"
+      ],
+      "ja": "%1$@（月表示へ）",
+      "target": "app",
+      "where": [
+        "Views/StickyHeaderView.swift"
+      ]
+    },
+    "header.next.day": {
+      "args": [],
+      "comment": "読み上げ。見出しの ▶ のボタン。次の日のページへ。単語をつながず、1 つの文として訳す",
+      "composedOf": [
+        "Views/PageHeaderView.swift:256",
+        "Views/PageHeaderView.swift:240"
+      ],
+      "ja": "次の日",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.next.month": {
+      "args": [],
+      "comment": "読み上げ。見出しの ▶ のボタン。次の月のページへ。単語をつながず、1 つの文として訳す",
+      "composedOf": [
+        "Views/PageHeaderView.swift:256",
+        "Views/PageHeaderView.swift:242"
+      ],
+      "ja": "次の月",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.next.week": {
+      "args": [],
+      "comment": "読み上げ。見出しの ▶ のボタン。次の週のページへ。単語をつながず、1 つの文として訳す",
+      "composedOf": [
+        "Views/PageHeaderView.swift:256",
+        "Views/PageHeaderView.swift:241"
+      ],
+      "ja": "次の週",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.next.year": {
+      "args": [],
+      "comment": "読み上げ。見出しの ▶ のボタン。次の年のページへ。単語をつながず、1 つの文として訳す",
+      "composedOf": [
+        "Views/PageHeaderView.swift:256",
+        "Views/PageHeaderView.swift:243"
+      ],
+      "ja": "次の年",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.picker.day": {
+      "args": [],
+      "comment": "見出しの切り替えの 1 つ（ページの種類）。iPad では 220 pt に 4 つ並ぶ。13 pt の semibold で 44 pt 以内（F-16）。fr・es・pt・it の「週」は略した形（「Sem.」「Sett.」など）",
+      "glossary": [
+        "日・週・月・年（ページの切り替え）"
+      ],
+      "ja": "日",
+      "maxEm": 3.4,
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:240"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.picker.month": {
+      "args": [],
+      "comment": "見出しの切り替えの 1 つ（ページの種類）。iPad では 220 pt に 4 つ並ぶ。13 pt の semibold で 44 pt 以内（F-16）。fr・es・pt・it の「週」は略した形（「Sem.」「Sett.」など）",
+      "glossary": [
+        "日・週・月・年（ページの切り替え）"
+      ],
+      "ja": "月",
+      "maxEm": 3.4,
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:242"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.picker.spoken": {
+      "args": [],
+      "comment": "読み上げ。日・週・月・年の切り替えの部品全体の名前",
+      "ja": "表示の切替",
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:224",
+        "Views/PageHeaderView.swift:232"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.picker.week": {
+      "args": [],
+      "comment": "見出しの切り替えの 1 つ（ページの種類）。iPad では 220 pt に 4 つ並ぶ。13 pt の semibold で 44 pt 以内（F-16）。fr・es・pt・it の「週」は略した形（「Sem.」「Sett.」など）",
+      "glossary": [
+        "日・週・月・年（ページの切り替え）"
+      ],
+      "ja": "週",
+      "maxEm": 3.4,
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:241"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.picker.year": {
+      "args": [],
+      "comment": "見出しの切り替えの 1 つ（ページの種類）。iPad では 220 pt に 4 つ並ぶ。13 pt の semibold で 44 pt 以内（F-16）。fr・es・pt・it の「週」は略した形（「Sem.」「Sett.」など）",
+      "glossary": [
+        "日・週・月・年（ページの切り替え）"
+      ],
+      "ja": "年",
+      "maxEm": 3.4,
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:243"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.pickerItem.day": {
+      "args": [],
+      "comment": "読み上げ。見出しの切り替えの 1 つ（日のページへ）",
+      "composedOf": [
+        "Views/PageHeaderView.swift:240",
+        "Views/PageHeaderView.swift:248"
+      ],
+      "glossary": [
+        "日・週・月・年（ページの切り替え）"
+      ],
+      "ja": "日表示",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.pickerItem.month": {
+      "args": [],
+      "comment": "読み上げ。見出しの切り替えの 1 つ（月のページへ）",
+      "composedOf": [
+        "Views/PageHeaderView.swift:242",
+        "Views/PageHeaderView.swift:248"
+      ],
+      "glossary": [
+        "日・週・月・年（ページの切り替え）"
+      ],
+      "ja": "月表示",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.pickerItem.week": {
+      "args": [],
+      "comment": "読み上げ。見出しの切り替えの 1 つ（週のページへ）",
+      "composedOf": [
+        "Views/PageHeaderView.swift:241",
+        "Views/PageHeaderView.swift:248"
+      ],
+      "glossary": [
+        "日・週・月・年（ページの切り替え）"
+      ],
+      "ja": "週表示",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.pickerItem.year": {
+      "args": [],
+      "comment": "読み上げ。見出しの切り替えの 1 つ（年のページへ）",
+      "composedOf": [
+        "Views/PageHeaderView.swift:243",
+        "Views/PageHeaderView.swift:248"
+      ],
+      "glossary": [
+        "日・週・月・年（ページの切り替え）"
+      ],
+      "ja": "年表示",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.previous.day": {
+      "args": [],
+      "comment": "読み上げ。見出しの ◀ のボタン。前の日のページへ。単語をつながず、1 つの文として訳す",
+      "composedOf": [
+        "Views/PageHeaderView.swift:252",
+        "Views/PageHeaderView.swift:240"
+      ],
+      "ja": "前の日",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.previous.month": {
+      "args": [],
+      "comment": "読み上げ。見出しの ◀ のボタン。前の月のページへ。単語をつながず、1 つの文として訳す",
+      "composedOf": [
+        "Views/PageHeaderView.swift:252",
+        "Views/PageHeaderView.swift:242"
+      ],
+      "ja": "前の月",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.previous.week": {
+      "args": [],
+      "comment": "読み上げ。見出しの ◀ のボタン。前の週のページへ。単語をつながず、1 つの文として訳す",
+      "composedOf": [
+        "Views/PageHeaderView.swift:252",
+        "Views/PageHeaderView.swift:241"
+      ],
+      "ja": "前の週",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.previous.year": {
+      "args": [],
+      "comment": "読み上げ。見出しの ◀ のボタン。前の年のページへ。単語をつながず、1 つの文として訳す",
+      "composedOf": [
+        "Views/PageHeaderView.swift:252",
+        "Views/PageHeaderView.swift:243"
+      ],
+      "ja": "前の年",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.readOnly.spoken": {
+      "args": [],
+      "comment": "読み上げ。見出しの「閲覧専用」の札のボタン。押すと購読の案内が開く",
+      "glossary": [
+        "閲覧専用"
+      ],
+      "ja": "閲覧専用。購読の案内を開く",
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:69"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.settings.spoken": {
+      "args": [],
+      "comment": "読み上げ。見出しの歯車のボタン",
+      "ja": "設定",
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:219"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.sync.spoken": {
+      "args": [
+        "同期の状態"
+      ],
+      "comment": "読み上げ。見出しの雲のボタン。%@ は同期の状態（保存済み など）",
+      "composedOf": [
+        "Views/PageHeaderView.swift:261"
+      ],
+      "glossary": [
+        "同期"
+      ],
+      "ja": "同期: %@",
+      "target": "app",
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.today": {
+      "args": [],
+      "comment": "見出しのボタン。押すと今日のページの今日の所へ。17 pt で ja の幅 ＋ 16 pt 以内（約 47 pt。F-16）。iPhone の 1 段目で題名の幅を削るので、fr は略した形（「Auj.」など）にして REVIEW.md に理由を書く",
+      "glossary": [
+        "今日"
+      ],
+      "ja": "今日",
+      "maxEm": 2.8,
+      "target": "app",
+      "was": [
+        "Views/PageHeaderView.swift:156"
+      ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "paper.freeMemo": {
+      "args": [],
+      "comment": "日のページの 24 時より下の欄の見出し。同じページに「メモ」もあるので別の語にする。字間 0.15 em/字。上限は「幅 ＋ 0.15 em × 字数」が 8.0 em（F-6。de「Freie Notizen」で 7.73 em）",
+      "glossary": [
+        "自由メモ"
+      ],
+      "ja": "自由メモ",
+      "maxEm": 8,
+      "target": "app",
+      "was": [
+        "Paper/DayPaper.swift:121"
+      ],
+      "where": [
+        "Paper/DayPaper.swift"
+      ]
+    },
+    "paper.memo": {
+      "args": [],
+      "comment": "月のページの下と日のページの右の欄の小さな見出し。字間 0.15 em/字で描く。上限は「幅 ＋ 0.15 em × 字数」が 8.0 em（F-6）",
+      "glossary": [
+        "メモ"
+      ],
+      "ja": "メモ",
+      "maxEm": 8,
+      "target": "app",
+      "was": [
+        "Paper/MonthPaper.swift:91",
+        "Paper/DayPaper.swift:70"
+      ],
+      "where": [
+        "Paper/MonthPaper.swift",
+        "Paper/DayPaper.swift"
+      ]
+    }
+  },
+  "owner": "P"
+}

@@ -1,3 +1,4 @@
+import InkModel
 import Layout
 import UIKit
 import XCTest
@@ -10,6 +11,7 @@ import XCTest
 /// live the window is stretched with a transform instead and redrawn once at the end. 1.1
 /// (M7A_CONTRACT §3.3): the day's paper stops its timeline at 24:00 and draws the free memo area
 /// 「自由メモ」 below it.
+/// 1.2 (M7B_CONTRACT §10.8): the PDF's weekday row of a Sunday-first month page.
 @MainActor
 final class PaperViewTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_790_000_000)
@@ -287,5 +289,75 @@ final class PaperViewTests: XCTestCase {
             }
         }
         XCTAssertGreaterThan(labelPixels, 20, "the label 「自由メモ」 is drawn")
+    }
+
+    // MARK: 1.2 — the PDF's weekday row of the month page (M7B_CONTRACT §10.5, §10.8)
+
+    /// RGBA bytes of a PDF's first page drawn at 1 px per pt, row 0 at the top of the page.
+    private func renderPDF(_ data: Data) throws -> (bytes: [UInt8], width: Int, height: Int) {
+        let provider = try XCTUnwrap(CGDataProvider(data: data as CFData))
+        let document = try XCTUnwrap(CGPDFDocument(provider))
+        let page = try XCTUnwrap(document.page(at: 1))
+        let box = page.getBoxRect(.mediaBox)
+        let width = Int(box.width.rounded(.up))
+        let height = Int(box.height.rounded(.up))
+        var bytes = [UInt8](repeating: 255, count: width * height * 4)
+        bytes.withUnsafeMutableBytes { buffer in
+            guard let ctx = CGContext(
+                data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return }
+            // The first row of the buffer is the bitmap context's top: the PDF's top (no flip needed).
+            ctx.translateBy(x: -box.minX, y: -box.minY)
+            ctx.drawPDFPage(page)
+        }
+        return (bytes, width, height)
+    }
+
+    /// The Sunday-first month page's PDF: Sunday (red) in the first column of the weekday row, Saturday
+    /// (blue) in the last; the Monday path keeps 1.1's row (blue in column 5, red in column 6).
+    func testPDFMonthRowSunday() throws {
+        func colours(_ weekStart: WeekStart) throws -> [(red: Int, blue: Int)] {
+            let layout = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 11), events: [], inkBottoms: [:], now: now, weekStart: weekStart))
+            let content = PaperContent.month(MonthPaperContent(layout: layout, labels: layout.dateLabels, bars: [], chips: [], holidayNames: [:]))
+            let data = PDFPageRenderer.render(content, page: InkPage.empty(pageId: "m1-2026-11"), title: "2026年11月")
+            XCTAssertFalse(data.isEmpty)
+            let (bytes, width, _) = try renderPDF(data)
+            let top = Int(PDFPageRenderer.titleHeight)
+            let bottom = top + Int(PDFPageRenderer.labelRowHeight) - 2 // above the row's line
+            return (0..<PaperSpec.monthColumns).map { column in
+                var red = 0
+                var blue = 0
+                let x0 = Int(CGFloat(column) * PaperSpec.monthColumnWidth)
+                for y in top..<bottom {
+                    for x in x0..<(x0 + Int(PaperSpec.monthColumnWidth)) {
+                        // The row is drawn with red #dc2626 and blue #2563eb; ink1 is a dark grey.
+                        let i = (y * width + x) * 4
+                        let (r, g, b) = (Int(bytes[i]), Int(bytes[i + 1]), Int(bytes[i + 2]))
+                        if r > g + 60, r > b + 60 { red += 1 }
+                        if b > r + 60, b > g + 60 { blue += 1 }
+                    }
+                }
+                return (red, blue)
+            }
+        }
+
+        let sunday = try colours(.sunday)
+        XCTAssertGreaterThan(sunday[0].red, 0, "Sunday is red in the first column")
+        XCTAssertEqual(sunday[0].blue, 0)
+        XCTAssertGreaterThan(sunday[6].blue, 0, "Saturday is blue in the last column")
+        XCTAssertEqual(sunday[6].red, 0)
+        for column in 1...5 {
+            XCTAssertEqual(sunday[column].red, 0, "column \(column)")
+            XCTAssertEqual(sunday[column].blue, 0, "column \(column)")
+        }
+
+        let monday = try colours(.monday)
+        XCTAssertGreaterThan(monday[5].blue, 0, "1.1's row: Saturday in column 5")
+        XCTAssertGreaterThan(monday[6].red, 0, "1.1's row: Sunday in column 6")
+        for column in 0...4 {
+            XCTAssertEqual(monday[column].red, 0, "column \(column)")
+            XCTAssertEqual(monday[column].blue, 0, "column \(column)")
+        }
     }
 }

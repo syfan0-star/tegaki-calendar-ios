@@ -23,7 +23,7 @@ enum PDFPageRenderer {
     static let dateRowHeight: CGFloat = 40
     /// Below the band's last lane (the lanes start `bandPad / 2` under the band's top).
     static let bandPad: CGFloat = 6
-    static let creator = "てがきカレンダー"
+    static let creator = L.text("app.name")
 
     static let titleFontSize: CGFloat = 20
     static let labelFontSize: CGFloat = 14
@@ -33,7 +33,6 @@ enum PDFPageRenderer {
     static let titleInset: CGFloat = 16
     static let barCorner: CGFloat = 4
     static let barTextPad: CGFloat = 6
-    private static let monthWeekdayLabels = ["月", "火", "水", "木", "金", "土", "日"]
 
     /// The distance between two all-day lanes: `.week` → `PaperSpec.allDayLaneStep` (25), `.day` →
     /// `PaperSpec.dayLaneStep` (24); the month and year pages have no band → 0.
@@ -172,8 +171,8 @@ enum PDFPageRenderer {
                            font: titleFont, color: PaperPalette.ink1)
         let top = titleHeight
         switch paper {
-        case .month:
-            drawMonthWeekdayRow(ctx, top: top, width: width)
+        case .month(let content):
+            drawMonthWeekdayRow(ctx, layout: content.layout, top: top, width: width)
         case .week(let content):
             drawWeekDateRow(ctx, layout: content.layout, top: top, width: width)
             drawBand(ctx, paper: paper, top: top + dateRowHeight, width: width)
@@ -185,18 +184,13 @@ enum PDFPageRenderer {
         }
     }
 
-    /// 月 火 水 木 金 土 日 centred over the 7 columns (200 lu), Saturday blue, Sunday red.
-    private static func drawMonthWeekdayRow(_ ctx: CGContext, top: CGFloat, width: CGFloat) {
+    /// 月 火 水 木 金 土 日 centred over the 7 columns (200 lu), Saturday blue, Sunday red. 1.2 (§10.5):
+    /// the order is the layout's and the colour goes with the weekday, as in the sticky header.
+    private static func drawMonthWeekdayRow(_ ctx: CGContext, layout: MonthPageLayout, top: CGFloat, width: CGFloat) {
         let font = UIFont.systemFont(ofSize: labelFontSize, weight: .semibold)
-        for column in 0..<PaperSpec.monthColumns {
-            let color: UIColor
-            switch column {
-            case 5: color = PaperPalette.blue
-            case 6: color = PaperPalette.red
-            default: color = PaperPalette.ink1
-            }
+        for (column, item) in PaperWords.monthHeaderColumns(layout, L.language).enumerated() {
             let rect = CGRect(x: CGFloat(column) * PaperSpec.monthColumnWidth, y: top, width: PaperSpec.monthColumnWidth, height: labelRowHeight)
-            PaperText.drawLine(monthWeekdayLabels[column], in: rect, font: font, color: color, alignment: .center)
+            PaperText.drawLine(item.name, in: rect, font: font, color: PaperPalette.toneColor(item.tone), alignment: .center)
         }
         horizontalLine(ctx, y: top + labelRowHeight, from: 0, to: width, color: PaperPalette.line)
     }
@@ -218,7 +212,7 @@ enum PDFPageRenderer {
             }
             verticalLine(ctx, x: x, from: top, to: top + dateRowHeight, color: PaperPalette.line)
             let number = label.day.day == 1 ? "\(label.day.month)/1" : "\(label.day.day)"
-            let text = PageNavigation.weekdayLetters[max(0, min(6, label.day.weekday))] + " " + number
+            let text = PaperWords.weekColumnWeekday(label.day.weekday, columnWidth: columnWidth, L.language) + " " + number
             let color = PaperPalette.toneColor(label.tone)
             if let holiday = label.holidayName, !holiday.isEmpty {
                 PaperText.drawLine(text, in: CGRect(x: x, y: top + 4, width: columnWidth, height: 18), font: font, color: color, alignment: .center)
@@ -253,7 +247,7 @@ enum PDFPageRenderer {
         for index in 0..<PaperSpec.yearColumns {
             let x = PaperSpec.yearGutter + CGFloat(index) * PaperSpec.yearColumnWidth
             verticalLine(ctx, x: x, from: top, to: top + labelRowHeight, color: PaperPalette.lineStrong)
-            let name = index < content.monthNames.count ? content.monthNames[index] : "\(index + 1)月"
+            let name = DateText.monthName(index + 1, .full, L.language)
             let color = currentMonth == index + 1 ? PaperPalette.accent : PaperPalette.ink1
             PaperText.drawLine(name, in: CGRect(x: x, y: top, width: PaperSpec.yearColumnWidth, height: labelRowHeight),
                                font: font, color: color, alignment: .center)
@@ -285,8 +279,10 @@ enum PDFPageRenderer {
 
         let laneTop = top + bandPad / 2
         let gutterFont = UIFont.systemFont(ofSize: gutterFontSize, weight: .regular)
-        PaperText.drawLine("終日", in: CGRect(x: 0, y: laneTop, width: max(0, band.gutter - barTextPad), height: PaperSpec.allDayLane),
-                           font: gutterFont, color: PaperPalette.ink3, alignment: .right)
+        if let label = PaperWords.allDayLabel(widthPoints: band.gutter, fontSize: gutterFontSize, L.language) { // F-7
+            PaperText.drawLine(label, in: CGRect(x: 0, y: laneTop, width: max(0, band.gutter - barTextPad), height: PaperSpec.allDayLane),
+                               font: gutterFont, color: PaperPalette.ink3, alignment: .right)
+        }
 
         let barFont = UIFont.systemFont(ofSize: barFontSize, weight: .semibold)
         for bar in band.bars where bar.maxX > bar.minX {

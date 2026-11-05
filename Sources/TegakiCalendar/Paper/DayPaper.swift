@@ -67,7 +67,7 @@ enum DayPaper: PaperRenderer {
         let labelFont = UIFont.systemFont(ofSize: labelSize, weight: .semibold)
         let labelRect = CGRect(x: memo.minX + PaperSpec.dayRuleInset, y: grid.minY + 6, width: 200, height: labelFont.lineHeight + 2)
         if labelRect.intersects(dirty) {
-            PaperText.drawLine("メモ", in: labelRect, font: labelFont, color: PaperPalette.memoLabel, kern: labelSize * 0.15)
+            PaperText.drawLine(L.text("paper.memo"), in: labelRect, font: labelFont, color: PaperPalette.memoLabel, kern: labelSize * 0.15)
         }
 
         // 5. 1.1: the free memo area below 24:00 (`extra`).
@@ -118,5 +118,5 @@ enum DayPaper: PaperRenderer {
     }
 
     /// The heading of the free memo area below 24:00 (M7A_CONTRACT §6.2).
-    static let freeMemoLabel = "自由メモ"
+    static let freeMemoLabel = L.text("paper.freeMemo")
 }

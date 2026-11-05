@@ -9,8 +9,6 @@ import UIKit
 /// off screen: every cell's heading carries its day number before the weekday letter (「7 水」,
 /// M4B_CONTRACT §4.2, D2), and the text of a chip is clipped to its shape (D4).
 enum YearPaper: PaperRenderer {
-    private static let weekdayNames = ["日", "月", "火", "水", "木", "金", "土"]
-
     static func draw(_ content: YearPaperContent, in ctx: CGContext, dirty: CGRect, zoom: CGFloat, view: PaperView) {
         let layout = content.layout
         let scale = view.contentScaleFactor
@@ -96,26 +94,37 @@ enum YearPaper: PaperRenderer {
         let holidaySize = PaperText.fontSize(PaperText.yearHoliday, zoom: zoom, readable: readable)
         let holidayFont = UIFont.systemFont(ofSize: holidaySize, weight: .regular)
         let leftWidth = PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft
+        // 1.2: the signs of the language (§3.3). ja draws them as 1.1 did, the others in the wider box
+        // at one scale for the seven (F-1); a holiday name of another language may shrink (F-2).
+        let language = L.language
+        let letters = (0..<7).map { PaperWords.yearWeekday($0, language) }
+        let letterScale = PaperWords.yearWeekdayScale(boxWidth: weekdayBoxWidth(weekdaySize: weekdaySize, pad: pad, language), fontSize: weekdaySize, language)
+        let holidayFit = PaperWords.yearHolidayFit(language)
         for label in layout.dateLabels {
             let frame = label.frame
             guard frame.intersects(dirty) else { continue }
-            let letter = weekdayNames[max(0, min(6, label.day.weekday))]
+            let letter = letters[max(0, min(6, label.day.weekday))]
             let color: UIColor
             if label.isToday {
                 color = PaperPalette.accent
             } else {
                 color = PaperPalette.toneColor(label.tone, normal: PaperPalette.ink2)
             }
-            let numberRect = CGRect(x: frame.minX + pad, y: frame.minY + pad, width: weekdaySize * 1.3, height: weekdayFont.lineHeight)
-            PaperText.drawLine("\(label.day.day)", in: numberRect, font: label.isToday ? todayDayNumberFont : dayNumberFont,
-                               color: color, alignment: .right)
-            let letterRect = CGRect(x: frame.minX + pad + weekdaySize * 1.6, y: frame.minY + pad, width: weekdaySize * 1.4, height: weekdayFont.lineHeight)
-            PaperText.drawLine(letter, in: letterRect, font: label.isToday ? todayWeekdayFont : weekdayFont, color: color)
+            PaperText.drawLine("\(label.day.day)", in: numberRect(frame: frame, pad: pad, weekdaySize: weekdaySize, lineHeight: weekdayFont.lineHeight, isToday: label.isToday),
+                               font: label.isToday ? todayDayNumberFont : dayNumberFont, color: color, alignment: .right)
+            let letterRect = CGRect(x: frame.minX + pad + weekdaySize * 1.6, y: frame.minY + pad,
+                                    width: weekdayBoxWidth(weekdaySize: weekdaySize, pad: pad, language), height: weekdayFont.lineHeight)
+            let letterFont = label.isToday ? todayWeekdayFont : weekdayFont
+            if let letterScale = letterScale {
+                PaperText.drawFittedLine(letter, in: letterRect, font: letterFont, color: color, minScale: letterScale, scale: letterScale)
+            } else {
+                PaperText.drawLine(letter, in: letterRect, font: letterFont, color: color)
+            }
             if let name = label.holidayName, !name.isEmpty {
                 let nameRect = CGRect(x: frame.minX + pad, y: frame.minY + PaperSpec.yearHeader + 1,
                                       width: max(0, leftWidth - 2 * pad), height: holidayFont.lineHeight)
                 if nameRect.width > holidaySize {
-                    PaperText.drawLine(name, in: nameRect, font: holidayFont, color: PaperPalette.red)
+                    PaperText.drawLine(name, in: nameRect, font: holidayFont, color: PaperPalette.red, fit: holidayFit)
                 }
             }
         }
@@ -151,6 +160,26 @@ enum YearPaper: PaperRenderer {
                 ctx.restoreGState()
             }
         }
+    }
+
+    /// F-1: the box of a cell's day number, in every language. Its right edge is 1.1's
+    /// (`frame.minX + pad + 1.3 em`). Today's heavy two digits (20.1 lu at a large size, 20.9 lu at
+    /// 15 lu on a Mac; 1.1's box is 19.5 lu) get 0.1 em more to the left, inside `yearPad` and clear of
+    /// today's ring. Only today's: the box of the other days stays 1.1's, because their semibold two
+    /// digits (19.8 lu on a Mac) only just overflow it and would move left in a wider one, on every
+    /// Japanese year page (docs/M7B.md, P). The number is right-aligned, so a one-digit today stays
+    /// where it was.
+    static func numberRect(frame: CGRect, pad: CGFloat, weekdaySize: CGFloat, lineHeight: CGFloat, isToday: Bool) -> CGRect {
+        let wider = isToday ? weekdaySize * 0.1 : 0
+        return CGRect(x: frame.minX + pad - wider, y: frame.minY + pad, width: weekdaySize * 1.3 + wider, height: lineHeight)
+    }
+
+    /// F-1: the width of the box of a cell's weekday sign, which starts at `pad + 1.6 em`: ja 1.1's
+    /// 1.4 em (21 lu), the others to the end of the cell's handwriting part (x 27 → 50.4, 23.4 lu). The
+    /// box to draw in only; the tap frame and the chips do not move.
+    static func weekdayBoxWidth(weekdaySize: CGFloat, pad: CGFloat, _ language: UILanguage) -> CGFloat {
+        guard language != .ja else { return weekdaySize * 1.4 }
+        return PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft - pad - weekdaySize * 1.6
     }
 
     /// A 45° hatch (period 10 lu, line width 2.5 lu) over `rect` on the hatch background.

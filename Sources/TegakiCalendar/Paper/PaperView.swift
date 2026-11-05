@@ -24,8 +24,9 @@ struct DayPaperContent: Equatable {
     var layout: DayPageLayout
 }
 
-/// The year page (contract §1.8). `monthNames` ("1月"…"12月") are used by the sticky header only;
-/// the paper does not draw them.
+/// The year page (contract §1.8). `monthNames` ("1月"…"12月") are used by the sticky header in ja only
+/// (the other languages fit the column of the zoom, `PaperWords.yearColumnTitles`); the paper does not
+/// draw them.
 struct YearPaperContent: Equatable {
     var layout: YearPageLayout
     var monthNames: [String]

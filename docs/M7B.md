@@ -904,6 +904,53 @@ commit・push はしていない（C）。.html は書いていない。契約�
 - **審査メモは上限まで 58 バイト**: Connect の数え方がバイトでなく字なら余裕はもっとあるが、確かめていない（A の測り方はバイト）。
 - 週の始まりの英語の文は、英語を母語とする人が読んでいない（R の逆翻訳だけ）。「設定」アプリの道はこれまでどおり TestFlight で確かめるまで仮。
 
+## P（§4 の紙と見出しの字: `PaperWords`・F-0〜F-11・F-16・PDF、第 4 版の週の始まりの並びと色。§12.1 の P）
+
+commit・push・CI なし。凍結の 18 ファイルと `InkCanvasViewTests` は変えていない（`shasum -a 256 -c tools/compat10/DATA_1_1.sha256` 全部 OK、`git diff --quiet HEAD -- Tests/TegakiCalendarTests/InkCanvasViewTests.swift`）。`PaperView` の口と `PaperContent` の各型の形も変えていない（`YearPaperContent.monthNames` は残した。ja の見出しだけが読む）。
+
+### 入れたもの
+
+- `Views/PaperWords.swift`（新規）: §0 の 5 つ（`yearWeekday`・`monthHeaderWeekdays`・`weekColumnWeekday`・`yearColumnTitles`・`allDayLabel`）と、足した 6 つ（`yearWeekdayScale`・`monthHeaderColumns`・`weekdayTone`・`yearHolidayFit`・`monthHolidayFit`・`dayHeadingFit`）。
+- `Paper/PaperText.swift`: `drawFittedLine`（F-0）、`fittedScale`、`naturalWidth`、`LineFit`、`drawLine(_:in:font:color:fit:)`。今の `drawLine` は変えていない。
+- `Paper/YearPaper.swift`（F-1・F-2）、`MonthPaper.swift`（F-3・F-5・F-6）、`DayPaper.swift`（F-6）。
+- `Views/StickyHeaderView.swift`（F-8〜F-10、§4.2、§10.5。月の行は `layout.rows[0].days` から並びを読み、色は曜日で。読み上げの `.full` を足した）、`AllDayBandView.swift`（F-7、§4.2）、`PageHeaderView.swift`（F-11、§4.2、`page.title`、前へ・次へは 4 × 2 の完成した文）。
+- `Export/PDFPageRenderer.swift`（§4.3、§10.5）。週の曜日は `PaperWords.weekColumnWeekday`、`PageNavigation.weekdayLetters` はアプリから消えた（L-7）。
+- `tools/l10n/source/app-P.json`（新規、32 キー。`app.name`・`paper.*`・`allday.*`・`header.*`）。`kit-K.json` は `kit.layout.more.*` の `composedOf` に `Paper/MonthPaper.swift:189` を足しただけ（K1 の節の 11 と K2 の申し送りのとおり。字は `LayoutWords.more` から）。
+- `Tests/TegakiCalendarTests/PaperFitTests.swift`（新規 12 本。§7.2 の 8 本と §10.8 の `testMonthHeaderOrderAndColors` に、`testFittedLineIsTheSameWhenItFits`・`testComposedJapaneseIsTheOneOneText`（J-1 の C 型の組み上がり）・`testTitlePartsSplitTheHolidayOff`）、`PaperViewTests.testPDFMonthRowSunday`。
+
+### 契約からのずれ（理由つき）
+
+1. **F-1 の数字の枠: 広げるのは今日のマスだけ、幅は 0.1 em**（契約は全部の日で 0.05 em）。この Mac（Mac Catalyst の UIKit で実際に描いた）では、15 lu の 2 桁は semibold 19.77 lu・heavy 20.89 lu で、契約の 20.1 lu は大きな字（100 pt）で測った値だった（システムの字は小さいほど字間が広く、幅が大きさに比例しない）。semibold の 19.77 lu は 1.1 の枠 19.5 lu をわずかに超えていて、はみ出した分だけ左に寄らず左端から描かれている。枠を 20.25 lu に広げると右寄せが効いて **10〜31 日の全部の数字が 0.27 lu 左へ動く**（古いコードと契約どおりのコードを描いて比べた結果、日本語の年の絵の 10〜31 日の 22 行が全部違った。PDF の年も同じ）。実機で同じ幅かは CI まで分からないが、同じなら J-4 が落ちて、契約の「数字の枠は 1.1 のままに戻す」になる。一方、heavy の 2 桁は枠 20.25 lu でも「…」のまま（1.1 も 19.5 lu で「…」。契約の「0.6 lu 欠ける」より目立つ）。そこで **今日でない日は 1.1 の枠のまま、今日だけ左へ 0.1 em（1.5 lu。今日の輪の内側）広げて 21 lu にした**。右端は 1.1 と同じ。J-4 の写真の今日は 7 日で 1 桁なので絵は変わらない。`§1` の「違ってよい」は「31 日」と書いているが、等幅の数字なので今日が 2 桁の日は全部同じ直しになる（今日が 10〜31 日のときの年のマス）。
+2. **F-1 の曜日の率: 測り直しを足し、下限を 0.7 → 0.65 に**（`PaperWords.yearWeekdayMinScale`）。比例しないので、契約の `23.4 ÷ 最大幅` を 1 回かけるだけでは入らない（pt-BR の「dom」は heavy の 10.5 lu（0.7 倍）で 24.86 lu、枠 23.4 lu に入らず「d…」と描かれた。その言語の日曜が今日の日）。`PaperText.fittedScale` は小さくした字で測り直す。この Mac の pt-BR の率は約 0.66。下限は 7 字をそろえる率が入るために下げた（読める倍率で約 13 pt）。ほかの言語は en が約 0.97、残りは 1。**§3.3 の表の em も同じ理由で実際より小さい**（heavy 15 lu で en「We」1.59 em、pt-BR「dom」2.28 em）。
+3. **`PageHeaderView.titleHoliday: String? = nil` を足した**（§0 に無い。F-11）。ヘッダーは題名の文字列しか受け取らず、日付と祝日名を分けられないので、題名の末尾の祝日名を別に渡す。無ければ 1 つの `Text` のままで動く。**U の呼び出しの 1 行がまだ要る**（下の「次の役へ」）。
+4. **F-16 のテストの上限は 44.5 pt**（契約は 44 pt で「目安」）。de「Woche」は契約の測りで 43.7、この Mac で 44.2 で、契約が「入る」と書いた語が測り方の差で落ちないように 0.5 pt の余裕を置いた。「今日」は契約のとおりだったが、de「Heute」が上限まで 0.005 pt しか余らないので、検証の後に FIX が同じ 0.5 pt を足した（`todayLimit` は ja の幅 ＋ 16.5）。
+5. **PDF の月名は `content.monthNames` を読まない**（§4.3 のとおり `monthName(.full)`）。ja の字は同じ。`monthNames` を読むのは ja の見出しだけ。
+6. `StickyHeaderView.dayLabel` と `AllDayBandView.columnLabel` は `EventDateText` でなく `DateText.spokenDay` を呼ぶ（ja は `dayTitle` と同じ字、§3.1 の 2。§4.2）。`dayLabel` に `language:`（既定 `L.language`）を足した。
+7. `allday.label.short` の ja は「終日」（ja の道では使わない。L-2 のために値が要る）。
+
+### 確かめたこと
+
+| 確かめ | 結果 |
+| --- | --- |
+| `tools/typecheck/typecheck.sh`（HEAD ＋ K2 の Kit ＋ 自分のファイルの写し、と、U・S2 が書いている途中の作業の木の両方） | 全部 OK・警告 0 |
+| `python3 -I tools/l10n/lint.py .`（S2 の途中の lint） | L-1・L-3〜L-14 が ok。L-2 は訳が無いので 9 言語とも失敗（X の前は当然） |
+| `python3 -I tools/l10n/build.py . --check` | 一致 |
+| **本物の UIKit で XCTest を走らせた**（この Mac の Mac Catalyst で Kit とアプリを組み、XCTest の小さな代わりで走らせた。写し `m7b-impl/P/run`、仮の訳つき。リポジトリの外） | `PaperFitTests`・`PaperViewTests` 21 本・1,208 件・失敗 0。`PaperTextTests`・`ExportBuilderTests` も通る。例外は `testPDFRendersEveryKind` の「now line」の 2 件で、古いコードでも同じく時々落ちる（Mac の PDF のバイトが回ごとに違う。私の変更ではない） |
+| **日本語の絵の古いコードとの比較**（J-4 の代わりの先取り。HEAD のコードと P のコードで、年・月・週・日の紙、PDF 4 種、`StickyHeaderView`・`AllDayBandView`・`PageHeaderView` を今日 3 通りで 89 枚描き、`compare_shots.swift` で比較） | **今日が 7 日の絵は全部同じ。** 違うのは今日が 12 日・31 日の年の紙と PDF の年の、今日のマスの数字だけ（「…」が「12」「31」に。ずれの 1）。`PageHeaderView` の分割の部品は UIKit なので描かれない。見出しの 1/255 の差は古いコード同士でも同じだけ出る |
+| ほかの言語の絵（en・de・pt-BR・zh-Hans。仮の訳） | 年のマス・月の行（日曜始まり）・日の見出し・題名の分割を見た。切れない |
+
+### 次の役へ
+
+- **U（またはリード）: `CalendarRootScreen` の `PageHeaderView(...)` に 1 行足す**: `titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil`。無いと、幅の狭い iPad の英語の日のページで「Thu, November 26, 202…」と日付が切れる（足すと「Thu, November 26, 2026」のまま祝日名が先に切れる。この Mac で描いて確かめた）。`monthNames` の値は U の `DateText.monthName($0, .short, L.language)` のままでよい（ja 以外は見出しが自分で幅に合わせて選ぶ）。
+- **X**: 訳すのは `app-P.json` の 32 キーと `kit.layout.more.*`。上限はキーの `comment`・`maxEm`。**契約の em は大きな字の値なので、実際の字の大きさの幅は 1〜6% 広い**。`allday.label.short` は 10 pt で 24 pt 以内（`All-day` は入らない）。`header.today` の fr は略す、`header.picker.week` の fr・es・pt・it は略す（F-16）。テストが見ている幅は上の `PaperFitTests`。この Mac で本物の幅を測れるので、訳の後に `m7b-impl/P/run` の手順（`build.py --format strings`・`build.sh`・`runtests.sh`）で先に確かめられる。
+- **C**: `testJapaneseTakesTheOneOnePath` が `repro: F-1 two digits …` の行を出す（「The unit tests' repro lines」の段に出る）。シミュレータの本当の幅が分かるので M7B.md に書く。
+- **リード**: J-4 で年の写真に差が出たらずれの 1 を疑うより先に今日の日を見る（写真は 7 日なので今の作りでは差が出ない見込み）。**F-16 の読み替え**: 1.1.1 で「今日」が題名の右へ動いたので、狭い行の fr は `l10n-shots` の `fr/iphone-portrait-week.png`・`year.png` で題名の残りを見る（§1.5。略した「Auj.」なら約 26 pt より広く残る）。
+
+### 残る危険
+
+- 字の幅はこの Mac の Mac Catalyst で測った。iOS のシミュレータと実機では少し違いうる（`PaperFitTests` は CI-0 で初めて本物で走る）。`testAllDayLabelChoice`・`testHeaderPickerAndTodayFit`・`testMoreChipsFit` は X の訳の幅しだいで落ちるので、落ちたら X の語を短くする。
+- 仮の訳で確かめたので、本物の訳での切れ方は `l10n-shots` を見るまで分からない。
+
 ## U（§1.4・§5.6〜§5.9・§7.3・§7.4・§10.3〜§10.5・§10.7、§1.5 の U の分。§12.1 の U）
 
 commit・push・CI なし。凍結の 18 ファイルと `InkCanvasViewTests` は変えていない（`shasum -a 256 -c tools/compat10/DATA_1_1.sha256` 全部 OK、`git diff --quiet HEAD -- Tests/TegakiCalendarTests/InkCanvasViewTests.swift`）。§0 の接点の名前（`ScreenshotMode.current`・`isActive`・`Config.probe`・`Config.today`・`SettingsScreen.versionText`・`CalendarRootScreen.newEventPlan` など）も変えていない。

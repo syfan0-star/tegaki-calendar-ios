@@ -78,6 +78,59 @@ enum PaperText {
         return ceil((string as NSString).size(withAttributes: [.font: font]).width)
     }
 
+    /// Width of `string` in `font`, not rounded (for the fitting of F-0).
+    static func naturalWidth(of string: String, font: UIFont) -> CGFloat {
+        guard !string.isEmpty else { return 0 }
+        return (string as NSString).size(withAttributes: [.font: font]).width
+    }
+
+    /// How a line is fitted into its box (1.2, docs/M7B_CONTRACT.md §4.1). `.oneOne` is 1.1's
+    /// `drawLine`, `.fitted` is `drawFittedLine`.
+    enum LineFit: Equatable {
+        case oneOne
+        case fitted(minScale: CGFloat)
+    }
+
+    /// F-0: the scale at which all of `strings` fit `width`: `clamp(width ÷ the widest, minScale, 1)`; 1
+    /// when they fit as they are. The system font's tracking grows as the size shrinks, so a width is
+    /// not proportional to the size (measured: 「dom」 heavy at 15 is 34.2 lu and at 10.5, 0.7 times it,
+    /// 24.9 lu rather than 23.9) and the ratio is measured again at the smaller size. A hair under the
+    /// exact ratio, so that rounding does not make the text a fraction wider than the box.
+    static func fittedScale(of strings: [String], width: CGFloat, font: UIFont, minScale: CGFloat) -> CGFloat {
+        var rate: CGFloat = 1
+        for _ in 0..<5 {
+            let sized = rate < 1 ? font.withSize(font.pointSize * rate) : font
+            let widest = strings.map { naturalWidth(of: $0, font: sized) }.max() ?? 0
+            guard widest > width, widest > 0 else { break }
+            rate *= width / widest * 0.995
+            if rate <= minScale { return minScale }
+        }
+        return rate
+    }
+
+    /// `fittedScale(of:width:font:minScale:)` of one text.
+    static func fittedScale(of string: String, width: CGFloat, font: UIFont, minScale: CGFloat) -> CGFloat {
+        fittedScale(of: [string], width: width, font: font, minScale: minScale)
+    }
+
+    /// F-0: `drawLine` at a smaller size when `string` does not fit `rect`, down to `minScale`; `scale`,
+    /// when given, is used instead (the seven weekdays or twelve months at one size). What still does
+    /// not fit ends in 「…」, nothing leaves `rect`. A text that fits is the picture `drawLine` makes.
+    static func drawFittedLine(_ string: String, in rect: CGRect, font: UIFont, color: UIColor, minScale: CGFloat, scale: CGFloat? = nil) {
+        let rate = scale ?? fittedScale(of: string, width: rect.width, font: font, minScale: minScale)
+        drawLine(string, in: rect, font: rate < 1 ? font.withSize(font.pointSize * rate) : font, color: color)
+    }
+
+    /// `drawLine` or `drawFittedLine`, as `fit` says.
+    static func drawLine(_ string: String, in rect: CGRect, font: UIFont, color: UIColor, fit: LineFit) {
+        switch fit {
+        case .oneOne:
+            drawLine(string, in: rect, font: font, color: color)
+        case .fitted(let minScale):
+            drawFittedLine(string, in: rect, font: font, color: color, minScale: minScale)
+        }
+    }
+
     /// Draws one line of text vertically centred in `rect`, truncated with an ellipsis, and clipped
     /// to `rect` (nothing is drawn outside it, whatever the font size). Without a current graphics
     /// context (never on the paper) the text is drawn unclipped.
