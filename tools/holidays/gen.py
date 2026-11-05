@@ -44,6 +44,8 @@ What is written (§5.2):
     Where the country takes islamic_show_estimated, the names without the suffix are checked
     against what islamic_show_estimated=False gives; two names of a day that are one name once
     the suffix is off are written once.
+  - lastOfficialYear: the last year of the library's special tables, or of PUBLISHED_AND_COMPARED
+    when that is later (§5.1).
   - CN and VN: every holiday after lastOfficialYear gets the estimated flag; CN's rule-made
     observed days after lastOfficialYear are not written (0-29).
   - Subdivisions are written only when they differ from the country (add / remove). A code with
@@ -88,6 +90,11 @@ F_ESTIMATED, F_OBSERVED, F_SUBSTITUTED = 1, 2, 4
 
 # Countries whose days off and working weekends are set each year by a government notice (0-29).
 NOTICE = ["BY", "CN", "KZ", "RU", "TW", "UZ", "VN"]
+# The library's special tables only have a year when that year moves a day, so a published year with
+# nothing to move looks unpublished. These are the last years whose published calendar was compared
+# with this data, day by day, and matched (docs/M7B.md, section "TW"). Compare again and raise them
+# at the yearly update (§5.11).
+PUBLISHED_AND_COMPARED = {"KZ": 2026, "TW": 2027}
 # Of those, the ones whose holidays after the library's last official year are all estimates, and
 # the one whose observed days after it are made by a rule that its law does not have (0-29).
 ESTIMATED_AFTER_NOTICE = ["CN", "VN"]
@@ -405,7 +412,7 @@ class Country:
         self.d_col = self.default or "en"
         self.cols = [self.d_col] + sorted(set(self.ui_columns.values()) - {self.d_col})
         self.language_arg = {c: (None if self.default is None else c) for c in self.cols}
-        self.loy = last_official_year(probe)
+        self.loy = max((y for y in (last_official_year(probe), PUBLISHED_AND_COMPARED.get(cc)) if y is not None), default=None)
         self.notice = cc in NOTICE
 
         # Subdivisions (0-28): the data code is the library's code, folded to ASCII when it has

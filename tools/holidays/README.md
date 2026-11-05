@@ -63,6 +63,7 @@ KitChecks の「holidays (1.2)」の節（`TegakiKit/Sources/KitChecks/HolidayCh
 3. 今の `TegakiKit/HolidayData` をリポジトリの外に写す（例 `/tmp/hol-old`）。
 4. `gen.py` で作る（上の「データを作る」。`--previous` の既定は出力先の今の `index.json` なので、出力先にそのまま作れば、前の版との `renamed` が作られる）。**2 回作って `diff -r` が空**を確かめる。
 5. `python3 -I tools/holidays/summarize.py /tmp/hol-old TegakiKit/HolidayData` の日本語の要約を本人とリードが読む。必ず出るもの: 消えた州・地域のコード（選んでいた端末は国全体になる）、改名された州・地域のコード（旧 → 新）、全国の祝日の件数が 20% 以上変わった年、`lastOfficialYear`（公式の表の最後の年）・`coverage`（データの揃っている年）の変化。
+5b. `notice` の 7 か国（0-29）の、今年と来年の政府の公表を 1 次資料で確かめ、データと日ごとに照らす。合っていて、ライブラリの表がその年に届いていない国（調整の日が無い年は表に年が載らない）は、`gen.py` の `PUBLISHED_AND_COMPARED` の年を上げ、`HolidayChecks.swift` の同じ名前の表に公表の日を足して作り直す。照らせない国と合わない国は上げない（その年は「発表前の推定」のまま）。
 6. 改名された州が `index.json` の `renamed` に入っていることを確かめる（記録済みの "XX-旧コード" が何の表示もなく国全体に戻らないように）。消えた州で、本当は改名なのに `renamed` に入っていないもの（新しい版の別名に旧コードが無い）は、`gen.py` を直してから作り直す。
 7. `HolidayDataLicense.swift` の `mitText` を新しい `LICENSE-python-holidays.txt` と同じにし、`contributorsURL` の版を直す。`HolidayChecks.swift` と `WorldHolidaysTests.swift` の「0.107 の値」の期待を新しい版で確かめ直す。
 8. KitChecks（日本との一致・答えの分かっている日）と CI が緑になってから、アプリの更新として出す。データだけを通信で更新することはしない。

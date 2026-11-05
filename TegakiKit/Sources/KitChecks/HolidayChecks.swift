@@ -184,10 +184,32 @@ func runHolidayChecks() {
         checkEqual(taiwan.note(forYear: twLast + 1), .beforeNotice, "holidays: TW \(twLast + 1) is before the notice")
         check(taiwan.entries(forYear: twLast + 1)[day(twLast + 1, 10, 10)]?.first?.flags == [],
               "holidays: TW \(twLast + 1)-10-10 keeps its flags")
-        check(cnLast == 2026 && twLast == 2025, "holidays: the last official years of 0.107 are CN 2026 and TW 2025 (\(cnLast), \(twLast))")
+        check(cnLast == 2026 && twLast == 2027, "holidays: the last official years are CN 2026 (0.107) and TW 2027 (compared) (\(cnLast), \(twLast))")
     } else {
         check(false, "holidays: the index has CN and TW with their last official years")
     }
+    // The years compared with the government's published calendar (gen.py's PUBLISHED_AND_COMPARED; the
+    // sources are in docs/M7B.md, section "TW") have no note, the next year has, and the data has exactly
+    // the published days off: a new library version that changes one of them stops here.
+    let publishedAndCompared: [(code: String, language: UILanguage, year: Int, days: [(Int, Int)])] = [
+        ("TW", .zhHant, 2026, [(1, 1), (2, 15), (2, 16), (2, 17), (2, 18), (2, 19), (2, 20), (2, 27), (2, 28),
+                               (4, 3), (4, 4), (4, 5), (4, 6), (5, 1), (6, 19), (9, 25), (9, 28),
+                               (10, 9), (10, 10), (10, 25), (10, 26), (12, 25)]),
+        ("TW", .zhHant, 2027, [(1, 1), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 28), (3, 1),
+                               (4, 4), (4, 5), (4, 6), (4, 30), (5, 1), (6, 9), (9, 15), (9, 28),
+                               (10, 10), (10, 11), (10, 25), (12, 24), (12, 25), (12, 31)]),
+        ("KZ", .en, 2026, [(1, 1), (1, 2), (1, 7), (3, 8), (3, 9), (3, 21), (3, 22), (3, 23), (3, 24), (3, 25),
+                           (5, 1), (5, 7), (5, 9), (5, 11), (5, 27), (7, 6), (10, 25), (10, 26), (12, 16)]),
+    ]
+    for item in publishedAndCompared {
+        let compared = calendar(item.code, item.language)
+        checkEqual(compared.note(forYear: item.year), nil, "holidays: \(item.code) \(item.year) is published: no note")
+        check(Set(compared.entries(forYear: item.year).keys) == Set(item.days.map { day(item.year, $0.0, $0.1) }),
+              "holidays: \(item.code) \(item.year) has exactly the \(item.days.count) published days off")
+        check(allDays(item.year).allSatisfy { !compared.isWorkday($0) }, "holidays: \(item.code) \(item.year) has no working weekend")
+    }
+    checkEqual(calendar("TW", .zhHant).note(forYear: 2028), .beforeNotice, "holidays: TW 2028 is before the notice")
+    checkEqual(calendar("KZ", .en).note(forYear: 2027), .beforeNotice, "holidays: KZ 2027 is before the notice")
     if let index, let lk = index.country("LK"), let ua = index.country("UA") {
         // Where the data really stops, the coverage stops (0-30): Sri Lanka has no holidays after 2026,
         // Ukraine three in 2022 and then none (one low year is bridged only with full years on both sides).

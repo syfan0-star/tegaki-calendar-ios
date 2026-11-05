@@ -344,7 +344,14 @@ final class WorldHolidaysTests: XCTestCase {
         // The rule's observed days of 2027 are not written; the year's holidays are estimates.
         XCTAssertNil(calendar("CN", .zhHans).name(of: day(2027, 10, 4)))
         XCTAssertEqual(calendar("CN", .zhHans).entries(forYear: 2027)[day(2027, 10, 1)]?.first?.flags, [.estimated])
-        XCTAssertEqual(calendar("TW", .zhHant).note(forYear: 2026), .beforeNotice)   // 0.107: TW's tables end in 2025
+        // TW's and KZ's tables end in 2025, but the years compared with the published calendar say nothing
+        // (gen.py's PUBLISHED_AND_COMPARED: TW 2027, KZ 2026).
+        XCTAssertNil(calendar("TW", .zhHant).note(forYear: 2026))
+        XCTAssertNil(calendar("TW", .zhHant).note(forYear: 2027))
+        XCTAssertEqual(calendar("TW", .zhHant).note(forYear: 2028), .beforeNotice)
+        XCTAssertEqual(calendar("TW", .zhHant).entries(forYear: 2028)[day(2028, 10, 10)]?.first?.flags, [])
+        XCTAssertNil(calendar("KZ", .en).note(forYear: 2026))
+        XCTAssertEqual(calendar("KZ", .en).note(forYear: 2027), .beforeNotice)
         // Where the data really stops, the coverage stops (0-30).
         XCTAssertEqual(index.country("LK")?.coverage, 2003...2026)             // 0.107 (0.83: until 2025)
         XCTAssertEqual(index.country("UA")?.coverage, 2000...2021)

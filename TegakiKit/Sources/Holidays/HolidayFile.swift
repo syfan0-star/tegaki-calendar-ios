@@ -336,7 +336,7 @@ public struct HolidayIndex: Sendable {
         public let subdivisions: [Subdivision]
         /// Old code -> today's code (a subdivision renamed by a newer library, §5.11).
         public let renamed: [String: String]
-        /// The last year of the library's special tables (0-29).
+        /// The last year of the library's special tables, or of a published calendar compared with the data (0-29, §5.1).
         public let lastOfficialYear: Int?
         /// The country's days off are set by a yearly government notice (0-29).
         public let notice: Bool

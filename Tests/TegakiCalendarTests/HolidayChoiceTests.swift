@@ -102,8 +102,14 @@ final class HolidayChoiceTests: XCTestCase {
         XCTAssertEqual(summary(try region("UA"), year: 2026), "\(name("UA"))（2022 年以降のデータがありません）")
         // Before the government's notice (0-29).
         XCTAssertEqual(summary(try region("CN"), year: 2027), "\(name("CN"))（2027 年は発表前の推定）")
-        XCTAssertEqual(summary(try region("TW"), year: 2026), "\(name("TW"))（2026 年は発表前の推定）")
-        XCTAssertEqual(summary(.automatic, device: "TW", year: 2026), "自動（\(name("TW"))・2026 年は発表前の推定）")
+        XCTAssertEqual(summary(try region("KZ"), year: 2027), "\(name("KZ"))（2027 年は発表前の推定）")
+        XCTAssertEqual(summary(try region("TW"), year: 2028), "\(name("TW"))（2028 年は発表前の推定）")
+        XCTAssertEqual(summary(.automatic, device: "TW", year: 2028), "自動（\(name("TW"))・2028 年は発表前の推定）")
+        // The years compared with the published calendar say nothing (gen.py's PUBLISHED_AND_COMPARED).
+        XCTAssertEqual(summary(try region("KZ"), year: 2026), name("KZ"))
+        XCTAssertEqual(summary(try region("TW"), year: 2026), name("TW"))
+        XCTAssertEqual(summary(try region("TW"), year: 2027), name("TW"))
+        XCTAssertEqual(summary(.automatic, device: "TW", year: 2026), "自動（\(name("TW"))）")
         // A chosen country whose file cannot be read (0-20).
         XCTAssertEqual(summary(try region("US"), store: HolidayStore(directory: nil)), "\(name("US"))（祝日のデータがありません）")
         XCTAssertEqual(summary(.automatic, device: "US", store: HolidayStore(directory: nil)), "自動（\(name("US"))・祝日のデータがありません）")
@@ -160,14 +166,18 @@ final class HolidayChoiceTests: XCTestCase {
         let us = try XCTUnwrap(index.country("US"))
         XCTAssertEqual(HolidayPickerScreen.rowNotes(us, year: 2026, language: .ja), ["州・地域を選ぶと、その地域の祝日が加わります"])
         XCTAssertEqual(HolidayPickerScreen.rowNotes(try XCTUnwrap(index.country("JP")), year: 2026, language: .ja), [])
-        XCTAssertEqual(HolidayPickerScreen.rowNotes(try XCTUnwrap(index.country("TW")), year: 2026, language: .ja), ["2026 年は発表前の推定"])
+        XCTAssertEqual(HolidayPickerScreen.rowNotes(try XCTUnwrap(index.country("TW")), year: 2026, language: .ja), [])
+        XCTAssertEqual(HolidayPickerScreen.rowNotes(try XCTUnwrap(index.country("TW")), year: 2027, language: .ja), [])
+        XCTAssertEqual(HolidayPickerScreen.rowNotes(try XCTUnwrap(index.country("TW")), year: 2028, language: .ja), ["2028 年は発表前の推定"])
+        XCTAssertEqual(HolidayPickerScreen.rowNotes(try XCTUnwrap(index.country("KZ")), year: 2026, language: .ja), [])
+        XCTAssertEqual(HolidayPickerScreen.rowNotes(try XCTUnwrap(index.country("KZ")), year: 2027, language: .ja), ["2027 年は発表前の推定"])
         XCTAssertEqual(HolidayPickerScreen.rowNotes(try XCTUnwrap(index.country("LK")), year: 2027, language: .ja), ["2027 年以降のデータがありません"])
 
         // The index alone says what a calendar's note says (the list does not read 250 files).
-        for code in ["TW", "CN", "LK", "UA", "US", "SK"] {
+        for code in ["TW", "KZ", "CN", "LK", "UA", "US", "SK"] {
             let country = try XCTUnwrap(index.country(code))
             let calendar = store.calendar(for: try XCTUnwrap(HolidayRegion(code: code)), language: .en)
-            for year in [2021, 2026, 2027, 2036, 2080] {
+            for year in [2021, 2026, 2027, 2028, 2036, 2080] {
                 XCTAssertEqual(HolidayChoice.yearNote(of: country, year: year), calendar.note(forYear: year), "\(code) \(year)")
             }
         }
