@@ -1,0 +1,17 @@
+{
+  "locale": "zh-Hans",
+  "group": {
+    "displayName": "Tegaki",
+    "appNameDisplay": "useAppName"
+  },
+  "products": {
+    "com.syfan0.tegakicalendar.monthly": {
+      "displayName": "Tegaki 按月",
+      "description": "手写、创建日程和 iCloud 同步"
+    },
+    "com.syfan0.tegakicalendar.yearly": {
+      "displayName": "Tegaki 按年",
+      "description": "相同功能，按年付费"
+    }
+  }
+}

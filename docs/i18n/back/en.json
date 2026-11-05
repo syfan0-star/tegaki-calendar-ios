@@ -1,0 +1,1910 @@
+{
+ "language": "en",
+ "about": "R の逆翻訳。translations/en.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。",
+ "strings": {
+  "CFBundleDisplayName": {
+   "text": "Tegaki",
+   "back": "Tegaki（手書き。ローマ字の名前）"
+  },
+  "NSCalendarsFullAccessUsageDescription": {
+   "text": "Used to show your calendar events on the planner pages and to create events from your handwriting. iOS and iPadOS have no read-only permission, so the app asks for Full Access. Events are handled only on this device and are not sent anywhere.",
+   "back": "カレンダーの予定を手帳のページに表示するためと、手書きから予定を作るために使います。iOS と iPadOS には読み取り専用の許可がないので、アプリは「フルアクセス」を求めます。予定はこの端末の中だけで扱われ、どこにも送られません。"
+  },
+  "account.cancel": {
+   "text": "Cancel",
+   "back": "キャンセル"
+  },
+  "account.erase": {
+   "text": "Erase Handwriting and Start",
+   "back": "手書きを消して始める"
+  },
+  "account.eraseConfirm": {
+   "text": "Erase and Start",
+   "back": "消して始める"
+  },
+  "account.eraseMessage": {
+   "text": "All handwriting on this device is erased, and you start with the new account. This cannot be undone.",
+   "back": "この端末の手書きがすべて消され、新しいアカウントで始めます。元に戻せません。"
+  },
+  "account.eraseTitle": {
+   "text": "Are you sure you want to erase it?",
+   "back": "本当に消してよいですか？"
+  },
+  "account.keep": {
+   "text": "Keep Handwriting and Start",
+   "back": "手書きを残して始める"
+  },
+  "account.later": {
+   "text": "Later",
+   "back": "あとで"
+  },
+  "account.message": {
+   "text": "The handwriting on this device belongs to the iCloud account it synced with before. Start using the account you are signed in to now? If you keep the handwriting, it is sent to the iCloud of the new account.",
+   "back": "この端末の手書きは、以前に同期していた iCloud アカウントのものです。今サインインしているアカウントで使い始めますか？ 手書きを残すと、新しいアカウントの iCloud に送られます。"
+  },
+  "account.title": {
+   "text": "A Different iCloud Account",
+   "back": "別の iCloud アカウント"
+  },
+  "alert.saveFailed.ok": {
+   "text": "OK",
+   "back": "OK"
+  },
+  "alert.saveFailed.title": {
+   "text": "Could not save your handwriting",
+   "back": "手書きを保存できませんでした"
+  },
+  "allday.bar.spoken": {
+   "text": "%@ (edit event)",
+   "back": "%@（予定を編集）"
+  },
+  "allday.column.spoken": {
+   "text": "Add an all-day event on %@",
+   "back": "%@ に終日の予定を追加"
+  },
+  "allday.label": {
+   "text": "All-day",
+   "back": "終日"
+  },
+  "allday.label.short": {
+   "text": "All",
+   "back": "終日（短い形。All）"
+  },
+  "app.name": {
+   "text": "Tegaki",
+   "back": "Tegaki（手書き。ローマ字の名前）"
+  },
+  "census.counting": {
+   "text": "Counting…",
+   "back": "数えています…"
+  },
+  "census.entry": {
+   "text": "%1$@ · %2$@",
+   "back": "%1$@ · %2$@"
+  },
+  "census.legacyNote": {
+   "text": " (some are not shown on devices with an older version)",
+   "back": " （古い版の端末では一部が表示されません）"
+  },
+  "census.noInk": {
+   "text": "No handwriting yet",
+   "back": "手書きはまだありません"
+  },
+  "demo.calendar.events": {
+   "text": "Events",
+   "back": "予定"
+  },
+  "demo.calendar.family": {
+   "text": "Family",
+   "back": "家族"
+  },
+  "demo.calendar.personal": {
+   "text": "Personal",
+   "back": "個人"
+  },
+  "demo.calendar.work": {
+   "text": "Work",
+   "back": "仕事"
+  },
+  "demo.event.birthday": {
+   "text": "Birthday",
+   "back": "誕生日"
+  },
+  "demo.event.businessTrip": {
+   "text": "Osaka",
+   "back": "大阪"
+  },
+  "demo.event.call": {
+   "text": "Call",
+   "back": "電話"
+  },
+  "demo.event.camping": {
+   "text": "Camp",
+   "back": "キャンプ"
+  },
+  "demo.event.checkup": {
+   "text": "Exam",
+   "back": "検査（試験とも読める）"
+  },
+  "demo.event.clinic": {
+   "text": "Clinic",
+   "back": "クリニック"
+  },
+  "demo.event.deadline": {
+   "text": "Due",
+   "back": "締め切り"
+  },
+  "demo.event.dentalCheck": {
+   "text": "Dental",
+   "back": "歯科"
+  },
+  "demo.event.dentist": {
+   "text": "Dentist",
+   "back": "歯医者"
+  },
+  "demo.event.drinks": {
+   "text": "Drinks",
+   "back": "飲み会"
+  },
+  "demo.event.familyTrip": {
+   "text": "Trip",
+   "back": "旅行"
+  },
+  "demo.event.farewell": {
+   "text": "Farewell",
+   "back": "送別会"
+  },
+  "demo.event.lunch": {
+   "text": "Lunch",
+   "back": "昼食"
+  },
+  "demo.event.meeting": {
+   "text": "Meeting",
+   "back": "会議"
+  },
+  "demo.event.morningMeeting": {
+   "text": "Stand-up",
+   "back": "朝礼（立ったまま短くする打ち合わせ）"
+  },
+  "demo.event.oneOnOne": {
+   "text": "1-on-1",
+   "back": "1 対 1 の面談"
+  },
+  "demo.event.payday": {
+   "text": "Payday",
+   "back": "給料日"
+  },
+  "demo.event.report": {
+   "text": "Report",
+   "back": "報告"
+  },
+  "demo.event.reportDeadline": {
+   "text": "Report",
+   "back": "報告"
+  },
+  "demo.event.review": {
+   "text": "Review",
+   "back": "レビュー"
+  },
+  "demo.event.sportsDay": {
+   "text": "Sports",
+   "back": "スポーツ（運動）"
+  },
+  "demo.event.trashDay": {
+   "text": "Trash",
+   "back": "ごみ"
+  },
+  "demo.event.weeklyMeeting": {
+   "text": "Weekly",
+   "back": "週次"
+  },
+  "demo.source": {
+   "text": "Sample",
+   "back": "サンプル"
+  },
+  "event.allDay": {
+   "text": "All-day",
+   "back": "終日"
+  },
+  "event.calendar": {
+   "text": "Calendar",
+   "back": "カレンダー"
+  },
+  "event.calendarReadOnlyNote": {
+   "text": "This calendar cannot be changed (read-only)",
+   "back": "このカレンダーは変更できません（読み取り専用）"
+  },
+  "event.cancel": {
+   "text": "Cancel",
+   "back": "キャンセル"
+  },
+  "event.close": {
+   "text": "Close",
+   "back": "閉じる"
+  },
+  "event.delete": {
+   "text": "Delete",
+   "back": "削除"
+  },
+  "event.deleteConfirm": {
+   "text": "Delete this event?",
+   "back": "この予定を削除しますか？"
+  },
+  "event.end": {
+   "text": "Ends",
+   "back": "終了"
+  },
+  "event.endDay": {
+   "text": "End Date",
+   "back": "終了日"
+  },
+  "event.eraseInk": {
+   "text": "Erase This Handwriting",
+   "back": "この手書きを消す"
+  },
+  "event.error.calendarNotFound": {
+   "text": "The calendar for this event cannot be found",
+   "back": "この予定のカレンダーが見つかりません"
+  },
+  "event.error.emptyTitle": {
+   "text": "Enter a title",
+   "back": "題名を入力してください"
+  },
+  "event.error.endBeforeStart": {
+   "text": "The end must be after the start",
+   "back": "終了は開始より後にしてください"
+  },
+  "event.error.endDayBeforeStart": {
+   "text": "The end date must be on or after the start date",
+   "back": "終了日は開始日以降にしてください"
+  },
+  "event.error.eventNotFound": {
+   "text": "The event cannot be found (it may have been deleted on another device)",
+   "back": "予定が見つかりません（別の端末で削除された可能性があります）"
+  },
+  "event.error.failed": {
+   "text": "Could not save: %@",
+   "back": "保存できませんでした: %@"
+  },
+  "event.error.noAccess": {
+   "text": "Calendar access is not allowed",
+   "back": "カレンダーへのアクセスが許可されていません"
+  },
+  "event.error.noWritableCalendar": {
+   "text": "No calendar can take new events",
+   "back": "新しい予定を入れられるカレンダーがありません"
+  },
+  "event.error.readOnlyCalendar": {
+   "text": "This calendar cannot be changed",
+   "back": "このカレンダーは変更できません"
+  },
+  "event.location": {
+   "text": "Location",
+   "back": "場所"
+  },
+  "event.notes": {
+   "text": "Notes",
+   "back": "メモ"
+  },
+  "event.recurringNote": {
+   "text": "This is a repeating event. When you save or delete it, you choose “This Event Only” or “This and Future Events”",
+   "back": "これは繰り返しの予定です。保存や削除のときに「この予定だけ」か「これ以降の予定」を選びます"
+  },
+  "event.save": {
+   "text": "Save",
+   "back": "保存"
+  },
+  "event.saveFailed": {
+   "text": "Could not save",
+   "back": "保存できませんでした"
+  },
+  "event.saving": {
+   "text": "Saving…",
+   "back": "保存しています…"
+  },
+  "event.scribbleNote": {
+   "text": "Write over the field with Apple Pencil to turn it into text (Scribble)",
+   "back": "欄の上に Apple Pencil で書くと文字になります（スクリブル）"
+  },
+  "event.snapshotCaption": {
+   "text": "What you wrote",
+   "back": "書いたもの"
+  },
+  "event.start": {
+   "text": "Starts",
+   "back": "開始"
+  },
+  "event.startDay": {
+   "text": "Start Date",
+   "back": "開始日"
+  },
+  "event.subscribe": {
+   "text": "Subscribe",
+   "back": "購読する"
+  },
+  "event.subscriptionNote": {
+   "text": "Subscribe to create and edit events.",
+   "back": "予定を作成・編集するには購読してください。"
+  },
+  "event.title.create": {
+   "text": "Add Event",
+   "back": "予定を追加"
+  },
+  "event.title.detail": {
+   "text": "Event Details",
+   "back": "予定の詳細"
+  },
+  "event.title.edit": {
+   "text": "Edit Event",
+   "back": "予定を編集"
+  },
+  "event.titleHeader": {
+   "text": "Title",
+   "back": "題名"
+  },
+  "event.titlePlaceholder": {
+   "text": "Write here with the pen to turn it into text",
+   "back": "ここにペンで書くと文字になります"
+  },
+  "event.untitled": {
+   "text": "(Untitled)",
+   "back": "（題名なし）"
+  },
+  "event.when.dateTime": {
+   "text": "%1$@ %2$@",
+   "back": "%1$@ %2$@"
+  },
+  "export.close": {
+   "text": "Close",
+   "back": "閉じる"
+  },
+  "export.done.json.one": {
+   "text": "%1$@ (%2$@ page · %3$@)",
+   "back": "%1$@（%2$@ ページ · %3$@）"
+  },
+  "export.done.json.other": {
+   "text": "%1$@ (%2$@ pages · %3$@)",
+   "back": "%1$@（%2$@ ページ · %3$@）"
+  },
+  "export.done.pdf": {
+   "text": "%1$@ (%2$@)",
+   "back": "%1$@ (%2$@)"
+  },
+  "export.done.title": {
+   "text": "Exported",
+   "back": "書き出しました"
+  },
+  "export.error.closed": {
+   "text": "The file is closed",
+   "back": "ファイルが閉じられています"
+  },
+  "export.error.createFailed": {
+   "text": "Cannot create the file: %@",
+   "back": "ファイルを作成できません: %@"
+  },
+  "export.failed": {
+   "text": "Could not export: %@",
+   "back": "書き出せませんでした: %@"
+  },
+  "export.json.note": {
+   "text": "All the handwriting saved on this device goes into one file. You can import it again in Settings > Data > “Import from the Web Version” (importing requires a subscription).",
+   "back": "この端末に保存されているすべての手書きが 1 つのファイルに入ります。設定 > データ > 「Web 版から取り込む」でもう一度取り込めます（取り込みには購読が必要です）。"
+  },
+  "export.json.title": {
+   "text": "Data File (JSON, All Pages)",
+   "back": "データファイル（JSON、全ページ）"
+  },
+  "export.nothing": {
+   "text": "No handwriting to export",
+   "back": "書き出す手書きがありません"
+  },
+  "export.pdf.building": {
+   "text": "Making the PDF…",
+   "back": "PDF を作っています…"
+  },
+  "export.pdf.note": {
+   "text": "Makes a one-page PDF of the page that is open (%1$@ · %2$@). The paper, events, holidays and handwriting appear as they do on the screen.",
+   "back": "開いているページ（%1$@ · %2$@）の 1 ページの PDF を作ります。紙・予定・祝日・手書きは画面と同じように入ります。"
+  },
+  "export.pdf.title": {
+   "text": "This Page as PDF",
+   "back": "このページを PDF に"
+  },
+  "export.progress.one": {
+   "text": "Exporting… %1$@ of %2$@ page",
+   "back": "書き出しています… %2$@ ページ中 %1$@ ページ"
+  },
+  "export.progress.other": {
+   "text": "Exporting… %1$@ of %2$@ pages",
+   "back": "書き出しています… %2$@ ページ中 %1$@ ページ"
+  },
+  "export.renderFailed": {
+   "text": "Could not make the PDF",
+   "back": "PDF を作れませんでした"
+  },
+  "export.share": {
+   "text": "Share…",
+   "back": "共有…"
+  },
+  "export.title": {
+   "text": "Export Handwriting",
+   "back": "手書きを書き出す"
+  },
+  "export.writeFailed": {
+   "text": "Could not write the file: %@",
+   "back": "ファイルに書き込めませんでした: %@"
+  },
+  "header.addEvent": {
+   "text": "Event",
+   "back": "予定"
+  },
+  "header.addEvent.spoken": {
+   "text": "Add event",
+   "back": "予定を追加"
+  },
+  "header.day.spoken": {
+   "text": "%1$@ (open day page)",
+   "back": "%1$@（日のページを開く）"
+  },
+  "header.month.spoken": {
+   "text": "%1$@ (open month page)",
+   "back": "%1$@（月のページを開く）"
+  },
+  "header.next.day": {
+   "text": "Next day",
+   "back": "次の日"
+  },
+  "header.next.month": {
+   "text": "Next month",
+   "back": "次の月"
+  },
+  "header.next.week": {
+   "text": "Next week",
+   "back": "次の週"
+  },
+  "header.next.year": {
+   "text": "Next year",
+   "back": "次の年"
+  },
+  "header.picker.day": {
+   "text": "Day",
+   "back": "日"
+  },
+  "header.picker.month": {
+   "text": "Month",
+   "back": "月"
+  },
+  "header.picker.spoken": {
+   "text": "Change view",
+   "back": "表示を変える"
+  },
+  "header.picker.week": {
+   "text": "Week",
+   "back": "週"
+  },
+  "header.picker.year": {
+   "text": "Year",
+   "back": "年"
+  },
+  "header.pickerItem.day": {
+   "text": "Day view",
+   "back": "日の表示"
+  },
+  "header.pickerItem.month": {
+   "text": "Month view",
+   "back": "月の表示"
+  },
+  "header.pickerItem.week": {
+   "text": "Week view",
+   "back": "週の表示"
+  },
+  "header.pickerItem.year": {
+   "text": "Year view",
+   "back": "年の表示"
+  },
+  "header.previous.day": {
+   "text": "Previous day",
+   "back": "前の日"
+  },
+  "header.previous.month": {
+   "text": "Previous month",
+   "back": "前の月"
+  },
+  "header.previous.week": {
+   "text": "Previous week",
+   "back": "前の週"
+  },
+  "header.previous.year": {
+   "text": "Previous year",
+   "back": "前の年"
+  },
+  "header.readOnly.spoken": {
+   "text": "View Only. Open subscription information",
+   "back": "閲覧のみ。購読の案内を開く"
+  },
+  "header.settings.spoken": {
+   "text": "Settings",
+   "back": "設定"
+  },
+  "header.sync.spoken": {
+   "text": "Sync: %@",
+   "back": "同期: %@"
+  },
+  "header.today": {
+   "text": "Today",
+   "back": "今日"
+  },
+  "holidayPicker.auto": {
+   "text": "Automatic (this device’s region: %@)",
+   "back": "自動（この端末の地域: %@）"
+  },
+  "holidayPicker.countries": {
+   "text": "Countries and Regions",
+   "back": "国と地域"
+  },
+  "holidayPicker.deviceRegion": {
+   "text": "This device’s region: %@",
+   "back": "この端末の地域: %@"
+  },
+  "holidayPicker.localAreas": {
+   "text": "Other Areas (Cities and More)",
+   "back": "そのほかの地域（市など）"
+  },
+  "holidayPicker.none": {
+   "text": "None",
+   "back": "なし"
+  },
+  "holidayPicker.search": {
+   "text": "Search countries and regions",
+   "back": "国と地域を検索"
+  },
+  "holidayPicker.subdivisionHint": {
+   "text": "Choose a state or region to add its holidays",
+   "back": "州や地域を選ぶと、その祝日が加わります"
+  },
+  "holidayPicker.subdivisions": {
+   "text": "States and Regions",
+   "back": "州と地域"
+  },
+  "holidayPicker.subdivisions.footer": {
+   "text": "State and region names are shown as they are in the data (in English or the local language).",
+   "back": "州と地域の名前は、データのまま（英語か現地の言語で）表示されます。"
+  },
+  "holidayPicker.title": {
+   "text": "Holidays to Show",
+   "back": "表示する祝日"
+  },
+  "holidayPicker.wholeCountry": {
+   "text": "Whole Country",
+   "back": "国全体"
+  },
+  "import.close": {
+   "text": "Close",
+   "back": "閉じる"
+  },
+  "import.confirmLarge.cancel": {
+   "text": "Cancel",
+   "back": "キャンセル"
+  },
+  "import.confirmLarge.import": {
+   "text": "Import",
+   "back": "取り込む"
+  },
+  "import.confirmLarge.more.one": {
+   "text": "and %@ more page",
+   "back": "ほか %@ ページ"
+  },
+  "import.confirmLarge.more.other": {
+   "text": "and %@ more pages",
+   "back": "ほか %@ ページ"
+  },
+  "import.confirmLarge.separator": {
+   "text": ",",
+   "back": ","
+  },
+  "import.confirmLarge.text": {
+   "text": "After importing, some pages have more than %1$@ strokes (%2$@). This version shows them all, but devices with an older version do not show some of them. Import anyway?",
+   "back": "取り込むと、%1$@ 本より多くの線があるページができます（%2$@）。この版ではすべて表示されますが、古い版の端末では一部が表示されません。それでも取り込みますか？"
+  },
+  "import.confirmLarge.title": {
+   "text": "Some Pages Have Very Many Strokes",
+   "back": "線がとても多いページがあります"
+  },
+  "import.invalidJSON": {
+   "text": "Could not read the file",
+   "back": "ファイルを読み取れませんでした"
+  },
+  "import.notAnExport": {
+   "text": "This file is not a handwriting export (from the Web version or this app)",
+   "back": "このファイルは（Web 版やこのアプリから）書き出した手書きのファイルではありません"
+  },
+  "import.nothing": {
+   "text": "Nothing to import (everything is already imported)",
+   "back": "取り込むものがありません（すべて取り込み済みです）"
+  },
+  "import.otherWeekStart.monday": {
+   "text": "Some imported week pages appear when weeks start on Monday.",
+   "back": "取り込んだ週のページの一部は、週を月曜始まりにすると表示されます。"
+  },
+  "import.otherWeekStart.sunday": {
+   "text": "Some imported week pages appear when weeks start on Sunday.",
+   "back": "取り込んだ週のページの一部は、週を日曜始まりにすると表示されます。"
+  },
+  "import.progress.one": {
+   "text": "Importing… %1$@ of %2$@ page",
+   "back": "取り込んでいます… %2$@ ページ中 %1$@ ページ"
+  },
+  "import.progress.other": {
+   "text": "Importing… %1$@ of %2$@ pages",
+   "back": "取り込んでいます… %2$@ ページ中 %1$@ ページ"
+  },
+  "import.progress.reading": {
+   "text": "Importing…",
+   "back": "取り込んでいます…"
+  },
+  "import.result.app": {
+   "text": "Handwriting imported (%1$@ · %2$@)",
+   "back": "手書きを取り込みました（%1$@ · %2$@）"
+  },
+  "import.result.pages.one": {
+   "text": "%@ page",
+   "back": "%@ ページ"
+  },
+  "import.result.pages.other": {
+   "text": "%@ pages",
+   "back": "%@ ページ"
+  },
+  "import.result.strokes.one": {
+   "text": "%@ stroke",
+   "back": "%@ 本の線"
+  },
+  "import.result.strokes.other": {
+   "text": "%@ strokes",
+   "back": "%@ 本の線"
+  },
+  "import.result.web": {
+   "text": "Handwriting from the Web version imported (%1$@ · %2$@)",
+   "back": "Web 版の手書きを取り込みました（%1$@ · %2$@）"
+  },
+  "import.saveFailed": {
+   "text": "Could not save: %@",
+   "back": "保存できませんでした: %@"
+  },
+  "import.skipped.one": {
+   "text": "%@ page was skipped because it cannot be imported",
+   "back": "%@ ページは取り込めないため飛ばしました"
+  },
+  "import.skipped.other": {
+   "text": "%@ pages were skipped because they cannot be imported",
+   "back": "%@ ページは取り込めないため飛ばしました"
+  },
+  "import.title": {
+   "text": "Import from the Web Version",
+   "back": "Web 版から取り込む"
+  },
+  "import.unsupportedVersion": {
+   "text": "This file uses a newer format (v%@). Update the app",
+   "back": "このファイルは新しい形式（v%@）です。アプリを更新してください"
+  },
+  "info.translationNote": {
+   "text": "The translations in this app were made with AI and checked by translating them back into Japanese. No native speaker has reviewed them yet. If you find a mistake, please write to syfan0@gmail.com.",
+   "back": "このアプリの訳は AI で作り、日本語に訳し戻して確かめました。母語話者の確認はまだ受けていません。誤りを見つけたら syfan0@gmail.com までお書きください。"
+  },
+  "kit.app.name": {
+   "text": "Tegaki",
+   "back": "Tegaki（手書き。ローマ字の名前）"
+  },
+  "kit.budget.count.one": {
+   "text": "%@ stroke",
+   "back": "%@ 本の線"
+  },
+  "kit.budget.count.other": {
+   "text": "%@ strokes",
+   "back": "%@ 本の線"
+  },
+  "kit.budget.page.day": {
+   "text": "Day page (%@)",
+   "back": "日のページ（%@）"
+  },
+  "kit.budget.page.month": {
+   "text": "Month page (%@)",
+   "back": "月のページ（%@）"
+  },
+  "kit.budget.page.week": {
+   "text": "Week page (%@)",
+   "back": "週のページ（%@）"
+  },
+  "kit.budget.page.year": {
+   "text": "Year page (%@)",
+   "back": "年のページ（%@）"
+  },
+  "kit.export.jsonFileName": {
+   "text": "Tegaki Handwriting %@.json",
+   "back": "Tegaki の手書き %@.json"
+  },
+  "kit.export.kind.day": {
+   "text": "Day",
+   "back": "日"
+  },
+  "kit.export.kind.month": {
+   "text": "Month",
+   "back": "月"
+  },
+  "kit.export.kind.week": {
+   "text": "Week",
+   "back": "週"
+  },
+  "kit.export.kind.year": {
+   "text": "Year",
+   "back": "年"
+  },
+  "kit.holiday.dayOff": {
+   "text": "Day off",
+   "back": "休み"
+  },
+  "kit.holiday.estimatedSuffix": {
+   "text": " (est.)",
+   "back": " （推定）"
+  },
+  "kit.layout.more.one": {
+   "text": "+%@ more",
+   "back": "+ほか %@ 件"
+  },
+  "kit.layout.more.other": {
+   "text": "+%@ more",
+   "back": "+ほか %@ 件"
+  },
+  "kit.legal.appleEULATitle": {
+   "text": "Terms of Use (Apple Standard EULA)",
+   "back": "利用規約（Apple の標準 EULA）"
+  },
+  "kit.plan.badge.readOnly": {
+   "text": "View Only",
+   "back": "閲覧のみ"
+  },
+  "kit.plan.cancelPath": {
+   "text": "Settings > your name > Subscriptions",
+   "back": "設定 > お名前 > サブスクリプション"
+  },
+  "kit.plan.date.expires": {
+   "text": "Expires",
+   "back": "期限"
+  },
+  "kit.plan.date.graceUntil": {
+   "text": "Grace Period Ends",
+   "back": "猶予期間の終わり"
+  },
+  "kit.plan.date.renews": {
+   "text": "Next Renewal",
+   "back": "次の更新"
+  },
+  "kit.plan.date.trialEnds": {
+   "text": "Free Trial Ends",
+   "back": "無料トライアルの終わり"
+  },
+  "kit.plan.date.trialEndsPaid": {
+   "text": "Free Trial Ends (Paid After That)",
+   "back": "無料トライアルの終わり（その後は有料）"
+  },
+  "kit.plan.monthly": {
+   "text": "Monthly",
+   "back": "月額"
+  },
+  "kit.plan.note.billingRetry": {
+   "text": "There is a problem with your payment. Check your payment method in %@.",
+   "back": "支払いに問題があります。%@ で支払い方法を確かめてください。"
+  },
+  "kit.plan.note.expired": {
+   "text": "Your subscription has expired.",
+   "back": "購読の期限が切れました。"
+  },
+  "kit.plan.note.notSubscribed": {
+   "text": "You have not subscribed yet.",
+   "back": "まだ購読していません。"
+  },
+  "kit.plan.note.revoked": {
+   "text": "Your purchase was refunded or canceled.",
+   "back": "購入は返金または取り消しになりました。"
+  },
+  "kit.plan.note.unknown": {
+   "text": "Your purchase could not be checked. It is checked automatically when you are back online.",
+   "back": "購入を確かめられませんでした。オンラインに戻ると自動で確かめます。"
+  },
+  "kit.plan.paymentPath": {
+   "text": "Settings > your name > Payment & Shipping",
+   "back": "設定 > お名前 > お支払いと配送先"
+  },
+  "kit.plan.perPeriod.monthly": {
+   "text": "/month",
+   "back": "/月"
+  },
+  "kit.plan.perPeriod.yearly": {
+   "text": "/year",
+   "back": "/年"
+  },
+  "kit.plan.savings.one": {
+   "text": "Save %@ month",
+   "back": "%@ か月分お得"
+  },
+  "kit.plan.savings.other": {
+   "text": "Save %@ months",
+   "back": "%@ か月分お得"
+  },
+  "kit.plan.status.billingRetry": {
+   "text": "Payment problem (View Only)",
+   "back": "支払いの問題（閲覧のみ）"
+  },
+  "kit.plan.status.expired": {
+   "text": "Expired (View Only)",
+   "back": "期限切れ（閲覧のみ）"
+  },
+  "kit.plan.status.notSubscribed": {
+   "text": "Not purchased (View Only)",
+   "back": "未購入（閲覧のみ）"
+  },
+  "kit.plan.status.revoked": {
+   "text": "Refunded (View Only)",
+   "back": "返金済み（閲覧のみ）"
+  },
+  "kit.plan.status.subscribed": {
+   "text": "%@ · Active",
+   "back": "%@ · 有効"
+  },
+  "kit.plan.status.subscribedGrace": {
+   "text": "%@ · Payment problem (grace period)",
+   "back": "%@ · 支払いの問題（猶予期間）"
+  },
+  "kit.plan.status.trial": {
+   "text": "%@ · Free trial",
+   "back": "%@ · 無料トライアル"
+  },
+  "kit.plan.status.unknown": {
+   "text": "Checking (View Only)",
+   "back": "確かめています（閲覧のみ）"
+  },
+  "kit.plan.yearly": {
+   "text": "Yearly",
+   "back": "年額"
+  },
+  "license.contributors": {
+   "text": "Contributors: %@",
+   "back": "協力者: %@"
+  },
+  "license.holidayData": {
+   "text": "Holiday data: python-holidays (MIT License)",
+   "back": "祝日のデータ: python-holidays（MIT ライセンス）"
+  },
+  "notice.calendar.denied": {
+   "text": "To show events, set Calendars to “Full Access” in Settings.",
+   "back": "予定を表示するには、設定でカレンダーを「フルアクセス」にしてください。"
+  },
+  "notice.calendar.denied.openSettings": {
+   "text": "Open Settings",
+   "back": "設定を開く"
+  },
+  "notice.calendar.notDetermined": {
+   "text": "To show events, allow access to your calendars.",
+   "back": "予定を表示するには、カレンダーへのアクセスを許可してください。"
+  },
+  "notice.calendar.notDetermined.allow": {
+   "text": "Allow",
+   "back": "許可する"
+  },
+  "notice.calendar.restricted": {
+   "text": "Calendar access is restricted on this device. You can still write by hand.",
+   "back": "この端末ではカレンダーへのアクセスが制限されています。手書きはこのままできます。"
+  },
+  "notice.readOnly.button": {
+   "text": "Subscribe",
+   "back": "購読する"
+  },
+  "notice.readOnly.text": {
+   "text": "View Only. Subscribe to write by hand and create events.",
+   "back": "閲覧のみです。手書きと予定の作成には購読してください。"
+  },
+  "onboarding.access.text": {
+   "text": "On the next screen, the app asks for “Full Access” to your calendars. This is to show events on the planner pages and to create events from your handwriting.\n\niOS and iPadOS have no read-only permission, so it has to be Full Access. Events are handled only on this device and are not sent to the developer or anyone else.",
+   "back": "次の画面で、アプリがカレンダーへの「フルアクセス」を求めます。手帳のページに予定を表示するためと、手書きから予定を作るためです。\n\niOS と iPadOS には読み取り専用の許可がないので、フルアクセスにする必要があります。予定はこの端末の中だけで扱われ、開発者にもほかの誰にも送られません。"
+  },
+  "onboarding.access.title": {
+   "text": "Calendar Access",
+   "back": "カレンダーへのアクセス"
+  },
+  "onboarding.account.text": {
+   "text": "This app shows the events in the Calendar app on this device.\n\n%@",
+   "back": "このアプリは、この端末のカレンダーアプリにある予定を表示します。\n\n%@"
+  },
+  "onboarding.account.title": {
+   "text": "Calendar Accounts",
+   "back": "カレンダーのアカウント"
+  },
+  "onboarding.askPermission": {
+   "text": "Show the Permission Screen",
+   "back": "許可の画面を出す"
+  },
+  "onboarding.dayPageTap": {
+   "text": "To open a day page with your finger, tap a date or the number on the left edge (that day of this month) on the year page, tap a date number on the month page, or double-tap a cell on the week, month or year page.",
+   "back": "指で日のページを開くには、年のページで日付か左端の数字（今月のその日）をタップするか、月のページで日付の数字をタップするか、週・月・年のページでセルをダブルタップします。"
+  },
+  "onboarding.icloud.text": {
+   "text": "Your handwriting is saved on this device and in your iCloud. You can see the same handwriting on your other iPads and iPhones.\n\nIf you are not signed in to iCloud, it is saved only on this device. There is nothing to set up for iCloud (it is used automatically if you are signed in on this device).\n\nThe developer cannot see your handwriting. It uses your own iCloud storage.",
+   "back": "手書きはこの端末とあなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きを見られます。\n\niCloud にサインインしていなければ、この端末にだけ保存されます。iCloud の設定は要りません（この端末でサインインしていれば自動で使われます）。\n\n開発者はあなたの手書きを見られません。あなた自身の iCloud の容量を使います。"
+  },
+  "onboarding.icloud.title": {
+   "text": "iCloud and Saving Handwriting",
+   "back": "iCloud と手書きの保存"
+  },
+  "onboarding.next": {
+   "text": "Next",
+   "back": "次へ"
+  },
+  "onboarding.openSettings": {
+   "text": "Open the Settings App",
+   "back": "設定アプリを開く"
+  },
+  "onboarding.pen.text": {
+   "text": "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Draw with Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@",
+   "back": "Apple Pencil で紙に書きます。指ではスクロール、ピンチで拡大縮小、予定のタップをします。手のひらが画面に触れても線は引かれません。\n\n指でも書くには、ツールバーの「指で描く」をオンにします。Apple Pencil のダブルタップやスクイーズで、iPad の設定 > Apple Pencil で選んだ動作に従い、ペンと消しゴムが切り替わります。\n\n%@"
+  },
+  "onboarding.pen.title": {
+   "text": "Write with the Pen, Move with Your Finger",
+   "back": "ペンで書き、指で動かす"
+  },
+  "paper.freeMemo": {
+   "text": "Free Notes",
+   "back": "自由メモ"
+  },
+  "paper.memo": {
+   "text": "Notes",
+   "back": "メモ"
+  },
+  "paywall.after.paid": {
+   "text": "%@. Renews automatically. Cancel anytime.",
+   "back": "%@。自動で更新されます。いつでも解約できます。"
+  },
+  "paywall.after.trial": {
+   "text": "Then %@. Cancel anytime.",
+   "back": "その後は %@。いつでも解約できます。"
+  },
+  "paywall.billingRetryLead": {
+   "text": "There is a problem with your payment. Check your payment method in %@.",
+   "back": "支払いに問題があります。%@ で支払い方法を確かめてください。"
+  },
+  "paywall.blockedLead": {
+   "text": "Subscribe to write, erase or create events.",
+   "back": "書く・消す・予定を作るには購読してください。"
+  },
+  "paywall.blockedTrial.one": {
+   "text": " You can try it free for %@ day.",
+   "back": " %@ 日間、無料で試せます。"
+  },
+  "paywall.blockedTrial.other": {
+   "text": " You can try it free for %@ days.",
+   "back": " %@ 日間、無料で試せます。"
+  },
+  "paywall.cta.buy": {
+   "text": "Buy",
+   "back": "購入"
+  },
+  "paywall.cta.trial.one": {
+   "text": "Try Free for %@ Day",
+   "back": "%@ 日間無料で試す"
+  },
+  "paywall.cta.trial.other": {
+   "text": "Try Free for %@ Days",
+   "back": "%@ 日間無料で試す"
+  },
+  "paywall.disclosure.paid": {
+   "text": "Subscriptions renew automatically. Unless you cancel at least 24 hours before the end of the current period, the subscription renews for the same period at the same price and your Apple Account is charged. You are charged when you confirm the purchase. You can cancel anytime in %@ on your device. After you cancel, you can keep using the app until the end of the period you have paid for.",
+   "back": "サブスクリプションは自動で更新されます。今の期間が終わる 24 時間以上前に解約しない限り、同じ期間・同じ価格で更新され、Apple アカウントに請求されます。購入を確定したときに請求されます。端末の %@ でいつでも解約できます。解約した後も、支払い済みの期間の終わりまでアプリを使えます。"
+  },
+  "paywall.disclosure.trial": {
+   "text": "Subscriptions renew automatically. Unless you cancel at least 24 hours before the end of the current period, the subscription renews for the same period at the same price and your Apple Account is charged. You are charged when the free trial ends. You can cancel anytime in %@ on your device. After you cancel, you can keep using the app until the end of the period you have paid for.",
+   "back": "サブスクリプションは自動で更新されます。今の期間が終わる 24 時間以上前に解約しない限り、同じ期間・同じ価格で更新され、Apple アカウントに請求されます。無料トライアルが終わると請求されます。端末の %@ でいつでも解約できます。解約した後も、支払い済みの期間の終わりまでアプリを使えます。"
+  },
+  "paywall.feature.events": {
+   "text": "Create events from handwriting. Create and edit events",
+   "back": "手書きから予定を作る。予定を作成・編集する"
+  },
+  "paywall.feature.ink": {
+   "text": "Handwriting (pen, marker, eraser, lasso)",
+   "back": "手書き（ペン、マーカー、消しゴム、投げなわ）"
+  },
+  "paywall.feature.sync": {
+   "text": "Sync with iPad and iPhone through iCloud",
+   "back": "iCloud を通して iPad と iPhone で同期"
+  },
+  "paywall.intro": {
+   "text": "A planner you can write in freely with Apple Pencil, right over the calendar on your iPad.",
+   "back": "iPad のカレンダーの上に Apple Pencil で自由に書ける手帳です。"
+  },
+  "paywall.later": {
+   "text": "Later",
+   "back": "あとで"
+  },
+  "paywall.manage": {
+   "text": "Manage Subscription",
+   "back": "サブスクリプションを管理"
+  },
+  "paywall.noPriceNote": {
+   "text": "Cannot get prices",
+   "back": "価格を取得できません"
+  },
+  "paywall.privacy": {
+   "text": "Privacy Policy",
+   "back": "プライバシーポリシー"
+  },
+  "paywall.recommended": {
+   "text": "Recommended",
+   "back": "おすすめ"
+  },
+  "paywall.reload": {
+   "text": "Reload",
+   "back": "再読み込み"
+  },
+  "paywall.restore": {
+   "text": "Restore Purchases",
+   "back": "購入を復元"
+  },
+  "paywall.revokedLead": {
+   "text": "Your purchase was refunded or canceled. To use the app again, subscribe.",
+   "back": "購入は返金または取り消しになりました。もう一度アプリを使うには購読してください。"
+  },
+  "paywall.terms": {
+   "text": "Terms of Service",
+   "back": "利用規約"
+  },
+  "paywall.title": {
+   "text": "Tegaki",
+   "back": "Tegaki（手書き。ローマ字の名前）"
+  },
+  "paywall.trialIneligible": {
+   "text": "You cannot use the free trial (one trial per Apple Account).",
+   "back": "無料トライアルは使えません（Apple アカウントごとに 1 回）。"
+  },
+  "paywall.trialLead.one": {
+   "text": "Try free for %@ day.",
+   "back": "%@ 日間、無料でお試しください。"
+  },
+  "paywall.trialLead.other": {
+   "text": "Try free for %@ days.",
+   "back": "%@ 日間、無料でお試しください。"
+  },
+  "paywall.trialRest": {
+   "text": " When the free trial ends, it automatically becomes paid. If you cancel during the free trial, you are not charged.",
+   "back": " 無料トライアルが終わると、自動で有料になります。無料トライアルの間に解約すれば、請求されません。"
+  },
+  "paywall.yearlyNote.both": {
+   "text": "%1$@ per month · %2$@",
+   "back": "1 か月あたり %1$@ · %2$@"
+  },
+  "paywall.yearlyNote.perMonth": {
+   "text": "%@ per month",
+   "back": "1 か月あたり %@"
+  },
+  "recurrence.futureEvents": {
+   "text": "This and Future Events",
+   "back": "この予定とこれ以降の予定"
+  },
+  "recurrence.message.delete": {
+   "text": "Delete this event only, or this and all future events?",
+   "back": "この予定だけを削除しますか、それともこの予定とこれ以降のすべての予定を削除しますか？"
+  },
+  "recurrence.message.save": {
+   "text": "Change this event only, or this and all future events?",
+   "back": "この予定だけを変更しますか、それともこの予定とこれ以降のすべての予定を変更しますか？"
+  },
+  "recurrence.thisEvent": {
+   "text": "This Event Only",
+   "back": "この予定だけ"
+  },
+  "recurrence.title": {
+   "text": "This Is a Repeating Event",
+   "back": "これは繰り返しの予定です"
+  },
+  "selection.delete": {
+   "text": "Delete",
+   "back": "削除"
+  },
+  "selection.deselect": {
+   "text": "Deselect",
+   "back": "選択を解除"
+  },
+  "selection.handwriting": {
+   "text": "Selected handwriting",
+   "back": "選択した手書き"
+  },
+  "selection.makeEvent": {
+   "text": "Make Event",
+   "back": "予定にする"
+  },
+  "settings.calendar.a11y.hidden": {
+   "text": "Hidden",
+   "back": "非表示"
+  },
+  "settings.calendar.a11y.shown": {
+   "text": "Shown",
+   "back": "表示"
+  },
+  "settings.calendar.access.allow": {
+   "text": "Allow",
+   "back": "許可する"
+  },
+  "settings.calendar.access.denied": {
+   "text": "Not allowed",
+   "back": "許可されていません"
+  },
+  "settings.calendar.access.full": {
+   "text": "Allowed (Full Access)",
+   "back": "許可済み（フルアクセス）"
+  },
+  "settings.calendar.access.notDetermined": {
+   "text": "Not allowed yet",
+   "back": "まだ許可されていません"
+  },
+  "settings.calendar.access.restricted": {
+   "text": "Restricted on this device",
+   "back": "この端末では制限されています"
+  },
+  "settings.calendar.access.title": {
+   "text": "Calendar Access",
+   "back": "カレンダーへのアクセス"
+  },
+  "settings.calendar.access.writeOnly": {
+   "text": "Add only (events cannot be shown)",
+   "back": "追加のみ（予定は表示できません）"
+  },
+  "settings.calendar.default": {
+   "text": "Add New Events To",
+   "back": "新しい予定の追加先"
+  },
+  "settings.calendar.empty": {
+   "text": "No calendars",
+   "back": "カレンダーがありません"
+  },
+  "settings.calendar.google.howTo": {
+   "text": "To show Google Calendar events, add your Google account in the Settings app.\n1. Settings > Apps > Calendar > Calendar Accounts > Add Account > Google (on iOS and iPadOS 17: Settings > Calendar > Accounts)\n2. Turn on Calendars.\n3. On the same screen, choose Every 15 Minutes under Fetch New Data so that events update sooner.\n\nIf you use only iCloud calendars, you do not need to do anything.",
+   "back": "Google カレンダーの予定を表示するには、設定アプリで Google アカウントを追加します。\n1. 設定 > アプリ > カレンダー > カレンダーアカウント > アカウントを追加 > Google（iOS・iPadOS 17 では 設定 > カレンダー > アカウント）\n2. カレンダーをオンにします。\n3. 同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定が早く更新されます。\n\niCloud のカレンダーだけを使うなら、何もしなくて構いません。"
+  },
+  "settings.calendar.google.title": {
+   "text": "Using Google Calendar",
+   "back": "Google カレンダーを使う"
+  },
+  "settings.calendar.header": {
+   "text": "Calendars",
+   "back": "カレンダー"
+  },
+  "settings.calendar.noAccess": {
+   "text": "Allow calendar access to see the list here",
+   "back": "カレンダーへのアクセスを許可すると、ここに一覧が表示されます"
+  },
+  "settings.calendar.otherSource": {
+   "text": "Other",
+   "back": "その他"
+  },
+  "settings.calendar.shown": {
+   "text": "Calendars to Show",
+   "back": "表示するカレンダー"
+  },
+  "settings.data.erase.all": {
+   "text": "Erase All",
+   "back": "すべて消す"
+  },
+  "settings.data.erase.cancel": {
+   "text": "Cancel",
+   "back": "キャンセル"
+  },
+  "settings.data.erase.confirm": {
+   "text": "Erase",
+   "back": "消す"
+  },
+  "settings.data.erase.question.cloud": {
+   "text": "Erase all handwriting saved on this device and in iCloud?",
+   "back": "この端末と iCloud に保存されたすべての手書きを消しますか？"
+  },
+  "settings.data.erase.question.local": {
+   "text": "Erase all handwriting saved on this device?",
+   "back": "この端末に保存されたすべての手書きを消しますか？"
+  },
+  "settings.data.erase.title": {
+   "text": "Are you sure you want to erase it?",
+   "back": "本当に消してよいですか？"
+  },
+  "settings.data.erase.warning.cloud": {
+   "text": "This cannot be undone. Handwriting on your other iPads and iPhones is also erased.",
+   "back": "元に戻せません。ほかの iPad や iPhone の手書きも消えます。"
+  },
+  "settings.data.erase.warning.local": {
+   "text": "This cannot be undone.",
+   "back": "元に戻せません。"
+  },
+  "settings.data.eraseAll": {
+   "text": "Erase All Handwriting on This Device",
+   "back": "この端末の手書きをすべて消す"
+  },
+  "settings.data.export": {
+   "text": "Export Handwriting",
+   "back": "手書きを書き出す"
+  },
+  "settings.data.exportFooter": {
+   "text": "“Export Handwriting” puts the handwriting saved on this device into one data file (JSON), or makes a PDF of the page that is open. You can import a data file again with “Import from the Web Version” (importing requires a subscription).",
+   "back": "「手書きを書き出す」は、この端末に保存された手書きを 1 つのデータファイル（JSON）にするか、開いているページの PDF を作ります。データファイルは「Web 版から取り込む」でもう一度取り込めます（取り込みには購読が必要です）。"
+  },
+  "settings.data.header": {
+   "text": "Data",
+   "back": "データ"
+  },
+  "settings.data.import": {
+   "text": "Import from the Web Version",
+   "back": "Web 版から取り込む"
+  },
+  "settings.data.importFooter": {
+   "text": "In the settings of the Web version, use “手書きを書き出す（iPad アプリ用）” (export handwriting for the iPad app), then choose that file. Importing the same file twice does not duplicate your handwriting.",
+   "back": "Web 版の設定で「手書きを書き出す（iPad アプリ用）」（iPad アプリのために手書きを書き出す）を使い、そのファイルを選びます。同じファイルを 2 回取り込んでも、手書きは重複しません。"
+  },
+  "settings.data.lastImport": {
+   "text": "Last import: %@",
+   "back": "前回の取り込み: %@"
+  },
+  "settings.done": {
+   "text": "Done",
+   "back": "完了"
+  },
+  "settings.holidays.footer": {
+   "text": "Japanese holidays are calculated by this app (and checked against announcements by the Cabinet Office of Japan). Holidays of other countries are based on public data (python-holidays). Some, such as lunar calendar and Islamic calendar holidays, are estimates and are marked “(est.)”. They may differ from the latest government announcements. Holiday settings are saved only on this device.",
+   "back": "日本の祝日はこのアプリが計算しています（内閣府の発表と照らして確かめています）。ほかの国の祝日は公開データ（python-holidays）に基づきます。旧暦やイスラム暦の祝日など一部は推定で、「（推定）」の印が付きます。政府の最新の発表と違うことがあります。祝日の設定はこの端末にだけ保存されます。"
+  },
+  "settings.holidays.header": {
+   "text": "Holidays",
+   "back": "祝日"
+  },
+  "settings.holidays.note.beforeNotice": {
+   "text": "%@ is an estimate before the announcement",
+   "back": "%@ は発表前の推定です"
+  },
+  "settings.holidays.note.join": {
+   "text": "%1$@ · %2$@",
+   "back": "%1$@ · %2$@"
+  },
+  "settings.holidays.note.nationalOnly": {
+   "text": "national only",
+   "back": "全国のみ"
+  },
+  "settings.holidays.note.nationalOnlyAuto": {
+   "text": "national holidays only",
+   "back": "全国の祝日のみ"
+  },
+  "settings.holidays.note.noData": {
+   "text": "no holiday data",
+   "back": "祝日のデータがありません"
+  },
+  "settings.holidays.note.noDataFrom": {
+   "text": "no data from %@ on",
+   "back": "%@ 以降のデータがありません"
+  },
+  "settings.holidays.row": {
+   "text": "Holidays to Show",
+   "back": "表示する祝日"
+  },
+  "settings.holidays.value.auto": {
+   "text": "Automatic (%@)",
+   "back": "自動（%@）"
+  },
+  "settings.holidays.value.autoNote": {
+   "text": "Automatic (%1$@ · %2$@)",
+   "back": "自動（%1$@ · %2$@）"
+  },
+  "settings.holidays.value.none": {
+   "text": "None",
+   "back": "なし"
+  },
+  "settings.holidays.value.regionNote": {
+   "text": "%1$@ (%2$@)",
+   "back": "%1$@ (%2$@)"
+  },
+  "settings.holidays.value.subdivision": {
+   "text": "%1$@ · %2$@",
+   "back": "%1$@ · %2$@"
+  },
+  "settings.info.footer": {
+   "text": "Stroke counts come from the pages saved on this device (nothing is sent anywhere). One page can hold up to %@ strokes.",
+   "back": "線の数は、この端末に保存されたページから数えています（どこにも送られません）。1 ページに %@ 本まで入ります。"
+  },
+  "settings.info.header": {
+   "text": "About",
+   "back": "情報"
+  },
+  "settings.info.largestPage": {
+   "text": "Page with the Most Strokes",
+   "back": "線がいちばん多いページ"
+  },
+  "settings.info.licenses": {
+   "text": "Open Source Licenses",
+   "back": "オープンソースのライセンス"
+  },
+  "settings.info.privacy": {
+   "text": "Privacy Policy",
+   "back": "プライバシーポリシー"
+  },
+  "settings.info.support": {
+   "text": "Support",
+   "back": "サポート"
+  },
+  "settings.info.terms": {
+   "text": "Terms of Service",
+   "back": "利用規約"
+  },
+  "settings.info.version": {
+   "text": "Version",
+   "back": "バージョン"
+  },
+  "settings.info.yearPage": {
+   "text": "This Year’s Year Page",
+   "back": "今年の年のページ"
+  },
+  "settings.input.allowFinger": {
+   "text": "Draw with Finger",
+   "back": "指で描く"
+  },
+  "settings.input.allowFinger.footer": {
+   "text": "When this is on, you can also draw lines with your finger. When it is off, your finger scrolls and taps. Handwriting works best with iPad and Apple Pencil.",
+   "back": "オンのときは、指でも線を引けます。オフのときは、指でスクロールとタップをします。手書きは iPad と Apple Pencil でいちばんよく動きます。"
+  },
+  "settings.input.eraseAfterConvert": {
+   "text": "Erase Handwriting Made into Events",
+   "back": "予定にした手書きを消す"
+  },
+  "settings.input.eraseAfterConvert.footer": {
+   "text": "The starting choice for whether to erase handwriting that you circled with the lasso after you make it into an event.",
+   "back": "投げなわで囲んだ手書きを予定にした後、消すかどうかの最初の選択です。"
+  },
+  "settings.input.eraserAutoReturn.footer.pad": {
+   "text": "After you erase a line with the eraser and lift your finger or Apple Pencil, the tool returns to the pen or marker you used just before. The same is true of an eraser you chose by double-tapping or squeezing Apple Pencil.",
+   "back": "消しゴムで線を消して指や Apple Pencil を離すと、直前に使っていたペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムでも同じです。"
+  },
+  "settings.input.eraserAutoReturn.footer.phone": {
+   "text": "After you erase a line with the eraser and lift your finger, the tool returns to the pen or marker you used just before.",
+   "back": "消しゴムで線を消して指を離すと、直前に使っていたペンかマーカーに戻ります。"
+  },
+  "settings.input.eraserAutoReturn.title": {
+   "text": "Return to Pen After Erasing",
+   "back": "消した後にペンに戻る"
+  },
+  "settings.input.header": {
+   "text": "Input",
+   "back": "入力"
+  },
+  "settings.input.pencil": {
+   "text": "Apple Pencil",
+   "back": "Apple Pencil"
+  },
+  "settings.input.pencil.footer": {
+   "text": "Double-tap and squeeze follow the actions you chose in Settings > Apple Pencil on your iPad.",
+   "back": "ダブルタップとスクイーズは、iPad の設定 > Apple Pencil で選んだ動作に従います。"
+  },
+  "settings.openSettingsApp": {
+   "text": "Open the Settings App",
+   "back": "設定アプリを開く"
+  },
+  "settings.purchase.footer.cancel": {
+   "text": "To cancel, go to %@ on your device. After you cancel, you can keep using the app until the end of the period.",
+   "back": "解約するには、端末の %@ に進みます。解約した後も、期間の終わりまでアプリを使えます。"
+  },
+  "settings.purchase.footer.grace": {
+   "text": "There is a problem with your payment. Check your payment method in %@ on your device. You can keep using the app until the grace period ends.",
+   "back": "支払いに問題があります。端末の %@ で支払い方法を確かめてください。猶予期間が終わるまでアプリを使えます。"
+  },
+  "settings.purchase.footer.readOnly": {
+   "text": "%@ In View Only, you can view events and handwriting, move between pages, zoom, receive from iCloud, erase all handwriting on this device, export handwriting and change settings. Subscribe to write, erase or move handwriting, to create or edit events, and to import from the Web version.",
+   "back": "%@ 閲覧のみでは、予定と手書きを見る、ページを移動する、拡大縮小する、iCloud から受け取る、この端末の手書きをすべて消す、手書きを書き出す、設定を変えることができます。手書きを書く・消す・動かす、予定を作成・編集する、Web 版から取り込むには購読してください。"
+  },
+  "settings.purchase.footer.trial": {
+   "text": "To cancel, go to %@ on your device. After you cancel, you can keep using the app until the end of the period. If you cancel during the free trial, you are not charged.",
+   "back": "解約するには、端末の %@ に進みます。解約した後も、期間の終わりまでアプリを使えます。無料トライアルの間に解約すれば、請求されません。"
+  },
+  "settings.purchase.header": {
+   "text": "Purchase",
+   "back": "購入"
+  },
+  "settings.purchase.manage": {
+   "text": "Manage Subscription",
+   "back": "サブスクリプションを管理"
+  },
+  "settings.purchase.plan": {
+   "text": "Current Plan",
+   "back": "今のプラン"
+  },
+  "settings.purchase.restore": {
+   "text": "Restore Purchases",
+   "back": "購入を復元"
+  },
+  "settings.purchase.subscribe": {
+   "text": "Subscribe",
+   "back": "購読する"
+  },
+  "settings.purchase.trial.one": {
+   "text": "Try Free for %@ Day",
+   "back": "%@ 日間無料で試す"
+  },
+  "settings.purchase.trial.other": {
+   "text": "Try Free for %@ Days",
+   "back": "%@ 日間無料で試す"
+  },
+  "settings.sync.header": {
+   "text": "Sync",
+   "back": "同期"
+  },
+  "settings.sync.icloud": {
+   "text": "iCloud Sync",
+   "back": "iCloud 同期"
+  },
+  "settings.sync.lastSync": {
+   "text": "Last Synced",
+   "back": "前回の同期"
+  },
+  "settings.sync.lastSync.none": {
+   "text": "Not yet",
+   "back": "まだありません"
+  },
+  "settings.sync.newAccount": {
+   "text": "Start with the New Account…",
+   "back": "新しいアカウントで始める…"
+  },
+  "settings.sync.now": {
+   "text": "Sync Now",
+   "back": "今すぐ同期"
+  },
+  "settings.title": {
+   "text": "Settings",
+   "back": "設定"
+  },
+  "settings.weekStart.auto": {
+   "text": "Automatic (%@)",
+   "back": "自動（%@）"
+  },
+  "settings.weekStart.confirm.message.monday": {
+   "text": "Week pages are separate for weeks that start on Monday and weeks that start on Sunday. The week handwriting you have now stays hidden until you go back to Sunday (it is not deleted). Month page handwriting moves to the cell with the same date. However, some handwriting in cells for days of the previous or next month may stay hidden until you go back (it is not deleted).",
+   "back": "週のページは、月曜始まりの週と日曜始まりの週で別々です。今ある週の手書きは、日曜に戻すまで隠れます（削除されません）。月のページの手書きは、同じ日付のマスへ移ります。ただし、前後の月の日のマスにある手書きの一部は、戻すまで隠れることがあります（削除されません）。"
+  },
+  "settings.weekStart.confirm.message.sunday": {
+   "text": "Week pages are separate for weeks that start on Monday and weeks that start on Sunday. The week handwriting you have now stays hidden until you go back to Monday (it is not deleted). Month page handwriting moves to the cell with the same date. However, some handwriting in cells for days of the previous or next month may stay hidden until you go back (it is not deleted).",
+   "back": "週のページは、月曜始まりの週と日曜始まりの週で別々です。今ある週の手書きは、月曜に戻すまで隠れます（削除されません）。月のページの手書きは、同じ日付のマスへ移ります。ただし、前後の月の日のマスにある手書きの一部は、戻すまで隠れることがあります（削除されません）。"
+  },
+  "settings.weekStart.confirm.ok.monday": {
+   "text": "Use Monday",
+   "back": "月曜にする"
+  },
+  "settings.weekStart.confirm.ok.sunday": {
+   "text": "Use Sunday",
+   "back": "日曜にする"
+  },
+  "settings.weekStart.confirm.title.monday": {
+   "text": "Start weeks on Monday?",
+   "back": "週を月曜始まりにしますか？"
+  },
+  "settings.weekStart.confirm.title.sunday": {
+   "text": "Start weeks on Sunday?",
+   "back": "週を日曜始まりにしますか？"
+  },
+  "settings.weekStart.footer": {
+   "text": "Automatic follows your device region. This setting is per device. Use the same setting on each device to see the same week handwriting.",
+   "back": "自動は端末の地域に従います。この設定は端末ごとです。同じ週の手書きを見るには、どの端末でも同じ設定にしてください。"
+  },
+  "settings.weekStart.monday": {
+   "text": "Monday",
+   "back": "月曜"
+  },
+  "settings.weekStart.otherPages.one": {
+   "text": "%2$@ week page uses the other week start (%1$@). Switch to see it.",
+   "back": "%2$@ の週のページは、もう一方の週の始まり（%1$@）を使っています。切り替えると見られます。"
+  },
+  "settings.weekStart.otherPages.other": {
+   "text": "%2$@ week pages use the other week start (%1$@). Switch to see them.",
+   "back": "%2$@ の週のページは、もう一方の週の始まり（%1$@）を使っています。切り替えると見られます。"
+  },
+  "settings.weekStart.sunday": {
+   "text": "Sunday",
+   "back": "日曜"
+  },
+  "settings.weekStart.title": {
+   "text": "Week Starts On",
+   "back": "週の始まり"
+  },
+  "store.error.productNotFound": {
+   "text": "The product cannot be found",
+   "back": "商品が見つかりません"
+  },
+  "store.error.unknownPurchaseResult": {
+   "text": "The result of the purchase cannot be understood",
+   "back": "購入の結果が分かりません"
+  },
+  "store.generic": {
+   "text": "Could not complete the purchase (%@)",
+   "back": "購入を完了できませんでした（%@）"
+  },
+  "store.notAvailable": {
+   "text": "This plan cannot be purchased in your region",
+   "back": "このプランはお住まいの地域では購入できません"
+  },
+  "store.nothingToRestore": {
+   "text": "There are no purchases to restore. Check that you are signed in with the Apple Account you used to buy",
+   "back": "復元する購入がありません。購入に使った Apple アカウントでサインインしているか確かめてください"
+  },
+  "store.offline": {
+   "text": "Cannot connect to the App Store. Check your connection and try again",
+   "back": "App Store に接続できません。接続を確かめてもう一度お試しください"
+  },
+  "store.pending": {
+   "text": "Waiting for approval. You can use the app automatically once it is approved",
+   "back": "承認を待っています。承認されると自動でアプリを使えます"
+  },
+  "store.productsUnavailable": {
+   "text": "Could not get prices from the App Store. Check your connection and tap “Reload”",
+   "back": "App Store から価格を取得できませんでした。接続を確かめて「再読み込み」をタップしてください"
+  },
+  "store.purchased": {
+   "text": "Your subscription has started. Thank you",
+   "back": "サブスクリプションが始まりました。ありがとうございます"
+  },
+  "store.restored": {
+   "text": "Purchases restored",
+   "back": "購入を復元しました"
+  },
+  "store.trialStarted.one": {
+   "text": "Your %@-day free trial has started",
+   "back": "%@ 日間の無料トライアルが始まりました"
+  },
+  "store.trialStarted.other": {
+   "text": "Your %@-day free trial has started",
+   "back": "%@ 日間の無料トライアルが始まりました"
+  },
+  "store.unverified": {
+   "text": "Could not verify your purchase. Wait a while, then try “Restore Purchases”",
+   "back": "購入を確かめられませんでした。しばらく待ってから「購入を復元」をお試しください"
+  },
+  "sync.footer.accountMismatch": {
+   "text": "The handwriting on this device belongs to the iCloud account it synced with before. Choose from “Start with the New Account”.",
+   "back": "この端末の手書きは、以前に同期していた iCloud アカウントのものです。「新しいアカウントで始める」から選んでください。"
+  },
+  "sync.footer.noAccount": {
+   "text": "Sign in to iCloud to sync with your other devices. Your handwriting is saved only on this device.",
+   "back": "ほかの端末と同期するには iCloud にサインインしてください。手書きはこの端末にだけ保存されます。"
+  },
+  "sync.footer.offline": {
+   "text": "You are offline. Your handwriting is saved on this device and syncs when you are back online.",
+   "back": "オフラインです。手書きはこの端末に保存され、オンラインに戻ると同期します。"
+  },
+  "sync.footer.permission": {
+   "text": "This app is not allowed to use iCloud in your iCloud settings.",
+   "back": "iCloud の設定で、このアプリの iCloud の利用が許可されていません。"
+  },
+  "sync.footer.quota": {
+   "text": "Your handwriting cannot sync because your iCloud storage is full. It is saved on this device.",
+   "back": "iCloud の容量がいっぱいなので手書きを同期できません。この端末には保存されています。"
+  },
+  "sync.footer.restricted": {
+   "text": "Your handwriting is saved only on this device.",
+   "back": "手書きはこの端末にだけ保存されます。"
+  },
+  "sync.footer.serverError": {
+   "text": "Could not sync your handwriting. It is saved on this device (the app tries again later).\n%@",
+   "back": "手書きを同期できませんでした。この端末には保存されています（アプリが後でもう一度試します）。\n%@"
+  },
+  "sync.footer.synced": {
+   "text": "Your handwriting is saved on this device and in your iCloud. You can see the same handwriting on your other iPads and iPhones.",
+   "back": "手書きはこの端末とあなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きを見られます。"
+  },
+  "sync.footer.syncing": {
+   "text": "Sending your handwriting to iCloud.",
+   "back": "手書きを iCloud に送っています。"
+  },
+  "sync.footer.unknown": {
+   "text": "Check iCloud in the Settings app. Your handwriting is saved only on this device.",
+   "back": "設定アプリで iCloud を確かめてください。手書きはこの端末にだけ保存されます。"
+  },
+  "sync.header.error": {
+   "text": "Error",
+   "back": "エラー"
+  },
+  "sync.header.localOnly": {
+   "text": "This Device Only",
+   "back": "この端末のみ"
+  },
+  "sync.header.offline": {
+   "text": "Offline",
+   "back": "オフライン"
+  },
+  "sync.header.saved": {
+   "text": "Saved",
+   "back": "保存済み"
+  },
+  "sync.header.stopped": {
+   "text": "Stopped",
+   "back": "停止"
+  },
+  "sync.header.syncing": {
+   "text": "Syncing",
+   "back": "同期中"
+  },
+  "sync.status.accountMismatch": {
+   "text": "A different iCloud account",
+   "back": "別の iCloud アカウント"
+  },
+  "sync.status.noAccount": {
+   "text": "Not signed in to iCloud",
+   "back": "iCloud にサインインしていません"
+  },
+  "sync.status.offline": {
+   "text": "Offline",
+   "back": "オフライン"
+  },
+  "sync.status.permission": {
+   "text": "Cannot use iCloud",
+   "back": "iCloud を使えません"
+  },
+  "sync.status.quota": {
+   "text": "Not enough iCloud storage",
+   "back": "iCloud の容量が足りません"
+  },
+  "sync.status.restricted": {
+   "text": "iCloud is restricted on this device",
+   "back": "この端末では iCloud が制限されています"
+  },
+  "sync.status.serverError": {
+   "text": "Sync failed",
+   "back": "同期に失敗しました"
+  },
+  "sync.status.synced": {
+   "text": "Synced",
+   "back": "同期済み"
+  },
+  "sync.status.syncing": {
+   "text": "Syncing…",
+   "back": "同期しています…"
+  },
+  "sync.status.unknown": {
+   "text": "Cannot check iCloud",
+   "back": "iCloud を確かめられません"
+  },
+  "toast.eraseCloudFailed": {
+   "text": "Could not erase your handwriting in iCloud. The handwriting on this device was erased. Try again when you are back online",
+   "back": "iCloud の手書きを消せませんでした。この端末の手書きは消えました。オンラインに戻ったらもう一度お試しください"
+  },
+  "toast.erased": {
+   "text": "All handwriting erased",
+   "back": "すべての手書きを消しました"
+  },
+  "toast.event.created": {
+   "text": "Event added",
+   "back": "予定を追加しました"
+  },
+  "toast.event.deleted": {
+   "text": "Event deleted",
+   "back": "予定を削除しました"
+  },
+  "toast.event.noAccess": {
+   "text": "To add events, allow calendar access in Settings",
+   "back": "予定を追加するには、設定でカレンダーへのアクセスを許可してください"
+  },
+  "toast.event.noCalendar": {
+   "text": "No calendar can take new events",
+   "back": "新しい予定を入れられるカレンダーがありません"
+  },
+  "toast.event.updated": {
+   "text": "Event updated",
+   "back": "予定を更新しました"
+  },
+  "toast.eventBelowDay": {
+   "text": "You cannot create events in the Free Notes area below 24:00",
+   "back": "24:00 より下の自由メモの部分には予定を作れません"
+  },
+  "toast.growthCap": {
+   "text": "This is the end of the notes area",
+   "back": "ここがメモの部分の終わりです"
+  },
+  "toast.pinchHint": {
+   "text": "Spread two fingers to zoom in, pinch to zoom out",
+   "back": "2 本の指を広げると拡大、つまむと縮小します"
+  },
+  "toast.readOnly": {
+   "text": "View Only. Subscribe to write, erase or create events",
+   "back": "閲覧のみです。書く・消す・予定を作るには購読してください"
+  },
+  "toast.strokeBudget.full": {
+   "text": "This page is full (%@ strokes). Erase some strokes to write again.",
+   "back": "このページはいっぱいです（%@ 本）。もう一度書くには線を消してください。"
+  },
+  "toast.strokeBudget.many": {
+   "text": "This page now has more than %1$@ strokes. One page can hold up to %2$@ strokes.",
+   "back": "このページの線が %1$@ 本を超えました。1 ページに %2$@ 本まで入ります。"
+  },
+  "toast.weekStart.adopted.monday": {
+   "text": "Week start set to Monday to match your iCloud handwriting. You can change it in Settings.",
+   "back": "iCloud の手書きに合わせて、週の始まりを月曜にしました。設定で変えられます。"
+  },
+  "toast.weekStart.adopted.sunday": {
+   "text": "Week start set to Sunday to match your iCloud handwriting. You can change it in Settings.",
+   "back": "iCloud の手書きに合わせて、週の始まりを日曜にしました。設定で変えられます。"
+  },
+  "toast.weekStart.hiddenInk.one": {
+   "text": "%@ stroke on this month page is on a day the current week start hides. It is not deleted. Switch back to see it.",
+   "back": "この月のページの %@ 本の線は、今の週の始まりでは隠れる日にあります。削除されていません。切り替えて戻すと見られます。"
+  },
+  "toast.weekStart.hiddenInk.other": {
+   "text": "%@ strokes on this month page are on days the current week start hides. They are not deleted. Switch back to see them.",
+   "back": "この月のページの %@ 本の線は、今の週の始まりでは隠れる日にあります。削除されていません。切り替えて戻すと見られます。"
+  },
+  "toast.weekStart.otherForm.one": {
+   "text": "%2$@ week page uses the other week start (%1$@). It is not deleted. Switch in Settings > Week Starts On to see it.",
+   "back": "%2$@ の週のページは、もう一方の週の始まり（%1$@）を使っています。削除されていません。設定 > 週の始まり で切り替えると見られます。"
+  },
+  "toast.weekStart.otherForm.other": {
+   "text": "%2$@ week pages use the other week start (%1$@). They are not deleted. Switch in Settings > Week Starts On to see them.",
+   "back": "%2$@ の週のページは、もう一方の週の始まり（%1$@）を使っています。削除されていません。設定 > 週の始まり で切り替えると見られます。"
+  },
+  "toast.weekStart.regionChanged.monday": {
+   "text": "Week start set to Monday to match your device region. Your Sunday week handwriting is not deleted.",
+   "back": "端末の地域に合わせて、週の始まりを月曜にしました。日曜始まりの週の手書きは削除されていません。"
+  },
+  "toast.weekStart.regionChanged.sunday": {
+   "text": "Week start set to Sunday to match your device region. Your Monday week handwriting is not deleted.",
+   "back": "端末の地域に合わせて、週の始まりを日曜にしました。月曜始まりの週の手書きは削除されていません。"
+  },
+  "toolbar.badge.marker": {
+   "text": "Marker, %@",
+   "back": "マーカー、%@"
+  },
+  "toolbar.badge.pen": {
+   "text": "Pen, %@",
+   "back": "ペン、%@"
+  },
+  "toolbar.badge.penWidth": {
+   "text": "Pen, %1$@, %2$@",
+   "back": "ペン、%1$@、%2$@"
+  },
+  "toolbar.collapse.spoken": {
+   "text": "Hide toolbar",
+   "back": "ツールバーを隠す"
+  },
+  "toolbar.collapse.title": {
+   "text": "Hide",
+   "back": "隠す"
+  },
+  "toolbar.color.black": {
+   "text": "Black",
+   "back": "黒"
+  },
+  "toolbar.color.blue": {
+   "text": "Blue",
+   "back": "青"
+  },
+  "toolbar.color.green": {
+   "text": "Green",
+   "back": "緑"
+  },
+  "toolbar.color.lightBlue": {
+   "text": "Light blue",
+   "back": "水色"
+  },
+  "toolbar.color.orange": {
+   "text": "Orange",
+   "back": "オレンジ"
+  },
+  "toolbar.color.pink": {
+   "text": "Pink",
+   "back": "ピンク"
+  },
+  "toolbar.color.purple": {
+   "text": "Purple",
+   "back": "紫"
+  },
+  "toolbar.color.red": {
+   "text": "Red",
+   "back": "赤"
+  },
+  "toolbar.color.unknown": {
+   "text": "Other color",
+   "back": "ほかの色"
+  },
+  "toolbar.color.yellow": {
+   "text": "Yellow",
+   "back": "黄"
+  },
+  "toolbar.dock.hint.toLeft": {
+   "text": "Touch and hold to move to the bottom left or to always show the toolbar",
+   "back": "長押しで左下へ移すか、ツールバーを常に表示します"
+  },
+  "toolbar.dock.hint.toRight": {
+   "text": "Touch and hold to move to the bottom right or to always show the toolbar",
+   "back": "長押しで右下へ移すか、ツールバーを常に表示します"
+  },
+  "toolbar.dock.spoken": {
+   "text": "Show toolbar",
+   "back": "ツールバーを表示"
+  },
+  "toolbar.fingerToggle": {
+   "text": "Draw with Finger",
+   "back": "指で描く"
+  },
+  "toolbar.fingerToggle.hint": {
+   "text": "When this is on, you can also draw lines with your finger. When it is off, your finger scrolls and taps",
+   "back": "オンのときは、指でも線を引けます。オフのときは、指でスクロールとタップをします"
+  },
+  "toolbar.hint.eraser": {
+   "text": "Erases lines you touch",
+   "back": "触れた線を消します"
+  },
+  "toolbar.hint.eraser.toMarker": {
+   "text": "Erases lines you touch\n(then back to marker)",
+   "back": "触れた線を消します\n（その後マーカーに戻ります）"
+  },
+  "toolbar.hint.eraser.toPen": {
+   "text": "Erases lines you touch\n(then back to pen)",
+   "back": "触れた線を消します\n（その後ペンに戻ります）"
+  },
+  "toolbar.hint.event": {
+   "text": "Trace to create an event.\nTap an event to edit it",
+   "back": "なぞると予定を作ります。\n予定をタップすると編集します"
+  },
+  "toolbar.hint.lasso": {
+   "text": "Circle to select.\nDrag inside to move it",
+   "back": "囲むと選択します。\n内側をドラッグすると動かします"
+  },
+  "toolbar.moveEdge.toLeft": {
+   "text": "Move to Bottom Left",
+   "back": "左下へ移す"
+  },
+  "toolbar.moveEdge.toRight": {
+   "text": "Move to Bottom Right",
+   "back": "右下へ移す"
+  },
+  "toolbar.pin": {
+   "text": "Always Show Toolbar",
+   "back": "ツールバーを常に表示"
+  },
+  "toolbar.redo": {
+   "text": "Redo",
+   "back": "やり直す"
+  },
+  "toolbar.tool.eraser": {
+   "text": "Eraser",
+   "back": "消しゴム"
+  },
+  "toolbar.tool.event": {
+   "text": "Event",
+   "back": "予定"
+  },
+  "toolbar.tool.lasso": {
+   "text": "Lasso",
+   "back": "投げなわ"
+  },
+  "toolbar.tool.marker": {
+   "text": "Marker",
+   "back": "マーカー"
+  },
+  "toolbar.tool.pen": {
+   "text": "Pen",
+   "back": "ペン"
+  },
+  "toolbar.undo": {
+   "text": "Undo",
+   "back": "元に戻す"
+  },
+  "toolbar.width.medium": {
+   "text": "Medium",
+   "back": "中"
+  },
+  "toolbar.width.spoken": {
+   "text": "Width: %@",
+   "back": "太さ: %@"
+  },
+  "toolbar.width.thick": {
+   "text": "Thick",
+   "back": "太"
+  },
+  "toolbar.width.thin": {
+   "text": "Thin",
+   "back": "細"
+  }
+ }
+}

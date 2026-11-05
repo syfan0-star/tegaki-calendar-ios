@@ -1,0 +1,27 @@
+Tegaki 是一款可以直接在日历日程上手写的手帐 App。在 iPad 上用 Apple Pencil 书写，在 iPhone 上用手指书写。
+
+■ 可以做什么
+• 在月、周、日、年页面上，像纸质手帐一样用钢笔或马克笔书写。
+• 在同一页面上显示设备“日历”App 中的日程（iCloud、Google 日历、Exchange 等）。
+• 用套索圈住手写内容并选择“转为日程”，即可将其添加为日历日程。如果是 Google 日历的日程，也会显示在 Google 日历中。
+• 轻点日程可编辑或删除。可通过“+ 日程”或描画来创建新日程。
+• 全天日程全部显示，不会省略。
+• 显示世界各国家和地区的节假日。也可以选择美国各州等州或地区，或选择“无”不显示节假日。
+• 界面有 10 种语言（日语、英语、中文（简体和繁体）、韩语、法语、德语、西班牙语、意大利语、葡萄牙语），并跟随设备语言切换。
+• 一周的第一天可选择周一或周日。页面上的时间采用 24 小时制。
+• 轻点两下或轻捏 Apple Pencil，可切换钢笔和橡皮擦。
+• 手写内容保存在设备和你自己的 iCloud 中（在 iPad 和 iPhone 之间同步），不会发送到开发者的服务器。无需注册账户。
+• 可在“设置” > “数据” > “导出手写内容”中，将手写内容导出为所有页面的数据文件（JSON）或当前打开页面的 PDF。未订阅也可以导出。
+
+■ 使用 Google 日历
+在“设置” App > App > “日历” > “日历账户”中添加 Google 账户，并打开“日历”。此 App 通过设备上的日历读写日程，因此不会在 App 内登录 Google。
+
+Google 日历是 Google LLC 的商标。此 App 由个人开发，与 Google LLC 没有关联。
+
+■ 费用
+提供按月和按年的订阅（自动续订）。首次使用可免费试用 14 天。价格以你所在国家或地区的货币显示在 App Store 中。
+使用条款（Apple 标准 EULA）：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+服务条款（日语）：https://syfan0-star.github.io/tegaki-calendar/app/terms.html
+隐私政策（日语）：https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+
+译文由 AI 生成，尚未经过母语人士审核。如有错误，请告诉我们。

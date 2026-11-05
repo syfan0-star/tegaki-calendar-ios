@@ -1,0 +1,1 @@
+notas,diário,planejador,horário,compromissos,caneta,semanal,mensal,feriados,caderno,lembretes

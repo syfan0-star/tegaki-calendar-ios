@@ -1,0 +1,1909 @@
+{
+  "language": "zh-Hans",
+  "strings": {
+    "CFBundleDisplayName": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "jaSha1": "13238f13b8",
+      "text": "用于在手帐页面上显示日历日程，以及根据手写内容创建日程。iOS 和 iPadOS 没有只读权限，因此需要“完全访问”。日程只在此设备上处理，不会发送到外部。"
+    },
+    "account.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "取消"
+    },
+    "account.erase": {
+      "jaSha1": "6ef7cd2339",
+      "text": "抹掉手写内容并开始使用"
+    },
+    "account.eraseConfirm": {
+      "jaSha1": "dc46858bb1",
+      "text": "抹掉并开始"
+    },
+    "account.eraseMessage": {
+      "jaSha1": "1ac6edd119",
+      "text": "将抹掉此设备上的所有手写内容，并用新账户开始。此操作无法撤销。"
+    },
+    "account.eraseTitle": {
+      "jaSha1": "262064ae64",
+      "text": "确定要抹掉吗？"
+    },
+    "account.keep": {
+      "jaSha1": "5d78137553",
+      "text": "保留手写内容并开始使用"
+    },
+    "account.later": {
+      "jaSha1": "df045200ae",
+      "text": "以后再说"
+    },
+    "account.message": {
+      "jaSha1": "6e7c1cebeb",
+      "text": "此设备上的手写内容属于之前同步的 iCloud 账户。要用当前登录的账户开始使用吗？如果保留手写内容，它们会被发送到新账户的 iCloud。"
+    },
+    "account.title": {
+      "jaSha1": "91817cbe3a",
+      "text": "这是另一个 iCloud 账户"
+    },
+    "alert.saveFailed.ok": {
+      "jaSha1": "9ce3bd4224",
+      "text": "好"
+    },
+    "alert.saveFailed.title": {
+      "jaSha1": "8a5d15aaf6",
+      "text": "无法保存手写内容"
+    },
+    "allday.bar.spoken": {
+      "jaSha1": "1d0c529b57",
+      "text": "%@（编辑日程）"
+    },
+    "allday.column.spoken": {
+      "jaSha1": "6af9fc756b",
+      "text": "在 %@ 添加全天日程"
+    },
+    "allday.label": {
+      "jaSha1": "32d20f0404",
+      "text": "全天"
+    },
+    "allday.label.short": {
+      "jaSha1": "32d20f0404",
+      "text": "全天"
+    },
+    "app.name": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "census.counting": {
+      "jaSha1": "1dd488ea29",
+      "text": "正在统计…"
+    },
+    "census.entry": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "census.legacyNote": {
+      "jaSha1": "bf7cf417c4",
+      "text": "（在装有旧版本的设备上，部分内容不会显示）"
+    },
+    "census.noInk": {
+      "jaSha1": "1aaec544c9",
+      "text": "还没有手写内容"
+    },
+    "demo.calendar.events": {
+      "jaSha1": "fadc771a23",
+      "text": "活动"
+    },
+    "demo.calendar.family": {
+      "jaSha1": "242e8e5c3f",
+      "text": "家庭"
+    },
+    "demo.calendar.personal": {
+      "jaSha1": "6b75ef797f",
+      "text": "个人"
+    },
+    "demo.calendar.work": {
+      "jaSha1": "5dc4a4fa47",
+      "text": "工作"
+    },
+    "demo.event.birthday": {
+      "jaSha1": "b981696f04",
+      "text": "生日"
+    },
+    "demo.event.businessTrip": {
+      "jaSha1": "b7d0bc0c45",
+      "text": "大阪出差"
+    },
+    "demo.event.call": {
+      "jaSha1": "7177787c6e",
+      "text": "电话"
+    },
+    "demo.event.camping": {
+      "jaSha1": "9d73266cbc",
+      "text": "露营"
+    },
+    "demo.event.checkup": {
+      "jaSha1": "2fa9b336f7",
+      "text": "体检"
+    },
+    "demo.event.clinic": {
+      "jaSha1": "fc22aa3319",
+      "text": "看病"
+    },
+    "demo.event.deadline": {
+      "jaSha1": "9a0d4974c7",
+      "text": "截止日"
+    },
+    "demo.event.dentalCheck": {
+      "jaSha1": "7878d7a463",
+      "text": "牙科"
+    },
+    "demo.event.dentist": {
+      "jaSha1": "0ab9b459d7",
+      "text": "看牙"
+    },
+    "demo.event.drinks": {
+      "jaSha1": "1ac9ff3f82",
+      "text": "聚餐"
+    },
+    "demo.event.familyTrip": {
+      "jaSha1": "7d72df1137",
+      "text": "家庭旅行"
+    },
+    "demo.event.farewell": {
+      "jaSha1": "68f7e087cf",
+      "text": "欢送会"
+    },
+    "demo.event.lunch": {
+      "jaSha1": "86ae0d89c5",
+      "text": "午餐"
+    },
+    "demo.event.meeting": {
+      "jaSha1": "950306f34c",
+      "text": "开会"
+    },
+    "demo.event.morningMeeting": {
+      "jaSha1": "cd3756c357",
+      "text": "晨会"
+    },
+    "demo.event.oneOnOne": {
+      "jaSha1": "572d330eae",
+      "text": "面谈"
+    },
+    "demo.event.payday": {
+      "jaSha1": "a6d79abf16",
+      "text": "发薪日"
+    },
+    "demo.event.report": {
+      "jaSha1": "a169adf953",
+      "text": "交资料"
+    },
+    "demo.event.reportDeadline": {
+      "jaSha1": "687b31ee31",
+      "text": "资料截止"
+    },
+    "demo.event.review": {
+      "jaSha1": "3c5ba2f1b6",
+      "text": "评审"
+    },
+    "demo.event.sportsDay": {
+      "jaSha1": "5af51095ee",
+      "text": "运动会"
+    },
+    "demo.event.trashDay": {
+      "jaSha1": "4e6d520e09",
+      "text": "倒垃圾日"
+    },
+    "demo.event.weeklyMeeting": {
+      "jaSha1": "a2e915ee1e",
+      "text": "周例会"
+    },
+    "demo.source": {
+      "jaSha1": "4a37aeaa33",
+      "text": "示例"
+    },
+    "event.allDay": {
+      "jaSha1": "32d20f0404",
+      "text": "全天"
+    },
+    "event.calendar": {
+      "jaSha1": "340ba3962c",
+      "text": "日历"
+    },
+    "event.calendarReadOnlyNote": {
+      "jaSha1": "eb0c4e3fe3",
+      "text": "无法更改此日历（只读）"
+    },
+    "event.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "取消"
+    },
+    "event.close": {
+      "jaSha1": "3da5c18551",
+      "text": "关闭"
+    },
+    "event.delete": {
+      "jaSha1": "5cbdf1fd70",
+      "text": "删除"
+    },
+    "event.deleteConfirm": {
+      "jaSha1": "c23c94d93d",
+      "text": "要删除此日程吗？"
+    },
+    "event.end": {
+      "jaSha1": "ecc8edea5c",
+      "text": "结束"
+    },
+    "event.endDay": {
+      "jaSha1": "1c64938200",
+      "text": "结束日期"
+    },
+    "event.eraseInk": {
+      "jaSha1": "60d0d1143a",
+      "text": "抹掉这段手写内容"
+    },
+    "event.error.calendarNotFound": {
+      "jaSha1": "b116d40631",
+      "text": "找不到要添加到的日历"
+    },
+    "event.error.emptyTitle": {
+      "jaSha1": "47022bc333",
+      "text": "请输入标题"
+    },
+    "event.error.endBeforeStart": {
+      "jaSha1": "d5d0c3dc80",
+      "text": "结束时间必须晚于开始时间"
+    },
+    "event.error.endDayBeforeStart": {
+      "jaSha1": "b8f6d47283",
+      "text": "结束日期不能早于开始日期"
+    },
+    "event.error.eventNotFound": {
+      "jaSha1": "d9066009ab",
+      "text": "找不到日程（可能已在其他设备上删除）"
+    },
+    "event.error.failed": {
+      "jaSha1": "67da494bf8",
+      "text": "无法保存：%@"
+    },
+    "event.error.noAccess": {
+      "jaSha1": "b0733802ca",
+      "text": "未允许访问日历"
+    },
+    "event.error.noWritableCalendar": {
+      "jaSha1": "41d7eee11d",
+      "text": "没有可添加日程的日历"
+    },
+    "event.error.readOnlyCalendar": {
+      "jaSha1": "73cb30320e",
+      "text": "无法更改此日历"
+    },
+    "event.location": {
+      "jaSha1": "07c4e81b27",
+      "text": "位置"
+    },
+    "event.notes": {
+      "jaSha1": "9060a06d59",
+      "text": "备注"
+    },
+    "event.recurringNote": {
+      "jaSha1": "87717ca117",
+      "text": "这是重复日程。保存或删除时，请选择“仅此次”或“此次及以后”"
+    },
+    "event.save": {
+      "jaSha1": "fadf24dbc5",
+      "text": "保存"
+    },
+    "event.saveFailed": {
+      "jaSha1": "babde2eaee",
+      "text": "无法保存"
+    },
+    "event.saving": {
+      "jaSha1": "6644f06197",
+      "text": "正在保存…"
+    },
+    "event.scribbleNote": {
+      "jaSha1": "39f61b9472",
+      "text": "用 Apple Pencil 在栏内书写，可转换为文字（随手写）"
+    },
+    "event.snapshotCaption": {
+      "jaSha1": "48fcac2b68",
+      "text": "书写的内容"
+    },
+    "event.start": {
+      "jaSha1": "a95bf2fed6",
+      "text": "开始"
+    },
+    "event.startDay": {
+      "jaSha1": "f4850c3619",
+      "text": "开始日期"
+    },
+    "event.subscribe": {
+      "jaSha1": "95a3390dcc",
+      "text": "订阅"
+    },
+    "event.subscriptionNote": {
+      "jaSha1": "7135ad9680",
+      "text": "订阅后可创建和编辑日程。"
+    },
+    "event.title.create": {
+      "jaSha1": "f0037cac7f",
+      "text": "添加日程"
+    },
+    "event.title.detail": {
+      "jaSha1": "107f0ad4e5",
+      "text": "日程详情"
+    },
+    "event.title.edit": {
+      "jaSha1": "ed645245ce",
+      "text": "编辑日程"
+    },
+    "event.titleHeader": {
+      "jaSha1": "47b4753f22",
+      "text": "标题"
+    },
+    "event.titlePlaceholder": {
+      "jaSha1": "7126a9af93",
+      "text": "用笔在这里书写即可转为文字"
+    },
+    "event.untitled": {
+      "jaSha1": "89e1d46903",
+      "text": "（无标题）"
+    },
+    "event.when.dateTime": {
+      "jaSha1": "8d677dd5f1",
+      "text": "%1$@ %2$@"
+    },
+    "export.close": {
+      "jaSha1": "3da5c18551",
+      "text": "关闭"
+    },
+    "export.done.json.one": {
+      "jaSha1": "abd27ccfd0",
+      "text": "%1$@（%2$@ 页 · %3$@）"
+    },
+    "export.done.json.other": {
+      "jaSha1": "abd27ccfd0",
+      "text": "%1$@（%2$@ 页 · %3$@）"
+    },
+    "export.done.pdf": {
+      "jaSha1": "f69c7bc18a",
+      "text": "%1$@（%2$@）"
+    },
+    "export.done.title": {
+      "jaSha1": "c019c70790",
+      "text": "已导出"
+    },
+    "export.error.closed": {
+      "jaSha1": "1d285e5b75",
+      "text": "文件已关闭"
+    },
+    "export.error.createFailed": {
+      "jaSha1": "c21b458906",
+      "text": "无法创建文件：%@"
+    },
+    "export.failed": {
+      "jaSha1": "caadfe6b0a",
+      "text": "无法导出：%@"
+    },
+    "export.json.note": {
+      "jaSha1": "8ecc87d9f4",
+      "text": "将保存在此设备上的所有手写内容合并为一个文件。可在“设置” > “数据” > “导入网页版手写内容”中重新导入（导入需要订阅）。"
+    },
+    "export.json.title": {
+      "jaSha1": "9ff79abfce",
+      "text": "数据文件（JSON，所有页面）"
+    },
+    "export.nothing": {
+      "jaSha1": "4c53d27de4",
+      "text": "没有可导出的手写内容"
+    },
+    "export.pdf.building": {
+      "jaSha1": "fb0729638c",
+      "text": "正在制作 PDF…"
+    },
+    "export.pdf.note": {
+      "jaSha1": "c1493af6d7",
+      "text": "将当前打开的页面（%1$@ · %2$@）制作成一页 PDF。纸张、日程、节假日和手写内容会按屏幕所示呈现。"
+    },
+    "export.pdf.title": {
+      "jaSha1": "6ef95e0e2b",
+      "text": "此页面的 PDF"
+    },
+    "export.progress.one": {
+      "jaSha1": "4960350917",
+      "text": "正在导出… %1$@ / %2$@ 页"
+    },
+    "export.progress.other": {
+      "jaSha1": "4960350917",
+      "text": "正在导出… %1$@ / %2$@ 页"
+    },
+    "export.renderFailed": {
+      "jaSha1": "05dcb5860d",
+      "text": "无法制作 PDF"
+    },
+    "export.share": {
+      "jaSha1": "0fa94f1957",
+      "text": "共享…"
+    },
+    "export.title": {
+      "jaSha1": "bed7b93489",
+      "text": "导出手写内容"
+    },
+    "export.writeFailed": {
+      "jaSha1": "2764349d08",
+      "text": "无法写入文件：%@"
+    },
+    "header.addEvent": {
+      "jaSha1": "eb000e9544",
+      "text": "日程"
+    },
+    "header.addEvent.spoken": {
+      "jaSha1": "f0037cac7f",
+      "text": "添加日程"
+    },
+    "header.day.spoken": {
+      "jaSha1": "d29f0447e2",
+      "text": "%1$@（打开日页面）"
+    },
+    "header.month.spoken": {
+      "jaSha1": "e5e6e5a89d",
+      "text": "%1$@（打开月页面）"
+    },
+    "header.next.day": {
+      "jaSha1": "28753d5ded",
+      "text": "后一天"
+    },
+    "header.next.month": {
+      "jaSha1": "1bff85ad86",
+      "text": "下个月"
+    },
+    "header.next.week": {
+      "jaSha1": "1569e4d9a4",
+      "text": "下一周"
+    },
+    "header.next.year": {
+      "jaSha1": "17daff90cc",
+      "text": "下一年"
+    },
+    "header.picker.day": {
+      "jaSha1": "15917f3b32",
+      "text": "日"
+    },
+    "header.picker.month": {
+      "jaSha1": "d9b59879f3",
+      "text": "月"
+    },
+    "header.picker.spoken": {
+      "jaSha1": "586d6bed3d",
+      "text": "切换视图"
+    },
+    "header.picker.week": {
+      "jaSha1": "c7803dadcd",
+      "text": "周"
+    },
+    "header.picker.year": {
+      "jaSha1": "6f14c2641c",
+      "text": "年"
+    },
+    "header.pickerItem.day": {
+      "jaSha1": "1b494df9d8",
+      "text": "日视图"
+    },
+    "header.pickerItem.month": {
+      "jaSha1": "90160fc70e",
+      "text": "月视图"
+    },
+    "header.pickerItem.week": {
+      "jaSha1": "80004acfce",
+      "text": "周视图"
+    },
+    "header.pickerItem.year": {
+      "jaSha1": "f947802a99",
+      "text": "年视图"
+    },
+    "header.previous.day": {
+      "jaSha1": "f6f002ec19",
+      "text": "前一天"
+    },
+    "header.previous.month": {
+      "jaSha1": "192afd5d18",
+      "text": "上个月"
+    },
+    "header.previous.week": {
+      "jaSha1": "b1845477ef",
+      "text": "上一周"
+    },
+    "header.previous.year": {
+      "jaSha1": "edc3eea346",
+      "text": "上一年"
+    },
+    "header.readOnly.spoken": {
+      "jaSha1": "b0395af688",
+      "text": "仅查看。打开订阅说明"
+    },
+    "header.settings.spoken": {
+      "jaSha1": "6329f21c41",
+      "text": "设置"
+    },
+    "header.sync.spoken": {
+      "jaSha1": "cdb5883a5b",
+      "text": "同步：%@"
+    },
+    "header.today": {
+      "jaSha1": "574cd4fb79",
+      "text": "今天"
+    },
+    "holidayPicker.auto": {
+      "jaSha1": "f841a4d98b",
+      "text": "自动（此设备的地区：%@）"
+    },
+    "holidayPicker.countries": {
+      "jaSha1": "9ba0c03013",
+      "text": "国家或地区"
+    },
+    "holidayPicker.deviceRegion": {
+      "jaSha1": "853387474c",
+      "text": "此设备的地区：%@"
+    },
+    "holidayPicker.localAreas": {
+      "jaSha1": "4a2a3e77ae",
+      "text": "其他地区（城市等）"
+    },
+    "holidayPicker.none": {
+      "jaSha1": "1a2e920ba7",
+      "text": "无"
+    },
+    "holidayPicker.search": {
+      "jaSha1": "244732de94",
+      "text": "搜索国家或地区"
+    },
+    "holidayPicker.subdivisionHint": {
+      "jaSha1": "2504fd39f6",
+      "text": "选择州或地区后，会加入该地区的节假日"
+    },
+    "holidayPicker.subdivisions": {
+      "jaSha1": "4b9e4db03c",
+      "text": "州或地区"
+    },
+    "holidayPicker.subdivisions.footer": {
+      "jaSha1": "7ca56ba8aa",
+      "text": "州或地区的名称按数据原样显示（英语或当地语言）。"
+    },
+    "holidayPicker.title": {
+      "jaSha1": "445c8551f9",
+      "text": "显示的节假日"
+    },
+    "holidayPicker.wholeCountry": {
+      "jaSha1": "0cfaa11569",
+      "text": "全国"
+    },
+    "import.close": {
+      "jaSha1": "3da5c18551",
+      "text": "关闭"
+    },
+    "import.confirmLarge.cancel": {
+      "jaSha1": "18ca8614b7",
+      "text": "取消"
+    },
+    "import.confirmLarge.import": {
+      "jaSha1": "383cf95339",
+      "text": "导入"
+    },
+    "import.confirmLarge.more.one": {
+      "jaSha1": "011dbddd20",
+      "text": "另外 %@ 页"
+    },
+    "import.confirmLarge.more.other": {
+      "jaSha1": "011dbddd20",
+      "text": "另外 %@ 页"
+    },
+    "import.confirmLarge.separator": {
+      "jaSha1": "611e057fbc",
+      "text": "、"
+    },
+    "import.confirmLarge.text": {
+      "jaSha1": "750c7e4709",
+      "text": "导入后，有些页面的线条会超过 %1$@ 条（%2$@）。此版本会全部显示，但在装有旧版本的设备上，其中一部分不会显示。要导入吗？"
+    },
+    "import.confirmLarge.title": {
+      "jaSha1": "fde96141cf",
+      "text": "有些页面的线条非常多"
+    },
+    "import.invalidJSON": {
+      "jaSha1": "2cdc2663c0",
+      "text": "无法读取文件"
+    },
+    "import.notAnExport": {
+      "jaSha1": "1fb7848e1d",
+      "text": "此文件不是手写内容的导出文件（来自网页版或此 App）"
+    },
+    "import.nothing": {
+      "jaSha1": "a692889f9f",
+      "text": "没有可导入的内容（已全部导入）"
+    },
+    "import.otherWeekStart.monday": {
+      "jaSha1": "c273d00aff",
+      "text": "导入的周页面中，有一部分在将一周的第一天设为周一后可以看到。"
+    },
+    "import.otherWeekStart.sunday": {
+      "jaSha1": "56ce607cfd",
+      "text": "导入的周页面中，有一部分在将一周的第一天设为周日后可以看到。"
+    },
+    "import.progress.one": {
+      "jaSha1": "2c2cacba2a",
+      "text": "正在导入… %1$@ / %2$@ 页"
+    },
+    "import.progress.other": {
+      "jaSha1": "2c2cacba2a",
+      "text": "正在导入… %1$@ / %2$@ 页"
+    },
+    "import.progress.reading": {
+      "jaSha1": "371d47654d",
+      "text": "正在导入…"
+    },
+    "import.result.app": {
+      "jaSha1": "9d6328f350",
+      "text": "已导入手写内容（%1$@ · %2$@）"
+    },
+    "import.result.pages.one": {
+      "jaSha1": "e0587d9fa6",
+      "text": "%@ 页"
+    },
+    "import.result.pages.other": {
+      "jaSha1": "e0587d9fa6",
+      "text": "%@ 页"
+    },
+    "import.result.strokes.one": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ 条线"
+    },
+    "import.result.strokes.other": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ 条线"
+    },
+    "import.result.web": {
+      "jaSha1": "077f7c0956",
+      "text": "已导入网页版手写内容（%1$@ · %2$@）"
+    },
+    "import.saveFailed": {
+      "jaSha1": "67da494bf8",
+      "text": "无法保存：%@"
+    },
+    "import.skipped.one": {
+      "jaSha1": "dc583f5a8b",
+      "text": "已跳过 %@ 页（不在导入范围内）"
+    },
+    "import.skipped.other": {
+      "jaSha1": "dc583f5a8b",
+      "text": "已跳过 %@ 页（不在导入范围内）"
+    },
+    "import.title": {
+      "jaSha1": "6996e64bb2",
+      "text": "导入网页版手写内容"
+    },
+    "import.unsupportedVersion": {
+      "jaSha1": "17375b2f9d",
+      "text": "此文件使用较新的格式（v%@）。请更新 App"
+    },
+    "info.translationNote": {
+      "jaSha1": "759b80ff62",
+      "text": "此 App 的译文由 AI 生成，并通过译回日语进行了核对。目前尚未经过母语人士审核。如果发现错误，请写信至 syfan0@gmail.com。"
+    },
+    "kit.app.name": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "kit.budget.count.one": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ 条线"
+    },
+    "kit.budget.count.other": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ 条线"
+    },
+    "kit.budget.page.day": {
+      "jaSha1": "4ed1d179a0",
+      "text": "日页面（%@）"
+    },
+    "kit.budget.page.month": {
+      "jaSha1": "40568f61af",
+      "text": "月页面（%@）"
+    },
+    "kit.budget.page.week": {
+      "jaSha1": "0026a4ade1",
+      "text": "周页面（%@）"
+    },
+    "kit.budget.page.year": {
+      "jaSha1": "9e1122aeb8",
+      "text": "年页面（%@）"
+    },
+    "kit.export.jsonFileName": {
+      "jaSha1": "21f0bc85ac",
+      "text": "Tegaki 手写 %@.json"
+    },
+    "kit.export.kind.day": {
+      "jaSha1": "15917f3b32",
+      "text": "日"
+    },
+    "kit.export.kind.month": {
+      "jaSha1": "d9b59879f3",
+      "text": "月"
+    },
+    "kit.export.kind.week": {
+      "jaSha1": "c7803dadcd",
+      "text": "周"
+    },
+    "kit.export.kind.year": {
+      "jaSha1": "6f14c2641c",
+      "text": "年"
+    },
+    "kit.holiday.dayOff": {
+      "jaSha1": "5a5955b142",
+      "text": "休息日"
+    },
+    "kit.holiday.estimatedSuffix": {
+      "jaSha1": "e3372f0c89",
+      "text": "（推算）"
+    },
+    "kit.layout.more.one": {
+      "jaSha1": "388c67a943",
+      "text": "+%@ 项"
+    },
+    "kit.layout.more.other": {
+      "jaSha1": "388c67a943",
+      "text": "+%@ 项"
+    },
+    "kit.legal.appleEULATitle": {
+      "jaSha1": "d162aab7fe",
+      "text": "使用条款（Apple 标准 EULA）"
+    },
+    "kit.plan.badge.readOnly": {
+      "jaSha1": "299ac5001a",
+      "text": "仅查看"
+    },
+    "kit.plan.cancelPath": {
+      "jaSha1": "8e172357e5",
+      "text": "“设置” > 你的姓名 > “订阅”"
+    },
+    "kit.plan.date.expires": {
+      "jaSha1": "f0ba49ce31",
+      "text": "有效期至"
+    },
+    "kit.plan.date.graceUntil": {
+      "jaSha1": "595ab42814",
+      "text": "宽限期结束"
+    },
+    "kit.plan.date.renews": {
+      "jaSha1": "5b07c58b47",
+      "text": "下次续订"
+    },
+    "kit.plan.date.trialEnds": {
+      "jaSha1": "78bd16814b",
+      "text": "试用结束"
+    },
+    "kit.plan.date.trialEndsPaid": {
+      "jaSha1": "334c23c918",
+      "text": "试用结束（之后转为付费）"
+    },
+    "kit.plan.monthly": {
+      "jaSha1": "b0587b0eda",
+      "text": "按月"
+    },
+    "kit.plan.note.billingRetry": {
+      "jaSha1": "b86158d941",
+      "text": "你的付款有问题。请在%@中确认付款方式。"
+    },
+    "kit.plan.note.expired": {
+      "jaSha1": "ab6b9caeaa",
+      "text": "你的订阅已过期。"
+    },
+    "kit.plan.note.notSubscribed": {
+      "jaSha1": "1ac2ddad19",
+      "text": "你尚未订阅。"
+    },
+    "kit.plan.note.revoked": {
+      "jaSha1": "52a7e70442",
+      "text": "你的购买已被退款或取消。"
+    },
+    "kit.plan.note.unknown": {
+      "jaSha1": "9a244ec99d",
+      "text": "暂时无法确认购买状态。网络恢复后会自动确认。"
+    },
+    "kit.plan.paymentPath": {
+      "jaSha1": "f6b64195fa",
+      "text": "“设置” > 你的姓名 > “付款与配送”"
+    },
+    "kit.plan.perPeriod.monthly": {
+      "jaSha1": "7a3bee7c87",
+      "text": "/月"
+    },
+    "kit.plan.perPeriod.yearly": {
+      "jaSha1": "414d548ef9",
+      "text": "/年"
+    },
+    "kit.plan.savings.one": {
+      "jaSha1": "a08243c355",
+      "text": "省 %@ 个月"
+    },
+    "kit.plan.savings.other": {
+      "jaSha1": "a08243c355",
+      "text": "省 %@ 个月"
+    },
+    "kit.plan.status.billingRetry": {
+      "jaSha1": "cef49ac1f3",
+      "text": "付款有问题（仅查看）"
+    },
+    "kit.plan.status.expired": {
+      "jaSha1": "2f14adfb16",
+      "text": "已过期（仅查看）"
+    },
+    "kit.plan.status.notSubscribed": {
+      "jaSha1": "8660cd5b0b",
+      "text": "未购买（仅查看）"
+    },
+    "kit.plan.status.revoked": {
+      "jaSha1": "b8a23ab7ca",
+      "text": "已退款（仅查看）"
+    },
+    "kit.plan.status.subscribed": {
+      "jaSha1": "a9a5550313",
+      "text": "%@ · 有效"
+    },
+    "kit.plan.status.subscribedGrace": {
+      "jaSha1": "e238bde0b0",
+      "text": "%@ · 付款有问题（宽限期内）"
+    },
+    "kit.plan.status.trial": {
+      "jaSha1": "15d24fc12b",
+      "text": "%@ · 试用中"
+    },
+    "kit.plan.status.unknown": {
+      "jaSha1": "c789ee5664",
+      "text": "确认中（仅查看）"
+    },
+    "kit.plan.yearly": {
+      "jaSha1": "653f5f79ca",
+      "text": "按年"
+    },
+    "license.contributors": {
+      "jaSha1": "303fb674b8",
+      "text": "Contributors: %@"
+    },
+    "license.holidayData": {
+      "jaSha1": "3dca1f8623",
+      "text": "节假日数据：python-holidays（MIT 许可证）"
+    },
+    "notice.calendar.denied": {
+      "jaSha1": "ea5cc73d2c",
+      "text": "若要显示日程，请在“设置”中将日历设为“完全访问”。"
+    },
+    "notice.calendar.denied.openSettings": {
+      "jaSha1": "56b6cd2c1a",
+      "text": "打开设置"
+    },
+    "notice.calendar.notDetermined": {
+      "jaSha1": "07a38bd187",
+      "text": "若要显示日程，请允许访问日历。"
+    },
+    "notice.calendar.notDetermined.allow": {
+      "jaSha1": "b740f07401",
+      "text": "允许"
+    },
+    "notice.calendar.restricted": {
+      "jaSha1": "08d6f4ec1d",
+      "text": "此设备的日历访问受到限制。你仍可使用手写。"
+    },
+    "notice.readOnly.button": {
+      "jaSha1": "95a3390dcc",
+      "text": "订阅"
+    },
+    "notice.readOnly.text": {
+      "jaSha1": "183091940d",
+      "text": "仅查看。订阅后可手写和创建日程。"
+    },
+    "onboarding.access.text": {
+      "jaSha1": "4ff6bcf2be",
+      "text": "下一个屏幕将请求日历的“完全访问”权限，用于在手帐页面上显示日程，以及根据手写内容创建日程。\n\niOS 和 iPadOS 没有只读权限，因此需要“完全访问”。日程只在此设备上处理，不会发送给开发者或其他任何人。"
+    },
+    "onboarding.access.title": {
+      "jaSha1": "47388e7b3b",
+      "text": "日历访问"
+    },
+    "onboarding.account.text": {
+      "jaSha1": "5dbfbae3d5",
+      "text": "此 App 显示此设备“日历”中的日程。\n\n%@"
+    },
+    "onboarding.account.title": {
+      "jaSha1": "bc46330e47",
+      "text": "日历账户"
+    },
+    "onboarding.askPermission": {
+      "jaSha1": "1f2325f398",
+      "text": "显示权限请求"
+    },
+    "onboarding.dayPageTap": {
+      "jaSha1": "c243e7a23d",
+      "text": "若要打开日页面：在年页面上用手指轻点日期或左端的数字（本月的那一天），在月页面上轻点日期数字，或在周、月、年页面上用手指轻点两下格子。"
+    },
+    "onboarding.icloud.text": {
+      "jaSha1": "3f2d0924e1",
+      "text": "手写内容保存在此设备和你的 iCloud 中。在其他 iPad 和 iPhone 上也能看到相同的手写内容。\n\n未登录 iCloud 时，只保存在此设备上。无需设置 iCloud（只要此设备已登录，就会自动使用）。\n\n开发者看不到你的手写内容。使用的是你自己的 iCloud 储存空间。"
+    },
+    "onboarding.icloud.title": {
+      "jaSha1": "2ca100d6c2",
+      "text": "iCloud 与手写内容的保存"
+    },
+    "onboarding.next": {
+      "jaSha1": "e572295bb2",
+      "text": "下一步"
+    },
+    "onboarding.openSettings": {
+      "jaSha1": "42b6a33aa6",
+      "text": "打开“设置” App"
+    },
+    "onboarding.pen.text": {
+      "jaSha1": "cbfca1a23d",
+      "text": "用 Apple Pencil 在纸上书写。手指用于滚动、双指捏合缩放和轻点日程。手掌碰到屏幕也不会画线。\n\n如果也想用手指书写，请打开工具栏中的“用手指书写”。轻点两下或轻捏 Apple Pencil 时，会按你在 iPad 的“设置” > Apple Pencil 中选择的操作切换钢笔和橡皮擦。\n\n%@"
+    },
+    "onboarding.pen.title": {
+      "jaSha1": "3bbf69218f",
+      "text": "用笔书写，用手指移动"
+    },
+    "paper.freeMemo": {
+      "jaSha1": "b656a370a2",
+      "text": "自由备忘"
+    },
+    "paper.memo": {
+      "jaSha1": "9060a06d59",
+      "text": "备忘"
+    },
+    "paywall.after.paid": {
+      "jaSha1": "7eed0f4ad1",
+      "text": "%@。自动续订。可随时取消。"
+    },
+    "paywall.after.trial": {
+      "jaSha1": "6e0bdb7186",
+      "text": "试用后 %@。可随时取消。"
+    },
+    "paywall.billingRetryLead": {
+      "jaSha1": "b86158d941",
+      "text": "你的付款有问题。请在%@中确认付款方式。"
+    },
+    "paywall.blockedLead": {
+      "jaSha1": "701899d4b5",
+      "text": "书写、擦除或创建日程需要订阅。"
+    },
+    "paywall.blockedTrial.one": {
+      "jaSha1": "b406d6cff8",
+      "text": "可免费试用 %@ 天。"
+    },
+    "paywall.blockedTrial.other": {
+      "jaSha1": "b406d6cff8",
+      "text": "可免费试用 %@ 天。"
+    },
+    "paywall.cta.buy": {
+      "jaSha1": "363f4becb9",
+      "text": "购买"
+    },
+    "paywall.cta.trial.one": {
+      "jaSha1": "97906f141e",
+      "text": "免费试用 %@ 天"
+    },
+    "paywall.cta.trial.other": {
+      "jaSha1": "97906f141e",
+      "text": "免费试用 %@ 天"
+    },
+    "paywall.disclosure.paid": {
+      "jaSha1": "668351dd92",
+      "text": "订阅会自动续订。除非在当前周期结束前至少 24 小时取消，否则将按相同周期和相同价格续订，并向你的 Apple 账户收费。费用在确认购买时收取。你可以随时在设备上的%@中取消。取消后，你仍可使用到已付费周期结束。"
+    },
+    "paywall.disclosure.trial": {
+      "jaSha1": "efebe5cf89",
+      "text": "订阅会自动续订。除非在当前周期结束前至少 24 小时取消，否则将按相同周期和相同价格续订，并向你的 Apple 账户收费。费用在免费试用结束时收取。你可以随时在设备上的%@中取消。取消后，你仍可使用到已付费周期结束。"
+    },
+    "paywall.feature.events": {
+      "jaSha1": "4a8d61cb9c",
+      "text": "根据手写内容创建日程。创建和编辑日程"
+    },
+    "paywall.feature.ink": {
+      "jaSha1": "0180b3f704",
+      "text": "手写（钢笔、马克笔、橡皮擦、套索）"
+    },
+    "paywall.feature.sync": {
+      "jaSha1": "11b8cc250d",
+      "text": "通过 iCloud 与 iPad 和 iPhone 同步"
+    },
+    "paywall.intro": {
+      "jaSha1": "19bd09dd43",
+      "text": "这是一本手帐，可以用 Apple Pencil 在 iPad 的日历上自由书写。"
+    },
+    "paywall.later": {
+      "jaSha1": "df045200ae",
+      "text": "以后再说"
+    },
+    "paywall.manage": {
+      "jaSha1": "41d0800450",
+      "text": "管理订阅"
+    },
+    "paywall.noPriceNote": {
+      "jaSha1": "665739dcab",
+      "text": "无法获取价格"
+    },
+    "paywall.privacy": {
+      "jaSha1": "6bc76e56df",
+      "text": "隐私政策"
+    },
+    "paywall.recommended": {
+      "jaSha1": "343a26d481",
+      "text": "推荐"
+    },
+    "paywall.reload": {
+      "jaSha1": "60c8aac010",
+      "text": "重新载入"
+    },
+    "paywall.restore": {
+      "jaSha1": "9f62acdacd",
+      "text": "恢复购买"
+    },
+    "paywall.revokedLead": {
+      "jaSha1": "d461a8cca5",
+      "text": "你的购买已被退款或取消。若要再次使用，请订阅。"
+    },
+    "paywall.terms": {
+      "jaSha1": "5978cbf78a",
+      "text": "服务条款"
+    },
+    "paywall.title": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "paywall.trialIneligible": {
+      "jaSha1": "05b3529c54",
+      "text": "你不符合免费试用的条件（每个 Apple 账户限试用一次）。"
+    },
+    "paywall.trialLead.one": {
+      "jaSha1": "512b357b5c",
+      "text": "免费试用 %@ 天。"
+    },
+    "paywall.trialLead.other": {
+      "jaSha1": "512b357b5c",
+      "text": "免费试用 %@ 天。"
+    },
+    "paywall.trialRest": {
+      "jaSha1": "5e25c1d75b",
+      "text": "试用期结束后将自动转为付费。在试用期间取消不会收费。"
+    },
+    "paywall.yearlyNote.both": {
+      "jaSha1": "7f2985ec8f",
+      "text": "每月 %1$@ · %2$@"
+    },
+    "paywall.yearlyNote.perMonth": {
+      "jaSha1": "dcb5ff5c0d",
+      "text": "每月 %@"
+    },
+    "recurrence.futureEvents": {
+      "jaSha1": "91127e54b9",
+      "text": "此次及以后"
+    },
+    "recurrence.message.delete": {
+      "jaSha1": "a993eb1c14",
+      "text": "要仅删除此次，还是删除此次及以后的全部日程？"
+    },
+    "recurrence.message.save": {
+      "jaSha1": "f88f4cb3a1",
+      "text": "要仅更改此次，还是应用到此次及以后的全部日程？"
+    },
+    "recurrence.thisEvent": {
+      "jaSha1": "1fd0e67574",
+      "text": "仅此次"
+    },
+    "recurrence.title": {
+      "jaSha1": "e0bfa4b878",
+      "text": "这是重复日程"
+    },
+    "selection.delete": {
+      "jaSha1": "5cbdf1fd70",
+      "text": "删除"
+    },
+    "selection.deselect": {
+      "jaSha1": "8c9d7fae5f",
+      "text": "取消选择"
+    },
+    "selection.handwriting": {
+      "jaSha1": "137731cd40",
+      "text": "选中的手写内容"
+    },
+    "selection.makeEvent": {
+      "jaSha1": "e82f097a14",
+      "text": "转为日程"
+    },
+    "settings.calendar.a11y.hidden": {
+      "jaSha1": "dc9c6d6082",
+      "text": "已隐藏"
+    },
+    "settings.calendar.a11y.shown": {
+      "jaSha1": "7431dbfdd2",
+      "text": "显示中"
+    },
+    "settings.calendar.access.allow": {
+      "jaSha1": "b740f07401",
+      "text": "允许"
+    },
+    "settings.calendar.access.denied": {
+      "jaSha1": "f5d82753b7",
+      "text": "未允许"
+    },
+    "settings.calendar.access.full": {
+      "jaSha1": "3a1828c35b",
+      "text": "已允许（完全访问）"
+    },
+    "settings.calendar.access.notDetermined": {
+      "jaSha1": "866cd4d13b",
+      "text": "尚未允许"
+    },
+    "settings.calendar.access.restricted": {
+      "jaSha1": "55bfb31527",
+      "text": "在此设备上受限"
+    },
+    "settings.calendar.access.title": {
+      "jaSha1": "47388e7b3b",
+      "text": "日历访问"
+    },
+    "settings.calendar.access.writeOnly": {
+      "jaSha1": "9a7ad5f558",
+      "text": "仅添加（无法显示日程）"
+    },
+    "settings.calendar.default": {
+      "jaSha1": "241d4396d1",
+      "text": "新日程添加到"
+    },
+    "settings.calendar.empty": {
+      "jaSha1": "c0b03f339c",
+      "text": "没有日历"
+    },
+    "settings.calendar.google.howTo": {
+      "jaSha1": "4f784db710",
+      "text": "若要显示 Google 日历的日程，请在“设置” App 中添加 Google 账户。\n① “设置” > App > “日历” > “日历账户” > “添加账户” > Google（iOS 和 iPadOS 17：“设置” > “日历” > “账户”）\n② 打开“日历”开关\n③ 在同一屏幕的“抓取新数据”中选择“每 15 分钟”，日程会更快更新。\n\n如果只使用 iCloud 日历，无需进行任何设置。"
+    },
+    "settings.calendar.google.title": {
+      "jaSha1": "c21e5b3670",
+      "text": "使用 Google 日历"
+    },
+    "settings.calendar.header": {
+      "jaSha1": "340ba3962c",
+      "text": "日历"
+    },
+    "settings.calendar.noAccess": {
+      "jaSha1": "ebd07f259a",
+      "text": "允许访问日历后，这里会显示列表"
+    },
+    "settings.calendar.otherSource": {
+      "jaSha1": "7c2281ce71",
+      "text": "其他"
+    },
+    "settings.calendar.shown": {
+      "jaSha1": "aaca081301",
+      "text": "显示的日历"
+    },
+    "settings.data.erase.all": {
+      "jaSha1": "e2b84fa132",
+      "text": "全部抹掉"
+    },
+    "settings.data.erase.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "取消"
+    },
+    "settings.data.erase.confirm": {
+      "jaSha1": "cc735c87c7",
+      "text": "抹掉"
+    },
+    "settings.data.erase.question.cloud": {
+      "jaSha1": "0954331716",
+      "text": "要抹掉保存在此设备和 iCloud 中的所有手写内容吗？"
+    },
+    "settings.data.erase.question.local": {
+      "jaSha1": "f58f48ea33",
+      "text": "要抹掉保存在此设备上的所有手写内容吗？"
+    },
+    "settings.data.erase.title": {
+      "jaSha1": "262064ae64",
+      "text": "确定要抹掉吗？"
+    },
+    "settings.data.erase.warning.cloud": {
+      "jaSha1": "0b38a215b2",
+      "text": "此操作无法撤销。其他 iPad 和 iPhone 上的手写内容也会被抹掉。"
+    },
+    "settings.data.erase.warning.local": {
+      "jaSha1": "5ec69d130c",
+      "text": "此操作无法撤销。"
+    },
+    "settings.data.eraseAll": {
+      "jaSha1": "265862104c",
+      "text": "抹掉此设备上的所有手写内容"
+    },
+    "settings.data.export": {
+      "jaSha1": "bed7b93489",
+      "text": "导出手写内容"
+    },
+    "settings.data.exportFooter": {
+      "jaSha1": "546c7c7415",
+      "text": "“导出手写内容”可将保存在此设备上的手写内容合并为一个数据文件（JSON），或将当前打开的页面制作成 PDF。数据文件可通过“导入网页版手写内容”重新导入（导入需要订阅）。"
+    },
+    "settings.data.header": {
+      "jaSha1": "d4d63da93d",
+      "text": "数据"
+    },
+    "settings.data.import": {
+      "jaSha1": "6996e64bb2",
+      "text": "导入网页版手写内容"
+    },
+    "settings.data.importFooter": {
+      "jaSha1": "dbd00b969d",
+      "text": "请在网页版的设置中使用“手書きを書き出す（iPad アプリ用）”（导出手写内容，供 iPad App 使用），然后选择该文件。同一文件导入两次，手写内容也不会重复。"
+    },
+    "settings.data.lastImport": {
+      "jaSha1": "0b9222397e",
+      "text": "上次导入：%@"
+    },
+    "settings.done": {
+      "jaSha1": "1cae18a9a4",
+      "text": "完成"
+    },
+    "settings.holidays.footer": {
+      "jaSha1": "bb45537547",
+      "text": "日本的节假日由此 App 计算（并与日本内阁府的公告进行了核对）。其他国家的节假日基于公开数据（python-holidays）。农历或伊斯兰历的节假日等部分日期为推算，并标有“（推算）”。可能与政府的最新公告不同。节假日设置只保存在此设备上。"
+    },
+    "settings.holidays.header": {
+      "jaSha1": "d76d8613e8",
+      "text": "节假日"
+    },
+    "settings.holidays.note.beforeNotice": {
+      "jaSha1": "4b9244a266",
+      "text": "%@ 年为公告前的推算"
+    },
+    "settings.holidays.note.join": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "settings.holidays.note.nationalOnly": {
+      "jaSha1": "873e79c96e",
+      "text": "仅全国通用"
+    },
+    "settings.holidays.note.nationalOnlyAuto": {
+      "jaSha1": "05614d7fe0",
+      "text": "仅全国通用的节假日"
+    },
+    "settings.holidays.note.noData": {
+      "jaSha1": "2b5fdaaae1",
+      "text": "没有节假日数据"
+    },
+    "settings.holidays.note.noDataFrom": {
+      "jaSha1": "485a645652",
+      "text": "没有 %@ 年及以后的数据"
+    },
+    "settings.holidays.row": {
+      "jaSha1": "445c8551f9",
+      "text": "显示的节假日"
+    },
+    "settings.holidays.value.auto": {
+      "jaSha1": "49561b4231",
+      "text": "自动（%@）"
+    },
+    "settings.holidays.value.autoNote": {
+      "jaSha1": "3b4ba4ad66",
+      "text": "自动（%1$@ · %2$@）"
+    },
+    "settings.holidays.value.none": {
+      "jaSha1": "1a2e920ba7",
+      "text": "无"
+    },
+    "settings.holidays.value.regionNote": {
+      "jaSha1": "f69c7bc18a",
+      "text": "%1$@（%2$@）"
+    },
+    "settings.holidays.value.subdivision": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "settings.info.footer": {
+      "jaSha1": "c6163bd215",
+      "text": "线条数量统计的是保存在此设备上的页面（不会发送到任何地方）。每页最多可写 %@ 条线。"
+    },
+    "settings.info.header": {
+      "jaSha1": "d98f83b725",
+      "text": "关于"
+    },
+    "settings.info.largestPage": {
+      "jaSha1": "bb710bf988",
+      "text": "线条最多的页面"
+    },
+    "settings.info.licenses": {
+      "jaSha1": "3ff3073d7e",
+      "text": "开源许可"
+    },
+    "settings.info.privacy": {
+      "jaSha1": "6bc76e56df",
+      "text": "隐私政策"
+    },
+    "settings.info.support": {
+      "jaSha1": "449c69d777",
+      "text": "支持"
+    },
+    "settings.info.terms": {
+      "jaSha1": "5978cbf78a",
+      "text": "服务条款"
+    },
+    "settings.info.version": {
+      "jaSha1": "7b193c28d4",
+      "text": "版本"
+    },
+    "settings.info.yearPage": {
+      "jaSha1": "b0a81c3202",
+      "text": "今年的年页面"
+    },
+    "settings.input.allowFinger": {
+      "jaSha1": "d3f8bf8e60",
+      "text": "用手指书写"
+    },
+    "settings.input.allowFinger.footer": {
+      "jaSha1": "0ed7a17915",
+      "text": "打开后，也可以用手指画线。关闭时，手指用于滚动和轻点。手写最适合使用 iPad 和 Apple Pencil。"
+    },
+    "settings.input.eraseAfterConvert": {
+      "jaSha1": "0a0cf64940",
+      "text": "抹掉已转为日程的手写内容"
+    },
+    "settings.input.eraseAfterConvert.footer": {
+      "jaSha1": "024590befb",
+      "text": "用套索圈选的手写内容转为日程后，是否将其抹掉的初始选择。"
+    },
+    "settings.input.eraserAutoReturn.footer.pad": {
+      "jaSha1": "7d740e10cc",
+      "text": "用橡皮擦擦除线条并抬起手指或 Apple Pencil 后，会回到刚才使用的钢笔或马克笔。通过轻点两下或轻捏 Apple Pencil 选择的橡皮擦也是如此。"
+    },
+    "settings.input.eraserAutoReturn.footer.phone": {
+      "jaSha1": "2365e0a158",
+      "text": "用橡皮擦擦除线条并抬起手指后，会回到刚才使用的钢笔或马克笔。"
+    },
+    "settings.input.eraserAutoReturn.title": {
+      "jaSha1": "df8b74ebd3",
+      "text": "擦除后回到钢笔"
+    },
+    "settings.input.header": {
+      "jaSha1": "ae5ceeefcd",
+      "text": "输入"
+    },
+    "settings.input.pencil": {
+      "jaSha1": "e5e3006f45",
+      "text": "Apple Pencil"
+    },
+    "settings.input.pencil.footer": {
+      "jaSha1": "b18fc2bf4e",
+      "text": "轻点两下和轻捏会执行你在 iPad 的“设置” > Apple Pencil 中选择的操作"
+    },
+    "settings.openSettingsApp": {
+      "jaSha1": "42b6a33aa6",
+      "text": "打开“设置” App"
+    },
+    "settings.purchase.footer.cancel": {
+      "jaSha1": "0374921042",
+      "text": "如需取消，请前往设备上的%@。取消后，你仍可使用到当前周期结束。"
+    },
+    "settings.purchase.footer.grace": {
+      "jaSha1": "1cb61098fc",
+      "text": "你的付款有问题。请在设备上的%@中确认付款方式。宽限期结束前你仍可使用。"
+    },
+    "settings.purchase.footer.readOnly": {
+      "jaSha1": "d0794c08c0",
+      "text": "%@仅查看时，可以查看日程和手写内容、翻页、缩放、从 iCloud 接收、抹掉此设备上的所有手写内容、导出手写内容和更改设置。订阅后可以书写、擦除和移动手写内容，创建和编辑日程，以及从网页版导入。"
+    },
+    "settings.purchase.footer.trial": {
+      "jaSha1": "226bfc1627",
+      "text": "如需取消，请前往设备上的%@。取消后，你仍可使用到当前周期结束。在试用期间取消不会收费。"
+    },
+    "settings.purchase.header": {
+      "jaSha1": "234283a496",
+      "text": "购买"
+    },
+    "settings.purchase.manage": {
+      "jaSha1": "41d0800450",
+      "text": "管理订阅"
+    },
+    "settings.purchase.plan": {
+      "jaSha1": "6c5da7f995",
+      "text": "当前方案"
+    },
+    "settings.purchase.restore": {
+      "jaSha1": "9f62acdacd",
+      "text": "恢复购买"
+    },
+    "settings.purchase.subscribe": {
+      "jaSha1": "95a3390dcc",
+      "text": "订阅"
+    },
+    "settings.purchase.trial.one": {
+      "jaSha1": "97906f141e",
+      "text": "免费试用 %@ 天"
+    },
+    "settings.purchase.trial.other": {
+      "jaSha1": "97906f141e",
+      "text": "免费试用 %@ 天"
+    },
+    "settings.sync.header": {
+      "jaSha1": "efacc27bc2",
+      "text": "同步"
+    },
+    "settings.sync.icloud": {
+      "jaSha1": "b3d555701f",
+      "text": "iCloud 同步"
+    },
+    "settings.sync.lastSync": {
+      "jaSha1": "b7a2bb0691",
+      "text": "上次同步"
+    },
+    "settings.sync.lastSync.none": {
+      "jaSha1": "1cf9028423",
+      "text": "尚无"
+    },
+    "settings.sync.newAccount": {
+      "jaSha1": "4e99c82d7b",
+      "text": "使用新账户开始…"
+    },
+    "settings.sync.now": {
+      "jaSha1": "f24a940b08",
+      "text": "立即同步"
+    },
+    "settings.title": {
+      "jaSha1": "6329f21c41",
+      "text": "设置"
+    },
+    "settings.weekStart.auto": {
+      "jaSha1": "49561b4231",
+      "text": "自动（%@）"
+    },
+    "settings.weekStart.confirm.message.monday": {
+      "jaSha1": "47f0f2d981",
+      "text": "周一开始和周日开始的周页面是不同的页面。现在已写的周手写内容，在改回周日开始之前不会显示（不会被删除）。月页面的手写内容会移到相同日期的格子。不过，写在前后月份日期格子中的内容，部分可能在改回之前不会显示（不会被删除）。"
+    },
+    "settings.weekStart.confirm.message.sunday": {
+      "jaSha1": "f3d8eed3b5",
+      "text": "周一开始和周日开始的周页面是不同的页面。现在已写的周手写内容，在改回周一开始之前不会显示（不会被删除）。月页面的手写内容会移到相同日期的格子。不过，写在前后月份日期格子中的内容，部分可能在改回之前不会显示（不会被删除）。"
+    },
+    "settings.weekStart.confirm.ok.monday": {
+      "jaSha1": "de0f361701",
+      "text": "设为周一"
+    },
+    "settings.weekStart.confirm.ok.sunday": {
+      "jaSha1": "a83187d517",
+      "text": "设为周日"
+    },
+    "settings.weekStart.confirm.title.monday": {
+      "jaSha1": "f4346d1d39",
+      "text": "要将一周的第一天设为周一吗？"
+    },
+    "settings.weekStart.confirm.title.sunday": {
+      "jaSha1": "5744e4afba",
+      "text": "要将一周的第一天设为周日吗？"
+    },
+    "settings.weekStart.footer": {
+      "jaSha1": "bc58ea14c9",
+      "text": "“自动”会跟随设备的地区。此设置按设备分别保存。若要在每台设备上看到相同的周手写内容，请使用相同的设置。"
+    },
+    "settings.weekStart.monday": {
+      "jaSha1": "cfa48b4bcd",
+      "text": "周一"
+    },
+    "settings.weekStart.otherPages.one": {
+      "jaSha1": "5c23d09236",
+      "text": "有 %2$@ 个周页面使用另一种一周的第一天（%1$@）。切换后即可看到。"
+    },
+    "settings.weekStart.otherPages.other": {
+      "jaSha1": "5c23d09236",
+      "text": "有 %2$@ 个周页面使用另一种一周的第一天（%1$@）。切换后即可看到。"
+    },
+    "settings.weekStart.sunday": {
+      "jaSha1": "c0a04a68b9",
+      "text": "周日"
+    },
+    "settings.weekStart.title": {
+      "jaSha1": "5996fbb18c",
+      "text": "一周的第一天"
+    },
+    "store.error.productNotFound": {
+      "jaSha1": "a6f401a2bf",
+      "text": "找不到商品"
+    },
+    "store.error.unknownPurchaseResult": {
+      "jaSha1": "1cbf927b12",
+      "text": "无法解读购买结果"
+    },
+    "store.generic": {
+      "jaSha1": "06fdbe8b8a",
+      "text": "无法完成购买（%@）"
+    },
+    "store.notAvailable": {
+      "jaSha1": "5f6340f7ac",
+      "text": "你所在的地区无法购买此方案"
+    },
+    "store.nothingToRestore": {
+      "jaSha1": "e14c78c3fb",
+      "text": "没有可恢复的购买。请确认你登录的是购买时使用的 Apple 账户"
+    },
+    "store.offline": {
+      "jaSha1": "9f6b522a59",
+      "text": "无法连接到 App Store。请检查网络后再试一次"
+    },
+    "store.pending": {
+      "jaSha1": "d53552c395",
+      "text": "正在等待批准。批准后即可自动使用"
+    },
+    "store.productsUnavailable": {
+      "jaSha1": "47294f5e05",
+      "text": "无法从 App Store 获取价格。请检查网络并轻点“重新载入”"
+    },
+    "store.purchased": {
+      "jaSha1": "e7731b38c7",
+      "text": "订阅已开始。谢谢"
+    },
+    "store.restored": {
+      "jaSha1": "84c45a25b0",
+      "text": "已恢复购买"
+    },
+    "store.trialStarted.one": {
+      "jaSha1": "d7345daa22",
+      "text": "已开始 %@ 天免费试用"
+    },
+    "store.trialStarted.other": {
+      "jaSha1": "d7345daa22",
+      "text": "已开始 %@ 天免费试用"
+    },
+    "store.unverified": {
+      "jaSha1": "d57ae3e91f",
+      "text": "无法确认购买。请稍后尝试“恢复购买”"
+    },
+    "sync.footer.accountMismatch": {
+      "jaSha1": "15a61a77c5",
+      "text": "此设备上的手写内容属于之前同步的 iCloud 账户。请从“使用新账户开始”中选择。"
+    },
+    "sync.footer.noAccount": {
+      "jaSha1": "bc567caeb3",
+      "text": "登录 iCloud 后可与其他设备同步。手写内容目前只保存在此设备上。"
+    },
+    "sync.footer.offline": {
+      "jaSha1": "47076f38ce",
+      "text": "当前处于离线状态。手写内容保存在此设备上，恢复连接后会同步。"
+    },
+    "sync.footer.permission": {
+      "jaSha1": "dc8716fd26",
+      "text": "iCloud 设置不允许此 App 使用。"
+    },
+    "sync.footer.quota": {
+      "jaSha1": "059b200f79",
+      "text": "iCloud 储存空间不足，无法同步手写内容。内容已保存在此设备上。"
+    },
+    "sync.footer.restricted": {
+      "jaSha1": "66e7844350",
+      "text": "手写内容只保存在此设备上。"
+    },
+    "sync.footer.serverError": {
+      "jaSha1": "8b39c73031",
+      "text": "手写内容同步失败。内容已保存在此设备上（稍后会重试）。\n%@"
+    },
+    "sync.footer.synced": {
+      "jaSha1": "68bfffdb52",
+      "text": "手写内容保存在此设备和你的 iCloud 中。在其他 iPad 和 iPhone 上也能看到相同的手写内容。"
+    },
+    "sync.footer.syncing": {
+      "jaSha1": "3ddf4812c7",
+      "text": "正在将手写内容发送到 iCloud。"
+    },
+    "sync.footer.unknown": {
+      "jaSha1": "590acf48af",
+      "text": "请在“设置” App 中检查 iCloud。手写内容目前只保存在此设备上。"
+    },
+    "sync.header.error": {
+      "jaSha1": "ec6399d678",
+      "text": "错误"
+    },
+    "sync.header.localOnly": {
+      "jaSha1": "bf8cd9d7c4",
+      "text": "仅此设备"
+    },
+    "sync.header.offline": {
+      "jaSha1": "d32cd8eb43",
+      "text": "离线"
+    },
+    "sync.header.saved": {
+      "jaSha1": "74e30e9189",
+      "text": "已保存"
+    },
+    "sync.header.stopped": {
+      "jaSha1": "434eb8e2dc",
+      "text": "已停止"
+    },
+    "sync.header.syncing": {
+      "jaSha1": "db56671e15",
+      "text": "同步中"
+    },
+    "sync.status.accountMismatch": {
+      "jaSha1": "91817cbe3a",
+      "text": "这是另一个 iCloud 账户"
+    },
+    "sync.status.noAccount": {
+      "jaSha1": "fde00f36ba",
+      "text": "未登录 iCloud"
+    },
+    "sync.status.offline": {
+      "jaSha1": "d32cd8eb43",
+      "text": "离线"
+    },
+    "sync.status.permission": {
+      "jaSha1": "b61baf5b05",
+      "text": "无法使用 iCloud"
+    },
+    "sync.status.quota": {
+      "jaSha1": "418eff91ef",
+      "text": "iCloud 储存空间不足"
+    },
+    "sync.status.restricted": {
+      "jaSha1": "9e639f1dd0",
+      "text": "此设备的 iCloud 受到限制"
+    },
+    "sync.status.serverError": {
+      "jaSha1": "0ca7e52bca",
+      "text": "同步失败"
+    },
+    "sync.status.synced": {
+      "jaSha1": "268fa2341c",
+      "text": "已同步"
+    },
+    "sync.status.syncing": {
+      "jaSha1": "272ff52b3d",
+      "text": "正在同步…"
+    },
+    "sync.status.unknown": {
+      "jaSha1": "e90e31922f",
+      "text": "无法确认 iCloud"
+    },
+    "toast.eraseCloudFailed": {
+      "jaSha1": "5fbe38989b",
+      "text": "无法抹掉 iCloud 中的手写内容。此设备上的内容已抹掉。网络恢复后请再试一次"
+    },
+    "toast.erased": {
+      "jaSha1": "dacc7265ce",
+      "text": "已抹掉所有手写内容"
+    },
+    "toast.event.created": {
+      "jaSha1": "ef47c27162",
+      "text": "已添加日程"
+    },
+    "toast.event.deleted": {
+      "jaSha1": "2740fc4ddf",
+      "text": "已删除日程"
+    },
+    "toast.event.noAccess": {
+      "jaSha1": "0538edc7d0",
+      "text": "若要添加日程，请在“设置”中允许访问日历"
+    },
+    "toast.event.noCalendar": {
+      "jaSha1": "41d7eee11d",
+      "text": "没有可添加日程的日历"
+    },
+    "toast.event.updated": {
+      "jaSha1": "e9d0713de6",
+      "text": "已更新日程"
+    },
+    "toast.eventBelowDay": {
+      "jaSha1": "900c68f5ba",
+      "text": "24 点以下的自由备忘栏不能创建日程"
+    },
+    "toast.growthCap": {
+      "jaSha1": "a7416b4c53",
+      "text": "备忘栏到此为止"
+    },
+    "toast.pinchHint": {
+      "jaSha1": "b5c7aed169",
+      "text": "双指张开可放大，双指捏合可缩小"
+    },
+    "toast.readOnly": {
+      "jaSha1": "b4a0045460",
+      "text": "仅查看。书写、擦除或创建日程需要订阅"
+    },
+    "toast.strokeBudget.full": {
+      "jaSha1": "6b0edb3d70",
+      "text": "此页面已写满（%@ 条线）。擦除一些线条后可继续书写。"
+    },
+    "toast.strokeBudget.many": {
+      "jaSha1": "c57434493e",
+      "text": "此页面的线条已超过 %1$@ 条。每页最多可写 %2$@ 条线。"
+    },
+    "toast.weekStart.adopted.monday": {
+      "jaSha1": "eb447c6607",
+      "text": "已根据 iCloud 手写内容将一周的第一天设为周一。可在设置中更改。"
+    },
+    "toast.weekStart.adopted.sunday": {
+      "jaSha1": "019ff66d3b",
+      "text": "已根据 iCloud 手写内容将一周的第一天设为周日。可在设置中更改。"
+    },
+    "toast.weekStart.hiddenInk.one": {
+      "jaSha1": "6e3424da82",
+      "text": "此月页面有 %@ 条线写在当前设置不显示的日期上。线条没有消失。改回一周的第一天即可看到。"
+    },
+    "toast.weekStart.hiddenInk.other": {
+      "jaSha1": "6e3424da82",
+      "text": "此月页面有 %@ 条线写在当前设置不显示的日期上。线条没有消失。改回一周的第一天即可看到。"
+    },
+    "toast.weekStart.otherForm.one": {
+      "jaSha1": "19ef2be677",
+      "text": "有 %2$@ 个周页面使用另一种一周的第一天（%1$@）。它们没有消失。在“设置” > 一周的第一天中切换即可看到。"
+    },
+    "toast.weekStart.otherForm.other": {
+      "jaSha1": "19ef2be677",
+      "text": "有 %2$@ 个周页面使用另一种一周的第一天（%1$@）。它们没有消失。在“设置” > 一周的第一天中切换即可看到。"
+    },
+    "toast.weekStart.regionChanged.monday": {
+      "jaSha1": "857c24a261",
+      "text": "已根据设备的地区将一周的第一天设为周一。周日开始的周手写内容没有消失。"
+    },
+    "toast.weekStart.regionChanged.sunday": {
+      "jaSha1": "9883036f4f",
+      "text": "已根据设备的地区将一周的第一天设为周日。周一开始的周手写内容没有消失。"
+    },
+    "toolbar.badge.marker": {
+      "jaSha1": "ebb1b50f6e",
+      "text": "马克笔，%@"
+    },
+    "toolbar.badge.pen": {
+      "jaSha1": "13beea0796",
+      "text": "钢笔，%@"
+    },
+    "toolbar.badge.penWidth": {
+      "jaSha1": "ddc2d03ed8",
+      "text": "钢笔，%1$@，%2$@"
+    },
+    "toolbar.collapse.spoken": {
+      "jaSha1": "e4488face7",
+      "text": "收起工具栏"
+    },
+    "toolbar.collapse.title": {
+      "jaSha1": "0addaa0b2b",
+      "text": "收起"
+    },
+    "toolbar.color.black": {
+      "jaSha1": "2c80764518",
+      "text": "黑色"
+    },
+    "toolbar.color.blue": {
+      "jaSha1": "845d1da87f",
+      "text": "蓝色"
+    },
+    "toolbar.color.green": {
+      "jaSha1": "f22758bf8f",
+      "text": "绿色"
+    },
+    "toolbar.color.lightBlue": {
+      "jaSha1": "d2dddf0d44",
+      "text": "浅蓝色"
+    },
+    "toolbar.color.orange": {
+      "jaSha1": "831166ef4b",
+      "text": "橙色"
+    },
+    "toolbar.color.pink": {
+      "jaSha1": "caaf2acdb2",
+      "text": "粉色"
+    },
+    "toolbar.color.purple": {
+      "jaSha1": "01caea5810",
+      "text": "紫色"
+    },
+    "toolbar.color.red": {
+      "jaSha1": "72776ab68f",
+      "text": "红色"
+    },
+    "toolbar.color.unknown": {
+      "jaSha1": "bc848e8fcb",
+      "text": "其他颜色"
+    },
+    "toolbar.color.yellow": {
+      "jaSha1": "7720f8ea0a",
+      "text": "黄色"
+    },
+    "toolbar.dock.hint.toLeft": {
+      "jaSha1": "700daf6c01",
+      "text": "长按可移到左下角，或让工具栏一直显示"
+    },
+    "toolbar.dock.hint.toRight": {
+      "jaSha1": "5f09107ce2",
+      "text": "长按可移到右下角，或让工具栏一直显示"
+    },
+    "toolbar.dock.spoken": {
+      "jaSha1": "89fd0adb46",
+      "text": "显示工具栏"
+    },
+    "toolbar.fingerToggle": {
+      "jaSha1": "d3f8bf8e60",
+      "text": "用手指书写"
+    },
+    "toolbar.fingerToggle.hint": {
+      "jaSha1": "cb2be71b20",
+      "text": "打开后，也可以用手指画线。关闭时，手指用于滚动和轻点"
+    },
+    "toolbar.hint.eraser": {
+      "jaSha1": "8b55191d18",
+      "text": "擦除碰到的整条线"
+    },
+    "toolbar.hint.eraser.toMarker": {
+      "jaSha1": "fb4c03b5e7",
+      "text": "擦除碰到的整条线\n（擦除后回到马克笔）"
+    },
+    "toolbar.hint.eraser.toPen": {
+      "jaSha1": "8162be3abe",
+      "text": "擦除碰到的整条线\n（擦除后回到钢笔）"
+    },
+    "toolbar.hint.event": {
+      "jaSha1": "a72d576197",
+      "text": "描画以创建日程。\n轻点日程可编辑"
+    },
+    "toolbar.hint.lasso": {
+      "jaSha1": "c22a65bde9",
+      "text": "圈住以选择。\n在框内拖移可移动"
+    },
+    "toolbar.moveEdge.toLeft": {
+      "jaSha1": "3390912dcc",
+      "text": "移到左下角"
+    },
+    "toolbar.moveEdge.toRight": {
+      "jaSha1": "c37ead3ae2",
+      "text": "移到右下角"
+    },
+    "toolbar.pin": {
+      "jaSha1": "16d003ddf3",
+      "text": "一直显示工具栏"
+    },
+    "toolbar.redo": {
+      "jaSha1": "c06cea5e52",
+      "text": "重做"
+    },
+    "toolbar.tool.eraser": {
+      "jaSha1": "6e4f860f71",
+      "text": "橡皮擦"
+    },
+    "toolbar.tool.event": {
+      "jaSha1": "eb000e9544",
+      "text": "日程"
+    },
+    "toolbar.tool.lasso": {
+      "jaSha1": "4f568822b5",
+      "text": "套索"
+    },
+    "toolbar.tool.marker": {
+      "jaSha1": "786bef306d",
+      "text": "马克笔"
+    },
+    "toolbar.tool.pen": {
+      "jaSha1": "93943573d2",
+      "text": "钢笔"
+    },
+    "toolbar.undo": {
+      "jaSha1": "c7f325f13f",
+      "text": "撤销"
+    },
+    "toolbar.width.medium": {
+      "jaSha1": "0869071c92",
+      "text": "中"
+    },
+    "toolbar.width.spoken": {
+      "jaSha1": "e8aa9aa6cb",
+      "text": "粗细：%@"
+    },
+    "toolbar.width.thick": {
+      "jaSha1": "d2ff8f7020",
+      "text": "粗"
+    },
+    "toolbar.width.thin": {
+      "jaSha1": "a7c522dc20",
+      "text": "细"
+    }
+  }
+}

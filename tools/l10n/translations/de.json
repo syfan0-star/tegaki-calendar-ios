@@ -1,0 +1,1909 @@
+{
+  "language": "de",
+  "strings": {
+    "CFBundleDisplayName": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "jaSha1": "13238f13b8",
+      "text": "Wird verwendet, um Ihre Kalendertermine auf den Planerseiten anzuzeigen und aus Handschrift Termine zu erstellen. iOS und iPadOS haben keine reine Leseberechtigung, deshalb wird voller Zugriff angefragt. Termine werden nur auf diesem Gerät verarbeitet und nicht nach außen gesendet."
+    },
+    "account.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "Abbrechen"
+    },
+    "account.erase": {
+      "jaSha1": "6ef7cd2339",
+      "text": "Handschrift löschen und beginnen"
+    },
+    "account.eraseConfirm": {
+      "jaSha1": "dc46858bb1",
+      "text": "Löschen und beginnen"
+    },
+    "account.eraseMessage": {
+      "jaSha1": "1ac6edd119",
+      "text": "Alle Handschrift auf diesem Gerät wird gelöscht, und Sie beginnen mit dem neuen Account. Das kann nicht rückgängig gemacht werden."
+    },
+    "account.eraseTitle": {
+      "jaSha1": "262064ae64",
+      "text": "Wirklich löschen?"
+    },
+    "account.keep": {
+      "jaSha1": "5d78137553",
+      "text": "Handschrift behalten und beginnen"
+    },
+    "account.later": {
+      "jaSha1": "df045200ae",
+      "text": "Später"
+    },
+    "account.message": {
+      "jaSha1": "6e7c1cebeb",
+      "text": "Die Handschrift auf diesem Gerät gehört zu dem iCloud-Account, der zuvor synchronisiert wurde. Mit dem jetzt angemeldeten Account beginnen? Wenn Sie die Handschrift behalten, wird sie an die iCloud des neuen Accounts gesendet."
+    },
+    "account.title": {
+      "jaSha1": "91817cbe3a",
+      "text": "Anderer iCloud-Account"
+    },
+    "alert.saveFailed.ok": {
+      "jaSha1": "9ce3bd4224",
+      "text": "OK"
+    },
+    "alert.saveFailed.title": {
+      "jaSha1": "8a5d15aaf6",
+      "text": "Handschrift konnte nicht gesichert werden"
+    },
+    "allday.bar.spoken": {
+      "jaSha1": "1d0c529b57",
+      "text": "%@ (Termin bearbeiten)"
+    },
+    "allday.column.spoken": {
+      "jaSha1": "6af9fc756b",
+      "text": "Ganztägigen Termin am %@ hinzufügen"
+    },
+    "allday.label": {
+      "jaSha1": "32d20f0404",
+      "text": "Ganztägig"
+    },
+    "allday.label.short": {
+      "jaSha1": "32d20f0404",
+      "text": "Tag"
+    },
+    "app.name": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "census.counting": {
+      "jaSha1": "1dd488ea29",
+      "text": "Wird gezählt …"
+    },
+    "census.entry": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "census.legacyNote": {
+      "jaSha1": "bf7cf417c4",
+      "text": " (ein Teil wird auf Geräten mit einer älteren Version nicht angezeigt)"
+    },
+    "census.noInk": {
+      "jaSha1": "1aaec544c9",
+      "text": "Noch keine Handschrift"
+    },
+    "demo.calendar.events": {
+      "jaSha1": "fadc771a23",
+      "text": "Termine"
+    },
+    "demo.calendar.family": {
+      "jaSha1": "242e8e5c3f",
+      "text": "Familie"
+    },
+    "demo.calendar.personal": {
+      "jaSha1": "6b75ef797f",
+      "text": "Privat"
+    },
+    "demo.calendar.work": {
+      "jaSha1": "5dc4a4fa47",
+      "text": "Arbeit"
+    },
+    "demo.event.birthday": {
+      "jaSha1": "b981696f04",
+      "text": "Feier"
+    },
+    "demo.event.businessTrip": {
+      "jaSha1": "b7d0bc0c45",
+      "text": "Osaka"
+    },
+    "demo.event.call": {
+      "jaSha1": "7177787c6e",
+      "text": "Anruf"
+    },
+    "demo.event.camping": {
+      "jaSha1": "9d73266cbc",
+      "text": "Zelten"
+    },
+    "demo.event.checkup": {
+      "jaSha1": "2fa9b336f7",
+      "text": "Check"
+    },
+    "demo.event.clinic": {
+      "jaSha1": "fc22aa3319",
+      "text": "Arzt"
+    },
+    "demo.event.deadline": {
+      "jaSha1": "9a0d4974c7",
+      "text": "Frist"
+    },
+    "demo.event.dentalCheck": {
+      "jaSha1": "7878d7a463",
+      "text": "Zahncheck"
+    },
+    "demo.event.dentist": {
+      "jaSha1": "0ab9b459d7",
+      "text": "Zahnarzt"
+    },
+    "demo.event.drinks": {
+      "jaSha1": "1ac9ff3f82",
+      "text": "Afterwork"
+    },
+    "demo.event.familyTrip": {
+      "jaSha1": "7d72df1137",
+      "text": "Urlaub"
+    },
+    "demo.event.farewell": {
+      "jaSha1": "68f7e087cf",
+      "text": "Abschied"
+    },
+    "demo.event.lunch": {
+      "jaSha1": "86ae0d89c5",
+      "text": "Mittag"
+    },
+    "demo.event.meeting": {
+      "jaSha1": "950306f34c",
+      "text": "Meeting"
+    },
+    "demo.event.morningMeeting": {
+      "jaSha1": "cd3756c357",
+      "text": "Daily"
+    },
+    "demo.event.oneOnOne": {
+      "jaSha1": "572d330eae",
+      "text": "Gespräch"
+    },
+    "demo.event.payday": {
+      "jaSha1": "a6d79abf16",
+      "text": "Zahltag"
+    },
+    "demo.event.report": {
+      "jaSha1": "a169adf953",
+      "text": "Bericht"
+    },
+    "demo.event.reportDeadline": {
+      "jaSha1": "687b31ee31",
+      "text": "Bericht"
+    },
+    "demo.event.review": {
+      "jaSha1": "3c5ba2f1b6",
+      "text": "Review"
+    },
+    "demo.event.sportsDay": {
+      "jaSha1": "5af51095ee",
+      "text": "Sport"
+    },
+    "demo.event.trashDay": {
+      "jaSha1": "4e6d520e09",
+      "text": "Müll"
+    },
+    "demo.event.weeklyMeeting": {
+      "jaSha1": "a2e915ee1e",
+      "text": "Jour fixe"
+    },
+    "demo.source": {
+      "jaSha1": "4a37aeaa33",
+      "text": "Beispiel"
+    },
+    "event.allDay": {
+      "jaSha1": "32d20f0404",
+      "text": "Ganztägig"
+    },
+    "event.calendar": {
+      "jaSha1": "340ba3962c",
+      "text": "Kalender"
+    },
+    "event.calendarReadOnlyNote": {
+      "jaSha1": "eb0c4e3fe3",
+      "text": "Dieser Kalender kann nicht geändert werden (schreibgeschützt)"
+    },
+    "event.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "Abbrechen"
+    },
+    "event.close": {
+      "jaSha1": "3da5c18551",
+      "text": "Schließen"
+    },
+    "event.delete": {
+      "jaSha1": "5cbdf1fd70",
+      "text": "Löschen"
+    },
+    "event.deleteConfirm": {
+      "jaSha1": "c23c94d93d",
+      "text": "Diesen Termin löschen?"
+    },
+    "event.end": {
+      "jaSha1": "ecc8edea5c",
+      "text": "Ende"
+    },
+    "event.endDay": {
+      "jaSha1": "1c64938200",
+      "text": "Enddatum"
+    },
+    "event.eraseInk": {
+      "jaSha1": "60d0d1143a",
+      "text": "Diese Handschrift löschen"
+    },
+    "event.error.calendarNotFound": {
+      "jaSha1": "b116d40631",
+      "text": "Der Zielkalender wurde nicht gefunden"
+    },
+    "event.error.emptyTitle": {
+      "jaSha1": "47022bc333",
+      "text": "Geben Sie einen Titel ein"
+    },
+    "event.error.endBeforeStart": {
+      "jaSha1": "d5d0c3dc80",
+      "text": "Das Ende muss nach dem Beginn liegen"
+    },
+    "event.error.endDayBeforeStart": {
+      "jaSha1": "b8f6d47283",
+      "text": "Das Enddatum darf nicht vor dem Startdatum liegen"
+    },
+    "event.error.eventNotFound": {
+      "jaSha1": "d9066009ab",
+      "text": "Termin nicht gefunden (er wurde vielleicht auf einem anderen Gerät gelöscht)"
+    },
+    "event.error.failed": {
+      "jaSha1": "67da494bf8",
+      "text": "Sichern nicht möglich: %@"
+    },
+    "event.error.noAccess": {
+      "jaSha1": "b0733802ca",
+      "text": "Der Kalenderzugriff ist nicht erlaubt"
+    },
+    "event.error.noWritableCalendar": {
+      "jaSha1": "41d7eee11d",
+      "text": "Kein Kalender kann neue Termine aufnehmen"
+    },
+    "event.error.readOnlyCalendar": {
+      "jaSha1": "73cb30320e",
+      "text": "Dieser Kalender kann nicht geändert werden"
+    },
+    "event.location": {
+      "jaSha1": "07c4e81b27",
+      "text": "Ort"
+    },
+    "event.notes": {
+      "jaSha1": "9060a06d59",
+      "text": "Notizen"
+    },
+    "event.recurringNote": {
+      "jaSha1": "87717ca117",
+      "text": "Dies ist ein wiederkehrender Termin. Beim Sichern oder Löschen wählen Sie „Nur dieser Termin“ oder „Dieser und alle folgenden“"
+    },
+    "event.save": {
+      "jaSha1": "fadf24dbc5",
+      "text": "Sichern"
+    },
+    "event.saveFailed": {
+      "jaSha1": "babde2eaee",
+      "text": "Sichern nicht möglich"
+    },
+    "event.saving": {
+      "jaSha1": "6644f06197",
+      "text": "Wird gesichert …"
+    },
+    "event.scribbleNote": {
+      "jaSha1": "39f61b9472",
+      "text": "Schreiben Sie mit dem Apple Pencil auf das Feld, um Text zu erhalten (Kritzeln)"
+    },
+    "event.snapshotCaption": {
+      "jaSha1": "48fcac2b68",
+      "text": "Ihre Handschrift"
+    },
+    "event.start": {
+      "jaSha1": "a95bf2fed6",
+      "text": "Beginn"
+    },
+    "event.startDay": {
+      "jaSha1": "f4850c3619",
+      "text": "Startdatum"
+    },
+    "event.subscribe": {
+      "jaSha1": "95a3390dcc",
+      "text": "Abonnieren"
+    },
+    "event.subscriptionNote": {
+      "jaSha1": "7135ad9680",
+      "text": "Mit einem Abo können Sie Termine erstellen und bearbeiten."
+    },
+    "event.title.create": {
+      "jaSha1": "f0037cac7f",
+      "text": "Termin hinzufügen"
+    },
+    "event.title.detail": {
+      "jaSha1": "107f0ad4e5",
+      "text": "Termindetails"
+    },
+    "event.title.edit": {
+      "jaSha1": "ed645245ce",
+      "text": "Termin bearbeiten"
+    },
+    "event.titleHeader": {
+      "jaSha1": "47b4753f22",
+      "text": "Titel"
+    },
+    "event.titlePlaceholder": {
+      "jaSha1": "7126a9af93",
+      "text": "Schreiben Sie hier mit dem Stift, um Text zu erhalten"
+    },
+    "event.untitled": {
+      "jaSha1": "89e1d46903",
+      "text": "(Ohne Titel)"
+    },
+    "event.when.dateTime": {
+      "jaSha1": "8d677dd5f1",
+      "text": "%1$@, %2$@"
+    },
+    "export.close": {
+      "jaSha1": "3da5c18551",
+      "text": "Schließen"
+    },
+    "export.done.json.one": {
+      "jaSha1": "abd27ccfd0",
+      "text": "%1$@ (%2$@ Seite · %3$@)"
+    },
+    "export.done.json.other": {
+      "jaSha1": "abd27ccfd0",
+      "text": "%1$@ (%2$@ Seiten · %3$@)"
+    },
+    "export.done.pdf": {
+      "jaSha1": "f69c7bc18a",
+      "text": "%1$@ (%2$@)"
+    },
+    "export.done.title": {
+      "jaSha1": "c019c70790",
+      "text": "Exportiert"
+    },
+    "export.error.closed": {
+      "jaSha1": "1d285e5b75",
+      "text": "Die Datei ist geschlossen"
+    },
+    "export.error.createFailed": {
+      "jaSha1": "c21b458906",
+      "text": "Datei kann nicht erstellt werden: %@"
+    },
+    "export.failed": {
+      "jaSha1": "caadfe6b0a",
+      "text": "Exportieren nicht möglich: %@"
+    },
+    "export.json.note": {
+      "jaSha1": "8ecc87d9f4",
+      "text": "Fasst alle auf diesem Gerät gesicherte Handschrift in einer Datei zusammen. Unter Einstellungen > Daten > „Aus der Web-Version importieren“ können Sie sie wieder importieren (zum Importieren ist ein Abo nötig)."
+    },
+    "export.json.title": {
+      "jaSha1": "9ff79abfce",
+      "text": "Datendatei (JSON, alle Seiten)"
+    },
+    "export.nothing": {
+      "jaSha1": "4c53d27de4",
+      "text": "Keine Handschrift zum Exportieren"
+    },
+    "export.pdf.building": {
+      "jaSha1": "fb0729638c",
+      "text": "PDF wird erstellt …"
+    },
+    "export.pdf.note": {
+      "jaSha1": "c1493af6d7",
+      "text": "Erstellt aus der geöffneten Seite (%1$@ · %2$@) ein einseitiges PDF. Papier, Termine, Feiertage und Handschrift erscheinen wie auf dem Bildschirm."
+    },
+    "export.pdf.title": {
+      "jaSha1": "6ef95e0e2b",
+      "text": "Diese Seite als PDF"
+    },
+    "export.progress.one": {
+      "jaSha1": "4960350917",
+      "text": "Wird exportiert … %1$@ / %2$@ Seite"
+    },
+    "export.progress.other": {
+      "jaSha1": "4960350917",
+      "text": "Wird exportiert … %1$@ / %2$@ Seiten"
+    },
+    "export.renderFailed": {
+      "jaSha1": "05dcb5860d",
+      "text": "PDF konnte nicht erstellt werden"
+    },
+    "export.share": {
+      "jaSha1": "0fa94f1957",
+      "text": "Teilen …"
+    },
+    "export.title": {
+      "jaSha1": "bed7b93489",
+      "text": "Handschrift exportieren"
+    },
+    "export.writeFailed": {
+      "jaSha1": "2764349d08",
+      "text": "Datei konnte nicht geschrieben werden: %@"
+    },
+    "header.addEvent": {
+      "jaSha1": "eb000e9544",
+      "text": "Termin"
+    },
+    "header.addEvent.spoken": {
+      "jaSha1": "f0037cac7f",
+      "text": "Termin hinzufügen"
+    },
+    "header.day.spoken": {
+      "jaSha1": "d29f0447e2",
+      "text": "%1$@ (Tagesseite öffnen)"
+    },
+    "header.month.spoken": {
+      "jaSha1": "e5e6e5a89d",
+      "text": "%1$@ (Monatsseite öffnen)"
+    },
+    "header.next.day": {
+      "jaSha1": "28753d5ded",
+      "text": "Nächster Tag"
+    },
+    "header.next.month": {
+      "jaSha1": "1bff85ad86",
+      "text": "Nächster Monat"
+    },
+    "header.next.week": {
+      "jaSha1": "1569e4d9a4",
+      "text": "Nächste Woche"
+    },
+    "header.next.year": {
+      "jaSha1": "17daff90cc",
+      "text": "Nächstes Jahr"
+    },
+    "header.picker.day": {
+      "jaSha1": "15917f3b32",
+      "text": "Tag"
+    },
+    "header.picker.month": {
+      "jaSha1": "d9b59879f3",
+      "text": "Monat"
+    },
+    "header.picker.spoken": {
+      "jaSha1": "586d6bed3d",
+      "text": "Ansicht wechseln"
+    },
+    "header.picker.week": {
+      "jaSha1": "c7803dadcd",
+      "text": "Woche"
+    },
+    "header.picker.year": {
+      "jaSha1": "6f14c2641c",
+      "text": "Jahr"
+    },
+    "header.pickerItem.day": {
+      "jaSha1": "1b494df9d8",
+      "text": "Tagesansicht"
+    },
+    "header.pickerItem.month": {
+      "jaSha1": "90160fc70e",
+      "text": "Monatsansicht"
+    },
+    "header.pickerItem.week": {
+      "jaSha1": "80004acfce",
+      "text": "Wochenansicht"
+    },
+    "header.pickerItem.year": {
+      "jaSha1": "f947802a99",
+      "text": "Jahresansicht"
+    },
+    "header.previous.day": {
+      "jaSha1": "f6f002ec19",
+      "text": "Vorheriger Tag"
+    },
+    "header.previous.month": {
+      "jaSha1": "192afd5d18",
+      "text": "Vorheriger Monat"
+    },
+    "header.previous.week": {
+      "jaSha1": "b1845477ef",
+      "text": "Vorherige Woche"
+    },
+    "header.previous.year": {
+      "jaSha1": "edc3eea346",
+      "text": "Vorheriges Jahr"
+    },
+    "header.readOnly.spoken": {
+      "jaSha1": "b0395af688",
+      "text": "Nur ansehen. Abo-Informationen öffnen"
+    },
+    "header.settings.spoken": {
+      "jaSha1": "6329f21c41",
+      "text": "Einstellungen"
+    },
+    "header.sync.spoken": {
+      "jaSha1": "cdb5883a5b",
+      "text": "Synchronisierung: %@"
+    },
+    "header.today": {
+      "jaSha1": "574cd4fb79",
+      "text": "Heute"
+    },
+    "holidayPicker.auto": {
+      "jaSha1": "f841a4d98b",
+      "text": "Automatisch (Region dieses Geräts: %@)"
+    },
+    "holidayPicker.countries": {
+      "jaSha1": "9ba0c03013",
+      "text": "Länder und Regionen"
+    },
+    "holidayPicker.deviceRegion": {
+      "jaSha1": "853387474c",
+      "text": "Region dieses Geräts: %@"
+    },
+    "holidayPicker.localAreas": {
+      "jaSha1": "4a2a3e77ae",
+      "text": "Weitere Gebiete (Städte usw.)"
+    },
+    "holidayPicker.none": {
+      "jaSha1": "1a2e920ba7",
+      "text": "Keine"
+    },
+    "holidayPicker.search": {
+      "jaSha1": "244732de94",
+      "text": "Land oder Region suchen"
+    },
+    "holidayPicker.subdivisionHint": {
+      "jaSha1": "2504fd39f6",
+      "text": "Wählen Sie eine Region, um deren Feiertage hinzuzufügen"
+    },
+    "holidayPicker.subdivisions": {
+      "jaSha1": "4b9e4db03c",
+      "text": "Regionen"
+    },
+    "holidayPicker.subdivisions.footer": {
+      "jaSha1": "7ca56ba8aa",
+      "text": "Die Namen der Regionen werden so angezeigt, wie sie in den Daten stehen (auf Englisch oder in der Landessprache)."
+    },
+    "holidayPicker.title": {
+      "jaSha1": "445c8551f9",
+      "text": "Angezeigte Feiertage"
+    },
+    "holidayPicker.wholeCountry": {
+      "jaSha1": "0cfaa11569",
+      "text": "Ganzes Land"
+    },
+    "import.close": {
+      "jaSha1": "3da5c18551",
+      "text": "Schließen"
+    },
+    "import.confirmLarge.cancel": {
+      "jaSha1": "18ca8614b7",
+      "text": "Abbrechen"
+    },
+    "import.confirmLarge.import": {
+      "jaSha1": "383cf95339",
+      "text": "Importieren"
+    },
+    "import.confirmLarge.more.one": {
+      "jaSha1": "011dbddd20",
+      "text": "und %@ weitere Seite"
+    },
+    "import.confirmLarge.more.other": {
+      "jaSha1": "011dbddd20",
+      "text": "und %@ weitere Seiten"
+    },
+    "import.confirmLarge.separator": {
+      "jaSha1": "611e057fbc",
+      "text": ","
+    },
+    "import.confirmLarge.text": {
+      "jaSha1": "750c7e4709",
+      "text": "Nach dem Import haben einige Seiten mehr als %1$@ Striche (%2$@). Diese Version zeigt alle an, aber Geräte mit einer älteren Version zeigen nur einen Teil. Importieren?"
+    },
+    "import.confirmLarge.title": {
+      "jaSha1": "fde96141cf",
+      "text": "Einige Seiten haben sehr viele Striche"
+    },
+    "import.invalidJSON": {
+      "jaSha1": "2cdc2663c0",
+      "text": "Datei konnte nicht gelesen werden"
+    },
+    "import.notAnExport": {
+      "jaSha1": "1fb7848e1d",
+      "text": "Diese Datei ist kein Handschrift-Export (aus der Web-Version oder dieser App)"
+    },
+    "import.nothing": {
+      "jaSha1": "a692889f9f",
+      "text": "Nichts zu importieren (alles ist bereits importiert)"
+    },
+    "import.otherWeekStart.monday": {
+      "jaSha1": "c273d00aff",
+      "text": "Einige importierte Wochenseiten erscheinen, wenn die Woche am Montag beginnt."
+    },
+    "import.otherWeekStart.sunday": {
+      "jaSha1": "56ce607cfd",
+      "text": "Einige importierte Wochenseiten erscheinen, wenn die Woche am Sonntag beginnt."
+    },
+    "import.progress.one": {
+      "jaSha1": "2c2cacba2a",
+      "text": "Wird importiert … %1$@ / %2$@ Seite"
+    },
+    "import.progress.other": {
+      "jaSha1": "2c2cacba2a",
+      "text": "Wird importiert … %1$@ / %2$@ Seiten"
+    },
+    "import.progress.reading": {
+      "jaSha1": "371d47654d",
+      "text": "Wird importiert …"
+    },
+    "import.result.app": {
+      "jaSha1": "9d6328f350",
+      "text": "Handschrift importiert (%1$@ · %2$@)"
+    },
+    "import.result.pages.one": {
+      "jaSha1": "e0587d9fa6",
+      "text": "%@ Seite"
+    },
+    "import.result.pages.other": {
+      "jaSha1": "e0587d9fa6",
+      "text": "%@ Seiten"
+    },
+    "import.result.strokes.one": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ Strich"
+    },
+    "import.result.strokes.other": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ Striche"
+    },
+    "import.result.web": {
+      "jaSha1": "077f7c0956",
+      "text": "Handschrift aus der Web-Version importiert (%1$@ · %2$@)"
+    },
+    "import.saveFailed": {
+      "jaSha1": "67da494bf8",
+      "text": "Sichern nicht möglich: %@"
+    },
+    "import.skipped.one": {
+      "jaSha1": "dc583f5a8b",
+      "text": "%@ Seite übersprungen, da sie nicht importiert werden kann"
+    },
+    "import.skipped.other": {
+      "jaSha1": "dc583f5a8b",
+      "text": "%@ Seiten übersprungen, da sie nicht importiert werden können"
+    },
+    "import.title": {
+      "jaSha1": "6996e64bb2",
+      "text": "Aus der Web-Version importieren"
+    },
+    "import.unsupportedVersion": {
+      "jaSha1": "17375b2f9d",
+      "text": "Diese Datei hat ein neueres Format (v%@). Aktualisieren Sie die App"
+    },
+    "info.translationNote": {
+      "jaSha1": "759b80ff62",
+      "text": "Die Übersetzungen in dieser App wurden mit KI erstellt und durch Rückübersetzung ins Japanische geprüft. Muttersprachler haben sie noch nicht geprüft. Wenn Sie einen Fehler finden, schreiben Sie bitte an syfan0@gmail.com."
+    },
+    "kit.app.name": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "kit.budget.count.one": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ Strich"
+    },
+    "kit.budget.count.other": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ Striche"
+    },
+    "kit.budget.page.day": {
+      "jaSha1": "4ed1d179a0",
+      "text": "Tagesseite (%@)"
+    },
+    "kit.budget.page.month": {
+      "jaSha1": "40568f61af",
+      "text": "Monatsseite (%@)"
+    },
+    "kit.budget.page.week": {
+      "jaSha1": "0026a4ade1",
+      "text": "Wochenseite (%@)"
+    },
+    "kit.budget.page.year": {
+      "jaSha1": "9e1122aeb8",
+      "text": "Jahresseite (%@)"
+    },
+    "kit.export.jsonFileName": {
+      "jaSha1": "21f0bc85ac",
+      "text": "Tegaki Handschrift %@.json"
+    },
+    "kit.export.kind.day": {
+      "jaSha1": "15917f3b32",
+      "text": "Tag"
+    },
+    "kit.export.kind.month": {
+      "jaSha1": "d9b59879f3",
+      "text": "Monat"
+    },
+    "kit.export.kind.week": {
+      "jaSha1": "c7803dadcd",
+      "text": "Woche"
+    },
+    "kit.export.kind.year": {
+      "jaSha1": "6f14c2641c",
+      "text": "Jahr"
+    },
+    "kit.holiday.dayOff": {
+      "jaSha1": "5a5955b142",
+      "text": "Freier Tag"
+    },
+    "kit.holiday.estimatedSuffix": {
+      "jaSha1": "e3372f0c89",
+      "text": " (geschätzt)"
+    },
+    "kit.layout.more.one": {
+      "jaSha1": "388c67a943",
+      "text": "+%@ weiterer"
+    },
+    "kit.layout.more.other": {
+      "jaSha1": "388c67a943",
+      "text": "+%@ weitere"
+    },
+    "kit.legal.appleEULATitle": {
+      "jaSha1": "d162aab7fe",
+      "text": "Nutzungsbedingungen (Apple Standard-EULA)"
+    },
+    "kit.plan.badge.readOnly": {
+      "jaSha1": "299ac5001a",
+      "text": "Nur ansehen"
+    },
+    "kit.plan.cancelPath": {
+      "jaSha1": "8e172357e5",
+      "text": "Einstellungen > Ihr Name > Abonnements"
+    },
+    "kit.plan.date.expires": {
+      "jaSha1": "f0ba49ce31",
+      "text": "Gültig bis"
+    },
+    "kit.plan.date.graceUntil": {
+      "jaSha1": "595ab42814",
+      "text": "Ende der Nachfrist"
+    },
+    "kit.plan.date.renews": {
+      "jaSha1": "5b07c58b47",
+      "text": "Nächste Verlängerung"
+    },
+    "kit.plan.date.trialEnds": {
+      "jaSha1": "78bd16814b",
+      "text": "Ende der Testphase"
+    },
+    "kit.plan.date.trialEndsPaid": {
+      "jaSha1": "334c23c918",
+      "text": "Ende der Testphase (danach kostenpflichtig)"
+    },
+    "kit.plan.monthly": {
+      "jaSha1": "b0587b0eda",
+      "text": "Monatlich"
+    },
+    "kit.plan.note.billingRetry": {
+      "jaSha1": "b86158d941",
+      "text": "Es gibt ein Problem mit Ihrer Zahlung. Prüfen Sie Ihre Zahlungsmethode unter %@."
+    },
+    "kit.plan.note.expired": {
+      "jaSha1": "ab6b9caeaa",
+      "text": "Ihr Abo ist abgelaufen."
+    },
+    "kit.plan.note.notSubscribed": {
+      "jaSha1": "1ac2ddad19",
+      "text": "Sie haben noch nicht abonniert."
+    },
+    "kit.plan.note.revoked": {
+      "jaSha1": "52a7e70442",
+      "text": "Ihr Kauf wurde erstattet oder widerrufen."
+    },
+    "kit.plan.note.unknown": {
+      "jaSha1": "9a244ec99d",
+      "text": "Ihr Kauf konnte nicht geprüft werden. Die Prüfung erfolgt automatisch, sobald Sie wieder online sind."
+    },
+    "kit.plan.paymentPath": {
+      "jaSha1": "f6b64195fa",
+      "text": "Einstellungen > Ihr Name > Zahlung & Versand"
+    },
+    "kit.plan.perPeriod.monthly": {
+      "jaSha1": "7a3bee7c87",
+      "text": "/Monat"
+    },
+    "kit.plan.perPeriod.yearly": {
+      "jaSha1": "414d548ef9",
+      "text": "/Jahr"
+    },
+    "kit.plan.savings.one": {
+      "jaSha1": "a08243c355",
+      "text": "%@ Monat gespart"
+    },
+    "kit.plan.savings.other": {
+      "jaSha1": "a08243c355",
+      "text": "%@ Monate gespart"
+    },
+    "kit.plan.status.billingRetry": {
+      "jaSha1": "cef49ac1f3",
+      "text": "Zahlungsproblem (Nur ansehen)"
+    },
+    "kit.plan.status.expired": {
+      "jaSha1": "2f14adfb16",
+      "text": "Abgelaufen (Nur ansehen)"
+    },
+    "kit.plan.status.notSubscribed": {
+      "jaSha1": "8660cd5b0b",
+      "text": "Nicht gekauft (Nur ansehen)"
+    },
+    "kit.plan.status.revoked": {
+      "jaSha1": "b8a23ab7ca",
+      "text": "Erstattet (Nur ansehen)"
+    },
+    "kit.plan.status.subscribed": {
+      "jaSha1": "a9a5550313",
+      "text": "%@ · Aktiv"
+    },
+    "kit.plan.status.subscribedGrace": {
+      "jaSha1": "e238bde0b0",
+      "text": "%@ · Zahlungsproblem (Nachfrist)"
+    },
+    "kit.plan.status.trial": {
+      "jaSha1": "15d24fc12b",
+      "text": "%@ · Testphase"
+    },
+    "kit.plan.status.unknown": {
+      "jaSha1": "c789ee5664",
+      "text": "Wird geprüft (Nur ansehen)"
+    },
+    "kit.plan.yearly": {
+      "jaSha1": "653f5f79ca",
+      "text": "Jährlich"
+    },
+    "license.contributors": {
+      "jaSha1": "303fb674b8",
+      "text": "Contributors: %@"
+    },
+    "license.holidayData": {
+      "jaSha1": "3dca1f8623",
+      "text": "Feiertagsdaten: python-holidays (MIT-Lizenz)"
+    },
+    "notice.calendar.denied": {
+      "jaSha1": "ea5cc73d2c",
+      "text": "Um Termine anzuzeigen, stellen Sie Kalender in den Einstellungen auf „Voller Zugriff“."
+    },
+    "notice.calendar.denied.openSettings": {
+      "jaSha1": "56b6cd2c1a",
+      "text": "Einstellungen öffnen"
+    },
+    "notice.calendar.notDetermined": {
+      "jaSha1": "07a38bd187",
+      "text": "Um Termine anzuzeigen, erlauben Sie den Zugriff auf Ihre Kalender."
+    },
+    "notice.calendar.notDetermined.allow": {
+      "jaSha1": "b740f07401",
+      "text": "Erlauben"
+    },
+    "notice.calendar.restricted": {
+      "jaSha1": "08d6f4ec1d",
+      "text": "Der Kalenderzugriff ist auf diesem Gerät eingeschränkt. Handschrift können Sie trotzdem nutzen."
+    },
+    "notice.readOnly.button": {
+      "jaSha1": "95a3390dcc",
+      "text": "Abonnieren"
+    },
+    "notice.readOnly.text": {
+      "jaSha1": "183091940d",
+      "text": "Nur ansehen. Abonnieren Sie, um von Hand zu schreiben und Termine zu erstellen."
+    },
+    "onboarding.access.text": {
+      "jaSha1": "4ff6bcf2be",
+      "text": "Auf dem nächsten Bildschirm wird „Voller Zugriff“ auf Ihre Kalender angefragt. So können Termine auf den Planerseiten angezeigt und aus Handschrift Termine erstellt werden.\n\niOS und iPadOS haben keine reine Leseberechtigung, deshalb ist voller Zugriff nötig. Termine werden nur auf diesem Gerät verarbeitet und weder an den Entwickler noch an andere gesendet."
+    },
+    "onboarding.access.title": {
+      "jaSha1": "47388e7b3b",
+      "text": "Kalenderzugriff"
+    },
+    "onboarding.account.text": {
+      "jaSha1": "5dbfbae3d5",
+      "text": "Diese App zeigt die Termine aus der App „Kalender“ auf diesem Gerät an.\n\n%@"
+    },
+    "onboarding.account.title": {
+      "jaSha1": "bc46330e47",
+      "text": "Kalender-Accounts"
+    },
+    "onboarding.askPermission": {
+      "jaSha1": "1f2325f398",
+      "text": "Berechtigungsabfrage anzeigen"
+    },
+    "onboarding.dayPageTap": {
+      "jaSha1": "c243e7a23d",
+      "text": "So öffnen Sie eine Tagesseite mit dem Finger: Tippen Sie auf der Jahresseite auf ein Datum oder die Zahl am linken Rand (dieser Tag im aktuellen Monat), tippen Sie auf der Monatsseite auf eine Datumszahl, oder tippen Sie auf Wochen-, Monats- und Jahresseiten doppelt auf ein Feld."
+    },
+    "onboarding.icloud.text": {
+      "jaSha1": "3f2d0924e1",
+      "text": "Ihre Handschrift wird auf diesem Gerät und in Ihrer iCloud gesichert. Dieselbe Handschrift sehen Sie auch auf Ihren anderen iPads und iPhones.\n\nWenn Sie nicht bei iCloud angemeldet sind, wird sie nur auf diesem Gerät gesichert. iCloud muss nicht eingerichtet werden (es wird automatisch verwendet, wenn Sie auf diesem Gerät angemeldet sind).\n\nDer Entwickler kann Ihre Handschrift nicht sehen. Verwendet wird Ihr eigener iCloud-Speicher."
+    },
+    "onboarding.icloud.title": {
+      "jaSha1": "2ca100d6c2",
+      "text": "iCloud und das Sichern der Handschrift"
+    },
+    "onboarding.next": {
+      "jaSha1": "e572295bb2",
+      "text": "Weiter"
+    },
+    "onboarding.openSettings": {
+      "jaSha1": "42b6a33aa6",
+      "text": "App „Einstellungen“ öffnen"
+    },
+    "onboarding.pen.text": {
+      "jaSha1": "cbfca1a23d",
+      "text": "Schreiben Sie mit dem Apple Pencil auf das Papier. Mit dem Finger scrollen, zoomen (zwei Finger) und tippen Sie auf Termine. Die Handfläche zieht keine Linien, wenn sie den Bildschirm berührt.\n\nUm auch mit dem Finger zu schreiben, aktivieren Sie „Mit Finger zeichnen“ in der Werkzeugleiste. Doppeltippen und Drücken des Apple Pencil wechseln zwischen Stift und Radierer, je nach den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben.\n\n%@"
+    },
+    "onboarding.pen.title": {
+      "jaSha1": "3bbf69218f",
+      "text": "Mit dem Stift schreiben, mit dem Finger bewegen"
+    },
+    "paper.freeMemo": {
+      "jaSha1": "b656a370a2",
+      "text": "Freie Notizen"
+    },
+    "paper.memo": {
+      "jaSha1": "9060a06d59",
+      "text": "Notizen"
+    },
+    "paywall.after.paid": {
+      "jaSha1": "7eed0f4ad1",
+      "text": "%@. Automatische Verlängerung. Jederzeit kündbar."
+    },
+    "paywall.after.trial": {
+      "jaSha1": "6e0bdb7186",
+      "text": "Danach %@. Jederzeit kündbar."
+    },
+    "paywall.billingRetryLead": {
+      "jaSha1": "b86158d941",
+      "text": "Es gibt ein Problem mit Ihrer Zahlung. Prüfen Sie Ihre Zahlungsmethode unter %@."
+    },
+    "paywall.blockedLead": {
+      "jaSha1": "701899d4b5",
+      "text": "Zum Schreiben, Radieren und Erstellen von Terminen ist ein Abo nötig."
+    },
+    "paywall.blockedTrial.one": {
+      "jaSha1": "b406d6cff8",
+      "text": " Sie können %@ Tag kostenlos testen."
+    },
+    "paywall.blockedTrial.other": {
+      "jaSha1": "b406d6cff8",
+      "text": " Sie können %@ Tage kostenlos testen."
+    },
+    "paywall.cta.buy": {
+      "jaSha1": "363f4becb9",
+      "text": "Kaufen"
+    },
+    "paywall.cta.trial.one": {
+      "jaSha1": "97906f141e",
+      "text": "%@ Tag kostenlos testen"
+    },
+    "paywall.cta.trial.other": {
+      "jaSha1": "97906f141e",
+      "text": "%@ Tage kostenlos testen"
+    },
+    "paywall.disclosure.paid": {
+      "jaSha1": "668351dd92",
+      "text": "Das Abo verlängert sich automatisch. Sofern Sie nicht mindestens 24 Stunden vor Ende des aktuellen Zeitraums kündigen, wird es um denselben Zeitraum zum selben Preis verlängert und Ihrem Apple Account berechnet. Die Gebühr wird bei der Kaufbestätigung berechnet. Sie können jederzeit auf Ihrem Gerät unter %@ kündigen. Nach der Kündigung können Sie die App bis zum Ende des bezahlten Zeitraums nutzen."
+    },
+    "paywall.disclosure.trial": {
+      "jaSha1": "efebe5cf89",
+      "text": "Das Abo verlängert sich automatisch. Sofern Sie nicht mindestens 24 Stunden vor Ende des aktuellen Zeitraums kündigen, wird es um denselben Zeitraum zum selben Preis verlängert und Ihrem Apple Account berechnet. Die Gebühr wird am Ende der kostenlosen Testphase berechnet. Sie können jederzeit auf Ihrem Gerät unter %@ kündigen. Nach der Kündigung können Sie die App bis zum Ende des bezahlten Zeitraums nutzen."
+    },
+    "paywall.feature.events": {
+      "jaSha1": "4a8d61cb9c",
+      "text": "Termine aus Handschrift erstellen. Termine erstellen und bearbeiten"
+    },
+    "paywall.feature.ink": {
+      "jaSha1": "0180b3f704",
+      "text": "Handschrift (Stift, Marker, Radierer, Lasso)"
+    },
+    "paywall.feature.sync": {
+      "jaSha1": "11b8cc250d",
+      "text": "Synchronisierung mit iPad und iPhone über iCloud"
+    },
+    "paywall.intro": {
+      "jaSha1": "19bd09dd43",
+      "text": "Ein Planer, in dem Sie mit dem Apple Pencil frei schreiben können, direkt auf dem Kalender Ihres iPad."
+    },
+    "paywall.later": {
+      "jaSha1": "df045200ae",
+      "text": "Später"
+    },
+    "paywall.manage": {
+      "jaSha1": "41d0800450",
+      "text": "Abo verwalten"
+    },
+    "paywall.noPriceNote": {
+      "jaSha1": "665739dcab",
+      "text": "Preise nicht verfügbar"
+    },
+    "paywall.privacy": {
+      "jaSha1": "6bc76e56df",
+      "text": "Datenschutzerklärung"
+    },
+    "paywall.recommended": {
+      "jaSha1": "343a26d481",
+      "text": "Empfohlen"
+    },
+    "paywall.reload": {
+      "jaSha1": "60c8aac010",
+      "text": "Neu laden"
+    },
+    "paywall.restore": {
+      "jaSha1": "9f62acdacd",
+      "text": "Käufe wiederherstellen"
+    },
+    "paywall.revokedLead": {
+      "jaSha1": "d461a8cca5",
+      "text": "Ihr Kauf wurde erstattet oder widerrufen. Um die App wieder zu nutzen, abonnieren Sie."
+    },
+    "paywall.terms": {
+      "jaSha1": "5978cbf78a",
+      "text": "Nutzungsbedingungen des Dienstes"
+    },
+    "paywall.title": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "paywall.trialIneligible": {
+      "jaSha1": "05b3529c54",
+      "text": "Die kostenlose Testphase ist für Sie nicht verfügbar (eine Testphase pro Apple Account)."
+    },
+    "paywall.trialLead.one": {
+      "jaSha1": "512b357b5c",
+      "text": "%@ Tag kostenlos testen."
+    },
+    "paywall.trialLead.other": {
+      "jaSha1": "512b357b5c",
+      "text": "%@ Tage kostenlos testen."
+    },
+    "paywall.trialRest": {
+      "jaSha1": "5e25c1d75b",
+      "text": " Nach der Testphase wird das Abo automatisch kostenpflichtig. Wenn Sie während der Testphase kündigen, fallen keine Kosten an."
+    },
+    "paywall.yearlyNote.both": {
+      "jaSha1": "7f2985ec8f",
+      "text": "%1$@ pro Monat · %2$@"
+    },
+    "paywall.yearlyNote.perMonth": {
+      "jaSha1": "dcb5ff5c0d",
+      "text": "%@ pro Monat"
+    },
+    "recurrence.futureEvents": {
+      "jaSha1": "91127e54b9",
+      "text": "Dieser und alle folgenden"
+    },
+    "recurrence.message.delete": {
+      "jaSha1": "a993eb1c14",
+      "text": "Nur diesen Termin löschen oder diesen und alle folgenden?"
+    },
+    "recurrence.message.save": {
+      "jaSha1": "f88f4cb3a1",
+      "text": "Nur diesen Termin ändern oder diesen und alle folgenden?"
+    },
+    "recurrence.thisEvent": {
+      "jaSha1": "1fd0e67574",
+      "text": "Nur dieser Termin"
+    },
+    "recurrence.title": {
+      "jaSha1": "e0bfa4b878",
+      "text": "Wiederkehrender Termin"
+    },
+    "selection.delete": {
+      "jaSha1": "5cbdf1fd70",
+      "text": "Löschen"
+    },
+    "selection.deselect": {
+      "jaSha1": "8c9d7fae5f",
+      "text": "Abwählen"
+    },
+    "selection.handwriting": {
+      "jaSha1": "137731cd40",
+      "text": "Ausgewählte Handschrift"
+    },
+    "selection.makeEvent": {
+      "jaSha1": "e82f097a14",
+      "text": "Als Termin"
+    },
+    "settings.calendar.a11y.hidden": {
+      "jaSha1": "dc9c6d6082",
+      "text": "Ausgeblendet"
+    },
+    "settings.calendar.a11y.shown": {
+      "jaSha1": "7431dbfdd2",
+      "text": "Eingeblendet"
+    },
+    "settings.calendar.access.allow": {
+      "jaSha1": "b740f07401",
+      "text": "Erlauben"
+    },
+    "settings.calendar.access.denied": {
+      "jaSha1": "f5d82753b7",
+      "text": "Nicht erlaubt"
+    },
+    "settings.calendar.access.full": {
+      "jaSha1": "3a1828c35b",
+      "text": "Erlaubt (Voller Zugriff)"
+    },
+    "settings.calendar.access.notDetermined": {
+      "jaSha1": "866cd4d13b",
+      "text": "Noch nicht erlaubt"
+    },
+    "settings.calendar.access.restricted": {
+      "jaSha1": "55bfb31527",
+      "text": "Auf diesem Gerät eingeschränkt"
+    },
+    "settings.calendar.access.title": {
+      "jaSha1": "47388e7b3b",
+      "text": "Kalenderzugriff"
+    },
+    "settings.calendar.access.writeOnly": {
+      "jaSha1": "9a7ad5f558",
+      "text": "Nur hinzufügen (Termine können nicht angezeigt werden)"
+    },
+    "settings.calendar.default": {
+      "jaSha1": "241d4396d1",
+      "text": "Neue Termine hinzufügen zu"
+    },
+    "settings.calendar.empty": {
+      "jaSha1": "c0b03f339c",
+      "text": "Keine Kalender"
+    },
+    "settings.calendar.google.howTo": {
+      "jaSha1": "4f784db710",
+      "text": "Um Termine aus Google Kalender anzuzeigen, fügen Sie Ihren Google-Account in der App „Einstellungen“ hinzu.\n1. Einstellungen > Apps > Kalender > Kalender-Accounts > Account hinzufügen > Google (bei iOS und iPadOS 17: Einstellungen > Kalender > Accounts)\n2. Schalten Sie Kalender ein.\n3. Wählen Sie auf demselben Bildschirm unter „Datenabgleich“ die Option „Alle 15 Minuten“, damit Termine schneller aktualisiert werden.\n\nWenn Sie nur iCloud-Kalender nutzen, müssen Sie nichts tun."
+    },
+    "settings.calendar.google.title": {
+      "jaSha1": "c21e5b3670",
+      "text": "Google Kalender verwenden"
+    },
+    "settings.calendar.header": {
+      "jaSha1": "340ba3962c",
+      "text": "Kalender"
+    },
+    "settings.calendar.noAccess": {
+      "jaSha1": "ebd07f259a",
+      "text": "Erlauben Sie den Kalenderzugriff, um die Liste hier zu sehen"
+    },
+    "settings.calendar.otherSource": {
+      "jaSha1": "7c2281ce71",
+      "text": "Andere"
+    },
+    "settings.calendar.shown": {
+      "jaSha1": "aaca081301",
+      "text": "Angezeigte Kalender"
+    },
+    "settings.data.erase.all": {
+      "jaSha1": "e2b84fa132",
+      "text": "Alles löschen"
+    },
+    "settings.data.erase.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "Abbrechen"
+    },
+    "settings.data.erase.confirm": {
+      "jaSha1": "cc735c87c7",
+      "text": "Löschen"
+    },
+    "settings.data.erase.question.cloud": {
+      "jaSha1": "0954331716",
+      "text": "Alle auf diesem Gerät und in iCloud gesicherte Handschrift löschen?"
+    },
+    "settings.data.erase.question.local": {
+      "jaSha1": "f58f48ea33",
+      "text": "Alle auf diesem Gerät gesicherte Handschrift löschen?"
+    },
+    "settings.data.erase.title": {
+      "jaSha1": "262064ae64",
+      "text": "Wirklich löschen?"
+    },
+    "settings.data.erase.warning.cloud": {
+      "jaSha1": "0b38a215b2",
+      "text": "Das kann nicht rückgängig gemacht werden. Auch die Handschrift auf Ihren anderen iPads und iPhones wird gelöscht."
+    },
+    "settings.data.erase.warning.local": {
+      "jaSha1": "5ec69d130c",
+      "text": "Das kann nicht rückgängig gemacht werden."
+    },
+    "settings.data.eraseAll": {
+      "jaSha1": "265862104c",
+      "text": "Alle Handschrift auf diesem Gerät löschen"
+    },
+    "settings.data.export": {
+      "jaSha1": "bed7b93489",
+      "text": "Handschrift exportieren"
+    },
+    "settings.data.exportFooter": {
+      "jaSha1": "546c7c7415",
+      "text": "„Handschrift exportieren“ fasst die auf diesem Gerät gesicherte Handschrift in einer Datendatei (JSON) zusammen oder erstellt ein PDF der geöffneten Seite. Eine Datendatei können Sie mit „Aus der Web-Version importieren“ wieder importieren (zum Importieren ist ein Abo nötig)."
+    },
+    "settings.data.header": {
+      "jaSha1": "d4d63da93d",
+      "text": "Daten"
+    },
+    "settings.data.import": {
+      "jaSha1": "6996e64bb2",
+      "text": "Aus der Web-Version importieren"
+    },
+    "settings.data.importFooter": {
+      "jaSha1": "dbd00b969d",
+      "text": "Verwenden Sie in den Einstellungen der Web-Version „手書きを書き出す（iPad アプリ用）“ (Handschrift für die iPad-App exportieren) und wählen Sie dann diese Datei. Wird dieselbe Datei zweimal importiert, wird die Handschrift nicht verdoppelt."
+    },
+    "settings.data.lastImport": {
+      "jaSha1": "0b9222397e",
+      "text": "Letzter Import: %@"
+    },
+    "settings.done": {
+      "jaSha1": "1cae18a9a4",
+      "text": "Fertig"
+    },
+    "settings.holidays.footer": {
+      "jaSha1": "bb45537547",
+      "text": "Japanische Feiertage berechnet diese App (und prüft sie anhand der Bekanntgaben des japanischen Kabinettsamts). Feiertage anderer Länder beruhen auf öffentlichen Daten (python-holidays). Einige, etwa Feiertage nach dem Mond- oder dem islamischen Kalender, sind geschätzt und mit „(geschätzt)“ markiert. Sie können von den neuesten Bekanntgaben der Regierungen abweichen. Die Feiertagseinstellung wird nur auf diesem Gerät gesichert."
+    },
+    "settings.holidays.header": {
+      "jaSha1": "d76d8613e8",
+      "text": "Feiertage"
+    },
+    "settings.holidays.note.beforeNotice": {
+      "jaSha1": "4b9244a266",
+      "text": "%@ geschätzt vor der Bekanntgabe"
+    },
+    "settings.holidays.note.join": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "settings.holidays.note.nationalOnly": {
+      "jaSha1": "873e79c96e",
+      "text": "nur landesweit"
+    },
+    "settings.holidays.note.nationalOnlyAuto": {
+      "jaSha1": "05614d7fe0",
+      "text": "nur landesweite Feiertage"
+    },
+    "settings.holidays.note.noData": {
+      "jaSha1": "2b5fdaaae1",
+      "text": "keine Feiertagsdaten"
+    },
+    "settings.holidays.note.noDataFrom": {
+      "jaSha1": "485a645652",
+      "text": "keine Daten ab %@"
+    },
+    "settings.holidays.row": {
+      "jaSha1": "445c8551f9",
+      "text": "Angezeigte Feiertage"
+    },
+    "settings.holidays.value.auto": {
+      "jaSha1": "49561b4231",
+      "text": "Automatisch (%@)"
+    },
+    "settings.holidays.value.autoNote": {
+      "jaSha1": "3b4ba4ad66",
+      "text": "Automatisch (%1$@ · %2$@)"
+    },
+    "settings.holidays.value.none": {
+      "jaSha1": "1a2e920ba7",
+      "text": "Keine"
+    },
+    "settings.holidays.value.regionNote": {
+      "jaSha1": "f69c7bc18a",
+      "text": "%1$@ (%2$@)"
+    },
+    "settings.holidays.value.subdivision": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "settings.info.footer": {
+      "jaSha1": "c6163bd215",
+      "text": "Die Strichzahl stammt von den auf diesem Gerät gesicherten Seiten (es wird nichts gesendet). Eine Seite fasst bis zu %@ Striche."
+    },
+    "settings.info.header": {
+      "jaSha1": "d98f83b725",
+      "text": "Info"
+    },
+    "settings.info.largestPage": {
+      "jaSha1": "bb710bf988",
+      "text": "Seite mit den meisten Strichen"
+    },
+    "settings.info.licenses": {
+      "jaSha1": "3ff3073d7e",
+      "text": "Open-Source-Lizenzen"
+    },
+    "settings.info.privacy": {
+      "jaSha1": "6bc76e56df",
+      "text": "Datenschutzerklärung"
+    },
+    "settings.info.support": {
+      "jaSha1": "449c69d777",
+      "text": "Support"
+    },
+    "settings.info.terms": {
+      "jaSha1": "5978cbf78a",
+      "text": "Nutzungsbedingungen des Dienstes"
+    },
+    "settings.info.version": {
+      "jaSha1": "7b193c28d4",
+      "text": "Version"
+    },
+    "settings.info.yearPage": {
+      "jaSha1": "b0a81c3202",
+      "text": "Jahresseite dieses Jahres"
+    },
+    "settings.input.allowFinger": {
+      "jaSha1": "d3f8bf8e60",
+      "text": "Mit Finger zeichnen"
+    },
+    "settings.input.allowFinger.footer": {
+      "jaSha1": "0ed7a17915",
+      "text": "Wenn dies aktiviert ist, können Sie auch mit dem Finger Linien ziehen. Wenn es deaktiviert ist, scrollen und tippen Sie mit dem Finger. Handschrift eignet sich am besten für iPad und Apple Pencil."
+    },
+    "settings.input.eraseAfterConvert": {
+      "jaSha1": "0a0cf64940",
+      "text": "Handschrift nach Termin löschen"
+    },
+    "settings.input.eraseAfterConvert.footer": {
+      "jaSha1": "024590befb",
+      "text": "Die Vorauswahl dafür, ob mit dem Lasso umkreiste Handschrift gelöscht wird, nachdem daraus ein Termin erstellt wurde."
+    },
+    "settings.input.eraserAutoReturn.footer.pad": {
+      "jaSha1": "7d740e10cc",
+      "text": "Wenn Sie einen Strich radieren und den Finger oder den Apple Pencil anheben, kehrt das Werkzeug zum zuvor genutzten Stift oder Marker zurück. Das gilt auch für den Radierer, den Sie durch Doppeltippen oder Drücken des Apple Pencil gewählt haben."
+    },
+    "settings.input.eraserAutoReturn.footer.phone": {
+      "jaSha1": "2365e0a158",
+      "text": "Wenn Sie einen Strich radieren und den Finger anheben, kehrt das Werkzeug zum zuvor genutzten Stift oder Marker zurück."
+    },
+    "settings.input.eraserAutoReturn.title": {
+      "jaSha1": "df8b74ebd3",
+      "text": "Nach dem Radieren zurück zum Stift"
+    },
+    "settings.input.header": {
+      "jaSha1": "ae5ceeefcd",
+      "text": "Eingabe"
+    },
+    "settings.input.pencil": {
+      "jaSha1": "e5e3006f45",
+      "text": "Apple Pencil"
+    },
+    "settings.input.pencil.footer": {
+      "jaSha1": "b18fc2bf4e",
+      "text": "Doppeltippen und Drücken folgen den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben"
+    },
+    "settings.openSettingsApp": {
+      "jaSha1": "42b6a33aa6",
+      "text": "App „Einstellungen“ öffnen"
+    },
+    "settings.purchase.footer.cancel": {
+      "jaSha1": "0374921042",
+      "text": "Kündigen können Sie auf Ihrem Gerät unter %@. Nach der Kündigung können Sie die App bis zum Ende des Zeitraums nutzen."
+    },
+    "settings.purchase.footer.grace": {
+      "jaSha1": "1cb61098fc",
+      "text": "Es gibt ein Problem mit Ihrer Zahlung. Prüfen Sie Ihre Zahlungsmethode auf Ihrem Gerät unter %@. Bis zum Ende der Nachfrist können Sie die App nutzen."
+    },
+    "settings.purchase.footer.readOnly": {
+      "jaSha1": "d0794c08c0",
+      "text": "%@ Im Modus „Nur ansehen“ können Sie Termine und Handschrift ansehen, Seiten wechseln, zoomen, aus iCloud empfangen, alle Handschrift auf diesem Gerät löschen, Handschrift exportieren und Einstellungen ändern. Mit einem Abo können Sie schreiben, radieren und verschieben, Termine erstellen und bearbeiten und aus der Web-Version importieren."
+    },
+    "settings.purchase.footer.trial": {
+      "jaSha1": "226bfc1627",
+      "text": "Kündigen können Sie auf Ihrem Gerät unter %@. Nach der Kündigung können Sie die App bis zum Ende des Zeitraums nutzen. Wenn Sie während der Testphase kündigen, fallen keine Kosten an."
+    },
+    "settings.purchase.header": {
+      "jaSha1": "234283a496",
+      "text": "Kauf"
+    },
+    "settings.purchase.manage": {
+      "jaSha1": "41d0800450",
+      "text": "Abo verwalten"
+    },
+    "settings.purchase.plan": {
+      "jaSha1": "6c5da7f995",
+      "text": "Aktueller Tarif"
+    },
+    "settings.purchase.restore": {
+      "jaSha1": "9f62acdacd",
+      "text": "Käufe wiederherstellen"
+    },
+    "settings.purchase.subscribe": {
+      "jaSha1": "95a3390dcc",
+      "text": "Abonnieren"
+    },
+    "settings.purchase.trial.one": {
+      "jaSha1": "97906f141e",
+      "text": "%@ Tag kostenlos testen"
+    },
+    "settings.purchase.trial.other": {
+      "jaSha1": "97906f141e",
+      "text": "%@ Tage kostenlos testen"
+    },
+    "settings.sync.header": {
+      "jaSha1": "efacc27bc2",
+      "text": "Synchronisierung"
+    },
+    "settings.sync.icloud": {
+      "jaSha1": "b3d555701f",
+      "text": "iCloud-Synchronisierung"
+    },
+    "settings.sync.lastSync": {
+      "jaSha1": "b7a2bb0691",
+      "text": "Zuletzt synchronisiert"
+    },
+    "settings.sync.lastSync.none": {
+      "jaSha1": "1cf9028423",
+      "text": "Noch nicht"
+    },
+    "settings.sync.newAccount": {
+      "jaSha1": "4e99c82d7b",
+      "text": "Mit dem neuen Account beginnen …"
+    },
+    "settings.sync.now": {
+      "jaSha1": "f24a940b08",
+      "text": "Jetzt synchronisieren"
+    },
+    "settings.title": {
+      "jaSha1": "6329f21c41",
+      "text": "Einstellungen"
+    },
+    "settings.weekStart.auto": {
+      "jaSha1": "49561b4231",
+      "text": "Automatisch (%@)"
+    },
+    "settings.weekStart.confirm.message.monday": {
+      "jaSha1": "47f0f2d981",
+      "text": "Wochenseiten sind getrennt für Wochen, die am Montag beginnen, und Wochen, die am Sonntag beginnen. Ihre jetzige Handschrift auf den Wochenseiten bleibt ausgeblendet, bis Sie zu Sonntag zurückwechseln (sie wird nicht gelöscht). Handschrift auf Monatsseiten wandert in das Feld mit demselben Datum. Ein Teil dessen, was in Feldern für Tage des vorherigen oder nächsten Monats steht, kann jedoch bis zum Zurückwechseln ausgeblendet bleiben (es wird nicht gelöscht)."
+    },
+    "settings.weekStart.confirm.message.sunday": {
+      "jaSha1": "f3d8eed3b5",
+      "text": "Wochenseiten sind getrennt für Wochen, die am Montag beginnen, und Wochen, die am Sonntag beginnen. Ihre jetzige Handschrift auf den Wochenseiten bleibt ausgeblendet, bis Sie zu Montag zurückwechseln (sie wird nicht gelöscht). Handschrift auf Monatsseiten wandert in das Feld mit demselben Datum. Ein Teil dessen, was in Feldern für Tage des vorherigen oder nächsten Monats steht, kann jedoch bis zum Zurückwechseln ausgeblendet bleiben (es wird nicht gelöscht)."
+    },
+    "settings.weekStart.confirm.ok.monday": {
+      "jaSha1": "de0f361701",
+      "text": "Montag verwenden"
+    },
+    "settings.weekStart.confirm.ok.sunday": {
+      "jaSha1": "a83187d517",
+      "text": "Sonntag verwenden"
+    },
+    "settings.weekStart.confirm.title.monday": {
+      "jaSha1": "f4346d1d39",
+      "text": "Wochen am Montag beginnen?"
+    },
+    "settings.weekStart.confirm.title.sunday": {
+      "jaSha1": "5744e4afba",
+      "text": "Wochen am Sonntag beginnen?"
+    },
+    "settings.weekStart.footer": {
+      "jaSha1": "bc58ea14c9",
+      "text": "„Automatisch“ folgt der Region des Geräts. Diese Einstellung gilt pro Gerät. Verwenden Sie auf jedem Gerät dieselbe Einstellung, um dieselbe Handschrift auf den Wochenseiten zu sehen."
+    },
+    "settings.weekStart.monday": {
+      "jaSha1": "cfa48b4bcd",
+      "text": "Montag"
+    },
+    "settings.weekStart.otherPages.one": {
+      "jaSha1": "5c23d09236",
+      "text": "%2$@ Wochenseite nutzt den anderen Wochenstart (%1$@). Wechseln Sie, um sie zu sehen."
+    },
+    "settings.weekStart.otherPages.other": {
+      "jaSha1": "5c23d09236",
+      "text": "%2$@ Wochenseiten nutzen den anderen Wochenstart (%1$@). Wechseln Sie, um sie zu sehen."
+    },
+    "settings.weekStart.sunday": {
+      "jaSha1": "c0a04a68b9",
+      "text": "Sonntag"
+    },
+    "settings.weekStart.title": {
+      "jaSha1": "5996fbb18c",
+      "text": "Erster Tag der Woche"
+    },
+    "store.error.productNotFound": {
+      "jaSha1": "a6f401a2bf",
+      "text": "Produkt nicht gefunden"
+    },
+    "store.error.unknownPurchaseResult": {
+      "jaSha1": "1cbf927b12",
+      "text": "Das Kaufergebnis kann nicht ausgewertet werden"
+    },
+    "store.generic": {
+      "jaSha1": "06fdbe8b8a",
+      "text": "Kauf nicht möglich (%@)"
+    },
+    "store.notAvailable": {
+      "jaSha1": "5f6340f7ac",
+      "text": "Dieser Tarif kann in Ihrer Region nicht gekauft werden"
+    },
+    "store.nothingToRestore": {
+      "jaSha1": "e14c78c3fb",
+      "text": "Es gibt keine Käufe zum Wiederherstellen. Prüfen Sie, ob Sie mit dem Apple Account des Kaufs angemeldet sind"
+    },
+    "store.offline": {
+      "jaSha1": "9f6b522a59",
+      "text": "Keine Verbindung zum App Store. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut"
+    },
+    "store.pending": {
+      "jaSha1": "d53552c395",
+      "text": "Warten auf Genehmigung. Nach der Genehmigung ist die App automatisch nutzbar"
+    },
+    "store.productsUnavailable": {
+      "jaSha1": "47294f5e05",
+      "text": "Preise konnten nicht aus dem App Store geladen werden. Prüfen Sie Ihre Verbindung und tippen Sie auf „Neu laden“"
+    },
+    "store.purchased": {
+      "jaSha1": "e7731b38c7",
+      "text": "Ihr Abo hat begonnen. Vielen Dank"
+    },
+    "store.restored": {
+      "jaSha1": "84c45a25b0",
+      "text": "Käufe wiederhergestellt"
+    },
+    "store.trialStarted.one": {
+      "jaSha1": "d7345daa22",
+      "text": "Ihre kostenlose Testphase von %@ Tag hat begonnen"
+    },
+    "store.trialStarted.other": {
+      "jaSha1": "d7345daa22",
+      "text": "Ihre kostenlose Testphase von %@ Tagen hat begonnen"
+    },
+    "store.unverified": {
+      "jaSha1": "d57ae3e91f",
+      "text": "Ihr Kauf konnte nicht bestätigt werden. Warten Sie etwas und versuchen Sie dann „Käufe wiederherstellen“"
+    },
+    "sync.footer.accountMismatch": {
+      "jaSha1": "15a61a77c5",
+      "text": "Die Handschrift auf diesem Gerät gehört zu dem iCloud-Account, der zuvor synchronisiert wurde. Treffen Sie Ihre Wahl unter „Mit dem neuen Account beginnen“."
+    },
+    "sync.footer.noAccount": {
+      "jaSha1": "bc567caeb3",
+      "text": "Melden Sie sich bei iCloud an, um mit Ihren anderen Geräten zu synchronisieren. Ihre Handschrift wird nur auf diesem Gerät gesichert."
+    },
+    "sync.footer.offline": {
+      "jaSha1": "47076f38ce",
+      "text": "Sie sind offline. Ihre Handschrift wird auf diesem Gerät gesichert und synchronisiert, sobald die Verbindung zurück ist."
+    },
+    "sync.footer.permission": {
+      "jaSha1": "dc8716fd26",
+      "text": "In den iCloud-Einstellungen ist diese App nicht erlaubt."
+    },
+    "sync.footer.quota": {
+      "jaSha1": "059b200f79",
+      "text": "Ihre Handschrift kann nicht synchronisiert werden, weil der iCloud-Speicher nicht ausreicht. Auf diesem Gerät ist sie gesichert."
+    },
+    "sync.footer.restricted": {
+      "jaSha1": "66e7844350",
+      "text": "Ihre Handschrift wird nur auf diesem Gerät gesichert."
+    },
+    "sync.footer.serverError": {
+      "jaSha1": "8b39c73031",
+      "text": "Die Synchronisierung ist fehlgeschlagen. Auf diesem Gerät ist die Handschrift gesichert (später neuer Versuch).\n%@"
+    },
+    "sync.footer.synced": {
+      "jaSha1": "68bfffdb52",
+      "text": "Ihre Handschrift ist auf diesem Gerät und in Ihrer iCloud gesichert. Dieselbe Handschrift sehen Sie auch auf Ihren anderen iPads und iPhones."
+    },
+    "sync.footer.syncing": {
+      "jaSha1": "3ddf4812c7",
+      "text": "Ihre Handschrift wird an iCloud gesendet."
+    },
+    "sync.footer.unknown": {
+      "jaSha1": "590acf48af",
+      "text": "Prüfen Sie iCloud in der App „Einstellungen“. Ihre Handschrift wird nur auf diesem Gerät gesichert."
+    },
+    "sync.header.error": {
+      "jaSha1": "ec6399d678",
+      "text": "Fehler"
+    },
+    "sync.header.localOnly": {
+      "jaSha1": "bf8cd9d7c4",
+      "text": "Nur dieses Gerät"
+    },
+    "sync.header.offline": {
+      "jaSha1": "d32cd8eb43",
+      "text": "Offline"
+    },
+    "sync.header.saved": {
+      "jaSha1": "74e30e9189",
+      "text": "Gesichert"
+    },
+    "sync.header.stopped": {
+      "jaSha1": "434eb8e2dc",
+      "text": "Gestoppt"
+    },
+    "sync.header.syncing": {
+      "jaSha1": "db56671e15",
+      "text": "Sync läuft"
+    },
+    "sync.status.accountMismatch": {
+      "jaSha1": "91817cbe3a",
+      "text": "Anderer iCloud-Account"
+    },
+    "sync.status.noAccount": {
+      "jaSha1": "fde00f36ba",
+      "text": "Nicht bei iCloud angemeldet"
+    },
+    "sync.status.offline": {
+      "jaSha1": "d32cd8eb43",
+      "text": "Offline"
+    },
+    "sync.status.permission": {
+      "jaSha1": "b61baf5b05",
+      "text": "iCloud nicht verfügbar"
+    },
+    "sync.status.quota": {
+      "jaSha1": "418eff91ef",
+      "text": "Zu wenig iCloud-Speicher"
+    },
+    "sync.status.restricted": {
+      "jaSha1": "9e639f1dd0",
+      "text": "iCloud ist auf diesem Gerät eingeschränkt"
+    },
+    "sync.status.serverError": {
+      "jaSha1": "0ca7e52bca",
+      "text": "Synchronisierung fehlgeschlagen"
+    },
+    "sync.status.synced": {
+      "jaSha1": "268fa2341c",
+      "text": "Synchronisiert"
+    },
+    "sync.status.syncing": {
+      "jaSha1": "272ff52b3d",
+      "text": "Wird synchronisiert …"
+    },
+    "sync.status.unknown": {
+      "jaSha1": "e90e31922f",
+      "text": "iCloud kann nicht geprüft werden"
+    },
+    "toast.eraseCloudFailed": {
+      "jaSha1": "5fbe38989b",
+      "text": "Die Handschrift in iCloud konnte nicht gelöscht werden. Die auf diesem Gerät ist gelöscht. Versuchen Sie es erneut, wenn Sie wieder online sind"
+    },
+    "toast.erased": {
+      "jaSha1": "dacc7265ce",
+      "text": "Alle Handschrift gelöscht"
+    },
+    "toast.event.created": {
+      "jaSha1": "ef47c27162",
+      "text": "Termin hinzugefügt"
+    },
+    "toast.event.deleted": {
+      "jaSha1": "2740fc4ddf",
+      "text": "Termin gelöscht"
+    },
+    "toast.event.noAccess": {
+      "jaSha1": "0538edc7d0",
+      "text": "Um Termine hinzuzufügen, erlauben Sie den Kalenderzugriff in den Einstellungen"
+    },
+    "toast.event.noCalendar": {
+      "jaSha1": "41d7eee11d",
+      "text": "Kein Kalender kann neue Termine aufnehmen"
+    },
+    "toast.event.updated": {
+      "jaSha1": "e9d0713de6",
+      "text": "Termin aktualisiert"
+    },
+    "toast.eventBelowDay": {
+      "jaSha1": "900c68f5ba",
+      "text": "In den freien Notizen unter 24:00 können keine Termine erstellt werden"
+    },
+    "toast.growthCap": {
+      "jaSha1": "a7416b4c53",
+      "text": "Hier endet der Notizbereich"
+    },
+    "toast.pinchHint": {
+      "jaSha1": "b5c7aed169",
+      "text": "Zwei Finger spreizen zum Vergrößern, zusammenziehen zum Verkleinern"
+    },
+    "toast.readOnly": {
+      "jaSha1": "b4a0045460",
+      "text": "Nur ansehen. Zum Schreiben, Radieren und Erstellen von Terminen ist ein Abo nötig"
+    },
+    "toast.strokeBudget.full": {
+      "jaSha1": "6b0edb3d70",
+      "text": "Diese Seite ist voll (%@ Striche). Radieren Sie Striche, um wieder zu schreiben."
+    },
+    "toast.strokeBudget.many": {
+      "jaSha1": "c57434493e",
+      "text": "Diese Seite hat mehr als %1$@ Striche. Eine Seite fasst bis zu %2$@ Striche."
+    },
+    "toast.weekStart.adopted.monday": {
+      "jaSha1": "eb447c6607",
+      "text": "Wochenstart auf Montag gesetzt, passend zu Ihrer iCloud-Handschrift. Sie können das in den Einstellungen ändern."
+    },
+    "toast.weekStart.adopted.sunday": {
+      "jaSha1": "019ff66d3b",
+      "text": "Wochenstart auf Sonntag gesetzt, passend zu Ihrer iCloud-Handschrift. Sie können das in den Einstellungen ändern."
+    },
+    "toast.weekStart.hiddenInk.one": {
+      "jaSha1": "6e3424da82",
+      "text": "Diese Monatsseite hat %@ Strich an einem ausgeblendeten Tag. Nicht gelöscht: Er erscheint nach dem Zurückwechseln."
+    },
+    "toast.weekStart.hiddenInk.other": {
+      "jaSha1": "6e3424da82",
+      "text": "Diese Monatsseite hat %@ Striche an ausgeblendeten Tagen. Nicht gelöscht: Sie erscheinen nach dem Zurückwechseln."
+    },
+    "toast.weekStart.otherForm.one": {
+      "jaSha1": "19ef2be677",
+      "text": "%2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche."
+    },
+    "toast.weekStart.otherForm.other": {
+      "jaSha1": "19ef2be677",
+      "text": "%2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche."
+    },
+    "toast.weekStart.regionChanged.monday": {
+      "jaSha1": "857c24a261",
+      "text": "Wochenstart auf Montag gesetzt, passend zur Region des Geräts. Ihre Handschrift der Sonntagswochen ist nicht gelöscht."
+    },
+    "toast.weekStart.regionChanged.sunday": {
+      "jaSha1": "9883036f4f",
+      "text": "Wochenstart auf Sonntag gesetzt, passend zur Region des Geräts. Ihre Handschrift der Montagswochen ist nicht gelöscht."
+    },
+    "toolbar.badge.marker": {
+      "jaSha1": "ebb1b50f6e",
+      "text": "Marker, %@"
+    },
+    "toolbar.badge.pen": {
+      "jaSha1": "13beea0796",
+      "text": "Stift, %@"
+    },
+    "toolbar.badge.penWidth": {
+      "jaSha1": "ddc2d03ed8",
+      "text": "Stift, %1$@, %2$@"
+    },
+    "toolbar.collapse.spoken": {
+      "jaSha1": "e4488face7",
+      "text": "Werkzeugleiste ausblenden"
+    },
+    "toolbar.collapse.title": {
+      "jaSha1": "0addaa0b2b",
+      "text": "Ablegen"
+    },
+    "toolbar.color.black": {
+      "jaSha1": "2c80764518",
+      "text": "Schwarz"
+    },
+    "toolbar.color.blue": {
+      "jaSha1": "845d1da87f",
+      "text": "Blau"
+    },
+    "toolbar.color.green": {
+      "jaSha1": "f22758bf8f",
+      "text": "Grün"
+    },
+    "toolbar.color.lightBlue": {
+      "jaSha1": "d2dddf0d44",
+      "text": "Hellblau"
+    },
+    "toolbar.color.orange": {
+      "jaSha1": "831166ef4b",
+      "text": "Orange"
+    },
+    "toolbar.color.pink": {
+      "jaSha1": "caaf2acdb2",
+      "text": "Rosa"
+    },
+    "toolbar.color.purple": {
+      "jaSha1": "01caea5810",
+      "text": "Lila"
+    },
+    "toolbar.color.red": {
+      "jaSha1": "72776ab68f",
+      "text": "Rot"
+    },
+    "toolbar.color.unknown": {
+      "jaSha1": "bc848e8fcb",
+      "text": "Andere Farbe"
+    },
+    "toolbar.color.yellow": {
+      "jaSha1": "7720f8ea0a",
+      "text": "Gelb"
+    },
+    "toolbar.dock.hint.toLeft": {
+      "jaSha1": "700daf6c01",
+      "text": "Halten, um nach unten links zu verschieben oder die Werkzeugleiste immer anzuzeigen"
+    },
+    "toolbar.dock.hint.toRight": {
+      "jaSha1": "5f09107ce2",
+      "text": "Halten, um nach unten rechts zu verschieben oder die Werkzeugleiste immer anzuzeigen"
+    },
+    "toolbar.dock.spoken": {
+      "jaSha1": "89fd0adb46",
+      "text": "Werkzeugleiste einblenden"
+    },
+    "toolbar.fingerToggle": {
+      "jaSha1": "d3f8bf8e60",
+      "text": "Mit Finger zeichnen"
+    },
+    "toolbar.fingerToggle.hint": {
+      "jaSha1": "cb2be71b20",
+      "text": "Wenn dies aktiviert ist, können Sie auch mit dem Finger Linien ziehen. Wenn es deaktiviert ist, scrollen und tippen Sie mit dem Finger"
+    },
+    "toolbar.hint.eraser": {
+      "jaSha1": "8b55191d18",
+      "text": "Löscht berührte Striche"
+    },
+    "toolbar.hint.eraser.toMarker": {
+      "jaSha1": "fb4c03b5e7",
+      "text": "Löscht berührte Striche\n(danach wieder Marker)"
+    },
+    "toolbar.hint.eraser.toPen": {
+      "jaSha1": "8162be3abe",
+      "text": "Löscht berührte Striche\n(danach wieder Stift)"
+    },
+    "toolbar.hint.event": {
+      "jaSha1": "a72d576197",
+      "text": "Ziehen erstellt Termin.\nTippen zum Bearbeiten"
+    },
+    "toolbar.hint.lasso": {
+      "jaSha1": "c22a65bde9",
+      "text": "Umkreisen zum Wählen.\nZiehen zum Bewegen"
+    },
+    "toolbar.moveEdge.toLeft": {
+      "jaSha1": "3390912dcc",
+      "text": "Nach unten links"
+    },
+    "toolbar.moveEdge.toRight": {
+      "jaSha1": "c37ead3ae2",
+      "text": "Nach unten rechts"
+    },
+    "toolbar.pin": {
+      "jaSha1": "16d003ddf3",
+      "text": "Werkzeugleiste immer anzeigen"
+    },
+    "toolbar.redo": {
+      "jaSha1": "c06cea5e52",
+      "text": "Wiederholen"
+    },
+    "toolbar.tool.eraser": {
+      "jaSha1": "6e4f860f71",
+      "text": "Radierer"
+    },
+    "toolbar.tool.event": {
+      "jaSha1": "eb000e9544",
+      "text": "Termin"
+    },
+    "toolbar.tool.lasso": {
+      "jaSha1": "4f568822b5",
+      "text": "Lasso"
+    },
+    "toolbar.tool.marker": {
+      "jaSha1": "786bef306d",
+      "text": "Marker"
+    },
+    "toolbar.tool.pen": {
+      "jaSha1": "93943573d2",
+      "text": "Stift"
+    },
+    "toolbar.undo": {
+      "jaSha1": "c7f325f13f",
+      "text": "Widerrufen"
+    },
+    "toolbar.width.medium": {
+      "jaSha1": "0869071c92",
+      "text": "Mittel"
+    },
+    "toolbar.width.spoken": {
+      "jaSha1": "e8aa9aa6cb",
+      "text": "Stärke: %@"
+    },
+    "toolbar.width.thick": {
+      "jaSha1": "d2ff8f7020",
+      "text": "Dick"
+    },
+    "toolbar.width.thin": {
+      "jaSha1": "a7c522dc20",
+      "text": "Dünn"
+    }
+  }
+}

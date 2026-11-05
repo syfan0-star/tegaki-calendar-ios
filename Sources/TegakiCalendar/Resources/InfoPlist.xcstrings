@@ -5,10 +5,64 @@
       "comment" : "ホーム画面のアプリの名前（M7B-2。en は Tegaki。どの言語でもローマ字の Tegaki を基本に）",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "てがきカレンダー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegaki"
           }
         }
       }
@@ -17,10 +71,64 @@
       "comment" : "カレンダーの許可を求める iOS の画面に出る説明。「フルアクセス」は iOS のその言語の語に合わせる",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird verwendet, um Ihre Kalendertermine auf den Planerseiten anzuzeigen und aus Handschrift Termine zu erstellen. iOS und iPadOS haben keine reine Leseberechtigung, deshalb wird voller Zugriff angefragt. Termine werden nur auf diesem Gerät verarbeitet und nicht nach außen gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used to show your calendar events on the planner pages and to create events from your handwriting. iOS and iPadOS have no read-only permission, so the app asks for Full Access. Events are handled only on this device and are not sent anywhere."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se usa para mostrar los eventos de sus calendarios en las páginas de la agenda y para crear eventos a partir de la escritura a mano. iOS y iPadOS no tienen un permiso de solo lectura, por lo que se pide acceso total. Los eventos se tratan solo en este dispositivo y no se envían al exterior."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sert à afficher les évènements de vos calendriers sur les pages de l’agenda et à créer des évènements à partir de votre écriture manuscrite. iOS et iPadOS n’ont pas d’autorisation de lecture seule : l’app demande donc l’accès complet. Les évènements sont traités seulement sur cet appareil et ne sont envoyés nulle part."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serve per mostrare gli eventi dei calendari sulle pagine dell’agenda e per creare eventi dalla scrittura a mano. iOS e iPadOS non hanno un permesso di sola lettura, quindi viene chiesto l’accesso completo. Gli eventi sono trattati solo su questo dispositivo e non vengono inviati all’esterno."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "カレンダーの予定を手帳のページに表示し、手書きから予定を作るために使います。iOS と iPadOS には読み取りだけの許可が無いため、フルアクセスをお願いしています。予定はこの端末の中だけで扱い、外部には送りません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "캘린더의 일정을 플래너 페이지에 표시하고 손글씨로 일정을 만들기 위해 사용해요. iOS와 iPadOS에는 읽기 전용 권한이 없어서 전체 접근 권한을 요청해요. 일정은 이 기기 안에서만 다루고 외부로 보내지 않아요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usado para exibir os eventos dos seus calendários nas páginas da agenda e para criar eventos a partir da escrita à mão. O iOS e o iPadOS não têm permissão somente de leitura, por isso o app pede Acesso Total. Os eventos são tratados só neste dispositivo e não são enviados para fora."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于在手帐页面上显示日历日程，以及根据手写内容创建日程。iOS 和 iPadOS 没有只读权限，因此需要“完全访问”。日程只在此设备上处理，不会发送到外部。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用於在手帳頁面上顯示行事曆的行程，以及從手寫內容製作行程。iOS 和 iPadOS 沒有唯讀權限，因此需要「完整取用權限」。行程只在這部裝置上處理，不會傳送到外部。"
           }
         }
       }

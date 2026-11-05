@@ -1,0 +1,1910 @@
+{
+ "language": "zh-Hant",
+ "about": "R の逆翻訳。translations/zh-Hant.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。",
+ "strings": {
+  "CFBundleDisplayName": {
+   "text": "Tegaki",
+   "back": "Tegaki（ローマ字の名前）"
+  },
+  "NSCalendarsFullAccessUsageDescription": {
+   "text": "用於在手帳頁面上顯示行事曆的行程，以及從手寫內容製作行程。iOS 和 iPadOS 沒有唯讀權限，因此需要「完整取用權限」。行程只在這部裝置上處理，不會傳送到外部。",
+   "back": "手帳のページにカレンダーの予定を表示するためと、手書きの内容から予定を作るために使います。iOS と iPadOS には読み取り専用の権限がないので、「フルアクセス権限」が必要です。予定はこの端末の中だけで処理され、外部に送られません。"
+  },
+  "account.cancel": {
+   "text": "取消",
+   "back": "キャンセル"
+  },
+  "account.erase": {
+   "text": "清除手寫內容並開始使用",
+   "back": "手書きの内容を消して使い始める"
+  },
+  "account.eraseConfirm": {
+   "text": "清除並開始",
+   "back": "消して始める"
+  },
+  "account.eraseMessage": {
+   "text": "將清除這部裝置上的所有手寫內容，並以新帳號開始。此操作無法復原。",
+   "back": "この端末のすべての手書きの内容を消し、新しいアカウントで始めます。この操作は元に戻せません。"
+  },
+  "account.eraseTitle": {
+   "text": "確定要清除嗎？",
+   "back": "本当に消しますか？"
+  },
+  "account.keep": {
+   "text": "保留手寫內容並開始使用",
+   "back": "手書きの内容を残して使い始める"
+  },
+  "account.later": {
+   "text": "稍後",
+   "back": "後で"
+  },
+  "account.message": {
+   "text": "這部裝置上的手寫內容屬於先前同步的 iCloud 帳號。要以目前登入的帳號開始使用嗎？如果保留手寫內容，它們會傳送到新帳號的 iCloud。",
+   "back": "この端末の手書きの内容は、以前に同期していた iCloud アカウントのものです。今ログインしているアカウントで使い始めますか？ 手書きの内容を残すと、新しいアカウントの iCloud に送られます。"
+  },
+  "account.title": {
+   "text": "這是另一個 iCloud 帳號",
+   "back": "これは別の iCloud アカウントです"
+  },
+  "alert.saveFailed.ok": {
+   "text": "好",
+   "back": "OK"
+  },
+  "alert.saveFailed.title": {
+   "text": "無法儲存手寫內容",
+   "back": "手書きの内容を保存できません"
+  },
+  "allday.bar.spoken": {
+   "text": "%@（編輯行程）",
+   "back": "%@（予定を編集）"
+  },
+  "allday.column.spoken": {
+   "text": "在 %@ 加入整天行程",
+   "back": "%@ に終日の予定を追加"
+  },
+  "allday.label": {
+   "text": "整天",
+   "back": "終日"
+  },
+  "allday.label.short": {
+   "text": "整天",
+   "back": "終日"
+  },
+  "app.name": {
+   "text": "Tegaki",
+   "back": "Tegaki（ローマ字の名前）"
+  },
+  "census.counting": {
+   "text": "正在計算…",
+   "back": "計算しています…"
+  },
+  "census.entry": {
+   "text": "%1$@ · %2$@",
+   "back": "%1$@ · %2$@"
+  },
+  "census.legacyNote": {
+   "text": "（在安裝舊版本的裝置上，部分內容不會顯示）",
+   "back": "（古い版を入れた端末では、一部の内容が表示されません）"
+  },
+  "census.noInk": {
+   "text": "還沒有手寫內容",
+   "back": "手書きの内容はまだありません"
+  },
+  "demo.calendar.events": {
+   "text": "活動",
+   "back": "行事（イベント）"
+  },
+  "demo.calendar.family": {
+   "text": "家庭",
+   "back": "家庭"
+  },
+  "demo.calendar.personal": {
+   "text": "個人",
+   "back": "個人"
+  },
+  "demo.calendar.work": {
+   "text": "工作",
+   "back": "仕事"
+  },
+  "demo.event.birthday": {
+   "text": "生日",
+   "back": "誕生日"
+  },
+  "demo.event.businessTrip": {
+   "text": "大阪出差",
+   "back": "大阪出張"
+  },
+  "demo.event.call": {
+   "text": "電話",
+   "back": "電話"
+  },
+  "demo.event.camping": {
+   "text": "露營",
+   "back": "キャンプ"
+  },
+  "demo.event.checkup": {
+   "text": "健檢",
+   "back": "健康診断"
+  },
+  "demo.event.clinic": {
+   "text": "看診",
+   "back": "診察"
+  },
+  "demo.event.deadline": {
+   "text": "截止日",
+   "back": "締め切りの日"
+  },
+  "demo.event.dentalCheck": {
+   "text": "牙科",
+   "back": "歯科"
+  },
+  "demo.event.dentist": {
+   "text": "看牙",
+   "back": "歯医者にかかる"
+  },
+  "demo.event.drinks": {
+   "text": "聚餐",
+   "back": "会食"
+  },
+  "demo.event.familyTrip": {
+   "text": "家庭旅遊",
+   "back": "家族旅行"
+  },
+  "demo.event.farewell": {
+   "text": "歡送會",
+   "back": "送別会"
+  },
+  "demo.event.lunch": {
+   "text": "午餐",
+   "back": "昼食"
+  },
+  "demo.event.meeting": {
+   "text": "開會",
+   "back": "会議"
+  },
+  "demo.event.morningMeeting": {
+   "text": "晨會",
+   "back": "朝礼"
+  },
+  "demo.event.oneOnOne": {
+   "text": "面談",
+   "back": "面談"
+  },
+  "demo.event.payday": {
+   "text": "發薪日",
+   "back": "給料日"
+  },
+  "demo.event.report": {
+   "text": "交資料",
+   "back": "資料を提出"
+  },
+  "demo.event.reportDeadline": {
+   "text": "資料截止",
+   "back": "資料の締め切り"
+  },
+  "demo.event.review": {
+   "text": "審查",
+   "back": "審査"
+  },
+  "demo.event.sportsDay": {
+   "text": "運動會",
+   "back": "運動会"
+  },
+  "demo.event.trashDay": {
+   "text": "倒垃圾日",
+   "back": "ごみ出しの日"
+  },
+  "demo.event.weeklyMeeting": {
+   "text": "週會",
+   "back": "週例会"
+  },
+  "demo.source": {
+   "text": "範例",
+   "back": "サンプル"
+  },
+  "event.allDay": {
+   "text": "整天",
+   "back": "終日"
+  },
+  "event.calendar": {
+   "text": "行事曆",
+   "back": "カレンダー"
+  },
+  "event.calendarReadOnlyNote": {
+   "text": "無法更改此行事曆（唯讀）",
+   "back": "このカレンダーは変更できません（読み取り専用）"
+  },
+  "event.cancel": {
+   "text": "取消",
+   "back": "キャンセル"
+  },
+  "event.close": {
+   "text": "關閉",
+   "back": "閉じる"
+  },
+  "event.delete": {
+   "text": "刪除",
+   "back": "削除"
+  },
+  "event.deleteConfirm": {
+   "text": "要刪除此行程嗎？",
+   "back": "この予定を削除しますか？"
+  },
+  "event.end": {
+   "text": "結束",
+   "back": "終了"
+  },
+  "event.endDay": {
+   "text": "結束日期",
+   "back": "終了日"
+  },
+  "event.eraseInk": {
+   "text": "清除這段手寫內容",
+   "back": "この手書きの部分を消す"
+  },
+  "event.error.calendarNotFound": {
+   "text": "找不到要加入的行事曆",
+   "back": "追加先のカレンダーが見つかりません"
+  },
+  "event.error.emptyTitle": {
+   "text": "請輸入標題",
+   "back": "題名を入力してください"
+  },
+  "event.error.endBeforeStart": {
+   "text": "結束時間必須晚於開始時間",
+   "back": "終了時刻は開始時刻より後にしてください"
+  },
+  "event.error.endDayBeforeStart": {
+   "text": "結束日期不能早於開始日期",
+   "back": "終了日は開始日より前にできません"
+  },
+  "event.error.eventNotFound": {
+   "text": "找不到行程（可能已在其他裝置上刪除）",
+   "back": "予定が見つかりません（別の端末で削除された可能性があります）"
+  },
+  "event.error.failed": {
+   "text": "無法儲存：%@",
+   "back": "保存できません: %@"
+  },
+  "event.error.noAccess": {
+   "text": "未允許取用行事曆",
+   "back": "カレンダーの利用が許可されていません"
+  },
+  "event.error.noWritableCalendar": {
+   "text": "沒有可加入行程的行事曆",
+   "back": "予定を追加できるカレンダーがありません"
+  },
+  "event.error.readOnlyCalendar": {
+   "text": "無法更改此行事曆",
+   "back": "このカレンダーは変更できません"
+  },
+  "event.location": {
+   "text": "地點",
+   "back": "場所"
+  },
+  "event.notes": {
+   "text": "備註",
+   "back": "メモ"
+  },
+  "event.recurringNote": {
+   "text": "這是重複行程。儲存或刪除時，請選擇「僅此次」或「此次及之後」",
+   "back": "これは繰り返しの予定です。保存または削除のときに「今回だけ」か「今回とこの後」を選んでください"
+  },
+  "event.save": {
+   "text": "儲存",
+   "back": "保存"
+  },
+  "event.saveFailed": {
+   "text": "無法儲存",
+   "back": "保存できません"
+  },
+  "event.saving": {
+   "text": "正在儲存…",
+   "back": "保存しています…"
+  },
+  "event.scribbleNote": {
+   "text": "用 Apple Pencil 在欄位上書寫，可轉換成文字（隨手寫）",
+   "back": "Apple Pencil で欄の上に書くと、文字に変換できます（スクリブル）"
+  },
+  "event.snapshotCaption": {
+   "text": "書寫的內容",
+   "back": "書いた内容"
+  },
+  "event.start": {
+   "text": "開始",
+   "back": "開始"
+  },
+  "event.startDay": {
+   "text": "開始日期",
+   "back": "開始日"
+  },
+  "event.subscribe": {
+   "text": "訂閱",
+   "back": "購読"
+  },
+  "event.subscriptionNote": {
+   "text": "訂閱後可製作和編輯行程。",
+   "back": "購読すると、予定の作成と編集ができます。"
+  },
+  "event.title.create": {
+   "text": "加入行程",
+   "back": "予定を追加"
+  },
+  "event.title.detail": {
+   "text": "行程詳細資訊",
+   "back": "予定の詳細情報"
+  },
+  "event.title.edit": {
+   "text": "編輯行程",
+   "back": "予定を編集"
+  },
+  "event.titleHeader": {
+   "text": "標題",
+   "back": "題名"
+  },
+  "event.titlePlaceholder": {
+   "text": "用筆在這裡書寫即可轉為文字",
+   "back": "ここにペンで書くと文字に変わります"
+  },
+  "event.untitled": {
+   "text": "（無標題）",
+   "back": "（題名なし）"
+  },
+  "event.when.dateTime": {
+   "text": "%1$@ %2$@",
+   "back": "%1$@ %2$@"
+  },
+  "export.close": {
+   "text": "關閉",
+   "back": "閉じる"
+  },
+  "export.done.json.one": {
+   "text": "%1$@（%2$@ 頁 · %3$@）",
+   "back": "%1$@（%2$@ ページ · %3$@）"
+  },
+  "export.done.json.other": {
+   "text": "%1$@（%2$@ 頁 · %3$@）",
+   "back": "%1$@（%2$@ ページ · %3$@）"
+  },
+  "export.done.pdf": {
+   "text": "%1$@（%2$@）",
+   "back": "%1$@（%2$@）"
+  },
+  "export.done.title": {
+   "text": "已匯出",
+   "back": "書き出しました"
+  },
+  "export.error.closed": {
+   "text": "檔案已關閉",
+   "back": "ファイルは閉じられています"
+  },
+  "export.error.createFailed": {
+   "text": "無法製作檔案：%@",
+   "back": "ファイルを作れません: %@"
+  },
+  "export.failed": {
+   "text": "無法匯出：%@",
+   "back": "書き出せません: %@"
+  },
+  "export.json.note": {
+   "text": "將儲存在這部裝置上的所有手寫內容合併為一個檔案。可在「設定」>「資料」>「匯入網頁版手寫內容」中重新匯入（匯入需要訂閱）。",
+   "back": "この端末に保存されたすべての手書きの内容を 1 つのファイルにまとめます。「設定」>「データ」>「Web 版の手書きの内容を取り込む」でもう一度取り込めます（取り込みには購読が必要です）。"
+  },
+  "export.json.title": {
+   "text": "資料檔案（JSON，所有頁面）",
+   "back": "データファイル（JSON、全ページ）"
+  },
+  "export.nothing": {
+   "text": "沒有可匯出的手寫內容",
+   "back": "書き出せる手書きの内容がありません"
+  },
+  "export.pdf.building": {
+   "text": "正在製作 PDF…",
+   "back": "PDF を作っています…"
+  },
+  "export.pdf.note": {
+   "text": "將目前開啟的頁面（%1$@ · %2$@）製作成一頁 PDF。紙張、行程、假日和手寫內容會依螢幕所示呈現。",
+   "back": "今開いているページ（%1$@ · %2$@）を 1 ページの PDF にします。紙・予定・祝日・手書きの内容は画面のとおりに出ます。"
+  },
+  "export.pdf.title": {
+   "text": "此頁面的 PDF",
+   "back": "このページの PDF"
+  },
+  "export.progress.one": {
+   "text": "正在匯出… %1$@ / %2$@ 頁",
+   "back": "書き出しています… %1$@ / %2$@ ページ"
+  },
+  "export.progress.other": {
+   "text": "正在匯出… %1$@ / %2$@ 頁",
+   "back": "書き出しています… %1$@ / %2$@ ページ"
+  },
+  "export.renderFailed": {
+   "text": "無法製作 PDF",
+   "back": "PDF を作れません"
+  },
+  "export.share": {
+   "text": "分享…",
+   "back": "共有…"
+  },
+  "export.title": {
+   "text": "匯出手寫內容",
+   "back": "手書きの内容を書き出す"
+  },
+  "export.writeFailed": {
+   "text": "無法寫入檔案：%@",
+   "back": "ファイルに書き込めません: %@"
+  },
+  "header.addEvent": {
+   "text": "行程",
+   "back": "予定"
+  },
+  "header.addEvent.spoken": {
+   "text": "加入行程",
+   "back": "予定を追加"
+  },
+  "header.day.spoken": {
+   "text": "%1$@（開啟日頁面）",
+   "back": "%1$@（日のページを開く）"
+  },
+  "header.month.spoken": {
+   "text": "%1$@（開啟月頁面）",
+   "back": "%1$@（月のページを開く）"
+  },
+  "header.next.day": {
+   "text": "後一天",
+   "back": "翌日"
+  },
+  "header.next.month": {
+   "text": "下個月",
+   "back": "来月"
+  },
+  "header.next.week": {
+   "text": "下一週",
+   "back": "次の週"
+  },
+  "header.next.year": {
+   "text": "下一年",
+   "back": "次の年"
+  },
+  "header.picker.day": {
+   "text": "日",
+   "back": "日"
+  },
+  "header.picker.month": {
+   "text": "月",
+   "back": "月"
+  },
+  "header.picker.spoken": {
+   "text": "切換檢視",
+   "back": "表示を切り替える"
+  },
+  "header.picker.week": {
+   "text": "週",
+   "back": "週"
+  },
+  "header.picker.year": {
+   "text": "年",
+   "back": "年"
+  },
+  "header.pickerItem.day": {
+   "text": "日檢視",
+   "back": "日の表示"
+  },
+  "header.pickerItem.month": {
+   "text": "月檢視",
+   "back": "月の表示"
+  },
+  "header.pickerItem.week": {
+   "text": "週檢視",
+   "back": "週の表示"
+  },
+  "header.pickerItem.year": {
+   "text": "年檢視",
+   "back": "年の表示"
+  },
+  "header.previous.day": {
+   "text": "前一天",
+   "back": "前日"
+  },
+  "header.previous.month": {
+   "text": "上個月",
+   "back": "先月"
+  },
+  "header.previous.week": {
+   "text": "上一週",
+   "back": "前の週"
+  },
+  "header.previous.year": {
+   "text": "上一年",
+   "back": "前の年"
+  },
+  "header.readOnly.spoken": {
+   "text": "僅檢視。開啟訂閱說明",
+   "back": "閲覧のみ。購読の説明を開く"
+  },
+  "header.settings.spoken": {
+   "text": "設定",
+   "back": "設定"
+  },
+  "header.sync.spoken": {
+   "text": "同步：%@",
+   "back": "同期: %@"
+  },
+  "header.today": {
+   "text": "今天",
+   "back": "今日"
+  },
+  "holidayPicker.auto": {
+   "text": "自動（這部裝置的地區：%@）",
+   "back": "自動（この端末の地域: %@）"
+  },
+  "holidayPicker.countries": {
+   "text": "國家或地區",
+   "back": "国または地域"
+  },
+  "holidayPicker.deviceRegion": {
+   "text": "這部裝置的地區：%@",
+   "back": "この端末の地域: %@"
+  },
+  "holidayPicker.localAreas": {
+   "text": "其他地區（城市等）",
+   "back": "その他の地域（都市など）"
+  },
+  "holidayPicker.none": {
+   "text": "無",
+   "back": "なし"
+  },
+  "holidayPicker.search": {
+   "text": "搜尋國家或地區",
+   "back": "国または地域を検索"
+  },
+  "holidayPicker.subdivisionHint": {
+   "text": "選擇州或地區後，會加入該地區的假日",
+   "back": "州または地域を選ぶと、その地域の祝日が加わります"
+  },
+  "holidayPicker.subdivisions": {
+   "text": "州或地區",
+   "back": "州または地域"
+  },
+  "holidayPicker.subdivisions.footer": {
+   "text": "州或地區的名稱依資料原樣顯示（英文或當地語言）。",
+   "back": "州または地域の名前はデータのまま（英語または現地の言語で）表示されます。"
+  },
+  "holidayPicker.title": {
+   "text": "顯示的假日",
+   "back": "表示する祝日"
+  },
+  "holidayPicker.wholeCountry": {
+   "text": "全國",
+   "back": "全国"
+  },
+  "import.close": {
+   "text": "關閉",
+   "back": "閉じる"
+  },
+  "import.confirmLarge.cancel": {
+   "text": "取消",
+   "back": "キャンセル"
+  },
+  "import.confirmLarge.import": {
+   "text": "匯入",
+   "back": "取り込む"
+  },
+  "import.confirmLarge.more.one": {
+   "text": "另外 %@ 頁",
+   "back": "ほかに %@ ページ"
+  },
+  "import.confirmLarge.more.other": {
+   "text": "另外 %@ 頁",
+   "back": "ほかに %@ ページ"
+  },
+  "import.confirmLarge.separator": {
+   "text": "、",
+   "back": "、"
+  },
+  "import.confirmLarge.text": {
+   "text": "匯入後，有些頁面的線條會超過 %1$@ 條（%2$@）。此版本會全部顯示，但在安裝舊版本的裝置上，其中一部分不會顯示。要匯入嗎？",
+   "back": "取り込むと、線が %1$@ 本を超えるページができます（%2$@）。この版ではすべて表示されますが、古い版を入れた端末では一部が表示されません。取り込みますか？"
+  },
+  "import.confirmLarge.title": {
+   "text": "有些頁面的線條非常多",
+   "back": "線が非常に多いページがあります"
+  },
+  "import.invalidJSON": {
+   "text": "無法讀取檔案",
+   "back": "ファイルを読み取れません"
+  },
+  "import.notAnExport": {
+   "text": "此檔案不是手寫內容的匯出檔案（來自網頁版或此 App）",
+   "back": "このファイルは（Web 版またはこのアプリからの）手書きの内容の書き出しファイルではありません"
+  },
+  "import.nothing": {
+   "text": "沒有可匯入的內容（已全部匯入）",
+   "back": "取り込める内容がありません（すべて取り込み済みです）"
+  },
+  "import.otherWeekStart.monday": {
+   "text": "匯入的週頁面中，有一部分在將一週的第一天設為週一後可以看到。",
+   "back": "取り込んだ週のページのうち一部は、週の最初の日を月曜にすると見られます。"
+  },
+  "import.otherWeekStart.sunday": {
+   "text": "匯入的週頁面中，有一部分在將一週的第一天設為週日後可以看到。",
+   "back": "取り込んだ週のページのうち一部は、週の最初の日を日曜にすると見られます。"
+  },
+  "import.progress.one": {
+   "text": "正在匯入… %1$@ / %2$@ 頁",
+   "back": "取り込んでいます… %1$@ / %2$@ ページ"
+  },
+  "import.progress.other": {
+   "text": "正在匯入… %1$@ / %2$@ 頁",
+   "back": "取り込んでいます… %1$@ / %2$@ ページ"
+  },
+  "import.progress.reading": {
+   "text": "正在匯入…",
+   "back": "取り込んでいます…"
+  },
+  "import.result.app": {
+   "text": "已匯入手寫內容（%1$@ · %2$@）",
+   "back": "手書きの内容を取り込みました（%1$@ · %2$@）"
+  },
+  "import.result.pages.one": {
+   "text": "%@ 頁",
+   "back": "%@ ページ"
+  },
+  "import.result.pages.other": {
+   "text": "%@ 頁",
+   "back": "%@ ページ"
+  },
+  "import.result.strokes.one": {
+   "text": "%@ 條線",
+   "back": "%@ 本の線"
+  },
+  "import.result.strokes.other": {
+   "text": "%@ 條線",
+   "back": "%@ 本の線"
+  },
+  "import.result.web": {
+   "text": "已匯入網頁版手寫內容（%1$@ · %2$@）",
+   "back": "Web 版の手書きの内容を取り込みました（%1$@ · %2$@）"
+  },
+  "import.saveFailed": {
+   "text": "無法儲存：%@",
+   "back": "保存できません: %@"
+  },
+  "import.skipped.one": {
+   "text": "已略過 %@ 頁（不在匯入範圍內）",
+   "back": "%@ ページを飛ばしました（取り込みの対象外）"
+  },
+  "import.skipped.other": {
+   "text": "已略過 %@ 頁（不在匯入範圍內）",
+   "back": "%@ ページを飛ばしました（取り込みの対象外）"
+  },
+  "import.title": {
+   "text": "匯入網頁版手寫內容",
+   "back": "Web 版の手書きの内容を取り込む"
+  },
+  "import.unsupportedVersion": {
+   "text": "此檔案使用較新的格式（v%@）。請更新 App",
+   "back": "このファイルは新しい形式（v%@）を使っています。アプリを更新してください"
+  },
+  "info.translationNote": {
+   "text": "此 App 的譯文由 AI 製作，並透過譯回日文進行核對。目前尚未經過母語人士審閱。如果發現錯誤，請來信 syfan0@gmail.com。",
+   "back": "このアプリの訳文は AI が作り、日本語に訳し戻して照合しています。今のところ母語話者の確認は受けていません。誤りを見つけたら syfan0@gmail.com までお便りください。"
+  },
+  "kit.app.name": {
+   "text": "Tegaki",
+   "back": "Tegaki（ローマ字の名前）"
+  },
+  "kit.budget.count.one": {
+   "text": "%@ 條線",
+   "back": "%@ 本の線"
+  },
+  "kit.budget.count.other": {
+   "text": "%@ 條線",
+   "back": "%@ 本の線"
+  },
+  "kit.budget.page.day": {
+   "text": "日頁面（%@）",
+   "back": "日のページ（%@）"
+  },
+  "kit.budget.page.month": {
+   "text": "月頁面（%@）",
+   "back": "月のページ（%@）"
+  },
+  "kit.budget.page.week": {
+   "text": "週頁面（%@）",
+   "back": "週のページ（%@）"
+  },
+  "kit.budget.page.year": {
+   "text": "年頁面（%@）",
+   "back": "年のページ（%@）"
+  },
+  "kit.export.jsonFileName": {
+   "text": "Tegaki 手寫 %@.json",
+   "back": "Tegaki 手書き %@.json"
+  },
+  "kit.export.kind.day": {
+   "text": "日",
+   "back": "日"
+  },
+  "kit.export.kind.month": {
+   "text": "月",
+   "back": "月"
+  },
+  "kit.export.kind.week": {
+   "text": "週",
+   "back": "週"
+  },
+  "kit.export.kind.year": {
+   "text": "年",
+   "back": "年"
+  },
+  "kit.holiday.dayOff": {
+   "text": "休息日",
+   "back": "休日"
+  },
+  "kit.holiday.estimatedSuffix": {
+   "text": "（推估）",
+   "back": "（推定）"
+  },
+  "kit.layout.more.one": {
+   "text": "+%@ 項",
+   "back": "+%@ 件"
+  },
+  "kit.layout.more.other": {
+   "text": "+%@ 項",
+   "back": "+%@ 件"
+  },
+  "kit.legal.appleEULATitle": {
+   "text": "使用條款（Apple 標準 EULA）",
+   "back": "利用条項（Apple 標準 EULA）"
+  },
+  "kit.plan.badge.readOnly": {
+   "text": "僅檢視",
+   "back": "閲覧のみ"
+  },
+  "kit.plan.cancelPath": {
+   "text": "「設定」> 你的姓名 >「訂閱項目」",
+   "back": "「設定」> お名前 >「サブスクリプション」"
+  },
+  "kit.plan.date.expires": {
+   "text": "有效期限",
+   "back": "有効期限"
+  },
+  "kit.plan.date.graceUntil": {
+   "text": "寬限期結束",
+   "back": "猶予期間の終わり"
+  },
+  "kit.plan.date.renews": {
+   "text": "下次續訂",
+   "back": "次回の更新"
+  },
+  "kit.plan.date.trialEnds": {
+   "text": "試用結束",
+   "back": "お試しの終わり"
+  },
+  "kit.plan.date.trialEndsPaid": {
+   "text": "試用結束（之後轉為付費）",
+   "back": "お試しの終わり（その後は有料に切り替わる）"
+  },
+  "kit.plan.monthly": {
+   "text": "月繳",
+   "back": "月払い"
+  },
+  "kit.plan.note.billingRetry": {
+   "text": "你的付款有問題。請在%@中確認付款方式。",
+   "back": "お支払いに問題があります。%@で支払い方法を確かめてください。"
+  },
+  "kit.plan.note.expired": {
+   "text": "你的訂閱已到期。",
+   "back": "購読の期限が切れました。"
+  },
+  "kit.plan.note.notSubscribed": {
+   "text": "你尚未訂閱。",
+   "back": "まだ購読していません。"
+  },
+  "kit.plan.note.revoked": {
+   "text": "你的購買已退款或取消。",
+   "back": "購入は返金または取り消しになりました。"
+  },
+  "kit.plan.note.unknown": {
+   "text": "目前無法確認購買狀態。網路恢復後會自動確認。",
+   "back": "今は購入の状態を確かめられません。ネットワークが戻ると自動で確かめます。"
+  },
+  "kit.plan.paymentPath": {
+   "text": "「設定」> 你的姓名 >「付款與寄送」",
+   "back": "「設定」> お名前 >「お支払いと配送先」"
+  },
+  "kit.plan.perPeriod.monthly": {
+   "text": "/月",
+   "back": "/月"
+  },
+  "kit.plan.perPeriod.yearly": {
+   "text": "/年",
+   "back": "/年"
+  },
+  "kit.plan.savings.one": {
+   "text": "省 %@ 個月",
+   "back": "%@ か月分節約"
+  },
+  "kit.plan.savings.other": {
+   "text": "省 %@ 個月",
+   "back": "%@ か月分節約"
+  },
+  "kit.plan.status.billingRetry": {
+   "text": "付款有問題（僅檢視）",
+   "back": "支払いに問題あり（閲覧のみ）"
+  },
+  "kit.plan.status.expired": {
+   "text": "已到期（僅檢視）",
+   "back": "期限切れ（閲覧のみ）"
+  },
+  "kit.plan.status.notSubscribed": {
+   "text": "未購買（僅檢視）",
+   "back": "未購入（閲覧のみ）"
+  },
+  "kit.plan.status.revoked": {
+   "text": "已退款（僅檢視）",
+   "back": "返金済み（閲覧のみ）"
+  },
+  "kit.plan.status.subscribed": {
+   "text": "%@ · 有效",
+   "back": "%@ · 有効"
+  },
+  "kit.plan.status.subscribedGrace": {
+   "text": "%@ · 付款有問題（寬限期內）",
+   "back": "%@ · 支払いに問題あり（猶予期間中）"
+  },
+  "kit.plan.status.trial": {
+   "text": "%@ · 試用中",
+   "back": "%@ · お試し中"
+  },
+  "kit.plan.status.unknown": {
+   "text": "確認中（僅檢視）",
+   "back": "確認中（閲覧のみ）"
+  },
+  "kit.plan.yearly": {
+   "text": "年繳",
+   "back": "年払い"
+  },
+  "license.contributors": {
+   "text": "Contributors: %@",
+   "back": "Contributors（協力者）: %@（英語のまま）"
+  },
+  "license.holidayData": {
+   "text": "假日資料：python-holidays（MIT 授權）",
+   "back": "祝日のデータ: python-holidays（MIT ライセンス）"
+  },
+  "notice.calendar.denied": {
+   "text": "若要顯示行程，請在「設定」中將行事曆設為「完整取用權限」。",
+   "back": "予定を表示するには、「設定」でカレンダーを「フルアクセス権限」にしてください。"
+  },
+  "notice.calendar.denied.openSettings": {
+   "text": "打開設定",
+   "back": "設定を開く"
+  },
+  "notice.calendar.notDetermined": {
+   "text": "若要顯示行程，請允許取用行事曆。",
+   "back": "予定を表示するには、カレンダーの利用を許可してください。"
+  },
+  "notice.calendar.notDetermined.allow": {
+   "text": "允許",
+   "back": "許可"
+  },
+  "notice.calendar.restricted": {
+   "text": "這部裝置的行事曆取用權限受到限制。你仍可使用手寫。",
+   "back": "この端末のカレンダーの利用権限は制限されています。手書きはこのまま使えます。"
+  },
+  "notice.readOnly.button": {
+   "text": "訂閱",
+   "back": "購読"
+  },
+  "notice.readOnly.text": {
+   "text": "僅檢視。訂閱後可手寫和製作行程。",
+   "back": "閲覧のみ。購読すると手書きと予定の作成ができます。"
+  },
+  "onboarding.access.text": {
+   "text": "下一個畫面將要求行事曆的「完整取用權限」，用於在手帳頁面上顯示行程，以及從手寫內容製作行程。\n\niOS 和 iPadOS 沒有唯讀權限，因此需要「完整取用權限」。行程只在這部裝置上處理，不會傳送給開發者或其他任何人。",
+   "back": "次の画面でカレンダーの「フルアクセス権限」を求めます。手帳のページに予定を表示するためと、手書きの内容から予定を作るためです。\n\niOS と iPadOS には読み取り専用の権限がないので、「フルアクセス権限」が必要です。予定はこの端末の中だけで処理され、開発者にもほかの誰にも送られません。"
+  },
+  "onboarding.access.title": {
+   "text": "行事曆取用權限",
+   "back": "カレンダーの利用権限"
+  },
+  "onboarding.account.text": {
+   "text": "此 App 顯示這部裝置「行事曆」中的行程。\n\n%@",
+   "back": "このアプリは、この端末の「カレンダー」の予定を表示します。\n\n%@"
+  },
+  "onboarding.account.title": {
+   "text": "行事曆帳號",
+   "back": "カレンダーのアカウント"
+  },
+  "onboarding.askPermission": {
+   "text": "顯示權限畫面",
+   "back": "権限の画面を出す"
+  },
+  "onboarding.dayPageTap": {
+   "text": "若要開啟日頁面：在年頁面上用手指點一下日期或左端的數字（本月的那一天），在月頁面上點一下日期數字，或在週、月、年頁面上用手指點兩下格子。",
+   "back": "日のページを開くには: 年のページで日付か左端の数字（今月のその日）を指でタップする、月のページで日付の数字をタップする、または週・月・年のページのマスを指でダブルタップします。"
+  },
+  "onboarding.icloud.text": {
+   "text": "手寫內容儲存在這部裝置和你的 iCloud 中。在其他 iPad 和 iPhone 上也能看到相同的手寫內容。\n\n未登入 iCloud 時，只儲存在這部裝置上。不需要設定 iCloud（只要這部裝置已登入，就會自動使用）。\n\n開發者看不到你的手寫內容。使用的是你自己的 iCloud 儲存空間。",
+   "back": "手書きの内容はこの端末とあなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きの内容を見られます。\n\niCloud にログインしていないときは、この端末にだけ保存されます。iCloud を設定する必要はありません（この端末でログインしていれば自動で使われます）。\n\n開発者はあなたの手書きの内容を見られません。使うのはあなた自身の iCloud の容量です。"
+  },
+  "onboarding.icloud.title": {
+   "text": "iCloud 與手寫內容的儲存",
+   "back": "iCloud と手書きの内容の保存"
+  },
+  "onboarding.next": {
+   "text": "下一步",
+   "back": "次へ"
+  },
+  "onboarding.openSettings": {
+   "text": "打開「設定」App",
+   "back": "「設定」アプリを開く"
+  },
+  "onboarding.pen.text": {
+   "text": "用 Apple Pencil 在紙上書寫。手指用於捲動、兩指捏合縮放和點一下行程。手掌碰到螢幕也不會畫線。\n\n如果也想用手指書寫，請開啟工具列中的「用手指書寫」。點兩下或擠壓 Apple Pencil 時，會依你在 iPad 的「設定」> Apple Pencil 中選擇的動作切換鋼筆和橡皮擦。\n\n%@",
+   "back": "Apple Pencil で紙に書きます。指はスクロール、2 本指のピンチで拡大縮小、予定のタップに使います。手のひらが画面に触れても線は引かれません。\n\n指でも書きたいときは、ツールバーの「指で書く」をオンにします。Apple Pencil をダブルタップまたはスクイーズすると、iPad の「設定」> Apple Pencil で選んだ動作に従ってペンと消しゴムが切り替わります。\n\n%@"
+  },
+  "onboarding.pen.title": {
+   "text": "用筆書寫，用手指移動",
+   "back": "ペンで書き、指で動かす"
+  },
+  "paper.freeMemo": {
+   "text": "自由備忘",
+   "back": "自由メモ"
+  },
+  "paper.memo": {
+   "text": "備忘",
+   "back": "メモ"
+  },
+  "paywall.after.paid": {
+   "text": "%@。自動續訂。可隨時取消。",
+   "back": "%@。自動で更新します。いつでも解約できます。"
+  },
+  "paywall.after.trial": {
+   "text": "試用後 %@。可隨時取消。",
+   "back": "お試しの後は %@。いつでも解約できます。"
+  },
+  "paywall.billingRetryLead": {
+   "text": "你的付款有問題。請在%@中確認付款方式。",
+   "back": "お支払いに問題があります。%@で支払い方法を確かめてください。"
+  },
+  "paywall.blockedLead": {
+   "text": "書寫、擦除或製作行程需要訂閱。",
+   "back": "書く・消す・予定の作成には購読が必要です。"
+  },
+  "paywall.blockedTrial.one": {
+   "text": "可免費試用 %@ 天。",
+   "back": "%@ 日間、無料で試せます。"
+  },
+  "paywall.blockedTrial.other": {
+   "text": "可免費試用 %@ 天。",
+   "back": "%@ 日間、無料で試せます。"
+  },
+  "paywall.cta.buy": {
+   "text": "購買",
+   "back": "購入"
+  },
+  "paywall.cta.trial.one": {
+   "text": "免費試用 %@ 天",
+   "back": "%@ 日間無料で試す"
+  },
+  "paywall.cta.trial.other": {
+   "text": "免費試用 %@ 天",
+   "back": "%@ 日間無料で試す"
+  },
+  "paywall.disclosure.paid": {
+   "text": "訂閱會自動續訂。除非在目前期間結束前至少 24 小時取消，否則將以相同期間和相同價格續訂，並向你的 Apple 帳號收費。費用在確認購買時收取。你可以隨時在裝置上的%@中取消。取消後，仍可使用到已付費期間結束。",
+   "back": "サブスクリプションは自動で更新されます。今の期間が終わる 24 時間以上前に解約しない限り、同じ期間・同じ価格で更新され、あなたの Apple アカウントに課金されます。料金は購入を確定したときに課金されます。端末の%@でいつでも解約できます。解約後も、支払い済みの期間が終わるまで使えます。"
+  },
+  "paywall.disclosure.trial": {
+   "text": "訂閱會自動續訂。除非在目前期間結束前至少 24 小時取消，否則將以相同期間和相同價格續訂，並向你的 Apple 帳號收費。費用在免費試用結束時收取。你可以隨時在裝置上的%@中取消。取消後，仍可使用到已付費期間結束。",
+   "back": "サブスクリプションは自動で更新されます。今の期間が終わる 24 時間以上前に解約しない限り、同じ期間・同じ価格で更新され、あなたの Apple アカウントに課金されます。料金は無料トライアルが終わったときに課金されます。端末の%@でいつでも解約できます。解約後も、支払い済みの期間が終わるまで使えます。"
+  },
+  "paywall.feature.events": {
+   "text": "從手寫內容製作行程。製作和編輯行程",
+   "back": "手書きの内容から予定を作る。予定の作成と編集"
+  },
+  "paywall.feature.ink": {
+   "text": "手寫（鋼筆、麥克筆、橡皮擦、套索）",
+   "back": "手書き（ペン、マーカー、消しゴム、投げなわ）"
+  },
+  "paywall.feature.sync": {
+   "text": "透過 iCloud 與 iPad 和 iPhone 同步",
+   "back": "iCloud を通して iPad と iPhone で同期"
+  },
+  "paywall.intro": {
+   "text": "這是一本手帳，可以用 Apple Pencil 在 iPad 的行事曆上自由書寫。",
+   "back": "これは手帳です。iPad のカレンダーの上に Apple Pencil で自由に書けます。"
+  },
+  "paywall.later": {
+   "text": "稍後",
+   "back": "後で"
+  },
+  "paywall.manage": {
+   "text": "管理訂閱項目",
+   "back": "サブスクリプションを管理"
+  },
+  "paywall.noPriceNote": {
+   "text": "無法取得價格",
+   "back": "価格を取得できません"
+  },
+  "paywall.privacy": {
+   "text": "隱私權政策",
+   "back": "プライバシーポリシー"
+  },
+  "paywall.recommended": {
+   "text": "推薦",
+   "back": "おすすめ"
+  },
+  "paywall.reload": {
+   "text": "重新載入",
+   "back": "再読み込み"
+  },
+  "paywall.restore": {
+   "text": "回復購買",
+   "back": "購入を復元"
+  },
+  "paywall.revokedLead": {
+   "text": "你的購買已退款或取消。若要再次使用，請訂閱。",
+   "back": "購入は返金または取り消しになりました。もう一度使うには購読してください。"
+  },
+  "paywall.terms": {
+   "text": "服務條款",
+   "back": "サービス利用規約"
+  },
+  "paywall.title": {
+   "text": "Tegaki",
+   "back": "Tegaki（ローマ字の名前）"
+  },
+  "paywall.trialIneligible": {
+   "text": "你不符合免費試用的條件（每個 Apple 帳號限試用一次）。",
+   "back": "無料トライアルの条件を満たしていません（1 つの Apple アカウントにつきお試しは 1 回）。"
+  },
+  "paywall.trialLead.one": {
+   "text": "免費試用 %@ 天。",
+   "back": "%@ 日間無料で試す。"
+  },
+  "paywall.trialLead.other": {
+   "text": "免費試用 %@ 天。",
+   "back": "%@ 日間無料で試す。"
+  },
+  "paywall.trialRest": {
+   "text": "試用期結束後將自動轉為付費。在試用期間取消不會收費。",
+   "back": "お試し期間が終わると自動で有料に切り替わります。お試しの間に解約すれば課金されません。"
+  },
+  "paywall.yearlyNote.both": {
+   "text": "每月 %1$@ · %2$@",
+   "back": "毎月 %1$@ · %2$@"
+  },
+  "paywall.yearlyNote.perMonth": {
+   "text": "每月 %@",
+   "back": "毎月 %@"
+  },
+  "recurrence.futureEvents": {
+   "text": "此次及之後",
+   "back": "今回とこの後"
+  },
+  "recurrence.message.delete": {
+   "text": "要僅刪除此次，還是刪除此次及之後的全部行程？",
+   "back": "今回だけ削除しますか、それとも今回とこの後のすべての予定を削除しますか？"
+  },
+  "recurrence.message.save": {
+   "text": "要僅更改此次，還是套用到此次及之後的全部行程？",
+   "back": "今回だけ変更しますか、それとも今回とこの後のすべての予定に適用しますか？"
+  },
+  "recurrence.thisEvent": {
+   "text": "僅此次",
+   "back": "今回だけ"
+  },
+  "recurrence.title": {
+   "text": "這是重複行程",
+   "back": "これは繰り返しの予定です"
+  },
+  "selection.delete": {
+   "text": "刪除",
+   "back": "削除"
+  },
+  "selection.deselect": {
+   "text": "取消選取",
+   "back": "選択を取り消す"
+  },
+  "selection.handwriting": {
+   "text": "選取的手寫內容",
+   "back": "選択した手書きの内容"
+  },
+  "selection.makeEvent": {
+   "text": "轉為行程",
+   "back": "予定にする"
+  },
+  "settings.calendar.a11y.hidden": {
+   "text": "已隱藏",
+   "back": "隠しています"
+  },
+  "settings.calendar.a11y.shown": {
+   "text": "顯示中",
+   "back": "表示中"
+  },
+  "settings.calendar.access.allow": {
+   "text": "允許",
+   "back": "許可"
+  },
+  "settings.calendar.access.denied": {
+   "text": "未允許",
+   "back": "未許可"
+  },
+  "settings.calendar.access.full": {
+   "text": "已允許（完整取用權限）",
+   "back": "許可済み（フルアクセス権限）"
+  },
+  "settings.calendar.access.notDetermined": {
+   "text": "尚未允許",
+   "back": "まだ許可していません"
+  },
+  "settings.calendar.access.restricted": {
+   "text": "在這部裝置上受限",
+   "back": "この端末では制限されています"
+  },
+  "settings.calendar.access.title": {
+   "text": "行事曆取用權限",
+   "back": "カレンダーの利用権限"
+  },
+  "settings.calendar.access.writeOnly": {
+   "text": "僅加入（無法顯示行程）",
+   "back": "追加のみ（予定は表示できません）"
+  },
+  "settings.calendar.default": {
+   "text": "新行程加入至",
+   "back": "新しい予定の追加先"
+  },
+  "settings.calendar.empty": {
+   "text": "沒有行事曆",
+   "back": "カレンダーがありません"
+  },
+  "settings.calendar.google.howTo": {
+   "text": "若要顯示 Google 日曆的行程，請在「設定」App 中加入 Google 帳號。\n①「設定」> App >「行事曆」>「行事曆帳號」>「加入帳號」> Google（iOS 和 iPadOS 17：「設定」>「行事曆」>「帳號」）\n② 開啟「行事曆」切換開關\n③ 在同一個畫面的「擷取新資料」中選擇「每 15 分鐘」，行程會更快更新。\n\n如果只使用 iCloud 行事曆，不需要進行任何設定。",
+   "back": "Google カレンダーの予定を表示するには、「設定」アプリで Google アカウントを追加します。\n①「設定」> アプリ >「カレンダー」>「カレンダーアカウント」>「アカウントを追加」> Google（iOS と iPadOS 17 は「設定」>「カレンダー」>「アカウント」）\n②「カレンダー」のスイッチをオン\n③ 同じ画面の「新規データの取得」で「15 分ごと」を選ぶと、予定が早く更新されます。\n\niCloud のカレンダーだけを使うなら、設定は要りません。"
+  },
+  "settings.calendar.google.title": {
+   "text": "使用 Google 日曆",
+   "back": "Google カレンダーを使う"
+  },
+  "settings.calendar.header": {
+   "text": "行事曆",
+   "back": "カレンダー"
+  },
+  "settings.calendar.noAccess": {
+   "text": "允許取用行事曆後，這裡會顯示列表",
+   "back": "カレンダーの利用を許可すると、ここに一覧が表示されます"
+  },
+  "settings.calendar.otherSource": {
+   "text": "其他",
+   "back": "その他"
+  },
+  "settings.calendar.shown": {
+   "text": "顯示的行事曆",
+   "back": "表示するカレンダー"
+  },
+  "settings.data.erase.all": {
+   "text": "全部清除",
+   "back": "すべて消す"
+  },
+  "settings.data.erase.cancel": {
+   "text": "取消",
+   "back": "キャンセル"
+  },
+  "settings.data.erase.confirm": {
+   "text": "清除",
+   "back": "消す"
+  },
+  "settings.data.erase.question.cloud": {
+   "text": "要清除儲存在這部裝置和 iCloud 中的所有手寫內容嗎？",
+   "back": "この端末と iCloud に保存されたすべての手書きの内容を消しますか？"
+  },
+  "settings.data.erase.question.local": {
+   "text": "要清除儲存在這部裝置上的所有手寫內容嗎？",
+   "back": "この端末に保存されたすべての手書きの内容を消しますか？"
+  },
+  "settings.data.erase.title": {
+   "text": "確定要清除嗎？",
+   "back": "本当に消しますか？"
+  },
+  "settings.data.erase.warning.cloud": {
+   "text": "此操作無法復原。其他 iPad 和 iPhone 上的手寫內容也會被清除。",
+   "back": "この操作は元に戻せません。ほかの iPad や iPhone の手書きの内容も消えます。"
+  },
+  "settings.data.erase.warning.local": {
+   "text": "此操作無法復原。",
+   "back": "この操作は元に戻せません。"
+  },
+  "settings.data.eraseAll": {
+   "text": "清除這部裝置上的所有手寫內容",
+   "back": "この端末のすべての手書きの内容を消す"
+  },
+  "settings.data.export": {
+   "text": "匯出手寫內容",
+   "back": "手書きの内容を書き出す"
+  },
+  "settings.data.exportFooter": {
+   "text": "「匯出手寫內容」可將儲存在這部裝置上的手寫內容合併為一個資料檔案（JSON），或將目前開啟的頁面製作成 PDF。資料檔案可透過「匯入網頁版手寫內容」重新匯入（匯入需要訂閱）。",
+   "back": "「手書きの内容を書き出す」は、この端末に保存された手書きの内容を 1 つのデータファイル（JSON）にまとめるか、今開いているページを PDF にします。データファイルは「Web 版の手書きの内容を取り込む」でもう一度取り込めます（取り込みには購読が必要です）。"
+  },
+  "settings.data.header": {
+   "text": "資料",
+   "back": "データ"
+  },
+  "settings.data.import": {
+   "text": "匯入網頁版手寫內容",
+   "back": "Web 版の手書きの内容を取り込む"
+  },
+  "settings.data.importFooter": {
+   "text": "請在網頁版的設定中使用「手書きを書き出す（iPad アプリ用）」（匯出手寫內容，供 iPad App 使用），然後選擇該檔案。同一個檔案匯入兩次，手寫內容也不會重複。",
+   "back": "Web 版の設定で「手書きを書き出す（iPad アプリ用）」（手書きの内容を書き出す。iPad アプリで使うためのもの）を使い、そのファイルを選んでください。同じファイルを 2 回取り込んでも、手書きの内容は重複しません。"
+  },
+  "settings.data.lastImport": {
+   "text": "上次匯入：%@",
+   "back": "前回の取り込み: %@"
+  },
+  "settings.done": {
+   "text": "完成",
+   "back": "完了"
+  },
+  "settings.holidays.footer": {
+   "text": "日本的假日由此 App 計算（並與日本內閣府的公告進行核對）。其他國家的假日依據公開資料（python-holidays）。農曆或伊斯蘭曆的假日等部分日期為推估，並標有「（推估）」。可能與政府的最新公告不同。假日設定只儲存在這部裝置上。",
+   "back": "日本の祝日はこのアプリが計算しています（日本の内閣府の公告と照合しています）。ほかの国の祝日は公開データ（python-holidays）に基づきます。旧暦やイスラム暦の祝日など一部の日付は推定で、「（推定）」の印が付きます。政府の最新の公告と違うことがあります。祝日の設定はこの端末にだけ保存されます。"
+  },
+  "settings.holidays.header": {
+   "text": "假日",
+   "back": "祝日"
+  },
+  "settings.holidays.note.beforeNotice": {
+   "text": "%@ 年為公告前的推估",
+   "back": "%@ 年は公告前の推定です"
+  },
+  "settings.holidays.note.join": {
+   "text": "%1$@ · %2$@",
+   "back": "%1$@ · %2$@"
+  },
+  "settings.holidays.note.nationalOnly": {
+   "text": "僅全國共通",
+   "back": "全国共通のみ"
+  },
+  "settings.holidays.note.nationalOnlyAuto": {
+   "text": "僅全國共通的假日",
+   "back": "全国共通の祝日のみ"
+  },
+  "settings.holidays.note.noData": {
+   "text": "沒有假日資料",
+   "back": "祝日のデータがありません"
+  },
+  "settings.holidays.note.noDataFrom": {
+   "text": "沒有 %@ 年及之後的資料",
+   "back": "%@ 年以降のデータがありません"
+  },
+  "settings.holidays.row": {
+   "text": "顯示的假日",
+   "back": "表示する祝日"
+  },
+  "settings.holidays.value.auto": {
+   "text": "自動（%@）",
+   "back": "自動（%@）"
+  },
+  "settings.holidays.value.autoNote": {
+   "text": "自動（%1$@ · %2$@）",
+   "back": "自動（%1$@ · %2$@）"
+  },
+  "settings.holidays.value.none": {
+   "text": "無",
+   "back": "なし"
+  },
+  "settings.holidays.value.regionNote": {
+   "text": "%1$@（%2$@）",
+   "back": "%1$@（%2$@）"
+  },
+  "settings.holidays.value.subdivision": {
+   "text": "%1$@ · %2$@",
+   "back": "%1$@ · %2$@"
+  },
+  "settings.info.footer": {
+   "text": "線條數量統計的是儲存在這部裝置上的頁面（不會傳送到任何地方）。每頁最多可寫 %@ 條線。",
+   "back": "線の数は、この端末に保存されたページについて数えています（どこにも送られません）。1 ページに %@ 本まで書けます。"
+  },
+  "settings.info.header": {
+   "text": "關於",
+   "back": "情報"
+  },
+  "settings.info.largestPage": {
+   "text": "線條最多的頁面",
+   "back": "線がいちばん多いページ"
+  },
+  "settings.info.licenses": {
+   "text": "開放原始碼授權",
+   "back": "オープンソースのライセンス"
+  },
+  "settings.info.privacy": {
+   "text": "隱私權政策",
+   "back": "プライバシーポリシー"
+  },
+  "settings.info.support": {
+   "text": "支援",
+   "back": "サポート"
+  },
+  "settings.info.terms": {
+   "text": "服務條款",
+   "back": "サービス利用規約"
+  },
+  "settings.info.version": {
+   "text": "版本",
+   "back": "バージョン"
+  },
+  "settings.info.yearPage": {
+   "text": "今年的年頁面",
+   "back": "今年の年のページ"
+  },
+  "settings.input.allowFinger": {
+   "text": "用手指書寫",
+   "back": "指で書く"
+  },
+  "settings.input.allowFinger.footer": {
+   "text": "開啟後，也可以用手指畫線。關閉時，手指用於捲動和點一下。手寫最適合使用 iPad 和 Apple Pencil。",
+   "back": "オンにすると、指でも線を引けます。オフのときは、指はスクロールとタップに使います。手書きには iPad と Apple Pencil がいちばん適しています。"
+  },
+  "settings.input.eraseAfterConvert": {
+   "text": "清除已轉為行程的手寫內容",
+   "back": "予定にした手書きの内容を消す"
+  },
+  "settings.input.eraseAfterConvert.footer": {
+   "text": "用套索圈選的手寫內容轉為行程後，是否將其清除的初始選擇。",
+   "back": "投げなわで囲んだ手書きの内容を予定にした後、それを消すかどうかの最初の選択です。"
+  },
+  "settings.input.eraserAutoReturn.footer.pad": {
+   "text": "用橡皮擦擦除線條並抬起手指或 Apple Pencil 後，會回到剛才使用的鋼筆或麥克筆。透過點兩下或擠壓 Apple Pencil 選擇的橡皮擦也是如此。",
+   "back": "消しゴムで線を消して指か Apple Pencil を離すと、さっき使っていたペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムでも同じです。"
+  },
+  "settings.input.eraserAutoReturn.footer.phone": {
+   "text": "用橡皮擦擦除線條並抬起手指後，會回到剛才使用的鋼筆或麥克筆。",
+   "back": "消しゴムで線を消して指を離すと、さっき使っていたペンかマーカーに戻ります。"
+  },
+  "settings.input.eraserAutoReturn.title": {
+   "text": "擦除後回到鋼筆",
+   "back": "消した後にペンに戻る"
+  },
+  "settings.input.header": {
+   "text": "輸入",
+   "back": "入力"
+  },
+  "settings.input.pencil": {
+   "text": "Apple Pencil",
+   "back": "Apple Pencil"
+  },
+  "settings.input.pencil.footer": {
+   "text": "點兩下和擠壓會執行你在 iPad 的「設定」> Apple Pencil 中選擇的動作",
+   "back": "ダブルタップとスクイーズは、iPad の「設定」> Apple Pencil で選んだ動作を行います"
+  },
+  "settings.openSettingsApp": {
+   "text": "打開「設定」App",
+   "back": "「設定」アプリを開く"
+  },
+  "settings.purchase.footer.cancel": {
+   "text": "如需取消，請前往裝置上的%@。取消後，仍可使用到期間結束。",
+   "back": "解約するには、端末の%@へ進んでください。解約後も、期間の終わりまで使えます。"
+  },
+  "settings.purchase.footer.grace": {
+   "text": "你的付款有問題。請在裝置上的%@中確認付款方式。寬限期結束前仍可使用。",
+   "back": "お支払いに問題があります。端末の%@で支払い方法を確かめてください。猶予期間が終わるまでは使えます。"
+  },
+  "settings.purchase.footer.readOnly": {
+   "text": "%@僅檢視時，可以檢視行程和手寫內容、換頁、縮放、從 iCloud 接收、清除這部裝置上的所有手寫內容、匯出手寫內容和更改設定。訂閱後可以書寫、擦除和移動手寫內容，製作和編輯行程，以及從網頁版匯入。",
+   "back": "%@閲覧のみのときは、予定と手書きの内容を見る、ページをめくる、拡大縮小、iCloud から受け取る、この端末のすべての手書きの内容を消す、手書きの内容を書き出す、設定を変えることができます。購読すると、手書きの内容を書く・消す・動かす、予定の作成と編集、Web 版からの取り込みができます。"
+  },
+  "settings.purchase.footer.trial": {
+   "text": "如需取消，請前往裝置上的%@。取消後，仍可使用到期間結束。在試用期間取消不會收費。",
+   "back": "解約するには、端末の%@へ進んでください。解約後も、期間の終わりまで使えます。お試しの間に解約すれば課金されません。"
+  },
+  "settings.purchase.header": {
+   "text": "購買",
+   "back": "購入"
+  },
+  "settings.purchase.manage": {
+   "text": "管理訂閱項目",
+   "back": "サブスクリプションを管理"
+  },
+  "settings.purchase.plan": {
+   "text": "目前的方案",
+   "back": "今のプラン"
+  },
+  "settings.purchase.restore": {
+   "text": "回復購買",
+   "back": "購入を復元"
+  },
+  "settings.purchase.subscribe": {
+   "text": "訂閱",
+   "back": "購読"
+  },
+  "settings.purchase.trial.one": {
+   "text": "免費試用 %@ 天",
+   "back": "%@ 日間無料で試す"
+  },
+  "settings.purchase.trial.other": {
+   "text": "免費試用 %@ 天",
+   "back": "%@ 日間無料で試す"
+  },
+  "settings.sync.header": {
+   "text": "同步",
+   "back": "同期"
+  },
+  "settings.sync.icloud": {
+   "text": "iCloud 同步",
+   "back": "iCloud 同期"
+  },
+  "settings.sync.lastSync": {
+   "text": "上次同步",
+   "back": "前回の同期"
+  },
+  "settings.sync.lastSync.none": {
+   "text": "尚無",
+   "back": "まだなし"
+  },
+  "settings.sync.newAccount": {
+   "text": "使用新帳號開始…",
+   "back": "新しいアカウントで始める…"
+  },
+  "settings.sync.now": {
+   "text": "立即同步",
+   "back": "今すぐ同期"
+  },
+  "settings.title": {
+   "text": "設定",
+   "back": "設定"
+  },
+  "settings.weekStart.auto": {
+   "text": "自動（%@）",
+   "back": "自動（%@）"
+  },
+  "settings.weekStart.confirm.message.monday": {
+   "text": "週一開始和週日開始的週頁面是不同的頁面。現在已寫的週手寫內容，在改回週日開始之前不會顯示（不會被刪除）。月頁面的手寫內容會移到相同日期的格子。不過，寫在前後月份日期格子中的內容，部分可能在改回之前不會顯示（不會被刪除）。",
+   "back": "月曜始まりと日曜始まりの週のページは別のページです。今書いてある週の手書きの内容は、日曜始まりに戻すまで表示されません（削除されません）。月のページの手書きの内容は同じ日付のマスへ移ります。ただし、前後の月の日付のマスに書いた内容は、一部が戻すまで表示されないことがあります（削除されません）。"
+  },
+  "settings.weekStart.confirm.message.sunday": {
+   "text": "週一開始和週日開始的週頁面是不同的頁面。現在已寫的週手寫內容，在改回週一開始之前不會顯示（不會被刪除）。月頁面的手寫內容會移到相同日期的格子。不過，寫在前後月份日期格子中的內容，部分可能在改回之前不會顯示（不會被刪除）。",
+   "back": "月曜始まりと日曜始まりの週のページは別のページです。今書いてある週の手書きの内容は、月曜始まりに戻すまで表示されません（削除されません）。月のページの手書きの内容は同じ日付のマスへ移ります。ただし、前後の月の日付のマスに書いた内容は、一部が戻すまで表示されないことがあります（削除されません）。"
+  },
+  "settings.weekStart.confirm.ok.monday": {
+   "text": "設為週一",
+   "back": "月曜にする"
+  },
+  "settings.weekStart.confirm.ok.sunday": {
+   "text": "設為週日",
+   "back": "日曜にする"
+  },
+  "settings.weekStart.confirm.title.monday": {
+   "text": "要將一週的第一天設為週一嗎？",
+   "back": "週の最初の日を月曜にしますか？"
+  },
+  "settings.weekStart.confirm.title.sunday": {
+   "text": "要將一週的第一天設為週日嗎？",
+   "back": "週の最初の日を日曜にしますか？"
+  },
+  "settings.weekStart.footer": {
+   "text": "「自動」會依照裝置的地區。此設定依裝置分別儲存。若要在每部裝置上看到相同的週手寫內容，請使用相同的設定。",
+   "back": "「自動」は端末の地域に従います。この設定は端末ごとに保存されます。どの端末でも同じ週の手書きの内容を見るには、同じ設定にしてください。"
+  },
+  "settings.weekStart.monday": {
+   "text": "週一",
+   "back": "月曜"
+  },
+  "settings.weekStart.otherPages.one": {
+   "text": "有 %2$@ 個週頁面使用另一種一週的第一天（%1$@）。切換後即可看到。",
+   "back": "%2$@ の週のページは、もう一方の週の最初の日（%1$@）を使っています。切り替えると見られます。"
+  },
+  "settings.weekStart.otherPages.other": {
+   "text": "有 %2$@ 個週頁面使用另一種一週的第一天（%1$@）。切換後即可看到。",
+   "back": "%2$@ の週のページは、もう一方の週の最初の日（%1$@）を使っています。切り替えると見られます。"
+  },
+  "settings.weekStart.sunday": {
+   "text": "週日",
+   "back": "日曜"
+  },
+  "settings.weekStart.title": {
+   "text": "一週的第一天",
+   "back": "週の最初の日"
+  },
+  "store.error.productNotFound": {
+   "text": "找不到商品",
+   "back": "商品が見つかりません"
+  },
+  "store.error.unknownPurchaseResult": {
+   "text": "無法解讀購買結果",
+   "back": "購入の結果を読み取れません"
+  },
+  "store.generic": {
+   "text": "無法完成購買（%@）",
+   "back": "購入を完了できません（%@）"
+  },
+  "store.notAvailable": {
+   "text": "你所在的地區無法購買此方案",
+   "back": "お住まいの地域ではこのプランを購入できません"
+  },
+  "store.nothingToRestore": {
+   "text": "沒有可回復的購買。請確認你登入的是購買時使用的 Apple 帳號",
+   "back": "復元できる購入がありません。購入に使った Apple アカウントでログインしているか確かめてください"
+  },
+  "store.offline": {
+   "text": "無法連線到 App Store。請檢查網路後再試一次",
+   "back": "App Store に接続できません。ネットワークを確かめてもう一度お試しください"
+  },
+  "store.pending": {
+   "text": "正在等待核准。核准後即可自動使用",
+   "back": "承認を待っています。承認されると自動で使えます"
+  },
+  "store.productsUnavailable": {
+   "text": "無法從 App Store 取得價格。請檢查網路並點一下「重新載入」",
+   "back": "App Store から価格を取得できません。ネットワークを確かめて「再読み込み」をタップしてください"
+  },
+  "store.purchased": {
+   "text": "訂閱已開始。謝謝",
+   "back": "購読が始まりました。ありがとうございます"
+  },
+  "store.restored": {
+   "text": "已回復購買",
+   "back": "購入を復元しました"
+  },
+  "store.trialStarted.one": {
+   "text": "已開始 %@ 天免費試用",
+   "back": "%@ 日間の無料トライアルが始まりました"
+  },
+  "store.trialStarted.other": {
+   "text": "已開始 %@ 天免費試用",
+   "back": "%@ 日間の無料トライアルが始まりました"
+  },
+  "store.unverified": {
+   "text": "無法確認購買。請稍後嘗試「回復購買」",
+   "back": "購入を確かめられません。しばらくしてから「購入を復元」をお試しください"
+  },
+  "sync.footer.accountMismatch": {
+   "text": "這部裝置上的手寫內容屬於先前同步的 iCloud 帳號。請從「使用新帳號開始」中選擇。",
+   "back": "この端末の手書きの内容は、以前に同期していた iCloud アカウントのものです。「新しいアカウントで始める」から選んでください。"
+  },
+  "sync.footer.noAccount": {
+   "text": "登入 iCloud 後可與其他裝置同步。手寫內容目前只儲存在這部裝置上。",
+   "back": "iCloud にログインすると、ほかの端末と同期できます。手書きの内容は今のところこの端末にだけ保存されています。"
+  },
+  "sync.footer.offline": {
+   "text": "目前處於離線狀態。手寫內容儲存在這部裝置上，恢復連線後會同步。",
+   "back": "今はオフラインです。手書きの内容はこの端末に保存され、接続が戻ると同期します。"
+  },
+  "sync.footer.permission": {
+   "text": "iCloud 設定不允許此 App 使用。",
+   "back": "iCloud の設定で、このアプリの利用が許可されていません。"
+  },
+  "sync.footer.quota": {
+   "text": "iCloud 儲存空間不足，無法同步手寫內容。內容已儲存在這部裝置上。",
+   "back": "iCloud の容量が足りないので手書きの内容を同期できません。内容はこの端末に保存されています。"
+  },
+  "sync.footer.restricted": {
+   "text": "手寫內容只儲存在這部裝置上。",
+   "back": "手書きの内容はこの端末にだけ保存されます。"
+  },
+  "sync.footer.serverError": {
+   "text": "手寫內容同步失敗。內容已儲存在這部裝置上（稍後會重試）。\n%@",
+   "back": "手書きの内容の同期に失敗しました。内容はこの端末に保存されています（後でもう一度試します）。\n%@"
+  },
+  "sync.footer.synced": {
+   "text": "手寫內容儲存在這部裝置和你的 iCloud 中。在其他 iPad 和 iPhone 上也能看到相同的手寫內容。",
+   "back": "手書きの内容はこの端末とあなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きの内容を見られます。"
+  },
+  "sync.footer.syncing": {
+   "text": "正在將手寫內容傳送到 iCloud。",
+   "back": "手書きの内容を iCloud に送っています。"
+  },
+  "sync.footer.unknown": {
+   "text": "請在「設定」App 中檢查 iCloud。手寫內容目前只儲存在這部裝置上。",
+   "back": "「設定」アプリで iCloud を確かめてください。手書きの内容は今のところこの端末にだけ保存されています。"
+  },
+  "sync.header.error": {
+   "text": "錯誤",
+   "back": "エラー"
+  },
+  "sync.header.localOnly": {
+   "text": "僅此裝置",
+   "back": "この端末のみ"
+  },
+  "sync.header.offline": {
+   "text": "離線",
+   "back": "オフライン"
+  },
+  "sync.header.saved": {
+   "text": "已儲存",
+   "back": "保存済み"
+  },
+  "sync.header.stopped": {
+   "text": "已停止",
+   "back": "停止しました"
+  },
+  "sync.header.syncing": {
+   "text": "同步中",
+   "back": "同期中"
+  },
+  "sync.status.accountMismatch": {
+   "text": "這是另一個 iCloud 帳號",
+   "back": "これは別の iCloud アカウントです"
+  },
+  "sync.status.noAccount": {
+   "text": "未登入 iCloud",
+   "back": "iCloud にログインしていません"
+  },
+  "sync.status.offline": {
+   "text": "離線",
+   "back": "オフライン"
+  },
+  "sync.status.permission": {
+   "text": "無法使用 iCloud",
+   "back": "iCloud を使えません"
+  },
+  "sync.status.quota": {
+   "text": "iCloud 儲存空間不足",
+   "back": "iCloud の容量が足りません"
+  },
+  "sync.status.restricted": {
+   "text": "這部裝置的 iCloud 受到限制",
+   "back": "この端末の iCloud は制限されています"
+  },
+  "sync.status.serverError": {
+   "text": "同步失敗",
+   "back": "同期に失敗しました"
+  },
+  "sync.status.synced": {
+   "text": "已同步",
+   "back": "同期済み"
+  },
+  "sync.status.syncing": {
+   "text": "正在同步…",
+   "back": "同期しています…"
+  },
+  "sync.status.unknown": {
+   "text": "無法確認 iCloud",
+   "back": "iCloud を確かめられません"
+  },
+  "toast.eraseCloudFailed": {
+   "text": "無法清除 iCloud 中的手寫內容。這部裝置上的內容已清除。網路恢復後請再試一次",
+   "back": "iCloud の手書きの内容を消せません。この端末の内容は消しました。ネットワークが戻ったらもう一度お試しください"
+  },
+  "toast.erased": {
+   "text": "已清除所有手寫內容",
+   "back": "すべての手書きの内容を消しました"
+  },
+  "toast.event.created": {
+   "text": "已加入行程",
+   "back": "予定を追加しました"
+  },
+  "toast.event.deleted": {
+   "text": "已刪除行程",
+   "back": "予定を削除しました"
+  },
+  "toast.event.noAccess": {
+   "text": "若要加入行程，請在「設定」中允許取用行事曆",
+   "back": "予定を追加するには、「設定」でカレンダーの利用を許可してください"
+  },
+  "toast.event.noCalendar": {
+   "text": "沒有可加入行程的行事曆",
+   "back": "予定を追加できるカレンダーがありません"
+  },
+  "toast.event.updated": {
+   "text": "已更新行程",
+   "back": "予定を更新しました"
+  },
+  "toast.eventBelowDay": {
+   "text": "24 點以下的自由備忘欄不能製作行程",
+   "back": "24 時より下の自由メモの欄には予定を作れません"
+  },
+  "toast.growthCap": {
+   "text": "備忘欄到此為止",
+   "back": "メモの欄はここまでです"
+  },
+  "toast.pinchHint": {
+   "text": "兩指張開可放大，兩指捏合可縮小",
+   "back": "2 本の指を開くと拡大、2 本の指でつまむと縮小します"
+  },
+  "toast.readOnly": {
+   "text": "僅檢視。書寫、擦除或製作行程需要訂閱",
+   "back": "閲覧のみ。書く・消す・予定の作成には購読が必要です"
+  },
+  "toast.strokeBudget.full": {
+   "text": "此頁面已寫滿（%@ 條線）。擦除一些線條後可繼續書寫。",
+   "back": "このページは書き尽くしました（%@ 本の線）。線をいくらか消すと続けて書けます。"
+  },
+  "toast.strokeBudget.many": {
+   "text": "此頁面的線條已超過 %1$@ 條。每頁最多可寫 %2$@ 條線。",
+   "back": "このページの線が %1$@ 本を超えました。1 ページに %2$@ 本まで書けます。"
+  },
+  "toast.weekStart.adopted.monday": {
+   "text": "已依照 iCloud 手寫內容將一週的第一天設為週一。可在設定中更改。",
+   "back": "iCloud の手書きの内容に合わせて週の最初の日を月曜にしました。設定で変えられます。"
+  },
+  "toast.weekStart.adopted.sunday": {
+   "text": "已依照 iCloud 手寫內容將一週的第一天設為週日。可在設定中更改。",
+   "back": "iCloud の手書きの内容に合わせて週の最初の日を日曜にしました。設定で変えられます。"
+  },
+  "toast.weekStart.hiddenInk.one": {
+   "text": "此月頁面有 %@ 條線寫在目前設定不顯示的日期上。線條沒有消失。改回一週的第一天即可看到。",
+   "back": "この月のページには、今の設定では表示されない日付に %@ 本の線があります。線は消えていません。週の最初の日を元に戻すと見られます。"
+  },
+  "toast.weekStart.hiddenInk.other": {
+   "text": "此月頁面有 %@ 條線寫在目前設定不顯示的日期上。線條沒有消失。改回一週的第一天即可看到。",
+   "back": "この月のページには、今の設定では表示されない日付に %@ 本の線があります。線は消えていません。週の最初の日を元に戻すと見られます。"
+  },
+  "toast.weekStart.otherForm.one": {
+   "text": "有 %2$@ 個週頁面使用另一種一週的第一天（%1$@）。它們沒有消失。在「設定」> 一週的第一天中切換即可看到。",
+   "back": "%2$@ の週のページは、もう一方の週の最初の日（%1$@）を使っています。消えていません。「設定」> 週の最初の日 で切り替えると見られます。"
+  },
+  "toast.weekStart.otherForm.other": {
+   "text": "有 %2$@ 個週頁面使用另一種一週的第一天（%1$@）。它們沒有消失。在「設定」> 一週的第一天中切換即可看到。",
+   "back": "%2$@ の週のページは、もう一方の週の最初の日（%1$@）を使っています。消えていません。「設定」> 週の最初の日 で切り替えると見られます。"
+  },
+  "toast.weekStart.regionChanged.monday": {
+   "text": "已依照裝置的地區將一週的第一天設為週一。週日開始的週手寫內容沒有消失。",
+   "back": "端末の地域に合わせて週の最初の日を月曜にしました。日曜始まりの週の手書きの内容は消えていません。"
+  },
+  "toast.weekStart.regionChanged.sunday": {
+   "text": "已依照裝置的地區將一週的第一天設為週日。週一開始的週手寫內容沒有消失。",
+   "back": "端末の地域に合わせて週の最初の日を日曜にしました。月曜始まりの週の手書きの内容は消えていません。"
+  },
+  "toolbar.badge.marker": {
+   "text": "麥克筆，%@",
+   "back": "マーカー、%@"
+  },
+  "toolbar.badge.pen": {
+   "text": "鋼筆，%@",
+   "back": "ペン、%@"
+  },
+  "toolbar.badge.penWidth": {
+   "text": "鋼筆，%1$@，%2$@",
+   "back": "ペン、%1$@、%2$@"
+  },
+  "toolbar.collapse.spoken": {
+   "text": "收起工具列",
+   "back": "ツールバーをしまう"
+  },
+  "toolbar.collapse.title": {
+   "text": "收起",
+   "back": "しまう"
+  },
+  "toolbar.color.black": {
+   "text": "黑色",
+   "back": "黒"
+  },
+  "toolbar.color.blue": {
+   "text": "藍色",
+   "back": "青"
+  },
+  "toolbar.color.green": {
+   "text": "綠色",
+   "back": "緑"
+  },
+  "toolbar.color.lightBlue": {
+   "text": "淺藍色",
+   "back": "水色"
+  },
+  "toolbar.color.orange": {
+   "text": "橘色",
+   "back": "オレンジ"
+  },
+  "toolbar.color.pink": {
+   "text": "粉紅色",
+   "back": "ピンク"
+  },
+  "toolbar.color.purple": {
+   "text": "紫色",
+   "back": "紫"
+  },
+  "toolbar.color.red": {
+   "text": "紅色",
+   "back": "赤"
+  },
+  "toolbar.color.unknown": {
+   "text": "其他顏色",
+   "back": "その他の色"
+  },
+  "toolbar.color.yellow": {
+   "text": "黃色",
+   "back": "黄"
+  },
+  "toolbar.dock.hint.toLeft": {
+   "text": "長按可移到左下角，或讓工具列一直顯示",
+   "back": "長押しで左下へ移すか、ツールバーを常に表示します"
+  },
+  "toolbar.dock.hint.toRight": {
+   "text": "長按可移到右下角，或讓工具列一直顯示",
+   "back": "長押しで右下へ移すか、ツールバーを常に表示します"
+  },
+  "toolbar.dock.spoken": {
+   "text": "顯示工具列",
+   "back": "ツールバーを表示"
+  },
+  "toolbar.fingerToggle": {
+   "text": "用手指書寫",
+   "back": "指で書く"
+  },
+  "toolbar.fingerToggle.hint": {
+   "text": "開啟後，也可以用手指畫線。關閉時，手指用於捲動和點一下",
+   "back": "オンにすると、指でも線を引けます。オフのときは、指はスクロールとタップに使います"
+  },
+  "toolbar.hint.eraser": {
+   "text": "擦除碰到的整條線",
+   "back": "触れた線を 1 本まるごと消します"
+  },
+  "toolbar.hint.eraser.toMarker": {
+   "text": "擦除碰到的整條線\n（擦除後回到麥克筆）",
+   "back": "触れた線を 1 本まるごと消します\n（消した後マーカーに戻ります）"
+  },
+  "toolbar.hint.eraser.toPen": {
+   "text": "擦除碰到的整條線\n（擦除後回到鋼筆）",
+   "back": "触れた線を 1 本まるごと消します\n（消した後ペンに戻ります）"
+  },
+  "toolbar.hint.event": {
+   "text": "描畫以製作行程。\n點一下行程可編輯",
+   "back": "なぞって予定を作ります。\n予定をタップすると編集できます"
+  },
+  "toolbar.hint.lasso": {
+   "text": "圈住以選取。\n在框內拖移可移動",
+   "back": "囲んで選択します。\n枠の中でドラッグすると動かせます"
+  },
+  "toolbar.moveEdge.toLeft": {
+   "text": "移到左下角",
+   "back": "左下へ移す"
+  },
+  "toolbar.moveEdge.toRight": {
+   "text": "移到右下角",
+   "back": "右下へ移す"
+  },
+  "toolbar.pin": {
+   "text": "一直顯示工具列",
+   "back": "ツールバーを常に表示"
+  },
+  "toolbar.redo": {
+   "text": "重做",
+   "back": "やり直す"
+  },
+  "toolbar.tool.eraser": {
+   "text": "橡皮擦",
+   "back": "消しゴム"
+  },
+  "toolbar.tool.event": {
+   "text": "行程",
+   "back": "予定"
+  },
+  "toolbar.tool.lasso": {
+   "text": "套索",
+   "back": "投げなわ"
+  },
+  "toolbar.tool.marker": {
+   "text": "麥克筆",
+   "back": "マーカー"
+  },
+  "toolbar.tool.pen": {
+   "text": "鋼筆",
+   "back": "ペン"
+  },
+  "toolbar.undo": {
+   "text": "還原",
+   "back": "元に戻す"
+  },
+  "toolbar.width.medium": {
+   "text": "中",
+   "back": "中"
+  },
+  "toolbar.width.spoken": {
+   "text": "粗細：%@",
+   "back": "太さ: %@"
+  },
+  "toolbar.width.thick": {
+   "text": "粗",
+   "back": "太"
+  },
+  "toolbar.width.thin": {
+   "text": "細",
+   "back": "細"
+  }
+ }
+}

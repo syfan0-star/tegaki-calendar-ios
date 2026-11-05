@@ -1,0 +1,1909 @@
+{
+  "language": "fr",
+  "strings": {
+    "CFBundleDisplayName": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "jaSha1": "13238f13b8",
+      "text": "Sert à afficher les évènements de vos calendriers sur les pages de l’agenda et à créer des évènements à partir de votre écriture manuscrite. iOS et iPadOS n’ont pas d’autorisation de lecture seule : l’app demande donc l’accès complet. Les évènements sont traités seulement sur cet appareil et ne sont envoyés nulle part."
+    },
+    "account.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "Annuler"
+    },
+    "account.erase": {
+      "jaSha1": "6ef7cd2339",
+      "text": "Effacer l’écriture et commencer"
+    },
+    "account.eraseConfirm": {
+      "jaSha1": "dc46858bb1",
+      "text": "Effacer et commencer"
+    },
+    "account.eraseMessage": {
+      "jaSha1": "1ac6edd119",
+      "text": "Toute l’écriture manuscrite de cet appareil sera effacée, et vous commencerez avec le nouveau compte. Cette action est irréversible."
+    },
+    "account.eraseTitle": {
+      "jaSha1": "262064ae64",
+      "text": "Voulez-vous vraiment effacer ?"
+    },
+    "account.keep": {
+      "jaSha1": "5d78137553",
+      "text": "Garder l’écriture et commencer"
+    },
+    "account.later": {
+      "jaSha1": "df045200ae",
+      "text": "Plus tard"
+    },
+    "account.message": {
+      "jaSha1": "6e7c1cebeb",
+      "text": "L’écriture manuscrite de cet appareil appartient au compte iCloud synchronisé auparavant. Commencer avec le compte actuellement connecté ? Si vous la gardez, elle sera envoyée dans l’iCloud du nouveau compte."
+    },
+    "account.title": {
+      "jaSha1": "91817cbe3a",
+      "text": "Autre compte iCloud"
+    },
+    "alert.saveFailed.ok": {
+      "jaSha1": "9ce3bd4224",
+      "text": "OK"
+    },
+    "alert.saveFailed.title": {
+      "jaSha1": "8a5d15aaf6",
+      "text": "Impossible d’enregistrer l’écriture manuscrite"
+    },
+    "allday.bar.spoken": {
+      "jaSha1": "1d0c529b57",
+      "text": "%@ (modifier l’évènement)"
+    },
+    "allday.column.spoken": {
+      "jaSha1": "6af9fc756b",
+      "text": "Ajouter un évènement sur toute la journée le %@"
+    },
+    "allday.label": {
+      "jaSha1": "32d20f0404",
+      "text": "Journée entière"
+    },
+    "allday.label.short": {
+      "jaSha1": "32d20f0404",
+      "text": "Jour"
+    },
+    "app.name": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "census.counting": {
+      "jaSha1": "1dd488ea29",
+      "text": "Comptage…"
+    },
+    "census.entry": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "census.legacyNote": {
+      "jaSha1": "bf7cf417c4",
+      "text": " (une partie n’est pas affichée sur les appareils avec une ancienne version)"
+    },
+    "census.noInk": {
+      "jaSha1": "1aaec544c9",
+      "text": "Pas encore d’écriture manuscrite"
+    },
+    "demo.calendar.events": {
+      "jaSha1": "fadc771a23",
+      "text": "Évènements"
+    },
+    "demo.calendar.family": {
+      "jaSha1": "242e8e5c3f",
+      "text": "Famille"
+    },
+    "demo.calendar.personal": {
+      "jaSha1": "6b75ef797f",
+      "text": "Personnel"
+    },
+    "demo.calendar.work": {
+      "jaSha1": "5dc4a4fa47",
+      "text": "Travail"
+    },
+    "demo.event.birthday": {
+      "jaSha1": "b981696f04",
+      "text": "Anniv."
+    },
+    "demo.event.businessTrip": {
+      "jaSha1": "b7d0bc0c45",
+      "text": "Osaka"
+    },
+    "demo.event.call": {
+      "jaSha1": "7177787c6e",
+      "text": "Appel"
+    },
+    "demo.event.camping": {
+      "jaSha1": "9d73266cbc",
+      "text": "Camp"
+    },
+    "demo.event.checkup": {
+      "jaSha1": "2fa9b336f7",
+      "text": "Bilan"
+    },
+    "demo.event.clinic": {
+      "jaSha1": "fc22aa3319",
+      "text": "Clinique"
+    },
+    "demo.event.deadline": {
+      "jaSha1": "9a0d4974c7",
+      "text": "Délai"
+    },
+    "demo.event.dentalCheck": {
+      "jaSha1": "7878d7a463",
+      "text": "Dentaire"
+    },
+    "demo.event.dentist": {
+      "jaSha1": "0ab9b459d7",
+      "text": "Dentiste"
+    },
+    "demo.event.drinks": {
+      "jaSha1": "1ac9ff3f82",
+      "text": "Apéro"
+    },
+    "demo.event.familyTrip": {
+      "jaSha1": "7d72df1137",
+      "text": "Voyage"
+    },
+    "demo.event.farewell": {
+      "jaSha1": "68f7e087cf",
+      "text": "Départ"
+    },
+    "demo.event.lunch": {
+      "jaSha1": "86ae0d89c5",
+      "text": "Déjeuner"
+    },
+    "demo.event.meeting": {
+      "jaSha1": "950306f34c",
+      "text": "Réunion"
+    },
+    "demo.event.morningMeeting": {
+      "jaSha1": "cd3756c357",
+      "text": "Point matin"
+    },
+    "demo.event.oneOnOne": {
+      "jaSha1": "572d330eae",
+      "text": "Entretien"
+    },
+    "demo.event.payday": {
+      "jaSha1": "a6d79abf16",
+      "text": "Paie"
+    },
+    "demo.event.report": {
+      "jaSha1": "a169adf953",
+      "text": "Rapport"
+    },
+    "demo.event.reportDeadline": {
+      "jaSha1": "687b31ee31",
+      "text": "Rapport"
+    },
+    "demo.event.review": {
+      "jaSha1": "3c5ba2f1b6",
+      "text": "Revue"
+    },
+    "demo.event.sportsDay": {
+      "jaSha1": "5af51095ee",
+      "text": "Sport"
+    },
+    "demo.event.trashDay": {
+      "jaSha1": "4e6d520e09",
+      "text": "Déchets"
+    },
+    "demo.event.weeklyMeeting": {
+      "jaSha1": "a2e915ee1e",
+      "text": "Hebdo"
+    },
+    "demo.source": {
+      "jaSha1": "4a37aeaa33",
+      "text": "Exemple"
+    },
+    "event.allDay": {
+      "jaSha1": "32d20f0404",
+      "text": "Journée entière"
+    },
+    "event.calendar": {
+      "jaSha1": "340ba3962c",
+      "text": "Calendrier"
+    },
+    "event.calendarReadOnlyNote": {
+      "jaSha1": "eb0c4e3fe3",
+      "text": "Ce calendrier ne peut pas être modifié (lecture seule)"
+    },
+    "event.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "Annuler"
+    },
+    "event.close": {
+      "jaSha1": "3da5c18551",
+      "text": "Fermer"
+    },
+    "event.delete": {
+      "jaSha1": "5cbdf1fd70",
+      "text": "Supprimer"
+    },
+    "event.deleteConfirm": {
+      "jaSha1": "c23c94d93d",
+      "text": "Supprimer cet évènement ?"
+    },
+    "event.end": {
+      "jaSha1": "ecc8edea5c",
+      "text": "Fin"
+    },
+    "event.endDay": {
+      "jaSha1": "1c64938200",
+      "text": "Date de fin"
+    },
+    "event.eraseInk": {
+      "jaSha1": "60d0d1143a",
+      "text": "Effacer cette écriture"
+    },
+    "event.error.calendarNotFound": {
+      "jaSha1": "b116d40631",
+      "text": "Le calendrier de destination est introuvable"
+    },
+    "event.error.emptyTitle": {
+      "jaSha1": "47022bc333",
+      "text": "Saisissez un titre"
+    },
+    "event.error.endBeforeStart": {
+      "jaSha1": "d5d0c3dc80",
+      "text": "La fin doit être après le début"
+    },
+    "event.error.endDayBeforeStart": {
+      "jaSha1": "b8f6d47283",
+      "text": "La date de fin doit être égale ou postérieure à la date de début"
+    },
+    "event.error.eventNotFound": {
+      "jaSha1": "d9066009ab",
+      "text": "Évènement introuvable (il a peut-être été supprimé sur un autre appareil)"
+    },
+    "event.error.failed": {
+      "jaSha1": "67da494bf8",
+      "text": "Enregistrement impossible : %@"
+    },
+    "event.error.noAccess": {
+      "jaSha1": "b0733802ca",
+      "text": "L’accès aux calendriers n’est pas autorisé"
+    },
+    "event.error.noWritableCalendar": {
+      "jaSha1": "41d7eee11d",
+      "text": "Aucun calendrier ne peut recevoir d’évènements"
+    },
+    "event.error.readOnlyCalendar": {
+      "jaSha1": "73cb30320e",
+      "text": "Ce calendrier ne peut pas être modifié"
+    },
+    "event.location": {
+      "jaSha1": "07c4e81b27",
+      "text": "Lieu"
+    },
+    "event.notes": {
+      "jaSha1": "9060a06d59",
+      "text": "Notes"
+    },
+    "event.recurringNote": {
+      "jaSha1": "87717ca117",
+      "text": "Évènement périodique. Pour enregistrer ou supprimer, choisissez « Celui-ci seulement » ou « Celui-ci et les suivants »"
+    },
+    "event.save": {
+      "jaSha1": "fadf24dbc5",
+      "text": "Enregistrer"
+    },
+    "event.saveFailed": {
+      "jaSha1": "babde2eaee",
+      "text": "Enregistrement impossible"
+    },
+    "event.saving": {
+      "jaSha1": "6644f06197",
+      "text": "Enregistrement…"
+    },
+    "event.scribbleNote": {
+      "jaSha1": "39f61b9472",
+      "text": "Écrivez sur le champ avec l’Apple Pencil pour obtenir du texte (Griffonner)"
+    },
+    "event.snapshotCaption": {
+      "jaSha1": "48fcac2b68",
+      "text": "Ce que vous avez écrit"
+    },
+    "event.start": {
+      "jaSha1": "a95bf2fed6",
+      "text": "Début"
+    },
+    "event.startDay": {
+      "jaSha1": "f4850c3619",
+      "text": "Date de début"
+    },
+    "event.subscribe": {
+      "jaSha1": "95a3390dcc",
+      "text": "S’abonner"
+    },
+    "event.subscriptionNote": {
+      "jaSha1": "7135ad9680",
+      "text": "Abonnez-vous pour créer et modifier des évènements."
+    },
+    "event.title.create": {
+      "jaSha1": "f0037cac7f",
+      "text": "Ajouter un évènement"
+    },
+    "event.title.detail": {
+      "jaSha1": "107f0ad4e5",
+      "text": "Détails de l’évènement"
+    },
+    "event.title.edit": {
+      "jaSha1": "ed645245ce",
+      "text": "Modifier l’évènement"
+    },
+    "event.titleHeader": {
+      "jaSha1": "47b4753f22",
+      "text": "Titre"
+    },
+    "event.titlePlaceholder": {
+      "jaSha1": "7126a9af93",
+      "text": "Écrivez ici au stylo pour obtenir du texte"
+    },
+    "event.untitled": {
+      "jaSha1": "89e1d46903",
+      "text": "(Sans titre)"
+    },
+    "event.when.dateTime": {
+      "jaSha1": "8d677dd5f1",
+      "text": "%1$@ %2$@"
+    },
+    "export.close": {
+      "jaSha1": "3da5c18551",
+      "text": "Fermer"
+    },
+    "export.done.json.one": {
+      "jaSha1": "abd27ccfd0",
+      "text": "%1$@ (%2$@ page · %3$@)"
+    },
+    "export.done.json.other": {
+      "jaSha1": "abd27ccfd0",
+      "text": "%1$@ (%2$@ pages · %3$@)"
+    },
+    "export.done.pdf": {
+      "jaSha1": "f69c7bc18a",
+      "text": "%1$@ (%2$@)"
+    },
+    "export.done.title": {
+      "jaSha1": "c019c70790",
+      "text": "Exportation terminée"
+    },
+    "export.error.closed": {
+      "jaSha1": "1d285e5b75",
+      "text": "Le fichier est fermé"
+    },
+    "export.error.createFailed": {
+      "jaSha1": "c21b458906",
+      "text": "Impossible de créer le fichier : %@"
+    },
+    "export.failed": {
+      "jaSha1": "caadfe6b0a",
+      "text": "Exportation impossible : %@"
+    },
+    "export.json.note": {
+      "jaSha1": "8ecc87d9f4",
+      "text": "Réunit dans un seul fichier toute l’écriture manuscrite enregistrée sur cet appareil. Vous pouvez la réimporter dans Réglages > Données > « Importer depuis la version web » (l’importation nécessite un abonnement)."
+    },
+    "export.json.title": {
+      "jaSha1": "9ff79abfce",
+      "text": "Fichier de données (JSON, toutes les pages)"
+    },
+    "export.nothing": {
+      "jaSha1": "4c53d27de4",
+      "text": "Aucune écriture manuscrite à exporter"
+    },
+    "export.pdf.building": {
+      "jaSha1": "fb0729638c",
+      "text": "Création du PDF…"
+    },
+    "export.pdf.note": {
+      "jaSha1": "c1493af6d7",
+      "text": "Crée un PDF d’une page à partir de la page ouverte (%1$@ · %2$@). Le papier, les évènements, les jours fériés et l’écriture manuscrite apparaissent comme à l’écran."
+    },
+    "export.pdf.title": {
+      "jaSha1": "6ef95e0e2b",
+      "text": "Cette page en PDF"
+    },
+    "export.progress.one": {
+      "jaSha1": "4960350917",
+      "text": "Exportation… %1$@ / %2$@ page"
+    },
+    "export.progress.other": {
+      "jaSha1": "4960350917",
+      "text": "Exportation… %1$@ / %2$@ pages"
+    },
+    "export.renderFailed": {
+      "jaSha1": "05dcb5860d",
+      "text": "Impossible de créer le PDF"
+    },
+    "export.share": {
+      "jaSha1": "0fa94f1957",
+      "text": "Partager…"
+    },
+    "export.title": {
+      "jaSha1": "bed7b93489",
+      "text": "Exporter l’écriture manuscrite"
+    },
+    "export.writeFailed": {
+      "jaSha1": "2764349d08",
+      "text": "Impossible d’écrire le fichier : %@"
+    },
+    "header.addEvent": {
+      "jaSha1": "eb000e9544",
+      "text": "Évènement"
+    },
+    "header.addEvent.spoken": {
+      "jaSha1": "f0037cac7f",
+      "text": "Ajouter un évènement"
+    },
+    "header.day.spoken": {
+      "jaSha1": "d29f0447e2",
+      "text": "%1$@ (ouvrir la page du jour)"
+    },
+    "header.month.spoken": {
+      "jaSha1": "e5e6e5a89d",
+      "text": "%1$@ (ouvrir la page du mois)"
+    },
+    "header.next.day": {
+      "jaSha1": "28753d5ded",
+      "text": "Jour suivant"
+    },
+    "header.next.month": {
+      "jaSha1": "1bff85ad86",
+      "text": "Mois suivant"
+    },
+    "header.next.week": {
+      "jaSha1": "1569e4d9a4",
+      "text": "Semaine suivante"
+    },
+    "header.next.year": {
+      "jaSha1": "17daff90cc",
+      "text": "Année suivante"
+    },
+    "header.picker.day": {
+      "jaSha1": "15917f3b32",
+      "text": "Jour"
+    },
+    "header.picker.month": {
+      "jaSha1": "d9b59879f3",
+      "text": "Mois"
+    },
+    "header.picker.spoken": {
+      "jaSha1": "586d6bed3d",
+      "text": "Changer de présentation"
+    },
+    "header.picker.week": {
+      "jaSha1": "c7803dadcd",
+      "text": "Sem."
+    },
+    "header.picker.year": {
+      "jaSha1": "6f14c2641c",
+      "text": "Année"
+    },
+    "header.pickerItem.day": {
+      "jaSha1": "1b494df9d8",
+      "text": "Présentation par jour"
+    },
+    "header.pickerItem.month": {
+      "jaSha1": "90160fc70e",
+      "text": "Présentation par mois"
+    },
+    "header.pickerItem.week": {
+      "jaSha1": "80004acfce",
+      "text": "Présentation par semaine"
+    },
+    "header.pickerItem.year": {
+      "jaSha1": "f947802a99",
+      "text": "Présentation par année"
+    },
+    "header.previous.day": {
+      "jaSha1": "f6f002ec19",
+      "text": "Jour précédent"
+    },
+    "header.previous.month": {
+      "jaSha1": "192afd5d18",
+      "text": "Mois précédent"
+    },
+    "header.previous.week": {
+      "jaSha1": "b1845477ef",
+      "text": "Semaine précédente"
+    },
+    "header.previous.year": {
+      "jaSha1": "edc3eea346",
+      "text": "Année précédente"
+    },
+    "header.readOnly.spoken": {
+      "jaSha1": "b0395af688",
+      "text": "Lecture seule. Ouvrir les informations sur l’abonnement"
+    },
+    "header.settings.spoken": {
+      "jaSha1": "6329f21c41",
+      "text": "Réglages"
+    },
+    "header.sync.spoken": {
+      "jaSha1": "cdb5883a5b",
+      "text": "Synchronisation : %@"
+    },
+    "header.today": {
+      "jaSha1": "574cd4fb79",
+      "text": "Auj."
+    },
+    "holidayPicker.auto": {
+      "jaSha1": "f841a4d98b",
+      "text": "Automatique (région de cet appareil : %@)"
+    },
+    "holidayPicker.countries": {
+      "jaSha1": "9ba0c03013",
+      "text": "Pays et régions"
+    },
+    "holidayPicker.deviceRegion": {
+      "jaSha1": "853387474c",
+      "text": "Région de cet appareil : %@"
+    },
+    "holidayPicker.localAreas": {
+      "jaSha1": "4a2a3e77ae",
+      "text": "Autres zones (villes, etc.)"
+    },
+    "holidayPicker.none": {
+      "jaSha1": "1a2e920ba7",
+      "text": "Aucun"
+    },
+    "holidayPicker.search": {
+      "jaSha1": "244732de94",
+      "text": "Rechercher un pays ou une région"
+    },
+    "holidayPicker.subdivisionHint": {
+      "jaSha1": "2504fd39f6",
+      "text": "Choisissez un État ou une région pour ajouter ses jours fériés"
+    },
+    "holidayPicker.subdivisions": {
+      "jaSha1": "4b9e4db03c",
+      "text": "États et régions"
+    },
+    "holidayPicker.subdivisions.footer": {
+      "jaSha1": "7ca56ba8aa",
+      "text": "Les noms des États et des régions sont affichés tels quels dans les données (en anglais ou dans la langue locale)."
+    },
+    "holidayPicker.title": {
+      "jaSha1": "445c8551f9",
+      "text": "Jours fériés à afficher"
+    },
+    "holidayPicker.wholeCountry": {
+      "jaSha1": "0cfaa11569",
+      "text": "Tout le pays"
+    },
+    "import.close": {
+      "jaSha1": "3da5c18551",
+      "text": "Fermer"
+    },
+    "import.confirmLarge.cancel": {
+      "jaSha1": "18ca8614b7",
+      "text": "Annuler"
+    },
+    "import.confirmLarge.import": {
+      "jaSha1": "383cf95339",
+      "text": "Importer"
+    },
+    "import.confirmLarge.more.one": {
+      "jaSha1": "011dbddd20",
+      "text": "et %@ autre page"
+    },
+    "import.confirmLarge.more.other": {
+      "jaSha1": "011dbddd20",
+      "text": "et %@ autres pages"
+    },
+    "import.confirmLarge.separator": {
+      "jaSha1": "611e057fbc",
+      "text": ","
+    },
+    "import.confirmLarge.text": {
+      "jaSha1": "750c7e4709",
+      "text": "Après l’importation, certaines pages auront plus de %1$@ traits (%2$@). Cette version les affiche tous, mais les appareils avec une ancienne version n’en affichent qu’une partie. Importer ?"
+    },
+    "import.confirmLarge.title": {
+      "jaSha1": "fde96141cf",
+      "text": "Certaines pages ont beaucoup de traits"
+    },
+    "import.invalidJSON": {
+      "jaSha1": "2cdc2663c0",
+      "text": "Impossible de lire le fichier"
+    },
+    "import.notAnExport": {
+      "jaSha1": "1fb7848e1d",
+      "text": "Ce fichier n’est pas une exportation d’écriture manuscrite (version web ou cette app)"
+    },
+    "import.nothing": {
+      "jaSha1": "a692889f9f",
+      "text": "Rien à importer (tout est déjà importé)"
+    },
+    "import.otherWeekStart.monday": {
+      "jaSha1": "c273d00aff",
+      "text": "Une partie des pages de semaine importées apparaît quand les semaines commencent le lundi."
+    },
+    "import.otherWeekStart.sunday": {
+      "jaSha1": "56ce607cfd",
+      "text": "Une partie des pages de semaine importées apparaît quand les semaines commencent le dimanche."
+    },
+    "import.progress.one": {
+      "jaSha1": "2c2cacba2a",
+      "text": "Importation… %1$@ / %2$@ page"
+    },
+    "import.progress.other": {
+      "jaSha1": "2c2cacba2a",
+      "text": "Importation… %1$@ / %2$@ pages"
+    },
+    "import.progress.reading": {
+      "jaSha1": "371d47654d",
+      "text": "Importation…"
+    },
+    "import.result.app": {
+      "jaSha1": "9d6328f350",
+      "text": "Écriture manuscrite importée (%1$@ · %2$@)"
+    },
+    "import.result.pages.one": {
+      "jaSha1": "e0587d9fa6",
+      "text": "%@ page"
+    },
+    "import.result.pages.other": {
+      "jaSha1": "e0587d9fa6",
+      "text": "%@ pages"
+    },
+    "import.result.strokes.one": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ trait"
+    },
+    "import.result.strokes.other": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ traits"
+    },
+    "import.result.web": {
+      "jaSha1": "077f7c0956",
+      "text": "Écriture manuscrite de la version web importée (%1$@ · %2$@)"
+    },
+    "import.saveFailed": {
+      "jaSha1": "67da494bf8",
+      "text": "Enregistrement impossible : %@"
+    },
+    "import.skipped.one": {
+      "jaSha1": "dc583f5a8b",
+      "text": "%@ page ignorée, car elle ne peut pas être importée"
+    },
+    "import.skipped.other": {
+      "jaSha1": "dc583f5a8b",
+      "text": "%@ pages ignorées, car elles ne peuvent pas être importées"
+    },
+    "import.title": {
+      "jaSha1": "6996e64bb2",
+      "text": "Importer depuis la version web"
+    },
+    "import.unsupportedVersion": {
+      "jaSha1": "17375b2f9d",
+      "text": "Ce fichier utilise un format plus récent (v%@). Mettez l’app à jour"
+    },
+    "info.translationNote": {
+      "jaSha1": "759b80ff62",
+      "text": "Les traductions de cette app ont été faites avec une IA et vérifiées en les retraduisant en japonais. Aucun locuteur natif ne les a encore relues. Si vous trouvez une erreur, écrivez à syfan0@gmail.com."
+    },
+    "kit.app.name": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "kit.budget.count.one": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ trait"
+    },
+    "kit.budget.count.other": {
+      "jaSha1": "9a1af826b4",
+      "text": "%@ traits"
+    },
+    "kit.budget.page.day": {
+      "jaSha1": "4ed1d179a0",
+      "text": "Page du jour (%@)"
+    },
+    "kit.budget.page.month": {
+      "jaSha1": "40568f61af",
+      "text": "Page du mois (%@)"
+    },
+    "kit.budget.page.week": {
+      "jaSha1": "0026a4ade1",
+      "text": "Page de la semaine (%@)"
+    },
+    "kit.budget.page.year": {
+      "jaSha1": "9e1122aeb8",
+      "text": "Page de l’année (%@)"
+    },
+    "kit.export.jsonFileName": {
+      "jaSha1": "21f0bc85ac",
+      "text": "Tegaki Écriture manuscrite %@.json"
+    },
+    "kit.export.kind.day": {
+      "jaSha1": "15917f3b32",
+      "text": "Jour"
+    },
+    "kit.export.kind.month": {
+      "jaSha1": "d9b59879f3",
+      "text": "Mois"
+    },
+    "kit.export.kind.week": {
+      "jaSha1": "c7803dadcd",
+      "text": "Semaine"
+    },
+    "kit.export.kind.year": {
+      "jaSha1": "6f14c2641c",
+      "text": "Année"
+    },
+    "kit.holiday.dayOff": {
+      "jaSha1": "5a5955b142",
+      "text": "Jour de repos"
+    },
+    "kit.holiday.estimatedSuffix": {
+      "jaSha1": "e3372f0c89",
+      "text": " (estimé)"
+    },
+    "kit.layout.more.one": {
+      "jaSha1": "388c67a943",
+      "text": "+%@ autre"
+    },
+    "kit.layout.more.other": {
+      "jaSha1": "388c67a943",
+      "text": "+%@ autres"
+    },
+    "kit.legal.appleEULATitle": {
+      "jaSha1": "d162aab7fe",
+      "text": "Conditions d’utilisation (CLUF standard d’Apple)"
+    },
+    "kit.plan.badge.readOnly": {
+      "jaSha1": "299ac5001a",
+      "text": "Lecture seule"
+    },
+    "kit.plan.cancelPath": {
+      "jaSha1": "8e172357e5",
+      "text": "Réglages > votre nom > Abonnements"
+    },
+    "kit.plan.date.expires": {
+      "jaSha1": "f0ba49ce31",
+      "text": "Date d’expiration"
+    },
+    "kit.plan.date.graceUntil": {
+      "jaSha1": "595ab42814",
+      "text": "Fin du délai de grâce"
+    },
+    "kit.plan.date.renews": {
+      "jaSha1": "5b07c58b47",
+      "text": "Prochain renouvellement"
+    },
+    "kit.plan.date.trialEnds": {
+      "jaSha1": "78bd16814b",
+      "text": "Fin de l’essai"
+    },
+    "kit.plan.date.trialEndsPaid": {
+      "jaSha1": "334c23c918",
+      "text": "Fin de l’essai (payant ensuite)"
+    },
+    "kit.plan.monthly": {
+      "jaSha1": "b0587b0eda",
+      "text": "Mensuel"
+    },
+    "kit.plan.note.billingRetry": {
+      "jaSha1": "b86158d941",
+      "text": "Il y a un problème de paiement. Vérifiez votre mode de paiement dans %@."
+    },
+    "kit.plan.note.expired": {
+      "jaSha1": "ab6b9caeaa",
+      "text": "Votre abonnement a expiré."
+    },
+    "kit.plan.note.notSubscribed": {
+      "jaSha1": "1ac2ddad19",
+      "text": "Vous n’êtes pas encore abonné."
+    },
+    "kit.plan.note.revoked": {
+      "jaSha1": "52a7e70442",
+      "text": "Votre achat a été remboursé ou annulé."
+    },
+    "kit.plan.note.unknown": {
+      "jaSha1": "9a244ec99d",
+      "text": "L’état de votre achat n’a pas pu être vérifié. La vérification se fera automatiquement une fois la connexion rétablie."
+    },
+    "kit.plan.paymentPath": {
+      "jaSha1": "f6b64195fa",
+      "text": "Réglages > votre nom > Paiement et livraison"
+    },
+    "kit.plan.perPeriod.monthly": {
+      "jaSha1": "7a3bee7c87",
+      "text": "/mois"
+    },
+    "kit.plan.perPeriod.yearly": {
+      "jaSha1": "414d548ef9",
+      "text": "/an"
+    },
+    "kit.plan.savings.one": {
+      "jaSha1": "a08243c355",
+      "text": "Économie de %@ mois"
+    },
+    "kit.plan.savings.other": {
+      "jaSha1": "a08243c355",
+      "text": "Économie de %@ mois"
+    },
+    "kit.plan.status.billingRetry": {
+      "jaSha1": "cef49ac1f3",
+      "text": "Problème de paiement (lecture seule)"
+    },
+    "kit.plan.status.expired": {
+      "jaSha1": "2f14adfb16",
+      "text": "Expiré (lecture seule)"
+    },
+    "kit.plan.status.notSubscribed": {
+      "jaSha1": "8660cd5b0b",
+      "text": "Non acheté (lecture seule)"
+    },
+    "kit.plan.status.revoked": {
+      "jaSha1": "b8a23ab7ca",
+      "text": "Remboursé (lecture seule)"
+    },
+    "kit.plan.status.subscribed": {
+      "jaSha1": "a9a5550313",
+      "text": "%@ · Actif"
+    },
+    "kit.plan.status.subscribedGrace": {
+      "jaSha1": "e238bde0b0",
+      "text": "%@ · Problème de paiement (délai de grâce)"
+    },
+    "kit.plan.status.trial": {
+      "jaSha1": "15d24fc12b",
+      "text": "%@ · Essai en cours"
+    },
+    "kit.plan.status.unknown": {
+      "jaSha1": "c789ee5664",
+      "text": "Vérification en cours (lecture seule)"
+    },
+    "kit.plan.yearly": {
+      "jaSha1": "653f5f79ca",
+      "text": "Annuel"
+    },
+    "license.contributors": {
+      "jaSha1": "303fb674b8",
+      "text": "Contributors: %@"
+    },
+    "license.holidayData": {
+      "jaSha1": "3dca1f8623",
+      "text": "Données des jours fériés : python-holidays (licence MIT)"
+    },
+    "notice.calendar.denied": {
+      "jaSha1": "ea5cc73d2c",
+      "text": "Pour afficher les évènements, réglez Calendriers sur « Accès complet » dans Réglages."
+    },
+    "notice.calendar.denied.openSettings": {
+      "jaSha1": "56b6cd2c1a",
+      "text": "Ouvrir Réglages"
+    },
+    "notice.calendar.notDetermined": {
+      "jaSha1": "07a38bd187",
+      "text": "Pour afficher les évènements, autorisez l’accès à vos calendriers."
+    },
+    "notice.calendar.notDetermined.allow": {
+      "jaSha1": "b740f07401",
+      "text": "Autoriser"
+    },
+    "notice.calendar.restricted": {
+      "jaSha1": "08d6f4ec1d",
+      "text": "L’accès aux calendriers est limité sur cet appareil. Vous pouvez quand même écrire à la main."
+    },
+    "notice.readOnly.button": {
+      "jaSha1": "95a3390dcc",
+      "text": "S’abonner"
+    },
+    "notice.readOnly.text": {
+      "jaSha1": "183091940d",
+      "text": "Lecture seule. Abonnez-vous pour écrire à la main et créer des évènements."
+    },
+    "onboarding.access.text": {
+      "jaSha1": "4ff6bcf2be",
+      "text": "L’écran suivant demande l’« accès complet » à vos calendriers. C’est pour afficher les évènements sur les pages de l’agenda et créer des évènements à partir de votre écriture manuscrite.\n\niOS et iPadOS n’ont pas d’autorisation de lecture seule : l’accès doit donc être complet. Les évènements sont traités seulement sur cet appareil et ne sont envoyés ni au développeur ni à personne d’autre."
+    },
+    "onboarding.access.title": {
+      "jaSha1": "47388e7b3b",
+      "text": "Accès aux calendriers"
+    },
+    "onboarding.account.text": {
+      "jaSha1": "5dbfbae3d5",
+      "text": "Cette app affiche les évènements de l’app Calendrier de cet appareil.\n\n%@"
+    },
+    "onboarding.account.title": {
+      "jaSha1": "bc46330e47",
+      "text": "Comptes de calendrier"
+    },
+    "onboarding.askPermission": {
+      "jaSha1": "1f2325f398",
+      "text": "Afficher l’écran d’autorisation"
+    },
+    "onboarding.dayPageTap": {
+      "jaSha1": "c243e7a23d",
+      "text": "Pour ouvrir une page du jour avec le doigt : sur la page de l’année, touchez une date ou le chiffre du bord gauche (ce jour du mois en cours) ; sur la page du mois, touchez le chiffre d’une date ; sur les pages de semaine, de mois et d’année, touchez deux fois une case."
+    },
+    "onboarding.icloud.text": {
+      "jaSha1": "3f2d0924e1",
+      "text": "Votre écriture manuscrite est enregistrée sur cet appareil et dans votre iCloud. Vous la retrouvez sur vos autres iPad et iPhone.\n\nSi vous n’êtes pas connecté à iCloud, elle est enregistrée seulement sur cet appareil. Aucun réglage iCloud n’est nécessaire (iCloud est utilisé automatiquement si vous êtes connecté sur cet appareil).\n\nLe développeur ne peut pas voir votre écriture manuscrite. C’est votre propre stockage iCloud qui est utilisé."
+    },
+    "onboarding.icloud.title": {
+      "jaSha1": "2ca100d6c2",
+      "text": "iCloud et enregistrement de l’écriture"
+    },
+    "onboarding.next": {
+      "jaSha1": "e572295bb2",
+      "text": "Suivant"
+    },
+    "onboarding.openSettings": {
+      "jaSha1": "42b6a33aa6",
+      "text": "Ouvrir l’app Réglages"
+    },
+    "onboarding.pen.text": {
+      "jaSha1": "cbfca1a23d",
+      "text": "Écrivez sur le papier avec l’Apple Pencil. Le doigt sert à faire défiler, à zoomer en pinçant et à toucher les évènements. La paume ne trace pas de trait quand elle touche l’écran.\n\nPour écrire aussi avec le doigt, activez « Écrire au doigt » dans la barre d’outils. Le double toucher et le pincement de l’Apple Pencil passent du stylo à la gomme selon les actions choisies dans Réglages > Apple Pencil sur l’iPad.\n\n%@"
+    },
+    "onboarding.pen.title": {
+      "jaSha1": "3bbf69218f",
+      "text": "Écrire au stylo, déplacer au doigt"
+    },
+    "paper.freeMemo": {
+      "jaSha1": "b656a370a2",
+      "text": "Notes libres"
+    },
+    "paper.memo": {
+      "jaSha1": "9060a06d59",
+      "text": "Notes"
+    },
+    "paywall.after.paid": {
+      "jaSha1": "7eed0f4ad1",
+      "text": "%@. Renouvellement automatique. Résiliable à tout moment."
+    },
+    "paywall.after.trial": {
+      "jaSha1": "6e0bdb7186",
+      "text": "Après l’essai : %@. Résiliable à tout moment."
+    },
+    "paywall.billingRetryLead": {
+      "jaSha1": "b86158d941",
+      "text": "Il y a un problème de paiement. Vérifiez votre mode de paiement dans %@."
+    },
+    "paywall.blockedLead": {
+      "jaSha1": "701899d4b5",
+      "text": "Abonnez-vous pour écrire, effacer ou créer des évènements."
+    },
+    "paywall.blockedTrial.one": {
+      "jaSha1": "b406d6cff8",
+      "text": " Vous pouvez essayer gratuitement pendant %@ jour."
+    },
+    "paywall.blockedTrial.other": {
+      "jaSha1": "b406d6cff8",
+      "text": " Vous pouvez essayer gratuitement pendant %@ jours."
+    },
+    "paywall.cta.buy": {
+      "jaSha1": "363f4becb9",
+      "text": "Acheter"
+    },
+    "paywall.cta.trial.one": {
+      "jaSha1": "97906f141e",
+      "text": "Essayer gratuitement %@ jour"
+    },
+    "paywall.cta.trial.other": {
+      "jaSha1": "97906f141e",
+      "text": "Essayer gratuitement %@ jours"
+    },
+    "paywall.disclosure.paid": {
+      "jaSha1": "668351dd92",
+      "text": "L’abonnement se renouvelle automatiquement. Sauf résiliation au moins 24 heures avant la fin de la période en cours, il est renouvelé pour la même durée au même prix, et votre compte Apple est débité. Le montant est débité à la confirmation de l’achat. Vous pouvez résilier à tout moment dans %@ sur votre appareil. Après la résiliation, vous pouvez utiliser l’app jusqu’à la fin de la période payée."
+    },
+    "paywall.disclosure.trial": {
+      "jaSha1": "efebe5cf89",
+      "text": "L’abonnement se renouvelle automatiquement. Sauf résiliation au moins 24 heures avant la fin de la période en cours, il est renouvelé pour la même durée au même prix, et votre compte Apple est débité. Le montant est débité à la fin de l’essai gratuit. Vous pouvez résilier à tout moment dans %@ sur votre appareil. Après la résiliation, vous pouvez utiliser l’app jusqu’à la fin de la période payée."
+    },
+    "paywall.feature.events": {
+      "jaSha1": "4a8d61cb9c",
+      "text": "Créer des évènements à partir de l’écriture. Créer et modifier des évènements"
+    },
+    "paywall.feature.ink": {
+      "jaSha1": "0180b3f704",
+      "text": "Écriture manuscrite (stylo, feutre, gomme, lasso)"
+    },
+    "paywall.feature.sync": {
+      "jaSha1": "11b8cc250d",
+      "text": "Synchronisation iCloud avec iPad et iPhone"
+    },
+    "paywall.intro": {
+      "jaSha1": "19bd09dd43",
+      "text": "Un agenda où écrire librement avec l’Apple Pencil, directement sur le calendrier de l’iPad."
+    },
+    "paywall.later": {
+      "jaSha1": "df045200ae",
+      "text": "Plus tard"
+    },
+    "paywall.manage": {
+      "jaSha1": "41d0800450",
+      "text": "Gérer l’abonnement"
+    },
+    "paywall.noPriceNote": {
+      "jaSha1": "665739dcab",
+      "text": "Prix indisponibles"
+    },
+    "paywall.privacy": {
+      "jaSha1": "6bc76e56df",
+      "text": "Politique de confidentialité"
+    },
+    "paywall.recommended": {
+      "jaSha1": "343a26d481",
+      "text": "Recommandé"
+    },
+    "paywall.reload": {
+      "jaSha1": "60c8aac010",
+      "text": "Recharger"
+    },
+    "paywall.restore": {
+      "jaSha1": "9f62acdacd",
+      "text": "Restaurer les achats"
+    },
+    "paywall.revokedLead": {
+      "jaSha1": "d461a8cca5",
+      "text": "Votre achat a été remboursé ou annulé. Pour utiliser de nouveau l’app, abonnez-vous."
+    },
+    "paywall.terms": {
+      "jaSha1": "5978cbf78a",
+      "text": "Conditions de service"
+    },
+    "paywall.title": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "paywall.trialIneligible": {
+      "jaSha1": "05b3529c54",
+      "text": "Vous n’avez pas droit à l’essai gratuit (un seul essai par compte Apple)."
+    },
+    "paywall.trialLead.one": {
+      "jaSha1": "512b357b5c",
+      "text": "Essai gratuit de %@ jour."
+    },
+    "paywall.trialLead.other": {
+      "jaSha1": "512b357b5c",
+      "text": "Essai gratuit de %@ jours."
+    },
+    "paywall.trialRest": {
+      "jaSha1": "5e25c1d75b",
+      "text": " À la fin de l’essai, l’abonnement devient automatiquement payant. Si vous résiliez pendant l’essai, rien ne vous est facturé."
+    },
+    "paywall.yearlyNote.both": {
+      "jaSha1": "7f2985ec8f",
+      "text": "%1$@ par mois · %2$@"
+    },
+    "paywall.yearlyNote.perMonth": {
+      "jaSha1": "dcb5ff5c0d",
+      "text": "%@ par mois"
+    },
+    "recurrence.futureEvents": {
+      "jaSha1": "91127e54b9",
+      "text": "Celui-ci et les suivants"
+    },
+    "recurrence.message.delete": {
+      "jaSha1": "a993eb1c14",
+      "text": "Supprimer celui-ci seulement, ou celui-ci et tous les suivants ?"
+    },
+    "recurrence.message.save": {
+      "jaSha1": "f88f4cb3a1",
+      "text": "Modifier celui-ci seulement, ou celui-ci et tous les suivants ?"
+    },
+    "recurrence.thisEvent": {
+      "jaSha1": "1fd0e67574",
+      "text": "Celui-ci seulement"
+    },
+    "recurrence.title": {
+      "jaSha1": "e0bfa4b878",
+      "text": "Évènement périodique"
+    },
+    "selection.delete": {
+      "jaSha1": "5cbdf1fd70",
+      "text": "Supprimer"
+    },
+    "selection.deselect": {
+      "jaSha1": "8c9d7fae5f",
+      "text": "Annuler"
+    },
+    "selection.handwriting": {
+      "jaSha1": "137731cd40",
+      "text": "Écriture sélectionnée"
+    },
+    "selection.makeEvent": {
+      "jaSha1": "e82f097a14",
+      "text": "Créer RDV"
+    },
+    "settings.calendar.a11y.hidden": {
+      "jaSha1": "dc9c6d6082",
+      "text": "Masqué"
+    },
+    "settings.calendar.a11y.shown": {
+      "jaSha1": "7431dbfdd2",
+      "text": "Affiché"
+    },
+    "settings.calendar.access.allow": {
+      "jaSha1": "b740f07401",
+      "text": "Autoriser"
+    },
+    "settings.calendar.access.denied": {
+      "jaSha1": "f5d82753b7",
+      "text": "Non autorisé"
+    },
+    "settings.calendar.access.full": {
+      "jaSha1": "3a1828c35b",
+      "text": "Autorisé (accès complet)"
+    },
+    "settings.calendar.access.notDetermined": {
+      "jaSha1": "866cd4d13b",
+      "text": "Pas encore autorisé"
+    },
+    "settings.calendar.access.restricted": {
+      "jaSha1": "55bfb31527",
+      "text": "Limité sur cet appareil"
+    },
+    "settings.calendar.access.title": {
+      "jaSha1": "47388e7b3b",
+      "text": "Accès aux calendriers"
+    },
+    "settings.calendar.access.writeOnly": {
+      "jaSha1": "9a7ad5f558",
+      "text": "Ajout seulement (évènements non affichés)"
+    },
+    "settings.calendar.default": {
+      "jaSha1": "241d4396d1",
+      "text": "Calendrier des nouveaux évènements"
+    },
+    "settings.calendar.empty": {
+      "jaSha1": "c0b03f339c",
+      "text": "Aucun calendrier"
+    },
+    "settings.calendar.google.howTo": {
+      "jaSha1": "4f784db710",
+      "text": "Pour afficher les évènements de Google Agenda, ajoutez votre compte Google dans l’app Réglages.\n1. Réglages > Apps > Calendrier > Comptes Calendrier > Ajouter un compte > Google (sur iOS et iPadOS 17 : Réglages > Calendrier > Comptes)\n2. Activez Calendriers.\n3. Sur le même écran, dans Nouvelles données, choisissez Toutes les 15 minutes pour que les évènements se mettent à jour plus vite.\n\nSi vous utilisez seulement des calendriers iCloud, vous n’avez rien à faire."
+    },
+    "settings.calendar.google.title": {
+      "jaSha1": "c21e5b3670",
+      "text": "Utiliser Google Agenda"
+    },
+    "settings.calendar.header": {
+      "jaSha1": "340ba3962c",
+      "text": "Calendriers"
+    },
+    "settings.calendar.noAccess": {
+      "jaSha1": "ebd07f259a",
+      "text": "Autorisez l’accès aux calendriers pour voir la liste ici"
+    },
+    "settings.calendar.otherSource": {
+      "jaSha1": "7c2281ce71",
+      "text": "Autre"
+    },
+    "settings.calendar.shown": {
+      "jaSha1": "aaca081301",
+      "text": "Calendriers à afficher"
+    },
+    "settings.data.erase.all": {
+      "jaSha1": "e2b84fa132",
+      "text": "Tout effacer"
+    },
+    "settings.data.erase.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "Annuler"
+    },
+    "settings.data.erase.confirm": {
+      "jaSha1": "cc735c87c7",
+      "text": "Effacer"
+    },
+    "settings.data.erase.question.cloud": {
+      "jaSha1": "0954331716",
+      "text": "Effacer toute l’écriture manuscrite enregistrée sur cet appareil et dans iCloud ?"
+    },
+    "settings.data.erase.question.local": {
+      "jaSha1": "f58f48ea33",
+      "text": "Effacer toute l’écriture manuscrite enregistrée sur cet appareil ?"
+    },
+    "settings.data.erase.title": {
+      "jaSha1": "262064ae64",
+      "text": "Voulez-vous vraiment effacer ?"
+    },
+    "settings.data.erase.warning.cloud": {
+      "jaSha1": "0b38a215b2",
+      "text": "Cette action est irréversible. L’écriture manuscrite de vos autres iPad et iPhone sera aussi effacée."
+    },
+    "settings.data.erase.warning.local": {
+      "jaSha1": "5ec69d130c",
+      "text": "Cette action est irréversible."
+    },
+    "settings.data.eraseAll": {
+      "jaSha1": "265862104c",
+      "text": "Effacer toute l’écriture manuscrite de cet appareil"
+    },
+    "settings.data.export": {
+      "jaSha1": "bed7b93489",
+      "text": "Exporter l’écriture manuscrite"
+    },
+    "settings.data.exportFooter": {
+      "jaSha1": "546c7c7415",
+      "text": "« Exporter l’écriture manuscrite » réunit l’écriture manuscrite enregistrée sur cet appareil dans un seul fichier de données (JSON), ou crée un PDF de la page ouverte. Vous pouvez réimporter un fichier de données avec « Importer depuis la version web » (l’importation nécessite un abonnement)."
+    },
+    "settings.data.header": {
+      "jaSha1": "d4d63da93d",
+      "text": "Données"
+    },
+    "settings.data.import": {
+      "jaSha1": "6996e64bb2",
+      "text": "Importer depuis la version web"
+    },
+    "settings.data.importFooter": {
+      "jaSha1": "dbd00b969d",
+      "text": "Dans les réglages de la version web, utilisez « 手書きを書き出す（iPad アプリ用） » (exporter l’écriture manuscrite pour l’app iPad), puis choisissez ce fichier. Importer deux fois le même fichier ne double pas l’écriture manuscrite."
+    },
+    "settings.data.lastImport": {
+      "jaSha1": "0b9222397e",
+      "text": "Dernière importation : %@"
+    },
+    "settings.done": {
+      "jaSha1": "1cae18a9a4",
+      "text": "OK"
+    },
+    "settings.holidays.footer": {
+      "jaSha1": "bb45537547",
+      "text": "Les jours fériés japonais sont calculés par cette app (et vérifiés d’après les annonces du Bureau du Cabinet du Japon). Ceux des autres pays viennent de données publiques (python-holidays). Certains, comme les jours fériés des calendriers lunaire et islamique, sont estimés et portent la mention « (estimé) ». Ils peuvent différer des dernières annonces des gouvernements. Le réglage des jours fériés est enregistré seulement sur cet appareil."
+    },
+    "settings.holidays.header": {
+      "jaSha1": "d76d8613e8",
+      "text": "Jours fériés"
+    },
+    "settings.holidays.note.beforeNotice": {
+      "jaSha1": "4b9244a266",
+      "text": "%@ : estimé avant l’annonce officielle"
+    },
+    "settings.holidays.note.join": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "settings.holidays.note.nationalOnly": {
+      "jaSha1": "873e79c96e",
+      "text": "national seulement"
+    },
+    "settings.holidays.note.nationalOnlyAuto": {
+      "jaSha1": "05614d7fe0",
+      "text": "jours fériés nationaux seulement"
+    },
+    "settings.holidays.note.noData": {
+      "jaSha1": "2b5fdaaae1",
+      "text": "aucune donnée sur les jours fériés"
+    },
+    "settings.holidays.note.noDataFrom": {
+      "jaSha1": "485a645652",
+      "text": "aucune donnée à partir de %@"
+    },
+    "settings.holidays.row": {
+      "jaSha1": "445c8551f9",
+      "text": "Jours fériés à afficher"
+    },
+    "settings.holidays.value.auto": {
+      "jaSha1": "49561b4231",
+      "text": "Automatique (%@)"
+    },
+    "settings.holidays.value.autoNote": {
+      "jaSha1": "3b4ba4ad66",
+      "text": "Automatique (%1$@ · %2$@)"
+    },
+    "settings.holidays.value.none": {
+      "jaSha1": "1a2e920ba7",
+      "text": "Aucun"
+    },
+    "settings.holidays.value.regionNote": {
+      "jaSha1": "f69c7bc18a",
+      "text": "%1$@ (%2$@)"
+    },
+    "settings.holidays.value.subdivision": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "settings.info.footer": {
+      "jaSha1": "c6163bd215",
+      "text": "Le nombre de traits vient des pages enregistrées sur cet appareil (rien n’est envoyé). Une page peut contenir jusqu’à %@ traits."
+    },
+    "settings.info.header": {
+      "jaSha1": "d98f83b725",
+      "text": "Informations"
+    },
+    "settings.info.largestPage": {
+      "jaSha1": "bb710bf988",
+      "text": "Page avec le plus de traits"
+    },
+    "settings.info.licenses": {
+      "jaSha1": "3ff3073d7e",
+      "text": "Licences open source"
+    },
+    "settings.info.privacy": {
+      "jaSha1": "6bc76e56df",
+      "text": "Politique de confidentialité"
+    },
+    "settings.info.support": {
+      "jaSha1": "449c69d777",
+      "text": "Assistance"
+    },
+    "settings.info.terms": {
+      "jaSha1": "5978cbf78a",
+      "text": "Conditions de service"
+    },
+    "settings.info.version": {
+      "jaSha1": "7b193c28d4",
+      "text": "Version"
+    },
+    "settings.info.yearPage": {
+      "jaSha1": "b0a81c3202",
+      "text": "Page de cette année"
+    },
+    "settings.input.allowFinger": {
+      "jaSha1": "d3f8bf8e60",
+      "text": "Écrire au doigt"
+    },
+    "settings.input.allowFinger.footer": {
+      "jaSha1": "0ed7a17915",
+      "text": "Si cette option est activée, vous pouvez aussi tracer des traits avec le doigt. Si elle est désactivée, le doigt sert à faire défiler et à toucher. L’écriture manuscrite convient surtout à l’iPad avec l’Apple Pencil."
+    },
+    "settings.input.eraseAfterConvert": {
+      "jaSha1": "0a0cf64940",
+      "text": "Effacer l’écriture changée en évènement"
+    },
+    "settings.input.eraseAfterConvert.footer": {
+      "jaSha1": "024590befb",
+      "text": "Choix de départ pour effacer ou non l’écriture manuscrite entourée au lasso une fois changée en évènement."
+    },
+    "settings.input.eraserAutoReturn.footer.pad": {
+      "jaSha1": "7d740e10cc",
+      "text": "Une fois un trait effacé avec la gomme, quand vous levez le doigt ou l’Apple Pencil, l’outil revient au stylo ou au feutre utilisé juste avant. C’est aussi le cas de la gomme choisie par double toucher ou pincement de l’Apple Pencil."
+    },
+    "settings.input.eraserAutoReturn.footer.phone": {
+      "jaSha1": "2365e0a158",
+      "text": "Une fois un trait effacé avec la gomme, quand vous levez le doigt, l’outil revient au stylo ou au feutre utilisé juste avant."
+    },
+    "settings.input.eraserAutoReturn.title": {
+      "jaSha1": "df8b74ebd3",
+      "text": "Revenir au stylo après avoir effacé"
+    },
+    "settings.input.header": {
+      "jaSha1": "ae5ceeefcd",
+      "text": "Saisie"
+    },
+    "settings.input.pencil": {
+      "jaSha1": "e5e3006f45",
+      "text": "Apple Pencil"
+    },
+    "settings.input.pencil.footer": {
+      "jaSha1": "b18fc2bf4e",
+      "text": "Le double toucher et le pincement suivent les actions choisies dans Réglages > Apple Pencil sur l’iPad"
+    },
+    "settings.openSettingsApp": {
+      "jaSha1": "42b6a33aa6",
+      "text": "Ouvrir l’app Réglages"
+    },
+    "settings.purchase.footer.cancel": {
+      "jaSha1": "0374921042",
+      "text": "Pour résilier, allez dans %@ sur votre appareil. Après la résiliation, vous pouvez utiliser l’app jusqu’à la fin de la période."
+    },
+    "settings.purchase.footer.grace": {
+      "jaSha1": "1cb61098fc",
+      "text": "Il y a un problème de paiement. Vérifiez votre mode de paiement dans %@ sur votre appareil. Vous pouvez utiliser l’app jusqu’à la fin du délai de grâce."
+    },
+    "settings.purchase.footer.readOnly": {
+      "jaSha1": "d0794c08c0",
+      "text": "%@ En lecture seule, vous pouvez voir les évènements et l’écriture manuscrite, changer de page, zoomer, recevoir depuis iCloud, effacer toute l’écriture manuscrite de cet appareil, l’exporter et modifier les réglages. Abonnez-vous pour écrire, effacer ou déplacer, créer ou modifier des évènements et importer depuis la version web."
+    },
+    "settings.purchase.footer.trial": {
+      "jaSha1": "226bfc1627",
+      "text": "Pour résilier, allez dans %@ sur votre appareil. Après la résiliation, vous pouvez utiliser l’app jusqu’à la fin de la période. Si vous résiliez pendant l’essai, rien ne vous est facturé."
+    },
+    "settings.purchase.header": {
+      "jaSha1": "234283a496",
+      "text": "Achat"
+    },
+    "settings.purchase.manage": {
+      "jaSha1": "41d0800450",
+      "text": "Gérer l’abonnement"
+    },
+    "settings.purchase.plan": {
+      "jaSha1": "6c5da7f995",
+      "text": "Formule actuelle"
+    },
+    "settings.purchase.restore": {
+      "jaSha1": "9f62acdacd",
+      "text": "Restaurer les achats"
+    },
+    "settings.purchase.subscribe": {
+      "jaSha1": "95a3390dcc",
+      "text": "S’abonner"
+    },
+    "settings.purchase.trial.one": {
+      "jaSha1": "97906f141e",
+      "text": "Essayer gratuitement %@ jour"
+    },
+    "settings.purchase.trial.other": {
+      "jaSha1": "97906f141e",
+      "text": "Essayer gratuitement %@ jours"
+    },
+    "settings.sync.header": {
+      "jaSha1": "efacc27bc2",
+      "text": "Synchronisation"
+    },
+    "settings.sync.icloud": {
+      "jaSha1": "b3d555701f",
+      "text": "Synchronisation iCloud"
+    },
+    "settings.sync.lastSync": {
+      "jaSha1": "b7a2bb0691",
+      "text": "Dernière synchronisation"
+    },
+    "settings.sync.lastSync.none": {
+      "jaSha1": "1cf9028423",
+      "text": "Pas encore"
+    },
+    "settings.sync.newAccount": {
+      "jaSha1": "4e99c82d7b",
+      "text": "Commencer avec le nouveau compte…"
+    },
+    "settings.sync.now": {
+      "jaSha1": "f24a940b08",
+      "text": "Synchroniser maintenant"
+    },
+    "settings.title": {
+      "jaSha1": "6329f21c41",
+      "text": "Réglages"
+    },
+    "settings.weekStart.auto": {
+      "jaSha1": "49561b4231",
+      "text": "Automatique (%@)"
+    },
+    "settings.weekStart.confirm.message.monday": {
+      "jaSha1": "47f0f2d981",
+      "text": "Les pages de semaine sont séparées pour les semaines qui commencent le lundi et celles qui commencent le dimanche. L’écriture manuscrite déjà présente sur vos pages de semaine reste masquée jusqu’au retour au dimanche (elle n’est pas supprimée). L’écriture des pages de mois passe dans la case de la même date. Toutefois, une partie de ce qui est écrit dans les cases des jours du mois précédent ou suivant peut rester masquée jusqu’au retour (rien n’est supprimé)."
+    },
+    "settings.weekStart.confirm.message.sunday": {
+      "jaSha1": "f3d8eed3b5",
+      "text": "Les pages de semaine sont séparées pour les semaines qui commencent le lundi et celles qui commencent le dimanche. L’écriture manuscrite déjà présente sur vos pages de semaine reste masquée jusqu’au retour au lundi (elle n’est pas supprimée). L’écriture des pages de mois passe dans la case de la même date. Toutefois, une partie de ce qui est écrit dans les cases des jours du mois précédent ou suivant peut rester masquée jusqu’au retour (rien n’est supprimé)."
+    },
+    "settings.weekStart.confirm.ok.monday": {
+      "jaSha1": "de0f361701",
+      "text": "Choisir lundi"
+    },
+    "settings.weekStart.confirm.ok.sunday": {
+      "jaSha1": "a83187d517",
+      "text": "Choisir dimanche"
+    },
+    "settings.weekStart.confirm.title.monday": {
+      "jaSha1": "f4346d1d39",
+      "text": "Commencer les semaines le lundi ?"
+    },
+    "settings.weekStart.confirm.title.sunday": {
+      "jaSha1": "5744e4afba",
+      "text": "Commencer les semaines le dimanche ?"
+    },
+    "settings.weekStart.footer": {
+      "jaSha1": "bc58ea14c9",
+      "text": "Automatique suit la région de l’appareil. Ce réglage est propre à chaque appareil. Utilisez le même réglage partout pour voir la même écriture manuscrite dans les semaines."
+    },
+    "settings.weekStart.monday": {
+      "jaSha1": "cfa48b4bcd",
+      "text": "Lundi"
+    },
+    "settings.weekStart.otherPages.one": {
+      "jaSha1": "5c23d09236",
+      "text": "%2$@ page de semaine utilise l’autre premier jour (%1$@). Changez de réglage pour la voir."
+    },
+    "settings.weekStart.otherPages.other": {
+      "jaSha1": "5c23d09236",
+      "text": "%2$@ pages de semaine utilisent l’autre premier jour (%1$@). Changez de réglage pour les voir."
+    },
+    "settings.weekStart.sunday": {
+      "jaSha1": "c0a04a68b9",
+      "text": "Dimanche"
+    },
+    "settings.weekStart.title": {
+      "jaSha1": "5996fbb18c",
+      "text": "Premier jour de la semaine"
+    },
+    "store.error.productNotFound": {
+      "jaSha1": "a6f401a2bf",
+      "text": "Produit introuvable"
+    },
+    "store.error.unknownPurchaseResult": {
+      "jaSha1": "1cbf927b12",
+      "text": "Le résultat de l’achat est incompréhensible"
+    },
+    "store.generic": {
+      "jaSha1": "06fdbe8b8a",
+      "text": "Achat impossible (%@)"
+    },
+    "store.notAvailable": {
+      "jaSha1": "5f6340f7ac",
+      "text": "Cette formule ne peut pas être achetée dans votre région"
+    },
+    "store.nothingToRestore": {
+      "jaSha1": "e14c78c3fb",
+      "text": "Aucun achat à restaurer. Vérifiez que vous êtes connecté avec le compte Apple utilisé pour l’achat"
+    },
+    "store.offline": {
+      "jaSha1": "9f6b522a59",
+      "text": "Connexion à l’App Store impossible. Vérifiez votre connexion et réessayez"
+    },
+    "store.pending": {
+      "jaSha1": "d53552c395",
+      "text": "En attente d’approbation. L’app sera disponible automatiquement une fois l’achat approuvé"
+    },
+    "store.productsUnavailable": {
+      "jaSha1": "47294f5e05",
+      "text": "Impossible d’obtenir les prix de l’App Store. Vérifiez votre connexion et touchez « Recharger »"
+    },
+    "store.purchased": {
+      "jaSha1": "e7731b38c7",
+      "text": "Votre abonnement a commencé. Merci"
+    },
+    "store.restored": {
+      "jaSha1": "84c45a25b0",
+      "text": "Achats restaurés"
+    },
+    "store.trialStarted.one": {
+      "jaSha1": "d7345daa22",
+      "text": "Votre essai gratuit de %@ jour a commencé"
+    },
+    "store.trialStarted.other": {
+      "jaSha1": "d7345daa22",
+      "text": "Votre essai gratuit de %@ jours a commencé"
+    },
+    "store.unverified": {
+      "jaSha1": "d57ae3e91f",
+      "text": "Impossible de vérifier votre achat. Patientez un peu, puis essayez « Restaurer les achats »"
+    },
+    "sync.footer.accountMismatch": {
+      "jaSha1": "15a61a77c5",
+      "text": "L’écriture manuscrite de cet appareil appartient au compte iCloud synchronisé auparavant. Faites votre choix dans « Commencer avec le nouveau compte »."
+    },
+    "sync.footer.noAccount": {
+      "jaSha1": "bc567caeb3",
+      "text": "Connectez-vous à iCloud pour synchroniser avec vos autres appareils. Votre écriture manuscrite est enregistrée seulement sur cet appareil."
+    },
+    "sync.footer.offline": {
+      "jaSha1": "47076f38ce",
+      "text": "Vous êtes hors ligne. Votre écriture manuscrite est enregistrée sur cet appareil et sera synchronisée au retour de la connexion."
+    },
+    "sync.footer.permission": {
+      "jaSha1": "dc8716fd26",
+      "text": "Les réglages iCloud n’autorisent pas cette app."
+    },
+    "sync.footer.quota": {
+      "jaSha1": "059b200f79",
+      "text": "Synchronisation impossible, car votre stockage iCloud est insuffisant. L’écriture manuscrite est enregistrée sur cet appareil."
+    },
+    "sync.footer.restricted": {
+      "jaSha1": "66e7844350",
+      "text": "Votre écriture manuscrite est enregistrée seulement sur cet appareil."
+    },
+    "sync.footer.serverError": {
+      "jaSha1": "8b39c73031",
+      "text": "La synchronisation a échoué. L’écriture manuscrite est enregistrée sur cet appareil (nouvel essai plus tard).\n%@"
+    },
+    "sync.footer.synced": {
+      "jaSha1": "68bfffdb52",
+      "text": "Votre écriture manuscrite est enregistrée sur cet appareil et dans votre iCloud. Vous la retrouvez sur vos autres iPad et iPhone."
+    },
+    "sync.footer.syncing": {
+      "jaSha1": "3ddf4812c7",
+      "text": "Envoi de votre écriture manuscrite vers iCloud."
+    },
+    "sync.footer.unknown": {
+      "jaSha1": "590acf48af",
+      "text": "Vérifiez iCloud dans l’app Réglages. Votre écriture manuscrite est enregistrée seulement sur cet appareil."
+    },
+    "sync.header.error": {
+      "jaSha1": "ec6399d678",
+      "text": "Erreur"
+    },
+    "sync.header.localOnly": {
+      "jaSha1": "bf8cd9d7c4",
+      "text": "Cet appareil seul"
+    },
+    "sync.header.offline": {
+      "jaSha1": "d32cd8eb43",
+      "text": "Hors ligne"
+    },
+    "sync.header.saved": {
+      "jaSha1": "74e30e9189",
+      "text": "Enregistré"
+    },
+    "sync.header.stopped": {
+      "jaSha1": "434eb8e2dc",
+      "text": "Arrêté"
+    },
+    "sync.header.syncing": {
+      "jaSha1": "db56671e15",
+      "text": "Synchro…"
+    },
+    "sync.status.accountMismatch": {
+      "jaSha1": "91817cbe3a",
+      "text": "Autre compte iCloud"
+    },
+    "sync.status.noAccount": {
+      "jaSha1": "fde00f36ba",
+      "text": "Pas connecté à iCloud"
+    },
+    "sync.status.offline": {
+      "jaSha1": "d32cd8eb43",
+      "text": "Hors ligne"
+    },
+    "sync.status.permission": {
+      "jaSha1": "b61baf5b05",
+      "text": "iCloud non utilisable"
+    },
+    "sync.status.quota": {
+      "jaSha1": "418eff91ef",
+      "text": "Stockage iCloud insuffisant"
+    },
+    "sync.status.restricted": {
+      "jaSha1": "9e639f1dd0",
+      "text": "iCloud est limité sur cet appareil"
+    },
+    "sync.status.serverError": {
+      "jaSha1": "0ca7e52bca",
+      "text": "Échec de la synchronisation"
+    },
+    "sync.status.synced": {
+      "jaSha1": "268fa2341c",
+      "text": "Synchronisé"
+    },
+    "sync.status.syncing": {
+      "jaSha1": "272ff52b3d",
+      "text": "Synchronisation…"
+    },
+    "sync.status.unknown": {
+      "jaSha1": "e90e31922f",
+      "text": "iCloud non vérifiable"
+    },
+    "toast.eraseCloudFailed": {
+      "jaSha1": "5fbe38989b",
+      "text": "Impossible d’effacer l’écriture manuscrite dans iCloud. Celle de cet appareil est effacée. Réessayez une fois la connexion rétablie"
+    },
+    "toast.erased": {
+      "jaSha1": "dacc7265ce",
+      "text": "Toute l’écriture manuscrite est effacée"
+    },
+    "toast.event.created": {
+      "jaSha1": "ef47c27162",
+      "text": "Évènement ajouté"
+    },
+    "toast.event.deleted": {
+      "jaSha1": "2740fc4ddf",
+      "text": "Évènement supprimé"
+    },
+    "toast.event.noAccess": {
+      "jaSha1": "0538edc7d0",
+      "text": "Pour ajouter des évènements, autorisez l’accès aux calendriers dans Réglages"
+    },
+    "toast.event.noCalendar": {
+      "jaSha1": "41d7eee11d",
+      "text": "Aucun calendrier ne peut recevoir d’évènements"
+    },
+    "toast.event.updated": {
+      "jaSha1": "e9d0713de6",
+      "text": "Évènement mis à jour"
+    },
+    "toast.eventBelowDay": {
+      "jaSha1": "900c68f5ba",
+      "text": "Impossible de créer un évènement dans les notes libres sous 24:00"
+    },
+    "toast.growthCap": {
+      "jaSha1": "a7416b4c53",
+      "text": "La zone de notes s’arrête ici"
+    },
+    "toast.pinchHint": {
+      "jaSha1": "b5c7aed169",
+      "text": "Écartez deux doigts pour zoomer, pincez pour dézoomer"
+    },
+    "toast.readOnly": {
+      "jaSha1": "b4a0045460",
+      "text": "Lecture seule. Abonnez-vous pour écrire, effacer ou créer des évènements"
+    },
+    "toast.strokeBudget.full": {
+      "jaSha1": "6b0edb3d70",
+      "text": "Cette page est pleine (%@ traits). Effacez des traits pour écrire à nouveau."
+    },
+    "toast.strokeBudget.many": {
+      "jaSha1": "c57434493e",
+      "text": "Cette page a dépassé %1$@ traits. Une page peut contenir jusqu’à %2$@ traits."
+    },
+    "toast.weekStart.adopted.monday": {
+      "jaSha1": "eb447c6607",
+      "text": "Semaines réglées sur lundi selon votre écriture dans iCloud. Vous pouvez le changer dans Réglages."
+    },
+    "toast.weekStart.adopted.sunday": {
+      "jaSha1": "019ff66d3b",
+      "text": "Semaines réglées sur dimanche selon votre écriture dans iCloud. Vous pouvez le changer dans Réglages."
+    },
+    "toast.weekStart.hiddenInk.one": {
+      "jaSha1": "6e3424da82",
+      "text": "Cette page a %@ trait sur un jour masqué par le réglage actuel. Il n’est pas supprimé. Rétablissez-le pour le voir."
+    },
+    "toast.weekStart.hiddenInk.other": {
+      "jaSha1": "6e3424da82",
+      "text": "Cette page a %@ traits sur des jours masqués par le réglage actuel. Ils ne sont pas supprimés. Rétablissez-le pour les voir."
+    },
+    "toast.weekStart.otherForm.one": {
+      "jaSha1": "19ef2be677",
+      "text": "%2$@ page de semaine a l’autre premier jour (%1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine."
+    },
+    "toast.weekStart.otherForm.other": {
+      "jaSha1": "19ef2be677",
+      "text": "%2$@ pages de semaine ont l’autre premier jour (%1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine."
+    },
+    "toast.weekStart.regionChanged.monday": {
+      "jaSha1": "857c24a261",
+      "text": "Semaines réglées sur lundi selon la région de l’appareil. Votre écriture des semaines du dimanche n’est pas supprimée."
+    },
+    "toast.weekStart.regionChanged.sunday": {
+      "jaSha1": "9883036f4f",
+      "text": "Semaines réglées sur dimanche selon la région de l’appareil. Votre écriture des semaines du lundi n’est pas supprimée."
+    },
+    "toolbar.badge.marker": {
+      "jaSha1": "ebb1b50f6e",
+      "text": "Feutre, %@"
+    },
+    "toolbar.badge.pen": {
+      "jaSha1": "13beea0796",
+      "text": "Stylo, %@"
+    },
+    "toolbar.badge.penWidth": {
+      "jaSha1": "ddc2d03ed8",
+      "text": "Stylo, %1$@, %2$@"
+    },
+    "toolbar.collapse.spoken": {
+      "jaSha1": "e4488face7",
+      "text": "Réduire la barre d’outils"
+    },
+    "toolbar.collapse.title": {
+      "jaSha1": "0addaa0b2b",
+      "text": "Réduire"
+    },
+    "toolbar.color.black": {
+      "jaSha1": "2c80764518",
+      "text": "Noir"
+    },
+    "toolbar.color.blue": {
+      "jaSha1": "845d1da87f",
+      "text": "Bleu"
+    },
+    "toolbar.color.green": {
+      "jaSha1": "f22758bf8f",
+      "text": "Vert"
+    },
+    "toolbar.color.lightBlue": {
+      "jaSha1": "d2dddf0d44",
+      "text": "Bleu clair"
+    },
+    "toolbar.color.orange": {
+      "jaSha1": "831166ef4b",
+      "text": "Orange"
+    },
+    "toolbar.color.pink": {
+      "jaSha1": "caaf2acdb2",
+      "text": "Rose"
+    },
+    "toolbar.color.purple": {
+      "jaSha1": "01caea5810",
+      "text": "Violet"
+    },
+    "toolbar.color.red": {
+      "jaSha1": "72776ab68f",
+      "text": "Rouge"
+    },
+    "toolbar.color.unknown": {
+      "jaSha1": "bc848e8fcb",
+      "text": "Autre couleur"
+    },
+    "toolbar.color.yellow": {
+      "jaSha1": "7720f8ea0a",
+      "text": "Jaune"
+    },
+    "toolbar.dock.hint.toLeft": {
+      "jaSha1": "700daf6c01",
+      "text": "Maintenez le doigt pour déplacer en bas à gauche ou toujours afficher la barre d’outils"
+    },
+    "toolbar.dock.hint.toRight": {
+      "jaSha1": "5f09107ce2",
+      "text": "Maintenez le doigt pour déplacer en bas à droite ou toujours afficher la barre d’outils"
+    },
+    "toolbar.dock.spoken": {
+      "jaSha1": "89fd0adb46",
+      "text": "Afficher la barre d’outils"
+    },
+    "toolbar.fingerToggle": {
+      "jaSha1": "d3f8bf8e60",
+      "text": "Écrire au doigt"
+    },
+    "toolbar.fingerToggle.hint": {
+      "jaSha1": "cb2be71b20",
+      "text": "Si cette option est activée, vous pouvez aussi tracer des traits avec le doigt. Si elle est désactivée, le doigt sert à faire défiler et à toucher"
+    },
+    "toolbar.hint.eraser": {
+      "jaSha1": "8b55191d18",
+      "text": "Efface le trait touché"
+    },
+    "toolbar.hint.eraser.toMarker": {
+      "jaSha1": "fb4c03b5e7",
+      "text": "Efface le trait touché\n(puis retour au feutre)"
+    },
+    "toolbar.hint.eraser.toPen": {
+      "jaSha1": "8162be3abe",
+      "text": "Efface le trait touché\n(puis retour au stylo)"
+    },
+    "toolbar.hint.event": {
+      "jaSha1": "a72d576197",
+      "text": "Tracez pour créer un RDV.\nTouchez pour modifier"
+    },
+    "toolbar.hint.lasso": {
+      "jaSha1": "c22a65bde9",
+      "text": "Entourez pour choisir.\nGlissez pour déplacer"
+    },
+    "toolbar.moveEdge.toLeft": {
+      "jaSha1": "3390912dcc",
+      "text": "Déplacer en bas à gauche"
+    },
+    "toolbar.moveEdge.toRight": {
+      "jaSha1": "c37ead3ae2",
+      "text": "Déplacer en bas à droite"
+    },
+    "toolbar.pin": {
+      "jaSha1": "16d003ddf3",
+      "text": "Toujours afficher la barre d’outils"
+    },
+    "toolbar.redo": {
+      "jaSha1": "c06cea5e52",
+      "text": "Rétablir"
+    },
+    "toolbar.tool.eraser": {
+      "jaSha1": "6e4f860f71",
+      "text": "Gomme"
+    },
+    "toolbar.tool.event": {
+      "jaSha1": "eb000e9544",
+      "text": "RDV"
+    },
+    "toolbar.tool.lasso": {
+      "jaSha1": "4f568822b5",
+      "text": "Lasso"
+    },
+    "toolbar.tool.marker": {
+      "jaSha1": "786bef306d",
+      "text": "Feutre"
+    },
+    "toolbar.tool.pen": {
+      "jaSha1": "93943573d2",
+      "text": "Stylo"
+    },
+    "toolbar.undo": {
+      "jaSha1": "c7f325f13f",
+      "text": "Annuler"
+    },
+    "toolbar.width.medium": {
+      "jaSha1": "0869071c92",
+      "text": "Moyen"
+    },
+    "toolbar.width.spoken": {
+      "jaSha1": "e8aa9aa6cb",
+      "text": "Épaisseur : %@"
+    },
+    "toolbar.width.thick": {
+      "jaSha1": "d2ff8f7020",
+      "text": "Épais"
+    },
+    "toolbar.width.thin": {
+      "jaSha1": "a7c522dc20",
+      "text": "Fin"
+    }
+  }
+}

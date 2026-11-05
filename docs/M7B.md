@@ -1063,6 +1063,178 @@ commit はしていない（S2 は commit しない役）。`git add` は C が�
 - `ToolbarFitTests` の幅は測る端末の書体で動く（±3%）。この Mac の Catalyst と CI の iOS シミュレータで少し違う。
 - フランス語の「MB」（本来は Mo）は §3.2 のとおり訳していない。
 
+## X1（用語集・9 言語の訳・ストアの 10 ロケールの文。§12.1 の X・R の行の X の前半）
+
+commit はしていない（X は commit しない役）。`git add` は C が、次の **X1 のまとまり** をファイル名で: `docs/i18n/GLOSSARY.md`、`docs/i18n/REVIEW.md`（X1 の節だけ。表は R の後）、`tools/l10n/translations/{en,zh-Hans,zh-Hant,ko,fr,de,es,it,pt-BR}.json`、生成物 `Sources/TegakiCalendar/Resources/{Localizable,InfoPlist}.xcstrings`・`TegakiKit/Sources/DayKit/KitStrings.generated.swift`、`docs/store/{zh-Hans,zh-Hant,ko,fr-FR,de-DE,it,pt-BR,es-MX,es-ES,pt-PT}/` の 7 つの欄、`docs/store/subscriptions/{zh-Hans,zh-Hant,ko,fr-FR,de-DE,it,pt-BR,es-MX,es-ES,pt-PT}.json`、`docs/store/README.md`（3 か所。LA2 の未 commit の分も入っている）、この節。
+
+### 入れたもの
+
+- **用語集** `docs/i18n/GLOSSARY.md`: 言語ごとの書き方と店頭の注（§6.1 の 9）、アプリの語の表（§6.2 の全部と週の始まり・ピンチの案内）、iOS の画面の名前（11 の国の Apple の記事で 2026-11-05 に確かめた語と URL）、確かめられなかった語、測った幅（F-5〜F-7、F-12〜F-16）と言い換えの理由。
+- **9 言語の訳**: 476 キー × 9 = 4,284 件（S 229・U 171・P 32・K の 42・H 2。`fixed` 9 と `jaOnly` 10 は訳さない）。§10.4 の 23 キーと `toast.pinchHint` を含む。en は契約の英文と `docs/store/README.md` の「英語の画面の名前」のとおり。
+- **ストアの文**: 10 ロケールの 7 つの欄とサブスクリプション。es-ES は es-MX から直し、pt-PT は別に書いた（説明に「画面はブラジルのポルトガル語」の 1 点）。fr-CA・en-GB・en-AU・en-CA は写し（`locales.json`）。ja 以外に価格を書いていない（L-9）。
+- `docs/store/README.md`: 「X（これから）」の 2 か所、「英語の画面の名前」を確定の文に。**英語の 3 文書・en-US・審査メモ・定型文は直していない**（en の訳を表の語で書いたので違う所が無い。文書の中の画面の名前と en の値を機械で照らした）。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **解約の道は「設定 > 自分の名前 > サブスクリプション」**（キーの comment の例は Apple Account）。§6.1 の 4 の「Apple の記事の語」に従った。9 言語の記事の手順がこの形で、iOS 17 の Apple ID を書き分けなくて済む（英語の TERMS.en も同じ）。en も同じ。
+2. **fr の「予定」は Apple のつづり évènement**（契約の例は Événement）。Apple の fr-FR の記事の語。ツールバーと投げなわのメニューは RDV（F-12、F-15）。
+3. **de の「予定」は Termin**（Apple の記事は Ereignis。契約の例が Termin で、手帳の語として自然）。
+4. **fr・es の `selection.deselect` は Annuler・Cancelar**。Désélectionner・Deseleccionar だと、この Mac の Catalyst の字で F-15 の 220 pt を超える。
+5. **es・pt-BR の `toolbar.tool.marker` は Marcar**（§4.4 の Marcador は 45.8 pt の見積もりだったが、Catalyst の字で 47.8 pt あり上限 47.5 を超える。契約の表の語のうち Mac の AppKit で測った値は Catalyst より約 4% 狭い）。
+6. **es の画面の「設定」アプリは「Ajustes (Configuración)」**と 2 つ書いた（§6.1 の 9。スペインと中南米で iOS の語が違い、es の画面は 1 つ）。アプリの設定の題名は Ajustes。
+7. **it は Lei**（§6.1 の 1。Apple の記事は tu）。
+8. **en の `toast.weekStart.hiddenInk.*` と `toolbar.hint.*` は契約の英文から短くした**（3 行と 144 pt に入らなかった。§10.4 が許す範囲で、意味は同じ）。
+9. **`demo.*` は短い語**（en の “Osaka trip” → Osaka など）。L-12 の警告の目安でなく、測った幅で決めた。
+10. **`docs/i18n/REVIEW.md` を先に作った**（§6.1 の 3 は R の後に X が作る表）。F-16 の「fr の略の理由」と、意図して変えた所を先に残すため。R は訳し戻しの前に読まない（ファイルの頭に書いた）。
+
+### 確かめたこと（この Mac、push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `python3 -I tools/l10n/lint.py .` | **L-1〜L-14 すべて ok**（L-2 は 495 キー、L-6 は 4,284 件、L-9 は 12 ロケール）。L-12 の警告は 59 件残る（字数 × 0.6 の目安。本当の幅は下で測った） |
+| `python3 -I tools/l10n/build.py . --check` | 一致 |
+| `swift build`・`swift run KitChecks` | 成功、**all 29432 checks passed** |
+| `shasum -a 256 -c tools/compat10/DATA_1_1.sha256` | 18 件 OK |
+| `tools/typecheck/typecheck.sh`（外の空のフォルダ） | all OK・警告 0（最後のトーストの文の直しの前。直したのは訳の JSON と生成物のカタログだけで Swift は変わっていない） |
+| **アプリの XCTest を Mac Catalyst の代わりで走らせた**（`m7b-impl/S2/apprun/run.sh`、本物の訳で。本番は CI-0） | 全部で 427 本。失敗 10 件は訳と関係のない 3 本だけ（S2・P の節の「test host でないと成り立たない」`testMakeInTheTestHostIsInert`・`test00TestHostUsesTheFake` と、Mac の PDF のバイトの差の `testPDFRendersEveryKind`）。**`ToolbarFitTests`・`PaperFitTests`・`testWeekStartToastsFitThreeLines`・`testEraserFooterNeverNamesThePencilOnAnIPhone`・`LocalizationBundleTests`・`L10nTests`・`testEnglishEventText` は全部通った**。427 本を走らせた後にトーストの文を短くしたので、その後は幅と訳に関わる 7 クラス 63 本を走らせ直して失敗 0 |
+| 語のそろい（`m7b-impl/X/check_terms.py`） | 文の中のボタンの名前と本物のボタンの字、推定の印、消しゴムの説明の 1 行目など、9 言語で食い違い 0 |
+| 英語の文書と en の値の照らし | 違う所なし |
+| Web・Connect・本人の作業フォルダ | 触っていない（Apple の公開のサポート記事を読んだだけ） |
+
+### 次の役へ
+
+- **R**: `tools/l10n/translations/<言語>.json` の値とキーの `comment` を読み、`docs/i18n/back/<言語>.json` に。ストアは `docs/store/<ロケール>/`・`subscriptions/<ロケール>.json` から `docs/i18n/back/store-<ロケール>.md` に（en-US と審査メモは LA の申し送りのとおり）。**`docs/i18n/REVIEW.md` と GLOSSARY.md は書き終わるまで読まない**。照合で特に見る所は REVIEW.md の最後に書いた。
+- **X（2 回目）**: R の後に REVIEW.md の表。**直すときの手順**: `m7b-impl/X/tr/<言語>-*.tsv` が下書き（`\n` は改行、`key.*` は .one と .other）で、`setkey.py <lang TAB key TAB text の file>` → `make_translations.py` → `build.py`。ストアは `m7b-impl/X/store/<ロケール>.txt` → `write_store.py`。JSON や `docs/store` を直接直すと、次にこの道具を走らせたときに消える（どちらかに決めて使う）。幅は `m7b-impl/X/gloss_rows.py`（Catalyst の字）か `run.sh ToolbarFitTests PaperFitTests WeekStartChoiceTests` で測る。
+- **検証（言葉の観点）**: es の画面の語（§6.1 の 9）、pt-PT が写しでないこと、de の ß。GLOSSARY.md の「確かめられなかった語」。
+- **C**: 上の「X1 のまとまり」。
+- **リード**: GLOSSARY.md の 3 の「確かめられなかった語」（アプリごとの言語の項目の語、「15 分ごと」、iOS のフルアクセスの字）を TestFlight で見る（§2.1）。違えば X が直す。
+
+### 残る危険
+
+- **各言語を母語とする人の確認は無い**（O-6）。R の訳し戻しで見られるのは意味の大きな違いだけで、自然さは見られない。特に短くした語（RDV、Marcar、Ablegen、24h）は写真で確かめたい。
+- **幅は Mac Catalyst の測り**。en・de の「今日」（47.3・47.4 / 47.4）、de の「自由メモ」（7.98 / 8.0 em）、de の Woche（44.2 / 44.5）はほとんど余裕が無い。契約が入ると決めた語で、シミュレータで 0.5% 広いと落ちる。CI-0 で落ちたら語を短くする（FIX2）。
+- **幅 375 pt の iPhone では、週の始まりのトーストが 4 行になる文が 4 つある**（de・it の `otherForm`、pt-BR の `otherForm.other`。数が 99 のとき）。最後の語が切れる。テストの判定は 402 pt（§10.4）で、ログだけに出る。
+- **アプリごとの言語の項目の語は未確認**（Apple の記事に見つからない）。新機能の文に書いているので、TestFlight で違えばストアの文を直す。
+- `kit.plan.savings.*` の「N か月分節約」は購入の画面の札で、価格から計算する。ストアの文には書いていない。
+
+## R（逆翻訳の 1 回目。§6.1 の 3、§12.1。commit は C）
+
+**やったこと**: 日本語の元を見ずに、アプリの文字列 9 言語（各 476 キー、合わせて 4,284）・ストア 11 組（説明の最後の 1 文・promo・名前の退き先・サブスクリプションを含む。es-ES・pt-PT、言い直した説明と新機能の文を含む）・審査メモ・英語の 3 文書の全文（§11.3 の文を含む）を日本語に訳し戻した。§10.4 のキーと `toast.pinchHint` も 9 言語とも入っている。置き場所は `docs/i18n/back/`（`<言語>.json`・`store-<ロケール>.md`・`store-review-note.md`・`legal-en.md`）で、同じ表を `m7b-impl/R/` にも置いた。照合と判定は X がする。
+
+**契約とずれたこと**:
+
+- `comment` は読んでいない。§6.1 の 3 は「値とキーの `comment` を読む」と書くが、`translations/*.json` に `comment` は無く（`text` と `jaSha1` だけ）、`comment` のある `tools/l10n/source/*.json` は開かない約束なので。文脈はキーの名前で補った。
+- `docs/i18n/back/<言語>.json` は `{キー: 日本語}` でなく `{キー: {"text", "back"}}` にした。X が訳を直した後に、訳し直すキーを機械で見つけるため（`m7b-impl/R/work/changed.py`）。
+- 同じ言語で同じ綴りのキーは同じ逆翻訳にした。意味が違う語だけキーごとに分けた（fr の `Fin`（細）と `Annuler`（元に戻す・選択解除）、it の `Annulla`（元に戻す）と `Fine`（完了）、de の `Löschen`（消す）、es の `Cancelar`（選択解除））。
+- es-ES は es-MX と字が同じ行（39 行のうち 29 行）に同じ逆翻訳を使い、違う 10 行を別に訳した。en-GB・en-AU・en-CA・fr-CA は `copyOf` なので表を作っていない。
+
+**「日本語の元を見ない」の範囲**（照合のときに差し引いて読むこと）: 開いていないのは `tools/l10n/source`・`docs/store/source-ja`・`docs/store/ja`・`GLOSSARY.md`・`REVIEW.md`・契約の §6.3・§10.4・§11.3・この文書の他の節の本文。審査メモの日本語の 3 行も読まずに飛ばした。ただし次の日本語は目に入った: 契約の §6.2 の用語集の表（日本語と英語の対応。訳し戻す前に読んだので、用語が元に寄った可能性がある）、`docs/store/en-US/whatsnew.txt` の最後の日本語の段落、`PRIVACY.en.md` の付録 B のカレンダーの許可の文（その前に該当キーの逆翻訳は 9 言語とも済んでいた）、`SUPPORT.en.md` の日本語の画面の道。
+
+**次の版で**: 説明の最後の 1 文（訳は AI で母語話者の確認が無い）は 11 組とも説明の最後にあり、新機能の文の最後にもある（§6.1）。訳し戻しの作業は R の別の Claude がしているので、X と同じ見落としをする危険は残る。
+
+## X2（照合。§6.1 の 3、§12.1 の X・R の行の X の後半。commit は C）
+
+**やったこと**: R の逆翻訳（アプリ 9 言語 × 476 キー、ストア 11 組と審査メモ、英語の 3 文書の全文）を日本語の元と全部突き合わせ、`docs/i18n/REVIEW.md` に判定を書いた。アプリの文字列は ○ 3,797・△ 463・× 24。ストアと英語の文書の × は 0。× の訳は全部直し、`build.py` で生成した。
+
+**直した訳（× の 24 件。R の 2 回目の対象）**:
+
+| キー | 言語 | 何が違ったか |
+| --- | --- | --- |
+| `settings.weekStart.confirm.message.sunday`・`.monday` | fr・es・it・pt-BR・ko | 「いま書いてある週の手書き」が「今の週の手書き」「さっき書いた手書き」と読めた |
+| `toast.weekStart.otherForm.one`・`.other` | fr・it | 「切り替えると見える」が落ちていた |
+| `onboarding.dayPageTap` | en・fr・de・es・it・pt-BR | 「指で」が最後のダブルタップにしか掛かっていなかった |
+| `demo.event.morningMeeting`・`dentalCheck` | de | Morgen（明日とも読める）→ Daily、Zahn（歯）→ Zahncheck |
+| `demo.event.payday` | es | Pago（支払い）→ Nómina |
+| `demo.event.farewell` | it | Saluti（あいさつ）→ Addio |
+
+R が引っかかった語のうち、残りは △ にして理由を REVIEW.md の 7 に書いた（`Marcar`・`Fin`・`Annuler`・`Cancelar`・`Ablegen`・`24h`・`RDV`、de の `otherForm`、見本の語）。どれも幅の上限（F-7・F-12・F-15）か見本の語で、押した動きや読んだ意味が元と食い違わない。
+
+**確かめ**: `toast.pinchHint` の向き・切り替えの文の向きと「消えない」・`regionChanged` の向き・入力の脚注は 9 言語で元と同じ。§10.4 の 23 キーは契約の表と機械で照らして、持ち主と日本語が同じ。ストアの文と `subscriptions` に月数の語は 0 件、逆翻訳に「か月分」は 0 件。ストアと英語の文書の画面の語は `translations` の値と機械で照らして同じ。`toast.weekStart.otherForm` の直しの後、Mac Catalyst の字で `ToolbarFitTests`・`PaperFitTests`・`WeekStartChoiceTests` の 38 本が通った（本当の判定は CI-0 のシミュレータ）。
+
+**契約とずれたこと**:
+
+- §6.4 は英語の 3 文書の食い違いの表を「L が REVIEW.md に足す」と書くが、L（LA・LA2）は済んだ役で、この作業の指示が X2 だったので X2 が照らした。× は 0 なので `docs/*.en.md` は変えていない。
+- §6.1 の 3 の表（キー・元の日本語・逆翻訳・判定・直した訳）は、同じ逆翻訳の言語を 1 行にまとめた（REVIEW.md の 9。約 1,450 行）。ストアと英語の文書は、逆翻訳の全文が `docs/i18n/back/` にあるので、REVIEW.md には欄ごとの判定と理由だけを書いた。
+
+**残っていること（R の 2 回目）**:
+
+1. `python3 -I m7b-impl/R/work/changed.py` が出す 24 件を訳し戻す。
+2. 審査メモの TestFlight と審査のビルドの段落（「In TestFlight and App Review builds …」）を訳し戻す。段落の中の日本語の「記録」のせいで、R の 1 回目の手順で飛ばされていた。§8 の 11 の確認表に載せる文なので要る。
+3. その後で X が 24 件を判定する。`m7b-impl/X2/review.py` の `SECOND` に判定を足して流すと REVIEW.md が作り直される（1 回目の逆翻訳は `m7b-impl/X2/back.first/` に残した）。**§8 の 5 の「× が 0」はこの後**。
+
+**次の役へ**: 訳を直すときは、`m7b-impl/X/tr/<言語>-*.tsv` を直して `m7b-impl/X/make_translations.py` を流し、`build.py` で生成する（`translations/*.json` を直接直すと、次に流したときに戻る）。
+
+## R2（逆翻訳の 2 回目。§6.1 の 3、§12.1。commit は C）
+
+**やったこと**: X2 が直した訳 24 件（it 6・fr 5・es 4・de 3・pt-BR 3・ko 2・en 1。zh の 2 言語は 0）と、審査メモの行 13（TestFlight の段落）を訳し戻した。アプリの文字列は `m7b-impl/R/work/overrides.json` に足して `assemble.py` で `docs/i18n/back/<言語>.json` と `m7b-impl/R/<言語>.md` を作り直した。審査メモは `docs/i18n/back/store-review-note.md` の 9 に入れた（前の 9〜12 は 10〜13 になる）。照合用の表は `m7b-impl/R2/back2.md`、書き換える前の写しは `m7b-impl/R2/before/`。判定はしていない（X がする）。
+
+**1 回目の見落とし**: 1 回目は審査メモの「かな・漢字を含む行」を日本語の要約として飛ばした。行 13 は英語の段落で、日本語は題の 4 字だけなのに、一緒に飛んでいた。今回はその 4 字を伏せて読んだ。同じ見落としが他に無いかも見た。ストア 11 組で日本語を含むのは en-US の新機能の文の 1 行だけで、1 回目の `whatsnew.8` に入っている。英語の 3 文書は見出しごとの行数を比べた。差は冒頭の区切りの `---` の行と、SUPPORT の MIT ライセンスの英文（訳さない理由を（ ）で書いた所）だけだった。
+
+**「日本語の元を見ない」の範囲**（照合のときに差し引いて読むこと）: 開いていないのは `REVIEW.md`・`tools/l10n/source`・`docs/store/source-ja`・`docs/store/ja`・`GLOSSARY.md`・`m7b-impl/X2/back.first`・`comment`・契約の §6.2・§6.3・§10.4。見えてしまったものは次のとおり。
+
+- X2 の申し送りに、審査メモの段落は逆翻訳に「長押し」があれば通るとあった。逆翻訳はこの語を含む。英語の “touching and holding” の普通の訳だが、合格の条件を知って書いたことになる。`review.py` の判定は語の有無だけなので、**X は 9 の全文を読んで判定してほしい**。
+- 逆翻訳を書き終えた後、`review.py` の読み方を調べる grep で、審査メモの節の行が 140 字まで見えた（題の字の一部と要約の一部）。段落はその前に書き終えていて、後から直していない。
+- 同じ見落としを探す途中で、en-US の新機能の文の日本語の行を 1 行見た。24 件にも段落にも関係しない。
+- キーの名前は見えている。de の `Daily` の括弧の「「朝」にあたる語は入っていない」は、`demo.event.morningMeeting` というキーの名前を知って足した注。語そのものの訳は「デイリー」。
+
+## W（Web の規約類: 英語の 3 ページと日本語の 3 ページの直し。§6.5、§12.1 の W）
+
+**置き場所**: Web リポジトリのブランチ `m7b-legal`（`r111-legal` の先頭 f3f9c95 から。作業の木は scratchpad の `wt-m7b-legal`）。push も merge もしていない。Web の main は 8e1dac7 のまま。
+
+### 入れたもの
+
+| commit | 中身 |
+| --- | --- |
+| ① ef14be5 | `app/en/terms.html`・`privacy.html`・`support.html`、`tools/check-legal.mjs`、`tests/app-pages.test.mjs` の (10) の英語の分 |
+| ② bd8b70c | `app/terms.html`・`privacy.html`・`support.html` を今の `docs/*.md` の文に。`tests/app-pages.test.mjs` の (10) の日本語の分 |
+| ③ 0a932b3 | 日本語の 3 ページの一番上に `English` のリンク（M7B-23。答えは「足してよい」）とそのテスト |
+
+- **作り方**: 手で写さず、`m7b-impl/W/md2html.mjs` で Markdown からページを作った。同じ生成器で 1.1.1 の Markdown（31d243c）から作ったページが `r111-legal` の 3 ページと 1 バイトも違わないことを先に確かめた。**`docs/*.md` を後で直したら** `m7b-impl/W/regen.sh <Web の木> <wt-m7b>` で作り直す（③ のリンクは残る。`git diff` に Markdown の差だけが出る）。
+- **`check-legal`**: `app/` の下を全部（下の階層も）見る。全部のページで `【`・`】`・`下書き`・`XX`・`Month DD`。`app/en/` はさらに `[`・`TODO`・`DRAFT`。
+- **見出しの id の参照（P-4）**: 今の第 1 節・第 6 節の id を指すリンクは Web にも `wt-m7b` にも無かった（古い版の記録 `M*.md` は見ていない。直さない文書なので）。直す所は 0 件で、代わりに、ページの間のリンクの先の id がそろっているかを (10) で確かめるようにした。
+
+### 契約からのずれ・契約が黙っている所の決め方
+
+1. **(10) の日本語の分は ② に置いた**（契約は ① に (10) を入れる形）。§6.5 は「ja の同じ節があること」「ja に『EU には配信』が無いこと」も (10) に求めるが、それを ① に入れると「① だけでも緑」が守れない（① の日本語のページはまだ 1.1.1 の文）。条件で飛ばす形にはせず、英語の分を ①、日本語の分を ②、③ の分を ③ に置いた。
+2. **Apple EULA の URL は `en/terms.html` にだけ求めた**（§6.5 は 3 ページに求めるように読める）。LA の節の「W」のとおりで、`PRIVACY.en.md`・`SUPPORT.en.md` に無い（日本語版も同じ）。
+3. **`XX`・`Month DD` は `check-legal` と `npm test` の (10) の両方で止める**（§6.5 は `check-legal`、この作業の指示は (10)。`【】` は今までどおり `check-legal` だけ）。
+4. **お知らせの節**: S-5 の行は ①・② に入れない。日本語は今の 1 行「現在、重要なお知らせはありません。」のまま。英語の節が空にならないよう、LA の最初の英語の 1 行 “There are no important notices at this time.”（d00dd86）を置いた。`docs/SUPPORT*.md` はどちらも S-5 の行なので、**この 1 行だけページと Markdown が違う**。
+5. **Markdown に無い英語の字**: 頭の “Tegaki Calendar (App) / Last updated: …”、足の “Web version “手書きカレンダー” (in Japanese)”。`TERMS.en.md` の 1 行は日本語のページと同じ形に 2 行に分けた（“Effective date: …” の後ろの句点は落とした）。どれも R の逆翻訳の外。
+6. **英語のページの CSS だけ 2 つ足した**: リンクの `overflow-wrap: anywhere`（`…/v0.107/CONTRIBUTORS` が切れずに iPhone の幅からはみ出していた）と、`support.html` の `pre`（MIT の文を折り返す）。日本語のページの CSS は変えていない（§6.4「足すのはこれだけ」）。
+7. **言語の違うリンクに `lang`**: 「日本語版（正本）」に `lang="ja"`、③ の English に `lang="en"`（読み上げの声のため）。`hreflang` は付けていない。
+8. **③ のリンクの場所**: 題名の上、`<main>` の最初の行。読めない言語のページで最初に目に入る所にした。③ のリンクは `docs/*.md` に無い（原稿を変えていない）。
+9. **S-3 の「EU で購入を取り消すには？」はリンクにしない**（決めてよいと LA2-EU の節にあった）。ページの文を Markdown と同じに保つため。
+10. **`app/index.html` と Web の README は変えていない**（§6.5 の対象の外。`index.html` の最終更新は 2026年10月31日 のまま、英語のページへのリンクも無い）。
+
+### 確かめたこと（push・CI は無し。`npm test` はこの Mac の Node 24.20）
+
+| 確かめ | 結果 |
+| --- | --- |
+| commit ごとに `git archive` で取り出して `npm test`・`npm run check:legal` | ① 627・② 631・③ 632 件とも失敗 0、`check-legal` は 7 ファイルで OK |
+| ページの字と Markdown（`m7b-impl/W/check_text.mjs`。生成器を通らない別の道で、タグと記号を外して行ごとに照らす） | 6 ページとも並びが同じ。違う行は頭の最終更新と足のリンクと上の 4 の行だけ（空の欄の表の 1 行は道具の見え方の差） |
+| ② の差分（`git diff --word-diff` を全部読んだ） | §6.4 の 4 つ、T-1〜T-9（T-8 は英語だけ）・P-1〜P-4・S-1〜S-4・S-6、§10.4 の FAQ と括弧、最終更新の日付だけ |
+| §11.3 の文（`m7b-impl/LA2-EU/check_eu.py`） | 今の `docs/*.md` で問題 0。ページの字は上で Markdown と同じ |
+| §6.4 の字の数（価格・試用・解約の道・連絡先・氏名など 13 の字、3 ページ、f3f9c95 と今） | 違うのは `support.html` の「14 日」0 → 1 だけ（S-4 の撤回の期間で、試用の字ではない） |
+| MIT の文 | ページの `pre` を戻すと `LICENSE-python-holidays.txt` と同じ（末尾の改行のほか） |
+| わざと壊す（写しの木で） | `XX`（日本語）・`Month DD`（英語）は `check-legal` と (10) の両方で止まる。`[`・小文字の `draft`・`TODO`・下の階層の `【` は `check-legal` で止まる。古い id へのリンク・EU の古い文は (10) で止まる |
+| 外へのリンク（`curl -sI -L`、2026-11-05） | 200。`https://reportaproblem.apple.com/` だけ 403（1.0 からあるリンク。curl を断っているだけに見えるが、ブラウザでは確かめていない）。`app/en/support.html` は公開まで 404（予定どおり） |
+| Apple の規約の URL（`…/itunes/ie/terms.html`） | `right of withdrawal` 3 件・`Right of withdrawal` 1 件・`Choose your country/region` 1 件。**公開の直前にリードがもう一度**（§6.5） |
+| iPhone の幅（Chrome を画面に出さずに測った。`m7b-impl/W/measure.sh`） | 英語の 3 ページは 390 pt の幅ではみ出さない |
+
+### 次の役へ
+
+- **検証**: 英語のページの字は上の「ページの字と Markdown」のとおり `docs/*.en.md` と同じなので、文の中身は R の逆翻訳（`docs/i18n/back/legal-en.md`）と REVIEW.md の 5 で見られる。ページの形を見るのは上の 5〜8。
+- **FIX**: `docs/*.md` を直したら `regen.sh` で作り直し、`npm test`・`npm run check:legal` を緑にして `m7b-legal` に commit を足す。
+- **リード（公開の日、§11.1 の順 5）**: `m7b-legal` に次の commit を足してから merge する。(a) 6 ページの最終更新: `てがきカレンダー（アプリ版）／最終更新：2026年11月5日`・`Tegaki Calendar (App) / Last updated: November 5, 2026` を公開の日に。(b) `app/support.html` の `<li>現在、重要なお知らせはありません。</li>` を `<li>2026年M月D日：1.2 に合わせて、利用規約とプライバシーポリシーを更新しました。</li>` に、`app/en/support.html` の `<li>There are no important notices at this time.</li>` を `<li>Month D, 2026: We updated the Terms of Service and Privacy Policy for version 1.2.</li>` に（`M月D日`・`Month D` は実際の日付）。(c) `docs/SUPPORT*.md` の `XX`・`Month DD` と 6 文書の最終更新も同じ日に（`regen.sh` は S-5 の行を入れないので、(a)(b) の後に流さない）。(d) `npm test`・`npm run check:legal`。
+- **リード（merge の順）**: `r111-legal` が先（§6.5）。1.1.1 を出す日に `r111-legal` の最終更新を直すと、`m7b-legal` を merge するときに 3 ページの最終更新の行がぶつかる。そのときは 1.2 の日付を取る。**1.1.1 の Web がまだ動く**（今の `r111-legal` は仮）ので、`r111-legal` に commit が増えたら `m7b-legal` に merge してから確かめ直す。
+- **リード（公開の直前の確認）**: 見せる物は `git diff r111-legal..m7b-legal -- app/terms.html app/privacy.html app/support.html` の全文、英語の 3 ページの R の要点と上の 5 の字、③ のリンクの 1 行、URL（`app/en/terms.html`・`privacy.html`・`support.html` と日本語の 3 つ）。③ は M7B-23 の答えのとおり入れるが、§9 のとおりこの確認でもう一度聞く。
+
+### 残る危険
+
+- **日本語の `app/terms.html` は iPhone の幅で少しはみ出す**（`https://www.apple.com/jp/legal/…` の URL で、測った枠で約 402 pt。1.1.1 から同じで、1.2 で増えてはいない）。§6.4 の範囲の外なので直していない。英語のページと同じ 1 行の CSS で直せる。入れるなら公開の直前の確認で本人に聞く。
+- 英語のページの文は、英語を母語とする人も法律の専門家も見ていない（D11、M7B-24 の答えのとおり、1.2 を出してから 1 年以内に 1 回専門家に聞く）。
+- 英語のページの見え方は、この Mac の Chrome で 390 pt の幅を測っただけで、iPhone の Safari では見ていない。
+
 ## FIX（6 観点の検証の指摘の直し。§12.1 の FIX）
 
 commit はしていない（commit は C）。push・CI も無し。Web の作業の木 `wt-m7b-legal` には書いていない（下の「Web」）。契約 `docs/M7B_CONTRACT.md` も変えていない（案文の直しはリードに渡す。下の「契約からのずれ」）。
