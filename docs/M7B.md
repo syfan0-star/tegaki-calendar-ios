@@ -1887,3 +1887,8 @@ CI の 2 回目の `store-shots`（`ci-store1/shots/`）の 88 枚を別の役�
 6 の (b)（曜日の長い言語では短い祝日名も 9 pt）は読めるのでそのまま。
 
 元を見ない逆翻訳を通っていないのは `Chope` だけ。1 語なので別の Claude に回さず、母語の人の確認の候補に残す。
+
+### CI の 3 回目と TestFlight 1.2 (17)（2026-11-06）
+
+- `75326db` の build（run 42077363605）: Build and test 成功（単体 445 本・スキップ 8・失敗 0、UI 29 本・スキップ 1。`testDayHeadingNameIsReadInAnIPhoneColumn`・`testStoreInk*`・`testJapaneseTakesTheOneOnePath`・`testGermanPaywallReachesItsLinks` は passed。KitChecks 29470）、Localized shots 成功、compat-v1.0 成功。Blank paper shots は **runner が 1 度も付かずに取り消し**（「The job was not acquired by Runner of type hosted even after multiple attempts」。macOS arm64 の混雑の注記つき）。コードの失敗ではないので、その段だけ再実行した。「app is not running after 9 s」の警告は 14 件で、前の回と同じ数。
+- TestFlight: run 42089228883（#17）成功。ビルド 17（`bface196-35e5-4f03-acfd-9cbc10b4f4f3`）は VALID、1.2、暗号化の申告なし。16 を本人が試す前に 17 にしたのは、日の見出しの直しが iPhone の画面を変えるから。Things の確認表（`8DmMPpchFWZGAbdrqNoBcD`）をビルド 17 に書き換え、手順 10 に英語の日のページの祝日名を見る 1 行を足した（契約 §8 の 9 の手順 10 にも同じ字）。
