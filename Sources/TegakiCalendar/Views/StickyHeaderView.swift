@@ -28,6 +28,9 @@ struct StickyHeaderView: View {
     /// heading lines up with the paper on its own. Defaulted so the screen builds before and after
     /// it passes one.
     var viewport: PaperViewport = .zero
+    /// The language of the day page's heading (F-10). Always `L.language` in the app; the tests, which run
+    /// in Japanese (0-25), pass the others to measure them.
+    var language: UILanguage = L.language
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
 
@@ -185,9 +188,41 @@ struct StickyHeaderView: View {
     }
 
     private func dayDateBlock(_ label: DateLabel) -> some View {
+        dayDateContent(label)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+            .background(label.isToday ? todayTintSoft : (label.tone != .normal ? weekendTintSoft : Color.clear))
+            .overlay(alignment: .leading) { columnLine }
+    }
+
+    /// F-10 (docs/M7B.md, FIX4): outside ja, with a holiday, the capsule when the whole row fits the column,
+    /// else the name in the line of the month's name (the month is in the page's title), and a name too long
+    /// for that line in two lines of 9 pt (`PaperWords.dayHeadingLongHolidayPoints`), the size the 11 pt line
+    /// could shrink to anyway. All three are as high as a day with no holiday: the number's 36 pt decides, the
+    /// lines stay within 40 pt (the last form by its frame), so a pinch that switches between them does not
+    /// move the paper area (K-6, F-10). The column follows the zoom, so a pinch can bring the capsule back.
+    /// ja and a day with no holiday have the one row.
+    @ViewBuilder
+    private func dayDateContent(_ label: DateLabel) -> some View {
+        if let line = PaperWords.dayHeadingHolidayLine(label, language) {
+            ViewThatFits(in: .horizontal) {
+                dayDateRow(label)
+                dayDateRow(label, holidayLine: line)
+                dayDateRow(label, holidayLine: line, wraps: true)
+                    .frame(maxHeight: PaperWords.dayHeadingLinesMaxHeight)
+            }
+        } else {
+            dayDateRow(label)
+        }
+    }
+
+    /// The number, the two lines and, unless the name is in the first line (`holidayLine`), the capsule.
+    /// With the name on top the gap to the number is 4 pt less, for the sake of the name.
+    private func dayDateRow(_ label: DateLabel, holidayLine: String? = nil, wraps: Bool = false) -> some View {
         let tone = Self.toneColor(label.tone)
-        let fit = PaperWords.dayHeadingFit(L.language) // F-10
-        return HStack(spacing: 10) {
+        let fit = PaperWords.dayHeadingFit(language) // F-10
+        return HStack(spacing: holidayLine == nil ? 10 : 6) {
             Text("\(label.day.day)")
                 .font(.system(size: 21, weight: .semibold).monospacedDigit())
                 .foregroundStyle(label.isToday ? Color.white : (tone ?? ink1))
@@ -195,18 +230,18 @@ struct StickyHeaderView: View {
                 .frame(minWidth: 36, minHeight: 36)
                 .background(label.isToday ? Capsule().fill(accentColor) : nil)
             VStack(alignment: .leading, spacing: 0) {
-                Text(DateText.monthName(label.day.month, .full, L.language))
-                    .font(.system(size: 11))
-                    .foregroundStyle(ink3)
-                    .lineLimit(fit.lineLimit)
-                    .minimumScaleFactor(fit.minScale)
-                Text(DateText.weekdays(.full, L.language)[label.day.weekday])
+                Text(holidayLine ?? DateText.monthName(label.day.month, .full, language))
+                    .font(.system(size: wraps ? PaperWords.dayHeadingLongHolidayPoints : 11))
+                    .foregroundStyle(holidayLine == nil ? ink3 : redColor)
+                    .lineLimit(wraps ? 2 : fit.lineLimit)
+                    .minimumScaleFactor(wraps ? 1 : fit.minScale)
+                Text(DateText.weekdays(.full, language)[label.day.weekday])
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(label.isToday ? accentColor : (tone ?? ink1))
                     .lineLimit(fit.lineLimit)
                     .minimumScaleFactor(fit.minScale)
             }
-            if let holiday = label.holidayName, !holiday.isEmpty {
+            if holidayLine == nil, let holiday = label.holidayName, !holiday.isEmpty {
                 Text(holiday)
                     .font(.system(size: 12))
                     .foregroundStyle(redColor)
@@ -217,11 +252,6 @@ struct StickyHeaderView: View {
                     .layoutPriority(fit.holidayPriority)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-        .background(label.isToday ? todayTintSoft : (label.tone != .normal ? weekendTintSoft : Color.clear))
-        .overlay(alignment: .leading) { columnLine }
     }
 
     // MARK: - Year

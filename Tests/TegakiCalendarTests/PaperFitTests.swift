@@ -1,4 +1,5 @@
 import Layout
+import SwiftUI
 import UIKit
 import XCTest
 @testable import TegakiCalendar
@@ -185,6 +186,90 @@ final class PaperFitTests: XCTestCase {
         XCTAssertNil(PaperWords.weekColumnShortHoliday(label("Columbus Day", ""), .en))
     }
 
+    /// A day heading as the screen draws it, in `language`, with the day's column `column` pt wide.
+    private func dayHeading(holiday: String?, column: CGFloat, language: UILanguage) -> UIImage? {
+        var layout = DayLayoutEngine.layout(DayLayoutInput(day: DayKey(year: 2026, month: 10, day: 7), events: [], inkBottoms: [:], now: now))
+        layout.dateLabels[0].holidayName = holiday
+        layout.dateLabels[0].tone = .normal // the number stays black: only the name counts as red below
+        layout.dateLabels[0].isToday = false
+        let zoom = column / (PaperSpec.dayTimelineRight - PaperSpec.dayGutter)
+        let viewport = PaperViewport(offsetX: 0, zoom: zoom, width: PaperSpec.dayWidth * zoom)
+        let header = StickyHeaderView(paper: .day(DayPaperContent(layout: layout)), now: now, viewport: viewport, language: language, onDayTap: { _ in }, onMonthTap: { _ in })
+        let renderer = ImageRenderer(content: header.frame(width: viewport.width))
+        renderer.scale = 2
+        return renderer.uiImage
+    }
+
+    /// How many pixels of a picture are clearly the paper's red (`PaperPalette.red`, #dc2626).
+    private func redPixels(_ image: UIImage?) -> Int {
+        guard let cg = image?.cgImage else { return 0 }
+        var bytes = [UInt8](repeating: 0, count: cg.width * cg.height * 4)
+        bytes.withUnsafeMutableBytes { buffer in
+            guard let ctx = CGContext(
+                data: buffer.baseAddress, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return }
+            ctx.setFillColor(UIColor.white.cgColor)
+            ctx.fill(CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+        }
+        var count = 0
+        for i in stride(from: 0, to: bytes.count, by: 4) where bytes[i] > 170 && bytes[i + 1] < 120 && bytes[i + 2] < 120 {
+            count += 1
+        }
+        return count
+    }
+
+    /// F-10, docs/M7B.md FIX4: in the column of the CI's 6.9-inch photo (151.3 pt) and of the iPhone 17's
+    /// (131.3 pt, both measured on the photos of the day page) a holiday's name is read whole: in the capsule
+    /// when the whole row fits, else in the line of the month's name, and a long name in two small lines. The
+    /// heading is as high as with no holiday. The zh-Hans photo had 「…」 here (`layoutPriority(-1)`) and no
+    /// other place on the page has the name. The form is `ViewThatFits`'s: the picture says the name is there.
+    func testDayHeadingNameIsReadInAnIPhoneColumn() {
+        let names: [(UILanguage, String)] = [
+            (.zhHans, "休息日"), (.zhHant, "國慶日"), (.ko, "개천절"), (.en, "Columbus Day"), (.fr, "Toussaint"),
+            (.de, "Neujahr"), (.es, "Año Nuevo"), (.it, "Ognissanti"), (.ptBR, "Finados"),
+            // Long ones: two lines (the longest of all lose their end to 「…」, as below).
+            (.zhHant, "中華民國開國紀念日"), (.ko, "부처님오신날 대체 휴일"), (.en, "Martin Luther King Jr. Day"), (.fr, "Lundi de Pentecôte"),
+            (.de, "Tag der Deutschen Einheit"), (.es, "Natalicio de Benito Juárez"), (.it, "Anniversario della Liberazione"), (.ptBR, "Nossa Senhora Aparecida"),
+        ]
+        let day = DayKey(year: 2026, month: 10, day: 7)
+        let numberFont = UIFont.monospacedDigitSystemFont(ofSize: 21, weight: .semibold)
+        for (language, name) in names {
+            let fit = PaperWords.dayHeadingFit(language)
+            let number = max(36, width("7", numberFont) + 2 * 6)
+            let lines = max(width(DateText.monthName(day.month, .full, language), UIFont.systemFont(ofSize: 11)),
+                            width(DateText.weekdays(.full, language)[day.weekday], UIFont.systemFont(ofSize: 14, weight: .semibold)))
+            let capsule = width(name, UIFont.systemFont(ofSize: 12)) + 2 * 8
+            for column in [131.3, 151.3] as [CGFloat] {
+                let plain = dayHeading(holiday: nil, column: column, language: language)
+                let named = dayHeading(holiday: name, column: column, language: language)
+                XCTAssertEqual(named?.size.height ?? 0, plain?.size.height ?? 1, accuracy: 0.01, "\(language) \(name) \(column) pt: the heading's height (K-6)")
+                XCTAssertEqual(plain?.size.height ?? 0, 52, accuracy: 0.5, "\(language) \(column) pt: minHeight 52")
+                // The name itself, at the smallest it has here, against what is on the heading: 「…」 is far less.
+                let renderer = ImageRenderer(content: Text(name).font(.system(size: PaperWords.dayHeadingLongHolidayPoints)).foregroundStyle(Color(uiColor: PaperPalette.red)))
+                renderer.scale = 2
+                let whole = redPixels(renderer.uiImage)
+                XCTAssertGreaterThan(whole, 0, "\(language): the reference")
+                XCTAssertGreaterThanOrEqual(Double(redPixels(named)), 0.7 * Double(whole), "\(language) \(name) in \(column) pt: the name is not on the heading")
+            }
+            // A wide column keeps the capsule where the whole row fits (an iPad's 273 pt in the 13-inch photo).
+            let wide = dayHeading(holiday: name, column: 273, language: language)
+            XCTAssertEqual(wide?.size.height ?? 0, dayHeading(holiday: nil, column: 273, language: language)?.size.height ?? 1, accuracy: 0.01, "\(language) \(name) on an iPad")
+            if capsule < 100 {
+                XCTAssertLessThanOrEqual(number + 10 + lines + 10 + capsule, 273 - 2 * 12, "\(language) \(name) on an iPad: the capsule")
+            }
+        }
+        // All the forms in one pinch: from an iPhone's column up to a readable one, the same height.
+        for column in [131.3, 151.3, 200, 250, 330] as [CGFloat] {
+            XCTAssertEqual(dayHeading(holiday: "Nossa Senhora Aparecida", column: column, language: .ptBR)?.size.height ?? 0,
+                           dayHeading(holiday: nil, column: 151.3, language: .ptBR)?.size.height ?? 1, accuracy: 0.01, "\(column) pt")
+        }
+        // Far too long for two lines: cut, and still the same height.
+        XCTAssertEqual(dayHeading(holiday: "臺灣光復暨金門古寧頭大捷紀念日（補假）", column: 131.3, language: .zhHant)?.size.height ?? 0, 52, accuracy: 0.5)
+        XCTAssertEqual(dayHeading(holiday: "Festa nazionale di San Francesco d'Assisi, patrono d'Italia", column: 131.3, language: .it)?.size.height ?? 0, 52, accuracy: 0.5)
+    }
+
     /// F-8: ja is 1.1's 「n月」, shrinking on its own; the others have one scale for the twelve, and
     /// numbers below 0.7.
     func testYearMonthTitlesScale() {
@@ -268,6 +353,15 @@ final class PaperFitTests: XCTestCase {
         XCTAssertEqual(other.lineLimit, 1)
         XCTAssertEqual(other.minScale, 0.8, accuracy: 0.0001)
         XCTAssertEqual(other.holidayPriority, -1)
+        // F-10 (FIX4): ja has the one row, whatever the holiday and the column; the others can have the name on top.
+        let holiday = DateLabel(day: DayKey(year: 2026, month: 10, day: 12), frame: .zero, isToday: false, inMonth: true, tone: .sundayOrHoliday, holidayName: "スポーツの日")
+        XCTAssertNil(PaperWords.dayHeadingHolidayLine(holiday, .ja), "ja: 1.1's HStack and modifiers")
+        XCTAssertEqual(PaperWords.dayHeadingHolidayLine(holiday, .de), "スポーツの日")
+        var noHoliday = holiday
+        noHoliday.holidayName = nil
+        XCTAssertNil(PaperWords.dayHeadingHolidayLine(noHoliday, .de))
+        noHoliday.holidayName = ""
+        XCTAssertNil(PaperWords.dayHeadingHolidayLine(noHoliday, .de))
 
         // F-11: one text.
         XCTAssertNil(PageHeaderView.titleParts("2026年11月3日(火) 文化の日", holiday: "文化の日", language: .ja))

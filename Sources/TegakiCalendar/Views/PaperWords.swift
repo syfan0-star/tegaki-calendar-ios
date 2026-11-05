@@ -154,6 +154,22 @@ enum PaperWords {
         language == .ja ? (nil, 1, 0) : (1, 0.8, -1)
     }
 
+    /// F-10 (docs/M7B.md, FIX4): the holiday's name for the line of the month's name, for a column where
+    /// the capsule does not fit whole (an iPhone's 131–151 pt, where the capsule of priority −1 came down
+    /// to 「…」 and this was the only place on the page to read the name). nil where there is nothing to do:
+    /// no holiday, and ja, which keeps 1.1's one row with its modifiers (J-4).
+    static func dayHeadingHolidayLine(_ label: DateLabel, _ language: UILanguage) -> String? {
+        guard language != .ja, let name = label.holidayName, !name.isEmpty else { return nil }
+        return name
+    }
+
+    /// F-10: a name too long for that line, in two lines (with 16.7 pt of the weekday, 38 pt: the heading's
+    /// height does not change). About the 8.8 pt the 11 pt line could shrink to with 0.8.
+    static let dayHeadingLongHolidayPoints: CGFloat = 9
+
+    /// F-10: the height of the heading's lines that does not change its height: `minHeight` 52 less the padding 12.
+    static let dayHeadingLinesMaxHeight: CGFloat = 40
+
     private static func clamped(_ weekday: Int) -> Int {
         max(0, min(6, weekday))
     }
