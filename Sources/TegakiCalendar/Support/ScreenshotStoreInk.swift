@@ -42,8 +42,8 @@ private enum StoreInk {
             .day(DayKey(year: month.year, month: month.month, day: min(d, DayKey.daysInMonth(year: month.year, month: month.month))))
         }
 
-        // Today: around the number (its disc is at x 4–28, y 4–28).
-        book.loop("circle", cell: day(7), center: CGPoint(x: 16, y: 16), rx: 20, ry: 16, color: InkBook.red)
+        // Today: around the number (its disc is at x 4–28, y 4–28; a holiday's name starts at x 32, the band at y 28).
+        book.loop("circle", cell: day(7), center: CGPoint(x: 15.5, y: 15), rx: 14.5, ry: 13.5, color: InkBook.red)
 
         // Days that are done.
         book.check("check", cell: day(2), x: 34, y: 92, size: 34)
@@ -190,7 +190,7 @@ private enum StoreInk {
 
         // Red circles around the number (two digits at x 3–22, one digit at x 14–22; the letter starts at 27):
         // today and a few other days.
-        let circled = [(focus.month, focus.day), (2, 14), (4, 18), (6, 6), (8, 22), (9, 12), (11, 20), (12, 24)]
+        let circled = [(focus.month, focus.day), (2, 14), (4, 18), (6, 13), (8, 22), (9, 12), (11, 14), (12, 24)]
         for (month, day) in circled {
             let center = CGPoint(x: day < 10 ? 18 : 12, y: 12.5)
             book.loop("circle", cell: .yearDay(month: month, day: day), center: center, rx: day < 10 ? 8.5 : 11.5, ry: 10.5, color: InkBook.red)
@@ -233,9 +233,8 @@ private struct InkBook {
     static let green = "#16a34a"
     static let markerYellow = "#fde047"
 
-    /// The toolbar's 細 and 中 (`InkPresets.penWidths`).
-    private static let thin = InkPresets.penWidths[0]
-    private static let medium = InkPresets.penWidths[1]
+    /// The toolbar's 中 (`InkPresets.penWidths`). 細 reads as a faint grey at these sizes.
+    private static let nib = InkPresets.penWidths[1]
     /// A fixed ms epoch, as the other demo strokes have; each stroke gets its own `t`.
     private static let baseTime = 1_760_000_000_000
 
@@ -255,8 +254,8 @@ private struct InkBook {
         page.add(InkStroke(id: "\(prefix)-\(name)-\(count)", cell: cell, tool: tool, color: color, t: Self.baseTime + count * 100, points: points))
     }
 
-    private mutating func pen(_ name: String, cell: CellKey, color: String, nib: CGFloat = InkBook.medium, wobble: CGFloat = 0.5, _ segments: [[CGPoint]]) {
-        add(name, cell: cell, tool: .pen, color: color, points: handPoints(segments, nib: nib, wobble: wobble))
+    private mutating func pen(_ name: String, cell: CellKey, color: String, wobble: CGFloat = 0.5, _ segments: [[CGPoint]]) {
+        add(name, cell: cell, tool: .pen, color: color, points: handPoints(segments, nib: Self.nib, wobble: wobble))
     }
 
     // MARK: Shapes

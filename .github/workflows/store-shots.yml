@@ -186,9 +186,9 @@ jobs:
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot again; skipping."; continue; }
             xcrun simctl ui "$UDID" appearance light || true
-            # The status bar shows the app's 「今日」. An ISO date fixes the date as well as the time ("If the
-            # string is a valid ISO date string it will also set the date on relevant devices", simctl's help,
-            # not checked on this repository's Mac, which has no simctl); the plain "9:41" is the way back.
+            # The status bar shows the app's 「今日」. By simctl's help an ISO date string sets the date as well as
+            # the time (not checked: the Mac this was written on has no simctl; look at the photos). The plain
+            # "9:41" is the way back if the command fails.
             xcrun simctl status_bar "$UDID" override --time "$STATUS_TIME" --batteryState charged --batteryLevel 100 --wifiBars 3 \
               || xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 \
               || true
