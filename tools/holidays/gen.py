@@ -180,7 +180,9 @@ def check_pins(pins, have):
 def record_digest(dist):
     for f in dist.files or ():
         if f.name == "RECORD" and str(f.parent).endswith(".dist-info"):
-            return sha256(f.locate().read_bytes())
+            # A script of the package is listed with its hash, and its first line holds the venv's own path.
+            lines = f.locate().read_bytes().splitlines(keepends=True)
+            return sha256(b"".join(line for line in lines if not line.startswith(b"../../../bin/")))
     raise GenError(f"{dist.metadata['Name']}: no RECORD in its dist-info")
 
 

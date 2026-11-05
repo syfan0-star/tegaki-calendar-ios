@@ -1063,3 +1063,101 @@ commit はしていない（S2 は commit しない役）。`git add` は C が�
 - `ToolbarFitTests` の幅は測る端末の書体で動く（±3%）。この Mac の Catalyst と CI の iOS シミュレータで少し違う。
 - フランス語の「MB」（本来は Mo）は §3.2 のとおり訳していない。
 
+## FIX（6 観点の検証の指摘の直し。§12.1 の FIX）
+
+commit はしていない（commit は C）。push・CI も無し。Web の作業の木 `wt-m7b-legal` には書いていない（下の「Web」）。契約 `docs/M7B_CONTRACT.md` も変えていない（案文の直しはリードに渡す。下の「契約からのずれ」）。
+
+### 直したもの: major（6 件。blocker は 0 件）
+
+| 指摘 | 直し | 確かめ |
+| --- | --- | --- |
+| 自分で選んだ「自動」が次の同期で戻される | `WeekStartChoice.choose(_:_:)` を足した。設定の画面で選ぶと、記録と一緒に `weekStart.dataChecked` を立てる（印が先）。`WeekStartSettingsSection` の 2 か所をこれに替えた | 新しい `testChoosingAutoIsNotComparedAgain` が通る |
+| `WeekStartUITests` が見出しを「土」「日」で探している（2 観点で同じ指摘） | テストの方を「土曜日」「日曜日」に。読み上げの名前は §4.2 のとおりなので変えない | 型だけ。実行は CI-0 |
+| `LanguageUITests.testEnglish` の「October 2026」 | iPhone の題名は §3.1 の `yMMM` なので `hasPrefix("Oct")`・`hasPrefix("October")` でない・`contains("2026")` に | 型だけ。実行は CI-0 |
+| REVIEW.md が R の 2 回目を反映していない | `m7b-impl/X2/review.py` の `SECOND` に 24 件の判定を足して作り直した。○ 20（切り替えの文 10・`otherForm` 4・`onboarding.dayPageTap` 6）、△ 4（見本の語 4 つ、理由つき）。審査メモの 9 も全文を読んで ○。**× は 0**（§8 の 5）。§1・§2・§4・§6・§7 の古い文も直した | 合計 ○ 3,811・△ 473・× 0。「R の 2 回目待ち」は 0 件 |
+| de-DE のサブタイトルの Handschreiben（手書きの書簡） | 「Planer zum Schreiben von Hand」（29 字）、退き先の名前は「Tegaki: Handschrift-Planer」 | `write_store.py` と逆翻訳を更新、L-9 が通る |
+| サポートのメールの扱いが公開する文で食い違う | `SUPPORT.md`・`.en.md` の「預からず確認後に削除」を「対応が終わったら消す（第 12 節）」に。`PRIVACY.md`・`.en.md` の第 12 節の受け取る物と AI に渡す物に添付を足した。`privacy-request.md` の表と文にも添付を足した | **Web は下の「Web」のとおりまだ** |
+
+### 直したもの: minor
+
+- **KitChecks**: G-4 に full と short が違う作り物の暦を足した（年は short、月・週・日は full。`YearLayoutEngine` を full に変えた写しで FAIL を確かめた）。「kit strings」の「ja だけか 10 言語全部」の緩みをやめた。**N は 29,432 → 29,436**。
+- **祝日**: `HolidayFile.swift` の罠を塞いだ（`abs` をやめて範囲で比べる、`workdays` も見る、`years` と `epoch` の年は 1〜9999、振替の日に from が無いファイルは「読めない」）。`testBadInputNeverCrashes` に 15 通り足した。`gen.py` の `record_digest` が `../../../bin/` の行を除くようにした（venv の場所で `SOURCE.json` が変わらない。2 つの venv で `diff -r` が空。作業の木では `SOURCE.json` だけが変わった）。祝日がほぼ無い 4 地域を H の「弱い所」の表に足した。
+- **週の始まり**: シートの閉じた直後でなく、次のシートが上がった後にトーストを見る（`weekStartNoticeDelay`、§10.4。初回のペイウォールがまだなら 4 秒、ほかは `sheetGap` ＋ 0.15 秒）。`checksAfterImport` は `.noAccount`・`.restricted` だけ（`.unknown`・`.notAuthenticated` は offline と同じく待つ）。L-13 に `demoPage(kind` を足し、`pageId(` は第 1 引数が `.day`・`.month`・`.year` の字以外を全部見る。`StrokeCensus.demo` に `weekStart` を渡した。
+- **州の画面**: 今選んでいる行をもう一度押しても戻らなかったのを、親の `choose` に集めて直した。
+- **`PaperFitTests`**: 「今日」の上限に切り替えと同じ 0.5 pt。
+- **訳**: es（`kit.plan.savings.*` を usted に、`adopted`・`regionChanged`、`toast.event.noAccess`）、pt-BR（`regionChanged`、`otherForm`、`event.scribbleNote`・`event.titlePlaceholder`）、zh-Hans（3 語）、de（`holidayPicker.*` を Regionen に、`otherForm`）、it（`otherForm`、`demo.event.morningMeeting` を Riunione に）の 25 件。全部 `docs/i18n/REVIEW.md` の 10 に前の字と今の字がある。
+- **375 pt の iPhone のトースト**: de・it・pt-BR の `otherForm` を短くして、Mac Catalyst の字で全部の文が 3 行に入る。
+- **ストア**: de-DE の Konto → Account、Bundesland の文、it の `Le`、fr-FR の `name.txt` の退き先の改行しない空白。
+- **`docs/support-replies/README.md`** の古い 1 文、GLOSSARY の 3 か所、REVIEW.md の fr の Annuler の理由（読み上げが同じ語になること）。
+
+### Web（major の残り。リードの判断がいる）
+
+この役の指示は「Web は W だけが `wt-m7b-legal` を使う」「commit は B11 と C だけ」なので、`wt-m7b-legal` には書かず commit も足していない（W の節の「FIX は `m7b-legal` に commit を足す」とは食い違う。指示の方を取った）。
+
+- `git archive` で取り出した写し（`m7b-impl/FIX/web`）で `regen.sh` を流して、**`npm test` 632 件・失敗 0、`check:legal` OK** を確かめた。差は 4 ページの 6 行だけ。
+- 当てる物: `m7b-impl/FIX/web-m7b-legal.patch`（`git -C wt-m7b-legal apply --check -p1` が通る）か、W の `regen.sh <Web の木> <wt-m7b>`。commit ④ を足すのは W かリード。**これを足すまで、Web のサポートとプライバシーの文は食い違ったまま**。公開の直前の確認で本人に見せる差分に入れる。
+
+### 契約からのずれ
+
+1. **§11.3 の P-2 の 2 文**（固定の案文）。リードが案文を次のとおり直す。P-3 は案文のまま残した（第 12 節に添付を書けば第 13 節の文はそのまま成り立つ。公開する文の差を増やさない）。`m7b-impl/LA2-EU/check_eu.py` はこの 2 文で「found 0 times」を出す（案文を直すまで）。
+   - 「サポートにメールを送ると、開発者はあなたのメールアドレス、メールに書かれたお名前、本文、添付（画面の写真など）を受け取ります。…」／ “When you email support, the developer receives your email address, any name you write, the text of your email and any attachments (such as screenshots). …”
+   - 「…日本語以外のメールを読むときと返事を書くときは、本文や添付を AI の翻訳（Anthropic の Claude）に渡すことがあります。」／ “… the developer may pass the text of your email and its attachments to an AI translation service (Claude, by Anthropic).”
+2. **§10.3 の 4 に足す文**: 「利用者が設定で選んだら、判定はそこで終わり（`WeekStartChoice.choose` が `dataChecked` を立てる）」。§10.3 は「設定が auto で `dataChecked` がまだなら」としか書いていないので、今お使いの方が「自動」を選ぶ道が穴だった。
+3. **§10.3 の 4 (1)**: アプリの形式の取り込みで判定するのは `.localOnly(.noAccount)`・`.localOnly(.restricted)` だけ（契約は `.localOnly` 全部）。
+4. **§10.4 の「トーストの出し方」**: `sheetsChanged()` の機会は、シートが閉じた時でなく少し待ってから。
+5. **§7.3 の表**: `testEnglish` の題名は iPhone の字（「Oct 2026」）。「October 2026」は iPad の写真（§8 の 8）で見る。
+6. **§5.3**: 検査に `years`・`epoch` の範囲と、振替の日の from を足した（同梱の 250 ファイルは全部通る）。
+7. **§2.7 の L-13 の一覧**: `demoPage(kind`、`pageId(` の第 1 引数の見方。
+8. **§6.1 の 3（逆翻訳）**: FIX が変えた字の逆翻訳は FIX が書いた。FIX は日本語の元を読んでいるので「元を見ない」逆翻訳ではない。`R/work/changed.py` は 0 件を出すが、それはこのため（`assemble.py` は位置で行を合わせるので使わず、`docs/i18n/back/<言語>.json` を `m7b-impl/FIX/back.py` で直接直した）。
+9. **F-16**: 「今日」の上限は ja の幅 ＋ 16.5（P のずれ 4 に書いた）。
+
+### 直さなかった指摘と理由
+
+| 指摘 | 理由 |
+| --- | --- |
+| 台湾（TW）に「2026 年は発表前の推定」と出る | **いちばん気になる残り**。検証の見立てでは事実に反し、zh-Hant の人に出る。ただし指摘自身が「リードが決める」で、直すには 1 次資料の確かめと、0-29・§7.1・`testYearNotes`・`HolidayChecks` の期待の変更が要る。`gen.py` の `NOTICE` から外す案なら `index.json` と `SOURCE.json` だけが変わる |
+| es・pt-BR の `toolbar.tool.marker` を Marcador に、pt-BR の Desenhar に戻す | Catalyst の字では上限を超える（47.8 / 47.5）。本当の幅はシミュレータでしか分からず、戻すと CI を落とす危険があるので「安全で小さい」に入らない。CI-0 の `ToolbarFitTests` の値を見て FIX2 が決める |
+| fr の `selection.deselect` の字（Annuler） | 略の Désélect. は読みにくい。REVIEW.md の △ の理由に、読み上げが同じ語になることを足した（指摘が認めている形） |
+| `testWeekStartToastsFitThreeLines` の判定を 375 pt に | 字は 375 pt に入るようにしたが、判定は 402 pt のまま（it の `hiddenInk.other` は 311 pt の幅で最後の行が 310 pt。シミュレータで 1 pt 動くと落ちる）。375 pt はログに残る |
+| `HeaderAndPaperUITests` の題名の識別子 | 指摘のとおり今は変えない。下の FIX2 への申し送り |
+| `coverage_range` を直して 0 件の国を消す（250 → 247） | 影響が 250 の数字の全部に及ぶ。指摘の「最小の直し」の、表に書く方を取った |
+| P-2 の「日本語以外の」の言い切り | 本人に聞くこと（下のリードの 3） |
+| §12.4 の (8)、「今日から 1 週間」の日付、§11.1 の順 5 と S-5 の文、§11.6 の問い、SUPPORT.en の cancelled と Canceling | どれも契約か公開する案文で、指摘が「リードが決める」としている。契約はこの役では変えない |
+| README・DESIGN・APPLE_ENROLLMENT の EU の文、`store-shots.yml`、M7B-23・24 の答えの記録、§11.8 の 175 の読み替え | C の担当（順番はこの後） |
+| `demo.event.camping` の Acampar | 切れるかは写真でしか分からない。リードの確認の項目に（下） |
+
+### 確かめたこと（この Mac。push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `swift run KitChecks` | **all 29436 checks passed**（compat10 は 361 件・失敗 0） |
+| `tools/typecheck/typecheck.sh`（外の空のフォルダ） | all OK・警告 0 |
+| `python3 -I tools/l10n/lint.py .` | L-1〜L-14 すべて ok（L-12 は警告だけ）。`StrokeCensus` の `weekStart` を外した写しで L-13 が落ちることを確かめた |
+| `build.py --check`・`baseline.py --check`（`/usr/bin/python3`） | 一致。基準は 516 行のまま |
+| `shasum -a 256 -c tools/compat10/DATA_1_1.sha256` | 18 件 OK |
+| アプリの XCTest を Mac Catalyst の代わりで全部（`m7b-impl/FIX/apprun`） | 428 本・33,136 件。失敗 8 件は test host でないと成り立たない既知の 2 本（`testMakeInTheTestHostIsInert`・`test00TestHostUsesTheFake`）だけ。`ToolbarFitTests`・`PaperFitTests`・`WeekStartChoiceTests`・`LocalizationBundleTests` は通った |
+| `WorldHolidaysTests` を小さな代わりで（`m7b-impl/FIX/xct-hol`） | 23 本・2,341 件・失敗 0 |
+| トーストの行数（`m7b-impl/FIX/measure`） | 10 言語の 8 種類とも、311 pt・338 pt で 3 行以内（数は `.one` が 1、`.other` が 99） |
+| `gen.py` | 2 つの venv で `diff -r` が空 |
+| `m7b-impl/X/check_terms.py` | 食い違い 0 |
+| `@AppStorage` のキーに点があるとき、別の画面の `@AppStorage` に届くか（気になったので macOS の SwiftUI で実測、`m7b-impl/FIX/appstorage`） | 届く（`.onChange` も発火する。`UserDefaults.set` でも同じ）。`choose` はこれに頼っている。iOS では未確認で、本人の確かめ（§8 の 9 の 4b）で分かる |
+
+**実行していないもの**: UI テスト（直した 2 本を含む）と本物の XCTest は CI-0 から。`.onChange` とシートの動き、州の画面の 2 段戻りも同じ。
+
+### 次の役へ
+
+- **C**: 閾値は N = **29,436** から（N − 50）。FIX が変えたファイルは、Sources の `Persistence/WeekStartChoice.swift`・`Persistence/StrokeCensus.swift`・`Views/WeekStartSettingsSection.swift`・`Views/HolidayPickerScreen.swift`・`Views/CalendarRootScreen.swift`・`Resources/Localizable.xcstrings`、TegakiKit の `Sources/DayKit/KitStrings.generated.swift`・`Sources/Holidays/HolidayFile.swift`・`Sources/KitChecks/main.swift`・`Tests/HolidaysTests/WorldHolidaysTests.swift`・`HolidayData/SOURCE.json`、tools の `holidays/gen.py`・`l10n/lint.py`・`l10n/translations/{es,pt-BR,zh-Hans,de,it}.json`、Tests の `TegakiCalendarTests/{WeekStartChoiceTests,PaperFitTests,CalendarRootScreenTests}.swift`・`TegakiCalendarUITests/{WeekStartUITests,LanguageUITests}.swift`、docs の `SUPPORT.md`・`SUPPORT.en.md`・`PRIVACY.md`・`PRIVACY.en.md`・`support-replies/{privacy-request,README}.md`・`store/de-DE/{name,subtitle,description,whatsnew}.txt`・`store/it/whatsnew.txt`・`store/fr-FR/name.txt`・`i18n/REVIEW.md`・`i18n/GLOSSARY.md`・`i18n/back/{es,pt-BR,zh-Hans,de,it}.json`・`i18n/back/store-{de-DE,fr-FR,it}.md`・`i18n/back/legal-en.md`、この文書。多くは他の役の未 commit のファイルと同じなので、そのまとまりに混ぜてよい。**F-1 の読み替え**: P のずれ 1 の 2 桁の今日の字の差は契約 §1 の「31 日」より広い。§11.8 の 3 の 174 は 0.107 では 175（H のずれ 2）。
+- **リード**:
+  1. `wt-m7b-legal` に上の「Web」を当てる（W を走らせるか、自分で commit ④）。
+  2. §11.3 の P-2 と上の「契約からのずれ」を契約に入れる。
+  3. **公開の直前の確認で本人に聞く**: 日本語のメールを Claude に読ませることは無いか（P-2 の「日本語以外の」の言い切りが守れるか。無いと言い切れなければ外す）。
+  4. 台湾の「発表前」を決める（上の表）。
+  5. 逆翻訳を元を見ない別の Claude にもう一度させるなら、対象は REVIEW.md の 10 の表（25 件とストア 6 欄、英語の 3 文）。`docs/i18n/back/` の `back` を伏せて渡す。
+  6. **§8 の 11 の確認表に足す**: de-DE のサブタイトルと名前の退き先の新しい字。**es・es-ES・pt-BR の年の写真で「Acampar」が切れていないか**（AppKit で 42.5 pt、上限 42 pt。`PaperFitTests` は `demo.*` を測らない。切れていれば短い語に）。
+- **FIX2（CI-0 の後）**: `HeaderAndPaperUITests` が「▶ once」で落ちたら、§7.3 の `tool.pen` と同じく、題名の `accessibilityIdentifier("page.title")` をやめて `LanguageUITests` の題名を別の探し方にする。`ToolbarFitTests` の値を見て、es・pt-BR の Marcador と pt-BR の Desenhar に戻せるかを決める。`testPDFRendersEveryKind` は Mac でバイトが揺れる（今回は通った）。
+
+### 残る危険
+
+- UI テストの 2 本の直しは型しか確かめていない。`app.staticTexts["土曜日"]` は `.accessibilityLabel` の付いた `Text` が staticTexts に出る前提で、CI-0 で初めて分かる。
+- 訳の字の幅は Mac Catalyst の測りで、シミュレータとの差は CI-0 まで分からない。
+- FIX の訳の直しは、母語の人の確認も、元を見ない逆翻訳も通っていない。

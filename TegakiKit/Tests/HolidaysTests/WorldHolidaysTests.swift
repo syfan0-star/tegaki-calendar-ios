@@ -177,7 +177,7 @@ final class WorldHolidaysTests: XCTestCase {
         XCTAssertEqual(calendar("ZZ", .en), HolidayCalendar.none)
         XCTAssertEqual(calendar("AC", .en), HolidayCalendar.none)  // a region without data (0-20)
 
-        // Eight files that fail the checks of §5.3 are unreadable: no holidays, no trap.
+        // Files that fail the checks of §5.3 are unreadable: no holidays, no trap.
         let good: [String: Any] = [
             "format": "tegaki-holidays/1", "country": "ZZ", "source": "test", "years": [2000, 2099], "epoch": "2000-01-01",
             "langs": ["en"], "ui": ["en": 0], "names": [["Day One"]], "substFmt": ["%Y-%m-%d"], "short": [String: Any](),
@@ -192,12 +192,38 @@ final class WorldHolidaysTests: XCTestCase {
             ("flags", { $0["flags"] = [0, 0] }),
             ("columns", { $0["names"] = [["Day One", "Jour un"]] }),
             ("ui", { $0["ui"] = ["en": 1] }),
+            // Numbers the arithmetic would trap on.
+            ("day Int.min", { $0["days"] = [Int.min, 0] }),
+            ("day Int.max", { $0["days"] = [Int.max, 0] }),
+            ("substFrom Int.min", { $0["substFrom"] = [Int.min, 0] }),
+            ("substFrom's other day Int.min", { $0["substFrom"] = [0, Int.min] }),
+            ("workday Int.max", { $0["workdays"] = [Int.max] }),
+            ("workday Int.min", { $0["workdays"] = [Int.min] }),
+            ("epoch's year Int.max", { $0["epoch"] = "9223372036854775807-01-01" }),
+            ("epoch's large year", { $0["epoch"] = "99999999999-01-01" }),
+            ("years Int", { $0["years"] = [Int.min, Int.max] }),
+            ("years large", { $0["years"] = [2000, 99999999999] }),
+            ("a subdivision's add Int.min", { $0["subdivisions"] = [["code": "AA", "add": [Int.min, 0]]] }),
+            ("a subdivision's addFrom Int.min", { $0["subdivisions"] = [["code": "AA", "addFrom": [Int.min, 0]]] }),
+            ("a subdivision's remove Int.min", { $0["subdivisions"] = [["code": "AA", "remove": [Int.min, 0]]] }),
+            // A substituted day without the day it was swapped with would show "%s".
+            ("substituted without from", { $0["names"] = [["Off (%s)"]]; $0["flags"] = [HolidayFlags.substituted.rawValue] }),
+            ("a subdivision's substituted without from", {
+                $0["names"] = [["Day One"], ["Off (%s)"]]
+                $0["flags"] = [0, HolidayFlags.substituted.rawValue]
+                $0["subdivisions"] = [["code": "AA", "add": [1, 1]]]
+            }),
         ]
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("WorldHolidaysTests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         let goodData = try JSONSerialization.data(withJSONObject: good)
         XCTAssertNotNil(CountryHolidays.parse(goodData), "the unbroken file reads")
+        var swapped = good
+        swapped["names"] = [["Off (%s)"]]
+        swapped["flags"] = [HolidayFlags.substituted.rawValue]
+        swapped["substFrom"] = [0, 3]
+        XCTAssertNotNil(CountryHolidays.parse(try JSONSerialization.data(withJSONObject: swapped)), "a substituted day with its other day reads")
         for (what, breakIt) in broken {
             var json = good
             breakIt(&json)

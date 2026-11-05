@@ -47,7 +47,8 @@ public final class CountryHolidays: Sendable {
               Self.isCountryCode(raw.country),
               expectedCountry.map({ $0 == raw.country }) ?? true,
               raw.years.count == 2, raw.years[0] <= raw.years[1],
-              let epoch = DayKey(ymd: raw.epoch) else { return nil }
+              Self.fileYears.contains(raw.years[0]), Self.fileYears.contains(raw.years[1]),
+              let epoch = DayKey(ymd: raw.epoch), Self.fileYears.contains(epoch.year) else { return nil }
         let columns = raw.langs.count
         guard columns >= 1,
               raw.flags.count == raw.names.count,
@@ -60,15 +61,19 @@ public final class CountryHolidays: Sendable {
             shorts[n] = value
         }
         let nameCount = raw.names.count
+        let substituted = Set(raw.flags.indices.filter { HolidayFlags(rawValue: raw.flags[$0]).contains(.substituted) })
         guard Self.isDayList(raw.days, names: nameCount),
-              Self.isPairList(raw.substFrom) else { return nil }
+              Self.isPairList(raw.substFrom),
+              raw.workdays.allSatisfy(Self.isDayOffset),
+              Self.fromDays(raw.days, substituted: substituted, are: raw.substFrom) else { return nil }
         var subdivisions: [Subdivision] = []
         var seen = Set<String>()
         for sub in raw.subdivisions {
             let add = sub.add ?? [], addFrom = sub.addFrom ?? [], remove = sub.remove ?? []
             guard HolidayRegion.isSubdivisionCode(sub.code), seen.insert(sub.code.lowercased()).inserted,
                   Self.isDayList(add, names: nameCount), Self.isDayList(remove, names: nameCount),
-                  Self.isPairList(addFrom) else { return nil }
+                  Self.isPairList(addFrom),
+                  Self.fromDays(add, substituted: substituted, are: addFrom) else { return nil }
             subdivisions.append(Subdivision(code: sub.code, add: add.map(Int32.init), addFrom: Self.pairs(addFrom),
                                             remove: remove.map(Int32.init)))
         }
@@ -228,6 +233,21 @@ public final class CountryHolidays: Sendable {
 
     // MARK: - Checks of §5.3
 
+    /// The years a file may name. The arithmetic on years and days cannot overflow inside it.
+    private static let fileYears = 1...9999
+
+    /// A day offset from the epoch. Not `abs(x)`, which traps on `Int.min`.
+    private static func isDayOffset(_ x: Int) -> Bool {
+        (-1_000_000..<1_000_000).contains(x)
+    }
+
+    /// Every substituted day of `list` ([day, name, …]) has its other day in `from` ([day, other day, …]):
+    /// without it the screen would show the template's "%s".
+    private static func fromDays(_ list: [Int], substituted: Set<Int>, are from: [Int]) -> Bool {
+        let days = Set(stride(from: 0, to: from.count, by: 2).map { from[$0] })
+        return stride(from: 0, to: list.count, by: 2).allSatisfy { !substituted.contains(list[$0 + 1]) || days.contains(list[$0]) }
+    }
+
     private static func isCountryCode(_ s: String) -> Bool {
         s.unicodeScalars.count == 2 && s.unicodeScalars.allSatisfy { ("A"..."Z").contains($0) }
     }
@@ -238,8 +258,7 @@ public final class CountryHolidays: Sendable {
         var previous = Int.min
         var i = 0
         while i < list.count {
-            guard list[i] >= previous, (0..<names).contains(list[i + 1]),
-                  abs(list[i]) < 1_000_000 else { return false }
+            guard list[i] >= previous, (0..<names).contains(list[i + 1]), isDayOffset(list[i]) else { return false }
             previous = list[i]
             i += 2
         }
@@ -252,7 +271,7 @@ public final class CountryHolidays: Sendable {
         var previous = Int.min
         var i = 0
         while i < list.count {
-            guard list[i] >= previous, abs(list[i]) < 1_000_000, abs(list[i + 1]) < 1_000_000 else { return false }
+            guard list[i] >= previous, isDayOffset(list[i]), isDayOffset(list[i + 1]) else { return false }
             previous = list[i]
             i += 2
         }
