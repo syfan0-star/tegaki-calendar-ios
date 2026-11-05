@@ -93,6 +93,7 @@ final class HolidayGeometryTests: XCTestCase {
             var l = label
             l.tone = .normal
             l.holidayName = nil
+            l.holidayShortName = nil
             return l
         }
     }
@@ -229,6 +230,29 @@ final class HolidayGeometryTests: XCTestCase {
         XCTAssertEqual(month(shortAndFull, month: 7).dateLabels.first { $0.day == day(2026, 7, 3) }?.holidayName, "Full (observed)")
         XCTAssertEqual(dayPage(shortAndFull, focus: day(2026, 7, 3)).dateLabels.first?.holidayName, "Full (observed)")
     }
+
+    /// F-9: the week's label carries both names, for a narrow column outside ja (StickyHeaderView).
+    func testWeekLabelsCarryTheShortName() throws {
+        let july3 = day(2026, 7, 3)
+        let two = week(HolidayCalendar(id: "two|ja", region: nil, source: TwoNames()), focus: july3).dateLabels.first { $0.day == july3 }
+        XCTAssertEqual(two?.holidayName, "Full (observed)")
+        XCTAssertEqual(two?.holidayShortName, "Short")
+
+        let oct9 = day(2026, 10, 9)
+        let taiwan = week(try calendar("TW", .zhHant), focus: oct9).dateLabels.first { $0.day == oct9 }
+        XCTAssertEqual(taiwan?.holidayName, "國慶日（補假）")
+        XCTAssertEqual(taiwan?.holidayShortName, "國慶日")
+
+        // Japan: the two are one name on the whole year, so ja's picture cannot depend on it (J-4).
+        for first in stride(from: day(2026, 1, 1).dayNumber, through: day(2026, 12, 31).dayNumber, by: 7) {
+            for label in week(.japan, focus: DayKey(dayNumber: first)).dateLabels {
+                XCTAssertEqual(label.holidayShortName, label.holidayName, "\(label.day)")
+            }
+        }
+        XCTAssertTrue(month(shortAndFullCalendar, month: 7).dateLabels.allSatisfy { $0.holidayShortName == nil }, "the week page's only")
+    }
+
+    private var shortAndFullCalendar: HolidayCalendar { HolidayCalendar(id: "two|ja", region: nil, source: TwoNames()) }
 
     private struct TwoNames: HolidaySource {
         func entries(forYear year: Int) -> [DayKey: [HolidayEntry]] {

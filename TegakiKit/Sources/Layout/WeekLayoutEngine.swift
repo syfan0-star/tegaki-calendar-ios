@@ -191,6 +191,7 @@ public enum WeekLayoutEngine {
         var labels: [DateLabel] = []
         var boxes: [TimedEventBox] = []
         let holidays = input.holidays.names(for: days)
+        let shortHolidays = input.holidays.names(for: days, style: .short)
         for (i, day) in days.enumerated() {
             let x = gutter + CGFloat(i) * colW
             let holiday = holidays[day]
@@ -200,7 +201,8 @@ public enum WeekLayoutEngine {
                 isToday: day == today,
                 inMonth: true,
                 tone: LayoutMath.tone(of: day, holiday: holiday, workday: input.holidays.isWorkday(day)),
-                holidayName: holiday
+                holidayName: holiday,
+                holidayShortName: shortHolidays[day]
             ))
             for slot in TimedEventEngine.layout(events: input.events, day: day, calendar: calendar) {
                 var frame = TimedEventEngine.boxFrame(

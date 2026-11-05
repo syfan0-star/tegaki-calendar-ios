@@ -91,32 +91,41 @@ struct StickyHeaderView: View {
     private func weekDayCell(_ label: DateLabel) -> some View {
         let firstOfMonth = label.day.day == 1
         let number = firstOfMonth ? "\(label.day.month)/1" : "\(label.day.day)"
-        let showsWeekday = !(firstOfMonth && viewport.width(ofPaper: PaperSpec.weekColumnWidth) < Self.narrowWeekColumnPoints)
+        // F-9: over the number there is room for the weekday of the first of a month too.
+        let stacked = PaperWords.weekColumnStacksWeekday(L.language)
+        let showsWeekday = stacked || !(firstOfMonth && viewport.width(ofPaper: PaperSpec.weekColumnWidth) < Self.narrowWeekColumnPoints)
         let tone = Self.toneColor(label.tone)
         return Button {
             onDayTap(label.day)
         } label: {
             VStack(spacing: 1) {
-                HStack(spacing: 4) {
-                    if showsWeekday {
-                        Text(PaperWords.weekColumnWeekday(label.day.weekday, columnWidth: viewport.width(ofPaper: PaperSpec.weekColumnWidth), L.language))
-                            .font(.system(size: 12, weight: label.isToday ? .bold : .medium))
-                            .foregroundStyle(label.isToday ? accentColor : (tone ?? ink2))
+                Group {
+                    if stacked {
+                        VStack(spacing: 0) {
+                            weekDayWeekday(label, tone: tone)
+                            weekDayNumber(number, label, tone: tone)
+                        }
+                    } else {
+                        HStack(spacing: 4) {
+                            if showsWeekday {
+                                weekDayWeekday(label, tone: tone)
+                            }
+                            weekDayNumber(number, label, tone: tone)
+                        }
                     }
-                    Text(number)
-                        .font(.system(size: 18, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(label.isToday ? Color.white : (tone ?? ink1))
-                        .padding(.horizontal, 6)
-                        .frame(minWidth: 30, minHeight: 30)
-                        .background(label.isToday ? Capsule().fill(accentColor) : nil)
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 if let holiday = label.holidayName, !holiday.isEmpty {
-                    Text(holiday)
-                        .font(.system(size: 10))
-                        .foregroundStyle(redColor)
-                        .lineLimit(1)
+                    if let short = PaperWords.weekColumnShortHoliday(label, L.language) {
+                        // F-9: outside ja the short name when the full one does not fit, not an open bracket.
+                        ViewThatFits(in: .horizontal) {
+                            weekDayHoliday(holiday)
+                            weekDayHoliday(short)
+                        }
+                    } else {
+                        weekDayHoliday(holiday)
+                    }
                 }
             }
             .padding(.vertical, 4)
@@ -128,6 +137,28 @@ struct StickyHeaderView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(L.format("header.day.spoken", Self.dayLabel(label)))
+    }
+
+    private func weekDayWeekday(_ label: DateLabel, tone: Color?) -> some View {
+        Text(PaperWords.weekColumnWeekday(label.day.weekday, columnWidth: viewport.width(ofPaper: PaperSpec.weekColumnWidth), L.language))
+            .font(.system(size: 12, weight: label.isToday ? .bold : .medium))
+            .foregroundStyle(label.isToday ? accentColor : (tone ?? ink2))
+    }
+
+    private func weekDayNumber(_ number: String, _ label: DateLabel, tone: Color?) -> some View {
+        Text(number)
+            .font(.system(size: 18, weight: .semibold).monospacedDigit())
+            .foregroundStyle(label.isToday ? Color.white : (tone ?? ink1))
+            .padding(.horizontal, 6)
+            .frame(minWidth: 30, minHeight: 30)
+            .background(label.isToday ? Capsule().fill(accentColor) : nil)
+    }
+
+    private func weekDayHoliday(_ name: String) -> some View {
+        Text(name)
+            .font(.system(size: 10))
+            .foregroundStyle(redColor)
+            .lineLimit(1)
     }
 
     // MARK: - Day

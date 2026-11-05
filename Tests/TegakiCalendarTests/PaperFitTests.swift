@@ -137,6 +137,54 @@ final class PaperFitTests: XCTestCase {
         }
     }
 
+    /// F-9, docs/M7B.md FIX3: a week column's heading. A language with three-letter signs (pt-BR) has them
+    /// over the number, all seven at 12 pt, the heavier today's too, in every column an iPhone or an iPad can
+    /// have (a small iPhone's opening zoom gives about 40 pt, an iPhone 17 53.7 pt in the CI's photo); the
+    /// number's box fits there too. A language with shorter signs stays beside the number, as in 1.1: there
+    /// the sign shrinks on its own down to 0.6, and it must not end in 「…」 in an iPhone 17's column.
+    func testWeekColumnWeekdaysFit() {
+        let number = width("28", UIFont.monospacedDigitSystemFont(ofSize: 18, weight: .semibold)) + 2 * 6
+        for language in languages {
+            let stacks = PaperWords.weekColumnStacksWeekday(language)
+            XCTAssertEqual(stacks, language == .ptBR, "\(language)")
+            if stacks {
+                for column in [40, 50, 53.7, 74.9, 75, 101, 139] as [CGFloat] {
+                    let room = column - 2 * 2
+                    XCTAssertLessThanOrEqual(number, room + 0.05, "the number's box in \(column) pt")
+                    for weekday in 0..<7 {
+                        let sign = PaperWords.weekColumnWeekday(weekday, columnWidth: column, language)
+                        for weight in [UIFont.Weight.medium, .bold] {
+                            XCTAssertLessThanOrEqual(width(sign, UIFont.systemFont(ofSize: 12, weight: weight)), room, "\(language) \(sign) in \(column) pt is cut or shrinks alone")
+                        }
+                    }
+                }
+            } else {
+                let room = 53 - 2 * 2 - 4 - 30 as CGFloat
+                for weekday in 0..<7 {
+                    let sign = PaperWords.weekColumnWeekday(weekday, columnWidth: 53, language)
+                    XCTAssertLessThanOrEqual(width(sign, UIFont.systemFont(ofSize: 12 * 0.6, weight: .bold)), room, "\(language) \(sign) at 0.6 beside the number")
+                }
+            }
+        }
+        // pt-BR's own signs: every column has them whole, in the contract's form (§3.3).
+        XCTAssertEqual((0..<7).map { PaperWords.weekColumnWeekday($0, columnWidth: 53.7, .ptBR) }, ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"])
+        XCTAssertFalse(PaperWords.weekColumnStacksWeekday(.ja), "ja: 1.1's row (J-4)")
+    }
+
+    /// F-9: outside ja a holiday's full name that does not fit a week column gives way to the short name;
+    /// ja keeps 1.1's one text.
+    func testWeekColumnShortHoliday() {
+        func label(_ full: String?, _ short: String?) -> DateLabel {
+            DateLabel(day: DayKey(year: 2026, month: 10, day: 9), frame: .zero, isToday: false, inMonth: true, tone: .sundayOrHoliday, holidayName: full, holidayShortName: short)
+        }
+        XCTAssertEqual(PaperWords.weekColumnShortHoliday(label("國慶日（補假）", "國慶日"), .zhHant), "國慶日")
+        XCTAssertNil(PaperWords.weekColumnShortHoliday(label("國慶日（補假）", "國慶日"), .ja), "ja: 1.1's path")
+        XCTAssertNil(PaperWords.weekColumnShortHoliday(label("スポーツの日", "スポーツの日"), .ja))
+        XCTAssertNil(PaperWords.weekColumnShortHoliday(label("Columbus Day", "Columbus Day"), .en), "nothing to fall back on")
+        XCTAssertNil(PaperWords.weekColumnShortHoliday(label("Columbus Day", nil), .en))
+        XCTAssertNil(PaperWords.weekColumnShortHoliday(label("Columbus Day", ""), .en))
+    }
+
     /// F-8: ja is 1.1's 「n月」, shrinking on its own; the others have one scale for the twelve, and
     /// numbers below 0.7.
     func testYearMonthTitlesScale() {
@@ -203,10 +251,11 @@ final class PaperFitTests: XCTestCase {
         XCTAssertEqual(PaperWords.monthHeaderWeekdays(.ja, weekStart: .monday), ["月", "火", "水", "木", "金", "土", "日"])
         XCTAssertNil(PaperWords.yearColumnTitles(columnWidth: 150, fontSize: 13, .ja).scale)
 
-        // F-9: one character in every column.
+        // F-9: one character in every column, beside the number.
         for column in [10, 74, 75, 300] as [CGFloat] {
             XCTAssertEqual((0..<7).map { PaperWords.weekColumnWeekday($0, columnWidth: column, .ja) }, ["日", "月", "火", "水", "木", "金", "土"])
         }
+        XCTAssertFalse(PaperWords.weekColumnStacksWeekday(.ja))
 
         // F-10: the values SwiftUI has without the modifiers.
         let fit = PaperWords.dayHeadingFit(.ja)

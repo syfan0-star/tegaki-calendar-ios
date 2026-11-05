@@ -78,6 +78,24 @@ enum PaperWords {
         DateText.weekdays(columnWidth < narrowWeekColumnPoints ? .letter : .short, language)[clamped(weekday)]
     }
 
+    /// F-9 (docs/M7B.md, FIX3): a language whose signs have three letters (pt-BR's 「dom」, 26–27 pt at
+    /// 12 pt) has the weekday over the number instead of beside it, at every zoom and on every device.
+    /// Beside a number of 30 pt there are 16 pt on an iPhone 17 and less on a smaller one, where 「dom」 ended
+    /// in 「…」 even at 0.6 and the seven columns shrank each to its own size. Over the number the seven are
+    /// the same 12 pt. Not by the column's width: the heading's height would change during a pinch, and with
+    /// it the paper area the zoom is computed from. ja and the others stay beside the number (J-4).
+    static func weekColumnStacksWeekday(_ language: UILanguage) -> Bool {
+        guard language != .ja else { return false }
+        return DateText.weekdays(.letter, language).contains { $0.count >= 3 }
+    }
+
+    /// F-9: the name to fall back on when the holiday's full name does not fit a week column; nil where
+    /// there is nothing to fall back on (ja keeps 1.1's one `Text`, which ends in 「…」).
+    static func weekColumnShortHoliday(_ label: DateLabel, _ language: UILanguage) -> String? {
+        guard language != .ja, let short = label.holidayShortName, !short.isEmpty, short != label.holidayName else { return nil }
+        return short
+    }
+
     // MARK: - Months
 
     /// F-8: the 12 titles of the year page's month row and their common scale. ja: 「1月」…「12月」 and

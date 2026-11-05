@@ -6058,6 +6058,7 @@ func withoutToneAndName(_ labels: [DateLabel]) -> [DateLabel] {
         var l = label
         l.tone = .normal
         l.holidayName = nil
+        l.holidayShortName = nil
         return l
     }
 }
@@ -6292,6 +6293,17 @@ do {
     checkEqual(twoNames(month(two).dateLabels), ["Full (observed)"], "G-4: two names: the month page takes the full name")
     checkEqual(twoNames(week(two).dateLabels), ["Full (observed)"], "G-4: two names: the week page takes the full name")
     checkEqual(twoNames(dayPage(two).dateLabels), ["Full (observed)"], "G-4: two names: the day page takes the full name")
+    // F-9: the week's label also has the short name, for a narrow column outside ja; only the week's.
+    checkEqual(Set(week(two).dateLabels.map(\.holidayShortName)), ["Short"], "F-9: two names: the week's label has the short name too")
+    check([month(two).dateLabels, dayPage(two).dateLabels, year(two).dateLabels].allSatisfy { $0.allSatisfy { $0.holidayShortName == nil } }, "F-9: only the week's labels have a short name")
+    // J-4: Japan's full and short names are one, in every week of 2026, so ja's heading cannot depend on it.
+    let japanWeeks = stride(from: day(2026, 1, 1).dayNumber, through: day(2026, 12, 31).dayNumber, by: 7).flatMap { first in
+        WeekLayoutEngine.layout(WeekLayoutInput(focus: DayKey(dayNumber: first), events: [], inkBottoms: [:], now: geometryNow, calendar: tokyo)).dateLabels
+    }
+    check(japanWeeks.contains { $0.holidayName != nil } && japanWeeks.allSatisfy { $0.holidayShortName == $0.holidayName }, "F-9: Japan's weeks of 2026: the short name is the full name")
+    let twOct9 = WeekLayoutEngine.layout(WeekLayoutInput(focus: day(2026, 10, 9), events: [], inkBottoms: [:], now: geometryNow, calendar: tokyo, holidays: store.calendar(for: HolidayRegion(code: "TW"), language: .zhHant))).dateLabels.first { $0.day == day(2026, 10, 9) }
+    checkEqual(twOct9?.holidayName, "國慶日（補假）", "F-9: TW's 10/9 in a week column: the full name")
+    checkEqual(twOct9?.holidayShortName, "國慶日", "F-9: TW's 10/9 in a week column: the short name")
 
     // With the default, Japan's names are there: what the two above must not leave behind.
     check(month(.japan).dateLabels.contains { $0.day == nov3 && $0.holidayName == "文化の日" && $0.tone == .sundayOrHoliday }, "G-4: Japan: 11/3 on the month")

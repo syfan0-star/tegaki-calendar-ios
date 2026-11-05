@@ -85,14 +85,18 @@ public struct DateLabel: Equatable, Sendable {
     public var inMonth: Bool
     public var tone: DayTone
     public var holidayName: String?
+    /// The week page only: the short name of the holiday, for the heading of a narrow column outside
+    /// Japanese (F-9, docs/M7B_CONTRACT.md §12.6). nil on the other pages.
+    public var holidayShortName: String?
 
-    public init(day: DayKey, frame: CGRect, isToday: Bool, inMonth: Bool, tone: DayTone, holidayName: String?) {
+    public init(day: DayKey, frame: CGRect, isToday: Bool, inMonth: Bool, tone: DayTone, holidayName: String?, holidayShortName: String? = nil) {
         self.day = day
         self.frame = frame
         self.isToday = isToday
         self.inMonth = inMonth
         self.tone = tone
         self.holidayName = holidayName
+        self.holidayShortName = holidayShortName
     }
 }
 
