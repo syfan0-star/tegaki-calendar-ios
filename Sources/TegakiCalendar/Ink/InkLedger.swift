@@ -341,7 +341,8 @@ final class InkLedger {
     /// §1.10): writing there never triggers a relayout. 1.1 (M7A_CONTRACT 0-2): the rule is
     /// `PaperGrowth.needsMoreRoom`, the same function the layout engines grow the cells with — the
     /// page's last cell (the month's memo area, the day's free memo area below 24:00) by
-    /// `PaperGrowth.tailHeight` (400 lu steps), the other cells by `bottom + 12`.
+    /// `PaperGrowth.tailHeight` (open to 6,000 lu from the start since 1.1.1), the other cells by
+    /// `bottom + 12`.
     func needsMoreRoom(_ stroke: InkStroke) -> Bool {
         guard layout.growsWithInk(stroke.cell), let cell = layout.cells[stroke.cell] else { return false }
         return PaperGrowth.needsMoreRoom(cell: stroke.cell, cellHeight: cell.height, inkBottom: stroke.bottom)

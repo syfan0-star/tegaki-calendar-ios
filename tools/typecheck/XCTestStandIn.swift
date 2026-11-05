@@ -72,7 +72,9 @@ open class XCTestExpectation: NSObject {
     open func fulfill() {}
 }
 
-open class XCUIScreenshot: NSObject {}
+open class XCUIScreenshot: NSObject {
+    public var pngRepresentation: Data { Data() }
+}
 
 /// Points per second (the real one is an NS_TYPED_EXTENSIBLE_ENUM of CGFloat).
 public struct XCUIGestureVelocity: RawRepresentable, Hashable {
@@ -110,6 +112,7 @@ open class XCUIElement: NSObject {
     public func descendants(matching type: ElementType) -> XCUIElementQuery { XCUIElementQuery() }
     public var buttons: XCUIElementQuery { XCUIElementQuery() }
     public var staticTexts: XCUIElementQuery { XCUIElementQuery() }
+    public var segmentedControls: XCUIElementQuery { XCUIElementQuery() }
     public var windows: XCUIElementQuery { XCUIElementQuery() }
     public var scrollViews: XCUIElementQuery { XCUIElementQuery() }
 }

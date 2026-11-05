@@ -481,6 +481,33 @@ final class CalendarRootScreenTests: XCTestCase {
         XCTAssertEqual(CalendarRootScreen.paperAreaLogLine(CGSize(width: 402, height: 591), mode: .expanded), "toolbar: paperArea=402.00x591.00 mode=expanded")
     }
 
+    // MARK: 1.1.1 (docs/R1_1_1.md)
+
+    /// The pinch hint's rule, all 32 cases: never in screenshot mode or the XCTest host, never twice;
+    /// not to someone who already pinched, except in a sandbox-receipt build (so the owner can see it).
+    func testPinchHintDue() {
+        for shown in [false, true] {
+            for hasPinched in [false, true] {
+                for sandbox in [false, true] {
+                    for screenshot in [false, true] {
+                        for testHost in [false, true] {
+                            let expected = !shown && !screenshot && !testHost && (!hasPinched || sandbox)
+                            XCTAssertEqual(
+                                CalendarRootScreen.pinchHintDue(shown: shown, hasPinched: hasPinched, sandbox: sandbox, screenshot: screenshot, testHost: testHost),
+                                expected, "shown \(shown), pinched \(hasPinched), sandbox \(sandbox), screenshot \(screenshot), host \(testHost)")
+                        }
+                    }
+                }
+            }
+        }
+        XCTAssertTrue(CalendarRootScreen.pinchHintDue(shown: false, hasPinched: false, sandbox: false, screenshot: false, testHost: false), "a new App Store user")
+        XCTAssertFalse(CalendarRootScreen.pinchHintDue(shown: false, hasPinched: true, sandbox: false, screenshot: false, testHost: false), "someone who already zoomed in")
+        XCTAssertTrue(CalendarRootScreen.pinchHintDue(shown: false, hasPinched: true, sandbox: true, screenshot: false, testHost: false), "the owner on TestFlight")
+        XCTAssertEqual(CalendarRootScreen.pinchHintToast, "2 本の指を広げると拡大、つまむと縮小します")
+        XCTAssertEqual(CalendarRootScreen.pinchHintDuration, 6)
+        XCTAssertGreaterThan(CalendarRootScreen.pinchHintDelay, CalendarRootScreen.sheetGap + CalendarRootScreen.firstRefreshTimeout, "after the first-launch paywall has come up")
+    }
+
     // MARK: M6 (M6_CONTRACT §1.2 / §7.2)
 
     /// The `.failed` text of the import door's parse errors (`InkImport.parse` throws the same

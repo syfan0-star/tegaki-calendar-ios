@@ -26,13 +26,13 @@ public enum PaperSpec {
 
     // MARK: - The growing last cell (1.1, M7A_CONTRACT D3 / §3.1)
 
-    /// The step of the last cell of a page (the month's `memo`, the day's `extra`): the blank paper
-    /// below the handwriting grows 400 lu at a time (`PaperGrowth.tailHeight`).
+    /// The step of the last cell's height on a PDF page (the month's `memo`, the day's `extra`): the
+    /// blank paper below the handwriting grows 400 lu at a time (`PaperGrowth.exportTailHeight`).
     public static let growStep: CGFloat = 400
-    /// The largest height the steps reach (K-9). Only handwriting already below it (from a 1.0 device
-    /// or the web version) makes the cell taller (`inkBottom + 50`); new strokes below it are dropped.
+    /// The last cell's height since 1.1.1 (K-9). Only a line ending past 5,950 lu makes the cell taller
+    /// (`inkBottom + 50`, `PaperGrowth.tailHeight`); a new stroke centred below 6,000 lu is dropped.
     public static let growMax: CGFloat = 6000
-    /// The least height of the day page's `extra` cell below 24:00 (= `memoMin`, M7A-9).
+    /// The least height of the day's `extra` on a PDF page (= `memoMin`, M7A-9; the page's is `growMax`).
     public static let dayExtraMin: CGFloat = 700
 
     /// Height of one all-day lane including its gap (25).

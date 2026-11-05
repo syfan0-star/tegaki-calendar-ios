@@ -70,8 +70,8 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(MonthLayoutEngine.rowHeight(laneCount: 0, maxChips: 0, inkBottom: .nan), 175)
         XCTAssertEqual(MonthLayoutEngine.rowHeight(laneCount: 0, maxChips: 0, inkBottom: .infinity), 175)
         XCTAssertEqual(MonthLayoutEngine.rowHeight(laneCount: -3, maxChips: -1, inkBottom: -50), 175)
-        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 0), 700)
-        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 900), 1500, "1.1: 400 lu steps (PaperGrowth.tailHeight)")
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 0), 6000, "1.1.1: open from the start (PaperGrowth.tailHeight)")
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 900), 6000)
     }
 
     func testShownChipCount() {
@@ -93,10 +93,10 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(page.rows[5].days.last, day(2026, 11, 8))
         XCTAssertEqual(page.rows.map(\.index), [0, 1, 2, 3, 4, 5])
         XCTAssertEqual(page.cells.count, 43)
-        XCTAssertEqual(page.size, CGSize(width: 1400, height: 1750), "same height as the web page")
+        XCTAssertEqual(page.size, CGSize(width: 1400, height: 7050), "6 rows + the memo area open from the start (1.1.1)")
         XCTAssertEqual(page.rows.map { $0.frame.minY }, [0, 175, 350, 525, 700, 875])
         XCTAssertEqual(page.rows.map { $0.frame.width }, Array(repeating: 1400, count: 6))
-        XCTAssertEqual(page.memo, CGRect(x: 0, y: 1050, width: 1400, height: 700))
+        XCTAssertEqual(page.memo, CGRect(x: 0, y: 1050, width: 1400, height: 6000))
         XCTAssertEqual(page.cells[.day(day(2026, 10, 1))], CGRect(x: 600, y: 0, width: 200, height: 175))
         XCTAssertEqual(page.cells[.day(day(2026, 11, 8))], CGRect(x: 1200, y: 875, width: 200, height: 175))
         XCTAssertEqual(page.cells[.memo], page.memo)
@@ -135,11 +135,11 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(page.cell(at: CGPoint(x: 199.9, y: 174.9)), .day(day(2026, 9, 28)))
         XCTAssertEqual(page.cell(at: CGPoint(x: 200, y: 175)), .day(day(2026, 10, 6)))
         XCTAssertEqual(page.cell(at: CGPoint(x: 100, y: 1100)), .memo)
-        XCTAssertEqual(page.cell(at: CGPoint(x: 10, y: 1749)), .memo)
+        XCTAssertEqual(page.cell(at: CGPoint(x: 10, y: 7049)), .memo)
         XCTAssertNil(page.cell(at: CGPoint(x: -1, y: 10)))
         XCTAssertNil(page.cell(at: CGPoint(x: 1401, y: 10)))
         XCTAssertNil(page.cell(at: CGPoint(x: 10, y: -1)))
-        XCTAssertNil(page.cell(at: CGPoint(x: 10, y: 1750)))
+        XCTAssertNil(page.cell(at: CGPoint(x: 10, y: 7050)))
         XCTAssertNil(page.cell(at: CGPoint(x: CGFloat.nan, y: 10)))
     }
 
@@ -157,11 +157,11 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(page.dayAt(point: CGPoint(x: 1400, y: 1049.9)), day(2026, 11, 8), "the grid's last cell")
         XCTAssertNil(page.dayAt(point: CGPoint(x: 100, y: 1050)), "the memo area")
         XCTAssertNil(page.dayAt(point: CGPoint(x: 100, y: 1100)))
-        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 1749)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 7049)))
         XCTAssertNil(page.dayAt(point: CGPoint(x: -1, y: 10)), "a centring margin (negative lu)")
         XCTAssertNil(page.dayAt(point: CGPoint(x: 1401, y: 10)))
         XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: -1)))
-        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 1750)))
+        XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: 7050)))
         XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat.nan, y: 10)))
         XCTAssertNil(page.dayAt(point: CGPoint(x: 10, y: CGFloat.nan)))
         XCTAssertNil(page.dayAt(point: CGPoint(x: CGFloat.infinity, y: 10)))
@@ -357,7 +357,7 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(page.rows[2].frame.height, 203)
         XCTAssertEqual(page.rows[3].frame.minY, 553)
         XCTAssertEqual(page.rows[1].frame, CGRect(x: 0, y: 175, width: 1400, height: 175), "rows above are untouched")
-        XCTAssertEqual(page.size.height, 175 * 5 + 203 + 700)
+        XCTAssertEqual(page.size.height, 175 * 5 + 203 + 6000)
         XCTAssertEqual(page.memo.minY, 175 * 5 + 203)
         // Chips sit below the last lane.
         let firstChip = page.timedChips.first { $0.eventId == "t0" }
@@ -393,8 +393,8 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(inked.rows[3].frame.minY, 662)
         XCTAssertEqual(inked.rows[1].frame, plain.rows[1].frame)
         XCTAssertEqual(inked.memo.minY, 1187)
-        XCTAssertEqual(inked.memo.height, 1500, "1.1: 900 → 1,500")
-        XCTAssertEqual(inked.size.height, 1187 + 1500)
+        XCTAssertEqual(inked.memo.height, 6000, "1.1.1: 900 stays inside the 6,000")
+        XCTAssertEqual(inked.size.height, 1187 + 6000)
         XCTAssertEqual(inked.cells[.day(day(2026, 10, 20))]?.minY, 662)
         XCTAssertEqual(inked.cells[.day(day(2026, 10, 14))]?.height, 312)
 
@@ -405,10 +405,10 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(layout([], ink: [.day(day(2026, 10, 13)): 5000]).rows[2].frame.height, 1200)
     }
 
-    // MARK: The memo area grows in steps (1.1, M7A_CONTRACT §3.2)
+    // MARK: The memo area is open from the start (1.1.1, docs/R1_1_1.md)
 
-    func testMemoGrowsInSteps() {
-        for (b, h) in [(0, 700), (300, 700), (301, 1100), (700, 1100), (701, 1500), (1100, 1500), (5500, 5900), (5600, 6000), (5601, 6000), (5950, 6000), (5990, 6040), (6420, 6470)] as [(CGFloat, CGFloat)] {
+    func testMemoIsOpenFromTheStart() {
+        for (b, h) in [(0, 6000), (300, 6000), (301, 6000), (700, 6000), (701, 6000), (1100, 6000), (5500, 6000), (5600, 6000), (5601, 6000), (5950, 6000), (5990, 6040), (6420, 6470)] as [(CGFloat, CGFloat)] {
             XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: b), h, "memo ink bottom \(b)")
             XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: b), PaperGrowth.tailHeight(inkBottom: b))
             let page = layout([], ink: [.memo: b])
@@ -416,11 +416,11 @@ final class MonthLayoutEngineTests: XCTestCase {
             XCTAssertEqual(page.size, CGSize(width: 1400, height: 1050 + h))
             XCTAssertEqual(page.cells[.memo], page.memo)
         }
-        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 64.5), 700, "the screenshot month's dot (0-1)")
-        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: .nan), 700)
-        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: -40), 700)
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: 64.5), 6000, "the screenshot month's dot")
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: .nan), 6000)
+        XCTAssertEqual(MonthLayoutEngine.memoHeight(inkBottom: -40), 6000)
         let plain = layout([])
-        let grown = layout([], ink: [.memo: 500])
+        let grown = layout([], ink: [.memo: 6100]) // a 1.0 device's line below the cap
         XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: grown, topVisibleY: 1100), 0, "the memo area's top does not move")
         XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: grown, topVisibleY: 600), 0)
         XCTAssertEqual(ZoomPolicy.overviewSize(grown), CGSize(width: 1400, height: 1050), "the overview is the 6 rows")
@@ -458,7 +458,7 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertNil(page.hit(at: CGPoint(x: 700, y: 1060), minTarget: 153.3), "the memo area")
         XCTAssertNil(page.hit(at: CGPoint(x: -5, y: 10), minTarget: 153.3))
         XCTAssertNil(page.hit(at: CGPoint(x: 700, y: -1), minTarget: 153.3))
-        XCTAssertNil(page.hit(at: CGPoint(x: 700, y: 1750), minTarget: 153.3))
+        XCTAssertNil(page.hit(at: CGPoint(x: 700, y: 7050), minTarget: 153.3))
         XCTAssertNil(page.hit(at: CGPoint(x: CGFloat.nan, y: 10), minTarget: 153.3))
         // A minTarget that is not a positive number: the same as hit(at:).
         for bad: CGFloat in [.nan, .infinity, 0, -10] {
@@ -489,7 +489,7 @@ final class MonthLayoutEngineTests: XCTestCase {
         XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: inked, new: plain, topVisibleY: 700), -137)
         XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: inked, topVisibleY: -5), 0)
         XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: plain, topVisibleY: 600), 0)
-        XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: inked, topVisibleY: 5000), 137, "below the paper: the memo area")
+        XCTAssertEqual(MonthLayoutEngine.scrollDelta(old: plain, new: inked, topVisibleY: 9000), 137, "below the paper: the memo area")
     }
 
     func testLayoutIsEquatableAndStable() {

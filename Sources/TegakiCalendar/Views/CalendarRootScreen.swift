@@ -40,7 +40,7 @@ enum GatedAction: Equatable, CaseIterable {
 }
 
 /// The app's one screen (M3a contract §4.1, M3b §4.5, M4 §5.3–§6.4, M4B §2.6 / §3.3 / §5 / §6.4):
-/// the header (◀ 今日 ▶, the title, the 日/週/月/年 switch, ＋予定, ☁ sync state, ⚙), the sticky
+/// the header (◀ ▶, the title, the 日/週/月/年 switch, 今日, ＋予定, ☁ sync state, ⚙), the sticky
 /// heading of the page, the fixed all-day band of the week / day page (`AllDayBandView`), the paper
 /// with the PencilKit canvas (`InkCanvasView`, 担当 I) and the lasso menu floating over it, the
 /// toolbar, the toast, and the sheets (event create / edit / view, settings, the web import's file
@@ -69,8 +69,9 @@ enum GatedAction: Equatable, CaseIterable {
 /// column on the month / week page, this month's column on the year page). The compact header
 /// (< 600 pt) shows `PageNavigation.compactTitle`.
 ///
-/// Overview and zoom (M4c, M4C contract §5.1): a page opens at the ratio stored for its kind
-/// (`AppSettings.zoomRatio(for:)`, D4; 1 = the overview `fitAll`, or `--screenshot-zoom`) and the
+/// Overview and zoom (M4c, M4C contract §5.1; 1.1.1, docs/R1_1_1.md): a page opens at the ratio stored
+/// for its kind (`AppSettings.zoomRatio(for:)`, D4; 1 = the opening zoom `Bounds.open`, or
+/// `--screenshot-zoom`), so what a page holds never changes the size it opens at, and the
 /// canvas reports the ratio at the end of every pinch (`onZoomRatioChange`), which is the only time
 /// it is written. The first frame's stand-in viewport is `PaperViewport.initial(_:overview:paperSize:
 /// viewport:ratio:)` over the paper area measured under the band (`paperArea`; the width alone until
@@ -118,6 +119,11 @@ enum GatedAction: Equatable, CaseIterable {
 /// - The canvas's stroke budget and the memo area's limit become toasts: once per page per device,
 ///   at most every 2 s, once per opened page.
 /// - An import that takes a page past 20,000 strokes asks first (`WebImportPhase.confirmLarge`).
+///
+/// 1.1.1 (docs/R1_1_1.md):
+/// - 「今日」 brings today's cell on screen on the month and year pages (`revealRect`, `revealTrigger`,
+///   `PageNavigation.todayRect`); a page opened any other way starts at the top.
+/// - The one-time hint that two fingers zoom (`schedulePinchHint`).
 struct CalendarRootScreen: View {
     @StateObject private var model = EventStoreModel()
     /// The sync engine (M4 contract §5.3): the one store of the pages, and the ☁ state.
@@ -167,6 +173,16 @@ struct CalendarRootScreen: View {
     @State private var capNoticedPageId: String?
     /// The last 「このページはいっぱいです」 toast (at most every 2 s, like `lastBlockedInputAt`).
     @State private var lastBudgetFullAt: Date?
+
+    // 1.1.1 (docs/R1_1_1.md): 「今日」 and the pinch hint.
+    /// What 「今日」 asks the canvas to bring on screen (paper lu); nil after any other way to a page.
+    @State private var revealRect: CGRect?
+    /// Bumped by 「今日」: the canvas already showing the page brings `revealRect` on screen once.
+    @State private var revealTrigger = 0
+    /// The hint was shown or the person pinched (per device; never written in screenshot mode).
+    @AppStorage(AppSettings.pinchHintShownKey) private var pinchHintShown = false
+    /// The hint's wait (`schedulePinchHint`); a newer schedule or a pinch stops it.
+    @State private var pinchHintTask: Task<Void, Never>?
 
     // M3b: selection, sheets, commands, toast.
     @State private var selection: InkSelection?
@@ -262,6 +278,19 @@ struct CalendarRootScreen: View {
     /// How long the 15,000-stroke notice stays (the error toasts' 6 s, without the error colour).
     static let strokeBudgetNoticeDuration: TimeInterval = 6
 
+    /// 1.1.1 (docs/R1_1_1.md): the one-time hint that two fingers zoom.
+    static let pinchHintToast = "2 本の指を広げると拡大、つまむと縮小します"
+    static let pinchHintDuration: TimeInterval = 6
+    /// Long enough for the first-launch paywall (`sheetGap` + `firstRefreshTimeout`) to have come up.
+    static let pinchHintDelay: Double = 4
+
+    /// Shown once on a device; not to someone who has already zoomed in (a stored ratio), except in a
+    /// sandbox-receipt build (TestFlight, App Review), so the owner can see it; never in screenshot mode
+    /// or the XCTest host.
+    static func pinchHintDue(shown: Bool, hasPinched: Bool, sandbox: Bool, screenshot: Bool, testHost: Bool) -> Bool {
+        !screenshot && !testHost && !shown && (!hasPinched || sandbox)
+    }
+
     /// The tool, the last ink, the toolbar's state and the eraser's origin the screen starts with
     /// (1.1, M7A_CONTRACT §2.3 / §2.7 / §7.3).
     struct StartState: Equatable {
@@ -353,15 +382,15 @@ struct CalendarRootScreen: View {
         ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
     }
 
-    /// The ratio to the overview the shown page opens at (M4C contract §5.1): `--screenshot-zoom`
-    /// in screenshot mode, else the ratio stored for the page's kind (1 = the overview).
+    /// The ratio to the opening zoom the shown page opens at (M4C contract §5.1, 1.1.1): `--screenshot-zoom`
+    /// in screenshot mode, else the ratio stored for the page's kind (1 = the opening zoom).
     private var currentRatio: CGFloat {
         ScreenshotMode.current?.zoomRatio ?? AppSettings.zoomRatio(for: kind)
     }
 
     /// The viewport of a page's first frame, before its canvas has reported one: `currentRatio` over
-    /// the overview that fits `width` × the paper area (the width alone while `paperArea` is still
-    /// `.zero`), centred as the canvas will centre the paper (M4C contract §5.1).
+    /// the opening zoom that fits `width` × the paper area (the width alone while `paperArea` is still
+    /// `.zero`), centred as the canvas will centre the paper (M4C contract §5.1, 1.1.1).
     private func initialViewport(width: CGFloat) -> PaperViewport {
         PaperViewport.initial(
             kind,
@@ -378,7 +407,7 @@ struct CalendarRootScreen: View {
         viewport.width == 0 ? initialViewport(width: width) : viewport
     }
 
-    /// The zoom the page is expected to open at (`currentRatio` over the overview's bounds for
+    /// The zoom the page is expected to open at (`currentRatio` over the page's bounds for
     /// `viewportWidth` × the paper area): the estimate `initialScrollX` is computed with (M4C
     /// contract §5.1 / §1.6). The real value may differ by the band's height; the canvas applies
     /// `initialScrollX` only when the ratio is above 1.
@@ -477,7 +506,7 @@ struct CalendarRootScreen: View {
         GeometryReader { proxy in
             let compact = proxy.size.width < Self.compactWidth
             // The first frame of a page has no report from its canvas yet: the stored ratio over the
-            // overview, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
+            // opening zoom, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
             let shownViewport = self.shownViewport(width: proxy.size.width)
             VStack(spacing: 0) {
                 PageHeaderView(
@@ -816,6 +845,9 @@ struct CalendarRootScreen: View {
             // double tap (not on the day page), the ratio of a finished pinch, the pinch in progress.
             initialZoomRatio: currentRatio,
             initialPaperOffset: ScreenshotMode.current?.offset,
+            // 1.1.1: 「今日」 brings today's cell on screen.
+            revealRect: revealRect,
+            revealTrigger: revealTrigger,
             doubleTapEnabled: kind != .day,
             onDoubleTap: handleDoubleTap,
             onZoomRatioChange: { ratio in
@@ -824,6 +856,7 @@ struct CalendarRootScreen: View {
             },
             onZoomingChange: { zooming in
                 frozenLaneZoom = zooming ? shownViewport(width: viewportWidth).zoom : nil
+                if zooming { pinchBegan() }
             },
             // M5 (M5_CONTRACT §3.1): no ink while read only; a Pencil touch asks for the paywall.
             readOnly: readOnly,
@@ -1027,6 +1060,14 @@ struct CalendarRootScreen: View {
                 logToolbarArea(paperArea)
             }
         }
+        // 1.1.1: the photos of the pinch hint (20 s, like the read-only photo); nothing else in screenshot mode.
+        if ScreenshotMode.current?.pinchHint == true {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.5))
+                showToast(Self.pinchHintToast, duration: Self.screenshotReadOnlyToastDuration)
+            }
+        }
+        schedulePinchHint()
     }
 
     private func scenePhaseChanged() {
@@ -1042,6 +1083,8 @@ struct CalendarRootScreen: View {
             if appeared {
                 model.reload()
                 relayout()
+                // 1.1.1: a wait that found the app away left the hint for this return.
+                schedulePinchHint()
             }
             // M4 contract §5.3: one sync round on every return to the foreground (catches up what a
             // silent push did not deliver).
@@ -1093,6 +1136,8 @@ struct CalendarRootScreen: View {
 
     /// Saves the current page, then switches to `(newKind, newFocus)` (its ink, its events, its layout).
     private func show(kind newKind: PageKind, focus newFocus: DayKey) {
+        // 1.1.1: only 「今日」 brings a cell on screen (`goToday`); the other ways open at the top.
+        revealRect = nil
         saveNow()
         let id = PageNavigation.pageId(newKind, focus: newFocus)
         if id != pageId {
@@ -1134,9 +1179,14 @@ struct CalendarRootScreen: View {
         show(kind: kind, focus: PageNavigation.move(kind, focus: focus, by: delta))
     }
 
+    /// 「今日」. 1.1.1: on the month and year pages today's cell comes on screen too, since a page that
+    /// holds a lot is longer than the screen (`show` loads and lays out at once, so `layout` is the
+    /// page it opened; the now is `show`'s, 「今日」 in screenshot mode).
     private func goToday() {
         let today = DayKey(ScreenshotMode.current?.today ?? Date())
         show(kind: kind, focus: today)
+        revealRect = PageNavigation.todayRect(layout, now: now)
+        revealTrigger += 1
     }
 
     /// Remembers the last shown page for the next launch (not in screenshot mode).
@@ -1707,8 +1757,10 @@ struct CalendarRootScreen: View {
         }
     }
 
-    /// A sheet opened or closed: a waiting account question is asked once nothing is up.
+    /// A sheet opened or closed: a waiting account question is asked once nothing is up. 1.1.1: the
+    /// pinch hint waits for nothing being up too.
     private func sheetsChanged() {
+        if !sheetIsUp { schedulePinchHint() }
         guard accountChangePending, !sheetIsUp else { return }
         accountChangePending = false
         guard sync.snapshot.status == .accountMismatch else { return }
@@ -1891,6 +1943,34 @@ struct CalendarRootScreen: View {
             if Task.isCancelled { return }
             if toast?.id == message.id { toast = nil }
         }
+    }
+
+    // MARK: - The pinch hint (1.1.1, docs/R1_1_1.md)
+
+    /// Waits `pinchHintDelay`, then shows the hint once: not over a sheet, the onboarding, the account
+    /// question or another toast, and not while the app is away (it would count as shown, unseen). A wait
+    /// that finds any of those leaves `pinchHintShown` false, so the next `sheetsChanged`, return to the
+    /// foreground or launch waits again.
+    private func schedulePinchHint() {
+        guard Self.pinchHintDue(shown: pinchHintShown, hasPinched: AppSettings.hasPinched, sandbox: InkTrace.isAvailable,
+                                screenshot: ScreenshotMode.isActive, testHost: SyncEngine.isTestHost) else { return }
+        pinchHintTask?.cancel()
+        pinchHintTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.pinchHintDelay))
+            // A cancelled sleep returns at once, so the check is needed (like `showToast`'s).
+            guard !Task.isCancelled, UIApplication.shared.applicationState == .active, !sheetIsUp, onboardingDone, !pinchHintShown,
+                  toast == nil, !showAccountChange else { return }
+            pinchHintShown = true
+            showToast(Self.pinchHintToast, duration: Self.pinchHintDuration)
+        }
+    }
+
+    /// A real pinch began (`scrollViewWillBeginZooming`): the person knows it, the hint is never shown.
+    private func pinchBegan() {
+        guard !ScreenshotMode.isActive else { return }
+        pinchHintShown = true
+        pinchHintTask?.cancel()
+        pinchHintTask = nil
     }
 
     // MARK: - Screenshot mode (M3b contract §5, M4 contract §6.6)

@@ -398,15 +398,16 @@ final class ExportBuilderTests: XCTestCase {
         let layout = content.layout
         XCTAssertTrue(page.liveStrokes.contains { $0.cell.isMemo }, "the demo page has a dot in the memo area")
 
-        // With ink in the memo area: the whole paper (6 rows + memo).
+        // With ink in the memo area: the 6 rows and the memo area its handwriting needs (700 for the
+        // dot; 1.1.1: never the 6,000 lu it is open to on the screen, `testPDFDoesNotCarryTheBlankMemo`).
         XCTAssertEqual(PDFPageRenderer.headingHeight(paper), 36 + 28)
-        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: page), CGRect(origin: .zero, size: layout.size))
-        XCTAssertEqual(PDFPageRenderer.pageSize(paper, page: page), CGSize(width: 1400, height: 36 + 28 + layout.size.height))
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: page), CGRect(x: 0, y: 0, width: 1400, height: layout.memo.minY + 700))
+        XCTAssertEqual(PDFPageRenderer.pageSize(paper, page: page), CGSize(width: 1400, height: 36 + 28 + layout.memo.minY + 700))
         let data = PDFPageRenderer.render(paper, page: page, title: "2026年10月")
         XCTAssertFalse(data.isEmpty)
         let box = try mediaBox(data)
         XCTAssertEqual(box.width, 1400, accuracy: 0.5)
-        XCTAssertEqual(box.height, 36 + 28 + layout.size.height, accuracy: 0.5)
+        XCTAssertEqual(box.height, 36 + 28 + layout.memo.minY + 700, accuracy: 0.5)
 
         // Without it: the overview rectangle (M6-3), 1400 × memo.minY under the heading.
         var noMemo = page
@@ -420,6 +421,31 @@ final class ExportBuilderTests: XCTestCase {
         XCTAssertEqual(overviewBox.width, 1400, accuracy: 0.5)
         XCTAssertEqual(overviewBox.height, 36 + 28 + layout.memo.minY, accuracy: 0.5)
         XCTAssertLessThan(overviewBox.height, box.height)
+    }
+
+    /// 1.1.1 (docs/R1_1_1.md): the memo area is open to 6,000 lu on the screen, and a PDF is as long as
+    /// its handwriting needs, the length of 1.1's PDF: a stroke down to 1,009 lu takes 1,500 lu (64 +
+    /// 1,063 + 1,500). A deep line from a 1.0 device (6,420 lu) still goes in whole (`b + 50`).
+    func testPDFDoesNotCarryTheBlankMemo() throws {
+        let page = ScreenshotMode.demoPage(kind: .month, focus: wednesday, grown: true)
+        let paper = monthPaper(page: page)
+        guard case .month(let content) = paper else { return XCTFail("month paper") }
+        XCTAssertEqual(content.layout.memo.minY, 1063, accuracy: 0.01)
+        XCTAssertEqual(content.layout.memo.height, 6000, accuracy: 0.01, "the screen's memo area")
+        XCTAssertEqual(page.inkBottoms()[.memo] ?? 0, 1009, accuracy: 0.5)
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: page), CGRect(x: 0, y: 0, width: 1400, height: 1063 + 1500))
+        let box = try mediaBox(PDFPageRenderer.render(paper, page: page, title: "2026年10月"))
+        XCTAssertEqual(box.height, 64 + 1063 + 1500, accuracy: 0.5)
+
+        var deep = page
+        deep.add(InkStroke(id: "from-1.0", cell: .memo, tool: .pen, color: "#1f2937", t: 1_760_000_001_000,
+                           points: points(from: CGPoint(x: 40, y: 6400), to: CGPoint(x: 400, y: 6418.25))))
+        let bottom = deep.inkBottoms()[.memo] ?? 0
+        XCTAssertEqual(bottom, 6420, accuracy: 0.1)
+        let deepPaper = monthPaper(page: deep)
+        XCTAssertEqual(PDFPageRenderer.paperRect(deepPaper, page: deep).height, 1063 + bottom + 50, accuracy: 0.01)
+        let deepBox = try mediaBox(PDFPageRenderer.render(deepPaper, page: deep, title: "2026年10月"))
+        XCTAssertEqual(deepBox.height, 64 + 1063 + bottom + 50, accuracy: 0.5)
     }
 
     func testPDFRendersEveryKind() throws {
@@ -502,7 +528,8 @@ final class ExportBuilderTests: XCTestCase {
     }
 
     /// 1.1 (M7A_CONTRACT §3.5): the day's PDF holds the free memo area below 24:00 only when it has
-    /// handwriting — the whole paper (2400 + the area's height), as the month does with its memo area;
+    /// handwriting — 2400 + as much of the area as the handwriting needs (1.1.1: 1,100 for a bottom of
+    /// 482, 1.1's length; the screen's area is 6,000), as the month does with its memo area;
     /// otherwise the 24 hours (1000 × 2400, the overview). A `grid` stroke below 24:00 (a deep stroke
     /// of the web version, K-2) does not count, nor does a tombstoned `extra` stroke.
     func testDayPDFIncludesTheExtraOnlyWithInk() throws {
@@ -512,11 +539,11 @@ final class ExportBuilderTests: XCTestCase {
         let bottom = page.inkBottoms()[.extra] ?? 0
         XCTAssertEqual(bottom, 481.75, accuracy: 0.01)
         let layout = DayLayoutEngine.layout(DayLayoutInput(day: wednesday, events: [], inkBottoms: page.inkBottoms(), now: now))
-        XCTAssertEqual(layout.extra.height, 1100, accuracy: 0.01)
-        XCTAssertEqual(layout.size.height, 3500, accuracy: 0.01)
+        XCTAssertEqual(layout.extra.height, 6000, accuracy: 0.01)
+        XCTAssertEqual(layout.size.height, 8400, accuracy: 0.01)
         let paper = PaperContent.day(DayPaperContent(layout: layout))
 
-        // With ink below 24:00: the whole paper, heading included (no band: no all-day event).
+        // With ink below 24:00: the 24 hours and the area, heading included (no band: no all-day event).
         XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: page), CGRect(x: 0, y: 0, width: 1000, height: 3500))
         XCTAssertEqual(PDFPageRenderer.pageSize(paper, page: page), CGSize(width: 1000, height: 36 + 40 + 3500))
         let data = PDFPageRenderer.render(paper, page: page, title: PageNavigation.title(.day, focus: wednesday))

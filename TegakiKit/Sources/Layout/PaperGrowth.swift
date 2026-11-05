@@ -1,33 +1,43 @@
 import Foundation
 import CoreGraphics
 
-/// The last cell of a page that grows downward (1.1, M7A_CONTRACT D3 / §3.1 / §3.4 / §3.6): the month
-/// page's memo area (`.memo`) and the day page's free memo area below 24:00 (`.extra`). One place for
-/// the height rule, so the layout engines and the canvas's ledger (`InkLedger.needsMoreRoom`, 担当 P)
-/// read the same numbers. Pure functions; nothing here is stored (K-5: the height is computed from the
-/// handwriting every time).
+/// The last cell of a page, open downward (1.1, M7A_CONTRACT D3 / §3.1 / §3.4 / §3.6; open to its full
+/// length since 1.1.1, docs/R1_1_1.md): the month page's memo area (`.memo`) and the day page's free
+/// memo area below 24:00 (`.extra`). One place for the height rule, so the layout engines and the
+/// canvas's ledger (`InkLedger.needsMoreRoom`, 担当 P) read the same numbers. Pure functions; nothing
+/// here is stored (K-5: the height is computed from the handwriting every time).
 public enum PaperGrowth {
     /// The month's `.memo` or the day's `.extra`.
     public static func isTail(_ cell: CellKey) -> Bool {
         cell.isMemo || cell.isExtra
     }
 
-    /// `700 + 400 × max(0, ceil((b − 300) / 400))`, at most `growMax` (6,000). b is cell-relative and
-    /// already made finite and non-negative.
+    /// 1.1's steps, kept for the PDF (`exportTailHeight`): `700 + 400 × max(0, ceil((b − 300) / 400))`,
+    /// at most `growMax` (6,000). b is cell-relative and already made finite and non-negative.
     static func stepped(_ b: CGFloat) -> CGFloat {
         let base = PaperSpec.memoMin - PaperSpec.growStep // 300
         let steps = Swift.max(0, ((b - base) / PaperSpec.growStep).rounded(.up))
         return Swift.min(PaperSpec.growMax, PaperSpec.memoMin + PaperSpec.growStep * steps)
     }
 
-    /// b (the cell-relative bottom of the handwriting, `InkPage.inkBottoms()`) made finite and 0 or
-    /// more (a non-finite or negative b counts as 0), stepped = min(growMax, 700 + 400 ×
-    /// max(0, ceil((b − 300) / 400))), result = max(stepped, b + 50).
-    /// b ≤ 300 → 700, ≤ 700 → 1,100, ≤ 1,100 → 1,500, …, ≤ 5,500 → 5,900, then 6,000; never less than
-    /// the 1.0 rule `b + 50` (so a 1.0 device draws every line a 1.1 device wrote, and a line that came
-    /// from a 1.0 device below the cap stays visible). The blank below b is at least 400 lu while
-    /// b ≤ 5,600.
+    /// 1.1.1: the last cell is open to its full length from the start (the owner's request,
+    /// docs/R1_1_1.md): `max(growMax, b + 50)`, with b (the cell-relative bottom of the handwriting,
+    /// `InkPage.inkBottoms()`) made finite and 0 or more (a non-finite or negative b counts as 0). Past
+    /// 5,950 a line makes it taller (`b + 50`, so it stays visible, K-9): one from a 1.0 device or the web
+    /// version, and on this device one written near the end of the cell (only its centre has to be
+    /// inside, `drop`) or moved there with the lasso (`InkLedger.moveStrokes` does not go through `drop`,
+    /// so each pull past the end adds up to 50 lu). Nothing is stored (K-5), and a line written here stays
+    /// visible on a 1.0 device (`b + 50`) and on a 1.1 device (`exportTailHeight`'s steps).
     public static func tailHeight(inkBottom: CGFloat) -> CGFloat {
+        let b = LayoutMath.sanitizedInk(inkBottom)
+        return Swift.max(PaperSpec.growMax, b + PaperSpec.memoInkPad)
+    }
+
+    /// The height of the last cell on a PDF page (1.1's steps, so a PDF stays as long as its handwriting
+    /// needs): 700, then 400 lu steps of blank paper below the handwriting, `max(stepped(b), b + 50)`.
+    /// b ≤ 300 → 700, ≤ 700 → 1,100, ≤ 1,100 → 1,500, …, ≤ 5,500 → 5,900, then 6,000; never less than
+    /// the 1.0 rule `b + 50`. The blank below b is at least 400 lu while b ≤ 5,600.
+    public static func exportTailHeight(inkBottom: CGFloat) -> CGFloat {
         let b = LayoutMath.sanitizedInk(inkBottom)
         return Swift.max(stepped(b), b + PaperSpec.memoInkPad)
     }
@@ -42,9 +52,10 @@ public enum PaperGrowth {
         return inkBottom + PaperSpec.inkPad > cellHeight + 0.001
     }
 
-    /// No more 400 lu of blank paper can be added below a stroke whose bottom is b: b > growMax −
-    /// growStep (5,600), so the cell (at most 6,000) leaves less than one step of blank below it. The
-    /// second trigger of 「メモ欄はここまでです」 (§3.4). false when b is not finite or negative.
+    /// Less than 400 lu of blank paper is left below a stroke whose bottom is b: b > growMax − growStep
+    /// (5,600), so the cell (6,000 unless a deeper line made it taller) leaves less than one
+    /// step of blank below it. The second trigger of 「メモ欄はここまでです」 (§3.4). false when b is not
+    /// finite or negative.
     public static func reachesCap(inkBottom b: CGFloat) -> Bool {
         guard b.isFinite, b >= 0 else { return false }
         return b > PaperSpec.growMax - PaperSpec.growStep
@@ -59,8 +70,8 @@ public enum PaperGrowth {
     }
 
     /// The centre (paper coordinates) of a new stroke's bounds → why it is dropped, nil = keep it.
-    /// `beyondCap` first: the page has a last cell, 0 ≤ x ≤ width and y > tail.minY + growMax (even
-    /// when the paper is longer, which happens only with deep strokes from a 1.0 device). Then
+    /// `beyondCap` first: the page has a last cell, 0 ≤ x ≤ width and y > tail.minY + growMax (the
+    /// paper ends there since 1.1.1, unless a line past 5,950 lu made it longer). Then
     /// `outsidePaper`: x < 0, x > width, y < 0 or y > height (the rule of M4C-25). A point that is not
     /// finite is `outsidePaper`.
     public static func drop(center: CGPoint, in layout: any PageLayout) -> Drop? {

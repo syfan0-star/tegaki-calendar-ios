@@ -200,4 +200,20 @@ final class PageNavigationTests: XCTestCase {
             }
         }
     }
+
+    // MARK: 「今日」 brings today's cell on screen (1.1.1, docs/R1_1_1.md)
+
+    func testTodayRect() {
+        let month = F.monthLayout(F.demo, now: F.demoNow) // October 2026: the grid is 9/28 … 11/8
+        XCTAssertEqual(PageNavigation.todayRect(month, now: F.demoNow, calendar: F.tokyo), month.cells[.day(day(2026, 10, 7))], "today's cell")
+        XCTAssertNotNil(PageNavigation.todayRect(month, now: F.demoNow, calendar: F.tokyo))
+        XCTAssertEqual(PageNavigation.todayRect(month, now: F.date(2026, 11, 8, 9), calendar: F.tokyo), month.cells[.day(day(2026, 11, 8))], "a day of the grid outside the month")
+        XCTAssertNil(PageNavigation.todayRect(month, now: F.date(2026, 11, 9, 9), calendar: F.tokyo), "today is not on the grid")
+        let year = F.yearLayout(F.demo)
+        XCTAssertEqual(PageNavigation.todayRect(year, now: F.demoNow, calendar: F.tokyo), year.cells[.yearDay(month: 10, day: 7)], "today's cell")
+        XCTAssertNotNil(PageNavigation.todayRect(year, now: F.demoNow, calendar: F.tokyo))
+        XCTAssertNil(PageNavigation.todayRect(year, now: F.date(2027, 1, 1, 9), calendar: F.tokyo), "another year")
+        XCTAssertNil(PageNavigation.todayRect(F.weekLayout(F.demo), now: F.demoNow, calendar: F.tokyo), "the week page")
+        XCTAssertNil(PageNavigation.todayRect(F.dayLayout(F.demo), now: F.demoNow, calendar: F.tokyo), "the day page")
+    }
 }

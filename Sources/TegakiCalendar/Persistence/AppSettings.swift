@@ -3,13 +3,14 @@ import Layout
 
 /// The app's UserDefaults keys and defaults in one place (M3b contract §4.0). Screenshot mode never
 /// reads or writes them (the callers check `ScreenshotMode.isActive`). M4c adds the zoom ratio of
-/// each page kind (`zoomRatio.<kind>`, D4): the zoom relative to the page's overview (`fitAll`),
-/// written only at the end of a pinch (`InkCanvasView.onZoomRatioChange`), read when a page of
-/// that kind opens. M5 adds one flag, `paywallShownAfterOnboardingKey` (M5_CONTRACT §4.2); the
-/// cached access state is kept by the Store layer itself (`UserDefaultsAccessCache.defaultKey`,
-/// M5-34), not here. 1.1 (docs/M7A_CONTRACT.md §2.3, §2.6, §5.2) adds four: the collapsed toolbar
-/// and its corner, the eraser's return to the pen, and the pages whose 15,000-stroke notice was shown.
-/// All of them stay on this device (UserDefaults is not synced to iCloud).
+/// each page kind (`zoomRatio.<kind>`, D4): the zoom relative to the page's opening zoom
+/// (`ZoomPolicy.Bounds.open` since 1.1.1; the overview `fitAll` before), written only at the end of a
+/// pinch (`InkCanvasView.onZoomRatioChange`), read when a page of that kind opens. M5 adds one flag,
+/// `paywallShownAfterOnboardingKey` (M5_CONTRACT §4.2); the cached access state is kept by the Store
+/// layer itself (`UserDefaultsAccessCache.defaultKey`, M5-34), not here. 1.1 (docs/M7A_CONTRACT.md
+/// §2.3, §2.6, §5.2) adds four: the collapsed toolbar and its corner, the eraser's return to the pen,
+/// and the pages whose 15,000-stroke notice was shown. 1.1.1 (docs/R1_1_1.md) adds one: the one-time
+/// hint that two fingers zoom. All of them stay on this device (UserDefaults is not synced to iCloud).
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -48,10 +49,15 @@ enum AppSettings {
     /// oldest first, at most `strokeBudgetNoticedLimit` (the oldest are dropped).
     static let strokeBudgetNoticedKey = "strokeBudget.noticedPages"
     static let strokeBudgetNoticedLimit = 500
+    /// 1.1.1 (docs/R1_1_1.md): `Bool`, default false. True once the one-time pinch hint was shown, or
+    /// once the person pinched (`CalendarRootScreen.pinchHintDue`). `CalendarRootScreen` keeps it with
+    /// `@AppStorage`.
+    static let pinchHintShownKey = "hint.pinchShown"
 
     /// M4c (M4C contract §1.5): "zoomRatio.month" / "zoomRatio.week" / "zoomRatio.day" / "zoomRatio.year",
-    /// a `Double` ≥ 1 (the zoom / `fitAll` of the last pinch on a page of that kind; absent = 1, the
-    /// overview). One key per page kind, not per page (M4C-17).
+    /// a `Double` ≥ 1 (the zoom / the opening zoom of the last pinch on a page of that kind; absent = 1,
+    /// the opening zoom; 1.1.1: a ratio stored by 1.1 reads the same, a page that holds no more than its
+    /// `baseSize` opened at that zoom). One key per page kind, not per page (M4C-17).
     static func zoomRatioKey(_ kind: PageKind) -> String {
         "zoomRatio." + kind.rawValue
     }
@@ -124,8 +130,8 @@ enum AppSettings {
 
     // MARK: - Zoom ratio (M4C contract §1.5, D4)
 
-    /// The stored ratio to the overview of pages of `kind`; 1 (the overview) when nothing is stored.
-    /// Normalised with `ZoomPolicy.sanitizedRatio` (a value that is not finite, below 1 or above
+    /// The stored ratio to the opening zoom of pages of `kind`; 1 (the opening zoom) when nothing is
+    /// stored. Normalised with `ZoomPolicy.sanitizedRatio` (a value that is not finite, below 1 or above
     /// `maxStoredRatio` reads as 1).
     static func zoomRatio(for kind: PageKind) -> CGFloat {
         let key = zoomRatioKey(kind)
@@ -133,7 +139,7 @@ enum AppSettings {
         return ZoomPolicy.sanitizedRatio(CGFloat(defaults.double(forKey: key)))
     }
 
-    /// Stores `ratio` normalised with `ZoomPolicy.sanitizedRatio`; 1 (the overview) removes the key.
+    /// Stores `ratio` normalised with `ZoomPolicy.sanitizedRatio`; 1 (the opening zoom) removes the key.
     static func setZoomRatio(_ ratio: CGFloat, for kind: PageKind) {
         let key = zoomRatioKey(kind)
         let sanitized = ZoomPolicy.sanitizedRatio(ratio)
@@ -142,5 +148,10 @@ enum AppSettings {
         } else {
             defaults.set(Double(sanitized), forKey: key)
         }
+    }
+
+    /// 1.1.1 (docs/R1_1_1.md): this device has a page kind stored zoomed in, so the person knows the pinch.
+    static var hasPinched: Bool {
+        PageKind.allCases.contains { zoomRatio(for: $0) > 1 }
     }
 }
