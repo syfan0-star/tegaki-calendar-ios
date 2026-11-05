@@ -246,11 +246,13 @@ final class PaperFitTests: XCTestCase {
                 XCTAssertEqual(named?.size.height ?? 0, plain?.size.height ?? 1, accuracy: 0.01, "\(language) \(name) \(column) pt: the heading's height (K-6)")
                 XCTAssertEqual(plain?.size.height ?? 0, 52, accuracy: 0.5, "\(language) \(column) pt: minHeight 52")
                 // The name itself, at the smallest it has here, against what is on the heading: 「…」 is far less.
+                // 0.5, not more: the longest of the list lose their end at 131.3 pt (about 0.72 here), and a
+                // letter is about 0.04, with fonts that may differ on the simulator.
                 let renderer = ImageRenderer(content: Text(name).font(.system(size: PaperWords.dayHeadingLongHolidayPoints)).foregroundStyle(Color(uiColor: PaperPalette.red)))
                 renderer.scale = 2
                 let whole = redPixels(renderer.uiImage)
                 XCTAssertGreaterThan(whole, 0, "\(language): the reference")
-                XCTAssertGreaterThanOrEqual(Double(redPixels(named)), 0.7 * Double(whole), "\(language) \(name) in \(column) pt: the name is not on the heading")
+                XCTAssertGreaterThanOrEqual(Double(redPixels(named)), 0.5 * Double(whole), "\(language) \(name) in \(column) pt: the name is not on the heading")
             }
             // A wide column keeps the capsule where the whole row fits (an iPad's 273 pt in the 13-inch photo).
             let wide = dayHeading(holiday: name, column: 273, language: language)

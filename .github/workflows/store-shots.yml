@@ -178,8 +178,8 @@ jobs:
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
             # The whole device in the set's language and region, so the status bar is too (the launch's
-            # -AppleLanguages reaches only the app). They count from the next boot. Nothing here may stop the
-            # photos: whatever fails, the device comes back as before and is shot as before.
+            # -AppleLanguages reaches only the app). They count from the next boot. A failure of defaults or of
+            # status_bar does not stop the photos; a device that does not boot again is skipped, as on the first boot.
             xcrun simctl spawn "$UDID" defaults write -g AppleLanguages -array "$SET_LANGUAGE" || echo "::warning::$ID: the device's language was not set."
             xcrun simctl spawn "$UDID" defaults write -g AppleLocale -string "$SET_LOCALE" || echo "::warning::$ID: the device's region was not set."
             xcrun simctl shutdown "$UDID" || true

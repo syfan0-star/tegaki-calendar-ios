@@ -990,7 +990,7 @@ final class ScreenshotModeTests: XCTestCase {
     }
 
     /// The year: only cells of dates that exist, whatever the month the page opens on; several red circles,
-    /// today's among them; the marker down the five days of the trip, left of its chips; no row grows.
+    /// not today's; the marker down five free days, right of the weekdays' letters; no row grows.
     func testStoreInkYearKeepsToRealDates() throws {
         let now = ScreenshotMode.todayInstant(for: october)
         let events = ScreenshotMode.demoEvents(for: october, storeInk: true)
@@ -1003,7 +1003,7 @@ final class ScreenshotModeTests: XCTestCase {
 
         let circles = page.liveStrokes.filter { $0.id.hasPrefix("store-year-circle") }
         XCTAssertGreaterThanOrEqual(circles.count, 4, "several days")
-        XCTAssertTrue(circles.contains { $0.cell == .yearDay(month: 10, day: 7) }, "today")
+        XCTAssertFalse(circles.contains { $0.cell == .yearDay(month: 10, day: 7) }, "today has its frame, and in zh-Hans a name under the number")
         XCTAssertGreaterThanOrEqual(page.liveStrokes.filter { $0.id.hasPrefix("store-year-check") }.count, 4)
         XCTAssertTrue(circles.allSatisfy { $0.color == "#dc2626" })
 
@@ -1017,20 +1017,19 @@ final class ScreenshotModeTests: XCTestCase {
             }
         }
 
-        // The marker is over the five days of the trip and left of the chips (x 50.4…); the others keep off them.
-        let trip = try XCTUnwrap(ScreenshotMode.demoEvents(for: october, empty: false, language: .ja, storeInk: true).first { $0.id == ScreenshotMode.editDemoEventId })
-        XCTAssertEqual(DayKey(trip.start).day, 9)
+        // The marker is over five free days of November, right of where a weekday's letters can end (the chips'
+        // x; pt-BR's sáb reaches it). Nothing keeps a chip's words company.
         let marker = try XCTUnwrap(page.liveStrokes.first { $0.tool == .marker })
         let cell = try XCTUnwrap(layout.cells[marker.cell])
         let paperY = marker.points.map { $0.y + cell.minY }
-        let ninth = try XCTUnwrap(layout.cells[.yearDay(month: 10, day: 9)])
-        let thirteenth = try XCTUnwrap(layout.cells[.yearDay(month: 10, day: 13)])
+        let ninth = try XCTUnwrap(layout.cells[.yearDay(month: 11, day: 9)])
+        let thirteenth = try XCTUnwrap(layout.cells[.yearDay(month: 11, day: 13)])
         XCTAssertGreaterThanOrEqual(paperY.min() ?? 0, ninth.minY, "from the 9th")
         XCTAssertLessThan(paperY.min() ?? 0, ninth.midY, "from the 9th")
         XCTAssertLessThanOrEqual(paperY.max() ?? 0, thirteenth.maxY, "to the 13th")
         XCTAssertGreaterThan(paperY.max() ?? 0, thirteenth.midY, "to the 13th")
-        XCTAssertLessThanOrEqual(marker.points.map(\.x).max() ?? 99, PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft, "left of the chips")
-        for stroke in page.liveStrokes where stroke.tool == .pen {
+        XCTAssertGreaterThan((marker.points.map(\.x).min() ?? 0) - 4, PaperSpec.yearColumnWidth * PaperSpec.yearChipLeft, "right of the letters, with its width of about 8")
+        for stroke in page.liveStrokes {
             let bounds = try XCTUnwrap(stroke.paperBounds(cellOrigin: try XCTUnwrap(layout.cells[stroke.cell]).origin))
             for chip in layout.chips {
                 XCTAssertFalse(bounds.intersects(chip.frame), "\(stroke.id) on the chip of \(chip.day)")

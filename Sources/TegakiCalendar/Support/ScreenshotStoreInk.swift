@@ -19,8 +19,10 @@ import Layout
 ///   80 high, and the columns follow the week start; a day's hour is 100 high, its timeline x 72–660, its memo
 ///   x 660–1000. The zoom differs by language (pt-BR's taller heading makes the columns about 2 % narrower on an
 ///   iPhone), but the paper's coordinates do not.
-/// - A year cell is 112 wide: number and letter at y 3–21 on the left, chips on the right from x 50.4, and a
-///   stroke's bottom stays above 48 (rows of 60 do not grow). No stroke in a cell of a date that does not exist.
+/// - A year cell is 112 wide: number and letter at y 3–21 on the left, a holiday's name under them from y 17,
+///   chips on the right from x 50.4 (a long weekday's letters reach about that far: there is no gap between
+///   them), and a stroke's bottom stays above 48 (rows of 60 do not grow). No stroke in a cell of a date that
+///   does not exist.
 extension ScreenshotMode {
     /// The App Store's page of `kind`. The ids are "store-<page>-<what>-<n>".
     static func storeInkPage(kind: PageKind, focus: DayKey, weekStart: WeekStart) -> InkPage {
@@ -42,8 +44,9 @@ private enum StoreInk {
             .day(DayKey(year: month.year, month: month.month, day: min(d, DayKey.daysInMonth(year: month.year, month: month.month))))
         }
 
-        // Today: around the number (its disc is at x 4–28, y 4–28; a holiday's name starts at x 32, the band at y 28).
-        book.loop("circle", cell: day(7), center: CGPoint(x: 15.5, y: 15), rx: 14.5, ry: 13.5, color: InkBook.red)
+        // Today: around the number's disc (x 4–28, y 4–28). Short of a holiday's name, which starts at x 32. The
+        // band starts where the disc ends (y 28), so a circle around the disc touches its top edge, not its words.
+        book.loop("circle", cell: day(7), center: CGPoint(x: 15.5, y: 15), rx: 13.5, ry: 13.5, color: InkBook.red)
 
         // Days that are done.
         book.check("check", cell: day(2), x: 34, y: 92, size: 34)
@@ -77,7 +80,8 @@ private enum StoreInk {
         book.wave("wave", cell: day(13), x: 26, y: 88, length: 118)
         book.wave("wave", cell: day(23), x: 26, y: 104, length: 92)
 
-        // The notes: three lines with a box and a check, a short wave beside them, a small drawing, a date.
+        // The notes: three lines with a box and a check, a short wave beside them, a small drawing, a span of
+        // times (no date: 10/24 is no date where the day comes first).
         for (index, words) in [[210, 70], [130], [170, 90]].enumerated() {
             let rule = CGFloat(100 + 50 * index)
             book.box("memo-box", cell: .memo, x: 40, y: rule - 36, size: 28)
@@ -90,9 +94,9 @@ private enum StoreInk {
         }
         book.mountains("memo-mountain", cell: .memo, x: 560, y: 80, scale: 1.25)
         book.sun("memo-sun", cell: .memo, center: CGPoint(x: 800, y: 74), radius: 26)
-        book.digits("memo-date", "10/24", cell: .memo, x: 1010, y: 62, height: 34, color: InkBook.blue)
+        book.digits("memo-time", "9:00", cell: .memo, x: 1010, y: 62, height: 34, color: InkBook.blue)
         book.arrow("memo-arrow", cell: .memo, from: CGPoint(x: 1120, y: 80), control: CGPoint(x: 1150, y: 72), to: CGPoint(x: 1186, y: 80), color: InkBook.blue)
-        book.digits("memo-date", "10/26", cell: .memo, x: 1200, y: 62, height: 34, color: InkBook.blue)
+        book.digits("memo-time", "17:00", cell: .memo, x: 1200, y: 62, height: 34, color: InkBook.blue)
         book.wave("memo-wave", cell: .memo, x: 1012, y: 132, length: 150)
         book.heart("memo-heart", cell: .memo, center: CGPoint(x: 1200, y: 130), size: 18)
         return book.page
@@ -162,7 +166,7 @@ private enum StoreInk {
         book.arrow("arrow", cell: .grid, from: CGPoint(x: 262, y: y(19.4)), control: CGPoint(x: 330, y: y(19.6)), to: CGPoint(x: 396, y: y(19.4)), color: InkBook.red)
         book.star("star", cell: .grid, center: CGPoint(x: 450, y: y(19.38)), radius: 34, color: InkBook.red)
 
-        // The memo column: three lines with a box and a check, then a small drawing and a date.
+        // The memo column: three lines with a box and a check, then a small drawing and a time.
         for (index, length) in [176, 120, 150].enumerated() {
             let rule = CGFloat(100 + 50 * index)
             book.box("memo-box", cell: .grid, x: 686, y: rule - 36, size: 28)
@@ -171,7 +175,7 @@ private enum StoreInk {
         }
         book.mountains("memo-mountain", cell: .grid, x: 690, y: 300, scale: 1.05)
         book.sun("memo-sun", cell: .grid, center: CGPoint(x: 900, y: 300), radius: 24)
-        book.digits("memo-date", "10/24", cell: .grid, x: 692, y: 500, height: 36, color: InkBook.blue)
+        book.digits("memo-time", "18:30", cell: .grid, x: 692, y: 500, height: 36, color: InkBook.blue)
         book.wave("memo-wave", cell: .grid, x: 692, y: 574, length: 200)
         book.wave("memo-wave", cell: .grid, x: 692, y: 624, length: 130)
         return book.page
@@ -182,15 +186,16 @@ private enum StoreInk {
     static func yearPage(focus: DayKey) -> InkPage {
         var book = InkBook(prefix: "store-year", pageId: PageNavigation.pageId(.year, focus: focus), seed: 404)
 
-        // The trip of the sample (the 9th–13th of the month): one marker stroke down the five days, in the
-        // narrow way of its nib (about 8 lu), between the weekday's letter and the chips. It is filed under the
-        // last day, so that no row grows (a stroke's bottom counts, and the rows above it stay 60 high: the
-        // points above the cell are negative).
-        book.marker("marker", cell: .yearDay(month: focus.month, day: 13), from: CGPoint(x: 47.5, y: -230), to: CGPoint(x: 47.5, y: 36), wide: false)
+        // One marker stroke down five free days of November (the 9th–13th), in the narrow way of its nib (about
+        // 8 lu), right of the letters: the trip's own days have no room for it, its chips start where a long
+        // weekday ends. It is filed under the last day, so that no row grows (a stroke's bottom counts, and the
+        // rows above it stay 60 high: the points above the cell are negative).
+        book.marker("marker", cell: .yearDay(month: 11, day: 13), from: CGPoint(x: 80, y: -230), to: CGPoint(x: 80, y: 36), wide: false)
 
-        // Red circles around the number (two digits at x 3–22, one digit at x 14–22; the letter starts at 27):
-        // today and a few other days.
-        let circled = [(focus.month, focus.day), (2, 14), (4, 18), (6, 13), (8, 22), (9, 12), (11, 14), (12, 24)]
+        // Red circles around the number (two digits at x 3–22, one digit at x 14–22; the letter starts at 27), on
+        // a few days with no holiday's name under the number (from y 17) in any set. Not on today: it has its
+        // frame, and in zh-Hans a name (休息日).
+        let circled = [(2, 14), (4, 18), (6, 13), (8, 22), (9, 12), (11, 14), (12, 24)]
         for (month, day) in circled {
             let center = CGPoint(x: day < 10 ? 18 : 12, y: 12.5)
             book.loop("circle", cell: .yearDay(month: month, day: day), center: center, rx: day < 10 ? 8.5 : 11.5, ry: 10.5, color: InkBook.red)
