@@ -10,7 +10,6 @@ public final class CountryHolidays: Sendable {
     public struct Subdivision: Sendable {
         public let code: String
         let add: [Int32]           // [day offset, name number, …]
-        let addFrom: [Int32: Int32]
         let remove: [Int32]
 
         /// True when the subdivision adds or removes a holiday (gen.py writes no other, §5.1).
@@ -29,9 +28,7 @@ public final class CountryHolidays: Sendable {
     let names: [[String]]
     let shorts: [Int: [String]]
     let flags: [HolidayFlags]
-    let substFormat: [String]
     let days: [Int32]              // [day offset, name number, …] in day order
-    let substFrom: [Int32: Int32]  // substituted day -> the weekend day it was swapped with
     let workdays: Set<Int>         // day numbers (DayKey.dayNumber)
     let epoch: Int                 // DayKey.dayNumber of the file's epoch
 
@@ -74,8 +71,7 @@ public final class CountryHolidays: Sendable {
                   Self.isDayList(add, names: nameCount), Self.isDayList(remove, names: nameCount),
                   Self.isPairList(addFrom),
                   Self.fromDays(add, substituted: substituted, are: addFrom) else { return nil }
-            subdivisions.append(Subdivision(code: sub.code, add: add.map(Int32.init), addFrom: Self.pairs(addFrom),
-                                            remove: remove.map(Int32.init)))
+            subdivisions.append(Subdivision(code: sub.code, add: add.map(Int32.init), remove: remove.map(Int32.init)))
         }
         country = raw.country
         langs = raw.langs
@@ -85,9 +81,7 @@ public final class CountryHolidays: Sendable {
         names = raw.names
         self.shorts = shorts
         flags = raw.flags.map { HolidayFlags(rawValue: $0) }
-        substFormat = raw.substFmt
         days = raw.days.map(Int32.init)
-        substFrom = Self.pairs(raw.substFrom)
         self.epoch = epoch.dayNumber
         workdays = Set(raw.workdays.map { epoch.dayNumber + $0 })
     }
@@ -150,8 +144,7 @@ public final class CountryHolidays: Sendable {
         let last = Int32(DayKey(year: year, month: 12, day: 31).dayNumber - epoch)
         var out: [DayKey: [(name: Int32, entry: HolidayEntry)]] = [:]
         Self.forEachPair(days, from: first, through: last) { offset, nid in
-            out[day(offset), default: []].append((nid, entry(nid, offset: offset, from: substFrom[offset], column: column,
-                                                              language: language, isSubdivision: false)))
+            out[day(offset), default: []].append((nid, entry(nid, column: column, language: language, isSubdivision: false)))
         }
         if let subdivision {
             Self.forEachPair(subdivision.remove, from: first, through: last) { offset, nid in
@@ -162,8 +155,7 @@ public final class CountryHolidays: Sendable {
                 }
             }
             Self.forEachPair(subdivision.add, from: first, through: last) { offset, nid in
-                out[day(offset), default: []].append((nid, entry(nid, offset: offset, from: subdivision.addFrom[offset],
-                                                                  column: column, language: language, isSubdivision: true)))
+                out[day(offset), default: []].append((nid, entry(nid, column: column, language: language, isSubdivision: true)))
             }
         }
         return out.mapValues { $0.map(\.entry) }
@@ -194,41 +186,23 @@ public final class CountryHolidays: Sendable {
         DayKey(dayNumber: epoch + Int(offset))
     }
 
-    private func entry(_ nid: Int32, offset: Int32, from: Int32?, column: Int, language: UILanguage, isSubdivision: Bool) -> HolidayEntry {
+    private func entry(_ nid: Int32, column: Int, language: UILanguage, isSubdivision: Bool) -> HolidayEntry {
         let n = Int(nid)
         let flags = self.flags[n]
         var full = names[n][column]
         var short = shorts[n]?[column] ?? full
         if flags.contains(.substituted) {
-            if let from {
-                full = Self.filled(full, with: day(from), format: substFormat[column])
-            }
             if short.isEmpty || short.contains("%s") {
                 short = KitStrings.text("kit.holiday.dayOff", language)
             }
+            // A day off swapped with a weekend is 「休息日」 / "Day off" everywhere: the file's template
+            // (「休息日（由 %s 调休）」) is a sentence with a date, cut in the day's title and badge (0-17, FIX3).
+            full = short
         }
         if flags.contains(.estimated) {
             full += KitStrings.text("kit.holiday.estimatedSuffix", language)
         }
         return HolidayEntry(full: full, short: short, flags: flags, isSubdivision: isSubdivision)
-    }
-
-    /// `template` with its "%s" replaced by `day` written in `format` (%Y, %m and %d, zero-padded).
-    static func filled(_ template: String, with day: DayKey, format: String) -> String {
-        guard let range = template.range(of: "%s") else { return template }
-        var date = ""
-        var chars = format.makeIterator()
-        while let c = chars.next() {
-            guard c == "%" else { date.append(c); continue }
-            switch chars.next() {
-            case "Y": date += String(format: "%04d", day.year)
-            case "m": date += String(format: "%02d", day.month)
-            case "d": date += String(format: "%02d", day.day)
-            case let other?: date += "%" + String(other)
-            case nil: date += "%"
-            }
-        }
-        return template.replacingCharacters(in: range, with: date)
     }
 
     // MARK: - Checks of §5.3
@@ -241,8 +215,9 @@ public final class CountryHolidays: Sendable {
         (-1_000_000..<1_000_000).contains(x)
     }
 
-    /// Every substituted day of `list` ([day, name, …]) has its other day in `from` ([day, other day, …]):
-    /// without it the screen would show the template's "%s".
+    /// Every substituted day of `list` ([day, name, …]) has its other day in `from` ([day, other day, …]).
+    /// The screen no longer shows that day (the template's "%s" is not filled, see `entry`), but a file
+    /// without it is not the complete file gen.py writes (§5.3).
     private static func fromDays(_ list: [Int], substituted: Set<Int>, are from: [Int]) -> Bool {
         let days = Set(stride(from: 0, to: from.count, by: 2).map { from[$0] })
         return stride(from: 0, to: list.count, by: 2).allSatisfy { !substituted.contains(list[$0 + 1]) || days.contains(list[$0]) }
@@ -276,16 +251,6 @@ public final class CountryHolidays: Sendable {
             i += 2
         }
         return true
-    }
-
-    private static func pairs(_ list: [Int]) -> [Int32: Int32] {
-        var out: [Int32: Int32] = [:]
-        var i = 0
-        while i + 1 < list.count {
-            out[Int32(list[i])] = Int32(list[i + 1])
-            i += 2
-        }
-        return out
     }
 
     /// Calls `body(day, name)` for the pairs of `list` whose day is in `first...last` (the days

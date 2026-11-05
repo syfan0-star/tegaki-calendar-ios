@@ -134,8 +134,11 @@ func runHolidayChecks() {
         ("BR-SP", .ptBR, day(2026, 7, 9), "Revolução Constitucionalista", "BR-SP 2026-07-09"),
         ("CH-ZH", .de, day(2026, 4, 6), "Ostermontag", "CH-ZH 2026-04-06"),
         ("CH-ZH", .fr, day(2026, 4, 6), "Lundi de Pâques", "CH-ZH fr 2026-04-06"),
-        ("CN", .zhHans, day(2025, 2, 3), "休息日（由 2025-01-26 调休）", "CN 2025-02-03 (0.107's template)"),
-        ("CN", .en, day(2025, 2, 3), "Day off (substituted from 01/26/2025)", "CN en 2025-02-03"),
+        // A day off swapped with a weekend is its short name everywhere (0-17, docs/M7B.md FIX3).
+        ("CN", .zhHans, day(2025, 2, 3), "休息日", "CN 2025-02-03 (the template's date is not shown)"),
+        ("CN", .en, day(2025, 2, 3), "Day off", "CN en 2025-02-03"),
+        ("CN", .zhHans, day(2026, 10, 7), "休息日", "CN 2026-10-07 (the day of the photos, §7.4)"),
+        ("CN", .zhHant, day(2026, 10, 7), "放假日", "CN zh-Hant 2026-10-07"),
         ("AE", .en, day(2026, 3, 20), "Eid al-Fitr" + estimatedEn, "AE en 2026-03-20 (0.107: still an estimate)"),
         ("CA", .en, day(2026, 10, 12), nil, "CA 2026-10-12 (Thanksgiving is the provinces')"),
         ("CA", .en, day(2026, 7, 1), "Canada Day", "CA 2026-07-01"),
@@ -336,6 +339,33 @@ func runHolidayChecks() {
     }
     check(observedHeavy.isEmpty, "holidays: no country has more than half of its names observed (\(observedHeavy))")
     check(subdivisionProblems.isEmpty, "holidays: the index lists exactly the subdivisions that differ (\(subdivisionProblems))")
+
+    // A day off swapped with a weekend (0-17, docs/M7B.md FIX3): in every country, language and year its name
+    // is the file's short name, no date and no template left. Japan has none (J-4 does not move), and this
+    // is the only kind of name it touches (TW's 「國慶日（補假）」 and US's "(observed)" above keep theirs).
+    var swappedCountries: [String] = []
+    for code in codes {
+        guard let data = file(code), (0..<data.nameCount).contains(where: { data.flags(ofName: $0).contains(.substituted) }) else { continue }
+        swappedCountries.append(code)
+        var days = 0
+        var wrong: [String] = []
+        for language in UILanguage.allCases {
+            let column = data.column(for: language)
+            for year in data.years {
+                for (key, entries) in data.entries(forYear: year, column: column, subdivision: nil, language: language) {
+                    for entry in entries where entry.flags.contains(.substituted) {
+                        days += 1
+                        let mark = entry.flags.contains(.estimated) ? KitStrings.text("kit.holiday.estimatedSuffix", language) : ""
+                        if entry.full != entry.short + mark || entry.short.isEmpty || entry.full.contains("%") || entry.full.contains(where: \.isNumber) {
+                            wrong.append("\(key) \(language.rawValue) \(entry.full)")
+                        }
+                    }
+                }
+            }
+        }
+        check(days > 0 && wrong.isEmpty, "holidays: \(code)'s \(days) days off of the ten languages are their short names (\(wrong.prefix(3)))")
+    }
+    checkEqual(swappedCountries, "AM AZ BG BY CN HU KG KZ LV MM RU TW UA UZ VN".split(separator: " ").map(String.init), "holidays: the 15 countries with days off swapped with a weekend (0.107)")
     if let index {
         func sub(_ c: String, _ s: String) -> HolidayIndex.Subdivision? {
             index.country(c)?.subdivisions.first { $0.code == s }

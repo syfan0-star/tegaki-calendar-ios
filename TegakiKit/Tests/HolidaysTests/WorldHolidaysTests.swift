@@ -105,9 +105,11 @@ final class WorldHolidaysTests: XCTestCase {
             ("BR-SP", .ptBR, day(2026, 7, 9), "Revolução Constitucionalista"),
             ("CH-ZH", .de, day(2026, 4, 6), "Ostermontag"),
             ("CH-ZH", .fr, day(2026, 4, 6), "Lundi de Pâques"),
-            // 0.107's template (0.83 had "休息日（2025-01-26日起取代）").
-            ("CN", .zhHans, day(2025, 2, 3), "休息日（由 2025-01-26 调休）"),
-            ("CN", .en, day(2025, 2, 3), "Day off (substituted from 01/26/2025)"),
+            // A day off swapped with a weekend is its short name everywhere (0-17, docs/M7B.md FIX3).
+            ("CN", .zhHans, day(2025, 2, 3), "休息日"),
+            ("CN", .en, day(2025, 2, 3), "Day off"),
+            ("CN", .zhHans, day(2026, 10, 7), "休息日"),
+            ("CN", .zhHant, day(2026, 10, 7), "放假日"),
             // Still an estimate in 0.107.
             ("AE", .en, day(2026, 3, 20), "Eid al-Fitr" + estimated),
             ("US-CA", .en, day(2026, 10, 12), nil),
@@ -206,7 +208,7 @@ final class WorldHolidaysTests: XCTestCase {
             ("a subdivision's add Int.min", { $0["subdivisions"] = [["code": "AA", "add": [Int.min, 0]]] }),
             ("a subdivision's addFrom Int.min", { $0["subdivisions"] = [["code": "AA", "addFrom": [Int.min, 0]]] }),
             ("a subdivision's remove Int.min", { $0["subdivisions"] = [["code": "AA", "remove": [Int.min, 0]]] }),
-            // A substituted day without the day it was swapped with would show "%s".
+            // A substituted day without the day it was swapped with is not the complete file of gen.py.
             ("substituted without from", { $0["names"] = [["Off (%s)"]]; $0["flags"] = [HolidayFlags.substituted.rawValue] }),
             ("a subdivision's substituted without from", {
                 $0["names"] = [["Day One"], ["Off (%s)"]]
