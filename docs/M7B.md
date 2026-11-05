@@ -1739,3 +1739,40 @@ CI の 1 回目（`build.yml` は全部緑、run 42013412254。`ja-baseline.yml`
 | `m7b-impl/R4/verify.py` | `REVIEW.md` の 1 の表と 9 の表が一致、`back/*.json` の `text` が全キーで今の訳と同じ、元を見ない逆翻訳が該当の所に入っている、`whatsnew.txt` は渡した字に 2 か所を足しただけ |
 
 **走らせていないもの**: 本物の XCTest、UI テスト、シミュレータ、CI。Swift を変えていないので `swift build`・KitChecks・typecheck は走らせていない。
+
+## リード（2026-11-06。CI の 2 回目と本人に渡した物）
+
+**CI の 2 回目**（e3b0407。`build.yml` run 42040737532 は全部緑、`ja-baseline.yml` run 42040741655 は緑、2 つの `env.txt` は同じ）:
+
+| 項目 | 値 |
+| --- | --- |
+| 単体テスト | 438 本・8 本スキップ・失敗 0（スキップは StoreKit のシミュレータの分） |
+| UI テスト | 29 本・1 本スキップ・失敗 0（642.5 秒）。`LanguageUITests` 11 本は 237.4 秒。`testGermanPaywallReachesItsLinks` は合格（12.3 秒、ドラッグ 1 回、5 つとも `hittable=true`、自動更新の説明も窓の中） |
+| `tools/weekstart-compat` | 1.0（a21e469）・`<1.1.1>` とも失敗 0（`compat-v1.0` 7.1 分） |
+| ジョブの時間 | build-and-test 78.3 分（上限 110）、l10n-shots 37.8 分、blank 31.7 分 |
+| 祝日データを読んだ時間 | 0〜1 ms（端末の写真の手順の記録） |
+| `xcstringstool` | xcstrings のまま組み立てている（L-10 の ok の行と `xcstringstool compile`） |
+| 地域と言語の値 | `l10n UI: state:` の行のとおり（ui の言語は locale に従う。`--screenshot-holidays auto` で en_US は US、ja_JP は JP） |
+| `paywall-de-bottom` | `screenshots/ui-tests/attachments/D6A86BCA-FF89-4C66-83FC-A3C315EBB6EA.png`（`manifest.json` の名前は `paywall-de-bottom_0_…`）。リードが開いた。リンク 4 つと「Später」が写り、長い語は 2 行に折り返す |
+
+**J-4 の仮の比較**（仮の `<1.1.1>` = 31d243c の `ja-baseline` と、e3b0407 の `screenshots`。`compare_shots.swift`。本物の `<1.1.1>` で撮り直して、もう一度比べる）: 基準 75 枚・新 108 枚。同じ 59、違う 16、新だけ 33。
+
+- 強い差があるのは `ipad13-portrait-sheet-settings`（設定の節が増えた）・`ipad13-portrait-sheet-info`（情報の行が増えた）・`store/ipad13/06-settings`（同じ）と `ipad13-portrait-sheet-sync`（字と行は同じで、上に節が増えてリスト全体が 1 画素ほど下。FIX3 の節のとおり）だけ。
+- 残りの 12 枚は弱い差だけ（最大 10/255。シートのガラスとぼかし、年の拡大、iPhone の横向き）。
+- **FIX3 の 120 秒の待ちは効いた**: CI の 1 回目で強い差だった 13 インチの月・週と `store` の 01・02（基準に手書きが無い、システムの通知）は、今回は同じ。
+
+**写真の確認**: リードは pt-BR の iPhone の週（曜日が数字の上、7 列とも切れない）、zh-Hans の日（題名と札が「休息日」）、de の課金画面の上と下を開いて確かめた。枠の所の字は `m7b-impl/pages/frame_check.py` の切り抜きで見た。
+
+**本人に渡した物**（2026-11-06 00:30）:
+
+- 写真の確認ページ（§8 の 8。20 番、写真 41 枚、e3b0407 の写真）。`tegaki-1.2-photo-check.html`（公開しない。リポジトリの外）。作り方は `m7b-impl/pages/photo_page.py`。
+- Things の「てがきカレンダー 1.2 を TestFlight で確かめる（22 項目）」（§8 の 9、id 8DmMPpchFWZGAbdrqNoBcD）。
+
+**リードの決定**（本人が不在の間に既定で決めた。結果は報告する）:
+
+- **TestFlight 1.2 (16) を、写真の確認の答えの前に出した**（run 42053808972、処理は有効、内部のグループで試せる状態）。§12.2 の順と違う。本人の出勤中と睡眠中に止めないため。写真で直しが出たら build を作り直す。iPhone の自動アップデートは本人が 2026-11-05 にオフにした（「オフにしました。」）ので、iPhone は 1.1.1 のまま。
+- **手順 6（英語の購入の画面）**: 書ける状態の端末では購入の画面を開くボタンが出ないので（`purchaseButtonTitle`）、本人の実機で開けない見込みが高い。開けなければ、CI の写真（en・de・pseudo）と `testGermanPaywallReachesItsLinks` で代える。§6.6 の「英語の画面で購入の流れが途切れない」は、実機では確かめないまま残ることがある。
+- **日本語の写真は確認ページでは代表の 4 枚**（13 インチの月・週・日・年）。全部は J-4 の画素の比較で見る。
+- **手順 5 の、言語を足すときの iOS の問いのボタンの字は確かめていない**（実機が無い。「『日本語』と書いてある方」と書いた）。本人の返事で「言語」の項目が最初からあったかを聞く。
+- 見本の語と fr・it・de-DE の字は `REVIEW.md` の 10 の R5（× 0・△ 10）。de-DE の新機能の文の言い回しは母語の人に見てもらうときの候補で、変えない。
+
