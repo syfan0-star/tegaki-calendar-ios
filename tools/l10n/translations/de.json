@@ -1735,11 +1735,11 @@
     },
     "toast.weekStart.otherForm.one": {
       "jaSha1": "19ef2be677",
-      "text": "%2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche."
+      "text": "%2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche."
     },
     "toast.weekStart.otherForm.other": {
       "jaSha1": "19ef2be677",
-      "text": "%2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche."
+      "text": "%2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche."
     },
     "toast.weekStart.regionChanged.monday": {
       "jaSha1": "857c24a261",

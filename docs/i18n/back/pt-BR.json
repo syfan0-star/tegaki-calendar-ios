@@ -304,7 +304,7 @@
   },
   "event.scribbleNote": {
    "text": "Escreva sobre o campo com o Apple Pencil para converter em texto (Escrever à Mão)",
-   "back": "Apple Pencil で欄の上に書くと文字に変換されます（手書き入力）"
+   "back": "テキストに変換するには、Apple Pencil で欄の上に書いてください（手で書く）"
   },
   "event.snapshotCaption": {
    "text": "O que você escreveu",
@@ -344,7 +344,7 @@
   },
   "event.titlePlaceholder": {
    "text": "Escreva aqui com a caneta para converter em texto",
-   "back": "ここにペンで書くと文字に変換されます"
+   "back": "テキストに変換するには、ここにペンで書いてください"
   },
   "event.untitled": {
    "text": "(Sem título)",
@@ -1736,19 +1736,19 @@
   },
   "toast.weekStart.otherForm.one": {
    "text": "%2$@ página da semana com outro início (%1$@), não apagada. Para vê-la: Ajustes > Primeiro dia da semana.",
-   "back": "%2$@ の週のページは別の始まり（%1$@）で、消えていません。見るには: 設定 > 週の最初の日。"
+   "back": "別の始まり（%1$@）の週のページが %2$@ ページ、消去されていません。見るには：設定 > 週の最初の日。"
   },
   "toast.weekStart.otherForm.other": {
    "text": "%2$@ páginas da semana com outro início (%1$@), não apagadas. Para vê-las: Ajustes > Primeiro dia da semana.",
-   "back": "%2$@ の週のページは別の始まり（%1$@）で、消えていません。見るには: 設定 > 週の最初の日。"
+   "back": "別の始まり（%1$@）の週のページが %2$@ ページ、消去されていません。見るには：設定 > 週の最初の日。"
   },
   "toast.weekStart.regionChanged.monday": {
    "text": "A semana começa na segunda-feira pela região do dispositivo. A escrita das semanas de domingo não foi apagada.",
-   "back": "端末の地域により、週は月曜に始まります。日曜の週の手書きは消えていません。"
+   "back": "デバイスの地域により、週は月曜日に始まります。日曜日の週の書き込みは消去されていません。"
   },
   "toast.weekStart.regionChanged.sunday": {
    "text": "A semana começa no domingo pela região do dispositivo. A escrita das semanas de segunda não foi apagada.",
-   "back": "端末の地域により、週は日曜に始まります。月曜の週の手書きは消えていません。"
+   "back": "デバイスの地域により、週は日曜日に始まります。月曜日の週の書き込みは消去されていません。"
   },
   "toolbar.badge.marker": {
    "text": "Marcador, %@",

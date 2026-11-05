@@ -164,7 +164,7 @@
   },
   "demo.event.morningMeeting": {
    "text": "Riunione",
-   "back": "会議（Riunione。「朝」にあたる語は入っていない）"
+   "back": "会議"
   },
   "demo.event.oneOnOne": {
    "text": "Colloquio",
@@ -1736,11 +1736,11 @@
   },
   "toast.weekStart.otherForm.one": {
    "text": "%2$@ pagina settimanale con inizio %1$@, non eliminata. Per vederla: Impostazioni > Primo giorno della settimana.",
-   "back": "週のページ %2$@ ページは始まりが %1$@ で、削除されていません。それを見るには: 設定 > 週の最初の日。"
+   "back": "開始が %1$@ の週間ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。"
   },
   "toast.weekStart.otherForm.other": {
    "text": "%2$@ pagine settimanali con inizio %1$@, non eliminate. Per vederle: Impostazioni > Primo giorno della settimana.",
-   "back": "週のページ %2$@ ページは始まりが %1$@ で、削除されていません。それらを見るには: 設定 > 週の最初の日。"
+   "back": "開始が %1$@ の週間ページが %2$@ ページ、削除されていません。見るには：設定 > 週の最初の日。"
   },
   "toast.weekStart.regionChanged.monday": {
    "text": "Settimane impostate su lunedì in base alla zona del dispositivo. La scrittura delle settimane di domenica non è eliminata.",

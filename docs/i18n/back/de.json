@@ -560,7 +560,7 @@
   },
   "holidayPicker.subdivisionHint": {
    "text": "Wählen Sie eine Region, um deren Feiertage hinzuzufügen",
-   "back": "地域を選ぶと、その祝日が加わります"
+   "back": "その地域の祝日を追加するには、地域を選択してください"
   },
   "holidayPicker.subdivisions": {
    "text": "Regionen",
@@ -568,7 +568,7 @@
   },
   "holidayPicker.subdivisions.footer": {
    "text": "Die Namen der Regionen werden so angezeigt, wie sie in den Daten stehen (auf Englisch oder in der Landessprache).",
-   "back": "地域の名前は、データにあるまま（英語か現地の言語で）表示されます。"
+   "back": "地域の名前は、データに載っているとおりに表示されます（英語またはその国の言語で）。"
   },
   "holidayPicker.title": {
    "text": "Angezeigte Feiertage",
@@ -1735,12 +1735,12 @@
    "back": "この月のページには、隠れた日に %@ 本の線があります。削除されていません。切り替えて戻すと現れます。"
   },
   "toast.weekStart.otherForm.one": {
-   "text": "%2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche.",
-   "back": "%2$@ の週のページは週の始まりが %1$@ で、削除されていません。切り替え: 設定 > 週の最初の日。"
+   "text": "%2$@ Wochenseite mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche.",
+   "back": "週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。"
   },
   "toast.weekStart.otherForm.other": {
-   "text": "%2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Wechseln: Einstellungen > Erster Tag der Woche.",
-   "back": "%2$@ の週のページは週の始まりが %1$@ で、削除されていません。切り替え: 設定 > 週の最初の日。"
+   "text": "%2$@ Wochenseiten mit Wochenstart %1$@, nicht gelöscht. Ansehen: Einstellungen > Erster Tag der Woche.",
+   "back": "週の始まりが %1$@ の週ページが %2$@ ページ、削除されていません。見る：設定 > 週の最初の日。"
   },
   "toast.weekStart.regionChanged.monday": {
    "text": "Wochenstart auf Montag gesetzt, passend zur Region des Geräts. Ihre Handschrift der Sonntagswochen ist nicht gelöscht.",

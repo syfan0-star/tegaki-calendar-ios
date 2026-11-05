@@ -824,11 +824,11 @@
   },
   "kit.plan.savings.one": {
    "text": "Ahorre %@ mes",
-   "back": "%@ か月分節約"
+   "back": "%@か月節約してください"
   },
   "kit.plan.savings.other": {
    "text": "Ahorre %@ meses",
-   "back": "%@ か月分節約"
+   "back": "%@か月節約してください"
   },
   "kit.plan.status.billingRetry": {
    "text": "Problema de pago (solo lectura)",
@@ -1684,7 +1684,7 @@
   },
   "toast.event.noAccess": {
    "text": "Para añadir eventos, permita el acceso a los calendarios en Ajustes (Configuración)",
-   "back": "予定を追加するには、設定（Ajustes／Configuración）でカレンダーへのアクセスを許可してください"
+   "back": "イベントを追加するには、設定（Configuración）でカレンダーへのアクセスを許可してください"
   },
   "toast.event.noCalendar": {
    "text": "Ningún calendario admite eventos nuevos",
@@ -1720,11 +1720,11 @@
   },
   "toast.weekStart.adopted.monday": {
    "text": "La semana empieza en lunes según su escritura a mano de iCloud. Puede cambiarlo en Ajustes.",
-   "back": "iCloud の手書きに合わせて、週は月曜に始まります。設定で変えられます。"
+   "back": "iCloud のあなたの手書きに従って、週は月曜日に始まります。設定で変更できます。"
   },
   "toast.weekStart.adopted.sunday": {
    "text": "La semana empieza en domingo según su escritura a mano de iCloud. Puede cambiarlo en Ajustes.",
-   "back": "iCloud の手書きに合わせて、週は日曜に始まります。設定で変えられます。"
+   "back": "iCloud のあなたの手書きに従って、週は日曜日に始まります。設定で変更できます。"
   },
   "toast.weekStart.hiddenInk.one": {
    "text": "Esta página de mes tiene %@ trazo en un día oculto por el ajuste actual. No se ha eliminado. Volverá a verse si lo cambia.",
@@ -1744,11 +1744,11 @@
   },
   "toast.weekStart.regionChanged.monday": {
    "text": "La semana empieza en lunes según la región del dispositivo. Su escritura de las semanas de domingo no se ha eliminado.",
-   "back": "端末の地域に合わせて、週は月曜に始まります。日曜の週の手書きは削除されていません。"
+   "back": "デバイスの地域に従って、週は月曜日に始まります。あなたの日曜日の週の書き込みは削除されていません。"
   },
   "toast.weekStart.regionChanged.sunday": {
    "text": "La semana empieza en domingo según la región del dispositivo. Su escritura de las semanas de lunes no se ha eliminado.",
-   "back": "端末の地域に合わせて、週は日曜に始まります。月曜の週の手書きは削除されていません。"
+   "back": "デバイスの地域に従って、週は日曜日に始まります。あなたの月曜日の週の書き込みは削除されていません。"
   },
   "toolbar.badge.marker": {
    "text": "Marcador, %@",
