@@ -25568,7 +25568,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ page de semaine a l’autre premier jour (%1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine."
+            "value" : "%2$@ page de semaine avec début %1$@, non supprimée. Pour la voir : Réglages > Premier jour de la semaine."
           }
         },
         "it" : {
@@ -25634,7 +25634,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ pages de semaine ont l’autre premier jour (%1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine."
+            "value" : "%2$@ pages de semaine avec début %1$@, non supprimées. Pour les voir : Réglages > Premier jour de la semaine."
           }
         },
         "it" : {
@@ -25790,7 +25790,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A semana começa no domingo pela região do dispositivo. A escrita das semanas de segunda não foi apagada."
+            "value" : "A semana começa no domingo pela região do dispositivo. A escrita das semanas de segunda-feira não foi apagada."
           }
         },
         "zh-Hans" : {

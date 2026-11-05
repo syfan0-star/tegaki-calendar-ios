@@ -1735,11 +1735,11 @@
     },
     "toast.weekStart.otherForm.one": {
       "jaSha1": "19ef2be677",
-      "text": "%2$@ page de semaine a l’autre premier jour (%1$@), non supprimée. Pour la voir : Réglages > Premier jour de la semaine."
+      "text": "%2$@ page de semaine avec début %1$@, non supprimée. Pour la voir : Réglages > Premier jour de la semaine."
     },
     "toast.weekStart.otherForm.other": {
       "jaSha1": "19ef2be677",
-      "text": "%2$@ pages de semaine ont l’autre premier jour (%1$@), non supprimées. Pour les voir : Réglages > Premier jour de la semaine."
+      "text": "%2$@ pages de semaine avec début %1$@, non supprimées. Pour les voir : Réglages > Premier jour de la semaine."
     },
     "toast.weekStart.regionChanged.monday": {
       "jaSha1": "857c24a261",
