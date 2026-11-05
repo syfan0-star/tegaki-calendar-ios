@@ -88,7 +88,7 @@ Please check these in order.
 If you live in the EU (European Union), the law gives you a right of withdrawal. Within 14 days of receiving your receipt, you may be able to cancel your first subscription without giving a reason (this does not apply to each renewal). Apple carries out this process, and the developer cannot.
 
 1. Please follow the steps under “Right of withdrawal” in the Apple Media Services Terms and Conditions for your country (Irish version: https://www.apple.com/legal/internet-services/itunes/ie/terms.html. For other countries, use “Choose your country/region” on that page). You choose the order from the purchase history of your Apple Account.
-2. For digital items, this right can end once the supply has started. Apple decides whether the purchase can be cancelled.
+2. For digital items, this right can end once the supply has started. Apple decides whether the purchase can be canceled.
 3. Canceling a subscription is a separate step (see “How do I cancel?”).
 
 ### When the free trial ends, does my handwriting disappear?

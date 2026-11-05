@@ -12,7 +12,7 @@
 | --- | --- |
 | メール（添付の画面の写真なども） | Gmail の受信と送信済み（ゴミ箱も） |
 | 返事の下書き | Gmail の下書き |
-| 翻訳のために Claude に渡した会話の記録（本文と添付） | Claude の会話。Claude Code で渡したときは、この Mac の中の記録にも残る |
+| Claude に渡した会話の記録（本文と添付） | Claude の会話。Claude Code で渡したときは、この Mac の中の記録にも残る |
 
 - 「持っているのはメールだけ」と書かない。返事の流れでは、本文が Claude との会話と下書きにも残るので、事実と違う。
 - **消せたものだけ「消した」と書く。**
@@ -25,7 +25,7 @@
 共通:
 
 1. 依頼が、問い合わせをしたのと同じメールアドレスから来ているかを見る。違うアドレスからなら、見せる前に、元のアドレスから送ってもらう（別の人に渡さないため）。
-2. 相手のアドレスと名前で、Gmail の受信・送信済み・下書き・ゴミ箱を探す。翻訳に使った Claude の会話も探す（「このメールの本文を渡した会話を探して」と Claude に頼んでよい。この Mac の中の記録は、どれを消すかを本人が見て「消してよい」と言ってから消す）。
+2. 相手のアドレスと名前で、Gmail の受信・送信済み・下書き・ゴミ箱を探す。メールを読むときや返事を書くときに使った Claude の会話も探す（「このメールの本文を渡した会話を探して」と Claude に頼んでよい。この Mac の中の記録は、どれを消すかを本人が見て「消してよい」と言ってから消す）。
 3. 次の版の直しの一覧などのメモに、相手の名前やアドレスを書いていないかも見る。
 
 「見せて」のとき:
@@ -52,7 +52,7 @@ You asked to see the information I hold about you. I hold the following:
 
 - your emails to me (with any attachments, such as screenshots) and my replies, stored in my Gmail: {dates of the emails}
 - drafts of my replies, stored in my Gmail: {how many, or "none"}
-- records of the conversations in which I passed the text of your emails, and any attachments, to an AI translation service (Claude, by Anthropic). They contain the same text and its translation.
+- records of the conversations in which I passed the text of your emails, and any attachments, to an AI service (Claude, by Anthropic). They contain the same text and any translation of it.
 
 A copy of the emails is below.
 
@@ -80,7 +80,7 @@ Tegaki についてのメッセージをありがとうございます。
 
 - あなたから私へのメール（画面の写真などの添付があればそれも）と私の返事。私の Gmail に保存しています: {メールの日付}
 - 私の返事の下書き。私の Gmail に保存しています: {いくつあるか、または「ありません」}
-- あなたのメールの本文と添付を AI の翻訳サービス（Anthropic の Claude）に渡した会話の記録。同じ本文とその訳が入っています。
+- あなたのメールの本文と添付を AI のサービス（Anthropic の Claude）に渡した会話の記録。同じ本文と、訳があればその訳が入っています。
 
 メールの写しは下にあります。
 
@@ -110,7 +110,7 @@ You asked me to delete the information I hold about you. I have deleted the foll
 
 - {your emails to me (with any attachments) and my replies, from my Gmail and its trash}
 - {the drafts of my replies, from my Gmail}
-- {the records of the conversations in which I passed the text of your emails, and any attachments, to an AI translation service (Claude, by Anthropic)}
+- {the records of the conversations in which I passed the text of your emails, and any attachments, to an AI service (Claude, by Anthropic)}
 
 After I send this reply, I will also delete your latest email, this reply and the records used to write it.
 
@@ -144,7 +144,7 @@ Tegaki についてのメッセージをありがとうございます。
 
 - {あなたから私へのメール（添付があればそれも）と私の返事を、私の Gmail とそのゴミ箱から}
 - {私の返事の下書きを、私の Gmail から}
-- {あなたのメールの本文と添付を AI の翻訳サービス（Anthropic の Claude）に渡した会話の記録を}
+- {あなたのメールの本文と添付を AI のサービス（Anthropic の Claude）に渡した会話の記録を}
 
 この返事を送った後で、あなたの今回のメールと、この返事と、この返事を書くのに使った記録も消します。
 

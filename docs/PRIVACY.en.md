@@ -94,7 +94,7 @@ For major changes, such as a change in the kinds of information collected, the d
 ## 12. Emails to support, and opening these pages
 
 - When you email support, the developer receives your email address, any name you write, the text of your email and any attachments (such as screenshots). This is not information that the App collects. The developer uses it only to answer your question.
-- Emails are stored in Google's Gmail. To read emails that are not in Japanese and to write replies, the developer may pass the text of your email and its attachments to an AI translation service (Claude, by Anthropic).
+- Emails are stored in Google's Gmail. To read emails and to write replies, the developer may pass the text of your email and its attachments to an AI service (Claude, by Anthropic).
 - Emails are kept only as long as they are needed to deal with your question, and are deleted when they are no longer needed.
 - The Terms of Service, Privacy Policy and Support pages are published on GitHub Pages. When you open a page, GitHub records your IP address for security. The developer cannot see this record. The pages use no cookies or analytics.
 
