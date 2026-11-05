@@ -23,6 +23,10 @@
 # A first boot's system banner (docs/M6.md §5.1; about 85–105 s after the boot on the 13-inch, docs/M7B.md C1)
 # must not be in a listing photo: every device waits 120 s with the app in front before the first shot and
 # shoots its four pages again at the end, like the other devices in build.yml.
+#
+# The status bar (the iPad's has a date): the device boots twice, the second time in the set's language and
+# region, and its bar is fixed at 9:41 on 2026-10-07, the app's 「今日」 (docs/M7B.md FIX4). Only here: build.yml and
+# ja-baseline.yml keep their bar, whose date J-4 does not look at beyond comparing two runs of one day.
 name: store-shots
 
 on:
@@ -42,8 +46,9 @@ jobs:
   store-shots:
     name: store-shots (${{ matrix.set.id }})
     runs-on: macos-26
-    # A build and XcodeGen about 3 min, two boots up to 3.5 each (run 41922318959), the two waits 4 min, 16
-    # shots of 11–15 s at most 4 min: about 18 min. A job cut by this limit would not reach the upload.
+    # A build and XcodeGen about 3 min, four boots up to 3.5 each (run 41922318959; a device boots twice, for its
+    # language, and the second is shorter), the two waits 4 min, 16 shots of 11–15 s at most 4 min: at most about
+    # 25 min. A job cut by this limit would not reach the upload.
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -119,6 +124,12 @@ jobs:
             echo "::warning::TegakiCalendar.app not found under build/DerivedData; no shots."
             exit 0
           fi
+          # The photos' day and the status bar's 9:41 in this runner's time zone at that date (the runners are
+          # on UTC, GitHub says; the simulator takes the host's zone, and an ISO date in another zone would shift
+          # the bar's time or date). `date` writes +0000, ISO 8601 with a colon is +00:00.
+          STAMP="$(date -j -f "%Y-%m-%d %H:%M:%S" "2026-10-07 09:41:00" "+%Y-%m-%dT%H:%M:%S%z" 2>/dev/null || echo "2026-10-07T09:41:00+0000")"
+          STATUS_TIME="${STAMP:0:22}:${STAMP:22:2}"
+          echo "runner: $(date) TZ=${TZ:-unset}; the status bar's time: $STATUS_TIME"
           shoot() {  # shoot <page>: one photo; a failure only loses this one file
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
@@ -166,8 +177,21 @@ jobs:
             echo "$ID: $NAME ($UDID)"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
+            # The whole device in the set's language and region, so the status bar is too (the launch's
+            # -AppleLanguages reaches only the app). They count from the next boot. Nothing here may stop the
+            # photos: whatever fails, the device comes back as before and is shot as before.
+            xcrun simctl spawn "$UDID" defaults write -g AppleLanguages -array "$SET_LANGUAGE" || echo "::warning::$ID: the device's language was not set."
+            xcrun simctl spawn "$UDID" defaults write -g AppleLocale -string "$SET_LOCALE" || echo "::warning::$ID: the device's region was not set."
+            xcrun simctl shutdown "$UDID" || true
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot again; skipping."; continue; }
             xcrun simctl ui "$UDID" appearance light || true
-            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            # The status bar shows the app's 「今日」. An ISO date fixes the date as well as the time ("If the
+            # string is a valid ISO date string it will also set the date on relevant devices", simctl's help,
+            # not checked on this repository's Mac, which has no simctl); the plain "9:41" is the way back.
+            xcrun simctl status_bar "$UDID" override --time "$STATUS_TIME" --batteryState charged --batteryLevel 100 --wifiBars 3 \
+              || xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 \
+              || true
             if ! xcrun simctl install "$UDID" "$APP"; then
               echo "::warning::install failed on $ID; skipping."
               xcrun simctl shutdown "$UDID" || true
