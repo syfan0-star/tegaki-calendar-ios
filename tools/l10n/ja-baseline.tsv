@@ -3,7 +3,7 @@
 # or "composedOf", or an exception of ja-exceptions.txt). Sources/TegakiCalendar and TegakiKit/Sources
 # without KitChecks, comments excluded. Columns: the file (without Sources/TegakiCalendar/ or
 # TegakiKit/Sources/), the line, the string as the Swift source writes it between its quotes.
-# commit: 31d243c725f141f60ff62c9ad8d12148d5f7e86d
+# commit: 9cbc3c9f8223498bf5a8f8f1799388f196db309f
 # strings: 516 in 42 files
 Calendar/EventDraft.swift	73	カレンダーへのアクセスが許可されていません
 Calendar/EventDraft.swift	74	予定を登録できるカレンダーがありません

@@ -1283,12 +1283,13 @@ jobs:
   # own job so the other shots and the 90-minute job do not change. Best effort: never fails the run.
   # The limits, from run 41264726309: a build took 0.9 min (8 is allowed for), a device 5.8–9.6 min
   # (its boot 1.9–3.2, the 60 s wait, xcodebuild up to the first test 1.1, 10 or 13 shots of 11–15 s, and
-  # at most 1 for a slow first test), so 24–36 min for the four. The shots stop after 36 min, which
-  # leaves the upload inside the 45.
+  # at most 1 for a slow first test), so 24–36 min for the four. The shots stop after 46 min, which
+  # leaves the upload inside the 55. 36 was too short: run 80 (fix-1-1-1) was stopped while booting the
+  # last device, the owner's iPad Air 11-inch, and took 33 of the 43 photos.
   blank-paper:
     name: Blank paper shots (1.1.1)
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 55
     continue-on-error: true
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -1342,7 +1343,7 @@ jobs:
       # owner's iPad Air 11-inch (820 × 1180); the first job's ipad11 photos stay the iPad Pro 11-inch.
       # If no PNG arrived, the attachments are taken out of the result bundle instead.
       - name: Shots on four devices
-        timeout-minutes: 36
+        timeout-minutes: 46
         continue-on-error: true
         run: |
           set -uo pipefail

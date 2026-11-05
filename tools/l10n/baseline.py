@@ -43,7 +43,7 @@ import tarfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
 
-BASE_COMMIT = "31d243c725f141f60ff62c9ad8d12148d5f7e86d"  # <1.1.1> (§1.5): the provisional one until 1.1.1 is on main
+BASE_COMMIT = "9cbc3c9f8223498bf5a8f8f1799388f196db309f"  # <1.1.1> (§1.5): main after 1.1.1 was released (2026-11-06); the provisional 31d243c had the same app
 TSV = "tools/l10n/ja-baseline.tsv"
 
 APP_ROOT = "Sources/TegakiCalendar/"
