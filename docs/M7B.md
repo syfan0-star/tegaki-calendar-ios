@@ -1590,3 +1590,98 @@ CI-0 の 1 回目が走っている間に残りを片付けた。push・公開�
 2. **本人に報告する**（公開の直前の確認で）: 第 12 節の言語の限定を外したこと（§12.6 の 29）。**決めてもらう**: 中国の 2027 年（「TW」の節。ライブラリの次の版の取り寄せは本人の了承が要る）。
 3. **リードが決める**: `build.yml` の閾値を 29,397 に上げるか（今のままでも通る。コメントも 29436 のまま）。de の直した 2 件をもう一度逆翻訳させるか。fr の `toast.weekStart.otherForm.other` が日曜・10 ページ以上・311 pt で 4 行になる件（Catalyst の測り。`REVIEW.md` の 10。CI の判定は 402 pt）。pt-BR の `regionChanged.sunday` の semanas de segunda（△ のまま）。`support-replies/README.md` に日本語のメールを Claude に渡すときの手順が要るか。
 4. `M7_PLAN.md` §4.5 の里程、C の節の「リードの残作業」の 6〜8（確認表、B11 の 2 回目、その後の順）。
+
+## FIX3（CI の 1 回目の写真の確認で残った指摘の直し。2026-11-05）
+
+CI の 1 回目（`build.yml` は全部緑、run 42013412254。`ja-baseline.yml` は run 42013415033）の写真を別の役が開いて判定した KEEP の指摘（major 0・minor 5・note 17）のうち、リードが頼んだ分を直した。**push していない。CI はこの節の変更をまだ通っていない**。ja の見た目は変えていない（下の確かめ）。凍結の 18 ファイル、`InkCanvasViewTests`、`Compat10`・`Fixtures`、既存の月曜の期待、K-1〜K-11 は触っていない。
+
+### commit（push なし）
+
+| commit | 中身 |
+| --- | --- |
+| bd30ad8 | 週の見出し（1・3） |
+| 318eac1 | 振替の型の名前（2） |
+| 472b65f | 見本の語（4） |
+| c620c78 | 撮影の揺れ（5）、課金画面（6）、閾値 |
+| この節の commit | 契約（§12.6 の 33・35〜40 と本文）、`M7_PLAN.md` の件数、この節 |
+
+### 直したもの
+
+1. **pt-BR の週の見出し（`dom` が「d...」）**: 3 字の曜日の言語は、曜日を数字の上に置く（`PaperWords.weekColumnStacksWeekday`）。7 列とも 12 pt で、切れない。ピンチの途中で高さが変わらないよう、列の幅でなく言語で決める（全部のズームと機種で同じ形。iPad の `dom.` も数字の上）。行の高さは 48 → 約 52 pt。1 日の列も曜日を出す。**案を変えた理由**: 案は「数字の枠を 28 に」か「8 pt 固定」。この Mac の字で `dom` は 12 pt の medium で 26.2 pt、bold で 27.2 pt。CI の写真の iPhone 17 の列は 53.7 pt（幅でなく紙の範囲の高さでズームが決まる）で、数字の横の残りは 15.7 pt。枠を 28 にしても 8 pt 前後になり、狭い iPhone の列（高さの見積もりで 40 pt ほど）では入らない。数字の上なら 40 pt の列でも 12 pt のまま入る。`PaperFitTests.testWeekColumnWeekdaysFit` が測る。
+2. **振替の型の名前**: `.substituted` のとき `%s` を埋めず、`full` も `short` の字（「休息日」「放假日」「Day off」）。実データを全部読んだ（`m7b-impl/FIX3/subst.py`）: flags 4 の名前があるのは 15 か国（AM AZ BG BY CN HU KG KZ LV MM RU TW UA UZ VN）、どの国も全部の列に `short` があり、**国のファイルは変えずに済んだ**。JP には flags 4 が無い（J-4 に関係しない）。TW の「國慶日（補假）」（flags 2）、米国の「(observed)」、推定の印は別の型で巻き込まない（`HolidayChecks` の既存の期待のまま）。`substFrom`・`substFmt`・型はファイルに残し、読むときの検査だけに使う（`CountryHolidays` の `filled`・`substFormat`・`substFrom`・`addFrom`・`pairs` は消した）。`HolidayChecks` に 15 か国 × 10 言語 × 全部の年の確かめを足した。§7.4 の「2026-10-07 は祝日なし」は、9 言語の地域と英国・スペイン・日本で照らして「中国だけ休息日」に直した。
+3. **週の見出しの祝日名**: ja 以外は `ViewThatFits(in: .horizontal)` で、`full` が列に入らなければ `short`（「国庆节（补假）」→「国庆节」、「國慶日（補假）」→「國慶日」、ko の「개천절」）。`DateLabel.holidayShortName` を足した（週のページだけ値がある）。ja の道は 1.1 の 1 つの `Text`。日本の名前は `full` と `short` が同じ（KitChecks の J-5 と、足した F-9 の確かめ）。
+4. **見本の語**: es の camping を Carpa、pt-BR を Tenda、es の deadline を Plazo、it を Scad.。Mac Catalyst の 10 pt semibold で 31.2・31.5・28.5・29.6 pt（年のチップの上限 42 pt。週の 1 日の帯に入っている pt-BR の Prazo は 29.8 pt）。`REVIEW.md` の 7・9・10、`back/*`。判定は △ のままで合計の数は変わらない。**元を見ない逆翻訳は通っていない**。
+5. **撮影の揺れ**: 13 インチの写真の段の最初で、アプリを前に出して 120 秒待つ（`build.yml` と `ja-baseline.yml` に同じ行。`--last 10m` は `14m`）。理由は下の「揺れの原因」。`status_bar` の日付の固定は入れない（§12.6 の 33 に理由）。
+6. **iPhone の課金画面**: `l10n-shots` に `de/iphone-portrait-sheet-paywall.png`（63 枚）。`LanguageUITests.testGermanPaywallReachesItsLinks`（起動 1 回）: 下まで送り（最大 6 回）、購入の復元・利用規約・プライバシーポリシー・EULA・下の「あとで」の 5 つが、ドイツ語の字のとおりで、`isHittable` で、枠が窓の中にあることを見る。自動更新の説明も枠が窓の中にあり、字が de の文で始まることを見る。写真を 2 枚残す（`paywall-de-top`・`paywall-de-bottom`。`screenshots/ui-tests/attachments`）。リンクは押さない（Safari に出るため）。写真モードの購入の復元は何もしないので、押しても確かめにならない。`PaywallSheet` に `accessibilityIdentifier` を 6 つ足した（`paywall.restore`・`.terms`・`.privacy`・`.eula`・`.laterBottom`・`.disclosure`。絵は変わらない）。
+7. **確認表の文**: §8 の 8 の表の 5 行（日本語の設定と祝日のシート、en の日、de の設定、pseudo の課金画面）を実物に合わせて書き直し、iPhone の課金画面の行を足した。
+
+### 揺れの原因（CI の 1 回目の記録を読んだ）
+
+- **月の写真に手書きが無い**: `ja-baseline` の `app-log.txt` で、最初の起動（pid 15125、10:55:19.08 に起動）は `(Metal) Metal Compiling Shader` が 34 回あり、最後は 10:55:37.95（起動から 18.9 秒）。写真は `simctl launch` が返ってから 8 秒後。2 回目の起動（pid 15803）は 0 回。1.2 の run の最初の起動は同じ 34 回が 1 秒で終わっていて、手書きが写った。つまりインストール後の最初の起動だけが遅れうる。**写真の時刻そのものは見ていない**（`ja-baseline` のジョブの記録が手元に無く、起動と 8 秒からの推定）。
+- **週の写真の通知**: C1 の読みのとおり。boot の段の終わりから約 85〜105 秒。
+- **待ちの起動**はこの 2 つを先に済ませる。段の長さは CI の 1 回目で 8.9 分（11:04:11〜11:13:07）で、2 分足すと約 11 分なので `--last 14m`。
+
+### 契約からのずれ
+
+契約 §12.6 の 33・35〜40 に入れた。案を変えたのは上の 1 だけ。F-9 の「0.6 までの縮小」は pt-BR だけ外れる（数字の上の曜日は縮む必要が無い）。
+
+### 節の記録の読み替え
+
+| 節 | 記録 | 今 |
+| --- | --- | --- |
+| C の節、「リード」の節 | KitChecks 29,447、閾値 29,397 | **29,470**、閾値 **29,420**（足したのは F-9 の 5 件、振替の 16 件、CN の 2 件で 23 件） |
+| C の節の「CI で初めて分かること」の 5、C と FIX の節の「残作業の 6」 | `l10n-shots` 62 枚、es・es-ES・pt-BR の年の写真の Acampar を見る | 63 枚。Acampar の項目は要らない |
+| C1 の「読み方」 | 通知の入った方を撮り直す | 待ちを入れたので入らない見込み。入ったら今までどおり撮り直す |
+| C の節の「ずれ」の 9、「リードの残作業」の 4 | 13 インチの通知の待ちは入れていない、CI-0 の写真を見て決める | 入れた（§12.6 の 33）。日付の固定は入れない |
+| C1 の「次の役へ」の 1 | 両方の `10m` を `12m` に | `14m`（CI の 1 回目で段が 8.9 分かかった） |
+
+### 次の版の候補（直さなかった note。判定の KEEP note のうち）
+
+| 写真の指摘 | 今の見方 | 次にすること |
+| --- | --- | --- |
+| iPhone の道具の説明が語の途中で切れる（de「Löscht be」、fr「Efface le t」など） | 枠の幅は言語によらず、横に送れる作り（`ToolbarView`）。1.2 で新しく出た切れではないと見ているが、日本語の iPhone の消しゴムの写真が無く比べていない | 日本語の iPhone の `tool-eraser` を 1 枚撮って比べる |
+| it の 11/1 が「Giorno dell'unità nazionale · …」で始まり「Ognissanti」が見えない | **データの日付は誤りと言い切れない**。`IT.json` は 11 月の最初の日曜に置いている（2024-11-03、2025-11-02、2026-11-01、2027-11-07。11/4 には無い）。1977 年の法 54 号が「11 月の最初の日曜に祝う」としているのと同じ（この本文は検索の要約で読んだだけ）。2024 年の法 27 号は 11/4 を「国民統一と軍隊の日」と認め、休日の効果は無いとする（Normattiva の本文を読んだ。1977 年の法には触れていない）。2026 年は最初の日曜が諸聖人の日と重なるのでこう並ぶ | 本当の休みの Ognissanti を先に出すかを決める（データの順のままにするか）。**ライブラリへの報告の候補にはしない**（聞くなら「2024 年の法の後も最初の日曜でよいか」という問いとして） |
+| zh-Hant の 10/25・26 が同じ「臺灣光復暨金門古寧頭大捷紀…」で切れ、「（補假）」が隠れる | F-3 どおり。`short` も同じ 15 字なので落としても直らない | データに短い呼び方を持たせるか（元データの扱いの決まりを確かめる） |
+| 終日の欄の fr「Jour」、es「Día」、pt-BR「Dia」が切り替えの「日」と同じ語 | `GLOSSARY.md` で幅に合わせて決めた形 | `allday.label.short` を fr「Tout」、es・pt-BR「Todo」にする案（F-7 の 2.4 em に入るか測る） |
+| de の「保存済み」が Gesichert | 誤訳とは言えないが Gespeichert の方がふつう | 長くなるので mini の見出しの幅を測ってから。ドイツ語を読める人の判断 |
+| ko の 1/1 が「신정연휴」 | KR.json のライブラリの名前のまま。1 日だけの休みに「연휴」（連休）は少し不自然に見えるという印象で、確かではない | 韓国語を読める人か R に確認 |
+| TW の 2/15 が「農曆除夕」（公表は「小年夜」） | 「TW」の節の 4 と同じ。日は公表と合い、名前だけ違う | **ライブラリへの報告の候補**（行政院の公表の CSV が根拠。2026-02-15、2027-02-04）。データの名前を直すなら次の版の取り寄せのとき |
+| fr・es・it の年の 10 月で「13 ma」が予定の棒にほぼ接する | 重なってはいない | このまま。人が見て気になれば |
+
+**この役が気づいた分**: (a) de の iPhone の課金画面の 3 つのリンクは 1 行に入らず、ボタンごとに 2〜3 行に折り返す（Mac Catalyst の絵。語はハイフンで分かれるが「…」では切れない）。縦に 3 行に並べる形は `ViewThatFits` で作れるが、iPad の `.fitted` のシートの高さに響くかをここで確かめられないので、App Review の必須の所は今回は変えない。(b) 2 字の曜日の言語（en・de・fr・es・it）も、狭い iPhone の列（40 pt ほど）では数字の横に入らない見込み（写真が無く未確認）。ja も 1.1 から同じ。(c) iPhone の小さい機種の 1 日の列は「11/1」が 0.6 倍でも入らず「1…」になる（Mac Catalyst の絵。1.1 からの数字の枠の話で、ja も同じ）。
+
+### J-4 の記録（CI の 1 回目。判定の KEEP の note。基準は仮の 31d243c）
+
+比べた写真は基準 75 枚、今 106 枚。同じ 60、違う 15、新だけ 31。環境の `env.txt` は同じ（Xcode 26.6、iOS 26.4）。
+
+- **違ってよい 3 枚**: `ipad13-portrait-sheet-settings`、`ipad13-portrait-sheet-info`、`store/ipad13/06-settings`。
+- **基準の揺れ 4 枚**（基準を撮り直して比べ直す）: `ipad13-portrait-month`・`store/ipad13/01-month`（基準に手書きが無い）、`ipad13-portrait-week`・`store/ipad13/02-week`（基準に通知）。
+- **`ipad13-portrait-sheet-sync`**（114,061 画素、強い差 33,805）: 字と行は同じで、リスト全体が今の方で 1 画素ほど下にある。C1 の「変わらない見込み」は外れた。上に節が増えたことによるスクロール位置の丸めと見ている。
+- **弱い差だけの 7 枚**（強い差 0）: `sheet-lasso` 21,559 画素・最大 2、`iphone-portrait-day` 87,554・4、`store/iphone/03-day` 102,850・9、`readonly` 981・5、`sheet-export` 327・1、`month-zoom2` 49・1、`sheet-create` 3・1。
+
+### 確かめ（この Mac、Swift 6.4.2、Command Line Tools。push・CI は無し）
+
+| 確かめ | 結果 |
+| --- | --- |
+| `swift build --package-path TegakiKit` | 成功。新しい警告 0 |
+| `swift run --package-path TegakiKit KitChecks` | **all 29470 checks passed**。compat10 は 361 件・失敗 0 |
+| `tools/typecheck/typecheck.sh`（`m7b-impl/FIX3/tc`） | all OK・警告 0（アプリ、TegakiCalendarTests 34、UI テスト 6、Kit のテスト） |
+| `python3 -I tools/l10n/lint.py` | L-1〜L-14 すべて ok（L-12 は目安の警告だけ） |
+| `build.py --check`・`baseline.py --check`（基準の行は変わらない。516 行） | 一致 |
+| `shasum -a 256 -c`（`m7b-impl/Record/data-abs.sha256`） | 18 件とも一致 |
+| `diff_steps.rb`（`ja-baseline.yml` と `build.yml`） | 写した 13 段のうち 12 段の `run` が同じ（13 インチの写真の段を含む）。残り 1 段の差はシートの `holidays week-start` だけ |
+| `check_workflow.rb`（Ruby の YAML と `bash -n`） | `build`・`ja-baseline` とも OK。この Mac に actionlint は無い |
+| **Mac Catalyst の代わりで XCTest**（`m7b-impl/S2/apprun/run.sh PaperFitTests PaywallSheetTests`。XCTest の意味だけを写した小さな代わり） | 25 本・1,319 件・失敗 0。新しい `testWeekColumnWeekdaysFit`・`testWeekColumnShortHoliday` を含む |
+| **日本語の絵の、この役の前の HEAD（e1073ae）との比較**（J-4 の代わりの先取り。`m7b-impl/FIX3/harness/ja-compare.sh`。紙・PDF 4 種・`StickyHeaderView`・`AllDayBandView`・`PageHeaderView` を今日 3 通りで 89 枚。週の見出しは 10/12 のスポーツの日を含む） | 77 枚が 0 画素。12 枚は `header-*` だけで最大 1/255・強い差 0。**同じ HEAD を 2 回描いて比べても同じ 12 枚が同じ画素数で違う**ので、描き直しの揺れ（P の節と同じ）で、変更の差ではない。`sticky-*` は全部 0 画素 |
+| 他の言語の絵（Mac Catalyst の `ImageRenderer`。`m7b-impl/FIX3/harness`） | pt-BR の週を前後で見た（前は 402 pt の幅、後は iPhone 17 の 53.7 pt の列、40 pt の列、1024 pt の幅）: 後は 7 列が同じ大きさで切れない。zh-Hans の 10/5〜7「国庆节」「休息日」、zh-Hant の 10/9「國慶日」、ko の 10/5「개천절」が切れない |
+
+**走らせていないもの**: 本物の XCTest（`swift test` の `WorldHolidaysTests`・`HolidayGeometryTests` の新しい期待はこの Mac では型だけ、アプリの単体テストは上の代わりだけ）、UI テスト（`testGermanPaywallReachesItsLinks` は型だけ）、シミュレータ、CI、新しい写真の手順、本物の `<1.1.1>` との J-4。
+
+### CI で初めて分かること（リードへ）
+
+1. `testGermanPaywallReachesItsLinks`: `isHittable` と枠。`paywall-de-bottom` の写真を開いて、§8 の 8 の表の字を確かめる。ドラッグの開始の位置（画面の 75%）で、シートが閉じたり送れなかったりしないか。
+2. pt-BR の週の写真: 数字の上の曜日と、行の高さ（約 52 pt。幅の決まるズームが少し下がる）。ja の週が動いていないこと（J-4）。
+3. `ViewThatFits` の祝日名（`zh-Hans`・`zh-Hant`・`ko` の iPhone の週）と、`zh-Hans` の日の題名と札の「休息日」。
+4. 基準の撮り直し（`ja-baseline.yml`）: 月に手書きがあり、週に通知が無いこと。段が `--last 14m` に入ること。
+
+資料: [Legge 1 marzo 2024, n. 27（Normattiva）](https://www.normattiva.it/eli/id/2024/03/16/24G00044/ORIGINAL)。1977 年の法は検索の要約だけで、本文は開いていない。
