@@ -1440,14 +1440,14 @@ commit はしていない（commit は C）。push・CI も無し。Web の作�
 | --- | --- |
 | e7b4d2f の CI | run 41264726309、ジョブ 57.6 分、UI テストの段 9.6 分、`EraserAndBelowDayUITests` 8 本とも合格、`repro: A17 PencilKit's drawingGestureRecognizer.allowedTouchTypes pencilOnly=[2] anyInput=[0, 2, 3]`、`repro: B8 PencilKit's pan.allowedTouchTypes=[0]`（direct 0、pencil 2、indirectPointer 3） |
 | 1.1.1 の CI（参考） | run 41922318959（8d81b89）、ジョブ 67.9 分、UI テストの段 11.9 分、`compat-v1.0` 7.6 分 |
-| `xcodegen --version`、`knownRegions` | CI-0 |
-| Localized bundle check | CI-0（xcstrings か strings か、`HolidayData` の場所） |
-| `LanguageUITests`（0-2 の pt-PT を含む）、週の始まりの地域の値 | CI-0 |
-| 「言語」の項目が出る条件 | TestFlight（§2.1） |
-| 祝日データを読んだ時間 | CI-0 |
-| J-4 の 2 つの run の `env.txt`、写真の比較、F-1 の数字の枠 | CI-0 と本物の `<1.1.1>` の後（1.1 の CI の写真は英語の環境で撮っていたので、漢字が中国語用の書体だった） |
+| `xcodegen --version`、`knownRegions` | 2.46.0。`knownRegions` = Base・de・en・es・fr・it・ja・ko・pt-BR・zh-Hans・zh-Hant（run 42124201768） |
+| Localized bundle check | xcstrings（`CompileXCStrings`、L-10 ok）。`HolidayData` は app の bundle に入り、祝日のシートの写真と UI テストで読めた |
+| `LanguageUITests`（0-2 の pt-PT を含む）、週の始まりの地域の値 | 11 本とも合格（`testRegionalVariants`・`testWeekStartFollowsTheRegion`・`testGermanPaywallReachesItsLinks` を含む。run 42124201768） |
+| 「言語」の項目が出る条件 | 本人の iPad mini では最初から出た（2026-11-06 の答え） |
+| 祝日データを読んだ時間 | 4 ms（`l10n: holidays loaded 4 ms`、run 42124201768） |
+| J-4 の 2 つの run の `env.txt`、写真の比較、F-1 の数字の枠 | 下の「J-4（最後）」の節。F-1 は `semibold 19.22 in 19.5、heavy 20.34 in 21.0`（シミュレータ） |
 | ツールバーの L-12 の警告 | 今 59 件（全部で。ツールバーの分は 49 件）。字数 × 0.6 の目安で、本当の幅は `ToolbarFitTests`。一覧は `python3 -I tools/l10n/lint.py .` の出力 |
-| `ToolbarFitTests` が 38 pt を超えたと出した名前、F-15・F-16 の幅 | CI-0 |
+| `ToolbarFitTests` が 38 pt を超えたと出した名前、F-15・F-16 の幅 | 8 本とも合格（超えた名前なし） |
 | `tools/weekstart-compat` | この Mac: 1.0（a21e469）16 件・失敗 0、31d243c 18 件・失敗 0。CI-0 |
 | `englishPagesPublished` | false（1.2）。英語の規約の URL にするのは 1.3 の説明から（0-38）。公開の日に Connect の URL を替えたかは公開の日に |
 | 記録のシート | 英語などの TestFlight と審査の端末でも、「バージョン」の長押しの記録は日本語で出る（§2.5、0-37。使うのは本人だけ） |
@@ -1957,3 +1957,11 @@ CI（`d896799`、run 42104420665）: 4 段とも成功。単体 445 本・スキ
 - 年のページ 22 枚を 2 つの役が開いた（`wf_2108d36e-787`）: **major 0・minor 0**。星とハートは 7 日とも数字・曜日・祝日名・チップ・罫線に触れない。11 月のマーカーも触れない。無い日のマスに線なし。zh-Hans・zh-Hant・ko の祝日名は数字と曜日に重ならない。
 - note: zh-Hans の 10/4（日曜）に「国庆节」が出ない（データが 10/1〜3・5 を国庆节、6・7 を休息日とし、日曜の 4 日を含めない。日曜は赤いので休みと分かる。次の版の候補）。
 - **これを店に出す写真にする**（§8 の 11 の確認ページは `--shots SP/ci-store4/shots --shots-commit 6d4b5ff`）。
+
+### J-4（最後。2026-11-06）
+
+- 基準: `ja-baseline.yml` の run 42121207729（ref `9cbc3c9` = 公開した 1.1.1、成果物 `ja-baseline-9cbc3c9`）。新: 1.2 の CI の run 42124201768（`6d4b5ff`、成果物 `screenshots`）。**2 つの `env.txt` は同じ**（Xcode 26.6・17F113、5 機種とも iOS 26.4（23E254a））。比較は `SP/ci-m7b4/j4out`。
+- 数: 同じ 42、違う 33、新だけ 33（`ipad13-portrait-sheet-holidays.png`・`sheet-week-start.png` と `ui-tests/attachments/` の 31 枚）、基準だけ 0。
+- **強い差のある 25 枚**: 22 枚は iPad の状態の帯の日付だけ（強い差 1,415〜1,448、y 16〜47。2 つの run の UTC の日が違う）。残りは違ってよい 3 枚: `ipad13-portrait-sheet-info.png`（40,821）、`sheet-settings.png`（4,979）、`store/ipad13/06-settings.jpg`（4,981）と、`sheet-sync.png`（35,220）。sync の切り抜きは字が同じで縦に少しずれただけ（上に週の始まりと祝日の節が増えた分）。
+- **弱い差だけの 8 枚**は最大 1〜6/255（月の拡大・週の拡大・読み取り専用・しまったツールバーなど。run ごとの揺れの種類）。
+- **J-1〜J-10 の写真の条件を満たす**: 日本語の紙・見出し・ツールバー・シートの絵は、1.2 で変わる設定と情報のシートを除き、公開した 1.1.1 と同じ。
