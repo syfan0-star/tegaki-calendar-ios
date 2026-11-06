@@ -36,8 +36,10 @@ The checks:
         the 1.1 values that are Japanese whatever the screen is.
   L-8   Every key the code uses exists, every key of the sources is used ("// l10n-dynamic: <prefix>"
         counts the keys that start with the prefix, and is what allows a key that is not a literal).
-  L-9   docs/store: the lengths of the fields, the forbidden words, the keywords, the URLs on the side
-        of LegalLinks.englishPagesPublished, no price in the texts of the other languages.
+  L-9   docs/store: the lengths of the fields, the forbidden words, the keywords (100 characters, no
+        space next to a comma, no word twice, no word of the name in Connect or of the subtitle), the
+        URLs on the side of LegalLinks.englishPagesPublished, no price in the texts of the other
+        languages.
   L-10  build.py --check: the generated files are what the sources and translations give.
   L-11  No right-to-left language (ar, he, fa, ur) in Sources/TegakiCalendar/Resources.
   L-12  A warning, not a failure: a Latin value whose longest line, at 0.6 em a character, is over the
@@ -825,7 +827,9 @@ def check_l14(repo, result):
 STORE = "docs/store"
 FIELD_LIMITS = {"subtitle.txt": 30, "promo.txt": 170, "description.txt": 4000, "whatsnew.txt": 4000}
 REVIEW_NOTE_BYTES = 4000
-KEYWORD_BYTES = 100
+# Characters, not bytes (1.2.1): App Store Connect took the ja keywords of 1.0 (68 characters, 160 bytes in
+# UTF-8) and Apple's search page says "limited to 100 characters" (docs/R1_2_1_STORE.md §1).
+KEYWORD_CHARACTERS = 100
 NAME_LENGTHS = (2, 30)
 SUBSCRIPTION_NAME_LENGTHS = (2, 30)
 SUBSCRIPTION_NOTE_LENGTH = 45
@@ -835,8 +839,37 @@ STORE_MARKS = ("apple pencil", "pencil", "ipad", "iphone", "icloud", "apple", "�
                "애플", "아이패드", "아이폰", "펜슬", "아이클라우드")
 STORE_FREE = re.compile(r"無料|免费|免費|무료|\b(?:free|gratuit|kostenlos|gratis|grátis)\b", re.IGNORECASE)
 STORE_PRICE = re.compile(r"[¥￥€$£₩]|\b(?:JPY|EUR|USD|GBP|CNY|KRW|TWD|HKD|BRL|MXN|CAD|AUD|CHF)\b")
-_NAME_SEPARATOR = re.compile(r"[\s:：,，.。·・/()（）–—-]+")
+_NAME_SEPARATOR = re.compile(r"[\s:：,，.。·・/()（）–—'’-]+")
 _CJK_WORD = re.compile("[぀-ヿ㐀-䶿一-鿿豈-﫿가-힯]")
+
+
+def _plural_pair(a, b):
+    """Apple counts a plural and its singular as the same word ("climbs" and "climb"). Only the English
+    plurals are seen: -s, -es and -y → -ies ("diaries" and "diary"); another language's plural (it
+    "agende" and "agenda") is not."""
+    def plural_of(x, y):
+        return x in (y + "s", y + "es") or (len(y) > 1 and y.endswith("y") and x == y[:-1] + "ies")
+    return a == b or plural_of(a, b) or plural_of(b, a)
+
+
+def keyword_repeats(keyword, name, subtitle, name_words=()):
+    """The words of the app's name in Connect or of its subtitle that `keyword` repeats (Apple's search
+    page: do not repeat the words of the name or the subtitle). A Latin keyword is compared word by word,
+    plurals as the same word ("hand" is not in "handwriting"); a CJK keyword, which has no spaces, repeats
+    when the name or the subtitle holds the whole keyword, or the keyword holds a CJK word of theirs
+    (one that spaces or signs set apart, as in ko). A ja or zh name and subtitle have no spaces, so each
+    is one long "word": their words are written by hand in locales.json ("nameWords", `name_words`), and
+    a CJK keyword that holds one of them repeats it too (1.2.1: "デジタル手帳", "日程安排")."""
+    words = [w.casefold() for w in _NAME_SEPARATOR.split(f"{name}\n{subtitle}")
+             if len(w) >= (2 if _CJK_WORD.search(w) else 3)]
+    low = keyword.casefold()
+    if _CJK_WORD.search(keyword):
+        found = [low] if low in name.casefold() or low in subtitle.casefold() else []
+        found += [w for w in words if _CJK_WORD.search(w) and w in low and w != low]
+        found += [w.casefold() for w in name_words if w and w.casefold() in low]
+        return sorted(set(found))
+    own = [w for w in re.split(r"[\s'’-]+", low) if w]
+    return sorted({w for w in words if not _CJK_WORD.search(w) for o in own if _plural_pair(o, w)})
 
 
 def store_text(path):
@@ -875,10 +908,11 @@ def check_l9(repo, result):
     other_side = {name: STORE_BASE + ("" if published else "en/") + name for name in pages}
     seen = 0
 
-    def banned(where, text):
+    def banned(where, text, allowed=()):
         low = text.casefold()
+        allowed = {a.casefold() for a in allowed}
         for mark in STORE_MARKS:
-            if mark.casefold() in low:
+            if mark.casefold() in low and mark.casefold() not in allowed:
                 result.problem(f"{where}: {quoted(text)} has {mark!r} (Apple's marks stay out of the name, subtitle and keywords; 5.2.5)")
         match = STORE_FREE.search(text)
         if match:
@@ -910,20 +944,42 @@ def check_l9(repo, result):
                         result.problem(f"{where}: {quoted(name)} is {len(name)} characters (2–30)")
                     banned(where, name)
             elif field == "keywords.txt":
-                if len(text.encode("utf-8")) > KEYWORD_BYTES:
-                    result.problem(f"{where}: is {len(text.encode('utf-8'))} bytes (at most {KEYWORD_BYTES})")
-                banned(where, text)
-                name_text = store_text(os.path.join(repo, rel, "name.txt")) or ""
-                name_words = {w.casefold() for w in _NAME_SEPARATOR.split(name_text)
-                              if len(w) >= (2 if _CJK_WORD.search(w) else 3)}
+                if len(text) > KEYWORD_CHARACTERS:
+                    result.problem(f"{where}: is {len(text)} characters (at most {KEYWORD_CHARACTERS})")
+                # keywordMarks: a mark the owner kept on purpose (ja's iCloud since 1.0, docs/M7B.md)
+                banned(where, text, locale.get("keywordMarks", ()))
+                # The name in Connect is the nameLine-th line of name.txt (1 when not given), not every
+                # candidate (1.2.1: the names are settled, docs/store/README.md "名前").
+                names = (store_text(os.path.join(repo, rel, "name.txt")) or "").split("\n")
+                line = locale.get("nameLine", 1)
+                name = names[line - 1] if isinstance(line, int) and 0 < line <= len(names) else ""
+                if not name.strip():
+                    result.problem(f"{where}: {rel}/name.txt has no line {line!r} (nameLine), the name in Connect")
+                subtitle = store_text(os.path.join(repo, rel, "subtitle.txt"))
+                if subtitle is None:
+                    result.problem(f"{where}: {rel}/subtitle.txt is needed to check the keywords")
+                    subtitle = ""
+                # nameWords (ja, zh): the words of a name and subtitle without spaces, written by hand;
+                # each must be in one of them, so a typo cannot let a keyword through.
+                name_words = locale.get("nameWords", [])
+                for name_word in name_words:
+                    if not name_word or (name_word not in name and name_word not in subtitle):
+                        result.problem(f"{rel_table}: {code} nameWords {name_word!r} is not in the name "
+                                       f"{quoted(name)} or the subtitle {quoted(subtitle)}")
+                seen_words = set()
                 for word in text.split(","):
+                    if word != word.strip():
+                        result.problem(f"{where}: {quoted(word)} has a space or a line break next to a comma")
                     word = word.strip()
                     shortest = 2 if _CJK_WORD.search(word) else 3
                     if len(word) < shortest:
                         result.problem(f"{where}: the word {quoted(word)} is shorter than {shortest} characters")
-                    for name_word in sorted(name_words):
-                        if name_word in word.casefold():
-                            result.problem(f"{where}: the word {quoted(word)} has {name_word!r} of the app's name")
+                    if word.casefold() in seen_words:
+                        result.problem(f"{where}: the word {quoted(word)} is there twice")
+                    seen_words.add(word.casefold())
+                    for repeated in keyword_repeats(word, name, subtitle, name_words):
+                        result.problem(f"{where}: the word {quoted(word)} repeats {repeated!r} of the name "
+                                       f"{quoted(name)} or the subtitle {quoted(subtitle)}")
             elif field == "urls.txt":
                 lines = text.split("\n")
                 expected = [pages["support.html"], pages["privacy.html"]]

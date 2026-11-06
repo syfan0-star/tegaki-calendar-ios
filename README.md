@@ -5,7 +5,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 
 **2026-10-30 に 1.0（ビルド 10）を App Store で公開しました**（審査は 10-18 提出 → 2 回の差し戻し（掲載写真の価格、サブタイトルの Apple Pencil）→ 10-29 承認。App Store のページ: <https://apps.apple.com/jp/app/id6822762089>。反映まで最大 24 時間）。
 
-その後の版: **1.0.1**（iPhone で年のページから日のページへ移れない不具合の直し。[docs/R1_0_1.md](docs/R1_0_1.md)）は公開済み。**1.1**（ツールバーをしまう・消しゴムから自動でペンへ・下に伸びるメモと日の「自由メモ」・日付の当たり・年の左端の数字・線の予算・「この端末」。[docs/M7A_CONTRACT.md](docs/M7A_CONTRACT.md)・[docs/M7A.md](docs/M7A.md)）は main に取り込み済み（e7b4d2f）で公開中。**1.1.1**（予定の少ない月・年の上の空白、年の大きさが年ごとに違う不具合、メモ欄を最初から全開、ピンチの案内、「今日」を右へ。[docs/R1_1_1.md](docs/R1_1_1.md)）はブランチ `fix-1-1-1` で本人の確かめと審査を待っています。**1.2「世界対応」**（10 の表示言語、国ごとの祝日、週の始まりを月曜と日曜から選べる、英語の規約類、App Store の各国語、EU 27 か国での販売。[docs/M7B_CONTRACT.md](docs/M7B_CONTRACT.md)・[docs/M7B.md](docs/M7B.md)）はブランチ `m7b` で実装まで済み、CI・本人の実機の確かめ・1.1.1 の公開を待っています。main への取り込みは本人の了承の後です。
+その後の版: **1.0.1**（iPhone で年のページから日のページへ移れない不具合の直し。[docs/R1_0_1.md](docs/R1_0_1.md)）は公開済み。**1.1**（ツールバーをしまう・消しゴムから自動でペンへ・下に伸びるメモと日の「自由メモ」・日付の当たり・年の左端の数字・線の予算・「この端末」。[docs/M7A_CONTRACT.md](docs/M7A_CONTRACT.md)・[docs/M7A.md](docs/M7A.md)）は main に取り込み済み（e7b4d2f）で公開済み。**1.1.1**（予定の少ない月・年の上の空白、年の大きさが年ごとに違う不具合、メモ欄を最初から全開、ピンチの案内、「今日」を右へ。[docs/R1_1_1.md](docs/R1_1_1.md)）は 2026-11-06 に公開済み。**1.2「世界対応」**（10 の表示言語、国ごとの祝日、週の始まりを月曜と日曜から選べる、英語の規約類、App Store の各国語、EU 27 か国での販売。[docs/M7B_CONTRACT.md](docs/M7B_CONTRACT.md)・[docs/M7B.md](docs/M7B.md)）は 2026-11-06 に公開済み（ビルド 18。EU での配信は本人の届け出が通ってから）。**1.2.1**（App Store の評価のお願い、日本語以外の画面で英語の規約類、検索の語。[docs/R1_2_1.md](docs/R1_2_1.md)）はブランチ `r121` で実装まで済み、CI・本人の実機の確かめ・審査を待っています。main への取り込みは本人の了承の後です。
 
 - Web 版の使い方・画面の考え方: [tegaki-calendar/README.md](https://github.com/syfan0-star/tegaki-calendar/blob/main/README.md)
 - Web 版の設計書: [tegaki-calendar/docs/SPEC.md](https://github.com/syfan0-star/tegaki-calendar/blob/main/docs/SPEC.md)
@@ -39,6 +39,9 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 | [docs/R1_1_1.md](docs/R1_1_1.md) | 1.1.1 の記録（上の空白と年の大きさの原因と直し、メモ欄の全開、ピンチの案内、「今日」の場所、確かめ、新機能の文、審査メモ、本人の確かめ表、1.2 への申し送り） |
 | [docs/M7B_CONTRACT.md](docs/M7B_CONTRACT.md) | 1.2（M7b「世界対応」）の実装契約（言語の選ばれ方と文字列の仕組み、書式、紙に字を入れるきまり、世界の祝日、週の始まり（K-11）、規約類と App Store の文、EU での販売、CI、本人の確かめの表） |
 | [docs/M7B.md](docs/M7B.md) | 1.2 の実装結果（担当ごとの結果・契約からのずれと決め方・KitChecks の数・祝日データの弱い所・CI で初めて分かること・本人とリードがやること） |
+| [docs/R1_2_1.md](docs/R1_2_1.md) | 1.2.1 の契約と記録（App Store の評価のお願いの決まりと呼ぶ所、日本語以外の画面で英語の規約類へのリンク、版、本人の確かめ表、公開までの順番、既定で決めたこと、確かめ） |
+| [docs/R1_2_1_STORE.md](docs/R1_2_1_STORE.md) | 1.2.1 の App Store の文（キーワードの直しと訳し戻し、新機能の文、説明の利用規約・プライバシーポリシーの行、URL、lint の L-9 の直し、審査メモ、Connect に入れるもの） |
+| [docs/US_AGE_LAWS.md](docs/US_AGE_LAWS.md) | 米国の州の年齢確認の法律の覚え書き（本人が決めるため。法律の助言ではない。1.2.1 では何も変えない） |
 | [docs/i18n/GLOSSARY.md](docs/i18n/GLOSSARY.md) ／ [docs/i18n/REVIEW.md](docs/i18n/REVIEW.md) | 9 言語の用語集と、訳を日本語へ逆に訳して照らした結果（`docs/i18n/back/` が逆翻訳。ネイティブの確認は無いことも書いてある） |
 | [docs/store/](docs/store/README.md) ／ [docs/support-replies/](docs/support-replies/README.md) | App Store の文の原稿（15 ロケール。入力は確認表を本人に見せた後）と、サポートの返事の定型文（送るのは本人） |
 | [docs/PRICING.md](docs/PRICING.md) | 価格（月 300 円・年 2,400 円・14 日間無料。2026-10-11 の決定、M5 で実装） |
@@ -68,7 +71,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 | 手書きの書き出し | 設定 › データ › 「手書きを書き出す」（閲覧専用でも使えます。iPhone でも）。**データファイル（JSON、すべてのページ）** は、この端末に保存されている手書きの全ページ（月・週・日・年）を 1 つの読める整形 JSON（形式 `tegaki-app-export` v1。[設計書 §3.9](docs/DESIGN.md#39-保存形式とバージョン)）にしたもので、ファイル名は「てがきカレンダー 手書き YYYY-MM-DD.json」。「Web 版の手書きを取り込む」から取り込み直せます（同じファイルを二度取り込んでも二重にならず、書き出した後に消した線は戻りません。全部を元に戻すときは「この端末の手書きを全て消す」の後に取り込みます）。**このページを PDF** は、いま開いているページを 1 枚の PDF に（紙・予定・祝日・手書きが画面のとおり。紙と文字はベクタ、手書きは 2 倍の画像。現在時刻の赤線は入れません。ファイル名は「てがきカレンダー 2026年10月 月.pdf」の形）。できあがると「共有…」で「ファイル」アプリに保存、AirDrop、メールなどへ |
 | Apple Pencil のダブルタップ／スクイーズ | iPad の「設定 › Apple Pencil」で選んだ動作どおりにペン ⇄ 消しゴム |
 | 初回案内 | カレンダーのアカウント → フルアクセスの説明 → ペンと指の使い分け → iCloud と手書きの保存、の 4 枚。最後のボタンで許可の画面が出ます（iCloud に許可の画面はありません） |
-| 設定画面 | ヘッダーの ⚙ か ☁。表示するカレンダー（アカウントごと）、予定の登録先、カレンダーへのアクセス、Google カレンダーの使い方、週の始まりと表示する祝日（1.2）、指でも書く、予定にした手書きを消す、iCloud 同期の状態と「最後に同期」「今すぐ同期」、Web 版の手書きを取り込む（Web 版の書き出しと、このアプリの書き出したデータファイルの 2 形式）、手書きを書き出す（データファイル `tegaki-app-export` v1（JSON、すべてのページ）か、いま開いているページの PDF。閲覧専用でも青いまま押せます）、この端末の手書きを全て消す（2 回確認。iCloud が使える状態なら iCloud の分も消え、ほかの端末からも消えます）、購入（現在のプラン・購入を復元・サブスクリプションの管理）、利用規約・プライバシーポリシー・使用許諾契約（Apple 標準 EULA）・サポート・オープンソースのライセンス（1.2）・バージョン |
+| 設定画面 | ヘッダーの ⚙ か ☁。表示するカレンダー（アカウントごと）、予定の登録先、カレンダーへのアクセス、Google カレンダーの使い方、週の始まりと表示する祝日（1.2）、指でも書く、予定にした手書きを消す、iCloud 同期の状態と「最後に同期」「今すぐ同期」、Web 版の手書きを取り込む（Web 版の書き出しと、このアプリの書き出したデータファイルの 2 形式）、手書きを書き出す（データファイル `tegaki-app-export` v1（JSON、すべてのページ）か、いま開いているページの PDF。閲覧専用でも青いまま押せます）、この端末の手書きを全て消す（2 回確認。iCloud が使える状態なら iCloud の分も消え、ほかの端末からも消えます）、購入（現在のプラン・購入を復元・サブスクリプションの管理）、利用規約・プライバシーポリシー・使用許諾契約（Apple 標準 EULA）・サポート（1.2.1 から、日本語以外の画面では利用規約・プライバシーポリシー・サポートが英語のページを開く）・オープンソースのライセンス（1.2）・バージョン |
 | 購入と閲覧専用 | 月額 300 円・年額 2,400 円・14 日間無料のサブスクリプション。購読していないときは閲覧専用（予定と手書きの閲覧、ページ移動、拡大はできる。書く・消す・予定の作成はペイウォールの案内）。購入画面は初回案内の後（未購読と確認できたとき）、ヘッダーの「閲覧専用」バッジ、止めた操作を試みたとき（1 セッション 1 回、2 回目以降はトースト）、設定 › 購入 から。権利の判定は Apple（StoreKit 2）が正で、最後に分かった状態を端末に控えるので機内モードでも書けます |
 | 表示の言語（1.2） | 日本語・英語・簡体字中国語・繁体字中国語・韓国語・フランス語・ドイツ語・スペイン語・イタリア語・ポルトガル語の 10 言語。端末の言語に従い、それ以外の言語の端末は英語（右から左へ書く言語は対象外）。アプリの中に言語の設定は作らず、iOS の「設定」アプリの「言語」で選びます。日付・月・曜日の名前も言語に従いますが、紙の時刻は全言語で 24 時間の「9:00」。日本語の利用者の画面は 1.1.1 と 1 文字も変わりません。訳は Claude が書いて別の Claude が逆に訳して確かめたもので、ネイティブの確認はありません（[docs/i18n/REVIEW.md](docs/i18n/REVIEW.md)） |
 | 祝日（1.2） | 設定 › 表示する祝日 で、自動（端末の地域）・250 の国と地域・なしから選べます。州や地域で祝日が違う国は州・地域も選べます。日本は今までどおり自前の計算（`JapaneseHolidays`）で、1.1.1 までお使いの方は「日本」のまま。他の国のデータは python-holidays 0.107（MIT）から作ってアプリに同梱し、通信はしません。祝日と言語は紙の形を変えず、変わるのは字と休日の色だけで、手書きの位置は動きません |
@@ -92,7 +95,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 このリポジトリは **手元の Mac に Xcode が無くてもビルドできる** ようにしてあります。
 
 - `git push` するたびに、GitHub の macOS マシン（`macos-26`、Xcode 26.6）が自動で次をします（[.github/workflows/build.yml](.github/workflows/build.yml)）。
-  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（1.2 で 29470 項目の検査。29420 以上であることを数字で確かめる）→ `swift test`（1.1 から互換テスト `Compat10Tests`、1.2 から `Compat12Tests` を含む）→ 1.0 の凍結した写し（`TegakiKit/Tests/Compat10`）が凍結したときのままか（`FROZEN.sha256`）→ 言語の lint（`tools/l10n/lint.py`、14 の規則）→ 手書きのデータの 18 ファイルが 1.1.1 のままか（`tools/compat10/DATA_1_1.sha256`）
+  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（1.2.1 で 29504 項目の検査。29454 以上であることを数字で確かめる）→ `swift test`（1.1 から互換テスト `Compat10Tests`、1.2 から `Compat12Tests` を含む）→ 1.0 の凍結した写し（`TegakiKit/Tests/Compat10`）が凍結したときのままか（`FROZEN.sha256`）→ 言語の lint（`tools/l10n/lint.py`、14 の規則）→ 手書きのデータの 18 ファイルが 1.1.1 のままか（`tools/compat10/DATA_1_1.sha256`）
   2. `brew install xcodegen` → `xcodegen generate` で Xcode プロジェクト（`TegakiCalendar.xcodeproj`）を作る
   3. iOS シミュレータ向けにビルド（署名なし）。1.2 から、組み上がったアプリに 10 言語の `.lproj`・祝日のデータとライセンス・プライバシーマニフェストの理由があるかを確かめる（Localized bundle check）
   4. 13 インチ iPad のシミュレータでアプリのユニットテスト（PencilKit の台帳と選択の操作・手書きの画像・予定シートの状態・予定の書き込み・スクリーンショットモード・同期エンジン（メモリ上の偽の iCloud に対して。iCloud アカウントは不要）・レコードの写像・CloudKit の誤りの写像・状態ファイル・紙の文字のクリップと窓・キャンバスの viewport の通知・一覧の倍率とピンチの終端の経路・ダブルタップの認識器・保存比率・スクリーンショットの倍率の引数・購読の状態機械と `StoreModel`（偽の App Store と、StoreKit のテスト環境 `SKTestSession` に対して。App Store Connect は不要）・ペイウォールと設定の文言・閲覧専用の判定）を実行。1.2 から日本語に固定（`-testLanguage ja -testRegion JP`）。1.1 の後半から、後の段（The unit tests' repro lines）が `repro:` の行を 1 回ずつ出す
@@ -114,7 +117,7 @@ Command Line Tools の `swift` だけで、純粋な部分の検査が通りま�
 ```bash
 cd TegakiKit
 swift build            # DayKit / Holidays / Layout / InkModel / Access / KitChecks をビルド
-swift run KitChecks    # 「KitChecks: all 29436 checks passed」と出れば OK（1.2）
+swift run KitChecks    # 「KitChecks: all 29504 checks passed」と出れば OK（1.2.1）
 cd ..
 python3 -I tools/l10n/lint.py .         # 言語の lint（L-12 は警告だけ）
 python3 -I tools/l10n/build.py . --check   # 文字の生成物が元のファイルと合っているか（元を直したら --check なしで作り直す。生成物は手で直さない）
@@ -168,7 +171,7 @@ TegakiKit/                          ローカル Swift パッケージ（Foundat
   Sources/Holidays/                 祝日の暦 HolidayCalendar、設定の値 HolidaySetting、データの読み込みと検査 HolidayStore・HolidayFile、日本の橋 JapanHolidayBridge、ライセンス HolidayDataLicense
   Sources/Layout/                   紙の寸法・マスの鍵・予定の正規化形・4 ページの配置（PageLayout、月・週・日・年の engine、時間指定の重なり処理、レーンの間引き、ページの id と移動と初期位置、矩形 ⇄ 予定の範囲 EventRange）、ページごとの一覧の倍率・上限・保存比率と見えている範囲（ZoomPolicy / PaperViewport）、ダブルタップの点から日を引く dayAt、週・日の固定の終日帯（AllDayBand）
   Sources/InkModel/                 手書きの台帳（InkPage / InkStroke、merge、JSON（圧縮形と整形）、LZFSE）、投げなわの数学（LassoGeometry）、Web 版の書き出しの解析と変換（WebImport）、このアプリの書き出しファイル tegaki-app-export v1 の組み立て・解析・ファイル名（AppExport）、取り込み口の 2 形式の入口とページ単位の切り分け（InkImport）、同期の状態ファイルの型（SyncState）と再試行の間隔（SyncBackoff）、週・日の帯の手書きの移し替え（BandMigration）、週の始まりで隠れる線とページの数（WeekStartImpact）
-  Sources/Access/                   購読の権利（Plan / ProductIDs、AccessState、AccessPolicy の状態機械と控えとの突き合わせ、AccessSnapshot / AccessCache、文言と数字の純関数 PlanText、公開文書の URL LegalLinks）
+  Sources/Access/                   購読の権利（Plan / ProductIDs、AccessState、AccessPolicy の状態機械と控えとの突き合わせ、AccessSnapshot / AccessCache、文言と数字の純関数 PlanText、公開文書の URL LegalLinks、1.2.1 から App Store の評価のお願いの決まり ReviewPrompt）
   Sources/KitChecks/main.swift      Xcode 無しの Mac で走る検査（swift run KitChecks）。HolidayChecks.swift は祝日の節、Text11.swift は 1.1 の字の写し（日本語が変わっていないことの確かめ）
   Tests/                            LayoutTests / HolidaysTests / InkModelTests / AccessTests、互換の Compat10Tests / Compat12Tests（swift test。CI で実行）
 Sources/TegakiCalendar/
@@ -192,6 +195,7 @@ Sources/TegakiCalendar/
   Views/LicenseScreen.swift         オープンソースのライセンス（python-holidays）
   Views/PaperWords.swift            紙と見出しの言語ごとの字の選び方（曜日の記号、月名、終日の札。枠に入らないときの縮め方）
   Views/PaywallSheet.swift          購入画面（ペイウォール: 2 プラン・試用の行・自動更新の説明・購入を復元・規約へのリンク・あとで）
+  Views/ReviewRequester.swift       App Store の評価のお願い（StoreKit の requestReview を呼ぶだけ。`import StoreKit` はこのファイルだけ。1.2.1）
   Views/WebImportSheet.swift        手書きの取り込み（Web 版の書き出しと、このアプリの書き出し。ファイル選択、進捗、結果の出し分け）
   Views/ExportSheet.swift           手書きの書き出し（「データファイル（JSON、すべてのページ）」「このページを PDF」の選択、進行、完成（共有…）、失敗）
   Export/ExportBuilder.swift        書き出しの実行（JSON をページ 1 枚ずつ tmp/TegakiCalendarExport に流し書き、PDF を書く、前回の後始末、失敗の種類）
@@ -220,7 +224,7 @@ Sources/TegakiCalendar/
   Store/StoreModel.swift            購入の状態（StoreModel / StoreSnapshot: 権利・価格・購入中・結果の文言。refresh の重なりは合流せず再走）、写真モードの偽の App Store
   Store/AccessCacheStore.swift      最後に分かった権利の控え（UserDefaults の accessStateCache）
   Store/StoreStrings.swift          購入の結果・失敗の文言
-  Persistence/AppSettings.swift     UserDefaults の鍵と既定値（ページの種類ごとの表示倍率の比率、初回ペイウォールを出したかを含む）
+  Persistence/AppSettings.swift     UserDefaults の鍵と既定値（ページの種類ごとの表示倍率の比率、初回ペイウォールを出したか、1.2.1 の評価のお願いの記録を含む）
   Persistence/HolidayChoice.swift   祝日の設定（1.1 からの方は「日本」、新しい方は「自動」）と今の暦、行の値の文
   Persistence/WeekStartChoice.swift 週の始まりの設定（今お使いの方は月曜、新しい方は「自動」）と iCloud のページとの照らし合わせ
   Persistence/InkPageStore.swift    手書きの保存（Application Support/TegakiCalendar/ink/<pageId>.json.lzfse）と全消去、ページの一覧
@@ -244,7 +248,7 @@ Tests/TegakiCalendarTests/
   EventKitServiceTests.swift        終日の予定の正規化・色の変換・予定の書き込み（apply）のテスト
   ScreenshotModeTests.swift         スクリーンショットモードの起動引数と見本のテスト
   AppSettingsTests.swift            表示倍率の比率の保存のテスト
-  CalendarRootScreenTests.swift     紙の領域の高さ（帯を引く）・閲覧専用の判定・取り込みの失敗文のテスト
+  CalendarRootScreenTests.swift     紙の領域の高さ（帯を引く）・閲覧専用の判定・取り込みの失敗文・評価のお願いの 2 つの関門（1.2.1）のテスト
   ExportBuilderTests.swift          書き出しのテスト（全ページの JSON と pageId 順・帯の線の移し替え・取り込み口との往復・進行・空のとき・後始末・大きなファイル（8 ページ × 1,000 本）の常駐メモリ・PDF の 1 ページと大きさ・4 種の PDF・ファイル名と題名）
   ExportSheetTests.swift            書き出しシートの文言・進行・完成文・大きさの表記・失敗文のテスト
   WebImportSheetTests.swift         取り込みの完成文の出し分け（Web 版／このアプリ）のテスト

@@ -1,3 +1,4 @@
+import Access
 import Foundation
 import Layout
 
@@ -11,7 +12,8 @@ import Layout
 /// §2.3, §2.6, §5.2) adds four: the collapsed toolbar and its corner, the eraser's return to the pen,
 /// and the pages whose 15,000-stroke notice was shown. 1.1.1 (docs/R1_1_1.md) adds one: the one-time
 /// hint that two fingers zoom. 1.2 (docs/M7B_CONTRACT.md §5.6, §10.3) adds the holidays to show and the
-/// week start with its three memories. All of them stay on this device (UserDefaults is not synced to
+/// week start with its three memories. 1.2.1 (docs/R1_2_1.md §2.6) adds the rating prompt's record, five
+/// keys under `review.` (`reviewRecord`). All of them stay on this device (UserDefaults is not synced to
 /// iCloud; D16, 0-21, 0-45).
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
@@ -71,6 +73,15 @@ enum AppSettings {
     /// were told about (when the toast was really shown), oldest first, at most
     /// `strokeBudgetNoticedLimit` like `strokeBudgetNoticedKey`.
     static let weekStartHiddenNoticedKey = "weekStart.hiddenNoticed"
+
+    /// 1.2.1 (docs/R1_2_1.md §2.6): the rating prompt's record (`ReviewRecord`, `reviewRecord`). The days are
+    /// `DayKey.description` ("YYYY-MM-DD") strings, the count an `Int`, the version a `String`. Not one of
+    /// `isExistingUser`'s keys (1.2's test of an earlier user does not change).
+    static let reviewFirstUseDayKey = "review.firstUseDay"
+    static let reviewInkDaysKey = "review.inkDays"
+    static let reviewLastInkDayKey = "review.lastInkDay"
+    static let reviewLastRequestVersionKey = "review.lastRequestVersion"
+    static let reviewLastRequestDayKey = "review.lastRequestDay"
 
     /// M4c (M4C contract §1.5): "zoomRatio.month" / "zoomRatio.week" / "zoomRatio.day" / "zoomRatio.year",
     /// a `Double` ≥ 1 (the zoom / the opening zoom of the last pinch on a page of that kind; absent = 1,
@@ -180,6 +191,41 @@ enum AppSettings {
 
     private static func hiddenNoticedEntry(_ pageId: String, _ weekStart: WeekStart) -> String {
         "\(pageId)|\(weekStart.rawValue)"
+    }
+
+    // MARK: - The rating prompt (1.2.1, docs/R1_2_1.md §2.6)
+
+    /// The five `review.` keys as one `ReviewRecord`. A day that does not read as "YYYY-MM-DD" (or is not a
+    /// real date) is nil, a negative count is 0, an empty version is nil. Writing a nil field removes its key.
+    static var reviewRecord: ReviewRecord {
+        get {
+            ReviewRecord(
+                firstUseDay: storedDay(reviewFirstUseDayKey),
+                inkDays: max(0, defaults.integer(forKey: reviewInkDaysKey)),
+                lastInkDay: storedDay(reviewLastInkDayKey),
+                lastRequestVersion: defaults.string(forKey: reviewLastRequestVersionKey).flatMap { $0.isEmpty ? nil : $0 },
+                lastRequestDay: storedDay(reviewLastRequestDayKey)
+            )
+        }
+        set {
+            setOrRemove(newValue.firstUseDay?.description, reviewFirstUseDayKey)
+            defaults.set(max(0, newValue.inkDays), forKey: reviewInkDaysKey)
+            setOrRemove(newValue.lastInkDay?.description, reviewLastInkDayKey)
+            setOrRemove(newValue.lastRequestVersion, reviewLastRequestVersionKey)
+            setOrRemove(newValue.lastRequestDay?.description, reviewLastRequestDayKey)
+        }
+    }
+
+    private static func storedDay(_ key: String) -> DayKey? {
+        defaults.string(forKey: key).flatMap { DayKey(ymd: $0) }
+    }
+
+    private static func setOrRemove(_ value: String?, _ key: String) {
+        if let value, !value.isEmpty {
+            defaults.set(value, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     // MARK: - Zoom ratio (M4C contract §1.5, D4)

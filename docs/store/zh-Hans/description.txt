@@ -21,7 +21,7 @@ Google 日历是 Google LLC 的商标。此 App 由个人开发，与 Google LLC
 ■ 费用
 提供按月和按年的订阅（自动续订）。首次使用可免费试用 14 天。价格以你所在国家或地区的货币显示在 App Store 中。
 使用条款（Apple 标准 EULA）：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-服务条款（日语）：https://syfan0-star.github.io/tegaki-calendar/app/terms.html
-隐私政策（日语）：https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+服务条款（英语）：https://syfan0-star.github.io/tegaki-calendar/app/en/terms.html
+隐私政策（英语）：https://syfan0-star.github.io/tegaki-calendar/app/en/privacy.html
 
 译文由 AI 生成，尚未经过母语人士审核。如有错误，请告诉我们。

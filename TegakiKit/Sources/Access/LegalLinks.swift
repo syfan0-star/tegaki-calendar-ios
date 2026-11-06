@@ -4,10 +4,10 @@ import Foundation
 import DayKit
 
 public enum LegalLinks {
-    /// Whether the English pages (app/en/…) are on the web and answer 200 (D11, 0-38). They go up on
-    /// the day 1.2 is released, so 1.2, which is reviewed before that day, opens the Japanese pages
-    /// in every language: a link that does not open during the review can be rejected. True from 1.3.
-    public static let englishPagesPublished = false
+    /// Whether the English pages (app/en/…) are on the web and answer 200 (D11, 0-38). They went up on
+    /// 2026-11-06, the day 1.2 was released; 1.2, reviewed before that day, opened the Japanese pages in
+    /// every language. From 1.2.1 a screen outside ja opens the English pages (0-38, docs/R1_2_1.md §3).
+    public static let englishPagesPublished = true
 
     public static let base = URL(string: "https://syfan0-star.github.io/tegaki-calendar/app/")!
     public static let terms = base.appending(path: "terms.html")

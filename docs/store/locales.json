@@ -1,5 +1,5 @@
 {
-  "about": "1.2 の App Store の文のロケール（M7B_CONTRACT §6.6・§11.2・D12）。ja のほかに 15（第 4 版で es-ES・pt-PT を足した。nl-NL・sv は入れない）。L-9 はこの表の code のうちフォルダがあるものを見る。copyOf のロケールはフォルダを作らず、Connect には copyOf の文をそのまま入れる。source は ja 以外の文の日本語の元（入力しない）。language はアプリの画面の言語。shots は上げる写真の store-shots の組（§7.5。ja は組に入らない）。storefronts の（既定）（追加）は、その店頭の既定の言語か追加の言語か。",
+  "about": "1.2 の App Store の文のロケール（M7B_CONTRACT §6.6・§11.2・D12）。ja のほかに 15（第 4 版で es-ES・pt-PT を足した。nl-NL・sv は入れない）。L-9 はこの表の code のうちフォルダがあるものを見る。copyOf のロケールはフォルダを作らず、Connect には copyOf の文をそのまま入れる。source は ja 以外の文の日本語の元（入力しない）。language はアプリの画面の言語。shots は上げる写真の store-shots の組（§7.5。ja は組に入らない）。storefronts の（既定）（追加）は、その店頭の既定の言語か追加の言語か。1.2.1 から（docs/R1_2_1_STORE.md）: nameLine は Connect に入っている名前が name.txt の何行目か（無ければ 1）。L-9 はキーワードがこの名前とサブタイトルの語を繰り返していないかを見る（名前の 3 案すべてではない）。keywordMarks は本人が決めてキーワードに残す Apple の商標（L-9 が止めない）。nameWords は、空白の無い名前とサブタイトル（ja・zh-Hans・zh-Hant）の語を手で書いた一覧。空白の無い文は全体が 1 語になり、L-9 が中の語を見分けられないため。L-9 はキーワードがこの語を含むと止め、この語が名前にもサブタイトルにも無いと止める（書き違いで通さないため）。",
   "primary": "ja",
   "source": "source-ja",
   "fields": ["name.txt", "subtitle.txt", "keywords.txt", "promo.txt", "description.txt", "whatsnew.txt", "urls.txt"],
@@ -10,9 +10,12 @@
       "connectEn": "Japanese",
       "language": "ja",
       "storefronts": "日本",
-      "fields": ["whatsnew.txt"],
+      "fields": ["name.txt", "subtitle.txt", "keywords.txt", "promo.txt", "whatsnew.txt"],
+      "keywordMarks": ["iCloud"],
+      "keywordMarksNote": "iCloud は 1.0 から ja のキーワードにあり、5 回の審査を通った。本人の決定で残す（docs/M7B.md「Connect への入力」、R1_2_1_STORE.md）",
+      "nameWords": ["てがき", "カレンダー", "予定", "手書き", "手帳"],
       "writer": "A",
-      "whatsnewSource": "§6.3 の ja の文そのまま（ほかの欄は 1.0 から変えない）"
+      "whatsnewSource": "1.2.1: docs/R1_2_1_STORE.md の ja の文。name.txt・subtitle.txt・promo.txt は Connect の今の値の写し（変えない。キーワードの重なりを L-9 で見るためと、1.2.1 の版に空で写った promo を入れ直すため）。説明は 1.2 のまま（ここに置かない）"
     },
     {
       "code": "en-US",
@@ -21,8 +24,9 @@
       "language": "en",
       "shots": "en",
       "storefronts": "米国",
+      "nameLine": 2,
       "writer": "A",
-      "whatsnewSource": "source-ja/whatsnew.en-US.txt"
+      "whatsnewSource": "source-ja/whatsnew.txt（1.2 は whatsnew.en-US.txt。日本語の 1 文が要らなくなったので 1.2.1 でほかの言語と同じ元にした）"
     },
     {
       "code": "en-GB",
@@ -58,6 +62,7 @@
       "language": "zh-Hans",
       "shots": "zh-Hans",
       "storefronts": "中国本土・シンガポール",
+      "nameWords": ["手写", "日历", "日程", "手帐"],
       "writer": "X",
       "whatsnewSource": "source-ja/whatsnew.txt"
     },
@@ -68,6 +73,7 @@
       "language": "zh-Hant",
       "shots": "zh-Hant",
       "storefronts": "台湾・香港・マカオ",
+      "nameWords": ["手寫", "行事曆", "行程", "手帳"],
       "writer": "X",
       "whatsnewSource": "source-ja/whatsnew.txt"
     },

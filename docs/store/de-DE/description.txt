@@ -21,7 +21,7 @@ Google Kalender ist eine Marke von Google LLC. Diese App wurde von einer Einzelp
 ■ Preise
 Monatliche und jährliche Abos mit automatischer Verlängerung. Wenn Sie neu sind, können Sie die App 14 Tage kostenlos testen. Die Preise werden im App Store in der Währung Ihres Landes angezeigt.
 Nutzungsbedingungen (Apple Standard-EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Nutzungsbedingungen des Dienstes (auf Japanisch): https://syfan0-star.github.io/tegaki-calendar/app/terms.html
-Datenschutzerklärung (auf Japanisch): https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+Nutzungsbedingungen des Dienstes (auf Englisch): https://syfan0-star.github.io/tegaki-calendar/app/en/terms.html
+Datenschutzerklärung (auf Englisch): https://syfan0-star.github.io/tegaki-calendar/app/en/privacy.html
 
 Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit.

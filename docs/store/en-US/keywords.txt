@@ -1,1 +1,1 @@
-handwriting,notes,journal,diary,schedule,agenda,stylus,pen,weekly,monthly,holidays,notebook,events
+handwriting,notes,journal,diary,schedule,agenda,stylus,pen,weekly,monthly,holidays,calendar,daily

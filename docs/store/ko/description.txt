@@ -21,7 +21,7 @@ Google 캘린더는 Google LLC의 상표예요. 이 앱은 개인이 개발했�
 ■ 요금
 월간과 연간 구독(자동 갱신)이에요. 처음 쓰는 분은 14일 동안 무료로 체험할 수 있어요. 가격은 App Store에 거주 국가의 통화로 표시돼요.
 이용 약관(Apple 표준 EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-서비스 약관(일본어): https://syfan0-star.github.io/tegaki-calendar/app/terms.html
-개인정보 처리방침(일본어): https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+서비스 약관(영어): https://syfan0-star.github.io/tegaki-calendar/app/en/terms.html
+개인정보 처리방침(영어): https://syfan0-star.github.io/tegaki-calendar/app/en/privacy.html
 
 번역은 AI로 만들었고 아직 원어민의 검토를 받지 않았어요. 오류가 있으면 알려 주세요.
