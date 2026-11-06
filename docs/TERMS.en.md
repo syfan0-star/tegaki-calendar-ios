@@ -1,4 +1,4 @@
-# Tegaki Calendar Terms of Service
+# Tegaki Terms of Service
 
 This is a translation for convenience. The Japanese version prevails. This does not limit rights that you cannot waive under the consumer protection laws of the country where you live.
 
@@ -14,7 +14,7 @@ Last updated: November 5, 2026. Effective date: the date the App was released on
 
 ## Article 1. About these terms
 
-1. These terms are the rules for using “Tegaki Calendar” (てがきカレンダー; the “App”). By downloading the App from the App Store, or by starting to use it, you agree to these terms.
+1. These terms are the rules for using “Tegaki” (てがきカレンダー; the “App”). By downloading the App from the App Store, or by starting to use it, you agree to these terms.
 2. The license to use the App is Apple's standard license agreement (Licensed Application End User License Agreement, <https://www.apple.com/legal/internet-services/itunes/dev/stdeula/>). These terms add the details of the service, the fees and the scope of responsibility. If the two conflict, Apple's agreement prevails in matters between you and Apple.
 3. The App is available in the countries and regions where it is offered on the App Store. The App Store shows which countries and regions these are.
 

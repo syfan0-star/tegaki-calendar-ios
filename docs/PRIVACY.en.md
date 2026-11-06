@@ -1,10 +1,10 @@
-# Tegaki Calendar Privacy Policy (App)
+# Tegaki Privacy Policy (App)
 
 This is a translation for convenience. The Japanese version prevails.
 
 [日本語版（正本）](PRIVACY.md)
 
-**Summary**: “Tegaki Calendar”, the app for iPad and iPhone, collects **no information** about you. There is no developer server, no account registration, and no advertising or analytics. Your handwriting and settings are saved only on your device (iPad or iPhone) and in your own iCloud, and the developer cannot see them. The App reads and writes events through the Calendar on your device, but that data is never sent outside the App. Apple handles payments, and the developer does not receive card details. Section 12 explains what happens when you email support.
+**Summary**: “Tegaki”, the app for iPad and iPhone, collects **no information** about you. There is no developer server, no account registration, and no advertising or analytics. Your handwriting and settings are saved only on your device (iPad or iPhone) and in your own iCloud, and the developer cannot see them. The App reads and writes events through the Calendar on your device, but that data is never sent outside the App. Apple handles payments, and the developer does not receive card details. Section 12 explains what happens when you email support.
 
 Related documents: [Terms of Service](TERMS.en.md) / [Support](SUPPORT.en.md)
 

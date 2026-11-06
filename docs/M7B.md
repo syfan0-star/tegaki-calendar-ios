@@ -1199,7 +1199,7 @@ R が引っかかった語のうち、残りは △ にして理由を REVIEW.md
 2. **Apple EULA の URL は `en/terms.html` にだけ求めた**（§6.5 は 3 ページに求めるように読める）。LA の節の「W」のとおりで、`PRIVACY.en.md`・`SUPPORT.en.md` に無い（日本語版も同じ）。
 3. **`XX`・`Month DD` は `check-legal` と `npm test` の (10) の両方で止める**（§6.5 は `check-legal`、この作業の指示は (10)。`【】` は今までどおり `check-legal` だけ）。
 4. **お知らせの節**: S-5 の行は ①・② に入れない。日本語は今の 1 行「現在、重要なお知らせはありません。」のまま。英語の節が空にならないよう、LA の最初の英語の 1 行 “There are no important notices at this time.”（d00dd86）を置いた。`docs/SUPPORT*.md` はどちらも S-5 の行なので、**この 1 行だけページと Markdown が違う**。
-5. **Markdown に無い英語の字**: 頭の “Tegaki Calendar (App) / Last updated: …”、足の “Web version “手書きカレンダー” (in Japanese)”。`TERMS.en.md` の 1 行は日本語のページと同じ形に 2 行に分けた（“Effective date: …” の後ろの句点は落とした）。どれも R の逆翻訳の外。
+5. **Markdown に無い英語の字**: 頭の “Tegaki (App) / Last updated: …”（2026-11-06 に “Tegaki Calendar (App)” から直した。下の「Connect への入力」）、足の “Web version “手書きカレンダー” (in Japanese)”。`TERMS.en.md` の 1 行は日本語のページと同じ形に 2 行に分けた（“Effective date: …” の後ろの句点は落とした）。どれも R の逆翻訳の外。
 6. **英語のページの CSS だけ 2 つ足した**: リンクの `overflow-wrap: anywhere`（`…/v0.107/CONTRIBUTORS` が切れずに iPhone の幅からはみ出していた）と、`support.html` の `pre`（MIT の文を折り返す）。日本語のページの CSS は変えていない（§6.4「足すのはこれだけ」）。
 7. **言語の違うリンクに `lang`**: 「日本語版（正本）」に `lang="ja"`、③ の English に `lang="en"`（読み上げの声のため）。`hreflang` は付けていない。
 8. **③ のリンクの場所**: 題名の上、`<main>` の最初の行。読めない言語のページで最初に目に入る所にした。③ のリンクは `docs/*.md` に無い（原稿を変えていない）。
@@ -1225,7 +1225,7 @@ R が引っかかった語のうち、残りは △ にして理由を REVIEW.md
 
 - **検証**: 英語のページの字は上の「ページの字と Markdown」のとおり `docs/*.en.md` と同じなので、文の中身は R の逆翻訳（`docs/i18n/back/legal-en.md`）と REVIEW.md の 5 で見られる。ページの形を見るのは上の 5〜8。
 - **FIX**: `docs/*.md` を直したら `regen.sh` で作り直し、`npm test`・`npm run check:legal` を緑にして `m7b-legal` に commit を足す。
-- **リード（公開の日、§11.1 の順 5）**: `m7b-legal` に次の commit を足してから merge する。(a) 6 ページの最終更新: `てがきカレンダー（アプリ版）／最終更新：2026年11月5日`・`Tegaki Calendar (App) / Last updated: November 5, 2026` を公開の日に。(b) `app/support.html` の `<li>現在、重要なお知らせはありません。</li>` を `<li>2026年M月D日：1.2 に合わせて、利用規約とプライバシーポリシーを更新しました。</li>` に、`app/en/support.html` の `<li>There are no important notices at this time.</li>` を `<li>Month D, 2026: We updated the Terms of Service and Privacy Policy for version 1.2.</li>` に（`M月D日`・`Month D` は実際の日付）。(c) `docs/SUPPORT*.md` の `XX`・`Month DD` と 6 文書の最終更新も同じ日に（`regen.sh` は S-5 の行を入れないので、(a)(b) の後に流さない）。(d) `npm test`・`npm run check:legal`。
+- **リード（公開の日、§11.1 の順 5）**: `m7b-legal` に次の commit を足してから merge する。(a) 6 ページの最終更新: `てがきカレンダー（アプリ版）／最終更新：2026年11月5日`・`Tegaki (App) / Last updated: November 5, 2026` を公開の日に。(b) `app/support.html` の `<li>現在、重要なお知らせはありません。</li>` を `<li>2026年M月D日：1.2 に合わせて、利用規約とプライバシーポリシーを更新しました。</li>` に、`app/en/support.html` の `<li>There are no important notices at this time.</li>` を `<li>Month D, 2026: We updated the Terms of Service and Privacy Policy for version 1.2.</li>` に（`M月D日`・`Month D` は実際の日付）。(c) `docs/SUPPORT*.md` の `XX`・`Month DD` と 6 文書の最終更新も同じ日に（`regen.sh` は S-5 の行を入れないので、(a)(b) の後に流さない）。(d) `npm test`・`npm run check:legal`。
 - **リード（merge の順）**: `r111-legal` が先（§6.5）。1.1.1 を出す日に `r111-legal` の最終更新を直すと、`m7b-legal` を merge するときに 3 ページの最終更新の行がぶつかる。そのときは 1.2 の日付を取る。**1.1.1 の Web がまだ動く**（今の `r111-legal` は仮）ので、`r111-legal` に commit が増えたら `m7b-legal` に merge してから確かめ直す。
 - **リード（公開の直前の確認）**: 見せる物は `git diff r111-legal..m7b-legal -- app/terms.html app/privacy.html app/support.html` の全文、英語の 3 ページの R の要点と上の 5 の字、③ のリンクの 1 行、URL（`app/en/terms.html`・`privacy.html`・`support.html` と日本語の 3 つ）。③ は M7B-23 の答えのとおり入れるが、§9 のとおりこの確認でもう一度聞く。
 
@@ -1971,3 +1971,15 @@ CI（`d896799`、run 42104420665）: 4 段とも成功。単体 445 本・スキ
 - TestFlight run 42139582913（#18）を `origin/m7b` = `6d4b5ff`（CI run 42124201768 で 4 段とも緑）から作った。ビルド 18（`42a1d5a0-5d89-4b54-9943-a895f96b4462`）は VALID、1.2、暗号化の申告なし、内部テストに配信中。
 - ビルド 17（本人が 22 項目を確かめた物、`75326db`）との違い: アプリの中では zh-Hans・zh-Hant・ko の年のページの祝日名の位置（F-2b）だけ。ほかは写真モードの引数のあるときだけの見本と、CI・写真の段。ja・en の画面は同じ（J-4 と FIX5 の日本語の絵 89 枚）。
 - 次: 本人の「この内容で入れてよい」（§8 の 11、`tegaki-1.2-store-check.html` を 2026-11-06 09:53 に送った）→ Connect に 1.2 の版を作り、15 ロケールの文と写真、ビルド 18 → 本人の「1.2 を審査に提出して良い」→ 提出。main への merge は公開の日に（1.1 と 1.1.1 と同じ）。
+
+### Connect への入力（2026-11-06。本人の「この内容でよい」の後）
+
+- 本人の答え（2026-11-06 昼）: ストアの確認ページ（`tegaki-1.2-store-check.html`、文 `97ae24e`・写真 `6d4b5ff`）に **「この内容でよい」**。「日本語の説明は今のまま」の書き添えは無かったので、ja の説明の 1 行の直しも入れた。Things の `GYH3ENLzj84p8UYqDjaYqC` を完了にした。
+- 入れ方: App Store Connect API（リードの Mac のスクリプト。`SP/asc12`）。入れた値は全部 `docs/store` の原稿から読んだ（`docs/store` は `97ae24e` から変わっていない）。
+- **版 1.2**（`e38db288-3b36-40ad-bf45-87bec741a995`）: 手動リリース、著作権「2026 池田 雅高」、**ビルド 18** を付けた。審査メモは `review-note.txt` のまま（3,942 バイト）、連絡先は 1.1.1 から写した。
+- **ja**: 新機能の文（`ja/whatsnew.txt`、709 字）と、説明の 1 行（「月曜始まり、日本の祝日に対応」→「週の始まりは月曜・日曜から選べます。世界の国と地域の祝日に対応」。998 → 1,015 字）。ほかは 1.1.1 のまま。Connect の ja の説明は M6 §4.5 の全文と 1 字も違わなかった（直す前に照らした）。
+- **15 ロケール**: 説明・キーワード・プロモーション・新機能の文・サポート URL（版）、名前・サブタイトル・プライバシーポリシー URL（App 情報）。読み戻して原稿と同じ。
+- **名前**: en-US の第 1 案「Tegaki Calendar」は Connect が拒んだ（`DUPLICATE.DIFFERENT_ACCOUNT`）ので退き先 1「Tegaki: Handwritten Planner」。en-GB・en-AU・en-CA は第 1 案が通ったが、写しの決まりどおり en-US にそろえた。ほかの 11 は第 1 案。これに合わせて、英語の 3 文書（`docs/*.en.md`）と Web の英語のページ（`m7b-legal`、`m7b-impl/W/md2html.mjs` の頭と題）のアプリの名前を「Tegaki Calendar」から「Tegaki」（ホーム画面の名前。英語の文書の中でもすでに設定の道などでこの名前）に直し、逆翻訳の 6 か所も直した。Web の `npm test`（632）・`check:legal` と lint は通った。
+- **購読**: グループの表示名「Tegaki」（App 名を使う）と、月額・年額の表示名と説明を 15 ロケールに。v1 の口で入れたので、Connect が下書きの版（グループ `32029b4d…`、月額 `6f411e8c…`、年額 `78ed8d6f…`、どれも version 2・PREPARE_FOR_SUBMISSION、16 ロケール）を作った。**1.2 と同じ提出に入れる**（`reviewSubmissionItems` の `subscriptionVersion`。グループは購読と一緒に審査に出る）。ja の値は今のまま（Connect の ja の説明は「手書き・予定の作成・iCloud 同期のすべての機能を使えます」で、README の表の ja の欄とは違うが、変えない）。
+- **写真**: 15 ロケールに 3 つの枠 × 4 枚 = 180 枚。13 インチ iPad（`APP_IPAD_PRO_3GEN_129`、01-month・02-week・03-day・04-year）、6.9 インチ iPhone（`APP_IPHONE_67`、01-week・02-month・03-day・04-year）、**6.3 インチ iPhone（`APP_IPHONE_61`、6.9 インチの 4 枚を `sips -z 2622 1206` で縮めた物、同じ順）**。6.3 インチを足したのは、Apple の写真の決まりのページが iPhone の必須を「Dynamic Island（中）」としていて、ja の店頭もこの枠だけだから（6.9 インチだけでは、その枠が日本語の写真になるか、提出で拒まれるおそれがあった）。180 枚とも処理が終わり（COMPLETE）、Connect の checksum と大きさが手元の物と同じ。ja の写真は触っていない。
+- **入れていない物**: EU の国（公開の後、§11）。ja のプロモーションテキスト（1.0 にはあったが 1.1 から空。本人に聞く）。

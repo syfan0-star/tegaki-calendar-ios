@@ -1,10 +1,10 @@
-# Tegaki Calendar Support
+# Tegaki Support
 
 This is a translation for convenience. The Japanese version prevails.
 
 [日本語版（正本）](SUPPORT.md)
 
-**Summary**: This page collects the contact information and the frequently asked questions for “Tegaki Calendar”, an app for iPad and iPhone. The developer is an individual and usually replies **within about 3 business days**. The developer helps with how to use the App and with bugs, but some things are out of the developer's reach, such as refunds and problems with your Google account itself. Your handwriting is saved only in your iCloud, so the developer cannot see or restore its contents.
+**Summary**: This page collects the contact information and the frequently asked questions for “Tegaki”, an app for iPad and iPhone. The developer is an individual and usually replies **within about 3 business days**. The developer helps with how to use the App and with bugs, but some things are out of the developer's reach, such as refunds and problems with your Google account itself. Your handwriting is saved only in your iCloud, so the developer cannot see or restore its contents.
 
 Related documents: [Terms of Service](TERMS.en.md) / [Privacy Policy](PRIVACY.en.md)
 
