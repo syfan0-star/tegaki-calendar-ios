@@ -8,7 +8,7 @@ This is a translation for convenience. The Japanese version prevails.
 
 Related documents: [Terms of Service](TERMS.en.md) / [Privacy Policy](PRIVACY.en.md)
 
-Last updated: November 5, 2026
+Last updated: November 6, 2026
 
 ---
 
@@ -251,7 +251,7 @@ THE SOFTWARE.
 
 ## News
 
-- Month DD, 2026: We updated the Terms of Service and Privacy Policy for version 1.2.
+- November 6, 2026: We updated the Terms of Service and Privacy Policy for version 1.2.
 
 ---
 

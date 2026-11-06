@@ -8,7 +8,7 @@ This is a translation for convenience. The Japanese version prevails. This does 
 
 Related documents: [Privacy Policy](PRIVACY.en.md) / [Support](SUPPORT.en.md)
 
-Last updated: November 5, 2026. Effective date: the date the App was released on the App Store.
+Last updated: November 6, 2026. Effective date: the date the App was released on the App Store.
 
 ---
 

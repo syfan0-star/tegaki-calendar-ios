@@ -8,7 +8,7 @@ This is a translation for convenience. The Japanese version prevails.
 
 Related documents: [Terms of Service](TERMS.en.md) / [Support](SUPPORT.en.md)
 
-Last updated: November 5, 2026
+Last updated: November 6, 2026
 
 ---
 
