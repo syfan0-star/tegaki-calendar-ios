@@ -47,9 +47,9 @@ public struct AllDayBandBar: Equatable, Sendable, Identifiable {
 public struct AllDayBandLayout: Equatable, Sendable {
     /// `.week` / `.day` only.
     public var kind: PageKind
-    /// 7 days (Monday first) / 1 day.
+    /// 7 days (the week start's day first) / 1 day.
     public var days: [DayKey]
-    /// Colour class of each column (`LayoutMath.tone(of:holiday:)`, the same value as the paper's
+    /// Colour class of each column (`LayoutMath.tone(of:holiday:workday:)`, the same value as the paper's
     /// `DateLabel.tone`). 7 / 1 entries.
     public var tones: [DayTone]
     /// 1400 / 1000.
@@ -79,11 +79,12 @@ public struct AllDayBandLayout: Equatable, Sendable {
         self.todayColumn = todayColumn
     }
 
-    /// A band without bars (and without a today column); `tones` are computed from `days`. The
-    /// geometry is the day page's for `.day`, the week page's for every other kind.
-    public static func empty(kind: PageKind, days: [DayKey]) -> AllDayBandLayout {
-        let holidays = JapaneseHolidays.names(for: days)
-        let tones = days.map { LayoutMath.tone(of: $0, holiday: holidays[$0]) }
+    /// A band without bars (and without a today column); `tones` are computed from `days` and the
+    /// names and working days of `holidays`. The geometry is the day page's for `.day`, the week
+    /// page's for every other kind.
+    public static func empty(kind: PageKind, days: [DayKey], holidays: HolidayCalendar = .japan) -> AllDayBandLayout {
+        let names = holidays.names(for: days)
+        let tones = days.map { LayoutMath.tone(of: $0, holiday: names[$0], workday: holidays.isWorkday($0)) }
         if kind == .day {
             return AllDayBandLayout(
                 kind: .day,
@@ -130,20 +131,21 @@ public struct AllDayBandLayout: Equatable, Sendable {
 public enum AllDayBandEngine {
     /// The week's band: `MonthLayoutEngine.packAllDayLanes` over the 7 days (the web version's
     /// allDayRowsForRange), one bar per span. No thinning: the lane count is unbounded and the view
-    /// scrolls inside the band past 35 % of the page. `monday` is normalized like `WeekLayoutInput`.
-    public static func week(monday: DayKey, events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar) -> AllDayBandLayout {
-        let first = MonthLayout.mondayOnOrBefore(monday)
+    /// scrolls inside the band past 35 % of the page. `firstDay` is normalized by `weekStart` like
+    /// `WeekLayoutInput`.
+    public static func week(firstDay: DayKey, weekStart: WeekStart, events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan) -> AllDayBandLayout {
+        let first = weekStart.firstDay(of: firstDay)
         let days = (0..<PaperSpec.weekColumns).map { first.adding(days: $0) }
-        var band = AllDayBandLayout.empty(kind: .week, days: days)
+        var band = AllDayBandLayout.empty(kind: .week, days: days, holidays: holidays)
         let colW = PaperSpec.weekColumnWidth
         let gutter = PaperSpec.weekGutter
-        let weekStart = first.startOfDay(in: calendar)
-        let weekEnd = first.adding(days: PaperSpec.weekColumns).startOfDay(in: calendar)
+        let rangeStart = first.startOfDay(in: calendar)
+        let rangeEnd = first.adding(days: PaperSpec.weekColumns).startOfDay(in: calendar)
         let spans = MonthLayoutEngine.packAllDayLanes(events: events, days: days, calendar: calendar)
         var bars: [AllDayBandBar] = []
         for span in spans {
-            let left = span.event.start < weekStart
-            let right = span.event.end > weekEnd
+            let left = span.event.start < rangeStart
+            let right = span.event.end > rangeEnd
             bars.append(AllDayBandBar(
                 eventId: span.event.id,
                 title: span.event.title,
@@ -163,10 +165,15 @@ public enum AllDayBandEngine {
         return band
     }
 
+    /// The Monday-start week's band (1.1's form; `week(firstDay:weekStart:…)` with `.monday`).
+    public static func week(monday: DayKey, events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan) -> AllDayBandLayout {
+        week(firstDay: monday, weekStart: .monday, events: events, now: now, calendar: calendar, holidays: holidays)
+    }
+
     /// One day's band: every all-day event gets its own lane, in `eventsOnDay` order (earlier start
     /// first, then longer, then title, then id: the order of the former `DayLayoutEngine` chips).
-    public static func day(_ day: DayKey, events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar) -> AllDayBandLayout {
-        var band = AllDayBandLayout.empty(kind: .day, days: [day])
+    public static func day(_ day: DayKey, events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan) -> AllDayBandLayout {
+        var band = AllDayBandLayout.empty(kind: .day, days: [day], holidays: holidays)
         let dayStart = day.startOfDay(in: calendar)
         let dayEnd = day.adding(days: 1).startOfDay(in: calendar)
         let spans = MonthLayoutEngine.packAllDayLanes(events: events, days: [day], calendar: calendar)

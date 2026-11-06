@@ -183,4 +183,79 @@ final class SettingsScreenTests: XCTestCase {
         XCTAssertEqual(LegalLinks.appleEULA.absoluteString, "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
         XCTAssertEqual(LegalLinks.appleEULATitle, "使用許諾契約（Apple 標準 EULA）")
     }
+
+    // MARK: 1.2 (docs/M7B_CONTRACT.md §3.2, §5.7, §10.4)
+
+    /// 「最後に同期」 and 「前回の取り込み」 keep the time; the date of 購入 has none (0-33).
+    func testTimeTextHasDateAndTime() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let date = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 25, hour: 12, minute: 34)))
+        let text = SettingsScreen.timeText(date)
+        XCTAssertTrue(text.contains(":"), text)
+        XCTAssertTrue(text.contains("2026"), text)
+        XCTAssertEqual(SettingsScreen.lastSyncText(date), text)
+        XCTAssertEqual(SettingsScreen.lastSyncText(nil), "まだありません")
+        XCTAssertEqual(SettingsScreen.webImportedText(date), "前回の取り込み: " + text)
+        XCTAssertNil(SettingsScreen.webImportedText(nil))
+    }
+
+    /// The new section's words in ja, the value of the row is `HolidayChoiceTests.testSummaryTexts`.
+    func testHolidaySectionTexts() {
+        XCTAssertEqual(L.text("settings.holidays.header"), "祝日")
+        XCTAssertEqual(L.text("settings.holidays.row"), "表示する祝日")
+        XCTAssertEqual(L.text("holidayPicker.title"), "表示する祝日")
+        XCTAssertEqual(L.text("settings.info.licenses"), "オープンソースのライセンス")
+        XCTAssertEqual(L.text("license.holidayData"), "祝日データ：python-holidays（MIT ライセンス）")
+        XCTAssertEqual(L.text("settings.holidays.footer"), "日本の祝日は、このアプリが計算しています（内閣府の発表と照らし合わせて確かめています）。ほかの国の祝日は、公開されているデータ（python-holidays）にもとづきます。旧暦やイスラム暦の祝日など一部は推定で、「（推定）」と付けています。政府の最新の発表と違うことがあります。祝日の設定はこの端末だけに保存します。")
+        // The note about the translations is never on a Japanese screen, and on all the others.
+        XCTAssertNil(SettingsScreen.translationNote(language: .ja))
+        for language in UILanguage.allCases where language != .ja {
+            XCTAssertNotNil(SettingsScreen.translationNote(language: language), "\(language)")
+        }
+    }
+
+    /// An iPhone's footer speaks of neither the Pencil nor the iPad in any language; an iPad's does (§5.7).
+    func testEraserFooterNeverNamesThePencilOnAnIPhone() {
+        for language in UILanguage.allCases {
+            let phone = L.text("settings.input.eraserAutoReturn.footer.phone", in: language)
+            XCTAssertFalse(phone.contains("Apple Pencil"), "\(language): \(phone)")
+            XCTAssertFalse(phone.contains("iPad"), "\(language): \(phone)")
+            XCTAssertTrue(L.text("settings.input.eraserAutoReturn.footer.pad", in: language).contains("Apple Pencil"), "\(language)")
+        }
+    }
+
+    /// The question comes only when the first day of the week really changes (§10.4).
+    func testConfirmOnlyWhenTheStartChanges() {
+        typealias Setting = WeekStartChoice.Setting
+        XCTAssertEqual(WeekStartSettingsSection.confirmTarget(from: .monday, to: .sunday, automatic: .monday), .sunday)
+        XCTAssertEqual(WeekStartSettingsSection.confirmTarget(from: .sunday, to: .monday, automatic: .monday), .monday)
+        XCTAssertNil(WeekStartSettingsSection.confirmTarget(from: .monday, to: .auto, automatic: .monday), "Monday → automatic that gives Monday")
+        XCTAssertEqual(WeekStartSettingsSection.confirmTarget(from: .monday, to: .auto, automatic: .sunday), .sunday)
+        XCTAssertNil(WeekStartSettingsSection.confirmTarget(from: .auto, to: .sunday, automatic: .sunday))
+        XCTAssertEqual(WeekStartSettingsSection.confirmTarget(from: .auto, to: .monday, automatic: .sunday), .monday)
+        for setting in Setting.allCases {
+            XCTAssertNil(WeekStartSettingsSection.confirmTarget(from: setting, to: setting, automatic: .sunday), "\(setting)")
+        }
+        // The words, in ja.
+        XCTAssertEqual(WeekStartSettingsSection.confirmTitle(.sunday), "週の始まりを日曜にしますか？")
+        XCTAssertEqual(WeekStartSettingsSection.confirmTitle(.monday), "週の始まりを月曜にしますか？")
+        XCTAssertEqual(WeekStartSettingsSection.confirmButton(.sunday), "日曜にする")
+        XCTAssertEqual(WeekStartSettingsSection.confirmButton(.monday), "月曜にする")
+        XCTAssertTrue(WeekStartSettingsSection.confirmMessage(.sunday).contains("月曜始まりに戻すまで見えません（消えません）"))
+        XCTAssertTrue(WeekStartSettingsSection.confirmMessage(.monday).contains("日曜始まりに戻すまで見えません（消えません）"))
+        XCTAssertEqual(WeekStartSettingsSection.automaticText(.sunday), "自動（日曜）")
+    }
+
+    /// The line under the footer counts the other form's week pages (the ids, so a page erased empty
+    /// too), says nothing for none, and never counts a month page.
+    func testOtherPagesFootnote() {
+        let ids = ["w-2026-10-05", "w-2026-10-12", "w-2026-10-04", "m1-2026-10", "d-2026-10-07", "y-2026"]
+        XCTAssertEqual(WeekStartSettingsSection.otherPagesText(current: .monday, pageIds: ids),
+                       "もう一方の週の始まり（日曜）の週のページが 1 ページあります。切り替えると見えます。")
+        XCTAssertEqual(WeekStartSettingsSection.otherPagesText(current: .sunday, pageIds: ids),
+                       "もう一方の週の始まり（月曜）の週のページが 2 ページあります。切り替えると見えます。")
+        XCTAssertNil(WeekStartSettingsSection.otherPagesText(current: .monday, pageIds: ["w-2026-10-05", "m1-2026-10"]))
+        XCTAssertNil(WeekStartSettingsSection.otherPagesText(current: .sunday, pageIds: []))
+    }
 }

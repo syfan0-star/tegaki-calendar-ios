@@ -1,4 +1,5 @@
 import Access
+import InkModel
 import Layout
 import StoreKit
 import SwiftUI
@@ -13,7 +14,9 @@ import UIKit
 /// result under the footer), and the info links (`LegalLinks`). 1.1 (M7A_CONTRACT §2.6 / §5.3 / §6.1):
 /// 入力 has 「消しゴムで消したらペンに戻る」 (`AppSettings.eraserAutoReturn`), 情報 has the two stroke
 /// counts of this device (`StrokeCensus`, counted in the background while the sheet is open) and a
-/// footer, and the device is 「この端末」 everywhere (an iPhone too).
+/// footer, and the device is 「この端末」 everywhere (an iPhone too). 1.2 (docs/M7B_CONTRACT.md §5.7, §10.4): the
+/// sections of the week start and the holidays after 「カレンダー」, the licences' row in 情報, and on
+/// every screen but a Japanese one the note about the translations under its footer.
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
     @ObservedObject var sync: SyncEngine
@@ -44,6 +47,9 @@ struct SettingsScreen: View {
     /// Screenshot mode's `info` sheet (1.1, M7A_CONTRACT §7.3): scroll to the 「情報」 section once the
     /// form is on screen (the same way as `scrollToSyncOnAppear`).
     var scrollToInfoOnAppear: Bool = false
+    /// 1.2 (§10.7): screenshot mode's way to switch the week start: nothing is stored there, so the
+    /// owner's `.onChange` never fires and the question's answer calls this instead.
+    var onScreenshotWeekStart: (WeekStart) -> Void = { _ in }
 
     @Environment(\.openURL) private var openURL
     @State private var eraseInkAfterConvert: Bool = ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
@@ -60,6 +66,12 @@ struct SettingsScreen: View {
     @State private var showManage = false
     /// 1.1 fix (TestFlight only, docs/M7A.md ずれ 46): the 「記録」 sheet (`InkTrace`).
     @State private var showTrace = false
+    /// 1.2 (§10.4): the setting the question of switching the week start is about; nil = no question.
+    @State private var pendingWeekStart: WeekStartChoice.Setting?
+    /// 1.2 (§10.7): the week start of screenshot mode while the sheet is open (nothing is stored there).
+    @State private var screenshotWeekStart: WeekStart = ScreenshotMode.current?.weekStart ?? .monday
+    /// 1.2 (§7.4): `--screenshot-sheet holidays` opens the picker over this screen.
+    @State private var showHolidayPicker = false
 
     /// The id of the first row of the 「同期」 section (the scroll target of `scrollToSyncOnAppear`).
     private static let syncRowId = "sync-section"
@@ -73,33 +85,39 @@ struct SettingsScreen: View {
 
     /// The same steps as the first onboarding card (OnboardingView, DESIGN §2.10). 1.1 (§6.1): the
     /// 「設定」 app of whichever device, and the OS name of both.
-    static let googleHowTo = "Google カレンダーの予定を出すには、「設定」アプリで Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iOS・iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。"
+    static let googleHowTo = L.text("settings.calendar.google.howTo")
 
     // MARK: 1.1 texts (M7A_CONTRACT §2.6 / §5.3 / §6.2)
 
     /// 設定 › 入力: the row of the eraser's return to the pen.
-    static let eraserAutoReturnTitle = "消しゴムで消したらペンに戻る"
+    static let eraserAutoReturnTitle = L.text("settings.input.eraserAutoReturn.title")
 
     /// The footer of that row: the Apple Pencil sentences only on an iPad (an iPhone's settings never
     /// speak of the Pencil, like the 「Apple Pencil」 row, which only an iPad has).
     static func eraserAutoReturnFooter(isPad: Bool) -> String {
         isPad
-            ? "消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムも同じです。"
-            : "消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。"
+            ? L.text("settings.input.eraserAutoReturn.footer.pad")
+            : L.text("settings.input.eraserAutoReturn.footer.phone")
     }
 
     /// 設定 › 情報: the two rows of the stroke counts (values: `StrokeCensus.rowText` / `yearRowText`).
-    static let largestPageTitle = "いちばん線の多いページ"
-    static let yearPageTitle = "今年の年のページ"
+    static let largestPageTitle = L.text("settings.info.largestPage")
+    static let yearPageTitle = L.text("settings.info.yearPage")
     /// The footer of 情報.
-    static let infoFooter = "線の数は、この端末に保存されているページを数えたものです（どこにも送りません）。1 ページに書ける線は 19,000 本までです。"
+    static let infoFooter = L.format("settings.info.footer", DateText.number(StrokeBudget.refuseAt, L.language))
+
+    /// 1.2 (M7B-13, §5.7): under the footer of 情報 on every screen but a Japanese one: how the
+    /// translations were made, and where to report a mistake.
+    static func translationNote(language: UILanguage = L.language) -> String? {
+        language == .ja ? nil : L.text("info.translationNote", in: language)
+    }
 
     /// The data section's footer (M4 contract §6.2).
-    static let importFooter = "Web 版の設定で「手書きを書き出す（iPad アプリ用）」をして、そのファイルを選びます。同じファイルを二度取り込んでも手書きは二重になりません。"
+    static let importFooter = L.text("settings.data.importFooter")
 
     /// The data section's second paragraph (M6 contract §3.1 / §3.6): what 「手書きを書き出す」 makes,
     /// and that the data file goes back in through the import row (while subscribed).
-    static let exportFooter = "「手書きを書き出す」は、この端末に保存されている手書きを 1 つのデータファイル（JSON）にするか、いま開いているページを PDF にします。データファイルは「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。"
+    static let exportFooter = L.text("settings.data.exportFooter")
 
     /// "0.5.0 (1)" from the bundle.
     static var versionText: String {
@@ -109,19 +127,20 @@ struct SettingsScreen: View {
         return "\(short) (\(build))"
     }
 
-    /// 「2026/10/07 9:57」 on a Japanese iPad, "10/7/26, 9:57 AM" in CI's English locale.
+    /// 「2026/10/7 9:57」 on a Japanese iPad, "10/7/2026, 9:57 AM" in English: the date and the time, in
+    /// the Gregorian calendar whatever the device's (0-11, 0-33).
     static func timeText(_ date: Date) -> String {
-        date.formatted(Date.FormatStyle(date: .numeric, time: .shortened))
+        DateText.numericDateTime(date, L.language)
     }
 
     /// The 「最後に同期」 value: the time, or 「まだありません」.
     static func lastSyncText(_ date: Date?) -> String {
-        date.map(timeText) ?? "まだありません"
+        date.map(timeText) ?? L.text("settings.sync.lastSync.none")
     }
 
     /// 「前回の取り込み: 2026/10/14 9:41」 under the data footer; nil when nothing was imported yet.
     static func webImportedText(_ date: Date?) -> String? {
-        date.map { "前回の取り込み: " + timeText($0) }
+        date.map { L.format("settings.data.lastImport", timeText($0)) }
     }
 
     /// 「今すぐ同期」 is inert while there is no account to sync with or a round is running.
@@ -150,36 +169,52 @@ struct SettingsScreen: View {
             ScrollViewReader { proxy in
                 Form {
                     calendarSection
+                    // 1.2 (§5.7, §10.4): right after 「カレンダー」; the day's holidays and the week's first
+                    // day belong with the calendar, and the rows above do not move.
+                    WeekStartSettingsSection(
+                        pending: $pendingWeekStart,
+                        screenshotWeekStart: screenshotWeekStart,
+                        pageIds: { sync.allLocalPageIds() }
+                    )
+                    HolidaySettingsSection()
                     inputSections
                     syncSection
                     dataSection
                     purchaseSection
                     infoSection
                 }
-                .navigationTitle("設定")
+                .navigationTitle(L.text("settings.title"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("完了", action: onDone)
+                        Button(L.text("settings.done"), action: onDone)
                             .fontWeight(.semibold)
                     }
                 }
                 .confirmationDialog(eraseQuestion, isPresented: $confirmEraseStep1, titleVisibility: .visible) {
-                    Button("消す", role: .destructive) {
+                    Button(L.text("settings.data.erase.confirm"), role: .destructive) {
                         // The second question is an alert; it can only appear once the dialog is gone.
                         Task { @MainActor in
                             try? await Task.sleep(for: .seconds(0.35))
                             confirmEraseStep2 = true
                         }
                     }
-                    Button("キャンセル", role: .cancel) {}
+                    Button(L.text("settings.data.erase.cancel"), role: .cancel) {}
                 }
-                .alert("本当に消しますか？", isPresented: $confirmEraseStep2) {
-                    Button("全て消す", role: .destructive, action: onEraseAllInk)
-                    Button("キャンセル", role: .cancel) {}
+                .alert(L.text("settings.data.erase.title"), isPresented: $confirmEraseStep2) {
+                    Button(L.text("settings.data.erase.all"), role: .destructive, action: onEraseAllInk)
+                    Button(L.text("settings.data.erase.cancel"), role: .cancel) {}
                 } message: {
                     Text(eraseWarning)
                 }
+                // 1.2 (§10.4): the question of switching the week start (here, not on the row: a form
+                // keeps no off-screen row alive, and the row's picker is on its way back).
+                .weekStartQuestion(pending: $pendingWeekStart, current: screenshotWeekStart, onScreenshotAnswer: { new in
+                    screenshotWeekStart = new
+                    onScreenshotWeekStart(new)
+                })
+                // 1.2 (§7.4): `--screenshot-sheet holidays`.
+                .navigationDestination(isPresented: $showHolidayPicker) { HolidayPickerScreen() }
                 .onChange(of: eraseInkAfterConvert) {
                     guard !ScreenshotMode.isActive else { return }
                     AppSettings.eraseInkAfterConvert = eraseInkAfterConvert
@@ -188,6 +223,7 @@ struct SettingsScreen: View {
                     guard !ScreenshotMode.isActive else { return }
                     AppSettings.eraserAutoReturn = eraserAutoReturn
                 }
+                .task { await openScreenshotPieces() }
                 .onAppear {
                     guard scrollToSyncOnAppear || scrollToPurchaseOnAppear || scrollToInfoOnAppear else { return }
                     // The list needs a layout pass before it can scroll; the row lands a little below
@@ -228,16 +264,16 @@ struct SettingsScreen: View {
     }
 
     private var calendarSection: some View {
-        Section("カレンダー") {
-            Text("表示するカレンダー")
+        Section(L.text("settings.calendar.header")) {
+            Text(L.text("settings.calendar.shown"))
                 .font(.subheadline.weight(.semibold))
             if sourceGroups.isEmpty {
-                Text(model.status.canRead ? "カレンダーがありません" : "カレンダーへのアクセスを許可すると、ここに一覧が出ます")
+                Text(model.status.canRead ? L.text("settings.calendar.empty") : L.text("settings.calendar.noAccess"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(sourceGroups) { group in
-                    Text(group.source.isEmpty ? "その他" : group.source)
+                    Text(group.source.isEmpty ? L.text("settings.calendar.otherSource") : group.source)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     ForEach(group.calendars) { option in
@@ -247,7 +283,7 @@ struct SettingsScreen: View {
             }
             let writable = model.writableCalendarOptions
             if !writable.isEmpty {
-                Picker("予定の登録先", selection: defaultCalendarBinding(writable)) {
+                Picker(L.text("settings.calendar.default"), selection: defaultCalendarBinding(writable)) {
                     ForEach(writable) { option in
                         HStack(spacing: 8) {
                             colorDot(option.colorHex)
@@ -259,18 +295,18 @@ struct SettingsScreen: View {
                 .pickerStyle(.navigationLink)
             }
             HStack {
-                Text("カレンダーへのアクセス")
+                Text(L.text("settings.calendar.access.title"))
                 Spacer()
                 Text(accessText)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
             }
             accessButton
-            DisclosureGroup("Google カレンダーを使うには") {
+            DisclosureGroup(L.text("settings.calendar.google.title")) {
                 Text(Self.googleHowTo)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                Button("設定アプリを開く", action: openSettingsApp)
+                Button(L.text("settings.openSettingsApp"), action: openSettingsApp)
             }
         }
     }
@@ -295,7 +331,7 @@ struct SettingsScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(option.title)
-        .accessibilityValue(hidden ? "非表示" : "表示中")
+        .accessibilityValue(hidden ? L.text("settings.calendar.a11y.hidden") : L.text("settings.calendar.a11y.shown"))
         .accessibilityAddTraits(hidden ? [] : .isSelected)
     }
 
@@ -317,11 +353,11 @@ struct SettingsScreen: View {
 
     private var accessText: String {
         switch model.status {
-        case .fullAccess: return "許可されています（フルアクセス）"
-        case .notDetermined: return "まだ許可していません"
-        case .denied: return "許可されていません"
-        case .writeOnly: return "追加のみ（予定を表示できません）"
-        case .restricted: return "この端末では制限されています"
+        case .fullAccess: return L.text("settings.calendar.access.full")
+        case .notDetermined: return L.text("settings.calendar.access.notDetermined")
+        case .denied: return L.text("settings.calendar.access.denied")
+        case .writeOnly: return L.text("settings.calendar.access.writeOnly")
+        case .restricted: return L.text("settings.calendar.access.restricted")
         }
     }
 
@@ -340,12 +376,12 @@ struct SettingsScreen: View {
                 if requestingAccess {
                     ProgressView()
                 } else {
-                    Text("許可する")
+                    Text(L.text("settings.calendar.access.allow"))
                 }
             }
             .disabled(requestingAccess)
         case .denied, .writeOnly:
-            Button("設定アプリを開く", action: openSettingsApp)
+            Button(L.text("settings.openSettingsApp"), action: openSettingsApp)
         case .fullAccess, .restricted:
             EmptyView()
         }
@@ -356,11 +392,11 @@ struct SettingsScreen: View {
     @ViewBuilder
     private var inputSections: some View {
         Section {
-            Toggle("指でも書く", isOn: $allowFinger)
+            Toggle(L.text("settings.input.allowFinger"), isOn: $allowFinger)
         } header: {
-            Text("入力")
+            Text(L.text("settings.input.header"))
         } footer: {
-            Text("オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします。手書きは iPad と Apple Pencil で書くのに向いています")
+            Text(L.text("settings.input.allowFinger.footer"))
         }
         // 1.1 (§2.6): on the iPad and the iPhone; the footer speaks of the Pencil only on an iPad.
         Section {
@@ -371,18 +407,18 @@ struct SettingsScreen: View {
         if isPad {
             Section {
                 HStack {
-                    Text("Apple Pencil")
+                    Text(L.text("settings.input.pencil"))
                     Spacer()
-                    Button("設定アプリを開く", action: openSettingsApp)
+                    Button(L.text("settings.openSettingsApp"), action: openSettingsApp)
                 }
             } footer: {
-                Text("ダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作に従います")
+                Text(L.text("settings.input.pencil.footer"))
             }
         }
         Section {
-            Toggle("予定にした手書きを消す", isOn: $eraseInkAfterConvert)
+            Toggle(L.text("settings.input.eraseAfterConvert"), isOn: $eraseInkAfterConvert)
         } footer: {
-            Text("投げなわで囲んだ手書きを予定にしたあと、その手書きを消すかどうかの初期値です")
+            Text(L.text("settings.input.eraseAfterConvert.footer"))
         }
     }
 
@@ -391,7 +427,7 @@ struct SettingsScreen: View {
     private var syncSection: some View {
         Section {
             HStack {
-                Text("iCloud 同期")
+                Text(L.text("settings.sync.icloud"))
                 Spacer()
                 Text(status.settingsText)
                     .foregroundStyle(status.isError ? Color.red : Color.secondary)
@@ -399,7 +435,7 @@ struct SettingsScreen: View {
             }
             .id(Self.syncRowId)
             HStack {
-                Text("最後に同期")
+                Text(L.text("settings.sync.lastSync"))
                 Spacer()
                 Text(Self.lastSyncText(sync.snapshot.lastSyncAt))
                     .foregroundStyle(.secondary)
@@ -408,15 +444,15 @@ struct SettingsScreen: View {
                 if syncingNow {
                     ProgressView()
                 } else {
-                    Text("今すぐ同期")
+                    Text(L.text("settings.sync.now"))
                 }
             }
             .disabled(!Self.canSyncNow(status) || syncingNow)
             if status == .accountMismatch {
-                Button("新しいアカウントで使い始める…", action: onResolveAccountChange)
+                Button(L.text("settings.sync.newAccount"), action: onResolveAccountChange)
             }
         } header: {
-            Text("同期")
+            Text(L.text("settings.sync.header"))
         } footer: {
             Text(status.settingsFooter)
         }
@@ -440,20 +476,20 @@ struct SettingsScreen: View {
             // M5 (M5_CONTRACT §3.1): greyed while read only, but still tappable (the owner then shows
             // the paywall or a toast).
             Button(action: onImportWeb) {
-                Text("Web 版の手書きを取り込む")
+                Text(L.text("settings.data.import"))
                     .foregroundStyle(store.isReadOnly ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
             }
             // M6 (M6_CONTRACT §3.1, D1): the export is allowed while read only (`GatedAction.export`),
             // so the row keeps its tint in every access state.
             Button(action: onExport) {
-                Text("手書きを書き出す")
+                Text(L.text("settings.data.export"))
                     .foregroundStyle(.tint)
             }
-            Button("この端末の手書きを全て消す", role: .destructive) {
+            Button(L.text("settings.data.eraseAll"), role: .destructive) {
                 confirmEraseStep1 = true
             }
         } header: {
-            Text("データ")
+            Text(L.text("settings.data.header"))
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Self.importFooter)
@@ -468,15 +504,15 @@ struct SettingsScreen: View {
     /// The first confirmation: whether iCloud's copy goes too.
     private var eraseQuestion: String {
         Self.erasesCloud(status)
-            ? "この端末と iCloud に保存した手書きを全て消しますか？"
-            : "この端末に保存した手書きを全て消しますか？"
+            ? L.text("settings.data.erase.question.cloud")
+            : L.text("settings.data.erase.question.local")
     }
 
     /// The second confirmation's message.
     private var eraseWarning: String {
         Self.erasesCloud(status)
-            ? "この操作は元に戻せません。ほかの iPad や iPhone の手書きも消えます。"
-            : "この操作は元に戻せません。"
+            ? L.text("settings.data.erase.warning.cloud")
+            : L.text("settings.data.erase.warning.local")
     }
 
     // MARK: - 購入 (M5 contract §4.3)
@@ -491,7 +527,7 @@ struct SettingsScreen: View {
         let busy = store.snapshot.phase != .idle && store.snapshot.phase != .loadingProducts
         return Section {
             HStack {
-                Text("現在のプラン")
+                Text(L.text("settings.purchase.plan"))
                 Spacer()
                 Text(Self.planText(access))
                     .foregroundStyle(Self.planIsProblem(access) ? Color.red : Color.secondary)
@@ -510,7 +546,7 @@ struct SettingsScreen: View {
                 Button(title, action: onShowPaywall)
             }
             // Also while read only: the place to check a cancelled subscription (M5-21).
-            Button("サブスクリプションを管理") {
+            Button(L.text("settings.purchase.manage")) {
                 guard !ScreenshotMode.isActive else { return }
                 showManage = true
             }
@@ -518,12 +554,12 @@ struct SettingsScreen: View {
                 if restoring {
                     ProgressView()
                 } else {
-                    Text("購入を復元")
+                    Text(L.text("settings.purchase.restore"))
                 }
             }
             .disabled(busy)
         } header: {
-            Text("購入")
+            Text(L.text("settings.purchase.header"))
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Self.purchaseFooter(access))
@@ -543,19 +579,26 @@ struct SettingsScreen: View {
 
     private var infoSection: some View {
         Section {
-            Link("利用規約", destination: LegalLinks.terms)
-            Link("プライバシーポリシー", destination: LegalLinks.privacy)
-            Link(LegalLinks.appleEULATitle, destination: LegalLinks.appleEULA)
-            Link("サポート", destination: LegalLinks.support)
+            Link(L.text("settings.info.terms"), destination: LegalLinks.terms(for: L.language))
+            Link(L.text("settings.info.privacy"), destination: LegalLinks.privacy(for: L.language))
+            Link(LegalLinks.appleEULATitle(L.language), destination: LegalLinks.appleEULA)
+            Link(L.text("settings.info.support"), destination: LegalLinks.support(for: L.language))
+            // 1.2 (§5.7, §5.9): above 「バージョン」, which stays the scroll target of the `info` photo.
+            NavigationLink(L.text("settings.info.licenses")) { LicenseScreen() }
             versionRow
                 .id(Self.infoRowId)
             // 1.1 (§5.3): counted on this device, before the read cap; 「数えています…」 until done.
             countRow(Self.largestPageTitle, StrokeCensus.rowText(census?.largest, counting: census == nil))
             countRow(Self.yearPageTitle, StrokeCensus.yearRowText(census?.year, year: currentYear, counting: census == nil))
         } header: {
-            Text("情報")
+            Text(L.text("settings.info.header"))
         } footer: {
-            Text(Self.infoFooter)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Self.infoFooter)
+                if let note = Self.translationNote() {
+                    Text(note)
+                }
+            }
         }
     }
 
@@ -565,7 +608,7 @@ struct SettingsScreen: View {
     @ViewBuilder
     private var versionRow: some View {
         let row = HStack {
-            Text("バージョン")
+            Text(L.text("settings.info.version"))
             Spacer()
             Text(Self.versionText)
                 .foregroundStyle(.secondary)
@@ -606,6 +649,21 @@ struct SettingsScreen: View {
         census = result
     }
 
+    /// 1.2 (§7.4, §10.7): what `--screenshot-sheet holidays` and `week-start` show over this screen, once
+    /// the form is on screen. Nothing is stored; the week start's answer goes through `onScreenshotWeekStart`.
+    private func openScreenshotPieces() async {
+        guard let sheet = ScreenshotMode.current?.sheet, sheet == .holidays || sheet == .weekStart else { return }
+        try? await Task.sleep(for: .seconds(0.4))
+        switch sheet {
+        case .holidays:
+            showHolidayPicker = true
+        case .weekStart:
+            pendingWeekStart = screenshotWeekStart == .monday ? .sunday : .monday
+        default:
+            break
+        }
+    }
+
     private func openSettingsApp() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             openURL(url)
@@ -618,18 +676,18 @@ struct SettingsScreen: View {
 extension SettingsScreen {
     /// 「現在のプラン」の値（`PlanText.statusTitle`）
     static func planText(_ access: AccessState) -> String {
-        PlanText.statusTitle(access)
+        PlanText.statusTitle(access, language: L.language)
     }
 
     /// 日付行のラベル（readOnly は nil。`PlanText.dateLabel`）
     static func dateLabel(_ access: AccessState) -> String? {
-        PlanText.dateLabel(access)
+        PlanText.dateLabel(access, language: L.language)
     }
 
-    /// 「2026/10/25」 in ja_JP (numeric date, no time). `locale` is an argument so the CI's English
-    /// locale can be overridden in the tests.
-    static func dateText(_ date: Date, locale: Locale = .current) -> String {
-        date.formatted(Date.FormatStyle(date: .numeric, time: .omitted).locale(locale))
+    /// 「2026/10/25」 in ja_JP (numeric date, no time, the Gregorian calendar whatever the device's: 0-11,
+    /// 0-33). `locale` is an argument so the CI's English locale can be overridden in the tests.
+    static func dateText(_ date: Date, locale: Locale = L.locale) -> String {
+        DateText.numericDate(date, UILanguage.resolve(locale.identifier), region: locale.region?.identifier)
     }
 
     /// The value of 「現在のプラン」 is red while the payment is the problem: `.billingRetry` and `inGrace`.
@@ -647,20 +705,22 @@ extension SettingsScreen {
         switch access {
         case .subscribed(let subscription):
             if subscription.inGrace {
-                return "お支払いに問題があります。端末の\(PlanText.paymentPath)でお支払い方法を確認してください。猶予の期限までは使えます。"
+                return L.format("settings.purchase.footer.grace", PlanText.paymentPath(language: L.language))
             }
-            return cancelFooter
+            return L.format("settings.purchase.footer.cancel", PlanText.cancelPath(language: L.language))
         case .trial:
-            return cancelFooter + "試用中に解約すれば料金はかかりません。"
+            return L.format("settings.purchase.footer.trial", PlanText.cancelPath(language: L.language))
         case .readOnly(let reason):
-            return PlanText.readOnlyNote(reason) + readOnlyFooter
+            return L.format("settings.purchase.footer.readOnly", PlanText.readOnlyNote(reason, language: L.language))
         }
     }
 
     /// 「購読する」 / 「14 日間無料で試す」 while read only; nil otherwise (no row).
     static func purchaseButtonTitle(_ access: AccessState, eligible: Bool) -> String? {
         guard !access.canEdit else { return nil }
-        return eligible ? "\(ProductIDs.trialDays) 日間無料で試す" : "購読する"
+        return eligible
+            ? L.plural("settings.purchase.trial", count: ProductIDs.trialDays, DateText.number(ProductIDs.trialDays, L.language))
+            : L.text("settings.purchase.subscribe")
     }
 
     /// Red under the footer.
@@ -668,8 +728,4 @@ extension SettingsScreen {
         if case .failed = message { return true }
         return false
     }
-
-    private static let cancelFooter = "解約は端末の\(PlanText.cancelPath)から。解約しても期間の終わりまで使えます。"
-    /// The same list as 利用規約 第 5 条 5 項 (M6_CONTRACT §3.1 / §5.1: 「手書きの書き出し」 since M6).
-    private static let readOnlyFooter = "閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この端末の手書きを全て消す、手書きの書き出し、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。"
 }

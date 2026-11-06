@@ -1,0 +1,27 @@
+Tegaki est une app d’agenda qui vous permet d’écrire à la main directement sur les évènements de votre calendrier. Sur iPad, écrivez avec l’Apple Pencil. Sur iPhone, écrivez avec le doigt.
+
+■ Ce que vous pouvez faire
+• Écrire au stylo ou au feutre sur les pages de mois, de semaine, de jour et d’année, comme dans un agenda papier.
+• Voir sur les mêmes pages les évènements de l’app Calendrier de votre appareil (iCloud, Google Agenda, Exchange, etc.).
+• Entourer votre écriture au lasso et toucher « Créer RDV » pour l’ajouter à votre calendrier comme évènement. S’il s’agit d’un évènement Google Agenda, il apparaît aussi dans Google Agenda.
+• Toucher un évènement pour le modifier ou le supprimer. Créer de nouveaux évènements avec « + Évènement » ou en traçant sur la page.
+• Voir tous les évènements sur la journée entière, sans en omettre aucun.
+• Voir les jours fériés des pays et régions du monde. Vous pouvez aussi choisir un État ou une région, comme un État américain, ou choisir « Aucun » pour ne pas les afficher.
+• Utiliser l’app en 10 langues (japonais, anglais, chinois simplifié et traditionnel, coréen, français, allemand, espagnol, italien et portugais). Elle suit la langue de votre appareil.
+• Choisir le lundi ou le dimanche comme premier jour de la semaine. Les heures des pages sont au format 24 heures.
+• Passer du stylo à la gomme par un double toucher ou un pincement de l’Apple Pencil.
+• Garder votre écriture sur votre appareil et dans votre propre iCloud (synchronisation entre iPad et iPhone). Elle n’est envoyée à aucun serveur du développeur. Aucun compte à créer.
+• Exporter votre écriture dans Réglages > Données > « Exporter l’écriture manuscrite », sous forme de fichier de données (JSON) de toutes les pages ou de PDF de la page ouverte. L’exportation fonctionne sans abonnement.
+
+■ Utiliser Google Agenda
+Dans l’app Réglages, allez dans Apps > Calendrier > Comptes Calendrier, ajoutez votre compte Google et activez Calendriers. L’app lit et écrit les évènements par le calendrier de votre appareil : vous ne vous connectez jamais à Google dans l’app.
+
+Google Agenda est une marque de Google LLC. Cette app est développée par un particulier et n’est pas affiliée à Google LLC.
+
+■ Prix
+Abonnements mensuel et annuel à renouvellement automatique. Si vous êtes nouveau, vous pouvez essayer gratuitement pendant 14 jours. Les prix sont affichés dans l’App Store dans la devise de votre pays.
+Conditions d’utilisation (CLUF standard d’Apple) : https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Conditions de service (en japonais) : https://syfan0-star.github.io/tegaki-calendar/app/terms.html
+Politique de confidentialité (en japonais) : https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+
+Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs.

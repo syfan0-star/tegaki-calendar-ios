@@ -113,7 +113,7 @@ final class ExportBuilder {
         let appText = self.appText
         let exportedAtDate = now()
         let exportedAt = AppExport.exportedAtText(exportedAtDate, timeZone: timeZone)
-        let fileName = AppExport.jsonFileName(exportedAt: exportedAtDate, calendar: calendar)
+        let fileName = AppExport.jsonFileName(exportedAt: exportedAtDate, calendar: calendar, language: L.language)
         let url = directory.appendingPathComponent(fileName, isDirectory: false)
 
         let worker = Task.detached(priority: .userInitiated) { () async throws -> (byteCount: Int, pageCount: Int) in
@@ -173,15 +173,19 @@ final class ExportBuilder {
 
     /// The page on the screen as a one-page PDF: `cleanUp` → `PDFPageRenderer.render` (titled
     /// `PageNavigation.title(kind, focus:)`) → empty data is `renderFailed` → `Data.write(.atomic)`.
+    /// The title and the file name follow the settings the page on the screen was laid out with (the
+    /// holidays' `HolidayChoice.current`, the week's `WeekStartChoice.current`, §10.5).
     /// Synchronous on the main actor (the paper renderers and PencilKit's picture are main-actor
     /// work, about a second; the caller lets SwiftUI draw its spinner first, §3.3). The page is
     /// `BandMigration.migrate`d on the way in (idempotent; the ledger has done it already).
     func exportPDF(paper: PaperContent, page: InkPage, kind: PageKind, focus: DayKey) throws -> ExportResult {
         cleanUp()
-        let title = PageNavigation.title(kind, focus: focus)
+        let holidays = HolidayChoice.current
+        let weekStart = WeekStartChoice.current
+        let title = PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart)
         let data = PDFPageRenderer.render(paper, page: BandMigration.migrate(page), title: title)
         guard !data.isEmpty else { throw ExportError.renderFailed }
-        let fileName = AppExport.pdfFileName(kind: kind, focus: focus)
+        let fileName = AppExport.pdfFileName(kind: kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart)
         let url = directory.appendingPathComponent(fileName, isDirectory: false)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -211,7 +215,7 @@ private final class ExportJSONWriter {
             throw ExportError.writeFailed(error.localizedDescription)
         }
         guard fm.createFile(atPath: url.path, contents: nil) else {
-            throw ExportError.writeFailed("ファイルを作成できません: \(url.lastPathComponent)")
+            throw ExportError.writeFailed(L.format("export.error.createFailed", url.lastPathComponent))
         }
         do {
             handle = try FileHandle(forWritingTo: url)
@@ -222,7 +226,7 @@ private final class ExportJSONWriter {
     }
 
     func write(_ text: String) throws {
-        guard let handle = handle else { throw ExportError.writeFailed("ファイルは閉じられています") }
+        guard let handle = handle else { throw ExportError.writeFailed(L.text("export.error.closed")) }
         let data = Data(text.utf8)
         do {
             try handle.write(contentsOf: data)

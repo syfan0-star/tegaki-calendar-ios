@@ -153,7 +153,8 @@ public struct YearMonth: Hashable, Sendable {
     /// "2026年10月"
     public var title: String { "\(year)年\(month)月" }
 
-    /// Web-compatible ink page id of the Monday-start month page: "m1-2026-10".
+    /// Web-compatible ink page id of the month page: "m1-2026-10" ("m1" is a historical name: the same
+    /// id under either week start, K-11 rule 4).
     public var inkPageId: String { String(format: "m1-%04d-%02d", year, month) }
 
     public func contains(_ day: DayKey) -> Bool {

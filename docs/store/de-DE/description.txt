@@ -1,0 +1,27 @@
+Tegaki ist eine Planer-App, mit der Sie von Hand direkt auf die Termine in Ihrem Kalender schreiben. Auf dem iPad schreiben Sie mit dem Apple Pencil, auf dem iPhone mit dem Finger.
+
+■ Das können Sie tun
+• Mit Stift oder Marker auf Monats-, Wochen-, Tages- und Jahresseiten schreiben, wie in einem Papierplaner.
+• Die Termine aus der App „Kalender“ Ihres Geräts (iCloud, Google Kalender, Exchange und andere) auf denselben Seiten sehen.
+• Ihre Handschrift mit dem Lasso umkreisen und mit „Als Termin“ als Kalendertermin hinzufügen. Ein Termin in Google Kalender erscheint auch dort.
+• Auf einen Termin tippen, um ihn zu bearbeiten oder zu löschen. Neue Termine mit „+ Termin“ oder durch Nachziehen erstellen.
+• Alle ganztägigen Termine sehen. Keiner wird ausgelassen.
+• Die Feiertage von Ländern und Regionen weltweit sehen. Sie können auch ein Bundesland oder eine Region wählen, etwa einen US-Bundesstaat, oder mit „Keine“ keine Feiertage anzeigen.
+• Die App in 10 Sprachen nutzen (Japanisch, Englisch, Chinesisch (vereinfacht und traditionell), Koreanisch, Französisch, Deutsch, Spanisch, Italienisch und Portugiesisch). Sie folgt der Sprache Ihres Geräts.
+• Die Woche am Montag oder am Sonntag beginnen lassen. Die Uhrzeiten auf den Seiten nutzen das 24-Stunden-Format.
+• Durch Doppeltippen oder Drücken des Apple Pencil zwischen Stift und Radierer wechseln.
+• Ihre Handschrift wird auf Ihrem Gerät und in Ihrer eigenen iCloud gesichert (mit Synchronisierung zwischen iPad und iPhone). Sie wird an keinen Server des Entwicklers gesendet. Sie müssen keinen Account anlegen.
+• Handschrift unter Einstellungen > Daten > „Handschrift exportieren“ exportieren, als Datendatei (JSON) aller Seiten oder als PDF der geöffneten Seite. Das Exportieren funktioniert ohne Abo.
+
+■ Google Kalender verwenden
+Gehen Sie in der App „Einstellungen“ zu „Apps“ > „Kalender“ > „Kalender-Accounts“, fügen Sie Ihren Google-Account hinzu und schalten Sie Kalender ein. Die App liest und schreibt Termine über den Kalender Ihres Geräts, deshalb melden Sie sich in der App nie bei Google an.
+
+Google Kalender ist eine Marke von Google LLC. Diese App wurde von einer Einzelperson entwickelt und steht in keiner Verbindung zu Google LLC.
+
+■ Preise
+Monatliche und jährliche Abos mit automatischer Verlängerung. Wenn Sie neu sind, können Sie die App 14 Tage kostenlos testen. Die Preise werden im App Store in der Währung Ihres Landes angezeigt.
+Nutzungsbedingungen (Apple Standard-EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Nutzungsbedingungen des Dienstes (auf Japanisch): https://syfan0-star.github.io/tegaki-calendar/app/terms.html
+Datenschutzerklärung (auf Japanisch): https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+
+Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit.

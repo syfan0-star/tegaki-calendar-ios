@@ -66,6 +66,7 @@ final class YearTapUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = [
             "--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "year",
+            "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP",
             // UserDefaults' argument domain: 「指でも書く」 as asked, and already chosen (so the first
             // launch does not pick the device default over it).
             "-allowFingerDrawing", fingerDraws ? "YES" : "NO",

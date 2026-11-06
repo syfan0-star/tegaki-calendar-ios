@@ -27,6 +27,15 @@
 # no handwriting on four devices (artifact "blank-paper", kept 7 days; that test skips itself in the UI
 # test step of the first job). In the first job 1.1.1 adds two photos of the one-time pinch hint and
 # HeaderAndPaperUITests, and the grown memo's photos scroll to the stroke (the paper ends far below it).
+# The UI test step also runs EraserAndBelowDayUITests (since the end of 1.1, 8 tests), and "The unit tests'
+# repro lines" prints the canvas tests' `repro:` lines. Since 1.2 (docs/M7B_CONTRACT.md §7.5) the macOS part
+# also runs the localization lint and checks the frozen data code (DATA_1_1.sha256), "Localized bundle check"
+# looks into the built app, the unit tests and every photo of the first job are in Japanese whatever the
+# simulator's language is (-testLanguage ja, JA_ARGS; the photos are compared with those of
+# .github/workflows/ja-baseline.yml, J-4), the UI test step also runs LanguageUITests and WeekStartUITests,
+# compat-v1.0 also runs tools/weekstart-compat on the real 1.0 and the real 1.1.1, and a fourth job,
+# l10n-shots, takes the other nine languages, the Sunday pages and the doubled texts (artifact
+# "l10n-screenshots", kept 7 days; never fails on a photo). store-shots.yml takes the App Store's photos.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -34,6 +43,11 @@ name: build
 
 on:
   push:
+    # The two branches only exist to start ja-baseline.yml and store-shots.yml with the commit of m7b
+    # (docs/M7B_CONTRACT.md §7.5, 0-40); the same CI on them would only take the runners.
+    branches-ignore:
+      - ja-baseline
+      - store-shots
   pull_request:
 
 concurrency:
@@ -49,11 +63,22 @@ jobs:
     # 52 min (run 41195642254) and 56 min (1.0.1), their UI test step about 4 min (estimated: the boot,
     # the 60 s wait, YearTapUITests' 97 s); the 8 new UI tests make that step about 7 min, its own limit
     # of 25 min adds at most 21 min to those runs (≈ 77 min), and the new unit tests well under a minute.
-    timeout-minutes: 90
+    # 1.2 (docs/M7B_CONTRACT.md §7.5): 90 → 110. The UI test step may now take 40 min (below). The longest
+    # run so far is 1.1.1's 67.9 min with a UI test step of 11.9 (run 41922318959; e7b4d2f took 57.6, run
+    # 41264726309): 67.9 − 11.9 + 3 (the lint, the data check, the bundle check, 2 more sheets, the new unit
+    # tests) + 2 (the 13-inch iPad's wait) + 40 = 101, and 9 min for a slow boot (one alone has taken 4 min).
+    # A job cut by this limit does not reach "Upload screenshots", so J-4's photos and the UI tests' log would
+    # be lost with it.
+    timeout-minutes: 110
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
       NSUnbufferedIO: "YES"
+      # J-4 (docs/M7B_CONTRACT.md §1.3, §7.5, 0-25): every screenshot launch ends with these, as in
+      # ja-baseline.yml (the runner's simulator is English; without them the app would be in English since
+      # 1.2 and the kanji would fall back to PingFang SC). Expanded unquoted on purpose: four words, none
+      # with a space.
+      JA_ARGS: "-AppleLanguages (ja) -AppleLocale ja_JP"
 
     steps:
       - name: Checkout
@@ -83,16 +108,18 @@ jobs:
       # budget (1.1)" sections + 278 for "compat with 1.0 (K-7)" on K's fixtures + 144 for the 8
       # fixtures of the ledger and the screenshot mode); 1.1.1 (docs/R1_1_1.md) counts 24929 (+ 244 for
       # the loops over the taller paper + 239 for the changed checks and the section "opening zoom and
-      # top-aligned paper (1.1.1)") and the threshold is that number minus 50, so anything below 24879
-      # means a section or a fixture went missing.
+      # top-aligned paper (1.1.1)"); 1.2 (docs/M7B_CONTRACT.md §7.1, §10.8; the split is in docs/M7B.md, K2)
+      # counts 29470 (+ 4541 for the sections "languages", "kit strings", "date text", "holidays", "holiday
+      # geometry" and "week start"). The threshold is that number minus 50, so anything below 29420 means a
+      # section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 24879 or more)"
+          echo "KitChecks count: ${N:-0} (required: 29420 or more)"
           grep -E 'compat10: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 24879
+          test "${N:-0}" -ge 29420
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -108,6 +135,21 @@ jobs:
           set -euo pipefail
           cd TegakiKit/Tests/Compat10 && shasum -a 256 -c FROZEN.sha256
 
+      # 1.2 (docs/M7B_CONTRACT.md §2.7): the 14 rules on the languages (no Japanese outside the keys, every
+      # key in ten languages, the generated files are what the sources give, the week start reaches every
+      # call, the store's texts). L-12 only warns. No git, no writes.
+      - name: Localization lint
+        run: |
+          set -euo pipefail
+          python3 -I tools/l10n/lint.py .
+
+      # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the 18 files of the handwriting's data are the
+      # bytes of 1.1.1. The file keeps its name; the commit it was made from is in docs/M7B.md.
+      - name: Data code frozen since 1.1.1
+        run: |
+          set -euo pipefail
+          shasum -a 256 -c tools/compat10/DATA_1_1.sha256
+
       - name: Install XcodeGen
         run: |
           set -euo pipefail
@@ -119,6 +161,15 @@ jobs:
           set -euo pipefail
           xcodegen generate
           xcodebuild -project TegakiCalendar.xcodeproj -list
+
+      # 1.2 (docs/M7B_CONTRACT.md §2.2): what XcodeGen made of the String Catalogs. Its version is not
+      # pinned (brew has no old versions), so docs/M7B.md records this; "Localized bundle check" is the guard.
+      - name: The project's known regions
+        run: |
+          set -euo pipefail
+          xcodegen --version
+          grep -n -A 14 'knownRegions' TegakiCalendar.xcodeproj/project.pbxproj || echo "::warning::no knownRegions in the generated project"
+          grep -n 'developmentRegion' TegakiCalendar.xcodeproj/project.pbxproj || true
 
       - name: Build for the iOS Simulator
         run: |
@@ -132,6 +183,46 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             build
+
+      # 1.2 (docs/M7B_CONTRACT.md §2.2, §7.5, 0-4, 0-5): the built app has the ten languages (a `.lproj` that
+      # is missing or named a little differently gives its users English without a word), the holidays and
+      # their licence, not the alias UK.json and no right-to-left language, the privacy manifest's reasons
+      # (CA92.1 UserDefaults; 35F9.1 system boot time, the frozen InkCanvasView needs it), and Xcode did not
+      # add keys to the catalogs (SWIFT_EMIT_LOC_STRINGS is NO). If the catalogs give no `.lproj`, 0-4 says
+      # what to do (build.py --format strings); if HolidayData is missing, §2.2 (Resources/HolidayData).
+      - name: Localized bundle check
+        run: |
+          set -euo pipefail
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          if [ -z "$APP" ]; then echo "::error::TegakiCalendar.app not found under build/DerivedData."; exit 1; fi
+          echo "App bundle: $APP"
+          FAILED=0
+          fail() { echo "::error::$1"; FAILED=1; }
+          for L in ja en zh-Hans zh-Hant ko fr de es it pt-BR; do
+            [ -f "$APP/$L.lproj/Localizable.strings" ] || [ -f "$APP/$L.lproj/Localizable.stringsdict" ] || fail "no $L.lproj/Localizable.strings or .stringsdict"
+            [ -f "$APP/$L.lproj/InfoPlist.strings" ] || fail "no $L.lproj/InfoPlist.strings"
+          done
+          for F in JP.json US.json index.json SOURCE.json LICENSE-python-holidays.txt CONTRIBUTORS-python-holidays.txt; do
+            [ -f "$APP/HolidayData/$F" ] || fail "no HolidayData/$F"
+          done
+          for BAD in HolidayData/UK.json ar.lproj he.lproj; do
+            if [ -e "$APP/$BAD" ]; then fail "$BAD must not be in the app"; fi
+          done
+          if PRIVACY="$(plutil -p "$APP/PrivacyInfo.xcprivacy")"; then
+            printf '%s\n' "$PRIVACY"
+            for REASON in CA92.1 35F9.1; do
+              case "$PRIVACY" in
+                *"$REASON"*) ;;
+                *) fail "PrivacyInfo.xcprivacy has no $REASON" ;;
+              esac
+            done
+          else
+            fail "PrivacyInfo.xcprivacy is missing or unreadable"
+          fi
+          ls -d "$APP"/*.lproj || true
+          echo "HolidayData: $(ls "$APP/HolidayData" 2>/dev/null | wc -l | tr -d ' ') files, $(du -sh "$APP/HolidayData" 2>/dev/null | cut -f1)"
+          git diff --exit-code -- Sources/TegakiCalendar/Resources || fail "the build changed the String Catalogs (0-5)"
+          exit "$FAILED"
 
       # The primary simulator (unit tests, 4 pages, 6 sheets): the first name, in sorted order, that
       # starts with "iPad Pro 13-inch", else "iPad Air 13-inch", else any iPad, else any iPhone
@@ -173,7 +264,8 @@ jobs:
       # theirs into TEGAKI_FIXTURE_OUT and fail (xcodebuild hands a TEST_RUNNER_-prefixed variable to the
       # test runner without the prefix). shots/fixtures goes up with the screenshots; the lead reads the
       # files and commits them. 1.1 fix (the lead's review): the output is also kept in
-      # $RUNNER_TEMP/unit-tests.log (not uploaded) for the next step.
+      # $RUNNER_TEMP/unit-tests.log (not uploaded) for the next step. 1.2 (docs/M7B_CONTRACT.md 0-25): the
+      # unit tests are in Japanese whatever the simulator's language is (their old expectations are Japanese).
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
@@ -185,6 +277,8 @@ jobs:
             -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }}" \
             -derivedDataPath build/DerivedData \
             -skip-testing:TegakiCalendarUITests \
+            -testLanguage ja \
+            -testRegion JP \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             test 2>&1 | tee "$RUNNER_TEMP/unit-tests.log"
@@ -256,6 +350,10 @@ jobs:
           ls build/UITestData/Build/Products/*.xctestrun
 
       # ---- Screenshots of the running app (best effort; never fails the job) ----
+      # 1.2 (docs/M7B_CONTRACT.md §1.3 J-4, §7.5, 0-25): every launch of these steps ends with $JA_ARGS and
+      # the steps write shots/env.txt. The steps from "Pick a simulator" to "Store listing set" must stay
+      # the same as .github/workflows/ja-baseline.yml (the reference of J-4; only the two sheets of 1.2 and
+      # the step's name differ): when one of the two changes, change the other one too.
       # The app is launched with "--screenshot-mode" (Sources/TegakiCalendar/Support/ScreenshotMode.swift):
       # no onboarding, no EventKit, deterministic demo events for 2026-10 and a few preloaded ink
       # strokes. Since M3a it is launched once per page ("--screenshot-page month|week|day|year",
@@ -354,10 +452,39 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
+          # J-4 (docs/M7B_CONTRACT.md §1.3, §7.5): the Xcode and the simulator runtimes the photos were drawn
+          # with. build.yml and ja-baseline.yml write the same lines (keep them the same), so a `diff` of the
+          # two env.txt tells whether two runs drew with the same Xcode and runtimes. No UDIDs (they differ
+          # from one runner image to the next).
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          xcodebuild -version > shots/env.txt || echo "::warning::xcodebuild -version failed"
+          sim_env ipad13 "$UDID" >> shots/env.txt || echo "::warning::no runtime line for ipad13"
+          cat shots/env.txt || true
+          # docs/M7B.md (FIX3), docs/M7B_CONTRACT.md §12.6: a first launch after the install compiles PencilKit's
+          # 34 Metal shaders (the next launches none). In run 42013415033 that took until 19 s after the launch,
+          # so the month photo of 8 s had no handwriting. And a freshly booted simulator posts the banner "Ready
+          # for Apple Intelligence" once, about 85–105 s after the boot (docs/M7B.md, C1), which that run caught
+          # on the week photo. 120 s with the app in front outlasts both. Same lines in the other workflow.
+          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
+          sleep 120
+          xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
           for PAGE in month week day year; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
-            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE"
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" $JA_ARGS
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE.png"
@@ -369,14 +496,14 @@ jobs:
             PAGE="${SPEC%%|*}"; OFFSET="${SPEC##*|}"
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
-            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-zoom 2 --screenshot-offset "$OFFSET"
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-zoom 2 --screenshot-offset "$OFFSET" $JA_ARGS
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page, zoom 2; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE-zoom2.png"
           done
           xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
           sleep 1
-          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-readonly
+          xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-readonly $JA_ARGS
           sleep 8
           pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (month page, read only; crashed?)"
           xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-readonly.png"
@@ -389,8 +516,8 @@ jobs:
             SHOT="${SPEC%%|*}"; ARGS="${SPEC#*|}"
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
-            # $ARGS is split on purpose (the values have no spaces).
-            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 $ARGS
+            # $ARGS (and $JA_ARGS) is split on purpose (the values have no spaces).
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 $ARGS $JA_ARGS
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($SHOT; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$SHOT.png"
@@ -398,8 +525,10 @@ jobs:
           ls -la shots
 
       # Since 1.1 (docs/M7A_CONTRACT.md §7.3) a ninth sheet, "info": the settings scrolled to 「情報」 with
-      # the demo stroke counts (「いちばん線の多いページ」 and 「今年の年のページ」).
-      - name: Screenshots (13-inch iPad, portrait, 9 sheets on the month page)
+      # the demo stroke counts (「いちばん線の多いページ」 and 「今年の年のページ」). Since 1.2 (docs/M7B_CONTRACT.md
+      # §7.4, §10.7, §7.6) a tenth, "holidays" (the picker of the holidays), and an eleventh, "week-start" (the
+      # settings with the question of switching the week start). ja-baseline.yml does not shoot these two.
+      - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         run: |
@@ -407,18 +536,19 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
-          for SHEET in create edit lasso settings sync import paywall export info; do
+          for SHEET in create edit lasso settings sync import paywall export info holidays week-start; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
-            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET"
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET" $JA_ARGS
             sleep 9
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 9 s (sheet $SHEET; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-sheet-$SHEET.png"
           done
           ls -la shots
 
-      # The 13-inch log is collected before the other devices boot (its 22 shots since 1.1 fit in the
-      # 10 min window; each extra device writes its own shots/<id>-log.txt below).
+      # The 13-inch log is collected before the other devices boot (its 25 shots since 1.2 took 8.9 min in
+      # CI-0; with the 2 min wait added after CI-0 that is about 11, so a 14 min window; each extra device
+      # writes its own shots/<id>-log.txt below).
       - name: Collect the app log and crash reports (13-inch iPad)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -427,7 +557,7 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           mkdir -p shots
           xcrun simctl terminate "$UDID" com.syfan0.tegakicalendar 2>/dev/null || true
-          xcrun simctl spawn "$UDID" log show --last 10m --style compact \
+          xcrun simctl spawn "$UDID" log show --last 14m --style compact \
             --predicate 'process == "TegakiCalendar" OR eventMessage CONTAINS "tegakicalendar" OR eventMessage CONTAINS "TegakiCalendar"' \
             > shots/app-log.txt 2>&1 || true
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} shots/ \; 2>/dev/null || true
@@ -448,6 +578,16 @@ jobs:
           # the tail-only path ("canvas: tail-only": 0 lines is fine, screenshot mode opens the grown paper
           # directly). Shown only; no count is expected.
           grep -E 'toolbar: (safeArea|paperArea)=|budget: largest=|canvas: tail-only' shots/app-log.txt || true
+
+      # 1.2 (docs/M7B_CONTRACT.md §5.3, §2.5): the language, the locale and the holidays the screen chose,
+      # how long the holidays took to load (`l10n: holidays loaded <ms> ms`; about 50 ms is the aim) and
+      # any key the app did not find (`l10n: missing <key>`). Shown only; the lead copies them to docs/M7B.md.
+      - name: The app's l10n lines (13-inch iPad)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          grep 'l10n: ' shots/app-log.txt | awk '{ i = index($0, "l10n: "); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
 
       # The four other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
       # down afterwards: iphone (iPhone 17, 402 pt), iphone69 (iPhone 17 Pro Max, 440 pt; since M6,
@@ -484,6 +624,24 @@ jobs:
             exit 0
           fi
           mkdir -p shots
+          # J-4 (docs/M7B_CONTRACT.md §1.3, §7.5): the Xcode and the simulator runtimes the photos were drawn
+          # with. build.yml and ja-baseline.yml write the same lines (keep them the same), so a `diff` of the
+          # two env.txt tells whether two runs drew with the same Xcode and runtimes. No UDIDs (they differ
+          # from one runner image to the next).
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
           xcrun simctl shutdown "$PRIMARY" || true
           # device-id | exact first choice | prefix fallbacks (in order)
           for SPEC in "iphone|iPhone 17|iPhone 17,iPhone" \
@@ -522,6 +680,7 @@ jobs:
             if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
+            sim_env "$ID" "$UDID" >> shots/env.txt || echo "::warning::no runtime line for $ID"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
             xcrun simctl ui "$UDID" appearance light || true
@@ -535,7 +694,7 @@ jobs:
               local FILE="$1"; shift
               xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
               sleep 1
-              xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" || { echo "::warning::launch failed ($FILE)"; return 0; }
+              xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" $JA_ARGS || { echo "::warning::launch failed ($FILE)"; return 0; }
               sleep 9
               xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
@@ -544,7 +703,7 @@ jobs:
             # after the boot ("Ready for Apple Intelligence" — run 39034481760 caught it on
             # iphone-portrait-week.png, run 39031277533 on ipad11-portrait-day.png, both App Store
             # sources). Wait that window out with the app in front before the first shot (settle) …
-            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month || true
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
             sleep 40
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             for PAGE in month week day year; do
@@ -618,9 +777,12 @@ jobs:
       # run 41164839330 and about 3–4 min for the 8; an overloaded simulator stretches every wait of the
       # tests, each of which is bounded). 1.1.1 (docs/R1_1_1.md): HeaderAndPaperUITests (3 tests, about a
       # minute: where 「今日」 sits and that it works, an empty page at the top of the real paper area);
-      # its steps are the `header-paper UI:` lines.
+      # its steps are the `header-paper UI:` lines. 1.2 (docs/M7B_CONTRACT.md §7.3, §10.8): LanguageUITests
+      # (3.8 min in CI-0 for 29 launches of about 8 s, now 30; which language iOS chooses and, in German, that the purchase
+      # sheet reaches its links, its steps are the `l10n UI:` lines) and WeekStartUITests (the `week-start UI:` lines) run here too; the xcodebuild of the
+      # step took 10.2 min in CI-0 (1.1.1's whole step took 11.9 in run 41922318959) and the step stops after 40. The tests pass their own language in their launch arguments.
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
-        timeout-minutes: 25
+        timeout-minutes: 40
         run: |
           set -euo pipefail
           UDID="${{ steps.uibuild.outputs.udid }}"
@@ -642,7 +804,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
@@ -799,6 +961,37 @@ jobs:
           set -euo pipefail
           tools/compat10/run.sh "$RUNNER_TEMP/compat11"
 
+      # 1.2 (docs/M7B_CONTRACT.md K-11, §7.5, §10.8): the REAL old versions read what 1.2 writes (a week
+      # page that starts on a Sunday, a month page written in the Sunday order) and neither lose nor move
+      # anything: tools/weekstart-compat on 1.0 (v10 above) and on the commit in
+      # tools/l10n/ja-baseline-ref.txt (<1.1.1> of §1.5). tools/compat10 is not touched. A failure prints FAIL
+      # lines and exits 1 (tools/weekstart-compat/README.md).
+      - name: Read the <1.1.1> commit
+        id: ref111
+        run: |
+          set -euo pipefail
+          REF="$(tr -d '[:space:]' < tools/l10n/ja-baseline-ref.txt)"
+          if ! printf '%s' "$REF" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::tools/l10n/ja-baseline-ref.txt must hold one full commit sha."
+            exit 1
+          fi
+          echo "sha=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Check out <1.1.1> at v11
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref111.outputs.sha }}
+          path: v11
+
+      - name: The week start on the real 1.0 and the real <1.1.1>
+        run: |
+          set -euo pipefail
+          git -C v11 log -1 --format='v11: %H %s'
+          cp -R tools/weekstart-compat/v10/run v10/run
+          swift run --package-path v10/run Probe
+          cp -R tools/weekstart-compat/v11/run v11/run
+          swift run --package-path v11/run Probe
+
       - name: Install XcodeGen
         run: |
           set -euo pipefail
@@ -845,6 +1038,245 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             test 2>&1 | tee "$RUNNER_TEMP/real10.log"
           grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real10.log" || true
+
+  # 1.2 (docs/M7B_CONTRACT.md §7.5, §7.6, §4.4, §4.5, §10.7, §8 8): the other nine languages, seen by the
+  # lead and the owner without being able to read them. Next to the other jobs (no `needs`). No test here;
+  # a photo that fails is only a warning, so this job fails only when the app does not build. 63 photos in
+  # shots/l10n (artifact "l10n-screenshots", kept 7 days), each language with its region's holidays and week
+  # start (en_US, zh_*, ko_KR, es_MX and pt_BR start on a Sunday, fr_FR, de_DE and it_IT on a Monday):
+  #   <language>/ipad13-portrait-{month,day}.png, iphone-portrait-{week,year}.png     36
+  #   {en,de}/ipad13-portrait-sheet-{settings,holidays,paywall,week-start}.png         8
+  #   {de,fr}/{ipad13,iphone}-portrait-tool-eraser.png (the toolbar's two lines)       4
+  #   {fr,de}/iphone-portrait-sheet-lasso.png (the three words of the menu)            2
+  #   de/iphone-portrait-sheet-paywall.png (the longest real language)                 1
+  #   en/ipad13-portrait-week.png, en/iphone-portrait-month.png (Sunday first)         2
+  #   ja-sunday/{ipad13,iphone}-portrait-{month,week}.png (Japanese, Sunday first)     4
+  #   pseudo/{ipad13,iphone}-portrait-{month,sheet-settings,sheet-paywall}.png         6
+  # pseudo/ is `-NSDoubleLocalizedStrings YES`: every text from the Bundle twice, longer than any language.
+  # That and `-NSShowNonLocalizedStrings YES` only reach the app's own words (Localizable): the Kit's table
+  # (titles, plan texts, +n, holiday marks) neither doubles nor logs. Its lengths are for PaperFitTests and
+  # L-12, its gaps for L-2 and KitStringsTests.
+  # The limit: a build and XcodeGen 3 min, two boots 3.5 each (run 41922318959), the two waits 4 min, 63
+  # photos of 11–15 s at most 16: about 30 min. It stays at 75 because the job's last step is the upload.
+  l10n-shots:
+    name: Localized shots (1.2)
+    runs-on: macos-26
+    timeout-minutes: 75
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+      # The Sunday photos' Japanese (see the first job).
+      JA_ARGS: "-AppleLanguages (ja) -AppleLocale ja_JP"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      - name: Build for the iOS Simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # One device at a time, the 13-inch iPad first. The language and the region are launch arguments
+      # (the app's own argument domain; nothing changes on the simulator). A first boot's system banner
+      # comes 85–105 s after the boot (docs/M7B.md, C1), hence the 120 s with the app in front.
+      - name: Shots (13-inch iPad and iPhone 17)
+        timeout-minutes: 55
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          BUNDLE="com.syfan0.tegakicalendar"
+          OUT="shots/l10n"
+          LOG="$OUT/pseudo/l10n-log.txt"
+          mkdir -p "$OUT/pseudo"
+          : > "$LOG"
+          if [ -z "$APP" ]; then
+            echo "::warning::TegakiCalendar.app not found under build/DerivedData; no shots."
+            exit 0
+          fi
+          # language|region (docs/M7B_CONTRACT.md §7.5)
+          LANGS="en|en_US zh-Hans|zh_CN zh-Hant|zh_TW ko|ko_KR fr|fr_FR de|de_DE it|it_IT es|es_MX pt-BR|pt_BR"
+          lang_args() {  # the launch arguments of a language: it, its region, that region's holidays and week start
+            local P
+            for P in $LANGS; do
+              if [ "${P%%|*}" = "$1" ]; then
+                echo "-AppleLanguages ($1) -AppleLocale ${P##*|} --screenshot-holidays auto --screenshot-week-start auto"
+              fi
+            done
+          }
+          shoot() {  # shoot <folder> <file> <launch args…>: one shot; a failure only loses this one file
+            local FOLDER="$1" FILE="$2"
+            shift 2
+            mkdir -p "$OUT/$FOLDER"
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 "$@" || { echo "::warning::launch failed ($FOLDER/$FILE)"; return 0; }
+            sleep 9
+            xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($FOLDER/$FILE)"
+            xcrun simctl io "$UDID" screenshot "$OUT/$FOLDER/$FILE" || echo "::warning::screenshot failed ($FOLDER/$FILE)"
+          }
+          # device-id | exact first choice | prefix fallbacks (in order)
+          for SPEC in "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13" \
+                      "iphone|iPhone 17|iPhone 17,iPhone"; do
+            ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
+            FOUND="$(xcrun simctl list -j devices available | SIM_EXACT="$EXACT" SIM_PREFIXES="$PREFIXES" python3 -c '
+          import json, os, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):                                  # "…iOS-26-5" → (26, 5)
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          found = {}                                             # name → (udid, version): the newest iOS
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
+                      continue
+                  key = version(runtime)
+                  if d["name"] not in found or key > found[d["name"]][1]:
+                      found[d["name"]] = (d["udid"], key)
+          exact = os.environ["SIM_EXACT"]
+          if exact in found:
+              print(exact + "|" + found[exact][0])
+              raise SystemExit
+          for prefix in os.environ["SIM_PREFIXES"].split(","):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0])
+                      raise SystemExit
+          print("")
+          ' || true)"
+            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+            echo "$ID: $NAME ($UDID)"
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            if ! xcrun simctl install "$UDID" "$APP"; then
+              echo "::warning::install failed on $ID; skipping."
+              xcrun simctl shutdown "$UDID" || true
+              continue
+            fi
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month || true
+            sleep 120
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            if [ "$ID" = "ipad13" ]; then
+              for P in $LANGS; do
+                L="${P%%|*}"
+                for PAGE in month day; do
+                  # $(lang_args …) and $JA_ARGS are split on purpose (the values have no spaces).
+                  shoot "$L" "ipad13-portrait-$PAGE.png" --screenshot-page "$PAGE" $(lang_args "$L")
+                done
+              done
+              for L in en de; do
+                for SHEET in settings holidays paywall week-start; do
+                  shoot "$L" "ipad13-portrait-sheet-$SHEET.png" --screenshot-page month --screenshot-sheet "$SHEET" $(lang_args "$L")
+                done
+              done
+              shoot en ipad13-portrait-week.png --screenshot-page week $(lang_args en)
+            else
+              for P in $LANGS; do
+                L="${P%%|*}"
+                for PAGE in week year; do
+                  shoot "$L" "iphone-portrait-$PAGE.png" --screenshot-page "$PAGE" $(lang_args "$L")
+                done
+              done
+              for L in fr de; do
+                shoot "$L" iphone-portrait-sheet-lasso.png --screenshot-page month --screenshot-sheet lasso $(lang_args "$L")
+              done
+              shoot en iphone-portrait-month.png --screenshot-page month $(lang_args en)
+              # The longest real language's purchase sheet on an iPhone (the top of it; that sending it down
+              # reaches the links is LanguageUITests.testGermanPaywallReachesItsLinks, with its own photos).
+              shoot de iphone-portrait-sheet-paywall.png --screenshot-page month --screenshot-sheet paywall $(lang_args de)
+            fi
+            for L in de fr; do
+              shoot "$L" "$ID-portrait-tool-eraser.png" --screenshot-page month --screenshot-tool eraser $(lang_args "$L")
+            done
+            for PAGE in month week; do
+              shoot ja-sunday "$ID-portrait-$PAGE.png" --screenshot-page "$PAGE" $JA_ARGS --screenshot-week-start sunday
+            done
+            shoot pseudo "$ID-portrait-month.png" --screenshot-page month -AppleLanguages "(en)" -NSDoubleLocalizedStrings YES
+            for SHEET in settings paywall; do
+              shoot pseudo "$ID-portrait-sheet-$SHEET.png" --screenshot-page month --screenshot-sheet "$SHEET" -AppleLanguages "(en)" -NSDoubleLocalizedStrings YES
+            done
+            # The gaps in the app's words, once per device: Foundation logs what the Bundle does not have.
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet settings $(lang_args de) -NSShowNonLocalizedStrings YES || true
+            sleep 12
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            echo "== $ID: $NAME" >> "$LOG"
+            xcrun simctl spawn "$UDID" log show --last 40m --style compact --predicate 'process == "TegakiCalendar"' >> "$LOG" 2>&1 || true
+            xcrun simctl shutdown "$UDID" || true
+          done
+          find "$OUT" -name '*.png' | sort
+
+      # docs/M7B_CONTRACT.md §7.5, §8 4: 0 is the expected number of both kinds of lines.
+      - name: The words the app did not find
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="shots/l10n"
+          LOG="$OUT/pseudo/l10n-log.txt"
+          [ -f "$LOG" ] || : > "$LOG"
+          PHOTOS="$(find "$OUT" -name '*.png' | wc -l | tr -d ' ')"
+          MISSING="$(grep 'l10n: missing' "$LOG" | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
+          NOT_LOCALIZED="$(grep 'not found in strings table' "$LOG" | grep -c 'TegakiCalendar.app' || true)"
+          HOLIDAYS="$(grep -E 'l10n: holidays loaded' "$LOG" | sed 's/.*l10n: holidays loaded //' | sort -n | tail -1)"
+          grep 'l10n: missing' "$LOG" | sed 's/.*l10n: missing //' | sort -u || true
+          grep 'not found in strings table' "$LOG" | grep 'TegakiCalendar.app' | head -50 || true
+          [ "$PHOTOS" = "63" ] || echo "::warning::$PHOTOS photos, 63 expected."
+          [ "$MISSING" = "0" ] || echo "::warning::$MISSING keys the app did not find (l10n: missing)."
+          [ "${NOT_LOCALIZED:-0}" = "0" ] || echo "::warning::$NOT_LOCALIZED non-localized lines of the app's bundle."
+          {
+            echo "### l10n-shots"
+            echo ""
+            echo "- photos: $PHOTOS (63 expected)"
+            echo "- keys the app did not find (\`l10n: missing\`): $MISSING (0 expected)"
+            echo "- non-localized lines of the app's bundle: ${NOT_LOCALIZED:-0} (0 expected)"
+            echo "- the slowest \`l10n: holidays loaded\`: ${HOLIDAYS:-none}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the shots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: l10n-screenshots
+          path: shots/l10n
+          retention-days: 7
+          if-no-files-found: warn
 
   # 1.1.1 (docs/R1_1_1.md): the paper with no events and no handwriting on the owner's four kinds of
   # device, portrait and landscape, toolbar out and folded, to compare before and after the fix. Its

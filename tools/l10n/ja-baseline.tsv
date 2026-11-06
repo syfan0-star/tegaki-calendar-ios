@@ -1,0 +1,523 @@
+# 生成物。直さない。tools/l10n/baseline.py
+# The Japanese strings of 1.1.1 (docs/M7B_CONTRACT.md §1.3 J-1; lint L-3: each row is one key's "was"
+# or "composedOf", or an exception of ja-exceptions.txt). Sources/TegakiCalendar and TegakiKit/Sources
+# without KitChecks, comments excluded. Columns: the file (without Sources/TegakiCalendar/ or
+# TegakiKit/Sources/), the line, the string as the Swift source writes it between its quotes.
+# commit: 9cbc3c9f8223498bf5a8f8f1799388f196db309f
+# strings: 516 in 42 files
+Calendar/EventDraft.swift	73	カレンダーへのアクセスが許可されていません
+Calendar/EventDraft.swift	74	予定を登録できるカレンダーがありません
+Calendar/EventDraft.swift	75	登録先のカレンダーが見つかりません
+Calendar/EventDraft.swift	76	このカレンダーは変更できません
+Calendar/EventDraft.swift	77	予定が見つかりません（別の端末で削除されたかもしれません）
+Calendar/EventDraft.swift	78	終了は開始より後にしてください
+Calendar/EventDraft.swift	79	保存できませんでした: \(message)
+Calendar/EventKitService.swift	75	祝日
+Calendar/EventKitService.swift	301	（無題）
+Export/ExportBuilder.swift	214	ファイルを作成できません: \(url.lastPathComponent)
+Export/ExportBuilder.swift	225	ファイルは閉じられています
+Export/PDFPageRenderer.swift	26	てがきカレンダー
+Export/PDFPageRenderer.swift	36	月
+Export/PDFPageRenderer.swift	36	火
+Export/PDFPageRenderer.swift	36	水
+Export/PDFPageRenderer.swift	36	木
+Export/PDFPageRenderer.swift	36	金
+Export/PDFPageRenderer.swift	36	土
+Export/PDFPageRenderer.swift	36	日
+Export/PDFPageRenderer.swift	256	\(index + 1)月
+Export/PDFPageRenderer.swift	288	終日
+Ink/InkCanvasView.swift	679	手書きの紙
+Ink/InkTrace.swift	33	てがきカレンダー \(SettingsScreen.versionText) / \(device.systemName) \(device.systemVersion) / \(device.model)
+Ink/InkTrace.swift	61	記録
+Ink/InkTrace.swift	65	閉じる
+Ink/InkTrace.swift	68	コピーしました
+Ink/InkTrace.swift	68	コピー
+Paper/DayPaper.swift	70	メモ
+Paper/DayPaper.swift	121	自由メモ
+Paper/MonthPaper.swift	91	メモ
+Paper/MonthPaper.swift	189	+\(chip.moreCount)件
+Paper/YearPaper.swift	12	日
+Paper/YearPaper.swift	12	月
+Paper/YearPaper.swift	12	火
+Paper/YearPaper.swift	12	水
+Paper/YearPaper.swift	12	木
+Paper/YearPaper.swift	12	金
+Paper/YearPaper.swift	12	土
+Persistence/StrokeCensus.swift	28	数えています…
+Persistence/StrokeCensus.swift	30	まだ手書きがありません
+Persistence/StrokeCensus.swift	33	（古い版の端末では一部が表示されません）
+Persistence/StrokeCensus.swift	53	・
+Store/LiveStoreClient.swift	261	商品が見つかりません
+Store/LiveStoreClient.swift	262	購入の結果を解釈できません
+Store/StoreStrings.swift	13	購読を開始しました。ありがとうございます
+Store/StoreStrings.swift	15	\(ProductIDs.trialDays) 日間の無料試用を開始しました
+Store/StoreStrings.swift	16	承認待ちです。承認されると自動で使えるようになります
+Store/StoreStrings.swift	17	購入を確認できませんでした。しばらくしてから「購入を復元」をお試しください
+Store/StoreStrings.swift	18	App Store に接続できません。回線を確認してもう一度お試しください
+Store/StoreStrings.swift	19	お住まいの地域ではこのプランを購入できません
+Store/StoreStrings.swift	22	購入できませんでした（\(error.localizedDescription)）
+Store/StoreStrings.swift	27	購入を復元しました
+Store/StoreStrings.swift	28	復元できる購入がありません。購入したときと同じ Apple Account でサインインしているか確認してください
+Store/StoreStrings.swift	32	App Store から価格を取得できませんでした。回線を確認して「再読み込み」を押してください
+Support/ScreenshotMode.swift	265	仕事
+Support/ScreenshotMode.swift	266	家族
+Support/ScreenshotMode.swift	267	個人
+Support/ScreenshotMode.swift	268	行事
+Support/ScreenshotMode.swift	283	見本
+Support/ScreenshotMode.swift	357	運動会
+Support/ScreenshotMode.swift	358	キャンプ
+Support/ScreenshotMode.swift	359	家族旅行
+Support/ScreenshotMode.swift	360	資料提出締切
+Support/ScreenshotMode.swift	361	健康診断
+Support/ScreenshotMode.swift	362	ゴミの日
+Support/ScreenshotMode.swift	363	誕生日
+Support/ScreenshotMode.swift	364	出張（大阪）
+Support/ScreenshotMode.swift	365	給料日
+Support/ScreenshotMode.swift	368	歯医者
+Support/ScreenshotMode.swift	369	週次定例
+Support/ScreenshotMode.swift	370	資料提出
+Support/ScreenshotMode.swift	371	通院
+Support/ScreenshotMode.swift	372	週次定例
+Support/ScreenshotMode.swift	373	朝会
+Support/ScreenshotMode.swift	374	週次定例
+Support/ScreenshotMode.swift	375	面談
+Support/ScreenshotMode.swift	376	レビュー
+Support/ScreenshotMode.swift	377	送別会
+Support/ScreenshotMode.swift	378	飲み会
+Support/ScreenshotMode.swift	379	週次定例
+Support/ScreenshotMode.swift	380	ランチ
+Support/ScreenshotMode.swift	383	締切
+Support/ScreenshotMode.swift	384	打合せ
+Support/ScreenshotMode.swift	385	電話
+Support/ScreenshotMode.swift	386	歯科
+Sync/SyncStatus.swift	66	保存済み
+Sync/SyncStatus.swift	68	同期中
+Sync/SyncStatus.swift	70	同期中
+Sync/SyncStatus.swift	72	オフライン
+Sync/SyncStatus.swift	74	この端末のみ
+Sync/SyncStatus.swift	76	エラー
+Sync/SyncStatus.swift	78	停止中
+Sync/SyncStatus.swift	86	同期済み
+Sync/SyncStatus.swift	88	同期中…
+Sync/SyncStatus.swift	90	オフライン
+Sync/SyncStatus.swift	92	iCloud にサインインしていません
+Sync/SyncStatus.swift	94	この端末では iCloud が制限されています
+Sync/SyncStatus.swift	96	iCloud を確認できません
+Sync/SyncStatus.swift	98	iCloud の容量が足りません
+Sync/SyncStatus.swift	100	iCloud を使えません
+Sync/SyncStatus.swift	102	同期に失敗しました
+Sync/SyncStatus.swift	104	別の iCloud アカウントです
+Sync/SyncStatus.swift	112	手書きはこの端末と、あなたの iCloud に保存されています。ほかの iPad や iPhone でも同じ手書きが見られます。
+Sync/SyncStatus.swift	114	書いた手書きを iCloud へ送っています。
+Sync/SyncStatus.swift	116	オフラインです。手書きはこの端末に保存され、接続が戻ると同期されます。
+Sync/SyncStatus.swift	118	iCloud にサインインするとほかの端末と同期できます。手書きはこの端末の中だけに保存しています。
+Sync/SyncStatus.swift	120	手書きはこの端末の中だけに保存しています。
+Sync/SyncStatus.swift	122	「設定」アプリで iCloud を確認してください。手書きはこの端末の中だけに保存しています。
+Sync/SyncStatus.swift	124	iCloud の容量が不足しているため、手書きを同期できません。この端末には保存されています。
+Sync/SyncStatus.swift	126	iCloud の設定でこのアプリの利用が許可されていません。
+Sync/SyncStatus.swift	128	手書きの同期に失敗しました。この端末には保存されています（あとで再試行します）。\n\(message)
+Sync/SyncStatus.swift	130	この端末の手書きは、前に同期していた iCloud アカウントのものです。「新しいアカウントで使い始める」から選んでください。
+Views/AccountChangeDialog.swift	20	別の iCloud アカウントです
+Views/AccountChangeDialog.swift	21	この端末の手書きは、前に同期していた iCloud アカウントのものです。いまサインインしているアカウントで使い始めますか？ 手書きを残すと、新しいアカウントの iCloud に送られます。
+Views/AccountChangeDialog.swift	22	本当に消しますか？
+Views/AccountChangeDialog.swift	23	この端末の手書きを全て消して、新しいアカウントで始めます。この操作は元に戻せません。
+Views/AccountChangeDialog.swift	28	手書きを残して使い始める
+Views/AccountChangeDialog.swift	31	手書きを消して使い始める
+Views/AccountChangeDialog.swift	39	あとで
+Views/AccountChangeDialog.swift	46	消して始める
+Views/AccountChangeDialog.swift	49	キャンセル
+Views/AllDayBandView.swift	123	終日
+Views/AllDayBandView.swift	189	（予定を編集）
+Views/AllDayBandView.swift	194	 の終日予定を追加
+Views/CalendarRootScreen.swift	257	閲覧専用です。書く・消す・予定を作るには購読が必要です
+Views/CalendarRootScreen.swift	259	閲覧専用です。手書きと予定の作成は購読すると使えます。
+Views/CalendarRootScreen.swift	260	購読する
+Views/CalendarRootScreen.swift	271	メモ欄はここまでです
+Views/CalendarRootScreen.swift	273	24 時の下の自由メモ欄では予定を作れません
+Views/CalendarRootScreen.swift	275	このページに書いた線が 15,000 本を超えました。1 ページに書ける線は 19,000 本までです。
+Views/CalendarRootScreen.swift	277	このページはいっぱいです（線 19,000 本）。線を消すと、また書けます。
+Views/CalendarRootScreen.swift	282	2 本の指を広げると拡大、つまむと縮小します
+Views/CalendarRootScreen.swift	697	手書きを保存できませんでした
+Views/CalendarRootScreen.swift	962	予定を表示するにはカレンダーの読み取りを許可してください。
+Views/CalendarRootScreen.swift	962	許可する
+Views/CalendarRootScreen.swift	966	予定を表示するには設定でカレンダーを「フルアクセス」にしてください。
+Views/CalendarRootScreen.swift	966	設定を開く
+Views/CalendarRootScreen.swift	970	この端末ではカレンダーへのアクセスが制限されています。手書きだけ使えます。
+Views/CalendarRootScreen.swift	1222	\($0)月
+Views/CalendarRootScreen.swift	1435	予定を登録するには、設定でカレンダーへのアクセスを許可してください
+Views/CalendarRootScreen.swift	1440	予定を登録できるカレンダーがありません
+Views/CalendarRootScreen.swift	1503	予定を登録しました
+Views/CalendarRootScreen.swift	1507	予定を更新しました
+Views/CalendarRootScreen.swift	1520	予定を削除しました
+Views/CalendarRootScreen.swift	1539	手書きを全て消しました
+Views/CalendarRootScreen.swift	1545	手書きを全て消しました
+Views/CalendarRootScreen.swift	1547	iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください
+Views/EventDateText.swift	12	yyyy年M月d日(E)
+Views/EventDateText.swift	21	M月d日(E)
+Views/EventDateText.swift	46	\(dayFormatter.string(from: start)) 終日
+Views/EventDateText.swift	48	\(dayFormatter.string(from: start))〜\(shortDayFormatter.string(from: lastDay.startOfDay())) 終日
+Views/EventDateText.swift	54	\(startText)〜\(timeFormatter.string(from: end))
+Views/EventDateText.swift	56	\(startText)〜\(shortDayFormatter.string(from: end)) \(timeFormatter.string(from: end))
+Views/EventEditorForm.swift	13	タイトルを入力してください
+Views/EventEditorForm.swift	14	終了は開始より後にしてください
+Views/EventEditorForm.swift	15	終了日は開始日以降にしてください
+Views/EventEditorSheet.swift	49	予定の作成・編集は購読すると使えます。
+Views/EventEditorSheet.swift	51	このカレンダーは変更できません（読み取り専用）
+Views/EventEditorSheet.swift	123	予定を追加
+Views/EventEditorSheet.swift	124	予定を編集
+Views/EventEditorSheet.swift	125	予定の詳細
+Views/EventEditorSheet.swift	150	場所
+Views/EventEditorSheet.swift	151	場所
+Views/EventEditorSheet.swift	155	メモ
+Views/EventEditorSheet.swift	162	この手書きを消す
+Views/EventEditorSheet.swift	168	繰り返しの予定です。保存・削除のときに「この回だけ」か「以降すべて」を選びます
+Views/EventEditorSheet.swift	175	削除
+Views/EventEditorSheet.swift	189	購読する
+Views/EventEditorSheet.swift	207	閉じる
+Views/EventEditorSheet.swift	207	キャンセル
+Views/EventEditorSheet.swift	212	保存中…
+Views/EventEditorSheet.swift	212	保存
+Views/EventEditorSheet.swift	218	この予定を削除しますか？
+Views/EventEditorSheet.swift	219	削除
+Views/EventEditorSheet.swift	220	キャンセル
+Views/EventEditorSheet.swift	250	選択した手書き
+Views/EventEditorSheet.swift	251	書いた内容
+Views/EventEditorSheet.swift	262	ここにペンで書くと文字になります
+Views/EventEditorSheet.swift	269	Apple Pencil で欄の上に書くと、文字に変換されます（スクリブル）
+Views/EventEditorSheet.swift	279	タイトル
+Views/EventEditorSheet.swift	285	終日
+Views/EventEditorSheet.swift	288	開始日
+Views/EventEditorSheet.swift	290	終了日
+Views/EventEditorSheet.swift	293	開始
+Views/EventEditorSheet.swift	295	終了
+Views/EventEditorSheet.swift	308	カレンダー
+Views/EventEditorSheet.swift	310	カレンダー
+Views/EventEditorSheet.swift	410	保存できませんでした
+Views/ExportSheet.swift	42	手書きを書き出す
+Views/ExportSheet.swift	43	データファイル（JSON、すべてのページ）
+Views/ExportSheet.swift	44	この端末に保存されている手書きをすべて 1 つのファイルにまとめます。設定 › データ › 「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。
+Views/ExportSheet.swift	45	このページを PDF
+Views/ExportSheet.swift	49	いま開いているページ（\(pageTitle)・\(AppExport.kindLabel(kind))）を 1 枚の PDF にします。紙・予定・祝日・手書きが画面のとおりに入ります。
+Views/ExportSheet.swift	57	書き出しています… \(done) / \(total) ページ
+Views/ExportSheet.swift	58	PDF を作っています…
+Views/ExportSheet.swift	62	書き出しました
+Views/ExportSheet.swift	67	\(result.fileName)（\(result.pageCount) ページ・\(byteText(result.byteCount))）
+Views/ExportSheet.swift	68	\(result.fileName)（\(byteText(result.byteCount))）
+Views/ExportSheet.swift	81	共有…
+Views/ExportSheet.swift	82	閉じる
+Views/ExportSheet.swift	85	書き出す手書きがありません
+Views/ExportSheet.swift	88	ファイルを書けませんでした: \(detail)
+Views/ExportSheet.swift	91	PDF を作れませんでした
+Views/ExportSheet.swift	101	書き出せませんでした: \(error.localizedDescription)
+Views/OnboardingView.swift	22	このアプリは、この端末の「カレンダー」に入っている予定を表示します。\n\n
+Views/OnboardingView.swift	24	次の画面で、カレンダーへの「フルアクセス」を求めます。予定を手帳のページに表示し、手書きから予定を作るためです。\n\niOS と iPadOS には読み取りだけの許可が無いため、フルアクセスになります。予定はこの端末の中だけで扱い、開発者やほかの誰にも送りません。
+Views/OnboardingView.swift	26	Apple Pencil で紙に書きます。指はスクロール・ピンチ拡大・予定のタップに使います。手のひらが触れても線は引かれません。\n\n指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。Apple Pencil のダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作どおりにペンと消しゴムを切り替えます。\n\n
+Views/OnboardingView.swift	28	年のページは日付や左端の数字（今月のその日）、月のページは日付の数字を指でタップ、週・月・年のページはマスを指でダブルタップすると、その日のページが開きます。
+Views/OnboardingView.swift	30	手書きはこの端末と、あなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きが見られます。\n\niCloud にサインインしていないときは、この端末の中だけに保存します。iCloud の設定は要りません（この端末でサインインしていれば自動で使われます）。\n\n手書きは開発者には見えません。iCloud の容量はあなたのものを使います。
+Views/OnboardingView.swift	37	カレンダーのアカウント
+Views/OnboardingView.swift	40	設定アプリを開く
+Views/OnboardingView.swift	50	カレンダーへのアクセス
+Views/OnboardingView.swift	58	ペンで書き、指で動かす
+Views/OnboardingView.swift	66	iCloud と手書きの保存
+Views/OnboardingView.swift	78	次へ
+Views/OnboardingView.swift	94	許可の画面を出す
+Views/PageHeaderView.swift	69	閲覧専用。購読の案内を開く
+Views/PageHeaderView.swift	156	今日
+Views/PageHeaderView.swift	174	予定
+Views/PageHeaderView.swift	184	予定を追加
+Views/PageHeaderView.swift	219	設定
+Views/PageHeaderView.swift	224	表示の切替
+Views/PageHeaderView.swift	232	表示の切替
+Views/PageHeaderView.swift	240	日
+Views/PageHeaderView.swift	241	週
+Views/PageHeaderView.swift	242	月
+Views/PageHeaderView.swift	243	年
+Views/PageHeaderView.swift	248	表示
+Views/PageHeaderView.swift	252	前の
+Views/PageHeaderView.swift	256	次の
+Views/PageHeaderView.swift	261	同期: 
+Views/PaywallSheet.swift	39	てがきカレンダー
+Views/PaywallSheet.swift	41	iPad のカレンダーの上に、Apple Pencil で自由に書ける手帳です。
+Views/PaywallSheet.swift	43	書く・消す・予定を作るには購読が必要です。
+Views/PaywallSheet.swift	44	\(ProductIDs.trialDays) 日間無料で試せます。
+Views/PaywallSheet.swift	46	お支払いに問題があります。\(PlanText.paymentPath)でお支払い方法を確認してください。
+Views/PaywallSheet.swift	48	購入が返金または取り消されました。再び使うには購読してください。
+Views/PaywallSheet.swift	51	手書き（ペン・マーカー・消しゴム・投げなわ）
+Views/PaywallSheet.swift	52	手書きから予定を作る。予定の作成・編集
+Views/PaywallSheet.swift	53	iCloud で iPad・iPhone と同期
+Views/PaywallSheet.swift	58	おすすめ
+Views/PaywallSheet.swift	61	価格を取得できません
+Views/PaywallSheet.swift	62	再読み込み
+Views/PaywallSheet.swift	63	購入を復元
+Views/PaywallSheet.swift	64	利用規約
+Views/PaywallSheet.swift	65	プライバシーポリシー
+Views/PaywallSheet.swift	66	あとで
+Views/PaywallSheet.swift	67	サブスクリプションを管理
+Views/PaywallSheet.swift	69	\(ProductIDs.trialDays) 日間無料でお試し。
+Views/PaywallSheet.swift	70	試用期間が終わると自動的に有料になります。試用中に解約すれば料金はかかりません。
+Views/PaywallSheet.swift	72	無料試用の対象外です（お試しは 1 つの Apple Account につき 1 回）。
+Views/PaywallSheet.swift	94	\(ProductIDs.trialDays) 日間無料で試す
+Views/PaywallSheet.swift	94	購入する
+Views/PaywallSheet.swift	111	月あたり \(perMonth)
+Views/PaywallSheet.swift	117	・
+Views/PaywallSheet.swift	123	試用後は \(priceLine(offer))。いつでも解約できます。
+Views/PaywallSheet.swift	124	\(priceLine(offer))。自動更新です。いつでも解約できます。
+Views/PaywallSheet.swift	130	料金は無料試用の終了時に請求されます。
+Views/PaywallSheet.swift	130	料金は購入の確認時に請求されます。
+Views/PaywallSheet.swift	131	サブスクリプションは自動更新です。現在の期間が終わる 24 時間前までに解約しない限り、同じ期間・同じ価格で更新され、Apple Account に請求されます。
+Views/PaywallSheet.swift	133	解約は端末の\(PlanText.cancelPath)からいつでもできます。解約しても、支払い済みの期間が終わるまで使えます。
+Views/RecurrenceScopeDialog.swift	12	繰り返しの予定です
+Views/RecurrenceScopeDialog.swift	13	この回だけ
+Views/RecurrenceScopeDialog.swift	14	以降すべて
+Views/RecurrenceScopeDialog.swift	15	キャンセル
+Views/RecurrenceScopeDialog.swift	19	この回だけ変更しますか？ 以降すべてに適用しますか？
+Views/RecurrenceScopeDialog.swift	21	この回だけ削除しますか？ 以降すべて削除しますか？
+Views/SelectionMenuView.swift	18	予定にする
+Views/SelectionMenuView.swift	20	削除
+Views/SelectionMenuView.swift	22	選択解除
+Views/SelectionMenuView.swift	32	選択した手書き
+Views/SettingsScreen.swift	76	Google カレンダーの予定を出すには、「設定」アプリで Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iOS・iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。
+Views/SettingsScreen.swift	81	消しゴムで消したらペンに戻る
+Views/SettingsScreen.swift	87	消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムも同じです。
+Views/SettingsScreen.swift	88	消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。
+Views/SettingsScreen.swift	92	いちばん線の多いページ
+Views/SettingsScreen.swift	93	今年の年のページ
+Views/SettingsScreen.swift	95	線の数は、この端末に保存されているページを数えたものです（どこにも送りません）。1 ページに書ける線は 19,000 本までです。
+Views/SettingsScreen.swift	98	Web 版の設定で「手書きを書き出す（iPad アプリ用）」をして、そのファイルを選びます。同じファイルを二度取り込んでも手書きは二重になりません。
+Views/SettingsScreen.swift	102	「手書きを書き出す」は、この端末に保存されている手書きを 1 つのデータファイル（JSON）にするか、いま開いているページを PDF にします。データファイルは「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。
+Views/SettingsScreen.swift	119	まだありません
+Views/SettingsScreen.swift	124	前回の取り込み: 
+Views/SettingsScreen.swift	159	設定
+Views/SettingsScreen.swift	163	完了
+Views/SettingsScreen.swift	168	消す
+Views/SettingsScreen.swift	175	キャンセル
+Views/SettingsScreen.swift	177	本当に消しますか？
+Views/SettingsScreen.swift	178	全て消す
+Views/SettingsScreen.swift	179	キャンセル
+Views/SettingsScreen.swift	231	カレンダー
+Views/SettingsScreen.swift	232	表示するカレンダー
+Views/SettingsScreen.swift	235	カレンダーがありません
+Views/SettingsScreen.swift	235	カレンダーへのアクセスを許可すると、ここに一覧が出ます
+Views/SettingsScreen.swift	240	その他
+Views/SettingsScreen.swift	250	予定の登録先
+Views/SettingsScreen.swift	262	カレンダーへのアクセス
+Views/SettingsScreen.swift	269	Google カレンダーを使うには
+Views/SettingsScreen.swift	273	設定アプリを開く
+Views/SettingsScreen.swift	298	非表示
+Views/SettingsScreen.swift	298	表示中
+Views/SettingsScreen.swift	320	許可されています（フルアクセス）
+Views/SettingsScreen.swift	321	まだ許可していません
+Views/SettingsScreen.swift	322	許可されていません
+Views/SettingsScreen.swift	323	追加のみ（予定を表示できません）
+Views/SettingsScreen.swift	324	この端末では制限されています
+Views/SettingsScreen.swift	343	許可する
+Views/SettingsScreen.swift	348	設定アプリを開く
+Views/SettingsScreen.swift	359	指でも書く
+Views/SettingsScreen.swift	361	入力
+Views/SettingsScreen.swift	363	オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします。手書きは iPad と Apple Pencil で書くのに向いています
+Views/SettingsScreen.swift	376	設定アプリを開く
+Views/SettingsScreen.swift	379	ダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作に従います
+Views/SettingsScreen.swift	383	予定にした手書きを消す
+Views/SettingsScreen.swift	385	投げなわで囲んだ手書きを予定にしたあと、その手書きを消すかどうかの初期値です
+Views/SettingsScreen.swift	394	iCloud 同期
+Views/SettingsScreen.swift	402	最後に同期
+Views/SettingsScreen.swift	411	今すぐ同期
+Views/SettingsScreen.swift	416	新しいアカウントで使い始める…
+Views/SettingsScreen.swift	419	同期
+Views/SettingsScreen.swift	443	Web 版の手書きを取り込む
+Views/SettingsScreen.swift	449	手書きを書き出す
+Views/SettingsScreen.swift	452	この端末の手書きを全て消す
+Views/SettingsScreen.swift	456	データ
+Views/SettingsScreen.swift	471	この端末と iCloud に保存した手書きを全て消しますか？
+Views/SettingsScreen.swift	472	この端末に保存した手書きを全て消しますか？
+Views/SettingsScreen.swift	478	この操作は元に戻せません。ほかの iPad や iPhone の手書きも消えます。
+Views/SettingsScreen.swift	479	この操作は元に戻せません。
+Views/SettingsScreen.swift	494	現在のプラン
+Views/SettingsScreen.swift	513	サブスクリプションを管理
+Views/SettingsScreen.swift	521	購入を復元
+Views/SettingsScreen.swift	526	購入
+Views/SettingsScreen.swift	546	利用規約
+Views/SettingsScreen.swift	547	プライバシーポリシー
+Views/SettingsScreen.swift	549	サポート
+Views/SettingsScreen.swift	556	情報
+Views/SettingsScreen.swift	568	バージョン
+Views/SettingsScreen.swift	650	お支払いに問題があります。端末の\(PlanText.paymentPath)でお支払い方法を確認してください。猶予の期限までは使えます。
+Views/SettingsScreen.swift	654	試用中に解約すれば料金はかかりません。
+Views/SettingsScreen.swift	663	\(ProductIDs.trialDays) 日間無料で試す
+Views/SettingsScreen.swift	663	購読する
+Views/SettingsScreen.swift	672	解約は端末の\(PlanText.cancelPath)から。解約しても期間の終わりまで使えます。
+Views/SettingsScreen.swift	674	閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この端末の手書きを全て消す、手書きの書き出し、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。
+Views/StickyHeaderView.swift	34	日
+Views/StickyHeaderView.swift	34	月
+Views/StickyHeaderView.swift	34	火
+Views/StickyHeaderView.swift	34	水
+Views/StickyHeaderView.swift	34	木
+Views/StickyHeaderView.swift	34	金
+Views/StickyHeaderView.swift	34	土
+Views/StickyHeaderView.swift	35	月
+Views/StickyHeaderView.swift	35	火
+Views/StickyHeaderView.swift	35	水
+Views/StickyHeaderView.swift	35	木
+Views/StickyHeaderView.swift	35	金
+Views/StickyHeaderView.swift	35	土
+Views/StickyHeaderView.swift	35	日
+Views/StickyHeaderView.swift	138	（日表示へ）
+Views/StickyHeaderView.swift	174	\(label.day.month)月
+Views/StickyHeaderView.swift	177	曜日
+Views/StickyHeaderView.swift	208	\(month)月
+Views/StickyHeaderView.swift	223	（月表示へ）
+Views/ToolbarDock.swift	76	元に戻す
+Views/ToolbarLogic.swift	113	しまう
+Views/ToolbarLogic.swift	114	ツールバーをしまう
+Views/ToolbarLogic.swift	115	ツールバーを出す
+Views/ToolbarLogic.swift	116	ツールバーをいつも出す
+Views/ToolbarLogic.swift	117	触れた線をまるごと消します
+Views/ToolbarLogic.swift	120	囲んで選びます。\n枠の中をドラッグで動かせます
+Views/ToolbarLogic.swift	121	なぞって予定を作ります。\n予定をタップすると編集します
+Views/ToolbarLogic.swift	125	右下へ移す
+Views/ToolbarLogic.swift	125	左下へ移す
+Views/ToolbarLogic.swift	135	長押しで、\(moveEdgeTitle(from: edge))か、ツールバーをいつも出すかを選べます
+Views/ToolbarLogic.swift	176	触れた線をまるごと消します\n（消すとペンに戻ります）
+Views/ToolbarLogic.swift	178	触れた線をまるごと消します\n（消すとマーカーに戻ります）
+Views/ToolbarLogic.swift	194	消しゴム
+Views/ToolbarLogic.swift	196	投げなわ
+Views/ToolbarLogic.swift	198	予定
+Views/ToolbarLogic.swift	203	マーカー・
+Views/ToolbarLogic.swift	206	ペン・
+Views/ToolbarLogic.swift	209	・
+Views/ToolbarLogic.swift	338	その他の色
+Views/ToolbarView.swift	149	ペン
+Views/ToolbarView.swift	150	マーカー
+Views/ToolbarView.swift	151	消しゴム
+Views/ToolbarView.swift	152	投げなわ
+Views/ToolbarView.swift	153	予定
+Views/ToolbarView.swift	265	太さ: \(entry.name)
+Views/ToolbarView.swift	281	元に戻す
+Views/ToolbarView.swift	291	やり直す
+Views/ToolbarView.swift	297	指でも書く
+Views/ToolbarView.swift	302	オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします
+Views/ToolbarView.swift	324	黒
+Views/ToolbarView.swift	325	青
+Views/ToolbarView.swift	326	赤
+Views/ToolbarView.swift	327	緑
+Views/ToolbarView.swift	328	オレンジ
+Views/ToolbarView.swift	329	紫
+Views/ToolbarView.swift	333	黄
+Views/ToolbarView.swift	334	ピンク
+Views/ToolbarView.swift	335	緑
+Views/ToolbarView.swift	336	水色
+Views/ToolbarView.swift	341	細
+Views/ToolbarView.swift	342	中
+Views/ToolbarView.swift	343	太
+Views/WebImportSheet.swift	86	Web 版の手書きを取り込む
+Views/WebImportSheet.swift	91	このファイルは手書きの書き出し（Web 版またはこのアプリ）ではありません
+Views/WebImportSheet.swift	93	ファイルを読めませんでした
+Views/WebImportSheet.swift	96	このファイルは新しい形式です（v\(version)）。アプリを更新してください
+Views/WebImportSheet.swift	100	保存できませんでした: \(error.localizedDescription)
+Views/WebImportSheet.swift	108	手書きを取り込みました
+Views/WebImportSheet.swift	108	Web 版の手書きを取り込みました
+Views/WebImportSheet.swift	109	\(lead)（\(outcome.pagesChanged) ページ・\(outcome.strokesAdded) 本）
+Views/WebImportSheet.swift	111	取り込むものはありませんでした（すべて取り込み済みです）
+Views/WebImportSheet.swift	116	\(skipped) ページは対象外のため飛ばしました
+Views/WebImportSheet.swift	130	線がとても多いページがあります
+Views/WebImportSheet.swift	132	取り込む
+Views/WebImportSheet.swift	133	やめる
+Views/WebImportSheet.swift	141	取り込むと、線が 20,000 本を超えるページがあります（\(confirmLargeList(pages))）。この版では全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？
+Views/WebImportSheet.swift	146	、
+Views/WebImportSheet.swift	147	、
+Views/WebImportSheet.swift	148	、ほか \(pages.count - confirmLargeListedPages) ページ
+Views/WebImportSheet.swift	154	取り込んでいます… \(done) / \(total) ページ
+Views/WebImportSheet.swift	156	取り込んでいます…
+Views/WebImportSheet.swift	242	閉じる
+Access/LegalLinks.swift	12	使用許諾契約（Apple 標準 EULA）
+Access/Plan.swift	33	てがきカレンダー
+Access/PlanText.swift	10	月額
+Access/PlanText.swift	11	年額
+Access/PlanText.swift	18	/月
+Access/PlanText.swift	19	/年
+Access/PlanText.swift	34	\(months) か月分お得
+Access/PlanText.swift	49	\(name(s.plan))・請求に問題（猶予中）
+Access/PlanText.swift	49	\(name(s.plan))・有効
+Access/PlanText.swift	51	\(name(t.plan))・試用中
+Access/PlanText.swift	54	未購入（閲覧専用）
+Access/PlanText.swift	55	期限切れ（閲覧専用）
+Access/PlanText.swift	56	お支払いに問題（閲覧専用）
+Access/PlanText.swift	57	返金済み（閲覧専用）
+Access/PlanText.swift	58	確認中（閲覧専用）
+Access/PlanText.swift	67	猶予の期限
+Access/PlanText.swift	68	次回更新
+Access/PlanText.swift	68	有効期限
+Access/PlanText.swift	70	試用の終了（有料に移行）
+Access/PlanText.swift	70	試用の終了
+Access/PlanText.swift	79	まだ購読していません。
+Access/PlanText.swift	80	サブスクリプションの期限が切れています。
+Access/PlanText.swift	81	お支払いに問題があります。\(paymentPath)でお支払い方法を確認してください。
+Access/PlanText.swift	82	購入が返金または取り消されました。
+Access/PlanText.swift	83	購入の状態を確認できていません。回線が戻ると自動で確認します。
+Access/PlanText.swift	88	4 か月分お得
+Access/PlanText.swift	89	閲覧専用
+Access/PlanText.swift	91	「設定」›「Apple Account」›「サブスクリプション」
+Access/PlanText.swift	92	「設定」›「Apple Account」›「お支払いと配送先」
+DayKit/DayKey.swift	154	\(year)年\(month)月
+Holidays/JapaneseHolidays.swift	105	元日
+Holidays/JapaneseHolidays.swift	106	成人の日
+Holidays/JapaneseHolidays.swift	107	建国記念の日
+Holidays/JapaneseHolidays.swift	108	天皇誕生日
+Holidays/JapaneseHolidays.swift	109	春分の日
+Holidays/JapaneseHolidays.swift	111	昭和の日
+Holidays/JapaneseHolidays.swift	112	みどりの日
+Holidays/JapaneseHolidays.swift	114	みどりの日
+Holidays/JapaneseHolidays.swift	116	憲法記念日
+Holidays/JapaneseHolidays.swift	117	こどもの日
+Holidays/JapaneseHolidays.swift	118	海の日
+Holidays/JapaneseHolidays.swift	118	海の日
+Holidays/JapaneseHolidays.swift	119	山の日
+Holidays/JapaneseHolidays.swift	120	敬老の日
+Holidays/JapaneseHolidays.swift	120	敬老の日
+Holidays/JapaneseHolidays.swift	121	秋分の日
+Holidays/JapaneseHolidays.swift	122	スポーツの日
+Holidays/JapaneseHolidays.swift	122	体育の日
+Holidays/JapaneseHolidays.swift	123	文化の日
+Holidays/JapaneseHolidays.swift	124	勤労感謝の日
+Holidays/JapaneseHolidays.swift	125	天皇誕生日
+Holidays/JapaneseHolidays.swift	142	即位の日
+Holidays/JapaneseHolidays.swift	142	即位礼正殿の儀
+Holidays/JapaneseHolidays.swift	144	海の日
+Holidays/JapaneseHolidays.swift	144	スポーツの日
+Holidays/JapaneseHolidays.swift	144	山の日
+Holidays/JapaneseHolidays.swift	146	海の日
+Holidays/JapaneseHolidays.swift	146	スポーツの日
+Holidays/JapaneseHolidays.swift	146	山の日
+Holidays/JapaneseHolidays.swift	169	振替休日
+Holidays/JapaneseHolidays.swift	173	振替休日
+Holidays/JapaneseHolidays.swift	185	国民の休日
+InkModel/AppExport.swift	138	てがきカレンダー 手書き 
+InkModel/AppExport.swift	144	てがきカレンダー 
+InkModel/AppExport.swift	150	月
+InkModel/AppExport.swift	151	週
+InkModel/AppExport.swift	152	日
+InkModel/AppExport.swift	153	年
+InkModel/StrokeBudget.swift	91	年のページ（\(PageNavigation.title(.year, focus: d))）
+InkModel/StrokeBudget.swift	93	月のページ（\(PageNavigation.title(.month, focus: d))）
+InkModel/StrokeBudget.swift	95	週のページ（\(PageNavigation.title(.week, focus: d))）
+InkModel/StrokeBudget.swift	97	日のページ（\(d.year)年\(d.month)月\(d.day)日）
+InkModel/StrokeBudget.swift	110	 本
+Layout/MonthLayoutEngine.swift	138	+\(more)件
+Layout/MonthLayoutEngine.swift	192	〜
+Layout/PageNavigation.swift	9	日
+Layout/PageNavigation.swift	9	月
+Layout/PageNavigation.swift	9	火
+Layout/PageNavigation.swift	9	水
+Layout/PageNavigation.swift	9	木
+Layout/PageNavigation.swift	9	金
+Layout/PageNavigation.swift	9	土
+Layout/PageNavigation.swift	110	\(focus.year)年\(focus.month)月\(focus.day)日(\(weekdayLetters[focus.weekday]))
+Layout/PageNavigation.swift	116	\(start.year)年\(start.month)月\(start.day)日
+Layout/PageNavigation.swift	117	\(last.month)月\(last.day)日
+Layout/PageNavigation.swift	118	\(last.year)年
+Layout/PageNavigation.swift	119	〜
+Layout/PageNavigation.swift	121	\(focus.year)年\(focus.month)月
+Layout/PageNavigation.swift	123	\(focus.year)年
+Layout/PageNavigation.swift	134	\(focus.month)月\(focus.day)日(\(weekdayLetters[focus.weekday]))
+Layout/PageNavigation.swift	138	\(start.month)/\(start.day)〜\(last.month)/\(last.day)
+Layout/TimedEventEngine.swift	152	〜

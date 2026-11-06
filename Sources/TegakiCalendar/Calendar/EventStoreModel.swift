@@ -44,9 +44,11 @@ final class EventStoreModel: ObservableObject {
             reload()
         }
     }
-    /// The page whose events are loaded (`PageNavigation.dayRange(kind, focus:)`).
+    /// The page whose events are loaded (`PageNavigation.dayRange(kind, focus:, weekStart:)`).
     private(set) var kind: PageKind?
     private(set) var focus: DayKey?
+    /// 1.2 (§10.5): the week start of the page: the days of a week page and of a month grid follow it.
+    private(set) var weekStart: WeekStart = .monday
 
     let service: EventKitService
     private let defaults: UserDefaults
@@ -103,10 +105,12 @@ final class EventStoreModel: ObservableObject {
     // MARK: - Loading
 
     /// Loads the events of the page `(kind, focus)` from the visible calendars: one day, the week's
-    /// 7 days, the month grid's 42 days, or the year's 365 / 366 days (all-day events only).
-    func load(kind: PageKind, focus: DayKey) {
+    /// 7 days, the month grid's 42 days, or the year's 365 / 366 days (all-day events only). The days
+    /// of the week and the month are those of `weekStart` (1.2, D15: the screen always passes it).
+    func load(kind: PageKind, focus: DayKey, weekStart: WeekStart) {
         self.kind = kind
         self.focus = focus
+        self.weekStart = weekStart
         reload()
     }
 
@@ -138,7 +142,7 @@ final class EventStoreModel: ObservableObject {
             defaults.set([String](), forKey: Self.hiddenKey)
         }
         let visible = all.filter { !hiddenCalendarIds.contains($0.calendarIdentifier) }
-        let range = PageNavigation.dayRange(kind, focus: focus)
+        let range = PageNavigation.dayRange(kind, focus: focus, weekStart: weekStart)
         events = service.events(from: range.start, to: range.end, calendars: visible, allDayOnly: kind == .year)
     }
 

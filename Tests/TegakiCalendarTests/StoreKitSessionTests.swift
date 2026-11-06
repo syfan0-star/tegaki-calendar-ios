@@ -159,6 +159,26 @@ final class StoreKitSessionTests: XCTestCase {
         XCTAssertEqual(access, .readOnly(.notSubscribed))
     }
 
+    /// 1.2 (docs/M7B_CONTRACT.md §7.2): the prices of a US storefront, as the paywall shows them. The
+    /// test environment takes the prices of `Products.storekit` (yen) under any storefront unless the
+    /// simulator's defect above answers with the App Store's own, so this skips unless the storefront
+    /// really gives the US prices (docs/M7B.md); `PaywallSheetTests.testUSPricesOnTheYearlyNote` is the
+    /// coverage that always runs.
+    func testUSStorefrontPrices() async throws {
+        session.storefront = "USA"
+        session.locale = Locale(identifier: "en_US")
+        let products = try await client.products(ids: ProductIDs.all)
+        let monthly = try product(.monthly, in: products)
+        let yearly = try product(.yearly, in: products)
+        guard monthly.price == Decimal(string: "1.99") else {
+            throw XCTSkip("the test environment gives \(monthly.price) under USA, not the App Store's $1.99")
+        }
+        XCTAssertEqual(monthly.displayPrice, "$1.99")
+        XCTAssertEqual(yearly.displayPrice, "$14.99")
+        XCTAssertEqual(yearly.perMonthDisplayPrice, "$1.25")
+        XCTAssertEqual(PlanText.savingsMonths(monthly: monthly.price, yearly: yearly.price), 4)
+    }
+
     /// The first purchase of the group is the free trial: `.trial(.monthly, willAutoRenew: true)`
     /// ending 14 days from now.
     func testBuyingMonthlyStartsATrial() async throws {

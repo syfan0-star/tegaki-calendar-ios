@@ -10,7 +10,9 @@ import Layout
 /// layer itself (`UserDefaultsAccessCache.defaultKey`, M5-34), not here. 1.1 (docs/M7A_CONTRACT.md
 /// §2.3, §2.6, §5.2) adds four: the collapsed toolbar and its corner, the eraser's return to the pen,
 /// and the pages whose 15,000-stroke notice was shown. 1.1.1 (docs/R1_1_1.md) adds one: the one-time
-/// hint that two fingers zoom. All of them stay on this device (UserDefaults is not synced to iCloud).
+/// hint that two fingers zoom. 1.2 (docs/M7B_CONTRACT.md §5.6, §10.3) adds the holidays to show and the
+/// week start with its three memories. All of them stay on this device (UserDefaults is not synced to
+/// iCloud; D16, 0-21, 0-45).
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -53,6 +55,22 @@ enum AppSettings {
     /// once the person pinched (`CalendarRootScreen.pinchHintDue`). `CalendarRootScreen` keeps it with
     /// `@AppStorage`.
     static let pinchHintShownKey = "hint.pinchShown"
+    /// 1.2 (§5.6): `String`, `HolidaySetting.storageValue` ("auto", "none", "US", "US-CA"). Written by
+    /// `HolidayChoice.migrateIfNeeded` on the first launch of 1.2, so it is not missing after that.
+    static let holidaySettingKey = "holidays.setting"
+    /// 1.2 (§10.3): `String`, `WeekStartChoice.Setting` ("auto", "monday", "sunday"). Written by
+    /// `WeekStartChoice.migrateIfNeeded` on the first launch of 1.2. Missing or broken reads as Monday.
+    static let weekStartKey = "weekStart.setting"
+    /// 1.2 (§10.3): `String` "monday" / "sunday", what "auto" gave at the last launch; a different
+    /// result at this launch means the device's region changed (`toast.weekStart.regionChanged.*`).
+    static let weekStartLastAutoKey = "weekStart.lastAuto"
+    /// 1.2 (§10.3, step 4): `Bool`, default false. True once this device's pages were compared with the
+    /// week start after the first pull (`WeekStartChoice.dataCheck`); it is never compared again.
+    static let weekStartDataCheckedKey = "weekStart.dataChecked"
+    /// 1.2 (§10.2, D17): `[String]`, "<page id>|<week start>" of the month pages whose hidden strokes
+    /// were told about (when the toast was really shown), oldest first, at most
+    /// `strokeBudgetNoticedLimit` like `strokeBudgetNoticedKey`.
+    static let weekStartHiddenNoticedKey = "weekStart.hiddenNoticed"
 
     /// M4c (M4C contract §1.5): "zoomRatio.month" / "zoomRatio.week" / "zoomRatio.day" / "zoomRatio.year",
     /// a `Double` ≥ 1 (the zoom / the opening zoom of the last pinch on a page of that kind; absent = 1,
@@ -64,6 +82,12 @@ enum AppSettings {
 
     /// The store behind the typed accessors (tests may point it at a scratch suite).
     static var defaults: UserDefaults = .standard
+
+    /// 1.2 (§1.4, 0-19, 0-43): someone who used an earlier version: any of the three keys is on record.
+    /// `hint.pinchShown` does not count (1.1.1 writes it without the person doing anything, §1.5).
+    static func isExistingUser(_ defaults: UserDefaults = AppSettings.defaults) -> Bool {
+        [onboardingDoneKey, lastKindKey, allowFingerChosenKey].contains { defaults.object(forKey: $0) != nil }
+    }
 
     static var defaultCalendarId: String? {
         get { defaults.string(forKey: defaultCalendarIdKey) }
@@ -126,6 +150,36 @@ enum AppSettings {
             ids.removeFirst(ids.count - strokeBudgetNoticedLimit)
         }
         defaults.set(ids, forKey: strokeBudgetNoticedKey)
+    }
+
+    // MARK: - Week start (1.2, docs/M7B_CONTRACT.md §10.2, §10.3)
+
+    /// True once the pages were compared with the week start after the first pull (§10.3, step 4).
+    static var weekStartDataChecked: Bool {
+        get { defaults.bool(forKey: weekStartDataCheckedKey) }
+        set { defaults.set(newValue, forKey: weekStartDataCheckedKey) }
+    }
+
+    /// Whether the hidden strokes of the month page `pageId` were told about under `weekStart`.
+    static func weekStartHiddenNoticed(_ pageId: String, _ weekStart: WeekStart) -> Bool {
+        (defaults.stringArray(forKey: weekStartHiddenNoticedKey) ?? []).contains(hiddenNoticedEntry(pageId, weekStart))
+    }
+
+    /// Remembers that the toast about the page's hidden strokes was shown: appended once, keeping the
+    /// newest `strokeBudgetNoticedLimit` entries (the oldest may be told about once more, harmlessly).
+    static func markWeekStartHiddenNoticed(_ pageId: String, _ weekStart: WeekStart) {
+        var entries = defaults.stringArray(forKey: weekStartHiddenNoticedKey) ?? []
+        let entry = hiddenNoticedEntry(pageId, weekStart)
+        guard !entries.contains(entry) else { return }
+        entries.append(entry)
+        if entries.count > strokeBudgetNoticedLimit {
+            entries.removeFirst(entries.count - strokeBudgetNoticedLimit)
+        }
+        defaults.set(entries, forKey: weekStartHiddenNoticedKey)
+    }
+
+    private static func hiddenNoticedEntry(_ pageId: String, _ weekStart: WeekStart) -> String {
+        "\(pageId)|\(weekStart.rawValue)"
     }
 
     // MARK: - Zoom ratio (M4C contract §1.5, D4)

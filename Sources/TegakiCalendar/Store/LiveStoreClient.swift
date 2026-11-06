@@ -258,8 +258,8 @@ enum LiveStoreError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .productNotFound: return "商品が見つかりません"
-        case .unknownPurchaseResult: return "購入の結果を解釈できません"
+        case .productNotFound: return L.text("store.error.productNotFound")
+        case .unknownPurchaseResult: return L.text("store.error.unknownPurchaseResult")
         }
     }
 }

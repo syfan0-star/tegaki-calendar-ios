@@ -228,4 +228,46 @@ final class AppSettingsTests: XCTestCase {
         AppSettings.markStrokeBudgetNoticed("w-2026-10-05")
         XCTAssertEqual(AppSettings.defaults.stringArray(forKey: key), ["w-2026-10-05"])
     }
+
+    // MARK: 1.2 (docs/M7B_CONTRACT.md §5.6, §10.3)
+
+    func testHolidayAndWeekStartKeys() {
+        XCTAssertEqual(AppSettings.holidaySettingKey, "holidays.setting")
+        XCTAssertEqual(AppSettings.weekStartKey, "weekStart.setting")
+        XCTAssertEqual(AppSettings.weekStartLastAutoKey, "weekStart.lastAuto")
+        XCTAssertEqual(AppSettings.weekStartDataCheckedKey, "weekStart.dataChecked")
+        XCTAssertEqual(AppSettings.weekStartHiddenNoticedKey, "weekStart.hiddenNoticed")
+        XCTAssertFalse(AppSettings.weekStartDataChecked)
+        AppSettings.weekStartDataChecked = true
+        XCTAssertTrue(AppSettings.weekStartDataChecked)
+    }
+
+    /// Someone who used an earlier version: any of the three keys, and not the 1.1.1 hint alone (§1.5).
+    func testExistingUserIsAnyOfTheThreeKeys() {
+        XCTAssertFalse(AppSettings.isExistingUser(AppSettings.defaults))
+        AppSettings.defaults.set(true, forKey: AppSettings.pinchHintShownKey)
+        XCTAssertFalse(AppSettings.isExistingUser(AppSettings.defaults), "the hint says nothing")
+        for key in [AppSettings.onboardingDoneKey, AppSettings.lastKindKey, AppSettings.allowFingerChosenKey] {
+            AppSettings.defaults.set(true, forKey: key)
+            XCTAssertTrue(AppSettings.isExistingUser(AppSettings.defaults), key)
+            AppSettings.defaults.removeObject(forKey: key)
+        }
+    }
+
+    /// Per page and form, oldest first, at most the same 500 as the stroke budget's notices (D17).
+    func testWeekStartHiddenNoticed() {
+        XCTAssertFalse(AppSettings.weekStartHiddenNoticed("m1-2026-11", .sunday))
+        AppSettings.markWeekStartHiddenNoticed("m1-2026-11", .sunday)
+        XCTAssertTrue(AppSettings.weekStartHiddenNoticed("m1-2026-11", .sunday))
+        XCTAssertFalse(AppSettings.weekStartHiddenNoticed("m1-2026-11", .monday), "the other form is another notice")
+        XCTAssertFalse(AppSettings.weekStartHiddenNoticed("m1-2026-12", .sunday))
+        AppSettings.markWeekStartHiddenNoticed("m1-2026-11", .sunday)
+        XCTAssertEqual(AppSettings.defaults.stringArray(forKey: AppSettings.weekStartHiddenNoticedKey)?.count, 1, "once")
+        for i in 0..<(AppSettings.strokeBudgetNoticedLimit + 5) {
+            AppSettings.markWeekStartHiddenNoticed("m1-page\(i)", .monday)
+        }
+        XCTAssertEqual(AppSettings.defaults.stringArray(forKey: AppSettings.weekStartHiddenNoticedKey)?.count, AppSettings.strokeBudgetNoticedLimit)
+        XCTAssertFalse(AppSettings.weekStartHiddenNoticed("m1-2026-11", .sunday), "the oldest is dropped")
+        XCTAssertTrue(AppSettings.weekStartHiddenNoticed("m1-page\(AppSettings.strokeBudgetNoticedLimit + 4)", .monday))
+    }
 }

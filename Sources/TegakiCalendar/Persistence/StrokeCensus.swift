@@ -25,12 +25,12 @@ enum StrokeCensus {
     // MARK: - Words (M7A_CONTRACT §6.2)
 
     /// Both rows while the pages are being counted.
-    static let countingText = "数えています…"
+    static let countingText = L.text("census.counting")
     /// 「いちばん線の多いページ」 when no page has a stroke.
-    static let noInkText = "まだ手書きがありません"
+    static let noInkText = L.text("census.noInk")
     /// After the value when the page has more than `StrokeBudget.legacyReadCap` (20,000) strokes: a
     /// 1.0 device keeps only 20,000 of them each time it reads the page (F8).
-    static let legacyNote = "（古い版の端末では一部が表示されません）"
+    static let legacyNote = L.text("census.legacyNote")
 
     /// 「いちばん線の多いページ」: 「数えています…」 while counting, 「まだ手書きがありません」 for nil,
     /// else 「月のページ（2026年10月）・3 本」 (plus `legacyNote` above 20,000 strokes).
@@ -50,7 +50,8 @@ enum StrokeCensus {
     /// 「<page label>・<n> 本」, and `legacyNote` when n > 20,000.
     static func entryText(_ entry: StrokeBudget.Entry) -> String {
         let note = entry.strokes > StrokeBudget.legacyReadCap ? legacyNote : ""
-        return StrokeBudget.pageLabel(entry.pageId) + "・" + StrokeBudget.countText(entry.strokes) + note
+        let page = StrokeBudget.pageLabel(entry.pageId, language: L.language)
+        return L.format("census.entry", page, StrokeBudget.countText(entry.strokes, language: L.language)) + note
     }
 
     /// "y-2026".
@@ -106,7 +107,7 @@ enum StrokeCensus {
             focus = ScreenshotMode.focusDay(for: YearMonth(year: year, month: 10))
         }
         let entries = PageKind.allCases.map { kind -> StrokeBudget.Entry in
-            let page = ScreenshotMode.demoPage(kind: kind, focus: focus)
+            let page = ScreenshotMode.demoPage(kind: kind, focus: focus, weekStart: ScreenshotMode.current?.weekStart ?? .monday)
             return StrokeBudget.Entry(pageId: page.pageId, strokes: page.budgetCount, tombstones: page.deleted.count)
         }
         return summary(entries, unreadable: 0, year: year)

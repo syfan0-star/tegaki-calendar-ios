@@ -1,0 +1,17 @@
+{
+  "locale": "ko",
+  "group": {
+    "displayName": "Tegaki",
+    "appNameDisplay": "useAppName"
+  },
+  "products": {
+    "com.syfan0.tegakicalendar.monthly": {
+      "displayName": "Tegaki 월간",
+      "description": "손글씨, 일정 만들기, iCloud 동기화"
+    },
+    "com.syfan0.tegakicalendar.yearly": {
+      "displayName": "Tegaki 연간",
+      "description": "같은 기능을 연간으로 결제"
+    }
+  }
+}

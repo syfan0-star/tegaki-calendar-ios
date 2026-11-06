@@ -1,0 +1,22 @@
+No sign-in, no account creation and no demo account are needed.
+
+What is new in 1.2
+1. Languages: the app is now localized into 10 languages (Japanese, English, Simplified Chinese, Traditional Chinese, Korean, French, German, Spanish, Italian and Brazilian Portuguese). It follows the device language; any other device language shows English. iOS adds the per-app language item: Settings > Apps > Tegaki > Language (Settings > Tegaki > Preferred Language on iOS 17). On non-Japanese devices the Home Screen name is "Tegaki".
+2. Holidays: the app shows the public holidays of many countries and regions. The default is the device region; existing users keep Japan. To try it: gear button (Settings) > Holidays > Holidays to Show, then choose a country, then a state or region if it has them (for example United States > California), or None. The data is generated from the open-source python-holidays library (MIT License; full text in Settings > About > Open Source Licenses) and is bundled in the app. No network is used for holidays, so App Privacy stays "Data Not Collected".
+3. Week start: a new setting. The default is the device region; existing users keep Monday. Week pages are saved separately for each week start, so switching hides the other week handwriting until the user switches back. Nothing is deleted.
+Weeks can start on Monday or Sunday (Settings > Week Starts On). Times on the pages use the 24-hour clock in every language.
+
+To test: add 2 or 3 events (one all-day, one timed) in the Calendar app, then open the app. The events appear on the month, week, day and year pages, and you can write on them with Apple Pencil, or with a finger after turning on Draw with Finger (in the toolbar or in Settings > Input). Handwriting also works with no events and without iCloud.
+
+Subscriptions and prices are unchanged (com.syfan0.tegakicalendar.monthly and .yearly, auto-renewable, 14-day free trial). The purchase screen appears once after the first-time guide, and it also opens from the View Only badge in the header and from Settings > Purchase. Restore: Settings > Purchase > Restore Purchases. Links to the Terms of Service, the Privacy Policy and Apple's standard EULA are on the purchase screen and in Settings > About. The Terms of Service and Privacy Policy pages are in Japanese (the governing text).
+
+In TestFlight and App Review builds (sandbox receipt) only, touching and holding Settings > About > Version opens a log sheet titled 「記録」 (in Japanese in every language) that the user can copy and send to the developer; nothing is sent automatically. It holds only the app and OS versions, device model, tool changes, page types, stroke counts, touch types and elapsed times (no handwriting content, dates or personal information), and it never appears in App Store builds.
+
+No server: calendar data is used with EventKit on the device only, and handwriting stays on the device and in the user's own iCloud private database, which the developer cannot access. No analytics, ads or third-party SDKs.
+
+Terms of Service: https://syfan0-star.github.io/tegaki-calendar/app/terms.html
+Privacy Policy: https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+Support: https://syfan0-star.github.io/tegaki-calendar/app/support.html
+
+--- 日本語の要約 ---
+表示が 10 言語になり、端末の言語に従います（ほかは英語）。世界の祝日を表示できます（既定は端末の地域、これまでの方は日本。通信しないので App Privacy は「収集なし」のまま）。週の始まりを月曜・日曜から選べます（既定は端末の地域、これまでの方は月曜。週の手書きは別々に保存し、消えません）。購読と価格は同じです。サインイン不要。審査用のビルドでは「バージョン」の長押しで、開発者に送る動作の記録（書いた中身・日付・個人の情報なし）が開きます。

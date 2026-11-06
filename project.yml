@@ -8,6 +8,9 @@ options:
     iOS: "17.0"
   createIntermediateGroups: true
   generateEmptyDirectories: false
+  # 1.2 (docs/M7B_CONTRACT.md §2.2, D1): the development language is English, so a device in a language the
+  # app does not have gets English, not Japanese. ja.lproj keeps the Japanese users' Japanese.
+  developmentLanguage: en
 
 # Project-wide build settings. Swift 5 language mode + minimal concurrency checking keeps the
 # first CI build green; tighten to Swift 6 / complete checking in a later milestone.
@@ -17,13 +20,15 @@ settings:
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     TARGETED_DEVICE_FAMILY: "1,2"
-    MARKETING_VERSION: "1.1.1"
+    MARKETING_VERSION: "1.2"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     # DEVELOPMENT_TEAM is intentionally unset: CI builds for the Simulator with CODE_SIGNING_ALLOWED=NO.
     # testflight.yml passes the team id and the profile on the command line (manual signing).
     ENABLE_USER_SCRIPT_SANDBOXING: YES
-    SWIFT_EMIT_LOC_STRINGS: YES
+    # 1.2 (docs/M7B_CONTRACT.md 0-5): the String Catalogs are generated (tools/l10n/build.py, "manual" keys);
+    # Xcode must not add keys to them. CI's "Localized bundle check" runs `git diff --exit-code` on them.
+    SWIFT_EMIT_LOC_STRINGS: NO
 
 # The pure part of the app (Foundation only) lives in the local Swift package TegakiKit
 # (docs/DESIGN.md §8.2, docs/M2_CONTRACT.md §0). The app links four of its products;
@@ -41,8 +46,16 @@ targets:
     sources:
       # Also picks up Sources/TegakiCalendar/PrivacyInfo.xcprivacy as a resource (the privacy
       # manifest, docs/M4_CONTRACT.md §8.4: UserDefaults, reason CA92.1; since 1.1 also the system boot
-      # time, reason 35F9.1, docs/M7A.md ずれ 48).
+      # time, reason 35F9.1, docs/M7A.md ずれ 48). 1.2 (docs/M7B_CONTRACT.md §2.2) changes neither reason; the
+      # generated Resources/Localizable.xcstrings and InfoPlist.xcstrings come in through this path too.
       - path: Sources/TegakiCalendar
+      # 1.2 (docs/M7B_CONTRACT.md §2.2, §5, D8): the holiday data of 250 countries and regions, a folder
+      # `HolidayData/` in the app's bundle (HolidayStore reads it, the Kit has no Bundle.module). It sits inside
+      # the local package's folder; if Xcode does not take it, CI's "Localized bundle check" fails and §2.2 says
+      # what to do (move it to Resources/HolidayData).
+      - path: TegakiKit/HolidayData
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: TegakiKit
         product: Layout
@@ -59,9 +72,23 @@ targets:
         CFBundleDisplayName: てがきカレンダー
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleDevelopmentRegion: ja
+        CFBundleDevelopmentRegion: en
+        # 1.2 (docs/M7B_CONTRACT.md §2.1, §2.2, O-1): the ten languages of the screen. No right-to-left language.
+        CFBundleLocalizations:
+          - ja
+          - en
+          - zh-Hans
+          - zh-Hant
+          - ko
+          - fr
+          - de
+          - es
+          - it
+          - pt-BR
         LSRequiresIPhoneOS: true
-        # Same wording as docs/DESIGN.md §4.1 and docs/PRIVACY.md 付録 B (keep the three in sync).
+        # Same wording as docs/DESIGN.md §4.1 and docs/PRIVACY.md 付録 B (keep the three in sync). The two
+        # Japanese values here are only the plist's own values: every `.lproj` has InfoPlist.strings
+        # (Resources/InfoPlist.xcstrings, docs/M7B_CONTRACT.md §2.2).
         NSCalendarsFullAccessUsageDescription: カレンダーの予定を手帳のページに表示し、手書きから予定を作るために使います。iOS と iPadOS には読み取りだけの許可が無いため、フルアクセスをお願いしています。予定はこの端末の中だけで扱い、外部には送りません。
         UISupportsDocumentBrowser: false
         UILaunchScreen: {}
@@ -122,6 +149,9 @@ targets:
       - target: TegakiCalendar
       - package: TegakiKit
         product: Layout
+      # 1.2 (docs/M7B_CONTRACT.md §2.2): HolidayChoiceTests uses HolidaySetting, HolidayRegion and HolidayStore.
+      - package: TegakiKit
+        product: Holidays
       - package: TegakiKit
         product: InkModel
       - package: TegakiKit
@@ -139,7 +169,8 @@ targets:
 
   # 1.0.1 (docs/R1_0_1.md §5.1): XCUITest of the year page's tap on an iPhone (YearTapUITests: a real
   # finger tap / double tap opens the day page, through UIKit's recognisers and PencilKit). It drives
-  # the app in its screenshot mode; on an iPad it skips itself.
+  # the app in its screenshot mode; on an iPad it skips itself. Since then: EraserAndBelowDayUITests (1.1),
+  # HeaderAndPaperUITests and BlankPaperShotsUITests (1.1.1), LanguageUITests and WeekStartUITests (1.2).
   TegakiCalendarUITests:
     type: bundle.ui-testing
     platform: iOS

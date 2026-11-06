@@ -46,9 +46,9 @@ struct EventEditorSheet: View {
     var onSubscribe: (() -> Void)? = nil
 
     /// The footnote while the app is read only (M5_CONTRACT §3.3).
-    static let subscriptionNote = "予定の作成・編集は購読すると使えます。"
+    static let subscriptionNote = L.text("event.subscriptionNote")
     /// The footnote of a calendar that cannot be modified (`allowsContentModifications == false`).
-    static let calendarReadOnlyNote = "このカレンダーは変更できません（読み取り専用）"
+    static let calendarReadOnlyNote = L.text("event.calendarReadOnlyNote")
 
     /// The text of the read-only sheet's footnote: `note` when given, else the calendar's (M5_CONTRACT §7.6).
     static func readOnlyFootnote(note: String?) -> String {
@@ -120,9 +120,9 @@ struct EventEditorSheet: View {
 
     private var navigationTitle: String {
         switch mode {
-        case .create: return "予定を追加"
-        case .edit: return "予定を編集"
-        case .readOnly: return "予定の詳細"
+        case .create: return L.text("event.title.create")
+        case .edit: return L.text("event.title.edit")
+        case .readOnly: return L.text("event.title.detail")
         }
     }
 
@@ -147,32 +147,32 @@ struct EventEditorSheet: View {
                 titleSection
                 dateSection
                 calendarSection
-                Section("場所") {
-                    TextField("場所", text: $form.location)
+                Section(L.text("event.location")) {
+                    TextField(L.text("event.location"), text: $form.location)
                         .submitLabel(.done)
                         .disabled(fieldsDisabled)
                 }
-                Section("メモ") {
+                Section(L.text("event.notes")) {
                     TextEditor(text: $form.notes)
                         .frame(minHeight: 80)
                         .disabled(fieldsDisabled)
                 }
                 if showEraseOption, !isReadOnly {
                     Section {
-                        Toggle("この手書きを消す", isOn: $eraseInk)
+                        Toggle(L.text("event.eraseInk"), isOn: $eraseInk)
                             .disabled(fieldsDisabled)
                     }
                 }
                 if isRecurringEdit {
                     Section {
-                        Label("繰り返しの予定です。保存・削除のときに「この回だけ」か「以降すべて」を選びます", systemImage: "repeat")
+                        Label(L.text("event.recurringNote"), systemImage: "repeat")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                 }
                 if isEdit {
                     Section {
-                        Button("削除", role: .destructive) {
+                        Button(L.text("event.delete"), role: .destructive) {
                             showDeleteConfirmation = true
                         }
                         .frame(maxWidth: .infinity)
@@ -186,7 +186,7 @@ struct EventEditorSheet: View {
                             .foregroundStyle(.secondary)
                         if let onSubscribe {
                             // M5 (M5_CONTRACT §3.3): the subscription is what unlocks editing here.
-                            Button("購読する", action: onSubscribe)
+                            Button(L.text("event.subscribe"), action: onSubscribe)
                         }
                     }
                 }
@@ -204,20 +204,20 @@ struct EventEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(isReadOnly ? "閉じる" : "キャンセル", action: onCancel)
+                    Button(isReadOnly ? L.text("event.close") : L.text("event.cancel"), action: onCancel)
                         .disabled(isBusy)
                 }
                 if !isReadOnly {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(isBusy ? "保存中…" : "保存", action: save)
+                        Button(isBusy ? L.text("event.saving") : L.text("event.save"), action: save)
                             .fontWeight(.semibold)
                             .disabled(isBusy)
                     }
                 }
             }
-            .confirmationDialog("この予定を削除しますか？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-                Button("削除", role: .destructive, action: confirmDelete)
-                Button("キャンセル", role: .cancel) {}
+            .confirmationDialog(L.text("event.deleteConfirm"), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+                Button(L.text("event.delete"), role: .destructive, action: confirmDelete)
+                Button(L.text("event.cancel"), role: .cancel) {}
             }
             .recurrenceScopeDialog(isPresented: $showSaveScope, kind: .save) { span in
                 guard let pending = pendingDraft else { return }
@@ -247,8 +247,8 @@ struct EventEditorSheet: View {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .strokeBorder(Color.primary.opacity(0.1))
                         )
-                        .accessibilityLabel("選択した手書き")
-                    Text("書いた内容")
+                        .accessibilityLabel(L.text("selection.handwriting"))
+                    Text(L.text("event.snapshotCaption"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -259,14 +259,14 @@ struct EventEditorSheet: View {
 
     private var titleSection: some View {
         Section {
-            TextField("ここにペンで書くと文字になります", text: $form.title)
+            TextField(L.text("event.titlePlaceholder"), text: $form.title)
                 .font(.title3)
                 .submitLabel(.done)
                 .focused($titleFocused)
                 .disabled(fieldsDisabled)
                 .onChange(of: form.title) { titleError = nil }
             if isPad, !isReadOnly {
-                Text("Apple Pencil で欄の上に書くと、文字に変換されます（スクリブル）")
+                Text(L.text("event.scribbleNote"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -276,23 +276,23 @@ struct EventEditorSheet: View {
                     .foregroundStyle(.red)
             }
         } header: {
-            Text("タイトル")
+            Text(L.text("event.titleHeader"))
         }
     }
 
     private var dateSection: some View {
         Section {
-            Toggle("終日", isOn: allDayBinding)
+            Toggle(L.text("event.allDay"), isOn: allDayBinding)
                 .disabled(fieldsDisabled)
             if form.allDay {
-                DatePicker("開始日", selection: startBinding, displayedComponents: [.date])
+                DatePicker(L.text("event.startDay"), selection: startBinding, displayedComponents: [.date])
                     .disabled(fieldsDisabled)
-                DatePicker("終了日", selection: endBinding, displayedComponents: [.date])
+                DatePicker(L.text("event.endDay"), selection: endBinding, displayedComponents: [.date])
                     .disabled(fieldsDisabled)
             } else {
-                DatePicker("開始", selection: startBinding, displayedComponents: [.date, .hourAndMinute])
+                DatePicker(L.text("event.start"), selection: startBinding, displayedComponents: [.date, .hourAndMinute])
                     .disabled(fieldsDisabled)
-                DatePicker("終了", selection: endBinding, displayedComponents: [.date, .hourAndMinute])
+                DatePicker(L.text("event.end"), selection: endBinding, displayedComponents: [.date, .hourAndMinute])
                     .disabled(fieldsDisabled)
             }
             if let dateError = dateError {
@@ -305,9 +305,9 @@ struct EventEditorSheet: View {
 
     @ViewBuilder
     private var calendarSection: some View {
-        Section("カレンダー") {
+        Section(L.text("event.calendar")) {
             if mode == .create, calendars.count > 1 {
-                Picker("カレンダー", selection: $calendarId) {
+                Picker(L.text("event.calendar"), selection: $calendarId) {
                     ForEach(calendars) { option in
                         calendarLabel(option).tag(option.id)
                     }
@@ -407,7 +407,7 @@ struct EventEditorSheet: View {
             do {
                 try await onSubmit(result)
             } catch {
-                footerError = (error as? LocalizedError)?.errorDescription ?? "保存できませんでした"
+                footerError = (error as? LocalizedError)?.errorDescription ?? L.text("event.saveFailed")
             }
             isBusy = false
         }

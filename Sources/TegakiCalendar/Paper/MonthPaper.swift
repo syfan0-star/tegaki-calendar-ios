@@ -88,7 +88,7 @@ enum MonthPaper: PaperRenderer {
         let labelFont = UIFont.systemFont(ofSize: labelSize, weight: .semibold)
         let labelRect = CGRect(x: ruleInset, y: memo.minY + 6, width: 200, height: labelFont.lineHeight + 2)
         if labelRect.intersects(dirty) {
-            PaperText.drawLine("メモ", in: labelRect, font: labelFont, color: PaperPalette.memoLabel, kern: labelSize * 0.15)
+            PaperText.drawLine(L.text("paper.memo"), in: labelRect, font: labelFont, color: PaperPalette.memoLabel, kern: labelSize * 0.15)
         }
     }
 
@@ -97,6 +97,7 @@ enum MonthPaper: PaperRenderer {
         let dateFont = UIFont.monospacedDigitSystemFont(ofSize: dateSize, weight: .semibold)
         let holidaySize = PaperText.fontSize(PaperText.monthHoliday, zoom: zoom, readable: readable)
         let holidayFont = UIFont.systemFont(ofSize: holidaySize, weight: .regular)
+        let holidayFit = PaperWords.monthHolidayFit(L.language) // F-3
 
         for label in content.labels {
             let frame = label.frame
@@ -129,7 +130,7 @@ enum MonthPaper: PaperRenderer {
                 let nameRect = CGRect(x: numberBox.maxX + gap, y: frame.minY,
                                       width: max(0, frame.maxX - numberBox.maxX - gap - 2), height: frame.height)
                 if nameRect.width > holidaySize {
-                    PaperText.drawLine(name, in: nameRect, font: holidayFont, color: PaperPalette.red.withAlphaComponent(alpha))
+                    PaperText.drawLine(name, in: nameRect, font: holidayFont, color: PaperPalette.red.withAlphaComponent(alpha), fit: holidayFit)
                 }
             }
         }
@@ -186,7 +187,7 @@ enum MonthPaper: PaperRenderer {
             defer { ctx.restoreGState() }
 
             if chip.moreCount > 0 {
-                let text = chip.title.isEmpty ? "+\(chip.moreCount)件" : chip.title
+                let text = chip.title.isEmpty ? LayoutWords.of(L.language).more(chip.moreCount) : chip.title
                 let rect = CGRect(x: x, y: frame.minY, width: max(0, frame.maxX - pad - x), height: frame.height)
                 PaperText.drawLine(text, in: rect, font: moreFont, color: PaperPalette.ink2.withAlphaComponent(alpha))
                 continue

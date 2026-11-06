@@ -1,5 +1,5 @@
 // Access: the subscription plans and the pure "who may write" state machine of てがきカレンダー
-// (M5_CONTRACT §1). Foundation only — this target depends on nothing else, not even DayKit. The
+// (M5_CONTRACT §1). Foundation and DayKit only (UILanguage and KitStrings, since 1.2). The
 // StoreKit layer (Sources/TegakiCalendar/Store/*) maps `Transaction` / `Status` onto the inputs
 // defined here; the views read the results.
 import Foundation

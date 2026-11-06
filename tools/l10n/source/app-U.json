@@ -1,0 +1,2487 @@
+{
+  "owner": "U",
+  "keys": {
+    "alert.saveFailed.ok": {
+      "ja": "OK",
+      "target": "app",
+      "comment": "上の警告を閉じるボタン",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "alert.saveFailed.title": {
+      "ja": "手書きを保存できませんでした",
+      "target": "app",
+      "comment": "警告の題名。端末に手書きを保存できなかったとき",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:697"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き"
+      ]
+    },
+    "demo.calendar.events": {
+      "ja": "行事",
+      "target": "app",
+      "comment": "ストアの写真の見本の予定表の名前。短く",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:268"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "demo.calendar.family": {
+      "ja": "家族",
+      "target": "app",
+      "comment": "ストアの写真の見本の予定表の名前。短く",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:266"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "demo.calendar.personal": {
+      "ja": "個人",
+      "target": "app",
+      "comment": "ストアの写真の見本の予定表の名前。短く",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:267"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "demo.calendar.work": {
+      "ja": "仕事",
+      "target": "app",
+      "comment": "ストアの写真の見本の予定表の名前。短く",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:265"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "demo.event.birthday": {
+      "ja": "誕生日",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:363"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.businessTrip": {
+      "ja": "出張（大阪）",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）。「大阪」は Osaka のように各言語の地名で",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:364"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.call": {
+      "ja": "電話",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:385"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.camping": {
+      "ja": "キャンプ",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:358"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.checkup": {
+      "ja": "健康診断",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:361"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.clinic": {
+      "ja": "通院",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:371"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.deadline": {
+      "ja": "締切",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:383"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.dentalCheck": {
+      "ja": "歯科",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:386"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.dentist": {
+      "ja": "歯医者",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:368"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.drinks": {
+      "ja": "飲み会",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:378"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.familyTrip": {
+      "ja": "家族旅行",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:359"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.farewell": {
+      "ja": "送別会",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:377"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.lunch": {
+      "ja": "ランチ",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:380"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.meeting": {
+      "ja": "打合せ",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:384"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.morningMeeting": {
+      "ja": "朝会",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:373"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.oneOnOne": {
+      "ja": "面談",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:375"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.payday": {
+      "ja": "給料日",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:365"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.report": {
+      "ja": "資料提出",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:370"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.reportDeadline": {
+      "ja": "資料提出締切",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:360"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.review": {
+      "ja": "レビュー",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:376"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.event.sportsDay": {
+      "ja": "運動会",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:357"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.trashDay": {
+      "ja": "ゴミの日",
+      "target": "app",
+      "comment": "ストアの写真の見本の終日の予定。年のチップに入る長さに（4.2 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:362"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 4.2
+    },
+    "demo.event.weeklyMeeting": {
+      "ja": "週次定例",
+      "target": "app",
+      "comment": "ストアの写真の見本の時刻のある予定。月のチップに入る長さに（5.7 em まで）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:369",
+        "Support/ScreenshotMode.swift:372",
+        "Support/ScreenshotMode.swift:374",
+        "Support/ScreenshotMode.swift:379"
+      ],
+      "args": [],
+      "glossary": [],
+      "maxEm": 5.7
+    },
+    "demo.source": {
+      "ja": "見本",
+      "target": "app",
+      "comment": "ストアの写真の見本の予定表のアカウントの名前（「サンプル」の意味）",
+      "where": [
+        "Support/ScreenshotMode.swift"
+      ],
+      "was": [
+        "Support/ScreenshotMode.swift:283"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "event.untitled": {
+      "ja": "（無題）",
+      "target": "app",
+      "comment": "題名の無い予定に紙とシートで出す字。短く",
+      "where": [
+        "Calendar/EventKitService.swift"
+      ],
+      "was": [
+        "Calendar/EventKitService.swift:301"
+      ],
+      "args": [],
+      "glossary": [
+        "予定"
+      ]
+    },
+    "holidayPicker.auto": {
+      "ja": "自動（この端末の地域：%@）",
+      "target": "app",
+      "comment": "祝日を選ぶ画面の最初の行。%@ は国の名前",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [
+        "国の名前"
+      ],
+      "glossary": [
+        "この端末"
+      ]
+    },
+    "holidayPicker.countries": {
+      "ja": "国・地域",
+      "target": "app",
+      "comment": "一覧の見出し",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "holidayPicker.deviceRegion": {
+      "ja": "この端末の地域：%@",
+      "target": "app",
+      "comment": "祝日を選ぶ画面の近道の行。%@ は国の名前",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [
+        "国の名前"
+      ],
+      "glossary": [
+        "この端末"
+      ]
+    },
+    "holidayPicker.localAreas": {
+      "ja": "その他の地域（市など）",
+      "target": "app",
+      "comment": "州の画面の、州でない地域（市など）の見出し",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "holidayPicker.none": {
+      "ja": "なし",
+      "target": "app",
+      "comment": "祝日を選ぶ画面の行。祝日を出さない",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "holidayPicker.search": {
+      "ja": "国・地域を検索",
+      "target": "app",
+      "comment": "検索の欄の薄い字",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "holidayPicker.subdivisionHint": {
+      "ja": "州・地域を選ぶと、その地域の祝日が加わります",
+      "target": "app",
+      "comment": "州・地域で祝日が違う国の行の下の小さな字と、州の画面の先頭",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "holidayPicker.subdivisions": {
+      "ja": "州・地域",
+      "target": "app",
+      "comment": "州の画面の一覧の見出し",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "holidayPicker.subdivisions.footer": {
+      "ja": "州・地域の名前は、データのままの表記（英語や現地の言葉）です。",
+      "target": "app",
+      "comment": "州の画面の脚注",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "holidayPicker.title": {
+      "ja": "表示する祝日",
+      "target": "app",
+      "comment": "祝日を選ぶ画面の題名。settings.holidays.row と同じ語に",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "holidayPicker.wholeCountry": {
+      "ja": "国全体",
+      "target": "app",
+      "comment": "州の画面の最初の行",
+      "where": [
+        "Views/HolidayPickerScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "info.translationNote": {
+      "ja": "このアプリの訳は AI で作り、日本語に訳し戻して確かめました。まだネイティブの確認は受けていません。誤りを見つけたら syfan0@gmail.com までお知らせください。",
+      "target": "app",
+      "comment": "情報の節の説明の下の文。日本語の画面には出ない。英語の元は “The translations in this app were made with AI and checked by translating them back into Japanese. No native speaker has reviewed them yet. If you find a mistake, please write to syfan0@gmail.com.”。この英語の文を元に訳す。メールアドレスはそのまま",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "license.contributors": {
+      "ja": "Contributors: %@",
+      "target": "app",
+      "comment": "ライセンスの画面で、CONTRIBUTORS のファイルが読めないときだけ出る行。%@ は URL",
+      "where": [
+        "Views/LicenseScreen.swift"
+      ],
+      "was": [],
+      "args": [
+        "URL"
+      ],
+      "glossary": []
+    },
+    "license.holidayData": {
+      "ja": "祝日データ：python-holidays（MIT ライセンス）",
+      "target": "app",
+      "comment": "ライセンスの画面の見出し。python-holidays はそのまま",
+      "where": [
+        "Views/LicenseScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "notice.calendar.denied": {
+      "ja": "予定を表示するには設定でカレンダーを「フルアクセス」にしてください。",
+      "target": "app",
+      "comment": "見出しの下の案内（2 行まで）。「フルアクセス」は iOS の「設定」のカレンダーの項目の、その言語の表記に合わせる",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:966"
+      ],
+      "args": [],
+      "glossary": [
+        "予定",
+        "カレンダー"
+      ]
+    },
+    "notice.calendar.denied.openSettings": {
+      "ja": "設定を開く",
+      "target": "app",
+      "comment": "上の案内の右の小さなボタン。iOS の「設定」アプリを開く",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:966"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "notice.calendar.notDetermined": {
+      "ja": "予定を表示するにはカレンダーの読み取りを許可してください。",
+      "target": "app",
+      "comment": "見出しの下の 1 行の案内（2 行まで）。カレンダーへのアクセスをまだ聞いていないとき",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:962"
+      ],
+      "args": [],
+      "glossary": [
+        "予定",
+        "カレンダー"
+      ]
+    },
+    "notice.calendar.notDetermined.allow": {
+      "ja": "許可する",
+      "target": "app",
+      "comment": "上の案内の右の小さなボタン",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:962"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "notice.calendar.restricted": {
+      "ja": "この端末ではカレンダーへのアクセスが制限されています。手書きだけ使えます。",
+      "target": "app",
+      "comment": "見出しの下の案内（2 行まで）。保護者の管理などでカレンダーを使えないとき",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:970"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末",
+        "カレンダー",
+        "手書き"
+      ]
+    },
+    "notice.readOnly.button": {
+      "ja": "購読する",
+      "target": "app",
+      "comment": "上の案内の右の小さなボタン。短く",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:260"
+      ],
+      "args": [],
+      "glossary": [
+        "購読"
+      ]
+    },
+    "notice.readOnly.text": {
+      "ja": "閲覧専用です。手書きと予定の作成は購読すると使えます。",
+      "target": "app",
+      "comment": "iPhone の見出しの下の 1 行の案内（2 行まで）。購読していないとき",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:259"
+      ],
+      "args": [],
+      "glossary": [
+        "閲覧専用",
+        "手書き",
+        "予定",
+        "購読"
+      ]
+    },
+    "settings.calendar.a11y.hidden": {
+      "ja": "非表示",
+      "target": "app",
+      "comment": "読み上げの値。カレンダーの行が非表示のとき",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:298"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.calendar.a11y.shown": {
+      "ja": "表示中",
+      "target": "app",
+      "comment": "読み上げの値。カレンダーの行が表示中のとき",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:298"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.calendar.access.allow": {
+      "ja": "許可する",
+      "target": "app",
+      "comment": "ボタン。カレンダーへのアクセスを iOS に尋ねる",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:343"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.calendar.access.denied": {
+      "ja": "許可されていません",
+      "target": "app",
+      "comment": "カレンダーへのアクセスの状態",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:322"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.calendar.access.full": {
+      "ja": "許可されています（フルアクセス）",
+      "target": "app",
+      "comment": "カレンダーへのアクセスの状態。「フルアクセス」は iOS の表記に合わせる",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:320"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.calendar.access.notDetermined": {
+      "ja": "まだ許可していません",
+      "target": "app",
+      "comment": "カレンダーへのアクセスの状態",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:321"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.calendar.access.restricted": {
+      "ja": "この端末では制限されています",
+      "target": "app",
+      "comment": "カレンダーへのアクセスの状態",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:324"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末"
+      ]
+    },
+    "settings.calendar.access.title": {
+      "ja": "カレンダーへのアクセス",
+      "target": "app",
+      "comment": "行の名前。右に今の状態が出る",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:262"
+      ],
+      "args": [],
+      "glossary": [
+        "カレンダー"
+      ]
+    },
+    "settings.calendar.access.writeOnly": {
+      "ja": "追加のみ（予定を表示できません）",
+      "target": "app",
+      "comment": "カレンダーへのアクセスの状態",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:323"
+      ],
+      "args": [],
+      "glossary": [
+        "予定"
+      ]
+    },
+    "settings.calendar.default": {
+      "ja": "予定の登録先",
+      "target": "app",
+      "comment": "行の名前。新しい予定を入れるカレンダーを選ぶ",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:250"
+      ],
+      "args": [],
+      "glossary": [
+        "予定",
+        "カレンダー"
+      ]
+    },
+    "settings.calendar.empty": {
+      "ja": "カレンダーがありません",
+      "target": "app",
+      "comment": "カレンダーが 1 つも無いときの説明",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:235"
+      ],
+      "args": [],
+      "glossary": [
+        "カレンダー"
+      ]
+    },
+    "settings.calendar.google.howTo": {
+      "ja": "Google カレンダーの予定を出すには、「設定」アプリで Google アカウントを追加します。\n①「設定」→「アプリ」→「カレンダー」→「カレンダーアカウント」→「アカウントを追加」→「Google」（iOS・iPadOS 17 では「設定」→「カレンダー」→「アカウント」）\n②「カレンダー」のスイッチをオン\n③同じ画面の「データの取得方法」で「15 分ごと」を選ぶと、予定の反映が早くなります。\n\niCloud カレンダーだけの人は、このままで大丈夫です。",
+      "target": "app",
+      "comment": "手順の説明。初回案内の 1 枚目の後半と同じ文。「」の中は iOS の画面の名前なので、その言語の iOS の実際の表記に合わせる（§6.1 の 4）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:76"
+      ],
+      "args": [],
+      "glossary": [
+        "予定",
+        "カレンダー"
+      ]
+    },
+    "settings.calendar.google.title": {
+      "ja": "Google カレンダーを使うには",
+      "target": "app",
+      "comment": "開閉する行の名前。Google カレンダーは製品名",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:269"
+      ],
+      "args": [],
+      "glossary": [
+        "カレンダー"
+      ]
+    },
+    "settings.calendar.header": {
+      "ja": "カレンダー",
+      "target": "app",
+      "comment": "設定の節の見出し",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:231"
+      ],
+      "args": [],
+      "glossary": [
+        "カレンダー"
+      ]
+    },
+    "settings.calendar.noAccess": {
+      "ja": "カレンダーへのアクセスを許可すると、ここに一覧が出ます",
+      "target": "app",
+      "comment": "カレンダーへのアクセスが無いときの説明",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:235"
+      ],
+      "args": [],
+      "glossary": [
+        "カレンダー"
+      ]
+    },
+    "settings.calendar.otherSource": {
+      "ja": "その他",
+      "target": "app",
+      "comment": "カレンダーのアカウントの名前が空のときの見出し",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:240"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.calendar.shown": {
+      "ja": "表示するカレンダー",
+      "target": "app",
+      "comment": "節の中の小見出し。下に各カレンダーの行が並ぶ",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:232"
+      ],
+      "args": [],
+      "glossary": [
+        "カレンダー"
+      ]
+    },
+    "settings.data.erase.all": {
+      "ja": "全て消す",
+      "target": "app",
+      "comment": "2 回目の確認のボタン（赤）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:178"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.data.erase.cancel": {
+      "ja": "キャンセル",
+      "target": "app",
+      "comment": "確認のやめるボタン",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:175",
+        "Views/SettingsScreen.swift:179"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.data.erase.confirm": {
+      "ja": "消す",
+      "target": "app",
+      "comment": "1 回目の確認のボタン（赤）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:168"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.data.erase.question.cloud": {
+      "ja": "この端末と iCloud に保存した手書きを全て消しますか？",
+      "target": "app",
+      "comment": "1 回目の確認の題名。iCloud の分も消えるとき",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:471"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末",
+        "手書き"
+      ]
+    },
+    "settings.data.erase.question.local": {
+      "ja": "この端末に保存した手書きを全て消しますか？",
+      "target": "app",
+      "comment": "1 回目の確認の題名",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:472"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末",
+        "手書き"
+      ]
+    },
+    "settings.data.erase.title": {
+      "ja": "本当に消しますか？",
+      "target": "app",
+      "comment": "2 回目の確認の題名",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:177"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.data.erase.warning.cloud": {
+      "ja": "この操作は元に戻せません。ほかの iPad や iPhone の手書きも消えます。",
+      "target": "app",
+      "comment": "2 回目の確認の本文。iCloud の分も消えるとき",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:478"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き"
+      ]
+    },
+    "settings.data.erase.warning.local": {
+      "ja": "この操作は元に戻せません。",
+      "target": "app",
+      "comment": "2 回目の確認の本文",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:479"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.data.eraseAll": {
+      "ja": "この端末の手書きを全て消す",
+      "target": "app",
+      "comment": "ボタン（赤）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:452"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末",
+        "手書き"
+      ]
+    },
+    "settings.data.export": {
+      "ja": "手書きを書き出す",
+      "target": "app",
+      "comment": "ボタン",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:449"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き",
+        "書き出す"
+      ]
+    },
+    "settings.data.exportFooter": {
+      "ja": "「手書きを書き出す」は、この端末に保存されている手書きを 1 つのデータファイル（JSON）にするか、いま開いているページを PDF にします。データファイルは「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。",
+      "target": "app",
+      "comment": "データの節の説明の 2 段落目。「」の中は同じ節のボタンの名前（settings.data.export・settings.data.import）と同じ語に",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:102"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き",
+        "書き出す",
+        "取り込み",
+        "購読",
+        "この端末"
+      ]
+    },
+    "settings.data.header": {
+      "ja": "データ",
+      "target": "app",
+      "comment": "設定の節の見出し",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:456"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.data.import": {
+      "ja": "Web 版の手書きを取り込む",
+      "target": "app",
+      "comment": "ボタン",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:443"
+      ],
+      "args": [],
+      "glossary": [
+        "Web 版",
+        "手書き",
+        "取り込み"
+      ]
+    },
+    "settings.data.importFooter": {
+      "ja": "Web 版の設定で「手書きを書き出す（iPad アプリ用）」をして、そのファイルを選びます。同じファイルを二度取り込んでも手書きは二重になりません。",
+      "target": "app",
+      "comment": "データの節の説明。「手書きを書き出す（iPad アプリ用）」は Web 版の機能の名前で、Web 版は日本語だけなので、訳の中でも括弧で日本語のまま添える（§6.2）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:98"
+      ],
+      "args": [],
+      "glossary": [
+        "Web 版",
+        "手書き",
+        "取り込み"
+      ],
+      "allowJapanese": [
+        "手書きを書き出す（iPad アプリ用）"
+      ]
+    },
+    "settings.data.lastImport": {
+      "ja": "前回の取り込み: %@",
+      "target": "app",
+      "comment": "データの節の説明の下の行。%@ は日付と時刻（書式はこちらで作る）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/SettingsScreen.swift:124"
+      ],
+      "args": [
+        "日付と時刻"
+      ],
+      "glossary": [
+        "取り込み"
+      ]
+    },
+    "settings.done": {
+      "ja": "完了",
+      "target": "app",
+      "comment": "設定の画面を閉じるボタン",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:163"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.holidays.footer": {
+      "ja": "日本の祝日は、このアプリが計算しています（内閣府の発表と照らし合わせて確かめています）。ほかの国の祝日は、公開されているデータ（python-holidays）にもとづきます。旧暦やイスラム暦の祝日など一部は推定で、「（推定）」と付けています。政府の最新の発表と違うことがあります。祝日の設定はこの端末だけに保存します。",
+      "target": "app",
+      "comment": "祝日の節の説明。「（推定）」は kit.holiday.estimatedSuffix と同じ印に",
+      "where": [
+        "Views/HolidaySettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日",
+        "この端末"
+      ]
+    },
+    "settings.holidays.header": {
+      "ja": "祝日",
+      "target": "app",
+      "comment": "設定の節の見出し",
+      "where": [
+        "Views/HolidaySettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.note.beforeNotice": {
+      "ja": "%@ 年は発表前の推定",
+      "target": "app",
+      "comment": "注記。政府が毎年発表する休みの表がまだデータに無い年。%@ は年（区切りなしの数字）",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "年"
+      ],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.note.join": {
+      "ja": "%1$@・%2$@",
+      "target": "app",
+      "comment": "注記が 2 つあるときのつなぎ方",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "注記",
+        "次の注記"
+      ],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.note.nationalOnly": {
+      "ja": "全国共通のみ",
+      "target": "app",
+      "comment": "注記。州・地域で祝日が違う国で、国全体を選んでいるとき。短く",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.note.nationalOnlyAuto": {
+      "ja": "全国共通の祝日のみ",
+      "target": "app",
+      "comment": "注記。州・地域で祝日が違う国で、自動で国全体を見ているとき",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.note.noData": {
+      "ja": "祝日のデータがありません",
+      "target": "app",
+      "comment": "注記。その国の祝日のデータが無い、または読めないとき",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.note.noDataFrom": {
+      "ja": "%@ 年以降のデータがありません",
+      "target": "app",
+      "comment": "注記。データの揃っている年の範囲を過ぎたとき。%@ は年（区切りなしの数字）",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "年"
+      ],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.row": {
+      "ja": "表示する祝日",
+      "target": "app",
+      "comment": "行の名前。右に今の選択が出る。押すと選ぶ画面",
+      "where": [
+        "Views/HolidaySettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.value.auto": {
+      "ja": "自動（%@）",
+      "target": "app",
+      "comment": "「表示する祝日」の値。%@ は国の名前",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "国の名前"
+      ],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.value.autoNote": {
+      "ja": "自動（%1$@・%2$@）",
+      "target": "app",
+      "comment": "「表示する祝日」の値。%2$@ は注記（settings.holidays.note.*）",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "国の名前",
+        "注記"
+      ],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.value.none": {
+      "ja": "なし",
+      "target": "app",
+      "comment": "「表示する祝日」の値。祝日を出さない",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.value.regionNote": {
+      "ja": "%1$@（%2$@）",
+      "target": "app",
+      "comment": "「表示する祝日」の値。%1$@ は国の名前（州を含むことがある）、%2$@ は注記（settings.holidays.note.*）",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "国の名前",
+        "注記"
+      ],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.holidays.value.subdivision": {
+      "ja": "%1$@・%2$@",
+      "target": "app",
+      "comment": "「表示する祝日」の値。国と州・地域。例「アメリカ合衆国・California」。州の名前はデータのままの表記",
+      "where": [
+        "Persistence/HolidayChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "国の名前",
+        "州・地域の名前"
+      ],
+      "glossary": [
+        "祝日"
+      ]
+    },
+    "settings.info.footer": {
+      "ja": "線の数は、この端末に保存されているページを数えたものです（どこにも送りません）。1 ページに書ける線は %@ 本までです。",
+      "target": "app",
+      "comment": "情報の節の説明",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/SettingsScreen.swift:95"
+      ],
+      "args": [
+        "書ける本数の上限（19,000）"
+      ],
+      "glossary": [
+        "線",
+        "この端末"
+      ]
+    },
+    "settings.info.header": {
+      "ja": "情報",
+      "target": "app",
+      "comment": "設定の節の見出し",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:556"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.info.largestPage": {
+      "ja": "いちばん線の多いページ",
+      "target": "app",
+      "comment": "行の名前。下に値が小さく出る",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:92"
+      ],
+      "args": [],
+      "glossary": [
+        "線"
+      ]
+    },
+    "settings.info.licenses": {
+      "ja": "オープンソースのライセンス",
+      "target": "app",
+      "comment": "情報の節の行の名前。押すと同じ題名の画面が開く。その画面の題名にも使う",
+      "where": [
+        "Views/SettingsScreen.swift",
+        "Views/LicenseScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "settings.info.privacy": {
+      "ja": "プライバシーポリシー",
+      "target": "app",
+      "comment": "リンクの行",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:547"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.info.support": {
+      "ja": "サポート",
+      "target": "app",
+      "comment": "リンクの行",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:549"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.info.terms": {
+      "ja": "利用規約",
+      "target": "app",
+      "comment": "リンクの行",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:546"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.info.version": {
+      "ja": "バージョン",
+      "target": "app",
+      "comment": "行の名前",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:568"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.info.yearPage": {
+      "ja": "今年の年のページ",
+      "target": "app",
+      "comment": "行の名前。下に値が小さく出る",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:93"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.input.allowFinger": {
+      "ja": "指でも書く",
+      "target": "app",
+      "comment": "スイッチの名前。ツールバーの同じ語と合わせる",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:359"
+      ],
+      "args": [],
+      "glossary": [
+        "指でも書く"
+      ]
+    },
+    "settings.input.allowFinger.footer": {
+      "ja": "オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします。手書きは iPad と Apple Pencil で書くのに向いています",
+      "target": "app",
+      "comment": "上のスイッチの説明",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:363"
+      ],
+      "args": [],
+      "glossary": [
+        "線",
+        "手書き"
+      ]
+    },
+    "settings.input.eraseAfterConvert": {
+      "ja": "予定にした手書きを消す",
+      "target": "app",
+      "comment": "スイッチの名前",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:383"
+      ],
+      "args": [],
+      "glossary": [
+        "予定",
+        "手書き"
+      ]
+    },
+    "settings.input.eraseAfterConvert.footer": {
+      "ja": "投げなわで囲んだ手書きを予定にしたあと、その手書きを消すかどうかの初期値です",
+      "target": "app",
+      "comment": "上のスイッチの説明",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:385"
+      ],
+      "args": [],
+      "glossary": [
+        "投げなわ",
+        "手書き",
+        "予定"
+      ]
+    },
+    "settings.input.eraserAutoReturn.footer.pad": {
+      "ja": "消しゴムで線を消して指や Apple Pencil を離すと、直前のペンかマーカーに戻ります。Apple Pencil のダブルタップやスクイーズで選んだ消しゴムも同じです。",
+      "target": "app",
+      "comment": "上のスイッチの説明（iPad）。ダブルタップ・スクイーズで選んだ消しゴムも「戻る」という意味（戻らないのではない）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:87"
+      ],
+      "args": [],
+      "glossary": [
+        "消しゴム",
+        "ペン",
+        "マーカー",
+        "線"
+      ]
+    },
+    "settings.input.eraserAutoReturn.footer.phone": {
+      "ja": "消しゴムで線を消して指を離すと、直前のペンかマーカーに戻ります。",
+      "target": "app",
+      "comment": "上のスイッチの説明（iPhone）。**どの言語でも Apple Pencil と iPad を書かない**",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:88"
+      ],
+      "args": [],
+      "glossary": [
+        "消しゴム",
+        "ペン",
+        "マーカー",
+        "線"
+      ]
+    },
+    "settings.input.eraserAutoReturn.title": {
+      "ja": "消しゴムで消したらペンに戻る",
+      "target": "app",
+      "comment": "設定 › 入力 のスイッチの名前。iPad と iPhone の両方",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:81"
+      ],
+      "args": [],
+      "glossary": [
+        "消しゴム",
+        "ペン"
+      ],
+      "maxEm": 24
+    },
+    "settings.input.header": {
+      "ja": "入力",
+      "target": "app",
+      "comment": "設定の節の見出し",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:361"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.input.pencil": {
+      "ja": "Apple Pencil",
+      "target": "app",
+      "comment": "行の名前。製品名なのでそのまま",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "settings.input.pencil.footer": {
+      "ja": "ダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作に従います",
+      "target": "app",
+      "comment": "説明。「設定 › Apple Pencil」は iOS の表記に合わせる",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:379"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.openSettingsApp": {
+      "ja": "設定アプリを開く",
+      "target": "app",
+      "comment": "ボタン。iOS の「設定」アプリを開く",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:273",
+        "Views/SettingsScreen.swift:348",
+        "Views/SettingsScreen.swift:376"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.purchase.footer.cancel": {
+      "ja": "解約は端末の%@から。解約しても期間の終わりまで使えます。",
+      "target": "app",
+      "comment": "購入の節の説明（購読中）。%@ は iOS の画面の道順（kit.plan.cancelPath）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/SettingsScreen.swift:672"
+      ],
+      "args": [
+        "iOS の設定の道順"
+      ],
+      "glossary": [
+        "購読",
+        "この端末"
+      ]
+    },
+    "settings.purchase.footer.grace": {
+      "ja": "お支払いに問題があります。端末の%@でお支払い方法を確認してください。猶予の期限までは使えます。",
+      "target": "app",
+      "comment": "購入の節の説明（請求に問題があり、猶予の期間のとき）。%@ は iOS の画面の道順（kit.plan.paymentPath）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/SettingsScreen.swift:650"
+      ],
+      "args": [
+        "iOS の設定の道順"
+      ],
+      "glossary": [
+        "購読"
+      ]
+    },
+    "settings.purchase.footer.readOnly": {
+      "ja": "%@閲覧専用では、予定と手書きの閲覧、ページ移動、拡大、iCloud からの受信、この端末の手書きを全て消す、手書きの書き出し、設定の変更ができます。新しく書く・消す・動かす、予定の作成・編集、Web 版からの取り込みは購読すると使えます。",
+      "target": "app",
+      "comment": "購入の節の説明（閲覧専用のとき）。%@ は閲覧専用の理由の 1 文（kit.plan.note.*。句点で終わる）で、この文の前につなぐ。語の間に空白を置く言語は %@ の後ろに空白を入れる。利用規約の第 5 条 5 項と同じ一覧",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/SettingsScreen.swift:674"
+      ],
+      "args": [
+        "閲覧専用の理由の 1 文"
+      ],
+      "glossary": [
+        "閲覧専用",
+        "手書き",
+        "予定",
+        "購読",
+        "Web 版",
+        "取り込み"
+      ]
+    },
+    "settings.purchase.footer.trial": {
+      "ja": "解約は端末の%@から。解約しても期間の終わりまで使えます。試用中に解約すれば料金はかかりません。",
+      "target": "app",
+      "comment": "購入の節の説明（試用中）。%@ は iOS の画面の道順（kit.plan.cancelPath）。前半は settings.purchase.footer.cancel と同じ文に",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/SettingsScreen.swift:672",
+        "Views/SettingsScreen.swift:654"
+      ],
+      "args": [
+        "iOS の設定の道順"
+      ],
+      "glossary": [
+        "購読",
+        "この端末"
+      ]
+    },
+    "settings.purchase.header": {
+      "ja": "購入",
+      "target": "app",
+      "comment": "設定の節の見出し",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:526"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.purchase.manage": {
+      "ja": "サブスクリプションを管理",
+      "target": "app",
+      "comment": "ボタン。「サブスクリプション」は iOS の表記に合わせる",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:513"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.purchase.plan": {
+      "ja": "現在のプラン",
+      "target": "app",
+      "comment": "行の名前。右に今の状態が出る",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:494"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.purchase.restore": {
+      "ja": "購入を復元",
+      "target": "app",
+      "comment": "ボタン",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:521"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.purchase.subscribe": {
+      "ja": "購読する",
+      "target": "app",
+      "comment": "ボタン。購読していないとき",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:663"
+      ],
+      "args": [],
+      "glossary": [
+        "購読"
+      ]
+    },
+    "settings.purchase.trial.one": {
+      "ja": "%@ 日間無料で試す",
+      "target": "app",
+      "comment": "ボタン。無料の試用を使えるとき。%@ は日数（14）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/SettingsScreen.swift:663#1"
+      ],
+      "args": [
+        "日数"
+      ],
+      "glossary": [
+        "購読"
+      ]
+    },
+    "settings.purchase.trial.other": {
+      "ja": "%@ 日間無料で試す",
+      "target": "app",
+      "comment": "ボタン。無料の試用を使えるとき。%@ は日数（14）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/SettingsScreen.swift:663#1"
+      ],
+      "args": [
+        "日数"
+      ],
+      "glossary": [
+        "購読"
+      ]
+    },
+    "settings.sync.header": {
+      "ja": "同期",
+      "target": "app",
+      "comment": "設定の節の見出し",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:419"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "settings.sync.icloud": {
+      "ja": "iCloud 同期",
+      "target": "app",
+      "comment": "行の名前。右に状態が出る",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:394"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "settings.sync.lastSync": {
+      "ja": "最後に同期",
+      "target": "app",
+      "comment": "行の名前。右に日時が出る",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:402"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "settings.sync.lastSync.none": {
+      "ja": "まだありません",
+      "target": "app",
+      "comment": "「最後に同期」の値。まだ 1 度も同期していないとき",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:119"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.sync.newAccount": {
+      "ja": "新しいアカウントで使い始める…",
+      "target": "app",
+      "comment": "ボタン。iCloud のアカウントが変わったとき",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:416"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.sync.now": {
+      "ja": "今すぐ同期",
+      "target": "app",
+      "comment": "ボタン",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:411"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "settings.title": {
+      "ja": "設定",
+      "target": "app",
+      "comment": "設定の画面の題名",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [
+        "Views/SettingsScreen.swift:159"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "settings.weekStart.auto": {
+      "ja": "自動（%@）",
+      "target": "app",
+      "comment": "週の始まりの選択肢。%@ は今の結果（月曜・日曜）。英語 Automatic (%@)",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [
+        "月曜か日曜"
+      ],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.confirm.message.monday": {
+      "ja": "週のページは、月曜始まりと日曜始まりで別のページになります。いま書いてある週の手書きは、日曜始まりに戻すまで見えません（消えません）。月のページの手書きは、同じ日付のマスに移ります。ただし、前後の月の日のマスに書いたものは、一部が戻すまで見えなくなることがあります（消えません）。",
+      "target": "app",
+      "comment": "週の始まりを月曜にする前の説明。本人の手順で読んでもらう文。「消えません」をはっきり。英語 Week pages are separate for weeks that start on Monday and weeks that start on Sunday. The week handwriting you have now stays hidden until you go back to Sunday (it is not deleted). Month page handwriting moves to the cell with the same date. However, some handwriting in cells for days of the previous or next month may stay hidden until you go back (it is not deleted).",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり",
+        "手書き"
+      ]
+    },
+    "settings.weekStart.confirm.message.sunday": {
+      "ja": "週のページは、月曜始まりと日曜始まりで別のページになります。いま書いてある週の手書きは、月曜始まりに戻すまで見えません（消えません）。月のページの手書きは、同じ日付のマスに移ります。ただし、前後の月の日のマスに書いたものは、一部が戻すまで見えなくなることがあります（消えません）。",
+      "target": "app",
+      "comment": "週の始まりを日曜にする前の説明。本人の手順で読んでもらう文。「消えません」をはっきり。英語 Week pages are separate for weeks that start on Monday and weeks that start on Sunday. The week handwriting you have now stays hidden until you go back to Monday (it is not deleted). Month page handwriting moves to the cell with the same date. However, some handwriting in cells for days of the previous or next month may stay hidden until you go back (it is not deleted).",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり",
+        "手書き"
+      ]
+    },
+    "settings.weekStart.confirm.ok.monday": {
+      "ja": "月曜にする",
+      "target": "app",
+      "comment": "切り替えの確認のボタン。英語 Use Monday",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.confirm.ok.sunday": {
+      "ja": "日曜にする",
+      "target": "app",
+      "comment": "切り替えの確認のボタン。英語 Use Sunday",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.confirm.title.monday": {
+      "ja": "週の始まりを月曜にしますか？",
+      "target": "app",
+      "comment": "切り替えの確認の題名。英語 Start weeks on Monday?",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.confirm.title.sunday": {
+      "ja": "週の始まりを日曜にしますか？",
+      "target": "app",
+      "comment": "切り替えの確認の題名。英語 Start weeks on Sunday?",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.footer": {
+      "ja": "自動は端末の地域に合わせます（日本は月曜）。この設定は端末ごとです。週の手書きをどの端末でも見られるように、同じ設定にしてください。",
+      "target": "app",
+      "comment": "週の始まりの節の説明。英語 Automatic follows your device region. This setting is per device. Use the same setting on each device to see the same week handwriting.",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり",
+        "手書き"
+      ]
+    },
+    "settings.weekStart.monday": {
+      "ja": "月曜",
+      "target": "app",
+      "comment": "週の始まりの選択肢。文の中の括弧にも入る。英語 Monday",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.otherPages.one": {
+      "ja": "もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。切り替えると見えます。",
+      "target": "app",
+      "comment": "週の始まりの節の説明の下の行（0 ページなら出ない）。週のページの数だけを数えているので、線を全部消したページも入る。だから「手書きが」と言わず「週のページが」と言う。英語 1 week page uses the other week start (%1$@). Switch to see it. の型",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [
+        "もう一方の形の名前（月曜・日曜）",
+        "ページ数"
+      ],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.otherPages.other": {
+      "ja": "もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。切り替えると見えます。",
+      "target": "app",
+      "comment": "週の始まりの節の説明の下の行（0 ページなら出ない）。週のページの数だけを数えているので、線を全部消したページも入る。だから「手書きが」と言わず「週のページが」と言う。英語 %2$@ week pages use the other week start (%1$@). Switch to see them.",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [
+        "もう一方の形の名前（月曜・日曜）",
+        "ページ数"
+      ],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.sunday": {
+      "ja": "日曜",
+      "target": "app",
+      "comment": "週の始まりの選択肢。文の中の括弧にも入る。英語 Sunday",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "settings.weekStart.title": {
+      "ja": "週の始まり",
+      "target": "app",
+      "comment": "設定の行の名前。英語 Week Starts On。ここと toast.weekStart.otherForm の「設定 › 週の始まり」を同じ語に",
+      "where": [
+        "Views/WeekStartSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "toast.eraseCloudFailed": {
+      "ja": "iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください",
+      "target": "app",
+      "comment": "トースト（誤り）",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:1547"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き",
+        "この端末"
+      ]
+    },
+    "toast.erased": {
+      "ja": "手書きを全て消しました",
+      "target": "app",
+      "comment": "トースト。設定の「この端末の手書きを全て消す」の後",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:1539",
+        "Views/CalendarRootScreen.swift:1545"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き"
+      ]
+    },
+    "toast.event.created": {
+      "ja": "予定を登録しました",
+      "target": "app",
+      "comment": "トースト",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:1503"
+      ],
+      "args": [],
+      "glossary": [
+        "予定"
+      ]
+    },
+    "toast.event.deleted": {
+      "ja": "予定を削除しました",
+      "target": "app",
+      "comment": "トースト",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:1520"
+      ],
+      "args": [],
+      "glossary": [
+        "予定"
+      ]
+    },
+    "toast.event.noAccess": {
+      "ja": "予定を登録するには、設定でカレンダーへのアクセスを許可してください",
+      "target": "app",
+      "comment": "トースト（誤り）。カレンダーへのアクセスが無いのに予定を作ろうとしたとき",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:1435"
+      ],
+      "args": [],
+      "glossary": [
+        "予定",
+        "カレンダー"
+      ]
+    },
+    "toast.event.noCalendar": {
+      "ja": "予定を登録できるカレンダーがありません",
+      "target": "app",
+      "comment": "トースト（誤り）",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:1440"
+      ],
+      "args": [],
+      "glossary": [
+        "予定",
+        "カレンダー"
+      ]
+    },
+    "toast.event.updated": {
+      "ja": "予定を更新しました",
+      "target": "app",
+      "comment": "トースト",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:1507"
+      ],
+      "args": [],
+      "glossary": [
+        "予定"
+      ]
+    },
+    "toast.eventBelowDay": {
+      "ja": "24 時の下の自由メモ欄では予定を作れません",
+      "target": "app",
+      "comment": "トースト。日のページの 24 時より下は予定にできない",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:273"
+      ],
+      "args": [],
+      "glossary": [
+        "自由メモ",
+        "予定"
+      ]
+    },
+    "toast.growthCap": {
+      "ja": "メモ欄はここまでです",
+      "target": "app",
+      "comment": "トースト。月のメモ欄や日の自由メモ欄の下の端まで書いたとき",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:271"
+      ],
+      "args": [],
+      "glossary": [
+        "メモ欄"
+      ]
+    },
+    "toast.pinchHint": {
+      "ja": "2 本の指を広げると拡大、つまむと縮小します",
+      "target": "app",
+      "comment": "トースト（6 秒、1 回だけ）。紙の拡大と縮小の方法。「ピンチ」という名詞を使わず、2 本の指の動きで書く。広げる = 拡大、つまむ = 縮小の向きを間違えない",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:282"
+      ],
+      "args": [],
+      "glossary": []
+    },
+    "toast.readOnly": {
+      "ja": "閲覧専用です。書く・消す・予定を作るには購読が必要です",
+      "target": "app",
+      "comment": "トースト。購読が切れていて、書く・消す・予定を作るなどの操作を断ったとき",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [
+        "Views/CalendarRootScreen.swift:257"
+      ],
+      "args": [],
+      "glossary": [
+        "閲覧専用",
+        "購読",
+        "予定"
+      ]
+    },
+    "toast.strokeBudget.full": {
+      "ja": "このページはいっぱいです（線 %@ 本）。線を消すと、また書けます。",
+      "target": "app",
+      "comment": "トースト（誤りの色、6 秒）。線の本数が上限に達して、新しい線を受け付けなかったとき",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/CalendarRootScreen.swift:277"
+      ],
+      "args": [
+        "書ける本数の上限（19,000）"
+      ],
+      "glossary": [
+        "線"
+      ]
+    },
+    "toast.strokeBudget.many": {
+      "ja": "このページに書いた線が %1$@ 本を超えました。1 ページに書ける線は %2$@ 本までです。",
+      "target": "app",
+      "comment": "トースト（6 秒）。1 つのページの線の本数が多くなったときの案内。誤りではない。線 = 手書きの 1 筆",
+      "where": [
+        "Views/CalendarRootScreen.swift"
+      ],
+      "was": [],
+      "composedOf": [
+        "Views/CalendarRootScreen.swift:275"
+      ],
+      "args": [
+        "案内を出す本数（15,000）",
+        "書ける本数の上限（19,000）"
+      ],
+      "glossary": [
+        "線"
+      ]
+    },
+    "toast.weekStart.adopted.monday": {
+      "ja": "iCloud の手書きに合わせて、週の始まりを月曜にしました。設定で変えられます。",
+      "target": "app",
+      "comment": "トースト（6 秒、3 行まで）。英語 Week start set to Monday to match your iCloud handwriting. You can change it in Settings.",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり",
+        "手書き"
+      ]
+    },
+    "toast.weekStart.adopted.sunday": {
+      "ja": "iCloud の手書きに合わせて、週の始まりを日曜にしました。設定で変えられます。",
+      "target": "app",
+      "comment": "トースト（6 秒、3 行まで）。英語 Week start set to Sunday to match your iCloud handwriting. You can change it in Settings.",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり",
+        "手書き"
+      ]
+    },
+    "toast.weekStart.hiddenInk.one": {
+      "ja": "この月のページには、いまの週の始まりでは表示されない日に書いた線が %@ 本あります。消えていません。週の始まりを戻すと見えます。",
+      "target": "app",
+      "comment": "トースト（6 秒、3 行まで。iPhone の幅に 3 行で入る長さに）。月のページの、片方の並びにしか無い日のマスの線。英語 This month page has %@ stroke on a day the current week start does not show. It is not deleted. It comes back when you switch back.",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "線の本数"
+      ],
+      "glossary": [
+        "週の始まり",
+        "線"
+      ]
+    },
+    "toast.weekStart.hiddenInk.other": {
+      "ja": "この月のページには、いまの週の始まりでは表示されない日に書いた線が %@ 本あります。消えていません。週の始まりを戻すと見えます。",
+      "target": "app",
+      "comment": "トースト（6 秒、3 行まで。iPhone の幅に 3 行で入る長さに）。月のページの、片方の並びにしか無い日のマスの線。英語 This month page has %@ strokes on days the current week start does not show. They are not deleted. They come back when you switch back.",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "線の本数"
+      ],
+      "glossary": [
+        "週の始まり",
+        "線"
+      ]
+    },
+    "toast.weekStart.otherForm.one": {
+      "ja": "もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。",
+      "target": "app",
+      "comment": "トースト（6 秒、3 行まで）。「週の始まり」は settings.weekStart.title と同じ語に。英語 1 week page uses the other week start (%1$@). It is not deleted. Switch in Settings > Week Starts On to see it. の型",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "もう一方の形の名前（月曜・日曜）",
+        "ページ数"
+      ],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "toast.weekStart.otherForm.other": {
+      "ja": "もう一方の週の始まり（%1$@）の週のページが %2$@ ページあります。消えていません。設定 › 週の始まり で切り替えると見えます。",
+      "target": "app",
+      "comment": "トースト（6 秒、3 行まで）。「週の始まり」は settings.weekStart.title と同じ語に。英語 %2$@ week pages use the other week start (%1$@). They are not deleted. Switch in Settings > Week Starts On to see them.",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [
+        "もう一方の形の名前（月曜・日曜）",
+        "ページ数"
+      ],
+      "glossary": [
+        "週の始まり"
+      ]
+    },
+    "toast.weekStart.regionChanged.monday": {
+      "ja": "端末の地域に合わせて、週の始まりを月曜にしました。日曜始まりの週の手書きは消えていません。",
+      "target": "app",
+      "comment": "トースト（6 秒、3 行まで）。英語 Week start set to Monday to match your device region. Your Sunday week handwriting is not deleted.",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり",
+        "手書き"
+      ]
+    },
+    "toast.weekStart.regionChanged.sunday": {
+      "ja": "端末の地域に合わせて、週の始まりを日曜にしました。月曜始まりの週の手書きは消えていません。",
+      "target": "app",
+      "comment": "トースト（6 秒、3 行まで）。英語 Week start set to Sunday to match your device region. Your Monday week handwriting is not deleted.",
+      "where": [
+        "Persistence/WeekStartChoice.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週の始まり",
+        "手書き"
+      ]
+    }
+  }
+}

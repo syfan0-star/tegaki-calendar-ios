@@ -1,0 +1,28 @@
+O Tegaki é uma aplicação de agenda que lhe permite escrever à mão diretamente sobre os eventos do seu calendário. No iPad, escreva com o Apple Pencil. No iPhone, escreva com o dedo.
+
+■ O que pode fazer
+• Escrever com caneta ou marcador nas páginas de mês, semana, dia e ano, como numa agenda de papel.
+• Ver nas mesmas páginas os eventos da aplicação Calendário do seu dispositivo (iCloud, Google Calendar, Exchange e outros).
+• Rodear a sua escrita com o laço e tocar em “Criar evento” para a adicionar ao calendário como evento. Se for um evento do Google Calendar, também aparece no Google Calendar.
+• Tocar num evento para o editar ou eliminar. Criar novos eventos com “+ Evento” ou traçando na página.
+• Ver todos os eventos de dia inteiro, sem que nenhum fique de fora.
+• Ver os feriados de países e regiões de todo o mundo. Também pode escolher um estado ou uma região, como um estado dos EUA, ou escolher “Nenhum” para não os mostrar.
+• Usar a aplicação em 10 idiomas (japonês, inglês, chinês simplificado e tradicional, coreano, francês, alemão, espanhol, italiano e português). Segue o idioma do seu dispositivo.
+• O português dos ecrãs da aplicação é o português do Brasil.
+• Começar as semanas à segunda-feira ou ao domingo. As horas nas páginas usam o formato de 24 horas.
+• Alternar entre a caneta e a borracha com dois toques ou o gesto de apertar do Apple Pencil.
+• Guardar a sua escrita no dispositivo e no seu próprio iCloud (com sincronização entre iPad e iPhone). Não é enviada para nenhum servidor do programador. Não é preciso criar nenhuma conta.
+• Exportar a sua escrita em Ajustes > Dados > “Exportar escrita à mão”, como ficheiro de dados (JSON) de todas as páginas ou como PDF da página aberta. A exportação funciona sem assinatura.
+
+■ Para usar o Google Calendar
+Na aplicação Definições, vá a Aplicações > Calendário > Contas de calendário, adicione a sua conta Google e ative Calendários. A aplicação lê e escreve os eventos através do calendário do seu dispositivo, por isso nunca inicia sessão no Google dentro da aplicação.
+
+Google Calendar é uma marca comercial da Google LLC. Esta aplicação foi desenvolvida por um particular e não tem qualquer ligação à Google LLC.
+
+■ Preço
+Assinaturas mensal e anual com renovação automática. Se for novo, pode testar gratuitamente durante 14 dias. Os preços aparecem na App Store na moeda do seu país.
+Termos de utilização (EULA padrão da Apple): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Termos do serviço (em japonês): https://syfan0-star.github.io/tegaki-calendar/app/terms.html
+Política de privacidade (em japonês): https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+
+As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros.

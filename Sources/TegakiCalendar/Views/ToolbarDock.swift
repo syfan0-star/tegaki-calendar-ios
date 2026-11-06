@@ -73,7 +73,7 @@ struct ToolbarDock: View {
         }
         .buttonStyle(.plain)
         .disabled(!canUndo)
-        .accessibilityLabel("元に戻す")
+        .accessibilityLabel(L.text("toolbar.undo"))
     }
 
     /// The mark of `ToolbarLogic.badge(for:)`: a pen's dot (with a faint 1 pt ring outside it, so a

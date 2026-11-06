@@ -110,6 +110,7 @@ final class HeaderAndPaperUITests: XCTestCase {
     private func launch(_ arguments: [String], _ name: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--screenshot-mode"] + arguments
+        app.launchArguments += ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
         app.launch()
         log("\(name): launched \(arguments.joined(separator: " "))")
         return app

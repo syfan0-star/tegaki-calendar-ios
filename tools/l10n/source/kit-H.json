@@ -1,0 +1,23 @@
+{
+  "owner": "H",
+  "keys": {
+    "kit.holiday.dayOff": {
+      "ja": "振替の休み",
+      "target": "kit",
+      "comment": "祝日のデータで、週末と入れ替えた休みの日（中国の调休など）の短い名前。データの短い名前が空のときだけ、年のマスと日・週・月の見出しに出す（データの「休息日（由 2026-01-04 调休）」のような長い名前は画面に出さない）。年のマスは狭いので短く。ja は「振替の休み」、en は「Day off」、zh-Hans は「休息日」",
+      "where": ["TegakiKit/Sources/Holidays/HolidayStore.swift"],
+      "was": [],
+      "args": [],
+      "glossary": ["祝日"]
+    },
+    "kit.holiday.estimatedSuffix": {
+      "ja": "（推定）",
+      "target": "kit",
+      "comment": "旧暦やイスラム暦などで、日付がまだ推定の祝日の名前の後ろに付ける印。日・週・月の見出し、ページの題名、読み上げ、PDF に出る（年のマスには付けない）。名前のすぐ後ろにつなぐので、語の間に空白を置く言語は値の先頭に空白を入れる（ja「（推定）」、en「 (est.)」）",
+      "where": ["TegakiKit/Sources/Holidays/HolidayCalendar.swift"],
+      "was": [],
+      "args": [],
+      "glossary": ["祝日"]
+    }
+  }
+}

@@ -118,17 +118,23 @@ struct AllDayBandView: View {
     }
 
     /// 「終日」 in the gutter `[paper 0, paper gutter]`, right-aligned, on the first lane. It moves
-    /// with the paper (D2), so it leaves the screen when the paper is scrolled to the right.
+    /// with the paper (D2), so it leaves the screen when the paper is scrolled to the right. 1.2 (F-7):
+    /// a language whose word does not fit the gutter takes the short form, or shows nothing; ja is
+    /// 1.1's, also where the gutter cuts it.
+    @ViewBuilder
     private func gutterLabel(_ metrics: AllDayBandMetrics.Metrics) -> some View {
-        Text("終日")
-            .font(.system(size: AllDayBandMetrics.labelPoints))
-            .foregroundStyle(ink3)
-            .lineLimit(1)
-            .padding(.trailing, Self.textPad)
-            .frame(width: max(0, viewport.width(ofPaper: band.gutter)), height: metrics.lane, alignment: .trailing)
-            .clipped()
-            .accessibilityHidden(true)
-            .offset(x: viewport.x(ofPaper: 0), y: metrics.laneTop(0))
+        let gutterWidth = max(0, viewport.width(ofPaper: band.gutter))
+        if let label = PaperWords.allDayLabel(widthPoints: gutterWidth, fontSize: AllDayBandMetrics.labelPoints, L.language) {
+            Text(label)
+                .font(.system(size: AllDayBandMetrics.labelPoints))
+                .foregroundStyle(ink3)
+                .lineLimit(1)
+                .padding(.trailing, Self.textPad)
+                .frame(width: gutterWidth, height: metrics.lane, alignment: .trailing)
+                .clipped()
+                .accessibilityHidden(true)
+                .offset(x: viewport.x(ofPaper: 0), y: metrics.laneTop(0))
+        }
     }
 
     /// One bar: the event's colour, its title cut at the bar's edge (D4), round corners except on a
@@ -186,12 +192,12 @@ struct AllDayBandView: View {
 
     /// 「題名（予定を編集）」
     static func barLabel(_ bar: AllDayBandBar) -> String {
-        bar.title + "（予定を編集）"
+        L.format("allday.bar.spoken", bar.title)
     }
 
     /// 「2026年10月7日(水) の終日予定を追加」
     static func columnLabel(_ day: DayKey) -> String {
-        EventDateText.dayTitle(day) + " の終日予定を追加"
+        L.format("allday.column.spoken", DateText.spokenDay(day, L.language))
     }
 
     private var paperColor: Color { Color(uiColor: PaperPalette.paper) }

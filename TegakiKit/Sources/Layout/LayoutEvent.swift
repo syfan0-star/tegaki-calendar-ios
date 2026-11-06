@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import Holidays
 
 /// Normalized calendar event (the web version's CalEvent). Times are absolute instants; the layout
 /// interprets them in the calendar passed with `MonthLayoutInput` (device time zone by default).
@@ -51,12 +52,22 @@ public struct MonthLayoutInput: Sendable {
     public var now: Date
     /// The calendar used to turn event instants into local days (device time zone by default).
     public var calendar: Calendar
+    /// Where the colour and the name of a day come from; never the shape of the paper (D9, §5.4).
+    public var holidays: HolidayCalendar
+    /// The words of the chips (D9, §3.1 rule 4).
+    public var words: LayoutWords
+    /// The first column of the 42-day grid (§10.1). The cell keys stay dates, so strokes follow their
+    /// date (K-11 rule 4); a day of the other grid only is not on this page's paper (D17).
+    public var weekStart: WeekStart
 
-    public init(month: YearMonth, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar) {
+    public init(month: YearMonth, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday) {
         self.month = month
         self.events = events
         self.inkBottoms = inkBottoms
         self.now = now
         self.calendar = calendar
+        self.holidays = holidays
+        self.words = words
+        self.weekStart = weekStart
     }
 }

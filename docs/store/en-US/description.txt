@@ -1,0 +1,27 @@
+Tegaki is a planner app that lets you write by hand, right over the events in your calendar. On iPad, write with Apple Pencil. On iPhone, write with your finger.
+
+■ What you can do
+• Write with a pen or a marker on month, week, day and year pages, just like in a paper planner.
+• See the events in the Calendar app on your device (iCloud, Google Calendar, Exchange and more) on the same pages.
+• Circle your handwriting with the lasso and tap “Make Event” to add it to your calendar as an event. If it is a Google Calendar event, it also appears in Google Calendar.
+• Tap an event to edit or delete it. Create new events with “+ Event” or by tracing over your handwriting.
+• All-day events are always shown in full. None are left out.
+• See the public holidays of countries and regions around the world. You can also choose a state or region, such as a US state, or choose “None” to show no holidays.
+• The app is shown in 10 languages (Japanese, English, Chinese (Simplified and Traditional), Korean, French, German, Spanish, Italian and Portuguese) and switches to match your device language.
+• Weeks can start on Monday or Sunday. Times on the pages use the 24-hour clock.
+• Double-tap or squeeze Apple Pencil to switch between the pen and the eraser.
+• Your handwriting is saved on your device and in your own iCloud (and syncs between iPad and iPhone). It is not sent to any server of the developer. There is no account to sign up for.
+• Export your handwriting in Settings > Data > “Export Handwriting”, as a data file (JSON) of all pages or as a PDF of the page that is open. Export works without a subscription.
+
+■ To use Google Calendar
+In the Settings app, go to Apps > Calendar > Calendar Accounts, add your Google account, and turn on Calendars. The app reads and writes events through the calendar on your device, so you never sign in to Google in the app.
+
+Google Calendar is a trademark of Google LLC. This app is made by an individual developer and is not affiliated with Google LLC.
+
+■ Price
+Monthly and yearly subscriptions that renew automatically. If you are new, you can try it free for 14 days. Prices are shown in the App Store in the currency of your country.
+Terms of Use (Apple's standard EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Terms of Service (in Japanese): https://syfan0-star.github.io/tegaki-calendar/app/terms.html
+Privacy Policy (in Japanese): https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+
+Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.

@@ -67,14 +67,26 @@ final class EventKitService {
     }
 
     /// Calendars hidden until the person turns them on (DESIGN §4.3): birthdays, and subscribed
-    /// holiday calendars (the app draws Japanese holidays itself, so they would show twice).
+    /// holiday calendars (the app draws the holidays itself, so they would show twice). Only what is
+    /// hidden at first: the person can show them, and the holiday setting does not change this (§5.8).
     static func isHiddenByDefault(_ calendar: EKCalendar) -> Bool {
         if calendar.type == .birthday { return true }
         if calendar.type == .subscription {
-            let title = calendar.title
-            if title.contains("祝日") || title.lowercased().contains("holiday") { return true }
+            return isHolidayCalendarTitle(calendar.title)
         }
         return false
+    }
+
+    /// The words of a subscribed holiday calendar's title in the ten languages (1.2, §5.8), in small
+    /// letters without accents; the title and the words are folded the same way before comparing, so
+    /// "Jours fériés" finds "ferie" and "Feiertage" finds "feiertag". Never shown (ja-exceptions.txt).
+    nonisolated static let holidayCalendarWords = ["祝日", "holiday", "feiertag", "ferie", "festiv", "feriado", "节假日", "節假日", "假日", "공휴일"]
+
+    /// True when `title` has one of `holidayCalendarWords`, ignoring case and accents.
+    nonisolated static func isHolidayCalendarTitle(_ title: String) -> Bool {
+        let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+        let folded = title.folding(options: options, locale: nil)
+        return holidayCalendarWords.contains { folded.contains($0.folding(options: options, locale: nil)) }
     }
 
     /// The ids of the calendars hidden by default among the current ones.
@@ -111,13 +123,6 @@ final class EventKitService {
     }
 
     // MARK: - Events
-
-    /// Events of the 42 days of the month page (Monday-start grid): a thin wrapper around
-    /// `events(from:to:calendars:)`.
-    func events(in month: YearMonth, calendars: [EKCalendar]?) -> [LayoutEvent] {
-        let grid = MonthLayout.grid(for: month)
-        return events(from: grid.firstDay, to: grid.firstDay.adding(days: MonthLayout.gridDayCount), calendars: calendars)
-    }
 
     /// Events of the days `[start, end)` (M3a contract §5), normalised for the Layout module and
     /// sorted all-day first, then by start, then by title. Empty without read access. EventKit
@@ -298,7 +303,7 @@ final class EventKitService {
         let rawTitle = (event.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return LayoutEvent(
             id: layoutId(for: event),
-            title: rawTitle.isEmpty ? "（無題）" : rawTitle,
+            title: rawTitle.isEmpty ? L.text("event.untitled") : rawTitle,
             allDay: event.isAllDay,
             start: start,
             end: end,

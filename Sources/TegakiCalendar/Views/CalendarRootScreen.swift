@@ -124,6 +124,15 @@ enum GatedAction: Equatable, CaseIterable {
 /// - 「今日」 brings today's cell on screen on the month and year pages (`revealRect`, `revealTrigger`,
 ///   `PageNavigation.todayRect`); a page opened any other way starts at the top.
 /// - The one-time hint that two fingers zoom (`schedulePinchHint`).
+///
+/// 1.2 (docs/M7B_CONTRACT.md §5.6, §10.3–§10.5):
+/// - Holidays: the first launch's `HolidayChoice.migrateIfNeeded`, one calendar (`holidays` in the body,
+///   `HolidayChoice.current` elsewhere), `makePaper` builds a paper from the one it is given.
+/// - The week start: `@State weekStart`, not the record, makes the page id and the paper, so a switch
+///   saves the old page in its old form first (`weekStartSwitch`). The canvas's identity has it too.
+/// - After the first pull the pages are compared with an automatic week start once (`runWeekStartCheck`);
+///   it never switches under a pen.
+/// - Its toasts wait for any sheet (`WeekStartNotices`).
 struct CalendarRootScreen: View {
     @StateObject private var model = EventStoreModel()
     /// The sync engine (M4 contract §5.3): the one store of the pages, and the ☁ state.
@@ -183,6 +192,22 @@ struct CalendarRootScreen: View {
     @AppStorage(AppSettings.pinchHintShownKey) private var pinchHintShown = false
     /// The hint's wait (`schedulePinchHint`); a newer schedule or a pinch stops it.
     @State private var pinchHintTask: Task<Void, Never>?
+
+    // 1.2 (docs/M7B_CONTRACT.md §5.6, §10): the holidays and the week start.
+    /// The holiday setting; its change sets `HolidayChoice.current` and draws the paper again.
+    @AppStorage(AppSettings.holidaySettingKey) private var holidaySettingRaw = ""
+    /// The week start setting. Nothing but `weekStartSettingChanged` reads it: the page ids come from
+    /// `weekStart`, which changes only after the old page is saved (§10.5).
+    @AppStorage(AppSettings.weekStartKey) private var weekStartRaw = ""
+    /// The week start of the page on the screen.
+    @State private var weekStart: WeekStart
+    /// The pen touched the paper since launch: no automatic switch until the next page or return (§10.3, 4 (3)).
+    @State private var penTouchedThisLaunch = false
+    /// The comparison wants to switch but the person is writing: it is made again at the next `show` or `.active`.
+    @State private var pendingAdoption = false
+    /// The week start's toasts waiting to be seen (§10.4).
+    @State private var weekStartNotices = WeekStartNotices()
+    @State private var weekStartNoticeTask: Task<Void, Never>?
 
     // M3b: selection, sheets, commands, toast.
     @State private var selection: InkSelection?
@@ -254,10 +279,10 @@ struct CalendarRootScreen: View {
     /// `fitAll` without knowing the width.
     static let overviewBandZoom: CGFloat = 0.6
     /// M5 (M5_CONTRACT §3.3): the toast of the second and later refused operations of a session.
-    static let readOnlyToast = "閲覧専用です。書く・消す・予定を作るには購読が必要です"
+    static let readOnlyToast = L.text("toast.readOnly")
     /// The compact (iPhone) notice row under the header while read only (§3.2, M5-13).
-    static let readOnlyNoticeText = "閲覧専用です。手書きと予定の作成は購読すると使えます。"
-    static let readOnlyNoticeButton = "購読する"
+    static let readOnlyNoticeText = L.text("notice.readOnly.text")
+    static let readOnlyNoticeButton = L.text("notice.readOnly.button")
     /// A Pencil touch on the read-only paper is reported at most this often (§3.1).
     static let blockedInputInterval: TimeInterval = 2
     /// How long `scheduleFirstLaunchPaywall` waits for the first refresh (§4.2, M5-33).
@@ -268,21 +293,29 @@ struct CalendarRootScreen: View {
     // 1.1 (M7A_CONTRACT §6.2): the four new toasts.
     /// A new stroke was dropped below the last cell's limit, or reached its last step (§3.4; 3 s, once
     /// while the page is open).
-    static let growthCapToast = "メモ欄はここまでです"
+    static let growthCapToast = L.text("toast.growthCap")
     /// The 予定 tool or 「予定にする」 below 24:00 on the day page (§3.7, 0-4; 3 s).
-    static let eventBelowDayToast = "24 時の下の自由メモ欄では予定を作れません"
+    static let eventBelowDayToast = L.text("toast.eventBelowDay")
     /// The page reached 15,000 strokes (§5.2; 6 s, not an error, once per page on this device).
-    static let strokeBudgetManyToast = "このページに書いた線が 15,000 本を超えました。1 ページに書ける線は 19,000 本までです。"
+    static let strokeBudgetManyToast = L.format("toast.strokeBudget.many", DateText.number(StrokeBudget.noticeAt, L.language), DateText.number(StrokeBudget.refuseAt, L.language))
     /// New strokes were refused at 19,000 (§5.2; an error toast, 6 s, at most every 2 s).
-    static let strokeBudgetFullToast = "このページはいっぱいです（線 19,000 本）。線を消すと、また書けます。"
+    static let strokeBudgetFullToast = L.format("toast.strokeBudget.full", DateText.number(StrokeBudget.refuseAt, L.language))
     /// How long the 15,000-stroke notice stays (the error toasts' 6 s, without the error colour).
     static let strokeBudgetNoticeDuration: TimeInterval = 6
 
     /// 1.1.1 (docs/R1_1_1.md): the one-time hint that two fingers zoom.
-    static let pinchHintToast = "2 本の指を広げると拡大、つまむと縮小します"
+    static let pinchHintToast = L.text("toast.pinchHint")
     static let pinchHintDuration: TimeInterval = 6
     /// Long enough for the first-launch paywall (`sheetGap` + `firstRefreshTimeout`) to have come up.
     static let pinchHintDelay: Double = 4
+
+    /// 1.2 (§10.4): how long after a sheet closed a waiting toast of the week start is looked at. The next
+    /// sheet comes `sheetGap` later (設定 → 書き出し, 取り込み, 購読) and the first paywall up to
+    /// `sheetGap` + `firstRefreshTimeout` later (初回案内); a toast shown in that gap would be lost under it,
+    /// and a page's hidden strokes would count as told about.
+    static func weekStartNoticeDelay(firstPaywallDue: Bool) -> Double {
+        firstPaywallDue ? pinchHintDelay : sheetGap + 0.15
+    }
 
     /// Shown once on a device; not to someone who has already zoomed in (a stored ratio), except in a
     /// sandbox-receipt build (TestFlight, App Review), so the owner can see it; never in screenshot mode
@@ -330,6 +363,17 @@ struct CalendarRootScreen: View {
 
     init() {
         let shot = ScreenshotMode.current
+        // 1.2 (§1.4, §5.6, §10.3): decided once and written before anything reads the setting. `@AppStorage`
+        // cannot be read here, so the records are read directly. Screenshot mode only knows its arguments.
+        if shot == nil { HolidayChoice.migrateIfNeeded() }
+        let startWeekStart = WeekStartChoice.prepareAtLaunch(shot: shot)
+        _weekStart = State(initialValue: startWeekStart)
+        let holidaysStarted = Date()
+        let startHolidays = HolidayChoice.calendar(setting: shot?.holidays ?? HolidayChoice.setting(),
+                                                   deviceRegion: Locale.current.region?.identifier,
+                                                   language: L.language, store: HolidayChoice.store)
+        HolidayChoice.current = startHolidays
+        Self.logLaunch(holidays: startHolidays, loadingTook: Date().timeIntervalSince(holidaysStarted))
         let startNow = shot?.today ?? Date()
         let startKind: PageKind
         let startFocus: DayKey
@@ -362,13 +406,37 @@ struct CalendarRootScreen: View {
         // first layout is already the grown paper and `--screenshot-offset` is clamped to it. `show()`
         // loads the same page again (nothing changes, nothing is dirty).
         let startPage = shot != nil
-            ? ScreenshotMode.demoPage(kind: startKind, focus: startFocus)
-            : InkPage.empty(pageId: PageNavigation.pageId(startKind, focus: startFocus))
+            ? ScreenshotMode.demoPage(kind: startKind, focus: startFocus, weekStart: startWeekStart)
+            : InkPage.empty(pageId: PageNavigation.pageId(startKind, focus: startFocus, weekStart: startWeekStart))
         _page = State(initialValue: startPage)
-        _paper = State(initialValue: Self.makePaper(kind: startKind, focus: startFocus, events: [], inkBottoms: startPage.inkBottoms(), now: startNow))
+        _paper = State(initialValue: Self.makePaper(kind: startKind, focus: startFocus, events: [], inkBottoms: startPage.inkBottoms(), now: startNow,
+                                                    holidays: startHolidays, weekStart: startWeekStart))
     }
 
-    private var pageId: String { PageNavigation.pageId(kind, focus: focus) }
+    /// The launch's two lines for the CI's log (§5.3, §5.6): DEBUG builds and screenshot mode only.
+    private static func logLaunch(holidays: HolidayCalendar, loadingTook seconds: TimeInterval) {
+        #if !DEBUG
+        guard ScreenshotMode.isActive else { return }
+        #endif
+        NSLog("%@", "l10n: ui=\(L.language.rawValue) locale=\(L.locale.identifier) holidays=\(holidays.id)")
+        NSLog("%@", "l10n: holidays loaded \(Int((seconds * 1000).rounded())) ms")
+    }
+
+    /// The holidays the body's title uses (§5.6): from the setting, which SwiftUI watches, never from
+    /// `HolidayChoice.current`, which it does not (the title would stay on the old calendar). The store
+    /// keeps the file and the years, so making it again costs nothing.
+    private var holidays: HolidayCalendar {
+        HolidayChoice.calendar(setting: ScreenshotMode.current?.holidays ?? HolidaySetting(storageValue: holidaySettingRaw),
+                               deviceRegion: Locale.current.region?.identifier,
+                               language: L.language, store: HolidayChoice.store)
+    }
+
+    private var pageId: String { PageNavigation.pageId(kind, focus: focus, weekStart: weekStart) }
+
+    /// The canvas's identity (§10.5): the page and the week start. A month page keeps its id when the
+    /// week start changes, and its canvas must still be made anew: the undo history would otherwise
+    /// point at strokes that may now be hidden, and ↶ would seem to do nothing.
+    private var canvasIdentity: String { "\(pageId)|\(weekStart.rawValue)" }
 
     private var layout: any PageLayout { paper.layout }
 
@@ -511,7 +579,9 @@ struct CalendarRootScreen: View {
             VStack(spacing: 0) {
                 PageHeaderView(
                     kind: kind,
-                    title: compact ? PageNavigation.compactTitle(kind, focus: focus) : PageNavigation.title(kind, focus: focus),
+                    title: compact
+                        ? PageNavigation.compactTitle(kind, focus: focus, language: L.language, weekStart: weekStart)
+                        : PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart),
                     compact: compact,
                     onPrevious: { move(by: -1) },
                     onToday: goToday,
@@ -523,7 +593,9 @@ struct CalendarRootScreen: View {
                     onSyncTap: { showSettings = true },
                     width: proxy.size.width,
                     readOnly: readOnly,
-                    onReadOnlyTap: { showPaywall(reason: .badge) }
+                    onReadOnlyTap: { showPaywall(reason: .badge) },
+                    // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
+                    titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil
                 )
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
@@ -628,6 +700,11 @@ struct CalendarRootScreen: View {
         }
         .onChange(of: sync.snapshot.status) { syncStatusChanged() }
         .onChange(of: sheetIsUp) { sheetsChanged() }
+        // 1.2 (§5.6, §10.4, §10.5): the two settings, and the moments a waiting toast can show.
+        .onChange(of: holidaySettingRaw) { holidaySettingChanged() }
+        .onChange(of: weekStartRaw) { weekStartSettingChanged() }
+        .onChange(of: toast) { showNextWeekStartNotice() }
+        .onChange(of: showAccountChange) { showNextWeekStartNotice() }
         // M5 (M5_CONTRACT §4.2 / §3.1): the purchase toasts, and the moment the app turns read only.
         .onChange(of: store.snapshot.message) { messageChanged() }
         .onChange(of: readOnly) { readOnlyChanged() }
@@ -660,7 +737,9 @@ struct CalendarRootScreen: View {
                 // M6 (M6_CONTRACT §3.3): 設定 › データ › 「手書きを書き出す」.
                 onExport: openExport,
                 // 1.1 (M7A_CONTRACT §7.3): the CI's `info` screenshot scrolls to 「情報」.
-                scrollToInfoOnAppear: ScreenshotMode.current?.sheet == .info
+                scrollToInfoOnAppear: ScreenshotMode.current?.sheet == .info,
+                // 1.2 (§10.7): nothing is stored in screenshot mode, so `.onChange` never fires there.
+                onScreenshotWeekStart: { switchWeekStart(to: $0) }
             )
         }
         .sheet(isPresented: $showPaywall) {
@@ -677,7 +756,7 @@ struct CalendarRootScreen: View {
         .sheet(isPresented: exportSheetBinding) {
             ExportSheet(
                 phase: exportPhase ?? .choose,
-                pageTitle: PageNavigation.title(kind, focus: focus),
+                pageTitle: PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart),
                 pageKind: kind,
                 onChoose: runExport,
                 onClose: closeExportSheet
@@ -694,13 +773,28 @@ struct CalendarRootScreen: View {
             .interactiveDismissDisabled()
         }
         .accountChangeDialog(isPresented: $showAccountChange, onChoose: chooseAccount)
-        .alert("手書きを保存できませんでした", isPresented: Binding(
+        .alert(L.text("alert.saveFailed.title"), isPresented: Binding(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
         )) {
-            Button("OK", role: .cancel) { saveError = nil }
+            Button(L.text("alert.saveFailed.ok"), role: .cancel) { saveError = nil }
         } message: {
             Text(saveError ?? "")
+        }
+        .overlay(alignment: .topLeading) { l10nState }
+    }
+
+    /// Screenshot mode's state for the UI tests (§7.3): 1 × 1 pt, clear, read only by the accessibility
+    /// tree (`.hidden()` and `.opacity(0)` would take it out of the tree), and it takes no touch.
+    @ViewBuilder
+    private var l10nState: some View {
+        if ScreenshotMode.isActive {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .accessibilityElement()
+                .accessibilityIdentifier("l10n.state")
+                .accessibilityLabel("ui=\(L.language.rawValue);locale=\(L.locale.identifier);holidays=\(holidays.id);week=\(weekStart.rawValue)")
+                .allowsHitTesting(false)
         }
     }
 
@@ -759,6 +853,9 @@ struct CalendarRootScreen: View {
     /// dock button (animated, 0.2 s); an expanded bar stays (§2.1). Nothing is written otherwise, so
     /// a pen-down does not update the screen.
     private func penDown() {
+        // 1.2 (§10.3, 4 (3)): before the guard, which returns on nearly every touch. Nothing reads it in
+        // the body, so this does not update the screen either.
+        penTouchedThisLaunch = true
         guard ToolbarLogic.modeAfterPenDown(toolbarMode) != toolbarMode else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             toolbarEvent(.penDown)
@@ -876,7 +973,7 @@ struct CalendarRootScreen: View {
             onGrowthCapReached: growthCapReached,
             bottomClearance: ToolbarLogic.paperBottomClearance(toolbarMode)
         )
-        .id(pageId)
+        .id(canvasIdentity)
         .overlay(alignment: .topLeading) {
             GeometryReader { proxy in
                 selectionMenu(in: CGRect(origin: .zero, size: proxy.size))
@@ -959,15 +1056,15 @@ struct CalendarRootScreen: View {
         case .fullAccess:
             EmptyView()
         case .notDetermined:
-            noticeRow("予定を表示するにはカレンダーの読み取りを許可してください。", buttonTitle: "許可する") {
+            noticeRow(L.text("notice.calendar.notDetermined"), buttonTitle: L.text("notice.calendar.notDetermined.allow")) {
                 showOnboarding = true
             }
         case .denied, .writeOnly:
-            noticeRow("予定を表示するには設定でカレンダーを「フルアクセス」にしてください。", buttonTitle: "設定を開く") {
+            noticeRow(L.text("notice.calendar.denied"), buttonTitle: L.text("notice.calendar.denied.openSettings")) {
                 if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
             }
         case .restricted:
-            noticeRow("この端末ではカレンダーへのアクセスが制限されています。手書きだけ使えます。", buttonTitle: nil, action: {})
+            noticeRow(L.text("notice.calendar.restricted"), buttonTitle: nil, action: {})
         }
     }
 
@@ -1031,7 +1128,15 @@ struct CalendarRootScreen: View {
         }
         // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.
         sync.onRemoteUpdate = { applyRemote($0) }
+        // 1.2 (§10.3): a changed region never changes the week start silently.
+        if !ScreenshotMode.isActive, let changed = WeekStartChoice.regionChange(automatic: WeekStartChoice.launchAutomatic) {
+            weekStartNotices.add(.regionChanged(changed))
+        }
         show(kind: kind, focus: focus)
+        // 1.2 (§10.3, 4 (1)): the engine started in the AppDelegate; a first pull that already finished
+        // is not seen by `.onChange`. (The same as `.accountMismatch` below.)
+        checkWeekStartAfterPull()
+        showNextWeekStartNotice()
         // The engine may already be waiting for the account answer (its first round ran before this
         // screen appeared); `onChange` only sees changes from now on.
         if sync.snapshot.status == .accountMismatch {
@@ -1079,6 +1184,11 @@ struct CalendarRootScreen: View {
                 toolbarEvent(.wentToBackground)
             }
         case .active:
+            // 1.2 (§10.3, 4 (3)): a comparison that waited for the pen: a boundary, so it is decided now.
+            if pendingAdoption {
+                saveNow()
+                if let adopted = runWeekStartCheck(atBoundary: true) { switchWeekStart(to: adopted) }
+            }
             model.refreshStatus()
             if appeared {
                 model.reload()
@@ -1139,7 +1249,15 @@ struct CalendarRootScreen: View {
         // 1.1.1: only 「今日」 brings a cell on screen (`goToday`); the other ways open at the top.
         revealRect = nil
         saveNow()
-        let id = PageNavigation.pageId(newKind, focus: newFocus)
+        // 1.2 (§10.3, 4 (3)): a comparison that waited for the pen, right after the save and before the new
+        // page's id is made. The state is set here, so the `.onChange` that follows finds nothing to do.
+        if pendingAdoption, let adopted = runWeekStartCheck(atBoundary: true) {
+            weekStart = adopted
+            WeekStartChoice.current = adopted
+            viewport = .zero
+            capNoticedPageId = nil
+        }
+        let id = PageNavigation.pageId(newKind, focus: newFocus, weekStart: weekStart)
         if id != pageId {
             // A new canvas reports its own viewport next turn; until then the page starts from
             // `PaperViewport.initial`, not from the previous page's offset and zoom.
@@ -1155,7 +1273,7 @@ struct CalendarRootScreen: View {
         let loaded: InkPage
         if ScreenshotMode.isActive {
             // Screenshot mode injects its demo strokes in memory; the store is not read or written.
-            loaded = ScreenshotMode.demoPage(kind: newKind, focus: newFocus)
+            loaded = ScreenshotMode.demoPage(kind: newKind, focus: newFocus, weekStart: weekStart)
         } else {
             loaded = sync.load(id)
             // M4 contract §5.3: fetch this one page from iCloud (a page written on another device
@@ -1171,8 +1289,9 @@ struct CalendarRootScreen: View {
             scheduleSave()
         }
         if !ScreenshotMode.isActive { now = Date() }
-        model.load(kind: newKind, focus: newFocus)
+        model.load(kind: newKind, focus: newFocus, weekStart: weekStart)
         relayout()
+        noticeHiddenInk()
     }
 
     private func move(by delta: Int) {
@@ -1199,32 +1318,161 @@ struct CalendarRootScreen: View {
 
     // MARK: - Layout
 
-    private static func makePaper(kind: PageKind, focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date) -> PaperContent {
+    /// One page's paper from one calendar and one week start (§5.6): the layout's input and the month's
+    /// `holidayNames` use the same `holidays` and the same grid, so old and new names cannot mix.
+    static func makePaper(kind: PageKind, focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date,
+                          holidays: HolidayCalendar, weekStart: WeekStart) -> PaperContent {
+        let words = LayoutWords.of(L.language)
         switch kind {
         case .month:
             let month = YearMonth(year: focus.year, month: focus.month)
-            let layout = MonthLayoutEngine.layout(MonthLayoutInput(month: month, events: events, inkBottoms: inkBottoms, now: now))
+            let layout = MonthLayoutEngine.layout(MonthLayoutInput(month: month, events: events, inkBottoms: inkBottoms, now: now,
+                                                                   holidays: holidays, words: words, weekStart: weekStart))
             return .month(MonthPaperContent(
                 layout: layout,
                 labels: layout.dateLabels,
                 bars: layout.allDayBars,
                 chips: layout.timedChips,
-                holidayNames: JapaneseHolidays.names(for: MonthLayout.grid(for: month).days)
+                holidayNames: holidays.names(for: MonthLayout.grid(for: month, weekStart: weekStart).days)
             ))
         case .week:
-            let layout = WeekLayoutEngine.layout(WeekLayoutInput(focus: focus, events: events, inkBottoms: inkBottoms, now: now))
+            let layout = WeekLayoutEngine.layout(WeekLayoutInput(focus: focus, events: events, inkBottoms: inkBottoms, now: now,
+                                                                 holidays: holidays, words: words, weekStart: weekStart))
             return .week(WeekPaperContent(layout: layout))
         case .day:
-            let layout = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: events, inkBottoms: inkBottoms, now: now))
+            let layout = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: events, inkBottoms: inkBottoms, now: now,
+                                                               holidays: holidays, words: words))
             return .day(DayPaperContent(layout: layout))
         case .year:
-            let layout = YearLayoutEngine.layout(YearLayoutInput(year: focus.year, events: events, inkBottoms: inkBottoms, now: now))
-            return .year(YearPaperContent(layout: layout, monthNames: (1...12).map { "\($0)月" }))
+            let layout = YearLayoutEngine.layout(YearLayoutInput(year: focus.year, events: events, inkBottoms: inkBottoms, now: now,
+                                                                 holidays: holidays, words: words))
+            return .year(YearPaperContent(layout: layout, monthNames: (1...12).map { DateText.monthName($0, .short, L.language) }))
         }
     }
 
     private func relayout() {
-        paper = Self.makePaper(kind: kind, focus: focus, events: model.events, inkBottoms: page.inkBottoms(), now: now)
+        paper = Self.makePaper(kind: kind, focus: focus, events: model.events, inkBottoms: page.inkBottoms(), now: now,
+                               holidays: HolidayChoice.current, weekStart: weekStart)
+    }
+
+    // MARK: - Holidays and the week start (1.2, docs/M7B_CONTRACT.md §5.6, §10.3–§10.5)
+
+    /// The holiday setting changed: the paper's geometry stays (`sameGeometry` keeps the strokes); only its
+    /// words and colours are drawn again.
+    private func holidaySettingChanged() {
+        HolidayChoice.current = holidays
+        relayout()
+    }
+
+    /// **The order of a switch, and it must not change** (§10.5): the old page is saved in its old form
+    /// first (once `pageId` has moved, `pageBinding`'s guard throws its writes away), then the new form
+    /// goes in, then the page, its events and its paper are read again. All on one turn. A pure function
+    /// over its three steps so that a test can check the order; the screen's own are private.
+    static func weekStartSwitch(old: WeekStart, new: WeekStart, save: () -> Void, apply: (WeekStart) -> Void, reload: () -> Void) {
+        guard new != old else { return }
+        save()
+        apply(new)
+        reload()
+    }
+
+    private func switchWeekStart(to new: WeekStart) {
+        Self.weekStartSwitch(
+            old: weekStart,
+            new: new,
+            save: { saveNow() },
+            apply: { value in
+                weekStart = value
+                WeekStartChoice.current = value
+                // The new canvas reports its own viewport next turn (`show`, for a page that changes id).
+                viewport = .zero
+                capNoticedPageId = nil
+            },
+            reload: { show(kind: kind, focus: focus) }
+        )
+    }
+
+    /// The record changed (the settings, or an adoption, which has switched already: then nothing happens).
+    private func weekStartSettingChanged() {
+        guard !ScreenshotMode.isActive else { return }
+        switchWeekStart(to: WeekStartChoice.resolve(WeekStartChoice.setting()))
+    }
+
+    /// §10.3, 4 (1): the first pull has finished, so the pages iCloud has are here to compare with.
+    private func checkWeekStartAfterPull() {
+        guard WeekStartChoice.readyToCheck(status: sync.snapshot.status, zoneToken: sync.state.zoneToken) else { return }
+        if let adopted = runWeekStartCheck(atBoundary: false) { switchWeekStart(to: adopted) }
+    }
+
+    /// §10.3, step 4: compares the pages with an automatic week start that was not compared yet, writes
+    /// what the comparison says and queues its toasts. A form to adopt is returned for the caller to
+    /// switch to: `show` does so without calling itself. While the person writes (`.wait`) nothing is
+    /// written: the comparison is made again at a boundary.
+    @discardableResult
+    private func runWeekStartCheck(atBoundary: Bool) -> WeekStart? {
+        guard !ScreenshotMode.isActive,
+              WeekStartChoice.needsDataCheck(setting: WeekStartChoice.setting(), dataChecked: AppSettings.weekStartDataChecked) else {
+            pendingAdoption = false
+            return nil
+        }
+        let shown = weekStart
+        let other: WeekStart = shown == .monday ? .sunday : .monday
+        let result = WeekStartChoice.dataCheck(current: shown, pageIds: sync.allLocalPageIds(), dirtyPageId: pageDirty ? pageId : nil,
+                                               penTouched: penTouchedThisLaunch, atBoundary: atBoundary)
+        var adopted: WeekStart?
+        switch result {
+        case .wait:
+            pendingAdoption = true
+            return nil
+        case .finish:
+            break
+        case .stay(let otherPages):
+            weekStartNotices.add(.otherForm(other, pages: otherPages))
+        case .adopt(let form, let otherPages):
+            weekStartRaw = form.rawValue
+            weekStartNotices.add(.adopted(form))
+            if otherPages > 0 { weekStartNotices.add(.otherForm(shown, pages: otherPages)) }
+            adopted = form
+        }
+        AppSettings.weekStartDataChecked = true
+        pendingAdoption = false
+        showNextWeekStartNotice()
+        return adopted
+    }
+
+    /// D17, §10.2: a month page with strokes on days the current week start does not show says so once
+    /// per page and form. They are not drawn, not erased, and not moved. Marked when really shown.
+    private func noticeHiddenInk() {
+        guard !ScreenshotMode.isActive else { return }
+        weekStartNotices.dropHiddenInk()
+        let hidden = WeekStartImpact.hiddenStrokeIds(in: page, weekStart: weekStart)
+        guard !hidden.isEmpty, !AppSettings.weekStartHiddenNoticed(page.pageId, weekStart) else { return }
+        weekStartNotices.add(.hiddenInk(pageId: page.pageId, strokes: hidden.count))
+        showNextWeekStartNotice()
+    }
+
+    /// One waiting toast of the week start, if it can be seen now (§10.4): no sheet, no account question
+    /// up or on its way, no other toast. Called when one is added, when a sheet closes and when a toast
+    /// goes away. 6 s: the sentences are long. Screenshot mode has none.
+    private func showNextWeekStartNotice() {
+        guard !ScreenshotMode.isActive, !showAccountChange, !accountChangePending,
+              let notice = weekStartNotices.next(sheetIsUp: sheetIsUp, toastShowing: toast != nil, currentPageId: pageId) else { return }
+        if case .hiddenInk(let id, _) = notice {
+            AppSettings.markWeekStartHiddenNoticed(id, weekStart)
+        }
+        showToast(notice.text, duration: Self.strokeBudgetNoticeDuration)
+    }
+
+    /// A sheet closed: the waiting toast is looked at once the next sheet, if any, is up (§10.4). It then
+    /// waits for that one to close.
+    private func scheduleWeekStartNotice() {
+        weekStartNoticeTask?.cancel()
+        let delay = Self.weekStartNoticeDelay(firstPaywallDue: !paywallShownAfterOnboarding)
+        weekStartNoticeTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(delay))
+            // A cancelled sleep returns at once, so the check is needed (like `schedulePinchHint`'s).
+            guard !Task.isCancelled else { return }
+            showNextWeekStartNotice()
+        }
     }
 
     /// The canvas reports that ink may have grown past a band's bottom. The relayout is deferred one
@@ -1432,12 +1680,12 @@ struct CalendarRootScreen: View {
         // a band column, the screenshot mode's `.create`) is stopped here while read only.
         guard isAllowed(.createEvent) else { blocked(.createEvent); return }
         guard model.status.canRead else {
-            showToast("予定を登録するには、設定でカレンダーへのアクセスを許可してください", isError: true)
+            showToast(L.text("toast.event.noAccess"), isError: true)
             return
         }
         let calendars = model.writableCalendarOptions
         guard let first = calendars.first else {
-            showToast("予定を登録できるカレンダーがありません", isError: true)
+            showToast(L.text("toast.event.noCalendar"), isError: true)
             return
         }
         guard let range = range else { return }
@@ -1500,11 +1748,11 @@ struct CalendarRootScreen: View {
                 } else if selection != nil {
                     send(.clearSelection)
                 }
-                showToast("予定を登録しました")
+                showToast(L.text("toast.event.created"))
             case .edit(let eventId, _):
                 try model.update(eventId: eventId, with: draft, span: span ?? .thisEvent)
                 editor = nil
-                showToast("予定を更新しました")
+                showToast(L.text("toast.event.updated"))
             case .readOnly:
                 editor = nil
             }
@@ -1517,7 +1765,7 @@ struct CalendarRootScreen: View {
             }
             try model.delete(eventId: eventId, span: span ?? .thisEvent)
             editor = nil
-            showToast("予定を削除しました")
+            showToast(L.text("toast.event.deleted"))
         }
     }
 
@@ -1536,15 +1784,15 @@ struct CalendarRootScreen: View {
         selection = nil
         relayout()
         guard !ScreenshotMode.isActive else {
-            showToast("手書きを全て消しました")
+            showToast(L.text("toast.erased"))
             return
         }
         Task { @MainActor in
             do {
                 try await sync.eraseEverything()
-                showToast("手書きを全て消しました")
+                showToast(L.text("toast.erased"))
             } catch {
-                showToast("iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください", isError: true)
+                showToast(L.text("toast.eraseCloudFailed"), isError: true)
             }
         }
     }
@@ -1609,20 +1857,28 @@ struct CalendarRootScreen: View {
         let large = await StrokeCensus.pagesOverLegacyCap(outcome.pages, store: sync.store)
         if !large.isEmpty {
             pendingImport = outcome
-            importPhase = .confirmLarge(pages: large.map(StrokeBudget.pageLabel))
+            importPhase = .confirmLarge(pages: large.map { StrokeBudget.pageLabel($0, language: L.language) })
             return
         }
         await importPages(of: outcome)
     }
 
-    /// `sync.importPages` with its progress, then `.done` or `.failed` (unchanged from M4 / M6).
+    /// `sync.importPages` with its progress, then `.done` or `.failed`. 1.2 (§10.5), in this order: the
+    /// comparison with an automatic week start (`runWeekStartCheck`: someone without iCloud gets no first
+    /// pull, so an import of the app's own file is the moment), then the sentence about the other form,
+    /// made with the week start after it, so the sentence and the setting agree.
     private func importPages(of outcome: InkImport.Outcome) async {
         importPhase = .importing(done: 0, total: outcome.pages.count)
         do {
             let imported = try await sync.importPages(outcome.pages) { done, total in
                 importPhase = .importing(done: done, total: total)
             }
-            importPhase = .done(imported, skipped: outcome.skipped, isAppExport: outcome.isAppExport)
+            if WeekStartChoice.checksAfterImport(status: sync.snapshot.status, zoneToken: sync.state.zoneToken, isAppExport: outcome.isAppExport),
+               let adopted = runWeekStartCheck(atBoundary: false) {
+                switchWeekStart(to: adopted)
+            }
+            let otherWeekStart = WeekStartChoice.otherForm(amongPageIds: outcome.pages.map(\.pageId), current: weekStart)
+            importPhase = .done(imported, skipped: outcome.skipped, isAppExport: outcome.isAppExport, otherWeekStart: otherWeekStart)
         } catch {
             importPhase = .failed(WebImportSheet.saveFailedText(error))
         }
@@ -1659,8 +1915,8 @@ struct CalendarRootScreen: View {
         pendingImport = nil
         guard let phase = importPhase else { return }
         importPhase = nil
-        if case .done(let outcome, let skipped, let isAppExport) = phase {
-            showToast(WebImportSheet.toastText(outcome: outcome, skipped: skipped, isAppExport: isAppExport))
+        if case .done(let outcome, let skipped, let isAppExport, let otherWeekStart) = phase {
+            showToast(WebImportSheet.toastText(outcome: outcome, skipped: skipped, isAppExport: isAppExport, otherWeekStart: otherWeekStart))
         }
     }
 
@@ -1739,6 +1995,8 @@ struct CalendarRootScreen: View {
     /// The engine's status changed: the first time it becomes `.accountMismatch`, ask (after any
     /// sheet that is up has closed).
     private func syncStatusChanged() {
+        // 1.2 (§10.3, 4 (1)): the first pull may just have finished.
+        checkWeekStartAfterPull()
         guard sync.snapshot.status == .accountMismatch else { return }
         presentAccountChange()
     }
@@ -1758,9 +2016,12 @@ struct CalendarRootScreen: View {
     }
 
     /// A sheet opened or closed: a waiting account question is asked once nothing is up. 1.1.1: the
-    /// pinch hint waits for nothing being up too.
+    /// pinch hint waits for nothing being up too; 1.2 (§10.4): and the week start's toasts.
     private func sheetsChanged() {
-        if !sheetIsUp { schedulePinchHint() }
+        if !sheetIsUp {
+            schedulePinchHint()
+            scheduleWeekStartNotice()
+        }
         guard accountChangePending, !sheetIsUp else { return }
         accountChangePending = false
         guard sync.snapshot.status == .accountMismatch else { return }
@@ -1984,9 +2245,10 @@ struct CalendarRootScreen: View {
             openEdit(eventId: ScreenshotMode.editDemoEventId)
         case .lasso:
             tool = .lasso
-        case .settings, .sync, .info:
-            // All three show the settings screen; the demo engine supplies 「同期済み」 and 「最後に同期」,
-            // `info` (1.1) scrolls to 「情報」 with `StrokeCensus.demo(year:)`.
+        case .settings, .sync, .info, .holidays, .weekStart:
+            // All show the settings screen; the demo engine supplies 「同期済み」 and 「最後に同期」, `info`
+            // (1.1) scrolls to 「情報」 with `StrokeCensus.demo(year:)`, and the settings open the picker of
+            // the holidays or the question of the week start themselves (1.2, §7.4, §10.7).
             showSettings = true
         case .`import`:
             importPhase = .done(ScreenshotMode.importDemoOutcome, skipped: 0, isAppExport: false)

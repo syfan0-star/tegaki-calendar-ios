@@ -1,4 +1,5 @@
 import Access
+import Holidays
 import InkModel
 import Layout
 import UIKit
@@ -506,6 +507,9 @@ final class CalendarRootScreenTests: XCTestCase {
         XCTAssertEqual(CalendarRootScreen.pinchHintToast, "2 本の指を広げると拡大、つまむと縮小します")
         XCTAssertEqual(CalendarRootScreen.pinchHintDuration, 6)
         XCTAssertGreaterThan(CalendarRootScreen.pinchHintDelay, CalendarRootScreen.sheetGap + CalendarRootScreen.firstRefreshTimeout, "after the first-launch paywall has come up")
+        // §10.4: a waiting toast of the week start is looked at after the next sheet came up, not in the gap.
+        XCTAssertGreaterThan(CalendarRootScreen.weekStartNoticeDelay(firstPaywallDue: false), CalendarRootScreen.sheetGap)
+        XCTAssertGreaterThan(CalendarRootScreen.weekStartNoticeDelay(firstPaywallDue: true), CalendarRootScreen.sheetGap + CalendarRootScreen.firstRefreshTimeout)
     }
 
     // MARK: M6 (M6_CONTRACT §1.2 / §7.2)
@@ -536,5 +540,113 @@ final class CalendarRootScreenTests: XCTestCase {
             XCTAssertEqual(error as? WebImport.ParseError, .unsupportedVersion(2))
             XCTAssertEqual(CalendarRootScreen.importFailureText(error), WebImportSheet.unsupportedVersionText(2))
         }
+    }
+
+    // MARK: 1.2 (docs/M7B_CONTRACT.md §5.6, §10.5, §10.8)
+
+    /// The bundled data in the repository, as the other checks read it (the XCTest host may not have
+    /// the folder; this test is about the paper, not about the bundle).
+    private func worldStore() -> HolidayStore {
+        let repository = URL(fileURLWithPath: "\(#filePath)").deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        return HolidayStore(directory: repository.appendingPathComponent("TegakiKit/HolidayData", isDirectory: true))
+    }
+
+    private let paperNow = Date(timeIntervalSince1970: 1_790_000_000)
+
+    private func paper(_ kind: PageKind, focus: DayKey, holidays: HolidayCalendar = .japan, weekStart: WeekStart = .monday) -> PaperContent {
+        CalendarRootScreen.makePaper(kind: kind, focus: focus, events: [], inkBottoms: [:], now: paperNow, holidays: holidays, weekStart: weekStart)
+    }
+
+    /// §5.6: both the month's labels and `holidayNames` come from the one calendar it was given: the US
+    /// names and no Japanese one (11/3 is 文化の日, 11/23 勤労感謝の日; 11/26 Thanksgiving in the US).
+    func testPaperUsesOneHolidayCalendar() throws {
+        let us = worldStore().calendar(for: try XCTUnwrap(HolidayRegion(code: "US")), language: .en)
+        XCTAssertEqual(us.id, "US|en")
+        let focus = DayKey(year: 2026, month: 11, day: 7)
+        guard case .month(let american) = paper(.month, focus: focus, holidays: us) else { return XCTFail("a month") }
+        let thanksgiving = DayKey(year: 2026, month: 11, day: 26)
+        XCTAssertEqual(american.labels.first { $0.day == thanksgiving }?.holidayName, "Thanksgiving Day")
+        XCTAssertEqual(american.holidayNames[thanksgiving], "Thanksgiving Day")
+        for japanese in [DayKey(year: 2026, month: 11, day: 3), DayKey(year: 2026, month: 11, day: 23)] {
+            XCTAssertNil(american.holidayNames[japanese], "\(japanese)")
+            XCTAssertNil(american.labels.first { $0.day == japanese }?.holidayName, "\(japanese)")
+        }
+        guard case .month(let japan) = paper(.month, focus: focus) else { return XCTFail("a month") }
+        XCTAssertEqual(japan.holidayNames[DayKey(year: 2026, month: 11, day: 3)], "文化の日")
+        XCTAssertNil(japan.holidayNames[thanksgiving])
+        guard case .month(let none) = paper(.month, focus: focus, holidays: HolidayCalendar.none) else { return XCTFail("a month") }
+        XCTAssertTrue(none.holidayNames.isEmpty)
+    }
+
+    /// D9: changing the holidays draws other words and colours on the same geometry.
+    func testHolidayChangeKeepsTheGeometry() throws {
+        let us = worldStore().calendar(for: try XCTUnwrap(HolidayRegion(code: "US")), language: .en)
+        let focus = DayKey(year: 2026, month: 11, day: 26)
+        for kind in PageKind.allCases {
+            let before = paper(kind, focus: focus).layout
+            let after = paper(kind, focus: focus, holidays: us).layout
+            XCTAssertEqual(before.pageId, after.pageId, "\(kind)")
+            XCTAssertEqual(before.size, after.size, "\(kind)")
+            XCTAssertEqual(before.cells, after.cells, "\(kind)")
+        }
+    }
+
+    /// §10.5: the week start reaches the layout and the month's `holidayNames` alike.
+    func testMakePaperSunday() {
+        let november = DayKey(year: 2026, month: 11, day: 7) // the 1st is a Sunday
+        guard case .month(let month) = paper(.month, focus: november, weekStart: .sunday) else { return XCTFail("a month") }
+        XCTAssertEqual(month.layout.pageId, "m1-2026-11", "the month's id does not depend on the week start")
+        XCTAssertEqual(month.layout.rows[0].days[0], DayKey(year: 2026, month: 11, day: 1))
+        // 12/7–12/12 are only in the Sunday table. A holiday there would come through `holidayNames`.
+        XCTAssertNotNil(month.layout.cells[.day(DayKey(year: 2026, month: 12, day: 12))])
+        XCTAssertNil(month.layout.cells[.day(DayKey(year: 2026, month: 10, day: 31))])
+        guard case .month(let december) = paper(.month, focus: DayKey(year: 2026, month: 12, day: 1), weekStart: .sunday) else { return XCTFail("a month") }
+        XCTAssertEqual(december.layout.rows[0].days[0], DayKey(year: 2026, month: 11, day: 29))
+        // 11/23 (a Japanese holiday) is in December's Sunday table only if the row holds it: the
+        // first row starts on 11/29, so it is not; 2027/1/1 is, in the last rows.
+        XCTAssertNil(december.holidayNames[DayKey(year: 2026, month: 11, day: 23)])
+        XCTAssertEqual(december.holidayNames[DayKey(year: 2027, month: 1, day: 1)], "元日")
+
+        guard case .week(let week) = paper(.week, focus: wednesday, weekStart: .sunday) else { return XCTFail("a week") }
+        XCTAssertEqual(week.layout.pageId, "w-2026-10-04")
+        XCTAssertEqual(week.layout.days.first, DayKey(year: 2026, month: 10, day: 4))
+        guard case .week(let monday) = paper(.week, focus: wednesday) else { return XCTFail("a week") }
+        XCTAssertEqual(monday.layout.pageId, "w-2026-10-05")
+        // The page the screenshot mode loads agrees with the paper (`onPageMismatch` otherwise).
+        XCTAssertEqual(ScreenshotMode.demoPage(kind: .week, focus: wednesday, grown: false, empty: false, tallYear: false, weekStart: .sunday).pageId, week.layout.pageId)
+    }
+
+    /// §10.5: **the order that keeps the handwriting**: the old page is saved first, then the new form goes
+    /// in, then the page is read again. The same value does nothing at all.
+    func testSwitchSavesTheOldPageFirst() {
+        var steps: [String] = []
+        CalendarRootScreen.weekStartSwitch(old: .monday, new: .sunday,
+                                           save: { steps.append("save") },
+                                           apply: { steps.append("apply \($0.rawValue)") },
+                                           reload: { steps.append("reload") })
+        XCTAssertEqual(steps, ["save", "apply sunday", "reload"])
+
+        steps = []
+        CalendarRootScreen.weekStartSwitch(old: .sunday, new: .monday,
+                                           save: { steps.append("save") },
+                                           apply: { steps.append("apply \($0.rawValue)") },
+                                           reload: { steps.append("reload") })
+        XCTAssertEqual(steps, ["save", "apply monday", "reload"])
+
+        steps = []
+        for same in [WeekStart.monday, .sunday] {
+            CalendarRootScreen.weekStartSwitch(old: same, new: same,
+                                               save: { steps.append("save") },
+                                               apply: { _ in steps.append("apply") },
+                                               reload: { steps.append("reload") })
+        }
+        XCTAssertEqual(steps, [])
+    }
+
+    /// J-1 for what the toasts put together (C type): the words of 1.1, with the numbers in.
+    func testBudgetToastsAreTheOneOneText() {
+        XCTAssertEqual(CalendarRootScreen.strokeBudgetManyToast, "このページに書いた線が 15,000 本を超えました。1 ページに書ける線は 19,000 本までです。")
+        XCTAssertEqual(CalendarRootScreen.strokeBudgetFullToast, "このページはいっぱいです（線 19,000 本）。線を消すと、また書けます。")
+        XCTAssertEqual(CalendarRootScreen.pinchHintToast, "2 本の指を広げると拡大、つまむと縮小します")
     }
 }

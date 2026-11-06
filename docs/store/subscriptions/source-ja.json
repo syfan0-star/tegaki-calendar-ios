@@ -1,0 +1,18 @@
+{
+  "locale": "source-ja",
+  "note": "ja 以外のロケールの日本語の元（X はここから訳す）。Connect の ja の値（てがきカレンダー 月額 など）は今のまま変えない。価格は書かない（M7B-16）。",
+  "group": {
+    "displayName": "Tegaki",
+    "appNameDisplay": "useAppName"
+  },
+  "products": {
+    "com.syfan0.tegakicalendar.monthly": {
+      "displayName": "Tegaki 月額",
+      "description": "手書き・予定の作成・iCloud 同期が使える月額プラン"
+    },
+    "com.syfan0.tegakicalendar.yearly": {
+      "displayName": "Tegaki 年額",
+      "description": "同じ機能の年額プラン"
+    }
+  }
+}

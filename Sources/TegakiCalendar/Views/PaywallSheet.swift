@@ -36,40 +36,40 @@ struct PaywallSheet: View {
 
     // MARK: - Words (pure; M5_CONTRACT §3.3, §4.1, §7.6)
 
-    static let title = "てがきカレンダー"
+    static let title = L.text("paywall.title")
     /// `.firstLaunch` / `.settings` / `.badge`
-    static let intro = "iPad のカレンダーの上に、Apple Pencil で自由に書ける手帳です。"
+    static let intro = L.text("paywall.intro")
     /// `.blocked` (§3.3)
-    static let blockedLead = "書く・消す・予定を作るには購読が必要です。"
-    static let blockedTrial = "\(ProductIDs.trialDays) 日間無料で試せます。"
+    static let blockedLead = L.text("paywall.blockedLead")
+    static let blockedTrial = L.plural("paywall.blockedTrial", count: ProductIDs.trialDays, L.count(ProductIDs.trialDays))
     /// `access == .readOnly(.billingRetry)`, whatever the reason (§3.3)
-    static let billingRetryLead = "お支払いに問題があります。\(PlanText.paymentPath)でお支払い方法を確認してください。"
+    static let billingRetryLead = L.format("paywall.billingRetryLead", PlanText.paymentPath(language: L.language))
     /// `access == .readOnly(.revoked)` (§3.3)
-    static let revokedLead = "購入が返金または取り消されました。再び使うには購読してください。"
+    static let revokedLead = L.text("paywall.revokedLead")
     /// The three `Label` rows.
     static let features: [String] = [
-        "手書き（ペン・マーカー・消しゴム・投げなわ）",
-        "手書きから予定を作る。予定の作成・編集",
-        "iCloud で iPad・iPhone と同期",
+        L.text("paywall.feature.ink"),
+        L.text("paywall.feature.events"),
+        L.text("paywall.feature.sync"),
     ]
     static let featureSymbols: [String] = ["pencil.tip", "calendar.badge.plus", "icloud"]
     /// The cards' order: 年額 on top.
     static let planOrder: [Plan] = [.yearly, .monthly]
-    static let recommended = "おすすめ"
+    static let recommended = L.text("paywall.recommended")
     /// The price while `offers` is empty, and the note under the card.
     static let noPrice = "—"
-    static let noPriceNote = "価格を取得できません"
-    static let reloadTitle = "再読み込み"
-    static let restoreTitle = "購入を復元"
-    static let termsTitle = "利用規約"
-    static let privacyTitle = "プライバシーポリシー"
-    static let laterTitle = "あとで"
-    static let manageTitle = "サブスクリプションを管理"
+    static let noPriceNote = L.text("paywall.noPriceNote")
+    static let reloadTitle = L.text("paywall.reload")
+    static let restoreTitle = L.text("paywall.restore")
+    static let termsTitle = L.text("paywall.terms")
+    static let privacyTitle = L.text("paywall.privacy")
+    static let laterTitle = L.text("paywall.later")
+    static let manageTitle = L.text("paywall.manage")
     /// The bold start of the eligible trial line.
-    static let trialLead = "\(ProductIDs.trialDays) 日間無料でお試し。"
-    static let trialRest = "試用期間が終わると自動的に有料になります。試用中に解約すれば料金はかかりません。"
+    static let trialLead = L.plural("paywall.trialLead", count: ProductIDs.trialDays, L.count(ProductIDs.trialDays))
+    static let trialRest = L.text("paywall.trialRest")
     /// M5-17
-    static let trialIneligible = "無料試用の対象外です（お試しは 1 つの Apple Account につき 1 回）。"
+    static let trialIneligible = L.text("paywall.trialIneligible")
 
     /// The lead sentence. `readOnlyReason` `.billingRetry` / `.revoked` win over `reason` (§3.3).
     static func lead(_ reason: PaywallReason, eligible: Bool, readOnlyReason: ReadOnlyReason? = nil) -> String {
@@ -91,7 +91,7 @@ struct PaywallSheet: View {
 
     /// 「14 日間無料で試す」 / 「購入する」
     static func ctaTitle(eligible: Bool) -> String {
-        eligible ? "\(ProductIDs.trialDays) 日間無料で試す" : "購入する"
+        eligible ? L.plural("paywall.cta.trial", count: ProductIDs.trialDays, L.count(ProductIDs.trialDays)) : L.text("paywall.cta.buy")
     }
 
     static func trialLine(eligible: Bool) -> String {
@@ -100,37 +100,38 @@ struct PaywallSheet: View {
 
     /// 「¥2,400/年」「¥300/月」
     static func priceLine(_ offer: PlanOffer) -> String {
-        offer.displayPrice + PlanText.perPeriod(offer.plan)
+        offer.displayPrice + PlanText.perPeriod(offer.plan, language: L.language)
     }
 
     /// 「月あたり ¥200・4 か月分お得」; 「月あたり ¥200」 alone when there is nothing to save (or no
     /// monthly price); nil when the yearly offer carries no per-month price either.
     static func yearlyNote(_ yearly: PlanOffer, monthly: PlanOffer?) -> String? {
-        var parts: [String] = []
-        if let perMonth = yearly.perMonthDisplayPrice {
-            parts.append("月あたり \(perMonth)")
+        var savings: String?
+        if let monthly {
+            savings = PlanText.savingsText(months: PlanText.savingsMonths(monthly: monthly.price, yearly: yearly.price), language: L.language)
         }
-        if let monthly,
-           let savings = PlanText.savingsText(months: PlanText.savingsMonths(monthly: monthly.price, yearly: yearly.price)) {
-            parts.append(savings)
+        switch (yearly.perMonthDisplayPrice, savings) {
+        case let (perMonth?, savings?):
+            return L.format("paywall.yearlyNote.both", perMonth, savings)
+        case let (perMonth?, nil):
+            return L.format("paywall.yearlyNote.perMonth", perMonth)
+        case let (nil, savings):
+            return savings
         }
-        return parts.isEmpty ? nil : parts.joined(separator: "・")
     }
 
     /// 「試用後は ¥2,400/年。いつでも解約できます。」 / 「¥2,400/年。自動更新です。いつでも解約できます。」
     static func afterLine(_ offer: PlanOffer, eligible: Bool) -> String {
         eligible
-            ? "試用後は \(priceLine(offer))。いつでも解約できます。"
-            : "\(priceLine(offer))。自動更新です。いつでも解約できます。"
+            ? L.format("paywall.after.trial", priceLine(offer))
+            : L.format("paywall.after.paid", priceLine(offer))
     }
 
     /// Apple's auto-renewal disclosure. The billing moment is told apart by the trial eligibility:
     /// 「購入の確認時に請求」 to an eligible person would contradict the trial line (3.1.2 and 景表法).
     static func disclosure(eligible: Bool) -> String {
-        let billing = eligible ? "料金は無料試用の終了時に請求されます。" : "料金は購入の確認時に請求されます。"
-        return "サブスクリプションは自動更新です。現在の期間が終わる 24 時間前までに解約しない限り、同じ期間・同じ価格で更新され、Apple Account に請求されます。"
-            + billing
-            + "解約は端末の\(PlanText.cancelPath)からいつでもできます。解約しても、支払い済みの期間が終わるまで使えます。"
+        let path = PlanText.cancelPath(language: L.language)
+        return eligible ? L.format("paywall.disclosure.trial", path) : L.format("paywall.disclosure.paid", path)
     }
 
     /// The note under a plan's card: the yearly's 「月あたり ¥200・4 か月分お得」, or 「価格を取得できません」
@@ -253,10 +254,12 @@ struct PaywallSheet: View {
             Text(Self.disclosure(eligible: eligible))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("paywall.disclosure")
             linkRows
             Button(Self.laterTitle, action: onClose)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
+                .accessibilityIdentifier("paywall.laterBottom")
         }
         .padding([.horizontal, .bottom], 20)
         .padding(.top, 14) // below the drag indicator
@@ -301,7 +304,7 @@ struct PaywallSheet: View {
         } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(PlanText.name(plan))
+                    Text(PlanText.name(plan, language: L.language))
                         .font(.headline)
                     Spacer()
                     Text(price)
@@ -338,7 +341,7 @@ struct PaywallSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(PlanText.name(plan)) \(price)")
+        .accessibilityLabel(PlanText.name(plan, language: L.language) + " " + price)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
@@ -430,10 +433,14 @@ struct PaywallSheet: View {
                     }
                 }
                 .disabled(isBusy)
-                Button(Self.termsTitle) { openURL(LegalLinks.terms) }
-                Button(Self.privacyTitle) { openURL(LegalLinks.privacy) }
+                .accessibilityIdentifier("paywall.restore")
+                Button(Self.termsTitle) { openURL(LegalLinks.terms(for: L.language)) }
+                    .accessibilityIdentifier("paywall.terms")
+                Button(Self.privacyTitle) { openURL(LegalLinks.privacy(for: L.language)) }
+                    .accessibilityIdentifier("paywall.privacy")
             }
-            Button(LegalLinks.appleEULATitle) { openURL(LegalLinks.appleEULA) }
+            Button(LegalLinks.appleEULATitle(L.language)) { openURL(LegalLinks.appleEULA) }
+                .accessibilityIdentifier("paywall.eula")
         }
         .font(.footnote)
         .buttonStyle(.borderless)

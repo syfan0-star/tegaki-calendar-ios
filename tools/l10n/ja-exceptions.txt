@@ -1,0 +1,42 @@
+# 日本語のまま残す文字列（docs/M7B_CONTRACT.md §2.5・§2.6。lint の L-1 と L-3 が読む）。
+# 1 行に 1 つ: パス|文字列|理由
+#   パス   Sources/TegakiCalendar/ か TegakiKit/Sources/ を省いた形（Views/SettingsScreen.swift、Access/PlanText.swift）
+#   文字列 Swift のソースの書き方のまま、引用符の内側（\n は 2 字、埋め込みは \(…) のまま）。
+#          そのファイルの、この字の文字列は全部この例外に当たる。「*」はファイルの全部で、
+#          Holidays/JapaneseHolidays.swift だけに使う
+#   理由   空にしない。| は書かない
+# 契約が列挙したもの（§2.5・§2.6）のほかは足さない。足すなら契約を直してから。
+
+# ── アプリ: 凍結した Ink の 6 件（D14 でファイルを変えられない。この例外は 1.2 の間だけ、0-37）──
+Ink/InkTrace.swift|てがきカレンダー \(SettingsScreen.versionText) / \(device.systemName) \(device.systemVersion) / \(device.model)|凍結した Ink（D14、0-37）。記録のシートの〔コピー〕で開発者に送る記録の 1 行目（ログと同じ扱い）。1.2 の間だけ
+Ink/InkTrace.swift|記録|凍結した Ink（D14、0-37）。TestFlight と審査のビルドだけの記録のシートの題（設定 › 情報 の「バージョン」の長押し）。1.2 の間だけ
+Ink/InkTrace.swift|閉じる|凍結した Ink（D14、0-37）。記録のシートのボタン。1.2 の間だけ
+Ink/InkTrace.swift|コピーしました|凍結した Ink（D14、0-37）。記録のシートのボタン。1.2 の間だけ
+Ink/InkTrace.swift|コピー|凍結した Ink（D14、0-37）。記録のシートのボタン。1.2 の間だけ
+Ink/InkCanvasView.swift|手書きの紙|凍結した Ink（D14、0-37）。UI テストの --screenshot-probe のときだけの、紙の入れ物の読み上げの名前（識別子 ink-canvas）。1.2 の間だけ
+
+# ── アプリ: 購読している祝日カレンダーを見分ける語（§5.8。画面に出ない）──
+Calendar/EventKitService.swift|祝日|購読している祝日カレンダーを見分ける語（§5.8）。画面に出ない
+Calendar/EventKitService.swift|节假日|購読している祝日カレンダーを見分ける語（§5.8）。画面に出ない
+Calendar/EventKitService.swift|節假日|購読している祝日カレンダーを見分ける語（§5.8）。画面に出ない
+Calendar/EventKitService.swift|假日|購読している祝日カレンダーを見分ける語（§5.8）。画面に出ない
+Calendar/EventKitService.swift|공휴일|購読している祝日カレンダーを見分ける語（§5.8）。画面に出ない
+
+# ── Kit: 1.1 の公開 API を ja の値として残すもの（§2.6）──
+Access/PlanText.swift|4 か月分お得|1.1 の公開 API を ja の値として残す（static let yearlyBadge）
+Access/PlanText.swift|閲覧専用|1.1 の公開 API を ja の値として残す（static let readOnlyBadge）
+Access/PlanText.swift|「設定」›「Apple Account」›「サブスクリプション」|1.1 の公開 API を ja の値として残す（static let cancelPath）
+Access/PlanText.swift|「設定」›「Apple Account」›「お支払いと配送先」|1.1 の公開 API を ja の値として残す（static let paymentPath）
+Access/LegalLinks.swift|使用許諾契約（Apple 標準 EULA）|1.1 の公開 API を ja の値として残す（static let appleEULATitle）
+Layout/PageNavigation.swift|日|1.1 の公開 API を ja の値として残す（static let weekdayLetters）
+Layout/PageNavigation.swift|月|1.1 の公開 API を ja の値として残す（static let weekdayLetters）
+Layout/PageNavigation.swift|火|1.1 の公開 API を ja の値として残す（static let weekdayLetters）
+Layout/PageNavigation.swift|水|1.1 の公開 API を ja の値として残す（static let weekdayLetters）
+Layout/PageNavigation.swift|木|1.1 の公開 API を ja の値として残す（static let weekdayLetters）
+Layout/PageNavigation.swift|金|1.1 の公開 API を ja の値として残す（static let weekdayLetters）
+Layout/PageNavigation.swift|土|1.1 の公開 API を ja の値として残す（static let weekdayLetters）
+DayKit/DayKey.swift|\(year)年\(month)月|1.1 の公開 API を ja の値として残す（YearMonth.title。DayKey.swift は変えない）
+
+# ── Kit: そのほか（§2.6）──
+Access/Plan.swift|てがきカレンダー|App Store Connect のサブスクリプションのグループの参照名（groupReferenceName）。画面に出ない
+Holidays/JapaneseHolidays.swift|*|日本の祝日のデータ（JapaneseHolidays。O-3 で変えない）

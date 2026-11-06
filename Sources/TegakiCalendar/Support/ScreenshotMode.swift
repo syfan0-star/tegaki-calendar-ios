@@ -1,4 +1,5 @@
 import Foundation
+import Holidays
 import InkModel
 import Layout
 
@@ -43,11 +44,23 @@ import Layout
 /// paper is about 2,600 lu (`tallYearDemoPage`): a year that grew, before and after the fix.
 /// `--screenshot-pinch-hint` shows the one-time pinch hint half a second after the canvas appeared, for
 /// the photos of the hint (normal use decides with `CalendarRootScreen.pinchHintDue`, never here).
+/// 1.2 (docs/M7B_CONTRACT.md §7.4, §10.7): `--screenshot-holidays auto|none|<国>[-<州>]` picks the holidays
+/// (without it, or with a broken value, Japan's, whatever the simulator's region is, 0-26),
+/// `--screenshot-week-start auto|monday|sunday` the week start (without it, or with a broken value, Monday,
+/// 0-46), `--screenshot-sheet holidays` opens the picker of the holidays in the settings, and
+/// `--screenshot-sheet week-start` the settings with the question of switching the week start. The demo
+/// events' and calendars' titles follow the language (`demo.*`); the demo ink never does (K-7). The
+/// language is `-AppleLanguages` and `-AppleLocale` (the app's UserDefaults argument domain).
+/// `--screenshot-store-ink` (docs/M7B.md, FIX4; only `store-shots.yml` passes it): the richer handwriting of
+/// the App Store's photos (`ScreenshotStoreInk.swift`) and the 7th's call away from its meeting. Without
+/// it the demo pages and events are what the fixtures and the Japanese photos have seen (K-7, J-4).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
-    /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`).
+    /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
+    /// 1.2 (docs/M7B_CONTRACT.md §7.4, §10.7): `holidays`, `week-start`).
     enum Sheet: String, CaseIterable, Sendable {
-        case create, edit, lasso, settings, sync, `import`, paywall, export, info
+        case create, edit, lasso, settings, sync, `import`, paywall, export, info, holidays
+        case weekStart = "week-start"
     }
 
     /// `--screenshot-toolbar` (1.1, §7.3): the toolbar starts collapsed, its dock button in the bottom
@@ -151,7 +164,18 @@ enum ScreenshotMode {
         var tallYear: Bool = false
         /// `--screenshot-pinch-hint` (1.1.1, docs/R1_1_1.md): the one-time pinch hint, for its photos.
         var pinchHint: Bool = false
+        /// `--screenshot-holidays` (1.2, §7.4): the only holiday setting screenshot mode knows (the
+        /// memory is not read or written). Japan unless asked, whatever the simulator's region (0-26).
+        var holidays: HolidaySetting = ScreenshotMode.japanHolidays
+        /// `--screenshot-week-start` (1.2, §10.7): the only week start screenshot mode knows. Monday
+        /// unless asked, whatever the simulator's region (0-46).
+        var weekStart: WeekStart = .monday
+        /// `--screenshot-store-ink` (docs/M7B.md, FIX4): the App Store's demo ink and events.
+        var storeInk: Bool = false
     }
+
+    /// Screenshot mode's holidays unless `--screenshot-holidays` says otherwise (0-26).
+    static let japanHolidays: HolidaySetting = HolidayRegion(code: "JP").map(HolidaySetting.region) ?? .automatic
 
     /// How long a toast stays with `--screenshot-probe` (the read-only photo's 20 s, M5-24).
     static let probeToastDuration: TimeInterval = 20
@@ -213,7 +237,32 @@ enum ScreenshotMode {
         let empty = arguments.contains("--screenshot-empty")
         let tallYear = arguments.contains("--screenshot-tall-year")
         let pinchHint = arguments.contains("--screenshot-pinch-hint")
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint)
+        // 1.2 (§7.4, §10.7): a missing or broken value is Japan / Monday, not the simulator's region.
+        var holidays = japanHolidays
+        if let index = arguments.firstIndex(of: "--screenshot-holidays"), index + 1 < arguments.count {
+            holidays = parseHolidays(arguments[index + 1]) ?? japanHolidays
+        }
+        var weekStart = WeekStart.monday
+        if let index = arguments.firstIndex(of: "--screenshot-week-start"), index + 1 < arguments.count {
+            weekStart = parseWeekStart(arguments[index + 1]) ?? .monday
+        }
+        let storeInk = arguments.contains("--screenshot-store-ink")
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk)
+    }
+
+    /// "auto", "none", "JP", "US-CA", "NZ-South Canterbury"; nil for anything else. (`HolidaySetting`
+    /// itself reads a broken stored value as automatic; a broken argument is Japan here.)
+    static func parseHolidays(_ text: String) -> HolidaySetting? {
+        switch text {
+        case "auto": return .automatic
+        case "none": return HolidaySetting.none
+        default: return HolidayRegion(code: text).map(HolidaySetting.region)
+        }
+    }
+
+    /// "auto" (what the region gives, `WeekStartChoice`), "monday", "sunday"; nil for anything else.
+    static func parseWeekStart(_ text: String) -> WeekStart? {
+        WeekStartChoice.Setting(rawValue: text).map(WeekStartChoice.resolve)
     }
 
     /// "2" → 2; nil unless the text is a finite positive number ("abc", "0", "-1", "inf" are nil).
@@ -261,26 +310,34 @@ enum ScreenshotMode {
         var colorHex: String
     }
 
-    static let calendars: [DemoCalendar] = [
-        DemoCalendar(id: "demo-work", title: "仕事", colorHex: "#4285f4"),
-        DemoCalendar(id: "demo-family", title: "家族", colorHex: "#33b679"),
-        DemoCalendar(id: "demo-personal", title: "個人", colorHex: "#e67c73"),
-        DemoCalendar(id: "demo-events", title: "行事", colorHex: "#f6bf26"),
-    ]
+    /// The four demo calendars with their titles in `language` (the ids and the colours do not change).
+    static func calendars(language: UILanguage) -> [DemoCalendar] {
+        [
+            DemoCalendar(id: "demo-work", title: L.text("demo.calendar.work", in: language), colorHex: "#4285f4"),
+            DemoCalendar(id: "demo-family", title: L.text("demo.calendar.family", in: language), colorHex: "#33b679"),
+            DemoCalendar(id: "demo-personal", title: L.text("demo.calendar.personal", in: language), colorHex: "#e67c73"),
+            DemoCalendar(id: "demo-events", title: L.text("demo.calendar.events", in: language), colorHex: "#f6bf26"),
+        ]
+    }
 
-    static func calendarTitle(forCalendarId id: String) -> String {
-        calendars.first { $0.id == id }?.title ?? ""
+    static func calendarTitle(forCalendarId id: String, language: UILanguage = L.language) -> String {
+        calendars(language: language).first { $0.id == id }?.title ?? ""
     }
 
     /// The demo calendars as the settings screen and the sheets show them (M3b contract §5): all
     /// four writable, under the source 「見本」.
     static var calendarOptions: [CalendarOption] {
-        calendars.map { demo in
+        calendarOptions(language: L.language)
+    }
+
+    /// `calendarOptions` in `language` (1.2, §7.4).
+    static func calendarOptions(language: UILanguage) -> [CalendarOption] {
+        calendars(language: language).map { demo in
             CalendarOption(
                 id: demo.id,
                 title: demo.title,
                 colorHex: demo.colorHex,
-                sourceTitle: "見本",
+                sourceTitle: L.text("demo.source", in: language),
                 isWritable: true,
                 isSubscribed: false,
                 isBirthday: false
@@ -319,9 +376,14 @@ enum ScreenshotMode {
     /// and day pages show the two-column layout. Ids are fixed, so the layout is identical from run
     /// to run; the M3a events come last so the M2 ids do not move. `empty` (1.1.1; by default
     /// `--screenshot-empty` of the running screenshot mode, so false in normal use and in the tests): none.
-    static func demoEvents(for month: YearMonth, empty: Bool = ScreenshotMode.current?.empty ?? false) -> [LayoutEvent] {
+    /// `language` (1.2, §7.4) only changes the titles; the events and their ids are the same.
+    /// `storeInk` (docs/M7B.md, FIX4; by default `--screenshot-store-ink`, so false in normal use and in the
+    /// tests) moves the 7th's call to 12:30: side by side with the meeting, the words of both were cut in
+    /// the App Store's week photo. Everything else is the same, ids included.
+    static func demoEvents(for month: YearMonth, empty: Bool = ScreenshotMode.current?.empty ?? false, language: UILanguage = L.language, storeInk: Bool = ScreenshotMode.current?.storeInk ?? false) -> [LayoutEvent] {
         if empty { return [] }
         let calendar = DayKey.deviceCalendar
+        let demoCalendars = calendars(language: language)
         let work = 0, family = 1, personal = 2, events = 3
         var out: [LayoutEvent] = []
 
@@ -336,8 +398,8 @@ enum ScreenshotMode {
                 allDay: false,
                 start: start,
                 end: start.addingTimeInterval(TimeInterval(minutes * 60)),
-                colorHex: calendars[cal].colorHex,
-                calendarId: calendars[cal].id
+                colorHex: demoCalendars[cal].colorHex,
+                calendarId: demoCalendars[cal].id
             ))
         }
         func allDay(_ title: String, _ d: Int, days: Int = 1, in cal: Int) {
@@ -348,42 +410,46 @@ enum ScreenshotMode {
                 allDay: true,
                 start: first.startOfDay(in: calendar),
                 end: first.adding(days: days).startOfDay(in: calendar), // exclusive next midnight
-                colorHex: calendars[cal].colorHex,
-                calendarId: calendars[cal].id
+                colorHex: demoCalendars[cal].colorHex,
+                calendarId: demoCalendars[cal].id
             ))
         }
 
         // All-day (M2)
-        allDay("運動会", 3, in: events)
-        allDay("キャンプ", 4, days: 2, in: family)
-        allDay("家族旅行", 9, days: 5, in: family)
-        allDay("資料提出締切", 16, in: work)
-        allDay("健康診断", 16, in: personal)
-        allDay("ゴミの日", 16, in: family)
-        allDay("誕生日", 16, in: family)
-        allDay("出張（大阪）", 21, days: 2, in: work)
-        allDay("給料日", 25, in: personal)
+        allDay(L.text("demo.event.sportsDay", in: language), 3, in: events)
+        allDay(L.text("demo.event.camping", in: language), 4, days: 2, in: family)
+        allDay(L.text("demo.event.familyTrip", in: language), 9, days: 5, in: family)
+        allDay(L.text("demo.event.reportDeadline", in: language), 16, in: work)
+        allDay(L.text("demo.event.checkup", in: language), 16, in: personal)
+        allDay(L.text("demo.event.trashDay", in: language), 16, in: family)
+        allDay(L.text("demo.event.birthday", in: language), 16, in: family)
+        allDay(L.text("demo.event.businessTrip", in: language), 21, days: 2, in: work)
+        allDay(L.text("demo.event.payday", in: language), 25, in: personal)
 
         // Timed (M2)
-        timed("歯医者", 2, 10, in: personal)
-        timed("週次定例", 6, 10, in: work)
-        timed("資料提出", 8, 15, minutes: 30, in: work)
-        timed("通院", 9, 14, in: personal)
-        timed("週次定例", 13, 10, in: work)
-        timed("朝会", 20, 9, minutes: 15, in: work)
-        timed("週次定例", 20, 10, in: work)
-        timed("面談", 20, 13, minutes: 30, in: work)
-        timed("レビュー", 20, 15, in: work)
-        timed("送別会", 20, 18, minutes: 120, in: personal)
-        timed("飲み会", 23, 19, minutes: 120, in: personal)
-        timed("週次定例", 27, 10, in: work)
-        timed("ランチ", 28, 11, 30, minutes: 90, in: family)
+        timed(L.text("demo.event.dentist", in: language), 2, 10, in: personal)
+        timed(L.text("demo.event.weeklyMeeting", in: language), 6, 10, in: work)
+        timed(L.text("demo.event.report", in: language), 8, 15, minutes: 30, in: work)
+        timed(L.text("demo.event.clinic", in: language), 9, 14, in: personal)
+        timed(L.text("demo.event.weeklyMeeting", in: language), 13, 10, in: work)
+        timed(L.text("demo.event.morningMeeting", in: language), 20, 9, minutes: 15, in: work)
+        timed(L.text("demo.event.weeklyMeeting", in: language), 20, 10, in: work)
+        timed(L.text("demo.event.oneOnOne", in: language), 20, 13, minutes: 30, in: work)
+        timed(L.text("demo.event.review", in: language), 20, 15, in: work)
+        timed(L.text("demo.event.farewell", in: language), 20, 18, minutes: 120, in: personal)
+        timed(L.text("demo.event.drinks", in: language), 23, 19, minutes: 120, in: personal)
+        timed(L.text("demo.event.weeklyMeeting", in: language), 27, 10, in: work)
+        timed(L.text("demo.event.lunch", in: language), 28, 11, 30, minutes: 90, in: family)
 
         // The 7th, 「今日」 (M3a): the month row stays 175 high (28 + 25 + 3×20 + 40 = 153).
-        allDay("締切", 7, in: personal)
-        timed("打合せ", 7, 10, minutes: 90, in: work)
-        timed("電話", 7, 10, 30, minutes: 30, in: personal)
-        timed("歯科", 7, 14, in: personal)
+        allDay(L.text("demo.event.deadline", in: language), 7, in: personal)
+        timed(L.text("demo.event.meeting", in: language), 7, 10, minutes: 90, in: work)
+        if storeInk {
+            timed(L.text("demo.event.call", in: language), 7, 12, 30, minutes: 30, in: personal)
+        } else {
+            timed(L.text("demo.event.call", in: language), 7, 10, 30, minutes: 30, in: personal)
+        }
+        timed(L.text("demo.event.dentalCheck", in: language), 7, 14, in: personal)
 
         return out
     }
@@ -398,16 +464,25 @@ enum ScreenshotMode {
     /// those of 1.0.1 (the paper of the photos does not change). `empty` (1.1.1; likewise by default
     /// `--screenshot-empty`): the page with no strokes at all, whatever `grown` says. `tallYear` (1.1.1;
     /// likewise `--screenshot-tall-year`): the year page is `tallYearDemoPage`, whatever `empty` says.
+    /// `weekStart` (1.2, §10.5): the week page's id and columns; **without it the paper and the page id
+    /// would disagree and the ledger stops on `onPageMismatch`**. The default Monday is the page of the
+    /// fixtures, byte for byte (K-7). No language: the demo ink is the same in every language.
+    /// `storeInk` (docs/M7B.md, FIX4; likewise `--screenshot-store-ink`): the App Store's page
+    /// (`storeInkPage`), whatever `grown` says; `tallYear` and `empty` win over it. Without it the pages are
+    /// unchanged, bit for bit.
     static func demoPage(kind: PageKind, focus: DayKey, grown: Bool = ScreenshotMode.current?.grown ?? false,
                          empty: Bool = ScreenshotMode.current?.empty ?? false,
-                         tallYear: Bool = ScreenshotMode.current?.tallYear ?? false) -> InkPage {
+                         tallYear: Bool = ScreenshotMode.current?.tallYear ?? false,
+                         weekStart: WeekStart = .monday,
+                         storeInk: Bool = ScreenshotMode.current?.storeInk ?? false) -> InkPage {
         if tallYear, kind == .year { return tallYearDemoPage(focus: focus) }
-        if empty { return InkPage.empty(pageId: PageNavigation.pageId(kind, focus: focus)) }
+        if empty { return InkPage.empty(pageId: PageNavigation.pageId(kind, focus: focus, weekStart: weekStart)) }
+        if storeInk { return storeInkPage(kind: kind, focus: focus, weekStart: weekStart) }
         switch kind {
         case .month:
             return demoPage(for: YearMonth(year: focus.year, month: focus.month), grown: grown)
         case .week:
-            return weekDemoPage(focus: focus)
+            return weekDemoPage(focus: focus, weekStart: weekStart)
         case .day:
             return dayDemoPage(focus: focus, grown: grown)
         case .year:
@@ -455,13 +530,16 @@ enum ScreenshotMode {
     /// Week: a wavy pen stroke on the grid at the top of the Wednesday column (y 40 ± 5, just under
     /// 0:00; the same place the M3a–M4 band stroke of that cell lands after `BandMigration`, so the
     /// demo needs no migration itself, M4B contract §2.7), a marker across the top of the 10:00
-    /// 打合せ box of `focus` (the box starts at grid y 800 in that day's column).
-    private static func weekDemoPage(focus: DayKey) -> InkPage {
-        var page = InkPage.empty(pageId: PageNavigation.pageId(.week, focus: focus))
-        let wednesdayX = PaperSpec.weekGutter + 2 * PaperSpec.weekColumnWidth
+    /// 打合せ box of `focus` (the box starts at grid y 800 in that day's column). The columns follow
+    /// `weekStart` (1.2): Wednesday is column 2 on a Monday week, column 3 on a Sunday week.
+    private static func weekDemoPage(focus: DayKey, weekStart: WeekStart) -> InkPage {
+        var page = InkPage.empty(pageId: PageNavigation.pageId(.week, focus: focus, weekStart: weekStart))
+        let firstDay = weekStart.firstDay(of: focus)
+        let wednesday = firstDay.adding(days: (3 - firstDay.weekday + 7) % 7)
+        let wednesdayX = PaperSpec.weekGutter + CGFloat(weekStart.column(of: wednesday)) * PaperSpec.weekColumnWidth
         page.add(InkStroke(id: "demo-stroke-week-wave", cell: .grid, tool: .pen, color: "#1f2937", t: baseTime,
                            points: wave(x0: wednesdayX + 12, y0: 40, count: 30, step: 5.2, amplitude: 5)))
-        let column = CGFloat((focus.weekday + 6) % 7)
+        let column = CGFloat(weekStart.column(of: focus))
         let columnX = PaperSpec.weekGutter + column * PaperSpec.weekColumnWidth
         let boxTop = 10 * PaperSpec.weekHourHeight + 10
         page.add(InkStroke(id: "demo-stroke-week-marker", cell: .grid, tool: .marker, color: "#fde047", t: baseTime + 1_000,

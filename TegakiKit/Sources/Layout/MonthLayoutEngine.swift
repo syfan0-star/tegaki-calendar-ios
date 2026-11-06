@@ -45,9 +45,9 @@ public enum MonthLayoutEngine {
 
     public static func layout(_ input: MonthLayoutInput) -> MonthPageLayout {
         let calendar = input.calendar
-        let grid = MonthLayout.grid(for: input.month)
+        let grid = MonthLayout.grid(for: input.month, weekStart: input.weekStart)
         let today = DayKey(input.now, calendar: calendar)
-        let holidayNames = JapaneseHolidays.names(for: grid.days)
+        let holidayNames = input.holidays.names(for: grid.days)
         let allDayEvents = input.events.filter { $0.allDay }
         let timedEvents = input.events.filter { !$0.allDay }
 
@@ -95,14 +95,7 @@ public enum MonthLayoutEngine {
                 cells[.day(day)] = CGRect(x: x, y: y, width: PaperSpec.monthColumnWidth, height: height)
 
                 let holiday = holidayNames[day]
-                let tone: DayTone
-                if holiday != nil || day.weekday == 0 {
-                    tone = .sundayOrHoliday
-                } else if day.weekday == 6 {
-                    tone = .saturday
-                } else {
-                    tone = .normal
-                }
+                let tone = LayoutMath.tone(of: day, holiday: holiday, workday: input.holidays.isWorkday(day))
                 labels.append(DateLabel(
                     day: day,
                     frame: CGRect(x: x + PaperSpec.cellInset, y: y + 4, width: PaperSpec.monthColumnWidth - 2 * PaperSpec.cellInset, height: 24),
@@ -123,7 +116,7 @@ public enum MonthLayoutEngine {
                         eventId: event.id,
                         frame: chipFrame(x: x, top: chipTop, index: i),
                         day: day,
-                        timeText: timeText(for: event, dayStart: dayStart, dayEnd: dayEnd, calendar: calendar),
+                        timeText: timeText(for: event, dayStart: dayStart, dayEnd: dayEnd, calendar: calendar, words: input.words),
                         title: event.title,
                         colorHex: event.colorHex,
                         moreCount: 0
@@ -135,7 +128,7 @@ public enum MonthLayoutEngine {
                         frame: chipFrame(x: x, top: chipTop, index: shown),
                         day: day,
                         timeText: "",
-                        title: "+\(more)件",
+                        title: input.words.more(more),
                         colorHex: "",
                         moreCount: more
                     ))
@@ -186,10 +179,10 @@ public enum MonthLayoutEngine {
     }
 
     /// "9:00" for an event starting on the day; "〜11:00" for the tail of an overnight event ending on
-    /// the day; "" when the event covers the whole day (same as the web version's chipTime).
-    public static func timeText(for event: LayoutEvent, dayStart: Date, dayEnd: Date, calendar: Calendar) -> String {
+    /// the day (`words.tail`); "" when the event covers the whole day (same as the web version's chipTime).
+    public static func timeText(for event: LayoutEvent, dayStart: Date, dayEnd: Date, calendar: Calendar, words: LayoutWords = .japanese) -> String {
         if event.start >= dayStart { return formatTime(event.start, calendar: calendar) }
-        if event.end < dayEnd { return "〜" + formatTime(event.end, calendar: calendar) }
+        if event.end < dayEnd { return words.tail(formatTime(event.end, calendar: calendar)) }
         return ""
     }
 

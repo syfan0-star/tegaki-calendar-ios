@@ -1,0 +1,1909 @@
+{
+  "language": "ko",
+  "strings": {
+    "CFBundleDisplayName": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "jaSha1": "13238f13b8",
+      "text": "캘린더의 일정을 플래너 페이지에 표시하고 손글씨로 일정을 만들기 위해 사용해요. iOS와 iPadOS에는 읽기 전용 권한이 없어서 전체 접근 권한을 요청해요. 일정은 이 기기 안에서만 다루고 외부로 보내지 않아요."
+    },
+    "account.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "취소"
+    },
+    "account.erase": {
+      "jaSha1": "6ef7cd2339",
+      "text": "손글씨를 지우고 시작하기"
+    },
+    "account.eraseConfirm": {
+      "jaSha1": "dc46858bb1",
+      "text": "지우고 시작"
+    },
+    "account.eraseMessage": {
+      "jaSha1": "1ac6edd119",
+      "text": "이 기기의 손글씨를 모두 지우고 새 계정으로 시작해요. 이 작업은 되돌릴 수 없어요."
+    },
+    "account.eraseTitle": {
+      "jaSha1": "262064ae64",
+      "text": "정말 지울까요?"
+    },
+    "account.keep": {
+      "jaSha1": "5d78137553",
+      "text": "손글씨를 남기고 시작하기"
+    },
+    "account.later": {
+      "jaSha1": "df045200ae",
+      "text": "나중에"
+    },
+    "account.message": {
+      "jaSha1": "6e7c1cebeb",
+      "text": "이 기기의 손글씨는 이전에 동기화하던 iCloud 계정의 것이에요. 지금 로그인한 계정으로 시작할까요? 손글씨를 남기면 새 계정의 iCloud로 보내져요."
+    },
+    "account.title": {
+      "jaSha1": "91817cbe3a",
+      "text": "다른 iCloud 계정이에요"
+    },
+    "alert.saveFailed.ok": {
+      "jaSha1": "9ce3bd4224",
+      "text": "확인"
+    },
+    "alert.saveFailed.title": {
+      "jaSha1": "8a5d15aaf6",
+      "text": "손글씨를 저장하지 못했어요"
+    },
+    "allday.bar.spoken": {
+      "jaSha1": "1d0c529b57",
+      "text": "%@(일정 편집)"
+    },
+    "allday.column.spoken": {
+      "jaSha1": "6af9fc756b",
+      "text": "%@에 종일 일정 추가"
+    },
+    "allday.label": {
+      "jaSha1": "32d20f0404",
+      "text": "종일"
+    },
+    "allday.label.short": {
+      "jaSha1": "32d20f0404",
+      "text": "종일"
+    },
+    "app.name": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "census.counting": {
+      "jaSha1": "1dd488ea29",
+      "text": "세는 중…"
+    },
+    "census.entry": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "census.legacyNote": {
+      "jaSha1": "bf7cf417c4",
+      "text": " (이전 버전의 기기에서는 일부가 표시되지 않아요)"
+    },
+    "census.noInk": {
+      "jaSha1": "1aaec544c9",
+      "text": "아직 손글씨가 없어요"
+    },
+    "demo.calendar.events": {
+      "jaSha1": "fadc771a23",
+      "text": "행사"
+    },
+    "demo.calendar.family": {
+      "jaSha1": "242e8e5c3f",
+      "text": "가족"
+    },
+    "demo.calendar.personal": {
+      "jaSha1": "6b75ef797f",
+      "text": "개인"
+    },
+    "demo.calendar.work": {
+      "jaSha1": "5dc4a4fa47",
+      "text": "업무"
+    },
+    "demo.event.birthday": {
+      "jaSha1": "b981696f04",
+      "text": "생일"
+    },
+    "demo.event.businessTrip": {
+      "jaSha1": "b7d0bc0c45",
+      "text": "오사카"
+    },
+    "demo.event.call": {
+      "jaSha1": "7177787c6e",
+      "text": "전화"
+    },
+    "demo.event.camping": {
+      "jaSha1": "9d73266cbc",
+      "text": "캠핑"
+    },
+    "demo.event.checkup": {
+      "jaSha1": "2fa9b336f7",
+      "text": "건강검진"
+    },
+    "demo.event.clinic": {
+      "jaSha1": "fc22aa3319",
+      "text": "병원"
+    },
+    "demo.event.deadline": {
+      "jaSha1": "9a0d4974c7",
+      "text": "마감"
+    },
+    "demo.event.dentalCheck": {
+      "jaSha1": "7878d7a463",
+      "text": "치과"
+    },
+    "demo.event.dentist": {
+      "jaSha1": "0ab9b459d7",
+      "text": "치과 진료"
+    },
+    "demo.event.drinks": {
+      "jaSha1": "1ac9ff3f82",
+      "text": "회식"
+    },
+    "demo.event.familyTrip": {
+      "jaSha1": "7d72df1137",
+      "text": "가족 여행"
+    },
+    "demo.event.farewell": {
+      "jaSha1": "68f7e087cf",
+      "text": "송별회"
+    },
+    "demo.event.lunch": {
+      "jaSha1": "86ae0d89c5",
+      "text": "점심"
+    },
+    "demo.event.meeting": {
+      "jaSha1": "950306f34c",
+      "text": "회의"
+    },
+    "demo.event.morningMeeting": {
+      "jaSha1": "cd3756c357",
+      "text": "아침 회의"
+    },
+    "demo.event.oneOnOne": {
+      "jaSha1": "572d330eae",
+      "text": "면담"
+    },
+    "demo.event.payday": {
+      "jaSha1": "a6d79abf16",
+      "text": "월급날"
+    },
+    "demo.event.report": {
+      "jaSha1": "a169adf953",
+      "text": "자료 제출"
+    },
+    "demo.event.reportDeadline": {
+      "jaSha1": "687b31ee31",
+      "text": "제출 마감"
+    },
+    "demo.event.review": {
+      "jaSha1": "3c5ba2f1b6",
+      "text": "리뷰"
+    },
+    "demo.event.sportsDay": {
+      "jaSha1": "5af51095ee",
+      "text": "운동회"
+    },
+    "demo.event.trashDay": {
+      "jaSha1": "4e6d520e09",
+      "text": "쓰레기 날"
+    },
+    "demo.event.weeklyMeeting": {
+      "jaSha1": "a2e915ee1e",
+      "text": "주간 회의"
+    },
+    "demo.source": {
+      "jaSha1": "4a37aeaa33",
+      "text": "샘플"
+    },
+    "event.allDay": {
+      "jaSha1": "32d20f0404",
+      "text": "하루 종일"
+    },
+    "event.calendar": {
+      "jaSha1": "340ba3962c",
+      "text": "캘린더"
+    },
+    "event.calendarReadOnlyNote": {
+      "jaSha1": "eb0c4e3fe3",
+      "text": "이 캘린더는 변경할 수 없어요(읽기 전용)"
+    },
+    "event.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "취소"
+    },
+    "event.close": {
+      "jaSha1": "3da5c18551",
+      "text": "닫기"
+    },
+    "event.delete": {
+      "jaSha1": "5cbdf1fd70",
+      "text": "삭제"
+    },
+    "event.deleteConfirm": {
+      "jaSha1": "c23c94d93d",
+      "text": "이 일정을 삭제할까요?"
+    },
+    "event.end": {
+      "jaSha1": "ecc8edea5c",
+      "text": "종료"
+    },
+    "event.endDay": {
+      "jaSha1": "1c64938200",
+      "text": "종료일"
+    },
+    "event.eraseInk": {
+      "jaSha1": "60d0d1143a",
+      "text": "이 손글씨 지우기"
+    },
+    "event.error.calendarNotFound": {
+      "jaSha1": "b116d40631",
+      "text": "일정을 넣을 캘린더를 찾을 수 없어요"
+    },
+    "event.error.emptyTitle": {
+      "jaSha1": "47022bc333",
+      "text": "제목을 입력해 주세요"
+    },
+    "event.error.endBeforeStart": {
+      "jaSha1": "d5d0c3dc80",
+      "text": "종료는 시작보다 뒤여야 해요"
+    },
+    "event.error.endDayBeforeStart": {
+      "jaSha1": "b8f6d47283",
+      "text": "종료일은 시작일 이후여야 해요"
+    },
+    "event.error.eventNotFound": {
+      "jaSha1": "d9066009ab",
+      "text": "일정을 찾을 수 없어요(다른 기기에서 삭제되었을 수 있어요)"
+    },
+    "event.error.failed": {
+      "jaSha1": "67da494bf8",
+      "text": "저장하지 못했어요: %@"
+    },
+    "event.error.noAccess": {
+      "jaSha1": "b0733802ca",
+      "text": "캘린더 접근이 허용되지 않았어요"
+    },
+    "event.error.noWritableCalendar": {
+      "jaSha1": "41d7eee11d",
+      "text": "일정을 추가할 수 있는 캘린더가 없어요"
+    },
+    "event.error.readOnlyCalendar": {
+      "jaSha1": "73cb30320e",
+      "text": "이 캘린더는 변경할 수 없어요"
+    },
+    "event.location": {
+      "jaSha1": "07c4e81b27",
+      "text": "위치"
+    },
+    "event.notes": {
+      "jaSha1": "9060a06d59",
+      "text": "메모"
+    },
+    "event.recurringNote": {
+      "jaSha1": "87717ca117",
+      "text": "반복 일정이에요. 저장하거나 삭제할 때 ‘이번만’ 또는 ‘이후 모두’를 선택해요"
+    },
+    "event.save": {
+      "jaSha1": "fadf24dbc5",
+      "text": "저장"
+    },
+    "event.saveFailed": {
+      "jaSha1": "babde2eaee",
+      "text": "저장하지 못했어요"
+    },
+    "event.saving": {
+      "jaSha1": "6644f06197",
+      "text": "저장 중…"
+    },
+    "event.scribbleNote": {
+      "jaSha1": "39f61b9472",
+      "text": "Apple Pencil로 칸 위에 쓰면 문자로 변환돼요(손글씨 입력)"
+    },
+    "event.snapshotCaption": {
+      "jaSha1": "48fcac2b68",
+      "text": "쓴 내용"
+    },
+    "event.start": {
+      "jaSha1": "a95bf2fed6",
+      "text": "시작"
+    },
+    "event.startDay": {
+      "jaSha1": "f4850c3619",
+      "text": "시작일"
+    },
+    "event.subscribe": {
+      "jaSha1": "95a3390dcc",
+      "text": "구독"
+    },
+    "event.subscriptionNote": {
+      "jaSha1": "7135ad9680",
+      "text": "구독하면 일정을 만들고 편집할 수 있어요."
+    },
+    "event.title.create": {
+      "jaSha1": "f0037cac7f",
+      "text": "일정 추가"
+    },
+    "event.title.detail": {
+      "jaSha1": "107f0ad4e5",
+      "text": "일정 세부 정보"
+    },
+    "event.title.edit": {
+      "jaSha1": "ed645245ce",
+      "text": "일정 편집"
+    },
+    "event.titleHeader": {
+      "jaSha1": "47b4753f22",
+      "text": "제목"
+    },
+    "event.titlePlaceholder": {
+      "jaSha1": "7126a9af93",
+      "text": "여기에 펜으로 쓰면 문자가 돼요"
+    },
+    "event.untitled": {
+      "jaSha1": "89e1d46903",
+      "text": "(제목 없음)"
+    },
+    "event.when.dateTime": {
+      "jaSha1": "8d677dd5f1",
+      "text": "%1$@ %2$@"
+    },
+    "export.close": {
+      "jaSha1": "3da5c18551",
+      "text": "닫기"
+    },
+    "export.done.json.one": {
+      "jaSha1": "abd27ccfd0",
+      "text": "%1$@(%2$@페이지 · %3$@)"
+    },
+    "export.done.json.other": {
+      "jaSha1": "abd27ccfd0",
+      "text": "%1$@(%2$@페이지 · %3$@)"
+    },
+    "export.done.pdf": {
+      "jaSha1": "f69c7bc18a",
+      "text": "%1$@(%2$@)"
+    },
+    "export.done.title": {
+      "jaSha1": "c019c70790",
+      "text": "내보냈어요"
+    },
+    "export.error.closed": {
+      "jaSha1": "1d285e5b75",
+      "text": "파일이 닫혀 있어요"
+    },
+    "export.error.createFailed": {
+      "jaSha1": "c21b458906",
+      "text": "파일을 만들 수 없어요: %@"
+    },
+    "export.failed": {
+      "jaSha1": "caadfe6b0a",
+      "text": "내보내지 못했어요: %@"
+    },
+    "export.json.note": {
+      "jaSha1": "8ecc87d9f4",
+      "text": "이 기기에 저장된 손글씨를 모두 파일 1개로 모아요. 설정 > 데이터 > ‘웹 버전 손글씨 가져오기’에서 다시 가져올 수 있어요(가져오기는 구독 중에 쓸 수 있어요)."
+    },
+    "export.json.title": {
+      "jaSha1": "9ff79abfce",
+      "text": "데이터 파일(JSON, 모든 페이지)"
+    },
+    "export.nothing": {
+      "jaSha1": "4c53d27de4",
+      "text": "내보낼 손글씨가 없어요"
+    },
+    "export.pdf.building": {
+      "jaSha1": "fb0729638c",
+      "text": "PDF를 만드는 중…"
+    },
+    "export.pdf.note": {
+      "jaSha1": "c1493af6d7",
+      "text": "지금 열려 있는 페이지(%1$@ · %2$@)를 PDF 1장으로 만들어요. 종이, 일정, 공휴일, 손글씨가 화면 그대로 들어가요."
+    },
+    "export.pdf.title": {
+      "jaSha1": "6ef95e0e2b",
+      "text": "이 페이지를 PDF로"
+    },
+    "export.progress.one": {
+      "jaSha1": "4960350917",
+      "text": "내보내는 중… %1$@ / %2$@페이지"
+    },
+    "export.progress.other": {
+      "jaSha1": "4960350917",
+      "text": "내보내는 중… %1$@ / %2$@페이지"
+    },
+    "export.renderFailed": {
+      "jaSha1": "05dcb5860d",
+      "text": "PDF를 만들지 못했어요"
+    },
+    "export.share": {
+      "jaSha1": "0fa94f1957",
+      "text": "공유…"
+    },
+    "export.title": {
+      "jaSha1": "bed7b93489",
+      "text": "손글씨 내보내기"
+    },
+    "export.writeFailed": {
+      "jaSha1": "2764349d08",
+      "text": "파일을 쓰지 못했어요: %@"
+    },
+    "header.addEvent": {
+      "jaSha1": "eb000e9544",
+      "text": "일정"
+    },
+    "header.addEvent.spoken": {
+      "jaSha1": "f0037cac7f",
+      "text": "일정 추가"
+    },
+    "header.day.spoken": {
+      "jaSha1": "d29f0447e2",
+      "text": "%1$@(일 페이지 열기)"
+    },
+    "header.month.spoken": {
+      "jaSha1": "e5e6e5a89d",
+      "text": "%1$@(월 페이지 열기)"
+    },
+    "header.next.day": {
+      "jaSha1": "28753d5ded",
+      "text": "다음 날"
+    },
+    "header.next.month": {
+      "jaSha1": "1bff85ad86",
+      "text": "다음 달"
+    },
+    "header.next.week": {
+      "jaSha1": "1569e4d9a4",
+      "text": "다음 주"
+    },
+    "header.next.year": {
+      "jaSha1": "17daff90cc",
+      "text": "다음 해"
+    },
+    "header.picker.day": {
+      "jaSha1": "15917f3b32",
+      "text": "일"
+    },
+    "header.picker.month": {
+      "jaSha1": "d9b59879f3",
+      "text": "월"
+    },
+    "header.picker.spoken": {
+      "jaSha1": "586d6bed3d",
+      "text": "보기 전환"
+    },
+    "header.picker.week": {
+      "jaSha1": "c7803dadcd",
+      "text": "주"
+    },
+    "header.picker.year": {
+      "jaSha1": "6f14c2641c",
+      "text": "연"
+    },
+    "header.pickerItem.day": {
+      "jaSha1": "1b494df9d8",
+      "text": "일 보기"
+    },
+    "header.pickerItem.month": {
+      "jaSha1": "90160fc70e",
+      "text": "월 보기"
+    },
+    "header.pickerItem.week": {
+      "jaSha1": "80004acfce",
+      "text": "주 보기"
+    },
+    "header.pickerItem.year": {
+      "jaSha1": "f947802a99",
+      "text": "연 보기"
+    },
+    "header.previous.day": {
+      "jaSha1": "f6f002ec19",
+      "text": "이전 날"
+    },
+    "header.previous.month": {
+      "jaSha1": "192afd5d18",
+      "text": "이전 달"
+    },
+    "header.previous.week": {
+      "jaSha1": "b1845477ef",
+      "text": "이전 주"
+    },
+    "header.previous.year": {
+      "jaSha1": "edc3eea346",
+      "text": "이전 해"
+    },
+    "header.readOnly.spoken": {
+      "jaSha1": "b0395af688",
+      "text": "보기 전용. 구독 안내 열기"
+    },
+    "header.settings.spoken": {
+      "jaSha1": "6329f21c41",
+      "text": "설정"
+    },
+    "header.sync.spoken": {
+      "jaSha1": "cdb5883a5b",
+      "text": "동기화: %@"
+    },
+    "header.today": {
+      "jaSha1": "574cd4fb79",
+      "text": "오늘"
+    },
+    "holidayPicker.auto": {
+      "jaSha1": "f841a4d98b",
+      "text": "자동(이 기기의 지역: %@)"
+    },
+    "holidayPicker.countries": {
+      "jaSha1": "9ba0c03013",
+      "text": "국가 또는 지역"
+    },
+    "holidayPicker.deviceRegion": {
+      "jaSha1": "853387474c",
+      "text": "이 기기의 지역: %@"
+    },
+    "holidayPicker.localAreas": {
+      "jaSha1": "4a2a3e77ae",
+      "text": "기타 지역(도시 등)"
+    },
+    "holidayPicker.none": {
+      "jaSha1": "1a2e920ba7",
+      "text": "없음"
+    },
+    "holidayPicker.search": {
+      "jaSha1": "244732de94",
+      "text": "국가 또는 지역 검색"
+    },
+    "holidayPicker.subdivisionHint": {
+      "jaSha1": "2504fd39f6",
+      "text": "주나 지역을 선택하면 그 지역의 공휴일이 추가돼요"
+    },
+    "holidayPicker.subdivisions": {
+      "jaSha1": "4b9e4db03c",
+      "text": "주 또는 지역"
+    },
+    "holidayPicker.subdivisions.footer": {
+      "jaSha1": "7ca56ba8aa",
+      "text": "주와 지역의 이름은 데이터에 있는 그대로(영어 또는 현지 언어) 표시해요."
+    },
+    "holidayPicker.title": {
+      "jaSha1": "445c8551f9",
+      "text": "표시할 공휴일"
+    },
+    "holidayPicker.wholeCountry": {
+      "jaSha1": "0cfaa11569",
+      "text": "국가 전체"
+    },
+    "import.close": {
+      "jaSha1": "3da5c18551",
+      "text": "닫기"
+    },
+    "import.confirmLarge.cancel": {
+      "jaSha1": "18ca8614b7",
+      "text": "취소"
+    },
+    "import.confirmLarge.import": {
+      "jaSha1": "383cf95339",
+      "text": "가져오기"
+    },
+    "import.confirmLarge.more.one": {
+      "jaSha1": "011dbddd20",
+      "text": "외 %@페이지"
+    },
+    "import.confirmLarge.more.other": {
+      "jaSha1": "011dbddd20",
+      "text": "외 %@페이지"
+    },
+    "import.confirmLarge.separator": {
+      "jaSha1": "611e057fbc",
+      "text": ","
+    },
+    "import.confirmLarge.text": {
+      "jaSha1": "750c7e4709",
+      "text": "가져오면 선이 %1$@개를 넘는 페이지가 생겨요(%2$@). 이 버전에서는 모두 표시되지만, 이전 버전의 기기에서는 일부가 표시되지 않아요. 가져올까요?"
+    },
+    "import.confirmLarge.title": {
+      "jaSha1": "fde96141cf",
+      "text": "선이 아주 많은 페이지가 있어요"
+    },
+    "import.invalidJSON": {
+      "jaSha1": "2cdc2663c0",
+      "text": "파일을 읽지 못했어요"
+    },
+    "import.notAnExport": {
+      "jaSha1": "1fb7848e1d",
+      "text": "이 파일은 손글씨 내보내기 파일(웹 버전 또는 이 앱)이 아니에요"
+    },
+    "import.nothing": {
+      "jaSha1": "a692889f9f",
+      "text": "가져올 것이 없어요(모두 가져왔어요)"
+    },
+    "import.otherWeekStart.monday": {
+      "jaSha1": "c273d00aff",
+      "text": "가져온 주 페이지의 일부는 한 주의 첫째 날을 월요일로 하면 보여요."
+    },
+    "import.otherWeekStart.sunday": {
+      "jaSha1": "56ce607cfd",
+      "text": "가져온 주 페이지의 일부는 한 주의 첫째 날을 일요일로 하면 보여요."
+    },
+    "import.progress.one": {
+      "jaSha1": "2c2cacba2a",
+      "text": "가져오는 중… %1$@ / %2$@페이지"
+    },
+    "import.progress.other": {
+      "jaSha1": "2c2cacba2a",
+      "text": "가져오는 중… %1$@ / %2$@페이지"
+    },
+    "import.progress.reading": {
+      "jaSha1": "371d47654d",
+      "text": "가져오는 중…"
+    },
+    "import.result.app": {
+      "jaSha1": "9d6328f350",
+      "text": "손글씨를 가져왔어요(%1$@ · %2$@)"
+    },
+    "import.result.pages.one": {
+      "jaSha1": "e0587d9fa6",
+      "text": "%@페이지"
+    },
+    "import.result.pages.other": {
+      "jaSha1": "e0587d9fa6",
+      "text": "%@페이지"
+    },
+    "import.result.strokes.one": {
+      "jaSha1": "9a1af826b4",
+      "text": "선 %@개"
+    },
+    "import.result.strokes.other": {
+      "jaSha1": "9a1af826b4",
+      "text": "선 %@개"
+    },
+    "import.result.web": {
+      "jaSha1": "077f7c0956",
+      "text": "웹 버전의 손글씨를 가져왔어요(%1$@ · %2$@)"
+    },
+    "import.saveFailed": {
+      "jaSha1": "67da494bf8",
+      "text": "저장하지 못했어요: %@"
+    },
+    "import.skipped.one": {
+      "jaSha1": "dc583f5a8b",
+      "text": "%@페이지는 대상이 아니어서 건너뛰었어요"
+    },
+    "import.skipped.other": {
+      "jaSha1": "dc583f5a8b",
+      "text": "%@페이지는 대상이 아니어서 건너뛰었어요"
+    },
+    "import.title": {
+      "jaSha1": "6996e64bb2",
+      "text": "웹 버전 손글씨 가져오기"
+    },
+    "import.unsupportedVersion": {
+      "jaSha1": "17375b2f9d",
+      "text": "이 파일은 새로운 형식이에요(v%@). 앱을 업데이트해 주세요"
+    },
+    "info.translationNote": {
+      "jaSha1": "759b80ff62",
+      "text": "이 앱의 번역은 AI로 만들었고, 일본어로 다시 번역해서 확인했어요. 아직 원어민의 검토는 받지 않았어요. 오류를 발견하면 syfan0@gmail.com으로 알려 주세요."
+    },
+    "kit.app.name": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "kit.budget.count.one": {
+      "jaSha1": "9a1af826b4",
+      "text": "선 %@개"
+    },
+    "kit.budget.count.other": {
+      "jaSha1": "9a1af826b4",
+      "text": "선 %@개"
+    },
+    "kit.budget.page.day": {
+      "jaSha1": "4ed1d179a0",
+      "text": "일 페이지(%@)"
+    },
+    "kit.budget.page.month": {
+      "jaSha1": "40568f61af",
+      "text": "월 페이지(%@)"
+    },
+    "kit.budget.page.week": {
+      "jaSha1": "0026a4ade1",
+      "text": "주 페이지(%@)"
+    },
+    "kit.budget.page.year": {
+      "jaSha1": "9e1122aeb8",
+      "text": "연 페이지(%@)"
+    },
+    "kit.export.jsonFileName": {
+      "jaSha1": "21f0bc85ac",
+      "text": "Tegaki 손글씨 %@.json"
+    },
+    "kit.export.kind.day": {
+      "jaSha1": "15917f3b32",
+      "text": "일"
+    },
+    "kit.export.kind.month": {
+      "jaSha1": "d9b59879f3",
+      "text": "월"
+    },
+    "kit.export.kind.week": {
+      "jaSha1": "c7803dadcd",
+      "text": "주"
+    },
+    "kit.export.kind.year": {
+      "jaSha1": "6f14c2641c",
+      "text": "연"
+    },
+    "kit.holiday.dayOff": {
+      "jaSha1": "5a5955b142",
+      "text": "쉬는 날"
+    },
+    "kit.holiday.estimatedSuffix": {
+      "jaSha1": "e3372f0c89",
+      "text": " (추정)"
+    },
+    "kit.layout.more.one": {
+      "jaSha1": "388c67a943",
+      "text": "+%@개"
+    },
+    "kit.layout.more.other": {
+      "jaSha1": "388c67a943",
+      "text": "+%@개"
+    },
+    "kit.legal.appleEULATitle": {
+      "jaSha1": "d162aab7fe",
+      "text": "이용 약관(Apple 표준 EULA)"
+    },
+    "kit.plan.badge.readOnly": {
+      "jaSha1": "299ac5001a",
+      "text": "보기 전용"
+    },
+    "kit.plan.cancelPath": {
+      "jaSha1": "8e172357e5",
+      "text": "설정 > 사용자의 이름 > 구독"
+    },
+    "kit.plan.date.expires": {
+      "jaSha1": "f0ba49ce31",
+      "text": "만료일"
+    },
+    "kit.plan.date.graceUntil": {
+      "jaSha1": "595ab42814",
+      "text": "유예 기간 종료"
+    },
+    "kit.plan.date.renews": {
+      "jaSha1": "5b07c58b47",
+      "text": "다음 갱신"
+    },
+    "kit.plan.date.trialEnds": {
+      "jaSha1": "78bd16814b",
+      "text": "체험 종료"
+    },
+    "kit.plan.date.trialEndsPaid": {
+      "jaSha1": "334c23c918",
+      "text": "체험 종료(이후 유료로 전환)"
+    },
+    "kit.plan.monthly": {
+      "jaSha1": "b0587b0eda",
+      "text": "월간"
+    },
+    "kit.plan.note.billingRetry": {
+      "jaSha1": "b86158d941",
+      "text": "결제에 문제가 있어요. %@에서 결제 방법을 확인해 주세요."
+    },
+    "kit.plan.note.expired": {
+      "jaSha1": "ab6b9caeaa",
+      "text": "구독이 만료되었어요."
+    },
+    "kit.plan.note.notSubscribed": {
+      "jaSha1": "1ac2ddad19",
+      "text": "아직 구독하지 않았어요."
+    },
+    "kit.plan.note.revoked": {
+      "jaSha1": "52a7e70442",
+      "text": "구입이 환불되었거나 취소되었어요."
+    },
+    "kit.plan.note.unknown": {
+      "jaSha1": "9a244ec99d",
+      "text": "구입 상태를 확인하지 못했어요. 인터넷에 다시 연결되면 자동으로 확인해요."
+    },
+    "kit.plan.paymentPath": {
+      "jaSha1": "f6b64195fa",
+      "text": "설정 > 사용자의 이름 > 결제 및 배송"
+    },
+    "kit.plan.perPeriod.monthly": {
+      "jaSha1": "7a3bee7c87",
+      "text": "/월"
+    },
+    "kit.plan.perPeriod.yearly": {
+      "jaSha1": "414d548ef9",
+      "text": "/년"
+    },
+    "kit.plan.savings.one": {
+      "jaSha1": "a08243c355",
+      "text": "%@개월 절약"
+    },
+    "kit.plan.savings.other": {
+      "jaSha1": "a08243c355",
+      "text": "%@개월 절약"
+    },
+    "kit.plan.status.billingRetry": {
+      "jaSha1": "cef49ac1f3",
+      "text": "결제 문제(보기 전용)"
+    },
+    "kit.plan.status.expired": {
+      "jaSha1": "2f14adfb16",
+      "text": "만료됨(보기 전용)"
+    },
+    "kit.plan.status.notSubscribed": {
+      "jaSha1": "8660cd5b0b",
+      "text": "미구입(보기 전용)"
+    },
+    "kit.plan.status.revoked": {
+      "jaSha1": "b8a23ab7ca",
+      "text": "환불됨(보기 전용)"
+    },
+    "kit.plan.status.subscribed": {
+      "jaSha1": "a9a5550313",
+      "text": "%@ · 사용 중"
+    },
+    "kit.plan.status.subscribedGrace": {
+      "jaSha1": "e238bde0b0",
+      "text": "%@ · 결제 문제(유예 기간)"
+    },
+    "kit.plan.status.trial": {
+      "jaSha1": "15d24fc12b",
+      "text": "%@ · 체험 중"
+    },
+    "kit.plan.status.unknown": {
+      "jaSha1": "c789ee5664",
+      "text": "확인 중(보기 전용)"
+    },
+    "kit.plan.yearly": {
+      "jaSha1": "653f5f79ca",
+      "text": "연간"
+    },
+    "license.contributors": {
+      "jaSha1": "303fb674b8",
+      "text": "Contributors: %@"
+    },
+    "license.holidayData": {
+      "jaSha1": "3dca1f8623",
+      "text": "공휴일 데이터: python-holidays(MIT 라이선스)"
+    },
+    "notice.calendar.denied": {
+      "jaSha1": "ea5cc73d2c",
+      "text": "일정을 표시하려면 설정에서 캘린더를 ‘전체 접근’으로 설정해 주세요."
+    },
+    "notice.calendar.denied.openSettings": {
+      "jaSha1": "56b6cd2c1a",
+      "text": "설정 열기"
+    },
+    "notice.calendar.notDetermined": {
+      "jaSha1": "07a38bd187",
+      "text": "일정을 표시하려면 캘린더 접근을 허용해 주세요."
+    },
+    "notice.calendar.notDetermined.allow": {
+      "jaSha1": "b740f07401",
+      "text": "허용"
+    },
+    "notice.calendar.restricted": {
+      "jaSha1": "08d6f4ec1d",
+      "text": "이 기기에서는 캘린더 접근이 제한되어 있어요. 손글씨는 쓸 수 있어요."
+    },
+    "notice.readOnly.button": {
+      "jaSha1": "95a3390dcc",
+      "text": "구독"
+    },
+    "notice.readOnly.text": {
+      "jaSha1": "183091940d",
+      "text": "보기 전용이에요. 구독하면 손글씨와 일정 만들기를 쓸 수 있어요."
+    },
+    "onboarding.access.text": {
+      "jaSha1": "4ff6bcf2be",
+      "text": "다음 화면에서 캘린더의 ‘전체 접근’을 요청해요. 일정을 플래너 페이지에 표시하고 손글씨로 일정을 만들기 위해서예요.\n\niOS와 iPadOS에는 읽기 전용 권한이 없어서 전체 접근이 필요해요. 일정은 이 기기 안에서만 다루고, 개발자나 다른 누구에게도 보내지 않아요."
+    },
+    "onboarding.access.title": {
+      "jaSha1": "47388e7b3b",
+      "text": "캘린더 접근"
+    },
+    "onboarding.account.text": {
+      "jaSha1": "5dbfbae3d5",
+      "text": "이 앱은 이 기기의 ‘캘린더’에 있는 일정을 표시해요.\n\n%@"
+    },
+    "onboarding.account.title": {
+      "jaSha1": "bc46330e47",
+      "text": "캘린더 계정"
+    },
+    "onboarding.askPermission": {
+      "jaSha1": "1f2325f398",
+      "text": "권한 화면 표시"
+    },
+    "onboarding.dayPageTap": {
+      "jaSha1": "c243e7a23d",
+      "text": "연 페이지에서는 날짜나 왼쪽 끝의 숫자(이번 달의 그날)를, 월 페이지에서는 날짜 숫자를 손가락으로 탭하고, 주·월·연 페이지에서는 칸을 손가락으로 두 번 탭하면 그날의 페이지가 열려요."
+    },
+    "onboarding.icloud.text": {
+      "jaSha1": "3f2d0924e1",
+      "text": "손글씨는 이 기기와 사용자의 iCloud에 저장돼요. 다른 iPad와 iPhone에서도 같은 손글씨를 볼 수 있어요.\n\niCloud에 로그인하지 않았을 때는 이 기기 안에만 저장해요. iCloud 설정은 필요 없어요(이 기기에 로그인되어 있으면 자동으로 사용돼요).\n\n개발자는 손글씨를 볼 수 없어요. iCloud 저장 공간은 사용자의 것을 사용해요."
+    },
+    "onboarding.icloud.title": {
+      "jaSha1": "2ca100d6c2",
+      "text": "iCloud와 손글씨 저장"
+    },
+    "onboarding.next": {
+      "jaSha1": "e572295bb2",
+      "text": "다음"
+    },
+    "onboarding.openSettings": {
+      "jaSha1": "42b6a33aa6",
+      "text": "설정 앱 열기"
+    },
+    "onboarding.pen.text": {
+      "jaSha1": "cbfca1a23d",
+      "text": "Apple Pencil로 종이에 써요. 손가락은 스크롤, 두 손가락 확대·축소, 일정 탭에 써요. 손바닥이 닿아도 선이 그어지지 않아요.\n\n손가락으로도 쓰고 싶다면 도구 막대의 ‘손가락으로 쓰기’를 켜 주세요. Apple Pencil의 두 번 탭과 스퀴즈는 iPad의 설정 > Apple Pencil에서 선택한 동작대로 펜과 지우개를 전환해요.\n\n%@"
+    },
+    "onboarding.pen.title": {
+      "jaSha1": "3bbf69218f",
+      "text": "펜으로 쓰고, 손가락으로 움직이기"
+    },
+    "paper.freeMemo": {
+      "jaSha1": "b656a370a2",
+      "text": "자유 메모"
+    },
+    "paper.memo": {
+      "jaSha1": "9060a06d59",
+      "text": "메모"
+    },
+    "paywall.after.paid": {
+      "jaSha1": "7eed0f4ad1",
+      "text": "%@. 자동 갱신돼요. 언제든 해지할 수 있어요."
+    },
+    "paywall.after.trial": {
+      "jaSha1": "6e0bdb7186",
+      "text": "체험 후 %@. 언제든 해지할 수 있어요."
+    },
+    "paywall.billingRetryLead": {
+      "jaSha1": "b86158d941",
+      "text": "결제에 문제가 있어요. %@에서 결제 방법을 확인해 주세요."
+    },
+    "paywall.blockedLead": {
+      "jaSha1": "701899d4b5",
+      "text": "쓰기, 지우기, 일정 만들기는 구독이 필요해요."
+    },
+    "paywall.blockedTrial.one": {
+      "jaSha1": "b406d6cff8",
+      "text": " %@일 동안 무료로 체험할 수 있어요."
+    },
+    "paywall.blockedTrial.other": {
+      "jaSha1": "b406d6cff8",
+      "text": " %@일 동안 무료로 체험할 수 있어요."
+    },
+    "paywall.cta.buy": {
+      "jaSha1": "363f4becb9",
+      "text": "구입"
+    },
+    "paywall.cta.trial.one": {
+      "jaSha1": "97906f141e",
+      "text": "%@일 동안 무료로 체험"
+    },
+    "paywall.cta.trial.other": {
+      "jaSha1": "97906f141e",
+      "text": "%@일 동안 무료로 체험"
+    },
+    "paywall.disclosure.paid": {
+      "jaSha1": "668351dd92",
+      "text": "구독은 자동 갱신돼요. 현재 기간이 끝나기 최소 24시간 전까지 해지하지 않으면 같은 기간과 같은 가격으로 갱신되고 Apple 계정으로 청구돼요. 요금은 구입을 확인할 때 청구돼요. 해지는 기기의 %@에서 언제든 할 수 있어요. 해지해도 결제한 기간이 끝날 때까지 쓸 수 있어요."
+    },
+    "paywall.disclosure.trial": {
+      "jaSha1": "efebe5cf89",
+      "text": "구독은 자동 갱신돼요. 현재 기간이 끝나기 최소 24시간 전까지 해지하지 않으면 같은 기간과 같은 가격으로 갱신되고 Apple 계정으로 청구돼요. 요금은 무료 체험이 끝날 때 청구돼요. 해지는 기기의 %@에서 언제든 할 수 있어요. 해지해도 결제한 기간이 끝날 때까지 쓸 수 있어요."
+    },
+    "paywall.feature.events": {
+      "jaSha1": "4a8d61cb9c",
+      "text": "손글씨로 일정 만들기. 일정 만들기와 편집"
+    },
+    "paywall.feature.ink": {
+      "jaSha1": "0180b3f704",
+      "text": "손글씨(펜, 마커, 지우개, 올가미)"
+    },
+    "paywall.feature.sync": {
+      "jaSha1": "11b8cc250d",
+      "text": "iCloud로 iPad, iPhone과 동기화"
+    },
+    "paywall.intro": {
+      "jaSha1": "19bd09dd43",
+      "text": "iPad의 캘린더 위에 Apple Pencil로 자유롭게 쓸 수 있는 플래너예요."
+    },
+    "paywall.later": {
+      "jaSha1": "df045200ae",
+      "text": "나중에"
+    },
+    "paywall.manage": {
+      "jaSha1": "41d0800450",
+      "text": "구독 관리"
+    },
+    "paywall.noPriceNote": {
+      "jaSha1": "665739dcab",
+      "text": "가격을 가져올 수 없어요"
+    },
+    "paywall.privacy": {
+      "jaSha1": "6bc76e56df",
+      "text": "개인정보 처리방침"
+    },
+    "paywall.recommended": {
+      "jaSha1": "343a26d481",
+      "text": "추천"
+    },
+    "paywall.reload": {
+      "jaSha1": "60c8aac010",
+      "text": "다시 불러오기"
+    },
+    "paywall.restore": {
+      "jaSha1": "9f62acdacd",
+      "text": "구입 복원"
+    },
+    "paywall.revokedLead": {
+      "jaSha1": "d461a8cca5",
+      "text": "구입이 환불되었거나 취소되었어요. 다시 쓰려면 구독해 주세요."
+    },
+    "paywall.terms": {
+      "jaSha1": "5978cbf78a",
+      "text": "서비스 약관"
+    },
+    "paywall.title": {
+      "jaSha1": "5b2537ae89",
+      "text": "Tegaki"
+    },
+    "paywall.trialIneligible": {
+      "jaSha1": "05b3529c54",
+      "text": "무료 체험 대상이 아니에요(체험은 Apple 계정당 1회)."
+    },
+    "paywall.trialLead.one": {
+      "jaSha1": "512b357b5c",
+      "text": "%@일 동안 무료 체험."
+    },
+    "paywall.trialLead.other": {
+      "jaSha1": "512b357b5c",
+      "text": "%@일 동안 무료 체험."
+    },
+    "paywall.trialRest": {
+      "jaSha1": "5e25c1d75b",
+      "text": " 체험 기간이 끝나면 자동으로 유료가 돼요. 체험 중에 해지하면 요금이 청구되지 않아요."
+    },
+    "paywall.yearlyNote.both": {
+      "jaSha1": "7f2985ec8f",
+      "text": "월 %1$@ · %2$@"
+    },
+    "paywall.yearlyNote.perMonth": {
+      "jaSha1": "dcb5ff5c0d",
+      "text": "월 %@"
+    },
+    "recurrence.futureEvents": {
+      "jaSha1": "91127e54b9",
+      "text": "이후 모두"
+    },
+    "recurrence.message.delete": {
+      "jaSha1": "a993eb1c14",
+      "text": "이번만 삭제할까요? 이후 모두 삭제할까요?"
+    },
+    "recurrence.message.save": {
+      "jaSha1": "f88f4cb3a1",
+      "text": "이번만 변경할까요? 이후 모두에 적용할까요?"
+    },
+    "recurrence.thisEvent": {
+      "jaSha1": "1fd0e67574",
+      "text": "이번만"
+    },
+    "recurrence.title": {
+      "jaSha1": "e0bfa4b878",
+      "text": "반복 일정이에요"
+    },
+    "selection.delete": {
+      "jaSha1": "5cbdf1fd70",
+      "text": "삭제"
+    },
+    "selection.deselect": {
+      "jaSha1": "8c9d7fae5f",
+      "text": "선택 해제"
+    },
+    "selection.handwriting": {
+      "jaSha1": "137731cd40",
+      "text": "선택한 손글씨"
+    },
+    "selection.makeEvent": {
+      "jaSha1": "e82f097a14",
+      "text": "일정 만들기"
+    },
+    "settings.calendar.a11y.hidden": {
+      "jaSha1": "dc9c6d6082",
+      "text": "숨김"
+    },
+    "settings.calendar.a11y.shown": {
+      "jaSha1": "7431dbfdd2",
+      "text": "표시 중"
+    },
+    "settings.calendar.access.allow": {
+      "jaSha1": "b740f07401",
+      "text": "허용"
+    },
+    "settings.calendar.access.denied": {
+      "jaSha1": "f5d82753b7",
+      "text": "허용되지 않음"
+    },
+    "settings.calendar.access.full": {
+      "jaSha1": "3a1828c35b",
+      "text": "허용됨(전체 접근)"
+    },
+    "settings.calendar.access.notDetermined": {
+      "jaSha1": "866cd4d13b",
+      "text": "아직 허용하지 않음"
+    },
+    "settings.calendar.access.restricted": {
+      "jaSha1": "55bfb31527",
+      "text": "이 기기에서 제한됨"
+    },
+    "settings.calendar.access.title": {
+      "jaSha1": "47388e7b3b",
+      "text": "캘린더 접근"
+    },
+    "settings.calendar.access.writeOnly": {
+      "jaSha1": "9a7ad5f558",
+      "text": "추가만 가능(일정을 표시할 수 없음)"
+    },
+    "settings.calendar.default": {
+      "jaSha1": "241d4396d1",
+      "text": "새 일정을 넣을 캘린더"
+    },
+    "settings.calendar.empty": {
+      "jaSha1": "c0b03f339c",
+      "text": "캘린더가 없어요"
+    },
+    "settings.calendar.google.howTo": {
+      "jaSha1": "4f784db710",
+      "text": "Google 캘린더의 일정을 표시하려면 설정 앱에서 Google 계정을 추가해요.\n① 설정 > 앱 > 캘린더 > 캘린더 계정 > 계정 추가 > Google (iOS 및 iPadOS 17: 설정 > 캘린더 > 계정)\n② 캘린더 스위치 켜기\n③ 같은 화면의 ‘데이터 업데이트’에서 ‘15분마다’를 선택하면 일정이 더 빨리 반영돼요.\n\niCloud 캘린더만 쓴다면 이대로 괜찮아요."
+    },
+    "settings.calendar.google.title": {
+      "jaSha1": "c21e5b3670",
+      "text": "Google 캘린더를 쓰려면"
+    },
+    "settings.calendar.header": {
+      "jaSha1": "340ba3962c",
+      "text": "캘린더"
+    },
+    "settings.calendar.noAccess": {
+      "jaSha1": "ebd07f259a",
+      "text": "캘린더 접근을 허용하면 여기에 목록이 표시돼요"
+    },
+    "settings.calendar.otherSource": {
+      "jaSha1": "7c2281ce71",
+      "text": "기타"
+    },
+    "settings.calendar.shown": {
+      "jaSha1": "aaca081301",
+      "text": "표시할 캘린더"
+    },
+    "settings.data.erase.all": {
+      "jaSha1": "e2b84fa132",
+      "text": "모두 지우기"
+    },
+    "settings.data.erase.cancel": {
+      "jaSha1": "269b0f92e4",
+      "text": "취소"
+    },
+    "settings.data.erase.confirm": {
+      "jaSha1": "cc735c87c7",
+      "text": "지우기"
+    },
+    "settings.data.erase.question.cloud": {
+      "jaSha1": "0954331716",
+      "text": "이 기기와 iCloud에 저장한 손글씨를 모두 지울까요?"
+    },
+    "settings.data.erase.question.local": {
+      "jaSha1": "f58f48ea33",
+      "text": "이 기기에 저장한 손글씨를 모두 지울까요?"
+    },
+    "settings.data.erase.title": {
+      "jaSha1": "262064ae64",
+      "text": "정말 지울까요?"
+    },
+    "settings.data.erase.warning.cloud": {
+      "jaSha1": "0b38a215b2",
+      "text": "이 작업은 되돌릴 수 없어요. 다른 iPad와 iPhone의 손글씨도 지워져요."
+    },
+    "settings.data.erase.warning.local": {
+      "jaSha1": "5ec69d130c",
+      "text": "이 작업은 되돌릴 수 없어요."
+    },
+    "settings.data.eraseAll": {
+      "jaSha1": "265862104c",
+      "text": "이 기기의 손글씨 모두 지우기"
+    },
+    "settings.data.export": {
+      "jaSha1": "bed7b93489",
+      "text": "손글씨 내보내기"
+    },
+    "settings.data.exportFooter": {
+      "jaSha1": "546c7c7415",
+      "text": "‘손글씨 내보내기’는 이 기기에 저장된 손글씨를 데이터 파일(JSON) 1개로 만들거나, 지금 열려 있는 페이지를 PDF로 만들어요. 데이터 파일은 ‘웹 버전 손글씨 가져오기’로 다시 가져올 수 있어요(가져오기는 구독 중에 쓸 수 있어요)."
+    },
+    "settings.data.header": {
+      "jaSha1": "d4d63da93d",
+      "text": "데이터"
+    },
+    "settings.data.import": {
+      "jaSha1": "6996e64bb2",
+      "text": "웹 버전 손글씨 가져오기"
+    },
+    "settings.data.importFooter": {
+      "jaSha1": "dbd00b969d",
+      "text": "웹 버전의 설정에서 ‘手書きを書き出す（iPad アプリ用）’(iPad 앱용 손글씨 내보내기)을 실행한 다음, 그 파일을 선택해요. 같은 파일을 두 번 가져와도 손글씨가 중복되지 않아요."
+    },
+    "settings.data.lastImport": {
+      "jaSha1": "0b9222397e",
+      "text": "마지막 가져오기: %@"
+    },
+    "settings.done": {
+      "jaSha1": "1cae18a9a4",
+      "text": "완료"
+    },
+    "settings.holidays.footer": {
+      "jaSha1": "bb45537547",
+      "text": "일본의 공휴일은 이 앱이 계산해요(일본 내각부의 발표와 대조해서 확인했어요). 다른 나라의 공휴일은 공개 데이터(python-holidays)를 바탕으로 해요. 음력이나 이슬람력의 공휴일 등 일부는 추정이며 ‘(추정)’이라고 표시해요. 정부의 최신 발표와 다를 수 있어요. 공휴일 설정은 이 기기에만 저장해요."
+    },
+    "settings.holidays.header": {
+      "jaSha1": "d76d8613e8",
+      "text": "공휴일"
+    },
+    "settings.holidays.note.beforeNotice": {
+      "jaSha1": "4b9244a266",
+      "text": "%@년은 발표 전 추정"
+    },
+    "settings.holidays.note.join": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "settings.holidays.note.nationalOnly": {
+      "jaSha1": "873e79c96e",
+      "text": "전국 공통만"
+    },
+    "settings.holidays.note.nationalOnlyAuto": {
+      "jaSha1": "05614d7fe0",
+      "text": "전국 공통 공휴일만"
+    },
+    "settings.holidays.note.noData": {
+      "jaSha1": "2b5fdaaae1",
+      "text": "공휴일 데이터 없음"
+    },
+    "settings.holidays.note.noDataFrom": {
+      "jaSha1": "485a645652",
+      "text": "%@년 이후 데이터 없음"
+    },
+    "settings.holidays.row": {
+      "jaSha1": "445c8551f9",
+      "text": "표시할 공휴일"
+    },
+    "settings.holidays.value.auto": {
+      "jaSha1": "49561b4231",
+      "text": "자동(%@)"
+    },
+    "settings.holidays.value.autoNote": {
+      "jaSha1": "3b4ba4ad66",
+      "text": "자동(%1$@ · %2$@)"
+    },
+    "settings.holidays.value.none": {
+      "jaSha1": "1a2e920ba7",
+      "text": "없음"
+    },
+    "settings.holidays.value.regionNote": {
+      "jaSha1": "f69c7bc18a",
+      "text": "%1$@(%2$@)"
+    },
+    "settings.holidays.value.subdivision": {
+      "jaSha1": "e5b5cc8ef1",
+      "text": "%1$@ · %2$@"
+    },
+    "settings.info.footer": {
+      "jaSha1": "c6163bd215",
+      "text": "선의 수는 이 기기에 저장된 페이지를 센 거예요(어디로도 보내지 않아요). 한 페이지에 쓸 수 있는 선은 %@개까지예요."
+    },
+    "settings.info.header": {
+      "jaSha1": "d98f83b725",
+      "text": "정보"
+    },
+    "settings.info.largestPage": {
+      "jaSha1": "bb710bf988",
+      "text": "선이 가장 많은 페이지"
+    },
+    "settings.info.licenses": {
+      "jaSha1": "3ff3073d7e",
+      "text": "오픈 소스 라이선스"
+    },
+    "settings.info.privacy": {
+      "jaSha1": "6bc76e56df",
+      "text": "개인정보 처리방침"
+    },
+    "settings.info.support": {
+      "jaSha1": "449c69d777",
+      "text": "지원"
+    },
+    "settings.info.terms": {
+      "jaSha1": "5978cbf78a",
+      "text": "서비스 약관"
+    },
+    "settings.info.version": {
+      "jaSha1": "7b193c28d4",
+      "text": "버전"
+    },
+    "settings.info.yearPage": {
+      "jaSha1": "b0a81c3202",
+      "text": "올해의 연 페이지"
+    },
+    "settings.input.allowFinger": {
+      "jaSha1": "d3f8bf8e60",
+      "text": "손가락으로 쓰기"
+    },
+    "settings.input.allowFinger.footer": {
+      "jaSha1": "0ed7a17915",
+      "text": "켜면 손가락으로도 선을 그을 수 있어요. 끄면 손가락으로 스크롤과 탭을 해요. 손글씨는 iPad와 Apple Pencil로 쓰기에 알맞아요."
+    },
+    "settings.input.eraseAfterConvert": {
+      "jaSha1": "0a0cf64940",
+      "text": "일정으로 만든 손글씨 지우기"
+    },
+    "settings.input.eraseAfterConvert.footer": {
+      "jaSha1": "024590befb",
+      "text": "올가미로 둘러싼 손글씨를 일정으로 만든 뒤에 그 손글씨를 지울지 정하는 기본값이에요."
+    },
+    "settings.input.eraserAutoReturn.footer.pad": {
+      "jaSha1": "7d740e10cc",
+      "text": "지우개로 선을 지우고 손가락이나 Apple Pencil을 떼면 직전의 펜이나 마커로 돌아가요. Apple Pencil의 두 번 탭이나 스퀴즈로 선택한 지우개도 마찬가지예요."
+    },
+    "settings.input.eraserAutoReturn.footer.phone": {
+      "jaSha1": "2365e0a158",
+      "text": "지우개로 선을 지우고 손가락을 떼면 직전의 펜이나 마커로 돌아가요."
+    },
+    "settings.input.eraserAutoReturn.title": {
+      "jaSha1": "df8b74ebd3",
+      "text": "지운 뒤 펜으로 돌아가기"
+    },
+    "settings.input.header": {
+      "jaSha1": "ae5ceeefcd",
+      "text": "입력"
+    },
+    "settings.input.pencil": {
+      "jaSha1": "e5e3006f45",
+      "text": "Apple Pencil"
+    },
+    "settings.input.pencil.footer": {
+      "jaSha1": "b18fc2bf4e",
+      "text": "두 번 탭과 스퀴즈는 iPad의 설정 > Apple Pencil에서 선택한 동작을 따라요"
+    },
+    "settings.openSettingsApp": {
+      "jaSha1": "42b6a33aa6",
+      "text": "설정 앱 열기"
+    },
+    "settings.purchase.footer.cancel": {
+      "jaSha1": "0374921042",
+      "text": "해지는 기기의 %@에서 할 수 있어요. 해지해도 기간이 끝날 때까지 쓸 수 있어요."
+    },
+    "settings.purchase.footer.grace": {
+      "jaSha1": "1cb61098fc",
+      "text": "결제에 문제가 있어요. 기기의 %@에서 결제 방법을 확인해 주세요. 유예 기간이 끝날 때까지는 쓸 수 있어요."
+    },
+    "settings.purchase.footer.readOnly": {
+      "jaSha1": "d0794c08c0",
+      "text": "%@ 보기 전용에서는 일정과 손글씨 보기, 페이지 이동, 확대, iCloud에서 받기, 이 기기의 손글씨 모두 지우기, 손글씨 내보내기, 설정 변경을 할 수 있어요. 새로 쓰기, 지우기, 옮기기, 일정 만들기와 편집, 웹 버전에서 가져오기는 구독하면 쓸 수 있어요."
+    },
+    "settings.purchase.footer.trial": {
+      "jaSha1": "226bfc1627",
+      "text": "해지는 기기의 %@에서 할 수 있어요. 해지해도 기간이 끝날 때까지 쓸 수 있어요. 체험 중에 해지하면 요금이 청구되지 않아요."
+    },
+    "settings.purchase.header": {
+      "jaSha1": "234283a496",
+      "text": "구입"
+    },
+    "settings.purchase.manage": {
+      "jaSha1": "41d0800450",
+      "text": "구독 관리"
+    },
+    "settings.purchase.plan": {
+      "jaSha1": "6c5da7f995",
+      "text": "현재 플랜"
+    },
+    "settings.purchase.restore": {
+      "jaSha1": "9f62acdacd",
+      "text": "구입 복원"
+    },
+    "settings.purchase.subscribe": {
+      "jaSha1": "95a3390dcc",
+      "text": "구독"
+    },
+    "settings.purchase.trial.one": {
+      "jaSha1": "97906f141e",
+      "text": "%@일 동안 무료로 체험"
+    },
+    "settings.purchase.trial.other": {
+      "jaSha1": "97906f141e",
+      "text": "%@일 동안 무료로 체험"
+    },
+    "settings.sync.header": {
+      "jaSha1": "efacc27bc2",
+      "text": "동기화"
+    },
+    "settings.sync.icloud": {
+      "jaSha1": "b3d555701f",
+      "text": "iCloud 동기화"
+    },
+    "settings.sync.lastSync": {
+      "jaSha1": "b7a2bb0691",
+      "text": "마지막 동기화"
+    },
+    "settings.sync.lastSync.none": {
+      "jaSha1": "1cf9028423",
+      "text": "아직 없음"
+    },
+    "settings.sync.newAccount": {
+      "jaSha1": "4e99c82d7b",
+      "text": "새 계정으로 시작하기…"
+    },
+    "settings.sync.now": {
+      "jaSha1": "f24a940b08",
+      "text": "지금 동기화"
+    },
+    "settings.title": {
+      "jaSha1": "6329f21c41",
+      "text": "설정"
+    },
+    "settings.weekStart.auto": {
+      "jaSha1": "49561b4231",
+      "text": "자동(%@)"
+    },
+    "settings.weekStart.confirm.message.monday": {
+      "jaSha1": "47f0f2d981",
+      "text": "주 페이지는 월요일 시작과 일요일 시작이 서로 다른 페이지예요. 지금까지 쓴 주 손글씨는 일요일 시작으로 되돌릴 때까지 보이지 않아요(지워지지 않아요). 월 페이지의 손글씨는 같은 날짜의 칸으로 옮겨져요. 다만 앞뒤 달의 날짜 칸에 쓴 것은 일부가 되돌릴 때까지 보이지 않을 수 있어요(지워지지 않아요)."
+    },
+    "settings.weekStart.confirm.message.sunday": {
+      "jaSha1": "f3d8eed3b5",
+      "text": "주 페이지는 월요일 시작과 일요일 시작이 서로 다른 페이지예요. 지금까지 쓴 주 손글씨는 월요일 시작으로 되돌릴 때까지 보이지 않아요(지워지지 않아요). 월 페이지의 손글씨는 같은 날짜의 칸으로 옮겨져요. 다만 앞뒤 달의 날짜 칸에 쓴 것은 일부가 되돌릴 때까지 보이지 않을 수 있어요(지워지지 않아요)."
+    },
+    "settings.weekStart.confirm.ok.monday": {
+      "jaSha1": "de0f361701",
+      "text": "월요일로 설정"
+    },
+    "settings.weekStart.confirm.ok.sunday": {
+      "jaSha1": "a83187d517",
+      "text": "일요일로 설정"
+    },
+    "settings.weekStart.confirm.title.monday": {
+      "jaSha1": "f4346d1d39",
+      "text": "한 주의 첫째 날을 월요일로 설정할까요?"
+    },
+    "settings.weekStart.confirm.title.sunday": {
+      "jaSha1": "5744e4afba",
+      "text": "한 주의 첫째 날을 일요일로 설정할까요?"
+    },
+    "settings.weekStart.footer": {
+      "jaSha1": "bc58ea14c9",
+      "text": "자동은 기기의 지역을 따라요. 이 설정은 기기마다 따로 저장해요. 어느 기기에서나 같은 주 손글씨를 보려면 같은 설정으로 맞춰 주세요."
+    },
+    "settings.weekStart.monday": {
+      "jaSha1": "cfa48b4bcd",
+      "text": "월요일"
+    },
+    "settings.weekStart.otherPages.one": {
+      "jaSha1": "5c23d09236",
+      "text": "다른 한 주의 첫째 날(%1$@)의 주 페이지가 %2$@개 있어요. 전환하면 보여요."
+    },
+    "settings.weekStart.otherPages.other": {
+      "jaSha1": "5c23d09236",
+      "text": "다른 한 주의 첫째 날(%1$@)의 주 페이지가 %2$@개 있어요. 전환하면 보여요."
+    },
+    "settings.weekStart.sunday": {
+      "jaSha1": "c0a04a68b9",
+      "text": "일요일"
+    },
+    "settings.weekStart.title": {
+      "jaSha1": "5996fbb18c",
+      "text": "한 주의 첫째 날"
+    },
+    "store.error.productNotFound": {
+      "jaSha1": "a6f401a2bf",
+      "text": "상품을 찾을 수 없어요"
+    },
+    "store.error.unknownPurchaseResult": {
+      "jaSha1": "1cbf927b12",
+      "text": "구입 결과를 해석할 수 없어요"
+    },
+    "store.generic": {
+      "jaSha1": "06fdbe8b8a",
+      "text": "구입하지 못했어요(%@)"
+    },
+    "store.notAvailable": {
+      "jaSha1": "5f6340f7ac",
+      "text": "사용자의 지역에서는 이 플랜을 구입할 수 없어요"
+    },
+    "store.nothingToRestore": {
+      "jaSha1": "e14c78c3fb",
+      "text": "복원할 구입이 없어요. 구입할 때와 같은 Apple 계정으로 로그인했는지 확인해 주세요"
+    },
+    "store.offline": {
+      "jaSha1": "9f6b522a59",
+      "text": "App Store에 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요"
+    },
+    "store.pending": {
+      "jaSha1": "d53552c395",
+      "text": "승인 대기 중이에요. 승인되면 자동으로 쓸 수 있어요"
+    },
+    "store.productsUnavailable": {
+      "jaSha1": "47294f5e05",
+      "text": "App Store에서 가격을 가져오지 못했어요. 인터넷 연결을 확인하고 ‘다시 불러오기’를 눌러 주세요"
+    },
+    "store.purchased": {
+      "jaSha1": "e7731b38c7",
+      "text": "구독을 시작했어요. 감사합니다"
+    },
+    "store.restored": {
+      "jaSha1": "84c45a25b0",
+      "text": "구입을 복원했어요"
+    },
+    "store.trialStarted.one": {
+      "jaSha1": "d7345daa22",
+      "text": "%@일 무료 체험을 시작했어요"
+    },
+    "store.trialStarted.other": {
+      "jaSha1": "d7345daa22",
+      "text": "%@일 무료 체험을 시작했어요"
+    },
+    "store.unverified": {
+      "jaSha1": "d57ae3e91f",
+      "text": "구입을 확인하지 못했어요. 잠시 후 ‘구입 복원’을 시도해 주세요"
+    },
+    "sync.footer.accountMismatch": {
+      "jaSha1": "15a61a77c5",
+      "text": "이 기기의 손글씨는 이전에 동기화하던 iCloud 계정의 것이에요. ‘새 계정으로 시작하기’에서 선택해 주세요."
+    },
+    "sync.footer.noAccount": {
+      "jaSha1": "bc567caeb3",
+      "text": "iCloud에 로그인하면 다른 기기와 동기화할 수 있어요. 손글씨는 지금 이 기기 안에만 저장하고 있어요."
+    },
+    "sync.footer.offline": {
+      "jaSha1": "47076f38ce",
+      "text": "오프라인이에요. 손글씨는 이 기기에 저장되고, 연결이 돌아오면 동기화돼요."
+    },
+    "sync.footer.permission": {
+      "jaSha1": "dc8716fd26",
+      "text": "iCloud 설정에서 이 앱의 사용이 허용되지 않았어요."
+    },
+    "sync.footer.quota": {
+      "jaSha1": "059b200f79",
+      "text": "iCloud 저장 공간이 부족해서 손글씨를 동기화할 수 없어요. 이 기기에는 저장되어 있어요."
+    },
+    "sync.footer.restricted": {
+      "jaSha1": "66e7844350",
+      "text": "손글씨는 이 기기 안에만 저장하고 있어요."
+    },
+    "sync.footer.serverError": {
+      "jaSha1": "8b39c73031",
+      "text": "손글씨 동기화에 실패했어요. 이 기기에는 저장되어 있어요(나중에 다시 시도해요).\n%@"
+    },
+    "sync.footer.synced": {
+      "jaSha1": "68bfffdb52",
+      "text": "손글씨는 이 기기와 사용자의 iCloud에 저장되어 있어요. 다른 iPad와 iPhone에서도 같은 손글씨를 볼 수 있어요."
+    },
+    "sync.footer.syncing": {
+      "jaSha1": "3ddf4812c7",
+      "text": "쓴 손글씨를 iCloud로 보내는 중이에요."
+    },
+    "sync.footer.unknown": {
+      "jaSha1": "590acf48af",
+      "text": "설정 앱에서 iCloud를 확인해 주세요. 손글씨는 지금 이 기기 안에만 저장하고 있어요."
+    },
+    "sync.header.error": {
+      "jaSha1": "ec6399d678",
+      "text": "오류"
+    },
+    "sync.header.localOnly": {
+      "jaSha1": "bf8cd9d7c4",
+      "text": "이 기기만"
+    },
+    "sync.header.offline": {
+      "jaSha1": "d32cd8eb43",
+      "text": "오프라인"
+    },
+    "sync.header.saved": {
+      "jaSha1": "74e30e9189",
+      "text": "저장됨"
+    },
+    "sync.header.stopped": {
+      "jaSha1": "434eb8e2dc",
+      "text": "중지됨"
+    },
+    "sync.header.syncing": {
+      "jaSha1": "db56671e15",
+      "text": "동기화 중"
+    },
+    "sync.status.accountMismatch": {
+      "jaSha1": "91817cbe3a",
+      "text": "다른 iCloud 계정이에요"
+    },
+    "sync.status.noAccount": {
+      "jaSha1": "fde00f36ba",
+      "text": "iCloud에 로그인하지 않았어요"
+    },
+    "sync.status.offline": {
+      "jaSha1": "d32cd8eb43",
+      "text": "오프라인"
+    },
+    "sync.status.permission": {
+      "jaSha1": "b61baf5b05",
+      "text": "iCloud를 쓸 수 없어요"
+    },
+    "sync.status.quota": {
+      "jaSha1": "418eff91ef",
+      "text": "iCloud 저장 공간이 부족해요"
+    },
+    "sync.status.restricted": {
+      "jaSha1": "9e639f1dd0",
+      "text": "이 기기에서는 iCloud가 제한되어 있어요"
+    },
+    "sync.status.serverError": {
+      "jaSha1": "0ca7e52bca",
+      "text": "동기화 실패"
+    },
+    "sync.status.synced": {
+      "jaSha1": "268fa2341c",
+      "text": "동기화됨"
+    },
+    "sync.status.syncing": {
+      "jaSha1": "272ff52b3d",
+      "text": "동기화 중…"
+    },
+    "sync.status.unknown": {
+      "jaSha1": "e90e31922f",
+      "text": "iCloud를 확인할 수 없어요"
+    },
+    "toast.eraseCloudFailed": {
+      "jaSha1": "5fbe38989b",
+      "text": "iCloud의 손글씨를 지우지 못했어요. 이 기기의 손글씨는 지웠어요. 인터넷에 다시 연결되면 다시 시도해 주세요"
+    },
+    "toast.erased": {
+      "jaSha1": "dacc7265ce",
+      "text": "손글씨를 모두 지웠어요"
+    },
+    "toast.event.created": {
+      "jaSha1": "ef47c27162",
+      "text": "일정을 추가했어요"
+    },
+    "toast.event.deleted": {
+      "jaSha1": "2740fc4ddf",
+      "text": "일정을 삭제했어요"
+    },
+    "toast.event.noAccess": {
+      "jaSha1": "0538edc7d0",
+      "text": "일정을 추가하려면 설정에서 캘린더 접근을 허용해 주세요"
+    },
+    "toast.event.noCalendar": {
+      "jaSha1": "41d7eee11d",
+      "text": "일정을 추가할 수 있는 캘린더가 없어요"
+    },
+    "toast.event.updated": {
+      "jaSha1": "e9d0713de6",
+      "text": "일정을 업데이트했어요"
+    },
+    "toast.eventBelowDay": {
+      "jaSha1": "900c68f5ba",
+      "text": "24시 아래의 자유 메모 칸에서는 일정을 만들 수 없어요"
+    },
+    "toast.growthCap": {
+      "jaSha1": "a7416b4c53",
+      "text": "메모 칸은 여기까지예요"
+    },
+    "toast.pinchHint": {
+      "jaSha1": "b5c7aed169",
+      "text": "두 손가락을 벌리면 확대, 오므리면 축소돼요"
+    },
+    "toast.readOnly": {
+      "jaSha1": "b4a0045460",
+      "text": "보기 전용이에요. 쓰기, 지우기, 일정 만들기는 구독이 필요해요"
+    },
+    "toast.strokeBudget.full": {
+      "jaSha1": "6b0edb3d70",
+      "text": "이 페이지는 가득 찼어요(선 %@개). 선을 지우면 다시 쓸 수 있어요."
+    },
+    "toast.strokeBudget.many": {
+      "jaSha1": "c57434493e",
+      "text": "이 페이지의 선이 %1$@개를 넘었어요. 한 페이지에 쓸 수 있는 선은 %2$@개까지예요."
+    },
+    "toast.weekStart.adopted.monday": {
+      "jaSha1": "eb447c6607",
+      "text": "iCloud의 손글씨에 맞춰 한 주의 첫째 날을 월요일로 설정했어요. 설정에서 바꿀 수 있어요."
+    },
+    "toast.weekStart.adopted.sunday": {
+      "jaSha1": "019ff66d3b",
+      "text": "iCloud의 손글씨에 맞춰 한 주의 첫째 날을 일요일로 설정했어요. 설정에서 바꿀 수 있어요."
+    },
+    "toast.weekStart.hiddenInk.one": {
+      "jaSha1": "6e3424da82",
+      "text": "이 월 페이지에는 지금 설정에서 보이지 않는 날에 쓴 선이 %@개 있어요. 지워지지 않았어요. 되돌리면 보여요."
+    },
+    "toast.weekStart.hiddenInk.other": {
+      "jaSha1": "6e3424da82",
+      "text": "이 월 페이지에는 지금 설정에서 보이지 않는 날에 쓴 선이 %@개 있어요. 지워지지 않았어요. 되돌리면 보여요."
+    },
+    "toast.weekStart.otherForm.one": {
+      "jaSha1": "19ef2be677",
+      "text": "다른 한 주의 첫째 날(%1$@)의 주 페이지가 %2$@개 있어요. 지워지지 않았어요. 설정 > 한 주의 첫째 날에서 전환하면 보여요."
+    },
+    "toast.weekStart.otherForm.other": {
+      "jaSha1": "19ef2be677",
+      "text": "다른 한 주의 첫째 날(%1$@)의 주 페이지가 %2$@개 있어요. 지워지지 않았어요. 설정 > 한 주의 첫째 날에서 전환하면 보여요."
+    },
+    "toast.weekStart.regionChanged.monday": {
+      "jaSha1": "857c24a261",
+      "text": "기기의 지역에 맞춰 한 주의 첫째 날을 월요일로 설정했어요. 일요일 시작의 주 손글씨는 지워지지 않았어요."
+    },
+    "toast.weekStart.regionChanged.sunday": {
+      "jaSha1": "9883036f4f",
+      "text": "기기의 지역에 맞춰 한 주의 첫째 날을 일요일로 설정했어요. 월요일 시작의 주 손글씨는 지워지지 않았어요."
+    },
+    "toolbar.badge.marker": {
+      "jaSha1": "ebb1b50f6e",
+      "text": "마커, %@"
+    },
+    "toolbar.badge.pen": {
+      "jaSha1": "13beea0796",
+      "text": "펜, %@"
+    },
+    "toolbar.badge.penWidth": {
+      "jaSha1": "ddc2d03ed8",
+      "text": "펜, %1$@, %2$@"
+    },
+    "toolbar.collapse.spoken": {
+      "jaSha1": "e4488face7",
+      "text": "도구 막대 숨기기"
+    },
+    "toolbar.collapse.title": {
+      "jaSha1": "0addaa0b2b",
+      "text": "숨기기"
+    },
+    "toolbar.color.black": {
+      "jaSha1": "2c80764518",
+      "text": "검정"
+    },
+    "toolbar.color.blue": {
+      "jaSha1": "845d1da87f",
+      "text": "파랑"
+    },
+    "toolbar.color.green": {
+      "jaSha1": "f22758bf8f",
+      "text": "초록"
+    },
+    "toolbar.color.lightBlue": {
+      "jaSha1": "d2dddf0d44",
+      "text": "하늘색"
+    },
+    "toolbar.color.orange": {
+      "jaSha1": "831166ef4b",
+      "text": "주황"
+    },
+    "toolbar.color.pink": {
+      "jaSha1": "caaf2acdb2",
+      "text": "분홍"
+    },
+    "toolbar.color.purple": {
+      "jaSha1": "01caea5810",
+      "text": "보라"
+    },
+    "toolbar.color.red": {
+      "jaSha1": "72776ab68f",
+      "text": "빨강"
+    },
+    "toolbar.color.unknown": {
+      "jaSha1": "bc848e8fcb",
+      "text": "기타 색상"
+    },
+    "toolbar.color.yellow": {
+      "jaSha1": "7720f8ea0a",
+      "text": "노랑"
+    },
+    "toolbar.dock.hint.toLeft": {
+      "jaSha1": "700daf6c01",
+      "text": "길게 누르면 왼쪽 아래로 옮기거나 도구 막대를 항상 표시할 수 있어요"
+    },
+    "toolbar.dock.hint.toRight": {
+      "jaSha1": "5f09107ce2",
+      "text": "길게 누르면 오른쪽 아래로 옮기거나 도구 막대를 항상 표시할 수 있어요"
+    },
+    "toolbar.dock.spoken": {
+      "jaSha1": "89fd0adb46",
+      "text": "도구 막대 표시"
+    },
+    "toolbar.fingerToggle": {
+      "jaSha1": "d3f8bf8e60",
+      "text": "손가락으로 쓰기"
+    },
+    "toolbar.fingerToggle.hint": {
+      "jaSha1": "cb2be71b20",
+      "text": "켜면 손가락으로도 선을 그을 수 있어요. 끄면 손가락으로 스크롤과 탭을 해요"
+    },
+    "toolbar.hint.eraser": {
+      "jaSha1": "8b55191d18",
+      "text": "닿은 선을 통째로 지워요"
+    },
+    "toolbar.hint.eraser.toMarker": {
+      "jaSha1": "fb4c03b5e7",
+      "text": "닿은 선을 통째로 지워요\n(지우면 마커로 돌아가요)"
+    },
+    "toolbar.hint.eraser.toPen": {
+      "jaSha1": "8162be3abe",
+      "text": "닿은 선을 통째로 지워요\n(지우면 펜으로 돌아가요)"
+    },
+    "toolbar.hint.event": {
+      "jaSha1": "a72d576197",
+      "text": "따라 그리면 일정을 만들어요.\n일정을 탭하면 편집해요"
+    },
+    "toolbar.hint.lasso": {
+      "jaSha1": "c22a65bde9",
+      "text": "둘러싸서 선택해요.\n틀 안을 드래그해서 옮겨요"
+    },
+    "toolbar.moveEdge.toLeft": {
+      "jaSha1": "3390912dcc",
+      "text": "왼쪽 아래로 옮기기"
+    },
+    "toolbar.moveEdge.toRight": {
+      "jaSha1": "c37ead3ae2",
+      "text": "오른쪽 아래로 옮기기"
+    },
+    "toolbar.pin": {
+      "jaSha1": "16d003ddf3",
+      "text": "도구 막대 항상 표시"
+    },
+    "toolbar.redo": {
+      "jaSha1": "c06cea5e52",
+      "text": "실행 복귀"
+    },
+    "toolbar.tool.eraser": {
+      "jaSha1": "6e4f860f71",
+      "text": "지우개"
+    },
+    "toolbar.tool.event": {
+      "jaSha1": "eb000e9544",
+      "text": "일정"
+    },
+    "toolbar.tool.lasso": {
+      "jaSha1": "4f568822b5",
+      "text": "올가미"
+    },
+    "toolbar.tool.marker": {
+      "jaSha1": "786bef306d",
+      "text": "마커"
+    },
+    "toolbar.tool.pen": {
+      "jaSha1": "93943573d2",
+      "text": "펜"
+    },
+    "toolbar.undo": {
+      "jaSha1": "c7f325f13f",
+      "text": "실행 취소"
+    },
+    "toolbar.width.medium": {
+      "jaSha1": "0869071c92",
+      "text": "보통"
+    },
+    "toolbar.width.spoken": {
+      "jaSha1": "e8aa9aa6cb",
+      "text": "굵기: %@"
+    },
+    "toolbar.width.thick": {
+      "jaSha1": "d2ff8f7020",
+      "text": "굵게"
+    },
+    "toolbar.width.thin": {
+      "jaSha1": "a7c522dc20",
+      "text": "가늘게"
+    }
+  }
+}

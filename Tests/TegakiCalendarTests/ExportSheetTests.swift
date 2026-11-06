@@ -63,6 +63,14 @@ final class ExportSheetTests: XCTestCase {
     }
 
     func testByteText() {
+        // 1.2 (docs/M7B_CONTRACT.md §3.2): the numbers in the language's format, the units as they are; ja is 1.1's.
+        let german = NumberFormatter()
+        german.locale = UILanguage.de.locale()
+        german.numberStyle = .decimal
+        german.minimumFractionDigits = 1
+        XCTAssertEqual(ExportSheet.byteText(1_258_291, language: .de), (german.string(from: 1.2) ?? "") + " MB")
+        XCTAssertEqual(ExportSheet.byteText(524_288, language: .de), "512 KB")
+        XCTAssertEqual(ExportSheet.byteText(1_024 * 1_048_576, language: .ja), "1024.0 MB", "no grouping in Japanese (J-1)")
         XCTAssertEqual(ExportSheet.byteText(512), "512 B")
         XCTAssertEqual(ExportSheet.byteText(524_288), "512 KB")
         XCTAssertEqual(ExportSheet.byteText(1_258_291), "1.2 MB")

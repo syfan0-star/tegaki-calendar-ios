@@ -1,0 +1,972 @@
+{
+  "owner": "K",
+  "keys": {
+    "kit.weekday.letter.0": {
+      "ja": "日",
+      "target": "kit",
+      "comment": "曜日の記号（日曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "日",
+        "en": "Su",
+        "zh-Hans": "日",
+        "zh-Hant": "日",
+        "ko": "일",
+        "fr": "di",
+        "de": "So",
+        "es": "do",
+        "it": "do",
+        "pt-BR": "dom"
+      }
+    },
+    "kit.weekday.letter.1": {
+      "ja": "月",
+      "target": "kit",
+      "comment": "曜日の記号（月曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "月",
+        "en": "Mo",
+        "zh-Hans": "一",
+        "zh-Hant": "一",
+        "ko": "월",
+        "fr": "lu",
+        "de": "Mo",
+        "es": "lu",
+        "it": "lu",
+        "pt-BR": "seg"
+      }
+    },
+    "kit.weekday.letter.2": {
+      "ja": "火",
+      "target": "kit",
+      "comment": "曜日の記号（火曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "火",
+        "en": "Tu",
+        "zh-Hans": "二",
+        "zh-Hant": "二",
+        "ko": "화",
+        "fr": "ma",
+        "de": "Di",
+        "es": "ma",
+        "it": "ma",
+        "pt-BR": "ter"
+      }
+    },
+    "kit.weekday.letter.3": {
+      "ja": "水",
+      "target": "kit",
+      "comment": "曜日の記号（水曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "水",
+        "en": "We",
+        "zh-Hans": "三",
+        "zh-Hant": "三",
+        "ko": "수",
+        "fr": "me",
+        "de": "Mi",
+        "es": "mi",
+        "it": "me",
+        "pt-BR": "qua"
+      }
+    },
+    "kit.weekday.letter.4": {
+      "ja": "木",
+      "target": "kit",
+      "comment": "曜日の記号（木曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "木",
+        "en": "Th",
+        "zh-Hans": "四",
+        "zh-Hant": "四",
+        "ko": "목",
+        "fr": "je",
+        "de": "Do",
+        "es": "ju",
+        "it": "gi",
+        "pt-BR": "qui"
+      }
+    },
+    "kit.weekday.letter.5": {
+      "ja": "金",
+      "target": "kit",
+      "comment": "曜日の記号（金曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "金",
+        "en": "Fr",
+        "zh-Hans": "五",
+        "zh-Hant": "五",
+        "ko": "금",
+        "fr": "ve",
+        "de": "Fr",
+        "es": "vi",
+        "it": "ve",
+        "pt-BR": "sex"
+      }
+    },
+    "kit.weekday.letter.6": {
+      "ja": "土",
+      "target": "kit",
+      "comment": "曜日の記号（土曜）。年のマスの見出し・月の見出しの CJK の曜日・週の狭い列（§3.3、F-1、F-8、F-9）。契約が 10 言語の値を決めた（fixed）ので訳さない。1 字の記号（S M T W …）は使わない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "was": [
+        "Paper/YearPaper.swift:12",
+        "Views/StickyHeaderView.swift:34",
+        "Views/StickyHeaderView.swift:35",
+        "Export/PDFPageRenderer.swift:36"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "土",
+        "en": "Sa",
+        "zh-Hans": "六",
+        "zh-Hant": "六",
+        "ko": "토",
+        "fr": "sa",
+        "de": "Sa",
+        "es": "sá",
+        "it": "sa",
+        "pt-BR": "sáb"
+      }
+    },
+    "kit.date.ja.dayTitle": {
+      "ja": "%1$@年%2$@月%3$@日(%4$@)",
+      "target": "kit",
+      "comment": "日のページの題名の日付「2026年10月4日(日)」（祝日名は呼ぶ側が後ろに足す）と、日付の読み上げ（spokenDay）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:110",
+        "Views/EventDateText.swift:12"
+      ],
+      "args": [
+        "年",
+        "月",
+        "日",
+        "曜日の記号（kit.weekday.letter.*）"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.shortDay": {
+      "ja": "%1$@月%2$@日(%3$@)",
+      "target": "kit",
+      "comment": "短い日付「10月7日(水)」（iPhone の縦の見出しの日のページ、予定の終わりの日）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:134",
+        "Views/EventDateText.swift:21"
+      ],
+      "args": [
+        "月",
+        "日",
+        "曜日の記号（kit.weekday.letter.*）"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.monthTitle": {
+      "ja": "%1$@年%2$@月",
+      "target": "kit",
+      "comment": "月のページの題名「2026年10月」（compact も同じ）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:121"
+      ],
+      "args": [
+        "年",
+        "月"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.yearTitle": {
+      "ja": "%@年",
+      "target": "kit",
+      "comment": "年のページの題名「2026年」。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:123"
+      ],
+      "args": [
+        "年（区切りなしの数）"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.weekTitle": {
+      "ja": "%1$@年%2$@月%3$@日〜%4$@月%5$@日",
+      "target": "kit",
+      "comment": "週のページの題名「2026年9月28日〜10月4日」（週の最初の日から 7 日目まで。月曜始まりなら月曜から日曜、日曜始まりなら日曜から土曜。同じ年のとき）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:116",
+        "Layout/PageNavigation.swift:117",
+        "Layout/PageNavigation.swift:119"
+      ],
+      "args": [
+        "最初の日の年",
+        "最初の日の月",
+        "最初の日の日",
+        "最後の日の月",
+        "最後の日の日"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.weekTitleCrossYear": {
+      "ja": "%1$@年%2$@月%3$@日〜%4$@年%5$@月%6$@日",
+      "target": "kit",
+      "comment": "年をまたぐ週の題名「2026年12月28日〜2027年1月3日」（両側に年）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:116",
+        "Layout/PageNavigation.swift:117",
+        "Layout/PageNavigation.swift:118",
+        "Layout/PageNavigation.swift:119"
+      ],
+      "args": [
+        "最初の日の年",
+        "最初の日の月",
+        "最初の日の日",
+        "最後の日の年",
+        "最後の日の月",
+        "最後の日の日"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.weekTitleCompact": {
+      "ja": "%1$@/%2$@〜%3$@/%4$@",
+      "target": "kit",
+      "comment": "iPhone の縦の見出しの週の題名「9/28〜10/4」（年は書かない。年をまたいでも「12/28〜1/3」）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Layout/PageNavigation.swift:138"
+      ],
+      "args": [
+        "最初の日の月",
+        "最初の日の日",
+        "最後の日の月",
+        "最後の日の日"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.weekdayFull": {
+      "ja": "%@曜日",
+      "target": "kit",
+      "comment": "曜日の名前「水曜日」（日のページの見出し、WeekdayStyle.full）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Views/StickyHeaderView.swift:177"
+      ],
+      "args": [
+        "曜日の記号（kit.weekday.letter.*）"
+      ],
+      "jaOnly": true
+    },
+    "kit.date.ja.monthName": {
+      "ja": "%@月",
+      "target": "kit",
+      "comment": "月の名前「10月」（日のページの見出し・年のページの月の列・PDF。MonthNameStyle の short も full も同じ）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "Views/StickyHeaderView.swift:174",
+        "Views/StickyHeaderView.swift:208",
+        "Export/PDFPageRenderer.swift:256",
+        "Views/CalendarRootScreen.swift:1222"
+      ],
+      "args": [
+        "月"
+      ],
+      "jaOnly": true
+    },
+    "kit.layout.more.one": {
+      "ja": "+%@件",
+      "target": "kit",
+      "comment": "月のページのマスで、入りきらない時刻の予定の数のチップ（「+3件」）。%@ は隠れた予定の数（2 以上）。one は 1 のときの形（0-8 の規則の言語だけで使う。ja・ko・zh は other と同じ文）。上限は「+99 …」が 7 em（F-5、§4.1）。en「+3 more」・de「+3 weitere」の型",
+      "where": [
+        "Layout/LayoutWords.swift"
+      ],
+      "composedOf": [
+        "Layout/MonthLayoutEngine.swift:138",
+        "Paper/MonthPaper.swift:189"
+      ],
+      "args": [
+        "隠れた予定の数"
+      ],
+      "maxEm": 7
+    },
+    "kit.layout.more.other": {
+      "ja": "+%@件",
+      "target": "kit",
+      "comment": "月のページのマスで、入りきらない時刻の予定の数のチップ（「+3件」）。%@ は隠れた予定の数（2 以上）。other はそれ以外の数の形。上限は「+99 …」が 7 em（F-5、§4.1）。en「+3 more」・de「+3 weitere」の型",
+      "where": [
+        "Layout/LayoutWords.swift"
+      ],
+      "composedOf": [
+        "Layout/MonthLayoutEngine.swift:138",
+        "Paper/MonthPaper.swift:189"
+      ],
+      "args": [
+        "隠れた予定の数"
+      ],
+      "maxEm": 7
+    },
+    "kit.layout.tailPrefix": {
+      "ja": "〜",
+      "target": "kit",
+      "comment": "日をまたぐ予定の終わりの時刻の前に付ける印（月のページのチップ「〜11:00」）。契約が 10 言語の値を決めた（§3.1 の 4。ja「〜」、ko「~」、ほかは「–」）",
+      "where": [
+        "Layout/LayoutWords.swift"
+      ],
+      "was": [
+        "Layout/MonthLayoutEngine.swift:192"
+      ],
+      "args": [],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "〜",
+        "en": "–",
+        "zh-Hans": "–",
+        "zh-Hant": "–",
+        "ko": "~",
+        "fr": "–",
+        "de": "–",
+        "es": "–",
+        "it": "–",
+        "pt-BR": "–"
+      }
+    },
+    "kit.layout.timeRange": {
+      "ja": "%1$@〜%2$@",
+      "target": "kit",
+      "comment": "時刻の範囲（週・日のページの予定「9:00〜10:30」、予定の日時の文）。契約が 10 言語の値を決めた（§3.1 の 4。ja「%1$@〜%2$@」、ko「%1$@~%2$@」、ほかは「%1$@–%2$@」）",
+      "where": [
+        "Layout/LayoutWords.swift"
+      ],
+      "composedOf": [
+        "Layout/TimedEventEngine.swift:152"
+      ],
+      "args": [
+        "始まり",
+        "終わり"
+      ],
+      "fixed": true,
+      "fixedValues": {
+        "ja": "%1$@〜%2$@",
+        "en": "%1$@–%2$@",
+        "zh-Hans": "%1$@–%2$@",
+        "zh-Hant": "%1$@–%2$@",
+        "ko": "%1$@~%2$@",
+        "fr": "%1$@–%2$@",
+        "de": "%1$@–%2$@",
+        "es": "%1$@–%2$@",
+        "it": "%1$@–%2$@",
+        "pt-BR": "%1$@–%2$@"
+      }
+    },
+    "kit.app.name": {
+      "ja": "てがきカレンダー",
+      "target": "kit",
+      "comment": "アプリの名前。PDF のファイル名の先頭「<アプリ名> <題名> <種類>.pdf」（§2.6）。ja は「てがきカレンダー」、ほかの言語は既定で「Tegaki」（M7B-1・M7B-2。ホーム画面の名前と同じ）",
+      "where": [
+        "InkModel/AppExport.swift"
+      ],
+      "args": [],
+      "composedOf": [
+        "InkModel/AppExport.swift:144"
+      ]
+    },
+    "kit.plan.monthly": {
+      "ja": "月額",
+      "target": "kit",
+      "comment": "プランの名前（月ごとに払うサブスクリプション）。購入の画面と 設定 › 購入 に出る。en「Monthly」の型",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:10"
+      ],
+      "args": []
+    },
+    "kit.plan.yearly": {
+      "ja": "年額",
+      "target": "kit",
+      "comment": "プランの名前（1 年ごとに払うサブスクリプション）。購入の画面と 設定 › 購入 に出る。en「Yearly」の型",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:11"
+      ],
+      "args": []
+    },
+    "kit.plan.perPeriod.monthly": {
+      "ja": "/月",
+      "target": "kit",
+      "comment": "価格の後ろに付ける支払いの周期（「¥300/月」）。en「/month」の型",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:18"
+      ],
+      "args": []
+    },
+    "kit.plan.perPeriod.yearly": {
+      "ja": "/年",
+      "target": "kit",
+      "comment": "価格の後ろに付ける支払いの周期（「¥2,400/年」）。en「/year」の型",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:19"
+      ],
+      "args": []
+    },
+    "kit.plan.savings.one": {
+      "ja": "%@ か月分お得",
+      "target": "kit",
+      "comment": "購入の画面の年額プランの札。%@ は実際の価格から計算して切り捨てた、月額より得になる月の数。国によって数が変わる（4 や 2）。one は 1 のときの形（0-8 の規則の言語だけで使う。ja・ko・zh は other と同じ文）。en「Save %@ month」の型",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "composedOf": [
+        "Access/PlanText.swift:34"
+      ],
+      "args": [
+        "得になる月の数"
+      ]
+    },
+    "kit.plan.savings.other": {
+      "ja": "%@ か月分お得",
+      "target": "kit",
+      "comment": "購入の画面の年額プランの札。%@ は実際の価格から計算して切り捨てた、月額より得になる月の数。国によって数が変わる（4 や 2）。other はそれ以外の数の形。en「Save %@ months」の型",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "composedOf": [
+        "Access/PlanText.swift:34"
+      ],
+      "args": [
+        "得になる月の数"
+      ]
+    },
+    "kit.plan.status.subscribedGrace": {
+      "ja": "%@・請求に問題（猶予中）",
+      "target": "kit",
+      "comment": "設定 › 購入 の「現在のプラン」の値。購読中で、支払いに問題があるが猶予の期間内のとき。%@ はプランの名前（月額・年額）",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "composedOf": [
+        "Access/PlanText.swift:49#1"
+      ],
+      "args": [
+        "プランの名前"
+      ]
+    },
+    "kit.plan.status.subscribed": {
+      "ja": "%@・有効",
+      "target": "kit",
+      "comment": "設定 › 購入 の「現在のプラン」の値。購読中のとき。%@ はプランの名前（月額・年額）",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "composedOf": [
+        "Access/PlanText.swift:49#2"
+      ],
+      "args": [
+        "プランの名前"
+      ]
+    },
+    "kit.plan.status.trial": {
+      "ja": "%@・試用中",
+      "target": "kit",
+      "comment": "設定 › 購入 の「現在のプラン」の値。無料の試用の間。%@ はプランの名前（月額・年額）",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "composedOf": [
+        "Access/PlanText.swift:51"
+      ],
+      "args": [
+        "プランの名前"
+      ]
+    },
+    "kit.plan.status.notSubscribed": {
+      "ja": "未購入（閲覧専用）",
+      "target": "kit",
+      "comment": "設定 › 購入 の「現在のプラン」の値。買っていないとき。手書きは見られるが新しく書けない",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:54"
+      ],
+      "args": []
+    },
+    "kit.plan.status.expired": {
+      "ja": "期限切れ（閲覧専用）",
+      "target": "kit",
+      "comment": "設定 › 購入 の「現在のプラン」の値。購読の期限が切れたとき。手書きは見られるが新しく書けない",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:55"
+      ],
+      "args": []
+    },
+    "kit.plan.status.billingRetry": {
+      "ja": "お支払いに問題（閲覧専用）",
+      "target": "kit",
+      "comment": "設定 › 購入 の「現在のプラン」の値。支払いができず、猶予の期間も過ぎたとき。手書きは見られるが新しく書けない",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:56"
+      ],
+      "args": []
+    },
+    "kit.plan.status.revoked": {
+      "ja": "返金済み（閲覧専用）",
+      "target": "kit",
+      "comment": "設定 › 購入 の「現在のプラン」の値。返金されたとき。手書きは見られるが新しく書けない",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:57"
+      ],
+      "args": []
+    },
+    "kit.plan.status.unknown": {
+      "ja": "確認中（閲覧専用）",
+      "target": "kit",
+      "comment": "設定 › 購入 の「現在のプラン」の値。購入の状態をまだ確かめられないとき（回線が無いなど）。手書きは見られるが新しく書けない",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:58"
+      ],
+      "args": []
+    },
+    "kit.plan.date.graceUntil": {
+      "ja": "猶予の期限",
+      "target": "kit",
+      "comment": "設定 › 購入 の日付の行の名前（後ろに日付の値が並ぶ）。支払いの猶予が終わる日",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:67"
+      ],
+      "args": []
+    },
+    "kit.plan.date.renews": {
+      "ja": "次回更新",
+      "target": "kit",
+      "comment": "設定 › 購入 の日付の行の名前（後ろに日付の値が並ぶ）。自動更新される次の日",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:68#1"
+      ],
+      "args": []
+    },
+    "kit.plan.date.expires": {
+      "ja": "有効期限",
+      "target": "kit",
+      "comment": "設定 › 購入 の日付の行の名前（後ろに日付の値が並ぶ）。自動更新を止めていて、使えなくなる日",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:68#2"
+      ],
+      "args": []
+    },
+    "kit.plan.date.trialEndsPaid": {
+      "ja": "試用の終了（有料に移行）",
+      "target": "kit",
+      "comment": "設定 › 購入 の日付の行の名前（後ろに日付の値が並ぶ）。無料の試用が終わり、自動で有料の購読に移る日",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:70#1"
+      ],
+      "args": []
+    },
+    "kit.plan.date.trialEnds": {
+      "ja": "試用の終了",
+      "target": "kit",
+      "comment": "設定 › 購入 の日付の行の名前（後ろに日付の値が並ぶ）。無料の試用が終わる日（自動更新を止めているとき）",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:70#2"
+      ],
+      "args": []
+    },
+    "kit.plan.note.notSubscribed": {
+      "ja": "まだ購読していません。",
+      "target": "kit",
+      "comment": "閲覧専用の理由の短い説明（設定の脚注の先頭に、1 文として出る）。",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:79"
+      ],
+      "args": []
+    },
+    "kit.plan.note.expired": {
+      "ja": "サブスクリプションの期限が切れています。",
+      "target": "kit",
+      "comment": "閲覧専用の理由の短い説明（設定の脚注の先頭に、1 文として出る）。",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:80"
+      ],
+      "args": []
+    },
+    "kit.plan.note.billingRetry": {
+      "ja": "お支払いに問題があります。%@でお支払い方法を確認してください。",
+      "target": "kit",
+      "comment": "閲覧専用の理由の短い説明（設定の脚注の先頭に、1 文として出る）。%@ は iOS の設定の画面への道（kit.plan.paymentPath の値）",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "composedOf": [
+        "Access/PlanText.swift:81"
+      ],
+      "args": [
+        "設定の画面への道"
+      ]
+    },
+    "kit.plan.note.revoked": {
+      "ja": "購入が返金または取り消されました。",
+      "target": "kit",
+      "comment": "閲覧専用の理由の短い説明（設定の脚注の先頭に、1 文として出る）。",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:82"
+      ],
+      "args": []
+    },
+    "kit.plan.note.unknown": {
+      "ja": "購入の状態を確認できていません。回線が戻ると自動で確認します。",
+      "target": "kit",
+      "comment": "閲覧専用の理由の短い説明（設定の脚注の先頭に、1 文として出る）。",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:83"
+      ],
+      "args": []
+    },
+    "kit.plan.badge.readOnly": {
+      "ja": "閲覧専用",
+      "target": "kit",
+      "comment": "新しく書けない状態を示す短い札（手書きは見られる）",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:89"
+      ],
+      "args": []
+    },
+    "kit.plan.cancelPath": {
+      "ja": "「設定」›「Apple Account」›「サブスクリプション」",
+      "target": "kit",
+      "comment": "iOS の「設定」アプリの中の画面への道。文の途中に埋め込まれる（「解約は端末の…から」）。各言語の iOS の実際の表記に合わせる（Apple のサポート記事の各言語版の語、§6.1 の 4。URL は GLOSSARY に）。サブスクリプションを解約する画面",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:91"
+      ],
+      "args": []
+    },
+    "kit.plan.paymentPath": {
+      "ja": "「設定」›「Apple Account」›「お支払いと配送先」",
+      "target": "kit",
+      "comment": "iOS の「設定」アプリの中の画面への道。文の途中に埋め込まれる（「解約は端末の…から」）。各言語の iOS の実際の表記に合わせる（Apple のサポート記事の各言語版の語、§6.1 の 4。URL は GLOSSARY に）。お支払い方法を確かめる画面",
+      "where": [
+        "Access/PlanText.swift"
+      ],
+      "was": [
+        "Access/PlanText.swift:92"
+      ],
+      "args": []
+    },
+    "kit.legal.appleEULATitle": {
+      "ja": "使用許諾契約（Apple 標準 EULA）",
+      "target": "kit",
+      "comment": "設定 › 情報 と購入の画面のリンクの名前。Apple の標準の使用許諾契約（EULA）を開く。en「Terms of Use (Apple Standard EULA)」の型",
+      "where": [
+        "Access/LegalLinks.swift"
+      ],
+      "was": [
+        "Access/LegalLinks.swift:12"
+      ],
+      "args": []
+    },
+    "kit.budget.page.year": {
+      "ja": "年のページ（%@）",
+      "target": "kit",
+      "comment": "1 ページの線が多いときの案内と 設定 › 情報 に出る、ページの呼び方。%@ はページの題名（「2026」の型）。en「Year page (%@)」の型",
+      "where": [
+        "InkModel/StrokeBudget.swift"
+      ],
+      "composedOf": [
+        "InkModel/StrokeBudget.swift:91"
+      ],
+      "args": [
+        "年の題名"
+      ]
+    },
+    "kit.budget.page.month": {
+      "ja": "月のページ（%@）",
+      "target": "kit",
+      "comment": "1 ページの線が多いときの案内と 設定 › 情報 に出る、ページの呼び方。%@ はページの題名（「October 2026」の型）。en「Month page (%@)」の型",
+      "where": [
+        "InkModel/StrokeBudget.swift"
+      ],
+      "composedOf": [
+        "InkModel/StrokeBudget.swift:93"
+      ],
+      "args": [
+        "月の題名"
+      ]
+    },
+    "kit.budget.page.week": {
+      "ja": "週のページ（%@）",
+      "target": "kit",
+      "comment": "1 ページの線が多いときの案内と 設定 › 情報 に出る、ページの呼び方。%@ はページの題名（週の範囲「Sep 28 – Oct 4, 2026」の型）。en「Week page (%@)」の型",
+      "where": [
+        "InkModel/StrokeBudget.swift"
+      ],
+      "composedOf": [
+        "InkModel/StrokeBudget.swift:95"
+      ],
+      "args": [
+        "週の範囲"
+      ]
+    },
+    "kit.budget.page.day": {
+      "ja": "日のページ（%@）",
+      "target": "kit",
+      "comment": "1 ページの線が多いときの案内と 設定 › 情報 に出る、ページの呼び方。%@ はページの題名（曜日も祝日名も無い日付「October 7, 2026」の型）。en「Day page (%@)」の型",
+      "where": [
+        "InkModel/StrokeBudget.swift"
+      ],
+      "composedOf": [
+        "InkModel/StrokeBudget.swift:97"
+      ],
+      "args": [
+        "日付"
+      ]
+    },
+    "kit.budget.count.one": {
+      "ja": "%@ 本",
+      "target": "kit",
+      "comment": "手書きの線の本数。%@ は書式した数。one は 1 のときの形（0-8 の規則の言語だけで使う。ja・ko・zh は other と同じ文）。en「%@ stroke」・de「%@ Strich」の型",
+      "where": [
+        "InkModel/StrokeBudget.swift"
+      ],
+      "composedOf": [
+        "InkModel/StrokeBudget.swift:110"
+      ],
+      "args": [
+        "線の本数"
+      ]
+    },
+    "kit.budget.count.other": {
+      "ja": "%@ 本",
+      "target": "kit",
+      "comment": "手書きの線の本数。%@ は書式した数。other はそれ以外の数の形。en「%@ strokes」（12,345 strokes）・de「%@ Striche」（12.345 Striche）の型",
+      "where": [
+        "InkModel/StrokeBudget.swift"
+      ],
+      "composedOf": [
+        "InkModel/StrokeBudget.swift:110"
+      ],
+      "args": [
+        "線の本数"
+      ]
+    },
+    "kit.date.ja.plainDay": {
+      "ja": "%1$@年%2$@月%3$@日",
+      "target": "kit",
+      "comment": "曜日の無い日付「2026年10月7日」（日のページの呼び方の中身）。日本語の画面だけで使う手作りの型（D6、§3.1 の 2）。ほかの言語は端末の書式（DateFormatter の雛形）なので訳さない",
+      "where": [
+        "DayKit/DateText.swift"
+      ],
+      "composedOf": [
+        "InkModel/StrokeBudget.swift:97"
+      ],
+      "args": [
+        "年",
+        "月",
+        "日"
+      ],
+      "jaOnly": true
+    },
+    "kit.export.jsonFileName": {
+      "ja": "てがきカレンダー 手書き %@.json",
+      "target": "kit",
+      "comment": "書き出した手書きのファイルの名前。%@ は「2026-10-17」の形の日付（言語で変えない）。「.json」は変えない。アプリ名は kit.app.name の値に合わせる（en「Tegaki Handwriting %@.json」の型）。ファイル名なので / : \\ を使わない",
+      "where": [
+        "InkModel/AppExport.swift"
+      ],
+      "composedOf": [
+        "InkModel/AppExport.swift:138"
+      ],
+      "args": [
+        "日付"
+      ]
+    },
+    "kit.export.kind.month": {
+      "ja": "月",
+      "target": "kit",
+      "comment": "PDF のファイル名の最後に付ける、ページの種類の 1 語（「<アプリ名> <題名> <種類>.pdf」）と、書き出しのシートの文の中の種類。月のページ。en「Month」の型",
+      "where": [
+        "InkModel/AppExport.swift"
+      ],
+      "was": [
+        "InkModel/AppExport.swift:150"
+      ],
+      "args": []
+    },
+    "kit.export.kind.week": {
+      "ja": "週",
+      "target": "kit",
+      "comment": "PDF のファイル名の最後に付ける、ページの種類の 1 語（「<アプリ名> <題名> <種類>.pdf」）と、書き出しのシートの文の中の種類。週のページ。en「Week」の型",
+      "where": [
+        "InkModel/AppExport.swift"
+      ],
+      "was": [
+        "InkModel/AppExport.swift:151"
+      ],
+      "args": []
+    },
+    "kit.export.kind.day": {
+      "ja": "日",
+      "target": "kit",
+      "comment": "PDF のファイル名の最後に付ける、ページの種類の 1 語（「<アプリ名> <題名> <種類>.pdf」）と、書き出しのシートの文の中の種類。日のページ。en「Day」の型",
+      "where": [
+        "InkModel/AppExport.swift"
+      ],
+      "was": [
+        "InkModel/AppExport.swift:152"
+      ],
+      "args": []
+    },
+    "kit.export.kind.year": {
+      "ja": "年",
+      "target": "kit",
+      "comment": "PDF のファイル名の最後に付ける、ページの種類の 1 語（「<アプリ名> <題名> <種類>.pdf」）と、書き出しのシートの文の中の種類。年のページ。en「Year」の型",
+      "where": [
+        "InkModel/AppExport.swift"
+      ],
+      "was": [
+        "InkModel/AppExport.swift:153"
+      ],
+      "args": []
+    }
+  }
+}

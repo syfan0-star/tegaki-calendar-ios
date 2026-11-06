@@ -1,0 +1,17 @@
+{
+  "locale": "pt-BR",
+  "group": {
+    "displayName": "Tegaki",
+    "appNameDisplay": "useAppName"
+  },
+  "products": {
+    "com.syfan0.tegakicalendar.monthly": {
+      "displayName": "Tegaki Mensal",
+      "description": "Escrita à mão, eventos e sincronização iCloud"
+    },
+    "com.syfan0.tegakicalendar.yearly": {
+      "displayName": "Tegaki Anual",
+      "description": "Os mesmos recursos, cobrados por ano"
+    }
+  }
+}

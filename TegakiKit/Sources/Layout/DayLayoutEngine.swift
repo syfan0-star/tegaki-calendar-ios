@@ -12,13 +12,19 @@ public struct DayLayoutInput: Sendable {
     public var inkBottoms: [CellKey: CGFloat]
     public var now: Date
     public var calendar: Calendar
+    /// Where the colour and the name of the day come from; never the shape of the paper (D9, §5.4).
+    public var holidays: HolidayCalendar
+    /// The words of the boxes (D9, §3.1 rule 4).
+    public var words: LayoutWords
 
-    public init(day: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar) {
+    public init(day: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese) {
         self.day = day
         self.events = events
         self.inkBottoms = inkBottoms
         self.now = now
         self.calendar = calendar
+        self.holidays = holidays
+        self.words = words
     }
 }
 
@@ -183,7 +189,7 @@ public enum DayLayoutEngine {
         let extra = CGRect(x: 0, y: grid.maxY, width: PaperSpec.dayWidth, height: extraHeight)
 
         // The all-day band (one lane per event) lives outside the paper.
-        let band = AllDayBandEngine.day(day, events: input.events, now: input.now, calendar: calendar)
+        let band = AllDayBandEngine.day(day, events: input.events, now: input.now, calendar: calendar, holidays: input.holidays)
 
         var boxes: [TimedEventBox] = []
         for slot in TimedEventEngine.layout(events: input.events, day: day, calendar: calendar) {
@@ -209,21 +215,21 @@ public enum DayLayoutEngine {
                 column: slot.column,
                 columns: slot.columns,
                 title: slot.event.title,
-                timeText: TimedEventEngine.timeRangeText(start: slot.event.start, end: slot.event.end, calendar: calendar),
+                timeText: TimedEventEngine.timeRangeText(start: slot.event.start, end: slot.event.end, calendar: calendar, words: input.words),
                 startText: TimedEventEngine.timeText(slot.event.start, calendar: calendar),
                 colorHex: slot.event.colorHex,
                 isPast: slot.event.end <= input.now
             ))
         }
 
-        let holiday = JapaneseHolidays.name(of: day)
+        let holiday = input.holidays.name(of: day)
         let isToday = day == today
         let labels = [DateLabel(
             day: day,
             frame: CGRect(x: PaperSpec.dayGutter, y: 0, width: timelineWidth, height: 0),
             isToday: isToday,
             inMonth: true,
-            tone: LayoutMath.tone(of: day, holiday: holiday),
+            tone: LayoutMath.tone(of: day, holiday: holiday, workday: input.holidays.isWorkday(day)),
             holidayName: holiday
         )]
 

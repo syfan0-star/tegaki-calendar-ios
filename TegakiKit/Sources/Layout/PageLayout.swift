@@ -107,7 +107,8 @@ public struct TimedEventBox: Equatable, Sendable {
 /// Deliberately not `Equatable` (existentials cannot be compared); the concrete types are.
 public protocol PageLayout: Sendable {
     var kind: PageKind { get }
-    /// "d-2026-10-04" / "w-2026-09-28" / "m1-2026-10" / "y-2026".
+    /// "d-2026-10-04" / "w-2026-09-28" (the first day of the week: a Monday or a Sunday, K-11) /
+    /// "m1-2026-10" / "y-2026".
     var pageId: String { get }
     var size: CGSize { get }
     /// Rect of every ink cell of the page.
@@ -185,9 +186,13 @@ enum LayoutMath {
         v.isFinite ? max(0, v) : 0
     }
 
-    /// Tone of a date number: Sunday or holiday red, Saturday blue.
-    static func tone(of day: DayKey, holiday: String?) -> DayTone {
-        if holiday != nil || day.weekday == 0 { return .sundayOrHoliday }
+    /// Tone of a date number (§5.4, in this order): a holiday red; a working weekend day normal (a
+    /// Sunday too: China's 2024-02-04); Sunday red; Saturday blue; else normal. `workday` has no
+    /// default: each of the 5 places that decide a tone must pass `holidays.isWorkday(day)`.
+    static func tone(of day: DayKey, holiday: String?, workday: Bool) -> DayTone {
+        if holiday != nil { return .sundayOrHoliday }
+        if workday { return .normal }
+        if day.weekday == 0 { return .sundayOrHoliday }
         if day.weekday == 6 { return .saturday }
         return .normal
     }

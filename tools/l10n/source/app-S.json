@@ -1,0 +1,3201 @@
+{
+  "owner": "S",
+  "keys": {
+    "CFBundleDisplayName": {
+      "ja": "てがきカレンダー",
+      "target": "infoplist",
+      "comment": "ホーム画面のアプリの名前（M7B-2。en は Tegaki。どの言語でもローマ字の Tegaki を基本に）",
+      "where": [
+        "project.yml"
+      ],
+      "args": [],
+      "glossary": [
+        "てがきカレンダー"
+      ]
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "ja": "カレンダーの予定を手帳のページに表示し、手書きから予定を作るために使います。iOS と iPadOS には読み取りだけの許可が無いため、フルアクセスをお願いしています。予定はこの端末の中だけで扱い、外部には送りません。",
+      "target": "infoplist",
+      "comment": "カレンダーの許可を求める iOS の画面に出る説明。「フルアクセス」は iOS のその言語の語に合わせる",
+      "where": [
+        "project.yml"
+      ],
+      "args": [],
+      "glossary": [
+        "手帳",
+        "手書き",
+        "この端末"
+      ]
+    },
+    "account.cancel": {
+      "ja": "キャンセル",
+      "target": "app",
+      "comment": "もう一度の確認の取り消しのボタン",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:49"
+      ],
+      "args": []
+    },
+    "account.erase": {
+      "ja": "手書きを消して使い始める",
+      "target": "app",
+      "comment": "問いの選択肢",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:31"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "account.eraseConfirm": {
+      "ja": "消して始める",
+      "target": "app",
+      "comment": "もう一度の確認のボタン",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:46"
+      ],
+      "args": []
+    },
+    "account.eraseMessage": {
+      "ja": "この端末の手書きを全て消して、新しいアカウントで始めます。この操作は元に戻せません。",
+      "target": "app",
+      "comment": "同じ確認の本文",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:23"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末",
+        "手書き / 線（本）"
+      ]
+    },
+    "account.eraseTitle": {
+      "ja": "本当に消しますか？",
+      "target": "app",
+      "comment": "手書きを消す前のもう一度の確認の題名",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:22"
+      ],
+      "args": []
+    },
+    "account.keep": {
+      "ja": "手書きを残して使い始める",
+      "target": "app",
+      "comment": "問いの選択肢",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:28"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "account.later": {
+      "ja": "あとで",
+      "target": "app",
+      "comment": "問いの選択肢。次の起動でまた聞く",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:39"
+      ],
+      "args": []
+    },
+    "account.message": {
+      "ja": "この端末の手書きは、前に同期していた iCloud アカウントのものです。いまサインインしているアカウントで使い始めますか？ 手書きを残すと、新しいアカウントの iCloud に送られます。",
+      "target": "app",
+      "comment": "同じ問いの本文",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:21"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末",
+        "手書き / 線（本）"
+      ]
+    },
+    "account.title": {
+      "ja": "別の iCloud アカウントです",
+      "target": "app",
+      "comment": "iCloud のアカウントが変わったときの問いの題名",
+      "where": [
+        "Views/AccountChangeDialog.swift"
+      ],
+      "was": [
+        "Views/AccountChangeDialog.swift:20"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "census.counting": {
+      "ja": "数えています…",
+      "target": "app",
+      "comment": "設定 › 情報 の線の数の行。数えている間",
+      "where": [
+        "Persistence/StrokeCensus.swift"
+      ],
+      "was": [
+        "Persistence/StrokeCensus.swift:28"
+      ],
+      "args": []
+    },
+    "census.entry": {
+      "ja": "%1$@・%2$@",
+      "target": "app",
+      "comment": "線の数の行の値（月のページ（2026年10月）・3 本）",
+      "where": [
+        "Persistence/StrokeCensus.swift"
+      ],
+      "composedOf": [
+        "Persistence/StrokeCensus.swift:53"
+      ],
+      "args": [
+        "ページの名前（kit.budget.page.*）",
+        "線の数（kit.budget.count）"
+      ]
+    },
+    "census.legacyNote": {
+      "ja": "（古い版の端末では一部が表示されません）",
+      "target": "app",
+      "comment": "線の数の行の後ろに付く注記。行の字にそのまま続く（語の間に空白を置く言語は値の頭に空白を入れる）",
+      "where": [
+        "Persistence/StrokeCensus.swift"
+      ],
+      "was": [
+        "Persistence/StrokeCensus.swift:33"
+      ],
+      "args": []
+    },
+    "census.noInk": {
+      "ja": "まだ手書きがありません",
+      "target": "app",
+      "comment": "設定 › 情報 の線の数の行。線が 1 本も無いとき",
+      "where": [
+        "Persistence/StrokeCensus.swift"
+      ],
+      "was": [
+        "Persistence/StrokeCensus.swift:30"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "event.allDay": {
+      "ja": "終日",
+      "target": "app",
+      "comment": "予定の終日のスイッチと、日付の後ろの「終日」（「2026年10月4日(日) 終日」）",
+      "where": [
+        "Views/EventEditorSheet.swift",
+        "Views/EventDateText.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:285"
+      ],
+      "composedOf": [
+        "Views/EventDateText.swift:46",
+        "Views/EventDateText.swift:48"
+      ],
+      "args": [],
+      "glossary": [
+        "終日"
+      ]
+    },
+    "event.calendar": {
+      "ja": "カレンダー",
+      "target": "app",
+      "comment": "予定の登録先のカレンダーの節の見出しと選び方の名前",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:308",
+        "Views/EventEditorSheet.swift:310"
+      ],
+      "args": []
+    },
+    "event.calendarReadOnlyNote": {
+      "ja": "このカレンダーは変更できません（読み取り専用）",
+      "target": "app",
+      "comment": "予定のシートの脚注。そのカレンダーが変更できないとき",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:51"
+      ],
+      "args": []
+    },
+    "event.cancel": {
+      "ja": "キャンセル",
+      "target": "app",
+      "comment": "予定のシートと確認の取り消しのボタン",
+      "where": [
+        "Views/EventEditorSheet.swift",
+        "Views/RecurrenceScopeDialog.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:207",
+        "Views/EventEditorSheet.swift:220",
+        "Views/RecurrenceScopeDialog.swift:15"
+      ],
+      "args": []
+    },
+    "event.close": {
+      "ja": "閉じる",
+      "target": "app",
+      "comment": "見るだけの予定のシートを閉じるボタン",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:207"
+      ],
+      "args": []
+    },
+    "event.delete": {
+      "ja": "削除",
+      "target": "app",
+      "comment": "予定のシートの削除のボタン",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:175",
+        "Views/EventEditorSheet.swift:219"
+      ],
+      "args": []
+    },
+    "event.deleteConfirm": {
+      "ja": "この予定を削除しますか？",
+      "target": "app",
+      "comment": "削除の確認の問い",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:218"
+      ],
+      "args": []
+    },
+    "event.end": {
+      "ja": "終了",
+      "target": "app",
+      "comment": "時刻のある予定の終了の選び方の名前",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:295"
+      ],
+      "args": []
+    },
+    "event.endDay": {
+      "ja": "終了日",
+      "target": "app",
+      "comment": "終日の予定の終了の日の選び方の名前",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:290"
+      ],
+      "args": []
+    },
+    "event.eraseInk": {
+      "ja": "この手書きを消す",
+      "target": "app",
+      "comment": "投げなわから予定を作るときのスイッチ。元の手書きを消す",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:162"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "event.error.calendarNotFound": {
+      "ja": "登録先のカレンダーが見つかりません",
+      "target": "app",
+      "comment": "予定を保存できないとき（登録先が無い）",
+      "where": [
+        "Calendar/EventDraft.swift"
+      ],
+      "was": [
+        "Calendar/EventDraft.swift:75"
+      ],
+      "args": []
+    },
+    "event.error.emptyTitle": {
+      "ja": "タイトルを入力してください",
+      "target": "app",
+      "comment": "題名が空のときの赤い字",
+      "where": [
+        "Views/EventEditorForm.swift"
+      ],
+      "was": [
+        "Views/EventEditorForm.swift:13"
+      ],
+      "args": []
+    },
+    "event.error.endBeforeStart": {
+      "ja": "終了は開始より後にしてください",
+      "target": "app",
+      "comment": "終了が開始より前のときの赤い字",
+      "where": [
+        "Calendar/EventDraft.swift",
+        "Views/EventEditorForm.swift"
+      ],
+      "was": [
+        "Views/EventEditorForm.swift:14",
+        "Calendar/EventDraft.swift:78"
+      ],
+      "args": []
+    },
+    "event.error.endDayBeforeStart": {
+      "ja": "終了日は開始日以降にしてください",
+      "target": "app",
+      "comment": "終日の予定で終了の日が開始の日より前のときの赤い字",
+      "where": [
+        "Views/EventEditorForm.swift"
+      ],
+      "was": [
+        "Views/EventEditorForm.swift:15"
+      ],
+      "args": []
+    },
+    "event.error.eventNotFound": {
+      "ja": "予定が見つかりません（別の端末で削除されたかもしれません）",
+      "target": "app",
+      "comment": "予定を保存できないとき（予定が見つからない）",
+      "where": [
+        "Calendar/EventDraft.swift"
+      ],
+      "was": [
+        "Calendar/EventDraft.swift:77"
+      ],
+      "args": []
+    },
+    "event.error.failed": {
+      "ja": "保存できませんでした: %@",
+      "target": "app",
+      "comment": "予定を保存できないとき。後ろは iOS の英語などの理由の文",
+      "where": [
+        "Calendar/EventDraft.swift"
+      ],
+      "composedOf": [
+        "Calendar/EventDraft.swift:79"
+      ],
+      "args": [
+        "iOS が返した理由の文"
+      ]
+    },
+    "event.error.noAccess": {
+      "ja": "カレンダーへのアクセスが許可されていません",
+      "target": "app",
+      "comment": "予定を保存できないとき（カレンダーの許可が無い）",
+      "where": [
+        "Calendar/EventDraft.swift"
+      ],
+      "was": [
+        "Calendar/EventDraft.swift:73"
+      ],
+      "args": []
+    },
+    "event.error.noWritableCalendar": {
+      "ja": "予定を登録できるカレンダーがありません",
+      "target": "app",
+      "comment": "予定を保存できないとき（書けるカレンダーが無い）",
+      "where": [
+        "Calendar/EventDraft.swift"
+      ],
+      "was": [
+        "Calendar/EventDraft.swift:74"
+      ],
+      "args": []
+    },
+    "event.error.readOnlyCalendar": {
+      "ja": "このカレンダーは変更できません",
+      "target": "app",
+      "comment": "予定を保存できないとき（読み取り専用のカレンダー）",
+      "where": [
+        "Calendar/EventDraft.swift"
+      ],
+      "was": [
+        "Calendar/EventDraft.swift:76"
+      ],
+      "args": []
+    },
+    "event.location": {
+      "ja": "場所",
+      "target": "app",
+      "comment": "予定のシートの節の見出しと入力欄の案内",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:150",
+        "Views/EventEditorSheet.swift:151"
+      ],
+      "args": []
+    },
+    "event.notes": {
+      "ja": "メモ",
+      "target": "app",
+      "comment": "予定のシートの節の見出し。予定のメモ（iOS のカレンダーの語に合わせる）",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:155"
+      ],
+      "args": []
+    },
+    "event.recurringNote": {
+      "ja": "繰り返しの予定です。保存・削除のときに「この回だけ」か「以降すべて」を選びます",
+      "target": "app",
+      "comment": "繰り返しの予定を編集するときの注記。「この回だけ」「以降すべて」は recurrence.thisEvent・recurrence.futureEvents と同じ語で",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:168"
+      ],
+      "args": []
+    },
+    "event.save": {
+      "ja": "保存",
+      "target": "app",
+      "comment": "保存のボタン",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:212"
+      ],
+      "args": []
+    },
+    "event.saveFailed": {
+      "ja": "保存できませんでした",
+      "target": "app",
+      "comment": "保存か削除に失敗したときの赤い字（理由の分からないとき）",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:410"
+      ],
+      "args": []
+    },
+    "event.saving": {
+      "ja": "保存中…",
+      "target": "app",
+      "comment": "保存のボタン。保存している間",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:212"
+      ],
+      "args": []
+    },
+    "event.scribbleNote": {
+      "ja": "Apple Pencil で欄の上に書くと、文字に変換されます（スクリブル）",
+      "target": "app",
+      "comment": "題名の入力欄の下の注記（iPad だけ）。スクリブルは iOS のその言語の語に合わせる",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:269"
+      ],
+      "args": []
+    },
+    "event.snapshotCaption": {
+      "ja": "書いた内容",
+      "target": "app",
+      "comment": "予定のシートの見本の画像の下の字。投げなわで選んだ手書き",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:251"
+      ],
+      "args": []
+    },
+    "event.start": {
+      "ja": "開始",
+      "target": "app",
+      "comment": "時刻のある予定の開始の選び方の名前",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:293"
+      ],
+      "args": []
+    },
+    "event.startDay": {
+      "ja": "開始日",
+      "target": "app",
+      "comment": "終日の予定の開始の日の選び方の名前",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:288"
+      ],
+      "args": []
+    },
+    "event.subscribe": {
+      "ja": "購読する",
+      "target": "app",
+      "comment": "閲覧専用の脚注の下のボタン",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:189"
+      ],
+      "args": [],
+      "glossary": [
+        "購読・試用・月額・年額"
+      ]
+    },
+    "event.subscriptionNote": {
+      "ja": "予定の作成・編集は購読すると使えます。",
+      "target": "app",
+      "comment": "予定のシートの脚注。アプリが閲覧専用のとき",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:49"
+      ],
+      "args": [],
+      "glossary": [
+        "購読・試用・月額・年額"
+      ]
+    },
+    "event.title.create": {
+      "ja": "予定を追加",
+      "target": "app",
+      "comment": "予定のシートの題名（新しく作る）",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:123"
+      ],
+      "args": [],
+      "glossary": [
+        "予定"
+      ]
+    },
+    "event.title.detail": {
+      "ja": "予定の詳細",
+      "target": "app",
+      "comment": "予定のシートの題名（見るだけ）",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:125"
+      ],
+      "args": [],
+      "glossary": [
+        "予定"
+      ]
+    },
+    "event.title.edit": {
+      "ja": "予定を編集",
+      "target": "app",
+      "comment": "予定のシートの題名（編集）",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:124"
+      ],
+      "args": [],
+      "glossary": [
+        "予定"
+      ]
+    },
+    "event.titleHeader": {
+      "ja": "タイトル",
+      "target": "app",
+      "comment": "題名の入力欄の節の見出し",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:279"
+      ],
+      "args": []
+    },
+    "event.titlePlaceholder": {
+      "ja": "ここにペンで書くと文字になります",
+      "target": "app",
+      "comment": "題名の入力欄の案内。ペンで欄の上に書くと文字になる（スクリブル）",
+      "where": [
+        "Views/EventEditorSheet.swift"
+      ],
+      "was": [
+        "Views/EventEditorSheet.swift:262"
+      ],
+      "args": []
+    },
+    "event.when.dateTime": {
+      "ja": "%1$@ %2$@",
+      "target": "app",
+      "comment": "予定の読み上げの日時。日付と時刻（「2026年10月4日(日) 9:00」）。日付の字は DateText から来る。区切りはその言語の普通の書き方で",
+      "where": [
+        "Views/EventDateText.swift"
+      ],
+      "composedOf": [
+        "Views/EventDateText.swift:54",
+        "Views/EventDateText.swift:56"
+      ],
+      "args": [
+        "日付",
+        "時刻"
+      ]
+    },
+    "export.close": {
+      "ja": "閉じる",
+      "target": "app",
+      "comment": "シートを閉じるボタン",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:82"
+      ],
+      "args": []
+    },
+    "export.done.json.one": {
+      "ja": "%1$@（%2$@ ページ・%3$@）",
+      "target": "app",
+      "comment": "完了の下の字（JSON）。.one / .other はページ数で選ぶ（1 のときの形。0-8）",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/ExportSheet.swift:67"
+      ],
+      "args": [
+        "ファイル名",
+        "ページ数",
+        "大きさ（1.2 MB）"
+      ]
+    },
+    "export.done.json.other": {
+      "ja": "%1$@（%2$@ ページ・%3$@）",
+      "target": "app",
+      "comment": "完了の下の字（JSON）。.one / .other はページ数で選ぶ（1 以外の形。0-8）",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/ExportSheet.swift:67"
+      ],
+      "args": [
+        "ファイル名",
+        "ページ数",
+        "大きさ（1.2 MB）"
+      ]
+    },
+    "export.done.pdf": {
+      "ja": "%1$@（%2$@）",
+      "target": "app",
+      "comment": "完了の下の字（PDF）",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/ExportSheet.swift:68"
+      ],
+      "args": [
+        "ファイル名",
+        "大きさ（1.2 MB）"
+      ]
+    },
+    "export.done.title": {
+      "ja": "書き出しました",
+      "target": "app",
+      "comment": "書き出しの完了の見出し",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:62"
+      ],
+      "args": []
+    },
+    "export.error.closed": {
+      "ja": "ファイルは閉じられています",
+      "target": "app",
+      "comment": "書き出しの失敗の理由（中の不具合のとき）",
+      "where": [
+        "Export/ExportBuilder.swift"
+      ],
+      "was": [
+        "Export/ExportBuilder.swift:225"
+      ],
+      "args": []
+    },
+    "export.error.createFailed": {
+      "ja": "ファイルを作成できません: %@",
+      "target": "app",
+      "comment": "書き出しの失敗の理由",
+      "where": [
+        "Export/ExportBuilder.swift"
+      ],
+      "composedOf": [
+        "Export/ExportBuilder.swift:214"
+      ],
+      "args": [
+        "ファイル名"
+      ]
+    },
+    "export.failed": {
+      "ja": "書き出せませんでした: %@",
+      "target": "app",
+      "comment": "そのほかの失敗。後ろは iOS の理由の文",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/ExportSheet.swift:101"
+      ],
+      "args": [
+        "iOS が返した理由の文"
+      ]
+    },
+    "export.json.note": {
+      "ja": "この端末に保存されている手書きをすべて 1 つのファイルにまとめます。設定 › データ › 「Web 版の手書きを取り込む」から取り込み直せます（取り込みは購読中に行えます）。",
+      "target": "app",
+      "comment": "1 つ目の選択肢の説明。「設定 › データ › Web 版の手書きを取り込む」は設定の画面の語と同じに",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:44"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末",
+        "手書きを書き出す / Web 版の手書きを取り込む",
+        "データ（設定の節）"
+      ]
+    },
+    "export.json.title": {
+      "ja": "データファイル（JSON、すべてのページ）",
+      "target": "app",
+      "comment": "書き出しのシートの 1 つ目の選択肢。データファイル",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:43"
+      ],
+      "args": []
+    },
+    "export.nothing": {
+      "ja": "書き出す手書きがありません",
+      "target": "app",
+      "comment": "書き出すものが無いとき",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:85"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "export.pdf.building": {
+      "ja": "PDF を作っています…",
+      "target": "app",
+      "comment": "PDF を作っている間の字",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:58"
+      ],
+      "args": []
+    },
+    "export.pdf.note": {
+      "ja": "いま開いているページ（%1$@・%2$@）を 1 枚の PDF にします。紙・予定・祝日・手書きが画面のとおりに入ります。",
+      "target": "app",
+      "comment": "2 つ目の選択肢の説明",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/ExportSheet.swift:49"
+      ],
+      "args": [
+        "ページの題名（2026年10月）",
+        "ページの種類（月。kit.export.kind.*）"
+      ],
+      "glossary": [
+        "紙",
+        "手書き / 線（本）"
+      ]
+    },
+    "export.pdf.title": {
+      "ja": "このページを PDF",
+      "target": "app",
+      "comment": "書き出しのシートの 2 つ目の選択肢",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:45"
+      ],
+      "args": [],
+      "glossary": [
+        "このページを PDF"
+      ]
+    },
+    "export.progress.one": {
+      "ja": "書き出しています… %1$@ / %2$@ ページ",
+      "target": "app",
+      "comment": "JSON を書き出している間の字。.one / .other は全部のページ数（%2$@）で選ぶ（1 のときの形。0-8）",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/ExportSheet.swift:57"
+      ],
+      "args": [
+        "書き出したページ数",
+        "全部のページ数"
+      ]
+    },
+    "export.progress.other": {
+      "ja": "書き出しています… %1$@ / %2$@ ページ",
+      "target": "app",
+      "comment": "JSON を書き出している間の字。.one / .other は全部のページ数（%2$@）で選ぶ（1 以外の形。0-8）",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/ExportSheet.swift:57"
+      ],
+      "args": [
+        "書き出したページ数",
+        "全部のページ数"
+      ]
+    },
+    "export.renderFailed": {
+      "ja": "PDF を作れませんでした",
+      "target": "app",
+      "comment": "PDF の失敗",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:91"
+      ],
+      "args": []
+    },
+    "export.share": {
+      "ja": "共有…",
+      "target": "app",
+      "comment": "完了の後の共有のボタン。iOS の普通の語で",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:81"
+      ],
+      "args": []
+    },
+    "export.title": {
+      "ja": "手書きを書き出す",
+      "target": "app",
+      "comment": "書き出しのシートの題名",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "was": [
+        "Views/ExportSheet.swift:42"
+      ],
+      "args": [],
+      "glossary": [
+        "手書きを書き出す / Web 版の手書きを取り込む"
+      ]
+    },
+    "export.writeFailed": {
+      "ja": "ファイルを書けませんでした: %@",
+      "target": "app",
+      "comment": "書き出しの失敗。後ろは理由の文",
+      "where": [
+        "Views/ExportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/ExportSheet.swift:88"
+      ],
+      "args": [
+        "理由の文"
+      ]
+    },
+    "import.close": {
+      "ja": "閉じる",
+      "target": "app",
+      "comment": "シートを閉じるボタン",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:242"
+      ],
+      "args": []
+    },
+    "import.confirmLarge.cancel": {
+      "ja": "やめる",
+      "target": "app",
+      "comment": "問いのボタン。やめる（何も取り込まない）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:133"
+      ],
+      "args": []
+    },
+    "import.confirmLarge.import": {
+      "ja": "取り込む",
+      "target": "app",
+      "comment": "問いのボタン。取り込む",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:132"
+      ],
+      "args": []
+    },
+    "import.confirmLarge.more.one": {
+      "ja": "ほか %@ ページ",
+      "target": "app",
+      "comment": "ページの名前が 5 つ以上のときの並びの最後（A、B、C、D、ほか 2 ページ）（1 のときの形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:148"
+      ],
+      "args": [
+        "残りのページ数"
+      ]
+    },
+    "import.confirmLarge.more.other": {
+      "ja": "ほか %@ ページ",
+      "target": "app",
+      "comment": "ページの名前が 5 つ以上のときの並びの最後（A、B、C、D、ほか 2 ページ）（1 以外の形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:148"
+      ],
+      "args": [
+        "残りのページ数"
+      ]
+    },
+    "import.confirmLarge.separator": {
+      "ja": "、",
+      "target": "app",
+      "comment": "ページの名前の並びの区切り（A、B、C）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:146",
+        "Views/WebImportSheet.swift:147"
+      ],
+      "args": []
+    },
+    "import.confirmLarge.text": {
+      "ja": "取り込むと、線が %1$@ 本を超えるページがあります（%2$@）。この版では全部表示されますが、古い版の端末ではその一部が表示されません。取り込みますか？",
+      "target": "app",
+      "comment": "問いの本文",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:141"
+      ],
+      "args": [
+        "線の数（20,000）",
+        "ページの名前の並び"
+      ],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "import.confirmLarge.title": {
+      "ja": "線がとても多いページがあります",
+      "target": "app",
+      "comment": "線がとても多いページの問いの見出し",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:130"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "import.invalidJSON": {
+      "ja": "ファイルを読めませんでした",
+      "target": "app",
+      "comment": "読み込めないとき",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:93"
+      ],
+      "args": []
+    },
+    "import.notAnExport": {
+      "ja": "このファイルは手書きの書き出し（Web 版またはこのアプリ）ではありません",
+      "target": "app",
+      "comment": "読み込んだファイルが違うとき",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:91"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "import.nothing": {
+      "ja": "取り込むものはありませんでした（すべて取り込み済みです）",
+      "target": "app",
+      "comment": "取り込むものが無かったとき",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:111"
+      ],
+      "args": []
+    },
+    "import.otherWeekStart.monday": {
+      "ja": "取り込んだ週のページの一部は、週の始まりを月曜にすると見えます。",
+      "target": "app",
+      "comment": "取り込みの結果の最後の 1 行（週の始まりが日曜の設定で、月曜始まりの週のページが入ったとき。§10.4）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "args": [],
+      "glossary": [
+        "週の始まり / 月曜・日曜"
+      ]
+    },
+    "import.otherWeekStart.sunday": {
+      "ja": "取り込んだ週のページの一部は、週の始まりを日曜にすると見えます。",
+      "target": "app",
+      "comment": "取り込みの結果の最後の 1 行（週の始まりが月曜の設定で、日曜始まりの週のページが入ったとき。§10.4）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "args": [],
+      "glossary": [
+        "週の始まり / 月曜・日曜"
+      ]
+    },
+    "import.progress.one": {
+      "ja": "取り込んでいます… %1$@ / %2$@ ページ",
+      "target": "app",
+      "comment": "取り込んでいる間の字。.one / .other は全部のページ数（%2$@）で選ぶ（1 のときの形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:154"
+      ],
+      "args": [
+        "取り込んだページ数",
+        "全部のページ数"
+      ]
+    },
+    "import.progress.other": {
+      "ja": "取り込んでいます… %1$@ / %2$@ ページ",
+      "target": "app",
+      "comment": "取り込んでいる間の字。.one / .other は全部のページ数（%2$@）で選ぶ（1 以外の形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:154"
+      ],
+      "args": [
+        "取り込んだページ数",
+        "全部のページ数"
+      ]
+    },
+    "import.progress.reading": {
+      "ja": "取り込んでいます…",
+      "target": "app",
+      "comment": "ファイルを読んでいる間の字",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:156"
+      ],
+      "args": []
+    },
+    "import.result.app": {
+      "ja": "手書きを取り込みました（%1$@・%2$@）",
+      "target": "app",
+      "comment": "取り込みの結果（このアプリの書き出し）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:108#1",
+        "Views/WebImportSheet.swift:109"
+      ],
+      "args": [
+        "ページ数の字（import.result.pages）",
+        "線の数の字（import.result.strokes）"
+      ],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "import.result.pages.one": {
+      "ja": "%@ ページ",
+      "target": "app",
+      "comment": "取り込みの結果の括弧の中のページ数（1 のときの形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:109"
+      ],
+      "args": [
+        "ページ数"
+      ]
+    },
+    "import.result.pages.other": {
+      "ja": "%@ ページ",
+      "target": "app",
+      "comment": "取り込みの結果の括弧の中のページ数（1 以外の形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:109"
+      ],
+      "args": [
+        "ページ数"
+      ]
+    },
+    "import.result.strokes.one": {
+      "ja": "%@ 本",
+      "target": "app",
+      "comment": "取り込みの結果の括弧の中の線の数（1 のときの形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:109"
+      ],
+      "args": [
+        "線の数"
+      ],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "import.result.strokes.other": {
+      "ja": "%@ 本",
+      "target": "app",
+      "comment": "取り込みの結果の括弧の中の線の数（1 以外の形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:109"
+      ],
+      "args": [
+        "線の数"
+      ],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "import.result.web": {
+      "ja": "Web 版の手書きを取り込みました（%1$@・%2$@）",
+      "target": "app",
+      "comment": "取り込みの結果（Web 版の書き出し）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:108#2",
+        "Views/WebImportSheet.swift:109"
+      ],
+      "args": [
+        "ページ数の字（import.result.pages）",
+        "線の数の字（import.result.strokes）"
+      ],
+      "glossary": [
+        "手書き / 線（本）",
+        "手書きを書き出す / Web 版の手書きを取り込む"
+      ]
+    },
+    "import.saveFailed": {
+      "ja": "保存できませんでした: %@",
+      "target": "app",
+      "comment": "保存の失敗。後ろは iOS の理由の文",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:100"
+      ],
+      "args": [
+        "iOS が返した理由の文"
+      ]
+    },
+    "import.skipped.one": {
+      "ja": "%@ ページは対象外のため飛ばしました",
+      "target": "app",
+      "comment": "結果の 2 行目（1 のときの形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:116"
+      ],
+      "args": [
+        "飛ばしたページ数"
+      ]
+    },
+    "import.skipped.other": {
+      "ja": "%@ ページは対象外のため飛ばしました",
+      "target": "app",
+      "comment": "結果の 2 行目（1 以外の形。0-8）",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:116"
+      ],
+      "args": [
+        "飛ばしたページ数"
+      ]
+    },
+    "import.title": {
+      "ja": "Web 版の手書きを取り込む",
+      "target": "app",
+      "comment": "取り込みのシートの題名",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "was": [
+        "Views/WebImportSheet.swift:86"
+      ],
+      "args": [],
+      "glossary": [
+        "手書きを書き出す / Web 版の手書きを取り込む"
+      ]
+    },
+    "import.unsupportedVersion": {
+      "ja": "このファイルは新しい形式です（v%@）。アプリを更新してください",
+      "target": "app",
+      "comment": "新しい形式のファイルのとき",
+      "where": [
+        "Views/WebImportSheet.swift"
+      ],
+      "composedOf": [
+        "Views/WebImportSheet.swift:96"
+      ],
+      "args": [
+        "形式の番号（区切りなしの数）"
+      ]
+    },
+    "onboarding.access.text": {
+      "ja": "次の画面で、カレンダーへの「フルアクセス」を求めます。予定を手帳のページに表示し、手書きから予定を作るためです。\n\niOS と iPadOS には読み取りだけの許可が無いため、フルアクセスになります。予定はこの端末の中だけで扱い、開発者やほかの誰にも送りません。",
+      "target": "app",
+      "comment": "初回案内の 2 枚目。空行で 2 段落。「フルアクセス」は iOS のその言語の語",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:24"
+      ],
+      "args": [],
+      "glossary": [
+        "手帳",
+        "手書き / 線（本）",
+        "この端末"
+      ]
+    },
+    "onboarding.access.title": {
+      "ja": "カレンダーへのアクセス",
+      "target": "app",
+      "comment": "初回案内の 2 枚目の題名",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:50"
+      ],
+      "args": []
+    },
+    "onboarding.account.text": {
+      "ja": "このアプリは、この端末の「カレンダー」に入っている予定を表示します。\n\n%@",
+      "target": "app",
+      "comment": "初回案内の 1 枚目。「カレンダー」は iOS のカレンダーアプリの名前。%@ に設定の画面と同じ手順（settings の Google の手順の文）が入る。空行を 1 つ空ける",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "composedOf": [
+        "Views/OnboardingView.swift:22"
+      ],
+      "args": [
+        "設定の画面と同じ手順の文"
+      ],
+      "glossary": [
+        "この端末"
+      ]
+    },
+    "onboarding.account.title": {
+      "ja": "カレンダーのアカウント",
+      "target": "app",
+      "comment": "初回案内の 1 枚目の題名",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:37"
+      ],
+      "args": []
+    },
+    "onboarding.askPermission": {
+      "ja": "許可の画面を出す",
+      "target": "app",
+      "comment": "最後のボタン。カレンダーの許可を求める iOS の画面を出す",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:94"
+      ],
+      "args": []
+    },
+    "onboarding.dayPageTap": {
+      "ja": "年のページは日付や左端の数字（今月のその日）、月のページは日付の数字を指でタップ、週・月・年のページはマスを指でダブルタップすると、その日のページが開きます。",
+      "target": "app",
+      "comment": "初回案内の 3 枚目の最後の文。日のページの開き方",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:28"
+      ],
+      "args": [],
+      "glossary": [
+        "日のページ ほか"
+      ]
+    },
+    "onboarding.icloud.text": {
+      "ja": "手書きはこの端末と、あなたの iCloud に保存されます。ほかの iPad や iPhone でも同じ手書きが見られます。\n\niCloud にサインインしていないときは、この端末の中だけに保存します。iCloud の設定は要りません（この端末でサインインしていれば自動で使われます）。\n\n手書きは開発者には見えません。iCloud の容量はあなたのものを使います。",
+      "target": "app",
+      "comment": "初回案内の 4 枚目。空行で 3 段落",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:30"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末",
+        "手書き / 線（本）"
+      ]
+    },
+    "onboarding.icloud.title": {
+      "ja": "iCloud と手書きの保存",
+      "target": "app",
+      "comment": "初回案内の 4 枚目の題名",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:66"
+      ],
+      "args": []
+    },
+    "onboarding.next": {
+      "ja": "次へ",
+      "target": "app",
+      "comment": "初回案内の次へのボタン",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:78"
+      ],
+      "args": []
+    },
+    "onboarding.openSettings": {
+      "ja": "設定アプリを開く",
+      "target": "app",
+      "comment": "1 枚目のボタン。iOS の設定アプリを開く",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:40"
+      ],
+      "args": []
+    },
+    "onboarding.pen.text": {
+      "ja": "Apple Pencil で紙に書きます。指はスクロール・ピンチ拡大・予定のタップに使います。手のひらが触れても線は引かれません。\n\n指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。Apple Pencil のダブルタップ／スクイーズは、iPad の「設定 › Apple Pencil」で選んだ動作どおりにペンと消しゴムを切り替えます。\n\n%@",
+      "target": "app",
+      "comment": "初回案内の 3 枚目。%@ に onboarding.dayPageTap が入る。「設定 › Apple Pencil」は iOS のその言語の語",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "composedOf": [
+        "Views/OnboardingView.swift:26"
+      ],
+      "args": [
+        "onboarding.dayPageTap の文"
+      ],
+      "glossary": [
+        "紙",
+        "指でも書く",
+        "ダブルタップ／スクイーズ（Apple Pencil）"
+      ]
+    },
+    "onboarding.pen.title": {
+      "ja": "ペンで書き、指で動かす",
+      "target": "app",
+      "comment": "初回案内の 3 枚目の題名",
+      "where": [
+        "Views/OnboardingView.swift"
+      ],
+      "was": [
+        "Views/OnboardingView.swift:58"
+      ],
+      "args": []
+    },
+    "paywall.after.paid": {
+      "ja": "%@。自動更新です。いつでも解約できます。",
+      "target": "app",
+      "comment": "主のボタンの下の行。試用の対象外の人",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:124"
+      ],
+      "args": [
+        "価格（「¥2,400/年」の形）"
+      ]
+    },
+    "paywall.after.trial": {
+      "ja": "試用後は %@。いつでも解約できます。",
+      "target": "app",
+      "comment": "主のボタンの下の行。試用できる人",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:123"
+      ],
+      "args": [
+        "価格（「¥2,400/年」の形）"
+      ]
+    },
+    "paywall.billingRetryLead": {
+      "ja": "お支払いに問題があります。%@でお支払い方法を確認してください。",
+      "target": "app",
+      "comment": "支払いに問題があるときの最初の 1 文",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:46"
+      ],
+      "args": [
+        "iOS の設定の画面への道（kit.plan.paymentPath）"
+      ]
+    },
+    "paywall.blockedLead": {
+      "ja": "書く・消す・予定を作るには購読が必要です。",
+      "target": "app",
+      "comment": "閲覧専用で書こうとしたときの最初の 1 文",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:43"
+      ],
+      "args": [],
+      "glossary": [
+        "購読・試用・月額・年額"
+      ]
+    },
+    "paywall.blockedTrial.one": {
+      "ja": "%@ 日間無料で試せます。",
+      "target": "app",
+      "comment": "paywall.blockedLead にそのまま続く 1 文（文の間に空白を置く言語は値の頭に空白を入れる）。試用できる人だけ（1 のときの形。0-8）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:44"
+      ],
+      "args": [
+        "試用の日数"
+      ]
+    },
+    "paywall.blockedTrial.other": {
+      "ja": "%@ 日間無料で試せます。",
+      "target": "app",
+      "comment": "paywall.blockedLead にそのまま続く 1 文（文の間に空白を置く言語は値の頭に空白を入れる）。試用できる人だけ（1 以外の形。0-8）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:44"
+      ],
+      "args": [
+        "試用の日数"
+      ]
+    },
+    "paywall.cta.buy": {
+      "ja": "購入する",
+      "target": "app",
+      "comment": "主のボタン。試用の対象外の人",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:94"
+      ],
+      "args": []
+    },
+    "paywall.cta.trial.one": {
+      "ja": "%@ 日間無料で試す",
+      "target": "app",
+      "comment": "主のボタン。試用できる人（1 のときの形。0-8）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:94#1"
+      ],
+      "args": [
+        "試用の日数"
+      ]
+    },
+    "paywall.cta.trial.other": {
+      "ja": "%@ 日間無料で試す",
+      "target": "app",
+      "comment": "主のボタン。試用できる人（1 以外の形。0-8）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:94#1"
+      ],
+      "args": [
+        "試用の日数"
+      ]
+    },
+    "paywall.disclosure.paid": {
+      "ja": "サブスクリプションは自動更新です。現在の期間が終わる 24 時間前までに解約しない限り、同じ期間・同じ価格で更新され、Apple Account に請求されます。料金は購入の確認時に請求されます。解約は端末の%@からいつでもできます。解約しても、支払い済みの期間が終わるまで使えます。",
+      "target": "app",
+      "comment": "自動更新の説明（審査 3.1.2 の必須の文）。試用の対象外の人。Apple Account は iOS のその言語の語",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:130#2",
+        "Views/PaywallSheet.swift:131",
+        "Views/PaywallSheet.swift:133"
+      ],
+      "args": [
+        "iOS の設定の画面への道（kit.plan.cancelPath）"
+      ]
+    },
+    "paywall.disclosure.trial": {
+      "ja": "サブスクリプションは自動更新です。現在の期間が終わる 24 時間前までに解約しない限り、同じ期間・同じ価格で更新され、Apple Account に請求されます。料金は無料試用の終了時に請求されます。解約は端末の%@からいつでもできます。解約しても、支払い済みの期間が終わるまで使えます。",
+      "target": "app",
+      "comment": "自動更新の説明（審査 3.1.2 の必須の文）。試用できる人。Apple Account は iOS のその言語の語",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:130#1",
+        "Views/PaywallSheet.swift:131",
+        "Views/PaywallSheet.swift:133"
+      ],
+      "args": [
+        "iOS の設定の画面への道（kit.plan.cancelPath）"
+      ]
+    },
+    "paywall.feature.events": {
+      "ja": "手書きから予定を作る。予定の作成・編集",
+      "target": "app",
+      "comment": "機能の 2 行目",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:52"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "予定"
+      ]
+    },
+    "paywall.feature.ink": {
+      "ja": "手書き（ペン・マーカー・消しゴム・投げなわ）",
+      "target": "app",
+      "comment": "機能の 1 行目",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:51"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "ペン・マーカー・消しゴム・投げなわ・予定（道具）"
+      ]
+    },
+    "paywall.feature.sync": {
+      "ja": "iCloud で iPad・iPhone と同期",
+      "target": "app",
+      "comment": "機能の 3 行目",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:53"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "paywall.intro": {
+      "ja": "iPad のカレンダーの上に、Apple Pencil で自由に書ける手帳です。",
+      "target": "app",
+      "comment": "購入のシートの最初の 1 文",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:41"
+      ],
+      "args": [],
+      "glossary": [
+        "手帳"
+      ]
+    },
+    "paywall.later": {
+      "ja": "あとで",
+      "target": "app",
+      "comment": "シートを閉じるボタン",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:66"
+      ],
+      "args": []
+    },
+    "paywall.manage": {
+      "ja": "サブスクリプションを管理",
+      "target": "app",
+      "comment": "支払いに問題があるときのボタン。iOS の普通の語で",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:67"
+      ],
+      "args": []
+    },
+    "paywall.noPriceNote": {
+      "ja": "価格を取得できません",
+      "target": "app",
+      "comment": "価格が取れないときのカードの下の字",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:61"
+      ],
+      "args": []
+    },
+    "paywall.privacy": {
+      "ja": "プライバシーポリシー",
+      "target": "app",
+      "comment": "プライバシーポリシーを開くボタン",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:65"
+      ],
+      "args": []
+    },
+    "paywall.recommended": {
+      "ja": "おすすめ",
+      "target": "app",
+      "comment": "年額のカードの札。短く",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:58"
+      ],
+      "args": []
+    },
+    "paywall.reload": {
+      "ja": "再読み込み",
+      "target": "app",
+      "comment": "価格が取れないときのボタン",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:62"
+      ],
+      "args": []
+    },
+    "paywall.restore": {
+      "ja": "購入を復元",
+      "target": "app",
+      "comment": "購入を復元するボタン。iOS の普通の語で",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:63"
+      ],
+      "args": []
+    },
+    "paywall.revokedLead": {
+      "ja": "購入が返金または取り消されました。再び使うには購読してください。",
+      "target": "app",
+      "comment": "返金か取り消しの後の最初の 1 文",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:48"
+      ],
+      "args": []
+    },
+    "paywall.terms": {
+      "ja": "利用規約",
+      "target": "app",
+      "comment": "利用規約を開くボタン",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:64"
+      ],
+      "args": []
+    },
+    "paywall.title": {
+      "ja": "てがきカレンダー",
+      "target": "app",
+      "comment": "購入のシートの題名。アプリの名前（en は Tegaki）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:39"
+      ],
+      "args": [],
+      "glossary": [
+        "てがきカレンダー（名前）"
+      ]
+    },
+    "paywall.trialIneligible": {
+      "ja": "無料試用の対象外です（お試しは 1 つの Apple Account につき 1 回）。",
+      "target": "app",
+      "comment": "試用の対象外の人の行",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:72"
+      ],
+      "args": []
+    },
+    "paywall.trialLead.one": {
+      "ja": "%@ 日間無料でお試し。",
+      "target": "app",
+      "comment": "試用の行の太字の最初の文（1 のときの形。0-8）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:69"
+      ],
+      "args": [
+        "試用の日数"
+      ],
+      "glossary": [
+        "購読・試用・月額・年額"
+      ]
+    },
+    "paywall.trialLead.other": {
+      "ja": "%@ 日間無料でお試し。",
+      "target": "app",
+      "comment": "試用の行の太字の最初の文（1 以外の形。0-8）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:69"
+      ],
+      "args": [
+        "試用の日数"
+      ],
+      "glossary": [
+        "購読・試用・月額・年額"
+      ]
+    },
+    "paywall.trialRest": {
+      "ja": "試用期間が終わると自動的に有料になります。試用中に解約すれば料金はかかりません。",
+      "target": "app",
+      "comment": "試用の行の続き。paywall.trialLead にそのまま続く（文の間に空白を置く言語は値の頭に空白を入れる）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "was": [
+        "Views/PaywallSheet.swift:70"
+      ],
+      "args": []
+    },
+    "paywall.yearlyNote.both": {
+      "ja": "月あたり %1$@・%2$@",
+      "target": "app",
+      "comment": "年額のカードの下の字",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:111",
+        "Views/PaywallSheet.swift:117"
+      ],
+      "args": [
+        "月あたりの価格（App Store の字）",
+        "お得の文（kit.plan.savings）"
+      ]
+    },
+    "paywall.yearlyNote.perMonth": {
+      "ja": "月あたり %@",
+      "target": "app",
+      "comment": "年額のカードの下の字（お得の月数が無いとき）",
+      "where": [
+        "Views/PaywallSheet.swift"
+      ],
+      "composedOf": [
+        "Views/PaywallSheet.swift:111"
+      ],
+      "args": [
+        "月あたりの価格（App Store の字）"
+      ]
+    },
+    "recurrence.futureEvents": {
+      "ja": "以降すべて",
+      "target": "app",
+      "comment": "問いの選択肢。この回から後のすべて（過去は変えない）",
+      "where": [
+        "Views/RecurrenceScopeDialog.swift"
+      ],
+      "was": [
+        "Views/RecurrenceScopeDialog.swift:14"
+      ],
+      "args": []
+    },
+    "recurrence.message.delete": {
+      "ja": "この回だけ削除しますか？ 以降すべて削除しますか？",
+      "target": "app",
+      "comment": "繰り返しの予定を削除するときの問い",
+      "where": [
+        "Views/RecurrenceScopeDialog.swift"
+      ],
+      "was": [
+        "Views/RecurrenceScopeDialog.swift:21"
+      ],
+      "args": []
+    },
+    "recurrence.message.save": {
+      "ja": "この回だけ変更しますか？ 以降すべてに適用しますか？",
+      "target": "app",
+      "comment": "繰り返しの予定を保存するときの問い",
+      "where": [
+        "Views/RecurrenceScopeDialog.swift"
+      ],
+      "was": [
+        "Views/RecurrenceScopeDialog.swift:19"
+      ],
+      "args": []
+    },
+    "recurrence.thisEvent": {
+      "ja": "この回だけ",
+      "target": "app",
+      "comment": "問いの選択肢。この回だけ",
+      "where": [
+        "Views/RecurrenceScopeDialog.swift"
+      ],
+      "was": [
+        "Views/RecurrenceScopeDialog.swift:13"
+      ],
+      "args": []
+    },
+    "recurrence.title": {
+      "ja": "繰り返しの予定です",
+      "target": "app",
+      "comment": "繰り返しの予定の問いの題名",
+      "where": [
+        "Views/RecurrenceScopeDialog.swift"
+      ],
+      "was": [
+        "Views/RecurrenceScopeDialog.swift:12"
+      ],
+      "args": []
+    },
+    "selection.delete": {
+      "ja": "削除",
+      "target": "app",
+      "comment": "投げなわのメニューの項目。14 pt（「予定にする」は semibold）で、3 つの合計が 220 pt 以内（F-15）。選んだ手書きを消す",
+      "where": [
+        "Views/SelectionMenuView.swift"
+      ],
+      "was": [
+        "Views/SelectionMenuView.swift:20"
+      ],
+      "args": [],
+      "maxEm": 7
+    },
+    "selection.deselect": {
+      "ja": "選択解除",
+      "target": "app",
+      "comment": "投げなわのメニューの項目。14 pt（「予定にする」は semibold）で、3 つの合計が 220 pt 以内（F-15）。選択をやめる",
+      "where": [
+        "Views/SelectionMenuView.swift"
+      ],
+      "was": [
+        "Views/SelectionMenuView.swift:22"
+      ],
+      "args": [],
+      "maxEm": 7
+    },
+    "selection.handwriting": {
+      "ja": "選択した手書き",
+      "target": "app",
+      "comment": "読み上げの名前。投げなわで選んだ手書き（メニューと、予定のシートの見本の画像）",
+      "where": [
+        "Views/EventEditorSheet.swift",
+        "Views/SelectionMenuView.swift"
+      ],
+      "was": [
+        "Views/SelectionMenuView.swift:32",
+        "Views/EventEditorSheet.swift:250"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "selection.makeEvent": {
+      "ja": "予定にする",
+      "target": "app",
+      "comment": "投げなわのメニューの項目。14 pt（「予定にする」は semibold）で、3 つの合計が 220 pt 以内（F-15）。選んだ手書きから予定を作る",
+      "where": [
+        "Views/SelectionMenuView.swift"
+      ],
+      "was": [
+        "Views/SelectionMenuView.swift:18"
+      ],
+      "args": [],
+      "maxEm": 7,
+      "glossary": [
+        "予定にする"
+      ]
+    },
+    "store.error.productNotFound": {
+      "ja": "商品が見つかりません",
+      "target": "app",
+      "comment": "購入の失敗の理由（商品が無い）",
+      "where": [
+        "Store/LiveStoreClient.swift"
+      ],
+      "was": [
+        "Store/LiveStoreClient.swift:261"
+      ],
+      "args": []
+    },
+    "store.error.unknownPurchaseResult": {
+      "ja": "購入の結果を解釈できません",
+      "target": "app",
+      "comment": "購入の失敗の理由（結果が分からない）",
+      "where": [
+        "Store/LiveStoreClient.swift"
+      ],
+      "was": [
+        "Store/LiveStoreClient.swift:262"
+      ],
+      "args": []
+    },
+    "store.generic": {
+      "ja": "購入できませんでした（%@）",
+      "target": "app",
+      "comment": "そのほかの失敗。括弧の中は iOS の理由の文",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "composedOf": [
+        "Store/StoreStrings.swift:22"
+      ],
+      "args": [
+        "iOS が返した理由の文"
+      ]
+    },
+    "store.notAvailable": {
+      "ja": "お住まいの地域ではこのプランを購入できません",
+      "target": "app",
+      "comment": "その店頭で買えないとき",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "was": [
+        "Store/StoreStrings.swift:19"
+      ],
+      "args": []
+    },
+    "store.nothingToRestore": {
+      "ja": "復元できる購入がありません。購入したときと同じ Apple Account でサインインしているか確認してください",
+      "target": "app",
+      "comment": "復元するものが無いとき。Apple Account は iOS のその言語の語",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "was": [
+        "Store/StoreStrings.swift:28"
+      ],
+      "args": []
+    },
+    "store.offline": {
+      "ja": "App Store に接続できません。回線を確認してもう一度お試しください",
+      "target": "app",
+      "comment": "回線の問題のとき",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "was": [
+        "Store/StoreStrings.swift:18"
+      ],
+      "args": []
+    },
+    "store.pending": {
+      "ja": "承認待ちです。承認されると自動で使えるようになります",
+      "target": "app",
+      "comment": "承認待ち（ファミリーの承認など）",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "was": [
+        "Store/StoreStrings.swift:16"
+      ],
+      "args": []
+    },
+    "store.productsUnavailable": {
+      "ja": "App Store から価格を取得できませんでした。回線を確認して「再読み込み」を押してください",
+      "target": "app",
+      "comment": "価格が取れないとき。「再読み込み」は paywall.reload と同じ語で",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "was": [
+        "Store/StoreStrings.swift:32"
+      ],
+      "args": []
+    },
+    "store.purchased": {
+      "ja": "購読を開始しました。ありがとうございます",
+      "target": "app",
+      "comment": "購入の後のトースト",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "was": [
+        "Store/StoreStrings.swift:13"
+      ],
+      "args": []
+    },
+    "store.restored": {
+      "ja": "購入を復元しました",
+      "target": "app",
+      "comment": "復元の後のトースト",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "was": [
+        "Store/StoreStrings.swift:27"
+      ],
+      "args": []
+    },
+    "store.trialStarted.one": {
+      "ja": "%@ 日間の無料試用を開始しました",
+      "target": "app",
+      "comment": "試用を始めた後のトースト（1 のときの形。0-8）",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "composedOf": [
+        "Store/StoreStrings.swift:15"
+      ],
+      "args": [
+        "試用の日数"
+      ]
+    },
+    "store.trialStarted.other": {
+      "ja": "%@ 日間の無料試用を開始しました",
+      "target": "app",
+      "comment": "試用を始めた後のトースト（1 以外の形。0-8）",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "composedOf": [
+        "Store/StoreStrings.swift:15"
+      ],
+      "args": [
+        "試用の日数"
+      ]
+    },
+    "store.unverified": {
+      "ja": "購入を確認できませんでした。しばらくしてから「購入を復元」をお試しください",
+      "target": "app",
+      "comment": "購入を確かめられないとき。「購入を復元」は paywall.restore と同じ語で",
+      "where": [
+        "Store/StoreStrings.swift"
+      ],
+      "was": [
+        "Store/StoreStrings.swift:17"
+      ],
+      "args": []
+    },
+    "sync.footer.accountMismatch": {
+      "ja": "この端末の手書きは、前に同期していた iCloud アカウントのものです。「新しいアカウントで使い始める」から選んでください。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。「新しいアカウントで使い始める」は設定の画面のボタンの語と同じに（U のキー）",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:130"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "この端末"
+      ]
+    },
+    "sync.footer.noAccount": {
+      "ja": "iCloud にサインインするとほかの端末と同期できます。手書きはこの端末の中だけに保存しています。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:118"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "この端末",
+        "同期"
+      ]
+    },
+    "sync.footer.offline": {
+      "ja": "オフラインです。手書きはこの端末に保存され、接続が戻ると同期されます。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:116"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "この端末",
+        "同期"
+      ]
+    },
+    "sync.footer.permission": {
+      "ja": "iCloud の設定でこのアプリの利用が許可されていません。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:126"
+      ],
+      "args": []
+    },
+    "sync.footer.quota": {
+      "ja": "iCloud の容量が不足しているため、手書きを同期できません。この端末には保存されています。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:124"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "この端末",
+        "同期"
+      ]
+    },
+    "sync.footer.restricted": {
+      "ja": "手書きはこの端末の中だけに保存しています。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:120"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "この端末"
+      ]
+    },
+    "sync.footer.serverError": {
+      "ja": "手書きの同期に失敗しました。この端末には保存されています（あとで再試行します）。\n%@",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。改行の後ろは iOS の理由の文",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "composedOf": [
+        "Sync/SyncStatus.swift:128"
+      ],
+      "args": [
+        "iOS が返した理由の文"
+      ],
+      "glossary": [
+        "手書き / 線（本）",
+        "この端末",
+        "同期"
+      ]
+    },
+    "sync.footer.synced": {
+      "ja": "手書きはこの端末と、あなたの iCloud に保存されています。ほかの iPad や iPhone でも同じ手書きが見られます。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:112"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "この端末"
+      ]
+    },
+    "sync.footer.syncing": {
+      "ja": "書いた手書きを iCloud へ送っています。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:114"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）"
+      ]
+    },
+    "sync.footer.unknown": {
+      "ja": "「設定」アプリで iCloud を確認してください。手書きはこの端末の中だけに保存しています。",
+      "target": "app",
+      "comment": "設定の「同期」の節の脚注。「設定」は iOS の設定アプリの名前",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:122"
+      ],
+      "args": [],
+      "glossary": [
+        "手書き / 線（本）",
+        "この端末"
+      ]
+    },
+    "sync.header.error": {
+      "ja": "エラー",
+      "target": "app",
+      "comment": "ページの見出しの ☁ の横の短い字（広い行だけに出る）。エラー",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:76"
+      ],
+      "args": []
+    },
+    "sync.header.localOnly": {
+      "ja": "この端末のみ",
+      "target": "app",
+      "comment": "ページの見出しの ☁ の横の短い字（広い行だけに出る）。iCloud を使わない",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:74"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末"
+      ]
+    },
+    "sync.header.offline": {
+      "ja": "オフライン",
+      "target": "app",
+      "comment": "ページの見出しの ☁ の横の短い字（広い行だけに出る）。回線が無い",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:72"
+      ],
+      "args": []
+    },
+    "sync.header.saved": {
+      "ja": "保存済み",
+      "target": "app",
+      "comment": "ページの見出しの ☁ の横の短い字（広い行だけに出る）。全部 iCloud に入った",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:66"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "sync.header.stopped": {
+      "ja": "停止中",
+      "target": "app",
+      "comment": "ページの見出しの ☁ の横の短い字（広い行だけに出る）。同期を止めている",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:78"
+      ],
+      "args": []
+    },
+    "sync.header.syncing": {
+      "ja": "同期中",
+      "target": "app",
+      "comment": "ページの見出しの ☁ の横の短い字（広い行だけに出る）。同期している",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:68",
+        "Sync/SyncStatus.swift:70"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "sync.status.accountMismatch": {
+      "ja": "別の iCloud アカウントです",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:104"
+      ],
+      "args": []
+    },
+    "sync.status.noAccount": {
+      "ja": "iCloud にサインインしていません",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:92"
+      ],
+      "args": []
+    },
+    "sync.status.offline": {
+      "ja": "オフライン",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:90"
+      ],
+      "args": []
+    },
+    "sync.status.permission": {
+      "ja": "iCloud を使えません",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:100"
+      ],
+      "args": []
+    },
+    "sync.status.quota": {
+      "ja": "iCloud の容量が足りません",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:98"
+      ],
+      "args": []
+    },
+    "sync.status.restricted": {
+      "ja": "この端末では iCloud が制限されています",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:94"
+      ],
+      "args": [],
+      "glossary": [
+        "この端末"
+      ]
+    },
+    "sync.status.serverError": {
+      "ja": "同期に失敗しました",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:102"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "sync.status.synced": {
+      "ja": "同期済み",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:86"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "sync.status.syncing": {
+      "ja": "同期中…",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:88"
+      ],
+      "args": [],
+      "glossary": [
+        "同期"
+      ]
+    },
+    "sync.status.unknown": {
+      "ja": "iCloud を確認できません",
+      "target": "app",
+      "comment": "設定の「iCloud 同期」の行の値。",
+      "where": [
+        "Sync/SyncStatus.swift"
+      ],
+      "was": [
+        "Sync/SyncStatus.swift:96"
+      ],
+      "args": []
+    },
+    "toolbar.badge.marker": {
+      "ja": "マーカー・%@",
+      "target": "app",
+      "comment": "丸ボタンの読み上げの値。マーカーと色",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "composedOf": [
+        "Views/ToolbarLogic.swift:203"
+      ],
+      "args": [
+        "色の名前（toolbar.color.*）"
+      ],
+      "glossary": [
+        "マーカー"
+      ]
+    },
+    "toolbar.badge.pen": {
+      "ja": "ペン・%@",
+      "target": "app",
+      "comment": "丸ボタンの読み上げの値。ペンと色（太さが表に無いとき）",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "composedOf": [
+        "Views/ToolbarLogic.swift:206"
+      ],
+      "args": [
+        "色の名前（toolbar.color.*）"
+      ],
+      "glossary": [
+        "ペン"
+      ]
+    },
+    "toolbar.badge.penWidth": {
+      "ja": "ペン・%1$@・%2$@",
+      "target": "app",
+      "comment": "丸ボタンの読み上げの値。ペンと色と太さ",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "composedOf": [
+        "Views/ToolbarLogic.swift:206",
+        "Views/ToolbarLogic.swift:209"
+      ],
+      "args": [
+        "色の名前（toolbar.color.*）",
+        "太さの名前（toolbar.width.*）"
+      ],
+      "glossary": [
+        "ペン",
+        "細・中・太（ペンの太さ）"
+      ]
+    },
+    "toolbar.collapse.spoken": {
+      "ja": "ツールバーをしまう",
+      "target": "app",
+      "comment": "同じボタンの読み上げの名前（en: Hide toolbar）",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:114"
+      ],
+      "args": [],
+      "glossary": [
+        "しまう（ツールバー）"
+      ]
+    },
+    "toolbar.collapse.title": {
+      "ja": "しまう",
+      "target": "app",
+      "comment": "ツールバーを丸ボタンにしまうボタンの名前。F-12 と同じ上限",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:113"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "しまう（ツールバー）"
+      ]
+    },
+    "toolbar.color.black": {
+      "ja": "黒",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:324"
+      ],
+      "args": []
+    },
+    "toolbar.color.blue": {
+      "ja": "青",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:325"
+      ],
+      "args": []
+    },
+    "toolbar.color.green": {
+      "ja": "緑",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:327",
+        "Views/ToolbarView.swift:335"
+      ],
+      "args": []
+    },
+    "toolbar.color.lightBlue": {
+      "ja": "水色",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:336"
+      ],
+      "args": []
+    },
+    "toolbar.color.orange": {
+      "ja": "オレンジ",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:328"
+      ],
+      "args": []
+    },
+    "toolbar.color.pink": {
+      "ja": "ピンク",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:334"
+      ],
+      "args": []
+    },
+    "toolbar.color.purple": {
+      "ja": "紫",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:329"
+      ],
+      "args": []
+    },
+    "toolbar.color.red": {
+      "ja": "赤",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:326"
+      ],
+      "args": []
+    },
+    "toolbar.color.unknown": {
+      "ja": "その他の色",
+      "target": "app",
+      "comment": "表に無い色のときの読み上げの名前",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:338"
+      ],
+      "args": []
+    },
+    "toolbar.color.yellow": {
+      "ja": "黄",
+      "target": "app",
+      "comment": "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:333"
+      ],
+      "args": []
+    },
+    "toolbar.dock.hint.toLeft": {
+      "ja": "長押しで、左下へ移すか、ツールバーをいつも出すかを選べます",
+      "target": "app",
+      "comment": "丸ボタンが右下にあるときの読み上げのヒント（toolbar.moveEdge.toLeft と toolbar.pin の語で）",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "composedOf": [
+        "Views/ToolbarLogic.swift:135",
+        "Views/ToolbarLogic.swift:125#2"
+      ],
+      "args": []
+    },
+    "toolbar.dock.hint.toRight": {
+      "ja": "長押しで、右下へ移すか、ツールバーをいつも出すかを選べます",
+      "target": "app",
+      "comment": "丸ボタンが左下にあるときの読み上げのヒント（toolbar.moveEdge.toRight と toolbar.pin の語で）",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "composedOf": [
+        "Views/ToolbarLogic.swift:135",
+        "Views/ToolbarLogic.swift:125#1"
+      ],
+      "args": []
+    },
+    "toolbar.dock.spoken": {
+      "ja": "ツールバーを出す",
+      "target": "app",
+      "comment": "丸ボタンの読み上げの名前。押すとツールバーが出る",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:115"
+      ],
+      "args": []
+    },
+    "toolbar.fingerToggle": {
+      "ja": "指でも書く",
+      "target": "app",
+      "comment": "ツールバーのスイッチの名前。13 pt で縮めない。ja の幅 ＋ 76 pt（約 136 pt、10.5 em）まで（F-13）",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:297"
+      ],
+      "args": [],
+      "maxEm": 10.5,
+      "glossary": [
+        "指でも書く"
+      ]
+    },
+    "toolbar.fingerToggle.hint": {
+      "ja": "オンにすると指でも線が引けます。オフのときは指でスクロールとタップをします",
+      "target": "app",
+      "comment": "同じスイッチの読み上げのヒント",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:302"
+      ],
+      "args": [],
+      "glossary": [
+        "指でも書く"
+      ]
+    },
+    "toolbar.hint.eraser": {
+      "ja": "触れた線をまるごと消します",
+      "target": "app",
+      "comment": "消しゴムを選んでいるときの説明。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 144 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:117"
+      ],
+      "args": [],
+      "maxEm": 12.0,
+      "lines": 2,
+      "glossary": [
+        "消しゴム",
+        "線"
+      ]
+    },
+    "toolbar.hint.eraser.toMarker": {
+      "ja": "触れた線をまるごと消します\n（消すとマーカーに戻ります）",
+      "target": "app",
+      "comment": "消しゴムの説明で、消したらマーカーに戻るとき。2 行で、1 行目は toolbar.hint.eraser と同じ文にする。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 144 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:178"
+      ],
+      "args": [],
+      "maxEm": 12.0,
+      "lines": 2,
+      "glossary": [
+        "消しゴム",
+        "マーカー"
+      ]
+    },
+    "toolbar.hint.eraser.toPen": {
+      "ja": "触れた線をまるごと消します\n（消すとペンに戻ります）",
+      "target": "app",
+      "comment": "消しゴムの説明で、消したらペンに戻るとき。2 行で、1 行目は toolbar.hint.eraser と同じ文にする。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 144 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:176"
+      ],
+      "args": [],
+      "maxEm": 12.0,
+      "lines": 2,
+      "glossary": [
+        "消しゴム",
+        "ペン"
+      ]
+    },
+    "toolbar.hint.event": {
+      "ja": "なぞって予定を作ります。\n予定をタップすると編集します",
+      "target": "app",
+      "comment": "予定の道具を選んでいるときの説明。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 155 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:121"
+      ],
+      "args": [],
+      "maxEm": 12.9,
+      "lines": 2,
+      "glossary": [
+        "予定"
+      ]
+    },
+    "toolbar.hint.lasso": {
+      "ja": "囲んで選びます。\n枠の中をドラッグで動かせます",
+      "target": "app",
+      "comment": "投げなわを選んでいるときの説明。ツールバーの説明。12 pt。改行は 1 つまで（改行の無い訳もよい）。各行は 155 pt 以内（F-14）。入らないときは省略より短い言い換えを",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:120"
+      ],
+      "args": [],
+      "maxEm": 12.9,
+      "lines": 2,
+      "glossary": [
+        "投げなわ"
+      ]
+    },
+    "toolbar.moveEdge.toLeft": {
+      "ja": "左下へ移す",
+      "target": "app",
+      "comment": "丸ボタンの長押しのメニュー。丸ボタンを左下へ移す。読み上げの操作の名前にも使う",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:125"
+      ],
+      "args": []
+    },
+    "toolbar.moveEdge.toRight": {
+      "ja": "右下へ移す",
+      "target": "app",
+      "comment": "丸ボタンの長押しのメニュー。丸ボタンを右下へ移す。読み上げの操作の名前にも使う",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:125"
+      ],
+      "args": []
+    },
+    "toolbar.pin": {
+      "ja": "ツールバーをいつも出す",
+      "target": "app",
+      "comment": "丸ボタンの長押しのメニュー。ツールバーを広げたままにする。読み上げの操作の名前にも使う",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [
+        "Views/ToolbarLogic.swift:116"
+      ],
+      "args": []
+    },
+    "toolbar.redo": {
+      "ja": "やり直す",
+      "target": "app",
+      "comment": "↷ のボタンの読み上げの名前",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:291"
+      ],
+      "args": [],
+      "glossary": [
+        "元に戻す・やり直す"
+      ]
+    },
+    "toolbar.tool.eraser": {
+      "ja": "消しゴム",
+      "target": "app",
+      "comment": "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字。丸ボタンの読み上げの値にも使う",
+      "where": [
+        "Views/ToolbarLogic.swift",
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:151",
+        "Views/ToolbarLogic.swift:194"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "消しゴム"
+      ]
+    },
+    "toolbar.tool.event": {
+      "ja": "予定",
+      "target": "app",
+      "comment": "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字。丸ボタンの読み上げの値にも使う",
+      "where": [
+        "Views/ToolbarLogic.swift",
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:153",
+        "Views/ToolbarLogic.swift:198"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "予定"
+      ]
+    },
+    "toolbar.tool.lasso": {
+      "ja": "投げなわ",
+      "target": "app",
+      "comment": "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字。丸ボタンの読み上げの値にも使う",
+      "where": [
+        "Views/ToolbarLogic.swift",
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:152",
+        "Views/ToolbarLogic.swift:196"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "投げなわ"
+      ]
+    },
+    "toolbar.tool.marker": {
+      "ja": "マーカー",
+      "target": "app",
+      "comment": "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:150"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "マーカー"
+      ]
+    },
+    "toolbar.tool.pen": {
+      "ja": "ペン",
+      "target": "app",
+      "comment": "ツールバーの道具の名前。10 pt で 38 pt（3.8 em）以内を先に選ぶ。入らなくても 47.5 pt まで（0.8 倍まで縮む。F-12）。読み上げも同じ字",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:149"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "ペン"
+      ]
+    },
+    "toolbar.undo": {
+      "ja": "元に戻す",
+      "target": "app",
+      "comment": "↶ のボタンの読み上げの名前（ツールバーと丸ボタン）",
+      "where": [
+        "Views/ToolbarDock.swift",
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:281",
+        "Views/ToolbarDock.swift:76"
+      ],
+      "args": [],
+      "glossary": [
+        "元に戻す・やり直す"
+      ]
+    },
+    "toolbar.width.medium": {
+      "ja": "中",
+      "target": "app",
+      "comment": "ペンの太さのボタンの名前。F-12 と同じ上限（10 pt で 38 pt 以内を先に選ぶ。47.5 pt まで）。読み上げにも入る",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:342"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "細・中・太（ペンの太さ）"
+      ]
+    },
+    "toolbar.width.spoken": {
+      "ja": "太さ: %@",
+      "target": "app",
+      "comment": "ペンの太さのボタンの読み上げの名前",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "composedOf": [
+        "Views/ToolbarView.swift:265"
+      ],
+      "args": [
+        "太さの名前（toolbar.width.*）"
+      ],
+      "glossary": [
+        "細・中・太（ペンの太さ）"
+      ]
+    },
+    "toolbar.width.thick": {
+      "ja": "太",
+      "target": "app",
+      "comment": "ペンの太さのボタンの名前。F-12 と同じ上限（10 pt で 38 pt 以内を先に選ぶ。47.5 pt まで）。読み上げにも入る",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:343"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "細・中・太（ペンの太さ）"
+      ]
+    },
+    "toolbar.width.thin": {
+      "ja": "細",
+      "target": "app",
+      "comment": "ペンの太さのボタンの名前。F-12 と同じ上限（10 pt で 38 pt 以内を先に選ぶ。47.5 pt まで）。読み上げにも入る",
+      "where": [
+        "Views/ToolbarView.swift"
+      ],
+      "was": [
+        "Views/ToolbarView.swift:341"
+      ],
+      "args": [],
+      "maxEm": 3.8,
+      "glossary": [
+        "細・中・太（ペンの太さ）"
+      ]
+    }
+  }
+}

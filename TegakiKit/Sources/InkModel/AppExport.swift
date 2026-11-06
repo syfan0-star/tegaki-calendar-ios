@@ -1,4 +1,5 @@
 import Foundation
+import Holidays
 
 /// The app's own export file `tegaki-app-export` v1 (M6_CONTRACT §1.1, DESIGN §3.9): every page of
 /// the device's handwriting in one readable JSON file, each page being `InkPage.jsonValue` itself
@@ -134,23 +135,26 @@ public enum AppExport {
     // MARK: - File names (§1.5)
 
     /// 「てがきカレンダー 手書き 2026-10-17.json」: the calendar day of `exportedAt` in `calendar`.
-    public static func jsonFileName(exportedAt: Date, calendar: Calendar) -> String {
-        "てがきカレンダー 手書き " + DayKey(exportedAt, calendar: calendar).description + ".json"
+    /// The date is the language-free form (§3.1 rule 6); the import reads the contents, not the name.
+    public static func jsonFileName(exportedAt: Date, calendar: Calendar, language: UILanguage = .ja) -> String {
+        KitStrings.format("kit.export.jsonFileName", language, [DayKey(exportedAt, calendar: calendar).description])
     }
 
     /// 「てがきカレンダー 2026年10月 月.pdf」: `PageNavigation.title` (so a day's holiday name and a
-    /// week's second year are included) and `kindLabel`, made safe with `safeFileName`.
-    public static func pdfFileName(kind: PageKind, focus: DayKey) -> String {
-        safeFileName("てがきカレンダー " + PageNavigation.title(kind, focus: focus) + " " + kindLabel(kind) + ".pdf")
+    /// week's second year are included) and `kindLabel`, made safe with `safeFileName`. The first word
+    /// is the app's name in `language` (`kit.app.name`).
+    public static func pdfFileName(kind: PageKind, focus: DayKey, holidays: HolidayCalendar = .japan, language: UILanguage = .ja, weekStart: WeekStart = .monday) -> String {
+        let title = PageNavigation.title(kind, focus: focus, holidays: holidays, language: language, weekStart: weekStart)
+        return safeFileName(KitStrings.text("kit.app.name", language) + " " + title + " " + kindLabel(kind, language: language) + ".pdf")
     }
 
-    /// 月 "月" / 週 "週" / 日 "日" / 年 "年".
-    public static func kindLabel(_ kind: PageKind) -> String {
+    /// The name of a kind of page: ja 「月」「週」「日」「年」.
+    public static func kindLabel(_ kind: PageKind, language: UILanguage = .ja) -> String {
         switch kind {
-        case .month: return "月"
-        case .week: return "週"
-        case .day: return "日"
-        case .year: return "年"
+        case .month: return KitStrings.text("kit.export.kind.month", language)
+        case .week: return KitStrings.text("kit.export.kind.week", language)
+        case .day: return KitStrings.text("kit.export.kind.day", language)
+        case .year: return KitStrings.text("kit.export.kind.year", language)
         }
     }
 

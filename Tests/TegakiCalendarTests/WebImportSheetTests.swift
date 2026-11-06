@@ -1,4 +1,5 @@
 import InkModel
+import Layout
 import XCTest
 @testable import TegakiCalendar
 
@@ -38,6 +39,41 @@ final class WebImportSheetTests: XCTestCase {
         XCTAssertNotEqual(WebImportPhase.done(imported, skipped: 0, isAppExport: true), .done(imported, skipped: 0, isAppExport: false))
         XCTAssertTrue(WebImportPhase.reading.isInProgress)
         XCTAssertTrue(WebImportPhase.importing(done: 1, total: 3).isInProgress)
+    }
+
+    /// 1.2 (docs/M7B_CONTRACT.md §0, §10.4, §10.5): the last line when the import brought week pages of
+    /// the other week start; without it the sentences are 1.1's.
+    func testOtherFormNote() {
+        let sunday = "取り込んだ週のページの一部は、週の始まりを日曜にすると見えます。"
+        let monday = "取り込んだ週のページの一部は、週の始まりを月曜にすると見えます。"
+        XCTAssertEqual(WebImportSheet.otherWeekStartText(.sunday), sunday)
+        XCTAssertEqual(WebImportSheet.otherWeekStartText(.monday), monday)
+        XCTAssertNil(WebImportSheet.otherWeekStartText(nil))
+
+        XCTAssertEqual(WebImportSheet.toastText(outcome: imported, skipped: 0, isAppExport: true, otherWeekStart: nil),
+                       "手書きを取り込みました（3 ページ・12 本）", "nil: 1.1's sentence")
+        XCTAssertEqual(WebImportSheet.toastText(outcome: imported, skipped: 0, isAppExport: true, otherWeekStart: .sunday),
+                       "手書きを取り込みました（3 ページ・12 本）\n" + sunday)
+        XCTAssertEqual(WebImportSheet.toastText(outcome: imported, skipped: 2, isAppExport: false, otherWeekStart: .monday),
+                       "Web 版の手書きを取り込みました（3 ページ・12 本）\n2 ページは対象外のため飛ばしました\n" + monday,
+                       "the result, the skipped line, then this line")
+
+        // The phase: the default is nil, so the 1.1 calls compare equal to an explicit nil.
+        XCTAssertEqual(WebImportPhase.done(imported, skipped: 0, isAppExport: true),
+                       .done(imported, skipped: 0, isAppExport: true, otherWeekStart: nil))
+        XCTAssertNotEqual(WebImportPhase.done(imported, skipped: 0, isAppExport: true, otherWeekStart: .sunday),
+                          .done(imported, skipped: 0, isAppExport: true))
+        XCTAssertFalse(WebImportPhase.done(imported, skipped: 0, isAppExport: true, otherWeekStart: .sunday).isInProgress)
+    }
+
+    /// 1.1's words used the numbers as they were, without grouping (J-1): a count of a thousand or
+    /// more stays 「1234」 in Japanese. The cap in the question is the one with a comma.
+    func testJapaneseCountsAreNotGrouped() {
+        let big = ImportOutcome(pagesChanged: 1234, strokesAdded: 56789, pagesSeen: 1234)
+        XCTAssertEqual(WebImportSheet.resultText(big), "Web 版の手書きを取り込みました（1234 ページ・56789 本）")
+        XCTAssertEqual(WebImportSheet.skippedText(1234), "1234 ページは対象外のため飛ばしました")
+        XCTAssertEqual(WebImportSheet.progressText(.importing(done: 1000, total: 2000)), "取り込んでいます… 1000 / 2000 ページ")
+        XCTAssertEqual(WebImportSheet.progressText(.reading), "取り込んでいます…")
     }
 
     /// 1.1 (M7A_CONTRACT §5.2 / §6.2): the question before an import that takes a page past 20,000

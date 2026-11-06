@@ -1,0 +1,166 @@
+{
+  "about": "1.2 の App Store の文のロケール（M7B_CONTRACT §6.6・§11.2・D12）。ja のほかに 15（第 4 版で es-ES・pt-PT を足した。nl-NL・sv は入れない）。L-9 はこの表の code のうちフォルダがあるものを見る。copyOf のロケールはフォルダを作らず、Connect には copyOf の文をそのまま入れる。source は ja 以外の文の日本語の元（入力しない）。language はアプリの画面の言語。shots は上げる写真の store-shots の組（§7.5。ja は組に入らない）。storefronts の（既定）（追加）は、その店頭の既定の言語か追加の言語か。",
+  "primary": "ja",
+  "source": "source-ja",
+  "fields": ["name.txt", "subtitle.txt", "keywords.txt", "promo.txt", "description.txt", "whatsnew.txt", "urls.txt"],
+  "locales": [
+    {
+      "code": "ja",
+      "connectJa": "日本語",
+      "connectEn": "Japanese",
+      "language": "ja",
+      "storefronts": "日本",
+      "fields": ["whatsnew.txt"],
+      "writer": "A",
+      "whatsnewSource": "§6.3 の ja の文そのまま（ほかの欄は 1.0 から変えない）"
+    },
+    {
+      "code": "en-US",
+      "connectJa": "英語（米国）",
+      "connectEn": "English (U.S.)",
+      "language": "en",
+      "shots": "en",
+      "storefronts": "米国",
+      "writer": "A",
+      "whatsnewSource": "source-ja/whatsnew.en-US.txt"
+    },
+    {
+      "code": "en-GB",
+      "connectJa": "英語（英国）",
+      "connectEn": "English (U.K.)",
+      "language": "en",
+      "shots": "en-GB",
+      "storefronts": "英国・シンガポール・インド・東南アジア・中東・アフリカ・ノルウェーなど（既定）と香港・台湾・韓国・ブラジル・メキシコ・スイスなど（追加）、EU の 19 か国（既定）と残りの 8 か国（追加）。EU の全 27 か国で既定か追加なので、写しを必ず入れる（§11.2）",
+      "copyOf": "en-US"
+    },
+    {
+      "code": "en-AU",
+      "connectJa": "英語（オーストラリア）",
+      "connectEn": "English (Australia)",
+      "language": "en",
+      "shots": "en-GB",
+      "storefronts": "豪州・ニュージーランド",
+      "copyOf": "en-US"
+    },
+    {
+      "code": "en-CA",
+      "connectJa": "英語（カナダ）",
+      "connectEn": "English (Canada)",
+      "language": "en",
+      "shots": "en",
+      "storefronts": "カナダ",
+      "copyOf": "en-US"
+    },
+    {
+      "code": "zh-Hans",
+      "connectJa": "中国語（簡体字）",
+      "connectEn": "Chinese (Simplified)",
+      "language": "zh-Hans",
+      "shots": "zh-Hans",
+      "storefronts": "中国本土・シンガポール",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "zh-Hant",
+      "connectJa": "中国語（繁体字）",
+      "connectEn": "Chinese (Traditional)",
+      "language": "zh-Hant",
+      "shots": "zh-Hant",
+      "storefronts": "台湾・香港・マカオ",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "ko",
+      "connectJa": "韓国語",
+      "connectEn": "Korean",
+      "language": "ko",
+      "shots": "ko",
+      "storefronts": "韓国",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "fr-FR",
+      "connectJa": "フランス語",
+      "connectEn": "French",
+      "language": "fr",
+      "shots": "fr",
+      "storefronts": "フランス（既定）・ベルギーとルクセンブルク（追加）・スイス（追加）・アフリカの 3 か国（既定）",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "fr-CA",
+      "connectJa": "フランス語（カナダ）",
+      "connectEn": "French (Canada)",
+      "language": "fr",
+      "shots": "fr",
+      "storefronts": "カナダ",
+      "copyOf": "fr-FR"
+    },
+    {
+      "code": "de-DE",
+      "connectJa": "ドイツ語",
+      "connectEn": "German",
+      "language": "de",
+      "shots": "de",
+      "storefronts": "ドイツ・オーストリア（既定）・ルクセンブルク（追加）・スイス（既定）",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "it",
+      "connectJa": "イタリア語",
+      "connectEn": "Italian",
+      "language": "it",
+      "shots": "it",
+      "storefronts": "イタリア（既定）・スイス（追加）",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "pt-BR",
+      "connectJa": "ポルトガル語（ブラジル）",
+      "connectEn": "Portuguese (Brazil)",
+      "language": "pt-BR",
+      "shots": "pt-BR",
+      "storefronts": "ブラジル",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "es-MX",
+      "connectJa": "スペイン語（メキシコ）",
+      "connectEn": "Spanish (Mexico)",
+      "language": "es",
+      "shots": "es",
+      "storefronts": "メキシコ・中南米・米国（追加）",
+      "writer": "X",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "es-ES",
+      "connectJa": "スペイン語（スペイン）",
+      "connectEn": "Spanish (Spain)",
+      "language": "es",
+      "shots": "es-ES",
+      "storefronts": "スペイン（既定）",
+      "writer": "X",
+      "writerNote": "es-MX から直す（§11.2）",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    },
+    {
+      "code": "pt-PT",
+      "connectJa": "ポルトガル語（ポルトガル）",
+      "connectEn": "Portuguese (Portugal)",
+      "language": "pt-BR",
+      "shots": "pt-BR",
+      "storefronts": "ポルトガル（既定）",
+      "writer": "X",
+      "writerNote": "pt-BR の写しにせず別に書く（語が多く違う: tela/ecrã、arquivo/ficheiro、salvar/guardar、excluir/eliminar）。アプリの画面はブラジルのポルトガル語なので、説明に正直に書く（§11.2、0-2）",
+      "whatsnewSource": "source-ja/whatsnew.txt"
+    }
+  ]
+}

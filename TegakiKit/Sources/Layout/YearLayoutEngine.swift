@@ -10,13 +10,19 @@ public struct YearLayoutInput: Sendable {
     public var inkBottoms: [CellKey: CGFloat]
     public var now: Date
     public var calendar: Calendar
+    /// Where the colour and the short name of a day come from; never the shape of the paper (D9, §5.4).
+    public var holidays: HolidayCalendar
+    /// The same input as the other three pages' (the year page has no word of its own yet).
+    public var words: LayoutWords
 
-    public init(year: Int, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar) {
+    public init(year: Int, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese) {
         self.year = year
         self.events = events
         self.inkBottoms = inkBottoms
         self.now = now
         self.calendar = calendar
+        self.holidays = holidays
+        self.words = words
     }
 }
 
@@ -336,7 +342,7 @@ public enum YearLayoutEngine {
         for m in months {
             for d in 1...DayKey.daysInMonth(year: year, month: m) { allDays.append(DayKey(year: year, month: m, day: d)) }
         }
-        let holidays = JapaneseHolidays.names(for: allDays)
+        let holidays = input.holidays.names(for: allDays, style: .short)
         var cells: [CellKey: CGRect] = [:]
         var invalid: [CellKey] = []
         var labels: [DateLabel] = []
@@ -359,7 +365,7 @@ public enum YearLayoutEngine {
                     frame: CGRect(x: cellX, y: frame.minY, width: 40, height: 28),
                     isToday: day == today,
                     inMonth: true,
-                    tone: LayoutMath.tone(of: day, holiday: holiday),
+                    tone: LayoutMath.tone(of: day, holiday: holiday, workday: input.holidays.isWorkday(day)),
                     holidayName: holiday
                 ))
             }

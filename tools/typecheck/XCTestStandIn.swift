@@ -115,6 +115,8 @@ open class XCUIElement: NSObject {
     public var segmentedControls: XCUIElementQuery { XCUIElementQuery() }
     public var windows: XCUIElementQuery { XCUIElementQuery() }
     public var scrollViews: XCUIElementQuery { XCUIElementQuery() }
+    public var otherElements: XCUIElementQuery { XCUIElementQuery() }
+    public var identifier: String { "" }
 }
 
 open class XCUIElementQuery: NSObject {

@@ -1,22 +1,26 @@
 // The words and numbers of the purchase screen and 設定 › 購入, as pure functions (M5_CONTRACT §1.5).
 // Prices themselves are never fixed here: the views show StoreKit's `displayPrice`; the constants are
 // for the screenshot mode and KitChecks.
+//
+// The words come from `KitStrings` (`kit.plan.*`, 1.2, docs/M7B_CONTRACT.md §2.6). The default
+// language `.ja` gives 1.1's text (J-3); the app always passes its language (lint L-7).
 import Foundation
+import DayKit
 
 public enum PlanText {
     /// 「月額」「年額」
-    public static func name(_ plan: Plan) -> String {
+    public static func name(_ plan: Plan, language: UILanguage = .ja) -> String {
         switch plan {
-        case .monthly: return "月額"
-        case .yearly: return "年額"
+        case .monthly: return KitStrings.text("kit.plan.monthly", language)
+        case .yearly: return KitStrings.text("kit.plan.yearly", language)
         }
     }
 
     /// 「/月」「/年」
-    public static func perPeriod(_ plan: Plan) -> String {
+    public static func perPeriod(_ plan: Plan, language: UILanguage = .ja) -> String {
         switch plan {
-        case .monthly: return "/月"
-        case .yearly: return "/年"
+        case .monthly: return KitStrings.text("kit.plan.perPeriod.monthly", language)
+        case .yearly: return KitStrings.text("kit.plan.perPeriod.yearly", language)
         }
     }
 
@@ -30,8 +34,8 @@ public enum PlanText {
     }
 
     /// 「4 か月分お得」。0 なら nil
-    public static func savingsText(months: Int) -> String? {
-        months > 0 ? "\(months) か月分お得" : nil
+    public static func savingsText(months: Int, language: UILanguage = .ja) -> String? {
+        months > 0 ? KitStrings.plural("kit.plan.savings", language, count: months, [DateText.number(months, language)]) : nil
     }
 
     /// yearly / 12 を 1 円に丸める: 2400 → 200
@@ -43,44 +47,47 @@ public enum PlanText {
     }
 
     /// 設定 › 購入 の「現在のプラン」の値
-    public static func statusTitle(_ access: AccessState) -> String {
+    public static func statusTitle(_ access: AccessState, language: UILanguage = .ja) -> String {
         switch access {
         case .subscribed(let s):
-            return s.inGrace ? "\(name(s.plan))・請求に問題（猶予中）" : "\(name(s.plan))・有効"
+            let planName = name(s.plan, language: language)
+            return s.inGrace
+                ? KitStrings.format("kit.plan.status.subscribedGrace", language, [planName])
+                : KitStrings.format("kit.plan.status.subscribed", language, [planName])
         case .trial(let t):
-            return "\(name(t.plan))・試用中"
+            return KitStrings.format("kit.plan.status.trial", language, [name(t.plan, language: language)])
         case .readOnly(let reason):
             switch reason {
-            case .notSubscribed: return "未購入（閲覧専用）"
-            case .expired: return "期限切れ（閲覧専用）"
-            case .billingRetry: return "お支払いに問題（閲覧専用）"
-            case .revoked: return "返金済み（閲覧専用）"
-            case .unknown: return "確認中（閲覧専用）"
+            case .notSubscribed: return KitStrings.text("kit.plan.status.notSubscribed", language)
+            case .expired: return KitStrings.text("kit.plan.status.expired", language)
+            case .billingRetry: return KitStrings.text("kit.plan.status.billingRetry", language)
+            case .revoked: return KitStrings.text("kit.plan.status.revoked", language)
+            case .unknown: return KitStrings.text("kit.plan.status.unknown", language)
             }
         }
     }
 
     /// 設定 › 購入 の日付行のラベル（readOnly は nil）
-    public static func dateLabel(_ access: AccessState) -> String? {
+    public static func dateLabel(_ access: AccessState, language: UILanguage = .ja) -> String? {
         switch access {
         case .subscribed(let s):
-            if s.inGrace { return "猶予の期限" }
-            return s.willAutoRenew ? "次回更新" : "有効期限"
+            if s.inGrace { return KitStrings.text("kit.plan.date.graceUntil", language) }
+            return s.willAutoRenew ? KitStrings.text("kit.plan.date.renews", language) : KitStrings.text("kit.plan.date.expires", language)
         case .trial(let t):
-            return t.willAutoRenew ? "試用の終了（有料に移行）" : "試用の終了"
+            return t.willAutoRenew ? KitStrings.text("kit.plan.date.trialEndsPaid", language) : KitStrings.text("kit.plan.date.trialEnds", language)
         case .readOnly:
             return nil
         }
     }
 
     /// 閲覧専用の理由の短い説明（設定の脚注の先頭。canEdit なら nil）
-    public static func readOnlyNote(_ reason: ReadOnlyReason) -> String {
+    public static func readOnlyNote(_ reason: ReadOnlyReason, language: UILanguage = .ja) -> String {
         switch reason {
-        case .notSubscribed: return "まだ購読していません。"
-        case .expired: return "サブスクリプションの期限が切れています。"
-        case .billingRetry: return "お支払いに問題があります。\(paymentPath)でお支払い方法を確認してください。"
-        case .revoked: return "購入が返金または取り消されました。"
-        case .unknown: return "購入の状態を確認できていません。回線が戻ると自動で確認します。"
+        case .notSubscribed: return KitStrings.text("kit.plan.note.notSubscribed", language)
+        case .expired: return KitStrings.text("kit.plan.note.expired", language)
+        case .billingRetry: return KitStrings.format("kit.plan.note.billingRetry", language, [paymentPath(language: language)])
+        case .revoked: return KitStrings.text("kit.plan.note.revoked", language)
+        case .unknown: return KitStrings.text("kit.plan.note.unknown", language)
         }
     }
 
@@ -90,4 +97,24 @@ public enum PlanText {
     /// 0-6。アプリ内は短い表記（規約・サポートは「（iPadOS 17 では「Apple ID」）」つき。M5-29）
     public static let cancelPath = "「設定」›「Apple Account」›「サブスクリプション」"
     public static let paymentPath = "「設定」›「Apple Account」›「お支払いと配送先」"
+
+    /// `yearlyBadge` in `language` (the 4 months of the contract's prices, the screenshot mode).
+    public static func yearlyBadge(language: UILanguage) -> String {
+        KitStrings.plural("kit.plan.savings", language, count: 4, [DateText.number(4, language)])
+    }
+
+    /// `readOnlyBadge` in `language`.
+    public static func readOnlyBadgeText(language: UILanguage) -> String {
+        KitStrings.text("kit.plan.badge.readOnly", language)
+    }
+
+    /// `cancelPath` in `language`: the names of the iOS Settings screens in that language (§6.1 rule 4).
+    public static func cancelPath(language: UILanguage) -> String {
+        KitStrings.text("kit.plan.cancelPath", language)
+    }
+
+    /// `paymentPath` in `language` (§6.1 rule 4).
+    public static func paymentPath(language: UILanguage) -> String {
+        KitStrings.text("kit.plan.paymentPath", language)
+    }
 }

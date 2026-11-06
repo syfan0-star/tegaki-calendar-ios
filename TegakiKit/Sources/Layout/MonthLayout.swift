@@ -1,11 +1,11 @@
 import Foundation
 @_exported import DayKit
 
-/// The Monday-start grid of one month, as the month page draws it.
+/// The grid of one month, as the month page draws it (Monday-start by default, `WeekStart`).
 public struct MonthGrid: Equatable, Sendable {
     public let year: Int
     public let month: Int
-    /// Exactly 42 days (6 weeks), starting on the Monday on or before the 1st of the month.
+    /// Exactly 42 days (6 weeks), starting on the first day of the week containing the 1st of the month.
     public let days: [DayKey]
     /// Number of week rows (4...6) needed to show every day of the month.
     public let rowCount: Int
@@ -39,7 +39,8 @@ public struct MonthGrid: Equatable, Sendable {
     }
 }
 
-/// Pure layout rules for the month page (Monday-start, 7 columns). No UI, no time zones.
+/// Pure layout rules for the month page (7 columns; the week start is an input, Monday by default).
+/// No UI, no time zones.
 public enum MonthLayout {
     public static let columns = 7
     public static let gridDayCount = 42
@@ -50,24 +51,24 @@ public enum MonthLayout {
     }
 
     /// First cell of the 42-day grid for the month.
-    public static func firstGridDay(year: Int, month: Int) -> DayKey {
-        mondayOnOrBefore(DayKey(year: year, month: month, day: 1))
+    public static func firstGridDay(year: Int, month: Int, weekStart: WeekStart = .monday) -> DayKey {
+        weekStart.firstDay(of: DayKey(year: year, month: month, day: 1))
     }
 
-    /// Number of rows (4...6) needed to show every day of the month, Monday-start.
-    public static func rowCount(year: Int, month: Int) -> Int {
-        let offset = (DayKey(year: year, month: month, day: 1).weekday + 6) % 7 // 0 = Monday
+    /// Number of rows (4...6) needed to show every day of the month.
+    public static func rowCount(year: Int, month: Int, weekStart: WeekStart = .monday) -> Int {
+        let offset = weekStart.column(of: DayKey(year: year, month: month, day: 1)) // 0 = the first column
         let dayCount = DayKey.daysInMonth(year: year, month: month)
         return (offset + dayCount + columns - 1) / columns
     }
 
-    public static func grid(year: Int, month: Int) -> MonthGrid {
-        let first = firstGridDay(year: year, month: month)
+    public static func grid(year: Int, month: Int, weekStart: WeekStart = .monday) -> MonthGrid {
+        let first = firstGridDay(year: year, month: month, weekStart: weekStart)
         let days = (0..<gridDayCount).map { first.adding(days: $0) }
-        return MonthGrid(year: year, month: month, days: days, rowCount: rowCount(year: year, month: month))
+        return MonthGrid(year: year, month: month, days: days, rowCount: rowCount(year: year, month: month, weekStart: weekStart))
     }
 
-    public static func grid(for yearMonth: YearMonth) -> MonthGrid {
-        grid(year: yearMonth.year, month: yearMonth.month)
+    public static func grid(for yearMonth: YearMonth, weekStart: WeekStart = .monday) -> MonthGrid {
+        grid(year: yearMonth.year, month: yearMonth.month, weekStart: weekStart)
     }
 }

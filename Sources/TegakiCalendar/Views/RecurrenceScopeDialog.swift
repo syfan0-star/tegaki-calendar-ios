@@ -9,16 +9,16 @@ extension View {
     /// The question asked before a recurring event is saved or deleted (DESIGN §4.6): 「この回だけ」 →
     /// `.thisEvent`, 「以降すべて」 → `.futureEvents` (destructive for a deletion), 「キャンセル」.
     func recurrenceScopeDialog(isPresented: Binding<Bool>, kind: RecurrenceScopeKind, onChoose: @escaping (EventSpan) -> Void) -> some View {
-        confirmationDialog("繰り返しの予定です", isPresented: isPresented, titleVisibility: .visible) {
-            Button("この回だけ") { onChoose(.thisEvent) }
-            Button("以降すべて", role: kind == .delete ? .destructive : nil) { onChoose(.futureEvents) }
-            Button("キャンセル", role: .cancel) {}
+        confirmationDialog(L.text("recurrence.title"), isPresented: isPresented, titleVisibility: .visible) {
+            Button(L.text("recurrence.thisEvent")) { onChoose(.thisEvent) }
+            Button(L.text("recurrence.futureEvents"), role: kind == .delete ? .destructive : nil) { onChoose(.futureEvents) }
+            Button(L.text("event.cancel"), role: .cancel) {}
         } message: {
             switch kind {
             case .save:
-                Text("この回だけ変更しますか？ 以降すべてに適用しますか？")
+                Text(L.text("recurrence.message.save"))
             case .delete:
-                Text("この回だけ削除しますか？ 以降すべて削除しますか？")
+                Text(L.text("recurrence.message.delete"))
             }
         }
     }

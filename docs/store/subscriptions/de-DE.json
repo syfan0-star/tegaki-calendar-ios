@@ -1,0 +1,17 @@
+{
+  "locale": "de-DE",
+  "group": {
+    "displayName": "Tegaki",
+    "appNameDisplay": "useAppName"
+  },
+  "products": {
+    "com.syfan0.tegakicalendar.monthly": {
+      "displayName": "Tegaki Monatlich",
+      "description": "Handschrift, Termine und iCloud-Sync"
+    },
+    "com.syfan0.tegakicalendar.yearly": {
+      "displayName": "Tegaki Jährlich",
+      "description": "Gleiche Funktionen, jährliche Abrechnung"
+    }
+  }
+}

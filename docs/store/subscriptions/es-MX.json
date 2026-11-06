@@ -1,0 +1,17 @@
+{
+  "locale": "es-MX",
+  "group": {
+    "displayName": "Tegaki",
+    "appNameDisplay": "useAppName"
+  },
+  "products": {
+    "com.syfan0.tegakicalendar.monthly": {
+      "displayName": "Tegaki Mensual",
+      "description": "Escritura a mano, eventos y sincronización"
+    },
+    "com.syfan0.tegakicalendar.yearly": {
+      "displayName": "Tegaki Anual",
+      "description": "Las mismas funciones, con cobro anual"
+    }
+  }
+}

@@ -6,7 +6,7 @@
 // Layout    — month page geometry: row heights, cell rects, all-day lanes, chips, hit testing
 // InkModel  — InkPage / InkStroke, CRDT merge, JSON codec, LZFSE compression
 // Access    — subscription plans, the access state machine, cache rules, paywall words and URLs
-//             (M5; Foundation only, depends on nothing else, not even DayKit)
+//             (M5; Foundation and DayKit only: UILanguage and KitStrings, since 1.2)
 // KitChecks — an executable that re-runs the key checks on a Mac without Xcode (XCTest is not
 //             shipped with the Command Line Tools), see docs/M2_CONTRACT.md §0 and §8.
 //
@@ -38,17 +38,18 @@ let package = Package(
         .target(name: "DayKit"),
         .target(name: "Holidays", dependencies: ["DayKit"]),
         .target(name: "Layout", dependencies: ["DayKit", "Holidays"]),
-        .target(name: "InkModel", dependencies: ["Layout"]),
-        .target(name: "Access"),
+        .target(name: "InkModel", dependencies: ["Layout", "Holidays"]),
+        .target(name: "Access", dependencies: ["DayKit"]),
         .target(name: "Compat10", path: "Tests/Compat10",
                 exclude: ["FROZEN.sha256", "ORIGIN.sha256", "ORIGIN.ranges"]),
         .target(name: "CompatFixtures", dependencies: ["InkModel", "Layout"], path: "Tests/CompatFixtures"),
         .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel", "Access", "Compat10", "CompatFixtures"]),
         .testTarget(name: "LayoutTests", dependencies: ["Layout"]),
         .testTarget(name: "HolidaysTests", dependencies: ["Holidays", "Layout"]),
-        .testTarget(name: "InkModelTests", dependencies: ["InkModel"]),
-        .testTarget(name: "AccessTests", dependencies: ["Access"]),
+        .testTarget(name: "InkModelTests", dependencies: ["InkModel", "Holidays"]),
+        .testTarget(name: "AccessTests", dependencies: ["Access", "DayKit"]),
         .testTarget(name: "Compat10Tests", dependencies: ["Compat10", "CompatFixtures", "InkModel", "Layout"], path: "Tests/Compat10Tests"),
+        .testTarget(name: "Compat12Tests", dependencies: ["Compat10", "InkModel", "Layout"], path: "Tests/Compat12Tests"),
     ],
     swiftLanguageVersions: [.v5]
 )

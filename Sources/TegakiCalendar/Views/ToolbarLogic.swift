@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import Layout
 
 // 1.1 (docs/M7A_CONTRACT.md §2, D1 / D2): the toolbar's three states, the eraser's return to the
 // last pen, the mark of the round dock button and the paddings that depend on the state; since
@@ -110,19 +111,19 @@ enum ToolbarLogic {
 
     // MARK: Texts (§6.2, fixed)
 
-    static let collapseTitle = "しまう"
-    static let collapseAccessibilityLabel = "ツールバーをしまう"
-    static let dockAccessibilityLabel = "ツールバーを出す"
-    static let pinTitle = "ツールバーをいつも出す"
-    static let eraserHintText = "触れた線をまるごと消します"
+    static let collapseTitle = L.text("toolbar.collapse.title")
+    static let collapseAccessibilityLabel = L.text("toolbar.collapse.spoken")
+    static let dockAccessibilityLabel = L.text("toolbar.dock.spoken")
+    static let pinTitle = L.text("toolbar.pin")
+    static let eraserHintText = L.text("toolbar.hint.eraser")
     /// The lasso's and the 予定 tool's hints as the bar shows them: two lines (M7A.md ずれ 45). Without
     /// the "\n" they are the 1.0.1 sentences. Each is one whole string (1.2 makes each one key).
-    static let lassoBarHint = "囲んで選びます。\n枠の中をドラッグで動かせます"
-    static let eventBarHint = "なぞって予定を作ります。\n予定をタップすると編集します"
+    static let lassoBarHint = L.text("toolbar.hint.lasso")
+    static let eventBarHint = L.text("toolbar.hint.event")
 
     /// The dock's menu item that moves it to the other bottom corner.
     static func moveEdgeTitle(from edge: ToolbarEdge) -> String {
-        edge == .leading ? "右下へ移す" : "左下へ移す"
+        edge == .leading ? L.text("toolbar.moveEdge.toRight") : L.text("toolbar.moveEdge.toLeft")
     }
 
     /// The SF Symbol of that menu item.
@@ -132,7 +133,7 @@ enum ToolbarLogic {
 
     /// The VoiceOver hint of the dock's tool mark.
     static func dockAccessibilityHint(edge: ToolbarEdge) -> String {
-        "長押しで、\(moveEdgeTitle(from: edge))か、ツールバーをいつも出すかを選べます"
+        edge == .leading ? L.text("toolbar.dock.hint.toRight") : L.text("toolbar.dock.hint.toLeft")
     }
 
     // MARK: Tools
@@ -173,15 +174,17 @@ enum ToolbarLogic {
         guard let target = returnsTo else { return eraserHintText }
         switch kind(of: target) {
         case .pen:
-            return "触れた線をまるごと消します\n（消すとペンに戻ります）"
+            return L.text("toolbar.hint.eraser.toPen")
         case .marker:
-            return "触れた線をまるごと消します\n（消すとマーカーに戻ります）"
+            return L.text("toolbar.hint.eraser.toMarker")
         case .eraser, .lasso, .eventRect:
             return eraserHintText
         }
     }
 
-    /// The same hint on one line (the §6.2 sentence): `eraserBarHint` without its line break.
+    /// The same hint on one line (the §6.2 sentence): `eraserBarHint` without its line break. Only the
+    /// Japanese tests read it (docs/M7B_CONTRACT.md §4.4): the screen and VoiceOver never do, and in a
+    /// language with spaces between words the two lines would run together ("…touches(then back…").
     static func eraserHint(returnsTo: CanvasTool?) -> String {
         eraserBarHint(returnsTo: returnsTo).replacingOccurrences(of: "\n", with: "")
     }
@@ -191,22 +194,22 @@ enum ToolbarLogic {
     static func badge(for tool: CanvasTool) -> ToolBadge {
         switch tool {
         case .eraser:
-            return ToolBadge(symbol: "eraser", colorHex: nil, dotDiameter: nil, accessibilityValue: "消しゴム")
+            return ToolBadge(symbol: "eraser", colorHex: nil, dotDiameter: nil, accessibilityValue: L.text("toolbar.tool.eraser"))
         case .lasso:
-            return ToolBadge(symbol: "lasso", colorHex: nil, dotDiameter: nil, accessibilityValue: "投げなわ")
+            return ToolBadge(symbol: "lasso", colorHex: nil, dotDiameter: nil, accessibilityValue: L.text("toolbar.tool.lasso"))
         case .eventRect:
-            return ToolBadge(symbol: "calendar.badge.plus", colorHex: nil, dotDiameter: nil, accessibilityValue: "予定")
+            return ToolBadge(symbol: "calendar.badge.plus", colorHex: nil, dotDiameter: nil, accessibilityValue: L.text("toolbar.tool.event"))
         case .ink(let style):
             let colorName = ToolbarPalette.colorName(style.colorHex)
             if kind(of: tool) == .marker {
                 return ToolBadge(symbol: "highlighter", colorHex: style.colorHex, dotDiameter: nil,
-                                 accessibilityValue: "マーカー・" + colorName)
+                                 accessibilityValue: L.format("toolbar.badge.marker", colorName))
             }
             let index = ToolbarPalette.penWidths.firstIndex { abs($0.width - style.width) < 0.001 }
-            var value = "ペン・" + colorName
+            var value = L.format("toolbar.badge.pen", colorName)
             var diameter = penDotDiameters[1]
             if let index = index {
-                value += "・" + ToolbarPalette.penWidths[index].name
+                value = L.format("toolbar.badge.penWidth", colorName, ToolbarPalette.penWidths[index].name)
                 diameter = penDotDiameters[index]
             }
             return ToolBadge(symbol: nil, colorHex: style.colorHex, dotDiameter: diameter, accessibilityValue: value)
@@ -304,6 +307,18 @@ extension ToolbarLogic {
         /// 「しまう」 after its divider: 8 → 4 before it, 8 after it as before (its right edge stays).
         static let collapseLeading: CGFloat = 4
         static let collapseTrailing: CGFloat = 8
+
+        /// F-12 (docs/M7B_CONTRACT.md §4.4, 0-36): the frame of the 10 pt names of the five tools, of
+        /// 「しまう」 and of 細中太. Japanese takes 1.1's path (nil: the name sets the width; every Japanese
+        /// name fits, so nothing widens). Every other language gets a fixed 38 pt frame, so a long word
+        /// never widens its button: the row is as wide as in Japanese and iPhone 17's first colour,
+        /// the 11-inch's ↷ and iPad mini's 太 stay in sight.
+        static func labelFrameWidth(for language: UILanguage) -> CGFloat? {
+            language == .ja ? nil : 38
+        }
+
+        /// How far a name shrinks in that frame (47.5 pt at 10 pt fits; ToolbarFitTests).
+        static let labelMinScale: CGFloat = 0.8
     }
 }
 
@@ -335,6 +350,6 @@ extension ToolbarPalette {
             ?? markerColors.first(where: { $0.hex == normalized }) {
             return entry.name
         }
-        return "その他の色"
+        return L.text("toolbar.color.unknown")
     }
 }
