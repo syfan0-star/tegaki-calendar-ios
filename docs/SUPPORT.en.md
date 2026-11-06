@@ -251,6 +251,7 @@ THE SOFTWARE.
 
 ## News
 
+- December 29, 2026 – January 3, 2027: New Year holidays. Messages that arrive during this period will be answered in order from January 4, 2027.
 - November 6, 2026: We updated the Terms of Service and Privacy Policy for version 1.2.
 
 ---
