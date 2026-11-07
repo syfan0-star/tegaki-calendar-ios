@@ -65,7 +65,7 @@ In the guide shown when you first use the App, tapping the button that shows the
 - The developer does not give the App's data (your handwriting, events and settings) to anyone (the developer does not have it in the first place). Emails to support are covered in Section 12.
 - Apple's iCloud and App Store work under your agreement with Apple. They follow Apple's privacy policy (<https://www.apple.com/legal/privacy/>).
 
-## 7. Information that may reach the developer through Apple
+## 7. Information that may arrive through Apple
 
 - If you have turned on “Share With App Developers” in Settings > Privacy & Security > Analytics & Improvements, Apple may collect information about the App closing unexpectedly (crash logs) and show it to the developer in a form that does not identify you. This is Apple's system, and you can turn it off.
 - App Store reviews and ratings are published through Apple's system. The App does not collect them.
