@@ -1,4 +1,3 @@
-• Quando a aplicação é mostrada num idioma que não o japonês, as ligações “Termos de Serviço”, “Política de Privacidade” e “Suporte” na aplicação abrem agora páginas em inglês, em vez de páginas em japonês.
-• Pequenas melhorias.
+• Em regiões onde a lei exige a verificação da idade, como alguns estados dos EUA, pode aparecer um ecrã da Apple a perguntar se pretende partilhar a sua faixa etária quando abre a aplicação. A aplicação não guarda nem envia a sua resposta, e o aspeto e o funcionamento da aplicação não mudam.
 
 As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros.

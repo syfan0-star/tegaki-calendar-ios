@@ -15,7 +15,7 @@ Last updated: November 6, 2026
 ## 1. Information the App collects: none
 
 - The App collects none of your name, email address, location, device identifiers, records of how you use it, or similar information.
-- There is no developer server. The App communicates only with Apple's iCloud (your own storage space) and Apple's App Store (to check purchases).
+- There is no developer server. The App communicates only with Apple's iCloud (your own storage space) and Apple's App Store (to check purchases, and the age range in Section 7).
 - The holiday data is built into the App, and the App does not go online to show holidays.
 - To learn about changes in iCloud, the App uses Apple's push notification system (silent notifications), but nothing appears on the screen, and the notifications contain no content.
 - There are no ads. There is no analytics or tracking either. No SDKs (software components) from other companies are used.
@@ -69,6 +69,7 @@ In the guide shown when you first use the App, tapping the button that shows the
 
 - If you have turned on “Share With App Developers” in Settings > Privacy & Security > Analytics & Improvements, Apple may collect information about the App closing unexpectedly (crash logs) and show it to the developer in a form that does not identify you. This is Apple's system, and you can turn it off.
 - App Store reviews and ratings are published through Apple's system. The App does not collect them.
+- In regions where the law requires age checks, such as some U.S. states, the App may receive an age range (for example, under 13 or 18 and over) through Apple's Declared Age Range system when you open the App. iOS and iPadOS may then show a screen asking whether to share your age range with the App. The App does not save the age range, does not send it to anyone (including the developer), and does not use it to change its screens or features. In other regions, the App does not ask for your age range.
 
 ## 8. Use by children
 

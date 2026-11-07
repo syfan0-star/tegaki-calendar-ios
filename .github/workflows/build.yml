@@ -36,6 +36,8 @@
 # compat-v1.0 also runs tools/weekstart-compat on the real 1.0 and the real 1.1.1, and a fourth job,
 # l10n-shots, takes the other nine languages, the Sunday pages and the doubled texts (artifact
 # "l10n-screenshots", kept 7 days; never fails on a photo). store-shots.yml takes the App Store's photos.
+# Since 1.2.2 (docs/R1_2_2.md §6.3) the macOS part also checks that only Views/AgeRangeAsker.swift imports
+# DeclaredAgeRange ("Age range isolation"), and the built app loads it weakly ("Weak link of DeclaredAgeRange").
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -111,16 +113,16 @@ jobs:
       # top-aligned paper (1.1.1)"); 1.2 (docs/M7B_CONTRACT.md §7.1, §10.8; the split is in docs/M7B.md, K2)
       # counts 29470 (+ 4541 for the sections "languages", "kit strings", "date text", "holidays", "holiday
       # geometry" and "week start"); 1.2.1 (docs/R1_2_1.md §2.7) counts 29504 (+ 34 for the section "review
-      # prompt (1.2.1)"). The threshold is that number minus 50, so anything below 29454 means a section or a
-      # fixture went missing.
+      # prompt (1.2.1)"); 1.2.2 (docs/R1_2_2.md §6.1) counts 29982 (+ 478 for the section "age range (1.2.2)").
+      # The threshold is that number minus 50, so anything below 29932 means a section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 29454 or more)"
+          echo "KitChecks count: ${N:-0} (required: 29932 or more)"
           grep -E 'compat10: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 29454
+          test "${N:-0}" -ge 29932
 
       - name: Test TegakiKit (macOS)
         run: |
@@ -143,6 +145,31 @@ jobs:
         run: |
           set -euo pipefail
           python3 -I tools/l10n/lint.py .
+
+      # 1.2.2 (docs/R1_2_2.md §6.3): Apple's DeclaredAgeRange (iOS 26) is imported by one file only
+      # (Views/AgeRangeAsker.swift, behind #available), the entitlements file asks for it (read with
+      # PlistBuddy: `plutil -extract` reads every '.' of the key as a separator, §4), and the mark of the
+      # check build (AGE_FORCE, §6.4; testflight.yml's input `age_force`) never gets into project.yml.
+      - name: Age range isolation
+        run: |
+          set -euo pipefail
+          FILES="$(grep -rl --include='*.swift' '^import DeclaredAgeRange' Sources Tests TegakiKit | sort || true)"
+          echo "import DeclaredAgeRange: ${FILES:-none}"
+          if [ "$FILES" != "Sources/TegakiCalendar/Views/AgeRangeAsker.swift" ]; then
+            echo "::error::import DeclaredAgeRange は Sources/TegakiCalendar/Views/AgeRangeAsker.swift の 1 つだけにしてください（docs/R1_2_2.md §3.8）。"
+            exit 1
+          fi
+          ENT="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.declared-age-range' Support/TegakiCalendar.entitlements 2>/dev/null || echo missing)"
+          echo "entitlements: declared-age-range $ENT"
+          if [ "$ENT" != "true" ]; then
+            echo "::error::Support/TegakiCalendar.entitlements に com.apple.developer.declared-age-range（true）がありません（docs/R1_2_2.md §3.8）。"
+            exit 1
+          fi
+          if grep -n 'AGE_FORCE' project.yml; then
+            echo "::error::project.yml に AGE_FORCE があります。確かめ用のビルドの印は testflight.yml の入力 age_force だけで付けます（docs/R1_2_2.md §6.4）。"
+            exit 1
+          fi
+          echo "AGE_FORCE: not in project.yml"
 
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the 18 files of the handwriting's data are the
       # bytes of 1.1.1. The file keeps its name; the commit it was made from is in docs/M7B.md.
@@ -184,6 +211,38 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             build
+
+      # 1.2.2 (docs/R1_2_2.md §6.3, §3.8): every binary of the built app that loads DeclaredAgeRange loads it
+      # weakly (LC_LOAD_WEAK_DYLIB), so iOS / iPadOS 17–18, which do not have it, still launch the app. A Debug
+      # build may keep the app's code in TegakiCalendar.debug.dylib, so both are looked at. A strong load
+      # fails the job; no binary loading it is only a warning. testflight.yml checks the Release archive.
+      - name: Weak link of DeclaredAgeRange
+        run: |
+          set -euo pipefail
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          if [ -z "$APP" ]; then echo "::error::TegakiCalendar.app not found under build/DerivedData."; exit 1; fi
+          FOUND=0
+          FAILED=0
+          for BIN in "$APP/TegakiCalendar" "$APP/TegakiCalendar.debug.dylib"; do
+            [ -f "$BIN" ] || continue
+            LOADS="$(otool -l "$BIN" | grep -B2 'DeclaredAgeRange.framework' || true)"
+            if [ -z "$LOADS" ]; then
+              echo "$(basename "$BIN"): does not load DeclaredAgeRange"
+              continue
+            fi
+            FOUND=1
+            if printf '%s\n' "$LOADS" | grep -q LC_LOAD_WEAK_DYLIB; then
+              echo "$(basename "$BIN"): DeclaredAgeRange weak"
+            else
+              printf '%s\n' "$LOADS"
+              echo "::error::$(basename "$BIN") が DeclaredAgeRange を強いリンクで読んでいます（iOS 17〜18 で起動できなくなる）。project.yml の OTHER_LDFLAGS を見てください。"
+              FAILED=1
+            fi
+          done
+          if [ "$FOUND" = 0 ]; then
+            echo "::warning::DeclaredAgeRange を読むバイナリがありません（弱いリンクを確かめられません。docs/R1_2_2.md §6.3）。"
+          fi
+          exit "$FAILED"
 
       # 1.2 (docs/M7B_CONTRACT.md §2.2, §7.5, 0-4, 0-5): the built app has the ten languages (a `.lproj` that
       # is missing or named a little differently gives its users English without a word), the holidays and

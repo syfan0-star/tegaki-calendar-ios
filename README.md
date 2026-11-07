@@ -5,7 +5,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 
 **2026-10-30 に 1.0（ビルド 10）を App Store で公開しました**（審査は 10-18 提出 → 2 回の差し戻し（掲載写真の価格、サブタイトルの Apple Pencil）→ 10-29 承認。App Store のページ: <https://apps.apple.com/jp/app/id6822762089>。反映まで最大 24 時間）。
 
-その後の版: **1.0.1**（iPhone で年のページから日のページへ移れない不具合の直し。[docs/R1_0_1.md](docs/R1_0_1.md)）は公開済み。**1.1**（ツールバーをしまう・消しゴムから自動でペンへ・下に伸びるメモと日の「自由メモ」・日付の当たり・年の左端の数字・線の予算・「この端末」。[docs/M7A_CONTRACT.md](docs/M7A_CONTRACT.md)・[docs/M7A.md](docs/M7A.md)）は main に取り込み済み（e7b4d2f）で公開済み。**1.1.1**（予定の少ない月・年の上の空白、年の大きさが年ごとに違う不具合、メモ欄を最初から全開、ピンチの案内、「今日」を右へ。[docs/R1_1_1.md](docs/R1_1_1.md)）は 2026-11-06 に公開済み。**1.2「世界対応」**（10 の表示言語、国ごとの祝日、週の始まりを月曜と日曜から選べる、英語の規約類、App Store の各国語、EU 27 か国での販売。[docs/M7B_CONTRACT.md](docs/M7B_CONTRACT.md)・[docs/M7B.md](docs/M7B.md)）は 2026-11-06 に公開済み（ビルド 18。EU での配信は本人の届け出が通ってから）。**1.2.1**（App Store の評価のお願い、日本語以外の画面で英語の規約類、検索の語。[docs/R1_2_1.md](docs/R1_2_1.md)）はブランチ `r121` で実装まで済み、CI・本人の実機の確かめ・審査を待っています。main への取り込みは本人の了承の後です。
+その後の版: **1.0.1**（iPhone で年のページから日のページへ移れない不具合の直し。[docs/R1_0_1.md](docs/R1_0_1.md)）は公開済み。**1.1**（ツールバーをしまう・消しゴムから自動でペンへ・下に伸びるメモと日の「自由メモ」・日付の当たり・年の左端の数字・線の予算・「この端末」。[docs/M7A_CONTRACT.md](docs/M7A_CONTRACT.md)・[docs/M7A.md](docs/M7A.md)）は main に取り込み済み（e7b4d2f）で公開済み。**1.1.1**（予定の少ない月・年の上の空白、年の大きさが年ごとに違う不具合、メモ欄を最初から全開、ピンチの案内、「今日」を右へ。[docs/R1_1_1.md](docs/R1_1_1.md)）は 2026-11-06 に公開済み。**1.2「世界対応」**（10 の表示言語、国ごとの祝日、週の始まりを月曜と日曜から選べる、英語の規約類、App Store の各国語、EU 27 か国での販売。[docs/M7B_CONTRACT.md](docs/M7B_CONTRACT.md)・[docs/M7B.md](docs/M7B.md)）は 2026-11-06 に公開済み（ビルド 18。EU での配信は本人の届け出が通ってから）。**1.2.1**（App Store の評価のお願い、日本語以外の画面で英語の規約類、検索の語。[docs/R1_2_1.md](docs/R1_2_1.md)）はブランチ `r121` で、2026-11-08 に審査に提出（ビルド 20）し、審査を待っています。**1.2.2**（年齢区分の確認。米国の一部の州など法律で求められる地域の人にだけ、Apple の年齢区分の画面を出す。[docs/R1_2_2.md](docs/R1_2_2.md)）はブランチ `r122` で作っています。main への取り込みは本人の了承の後です。
 
 - Web 版の使い方・画面の考え方: [tegaki-calendar/README.md](https://github.com/syfan0-star/tegaki-calendar/blob/main/README.md)
 - Web 版の設計書: [tegaki-calendar/docs/SPEC.md](https://github.com/syfan0-star/tegaki-calendar/blob/main/docs/SPEC.md)
@@ -41,6 +41,8 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 | [docs/M7B.md](docs/M7B.md) | 1.2 の実装結果（担当ごとの結果・契約からのずれと決め方・KitChecks の数・祝日データの弱い所・CI で初めて分かること・本人とリードがやること） |
 | [docs/R1_2_1.md](docs/R1_2_1.md) | 1.2.1 の契約と記録（App Store の評価のお願いの決まりと呼ぶ所、日本語以外の画面で英語の規約類へのリンク、版、本人の確かめ表、公開までの順番、既定で決めたこと、確かめ） |
 | [docs/R1_2_1_STORE.md](docs/R1_2_1_STORE.md) | 1.2.1 の App Store の文（キーワードの直しと訳し戻し、新機能の文、説明の利用規約・プライバシーポリシーの行、URL、lint の L-9 の直し、審査メモ、Connect に入れるもの） |
+| [docs/R1_2_2.md](docs/R1_2_2.md) | 1.2.2 の契約と記録（Apple の Declared Age Range の最小の実装、いつ・どこで聞くか、署名と権限、プライバシーポリシーの 1 項目、テスト、本人の確かめ表、段取り、既定で決めたこと、確かめ） |
+| [docs/R1_2_2_STORE.md](docs/R1_2_2_STORE.md) | 1.2.2 の App Store の文（新機能の文と訳し戻し、審査メモ、プロモーションテキスト、Connect に入れるもの） |
 | [docs/US_AGE_LAWS.md](docs/US_AGE_LAWS.md) | 米国の州の年齢確認の法律の覚え書き（本人が決めるため。法律の助言ではない。1.2.1 では何も変えない） |
 | [docs/i18n/GLOSSARY.md](docs/i18n/GLOSSARY.md) ／ [docs/i18n/REVIEW.md](docs/i18n/REVIEW.md) | 9 言語の用語集と、訳を日本語へ逆に訳して照らした結果（`docs/i18n/back/` が逆翻訳。ネイティブの確認は無いことも書いてある） |
 | [docs/store/](docs/store/README.md) ／ [docs/support-replies/](docs/support-replies/README.md) | App Store の文の原稿（15 ロケール。入力は確認表を本人に見せた後）と、サポートの返事の定型文（送るのは本人） |
@@ -95,9 +97,9 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 このリポジトリは **手元の Mac に Xcode が無くてもビルドできる** ようにしてあります。
 
 - `git push` するたびに、GitHub の macOS マシン（`macos-26`、Xcode 26.6）が自動で次をします（[.github/workflows/build.yml](.github/workflows/build.yml)）。
-  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（1.2.1 で 29504 項目の検査。29454 以上であることを数字で確かめる）→ `swift test`（1.1 から互換テスト `Compat10Tests`、1.2 から `Compat12Tests` を含む）→ 1.0 の凍結した写し（`TegakiKit/Tests/Compat10`）が凍結したときのままか（`FROZEN.sha256`）→ 言語の lint（`tools/l10n/lint.py`、14 の規則）→ 手書きのデータの 18 ファイルが 1.1.1 のままか（`tools/compat10/DATA_1_1.sha256`）
+  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（1.2.2 で 29982 項目の検査。29932 以上であることを数字で確かめる）→ `swift test`（1.1 から互換テスト `Compat10Tests`、1.2 から `Compat12Tests` を含む）→ 1.0 の凍結した写し（`TegakiKit/Tests/Compat10`）が凍結したときのままか（`FROZEN.sha256`）→ 言語の lint（`tools/l10n/lint.py`、14 の規則）→ 1.2.2 から、`import DeclaredAgeRange` が `Views/AgeRangeAsker.swift` の 1 つだけか・entitlements に年齢区分の権限があるか・`project.yml` に `AGE_FORCE` が無いか（Age range isolation）→ 手書きのデータの 18 ファイルが 1.1.1 のままか（`tools/compat10/DATA_1_1.sha256`）
   2. `brew install xcodegen` → `xcodegen generate` で Xcode プロジェクト（`TegakiCalendar.xcodeproj`）を作る
-  3. iOS シミュレータ向けにビルド（署名なし）。1.2 から、組み上がったアプリに 10 言語の `.lproj`・祝日のデータとライセンス・プライバシーマニフェストの理由があるかを確かめる（Localized bundle check）
+  3. iOS シミュレータ向けにビルド（署名なし）。1.2 から、組み上がったアプリに 10 言語の `.lproj`・祝日のデータとライセンス・プライバシーマニフェストの理由があるかを確かめる（Localized bundle check）。1.2.2 から、DeclaredAgeRange が弱いリンク（`LC_LOAD_WEAK_DYLIB`）かも確かめる（Weak link of DeclaredAgeRange）
   4. 13 インチ iPad のシミュレータでアプリのユニットテスト（PencilKit の台帳と選択の操作・手書きの画像・予定シートの状態・予定の書き込み・スクリーンショットモード・同期エンジン（メモリ上の偽の iCloud に対して。iCloud アカウントは不要）・レコードの写像・CloudKit の誤りの写像・状態ファイル・紙の文字のクリップと窓・キャンバスの viewport の通知・一覧の倍率とピンチの終端の経路・ダブルタップの認識器・保存比率・スクリーンショットの倍率の引数・購読の状態機械と `StoreModel`（偽の App Store と、StoreKit のテスト環境 `SKTestSession` に対して。App Store Connect は不要）・ペイウォールと設定の文言・閲覧専用の判定）を実行。1.2 から日本語に固定（`-testLanguage ja -testRegion JP`）。1.1 の後半から、後の段（The unit tests' repro lines）が `repro:` の行を 1 回ずつ出す
   5. 同じ 13 インチのシミュレータでアプリをスクリーンショットモードで 16 回起動し（月・週・日・年の 4 ページ（一覧）、月・週・年を 2 倍に拡大した 3 枚、閲覧専用の月ページ（「閲覧専用」バッジとトースト）、月ページで「予定を追加」「予定を編集」「投げなわの選択」「設定」「同期（設定の「同期」の節）」「Web 版の取り込みの結果」「購入（ペイウォール）」「手書きを書き出す（書き出しのシート）」の 8 つのシート）、続けて iPhone 17・iPhone 17 Pro Max（6.9 インチ）・iPad mini・11 インチ iPad を 1 台ずつ起動して 4 ページずつ（11 インチはさらに閲覧専用の日ページ、iPhone と 6.9 インチはさらに購入画面のシート、iPhone はさらに今日が日曜の週・6/1 の週・週を 3 倍に拡大した 1 枚ずつ・閲覧専用の週と横向き 4 枚）、画面を撮って成果物 `screenshots`（7 日保存）に置く。13 インチ 16 枚 + iPad mini 4 枚 + 11 インチ 5 枚 + iPhone 縦 9 枚 + iPhone 横 4 枚 + 6.9 インチ 5 枚 = 43 枚。さらに App Store の掲載用に `store/<機種>/NN-<名前>.jpg`（13 インチ 6 枚・iPhone 5 枚・6.9 インチ 5 枚・11 インチ 4 枚 = 20 枚。アルファ無しの JPEG。画素が Apple の受理サイズのどれかであることを照合し、違えば警告）。アプリのログ（5 本）には倍率の診断行（`zoom:`）が残る（購入の診断行 `store:` はスクリーンショットモードでは偽の App Store なので 0 行）
   6. 1.0.1 から、写真の後に iPhone 17 のシミュレータで UI テスト（`YearTapUITests`、年のページの本物のタップ）。1.1 の後半で `EraserAndBelowDayUITests`（消しゴムからペンへ、24 時の下は予定にならない。`YearTapUITests` と合わせて 13 本）。1.1 から、13 インチはさらに 6 回（しまったツールバーの左下と右下、ツールバーで選んだ消しゴム、伸びた月のメモ欄、日の 24 時の下の「自由メモ」、設定の「情報」）、iPhone は 4 回（しまったツールバーの縦と横、伸びた月のメモ欄、「自由メモ」）増えて **53 枚**。1.1.1 で 13 インチと iPhone にピンチの案内を 1 枚ずつ足して **55 枚**、UI テストに `HeaderAndPaperUITests`（「今日」の場所と効き目、空のページが画面の上から始まること）。1.2 で 13 インチに祝日と週の始まりのシートを足して **57 枚**、UI テストに `LanguageUITests`（iOS がどの言語を選ぶか）と `WeekStartUITests`。写真は全部、日本語の起動の引数（`JA_ARGS`）で撮り、`shots/env.txt` に Xcode とシミュレータの版を書く。ユニットテストが互換の fixture（`ledger-*.json`・`screenshot-*.json`）の違いを見つけたときは、その JSON が成果物の `fixtures/` に入る
@@ -105,7 +107,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
   8. 1.1.1 から、別のジョブ **blank-paper** が、予定も手書きも無い紙を 4 機種で撮る（成果物 `blank-paper`）
   9. 1.2 から、別のジョブ **l10n-shots** が、9 言語の 13 インチと iPhone の画面（成果物 `l10n-screenshots`、63 枚）、日曜はじまりの日本語、文字を 2 倍にした試し、訳し漏れの数を出す（写真の失敗ではジョブを落とさない）
 - 結果は GitHub の「Actions」タブで見られます。緑のチェックなら成功です。成果物の 57 枚の画像（5 機種）と `store/` の 20 枚で、Xcode が無くても画面を確かめられます。CI のシミュレータは iCloud に触りません（署名なしのビルドで entitlements は埋め込まれず、スクリーンショットモードとテストは偽の iCloud を使います）。
-- [.github/workflows/testflight.yml](.github/workflows/testflight.yml) は **手動実行** で、署名付きでビルドして TestFlight へ送ります。Apple Developer Program の承認後に 7 つの Secrets（証明書・プロファイル・App Store Connect の API キー）を登録すると使えます。未設定のまま実行すると、何が足りないかを日本語で表示して止まります。M4 からは App ID に iCloud（CloudKit）と Push Notifications を付けたプロファイルが必要です（[docs/M4.md §2.3](docs/M4.md)）。
+- [.github/workflows/testflight.yml](.github/workflows/testflight.yml) は **手動実行** で、署名付きでビルドして TestFlight へ送ります。Apple Developer Program の承認後に 7 つの Secrets（証明書・プロファイル・App Store Connect の API キー）を登録すると使えます。未設定のまま実行すると、何が足りないかを日本語で表示して止まります。M4 からは App ID に iCloud（CloudKit）と Push Notifications を付けたプロファイルが必要です（[docs/M4.md §2.3](docs/M4.md)）。1.2.2 からは Declared Age Range（年齢区分）の権限も要ります（[docs/R1_2_2.md §4](docs/R1_2_2.md)。権限の無いプロファイルでは日本語で止まる）。
 - [.github/workflows/ja-baseline.yml](.github/workflows/ja-baseline.yml)（ブランチ `ja-baseline` への push で走る）は、1.1.1 の写真を 1.2 と同じ日本語の引数で撮り直す。1.2 の日本語の写真が 1.1.1 と同じことを `tools/l10n/compare_shots.swift` で画素ごとに比べる相手です。写真の段は `build.yml` と同じにしておく決まりです。
 - [.github/workflows/store-shots.yml](.github/workflows/store-shots.yml)（ブランチ `store-shots` への push で走る）は、App Store の各国語の写真を 11 組撮る（成果物 `store-<組>`）。`build.yml` はこの 2 つのブランチでは走りません。
 - 成果物（ビルドしたアプリ）は保存していません。
@@ -117,7 +119,7 @@ Command Line Tools の `swift` だけで、純粋な部分の検査が通りま�
 ```bash
 cd TegakiKit
 swift build            # DayKit / Holidays / Layout / InkModel / Access / KitChecks をビルド
-swift run KitChecks    # 「KitChecks: all 29504 checks passed」と出れば OK（1.2.1）
+swift run KitChecks    # 「KitChecks: all 29982 checks passed」と出れば OK（1.2.2）
 cd ..
 python3 -I tools/l10n/lint.py .         # 言語の lint（L-12 は警告だけ）
 python3 -I tools/l10n/build.py . --check   # 文字の生成物が元のファイルと合っているか（元を直したら --check なしで作り直す。生成物は手で直さない）
@@ -157,7 +159,7 @@ xcodebuild -project TegakiCalendar.xcodeproj -scheme TegakiCalendar \
 ```
 project.yml                         XcodeGen の設定（アプリ名・Bundle ID・Info.plist の内容・entitlements・TegakiKit への依存・テスト・StoreKit の設定ファイル）
 Support/Info.plist                  xcodegen generate が作る（git には入れない。手では編集しない）
-Support/TegakiCalendar.entitlements iCloud（CloudKit、コンテナ iCloud.com.syfan0.tegakicalendar）とサイレントプッシュ（aps-environment）
+Support/TegakiCalendar.entitlements iCloud（CloudKit、コンテナ iCloud.com.syfan0.tegakicalendar）とサイレントプッシュ（aps-environment）、1.2.2 から年齢区分（com.apple.developer.declared-age-range）
 Support/Products.storekit           StoreKit の設定ファイル（月額・年額の 2 商品と 14 日間の導入オファー。CI のテスト（SKTestSession）と手元の Xcode で App Store Connect の代わりになる）
 TegakiKit/                          ローカル Swift パッケージ（Foundation だけ。Xcode 無しの Mac でもビルド・検査できる）
   Package.swift
@@ -171,7 +173,7 @@ TegakiKit/                          ローカル Swift パッケージ（Foundat
   Sources/Holidays/                 祝日の暦 HolidayCalendar、設定の値 HolidaySetting、データの読み込みと検査 HolidayStore・HolidayFile、日本の橋 JapanHolidayBridge、ライセンス HolidayDataLicense
   Sources/Layout/                   紙の寸法・マスの鍵・予定の正規化形・4 ページの配置（PageLayout、月・週・日・年の engine、時間指定の重なり処理、レーンの間引き、ページの id と移動と初期位置、矩形 ⇄ 予定の範囲 EventRange）、ページごとの一覧の倍率・上限・保存比率と見えている範囲（ZoomPolicy / PaperViewport）、ダブルタップの点から日を引く dayAt、週・日の固定の終日帯（AllDayBand）
   Sources/InkModel/                 手書きの台帳（InkPage / InkStroke、merge、JSON（圧縮形と整形）、LZFSE）、投げなわの数学（LassoGeometry）、Web 版の書き出しの解析と変換（WebImport）、このアプリの書き出しファイル tegaki-app-export v1 の組み立て・解析・ファイル名（AppExport）、取り込み口の 2 形式の入口とページ単位の切り分け（InkImport）、同期の状態ファイルの型（SyncState）と再試行の間隔（SyncBackoff）、週・日の帯の手書きの移し替え（BandMigration）、週の始まりで隠れる線とページの数（WeekStartImpact）
-  Sources/Access/                   購読の権利（Plan / ProductIDs、AccessState、AccessPolicy の状態機械と控えとの突き合わせ、AccessSnapshot / AccessCache、文言と数字の純関数 PlanText、公開文書の URL LegalLinks、1.2.1 から App Store の評価のお願いの決まり ReviewPrompt）
+  Sources/Access/                   購読の権利（Plan / ProductIDs、AccessState、AccessPolicy の状態機械と控えとの突き合わせ、AccessSnapshot / AccessCache、文言と数字の純関数 PlanText、公開文書の URL LegalLinks、1.2.1 から App Store の評価のお願いの決まり ReviewPrompt、1.2.2 から年齢区分の決まり AgeAssurance）
   Sources/KitChecks/main.swift      Xcode 無しの Mac で走る検査（swift run KitChecks）。HolidayChecks.swift は祝日の節、Text11.swift は 1.1 の字の写し（日本語が変わっていないことの確かめ）
   Tests/                            LayoutTests / HolidaysTests / InkModelTests / AccessTests、互換の Compat10Tests / Compat12Tests（swift test。CI で実行）
 Sources/TegakiCalendar/
@@ -196,6 +198,7 @@ Sources/TegakiCalendar/
   Views/PaperWords.swift            紙と見出しの言語ごとの字の選び方（曜日の記号、月名、終日の札。枠に入らないときの縮め方）
   Views/PaywallSheet.swift          購入画面（ペイウォール: 2 プラン・試用の行・自動更新の説明・購入を復元・規約へのリンク・あとで）
   Views/ReviewRequester.swift       App Store の評価のお願い（StoreKit の requestReview を呼ぶだけ。`import StoreKit` はこのファイルだけ。1.2.1）
+  Views/AgeRangeAsker.swift         Apple の年齢区分の確認（Apple の旗を読み、法律で求められる人にだけ Apple の画面を出す。`import DeclaredAgeRange` はこのファイルだけ。1.2.2）
   Views/WebImportSheet.swift        手書きの取り込み（Web 版の書き出しと、このアプリの書き出し。ファイル選択、進捗、結果の出し分け）
   Views/ExportSheet.swift           手書きの書き出し（「データファイル（JSON、すべてのページ）」「このページを PDF」の選択、進行、完成（共有…）、失敗）
   Export/ExportBuilder.swift        書き出しの実行（JSON をページ 1 枚ずつ tmp/TegakiCalendarExport に流し書き、PDF を書く、前回の後始末、失敗の種類）
@@ -249,6 +252,7 @@ Tests/TegakiCalendarTests/
   ScreenshotModeTests.swift         スクリーンショットモードの起動引数と見本のテスト
   AppSettingsTests.swift            表示倍率の比率の保存のテスト
   CalendarRootScreenTests.swift     紙の領域の高さ（帯を引く）・閲覧専用の判定・取り込みの失敗文・評価のお願いの 2 つの関門（1.2.1）のテスト
+  AgeRangeAskerTests.swift          年齢区分の確認がテストの入れ物では Apple を呼ぶ前に止まること・OS の帯（1.2.2）のテスト
   ExportBuilderTests.swift          書き出しのテスト（全ページの JSON と pageId 順・帯の線の移し替え・取り込み口との往復・進行・空のとき・後始末・大きなファイル（8 ページ × 1,000 本）の常駐メモリ・PDF の 1 ページと大きさ・4 種の PDF・ファイル名と題名）
   ExportSheetTests.swift            書き出しシートの文言・進行・完成文・大きさの表記・失敗文のテスト
   WebImportSheetTests.swift         取り込みの完成文の出し分け（Web 版／このアプリ）のテスト

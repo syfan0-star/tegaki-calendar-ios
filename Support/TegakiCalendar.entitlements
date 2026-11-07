@@ -12,5 +12,7 @@
 	</array>
 	<key>aps-environment</key>
 	<string>production</string>
+	<key>com.apple.developer.declared-age-range</key>
+	<true/>
 </dict>
 </plist>

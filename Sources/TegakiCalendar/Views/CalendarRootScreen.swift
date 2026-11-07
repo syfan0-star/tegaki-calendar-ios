@@ -214,6 +214,19 @@ struct CalendarRootScreen: View {
     /// When the app last came to the front (the launch, then every `.active`).
     @State private var activeSince = Date()
 
+    // 1.2.2 (docs/R1_2_2.md §3.1, §3.8): the age range. None of these is read in the body.
+    /// Apple's age range sheet may be up (`AgeRangeAsker.request`); part of `sheetIsUp`.
+    @State private var ageRangeAsking = false
+    /// The steps of `askAgeRangeIfDue` while they run.
+    @State private var ageRangeTask: Task<Void, Never>?
+    /// `scheduleFirstLaunchPaywall` has not decided yet whether the first-launch paywall shows.
+    @State private var firstPaywallPending = false
+    /// The wait after fresh ink (`askAgeRangeAfterInkIfWriting`).
+    @State private var ageRangeInkWait: Task<Void, Never>?
+    /// When the pen (or a writing finger) last touched the paper (`penDown`). `lastInkChangeAt` only changes
+    /// when a stroke ends, so this keeps the sheet off a stroke that is still being written.
+    @State private var ageRangePenDownAt: Date?
+
     // 1.2 (docs/M7B_CONTRACT.md §5.6, §10): the holidays and the week start.
     /// The holiday setting; its change sets `HolidayChoice.current` and draws the paper again.
     @AppStorage(AppSettings.holidaySettingKey) private var holidaySettingRaw = ""
@@ -562,8 +575,10 @@ struct CalendarRootScreen: View {
     }
 
     /// True while any sheet or cover is up (the account question waits for them; M4 contract §6.4).
+    /// 1.2.2 (docs/R1_2_2.md §3.6): Apple's age range sheet counts too.
     private var sheetIsUp: Bool {
         showSettings || editor != nil || showImportPicker || importPhase != nil || exportPhase != nil || showOnboarding || showPaywall
+            || ageRangeAsking
     }
 
     /// M5 (M5_CONTRACT §3.1): the access state and whether the app is read only.
@@ -724,8 +739,15 @@ struct CalendarRootScreen: View {
         // 1.2 (§5.6, §10.4, §10.5): the two settings, and the moments a waiting toast can show.
         .onChange(of: holidaySettingRaw) { holidaySettingChanged() }
         .onChange(of: weekStartRaw) { weekStartSettingChanged() }
-        .onChange(of: toast) { showNextWeekStartNotice() }
-        .onChange(of: showAccountChange) { showNextWeekStartNotice() }
+        // 1.2.2 (docs/R1_2_2.md §3.1): a toast gone or the account question closed may be the age range's calm moment.
+        .onChange(of: toast) {
+            showNextWeekStartNotice()
+            askAgeRangeIfDue()
+        }
+        .onChange(of: showAccountChange) {
+            showNextWeekStartNotice()
+            askAgeRangeIfDue()
+        }
         // M5 (M5_CONTRACT §4.2 / §3.1): the purchase toasts, and the moment the app turns read only.
         .onChange(of: store.snapshot.message) { messageChanged() }
         .onChange(of: readOnly) { readOnlyChanged() }
@@ -796,9 +818,10 @@ struct CalendarRootScreen: View {
         .accountChangeDialog(isPresented: $showAccountChange, onChoose: chooseAccount)
         .alert(L.text("alert.saveFailed.title"), isPresented: Binding(
             get: { saveError != nil },
-            set: { if !$0 { saveError = nil } }
+            // 1.2.2 (docs/R1_2_2.md §3.1): the age range step waits for this alert, so its close is a calm moment.
+            set: { if !$0 { saveError = nil; askAgeRangeIfDue() } }
         )) {
-            Button(L.text("alert.saveFailed.ok"), role: .cancel) { saveError = nil }
+            Button(L.text("alert.saveFailed.ok"), role: .cancel) { saveError = nil; askAgeRangeIfDue() }
         } message: {
             Text(saveError ?? "")
         }
@@ -882,6 +905,9 @@ struct CalendarRootScreen: View {
         // 1.2.1 (docs/R1_2_1.md §2.4): a touch on the new page stops the rating prompt's wait (a Pencil's
         // hover comes here too; it only stops the wait).
         reviewTask?.cancel()
+        // 1.2.2 (docs/R1_2_2.md §3.1, §12.2): a stroke being written counts as fresh ink for the age range
+        // sheet. Nothing reads it in the body either.
+        ageRangePenDownAt = Date()
         guard ToolbarLogic.modeAfterPenDown(toolbarMode) != toolbarMode else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             toolbarEvent(.penDown)
@@ -1207,6 +1233,8 @@ struct CalendarRootScreen: View {
             }
         }
         schedulePinchHint()
+        // 1.2.2 (docs/R1_2_2.md §3.1): the age range, at the first calm moment of this launch.
+        askAgeRangeIfDue()
     }
 
     private func scenePhaseChanged() {
@@ -1241,6 +1269,10 @@ struct CalendarRootScreen: View {
             // (an expiry, a cancellation or a renewal shows up here, never from a timer).
             Task { await store.refresh() }
             requestLandscapeOnce()
+            // 1.2.2 (docs/R1_2_2.md §3.4): Apple's call never returned but its sheet is gone: stop waiting for
+            // it (the task stays parked; `askedThisLaunch` is true, so this launch never asks again).
+            if ageRangeAsking, AgeRangeAsker.sheetIsGone { ageRangeAsking = false }
+            askAgeRangeIfDue()
         @unknown default:
             break
         }
@@ -2068,11 +2100,13 @@ struct CalendarRootScreen: View {
     }
 
     /// A sheet opened or closed: a waiting account question is asked once nothing is up. 1.1.1: the
-    /// pinch hint waits for nothing being up too; 1.2 (§10.4): and the week start's toasts.
+    /// pinch hint waits for nothing being up too; 1.2 (§10.4): and the week start's toasts; 1.2.2
+    /// (docs/R1_2_2.md §3.1): and the age range.
     private func sheetsChanged() {
         if !sheetIsUp {
             schedulePinchHint()
             scheduleWeekStartNotice()
+            askAgeRangeIfDue()
         }
         guard accountChangePending, !sheetIsUp else { return }
         accountChangePending = false
@@ -2092,6 +2126,9 @@ struct CalendarRootScreen: View {
         }
         Task { @MainActor in
             await sync.resolveAccountChange(choice)
+            // 1.2.2 (docs/R1_2_2.md §12.2): every answer, from the dialog or from the erase alert (which
+            // `showAccountChange` does not cover, so the age range step may have stepped aside for it).
+            askAgeRangeIfDue()
             guard choice != .later, !ScreenshotMode.isActive else { return }
             reloadShownPage()
         }
@@ -2167,7 +2204,13 @@ struct CalendarRootScreen: View {
     /// stays false so the next launch tries again (a 「—」 price screen is never the first meeting).
     private func scheduleFirstLaunchPaywall() {
         guard !ScreenshotMode.isActive, !paywallShownAfterOnboarding else { return }
+        // 1.2.2 (docs/R1_2_2.md §3.1): the age range waits for this decision.
+        firstPaywallPending = true
         Task { @MainActor in
+            defer {
+                firstPaywallPending = false
+                askAgeRangeIfDue()
+            }
             try? await Task.sleep(for: .seconds(Self.sheetGap))
             let done = await store.awaitFirstRefresh(timeout: .seconds(Self.firstRefreshTimeout))
             let s = store.snapshot
@@ -2290,13 +2333,88 @@ struct CalendarRootScreen: View {
         pinchHintTask = nil
     }
 
+    // MARK: - The age range (1.2.2, docs/R1_2_2.md §3)
+
+    /// At a calm moment of this launch (`AgeAssurance.canAskNow`), the steps of `AgeAssurance.nextStep`:
+    /// read Apple's flag, and only where it says a law requires it, the system's sheet, once. Nothing in
+    /// screenshot mode, the XCTest host, on a Mac or Apple Vision Pro, or on iOS 17.0–26.1. Called from
+    /// `appear`, `.active`, `sheetsChanged`, the account question's close and its answer, the save-failed
+    /// alert's close, a toast's change, the first-launch paywall's decision and the wait after fresh ink.
+    private func askAgeRangeIfDue() {
+        guard appeared, ageRangeTask == nil, !AgeRangeAsker.finished else { return }
+        guard canAskAgeRangeNow else {
+            askAgeRangeAfterInkIfWriting()
+            return
+        }
+        ageRangeTask = Task { @MainActor in
+            defer { ageRangeTask = nil }
+            while true {
+                let step = AgeAssurance.nextStep(band: AgeRangeAsker.band, signal: AgeRangeAsker.signal,
+                                                 askedThisLaunch: AgeRangeAsker.askedThisLaunch,
+                                                 screenshot: ScreenshotMode.isActive, testHost: SyncEngine.isTestHost,
+                                                 onMac: AgeRangeAsker.onMac)
+                switch step {
+                case .stop:
+                    AgeRangeAsker.finished = true
+                    return
+                case .readRegulatoryFeatures, .readEligibility:
+                    AgeRangeAsker.signal = await AgeRangeAsker.read(step)
+                case .requestAgeRange:
+                    try? await Task.sleep(for: .seconds(AgeAssurance.settle))
+                    // Something came up in the meantime (or anything is presented over the root, `anchor`):
+                    // not asked; the next calm moment tries again (fresh ink has no such moment, so it looks
+                    // again `quietAfterInk` later).
+                    guard canAskAgeRangeNow, let anchor = AgeRangeAsker.anchor() else {
+                        askAgeRangeAfterInkIfWriting()
+                        return
+                    }
+                    AgeRangeAsker.askedThisLaunch = true
+                    ageRangeAsking = true
+                    await AgeRangeAsker.request(in: anchor)
+                    ageRangeAsking = false
+                }
+            }
+        }
+    }
+
+    /// Fresh ink is the one wait that no other moment ends (the pen just stops): look again `quietAfterInk`
+    /// seconds later, and again while the person keeps writing. One wait at a time; the flag is not read again.
+    private func askAgeRangeAfterInkIfWriting() {
+        guard ageRangeInkWait == nil, ageRangeInkIsRecent else { return }
+        ageRangeInkWait = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(AgeAssurance.quietAfterInk))
+            ageRangeInkWait = nil
+            askAgeRangeIfDue()
+        }
+    }
+
+    /// A stroke ended (`lastInkChangeAt`) or began (`ageRangePenDownAt`) in the last `quietAfterInk` seconds.
+    /// The touch counts too, so the sheet does not come while the first stroke after a pause is being
+    /// written; a single stroke longer than `quietAfterInk` is not covered (docs/R1_2_2.md §12.2).
+    private var ageRangeInkIsRecent: Bool {
+        let now = Date()
+        func recent(_ instant: Date?) -> Bool {
+            instant.map { now.timeIntervalSince($0) < AgeAssurance.quietAfterInk } ?? false
+        }
+        return recent(lastInkChangeAt) || recent(ageRangePenDownAt)
+    }
+
+    private var canAskAgeRangeNow: Bool {
+        AgeAssurance.canAskNow(active: UIApplication.shared.applicationState == .active, onboardingDone: onboardingDone,
+                               sheetIsUp: sheetIsUp, accountQuestion: showAccountChange, saveFailed: saveError != nil,
+                               firstPaywallPending: firstPaywallPending, toastShowing: toast != nil,
+                               inkRecently: ageRangeInkIsRecent)
+    }
+
     // MARK: - The rating prompt (1.2.1, docs/R1_2_1.md §2)
 
     /// After ◀ ▶ from a page written on, a pause on the new page, then StoreKit's rating prompt when
-    /// everything of §2.3 holds. Nothing in screenshot mode, the XCTest host or a sandbox build.
+    /// everything of §2.3 holds. Nothing in screenshot mode, the XCTest host or a sandbox build. 1.2.2
+    /// (docs/R1_2_2.md §3.7): nor before this launch's age range steps are finished.
     private func scheduleReviewRequest(leftPageWithInk: Bool, lastInkChangeAt: Date?) {
         let instant = Date()
         guard reviewAllowedNow,
+              AgeRangeAsker.finished,
               ReviewPrompt.isCalmMoment(leftPageWithInk: leftPageWithInk,
                                         secondsSinceInk: lastInkChangeAt.map { instant.timeIntervalSince($0) },
                                         secondsActive: instant.timeIntervalSince(activeSince)),
