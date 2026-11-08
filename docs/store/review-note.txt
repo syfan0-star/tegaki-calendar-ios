@@ -1,9 +1,8 @@
 No sign-in, no account creation and no demo account are needed.
 
-What is new in 1.2.1
-1. Legal pages in English: when the app is shown in a language other than Japanese, the Terms of Service, Privacy Policy and Support links in Settings > About (and the Terms and Privacy links on the purchase screen) now open the English pages (app/en/, below) instead of the Japanese pages. In Japanese they open the Japanese pages as before.
-2. Rating request: the app may show Apple's standard rating prompt (StoreKit requestReview), rarely and only when all of its conditions are met (written on 3 different days, 7 days of use, at most once per version and 90 days apart, a pause after turning a page the user wrote on, nothing else on screen). Never at first launch, while writing or over the purchase screen. It is never requested in TestFlight or App Review builds (sandbox receipt), so it does not appear during the review.
-3. Nothing else changed: the pages, handwriting, sync, holidays, week start, subscriptions, prices and data handling are the same as in 1.2. App Privacy stays "Data Not Collected" (the rating prompt's counts and dates stay on the device).
+What is new in 1.2.2
+1. Age assurance, the minimum (Declared Age Range): once per launch, the app reads AgeRangeService.shared.requiredRegulatoryFeatures (iOS/iPadOS 26.4 or later; isEligibleForAgeFeatures on 26.2-26.3). Only when it contains declaredAgeRangeRequired (eligible is true) does the app call requestAgeRange(ageGates: 13, 16, 18), so the system's age range sheet appears only where Apple says a law requires it (for example new accounts in Texas). Elsewhere, and on iOS 17-26.1, a Mac or Apple Vision Pro, nothing appears. It waits for the first-time guide and the purchase screen. The app does not look at, store or send the answer and changes nothing by it (4+, no age-gated content). The privacy policy says so in Section 7.
+2. Nothing else changed. App Privacy stays "Data Not Collected" (the age range is handled only on the device and dropped).
 
 The app follows the device language (10 languages since 1.2; any other language shows English). Per-app language: Settings > Apps > Tegaki > Language.
 
@@ -25,4 +24,4 @@ https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 https://syfan0-star.github.io/tegaki-calendar/app/support.html
 
 --- 日本語の要約 ---
-変更は 2 つ。日本語以外の画面では、利用規約・プライバシーポリシー・サポートのリンクが英語のページを開きます。Apple の評価のお願いを、条件がそろったときだけまれに出します（初めての起動・書いている間・購入画面では出さず、審査と TestFlight の版では呼ばない）。ほかは 1.2 と同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
+変更は 1 つ。起動ごとに 1 回、Apple の requiredRegulatoryFeatures（26.2〜26.3 は isEligibleForAgeFeatures）を読み、法律で求められると Apple が示した人にだけ、Apple の年齢区分の画面を出します（そのほかの人と、iOS 17〜26.1・Mac・Apple Vision Pro では出ない）。答えは見ず、保存も送信もしません。ほかは 1.2.1 と同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。

@@ -1,4 +1,3 @@
-• When the app is shown in a language other than Japanese, the “Terms of Service”, “Privacy Policy” and “Support” links in the app now open English pages instead of Japanese pages.
-• Small improvements.
+• In regions where the law requires age checks, such as some U.S. states, an Apple screen asking whether to share your age range may appear when you open the app. The app does not save or send your answer, and the way it looks and works does not change.
 
 Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.

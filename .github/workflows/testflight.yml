@@ -13,6 +13,12 @@
 #
 # The team id, profile name and profile UUID are read from the provisioning profile itself, so no
 # further secret is needed. The build number is the workflow run number (unique per upload).
+#
+# 1.2.2 (docs/R1_2_2.md §4, §6.4): the app has the Declared Age Range entitlement, so the profile must
+# carry it too ("Check the profile for Declared Age Range"); the signed archive is checked for the
+# entitlement and for the weak link of DeclaredAgeRange ("Check the archive"). The input `age_force`
+# ("1" only) makes the one check build of §6.4 (AGE_FORCE: Apple's flag is taken as set, so Apple's
+# age range sheet comes up on any account on iOS / iPadOS 26.2 or later). That build is never submitted.
 name: testflight
 
 on:
@@ -20,6 +26,11 @@ on:
     inputs:
       marketing_version:
         description: "表示用バージョン（空なら project.yml の MARKETING_VERSION）"
+        required: false
+        default: ""
+      # 1.2.2 (docs/R1_2_2.md §6.4): the check build only. Empty for every other build.
+      age_force:
+        description: "年齢の確かめ用（1 のときだけ。審査に出さない）"
         required: false
         default: ""
 
@@ -157,18 +168,39 @@ jobs:
             echo "keychain_path=$KEYCHAIN_PATH"
           } >> "$GITHUB_OUTPUT"
 
+      # 1.2.2 (docs/R1_2_2.md §4): the app now has the Declared Age Range entitlement; the profile must too.
+      - name: Check the profile for Declared Age Range
+        run: |
+          set -euo pipefail
+          PLIST="$RUNNER_TEMP/profile.plist"
+          WANT="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.declared-age-range' Support/TegakiCalendar.entitlements 2>/dev/null || echo missing)"
+          HAVE="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.declared-age-range' "$PLIST" 2>/dev/null || echo missing)"
+          echo "declared-age-range: app $WANT, profile $HAVE"
+          if [ "$WANT" = "true" ] && [ "$HAVE" != "true" ]; then
+            echo "::error::プロビジョニングプロファイルに Declared Age Range（年齢区分）の権限がありません。docs/R1_2_2.md §4 の 2〜6 でプロファイルを作り直し、BUILD_PROVISION_PROFILE_BASE64 を差し替えてください。"
+            exit 1
+          fi
+
       - name: Archive (signed)
         env:
           TEAM_ID: ${{ steps.signing.outputs.team_id }}
           PROFILE_NAME: ${{ steps.signing.outputs.profile_name }}
           IDENTITY: ${{ steps.signing.outputs.identity }}
           MARKETING_VERSION_INPUT: ${{ github.event.inputs.marketing_version }}
+          AGE_FORCE_INPUT: ${{ github.event.inputs.age_force }}
         run: |
           set -euo pipefail
           # Plain string, not an array: /bin/bash on macOS is 3.2, where "${EMPTY[@]}" trips `set -u`.
           EXTRA=""
           if [ -n "${MARKETING_VERSION_INPUT:-}" ]; then
             EXTRA="MARKETING_VERSION=$MARKETING_VERSION_INPUT"
+          fi
+          # 1.2.2 (docs/R1_2_2.md §6.4): the check build. One quoted word (it has a space), and nothing at
+          # all when empty: ${AGE:+"$AGE"} works with `set -u` on bash 3.2.
+          AGE=""
+          if [ "${AGE_FORCE_INPUT:-}" = "1" ]; then
+            AGE='SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) AGE_FORCE'
+            echo "AGE_FORCE: on (not for App Review)"
           fi
           # shellcheck disable=SC2086
           xcodebuild \
@@ -184,7 +216,21 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             $EXTRA \
+            ${AGE:+"$AGE"} \
             archive
+
+      # 1.2.2 (docs/R1_2_2.md §4, §3.8): the signed app carries the entitlement, and iOS 17–18 can still launch it.
+      - name: Check the archive (entitlement, weak link)
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/TegakiCalendar.xcarchive/Products/Applications/TegakiCalendar.app"
+          codesign -d --entitlements - --xml "$APP" > "$RUNNER_TEMP/entitlements.xml" 2>/dev/null
+          # PlistBuddy, not `plutil -extract`: plutil reads every '.' as a key separator (docs/R1_2_2.md §4).
+          ENT="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.declared-age-range' "$RUNNER_TEMP/entitlements.xml" 2>/dev/null || echo missing)"
+          if otool -l "$APP/TegakiCalendar" | grep -B2 'DeclaredAgeRange.framework' | grep -q LC_LOAD_WEAK_DYLIB; then LINK=weak; else LINK=strong-or-missing; fi
+          echo "archive: declared-age-range $ENT, DeclaredAgeRange $LINK"
+          [ "$ENT" = "true" ] || { echo "::error::署名したアプリに年齢区分の権限が入っていません。"; exit 1; }
+          [ "$LINK" = "weak" ] || { echo "::error::DeclaredAgeRange が弱いリンクになっていません（iOS 17〜18 で起動できなくなる）。project.yml の OTHER_LDFLAGS を見てください。"; exit 1; }
 
       - name: Export the .ipa
         env:

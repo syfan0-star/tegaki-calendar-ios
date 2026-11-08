@@ -1,4 +1,3 @@
-• Quand l’app s’affiche dans une autre langue que le japonais, les liens « Conditions de service », « Politique de confidentialité » et « Assistance » de l’app ouvrent désormais des pages en anglais au lieu des pages en japonais.
-• Petites améliorations.
+• Dans les régions où la loi exige une vérification de l’âge, comme certains États américains, un écran d’Apple vous demandant si vous voulez partager votre tranche d’âge peut apparaître quand vous ouvrez l’app. L’app n’enregistre ni n’envoie votre réponse, et son affichage comme son fonctionnement restent les mêmes.
 
 Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs.

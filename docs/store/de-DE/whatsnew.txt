@@ -1,4 +1,3 @@
-• Wenn die App in einer anderen Sprache als Japanisch angezeigt wird, öffnen die Links „Nutzungsbedingungen des Dienstes“, „Datenschutzerklärung“ und „Support“ in der App jetzt englische statt japanische Seiten.
-• Kleine Verbesserungen.
+• In Regionen, in denen das Gesetz eine Altersprüfung verlangt, etwa in einigen US-Bundesstaaten, kann beim Öffnen der App ein Bildschirm von Apple erscheinen, der fragt, ob Sie Ihren Altersbereich teilen möchten. Die App speichert Ihre Antwort nicht und sendet sie nicht, und Aussehen und Bedienung der App ändern sich nicht.
 
 Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit.

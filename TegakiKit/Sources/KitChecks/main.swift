@@ -6749,6 +6749,111 @@ do {
     check(!ReviewPrompt.isCalmMoment(leftPageWithInk: true, secondsSinceInk: 10, secondsActive: 59), "review: not 59 s after the app came to the front")
 }
 
+// MARK: - 1.2.2: the age range (docs/R1_2_2.md §3.2, §3.3, §6.1)
+//
+// Whether the app reads Apple's regulatory flag and asks for the age range (Apple's Declared Age Range),
+// and when the screen is calm enough for the system sheet. 478 checks: the constants (3), the OS bands
+// (10), the named rows of §3.3 (15), two launches step by step (2), every input of `nextStep` (192) and
+// every input of `canAskNow` (256). The same cases are in TegakiKit/Tests/AccessTests/AgeAssuranceTests.swift.
+
+section("age range (1.2.2)")
+do {
+    func step(_ band: AgeAssurance.Band, _ signal: AgeAssurance.Signal, asked: Bool = false, screenshot: Bool = false,
+              testHost: Bool = false, onMac: Bool = false) -> AgeAssurance.Step {
+        AgeAssurance.nextStep(band: band, signal: signal, askedThisLaunch: asked, screenshot: screenshot,
+                              testHost: testHost, onMac: onMac)
+    }
+
+    // The constants (3).
+    checkEqual(AgeAssurance.ageGates, [13, 16, 18], "age: the age gates are 13, 16 and 18")
+    checkEqual(AgeAssurance.settle, 1, "age: 1 s from a calm moment to the sheet")
+    checkEqual(AgeAssurance.quietAfterInk, 3, "age: 3 s without new ink")
+
+    // The OS bands (10).
+    for (major, minor) in [(17, 0), (18, 7), (26, 0), (26, 1)] {
+        checkEqual(AgeAssurance.band(major: major, minor: minor), .noRegionCheck, "age: \(major).\(minor) has no region check")
+    }
+    for (major, minor) in [(26, 2), (26, 3)] {
+        checkEqual(AgeAssurance.band(major: major, minor: minor), .eligibility, "age: \(major).\(minor) reads isEligibleForAgeFeatures")
+    }
+    for (major, minor) in [(26, 4), (26, 5), (27, 0), (27, 2)] {
+        checkEqual(AgeAssurance.band(major: major, minor: minor), .regulatoryFeatures, "age: \(major).\(minor) reads requiredRegulatoryFeatures")
+    }
+
+    // The named rows of §3.3 (15).
+    checkEqual(step(.regulatoryFeatures, .required, screenshot: true), .stop(.screenshotMode), "age: row 1, screenshot mode")
+    checkEqual(step(.regulatoryFeatures, .required, testHost: true), .stop(.testHost), "age: row 2, the test host")
+    checkEqual(step(.regulatoryFeatures, .required, onMac: true), .stop(.mac), "age: row 3, a Mac or Apple Vision Pro")
+    checkEqual(step(.regulatoryFeatures, .required, asked: true), .stop(.askedThisLaunch), "age: row 4, once per launch")
+    checkEqual(step(.noRegionCheck, .notRead), .stop(.oldSystem), "age: row 5, iOS 17.0–26.1 (not read)")
+    checkEqual(step(.noRegionCheck, .required), .stop(.oldSystem), "age: row 5, iOS 17.0–26.1 (whatever the signal)")
+    checkEqual(step(.eligibility, .notRead), .readEligibility, "age: row 6, 26.2–26.3 reads eligibility")
+    checkEqual(step(.eligibility, .required), .requestAgeRange, "age: row 8, 26.2–26.3 eligible asks")
+    checkEqual(step(.eligibility, .notRequired), .stop(.notRequired), "age: row 9, 26.2–26.3 not eligible")
+    checkEqual(step(.eligibility, .unreadable), .stop(.unreadable), "age: row 10, 26.2–26.3 unreadable")
+    checkEqual(step(.regulatoryFeatures, .notRead), .readRegulatoryFeatures, "age: row 7, 26.4– reads the regulatory features")
+    checkEqual(step(.regulatoryFeatures, .required), .requestAgeRange, "age: row 8, 26.4– required asks")
+    checkEqual(step(.regulatoryFeatures, .notRequired), .stop(.notRequired), "age: row 9, 26.4– not required (Japan)")
+    checkEqual(step(.regulatoryFeatures, .unreadable), .stop(.unreadable), "age: row 10, 26.4– unreadable")
+    checkEqual(step(.regulatoryFeatures, .notRead, screenshot: true), .stop(.screenshotMode), "age: screenshot mode stops before any read")
+
+    // Two launches, step by step (2): the signal and `askedThisLaunch` change as the app would change them.
+    func walk(band: AgeAssurance.Band, flag: AgeAssurance.Signal) -> [AgeAssurance.Step] {
+        var signal = AgeAssurance.Signal.notRead
+        var asked = false
+        var steps: [AgeAssurance.Step] = []
+        while steps.count < 10 {
+            let next = step(band, signal, asked: asked)
+            steps.append(next)
+            switch next {
+            case .stop: return steps
+            case .readRegulatoryFeatures, .readEligibility: signal = flag
+            case .requestAgeRange: asked = true
+            }
+        }
+        return steps
+    }
+    checkEqual(walk(band: .regulatoryFeatures, flag: .required), [.readRegulatoryFeatures, .requestAgeRange, .stop(.askedThisLaunch)],
+               "age: a person with the flag (26.5) reads, asks, stops")
+    checkEqual(walk(band: .regulatoryFeatures, flag: .notRequired), [.readRegulatoryFeatures, .stop(.notRequired)],
+               "age: a person in Japan (26.5) reads and stops")
+
+    // Every input of nextStep (2⁴ × 3 × 4 = 192): only the four named inputs touch the API (read or ask),
+    // and only the two named ones show the sheet.
+    let bands: [AgeAssurance.Band] = [.noRegionCheck, .eligibility, .regulatoryFeatures]
+    let signals: [AgeAssurance.Signal] = [.notRead, .required, .notRequired, .unreadable]
+    for flags in 0..<16 {
+        let asked = flags & 1 != 0, screenshot = flags & 2 != 0, testHost = flags & 4 != 0, onMac = flags & 8 != 0
+        for band in bands {
+            for signal in signals {
+                let next = step(band, signal, asked: asked, screenshot: screenshot, testHost: testHost, onMac: onMac)
+                let touches: Bool
+                let shows: Bool
+                switch next {
+                case .stop: touches = false; shows = false
+                case .readRegulatoryFeatures, .readEligibility: touches = true; shows = false
+                case .requestAgeRange: touches = true; shows = true
+                }
+                let plain = flags == 0 && band != .noRegionCheck
+                let wantTouches = plain && (signal == .notRead || signal == .required)
+                let wantShows = plain && signal == .required
+                check(touches == wantTouches && shows == wantShows,
+                      "age: nextStep(\(band), \(signal), asked \(asked), screenshot \(screenshot), testHost \(testHost), onMac \(onMac)) = \(next)")
+            }
+        }
+    }
+
+    // Every input of canAskNow (2⁸ = 256): true only when in front, past the guide, nothing up, no
+    // question, no save failure, the paywall decided, no toast and no fresh ink.
+    for bits in 0..<256 {
+        let v = (0..<8).map { bits & (1 << $0) != 0 }
+        let calm = AgeAssurance.canAskNow(active: v[0], onboardingDone: v[1], sheetIsUp: v[2], accountQuestion: v[3],
+                                          saveFailed: v[4], firstPaywallPending: v[5], toastShowing: v[6], inkRecently: v[7])
+        let theOne = v == [true, true, false, false, false, false, false, false]
+        check(calm == theOne, "age: canAskNow\(v) is \(calm)")
+    }
+}
+
 // MARK: - Summary
 //
 // CI checks the count as a number: anything below N − 50 means a section went missing (.github/
