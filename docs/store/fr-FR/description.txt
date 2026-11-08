@@ -21,7 +21,7 @@ Google Agenda est une marque de Google LLC. Cette app est développée par un pa
 ■ Prix
 Abonnements mensuel et annuel à renouvellement automatique. Si vous êtes nouveau, vous pouvez essayer gratuitement pendant 14 jours. Les prix sont affichés dans l’App Store dans la devise de votre pays.
 Conditions d’utilisation (CLUF standard d’Apple) : https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Conditions de service (en japonais) : https://syfan0-star.github.io/tegaki-calendar/app/terms.html
-Politique de confidentialité (en japonais) : https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+Conditions de service (en anglais) : https://syfan0-star.github.io/tegaki-calendar/app/en/terms.html
+Politique de confidentialité (en anglais) : https://syfan0-star.github.io/tegaki-calendar/app/en/privacy.html
 
 Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs.

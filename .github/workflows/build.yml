@@ -110,16 +110,17 @@ jobs:
       # the loops over the taller paper + 239 for the changed checks and the section "opening zoom and
       # top-aligned paper (1.1.1)"); 1.2 (docs/M7B_CONTRACT.md §7.1, §10.8; the split is in docs/M7B.md, K2)
       # counts 29470 (+ 4541 for the sections "languages", "kit strings", "date text", "holidays", "holiday
-      # geometry" and "week start"). The threshold is that number minus 50, so anything below 29420 means a
-      # section or a fixture went missing.
+      # geometry" and "week start"); 1.2.1 (docs/R1_2_1.md §2.7) counts 29504 (+ 34 for the section "review
+      # prompt (1.2.1)"). The threshold is that number minus 50, so anything below 29454 means a section or a
+      # fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 29420 or more)"
+          echo "KitChecks count: ${N:-0} (required: 29454 or more)"
           grep -E 'compat10: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 29420
+          test "${N:-0}" -ge 29454
 
       - name: Test TegakiKit (macOS)
         run: |

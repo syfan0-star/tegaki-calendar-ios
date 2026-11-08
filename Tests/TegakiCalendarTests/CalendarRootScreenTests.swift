@@ -512,6 +512,49 @@ final class CalendarRootScreenTests: XCTestCase {
         XCTAssertGreaterThan(CalendarRootScreen.weekStartNoticeDelay(firstPaywallDue: true), CalendarRootScreen.sheetGap + CalendarRootScreen.firstRefreshTimeout)
     }
 
+    // MARK: 1.2.1 (docs/R1_2_1.md §2.3, §2.7, §9.2)
+
+    /// The rating prompt's two guards, every case of each, named by the one case that lets it through:
+    /// asked for (and counted) only outside screenshot mode, the XCTest host and a sandbox build (8 cases);
+    /// shown only with the app in front, no sheet, no account question, no save-failed alert, the
+    /// onboarding done and no toast (64 cases).
+    func testReviewGuards() {
+        var allowed: [[Bool]] = []
+        for bits in 0..<8 {
+            let v = (0..<3).map { bits & (1 << $0) != 0 }
+            if CalendarRootScreen.reviewAllowedHere(screenshot: v[0], testHost: v[1], sandbox: v[2]) {
+                allowed.append(v)
+            }
+        }
+        XCTAssertEqual(allowed, [[false, false, false]], "only outside screenshot mode, the test host and a sandbox build")
+
+        var shown: [[Bool]] = []
+        for bits in 0..<64 {
+            let v = (0..<6).map { bits & (1 << $0) != 0 }
+            if CalendarRootScreen.reviewCanShowNow(active: v[0], sheetIsUp: v[1], accountQuestion: v[2], saveFailed: v[3],
+                                                   onboardingDone: v[4], toastShowing: v[5]) {
+                shown.append(v)
+            }
+        }
+        XCTAssertEqual(shown, [[true, false, false, false, true, false]],
+                       "only in front, no sheet, no account question, no save-failed alert, the onboarding done, no toast")
+
+        XCTAssertFalse(CalendarRootScreen.reviewAllowedHere(screenshot: false, testHost: true, sandbox: false), "never in this test host")
+        XCTAssertFalse(CalendarRootScreen.reviewAllowedHere(screenshot: false, testHost: false, sandbox: true), "never on TestFlight or in the review")
+        XCTAssertFalse(CalendarRootScreen.reviewCanShowNow(active: true, sheetIsUp: false, accountQuestion: false, saveFailed: true,
+                                                           onboardingDone: true, toastShowing: false),
+                       "not over the save-failed alert (◀ ▶ saves the page it leaves)")
+    }
+
+    /// The version the prompt is asked for once: the bundle's CFBundleShortVersionString, never empty, in the
+    /// "1.2.1" form. Which version it is (project.yml's MARKETING_VERSION) is seen only on the owner's device
+    /// (docs/R1_2_1.md §6, row 1).
+    func testMarketingVersion() {
+        XCTAssertEqual(CalendarRootScreen.marketingVersion, Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String)
+        XCTAssertNotNil(CalendarRootScreen.marketingVersion.range(of: #"^[0-9]+(\.[0-9]+){1,2}$"#, options: .regularExpression),
+                        "\(CalendarRootScreen.marketingVersion) is not a version like 1.2.1")
+    }
+
     // MARK: M6 (M6_CONTRACT §1.2 / §7.2)
 
     /// The `.failed` text of the import door's parse errors (`InkImport.parse` throws the same

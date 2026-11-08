@@ -5686,14 +5686,15 @@ do {
                     PageNavigation.compactTitle(.month, focus: oct7, language: language), PageNavigation.compactTitle(.year, focus: oct7, language: language)],
                    [DateText.shortDay(oct7, language), DateText.weekTitle(first: DayKey(year: 2026, month: 10, day: 5), language, compact: true),
                     DateText.monthTitle(YearMonth(year: 2026, month: 10), language, compact: true), DateText.yearTitle(2026, language)], "kit words: compactTitle in \(code)")
-        // The URLs (0-38, D11): 1.2 opens the Japanese pages in every language.
-        checkEqual([LegalLinks.terms(for: language), LegalLinks.privacy(for: language), LegalLinks.support(for: language)], [LegalLinks.terms, LegalLinks.privacy, LegalLinks.support],
-                   "legal links: \(code) opens the Japanese pages in 1.2")
+        // The URLs (0-38, D11; docs/R1_2_1.md §3): from 1.2.1 the default arguments open the Japanese pages
+        // in ja and the English pages (app/en/) in every other language; `published: false` is 1.2's form.
         let en = language == .ja ? ["terms.html", "privacy.html", "support.html"] : ["en/terms.html", "en/privacy.html", "en/support.html"]
-        checkEqual([LegalLinks.terms(for: language, published: true), LegalLinks.privacy(for: language, published: true), LegalLinks.support(for: language, published: true)],
-                   en.map { URL(string: "https://syfan0-star.github.io/tegaki-calendar/app/" + $0)! }, "legal links: \(code) once the English pages are up")
+        checkEqual([LegalLinks.terms(for: language), LegalLinks.privacy(for: language), LegalLinks.support(for: language)],
+                   en.map { URL(string: "https://syfan0-star.github.io/tegaki-calendar/app/" + $0)! }, "legal links: \(code) opens \(language == .ja ? "the Japanese" : "the English") pages from 1.2.1")
+        checkEqual([LegalLinks.terms(for: language, published: false), LegalLinks.privacy(for: language, published: false), LegalLinks.support(for: language, published: false)],
+                   [LegalLinks.terms, LegalLinks.privacy, LegalLinks.support], "legal links: \(code) opens the Japanese pages with published: false (1.2)")
     }
-    checkEqual(LegalLinks.englishPagesPublished, false, "legal links: the English pages go up on the day 1.2 is released, so 1.2 does not point to them (0-38)")
+    checkEqual(LegalLinks.englishPagesPublished, true, "legal links: the English pages are up since 2026-11-06, so 1.2.1 opens them outside ja (0-38)")
     checkEqual(LegalLinks.terms(for: UILanguage.resolve("th"), published: true).absoluteString, "https://syfan0-star.github.io/tegaki-calendar/app/en/terms.html", "legal links: a Thai screen is English")
     // §11: the savings of the EU's prices are computed, not fixed: the euro's 1.99 / 17.99 is 2 months.
     func decimal(_ text: String) -> Decimal { Decimal(string: text, locale: Locale(identifier: "en_US_POSIX"))! }
@@ -6677,6 +6678,75 @@ do {
     checkEqual(WeekStartImpact.hiddenStrokeIds(in: monthOnMonday, weekStart: .sunday).count, 1, "W-5: one pale cell is lost in a month that does not start on a Sunday")
     let form = WeekStartImpact.weekPages(["w-2026-11-01", "w-2026-11-02", "w-2026-11-09", "w-2026-11-04", "wb-2026-11-02", "m1-2026-11", "d-2026-11-01", "y-2026", "w-2026-13-01", ""])
     checkEqual([form.monday, form.sunday], [2, 1], "W-5: weekPages counts by the date's weekday")
+}
+
+// MARK: - 1.2.1: the rating prompt (docs/R1_2_1.md §2.3, §2.5, §2.7)
+//
+// When the app may ask StoreKit for the App Store rating prompt: 3 days of the person's own ink, 7 days
+// since the first use, once per version, 90 days apart, someone who can edit, and a calm moment (◀ ▶
+// from a page written on, 3 s after the last ink, 60 s in front). 34 checks; the same cases are in
+// TegakiKit/Tests/AccessTests/ReviewPromptTests.swift.
+
+section("review prompt (1.2.1)")
+do {
+    let until = date(2027, 1, 1)
+    let subscribed = AccessState.subscribed(Subscription(plan: .yearly, until: until, willAutoRenew: true, inGrace: false))
+    let trial = AccessState.trial(Trial(plan: .monthly, until: until, willAutoRenew: true))
+    let first = day(2026, 11, 10)
+    func due(_ record: ReviewRecord, _ offset: Int, _ version: String, _ access: AccessState) -> Bool {
+        ReviewPrompt.isDue(record, today: first.adding(days: offset), version: version, access: access)
+    }
+
+    // The numbers (§2.3).
+    checkEqual([ReviewPrompt.inkDaysNeeded, ReviewPrompt.daysSinceFirstUse, ReviewPrompt.daysBetweenRequests], [3, 7, 90], "review: 3 days of ink, 7 days of use, 90 days apart")
+    checkEqual([ReviewPrompt.quietAfterInk, ReviewPrompt.activeAtLeast, ReviewPrompt.pauseOnNewPage], [3, 60, 2], "review: 3 s after the ink, 60 s in front, a pause of 2 s")
+
+    // usedOn: the first day once.
+    checkEqual(ReviewPrompt.usedOn(ReviewRecord(), today: first), ReviewRecord(firstUseDay: first), "review: usedOn records the first day")
+    checkEqual(ReviewPrompt.usedOn(ReviewRecord(firstUseDay: first), today: first.adding(days: 5)).firstUseDay, first, "review: usedOn keeps an earlier day")
+
+    // inkWritten: one per day.
+    let one = ReviewPrompt.inkWritten(ReviewRecord(), today: first)
+    checkEqual(one.inkDays, 1, "review: the first day of ink counts")
+    checkEqual(one.firstUseDay, first, "review: ink is a use too (firstUseDay)")
+    checkEqual(ReviewPrompt.inkWritten(one, today: first), one, "review: the same day counts once")
+    let three = [1, 4].reduce(one) { ReviewPrompt.inkWritten($0, today: first.adding(days: $1)) }
+    checkEqual(three.inkDays, 3, "review: three different days are three")
+    checkEqual(three.lastInkDay, first.adding(days: 4), "review: lastInkDay is the last day counted")
+
+    // isDue.
+    check(!due(three, 6, "1.2.1", subscribed), "review: day 6 is too early")
+    check(due(three, 7, "1.2.1", subscribed), "review: due on day 7 when subscribed")
+    check(due(three, 7, "1.2.1", trial), "review: due in the trial too")
+    check(!due(ReviewPrompt.inkWritten(one, today: first.adding(days: 1)), 30, "1.2.1", subscribed), "review: two days of ink are not enough")
+    check(!due(ReviewRecord(inkDays: 3, lastInkDay: first.adding(days: 4)), 30, "1.2.1", subscribed), "review: not without a first day")
+    check(!due(three, -1, "1.2.1", subscribed), "review: not on a day before the first use (a clock set back)")
+    check(!due(three, 7, "", subscribed), "review: not without a version")
+    for reason in [ReadOnlyReason.notSubscribed, .expired, .billingRetry, .revoked, .unknown] {
+        check(!due(three, 7, "1.2.1", .readOnly(reason)), "review: not while read only (\(reason.rawValue))")
+    }
+
+    // requested: the version and the day, the ink from zero.
+    let askedOn = first.adding(days: 7)
+    let asked = ReviewPrompt.requested(three, today: askedOn, version: "1.2.1")
+    check(asked.lastRequestVersion == "1.2.1" && asked.lastRequestDay == askedOn, "review: requested remembers the version and the day")
+    checkEqual(asked.inkDays, 0, "review: the ink counts again from zero")
+    checkEqual(ReviewPrompt.inkWritten(asked, today: askedOn).inkDays, 0, "review: ink on the day of the request does not count")
+    checkEqual(asked.firstUseDay, first, "review: the first day stays")
+
+    // The next version: 90 days and three new days of ink.
+    let later = [1, 2, 3].reduce(asked) { ReviewPrompt.inkWritten($0, today: askedOn.adding(days: $1)) }
+    check(!due(later, 7 + 200, "1.2.1", subscribed), "review: never twice in one version")
+    check(!due(later, 7 + 89, "1.3", subscribed), "review: 89 days after the request is too early")
+    check(due(later, 7 + 90, "1.3", subscribed), "review: due 90 days after the request, in a new version")
+    check(!due(asked, 7 + 90, "1.3", subscribed), "review: not in a new version without new days of ink")
+
+    // isCalmMoment: the moment of ◀ ▶.
+    check(!ReviewPrompt.isCalmMoment(leftPageWithInk: false, secondsSinceInk: 10, secondsActive: 600), "review: not after a page without ink")
+    check(!ReviewPrompt.isCalmMoment(leftPageWithInk: true, secondsSinceInk: nil, secondsActive: 600), "review: not without the time of the ink")
+    check(!ReviewPrompt.isCalmMoment(leftPageWithInk: true, secondsSinceInk: 2.9, secondsActive: 600), "review: not 2.9 s after the ink")
+    check(ReviewPrompt.isCalmMoment(leftPageWithInk: true, secondsSinceInk: 3, secondsActive: 60), "review: calm 3 s after the ink and 60 s in front")
+    check(!ReviewPrompt.isCalmMoment(leftPageWithInk: true, secondsSinceInk: 10, secondsActive: 59), "review: not 59 s after the app came to the front")
 }
 
 // MARK: - Summary

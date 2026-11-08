@@ -133,6 +133,12 @@ enum GatedAction: Equatable, CaseIterable {
 /// - After the first pull the pages are compared with an automatic week start once (`runWeekStartCheck`);
 ///   it never switches under a pen.
 /// - Its toasts wait for any sheet (`WeekStartNotices`).
+///
+/// 1.2.1 (docs/R1_2_1.md §2): the App Store rating prompt, rarely and at a calm moment. ◀ ▶ from a page
+/// the person wrote on (`move(by:)`), then 2 s of stillness on the new page, and only when `ReviewPrompt`
+/// says it is due (3 days of ink, 7 days of use, once per version, 90 days apart, subscribed or in the
+/// trial) and nothing is up (`reviewCanShowNow`). Never in screenshot mode, the XCTest host or a
+/// sandbox-receipt build (`reviewAllowedHere`); StoreKit is asked through `ReviewRequester`.
 struct CalendarRootScreen: View {
     @StateObject private var model = EventStoreModel()
     /// The sync engine (M4 contract §5.3): the one store of the pages, and the ☁ state.
@@ -192,6 +198,21 @@ struct CalendarRootScreen: View {
     @AppStorage(AppSettings.pinchHintShownKey) private var pinchHintShown = false
     /// The hint's wait (`schedulePinchHint`); a newer schedule or a pinch stops it.
     @State private var pinchHintTask: Task<Void, Never>?
+
+    // 1.2.1 (docs/R1_2_1.md §2.4): the rating prompt. Nothing but `reviewRequestTrigger` is read in the body,
+    // so the others never draw the screen again.
+    /// Bumped when StoreKit is asked for the rating prompt (`ReviewRequester`).
+    @State private var reviewRequestTrigger = 0
+    /// The pause on the new page (`scheduleReviewRequest`); a pen, a writing finger, a pinch, a finger's tap
+    /// on the paper, a tool chosen on the bar, another page or the app going away stops it. A finger that
+    /// only scrolls does not (the canvas does not report it; docs/R1_2_1.md §9.2).
+    @State private var reviewTask: Task<Void, Never>?
+    /// The person's own ink changed on the page while it has been open (`pageBinding`).
+    @State private var inkChangedThisVisit = false
+    /// When it last changed; nil on a page not written on since it opened.
+    @State private var lastInkChangeAt: Date?
+    /// When the app last came to the front (the launch, then every `.active`).
+    @State private var activeSince = Date()
 
     // 1.2 (docs/M7B_CONTRACT.md §5.6, §10): the holidays and the week start.
     /// The holiday setting; its change sets `HolidayChoice.current` and draws the paper again.
@@ -782,6 +803,8 @@ struct CalendarRootScreen: View {
             Text(saveError ?? "")
         }
         .overlay(alignment: .topLeading) { l10nState }
+        // 1.2.1 (docs/R1_2_1.md §2.2): StoreKit's rating prompt when `scheduleReviewRequest` bumps the trigger.
+        .modifier(ReviewRequester(trigger: reviewRequestTrigger))
     }
 
     /// Screenshot mode's state for the UI tests (§7.3): 1 × 1 pt, clear, read only by the accessibility
@@ -856,6 +879,9 @@ struct CalendarRootScreen: View {
         // 1.2 (§10.3, 4 (3)): before the guard, which returns on nearly every touch. Nothing reads it in
         // the body, so this does not update the screen either.
         penTouchedThisLaunch = true
+        // 1.2.1 (docs/R1_2_1.md §2.4): a touch on the new page stops the rating prompt's wait (a Pencil's
+        // hover comes here too; it only stops the wait).
+        reviewTask?.cancel()
         guard ToolbarLogic.modeAfterPenDown(toolbarMode) != toolbarMode else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             toolbarEvent(.penDown)
@@ -1098,6 +1124,12 @@ struct CalendarRootScreen: View {
                 page = newValue
                 pageDirty = true
                 scheduleSave()
+                // 1.2.1 (docs/R1_2_1.md §2.4): only the canvas's own operations come here (writing, erasing,
+                // ↶ ↷, the lasso's move and delete), not iCloud's strokes (`applyRemote`), the band's move or
+                // an import, so this is the person's own ink.
+                inkChangedThisVisit = true
+                lastInkChangeAt = Date()
+                noteReviewInk()
             }
         )
     }
@@ -1107,6 +1139,8 @@ struct CalendarRootScreen: View {
     private func appear() {
         guard !appeared else { return }
         appeared = true
+        // 1.2.1 (docs/R1_2_1.md §2.4): the rating prompt's first day of use, written once.
+        noteReviewUse()
         // M5 (M5_CONTRACT §2.4 / §4.2): the cached access state first, then the store's own refresh.
         store.start()
         if !allowFingerChosen {
@@ -1179,11 +1213,15 @@ struct CalendarRootScreen: View {
         switch scenePhase {
         case .background, .inactive:
             saveNow()
+            // 1.2.1 (docs/R1_2_1.md §2.4): no rating prompt for an app that is going away.
+            reviewTask?.cancel()
             // 1.1 (§2.1): a peeking bar folds when the app goes to the background.
             if scenePhase == .background {
                 toolbarEvent(.wentToBackground)
             }
         case .active:
+            // 1.2.1 (docs/R1_2_1.md §2.3): the rating prompt waits `ReviewPrompt.activeAtLeast` after a return.
+            activeSince = Date()
             // 1.2 (§10.3, 4 (3)): a comparison that waited for the pen: a boundary, so it is decided now.
             if pendingAdoption {
                 saveNow()
@@ -1246,6 +1284,12 @@ struct CalendarRootScreen: View {
 
     /// Saves the current page, then switches to `(newKind, newFocus)` (its ink, its events, its layout).
     private func show(kind newKind: PageKind, focus newFocus: DayKey) {
+        // 1.2.1 (docs/R1_2_1.md §2.4): every page opened is a new visit; a waiting rating prompt is dropped
+        // (`move(by:)` schedules again after this).
+        reviewTask?.cancel()
+        reviewTask = nil
+        inkChangedThisVisit = false
+        lastInkChangeAt = nil
         // 1.1.1: only 「今日」 brings a cell on screen (`goToday`); the other ways open at the top.
         revealRect = nil
         saveNow()
@@ -1294,8 +1338,13 @@ struct CalendarRootScreen: View {
         noticeHiddenInk()
     }
 
+    /// ◀ ▶. 1.2.1 (docs/R1_2_1.md §2.4): the page left was written on (read before `show` starts a new
+    /// visit), so the rating prompt may follow a pause on the new page.
     private func move(by delta: Int) {
+        let wroteHere = inkChangedThisVisit
+        let lastInk = lastInkChangeAt
         show(kind: kind, focus: PageNavigation.move(kind, focus: focus, by: delta))
+        scheduleReviewRequest(leftPageWithInk: wroteHere, lastInkChangeAt: lastInk)
     }
 
     /// 「今日」. 1.1.1: on the month and year pages today's cell comes on screen too, since a page that
@@ -1548,6 +1597,9 @@ struct CalendarRootScreen: View {
     /// areas of `tapTarget` (1.0.1 / 1.1), the year's gutter numbers and thin chips open the day page.
     /// `zoom` is the canvas's when it recognised the tap (the one `tapLeavesPage` used).
     private func handleTap(at point: CGPoint, zoom: CGFloat, smallScreen: Bool) {
+        // 1.2.1 (docs/R1_2_1.md §9.2): a finger's tap on the paper stops the rating prompt's wait too. (A
+        // finger that only scrolls is not reported by the canvas, one of the 18 frozen files.)
+        reviewTask?.cancel()
         guard let hit = Self.tapTarget(layout: layout, point: point, zoom: zoom, smallScreen: smallScreen,
                                        allowFinger: allowFinger, currentMonth: currentMonth) else { return }
         switch hit {
@@ -2164,6 +2216,8 @@ struct CalendarRootScreen: View {
         Binding(
             get: { tool },
             set: { newValue in
+                // 1.2.1 (docs/R1_2_1.md §9.2): a tool chosen on the bar stops the rating prompt's wait.
+                reviewTask?.cancel()
                 if readOnly, newValue.isOverlayTool {
                     blocked(.overlayTool)
                     return
@@ -2228,10 +2282,84 @@ struct CalendarRootScreen: View {
 
     /// A real pinch began (`scrollViewWillBeginZooming`): the person knows it, the hint is never shown.
     private func pinchBegan() {
+        // 1.2.1 (docs/R1_2_1.md §2.4): a pinch on the new page stops the rating prompt's wait.
+        reviewTask?.cancel()
         guard !ScreenshotMode.isActive else { return }
         pinchHintShown = true
         pinchHintTask?.cancel()
         pinchHintTask = nil
+    }
+
+    // MARK: - The rating prompt (1.2.1, docs/R1_2_1.md §2)
+
+    /// After ◀ ▶ from a page written on, a pause on the new page, then StoreKit's rating prompt when
+    /// everything of §2.3 holds. Nothing in screenshot mode, the XCTest host or a sandbox build.
+    private func scheduleReviewRequest(leftPageWithInk: Bool, lastInkChangeAt: Date?) {
+        let instant = Date()
+        guard reviewAllowedNow,
+              ReviewPrompt.isCalmMoment(leftPageWithInk: leftPageWithInk,
+                                        secondsSinceInk: lastInkChangeAt.map { instant.timeIntervalSince($0) },
+                                        secondsActive: instant.timeIntervalSince(activeSince)),
+              ReviewPrompt.isDue(AppSettings.reviewRecord, today: DayKey(instant), version: Self.marketingVersion, access: access)
+        else { return }
+        reviewTask?.cancel()
+        reviewTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(ReviewPrompt.pauseOnNewPage))
+            let today = DayKey(Date())
+            // A cancelled sleep returns at once, so the check is needed (like `schedulePinchHint`'s).
+            guard !Task.isCancelled,
+                  Self.reviewCanShowNow(active: UIApplication.shared.applicationState == .active, sheetIsUp: sheetIsUp,
+                                        accountQuestion: showAccountChange, saveFailed: saveError != nil,
+                                        onboardingDone: onboardingDone, toastShowing: toast != nil),
+                  ReviewPrompt.isDue(AppSettings.reviewRecord, today: today, version: Self.marketingVersion, access: access)
+            else { return }
+            // Recorded before the call: StoreKit never says whether it showed the prompt (Apple's sample
+            // does the same).
+            AppSettings.reviewRecord = ReviewPrompt.requested(AppSettings.reviewRecord, today: today, version: Self.marketingVersion)
+            reviewRequestTrigger += 1
+        }
+    }
+
+    /// The first day of use, once (`appear`). Nothing where the prompt is never asked for.
+    private func noteReviewUse() {
+        guard reviewAllowedNow else { return }
+        let record = AppSettings.reviewRecord
+        let next = ReviewPrompt.usedOn(record, today: DayKey(Date()))
+        if next != record { AppSettings.reviewRecord = next }
+    }
+
+    /// A day with the person's own ink (`pageBinding`): written only when the record changes (the first
+    /// change of a day), not on every stroke.
+    private func noteReviewInk() {
+        guard reviewAllowedNow else { return }
+        let record = AppSettings.reviewRecord
+        let next = ReviewPrompt.inkWritten(record, today: DayKey(Date()))
+        if next != record { AppSettings.reviewRecord = next }
+    }
+
+    /// `reviewAllowedHere` for this process.
+    private var reviewAllowedNow: Bool {
+        Self.reviewAllowedHere(screenshot: ScreenshotMode.isActive, testHost: SyncEngine.isTestHost, sandbox: InkTrace.isAvailable)
+    }
+
+    /// The rating prompt is asked for (and its record kept) only in an App Store build: not in screenshot
+    /// mode (the CI's photos and the UI tests), not in the XCTest host, and not in a sandbox-receipt build
+    /// (TestFlight, App Review, Xcode), where StoreKit shows nothing or would show it to the reviewer.
+    static func reviewAllowedHere(screenshot: Bool, testHost: Bool, sandbox: Bool) -> Bool {
+        !screenshot && !testHost && !sandbox
+    }
+
+    /// At the end of the pause: the app in front, no sheet (the settings, an event, the import, the export,
+    /// the paywall, the onboarding), no account question, no save-failed alert (◀ ▶ saves the page it
+    /// leaves, so a failure there would meet the prompt 2 s later), the onboarding done and no toast.
+    static func reviewCanShowNow(active: Bool, sheetIsUp: Bool, accountQuestion: Bool, saveFailed: Bool,
+                                 onboardingDone: Bool, toastShowing: Bool) -> Bool {
+        active && !sheetIsUp && !accountQuestion && !saveFailed && onboardingDone && !toastShowing
+    }
+
+    /// The app's version (CFBundleShortVersionString, "1.2.1"): the prompt is asked for once per version.
+    static var marketingVersion: String {
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? ""
     }
 
     // MARK: - Screenshot mode (M3b contract §5, M4 contract §6.6)

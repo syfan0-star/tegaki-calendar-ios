@@ -17,11 +17,12 @@ final class LegalLinksTests: XCTestCase {
     }
 
     func testURLsPerLanguage() {
-        XCTAssertFalse(LegalLinks.englishPagesPublished, "the English pages go up on the day 1.2 is released; true from 1.3 (0-38)")
+        XCTAssertTrue(LegalLinks.englishPagesPublished, "the English pages are up since 2026-11-06; 1.2.1 opens them outside ja (0-38, docs/R1_2_1.md §3)")
         for language in UILanguage.allCases {
             XCTAssertEqual(urls(language, published: false), japanese, language.rawValue)
             XCTAssertEqual(urls(language, published: true), language == .ja ? japanese : english, language.rawValue)
-            XCTAssertEqual([LegalLinks.terms(for: language), LegalLinks.privacy(for: language), LegalLinks.support(for: language)].map(\.absoluteString), japanese, "1.2: \(language.rawValue)")
+            XCTAssertEqual([LegalLinks.terms(for: language), LegalLinks.privacy(for: language), LegalLinks.support(for: language)].map(\.absoluteString),
+                           language == .ja ? japanese : english, "1.2.1: \(language.rawValue)")
         }
         XCTAssertEqual(urls(UILanguage.resolve("th"), published: true), english, "a Thai screen is English (O-1)")
         XCTAssertEqual([LegalLinks.terms, LegalLinks.privacy, LegalLinks.support].map(\.absoluteString), japanese, "the 1.1 values stay")

@@ -1,3 +1,4 @@
+import Access
 import Layout
 import XCTest
 @testable import TegakiCalendar
@@ -269,5 +270,51 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(AppSettings.defaults.stringArray(forKey: AppSettings.weekStartHiddenNoticedKey)?.count, AppSettings.strokeBudgetNoticedLimit)
         XCTAssertFalse(AppSettings.weekStartHiddenNoticed("m1-2026-11", .sunday), "the oldest is dropped")
         XCTAssertTrue(AppSettings.weekStartHiddenNoticed("m1-page\(AppSettings.strokeBudgetNoticedLimit + 4)", .monday))
+    }
+
+    // MARK: 1.2.1 (docs/R1_2_1.md §2.6)
+
+    /// The rating prompt's record: five keys, an empty record from an empty suite, what is written is read
+    /// back, a day that does not read is nil, a negative count is 0, a nil field removes its key, and the
+    /// review keys alone do not make an earlier user.
+    func testReviewRecordKeys() {
+        XCTAssertEqual([AppSettings.reviewFirstUseDayKey, AppSettings.reviewInkDaysKey, AppSettings.reviewLastInkDayKey,
+                        AppSettings.reviewLastRequestVersionKey, AppSettings.reviewLastRequestDayKey],
+                       ["review.firstUseDay", "review.inkDays", "review.lastInkDay", "review.lastRequestVersion", "review.lastRequestDay"])
+        XCTAssertEqual(AppSettings.reviewRecord, ReviewRecord(), "nothing stored")
+
+        let record = ReviewRecord(firstUseDay: DayKey(year: 2026, month: 11, day: 10), inkDays: 3,
+                                  lastInkDay: DayKey(year: 2026, month: 11, day: 14),
+                                  lastRequestVersion: "1.2.1", lastRequestDay: DayKey(year: 2026, month: 11, day: 17))
+        AppSettings.reviewRecord = record
+        XCTAssertEqual(AppSettings.reviewRecord, record, "written and read back")
+        XCTAssertEqual(AppSettings.defaults.string(forKey: "review.firstUseDay"), "2026-11-10")
+        XCTAssertEqual(AppSettings.defaults.integer(forKey: "review.inkDays"), 3)
+        XCTAssertEqual(AppSettings.defaults.string(forKey: "review.lastInkDay"), "2026-11-14")
+        XCTAssertEqual(AppSettings.defaults.string(forKey: "review.lastRequestVersion"), "1.2.1")
+        XCTAssertEqual(AppSettings.defaults.string(forKey: "review.lastRequestDay"), "2026-11-17")
+
+        // Values that do not read.
+        AppSettings.defaults.set("2026-02-30", forKey: "review.firstUseDay")
+        AppSettings.defaults.set("x", forKey: "review.lastInkDay")
+        AppSettings.defaults.set(-3, forKey: "review.inkDays")
+        AppSettings.defaults.set("", forKey: "review.lastRequestVersion")
+        let broken = AppSettings.reviewRecord
+        XCTAssertNil(broken.firstUseDay, "2026-02-30 is not a day")
+        XCTAssertNil(broken.lastInkDay, "x is not a day")
+        XCTAssertEqual(broken.inkDays, 0, "a negative count is 0")
+        XCTAssertNil(broken.lastRequestVersion, "an empty version is none")
+        XCTAssertEqual(broken.lastRequestDay, DayKey(year: 2026, month: 11, day: 17), "the other fields stay")
+
+        // nil removes the key.
+        AppSettings.reviewRecord = ReviewRecord(inkDays: -3)
+        for key in ["review.firstUseDay", "review.lastInkDay", "review.lastRequestVersion", "review.lastRequestDay"] {
+            XCTAssertNil(AppSettings.defaults.object(forKey: key), key)
+        }
+        XCTAssertEqual(AppSettings.defaults.integer(forKey: "review.inkDays"), 0, "a negative count is written as 0")
+
+        // 1.2's test of an earlier user does not change.
+        AppSettings.reviewRecord = record
+        XCTAssertFalse(AppSettings.isExistingUser(AppSettings.defaults), "the review keys say nothing about an earlier version")
     }
 }

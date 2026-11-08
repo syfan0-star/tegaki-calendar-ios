@@ -21,7 +21,7 @@ Google Calendar is a trademark of Google LLC. This app is made by an individual 
 ■ Price
 Monthly and yearly subscriptions that renew automatically. If you are new, you can try it free for 14 days. Prices are shown in the App Store in the currency of your country.
 Terms of Use (Apple's standard EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Terms of Service (in Japanese): https://syfan0-star.github.io/tegaki-calendar/app/terms.html
-Privacy Policy (in Japanese): https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+Terms of Service: https://syfan0-star.github.io/tegaki-calendar/app/en/terms.html
+Privacy Policy: https://syfan0-star.github.io/tegaki-calendar/app/en/privacy.html
 
 Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.
