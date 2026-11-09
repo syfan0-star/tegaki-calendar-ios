@@ -5,7 +5,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 
 **2026-10-30 に 1.0（ビルド 10）を App Store で公開しました**（審査は 10-18 提出 → 2 回の差し戻し（掲載写真の価格、サブタイトルの Apple Pencil）→ 10-29 承認。App Store のページ: <https://apps.apple.com/jp/app/id6822762089>。反映まで最大 24 時間）。
 
-その後の版: **1.0.1**（iPhone で年のページから日のページへ移れない不具合の直し。[docs/R1_0_1.md](docs/R1_0_1.md)）は公開済み。**1.1**（ツールバーをしまう・消しゴムから自動でペンへ・下に伸びるメモと日の「自由メモ」・日付の当たり・年の左端の数字・線の予算・「この端末」。[docs/M7A_CONTRACT.md](docs/M7A_CONTRACT.md)・[docs/M7A.md](docs/M7A.md)）は main に取り込み済み（e7b4d2f）で公開済み。**1.1.1**（予定の少ない月・年の上の空白、年の大きさが年ごとに違う不具合、メモ欄を最初から全開、ピンチの案内、「今日」を右へ。[docs/R1_1_1.md](docs/R1_1_1.md)）は 2026-11-06 に公開済み。**1.2「世界対応」**（10 の表示言語、国ごとの祝日、週の始まりを月曜と日曜から選べる、英語の規約類、App Store の各国語、EU 27 か国での販売。[docs/M7B_CONTRACT.md](docs/M7B_CONTRACT.md)・[docs/M7B.md](docs/M7B.md)）は 2026-11-06 に公開済み（ビルド 18。EU での配信は本人の届け出が通ってから）。**1.2.1**（App Store の評価のお願い、日本語以外の画面で英語の規約類、検索の語。[docs/R1_2_1.md](docs/R1_2_1.md)）はブランチ `r121` で、2026-11-08 に審査に提出（ビルド 20）し、審査を待っています。**1.2.2**（年齢区分の確認。米国の一部の州など法律で求められる地域の人にだけ、Apple の年齢区分の画面を出す。[docs/R1_2_2.md](docs/R1_2_2.md)）はブランチ `r122` で作っています。main への取り込みは本人の了承の後です。
+その後の版: **1.0.1**（iPhone で年のページから日のページへ移れない不具合の直し。[docs/R1_0_1.md](docs/R1_0_1.md)）は公開済み。**1.1**（ツールバーをしまう・消しゴムから自動でペンへ・下に伸びるメモと日の「自由メモ」・日付の当たり・年の左端の数字・線の予算・「この端末」。[docs/M7A_CONTRACT.md](docs/M7A_CONTRACT.md)・[docs/M7A.md](docs/M7A.md)）は main に取り込み済み（e7b4d2f）で公開済み。**1.1.1**（予定の少ない月・年の上の空白、年の大きさが年ごとに違う不具合、メモ欄を最初から全開、ピンチの案内、「今日」を右へ。[docs/R1_1_1.md](docs/R1_1_1.md)）は 2026-11-06 に公開済み。**1.2「世界対応」**（10 の表示言語、国ごとの祝日、週の始まりを月曜と日曜から選べる、英語の規約類、App Store の各国語、EU 27 か国での販売。[docs/M7B_CONTRACT.md](docs/M7B_CONTRACT.md)・[docs/M7B.md](docs/M7B.md)）は 2026-11-06 に公開済み（ビルド 18。EU での配信は本人の届け出が通ってから）。**1.2.1**（App Store の評価のお願い、日本語以外の画面で英語の規約類、検索の語。[docs/R1_2_1.md](docs/R1_2_1.md)）は 2026-11-08 に公開済み（ビルド 20）。**1.2.2**（年齢区分の確認。米国の一部の州など法律で求められる地域の人にだけ、Apple の年齢区分の画面を出す。[docs/R1_2_2.md](docs/R1_2_2.md)）は 2026-11-09 に公開済み（ビルド 22。main 985688b）。**1.2.3**（iCloud のアカウントを送る前に必ず確かめる直しと、同期のテストの揺れの直し。見た目は変わらない。[docs/R1_2_3.md](docs/R1_2_3.md)）はブランチ `r123` で作っています。main への取り込みは本人の了承の後です。
 
 - Web 版の使い方・画面の考え方: [tegaki-calendar/README.md](https://github.com/syfan0-star/tegaki-calendar/blob/main/README.md)
 - Web 版の設計書: [tegaki-calendar/docs/SPEC.md](https://github.com/syfan0-star/tegaki-calendar/blob/main/docs/SPEC.md)
@@ -43,6 +43,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 | [docs/R1_2_1_STORE.md](docs/R1_2_1_STORE.md) | 1.2.1 の App Store の文（キーワードの直しと訳し戻し、新機能の文、説明の利用規約・プライバシーポリシーの行、URL、lint の L-9 の直し、審査メモ、Connect に入れるもの） |
 | [docs/R1_2_2.md](docs/R1_2_2.md) | 1.2.2 の契約と記録（Apple の Declared Age Range の最小の実装、いつ・どこで聞くか、署名と権限、プライバシーポリシーの 1 項目、テスト、本人の確かめ表、段取り、既定で決めたこと、確かめ） |
 | [docs/R1_2_2_STORE.md](docs/R1_2_2_STORE.md) | 1.2.2 の App Store の文（新機能の文と訳し戻し、審査メモ、プロモーションテキスト、Connect に入れるもの） |
+| [docs/R1_2_3.md](docs/R1_2_3.md) | 1.2.3 の契約と記録（iCloud のアカウントの確かめの穴（G1〜G3）と直し、テストの揺れの仕組みと直し、新しいテスト、版、店の文と訳し戻し、年齢区分の新しい 2 問、本人の確かめ表、段取り、既定で決めたこと、確かめ） |
 | [docs/US_AGE_LAWS.md](docs/US_AGE_LAWS.md) | 米国の州の年齢確認の法律の覚え書き（本人が決めるため。法律の助言ではない。1.2.1 では何も変えない） |
 | [docs/i18n/GLOSSARY.md](docs/i18n/GLOSSARY.md) ／ [docs/i18n/REVIEW.md](docs/i18n/REVIEW.md) | 9 言語の用語集と、訳を日本語へ逆に訳して照らした結果（`docs/i18n/back/` が逆翻訳。ネイティブの確認は無いことも書いてある） |
 | [docs/store/](docs/store/README.md) ／ [docs/support-replies/](docs/support-replies/README.md) | App Store の文の原稿（15 ロケール。入力は確認表を本人に見せた後）と、サポートの返事の定型文（送るのは本人） |
@@ -256,7 +257,7 @@ Tests/TegakiCalendarTests/
   ExportBuilderTests.swift          書き出しのテスト（全ページの JSON と pageId 順・帯の線の移し替え・取り込み口との往復・進行・空のとき・後始末・大きなファイル（8 ページ × 1,000 本）の常駐メモリ・PDF の 1 ページと大きさ・4 種の PDF・ファイル名と題名）
   ExportSheetTests.swift            書き出しシートの文言・進行・完成文・大きさの表記・失敗文のテスト
   WebImportSheetTests.swift         取り込みの完成文の出し分け（Web 版／このアプリ）のテスト
-  SyncEngineTests.swift             同期エンジンのテスト（偽の iCloud と TestSleeper で。アカウント確認・デバウンス・衝突・取得・削除・再試行・ゾーン消失・プッシュ・アカウント切替・全消去・取り込み）
+  SyncEngineTests.swift             同期エンジンのテスト（偽の iCloud と TestSleeper で。アカウント確認・デバウンス・衝突・取得・削除・再試行・ゾーン消失・プッシュ・アカウント切替・全消去・取り込み。1.2.3 から、確認の失敗・裏から戻ったとき・サイレントプッシュ・往復の途中の切替でもアカウントを確かめ直すこと）
   InkPageRecordTests.swift          レコードの写像のテスト
   SyncStateStoreTests.swift         状態ファイルの読み書きのテスト
   CloudKitDatabaseMapTests.swift    CKError → CloudError の写像のテスト
