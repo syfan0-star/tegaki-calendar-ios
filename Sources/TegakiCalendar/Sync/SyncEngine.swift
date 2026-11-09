@@ -108,7 +108,7 @@ final class SyncEngine: ObservableObject {
     /// background does not clear it (the switch can come after that check). The tests' engines start in the
     /// foreground (false).
     private var awayFromForeground = false
-    /// 1.2.3: when the account was last confirmed (`clock()`); see `checkStillFresh()`.
+    /// 1.2.3: when the last check that confirmed the account was asked (`clock()`); see `checkStillFresh()`.
     private var accountCheckedAt: Date?
 
     /// 1.2.3 (docs/R1_2_3.md §3): while away from the foreground, a round trip whose last account check is
@@ -588,6 +588,8 @@ final class SyncEngine: ObservableObject {
         // round trip (retry, foreground, debounced push, import, erase) checks again instead of talking to an
         // account that was never confirmed in this launch.
         accountCheckRequested = false
+        // When the question was asked: an answer is only as new as the question (see below and `checkStillFresh()`).
+        let askedAt = clock()
         let accountStatus: CloudAccountStatus
         do {
             accountStatus = try await database.accountStatus()
@@ -621,6 +623,15 @@ final class SyncEngine: ObservableObject {
             handleFailure(SyncEngine.cloudError(error))
             return false
         }
+        // 1.2.3 (docs/R1_2_3.md §3.5): away from the foreground, an answer that took longer than
+        // `awayRecheckAfter` may have been given before iOS suspended the app and the Apple Account was switched,
+        // and only delivered now. It is not used: the check is asked for again after the backoff (not at once,
+        // so a slow answer in the background does not loop).
+        if awayFromForeground, abs(clock().timeIntervalSince(askedAt)) > SyncEngine.awayRecheckAfter {
+            accountCheckRequested = true
+            scheduleBackoffRetry(serverHint: nil)
+            return false
+        }
         if let account = state.account {
             if account != name {
                 state.pendingAccount = name
@@ -632,7 +643,7 @@ final class SyncEngine: ObservableObject {
         } else {
             state.account = name
         }
-        accountCheckedAt = clock()
+        accountCheckedAt = askedAt
         persistState()
         switch snapshot.status {
         case .localOnly, .accountMismatch:

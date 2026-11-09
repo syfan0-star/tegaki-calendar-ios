@@ -173,7 +173,9 @@ jobs:
           echo "AGE_FORCE: not in project.yml"
 
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the 18 files of the handwriting's data are the
-      # bytes of 1.1.1. The file keeps its name; the commit it was made from is in docs/M7B.md.
+      # bytes of 1.1.1, except Sync/SyncEngine.swift, whose line is 1.2.3's (docs/R1_2_3.md §3.10: the sync's
+      # order and account checks changed, not the data's form). The file keeps its name; the commit it was
+      # made from is in docs/M7B.md.
       - name: Data code frozen since 1.1.1
         run: |
           set -euo pipefail
@@ -362,7 +364,7 @@ jobs:
       # 1.2.3 (docs/R1_2_3.md §4): the sync engine's tests again, 20 times in a row, stopping at the first
       # failure (two of them were flaky in 1.2.2's CI, runs 42531490670 and 42438495112; TestSleeper and
       # waitUntilIdle now fix the order). The build of the step above is reused (test-without-building); the
-      # 20,500-stroke test is left out (about 5 s each). Estimated 3–6 min (one pass of the 57 other tests is a
+      # 20,500-stroke test is left out (about 5 s each). Estimated 3–6 min (one pass of the 60 other tests is a
       # few seconds; the rest is xcodebuild and the simulator), limited to 9. The whole output is kept in
       # $RUNNER_TEMP/sync-repeat.log (not uploaded) and its last 80 lines are printed.
       - name: Sync engine tests, repeated (1.2.3)

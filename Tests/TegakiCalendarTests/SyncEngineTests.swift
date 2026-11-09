@@ -4,7 +4,7 @@ import Layout
 import XCTest
 @testable import TegakiCalendar
 
-/// The sync engine over the fake iCloud (M4_CONTRACT §8.2, 0–36 and 1.2.3's 37–50): the account check, the
+/// The sync engine over the fake iCloud (M4_CONTRACT §8.2, 0–36 and 1.2.3's 37–53): the account check, the
 /// debounce, conflicts, pulls, deletions, the retry backoff, the zone loss, the silent push, the account
 /// switch, the erase, the web import, and (1.2.3) the account confirmed again after a failed check, an
 /// account change, the background and a silent push. `TestSleeper` stands in for the clock's sleeps, the
@@ -115,12 +115,20 @@ final class SyncEngineTests: XCTestCase {
     }
 
     /// Yields until `condition` holds (for work that is paused inside the fake, which `waitUntilIdle`
-    /// would wait for forever).
+    /// would wait for forever). After 4000 yields it polls every millisecond for up to 5 s (1.2.3: an
+    /// account change goes through the cooperative pool before it is handled, so a busy runner may need more
+    /// than yields; the same five seconds as StoreKitSessionTests).
     private func waitUntil(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {
         for _ in 0..<4000 {
             if condition() { return }
             await Task.yield()
         }
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if condition() { return }
+            try? await Task.sleep(nanoseconds: 1_000_000)
+        }
+        if condition() { return }
         XCTFail("timed out", file: file, line: line)
     }
 
@@ -1115,7 +1123,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertTrue(WeekStartChoice.readyToCheck(status: status, zoneToken: engine.state.zoneToken))
     }
 
-    // MARK: - 1.2.3: the account is confirmed before anything is sent (docs/R1_2_3.md §5, M4_CONTRACT §8.2 37–52)
+    // MARK: - 1.2.3: the account is confirmed before anything is sent (docs/R1_2_3.md §5, M4_CONTRACT §8.2 37–53)
 
     /// The ledger of a device that synced with `_user-a` (zone and subscription made), as 1.2.2 wrote it.
     private func priorAccountA() throws {
@@ -1484,5 +1492,34 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertNil(db.records[week])
         XCTAssertFalse(engine.state.pendingCloudErase)
         XCTAssertEqual(status, .synced)
+    }
+
+    /// 53 (G3, the check that iOS froze): the push on the way out asks the account, the app is suspended before
+    /// the answer comes, and the answer is delivered a minute later. It is the old account's name, but it may be
+    /// older than a switch made meanwhile, so it is not used: nothing is sent, and the check is asked again
+    /// after the backoff (15 s), which then sends as usual.
+    func testAccountAnswerFrozenInTheBackgroundIsAskedAgain() async throws {
+        await startSynced()
+        engine.applicationDidEnterBackground()
+        try engine.save(page(month, ["a"])) // saveNow on the way out
+        await engine.waitUntilIdle()
+        db.pause(.userRecordName)
+        let mark = db.calls.count
+        await sleeper.advance() // the push after 1.5 s: its check is paused (the app is suspended)
+        await waitUntil { self.db.calls[mark...].contains(.userRecordName) }
+        now = now.addingTimeInterval(60) // suspended for a minute
+        db.resume() // the answer given before the suspension: still "_user-a"
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName])
+        XCTAssertFalse(db.calls[mark...].contains(.save), "the late answer is not trusted")
+        XCTAssertNil(db.records[month])
+        XCTAssertEqual(sleeper.recorded.last, 15)
+        XCTAssertEqual(engine.state.dirty, [month])
+
+        await sleeper.advance() // the retry checks again (a fresh answer) and sends
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...].prefix(4)), [.accountStatus, .userRecordName, .accountStatus, .userRecordName])
+        XCTAssertNotNil(db.records[month])
+        XCTAssertTrue(engine.state.dirty.isEmpty)
     }
 }
