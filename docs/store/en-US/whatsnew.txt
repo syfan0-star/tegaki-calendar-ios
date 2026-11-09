@@ -1,3 +1,3 @@
-• In regions where the law requires age checks, such as some U.S. states, an Apple screen asking whether to share your age range may appear when you open the app. The app does not save or send your answer, and the way it looks and works does not change.
+• Stronger checks so that your handwriting is not mixed with another iCloud account when you switch accounts.
 
 Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.

@@ -46,7 +46,11 @@ final class SyncEngine: ObservableObject {
     }
 
     static func live(database: any CloudDatabase = CloudKitDatabase()) -> SyncEngine {
-        SyncEngine(store: InkPageStore(), stateStore: SyncStateStore(), database: database)
+        let engine = SyncEngine(store: InkPageStore(), stateStore: SyncStateStore(), database: database)
+        // 1.2.3 (docs/R1_2_3.md §3, G3): until the first `applicationDidBecomeActive()` the app may be a
+        // background launch (a silent push); every round trip confirms the account until then.
+        engine.awayFromForeground = true
+        return engine
     }
 
     /// The engine of the screenshot mode and of the XCTest host (§6.6): 「保存済み」 three minutes ago,
@@ -75,7 +79,9 @@ final class SyncEngine: ObservableObject {
     private(set) var state: SyncState = .empty
 
     private let clock: () -> Date
-    private let sleep: (TimeInterval) async -> Void
+    /// @MainActor (1.2.3, docs/R1_2_3.md §4): a sleep that returns goes on to `pause`'s `beginJob()` without
+    /// leaving the main actor, so the tests' `TestSleeper.advance()` sees the woken task counted again.
+    private let sleep: @MainActor (TimeInterval) async -> Void
 
     /// `screenshotDemo`: everything is a no-op.
     private var inactive = false
@@ -87,10 +93,29 @@ final class SyncEngine: ObservableObject {
     private var pageGeneration: [String: Int] = [:]
     /// The time of the last `pageOpened` fetch per page (the 30 s cooldown).
     private var lastPageFetch: [String: Date] = [:]
-    /// `.CKAccountChanged` asks for a fresh account check in the next round trip.
+    /// Asks for a fresh account check in the next round trip: the launch, `.CKAccountChanged`, and since
+    /// 1.2.3 a check that gave no clear answer, the account choice, the return from the background and a
+    /// silent push (docs/R1_2_3.md §3).
     private var accountCheckRequested = false
-    /// Bumped by the erase and the account change; work started under an older epoch stops writing.
+    /// Bumped by the erase, the account choice and, since 1.2.3, `.CKAccountChanged` and the return from
+    /// the background; work started under an older epoch stops before its next request or write.
     private var workEpoch = 0
+    /// 1.2.3 (docs/R1_2_3.md §3, G3): true from `applicationDidEnterBackground()` until the next
+    /// `applicationDidBecomeActive()`, and in the app (`live()`) from launch until the first one. While true
+    /// every round trip confirms the account first: an Apple Account is switched in the Settings app, i.e.
+    /// while this app is in the background or suspended, and `.CKAccountChanged` can reach the engine after
+    /// the timers that elapsed meanwhile, a silent push or the foreground round trip. A check made in the
+    /// background does not clear it (the switch can come after that check). The tests' engines start in the
+    /// foreground (false).
+    private var awayFromForeground = false
+    /// 1.2.3: when the last check that confirmed the account was asked (`clock()`); see `checkStillFresh()`.
+    private var accountCheckedAt: Date?
+
+    /// 1.2.3 (docs/R1_2_3.md §3): while away from the foreground, a round trip whose last account check is
+    /// older than this stops before its next request and queues one that checks first (a round trip that
+    /// iOS froze and that goes on when the app wakes, maybe after the Apple Account was switched). A round
+    /// trip in the background normally ends within a second or two of its check.
+    static let awayRecheckAfter: TimeInterval = 10
 
     // The one debounce task and the one retry task (§4.5): a task whose epoch moved does nothing.
     private var debounceGeneration = 0
@@ -111,7 +136,7 @@ final class SyncEngine: ObservableObject {
         stateStore: SyncStateStore,
         database: any CloudDatabase,
         clock: @escaping () -> Date = Date.init,
-        sleep: @escaping (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
+        sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
     ) {
         self.store = store
         self.stateStore = stateStore
@@ -165,7 +190,10 @@ final class SyncEngine: ObservableObject {
         default:
             return
         }
-        guard accountConfirmed else { return }
+        // 1.2.3 (docs/R1_2_3.md §3, G2): no single-page fetch while the account is unconfirmed or a check is
+        // due (the next pull brings the page anyway). Before the cooldown, so the page is fetched when it is
+        // opened again after the check.
+        guard !needsAccountCheck else { return }
         let now = clock()
         if let last = lastPageFetch[pageId], now.timeIntervalSince(last) < SyncBackoff.pageFetchCooldown {
             return
@@ -201,6 +229,10 @@ final class SyncEngine: ObservableObject {
             for await _ in database.accountChanges {
                 guard let self = self else { return }
                 self.accountChanged()
+                // Tests (§8.2): `waitUntilIdle` waits until every change the fake sent has been handled.
+                // (`accountChanged()` always queues a round trip, so this wakes nobody; kept as a guard.)
+                self.accountChangesHandled += 1
+                self.wakeIdleWaitersIfIdle()
             }
         }
         enqueueCycle()
@@ -214,11 +246,25 @@ final class SyncEngine: ObservableObject {
         _ = await enqueueCycle().value
     }
 
+    /// 1.2.3 (docs/R1_2_3.md §3, G3): scenePhase `.background` (CalendarRootScreen). Every round trip
+    /// confirms the account until the next `applicationDidBecomeActive()`, which asks for one more check.
+    func applicationDidEnterBackground() {
+        guard !inactive, started else { return }
+        awayFromForeground = true
+    }
+
     func applicationDidBecomeActive() {
         guard !inactive, started else { return }
-        Task { @MainActor in
-            await self.syncNow()
+        if awayFromForeground {
+            // 1.2.3 (G3): back from the background. Work that iOS froze stops at its next epoch check, and
+            // the first round trip confirms the account, whatever arrives first (this call, an elapsed
+            // timer, `.CKAccountChanged`).
+            awayFromForeground = false
+            accountCheckRequested = true
+            workEpoch += 1
         }
+        // Counted (spawn), so `waitUntilIdle` waits for it (§8.2).
+        spawn { await self.syncNow() }
     }
 
     /// A silent push (§4.5 7): false at once unless it is our zone subscription; otherwise a round
@@ -227,6 +273,13 @@ final class SyncEngine: ObservableObject {
     func handleRemoteNotification(_ userInfo: [AnyHashable: Any]) async -> Bool {
         guard !inactive, started else { return false }
         guard database.subscriptionID(in: userInfo) == CloudKitDatabase.subscriptionID else { return false }
+        // 1.2.3 (docs/R1_2_3.md §3, G3): a silent push often wakes the app from suspension, before
+        // `.CKAccountChanged`: the round trip confirms the account first, and in the background the work
+        // that iOS froze stops at its next epoch check.
+        accountCheckRequested = true
+        if awayFromForeground {
+            workEpoch += 1
+        }
         cancelDebounce()
         cancelRetry()
         let cycle = enqueueCycle()
@@ -254,9 +307,14 @@ final class SyncEngine: ObservableObject {
         case .keepInk:
             workEpoch += 1
             state.adoptAccount(pending, allLocalPageIds: store.allPageIds())
+            // 1.2.3 (docs/R1_2_3.md §3): an iCloud erase that was pending belonged to the previous account;
+            // it is never done in the new one (M4.md §4.1: no records of another account are deleted later).
+            state.pendingCloudErase = false
             pageGeneration = [:]
             persistState()
             setStatus(.pending)
+            // 1.2.3: the name adopted is the one of the last check; the round trip confirms it again first.
+            accountCheckRequested = true
             _ = await enqueueCycle().value
         case .eraseInk:
             workEpoch += 1
@@ -270,6 +328,8 @@ final class SyncEngine: ObservableObject {
             lastPageFetch = [:]
             persistState()
             setStatus(.pending)
+            // 1.2.3: as `.keepInk`, the adopted name is confirmed again before anything is fetched.
+            accountCheckRequested = true
             _ = await enqueueCycle().value
         case .later:
             break
@@ -292,10 +352,19 @@ final class SyncEngine: ObservableObject {
         persistState()
         guard cloud else { return }
         let outcome = enqueue { () -> Error? in
+            // 1.2.3 (docs/R1_2_3.md §3, G2): nothing is deleted from an account that was not confirmed, nor
+            // after an account change during the check. The deletion stays pending (`pendingCloudErase`) for
+            // the round trip after the check; the screen says the iCloud part failed. The status is the check's.
+            let epoch = self.workEpoch
+            guard await self.confirmedForSending() else { return CloudError.other("account") }
             do {
-                try await self.cloudErase()
+                try await self.cloudErase(epoch: epoch)
                 self.finishRoundTrip()
                 return nil
+            } catch is Interrupted {
+                // An account change (or the return from the background) stopped it; the round trip queued
+                // with it sets the status.
+                return CloudError.other("account")
             } catch {
                 let cloudError = SyncEngine.cloudError(error)
                 self.handleFailure(cloudError)
@@ -332,7 +401,12 @@ final class SyncEngine: ObservableObject {
         state.webImportedAt = InkPageRecord.ms(from: now)
         persistState()
         if started, cloudUsable, accountConfirmed {
-            _ = await enqueue { await self.saveMeta(webImportedAt: now) }.value
+            _ = await enqueue {
+                // 1.2.3 (G2): the check that is due is made first; no `Meta` to an unconfirmed account.
+                let epoch = self.workEpoch
+                guard await self.confirmedForSending() else { return }
+                await self.saveMeta(webImportedAt: now, epoch: epoch)
+            }.value
         }
         if snapshot.status == .synced, state.isDirty {
             setStatus(.pending)
@@ -343,16 +417,23 @@ final class SyncEngine: ObservableObject {
 
     // MARK: - Tests (§8.2)
 
-    /// Waits until every task of the engine has finished, except the ones suspended in `sleep`.
+    /// `.CKAccountChanged` notifications handled so far (the account stream is not a counted job).
+    private(set) var accountChangesHandled = 0
+
+    /// Waits until every task of the engine has finished, except the ones suspended in `sleep`, and (over
+    /// the fake) until every account change it sent has been handled. 1.2.3: no `Task.yield` grace any
+    /// more: `TestSleeper.advance()` returns only after each woken task is counted again
+    /// (docs/R1_2_3.md §4). New work of the engine must be counted (`enqueue` / `spawn`, never a bare `Task`).
     func waitUntilIdle() async {
-        while true {
-            // Let tasks that were just resumed (a sleep that returned, an account change) run first.
-            for _ in 0..<3 { await Task.yield() }
-            if activeJobs == 0 { return }
+        while activeJobs > 0 || (accountTask != nil && accountChangesHandled < accountChangesSentByFake) {
             await withCheckedContinuation { continuation in
                 idleWaiters.append(continuation)
             }
         }
+    }
+
+    private var accountChangesSentByFake: Int {
+        (database as? InMemoryCloudDatabase)?.accountChangesSent ?? 0
     }
 
     // MARK: - The round trip (§4.5)
@@ -373,26 +454,35 @@ final class SyncEngine: ObservableObject {
                 guard await checkAccount() else { return 0 }
             }
         case .pushOnly:
-            guard accountConfirmed else { return 0 }
+            // 1.2.3 (docs/R1_2_3.md §3, G2): a push queued before an account change, after a failed check or
+            // across the background confirms the account first; nothing goes to an account not confirmed.
+            guard await confirmedForSending() else { return 0 }
         }
         do {
+            // 1.2.3 (M1): an account change (or the return from the background) during the check stops the
+            // round trip here, before the pending erase; the round trip queued with it checks again.
+            try checkEpoch(epoch)
             if state.pendingCloudErase {
-                try await cloudErase()
+                try await cloudErase(epoch: epoch)
             }
             try checkEpoch(epoch)
             if work == .cycle {
                 await ensureZoneAndSubscription()
+                try checkEpoch(epoch)
             }
             var pulled = 0
             var gaveUp = false
             do {
                 if work == .cycle {
-                    pulled = try await pull()
+                    pulled = try await pull(epoch: epoch)
                 }
-                gaveUp = try await push()
+                gaveUp = try await push(epoch: epoch)
             } catch CloudError.zoneMissing {
                 try checkEpoch(epoch)
-                let recovered = try await recoverFromZoneLoss()
+                // 1.2.3 (M3): a zone that is missing is what a switched account looks like; while a check is
+                // due the account is confirmed before every local page is sent again.
+                try await confirmAgainIfDue(epoch)
+                let recovered = try await recoverFromZoneLoss(epoch: epoch)
                 pulled += recovered.pulled
                 gaveUp = recovered.gaveUp
             }
@@ -425,7 +515,7 @@ final class SyncEngine: ObservableObject {
     }
 
     private var needsAccountCheck: Bool {
-        if accountCheckRequested { return true }
+        if accountCheckRequested || awayFromForeground { return true }
         if state.account == nil || state.pendingAccount != nil { return true }
         switch snapshot.status {
         case .localOnly, .accountMismatch:
@@ -433,6 +523,40 @@ final class SyncEngine: ObservableObject {
         default:
             return false
         }
+    }
+
+    /// 1.2.3 (docs/R1_2_3.md §3, G2): the gate of the work outside the cycle (the push without a pull, the
+    /// import's `Meta`, the erase): true when the account is confirmed, after the check that is due (launch,
+    /// `.CKAccountChanged`, a failed check, the background) has been made, and no account change came during
+    /// that check. An account that was never confirmed is false here: only the cycle confirms it.
+    private func confirmedForSending() async -> Bool {
+        guard accountConfirmed else { return false }
+        guard needsAccountCheck else { return true }
+        let epoch = workEpoch
+        guard await checkAccount() else { return false }
+        return epoch == workEpoch
+    }
+
+    /// 1.2.3 (docs/R1_2_3.md §3): a sign that the account may have been switched (the zone or the change
+    /// token gone, a record gone) while a check is due: the account is confirmed before anything more is
+    /// sent or merged. Not confirmed → `Interrupted` (the check has set the status and any retry).
+    private func confirmAgainIfDue(_ epoch: Int) async throws {
+        guard needsAccountCheck else { return }
+        guard await checkAccount() else { throw Interrupted() }
+        try checkEpoch(epoch)
+    }
+
+    /// 1.2.3 (docs/R1_2_3.md §3): before each request a round trip sends while away from the foreground. When
+    /// the last check is older than `awayRecheckAfter` (the round trip was frozen by iOS and goes on after
+    /// waking), it stops and queues a round trip that checks first.
+    private func checkStillFresh() throws {
+        guard awayFromForeground else { return }
+        if let checkedAt = accountCheckedAt, abs(clock().timeIntervalSince(checkedAt)) <= SyncEngine.awayRecheckAfter {
+            return
+        }
+        accountCheckRequested = true
+        enqueueCycle()
+        throw Interrupted()
     }
 
     private var accountConfirmed: Bool {
@@ -459,11 +583,18 @@ final class SyncEngine: ObservableObject {
     /// `accountStatus()` → `userRecordName()`; true when the account is confirmed and the round trip
     /// may go on (§4.5 「アカウント確認」, 8).
     private func checkAccount() async -> Bool {
+        // 1.2.3 (docs/R1_2_3.md §3, G1): cleared now so that a `.CKAccountChanged` arriving during the check
+        // asks again; put back on every way out that neither confirmed nor rejected the account, so the next
+        // round trip (retry, foreground, debounced push, import, erase) checks again instead of talking to an
+        // account that was never confirmed in this launch.
         accountCheckRequested = false
+        // When the question was asked: an answer is only as new as the question (see below and `checkStillFresh()`).
+        let askedAt = clock()
         let accountStatus: CloudAccountStatus
         do {
             accountStatus = try await database.accountStatus()
         } catch {
+            accountCheckRequested = true
             handleFailure(SyncEngine.cloudError(error))
             return false
         }
@@ -478,6 +609,7 @@ final class SyncEngine: ObservableObject {
             setStatus(.localOnly(.unknown))
             return false
         case .temporarilyUnavailable:
+            accountCheckRequested = true
             scheduleBackoffRetry(serverHint: nil)
             return false
         case .available:
@@ -487,7 +619,17 @@ final class SyncEngine: ObservableObject {
         do {
             name = try await database.userRecordName()
         } catch {
+            accountCheckRequested = true
             handleFailure(SyncEngine.cloudError(error))
+            return false
+        }
+        // 1.2.3 (docs/R1_2_3.md §3.5): away from the foreground, an answer that took longer than
+        // `awayRecheckAfter` may have been given before iOS suspended the app and the Apple Account was switched,
+        // and only delivered now. It is not used: the check is asked for again after the backoff (not at once,
+        // so a slow answer in the background does not loop).
+        if awayFromForeground, abs(clock().timeIntervalSince(askedAt)) > SyncEngine.awayRecheckAfter {
+            accountCheckRequested = true
+            scheduleBackoffRetry(serverHint: nil)
             return false
         }
         if let account = state.account {
@@ -501,6 +643,7 @@ final class SyncEngine: ObservableObject {
         } else {
             state.account = name
         }
+        accountCheckedAt = askedAt
         persistState()
         switch snapshot.status {
         case .localOnly, .accountMismatch:
@@ -513,6 +656,10 @@ final class SyncEngine: ObservableObject {
 
     private func accountChanged() {
         accountCheckRequested = true
+        // 1.2.3 (docs/R1_2_3.md §3): work already running for the old account stops at its next epoch check
+        // (a push does not send its remaining pages, a pull in flight does not merge), like the erase and the
+        // account choice. The round trip queued here confirms the account and sets the status.
+        workEpoch += 1
         enqueueCycle()
     }
 
@@ -540,18 +687,21 @@ final class SyncEngine: ObservableObject {
     /// The zone is gone (§4.5 「ゾーン消失」): every local page goes again, the zone and the
     /// subscription are made again, then one pull and one push. A second `.zoneMissing` is
     /// `.error(.server("zone"))`.
-    private func recoverFromZoneLoss() async throws -> (pulled: Int, gaveUp: Bool) {
+    /// `epoch` (1.2.3): the round trip's; an account change during `ensureZone` / `ensureSubscription` stops it.
+    private func recoverFromZoneLoss(epoch: Int) async throws -> (pulled: Int, gaveUp: Bool) {
         state.resetAfterZoneLoss(allLocalPageIds: store.allPageIds())
         pageGeneration = [:]
         persistState()
         do {
             try await database.ensureZone()
+            try checkEpoch(epoch)
             state.zoneReady = true
             try await database.ensureSubscription()
+            try checkEpoch(epoch)
             state.subscriptionReady = true
             persistState()
-            let pulled = try await pull()
-            let gaveUp = try await push()
+            let pulled = try await pull(epoch: epoch)
+            let gaveUp = try await push(epoch: epoch)
             return (pulled, gaveUp)
         } catch CloudError.zoneMissing {
             throw CloudError.other("zone")
@@ -559,16 +709,20 @@ final class SyncEngine: ObservableObject {
     }
 
     /// `fetchChanges(since: zoneToken)` and the merge of every changed page (§4.5 4). Returns how
-    /// many records or deletions changed something on the device.
-    private func pull() async throws -> Int {
-        let epoch = workEpoch
+    /// many records or deletions changed something on the device. `epoch` (1.2.3): the round trip's, taken
+    /// before its account check (no longer read here, so a change during the check is not missed).
+    private func pull(epoch: Int) async throws -> Int {
         markSyncing()
         var expiredOnce = false
         while true {
             let changes: CloudZoneChanges
             do {
+                try checkStillFresh()
                 changes = try await database.fetchChanges(since: state.zoneToken, namesOnly: false)
             } catch CloudError.changeTokenExpired where !expiredOnce {
+                try checkEpoch(epoch)
+                // 1.2.3: an expired token can be another account's zone; while a check is due it comes first.
+                try await confirmAgainIfDue(epoch)
                 expiredOnce = true
                 state.zoneToken = nil
                 state.seen = [:]
@@ -653,7 +807,9 @@ final class SyncEngine: ObservableObject {
 
     /// `pageOpened`: the page alone, with the cooldown already checked (§4.5 3).
     private func fetchPage(_ pageId: String) async {
-        guard started, accountConfirmed else { return }
+        // 1.2.3 (docs/R1_2_3.md §3, G2): looked at again when it runs (it may have been queued before an
+        // account change or the background); skipped while a check is due (the next pull brings the page).
+        guard started, !needsAccountCheck else { return }
         let epoch = workEpoch
         do {
             let records = try await database.fetchRecords(names: [pageId])
@@ -667,7 +823,9 @@ final class SyncEngine: ObservableObject {
         } catch CloudError.zoneMissing {
             do {
                 try checkEpoch(epoch)
-                let recovered = try await recoverFromZoneLoss()
+                // 1.2.3 (M3): as in `run`, the account first when a check became due meanwhile.
+                try await confirmAgainIfDue(epoch)
+                let recovered = try await recoverFromZoneLoss(epoch: epoch)
                 if recovered.gaveUp {
                     setStatus(.pending)
                     scheduleBackoffRetry(serverHint: nil)
@@ -686,8 +844,8 @@ final class SyncEngine: ObservableObject {
 
     /// Sends every dirty page (§4.5 5). Returns true when a page was left dirty because its
     /// conflicts did not settle within 3 retries (or a vanished record could not be made again).
-    private func push() async throws -> Bool {
-        let epoch = workEpoch
+    /// `epoch` (1.2.3): the round trip's, as in `pull`.
+    private func push(epoch: Int) async throws -> Bool {
         pushAgain = false
         guard state.isDirty else { return false }
         markSyncing()
@@ -706,6 +864,8 @@ final class SyncEngine: ObservableObject {
                     throw CloudError.other(error.localizedDescription)
                 }
                 do {
+                    // 1.2.3: a push frozen in the background and woken later checks the account again.
+                    try checkStillFresh()
                     let saved = try await database.save(record)
                     try checkEpoch(epoch)
                     state.seen[id] = InkPageRecord.seen(from: saved)
@@ -737,6 +897,8 @@ final class SyncEngine: ObservableObject {
                     }
                 } catch CloudError.recordNotFound {
                     try checkEpoch(epoch)
+                    // 1.2.3: a record gone can be another account; while a check is due it comes first.
+                    try await confirmAgainIfDue(epoch)
                     if recreated {
                         throw CloudError.other("record")
                     }
@@ -751,8 +913,9 @@ final class SyncEngine: ObservableObject {
     }
 
     /// `Meta.webImportedAt` (§1.2): saved with `.ifServerRecordUnchanged`; on a conflict the server's
-    /// values are read and each field keeps the later date. Failures are ignored.
-    private func saveMeta(webImportedAt: Date) async {
+    /// values are read and each field keeps the later date. Failures are ignored. `epoch` (1.2.3): taken
+    /// before the account check; an account change stops the retries and nothing is remembered.
+    private func saveMeta(webImportedAt: Date, epoch: Int) async {
         let name = InkPageRecord.metaRecordName
         var seen = state.seen[name]
         var web: Date? = webImportedAt
@@ -760,9 +923,11 @@ final class SyncEngine: ObservableObject {
         var attempts = 0
         var recreated = false
         while attempts <= SyncBackoff.maxConflictRetries {
+            guard epoch == workEpoch, (try? checkStillFresh()) != nil else { return }
             let record = InkPageRecord.makeMeta(webImportedAt: web, trialStartedAt: trial, seen: seen)
             do {
                 let saved = try await database.save(record)
+                guard epoch == workEpoch else { return }
                 state.seen[name] = InkPageRecord.seen(from: saved)
                 persistState()
                 return
@@ -782,12 +947,14 @@ final class SyncEngine: ObservableObject {
     }
 
     /// The iCloud half of the erase (§4.5 10): list the `InkPage` names (names only), delete them
-    /// 200 at a time, then take a fresh token.
-    private func cloudErase() async throws {
-        let epoch = workEpoch
+    /// 200 at a time, then take a fresh token. `epoch` (1.2.3): the caller's, taken before its account
+    /// check, so an account change during the check stops the erase before it deletes anything.
+    private func cloudErase(epoch: Int) async throws {
+        try checkEpoch(epoch)
         markSyncing()
         var after: CloudZoneChanges?
         do {
+            try checkStillFresh()
             let listing = try await database.fetchChanges(since: nil, namesOnly: true)
             try checkEpoch(epoch)
             let names = listing.changed.filter { $0.recordType == InkPageRecord.recordType }.map { $0.recordName }
@@ -817,6 +984,7 @@ final class SyncEngine: ObservableObject {
             let end = min(index + batchSize, names.count)
             let chunk = Array(names[index..<end])
             do {
+                try checkStillFresh()
                 try await database.delete(names: chunk)
                 index = end
             } catch CloudError.limitExceeded {
@@ -1023,9 +1191,14 @@ final class SyncEngine: ObservableObject {
         activeJobs -= 1
         if activeJobs <= 0 {
             activeJobs = 0
-            let waiters = idleWaiters
-            idleWaiters = []
-            for waiter in waiters { waiter.resume() }
+            wakeIdleWaitersIfIdle()
         }
+    }
+
+    private func wakeIdleWaitersIfIdle() {
+        guard activeJobs == 0 else { return }
+        let waiters = idleWaiters
+        idleWaiters = []
+        for waiter in waiters { waiter.resume() }
     }
 }

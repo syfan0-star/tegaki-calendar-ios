@@ -70,8 +70,9 @@ jobs:
     # 41264726309): 67.9 − 11.9 + 3 (the lint, the data check, the bundle check, 2 more sheets, the new unit
     # tests) + 2 (the 13-inch iPad's wait) + 40 = 101, and 9 min for a slow boot (one alone has taken 4 min).
     # A job cut by this limit does not reach "Upload screenshots", so J-4's photos and the UI tests' log would
-    # be lost with it.
-    timeout-minutes: 110
+    # be lost with it. 1.2.3 (docs/R1_2_3.md §4): 110 → 120 for the repeated sync engine tests (a step of at
+    # most 9 min: 101 + 9 = 110, and the slow boot's margin kept).
+    timeout-minutes: 120
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -172,7 +173,9 @@ jobs:
           echo "AGE_FORCE: not in project.yml"
 
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the 18 files of the handwriting's data are the
-      # bytes of 1.1.1. The file keeps its name; the commit it was made from is in docs/M7B.md.
+      # bytes of 1.1.1, except Sync/SyncEngine.swift, whose line is 1.2.3's (docs/R1_2_3.md §3.10: the sync's
+      # order and account checks changed, not the data's form). The file keeps its name; the commit it was
+      # made from is in docs/M7B.md.
       - name: Data code frozen since 1.1.1
         run: |
           set -euo pipefail
@@ -357,6 +360,33 @@ jobs:
           if [ -f "$LOG" ]; then
             grep -iE 'repro:|expected failure' "$LOG" | awk '{ i = index($0, "repro:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
           fi
+
+      # 1.2.3 (docs/R1_2_3.md §4): the sync engine's tests again, 20 times in a row, stopping at the first
+      # failure (two of them were flaky in 1.2.2's CI, runs 42531490670 and 42438495112; TestSleeper and
+      # waitUntilIdle now fix the order). The build of the step above is reused (test-without-building); the
+      # 20,500-stroke test is left out (about 5 s each). Estimated 3–6 min (one pass of the 60 other tests is a
+      # few seconds; the rest is xcodebuild and the simulator), limited to 9. The whole output is kept in
+      # $RUNNER_TEMP/sync-repeat.log (not uploaded) and its last 80 lines are printed.
+      - name: Sync engine tests, repeated (1.2.3)
+        timeout-minutes: 9
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }}" \
+            -derivedDataPath build/DerivedData \
+            -only-testing:TegakiCalendarTests/SyncEngineTests \
+            -skip-testing:TegakiCalendarTests/SyncEngineTests/testMergeRemoteOfATruncatedPageMarksDirty \
+            -test-iterations 20 \
+            -run-tests-until-failure \
+            -testLanguage ja \
+            -testRegion JP \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building > "$RUNNER_TEMP/sync-repeat.log" 2>&1 || { tail -n 80 "$RUNNER_TEMP/sync-repeat.log"; exit 1; }
+          tail -n 80 "$RUNNER_TEMP/sync-repeat.log"
 
       # 1.0.1 (docs/R1_0_1.md §5.1): the iPhone UI test is built now and run after the screenshots
       # ("UI tests on an iPhone" below, `test-without-building`). Built now because a build late in the

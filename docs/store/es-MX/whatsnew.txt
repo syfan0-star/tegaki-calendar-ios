@@ -1,3 +1,3 @@
-• En regiones donde la ley exige verificar la edad, como algunos estados de EE. UU., al abrir la app puede aparecer una pantalla de Apple que pregunta si desea compartir su rango de edad. La app no guarda ni envía su respuesta, y la apariencia y el uso de la app no cambian.
+• Comprobaciones más estrictas para que su escritura a mano no se mezcle con otra cuenta de iCloud cuando cambie de cuenta.
 
 Las traducciones se hicieron con IA y todavía no las han revisado hablantes nativos. Avísenos si encuentra errores.
