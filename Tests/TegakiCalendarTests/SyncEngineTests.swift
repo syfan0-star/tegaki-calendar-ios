@@ -4,10 +4,11 @@ import Layout
 import XCTest
 @testable import TegakiCalendar
 
-/// The sync engine over the fake iCloud (M4_CONTRACT §8.2, 0–36): the account check, the debounce,
-/// conflicts, pulls, deletions, the retry backoff, the zone loss, the silent push, the account
-/// switch, the erase and the web import. `TestSleeper` stands in for the clock's sleeps, the clock
-/// is fixed, and the page files live in a temporary directory. No iCloud account anywhere.
+/// The sync engine over the fake iCloud (M4_CONTRACT §8.2, 0–36 and 1.2.3's 37–50): the account check, the
+/// debounce, conflicts, pulls, deletions, the retry backoff, the zone loss, the silent push, the account
+/// switch, the erase, the web import, and (1.2.3) the account confirmed again after a failed check, an
+/// account change, the background and a silent push. `TestSleeper` stands in for the clock's sleeps, the
+/// clock is fixed, and the page files live in a temporary directory. No iCloud account anywhere.
 @MainActor
 final class SyncEngineTests: XCTestCase {
     private var directory: URL!
@@ -61,6 +62,9 @@ final class SyncEngineTests: XCTestCase {
             sleep: { await sleeper.sleep($0) }
         )
         engine.onRemoteUpdate = { [weak self] page in self?.remoteUpdates.append(page) }
+        // 1.2.3 (docs/R1_2_3.md §4): two or more sleeps woken by one advance() settle in between.
+        let made: SyncEngine = engine
+        sleeper.settle = { [weak made] in await made?.waitUntilIdle() }
         subscription = engine.$snapshot.sink { [weak self] snapshot in
             guard let self = self else { return }
             if self.statuses.last != snapshot.status { self.statuses.append(snapshot.status) }
@@ -106,7 +110,7 @@ final class SyncEngineTests: XCTestCase {
     /// Lets the 1.5 s debounce pass and the push finish.
     private func flushDebounce() async {
         await engine.waitUntilIdle()
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
     }
 
@@ -180,7 +184,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(count(.save), 0)
         XCTAssertEqual(engine.snapshot.dirtyCount, 1)
 
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         let stored = try XCTUnwrap(db.records[month])
         guard case .asset? = stored.fields["doc"] else { return XCTFail("doc is an asset") }
@@ -200,11 +204,11 @@ final class SyncEngineTests: XCTestCase {
         }
         await engine.waitUntilIdle()
         XCTAssertEqual(sleeper.recorded, [1.5])
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         XCTAssertEqual(sleeper.recorded, [1.5, 1.5])
         XCTAssertEqual(count(.save), 0)
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         XCTAssertEqual(count(.save), 1)
         XCTAssertEqual(try storedPage(month).liveStrokeIds, ["a0", "a1", "a2", "a3", "a4"])
@@ -216,7 +220,7 @@ final class SyncEngineTests: XCTestCase {
         db.pause(.save)
         try engine.save(page(month, ["v1"]))
         await engine.waitUntilIdle()
-        sleeper.advance()
+        await sleeper.advance()
         await waitUntil { self.db.calls.contains(.save) }
         XCTAssertEqual(status, .syncing)
         try engine.save(page(month, ["v2"]))
@@ -265,7 +269,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(store.load(month).liveStrokeIds, ["a", "c", "d"])
 
         db.alwaysFail = nil
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         XCTAssertEqual(status, .synced)
         XCTAssertEqual(engine.state.dirty, [])
@@ -368,12 +372,12 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(sleeper.recorded, [1.5, 15])
 
         db.failNext[.save] = .networkUnavailable
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         XCTAssertEqual(status, .offline)
         XCTAssertEqual(sleeper.recorded, [1.5, 15, 30])
 
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         XCTAssertEqual(status, .synced)
         XCTAssertEqual(engine.state.dirty, [])
@@ -411,7 +415,7 @@ final class SyncEngineTests: XCTestCase {
         await flushDebounce()
         XCTAssertEqual(status, .pending)
         XCTAssertEqual(sleeper.recorded.last, 120)
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         XCTAssertEqual(status, .synced)
     }
@@ -480,7 +484,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertTrue(brought)
         XCTAssertEqual(store.load(month).liveStrokeIds, ["b"])
         XCTAssertEqual(sleeper.recorded, [20])
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
 
         let mark = db.calls.count
@@ -491,14 +495,14 @@ final class SyncEngineTests: XCTestCase {
 
         let nothingNew = await engine.handleRemoteNotification(subscriptionInfo)
         XCTAssertFalse(nothingNew)
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
 
         db.pause(.fetchChanges)
         db.simulateRemoteSave(try record(page(week, ["c"])))
         let task = Task { await self.engine.handleRemoteNotification(self.subscriptionInfo) }
         await waitUntil { self.sleeper.recorded.last == 20 && self.sleeper.waiting == 1 }
-        sleeper.advance()
+        await sleeper.advance()
         let timedOut = await task.value
         XCTAssertFalse(timedOut)
         XCTAssertFalse(store.exists(week))
@@ -817,7 +821,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(engine.state.dirty, [])
         XCTAssertEqual(try storedPage(month).liveStrokeIds, ["a"])
         XCTAssertEqual(count(.save), 1)
-        sleeper.advance() // the debounce of the early save: nothing left to send
+        await sleeper.advance() // the debounce of the early save: nothing left to send
         await engine.waitUntilIdle()
         XCTAssertEqual(count(.save), 1)
     }
@@ -854,7 +858,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(sleeper.recorded, [15, 1.5])
         XCTAssertEqual(count(.save), 0)
 
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         XCTAssertEqual(engine.state.account, "_user-a")
         XCTAssertEqual(status, .synced)
@@ -1104,10 +1108,381 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertFalse(WeekStartChoice.readyToCheck(status: status, zoneToken: engine.state.zoneToken))
 
         // The next retry's pull succeeds: now it is ready.
-        sleeper.advance()
+        await sleeper.advance()
         await engine.waitUntilIdle()
         XCTAssertEqual(status, .synced)
         XCTAssertNotNil(engine.state.zoneToken)
         XCTAssertTrue(WeekStartChoice.readyToCheck(status: status, zoneToken: engine.state.zoneToken))
+    }
+
+    // MARK: - 1.2.3: the account is confirmed before anything is sent (docs/R1_2_3.md §5, M4_CONTRACT §8.2 37–52)
+
+    /// The ledger of a device that synced with `_user-a` (zone and subscription made), as 1.2.2 wrote it.
+    private func priorAccountA() throws {
+        var prior = SyncState.empty
+        prior.account = "_user-a"
+        prior.zoneReady = true
+        prior.subscriptionReady = true
+        try stateStore.save(prior)
+    }
+
+    /// 37 (G1): the launch's check failed (`accountStatus` threw) after the Apple Account was switched while
+    /// the app was not running. The page fetch and the retry do not talk to the new account unchecked.
+    func testAccountCheckThatFailedAtLaunchIsMadeAgain() async throws {
+        try priorAccountA()
+        try store.save(page(month, ["a"]))
+        db.userName = "_user-b"
+        db.failNext[.accountStatus] = .networkUnavailable
+        engine.start()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .offline)
+        XCTAssertEqual(db.calls, [.accountStatus])
+        XCTAssertEqual(sleeper.recorded, [15])
+
+        engine.pageOpened(week)
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.fetchRecords), 0)
+
+        await sleeper.advance() // the retry
+        await engine.waitUntilIdle()
+        XCTAssertEqual(db.calls, [.accountStatus, .accountStatus, .userRecordName])
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(engine.state.pendingAccount, "_user-b")
+        XCTAssertEqual(engine.state.dirty, [month])
+        XCTAssertTrue(db.records.isEmpty)
+    }
+
+    /// 38 (G1): `.temporarilyUnavailable` at launch; the foreground's round trip checks again.
+    func testTemporarilyUnavailableAccountIsCheckedAgainByTheForeground() async throws {
+        try priorAccountA()
+        try store.save(page(month, ["a"]))
+        db.userName = "_user-b"
+        db.status = .temporarilyUnavailable
+        engine.start()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .pending)
+        XCTAssertEqual(db.calls, [.accountStatus])
+        XCTAssertEqual(sleeper.recorded, [15])
+
+        db.status = .available
+        await engine.syncNow()
+        XCTAssertEqual(db.calls, [.accountStatus, .accountStatus, .userRecordName])
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(count(.save), 0)
+        XCTAssertEqual(count(.fetchChanges), 0)
+    }
+
+    /// 39 (G1, G2): `userRecordName` threw at launch; neither the retry nor the debounced push sends.
+    func testFailedUserRecordNameKeepsTheCheckForTheRetryAndThePush() async throws {
+        try priorAccountA()
+        try store.save(page(month, ["a"]))
+        db.userName = "_user-b"
+        db.failNext[.userRecordName] = .networkUnavailable
+        engine.start()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .offline)
+
+        try engine.save(page(week, ["b"]))
+        await engine.waitUntilIdle()
+        XCTAssertEqual(sleeper.recorded, [15, 1.5])
+        await sleeper.advance() // the retry, then the debounce
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(count(.save), 0)
+        XCTAssertEqual(count(.fetchChanges), 0)
+        XCTAssertEqual(Set(engine.state.dirty), [month, week])
+    }
+
+    /// 40 (G2): a push queued (behind a page fetch) before `.CKAccountChanged` confirms the account first.
+    func testPushQueuedBeforeAnAccountChangeConfirmsFirst() async throws {
+        await startSynced()
+        db.pause(.fetchRecords)
+        engine.pageOpened(week) // a page fetch, paused inside the fake
+        await waitUntil { self.db.calls.contains(.fetchRecords) }
+        try engine.save(page(month, ["a"]))
+        await waitUntil { self.sleeper.waiting == 1 }
+        await sleeper.advance() // the debounce: the push is queued behind the fetch
+        db.simulateAccountChange(status: .available, userName: "_user-b")
+        await waitUntil { self.engine.accountChangesHandled == 1 } // its round trip is queued behind the push
+        db.resume()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.save), 0, "nothing went to the other account")
+        XCTAssertNil(db.records[month])
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(engine.state.pendingAccount, "_user-b")
+        XCTAssertEqual(engine.state.dirty, [month])
+    }
+
+    /// 41 (G2): the web import sends no `Meta` and no page to an account that was not confirmed.
+    func testImportDoesNotSendMetaToAnUnconfirmedAccount() async throws {
+        try priorAccountA()
+        try store.save(page(month, ["a"]))
+        db.userName = "_user-b"
+        db.failNext[.accountStatus] = .networkUnavailable
+        engine.start()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .offline)
+
+        let outcome = try await engine.importPages([page(week, ["c"])]) { _, _ in }
+        XCTAssertEqual(outcome.pagesChanged, 1)
+        await engine.waitUntilIdle()
+        XCTAssertFalse(db.calls.contains(.save))
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(engine.snapshot.webImportedAt, now)
+        XCTAssertEqual(Set(engine.state.dirty), [month, week])
+    }
+
+    /// 42 (G2, the erase): nothing is deleted from an unconfirmed account; adopting the new account drops
+    /// the erase that was pending for the old one, so the new account's ink stays and comes to the device.
+    func testEraseWaitsForTheAccountAndKeepInkDropsIt() async throws {
+        try priorAccountA()
+        try await db.ensureZone()
+        db.simulateRemoteSave(try record(page(week, ["b"]))) // the new account's own page
+        try store.save(page(month, ["a"]))
+        db.userName = "_user-b"
+        db.failNext[.accountStatus] = .networkUnavailable
+        engine.start()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .offline)
+
+        do {
+            try await engine.eraseEverything()
+            XCTFail("the iCloud part waits for the account")
+        } catch {}
+        XCTAssertEqual(store.allPageIds(), [])
+        XCTAssertNotNil(db.records[week])
+        XCTAssertTrue(db.deletedNames.isEmpty)
+        XCTAssertTrue(engine.state.pendingCloudErase)
+        XCTAssertEqual(status, .accountMismatch)
+
+        await engine.resolveAccountChange(.keepInk)
+        XCTAssertFalse(engine.state.pendingCloudErase)
+        XCTAssertFalse(stateStore.load().pendingCloudErase)
+        XCTAssertTrue(db.deletedNames.isEmpty)
+        XCTAssertNotNil(db.records[week])
+        XCTAssertEqual(store.load(week).liveStrokeIds, ["b"])
+        XCTAssertEqual(status, .synced)
+    }
+
+    /// 43 (`.CKAccountChanged` during a push): only the page in flight can reach the new account.
+    func testAccountChangeStopsThePushUnderWay() async throws {
+        await startSynced()
+        try engine.save(page(month, ["a"]))
+        try engine.save(page(week, ["b"]))
+        await engine.waitUntilIdle()
+        await sleeper.advance() // the generation moved: the debounce sleeps again
+        await engine.waitUntilIdle()
+        db.pause(.save)
+        await sleeper.advance() // the push starts; month's save is paused
+        await waitUntil { self.db.calls.contains(.save) }
+        db.simulateAccountChange(status: .available, userName: "_user-b")
+        await waitUntil { self.engine.accountChangesHandled == 1 }
+        db.resume()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.save), 1, "only the page in flight")
+        XCTAssertNil(db.records[week])
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(Set(engine.state.dirty), [month, week])
+    }
+
+    /// 44 (G3): a silent push that arrives before `.CKAccountChanged` confirms the account first.
+    func testSilentPushConfirmsTheAccountFirst() async throws {
+        await startSynced()
+        db.simulateRemoteSave(try record(page(week, ["b"])))
+        db.userName = "_user-b" // switched; `.CKAccountChanged` not here yet
+        let mark = db.calls.count
+        let brought = await engine.handleRemoteNotification(subscriptionInfo)
+        XCTAssertFalse(brought)
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName])
+        XCTAssertFalse(store.exists(week))
+        XCTAssertEqual(status, .accountMismatch)
+    }
+
+    /// 45 (G3): a check made in the background does not clear the mark; the retry that fires first after a
+    /// switch during the suspension checks again, and so does the return to the foreground.
+    func testTimerAfterTheBackgroundConfirmsTheAccountFirst() async throws {
+        await startSynced()
+        engine.applicationDidEnterBackground()
+        let mark = db.calls.count
+        db.failNext[.save] = .networkUnavailable
+        try engine.save(page(month, ["a"])) // saveNow on the way out
+        await flushDebounce()
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .save])
+        XCTAssertEqual(status, .offline)
+
+        db.userName = "_user-b" // switched while suspended
+        let fetches = count(.fetchChanges)
+        await sleeper.advance() // the retry fires first on resume
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.save), 1)
+        XCTAssertEqual(count(.fetchChanges), fetches)
+        XCTAssertEqual(status, .accountMismatch)
+
+        engine.applicationDidBecomeActive()
+        await engine.waitUntilIdle()
+        db.simulateAccountChange(status: .available, userName: "_user-b") // late
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(count(.save), 1)
+        XCTAssertNil(db.records[month])
+    }
+
+    /// 46 (G3): the return to the foreground comes before `.CKAccountChanged`.
+    func testReturnToForegroundConfirmsTheAccountFirst() async throws {
+        await startSynced()
+        engine.applicationDidEnterBackground()
+        db.userName = "_user-b"
+        let mark = db.calls.count
+        engine.applicationDidBecomeActive()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName])
+        XCTAssertEqual(status, .accountMismatch)
+    }
+
+    /// 47 (the cost): a return without the background (`.inactive` only) adds no check; a return from the
+    /// background adds one.
+    func testReturnWithoutBackgroundDoesNotCheckAgain() async throws {
+        await startSynced()
+        var mark = db.calls.count
+        engine.applicationDidBecomeActive()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...]), [.fetchChanges])
+
+        engine.applicationDidEnterBackground()
+        mark = db.calls.count
+        engine.applicationDidBecomeActive()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .fetchChanges])
+
+        mark = db.calls.count
+        engine.applicationDidBecomeActive()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...]), [.fetchChanges])
+        XCTAssertEqual(status, .synced)
+    }
+
+    /// 48 (the epoch of the round trip): `.CKAccountChanged` while the zone is being made (after "keep my
+    /// ink") stops the round trip before its pull and push; the next one finds the third account.
+    func testAccountChangeWhileTheZoneIsMadeStopsTheRoundTrip() async throws {
+        await startSynced()
+        try engine.save(page(month, ["a"]))
+        await flushDebounce()
+        db.simulateAccountChange(status: .available, userName: "_user-b")
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .accountMismatch)
+        db.simulateRemoteSave(try record(page(week, ["b"])))
+        let saves = count(.save)
+
+        db.pause(.ensureZone)
+        let choice = Task { await self.engine.resolveAccountChange(.keepInk) }
+        await waitUntil { self.db.calls.last == .ensureZone }
+        db.simulateAccountChange(status: .available, userName: "_user-c")
+        await waitUntil { self.engine.accountChangesHandled == 2 }
+        db.resume()
+        await choice.value
+        await engine.waitUntilIdle()
+        XCTAssertFalse(store.exists(week), "nothing merged from the account that was left")
+        XCTAssertEqual(count(.save), saves)
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(engine.state.pendingAccount, "_user-c")
+    }
+
+    /// 49 (G3, the round trip that iOS froze): the push sending in the background when the app was suspended
+    /// stops when the app comes back, before its next page.
+    func testFrozenPushStopsWhenTheAppComesBack() async throws {
+        await startSynced()
+        engine.applicationDidEnterBackground()
+        try engine.save(page(month, ["a"]))
+        try engine.save(page(week, ["b"]))
+        await engine.waitUntilIdle()
+        await sleeper.advance() // the generation moved: the debounce sleeps again
+        await engine.waitUntilIdle()
+        db.pause(.save)
+        await sleeper.advance() // the push: checked, month's save is paused (the app is suspended)
+        await waitUntil { self.db.calls.contains(.save) }
+        db.userName = "_user-b"
+        engine.applicationDidBecomeActive()
+        db.resume()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.save), 1)
+        XCTAssertNil(db.records[week])
+        XCTAssertEqual(status, .accountMismatch)
+    }
+
+    /// 50 (G3, the same, woken before anything else): the push goes on after a long suspension; its last
+    /// check is older than `awayRecheckAfter`, so it stops before the next page and the account is checked.
+    func testFrozenPushWokenLaterChecksTheAccountFirst() async throws {
+        await startSynced()
+        engine.applicationDidEnterBackground()
+        try engine.save(page(month, ["a"]))
+        try engine.save(page(week, ["b"]))
+        await engine.waitUntilIdle()
+        await sleeper.advance()
+        await engine.waitUntilIdle()
+        db.pause(.save)
+        await sleeper.advance()
+        await waitUntil { self.db.calls.contains(.save) }
+        db.userName = "_user-b"
+        now = now.addingTimeInterval(60) // suspended for a minute
+        db.resume()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.save), 1)
+        XCTAssertNil(db.records[week])
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(engine.state.dirty, [week])
+    }
+
+    /// 51 (the zone loss): in the background, `.zoneMissing` (what a switched account looks like) does not
+    /// send every page again before the account is confirmed.
+    func testZoneLossInTheBackgroundConfirmsTheAccountFirst() async throws {
+        await startSynced()
+        try engine.save(page(month, ["a"]))
+        await flushDebounce()
+        try engine.save(page(week, ["b"]))
+        await flushDebounce()
+        engine.applicationDidEnterBackground()
+        try engine.save(page(week, ["b", "c"]))
+        await engine.waitUntilIdle()
+        db.pause(.save)
+        let mark = db.calls.count
+        await sleeper.advance()
+        await waitUntil { self.db.calls[mark...].contains(.save) } // the check passed; week's save is paused
+        db.userName = "_user-b"
+        db.simulateZoneDeleted()
+        db.resume()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .save, .accountStatus, .userRecordName])
+        XCTAssertFalse(db.calls[mark...].contains(.ensureZone))
+        XCTAssertTrue(db.records.isEmpty)
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(engine.state.dirty, [week], "the zone loss's resend did not run")
+    }
+
+    /// 52 (the erase): `.CKAccountChanged` during the erase's account check stops the erase; the round trip
+    /// queued with it checks again and then finishes the erase (the same account here).
+    func testAccountChangeDuringTheEraseCheckStopsTheErase() async throws {
+        await startSynced()
+        db.simulateRemoteSave(try record(page(week, ["b"])))
+        engine.applicationDidEnterBackground()
+        let mark = db.calls.count
+        db.pause(.userRecordName)
+        let erase = Task { try await self.engine.eraseEverything() }
+        await waitUntil { self.db.calls.count > mark + 1 }
+        db.simulateAccountChange(status: .available, userName: "_user-a")
+        await waitUntil { self.engine.accountChangesHandled == 1 }
+        db.resume()
+        do {
+            try await erase.value
+            XCTFail("the erase stopped for the account change")
+        } catch {}
+        await engine.waitUntilIdle()
+        let calls = Array(db.calls[mark...])
+        let firstDelete = try XCTUnwrap(calls.firstIndex(of: .delete))
+        let names = calls.indices.filter { calls[$0] == .userRecordName }
+        XCTAssertEqual(names.count, 2)
+        XCTAssertLessThan(names.dropFirst().first ?? Int.max, firstDelete, "deleted only after the second check")
+        XCTAssertNil(db.records[week])
+        XCTAssertFalse(engine.state.pendingCloudErase)
+        XCTAssertEqual(status, .synced)
     }
 }

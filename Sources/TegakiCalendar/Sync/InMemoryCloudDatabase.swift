@@ -61,10 +61,15 @@ final class InMemoryCloudDatabase: CloudDatabase {
         log.append((name: name, deleted: true))
     }
 
+    /// How many `.CKAccountChanged` this fake has sent (`SyncEngine.waitUntilIdle` waits until the engine
+    /// has handled them all, M4_CONTRACT §8.2; 1.2.3).
+    private(set) var accountChangesSent = 0
+
     /// Changes the account and sends `.CKAccountChanged` down the one `accountChanges` stream.
     func simulateAccountChange(status: CloudAccountStatus, userName: String) {
         self.status = status
         self.userName = userName
+        accountChangesSent += 1
         accountContinuation.yield(())
     }
 

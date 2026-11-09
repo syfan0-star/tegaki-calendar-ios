@@ -1188,6 +1188,11 @@ struct CalendarRootScreen: View {
         }
         // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.
         sync.onRemoteUpdate = { applyRemote($0) }
+        // 1.2.3 (docs/R1_2_3.md §3; M4_CONTRACT §5.3): `.onChange(of: scenePhase)` does not report the first
+        // value, so a launch that is already `.active` here tells the engine it is in the foreground now.
+        if scenePhase == .active {
+            sync.applicationDidBecomeActive()
+        }
         // 1.2 (§10.3): a changed region never changes the week start silently.
         if !ScreenshotMode.isActive, let changed = WeekStartChoice.regionChange(automatic: WeekStartChoice.launchAutomatic) {
             weekStartNotices.add(.regionChanged(changed))
@@ -1246,6 +1251,8 @@ struct CalendarRootScreen: View {
             // 1.1 (§2.1): a peeking bar folds when the app goes to the background.
             if scenePhase == .background {
                 toolbarEvent(.wentToBackground)
+                // 1.2.3 (docs/R1_2_3.md §3, G3): the next round trips confirm the iCloud account first.
+                sync.applicationDidEnterBackground()
             }
         case .active:
             // 1.2.1 (docs/R1_2_1.md §2.3): the rating prompt waits `ReviewPrompt.activeAtLeast` after a return.
