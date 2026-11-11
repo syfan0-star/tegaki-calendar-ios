@@ -5438,6 +5438,8 @@ do {
           "1.1 side: K-1 extra is no band cell for 1.1 nor for 1.0")
 }
 
+runSpanChecks() // 1.3: the joined pages, section "span (1.3)" (SpanChecks.swift, docs/M7C_CONTRACT.md §10.1)
+
 // MARK: - 1.2: the languages (docs/M7B_CONTRACT.md §0, §2.1, 0-1, 0-2, 0-8, §7.1)
 
 section("languages (1.2)")
