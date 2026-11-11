@@ -21,7 +21,9 @@ import PencilKit
 //   in the virtual page at that moment (and the canvas's diff tombstones nothing else, §3.4 削除の守り
 //   (a)), turned into one `PageDelta` per real page by `takeDeltas` with the window's aliases
 //   (`SpanComposer.deltas` and `unroutedNames` over the same journal);
-// - §3.3 4: `needsMoreRoom` asks `PaperGrowth` with the page's own cell name (the prefix taken off).
+// - §3.3 4: `needsMoreRoom` asks `PaperGrowth` with the page's own cell name (the prefix taken off);
+// - §3.3 3: `pruneHistory(touching:)` forgets the steps of pages that leave the window (the canvas calls it
+//   before the window is composed again around other pages, §3.6).
 // The helper types `InkChange`, `StrokeGeometry` and `InkOp` are the ones of Ink/InkLedger.swift.
 
 // This file deliberately imports no UIKit so it can be type-checked against the macOS SDK on a Mac
@@ -339,6 +341,36 @@ final class SpanPrototypeLedger {
             rebuilt = undo()
         }
         return rebuilt
+    }
+
+    /// §3.3 3 (§3.6, §3.10): before the window is composed again without `pageIds`, the history forgets every
+    /// step that touches one of those pages, and every step it would have to undo (or redo) after it — the
+    /// older ones of ↶, the later ones of ↷ — so no step is ever half undone and no ↶ makes a copy for a page
+    /// that is no longer in the window (its delta would find no page, §3.4 (d)). A stroke's page is the one
+    /// its window cell names; a stroke whose cell names none is taken as touching. Nothing for an empty set.
+    func pruneHistory(touching pageIds: Set<String>) {
+        guard !pageIds.isEmpty else { return }
+        Self.prune(&undoStack, touching: pageIds)
+        Self.prune(&redoStack, touching: pageIds)
+    }
+
+    /// Drops the newest op of `stack` that touches `pageIds` and every op below it (the bottom of both
+    /// stacks is the far end of the history).
+    private static func prune(_ stack: inout [InkOp], touching pageIds: Set<String>) {
+        guard let last = stack.lastIndex(where: { touches($0, pageIds) }) else { return }
+        stack.removeFirst(last + 1)
+    }
+
+    private static func touches(_ op: InkOp, _ pageIds: Set<String>) -> Bool {
+        switch op {
+        case .add(let strokes), .remove(let strokes):
+            return strokes.contains { stroke in
+                guard let page = SpanName.split(stroke.cell.raw)?.page else { return true }
+                return pageIds.contains(page)
+            }
+        case .batch(let ops):
+            return ops.contains { touches($0, pageIds) }
+        }
     }
 
     private func push(undo op: InkOp) {

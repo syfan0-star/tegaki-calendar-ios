@@ -13,8 +13,9 @@ import UIKit
 // there goes to "proto-<id>" pages in a folder of the prototype's own (`SpanPrototypeEnvironment`),
 // through an engine that is never started, and the folder is removed when the screen closes. Compiled
 // only into the prototype build (`SPAN_PROTOTYPE`); it goes away with the prototype (S6).
-// Not here yet: the shift of the window, the fling, the palm's rule, the measurements and their toggles,
-// the week memo and the guide card (§4.6).
+// The band moves as §3.6 says (the canvas shifts the window at rest, flings to the next week, ◀ ▶ slide one
+// week, the palm's rule holds the pan), and the title follows the focus week (the page under the middle of
+// the screen, with the 6 % hysteresis).
 
 // MARK: - The row in 設定 › 情報
 
@@ -45,6 +46,9 @@ final class SpanPrototypeModel: ObservableObject {
     let holidays: HolidayCalendar
     let events: [LayoutEvent]
     @Published private(set) var session: SpanPrototypeSession?
+    /// The page number under the middle of the screen as the canvas last reported it (§3.6; the title). nil:
+    /// the session's focus (the window's middle page).
+    @Published private(set) var focusIndex: Int?
     private(set) var isClosed = false
 
     init(environment: SpanPrototypeEnvironment, weekStart: WeekStart, now: Date, holidays: HolidayCalendar, events: [LayoutEvent]) {
@@ -74,6 +78,25 @@ final class SpanPrototypeModel: ObservableObject {
         guard session.plan.deviceClass != device.deviceClass || session.plan.orientation != device.orientation else { return }
         session.rebuildWindow(plan: SpanPlan(kind: .week, weekStart: weekStart, deviceClass: device.deviceClass,
                                              orientation: device.orientation))
+    }
+
+    /// The focus week the title shows: the canvas's, else the session's.
+    var focusPageIndex: Int? {
+        guard let session else { return nil }
+        return focusIndex ?? session.focusIndex
+    }
+
+    /// The canvas found another page under the middle of the screen (§3.6).
+    func focusChanged(_ index: Int) {
+        guard !isClosed else { return }
+        focusIndex = index
+    }
+
+    /// §3.6: the canvas is at rest away from the window's middle page — the session composes the window around
+    /// it (nil when it could not: a page that leaves was not saved).
+    func shift(toFocusIndex index: Int) -> SpanPrototypeWindowState? {
+        guard !isClosed else { return nil }
+        return session?.shift(toFocusIndex: index)
     }
 
     /// Saves what is waiting (the app went to the background, the pen rests).
@@ -106,6 +129,9 @@ struct SpanPrototypeScreen: View {
     @State private var redoTrigger = 0
     @State private var canUndo = false
     @State private var canRedo = false
+    /// ◀ ▶ (§3.6): the direction of the last press and a counter the canvas reacts to.
+    @State private var pageStep = 0
+    @State private var pageStepTrigger = 0
 
     /// `environment` nil is the prototype's own (`SpanPrototypeEnvironment.makeIsolated()`, made once, when
     /// the screen first appears); the events are the screenshot mode's sample events of this month
@@ -141,10 +167,13 @@ struct SpanPrototypeScreen: View {
                 if let session = model.session {
                     SpanPrototypeWindowView(
                         session: session,
+                        model: model,
                         tool: tool,
                         allowFinger: allowFinger,
                         undoTrigger: undoTrigger,
                         redoTrigger: redoTrigger,
+                        pageStep: pageStep,
+                        pageStepTrigger: pageStepTrigger,
                         onHistoryChanged: { undo, redo in
                             canUndo = undo
                             canRedo = redo
@@ -165,27 +194,57 @@ struct SpanPrototypeScreen: View {
     }
 
     private var title: String {
-        guard let session = model.session else { return L.text("prototype.span.entry") }
-        return PageNavigation.title(.week, focus: session.focusDay, holidays: model.holidays, language: L.language,
-                                    weekStart: model.weekStart)
+        guard let session = model.session, let focus = model.focusPageIndex else { return L.text("prototype.span.entry") }
+        return PageNavigation.title(.week, focus: session.plan.firstDay(at: focus), holidays: model.holidays, language: L.language,
+                                    weekStart: session.weekStart)
+    }
+
+    /// ◀ ▶: one week back or on (§3.6).
+    private func step(_ pages: Int) {
+        pageStep = pages
+        pageStepTrigger += 1
     }
 
     private var bar: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 16) {
+                Button(L.text("prototype.span.close")) {
+                    model.close()
+                    onClose()
+                }
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(L.text("prototype.span.entry"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(title)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+                Spacer(minLength: 8)
+                Button {
+                    step(-1)
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel(L.text("header.previous.week"))
+                Button {
+                    step(1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                }
+                .accessibilityLabel(L.text("header.next.week"))
+            }
+            tools
+        }
+        .font(.title3)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    /// Pen, eraser, ↶ ↷ and 「指でも書く」.
+    private var tools: some View {
         HStack(spacing: 16) {
-            Button(L.text("prototype.span.close")) {
-                model.close()
-                onClose()
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                Text(L.text("prototype.span.entry"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(title)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-            }
-            Spacer(minLength: 8)
             Button {
                 tool = .ink(InkPresets.defaultPen)
             } label: {
@@ -217,24 +276,34 @@ struct SpanPrototypeScreen: View {
             }
             .toggleStyle(.button)
             .accessibilityLabel(L.text("toolbar.fingerToggle"))
+            Spacer(minLength: 8)
         }
-        .font(.title3)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 }
 
 // MARK: - The band
 
-/// The canvas of the session's window, opened at the focus week's left edge (the band holds the window's
-/// weeks side by side; a finger, or two on an iPhone that writes with a finger, scrolls along it).
+/// The canvas of the session's window, opened with the focus week in the middle of the screen (the band holds
+/// the window's weeks side by side; a finger, or two on an iPhone that writes with a finger, scrolls along it).
+/// The canvas reports the focus and asks the model to shift the window when it rests elsewhere (§3.6).
 struct SpanPrototypeWindowView: View {
     @ObservedObject var session: SpanPrototypeSession
+    let model: SpanPrototypeModel
     var tool: CanvasTool
     var allowFinger: Bool
     var undoTrigger: Int
     var redoTrigger: Int
+    var pageStep: Int
+    var pageStepTrigger: Int
     var onHistoryChanged: (Bool, Bool) -> Void
+
+    /// The band x of the middle of the focus week (the model's focus when the canvas is made again).
+    private var centerX: CGFloat {
+        let layout = session.layout
+        let focus = model.focusPageIndex ?? session.focusIndex
+        let slot = min(max(0, focus - layout.firstIndex), max(0, layout.pages.count - 1))
+        return layout.origin(ofSlot: slot) + layout.plan.pageWidth / 2
+    }
 
     var body: some View {
         SpanPrototypeCanvas(
@@ -249,7 +318,11 @@ struct SpanPrototypeWindowView: View {
             undoTrigger: undoTrigger,
             redoTrigger: redoTrigger,
             onHistoryChanged: onHistoryChanged,
-            initialPaperOffset: CGPoint(x: session.layout.origin(ofSlot: session.focusSlot), y: 0)
+            initialCenterX: centerX,
+            pageStep: pageStep,
+            pageStepTrigger: pageStepTrigger,
+            onFocusChange: { [weak model] index in model?.focusChanged(index) },
+            onShift: { [weak model] index in model?.shift(toFocusIndex: index) }
         )
         .id(session.layout.pageId)
     }

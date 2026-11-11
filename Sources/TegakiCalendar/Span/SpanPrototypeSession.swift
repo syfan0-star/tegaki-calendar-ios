@@ -94,6 +94,17 @@ struct SpanPrototypeEnvironment {
     }
 }
 
+// MARK: - Window state
+
+/// What the canvas takes when the session composed its window again (a shift, §3.6): the ledger's window,
+/// its layout and papers, and the version that names them.
+struct SpanPrototypeWindowState {
+    let window: SpanVirtualPage
+    let layout: SpanLayout
+    let papers: [PaperContent]
+    let windowVersion: Int
+}
+
 // MARK: - Session
 
 /// One window of joined week pages in the prototype (the part of `SpanSession`, §3.5, that the prototype
@@ -378,6 +389,12 @@ final class SpanPrototypeSession: ObservableObject {
     /// virtual id stays).
     @discardableResult
     func rebuildWindow(focus: DayKey? = nil, plan newPlan: SpanPlan? = nil) -> Bool {
+        rebuildWindow(focusIndex: focus.map((newPlan ?? plan).index(containing:)), plan: newPlan)
+    }
+
+    /// `rebuildWindow(focus:plan:)` with the focus given as a page number (`SpanPlan.index`; nil: the same).
+    @discardableResult
+    func rebuildWindow(focusIndex newFocus: Int?, plan newPlan: SpanPlan? = nil) -> Bool {
         guard !isClosed else { return false }
         let nextPlan = newPlan ?? plan
         guard nextPlan.kind == plan.kind, nextPlan.weekStart == plan.weekStart else {
@@ -386,7 +403,7 @@ final class SpanPrototypeSession: ObservableObject {
         }
         drainInbox()
         safetyNet()
-        let nextFocus = focus.map(nextPlan.index(containing:)) ?? focusIndex
+        let nextFocus = newFocus ?? focusIndex
         let nextIds = nextPlan.window(around: nextFocus).map(nextPlan.pageId(at:))
         let leaving = pageIds.filter { !nextIds.contains($0) }
         for id in leaving where slots[id]?.dirty == true {
@@ -406,6 +423,19 @@ final class SpanPrototypeSession: ObservableObject {
         pageIds = nextIds
         compose()
         return true
+    }
+
+    /// The window as the canvas takes it (the values a new `windowVersion` brings).
+    var windowState: SpanPrototypeWindowState {
+        SpanPrototypeWindowState(window: window, layout: layout, papers: papers, windowVersion: windowVersion)
+    }
+
+    /// §3.6 ずらし, the session's part: the window composed again around page `index` (`rebuildWindow`: the inbox
+    /// emptied, the safety net, the pages that leave saved first, the pages that come in read). nil when a page
+    /// that leaves could not be saved: nothing changed, and the canvas does not shift.
+    func shift(toFocusIndex index: Int) -> SpanPrototypeWindowState? {
+        guard rebuildWindow(focusIndex: index) else { return nil }
+        return windowState
     }
 
     // MARK: Records
