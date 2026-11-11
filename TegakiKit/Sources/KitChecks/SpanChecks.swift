@@ -71,6 +71,25 @@ enum SpanFixtures {
     }()
 
     static let epoch: Date = utc.date(from: DateComponents(year: 1970, month: 1, day: 1))!
+
+    /// The week pages from each first day (October 2026 in Tokyo, like main.swift's fixtures).
+    static func weekPages(_ firstDays: [DayKey], weekStart: WeekStart, events: [LayoutEvent], now: Date) -> [any PageLayout] {
+        firstDays.map { WeekLayoutEngine.layout(WeekLayoutInput(focus: $0, events: events, inkBottoms: [:], now: now, calendar: tokyo, weekStart: weekStart)) }
+    }
+
+    /// The day pages, with the bottom of each day's free-memo ink and the window's floor.
+    static func dayPages(_ days: [DayKey], events: [LayoutEvent], now: Date, extraBottoms: [DayKey: CGFloat] = [:], floor: CGFloat = 0) -> [any PageLayout] {
+        days.map { d in
+            DayLayoutEngine.layout(DayLayoutInput(day: d, events: events, inkBottoms: extraBottoms[d].map { [.extra: $0] } ?? [:], now: now, calendar: tokyo, extraFloor: floor))
+        }
+    }
+
+    /// A window of `pages` whose slot 0 is page `firstId` of `plan`.
+    static func window(_ pages: [any PageLayout], plan: SpanPlan, session: Int = 0, viewOnly: Set<String> = []) -> SpanLayout {
+        SpanLayout(pages: pages, plan: plan, firstIndex: pages.first.flatMap { plan.index(of: $0.pageId) } ?? 0, session: session, viewOnly: viewOnly)
+    }
+
+    static func october(_ d: Int) -> DayKey { DayKey(year: 2026, month: 10, day: d) }
 }
 
 // MARK: - The section
@@ -85,6 +104,10 @@ func runSpanChecks() {
     spanK10Checks()
     spanAlignChecks()
     spanAllDayBandChecks()
+    spanOnePageChecks()
+    spanWeekWindowChecks()
+    spanDayWindowChecks()
+    spanRoutingChecks()
 }
 
 // MARK: - SpanName (§2.1, §3.2, §6.1)
@@ -708,4 +731,338 @@ func spanAllDayBandChecks() {
           && dayBands.allSatisfy { $0.bars.allSatisfy { $0.minX == 72 + 4 && $0.maxX == 660 - 12 } },
           "span band: every day band has 2 lanes and the day's bar geometry")
     check(dayBands.map(\.todayColumn) == [nil, 0, nil], "span band: today's column is on 10-13 only")
+}
+
+// MARK: - SpanLayout: a window of one page is the page (§3.2)
+
+func spanOnePageChecks() {
+    let now = october(13, 10)
+    let events = [timed("tb", 13, 9, 0, 10, 0), timed("tc", 13, 9, 30, 11, 0), timed("td", 16, 22, 0, 23, 30), allDay("a1", 12, 15),
+                  timed("tm", 6, 7, 0, 8, 0)]
+    let cases: [(String, SpanPlan, any PageLayout)] = [
+        ("Monday week 10-12 (today)", SpanFixtures.plan(.week, .monday),
+         WeekLayoutEngine.layout(WeekLayoutInput(focus: SpanFixtures.october(14), events: events, inkBottoms: [:], now: now, calendar: tokyo, weekStart: .monday))),
+        ("Sunday week 10-04", SpanFixtures.plan(.week, .sunday),
+         WeekLayoutEngine.layout(WeekLayoutInput(focus: SpanFixtures.october(6), events: events, inkBottoms: [:], now: now, calendar: tokyo, weekStart: .sunday))),
+        ("day 10-13 (today, a line at 6,950)", SpanFixtures.plan(.day),
+         DayLayoutEngine.layout(DayLayoutInput(day: SpanFixtures.october(13), events: events, inkBottoms: [.extra: 6950], now: now, calendar: tokyo))),
+        ("day 10-16 with floor 7,500", SpanFixtures.plan(.day),
+         DayLayoutEngine.layout(DayLayoutInput(day: SpanFixtures.october(16), events: events, inkBottoms: [:], now: now, calendar: tokyo, extraFloor: 7500))),
+        ("month 2026-10", SpanFixtures.plan(.month),
+         MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 10), events: events, inkBottoms: [CellKey.day(SpanFixtures.october(7)): 300, .memo: 900], now: now, calendar: tokyo))),
+        ("year 2026", SpanFixtures.plan(.year),
+         YearLayoutEngine.layout(YearLayoutInput(year: 2026, events: events, inkBottoms: [CellKey(raw: "10-13"): 120], now: now, calendar: tokyo))),
+    ]
+    for (name, plan, page) in cases {
+        let span = SpanLayout(pages: [page], plan: plan, firstIndex: plan.index(of: page.pageId) ?? 0)
+        func pre(_ c: CellKey?) -> CellKey? { c.map { CellKey(raw: page.pageId + "|" + $0.raw) } }
+        var expectedCells: [CellKey: CGRect] = [:]
+        for (key, rect) in page.cells { expectedCells[CellKey(raw: page.pageId + "|" + key.raw)] = rect }
+        check(span.kind == page.kind && span.size == page.size && span.cells == expectedCells && span.pageId == "span~\(plan.kind.rawValue)~0",
+              "span one page: \(name): kind, size, the cells (prefixed) and the virtual id")
+        check(span.dateLabels == page.dateLabels && span.allDayBars == page.allDayBars && span.timedBoxes == page.timedBoxes && span.nowLine == page.nowLine,
+              "span one page: \(name): labels, bars, boxes and the now line")
+
+        var xs: [CGFloat] = [-50, -0.001, 0, 0.5, 30, 56, 63.9, 64, 72, 100, 500, 659.9, 660, 999.9, 1000, 1000.001, 1350, 1399.999, 1400, 1400.001, 1450]
+        var ys: [CGFloat] = [-10, 0, 5, 28, 100, 799, 800, 1000, 1050, 1919.9, 1920, 1920.1, 2000, 2399.9, 2400, 2500, 5000, 8399, 8400, 8400.5, 9000, 9900, 9901]
+        for box in page.timedBoxes { xs.append(box.frame.midX); ys.append(box.frame.midY) }
+        for label in page.dateLabels { xs.append(label.frame.midX); ys.append(label.frame.midY + 0.5) }
+        var points = xs.flatMap { x in ys.map { CGPoint(x: x, y: $0) } }
+        points += [CGPoint(x: CGFloat.nan, y: 10), CGPoint(x: 10, y: CGFloat.nan), CGPoint(x: CGFloat.infinity, y: 10), CGPoint(x: -CGFloat.infinity, y: -CGFloat.infinity)]
+        func first(_ test: (CGPoint) -> Bool) -> String {
+            points.first { !test($0) }.map { "\($0)" } ?? "none"
+        }
+        func mapped(_ d: PaperGrowth.Drop?, _ p: CGPoint) -> SpanDrop {
+            switch d {
+            case .beyondCap?: return .belowCap
+            case .outsidePaper?: return .outsidePaper
+            case nil: return .keep(page: page.pageId, cell: page.inkCell(forCenter: p))
+            }
+        }
+        var bad = first { span.cell(at: $0) == pre(page.cell(at: $0)) }
+        check(bad == "none", "span one page: \(name): cell(at:) is the page's, prefixed (first miss \(bad))")
+        bad = first { span.inkCell(forCenter: $0) == pre(page.inkCell(forCenter: $0)) }
+        check(bad == "none", "span one page: \(name): inkCell(forCenter:) is the page's, prefixed (first miss \(bad))")
+        bad = first { span.hit(at: $0) == page.hit(at: $0) }
+        check(bad == "none", "span one page: \(name): hit(at:) is the page's (first miss \(bad))")
+        bad = first { span.dayAt(point: $0) == page.dayAt(point: $0) }
+        check(bad == "none", "span one page: \(name): dayAt(point:) is the page's (first miss \(bad))")
+        bad = first { span.drop(center: $0) == mapped(PaperGrowth.drop(center: $0, in: page), $0) }
+        check(bad == "none", "span one page: \(name): drop(center:) is PaperGrowth.drop on the page (first miss \(bad))")
+        bad = first { p in
+            guard p.x.isFinite, p.y.isFinite else { return span.eventTarget(at: p) == nil }
+            return span.eventTarget(at: p).map { $0.pageId == page.pageId && $0.local == p } == true
+        }
+        check(bad == "none", "span one page: \(name): eventTarget(at:) is (the page, the point) (first miss \(bad))")
+        let badY = ys.first { y in
+            span.band(atY: y) != page.band(atY: y)
+        }
+        check(badY == nil, "span one page: \(name): band(atY:) is the page's (first miss \(badY.map { "\($0)" } ?? "none"))")
+        let bands: [PageBand] = [.grid, .extra, .memo, .row(0), .row(1), .row(13), .allDay]
+        check(bands.allSatisfy { span.bandTop($0) == page.bandTop($0) }, "span one page: \(name): bandTop is the page's")
+
+        var rects: [CGRect] = [CGRect(x: 300, y: 720, width: 100, height: 80), CGRect(x: 400, y: 800, width: -100, height: -80),
+                               CGRect(x: -200, y: 100, width: 50, height: 50), CGRect(x: 1500, y: 100, width: 60, height: 50),
+                               CGRect(x: 700, y: -50, width: 10, height: 5), CGRect(x: 100, y: 2300, width: 300, height: 400),
+                               CGRect(x: 30, y: 300, width: 10, height: 10), CGRect(x: 600, y: 1500, width: 0, height: 0),
+                               CGRect(x: CGFloat.nan, y: 0, width: 10, height: 10)]
+        rects += page.timedBoxes.map(\.frame) + page.dateLabels.map { $0.frame.insetBy(dx: 2, dy: -6) }
+        check(rects.allSatisfy { span.eventRange(for: $0, now: now, calendar: tokyo) == page.eventRange(for: $0, now: now, calendar: tokyo) },
+              "span one page: \(name): eventRange(for:) is the page's")
+        check(rects.allSatisfy { r in
+            guard let n = EventGeometry.normalized(r), let t = span.eventTarget(at: CGPoint(x: n.midX, y: n.midY)) else { return page.eventRange(for: r, now: now, calendar: tokyo) == nil }
+            return t.pageId == page.pageId && page.eventRange(for: r.offsetBy(dx: t.local.x - n.midX, dy: 0), now: now, calendar: tokyo) == page.eventRange(for: r, now: now, calendar: tokyo)
+        }, "span one page: \(name): eventTarget(at:) of a rect's centre leads to the page's eventRange (stage 0, §4.3)")
+        var ranges: [EventRange] = []
+        for d in 3...20 {
+            ranges.append(.timed(SpanFixtures.october(d), startMinute: 540, endMinute: 600, calendar: tokyo))
+            ranges.append(.allDay(SpanFixtures.october(d), calendar: tokyo))
+        }
+        ranges.append(.timed(SpanFixtures.october(13), startMinute: 1380, endMinute: 1500, calendar: tokyo))
+        check(ranges.allSatisfy { span.snapRect(for: $0, calendar: tokyo) == page.snapRect(for: $0, calendar: tokyo) },
+              "span one page: \(name): snapRect(for:) is the page's")
+        let names = Array(page.cells.keys) + [.grid, .extra, .memo, CellKey(raw: "01-20")]
+        check(names.allSatisfy { span.growsWithInk(CellKey(raw: page.pageId + "|" + $0.raw)) == page.growsWithInk($0) },
+              "span one page: \(name): growsWithInk of a prefixed name is the page's for the bare name")
+        check(names.allSatisfy { !span.growsWithInk($0) }, "span one page: \(name): growsWithInk of a bare name is false (it names no page)")
+        check(page.cells.keys.allSatisfy { span.page(containing: CellKey(raw: page.pageId + "|" + $0.raw)) == 0 } && span.page(containing: .grid) == nil,
+              "span one page: \(name): page(containing:) finds slot 0 for its cells, nothing for a bare name")
+    }
+
+    // onlyTailHeightChanged of one page is PaperGrowth's.
+    let plan = SpanFixtures.plan(.day)
+    let pairs: [(CGFloat, CGFloat)] = [(100, 6950), (6950, 100), (100, 100), (6950, 7300)]
+    for (a, b) in pairs {
+        let old = DayLayoutEngine.layout(DayLayoutInput(day: SpanFixtures.october(13), events: [], inkBottoms: [.extra: a], now: now, calendar: tokyo))
+        let new = DayLayoutEngine.layout(DayLayoutInput(day: SpanFixtures.october(13), events: [], inkBottoms: [.extra: b], now: now, calendar: tokyo))
+        let i = plan.index(of: old.pageId) ?? 0
+        checkEqual(SpanLayout(pages: [new], plan: plan, firstIndex: i).onlyTailHeightChanged(from: SpanLayout(pages: [old], plan: plan, firstIndex: i)),
+                   PaperGrowth.onlyTailHeightChanged(old: old, new: new), "span one page: onlyTailHeightChanged \(a) → \(b) is PaperGrowth's")
+    }
+}
+
+// MARK: - SpanLayout: three weeks (§3.2, D15, §3.9)
+
+func spanWeekWindowChecks() {
+    let now = october(13, 10)  // Tuesday 10-13 10:00
+    let colW: CGFloat = (1400 - 64) / 7
+    let events = [timed("tb", 13, 9, 0, 10, 0), timed("tw", 20, 9, 0, 10, 0)]
+    let mon = SpanFixtures.plan(.week, .monday)
+    let pages = SpanFixtures.weekPages([5, 12, 19].map(SpanFixtures.october), weekStart: .monday, events: events, now: now)
+    let span = SpanFixtures.window(pages, plan: mon, session: 3)
+    checkEqual(span.firstIndex, mon.index(of: "w-2026-10-05"), "span week: slot 0 is page w-2026-10-05")
+    checkEqual(span.size, CGSize(width: 4200, height: 1920), "span week: three weeks are 4200 × 1920")
+    checkEqual(span.pageId, "span~week~3", "span week: the virtual id of session 3")
+    checkEqual(span.cells, [CellKey(raw: "w-2026-10-05|grid"): CGRect(x: 0, y: 0, width: 1400, height: 1920),
+                            CellKey(raw: "w-2026-10-12|grid"): CGRect(x: 1400, y: 0, width: 1400, height: 1920),
+                            CellKey(raw: "w-2026-10-19|grid"): CGRect(x: 2800, y: 0, width: 1400, height: 1920)],
+               "span week: the three grids, prefixed and moved right")
+
+    // Left of, right of and exactly on a boundary, the gutter, outside.
+    let ink: [(CGFloat, CGFloat, String, SpanDrop)] = [
+        (1399.5, 900, "w-2026-10-05|grid", .keep(page: "w-2026-10-05", cell: .grid)),
+        (1400, 900, "w-2026-10-12|grid", .keep(page: "w-2026-10-12", cell: .grid)),
+        (1400.5, 900, "w-2026-10-12|grid", .keep(page: "w-2026-10-12", cell: .grid)),
+        (1430, 900, "w-2026-10-12|grid", .keep(page: "w-2026-10-12", cell: .grid)),
+        (2800, 0, "w-2026-10-19|grid", .keep(page: "w-2026-10-19", cell: .grid)),
+        (4200, 1920, "w-2026-10-19|grid", .keep(page: "w-2026-10-19", cell: .grid)),
+        (0, 900, "w-2026-10-05|grid", .keep(page: "w-2026-10-05", cell: .grid)),
+        (-0.5, 900, "w-2026-10-05|grid", .outsidePaper),
+        (4200.5, 900, "w-2026-10-19|grid", .outsidePaper),
+        (1400, -1, "w-2026-10-12|grid", .outsidePaper),
+        (1400, 1920.01, "w-2026-10-12|grid", .outsidePaper),
+        (2000, 50_000, "w-2026-10-12|grid", .outsidePaper),
+    ]
+    for (x, y, cell, drop) in ink {
+        checkEqual(span.inkCell(forCenter: CGPoint(x: x, y: y)).raw, cell, "span week: inkCell at (\(x), \(y)) is \(cell)")
+        checkEqual(span.drop(center: CGPoint(x: x, y: y)), drop, "span week: drop at (\(x), \(y))")
+    }
+    checkEqual(span.drop(center: CGPoint(x: CGFloat.nan, y: 5)), .outsidePaper, "span week: a centre that is not finite is outside")
+
+    // The day under a point: Sunday 10-11 is the first page's last column, Monday 10-12 the second's first.
+    let days: [(CGFloat, CGFloat, DayKey?)] = [
+        (1399, 100, SpanFixtures.october(11)), (1400, 100, nil), (1430, 100, nil), (1400 + 64, 100, SpanFixtures.october(12)),
+        (1400 + 64 + colW + 1, 100, SpanFixtures.october(13)), (2800 + 64 + 6 * colW + 1, 100, SpanFixtures.october(25)),
+        (4200, 100, SpanFixtures.october(25)), (4200.1, 100, nil), (500, -1, nil), (64, 100, SpanFixtures.october(5)),
+    ]
+    for (x, y, d) in days {
+        checkEqual(span.dayAt(point: CGPoint(x: x, y: y)), d, "span week: dayAt (\(x), \(y)) is \(d.map { "\($0)" } ?? "nil")")
+    }
+
+    // The boxes, the now line and the labels moved to their page.
+    let box = CGRect(x: 1400 + 64 + colW + 2, y: 721, width: colW - 8, height: 78)
+    let boxes = span.timedBoxes.filter { $0.eventId == "tb" }
+    check(boxes.count == 1 && boxes.allSatisfy { abs($0.frame.minX - box.minX) < 1e-9 && abs($0.frame.width - box.width) < 1e-9 && $0.frame.minY == 721 && $0.frame.height == 78 },
+          "span week: Tuesday 10-13 9:00–10:00 sits at x 1400 + 64 + colW + 2")
+    checkEqual(span.hit(at: CGPoint(x: box.midX, y: box.midY)), .timedBox("tb"), "span week: a tap on it hits it")
+    checkEqual(span.hit(at: CGPoint(x: box.midX - 1400, y: box.midY)), nil, "span week: the same place a week earlier is empty")
+    checkEqual(span.hit(at: CGPoint(x: box.midX + 1400, y: box.midY)), .timedBox("tw"), "span week: and a week later is 10-20's box")
+    check(span.nowLine.map { abs($0.x0 - (1400 + 64 + colW)) < 1e-9 && abs($0.x1 - (1400 + 64 + 2 * colW)) < 1e-9 && $0.y == 800 } == true,
+          "span week: the now line (Tue 10:00) is on the second page at y 800")
+    check(span.dateLabels.count == 21 && span.dateLabels[7].day == SpanFixtures.october(12) && span.dateLabels[7].frame.minX == 1400 + 64,
+          "span week: 21 labels, the 8th is Monday 10-12 at x 1464")
+
+    // Events: the page under the centre, the day of the centre's page.
+    let ranges: [(CGRect, EventRange?)] = [
+        (CGRect(x: 1400 + 64 + colW + 10, y: 800, width: 50, height: 80), .timed(SpanFixtures.october(13), startMinute: 600, endMinute: 660, calendar: tokyo)),
+        (CGRect(x: 1300, y: 800, width: 400, height: 80), .timed(SpanFixtures.october(12), startMinute: 600, endMinute: 660, calendar: tokyo)),
+        (CGRect(x: 1350, y: 800, width: 100, height: 80), .timed(SpanFixtures.october(12), startMinute: 600, endMinute: 660, calendar: tokyo)),
+        (CGRect(x: 1200, y: 800, width: 150, height: 80), .timed(SpanFixtures.october(11), startMinute: 600, endMinute: 660, calendar: tokyo)),
+        (CGRect(x: -300, y: 800, width: 100, height: 80), .timed(SpanFixtures.october(5), startMinute: 600, endMinute: 660, calendar: tokyo)),
+        (CGRect(x: 5000, y: 800, width: 100, height: 80), .timed(SpanFixtures.october(25), startMinute: 600, endMinute: 660, calendar: tokyo)),
+    ]
+    for (rect, range) in ranges {
+        checkEqual(span.eventRange(for: rect, now: now, calendar: tokyo), range, "span week: the event of \(rect)")
+    }
+    checkEqual(span.snapRect(for: .timed(SpanFixtures.october(20), startMinute: 540, endMinute: 600, calendar: tokyo), calendar: tokyo).map { [$0.minX, $0.minY, $0.width, $0.height] },
+               [2800 + 64 + colW, 720, colW, 80], "span week: 10-20 9:00–10:00 snaps on the third page")
+    checkEqual(span.snapRect(for: .timed(SpanFixtures.october(30), startMinute: 540, endMinute: 600, calendar: tokyo), calendar: tokyo), nil,
+               "span week: a day outside the window has no rect")
+    let targets: [(CGPoint, String, CGPoint)] = [
+        (CGPoint(x: 1400, y: 50), "w-2026-10-12", CGPoint(x: 0, y: 50)), (CGPoint(x: 1399.9, y: 50), "w-2026-10-05", CGPoint(x: 1399.9, y: 50)),
+        (CGPoint(x: -5, y: 10), "w-2026-10-05", CGPoint(x: -5, y: 10)), (CGPoint(x: 5000, y: 10), "w-2026-10-19", CGPoint(x: 2200, y: 10)),
+    ]
+    for (point, id, local) in targets {
+        check(span.eventTarget(at: point).map { $0.pageId == id && abs($0.local.x - local.x) < 1e-9 && $0.local.y == local.y } == true,
+              "span week: eventTarget at \(point) is \(id) \(local)")
+    }
+    check(span.eventTarget(at: CGPoint(x: CGFloat.nan, y: 0)) == nil, "span week: no event target for a point that is not finite")
+
+    // Names, bands, ids.
+    check(span.page(containing: CellKey(raw: "w-2026-10-12|grid")) == 1 && span.page(containing: CellKey(raw: "w-2026-10-26|grid")) == nil
+          && span.page(containing: .grid) == nil && span.slot(ofPage: "w-2026-10-19") == 2, "span week: the slot of a prefixed name and of a page id")
+    check(!span.growsWithInk(CellKey(raw: "w-2026-10-12|grid")) && span.band(atY: 100) == .grid && span.bandTop(.grid) == 0 && span.band(atY: 1920) == nil,
+          "span week: nothing grows on a week, one band from 0")
+    let shifted = SpanFixtures.window(SpanFixtures.weekPages([12, 19, 26].map(SpanFixtures.october), weekStart: .monday, events: events, now: now), plan: mon, session: 3)
+    check(shifted.pageId == span.pageId && shifted.firstIndex == span.firstIndex + 1 && SpanFixtures.window(pages, plan: mon, session: 4).pageId == "span~week~4",
+          "span week: the virtual id stays when the window shifts, and is the session's")
+    check(!shifted.onlyTailHeightChanged(from: span) && !span.onlyTailHeightChanged(from: span), "span week: a shift or nothing is no tail-only change")
+
+    // A view-only page, an empty window.
+    let viewOnly = SpanFixtures.window(pages, plan: mon, viewOnly: ["w-2026-10-19"])
+    check(viewOnly.drop(center: CGPoint(x: 3000, y: 100)) == .viewOnly && viewOnly.drop(center: CGPoint(x: 100, y: 100)) == .keep(page: "w-2026-10-05", cell: .grid),
+          "span week: a view-only page drops its new strokes as viewOnly, the others keep them")
+    let empty = SpanLayout(pages: [], plan: mon, firstIndex: 0)
+    check(empty.size == .zero && empty.cells.isEmpty && empty.drop(center: CGPoint(x: 1, y: 1)) == .outsidePaper && empty.inkCell(forCenter: .zero) == .grid
+          && empty.cell(at: .zero) == nil && empty.eventTarget(at: .zero) == nil && empty.hit(at: .zero) == nil && empty.band(atY: 0) == nil,
+          "span week: an empty window keeps nothing and answers without crashing")
+
+    // Sunday weeks: the boundary is Saturday → Sunday (§3.9 3).
+    let sun = SpanFixtures.plan(.week, .sunday)
+    let sundays = SpanFixtures.window(SpanFixtures.weekPages([4, 11, 18].map(SpanFixtures.october), weekStart: .sunday, events: events, now: now), plan: sun)
+    check(sundays.pages.map(\.pageId) == ["w-2026-10-04", "w-2026-10-11", "w-2026-10-18"] && sundays.firstIndex == sun.index(of: "w-2026-10-04"),
+          "span week: three Sunday weeks from 10-04")
+    checkEqual(sundays.inkCell(forCenter: CGPoint(x: 1400, y: 10)).raw, "w-2026-10-11|grid", "span week: Sunday weeks: x 1400 is the week of Sunday 10-11")
+    checkEqual(sundays.dayAt(point: CGPoint(x: 1399, y: 100)), SpanFixtures.october(10), "span week: Sunday weeks: left of the boundary is Saturday 10-10")
+    checkEqual(sundays.dayAt(point: CGPoint(x: 1400 + 64 + 1, y: 100)), SpanFixtures.october(11), "span week: Sunday weeks: right of it is Sunday 10-11")
+}
+
+// MARK: - SpanLayout: three days lined up (§3.2, D16)
+
+func spanDayWindowChecks() {
+    let now = october(13, 10)
+    let plan = SpanFixtures.plan(.day)
+    let days = [12, 13, 14].map(SpanFixtures.october)
+    let deep: [DayKey: CGFloat] = [SpanFixtures.october(13): 6950]
+    let floor = SpanAlign.dayFloors(previous: .none, extraInkBottoms: days.map { deep[$0] ?? 0 }, change: .redecide)
+    let pages = SpanFixtures.dayPages(days, events: [], now: now, extraBottoms: deep, floor: floor.dayExtra)
+    let span = SpanLayout(pages: pages, plan: plan, firstIndex: plan.index(of: "d-2026-10-12") ?? 0, floors: floor)
+    checkEqual(span.floors.dayExtra, 7000, "span day: the window keeps its floor 7,000")
+    checkEqual(span.size, CGSize(width: 3000, height: 9400), "span day: three days lined up at 2400 + 7000")
+    check(span.cells[CellKey(raw: "d-2026-10-14|extra")] == CGRect(x: 2000, y: 2400, width: 1000, height: 7000)
+          && span.cells[CellKey(raw: "d-2026-10-12|grid")] == CGRect(x: 0, y: 0, width: 1000, height: 2400) && span.cells.count == 6,
+          "span day: six cells, every free memo 7,000 tall")
+    let ink: [(CGFloat, CGFloat, String, SpanDrop)] = [
+        (999.9, 2399.9, "d-2026-10-12|grid", .keep(page: "d-2026-10-12", cell: .grid)),
+        (1000, 2400, "d-2026-10-13|extra", .keep(page: "d-2026-10-13", cell: .extra)),
+        (1030, 500, "d-2026-10-13|grid", .keep(page: "d-2026-10-13", cell: .grid)),
+        (1500, 8400, "d-2026-10-13|extra", .keep(page: "d-2026-10-13", cell: .extra)),
+        (1500, 8400.5, "d-2026-10-13|extra", .belowCap),
+        (2500, 9400.5, "d-2026-10-14|extra", .belowCap),
+        (500, 9000, "d-2026-10-12|extra", .belowCap),
+        (3000, 100, "d-2026-10-14|grid", .keep(page: "d-2026-10-14", cell: .grid)),
+        (3000.1, 100, "d-2026-10-14|grid", .outsidePaper),
+        (-1, 3000, "d-2026-10-12|extra", .outsidePaper),
+        (1500, -0.1, "d-2026-10-13|grid", .outsidePaper),
+    ]
+    for (x, y, cell, drop) in ink {
+        checkEqual(span.inkCell(forCenter: CGPoint(x: x, y: y)).raw, cell, "span day: inkCell at (\(x), \(y)) is \(cell)")
+        checkEqual(span.drop(center: CGPoint(x: x, y: y)), drop, "span day: drop at (\(x), \(y))")
+    }
+    check(span.growsWithInk(CellKey(raw: "d-2026-10-13|extra")) && !span.growsWithInk(CellKey(raw: "d-2026-10-13|grid"))
+          && !span.growsWithInk(.extra) && !span.growsWithInk(CellKey(raw: "d-2026-10-20|extra")),
+          "span day: the prefixed free memo grows, its grid does not, a bare or foreign name does not")
+    checkEqual(span.dayAt(point: CGPoint(x: 1500, y: 100)), nil, "span day: a double tap on a day page does nothing")
+    checkEqual(span.eventRange(for: CGRect(x: 1100, y: 900, width: 300, height: 100), now: now, calendar: tokyo),
+               .timed(SpanFixtures.october(13), startMinute: 540, endMinute: 600, calendar: tokyo), "span day: a rect on the second page is 10-13 9:00–10:00")
+    checkEqual(span.eventRange(for: CGRect(x: 900, y: 900, width: 300, height: 100), now: now, calendar: tokyo),
+               .timed(SpanFixtures.october(13), startMinute: 540, endMinute: 600, calendar: tokyo), "span day: a rect across the boundary goes by its centre (x 1050 → 10-13)")
+    checkEqual(span.band(atY: 3000), .extra, "span day: the free memo band")
+    checkEqual(span.bandTop(.extra), 2400, "span day: the free memo starts at 2400")
+
+    // onlyTailHeightChanged, per page.
+    func window(_ bottoms: [DayKey: CGFloat], floor: CGFloat = 0, days: [DayKey] = days, events: [LayoutEvent] = []) -> SpanLayout {
+        let p = SpanFixtures.dayPages(days, events: events, now: now, extraBottoms: bottoms, floor: floor)
+        return SpanLayout(pages: p, plan: plan, firstIndex: plan.index(of: p[0].pageId) ?? 0)
+    }
+    let old = window([SpanFixtures.october(13): 100])
+    check(window(deep).onlyTailHeightChanged(from: old), "span day: one day's free memo grew: tail only")
+    check(window(deep, floor: 7000).onlyTailHeightChanged(from: old), "span day: every free memo grew to the floor: tail only")
+    check(old.onlyTailHeightChanged(from: window(deep, floor: 7000)), "span day: every free memo shrank back: tail only")
+    check(!window([SpanFixtures.october(13): 100]).onlyTailHeightChanged(from: old), "span day: nothing changed: false")
+    check(!window(deep, days: [13, 14, 15].map(SpanFixtures.october)).onlyTailHeightChanged(from: old), "span day: a shifted window: false")
+    check(!window([SpanFixtures.october(13): 100], events: [timed("x", 13, 9, 0, 10, 0)]).onlyTailHeightChanged(from: old),
+          "span day: only the events changed (no cell moved): false")
+}
+
+// MARK: - SpanLayout: every question goes to the page under the point (random points)
+
+func spanRoutingChecks() {
+    let now = october(13, 10)
+    let events = [timed("tb", 13, 9, 0, 10, 0), timed("tc", 13, 9, 30, 11, 0), timed("td", 19, 22, 0, 23, 30), timed("te", 14, 3, 0, 5, 0)]
+    let windows: [(String, SpanLayout, CGFloat)] = [
+        ("Monday weeks", SpanFixtures.window(SpanFixtures.weekPages([DayKey(year: 2026, month: 9, day: 28)] + [5, 12, 19, 26].map(SpanFixtures.october),
+                                                                    weekStart: .monday, events: events, now: now), plan: SpanFixtures.plan(.week, .monday)), 1400),
+        ("Sunday weeks", SpanFixtures.window(SpanFixtures.weekPages([4, 11, 18].map(SpanFixtures.october), weekStart: .sunday, events: events, now: now),
+                                             plan: SpanFixtures.plan(.week, .sunday)), 1400),
+        ("days", SpanFixtures.window(SpanFixtures.dayPages((10...16).map(SpanFixtures.october), events: events, now: now,
+                                                           extraBottoms: [SpanFixtures.october(14): 6990], floor: 7040), plan: SpanFixtures.plan(.day)), 1000),
+    ]
+    var rng = Rng(seed: 0x5BA1_13)
+    for (name, span, w) in windows {
+        let n = span.pages.count
+        var bad: String?
+        var kept = 0
+        for i in 0..<3000 {
+            var x = CGFloat(rng.double()) * (CGFloat(n) * w + 400) - 200
+            let y = CGFloat(rng.double()) * (span.size.height + 600) - 300
+            if i % 10 == 0 { x = CGFloat(rng.int(n + 1)) * w }        // exactly on a boundary
+            let p = CGPoint(x: x, y: y)
+            // The slot worked out apart: ⌊x ÷ W⌋, kept on the band.
+            let slot = min(max(0, Int((x / w).rounded(.down))), n - 1)
+            let page = span.pages[slot]
+            let local = CGPoint(x: x - CGFloat(slot) * w, y: y)
+            func pre(_ c: CellKey?) -> CellKey? { c.map { CellKey(raw: page.pageId + "|" + $0.raw) } }
+            if span.inkCell(forCenter: p) != pre(page.inkCell(forCenter: local)) { bad = bad ?? "inkCell \(p)" }
+            if span.cell(at: p) != pre(page.cell(at: local)) { bad = bad ?? "cell \(p)" }
+            if span.hit(at: p) != page.hit(at: local) { bad = bad ?? "hit \(p)" }
+            if span.dayAt(point: p) != page.dayAt(point: local) { bad = bad ?? "dayAt \(p)" }
+            let r = CGRect(x: x - 40, y: y - 30, width: 80, height: 60)
+            if span.eventRange(for: r, now: now, calendar: tokyo) != page.eventRange(for: r.offsetBy(dx: -CGFloat(slot) * w, dy: 0), now: now, calendar: tokyo) {
+                bad = bad ?? "eventRange \(r)"
+            }
+            switch span.drop(center: p) {
+            case let .keep(id, cell):
+                kept += 1
+                if id != page.pageId || span.inkCell(forCenter: p).raw != id + "|" + cell.raw || x < 0 || x > CGFloat(n) * w { bad = bad ?? "keep \(p)" }
+            case .outsidePaper:
+                if x >= 0 && x <= CGFloat(n) * w && PaperGrowth.drop(center: local, in: page) != .outsidePaper { bad = bad ?? "outside \(p)" }
+            case .belowCap:
+                if PaperGrowth.drop(center: local, in: page) != .beyondCap { bad = bad ?? "belowCap \(p)" }
+            case .viewOnly:
+                bad = bad ?? "viewOnly \(p)"
+            }
+        }
+        check(bad == nil && kept > 1000, "span routing: \(name): 3,000 random points go to the page under them, drop and inkCell agree (\(kept) kept; first miss \(bad ?? "none"))")
+    }
 }
