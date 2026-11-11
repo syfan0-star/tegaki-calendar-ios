@@ -1545,3 +1545,313 @@ jobs:
           path: shots/blank
           retention-days: 7
           if-no-files-found: warn
+
+  # 1.3 (docs/M7C_CONTRACT.md §4.5, §4.6, §10.2, §10.5, §10.6, D11, D12; §12.2 S2 and S3 (3)): the prototype build.
+  # The app and its test host are built WITH the compilation condition SPAN_PROTOTYPE — on the xcodebuild command
+  # line only: it is never in project.yml (checked below), and the other jobs build, test and photograph the normal
+  # app — into a DerivedData of their own (build/ProtoData). On a 13-inch iPad, PrototypeIsolationTests (§4.6: the
+  # prototype leaves the real ink folder byte for byte, never calls the shared engine's save or page fetch, leaves
+  # its onRemoteUpdate alone, and its guard refuses real ids) and SpanPrototypeInteractionTests (the band's moves)
+  # run; the job fails unless at least 4 and 12 of them passed and none failed, so an empty run (the classes compiled
+  # without the condition hold no tests) fails too. Then the sample images of §4.5 are taken from the prototype
+  # screen ("--screenshot-prototype <scene>", Sources/TegakiCalendar/Span/SpanPrototypeShots.swift: screenshot mode
+  # opens 設定 › 情報 and the prototype's row there opens the scene) on four devices, portrait (iPadOS ignores the
+  # orientation request, see the first job's screenshot steps), the iPhone also in landscape, and go up as the
+  # artifact "span-shots" (kept 7 days) with the tests' log and each device's app log. A photo that is missing fails
+  # the job; what each one shows is looked at by eye (docs/M7C.md). No `needs`: it runs next to the other jobs.
+  # The limits are estimates until measured (docs/M7C.md): a build of about 3 min, the tests about 4 with the boot, a
+  # device 4–7 min (its boot 2–4, 110 s with the app in front, 12–15 s a photo).
+  span-shots:
+    name: span-shots (1.3 prototype)
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+      # The photos and the tests in Japanese whatever the simulator's language is (see the first job).
+      JA_ARGS: "-AppleLanguages (ja) -AppleLocale ja_JP"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+
+      # D12: the mark of the prototype build is passed on the command line below and nowhere else.
+      - name: SPAN_PROTOTYPE not in project.yml
+        run: |
+          set -euo pipefail
+          if grep -n 'SPAN_PROTOTYPE' project.yml; then
+            echo "::error::project.yml に SPAN_PROTOTYPE があります。試作の印は xcodebuild のコマンドの行（このジョブと testflight.yml の入力 span_prototype）だけで付けます（docs/M7C_CONTRACT.md D12）。"
+            exit 1
+          fi
+          echo "SPAN_PROTOTYPE: not in project.yml"
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      # One quoted word (it has a space), as testflight.yml passes AGE_FORCE. Built for testing once, before
+      # anything boots: the products run on every simulator (one platform, one architecture). The built app must
+      # hold the prototype (its launch argument is in the binary), or the photos below would be of the normal app.
+      - name: Build the prototype app and its tests (SPAN_PROTOTYPE)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/ProtoData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SPAN_PROTOTYPE' \
+            build-for-testing
+          ls build/ProtoData/Build/Products/*.xctestrun
+          APP="$(find build/ProtoData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          if [ -z "$APP" ]; then echo "::error::TegakiCalendar.app not found under build/ProtoData."; exit 1; fi
+          FOUND=0
+          for BIN in "$APP/TegakiCalendar" "$APP/TegakiCalendar.debug.dylib"; do
+            [ -f "$BIN" ] || continue
+            if grep -a -q -- '--screenshot-prototype' "$BIN"; then echo "$(basename "$BIN"): holds the prototype"; FOUND=1; fi
+          done
+          if [ "$FOUND" = 0 ]; then
+            echo "::error::作ったアプリに試作が入っていません（SPAN_PROTOTYPE が効いていない）。"
+            exit 1
+          fi
+
+      # The tests of the prototype on a 13-inch iPad (the newest runtime). Counted from the log, one line per
+      # test case ("Test Case '-[TegakiCalendarTests.<class> <test>]' passed|failed|skipped", or the parallel
+      # form), and compared with the result bundle's summary when xcresulttool can read it.
+      - name: Prototype tests (PrototypeIsolationTests 4+, SpanPrototypeInteractionTests 12+, 0 failures)
+        id: prototests
+        timeout-minutes: 20
+        run: |
+          set -uo pipefail
+          mkdir -p shots/span
+          FOUND="$(xcrun simctl list -j devices available | python3 -I -c '
+          import json, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          found = {}
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name") and d.get("udid"):
+                      key = version(runtime)
+                      if d["name"] not in found or key > found[d["name"]][1]:
+                          found[d["name"]] = (d["udid"], key)
+          for exact in ("iPad Pro 13-inch (M5)",):
+              if exact in found:
+                  print(exact + "|" + found[exact][0]); raise SystemExit
+          for prefix in ("iPad Pro 13", "iPad Air 13", "iPad"):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0]); raise SystemExit
+          print("")
+          ')"
+          if [ -z "$FOUND" ]; then echo "::error::No iPad simulator for the prototype tests."; exit 1; fi
+          NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+          echo "Prototype tests on: $NAME ($UDID)"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+          LOG="shots/span/prototype-tests.log"
+          rm -rf build/proto-tests.xcresult
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/ProtoData \
+            -resultBundlePath build/proto-tests.xcresult \
+            -only-testing:TegakiCalendarTests/PrototypeIsolationTests \
+            -only-testing:TegakiCalendarTests/SpanPrototypeInteractionTests \
+            -parallel-testing-enabled NO \
+            -testLanguage ja \
+            -testRegion JP \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building > "$LOG" 2>&1
+          STATUS=$?
+          grep -E "Test (Case|case|Suite) |error:|Executed " "$LOG" | tail -n 80 || true
+          SUMMARY="$(xcrun xcresulttool get test-results summary --path build/proto-tests.xcresult 2>/dev/null || true)"
+          printf '%s\n' "$SUMMARY" > shots/span/prototype-tests-summary.json
+          XCODEBUILD_STATUS="$STATUS" python3 -I - "$LOG" shots/span/prototype-tests-summary.json <<'PY'
+          import json, os, re, sys
+          log_path, summary_path = sys.argv[1], sys.argv[2]
+          text = open(log_path, encoding="utf-8", errors="replace").read()
+          case = re.compile(r"Test [Cc]ase '(?:-\[)?(?:\w+\.)?(?P<cls>\w+)[ .](?P<name>test\w*)(?:\(\))?\]?' (?P<result>passed|failed|skipped)")
+          results = {}
+          for m in case.finditer(text):
+              results[(m.group("cls"), m.group("name"))] = m.group("result")
+          def count(cls, result):
+              return sum(1 for (c, _), r in results.items() if c == cls and r == result)
+          need = {"PrototypeIsolationTests": 4, "SpanPrototypeInteractionTests": 12}
+          problems = []
+          status = int(os.environ.get("XCODEBUILD_STATUS", "1"))
+          if status != 0:
+              problems.append("xcodebuild test-without-building ended with %d" % status)
+          for cls, least in need.items():
+              passed, failed, skipped = count(cls, "passed"), count(cls, "failed"), count(cls, "skipped")
+              print("%s: %d passed, %d failed, %d skipped (at least %d must pass)" % (cls, passed, failed, skipped, least))
+              if passed < least:
+                  problems.append("%s: %d passed, fewer than %d" % (cls, passed, least))
+              if failed:
+                  problems.append("%s: %d failed" % (cls, failed))
+          others = sorted(c for (c, _) in results if c not in need)
+          if others:
+              problems.append("other classes ran: %s" % ", ".join(sorted(set(others))))
+          failed_all = sum(1 for r in results.values() if r == "failed")
+          passed_all = sum(1 for r in results.values() if r == "passed")
+          try:
+              summary = json.load(open(summary_path, encoding="utf-8"))
+          except Exception:
+              summary = None
+          if isinstance(summary, dict) and "passedTests" in summary:
+              print("result bundle: %s, %s passed, %s failed, %s skipped of %s" % (summary.get("result"), summary.get("passedTests"),
+                    summary.get("failedTests"), summary.get("skippedTests"), summary.get("totalTestCount")))
+              if summary.get("failedTests", 0) != 0:
+                  problems.append("the result bundle has %s failed tests" % summary.get("failedTests"))
+              if summary.get("passedTests") != passed_all:
+                  problems.append("the result bundle has %s passed tests, the log %d" % (summary.get("passedTests"), passed_all))
+          else:
+              print("::warning::xcresulttool gave no summary; the log alone counts")
+          print("span-shots tests: %d passed, %d failed in the log" % (passed_all, failed_all))
+          for p in problems:
+              print("::error::" + p)
+          sys.exit(1 if problems else 0)
+          PY
+
+      # Each device: boot, install, 110 s with the prototype in front (a first launch compiles PencilKit's Metal
+      # shaders, and a freshly booted simulator posts a system banner once, 15–35 or 85–105 s after the boot,
+      # docs/M6.md §5.1, docs/M7B.md C1), then one launch per scene, 12 s each. A launch opens the month page with
+      # the settings at 情報 (--screenshot-sheet info), whose last row opens the prototype in the scene. Files:
+      # <device>-<portrait|landscape>-<scene>.png. The iPhone's landscape photos are stood up as in the first job.
+      - name: Sample images of the prototype (§4.5)
+        id: shots
+        if: ${{ !cancelled() && steps.prototests.outcome != 'skipped' }}
+        timeout-minutes: 40
+        run: |
+          set -uo pipefail
+          OUT="shots/span"
+          mkdir -p "$OUT"
+          BUNDLE="com.syfan0.tegakicalendar"
+          APP="$(find build/ProtoData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          if [ -z "$APP" ]; then echo "::error::TegakiCalendar.app not found under build/ProtoData."; exit 1; fi
+          xcodebuild -version > "$OUT/env.txt" || true
+          # device-id | exact first choice | prefix fallbacks | portrait scenes | landscape scenes
+          for SPEC in "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13|boundary|" \
+                      "ipad11|iPad Air 11-inch (M4)|iPad Air 11,iPad Pro 11|boundary sunday overview single-page single-page-next guide memo-ruled memo-grid|" \
+                      "ipadmini|iPad mini (A17 Pro)|iPad mini|boundary|" \
+                      "iphone|iPhone 17|iPhone 17,iPhone|boundary overview single-page guide|boundary landscape-now landscape-cap"; do
+            ID="${SPEC%%|*}"; REST="${SPEC#*|}"
+            EXACT="${REST%%|*}"; REST="${REST#*|}"
+            PREFIXES="${REST%%|*}"; REST="${REST#*|}"
+            PORTRAIT="${REST%%|*}"; LANDSCAPE="${REST#*|}"
+            FOUND="$(xcrun simctl list -j devices available | SIM_EXACT="$EXACT" SIM_PREFIXES="$PREFIXES" python3 -I -c '
+          import json, os, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          found = {}
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name") and d.get("udid"):
+                      key = version(runtime)
+                      if d["name"] not in found or key > found[d["name"]][1]:
+                          found[d["name"]] = (d["udid"], key)
+          exact = os.environ["SIM_EXACT"]
+          if exact in found:
+              print(exact + "|" + found[exact][0]); raise SystemExit
+          for prefix in os.environ["SIM_PREFIXES"].split(","):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0]); raise SystemExit
+          print("")
+          ' || true)"
+            if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID."; continue; fi
+            NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+            echo "$ID: $NAME ($UDID)"
+            echo "$ID: $NAME" >> "$OUT/env.txt"
+            xcrun simctl boot "$UDID" 2>/dev/null || true
+            xcrun simctl bootstatus "$UDID" -b || { echo "::error::$ID ($NAME) did not boot."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            if ! xcrun simctl install "$UDID" "$APP"; then
+              echo "::error::install failed on $ID."
+              xcrun simctl shutdown "$UDID" || true
+              continue
+            fi
+            STARTED="$(date +%s)"
+            shoot() {  # shoot <file> <scene> [more launch arguments]
+              local FILE="$1" SCENE="$2"; shift 2
+              xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+              sleep 1
+              # $JA_ARGS is split on purpose (four words, none with a space).
+              xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-sheet info \
+                --screenshot-prototype "$SCENE" "$@" $JA_ARGS > /dev/null || { echo "::warning::launch failed ($FILE)"; return 0; }
+              sleep 12
+              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 12 s ($FILE)"
+              xcrun simctl io "$UDID" screenshot "$OUT/$FILE" > /dev/null || echo "::warning::screenshot failed ($FILE)"
+            }
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-sheet info \
+              --screenshot-prototype boundary $JA_ARGS > /dev/null || true
+            sleep 110
+            for SCENE in $PORTRAIT; do
+              shoot "$ID-portrait-$SCENE.png" "$SCENE"
+            done
+            for SCENE in $LANDSCAPE; do
+              shoot "$ID-landscape-$SCENE.png" "$SCENE" --screenshot-landscape
+            done
+            for f in "$OUT/$ID"-landscape-*.png; do
+              [ -f "$f" ] && { sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"; }
+            done
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            MINUTES=$(( ($(date +%s) - STARTED) / 60 + 2 ))
+            xcrun simctl spawn "$UDID" log show --last "${MINUTES}m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/$ID-log.txt" 2>&1 || true
+            grep -E 'span prototype shot:|span prototype:|zoom: ' "$OUT/$ID-log.txt" | awk '{ i = index($0, "span prototype"); if (i < 1) i = index($0, "zoom: "); if (i > 1) $0 = substr($0, i); print }' || true
+            find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} "$OUT/" \; 2>/dev/null || true
+            xcrun simctl shutdown "$UDID" || true
+          done
+          ls -la "$OUT"
+          MISSING=0
+          for FILE in ipad13-portrait-boundary \
+                      ipad11-portrait-boundary ipad11-portrait-sunday ipad11-portrait-overview ipad11-portrait-single-page \
+                      ipad11-portrait-single-page-next ipad11-portrait-guide ipad11-portrait-memo-ruled ipad11-portrait-memo-grid \
+                      ipadmini-portrait-boundary \
+                      iphone-portrait-boundary iphone-portrait-overview iphone-portrait-single-page iphone-portrait-guide \
+                      iphone-landscape-boundary iphone-landscape-landscape-now iphone-landscape-landscape-cap; do
+            if [ ! -s "$OUT/$FILE.png" ]; then echo "::error::$FILE.png is missing."; MISSING=1; fi
+          done
+          exit "$MISSING"
+
+      - name: Upload the span shots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: span-shots
+          path: shots/span
+          retention-days: 7
+          if-no-files-found: warn
