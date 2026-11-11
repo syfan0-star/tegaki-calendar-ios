@@ -238,7 +238,8 @@ struct SpanPrototypeCanvas: UIViewRepresentable {
 
     // §3.6 the band moves (the prototype only).
     /// The band x (lu) to put at the middle of the screen at the first layout (wins over `initialPaperOffset`'s
-    /// x; y starts at the top): the focus page's middle opens it centred, a boundary opens it across the middle.
+    /// x; y starts at the top, or at `initialPaperOffset`'s y when there is one): the focus page's middle opens it
+    /// centred, a boundary opens it across the middle.
     var initialCenterX: CGFloat? = nil
     /// ◀ ▶: each change of `pageStepTrigger` slides the band by `pageStep` pages (−1 or 1), exactly one
     /// page's width at the zoom it has (`SpanPlan.shiftAmount`), animated.
@@ -1399,8 +1400,10 @@ extension SpanPrototypeCanvas {
                 canvas.contentSize = Self.scaled(appliedLayout.size, by: zoom)
                 let inset = canvas.contentInset
                 if let centerX = parent.initialCenterX, centerX.isFinite {
-                    // §3.6: the band opens with this x in the middle of the screen, at the top.
-                    canvas.contentOffset = clampedOffset(CGPoint(x: centerX * zoom - viewport.width / 2, y: -inset.top))
+                    // §3.6: the band opens with this x in the middle of the screen, at the top — or with
+                    // `initialPaperOffset`'s y at the top (the sample images of §4.5, `SpanPrototypeShot`).
+                    let topY = parent.initialPaperOffset.map(\.y).flatMap { $0.isFinite ? $0 * zoom : nil } ?? -inset.top
+                    canvas.contentOffset = clampedOffset(CGPoint(x: centerX * zoom - viewport.width / 2, y: topY))
                 } else if let offset = parent.initialPaperOffset {
                     let x = offset.x.isFinite ? offset.x : 0
                     let y = offset.y.isFinite ? offset.y : 0

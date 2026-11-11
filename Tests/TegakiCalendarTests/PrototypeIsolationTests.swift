@@ -126,7 +126,7 @@ final class PrototypeIsolationTests: XCTestCase {
         let names = try FileManager.default.contentsOfDirectory(atPath: folder.path)
             .filter { $0.hasPrefix("SpanPrototype") && $0.hasSuffix(".swift") }.sorted()
         XCTAssertEqual(names, ["SpanPrototypeCanvas.swift", "SpanPrototypeLedger.swift", "SpanPrototypeMeasure.swift", "SpanPrototypeMemo.swift",
-                               "SpanPrototypeScreen.swift", "SpanPrototypeSession.swift"])
+                               "SpanPrototypeScreen.swift", "SpanPrototypeSession.swift", "SpanPrototypeShots.swift"])
         var out: [String: String] = [:]
         for name in names {
             let text = try String(contentsOf: folder.appendingPathComponent(name), encoding: .utf8)

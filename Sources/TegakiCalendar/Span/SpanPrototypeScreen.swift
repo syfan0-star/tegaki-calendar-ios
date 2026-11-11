@@ -24,14 +24,29 @@ import UIKit
 // MARK: - The row in 設定 › 情報
 
 /// 「横につなげる試作」: the last row of 設定 › 情報 in the prototype build. Opens the prototype over the
-/// whole screen (it is a canvas, not a form).
+/// whole screen (it is a canvas, not a form). With `--screenshot-prototype <scene>` (the CI's sample images,
+/// `SpanPrototypeShot`) it opens it by itself, once, a moment after the row is on screen, in that scene.
 struct SpanPrototypeEntryRow: View {
     @State private var isOpen = false
 
     var body: some View {
         Button(L.text("prototype.span.entry")) { isOpen = true }
             .fullScreenCover(isPresented: $isOpen) {
-                SpanPrototypeScreen(onClose: { isOpen = false })
+                if let scene = SpanPrototypeShot.current {
+                    SpanPrototypeScreen(onClose: { isOpen = false }, weekStart: scene.weekStart, now: SpanPrototypeShot.now,
+                                        scene: scene)
+                } else {
+                    SpanPrototypeScreen(onClose: { isOpen = false })
+                }
+            }
+            .task {
+                guard SpanPrototypeShot.current != nil, !SpanPrototypeShot.opened else { return }
+                await SpanPrototypeShot.waitForOrientation()
+                // The settings sheet has just scrolled to 情報 (`--screenshot-sheet info`): let it come to rest.
+                try? await Task.sleep(for: .seconds(0.6))
+                guard !Task.isCancelled, !SpanPrototypeShot.opened else { return }
+                SpanPrototypeShot.opened = true
+                isOpen = true
             }
     }
 }
@@ -77,13 +92,34 @@ final class SpanPrototypeModel: ObservableObject {
     private var lastScreen: (size: CGSize, isPad: Bool)?
     /// The number of the next session's virtual id (a new week start is a new session, K-11).
     private var nextNumber = 1
+    /// The sample image this screen was opened for (`--screenshot-prototype`); nil in use.
+    let scene: SpanPrototypeShot.Scene?
+    /// Where the band's canvas reports its offset and zoom, for the day headings (`SpanPrototypeHeader`). Not
+    /// published here: only the headings follow the scroll.
+    let viewport = SpanPrototypeViewport()
 
-    init(environment: SpanPrototypeEnvironment, weekStart: WeekStart, now: Date, holidays: HolidayCalendar, events: [LayoutEvent]) {
+    /// `scene` (the sample images, `SpanPrototypeShot`): the scene's sample strokes are written into the
+    /// environment's folder before the first session reads it, the measurements are hidden, and the toggles start
+    /// as the scene says (「上限あり」, 「1 ページずつ」 on this week or the next, the memo's form).
+    init(environment: SpanPrototypeEnvironment, weekStart: WeekStart, now: Date, holidays: HolidayCalendar, events: [LayoutEvent],
+         scene: SpanPrototypeShot.Scene? = nil) {
         self.environment = environment
         self.weekStart = weekStart
         self.now = now
         self.holidays = holidays
         self.events = events
+        self.scene = scene
+        if let scene {
+            SpanPrototypeShot.seed(environment, weekStart: weekStart, today: DayKey(now))
+            showsMeasurements = false
+            landscapeCap = scene.landscapeCap
+            memoStyle = scene.memoStyle
+            if scene.singlePage {
+                let plan = SpanPlan(kind: .week, weekStart: weekStart, deviceClass: .iPad11, orientation: .portrait)
+                focusIndex = plan.index(containing: DayKey(now)) + scene.pageOffset
+                singlePage = true
+            }
+        }
     }
 
     /// The device class and the orientation of a screen of `size` (pt).
@@ -126,7 +162,13 @@ final class SpanPrototypeModel: ObservableObject {
         lastScreen = (size, isPad)
         let device = Self.device(for: size, isPad: isPad)
         guard let session else {
-            session = makeSession(focus: DayKey(now), device: device)
+            let made = makeSession(focus: DayKey(now), device: device)
+            session = made
+            if let scene {
+                SpanPrototypeShot.log("scene=\(scene.rawValue) device=\(device.deviceClass.rawValue) orientation=\(device.orientation.rawValue) "
+                                      + "size=\(Int(size.width))x\(Int(size.height)) window=\(made.pageIds.first ?? "")…\(made.pageIds.last ?? "") "
+                                      + "focus=\(made.plan.pageId(at: focusPageIndex ?? made.focusIndex)) strokes=\(made.windowStrokeCount)")
+            }
             return
         }
         guard !session.isFilling else { return }
@@ -265,14 +307,15 @@ struct SpanPrototypeScreen: View {
     @State private var pageStep = 0
     @State private var pageStepTrigger = 0
     /// The guide card is up (a new value each time it is shown; its 8 s count from then).
-    @State private var guideShown: Int? = 1
+    @State private var guideShown: Int?
 
     /// `environment` nil is the prototype's own (`SpanPrototypeEnvironment.makeIsolated()`, made once, when
     /// the screen first appears); the events are the screenshot mode's sample events of this month
-    /// (EventKit is never read).
+    /// (EventKit is never read). `scene`: the sample image to open as (`SpanPrototypeShot`; the guide card then
+    /// shows only in its own scene, and stays there).
     @MainActor
     init(onClose: @escaping () -> Void, weekStart: WeekStart = .monday, now: Date = Date(),
-         environment: SpanPrototypeEnvironment? = nil) {
+         environment: SpanPrototypeEnvironment? = nil, scene: SpanPrototypeShot.Scene? = nil) {
         self.onClose = onClose
         let today = DayKey(now)
         _model = StateObject(wrappedValue: SpanPrototypeModel(
@@ -281,8 +324,10 @@ struct SpanPrototypeScreen: View {
             now: now,
             holidays: HolidayChoice.current,
             events: ScreenshotMode.demoEvents(for: YearMonth(year: today.year, month: today.month), empty: false,
-                                              language: L.language, storeInk: false)
+                                              language: L.language, storeInk: false),
+            scene: scene
         ))
+        _guideShown = State(initialValue: scene == nil || scene?.showsGuide == true ? 1 : nil)
     }
 
     private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
@@ -298,6 +343,10 @@ struct SpanPrototypeScreen: View {
                     .padding(.horizontal, 12)
                     .padding(.bottom, 6)
                 Divider()
+                if model.fillProgress == nil, let session = model.session {
+                    SpanPrototypeHeader(session: session, singlePageIndex: model.singlePage ? model.focusPageIndex : nil,
+                                        viewport: model.viewport)
+                }
                 ZStack(alignment: .bottomLeading) {
                     content
                     if model.showsMeasurements {
@@ -309,6 +358,8 @@ struct SpanPrototypeScreen: View {
                         SpanPrototypeGuideCard(text: allowFinger ? L.text("prototype.span.guide.week.finger") : L.text("prototype.span.guide.week.pencil"),
                                                onDismiss: hideGuide)
                             .task(id: shown) {
+                                // The guide's sample image keeps it (`SpanPrototypeShot.Scene.guide`).
+                                guard model.scene == nil else { return }
                                 try? await Task.sleep(for: .seconds(SpanPrototypeGuideCard.duration))
                                 if guideShown == shown { guideShown = nil }
                             }
@@ -341,7 +392,7 @@ struct SpanPrototypeScreen: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(uiColor: InkCanvasContainerView.deskColor))
         } else if model.singlePage, let session = model.session, let focus = model.focusPageIndex {
-            SpanPrototypeSinglePageView(session: session, index: focus, allowFinger: allowFinger)
+            SpanPrototypeSinglePageView(session: session, index: focus, allowFinger: allowFinger, viewport: model.viewport)
         } else if let session = model.session {
             SpanPrototypeWindowView(
                 session: session,
@@ -530,12 +581,22 @@ struct SpanPrototypeWindowView: View {
     /// The pen touched the paper or a finger began to drag the band (the guide card goes).
     var onTouch: () -> Void = {}
 
-    /// The band x of the middle of the focus week (the model's focus when the canvas is made again).
+    /// The band x of the middle of the focus week (the model's focus when the canvas is made again); in a sample
+    /// image whose scene says so (`SpanPrototypeShot.Scene.centersBoundary`), its right edge: the boundary with
+    /// the next week.
     private var centerX: CGFloat {
         let layout = session.layout
         let focus = model.focusPageIndex ?? session.focusIndex
         let slot = min(max(0, focus - layout.firstIndex), max(0, layout.pages.count - 1))
+        if model.scene?.centersBoundary == true {
+            return layout.origin(ofSlot: slot) + layout.plan.pageWidth
+        }
         return layout.origin(ofSlot: slot) + layout.plan.pageWidth / 2
+    }
+
+    /// The sample image's first zoom and top (`SpanPrototypeShot.Scene.opening`); in use the opening zoom at the top.
+    private var opening: (zoomRatio: CGFloat, topY: CGFloat?) {
+        model.scene?.opening(for: session.plan) ?? (1, nil)
     }
 
     var body: some View {
@@ -552,6 +613,9 @@ struct SpanPrototypeWindowView: View {
             undoTrigger: undoTrigger,
             redoTrigger: redoTrigger,
             onHistoryChanged: onHistoryChanged,
+            onViewportChange: { [weak model] viewport in model?.viewport.value = viewport },
+            initialZoomRatio: opening.zoomRatio,
+            initialPaperOffset: opening.topY.map { CGPoint(x: 0, y: $0) },
             onPenDown: onTouch,
             initialCenterX: centerX,
             pageStep: pageStep,
@@ -578,6 +642,8 @@ struct SpanPrototypeSinglePageView: View {
     @ObservedObject var session: SpanPrototypeSession
     let index: Int
     var allowFinger: Bool
+    /// Where the canvas reports its offset and zoom (the page's day headings, `SpanPrototypeHeader`).
+    var viewport: SpanPrototypeViewport? = nil
 
     var body: some View {
         let pageId = session.plan.pageId(at: index)
@@ -593,6 +659,7 @@ struct SpanPrototypeSinglePageView: View {
                 onInkBoundsChanged: {},
                 undoTrigger: 0,
                 redoTrigger: 0,
+                onViewportChange: { [weak viewport] value in viewport?.value = value },
                 readOnly: true
             )
             .id(pageId)
@@ -601,6 +668,57 @@ struct SpanPrototypeSinglePageView: View {
         }
     }
 }
+// MARK: - The day headings
+
+/// The canvas's offset and zoom (`PaperViewport`) for the day headings alone: an object of its own, so a scroll
+/// redraws the headings and nothing else of the screen.
+@MainActor
+final class SpanPrototypeViewport: ObservableObject {
+    @Published var value: PaperViewport = .zero
+}
+
+/// The day headings over the band (a simple form of §3.8's fixed heading, so the weekday and the date stand over
+/// each column; the sample images of §4.5 show which days a stroke crosses): 1.2.3's week heading
+/// (`StickyHeaderView`, unchanged) of each window page on screen, placed at that page's x in the band and cut to
+/// its width. With 「1 ページずつ」 the shown page's heading alone. Nothing until the canvas has said where it is.
+struct SpanPrototypeHeader: View {
+    @ObservedObject var session: SpanPrototypeSession
+    /// 「1 ページずつ」: the page number shown; nil: the band.
+    let singlePageIndex: Int?
+    @ObservedObject var viewport: SpanPrototypeViewport
+
+    var body: some View {
+        let v = viewport.value
+        if v.width > 0 {
+            if let index = singlePageIndex {
+                if let layout = session.plainLayouts[session.plan.pageId(at: index)] {
+                    StickyHeaderView(paper: .week(WeekPaperContent(layout: layout)), now: session.now, viewport: v,
+                                     onDayTap: { _ in }, onMonthTap: { _ in })
+                }
+            } else {
+                ZStack(alignment: .topLeading) {
+                    ForEach(Array(session.papers.enumerated()), id: \.offset) { slot, paper in
+                        let origin = session.layout.origin(ofSlot: slot)
+                        let left = v.x(ofPaper: origin)
+                        let width = v.width(ofPaper: session.layout.plan.pageWidth)
+                        if left + width > 0, left < v.width {
+                            StickyHeaderView(paper: paper, now: session.now,
+                                             viewport: PaperViewport(offsetX: v.offsetX - origin * v.zoom, zoom: v.zoom, width: v.width),
+                                             onDayTap: { _ in }, onMonthTap: { _ in })
+                                .mask(alignment: .topLeading) {
+                                    Rectangle()
+                                        .frame(width: max(0, width))
+                                        .offset(x: left)
+                                }
+                        }
+                    }
+                }
+                .clipped()
+            }
+        }
+    }
+}
+
 // MARK: - The guide card
 
 /// The first-time guide's card as the real one will be (§3.14, B_DESIGN.md §3.1, §8.1): a small dark card at
