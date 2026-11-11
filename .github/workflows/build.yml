@@ -1024,10 +1024,18 @@ jobs:
   # engine run tools/compat10/AppTests/Real10LedgerTests.swift on the simulator (only that class).
   # Runs next to the build job (no `needs`). The job id has no dot (GitHub allows only letters, digits,
   # `-` and `_`); its name is the contract's "compat-v1.0".
+  # 1.3 (docs/M7C_CONTRACT.md §6.3, §10.4): the compat-span fixtures (TegakiKit/Tests/Fixtures/compat-span, what
+  # the joined pages write) are read by the real old versions too: the files of shape "monday" in its MANIFEST
+  # are copied into the compat11 folder (so ④⑤ and ⑥ read them; tools/compat10 is not touched) and checked to
+  # be there; tools/span-compat's Probe reads every file (Monday and Sunday) on the real 1.0 (v10), <1.1.1> (v11)
+  # and 1.2.3 (v123: commit 43fe366, taken out with `git archive`); and 1.2.3's app runs
+  # tools/span-compat/AppTests/Real123LedgerTests.swift (its ledger and sync engine) on every file. Fixture 4 (the
+  # week memo) comes with the week memo stage (§5): its MANIFEST row then needs its counts in tools/span-compat.
+  # The limit (§10.4): 45 → 65 min for the 1.2.3 Kit and app (the job took 8 min before 1.3).
   compat-v1-0:
     name: compat-v1.0
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 65
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -1078,11 +1086,46 @@ jobs:
           done
           ls -la "$RUNNER_TEMP/compat11"
 
-      # ④⑤ The copies into tools/compat10 (ignored by git), RunReal and RunFrozen, the comparison.
+      # 1.3 (docs/M7C_CONTRACT.md §6.3, §10.4): the compat-span files of shape "monday" (MANIFEST: "<file>
+      # <fixture> <monday|sunday>" after the "#" lines) go into the same folder, so RunReal, RunFrozen and
+      # Real10LedgerTests read them with K's (Compat10Checks reads every *.json of the folder). The Sunday-start
+      # week stays out: Real10LedgerTests lays every w- page out as a Monday week; tools/span-compat reads it.
+      # Fails unless every Monday row is in the folder byte for byte and no Sunday row is.
+      - name: The compat-span fixtures of the Monday shape into the compat11 folder (1.3)
+        run: |
+          set -euo pipefail
+          SRC=TegakiKit/Tests/Fixtures/compat-span
+          DEST="$RUNNER_TEMP/compat11"
+          MONDAY=0
+          SUNDAY=0
+          while read -r FILE FIXTURE SHAPE REST; do
+            case "$FILE" in ''|'#'*) continue ;; esac
+            if [ -n "${REST:-}" ] || [ -z "${FIXTURE:-}" ]; then echo "::error::compat-span/MANIFEST: \"$FILE $FIXTURE $SHAPE $REST\" is not <file> <fixture> <shape>"; exit 1; fi
+            case "$SHAPE" in
+              monday) cp "$SRC/$FILE" "$DEST/$FILE"; MONDAY=$((MONDAY + 1)) ;;
+              sunday) SUNDAY=$((SUNDAY + 1)) ;;
+              *) echo "::error::compat-span/MANIFEST: $FILE has the shape \"$SHAPE\" (monday or sunday)"; exit 1 ;;
+            esac
+          done < "$SRC/MANIFEST"
+          FAILED=0
+          while read -r FILE FIXTURE SHAPE REST; do
+            case "$FILE" in ''|'#'*) continue ;; esac
+            if [ "$SHAPE" = monday ]; then
+              cmp "$SRC/$FILE" "$DEST/$FILE" || { echo "::error::$FILE (fixture $FIXTURE, monday) is not in the compat11 folder"; FAILED=1; }
+            elif [ -e "$DEST/$FILE" ]; then
+              echo "::error::$FILE (fixture $FIXTURE, sunday) must not be in the compat11 folder"; FAILED=1
+            fi
+          done < "$SRC/MANIFEST"
+          echo "compat-span: $MONDAY files of shape monday copied into the compat11 folder ($SUNDAY of shape sunday left out)"
+          ls -la "$DEST"
+          exit "$FAILED"
+
+      # ④⑤ The copies into tools/compat10 (ignored by git), RunReal and RunFrozen, the comparison. Since 1.3 the
+      # folder holds the Monday compat-span files too; the output is also kept in $RUNNER_TEMP/compat10-run.log.
       - name: The checks on the real 1.0 and on the frozen copy
         run: |
           set -euo pipefail
-          tools/compat10/run.sh "$RUNNER_TEMP/compat11"
+          tools/compat10/run.sh "$RUNNER_TEMP/compat11" 2>&1 | tee "$RUNNER_TEMP/compat10-run.log"
 
       # 1.2 (docs/M7B_CONTRACT.md K-11, §7.5, §10.8): the REAL old versions read what 1.2 writes (a week
       # page that starts on a Sunday, a month page written in the Sunday order) and neither lose nor move
@@ -1114,6 +1157,32 @@ jobs:
           swift run --package-path v10/run Probe
           cp -R tools/weekstart-compat/v11/run v11/run
           swift run --package-path v11/run Probe
+
+      # 1.3 (docs/M7C_CONTRACT.md §6.3, §10.4): 1.2.3, the version on sale when 1.3 starts, taken out of git (the
+      # checkout above is only one commit deep, so its commit is fetched first): its TegakiKit at v123 for
+      # tools/span-compat, and its whole tree at v123app for its app's ledger test below.
+      - name: Take out 1.2.3 (43fe366) at v123 and v123app
+        run: |
+          set -euo pipefail
+          SHA=43fe36666a2120e8a23adf4fc76244151a395e6f
+          git fetch --no-tags --depth=1 origin "$SHA"
+          git log -1 --format='v123: %H %s' "$SHA"
+          mkdir -p v123 v123app
+          git archive "$SHA" TegakiKit | tar -x -C v123
+          git archive "$SHA" | tar -x -C v123app
+          ls v123/TegakiKit v123app
+
+      # 1.3 (§6.3): every compat-span file (Monday and Sunday) on the real 1.0, <1.1.1> and 1.2.3 Kits: what each
+      # reads and writes back, what its layout draws and its lasso reaches, its migration, merge, erase and own
+      # edit, the app export's round trip (tools/span-compat/README.md). All three run; any FAIL fails the step.
+      - name: The compat-span fixtures on the real 1.0, <1.1.1> and 1.2.3 (span-compat)
+        run: |
+          set -euo pipefail
+          FAILED=0
+          for V in v10 v11 v123; do
+            tools/span-compat/run.sh "$V" "$V/TegakiKit" "$RUNNER_TEMP/span-compat" || FAILED=1
+          done
+          exit "$FAILED"
 
       - name: Install XcodeGen
         run: |
@@ -1161,6 +1230,48 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             test 2>&1 | tee "$RUNNER_TEMP/real10.log"
           grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real10.log" || true
+
+      # 1.3 (docs/M7C_CONTRACT.md §6.3, §10.4): 1.2.3's app (v123app, its own project.yml) with
+      # tools/span-compat/AppTests/Real123LedgerTests.swift added to its unit tests, on the same simulator; only
+      # that class runs, on every compat-span file (TEGAKI_COMPAT_SPAN_FIXTURES: the folder of this checkout).
+      - name: 1.2.3's ledger and sync on the compat-span fixtures (Real123LedgerTests)
+        run: |
+          set -euo pipefail
+          cp tools/span-compat/AppTests/Real123LedgerTests.swift v123app/Tests/TegakiCalendarTests/
+          (cd v123app && xcodegen generate)
+          NAME="$(xcrun simctl list -j devices available | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          names = set()
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name"):
+                      names.add(d["name"])
+          for prefix in ("iPad Pro 13-inch", "iPad Air 13-inch", "iPad", "iPhone"):
+              matches = sorted(n for n in names if n.startswith(prefix))
+              if matches:
+                  print(matches[0])
+                  raise SystemExit
+          print("")
+          ' || true)"
+          if [ -z "$NAME" ]; then
+            echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
+            NAME="iPhone 17"
+          fi
+          echo "Using simulator: $NAME"
+          TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span" xcodebuild \
+            -project v123app/TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=$NAME" \
+            -derivedDataPath "$RUNNER_TEMP/v123-derived" \
+            -only-testing:TegakiCalendarTests/Real123LedgerTests \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test 2>&1 | tee "$RUNNER_TEMP/real123.log"
+          grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real123.log" || true
 
   # 1.2 (docs/M7B_CONTRACT.md §7.5, §7.6, §4.4, §4.5, §10.7, §8 8): the other nine languages, seen by the
   # lead and the owner without being able to read them. Next to the other jobs (no `needs`). No test here;
