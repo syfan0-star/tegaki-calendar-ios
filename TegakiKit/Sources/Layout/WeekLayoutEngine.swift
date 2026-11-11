@@ -17,8 +17,12 @@ public struct WeekLayoutInput: Sendable {
     public var words: LayoutWords
     /// The first column (§10.1). The two week starts are two pages with their own ids (K-11).
     public var weekStart: WeekStart
+    /// 1.3 (docs/M7C_CONTRACT.md D16, §5, `SpanAlign`): the least height of the week memo below 24:00,
+    /// so the joined weeks of a window end at the same line. The week page has no memo until the week
+    /// memo stage (§5), so for now it changes nothing: any value gives today's layout, `==`.
+    public var extraFloor: CGFloat
 
-    public init(focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday) {
+    public init(focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday, extraFloor: CGFloat = 0) {
         firstDay = weekStart.firstDay(of: focus)
         self.events = events
         self.inkBottoms = inkBottoms
@@ -27,6 +31,7 @@ public struct WeekLayoutInput: Sendable {
         self.holidays = holidays
         self.words = words
         self.weekStart = weekStart
+        self.extraFloor = extraFloor
     }
 }
 

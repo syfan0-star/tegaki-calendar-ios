@@ -83,6 +83,8 @@ func runSpanChecks() {
     spanWindowTableChecks()
     spanShiftAndFlingChecks()
     spanK10Checks()
+    spanAlignChecks()
+    spanAllDayBandChecks()
 }
 
 // MARK: - SpanName (§2.1, §3.2, §6.1)
@@ -531,4 +533,179 @@ func spanK10Checks() {
         }
     }
     check(planBad == nil, "K-10: SpanPlan.pageId(at:) is PageNavigation.pageId, without | and ~ (\(planBad ?? "all"))")
+}
+
+// MARK: - SpanAlign and the engines' floors (D16, §3.2, §3.8)
+
+func spanAlignChecks() {
+    let now = october(14, 10)
+    let events = [timed("t1", 13, 9, 0, 10, 30), allDay("a1", 12, 15)]
+    func dayPage(_ d: Int, bottom: CGFloat?, floor: CGFloat? = nil) -> DayPageLayout {
+        let ink: [CellKey: CGFloat] = bottom.map { [.extra: $0] } ?? [:]
+        let day = DayKey(year: 2026, month: 10, day: d)
+        if let floor {
+            return DayLayoutEngine.layout(DayLayoutInput(day: day, events: events, inkBottoms: ink, now: now, calendar: tokyo, extraFloor: floor))
+        }
+        return DayLayoutEngine.layout(DayLayoutInput(day: day, events: events, inkBottoms: ink, now: now, calendar: tokyo))
+    }
+
+    // Left out (or 0, or not above the page's own height, or not usable) the day is today's, ==.
+    for bottom in [nil, CGFloat(0), 3000, 5950, 6500] as [CGFloat?] {
+        let today = dayPage(13, bottom: bottom)
+        for floor in [CGFloat(0), 5000, 6000, -100, .nan, .infinity, -.infinity] {
+            check(dayPage(13, bottom: bottom, floor: floor) == today, "span align: a day with ink bottom \(bottom.map { "\($0)" } ?? "none") and floor \(floor) is today's day")
+        }
+    }
+    checkEqual(dayPage(13, bottom: nil).extra.height, 6000, "span align: today's free memo is 6,000 lu")
+
+    // A floor above the page's own height makes only the free memo taller.
+    let plain = dayPage(13, bottom: 100)
+    let floored = dayPage(13, bottom: 100, floor: 7000)
+    checkEqual(floored.extra, CGRect(x: 0, y: 2400, width: 1000, height: 7000), "span align: floor 7,000 → extra (0, 2400, 1000, 7000)")
+    checkEqual(floored.size, CGSize(width: 1000, height: 9400), "span align: floor 7,000 → the paper is 1000 × 9400")
+    checkEqual(floored.cells[.extra], CGRect(x: 0, y: 2400, width: 1000, height: 7000), "span align: the extra cell follows the floor")
+    check(floored.grid == plain.grid && floored.timeline == plain.timeline && floored.memo == plain.memo && floored.cells[.grid] == plain.cells[.grid]
+          && floored.timedBoxes == plain.timedBoxes && floored.dateLabels == plain.dateLabels && floored.nowLine == plain.nowLine
+          && floored.allDayBand == plain.allDayBand && floored.pageId == plain.pageId && floored.isToday == plain.isToday,
+          "span align: nothing but the free memo moves (K-4)")
+    checkEqual(dayPage(13, bottom: 7150, floor: 7000).extra.height, 7200, "span align: the page's own 7,200 (7,150 + 50) beats floor 7,000")
+    checkEqual(dayPage(13, bottom: 7150, floor: 7300).extra.height, 7300, "span align: floor 7,300 beats the page's own 7,200")
+    // The floor never moves the cap (6,000 lu below 24:00 on every page, K-9).
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 2400 + 6000.5), in: floored), .beyondCap, "span align: on a floored day, 6,000.5 below 24:00 is still beyond the cap")
+    checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 2400 + 6000), in: floored), nil, "span align: on a floored day, 6,000 below 24:00 is kept")
+
+    // The week has no memo yet (§5): any floor gives today's week, Monday and Sunday.
+    for ws in WeekStart.allCases {
+        let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: DayKey(year: 2026, month: 10, day: 14), events: events, inkBottoms: [.grid: 1500], now: now, calendar: tokyo, weekStart: ws))
+        for floor in [CGFloat(0), 7000, .nan] {
+            let w = WeekLayoutEngine.layout(WeekLayoutInput(focus: DayKey(year: 2026, month: 10, day: 14), events: events, inkBottoms: [.grid: 1500], now: now, calendar: tokyo, weekStart: ws, extraFloor: floor))
+            check(w == week, "span align: a \(ws) week with floor \(floor) is today's week (no week memo before §5)")
+        }
+    }
+
+    // The floors and their changes (B_DESIGN.md:288).
+    checkEqual(SpanAlign.Floors.none, SpanAlign.Floors(dayExtra: 0, weekExtra: 0), "span align: no floor is 0 and 0")
+    let floors = SpanAlign.Floors(dayExtra: 7000, weekExtra: 6500)
+    check(floors.floor(for: .day) == 7000 && floors.floor(for: .week) == 6500 && floors.floor(for: .month) == 0 && floors.floor(for: .year) == 0,
+          "span align: the floor of each kind")
+    let naturals: [(CGFloat, CGFloat)] = [(0, 6000), (5950, 6000), (5951, 6001), (6950, 7000), (.nan, 6000), (-5, 6000), (.infinity, 6000)]
+    for (bottom, height) in naturals {
+        checkEqual(SpanAlign.natural(inkBottom: bottom), height, "span align: the natural height of an extra with ink bottom \(bottom) is \(height)")
+    }
+    let rules: [(String, CGFloat, [CGFloat], SpanAlign.Change, CGFloat)] = [
+        ("a shift never lowers", 7000, [6000, 6000, 6000], .shift, 7000),
+        ("a shift raises", 6000, [6000, 6800], .shift, 6800),
+        ("a shift to no page keeps", 6000, [], .shift, 6000),
+        ("ink that grew raises", 7000, [6000, 7200], .inkGrew, 7200),
+        ("ink that grew elsewhere keeps", 7000, [6000], .inkGrew, 7000),
+        ("erasing lowers to the tallest", 7000, [6000, 6500], .inkShrank, 6500),
+        ("erasing lowers to 6,000", 7000, [6000], .inkShrank, 6000),
+        ("deciding again takes the tallest", 9000, [6000, 6100], .redecide, 6100),
+        ("deciding again without pages is 0", 9000, [], .redecide, 0),
+        ("a previous floor that is not finite counts as 0", .nan, [6000], .shift, 6000),
+        ("a natural height that is not finite counts as 0", 0, [.infinity, 6000], .redecide, 6000),
+    ]
+    for (name, previous, heights, change, expected) in rules {
+        checkEqual(SpanAlign.floor(previous: previous, naturals: heights, change: change), expected, "span align: \(name)")
+    }
+    checkEqual(SpanAlign.dayFloors(previous: SpanAlign.Floors(dayExtra: 0, weekExtra: 6500), extraInkBottoms: [0, 6950, 100], change: .redecide),
+               SpanAlign.Floors(dayExtra: 7000, weekExtra: 6500), "span align: the day floor of a window from its ink bottoms (the week's is kept)")
+
+    // A window of days through a shift and an erase: the floor stays when the deep day leaves, drops on erasing.
+    var floor = SpanAlign.dayFloors(previous: .none, extraInkBottoms: [0, 6950, 0], change: .redecide).dayExtra
+    checkEqual(floor, 7000, "span align: a window with a line at 6,950 lu lines up at 7,000")
+    floor = SpanAlign.dayFloors(previous: SpanAlign.Floors(dayExtra: floor), extraInkBottoms: [0, 0, 0], change: .shift).dayExtra
+    checkEqual(floor, 7000, "span align: the deep day left the window: the floor stays 7,000")
+    floor = SpanAlign.dayFloors(previous: SpanAlign.Floors(dayExtra: floor), extraInkBottoms: [0, 120, 0], change: .inkShrank).dayExtra
+    checkEqual(floor, 6000, "span align: erasing in the window brings it down to 6,000")
+    let lined = [12, 13, 14].map { dayPage($0, bottom: $0 == 13 ? 6950 : 0, floor: 7000) }
+    check(lined.allSatisfy { $0.extra.height == 7000 && $0.size.height == 9400 }, "span align: the three days laid out with the floor end at the same line (9,400)")
+}
+
+// MARK: - The all-day band of a run of days (§3.8)
+
+func spanAllDayBandChecks() {
+    let now = october(13, 10)
+    let colW = (1400.0 - 64.0) / 7.0
+    // X: Mon 10/5–Sun 10/11; C: Sat 10/10–Tue 10/13 (across the weeks); Y: Thu 10/15.
+    let x = allDay("X", 5, 12)
+    let c = allDay("C", 10, 14)
+    let y = allDay("Y", 15, 16)
+    let events = [x, c, y, timed("t", 13, 9, 0, 10, 0)]
+    let twoWeeks = (5...18).map { DayKey(year: 2026, month: 10, day: $0) }
+
+    // One page gives what week(firstDay:weekStart:…) / day(_:…) give, Monday and Sunday.
+    let mondayDays = Array(twoWeeks[0..<7])
+    checkEqual(AllDayBandEngine.pages(.week, days: mondayDays, events: events, now: now, calendar: tokyo),
+               [AllDayBandEngine.week(firstDay: mondayDays[0], weekStart: .monday, events: events, now: now, calendar: tokyo)],
+               "span band: one Monday week is week(firstDay:weekStart:)")
+    let sundayDays = (4...10).map { DayKey(year: 2026, month: 10, day: $0) }
+    checkEqual(AllDayBandEngine.pages(.week, days: sundayDays, events: events, now: now, calendar: tokyo),
+               [AllDayBandEngine.week(firstDay: sundayDays[0], weekStart: .sunday, events: events, now: now, calendar: tokyo)],
+               "span band: one Sunday week is week(firstDay:weekStart:)")
+    for d in [10, 13, 15, 20] {
+        let day = DayKey(year: 2026, month: 10, day: d)
+        checkEqual(AllDayBandEngine.pages(.day, days: [day], events: events, now: now, calendar: tokyo),
+                   [AllDayBandEngine.day(day, events: events, now: now, calendar: tokyo)], "span band: one day 10-\(d) is day(_:)")
+    }
+    checkEqual(AllDayBandEngine.pages(.week, days: [], events: events, now: now, calendar: tokyo), [], "span band: no days, no bands")
+
+    // Two weeks packed together: C keeps lane 1 on both sides (week by week it would be 1, then 0).
+    let perWeek = [AllDayBandEngine.week(firstDay: twoWeeks[0], weekStart: .monday, events: events, now: now, calendar: tokyo),
+                   AllDayBandEngine.week(firstDay: twoWeeks[7], weekStart: .monday, events: events, now: now, calendar: tokyo)]
+    check(perWeek[0].bars.first { $0.eventId == "C" }?.lane == 1 && perWeek[1].bars.first { $0.eventId == "C" }?.lane == 0,
+          "span band: packed week by week, C would change lanes at the boundary (1 → 0)")
+    let bands = AllDayBandEngine.pages(.week, days: twoWeeks, events: events, now: now, calendar: tokyo)
+    checkEqual(bands.count, 2, "span band: 14 days are two week bands")
+    if bands.count == 2 {
+        let a = [
+            AllDayBandBar(eventId: "X", title: "X", colorHex: "#33b679", lane: 0, startCol: 0, endCol: 6, continuesLeft: false, continuesRight: false, minX: 64 + 3, maxX: 1400 - 3),
+            AllDayBandBar(eventId: "C", title: "C", colorHex: "#33b679", lane: 1, startCol: 5, endCol: 6, continuesLeft: false, continuesRight: true, minX: 64 + 5 * colW + 3, maxX: 1400),
+        ]
+        let b = [
+            AllDayBandBar(eventId: "Y", title: "Y", colorHex: "#33b679", lane: 0, startCol: 3, endCol: 3, continuesLeft: false, continuesRight: false, minX: 64 + 3 * colW + 3, maxX: 64 + 4 * colW - 3),
+            AllDayBandBar(eventId: "C", title: "C", colorHex: "#33b679", lane: 1, startCol: 0, endCol: 1, continuesLeft: true, continuesRight: false, minX: 64, maxX: 64 + 2 * colW - 3),
+        ]
+        func same(_ p: [AllDayBandBar], _ q: [AllDayBandBar]) -> Bool {
+            p.count == q.count && zip(p, q).allSatisfy {
+                $0.eventId == $1.eventId && $0.lane == $1.lane && $0.startCol == $1.startCol && $0.endCol == $1.endCol
+                    && $0.continuesLeft == $1.continuesLeft && $0.continuesRight == $1.continuesRight
+                    && abs($0.minX - $1.minX) < 1e-9 && abs($0.maxX - $1.maxX) < 1e-9 && $0.title == $1.title
+            }
+        }
+        check(same(bands[0].bars, a), "span band: the week of 10-05 has X on lane 0 and C on lane 1, squared off on the right")
+        check(same(bands[1].bars, b), "span band: the week of 10-12 has Y on lane 0 and C on lane 1, squared off on the left")
+        check(bands[0].laneCount == 2 && bands[1].laneCount == 2, "span band: both weeks have the window's 2 lanes")
+        check(bands[0].days == mondayDays && bands[1].days == Array(twoWeeks[7..<14]), "span band: each band has its week's days")
+        check(bands[0].todayColumn == nil && bands[1].todayColumn == 1, "span band: today (Tue 10-13) is column 1 of the second week")
+        check(bands[0].tones == AllDayBandLayout.empty(kind: .week, days: mondayDays).tones && bands[1].columnMinX == perWeek[1].columnMinX,
+              "span band: each band keeps its own colours and the week's columns")
+    }
+    let floored = AllDayBandEngine.pages(.week, days: twoWeeks, events: events, now: now, calendar: tokyo, minimumLaneCount: 4)
+    check(floored.allSatisfy { $0.laneCount == 4 }, "span band: the lane count never goes below the session's 4")
+    check(AllDayBandEngine.pages(.week, days: twoWeeks, events: [], now: now, calendar: tokyo).allSatisfy { $0.laneCount == 0 && $0.bars.isEmpty },
+          "span band: without events no lanes")
+
+    // A Sunday window: the boundary is Saturday → Sunday.
+    let sundayRun = (4...17).map { DayKey(year: 2026, month: 10, day: $0) }
+    let sundayBands = AllDayBandEngine.pages(.week, days: sundayRun, events: events, now: now, calendar: tokyo)
+    let cFirst = sundayBands.first?.bars.first { $0.eventId == "C" }
+    let cSecond = sundayBands.last?.bars.first { $0.eventId == "C" }
+    check(sundayBands.count == 2 && cFirst?.startCol == 6 && cFirst?.endCol == 6 && cFirst?.continuesRight == true
+          && cSecond?.startCol == 0 && cSecond?.endCol == 2 && cSecond?.continuesLeft == true && cFirst?.lane == cSecond?.lane,
+          "span band: Sunday weeks: C is Saturday on the first page, Sunday–Tuesday on the second, one lane")
+
+    // Days: D1 10/12–10/13, D2 10/13, D3 10/14 over three day pages.
+    let d1 = allDay("D1", 12, 14)
+    let d2 = allDay("D2", 13, 14)
+    let d3 = allDay("D3", 14, 15)
+    let days = (12...14).map { DayKey(year: 2026, month: 10, day: $0) }
+    let dayBands = AllDayBandEngine.pages(.day, days: days, events: [d1, d2, d3], now: now, calendar: tokyo)
+    func lanes(_ band: AllDayBandLayout) -> [String] { band.bars.map { "\($0.eventId)@\($0.lane)\($0.continuesLeft ? "<" : "")\($0.continuesRight ? ">" : "")" } }
+    check(dayBands.count == 3 && lanes(dayBands[0]) == ["D1@0>"] && lanes(dayBands[1]) == ["D1@0<", "D2@1"] && lanes(dayBands[2]) == ["D3@0"],
+          "span band: three days: D1 on lane 0 across 10-12 and 10-13, D2 on lane 1, D3 back on lane 0 (\(dayBands.map(lanes)))")
+    check(dayBands.allSatisfy { $0.laneCount == 2 && $0.kind == .day && $0.columnMinX == [72] }
+          && dayBands.allSatisfy { $0.bars.allSatisfy { $0.minX == 72 + 4 && $0.maxX == 660 - 12 } },
+          "span band: every day band has 2 lanes and the day's bar geometry")
+    check(dayBands.map(\.todayColumn) == [nil, 0, nil], "span band: today's column is on 10-13 only")
 }

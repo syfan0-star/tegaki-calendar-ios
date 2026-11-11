@@ -165,6 +165,69 @@ public enum AllDayBandEngine {
         return band
     }
 
+    /// 1.3 (docs/M7C_CONTRACT.md §3.8, B_DESIGN.md §3.1): the bands of a window's pages, with the lanes
+    /// packed over the whole run of days at once. Packed week by week, an event crossing the boundary
+    /// of two weeks could sit on a different lane on each side; packed together it keeps one lane.
+    /// `days` are the window's days in order, without a gap: the 7 days of each week page (each from
+    /// its week start's day, as `SpanPlan.firstDay(at:)` gives them) or the one day of each day page;
+    /// a last page with fewer days takes what is left. Every page's band has the window's lane count
+    /// (at least `minimumLaneCount`: the caller keeps it while the window moves and never lowers it in a
+    /// session), its own bars (an event on two pages has a bar on each, on the same lane, squared off
+    /// where it continues on the next page), its own colours and today's column. One page gives what
+    /// `week(firstDay:weekStart:…)` / `day(_:…)` give for it, `==`, when `minimumLaneCount` is 0.
+    /// Only `.week` and `.day`; any other kind is read as `.week`.
+    public static func pages(_ kind: PageKind, days: [DayKey], events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, minimumLaneCount: Int = 0) -> [AllDayBandLayout] {
+        guard let first = days.first else { return [] }
+        let perPage = kind == .day ? 1 : PaperSpec.weekColumns
+        let spans = MonthLayoutEngine.packAllDayLanes(events: events, days: days, calendar: calendar)
+        let laneCount = max(max(0, minimumLaneCount), spans.reduce(0) { max($0, $1.lane + 1) })
+        let today = DayKey(now, calendar: calendar)
+        var bands: [AllDayBandLayout] = []
+        var start = 0
+        while start < days.count {
+            let end = min(days.count, start + perPage)
+            let pageDays = Array(days[start..<end])
+            var band = AllDayBandLayout.empty(kind: kind == .day ? .day : .week, days: pageDays, holidays: holidays)
+            let rangeStart = first.adding(days: start).startOfDay(in: calendar)
+            let rangeEnd = first.adding(days: end).startOfDay(in: calendar)
+            var bars: [AllDayBandBar] = []
+            for span in spans where span.endCol >= start && span.startCol < end {
+                let startCol = max(span.startCol, start) - start
+                let endCol = min(span.endCol, end - 1) - start
+                let left = span.event.start < rangeStart
+                let right = span.event.end > rangeEnd
+                let minX: CGFloat
+                let maxX: CGFloat
+                if kind == .day {
+                    minX = PaperSpec.dayGutter + PaperSpec.dayChipPadLeft
+                    maxX = PaperSpec.dayTimelineRight - PaperSpec.dayChipPadRight
+                } else {
+                    let colW = PaperSpec.weekColumnWidth
+                    minX = PaperSpec.weekGutter + CGFloat(startCol) * colW + (left ? 0 : PaperSpec.weekBarInset)
+                    maxX = PaperSpec.weekGutter + CGFloat(endCol + 1) * colW - (right ? 0 : PaperSpec.weekBarInset)
+                }
+                bars.append(AllDayBandBar(
+                    eventId: span.event.id,
+                    title: span.event.title,
+                    colorHex: span.event.colorHex,
+                    lane: span.lane,
+                    startCol: startCol,
+                    endCol: endCol,
+                    continuesLeft: left,
+                    continuesRight: right,
+                    minX: minX,
+                    maxX: maxX
+                ))
+            }
+            band.bars = bars
+            band.laneCount = laneCount
+            band.todayColumn = pageDays.firstIndex(of: today)
+            bands.append(band)
+            start = end
+        }
+        return bands
+    }
+
     /// The Monday-start week's band (1.1's form; `week(firstDay:weekStart:…)` with `.monday`).
     public static func week(monday: DayKey, events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan) -> AllDayBandLayout {
         week(firstDay: monday, weekStart: .monday, events: events, now: now, calendar: calendar, holidays: holidays)
