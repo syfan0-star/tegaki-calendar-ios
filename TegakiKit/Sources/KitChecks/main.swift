@@ -5439,6 +5439,7 @@ do {
 }
 
 runSpanChecks() // 1.3: the joined pages, section "span (1.3)" (SpanChecks.swift, docs/M7C_CONTRACT.md §10.1)
+runSpanInkChecks() // 1.3: their ink, section "span ink (1.3)" (SpanInkChecks.swift, docs/M7C_CONTRACT.md §10.1)
 
 // MARK: - 1.2: the languages (docs/M7B_CONTRACT.md §0, §2.1, 0-1, 0-2, 0-8, §7.1)
 
