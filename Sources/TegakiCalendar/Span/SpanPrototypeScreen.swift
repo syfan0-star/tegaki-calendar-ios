@@ -17,7 +17,9 @@ import UIKit
 // week, the palm's rule holds the pan), and the title follows the focus week (the page under the middle of
 // the screen, with the 6 % hysteresis). 「線の数」 fills the prototype's pages with synthetic strokes, and the
 // measurements of §4.6 stand in a corner of the band (`SpanPrototypeMeter`, `SpanPrototypeHUD`). Every week
-// has its memo below 24:00 (`SpanPrototypeWeekMemoLayout`, §5.2), in one of the two forms of §4.5.
+// has its memo below 24:00 (`SpanPrototypeWeekMemoLayout`, §5.2), in one of the two forms of §4.5. The first-time
+// guide card is shown as the real one will be (§3.14, §8.1 N-4 / N-5): at the top of the paper, 8 seconds, gone
+// at a touch (`SpanPrototypeGuideCard`).
 
 // MARK: - The row in 設定 › 情報
 
@@ -262,6 +264,8 @@ struct SpanPrototypeScreen: View {
     /// ◀ ▶ (§3.6): the direction of the last press and a counter the canvas reacts to.
     @State private var pageStep = 0
     @State private var pageStepTrigger = 0
+    /// The guide card is up (a new value each time it is shown; its 8 s count from then).
+    @State private var guideShown: Int? = 1
 
     /// `environment` nil is the prototype's own (`SpanPrototypeEnvironment.makeIsolated()`, made once, when
     /// the screen first appears); the events are the screenshot mode's sample events of this month
@@ -298,6 +302,16 @@ struct SpanPrototypeScreen: View {
                     content
                     if model.showsMeasurements {
                         SpanPrototypeHUD(meter: model.meter)
+                    }
+                }
+                .overlay(alignment: .top) {
+                    if let shown = guideShown, !model.singlePage, model.fillProgress == nil {
+                        SpanPrototypeGuideCard(text: allowFinger ? L.text("prototype.span.guide.week.finger") : L.text("prototype.span.guide.week.pencil"),
+                                               onDismiss: hideGuide)
+                            .task(id: shown) {
+                                try? await Task.sleep(for: .seconds(SpanPrototypeGuideCard.duration))
+                                if guideShown == shown { guideShown = nil }
+                            }
                     }
                 }
             }
@@ -341,7 +355,8 @@ struct SpanPrototypeScreen: View {
                 onHistoryChanged: { undo, redo in
                     canUndo = undo
                     canRedo = redo
-                }
+                },
+                onTouch: hideGuide
             )
         } else {
             Color(uiColor: InkCanvasContainerView.deskColor)
@@ -352,6 +367,11 @@ struct SpanPrototypeScreen: View {
         guard let session = model.session, let focus = model.focusPageIndex else { return L.text("prototype.span.entry") }
         return PageNavigation.title(.week, focus: session.plan.firstDay(at: focus), holidays: model.holidays, language: L.language,
                                     weekStart: session.weekStart)
+    }
+
+    /// The guide card goes (a touch on it or on the paper, a drag of the band).
+    private func hideGuide() {
+        guideShown = nil
     }
 
     /// ◀ ▶: one week back or on (§3.6); with 「1 ページずつ」 the week shown.
@@ -479,6 +499,9 @@ struct SpanPrototypeScreen: View {
             .pickerStyle(.menu)
             Toggle(L.text("prototype.span.singlePage"), isOn: Binding(get: { model.singlePage }, set: { model.setSinglePage($0) }))
             Toggle(L.text("prototype.span.hud.show"), isOn: $model.showsMeasurements)
+            Button(L.text("prototype.span.guide.show")) {
+                guideShown = (guideShown ?? 0) + 1
+            }
         } label: {
             Image(systemName: "slider.horizontal.3")
         }
@@ -501,6 +524,8 @@ struct SpanPrototypeWindowView: View {
     var pageStep: Int
     var pageStepTrigger: Int
     var onHistoryChanged: (Bool, Bool) -> Void
+    /// The pen touched the paper or a finger began to drag the band (the guide card goes).
+    var onTouch: () -> Void = {}
 
     /// The band x of the middle of the focus week (the model's focus when the canvas is made again).
     private var centerX: CGFloat {
@@ -524,11 +549,13 @@ struct SpanPrototypeWindowView: View {
             undoTrigger: undoTrigger,
             redoTrigger: redoTrigger,
             onHistoryChanged: onHistoryChanged,
+            onPenDown: onTouch,
             initialCenterX: centerX,
             pageStep: pageStep,
             pageStepTrigger: pageStepTrigger,
             onFocusChange: { [weak model] index in model?.focusChanged(index) },
             onShift: { [weak model] index in model?.shift(toFocusIndex: index) },
+            onDragBegin: onTouch,
             meter: model.meter,
             maxVisiblePages: model.maxVisiblePages,
             memoStyle: model.memoStyle
@@ -569,6 +596,36 @@ struct SpanPrototypeSinglePageView: View {
         } else {
             Color(uiColor: InkCanvasContainerView.deskColor)
         }
+    }
+}
+// MARK: - The guide card
+
+/// The first-time guide's card as the real one will be (§3.14, B_DESIGN.md §3.1, §8.1): a small dark card at
+/// the top of the paper with the fixed text of N-4 (「指でも書く」 off: a finger slides the band) or N-5 (on:
+/// two fingers), gone after `duration` or at a touch. In the prototype it comes each time the screen opens and
+/// from the settings menu (the real one comes once per device and kind, after the update; none in screenshot
+/// mode or with the setting off).
+struct SpanPrototypeGuideCard: View {
+    /// §3.16: 8 seconds.
+    static let duration: TimeInterval = 8
+
+    var text: String
+    var onDismiss: () -> Void
+
+    var body: some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.black.opacity(0.82), in: RoundedRectangle(cornerRadius: 10))
+            .frame(maxWidth: 520)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onDismiss)
+            .transition(.opacity)
     }
 }
 #endif

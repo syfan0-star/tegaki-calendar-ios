@@ -63,6 +63,42 @@
       "glossary": [],
       "jaOnly": true
     },
+    "prototype.span.guide.show": {
+      "ja": "案内の札を出す",
+      "target": "app",
+      "comment": "試作の設定のメニューのボタン。初めての案内の札（見本、§3.14、§8.1 N-4・N-5）をもう一度出す。試作のビルドだけ。ja だけのキー（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.guide.week.finger": {
+      "ja": "前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "試作の初めての案内の札（見本）。docs/M7C_CONTRACT.md §8.1 の N-5（週・「指でも書く」オン）の固定の文と同じ。本物の札のキーは役 U の持ち物で、これは試作のビルド（SPAN_PROTOTYPE）だけの写し。ja だけのキーで訳さない（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.guide.week.pencil": {
+      "ja": "前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "試作の初めての案内の札（見本）。docs/M7C_CONTRACT.md §8.1 の N-4（週・「指でも書く」オフ）の固定の文と同じ。本物の札のキーは役 U の持ち物で、これは試作のビルド（SPAN_PROTOTYPE）だけの写し。ja だけのキーで訳さない（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
     "prototype.span.hud.drift": {
       "ja": "位置のずれ %@ pt",
       "target": "app",
