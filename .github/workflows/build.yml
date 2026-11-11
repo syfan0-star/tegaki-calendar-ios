@@ -488,7 +488,9 @@ jobs:
       # 1.2 (docs/M7B_CONTRACT.md §1.3 J-4, §7.5, 0-25): every launch of these steps ends with $JA_ARGS and
       # the steps write shots/env.txt. The steps from "Pick a simulator" to "Store listing set" must stay
       # the same as .github/workflows/ja-baseline.yml (the reference of J-4; only the two sheets of 1.2 and
-      # the step's name differ): when one of the two changes, change the other one too.
+      # the step's name differ): when one of the two changes, change the other one too. 1.3 (docs/M7C_CONTRACT.md
+      # §10.5): ja-baseline.yml now holds these steps as 43fe366 has them (all 11 sheets) and shoots 43fe366; a
+      # change here changes 1.3's photos against that reference, and only the changes docs/M7C.md lists may.
       # The app is launched with "--screenshot-mode" (Sources/TegakiCalendar/Support/ScreenshotMode.swift):
       # no onboarding, no EventKit, deterministic demo events for 2026-10 and a few preloaded ink
       # strokes. Since M3a it is launched once per page ("--screenshot-page month|week|day|year",
@@ -663,6 +665,7 @@ jobs:
       # the demo stroke counts (「いちばん線の多いページ」 and 「今年の年のページ」). Since 1.2 (docs/M7B_CONTRACT.md
       # §7.4, §10.7, §7.6) a tenth, "holidays" (the picker of the holidays), and an eleventh, "week-start" (the
       # settings with the question of switching the week start). ja-baseline.yml does not shoot these two.
+      # (1.3: it does, its reference being 43fe366.)
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
