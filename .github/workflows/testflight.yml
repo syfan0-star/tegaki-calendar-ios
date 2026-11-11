@@ -19,6 +19,17 @@
 # entitlement and for the weak link of DeclaredAgeRange ("Check the archive"). The input `age_force`
 # ("1" only) makes the one check build of §6.4 (AGE_FORCE: Apple's flag is taken as set, so Apple's
 # age range sheet comes up on any account on iOS / iPadOS 26.2 or later). That build is never submitted.
+#
+# 1.3 (docs/M7C_CONTRACT.md §4.6, §10.6, §12.2 S3; D12): the input `span_prototype` ("1" only) makes the prototype
+# build of 「横につなげる」 (SPAN_PROTOTYPE added to SWIFT_ACTIVE_COMPILATION_CONDITIONS on the archive's command
+# line; project.yml never has it). Before anything is built, "The prototype build against 43fe366" fails unless the
+# 18 frozen data files pass `shasum -c` with 43fe366's own DATA_1_1.sha256, 1.2.3's tests are 43fe366's bytes,
+# project.yml has no SPAN_PROTOTYPE and tools/span/prototype_gate.py accepts the app's sources (only the new
+# Span/SpanPrototype*.swift inside `#if SPAN_PROTOTYPE`, the entry in Views/SettingsScreen.swift inside it, new keys
+# of the string tables). "Check the prototype archive" looks for the prototype in the signed app and writes the
+# version and the build number (the run number) into the run's summary, for docs/M7C.md: that build is never
+# submitted, and the build of 1.3 that is submitted must not be it. Not together with `age_force`. Without the input
+# every step runs as before (the two steps are skipped, and the archive's command line is the same).
 name: testflight
 
 on:
@@ -31,6 +42,11 @@ on:
       # 1.2.2 (docs/R1_2_2.md §6.4): the check build only. Empty for every other build.
       age_force:
         description: "年齢の確かめ用（1 のときだけ。審査に出さない）"
+        required: false
+        default: ""
+      # 1.3 (docs/M7C_CONTRACT.md §4.6): the prototype build only (TestFlight's internal testing). Empty for every other build.
+      span_prototype:
+        description: "横につなげる試作（1 のときだけ。審査に出さない）"
         required: false
         default: ""
 
@@ -86,6 +102,36 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      # 1.3 (docs/M7C_CONTRACT.md §4.6, §12.2 S3 (1) (2); D12): only with span_prototype "1". The checkout is one commit
+      # deep, so 43fe366 is fetched for its tree.
+      - name: The prototype build against 43fe366 (1.3)
+        if: ${{ github.event.inputs.span_prototype == '1' }}
+        env:
+          AGE_FORCE_INPUT: ${{ github.event.inputs.age_force }}
+        run: |
+          set -euo pipefail
+          BASE=43fe36666a2120e8a23adf4fc76244151a395e6f
+          if [ "${AGE_FORCE_INPUT:-}" = "1" ]; then
+            echo "::error::試作（span_prototype）と年齢の確かめ用（age_force）は一緒に作れません。1 つずつ作ってください。"
+            exit 1
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE"
+          echo "the prototype build of $(git rev-parse HEAD) ($(git log -1 --format=%s HEAD))"
+          echo "against $(git log -1 --format='%H %s' "$BASE")"
+          # (1) The 18 files of the handwriting's data are 43fe366's bytes, by 43fe366's own table.
+          if ! git show "$BASE:tools/compat10/DATA_1_1.sha256" | shasum -a 256 -c; then
+            echo "::error::凍結の表のファイルが 43fe366 と違います。試作のビルドまで（S3 まで）表のファイルは変えません（docs/M7C_CONTRACT.md §6.4、D12）。"
+            exit 1
+          fi
+          # 1.2.3's tests of the one-page path are 43fe366's bytes.
+          shasum -a 256 -c tools/span/TESTS_1_2_3.sha256
+          if grep -n 'SPAN_PROTOTYPE' project.yml; then
+            echo "::error::project.yml に SPAN_PROTOTYPE があります（docs/M7C_CONTRACT.md §4.6）。"
+            exit 1
+          fi
+          # (2) The app's sources differ from 43fe366 only by the prototype's files, its entry and its keys.
+          python3 -I tools/span/prototype_gate.py --base "$BASE"
 
       - name: Select Xcode
         run: |
@@ -188,6 +234,7 @@ jobs:
           IDENTITY: ${{ steps.signing.outputs.identity }}
           MARKETING_VERSION_INPUT: ${{ github.event.inputs.marketing_version }}
           AGE_FORCE_INPUT: ${{ github.event.inputs.age_force }}
+          SPAN_PROTOTYPE_INPUT: ${{ github.event.inputs.span_prototype }}
         run: |
           set -euo pipefail
           # Plain string, not an array: /bin/bash on macOS is 3.2, where "${EMPTY[@]}" trips `set -u`.
@@ -201,6 +248,16 @@ jobs:
           if [ "${AGE_FORCE_INPUT:-}" = "1" ]; then
             AGE='SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) AGE_FORCE'
             echo "AGE_FORCE: on (not for App Review)"
+          fi
+          # 1.3 (docs/M7C_CONTRACT.md §4.6, D12): the prototype build, the same way (one quoted word, nothing when empty).
+          SPAN=""
+          if [ "${SPAN_PROTOTYPE_INPUT:-}" = "1" ]; then
+            if [ -n "$AGE" ]; then
+              echo "::error::span_prototype と age_force は一緒に使えません。"
+              exit 1
+            fi
+            SPAN='SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) SPAN_PROTOTYPE'
+            echo "SPAN_PROTOTYPE: on (the prototype build; not for App Review)"
           fi
           # shellcheck disable=SC2086
           xcodebuild \
@@ -217,6 +274,7 @@ jobs:
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             $EXTRA \
             ${AGE:+"$AGE"} \
+            ${SPAN:+"$SPAN"} \
             archive
 
       # 1.2.2 (docs/R1_2_2.md §4, §3.8): the signed app carries the entitlement, and iOS 17–18 can still launch it.
@@ -231,6 +289,33 @@ jobs:
           echo "archive: declared-age-range $ENT, DeclaredAgeRange $LINK"
           [ "$ENT" = "true" ] || { echo "::error::署名したアプリに年齢区分の権限が入っていません。"; exit 1; }
           [ "$LINK" = "weak" ] || { echo "::error::DeclaredAgeRange が弱いリンクになっていません（iOS 17〜18 で起動できなくなる）。project.yml の OTHER_LDFLAGS を見てください。"; exit 1; }
+
+      # 1.3 (docs/M7C_CONTRACT.md §4.6, §12.2 S3): only with span_prototype "1". The prototype's types
+      # (Span/SpanPrototype*.swift) are in the signed app only when SPAN_PROTOTYPE reached the compiler; the version
+      # and the build number (the run number) go into the run's summary for docs/M7C.md (the build that is submitted
+      # as 1.3 must not be this one, and this one expires only after the next normal build is VALID).
+      - name: Check the prototype archive (1.3)
+        if: ${{ github.event.inputs.span_prototype == '1' }}
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/TegakiCalendar.xcarchive/Products/Applications/TegakiCalendar.app"
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")"
+          BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")"
+          if LC_ALL=C grep -q -a 'SpanPrototype' "$APP/TegakiCalendar"; then PROTO=in; else PROTO=missing; fi
+          echo "prototype archive: version $VERSION, build $BUILD, SpanPrototype $PROTO"
+          [ "$BUILD" = "$RUN_NUMBER" ] || { echo "::error::ビルド番号 $BUILD が run の番号 $RUN_NUMBER と違います。"; exit 1; }
+          [ "$PROTO" = "in" ] || { echo "::error::署名したアプリに試作（SpanPrototype）が入っていません。SPAN_PROTOTYPE が効いていません。"; exit 1; }
+          {
+            echo "### 試作のビルド（1.3、span_prototype）"
+            echo ""
+            echo "- 版 **$VERSION**、ビルド **$BUILD**（この run の番号）。TestFlight の内部テストだけ。審査に出さない。"
+            echo "- commit \`$(git rev-parse HEAD)\`"
+            echo "- 43fe366 の DATA_1_1.sha256 で凍結の 18 ファイル OK・TESTS_1_2_3 OK・tools/span/prototype_gate.py OK・アーカイブに SpanPrototype あり"
+            echo "- docs/M7C.md にビルドの番号を書く。提出する 1.3 のビルドはこの番号でないこと。期限切れにするのは次のふつうのビルドが VALID になってから（§4.6）。"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::試作のビルド: 版 $VERSION ビルド $BUILD"
 
       - name: Export the .ipa
         env:
