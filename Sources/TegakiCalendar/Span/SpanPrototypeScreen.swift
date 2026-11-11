@@ -15,7 +15,8 @@ import UIKit
 // only into the prototype build (`SPAN_PROTOTYPE`); it goes away with the prototype (S6).
 // The band moves as §3.6 says (the canvas shifts the window at rest, flings to the next week, ◀ ▶ slide one
 // week, the palm's rule holds the pan), and the title follows the focus week (the page under the middle of
-// the screen, with the 6 % hysteresis).
+// the screen, with the 6 % hysteresis). 「線の数」 fills the prototype's pages with synthetic strokes, and the
+// measurements of §4.6 stand in a corner of the band (`SpanPrototypeMeter`, `SpanPrototypeHUD`).
 
 // MARK: - The row in 設定 › 情報
 
@@ -49,7 +50,17 @@ final class SpanPrototypeModel: ObservableObject {
     /// The page number under the middle of the screen as the canvas last reported it (§3.6; the title). nil:
     /// the session's focus (the window's middle page).
     @Published private(set) var focusIndex: Int?
+    /// The measurements of this opening (§4.6), started and stopped by the screen.
+    let meter = SpanPrototypeMeter()
+    /// 「線の数」: the synthetic strokes of the window (0: only what was written in the prototype).
+    @Published private(set) var strokeTotal = 0
+    /// While 「線の数」 writes the pages: how far it got (the band is taken away meanwhile).
+    @Published private(set) var fillProgress: SpanPrototypeSession.FillProgress?
+    /// The measurements stand in a corner of the band.
+    @Published var showsMeasurements = true
     private(set) var isClosed = false
+    /// The last size `screenChanged` was told of (a size that came while 「線の数」 wrote is taken after it).
+    private var lastScreen: (size: CGSize, isPad: Bool)?
 
     init(environment: SpanPrototypeEnvironment, weekStart: WeekStart, now: Date, holidays: HolidayCalendar, events: [LayoutEvent]) {
         self.environment = environment
@@ -68,13 +79,15 @@ final class SpanPrototypeModel: ObservableObject {
     /// composes its window again (`rebuildWindow`, which saves the pages that leave first).
     func screenChanged(_ size: CGSize, isPad: Bool) {
         guard !isClosed, size.width > 0, size.height > 0 else { return }
+        lastScreen = (size, isPad)
         let device = Self.device(for: size, isPad: isPad)
         guard let session else {
             session = SpanPrototypeSession(sync: environment.sync, weekStart: weekStart, focus: DayKey(now),
                                            deviceClass: device.deviceClass, orientation: device.orientation,
-                                           now: now, holidays: holidays, events: events)
+                                           now: now, holidays: holidays, events: events, meter: meter)
             return
         }
+        guard !session.isFilling else { return }
         guard session.plan.deviceClass != device.deviceClass || session.plan.orientation != device.orientation else { return }
         session.rebuildWindow(plan: SpanPlan(kind: .week, weekStart: weekStart, deviceClass: device.deviceClass,
                                              orientation: device.orientation))
@@ -99,6 +112,29 @@ final class SpanPrototypeModel: ObservableObject {
         return session?.shift(toFocusIndex: index)
     }
 
+    /// 「線の数」 (§4.6 ④): the band is taken away (its last deltas reach the session), then the session fills
+    /// the pages with `total` synthetic strokes over the window (0: takes them out) and reads the window again;
+    /// the measurements start afresh. Nothing while it is filling.
+    func setStrokeTotal(_ total: Int) {
+        guard !isClosed, let session, fillProgress == nil, !session.isFilling, total != strokeTotal else { return }
+        strokeTotal = total
+        meter.reset()
+        fillProgress = SpanPrototypeSession.FillProgress(done: 0, total: 0)
+        Task { @MainActor [weak self] in
+            // A moment for SwiftUI to take the band away (its canvas hands its last deltas to the inbox).
+            try? await Task.sleep(for: .milliseconds(100))
+            guard let self, !self.isClosed, let session = self.session else { return }
+            await session.fill(windowTotal: total) { [weak self] progress in
+                self?.fillProgress = progress
+            }
+            self.focusIndex = nil
+            self.fillProgress = nil
+            if let screen = self.lastScreen {
+                self.screenChanged(screen.size, isPad: screen.isPad)
+            }
+        }
+    }
+
     /// Saves what is waiting (the app went to the background, the pen rests).
     func saveNow() {
         session?.saveAll()
@@ -108,6 +144,7 @@ final class SpanPrototypeModel: ObservableObject {
     func close() {
         guard !isClosed else { return }
         isClosed = true
+        meter.stop()
         session?.close()
         environment.discard()
     }
@@ -164,33 +201,56 @@ struct SpanPrototypeScreen: View {
                     .padding(.horizontal, 12)
                     .padding(.bottom, 6)
                 Divider()
-                if let session = model.session {
-                    SpanPrototypeWindowView(
-                        session: session,
-                        model: model,
-                        tool: tool,
-                        allowFinger: allowFinger,
-                        undoTrigger: undoTrigger,
-                        redoTrigger: redoTrigger,
-                        pageStep: pageStep,
-                        pageStepTrigger: pageStepTrigger,
-                        onHistoryChanged: { undo, redo in
-                            canUndo = undo
-                            canRedo = redo
-                        }
-                    )
-                } else {
-                    Color(uiColor: InkCanvasContainerView.deskColor)
+                ZStack(alignment: .bottomLeading) {
+                    content
+                    if model.showsMeasurements {
+                        SpanPrototypeHUD(meter: model.meter)
+                    }
                 }
             }
             .onAppear { model.screenChanged(proxy.size, isPad: isPad) }
             .onChange(of: proxy.size) { model.screenChanged(proxy.size, isPad: isPad) }
         }
         .background(Color(uiColor: .systemBackground))
+        .onAppear { model.meter.start() }
         .onChange(of: scenePhase) {
             if scenePhase != .active { model.saveNow() }
         }
         .onDisappear { model.close() }
+    }
+
+    /// The band, or the progress of 「線の数」 while it writes the pages.
+    @ViewBuilder
+    private var content: some View {
+        if let progress = model.fillProgress {
+            VStack(spacing: 12) {
+                ProgressView(value: Double(progress.done), total: Double(max(1, progress.total)))
+                    .frame(maxWidth: 320)
+                Text(L.format("prototype.span.preparing", L.count(progress.done), L.count(progress.total)))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(uiColor: InkCanvasContainerView.deskColor))
+        } else if let session = model.session {
+            SpanPrototypeWindowView(
+                session: session,
+                model: model,
+                tool: tool,
+                allowFinger: allowFinger,
+                undoTrigger: undoTrigger,
+                redoTrigger: redoTrigger,
+                pageStep: pageStep,
+                pageStepTrigger: pageStepTrigger,
+                onHistoryChanged: { undo, redo in
+                    canUndo = undo
+                    canRedo = redo
+                }
+            )
+        } else {
+            Color(uiColor: InkCanvasContainerView.deskColor)
+        }
     }
 
     private var title: String {
@@ -277,7 +337,35 @@ struct SpanPrototypeScreen: View {
             .toggleStyle(.button)
             .accessibilityLabel(L.text("toolbar.fingerToggle"))
             Spacer(minLength: 8)
+            countMenu
+            optionsMenu
         }
+    }
+
+    /// 「線の数」 (§4.6 ④): only what was written in the prototype, or a window of 2,500, 10,000 or 25,000.
+    private var countMenu: some View {
+        Menu {
+            Picker(L.text("prototype.span.count"), selection: Binding(get: { model.strokeTotal }, set: { model.setStrokeTotal($0) })) {
+                Text(L.text("prototype.span.count.none")).tag(0)
+                ForEach(SpanPrototypeSynthetic.counts, id: \.self) { total in
+                    Text(L.format("prototype.span.count.value", L.count(total))).tag(total)
+                }
+            }
+        } label: {
+            Text(L.text("prototype.span.count"))
+                .font(.body)
+        }
+        .disabled(model.fillProgress != nil)
+    }
+
+    /// The prototype's settings.
+    private var optionsMenu: some View {
+        Menu {
+            Toggle(L.text("prototype.span.hud.show"), isOn: $model.showsMeasurements)
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+        }
+        .accessibilityLabel(L.text("prototype.span.options"))
     }
 }
 
@@ -322,7 +410,8 @@ struct SpanPrototypeWindowView: View {
             pageStep: pageStep,
             pageStepTrigger: pageStepTrigger,
             onFocusChange: { [weak model] index in model?.focusChanged(index) },
-            onShift: { [weak model] index in model?.shift(toFocusIndex: index) }
+            onShift: { [weak model] index in model?.shift(toFocusIndex: index) },
+            meter: model.meter
         )
         .id(session.layout.pageId)
     }

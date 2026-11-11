@@ -4,6 +4,7 @@ import Foundation
 import Holidays
 import InkModel
 import Layout
+import QuartzCore
 
 // The prototype's window of joined pages and where it keeps them (1.3, docs/M7C_CONTRACT.md §4.6, D12,
 // D13, §3.4, §3.5): the inbox the canvas hands its deltas to, the folder and the engine of the
@@ -175,14 +176,19 @@ final class SpanPrototypeSession: ObservableObject {
 
     private let sleep: @MainActor (TimeInterval) async -> Void
     private var saveGeneration = 0
+    /// Where the page reads and the window's stroke count go (§4.6 測ること); nil in the tests.
+    private weak var meter: SpanPrototypeMeter?
+    /// 「線の数」 is filling the pages (`fill`): nothing else may write them meanwhile.
+    private(set) var isFilling = false
 
     /// Opens the window around `focus` for `deviceClass` and `orientation`: reads each page's
     /// "proto-<id>" file through `sync` (an empty page when there is none), `BandMigration` per page
     /// (a page it changed is saved, as the app's `show` does), and composes the window.
     init(sync: SyncEngine, weekStart: WeekStart, focus: DayKey, deviceClass: SpanDeviceClass, orientation: SpanOrientation,
-         now: Date, holidays: HolidayCalendar, events: [LayoutEvent], number: Int = 1,
+         now: Date, holidays: HolidayCalendar, events: [LayoutEvent], number: Int = 1, meter: SpanPrototypeMeter? = nil,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }) {
         self.sync = sync
+        self.meter = meter
         self.weekStart = weekStart
         self.number = number
         self.now = now
@@ -221,12 +227,20 @@ final class SpanPrototypeSession: ObservableObject {
     // MARK: Reading and composing
 
     /// The real page `pageId` from its "proto-<id>" file (`sync.load`: the engine's store, never started),
-    /// with its real id, migrated (dirty when that changed it).
+    /// with its real id, migrated (dirty when that changed it). The read is timed for the meter (D6: one page
+    /// on the main thread, its target 16 ms).
     private func loadSlot(_ pageId: String) -> Slot {
+        let started = CACurrentMediaTime()
         var page = sync.load(Self.fileId(pageId))
         page.pageId = pageId
         let migrated = BandMigration.migrate(page)
+        meter?.recordLoad(seconds: CACurrentMediaTime() - started, strokes: migrated.liveStrokeCount)
         return Slot(page: migrated, dirty: migrated != page)
+    }
+
+    /// The live strokes of the window's pages.
+    var windowStrokeCount: Int {
+        pageIds.reduce(0) { $0 + (slots[$1]?.page.liveStrokeCount ?? 0) }
     }
 
     /// The window from the slots (`SpanComposer.compose` with the session's aliases) and its layout and
@@ -251,6 +265,7 @@ final class SpanPrototypeSession: ObservableObject {
         layout = SpanLayout(pages: layouts, plan: plan, firstIndex: firstIndex, session: number)
         papers = contents
         windowVersion += 1
+        meter?.recordWindowStrokes(windowStrokeCount)
         for id in composed.skippedPageIds {
             fault("compose: \(id) left out of the window")
         }
@@ -436,6 +451,71 @@ final class SpanPrototypeSession: ObservableObject {
     func shift(toFocusIndex index: Int) -> SpanPrototypeWindowState? {
         guard rebuildWindow(focusIndex: index) else { return nil }
         return windowState
+    }
+
+    // MARK: 「線の数」 (§4.6 測ること)
+
+    /// How far 「線の数」 has got: pages written and pages to write.
+    struct FillProgress: Equatable {
+        var done: Int
+        var total: Int
+    }
+
+    /// Fills the window's pages, and one window radius of pages beyond each side (so a fling or two still
+    /// finds full pages), with `windowTotal` ÷ the window's pages synthetic strokes each
+    /// (`SpanPrototypeSynthetic`; 0 takes them all out): what was written in the prototype is saved first and
+    /// stays (a page that could not be saved is left as it is). Each page is written as "proto-<id>" through
+    /// the prototype's guard, straight to the prototype's store (the engine's save would merge the old
+    /// synthetic strokes back in), the window's pages first, one per turn (`progress` after each). Then the
+    /// window's pages are read again from their files (the reads the meter times) and the window composed
+    /// again. The caller takes the canvas away first (its last deltas then reach `saveAll` here). false when
+    /// the session is closed or already filling.
+    @discardableResult
+    func fill(windowTotal: Int, progress: @escaping @MainActor (FillProgress) -> Void = { _ in }) async -> Bool {
+        guard !isClosed, !isFilling else { return false }
+        isFilling = true
+        defer { isFilling = false }
+        let unsaved = Set(saveAll())
+        let radius = plan.radius
+        let perPage = windowTotal > 0 ? (windowTotal + pageIds.count - 1) / max(1, pageIds.count) : 0
+        let reach = (focusIndex - 2 * radius)...(focusIndex + 2 * radius)
+        let order = reach.sorted { abs($0 - focusIndex) < abs($1 - focusIndex) || (abs($0 - focusIndex) == abs($1 - focusIndex) && $0 < $1) }
+        progress(FillProgress(done: 0, total: order.count))
+        for (done, index) in order.enumerated() {
+            guard !isClosed else { return false }
+            let id = plan.pageId(at: index)
+            guard !unsaved.contains(id) else {
+                record("fill skipped \(Self.fileId(id)): not saved")
+                continue
+            }
+            let synthetic = SpanPrototypeSynthetic.strokes(pageId: id, count: perPage, tag: windowTotal)
+            var page = SpanPrototypeSynthetic.replacing(sync.load(Self.fileId(id)), with: synthetic)
+            page.pageId = Self.fileId(id)
+            switch SpanGuard.checkForSave(page, added: Set(synthetic.map(\.id)), mode: .prototype) {
+            case .ok:
+                break
+            case .repaired(let repaired, let stripped, let dropped):
+                record("fill repaired \(page.pageId): stripped \(stripped.count), dropped \(dropped.count)")
+                page = repaired
+            case .refused:
+                record("fill refused \(page.pageId)")
+                continue
+            }
+            do {
+                try sync.store.save(page)
+            } catch {
+                record("fill failed \(page.pageId): \(error)")
+            }
+            progress(FillProgress(done: done + 1, total: order.count))
+            // A moment for the screen to show the progress.
+            await sleep(0.01)
+        }
+        guard !isClosed else { return false }
+        for id in pageIds where !unsaved.contains(id) {
+            slots[id] = loadSlot(id)
+        }
+        compose()
+        return true
     }
 
     // MARK: Records

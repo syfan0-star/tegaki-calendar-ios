@@ -257,6 +257,9 @@ struct SpanPrototypeCanvas: UIViewRepresentable {
     var onDragBegin: () -> Void = {}
     /// The watch's sleep (§3.6, §3.16: 0.5 s; the tests may pass their own).
     var watchSleep: @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
+    /// Where the canvas's measurements go (§4.6 測ること: the window swaps, the main thread's work when the pen
+    /// lifts, the eraser's changes, the palm's held pans, the touches' size, the releases' speed); nil: none.
+    var meter: SpanPrototypeMeter? = nil
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -805,7 +808,10 @@ extension SpanPrototypeCanvas {
             // M5 (M5_CONTRACT §3.1): after `tool` (its didSet sets this from the tool alone).
             overlay.isUserInteractionEnabled = parent.tool.isOverlayTool && !parent.readOnly
 
+            // §4.6: the first drawing of a window is a swap too (after 「線の数」 the band is made anew).
+            let drawStarted = CACurrentMediaTime()
             setDrawing(ledger.drawing(), on: canvas)
+            parent.meter?.recordSwap(seconds: CACurrentMediaTime() - drawStarted, sessionSeconds: nil, drift: nil, startedAt: drawStarted)
             canvas.contentSize = appliedLayout.size // zoom 1 until the first layout pass
             syncPaperFrame()
             InkTrace.note("A:\(appliedLayout.kind.rawValue)")
@@ -1661,8 +1667,10 @@ extension SpanPrototypeCanvas {
             isShifting = false
             updateFocus()
             shiftCount += 1
-            lastShift = ShiftRecord(seconds: CACurrentMediaTime() - started, sessionSeconds: composed - started,
-                                    drift: screenX(ofPage: index) - before, zoom: canvas.zoomScale)
+            let record = ShiftRecord(seconds: CACurrentMediaTime() - started, sessionSeconds: composed - started,
+                                     drift: screenX(ofPage: index) - before, zoom: canvas.zoomScale)
+            lastShift = record
+            parent.meter?.recordSwap(seconds: record.seconds, sessionSeconds: record.sessionSeconds, drift: record.drift, startedAt: started)
             probeNote("Z\(state.layout.firstIndex - oldFirst)")
         }
 
@@ -1720,6 +1728,7 @@ extension SpanPrototypeCanvas {
             let may = SpanPrototypePalm.horizontalPanMayBegin(pencilsDown: pencilsDown, lastPencilUp: lastPencilUp, now: now())
             if !may {
                 refusedPans += 1
+                parent.meter?.recordPalmRefused()
                 probeNote("P")
             }
             return may
@@ -2028,6 +2037,10 @@ extension SpanPrototypeCanvas {
         /// single tap's finger is timed (`tapTouchBeganAt`) to tell whether the eraser's last touch
         /// was this tap.
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            // §4.6 (§3.6's 【推論】 on large contacts): the size of every finger touch on the paper.
+            if gestureRecognizer === touchObserver, touch.type == .direct {
+                parent.meter?.recordTouch(radius: touch.majorRadius)
+            }
             guard gestureRecognizer === tapRecognizer || gestureRecognizer === doubleTapRecognizer else { return true }
             let direct = touch.type == .direct
             if direct, gestureRecognizer === tapRecognizer {
@@ -2253,7 +2266,13 @@ extension SpanPrototypeCanvas {
         /// strokes added remembered as dot candidates → ⑤ the 15,000 notice → ⑥ the eraser's count →
         /// ⑦ the relayout request and the cap notice.
         func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+            // §4.6: the main thread's work for the change the pen's lift brought (`drawing.strokes` included).
+            let started = CACurrentMediaTime()
+            let compared = !isApplyingDrawing && !isMovingSelection && !resetScroll && !isShifting
             applyCanvasDrawing(canvasView)
+            if compared {
+                parent.meter?.recordPenLift(seconds: CACurrentMediaTime() - started)
+            }
         }
 
         /// `canvasViewDrawingDidChange`'s work; true when the ledger changed (1.1 fix: the end of the
@@ -2315,6 +2334,9 @@ extension SpanPrototypeCanvas {
             // while the tool is the eraser — before PencilKit's Begin, after its End and the settle wait,
             // or with no Begin at all — and by what it removed beyond what it added (PencilKit may
             // hand back a stroke it touched as a new one). Only a pure erasure is the touch's own (0-22).
+            if parent.tool.isEraser, !change.removedIds.isEmpty {
+                parent.meter?.recordEraserChange(removed: change.removedIds.count)
+            }
             let erasedNow = change.removedIds.count - change.added.count
             if parent.tool.isEraser, !parent.readOnly, erasedNow > 0 {
                 erasedSinceReport += erasedNow
@@ -2454,6 +2476,7 @@ extension SpanPrototypeCanvas {
             guard let canvas, let container else { return }
             let startX = dragStartX ?? canvas.contentOffset.x
             dragStartX = nil
+            parent.meter?.recordRelease(velocity: velocity.x)
             guard velocity.x != 0 || abs(canvas.contentOffset.x - startX) >= 0.5 else { return }
             let zoom = max(canvas.zoomScale, 0.0001)
             let proposed = targetContentOffset.pointee
