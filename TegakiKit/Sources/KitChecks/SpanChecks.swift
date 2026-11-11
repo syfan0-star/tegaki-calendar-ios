@@ -84,7 +84,7 @@ enum SpanFixtures {
         }
     }
 
-    /// A window of `pages` whose slot 0 is page `firstId` of `plan`.
+    /// A window of `pages` of `plan`; its first index is the number of the first page's id.
     static func window(_ pages: [any PageLayout], plan: SpanPlan, session: Int = 0, viewOnly: Set<String> = []) -> SpanLayout {
         SpanLayout(pages: pages, plan: plan, firstIndex: pages.first.flatMap { plan.index(of: $0.pageId) } ?? 0, session: session, viewOnly: viewOnly)
     }
