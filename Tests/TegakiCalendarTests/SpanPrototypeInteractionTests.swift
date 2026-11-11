@@ -318,6 +318,8 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         let filled = await session.fill(windowTotal: 500)
         XCTAssertTrue(filled)
         XCTAssertEqual(session.windowStrokeCount, 501)
+        XCTAssertEqual(session.inbox.latestWindow, session.window,
+                       "the safety net's source is the filled window, not the last canvas's (it would merge the old set back)")
         for id in session.pageIds {
             let page = try XCTUnwrap(session.slots[id]?.page)
             XCTAssertEqual(page.liveStrokes.filter { SpanPrototypeSynthetic.isSynthetic($0.id) }.count, 100, id)
@@ -331,6 +333,10 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         XCTAssertTrue(emptied)
         XCTAssertEqual(session.windowStrokeCount, 1)
         XCTAssertEqual(store.load("proto-" + session.pageIds[session.focusSlot]).liveStrokeCount, 1)
+        let faults = session.faultCount
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(session.faultCount, faults, "the safety net recovered nothing")
+        XCTAssertEqual(session.windowStrokeCount, 1, "the synthetic strokes stay out")
     }
 
     /// The meter keeps the last value and the largest since a reset, the session's part of a swap, the longest

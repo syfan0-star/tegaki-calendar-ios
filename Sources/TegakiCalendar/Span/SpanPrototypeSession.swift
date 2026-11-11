@@ -564,6 +564,9 @@ final class SpanPrototypeSession: ObservableObject {
             slots[id] = loadSlot(id)
         }
         compose()
+        // The safety net's source is this window now: the last canvas's (taken away before the fill) still
+        // holds the strokes the fill took out, and merging it would bring them back (§3.4 (c)).
+        inbox.put([], unrouted: [], window: window)
         return true
     }
 

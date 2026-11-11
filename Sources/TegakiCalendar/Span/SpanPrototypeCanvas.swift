@@ -840,6 +840,9 @@ extension SpanPrototypeCanvas {
             canvas.contentSize = appliedLayout.size // zoom 1 until the first layout pass
             syncPaperFrame()
             InkTrace.note("A:\(appliedLayout.kind.rawValue)")
+            // §3.4 (c): the window this canvas starts from is the safety net's source from now on (a canvas made
+            // anew after the pages changed without one, 「線の数」, must not leave an older window there).
+            publishDeltas()
 
         }
 
