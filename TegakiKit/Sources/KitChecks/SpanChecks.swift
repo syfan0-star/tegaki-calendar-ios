@@ -21,8 +21,8 @@ import Layout
 enum SpanFixtures {
     /// Names that exist in real data (§10.1): page ids (a Sunday week too), cells, the old band cells,
     /// names a later version may use, stroke ids of the web version ("~w1") and of the app, ids with a
-    /// "|" that is not a page prefix (an import, a hand-edited JSON, an unknown tool). None of them is
-    /// prefixed or virtual.
+    /// "|" that is not a page prefix (an import, a hand-edited JSON, an unknown tool), ids holding "span~"
+    /// after their start (a web id may end in "…span~w1"). None of them is prefixed or virtual.
     static let realNames: [String] = [
         "d-2026-11-02", "w-2026-11-02", "w-2026-11-01", "m1-2026-11", "y-2026",
         "grid", "extra", "memo", "2026-11-02", "01-20", "02-30", "allday", "allday:2026-11-02",
@@ -30,16 +30,17 @@ enum SpanFixtures {
         "8F14E45F-CEEA-467A-9E0E-5C0C1A9B6E0F", "k3j2h1~w1", "s1~w1", "abc~", "~w1",
         "abc|def", "|grid", "grid|", "w-2026|x", "d-2026-11-2|x", "w-2026-11-02x|y", "m1-2026-1|x",
         "y-26|x", "W-2026-11-02|x", "w-\u{FF12}\u{FF10}\u{FF12}\u{FF16}-11-02|x", "xw-2026-11-02|grid",
-        "photo|img", "text|1", "span", "span-week-1", "spa~n",
+        "photo|img", "text|1", "span", "span-week-1", "spa~n", "xspan~1", "abc|span~1", "k3span~w1",
         String(repeating: "a", count: 128),
     ]
 
     /// The real page ids the prefixed names are made with.
     static let pageIds = ["d-2026-11-02", "w-2026-11-02", "w-2026-11-01", "m1-2026-11", "y-2026", "w-1969-12-29"]
 
-    /// The local parts the prefixed names are made with (a local part may hold a "|" of its own).
+    /// The local parts the prefixed names are made with (a local part may hold a "|" of its own, or be a
+    /// prefixed name itself: then the whole name is prefixed twice).
     static let locals = ["grid", "extra", "memo", "2026-11-02", "01-20", "8F14E45F-CEEA-467A-9E0E-5C0C1A9B6E0F",
-                         "k3j2h1~w1", "a|b", "", "span~a~3", "allday:2026-11-02"]
+                         "k3j2h1~w1", "a|b", "", "span~a~3", "allday:2026-11-02", "w-2026-11-09|grid", "w-2026-11-02|x"]
 
     /// Every page id × every local part, joined by hand.
     static var prefixedNames: [(name: String, page: String, local: String)] {
@@ -446,13 +447,18 @@ func spanShiftAndFlingChecks() {
     check(week.shiftAmount(pages: 1, zoom: .nan) == 0 && week.shiftAmount(pages: 1, zoom: 0) == 0 && week.shiftAmount(pages: 1, zoom: -1) == 0,
           "span shift: a zoom that is not finite or not positive gives 0")
 
-    // The fling (P-B5 ア): 11-inch portrait week, 834 pt wide, zoom 0.4974 → a page is 696.36 pt and
-    // page k is centred at offset (k + 0.5) × 696.36 − 417.
+    // The fling (P-B5 ア): 11-inch portrait week, 834 pt wide, zoom 0.4974 → a page is 696.36 pt. A fling
+    // goes to the neighbour page centred, at offset (k + 0.5) × 696.36 − 417. A slow stop snaps when a page
+    // edge is within 6 % of the screen's width (50.04 pt) of a screen edge (§3.6, B_DESIGN.md:276): page k's
+    // left edge on the screen's left edge is the offset k × 696.36 (`leftEdge`), its right edge on the
+    // screen's right edge (k + 1) × 696.36 − 834 (`rightEdge`). A centred page is 68.82 pt from both.
     checkEqual(SpanPlan.snapFraction, 0.06, "span fling: the snap distance is 6 % of the screen's width")
     checkEqual(SpanPlan.flingVelocity, 0.3, "span fling: a fling is 0.3 pt/ms or faster")
     let z: CGFloat = 0.4974
     let page: CGFloat = 1400 * 0.4974
     func centred(_ k: CGFloat) -> CGFloat { (k + 0.5) * page - 417 }
+    func leftEdge(_ k: CGFloat) -> CGFloat { k * page }
+    func rightEdge(_ k: CGFloat) -> CGFloat { (k + 1) * page - 834 }
     func near(_ a: CGFloat, _ b: CGFloat) -> Bool { abs(a - b) < 1e-6 }
     let flings: [(String, CGFloat, CGFloat, CGFloat?, CGFloat)] = [
         ("fast right from page 2", centred(2), 1.2, nil, centred(3)),
@@ -461,12 +467,17 @@ func spanShiftAndFlingChecks() {
         ("fast left from 0.3 past page 2", centred(2) + 0.3 * page, -2, nil, centred(2)),
         ("fast right at exactly 0.3 pt/ms", centred(2), 0.3, nil, centred(3)),
         ("fast right with UIKit proposing 5 pages on", centred(2), 4, centred(7), centred(3)),
-        ("slow at 0.2999 pt/ms, 6 % right of page 2 (50.04 pt)", centred(2) + 50.04, 0.2999, nil, centred(2)),
-        ("slow 6 % left of page 2", centred(2) - 50.04, 0, nil, centred(2)),
-        ("slow 50.54 pt right of page 2 stays", centred(2) + 50.54, 0, nil, centred(2) + 50.54),
-        ("slow, UIKit stops 30 pt past page 2", centred(2), 0.1, centred(2) + 30, centred(2)),
-        ("slow, UIKit stops 200 pt past page 2", centred(2), 0.1, centred(2) + 200, centred(2) + 200),
+        ("slow at 0.2999 pt/ms, page 2's left edge 30 pt left of the screen's (1422.72)", leftEdge(2) + 30, 0.2999, nil, leftEdge(2)),
+        ("slow, page 2's left edge 23.8 pt inside the screen's left edge (1368.92)", leftEdge(2) - 23.8, 0, nil, leftEdge(2)),
+        ("slow, page 2's right edge 20 pt inside the screen's right edge (1275.08)", rightEdge(2) + 20, 0, nil, rightEdge(2)),
+        ("slow, page 2's right edge 20 pt past the screen's right edge", rightEdge(2) - 20, 0, nil, rightEdge(2)),
+        ("slow, page 2's left edge exactly 6 % (50.04 pt) left of the screen's", leftEdge(2) + 50.04, 0, nil, leftEdge(2)),
+        ("slow, page 2's left edge 50.54 pt left of the screen's stays", leftEdge(2) + 50.54, 0, nil, leftEdge(2) + 50.54),
+        ("slow with page 2 centred stays (68.82 pt from both edges)", centred(2), 0, nil, centred(2)),
+        ("slow, UIKit stops with page 2's left edge 30 pt out", centred(2), 0.1, leftEdge(2) + 30, leftEdge(2)),
+        ("slow, UIKit stops 200 pt past page 2's left edge", centred(2), 0.1, leftEdge(2) + 200, leftEdge(2) + 200),
         ("slow in the middle of two pages stays", centred(2) + page / 2, 0, nil, centred(2) + page / 2),
+        ("slow 30 pt into the window's first page snaps to its start", 30, 0, nil, 0),
     ]
     for (name, offset, velocity, proposed, expected) in flings {
         let target = week.flingTarget(offsetX: offset, velocity: velocity, zoom: z, viewportWidth: 834, proposedX: proposed)
@@ -483,6 +494,12 @@ func spanShiftAndFlingChecks() {
         let target = week.flingTarget(offsetX: offset, velocity: velocity, zoom: 2, viewportWidth: 834, proposedX: proposed)
         check(near(target, expected), "span fling: \(name) → \(expected) (got \(target))")
     }
+    // Many pages on the screen (a day of 200 pt in 834 pt, 4.17 pages): a slow stop snaps page 7's right edge
+    // onto the screen's right edge (offset 8 × 200 − 834 = 766), page 4's left edge onto its left edge.
+    check(near(dayPlan.flingTarget(offsetX: 771, velocity: 0, zoom: 0.2, viewportWidth: 834), 766)
+          && near(dayPlan.flingTarget(offsetX: 812, velocity: 0, zoom: 0.2, viewportWidth: 834), 800)
+          && near(dayPlan.flingTarget(offsetX: 883, velocity: 0, zoom: 0.2, viewportWidth: 834), 883),
+          "span fling: with 4.17 pages on the screen the right edge 5 pt off snaps (771 → 766), the left 12 pt off snaps (812 → 800), 83 pt from both stays")
     // The plan's own width when none is given (iPhone portrait 402 pt, zoom 0.2812: a page of 393.68 pt).
     let phone = SpanFixtures.plan(.week, .monday, .iPhone, .portrait)
     let phonePage: CGFloat = 1400 * 0.2812
@@ -1013,6 +1030,18 @@ func spanDayWindowChecks() {
     check(!window(deep, days: [13, 14, 15].map(SpanFixtures.october)).onlyTailHeightChanged(from: old), "span day: a shifted window: false")
     check(!window([SpanFixtures.october(13): 100], events: [timed("x", 13, 9, 0, 10, 0)]).onlyTailHeightChanged(from: old),
           "span day: only the events changed (no cell moved): false")
+
+    // Pages of different heights (no floor): the window is as tall as its tallest page, the bands are the
+    // middle page's (here the tallest: the first page ends at 8400), and the same pages in another session
+    // (another virtual id) are no tail-only change.
+    let uneven = window(deep)
+    check(uneven.pages.map(\.size.height) == [8400, 9400, 8400] && uneven.size.height == 9400,
+          "span day: without a floor the window is as tall as its tallest page (9400, the middle one), not its first")
+    check(uneven.band(atY: 2400 + 6500) == .extra && uneven.bandTop(.extra) == 2400 && uneven.pages[0].band(atY: 2400 + 6500) == nil,
+          "span day: band(atY:) is the middle page's (its free memo at y 8900, below the first page's end)")
+    let otherSession = SpanLayout(pages: uneven.pages, plan: plan, firstIndex: uneven.firstIndex, session: 1)
+    check(uneven.onlyTailHeightChanged(from: old) && !otherSession.onlyTailHeightChanged(from: old),
+          "span day: the same tail change in another session is no tail-only change")
 }
 
 // MARK: - SpanLayout: every question goes to the page under the point (random points)

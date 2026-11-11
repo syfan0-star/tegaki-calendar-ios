@@ -1,6 +1,6 @@
 import Foundation
 import CoreGraphics
-import InkModel
+@_spi(SpanLedger) import InkModel
 import Layout
 import CompatFixtures
 

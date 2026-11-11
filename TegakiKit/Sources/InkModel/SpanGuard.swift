@@ -24,6 +24,10 @@ import Foundation
 public enum SpanGuard {
     /// `.release`: the app. `.prototype`: the prototype of §4.6 (`SPAN_PROTOTYPE`), whose pages are
     /// "proto-<page id>" and live in a folder of their own; it refuses every real page id (D13, §4.6 (a)).
+    /// `SpanPlan`, `SpanComposer` and `SpanLayout` read only real page ids, so the prototype composes its
+    /// window with them and its slot saves each page as "proto-<id>": on the page "proto-<id>" the
+    /// window's names of "<id>" are the page's own (stripped, as "proto-<id>|…" is); every other page's
+    /// prefix, real or "proto-", is dropped.
     public enum Mode: Sendable {
         case release, prototype
     }
@@ -94,11 +98,18 @@ public enum SpanGuard {
         case drop
     }
 
+    /// Is `prefixPage` (the page in front of a prefixed name) the own prefix of page `pageId`? The page id
+    /// itself; in `.prototype` also the real id of a "proto-<id>" page, whose window was composed with it.
+    static func isOwnPrefix(_ prefixPage: String, of pageId: String, mode: Mode) -> Bool {
+        if prefixPage == pageId { return true }
+        return mode == .prototype && pageId.hasPrefix(prototypePrefix) && prefixPage == String(pageId.dropFirst(prototypePrefix.count))
+    }
+
     /// One name of an item of page `pageId`: kept, stripped of the page's own prefix, or dropped (another
     /// page's prefix, "span~", or a stripped name that is still a window name or empty).
     static func verdict(_ name: String, pageId: String, mode: Mode) -> Verdict {
         if let parts = prefixParts(name, mode: mode) {
-            guard parts.page == pageId, !parts.local.isEmpty, !SpanName.isVirtual(parts.local),
+            guard isOwnPrefix(parts.page, of: pageId, mode: mode), !parts.local.isEmpty, !SpanName.isVirtual(parts.local),
                   prefixParts(parts.local, mode: mode) == nil else { return .drop }
             return .strip(parts.local)
         }

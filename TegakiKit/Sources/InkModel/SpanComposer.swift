@@ -15,6 +15,12 @@ import CoreGraphics
 // (they are not drawn; only their keys are prefixed), so they come back byte for byte. Points are never
 // touched: a point outside the paper (within InkPoint's ±100,000 lu) stays as it is, relative to its
 // cell (§4.1).
+//
+// Everything goes back to its real page by its name alone (a prefix or an alias), added and removed
+// alike: a tombstone has no cell, so a stroke routed by its cell could not be erased again. The ledger
+// therefore makes every id of the joined path with `ownerId` ("<owner page>|<fresh id>": a new stroke,
+// the copies of the lasso's move and of ↶, §3.3 1); a name that tells no page reaches no real page and
+// `SpanComposer.unroutedNames` lists it for the session to record.
 
 /// What one step of the ledger did to the virtual page (§2.1, §3.3 2): the strokes it added and the ids
 /// it tombstoned, with the window's names (a prefixed id or an alias, a prefixed cell). The ledger records
@@ -118,13 +124,20 @@ public struct SpanAliases: Sendable, Equatable {
 /// out); the screen gets the real pages back only through `SpanComposer.deltas` and `extract`. `v`,
 /// `updatedAt` and the unknown top-level items of the real pages stay in the screen's `PageSlot`; the
 /// wrapper keeps each page's `v` and `updatedAt` only so `extract` gives them back.
+///
+/// The ledger edits an `InkPage`, so the page inside cannot be a type of its own. What keeps it from the
+/// ways out is twofold: `ledgerPage` is SPI (`@_spi(SpanLedger) import InkModel`), visible only in the
+/// files that name it (the ledger and the canvas), so the screen, the save, the export and the PDF do not
+/// see it at all; and `SpanGuard` refuses its page id at every way out at run time (the save, the import
+/// and the export, the PDF's page).
 public struct SpanVirtualPage: Sendable, Equatable {
     public let plan: SpanPlan
     public let session: Int
     /// The real page ids, left to right.
     public let pageIds: [String]
-    /// The page the ledger edits: the virtual id, every name prefixed (or aliased).
-    public let ledgerPage: InkPage
+    /// The page the ledger edits: the virtual id, every name prefixed (or aliased). SPI: only the files
+    /// that hand it to the ledger import it (see the type's note).
+    @_spi(SpanLedger) public let ledgerPage: InkPage
     public let aliases: SpanAliases
     /// The pages `BandMigration.migrate` changed while composing: the screen saves them (§3.2, as
     /// today's `show` does).
@@ -149,9 +162,8 @@ public struct SpanVirtualPage: Sendable, Equatable {
                                migratedPageIds: migratedPageIds, skippedPageIds: skippedPageIds, stamps: stamps)
     }
 
-    /// The real page and id of a stroke of the ledger's page: its id's page (prefix or alias), or, for an
-    /// id that is not a window name, the page of its prefixed cell (the stroke is kept, never lost). nil
-    /// when neither tells.
+    /// The real page and id of a stroke of the ledger's page, by its id alone (a prefix or an alias); nil
+    /// for an id that is no window name (such a stroke reaches no real page, `SpanComposer.unroutedNames`).
     public func owner(ofStroke stroke: InkStroke) -> (page: String, id: String)? {
         SpanComposer.route(stroke, aliases: aliases)
     }
@@ -184,6 +196,13 @@ public enum SpanComposer {
     /// merged into its first place. `session` is the number in the virtual id; `aliases` is the session's
     /// table so far (a shifted window keeps every alias). A stroke that is tombstoned on its own page is
     /// not carried (its page's JSON does not hold it either).
+    ///
+    /// A stored name that is itself virtual ("span~…": only in broken or foreign data, which the save
+    /// guard drops and the import refuses) stays out of the window. In it, it would be "<page>|span~…", a
+    /// name no delta and no safety net can take back to its page, and it could be the very alias a long
+    /// id of the same page gets ("<page>|span~a~<n>"): a stored tombstone "span~a~1" would erase that
+    /// stroke in the window, and the safety net would then tombstone it on its page. The page's slot
+    /// keeps the name; `SpanGuard.checkForSave` drops it at the save.
     public static func compose(_ pages: [InkPage], plan: SpanPlan, session: Int = 0, aliases: SpanAliases = .empty) -> SpanVirtualPage {
         var order: [String] = []
         var real: [String: InkPage] = [:]
@@ -211,16 +230,17 @@ public enum SpanComposer {
             let page = real[pageId]!
             stamps[pageId] = SpanVirtualPage.Stamp(v: page.v, updatedAt: page.updatedAt)
             ledger.updatedAt = max(ledger.updatedAt, page.updatedAt)
-            for key in page.deleted.keys.sorted() {
+            for key in page.deleted.keys.sorted() where !SpanName.isVirtual(key) {
                 ledger.deleted[table.windowName(of: key, page: pageId)] = page.deleted[key]!
             }
-            for key in page.strokes.keys.sorted() where page.deleted[key] == nil {
+            for key in page.strokes.keys.sorted() where page.deleted[key] == nil && !SpanName.isVirtual(key) {
                 var stroke = page.strokes[key]!
+                guard !SpanName.isVirtual(stroke.id) else { continue }
                 stroke.id = table.windowName(of: stroke.id, page: pageId)
                 stroke.cell = SpanName.prefixed(stroke.cell, page: pageId)
                 ledger.strokes[table.windowName(of: key, page: pageId)] = stroke
             }
-            for key in page.unknownStrokes.keys.sorted() where page.deleted[key] == nil {
+            for key in page.unknownStrokes.keys.sorted() where page.deleted[key] == nil && !SpanName.isVirtual(key) {
                 ledger.unknownStrokes[table.windowName(of: key, page: pageId)] = page.unknownStrokes[key]!
             }
         }
@@ -230,13 +250,14 @@ public enum SpanComposer {
 
     // MARK: Journal → deltas
 
-    /// (page, real id) of a stroke the ledger holds or added: by its id (prefix or alias); an id that is no
-    /// window name (and not virtual) goes to the page of its prefixed cell.
+    /// (page, real id) of a stroke the ledger holds or added, by its id alone: a prefix or an alias
+    /// (`SpanAliases.resolve`), the same rule as for a removed name. nil for an id that is no window name
+    /// (made with `makeId` where the joined path uses `ownerId`, §3.3 1), an alias the table does not know
+    /// or a virtual name. Such a stroke goes to no page, never to the page of its cell: its tombstone could
+    /// not follow it there (a removal has no cell), so the stroke would come back on its page after it was
+    /// erased, in the deltas and in the safety net alike.
     static func route(_ stroke: InkStroke, aliases: SpanAliases) -> (page: String, id: String)? {
-        if let owner = aliases.resolve(stroke.id) { return owner }
-        guard !SpanName.isPrefixed(stroke.id), !SpanName.isVirtual(stroke.id),
-              let cell = SpanName.split(stroke.cell.raw) else { return nil }
-        return (cell.page, stroke.id)
+        aliases.resolve(stroke.id)
     }
 
     /// The stroke with its real id and its page's own cell (the prefix of the cell is taken off whatever
@@ -251,9 +272,14 @@ public enum SpanComposer {
     /// One delta per real page per journal step, in the journal's order; within a step the pages that get
     /// strokes come first (the destination of a move before its source, D8), then the pages that only lose
     /// some. Every id is the real one: a prefix is taken off, an alias goes back to its real id through
-    /// `aliases` (the session's table, `SpanVirtualPage.aliases`). A name that tells no page (no prefix, not
-    /// in the table) or that is virtual is left out, so nothing of the window ever reaches a real page.
-    public static func deltas(from journal: [SpanJournalEntry], epoch: Int, aliases: SpanAliases = .empty) -> [PageDelta] {
+    /// `aliases`. A name that tells no page (an added id or a removed name with no prefix, not in the
+    /// table) or that is virtual is left out, so nothing of the window ever reaches a real page;
+    /// `unroutedNames` lists what was left out.
+    ///
+    /// `aliases` is the session's table (`SpanVirtualPage.aliases`) and has no default: given an empty
+    /// table by mistake, every alias (an id longer than 128 bytes with its prefix) would be left out, and
+    /// its erasing would reach its page only through the safety net (§3.2).
+    public static func deltas(from journal: [SpanJournalEntry], epoch: Int, aliases: SpanAliases) -> [PageDelta] {
         var out: [PageDelta] = []
         for entry in journal {
             var pages: [String] = []
@@ -278,6 +304,20 @@ public enum SpanComposer {
         return out
     }
 
+    /// The names of `journal` that `deltas` leaves out, in the journal's order: each added stroke's id and
+    /// each removed name that tells no page (§3.4 (d)). Empty when the ledger makes every id with `ownerId`
+    /// (§3.3 1) and the session's table is given. Anything else is a fault the session records (and stops
+    /// on in Debug): the stroke is on the screen, but neither a delta nor the safety net (`extract` routes
+    /// by the same names) takes it to a real page, so it is gone when the window is composed again.
+    public static func unroutedNames(in journal: [SpanJournalEntry], aliases: SpanAliases) -> [String] {
+        var out: [String] = []
+        for entry in journal {
+            for stroke in entry.added where route(stroke, aliases: aliases) == nil { out.append(stroke.id) }
+            for name in entry.removed where aliases.resolve(name) == nil { out.append(name) }
+        }
+        return out
+    }
+
     // MARK: Delta → real page
 
     /// The page with the delta applied the way the ledger edits a page today: each added stroke through
@@ -296,8 +336,9 @@ public enum SpanComposer {
     // MARK: Safety net
 
     /// The range of real page `pageId` in the virtual page (§3.4 (c), B_DESIGN.md §2.4 5 (c)): its live
-    /// strokes, unknown-tool items and tombstones with the real ids and the page's own cells; `v` as the
-    /// page had it; `updatedAt` the newest of the page's own and of every time in the range. The screen
+    /// strokes, unknown-tool items and tombstones with the real ids and the page's own cells, each found by
+    /// its name as `deltas` finds it (a name that tells no page is in no range); `v` as the page had it;
+    /// `updatedAt` the newest of the page's own and of every time in the range. The screen
     /// merges it into its `PageSlot` (`InkPage.merge`); a union with tombstones, so it never loses a
     /// stroke and brings back any delta that went missing.
     ///

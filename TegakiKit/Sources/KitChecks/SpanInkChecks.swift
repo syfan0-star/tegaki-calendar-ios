@@ -10,7 +10,7 @@
 import Foundation
 import CoreGraphics
 import Layout
-import InkModel
+@_spi(SpanLedger) import InkModel
 import Compat10
 import CompatFixtures
 import CompatSpanFixtures
@@ -262,6 +262,24 @@ func spanGuardNameChecks() {
                    "span guard: the virtual name \(name) is dropped as a cell and as a tombstone")
     }
 
+    // A name prefixed twice, the page's own prefix first: taking it off would leave a window name (F4), so
+    // the item is dropped, as a stroke key, a cell and a tombstone; the page left saves and goes out.
+    var doubled = InkPage(pageId: page)
+    let kept = SpanInk.stroke("clean-1", cell: "grid", t: 1)
+    doubled.strokes["clean-1"] = kept
+    doubled.strokes["s-1"] = SpanInk.stroke("s-1", cell: page + "|w-2026-11-09|grid", t: 2)
+    let twiceKey = page + "|d-2026-11-03|y"
+    doubled.strokes[twiceKey] = SpanInk.stroke(twiceKey, cell: "grid", t: 3)
+    doubled.deleted[page + "|" + page + "|z"] = 4
+    var onlyKept = InkPage(pageId: page)
+    onlyKept.strokes["clean-1"] = kept
+    checkEqual(SpanGuard.checkForSave(doubled), .repaired(onlyKept, stripped: [], dropped: ["s-1", twiceKey, page + "|" + page + "|z"].sorted()),
+               "span guard: a cell, a stroke key and a tombstone prefixed twice are dropped, never stripped into a window name")
+    if case .repaired(let fixedDoubled, _, _) = SpanGuard.checkForSave(doubled) {
+        check(SpanGuard.checkForTransfer(fixedDoubled) && SpanGuard.checkForSave(fixedDoubled) == .ok,
+              "span guard: …and the page left saves as it is and goes out")
+    }
+
     // The alias of a long id (§3.2): stripped it starts with span~, so the guard stops it however it leaks.
     let alias = SpanName.alias(page: page, number: 7)
     for leaked in [alias, SpanName.strip(id: alias)] {
@@ -400,18 +418,41 @@ func spanGuardRepairChecks() {
         check(false, "span guard: the hand-written page reads")
     }
 
-    // The prototype strips its own "proto-" prefix and drops a real page's or another prototype page's.
+    // The prototype (§4.6 (a)) composes its window with the real ids and saves each page as "proto-<id>":
+    // on its page the real id's prefix is its own (stripped, as "proto-<id>|" is); another page's prefix,
+    // real or prototype, is dropped. The release mode refuses the prototype's page id.
     let proto = "proto-" + page
     var pp = InkPage(pageId: proto)
     pp.strokes["a"] = SpanInk.stroke("a", cell: proto + "|grid", t: 1)
     pp.strokes["b"] = SpanInk.stroke("b", cell: page + "|grid", t: 2)
     pp.strokes["c"] = SpanInk.stroke("c", cell: "proto-w-2026-11-09|grid", t: 3)
     pp.strokes["d"] = SpanInk.stroke("d", cell: "grid", t: 4)
+    pp.strokes["e"] = SpanInk.stroke("e", cell: "w-2026-11-09|grid", t: 5)
+    pp.strokes[page + "|f"] = SpanInk.stroke(page + "|f", cell: page + "|grid", t: 6)
+    pp.deleted[page + "|g"] = 7
+    pp.deleted[page + "|" + page + "|h"] = 8
     if case .repaired(let fixedProto, let s, let d) = SpanGuard.checkForSave(pp, mode: .prototype) {
-        check(s == ["a"] && d == ["b", "c"] && fixedProto.strokes["a"]?.cell == .grid && fixedProto.strokes["d"] == pp.strokes["d"],
-              "span guard: the prototype strips proto-<own page>| and drops a real page's and another prototype page's prefix")
+        check(s == ["a", "b", page + "|f", page + "|g"] && d == ["c", "e", page + "|" + page + "|h"]
+              && fixedProto.strokes["a"]?.cell == .grid && fixedProto.strokes["b"]?.cell == .grid && fixedProto.strokes["d"] == pp.strokes["d"]
+              && fixedProto.strokes["f"].map { $0.id == "f" && $0.cell == .grid } == true && fixedProto.deleted == ["g": 7],
+              "span guard: on the prototype page \(proto) the window's names of \(page) and proto-\(page) are stripped, other pages' dropped")
+        checkEqual(SpanGuard.checkForSave(fixedProto, mode: .prototype), .ok, "span guard: the repaired prototype page saves as it is")
     } else {
         check(false, "span guard: the prototype page with prefixes is repaired")
+    }
+    checkEqual(SpanGuard.checkForSave(pp), .refused, "span guard: the release mode refuses the prototype page")
+
+    // A tombstone stripped onto a tombstone that is there keeps the later time, whichever of the two it is.
+    for (plainTime, prefixedTime) in [(5, 9), (9, 5)] {
+        var both = InkPage(pageId: page)
+        both.deleted["plain"] = plainTime
+        both.deleted[page + "|plain"] = prefixedTime
+        if case .repaired(let fixedBoth, let s, let d) = SpanGuard.checkForSave(both) {
+            check(fixedBoth.deleted == ["plain": 9] && s == [page + "|plain"] && d.isEmpty,
+                  "span guard: plain@\(plainTime) and \(page)|plain@\(prefixedTime) give one tombstone at 9")
+        } else {
+            check(false, "span guard: plain@\(plainTime) and \(page)|plain@\(prefixedTime) are repaired")
+        }
     }
 }
 
@@ -567,10 +608,12 @@ func spanComposeChecks() {
     let a = "w-2026-11-02", b = "w-2026-11-09", c = "w-2026-11-16"
     let longId = "web-" + String(repeating: "q", count: 116)          // 120 bytes: "<page>|" + it is 133
     let longTomb = "web-" + String(repeating: "t", count: 116)
+    let longUnknown = "txt-" + String(repeating: "u", count: 113)  // 117 bytes: "<page>|" + it is 130
     var pa = SpanInk.page(a, [SpanInk.stroke("shared-1", cell: "grid", t: 1_790_000_000_001, x: -300, y: 1880),
                               SpanInk.stroke(longId, cell: "grid", t: 1_790_000_000_002)],
                           deleted: ["gone-a": 1_790_000_000_003, longTomb: 1_790_000_000_004])
     pa.unknownStrokes["ph-1"] = SpanInk.unknown("ph-1", cell: "grid", t: 1_790_000_000_005)
+    pa.unknownStrokes[longUnknown] = SpanInk.unknown(longUnknown, cell: "grid", tool: "text", t: 1_790_000_000_005)
     let bandPoints = (0..<5).map { SpanInk.point(10 + CGFloat($0) * 8, 14, $0) }
     let band = InkStroke(id: "band-1", cell: .allDay(DayKey(year: 2026, month: 11, day: 11)), tool: .pen, color: "#1f2937",
                          t: 1_790_000_000_006, dev: "kitchecks", points: bandPoints)
@@ -624,6 +667,44 @@ func spanComposeChecks() {
     let aliasC = again.aliases.alias(of: longId, page: c)
     check(aliasC != nil && aliasC != aliasId && SpanName.aliasNumber(aliasC ?? "")?.number == v.aliases.next,
           "span compose: the same long id on another page gets the next number, not the same alias")
+    let aliasUnknown = v.aliases.alias(of: longUnknown, page: a)
+    check(aliasUnknown.map { ledger.unknownStrokes[$0] == pa.unknownStrokes[longUnknown] } == true,
+          "span compose: a long unknown-tool key is aliased too, its object as it was")
+
+    // The safety net's range of a page as read (§3.4 (c)): every tombstone on its real id (the long one back
+    // from its alias) and every unknown-tool item as it was (the long key included).
+    let range = SpanComposer.extract(pageId: a, from: v)
+    check(range.deleted == ["gone-a": 1_790_000_000_003, longTomb: 1_790_000_000_004],
+          "span compose: the range gives every tombstone back on its real id, the long one through its alias")
+    check(range.unknownStrokes == pa.unknownStrokes && SpanInk.strokeJSON(range, longUnknown) == SpanInk.strokeJSON(pa, longUnknown),
+          "span compose: the range gives every unknown-tool item back as it was, the long key through its alias")
+
+    // A stored name that is itself virtual stays out of the window (only broken or foreign data has one),
+    // so it can never be the alias a long id of the same page gets: a stored tombstone "span~a~1" does not
+    // erase the long stroke whose alias is <page>|span~a~1, in the window nor through the safety net.
+    let longL = String(repeating: "L", count: 120)
+    var odd = SpanInk.page(a, [SpanInk.stroke(longL, cell: "grid", t: 1_790_000_000_020)])
+    odd.deleted["span~a~1"] = 500
+    odd.strokes["span~a~2"] = SpanInk.stroke("span~a~2", cell: "grid", t: 1_790_000_000_021)
+    odd.unknownStrokes["span~a~3"] = SpanInk.unknown("span~a~3", cell: "grid", t: 1_790_000_000_022)
+    let w = SpanComposer.compose([odd], plan: plan, session: 4)
+    let aliasL = w.aliases.alias(of: longL, page: a)
+    check(aliasL == SpanName.alias(page: a, number: 1) && w.ledgerPage.isLive(aliasL ?? "") && w.ledgerPage.deleted.isEmpty
+          && w.ledgerPage.strokes.count == 1 && w.ledgerPage.unknownStrokes.isEmpty,
+          "span compose: stored span~ names stay out of the window; the long id's alias \(aliasL ?? "-") is live")
+    let back = InkPage.merge(odd, SpanComposer.extract(pageId: a, from: w))
+    check(back.isLive(longL) && !back.contentDiffers(from: odd), "span compose: …and the safety net leaves that page as it was")
+    if case .repaired(let fixedOdd, let s, let d) = SpanGuard.checkForSave(odd) {
+        check(s.isEmpty && d == ["span~a~1", "span~a~2", "span~a~3"] && fixedOdd.isLive(longL), "span compose: …and the save guard drops the stored span~ names")
+    } else {
+        check(false, "span compose: the save guard drops the stored span~ names")
+    }
+
+    // The Kit reads only real page ids: the prototype composes its window with them and saves each page as
+    // "proto-<id>" (§4.6 (a); SpanGuard's .prototype strips the real id's prefix on it).
+    let protoIds = ["proto-w-2026-11-02", "proto-w-2026-11-09"]
+    checkEqual(SpanComposer.compose(protoIds.map { InkPage(pageId: $0) }, plan: plan).skippedPageIds, protoIds,
+               "span compose: a prototype page id is no page of a window (the prototype composes with the real ids)")
 }
 
 // MARK: - SpanComposer: journal → deltas → real page (§2.1, §3.4)
@@ -652,15 +733,15 @@ func spanDeltaChecks() {
     var freshReal = fresh
     freshReal.id = "new-1"
     freshReal.cell = .grid
-    var bareReal = bare
-    bareReal.cell = .grid
     checkEqual(deltas, [PageDelta(pageId: c, added: [freshReal], removed: [], at: 1_790_000_001_000, epoch: 4, group: group),
-                        PageDelta(pageId: b, added: [bareReal], removed: [], at: 1_790_000_001_000, epoch: 4, group: group),
                         PageDelta(pageId: a, added: [], removed: ["shared-1", longId], at: 1_790_000_001_000, epoch: 4, group: group)],
-               "span delta: one delta per page, the pages that get strokes first, real ids (an alias back to its id), nothing of the window")
-    let noTable = SpanComposer.deltas(from: [entry], epoch: 4)
-    check(noTable.first { $0.pageId == a }?.removed == ["shared-1"],
-          "span delta: without the session's table an alias is left out, never sent as span~…")
+               "span delta: one delta per page, the pages that get strokes first, real ids (an alias back to its id), nothing that tells no page")
+    checkEqual(SpanComposer.unroutedNames(in: [entry], aliases: v.aliases),
+               ["bare-1", "span~a~5", "lost-1", "zz-unknown", "span~a~9", b + "|span~a~77", a + "|"],
+               "span delta: unroutedNames lists what the deltas left out, added and removed alike (an id made without ownerId, virtual names, an alias not in the table, an empty name)")
+    let noTable = SpanComposer.deltas(from: [entry], epoch: 4, aliases: .empty)
+    check(noTable.first { $0.pageId == a }?.removed == ["shared-1"] && SpanComposer.unroutedNames(in: [entry], aliases: .empty).contains(alias),
+          "span delta: given an empty table by mistake, an alias is left out (never sent as span~…) and unroutedNames reports it")
     check(deltas.allSatisfy { d in d.added.allSatisfy { !SpanGuard.isWindowName($0.id) && !SpanGuard.isWindowName($0.cell.raw) } && d.removed.allSatisfy { !SpanGuard.isWindowName($0) } },
           "span delta: no delta holds a window name")
     // A move: the destination first (D8), one group.
@@ -676,12 +757,89 @@ func spanDeltaChecks() {
     checkEqual(SpanInk.bytes(applied), SpanInk.bytes(direct), "span delta: apply is InkPage.add / remove on the page")
     checkEqual(SpanComposer.apply(deltas[0], to: applied), applied, "span delta: applying a delta twice changes nothing")
     checkEqual(SpanComposer.apply(deltas[0], to: pa), pa, "span delta: a delta of another page leaves the page alone")
-    let removedA = SpanComposer.apply(deltas[2], to: pa)
+    let removedA = SpanComposer.apply(deltas[1], to: pa)
     check(removedA.deleted["shared-1"] == 1_790_000_001_000 && removedA.deleted[longId] == 1_790_000_001_000 && removedA.strokes.isEmpty
           && removedA.updatedAt == 1_790_000_001_000,
           "span delta: the tombstones go on the real ids at the step's time (the long id included)")
-    check(SpanComposer.apply(deltas[1], to: pb).strokes["bare-1"]?.cell == .grid,
-          "span delta: a stroke whose id is no window name goes to its cell's page (never lost)")
+
+    // An alias's erase whose delta never arrived: the safety net puts the tombstone on the long id, with its
+    // time as the page's updatedAt (§3.2, §3.4 (c)).
+    var erasedLong = v.ledgerPage
+    erasedLong.remove(ids: [alias], at: 1_790_000_006_000)
+    let net = InkPage.merge(pa, SpanComposer.extract(pageId: a, from: v.with(ledgerPage: erasedLong)))
+    check(net.pageId == a && net.deleted[longId] == 1_790_000_006_000 && !net.isLive(longId) && net.isLive("shared-1") && net.updatedAt == 1_790_000_006_000,
+          "span delta: an alias's erase whose delta was lost comes back on the long id through the safety net (and its time is the page's updatedAt)")
+
+    // A stroke added and then erased (C1, DS-1). Routed by its name, both steps reach its page, by the deltas
+    // and by the safety net; an id that is no window name (made with makeId, not ownerId, §3.3 1) reaches
+    // it by neither, so the page never keeps a stroke the screen erased.
+    for (label, id, routed) in [("an ownerId stroke", b + "|p-1", true), ("a stroke made without ownerId", "bare-2", false)] {
+        let s = SpanInk.stroke(id, cell: b + "|grid", t: 1_790_000_003_000)
+        var ledger = v.ledgerPage
+        ledger.add(s)
+        ledger.remove(ids: [id], at: 1_790_000_004_000)
+        let journal = [SpanJournalEntry(added: [s], at: 1_790_000_003_000), SpanJournalEntry(removed: [id], at: 1_790_000_004_000)]
+        let now = v.with(ledgerPage: ledger)
+        let ds = SpanComposer.deltas(from: journal, epoch: 1, aliases: now.aliases)
+        var real = pb
+        for d in ds { real = SpanComposer.apply(d, to: real) }
+        let rawId = SpanName.strip(id: id)
+        let viaNet = InkPage.merge(pb, SpanComposer.extract(pageId: b, from: now))
+        let afterBoth = InkPage.merge(real, SpanComposer.extract(pageId: b, from: now))
+        check(!real.isLive(rawId) && !viaNet.isLive(rawId) && !afterBoth.isLive(rawId) && !ledger.isLive(id),
+              "span delta: \(label) added and erased is not live on its page, by the deltas, by the safety net alone or by both")
+        if routed {
+            check(ds.count == 2 && real.deleted[rawId] == 1_790_000_004_000 && viaNet.deleted[rawId] == 1_790_000_004_000
+                  && SpanComposer.unroutedNames(in: journal, aliases: now.aliases).isEmpty,
+                  "span delta: \(label) is tombstoned on its page (as the page edited directly)")
+        } else {
+            check(ds.isEmpty && SpanInk.bytes(real) == SpanInk.bytes(pb) && SpanInk.bytes(afterBoth) == SpanInk.bytes(pb)
+                  && SpanComposer.unroutedNames(in: journal, aliases: now.aliases) == [id, id],
+                  "span delta: \(label) reaches its page neither added nor erased, and unroutedNames reports it twice")
+        }
+    }
+
+    // Erase, ↶, erase again (DS-1): ↶ puts the stroke back as a copy with a new ownerId id, so the second
+    // erase reaches the page too; every delta can be the one that is lost.
+    var sim = SpanLedgerSim(virtual: v, seed: 0xC1D5_0001, firstTime: 1_790_000_005_000, dev: "kitchecks")
+    let original = sim.page.strokes[a + "|shared-1"]!
+    sim.erase([a + "|shared-1"])
+    let undone = sim.undoCopy(original)
+    if let copy = undone { sim.erase([copy.id]) }
+    let steps = sim.takeJournal()
+    let undoDeltas = SpanComposer.deltas(from: steps, epoch: 1, aliases: sim.virtual.aliases)
+    var expected = pa
+    if let copy = undone {
+        expected.remove(ids: ["shared-1"], at: 1_790_000_005_000)
+        var copyReal = copy
+        copyReal.id = SpanName.strip(id: copy.id)
+        copyReal.cell = .grid
+        expected.add(copyReal)
+        expected.remove(ids: [copyReal.id], at: 1_790_000_005_002)
+    }
+    var undoPage = pa
+    for d in undoDeltas { undoPage = SpanComposer.apply(d, to: undoPage) }
+    check(undone.map { SpanName.isPrefixed($0.id) } == true && undoDeltas.count == 3 && SpanComposer.unroutedNames(in: steps, aliases: sim.virtual.aliases).isEmpty
+          && SpanInk.bytes(undoPage) == SpanInk.bytes(expected) && undoPage.liveStrokes.map(\.id) == [longId],
+          "span delta: erase, ↶ (a copy with an ownerId id), erase: the page is the page edited directly, nothing of the stroke is live")
+    for k in undoDeltas.indices {
+        var partial = pa
+        for (i, d) in undoDeltas.enumerated() where i != k { partial = SpanComposer.apply(d, to: partial) }
+        partial = InkPage.merge(partial, SpanComposer.extract(pageId: a, from: sim.current))
+        check(SpanInk.bytes(partial) == SpanInk.bytes(expected), "span delta: erase, ↶, erase without delta \(k): the safety net gives the same page")
+    }
+    // The same with a ↶ copy made without ownerId: the copy and its erase reach no page, and the page composed
+    // again shows nothing of it (an erased stroke never comes back).
+    let bareCopy = SpanInk.stroke("u-raw-1", cell: a + "|grid", t: original.t)
+    let bareSteps = [SpanJournalEntry(removed: [a + "|shared-1"], at: 1_790_000_005_000), SpanJournalEntry(added: [bareCopy], at: 1_790_000_005_001),
+                     SpanJournalEntry(removed: ["u-raw-1"], at: 1_790_000_005_002)]
+    var barePage = pa
+    for d in SpanComposer.deltas(from: bareSteps, epoch: 1, aliases: v.aliases) { barePage = SpanComposer.apply(d, to: barePage) }
+    let again = SpanComposer.compose([barePage, pb, pc], plan: plan, session: 1, aliases: v.aliases)
+    check(barePage.liveStrokes.map(\.id) == [longId] && barePage.deleted["u-raw-1"] == nil
+          && !again.ledgerPage.strokes.keys.contains { $0.hasSuffix("u-raw-1") }
+          && SpanComposer.unroutedNames(in: bareSteps, aliases: v.aliases) == ["u-raw-1", "u-raw-1"],
+          "span delta: erase, ↶ with a copy made without ownerId, erase: the copy never reaches the page, so it does not come back when the window is composed again")
 }
 
 // MARK: - SpanComposer: the safety net keeps the real page id (§3.3, §3.4 (c))
@@ -753,21 +911,26 @@ func spanPDFInkChecks() {
     let intoPrevious = sim.draw(line(900, 1400, 3000))     // centre 1150: d-11-03's extra, reaches d-11-02 by 100
     let inside = sim.draw(line(1200, 1500, 1200))          // inside d-11-03
     let own = sim.draw(line(1900, 2400, 900))              // centre 2150: d-11-04 (local 150), reaches d-11-03 by 100
-    check(intoNext != nil && intoPrevious != nil && inside != nil && own != nil, "span pdf: the four strokes are kept")
+    // Two strokes whose bounds (points ± half the size 4) only touch the boundary x 2000: they reach
+    // into no other page (the page's own strokes are drawn by the page, a neighbour's only when it enters).
+    let touchesNext = sim.draw(line(1500, 1998, 1600), size: 4)   // d-11-03, bounds' right edge exactly 2000
+    let touchesBack = sim.draw(line(2002, 2500, 1700), size: 4)   // d-11-04, bounds' left edge exactly 2000
+    check(intoNext != nil && intoPrevious != nil && inside != nil && own != nil && touchesNext != nil && touchesBack != nil,
+          "span pdf: the six strokes are kept")
     guard let a = intoNext, let b = intoPrevious, let o = own else { return }
     let next = SpanComposer.neighborInk(for: "d-2026-11-04", from: sim.current, layout: layout)
     var aReal = a
     aReal.id = SpanName.strip(id: a.id)
     aReal.cell = .grid
     checkEqual(next, [SpanPDFInk(pageId: "d-2026-11-03", stroke: aReal, cellRect: CGRect(x: -1000, y: 0, width: 1000, height: 2400))],
-               "span pdf: d-11-04's PDF gets d-11-03's stroke that reaches into it, with the real id and the cell moved by −1000")
+               "span pdf: d-11-04's PDF gets d-11-03's stroke that reaches into it, with the real id and the cell moved by −1000 (not the one that only touches the edge)")
     let previous = SpanComposer.neighborInk(for: "d-2026-11-02", from: sim.current, layout: layout)
     check(previous.count == 1 && previous[0].stroke.id == SpanName.strip(id: b.id) && previous[0].stroke.cell == .extra
           && previous[0].cellRect == CGRect(x: 1000, y: 2400, width: 1000, height: 6000),
           "span pdf: d-11-02's PDF gets d-11-03's extra stroke that reaches into it, the cell moved by +1000")
     let middle = SpanComposer.neighborInk(for: "d-2026-11-03", from: sim.current, layout: layout)
     check(middle.count == 1 && middle[0].stroke.id == SpanName.strip(id: o.id) && middle.allSatisfy { !SpanGuard.isWindowName($0.stroke.id) && !SpanGuard.isWindowName($0.stroke.cell.raw) },
-          "span pdf: d-11-03's PDF gets only d-11-04's stroke that reaches back into it (its own strokes are the page's)")
+          "span pdf: d-11-03's PDF gets only d-11-04's stroke that reaches back into it (its own strokes are the page's, one that only touches the edge is not)")
     check(SpanComposer.neighborInk(for: "d-2026-11-09", from: sim.current, layout: layout).isEmpty, "span pdf: a page outside the window gets nothing")
 }
 
@@ -904,6 +1067,8 @@ func spanComposerRandomChecks(_ kind: PageKind, seed: UInt64) {
     check(edits >= 300 && crossMoves >= 5 && aliasErases >= 1,
           "span random \(kind): \(edits) edits (≥ 300), \(crossMoves) moves across pages, \(aliasErases) erases of long (aliased) ids")
     check(deltas.allSatisfy { $0.epoch == 7 && targets.contains($0.pageId) }, "span random \(kind): every delta is of a page that was edited, with the session's number")
+    check(SpanComposer.unroutedNames(in: journal, aliases: sim.virtual.aliases).isEmpty,
+          "span random \(kind): every name of the journal tells its page (the ledger makes every id with ownerId, §3.3 1)")
     check(deltas.allSatisfy { d in d.added.allSatisfy { !SpanGuard.isWindowName($0.id) && !SpanGuard.isWindowName($0.cell.raw) && InkStroke.isValidId($0.id) } && d.removed.allSatisfy { !SpanGuard.isWindowName($0) && InkStroke.isValidId($0) } },
           "span random \(kind): no window name reaches a delta")
 
@@ -932,8 +1097,8 @@ func spanComposerRandomChecks(_ kind: PageKind, seed: UInt64) {
         check(SpanInk.bytes(merged) == SpanInk.bytes(applied[pageId]!) && !merged.contentDiffers(from: applied[pageId]!),
               "span random \(kind): with nothing missing the safety net changes nothing on \(pageId)")
     }
-    let drops = Array(Set((0..<40).map { _ in rng.int(deltas.count) })).sorted()
-    for k in drops {
+    // Every delta in turn is the one that is lost (§10.1; among them the erases of aliased ids).
+    for k in deltas.indices {
         var partial = applyAll(deltas.enumerated().filter { $0.offset != k }.map(\.element))
         let pageId = deltas[k].pageId
         partial[pageId] = InkPage.merge(partial[pageId]!, SpanComposer.extract(pageId: pageId, from: current))

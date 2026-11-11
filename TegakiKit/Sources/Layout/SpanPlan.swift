@@ -71,8 +71,8 @@ public struct SpanPlan: Sendable, Equatable {
     /// (B_DESIGN.md:181, 5–8 %; the prototype may change it).
     public static let focusHysteresis: CGFloat = 0.06
 
-    /// A stop this close to an aligned position (a fraction of the screen's width) snaps to it
-    /// (B_DESIGN.md:276; the prototype may change it).
+    /// A slow stop whose page edge is this close to a screen edge (a fraction of the screen's width)
+    /// snaps the two together (§3.6, B_DESIGN.md:276; the prototype may change it).
     public static let snapFraction: CGFloat = 0.06
 
     /// The speed (pt per ms, the unit of `scrollViewWillEndDragging`'s velocity) from which a release
@@ -275,16 +275,18 @@ public struct SpanPlan: Sendable, Equatable {
         return CGFloat(pages) * pageWidth * zoom
     }
 
-    /// Where a drag released at content offset `offsetX` (pt) comes to rest (P-B5 ア, §3.6). The
-    /// aligned positions are where a page sits as the overview shows it: centred when the page fits the
-    /// screen (W × zoom ≤ width), else its left edge on the screen's left edge or its right edge on the
-    /// screen's right edge.
-    /// - A page fits and |velocity| ≥ `flingVelocity`: the next aligned position in the direction of
-    ///   the velocity (positive: towards later pages), so a fling turns exactly one page from where the
-    ///   finger left it (from an aligned position, the neighbour page).
-    /// - Otherwise the drag stops where UIKit would stop it (`proposedX`, else `offsetX`), and snaps to
-    ///   the nearest aligned position when it is at most 6 % of the screen's width away; zoomed in, a
-    ///   fling flows freely to `proposedX` (UIKit clamps it to the window).
+    /// Where a drag released at content offset `offsetX` (pt) comes to rest (P-B5 ア, §3.6).
+    /// - A page fits the screen (W × zoom ≤ width) and |velocity| ≥ `flingVelocity`: a fling, to the
+    ///   neighbour page as the overview shows a page, centred (positions (k + 0.5) × page − width / 2): the
+    ///   next one in the direction of the velocity (positive: towards later pages), so a fling turns
+    ///   exactly one page from where the finger left it.
+    /// - Zoomed in (a page wider than the screen) and as fast: it flows freely to `proposedX` (UIKit clamps
+    ///   it to the window).
+    /// - Slower, at any zoom: it stops where UIKit would stop it (`proposedX`, else `offsetX`), and when a
+    ///   page edge is then at most 6 % of the screen's width from a screen edge, the two are put together
+    ///   (§3.6: a stop within 6 % of the screen's width from a page edge is aligned; B_DESIGN.md:276): page
+    ///   j's edge on the screen's left edge is the offset j × page, on its right edge j × page − width; the
+    ///   nearest wins. A page shown centred is no such position (§3.6 names the edges only).
     /// `viewportWidth` nil is the reference width of the plan's device. Not finite or not positive
     /// inputs → `proposedX ?? offsetX`.
     public func flingTarget(offsetX: CGFloat, velocity: CGFloat, zoom: CGFloat, viewportWidth: CGFloat? = nil, proposedX: CGFloat? = nil) -> CGFloat {
@@ -294,7 +296,7 @@ public struct SpanPlan: Sendable, Equatable {
         let page = pageWidth * zoom
         let fits = page <= vw + 1e-9
         if fits && abs(velocity) >= Self.flingVelocity {
-            // Aligned positions a_k = (k + 0.5) × page − vw / 2; t is offsetX's place among them.
+            // Centred positions a_k = (k + 0.5) × page − vw / 2; t is offsetX's place among them.
             let t = (offsetX + vw / 2) / page - 0.5
             let k = velocity > 0 ? (t + 1e-9).rounded(.down) + 1 : (t - 1e-9).rounded(.up) - 1
             return (k + 0.5) * page - vw / 2
@@ -302,17 +304,11 @@ public struct SpanPlan: Sendable, Equatable {
         if !fits && abs(velocity) >= Self.flingVelocity {
             return stop
         }
-        var candidates: [CGFloat] = []
-        if fits {
-            let k = ((stop + vw / 2) / page - 0.5).rounded()
-            candidates = [k - 1, k, k + 1].map { ($0 + 0.5) * page - vw / 2 }
-        } else {
-            let k = (stop / page).rounded(.down)
-            for j in [k - 1, k, k + 1, k + 2] {
-                candidates.append(j * page)
-                candidates.append(j * page - vw)
-            }
-        }
+        // The page edges next to the screen's left edge (at `stop`) and next to its right edge (at
+        // `stop + vw`), however many pages the screen shows.
+        let left = (stop / page).rounded(.down)
+        let right = ((stop + vw) / page).rounded(.down)
+        let candidates = [left * page, (left + 1) * page, right * page - vw, (right + 1) * page - vw]
         guard let nearest = candidates.min(by: { abs($0 - stop) < abs($1 - stop) }) else { return stop }
         return abs(nearest - stop) <= Self.snapFraction * vw + 1e-9 ? nearest : stop
     }
