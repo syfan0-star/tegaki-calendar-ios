@@ -1559,8 +1559,10 @@ jobs:
   # orientation request, see the first job's screenshot steps), the iPhone also in landscape, and go up as the
   # artifact "span-shots" (kept 7 days) with the tests' log and each device's app log. A photo that is missing fails
   # the job; what each one shows is looked at by eye (docs/M7C.md). No `needs`: it runs next to the other jobs.
-  # The limits are estimates until measured (docs/M7C.md): a build of about 3 min, the tests about 4 with the boot, a
-  # device 4–7 min (its boot 2–4, 110 s with the app in front, 12–15 s a photo).
+  # The limits, from run 43094010843 (46.3 min in all): the build 3.2 min, the tests 7.7 with the boot (the 16 tests
+  # themselves 2 s), the photos 24.8 (the 13-inch iPad, already booted, 3.1; the iPad Air 11-inch 8.9 for 8 photos; the
+  # iPad mini 6.1; the iPhone 6.8 for 7), the upload 10.2 (4.4 MB; unusually slow, the first job's takes seconds). The
+  # photo step stops after 40 and the job after 60: room for a boot of 4 min more on each device or a slow upload.
   span-shots:
     name: span-shots (1.3 prototype)
     runs-on: macos-26
@@ -1813,7 +1815,9 @@ jobs:
               xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-sheet info \
                 --screenshot-prototype "$SCENE" "$@" $JA_ARGS > /dev/null || { echo "::warning::launch failed ($FILE)"; return 0; }
               sleep 12
-              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 12 s ($FILE)"
+              # `grep` without -q reads the whole list: with -q it stops at the first match, launchctl gets SIGPIPE
+              # and pipefail turns the pipeline into a failure (run 43094010843 warned about four running apps).
+              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 12 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "$OUT/$FILE" > /dev/null || echo "::warning::screenshot failed ($FILE)"
             }
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-sheet info \
