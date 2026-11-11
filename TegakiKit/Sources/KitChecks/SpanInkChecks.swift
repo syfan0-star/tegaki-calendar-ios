@@ -11,6 +11,8 @@ import Foundation
 import CoreGraphics
 import Layout
 import InkModel
+import CompatFixtures
+import CompatSpanFixtures
 
 // MARK: - Shared building blocks
 
@@ -99,6 +101,13 @@ func runSpanInkChecks() {
     spanGuardNameChecks()
     spanGuardRepairChecks()
     spanGuardRandomChecks()
+    spanComposeChecks()
+    spanDeltaChecks()
+    spanSafetyNetChecks()
+    spanOffPaperChecks()
+    spanPDFInkChecks()
+    spanComposerRandomChecks(.week, seed: 0x5BA9_C0DE_0001)
+    spanComposerRandomChecks(.day, seed: 0x5BA9_C0DE_0002)
 }
 
 // MARK: - SpanGuard: the page id (§6.1, K-11, §4.6 (a))
@@ -491,4 +500,432 @@ func spanGuardRandomChecks() {
     }
     check(pages >= 300 && transferred >= 50 && repaired >= 100 && addedDrops > 0,
           "span guard random: \(pages) pages (≥ 300), \(transferred) passed the transfer, \(repaired) repaired, \(addedDrops) drops of added ids with |")
+}
+
+// MARK: - SpanComposer: composing a window (§3.2, D4)
+
+extension SpanInk {
+    /// The real stroke of a window stroke, worked out apart from the composer: the prefix of the id and of
+    /// the cell taken off, an alias looked up in the table.
+    static func real(_ stroke: InkStroke, aliases: SpanAliases) -> (page: String, stroke: InkStroke)? {
+        guard let owner = owner(of: stroke.id, aliases: aliases) else { return nil }
+        var out = stroke
+        out.id = owner.id
+        out.cell = CellKey(raw: String(stroke.cell.raw.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false).last ?? ""))
+        return (owner.page, out)
+    }
+
+    /// (page, real id) of a window id: the alias table, else the text before and after the first "|".
+    static func owner(of windowId: String, aliases: SpanAliases) -> (page: String, id: String)? {
+        let parts = windowId.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
+        guard parts.count == 2 else { return nil }
+        return (parts[0], aliases.original(of: windowId) ?? parts[1])
+    }
+
+    static func page(_ id: String, _ strokes: [InkStroke] = [], deleted: [String: Int] = [:]) -> InkPage {
+        var p = InkPage(pageId: id)
+        for s in strokes { p.add(s) }
+        for (k, t) in deleted.sorted(by: { $0.key < $1.key }) { p.remove(ids: [k], at: t) }
+        return p
+    }
+}
+
+func spanComposeChecks() {
+    let plan = SpanFixtures.plan(.week)
+    let a = "w-2026-11-02", b = "w-2026-11-09", c = "w-2026-11-16"
+    let longId = "web-" + String(repeating: "q", count: 116)          // 120 bytes: "<page>|" + it is 133
+    let longTomb = "web-" + String(repeating: "t", count: 116)
+    var pa = SpanInk.page(a, [SpanInk.stroke("shared-1", cell: "grid", t: 1_790_000_000_001, x: -300, y: 1880),
+                              SpanInk.stroke(longId, cell: "grid", t: 1_790_000_000_002)],
+                          deleted: ["gone-a": 1_790_000_000_003, longTomb: 1_790_000_000_004])
+    pa.unknownStrokes["ph-1"] = SpanInk.unknown("ph-1", cell: "grid", t: 1_790_000_000_005)
+    let bandPoints = (0..<5).map { SpanInk.point(10 + CGFloat($0) * 8, 14, $0) }
+    let band = InkStroke(id: "band-1", cell: .allDay(DayKey(year: 2026, month: 11, day: 11)), tool: .pen, color: "#1f2937",
+                         t: 1_790_000_000_006, dev: "kitchecks", points: bandPoints)
+    let pb = SpanInk.page(b, [SpanInk.stroke("shared-1", cell: "grid", t: 1_790_000_000_007, x: 1600), band])
+    let sunday = SpanInk.page("w-2026-11-08", [SpanInk.stroke("sun-1", cell: "grid", t: 1_790_000_000_008)])
+    let dayPage = SpanInk.page("d-2026-11-02", [SpanInk.stroke("day-1", cell: "grid", t: 1_790_000_000_009)])
+    let pa2 = SpanInk.page(a, [SpanInk.stroke("a-extra", cell: "grid", t: 1_790_000_000_010)])
+    let v = SpanComposer.compose([pa, pb, sunday, dayPage, InkPage(pageId: c), pa2, InkPage(pageId: "span~week~0")], plan: plan, session: 3)
+
+    checkEqual(v.pageId, "span~week~3", "span compose: the virtual id is span~week~<session>")
+    checkEqual(v.pageIds, [a, b, c], "span compose: the window's real pages, left to right")
+    checkEqual(v.skippedPageIds, ["w-2026-11-08", "d-2026-11-02", "span~week~0"],
+               "span compose: a Sunday week in a Monday window, a day page and the virtual id are left out (K-11)")
+    checkEqual(v.migratedPageIds, [b], "span compose: the page whose old band stroke moved is named (the screen saves it)")
+    let ledger = v.ledgerPage
+    check(ledger.strokes[a + "|shared-1"]?.points.first?.x == -300 && ledger.strokes[b + "|shared-1"]?.points.first?.x == 1600,
+          "span compose: the same raw id on two pages is two strokes (K-2)")
+    check(ledger.strokes[a + "|a-extra"] != nil, "span compose: a page given twice is merged into its first place")
+    let movedBand = ledger.strokes[b + "|band-1"]
+    check(movedBand?.cell.raw == b + "|grid" && movedBand?.points.first?.x == 455.7 && movedBand?.points.first?.y == 14,
+          "span compose: BandMigration runs per page before composing (allday:2026-11-11 → grid, x0 455.7)")
+    var late = InkPage(pageId: "span~week~3")
+    late.strokes[b + "|band-1"] = InkStroke(id: b + "|band-1", cell: CellKey(raw: b + "|allday:2026-11-11"), tool: .pen,
+                                            color: "#1f2937", t: 1, points: bandPoints)
+    check(BandMigration.migrate(late) == late, "span compose: …it must: after composing, a prefixed band cell is no band cell (BandMigration.swift:17-19)")
+    check(ledger.strokes.allSatisfy { SpanName.isPrefixed($0.key) && $0.key == $0.value.id && SpanName.isPrefixed($0.value.cell.raw) && InkStroke.isValidId($0.key) }
+          && ledger.deleted.keys.allSatisfy { SpanName.isPrefixed($0) && InkStroke.isValidId($0) }
+          && ledger.unknownStrokes.keys.allSatisfy { SpanName.isPrefixed($0) && InkStroke.isValidId($0) },
+          "span compose: every stroke, cell, tombstone and unknown item has a window name of at most 128 bytes")
+    checkEqual(ledger.deleted[a + "|gone-a"], 1_790_000_000_003, "span compose: a tombstone keeps its time under its window name")
+    checkEqual(ledger.unknownStrokes[a + "|ph-1"], pa.unknownStrokes["ph-1"], "span compose: an unknown-tool item keeps its object as it was")
+    check(ledger.v == 1 && ledger.unknown.isEmpty && ledger.updatedAt == max(pa.updatedAt, pb.updatedAt, pa2.updatedAt),
+          "span compose: v, the unknown top-level items stay with the real pages (PageSlot)")
+
+    // The aliases of the long ids (§3.2).
+    let aliasId = v.aliases.alias(of: longId, page: a)
+    let aliasTomb = v.aliases.alias(of: longTomb, page: a)
+    check(aliasId != nil && aliasTomb != nil && aliasId != aliasTomb, "span compose: two long ids get two aliases")
+    if let aliasId = aliasId, let aliasTomb = aliasTomb {
+        check(SpanName.aliasNumber(aliasId)?.page == a && v.aliases.original(of: aliasId) == longId && ledger.strokes[aliasId]?.id == aliasId,
+              "span compose: the long stroke id is \(aliasId) in the window, back to its id through the table")
+        check(ledger.deleted[aliasTomb] == 1_790_000_000_004 && v.aliases.original(of: aliasTomb) == longTomb,
+              "span compose: the long tombstone is \(aliasTomb) in the window")
+        check(aliasId.utf8.count <= 128 && SpanName.isVirtual(SpanName.strip(id: aliasId)),
+              "span compose: an alias fits 128 bytes and its stripped form starts with span~")
+    }
+    let pc = SpanInk.page(c, [SpanInk.stroke(longId, cell: "grid", t: 1_790_000_000_011)])
+    let again = SpanComposer.compose([pa, pb, pc], plan: plan, session: 3, aliases: v.aliases)
+    check(again.aliases.alias(of: longId, page: a) == aliasId && again.aliases.alias(of: longTomb, page: a) == aliasTomb,
+          "span compose: a window composed again with the session's table keeps every alias")
+    let aliasC = again.aliases.alias(of: longId, page: c)
+    check(aliasC != nil && aliasC != aliasId && SpanName.aliasNumber(aliasC ?? "")?.number == v.aliases.next,
+          "span compose: the same long id on another page gets the next number, not the same alias")
+}
+
+// MARK: - SpanComposer: journal → deltas → real page (§2.1, §3.4)
+
+func spanDeltaChecks() {
+    let plan = SpanFixtures.plan(.week)
+    let a = "w-2026-11-02", b = "w-2026-11-09", c = "w-2026-11-16"
+    let longId = "web-" + String(repeating: "q", count: 116)
+    let pa = SpanInk.page(a, [SpanInk.stroke("shared-1", cell: "grid", t: 1_790_000_000_001), SpanInk.stroke(longId, cell: "grid", t: 1_790_000_000_002)])
+    let pb = SpanInk.page(b, [SpanInk.stroke("shared-1", cell: "grid", t: 1_790_000_000_003)])
+    let pc = InkPage(pageId: c)
+    let v = SpanComposer.compose([pa, pb, pc], plan: plan, session: 1)
+    guard let alias = v.aliases.alias(of: longId, page: a) else {
+        check(false, "span delta: the long id has an alias")
+        return
+    }
+    let group = UUID(uuidString: "6E6B0F3C-0A51-4D2B-9C1E-13A1C0DE0003")!
+    let fresh = SpanInk.stroke(c + "|new-1", cell: c + "|grid", t: 1_790_000_001_000, x: -250)
+    let bare = SpanInk.stroke("bare-1", cell: b + "|grid", t: 1_790_000_001_000)
+    let virtualId = SpanInk.stroke("span~a~5", cell: b + "|grid", t: 1_790_000_001_000)
+    let lost = SpanInk.stroke("lost-1", cell: "grid", t: 1_790_000_001_000)
+    let entry = SpanJournalEntry(added: [fresh, bare, virtualId, lost],
+                                 removed: [a + "|shared-1", alias, "zz-unknown", "span~a~9", b + "|span~a~77", a + "|"],
+                                 at: 1_790_000_001_000, group: group)
+    let deltas = SpanComposer.deltas(from: [entry], epoch: 4, aliases: v.aliases)
+    var freshReal = fresh
+    freshReal.id = "new-1"
+    freshReal.cell = .grid
+    var bareReal = bare
+    bareReal.cell = .grid
+    checkEqual(deltas, [PageDelta(pageId: c, added: [freshReal], removed: [], at: 1_790_000_001_000, epoch: 4, group: group),
+                        PageDelta(pageId: b, added: [bareReal], removed: [], at: 1_790_000_001_000, epoch: 4, group: group),
+                        PageDelta(pageId: a, added: [], removed: ["shared-1", longId], at: 1_790_000_001_000, epoch: 4, group: group)],
+               "span delta: one delta per page, the pages that get strokes first, real ids (an alias back to its id), nothing of the window")
+    let noTable = SpanComposer.deltas(from: [entry], epoch: 4)
+    check(noTable.first { $0.pageId == a }?.removed == ["shared-1"],
+          "span delta: without the session's table an alias is left out, never sent as span~…")
+    check(deltas.allSatisfy { d in d.added.allSatisfy { !SpanGuard.isWindowName($0.id) && !SpanGuard.isWindowName($0.cell.raw) } && d.removed.allSatisfy { !SpanGuard.isWindowName($0) } },
+          "span delta: no delta holds a window name")
+    // A move: the destination first (D8), one group.
+    let move = SpanJournalEntry(added: [SpanInk.stroke(c + "|copy-1", cell: c + "|grid", t: 1_790_000_002_000)],
+                                removed: [b + "|shared-1"], at: 1_790_000_002_000)
+    checkEqual(SpanComposer.deltas(from: [move], epoch: 4, aliases: v.aliases).map(\.pageId), [c, b],
+               "span delta: a move across pages gives the destination's delta before the source's")
+
+    // apply: today's add / remove on the real page.
+    let applied = SpanComposer.apply(deltas[0], to: pc)
+    var direct = pc
+    direct.add(freshReal)
+    checkEqual(SpanInk.bytes(applied), SpanInk.bytes(direct), "span delta: apply is InkPage.add / remove on the page")
+    checkEqual(SpanComposer.apply(deltas[0], to: applied), applied, "span delta: applying a delta twice changes nothing")
+    checkEqual(SpanComposer.apply(deltas[0], to: pa), pa, "span delta: a delta of another page leaves the page alone")
+    let removedA = SpanComposer.apply(deltas[2], to: pa)
+    check(removedA.deleted["shared-1"] == 1_790_000_001_000 && removedA.deleted[longId] == 1_790_000_001_000 && removedA.strokes.isEmpty
+          && removedA.updatedAt == 1_790_000_001_000,
+          "span delta: the tombstones go on the real ids at the step's time (the long id included)")
+    check(SpanComposer.apply(deltas[1], to: pb).strokes["bare-1"]?.cell == .grid,
+          "span delta: a stroke whose id is no window name goes to its cell's page (never lost)")
+}
+
+// MARK: - SpanComposer: the safety net keeps the real page id (§3.3, §3.4 (c))
+
+func spanSafetyNetChecks() {
+    for kind in [PageKind.week, .year] {
+        let plan = SpanFixtures.plan(kind)
+        let focus = kind == .week ? "w-2026-11-09" : "y-2026"
+        guard let n = plan.index(of: focus) else { continue }
+        let ids = [plan.pageId(at: n - 1), focus, plan.pageId(at: n + 1)]
+        var slot = SpanInk.page(focus, [SpanInk.stroke("s-1", cell: kind == .week ? "grid" : "01-20", t: 1_790_000_000_001)])
+        slot.v = 2
+        slot.unknown["later"] = .object(["k": .string("v")])
+        let v = SpanComposer.compose(ids.map { $0 == focus ? slot : InkPage(pageId: $0) }, plan: plan, session: 2)
+        var sim = SpanLedgerSim(virtual: v, seed: 0x5AFE_0001, firstTime: 1_790_000_100_000, dev: "kitchecks")
+        let added = sim.put(cell: CellKey(raw: focus + "|" + (kind == .week ? "grid" : "12-31")), points: [SpanInk.point(5, 5), SpanInk.point(9, 9, 1)])
+        sim.erase([focus + "|s-1"])
+        let range = SpanComposer.extract(pageId: focus, from: sim.current)
+        checkEqual(range.pageId, focus, "span safety net (\(kind)): the range of \(focus) has the real id")
+        check(range.v == 2 && range.strokes.keys.sorted() == [SpanName.strip(id: added.id)] && range.deleted["s-1"] != nil,
+              "span safety net (\(kind)): the range holds the page's strokes and tombstones with real ids, and its v")
+        let merged = InkPage.merge(slot, range)
+        check(merged.pageId == focus && merged.v == 2 && merged.unknown == slot.unknown,
+              "span safety net (\(kind)): merging the range keeps the id, v and the unknown top-level items")
+        // What extract must never do: a range named with the virtual id would turn the page into span~…
+        checkEqual(InkPage.merge(slot, InkPage(pageId: sim.current.pageId)).pageId, sim.current.pageId,
+                   "span safety net (\(kind)): (why) InkPage.merge keeps the smaller id, so span~… would win over \(focus)")
+        for other in [sim.current.pageId, "w-2030-01-07", "", SpanName.prefixed(id: "x", page: focus)] {
+            let none = SpanComposer.extract(pageId: other, from: sim.current)
+            check(none == InkPage(pageId: "") && InkPage.merge(slot, none) == slot,
+                  "span safety net (\(kind)): extract of \(other.debugDescription) (not a page of the window) is empty with the neutral id \"\"")
+        }
+    }
+}
+
+// MARK: - Points outside the paper are never cut or dropped (§4.1)
+
+func spanOffPaperChecks() {
+    let plan = SpanFixtures.plan(.day)
+    let page = "d-2026-11-03"
+    let far: [InkPoint] = [SpanInk.point(-99_999, 99_999), SpanInk.point(99_999, -99_999, 1), SpanInk.point(-0.1, 8400.1, 2), SpanInk.point(1300, 2500, 3)]
+    let original = InkStroke(id: "far-1", cell: .extra, tool: .marker, color: "#fde047", t: 1_790_000_000_001, points: far)
+    let slot = SpanInk.page(page, [original])
+    check(slot.strokes["far-1"]?.points == far, "span off paper: the page keeps points within ±100,000 lu (InkPoint)")
+    let v = SpanComposer.compose([InkPage(pageId: "d-2026-11-02"), slot, InkPage(pageId: "d-2026-11-04")], plan: plan)
+    check(v.ledgerPage.strokes[page + "|far-1"]?.points == far, "span off paper: compose keeps every point")
+    var sim = SpanLedgerSim(virtual: v, seed: 0x0FF0_0001, firstTime: 1_790_000_100_000, dev: "kitchecks")
+    let copy = sim.put(cell: CellKey(raw: "d-2026-11-04|grid"), points: far)
+    let deltas = SpanComposer.deltas(from: sim.takeJournal(), epoch: 0, aliases: v.aliases)
+    check(deltas.count == 1 && deltas[0].added.first?.points == far, "span off paper: a delta keeps every point")
+    let applied = SpanComposer.apply(deltas[0], to: InkPage(pageId: "d-2026-11-04"))
+    check(applied.strokes[SpanName.strip(id: copy.id)]?.points == far, "span off paper: apply keeps every point")
+    check(SpanComposer.extract(pageId: page, from: sim.current).strokes["far-1"]?.points == far
+          && SpanComposer.extract(pageId: "d-2026-11-04", from: sim.current).strokes[SpanName.strip(id: copy.id)]?.points == far,
+          "span off paper: extract keeps every point")
+    checkEqual(SpanGuard.checkForSave(applied, added: [SpanName.strip(id: copy.id)]), .ok, "span off paper: the guard does not look at points")
+}
+
+// MARK: - The PDF's neighbour ink (D17)
+
+func spanPDFInkChecks() {
+    let plan = SpanFixtures.plan(.day)
+    let days = [DayKey(year: 2026, month: 11, day: 2), DayKey(year: 2026, month: 11, day: 3), DayKey(year: 2026, month: 11, day: 4)]
+    let layout = SpanFixtures.window(SpanFixtures.dayPages(days, events: [], now: date(2026, 11, 3, 12)), plan: plan)
+    let v = SpanComposer.compose(days.map { InkPage(pageId: "d-" + $0.description) }, plan: plan)
+    var sim = SpanLedgerSim(virtual: v, layout: layout, seed: 0x9DF0_0001, firstTime: 1_790_000_100_000, dev: "kitchecks")
+    let line = { (x0: CGFloat, x1: CGFloat, y: CGFloat) in [CGPoint(x: x0, y: y), CGPoint(x: (x0 + x1) / 2, y: y + 4), CGPoint(x: x1, y: y)] }
+    let intoNext = sim.draw(line(1690, 2300, 1000))        // centre 1995: d-11-03 (local 995), reaches d-11-04 by 300
+    let intoPrevious = sim.draw(line(900, 1400, 3000))     // centre 1150: d-11-03's extra, reaches d-11-02 by 100
+    let inside = sim.draw(line(1200, 1500, 1200))          // inside d-11-03
+    let own = sim.draw(line(1900, 2400, 900))              // centre 2150: d-11-04 (local 150), reaches d-11-03 by 100
+    check(intoNext != nil && intoPrevious != nil && inside != nil && own != nil, "span pdf: the four strokes are kept")
+    guard let a = intoNext, let b = intoPrevious, let o = own else { return }
+    let next = SpanComposer.neighborInk(for: "d-2026-11-04", from: sim.current, layout: layout)
+    var aReal = a
+    aReal.id = SpanName.strip(id: a.id)
+    aReal.cell = .grid
+    checkEqual(next, [SpanPDFInk(pageId: "d-2026-11-03", stroke: aReal, cellRect: CGRect(x: -1000, y: 0, width: 1000, height: 2400))],
+               "span pdf: d-11-04's PDF gets d-11-03's stroke that reaches into it, with the real id and the cell moved by −1000")
+    let previous = SpanComposer.neighborInk(for: "d-2026-11-02", from: sim.current, layout: layout)
+    check(previous.count == 1 && previous[0].stroke.id == SpanName.strip(id: b.id) && previous[0].stroke.cell == .extra
+          && previous[0].cellRect == CGRect(x: 1000, y: 2400, width: 1000, height: 6000),
+          "span pdf: d-11-02's PDF gets d-11-03's extra stroke that reaches into it, the cell moved by +1000")
+    let middle = SpanComposer.neighborInk(for: "d-2026-11-03", from: sim.current, layout: layout)
+    check(middle.count == 1 && middle[0].stroke.id == SpanName.strip(id: o.id) && middle.allSatisfy { !SpanGuard.isWindowName($0.stroke.id) && !SpanGuard.isWindowName($0.stroke.cell.raw) },
+          "span pdf: d-11-03's PDF gets only d-11-04's stroke that reaches back into it (its own strokes are the page's)")
+    check(SpanComposer.neighborInk(for: "d-2026-11-09", from: sim.current, layout: layout).isEmpty, "span pdf: a page outside the window gets nothing")
+}
+
+// MARK: - SpanComposer and PageDelta: random edits (§10.1: ≥ 300 edits, JSON equality)
+
+func spanComposerRandomChecks(_ kind: PageKind, seed: UInt64) {
+    var rng = Rng(seed: seed)
+    let plan = SpanFixtures.plan(kind)
+    guard let focus = plan.index(of: kind == .week ? "w-2026-11-16" : "d-2026-11-16") else { return }
+    let pageIds = ((focus - 3)...(focus + 3)).map { plan.pageId(at: $0) }
+    let targets = Array(pageIds[1...5])           // the edits never touch the two end pages
+    let cells = kind == .week ? ["grid"] : ["grid", "extra"]
+    let width = ZoomPolicy.paperWidth(kind)
+    var ids = CompatFixtures.SeededIds(seed: seed ^ 0xA5A5)
+    func points(_ count: Int) -> [InkPoint] {
+        (0..<count).map { i in
+            switch rng.int(8) {
+            case 0: return SpanInk.point(CGFloat(rng.int(400)) - 400, CGFloat(rng.int(9000)), i)              // left of the page
+            case 1: return SpanInk.point(width + CGFloat(rng.int(400)), CGFloat(rng.int(9000)), i)           // right of it
+            case 2: return SpanInk.point(CGFloat(rng.int(199_998)) - 99_999, CGFloat(rng.int(199_998)) - 99_999, i)
+            default: return SpanInk.point(CGFloat(rng.int(Int(width * 10))) / 10, CGFloat(rng.int(24000)) / 10, i)
+            }
+        }
+    }
+    var t = 1_790_200_000_000
+    func next() -> Int { t += 1; return t }
+
+    // The pages as read: strokes of every kind of id, tombstones, unknown tools, a band stroke, v 2.
+    var originals: [InkPage] = []
+    for (i, pageId) in pageIds.enumerated() {
+        var p = InkPage(pageId: pageId)
+        for j in 0..<(3 + rng.int(6)) {
+            let id: String
+            switch j == 0 ? 0 : rng.int(8) {
+            case 0: id = "long-\(i)-\(j)-" + String(repeating: "x", count: 100 + rng.int(16))
+            case 1: id = "web\(i)\(j)~w1"
+            case 2: id = "old|\(i)-\(j)"
+            default: id = ids.next()
+            }
+            p.add(InkStroke(id: id, cell: CellKey(raw: cells[rng.int(cells.count)]), tool: rng.int(4) == 0 ? .marker : .pen,
+                            color: "#1f2937", t: next(), dev: "kitchecks", points: points(2 + rng.int(4))))
+        }
+        if i == 2 || i == 4 {
+            p.add(InkStroke(id: "shared-raw-1", cell: .grid, tool: .pen, color: "#2563eb", t: next(), points: points(3)))
+        }
+        for _ in 0..<rng.int(3) { p.remove(ids: [rng.int(2) == 0 ? ids.next() : "long-tomb-\(i)-" + String(repeating: "y", count: 110)], at: next()) }
+        if rng.int(2) == 0 || i == 3 {
+            p.unknownStrokes["photo-\(i)"] = SpanInk.unknown("photo-\(i)", cell: "grid", tool: "photo", t: next())
+            p.unknownStrokes["text-\(i)"] = SpanInk.unknown("text-\(i)", cell: "grid", tool: "text", t: next())
+        }
+        if i == 3 {
+            p.v = 2
+            p.unknown["later"] = .object(["n": .number(3)])
+        }
+        if i == 4 {
+            let cell: CellKey = kind == .week ? .allDay(plan.firstDay(at: focus + 1).adding(days: 2)) : .allDayDay
+            p.add(InkStroke(id: "band-\(i)", cell: cell, tool: .pen, color: "#1f2937", t: next(), points: points(3)))
+        }
+        originals.append(p)
+    }
+
+    let v = SpanComposer.compose(originals, plan: plan, session: 7)
+    var sim = SpanLedgerSim(virtual: v, seed: seed ^ 0x5151, firstTime: t + 1000, dev: "kitchecks")
+    var direct: [String: InkPage] = [:]
+    for p in originals { direct[p.pageId] = BandMigration.migrate(p) }
+    let slots = direct
+    var erased: [InkStroke] = []
+    var edits = 0
+    var crossMoves = 0
+    var aliasErases = 0
+    func liveIds() -> [String] { sim.page.strokes.keys.filter { sim.page.isLive($0) }.sorted() }
+    func addDirect(_ stroke: InkStroke) {
+        guard let r = SpanInk.real(stroke, aliases: sim.virtual.aliases) else { return }
+        direct[r.page]?.add(r.stroke)
+    }
+    func removeDirect(_ windowIds: [String], at time: Int) {
+        for id in windowIds {
+            guard let owner = SpanInk.owner(of: id, aliases: sim.virtual.aliases) else { continue }
+            if owner.id.utf8.count > 100 { aliasErases += 1 }
+            direct[owner.page]?.remove(ids: [owner.id], at: time)
+        }
+    }
+
+    // One erase of a long (aliased) id for sure, then random steps.
+    if let long = liveIds().first(where: { id in SpanInk.owner(of: id, aliases: sim.virtual.aliases).map { $0.id.hasPrefix("long-") && targets.contains($0.page) } == true }) {
+        removeDirect(sim.erase([long]), at: sim.clock)
+        edits += 1
+    }
+    for _ in 0..<440 {
+        let live = liveIds()
+        switch rng.int(10) {
+        case 0, 1, 2, 3:
+            let page = targets[rng.int(targets.count)]
+            let s = sim.put(cell: CellKey(raw: page + "|" + cells[rng.int(cells.count)]), points: points(2 + rng.int(4)),
+                            tool: rng.int(5) == 0 ? .marker : .pen, color: ["#1f2937", "#dc2626"][rng.int(2)])
+            addDirect(s)
+            edits += 1
+        case 4, 5:
+            guard !live.isEmpty else { continue }
+            let id = live[rng.int(live.count)]
+            guard SpanInk.owner(of: id, aliases: sim.virtual.aliases).map({ targets.contains($0.page) }) == true else { continue }
+            let before = sim.page.strokes[id]!
+            let gone = sim.erase([id])
+            removeDirect(gone, at: sim.clock)
+            if !gone.isEmpty { erased.append(before); edits += 1 }
+        case 6:
+            guard !live.isEmpty else { continue }
+            let id = live[rng.int(live.count)]
+            guard let from = SpanInk.owner(of: id, aliases: sim.virtual.aliases), targets.contains(from.page) else { continue }
+            let to = targets[rng.int(targets.count)]
+            let copies = sim.move([id], toCell: CellKey(raw: to + "|" + cells[rng.int(cells.count)]))
+            removeDirect([id], at: sim.clock)
+            copies.forEach(addDirect)
+            if !copies.isEmpty { edits += 1; if to != from.page { crossMoves += 1 } }
+        case 7:
+            guard !erased.isEmpty else { continue }
+            if let copy = sim.undoCopy(erased[rng.int(erased.count)]) { addDirect(copy); edits += 1 }
+        case 8:
+            let all = sim.page.strokes.keys.sorted() + sim.page.deleted.keys.sorted()
+            guard all.count > 1 else { continue }
+            let pick = [all[rng.int(all.count)], all[rng.int(all.count)]]
+            guard pick.allSatisfy({ SpanInk.owner(of: $0, aliases: sim.virtual.aliases).map { targets.contains($0.page) } == true }) else { continue }
+            let gone = sim.erase(pick)
+            removeDirect(gone, at: sim.clock)
+            if !gone.isEmpty { edits += 1 }
+        default:
+            check(sim.erase([targets[rng.int(targets.count)] + "|not-there"]).isEmpty, "span random \(kind): erasing an id that is not live journals nothing")
+        }
+    }
+
+    let journal = sim.takeJournal()
+    let deltas = SpanComposer.deltas(from: journal, epoch: 7, aliases: sim.virtual.aliases)
+    print("   span random \(kind): \(edits) edits, \(crossMoves) moves across pages, \(aliasErases) erases of aliased ids, \(journal.count) journal steps, \(deltas.count) deltas")
+    check(edits >= 300 && crossMoves >= 5 && aliasErases >= 1,
+          "span random \(kind): \(edits) edits (≥ 300), \(crossMoves) moves across pages, \(aliasErases) erases of long (aliased) ids")
+    check(deltas.allSatisfy { $0.epoch == 7 && targets.contains($0.pageId) }, "span random \(kind): every delta is of a page that was edited, with the session's number")
+    check(deltas.allSatisfy { d in d.added.allSatisfy { !SpanGuard.isWindowName($0.id) && !SpanGuard.isWindowName($0.cell.raw) && InkStroke.isValidId($0.id) } && d.removed.allSatisfy { !SpanGuard.isWindowName($0) && InkStroke.isValidId($0) } },
+          "span random \(kind): no window name reaches a delta")
+
+    func applyAll(_ list: [PageDelta]) -> [String: InkPage] {
+        var out = slots
+        for d in list { if let p = out[d.pageId] { out[d.pageId] = SpanComposer.apply(d, to: p) } }
+        return out
+    }
+    func same(_ a: [String: InkPage], _ b: [String: InkPage]) -> Bool {
+        pageIds.allSatisfy { SpanInk.bytes(a[$0]!) == SpanInk.bytes(b[$0]!) }
+    }
+    let applied = applyAll(deltas)
+    for pageId in pageIds {
+        checkEqual(SpanInk.bytes(applied[pageId]!), SpanInk.bytes(direct[pageId]!), "span random \(kind): \(pageId) with the deltas is the page edited directly (JSON)")
+    }
+    for round in 0..<3 {
+        var shuffled = deltas
+        for i in stride(from: shuffled.count - 1, to: 0, by: -1) { shuffled.swapAt(i, rng.int(i + 1)) }
+        check(same(applyAll(shuffled), direct), "span random \(kind): the deltas in another order give the same pages (round \(round))")
+    }
+    check(same(applyAll(deltas + deltas), direct) && same(applyAll(deltas.flatMap { [$0, $0] }), direct),
+          "span random \(kind): every delta applied twice gives the same pages")
+    let current = sim.current
+    for pageId in pageIds {
+        let merged = InkPage.merge(applied[pageId]!, SpanComposer.extract(pageId: pageId, from: current))
+        check(SpanInk.bytes(merged) == SpanInk.bytes(applied[pageId]!) && !merged.contentDiffers(from: applied[pageId]!),
+              "span random \(kind): with nothing missing the safety net changes nothing on \(pageId)")
+    }
+    let drops = Array(Set((0..<40).map { _ in rng.int(deltas.count) })).sorted()
+    for k in drops {
+        var partial = applyAll(deltas.enumerated().filter { $0.offset != k }.map(\.element))
+        let pageId = deltas[k].pageId
+        partial[pageId] = InkPage.merge(partial[pageId]!, SpanComposer.extract(pageId: pageId, from: current))
+        check(same(partial, direct), "span random \(kind): without delta \(k) the safety net's merge gives the same pages (JSON)")
+    }
+    for end in [pageIds[0], pageIds[6]] {
+        check(!deltas.contains { $0.pageId == end } && SpanInk.bytes(applied[end]!) == SpanInk.bytes(originals.first { $0.pageId == end }!),
+              "span random \(kind): the untouched page \(end) is byte for byte as it was read")
+    }
+    for pageId in targets {
+        let page = applied[pageId]!
+        let addedIds = Set(deltas.filter { $0.pageId == pageId }.flatMap { $0.added.map(\.id) })
+        checkEqual(SpanGuard.checkForSave(page, added: addedIds), .ok, "span random \(kind): \(pageId) saves as it is")
+        let original = originals.first { $0.pageId == pageId }!
+        check(original.unknownStrokes.keys.allSatisfy { SpanInk.strokeJSON(page, $0) == SpanInk.strokeJSON(original, $0) }
+              && page.v == original.v && page.unknown == original.unknown,
+              "span random \(kind): \(pageId)'s unknown-tool items, v and unknown top-level items are byte for byte as read")
+    }
+    let shared = pageIds[2...4].filter { pageId in pageId != pageIds[3] }
+    check(shared.allSatisfy { applied[$0]!.strokes["shared-raw-1"] != nil || applied[$0]!.deleted["shared-raw-1"] != nil }
+          && (applied[shared[0]]!.isLive("shared-raw-1") == direct[shared[0]]!.isLive("shared-raw-1")),
+          "span random \(kind): the same raw id on two pages stays two strokes (each page has its own)")
+    let outside = pageIds.reduce(0) { n, id in
+        n + applied[id]!.liveStrokes.filter { $0.points.contains { $0.x < 0 || $0.x > width } }.count
+    }
+    check(outside >= 10, "span random \(kind): \(outside) strokes with points outside their page are kept (§4.1)")
 }

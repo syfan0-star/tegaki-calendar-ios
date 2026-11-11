@@ -18,6 +18,9 @@
 //                  the changes of a new version would flow into the copy. Nobody edits the copy;
 //                  tools/compat10/freeze.py --check proves it is what a21e469 gives.
 // CompatFixtures — writes K's golden fixtures (Tests/Fixtures/compat11) with the new code.
+// CompatSpanFixtures — 1.3: the joined pages' ledger and slots as plain values (SpanLedgerSim) and the
+//                  compat-span fixtures (Tests/Fixtures/compat-span) they write through the Kit's path
+//                  (docs/M7C_CONTRACT.md §4.2, §6.3).
 // Compat10Tests  — XCTest of the two above (and of the new code against the copy).
 //
 // `import Layout` (or `import Holidays`) re-exports DayKit, so app code only needs the three
@@ -43,7 +46,8 @@ let package = Package(
         .target(name: "Compat10", path: "Tests/Compat10",
                 exclude: ["FROZEN.sha256", "ORIGIN.sha256", "ORIGIN.ranges"]),
         .target(name: "CompatFixtures", dependencies: ["InkModel", "Layout"], path: "Tests/CompatFixtures"),
-        .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel", "Access", "Compat10", "CompatFixtures"]),
+        .target(name: "CompatSpanFixtures", dependencies: ["InkModel", "Layout", "CompatFixtures"], path: "Tests/CompatSpanFixtures"),
+        .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel", "Access", "Compat10", "CompatFixtures", "CompatSpanFixtures"]),
         .testTarget(name: "LayoutTests", dependencies: ["Layout"]),
         .testTarget(name: "HolidaysTests", dependencies: ["Holidays", "Layout"]),
         .testTarget(name: "InkModelTests", dependencies: ["InkModel", "Holidays"]),
