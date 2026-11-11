@@ -263,6 +263,9 @@ struct SpanPrototypeCanvas: UIViewRepresentable {
     /// 「上限あり」 (P-B6 イ, an iPhone in landscape): the lowest zoom (and the opening zoom) never shows more
     /// than this many pages across; nil: 「今のまま」 (the overview's, the 24 hours, P-B6 ア).
     var maxVisiblePages: CGFloat? = nil
+    /// The week memo's form (§4.5: ruled lines only, the default, or a square grid); its lines are drawn by
+    /// the container's `memoView` under the canvas.
+    var memoStyle: SpanPrototypeMemoStyle = .ruled
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -338,6 +341,8 @@ final class SpanPrototypePKCanvasView: PKCanvasView {
 final class SpanPrototypeContainerView: UIView {
     /// Left to right, as `SpanLayout.pages`.
     private(set) var paperViews: [PaperView] = []
+    /// The week memo's lines (§5.2), above the paper views and under the canvas.
+    let memoView = SpanPrototypeMemoView(frame: .zero)
     let canvasView = SpanPrototypePKCanvasView()
     let overlayView = InkOverlayView()
     var onLayout: (() -> Void)?
@@ -348,6 +353,7 @@ final class SpanPrototypeContainerView: UIView {
         clipsToBounds = true
         addSubview(canvasView)
         addSubview(overlayView)
+        insertSubview(memoView, belowSubview: canvasView)
         setPapers(papers)
         // As `InkCanvasContainerView`: the marker multiplies with the paper below (DESIGN.md §3.2).
         canvasView.layer.compositingFilter = "multiplyBlendMode"
@@ -382,6 +388,8 @@ final class SpanPrototypeContainerView: UIView {
         for view in paperViews {
             insertSubview(view, belowSubview: canvasView)
         }
+        // The memo's lines stay above the paper.
+        insertSubview(memoView, belowSubview: canvasView)
     }
 
     /// `PaperView.show` of every page with the visible rect moved by the page's x × zoom, so each draws
@@ -400,8 +408,22 @@ final class SpanPrototypeContainerView: UIView {
         }
     }
 
+    /// The week memo of every page that has one (`SpanPrototypeWeekMemoLayout`), at the canvas's zoom and offset.
+    func showMemo(layout: SpanLayout, zoom: CGFloat, offset: CGPoint, style: SpanPrototypeMemoStyle) {
+        let rects = layout.pages.enumerated().map { slot, page -> CGRect in
+            guard let memo = (page as? SpanPrototypeWeekMemoLayout)?.memo else { return .zero }
+            return memo.offsetBy(dx: layout.origin(ofSlot: slot), dy: 0)
+        }
+        memoView.show(rects: rects, zoom: zoom, offset: offset, style: style)
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
+        if memoView.frame.size != bounds.size || memoView.center != CGPoint(x: bounds.midX, y: bounds.midY) {
+            // The size and the place only: `bounds.origin` follows the canvas's offset (`showMemo`).
+            memoView.bounds.size = bounds.size
+            memoView.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        }
         if canvasView.frame != bounds {
             canvasView.frame = bounds
         }
@@ -983,6 +1005,7 @@ extension SpanPrototypeCanvas {
             guard newParent.window.pageId == newParent.layout.pageId else { return }
             let oldClearance = parent.bottomClearance
             let oldMaxVisiblePages = parent.maxVisiblePages
+            let oldMemoStyle = parent.memoStyle
             parent = newParent
             guard let canvas else { return }
             isUpdating = true
@@ -1055,6 +1078,10 @@ extension SpanPrototypeCanvas {
             // 1.1 (§2.2): the round button's clearance applies at once (it moves no stroke).
             if newParent.bottomClearance != oldClearance {
                 applyInsets()
+            }
+            // The week memo's form: its lines at once.
+            if newParent.memoStyle != oldMemoStyle {
+                syncPaperFrame()
             }
             // 「上限あり」 / 「今のまま」 (P-B6): new zoom limits at once (the strokes do not move).
             if newParent.maxVisiblePages != oldMaxVisiblePages, hasInitialZoom, let container {
@@ -1541,6 +1568,7 @@ extension SpanPrototypeCanvas {
                 layout: appliedLayout,
                 live: isLive
             )
+            container.showMemo(layout: appliedLayout, zoom: zoom, offset: canvas.contentOffset, style: parent.memoStyle)
             container.overlayView.viewportChanged()
             notifySelection()
             notifyViewport()
@@ -1607,7 +1635,12 @@ extension SpanPrototypeCanvas {
         /// lowest zoom show every page of the window at once).
         static func overview(of layout: SpanLayout) -> CGSize {
             guard !layout.pages.isEmpty else { return ZoomPolicy.overviewSize(layout) }
-            return ZoomPolicy.overviewSize(layout.pages[layout.pages.count / 2])
+            let middle = layout.pages[layout.pages.count / 2]
+            // §5.2: with the week memo the overview is still the 24 hours (K-6); the memo is reached by scrolling.
+            if let week = middle as? SpanPrototypeWeekMemoLayout {
+                return ZoomPolicy.overviewSize(week.week)
+            }
+            return ZoomPolicy.overviewSize(middle)
         }
 
         /// How far (pt) x moves when a window of the same session is composed around other pages: the

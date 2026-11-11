@@ -261,6 +261,42 @@
       "glossary": [],
       "jaOnly": true
     },
+    "prototype.span.memo.grid": {
+      "ja": "方眼",
+      "target": "app",
+      "comment": "「週のメモの形」の選択肢。横の罫線に縦の線を足した方眼（§4.5 の見本の比べ）。試作のビルドだけ。ja だけのキー（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.memo.ruled": {
+      "ja": "罫線だけ",
+      "target": "app",
+      "comment": "「週のメモの形」の選択肢。日の自由メモと同じ横の罫線だけ（§0.6 の既定）。試作のビルドだけ。ja だけのキー（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.memo.title": {
+      "ja": "週のメモの形",
+      "target": "app",
+      "comment": "試作の設定のメニューの選択。週のページの 24 時の下のメモ欄の見え方を選ぶ（docs/M7C_CONTRACT.md §4.5、§5.2）。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
     "prototype.span.note": {
       "ja": "見本の週です。ここで書いたものは試作の中だけに置かれ、閉じると消えます。iCloud には送られません。",
       "target": "app",

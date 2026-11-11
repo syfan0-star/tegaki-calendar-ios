@@ -164,6 +164,8 @@ final class SpanPrototypeSession: ObservableObject {
     /// Each window page's week as 1.2.3 lays it out (no memo): what 「1 ページずつ」 shows (the old versions'
     /// view of the same pages, §4.5).
     private(set) var plainLayouts: [String: WeekPageLayout] = [:]
+    /// The height every week memo of the window has (`SpanAlign`, D16): at least 6,000 lu.
+    private(set) var memoFloor: CGFloat = 0
 
     /// The ledger's page of the window and its layout; `windowVersion` moves each time they are composed.
     @Published private(set) var window: SpanVirtualPage
@@ -263,34 +265,54 @@ final class SpanPrototypeSession: ObservableObject {
     }
 
     /// The window from the slots (`SpanComposer.compose` with the session's aliases) and its layout and
-    /// papers; a new `windowVersion`.
-    private func compose() {
+    /// papers (`layoutPages`); a new `windowVersion`.
+    private func compose(change: SpanAlign.Change = .redecide) {
         let pages = pageIds.compactMap { slots[$0]?.page }
         let composed = SpanComposer.compose(pages, plan: plan, session: number, aliases: aliases)
         aliases = composed.aliases
-        let firstIndex = Self.window(around: focusIndex, plan: plan, radius: radiusOverride).lowerBound
-        let words = LayoutWords.of(L.language)
-        var layouts: [any PageLayout] = []
-        var contents: [PaperContent] = []
-        var plain: [String: WeekPageLayout] = [:]
-        for (offset, id) in pageIds.enumerated() {
-            let inkBottoms = slots[id]?.page.inkBottoms() ?? [:]
-            let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: plan.firstDay(at: firstIndex + offset), events: events,
-                                                               inkBottoms: inkBottoms, now: now, holidays: holidays,
-                                                               words: words, weekStart: weekStart))
-            plain[id] = week
-            layouts.append(week)
-            contents.append(.week(WeekPaperContent(layout: week)))
-        }
-        plainLayouts = plain
         window = composed
-        layout = SpanLayout(pages: layouts, plan: plan, firstIndex: firstIndex, session: number)
-        papers = contents
+        layoutPages(change: change)
         windowVersion += 1
         meter?.recordWindowStrokes(windowStrokeCount)
         for id in composed.skippedPageIds {
             fault("compose: \(id) left out of the window")
         }
+    }
+
+    /// Each window page's week (`WeekLayoutEngine`, as 1.2.3 lays it out: `plainLayouts`) with the week memo
+    /// below 24:00 (`SpanPrototypeWeekMemoLayout`, §5.2), the memos lined up to the window's floor (`SpanAlign`,
+    /// D16: the tallest memo's natural height; a shift never lowers it, erasing may), side by side
+    /// (`layout`); the paper draws the plain weeks (`papers`).
+    private func layoutPages(change: SpanAlign.Change) {
+        let firstIndex = Self.window(around: focusIndex, plan: plan, radius: radiusOverride).lowerBound
+        let words = LayoutWords.of(L.language)
+        let bottoms = pageIds.map { slots[$0]?.page.inkBottoms() ?? [:] }
+        memoFloor = SpanAlign.floor(previous: memoFloor, naturals: bottoms.map { SpanAlign.natural(inkBottom: $0[.extra] ?? 0) },
+                                    change: change)
+        var layouts: [any PageLayout] = []
+        var contents: [PaperContent] = []
+        var plain: [String: WeekPageLayout] = [:]
+        for (offset, id) in pageIds.enumerated() {
+            let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: plan.firstDay(at: firstIndex + offset), events: events,
+                                                               inkBottoms: bottoms[offset], now: now, holidays: holidays,
+                                                               words: words, weekStart: weekStart))
+            plain[id] = week
+            layouts.append(SpanPrototypeWeekMemoLayout(week: week, memoHeight: memoFloor))
+            contents.append(.week(WeekPaperContent(layout: week)))
+        }
+        plainLayouts = plain
+        layout = SpanLayout(pages: layouts, plan: plan, firstIndex: firstIndex, session: number)
+        papers = contents
+    }
+
+    /// The canvas said handwriting may have crossed the bottom of its cell (`onInkBoundsChanged`): the inbox is
+    /// emptied and the pages laid out again — the memo grows with a line past 5,950 lu, or shrinks back when
+    /// it is erased (§5.2, D16) — with the same virtual page (the canvas takes the layout alone).
+    func relayoutPages() {
+        guard !isClosed, !isFilling else { return }
+        drainInbox()
+        let tallest = pageIds.map { SpanAlign.natural(inkBottom: slots[$0]?.page.inkBottoms()[.extra] ?? 0) }.max() ?? 0
+        layoutPages(change: tallest < memoFloor ? .inkShrank : .inkGrew)
     }
 
     // MARK: Deltas (§3.4)
@@ -457,11 +479,13 @@ final class SpanPrototypeSession: ObservableObject {
         for id in nextIds where slots[id] == nil {
             slots[id] = loadSlot(id)
         }
+        // A window that only moved keeps its memo's floor (§3.2, D16); anything else decides it again.
+        let moved = nextPlan == plan && nextRadius == radiusOverride
         plan = nextPlan
         radiusOverride = nextRadius
         focusIndex = nextFocus
         pageIds = nextIds
-        compose()
+        compose(change: moved ? .shift : .redecide)
         return true
     }
 

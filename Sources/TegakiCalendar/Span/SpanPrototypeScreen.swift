@@ -16,7 +16,8 @@ import UIKit
 // The band moves as §3.6 says (the canvas shifts the window at rest, flings to the next week, ◀ ▶ slide one
 // week, the palm's rule holds the pan), and the title follows the focus week (the page under the middle of
 // the screen, with the 6 % hysteresis). 「線の数」 fills the prototype's pages with synthetic strokes, and the
-// measurements of §4.6 stand in a corner of the band (`SpanPrototypeMeter`, `SpanPrototypeHUD`).
+// measurements of §4.6 stand in a corner of the band (`SpanPrototypeMeter`, `SpanPrototypeHUD`). Every week
+// has its memo below 24:00 (`SpanPrototypeWeekMemoLayout`, §5.2), in one of the two forms of §4.5.
 
 // MARK: - The row in 設定 › 情報
 
@@ -67,6 +68,8 @@ final class SpanPrototypeModel: ObservableObject {
     @Published private(set) var landscapeCap = false
     /// 「1 ページずつ」: the focus week alone on the 1.2.3 canvas, as an old version shows the same page (§4.5).
     @Published private(set) var singlePage = false
+    /// The week memo's form (§4.5: 罫線だけ, the default, or 方眼).
+    @Published var memoStyle: SpanPrototypeMemoStyle = .ruled
     private(set) var isClosed = false
     /// The last size `screenChanged` was told of (a size that came while 「線の数」 wrote is taken after it).
     private var lastScreen: (size: CGSize, isPad: Bool)?
@@ -455,7 +458,8 @@ struct SpanPrototypeScreen: View {
     }
 
     /// The prototype's settings: the week start (§4.5's Sunday sample), iPhone landscape's 「今のまま」 /
-    /// 「上限あり」 (§4.6 ⑤), 「1 ページずつ」 (§4.5's old versions' view), the measurements.
+    /// 「上限あり」 (§4.6 ⑤), the week memo's form (§4.5), 「1 ページずつ」 (§4.5's old versions' view), the
+    /// measurements.
     private var optionsMenu: some View {
         Menu {
             Picker(L.text("settings.weekStart.title"), selection: Binding(get: { model.weekStart }, set: { model.setWeekStart($0) })) {
@@ -466,6 +470,11 @@ struct SpanPrototypeScreen: View {
             Picker(L.text("prototype.span.landscape.title"), selection: Binding(get: { model.landscapeCap }, set: { model.setLandscapeCap($0) })) {
                 Text(L.text("prototype.span.landscape.now")).tag(false)
                 Text(L.text("prototype.span.landscape.cap")).tag(true)
+            }
+            .pickerStyle(.menu)
+            Picker(L.text("prototype.span.memo.title"), selection: $model.memoStyle) {
+                Text(L.text("prototype.span.memo.ruled")).tag(SpanPrototypeMemoStyle.ruled)
+                Text(L.text("prototype.span.memo.grid")).tag(SpanPrototypeMemoStyle.grid)
             }
             .pickerStyle(.menu)
             Toggle(L.text("prototype.span.singlePage"), isOn: Binding(get: { model.singlePage }, set: { model.setSinglePage($0) }))
@@ -511,6 +520,7 @@ struct SpanPrototypeWindowView: View {
             windowVersion: session.windowVersion,
             inbox: session.inbox,
             epoch: session.epoch,
+            onInkBoundsChanged: { [weak session] in session?.relayoutPages() },
             undoTrigger: undoTrigger,
             redoTrigger: redoTrigger,
             onHistoryChanged: onHistoryChanged,
@@ -520,7 +530,8 @@ struct SpanPrototypeWindowView: View {
             onFocusChange: { [weak model] index in model?.focusChanged(index) },
             onShift: { [weak model] index in model?.shift(toFocusIndex: index) },
             meter: model.meter,
-            maxVisiblePages: model.maxVisiblePages
+            maxVisiblePages: model.maxVisiblePages,
+            memoStyle: model.memoStyle
         )
         .id(session.layout.pageId)
     }
