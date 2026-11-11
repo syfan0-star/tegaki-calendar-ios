@@ -25,6 +25,12 @@
 #      CompatFixtures are emitted as modules, and the folders Compat10, CompatFixtures and Fixtures
 #      (JSON only) are not type-checked as test targets. Each test folder's files are found with
 #      `find`, so sub-folders count too.
+#
+# 1.3 (docs/M7C_CONTRACT.md §4.6, D12): the optional environment variable TYPECHECK_DEFINES holds
+# compilation conditions separated by spaces; each is passed as `-D <name>` to steps 4 and 5 (the app,
+# the app module and every folder of Tests/), never to the Kit. `TYPECHECK_DEFINES=SPAN_PROTOTYPE`
+# type-checks the prototype build, which CI makes with the condition on the xcodebuild command line
+# (it is never in project.yml). Unset or empty: exactly the steps above.
 # Exit status: non-zero when any step fails. Warnings are printed and counted, not fatal.
 set -euo pipefail
 
@@ -60,6 +66,26 @@ CATALYST=(
   -I "$KIT"
 )
 
+# The compilation conditions of TYPECHECK_DEFINES (`read -a` splits on spaces without expanding a
+# pattern), as `-D <name>` for steps 4 and 5 only. Expanded below as ${DEFINES[@]+"${DEFINES[@]}"}, so an
+# empty list adds nothing (and bash 3.2's `set -u` does not stop on it).
+DEFINE_NAMES=()
+read -r -a DEFINE_NAMES <<< "${TYPECHECK_DEFINES:-}" || true
+DEFINES=()
+for name in ${DEFINE_NAMES[@]+"${DEFINE_NAMES[@]}"}; do
+  case "$name" in
+    [A-Za-z_]*) ;;
+    *) echo "typecheck: TYPECHECK_DEFINES: '$name' is not a compilation condition"; exit 2 ;;
+  esac
+  case "$name" in
+    *[!A-Za-z0-9_]*) echo "typecheck: TYPECHECK_DEFINES: '$name' is not a compilation condition"; exit 2 ;;
+  esac
+  DEFINES+=(-D "$name")
+done
+if [ "${#DEFINES[@]}" -gt 0 ]; then
+  echo "defines for the app and its tests: ${DEFINES[*]}"
+fi
+
 emit() { # emit <module> <files...>
   local name="$1"; shift
   xcrun swiftc -emit-module -parse-as-library -module-name "$name" \
@@ -93,7 +119,7 @@ APP_FILES+=("$APP/StateStandIn.swift")
 echo "app copy: ${#APP_FILES[@]} files (@State → @StateStandIn: $(grep -l '@StateStandIn' "${APP_FILES[@]}" | wc -l | tr -d ' ') files)"
 
 # 4. Type-check the app.
-if xcrun swiftc -typecheck -module-name TegakiCalendar "${CATALYST[@]}" "${APP_FILES[@]}" 2> "$LOG/app.log"; then
+if xcrun swiftc -typecheck -module-name TegakiCalendar "${CATALYST[@]}" ${DEFINES[@]+"${DEFINES[@]}"} "${APP_FILES[@]}" 2> "$LOG/app.log"; then
   echo "app: typecheck OK ($(grep -c 'warning:' "$LOG/app.log" || true) warnings; $LOG/app.log)"
 else
   grep -E 'error:' "$LOG/app.log" | head -60
@@ -103,7 +129,7 @@ fi
 
 # 5. The tests against the app module.
 xcrun swiftc -emit-module -parse-as-library -module-name TegakiCalendar -enable-testing \
-  -emit-module-path "$KIT/TegakiCalendar.swiftmodule" "${CATALYST[@]}" "${APP_FILES[@]}" \
+  -emit-module-path "$KIT/TegakiCalendar.swiftmodule" "${CATALYST[@]}" ${DEFINES[@]+"${DEFINES[@]}"} "${APP_FILES[@]}" \
   2> "$LOG/emit-app.log" || { grep -E 'error:' "$LOG/emit-app.log" | head -40; echo "typecheck: emitting the app module FAILED"; exit 1; }
 # Each folder of Tests/ is its own test target (module): TegakiCalendarTests (unit tests, @testable
 # import of the app) and, since 1.0.1, TegakiCalendarUITests (XCUITest; the stand-in has the XCUI
@@ -113,7 +139,7 @@ for dir in "$REPO"/Tests/*/; do
   TEST_FILES=()
   while IFS= read -r f; do TEST_FILES+=("$f"); done < <(find "$dir" -name '*.swift' | sort)
   [ "${#TEST_FILES[@]}" -gt 0 ] || continue
-  if xcrun swiftc -typecheck -module-name "$module" "${CATALYST[@]}" "${TEST_FILES[@]}" 2> "$LOG/tests-$module.log"; then
+  if xcrun swiftc -typecheck -module-name "$module" "${CATALYST[@]}" ${DEFINES[@]+"${DEFINES[@]}"} "${TEST_FILES[@]}" 2> "$LOG/tests-$module.log"; then
     echo "$module: typecheck OK (${#TEST_FILES[@]} files, $(grep -c 'warning:' "$LOG/tests-$module.log" || true) warnings; $LOG/tests-$module.log)"
   else
     grep -E 'error:' "$LOG/tests-$module.log" | head -60

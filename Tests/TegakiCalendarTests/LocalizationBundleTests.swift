@@ -15,6 +15,8 @@ final class LocalizationBundleTests: XCTestCase {
         var ja: String
         var target: String
         var was: [String]
+        /// 1.3 (docs/M7C_CONTRACT.md D12, §8.1): the prototype build's words ("prototype.*") are in ja only.
+        var jaOnly: Bool = false
     }
 
     /// Every key of tools/l10n/source/app-*.json.
@@ -29,14 +31,15 @@ final class LocalizationBundleTests: XCTestCase {
             let entries = try XCTUnwrap(file["keys"] as? [String: [String: Any]])
             for (key, entry) in entries {
                 keys.append(Key(name: key, ja: try XCTUnwrap(entry["ja"] as? String), target: try XCTUnwrap(entry["target"] as? String),
-                                was: entry["was"] as? [String] ?? []))
+                                was: entry["was"] as? [String] ?? [], jaOnly: entry["jaOnly"] as? Bool ?? false))
             }
         }
         return keys.sorted { $0.name < $1.name }
     }
 
     func testEveryLanguageBundleHasEveryKey() throws {
-        let keys = try appKeys().filter { $0.target == "app" }
+        // A jaOnly key (the prototype's, 1.3) has its ja only; `testJapaneseMatchesTheOneOneBaseline` reads it.
+        let keys = try appKeys().filter { $0.target == "app" && !$0.jaOnly }
         XCTAssertGreaterThan(keys.count, 200)
         for language in UILanguage.allCases {
             let missing = keys.map(\.name).filter { key in

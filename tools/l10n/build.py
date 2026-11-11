@@ -43,9 +43,11 @@ What goes into the tables:
     the key (at run time a language without it falls back to en, then to the key: KitStrings.text
     and the app's L.text);
   - `fixed: true`: `fixedValues`, in all ten languages (a translation of the key is not used);
-  - `jaOnly: true` (Kit keys only): the ja table only (a translation of the key is not used). It is
-    not listed in `KitStrings.keys`, which holds the keys that must have all ten languages (L-2 asks
-    ten languages of every key but the jaOnly ones; KitChecks walks `keys` for the same check).
+  - `jaOnly: true` (Kit keys, and since 1.3 the app's "prototype.*" keys): the ja table only (a
+    translation of the key is not used). A Kit key is then not listed in `KitStrings.keys`, which holds
+    the keys that must have all ten languages (L-2 asks ten languages of every key but the jaOnly ones;
+    KitChecks walks `keys` for the same check). The app's are the words of the prototype build of
+    docs/M7C_CONTRACT.md §4.6 (D12, §8.1: ja only, not translated); only that build shows them.
   - `allowJapanese` and `lines` do not change a table: they are checked here for their form (the
     contract allows only two texts in allowJapanese, and each must be in the ja) and by the lint
     for the languages (L-2, L-4).
@@ -90,6 +92,9 @@ FORMATS = ("xcstrings", "strings")
 KEY_RE = re.compile(r"^[a-z][a-zA-Z0-9]*(\.[a-z0-9][a-zA-Z0-9]*)+$")  # §2.4
 INFOPLIST_KEY_RE = re.compile(r"^[A-Z][A-Za-z0-9]*$")  # an Info.plist key: CFBundleDisplayName, …
 SOURCE_FILE_RE = re.compile(r"^(app|kit)-([A-Z][A-Za-z0-9]*)\.json$")  # app-S.json, kit-K.json, …
+# 1.3 (docs/M7C_CONTRACT.md D12, §8.1): the app's keys that may be jaOnly — the words of the prototype
+# build (SPAN_PROTOTYPE), which only the person sees, in Japanese; every other app key has all ten languages.
+APP_JA_ONLY_PREFIX = "prototype."
 # The only texts a value other than ja may keep in kana and kanji (§2.3, L-2).
 ALLOWED_JAPANESE = ("手書きを書き出す（iPad アプリ用）", "てがきカレンダー")
 
@@ -231,9 +236,10 @@ def check_key(key, entry, kind, where):
             if key.startswith("kit."):
                 raise BuildError(f"{where}: a key that starts with \"kit.\" is the Kit's "
                                  f"(target \"kit\", in a kit-*.json file)")
-        if entry.get("jaOnly", False):
+        if entry.get("jaOnly", False) and not (target == "app" and key.startswith(APP_JA_ONLY_PREFIX)):
             raise BuildError(f"{where}: \"jaOnly\" is for the Kit's ja-only formats (kit.date.ja.*, "
-                             f"§2.3); a key of the app has all ten languages")
+                             f"§2.3) and the prototype's {APP_JA_ONLY_PREFIX}* keys (docs/M7C_CONTRACT.md "
+                             f"D12); a key of the app has all ten languages")
     if "ja" not in entry:
         raise BuildError(f"{where}: has no \"ja\"")
     check_text(entry["ja"], f"{where}: \"ja\"")
