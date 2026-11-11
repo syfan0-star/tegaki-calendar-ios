@@ -18,10 +18,10 @@
 //                  the changes of a new version would flow into the copy. Nobody edits the copy;
 //                  tools/compat10/freeze.py --check proves it is what a21e469 gives.
 // CompatFixtures — writes K's golden fixtures (Tests/Fixtures/compat11) with the new code.
+// Compat10Tests  — XCTest of the two above (and of the new code against the copy).
 // CompatSpanFixtures — 1.3: the joined pages' ledger and slots as plain values (SpanLedgerSim) and the
 //                  compat-span fixtures (Tests/Fixtures/compat-span) they write through the Kit's path
-//                  (docs/M7C_CONTRACT.md §4.2, §6.3).
-// Compat10Tests  — XCTest of the two above (and of the new code against the copy).
+//                  (docs/M7C_CONTRACT.md §4.2, §6.3); KitChecks reads them (no XCTest yet).
 //
 // `import Layout` (or `import Holidays`) re-exports DayKit, so app code only needs the three
 // products named in the contract.

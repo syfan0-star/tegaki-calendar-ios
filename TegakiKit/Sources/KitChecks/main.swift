@@ -10,6 +10,11 @@ import Access
 import Compat10
 import CompatFixtures
 
+// 1.3: the output goes out a line at a time. CI pipes it (`| tee`), so it would otherwise sit in the
+// buffer and be lost with every FAIL line and section heading when a check traps (a precondition of the
+// compat-span fixture maker), leaving only the trap's message in the log.
+setvbuf(stdout, nil, _IOLBF, 0)
+
 // MARK: - 1.1: --write-compat-fixtures [--out <folder>] (M7A_CONTRACT §1.4, §7.1)
 //
 // Writes K's golden fixtures with the new code (the small ones, the large ones made again and
