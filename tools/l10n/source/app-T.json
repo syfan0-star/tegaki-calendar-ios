@@ -225,6 +225,42 @@
       "glossary": [],
       "jaOnly": true
     },
+    "prototype.span.landscape.cap": {
+      "ja": "上限あり",
+      "target": "app",
+      "comment": "「iPhone を横にして一番縮めたとき」の選択肢。横に並ぶ週を 3 つまでにする（P-B6 イ）。試作のビルドだけ。ja だけのキー（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.landscape.now": {
+      "ja": "今のまま",
+      "target": "app",
+      "comment": "「iPhone を横にして一番縮めたとき」の選択肢。24 時間全部が入る今の一番縮めた大きさ（P-B6 ア、§0.6）。試作のビルドだけ。ja だけのキー（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.landscape.title": {
+      "ja": "iPhone を横にして一番縮めたとき",
+      "target": "app",
+      "comment": "試作の設定のメニューの選択（docs/M7C_CONTRACT.md §4.6 の手順 4 ⑤、P-B6）。iPhone を横にしたときの一番縮めた大きさを選ぶ。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
     "prototype.span.note": {
       "ja": "見本の週です。ここで書いたものは試作の中だけに置かれ、閉じると消えます。iCloud には送られません。",
       "target": "app",
@@ -263,6 +299,18 @@
         "書き終えたページの数",
         "書くページの数"
       ],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.singlePage": {
+      "ja": "1 ページずつ（古い版の見え方）",
+      "target": "app",
+      "comment": "試作の設定のメニューの切り替え。同じページを、古い版（1.2.3 まで）と同じ 1 ページずつの画面で見せる（§4.5）。試作のビルドだけ。ja だけのキー（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
       "glossary": [],
       "jaOnly": true
     }

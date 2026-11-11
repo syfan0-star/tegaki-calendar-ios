@@ -260,6 +260,9 @@ struct SpanPrototypeCanvas: UIViewRepresentable {
     /// Where the canvas's measurements go (§4.6 測ること: the window swaps, the main thread's work when the pen
     /// lifts, the eraser's changes, the palm's held pans, the touches' size, the releases' speed); nil: none.
     var meter: SpanPrototypeMeter? = nil
+    /// 「上限あり」 (P-B6 イ, an iPhone in landscape): the lowest zoom (and the opening zoom) never shows more
+    /// than this many pages across; nil: 「今のまま」 (the overview's, the 24 hours, P-B6 ア).
+    var maxVisiblePages: CGFloat? = nil
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -979,6 +982,7 @@ extension SpanPrototypeCanvas {
             // (not even keep the new values, so a pending apply cannot see a mixed pair).
             guard newParent.window.pageId == newParent.layout.pageId else { return }
             let oldClearance = parent.bottomClearance
+            let oldMaxVisiblePages = parent.maxVisiblePages
             parent = newParent
             guard let canvas else { return }
             isUpdating = true
@@ -1051,6 +1055,22 @@ extension SpanPrototypeCanvas {
             // 1.1 (§2.2): the round button's clearance applies at once (it moves no stroke).
             if newParent.bottomClearance != oldClearance {
                 applyInsets()
+            }
+            // 「上限あり」 / 「今のまま」 (P-B6): new zoom limits at once (the strokes do not move).
+            if newParent.maxVisiblePages != oldMaxVisiblePages, hasInitialZoom, let container {
+                let viewport = container.bounds.size
+                if viewport.width > 0, viewport.height > 0 {
+                    // The band x in the middle of the screen stays there.
+                    let centerX = (canvas.contentOffset.x + viewport.width / 2) / max(canvas.zoomScale, 0.0001)
+                    applyBounds(zoomBounds(appliedLayout.kind, overview: Self.overview(of: appliedLayout), viewport: viewport))
+                    canvas.contentSize = Self.scaled(appliedLayout.size, by: canvas.zoomScale)
+                    applyInsets()
+                    if !isLive {
+                        let x = centerX * canvas.zoomScale - viewport.width / 2
+                        canvas.contentOffset = clampedOffset(CGPoint(x: x, y: canvas.contentOffset.y))
+                    }
+                    syncPaperFrame()
+                }
             }
 
             // 4. Undo / redo requests.
@@ -1214,7 +1234,7 @@ extension SpanPrototypeCanvas {
                 // does not shrink (a zoom below a raised limit is clamped).
                 let viewport = container.bounds.size
                 if hasInitialZoom, viewport.width > 0, viewport.height > 0 {
-                    applyBounds(ZoomPolicy.bounds(newLayout.kind, overview: Self.overview(of: newLayout), viewport: viewport))
+                    applyBounds(zoomBounds(newLayout.kind, overview: Self.overview(of: newLayout), viewport: viewport))
                 }
                 let zoomNow = max(canvas.zoomScale, 0.0001)
                 let delta = PageScroll.scrollDelta(old: oldLayout, new: newLayout, topVisibleY: topVisibleY)
@@ -1327,7 +1347,7 @@ extension SpanPrototypeCanvas {
             let viewport = container.bounds.size
             guard viewport.width > 0, viewport.height > 0 else { return }
             let overview = Self.overview(of: appliedLayout)
-            let bounds = ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport)
+            let bounds = zoomBounds(appliedLayout.kind, overview: overview, viewport: viewport)
 
             // 2. Same limits (a layout pass during a pinch, a height change the width-bound month
             // ignores): the margins may still differ (the height changed), the window follows.
@@ -1432,6 +1452,22 @@ extension SpanPrototypeCanvas {
                 canvas.contentOffset = clampedOffset(canvas.contentOffset)
             }
             syncPaperFrame()
+        }
+
+        /// `ZoomPolicy.bounds`, with 「上限あり」 (`maxVisiblePages`): the lowest zoom and the opening zoom are
+        /// raised to show at most that many pages across (P-B6 イ: the iPhone's landscape week 0.107 → 0.208).
+        private func zoomBounds(_ kind: PageKind, overview: CGSize, viewport: CGSize) -> ZoomPolicy.Bounds {
+            var bounds = ZoomPolicy.bounds(kind, overview: overview, viewport: viewport)
+            guard let pages = parent.maxVisiblePages, pages.isFinite, pages > 0, viewport.width.isFinite, viewport.width > 0 else {
+                return bounds
+            }
+            let cap = viewport.width / (pages * ZoomPolicy.paperWidth(kind))
+            if cap > bounds.min {
+                bounds.min = cap
+                bounds.open = max(bounds.open, cap)
+                bounds.max = max(bounds.max, cap)
+            }
+            return bounds
         }
 
         /// True when fit, open, min and max all differ by less than 0.0005.
@@ -1740,7 +1776,7 @@ extension SpanPrototypeCanvas {
         private func currentBounds() -> ZoomPolicy.Bounds? {
             if let lastBounds { return lastBounds }
             guard let container else { return nil }
-            return ZoomPolicy.bounds(appliedLayout.kind, overview: Self.overview(of: appliedLayout), viewport: container.bounds.size)
+            return zoomBounds(appliedLayout.kind, overview: Self.overview(of: appliedLayout), viewport: container.bounds.size)
         }
 
         /// The pinch (or the bounce after it) is over: the offset clamped, the paper redrawn once at

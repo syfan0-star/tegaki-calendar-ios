@@ -158,6 +158,12 @@ final class SpanPrototypeSession: ObservableObject {
     private(set) var epoch = 0
     /// The session's aliases of long ids, kept across every window it composes.
     private var aliases = SpanAliases.empty
+    /// The pages on each side of the focus when not the plan's (`SpanPlan.radius`): 「上限あり」 on an iPhone in
+    /// landscape (P-B6 イ, B_DESIGN.md §6.2: 3 weeks visible → 7 pages). nil: the plan's.
+    private(set) var radiusOverride: Int?
+    /// Each window page's week as 1.2.3 lays it out (no memo): what 「1 ページずつ」 shows (the old versions'
+    /// view of the same pages, §4.5).
+    private(set) var plainLayouts: [String: WeekPageLayout] = [:]
 
     /// The ledger's page of the window and its layout; `windowVersion` moves each time they are composed.
     @Published private(set) var window: SpanVirtualPage
@@ -185,10 +191,12 @@ final class SpanPrototypeSession: ObservableObject {
     /// "proto-<id>" file through `sync` (an empty page when there is none), `BandMigration` per page
     /// (a page it changed is saved, as the app's `show` does), and composes the window.
     init(sync: SyncEngine, weekStart: WeekStart, focus: DayKey, deviceClass: SpanDeviceClass, orientation: SpanOrientation,
-         now: Date, holidays: HolidayCalendar, events: [LayoutEvent], number: Int = 1, meter: SpanPrototypeMeter? = nil,
+         now: Date, holidays: HolidayCalendar, events: [LayoutEvent], number: Int = 1, radius: Int? = nil,
+         meter: SpanPrototypeMeter? = nil,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }) {
         self.sync = sync
         self.meter = meter
+        radiusOverride = radius
         self.weekStart = weekStart
         self.number = number
         self.now = now
@@ -201,7 +209,7 @@ final class SpanPrototypeSession: ObservableObject {
         // Placeholders until `compose()` below (it sets both before anyone can read them).
         window = SpanComposer.compose([], plan: plan, session: number)
         layout = SpanLayout(pages: [], plan: plan, firstIndex: focusIndex, session: number)
-        pageIds = plan.window(around: focusIndex).map(plan.pageId(at:))
+        pageIds = Self.window(around: focusIndex, plan: plan, radius: radius).map(plan.pageId(at:))
         for id in pageIds {
             slots[id] = loadSlot(id)
         }
@@ -212,6 +220,17 @@ final class SpanPrototypeSession: ObservableObject {
     /// The page id on file for a real page id: "proto-<id>".
     static func fileId(_ pageId: String) -> String {
         SpanGuard.prototypePrefix + pageId
+    }
+
+    /// The pages on each side of the focus: the override, else the plan's.
+    var windowRadius: Int {
+        radiusOverride ?? plan.radius
+    }
+
+    /// The page numbers of a window around `focus`: focus − r … focus + r (r the override, else the plan's).
+    static func window(around focus: Int, plan: SpanPlan, radius: Int?) -> ClosedRange<Int> {
+        let r = max(1, radius ?? plan.radius)
+        return (focus - r)...(focus + r)
     }
 
     /// The slot of the focus page in the window (0 = the window's first page).
@@ -249,18 +268,21 @@ final class SpanPrototypeSession: ObservableObject {
         let pages = pageIds.compactMap { slots[$0]?.page }
         let composed = SpanComposer.compose(pages, plan: plan, session: number, aliases: aliases)
         aliases = composed.aliases
-        let firstIndex = plan.window(around: focusIndex).lowerBound
+        let firstIndex = Self.window(around: focusIndex, plan: plan, radius: radiusOverride).lowerBound
         let words = LayoutWords.of(L.language)
         var layouts: [any PageLayout] = []
         var contents: [PaperContent] = []
+        var plain: [String: WeekPageLayout] = [:]
         for (offset, id) in pageIds.enumerated() {
             let inkBottoms = slots[id]?.page.inkBottoms() ?? [:]
             let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: plan.firstDay(at: firstIndex + offset), events: events,
                                                                inkBottoms: inkBottoms, now: now, holidays: holidays,
                                                                words: words, weekStart: weekStart))
+            plain[id] = week
             layouts.append(week)
             contents.append(.week(WeekPaperContent(layout: week)))
         }
+        plainLayouts = plain
         window = composed
         layout = SpanLayout(pages: layouts, plan: plan, firstIndex: firstIndex, session: number)
         papers = contents
@@ -407,9 +429,10 @@ final class SpanPrototypeSession: ObservableObject {
         rebuildWindow(focusIndex: focus.map((newPlan ?? plan).index(containing:)), plan: newPlan)
     }
 
-    /// `rebuildWindow(focus:plan:)` with the focus given as a page number (`SpanPlan.index`; nil: the same).
+    /// `rebuildWindow(focus:plan:)` with the focus given as a page number (`SpanPlan.index`; nil: the same) and,
+    /// when `radius` is given (`.some`), a new radius override (`.some(nil)`: the plan's again).
     @discardableResult
-    func rebuildWindow(focusIndex newFocus: Int?, plan newPlan: SpanPlan? = nil) -> Bool {
+    func rebuildWindow(focusIndex newFocus: Int?, plan newPlan: SpanPlan? = nil, radius newRadius: Int?? = nil) -> Bool {
         guard !isClosed else { return false }
         let nextPlan = newPlan ?? plan
         guard nextPlan.kind == plan.kind, nextPlan.weekStart == plan.weekStart else {
@@ -419,7 +442,8 @@ final class SpanPrototypeSession: ObservableObject {
         drainInbox()
         safetyNet()
         let nextFocus = newFocus ?? focusIndex
-        let nextIds = nextPlan.window(around: nextFocus).map(nextPlan.pageId(at:))
+        let nextRadius = newRadius ?? radiusOverride
+        let nextIds = Self.window(around: nextFocus, plan: nextPlan, radius: nextRadius).map(nextPlan.pageId(at:))
         let leaving = pageIds.filter { !nextIds.contains($0) }
         for id in leaving where slots[id]?.dirty == true {
             guard persist(id) else {
@@ -434,6 +458,7 @@ final class SpanPrototypeSession: ObservableObject {
             slots[id] = loadSlot(id)
         }
         plan = nextPlan
+        radiusOverride = nextRadius
         focusIndex = nextFocus
         pageIds = nextIds
         compose()
@@ -476,7 +501,7 @@ final class SpanPrototypeSession: ObservableObject {
         isFilling = true
         defer { isFilling = false }
         let unsaved = Set(saveAll())
-        let radius = plan.radius
+        let radius = windowRadius
         let perPage = windowTotal > 0 ? (windowTotal + pageIds.count - 1) / max(1, pageIds.count) : 0
         let reach = (focusIndex - 2 * radius)...(focusIndex + 2 * radius)
         let order = reach.sorted { abs($0 - focusIndex) < abs($1 - focusIndex) || (abs($0 - focusIndex) == abs($1 - focusIndex) && $0 < $1) }

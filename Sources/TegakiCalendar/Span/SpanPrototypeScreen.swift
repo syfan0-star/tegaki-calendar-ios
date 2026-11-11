@@ -37,12 +37,16 @@ struct SpanPrototypeEntryRow: View {
 
 /// The prototype while its screen is open: its isolated environment (made by the screen, never the
 /// app's), and the session, made once the screen knows its size (the device class and the orientation
-/// pick the window, §3.6) and composed again when they change. `close()` saves, closes and removes the
-/// prototype's folder.
+/// pick the window, §3.6) and composed again when they change. The toggles of §4.6 and §4.5 live here:
+/// 「線の数」, iPhone landscape's 「今のまま」 / 「上限あり」, 「1 ページずつ」 and the week start (a new session,
+/// K-11). `close()` saves, closes and removes the prototype's folder.
 @MainActor
 final class SpanPrototypeModel: ObservableObject {
+    /// 「上限あり」 (P-B6 イ, B_DESIGN.md §3.1, §6.2): at most this many weeks across on an iPhone in landscape.
+    static let cappedVisiblePages: CGFloat = 3
+
     let environment: SpanPrototypeEnvironment
-    let weekStart: WeekStart
+    @Published private(set) var weekStart: WeekStart
     let now: Date
     let holidays: HolidayCalendar
     let events: [LayoutEvent]
@@ -58,9 +62,16 @@ final class SpanPrototypeModel: ObservableObject {
     @Published private(set) var fillProgress: SpanPrototypeSession.FillProgress?
     /// The measurements stand in a corner of the band.
     @Published var showsMeasurements = true
+    /// iPhone in landscape: false 「今のまま」 (P-B6 ア, the default: the lowest zoom shows the 24 hours), true
+    /// 「上限あり」 (P-B6 イ: at most `cappedVisiblePages` weeks across, a smaller window).
+    @Published private(set) var landscapeCap = false
+    /// 「1 ページずつ」: the focus week alone on the 1.2.3 canvas, as an old version shows the same page (§4.5).
+    @Published private(set) var singlePage = false
     private(set) var isClosed = false
     /// The last size `screenChanged` was told of (a size that came while 「線の数」 wrote is taken after it).
     private var lastScreen: (size: CGSize, isPad: Bool)?
+    /// The number of the next session's virtual id (a new week start is a new session, K-11).
+    private var nextNumber = 1
 
     init(environment: SpanPrototypeEnvironment, weekStart: WeekStart, now: Date, holidays: HolidayCalendar, events: [LayoutEvent]) {
         self.environment = environment
@@ -75,22 +86,49 @@ final class SpanPrototypeModel: ObservableObject {
         (SpanDeviceClass(screen: size, isPad: isPad), SpanOrientation(screen: size))
     }
 
+    /// 「上限あり」 is in force: on, on an iPhone in landscape.
+    func capsLandscape(_ plan: SpanPlan) -> Bool {
+        landscapeCap && plan.deviceClass == .iPhone && plan.orientation == .landscape
+    }
+
+    /// The window's radius for `plan`: 「上限あり」's (`SpanPlan.radius` of `cappedVisiblePages`), else the plan's (nil).
+    func radiusOverride(for plan: SpanPlan) -> Int? {
+        capsLandscape(plan) ? SpanPlan.radius(forVisiblePages: Self.cappedVisiblePages) : nil
+    }
+
+    /// The most pages across the lowest zoom may show (`SpanPrototypeCanvas.maxVisiblePages`): 「上限あり」's, else nil.
+    var maxVisiblePages: CGFloat? {
+        guard let session, capsLandscape(session.plan) else { return nil }
+        return Self.cappedVisiblePages
+    }
+
+    /// A new session around `focus` for the device of the last size, with the model's week start.
+    private func makeSession(focus: DayKey, device: (deviceClass: SpanDeviceClass, orientation: SpanOrientation)) -> SpanPrototypeSession {
+        let plan = SpanPlan(kind: .week, weekStart: weekStart, deviceClass: device.deviceClass, orientation: device.orientation)
+        let number = nextNumber
+        nextNumber += 1
+        return SpanPrototypeSession(sync: environment.sync, weekStart: weekStart, focus: focus,
+                                    deviceClass: device.deviceClass, orientation: device.orientation,
+                                    now: now, holidays: holidays, events: events, number: number,
+                                    radius: radiusOverride(for: plan), meter: meter)
+    }
+
     /// The first size makes the session around this week; a size of another device class or orientation
-    /// composes its window again (`rebuildWindow`, which saves the pages that leave first).
+    /// composes its window again (`rebuildWindow`, which saves the pages that leave first), with the radius
+    /// of 「上限あり」 when it is in force.
     func screenChanged(_ size: CGSize, isPad: Bool) {
         guard !isClosed, size.width > 0, size.height > 0 else { return }
         lastScreen = (size, isPad)
         let device = Self.device(for: size, isPad: isPad)
         guard let session else {
-            session = SpanPrototypeSession(sync: environment.sync, weekStart: weekStart, focus: DayKey(now),
-                                           deviceClass: device.deviceClass, orientation: device.orientation,
-                                           now: now, holidays: holidays, events: events, meter: meter)
+            session = makeSession(focus: DayKey(now), device: device)
             return
         }
         guard !session.isFilling else { return }
-        guard session.plan.deviceClass != device.deviceClass || session.plan.orientation != device.orientation else { return }
-        session.rebuildWindow(plan: SpanPlan(kind: .week, weekStart: weekStart, deviceClass: device.deviceClass,
-                                             orientation: device.orientation))
+        let plan = SpanPlan(kind: .week, weekStart: weekStart, deviceClass: device.deviceClass, orientation: device.orientation)
+        let radius = radiusOverride(for: plan)
+        guard plan != session.plan || radius != session.radiusOverride else { return }
+        session.rebuildWindow(focusIndex: nil, plan: plan, radius: .some(radius))
     }
 
     /// The focus week the title shows: the canvas's, else the session's.
@@ -118,8 +156,14 @@ final class SpanPrototypeModel: ObservableObject {
     func setStrokeTotal(_ total: Int) {
         guard !isClosed, let session, fillProgress == nil, !session.isFilling, total != strokeTotal else { return }
         strokeTotal = total
+        startFill()
+    }
+
+    /// Writes `strokeTotal` over the window's pages of the session (`setStrokeTotal`, a new week start).
+    private func startFill() {
         meter.reset()
         fillProgress = SpanPrototypeSession.FillProgress(done: 0, total: 0)
+        let total = strokeTotal
         Task { @MainActor [weak self] in
             // A moment for SwiftUI to take the band away (its canvas hands its last deltas to the inbox).
             try? await Task.sleep(for: .milliseconds(100))
@@ -132,6 +176,52 @@ final class SpanPrototypeModel: ObservableObject {
             if let screen = self.lastScreen {
                 self.screenChanged(screen.size, isPad: screen.isPad)
             }
+        }
+    }
+
+    /// iPhone in landscape: 「今のまま」 (false) or 「上限あり」 (true). The window is composed again with its
+    /// radius; the canvas takes the new lowest zoom (`maxVisiblePages`).
+    func setLandscapeCap(_ on: Bool) {
+        guard !isClosed, on != landscapeCap else { return }
+        landscapeCap = on
+        guard let session, !session.isFilling else { return }
+        session.rebuildWindow(focusIndex: focusPageIndex, plan: nil, radius: .some(radiusOverride(for: session.plan)))
+        focusIndex = nil
+    }
+
+    /// 「1 ページずつ」 on or off. On, the window is composed around the focus week (the page shown); off, the
+    /// band is made anew with that week in the middle.
+    func setSinglePage(_ on: Bool) {
+        guard !isClosed, on != singlePage else { return }
+        if on, let session, !session.isFilling, let focus = focusPageIndex {
+            session.rebuildWindow(focusIndex: focus)
+            focusIndex = focus
+        }
+        singlePage = on
+    }
+
+    /// ◀ ▶ while 「1 ページずつ」 is on: the week before or after, the window composed around it.
+    func stepSinglePage(_ pages: Int) {
+        guard !isClosed, let session, !session.isFilling, let focus = focusPageIndex else { return }
+        let next = focus + pages
+        guard session.rebuildWindow(focusIndex: next) else { return }
+        focusIndex = next
+    }
+
+    /// The week start (K-11: a window never mixes the two shapes): the session is saved and closed, a new one
+    /// opens around the same day with the other shape (the prototype's pages of that shape; what was written
+    /// in the other one stays in its pages), and 「線の数」 fills its pages again.
+    func setWeekStart(_ start: WeekStart) {
+        guard !isClosed, start != weekStart, fillProgress == nil, let old = session, !old.isFilling,
+              let screen = lastScreen else { return }
+        let day = old.plan.firstDay(at: focusPageIndex ?? old.focusIndex)
+        old.close()
+        weekStart = start
+        focusIndex = nil
+        meter.reset()
+        session = makeSession(focus: day, device: Self.device(for: screen.size, isPad: screen.isPad))
+        if strokeTotal > 0 {
+            startFill()
         }
     }
 
@@ -233,6 +323,8 @@ struct SpanPrototypeScreen: View {
             .padding(24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(uiColor: InkCanvasContainerView.deskColor))
+        } else if model.singlePage, let session = model.session, let focus = model.focusPageIndex {
+            SpanPrototypeSinglePageView(session: session, index: focus, allowFinger: allowFinger)
         } else if let session = model.session {
             SpanPrototypeWindowView(
                 session: session,
@@ -259,8 +351,12 @@ struct SpanPrototypeScreen: View {
                                     weekStart: session.weekStart)
     }
 
-    /// ◀ ▶: one week back or on (§3.6).
+    /// ◀ ▶: one week back or on (§3.6); with 「1 ページずつ」 the week shown.
     private func step(_ pages: Int) {
+        if model.singlePage {
+            model.stepSinglePage(pages)
+            return
+        }
         pageStep = pages
         pageStepTrigger += 1
     }
@@ -358,9 +454,21 @@ struct SpanPrototypeScreen: View {
         .disabled(model.fillProgress != nil)
     }
 
-    /// The prototype's settings.
+    /// The prototype's settings: the week start (§4.5's Sunday sample), iPhone landscape's 「今のまま」 /
+    /// 「上限あり」 (§4.6 ⑤), 「1 ページずつ」 (§4.5's old versions' view), the measurements.
     private var optionsMenu: some View {
         Menu {
+            Picker(L.text("settings.weekStart.title"), selection: Binding(get: { model.weekStart }, set: { model.setWeekStart($0) })) {
+                Text(L.text("settings.weekStart.monday")).tag(WeekStart.monday)
+                Text(L.text("settings.weekStart.sunday")).tag(WeekStart.sunday)
+            }
+            .pickerStyle(.menu)
+            Picker(L.text("prototype.span.landscape.title"), selection: Binding(get: { model.landscapeCap }, set: { model.setLandscapeCap($0) })) {
+                Text(L.text("prototype.span.landscape.now")).tag(false)
+                Text(L.text("prototype.span.landscape.cap")).tag(true)
+            }
+            .pickerStyle(.menu)
+            Toggle(L.text("prototype.span.singlePage"), isOn: Binding(get: { model.singlePage }, set: { model.setSinglePage($0) }))
             Toggle(L.text("prototype.span.hud.show"), isOn: $model.showsMeasurements)
         } label: {
             Image(systemName: "slider.horizontal.3")
@@ -411,9 +519,45 @@ struct SpanPrototypeWindowView: View {
             pageStepTrigger: pageStepTrigger,
             onFocusChange: { [weak model] index in model?.focusChanged(index) },
             onShift: { [weak model] index in model?.shift(toFocusIndex: index) },
-            meter: model.meter
+            meter: model.meter,
+            maxVisiblePages: model.maxVisiblePages
         )
         .id(session.layout.pageId)
+    }
+}
+
+// MARK: - One page at a time
+
+/// 「1 ページずつ」 (§4.5: how a version up to 1.2.3 shows the same pages): the focus week alone on the app's own
+/// canvas of 1.2.3 (`InkCanvasView`, unchanged), with the week as 1.2.3 lays it out (no memo below 24:00), read
+/// only — a stroke written across a boundary shows on the page that holds it, its part beyond the paper as
+/// 1.2.3 draws it, and the week memo's strokes not at all (the old layout has no such cell, F1). Nothing is
+/// written back (the binding is a constant).
+struct SpanPrototypeSinglePageView: View {
+    @ObservedObject var session: SpanPrototypeSession
+    let index: Int
+    var allowFinger: Bool
+
+    var body: some View {
+        let pageId = session.plan.pageId(at: index)
+        if let layout = session.plainLayouts[pageId] {
+            InkCanvasView(
+                layout: layout,
+                paper: .week(WeekPaperContent(layout: layout)),
+                tool: .ink(InkPresets.defaultPen),
+                allowFinger: allowFinger,
+                page: .constant(session.slots[pageId]?.page ?? InkPage.empty(pageId: pageId)),
+                initialScrollY: 0,
+                onTap: { _, _ in },
+                onInkBoundsChanged: {},
+                undoTrigger: 0,
+                redoTrigger: 0,
+                readOnly: true
+            )
+            .id(pageId)
+        } else {
+            Color(uiColor: InkCanvasContainerView.deskColor)
+        }
     }
 }
 #endif

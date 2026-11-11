@@ -14977,6 +14977,42 @@
         }
       }
     },
+    "prototype.span.landscape.cap" : {
+      "comment" : "「iPhone を横にして一番縮めたとき」の選択肢。横に並ぶ週を 3 つまでにする（P-B6 イ）。試作のビルドだけ。ja だけのキー（D12）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上限あり"
+          }
+        }
+      }
+    },
+    "prototype.span.landscape.now" : {
+      "comment" : "「iPhone を横にして一番縮めたとき」の選択肢。24 時間全部が入る今の一番縮めた大きさ（P-B6 ア、§0.6）。試作のビルドだけ。ja だけのキー（D12）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今のまま"
+          }
+        }
+      }
+    },
+    "prototype.span.landscape.title" : {
+      "comment" : "試作の設定のメニューの選択（docs/M7C_CONTRACT.md §4.6 の手順 4 ⑤、P-B6）。iPhone を横にしたときの一番縮めた大きさを選ぶ。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone を横にして一番縮めたとき"
+          }
+        }
+      }
+    },
     "prototype.span.note" : {
       "comment" : "試作の画面の上の注記（docs/M7C_CONTRACT.md §4.6 の手順 3）。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
       "extractionState" : "manual",
@@ -15009,6 +15045,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "線を用意しています（%1$@ / %2$@ ページ）"
+          }
+        }
+      }
+    },
+    "prototype.span.singlePage" : {
+      "comment" : "試作の設定のメニューの切り替え。同じページを、古い版（1.2.3 まで）と同じ 1 ページずつの画面で見せる（§4.5）。試作のビルドだけ。ja だけのキー（D12）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ページずつ（古い版の見え方）"
           }
         }
       }
