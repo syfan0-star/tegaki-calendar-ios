@@ -11,7 +11,7 @@ import XCTest
 /// What the prototype does with the band (docs/M7C_CONTRACT.md §3.6, §3.3 3, §4.5, §4.6, §5.2), checked where
 /// no finger or Pencil is needed: the palm's rule, the history a shift forgets, the shift keeping the focus
 /// page in place, the fling to the next week, the week memo's cell and its floor, the synthetic strokes of
-/// 「線の数」 and the pages they fill, 「上限あり」, 「1 ページずつ」 and the week start. Compiled only with
+/// 「線の数」 and the pages they fill, the meter, 「上限あり」, 「1 ページずつ」 and the week start. Compiled only with
 /// `SPAN_PROTOTYPE` (the span-shots job's host, like `PrototypeIsolationTests`); the normal build has none of it.
 /// The real canvas's own tests are L's (`InkCanvasSpanTests`, S5).
 @MainActor
@@ -331,6 +331,58 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         XCTAssertTrue(emptied)
         XCTAssertEqual(session.windowStrokeCount, 1)
         XCTAssertEqual(store.load("proto-" + session.pageIds[session.focusSlot]).liveStrokeCount, 1)
+    }
+
+    /// The meter keeps the last value and the largest since a reset, the session's part of a swap, the longest
+    /// frame interval in the second after the last swap only (the one that spans the swap counts), the stroke
+    /// count of the slowest page read, and reads the process's memory; the HUD has a line for each kind. Fails
+    /// if a value were averaged or kept from before a reset, or frames long after a swap counted.
+    func testMeterKeepsTheLastAndTheLargest() throws {
+        let meter = SpanPrototypeMeter()
+        meter.recordSwap(seconds: 0.120, sessionSeconds: 0.040, drift: 0.2, startedAt: 100)
+        meter.recordSwap(seconds: 0.030, sessionSeconds: 0.010, drift: -0.1, startedAt: 200)
+        meter.frame(at: 199.99)
+        meter.frame(at: 200.20)
+        meter.frame(at: 200.21)
+        meter.frame(at: 201.5)
+        meter.recordPenLift(seconds: 0.004)
+        meter.recordPenLift(seconds: 0.002)
+        meter.recordEraserChange(removed: 3)
+        meter.recordEraserChange(removed: 1)
+        meter.recordLoad(seconds: 0.012, strokes: 5_000)
+        meter.recordLoad(seconds: 0.001, strokes: 0)
+        meter.recordPalmRefused()
+        meter.recordTouch(radius: 12)
+        meter.recordTouch(radius: 30)
+        meter.recordTouch(radius: 8)
+        meter.recordRelease(velocity: 0.8)
+        meter.recordWindowStrokes(25_001)
+        meter.publish()
+        let s = meter.snapshot
+        XCTAssertEqual(try XCTUnwrap(s.swapMs), 30, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(s.swapMaxMs), 120, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(s.swapSessionMs), 10, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(s.driftPt), -0.1, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(s.frameGapMs), 210, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(s.liftMs), 2, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(s.liftMaxMs), 4, accuracy: 0.001)
+        XCTAssertEqual(s.erased, 1)
+        XCTAssertEqual(s.erasedMax, 3)
+        XCTAssertEqual(try XCTUnwrap(s.loadMs), 1, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(s.loadMaxMs), 12, accuracy: 0.001)
+        XCTAssertEqual(s.loadMaxStrokes, 5_000)
+        XCTAssertEqual(s.palmRefused, 1)
+        XCTAssertEqual(s.touchRadius, 8)
+        XCTAssertEqual(s.touchRadiusMax, 30)
+        XCTAssertEqual(try XCTUnwrap(s.releaseVelocity), 0.8, accuracy: 1e-6)
+        XCTAssertEqual(s.windowStrokes, 25_001)
+        XCTAssertGreaterThan(try XCTUnwrap(s.memoryMB), 1, "the process's footprint is read")
+        XCTAssertEqual(SpanPrototypeMeter.lines(s).count, 10)
+        meter.reset()
+        meter.publish()
+        XCTAssertNil(meter.snapshot.swapMs)
+        XCTAssertNil(meter.snapshot.loadMaxMs)
+        XCTAssertEqual(meter.snapshot.palmRefused, 0)
     }
 
     // MARK: The toggles (§4.5, §4.6 ⑤)
