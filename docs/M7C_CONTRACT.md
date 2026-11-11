@@ -443,16 +443,25 @@ public struct PageDelta: Sendable, Equatable {
     public let pageId: String; public let added: [InkStroke]; public let removed: [String]
     public let at: Int; public let epoch: Int; public let group: UUID?    // 組の印（§4.4）
 }
+public struct SpanVirtualPage: Sendable, Equatable {     // JSON も Codable も持たない包み（下の注）
+    @_spi(SpanLedger) public let ledgerPage: InkPage    // 台帳が編むページ（id は仮想の span~…）。@_spi(SpanLedger) import InkModel と書くファイルだけが見る
+    public let aliases: SpanAliases                      // セッションの別名の表。deltas・unroutedNames・次の compose に渡す
+    // ほかに plan・session・pageIds・migratedPageIds・skippedPageIds と with(ledgerPage:)（台帳の今のページを包み直す）
+}
 public enum SpanComposer {
-    public static func compose(_ pages: [InkPage], plan: SpanPlan) -> SpanVirtualPage
-    public static func deltas(from journal: [SpanJournalEntry], epoch: Int) -> [PageDelta]
+    public static func compose(_ pages: [InkPage], plan: SpanPlan, session: Int = 0, aliases: SpanAliases = .empty) -> SpanVirtualPage
+        // セッションは窓を組み直すたびに前の窓の aliases を渡す（ずらしても別名が変わらない）
+    public static func deltas(from journal: [SpanJournalEntry], epoch: Int, aliases: SpanAliases) -> [PageDelta]
+        // aliases は既定値なし（空の表を渡し間違えると、別名の線の追加と削除が差分から抜ける）
+    public static func unroutedNames(in journal: [SpanJournalEntry], aliases: SpanAliases) -> [String]
+        // 差分から抜けた名前（ページを言わない id・表に無い別名・span~）。台帳が全部の id を ownerId で作れば空（§3.3 の 1、§3.4 (d)）
     public static func apply(_ delta: PageDelta, to page: InkPage) -> InkPage
     public static func extract(pageId: String, from virtual: SpanVirtualPage) -> InkPage   // 安全網。pageId は必ず本物
 }
 
 // Sources/TegakiCalendar/Ink/InkLedger.swift（変える所だけ）
 var makeId: () -> String = { InkStroke.newId() }                       // 今のまま（:166）。型も変えない（1.2.3 のテストの種がそのまま通る）
-var ownerId: ((CellKey) -> String)? = nil                              // 新しい道だけ。持ち主のページを前置した id。nil なら makeId
+var ownerId: ((CellKey) -> String)? = nil                              // 新しい道だけ。持ち主のページを前置した id。nil なら makeId。台帳が id を作る 3 か所（:422・:511・:550）の全部で使う（§3.3 の 1）
 var journal: [SpanJournalEntry]                                          // 生きていた id の削除だけ
 func pruneHistory(touching pageIds: Set<String>)
 func applyCanvasChange(_ drawing: PKDrawingLike, allowRemovals: Bool = true) -> CanvasChangeResult
@@ -468,7 +477,8 @@ func pagesOpened(_ pageIds: [String])               // pageOpened と同じ門�
          clock: @escaping () -> Date = Date.init)   // SyncEngine.init と同じ形（SyncEngine.swift:139）。テストは TestSleeper
     let id: String                      // .id(...) に使う。種類＋週の始まり＋開き直した回数
     private(set) var epoch: Int
-    func deliver(_ deltas: [PageDelta]) // 受け箱から。古い epoch・窓に無いページは捨てて記録
+    func deliver(_ deltas: [PageDelta], unrouted: [String])   // 受け箱から。古い epoch・窓に無いページは捨てて記録。unrouted（同じ日誌の
+                                        // SpanComposer.unroutedNames）が空でなければ記録し、Debug では止める（§3.4 (d)）。既定値なし
     func saveAll() -> [String]          // 保存できなかったページ id
     func cancelAll()                    // 予約を止め、受け箱を捨て、epoch を進める
     func closeWithoutSaving()           // 消して始める（H2）: PageSlot と受け箱を捨て、以後の saveAll・保存の予約を空振りにする
@@ -492,8 +502,9 @@ func pagesOpened(_ pageIds: [String])               // pageOpened と同じ門�
 static func horizontalPanMayBegin(pencilsDown: Int, lastPencilUp: Date?, now: Date) -> Bool   // 手のひら（§3.6）
 ```
 
+- 見出しの「既定値を付ける」は、今ある関数に足す引数のこと。新しい関数の引数のうち `SpanComposer.deltas` の `aliases:` と `SpanSession.deliver` の `unrouted:` は、渡し忘れが線を黙って失う道になるので、既定値を付けない。
 - キャンバスへの新しい入力（`InkCanvasView`）: `span: SpanSession?`（nil なら今の 1 ページの道）、`inbox: SpanInbox?`、見張りのタイマーの `sleep:`・`clock:`（既定は本物）。知らせ `onStrokeBudget(pageId:event:)`・`onGrowthCapReached(pageId:)`（D21）。
-- `SpanVirtualPage` は保存・同期・書き出し・PDF の型に変換できない包み（型で漏れを防ぐ）。PDF の隣の線は `SpanPDFInk`（D17）。
+- `SpanVirtualPage` は JSON も `Codable` も持たない包みで、保存・同期・書き出し・PDF の型には変換しない。ただし台帳が編むのは `InkPage` なので、中のページ（`ledgerPage`）は型だけでは閉じ込められない。そこで `ledgerPage` は `@_spi(SpanLedger)` にし、`@_spi(SpanLedger) import InkModel` と書くファイル（台帳とキャンバス、試作ではその写し）だけが見る。画面・保存・書き出し・PDF のファイルはこの import を書かない。それでも漏れたものは、実行時に `SpanGuard` が止める（仮想の id `span~…` と前置名を、保存・取り込み・書き出し・PDF の `page:` で。Release でも、§6.1）。PDF の隣の線は `SpanPDFInk`（D17）。
 - 1 ページの道の `pageBinding` は、キャンバスを作ったときの識別子（`canvasIdentity` ＋ 画面の番号）を閉じ込め、今の識別子と同じときだけ書き込みを受ける（今の門 :1149 はページ id だけを見る。作り直す前のキャンバスが次のターンに回した `publishPage`、`InkCanvasView.swift:1478-1508`、を捨てるため。§6.6）。
 
 ---
@@ -521,12 +532,13 @@ static func horizontalPanMayBegin(pencilsDown: Int, lastPencilUp: Date?, now: Da
 台帳（`InkLedger`、UIKit を import しない、:7-8）の変更は次の 5 つだけ（B_DESIGN.md:149-155）。
 
 1. `makeId: () -> String`（:166）は型も中身も変えない。新しい道だけの `ownerId: ((CellKey) -> String)?` を足し、新しい道では持ち主のページを前置した id を返す（nil なら `makeId`）。1 ページの道は今と同じ UUID。`testLedgerWritesTheCompatShapes` の種（`InkLedgerTests.swift:1060, :1120` の `makeId = { … }`）はそのまま通り、テストのファイルは変えない（§6.4 の `TESTS_1_2_3.sha256`）。作る JSON は compat11 と 1 バイトも違わないこと（§6.3）。
+   **新しい道では、台帳が id を作る 3 か所の全部が `ownerId` を使う**（`makeId` を残す所は無い）: 新しい線（`makeInkStroke` :550。渡すマスは `layout.inkCell` の答え）、投げなわの移動の写し（`moveStrokes` :511。行き先のマス `newCell`）、↶ の写し（`perform` の `.add` :422。その線の `cell`）。`SpanComposer` は線も墓標も名前（前置か別名）だけでページに戻すので、前置の無い id（`makeId` の UUID）の線はどのページにも届かない（差分にも安全網にも入らない。マスのページに送ると、墓標にはマスが無いので、消した線がページに戻ってしまう）。そのような線は画面には出ていても、Release では知らせも無く失われ、窓を組み直すと消える。見つける口は `SpanComposer.unroutedNames`（§3.4 (d)）。試作の台帳の写し（T、D12）も同じ。
 2. `journal`: `applyCanvasChange`・`perform`（:414-441）・`removeStrokes`（:478-487）・`moveStrokes`（:495-522）の 4 か所で記録を足す。**削除を記録するのは、その時点で仮想ページで生きていた id だけ。**
 3. `pruneHistory(touching:)`: 出るページにかかわる ↶ ↷ と、それより古い操作を捨てる。組の印が同じものは一緒に捨てる（§4.4）。
 4. `needsMoreRoom`（:346-349）: 前置を外してから `PaperGrowth.needsMoreRoom` を呼ぶ。
 5. `applyCanvasChange(_:allowRemovals:)`（:289-337。墓標 :306-318）: 消しゴムでないとき、または 1 回の変化で消える線が多すぎるとき（§3.16）、墓標にせず「作り直しが要る」を返す。1 ページの道は今どおり（常に許す）。
 
-そのほか（`drawing()` の F1 :225-243、指紋、↶ を新しい id の写しで戻す規則、投げなわの移動）はそのまま。
+そのほか（`drawing()` の F1 :225-243、指紋、↶ を新しい id の写しで戻す規則、投げなわの移動）の規則はそのまま。変わるのは、新しい道で写しの id を `ownerId` で作ることだけ（1）。
 
 **前置した名前が、名前で判断する関数に届く所**（B_DESIGN.md:158-169 を今の行に直した。新しい道での扱いを守る）
 
@@ -553,7 +565,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 - **(a) ためない**: 台帳を変えた同じターンで受け箱 `SpanInbox`（SwiftUI の状態ではない参照型）に入れる。`deliver` で 1 回だけ空にする予約。画面は bounds の変化・ずらし・保存・裏へ回る・開き直し・全て消すの入口で、まず受け箱を空にする。`detach()`（:758-778）で delegate を外す前に日誌を出し切る。
 - **(b) 間引かない**: 差分には `publishPage` の superseded（:1478-1486）を使わない。
 - **(c) 安全網**: 保存とずらしのたびに、台帳の仮想ページからそのページの範囲を取り出し（**pageId は本物**）、`InkPage.merge` で `PageSlot` に混ぜる。`contentDiffers` のときだけ置き換えて dirty にし、「安全網で回収した」を記録（Debug では止める）。merge の後に pageId が本物のままかを確かめる（§3.3 の表の `pickPageId`）。
-- **(d) 差分はそれを出したセッションにだけ当てる。** セッションは受け箱を空にして `saveAll()` し終えるまで閉じない。窓に無いページへの差分と古い epoch の差分は当てずに記録（Debug では止める）。
+- **(d) 差分はそれを出したセッションにだけ当てる。** セッションは受け箱を空にして `saveAll()` し終えるまで閉じない。窓に無いページへの差分と古い epoch の差分は当てずに記録（Debug では止める）。**ページに戻らない名前も記録する**: 日誌を差分にする所（キャンバス）は、同じ日誌と同じ別名の表で `SpanComposer.unroutedNames(in:aliases:)` も呼び、答えを差分と一緒に受け箱に入れる。`SpanSession.deliver(_:unrouted:)` は、配るたびにそれを見て、空でなければ記録し、Debug では止める（§3.3 の 1。その線は差分でも安全網でもどのページにも届かない）。
 - **削除の守り**: (a) 日誌の削除は生きていた id だけ、(b) 消しゴム以外で線が減ったら作り直し、1 回に多すぎる削除も同じ（§3.16）、(c) 窓に無いページへ差分を当てる道は作らない。
 
 ### 3.5 `SpanSession` と `PageSlot`、1 ページ分の呼び口の置き換え
@@ -726,7 +738,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 - 中身: 週の帯（窓・ずらし・はじき・境目の書き込み・手のひらの手当て）と重さの計測（数を画面の隅に出す）。週のメモの欄も入れる。iPhone 横の「今のまま／上限あり」の切り替え。台帳とキャンバスは試作専用の写し（`SpanPrototypeLedger.swift`・`SpanPrototypeCanvas.swift`、D12）で、凍結の表のファイルは 43fe366 のまま。
 - 測ること（B_DESIGN.md:581 に足した）: 窓 2,500・10,000・25,000 本の差し替えの時間・ちらつき・メモリ、最大倍率 × 一番広い窓（iPhone 横の日、紙の高さ 8,400 lu × 15 ページ）の描画とメモリ、ずらした瞬間のメモリの山、ペンを離すたびの主スレッドの止まり、消しゴムの 1 回の変化で消える線の数、1 ページの読み込みの時間（D6 の 16 ms）。
 - **本人のデータと iCloud から作りで切り離す**（B_DESIGN.md:582-586、D13）:
-  - (a) ページ id は `proto-` で始まるものだけ（`SpanGuard.prototype` が `proto-` 以外を断る）。
+  - (a) 保存するページ id は `proto-` で始まるものだけ（`SpanGuard.prototype` が `proto-` 以外を断る）。ただし **窓は本物の id で組む**: Kit の `SpanPlan`・`SpanComposer`・`SpanLayout` は本物の形の id（`w-…`）しか読まないので、試作は (b) の一時フォルダの `proto-<id>` のページを `<id>` として窓に入れ、試作の `PageSlot` が保存のときに `proto-<id>` に戻す。そのため `SpanGuard.prototype` は、`proto-<id>` のページでは `<id>|` をそのページ自身の前置として外し（`proto-<id>|` と同じ扱い）、ほかのページの前置（本物の id も `proto-` も）は落とす（KitChecks で固定）。試作が読み書きするのは (b) の一時フォルダだけなので、本物の id で組んでも本物のページには触れない。試作の台帳の写しも、id を作る 3 か所の全部で持ち主の前置つきの id を作る（§3.3 の 1）。
   - (b) 一時フォルダの `InkPageStore(directory: <一時>)`・`SyncStateStore(fileURL: <一時>/state.json)`・`InMemoryCloudDatabase` で作り、`start()` しない `SyncEngine`。試作の画面からは `SyncEngine.shared` と本物の `InkPageStore` が見えない作り（引数で渡す）。予定は写真モードの見本の予定だけで、EventKit に書かない。
   - (c) `sync.onRemoteUpdate` には触らない（1 本だけの差し替え式、`CalendarRootScreen.swift:1190`）。
   - XCTest `PrototypeIsolationTests`（4 本）: 試作を開いて書いて閉じた前後で、**本物の ink フォルダの全部のファイル（ページのファイルと `state.json`）の名前と SHA-256 が同じ**・`shared` の `save` と `pageOpened` が呼ばれない・`shared.onRemoteUpdate` が同じまま・`SpanGuard.prototype` が本物の id を断る。中身は `#if SPAN_PROTOTYPE` の中だけなので、ふつうのビルドでは 0 本になる。そこで `span-shots` のジョブで `SPAN_PROTOTYPE` 付きの宿主を別の DerivedData で作って `-only-testing:TegakiCalendarTests/PrototypeIsolationTests` を走らせ、**走ったテストの数が 4 以上で失敗 0** を確かめる（§10.6）。
@@ -997,7 +1009,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 
 | 役 | ファイル | テスト |
 | --- | --- | --- |
-| L | `InkLedgerSpanTests.swift`（新しい） | `testOwnerIdGetsTheOwnerCell`、`testJournalRecordsOnlyLiveRemovals`、`testJournalDeltasEqualThePageDifference`、`testPruneHistoryDropsTouchingStepsAndTheirGroup`、`testNeedsMoreRoomStripsThePrefix`、`testCanvasRemovalWithoutEraserRebuilds`、`testTooManyRemovalsAtOnceRebuild`。既存の `InkLedgerTests.swift`（`testLedgerWritesTheCompatShapes` の JSON が compat11 と同じ・`testReloadOrRelayoutWithAnotherPageIsIgnored` :670 など）は 1 ページの道でそのまま走る |
+| L | `InkLedgerSpanTests.swift`（新しい） | `testOwnerIdGetsTheOwnerCell`、`testEveryIdOfTheJoinedPathIsAnOwnerId`（新しい線・投げなわの移動の写し・↶ の写しの id が全部、持ち主のページの前置つきで、同じ日誌の `SpanComposer.unroutedNames` が空。§3.3 の 1）、`testJournalRecordsOnlyLiveRemovals`、`testJournalDeltasEqualThePageDifference`、`testPruneHistoryDropsTouchingStepsAndTheirGroup`、`testNeedsMoreRoomStripsThePrefix`、`testCanvasRemovalWithoutEraserRebuilds`、`testTooManyRemovalsAtOnceRebuild`。既存の `InkLedgerTests.swift`（`testLedgerWritesTheCompatShapes` の JSON が compat11 と同じ・`testReloadOrRelayoutWithAnotherPageIsIgnored` :670 など）は 1 ページの道でそのまま走る |
 | L | `InkCanvasSpanTests.swift`（新しい） | `testShiftKeepsVisibleStrokesInPlace`（0.5 pt 以内）、`testNoShiftWhileDrawingSettlingFlingingPinchingSelectingOrSheet`、`testShiftNeverComparesTheOldDrawingWithTheNewLedger`（`InkCanvasViewTests.swift:2570` の考えを広げる）、`testFlingStopsAtTheNextPage`、`testNewStrokeOwnerIsTheCenterPage`、`testBudgetCountsTheOwnerPage`、`testStrokeOutsideTheBandIsDropped`、`testInboxTakesTwoUndosInOneTurn`、`testInboxTakesTheLastStrokeBeforeDetach`、`testHorizontalPanMayBeginRules`（`horizontalPanMayBegin` の純粋な判定: Pencil の数・離してから 0.5 秒の前後）、`testWatchTimerFiresAfterHalfASecond`（TestSleeper）、`testGrowthTestsThroughOneAndThreePageSessions`（`PaperGrowthTests` とメモ欄・自由メモ・⑦ の既存のテストと同じ入力を、窓 1 ページと 3 ページで） |
 | S | `SpanSessionTests.swift`（新しい） | `testSpanSessionWritesTheCompatSpanShapes`（§6.3。compat-span を作って 1 バイトずつ比べる）、`testSaveOrderAddsFirstAndDestinationFirst`、`testInboxDrainsBeforeRelayout`、`testSafetyNetRecoversADroppedDelta`、`testSafetyNetKeepsTheRealPageId`、`testFailedSaveStopsTheShift`、`testBackgroundSavesEveryDirtyPage`、`testExportSavesEveryPageFirst`、`testOldEpochDeltaAfterEraseAllIsDropped`、`testImportDoesNotAdvanceTheEpoch`（受け箱の線が取り込みで捨てられない）、`testRemoteUpdateReachesAnyWindowPage`、`testRemoteDeleteEmptiesThePageAndItsUndo`、`testRemoteUpdateFromSaveDuringShiftIsAppliedAfterTheShift`、`testRemoteUpdateBetweenPrefetchStepsIsKept`、`testRemoteDeleteDuringSaveAllIsNotSavedBack`、`testPagesOpenedOnceForTheWindow`、`testFocusHysteresisAndRemember`、`testEventsArePerPageUnderFourYears`、`testArrowsMoveOnePage`、`testTodayNearSlidesFarReopens`、`testVirtualNamesNeverReachSaveImportOrExport`、`testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage`、`testGuardRepairsOnlyTheBadItems`（違反した項目だけを直して残りを保存。ページ丸ごとは断らない）、`testPathSwitchSavesThenReopens`、`testWeekStartSwitchSavesThenReopensAndNeverMixes`、`testReviewVisitFollowsTheFocus`、`testStageTwoFallsBackToOnePage`、`testSaveTimerIsOnePerSession`（1.5 秒、TestSleeper） |
 | S | `ScreenEraseTests.swift`（新しい） | `OnePageSession` と `SpanSession` の両方で: `testRemoteEraseIsNotUndoneByTheNextSave`（H1）、`testUndoAfterRemoteEraseDoesNotBringStrokesBack`（H1、1 ページの道。記録の削除の後の ↶）、`testLatePublishFromTheOldCanvasIsDropped`（H1・H3、1 ページの道。作り直す前のキャンバスの遅れた publish を `pageBinding` の識別子の門で捨てる）、`testEraseAndStartClosesTheScreenBeforeAwait`（H2。`await` の間に、裏へ回る・ページの移動・書き出し・新しい線・1.5 秒の予約のそれぞれが来ても `sync.save` が呼ばれず、新しいアカウントの store に前の線が無い）、`testUndoIsEmptyAfterEraseAllAndEraseAndStart`（H3）。各テストは、直しを外すと落ちることを確かめて M7C.md に記録する（§6.6） |
@@ -1194,7 +1206,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 
 | 危険 | 減らし方 |
 | --- | --- |
-| 仮想の名前（`span~`・前置名）が保存・同期に漏れ、F4 で全端末に勝って線が見えなくなる | `SpanGuard`（Release でも、保存・取り込み・書き出し・PDF）、型の包み `SpanVirtualPage`、KitChecks と `testVirtualNamesNeverReachSaveImportOrExport`・`testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage`（§6.1） |
+| 仮想の名前（`span~`・前置名）が保存・同期に漏れ、F4 で全端末に勝って線が見えなくなる | `SpanGuard`（Release でも、保存・取り込み・書き出し・PDF）、包み `SpanVirtualPage` と SPI の `ledgerPage`（台帳とキャンバスだけが見る、§2.1）、KitChecks と `testVirtualNamesNeverReachSaveImportOrExport`・`testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage`（§6.1） |
 | 見張り（`SpanGuard`）が強すぎて、`\|` を含む既存の id のページが保存できず線を失う | 鍵と cell は前置名の形と `span~` だけを見る。違反した項目だけを直して残りを保存（§6.1）。KitChecks で「取り込みで通れば保存でも通る」 |
 | 割り込んだ外からの更新（`save` の中の `onRemoteUpdate`、先読みの間）で窓と台帳がずれる | `pendingRemote` に溜めて手順の終わりに当てる（D6）。テスト 3 本 |
 | 「消して始める」の数秒の間に前のアカウントの線が送られる（H2） | `await` の前に画面を閉じ、保存を止める（§6.6）。4 つの割り込みのテスト |
@@ -1332,5 +1344,6 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 ## 18. 記録
 
 - 2026-11-11 契約の第 1 版（読み手 5・批評 3 の見直しの後）
+- 2026-11-12 S1 の Kit の直し（`r13` の 55f11a6）に文を合わせた: §2.1（`deltas` の `aliases:` は既定値なし・`unroutedNames(in:aliases:)`・`compose` の `session:`・`aliases:`・`SpanVirtualPage.ledgerPage` は `@_spi(SpanLedger)` で、漏れは実行時に `SpanGuard` が止める・`deliver(_:unrouted:)`）、§3.3 の 1（新しい道では台帳が id を作る 3 か所の全部が `ownerId`）、§3.4 (d)（ページに戻らない名前の記録）、§4.6 (a)（試作の窓は本物の id で組み、`proto-<id>` で保存する）、§10.2（L のテスト 1 本）、§13 の 1 行。契約からのずれとして M7C.md にも書く
 
 （結果は [M7C.md](M7C.md) に書く。ここは契約の版の記録だけ。）
