@@ -1,0 +1,43 @@
+{
+  "owner": "T",
+  "keys": {
+    "prototype.span.close": {
+      "ja": "閉じる",
+      "target": "app",
+      "comment": "試作の画面（横につなげる試作）を閉じるボタン。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（docs/M7C_CONTRACT.md D12、§8.1）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.entry": {
+      "ja": "横につなげる試作",
+      "target": "app",
+      "comment": "設定 › 情報 のいちばん下の行と、それが開く試作の画面の題名（docs/M7C_CONTRACT.md §4.6）。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.note": {
+      "ja": "見本の週です。ここで書いたものは試作の中だけに置かれ、閉じると消えます。iCloud には送られません。",
+      "target": "app",
+      "comment": "試作の画面の上の注記（docs/M7C_CONTRACT.md §4.6 の手順 3）。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "手書き"
+      ],
+      "jaOnly": true
+    }
+  }
+}

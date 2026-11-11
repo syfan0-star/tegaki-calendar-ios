@@ -14785,6 +14785,42 @@
         }
       }
     },
+    "prototype.span.close" : {
+      "comment" : "試作の画面（横につなげる試作）を閉じるボタン。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（docs/M7C_CONTRACT.md D12、§8.1）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
+          }
+        }
+      }
+    },
+    "prototype.span.entry" : {
+      "comment" : "設定 › 情報 のいちばん下の行と、それが開く試作の画面の題名（docs/M7C_CONTRACT.md §4.6）。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横につなげる試作"
+          }
+        }
+      }
+    },
+    "prototype.span.note" : {
+      "comment" : "試作の画面の上の注記（docs/M7C_CONTRACT.md §4.6 の手順 3）。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見本の週です。ここで書いたものは試作の中だけに置かれ、閉じると消えます。iCloud には送られません。"
+          }
+        }
+      }
+    },
     "recurrence.futureEvents" : {
       "comment" : "問いの選択肢。この回から後のすべて（過去は変えない）",
       "extractionState" : "manual",

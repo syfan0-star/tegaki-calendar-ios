@@ -590,6 +590,10 @@ struct SettingsScreen: View {
             // 1.1 (§5.3): counted on this device, before the read cap; 「数えています…」 until done.
             countRow(Self.largestPageTitle, StrokeCensus.rowText(census?.largest, counting: census == nil))
             countRow(Self.yearPageTitle, StrokeCensus.yearRowText(census?.year, year: currentYear, counting: census == nil))
+            #if SPAN_PROTOTYPE
+            // 1.3 (docs/M7C_CONTRACT.md §4.6, D12): 「横につなげる試作」, the prototype build's last row only.
+            SpanPrototypeEntryRow()
+            #endif
         } header: {
             Text(L.text("settings.info.header"))
         } footer: {
