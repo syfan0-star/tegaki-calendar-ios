@@ -785,10 +785,12 @@ def check_l8(repo, sources, result):
     result.summary = f"{found} uses of a key, {len(keys)} keys"
 
 
+# 1.3 (docs/M7C_CONTRACT.md §3.2): SpanPlan( takes the week start; its pageId(at:) is the plan's own
+# (the plan already holds it), so that one is not a PageNavigation.pageId( call.
 L13_CALLS = re.compile(
-    r"\bPageNavigation\.title\(|\bcompactTitle\(|\bdayRange\(|\bpageId\(\s*(?!\.(?:day|month|year)\b)"
+    r"\bPageNavigation\.title\(|\bcompactTitle\(|\bdayRange\(|\bpageId\(\s*(?!\.(?:day|month|year)\b|\s*at\s*:)"
     r"|\bMonthLayoutInput\(|\bWeekLayoutInput\(|\bAllDayBandEngine\.week\b|\bMonthLayout\.grid\("
-    r"|\bAppExport\.pdfFileName\(|\bPaperWords\.monthHeaderWeekdays\(|\bdemoPage\(\s*kind\b")
+    r"|\bAppExport\.pdfFileName\(|\bPaperWords\.monthHeaderWeekdays\(|\bdemoPage\(\s*kind\b|\bSpanPlan\(")
 
 
 def check_l13(repo, result):
