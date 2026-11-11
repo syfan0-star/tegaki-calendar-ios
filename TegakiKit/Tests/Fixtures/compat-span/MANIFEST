@@ -1,0 +1,15 @@
+# compat-span fixtures (docs/M7C_CONTRACT.md §4.2, §6.3), made by KitChecks --write-compat-span-fixtures.
+# One line per file: <file> <fixture number> <shape>; CI copies the files of shape monday into the compat11 folder.
+d-2026-11-03.overhang-right.json 1 monday
+m1-2026-11.overhang-right.json 1 monday
+w-2026-11-02.overhang-left.json 1 monday
+y-2026.overhang.json 1 monday
+w-2026-11-16.move-source.json 2 monday
+w-2026-11-23.move-destination.json 2 monday
+d-2026-11-09.extra-cross.json 3 monday
+d-2026-11-10.extra-cross.json 3 monday
+w-2026-11-08.sunday-overhang.json 5 sunday
+m1-2026-11.overlap-day.json 6 monday
+m1-2026-12.overlap-day.json 6 monday
+w-2026-11-30.photo-text.json 7 monday
+w-2026-12-07.photo-text-neighbor.json 7 monday

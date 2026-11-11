@@ -11,6 +11,7 @@ import Foundation
 import CoreGraphics
 import Layout
 import InkModel
+import Compat10
 import CompatFixtures
 import CompatSpanFixtures
 
@@ -108,6 +109,37 @@ func runSpanInkChecks() {
     spanPDFInkChecks()
     spanComposerRandomChecks(.week, seed: 0x5BA9_C0DE_0001)
     spanComposerRandomChecks(.day, seed: 0x5BA9_C0DE_0002)
+    spanCompatFixtureChecks()
+}
+
+// MARK: - --write-compat-span-fixtures [--out <folder>] (§4.2, §6.3)
+
+/// Writes the compat-span fixtures and MANIFEST into TegakiKit/Tests/Fixtures/compat-span/ or <folder>,
+/// lists each file as new, unchanged or changed, and exits without running the checks (the same as
+/// --write-compat-fixtures does for compat11; main.swift calls it before any check).
+func writeCompatSpanFixtures() -> Never {
+    let arguments = CommandLine.arguments
+    var folder = CompatSpanFixtures.committedFolder
+    if let i = arguments.firstIndex(of: "--out") {
+        guard i + 1 < arguments.count else {
+            print("KitChecks: --out needs a folder")
+            exit(2)
+        }
+        folder = URL(fileURLWithPath: arguments[i + 1], isDirectory: true)
+    }
+    do {
+        let results = try CompatSpanFixtures.write(to: folder)
+        for (name, result) in results {
+            print("\(result.rawValue.padding(toLength: 10, withPad: " ", startingAt: 0))\(name)")
+        }
+        let changed = results.filter { $0.result == .changed }.count
+        let new = results.filter { $0.result == .new }.count
+        print("KitChecks: wrote the compat-span fixtures to \(folder.path) (\(results.count) files: \(new) new, \(changed) changed)")
+        exit(0)
+    } catch {
+        print("KitChecks: writing the compat-span fixtures failed: \(error)")
+        exit(1)
+    }
 }
 
 // MARK: - SpanGuard: the page id (§6.1, K-11, §4.6 (a))
@@ -928,4 +960,178 @@ func spanComposerRandomChecks(_ kind: PageKind, seed: UInt64) {
         n + applied[id]!.liveStrokes.filter { $0.points.contains { $0.x < 0 || $0.x > width } }.count
     }
     check(outside >= 10, "span random \(kind): \(outside) strokes with points outside their page are kept (§4.1)")
+}
+
+// MARK: - The compat-span fixtures (§4.2, §6.3, K-7)
+
+func spanCompatFixtureChecks() {
+    let fm = FileManager.default
+    let folder = CompatSpanFixtures.committedFolder
+    let made = CompatSpanFixtures.made
+    typealias F = CompatSpanFixtures
+
+    // MANIFEST and the files, byte for byte what the Kit's joined path writes.
+    let manifest = try? Data(contentsOf: folder.appendingPathComponent(F.manifestName))
+    checkEqual(manifest, F.manifestData(), "compat-span: MANIFEST is what the maker writes (KitChecks --write-compat-span-fixtures)")
+    let listed = manifest.flatMap(F.parseManifest) ?? []
+    checkEqual(listed, F.entries, "compat-span: MANIFEST lists every file with its fixture number and shape")
+    checkEqual(Set(listed.map(\.fixture)), [1, 2, 3, 5, 6, 7], "compat-span: fixtures 1–3 and 5–7 (4 belongs to the week memo, §5)")
+    checkEqual(listed.filter { $0.shape == .sunday }.map(\.name), [F.sundayOverhang], "compat-span: only the Sunday-start week is of shape sunday")
+    let onDisk = ((try? fm.contentsOfDirectory(atPath: folder.path)) ?? []).filter { $0.hasSuffix(".json") }.sorted()
+    checkEqual(onDisk, listed.map(\.name).sorted(), "compat-span: every *.json of the folder is in MANIFEST, and every listed file is there")
+    for (name, data) in made.files {
+        check((try? Data(contentsOf: folder.appendingPathComponent(name))) == data, "compat-span: \(name) is what the joined path of the Kit writes")
+    }
+    check(made.recovered.isEmpty && made.deltaCount == 22, "compat-span: \(made.deltaCount) deltas made the files; the safety net had nothing to bring back")
+
+    // Each file as 1.3 reads it.
+    var pages: [String: InkPage] = [:]
+    var files: [String: Data] = [:]
+    for e in listed {
+        guard let data = try? Data(contentsOf: folder.appendingPathComponent(e.name)), let page = try? InkPageCodec.decode(data) else {
+            check(false, "compat-span: \(e.name) reads")
+            continue
+        }
+        pages[e.name] = page
+        files[e.name] = data
+        check((try? InkPageCodec.encode(page)) == data, "compat-span: \(e.name) is read and written back unchanged")
+        check(SpanGuard.checkForSave(page) == .ok && SpanGuard.checkForTransfer(page), "compat-span: \(e.name) has no window name (saves and goes out as it is)")
+        check(e.name.hasPrefix(page.pageId + ".") && page.v == 1 && page.unknown.isEmpty,
+              "compat-span: \(e.name) holds \(page.pageId), v 1 and no new top-level item (K-5)")
+        check(page.strokes.values.allSatisfy { !$0.id.contains("|") && !$0.cell.raw.contains("|") && !$0.cell.raw.contains("~") && $0.dev == F.device }
+              && !page.pageId.contains("|") && !page.pageId.contains("~"),
+              "compat-span: \(e.name) the strokes 1.3 wrote have no | in their ids and cells, no ~ in their cells (K-10)")
+        let sunday = page.pageId.hasPrefix("w-") && SpanInk.expectedWriteForm(page.pageId)
+            && SpanFixtures.utc.component(.weekday, from: SpanFixtures.utc.date(from: DateComponents(year: Int(page.pageId.dropFirst(2).prefix(4)), month: Int(page.pageId.dropFirst(7).prefix(2)), day: Int(page.pageId.suffix(2))))!) == 1
+        checkEqual(e.shape == .sunday, sunday, "compat-span: \(e.name) is of shape \(e.shape.rawValue)")
+    }
+
+    // What each file holds (cell, the stroke's x from … to, cell-relative): the strokes reach out of their
+    // page and nothing was cut (§4.1, §4.2).
+    let expected: [(String, [(String, CGFloat, CGFloat)], Int, Int)] = [
+        (F.weekOverhang, [("grid", -300, 500)], 0, 0),
+        (F.dayOverhang, [("extra", 690, 1300), ("grid", 690, 1300)], 0, 0),
+        (F.monthOverhang, [("2026-11-08", -60, 450), ("memo", 1140, 1650)], 0, 0),
+        (F.yearOverhang, [("01-20", -156, 204), ("12-20", -188, 400)], 0, 0),
+        (F.moveSource, [("grid", 700, 900)], 1, 0),
+        (F.moveDestination, [("grid", 300, 500)], 0, 0),
+        (F.extraCrossLeft, [("extra", 600, 1300)], 0, 0),
+        (F.extraCrossRight, [("extra", -300, 600)], 0, 0),
+        (F.sundayOverhang, [("grid", -300, 500), ("grid", 900, 1700)], 0, 0),
+        (F.overlapNovember, [("2026-11-30", 30, 130), ("2026-12-01", 30, 130)], 0, 0),
+        (F.overlapDecember, [("2026-11-30", 30, 130), ("2026-12-01", 30, 130)], 0, 0),
+        (F.photoText, [("grid", 900, 1700)], 1, 2),
+        (F.photoTextNeighbor, [("grid", 300, 600)], 0, 1),
+    ]
+    for (name, strokes, tombstones, unknown) in expected {
+        guard let page = pages[name] else { continue }
+        let got = page.liveStrokes.map { s in (s.cell.raw, s.points.map(\.x).min() ?? 0, s.points.map(\.x).max() ?? 0) }
+            .sorted { ($0.0, $0.1) < ($1.0, $1.1) }
+        check(got.count == strokes.count && zip(got, strokes).allSatisfy { $0.0 == $1.0 && $0.1 == $1.1 && $0.2 == $1.2 }
+              && page.deleted.count == tombstones && page.unknownStrokes.count == unknown,
+              "compat-span: \(name) holds \(strokes.map { "\($0.0) x \($0.1)…\($0.2)" }.joined(separator: ", ")), \(tombstones) tombstone(s), \(unknown) unknown item(s) (got \(got))")
+    }
+    if let source = pages[F.moveSource], let destination = pages[F.moveDestination], let copy = destination.liveStrokes.first,
+       let tombstone = source.deleted.first {
+        check(tombstone.key != copy.id && source.strokes[tombstone.key] == nil && tombstone.value == copy.t && destination.deleted.isEmpty,
+              "compat-span: the move left a tombstone on the source and a copy with a new id (written at the move's time) on the destination (K-2)")
+    }
+    if let november = pages[F.overlapNovember], let december = pages[F.overlapDecember] {
+        check(Set(november.strokes.keys).isDisjoint(with: december.strokes.keys)
+              && november.liveStrokes.contains { $0.cell.raw == "2026-12-01" } && december.liveStrokes.contains { $0.cell.raw == "2026-12-01" },
+              "compat-span: the shared day 2026-12-01 has its own stroke on each month page (two cells, two ids)")
+    }
+
+    // Fixture 7: the hand-written photo and text items come out byte for byte, the session's ink around them.
+    if let photo = pages[F.photoText], let neighbor = pages[F.photoTextNeighbor],
+       let hand = made.handWritten["w-2026-11-30"].flatMap({ try? JSONValue.parse($0) }),
+       let handNeighbor = made.handWritten["w-2026-12-07"].flatMap({ try? JSONValue.parse($0) }) {
+        for id in [F.photoId, F.textId] {
+            checkEqual(SpanInk.strokeJSON(photo, id), hand["strokes"]?[id]?.serialized(), "compat-span: the \(id == F.photoId ? "photo" : "text") item is byte for byte as written (fixture 7)")
+        }
+        checkEqual(SpanInk.strokeJSON(neighbor, F.neighborPhotoId), handNeighbor["strokes"]?[F.neighborPhotoId]?.serialized(),
+                   "compat-span: the neighbour's photo item is byte for byte as written, through the guard's repair (fixture 7)")
+        check(photo.deleted.keys.sorted() == [F.handPenId] && photo.liveStrokes.allSatisfy { hand["strokes"]?[$0.id] == nil }
+              && neighbor.liveStrokes.allSatisfy { handNeighbor["strokes"]?[$0.id] == nil },
+              "compat-span: fixture 7 is not hand-written JSON alone: the hand-written pen stroke is erased, the strokes are the session's")
+        check(photo.unknownStrokes.values.contains { $0["text"]?.stringValue == "牛乳を買う" && $0["rect"]?.arrayValue?.first?.doubleValue == 1250 }
+              && neighbor.unknownStrokes.values.contains { $0["rect"]?.arrayValue?.first?.doubleValue == -80 },
+              "compat-span: the items' rects (one past the right edge, one left of the page) are untouched")
+    }
+    for e in listed where e.name != F.photoTextNeighbor {
+        checkEqual(made.saves[e.name], .ok, "compat-span: \(e.name) was saved as it was (the guard found nothing)")
+    }
+    if case .repaired(_, let stripped, let dropped)? = made.saves[F.photoTextNeighbor] {
+        check(stripped.count == 2 && stripped.contains("w-2026-12-07|" + F.neighborPhotoId) && stripped.allSatisfy { $0.hasPrefix("w-2026-12-07|") }
+              && dropped.count == 2 && dropped.contains("span~a~1") && dropped.contains { $0.hasPrefix("w-2026-11-30|") }
+              && files[F.photoTextNeighbor] == made.neighborBeforeLeak,
+              "compat-span: the neighbour's leak (its own prefix twice, another page's stroke, a stripped alias) was repaired back to the clean page")
+    } else {
+        check(false, "compat-span: the neighbour's leak was repaired, not saved as it was nor refused")
+    }
+
+    // The frozen 1.0 copy, file by file (§6.3): what 1.0 reads, draws, lassoes and writes back.
+    let drawnBy10: [String: Int] = [F.weekOverhang: 1, F.dayOverhang: 1, F.monthOverhang: 2, F.yearOverhang: 2, F.moveSource: 1,
+                                    F.moveDestination: 1, F.extraCrossLeft: 0, F.extraCrossRight: 0, F.sundayOverhang: 2,
+                                    F.overlapNovember: 2, F.overlapDecember: 2, F.photoText: 1, F.photoTextNeighbor: 1]
+    for e in listed {
+        guard let data = files[e.name], let new = pages[e.name], let old = try? InkPageCodecV10.decode(data) else {
+            check(false, "compat-span 1.0: \(e.name) reads on 1.0")
+            continue
+        }
+        let newJSON = new.jsonValue["strokes"]?.objectValue ?? [:]
+        let oldJSON = old.jsonValue["strokes"]?.objectValue ?? [:]
+        check(old.strokes.count == new.strokes.count && old.unknownStrokes.count == new.unknownStrokes.count && old.deleted == new.deleted
+              && Set(oldJSON.keys) == Set(newJSON.keys) && newJSON.allSatisfy { oldJSON[$0.key]?.serialized() == $0.value.serialized() },
+              "compat-span 1.0: \(e.name) the strokes, cells, coordinates, tombstones and unknown items are the same on 1.0")
+        check(old.liveStrokes.allSatisfy { s in new.strokes[s.id].map { $0.cell.raw == s.cell.raw && $0.points.map(\.x) == s.points.map(\.x) && $0.points.map(\.y) == s.points.map(\.y) } == true },
+              "compat-span 1.0: \(e.name) every stroke has the same cell and points on 1.0 (none cut, none moved)")
+        checkEqual((try? InkPageCodecV10.encode(old)), data, "compat-span 1.0: \(e.name) 1.0 writes back the same bytes")
+        let cells = cellsV10(pageId: old.pageId)
+        let drawn = LedgerV10.drawnIds(page: old, cells: cells)
+        checkEqual(drawn.count, drawnBy10[e.name] ?? -1, "compat-span 1.0: \(e.name) 1.0 draws the strokes of its own cells, overhanging or not")
+        check(Set(LedgerV10.lassoCandidates(page: old, cells: cells)) == Set(drawn), "compat-span 1.0: \(e.name) 1.0's lasso reaches the drawn strokes")
+        check(BandMigrationV10.migrate(old) == old && InkPageV10.merge(old, old) == old && !LedgerV10.displayWouldSave(loaded: old),
+              "compat-span 1.0: \(e.name) 1.0's band migration and merge leave it alone, opening it saves nothing")
+    }
+
+    // The whole folder through Compat10Checks, with compat11, as CI does with the monday files (here the
+    // Sunday week too: the copy lays any w- page out).
+    let tmp = fm.temporaryDirectory.appendingPathComponent("KitChecks-compat-span-\(UUID().uuidString)", isDirectory: true)
+    defer { try? fm.removeItem(at: tmp) }
+    do {
+        try CompatFixtures.prepare(from: CompatFixtures.committedFolder, into: tmp)
+        for e in listed { try fm.copyItem(at: folder.appendingPathComponent(e.name), to: tmp.appendingPathComponent(e.name)) }
+        var names: [String] = []
+        var failed: [String] = []
+        let result = Compat10Checks.run(fixtures: tmp) { name, ok in
+            names.append(name)
+            if !ok { failed.append(name) }
+        }
+        check(failed.isEmpty, "compat-span: Compat10Checks passes on compat11 and compat-span together (\(failed.prefix(3)))")
+        for e in listed {
+            let mine = names.filter { $0.hasPrefix(e.name + ":") }.count
+            check(mine >= 14, "compat-span: Compat10Checks ran \(mine) checks on \(e.name) (read, write back, draw, lasso, erase, merge, a 1.0 edit)")
+        }
+        print("   compat10 with compat-span: \(result.passed + result.failed) checks, \(result.failed) failed")
+    } catch {
+        check(false, "compat-span: preparing the folder for Compat10Checks (\(error))")
+    }
+
+    // Export and import: 1.3 writes, 1.0 reads and writes the same bytes, 1.3 imports the same pages.
+    let all = listed.compactMap { pages[$0.name] }
+    let export = AppExport.encode(AppExport.Document(exportedAt: "2026-11-12T09:00:00+09:00", app: "ios/1.3 (0)", pages: all))
+    if let json10 = try? JSONValueV10.parse(export), let doc10 = try? AppExportV10.parse(json: json10) {
+        check(AppExportV10.encode(doc10) == export && doc10.pages.count == all.count
+              && zip(doc10.pages, all).allSatisfy { (try? InkPageCodecV10.encode($0.0)) == (try? InkPageCodec.encode($0.1)) },
+              "compat-span: 1.0 reads the export of every fixture page and writes the same bytes back")
+    } else {
+        check(false, "compat-span: 1.0 reads the export of the fixture pages")
+    }
+    if case .app(let doc, let skipped)? = try? InkImport.parse(export) {
+        check(skipped == 0 && doc.pages == all && doc.pages.allSatisfy(SpanGuard.checkForTransfer),
+              "compat-span: the export imports into the same pages (1.3) and every page passes the import door")
+    } else {
+        check(false, "compat-span: the export of the fixture pages imports")
+    }
 }

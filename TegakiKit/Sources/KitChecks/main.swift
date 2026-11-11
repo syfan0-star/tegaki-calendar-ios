@@ -41,6 +41,10 @@ if CommandLine.arguments.contains("--write-compat-fixtures") {
     }
 }
 
+// 1.3: --write-compat-span-fixtures [--out <folder>] does the same for TegakiKit/Tests/Fixtures/compat-span/
+// (docs/M7C_CONTRACT.md §4.2, §6.3; SpanInkChecks.swift).
+if CommandLine.arguments.contains("--write-compat-span-fixtures") { writeCompatSpanFixtures() }
+
 // MARK: - Tiny check harness
 
 var failures: [String] = []
