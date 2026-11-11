@@ -369,9 +369,12 @@ struct SpanPrototypeScreen: View {
                                     weekStart: session.weekStart)
     }
 
-    /// The guide card goes (a touch on it or on the paper, a drag of the band).
+    /// The guide card goes (a touch on it or on the paper, a drag of the band). Nothing when it is not up (every
+    /// pen down comes here).
     private func hideGuide() {
-        guideShown = nil
+        if guideShown != nil {
+            guideShown = nil
+        }
     }
 
     /// ◀ ▶: one week back or on (§3.6); with 「1 ページずつ」 the week shown.
