@@ -1142,6 +1142,25 @@ jobs:
           set -euo pipefail
           tools/compat10/run.sh "$RUNNER_TEMP/compat11" 2>&1 | tee "$RUNNER_TEMP/compat10-run.log"
 
+      # 1.3 (docs/M7C_CONTRACT.md §6.3, §10.4): the real 1.0 read the Monday compat-span files: run.sh's `real N=`
+      # is at least tools/compat-span/EXPECTED_MIN, 565 = 1.2.3's 361 + the 12 Monday files × 17 checks (measured
+      # in run 43065300839; RunFrozen gave the same). tools/compat10/EXPECTED_MIN (225) is not touched. A Monday
+      # fixture added later raises the number: count again from the next run's `real N=`.
+      - name: The real 1.0 read the compat-span fixtures (1.3)
+        run: |
+          set -euo pipefail
+          MIN="$(tr -d '[:space:]' < tools/compat-span/EXPECTED_MIN)"
+          REAL_N="$(sed -nE 's/^compat-v1\.0: real N=([0-9]+) .*/\1/p' "$RUNNER_TEMP/compat10-run.log" | tail -1)"
+          echo "compat-span: real N=${REAL_N:-?}, tools/compat-span/EXPECTED_MIN=$MIN"
+          if ! printf '%s' "$MIN" | grep -Eq '^[0-9]+$'; then
+            echo "::error::tools/compat-span/EXPECTED_MIN must hold one number."
+            exit 1
+          fi
+          if [ -z "$REAL_N" ] || [ "$REAL_N" -lt "$MIN" ]; then
+            echo "::error::the real 1.0 ran ${REAL_N:-no} checks, fewer than tools/compat-span/EXPECTED_MIN ($MIN): a compat-span file of the Monday shape did not reach it."
+            exit 1
+          fi
+
       # 1.2 (docs/M7B_CONTRACT.md K-11, §7.5, §10.8): the REAL old versions read what 1.2 writes (a week
       # page that starts on a Sunday, a month page written in the Sunday order) and neither lose nor move
       # anything: tools/weekstart-compat on 1.0 (v10 above) and on the commit in
