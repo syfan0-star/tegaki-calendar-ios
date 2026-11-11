@@ -100,6 +100,7 @@
 - KitChecks の下限 36,918 と注記。KitChecks の段の grep を `compat10( with compat-span)?:` に広げた（表示だけ。判定には使わない）。
 - KitChecks の `main.swift` の頭で stdout を行ごとに出すようにした（落ちる前の FAIL 行が `tee` のログから消えないように。下の TS-6）。
 - r13-quick・span-shots・`SPAN_PROTOTYPE` の検査・testflight の入力・compat-v1.0 への追加は、まだ入れていない（S1 の残り）。
+- （リード、11/12）作業用の枝 `r13-w-*` では、写真のジョブ l10n-shots と blank-paper を走らせない（`if: !startsWith(github.ref_name, 'r13-w-')`）。S1 の残りを 2 本の枝で並べて進めるので、macOS の実行機を要るジョブ（build-and-test・compat-v1.0・span-shots）に空けるため。§10.6 の r13-quick とは別の物で、`r13` と main は今までどおり全部走る。
 
 ### 契約からのずれ（契約の文は f982126 で直したものを含む）
 

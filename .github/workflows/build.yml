@@ -1183,6 +1183,9 @@ jobs:
   # photos of 11–15 s at most 16: about 30 min. It stays at 75 because the job's last step is the upload.
   l10n-shots:
     name: Localized shots (1.2)
+    # 1.3's work branches (r13-w-*) skip the two photo jobs so the macOS runners stay free for the jobs the
+    # work needs; r13 and main run everything (docs/M7C.md, S1 の残り).
+    if: ${{ !startsWith(github.ref_name, 'r13-w-') }}
     runs-on: macos-26
     timeout-minutes: 75
     env:
@@ -1411,6 +1414,7 @@ jobs:
   # last device, the owner's iPad Air 11-inch, and took 33 of the 43 photos.
   blank-paper:
     name: Blank paper shots (1.1.1)
+    if: ${{ !startsWith(github.ref_name, 'r13-w-') }}
     runs-on: macos-26
     timeout-minutes: 55
     continue-on-error: true
