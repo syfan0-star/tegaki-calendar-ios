@@ -12,15 +12,21 @@ keep), --head to HEAD. Reads `git diff --name-status <base> <head> -- Sources/Te
        SPAN_PROTOTYPE compiles nothing of it;
   M  Sources/TegakiCalendar/Views/SettingsScreen.swift
        lines added only (none removed or changed), every added line inside a `#if SPAN_PROTOTYPE` … `#endif` block
-       of the new file that has no `#else` / `#elseif` (the entry row of 設定 › 情報);
-  M  Sources/TegakiCalendar/Resources/Localizable.xcstrings, InfoPlist.xcstrings
-       the generated string tables: every key of <base> is there with the same value byte for byte (no existing
-       text changes, L-3); new keys are listed.
+       of the new file that has no `#else` / `#elseif` (the entry row of 設定 › 情報), and every line of such a block
+       an added one: the new file with its SPAN_PROTOTYPE blocks taken out is <base>'s file byte for byte, so a
+       build without SPAN_PROTOTYPE compiles exactly <base>'s lines (a block that wraps a line of <base> fails);
+  M  Sources/TegakiCalendar/Resources/Localizable.xcstrings
+       the generated string table: every key of <base> is there with the same value byte for byte (no existing
+       text changes, L-3), and every new key is a prototype key — it starts with "prototype." (build.py's
+       APP_JA_ONLY_PREFIX) and has the ja localization only; new keys are listed;
+  M  Sources/TegakiCalendar/Resources/InfoPlist.xcstrings
+       every key of <base> unchanged as above, and no new key (a key there is the normal app's Info.plist text).
 
 Anything else under Sources/TegakiCalendar (a changed, removed or renamed file, another new file) fails. Prints
 one line per file and `prototype gate: OK` or `prototype gate: FAILED`; the exit status is 0 or 1 (2 for a git
 error). Writes nothing. CI runs it in testflight.yml when the input span_prototype is 1; the lead can run it on a
-Mac for the record in docs/M7C.md.
+Mac for the record in docs/M7C.md. tools/span/prototype_gate_test.py builds throwaway repositories and shows that
+each way out of these rules fails here (build.yml runs it on every push).
 """
 import argparse
 import json
@@ -36,7 +42,11 @@ BASE = "43fe36666a2120e8a23adf4fc76244151a395e6f"
 APP = "Sources/TegakiCalendar/"
 PROTOTYPE_FILE = re.compile(r"^Sources/TegakiCalendar/Span/SpanPrototype[^/]*\.swift$")
 SETTINGS = "Sources/TegakiCalendar/Views/SettingsScreen.swift"
-CATALOGS = ("Sources/TegakiCalendar/Resources/Localizable.xcstrings", "Sources/TegakiCalendar/Resources/InfoPlist.xcstrings")
+LOCALIZABLE = "Sources/TegakiCalendar/Resources/Localizable.xcstrings"
+INFOPLIST = "Sources/TegakiCalendar/Resources/InfoPlist.xcstrings"
+CATALOGS = (LOCALIZABLE, INFOPLIST)
+# The prototype's keys (tools/l10n/build.py APP_JA_ONLY_PREFIX): ja only, shown by the prototype build alone.
+PROTOTYPE_KEY_PREFIX = "prototype."
 
 IF_MARK = re.compile(r"^\s*#if\s+SPAN_PROTOTYPE\s*(//.*)?$")
 IF_ANY = re.compile(r"^\s*#if\b")
@@ -116,6 +126,19 @@ def check_settings(repo, base, head):
     outside = [n for n in added if not any(start <= n <= end for start, end, _ in blocks)]
     if outside:
         return "added line %d is outside every #if SPAN_PROTOTYPE block" % outside[0], added
+    # Every line of a SPAN_PROTOTYPE block is an added one: a line of <base> inside a block would be gone from the
+    # normal build (wrapping an existing row adds only the #if and the #endif, and removes nothing).
+    fresh = set(added)
+    for start, end, _ in blocks:
+        kept = [n for n in range(start, end + 1) if n not in fresh]
+        if kept:
+            return ("line %d (of 43fe366) is inside the #if SPAN_PROTOTYPE block at line %d: a build without "
+                    "SPAN_PROTOTYPE would lose it" % (kept[0], start)), added
+    # And the strongest form of the rule: the file a build without SPAN_PROTOTYPE compiles is <base>'s, byte for byte.
+    inside = set(n for start, end, _ in blocks for n in range(start, end + 1))
+    normal = "\n".join(line for n, line in enumerate(lines, start=1) if n not in inside)
+    if normal != git(repo, "show", "%s:%s" % (base, SETTINGS)):
+        return "the file without its #if SPAN_PROTOTYPE blocks is not 43fe366's file byte for byte", added
     return None, added
 
 
@@ -132,7 +155,17 @@ def check_catalog(repo, base, head, path):
             return "the key %r of 43fe366 is gone" % key, []
         if json.dumps(new_strings[key], sort_keys=True, ensure_ascii=False) != json.dumps(value, sort_keys=True, ensure_ascii=False):
             return "the key %r of 43fe366 changed (an existing text must not change, L-3)" % key, []
-    return None, sorted(set(new_strings) - set(old_strings))
+    new_keys = sorted(set(new_strings) - set(old_strings))
+    if path != LOCALIZABLE and new_keys:
+        return "new key %r: %s takes no new key before S4 (it is the normal app's Info.plist text)" % (new_keys[0], path.rsplit("/", 1)[-1]), new_keys
+    for key in new_keys:
+        if not key.startswith(PROTOTYPE_KEY_PREFIX):
+            return "new key %r is not a prototype key (only %s* keys may be added before S4)" % (key, PROTOTYPE_KEY_PREFIX), new_keys
+        entry = new_strings[key]
+        languages = sorted((entry.get("localizations") or {}).keys()) if isinstance(entry, dict) else []
+        if languages != ["ja"]:
+            return "the prototype key %r has the localizations %s (ja only)" % (key, ", ".join(languages) or "none"), new_keys
+    return None, new_keys
 
 
 def main():
@@ -158,10 +191,12 @@ def main():
             note = "new, all inside #if SPAN_PROTOTYPE"
         elif status == "M" and path == SETTINGS:
             problem, added = check_settings(repo, base, head)
-            note = "%d line(s) added inside #if SPAN_PROTOTYPE, none removed" % len(added)
+            note = ("%d line(s) added inside #if SPAN_PROTOTYPE, none removed; without those blocks the file is 43fe366's"
+                    % len(added))
         elif status == "M" and path in CATALOGS:
             problem, new_keys = check_catalog(repo, base, head, path)
-            note = "every key of 43fe366 unchanged; new keys: %s" % (", ".join(new_keys) if new_keys else "none")
+            note = "every key of 43fe366 unchanged; new keys (%s*, ja only): %s" % (
+                PROTOTYPE_KEY_PREFIX, ", ".join(new_keys) if new_keys else "none")
         else:
             problem = "not allowed before S4 (only Span/SpanPrototype*.swift, the entry in Views/SettingsScreen.swift and the string tables)"
         if problem:

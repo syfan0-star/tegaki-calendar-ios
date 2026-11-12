@@ -209,6 +209,15 @@ jobs:
           fi
           echo "SPAN_PROTOTYPE: not in project.yml"
 
+      # 1.3 (docs/M7C_CONTRACT.md §12.2 S3 (2), D12): the gate testflight.yml runs before the prototype build
+      # (tools/span/prototype_gate.py) fails on every way a change could leave the normal app different from 43fe366
+      # while only adding lines — a `#if SPAN_PROTOTYPE` block around a row of 43fe366, a new key that is not a
+      # prototype key, a new key of InfoPlist.xcstrings. Its own test builds a throwaway repository (seconds).
+      - name: The prototype gate's own test (1.3)
+        run: |
+          set -euo pipefail
+          python3 -I tools/span/prototype_gate_test.py
+
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the 18 files of the handwriting's data are the
       # bytes of 1.1.1, except Sync/SyncEngine.swift, whose line is 1.2.3's (docs/R1_2_3.md §3.10: the sync's
       # order and account checks changed, not the data's form). The file keeps its name; the commit it was
