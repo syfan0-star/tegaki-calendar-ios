@@ -1,3 +1,4 @@
+import Holidays
 import Layout
 import SwiftUI
 import UIKit
@@ -32,6 +33,14 @@ struct AllDayBandView: View {
     /// The zoom the lane height / gap / text are computed at instead of `viewport.zoom` (frozen
     /// during a pinch, M4C-27); nil = `viewport.zoom`.
     var laneZoom: CGFloat? = nil
+    /// 1.3 (docs/M7C_CONTRACT.md §3.8): the window of joined weeks or days whose bands (`span.bands`, the
+    /// lanes packed over the window's days, `AllDayBandLanes`) are shown side by side, each page's columns,
+    /// 「終日」 and bars from its slot's x, with `viewport` over the whole window. Every page has the window's
+    /// lane count, so one band height; an event across a boundary keeps its lane and continues square into
+    /// the next page. Only on the joined path (`PaperSpan.isJoined`) does 「終日」 give way where it does not
+    /// fit its time column (`spanGutterLabel`). nil: `band` alone, 1.2.3's band. A window of one page draws
+    /// its one band as `band` would be drawn.
+    var span: PaperSpan? = nil
     /// eventId → the edit sheet.
     var onBarTap: (String) -> Void
     /// A column's empty part → the create sheet for that day's all-day event.
@@ -44,8 +53,37 @@ struct AllDayBandView: View {
     /// Horizontal padding of a bar's text, and the right padding of 「終日」.
     static let textPad: CGFloat = 6
 
+    /// 1.3: one band of what the view shows and the paper x (lu) its page starts at.
+    struct PlacedBand {
+        /// The page's slot in the window (0 for `band` alone).
+        var slot: Int
+        var band: AllDayBandLayout
+        /// `PaperSpan.origin(ofSlot:)`; 0 for `band` alone.
+        var origin: CGFloat
+    }
+
+    /// The bands shown: `span`'s, each at its slot's x, or `band` alone at x 0 (1.2.3).
+    static func placedBands(band: AllDayBandLayout, span: PaperSpan?) -> [PlacedBand] {
+        guard let span = span, !span.bands.isEmpty else { return [PlacedBand(slot: 0, band: band, origin: 0)] }
+        return span.bands.enumerated().map { PlacedBand(slot: $0.offset, band: $0.element, origin: span.origin(ofSlot: $0.offset)) }
+    }
+
+    private var placed: [PlacedBand] {
+        Self.placedBands(band: band, span: span)
+    }
+
+    /// The lanes of the shown bands (the window's bands all have the window's count): `band.laneCount` alone.
+    private var laneCount: Int {
+        placed.reduce(0) { max($0, $1.band.laneCount) }
+    }
+
+    /// The kind whose lane gap and text size the band uses: the window's, or `band`'s.
+    private var bandKind: PageKind {
+        placed.first?.band.kind ?? band.kind
+    }
+
     private var metrics: AllDayBandMetrics.Metrics {
-        AllDayBandMetrics.metrics(kind: band.kind, laneCount: band.laneCount, zoom: laneZoom ?? viewport.zoom, pageHeight: pageHeight)
+        AllDayBandMetrics.metrics(kind: bandKind, laneCount: laneCount, zoom: laneZoom ?? viewport.zoom, pageHeight: pageHeight)
     }
 
     /// The container width; never negative or non-finite (a `frame` must not get those).
@@ -54,7 +92,7 @@ struct AllDayBandView: View {
     }
 
     var body: some View {
-        if band.laneCount > 0 {
+        if laneCount > 0 {
             let metrics = self.metrics
             ScrollView(.vertical, showsIndicators: true) {
                 content(metrics)
@@ -73,15 +111,24 @@ struct AllDayBandView: View {
     // MARK: - Content
 
     /// The columns (tint + tap target), the 「終日」 gutter and the bars, all placed by paper x
-    /// through `viewport` and by lane through `metrics`.
+    /// through `viewport` and by lane through `metrics`. 1.3: of every placed band in turn (the columns of
+    /// all, then the gutters, then the bars), each moved by its page's x; `band` alone is at x 0.
     private func content(_ metrics: AllDayBandMetrics.Metrics) -> some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(band.days.indices, id: \.self) { index in
-                column(index, metrics)
+        let placed = self.placed
+        let joined = span?.isJoined == true
+        return ZStack(alignment: .topLeading) {
+            ForEach(placed, id: \.slot) { page in
+                ForEach(page.band.days.indices, id: \.self) { index in
+                    column(page, index, metrics)
+                }
             }
-            gutterLabel(metrics)
-            ForEach(band.bars) { bar in
-                barView(bar, metrics)
+            ForEach(placed, id: \.slot) { page in
+                gutterLabel(page, joined: joined, metrics)
+            }
+            ForEach(placed, id: \.slot) { page in
+                ForEach(page.band.bars) { bar in
+                    barView(page, bar, metrics)
+                }
             }
         }
         .frame(width: width, height: metrics.contentHeight, alignment: .topLeading)
@@ -91,12 +138,13 @@ struct AllDayBandView: View {
     /// 終日予定を追加」. On the week page a double tap goes to the day page instead (M4C-15): the two
     /// taps are one exclusive gesture, so the single tap waits for the double tap to fail (about 0.3 s,
     /// M4C-6); the day page's band keeps the plain tap.
-    private func column(_ index: Int, _ metrics: AllDayBandMetrics.Metrics) -> some View {
+    private func column(_ page: PlacedBand, _ index: Int, _ metrics: AllDayBandMetrics.Metrics) -> some View {
+        let band = page.band
         let day = band.days[index]
-        let x = index < band.columnMinX.count ? viewport.x(ofPaper: band.columnMinX[index]) : 0
+        let x = index < band.columnMinX.count ? viewport.x(ofPaper: page.origin + band.columnMinX[index]) : 0
         let columnWidth = max(0, viewport.width(ofPaper: band.columnWidth))
         let shape = Rectangle()
-            .fill(columnTint(index) ?? Color.clear)
+            .fill(Self.columnTint(band, index) ?? Color.clear)
             .frame(width: columnWidth, height: metrics.contentHeight)
             .contentShape(Rectangle())
         return Group {
@@ -120,11 +168,16 @@ struct AllDayBandView: View {
     /// 「終日」 in the gutter `[paper 0, paper gutter]`, right-aligned, on the first lane. It moves
     /// with the paper (D2), so it leaves the screen when the paper is scrolled to the right. 1.2 (F-7):
     /// a language whose word does not fit the gutter takes the short form, or shows nothing; ja is
-    /// 1.1's, also where the gutter cuts it.
+    /// 1.1's, also where the gutter cuts it. 1.3: in every page's time column of the window, and on the
+    /// joined path only where it fits whole (`spanGutterLabel`; a cut 「終日」 in each of 9 narrow gutters
+    /// would be a row of marks).
     @ViewBuilder
-    private func gutterLabel(_ metrics: AllDayBandMetrics.Metrics) -> some View {
-        let gutterWidth = max(0, viewport.width(ofPaper: band.gutter))
-        if let label = PaperWords.allDayLabel(widthPoints: gutterWidth, fontSize: AllDayBandMetrics.labelPoints, L.language) {
+    private func gutterLabel(_ page: PlacedBand, joined: Bool, _ metrics: AllDayBandMetrics.Metrics) -> some View {
+        let gutterWidth = max(0, viewport.width(ofPaper: page.band.gutter))
+        let label = joined
+            ? Self.spanGutterLabel(widthPoints: gutterWidth, language: L.language)
+            : PaperWords.allDayLabel(widthPoints: gutterWidth, fontSize: AllDayBandMetrics.labelPoints, L.language)
+        if let label = label {
             Text(label)
                 .font(.system(size: AllDayBandMetrics.labelPoints))
                 .foregroundStyle(ink3)
@@ -133,14 +186,24 @@ struct AllDayBandView: View {
                 .frame(width: gutterWidth, height: metrics.lane, alignment: .trailing)
                 .clipped()
                 .accessibilityHidden(true)
-                .offset(x: viewport.x(ofPaper: 0), y: metrics.laneTop(0))
+                .offset(x: viewport.x(ofPaper: page.origin), y: metrics.laneTop(0))
         }
+    }
+
+    /// 1.3 (the lead's decision 4): 「終日」 of a joined page's gutter — `PaperWords.allDayLabel`'s word, in
+    /// every language (ja included) only when it fits `widthPoints` with `textPad` and 2 pt to spare, else
+    /// nothing.
+    static func spanGutterLabel(widthPoints: CGFloat, language: UILanguage) -> String? {
+        guard widthPoints.isFinite,
+              let label = PaperWords.allDayLabel(widthPoints: widthPoints, fontSize: AllDayBandMetrics.labelPoints, language) else { return nil }
+        let font = UIFont.systemFont(ofSize: AllDayBandMetrics.labelPoints)
+        return PaperText.naturalWidth(of: label, font: font) + textPad + 2 <= widthPoints ? label : nil
     }
 
     /// One bar: the event's colour, its title cut at the bar's edge (D4), round corners except on a
     /// side that continues past the band. A button: a Pencil tap works like a finger tap.
-    private func barView(_ bar: AllDayBandBar, _ metrics: AllDayBandMetrics.Metrics) -> some View {
-        let x = viewport.x(ofPaper: bar.minX)
+    private func barView(_ page: PlacedBand, _ bar: AllDayBandBar, _ metrics: AllDayBandMetrics.Metrics) -> some View {
+        let x = viewport.x(ofPaper: page.origin + bar.minX)
         let barWidth = max(0, viewport.width(ofPaper: bar.maxX - bar.minX))
         let shape = Self.barShape(bar)
         let fill = Color(uiColor: PaperPalette.color(hex: bar.colorHex))
@@ -169,7 +232,7 @@ struct AllDayBandView: View {
     /// The tint of column `index`: today wins (`todayTint` on the week page, `todayTintSoft` on the
     /// day page), then Saturday / Sunday / holiday (`weekendTint` / `weekendTintSoft`, the same as
     /// the paper's columns); nil for a plain weekday.
-    private func columnTint(_ index: Int) -> Color? {
+    private static func columnTint(_ band: AllDayBandLayout, _ index: Int) -> Color? {
         let soft = band.kind == .day
         if band.todayColumn == index {
             return Color(uiColor: soft ? PaperPalette.todayTintSoft : PaperPalette.todayTint)
@@ -203,4 +266,29 @@ struct AllDayBandView: View {
     private var paperColor: Color { Color(uiColor: PaperPalette.paper) }
     private var ink3: Color { Color(uiColor: PaperPalette.ink3) }
     private var lineStrongColor: Color { Color(uiColor: PaperPalette.lineStrong) }
+}
+
+/// 1.3 (docs/M7C_CONTRACT.md §3.8, B_DESIGN.md §3.1): the lanes of a window's all-day band through one
+/// session. The window's bands are laid out together over all of its days (`AllDayBandEngine.pages`), so
+/// an event across the boundary of two pages keeps one lane (packed page by page, its lanes could swap
+/// there). The lane count is decided again only when the window is laid out — at a shift, a reopening, an
+/// event change — never while the band merely slides sideways, and it never goes down in a session: each
+/// layout asks for at least the most lanes the session has shown (`minimumLaneCount`). A new session (the
+/// screen's new `SpanSession`) starts a new value at 0. Nothing is stored.
+struct AllDayBandLanes: Equatable {
+    /// The most lanes this session has shown (0 before the first layout).
+    private(set) var floor = 0
+
+    init() {}
+
+    /// The bands of a window whose days, left to right, are `days` (`PaperSpan.days`, or the days of the
+    /// session's `SpanLayout` pages): one band per week (7 days each) or per day, every one with the
+    /// window's lane count, at least `floor`; `floor` becomes that count.
+    mutating func bands(_ kind: PageKind, days: [DayKey], events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar,
+                        holidays: HolidayCalendar) -> [AllDayBandLayout] {
+        let bands = AllDayBandEngine.pages(kind, days: days, events: events, now: now, calendar: calendar, holidays: holidays,
+                                           minimumLaneCount: floor)
+        floor = max(floor, bands.reduce(0) { max($0, $1.laneCount) })
+        return bands
+    }
 }
