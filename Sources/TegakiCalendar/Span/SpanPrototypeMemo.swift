@@ -10,17 +10,52 @@ import UIKit
 // `PaperGrowth`, `ZoomPolicy` and `WeekPaper` stay as they are until then). It is the cell `extra` of the
 // week's page (K-1's safe name, the day's free memo's), 6,000 lu tall like the day's, lined up across the
 // window (`SpanAlign`, D16), its strokes saved in the prototype's own "proto-" pages only. Its lines are drawn
-// by layers under the canvas, in one of the two forms the sample images compare (§4.5): ruled lines only
-// (the default, the day's free memo's look) or a square grid. Compiled only into the prototype build
+// by layers under the canvas, in one of the forms the sample images compare (§4.5): ruled lines only
+// (the default, the day's free memo's look), a square grid, or the second form of PLAN_WEEK_MEMO.md's Q2 (the
+// weekday dividers and today's and the weekend's tints running on down). Compiled only into the prototype build
 // (`SPAN_PROTOTYPE`); it goes away with the prototype (S6).
 
-/// The two forms of the week memo the sample images put side by side (§4.5; §0.6: ruled lines only is the
+/// The forms of the week memo the sample images put side by side (§4.5; §0.6: ruled lines only is the
 /// default).
 enum SpanPrototypeMemoStyle: String, CaseIterable, Sendable {
-    /// Ruled lines every 50 lu, as the day's free memo (`DayPaper.drawExtra`).
+    /// Ruled lines every 50 lu, as the day's free memo (`DayPaper.drawExtra`): PLAN_WEEK_MEMO.md Q2's first form
+    /// (today's and the weekend's colours and the gutter's line stop at 24:00).
     case ruled
-    /// The same ruled lines and vertical lines every 50 lu: a square grid.
+    /// The same ruled lines and vertical lines every 50 lu: a square grid (§4.5's second form as written; the day's
+    /// free memo has ruled lines only, so this one is the prototype's reading of it).
     case grid
+    /// PLAN_WEEK_MEMO.md Q2's second form (review B3): the ruled lines, with the gutter's line and the column lines of
+    /// the week running on down and today's and the weekend's (and a holiday's) columns tinted lightly (the paper's
+    /// soft tints), so the memo is read day by day.
+    case weekdays
+}
+
+/// What the `weekdays` form draws of a week page's columns in its memo (page-relative lu): the gutter's line, the
+/// lines between the 7 columns, and the columns tinted (today over a weekend or a holiday, as the week's paper).
+struct SpanPrototypeMemoColumns: Equatable {
+    struct Tint: Equatable {
+        var x: CGFloat
+        var width: CGFloat
+        var today: Bool
+    }
+
+    var gutter: CGFloat
+    var lines: [CGFloat]
+    var tints: [Tint]
+
+    /// The columns of `week` (`WeekPaper`'s rule: today's tint over the weekend's / a holiday's).
+    init(week: WeekPageLayout) {
+        gutter = PaperSpec.weekGutter
+        lines = (1..<PaperSpec.weekColumns).map { PaperSpec.weekGutter + CGFloat($0) * PaperSpec.weekColumnWidth }
+        var tints: [Tint] = []
+        for (column, label) in week.dateLabels.enumerated() {
+            let today = week.todayColumn == column
+            guard today || label.tone != .normal else { continue }
+            let frame = week.columnFrame(column)
+            tints.append(Tint(x: frame.minX, width: frame.width, today: today))
+        }
+        self.tints = tints
+    }
 }
 
 /// One week page with the free memo below 24:00 (§5.2): the week as 1.2.3 lays it out (`week`, 1400 × 1920,
@@ -53,6 +88,11 @@ struct SpanPrototypeWeekMemoLayout: PageLayout {
     var allDayBars: [AllDayBar] { week.allDayBars }
     var timedBoxes: [TimedEventBox] { week.timedBoxes }
     var nowLine: NowLine? { week.nowLine }
+
+    /// The week's columns as the `weekdays` form draws them in the memo.
+    var columns: SpanPrototypeMemoColumns {
+        SpanPrototypeMemoColumns(week: week)
+    }
 
     /// Below 24:00 (a point that is finite).
     private func inMemo(_ point: CGPoint) -> Bool {
@@ -105,7 +145,8 @@ struct SpanPrototypeWeekMemoLayout: PageLayout {
 
 /// The memo's lines of every page of the window, under the canvas and above the paper: for each page a
 /// strong line at 24:00 (the day's free memo's), ruled lines every 50 lu inset 20 lu, with 「方眼」 vertical
-/// lines every 50 lu too, and the heading 「自由メモ」. Plain colour layers (no drawing of their own, so no
+/// lines every 50 lu too, with the `weekdays` form the week's column lines and tints running on down, and the
+/// heading 「自由メモ」. Plain colour layers (no drawing of their own, so no
 /// backing store), placed in content points: a scroll moves the whole (`bounds.origin`), a zoom or another
 /// window places them again.
 @MainActor
@@ -113,6 +154,7 @@ final class SpanPrototypeMemoView: UIView {
     /// What the layers were placed for.
     private struct Placement: Equatable {
         var rects: [CGRect]
+        var columns: [SpanPrototypeMemoColumns?]
         var zoom: CGFloat
         var style: SpanPrototypeMemoStyle
         var scale: CGFloat
@@ -127,11 +169,15 @@ final class SpanPrototypeMemoView: UIView {
         let columns = CAReplicatorLayer()
         let column = CALayer()
         let label = CATextLayer()
+        /// The `weekdays` form: the column tints under everything, the column lines and the gutter's line above the
+        /// ruled lines.
+        let tints = CALayer()
+        let dividers = CALayer()
 
         init() {
             rules.addSublayer(rule)
             columns.addSublayer(column)
-            for layer in [rules, columns, top, label] as [CALayer] {
+            for layer in [tints, rules, columns, dividers, top, label] as [CALayer] {
                 root.addSublayer(layer)
             }
             top.backgroundColor = PaperPalette.lineStrong.cgColor
@@ -156,9 +202,9 @@ final class SpanPrototypeMemoView: UIView {
         fatalError("init(coder:) is not supported")
     }
 
-    /// The memo of each page (`rects`, band lu; an empty rect for a page without one) at `zoom`, the content
-    /// offset `offset` at the view's top-left, in `style`.
-    func show(rects: [CGRect], zoom: CGFloat, offset: CGPoint, style: SpanPrototypeMemoStyle) {
+    /// The memo of each page (`rects`, band lu; an empty rect for a page without one, `columns` its week's columns)
+    /// at `zoom`, the content offset `offset` at the view's top-left, in `style`.
+    func show(rects: [CGRect], columns: [SpanPrototypeMemoColumns?] = [], zoom: CGFloat, offset: CGPoint, style: SpanPrototypeMemoStyle) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
@@ -167,7 +213,7 @@ final class SpanPrototypeMemoView: UIView {
             bounds.origin = origin
         }
         let scale = traitCollection.displayScale > 0 ? traitCollection.displayScale : 2
-        let placement = Placement(rects: rects, zoom: zoom, style: style, scale: scale)
+        let placement = Placement(rects: rects, columns: columns, zoom: zoom, style: style, scale: scale)
         guard placement != placed, zoom.isFinite, zoom > 0 else { return }
         placed = placement
         while pages.count < rects.count {
@@ -178,13 +224,14 @@ final class SpanPrototypeMemoView: UIView {
         while pages.count > rects.count {
             pages.removeLast().root.removeFromSuperlayer()
         }
-        for (page, rect) in zip(pages, rects) {
-            place(page, rect: rect, zoom: zoom, style: style, scale: scale)
+        for (index, (page, rect)) in zip(pages, rects).enumerated() {
+            place(page, rect: rect, columns: index < columns.count ? columns[index] : nil, zoom: zoom, style: style, scale: scale)
         }
     }
 
     /// One page's layers for its memo `rect` (lu) at `zoom` (content points = lu × zoom).
-    private func place(_ page: PageLayers, rect: CGRect, zoom: CGFloat, style: SpanPrototypeMemoStyle, scale: CGFloat) {
+    private func place(_ page: PageLayers, rect: CGRect, columns weekColumns: SpanPrototypeMemoColumns?, zoom: CGFloat,
+                       style: SpanPrototypeMemoStyle, scale: CGFloat) {
         guard !rect.isEmpty, rect.width.isFinite, rect.height.isFinite else {
             page.root.isHidden = true
             return
@@ -201,6 +248,8 @@ final class SpanPrototypeMemoView: UIView {
         page.rules.instanceCount = ruleCount
         page.rules.instanceTransform = CATransform3DMakeTranslation(0, step * zoom, 0)
         page.rule.frame = CGRect(x: inset * zoom, y: step * zoom - line / 2, width: (rect.width - 2 * inset) * zoom, height: line)
+
+        placeWeekdays(page, rect: rect, columns: style == .weekdays ? weekColumns : nil, zoom: zoom, line: line)
 
         page.columns.isHidden = style != .grid
         let columnCount = max(0, Int(((rect.width - 2 * inset) / step).rounded(.down)) + 1)
@@ -221,6 +270,46 @@ final class SpanPrototypeMemoView: UIView {
         page.label.string = text
         page.label.contentsScale = scale
         page.label.frame = CGRect(x: inset * zoom, y: 6 * zoom, width: ceil(textSize.width) + 4, height: ceil(textSize.height) + 2)
+    }
+
+    /// The `weekdays` form (`columns` nil: hidden): a plain layer per tint (the paper's soft tints) and per line (the
+    /// gutter's strong, the columns' plain), the whole height of the memo.
+    private func placeWeekdays(_ page: PageLayers, rect: CGRect, columns: SpanPrototypeMemoColumns?, zoom: CGFloat, line: CGFloat) {
+        guard let columns else {
+            page.tints.isHidden = true
+            page.dividers.isHidden = true
+            return
+        }
+        page.tints.isHidden = false
+        page.dividers.isHidden = false
+        page.tints.frame = page.root.bounds
+        page.dividers.frame = page.root.bounds
+        let height = rect.height * zoom
+        let tintLayers = Self.layers(of: page.tints, count: columns.tints.count)
+        for (layer, tint) in zip(tintLayers, columns.tints) {
+            layer.backgroundColor = (tint.today ? PaperPalette.todayTintSoft : PaperPalette.weekendTintSoft).cgColor
+            layer.frame = CGRect(x: tint.x * zoom, y: 0, width: tint.width * zoom, height: height)
+        }
+        let lineLayers = Self.layers(of: page.dividers, count: columns.lines.count + 1)
+        for (index, layer) in lineLayers.enumerated() {
+            let x = index == 0 ? columns.gutter : columns.lines[index - 1]
+            layer.backgroundColor = (index == 0 ? PaperPalette.lineStrong : PaperPalette.line).cgColor
+            layer.frame = CGRect(x: x * zoom - line / 2, y: 0, width: line, height: height)
+        }
+    }
+
+    /// The first `count` sublayers of `parent`, made or removed so there are exactly that many.
+    private static func layers(of parent: CALayer, count: Int) -> [CALayer] {
+        var current = parent.sublayers ?? []
+        while current.count < count {
+            let layer = CALayer()
+            parent.addSublayer(layer)
+            current.append(layer)
+        }
+        while current.count > count {
+            current.removeLast().removeFromSuperlayer()
+        }
+        return current
     }
 }
 #endif

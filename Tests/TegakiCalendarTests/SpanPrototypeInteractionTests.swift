@@ -9,9 +9,11 @@ import XCTest
 @testable import TegakiCalendar
 
 /// What the prototype does with the band (docs/M7C_CONTRACT.md §3.6, §3.3 3, §4.5, §4.6, §5.2), checked where
-/// no finger or Pencil is needed: the palm's rule, the history a shift forgets, the shift keeping the focus
-/// page in place, the fling to the next week, the week memo's cell and its floor, the synthetic strokes of
-/// 「線の数」 and the pages they fill, the meter, 「上限あり」, 「1 ページずつ」 and the week start. Compiled only with
+/// no finger or Pencil is needed: the palm's rule and the overview's 24 pt start, the history a shift forgets, the
+/// shift keeping the focus page in place, the fling to the next week, a rebuild waiting for the pen, the week memo's
+/// cell, its floor and its forms, the synthetic strokes of 「線の数」, the pages they fill and the refill of a window
+/// of another size, the meter and its memory peak, 「上限あり」, 「1 ページずつ」, the week start, the day band with its
+/// all-day bands, and the leftovers of earlier launches. Compiled only with
 /// `SPAN_PROTOTYPE` (the span-shots job's host, like `PrototypeIsolationTests`); the normal build has none of it.
 /// The real canvas's own tests are L's (`InkCanvasSpanTests`, S5).
 @MainActor
@@ -41,6 +43,7 @@ final class SpanPrototypeInteractionTests: XCTestCase {
                                        inbox: session.inbox, epoch: session.epoch)
         view.initialCenterX = session.layout.origin(ofSlot: session.focusSlot) + session.plan.pageWidth / 2
         view.onShift = { [weak model] index in model?.shift(toFocusIndex: index) }
+        view.onRebuild = { [weak model] index in model?.runWaitingRebuild(focusIndex: index) }
         view.onInkBoundsChanged = { [weak session] in session?.relayoutPages() }
         let coordinator = SpanPrototypeCanvas.Coordinator(parent: view)
         let container = SpanPrototypeContainerView(papers: session.papers)
@@ -74,6 +77,16 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         for _ in 0..<12 {
             await Task.yield()
         }
+    }
+
+    /// Waits until 「線の数」 has written the pages (`fillProgress` back to nil), at most `limit` seconds.
+    private func waitForFill(_ model: SpanPrototypeModel, limit: TimeInterval = 20) async throws {
+        let started = Date()
+        while model.fillProgress != nil, Date().timeIntervalSince(started) < limit {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        XCTAssertNil(model.fillProgress, "the fill ended within \(limit) s")
+        await settle()
     }
 
     // MARK: The palm (§3.6)
@@ -425,9 +438,10 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         XCTAssertTrue(model.singlePage)
         let focusId = session.plan.pageId(at: try XCTUnwrap(model.focusPageIndex))
         XCTAssertEqual(focusId, "w-2026-11-09")
-        let plain = try XCTUnwrap(session.plainLayouts[focusId])
+        let plain = try XCTUnwrap(session.plainPapers[focusId])
         XCTAssertEqual(plain.size, CGSize(width: 1_400, height: 1_920))
-        XCTAssertNil(plain.cells[.extra])
+        XCTAssertNil(plain.layout.cells[.extra])
+        XCTAssertEqual(plain.kind, .week)
         model.setSinglePage(false)
 
         model.setWeekStart(.sunday)
@@ -438,6 +452,209 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         XCTAssertEqual(sunday.number, 2)
         XCTAssertEqual(sunday.pageIds[sunday.focusSlot], "w-2026-11-08")
         XCTAssertTrue(sunday.pageIds.allSatisfy { DayKey(ymd: String($0.dropFirst(2)))?.weekday == 0 }, "\(sunday.pageIds)")
+    }
+
+    // MARK: Review fixes (2026-11-12)
+
+    /// ISO-3 (§3.6 回転・Split View では、止まったときに窓を決め直す): the iPad turns while the pen is on the paper. The
+    /// window waits; a stroke finished meanwhile reaches its page; once the pen is up and settled the canvas takes the
+    /// window of the new orientation (7 weeks), composed after the stroke arrived, so the stroke stays drawn and ↶ takes
+    /// it away. Fails on the code before the fix: the window was composed at once (5 → 7 while the pen was down), and the
+    /// canvas then drew the page without the stroke and its ↶ did nothing.
+    func testRebuildWaitsForThePenAndKeepsTheStroke() async throws {
+        let (model, session) = try openPrototype()
+        let (coordinator, container) = attachCanvas(model: model, session: session)
+        defer {
+            coordinator.detach()
+            model.close()
+        }
+        await settle()
+        let canvas = container.canvasView
+        XCTAssertEqual(session.pageIds.count, 5)
+        coordinator.canvasViewDidBeginUsingTool(canvas)
+        XCTAssertTrue(coordinator.holdsRebuild)
+        model.screenChanged(CGSize(width: pad.height, height: pad.width), isPad: true)
+        XCTAssertEqual(session.pageIds.count, 5, "the window waits while the pen is on the paper")
+        XCTAssertTrue(session.inbox.rebuildWaiting)
+        let x = session.layout.origin(ofSlot: session.focusSlot) + 300
+        draw([stroke(from: CGPoint(x: x, y: 600), to: CGPoint(x: x + 80, y: 640))], on: container, coordinator: coordinator)
+        await settle()
+        XCTAssertEqual(session.pageIds.count, 5, "still waiting: the pen has not lifted")
+        coordinator.canvasViewDidEndUsingTool(canvas)
+        // The settle wait (0.3 s) and the shift check after it.
+        try await Task.sleep(for: .milliseconds(700))
+        await settle()
+
+        XCTAssertFalse(session.inbox.rebuildWaiting)
+        XCTAssertEqual(coordinator.rebuildCount, 1)
+        XCTAssertEqual(session.plan.orientation, .landscape)
+        XCTAssertEqual(session.pageIds.count, 7, "the window of the 11-inch iPad in landscape")
+        XCTAssertEqual(session.windowStrokeCount, 1, "the stroke reached its page")
+        XCTAssertEqual(canvas.drawing.strokes.count, 1, "the stroke written while the window waited is drawn")
+        XCTAssertEqual(coordinator.ledger.page.liveStrokes.count, 1)
+        XCTAssertTrue(coordinator.ledger.canUndo)
+        XCTAssertNotNil(coordinator.ledger.undo(), "↶ finds the stroke")
+        XCTAssertTrue(coordinator.ledger.page.liveStrokes.isEmpty)
+        XCTAssertEqual(session.faultCount, 0, "no delta for a page outside the window, no recovery by the safety net")
+    }
+
+    /// B1: 「線の数」 of 900 on an iPhone in portrait (5 weeks: 180 each); turned to landscape (9 weeks) the window is
+    /// filled again to hold 900 (100 each), not 9 × 180 = 1,620; 「上限あり」 (7 weeks) and back to portrait likewise.
+    /// Fails on the code before the fix: nothing filled the window again after the rotation.
+    func testFillFollowsTheWindowsPageCount() async throws {
+        let phonePortrait = CGSize(width: phoneLandscape.height, height: phoneLandscape.width)
+        let (model, session) = try openPrototype(size: phonePortrait, isPad: false)
+        defer { model.close() }
+        XCTAssertEqual(session.pageIds.count, 5)
+        model.setStrokeTotal(900)
+        try await waitForFill(model)
+        XCTAssertEqual(session.windowStrokeCount, 900)
+        XCTAssertEqual(session.filledPageCount, 5)
+
+        model.screenChanged(phoneLandscape, isPad: false)
+        XCTAssertEqual(session.pageIds.count, 9)
+        XCTAssertNotNil(model.fillProgress, "a window of another page count is filled again")
+        try await waitForFill(model)
+        XCTAssertEqual(session.filledPageCount, 9)
+        XCTAssertEqual(session.windowStrokeCount, 900)
+
+        model.setLandscapeCap(true)
+        XCTAssertEqual(session.pageIds.count, 7)
+        try await waitForFill(model)
+        XCTAssertTrue((900..<907).contains(session.windowStrokeCount), "7 × ⌈900 ÷ 7⌉ = \(session.windowStrokeCount)")
+
+        model.setLandscapeCap(false)
+        model.screenChanged(phonePortrait, isPad: false)
+        try await waitForFill(model)
+        XCTAssertEqual(session.pageIds.count, 5)
+        XCTAssertEqual(session.windowStrokeCount, 900)
+        XCTAssertEqual(model.strokeTotal, 900)
+    }
+
+    /// B4, B2 (§4.5 週と日の帯, §4.6 the widest window, §3.8): the day band on an iPhone in landscape is 15 days of
+    /// 1,000 × 8,400 lu (the 24 hours and the free memo), each its own day paper; the all-day bands are packed over the
+    /// 15 days at once, so a three-day trip has a bar on each of its days, on one lane, squared off where it goes on;
+    /// 「1 ページずつ」 shows the day as 1.2.3 does. The kind switch opens the day band on today from the week band.
+    /// Fails if the prototype had weeks only, or the bands were packed page by page.
+    func testDayBandWithItsAllDayBands() throws {
+        let start = DayKey(year: 2026, month: 11, day: 10).startOfDay()
+        let trip = LayoutEvent(id: "trip", title: "旅行", allDay: true, start: start, end: start.addingTimeInterval(3 * 86_400),
+                               colorHex: "#2563eb", calendarId: "sample")
+        let model = SpanPrototypeModel(environment: SpanPrototypeEnvironment.makeIsolated(), weekStart: .monday, now: now,
+                                       holidays: .japan, events: [trip], kind: .day)
+        defer { model.close() }
+        model.screenChanged(phoneLandscape, isPad: false)
+        let session = try XCTUnwrap(model.session)
+        XCTAssertEqual(session.plan.kind, .day)
+        XCTAssertEqual(session.pageIds.count, 15)
+        XCTAssertEqual(session.pageIds[session.focusSlot], "d-2026-11-11")
+        XCTAssertEqual(session.layout.size, CGSize(width: 15 * 1_000, height: 2_400 + 6_000))
+        for page in session.layout.pages {
+            XCTAssertTrue(page is DayPageLayout)
+            XCTAssertEqual(page.size, CGSize(width: 1_000, height: 8_400))
+        }
+        XCTAssertTrue(session.papers.allSatisfy { $0.kind == .day })
+        XCTAssertEqual(SpanPrototypeCanvas.Coordinator.overview(of: session.layout), CGSize(width: 1_000, height: 2_400))
+
+        XCTAssertEqual(session.bands.count, 15)
+        XCTAssertEqual(Set(session.bands.map(\.laneCount)), [1], "one lane count for the whole window")
+        let withBars = session.bands.indices.filter { !session.bands[$0].bars.isEmpty }
+        XCTAssertEqual(withBars.map { session.pageIds[$0] }, ["d-2026-11-10", "d-2026-11-11", "d-2026-11-12"])
+        let bars = withBars.map { session.bands[$0].bars[0] }
+        XCTAssertEqual(Set(bars.map(\.lane)), [0])
+        XCTAssertEqual(bars.map(\.continuesLeft), [false, true, true])
+        XCTAssertEqual(bars.map(\.continuesRight), [true, true, false])
+
+        let plain = try XCTUnwrap(session.plainPapers["d-2026-11-11"])
+        XCTAssertEqual(plain.kind, .day)
+        XCTAssertEqual(plain.size, CGSize(width: 1_000, height: 8_400))
+        XCTAssertNotNil(plain.allDayBand)
+
+        // From the week band: the day band opens on today (the focus week holds it), as a new session.
+        let (weeks, weekSession) = try openPrototype()
+        defer { weeks.close() }
+        weeks.setKind(.day)
+        let days = try XCTUnwrap(weeks.session)
+        XCTAssertFalse(days === weekSession)
+        XCTAssertTrue(weekSession.isClosed)
+        XCTAssertEqual(days.plan.kind, .day)
+        XCTAssertEqual(days.pageIds[days.focusSlot], "d-2026-11-11")
+        XCTAssertEqual(days.pageIds.count, 7, "the 11-inch iPad's day window in portrait")
+    }
+
+    /// B5 (B_DESIGN.md §3.6 2, §3.16 約 24 pt): in the overview a finger's sideways move starts the band only after
+    /// 24 pt; up and down starts at once (10 pt, more vertical than sideways); nothing that is not finite starts it.
+    func testOverviewPanStartsAfterTwentyFourPoints() {
+        XCTAssertEqual(SpanPrototypePalm.overviewPanStart, 24)
+        XCTAssertFalse(SpanPrototypePalm.overviewPanMayStart(translation: .zero))
+        XCTAssertFalse(SpanPrototypePalm.overviewPanMayStart(translation: CGSize(width: 12, height: 3)))
+        XCTAssertFalse(SpanPrototypePalm.overviewPanMayStart(translation: CGSize(width: -23.9, height: 0)))
+        XCTAssertTrue(SpanPrototypePalm.overviewPanMayStart(translation: CGSize(width: 24, height: 0)))
+        XCTAssertTrue(SpanPrototypePalm.overviewPanMayStart(translation: CGSize(width: -30, height: 8)))
+        XCTAssertFalse(SpanPrototypePalm.overviewPanMayStart(translation: CGSize(width: 15, height: 12)), "more sideways than up: 24 pt")
+        XCTAssertTrue(SpanPrototypePalm.overviewPanMayStart(translation: CGSize(width: 4, height: 10)), "up and down as before")
+        XCTAssertFalse(SpanPrototypePalm.overviewPanMayStart(translation: CGSize(width: CGFloat.nan, height: 0)))
+    }
+
+    /// B6 (§4.6 ずらした瞬間のメモリの山): after a swap the memory is read at every frame for a second, so its peak is
+    /// kept; a frame long after the swap is not read. Fails if only the sample right after the swap and the 0.5 s
+    /// samples counted (the peak would be 100 here).
+    func testMeterKeepsTheMemoryPeakOfTheFramesAfterASwap() {
+        let meter = SpanPrototypeMeter()
+        var readings: [UInt64] = [100_000_000, 300_000_000, 120_000_000, 999_000_000]
+        meter.readMemory = { readings.isEmpty ? nil : readings.removeFirst() }
+        meter.recordSwap(seconds: 0.05, sessionSeconds: 0.01, drift: 0, startedAt: 500)
+        meter.frame(at: 500.016)
+        meter.frame(at: 500.033)
+        meter.frame(at: 502)
+        meter.publish()
+        XCTAssertEqual(try XCTUnwrap(meter.snapshot.memoryPeakMB), 300, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(meter.snapshot.memoryMB), 120, accuracy: 0.001)
+        XCTAssertEqual(readings, [999_000_000], "the frame two seconds later read nothing")
+    }
+
+    /// ISO-4: a folder an earlier launch left (the app ended while the prototype was open) is removed when the
+    /// prototype opens; this launch's folders and anything else under the folder stay. Fails if leftovers piled up.
+    func testLeftoverFoldersOfEarlierLaunchesAreRemoved() throws {
+        let fm = FileManager.default
+        let base = fm.temporaryDirectory.appendingPathComponent("span-leftover-test-" + UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: base, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: base) }
+        let old = base.appendingPathComponent(SpanPrototypeEnvironment.folderPrefix + "0123abcd-" + UUID().uuidString.lowercased(), isDirectory: true)
+        let older = base.appendingPathComponent(SpanPrototypeEnvironment.folderPrefix + UUID().uuidString.lowercased(), isDirectory: true)
+        let other = base.appendingPathComponent("something-else", isDirectory: true)
+        for folder in [old, older, other] {
+            try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: folder.appendingPathComponent("proto-w-2026-11-09.json"))
+        }
+        let first = SpanPrototypeEnvironment.makeIsolated(base: base)
+        try first.store.save(InkPage(pageId: "proto-w-2026-11-09"))
+        XCTAssertFalse(fm.fileExists(atPath: old.path), "an earlier launch's folder is gone")
+        XCTAssertFalse(fm.fileExists(atPath: older.path), "the folder of a version before the fix is gone")
+        XCTAssertTrue(fm.fileExists(atPath: other.path))
+        let second = SpanPrototypeEnvironment.makeIsolated(base: base)
+        XCTAssertTrue(fm.fileExists(atPath: first.folder.path), "a folder of this launch stays")
+        XCTAssertTrue(first.folder.lastPathComponent.hasPrefix(SpanPrototypeEnvironment.folderPrefix + SpanPrototypeEnvironment.launch + "-"))
+        first.discard()
+        second.discard()
+        XCTAssertEqual(try fm.contentsOfDirectory(atPath: base.path), ["something-else"])
+    }
+
+    /// B3 (PLAN_WEEK_MEMO.md Q2): the third form of the memo continues the week's columns: the gutter's line, the six
+    /// lines between the days, and the tints of today (Wednesday 11/11) and the weekend (11/14, 11/15), as the paper.
+    func testWeekdaysMemoContinuesTheColumns() throws {
+        let (model, session) = try openPrototype()
+        defer { model.close() }
+        let memo = try XCTUnwrap(session.layout.pages[session.focusSlot] as? SpanPrototypeWeekMemoLayout)
+        let columns = memo.columns
+        XCTAssertEqual(columns.gutter, PaperSpec.weekGutter)
+        XCTAssertEqual(columns.lines.count, 6)
+        XCTAssertEqual(columns.lines.first ?? 0, PaperSpec.weekGutter + PaperSpec.weekColumnWidth, accuracy: 0.001)
+        XCTAssertEqual(columns.tints.map(\.today), [true, false, false])
+        XCTAssertEqual(columns.tints.map(\.x), [2, 5, 6].map { memo.week.columnFrame($0).minX })
+        XCTAssertEqual(SpanPrototypeMemoStyle.allCases, [.ruled, .grid, .weekdays])
+        XCTAssertEqual(SpanPrototypeShot.Scene.memoWeekdays.memoStyle, .weekdays)
+        XCTAssertEqual(SpanPrototypeShot.Scene.dayBoundary.kind, .day)
     }
 }
 #endif

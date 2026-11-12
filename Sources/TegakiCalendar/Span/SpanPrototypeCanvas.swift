@@ -4,6 +4,7 @@ import Layout
 import PencilKit
 import SwiftUI
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 
 // The prototype's copy of the canvas (1.3, docs/M7C_CONTRACT.md D12, §3.4, §3.6, §4.6): `InkCanvasView`
 // of 43fe366 (Ink/InkCanvasView.swift) with its types renamed, adapted to a window of joined pages.
@@ -33,7 +34,12 @@ import UIKit
 //   `SpanPlan.shiftAmount` so nothing on screen moves; a release snaps or flings by `SpanPlan.flingTarget`;
 //   ◀ ▶ slide exactly one page (`pageStepTrigger`); a 0.5 s watch catches a stop no delegate call told of;
 // - §3.6 the palm: the scroll view's pan does not begin while a Pencil touches the paper or within 0.5 s
-//   after it lifted (`SpanPrototypePalm.horizontalPanMayBegin`), sideways or up and down.
+//   after it lifted (`SpanPrototypePalm.horizontalPanMayBegin`), sideways or up and down; in the overview one
+//   finger has to move about 24 pt sideways before the band moves (`SpanPrototypePalm.overviewPanMayStart`,
+//   `SpanPrototypeOverviewGate`; B_DESIGN.md §3.6 2, §3.16);
+// - §3.6 回転・Split View: a window the owner composes again outside a shift (a rotation, 「上限あり」) waits while
+//   this canvas may hold a change the inbox has not got (`holdsRebuild`), and is taken when it is free, in the
+//   same turn as it is composed (`takeRebuild`), so a stroke written meanwhile is in it (review ISO-3).
 
 /// The paper + ink surface of a window of joined pages for SwiftUI (the prototype's copy of
 /// `InkCanvasView`; M3A_CONTRACT.md §2.2, M3B_CONTRACT.md §3.3, DESIGN.md §3.2). One instance shows one
@@ -256,6 +262,11 @@ struct SpanPrototypeCanvas: UIViewRepresentable {
     var onShift: (_ index: Int) -> SpanPrototypeWindowState? = { _ in nil }
     /// A finger began to drag the band (the guide card goes away). Delivered on the next main-actor turn.
     var onDragBegin: () -> Void = {}
+    /// The owner has a window to compose again outside a shift waiting for this canvas (`inbox.rebuildWaiting`):
+    /// called when the canvas holds nothing back, with the page under the middle of the screen (the focus to keep);
+    /// the owner composes it and hands it back (nil: nothing was composed). Called synchronously; the canvas takes
+    /// the answer in the same turn, as a shift's.
+    var onRebuild: (_ focusIndex: Int) -> SpanPrototypeWindowState? = { _ in nil }
     /// The watch's sleep (§3.6, §3.16: 0.5 s; the tests may pass their own).
     var watchSleep: @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
     /// Where the canvas's measurements go (§4.6 測ること: the window swaps, the main thread's work when the pen
@@ -315,6 +326,76 @@ enum SpanPrototypePalm {
         guard let up = lastPencilUp else { return true }
         let elapsed = now.timeIntervalSince(up)
         return !(elapsed >= 0 && elapsed < hold)
+    }
+
+    /// B_DESIGN.md §3.6 2, §3.16 (約 24 pt, the prototype may change it): in the overview a finger must move this far
+    /// sideways (pt) before the band moves; a smaller drift does not move it at all.
+    static let overviewPanStart: CGFloat = 24
+    /// Up and down stays as it is (§3.6: 縦は今どおり): a finger that has moved this far (pt), more up or down than
+    /// sideways, lets the pan begin at once.
+    static let verticalPanStart: CGFloat = 10
+
+    /// In the overview: may the pan begin after the finger moved `translation` (pt) from where it touched? true once
+    /// it moved `overviewPanStart` sideways, or `verticalPanStart` more up or down than sideways; false before. Not
+    /// finite: false.
+    static func overviewPanMayStart(translation: CGSize) -> Bool {
+        let dx = abs(translation.width)
+        let dy = abs(translation.height)
+        guard dx.isFinite, dy.isFinite else { return false }
+        if dy >= verticalPanStart, dy > dx { return true }
+        return dx >= overviewPanStart
+    }
+}
+
+/// The overview's start of a sideways pan (§3.6, `SpanPrototypePalm.overviewPanMayStart`): a recogniser on the
+/// container that the canvas's pan waits for (`require(toFail:)`). It never recognises: it fails at once unless
+/// `holds` (the overview, one finger), and otherwise fails as soon as the finger moved far enough, or lifts, so
+/// the pan begins only then. Fingers only (the Pencil never pans the paper).
+@MainActor
+final class SpanPrototypeOverviewGate: UIGestureRecognizer {
+    /// Asked when the first finger comes down: true holds the pan back (the band is at the overview's zoom).
+    var holds: () -> Bool = { false }
+    private var start: CGPoint?
+
+    override init(target: Any?, action: Selector?) {
+        super.init(target: target, action: action)
+        allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+        delaysTouchesEnded = false
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesBegan(touches, with: event)
+        guard state == .possible else { return }
+        guard start == nil, numberOfTouches == 1, holds(), let touch = touches.first else {
+            state = .failed
+            return
+        }
+        start = touch.location(in: view)
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesMoved(touches, with: event)
+        guard state == .possible, let start, let point = touches.first?.location(in: view) else { return }
+        if SpanPrototypePalm.overviewPanMayStart(translation: CGSize(width: point.x - start.x, height: point.y - start.y)) {
+            state = .failed
+        }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesEnded(touches, with: event)
+        if state == .possible { state = .failed }
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesCancelled(touches, with: event)
+        if state == .possible { state = .failed }
+    }
+
+    override func reset() {
+        super.reset()
+        start = nil
     }
 }
 
@@ -415,7 +496,8 @@ final class SpanPrototypeContainerView: UIView {
             guard let memo = (page as? SpanPrototypeWeekMemoLayout)?.memo else { return .zero }
             return memo.offsetBy(dx: layout.origin(ofSlot: slot), dy: 0)
         }
-        memoView.show(rects: rects, zoom: zoom, offset: offset, style: style)
+        let columns = style == .weekdays ? layout.pages.map { ($0 as? SpanPrototypeWeekMemoLayout)?.columns } : []
+        memoView.show(rects: rects, columns: columns, zoom: zoom, offset: offset, style: style)
     }
 
     override func layoutSubviews() {
@@ -503,6 +585,12 @@ extension SpanPrototypeCanvas {
         /// 1.1 fix (TestFlight build 12; docs/M7A.md ずれ 46): the touches on the paper as they come down
         /// and lift (`touchObserved`), on the container. Always on; it never recognises, never delays
         /// or cancels a touch and runs alongside every recogniser (`InkTouchObserver`).
+        /// §3.6: the overview's start of a sideways pan (`SpanPrototypeOverviewGate`), on the container.
+        private(set) lazy var overviewGate: SpanPrototypeOverviewGate = {
+            let r = SpanPrototypeOverviewGate(target: nil, action: nil)
+            r.holds = { [weak self] in self?.isAtOverview ?? false }
+            return r
+        }()
         private(set) lazy var touchObserver: InkTouchObserver = {
             let r = InkTouchObserver(target: nil, action: nil)
             r.delegate = self
@@ -821,9 +909,12 @@ extension SpanPrototypeCanvas {
             pencilOverlayRecognizer.overlay = container.overlayView
             container.addGestureRecognizer(pencilOverlayRecognizer)
             container.addGestureRecognizer(touchObserver)
-            // §3.6 the palm: the scroll pan asks the rule before it begins.
+            // §3.6 the palm: the scroll pan asks the rule before it begins; in the overview it waits for the gate.
             container.canvasView.panMayBegin = { [weak self] in self?.panMayBegin() ?? true }
+            container.addGestureRecognizer(overviewGate)
+            canvas.panGestureRecognizer.require(toFail: overviewGate)
             syncRecognizers()
+            bindInbox()
 
             let overlay = container.overlayView
             overlay.delegate = self
@@ -941,6 +1032,8 @@ extension SpanPrototypeCanvas {
             watchGeneration += 1
             watchRunning = false
             slideTargetX = nil
+            // §3.6: a rebuild waiting for this canvas goes ahead without it.
+            appliedInbox.canvasLeft(self)
             container?.canvasView.panMayBegin = nil
             overlay?.delegate = nil
             canvas?.delegate = nil
@@ -1028,7 +1121,11 @@ extension SpanPrototypeCanvas {
                 appliedWindow = newParent.window
                 appliedWindowVersion = newParent.windowVersion
                 appliedEpoch = newParent.epoch
-                appliedInbox = newParent.inbox
+                if newParent.inbox !== appliedInbox {
+                    appliedInbox.canvasLeft(self)
+                    appliedInbox = newParent.inbox
+                    bindInbox()
+                }
                 publishDeltas() // the new window as the safety net's source
                 pendingDrawing = true
                 pendingWindow = false
@@ -1699,8 +1796,12 @@ extension SpanPrototypeCanvas {
             return selectedIds.isEmpty && !parent.isSheetOpen
         }
 
-        /// Shifts when at rest with the focus away from the window's middle page.
+        /// Takes a rebuild that waited for this canvas once it holds nothing back (`takeRebuild`); shifts when at rest
+        /// with the focus away from the window's middle page.
         private func shiftIfAtRest() {
+            if appliedInbox.rebuildWaiting {
+                takeRebuild()
+            }
             guard isAtRest, !appliedLayout.pages.isEmpty else { return }
             let middle = appliedLayout.firstIndex + appliedLayout.pages.count / 2
             guard focusIndex != middle else { return }
@@ -1732,6 +1833,19 @@ extension SpanPrototypeCanvas {
                 return
             }
             let composed = CACurrentMediaTime()
+            take(state)
+            shiftCount += 1
+            let record = ShiftRecord(seconds: CACurrentMediaTime() - started, sessionSeconds: composed - started,
+                                     drift: screenX(ofPage: index) - before, zoom: canvas.zoomScale)
+            lastShift = record
+            parent.meter?.recordSwap(seconds: record.seconds, sessionSeconds: record.sessionSeconds, drift: record.drift, startedAt: started)
+            probeNote("Z\(state.layout.firstIndex - oldFirst)")
+        }
+
+        /// A window the owner composed for this canvas (a shift's, or a rebuild's that waited for it), taken in the
+        /// same turn: `adoptWindow` through `applyPending` (the history pruned, the ledger reloaded, the drawing
+        /// rebuilt, x moved back by the pages that came in on the left), nothing compared meanwhile (`isShifting`).
+        private func take(_ state: SpanPrototypeWindowState) {
             isShifting = true
             parent.window = state.window
             parent.layout = state.layout
@@ -1741,12 +1855,45 @@ extension SpanPrototypeCanvas {
             applyPending()
             isShifting = false
             updateFocus()
-            shiftCount += 1
-            let record = ShiftRecord(seconds: CACurrentMediaTime() - started, sessionSeconds: composed - started,
-                                     drift: screenX(ofPage: index) - before, zoom: canvas.zoomScale)
-            lastShift = record
-            parent.meter?.recordSwap(seconds: record.seconds, sessionSeconds: record.sessionSeconds, drift: record.drift, startedAt: started)
-            probeNote("Z\(state.layout.firstIndex - oldFirst)")
+        }
+
+        // MARK: A rebuild that waits for the canvas (§3.6 回転・Split View; review ISO-3)
+
+        /// The canvas may hold a change the inbox has not got, or is taking a window: the pen or a writing finger
+        /// is on the paper or its settle wait runs, a lasso move or a pinch is under way, a window is being taken or
+        /// waits to be. A window composed now would lack what comes of it.
+        var holdsRebuild: Bool {
+            isUsingTool || isSettling || touchingPaper || isMovingSelection || isLive || isShifting || resetScroll || pendingWindow
+        }
+
+        /// Rebuilds taken (`takeRebuild`).
+        private(set) var rebuildCount = 0
+
+        /// Tells the inbox (the session's) when this canvas holds a rebuild back, and how to call it back.
+        private func bindInbox() {
+            appliedInbox.bindCanvas(self, busy: { [weak self] in self?.holdsRebuild ?? false }, onRebuildWaiting: { [weak self] in
+                self?.requestShiftCheck()
+                self?.noteActivity()
+            })
+        }
+
+        /// The owner's rebuild that waited: what the ledger did last goes out, the owner composes the window
+        /// around the focus (`onRebuild`, which empties the inbox first), the canvas takes it in the same turn.
+        private func takeRebuild() {
+            guard container != nil, !holdsRebuild else { return }
+            publishDeltas()
+            guard let state = parent.onRebuild(focusIndex) else { return }
+            take(state)
+            rebuildCount += 1
+            probeNote("Y")
+        }
+
+        /// The band is at the overview's zoom (the lowest, or the opening zoom where the two differ; 「上限あり」's
+        /// raised one included): the zoom a page is seen whole at, where the 24 pt start applies (§3.6).
+        private var isAtOverview: Bool {
+            guard let canvas, hasInitialZoom else { return false }
+            let overview = max(canvas.minimumZoomScale, lastBounds?.open ?? canvas.minimumZoomScale)
+            return canvas.zoomScale <= overview + 0.0005
         }
 
         /// The last shift: how long it took (s; the owner's part, the session's saving, reading and composing,

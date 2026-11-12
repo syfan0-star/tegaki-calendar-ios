@@ -36,8 +36,10 @@ enum SpanPrototypeMemory {
 
 /// The measurements of one opening of the prototype (§4.6 測ること). The canvas and the session report what
 /// they timed or counted; the meter keeps the last value and the largest since the last `reset()` (a new
-/// 「線の数」 or week start), samples the memory every `refresh` seconds and right after a swap, and watches
-/// the display's frames for `frameWindow` seconds after each swap. The HUD reads `snapshot`, published at most
+/// 「線の数」 or week start), samples the memory every `refresh` seconds, right after a swap and at every frame of
+/// the display for `frameWindow` seconds after it (the peak of a swap: the old and the new drawing side by side
+/// for a moment, PencilKit drawing its tiles in the frames after; review B6), and watches the display's frames
+/// for the same second. The HUD reads `snapshot`, published at most
 /// every `refresh` seconds and never from inside the canvas's work (a SwiftUI update may be running then).
 @MainActor
 final class SpanPrototypeMeter: ObservableObject {
@@ -88,6 +90,8 @@ final class SpanPrototypeMeter: ObservableObject {
     private var generation = 0
     private var displayLink: CADisplayLink?
     private var lastFrame: CFTimeInterval?
+    /// Reads the process's memory (bytes); the tests put their own numbers in.
+    var readMemory: () -> UInt64? = { SpanPrototypeMemory.footprint() }
     /// When the last swap began (the frames after it are watched for `frameWindow`).
     private var swapStartedAt: CFTimeInterval?
 
@@ -196,16 +200,18 @@ final class SpanPrototypeMeter: ObservableObject {
     }
 
     /// A frame of the display at `timestamp` (`CADisplayLink.timestamp`, the clock of `CACurrentMediaTime`).
+    /// In the second after a swap the frame's interval is kept and the memory is sampled (its peak).
     func frame(at timestamp: CFTimeInterval) {
         defer { lastFrame = timestamp }
-        guard let last = lastFrame, let started = swapStartedAt, timestamp > started,
-              timestamp - started <= Self.frameWindow else { return }
+        guard let started = swapStartedAt, timestamp > started, timestamp - started <= Self.frameWindow else { return }
+        sampleMemory()
+        guard let last = lastFrame else { return }
         let gap = (timestamp - last) * 1000
         live.frameGapMs = max(live.frameGapMs ?? 0, gap)
     }
 
     private func sampleMemory() {
-        guard let bytes = SpanPrototypeMemory.footprint() else { return }
+        guard let bytes = readMemory() else { return }
         let mb = Double(bytes) / 1_000_000
         live.memoryMB = mb
         live.memoryPeakMB = max(live.memoryPeakMB ?? 0, mb)
@@ -262,21 +268,36 @@ final class SpanPrototypeFrameTarget: NSObject {
 // MARK: - HUD
 
 /// The measurements in a corner of the band (§4.6: 数を画面の隅に出す): small white text on a dark plate.
-/// Touches go through it to the paper.
+/// Touches go through it to the paper. Where the height is compact (an iPhone in landscape, whose band is about
+/// 213 pt tall) the lines stand in two columns in a smaller type, so the plate keeps to the bottom of the band
+/// (about 70 pt) and 「今のまま」 and 「上限あり」 can be compared above it (review B8).
 struct SpanPrototypeHUD: View {
     @ObservedObject var meter: SpanPrototypeMeter
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    /// Two columns in a compact height.
+    static func columns(_ lines: [String], compact: Bool) -> [[String]] {
+        guard compact, lines.count > 1 else { return [lines] }
+        let half = (lines.count + 1) / 2
+        return [Array(lines[..<half]), Array(lines[half...])]
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            ForEach(Array(SpanPrototypeMeter.lines(meter.snapshot).enumerated()), id: \.offset) { item in
-                Text(item.element)
+        let compact = verticalSizeClass == .compact
+        HStack(alignment: .top, spacing: 10) {
+            ForEach(Array(Self.columns(SpanPrototypeMeter.lines(meter.snapshot), compact: compact).enumerated()), id: \.offset) { column in
+                VStack(alignment: .leading, spacing: compact ? 0 : 1) {
+                    ForEach(Array(column.element.enumerated()), id: \.offset) { item in
+                        Text(item.element)
+                    }
+                }
             }
         }
-        .font(.caption2.monospacedDigit())
+        .font(compact ? .system(size: 9).monospacedDigit() : .caption2.monospacedDigit())
         .foregroundStyle(.white)
-        .padding(6)
+        .padding(compact ? 4 : 6)
         .background(Color.black.opacity(0.62), in: RoundedRectangle(cornerRadius: 6))
-        .padding(8)
+        .padding(compact ? 4 : 8)
         .allowsHitTesting(false)
     }
 }
@@ -301,17 +322,23 @@ enum SpanPrototypeSynthetic {
         id.hasPrefix(idPrefix)
     }
 
-    /// `count` strokes for page `pageId` in its `grid` cell (cell-relative lu, the week's 1400 × 1920), ids
-    /// "syn-<tag>-<n>", times one apart from a fixed date (each stroke's PencilKit fingerprint differs).
-    static func strokes(pageId: String, count: Int, tag: Int) -> [InkStroke] {
+    /// Where a synthetic stroke starts in the `grid` cell of a page of `kind` (cell-relative lu): the week's
+    /// 1400 × 1920 or the day's 1000 × 2400, a margin left round (a stroke is at most 56 lu wide).
+    static func area(_ kind: PageKind) -> CGRect {
+        kind == .day ? CGRect(x: 80, y: 20, width: 860, height: 2_360) : CGRect(x: 80, y: 20, width: 1_260, height: 1_860)
+    }
+
+    /// `count` strokes for page `pageId` in its `grid` cell (cell-relative lu, starting in `area`: the week's by
+    /// default), ids "syn-<tag>-<n>", times one apart from a fixed date (each stroke's PencilKit fingerprint differs).
+    static func strokes(pageId: String, count: Int, tag: Int, area: CGRect = area(.week)) -> [InkStroke] {
         guard count > 0 else { return [] }
         var random = Random(seed: seed(of: pageId) ^ UInt64(truncatingIfNeeded: tag))
         let base = 1_790_000_000_000 + Int(seed(of: pageId) % 1_000_000) * 1_000
         var out: [InkStroke] = []
         out.reserveCapacity(count)
         for n in 0..<count {
-            let x0 = 80 + random.unit() * 1_260
-            let y0 = 20 + random.unit() * 1_860
+            let x0 = Double(area.minX) + random.unit() * Double(area.width)
+            let y0 = Double(area.minY) + random.unit() * Double(area.height)
             let width = 16 + random.unit() * 40
             let amplitude = 3 + random.unit() * 9
             let waves = 1 + Double(random.below(3))

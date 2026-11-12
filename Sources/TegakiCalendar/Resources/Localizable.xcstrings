@@ -14845,6 +14845,30 @@
         }
       }
     },
+    "prototype.span.guide.day.finger" : {
+      "comment" : "試作の初めての案内の札（見本、日の帯）。docs/M7C_CONTRACT.md §8.1 の N-7（日・「指でも書く」オン）の固定の文と同じ。本物の札のキーは役 U の持ち物で、これは試作のビルド（SPAN_PROTOTYPE）だけの写し。ja だけのキーで訳さない（D12）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        }
+      }
+    },
+    "prototype.span.guide.day.pencil" : {
+      "comment" : "試作の初めての案内の札（見本、日の帯）。docs/M7C_CONTRACT.md §8.1 の N-6（日・「指でも書く」オフ）の固定の文と同じ。本物の札のキーは役 U の持ち物で、これは試作のビルド（SPAN_PROTOTYPE）だけの写し。ja だけのキーで訳さない（D12）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        }
+      }
+    },
     "prototype.span.guide.show" : {
       "comment" : "試作の設定のメニューのボタン。初めての案内の札（見本、§3.14、§8.1 N-4・N-5）をもう一度出す。試作のビルドだけ。ja だけのキー（D12）",
       "extractionState" : "manual",
@@ -15081,6 +15105,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "週のメモの形"
+          }
+        }
+      }
+    },
+    "prototype.span.memo.weekdays" : {
+      "comment" : "「週のメモの形」の選択肢。罫線に、曜日の区切り線と今日・土日の色（薄く）を 24 時より下まで続けた形（PLAN_WEEK_MEMO.md の Q2 のもう一方の案。見本の比べ）。試作のビルドだけ。ja だけのキー（D12）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "曜日の区切りと色を下まで"
           }
         }
       }

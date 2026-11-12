@@ -40,9 +40,20 @@ enum SpanPrototypeShot {
         case memoRuled = "memo-ruled"
         /// The same with the square grid.
         case memoGrid = "memo-grid"
+        /// The same with PLAN_WEEK_MEMO.md Q2's second form: the weekday dividers and today's and the weekend's tints
+        /// running on down (review B3).
+        case memoWeekdays = "memo-weekdays"
+        /// The day band (§4.5: 週と日の帯で、境目を真ん中にした写真; review B4): today and tomorrow, the boundary in the
+        /// middle, the sample strokes crossing it (an iPhone in landscape: twice the opening zoom, 7:00 at the top).
+        case dayBoundary = "day-boundary"
 
         var weekStart: WeekStart {
             self == .sunday ? .sunday : .monday
+        }
+
+        /// The band's pages: days in the day scene, weeks in the others.
+        var kind: PageKind {
+            self == .dayBoundary ? .day : .week
         }
 
         /// The band opens with the boundary (this week's right edge) in the middle; false: this week's middle.
@@ -64,7 +75,11 @@ enum SpanPrototypeShot {
         }
 
         var memoStyle: SpanPrototypeMemoStyle {
-            self == .memoGrid ? .grid : .ruled
+            switch self {
+            case .memoGrid: return .grid
+            case .memoWeekdays: return .weekdays
+            default: return .ruled
+            }
         }
 
         var showsGuide: Bool {
@@ -75,13 +90,16 @@ enum SpanPrototypeShot {
         /// (nil: the top of the paper) for the window of `plan`.
         func opening(for plan: SpanPlan) -> (zoomRatio: CGFloat, topY: CGFloat?) {
             switch self {
-            case .memoRuled, .memoGrid:
+            case .memoRuled, .memoGrid, .memoWeekdays:
                 // 18:00: the last six hours of the grid and the memo under them.
                 return (1, SpanPrototypeShot.memoTopY)
             case .boundary where plan.deviceClass == .iPhone && plan.orientation == .landscape:
                 // At the lowest zoom an iPhone in landscape shows about six weeks (the landscape scenes); here
                 // the crossing strokes are shown twice as large, from 7:00.
                 return (2, 7 * PaperSpec.weekHourHeight)
+            case .dayBoundary where plan.deviceClass == .iPhone && plan.orientation == .landscape:
+                // About ten days at the lowest zoom: the crossing strokes twice as large, from 7:00.
+                return (2, 7 * PaperSpec.dayHourHeight)
             default:
                 return (1, nil)
             }
@@ -125,8 +143,9 @@ enum SpanPrototypeShot {
 
     // MARK: The sample strokes
 
-    /// One sample stroke, in the band lu of this week and the next (this week's origin 0, the boundary at
-    /// `SpanPlan.pageWidth`); y is the cell's (`grid`: 0 = 0:00, 80 lu an hour; `extra`: 0 = 24:00, the memo).
+    /// One sample stroke, in the band lu of this page and the next (this page's origin 0, the boundary at
+    /// `SpanPlan.pageWidth`); y is the cell's (`grid`: 0 = 0:00, 80 lu an hour on a week and 100 on a day; `extra`:
+    /// 0 = 24:00, the week's memo or the day's free memo).
     struct Sample {
         let id: String
         let cell: CellKey
@@ -174,6 +193,41 @@ enum SpanPrototypeShot {
         ]
     }()
 
+    /// The samples of the day band: today and tomorrow (the boundary at 1,000 lu, the timeline of each day x 72…660
+    /// and its memo column 660…1000): an arrow at 14:00 from today's memo column into tomorrow's timeline (its shaft
+    /// held by today, its head by tomorrow), a line from today's last evening to tomorrow's first morning (held by
+    /// tomorrow), a loop around the boundary at 9:00 (today), one short line in each day, and in the free memo below
+    /// 24:00 two lines across the boundary (one held by each day) and one line inside each day.
+    static let daySamples: [Sample] = {
+        let hour = PaperSpec.dayHourHeight
+        let w = PaperSpec.dayWidth
+        let black = "#1f2937", blue = "#2563eb", red = "#dc2626"
+        return [
+            Sample(id: "sample-day-arrow", cell: .grid, color: black, nib: 7,
+                   points: wave(from: CGPoint(x: w - 230, y: 14 * hour + 10), to: CGPoint(x: w + 200, y: 14 * hour - 10), count: 44, amplitude: 7)),
+            Sample(id: "sample-day-arrow-head-1", cell: .grid, color: black, nib: 7,
+                   points: line(from: CGPoint(x: w + 166, y: 14 * hour - 38), to: CGPoint(x: w + 202, y: 14 * hour - 10), count: 8)),
+            Sample(id: "sample-day-arrow-head-2", cell: .grid, color: black, nib: 7,
+                   points: line(from: CGPoint(x: w + 202, y: 14 * hour - 10), to: CGPoint(x: w + 168, y: 14 * hour + 20), count: 8)),
+            Sample(id: "sample-day-night", cell: .grid, color: blue, nib: 7,
+                   points: night(from: CGPoint(x: w - 120, y: 21 * hour + 10), to: CGPoint(x: w + 230, y: 3 * hour + 20), count: 48)),
+            Sample(id: "sample-day-loop", cell: .grid, color: red, nib: 6,
+                   points: loop(center: CGPoint(x: w - 8, y: 9 * hour + 20), radii: CGSize(width: 90, height: 50), count: 56)),
+            Sample(id: "sample-day-note-left", cell: .grid, color: black, nib: 6,
+                   points: wave(from: CGPoint(x: 200, y: 11 * hour), to: CGPoint(x: 420, y: 11 * hour), count: 24, amplitude: 6)),
+            Sample(id: "sample-day-note-right", cell: .grid, color: black, nib: 6,
+                   points: wave(from: CGPoint(x: w + 200, y: 18 * hour), to: CGPoint(x: w + 420, y: 18 * hour), count: 24, amplitude: 6)),
+            Sample(id: "sample-day-memo-1", cell: .extra, color: black, nib: 7,
+                   points: wave(from: CGPoint(x: w - 260, y: 160), to: CGPoint(x: w + 220, y: 170), count: 56, amplitude: 7)),
+            Sample(id: "sample-day-memo-2", cell: .extra, color: blue, nib: 7,
+                   points: wave(from: CGPoint(x: w - 160, y: 330), to: CGPoint(x: w + 340, y: 320), count: 58, amplitude: 7)),
+            Sample(id: "sample-day-memo-left", cell: .extra, color: black, nib: 6,
+                   points: wave(from: CGPoint(x: 160, y: 240), to: CGPoint(x: 520, y: 240), count: 40, amplitude: 6)),
+            Sample(id: "sample-day-memo-right", cell: .extra, color: black, nib: 6,
+                   points: wave(from: CGPoint(x: w + 420, y: 170), to: CGPoint(x: w + 820, y: 170), count: 44, amplitude: 6)),
+        ]
+    }()
+
     /// 0 when the centre x of the points' box is left of the boundary at `width`, else 1 (D15, half open).
     static func ownerSlot(of sample: Sample, width: CGFloat = PaperSpec.weekWidth) -> Int {
         let xs = sample.points.map(\.x)
@@ -182,15 +236,15 @@ enum SpanPrototypeShot {
     }
 
     /// Writes the samples into the prototype's own store as the "proto-" pages of this week (the week of `today`)
-    /// and the next, through the prototype's guard (§4.6 (a)), before a session reads them. The screenshot scenes
-    /// only; a page the guard does not pass is left out (and logged).
+    /// and the next — or, for the day band, of today and tomorrow — through the prototype's guard (§4.6 (a)), before
+    /// a session reads them. The screenshot scenes only; a page the guard does not pass is left out (and logged).
     @MainActor
-    static func seed(_ environment: SpanPrototypeEnvironment, weekStart: WeekStart, today: DayKey) {
-        let plan = SpanPlan(kind: .week, weekStart: weekStart, deviceClass: .iPad11, orientation: .portrait)
+    static func seed(_ environment: SpanPrototypeEnvironment, kind: PageKind = .week, weekStart: WeekStart, today: DayKey) {
+        let plan = SpanPlan(kind: kind == .day ? .day : .week, weekStart: weekStart, deviceClass: .iPad11, orientation: .portrait)
         let left = plan.index(containing: today)
         var pages = [plan.pageId(at: left), plan.pageId(at: left + 1)].map { InkPage.empty(pageId: SpanPrototypeSession.fileId($0)) }
         var ids: [Set<String>] = [[], []]
-        for (n, sample) in samples.enumerated() {
+        for (n, sample) in (plan.kind == .day ? daySamples : samples).enumerated() {
             let slot = ownerSlot(of: sample, width: plan.pageWidth)
             let dx = CGFloat(slot) * plan.pageWidth
             let points = sample.points.enumerated().map { index, point in

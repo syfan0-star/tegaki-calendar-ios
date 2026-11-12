@@ -1706,7 +1706,7 @@ jobs:
   # app — into a DerivedData of their own (build/ProtoData). On a 13-inch iPad, PrototypeIsolationTests (§4.6: the
   # prototype leaves the real ink folder byte for byte, never calls the shared engine's save or page fetch, leaves
   # its onRemoteUpdate alone, and its guard refuses real ids) and SpanPrototypeInteractionTests (the band's moves)
-  # run; the job fails unless at least 4 and 12 of them passed and none failed, so an empty run (the classes compiled
+  # run; the job fails unless at least 4 and 19 of them passed and none failed, so an empty run (the classes compiled
   # without the condition hold no tests) fails too. Then the sample images of §4.5 are taken from the prototype
   # screen ("--screenshot-prototype <scene>", Sources/TegakiCalendar/Span/SpanPrototypeShots.swift: screenshot mode
   # opens 設定 › 情報 and the prototype's row there opens the scene) on four devices, portrait (iPadOS ignores the
@@ -1717,6 +1717,8 @@ jobs:
   # themselves 2 s), the photos 24.8 (the 13-inch iPad, already booted, 3.1; the iPad Air 11-inch 8.9 for 8 photos; the
   # iPad mini 6.1; the iPhone 6.8 for 7), the upload 10.2 (4.4 MB; unusually slow, the first job's takes seconds). The
   # photo step stops after 40 and the job after 60: room for a boot of 4 min more on each device or a slow upload.
+  # Since the review's fixes (2026-11-12): 23 photos (the day band, §4.5, on every device; the memo's third form,
+  # PLAN_WEEK_MEMO.md Q2) and 23 tests (two wait for the pen's settle and for 「線の数」, a few seconds): about 2 min more.
   span-shots:
     name: span-shots (1.3 prototype)
     runs-on: macos-26
@@ -1794,7 +1796,7 @@ jobs:
       # The tests of the prototype on a 13-inch iPad (the newest runtime). Counted from the log, one line per
       # test case ("Test Case '-[TegakiCalendarTests.<class> <test>]' passed|failed|skipped", or the parallel
       # form), and compared with the result bundle's summary when xcresulttool can read it.
-      - name: Prototype tests (PrototypeIsolationTests 4+, SpanPrototypeInteractionTests 12+, 0 failures)
+      - name: Prototype tests (PrototypeIsolationTests 4+, SpanPrototypeInteractionTests 19+, 0 failures)
         id: prototests
         timeout-minutes: 20
         run: |
@@ -1861,7 +1863,7 @@ jobs:
               results[(m.group("cls"), m.group("name"))] = m.group("result")
           def count(cls, result):
               return sum(1 for (c, _), r in results.items() if c == cls and r == result)
-          need = {"PrototypeIsolationTests": 4, "SpanPrototypeInteractionTests": 12}
+          need = {"PrototypeIsolationTests": 4, "SpanPrototypeInteractionTests": 19}
           problems = []
           status = int(os.environ.get("XCODEBUILD_STATUS", "1"))
           if status != 0:
@@ -1915,10 +1917,10 @@ jobs:
           if [ -z "$APP" ]; then echo "::error::TegakiCalendar.app not found under build/ProtoData."; exit 1; fi
           xcodebuild -version > "$OUT/env.txt" || true
           # device-id | exact first choice | prefix fallbacks | portrait scenes | landscape scenes
-          for SPEC in "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13|boundary|" \
-                      "ipad11|iPad Air 11-inch (M4)|iPad Air 11,iPad Pro 11|boundary sunday overview single-page single-page-next guide memo-ruled memo-grid|" \
-                      "ipadmini|iPad mini (A17 Pro)|iPad mini|boundary|" \
-                      "iphone|iPhone 17|iPhone 17,iPhone|boundary overview single-page guide|boundary landscape-now landscape-cap"; do
+          for SPEC in "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13|boundary day-boundary|" \
+                      "ipad11|iPad Air 11-inch (M4)|iPad Air 11,iPad Pro 11|boundary day-boundary sunday overview single-page single-page-next guide memo-ruled memo-grid memo-weekdays|" \
+                      "ipadmini|iPad mini (A17 Pro)|iPad mini|boundary day-boundary|" \
+                      "iphone|iPhone 17|iPhone 17,iPhone|boundary day-boundary overview single-page guide|boundary day-boundary landscape-now landscape-cap"; do
             ID="${SPEC%%|*}"; REST="${SPEC#*|}"
             EXACT="${REST%%|*}"; REST="${REST#*|}"
             PREFIXES="${REST%%|*}"; REST="${REST#*|}"
@@ -1995,12 +1997,14 @@ jobs:
           done
           ls -la "$OUT"
           MISSING=0
-          for FILE in ipad13-portrait-boundary \
-                      ipad11-portrait-boundary ipad11-portrait-sunday ipad11-portrait-overview ipad11-portrait-single-page \
-                      ipad11-portrait-single-page-next ipad11-portrait-guide ipad11-portrait-memo-ruled ipad11-portrait-memo-grid \
-                      ipadmini-portrait-boundary \
-                      iphone-portrait-boundary iphone-portrait-overview iphone-portrait-single-page iphone-portrait-guide \
-                      iphone-landscape-boundary iphone-landscape-landscape-now iphone-landscape-landscape-cap; do
+          for FILE in ipad13-portrait-boundary ipad13-portrait-day-boundary \
+                      ipad11-portrait-boundary ipad11-portrait-day-boundary ipad11-portrait-sunday ipad11-portrait-overview \
+                      ipad11-portrait-single-page ipad11-portrait-single-page-next ipad11-portrait-guide \
+                      ipad11-portrait-memo-ruled ipad11-portrait-memo-grid ipad11-portrait-memo-weekdays \
+                      ipadmini-portrait-boundary ipadmini-portrait-day-boundary \
+                      iphone-portrait-boundary iphone-portrait-day-boundary iphone-portrait-overview iphone-portrait-single-page \
+                      iphone-portrait-guide \
+                      iphone-landscape-boundary iphone-landscape-day-boundary iphone-landscape-landscape-now iphone-landscape-landscape-cap; do
             if [ ! -s "$OUT/$FILE.png" ]; then echo "::error::$FILE.png is missing."; MISSING=1; fi
           done
           exit "$MISSING"

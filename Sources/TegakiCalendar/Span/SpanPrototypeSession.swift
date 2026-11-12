@@ -38,6 +38,41 @@ final class SpanPrototypeInbox {
     var onArrival: (() -> Void)?
     private var arrivalScheduled = false
 
+    // A window composed again outside a shift (a rotation, 「上限あり」, 「1 ページずつ」) waits for the canvas (§3.6:
+    // 回転・Split View では、止まったときに窓を決め直す; review ISO-3): composed while a stroke is still under the pen,
+    // the window would lack it, and the canvas, taking that window after the pen lifts, would draw the page without
+    // it (its ↶ step doing nothing), or lose it when its page left the window.
+    /// Set by the canvas that hands its deltas here: true while it may still have a change the inbox has not got
+    /// (the pen or a writing finger on the paper, its settle wait, a lasso move, a pinch, a window being taken).
+    /// nil: no canvas.
+    var canvasBusy: (() -> Bool)?
+    /// Set by the canvas: a rebuild is waiting for it (it looks again when it is free).
+    var onRebuildWaiting: (() -> Void)?
+    /// Set by the owner: the canvas went away while a rebuild was waiting (called on the next turn).
+    var onCanvasLeft: (() -> Void)?
+    /// The owner has a rebuild waiting for the canvas (`SpanPrototypeModel`).
+    var rebuildWaiting = false
+    /// The canvas whose hooks these are (a canvas made anew for the same session binds before the old one may let go).
+    private var canvasOwner: ObjectIdentifier?
+
+    /// A canvas hands its hooks to this inbox (`canvasBusy`, `onRebuildWaiting`); the last one to bind owns them.
+    func bindCanvas(_ owner: AnyObject, busy: @escaping () -> Bool, onRebuildWaiting: @escaping () -> Void) {
+        canvasOwner = ObjectIdentifier(owner)
+        canvasBusy = busy
+        self.onRebuildWaiting = onRebuildWaiting
+    }
+
+    /// The canvas `owner` lets go of this inbox: its hooks are removed (not another canvas's), and a rebuild that
+    /// waited for it goes ahead on the next turn.
+    func canvasLeft(_ owner: AnyObject) {
+        guard canvasOwner == ObjectIdentifier(owner) else { return }
+        canvasOwner = nil
+        canvasBusy = nil
+        onRebuildWaiting = nil
+        guard rebuildWaiting, let hook = onCanvasLeft else { return }
+        Task { @MainActor in hook() }
+    }
+
     var isEmpty: Bool { deltas.isEmpty && unrouted.isEmpty }
 
     /// Keeps `window` as the latest, adds `deltas` and `unrouted` (in order) and schedules one arrival.
@@ -79,9 +114,16 @@ struct SpanPrototypeEnvironment {
     let database: InMemoryCloudDatabase
     let sync: SyncEngine
 
-    /// A new folder "span-prototype-<uuid>" under `base` (the temporary directory) and everything over it.
+    /// The start of every folder's name ("span-prototype-<launch>-<uuid>").
+    static let folderPrefix = "span-prototype-"
+    /// This launch of the app (the folders of this launch start with `folderPrefix` + it + "-").
+    static let launch = String(UUID().uuidString.lowercased().prefix(8))
+
+    /// A new folder "span-prototype-<launch>-<uuid>" under `base` (the temporary directory) and everything over it.
+    /// First the folders of earlier launches are removed (`removeLeftovers`).
     static func makeIsolated(base: URL = FileManager.default.temporaryDirectory) -> SpanPrototypeEnvironment {
-        let folder = base.appendingPathComponent("span-prototype-" + UUID().uuidString.lowercased(), isDirectory: true)
+        removeLeftovers(in: base)
+        let folder = base.appendingPathComponent(folderPrefix + launch + "-" + UUID().uuidString.lowercased(), isDirectory: true)
         let store = InkPageStore(directory: folder)
         let stateStore = SyncStateStore(fileURL: folder.appendingPathComponent("state.json", isDirectory: false))
         let database = InMemoryCloudDatabase()
@@ -92,6 +134,19 @@ struct SpanPrototypeEnvironment {
     /// Removes the folder with what the prototype wrote (it keeps nothing once it is closed).
     func discard() {
         try? FileManager.default.removeItem(at: folder)
+    }
+
+    /// The prototype's folders under `base` that an earlier launch left (the app ended while the prototype was open:
+    /// a memory kill while 「線の数」 measured 25,000 strokes, a swipe in the app switcher; review ISO-4), removed:
+    /// every entry whose name starts with `folderPrefix` and not with this launch's. Nothing else under `base` is
+    /// touched, and a folder of this launch stays (an opening of this launch may still be using it).
+    static func removeLeftovers(in base: URL) {
+        let fm = FileManager.default
+        guard let names = try? fm.contentsOfDirectory(atPath: base.path) else { return }
+        let mine = folderPrefix + launch + "-"
+        for name in names where name.hasPrefix(folderPrefix) && !name.hasPrefix(mine) {
+            try? fm.removeItem(at: base.appendingPathComponent(name, isDirectory: true))
+        }
     }
 }
 
@@ -108,9 +163,9 @@ struct SpanPrototypeWindowState {
 
 // MARK: - Session
 
-/// One window of joined week pages in the prototype (the part of `SpanSession`, §3.5, that the prototype
+/// One window of joined week or day pages in the prototype (the part of `SpanSession`, §3.5, that the prototype
 /// needs): the window's real pages (`Slot`, by real id), composed into the ledger's virtual page
-/// (`window`) and laid out side by side (`layout`, `papers`). The canvas's deltas are applied to the real
+/// (`window`) and laid out side by side (`layout`, `papers`), with the all-day band of each page (`bands`). The canvas's deltas are applied to the real
 /// pages (never a page written back whole, §3.4); 1.5 s after the last one (D8, one timer per session),
 /// and in `saveAll()`, the safety net takes each page's range back out of the canvas's window and merges
 /// it in, then every dirty page goes to the prototype's engine as "proto-<id>" through
@@ -161,16 +216,24 @@ final class SpanPrototypeSession: ObservableObject {
     /// The pages on each side of the focus when not the plan's (`SpanPlan.radius`): 「上限あり」 on an iPhone in
     /// landscape (P-B6 イ, B_DESIGN.md §6.2: 3 weeks visible → 7 pages). nil: the plan's.
     private(set) var radiusOverride: Int?
-    /// Each window page's week as 1.2.3 lays it out (no memo): what 「1 ページずつ」 shows (the old versions'
-    /// view of the same pages, §4.5).
-    private(set) var plainLayouts: [String: WeekPageLayout] = [:]
-    /// The height every week memo of the window has (`SpanAlign`, D16): at least 6,000 lu.
+    /// Each window page's paper as 1.2.3 lays it out (the week without its memo, the day's free memo by its own
+    /// handwriting): what 「1 ページずつ」 shows (the old versions' view of the same pages, §4.5).
+    private(set) var plainPapers: [String: PaperContent] = [:]
+    /// The height every week memo (or day's free memo) of the window has (`SpanAlign`, D16): at least 6,000 lu.
     private(set) var memoFloor: CGFloat = 0
+    /// The lanes of the window's all-day bands: never fewer in a session (§3.8, B_DESIGN.md §3.1).
+    private(set) var bandLaneFloor = 0
+    /// How many pages the window had when 「線の数」 last filled it (nil: never filled). Another count (a rotation,
+    /// 「上限あり」) makes the window's total another number: the model fills it again (review B1).
+    private(set) var filledPageCount: Int?
 
     /// The ledger's page of the window and its layout; `windowVersion` moves each time they are composed.
     @Published private(set) var window: SpanVirtualPage
     @Published private(set) var layout: SpanLayout
     @Published private(set) var papers: [PaperContent] = []
+    /// The all-day band of each window page, its lanes packed over the window's days at once (§3.8:
+    /// `AllDayBandEngine.pages`; an event across a boundary keeps its lane), left to right as `papers`.
+    @Published private(set) var bands: [AllDayBandLayout] = []
     @Published private(set) var windowVersion = 0
 
     /// What the session recorded (repairs, refusals, failed saves, faults), newest last, at most 200.
@@ -194,7 +257,7 @@ final class SpanPrototypeSession: ObservableObject {
     /// (a page it changed is saved, as the app's `show` does), and composes the window.
     init(sync: SyncEngine, weekStart: WeekStart, focus: DayKey, deviceClass: SpanDeviceClass, orientation: SpanOrientation,
          now: Date, holidays: HolidayCalendar, events: [LayoutEvent], number: Int = 1, radius: Int? = nil,
-         meter: SpanPrototypeMeter? = nil,
+         kind: PageKind = .week, meter: SpanPrototypeMeter? = nil,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }) {
         self.sync = sync
         self.meter = meter
@@ -205,7 +268,8 @@ final class SpanPrototypeSession: ObservableObject {
         self.holidays = holidays
         self.events = events
         self.sleep = sleep
-        let plan = SpanPlan(kind: .week, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation)
+        // The week (§4.6) or the day (§4.5's photos of the day band, §4.6's widest window, review B4).
+        let plan = SpanPlan(kind: kind == .day ? .day : .week, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation)
         self.plan = plan
         focusIndex = plan.index(containing: focus)
         // Placeholders until `compose()` below (it sets both before anyone can read them).
@@ -279,10 +343,13 @@ final class SpanPrototypeSession: ObservableObject {
         }
     }
 
-    /// Each window page's week (`WeekLayoutEngine`, as 1.2.3 lays it out: `plainLayouts`) with the week memo
-    /// below 24:00 (`SpanPrototypeWeekMemoLayout`, §5.2), the memos lined up to the window's floor (`SpanAlign`,
-    /// D16: the tallest memo's natural height; a shift never lowers it, erasing may), side by side
-    /// (`layout`); the paper draws the plain weeks (`papers`).
+    /// Each window page laid out side by side (`layout`), the last cells lined up to the window's floor
+    /// (`SpanAlign`, D16: the tallest natural height; a shift never lowers it, erasing may):
+    /// - a week: `WeekLayoutEngine` as 1.2.3 lays it out, with the week memo below 24:00
+    ///   (`SpanPrototypeWeekMemoLayout`, §5.2); the paper draws the plain week (`papers`);
+    /// - a day: `DayLayoutEngine` with the floor (`DayLayoutInput.extraFloor`, the day's free memo); the paper is it.
+    /// `plainPapers` keep each page as 1.2.3 shows it alone (「1 ページずつ」). The all-day bands (`bands`) are packed
+    /// over the window's days at once, with at least the lanes the session had (§3.8).
     private func layoutPages(change: SpanAlign.Change) {
         let firstIndex = Self.window(around: focusIndex, plan: plan, radius: radiusOverride).lowerBound
         let words = LayoutWords.of(L.language)
@@ -291,18 +358,36 @@ final class SpanPrototypeSession: ObservableObject {
                                     change: change)
         var layouts: [any PageLayout] = []
         var contents: [PaperContent] = []
-        var plain: [String: WeekPageLayout] = [:]
+        var plain: [String: PaperContent] = [:]
+        var days: [DayKey] = []
         for (offset, id) in pageIds.enumerated() {
-            let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: plan.firstDay(at: firstIndex + offset), events: events,
-                                                               inkBottoms: bottoms[offset], now: now, holidays: holidays,
-                                                               words: words, weekStart: weekStart))
-            plain[id] = week
-            layouts.append(SpanPrototypeWeekMemoLayout(week: week, memoHeight: memoFloor))
-            contents.append(.week(WeekPaperContent(layout: week)))
+            let first = plan.firstDay(at: firstIndex + offset)
+            if plan.kind == .day {
+                let own = DayLayoutEngine.layout(DayLayoutInput(day: first, events: events, inkBottoms: bottoms[offset], now: now,
+                                                                holidays: holidays, words: words))
+                let lined = DayLayoutEngine.layout(DayLayoutInput(day: first, events: events, inkBottoms: bottoms[offset], now: now,
+                                                                  holidays: holidays, words: words, extraFloor: memoFloor))
+                plain[id] = .day(DayPaperContent(layout: own))
+                layouts.append(lined)
+                contents.append(.day(DayPaperContent(layout: lined)))
+                days.append(first)
+            } else {
+                let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: first, events: events,
+                                                                   inkBottoms: bottoms[offset], now: now, holidays: holidays,
+                                                                   words: words, weekStart: weekStart))
+                plain[id] = .week(WeekPaperContent(layout: week))
+                layouts.append(SpanPrototypeWeekMemoLayout(week: week, memoHeight: memoFloor))
+                contents.append(.week(WeekPaperContent(layout: week)))
+                days.append(contentsOf: (0..<PaperSpec.weekColumns).map { first.adding(days: $0) })
+            }
         }
-        plainLayouts = plain
+        plainPapers = plain
         layout = SpanLayout(pages: layouts, plan: plan, firstIndex: firstIndex, session: number)
         papers = contents
+        let laid = AllDayBandEngine.pages(plan.kind, days: days, events: events, now: now, holidays: holidays,
+                                          minimumLaneCount: bandLaneFloor)
+        bandLaneFloor = max(bandLaneFloor, laid.first?.laneCount ?? 0)
+        bands = laid
     }
 
     /// The canvas said handwriting may have crossed the bottom of its cell (`onInkBoundsChanged`): the inbox is
@@ -511,7 +596,8 @@ final class SpanPrototypeSession: ObservableObject {
     }
 
     /// Fills the window's pages, and one window radius of pages beyond each side (so a fling or two still
-    /// finds full pages), with `windowTotal` ÷ the window's pages synthetic strokes each
+    /// finds full pages), with `windowTotal` ÷ the window's pages synthetic strokes each (in the page's grid:
+    /// `SpanPrototypeSynthetic.area`; `filledPageCount` keeps the window's page count)
     /// (`SpanPrototypeSynthetic`; 0 takes them all out): what was written in the prototype is saved first and
     /// stays (a page that could not be saved is left as it is). Each page is written as "proto-<id>" through
     /// the prototype's guard, straight to the prototype's store (the engine's save would merge the old
@@ -537,7 +623,8 @@ final class SpanPrototypeSession: ObservableObject {
                 record("fill skipped \(Self.fileId(id)): not saved")
                 continue
             }
-            let synthetic = SpanPrototypeSynthetic.strokes(pageId: id, count: perPage, tag: windowTotal)
+            let synthetic = SpanPrototypeSynthetic.strokes(pageId: id, count: perPage, tag: windowTotal,
+                                                           area: SpanPrototypeSynthetic.area(plan.kind))
             var page = SpanPrototypeSynthetic.replacing(sync.load(Self.fileId(id)), with: synthetic)
             page.pageId = Self.fileId(id)
             switch SpanGuard.checkForSave(page, added: Set(synthetic.map(\.id)), mode: .prototype) {
@@ -563,6 +650,7 @@ final class SpanPrototypeSession: ObservableObject {
         for id in pageIds where !unsaved.contains(id) {
             slots[id] = loadSlot(id)
         }
+        filledPageCount = windowTotal > 0 ? pageIds.count : nil
         compose()
         // The safety net's source is this window now: the last canvas's (taken away before the fill) still
         // holds the strokes the fill took out, and merging it would bring them back (§3.4 (c)).

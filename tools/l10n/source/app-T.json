@@ -63,6 +63,30 @@
       "glossary": [],
       "jaOnly": true
     },
+    "prototype.span.guide.day.finger": {
+      "ja": "前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "試作の初めての案内の札（見本、日の帯）。docs/M7C_CONTRACT.md §8.1 の N-7（日・「指でも書く」オン）の固定の文と同じ。本物の札のキーは役 U の持ち物で、これは試作のビルド（SPAN_PROTOTYPE）だけの写し。ja だけのキーで訳さない（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.guide.day.pencil": {
+      "ja": "前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "試作の初めての案内の札（見本、日の帯）。docs/M7C_CONTRACT.md §8.1 の N-6（日・「指でも書く」オフ）の固定の文と同じ。本物の札のキーは役 U の持ち物で、これは試作のビルド（SPAN_PROTOTYPE）だけの写し。ja だけのキーで訳さない（D12）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
     "prototype.span.guide.show": {
       "ja": "案内の札を出す",
       "target": "app",
@@ -325,6 +349,18 @@
       "ja": "週のメモの形",
       "target": "app",
       "comment": "試作の設定のメニューの選択。週のページの 24 時の下のメモ欄の見え方を選ぶ（docs/M7C_CONTRACT.md §4.5、§5.2）。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（D12、§8.1）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "prototype.span.memo.weekdays": {
+      "ja": "曜日の区切りと色を下まで",
+      "target": "app",
+      "comment": "「週のメモの形」の選択肢。罫線に、曜日の区切り線と今日・土日の色（薄く）を 24 時より下まで続けた形（PLAN_WEEK_MEMO.md の Q2 のもう一方の案。見本の比べ）。試作のビルドだけ。ja だけのキー（D12）",
       "where": [
         "Span/SpanPrototypeScreen.swift"
       ],
