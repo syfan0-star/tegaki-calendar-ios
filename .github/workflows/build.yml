@@ -397,15 +397,16 @@ jobs:
       # unit tests are in Japanese whatever the simulator's language is (their old expectations are Japanese).
       # 1.3 (docs/M7C_CONTRACT.md §10.6): on r13-quick (QUICK) only the Span classes of Tests/TegakiCalendarTests
       # that exist so far (`*SpanTests`, `SpanSessionTests`, `ScreenEraseTests`, `OnePageSession…Tests`, found by
-      # their `class` lines; S5 adds them), each with -only-testing; none yet → the step says so and ends.
+      # their `class` lines, `@MainActor final class …:` on one line too; S5 adds them), each with -only-testing;
+      # none yet → the step says so and ends.
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
           mkdir -p shots/fixtures
           ONLY=""
           if [ "$QUICK" = "true" ]; then
-            CLASSES="$(grep -rhE '^(final )?class [A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
-              | sed -E 's/^(final )?class ([A-Za-z0-9_]+).*/\2/' \
+            CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
+              | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
               | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::r13-quick: no Span test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
@@ -453,11 +454,14 @@ jobs:
       # few seconds; the rest is xcodebuild and the simulator), limited to 9. The whole output is kept in
       # $RUNNER_TEMP/sync-repeat.log (not uploaded) and its last 80 lines are printed.
       # 1.3 (docs/M7C_CONTRACT.md §7, §10.6): SyncEngineSpanTests (pagesOpened and onRemoteDelete, M4_CONTRACT §8.2
-      # 54–59) are repeated with them. SpanSessionTests and ScreenEraseTests join in S5: add their -only-testing
-      # lines then and measure again. The limit stays 9, from the measured time: on r13 before 1.3's tests the step
-      # took 2.3–4.7 min (runs 43060727400 to 43149906124), its 1,200 passes 18–39 s; with them (run 43163415023)
-      # 5.5 min, its 1,320 passes 44 s (57 s on the clock): SyncEngineTests 1,200 in 36.5 s, SyncEngineSpanTests
-      # 120 in 7.4 s. The rest is xcodebuild and the simulator. After the tail, the time of each class over its
+      # 54–59) are repeated with them, and since the H4 fix SyncEngineEraseFetchTests (60–62). SpanSessionTests and
+      # ScreenEraseTests (§10.2, role S) join in S5: each is added (-only-testing) as soon as its `class` line is in
+      # Tests/TegakiCalendarTests (none yet, so nothing changes now). The limit: 9 → 15, the contract's estimate with
+      # them (§10.6), to be set again from their first runs (the per-class lines below; docs/M7C.md). Measured: on r13
+      # before 1.3's tests the step took 2.3–4.7 min (runs 43060727400 to 43149906124), its 1,200 passes 18–39 s; with
+      # SyncEngineSpanTests (run 43163415023) 5.5 min, its 1,320 passes 44 s (57 s on the clock): SyncEngineTests 1,200
+      # in 36.5 s, SyncEngineSpanTests 120 in 7.4 s; in runs 43176186917 to 43251126239 (SyncEngineEraseFetchTests in
+      # the last) 2.5–4.6 min. The rest is xcodebuild and the simulator. After the tail, the time of each class over its
       # passes is printed: the measure for the next limit. Each class's count is compared with the passes
       # expected (the iterations × the tests seen starting or passing): an app log line written into the middle
       # of a "Test Case" line hides that pass from the sed (seen in the unit test step of run 43176186917:
@@ -465,10 +469,20 @@ jobs:
       # short by those passes. The step's result does not depend on it.
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
-        timeout-minutes: 9
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           ITERATIONS=20
+          MORE=""
+          NAMES="SyncEngineTests, SyncEngineSpanTests, SyncEngineEraseFetchTests"
+          for CLASS in SpanSessionTests ScreenEraseTests; do
+            if grep -rqE "^(@[A-Za-z]+ +)*(final +)?class +$CLASS *:" Tests/TegakiCalendarTests; then
+              MORE="$MORE -only-testing:TegakiCalendarTests/$CLASS"
+              NAMES="$NAMES, $CLASS"
+            fi
+          done
+          echo "Repeated $ITERATIONS times: $NAMES"
+          # $MORE unquoted on purpose: one word per class (none has a space), nothing when it is empty.
           xcodebuild \
             -project TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
@@ -478,6 +492,7 @@ jobs:
             -only-testing:TegakiCalendarTests/SyncEngineTests \
             -only-testing:TegakiCalendarTests/SyncEngineSpanTests \
             -only-testing:TegakiCalendarTests/SyncEngineEraseFetchTests \
+            $MORE \
             -skip-testing:TegakiCalendarTests/SyncEngineTests/testMergeRemoteOfATruncatedPageMarksDirty \
             -test-iterations "$ITERATIONS" \
             -run-tests-until-failure \
@@ -1045,6 +1060,8 @@ jobs:
       # (3.8 min in CI-0 for 29 launches of about 8 s, now 30; which language iOS chooses and, in German, that the purchase
       # sheet reaches its links, its steps are the `l10n UI:` lines) and WeekStartUITests (the `week-start UI:` lines) run here too; the xcodebuild of the
       # step took 10.2 min in CI-0 (1.1.1's whole step took 11.9 in run 41922318959) and the step stops after 40. The tests pass their own language in their launch arguments.
+      # 1.3 (docs/M7C_CONTRACT.md §10.3, §10.6): the joined pages' UI tests (SpanUITests, and the old UI tests again with
+      # the joined pages on in SpanRerunUITests) mark their steps `span UI:`; the grep shows them once they exist.
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         if: env.QUICK != 'true'
         timeout-minutes: 40
@@ -1069,7 +1086,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
