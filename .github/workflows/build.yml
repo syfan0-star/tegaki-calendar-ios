@@ -1173,13 +1173,17 @@ jobs:
   # and 1.2.3 (v123: commit 43fe366, taken out with `git archive`); and 1.2.3's app runs
   # tools/span-compat/AppTests/Real123LedgerTests.swift (its ledger and sync engine) on every file. Fixture 4 (the
   # week memo) comes with the week memo stage (§5): its MANIFEST row then needs its counts in tools/span-compat.
-  # The limit (§10.4): 45 → 65 min for the 1.2.3 Kit and app (the job took 8 min before 1.3).
+  # The limit (§10.4: 45 → 65 min for the 1.2.3 Kit and app, back to 45 when the measured times leave room; docs/M7C.md,
+  # S1 の残り, decision 7): 45 again. With 1.3's steps the job took 8.8–16.7 min in the 14 runs of 11/11–12 that ran
+  # them to the end (runs 43065300839 to 43237335436; the median 13.7), its two app test steps 2.9–7.2 (1.0's) and
+  # 3.2–6.8 (1.2.3's), the other steps at most 1.6 each. The slowest time of every step added up is 18.8 min, and with
+  # two boots 4 min slower (as seen in the other jobs) about 27. 45 is the limit of the job before 1.3 (8 min then).
   compat-v1-0:
     name: compat-v1.0
     # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only).
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
     runs-on: macos-26
-    timeout-minutes: 65
+    timeout-minutes: 45
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
