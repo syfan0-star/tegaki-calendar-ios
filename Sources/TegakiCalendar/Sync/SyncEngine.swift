@@ -71,6 +71,13 @@ final class SyncEngine: ObservableObject {
     /// ignores pages it is not showing (§5.4).
     var onRemoteUpdate: ((InkPage) -> Void)?
 
+    /// 1.3 (docs/M7C_CONTRACT.md §7, D5): called with the page id when the pull finds that page's record
+    /// deleted in iCloud (another device's 「全て消す」), right after `onRemoteUpdate` was given the empty page,
+    /// which stays. Never for the `Meta` record. Only the pull calls it; nothing here deletes because of it (a
+    /// deletion is still made by `cloudErase` alone), and the inert engine never pulls. nil, as in 1.2.3,
+    /// changes nothing.
+    var onRemoteDelete: ((String) -> Void)?
+
     let store: InkPageStore
     let stateStore: SyncStateStore
     let database: any CloudDatabase
@@ -768,6 +775,7 @@ final class SyncEngine: ObservableObject {
             state.seen[name] = nil
             state.clearDirty(name)
             onRemoteUpdate?(InkPage.empty(pageId: name))
+            onRemoteDelete?(name)
         }
         return changed
     }
@@ -1200,5 +1208,86 @@ final class SyncEngine: ObservableObject {
         let waiters = idleWaiters
         idleWaiters = []
         for waiter in waiters { waiter.resume() }
+    }
+}
+
+// MARK: - 1.3: the pages of a window (docs/M7C_CONTRACT.md §7, D5)
+
+extension SyncEngine {
+    /// `pageOpened` for the pages a window shows at once (the joined week and day pages; up to 15): the same
+    /// gate — nothing on the inert engine or before `start()`, only while iCloud can be reached, no fetch while
+    /// an account check is due (G2; looked at when called and again when it runs), the 30 s cooldown per page
+    /// (shared with `pageOpened`; a page named twice is due once) — then one `fetchRecords` for every page that
+    /// is due (a page without a record is simply absent) and each record merged by `mergeRemote`, one at a
+    /// time in the order given, as `fetchPage` does. The work goes through `enqueue`, so `waitUntilIdle`
+    /// counts it. `pageOpened` itself is unchanged (the one-page screen keeps calling it).
+    func pagesOpened(_ pageIds: [String]) {
+        guard !inactive, started else { return }
+        switch snapshot.status {
+        case .synced, .pending, .offline, .error:
+            break
+        default:
+            return
+        }
+        // Before the cooldown, as in `pageOpened`: a page refused now is fetched when it is opened again after
+        // the check.
+        guard !needsAccountCheck else { return }
+        let now = clock()
+        var due: [String] = []
+        for pageId in pageIds {
+            if let last = lastPageFetch[pageId], now.timeIntervalSince(last) < SyncBackoff.pageFetchCooldown {
+                continue
+            }
+            lastPageFetch[pageId] = now
+            due.append(pageId)
+        }
+        guard !due.isEmpty else { return }
+        enqueue { await self.fetchPages(due) }
+    }
+
+    /// `pagesOpened`: the pages that are due, with the cooldown already checked. `fetchPage` for several
+    /// pages with one request; its failures are handled as there.
+    private func fetchPages(_ pageIds: [String]) async {
+        // Looked at again when it runs (it may have been queued before an account change, a check that found
+        // another account, or the background); skipped while a check is due (the next pull brings the pages).
+        guard started, !needsAccountCheck else { return }
+        // Taken before the request and checked after it: an account change, the erase, the account choice or
+        // the return from the background during the request leaves its answer unmerged.
+        let epoch = workEpoch
+        do {
+            // Before the request while away from the foreground (today a check is then always due, so the
+            // guard above has returned already; kept so the gate stays whole if that ever changes).
+            try checkStillFresh()
+            let records = try await database.fetchRecords(names: pageIds)
+            try checkEpoch(epoch)
+            for pageId in pageIds {
+                guard let record = records[pageId] else { continue }
+                if let tag = record.changeTag, state.seen[pageId]?.changeTag == tag { continue }
+                mergeRemote(record)
+                persistState()
+            }
+        } catch CloudError.networkUnavailable {
+            handleFailure(.networkUnavailable)
+        } catch CloudError.zoneMissing {
+            do {
+                try checkEpoch(epoch)
+                // As in `fetchPage` (1.2.3, M3): the account first when a check became due meanwhile.
+                try await confirmAgainIfDue(epoch)
+                let recovered = try await recoverFromZoneLoss(epoch: epoch)
+                if recovered.gaveUp {
+                    setStatus(.pending)
+                    scheduleBackoffRetry(serverHint: nil)
+                } else {
+                    finishRoundTrip()
+                }
+            } catch is Interrupted {
+                return
+            } catch {
+                handleFailure(SyncEngine.cloudError(error))
+            }
+        } catch {
+            // Silently ignored (an `Interrupted` from the epoch or the freshness check too): the next pull
+            // brings the pages anyway.
+        }
     }
 }
