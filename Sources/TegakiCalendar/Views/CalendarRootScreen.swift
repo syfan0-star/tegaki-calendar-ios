@@ -151,7 +151,10 @@ struct CalendarRootScreen: View {
 
     @State private var kind: PageKind
     @State private var focus: DayKey
-    @State private var page: InkPage
+    /// 1.3 (docs/M7C_CONTRACT.md D3 の 7, §6.6): the page on the screen, its dirty mark, its save timer, its
+    /// 「メモ欄はここまでです」 mark, `applyRemote` and the erase live in `OnePageSession` (1.2.3's `page`, `pageDirty`,
+    /// `saveTask`, `capNoticedPageId`), with the fixes H1–H3 and the canvas's identity gate.
+    @StateObject private var onePage: OnePageSession
     /// The page's geometry and paper content (one value: the layout is `paper.layout`).
     @State private var paper: PaperContent
     /// The instant the layout was last computed for (fixed in screenshot mode).
@@ -184,8 +187,6 @@ struct CalendarRootScreen: View {
     /// Screenshot mode's corner of the dock button (`--screenshot-toolbar collapsed-right`); nil in
     /// normal use, where `toolbarEdgeRaw` decides.
     @State private var screenshotEdge: ToolbarEdge?
-    /// The page whose 「メモ欄はここまでです」 was shown while it is open (§3.4); nil after a page change.
-    @State private var capNoticedPageId: String?
     /// The last 「このページはいっぱいです」 toast (at most every 2 s, like `lastBlockedInputAt`).
     @State private var lastBudgetFullAt: Date?
 
@@ -269,8 +270,6 @@ struct CalendarRootScreen: View {
     /// The account question arrived while a sheet was up: ask once the sheet has closed.
     @State private var accountChangePending = false
 
-    @State private var saveTask: Task<Void, Never>?
-    @State private var pageDirty = false
     @State private var saveError: String?
     @State private var appeared = false
 
@@ -442,7 +441,7 @@ struct CalendarRootScreen: View {
         let startPage = shot != nil
             ? ScreenshotMode.demoPage(kind: startKind, focus: startFocus, weekStart: startWeekStart)
             : InkPage.empty(pageId: PageNavigation.pageId(startKind, focus: startFocus, weekStart: startWeekStart))
-        _page = State(initialValue: startPage)
+        _onePage = StateObject(wrappedValue: OnePageSession(sync: SyncEngine.shared, page: startPage))
         _paper = State(initialValue: Self.makePaper(kind: startKind, focus: startFocus, events: [], inkBottoms: startPage.inkBottoms(), now: startNow,
                                                     holidays: startHolidays, weekStart: startWeekStart))
     }
@@ -470,7 +469,12 @@ struct CalendarRootScreen: View {
     /// The canvas's identity (§10.5): the page and the week start. A month page keeps its id when the
     /// week start changes, and its canvas must still be made anew: the undo history would otherwise
     /// point at strokes that may now be hidden, and ↶ would seem to do nothing.
-    private var canvasIdentity: String { "\(pageId)|\(weekStart.rawValue)" }
+    private var canvasBase: String { "\(pageId)|\(weekStart.rawValue)" }
+
+    /// 1.3 (docs/M7C_CONTRACT.md D7, §6.6 H1–H3): `canvasBase` and the screen's number (`OnePageSession.epoch`),
+    /// which 「全て消す」, 「消して始める」 and a record deletion of the shown page move on, so the canvas and its ↶
+    /// are made anew.
+    private var canvasIdentity: String { onePage.canvasIdentity(base: canvasBase) }
 
     private var layout: any PageLayout { paper.layout }
 
@@ -950,9 +954,7 @@ struct CalendarRootScreen: View {
     /// The canvas dropped a stroke below the last cell's limit, or a stroke reached its last step
     /// (§3.4): 「メモ欄はここまでです」 once while this page is open (`show` forgets it on a page change).
     private func growthCapReached() {
-        let id = pageId
-        guard capNoticedPageId != id else { return }
-        capNoticedPageId = id
+        guard onePage.noteGrowthCap(pageId: pageId) else { return }
         showToast(Self.growthCapToast)
     }
 
@@ -1141,15 +1143,16 @@ struct CalendarRootScreen: View {
     }
 
     /// The canvas writes every ink change here; writes for another page (a canvas being torn down)
-    /// are ignored so they can never land in the wrong page.
+    /// are ignored so they can never land in the wrong page. 1.3 (docs/M7C_CONTRACT.md §2.1, §6.6): the binding
+    /// keeps the identity of the canvas it is made for, and a write is taken only while that is the current
+    /// identity (`OnePageSession.canvasWrote`): a canvas made before a rebuild (H1–H3) that hands a
+    /// `publishPage` on to the next turn writes nothing.
     private var pageBinding: Binding<InkPage> {
-        Binding(
-            get: { page },
+        let madeFor = canvasIdentity
+        return Binding(
+            get: { onePage.page },
             set: { newValue in
-                guard newValue.pageId == pageId else { return }
-                page = newValue
-                pageDirty = true
-                scheduleSave()
+                guard onePage.canvasWrote(newValue, madeFor: madeFor, base: canvasBase) else { return }
                 // 1.2.1 (docs/R1_2_1.md §2.4): only the canvas's own operations come here (writing, erasing,
                 // ↶ ↷, the lasso's move and delete), not iCloud's strokes (`applyRemote`), the band's move or
                 // an import, so this is the person's own ink.
@@ -1186,8 +1189,12 @@ struct CalendarRootScreen: View {
             // 0.5.2 からの更新・再インストール・新しい端末 (M5 contract §4.2); nothing in screenshot mode.
             scheduleFirstLaunchPaywall()
         }
+        // 1.3 (docs/M7C_CONTRACT.md D3 の 7): the page's save reports its failure here.
+        onePage.onSaveFailed = { saveError = $0 }
         // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.
         sync.onRemoteUpdate = { applyRemote($0) }
+        // 1.3 (docs/M7C_CONTRACT.md §6.6 H1, §7): a record another device's 「全て消す」 deleted.
+        sync.onRemoteDelete = { remoteDeleted($0) }
         // 1.2.3 (docs/R1_2_3.md §3; M4_CONTRACT §5.3): `.onChange(of: scenePhase)` does not report the first
         // value, so a launch that is already `.active` here tells the engine it is in the foreground now.
         if scenePhase == .active {
@@ -1338,7 +1345,7 @@ struct CalendarRootScreen: View {
             weekStart = adopted
             WeekStartChoice.current = adopted
             viewport = .zero
-            capNoticedPageId = nil
+            onePage.forgetGrowthCap()
         }
         let id = PageNavigation.pageId(newKind, focus: newFocus, weekStart: weekStart)
         if id != pageId {
@@ -1346,7 +1353,7 @@ struct CalendarRootScreen: View {
             // `PaperViewport.initial`, not from the previous page's offset and zoom.
             viewport = .zero
             // 1.1 (§3.4): 「メモ欄はここまでです」 may show again on the next opened page.
-            capNoticedPageId = nil
+            onePage.forgetGrowthCap()
         }
         frozenLaneZoom = nil
         kind = newKind
@@ -1365,12 +1372,7 @@ struct CalendarRootScreen: View {
         }
         // M4B contract §3.3: the week / day band's handwriting moves onto the grid (idempotent; the
         // ledger does the same). A page that changed is saved and sent right away (M4B-11).
-        page = BandMigration.migrate(loaded)
-        pageDirty = false
-        if page != loaded {
-            pageDirty = true
-            scheduleSave()
-        }
+        onePage.open(loaded)
         if !ScreenshotMode.isActive { now = Date() }
         model.load(kind: newKind, focus: newFocus, weekStart: weekStart)
         relayout()
@@ -1439,7 +1441,7 @@ struct CalendarRootScreen: View {
     }
 
     private func relayout() {
-        paper = Self.makePaper(kind: kind, focus: focus, events: model.events, inkBottoms: page.inkBottoms(), now: now,
+        paper = Self.makePaper(kind: kind, focus: focus, events: model.events, inkBottoms: onePage.page.inkBottoms(), now: now,
                                holidays: HolidayChoice.current, weekStart: weekStart)
     }
 
@@ -1473,7 +1475,7 @@ struct CalendarRootScreen: View {
                 WeekStartChoice.current = value
                 // The new canvas reports its own viewport next turn (`show`, for a page that changes id).
                 viewport = .zero
-                capNoticedPageId = nil
+                onePage.forgetGrowthCap()
             },
             reload: { show(kind: kind, focus: focus) }
         )
@@ -1504,7 +1506,7 @@ struct CalendarRootScreen: View {
         }
         let shown = weekStart
         let other: WeekStart = shown == .monday ? .sunday : .monday
-        let result = WeekStartChoice.dataCheck(current: shown, pageIds: sync.allLocalPageIds(), dirtyPageId: pageDirty ? pageId : nil,
+        let result = WeekStartChoice.dataCheck(current: shown, pageIds: sync.allLocalPageIds(), dirtyPageId: onePage.isDirty ? pageId : nil,
                                                penTouched: penTouchedThisLaunch, atBoundary: atBoundary)
         var adopted: WeekStart?
         switch result {
@@ -1532,6 +1534,7 @@ struct CalendarRootScreen: View {
     private func noticeHiddenInk() {
         guard !ScreenshotMode.isActive else { return }
         weekStartNotices.dropHiddenInk()
+        let page = onePage.page
         let hidden = WeekStartImpact.hiddenStrokeIds(in: page, weekStart: weekStart)
         guard !hidden.isEmpty, !AppSettings.weekStartHiddenNoticed(page.pageId, weekStart) else { return }
         weekStartNotices.add(.hiddenInk(pageId: page.pageId, strokes: hidden.count))
@@ -1578,16 +1581,19 @@ struct CalendarRootScreen: View {
     /// last 1.5 s is not yet in the file) and handed to the canvas, which reloads the ledger with
     /// the history kept. The canvas's own `refreshSelection` drops the ids that died; the selection
     /// is not cleared here.
+    /// 1.3 (docs/M7C_CONTRACT.md D3 の 7): the merge itself is `OnePageSession.applyRemote` (the same lines).
     private func applyRemote(_ updated: InkPage) {
         guard updated.pageId == pageId else { return }
-        // ペンを離した直後の未保存の線を落とさない。merge の後に帯の線を grid へ（M4B contract §3.3）
-        let merged = BandMigration.migrate(InkPage.merge(page, updated))
-        guard merged.contentDiffers(from: page) || merged.updatedAt != page.updatedAt else { return }
-        page = merged                                       // Binding を通さない（dirty にしない）
-        if merged.contentDiffers(from: updated) {           // 端末内にしか無い線があった → いつもの経路で保存・送信
-            pageDirty = true
-            scheduleSave()
-        }
+        guard onePage.applyRemote(updated) else { return }
+        relayout()
+    }
+
+    /// `SyncEngine.onRemoteDelete` (1.3, docs/M7C_CONTRACT.md §6.6 H1): another device's 「全て消す」 deleted the
+    /// record of the shown page. It empties and its canvas (with ↶) is made anew (`OnePageSession.remoteDeleted`);
+    /// the selection went with the old canvas. Another page: nothing (the engine removed its file).
+    private func remoteDeleted(_ deletedId: String) {
+        guard deletedId == pageId, onePage.remoteDeleted(deletedId) else { return }
+        selection = nil
         relayout()
     }
 
@@ -1761,7 +1767,7 @@ struct CalendarRootScreen: View {
             showToast(Self.eventBelowDayToast)
             return
         }
-        let strokes = selection.ids.compactMap { page.strokes[$0] }
+        let strokes = selection.ids.compactMap { onePage.page.strokes[$0] }
         let snapshot = InkSnapshot.render(strokes: strokes, cells: layout.cells)
         openCreate(range: range, snapshot: snapshot, inkIds: selection.ids)
     }
@@ -1866,12 +1872,11 @@ struct CalendarRootScreen: View {
     /// save, empty the shown page (the canvas reloads it), then let the engine delete every page file
     /// and every iCloud record. iCloud failing leaves the local part erased and the engine retries
     /// the cloud part at the next sync. Screenshot mode only empties the page in memory.
+    /// 1.3 (docs/M7C_CONTRACT.md §6.6 H3): the canvas is made anew (`OnePageSession.eraseAll` moves the
+    /// screen's number on), so ↶ cannot bring the erased strokes back.
     private func eraseAllInk() {
         showSettings = false
-        saveTask?.cancel()
-        saveTask = nil
-        page = InkPage.empty(pageId: pageId)
-        pageDirty = false
+        onePage.eraseAll()
         selection = nil
         relayout()
         guard !ScreenshotMode.isActive else {
@@ -2047,7 +2052,7 @@ struct CalendarRootScreen: View {
                 case .pdf:
                     try? await Task.sleep(for: .milliseconds(50))
                     try Task.checkCancellation()
-                    outcome = .success(try builder.exportPDF(paper: paper, page: page, kind: kind, focus: focus))
+                    outcome = .success(try builder.exportPDF(paper: paper, page: onePage.page, kind: kind, focus: focus))
                 }
             } catch {
                 outcome = .failure(error)
@@ -2127,17 +2132,30 @@ struct CalendarRootScreen: View {
 
     /// The answer: the engine adopts the new account (keeping or erasing the ink) or waits; the shown
     /// page is read again afterwards (empty after 「消して始める」).
+    /// 1.3 (docs/M7C_CONTRACT.md §6.6 H2, H3): 「消して始める」 closes the screen's page before the engine's `await`
+    /// (`beginEraseAndStart`: the page empties, the canvas and its ↶ are made anew, and nothing is saved), so
+    /// neither going to the background, another page, the export, a new stroke nor the save timer can write the
+    /// old account's page into the new account's store meanwhile; saves go on after the page is read again.
     private func chooseAccount(_ choice: AccountChangeChoice) {
         if choice == .keepInk {
             saveNow() // a stroke of the last 1.5 s goes along with the rest
+        }
+        if choice == .eraseInk {
+            onePage.beginEraseAndStart()
+            selection = nil
+            relayout()
         }
         Task { @MainActor in
             await sync.resolveAccountChange(choice)
             // 1.2.2 (docs/R1_2_2.md §12.2): every answer, from the dialog or from the erase alert (which
             // `showAccountChange` does not cover, so the age range step may have stepped aside for it).
             askAgeRangeIfDue()
-            guard choice != .later, !ScreenshotMode.isActive else { return }
+            guard choice != .later, !ScreenshotMode.isActive else {
+                onePage.endEraseAndStart()
+                return
+            }
             reloadShownPage()
+            onePage.endEraseAndStart()
         }
     }
 
@@ -2145,15 +2163,7 @@ struct CalendarRootScreen: View {
     /// runs here too (M4B contract §3.3): the ledger migrates on its `reload`, but the page in
     /// memory would otherwise keep the old cells until the next stroke.
     private func reloadShownPage() {
-        saveTask?.cancel()
-        saveTask = nil
-        let loaded = sync.load(pageId)
-        page = BandMigration.migrate(loaded)
-        pageDirty = false
-        if page != loaded {
-            pageDirty = true
-            scheduleSave()
-        }
+        onePage.reload(sync.load(pageId))
         relayout()
     }
 
@@ -2517,26 +2527,10 @@ struct CalendarRootScreen: View {
 
     // MARK: - Saving
 
-    private func scheduleSave() {
-        saveTask?.cancel()
-        saveTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1.5))
-            if Task.isCancelled { return }
-            saveNow()
-        }
-    }
-
     /// Writes the page now (through the engine, which also queues it for iCloud) if it changed since
-    /// the last save.
+    /// the last save. 1.3 (docs/M7C_CONTRACT.md D3 の 7): `OnePageSession.saveNow`, the same lines (a failure
+    /// comes back through `onSaveFailed` into `saveError`).
     private func saveNow() {
-        saveTask?.cancel()
-        saveTask = nil
-        guard pageDirty, !ScreenshotMode.isActive else { return }
-        do {
-            try sync.save(page)
-            pageDirty = false
-        } catch {
-            saveError = error.localizedDescription
-        }
+        onePage.saveNow()
     }
 }
