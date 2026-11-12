@@ -4,8 +4,9 @@ import XCTest
 
 /// 1.3 (docs/M7C_CONTRACT.md §7, §10.2 row Y; M4_CONTRACT §8.2, 54–59): the sync engine's two hooks for the
 /// joined pages. `pagesOpened(_:)` fetches the pages of a window with one `fetchRecords`, behind the same gate
-/// as `pageOpened` (the account check, the cooldown, the epoch, the counted queue); `onRemoteDelete` follows
-/// `onRemoteUpdate(empty)` for a record deleted in iCloud; the inert engine ignores both.
+/// as `pageOpened` (the account check, the status, the cooldown, the epoch, the counted queue) and, stricter,
+/// not while the iCloud half of 「全て消す」 is pending; `onRemoteDelete` follows `onRemoteUpdate(empty)` for a
+/// record deleted in iCloud, and for nothing else; the inert engine ignores both.
 ///
 /// A live engine over a temporary `InkPageStore` and `InMemoryCloudDatabase`, `TestSleeper` for every sleep
 /// (no real sleep anywhere: work paused in the fake is awaited by yielding, as all of it runs on the main
@@ -203,19 +204,42 @@ final class SyncEngineSpanTests: XCTestCase {
 
     // MARK: - 55: the cooldown and the epoch
 
-    /// 55: the 30 s cooldown is per page and shared with `pageOpened` (a page fetched by one is not fetched by
-    /// the other within 30 s; the pages that are due are fetched alone), and the epoch is taken before the
-    /// request and checked after it (the return from the background during the request leaves its answer
-    /// unmerged; the round trip it queued checks the account first).
+    /// 55: a call while a round trip is under way (`.syncing`) is refused as `pageOpened` refuses it, and starts
+    /// no cooldown. The 30 s cooldown is per page and shared with `pageOpened` (a page fetched by one is not
+    /// fetched by the other within 30 s; the pages that are due are fetched alone). The epoch is taken when
+    /// `pagesOpened` is called and checked when its work runs and after the request: work queued before
+    /// 「全て消す」 asks for nothing (the erased ink does not come back), and the return from the background
+    /// during the request leaves its answer unmerged (the round trip it queued checks the account first).
+    /// While the iCloud half of 「全て消す」 is pending (it failed), nothing is fetched and no cooldown starts;
+    /// the retry finishes the deletion first, and then the same pages are fetched at once.
     ///
-    /// Fails without the cooldown: the second and third calls would fetch week A again (`fetchRecords` 2 and 3
-    /// too early, and its stroke "b" merged before the 30 s). Fails without the epoch check, or with the epoch
-    /// read after the request: the answer that came back after the epoch moved would be merged (week B with "x").
+    /// Fails without the status gate (the call during the pull would fetch: `fetchRecords` 1 too early), or if
+    /// that refusal started the cooldown (the call right after the pull would fetch nothing). Fails without
+    /// the cooldown: the second and third calls would fetch week A again (`fetchRecords` too early, and its
+    /// stroke "b" merged before the 30 s). Fails if the work queued before the erase still ran (it would ask
+    /// for week D and merge "d1" back into the erased store), or without the pending-erase gate (the call while
+    /// the erase was pending would merge "d2" back, and the file would outlive the erase). Fails without the
+    /// epoch check after the request: the answer that came back after the epoch moved would be merged (week B
+    /// with "w" and "x").
     func testPagesOpenedHonorsTheCooldownAndEpoch() async throws {
         await startSynced()
         db.simulateRemoteSave(try record(page(weekA, ["a"])))
         db.simulateRemoteSave(try record(page(weekB, ["w"])))
+
+        // During a round trip (.syncing): refused, no cooldown started.
+        db.pause(.fetchChanges)
+        let current: SyncEngine = engine
+        let pull = Task { @MainActor in await current.syncNow() }
+        await yieldUntil { self.count(.fetchChanges) == 2 }
+        XCTAssertEqual(status, .syncing)
         engine.pagesOpened([weekA, weekB])
+        db.resume()
+        await pull.value
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .synced)
+        XCTAssertEqual(count(.fetchRecords), 0)
+
+        engine.pagesOpened([weekA, weekB]) // the same instant as the refused call
         await engine.waitUntilIdle()
         XCTAssertEqual(count(.fetchRecords), 1)
         XCTAssertEqual(live(weekA), ["a"])
@@ -246,12 +270,59 @@ final class SyncEngineSpanTests: XCTestCase {
         XCTAssertEqual(live(weekA), ["a", "b"])
         XCTAssertEqual(live(weekC), ["c"])
 
+        // 「全て消す」 while the window's fetch waits in the queue behind another page's request: it asks for nothing.
+        try engine.save(page(weekD, ["d1"]))
+        await flushDebounce()
+        XCTAssertNotNil(db.records[weekD])
+        db.pause(.fetchRecords)
+        engine.pageOpened(weekE) // another page's request is under way…
+        await yieldUntil { self.count(.fetchRecords) == 4 }
+        engine.pagesOpened([weekD]) // …and the window's waits behind it
+        let erase = Task { @MainActor in try await current.eraseEverything() }
+        await yieldUntil { !self.store.exists(self.weekD) }
+        db.resume()
+        try await erase.value
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.fetchRecords), 4, "the work queued before the erase asked for nothing")
+        XCTAssertFalse(store.exists(weekD), "the erased ink did not come back")
+        XCTAssertNil(db.records[weekD])
+        XCTAssertFalse(engine.state.pendingCloudErase)
+        XCTAssertEqual(status, .synced)
+
+        // 「全て消す」 whose iCloud half failed: nothing is fetched until the retry has finished the deletion.
+        try engine.save(page(weekD, ["d2"]))
+        await flushDebounce()
+        XCTAssertNotNil(db.records[weekD])
+        db.failNext[.fetchChanges] = .networkUnavailable // the erase's listing of the records
+        do {
+            try await engine.eraseEverything()
+            XCTFail("the iCloud half of the erase did not fail")
+        } catch {}
+        await engine.waitUntilIdle()
+        XCTAssertTrue(engine.state.pendingCloudErase)
+        XCTAssertEqual(status, .offline)
+        XCTAssertEqual(sleeper.recorded.last, 15)
+        XCTAssertNotNil(db.records[weekD])
+        engine.pagesOpened([weekD])
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.fetchRecords), 4)
+        XCTAssertFalse(store.exists(weekD), "the erased ink did not come back")
+        await sleeper.advance() // the retry: the round trip finishes the deletion before it pulls
+        await engine.waitUntilIdle()
+        XCTAssertFalse(engine.state.pendingCloudErase)
+        XCTAssertNil(db.records[weekD])
+        XCTAssertEqual(status, .synced)
+        engine.pagesOpened([weekD]) // the same instant: the refused call started no cooldown
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.fetchRecords), 5)
+        XCTAssertFalse(store.exists(weekD))
+
         // The epoch: the request is under way when the app comes back from the background (the epoch moves).
         now = now.addingTimeInterval(SyncBackoff.pageFetchCooldown)
         db.simulateRemoteSave(try record(page(weekB, ["w", "x"])))
         db.pause(.fetchRecords)
         engine.pagesOpened([weekB])
-        await yieldUntil { self.count(.fetchRecords) == 4 }
+        await yieldUntil { self.count(.fetchRecords) == 6 }
         engine.applicationDidEnterBackground()
         engine.applicationDidBecomeActive() // its round trip waits in the queue behind the request
         db.failNext[.fetchChanges] = .networkUnavailable // so that its pull does not bring week B either
@@ -259,10 +330,10 @@ final class SyncEngineSpanTests: XCTestCase {
         remoteUpdates = []
         db.resume()
         await engine.waitUntilIdle()
-        XCTAssertEqual(live(weekB), ["w"])
+        XCTAssertEqual(live(weekB), [], "the erased page stays empty")
         XCTAssertEqual(remoteUpdates.map(\.pageId), [])
         XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .fetchChanges])
-        XCTAssertEqual(count(.fetchRecords), 4) // the one whose answer was dropped
+        XCTAssertEqual(count(.fetchRecords), 6) // the one whose answer was dropped
         XCTAssertEqual(status, .offline)
     }
 
@@ -270,13 +341,21 @@ final class SyncEngineSpanTests: XCTestCase {
 
     /// 56: one `fetchRecords` for every page of the window; each record goes through `mergeRemote` in the
     /// order of the pages: a new page is written, another device's stroke is merged, a record whose change tag
-    /// this device has seen is skipped, a page without a record is simply absent (no file, no failure), and a
-    /// page with strokes only on this device is merged and queued for the next push. An empty list does nothing.
+    /// this device has seen is skipped (week C keeps a stroke its file has beyond that version, and is not
+    /// marked dirty), a page without a record is simply absent (week D keeps the stroke it has never sent, and
+    /// no hook is called for it), and a page with strokes only on this device is merged and queued for the next
+    /// push. Only `onRemoteUpdate` is called, for the pages that changed. An empty list does nothing. A zone
+    /// found missing is recovered as by `fetchPage` (every local page sent again), and a network failure makes
+    /// the status offline with the 15 s retry.
     ///
     /// Fails if the pages were fetched one by one (`fetchRecords` 5, not 1) or if a record were not merged (the
-    /// pages' strokes, `seen`, the dirty mark, the state file). A merge in the order of the fetched dictionary
-    /// instead of the pages fails `onRemoteUpdate`'s order here (and in 54) whenever the dictionary's order
-    /// differs, which Swift's hash seed (new in every process) makes likely, not certain.
+    /// pages' strokes, `seen`, the dirty mark, the state file). Fails without the skip of a seen change tag
+    /// (week C would be merged and marked dirty), or if a page without a record or a merged record called
+    /// `onRemoteDelete` (a "delete" event; S5 empties such a page and its undo). Fails without the zone
+    /// recovery (the records would stay gone) or without the handling of the network failure (the status would
+    /// stay synced). A merge in the order of the fetched dictionary instead of the pages fails
+    /// `onRemoteUpdate`'s order here (and in 54) whenever the dictionary's order differs, which Swift's hash seed
+    /// (new in every process) makes likely, not certain.
     func testPagesOpenedFetchesOnceAndMergesEach() async throws {
         await startSynced()
         engine.pagesOpened([])
@@ -290,19 +369,24 @@ final class SyncEngineSpanTests: XCTestCase {
         XCTAssertEqual(engine.state.dirty, [])
         db.simulateRemoteSave(try record(page(weekA, ["a"]))) // new to this device
         db.simulateRemoteSave(try record(page(weekB, ["b1", "b2"]))) // another device added "b2"
-        // weekC: the server holds the version this device sent; weekD: no record anywhere.
+        // weekC: the server holds the version this device sent, whose change tag it has seen; its file has one
+        // stroke more (written past the engine). weekD: no record anywhere, a stroke only in its file.
+        try store.save(page(weekC, ["c", "c2"]))
+        try store.save(page(weekD, ["d1"]))
         try store.save(page(weekE, ["e1"])) // a stroke only on this device…
         db.simulateRemoteSave(try record(page(weekE, ["e2"]))) // …and another only in iCloud
         remoteUpdates = []
+        events = []
 
         engine.pagesOpened([weekA, weekB, weekC, weekD, weekE])
         await engine.waitUntilIdle()
         XCTAssertEqual(count(.fetchRecords), 1)
         XCTAssertEqual(remoteUpdates.map(\.pageId), [weekA, weekB, weekE])
+        XCTAssertEqual(events, ["update \(weekA) 1", "update \(weekB) 2", "update \(weekE) 2"], "no onRemoteDelete")
         XCTAssertEqual(live(weekA), ["a"])
         XCTAssertEqual(live(weekB), ["b1", "b2"])
-        XCTAssertEqual(live(weekC), ["c"])
-        XCTAssertFalse(store.exists(weekD))
+        XCTAssertEqual(live(weekC), ["c", "c2"])
+        XCTAssertEqual(live(weekD), ["d1"])
         XCTAssertEqual(live(weekE), ["e1", "e2"])
         for pageId in [weekA, weekB, weekC, weekE] {
             XCTAssertEqual(engine.state.seen[pageId]?.changeTag, db.records[pageId]?.changeTag, pageId)
@@ -320,6 +404,25 @@ final class SyncEngineSpanTests: XCTestCase {
         XCTAssertEqual(Set(sent.liveStrokeIds), ["e1", "e2"])
         XCTAssertEqual(engine.state.dirty, [])
         XCTAssertEqual(status, .synced)
+
+        // The zone is gone (another account, or the zone deleted): recovered as by `fetchPage`.
+        now = now.addingTimeInterval(SyncBackoff.pageFetchCooldown)
+        db.simulateZoneDeleted()
+        let mark = db.calls.count
+        engine.pagesOpened([weekA, weekB])
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...].prefix(2)), [.fetchRecords, .ensureZone])
+        XCTAssertEqual(Set(db.records.keys), [weekA, weekB, weekC, weekD, weekE], "every local page sent again")
+        XCTAssertEqual(engine.state.dirty, [])
+        XCTAssertEqual(status, .synced)
+
+        // The network fails: offline, and the retry in 15 s.
+        now = now.addingTimeInterval(SyncBackoff.pageFetchCooldown)
+        db.failNext[.fetchRecords] = .networkUnavailable
+        engine.pagesOpened([weekA])
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .offline)
+        XCTAssertEqual(sleeper.recorded.last, 15)
     }
 
     // MARK: - 57: waitUntilIdle
@@ -367,8 +470,12 @@ final class SyncEngineSpanTests: XCTestCase {
     /// dirty mark go as in 1.2.3 (`test11DeletedNamesRemoveTheFile`), and the hooks delete and send nothing
     /// (only `cloudErase` deletes).
     ///
-    /// Fails without the call (no "delete" events), with the call before `onRemoteUpdate` (the order), or with
-    /// the call before the `Meta` record is skipped (a "delete meta" event).
+    /// The pull before, which merges a record of another device and the `Meta` record, calls `onRemoteUpdate`
+    /// alone.
+    ///
+    /// Fails without the call (no "delete" events), with the call before `onRemoteUpdate` (the order), with
+    /// the call before the `Meta` record is skipped (a "delete meta" event), or with a call for a merged record
+    /// (a "delete" event after the first pull).
     func testRemoteDeleteCallsBothHooksInOrder() async throws {
         await startSynced()
         try engine.save(page(month, ["m"]))
@@ -379,6 +486,7 @@ final class SyncEngineSpanTests: XCTestCase {
         XCTAssertTrue(store.exists(month))
         XCTAssertTrue(store.exists(weekA))
         XCTAssertNotNil(engine.state.seen["meta"])
+        XCTAssertEqual(events, ["update \(weekA) 1"], "a pull that merges records calls onRemoteDelete for none")
 
         db.simulateRemoteDelete(month)
         db.simulateRemoteDelete(weekA)

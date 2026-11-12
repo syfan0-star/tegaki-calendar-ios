@@ -1221,6 +1221,11 @@ extension SyncEngine {
     /// is due (a page without a record is simply absent) and each record merged by `mergeRemote`, one at a
     /// time in the order given, as `fetchPage` does. The work goes through `enqueue`, so `waitUntilIdle`
     /// counts it. `pageOpened` itself is unchanged (the one-page screen keeps calling it).
+    /// Stricter than `pageOpened` in two ways: nothing is fetched while the iCloud half of 「全て消す」 is pending
+    /// (`pendingCloudErase`; looked at when called and again when it runs), since the round trip finishes that
+    /// deletion before it pulls anything and a page fetched before it would bring the erased ink back to this
+    /// device (and with the next launch to iCloud); and the epoch is taken when it is called, so work queued
+    /// before the erase, an account change or the return from the background is dropped.
     func pagesOpened(_ pageIds: [String]) {
         guard !inactive, started else { return }
         switch snapshot.status {
@@ -1230,8 +1235,8 @@ extension SyncEngine {
             return
         }
         // Before the cooldown, as in `pageOpened`: a page refused now is fetched when it is opened again after
-        // the check.
-        guard !needsAccountCheck else { return }
+        // the check or the erase.
+        guard !needsAccountCheck, !state.pendingCloudErase else { return }
         let now = clock()
         var due: [String] = []
         for pageId in pageIds {
@@ -1242,18 +1247,20 @@ extension SyncEngine {
             due.append(pageId)
         }
         guard !due.isEmpty else { return }
-        enqueue { await self.fetchPages(due) }
+        // Taken now, before the request, and checked when the work runs and after the request: an account
+        // change, the erase, the account choice or the return from the background in between leaves it unmade
+        // or its answer unmerged.
+        let epoch = workEpoch
+        enqueue { await self.fetchPages(due, epoch: epoch) }
     }
 
     /// `pagesOpened`: the pages that are due, with the cooldown already checked. `fetchPage` for several
     /// pages with one request; its failures are handled as there.
-    private func fetchPages(_ pageIds: [String]) async {
+    private func fetchPages(_ pageIds: [String], epoch: Int) async {
         // Looked at again when it runs (it may have been queued before an account change, a check that found
-        // another account, or the background); skipped while a check is due (the next pull brings the pages).
-        guard started, !needsAccountCheck else { return }
-        // Taken before the request and checked after it: an account change, the erase, the account choice or
-        // the return from the background during the request leaves its answer unmerged.
-        let epoch = workEpoch
+        // another account, the background or 「全て消す」); skipped while a check is due or the iCloud erase is
+        // pending, and when the epoch moved since the call (the next pull brings the pages).
+        guard started, !needsAccountCheck, !state.pendingCloudErase, epoch == workEpoch else { return }
         do {
             // Before the request while away from the foreground (today a check is then always due, so the
             // guard above has returned already; kept so the gate stays whole if that ever changes).
