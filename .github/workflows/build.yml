@@ -40,8 +40,9 @@
 # DeclaredAgeRange ("Age range isolation"), and the built app loads it weakly ("Weak link of DeclaredAgeRange").
 # Since 1.3 (docs/M7C_CONTRACT.md §6.4, §10.6) the macOS part also checks that 1.2.3's tests of the one-page path
 # are the bytes of 43fe366 (tools/span/TESTS_1_2_3.sha256), and KitChecks reads the compat-span fixtures.
-# A push to the branch r13-quick (§10.6 速い確かめの道) runs the first job only, without its photos, UI tests and
-# repeated sync engine tests, and of the app's unit tests only the Span ones (QUICK below).
+# A push to the branch r13-quick, or to a branch r13-q-<track> (S5's parallel tracks, docs/M7C.md S5) (§10.6 速い確かめの
+# 道) runs the first job only, without its photos, UI tests and repeated sync engine tests, and of the app's unit
+# tests only the Span ones (QUICK below).
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -81,12 +82,14 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
       NSUnbufferedIO: "YES"
-      # 1.3 (docs/M7C_CONTRACT.md §10.6 速い確かめの道): "true" on a push to the branch r13-quick, "false" anywhere
-      # else. Then this job builds and runs KitChecks, the Kit's tests (CompatSpanTests among them) and the checks
+      # 1.3 (docs/M7C_CONTRACT.md §10.6 速い確かめの道): "true" on a push to the branch r13-quick or to a branch
+      # r13-q-<track> (S5's parallel tracks; concurrency is per ref, so the tracks do not stop each other), "false"
+      # anywhere else. Then this job builds and runs KitChecks, the Kit's tests (CompatSpanTests among them) and the checks
       # of the macOS part (seconds), and of the app's unit tests only the Span ones ("Run unit tests on the
       # simulator"); the repeated sync engine tests, the photos and the UI tests are skipped (`env.QUICK`), and the
-      # other jobs do not run (`github.ref_name != 'r13-quick'`). S5 runs there; r13 and main run everything.
-      QUICK: ${{ github.ref_name == 'r13-quick' }}
+      # other jobs do not run (their `if:` leaves out r13-quick and r13-q-*). S5 runs there; r13 and main run
+      # everything.
+      QUICK: ${{ github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') }}
       # J-4 (docs/M7B_CONTRACT.md §1.3, §7.5, 0-25): every screenshot launch ends with these, as in
       # ja-baseline.yml (the runner's simulator is English; without them the app would be in English since
       # 1.2 and the kanji would fall back to PingFang SC). Expanded unquoted on purpose: four words, none
@@ -1119,7 +1122,7 @@ jobs:
   compat-v1-0:
     name: compat-v1.0
     # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only).
-    if: ${{ github.ref_name != 'r13-quick' }}
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
     runs-on: macos-26
     timeout-minutes: 65
     env:
@@ -1401,7 +1404,7 @@ jobs:
     name: Localized shots (1.2)
     # 1.3's work branches (r13-w-*) skip the two photo jobs so the macOS runners stay free for the jobs the
     # work needs; r13 and main run everything (docs/M7C.md, S1 の残り). Nor on r13-quick (§10.6).
-    if: ${{ !startsWith(github.ref_name, 'r13-w-') && github.ref_name != 'r13-quick' }}
+    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
     runs-on: macos-26
     timeout-minutes: 75
     env:
@@ -1630,7 +1633,7 @@ jobs:
   # last device, the owner's iPad Air 11-inch, and took 33 of the 43 photos.
   blank-paper:
     name: Blank paper shots (1.1.1)
-    if: ${{ !startsWith(github.ref_name, 'r13-w-') && github.ref_name != 'r13-quick' }}
+    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
     runs-on: macos-26
     timeout-minutes: 55
     continue-on-error: true
@@ -1784,7 +1787,7 @@ jobs:
   span-shots:
     name: span-shots (1.3 prototype)
     # Not on r13-quick (docs/M7C_CONTRACT.md §10.6).
-    if: ${{ github.ref_name != 'r13-quick' }}
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
     runs-on: macos-26
     timeout-minutes: 60
     env:
