@@ -2,15 +2,16 @@
 
 契約は [M7C_CONTRACT.md](M7C_CONTRACT.md)。ここはリードの記録で、段ごとに節を足す。**今の状態は最初の「今の状態」の節を読む。** 各節は書いた時点の記録で、書き直さない（後で変わった物は「今の状態」で読み替える）。
 
-## 今の状態（リード、2026-11-12 15:00）
+## 今の状態（リード、2026-11-12 23:50）
 
-- 枝 `r13`（origin も同じ）。S1 は全部済んだ（Kit の部品と、C の互換・CI と T の試作）。S2 の見本の画像は 11/12 に本人へ送った。S3（試作を TestFlight へ）は下の「S3」の節。
-- ふつうのアプリは 43fe366 のまま: 凍結の表の 18 ファイル・既存のテスト（`TESTS_1_2_3.sha256` の 8 ファイル）・InkModel の既存の 7 ファイル・compat11・Compat10・`tools/compat10` は 43fe366 から 1 バイトも変わっていない。`Sources/TegakiCalendar` の差は `Span/SpanPrototype*.swift`（全体が `#if SPAN_PROTOTYPE` の中）・`SettingsScreen.swift` の入口 4 行（`#if SPAN_PROTOTYPE` の中）・文の表の `prototype.span.*` のキー 33 個（ja だけ）だけ（`tools/span/prototype_gate.py --base 43fe366` が OK）。
-- この Mac の関門（073e748）: KitChecks **36,968 件・失敗 0**、typecheck は試作の印なし・ありの両方で all OK（アプリの警告 0）、lint OK、DATA_1_1 18/18・TESTS_1_2_3 8/8 OK、`prototype_gate_test.py` 14 件 OK。
-- CI: 073e748 の run 43149906124 は 5 つのジョブ（build-and-test・compat-v1.0・l10n-shots・blank-paper・span-shots）が全部緑（約 82 分）。span-shots は試作のテスト 24 本（`PrototypeIsolationTests` 4・`SpanPrototypeInteractionTests` 20）が全部合格、見本の画像 23 枚。
-- S4 は前倒しで始めた（下の「予定の前倒し」）。台帳（L）・SyncEngine の 2 つの口（Y）・lint の読む範囲（C）は作業用の枝 `r13-w-lint`・`r13-w-l`・`r13-w-y` とまとめの枝 `r13-s4` で進め、**試作を TestFlight に上げるまで `r13` には入れない**（試作のビルドの台帳は 43fe366 のバイトのまま、D12）。
+- 枝 `r13`（origin も同じ）。S1〜S4 は済んだ。S2 の見本の画像と S3 の試作（版 1.3・ビルド 24）は 11/12 に本人へ届けた。S4（台帳・同期の 2 つの口・lint の読む範囲）は 11/12 23:30 に `r13` へ入れた（下の「S4」の節）。次は S5 の本体（11/19〜）。
+- ふつうのアプリと 43fe366 の違い: 凍結の表のうち `Ink/InkLedger.swift` と `Sync/SyncEngine.swift` の 2 つが S4 で変わり、`tools/compat10/DATA_1_1.sha256` はその 2 行だけを書き直した（§6.4 の手順 2。ほかの 16 行は 43fe366 のまま）。今の画面（1 ページの道）の振る舞いは変わらない（S4 の節の「1 ページの道の記録」）。既存のテスト（`TESTS_1_2_3.sha256` の 8 ファイル）・InkModel の既存の 7 ファイル・compat11・Compat10 は 43fe366 から 1 バイトも変わっていない。試作は `#if SPAN_PROTOTYPE` の中のまま。
+- `tools/span/prototype_gate.py --base 43fe366` は `r13` の先頭では FAIL になる（S4 の 2 ファイル）。これは S3 の試作のビルドだけの関門で、CI では走らない（testflight.yml の `span_prototype=1` のときだけ）。試作を作り直すときはタグ `r13-proto-1` から作る。
+- この Mac の関門（dcf32f0。リードが 11/12 23:55 に確かめた）: KitChecks **36,968 件・失敗 0**（Kit は S1 から変わらない）、typecheck は試作の印なし・ありの両方で all OK（アプリの警告 0、TegakiCalendarTests 39 ファイル・UITests 6 ファイル、警告 0）、lint OK（読むアプリのファイルは 65 → 69）、DATA_1_1 18/18・TESTS_1_2_3 8/8 OK、`prototype_gate_test.py` 14 件 OK。
+- CI: S4 の最後の 80c900e の run 43220903284 は 5 つのジョブが全部緑。`r13` の dcf32f0（80c900e ＋ 1.0 の試験の待ち方の直し）の run 43237335436 は走っている（結果は S4 の節の CI の項に足す）。
 - 読み替え: S1 の節の「CI」の項の「r13-quick … まだ入れていない」は、073e748 で入った（§10.6。`r13-quick` の枝はまだ作っていない。S5 で最初に push したときが最初の実行）。
-- 文書の掃除: 647ea01 で、前の段の文書 7 つ（M5・M5_CONTRACT・M6・M6_CONTRACT・M7A_CONTRACT・M7B・M7B_CONTRACT）にあった手元の絶対パス（利用者名を含む）を `~/`・`<scratchpad>/`・`<Claude のセッションの記録>/` に置き換えた。main には 1.3 をまとめるときに入る。docs だけの commit は CI を走らせない（`[skip ci]`）。
+- 文書の掃除: 647ea01 で、前の段の文書 7 つにあった手元の絶対パス（利用者名を含む）を `~/`・`<scratchpad>/`・`<Claude のセッションの記録>/` に置き換えた。main には 1.3 をまとめるときに入る。docs だけの commit は CI を走らせない（`[skip ci]`）。
+- 1.2.3 の穴の候補（H4）: 「全て消す」の iCloud の分が残る間などに、今の 1.2.3 の `pageOpened`／`fetchPage` が消したページを取り戻すことがある、と S4 の見直しが見つけた（S4 の節のリードの決定 9）。再現と直し方を Workflow wf_654e5eb9-c16 で確かめている。1.2.4 を作るかの判断（S1' の後）に入れる。
 
 ### 段の実績（§12.2 の目安との比べ）
 
@@ -21,7 +22,7 @@
 | S1 の残り（C・T） | 〜11/19 | 11/12 01:44〜12:55（33 commit、1ce392a〜073e748。下の節） |
 | S2 見本の画像 | 〜11/20 | 11/12 14:30 ごろ確認ページを本人に送った（073e748 の画像 23 枚。iPad の横は無い） |
 | S3 試作を TestFlight へ | 〜11/21 | 11/12（下の「S3」の節） |
-| S4 台帳ほか | 11/21〜 | 11/12 14:05 に始めた（枝 r13-s4。試作を上げた後で r13 へ） |
+| S4 台帳ほか | 11/21〜 | 11/12 14:05〜23:20（枝 r13-s4、11 commit）。試作が VALID になった（15:29）後の 23:30 に r13 へ早送りで入れ、1.0 の試験の直し dcf32f0 を足した（下の「S4」の節） |
 
 ### 予定の前倒し（2026-11-12、本人の「早く出来るのであれば、予定を前倒ししましょう」）
 
@@ -37,11 +38,13 @@
 
 - 1/15（週のメモの関門）と 2/15（Duo の決まり）は変えない。
 - 週の利用枠: 11/12 13:00 に 34%（11/18 の昼に戻る）。本人は無料の枠の回復を 1 回持っている（11/12）。今は使わず、95% に近づいて作業が止まりそうなとき（特に S5 の 11/19〜12/9）に本人に知らせて押してもらう。
+- 追記（11/12 23:50）: 週の利用枠は 48%。無料の枠の回復は週の枠を 0 に戻すフルリセットで、使える期限は 12/11（本人、11/12 18:00）。押すのは本人。12/9 までに使わなかったときは、12/10 に週の枠が半分を超えていれば押してもらう。
 
 ## 本人の操作
 
 - 2026-11-11: iPad Pro 13 と iPad mini で、TestFlight のてがきカレンダーの「自動アップデート」をオフにした（§4.6 の手順 0、§0.5）。この 2 台には試作を入れない。
 - 2026-11-12: 「早く出来るのであれば、予定を前倒ししましょう」（上の表）。
+- 2026-11-12 18:00: 「今のままで良いです。進めて下さい。フルリセット、期限12/11です。」（無料の枠の回復の使い方はリードの案のまま。「今のまま」は iPhone 横の形の答えとしても、おすすめと同じなので、そのまま進む）。
 
 ## S1（TegakiKit の部品。2026-11-11 21:00〜11-12 01:30）
 
@@ -304,9 +307,77 @@
 
 - 2026-11-12 15:15（JST）に testflight.yml を `r13`（647ea01。073e748 に docs だけを足した commit）で、`marketing_version=1.3`・`span_prototype=1` で走らせた（run 43166806113）。**ビルドの番号は 24**（run の番号）。タグ `r13-proto-1`（647ea01）を付けた。S4 で表のファイルが変わった後に試作を作り直すときは、このタグから作る。
 - 後で本物の 1.3 を出すとき、提出のスクリプトは版に付けるビルドが 24 でないことを確かめる（§4.6）。ビルド 24 は、次のふつうのビルドが TestFlight で使えるようになって（VALID）から期限切れにする。
+- ビルド 24 は 15:29 に VALID、内部のテスト（IN_BETA_TESTING）に入った。アーカイブの確かめ（testflight.yml）: 版 1.3・ビルド 24・SpanPrototype が入っている。VALID の後、§4.6 の手順 1〜6 を、期日 11/18（水）を添えてチャットで本人に送った（入るのは iPad Air 11 と iPhone だけ）。
 
 ### S5 への申し送り
 
 - iPhone 横の一番縮めた形「今のまま」の日付の見出しが重なる（リードの決定 4。P）。
 - 写真の段の「The app is not running」の誤った警告（決定 8。C）と、13 インチのシートの段の決まった 9 秒（上の J-4。C）。
 - 手のひらで縦も止めるか（決定 2。L）。
+
+## S4（台帳・同期の 2 つの口・lint の読む範囲。2026-11-12 14:05〜23:30）
+
+予定の前倒しで、試作の後ではなく試作と並べて、作業用の枝で作った（Workflow wf_c205445e-6e8: 作る 3・まとめ 1・見直し 5・確かめ 5・直し 2・最後の点検 1 の 17 人）。D12 のとおり、`r13` には試作のビルド 24 が VALID になった後で入れた（23:30、ac3e896 → 80c900e の早送り。続けてリードの dcf32f0）。
+
+### commit（`r13` に入った順）
+
+| commit | 中身 |
+| --- | --- |
+| d330aa8 | lint が読まないファイルの一覧を `tools/l10n/lint-skip.txt`（14 行）に分け、1.3 で変える 4 つ（InkLedger・InkCanvasView・InkOverlayView・SyncEngine）を読ませる（§6.4 の手順 1）。4 つに lint の指摘は 0。一覧の行が古い・重なる・表に無いときは lint が落ちる |
+| ba6a9d9 | 台帳（L）: §3.3 の 5 か所（id の持ち主・横の道の記録・`pruneHistory(touching:)`・`needsMoreRoom` の接頭辞・消しゴムでない削除を断る）と §4.4 の組の印。`InkLedgerSpanTests` 8 本。DATA_1_1 の InkLedger の行を同じ commit で書き直し |
+| 4bec111 | 同期（Y）: `onRemoteDelete` と `pagesOpened(_:)`（§7）。`SyncEngineSpanTests` 6 本（M4_CONTRACT §8.2 の 54〜59）。DATA_1_1 の SyncEngine の行 |
+| a95c860・e83fb10 | 20 回くり返しの段に `SyncEngineSpanTests` を足し、クラスごとの時間を出す（§10.6。上限は測った時間から 9 分のまま） |
+| 4b5be49・7bbc5b5 | `r13-s4` への取り込み（ぶつかり無し） |
+| 3554bf3 | 見直しの直し: `allowRemovals: false` で断るのは横の道だけ（§3.3 の 5。1 ページの道は 1.2.3 のまま常に受け取る）。墓標にしなかった id を `InkChange.alreadyErased`・`unknownRemovals` で返す（§3.4 (a)）。テストを強める |
+| 1c8a356 | 見直しの直し: `pagesOpened` は「全て消す」の iCloud の分が残る間と、呼んだ後に epoch が動いたときは取りに行かない。テストを強める |
+| 62939eb | くり返しの段のクラスごとの数を、期待する数（回数 × テストの数）と比べ、足りなければ警告 |
+| 80c900e | 最後の点検の直し（テストだけ）: ゾーンが消えたときにアカウントを先に確かめること、混ざった変更が消えていた id の指紋も忘れること |
+| dcf32f0 | リード: 1.0 の同期の試験の待ち方（下の「1.0 の試験の道具」） |
+
+### 1 ページの道の記録（§6.4。凍結の表のファイルを変えた commit ごと）
+
+| commit | ファイル | 1 ページの道が通る行 | 理由（§6.4 の表の行） | 通る既存のテスト |
+| --- | --- | --- | --- | --- |
+| ba6a9d9（4b5be49 で取り込み） | `Ink/InkLedger.swift` | 49 行（既存の 24 行を変え、25 行を足した）: id を作る 3 か所（`ownerId?(cell) ?? makeId()`）、履歴の歩の型（§4.4）、記録の呼び出し（`ownerId` が nil ならすぐ戻る）、`applyCanvasChange` の引数（既定 `true`）と戻り値、`needsMoreRoom` の接頭辞外し（1 ページでは何もしない）、新しい property の初期値。振る舞いの違いは 0（43fe366 の台帳と並べて同じ操作を与える手元の比べ 46,835 歩で違い 0） | InkLedger.swift の行（§3.3 の 5 か所と組の印） | InkLedgerTests 24（testLedgerWritesTheCompatShapes を含む）・WeekStartLedgerTests 2・InkCanvasViewTests のうち canvasViewDrawingDidChange を呼ぶ 6 本・EraserAndBelowDayUITests 8・InkSnapshotTests |
+| 4bec111（7bbc5b5 で取り込み） | `Sync/SyncEngine.swift` | 1 行: `apply` の削除の輪の `onRemoteDelete?(name)`（S5 まで nil なので何もしない）。ほかは既存の関数の外（property 7 行と、1 ページの道が呼ばない新しい extension 81 行） | SyncEngine.swift の行（2 つの口だけ。今の関数の中は onRemoteDelete の 1 行だけ） | SyncEngineTests.test11DeletedNamesRemoveTheFile（単体と 20 回くり返し） |
+| 3554bf3 | `Ink/InkLedger.swift` | 7 行: 断る条件に `ownerId != nil` を足した行、最後の return、InkChange の 2 つの property（既定は空）ほか。1 ページの道では新しい一覧は常に空。43fe366 の台帳と並べた比べ 77,764 歩（`allowRemovals` を true/false の乱数で渡す）で違い 0 | 同上（§3.3 の 5「1 ページの道は今どおり（常に許す）」） | 同上 |
+| 1c8a356 | `Sync/SyncEngine.swift` | 0 行（1.3 の extension だけ） | 同上 | — |
+| 80c900e | （テストだけ） | 0 行 | — | — |
+
+- DATA_1_1.sha256 は InkLedger と SyncEngine の 2 行だけが 43fe366 と違う（`r13` で 18/18 OK）。TESTS_1_2_3 8/8 OK。
+
+### 見直し（5 つの見方。14 件のうち確かめ役が再現したもの 10 件、どれも minor。全部直した）
+
+| 見方 | 再現した指摘 | 直し |
+| --- | --- | --- |
+| 1 ページの道・台帳 | OP-1/L-1: 1 ページの道でも `allowRemovals: false` で削除を断っていた（§3.3 の 5 は「常に許す」）。L-2: ページごとの「半分以上」をテストが固定していない。L-3: 墓標にしなかった id を返さないので、S5 のキャンバスが記録できない。L-5: 生きていない id だけの変化・古い歩を通って届く組をテストが固定していない。OP-2: 1 ページの道の記録の文の誤り | 3554bf3（OP-2 は上の表で直した） |
+| 同期 | Y-1: `pagesOpened` が「全て消す」の iCloud の分が残る間も取りに行く。Y-2: `onRemoteDelete` が記録の無いページや取り込みで呼ばれないことをテストしていない。Y-3: 状態の門・見た変更タグ・ゾーンの回復・通信なしの枝をテストしていない | 1c8a356 |
+| CI | R4-CI-1: くり返しの段のクラスごとのまとめが、割れたログの行を数え落とす | 62939eb |
+| 凍結 | 2 件とも再現せず | — |
+
+- 最後の点検の 2 件（ゾーンが消えたときのアカウントの確かめ・混ざった変更の指紋）はテストを強めて直した（80c900e）。どの直しも、外すとそのテストが落ちることを手元の写しで確かめた（作業者の記録）。
+
+### CI
+
+- r13-s4 7bbc5b5（run 43176186917）: 1 回目に compat-v1.0 だけ落ちた（下の「1.0 の試験の道具」）。落ちたジョブだけ走らせ直して緑。
+- 62939eb（run 43202786785）: 5 つのジョブが全部緑。単体テスト 482 本（skip 8・失敗 0）。くり返しの段 1,320 本・失敗 0（3.5 分）。
+- 80c900e（run 43220903284）: 5 つのジョブが全部緑。くり返しの段は SyncEngineSpanTests 120/120（4.8 秒）・SyncEngineTests 1200/1200（24.8 秒）、警告なし。
+- `r13` dcf32f0（run 43237335436）: 走っている。
+
+### 1.0 の試験の道具（リードの直し、dcf32f0）
+
+- compat-v1.0 の `Real10LedgerTests.testSyncOn10KeepsExtraAndDoesNotSendAPageBack` が `w-2026-12-07.photo-text-neighbor.json` で「送った線が 2 本（3 本のはず）」で落ちた。S4 はこの試験・1.0 の木・見本のどれにも触れていない。同じ試験は前にも 1 回揺れた（R1_2_2.md:965）。
+- 原因: 1.0 のエンジンは `sleep` を main actor でない closure を通して呼ぶので、`waitUntilIdle` が返った時点で、デバウンスのタスクがまだ `TestSleeper.sleep` に届いていないことがある。そのとき `advance()` を 1 回呼んでも何も起きず、送る処理が来ない。
+- 直し: `tools/compat10/AppTests/Real10LedgerTests.swift` の `flushDebounce` を、ページが dirty でなくなるまで「待つ → 起こす → 10 ms」をくり返す形にした（最長 5 秒）。後の確かめは同じ。1.0 の本体（a21e469）は変えない。この Mac で 1.0 の木に入れて typecheck OK（TegakiCalendarTests 25 ファイル・警告 0）。1.2.3 の写し（Real123LedgerTests）は `advance` が async で、この揺れは無い。
+
+### リードの決定（作業者からの問い）
+
+1. `makeGroup`（組の印の種。`makeId`・`nowMs` と同じ形）・`InkHistoryStep`・`removalLimit = 50`・`pageRemovalLimit = 20` を、§2.1 に無い名前として認める。結果の型は `InkChange` のまま（`needsRebuild` は計算で出す）。
+2. `allowRemovals: false` は横の道だけで守る（3554bf3）。S5 のキャンバスは 1 ページの道でも引数をそのまま渡してよい。
+3. 断った削除だけで新しい線が無い変化は `isEmpty` が true になる。S5 のキャンバスは `guard !change.isEmpty`（InkCanvasView.swift:1907）より先に `needsRebuild` を見る。`alreadyErased`・`unknownRemovals` の記録と Debug での停止は S5 のキャンバスの役。
+4. lint-skip.txt に 4 つが戻らないように止める仕組みは入れない（§6.4 の手順 4 で表と一緒に直す）。README の lint の説明に lint-skip.txt を足すのは S6 の文書の仕事。
+5. PrototypeIsolationTests の禁止の語に `onRemoteDelete` を足すかは S5 の C で見る（試作のソースはタグ r13-proto-1 で止まっている）。
+6. SyncEngineSpanTests の待ち方（yield だけで、実時間の待ちなし）は今のまま。CI で揺れたら実時間の待ちを足す。
+7. `r13` には早送りで入れた（r13-s4 は ac3e896 の上にあった）。作業用の枝 r13-w-lint・r13-w-l・r13-w-y・r13-s4 は消さない（消すときは本人に聞く）。
+8. `pagesOpened` は 1.2.3 の `pageOpened` と同じ門に加え、「全て消す」の iCloud の分が残る間と、呼んだ後に epoch が動いたときは取りに行かない（1c8a356）。S5 の窓はこちらだけを使う。
+9. 1.2.3 の `pageOpened`／`fetchPage` には、見直しの Y-1 と同じ穴が残る（「全て消す」の iCloud の分が残る間、または消す前に並んだ取りに行く仕事が、消したページを端末に戻し、次の起動で iCloud に送り直す）。§6.4 で既存の関数は変えないので、S4 では直さない。H4 の候補として、再現と直し方を Workflow wf_654e5eb9-c16 で確かめ、1.2.4 を作るかの判断（S1' の後）に入れる。1.3 の 1 ページの道も同じ関数を使うので、1.2.4 を作らないときは 1.3 で直すかを本人に聞く（§6.4 の表を広げる話になる）。
