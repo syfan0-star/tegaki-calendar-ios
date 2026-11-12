@@ -397,7 +397,7 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
 
 - `pageOpened` と `fetchPage` の guard に `!state.pendingCloudErase` を足す（コード 2 行・注 3 行）。`pageOpened` は冷却の前で断るので、消去が済んだ後に開けば取りに行く。それ以外の動きは変えない（世代を積んだときに取る形（r13 の `pagesOpened` の形）は、確かめた穴を余計に塞がず、1 ページの道の動きを変えるので入れない）。
 - `tools/compat10/DATA_1_1.sha256` の SyncEngine の行を書き直した（R1_2_3.md §3.10 と同じ）。新しい `SyncEngineEraseFetchTests` 3 本（M4_CONTRACT §8.2 の 60〜62。54〜59 は 1.3 の `SyncEngineSpanTests`）を足し、20 回くり返しの段にも入れた。`SyncEngineTests.swift` は 43fe366 のまま（r13 の `TESTS_1_2_3.sha256` は OK のまま）。build.yml と README の「SyncEngine.swift だけ 1.2.3 の中身」の注も直した。
-- 試験の場: 新しい 3 本は 43fe366 で 20 回とも失敗、直した後は 200 回とも合格。既存の SyncEngineTests は 20 回で 1,180 本合格。批判役は直しを壊せなかった（再現の試験 26 本が「戻らない」に変わった）。この Mac の typecheck・lint・DATA_1_1 OK。CI は run 43251126239。
+- 試験の場: 新しい 3 本は 43fe366 で 20 回とも失敗、直した後は 200 回とも合格。既存の SyncEngineTests は 20 回で 1,180 本合格。批判役は直しを壊せなかった（再現の試験 26 本が「戻らない」に変わった）。この Mac の typecheck・lint・DATA_1_1 OK。CI の run 43251126239（h4-fix、2470c5d）は 4 つのジョブが全部緑（11/13 02:16）: 単体テスト 471 本（skip 8・失敗 0、新しい 3 本を含む）、20 回くり返しの段 1,260 本・失敗 0（SyncEngineTests 1,200 ＋ SyncEngineEraseFetchTests 60）、compat-v1.0・UI テストも緑。
 - この直しで塞がらないもの（画面の側。1.3 で直す）: H1（ほかの端末の画面に残った線が、次に書いたときに iCloud に戻る。二台使いでは一番起きやすい）、H3（「全て消す」の後の ↶）、全消去の確認の後の一瞬の窓（理屈の上だけ）。
 
 ### どの版で出すか（既定とリードの判断）
