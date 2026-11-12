@@ -228,8 +228,9 @@ jobs:
 
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the 18 files of the handwriting's data are the
       # bytes of 1.1.1, except Sync/SyncEngine.swift, whose line is 1.2.3's (docs/R1_2_3.md §3.10: the sync's
-      # order and account checks changed, not the data's form). The file keeps its name; the commit it was
-      # made from is in docs/M7B.md.
+      # order and account checks changed, not the data's form) and, after the H4 fix, that of the commit
+      # with the two pendingCloudErase guards. The file keeps its name; the commit it was made from is in
+      # docs/M7B.md.
       - name: Data code frozen since 1.1.1
         run: |
           set -euo pipefail
@@ -473,6 +474,7 @@ jobs:
             -derivedDataPath build/DerivedData \
             -only-testing:TegakiCalendarTests/SyncEngineTests \
             -only-testing:TegakiCalendarTests/SyncEngineSpanTests \
+            -only-testing:TegakiCalendarTests/SyncEngineEraseFetchTests \
             -skip-testing:TegakiCalendarTests/SyncEngineTests/testMergeRemoteOfATruncatedPageMarksDirty \
             -test-iterations "$ITERATIONS" \
             -run-tests-until-failure \

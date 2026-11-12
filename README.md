@@ -98,7 +98,7 @@ Web 版（<https://github.com/syfan0-star/tegaki-calendar>）で確かめた使�
 このリポジトリは **手元の Mac に Xcode が無くてもビルドできる** ようにしてあります。
 
 - `git push` するたびに、GitHub の macOS マシン（`macos-26`、Xcode 26.6）が自動で次をします（[.github/workflows/build.yml](.github/workflows/build.yml)）。
-  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（1.2.2 で 29982 項目の検査。29932 以上であることを数字で確かめる）→ `swift test`（1.1 から互換テスト `Compat10Tests`、1.2 から `Compat12Tests` を含む）→ 1.0 の凍結した写し（`TegakiKit/Tests/Compat10`）が凍結したときのままか（`FROZEN.sha256`）→ 言語の lint（`tools/l10n/lint.py`、14 の規則）→ 1.2.2 から、`import DeclaredAgeRange` が `Views/AgeRangeAsker.swift` の 1 つだけか・entitlements に年齢区分の権限があるか・`project.yml` に `AGE_FORCE` が無いか（Age range isolation）→ 手書きのデータの 18 ファイルが 1.1.1 のままか（`tools/compat10/DATA_1_1.sha256`。`Sync/SyncEngine.swift` だけ 1.2.3 の中身。[docs/R1_2_3.md](docs/R1_2_3.md) §3.10）
+  1. 純粋な部分（`TegakiKit`）を macOS 上でビルド → `KitChecks`（1.2.2 で 29982 項目の検査。29932 以上であることを数字で確かめる）→ `swift test`（1.1 から互換テスト `Compat10Tests`、1.2 から `Compat12Tests` を含む）→ 1.0 の凍結した写し（`TegakiKit/Tests/Compat10`）が凍結したときのままか（`FROZEN.sha256`）→ 言語の lint（`tools/l10n/lint.py`、14 の規則）→ 1.2.2 から、`import DeclaredAgeRange` が `Views/AgeRangeAsker.swift` の 1 つだけか・entitlements に年齢区分の権限があるか・`project.yml` に `AGE_FORCE` が無いか（Age range isolation）→ 手書きのデータの 18 ファイルが 1.1.1 のままか（`tools/compat10/DATA_1_1.sha256`。`Sync/SyncEngine.swift` だけ 1.2.3 と H4 の直しの中身。[docs/R1_2_3.md](docs/R1_2_3.md) §3.10）
   2. `brew install xcodegen` → `xcodegen generate` で Xcode プロジェクト（`TegakiCalendar.xcodeproj`）を作る
   3. iOS シミュレータ向けにビルド（署名なし）。1.2 から、組み上がったアプリに 10 言語の `.lproj`・祝日のデータとライセンス・プライバシーマニフェストの理由があるかを確かめる（Localized bundle check）。1.2.2 から、DeclaredAgeRange が弱いリンク（`LC_LOAD_WEAK_DYLIB`）かも確かめる（Weak link of DeclaredAgeRange）
   4. 13 インチ iPad のシミュレータでアプリのユニットテスト（PencilKit の台帳と選択の操作・手書きの画像・予定シートの状態・予定の書き込み・スクリーンショットモード・同期エンジン（メモリ上の偽の iCloud に対して。iCloud アカウントは不要）・レコードの写像・CloudKit の誤りの写像・状態ファイル・紙の文字のクリップと窓・キャンバスの viewport の通知・一覧の倍率とピンチの終端の経路・ダブルタップの認識器・保存比率・スクリーンショットの倍率の引数・購読の状態機械と `StoreModel`（偽の App Store と、StoreKit のテスト環境 `SKTestSession` に対して。App Store Connect は不要）・ペイウォールと設定の文言・閲覧専用の判定）を実行。1.2 から日本語に固定（`-testLanguage ja -testRegion JP`）。1.1 の後半から、後の段（The unit tests' repro lines）が `repro:` の行を 1 回ずつ出す。1.2.3 から、続けて同期エンジンのテスト（`SyncEngineTests`。20,500 本の線のテストを除く）を 20 回続けて回す段（Sync engine tests, repeated。最初の失敗で止まる。[docs/R1_2_3.md](docs/R1_2_3.md) §4.4）
@@ -124,7 +124,7 @@ swift run KitChecks    # 「KitChecks: all 29982 checks passed」と出れば OK
 cd ..
 python3 -I tools/l10n/lint.py .         # 言語の lint（L-12 は警告だけ）
 python3 -I tools/l10n/build.py . --check   # 文字の生成物が元のファイルと合っているか（元を直したら --check なしで作り直す。生成物は手で直さない）
-shasum -a 256 -c tools/compat10/DATA_1_1.sha256   # 手書きのデータの 18 ファイルが 1.1.1 のままか（Sync/SyncEngine.swift だけ 1.2.3 の中身。docs/R1_2_3.md §3.10）
+shasum -a 256 -c tools/compat10/DATA_1_1.sha256   # 手書きのデータの 18 ファイルが 1.1.1 のままか（Sync/SyncEngine.swift だけ 1.2.3 と H4 の直しの中身。docs/R1_2_3.md §3.10）
 ```
 
 アプリ側（UIKit / PencilKit / EventKit / CloudKit）は Xcode でしかコンパイルできないので、構文だけ確かめます。
