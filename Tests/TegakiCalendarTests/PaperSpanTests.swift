@@ -327,6 +327,49 @@ final class PaperSpanTests: XCTestCase {
         XCTAssertEqual(alone.darkPixels(x: 0..<(gutter - 1), y: 0..<alone.height), 0, "1.2.3's week has nothing over its time column")
     }
 
+    /// Decision 4 on screen: three joined weeks at an iPhone's landscape overview (zoom 0.1068, 20 pt columns).
+    /// Every other day keeps its number — today among them, counted across the weeks' boundaries — and no
+    /// number reaches the middle of the columns beside it; the others show only their tint and line.
+    func testJoinedHeaderThinsOutOnAnIPhoneInLandscape() throws {
+        let pages = [week(DayKey(year: 2026, month: 11, day: 2)), week(DayKey(year: 2026, month: 11, day: 9)), week(DayKey(year: 2026, month: 11, day: 16))]
+        let joined = try span(pages, focus: 1)
+        let zoom: CGFloat = 0.1068
+        let width = 3 * PaperSpec.weekWidth * zoom
+        XCTAssertEqual(StickyHeaderView.weekCellForm(joined: true, columnPoints: PaperSpec.weekColumnWidth * zoom), .sparse(every: 2))
+        let row = try render(StickyHeaderView(paper: pages[1], now: now, viewport: PaperViewport(offsetX: 0, zoom: zoom, width: width), span: joined,
+                                              onDayTap: { _ in }, onMonthTap: { _ in }), width: width)
+        /// Pixels far from the paper colour (#fffdf8): the numbers in any tone and today's capsule, not the
+        /// tints (at most 0.06 of a colour) or the lines (#e5e7eb).
+        func marked(_ x: Range<Int>) -> Int {
+            var count = 0
+            for y in 0..<row.height {
+                for xx in x {
+                    let p = row.pixel(xx, y)
+                    if p.r >= 0, max(abs(p.r - 0xff), abs(p.g - 0xfd), abs(p.b - 0xf8)) > 60 { count += 1 }
+                }
+            }
+            return count
+        }
+        var labelled = 0
+        for slot in 0..<3 {
+            for (index, label) in joined.dateLabels(ofSlot: slot).enumerated() {
+                let center = (CGFloat(slot) * PaperSpec.weekWidth + PaperSpec.weekGutter + (CGFloat(index) + 0.5) * PaperSpec.weekColumnWidth) * zoom
+                let middle = Int(center.rounded())
+                if StickyHeaderView.sparseShows(label.day, every: 2, anchor: today.dayNumber) {
+                    labelled += 1
+                    // The number (two digits are about 22 pt wide) around the column's middle.
+                    XCTAssertGreaterThan(marked((middle - 8)..<(middle + 9)), 0, "\(label.day) keeps its number")
+                } else {
+                    // A neighbour's number reaches about 11 pt from its own middle, today's capsule about 17:
+                    // the middle of this column (20 pt away) stays clear.
+                    XCTAssertEqual(marked((middle - 1)..<(middle + 2)), 0, "\(label.day) is left empty and no neighbour's number reaches its middle")
+                }
+            }
+        }
+        XCTAssertEqual(labelled, 10, "10 of the 21 days (11-03, 11-05, … 11-21), today (Wednesday 11-11) among them")
+        XCTAssertTrue(StickyHeaderView.sparseShows(today, every: 2, anchor: today.dayNumber))
+    }
+
     /// Decision 4: only the joined path thins the heading out, by the column width; one page never does.
     func testThinningIsOnlyOnTheJoinedPath() throws {
         // The week's day columns (190.857 lu × the overview zoom): iPhone landscape 0.1068 → 20.4 pt, iPad mini
