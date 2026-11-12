@@ -260,13 +260,18 @@ final class InkLedgerSpanTests: XCTestCase {
 
     /// Only an id live in the page at that moment is journalled as removed. Another device erased a-1 while
     /// the canvas still showed it (`reload` keeps the fingerprints); the eraser then takes a-1 and a-2 off the
-    /// canvas: a-2 alone is tombstoned and journalled, and a-1 keeps the other device's tombstone time. A
-    /// lasso deletion of a-1 and a-3 journals a-3 only; a lasso move of a-1 alone does nothing; ↶ of a
-    /// stroke another device erased journals nothing. The one-page ledger, given the same erasure,
-    /// tombstones both ids again as 1.2.3 does and keeps no journal.
+    /// canvas: a-2 alone is tombstoned and journalled, a-1 keeps the other device's tombstone time and comes
+    /// back in `alreadyErased`. A lasso deletion of a-1 and a-3 journals a-3 only; a lasso move of a-1 alone
+    /// does nothing; ↶ of a stroke another device erased journals nothing. A change that loses only ids that
+    /// are not live (b-1 erased by another device; a-3, whose page came back without it, unknown to the page:
+    /// a fingerprint left behind) tombstones and journals nothing, makes no history step and keeps ↷, returns
+    /// the two ids split into `alreadyErased` and `unknownRemovals` (B_DESIGN.md §2.4 6 (a): the owner records
+    /// them), and forgets their fingerprints. The one-page ledger, given the same erasure, tombstones both ids
+    /// again as 1.2.3 does, keeps no journal and splits nothing.
     /// Fails if the joined path journalled or tombstoned a lost id that was not live (a-1 would be in the
-    /// entry and its tombstone stamped with this device's time), or if `perform`, `removeStrokes` or
-    /// `moveStrokes` journalled an id that was not live.
+    /// entry and its tombstone stamped with this device's time), if `perform`, `removeStrokes` or
+    /// `moveStrokes` journalled an id that was not live, if a change of such ids alone pushed a step (↶ would
+    /// be possible and ↷ gone), or if the forgotten ids were not returned or were put in the wrong list.
     func testJournalRecordsOnlyLiveRemovals() throws {
         let otherDevice = 1_785_000_000_000
         let start = page(weekA, [stored("a-1", x: 200, y: 300, t: 1_780_000_001_000), stored("a-2", x: 600, y: 300, t: 1_780_000_002_000),
@@ -285,6 +290,8 @@ final class InkLedgerSpanTests: XCTestCase {
         let change = ledger.applyCanvasChange(PKDrawing(strokes: shown.filter { ledger.id(of: $0) == a3 }))
         XCTAssertEqual(change.removedIds, [a2])
         XCTAssertFalse(change.needsRebuild)
+        XCTAssertEqual(change.alreadyErased, [a1])
+        XCTAssertEqual(change.unknownRemovals, [])
         XCTAssertEqual(ledger.journal, [SpanJournalEntry(added: [], removed: [a2], at: 1_790_400_000_001)])
         XCTAssertEqual(ledger.page.deleted[a1], otherDevice, "the other device's tombstone is not stamped again")
         XCTAssertEqual(ledger.page.deleted[a2], 1_790_400_000_001)
@@ -308,6 +315,36 @@ final class InkLedgerSpanTests: XCTestCase {
         XCTAssertTrue(ledger.journal.isEmpty, "nothing live was removed, nothing is journalled")
         XCTAssertEqual(ledger.page.deleted[fresh.id], otherDevice)
 
+        // Only ids that are not live: no step, ↷ kept, the ids returned.
+        let b1 = "w-2026-11-09|b-1"
+        let other = joinedLedger(weekWindow([start, page(weekB, [stored("b-1", x: 400, y: 900, t: 1_780_000_004_000)])]),
+                                 seed: Seed(prefix: "13d10000", baseMs: 1_790_450_000_000))
+        XCTAssertNotNil(draw(pen(at: CGPoint(x: 1400 + 700, y: 1200), second: 2), on: other).added.first)
+        XCTAssertNotNil(other.undo())
+        XCTAssertFalse(other.canUndo)
+        XCTAssertTrue(other.canRedo)
+        let otherShown = other.drawing().strokes
+        XCTAssertEqual(otherShown.count, 4)
+        var cameBack = other.page
+        cameBack.remove(ids: [b1], at: otherDevice)
+        cameBack.strokes[a3] = nil
+        other.reload(page: cameBack, keepHistory: true)
+        other.journal.removeAll()
+        let lost = PKDrawing(strokes: otherShown.filter { pk in other.id(of: pk).map { ![a3, b1].contains($0) } ?? true })
+        let deadOnly = other.applyCanvasChange(lost)
+        XCTAssertTrue(deadOnly.isEmpty)
+        XCTAssertFalse(deadOnly.needsRebuild)
+        XCTAssertEqual(deadOnly.alreadyErased, [b1])
+        XCTAssertEqual(deadOnly.unknownRemovals, [a3])
+        XCTAssertTrue(other.journal.isEmpty)
+        XCTAssertNil(other.page.deleted[a3], "an id unknown to the page gets no tombstone")
+        XCTAssertEqual(other.page.deleted[b1], otherDevice)
+        XCTAssertFalse(other.canUndo, "a change of ids that are not live makes no history step")
+        XCTAssertTrue(other.canRedo, "… and keeps ↷")
+        let again = other.applyCanvasChange(lost)
+        XCTAssertTrue(again.isEmpty)
+        XCTAssertEqual(again.alreadyErased + again.unknownRemovals, [], "their fingerprints are forgotten")
+
         // The one-page path (ownerId nil), the same erasure: 1.2.3's behaviour.
         let single = InkLedger(page: start, layout: window.layout.pages[0], deviceId: "span-test")
         single.nowMs = { 1_790_500_000_001 }
@@ -319,6 +356,7 @@ final class InkLedgerSpanTests: XCTestCase {
         XCTAssertEqual(Set(singleChange.removedIds), ["a-1", "a-2"])
         XCTAssertEqual(single.page.deleted["a-1"], 1_790_500_000_001)
         XCTAssertTrue(single.journal.isEmpty)
+        XCTAssertEqual(singleChange.alreadyErased + singleChange.unknownRemovals + singleChange.refusedRemovals, [])
     }
 
     /// The journal turned into deltas (`SpanComposer.deltas` with the session's aliases) and applied with
@@ -402,11 +440,15 @@ final class InkLedgerSpanTests: XCTestCase {
     /// two oldest steps go, the third week's step and the ↷ of the first week's stay (one ↷, one ↶, then
     /// nothing). Second: a move from the first week to the second and one from the third to the second share
     /// a group (seeded), with strokes between and after; the first week leaves: everything but the newest
-    /// step goes, the second move although it never touched the first week. The page itself never changes.
-    /// The one-page ledger's steps carry no page: nothing goes.
+    /// step goes, the second move although it never touched the first week. Third: the group is also reached
+    /// through an older step that goes only because it lies behind a touching one: a stroke on the second
+    /// week moved to the third, a stroke on the first week, the copy moved back to the second week (the two
+    /// moves share a group); the first week leaves: everything goes, the newest move with the group of the
+    /// oldest. The page itself never changes. The one-page ledger's steps carry no page: nothing goes.
     /// Fails if the steps behind a touching one stayed (a third ↶ would succeed), if a step of a page that
     /// stays were dropped, or without the group rule (the second move and the stroke before it would stay:
-    /// a second ↶ would succeed).
+    /// a second ↶ would succeed), or if the groups were taken only from the steps that touch the leaving
+    /// page (the newest move of the third case would stay: ↶ would succeed).
     func testPruneHistoryDropsTouchingStepsAndTheirGroup() throws {
         // Touching steps and those behind them.
         let window = weekWindow()
@@ -451,6 +493,23 @@ final class InkLedgerSpanTests: XCTestCase {
         XCTAssertNotNil(groupLedger.undo(), "the newest step stays")
         XCTAssertEqual(groupLedger.page.liveStrokeIds, ["w-2026-11-09|" + groupSeed.id(2), "w-2026-11-09|" + groupSeed.id(4)])
         XCTAssertNil(groupLedger.undo(), "the second move went with its group, and the stroke behind it")
+
+        // A group reached through an older step that goes only because it lies behind a touching one.
+        let behindSeed = Seed(prefix: "13f20000", baseMs: 1_790_850_000_000)
+        let behind = joinedLedger(weekWindow(), seed: behindSeed)
+        behind.makeGroup = { mark }
+        let onB = try XCTUnwrap(draw(pen(at: CGPoint(x: 1400 + 300, y: 400), second: 1), on: behind).added.first)
+        let toC = behind.moveStrokes(ids: [onB.id], by: CGVector(dx: 1400, dy: 0)).newIds
+        XCTAssertEqual(toC, ["w-2026-11-16|" + behindSeed.id(2)])
+        draw(pen(at: CGPoint(x: 300, y: 900), second: 2), on: behind)
+        let backToB = behind.moveStrokes(ids: toC, by: CGVector(dx: -1400, dy: 100)).newIds
+        XCTAssertEqual(backToB, ["w-2026-11-09|" + behindSeed.id(4)])
+        XCTAssertEqual(behind.journal.map(\.group), [nil, mark, nil, mark])
+        let kept = behind.page.liveStrokeIds
+        behind.pruneHistory(touching: [weekA])
+        XCTAssertEqual(behind.page.liveStrokeIds, kept)
+        XCTAssertNil(behind.undo(), "the newest move went with the group of the oldest, which lay behind the first week's stroke")
+        XCTAssertFalse(behind.canRedo)
 
         // The one-page path: no page in any name.
         let single = InkLedger(page: InkPage.empty(pageId: weekB), layout: window.layout.pages[1], deviceId: "span-test")
@@ -508,10 +567,12 @@ final class InkLedgerSpanTests: XCTestCase {
     /// lost (a-2) comes back in `refusedRemovals` (`needsRebuild`), stays live and is not journalled, while
     /// the new stroke drawn in the same change is taken in (and ↶ takes back only it); the rebuilt drawing
     /// holds a-2 again. A refused change with nothing new is `isEmpty` and makes no history step (↷ is
-    /// kept). The eraser (the default) then tombstones a-3. The flag is the caller's on the one-page path
-    /// too.
-    /// Fails if `allowRemovals` were ignored: a-2 would be tombstoned and journalled, and the rebuild would
-    /// not be asked for.
+    /// kept). The eraser (the default) then tombstones a-3. The one-page ledger (`ownerId` nil) ignores the
+    /// flag and takes the same kind of change as 1.2.3 does (§3.3 5: 「1 ページの道は今どおり（常に許す）」), so
+    /// a canvas may pass `allowRemovals: tool.isEraser` on both paths.
+    /// Fails if `allowRemovals` were ignored on the joined path (a-2 would be tombstoned and journalled, and
+    /// the rebuild would not be asked for), or obeyed on the one-page path (a-1 would stay live and be
+    /// refused there).
     func testCanvasRemovalWithoutEraserRebuilds() throws {
         let start = page(weekA, [stored("a-1", x: 200, y: 300, t: 1_780_000_001_000), stored("a-2", x: 600, y: 300, t: 1_780_000_002_000),
                                  stored("a-3", x: 1000, y: 300, t: 1_780_000_003_000)])
@@ -554,20 +615,29 @@ final class InkLedgerSpanTests: XCTestCase {
         XCTAssertEqual(ledger.journal, [SpanJournalEntry(added: [], removed: [a3], at: tombstone)])
 
         let single = InkLedger(page: start, layout: window.layout.pages[0], deviceId: "span-test")
+        single.nowMs = { 1_790_950_000_001 }
         _ = single.drawing()
-        let refusedThere = single.applyCanvasChange(erasing(["a-1"], from: single), allowRemovals: false)
-        XCTAssertEqual(refusedThere.refusedRemovals, ["a-1"])
-        XCTAssertTrue(single.page.isLive("a-1"))
-        XCTAssertFalse(single.canUndo)
+        let takenThere = single.applyCanvasChange(erasing(["a-1"], from: single), allowRemovals: false)
+        XCTAssertEqual(takenThere.removedIds, ["a-1"])
+        XCTAssertEqual(takenThere.refusedRemovals, [])
+        XCTAssertFalse(takenThere.needsRebuild)
+        XCTAssertFalse(single.page.isLive("a-1"))
+        XCTAssertEqual(single.page.deleted["a-1"], 1_790_950_000_001)
+        XCTAssertTrue(single.canUndo)
+        XCTAssertTrue(single.journal.isEmpty)
     }
 
     /// §3.16: one change of the joined path may not tombstone more than 50 strokes, nor at least half of a
     /// window page's live strokes when that is 20 or more. Refused (nothing tombstoned, nothing journalled,
-    /// no step, every lost id in `refusedRemovals`): 51 of 120, 20 of 40, 30 + 25 on two pages of 100.
-    /// Taken: 50 of 120, 19 of 38, 20 of 41. A lasso deletion (`removeStrokes`) of 60 is not limited, nor is
-    /// the one-page path (60 of 120 at once, as in 1.2.3).
+    /// no step, every lost id in `refusedRemovals`): 51 of 120, 20 of 40, 30 + 25 on two pages of 100, and 20
+    /// of a page of 40 while the next page holds 100. Taken: 50 of 120, 19 of 38, 20 of 41, and 20 of a page
+    /// of 50 with 10 of a page of 100 (30 in all). A lasso deletion (`removeStrokes`) of 60 is not limited,
+    /// nor is the one-page path (60 of 120 at once, as in 1.2.3).
     /// Fails if the limit were not applied (51, 20 of 40 and 55 would be tombstoned), or applied to the
-    /// lasso deletion or to the one-page path, or if a boundary moved (50, 19, 20 of 41 refused).
+    /// lasso deletion or to the one-page path, or if a boundary moved (50, 19, 20 of 41 refused). The two
+    /// cases with a second page that holds strokes fail if the half were taken of the whole window's live
+    /// strokes (20 of 40 beside 100 would be taken) or of the whole change's count (30 against a page of 50
+    /// would be refused) instead of the page's own.
     func testTooManyRemovalsAtOnceRebuild() throws {
         struct Case {
             let name: String
@@ -592,6 +662,7 @@ final class InkLedgerSpanTests: XCTestCase {
             Case(name: "51 of 120", taken: [(weekA, 51)], pages: [(weekA, 120)]),
             Case(name: "20 of 40", taken: [(weekA, 20)], pages: [(weekA, 40)]),
             Case(name: "30 + 25 on two pages of 100", taken: [(weekA, 30), (weekB, 25)], pages: [(weekA, 100), (weekB, 100)]),
+            Case(name: "20 of 40 beside a page of 100", taken: [(weekA, 20)], pages: [(weekA, 40), (weekB, 100)]),
         ]
         for test in refused {
             let (change, ledger, live) = erase(test)
@@ -608,6 +679,7 @@ final class InkLedgerSpanTests: XCTestCase {
             Case(name: "50 of 120", taken: [(weekA, 50)], pages: [(weekA, 120)]),
             Case(name: "19 of 38", taken: [(weekA, 19)], pages: [(weekA, 38)]),
             Case(name: "20 of 41", taken: [(weekA, 20)], pages: [(weekA, 41)]),
+            Case(name: "20 of 50 + 10 of 100", taken: [(weekA, 20), (weekB, 10)], pages: [(weekA, 50), (weekB, 100)]),
         ]
         for test in taken {
             let (change, ledger, live) = erase(test)

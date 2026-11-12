@@ -11,11 +11,19 @@ import PencilKit
 struct InkChange {
     var added: [InkStroke]
     var removedIds: [String]
-    /// 1.3 (docs/M7C_CONTRACT.md §3.3 5, §3.4 削除の守り (b)): the ids of the strokes the canvas lost that
-    /// the ledger did not tombstone, because the change was not the eraser's (`allowRemovals` false) or, on
-    /// the joined path, took too many strokes at once (§3.16). The canvas must then put `drawing()` back
-    /// (`needsRebuild`). Empty whenever every removal is allowed, as on today's one-page path.
+    /// 1.3 (docs/M7C_CONTRACT.md §3.3 5, §3.4 削除の守り (b)): on the joined path, the ids of the strokes the
+    /// canvas lost that the ledger did not tombstone, because the change was not the eraser's
+    /// (`allowRemovals` false) or took too many strokes at once (§3.16). The canvas must then put `drawing()`
+    /// back (`needsRebuild`). Always empty on the one-page path, which takes every removal as 1.2.3 does.
     var refusedRemovals: [String] = []
+    /// 1.3 (§3.4 削除の守り (a), B_DESIGN.md §2.4 6 (a)): on the joined path, the ids the canvas lost that were
+    /// not live in the page, so the ledger neither tombstoned nor journalled them and only forgot their
+    /// fingerprints. `alreadyErased`: tombstoned in the page already (another device erased the stroke while
+    /// the canvas still showed it: a race that is allowed). `unknownRemovals`: in neither the page's strokes
+    /// nor its tombstones (a fingerprint left behind, say by a page that left the window: a fault of the
+    /// joined path, which the owner records and, in Debug, stops at). Both always empty on the one-page path.
+    var alreadyErased: [String] = []
+    var unknownRemovals: [String] = []
 
     var isEmpty: Bool { added.isEmpty && removedIds.isEmpty }
     /// The canvas lost strokes the ledger kept (`refusedRemovals`): rebuild the drawing from the ledger. A
@@ -336,13 +344,14 @@ final class InkLedger {
     /// `inkCell(forCenter:)` of the centre of their paper-space bounds, which never fails);
     /// erased strokes get tombstones.
     ///
-    /// 1.3 (docs/M7C_CONTRACT.md §3.3 5, §3.4 削除の守り): when `allowRemovals` is false (the tool is not
-    /// the eraser) or, on the joined path, the change would tombstone too many strokes at once (more than
+    /// 1.3 (docs/M7C_CONTRACT.md §3.3 5, §3.4 削除の守り): on the joined path, when `allowRemovals` is false
+    /// (the tool is not the eraser) or the change would tombstone too many strokes at once (more than
     /// `removalLimit`, or at least half of a window page's live strokes and at least `pageRemovalLimit`,
     /// §3.16), nothing is tombstoned: the lost ids come back in `refusedRemovals` (`needsRebuild`) and the
     /// new strokes are still taken in. On the joined path only an id live in the page is tombstoned (a lost
-    /// id that is not, say one another device erased while the canvas still showed it, is only forgotten),
-    /// and the change goes to `journal`. The default `allowRemovals` true is 1.2.3's behaviour.
+    /// id that is not is only forgotten and comes back in `alreadyErased` or `unknownRemovals`), and the
+    /// change goes to `journal`. The one-page path (`ownerId` nil) ignores `allowRemovals` and takes every
+    /// removal, as 1.2.3 does (§3.3 5: 「1 ページの道は今どおり（常に許す）」).
     func applyCanvasChange(_ drawing: PKDrawing, allowRemovals: Bool = true) -> InkChange {
         var seen = Set<StrokeFingerprint>()
         var added: [InkStroke] = []
@@ -370,25 +379,30 @@ final class InkLedger {
         guard !added.isEmpty || !removedIds.isEmpty else {
             return InkChange(added: [], removedIds: [])
         }
-        // 1.3 (§3.3 5): a removal the ledger does not take (see above) leaves the page, the map and the
-        // history as they are; the canvas rebuilds its drawing from the ledger.
+        // 1.3 (§3.3 5): on the joined path, a removal the ledger does not take (see above) leaves the page,
+        // the map and the history as they are; the canvas rebuilds its drawing from the ledger.
         var refused: [String] = []
-        if !removedIds.isEmpty, !allowRemovals || (ownerId != nil && removesTooMany(removed)) {
+        if !removedIds.isEmpty, ownerId != nil, !allowRemovals || removesTooMany(removed) {
             refused = removedIds
             removedIds = []
             removed = []
             if added.isEmpty { return InkChange(added: [], removedIds: [], refusedRemovals: refused) }
         }
         // 1.3 (§3.4 削除の守り (a), B_DESIGN.md §2.4 6 (a)): on the joined path a lost id that is not live is
-        // neither tombstoned nor journalled (its tombstone would reach its page and win there), only forgotten.
+        // neither tombstoned nor journalled (its tombstone would reach its page and win there), only forgotten,
+        // and returned: tombstoned already, or unknown to the page.
         var dead: [String] = []
+        var alreadyErased: [String] = []
+        var unknown: [String] = []
         if ownerId != nil {
             dead = removedIds.filter { !page.isLive($0) }
+            alreadyErased = dead.filter { page.deleted[$0] != nil }
+            unknown = dead.filter { page.deleted[$0] == nil }
             removedIds.removeAll { !page.isLive($0) }
             removed.removeAll { !page.isLive($0.id) }
             if added.isEmpty && removedIds.isEmpty {
                 forget(ids: dead)
-                return InkChange(added: [], removedIds: [])
+                return InkChange(added: [], removedIds: [], alreadyErased: alreadyErased, unknownRemovals: unknown)
             }
         }
 
@@ -413,7 +427,8 @@ final class InkLedger {
         push(undo: undoOps.count == 1 ? undoOps[0] : .batch(undoOps))
         redoStack.removeAll()
 
-        return InkChange(added: added, removedIds: removedIds, refusedRemovals: refused)
+        return InkChange(added: added, removedIds: removedIds, refusedRemovals: refused, alreadyErased: alreadyErased,
+                         unknownRemovals: unknown)
     }
 
     /// 1.3 (§3.16): would tombstoning `strokes` (live strokes of the window, one canvas change) take too
