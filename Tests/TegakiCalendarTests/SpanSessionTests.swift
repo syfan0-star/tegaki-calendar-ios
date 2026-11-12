@@ -904,6 +904,30 @@ final class SpanSessionTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
+    /// D6: a page still waiting for its read (a placeholder) takes the canvas's delta; a save or a shift before its read
+    /// reads it first, so the page is saved with its file and the stroke, and is not left behind when it leaves.
+    func testAPlaceholderWrittenBeforeItsReadIsSavedWithItsFile() async throws {
+        try bed.store.save(bed.page(w1130, ["stored"]))
+        let session = bed.session(.week, focus: nov16)
+        XCTAssertEqual(session.slots[w1130]?.unread, true)
+        let ledger = JoinedLedgerStandIn(session)
+        let mine = try XCTUnwrap(ledger.draw(on: w1130))
+        ledger.deliver()
+        let real = try XCTUnwrap(SpanName.split(mine.id)?.local)
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(session.slots[w1130]?.unread, false)
+        XCTAssertEqual(session.page(w1130).map { Set($0.liveStrokeIds) }, ["stored", real])
+        XCTAssertEqual(bed.live(w1130), ["stored", real])
+        // The same on a shift that takes a written placeholder out of the window.
+        let other = bed.session(.week, focus: nov16, number: 2)
+        let ledger2 = JoinedLedgerStandIn(other)
+        let left = try XCTUnwrap(ledger2.draw(on: w1102))
+        ledger2.put()
+        XCTAssertTrue(other.shift(toFocusIndex: other.focusIndex + 1))
+        XCTAssertEqual(bed.live(w1102), [try XCTUnwrap(SpanName.split(left.id)?.local)])
+        XCTAssertEqual(faults, [])
+    }
+
     /// D6, H1: a deletion from iCloud that arrives while `saveAll` runs waits; the deleted page is not written back
     /// in the same `saveAll`, and empties at its end.
     func testRemoteDeleteDuringSaveAllIsNotSavedBack() async throws {

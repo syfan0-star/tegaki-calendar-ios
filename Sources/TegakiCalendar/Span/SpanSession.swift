@@ -463,18 +463,8 @@ final class SpanSession: ObservableObject {
             procedureDepth += 1
             for id in order {
                 await Task.yield()
-                guard !isClosed, var slot = slots[id], slot.unread else { continue }
-                let read = readSlot(id)
-                let merged = InkPage.merge(read.page, slot.page)
-                if merged.pageId != id {
-                    fault("read: \(id) would become \(merged.pageId)")
-                } else {
-                    slot.page = merged
-                }
-                slot.unread = false
-                slot.dirty = slot.dirty || read.dirty
-                slots[id] = slot
-                if read.dirty { scheduleSave() }
+                guard !isClosed, slots[id]?.unread == true else { continue }
+                readPlaceholder(id)
                 onPrefetchStep?(id)
             }
             procedureDepth -= 1
@@ -489,6 +479,22 @@ final class SpanSession: ObservableObject {
             }
         }
         sync.pagesOpened(pageIds)
+    }
+
+    /// A placeholder's file read now and merged with what the placeholder took meanwhile (deltas, updates).
+    private func readPlaceholder(_ id: String) {
+        guard var slot = slots[id], slot.unread else { return }
+        let read = readSlot(id)
+        let merged = InkPage.merge(read.page, slot.page)
+        if merged.pageId != id {
+            fault("read: \(id) would become \(merged.pageId)")
+        } else {
+            slot.page = merged
+        }
+        slot.unread = false
+        slot.dirty = slot.dirty || read.dirty
+        slots[id] = slot
+        if read.dirty { scheduleSave() }
     }
 
     /// `ids` ordered by their distance from `focus` in the list (the left one first at the same distance).
@@ -719,7 +725,11 @@ final class SpanSession: ObservableObject {
 
     /// The dirty pages among `ids`, saved in the order of D8; the ones that could not be saved.
     private func saveDirtyPages(_ ids: [String]) -> [String] {
-        let dirty = ids.filter { slots[$0]?.dirty == true && slots[$0]?.unread == false }
+        // A placeholder that took a delta before its read is read now: its file goes into the save (D6).
+        for id in ids where slots[id]?.dirty == true && slots[id]?.unread == true {
+            readPlaceholder(id)
+        }
+        let dirty = ids.filter { slots[$0]?.dirty == true }
         let order = dirty.filter { slots[$0]?.addedSinceSave == true } + dirty.filter { slots[$0]?.addedSinceSave != true }
         var attempted: [String: Bool] = [:]
         var inProgress: Set<String> = []
