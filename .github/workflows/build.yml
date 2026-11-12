@@ -760,11 +760,12 @@ jobs:
       # before it — the month page without a sheet (ipad13-portrait-month.png, the step above) for every sheet, and the
       # settings (ipad13-portrait-sheet-settings.png, taken before them in this loop) for the four opened from them
       # (sync, info, holidays, week-start). Otherwise the next frame, a second later, is compared with that one, up to
-      # 30 s after the launch; then the last frame stays, with a warning. So no photo is taken earlier than before, and a
+      # 30 s after the launch and at least twice (in run 43310108102 one frame took 25 s: the simulator was slow); then
+      # the last frame stays, with a warning. Every comparison is one line. So no photo is taken earlier than before, and a
       # screen that has settled is photographed as before (each sheet of the runs 43136565762 and 43149906124 and of the
       # reference run 43158921131 differs from that month page by at least 47,648 pixels, the four from those settings by
-      # at least 44,318; the same screen of two runs by 0). One line per sheet says when it was ready. The same lines in
-      # ja-baseline.yml (J-4). If the tool does not compile, every sheet is the frame of 9 s, with a warning.
+      # at least 44,318; the same screen of two runs by 0). The same lines in ja-baseline.yml (J-4). If the tool does not
+      # compile, every sheet is the frame of 9 s, with a warning.
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -797,19 +798,19 @@ jobs:
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 9 s (sheet $SHEET; crashed?)"
             xcrun simctl io "$UDID" screenshot "$SHOT"
             [ -n "$READY" ] || continue
+            TRIES=0
             while :; do
               STATUS=0
               # $UNLIKE is split on purpose (paths without spaces).
               LINE="$("$READY" "$SHOT" "$EARLIER" $UNLIKE)" || STATUS=$?
               WAITED=$(( $(date +%s) - LAUNCHED ))
-              if [ "$STATUS" = 0 ]; then
-                echo "sheet $SHEET, ${WAITED} s after the launch: $LINE"
+              echo "sheet $SHEET, ${WAITED} s after the launch: $LINE"
+              [ "$STATUS" != 0 ] || break
+              if [ "$STATUS" != 1 ] || { [ "$WAITED" -ge 30 ] && [ "$TRIES" -ge 2 ]; }; then
+                echo "::warning::sheet $SHEET: the screen was not ready ${WAITED} s after the launch; its last frame is kept."
                 break
               fi
-              if [ "$STATUS" != 1 ] || [ "$WAITED" -ge 30 ]; then
-                echo "::warning::sheet $SHEET: the screen was not ready ${WAITED} s after the launch, its last frame is kept ($LINE)"
-                break
-              fi
+              TRIES=$((TRIES + 1))
               cp "$SHOT" "$EARLIER"
               sleep 1
               if ! xcrun simctl io "$UDID" screenshot "$SHOT" > /dev/null 2>&1; then
