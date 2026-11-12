@@ -2,12 +2,15 @@
 
 契約は [M7C_CONTRACT.md](M7C_CONTRACT.md)。ここはリードの記録で、段ごとに節を足す。**今の状態は最初の「今の状態」の節を読む。** 各節は書いた時点の記録で、書き直さない（後で変わった物は「今の状態」で読み替える）。
 
-## 今の状態（リード、2026-11-12 01:50）
+## 今の状態（リード、2026-11-12 15:00）
 
-- 枝 `r13`（origin も同じ）。S1 の Kit の部品が入った。凍結の表の 18 ファイル・アプリ（`Sources/`）・既存のテスト（`Tests/`、`TESTS_1_2_3.sha256` の 8 ファイル）・InkModel の既存の 7 ファイル・compat11・Compat10・CompatFixtures・Compat10Tests・`tools/compat10` は 43fe366 から 1 バイトも変わっていない（`git diff --stat 43fe366..r13` で、Sources と Tests と凍結の範囲は InkModel の新しい 2 ファイルだけ）。
-- この Mac の関門: `swift run --package-path TegakiKit KitChecks` が **36,968 件・失敗 0**（約 81 秒）。§12.2 の S1 の関門（この Mac の KitChecks が緑）は満たした。
-- CI: a463a69（直しの前）は全部のジョブが緑。55f11a6・4daf2cc は次の push で止まった（`cancel-in-progress`）。4daf2cc は止まる前に build-and-test の KitChecks・Test TegakiKit・凍結の段・lint・TESTS_1_2_3 と compat-v1.0 が緑だった。f982126 の全部の実行の結果は次の節で書く。
-- S1 のうち、まだのもの: C の `CompatSpanTests`（§10.2）と §10.4 の compat-v1.0 への追加（`tools/span-compat` の v10・v11・v123 の Probe、`tools/compat-span/EXPECTED_MIN`、43fe366 の台帳のテスト、上限 65 分）、T の試作の写し（§4.6）と `PrototypeIsolationTests`、`span-shots` の最初の形（§10.5 の (1)）、testflight.yml の入力 `span_prototype`、`SPAN_PROTOTYPE` が `project.yml` に無いことの検査。次のワークフローで入れる。
+- 枝 `r13`（origin も同じ）。S1 は全部済んだ（Kit の部品と、C の互換・CI と T の試作）。S2 の見本の画像は 11/12 に本人へ送った。S3（試作を TestFlight へ）は下の「S3」の節。
+- ふつうのアプリは 43fe366 のまま: 凍結の表の 18 ファイル・既存のテスト（`TESTS_1_2_3.sha256` の 8 ファイル）・InkModel の既存の 7 ファイル・compat11・Compat10・`tools/compat10` は 43fe366 から 1 バイトも変わっていない。`Sources/TegakiCalendar` の差は `Span/SpanPrototype*.swift`（全体が `#if SPAN_PROTOTYPE` の中）・`SettingsScreen.swift` の入口 4 行（`#if SPAN_PROTOTYPE` の中）・文の表の `prototype.span.*` のキー 33 個（ja だけ）だけ（`tools/span/prototype_gate.py --base 43fe366` が OK）。
+- この Mac の関門（073e748）: KitChecks **36,968 件・失敗 0**、typecheck は試作の印なし・ありの両方で all OK（アプリの警告 0）、lint OK、DATA_1_1 18/18・TESTS_1_2_3 8/8 OK、`prototype_gate_test.py` 14 件 OK。
+- CI: 073e748 の run 43149906124 は 5 つのジョブ（build-and-test・compat-v1.0・l10n-shots・blank-paper・span-shots）が全部緑（約 82 分）。span-shots は試作のテスト 24 本（`PrototypeIsolationTests` 4・`SpanPrototypeInteractionTests` 20）が全部合格、見本の画像 23 枚。
+- S4 は前倒しで始めた（下の「予定の前倒し」）。台帳（L）・SyncEngine の 2 つの口（Y）・lint の読む範囲（C）は作業用の枝 `r13-w-lint`・`r13-w-l`・`r13-w-y` とまとめの枝 `r13-s4` で進め、**試作を TestFlight に上げるまで `r13` には入れない**（試作のビルドの台帳は 43fe366 のバイトのまま、D12）。
+- 読み替え: S1 の節の「CI」の項の「r13-quick … まだ入れていない」は、073e748 で入った（§10.6。`r13-quick` の枝はまだ作っていない。S5 で最初に push したときが最初の実行）。
+- 文書の掃除: 647ea01 で、前の段の文書 7 つ（M5・M5_CONTRACT・M6・M6_CONTRACT・M7A_CONTRACT・M7B・M7B_CONTRACT）にあった手元の絶対パス（利用者名を含む）を `~/`・`<scratchpad>/`・`<Claude のセッションの記録>/` に置き換えた。main には 1.3 をまとめるときに入る。docs だけの commit は CI を走らせない（`[skip ci]`）。
 
 ### 段の実績（§12.2 の目安との比べ）
 
@@ -15,11 +18,30 @@
 | --- | --- | --- |
 | S0 | 11/11 | 11/11 13:10 に契約を push（c33dd73） |
 | S1 の Kit の部品 | 11/12〜11/19 | 本人の「進められるところは、どんどん進めて」（11/11）で前倒し。11/11 21:00 に始め、11/12 01:30 に終わった（12 commit、a29291d〜f982126） |
-| S1 の残り（C・T） | 〜11/19 | 11/12 から |
+| S1 の残り（C・T） | 〜11/19 | 11/12 01:44〜12:55（33 commit、1ce392a〜073e748。下の節） |
+| S2 見本の画像 | 〜11/20 | 11/12 14:30 ごろ確認ページを本人に送った（073e748 の画像 23 枚。iPad の横は無い） |
+| S3 試作を TestFlight へ | 〜11/21 | 11/12（下の「S3」の節） |
+| S4 台帳ほか | 11/21〜 | 11/12 14:05 に始めた（枝 r13-s4。試作を上げた後で r13 へ） |
+
+### 予定の前倒し（2026-11-12、本人の「早く出来るのであれば、予定を前倒ししましょう」）
+
+| 段 | 契約の目安（§0.4・§12.2） | 新しい目安 |
+| --- | --- | --- |
+| S2 見本の画像 | 11/20 ごろ | 11/12（済み） |
+| S3 試作を TestFlight へ | 11/21 ごろ | 11/12〜11/13 |
+| S4 台帳・組の印・lint の範囲 | 11/21〜 | 11/12〜。Y（SyncEngine の 2 つの口、§7）も画面に出ないので S5 から S4 へ移した |
+| 試作の感想の期日 | 11/25（11/21 に届いた場合） | 11/18（水）。決まりは同じ「届いた後の最初の土日の、次の水曜まで」。期日の後の感想も本体に反映する（§0.6） |
+| S5 本体（画面に出る部分） | 11/27〜 | 11/19〜（週の利用枠が 11/18 の昼に戻るのとも合う） |
+| 1.2.4 を作るかの判断 | 11/27 | S1'（年齢区分の 2 問、11/16〜20）の結果が出たらすぐ |
+| 早い道かふつうの道かの判断 | 12/9 | 本体が全部のジョブで緑になった時点（12/9 より前でも）。12/16 までの提出と 12/19〜1/4 に審査に出さない決まりは変えない |
+
+- 1/15（週のメモの関門）と 2/15（Duo の決まり）は変えない。
+- 週の利用枠: 11/12 13:00 に 34%（11/18 の昼に戻る）。本人は無料の枠の回復を 1 回持っている（11/12）。今は使わず、95% に近づいて作業が止まりそうなとき（特に S5 の 11/19〜12/9）に本人に知らせて押してもらう。
 
 ## 本人の操作
 
 - 2026-11-11: iPad Pro 13 と iPad mini で、TestFlight のてがきカレンダーの「自動アップデート」をオフにした（§4.6 の手順 0、§0.5）。この 2 台には試作を入れない。
+- 2026-11-12: 「早く出来るのであれば、予定を前倒ししましょう」（上の表）。
 
 ## S1（TegakiKit の部品。2026-11-11 21:00〜11-12 01:30）
 
@@ -164,3 +186,127 @@
 - 差分と 12 の commit の文に、ローカルの絶対パスや個人の情報は無い。12 とも Co-Authored-By の行がある。
 - 見直しの写し（`rev-*`）は全部 `git worktree remove` で外した。
 - 節ごとの数・変異ごとのログはスクラッチパッドの s1-logs・s1-fix-logs にある（commit していない。毎日 0:00 の掃除で消えうる）。
+
+## S1 の残り（C・T）と S2 の見本の画像（2026-11-12 01:44〜14:30）
+
+作り方: 2 本の作業用の枝を並べて進めた。`r13-w-c`（C: 互換・CI・版の確かめ）と `r13-w-t`（T: 試作。核 → 動きと計測 → 見本の場面と span-shots の 3 つに分けて順に）。それぞれ CI を緑にしてから、`r13` に `git merge --no-ff` で取り込んだ（1ce392a・63731e1、衝突なし）。その後、5 つの観点（試作の切り離し・S3 の関門とふつうのビルド・互換・試作の動き・CI）で別々の写しから見直した。指摘 30 件のうち 23 件を確かめ役が再現し、直し役が 22 件を直した（dc39173〜80d7c54。B9 は文書だけの誤りでコードの直しは無い）。最後に仕上げの見直し役が全体を読み直し、2 件（B1-R・SCOPE-1）を直した（ab612d6・073e748）。
+
+### commit（`r13` の first-parent。取り込んだ枝の中の commit は 33 個）
+
+| commit | 中身 |
+| --- | --- |
+| 1ce392a | C の枝を取り込む（下の C の中身） |
+| 63731e1 | T の枝を取り込む（下の T の中身） |
+| dc39173 | S3 の関門 (2) の穴をふさぐ（43fe366 の行を `#if` で囲む塊・試作でないキー・InfoPlist の新しいキーを落とす） |
+| 7687fa0 | 試作のビルドは版 1.3 でないと作らない・span-shots の上げ直しを上書きに・ja-baseline の上限 90 分 |
+| 0621585 | CompatSpanTests で compat-span の 13 ファイルの SHA-256 を手で書いて固定 |
+| cda71ab | 試作の見直しの直し（回転はペンが離れてから窓を決め直す・線の数・日の帯・終日帯・週のメモの 3 つ目の形・案内の札・小さな HUD ほか） |
+| 80d7c54 | 試作の日の帯の注記を「見本の日です」に |
+| ab612d6 | 「線の数」は窓が埋めた週の先へ動いたときも足りない週を入れ直す（B1-R） |
+| 073e748 | CI に速い確かめの道 `r13-quick` を足す（§10.6、SCOPE-1） |
+
+### C の中身
+
+- `TegakiKit/Tests/CompatSpanTests`（新しいターゲット）: §10.2 の 4 本。CI の Test TegakiKit で「Executed 4 tests, with 0 failures」。期待する値は手で書いた（CompatSpanFixtures に頼らない）。13 ファイルの SHA-256 も手で固定（0621585）。
+- compat-v1.0（§10.4）: 月曜の compat-span 12 ファイルを compat11 の一時フォルダに写して確かめる段、`tools/span-compat`（1.0・<1.1.1>・1.2.3 の本物の Kit の Probe）、43fe366 のアプリの台帳のテスト `Real123LedgerTests`、上限 65 分。
+  - real N: 1.2.3 の見本だけで 361、月曜の compat-span を写した後 **565**（= 361 + 12 × 17。1 ファイル 17 件）。`tools/compat-span/EXPECTED_MIN` = 565。`tools/compat10/EXPECTED_MIN` は 225 のまま。
+  - span-compat: 1.0（a21e469）225 件・失敗 0、<1.1.1>（9cbc3c9）225 件・失敗 0、1.2.3（43fe366）227 件・失敗 0。3 つの版とも fixture 7 の知らない道具の項目と墓標は 1 バイトも変わらない。
+  - Real123LedgerTests 4 本・Real10LedgerTests 4 本とも合格。1.2.3 の台帳では、どのはみ出す線も needsMoreRoom が false。
+  - 時間: 12.2〜13.8 分。
+- build-and-test: `SPAN_PROTOTYPE` が `project.yml` に無いことの段（AGE_FORCE と同じ形）と、`prototype_gate_test.py` の段（14 件）。
+- testflight.yml の入力 `span_prototype`（"1" のときだけ）: `marketing_version` が "1.3" でなければ止める・`age_force` と一緒なら止める・43fe366 の DATA_1_1 の `shasum -c`・TESTS_1_2_3・`tools/span/prototype_gate.py --base 43fe366`・アーカイブに `SpanPrototype` があり版が 1.3 であること・run の要約にビルドの番号。空なら今までどおり。
+- J-4（§10.5）: `tools/l10n/ja-baseline-ref-1.3.txt`（43fe366）と、ja-baseline.yml の写真の段を 43fe366 の build.yml から写し直した（`ja-baseline-ref.txt` は 1 バイトも変えない）。上限 90 分（実測 61.6 分）。
+
+### T の中身（全部 `#if SPAN_PROTOTYPE` の中。ふつうのビルドには入らない）
+
+- `Span/SpanPrototypeLedger.swift`（台帳の写し。id を作る 3 か所が全部持ち主の前置つき・日誌から差分・生きている id だけを墓標に）、`SpanPrototypeCanvas.swift`（キャンバスの写し。窓の帯・線は中心の下のページ・帯の外は捨てる・差分を受け箱へ）、`SpanPrototypeSession.swift`（一時フォルダ `span-prototype-<uuid>` の `proto-` のページ・`InMemoryCloudDatabase`・始めない `SyncEngine`・差分と安全網）、`SpanPrototypeScreen.swift`（設定 › 情報 のいちばん下の「横につなげる試作」から開く）、`SpanPrototypeShots.swift`（`--screenshot-prototype <場面>`）ほか。
+- 動き: 焦点・止まったら窓をずらす・はじき（0.3 pt/ms、6% の吸い付き）・◀ ▶・手のひら（Pencil が触れている間と離して 0.5 秒）・一覧の 24 pt の動き出し・回転や「上限あり」はペンが離れてから窓を決め直す。
+- 計測（画面の隅の小さな HUD）: 窓の差し替えの時間・差し替え後 1 秒のコマの間の最大・メモリ（phys_footprint）・ペンを離したときの止まり・消しゴム 1 回で消える線の数・1 ページの読み込み・指の大きさ。「線の数」2,500・10,000・25,000（窓の中の合計。横に動いたときも足りないページを入れ直す）。
+- 切り替え: iPhone 横の「今のまま／上限あり」・「1 ページずつ（古い版の見え方）」・週の始まり・週と日。週のメモの欄（罫線だけ／方眼／曜日の線つき）。初めての案内の札（§8.1 の N-4〜N-7 の文のまま、8 秒、触れても消える）。
+- テスト: `PrototypeIsolationTests` 4 本（本物の ink フォルダの全ファイルの名前と SHA-256 が前後で同じ・shared の save と pageOpened が呼ばれない・shared.onRemoteUpdate が同じまま・`.prototype` が本物の id を断る）と `SpanPrototypeInteractionTests` 20 本。
+- CI の span-shots（§10.5・§10.6）: 試作の印はコマンドの行だけ、別の DerivedData（build/ProtoData）。`PrototypeIsolationTests` 4 本以上・`SpanPrototypeInteractionTests` 19 本以上・失敗 0 でなければ落とす。見本の画像 23 枚。約 35 分。
+
+### 契約からのずれ
+
+1. 試作の文の ja だけのキー: 1.2 の仕組み（`tools/l10n/build.py`）はアプリのキーに ja だけを許さなかったので、名前が `prototype.` で始まるアプリのキーだけ許した（`APP_JA_ONLY_PREFIX`）。既存のテスト `LocalizationBundleTests.swift`（`TESTS_1_2_3.sha256` の 8 ファイルの外）の `testEveryLanguageBundleHasEveryKey` が ja だけのキーを飛ばすようにした（§10.2 の 1 文目「既存のテストのファイルは変えない」から外れる）。`testJapaneseMatchesTheOneOneBaseline` は今も ja を見る。
+2. `--screenshot-prototype` は Support/ ではなく `Span/SpanPrototypeShots.swift` で読む（S3 の関門 (2) の範囲に収めるため。`ScreenshotMode.swift` は変えていない）。
+3. 試作の手のひらの規則は縦の動きも止める（§3.6 と B_DESIGN は横の動き出しだけ）。`majorRadius` で大きな接触を外す規則（§3.6 の【推論】）は入れず、HUD に指の大きさを出して測る。
+4. 試作は窓の線の上限（D18）を掛けない（25,000 本を測るため）。段 2 の切り替えも無い。
+5. 帯の上に、1.2.3 の `StickyHeaderView` を窓のページごとに並べた日付の見出しを足した（頼まれていない。写真を読めるようにするため）。
+6. 週のメモの形は 3 つ: 罫線だけ・方眼（罫線と 50 lu ごとの縦線。日の自由メモには方眼が無いので、契約の「日の自由メモと同じ方眼」のとおりには作れない）・曜日の線つき（PLAN_WEEK_MEMO の Q2 のもう一方）。線は週の境目で切れ（40 lu の余白）、「自由メモ」の見出しはページごと。
+7. span-shots は契約の `PrototypeIsolationTests`（4 本以上）に加えて `SpanPrototypeInteractionTests`（19 本以上）も求める。
+8. 試作の一時フォルダは、試作を閉じたときに消す。前の起動で残ったものは次に開いたときに消す。
+9. `CompatSpanTests` の依存は Compat10・InkModel・Layout だけ（Compat12Tests の形）。`EXPECTED_MIN` は「1.2.3 の N ＋ 月曜の 12 ファイルが増やす確かめの数」と読んだ（ファイルの数 12 を足すだけでは 1 ファイル欠けても気づけない）。
+10. 見本の画像の iPad 11 は iPad Air 11（M4）（本人の端末。最初のジョブの写真は iPad Pro 11）。
+11. `r13-quick` は `swift test` と macOS の確かめ（lint・凍結の表・関門のテスト）も残した（§10.6 の字面は build・Span のテスト・KitChecks だけ。数分で、CompatSpanTests が swift test にあるため）。
+
+### 見直しで見つけ、直したもの（確かめ役が再現した 23 件。重い順）
+
+| 印 | 重さ | 中身 |
+| --- | --- | --- |
+| ISO-1・G1・CI-1 | major | S3 の関門 (2) が、43fe366 の既存の行を `#if SPAN_PROTOTYPE` で囲む変更を通していた（ふつうのビルドから行が消えても OK になる）。塊を取り除いたファイルが 43fe366 と 1 バイトも違わないことを求めるようにした |
+| B1 | major | 「線の数」の合計が、回転・「上限あり」・横の移動で窓のページ数が変わると、選んだ数でなくなっていた（横の移動の分は仕上げの見直しの B1-R で直した） |
+| B4 | major | 試作に日のページが無く、日の帯の見本の画像と「iPhone 横の日の一番広い窓」の計測が欠けていた。日の帯を足した |
+| ISO-2・G2・CI-2 | minor | 文の表の新しいキーを名前で制限していなかった。`prototype.` で始まり ja だけのものに限った。InfoPlist の新しいキーは落とす |
+| G3・CI-3 | minor | 試作のビルドの版 1.3 を強制していなかった |
+| ISO-3 | minor | ずらし以外の組み直し（回転など）がペンを置いている途中に起きうる。ペンが離れるまで待つようにした |
+| ISO-4 | minor | 試作を開いたままアプリが終わると一時フォルダが残る。次に開いたときに消す |
+| C-R2-1 | minor | CompatSpanTests が線の y・色・時刻を固定していなかった。13 ファイルの SHA-256 を手で固定した |
+| B2 | minor | 見本の画像に終日帯の行が無かった。足した |
+| B3 | minor | 週のメモの 2 つ目の形が PLAN_WEEK_MEMO の Q2 のもう一方ではなかった。曜日の線つきを 3 つ目に足した |
+| B5 | minor | 手のひらの手当てが §3.6 と違う（上のずれ 3）。一覧の 24 pt の動き出しは入れた |
+| B6 | minor | メモリの山を取りこぼしうる。差し替え後 1 秒はコマごとに測る |
+| B7 | minor | 案内の札が、タップとピンチで消えなかった |
+| B8 | minor | HUD が大きく、iPhone の横で比べるのを邪魔した。小さくした |
+| B9 | minor | T の写真の説明の誤り（iPhone 縦の boundary は約 1.05 週）。コードの直しは無い |
+| CI-7・CI-8・CI-11 | minor | span-shots の上げ直しの上書き、ja-baseline の上限（90 分に）、日の帯の写真（B4 で解消） |
+
+### リードの決定（作業者からの問い）
+
+1. 上のずれ 1（`LocalizationBundleTests.swift` と build.py の例外）: 認める。S6 で試作の写しを消すときに ja だけのアプリのキーが無くなるので、そのとき 2 つとも 43fe366 のバイトに戻す。
+2. 手のひらで縦も止めるか（ずれ 3）: 試作の感想を見て S5 の初めに決める。既定は §3.6 のまま（本物のキャンバスは横の動き出しだけを止める）。
+3. 帯の上の日付の見出し（ずれ 5）: 試作に残す。
+4. iPhone 横の一番縮めた形「今のまま」では、日付の数字と祝日の名前が重なって読みにくい（見本の 4-1）。S5 で、狭いときに見出しを間引く（P の仕事）。本人には確認ページで「決めていただく必要はありません」と知らせた。
+5. 週のメモの線が境目で切れること・見出しがページごと（ずれ 6）: 週のメモの段（§5。1/15 の関門の後）で決める。
+6. span-shots の `SpanPrototypeInteractionTests` 19 本以上（ずれ 7）: このまま。
+7. compat-v1.0 の上限 65 分（実測 12.2〜13.8 分）: S4 を取り込んだ後に測り直してから戻すか決める。
+8. build-and-test（:822 あたり）と l10n-shots（:1271 あたり）の「The app is not running」の誤った警告（`grep -q` と `pipefail`。警告だけでジョブは緑）: S5 の C の仕事で直す。
+9. J-4 の読み方: M7B.md C1 と同じ（強い差 0・基準だけ 0 なら「違う写真 0 枚」）。
+10. 試作のアーカイブの確かめ（署名したバイナリに `SpanPrototype` の文字があるか）は、最初の試作の TestFlight の run で初めて分かる（Release の最適化の後に型の名前が残るか）。
+
+### S2 の見本の画像（§4.5）
+
+- 073e748 の run 43149906124 の成果物 span-shots の 23 枚（iPad Air 11・iPad Pro 13・iPad mini・iPhone 17。iPad は縦だけ）。リードが 23 枚とも開いて、場面の名前どおりに写っていることを見た。
+- 確認ページは 1 枚（題「見本の画像（1.3 の前）・commit 073e748」）。8 つの節: 週の帯・日の帯・日曜始まり・iPhone 横の一番縮めた形（今のまま／上限あり）・一覧・古い版での見え方（1 ページずつ）・初めての案内の札・週のメモの形。iPad の横が無いことと、その理由を書いた。答えは任意（§0.5）。11/12 に本人に送った（ページの HTML は手元だけで commit しない）。
+- 成果物の期限は 2026-11-19。
+
+## S3（試作を TestFlight へ。2026-11-12）
+
+### 関門（§12.2 の S3。機械で確かめた）
+
+| 関門 | 結果 |
+| --- | --- |
+| (1) 凍結の 18 ファイルが 43fe366 の表で `shasum -c` OK | 647ea01 で 18/18 OK（この Mac）。testflight.yml の段でも確かめる |
+| (2) `git diff 43fe366 -- Sources/TegakiCalendar` の範囲 | `tools/span/prototype_gate.py --base 43fe366` が OK: `Span/SpanPrototype*.swift` 7 ファイル（全体が `#if SPAN_PROTOTYPE` の中）・`SettingsScreen.swift` の 4 行（`#if SPAN_PROTOTYPE` の中。塊を除くと 43fe366 と同じ）・`prototype.span.*` のキー 33 個（ja だけ） |
+| (3) span-shots の `PrototypeIsolationTests` が 4 本以上・失敗 0 | 073e748 の run 43149906124: 4 本合格（試作のテスト全体で 24 本・失敗 0） |
+| (4) J-4 の日本語の写真が 43fe366 と同じ | 合格（下） |
+
+- そのほか: `TESTS_1_2_3.sha256` 8/8 OK、`project.yml` に `SPAN_PROTOTYPE` なし。
+
+### J-4（§10.5。M7B.md C1 の読み方）
+
+- 基準: ja-baseline.yml を `r13`（073e748）で走らせた run 43158921131（2026-11-12 05:04〜06:00 UTC、成果物 `ja-baseline-43fe366`）。env.txt（Xcode 26.6 17F113・機種と iOS）は下の 2 つの run と同じ。
+- 073e748 の run 43149906124 の `screenshots` と比べると、77 枚のうち同じ 55・弱い差だけ 21・**強い差 1**（`ipad13-portrait-sheet-holidays.png`）・基準だけ 0（新だけは UI テストの 31 枚）。強い差の 1 枚は、祝日の画面に移る前の設定の画面が写っていた（写真の段は起動から決まった 9 秒で撮る。build.yml の 13 インチの 11 のシートの段）。撮る時刻の揺れで、コードの違いではない。
+- 同じ UTC の日の 80d7c54 の run 43136565762 の `screenshots` と比べると、**77 枚のうち同じ 58・弱い差だけ 19（最大 9/255）・強い差 0・基準だけ 0**。80d7c54 と 073e748 のふつうのビルドのコードは同じ（`git diff 80d7c54 073e748 -- Sources project.yml TegakiKit/Sources` は `Span/SpanPrototypeScreen.swift`・`SpanPrototypeSession.swift` だけで、どちらも全体が `#if SPAN_PROTOTYPE` の中）。よって「違う写真 0 枚」と読む（リードの決定 9）。
+- 次の 1 枚の揺れを減らすため、13 インチのシートの段の決まった 9 秒を「画面が出たのを待つ」形にするかは、S5 の C の仕事で見る（下の S5 への申し送り）。
+
+### 試作のビルド
+
+- 2026-11-12 15:15（JST）に testflight.yml を `r13`（647ea01。073e748 に docs だけを足した commit）で、`marketing_version=1.3`・`span_prototype=1` で走らせた（run 43166806113）。**ビルドの番号は 24**（run の番号）。タグ `r13-proto-1`（647ea01）を付けた。S4 で表のファイルが変わった後に試作を作り直すときは、このタグから作る。
+- 後で本物の 1.3 を出すとき、提出のスクリプトは版に付けるビルドが 24 でないことを確かめる（§4.6）。ビルド 24 は、次のふつうのビルドが TestFlight で使えるようになって（VALID）から期限切れにする。
+
+### S5 への申し送り
+
+- iPhone 横の一番縮めた形「今のまま」の日付の見出しが重なる（リードの決定 4。P）。
+- 写真の段の「The app is not running」の誤った警告（決定 8。C）と、13 インチのシートの段の決まった 9 秒（上の J-4。C）。
+- 手のひらで縦も止めるか（決定 2。L）。
