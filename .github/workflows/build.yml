@@ -463,6 +463,7 @@ jobs:
       # of a "Test Case" line hides that pass from the sed (seen in the unit test step of run 43176186917:
       # [TextTransform] from PencilKit, [Client] XPC), so a class that falls short gets a warning and its time is
       # short by those passes. The step's result does not depend on it.
+      # S5 (§10.6): SpanSessionTests and ScreenEraseTests (the sessions over the live engine) are repeated with them.
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
         timeout-minutes: 9
@@ -478,6 +479,8 @@ jobs:
             -only-testing:TegakiCalendarTests/SyncEngineTests \
             -only-testing:TegakiCalendarTests/SyncEngineSpanTests \
             -only-testing:TegakiCalendarTests/SyncEngineEraseFetchTests \
+            -only-testing:TegakiCalendarTests/SpanSessionTests \
+            -only-testing:TegakiCalendarTests/ScreenEraseTests \
             -skip-testing:TegakiCalendarTests/SyncEngineTests/testMergeRemoteOfATruncatedPageMarksDirty \
             -test-iterations "$ITERATIONS" \
             -run-tests-until-failure \
