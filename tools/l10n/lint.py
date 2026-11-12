@@ -48,7 +48,9 @@ The checks:
   L-14  Persistence/WeekStartChoice.swift is the only file of the app that reads the region's first
         day of the week.
 L-7, L-8, L-13 and L-14 read the code with its comments and strings out of the way, a call to its
-closing parenthesis. The frozen files of tools/compat10/DATA_1_1.sha256 are not read by them.
+closing parenthesis. The files of tools/l10n/lint-skip.txt (frozen files of
+tools/compat10/DATA_1_1.sha256, 1.3: not the four 1.3 changes) are not read by them; a line of it that
+names a file not there or not in DATA_1_1.sha256 fails them.
 """
 import argparse
 import bisect
@@ -660,21 +662,66 @@ class Source:
             yield self.line(match.start()), match.group(0), self.call_args(paren)
 
 
+FROZEN_TABLE = "tools/compat10/DATA_1_1.sha256"
+LINT_SKIP = "tools/l10n/lint-skip.txt"
+
+
+def _unreadable(e):
+    return e.strerror if isinstance(e, OSError) else f"not UTF-8: {e.reason} at byte {e.start}"
+
+
 def frozen_paths(repo):
-    """The files of tools/compat10/DATA_1_1.sha256: they cannot change, so they are not read here."""
+    """The files of tools/l10n/lint-skip.txt, which are not read here, and [problem]. 1.3
+    (docs/M7C_CONTRACT.md §6.4 step 1): the list is the files of tools/compat10/DATA_1_1.sha256 that
+    cannot change; the ones 1.3 changes are left out of it, so their new code is read. Every line
+    must name a file that is there and in DATA_1_1.sha256, so the list cannot go stale unseen; a line
+    that does not is a problem and its file is read."""
+    problems = []
     try:
-        with open(os.path.join(repo, "tools/compat10/DATA_1_1.sha256"), encoding="utf-8") as f:
-            return {line.split()[1] for line in f if line.strip()}
-    except OSError:
-        return set()
+        with open(os.path.join(repo, FROZEN_TABLE), "rb") as f:
+            table = {line.split()[1] for line in f.read().decode("utf-8").split("\n") if len(line.split()) == 2}
+    except (OSError, UnicodeDecodeError) as e:
+        table = set()
+        problems.append(f"{FROZEN_TABLE}: cannot be read ({_unreadable(e)}); {LINT_SKIP} is checked against it")
+    try:
+        with open(os.path.join(repo, LINT_SKIP), "rb") as f:
+            text = f.read().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        problems.append(f"{LINT_SKIP}: cannot be read ({_unreadable(e)})")
+        return set(), problems
+    seen, skipped = {}, set()
+    for number, line in enumerate(text.split("\n"), 1):
+        where = f"{LINT_SKIP}:{number}"
+        if line.strip() == "" or line.startswith("#"):
+            continue
+        if line != line.strip() or "\t" in line or "\r" in line:
+            problems.append(f"{where}: {line!r} has a space, a tab or a carriage return (one path a line)")
+            continue
+        if line in seen:
+            problems.append(f"{where}: {line} is there twice (line {seen[line]})")
+            continue
+        seen[line] = number
+        in_table = line in table
+        if not in_table:
+            problems.append(f"{where}: {line} is not in {FROZEN_TABLE} (only a frozen file may be left unread)")
+        is_file = (not line.startswith("/") and ".." not in line.split("/")
+                   and os.path.isfile(os.path.join(repo, line)))
+        if not is_file:
+            problems.append(f"{where}: {line} is not a file of the repository (a path from its top)")
+        if in_table and is_file:
+            skipped.add(line)
+    return skipped, problems
 
 
 def read_code(repo, result):
-    """The sources of L-1 as (app, Kit Layout and InkModel, Kit): frozen files and tests left out."""
+    """The sources of L-1 as (app, Kit Layout and InkModel, Kit): the files of lint-skip.txt and tests
+    left out."""
     files, problems = current_sources(repo)
     for problem in problems:
         result.problem(problem)
-    frozen = frozen_paths(repo)
+    frozen, problems = frozen_paths(repo)
+    for problem in problems:
+        result.problem(problem)
     sources = {path: Source(path, text) for path, text in files.items() if path not in frozen}
     app = [s for path, s in sorted(sources.items()) if path.startswith(baseline.APP_ROOT)]
     kit = [s for path, s in sorted(sources.items()) if path.startswith(baseline.KIT_ROOT)]
