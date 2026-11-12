@@ -105,7 +105,7 @@ final class SpanPrototypeInbox {
 /// a folder of its own under the temporary directory, an `InkPageStore` and a `SyncStateStore` there
 /// (named with their folder and file, never the defaults, which are the app's `ink` folder and its
 /// `state.json`, SyncStateStore.swift:10), an `InMemoryCloudDatabase` and a `SyncEngine` over them that is
-/// never started.
+/// never started, and what 「線の数」 wrote in the folder (`filled`).
 @MainActor
 struct SpanPrototypeEnvironment {
     let folder: URL
@@ -113,6 +113,8 @@ struct SpanPrototypeEnvironment {
     let stateStore: SyncStateStore
     let database: InMemoryCloudDatabase
     let sync: SyncEngine
+    /// The synthetic strokes each page of the folder holds (every session of this opening writes and reads it).
+    let filled: SpanPrototypeFilledPages
 
     /// The start of every folder's name ("span-prototype-<launch>-<uuid>").
     static let folderPrefix = "span-prototype-"
@@ -128,7 +130,8 @@ struct SpanPrototypeEnvironment {
         let stateStore = SyncStateStore(fileURL: folder.appendingPathComponent("state.json", isDirectory: false))
         let database = InMemoryCloudDatabase()
         let sync = SyncEngine(store: store, stateStore: stateStore, database: database)
-        return SpanPrototypeEnvironment(folder: folder, store: store, stateStore: stateStore, database: database, sync: sync)
+        return SpanPrototypeEnvironment(folder: folder, store: store, stateStore: stateStore, database: database, sync: sync,
+                                        filled: SpanPrototypeFilledPages())
     }
 
     /// Removes the folder with what the prototype wrote (it keeps nothing once it is closed).
@@ -147,6 +150,33 @@ struct SpanPrototypeEnvironment {
         for name in names where name.hasPrefix(folderPrefix) && !name.hasPrefix(mine) {
             try? fm.removeItem(at: base.appendingPathComponent(name, isDirectory: true))
         }
+    }
+}
+
+// MARK: - What 「線の数」 wrote
+
+/// The synthetic strokes of 「線の数」 each page of the prototype's folder holds on file (reviews B1, B1-R): a page's
+/// real id → the set written there; a page not here holds none. One for each opening of the prototype (its folder),
+/// shared by the sessions of every week start and kind, so any window can tell whether its pages hold what
+/// 「線の数」 says now (`SpanPrototypeSession.windowNeedsFill`). Used on the main actor only (the sessions').
+final class SpanPrototypeFilledPages {
+    /// One page's set: the window total it was chosen as and the strokes written on the page (⌈total ÷ the pages
+    /// of the window it was written for⌉).
+    struct Fill: Equatable {
+        var total: Int
+        var perPage: Int
+    }
+
+    private var pages: [String: Fill] = [:]
+
+    /// The set page `pageId` holds (nil: none).
+    func fill(of pageId: String) -> Fill? {
+        pages[pageId]
+    }
+
+    /// Page `pageId` was written with `fill` (nil: with none).
+    func record(_ fill: Fill?, for pageId: String) {
+        pages[pageId] = fill
     }
 }
 
@@ -223,9 +253,12 @@ final class SpanPrototypeSession: ObservableObject {
     private(set) var memoFloor: CGFloat = 0
     /// The lanes of the window's all-day bands: never fewer in a session (§3.8, B_DESIGN.md §3.1).
     private(set) var bandLaneFloor = 0
-    /// How many pages the window had when 「線の数」 last filled it (nil: never filled). Another count (a rotation,
-    /// 「上限あり」) makes the window's total another number: the model fills it again (review B1).
-    private(set) var filledPageCount: Int?
+    /// What 「線の数」 wrote on the pages of the prototype's folder (the environment's: every session of the opening).
+    let filled: SpanPrototypeFilledPages
+    /// The pages the last fill could not write (a page whose handwriting could not be saved first, a refused or
+    /// failed save): left as they are, and not asked for again before the next fill (`windowNeedsFill`), so a page
+    /// that cannot be written does not start a fill at every shift.
+    private(set) var unwritablePages: Set<String> = []
 
     /// The ledger's page of the window and its layout; `windowVersion` moves each time they are composed.
     @Published private(set) var window: SpanVirtualPage
@@ -257,10 +290,11 @@ final class SpanPrototypeSession: ObservableObject {
     /// (a page it changed is saved, as the app's `show` does), and composes the window.
     init(sync: SyncEngine, weekStart: WeekStart, focus: DayKey, deviceClass: SpanDeviceClass, orientation: SpanOrientation,
          now: Date, holidays: HolidayCalendar, events: [LayoutEvent], number: Int = 1, radius: Int? = nil,
-         kind: PageKind = .week, meter: SpanPrototypeMeter? = nil,
+         kind: PageKind = .week, meter: SpanPrototypeMeter? = nil, filled: SpanPrototypeFilledPages = SpanPrototypeFilledPages(),
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }) {
         self.sync = sync
         self.meter = meter
+        self.filled = filled
         radiusOverride = radius
         self.weekStart = weekStart
         self.number = number
@@ -595,16 +629,32 @@ final class SpanPrototypeSession: ObservableObject {
         var total: Int
     }
 
-    /// Fills the window's pages, and one window radius of pages beyond each side (so a fling or two still
-    /// finds full pages), with `windowTotal` ÷ the window's pages synthetic strokes each (in the page's grid:
-    /// `SpanPrototypeSynthetic.area`; `filledPageCount` keeps the window's page count)
-    /// (`SpanPrototypeSynthetic`; 0 takes them all out): what was written in the prototype is saved first and
-    /// stays (a page that could not be saved is left as it is). Each page is written as "proto-<id>" through
-    /// the prototype's guard, straight to the prototype's store (the engine's save would merge the old
-    /// synthetic strokes back in), the window's pages first, one per turn (`progress` after each). Then the
-    /// window's pages are read again from their files (the reads the meter times) and the window composed
-    /// again. The caller takes the canvas away first (its last deltas then reach `saveAll` here). false when
-    /// the session is closed or already filling.
+    /// The set a page of this window holds when the window holds `total` synthetic strokes: ⌈`total` ÷ the
+    /// window's pages⌉ on each (nil for 0: none).
+    func wantedFill(total: Int) -> SpanPrototypeFilledPages.Fill? {
+        guard total > 0 else { return nil }
+        return SpanPrototypeFilledPages.Fill(total: total, perPage: (total + pageIds.count - 1) / max(1, pageIds.count))
+    }
+
+    /// A page of the window does not hold the set of `total` (`wantedFill`; `filled`), and the last fill did not
+    /// fail on it: the window holds another total than `total` (reviews B1, B1-R: a window of another page count, a
+    /// page more than one radius past where it was filled, a page that still holds an earlier choice).
+    func windowNeedsFill(total: Int) -> Bool {
+        let wanted = wantedFill(total: total)
+        return pageIds.contains { !unwritablePages.contains($0) && filled.fill(of: $0) != wanted }
+    }
+
+    /// Writes `windowTotal` ÷ the window's pages synthetic strokes (`wantedFill`; in the page's grid:
+    /// `SpanPrototypeSynthetic.area`; 0 takes them all out) on every page of the window, and of one window radius
+    /// beyond each side (so a fling or two still finds full pages), that does not hold that set yet (`filled`:
+    /// a new count or page count writes them all, a window that moved only the pages it had not reached, review
+    /// B1-R): what was written in the prototype is saved first and stays (a page that could not be saved is left
+    /// as it is, and so is one whose write is refused or fails: `unwritablePages`). Each page is written as
+    /// "proto-<id>" through the prototype's guard, straight to the prototype's store (the engine's save would
+    /// merge the old synthetic strokes back in), the window's pages first, one per turn (`progress` after each).
+    /// Then the window's pages are read again from their files (the reads the meter times) and the window
+    /// composed again. The caller takes the canvas away first (its last deltas then reach `saveAll` here).
+    /// false when the session is closed or already filling.
     @discardableResult
     func fill(windowTotal: Int, progress: @escaping @MainActor (FillProgress) -> Void = { _ in }) async -> Bool {
         guard !isClosed, !isFilling else { return false }
@@ -612,18 +662,22 @@ final class SpanPrototypeSession: ObservableObject {
         defer { isFilling = false }
         let unsaved = Set(saveAll())
         let radius = windowRadius
-        let perPage = windowTotal > 0 ? (windowTotal + pageIds.count - 1) / max(1, pageIds.count) : 0
+        let wanted = wantedFill(total: windowTotal)
         let reach = (focusIndex - 2 * radius)...(focusIndex + 2 * radius)
-        let order = reach.sorted { abs($0 - focusIndex) < abs($1 - focusIndex) || (abs($0 - focusIndex) == abs($1 - focusIndex) && $0 < $1) }
+        let order = reach
+            .sorted { abs($0 - focusIndex) < abs($1 - focusIndex) || (abs($0 - focusIndex) == abs($1 - focusIndex) && $0 < $1) }
+            .filter { filled.fill(of: plan.pageId(at: $0)) != wanted }
+        unwritablePages = []
         progress(FillProgress(done: 0, total: order.count))
         for (done, index) in order.enumerated() {
             guard !isClosed else { return false }
             let id = plan.pageId(at: index)
             guard !unsaved.contains(id) else {
                 record("fill skipped \(Self.fileId(id)): not saved")
+                unwritablePages.insert(id)
                 continue
             }
-            let synthetic = SpanPrototypeSynthetic.strokes(pageId: id, count: perPage, tag: windowTotal,
+            let synthetic = SpanPrototypeSynthetic.strokes(pageId: id, count: wanted?.perPage ?? 0, tag: windowTotal,
                                                            area: SpanPrototypeSynthetic.area(plan.kind))
             var page = SpanPrototypeSynthetic.replacing(sync.load(Self.fileId(id)), with: synthetic)
             page.pageId = Self.fileId(id)
@@ -635,12 +689,15 @@ final class SpanPrototypeSession: ObservableObject {
                 page = repaired
             case .refused:
                 record("fill refused \(page.pageId)")
+                unwritablePages.insert(id)
                 continue
             }
             do {
                 try sync.store.save(page)
+                filled.record(wanted, for: id)
             } catch {
                 record("fill failed \(page.pageId): \(error)")
+                unwritablePages.insert(id)
             }
             progress(FillProgress(done: done + 1, total: order.count))
             // A moment for the screen to show the progress.
@@ -650,7 +707,6 @@ final class SpanPrototypeSession: ObservableObject {
         for id in pageIds where !unsaved.contains(id) {
             slots[id] = loadSlot(id)
         }
-        filledPageCount = windowTotal > 0 ? pageIds.count : nil
         compose()
         // The safety net's source is this window now: the last canvas's (taken away before the fill) still
         // holds the strokes the fill took out, and merging it would bring them back (§3.4 (c)).

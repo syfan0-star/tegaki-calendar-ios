@@ -59,7 +59,8 @@ struct SpanPrototypeEntryRow: View {
 /// app's), and the session, made once the screen knows its size (the device class and the orientation
 /// pick the window, §3.6) and composed again when they change — at once when no canvas holds a stroke back,
 /// else once the canvas is free (`rebuild`, review ISO-3). The toggles of §4.6 and §4.5 live here:
-/// 「線の数」 (filled again when the window's page count changes, review B1), iPhone landscape's 「今のまま」 /
+/// 「線の数」 (filled again when the window's page count changes or it moves past the pages filled, reviews B1,
+/// B1-R), iPhone landscape's 「今のまま」 /
 /// 「上限あり」, 「1 ページずつ」, the week start and the kind (week or day; each a new session, K-11).
 /// `close()` saves, closes and removes the prototype's folder.
 @MainActor
@@ -170,7 +171,7 @@ final class SpanPrototypeModel: ObservableObject {
         let made = SpanPrototypeSession(sync: environment.sync, weekStart: weekStart, focus: focus,
                                         deviceClass: device.deviceClass, orientation: device.orientation,
                                         now: now, holidays: holidays, events: events, number: number,
-                                        radius: radiusOverride(for: plan), kind: kind, meter: meter)
+                                        radius: radiusOverride(for: plan), kind: kind, meter: meter, filled: environment.filled)
         made.inbox.onCanvasLeft = { [weak self, weak made] in
             guard let self, let made, self.session === made else { return }
             self.runWaitingRebuild(focusIndex: nil)
@@ -209,8 +210,8 @@ final class SpanPrototypeModel: ObservableObject {
     }
 
     /// Composes the waiting rebuild now around its focus, else `focusIndex` (the canvas's), else the session's; nil
-    /// when none waits or a page that leaves could not be saved. Then 「線の数」 fills a window of another page count
-    /// again (`windowRebuilt`).
+    /// when none waits or a page that leaves could not be saved. Then 「線の数」 fills the pages of a window of another
+    /// page count again, measuring afresh (`fillIfNeeded`).
     @discardableResult
     func runWaitingRebuild(focusIndex: Int?) -> SpanPrototypeWindowState? {
         guard let request = waitingRebuild, let session, !isClosed else { return nil }
@@ -218,17 +219,21 @@ final class SpanPrototypeModel: ObservableObject {
         session.inbox.rebuildWaiting = false
         guard !session.isFilling else { return nil }
         guard session.rebuildWindow(focusIndex: request.focusIndex ?? focusIndex, plan: request.plan, radius: request.radius) else { return nil }
-        windowRebuilt()
+        fillIfNeeded(resetsMeter: true)
         return session.windowState
     }
 
-    /// Review B1: 「線の数」 wrote `strokeTotal` ÷ the window's pages on each page; a window of another page count (a
-    /// rotation, 「上限あり」) would hold another total (iPhone portrait's 25,000 turned into 45,000 in landscape). It is
-    /// filled again, so the window holds the chosen number.
-    private func windowRebuilt() {
-        guard strokeTotal > 0, fillProgress == nil, let session, !session.isFilling,
-              session.filledPageCount != session.pageIds.count else { return }
-        startFill()
+    /// Reviews B1, B1-R: 「線の数」 wrote `strokeTotal` ÷ the window's pages on each page of the window and of one radius
+    /// beyond each side (`SpanPrototypeFilledPages`). A window with a page that lacks that set holds another total:
+    /// another page count (a rotation, 「上限あり」: iPhone portrait's 25,000 turned into 45,000 in landscape), a page
+    /// more than one radius past where the fill was (moving sideways, ◀ ▶ of 「1 ページずつ」: on an 11-inch iPad in
+    /// portrait 25,000 turned into 20,000 three weeks on, and into 0 seven weeks on), or a session of another week
+    /// start or kind (a page that still holds an earlier choice, 0 included). The pages that lack it are written,
+    /// the band taken away meanwhile, so the window holds the chosen number. `resetsMeter`: a window of another page
+    /// count measures afresh; one that only moved keeps what was measured with the same choice.
+    private func fillIfNeeded(resetsMeter: Bool) {
+        guard fillProgress == nil, let session, !session.isFilling, session.windowNeedsFill(total: strokeTotal) else { return }
+        startFill(resetsMeter: resetsMeter)
     }
 
     /// The first size makes the session around this week; a size of another device class or orientation
@@ -269,10 +274,12 @@ final class SpanPrototypeModel: ObservableObject {
     }
 
     /// §3.6: the canvas is at rest away from the window's middle page — the session composes the window around
-    /// it (nil when it could not: a page that leaves was not saved).
+    /// it (nil when it could not: a page that leaves was not saved). A window that came to a page 「線の数」 has not
+    /// reached is filled after the canvas took it (`fillIfNeeded`, review B1-R; the measurements stay).
     func shift(toFocusIndex index: Int) -> SpanPrototypeWindowState? {
-        guard !isClosed else { return nil }
-        return session?.shift(toFocusIndex: index)
+        guard !isClosed, let state = session?.shift(toFocusIndex: index) else { return nil }
+        fillIfNeeded(resetsMeter: false)
+        return state
     }
 
     /// 「線の数」 (§4.6 ④): the band is taken away (its last deltas reach the session), then the session fills
@@ -281,13 +288,16 @@ final class SpanPrototypeModel: ObservableObject {
     func setStrokeTotal(_ total: Int) {
         guard !isClosed, let session, fillProgress == nil, !session.isFilling, total != strokeTotal else { return }
         strokeTotal = total
-        startFill()
+        startFill(resetsMeter: true)
     }
 
-    /// Writes `strokeTotal` over the window's pages of the session (`setStrokeTotal`, a new week start or kind, a
-    /// window of another page count).
-    private func startFill() {
-        meter.reset()
+    /// Writes `strokeTotal` over the window's pages of the session (`setStrokeTotal`, and `fillIfNeeded`: a new week
+    /// start or kind, a window of another page count, a window that moved past the pages filled). `resetsMeter`:
+    /// the measurements start afresh.
+    private func startFill(resetsMeter: Bool) {
+        if resetsMeter {
+            meter.reset()
+        }
         fillProgress = SpanPrototypeSession.FillProgress(done: 0, total: 0)
         let total = strokeTotal
         Task { @MainActor [weak self] in
@@ -325,17 +335,20 @@ final class SpanPrototypeModel: ObservableObject {
         singlePage = on
     }
 
-    /// ◀ ▶ while 「1 ページずつ」 is on: the week before or after, the window composed around it.
+    /// ◀ ▶ while 「1 ページずつ」 is on: the week before or after, the window composed around it (and filled when it
+    /// came to a page 「線の数」 has not reached, review B1-R).
     func stepSinglePage(_ pages: Int) {
         guard !isClosed, let session, !session.isFilling, let focus = focusPageIndex else { return }
         let next = focus + pages
         guard session.rebuildWindow(focusIndex: next) else { return }
         focusIndex = next
+        fillIfNeeded(resetsMeter: false)
     }
 
     /// The week start (K-11: a window never mixes the two shapes): the session is saved and closed, a new one
     /// opens around the same day with the other shape (the prototype's pages of that shape; what was written
-    /// in the other one stays in its pages), and 「線の数」 fills its pages again.
+    /// in the other one stays in its pages), and 「線の数」 fills its pages that lack the chosen set (`fillIfNeeded`:
+    /// with 0, those that still hold an earlier choice).
     func setWeekStart(_ start: WeekStart) {
         guard !isClosed, start != weekStart, fillProgress == nil, let old = session, !old.isFilling,
               let screen = lastScreen else { return }
@@ -345,14 +358,12 @@ final class SpanPrototypeModel: ObservableObject {
         focusIndex = nil
         meter.reset()
         session = makeSession(focus: day, device: Self.device(for: screen.size, isPad: screen.isPad))
-        if strokeTotal > 0 {
-            startFill()
-        }
+        fillIfNeeded(resetsMeter: true)
     }
 
     /// Weeks or days (K-11: a window never mixes kinds): the session is saved and closed, a new one opens with the
     /// other kind — on the focus day, or on today when the focus week holds it, or on the focus week's first day —
-    /// and 「線の数」 fills its pages again. 「1 ページずつ」 goes off.
+    /// and 「線の数」 fills its pages that lack the chosen set (`fillIfNeeded`). 「1 ページずつ」 goes off.
     func setKind(_ newKind: PageKind) {
         let next: PageKind = newKind == .day ? .day : .week
         guard !isClosed, next != kind, fillProgress == nil, let old = session, !old.isFilling,
@@ -369,9 +380,7 @@ final class SpanPrototypeModel: ObservableObject {
         focusIndex = nil
         meter.reset()
         session = makeSession(focus: day, device: Self.device(for: screen.size, isPad: screen.isPad))
-        if strokeTotal > 0 {
-            startFill()
-        }
+        fillIfNeeded(resetsMeter: true)
     }
 
     /// Saves what is waiting (the app went to the background, the pen rests).

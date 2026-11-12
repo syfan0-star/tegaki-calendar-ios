@@ -12,7 +12,7 @@ import XCTest
 /// no finger or Pencil is needed: the palm's rule and the overview's 24 pt start, the history a shift forgets, the
 /// shift keeping the focus page in place, the fling to the next week, a rebuild waiting for the pen, the week memo's
 /// cell, its floor and its forms, the synthetic strokes of 「線の数」, the pages they fill and the refill of a window
-/// of another size, the meter and its memory peak, 「上限あり」, 「1 ページずつ」, the week start, the day band with its
+/// of another size or one that moved past them, the meter and its memory peak, 「上限あり」, 「1 ページずつ」, the week start, the day band with its
 /// all-day bands, and the leftovers of earlier launches. Compiled only with
 /// `SPAN_PROTOTYPE` (the span-shots job's host, like `PrototypeIsolationTests`); the normal build has none of it.
 /// The real canvas's own tests are L's (`InkCanvasSpanTests`, S5).
@@ -509,13 +509,16 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         model.setStrokeTotal(900)
         try await waitForFill(model)
         XCTAssertEqual(session.windowStrokeCount, 900)
-        XCTAssertEqual(session.filledPageCount, 5)
+        let filled = model.environment.filled
+        XCTAssertEqual(filled.fill(of: session.pageIds[session.focusSlot]), SpanPrototypeFilledPages.Fill(total: 900, perPage: 180))
+        XCTAssertFalse(session.windowNeedsFill(total: 900))
 
         model.screenChanged(phoneLandscape, isPad: false)
         XCTAssertEqual(session.pageIds.count, 9)
         XCTAssertNotNil(model.fillProgress, "a window of another page count is filled again")
         try await waitForFill(model)
-        XCTAssertEqual(session.filledPageCount, 9)
+        XCTAssertEqual(filled.fill(of: session.pageIds[0]), SpanPrototypeFilledPages.Fill(total: 900, perPage: 100))
+        XCTAssertFalse(session.windowNeedsFill(total: 900))
         XCTAssertEqual(session.windowStrokeCount, 900)
 
         model.setLandscapeCap(true)
@@ -529,6 +532,75 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         XCTAssertEqual(session.pageIds.count, 5)
         XCTAssertEqual(session.windowStrokeCount, 900)
         XCTAssertEqual(model.strokeTotal, 900)
+    }
+
+    /// B1-R (§4.6 ④: 選んで、横に動かしたとき): 「線の数」 of 500 on the 11-inch iPad in portrait (5 weeks, 100 each, written
+    /// on the window's weeks and two beyond each side, 9 in all). One and two weeks to the right the window is within
+    /// them and nothing is written; three weeks on it holds a week the fill did not reach, so the weeks that lack the
+    /// set are written (those 3 only, the measurements kept) and the window holds 500 again. Then 0, and back to the
+    /// left: a week that still holds the set of 500 comes into the window and is emptied. A week start of its own
+    /// session likewise. Fails on the code before the fix: three weeks on the window held 400 (seven on, none), and
+    /// back on the left it held 100 with 0 chosen.
+    func testFillFollowsTheWindowSideways() async throws {
+        let (model, session) = try openPrototype()
+        defer { model.close() }
+        let store = model.environment.store
+        let filled = model.environment.filled
+        let start = session.focusIndex
+        XCTAssertEqual(session.pageIds.count, 5)
+        model.setStrokeTotal(500)
+        try await waitForFill(model)
+        XCTAssertEqual(session.windowStrokeCount, 500)
+        XCTAssertEqual(store.allPageIds().count, 9)
+
+        for step in 1...2 {
+            XCTAssertNotNil(model.shift(toFocusIndex: start + step))
+            XCTAssertNil(model.fillProgress, "\(step) week(s) on: the window is within the weeks filled")
+            XCTAssertEqual(session.windowStrokeCount, 500)
+        }
+        // A reading taken before the window moves on (the fill after the move keeps it).
+        model.meter.recordLoad(seconds: 0.5, strokes: 100)
+        XCTAssertNotNil(model.shift(toFocusIndex: start + 3))
+        XCTAssertNotNil(model.fillProgress, "the window holds a week the fill did not reach")
+        try await waitForFill(model)
+        XCTAssertEqual(session.focusIndex, start + 3)
+        XCTAssertEqual(session.windowStrokeCount, 500)
+        XCTAssertEqual(store.allPageIds().count, 12, "only the 3 weeks that lacked the set were written")
+        XCTAssertEqual(filled.fill(of: session.plan.pageId(at: start + 7)), SpanPrototypeFilledPages.Fill(total: 500, perPage: 100))
+        model.meter.publish()
+        XCTAssertEqual(try XCTUnwrap(model.meter.snapshot.loadMaxMs), 500, accuracy: 0.001, "the measurements of the same choice stay")
+
+        model.setStrokeTotal(0)
+        try await waitForFill(model)
+        XCTAssertEqual(session.windowStrokeCount, 0)
+        XCTAssertEqual(filled.fill(of: session.plan.pageId(at: start - 2))?.total, 500, "beyond the reach of the 0")
+        for focus in [start + 2, start + 1] {
+            XCTAssertNotNil(model.shift(toFocusIndex: focus))
+            XCTAssertNil(model.fillProgress)
+        }
+        XCTAssertNotNil(model.shift(toFocusIndex: start))
+        XCTAssertNotNil(model.fillProgress, "a week that still holds the set of 500 came into the window")
+        try await waitForFill(model)
+        XCTAssertEqual(session.windowStrokeCount, 0)
+        XCTAssertNil(filled.fill(of: session.plan.pageId(at: start - 2)))
+        XCTAssertNil(filled.fill(of: session.plan.pageId(at: start - 4)))
+
+        // A week start of its own (a session of its own pages), 500 there, 0, and back: the Monday weeks hold 0.
+        model.setStrokeTotal(500)
+        try await waitForFill(model)
+        model.setWeekStart(.sunday)
+        try await waitForFill(model)
+        let sunday = try XCTUnwrap(model.session)
+        XCTAssertEqual(sunday.windowStrokeCount, 500)
+        model.setStrokeTotal(0)
+        try await waitForFill(model)
+        model.setWeekStart(.monday)
+        XCTAssertNotNil(model.fillProgress, "the Monday weeks still hold the set of 500")
+        try await waitForFill(model)
+        let monday = try XCTUnwrap(model.session)
+        XCTAssertEqual(monday.weekStart, .monday)
+        XCTAssertEqual(monday.windowStrokeCount, 0)
+        XCTAssertEqual(monday.faultCount + sunday.faultCount + session.faultCount, 0)
     }
 
     /// B4, B2 (§4.5 週と日の帯, §4.6 the widest window, §3.8): the day band on an iPhone in landscape is 15 days of
