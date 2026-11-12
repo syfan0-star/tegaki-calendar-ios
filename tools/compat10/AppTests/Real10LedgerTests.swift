@@ -184,10 +184,18 @@ final class Real10LedgerTests: XCTestCase {
         XCTAssertEqual(engine.snapshot.status, .synced)
     }
 
-    private func flushDebounce() async {
-        await engine.waitUntilIdle()
-        sleeper.advance()
-        await engine.waitUntilIdle()
+    /// Runs the debounced push of `pageId` to its end. 1.0's engine calls its `sleep` through a closure
+    /// that is not on the main actor, so when `waitUntilIdle` returns the debounce task can still be
+    /// between `endJob` and `TestSleeper.sleep` (or, once woken, before its `beginJob`): one `advance()`
+    /// then wakes nothing and the push never comes (CI run 43176186917). Wake and wait again until the
+    /// page is no longer dirty, at most 5 s; the assertions after it are unchanged.
+    private func flushDebounce(_ pageId: String) async {
+        for _ in 0..<500 {
+            await engine.waitUntilIdle()
+            if !engine.state.dirty.contains(pageId) { return }
+            sleeper.advance()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
     }
 
     /// A record as the 1.1 device sends it: the fixture's own bytes as the page body.
@@ -244,7 +252,7 @@ final class Real10LedgerTests: XCTestCase {
             let added = InkStroke(id: "real10-\(id)", cell: cell, tool: .pen, color: "#1f2937", t: 1_790_000_800_000, dev: "real-1.0", points: points)
             page.add(added)
             try engine.save(page)
-            await flushDebounce()
+            await flushDebounce(id)
             let sent = try XCTUnwrap(db.records[id], fixture.name)
             guard case .asset(let doc)? = sent.fields["doc"] else { return XCTFail("\(fixture.name): the record has a body") }
             let sentStrokes = try rawJSON(compressed: doc)["strokes"]?.objectValue ?? [:]
@@ -287,7 +295,7 @@ final class Real10LedgerTests: XCTestCase {
         let points = [InkPoint(x: 10, y: 10, dtMs: 0, sizeW: 2, sizeH: 2, opacity: 1, force: 0.5, azimuth: 0, altitude: 1.571)]
         page.add(InkStroke(id: "00000000-0000-4000-8000-000000000000", cell: .yearDay(month: 1, day: 1), tool: .pen, color: "#1f2937", t: 1_790_000_800_000, points: points))
         try engine.save(page)
-        await flushDebounce()
+        await flushDebounce(fixture.pageId)
         let sent = try XCTUnwrap(db.records[fixture.pageId])
         guard case .asset(let doc)? = sent.fields["doc"] else { return XCTFail("the record has a body") }
         let body = try rawJSON(compressed: doc)
