@@ -55,11 +55,12 @@ jobs:
   ja-baseline:
     name: ja-baseline (1.2.3's photos with JA_ARGS, for 1.3)
     runs-on: macos-26
-    # In nine runs of 1.1 (2026-10-31 and 11-01) build.yml's photo steps took 36–45 min: the build 42–71 s,
-    # the 13-inch boot 111–193 s, the 13-inch photos 5–7 min (and since FIX3 a wait of 2 min), the other
-    # devices 26–33 min. No tests run here. 75 leaves room for slow boots; a job cut by its limit would not
-    # reach the upload.
-    timeout-minutes: 75
+    # In nine runs of 1.1 (2026-10-31 and 11-01) build.yml's photo steps took 36–45 min. With 1.2's and 1.2.3's
+    # photo steps the whole job took 48.4, 52.7 and 49.8 min (runs 42013415033, 42040741655, 42121207729) and, after
+    # 43fe366's steps were copied for 1.3, 61.6 min (run 43068016348: the boot 7.8 min, the 13-inch photos
+    # 7.7 + 5.5, the other devices 35.2). No tests run here. 90 leaves room for a slow boot or a slow device; a job
+    # cut by its limit would not reach the upload, and J-4's baseline would have to be taken again the same UTC day.
+    timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"

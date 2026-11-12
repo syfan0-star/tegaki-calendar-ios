@@ -2005,6 +2005,8 @@ jobs:
           done
           exit "$MISSING"
 
+      # overwrite: a re-run of this job (gh run rerun --failed) replaces the photos of the attempt before instead of
+      # failing on the name that attempt already uploaded (as ja-baseline.yml's and store-shots.yml's uploads do).
       - name: Upload the span shots
         if: always()
         uses: actions/upload-artifact@v4
@@ -2013,3 +2015,4 @@ jobs:
           path: shots/span
           retention-days: 7
           if-no-files-found: warn
+          overwrite: true

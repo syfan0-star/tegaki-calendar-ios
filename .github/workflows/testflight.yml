@@ -28,8 +28,10 @@
 # Span/SpanPrototype*.swift inside `#if SPAN_PROTOTYPE`, the entry in Views/SettingsScreen.swift inside it, new keys
 # of the string tables). "Check the prototype archive" looks for the prototype in the signed app and writes the
 # version and the build number (the run number) into the run's summary, for docs/M7C.md: that build is never
-# submitted, and the build of 1.3 that is submitted must not be it. Not together with `age_force`. Without the input
-# every step runs as before (the two steps are skipped, and the archive's command line is the same).
+# submitted, and the build of 1.3 that is submitted must not be it. The prototype is version 1.3 (§4.6): with
+# span_prototype "1" the input marketing_version must be "1.3", and the archive's version is checked. Not together
+# with `age_force`. Without the input every step runs as before (the two steps are skipped, and the archive's command
+# line is the same).
 name: testflight
 
 on:
@@ -104,16 +106,23 @@ jobs:
         uses: actions/checkout@v4
 
       # 1.3 (docs/M7C_CONTRACT.md §4.6, §12.2 S3 (1) (2); D12): only with span_prototype "1". The checkout is one commit
-      # deep, so 43fe366 is fetched for its tree.
+      # deep, so 43fe366 is fetched for its tree. §4.6: the prototype is version 1.3 — project.yml still says 1.2.3 (the
+      # photos of J-4 show the version row, so it stays until S3), and 1.2.3 is released, so a build of it would only
+      # fail at the upload after the archive. The input marketing_version must be 1.3; nothing is built otherwise.
       - name: The prototype build against 43fe366 (1.3)
         if: ${{ github.event.inputs.span_prototype == '1' }}
         env:
           AGE_FORCE_INPUT: ${{ github.event.inputs.age_force }}
+          MARKETING_VERSION_INPUT: ${{ github.event.inputs.marketing_version }}
         run: |
           set -euo pipefail
           BASE=43fe36666a2120e8a23adf4fc76244151a395e6f
           if [ "${AGE_FORCE_INPUT:-}" = "1" ]; then
             echo "::error::試作（span_prototype）と年齢の確かめ用（age_force）は一緒に作れません。1 つずつ作ってください。"
+            exit 1
+          fi
+          if [ "${MARKETING_VERSION_INPUT:-}" != "1.3" ]; then
+            echo "::error::試作のビルドは版 1.3 です（docs/M7C_CONTRACT.md §4.6）。入力 marketing_version に 1.3 を入れてください（今は「${MARKETING_VERSION_INPUT:-}」）。"
             exit 1
           fi
           git fetch --no-tags --depth=1 origin "$BASE"
@@ -305,6 +314,7 @@ jobs:
           BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")"
           if LC_ALL=C grep -q -a 'SpanPrototype' "$APP/TegakiCalendar"; then PROTO=in; else PROTO=missing; fi
           echo "prototype archive: version $VERSION, build $BUILD, SpanPrototype $PROTO"
+          [ "$VERSION" = "1.3" ] || { echo "::error::試作の版が $VERSION です。1.3 のはずです（docs/M7C_CONTRACT.md §4.6）。"; exit 1; }
           [ "$BUILD" = "$RUN_NUMBER" ] || { echo "::error::ビルド番号 $BUILD が run の番号 $RUN_NUMBER と違います。"; exit 1; }
           [ "$PROTO" = "in" ] || { echo "::error::署名したアプリに試作（SpanPrototype）が入っていません。SPAN_PROTOTYPE が効いていません。"; exit 1; }
           {
