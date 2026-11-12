@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
 import CoreGraphics
+import CryptoKit
 import Compat10
 import InkModel
 import Layout
@@ -9,9 +10,13 @@ import Layout
 /// (TegakiKit/Tests/Fixtures/compat-span, written by the joined path of the Kit, §4.2) read through the
 /// frozen 1.0 copy (Compat10) and through today's InkModel. A target of its own (the shape of Compat12Tests),
 /// so that Compat10Tests stays byte for byte what K-7 froze. It does not import CompatSpanFixtures (the code
-/// that makes the files): every expected value here — the MANIFEST rows, the stroke ids, cells, point x
-/// ranges, tombstones, the unknown items' bytes, what 1.0 draws — is written out by hand from the committed
-/// files, so a change of the maker or of the files shows up as a failure here.
+/// that makes the files). What it pins, written out by hand from the committed files: the MANIFEST rows, each
+/// file's SHA-256 (`sha256`: any byte of a file — a y, a colour, a time, a middle point — fails here), and per
+/// file the stroke ids, cells, point counts and x ranges, tombstones, `updatedAt`, the unknown items' bytes and
+/// what 1.0 draws. The other fields (the y and t of each point, the colours, the middle points' x) are compared
+/// only between the 1.0 copy and today's InkModel reading the same bytes, so the hash table is their pin. A
+/// fixture made again on purpose (S5's app path, §4.2) changes the table in the same commit, with its reason in
+/// docs/M7C.md; KitChecks compares the files with what the Kit's maker writes, which is not independent of them.
 ///
 /// The real old Kits (1.0, <1.1.1>, 1.2.3) read the same files in tools/span-compat (CI's compat-v1.0 job),
 /// and the 1.2.3 app's ledger in tools/span-compat/AppTests/Real123LedgerTests.swift.
@@ -51,6 +56,29 @@ final class CompatSpanTests: XCTestCase {
         Row(file: "w-2026-11-30.photo-text.json", fixture: 7, shape: "monday"),
         Row(file: "w-2026-12-07.photo-text-neighbor.json", fixture: 7, shape: "monday"),
     ]
+
+    /// Each committed file's SHA-256 (lower-case hex, as `shasum -a 256` prints it). The independent pin of the
+    /// fields the checks below compare only between the two decoders (review C-R2-1, 2026-11-12).
+    private static let sha256: [String: String] = [
+        "d-2026-11-03.overhang-right.json": "bd3e6dc34eb1a1fe9911c33721a8e739838e888bee894016722390918bb45fa4",
+        "d-2026-11-09.extra-cross.json": "4b4c6470557160016fc13dbcec30e8217e204dcedb4fbe749ac5617b4ba0072c",
+        "d-2026-11-10.extra-cross.json": "7957f56ba84b656f649f81b85d7a604349ea1f22a2d2222808503d130df6e122",
+        "m1-2026-11.overhang-right.json": "39dbd15c925a5a69ee73051d05f55dbf0943abd23aaced011b7b2c27ad45debe",
+        "m1-2026-11.overlap-day.json": "446006cf8ae10a9f18e3c543bb68eb28f3bb7653792e38476674682608464889",
+        "m1-2026-12.overlap-day.json": "e995384fcba64bb6be2e1b859f3812c80cd8b379a88a721e2895895b4ea5097f",
+        "w-2026-11-02.overhang-left.json": "a50ca6397eb26eb8c51194180da8f36ebf92a31d429b25de343ffeb7a6db20fb",
+        "w-2026-11-08.sunday-overhang.json": "f40a027c9d3343f9f37278e7c68ce93b8f0c665579ea93e55c542962e751d47f",
+        "w-2026-11-16.move-source.json": "0100dc4a32fe97024b424cecc6436491e768c790e34d9c2e5b43847afa1ec3ae",
+        "w-2026-11-23.move-destination.json": "451b31ab9e42000b7dce2d40cd1faaa98e6dcd3f8b98b2cd07957c3c22f16993",
+        "w-2026-11-30.photo-text.json": "917978b497c0fbe1847a5bd10894fd33406ce349b8b19ba55bde72b74ac5656f",
+        "w-2026-12-07.photo-text-neighbor.json": "568b08f81a82c599a4e250985136831908f09f7ae694a57d114253ce2bc2ca38",
+        "y-2026.overhang.json": "e7381483f4f305d58e87f7f328f8a6eb79f35fd55c59a066478a4b79cc5a6a87",
+    ]
+
+    /// SHA-256 of `bytes` as lower-case hex.
+    private static func hex(_ bytes: Data) -> String {
+        SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+    }
 
     private func data(_ file: String) throws -> Data {
         try Data(contentsOf: Self.folder.appendingPathComponent(file))
@@ -302,10 +330,12 @@ final class CompatSpanTests: XCTestCase {
         XCTAssertEqual(rows, Self.manifest, "MANIFEST lists the 13 files of fixtures 1–3 and 5–7 (4 comes with the week memo, §5)")
         let onDisk = try FileManager.default.contentsOfDirectory(atPath: Self.folder.path).filter { $0.hasSuffix(".json") }.sorted()
         XCTAssertEqual(onDisk, rows.map(\.file).sorted(), "every *.json of the folder is in MANIFEST, and every row's file is there")
+        XCTAssertEqual(Self.sha256.keys.sorted(), rows.map(\.file).sorted(), "every MANIFEST row has its SHA-256 in `sha256`")
         for row in rows {
             let bytes = try data(row.file)
             XCTAssertFalse(bytes.isEmpty, row.file)
             XCTAssertTrue(row.file.hasPrefix(try InkPageCodec.decode(bytes).pageId + "."), "\(row.file) holds the page its name says")
+            XCTAssertEqual(Self.hex(bytes), Self.sha256[row.file], "\(row.file): the committed bytes (a fixture made again changes `sha256` in the same commit)")
         }
         XCTAssertEqual(Set(rows.map(\.fixture)), [1, 2, 3, 5, 6, 7])
         XCTAssertEqual(Set(rows.map(\.shape)), ["monday", "sunday"], "only the two shapes")
