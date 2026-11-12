@@ -346,14 +346,19 @@ final class SyncEngineSpanTests: XCTestCase {
     /// no hook is called for it), and a page with strokes only on this device is merged and queued for the next
     /// push. Only `onRemoteUpdate` is called, for the pages that changed. An empty list does nothing. A zone
     /// found missing is recovered as by `fetchPage` (every local page sent again), and a network failure makes
-    /// the status offline with the 15 s retry.
+    /// the status offline with the 15 s retry. A zone found missing after a check has become due (a silent push
+    /// in the foreground during the request: it asks for the check without moving the epoch) is recovered only
+    /// once the account is confirmed, as by `fetchPage` (1.2.3, M3): when the Apple Account is now another one,
+    /// the mismatch is found and nothing is sent to that account's iCloud.
     ///
     /// Fails if the pages were fetched one by one (`fetchRecords` 5, not 1) or if a record were not merged (the
     /// pages' strokes, `seen`, the dirty mark, the state file). Fails without the skip of a seen change tag
     /// (week C would be merged and marked dirty), or if a page without a record or a merged record called
     /// `onRemoteDelete` (a "delete" event; S5 empties such a page and its undo). Fails without the zone
     /// recovery (the records would stay gone) or without the handling of the network failure (the status would
-    /// stay synced). A merge in the order of the fetched dictionary instead of the pages fails
+    /// stay synced). Fails without the account check before the zone recovery (`confirmAgainIfDue`): the zone
+    /// would be made again and every local page sent to the other account (a second `ensureZone`, records in
+    /// its iCloud). A merge in the order of the fetched dictionary instead of the pages fails
     /// `onRemoteUpdate`'s order here (and in 54) whenever the dictionary's order differs, which Swift's hash seed
     /// (new in every process) makes likely, not certain.
     func testPagesOpenedFetchesOnceAndMergesEach() async throws {
@@ -423,6 +428,39 @@ final class SyncEngineSpanTests: XCTestCase {
         await engine.waitUntilIdle()
         XCTAssertEqual(status, .offline)
         XCTAssertEqual(sleeper.recorded.last, 15)
+
+        // The zone is found missing after a check has become due, and the account is another one: during the
+        // request the zone goes, the Apple Account is switched (its `.CKAccountChanged` has not come yet) and a
+        // silent push arrives in the foreground. The account is confirmed before the zone is made again.
+        await sleeper.advance() // the retry
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .synced)
+        XCTAssertEqual(sleeper.waiting, 0)
+        now = now.addingTimeInterval(SyncBackoff.pageFetchCooldown)
+        let fetches = count(.fetchRecords)
+        let zones = count(.ensureZone)
+        let saves = count(.save)
+        events = []
+        db.pause(.fetchRecords)
+        engine.pagesOpened([weekA, weekB])
+        await yieldUntil { self.count(.fetchRecords) == fetches + 1 }
+        db.simulateZoneDeleted()
+        db.userName = "_user-b"
+        let pushed = Task { await self.engine.handleRemoteNotification(self.subscriptionInfo) }
+        await yieldUntil { self.sleeper.waiting == 1 } // its 20 s budget; its round trip waits behind the request
+        XCTAssertEqual(sleeper.recorded.last, 20)
+        db.resume()
+        await yieldUntil { self.status == .accountMismatch }
+        let brought = await pushed.value
+        XCTAssertFalse(brought)
+        await sleeper.advance() // the budget's sleep, after the round trip (no operation is paused)
+        await engine.waitUntilIdle()
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(engine.state.pendingAccount, "_user-b")
+        XCTAssertEqual(count(.ensureZone), zones, "no zone made for the other account")
+        XCTAssertEqual(db.records.count, 0, "no page sent to the other account")
+        XCTAssertEqual(count(.save), saves)
+        XCTAssertEqual(events, [])
     }
 
     // MARK: - 57: waitUntilIdle

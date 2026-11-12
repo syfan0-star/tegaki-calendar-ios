@@ -261,7 +261,8 @@ final class InkLedgerSpanTests: XCTestCase {
     /// Only an id live in the page at that moment is journalled as removed. Another device erased a-1 while
     /// the canvas still showed it (`reload` keeps the fingerprints); the eraser then takes a-1 and a-2 off the
     /// canvas: a-2 alone is tombstoned and journalled, a-1 keeps the other device's tombstone time and comes
-    /// back in `alreadyErased`. A lasso deletion of a-1 and a-3 journals a-3 only; a lasso move of a-1 alone
+    /// back in `alreadyErased`, and its fingerprint is forgotten with a-2's (the same canvas once more is no
+    /// change and returns no id). A lasso deletion of a-1 and a-3 journals a-3 only; a lasso move of a-1 alone
     /// does nothing; ↶ of a stroke another device erased journals nothing. A change that loses only ids that
     /// are not live (b-1 erased by another device; a-3, whose page came back without it, unknown to the page:
     /// a fingerprint left behind) tombstones and journals nothing, makes no history step and keeps ↷, returns
@@ -271,7 +272,9 @@ final class InkLedgerSpanTests: XCTestCase {
     /// Fails if the joined path journalled or tombstoned a lost id that was not live (a-1 would be in the
     /// entry and its tombstone stamped with this device's time), if `perform`, `removeStrokes` or
     /// `moveStrokes` journalled an id that was not live, if a change of such ids alone pushed a step (↶ would
-    /// be possible and ↷ gone), or if the forgotten ids were not returned or were put in the wrong list.
+    /// be possible and ↷ gone), or if the forgotten ids were not returned or were put in the wrong list. Fails
+    /// if a change that also tombstoned a live id kept the fingerprints of the ids that were not live (a-1
+    /// would come back in `alreadyErased` with every later change of the canvas).
     func testJournalRecordsOnlyLiveRemovals() throws {
         let otherDevice = 1_785_000_000_000
         let start = page(weekA, [stored("a-1", x: 200, y: 300, t: 1_780_000_001_000), stored("a-2", x: 600, y: 300, t: 1_780_000_002_000),
@@ -287,7 +290,8 @@ final class InkLedgerSpanTests: XCTestCase {
         var remote = ledger.page
         remote.remove(ids: [a1], at: otherDevice)
         ledger.reload(page: remote, keepHistory: true)
-        let change = ledger.applyCanvasChange(PKDrawing(strokes: shown.filter { ledger.id(of: $0) == a3 }))
+        let onlyA3 = PKDrawing(strokes: shown.filter { ledger.id(of: $0) == a3 })
+        let change = ledger.applyCanvasChange(onlyA3)
         XCTAssertEqual(change.removedIds, [a2])
         XCTAssertFalse(change.needsRebuild)
         XCTAssertEqual(change.alreadyErased, [a1])
@@ -296,17 +300,23 @@ final class InkLedgerSpanTests: XCTestCase {
         XCTAssertEqual(ledger.page.deleted[a1], otherDevice, "the other device's tombstone is not stamped again")
         XCTAssertEqual(ledger.page.deleted[a2], 1_790_400_000_001)
         XCTAssertEqual(ledger.page.liveStrokeIds, [a3])
+        // The canvas reports the same drawing once more (its next change): a-1 is not lost again.
+        let sameCanvas = ledger.applyCanvasChange(onlyA3) // asks the clock once (…002)
+        XCTAssertTrue(sameCanvas.isEmpty)
+        XCTAssertEqual(sameCanvas.alreadyErased + sameCanvas.unknownRemovals + sameCanvas.refusedRemovals, [],
+                       "a-1's fingerprint was forgotten by the change that tombstoned a-2")
+        XCTAssertEqual(ledger.journal.count, 1)
 
         ledger.journal.removeAll()
         XCTAssertEqual(ledger.removeStrokes(ids: [a1, a3]).removedIds, [a3])
-        XCTAssertEqual(ledger.journal, [SpanJournalEntry(added: [], removed: [a3], at: 1_790_400_000_002)])
+        XCTAssertEqual(ledger.journal, [SpanJournalEntry(added: [], removed: [a3], at: 1_790_400_000_003)])
 
         ledger.journal.removeAll()
         XCTAssertTrue(ledger.moveStrokes(ids: [a1], by: CGVector(dx: 0, dy: 100)).newIds.isEmpty)
         XCTAssertTrue(ledger.journal.isEmpty)
 
         let fresh = try XCTUnwrap(draw(pen(at: CGPoint(x: 1400 + 500, y: 500), second: 1), on: ledger).added.first)
-        XCTAssertEqual(ledger.journal, [SpanJournalEntry(added: [fresh], removed: [], at: 1_790_400_000_003)])
+        XCTAssertEqual(ledger.journal, [SpanJournalEntry(added: [fresh], removed: [], at: 1_790_400_000_004)])
         var erasedThere = ledger.page
         erasedThere.remove(ids: [fresh.id], at: otherDevice)
         ledger.reload(page: erasedThere, keepHistory: true)
