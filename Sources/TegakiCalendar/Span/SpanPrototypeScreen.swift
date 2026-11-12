@@ -441,7 +441,7 @@ struct SpanPrototypeScreen: View {
         GeometryReader { proxy in
             VStack(spacing: 0) {
                 bar
-                Text(L.text("prototype.span.note"))
+                Text(model.kind == .day ? L.text("prototype.span.note.day") : L.text("prototype.span.note"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

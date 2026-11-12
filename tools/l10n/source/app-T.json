@@ -383,6 +383,20 @@
       ],
       "jaOnly": true
     },
+    "prototype.span.note.day": {
+      "ja": "見本の日です。ここで書いたものは試作の中だけに置かれ、閉じると消えます。iCloud には送られません。",
+      "target": "app",
+      "comment": "試作の画面の上の注記（日の帯のとき）。prototype.span.note の「見本の週です」を「見本の日です」にした文。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（docs/M7C_CONTRACT.md D12、§8.1）",
+      "where": [
+        "Span/SpanPrototypeScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "手書き"
+      ],
+      "jaOnly": true
+    },
     "prototype.span.options": {
       "ja": "試作の設定",
       "target": "app",

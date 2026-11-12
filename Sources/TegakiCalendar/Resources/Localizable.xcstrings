@@ -15133,6 +15133,18 @@
         }
       }
     },
+    "prototype.span.note.day" : {
+      "comment" : "試作の画面の上の注記（日の帯のとき）。prototype.span.note の「見本の週です」を「見本の日です」にした文。試作のビルド（SPAN_PROTOTYPE）だけに出る。ja だけのキーで訳さない（docs/M7C_CONTRACT.md D12、§8.1）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見本の日です。ここで書いたものは試作の中だけに置かれ、閉じると消えます。iCloud には送られません。"
+          }
+        }
+      }
+    },
     "prototype.span.options" : {
       "comment" : "試作の画面の右上の設定のメニューのボタンの読み上げ。試作のビルドだけ。ja だけのキー（D12）",
       "extractionState" : "manual",
