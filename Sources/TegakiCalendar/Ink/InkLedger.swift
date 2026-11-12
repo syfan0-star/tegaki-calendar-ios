@@ -11,8 +11,16 @@ import PencilKit
 struct InkChange {
     var added: [InkStroke]
     var removedIds: [String]
+    /// 1.3 (docs/M7C_CONTRACT.md §3.3 5, §3.4 削除の守り (b)): the ids of the strokes the canvas lost that
+    /// the ledger did not tombstone, because the change was not the eraser's (`allowRemovals` false) or, on
+    /// the joined path, took too many strokes at once (§3.16). The canvas must then put `drawing()` back
+    /// (`needsRebuild`). Empty whenever every removal is allowed, as on today's one-page path.
+    var refusedRemovals: [String] = []
 
     var isEmpty: Bool { added.isEmpty && removedIds.isEmpty }
+    /// The canvas lost strokes the ledger kept (`refusedRemovals`): rebuild the drawing from the ledger. A
+    /// caller reads it before `isEmpty`, which is true when nothing else changed.
+    var needsRebuild: Bool { !refusedRemovals.isEmpty }
 }
 
 // MARK: - Pure stroke helpers
@@ -128,6 +136,18 @@ enum InkOp {
     case batch([InkOp])
 }
 
+/// 1.3 (docs/M7C_CONTRACT.md §4.4, D23): one step of the ledger's history: its op, the real pages it
+/// touches and its undo group, so `InkLedger.pruneHistory(touching:)` can drop a page's steps together.
+struct InkHistoryStep {
+    var op: InkOp
+    /// The real pages the op's strokes carry in front of their ids and cells (`SpanName.split`); empty on
+    /// the one-page path, whose names carry no page.
+    var pageIds: Set<String>
+    /// Steps of one group are dropped together. In 1.3 only a lasso move across pages of the window has
+    /// one (its source and destination pages); 1.5 uses it for an event's undo and its handwriting.
+    var group: UUID?
+}
+
 // MARK: - Ledger
 
 /// The ledger of one page's handwriting and its bridge to `PKCanvasView` (DESIGN.md §3.3–3.5, §3.13).
@@ -147,9 +167,21 @@ enum InkOp {
 /// - Every page that enters the ledger (`init`, `reload`) goes through `BandMigration.migrate`
 ///   (M4B_CONTRACT §3.3): the strokes of the week / day pages' former all-day band move onto the
 ///   `grid` cell, idempotently, so the canvas never has to know the old cells.
+/// - 1.3 (docs/M7C_CONTRACT.md §3.3, §4.4): the same ledger edits the window of joined pages (the
+///   virtual page of `SpanComposer.compose` with a `SpanLayout`) once its owner sets `ownerId`. Then every
+///   id it makes carries its owner page, each step goes to `journal`, only a live id is tombstoned, a
+///   removal that is not the eraser's or takes too many strokes is refused, and each history step knows
+///   its pages and group. With `ownerId` nil (the one-page path) none of that runs and the ledger does
+///   what it did in 1.2.3, call for call (the same `makeId` and `nowMs` calls in the same order).
 @MainActor
 final class InkLedger {
     static let historyLimit = 200
+    /// 1.3 (§3.16, §3.4 削除の守り (b)): one change of the joined path that would tombstone more than this
+    /// many strokes is refused (`applyCanvasChange`).
+    static let removalLimit = 50
+    /// 1.3 (§3.16): … as is one that would tombstone at least half of a window page's live strokes, when
+    /// that is at least this many.
+    static let pageRemovalLimit = 20
 
     /// Called with a message when a page / layout pair with different ids reaches the ledger. The
     /// default is `assertionFailure` (contract §2.1: assert in Debug, ignore in Release); the unit
@@ -168,14 +200,31 @@ final class InkLedger {
     /// stroke (`applyCanvasChange`, `moveStrokes`, `perform`, `removeStrokes`). The tests pin it; the
     /// default is the wall clock, as before.
     var nowMs: () -> Int = { InkLedger.wallClockMs() }
+    /// 1.3 (docs/M7C_CONTRACT.md §3.3 1): the id of every stroke the ledger makes on the joined path, for
+    /// the stroke's window cell ("<page>|<cell>"): the owner page in front of a fresh id
+    /// (`SpanName.prefixed(id:page:)`). When set it replaces `makeId` at all three places that make an id —
+    /// a new stroke (`makeInkStroke`, the cell `layout.inkCell` gave), a lasso's moved copy (`moveStrokes`,
+    /// the destination cell) and ↶'s copy (`perform`, the stroke's cell) — so every stroke finds its real
+    /// page by its id alone (`SpanComposer.deltas`, `unroutedNames`). nil (the one-page path): `makeId`, as
+    /// before. Setting it is what puts the ledger on the joined path (see the type's note).
+    var ownerId: ((CellKey) -> String)? = nil
+    /// 1.3 (§3.3 2, §3.4): what each change did to the page, oldest first, with the window's names: the
+    /// strokes it added and the ids it tombstoned, each live a moment before (`SpanJournalEntry`), and the
+    /// group of its history step. `applyCanvasChange`, `perform` (↶ ↷, one entry per add or remove it does),
+    /// `removeStrokes` and `moveStrokes` write it; the owner turns it into `PageDelta`s
+    /// (`SpanComposer.deltas` with its aliases) and empties it. Written only on the joined path (`ownerId`
+    /// set): on the one-page path no one reads it, so it stays empty and costs nothing.
+    var journal: [SpanJournalEntry] = []
+    /// 1.3 (§4.4): the group mark of a lasso move across pages. The tests seed it, like `makeId`.
+    var makeGroup: () -> UUID = { UUID() }
 
     /// Fingerprint → stroke id for every stroke that is currently *in the canvas drawing*.
     private var fingerprintToId: [StrokeFingerprint: String] = [:]
     /// Ids in the order `drawing()` emitted them (lets `bind(to:)` re-key from the canvas's copy).
     private var builtIds: [String] = []
-    /// Ops to perform to undo (newest last) and to redo (newest last).
-    private var undoStack: [InkOp] = []
-    private var redoStack: [InkOp] = []
+    /// Steps to perform to undo (newest last) and to redo (newest last).
+    private var undoStack: [InkHistoryStep] = []
+    private var redoStack: [InkHistoryStep] = []
 
     /// `page` and `layout` must be the same page (`page.pageId == layout.pageId`). The owner builds
     /// both from one page id, so a mismatch here is reported like `reload` / `relayout`; the ledger
@@ -286,7 +335,15 @@ final class InkLedger {
     /// Diffs the canvas against the map. New strokes get a UUID and a cell (the layout's
     /// `inkCell(forCenter:)` of the centre of their paper-space bounds, which never fails);
     /// erased strokes get tombstones.
-    func applyCanvasChange(_ drawing: PKDrawing) -> InkChange {
+    ///
+    /// 1.3 (docs/M7C_CONTRACT.md §3.3 5, §3.4 削除の守り): when `allowRemovals` is false (the tool is not
+    /// the eraser) or, on the joined path, the change would tombstone too many strokes at once (more than
+    /// `removalLimit`, or at least half of a window page's live strokes and at least `pageRemovalLimit`,
+    /// §3.16), nothing is tombstoned: the lost ids come back in `refusedRemovals` (`needsRebuild`) and the
+    /// new strokes are still taken in. On the joined path only an id live in the page is tombstoned (a lost
+    /// id that is not, say one another device erased while the canvas still showed it, is only forgotten),
+    /// and the change goes to `journal`. The default `allowRemovals` true is 1.2.3's behaviour.
+    func applyCanvasChange(_ drawing: PKDrawing, allowRemovals: Bool = true) -> InkChange {
         var seen = Set<StrokeFingerprint>()
         var added: [InkStroke] = []
         var addedFingerprints: [(StrokeFingerprint, String)] = []
@@ -313,14 +370,37 @@ final class InkLedger {
         guard !added.isEmpty || !removedIds.isEmpty else {
             return InkChange(added: [], removedIds: [])
         }
+        // 1.3 (§3.3 5): a removal the ledger does not take (see above) leaves the page, the map and the
+        // history as they are; the canvas rebuilds its drawing from the ledger.
+        var refused: [String] = []
+        if !removedIds.isEmpty, !allowRemovals || (ownerId != nil && removesTooMany(removed)) {
+            refused = removedIds
+            removedIds = []
+            removed = []
+            if added.isEmpty { return InkChange(added: [], removedIds: [], refusedRemovals: refused) }
+        }
+        // 1.3 (§3.4 削除の守り (a), B_DESIGN.md §2.4 6 (a)): on the joined path a lost id that is not live is
+        // neither tombstoned nor journalled (its tombstone would reach its page and win there), only forgotten.
+        var dead: [String] = []
+        if ownerId != nil {
+            dead = removedIds.filter { !page.isLive($0) }
+            removedIds.removeAll { !page.isLive($0) }
+            removed.removeAll { !page.isLive($0.id) }
+            if added.isEmpty && removedIds.isEmpty {
+                forget(ids: dead)
+                return InkChange(added: [], removedIds: [])
+            }
+        }
 
         for s in added { page.add(s) }
         if !removedIds.isEmpty { page.remove(ids: removedIds, at: now) }
+        record(added: added, removed: removedIds, at: now)
 
         for id in removedIds {
             builtIds.removeAll { $0 == id }
         }
         fingerprintToId = fingerprintToId.filter { !removedIds.contains($0.value) }
+        if !dead.isEmpty { forget(ids: dead) }
         for (fp, id) in addedFingerprints {
             fingerprintToId[fp] = id
             builtIds.append(id)
@@ -333,7 +413,27 @@ final class InkLedger {
         push(undo: undoOps.count == 1 ? undoOps[0] : .batch(undoOps))
         redoStack.removeAll()
 
-        return InkChange(added: added, removedIds: removedIds)
+        return InkChange(added: added, removedIds: removedIds, refusedRemovals: refused)
+    }
+
+    /// 1.3 (§3.16): would tombstoning `strokes` (live strokes of the window, one canvas change) take too
+    /// many at once: more than `removalLimit`, or, on one of the window's pages, at least
+    /// `pageRemovalLimit` and at least half of that page's live strokes? A stroke's page is the one its id
+    /// carries (else its cell's); a stroke with neither counts only toward `removalLimit`.
+    private func removesTooMany(_ strokes: [InkStroke]) -> Bool {
+        guard strokes.count >= Self.pageRemovalLimit else { return false }
+        if strokes.count > Self.removalLimit { return true }
+        var taken: [String: Int] = [:]
+        for stroke in strokes {
+            if let owner = Self.page(of: stroke) { taken[owner, default: 0] += 1 }
+        }
+        taken = taken.filter { $0.value >= Self.pageRemovalLimit }
+        guard !taken.isEmpty else { return false }
+        var live: [String: Int] = [:]
+        for stroke in page.strokes.values where page.deleted[stroke.id] == nil {
+            if let owner = Self.page(of: stroke), taken[owner] != nil { live[owner, default: 0] += 1 }
+        }
+        return taken.contains { owner, count in count * 2 >= live[owner, default: 0] }
     }
 
     /// True when the stroke's bottom needs more room than its cell currently has (the cell must
@@ -342,19 +442,21 @@ final class InkLedger {
     /// `PaperGrowth.needsMoreRoom`, the same function the layout engines grow the cells with — the
     /// page's last cell (the month's memo area, the day's free memo area below 24:00) by
     /// `PaperGrowth.tailHeight` (open to 6,000 lu from the start since 1.1.1), the other cells by
-    /// `bottom + 12`.
+    /// `bottom + 12`. 1.3 (docs/M7C_CONTRACT.md §3.3 4): `PaperGrowth` reads the page's own name of the
+    /// cell, so a window's prefix is taken off first (with it, the memo area and the free memo area would
+    /// not grow until the stroke reached their very bottom); a name without one is passed as it is.
     func needsMoreRoom(_ stroke: InkStroke) -> Bool {
         guard layout.growsWithInk(stroke.cell), let cell = layout.cells[stroke.cell] else { return false }
-        return PaperGrowth.needsMoreRoom(cell: stroke.cell, cellHeight: cell.height, inkBottom: stroke.bottom)
+        return PaperGrowth.needsMoreRoom(cell: SpanName.strip(stroke.cell), cellHeight: cell.height, inkBottom: stroke.bottom)
     }
 
     // MARK: History
 
     /// Performs the newest undo op; returns the rebuilt drawing (nil when there is nothing to undo).
     func undo() -> PKDrawing? {
-        guard let op = undoStack.popLast() else { return nil }
-        if let inverse = perform(op) {
-            redoStack.append(inverse)
+        guard let step = undoStack.popLast() else { return nil }
+        if let inverse = perform(step.op, group: step.group) {
+            redoStack.append(historyStep(inverse, group: step.group))
             Self.trim(&redoStack)
         }
         return drawing()
@@ -362,9 +464,9 @@ final class InkLedger {
 
     /// Performs the newest redo op; returns the rebuilt drawing (nil when there is nothing to redo).
     func redo() -> PKDrawing? {
-        guard let op = redoStack.popLast() else { return nil }
-        if let inverse = perform(op) {
-            undoStack.append(inverse)
+        guard let step = redoStack.popLast() else { return nil }
+        if let inverse = perform(step.op, group: step.group) {
+            undoStack.append(historyStep(inverse, group: step.group))
             Self.trim(&undoStack)
         }
         return drawing()
@@ -381,8 +483,8 @@ final class InkLedger {
         guard !ids.isEmpty else { return nil }
         var remaining = ids
         var count = 0
-        for op in undoStack.reversed() {
-            guard case .add(let strokes) = op else { break }
+        for step in undoStack.reversed() {
+            guard case .add(let strokes) = step.op else { break }
             let opIds = Set(strokes.map { $0.id })
             guard !opIds.isEmpty, opIds.isSubset(of: remaining) else { break }
             remaining.subtract(opIds)
@@ -397,21 +499,82 @@ final class InkLedger {
         return rebuilt
     }
 
-    private func push(undo op: InkOp) {
-        undoStack.append(op)
+    private func push(undo op: InkOp, group: UUID? = nil) {
+        undoStack.append(historyStep(op, group: group))
         Self.trim(&undoStack)
     }
 
-    private static func trim(_ stack: inout [InkOp]) {
+    private static func trim(_ stack: inout [InkHistoryStep]) {
         if stack.count > historyLimit {
             stack.removeFirst(stack.count - historyLimit)
         }
     }
 
+    /// 1.3 (§4.4): `op` as a history step with its pages (on the joined path; none on the one-page path,
+    /// whose names carry no page) and `group`.
+    private func historyStep(_ op: InkOp, group: UUID?) -> InkHistoryStep {
+        InkHistoryStep(op: op, pageIds: ownerId == nil ? [] : Self.pages(of: op), group: group)
+    }
+
+    /// 1.3 (docs/M7C_CONTRACT.md §3.3 3, §3.10, §4.4): before pages leave the window, the history forgets
+    /// every step that touches one of `pageIds` together with every step that could only be undone (or
+    /// redone) after it — the older steps of ↶, the ones behind it on ↷ — and every step of a group one of
+    /// the forgotten steps had, again with what lies behind it. So no step is ever half undone and no ↶ ↷
+    /// makes a copy for a page the window no longer holds (its delta would find no page, §3.4 (d)). A step
+    /// touches the pages in front of its strokes' ids and cells (`InkHistoryStep.pageIds`; a name without a
+    /// page touches none, so the one-page path's history is never touched). Nothing for an empty set.
+    func pruneHistory(touching pageIds: Set<String>) {
+        guard !pageIds.isEmpty else { return }
+        var undoCut = 0
+        var redoCut = 0
+        var groups = Set<UUID>()
+        while true {
+            let undo = Self.cut(undoStack, atLeast: undoCut, touching: pageIds, groups: groups)
+            let redo = Self.cut(redoStack, atLeast: redoCut, touching: pageIds, groups: groups)
+            guard undo != undoCut || redo != redoCut else { break }
+            undoCut = undo
+            redoCut = redo
+            for step in undoStack[..<undoCut] + redoStack[..<redoCut] {
+                if let group = step.group { groups.insert(group) }
+            }
+        }
+        undoStack.removeFirst(undoCut)
+        redoStack.removeFirst(redoCut)
+    }
+
+    /// How many steps from the bottom of `stack` (the far end of its history) go: all of them up to the
+    /// newest one that touches `pageIds` or belongs to one of `groups`; never fewer than `current`.
+    private static func cut(_ stack: [InkHistoryStep], atLeast current: Int, touching pageIds: Set<String>, groups: Set<UUID>) -> Int {
+        let last = stack.lastIndex { step in
+            !step.pageIds.isDisjoint(with: pageIds) || step.group.map { groups.contains($0) } == true
+        }
+        guard let last else { return current }
+        return max(current, last + 1)
+    }
+
+    /// The real pages of an op's strokes (`pages(of:)` of each).
+    private static func pages(of op: InkOp) -> Set<String> {
+        switch op {
+        case .add(let strokes), .remove(let strokes):
+            return Set(strokes.flatMap { stroke -> [String] in
+                [SpanName.split(stroke.id)?.page, SpanName.split(stroke.cell.raw)?.page].compactMap { $0 }
+            })
+        case .batch(let ops):
+            return ops.reduce(into: Set<String>()) { $0.formUnion(pages(of: $1)) }
+        }
+    }
+
+    /// The real page a stroke of the window belongs to: the one in front of its id, else of its cell (they
+    /// agree for every stroke the ledger makes); nil for names without one.
+    private static func page(of stroke: InkStroke) -> String? {
+        SpanName.split(stroke.id)?.page ?? SpanName.split(stroke.cell.raw)?.page
+    }
+
     /// Applies `op` to the page and returns the op that reverses what actually happened
     /// (nil when nothing changed). Re-adding a stroke whose id is tombstoned or still live adds a
-    /// clone with a fresh id instead.
-    private func perform(_ op: InkOp) -> InkOp? {
+    /// clone with a fresh id instead. 1.3: the clone's id is `ownerId`'s for the stroke's cell on the
+    /// joined path (§3.3 1), and each add and remove goes to `journal` with the step's `group`.
+    private func perform(_ op: InkOp, group: UUID? = nil) -> InkOp? {
         let now = nowMs()
         switch op {
         case .add(let strokes):
@@ -419,25 +582,38 @@ final class InkLedger {
             for var s in strokes {
                 guard !s.points.isEmpty else { continue }
                 if page.deleted[s.id] != nil || page.strokes[s.id] != nil {
-                    s.id = makeId()
+                    s.id = ownerId?(s.cell) ?? makeId()
                 }
                 page.add(s)
                 if page.strokes[s.id] != nil { actuallyAdded.append(s) }
             }
+            record(added: actuallyAdded, removed: [], at: now, group: group)
             return actuallyAdded.isEmpty ? nil : .remove(actuallyAdded)
         case .remove(let strokes):
             let present = strokes.filter { page.strokes[$0.id] != nil && page.deleted[$0.id] == nil }
             guard !present.isEmpty else { return nil }
-            page.remove(ids: present.map { $0.id }, at: now)
+            let ids = present.map { $0.id }
+            page.remove(ids: ids, at: now)
+            record(added: [], removed: ids, at: now, group: group)
             return .add(present)
         case .batch(let ops):
             var inverses: [InkOp] = []
             for sub in ops {
-                if let inv = perform(sub) { inverses.append(inv) }
+                if let inv = perform(sub, group: group) { inverses.append(inv) }
             }
             if inverses.isEmpty { return nil }
             return inverses.count == 1 ? inverses[0] : .batch(inverses.reversed())
         }
+    }
+
+    /// 1.3 (§3.3 2): one journal entry on the joined path: the strokes of `added` that are in the page now
+    /// and the ids of `removed` (each live a moment ago; the callers pass only those). Nothing on the
+    /// one-page path (`ownerId` nil) or for an empty change.
+    private func record(added: [InkStroke], removed: [String], at: Int, group: UUID? = nil) {
+        guard ownerId != nil else { return }
+        let landed = added.filter { page.isLive($0.id) }
+        guard !landed.isEmpty || !removed.isEmpty else { return }
+        journal.append(SpanJournalEntry(added: landed, removed: removed, at: at, group: group))
     }
 
     // MARK: Selection (M3B_CONTRACT §3.2)
@@ -479,7 +655,9 @@ final class InkLedger {
         let present = strokes(ids: ids)
         guard !present.isEmpty else { return InkChange(added: [], removedIds: []) }
         let removedIds = present.map { $0.id }
-        page.remove(ids: removedIds, at: nowMs())
+        let now = nowMs()
+        page.remove(ids: removedIds, at: now)
+        record(added: [], removed: removedIds, at: now)
         forget(ids: removedIds)
         push(undo: .add(present))
         redoStack.removeAll()
@@ -492,6 +670,10 @@ final class InkLedger {
     /// stroke dragged onto another day belongs to that day. `newIds` follows the order of `ids`
     /// (originals that were not live are dropped). Nothing happens for a zero or non-finite delta or
     /// when no original is live. The caller puts `drawing()` on the canvas afterwards.
+    /// 1.3 (docs/M7C_CONTRACT.md §3.3 1, §3.10, §4.4): on the joined path a clone's id is `ownerId`'s for
+    /// its destination cell (another page of the window when it was dragged there), and a move whose
+    /// originals and clones are on more than one page is one undo group (`makeGroup`), in its history step
+    /// and its journal entry.
     func moveStrokes(ids: [String], by delta: CGVector) -> (change: InkChange, newIds: [String]) {
         let nothing = (change: InkChange(added: [], removedIds: []), newIds: [String]())
         guard delta.dx.isFinite, delta.dy.isFinite, delta.dx != 0 || delta.dy != 0 else { return nothing }
@@ -508,15 +690,17 @@ final class InkLedger {
             let moved = bounds.offsetBy(dx: delta.dx, dy: delta.dy)
             let newCell = layout.inkCell(forCenter: CGPoint(x: moved.midX, y: moved.midY))
             let newOrigin = layout.cells[newCell]?.origin ?? .zero
-            clones.append(s.translated(by: delta, from: origin, to: newCell, newCellOrigin: newOrigin, id: makeId(), at: now))
+            clones.append(s.translated(by: delta, from: origin, to: newCell, newCellOrigin: newOrigin, id: ownerId?(newCell) ?? makeId(), at: now))
         }
         let removedIds = originals.map { $0.id }
         page.remove(ids: removedIds, at: now)
         for c in clones { page.add(c) }
         forget(ids: removedIds)
+        let group: UUID? = ownerId != nil && Self.pages(of: .batch([.add(originals), .add(clones)])).count > 1 ? makeGroup() : nil
+        record(added: clones, removed: removedIds, at: now, group: group)
         // Undo = put the originals back (as clones with fresh ids: their ids are tombstoned now) and
         // take the moved copies away. One batch, one tap of ↶ (DESIGN §3.13).
-        push(undo: .batch([.add(originals), .remove(clones)]))
+        push(undo: .batch([.add(originals), .remove(clones)]), group: group)
         redoStack.removeAll()
         return (change: InkChange(added: clones, removedIds: removedIds), newIds: clones.map { $0.id })
     }
@@ -547,7 +731,7 @@ final class InkLedger {
         // `t` doubles as the creation date of the rebuilt path (`InkStroke.inkStart` derives from it).
         let t = Int((pk.path.creationDate.timeIntervalSince1970 * 1000).rounded())
         return InkStroke(
-            id: makeId(),
+            id: ownerId?(cell) ?? makeId(),
             cell: cell,
             tool: tool,
             color: color,
