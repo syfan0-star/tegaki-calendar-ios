@@ -81,7 +81,7 @@ final class SpanGuideModel: ObservableObject {
     /// it is due (`SpanGuide.isDue`) and records it for this device and kind, so it never comes again. Returns
     /// whether it was shown. The text follows 「指でも書く」 (`allowFinger`) as it is now.
     @discardableResult
-    func pageOpened(_ kind: PageKind, joined: Bool, allowFinger: Bool) -> Bool {
+    func showIfDue(_ kind: PageKind, joined: Bool, allowFinger: Bool) -> Bool {
         guard SpanGuide.isDue(kind: kind, joined: joined, shown: AppSettings.spanGuideShown(kind),
                               screenshot: screenshot, testHost: testHost),
               let text = SpanGuide.text(kind: kind, allowFinger: allowFinger) else { return false }

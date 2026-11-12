@@ -142,7 +142,7 @@ final class SettingsPageSectionTests: XCTestCase {
         let model = makeModel(sleeper)
         XCTAssertNil(model.card)
 
-        XCTAssertTrue(model.pageOpened(.week, joined: true, allowFinger: false))
+        XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: false))
         XCTAssertEqual(model.card?.text, n4)
         XCTAssertEqual(model.card?.kind, .week)
         XCTAssertEqual(model.card?.timed, true)
@@ -171,9 +171,9 @@ final class SettingsPageSectionTests: XCTestCase {
         let sleeper = TestSleeper()
         sleeper.autoResume = true
         let model = makeModel(sleeper)
-        XCTAssertTrue(model.pageOpened(.day, joined: true, allowFinger: true))
+        XCTAssertTrue(model.showIfDue(.day, joined: true, allowFinger: true))
         XCTAssertEqual(model.card?.text, n7, "the card follows 「指でも書く」 as it is when the page opens")
-        XCTAssertTrue(model.pageOpened(.week, joined: true, allowFinger: false))
+        XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: false))
         XCTAssertEqual(model.card?.text, n4)
     }
 
@@ -184,27 +184,27 @@ final class SettingsPageSectionTests: XCTestCase {
         sleeper.autoResume = true
         let model = makeModel(sleeper)
 
-        XCTAssertTrue(model.pageOpened(.week, joined: true, allowFinger: false))
+        XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: false))
         XCTAssertTrue(AppSettings.spanGuideShown(.week))
         XCTAssertEqual(defaults.object(forKey: "hint.spanGuide.week") as? Bool, true, "recorded on this device")
         XCTAssertFalse(AppSettings.spanGuideShown(.day), "per kind")
         await settle()
         XCTAssertNil(model.card)
-        XCTAssertFalse(model.pageOpened(.week, joined: true, allowFinger: true), "never twice for a kind")
+        XCTAssertFalse(model.showIfDue(.week, joined: true, allowFinger: true), "never twice for a kind")
         XCTAssertNil(model.card)
-        XCTAssertFalse(makeModel(sleeper).pageOpened(.week, joined: true, allowFinger: false), "nor after a new launch")
+        XCTAssertFalse(makeModel(sleeper).showIfDue(.week, joined: true, allowFinger: false), "nor after a new launch")
 
-        XCTAssertTrue(model.pageOpened(.day, joined: true, allowFinger: false), "the day has its own")
+        XCTAssertTrue(model.showIfDue(.day, joined: true, allowFinger: false), "the day has its own")
         XCTAssertEqual(model.card?.text, n6)
         XCTAssertTrue(AppSettings.spanGuideShown(.day))
         model.dismiss()
-        XCTAssertFalse(model.pageOpened(.day, joined: true, allowFinger: false))
+        XCTAssertFalse(model.showIfDue(.day, joined: true, allowFinger: false))
 
         // Another device (another store) shows both once more.
         AppSettings.defaults = newDefaults()
-        XCTAssertTrue(model.pageOpened(.week, joined: true, allowFinger: true))
+        XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: true))
         XCTAssertEqual(model.card?.text, n5)
-        XCTAssertTrue(model.pageOpened(.day, joined: true, allowFinger: true))
+        XCTAssertTrue(model.showIfDue(.day, joined: true, allowFinger: true))
         XCTAssertEqual(model.card?.text, n7)
         await settle()
         XCTAssertNil(model.card)
@@ -217,16 +217,16 @@ final class SettingsPageSectionTests: XCTestCase {
 
         for model in [makeModel(sleeper, screenshot: true), makeModel(sleeper, testHost: true)] {
             for kind in PageKind.allCases {
-                XCTAssertFalse(model.pageOpened(kind, joined: true, allowFinger: false), "\(kind)")
+                XCTAssertFalse(model.showIfDue(kind, joined: true, allowFinger: false), "\(kind)")
                 XCTAssertNil(model.card)
             }
         }
         let model = makeModel(sleeper)
         for kind in PageKind.allCases {
-            XCTAssertFalse(model.pageOpened(kind, joined: false, allowFinger: true), "\(kind): the setting off (or stage 2)")
+            XCTAssertFalse(model.showIfDue(kind, joined: false, allowFinger: true), "\(kind): the setting off (or stage 2)")
         }
-        XCTAssertFalse(model.pageOpened(.month, joined: true, allowFinger: false), "month is not joined in 1.3")
-        XCTAssertFalse(model.pageOpened(.year, joined: true, allowFinger: false), "year is not joined in 1.3")
+        XCTAssertFalse(model.showIfDue(.month, joined: true, allowFinger: false), "month is not joined in 1.3")
+        XCTAssertFalse(model.showIfDue(.year, joined: true, allowFinger: false), "year is not joined in 1.3")
         XCTAssertNil(model.card)
         XCTAssertEqual(sleeper.recorded, [], "no card, no timer")
         for kind in PageKind.allCases {
@@ -234,7 +234,7 @@ final class SettingsPageSectionTests: XCTestCase {
             XCTAssertNil(defaults.object(forKey: AppSettings.spanGuideShownKey(kind)))
         }
         // Not recorded, so the guide comes once the setting is on.
-        XCTAssertTrue(model.pageOpened(.week, joined: true, allowFinger: false))
+        XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: false))
 
         // The rule itself.
         XCTAssertTrue(SpanGuide.isDue(kind: .day, joined: true, shown: false, screenshot: false, testHost: false))
@@ -251,7 +251,7 @@ final class SettingsPageSectionTests: XCTestCase {
         model.dismiss()
         XCTAssertNil(model.card, "nothing to dismiss")
 
-        XCTAssertTrue(model.pageOpened(.week, joined: true, allowFinger: true))
+        XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: true))
         await waitForTimers(sleeper)
         XCTAssertNotNil(model.card)
         model.dismiss()
@@ -266,10 +266,10 @@ final class SettingsPageSectionTests: XCTestCase {
     func testALateTimerLeavesALaterCardAlone() async {
         let sleeper = TestSleeper()
         let model = makeModel(sleeper)
-        XCTAssertTrue(model.pageOpened(.week, joined: true, allowFinger: false))
+        XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: false))
         await waitForTimers(sleeper)
         model.dismiss()
-        XCTAssertTrue(model.pageOpened(.day, joined: true, allowFinger: false))
+        XCTAssertTrue(model.showIfDue(.day, joined: true, allowFinger: false))
         await waitForTimers(sleeper, count: 2)
         XCTAssertEqual(sleeper.waiting, 2)
 
