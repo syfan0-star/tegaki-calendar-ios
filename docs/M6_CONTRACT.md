@@ -60,7 +60,7 @@ Tests/TegakiCalendarTests/ExportSheetTests.swift          担当 U   新規（§
 Tests/TegakiCalendarTests/{ScreenshotModeTests,SettingsScreenTests,CalendarRootScreenTests}.swift   担当 U   変更（§7.2）
 Tests/TegakiCalendarTests/WebImportSheetTests.swift       担当 U   新規: 完成文の出し分け（§7.2。第 2 版）
 docs/TERMS.md / docs/SUPPORT.md / docs/PRIVACY.md         担当 L（§5.1。この 3 つだけ）
-Web リポジトリ（/Users/ikedamasataka/Documents/Codex/tegaki-calendar、ブランチ m6-legal）   担当 W（§5.2）
+Web リポジトリ（~/Documents/Codex/tegaki-calendar、ブランチ m6-legal）   担当 W（§5.2）
   app/terms.html / app/support.html / app/privacy.html    変更（L の Markdown を写す）
   tests/app-pages.test.mjs                                変更: 検査 (3)(5) に語を足し、(8) を追加
 project.yml / .github/workflows/build.yml / docs/M6.md / README.md / docs/DESIGN.md の注記   担当 C（§7.3〜§7.5、§8）
