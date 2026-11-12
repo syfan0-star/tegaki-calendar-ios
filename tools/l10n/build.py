@@ -47,7 +47,9 @@ What goes into the tables:
     translation of the key is not used). A Kit key is then not listed in `KitStrings.keys`, which holds
     the keys that must have all ten languages (L-2 asks ten languages of every key but the jaOnly ones;
     KitChecks walks `keys` for the same check). The app's are the words of the prototype build of
-    docs/M7C_CONTRACT.md §4.6 (D12, §8.1: ja only, not translated); only that build shows them.
+    docs/M7C_CONTRACT.md §4.6 (D12, §8.1: ja only, not translated); only that build shows them. 1.3 also
+    lets the eight new keys of §8.1 (N-1 … N-8, APP_JA_ONLY_UNTIL_TRANSLATED, by name) be jaOnly until X's
+    nine languages come (§8.2); X takes "jaOnly" off each with its translations.
   - `allowJapanese` and `lines` do not change a table: they are checked here for their form (the
     contract allows only two texts in allowJapanese, and each must be in the ja) and by the lint
     for the languages (L-2, L-4).
@@ -95,6 +97,15 @@ SOURCE_FILE_RE = re.compile(r"^(app|kit)-([A-Z][A-Za-z0-9]*)\.json$")  # app-S.j
 # 1.3 (docs/M7C_CONTRACT.md D12, §8.1): the app's keys that may be jaOnly — the words of the prototype
 # build (SPAN_PROTOTYPE), which only the person sees, in Japanese; every other app key has all ten languages.
 APP_JA_ONLY_PREFIX = "prototype."
+# 1.3 (docs/M7C_CONTRACT.md §8.1, §8.2): the new words of the screen (N-1 … N-8, U's keys) are written before X
+# translates them (the keys are fixed first). Until then each may be jaOnly, so L-2 and LocalizationBundleTests
+# stay green; X takes "jaOnly" off each with its nine languages (L-2 then asks all ten again). These names only:
+# every other app key keeps all ten languages.
+APP_JA_ONLY_UNTIL_TRANSLATED = frozenset((
+    "settings.page.header", "settings.page.span", "settings.page.span.footer",
+    "span.guide.day.oneFinger", "span.guide.day.twoFingers", "span.guide.week.oneFinger",
+    "span.guide.week.twoFingers", "span.stageTwo.notice",
+))
 # The only texts a value other than ja may keep in kana and kanji (§2.3, L-2).
 ALLOWED_JAPANESE = ("手書きを書き出す（iPad アプリ用）", "てがきカレンダー")
 
@@ -236,10 +247,12 @@ def check_key(key, entry, kind, where):
             if key.startswith("kit."):
                 raise BuildError(f"{where}: a key that starts with \"kit.\" is the Kit's "
                                  f"(target \"kit\", in a kit-*.json file)")
-        if entry.get("jaOnly", False) and not (target == "app" and key.startswith(APP_JA_ONLY_PREFIX)):
+        if entry.get("jaOnly", False) and not (target == "app" and (key.startswith(APP_JA_ONLY_PREFIX)
+                                                                    or key in APP_JA_ONLY_UNTIL_TRANSLATED)):
             raise BuildError(f"{where}: \"jaOnly\" is for the Kit's ja-only formats (kit.date.ja.*, "
-                             f"§2.3) and the prototype's {APP_JA_ONLY_PREFIX}* keys (docs/M7C_CONTRACT.md "
-                             f"D12); a key of the app has all ten languages")
+                             f"§2.3), the prototype's {APP_JA_ONLY_PREFIX}* keys (docs/M7C_CONTRACT.md "
+                             f"D12) and, until X translates them, the eight keys of §8.1; a key of the app "
+                             f"has all ten languages")
     if "ja" not in entry:
         raise BuildError(f"{where}: has no \"ja\"")
     check_text(entry["ja"], f"{where}: \"ja\"")

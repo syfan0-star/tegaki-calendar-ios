@@ -13,8 +13,10 @@ import Layout
 /// and the pages whose 15,000-stroke notice was shown. 1.1.1 (docs/R1_1_1.md) adds one: the one-time
 /// hint that two fingers zoom. 1.2 (docs/M7B_CONTRACT.md §5.6, §10.3) adds the holidays to show and the
 /// week start with its three memories. 1.2.1 (docs/R1_2_1.md §2.6) adds the rating prompt's record, five
-/// keys under `review.` (`reviewRecord`). All of them stay on this device (UserDefaults is not synced to
-/// iCloud; D16, 0-21, 0-45).
+/// keys under `review.` (`reviewRecord`). 1.3 (docs/M7C_CONTRACT.md §2, §3.1, §3.14) adds the setting that joins
+/// the week and day pages sideways (`page.span`) and the first-time guide's record of each joined kind
+/// (`hint.spanGuide.<kind>`). All of them stay on this device (UserDefaults is not synced to iCloud; D16, 0-21,
+/// 0-45).
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -83,6 +85,18 @@ enum AppSettings {
     static let reviewLastRequestVersionKey = "review.lastRequestVersion"
     static let reviewLastRequestDayKey = "review.lastRequestDay"
 
+    /// 1.3 (docs/M7C_CONTRACT.md §2, §3.1, D2): `Bool`, default true. 設定 › ページ 「前後のページを横につなげる」: the
+    /// week and day pages are joined sideways with the pages before and after (the new path); false: one page at a
+    /// time, as 1.2.3 (the one-page path, which month and year always take in 1.3). Per device, never sent to
+    /// iCloud; missing reads as true (`pageSpan`).
+    static let pageSpanKey = "page.span"
+
+    /// 1.3 (§3.14): "hint.spanGuide.week" / "hint.spanGuide.day", `Bool`, default false: true once this device showed
+    /// the first-time guide of that kind joined (`SpanGuideModel`; once per device and kind).
+    static func spanGuideShownKey(_ kind: PageKind) -> String {
+        "hint.spanGuide." + kind.rawValue
+    }
+
     /// M4c (M4C contract §1.5): "zoomRatio.month" / "zoomRatio.week" / "zoomRatio.day" / "zoomRatio.year",
     /// a `Double` ≥ 1 (the zoom / the opening zoom of the last pinch on a page of that kind; absent = 1,
     /// the opening zoom; 1.1.1: a ratio stored by 1.1 reads the same, a page that holds no more than its
@@ -142,6 +156,28 @@ enum AppSettings {
             return defaults.bool(forKey: eraserAutoReturnKey)
         }
         set { defaults.set(newValue, forKey: eraserAutoReturnKey) }
+    }
+
+    // MARK: - Joined pages (1.3, docs/M7C_CONTRACT.md §3.1, §3.14)
+
+    /// True until the person turns it off (`object(forKey:) == nil` counts as true, like `eraseInkAfterConvert`).
+    /// Reading does not write the key.
+    static var pageSpan: Bool {
+        get {
+            guard defaults.object(forKey: pageSpanKey) != nil else { return true }
+            return defaults.bool(forKey: pageSpanKey)
+        }
+        set { defaults.set(newValue, forKey: pageSpanKey) }
+    }
+
+    /// Whether this device already showed the first-time guide of `kind` joined.
+    static func spanGuideShown(_ kind: PageKind) -> Bool {
+        defaults.bool(forKey: spanGuideShownKey(kind))
+    }
+
+    /// Remembers that the guide of `kind` was shown (it is never shown again on this device).
+    static func markSpanGuideShown(_ kind: PageKind) {
+        defaults.set(true, forKey: spanGuideShownKey(kind))
     }
 
     // MARK: - Stroke budget notice (1.1, M7A_CONTRACT §5.2)

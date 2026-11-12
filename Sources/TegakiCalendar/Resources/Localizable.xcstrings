@@ -20197,6 +20197,42 @@
         }
       }
     },
+    "settings.page.header" : {
+      "comment" : "設定の節の見出し（1.3、N-1）。週と日のページを前後のページと横につなげる設定の節。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ"
+          }
+        }
+      }
+    },
+    "settings.page.span" : {
+      "comment" : "スイッチの名前（N-2）。オンにすると、週と日のページが前後のページと横につながる（ふだんはオン、端末ごと）。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後のページを横につなげる"
+          }
+        }
+      }
+    },
+    "settings.page.span.footer" : {
+      "comment" : "上のスイッチの説明（N-3）。月と年は後の版で対応する。オフにした端末では、ページをまたいで書いた線は片方のページにだけ出る（消えてはいない）。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。"
+          }
+        }
+      }
+    },
     "settings.purchase.footer.cancel" : {
       "comment" : "購入の節の説明（購読中）。%@ は iOS の画面の道順（kit.plan.cancelPath）",
       "extractionState" : "manual",
@@ -22239,6 +22275,66 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一週的第一天"
+          }
+        }
+      }
+    },
+    "span.guide.day.oneFinger" : {
+      "comment" : "初めての案内の札（N-6）。日のページを初めて開いたときに紙の上の端に 8 秒だけ、1 回出る。「指でも書く」がオフのとき: 指 1 本で横にすべらせると、となりの日が出る。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        }
+      }
+    },
+    "span.guide.day.twoFingers" : {
+      "comment" : "初めての案内の札（N-7）。上と同じで、「指でも書く」がオンのとき: 指では線を書くので、横に動かすのは 2 本の指。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        }
+      }
+    },
+    "span.guide.week.oneFinger" : {
+      "comment" : "初めての案内の札（N-4）。週のページを初めて開いたときに紙の上の端に 8 秒だけ、1 回出る。「指でも書く」がオフのとき: 指 1 本で横にすべらせると、となりの週が出る。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        }
+      }
+    },
+    "span.guide.week.twoFingers" : {
+      "comment" : "初めての案内の札（N-5）。上と同じで、「指でも書く」がオンのとき: 指では線を書くので、横に動かすのは 2 本の指。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        }
+      }
+    },
+    "span.stageTwo.notice" : {
+      "comment" : "案内（N-8、1 回だけ）。そのページと前後のページの線が多すぎて、その種類のページを横につなげずに 1 ページずつ表示に戻したとき。書いた線は消えていない。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。"
           }
         }
       }

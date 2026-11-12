@@ -16,7 +16,9 @@ import UIKit
 /// counts of this device (`StrokeCensus`, counted in the background while the sheet is open) and a
 /// footer, and the device is 「この端末」 everywhere (an iPhone too). 1.2 (docs/M7B_CONTRACT.md §5.7, §10.4): the
 /// sections of the week start and the holidays after 「カレンダー」, the licences' row in 情報, and on
-/// every screen but a Japanese one the note about the translations under its footer.
+/// every screen but a Japanese one the note about the translations under its footer. 1.3 (docs/M7C_CONTRACT.md §3.14,
+/// D3 (3)): the section 「ページ」 between 入力 and 同期, with the one row 「前後のページを横につなげる」
+/// (`AppSettings.pageSpan`).
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
     @ObservedObject var sync: SyncEngine
@@ -50,11 +52,18 @@ struct SettingsScreen: View {
     /// 1.2 (§10.7): screenshot mode's way to switch the week start: nothing is stored there, so the
     /// owner's `.onChange` never fires and the question's answer calls this instead.
     var onScreenshotWeekStart: (WeekStart) -> Void = { _ in }
+    /// 1.3 (§3.1, §3.14): 「前後のページを横につなげる」 was switched (the new value), after it was stored (outside
+    /// screenshot mode, where nothing is stored). The owner saves the open pages and reopens them on the other path
+    /// (S5's screen wave); by default nothing more happens.
+    var onPageSpanChange: (Bool) -> Void = { _ in }
 
     @Environment(\.openURL) private var openURL
     @State private var eraseInkAfterConvert: Bool = ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
     /// 1.1 (§2.6): 「消しゴムで消したらペンに戻る」, on in screenshot mode (nothing is stored there).
     @State private var eraserAutoReturn: Bool = ScreenshotMode.isActive ? true : AppSettings.eraserAutoReturn
+    /// 1.3 (§3.14): 「前後のページを横につなげる」. Screenshot mode's default is off, the one-page path (§3.12; nothing
+    /// is stored there).
+    @State private var pageSpan: Bool = ScreenshotMode.isActive ? false : AppSettings.pageSpan
     /// 1.1 (§5.3): the stroke counts of 情報; nil until `StrokeCensus` has counted (「数えています…」).
     @State private var census: StrokeCensus.Result?
     @State private var confirmEraseStep1 = false
@@ -111,6 +120,17 @@ struct SettingsScreen: View {
     static func translationNote(language: UILanguage = L.language) -> String? {
         language == .ja ? nil : L.text("info.translationNote", in: language)
     }
+
+    // MARK: 1.3 texts (docs/M7C_CONTRACT.md §8.1 N-1 … N-3)
+
+    /// 設定 › ページ: the section's title (N-1).
+    static let pageSectionTitle = L.text("settings.page.header")
+    /// Its one row (N-2).
+    static let pageSpanTitle = L.text("settings.page.span")
+    /// The row's footnote (N-3).
+    static let pageSpanFooter = L.text("settings.page.span.footer")
+    /// The row's switch, for the UI tests (§10.3).
+    static let pageSpanIdentifier = "settings.pageSpan"
 
     /// The data section's footer (M4 contract §6.2).
     static let importFooter = L.text("settings.data.importFooter")
@@ -178,6 +198,8 @@ struct SettingsScreen: View {
                     )
                     HolidaySettingsSection()
                     inputSections
+                    // 1.3 (§3.14): between 入力 and 同期; the rows above and below do not move.
+                    pageSection
                     syncSection
                     dataSection
                     purchaseSection
@@ -222,6 +244,12 @@ struct SettingsScreen: View {
                 .onChange(of: eraserAutoReturn) {
                     guard !ScreenshotMode.isActive else { return }
                     AppSettings.eraserAutoReturn = eraserAutoReturn
+                }
+                .onChange(of: pageSpan) {
+                    if !ScreenshotMode.isActive {
+                        AppSettings.pageSpan = pageSpan
+                    }
+                    onPageSpanChange(pageSpan)
                 }
                 .task { await openScreenshotPieces() }
                 .onAppear {
@@ -419,6 +447,20 @@ struct SettingsScreen: View {
             Toggle(L.text("settings.input.eraseAfterConvert"), isOn: $eraseInkAfterConvert)
         } footer: {
             Text(L.text("settings.input.eraseAfterConvert.footer"))
+        }
+    }
+
+    // MARK: - ページ (1.3, docs/M7C_CONTRACT.md §3.14)
+
+    /// One row, 「前後のページを横につなげる」 (on by default, per device), and its footnote (§8.1 N-1 … N-3).
+    private var pageSection: some View {
+        Section {
+            Toggle(Self.pageSpanTitle, isOn: $pageSpan)
+                .accessibilityIdentifier(Self.pageSpanIdentifier)
+        } header: {
+            Text(Self.pageSectionTitle)
+        } footer: {
+            Text(Self.pageSpanFooter)
         }
     }
 
