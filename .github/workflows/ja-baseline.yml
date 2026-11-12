@@ -362,6 +362,19 @@ jobs:
       # the demo stroke counts (「いちばん線の多いページ」 and 「今年の年のページ」). Since 1.2 (docs/M7B_CONTRACT.md
       # §7.4, §10.7, §7.6) a tenth, "holidays" (the picker of the holidays), and an eleventh, "week-start" (the
       # settings with the question of switching the week start). (Shot here too since 1.3: 43fe366 has them.)
+      # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4 and its hand-off to S5): the photo of a sheet is no
+      # longer only the frame of a fixed 9 s after the launch. In run 43149906124 that frame of `--screenshot-sheet
+      # holidays` held the settings still sliding in, not yet at their place (the picker opens from them 0.4 s after
+      # they appear). The frame of 9 s is still taken, and kept once tools/shots/screen_ready.swift finds the screen
+      # ready: still (at most 1 pixel in 2,000 differs strongly from a frame taken at 8 s), and unlike the screens shown
+      # before it — the month page without a sheet (ipad13-portrait-month.png, the step above) for every sheet, and the
+      # settings (ipad13-portrait-sheet-settings.png, taken before them in this loop) for the four opened from them
+      # (sync, info, holidays, week-start). Otherwise the next frame, a second later, is compared with that one, up to
+      # 30 s after the launch; then the last frame stays, with a warning. So no photo is taken earlier than before, and a
+      # screen that has settled is photographed as before (each sheet of the runs 43136565762 and 43149906124 and of the
+      # reference run 43158921131 differs from that month page by at least 47,648 pixels, the four from those settings by
+      # at least 44,318; the same screen of two runs by 0). One line per sheet says when it was ready. The same lines in
+      # build.yml (J-4). If the tool does not compile, every sheet is the frame of 9 s, with a warning.
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -370,13 +383,51 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
+          # 1.3: the wait for the screen (above). Built here, from the commit that runs the workflow.
+          READY="$RUNNER_TEMP/screen_ready"
+          if ! swiftc -O "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" -o "$READY"; then
+            echo "::warning::tools/shots/screen_ready.swift did not compile; every sheet is taken 9 s after its launch, as before 1.3."
+            READY=""
+          fi
+          EARLIER="$RUNNER_TEMP/sheet-earlier.png"
           for SHEET in create edit lasso settings sync import paywall export info holidays week-start; do
+            SHOT="shots/ipad13-portrait-sheet-$SHEET.png"
+            UNLIKE="shots/ipad13-portrait-month.png"
+            case "$SHEET" in
+              sync|info|holidays|week-start) UNLIKE="$UNLIKE shots/ipad13-portrait-sheet-settings.png" ;;
+            esac
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET" $JA_ARGS
-            sleep 9
+            LAUNCHED="$(date +%s)"
+            rm -f "$EARLIER"
+            sleep 8
+            [ -z "$READY" ] || xcrun simctl io "$UDID" screenshot "$EARLIER" > /dev/null 2>&1 || true
+            sleep 1
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 9 s (sheet $SHEET; crashed?)"
-            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-sheet-$SHEET.png"
+            xcrun simctl io "$UDID" screenshot "$SHOT"
+            [ -n "$READY" ] || continue
+            while :; do
+              STATUS=0
+              # $UNLIKE is split on purpose (paths without spaces).
+              LINE="$("$READY" "$SHOT" "$EARLIER" $UNLIKE)" || STATUS=$?
+              WAITED=$(( $(date +%s) - LAUNCHED ))
+              if [ "$STATUS" = 0 ]; then
+                echo "sheet $SHEET, ${WAITED} s after the launch: $LINE"
+                break
+              fi
+              if [ "$STATUS" != 1 ] || [ "$WAITED" -ge 30 ]; then
+                echo "::warning::sheet $SHEET: the screen was not ready ${WAITED} s after the launch, its last frame is kept ($LINE)"
+                break
+              fi
+              cp "$SHOT" "$EARLIER"
+              sleep 1
+              if ! xcrun simctl io "$UDID" screenshot "$SHOT" > /dev/null 2>&1; then
+                echo "::warning::sheet $SHEET: a later frame could not be taken, the one before is kept"
+                cp "$EARLIER" "$SHOT"
+                break
+              fi
+            done
           done
           ls -la shots
 
