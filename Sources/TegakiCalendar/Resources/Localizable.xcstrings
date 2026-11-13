@@ -20201,10 +20201,64 @@
       "comment" : "設定の節の見出し（1.3、N-1）。週と日のページを前後のページと横につなげる設定の節。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pages"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Páginas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pages"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagine"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ページ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Páginas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "页面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頁面"
           }
         }
       }
@@ -20213,10 +20267,64 @@
       "comment" : "スイッチの名前（N-2）。オンにすると、週と日のページが前後のページと横につながる（ふだんはオン、端末ごと）。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachbarseiten seitlich verbinden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join Neighboring Pages Sideways"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unir páginas contiguas en horizontal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relier les pages voisines côte à côte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unisci le pagine vicine in orizzontale"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "前後のページを横につなげる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 페이지를 가로로 잇기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unir páginas vizinhas na horizontal"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横向连接前后页面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "橫向連接前後頁面"
           }
         }
       }
@@ -20225,10 +20333,64 @@
       "comment" : "上のスイッチの説明（N-3）。月と年は後の版で対応する。オフにした端末では、ページをまたいで書いた線は片方のページにだけ出る（消えてはいない）。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Wochen- und Tagesseiten werden die vorherige und die nächste Seite seitlich verbunden, und Sie können über den Übergang hinweg schreiben. Monats- und Jahresseiten werden ab der nächsten Version nacheinander unterstützt. Wenn dies deaktiviert ist, werden die Seiten wie bisher einzeln angezeigt. Auf einem Gerät, auf dem dies deaktiviert ist, erscheinen seitenübergreifend geschriebene Striche nur auf einer der beiden Seiten (sie werden nicht gelöscht)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On week and day pages, the previous and next pages are joined sideways, and you can write across the boundary. Month and year pages will be supported in turn, starting with the next version. When this is off, pages are shown one at a time, as before. On a device where this is off, strokes written across pages appear on only one of the pages (they are not deleted)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En las páginas de la semana y del día, las páginas anterior y siguiente se unen en horizontal y puede escribir por encima de la unión. La función llegará a las páginas del mes y del año, una tras otra, a partir de la próxima versión. Si está desactivado, las páginas se muestran de una en una, como hasta ahora. En un dispositivo donde esté desactivado, los trazos escritos entre dos páginas solo aparecen en una de ellas (no se eliminan)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire par-dessus la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nelle pagine della settimana e del giorno, le pagine precedente e successiva sono unite in orizzontale e può scrivere a cavallo del confine. La funzione arriverà alle pagine del mese e dell’anno, una dopo l’altra, a partire dalla prossima versione. Se è disattivo, le pagine vengono mostrate una alla volta, come prima. Su un dispositivo in cui è disattivo, i tratti scritti a cavallo di due pagine compaiono solo su una delle due (non vengono eliminati)."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주 페이지와 일 페이지에서 앞뒤 페이지가 가로로 이어져서, 경계를 넘어 쓸 수 있어요. 월 페이지와 연 페이지는 다음 버전부터 차례로 지원할 예정이에요. 끄면 지금까지처럼 한 페이지씩 보여요. 이 설정을 끈 기기에서는 페이지를 넘어 쓴 선이 한쪽 페이지에만 보여요(지워지지 않았어요)."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever por cima da emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos entre duas páginas aparecem só em uma delas (não são apagados)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在周页面和日页面上，前后页面会横向相连，可以跨过交界处书写。月页面和年页面将从下一个版本起依次支持。关闭后，会和以前一样一次显示一页。在关闭此项的设备上，跨页书写的线条只会显示在其中一页上（并没有被删除）。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在週頁面和日頁面上，前後頁面會橫向相連，可以跨越交界處書寫。月頁面和年頁面將從下一個版本起依序支援。關閉後，會和以前一樣一次顯示一頁。在關閉此項的裝置上，跨頁書寫的線條只會顯示在其中一頁上（並沒有被刪除）。"
           }
         }
       }
@@ -22283,10 +22445,64 @@
       "comment" : "初めての案内の札（N-6）。日のページを初めて開いたときに紙の上の端に 8 秒だけ、1 回出る。「指でも書く」がオフのとき: 指 1 本で横にすべらせると、となりの日が出る。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Tag daneben zu sehen. Sie können direkt über den Übergang schreiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous and next days are now joined sideways. Slide your finger sideways to see the neighboring day. You can write straight across the boundary."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los días anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el día contiguo. Puede escribir directamente por encima de la unión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement par-dessus la jonction."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I giorni precedente e successivo ora sono uniti in orizzontale. Faccia scorrere il dito in orizzontale per vedere il giorno accanto. Può scrivere direttamente a cavallo del confine."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 날이 가로로 이어졌어요. 손가락으로 가로로 밀면 이웃한 날이 나와요. 경계를 넘어 그대로 쓸 수 있어요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一天和后一天已横向相连。用手指横向滑动，就会出现相邻的一天。可以跨过交界处直接书写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一天和後一天已橫向相連。用手指橫向滑動，就會出現相鄰的一天。可以跨越交界處直接書寫。"
           }
         }
       }
@@ -22295,10 +22511,64 @@
       "comment" : "初めての案内の札（N-7）。上と同じで、「指でも書く」がオンのとき: 指では線を書くので、横に動かすのは 2 本の指。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Tag daneben zu sehen. Sie können direkt über den Übergang schreiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous and next days are now joined sideways. Slide two fingers sideways to see the neighboring day. You can write straight across the boundary."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente por encima de la unión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement par-dessus la jonction."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I giorni precedente e successivo ora sono uniti in orizzontale. Faccia scorrere due dita in orizzontale per vedere il giorno accanto. Può scrivere direttamente a cavallo del confine."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 날이 가로로 이어졌어요. 두 손가락으로 가로로 밀면 이웃한 날이 나와요. 경계를 넘어 그대로 쓸 수 있어요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一天和后一天已横向相连。用双指横向滑动，就会出现相邻的一天。可以跨过交界处直接书写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一天和後一天已橫向相連。用兩指橫向滑動，就會出現相鄰的一天。可以跨越交界處直接書寫。"
           }
         }
       }
@@ -22307,10 +22577,64 @@
       "comment" : "初めての案内の札（N-4）。週のページを初めて開いたときに紙の上の端に 8 秒だけ、1 回出る。「指でも書く」がオフのとき: 指 1 本で横にすべらせると、となりの週が出る。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um die Woche daneben zu sehen. Sie können direkt über den Übergang schreiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous and next weeks are now joined sideways. Slide your finger sideways to see the neighboring week. You can write straight across the boundary."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente por encima de la unión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement par-dessus la jonction."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le settimane precedente e successiva ora sono unite in orizzontale. Faccia scorrere il dito in orizzontale per vedere la settimana accanto. Può scrivere direttamente a cavallo del confine."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 주가 가로로 이어졌어요. 손가락으로 가로로 밀면 이웃한 주가 나와요. 경계를 넘어 그대로 쓸 수 있어요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一周和后一周已横向相连。用手指横向滑动，就会出现相邻的一周。可以跨过交界处直接书写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一週和後一週已橫向相連。用手指橫向滑動，就會出現相鄰的一週。可以跨越交界處直接書寫。"
           }
         }
       }
@@ -22319,10 +22643,64 @@
       "comment" : "初めての案内の札（N-5）。上と同じで、「指でも書く」がオンのとき: 指では線を書くので、横に動かすのは 2 本の指。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um die Woche daneben zu sehen. Sie können direkt über den Übergang schreiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous and next weeks are now joined sideways. Slide two fingers sideways to see the neighboring week. You can write straight across the boundary."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice dos dedos en horizontal para ver la semana contigua. Puede escribir directamente por encima de la unión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement par-dessus la jonction."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le settimane precedente e successiva ora sono unite in orizzontale. Faccia scorrere due dita in orizzontale per vedere la settimana accanto. Può scrivere direttamente a cavallo del confine."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 주가 가로로 이어졌어요. 두 손가락으로 가로로 밀면 이웃한 주가 나와요. 경계를 넘어 그대로 쓸 수 있어요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一周和后一周已横向相连。用双指横向滑动，就会出现相邻的一周。可以跨过交界处直接书写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一週和後一週已橫向相連。用兩指橫向滑動，就會出現相鄰的一週。可以跨越交界處直接書寫。"
           }
         }
       }
@@ -22331,10 +22709,64 @@
       "comment" : "案内（N-8、1 回だけ）。そのページと前後のページの線が多すぎて、その種類のページを横につなげずに 1 ページずつ表示に戻したとき。書いた線は消えていない。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
       "extractionState" : "manual",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Seite hat sehr viele Striche, daher werden die Seiten einzeln angezeigt statt seitlich verbunden. Was Sie geschrieben haben, bleibt erhalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This page has a great many strokes, so pages are shown one at a time instead of joined sideways. What you wrote stays as it is."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta página tiene muchísimos trazos, así que las páginas se muestran de una en una, sin unirlas. Lo que escribió se conserva tal cual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comme cette page contient de très nombreux traits, les pages s’affichent une par une, sans être reliées. Ce que vous avez écrit reste intact."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa pagina ha moltissimi tratti, quindi le pagine vengono mostrate una alla volta, senza unirle. Ciò che ha scritto resta com’è."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 페이지는 선이 아주 많아서 가로로 잇지 않고 한 페이지씩 보여 줘요. 쓴 내용은 그대로예요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta página tem muitíssimos traços, então as páginas aparecem uma por vez, sem ficar unidas. O que você escreveu continua igual."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此页面的线条非常多，因此不横向相连，而是一次显示一页。书写的内容保持原样。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此頁面的線條非常多，因此不橫向相連，而是一次顯示一頁。書寫的內容保持原樣。"
           }
         }
       }
