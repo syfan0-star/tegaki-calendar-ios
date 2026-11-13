@@ -1590,10 +1590,12 @@ struct CalendarRootScreen: View {
 
     /// `SyncEngine.onRemoteDelete` (1.3, docs/M7C_CONTRACT.md §6.6 H1): another device's 「全て消す」 deleted the
     /// record of the shown page. It empties and its canvas (with ↶) is made anew (`OnePageSession.remoteDeleted`);
-    /// the selection went with the old canvas. Another page: nothing (the engine removed its file).
+    /// the selection went with the old canvas. Another page: nothing (the engine removed its file). The new canvas
+    /// starts from `PaperViewport.initial` and reports its own viewport next turn, as after `show`.
     private func remoteDeleted(_ deletedId: String) {
         guard deletedId == pageId, onePage.remoteDeleted(deletedId) else { return }
         selection = nil
+        viewport = .zero
         relayout()
     }
 
@@ -1873,11 +1875,13 @@ struct CalendarRootScreen: View {
     /// and every iCloud record. iCloud failing leaves the local part erased and the engine retries
     /// the cloud part at the next sync. Screenshot mode only empties the page in memory.
     /// 1.3 (docs/M7C_CONTRACT.md §6.6 H3): the canvas is made anew (`OnePageSession.eraseAll` moves the
-    /// screen's number on), so ↶ cannot bring the erased strokes back.
+    /// screen's number on), so ↶ cannot bring the erased strokes back; it starts from `PaperViewport.initial`
+    /// and reports its own viewport next turn, as after `show`.
     private func eraseAllInk() {
         showSettings = false
         onePage.eraseAll()
         selection = nil
+        viewport = .zero
         relayout()
         guard !ScreenshotMode.isActive else {
             showToast(L.text("toast.erased"))
@@ -2143,6 +2147,7 @@ struct CalendarRootScreen: View {
         if choice == .eraseInk {
             onePage.beginEraseAndStart()
             selection = nil
+            viewport = .zero // the new canvas reports its own viewport next turn (`show`)
             relayout()
         }
         Task { @MainActor in
