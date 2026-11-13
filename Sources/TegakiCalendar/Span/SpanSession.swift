@@ -570,6 +570,15 @@ final class SpanSession: ObservableObject {
         compose(change: .redecide)
     }
 
+    /// The screen changed `context` (the 30 s now line, a new day, the holiday setting, the language; wave C's
+    /// decision C3-M2): the window is composed again with it (the inbox emptied first), a new `windowVersion` the
+    /// canvas takes with its paper (F4). The pages, their events and the floors stay. The screen calls this, never
+    /// `relayoutPages()` or `prefetch()`, which are the canvas's (the lead's decision 6 of wave B).
+    func contextChanged() {
+        guard !isClosed else { return }
+        compose(change: .redecide)
+    }
+
     // MARK: Composing
 
     /// The inbox emptied (so the window holds every stroke the canvas handed over), the window from the slots
