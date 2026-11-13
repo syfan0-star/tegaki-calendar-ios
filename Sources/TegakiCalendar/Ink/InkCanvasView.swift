@@ -2815,7 +2815,6 @@ extension InkCanvasView.Coordinator {
         state.appliedWindowVersion = session.windowVersion
         state.appliedEpoch = session.epoch
         state.pendingWindow = false
-        putWindowIntoInbox()
         if pagesChanged {
             // The dot candidates and the eraser's touch may name a stroke of a page that left.
             recentAdds.removeAll()
