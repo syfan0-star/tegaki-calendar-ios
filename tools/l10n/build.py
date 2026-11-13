@@ -100,7 +100,9 @@ APP_JA_ONLY_PREFIX = "prototype."
 # 1.3 (docs/M7C_CONTRACT.md §8.1, §8.2): the new words of the screen (N-1 … N-8, U's keys) are written before X
 # translates them (the keys are fixed first). Until then each may be jaOnly, so L-2 and LocalizationBundleTests
 # stay green; X takes "jaOnly" off each with its nine languages (L-2 then asks all ten again). These names only:
-# every other app key keeps all ten languages.
+# every other app key keeps all ten languages. Until then no build but the prototype can be submitted:
+# testflight.yml's step "Every word of the app in ten languages (not the prototype)" fails it. This set is empty
+# before build.py goes back to 43fe366's bytes at S6 (docs/M7C.md, lead decision 1).
 APP_JA_ONLY_UNTIL_TRANSLATED = frozenset((
     "settings.page.header", "settings.page.span", "settings.page.span.footer",
     "span.guide.day.oneFinger", "span.guide.day.twoFingers", "span.guide.week.oneFinger",
