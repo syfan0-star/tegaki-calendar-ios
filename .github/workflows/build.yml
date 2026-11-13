@@ -515,6 +515,34 @@ jobs:
                     if (n[c] != expected) printf "::warning::per class: %s: %d of %d pass lines read (the others were split by app log lines), so its time is short\n", c, n[c], expected
                   }
                 }' | sort
+          # 1.3 (docs/M7C_CONTRACT.md §10.6; the review of S5's track C): xcodebuild says nothing about an
+          # -only-testing class the build does not have, so a class lost or renamed would leave the 20 times without
+          # a sign. Each class listed above must have test cases in the log. The list is read from this script ($0,
+          # the step's lines as the runner wrote them: `shell: /bin/bash -e {0}`), so it is written once. A class with
+          # none fails the step when Tests/TegakiCalendarTests has its file (<class>.swift, §10.2's names) or its
+          # class line; when it has neither (S's two classes on a branch without S's tests) it is a warning.
+          LISTED=""
+          if [ -f "$0" ]; then
+            LISTED="$(sed -nE 's/^[[:space:]]*-only-testing:TegakiCalendarTests\/([A-Za-z0-9_]+)[[:space:]]*\\$/\1/p' "$0" | sort -u)"
+          fi
+          if [ -z "$LISTED" ]; then
+            echo "::warning::The classes this step lists could not be read from its script ($0), so none is checked."
+            exit 0
+          fi
+          LOST=0
+          for CLASS in $LISTED; do
+            if grep -qE "Test Case .-\[TegakiCalendarTests\.$CLASS [A-Za-z0-9_]+\]. " "$RUNNER_TEMP/sync-repeat.log"; then
+              continue
+            fi
+            if [ -f "Tests/TegakiCalendarTests/$CLASS.swift" ] \
+              || grep -rqE "^(@[A-Za-z]+ +)*(final +)?class +$CLASS *:" Tests/TegakiCalendarTests; then
+              echo "::error::$CLASS is in Tests/TegakiCalendarTests and listed here, but none of its tests ran (§10.6: it is repeated 20 times). Was it renamed, moved or left out of the build?"
+              LOST=1
+            else
+              echo "::warning::$CLASS is listed here but not in Tests/TegakiCalendarTests on this branch, so it is not repeated."
+            fi
+          done
+          exit "$LOST"
 
       # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4): the 11 sheets' wait (the 13-inch step below) runs
       # tools/shots/screen_ready.swift, and the job's first swiftc for macOS spends almost 2 min on the SDK's modules
