@@ -1,6 +1,6 @@
 {
  "language": "fr",
- "about": "R の逆翻訳。translations/fr.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。このうち判定の後に直した訳（× の訳と、それにそろえた settings.page.span.footer）は、text が R の読んだ前の字のまま。今の字と、その逆翻訳（判定した Claude が元を見て書いたもの）は REVIEW.md の 12 にある。",
+ "about": "R の逆翻訳。translations/fr.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。このうち判定の後に直した訳（× の訳と、それにそろえた settings.page.span.footer）は、2026-11-13 に直した後の字だけを R にもう 1 回渡し、元を見ずに訳し戻した（2 回目。日本語の元・comment・1 回目の逆翻訳は読んでいない）。text はその直した後の字、back はその 2 回目の逆翻訳。1 回目（直す前の字）の逆翻訳と、判定した Claude が元を見て書いた逆翻訳は REVIEW.md の 12 にある。",
  "strings": {
   "CFBundleDisplayName": {
    "text": "Tegaki",
@@ -1395,8 +1395,8 @@
    "back": "隣のページを横に並べてつなぐ"
   },
   "settings.page.span.footer": {
-   "text": "Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire par-dessus la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés).",
-   "back": "週と日のページでは、前のページと次のページが横に並んでつながり、つなぎ目の上にまたがって書くことができます。月と年のページは、次のバージョンから一つずつ順に対応します。このオプションがオフの場合は、以前と同じようにページが1ページずつ表示されます。これがオフになっている端末では、2ページにまたがって書いた線はそのうち一方にしか表示されません（削除されてはいません）。"
+   "text": "Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire à cheval sur la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés).",
+   "back": "週と日のページでは、前後のページが横に並んでつながり、つなぎ目をまたいで書くことができます。月と年のページは、次のバージョンから順に対応します。このオプションをオフにすると、以前と同じようにページは1ページずつ表示されます。オフにしている端末では、2ページにまたがって書いた線は、どちらか一方のページにしか表示されません（削除はされません）。"
   },
   "settings.purchase.footer.cancel": {
    "text": "Pour résilier, allez dans %@ sur votre appareil. Après la résiliation, vous pouvez utiliser l’app jusqu’à la fin de la période.",
@@ -1523,20 +1523,20 @@
    "back": "週の最初の日"
   },
   "span.guide.day.oneFinger": {
-   "text": "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement par-dessus la jonction.",
-   "back": "前の日と次の日が、これからは横に並んでつながります。指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。"
+   "text": "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction.",
+   "back": "前後の日が横に並んでつながるようになりました。指を横にすべらせると、隣の日が見られます。つなぎ目をまたいで、そのまま書けます。"
   },
   "span.guide.day.twoFingers": {
-   "text": "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement par-dessus la jonction.",
-   "back": "前の日と次の日が、これからは横に並んでつながります。2本の指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。"
+   "text": "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction.",
+   "back": "前後の日が横に並んでつながるようになりました。2本の指を横にすべらせると、隣の日が見られます。つなぎ目をまたいで、そのまま書けます。"
   },
   "span.guide.week.oneFinger": {
-   "text": "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement par-dessus la jonction.",
-   "back": "前の週と次の週が、これからは横に並んでつながります。指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。"
+   "text": "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction.",
+   "back": "前後の週が横に並んでつながるようになりました。指を横にすべらせると、隣の週が見られます。つなぎ目をまたいで、そのまま書けます。"
   },
   "span.guide.week.twoFingers": {
-   "text": "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement par-dessus la jonction.",
-   "back": "前の週と次の週が、これからは横に並んでつながります。2本の指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。"
+   "text": "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction.",
+   "back": "前後の週が横に並んでつながるようになりました。2本の指を横にすべらせると、隣の週が見られます。つなぎ目をまたいで、そのまま書けます。"
   },
   "span.stageTwo.notice": {
    "text": "Comme cette page contient de très nombreux traits, les pages s’affichent une par une, sans être reliées. Ce que vous avez écrit reste intact.",
