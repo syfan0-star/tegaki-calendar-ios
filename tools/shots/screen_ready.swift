@@ -14,10 +14,10 @@
 // are 8-bit sRGB, so nothing is converted) and compared pixel by pixel, as tools/l10n/compare_shots.swift does. A
 // pixel differs strongly when one of R, G, B, A differs by more than 32 of 255 (compare_shots' `strong`; the glass
 // and the blur of two runs differ by at most 9).
-//   still   at most 1 pixel in 2,000 differs strongly from the earlier frame (on the 13-inch iPad, 2,838 of
+//   still   at most 1 pixel in 2,000 differs strongly from the earlier frame (on the 13-inch iPad, at most 2,840 of
 //           5,680,128: a text cursor's blink is a few hundred; a sheet that slides in or a page that is pushed
 //           moves hundreds of thousands)
-//   unlike  at least 1 pixel in 1,000 differs strongly from that photo (5,680 on the 13-inch iPad)
+//   unlike  at least 1 pixel in 1,000 differs strongly from that photo (at least 5,681 on the 13-inch iPad)
 // One line on the standard output. Exit status: 0 = ready (still, and unlike every photo given), 1 = not yet,
 // 2 = the shot or the earlier frame cannot be read, or wrong arguments. macOS with the Command Line Tools is enough
 // (Foundation, CoreGraphics, ImageIO).
