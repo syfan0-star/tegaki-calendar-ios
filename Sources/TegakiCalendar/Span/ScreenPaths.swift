@@ -374,7 +374,10 @@ final class ScreenPaths: ObservableObject {
         pendingHeading = nil
         guard !old.isClosed else { return }
         let hadCanvas = old.inbox.latestWindow != nil
-        old.inbox.put([], unrouted: [], window: old.inbox.latestWindow ?? old.window, basis: -1)
+        if let latest = old.inbox.latestWindow {
+            // The safety net's source stays the canvas's window; only the basis marks the reopening.
+            old.inbox.put([], unrouted: [], window: latest, basis: -1)
+        }
         old.inbox.onArrival = { [weak self, weak old] in
             old?.drainInbox()
             self?.drainClosing()
