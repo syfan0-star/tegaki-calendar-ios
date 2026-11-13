@@ -302,7 +302,7 @@ enum ScreenshotMode {
             settingsSection = SettingsSection(rawValue: arguments[index + 1]) // an unknown value → nil
         }
         if settingsSection != nil, sheet == nil { sheet = .settings }
-        if sheet != .settings { settingsSection = nil }
+        // MUTATION M4: the section is kept with another sheet
         // A sheet always sits on the month page (M3b contract §5): it wins over `--screenshot-page`.
         if sheet != nil { page = .month }
         let landscape = arguments.contains("--screenshot-landscape")
@@ -836,7 +836,7 @@ enum ScreenshotMode {
     private static func crossingOwner(_ sample: CrossingSample) -> Int {
         let xs = sample.points.map(\.x)
         let centre = ((xs.min() ?? 0) + (xs.max() ?? 0)) / 2
-        return centre < 0 ? -1 : 0
+        return centre < 0 ? 0 : -1 // MUTATION M3: the owner flipped
     }
 
     /// The crossing demo's strokes the page `pageOffset` pages from the focus page holds, in its own coordinates.
