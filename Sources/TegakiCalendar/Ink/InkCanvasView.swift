@@ -1530,7 +1530,6 @@ extension InkCanvasView {
         // MARK: Writing back
 
         private func publishPage() {
-            if spanState != nil { putJournalIntoInbox(); return }
             let page = ledger.page
             let signature = PageSignature(page)
             publishedSignature = signature
@@ -2624,7 +2623,6 @@ extension InkCanvasView.Coordinator {
         }
         #endif
         let windowLedger = InkLedger(page: session.window.ledgerPage, layout: session.layout, deviceId: deviceId)
-        windowLedger.ownerId = { [weak session] cell in session?.ownerId(for: cell) ?? InkStroke.newId() }
         ledger = windowLedger
         appliedLayout = session.layout
         publishedSignature = InkCanvasView.PageSignature(windowLedger.page)
@@ -3066,7 +3064,7 @@ extension InkCanvasView.Coordinator {
     /// pinch or bounce, no slide; nothing is selected or being moved; no sheet covers the band.
     var isAtRest: Bool {
         guard let state = spanState, let canvas, container != nil, hasInitialZoom, !state.session.isClosed else { return false }
-        if isUsingTool || isSettling || touchingPaper || isMovingSelection || state.isShiftingWindow || resetScroll { return false }
+        if isUsingTool || touchingPaper || isMovingSelection || state.isShiftingWindow || resetScroll { return false }
         if pendingDrawing || pendingGeometry || pendingPaper || state.pendingWindow || !pendingHistory.isEmpty || !pendingCommands.isEmpty {
             return false
         }
