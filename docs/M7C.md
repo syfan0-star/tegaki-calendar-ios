@@ -2,9 +2,9 @@
 
 契約は [M7C_CONTRACT.md](M7C_CONTRACT.md)。ここはリードの記録で、段ごとに節を足す。**今の状態は最初の「今の状態」の節を読む。** 各節は書いた時点の記録で、書き直さない（後で変わった物は「今の状態」で読み替える）。
 
-## 今の状態（リード、2026-11-13 23:10）
+## 今の状態（リード、2026-11-14 07:50）
 
-- 枝 `r13`（origin も同じ）。S1〜S4 は済んだ。S2 の見本の画像と S3 の試作（版 1.3・ビルド 24）は 11/12 に本人へ届けた。S5（本体）は 11/13 06:30 に前倒しで始め、**第 1 陣（S・P・C・U の前半）を 11/13 21:10 に `r13` へ入れた**（7ec3c6c まで早送り。下の「S5」の節）。第 4 陣のうち文の仕事（新しい 8 キーの 9 言語の訳・16 ロケールの新機能の文・審査メモ・SUPPORT）を前倒しで作り、**f02aee9 まで早送りして `r13` へ入れた**（下の「第 4 陣の文（前倒し）」）。第 2 陣（L のキャンバス）は作業中。H4 の直し（枝 `h4-fix`）は f5ae07d で `r13` に入れた（1.3 で直す既定のとおり。1.2.4 で出すときも同じ commit を使う）。
+- 枝 `r13`（origin も同じ）。S1〜S4 は済んだ。S2 の見本の画像と S3 の試作（版 1.3・ビルド 24）は 11/12 に本人へ届けた。S5（本体）は 11/13 06:30 に前倒しで始め、**第 1 陣（S・P・C・U の前半）を 11/13 21:10 に `r13` へ入れた**（7ec3c6c まで早送り。下の「S5」の節）。第 4 陣のうち文の仕事（新しい 8 キーの 9 言語の訳・16 ロケールの新機能の文・審査メモ・SUPPORT）を前倒しで作り、**f02aee9 まで早送りして `r13` へ入れた**（下の「第 4 陣の文（前倒し）」）。**第 2 陣（L のキャンバス、§3.6）を 11/14 に `r13` へ取り込んだ**（枝 `r13-w-s5l` の a9f284d を `--no-ff` で。下の「第 2 陣」の節）。画面はまだ横の道を呼ばないので、ふつうのアプリの動きは変わらない。次は第 3 陣（画面のつなぎ込み、計画は下の「第 3 陣の計画」）。H4 の直し（枝 `h4-fix`）は f5ae07d で `r13` に入れた（1.3 で直す既定のとおり。1.2.4 で出すときも同じ commit を使う）。
 - 画面はまだどの種類も 1 ページの道（D2）。横の道の部品（`SpanSession`・紙・見出し・終日帯・PDF の隣の線・設定「ページ」・案内の札）は入ったが、画面から呼ぶのは第 3 陣。
 - ふつうのアプリと 43fe366 の違い: 凍結の表のうち `Ink/InkLedger.swift` と `Sync/SyncEngine.swift` の 2 つが S4 で変わり、`tools/compat10/DATA_1_1.sha256` はその 2 行だけを書き直した（§6.4 の手順 2。ほかの 16 行は 43fe366 のまま）。今の画面（1 ページの道）の振る舞いは変わらない（S4 の節の「1 ページの道の記録」）。既存のテスト（`TESTS_1_2_3.sha256` の 8 ファイル）・InkModel の既存の 7 ファイル・compat11・Compat10 は 43fe366 から 1 バイトも変わっていない。試作は `#if SPAN_PROTOTYPE` の中のまま。
 - `tools/span/prototype_gate.py --base 43fe366` は `r13` の先頭では FAIL になる（S4 の 2 ファイル）。これは S3 の試作のビルドだけの関門で、CI では走らない（testflight.yml の `span_prototype=1` のときだけ）。試作を作り直すときはタグ `r13-proto-1` から作る。
@@ -480,6 +480,48 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
     - **第 3 陣で写真を足す**: 1 ページの道（`span == nil`、D9 で 43fe366 と同じ）か `r13-proto-1` の「1 ページずつ」で、紙の外にはみ出した線のあるページを、iPad の週と日・縦と横（UI テストから `XCUIDevice` で回す、`docs/R1_1_1.md:113`）で撮り、余白の列に机の色（#ecebe6）以外の点が 0 個かを機械で数える。そのうえで §11.3 の 18（1.2.3 のままの iPad Pro 13）で本人が見る。両方とも切れていれば、新機能の文の 4 つ目の点の最後に「古い版の iPad では、はみ出した部分は紙の端で切れて見えます」の形の 1 文を足し、11 組を訳して、その文だけ元を見ない逆翻訳をする。SUPPORT は今の「保存されたページにだけ出ます（消えてはいません）」で足りる（§8.7）。
     - 読み替え（§6.5 の 1 行目）: 「iPhone の一覧では紙の端の先は画面の外で切れて見える」は iPhone 縦の週だけ。iPhone 縦の日（左右 86 pt ほど）と iPhone 横（週 328 pt・日 366 pt）には余白があるので、iPad と同じ問い（紙の端で切れると見込む【推論】）。古い版の投げなわでその線を動かしている間だけは、選んだ範囲全体の絵を容器いっぱいの層に出す（43fe366 `InkCanvasView.swift:2149-2153`）ので、はみ出した部分が余白の上に見えうる。指を離すと紙の端で切れる【コードを読んだ結論。写真は無い】。§11.3 の 18 の確かめ表に入れる。
 12. 2 回目の逆翻訳で R が書いた別の読み（どれも ○、1 回目から変えていない語）は直さず、母語の人に見てもらうときの候補にする: fr の sur le côté、de の seitlich verbunden と direkt、es の ya、es の N-3 の Si está desactivado（前の文の La función と性が合わない。設定の脚注ではスイッチのこととして読める）、pt-BR の emenda。直すとその文だけ 3 回目の元を見ない逆翻訳が要る。
+
+### 第 2 陣（キャンバス、役 L。Workflow wf_de1081d5-54a、11/13 21:00〜11/14 04:30、直し wf_70846655-1b7、11/14 04:50〜07:30）
+
+- 枝 `r13-w-s5l`（基準 edf053b）。commit: 10b8c85（入力と型）・8aa5df0（窓の道の本体）・b5466c3（テスト）・712556b（すべりの直し）・963c16a（直しのテスト）・a75fa3e（最後の点検の F1・F3 のテストを先に）・ffcbc40（F3 の直し）・a9f284d（F2）。a75fa3e は F3 のテストだけが赤の commit（テストを先に入れたため。次の ffcbc40 で緑）。
+- 変えたファイル: `Ink/InkCanvasView.swift`（凍結の表、+1,270 行ほど。横の道は全部 `parent.span != nil`／`spanState != nil` の入口の後ろ）、`Span/SpanSession.swift`（`narrowToOnePageForTesting()` だけ。中身は `#if DEBUG`、Release は false。本番の半径は 1 以上のまま）、新しい `Tests/TegakiCalendarTests/InkCanvasSpanTests.swift`（31 本。§10.2 の行 L の 12 本を含む）、`tools/compat10/DATA_1_1.sha256` の InkCanvasView の 1 行。InkLedger・InkOverlayView・Kit・1.2.3 のテストのファイルは 0 行（TESTS_1_2_3 8/8）。
+- **CI: run 43503988345（a9f284d）は全部緑、走らせ直し 0**（build-and-test 約 100 分: 単体 598 本・skip 8・失敗 0、InkCanvasSpanTests 31・InkCanvasViewTests 77、20 回くり返し 2,380 本・失敗 0、UI 29 本・skip 1・失敗 0、Kit 363。compat-v1.0・span-shots も緑）。速い道 43501697819 も緑。
+- 変異で「外すと落ちる」を確かめた枝（取り込まない、消していない）: `r13-q-s5l-ma`〜`mh`（ma〜md は設計どおりの 12 本、me・mf はすべりの直し、mg は窓を取るときの履歴の刈り込み、mh は受け箱の窓と基準）。
+- 見直し: 計画の批判役 → 実装 → 2 つの見方（1 ページの道と凍結／横の道）の見直し 6 件 → 直し → 最後の点検（F1 major・F2・F3 minor）→ 直し → 見直し役は指摘 0。
+- F3 の実測: 一覧で紙の高さが 955→900 pt に変わると、UIKit の倍率の setter が contentOffset も動かし、焦点の週の真ん中が 417 pt ではなく 1,241.6 pt に行き、焦点が隣の週に移っていた（点検の見込みの約 100 pt より大きい）。横の道だけ、高さが変わる前の画面の真ん中の帯 lu を覚えて x を置き直す形で直した。
+
+### 第 2 陣の 1 ページの道の記録（§6.4・D9。直し役と見直し役が diff と照らした数）
+
+- 10b8c85・Ink/InkCanvasView.swift・19 行（import 3: `import Combine`・`@_spi(SpanLedger) import InkModel` への書き換え・`import UIKit.UIGestureRecognizerSubclass`／新しい property の既定値 10: span・inbox・sleep・clock・onPageStrokeBudget・onPageGrowthCapReached・isSheetOpen・slidePages・slideTrigger・onSpanStop（init のたびに評価されるが読まれない）／makeUIView の container の行 3／InkCanvasContainerView の宣言・init・本体 3。作る順が overlay → canvas に替わるだけ）・§2.1、§3.6、D21・通る既存のテスト: InkCanvasViewTests 77 本全部、UI テスト 28 本（EraserAndBelowDayUITests 8・YearTapUITests 5・HeaderAndPaperUITests 3・WeekStartUITests 1・LanguageUITests 11）、build-and-test の写真（J-4）。BlankPaperShotsUITests は `r13-w-*` では XCTSkip（blank-paper のジョブは r13 か main で走る）。
+- 8aa5df0・同じファイル・20 行（stored property `spanState` 1／入口 12: init・attach・detach・update・noteSpanTriggers・applyPending・applyBandOpening・bandWidthChanged・publishPage・touchObserved・applyCanvasDrawing・scrollViewDidScroll。どれも span == nil で偽／同じ値の書き換え 2: `} else if` と overview の三項／新しい scroll の delegate 5 つの 1 行目の guard）・§3.6、§3.4、§3.3 の 5、D21・同上。
+- 712556b・同じファイル・1 行（containerDidLayout の「5. Only the height changed」の入口 `if spanState != nil { bandHeightChanged() }`）・§3.6・InkCanvasViewTests の高さの 4 本（testHeightOnlyChangeNeverReappliesTheMinimumWhileZoomedIn・testHeightChangeAtTheOverviewFollowsTheNewFitAll・testHeightChangeAtTheOpeningZoomKeepsTheTop・testHeightChangeAtTheMinimumKeepsTheTop）。
+- ffcbc40・同じファイル・1 行（同じ経路 5 の入口 `if spanState != nil { bandHeightWillChange() }`。applyBounds は 43fe366 のまま）・F3（§3.6）・同上の 4 本。
+- b5466c3・963c16a・a75fa3e・a9f284d・テストのファイルと SpanSession.swift（凍結の表の外）・0 行。
+- 累計 41 行。DATA_1_1 は各 commit で InkCanvasView の行だけを書き直し 18/18。
+
+### 第 2 陣のリードの決定（11/14）
+
+1. D21 の知らせは、横の道では新しい `onPageStrokeBudget(_:_:)`・`onPageGrowthCapReached(_:)`。1 ページの道は古い 2 つのまま（凍結の InkCanvasViewTests.swift :137-138・:917-918 が古い型で呼ぶため、型を変えられない。§2.1 からのずれ）。
+2. §2.1 に無い入力 `isSheetOpen`・`slidePages`/`slideTrigger`・`onSpanStop` を受ける（§3.6 のシート・◀ ▶・今日、§3.7 の remember・D20）。テスト用の口 `endSettleWaitForTesting`・`spanMotionOverride`・`spanShiftProbe`・`spanSlideAnimation` は、§6.4 の InkCanvasView の行を記録したうえで広げたものとして受ける（どれも横の道の中だけ）。
+3. `inbox:` の入力は実装のまま（使うのは常にセッションの受け箱。別の箱は Debug で止める）。
+4. 手のひらは横の動き出しだけを断る（S3 の決定 2 の既定。試作は全方向）。11/18 の試作の感想で見直す。
+5. 1.2.3 の 0.3 秒の落ち着き待ちは本物の sleep のまま。テストは `endSettleWaitForTesting` で待たない。
+6. `prefetch()`・`relayoutPages()` はキャンバスが呼び、画面は呼ばない。横の道の `onInkBoundsChanged` ではセッションを作り直さない。
+7. 倍率の下限はキャンバスで真ん中のページの overview から取る（Kit の ZoomPolicy は変えない）。
+8. 「版つきの PaperViewport」は、windowVersion が進んだ後の同じターンの受け渡しと、画面が受け取ったときの `session.windowVersion` との組で満たす（Kit の PaperViewport は変えない）。
+9. initialScrollX/Y・initialPaperOffset・revealRect は帯の lu（画面が焦点のページの原点を足す）。
+10. ペンの下・ピンチ中の ◀ ▶ は捨てずに待たせ、離れて落ち着いたらすべる。長いすべり（近い「今日」）は帯の中で 1 ページずつずらしながら続ける。すべりの途中の押下は済むまで待つ。手ざわりは TestFlight で本人が見る。
+11. 最後の点検の F2 は案 1（S が Debug だけの 1 ページの窓を作る口を足す。B_DESIGN.md:170 のとおり、伸びのテストを 1 ページの SpanSession のキャンバスにも通す）。
+12. F1・F3 は第 3 陣より前に直す（済み）。
+13. 変異の確かめの枝（`r13-q-s5l-ma`〜`mh`、前の陣の `r13-q-*` も）は残す。消すかは後で本人にまとめて聞く。
+14. `require(toFail:)`（一覧の 24 pt）は XCTest で固定できない（UIKit に公開の口が無い）。第 3 陣の UI テストと TestFlight で見る。
+
+### 第 3 陣の計画（Workflow wf_70846655-1b7 の設計役と批判役。計画の本文はリポジトリの外）
+
+- 役（持つファイルを分ける）: C-ci（build.yml の第 1 段: l10n-shots の pipefail、速い道に SettingsPageSectionTests、20 回くり返しに画面の純粋なテスト）・C-args（写真モードの引数 §3.12、ScreenshotModeSpanTests、設定の「ページ」の節へ開く口）・C-screen（核。CalendarRootScreen の 2 本の道、新しい `Span/ScreenPaths.swift` に道で分かれる呼び口をまとめて XCTest で動かす、§3.5 の全部の呼び口、§3.7、閉じかけのセッションの出し切り、帯の lu、viewport の組、点の振り分け、ページごとの案内 D21、段 2 の N-8、予定をページごとに読む）・C-ui（SpanUITests・SpanRerunUITests）・C-shots（ふつうのビルドの写真のジョブ、ずらす前と後の組、10 言語の設定の節、古い版の余白の画素の数、隣の線の PDF）。入れる順は C-ci・C-args・C-screen → 統合の枝 `r13-s5c` → C-ui・C-shots。
+- 設計役が見つけた新しい穴 **F4**: 横の道では、予定・今の線・祝日の変化が紙に出ない（キャンバスは幾何が変わったときだけ紙の窓を描き直す）。キャンバスの横の道の中の 1 行と DATA_1_1 の 1 行で直す。**C-screen の最初の commit で直す**（テストと変異つき）。
+- 批判役の指摘（blocker 1・major 4・minor 11）は全部受けた。主なもの: (B1) 写真モードの `Sheet` に case を足すと凍結の 1.2.3 のテストが落ちるので、`Sheet` は 11 個のまま、Config に別の欄（`settingsSection`）を足し、Config は memberwise のまま。(M1) 「消して始める」「全て消す」は閉じかけのセッションも閉じる（H2・H3・H4 と G の守りを閉じかけで破らない）。(M2) 今の線・祝日など紙の文脈の変化は、SpanSession に `contextChanged()`（中身は compose の決め直しだけ）を足して画面から呼ぶ（決定 6 の読み替え。§7.4 の「loader だけ」を広げたことを記録）。(M3) 「外すと落ちる」と言う画面の行は、ScreenPaths の関数か static な純粋関数に移す（移さない行はその主張を外す）。(M4) ずらす前の写真は時間で外さず、UI テストが見えない要素 `span.release` に触れて外す（安全の上限 60 秒）。ほかに、閉じかけを捨てる条件は「開き直した後に detach の put が来た」、20 回くり返しは純粋なテストだけ、10 言語の写真は統合の枝と r13 だけ、古い版の余白の数には見本の無い対照の 1 枚、今の線の 30 秒の門は窓のどれかのページに今の線があるか、焦点が動いたときの週の始まりの境目、予定の revision は `defer`、最初の appear でシーンがまだ無いときは待つ、など。
+- 決めどころの既定: 拡大中の「今日」は revealTrigger で今日の列と今の 1 時間前へ（すべらない。11/18 の感想で見直す）。UI テストの焦点は probe の `focus=` を足さず、画面だけの見えない要素 `span.state` で出す。XCUITest では 2 本指を作れないので 1 本指で代える。HeaderAndPaperUITests は週・日のテストが無いので再走しない。App Store の写真（D26）は店の陣に回す。
 
 ### 第 1 陣の 1 ページの道の記録（§6.4・D9。各役の報告のまま）
 
