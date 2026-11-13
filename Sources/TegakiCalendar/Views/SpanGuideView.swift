@@ -31,12 +31,13 @@ enum SpanGuide {
         }
     }
 
-    /// Whether the guide of `kind` is due when a page of that kind opens: a joined kind (`joinedKinds`), shown
-    /// joined (`joined`: the setting on and the kind not fallen back to one page by stage 2, §3.15), not shown
-    /// on this device yet (`shown`), and neither screenshot mode nor the XCTest host (like the pinch hint's
+    /// Whether the guide of `kind` is due when a page of that kind opens: a joined kind (`joinedKinds`), this
+    /// device's setting on (`setting`: `AppSettings.pageSpan`, §3.14 「設定オフでは出さない」, read here and not
+    /// left to the caller), shown joined (`joined`: the kind not fallen back to one page by stage 2, §3.15), not
+    /// shown on this device yet (`shown`), and neither screenshot mode nor the XCTest host (like the pinch hint's
     /// `CalendarRootScreen.pinchHintDue`; the host would write the record without anyone seeing the card).
-    static func isDue(kind: PageKind, joined: Bool, shown: Bool, screenshot: Bool, testHost: Bool) -> Bool {
-        joinedKinds.contains(kind) && joined && !shown && !screenshot && !testHost
+    static func isDue(kind: PageKind, setting: Bool, joined: Bool, shown: Bool, screenshot: Bool, testHost: Bool) -> Bool {
+        joinedKinds.contains(kind) && setting && joined && !shown && !screenshot && !testHost
     }
 
     /// §3.15 stage 2 (N-8): the one-time notice when a kind falls back to one page at a time because its window
@@ -46,6 +47,8 @@ enum SpanGuide {
 
 /// The guide's state on the screen: the card that is up, its 8 seconds and this device's record. The 8 seconds
 /// go through `sleep` (the real one by default; the tests pass `TestSleeper`, §3.16, so no test waits for real).
+/// `clock` completes the shape §3.16 gives every new timer (`SyncEngine.init`'s `sleep:` and `clock:`, the real
+/// ones by default); the guide reads no time of day today, only the 8 seconds' wait.
 @MainActor
 final class SpanGuideModel: ObservableObject {
     struct Card: Equatable {
@@ -63,6 +66,7 @@ final class SpanGuideModel: ObservableObject {
     private let screenshot: Bool
     private let testHost: Bool
     private let sleep: @MainActor (TimeInterval) async -> Void
+    private let clock: () -> Date
     private var serial = 0
     private var timer: Task<Void, Never>?
 
@@ -70,20 +74,23 @@ final class SpanGuideModel: ObservableObject {
     init(
         screenshot: Bool = ScreenshotMode.isActive,
         testHost: Bool = SyncEngine.isTestHost,
-        sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
+        sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
+        clock: @escaping () -> Date = Date.init
     ) {
         self.screenshot = screenshot
         self.testHost = testHost
         self.sleep = sleep
+        self.clock = clock
     }
 
-    /// A page of `kind` is on screen (`joined`: shown joined sideways) with nothing over it: shows the card when
-    /// it is due (`SpanGuide.isDue`) and records it for this device and kind, so it never comes again. Returns
-    /// whether it was shown. The text follows 「指でも書く」 (`allowFinger`) as it is now.
+    /// A page of `kind` is on screen (`joined`: shown joined sideways, not fallen back by stage 2) with nothing
+    /// over it: shows the card when it is due (`SpanGuide.isDue`, which also reads this device's setting
+    /// `AppSettings.pageSpan`) and records it for this device and kind, so it never comes again. Returns whether
+    /// it was shown. The text follows 「指でも書く」 (`allowFinger`) as it is now.
     @discardableResult
     func showIfDue(_ kind: PageKind, joined: Bool, allowFinger: Bool) -> Bool {
-        guard SpanGuide.isDue(kind: kind, joined: joined, shown: AppSettings.spanGuideShown(kind),
-                              screenshot: screenshot, testHost: testHost),
+        guard SpanGuide.isDue(kind: kind, setting: AppSettings.pageSpan, joined: joined,
+                              shown: AppSettings.spanGuideShown(kind), screenshot: screenshot, testHost: testHost),
               let text = SpanGuide.text(kind: kind, allowFinger: allowFinger) else { return false }
         AppSettings.markSpanGuideShown(kind)
         present(kind, text, timed: true)
@@ -126,8 +133,10 @@ final class SpanGuideModel: ObservableObject {
 }
 
 /// The card itself (B_DESIGN.md §3.1, the black card of b2-iphone.svg; the prototype's `SpanPrototypeGuideCard`):
-/// white footnote text on a dark rounded card at most 520 pt wide, gone at a tap. The screen lays it over the
-/// top edge of the paper.
+/// white footnote text on a dark rounded card at most 520 pt wide. The screen lays it over the top edge of the
+/// paper. It goes at any touch on it (§3.14 「触れても消える」), not only at a tap: the first touch down of a
+/// finger or the Pencil, so a stroke or a drag begun on the card takes it away too (a tap alone would leave it
+/// for the 8 seconds, and the card covers the paper there). The tap stays for VoiceOver's activation.
 struct SpanGuideView: View {
     @ObservedObject var model: SpanGuideModel
 
@@ -148,6 +157,7 @@ struct SpanGuideView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .contentShape(Rectangle())
+                .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in model.dismiss() })
                 .onTapGesture { model.dismiss() }
                 .accessibilityIdentifier(Self.accessibilityIdentifier)
                 .id(card.serial)

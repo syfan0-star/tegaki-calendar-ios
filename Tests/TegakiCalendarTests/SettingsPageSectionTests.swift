@@ -97,6 +97,30 @@ final class SettingsPageSectionTests: XCTestCase {
         }
     }
 
+    /// SettingsScreen.swift as written.
+    private func settingsSource() throws -> String {
+        let url = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/SettingsScreen.swift")
+        return try String(contentsOf: url, encoding: .utf8)
+    }
+
+    /// The code of the block that opens on the line `opening` (trimmed) and closes at that line's indent, with
+    /// the comments left out and every run of spaces and line breaks made one space.
+    private func block(opening: String, in source: String) throws -> String {
+        let lines = source.components(separatedBy: "\n")
+        let open = try XCTUnwrap(lines.firstIndex { $0.trimmingCharacters(in: .whitespaces) == opening }, opening)
+        let indent = String(lines[open].prefix { $0 == " " })
+        let close = try XCTUnwrap(lines[(open + 1)...].firstIndex { $0 == indent + "}" }, "the end of \(opening)")
+        return lines[open...close]
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.hasPrefix("//") }
+            .joined(separator: " ")
+    }
+
+    /// How often `needle` occurs in `text`.
+    private func count(_ needle: String, in text: String) -> Int {
+        text.components(separatedBy: needle).count - 1
+    }
+
     func testPageSectionSitsBetweenInputAndSync() throws {
         let sections = try formSections()
         // 1.2.3's order with 「ページ」 right after 入力 and right before 同期; nothing else moved.
@@ -173,6 +197,33 @@ final class SettingsPageSectionTests: XCTestCase {
         XCTAssertNil(photo.object(forKey: "page.span"))
         AppSettings.defaults = defaults
         XCTAssertTrue(AppSettings.pageSpan, "this device's value is untouched")
+    }
+
+    /// The sheet's wiring of the switch, which a unit test cannot drive (a `Form`'s rows and `.onChange` live only
+    /// on screen, and the UI tests of §10.3 run in screenshot mode, where nothing is stored): the switch is bound to
+    /// `pageSpan`, `pageSpan` starts at `initialPageSpan`, and `body` hands every change to `pageSpanChanged` with
+    /// the owner's `onPageSpanChange`, so `testSpanToggleStoresThenTellsTheOwner` is what the sheet runs.
+    func testSpanToggleIsWiredToStoreThenTell() throws {
+        let source = try settingsSource()
+        let flat = source.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }
+        XCTAssertTrue(flat.contains("@State private var pageSpan: Bool = Self.initialPageSpan(screenshot: ScreenshotMode.isActive)"),
+                      "the sheet opens with initialPageSpan")
+        XCTAssertTrue(flat.contains("var onPageSpanChange: (Bool) -> Void = { _ in }"), "nothing more by default")
+
+        let body = try block(opening: "var body: some View {", in: source)
+        XCTAssertEqual(count(".onChange(of: pageSpan) {", in: body), 1, "body watches the switch once")
+        XCTAssertTrue(body.contains(".onChange(of: pageSpan) { Self.pageSpanChanged(to: pageSpan, "
+                                    + "screenshot: ScreenshotMode.isActive, notify: onPageSpanChange) }"),
+                      "every switch goes to pageSpanChanged: stored first (not in screenshot mode), then the owner")
+        XCTAssertEqual(count("pageSpanChanged(", in: source), 2, "declared once and called once, from body")
+        XCTAssertEqual(count("AppSettings.pageSpan = ", in: source), 1, "stored only in pageSpanChanged")
+        XCTAssertEqual(count("onPageSpanChange", in: body), 1)
+
+        let section = try block(opening: "private var pageSection: some View {", in: source)
+        XCTAssertTrue(section.contains("Toggle(Self.pageSpanTitle, isOn: $pageSpan) "
+                                       + ".accessibilityIdentifier(Self.pageSpanIdentifier)"), "the row's switch")
+        XCTAssertTrue(section.contains("Text(Self.pageSectionTitle)"), "N-1")
+        XCTAssertTrue(section.contains("Text(Self.pageSpanFooter)"), "N-3")
     }
 
     // MARK: - The first-time guide
@@ -263,8 +314,18 @@ final class SettingsPageSectionTests: XCTestCase {
             }
         }
         let model = makeModel(sleeper)
+        // The setting off on this device (`page.span` false): no card, whatever the caller says of the page.
+        AppSettings.pageSpan = false
         for kind in PageKind.allCases {
-            XCTAssertFalse(model.showIfDue(kind, joined: false, allowFinger: true), "\(kind): the setting off (or stage 2)")
+            for finger in [false, true] {
+                XCTAssertFalse(model.showIfDue(kind, joined: true, allowFinger: finger), "\(kind): the setting off")
+                XCTAssertNil(model.card)
+            }
+        }
+        AppSettings.pageSpan = true
+        // A kind fallen back to one page (stage 2, §3.15) has no card either.
+        for kind in PageKind.allCases {
+            XCTAssertFalse(model.showIfDue(kind, joined: false, allowFinger: true), "\(kind): fallen back (stage 2)")
         }
         XCTAssertFalse(model.showIfDue(.month, joined: true, allowFinger: false), "month is not joined in 1.3")
         XCTAssertFalse(model.showIfDue(.year, joined: true, allowFinger: false), "year is not joined in 1.3")
@@ -276,14 +337,16 @@ final class SettingsPageSectionTests: XCTestCase {
         }
         // Not recorded, so the guide comes once the setting is on.
         XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: false))
+        XCTAssertTrue(model.showIfDue(.day, joined: true, allowFinger: false))
 
         // The rule itself.
-        XCTAssertTrue(SpanGuide.isDue(kind: .day, joined: true, shown: false, screenshot: false, testHost: false))
-        XCTAssertFalse(SpanGuide.isDue(kind: .day, joined: true, shown: true, screenshot: false, testHost: false))
-        XCTAssertFalse(SpanGuide.isDue(kind: .day, joined: false, shown: false, screenshot: false, testHost: false))
-        XCTAssertFalse(SpanGuide.isDue(kind: .day, joined: true, shown: false, screenshot: true, testHost: false))
-        XCTAssertFalse(SpanGuide.isDue(kind: .day, joined: true, shown: false, screenshot: false, testHost: true))
-        XCTAssertFalse(SpanGuide.isDue(kind: .month, joined: true, shown: false, screenshot: false, testHost: false))
+        XCTAssertTrue(SpanGuide.isDue(kind: .day, setting: true, joined: true, shown: false, screenshot: false, testHost: false))
+        XCTAssertFalse(SpanGuide.isDue(kind: .day, setting: false, joined: true, shown: false, screenshot: false, testHost: false))
+        XCTAssertFalse(SpanGuide.isDue(kind: .day, setting: true, joined: true, shown: true, screenshot: false, testHost: false))
+        XCTAssertFalse(SpanGuide.isDue(kind: .day, setting: true, joined: false, shown: false, screenshot: false, testHost: false))
+        XCTAssertFalse(SpanGuide.isDue(kind: .day, setting: true, joined: true, shown: false, screenshot: true, testHost: false))
+        XCTAssertFalse(SpanGuide.isDue(kind: .day, setting: true, joined: true, shown: false, screenshot: false, testHost: true))
+        XCTAssertFalse(SpanGuide.isDue(kind: .month, setting: true, joined: true, shown: false, screenshot: false, testHost: false))
     }
 
     func testGuideGoesAtATouch() async {
