@@ -2179,7 +2179,6 @@ extension InkCanvasView {
         func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
             guard spanState != nil else { return }
             noteMotion()
-            if !decelerate { requestShiftCheck() }
         }
 
         func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
@@ -2341,9 +2340,6 @@ final class InkBandCanvasView: PKCanvasView {
     var panMayBegin: ((UIPanGestureRecognizer) -> Bool)?
 
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        if gestureRecognizer === panGestureRecognizer, let panMayBegin, !panMayBegin(panGestureRecognizer) {
-            return false
-        }
         return super.gestureRecognizerShouldBegin(gestureRecognizer)
     }
 }
@@ -2647,7 +2643,6 @@ extension InkCanvasView.Coordinator {
     fileprivate func attachSpan(_ container: InkCanvasContainerView) {
         guard let state = spanState, let band = appliedLayout as? SpanLayout else { return }
         let canvas = container.canvasView
-        canvas.alwaysBounceHorizontal = true
         (canvas as? InkBandCanvasView)?.panMayBegin = { [weak self] pan in self?.bandPanMayBegin(pan) ?? true }
         state.panGate.holds = { [weak self] in self?.isAtOverview ?? false }
         container.addGestureRecognizer(state.panGate)
@@ -3055,9 +3050,8 @@ extension InkCanvasView.Coordinator {
                 // Every frame of a slide's animation scrolls: nothing scrolled for `shiftWatchDelay`, so no slide runs any
                 // more, wherever the band stopped and whether or not UIKit told of the end (a touch or the canvas's own
                 // offset may stop the animation without it). Kept, it would hold every shift and every press back.
-                if state.slideTargetX != nil {
+                if let target = state.slideTargetX, let canvas = self.canvas, abs(canvas.contentOffset.x - target) < 0.5 {
                     state.slideTargetX = nil
-                    self.probeNote("Q")
                 }
                 let outcome = self.shiftIfAtRest()
                 if outcome == .busy { continue }
