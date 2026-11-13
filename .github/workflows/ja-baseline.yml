@@ -388,9 +388,26 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
-          # 1.3: the wait for the screen (above). Built here, from the commit that runs the workflow.
+          # 1.3: the wait for the screen (above), built from the commit that runs the workflow: in the background before
+          # the boot when a step started that build (build.yml's "Build the sheets' screen check in the background"),
+          # else here.
           READY="$RUNNER_TEMP/screen_ready"
-          if ! swiftc -O "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" -o "$READY"; then
+          BACKGROUND="$RUNNER_TEMP/screen_ready.build"
+          if [ -f "$BACKGROUND/pid" ]; then
+            BUILD_WAIT=0
+            while [ ! -f "$BACKGROUND/status" ] && kill -0 "$(cat "$BACKGROUND/pid")" 2>/dev/null && [ "$BUILD_WAIT" -lt 300 ]; do
+              sleep 1
+              BUILD_WAIT=$((BUILD_WAIT + 1))
+            done
+            if [ "$(cat "$BACKGROUND/status" 2>/dev/null || true)" = "0" ] && [ -x "$BACKGROUND/screen_ready" ]; then
+              cp "$BACKGROUND/screen_ready" "$READY"
+              echo "tools/shots/screen_ready.swift was built in the background (waited for it ${BUILD_WAIT} s here)."
+            else
+              echo "::warning::the background build of tools/shots/screen_ready.swift did not end well; it is built here."
+              cat "$BACKGROUND/log" 2>/dev/null || true
+            fi
+          fi
+          if [ ! -x "$READY" ] && ! swiftc -O "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" -o "$READY"; then
             echo "::warning::tools/shots/screen_ready.swift did not compile; every sheet is taken 9 s after its launch, as before 1.3."
             READY=""
           fi
