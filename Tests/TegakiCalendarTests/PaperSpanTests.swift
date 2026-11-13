@@ -690,4 +690,37 @@ final class PaperSpanTests: XCTestCase {
         XCTAssertEqual(TransferGuard.importable(clean), clean, "a 1.2.3 file imports as before")
         XCTAssertEqual(recorder.lines.count, 1)
     }
+
+    /// §3.11: the parse `CalendarRootScreen.runImport` makes (`InkImport.parse` → `InkImport.pages`) carries a
+    /// page with a window name as it is, so the door after it is what keeps it out — a prefixed cell, a
+    /// prefixed stroke id or a virtual page id; the file's other pages and a file without such names come
+    /// through unchanged.
+    func testTheImportDoorStopsWhatTheParseCarries() throws {
+        var good = InkPage.empty(pageId: "w-2026-11-09")
+        good.add(stroke("fine", cell: .grid, line(CGPoint(x: 100, y: 100), CGPoint(x: 300, y: 200))))
+        var prefixedCell = InkPage.empty(pageId: "d-2026-11-12")
+        prefixedCell.add(stroke("leak-cell", cell: CellKey(raw: "d-2026-11-12|grid"), line(CGPoint(x: 100, y: 100), CGPoint(x: 300, y: 200))))
+        var prefixedId = InkPage.empty(pageId: "d-2026-11-13")
+        prefixedId.add(stroke("d-2026-11-13|leak-id", cell: .grid, line(CGPoint(x: 100, y: 100), CGPoint(x: 300, y: 200))))
+        var virtual = InkPage.empty(pageId: "span~day~3")
+        virtual.add(stroke("leak-page", cell: .grid, line(CGPoint(x: 100, y: 100), CGPoint(x: 300, y: 200))))
+
+        func parse(_ pages: [InkPage]) throws -> InkImport.Outcome {
+            let data = AppExport.encode(AppExport.Document(exportedAt: "2026-11-13T09:00:00+09:00", app: "test", pages: pages))
+            return InkImport.pages(try InkImport.parse(data))
+        }
+        let parsed = try parse([good, prefixedCell, prefixedId, virtual])
+        XCTAssertEqual(parsed.pages.map(\.pageId), ["w-2026-11-09", "d-2026-11-12", "d-2026-11-13", "span~day~3"],
+                       "the parse leaves the window names to the door")
+        let kept = TransferGuard.importable(parsed)
+        XCTAssertEqual(kept.pages.map(\.pageId), ["w-2026-11-09"])
+        XCTAssertEqual(kept.skipped, parsed.skipped + 3)
+        XCTAssertEqual(kept.pageCount, parsed.pageCount)
+        XCTAssertEqual(recorder.lines.count, 3)
+
+        recorder.lines.removeAll()
+        let plain = try parse([good])
+        XCTAssertEqual(TransferGuard.importable(plain), plain, "a file without window names is imported as 1.2.3 imports it")
+        XCTAssertTrue(recorder.lines.isEmpty)
+    }
 }

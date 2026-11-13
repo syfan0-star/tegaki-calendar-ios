@@ -1938,7 +1938,9 @@ struct CalendarRootScreen: View {
             importPhase = .failed(Self.importFailureText(error))
             return
         case .success(let value):
-            outcome = value
+            // 1.3 (docs/M7C_CONTRACT.md §3.11, D14): the import's door. A page holding a window name is left
+            // out, counted with the skipped pages; any other file comes through unchanged.
+            outcome = TransferGuard.importable(value)
         }
         let skipped = outcome.skipped
         guard !outcome.pages.isEmpty else {
