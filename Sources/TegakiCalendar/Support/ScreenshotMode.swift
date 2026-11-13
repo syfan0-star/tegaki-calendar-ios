@@ -360,7 +360,7 @@ enum ScreenshotMode {
         }
         let spanShift = arguments.contains("--screenshot-span-shift")
         let singlePage = arguments.contains("--screenshot-single-page")
-        var spanGuide: GuideShot?
+        var spanGuide: GuideShot? = .auto // MUTATION M2: no argument is .auto
         if let index = arguments.firstIndex(of: "--screenshot-span-guide") {
             // The value may be left out (the next argument is then another one, or none): the card as 「指でも書く」 is.
             spanGuide = index + 1 < arguments.count ? GuideShot(rawValue: arguments[index + 1]) ?? .auto : .auto
@@ -750,7 +750,7 @@ enum ScreenshotMode {
             var own = InkPage.empty(pageId: pageId)
             for stroke in page.liveStrokes.sorted(by: { $0.id < $1.id }) {
                 var renamed = stroke
-                renamed.id = neighborDemoId(stroke.id, pageId: pageId)
+                // MUTATION M1: the neighbour keeps the focus page's ids
                 own.add(renamed)
             }
             page = own
