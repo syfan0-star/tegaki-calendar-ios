@@ -558,17 +558,71 @@ final class ScreenEraseTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
-    /// H3 on the joined path: 「全て消す」 hands every page to the canvas's history prune and the screen opens a new session
-    /// (a new identity, so a new canvas with no ↶); 「消して始める」 closes the session.
+    /// H3 on the joined path, with the real ledger: after 「全て消す」 (`cancelAll`) a ↶ of the canvas that still holds the
+    /// old window brings nothing back (its delta carries the old number), and once the canvas takes the new window
+    /// (`reload(keepHistory: true)` → `pruneHistory(touching: takeHistoryPrune())`) it has no ↶ at all; after
+    /// 「消して始める」 (`closeWithoutSaving`) a ↶ of the old canvas reaches no page and nothing is saved. The screen then
+    /// opens a new session (a new identity, so a new canvas): the screen wave's part.
     func testUndoIsEmptyAfterEraseAllAndEraseAndStartOnTheJoinedPath() async throws {
-        let session = try await openSyncedWindow(["a"])
+        let session = try await openSyncedWindow(["a", "b"])
+        var saved: [String] = []
+        func canvasLedger(_ session: SpanSession) -> (ledger: InkLedger, put: () -> Void) {
+            let ledger = InkLedger(page: session.window.ledgerPage, layout: session.layout, deviceId: "erase-test")
+            ledger.ownerId = { [weak session] cell in session?.ownerId(for: cell) ?? "x" }
+            _ = ledger.drawing()
+            let basis = session.windowVersion
+            let epoch = session.epoch // the number when the canvas took its window (D7)
+            return (ledger, { [weak session] in
+                guard let session else { return }
+                session.inbox.put(journal: ledger.journal, window: session.window.with(ledgerPage: ledger.page), basis: basis, epoch: epoch)
+                ledger.journal = []
+                session.drainInbox()
+            })
+        }
+        let (ledger, put) = canvasLedger(session)
+        _ = ledger.removeStrokes(ids: [SpanName.prefixed(id: "b", page: week)])
+        put()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.live(week), ["a"])
+        XCTAssertTrue(ledger.canUndo)
+        session.willPersist = { saved.append($0) }
+        // 「全て消す」.
         session.cancelAll()
-        XCTAssertEqual(session.takeHistoryPrune(), Set(session.pageIds))
+        XCTAssertNotNil(ledger.undo(), "the old canvas still has its step")
+        put()
+        XCTAssertEqual(session.page(week)?.liveStrokeCount, 0, "the ↶ of the old window is dropped")
+        XCTAssertTrue(session.records.contains { $0.hasPrefix("dropped a delta of number 0 for \(week)") })
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(saved, [])
+        // The canvas takes the new window.
+        ledger.reload(page: session.window.ledgerPage, keepHistory: true)
+        ledger.pruneHistory(touching: session.takeHistoryPrune())
+        XCTAssertFalse(ledger.canUndo)
+        XCTAssertFalse(ledger.canRedo)
+        XCTAssertNil(ledger.undo())
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(saved, [])
+        // 「消して始める」 on a session of the next opening.
         let next = bed.session(.week, focus: nov16, number: 2)
         XCTAssertNotEqual(next.id, session.id)
+        next.willPersist = { saved.append($0) }
+        await next.prefetch()
+        let (nextLedger, nextPut) = canvasLedger(next)
+        _ = nextLedger.removeStrokes(ids: [SpanName.prefixed(id: "a", page: week)])
+        nextPut()
+        XCTAssertEqual(next.saveAll(), [])
+        XCTAssertEqual(saved, [week])
+        XCTAssertEqual(bed.live(week), [])
+        saved = []
         next.closeWithoutSaving()
         XCTAssertTrue(next.isClosed)
+        XCTAssertNotNil(nextLedger.undo(), "the old canvas still has its step")
+        nextPut()
+        XCTAssertEqual(next.page(week)?.liveStrokeCount, 0)
         XCTAssertEqual(next.saveAll(), [])
+        await bed.flushSessionTimers()
+        XCTAssertEqual(saved, [])
+        XCTAssertEqual(bed.live(week), [], "the ↶ of the closed session never reaches the store")
         let third = bed.session(.week, focus: nov16, number: 3)
         XCTAssertNotEqual(third.id, next.id)
         XCTAssertEqual(faults, [])
