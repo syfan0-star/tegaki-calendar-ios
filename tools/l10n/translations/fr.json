@@ -1385,6 +1385,18 @@
       "jaSha1": "42b6a33aa6",
       "text": "Ouvrir l’app Réglages"
     },
+    "settings.page.header": {
+      "jaSha1": "b4f80c7418",
+      "text": "Pages"
+    },
+    "settings.page.span": {
+      "jaSha1": "d2f0a66557",
+      "text": "Relier les pages voisines côte à côte"
+    },
+    "settings.page.span.footer": {
+      "jaSha1": "9e479b575c",
+      "text": "Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire à cheval sur la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés)."
+    },
     "settings.purchase.footer.cancel": {
       "jaSha1": "0374921042",
       "text": "Pour résilier, allez dans %@ sur votre appareil. Après la résiliation, vous pouvez utiliser l’app jusqu’à la fin de la période."
@@ -1508,6 +1520,26 @@
     "settings.weekStart.title": {
       "jaSha1": "5996fbb18c",
       "text": "Premier jour de la semaine"
+    },
+    "span.guide.day.oneFinger": {
+      "jaSha1": "be30744b19",
+      "text": "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction."
+    },
+    "span.guide.day.twoFingers": {
+      "jaSha1": "3eb73ecc0e",
+      "text": "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction."
+    },
+    "span.guide.week.oneFinger": {
+      "jaSha1": "3e0865a2f2",
+      "text": "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction."
+    },
+    "span.guide.week.twoFingers": {
+      "jaSha1": "c3ab28781e",
+      "text": "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction."
+    },
+    "span.stageTwo.notice": {
+      "jaSha1": "a8da928830",
+      "text": "Comme cette page contient de très nombreux traits, les pages s’affichent une par une, sans être reliées. Ce que vous avez écrit reste intact."
     },
     "store.error.productNotFound": {
       "jaSha1": "a6f401a2bf",

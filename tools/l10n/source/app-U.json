@@ -1703,8 +1703,7 @@
       ],
       "was": [],
       "args": [],
-      "glossary": [],
-      "jaOnly": true
+      "glossary": []
     },
     "settings.page.span": {
       "ja": "前後のページを横につなげる",
@@ -1715,8 +1714,7 @@
       ],
       "was": [],
       "args": [],
-      "glossary": [],
-      "jaOnly": true
+      "glossary": []
     },
     "settings.page.span.footer": {
       "ja": "週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。",
@@ -1731,8 +1729,7 @@
         "週のページ",
         "日のページ",
         "線（本）"
-      ],
-      "jaOnly": true
+      ]
     },
     "settings.purchase.footer.cancel": {
       "ja": "解約は端末の%@から。解約しても期間の終わりまで使えます。",
@@ -2205,8 +2202,7 @@
       ],
       "was": [],
       "args": [],
-      "glossary": [],
-      "jaOnly": true
+      "glossary": []
     },
     "span.guide.day.twoFingers": {
       "ja": "前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。",
@@ -2217,8 +2213,7 @@
       ],
       "was": [],
       "args": [],
-      "glossary": [],
-      "jaOnly": true
+      "glossary": []
     },
     "span.guide.week.oneFinger": {
       "ja": "前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。",
@@ -2229,8 +2224,7 @@
       ],
       "was": [],
       "args": [],
-      "glossary": [],
-      "jaOnly": true
+      "glossary": []
     },
     "span.guide.week.twoFingers": {
       "ja": "前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。",
@@ -2241,8 +2235,7 @@
       ],
       "was": [],
       "args": [],
-      "glossary": [],
-      "jaOnly": true
+      "glossary": []
     },
     "span.stageTwo.notice": {
       "ja": "このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。",
@@ -2255,8 +2248,7 @@
       "args": [],
       "glossary": [
         "線（本）"
-      ],
-      "jaOnly": true
+      ]
     },
     "toast.eraseCloudFailed": {
       "ja": "iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください",
