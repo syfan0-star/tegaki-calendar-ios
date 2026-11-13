@@ -2802,7 +2802,6 @@ extension InkCanvasView.Coordinator {
             session.relayoutPages()
         }
         let pruned = session.takeHistoryPrune()
-        ledger.pruneHistory(touching: pruned)
         state.shiftProbe?("pruned")
         let window = session.window
         let changed = window.ledgerPage.contentDiffers(from: ledger.page)
