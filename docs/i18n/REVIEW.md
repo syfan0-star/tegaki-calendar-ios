@@ -1925,3 +1925,41 @@ R4 の後に直した字と FIX3 の見本の語を、別の Claude が日本語
 | `demo.event.deadline` | it | 期限（略語） | △ | 略語は通じるが、日付なしでは切れた字にも見える。入る語が無いので変えない |
 | `whatsnew.txt` の 3 行目 | de-DE | • アプリで、世界の国や地域の祝日を表示できるようになりました。Tegaki で 設定 > 祝日 > 「表示する祝日」 へ進み、国（米国の州のような地域も可）または「なし」を選んでください。連邦州、州、または地域がある国では、そのうちの一つを選ぶと、その祝日が加わります。日本の祝日はこれまでどおり機能します。すでにアプリをお使いの場合は、引き続き日本の祝日が表示されます。 | △ | 意味は同じ。「Tegaki で 設定 > 祝日」と読めた。`funktionieren` と語の並びの硬さを言われた（R4 と同じ） |
 | `whatsnew.txt` の 4 行目 | de-DE | • 週の始まりを月曜または日曜にできるようになりました（Tegaki で：設定 > 週の最初の日）。すでにアプリをお使いの場合は、月曜のままです。初めてお使いの場合は、アプリはデバイスの地域に従います。週ページの手書きは、月曜始まりの週と日曜始まりの週で別々に保存されます。切り替えると、もう一方の設定の手書きは、元に戻すまで非表示のままですが、削除はされません。月ページの手書きはその日付に従います。日曜始まりの週の手書きは、古いバージョンのアプリのデバイスでは見えません（削除はされていません）。 | △ | 意味は同じ。「Tegaki で：設定 > 週の最初の日」と読めた。`gesichert`・`Wochenhandschrift`・`Wenn Sie neu sind` と長さを言われた（母語の人に見てもらうときの候補） |
+
+## 11. 1.3 の SUPPORT（既知の制限の「マスをまたぐ手書き」、2026-11-13）
+
+元は `docs/SUPPORT.md` の既知の制限の表の「マスをまたぐ手書き」の行です。1.3 で、週と日のページの横つなぎ・古い版での見え方・設定のオフの 7 文を、前からある 2 文の後ろに足しました（[M7C_CONTRACT.md](../M7C_CONTRACT.md) §8.7 の 1 つ目）。英語は `docs/SUPPORT.en.md` の同じ行（Handwriting across cells）です。自由メモの 2 段落（§8.7 の 2 つ目）は、週のメモが 1.3 に入らないので変えていません。
+
+逆翻訳は、英語の行（表の題「Known limitations」と行の題、行の全文）だけを別の Claude に渡し、日本語の元を見ずに訳し戻したものです。行の全文を 1 つの段落として渡したので、前からある 2 文も入っています。判定は、その結果と日本語の元を、英語を書いた Claude とは別の Claude が照らしたものです。母語の人の確認ではありません。逆翻訳の全文は `docs/i18n/back/legal-en.md` の同じ行にあります。
+
+**足した 7 文: ○ 4・△ 3・× 0。** 前からある 2 文は 1.2 と同じ字で、今回も ○ でした。題の「既知の制限 > セルをまたぐ手書き」も ○ です（cell が「セル」に戻っただけで、同じもの）。抜けた事実も、元に無い事実もありませんでした（線は真ん中があるページに 1 本で保存、古い版ではそのページにだけ出て消えていない、古い版で消すと新しい版でも消える、両方を最新に、設定でオフにできる、オフの端末では片方のページにだけ出る、月と年は今までどおり）。
+
+| 文 | 元の日本語 | 渡した英語 | 逆翻訳（元を見ない） | 判定 | 理由 |
+| --- | --- | --- | --- | --- | --- |
+| 前からの 1 文目 | 手書きは日付のマスごとに保存されます。 | Handwriting is saved for each date cell. | 手書きは日付のセルごとに保存されます。 | ○ | 1.2 と同じ字（変えていない）。cell が「マス」でなく「セル」に戻ったが、同じもの（GLOSSARY でも「前後の月の日のマス」は cells） |
+| 前からの 2 文目 | 終日の予定が増えてマスの高さが変わると、マスの境界をまたいで書いた線がわずかにずれて見えることがあります。 | When the height of the cells changes because more all-day events are added, strokes written across cell borders may look slightly out of place. | 終日の予定が増えてセルの高さが変わると、セルの境目をまたいで書いた線が少しずれて見えることがあります。 | ○ | 1.2 と同じ字（変えていない）。「境界」が「境目」、「わずかに」が「少し」で、同じ意味 |
+| 足した 1 文目 | 1.3 から、週と日のページで、前後のページが横につながり、境目をまたいで書けます（月と年のページは今までどおり 1 ページずつです）。 | From version 1.3, week and day pages are joined side by side with the pages before and after them, and you can write across the borders between them (month and year pages are still shown one page at a time, as before). | バージョン 1.3 からは、週と日のページが前後のページと横につながり、ページの境目をまたいで書けるようになりました（月と年のページは、これまでどおり 1 ページずつの表示です）。 | ○ | 「1.3 から」に version を足した（1.3 が版の番号だと分かるように）。「書けます」が「書けるようになりました」に戻ったのは From version 1.3 の読みで、中身は同じ。括弧の中の「今までどおり 1 ページずつ」も同じ |
+| 足した 2 文目 | ページをまたいで書いた線は、線の真ん中があるページに 1 本で保存されます。 | A stroke written across pages is saved as one stroke on the page where the middle of the stroke is. | ページをまたいで書いた線は、線の真ん中があるページに 1 本の線として保存されます。 | ○ | 「1 本で」が「1 本の線として」。どちらも 2 つのページに分けずに 1 本で保存する意味 |
+| 足した 3 文目 | 1.3 より前の版の端末では、その線は保存されたページにだけ出ます（消えてはいません）。 | On a device still on a version before 1.3, that stroke appears only on the page where it is saved (it has not been deleted). | 1.3 より前のバージョンのままの端末では、その線は保存されたページにだけ表示されます（消えたわけではありません）。 | △ | 「のまま」（still）は元に無い。1.3 より前の版の端末は、まだ 1.3 にしていない端末のことなので、意味は同じ。「消えてはいません」が「消えたわけではありません」で、同じ |
+| 足した 4 文目 | その端末でその線を消すと、新しい版でも消えます。 | If you erase that stroke on that device, it is erased on the new version too. | その端末でその線を消すと、新しいバージョンでも消えます。 | ○ | 同じ |
+| 足した 5 文目 | iPad と iPhone の両方を最新の版にしてお使いください。 | Please update both your iPad and your iPhone to the latest version. | iPad と iPhone の両方を最新のバージョンにしてください。 | △ | 「してお使いください」が「にしてください」（update の 1 語）。頼んでいること（iPad と iPhone の両方を最新の版にする）は同じ |
+| 足した 6 文目 | 設定 › ページ で横につなげるのをオフにすると、今までどおり 1 ページずつになります。 | If you turn off the side-by-side joining in Settings > Pages, pages are shown one at a time, as before. | 設定 > ページ で横につなげる設定をオフにすると、これまでどおり 1 ページずつの表示になります。 | △ | 逆翻訳は ○（「設定 > ページ」）。照合のあとで the App's を足した（下の「照合の後に直した字」）。日本語の元は、かぎかっこの無い「設定 ›」でアプリの中の設定を表す書き分けなので、意味は同じ |
+| 足した 7 文目 | オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | On a device where it is turned off, a stroke written across pages appears on only one of the pages (it has not been deleted). | オフにしている端末では、ページをまたいで書いた線はどちらか一方のページにだけ表示されます（消えたわけではありません）。 | ○ | 「オフにした」が「オフにしている」、「片方の」が「どちらか一方の」で、同じ意味。「消えてはいません」も同じ（契約の N-3 の最後の文） |
+
+### 照合の後に直した字（2026-11-13）
+
+| 場所 | 前の字 | 今の字 | 逆翻訳（判定した Claude が元を見て書いた） | 直した理由 |
+| --- | --- | --- | --- | --- |
+| 足した 6 文目 | If you turn off the side-by-side joining in Settings > Pages, pages are shown one at a time, as before. | If you turn off the side-by-side joining in the App's Settings > Pages, pages are shown one at a time, as before. | アプリの 設定 > ページ で横につなげる設定をオフにすると、これまでどおり 1 ページずつの表示になります。 | 英語の「Settings > Pages」だけでは、iOS の設定アプリ（そこにある Apple の Pages アプリの項目）と読み違えやすい。日本語の元はかぎかっこの有無でアプリの中の設定と iOS の設定を書き分けているが、英語の文書はその書き分けをしていないので、同じ文書の祝日の FAQ（the App's Settings > Holidays）と同じ形にした。1.2 の R4 で de-DE の新機能の文を in Tegaki にしたのと同じ理由 |
+
+**この直し（the App's の 2 語）は、元を見ない逆翻訳を通っていません。** ほかの字は変えていません（△ の 2 文は言い回しの差で、意味は同じなのでそのまま）。
+
+### 決まっていない語
+
+- **「Pages」**: `settings.page.header`（N-1「ページ」）の英語の値に合わせた仮の語です。X の 1.3 の訳がまだ無いので、照らせていません。X の訳が入ったら、1.2 の 5 の「画面の名前」と同じく、`SUPPORT.en.md` の字を `tools/l10n/translations/en.json` の値と機械で照らし、違えば 1 語を直します。
+- **スイッチの名前**（N-2「前後のページを横につなげる」）は、日本語の元と同じく引用していません（英語は the side-by-side joining）。
+- **最後の文**は契約の N-3 の最後の文と同じ日本語です。X が N-3（`settings.page.span.footer`）を訳したら、英語の言い回しをそろえるかをリードが決めます（意味は今のままで同じ）。
+
+### lint
+
+`lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は、直した後の字で 3 つとも終了 0 です（`baseline.py` は 9cbc3c9 の 516 字のまま。L-12 の字の幅の目安の警告 58 件は、この枝で変えていない `tools/l10n/source` の訳のもので、前からある）。
