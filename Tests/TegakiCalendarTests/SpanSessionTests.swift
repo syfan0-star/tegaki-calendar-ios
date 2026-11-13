@@ -346,6 +346,19 @@ final class SpanSessionTests: XCTestCase {
         return session
     }
 
+    /// The window the canvas reloads from (`window`, at every new `windowVersion`) holds exactly the live strokes of
+    /// every slot (by real id), and its layout lays out exactly the window's pages.
+    private func assertTheWindowIsTheSlots(_ session: SpanSession, _ what: String = "", file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(session.layout.pages.map(\.pageId), session.pageIds, "\(what): the layout's pages", file: file, line: line)
+        XCTAssertEqual(session.window.pageIds, session.pageIds, "\(what): the window's pages", file: file, line: line)
+        for id in session.pageIds {
+            XCTAssertNotNil(session.origin(ofPage: id), "\(what): the origin of \(id)", file: file, line: line)
+            let range = SpanComposer.extract(pageId: id, from: session.window)
+            XCTAssertEqual(Set(range.liveStrokeIds), Set(session.page(id)?.liveStrokeIds ?? []), "\(what): the strokes of \(id)",
+                           file: file, line: line)
+        }
+    }
+
     // MARK: Compat-span (§6.3)
 
     /// §6.3, D10: the compat-span fixtures made again through the app's own save path — the window composed by
@@ -1371,6 +1384,222 @@ final class SpanSessionTests: XCTestCase {
         XCTAssertEqual(session.windowStrokeCount, 0)
         XCTAssertFalse(session.fallsBackToOnePage)
         XCTAssertTrue(session.takeHistoryPrune().contains("w-2026-12-14"))
+        // §3.15 (estimate before reading): a file in the widened part that is over the cap by its size alone
+        // (3,100,000 bytes: 12,400 strokes) makes the window the plan's before anything is read, so the screen,
+        // which reads `fallsBackToOnePage` right after making the session, does not fall back for a light window,
+        // and the heavy pages far out are never read (an unreadable file read would be moved aside as `.bak`).
+        let farLeft = "w-2026-10-19"
+        try Data(repeating: 0x41, count: 3_100_000).write(to: bed.store.url(for: farLeft))
+        let next = SpanSession(kind: .week, weekStart: .monday, focus: nov16, sync: bed.engine, deviceClass: .iPhone, number: 2,
+                               context: SpanSession.PaperContext(now: bed.now, calendar: SessionTestBed.tokyo), paperArea: area,
+                               sleep: { await sleeper.sleep($0) }, clock: { Date(timeIntervalSince1970: 1_790_000_000) })
+        XCTAssertEqual(next.radius, plan.radius)
+        XCTAssertEqual(next.pageIds, [w1102, w1109, w1116, w1123, w1130])
+        XCTAssertFalse(next.fallsBackToOnePage)
+        XCTAssertEqual(next.windowStrokeCount, 0)
+        var read: [String] = []
+        next.onPrefetchStep = { read.append($0) }
+        await next.prefetch()
+        XCTAssertEqual(Set(read), [w1102, w1109, w1123, w1130])
+        XCTAssertFalse(next.fallsBackToOnePage)
+        XCTAssertEqual((try FileManager.default.attributesOfItem(atPath: bed.store.url(for: farLeft).path))[.size] as? NSNumber, 3_100_000)
+        XCTAssertEqual(faults, [])
+    }
+
+    // MARK: The window while the focus moves (§3.6, §3.7)
+
+    /// §3.6, §3.7: while the focus has moved and the window has not shifted yet (the paper still scrolling, the wait for
+    /// the pen to settle), every composition and layout is of the window's own pages — after an update from iCloud, a
+    /// relayout for the ink's bounds, the events read again, a record deletion and 「全て消す」: each page has its
+    /// origin, a stroke on the rightmost page of the layout reaches that page, and the shift is still due.
+    func testTheLayoutStaysOnTheWindowWhileTheFocusMoves() async throws {
+        await bed.startSynced()
+        let session = await openWeeks()
+        await bed.engine.waitUntilIdle()
+        let ids = session.pageIds
+        let w = session.plan.pageWidth
+        XCTAssertTrue(session.scrolled(midX: CGFloat(session.focusSlot + 1) * w + w / 2))
+        XCTAssertEqual(session.focusPageId, w1123)
+        func check(_ what: String, line: UInt = #line) {
+            XCTAssertEqual(session.pageIds, ids, what, line: line)
+            assertTheWindowIsTheSlots(session, what, line: line)
+            XCTAssertEqual(session.focusSlot, 3, what, line: line)
+            XCTAssertTrue(session.needsShift, what, line: line)
+        }
+        bed.db.simulateRemoteSave(try bed.record(bed.page(w1109, ["remote"])))
+        await bed.engine.syncNow()
+        XCTAssertEqual(session.page(w1109)?.liveStrokeIds, ["remote"])
+        check("an update from iCloud")
+        session.relayoutPages()
+        check("a relayout")
+        session.reloadEvents()
+        check("the events read again")
+        session.remoteDeleted(w1109)
+        check("a record deletion")
+        // A stroke on the rightmost page the layout shows.
+        let ledger = JoinedLedgerStandIn(session)
+        let last = session.layout.pages.count - 1
+        let x = session.layout.origin(ofSlot: last) + 300
+        let stroke = try XCTUnwrap(ledger.draw([CGPoint(x: x, y: 700), CGPoint(x: x + 20, y: 705), CGPoint(x: x + 40, y: 700)]))
+        ledger.deliver()
+        XCTAssertEqual(session.page(w1130)?.liveStrokeIds, [try XCTUnwrap(SpanName.split(stroke.id)?.local)])
+        XCTAssertEqual(faults, [])
+        session.relayoutPages()
+        check("a relayout after the stroke")
+        session.cancelAll()
+        check("「全て消す」")
+        XCTAssertEqual(faults, [])
+        // The shift then brings the window round the focus.
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
+        XCTAssertEqual(session.pageIds, [w1109, w1116, w1123, w1130, "w-2026-12-07"])
+        assertTheWindowIsTheSlots(session, "the shift")
+        XCTAssertEqual(session.focusSlot, 2)
+        XCTAssertFalse(session.needsShift)
+    }
+
+    /// §3.6, D6: a scroll while the neighbours are read, and a shift refused because a leaving page cannot be saved,
+    /// leave the window and its layout on the same pages (the page read before the scroll keeps its cell and its
+    /// strokes); the shift happens when it can.
+    func testTheLayoutStaysOnTheWindowAfterAScrollDuringTheReadsOrARefusedShift() async throws {
+        try bed.store.save(bed.page(w1102, ["a"]))
+        let session = bed.session(.week, focus: nov16)
+        let w = session.plan.pageWidth
+        session.onPrefetchStep = { [unowned session] id in
+            if id == self.w1109 { _ = session.scrolled(midX: CGFloat(session.focusSlot + 1) * w + w / 2) }
+        }
+        await session.prefetch()
+        XCTAssertEqual(session.focusPageId, w1123)
+        XCTAssertEqual(session.pageIds, [w1102, w1109, w1116, w1123, w1130])
+        assertTheWindowIsTheSlots(session, "after the reads")
+        XCTAssertTrue(session.window.ledgerPage.isLive(SpanName.prefixed(id: "a", page: w1102)))
+        XCTAssertNotNil(session.layout.cells[SpanName.prefixed(.grid, page: w1102)])
+        XCTAssertTrue(session.needsShift)
+        // A shift refused, then a relayout.
+        let ledger = JoinedLedgerStandIn(session)
+        ledger.draw(on: w1102)
+        ledger.put()
+        try bed.failSaves(of: w1102)
+        _ = session.stopped(midX: CGFloat(session.focusSlot) * w + w / 2)
+        XCTAssertFalse(session.shift(toFocusIndex: session.focusIndex))
+        session.relayoutPages()
+        assertTheWindowIsTheSlots(session, "after a refused shift")
+        XCTAssertTrue(session.needsShift)
+        bed.allowSaves(of: w1102)
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
+        XCTAssertEqual(session.pageIds, [w1109, w1116, w1123, w1130, "w-2026-12-07"])
+        assertTheWindowIsTheSlots(session, "after the shift")
+        XCTAssertEqual(bed.live(w1102).count, 2)
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.4, §3.5: every time `windowVersion` moves (the canvas then reloads its ledger from `window`, keeping its
+    /// history), `window` holds every stroke delivered — after a relayout for the ink's bounds (`onInkBoundsChanged`,
+    /// right after the person drew), after the events are read again, and after the reads of `prefetch` (a stroke
+    /// put while its last page was read included) — so a reload never takes a drawn stroke off the screen.
+    func testEveryNewWindowHoldsEveryDeliveredStroke() async throws {
+        let day = DayKey(year: 2026, month: 11, day: 10)
+        let session = bed.session(.day, focus: day)
+        await session.prefetch()
+        let ledger = JoinedLedgerStandIn(session)
+        let focusId = "d-2026-11-10"
+        let first = try XCTUnwrap(ledger.draw(on: focusId, x: 300, y: 300))
+        ledger.deliver()
+        let memo = try XCTUnwrap(session.layout.cells[SpanName.prefixed(.extra, page: focusId)])
+        let second = try XCTUnwrap(ledger.draw([CGPoint(x: memo.minX + 200, y: memo.minY + 5900), CGPoint(x: memo.minX + 220, y: memo.minY + 6000),
+                                                CGPoint(x: memo.minX + 240, y: memo.minY + 6050)]))
+        ledger.put()
+        var version = session.windowVersion
+        session.relayoutPages()
+        XCTAssertGreaterThan(session.windowVersion, version)
+        XCTAssertTrue(session.window.ledgerPage.isLive(first.id))
+        XCTAssertTrue(session.window.ledgerPage.isLive(second.id))
+        assertTheWindowIsTheSlots(session, "a relayout")
+        ledger.take()
+        let third = try XCTUnwrap(ledger.draw(on: "d-2026-11-11"))
+        ledger.put()
+        version = session.windowVersion
+        session.reloadEvents()
+        XCTAssertGreaterThan(session.windowVersion, version)
+        XCTAssertTrue(session.window.ledgerPage.isLive(third.id))
+        assertTheWindowIsTheSlots(session, "the events read again")
+        // `prefetch`: a stroke put while the last page is read is in the window it composes.
+        let weeks = bed.session(.week, focus: nov16, number: 2)
+        let weekLedger = JoinedLedgerStandIn(weeks)
+        var drawn: InkStroke?
+        weeks.onPrefetchStep = { id in
+            if id == self.w1130 {
+                drawn = weekLedger.draw(on: self.w1116)
+                weekLedger.put()
+            }
+        }
+        version = weeks.windowVersion
+        await weeks.prefetch()
+        let put = try XCTUnwrap(drawn)
+        XCTAssertGreaterThan(weeks.windowVersion, version)
+        XCTAssertTrue(weeks.inbox.isEmpty)
+        XCTAssertTrue(weeks.window.ledgerPage.isLive(put.id))
+        assertTheWindowIsTheSlots(weeks, "the reads")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.6 (the last point), §3.1: a rotation (or Split View) decides the window anew around the focus page when the
+    /// paper stops — the plan of the new orientation and its R — and keeps the session (its id, virtual page, number,
+    /// window names), so the canvas and its ↶ stay; a page that leaves is saved first, and when it cannot be, nothing
+    /// changes. Around a focus that moved without a shift, the new window is centred on the focus.
+    func testRotationDecidesTheWindowAnewAroundTheFocus() async throws {
+        let session = await openWeeks()
+        let ledger = JoinedLedgerStandIn(session)
+        let mine = try XCTUnwrap(ledger.draw(on: w1102))
+        ledger.put()
+        let id = session.id
+        let virtualId = session.window.pageId
+        let epoch = session.epoch
+        XCTAssertEqual(session.plan.orientation, .portrait)
+        // iPad 11, week: portrait R = 2 (5 pages), landscape R = 3 (7 pages).
+        XCTAssertTrue(session.redecide(orientation: .landscape))
+        XCTAssertEqual(session.plan.orientation, .landscape)
+        XCTAssertEqual(session.radius, 3)
+        XCTAssertEqual(session.pageIds, ["w-2026-10-26", w1102, w1109, w1116, w1123, w1130, "w-2026-12-07"])
+        XCTAssertEqual(session.focusPageId, w1116)
+        XCTAssertEqual(session.focusSlot, 3)
+        XCTAssertFalse(session.needsShift)
+        XCTAssertEqual(session.id, id)
+        XCTAssertEqual(session.window.pageId, virtualId)
+        XCTAssertEqual(session.epoch, epoch)
+        XCTAssertEqual(session.slots["w-2026-10-26"]?.unread, true)
+        XCTAssertTrue(session.window.ledgerPage.isLive(mine.id), "the stroke keeps its window name")
+        XCTAssertEqual(session.slots[w1102]?.dirty, true, "no page left: nothing saved")
+        XCTAssertEqual(session.takeHistoryPrune(), [])
+        await session.prefetch()
+        assertTheWindowIsTheSlots(session, "landscape")
+        // Back to portrait after the focus moved one page left: the window is centred on 11/09; 11/30 and 12/07 leave.
+        ledger.take()
+        ledger.draw(on: w1130)
+        ledger.put()
+        let w = session.plan.pageWidth
+        _ = session.stopped(midX: CGFloat(session.focusSlot - 1) * w + w / 2)
+        XCTAssertEqual(session.focusPageId, w1109)
+        try bed.failSaves(of: w1130)
+        var notices: [[String]] = []
+        session.onSaveFailed = { notices.append($0) }
+        let version = session.windowVersion
+        XCTAssertFalse(session.redecide(orientation: .portrait))
+        XCTAssertEqual(notices, [[w1130]])
+        XCTAssertEqual(session.plan.orientation, .landscape)
+        XCTAssertEqual(session.radius, 3)
+        XCTAssertEqual(session.pageIds.count, 7)
+        XCTAssertEqual(session.windowVersion, version)
+        bed.allowSaves(of: w1130)
+        XCTAssertTrue(session.redecide(orientation: .portrait))
+        XCTAssertEqual(session.plan.orientation, .portrait)
+        XCTAssertEqual(session.pageIds, ["w-2026-10-26", w1102, w1109, w1116, w1123])
+        XCTAssertEqual(session.focusSlot, 2)
+        XCTAssertFalse(session.needsShift)
+        XCTAssertEqual(bed.live(w1130).count, 1)
+        XCTAssertEqual(session.takeHistoryPrune(), [w1130, "w-2026-12-07"])
+        XCTAssertEqual(session.id, id)
+        XCTAssertEqual(session.window.pageId, virtualId)
+        assertTheWindowIsTheSlots(session, "portrait")
         XCTAssertEqual(faults, [])
     }
 }

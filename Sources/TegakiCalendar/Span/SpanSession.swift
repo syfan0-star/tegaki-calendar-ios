@@ -255,14 +255,21 @@ final class SpanSession: ObservableObject {
     let guardMode: SpanGuard.Mode
     let sync: SyncEngine
     let inbox = SpanInbox()
+    /// The device the window is sized for (fixed: a class is the screen's short side, `SpanDeviceClass`).
+    let deviceClass: SpanDeviceClass
 
     // MARK: The window
 
+    /// The plan of the kind, the week start, the device and the orientation (`redecide` changes the orientation).
     private(set) var plan: SpanPlan
-    /// The pages on each side of the focus (`windowRadius(...)`).
+    /// The pages on each side of the focus the window was last built around (`windowRadius(...)`).
     private(set) var radius: Int
-    /// The page number (`SpanPlan.index`) of the focus page.
+    /// The page number (`SpanPlan.index`) of the focus page. It follows the paper (`scrolled`) before the window
+    /// shifts to it, so it may be off the window's middle (`needsShift`).
     @Published private(set) var focusIndex: Int
+    /// The page number of the window's first page (`pageIds[0]`): set only when the window is built (the opening,
+    /// a shift, a decision anew), never from the focus, so the layout is always of the window's own pages.
+    private(set) var windowFirstIndex: Int
     /// The window's real page ids, left to right.
     private(set) var pageIds: [String] = []
     private(set) var slots: [String: PageSlot] = [:]
@@ -270,8 +277,9 @@ final class SpanSession: ObservableObject {
     @Published private(set) var window: SpanVirtualPage
     /// The window's pages side by side (`SpanLayout`, the same session number).
     @Published private(set) var layout: SpanLayout
-    /// Moves every time `window` and `layout` are composed again; the canvas reloads its ledger from them
-    /// (keeping its history) and puts the window into the inbox with this as its basis.
+    /// Moves every time `window` and `layout` are composed again (never one without the other); the canvas reloads
+    /// its ledger from them (keeping its history) and puts the window into the inbox with this as its basis. Every
+    /// composition empties the inbox first, so `window` holds every stroke the canvas handed over.
     @Published private(set) var windowVersion = 0
     /// The floors of the window's last cells (`SpanAlign`, D16).
     private(set) var floors = SpanAlign.Floors.none
@@ -335,7 +343,10 @@ final class SpanSession: ObservableObject {
     /// page the migration changed is dirty and saved by the timer, as 1.2.3's `show` does), the other pages
     /// of the window are placeholders until `prefetch()` reads them (nearest first, one per turn). The window
     /// is composed at once.
-    /// - `radius`: the pages on each side; nil is `windowRadius(plan:paperArea:)` of `paperArea`.
+    /// - `radius`: the pages on each side; nil is `windowRadius(plan:paperArea:)` of `paperArea`. A radius wider
+    ///   than the plan's whose window is estimated over the device's cap before anything else is read (the focus
+    ///   page by its strokes, the others by their file sizes, §3.15) is the plan's from the start (S1's lead's
+    ///   decision 1), so `fallsBackToOnePage` is decided on the plan's window and the far pages are not read.
     /// - `eventSource`: a page's events for its days (the focus page's are read here, the others with their page).
     init(kind: PageKind, weekStart: WeekStart, focus: DayKey, sync: SyncEngine, guardMode: SpanGuard.Mode = .release,
          deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait, number: Int = 1,
@@ -349,6 +360,7 @@ final class SpanSession: ObservableObject {
         self.number = number
         self.guardMode = guardMode
         self.sync = sync
+        self.deviceClass = deviceClass
         self.sleep = sleep
         self.clock = clock
         self.context = context ?? PaperContext(now: clock())
@@ -357,14 +369,19 @@ final class SpanSession: ObservableObject {
         id = "span|\(kind.rawValue)|\(weekStart.rawValue)|\(number)"
         let focusIndex = plan.index(containing: focus)
         self.focusIndex = focusIndex
-        self.radius = max(1, radius ?? Self.windowRadius(plan: plan, paperArea: paperArea))
+        let wide = max(1, radius ?? Self.windowRadius(plan: plan, paperArea: paperArea))
+        self.radius = wide
+        windowFirstIndex = focusIndex - wide
         window = SpanComposer.compose([], plan: plan, session: number)
         layout = SpanLayout(pages: [], plan: plan, firstIndex: focusIndex, session: number)
         visit = Visit(pageId: plan.pageId(at: focusIndex))
-        pageIds = Self.window(around: focusIndex, radius: self.radius).map(plan.pageId(at:))
         let focusId = plan.pageId(at: focusIndex)
-        for id in pageIds {
-            slots[id] = id == focusId ? readSlot(id) : PageSlot(page: InkPage(pageId: id), unread: true)
+        slots[focusId] = readSlot(focusId)
+        self.radius = fittingRadius(wide, plan: plan, focus: focusIndex)
+        windowFirstIndex = focusIndex - self.radius
+        pageIds = Self.window(around: focusIndex, radius: self.radius).map(plan.pageId(at:))
+        for id in pageIds where id != focusId {
+            slots[id] = PageSlot(page: InkPage(pageId: id), unread: true)
         }
         if slots[focusId]?.dirty == true { scheduleSave() }
         countStrokes()
@@ -374,12 +391,22 @@ final class SpanSession: ObservableObject {
 
     /// The pages on each side of the focus (§3.6, the lead's decision 1 of S1): the plan's R, or more when the
     /// paper area measured on this screen shows more pages at the lower zoom limit (an all-day band with many
-    /// lanes on an iPhone in landscape). A wider window that holds more strokes than the device's cap goes back
-    /// to the plan's R once its pages are read (`prefetch`).
+    /// lanes on an iPhone in landscape). A wider window that holds more strokes than the device's cap is the
+    /// plan's R instead: before its pages are read when the estimate says so (`fittingRadius`), else once they
+    /// are read (`prefetch`).
     static func windowRadius(plan: SpanPlan, paperArea: CGSize?) -> Int {
         guard let area = paperArea else { return plan.radius }
         let visible = SpanPlan.visiblePages(plan.kind, viewport: area)
         return max(plan.radius, SpanPlan.radius(forVisiblePages: visible))
+    }
+
+    /// `wide`, or the plan's R when `wide` is wider than it and the window of `wide` around `focus` is estimated
+    /// over the device's cap (`estimatedStrokes(of:)`: the pages read by their strokes, the others by their file
+    /// sizes, §3.15). The plan's own window is never narrowed: over the cap, that is stage 2.
+    private func fittingRadius(_ wide: Int, plan: SpanPlan, focus: Int) -> Int {
+        guard wide > plan.radius else { return wide }
+        let ids = Self.window(around: focus, radius: wide).map(plan.pageId(at:))
+        return estimatedStrokes(of: ids) > plan.strokeCap ? plan.radius : wide
     }
 
     /// The page numbers focus − r … focus + r.
@@ -392,8 +419,9 @@ final class SpanSession: ObservableObject {
     /// The focus page's id and first day (the title, `PageNavigation.title(kind, focus:…)`).
     var focusPageId: String { plan.pageId(at: focusIndex) }
     var focusDay: DayKey { plan.firstDay(at: focusIndex) }
-    /// The slot of the focus page in the window (0 = the window's first page).
-    var focusSlot: Int { focusIndex - layout.firstIndex }
+    /// The slot of the focus page in the window (0 = the window's first page; `layout.firstIndex` is
+    /// `windowFirstIndex`).
+    var focusSlot: Int { focusIndex - windowFirstIndex }
 
     /// The real page of a window page (the slot's), nil for a page not in the window.
     func page(_ pageId: String) -> InkPage? {
@@ -454,8 +482,8 @@ final class SpanSession: ObservableObject {
 
     /// Reads the window's placeholders (D6): nearest to the focus first (the left one first at the same
     /// distance), one page per turn (`Task.yield` between), each merged into what its placeholder took
-    /// meanwhile; updates and deletions from outside wait until all are read. Then the window is composed
-    /// once and `sync.pagesOpened` asked once for the window (§7).
+    /// meanwhile; updates and deletions from outside wait until all are read. Then the inbox is emptied, the
+    /// window composed once and `sync.pagesOpened` asked once for the window (§7).
     func prefetch() async {
         guard !isClosed else { return }
         let order = Self.nearestFirst(pageIds, focus: focusPageId).filter { slots[$0]?.unread == true }
@@ -474,8 +502,7 @@ final class SpanSession: ObservableObject {
             applyPendingRemote()
             // The lead's decision 1 of S1: a window wider than the plan's that is over the cap goes back to it.
             if fallsBackToOnePage, radius > plan.radius {
-                radius = plan.radius
-                shift(toFocusIndex: focusIndex)
+                rebuild(around: focusIndex, plan: plan, radius: plan.radius, change: .redecide)
             }
         }
         sync.pagesOpened(pageIds)
@@ -534,19 +561,22 @@ final class SpanSession: ObservableObject {
     }
 
     /// Reads every window page's events again (`EKEventStoreChanged`, a calendar shown or hidden): one page at
-    /// a time, the focus first (§3.8), then lays the pages out again.
+    /// a time, the focus first (§3.8), then composes the window again (the inbox emptied first).
     func reloadEvents() {
         guard !isClosed else { return }
         for id in Self.nearestFirst(pageIds, focus: focusPageId) {
             loadEvents(of: id)
         }
-        layoutPages(change: .redecide)
+        compose(change: .redecide)
     }
 
     // MARK: Composing
 
-    /// The window from the slots (with the session's aliases) and its layout; a new `windowVersion`.
+    /// The inbox emptied (so the window holds every stroke the canvas handed over), the window from the slots
+    /// (with the session's aliases) and its layout; a new `windowVersion`. The only place that changes `window`,
+    /// `layout` and `windowVersion` after the opening.
     private func compose(change: SpanAlign.Change) {
+        drainInbox()
         let pages = pageIds.compactMap { slots[$0]?.page }
         let composed = SpanComposer.compose(pages, plan: plan, session: number, aliases: aliases)
         aliases = composed.aliases
@@ -555,11 +585,13 @@ final class SpanSession: ObservableObject {
             fault("compose: \(id) left out of the window")
         }
         layoutPages(change: change)
+        windowVersion += 1
     }
 
-    /// Each window page laid out (`floors` from the day's free memo, D16) and joined (`layout`).
+    /// Each window page laid out (`floors` from the day's free memo, D16) and joined (`layout`), from the window's
+    /// first page (`windowFirstIndex`), whatever the focus.
     private func layoutPages(change: SpanAlign.Change) {
-        let firstIndex = Self.window(around: focusIndex, radius: radius).lowerBound
+        let firstIndex = windowFirstIndex
         let bottoms = pageIds.map { slots[$0]?.page.inkBottoms() ?? [:] }
         if kind == .day {
             floors = SpanAlign.dayFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
@@ -569,7 +601,6 @@ final class SpanSession: ObservableObject {
             pages.append(pageLayout(index: firstIndex + offset, pageId: id, inkBottoms: bottoms[offset]))
         }
         layout = SpanLayout(pages: pages, plan: plan, firstIndex: firstIndex, floors: floors, session: number)
-        windowVersion += 1
     }
 
     private func pageLayout(index: Int, pageId: String, inkBottoms: [CellKey: CGFloat]) -> any PageLayout {
@@ -594,14 +625,15 @@ final class SpanSession: ObservableObject {
     }
 
     /// The canvas reported that handwriting may have crossed the bottom of its cell (`onInkBoundsChanged`):
-    /// the inbox is emptied and the pages laid out again — the day's free memo grows past 5,950 lu, or comes
-    /// back when erased (D16) — with the same virtual page.
+    /// the inbox is emptied and the window composed and laid out again — the day's free memo grows past
+    /// 5,950 lu, or comes back when erased (D16) — with the same virtual page (a new `windowVersion` whose
+    /// window holds the strokes just drawn).
     func relayoutPages() {
         guard !isClosed else { return }
         drainInbox()
         let previous = floors.floor(for: kind)
         let tallest = pageIds.map { SpanAlign.natural(inkBottom: slots[$0]?.page.inkBottoms()[.extra] ?? 0) }.max() ?? 0
-        layoutPages(change: tallest < previous ? .inkShrank : .inkGrew)
+        compose(change: tallest < previous ? .inkShrank : .inkGrew)
     }
 
     // MARK: Deltas (§3.4)
@@ -930,7 +962,7 @@ final class SpanSession: ObservableObject {
     @discardableResult
     func scrolled(midX: CGFloat) -> Bool {
         let slot = min(max(0, plan.focus(midX: midX, previous: focusSlot)), max(0, pageIds.count - 1))
-        let next = layout.firstIndex + slot
+        let next = windowFirstIndex + slot
         guard next != focusIndex else { return false }
         focusIndex = next
         return true
@@ -951,7 +983,7 @@ final class SpanSession: ObservableObject {
     /// The focus is not the window's middle page: the canvas shifts the window (`shift(toFocusIndex: focusIndex)`)
     /// once the paper is still (§3.6).
     var needsShift: Bool {
-        layout.firstIndex != focusIndex - radius
+        windowFirstIndex != focusIndex - radius
     }
 
     /// ◀ ▶ (§3.6): one page, slid (the window always holds the next page on each side, R ≥ 1).
@@ -963,7 +995,7 @@ final class SpanSession: ObservableObject {
     /// (1.1.1's `revealRect` then brings today's cell on screen).
     func today(_ day: DayKey) -> Move {
         let index = plan.index(containing: day)
-        guard Self.window(around: focusIndex, radius: radius).contains(index), pageIds.contains(plan.pageId(at: index)) else {
+        guard index >= windowFirstIndex, index - windowFirstIndex < pageIds.count, pageIds.contains(plan.pageId(at: index)) else {
             return .reopen(focus: day)
         }
         return .slide(pages: index - focusIndex)
@@ -976,15 +1008,37 @@ final class SpanSession: ObservableObject {
     /// virtual id kept). Updates and deletions that arrive meanwhile are applied at the end (D6).
     @discardableResult
     func shift(toFocusIndex newFocus: Int) -> Bool {
+        rebuild(around: newFocus, plan: plan, radius: radius, change: .shift)
+    }
+
+    /// A rotation or a change of Split View (§3.6, the last point): when the paper stops, the canvas decides the
+    /// window anew around the focus page — the plan of `orientation` (the device stays), its R or the wider one
+    /// `paperArea` needs (`windowRadius`; the plan's when that is over the cap, `fittingRadius`) — with the steps
+    /// of a shift: the pages that leave are saved first (when one cannot be, nothing changes and the answer is
+    /// false), the pages that come in are placeholders for `prefetch()`. The session stays (its id, virtual page,
+    /// number, aliases and the canvas's history), so ↶ survives the rotation.
+    @discardableResult
+    func redecide(orientation: SpanOrientation, paperArea: CGSize? = nil) -> Bool {
+        guard !isClosed else { return false }
+        drainInbox()
+        let next = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation)
+        let wide = max(1, Self.windowRadius(plan: next, paperArea: paperArea))
+        return rebuild(around: focusIndex, plan: next, radius: fittingRadius(wide, plan: next, focus: focusIndex), change: .redecide)
+    }
+
+    /// The window of `newPlan` and `newRadius` around `newFocus`: the steps of `shift` (above), then the window's
+    /// first page, the plan and the radius set together.
+    @discardableResult
+    private func rebuild(around newFocus: Int, plan newPlan: SpanPlan, radius newRadius: Int, change: SpanAlign.Change) -> Bool {
         guard !isClosed else { return false }
         procedureDepth += 1
         drainInbox()
         safetyNet()
-        let nextIds = Self.window(around: newFocus, radius: radius).map(plan.pageId(at:))
+        let nextIds = Self.window(around: newFocus, radius: newRadius).map(newPlan.pageId(at:))
         let leaving = pageIds.filter { !nextIds.contains($0) }
         let failed = saveDirtyPages(leaving)
         guard failed.isEmpty else {
-            record("shift stopped: \(failed.joined(separator: ",")) could not be saved")
+            record("window not moved: \(failed.joined(separator: ",")) could not be saved")
             procedureDepth -= 1
             applyPendingRemote()
             onSaveFailed?(failed)
@@ -999,10 +1053,13 @@ final class SpanSession: ObservableObject {
         for id in nextIds where slots[id] == nil {
             slots[id] = PageSlot(page: InkPage(pageId: id), unread: true)
         }
+        plan = newPlan
+        radius = newRadius
         focusIndex = newFocus
+        windowFirstIndex = newFocus - newRadius
         pageIds = nextIds
         countStrokes()
-        compose(change: .shift)
+        compose(change: change)
         procedureDepth -= 1
         applyPendingRemote()
         return true
@@ -1014,18 +1071,24 @@ final class SpanSession: ObservableObject {
     /// sizes (`SpanPlan.estimatedStrokes`, counted high). Above the device's cap the screen falls back to one
     /// page for this kind (`fallsBackToOnePage`).
     private func countStrokes() {
-        var total = 0
-        for id in pageIds {
-            guard let slot = slots[id] else { continue }
-            if slot.unread {
-                total += SpanPlan.estimatedStrokes(fileBytes: fileBytes(id)) + slot.page.liveStrokeCount
-            } else {
-                total += slot.page.liveStrokeCount
-            }
-        }
+        let total = estimatedStrokes(of: pageIds)
         windowStrokeCount = total
         let heavy = total > plan.strokeCap
         if heavy != fallsBackToOnePage { fallsBackToOnePage = heavy }
+    }
+
+    /// The live strokes of the pages `ids`: a read page's own count; a placeholder's, or a page the session does
+    /// not hold yet, from its file size (`SpanPlan.estimatedStrokes`, counted high) and what its placeholder took.
+    private func estimatedStrokes(of ids: [String]) -> Int {
+        var total = 0
+        for id in ids {
+            if let slot = slots[id], !slot.unread {
+                total += slot.page.liveStrokeCount
+            } else {
+                total += SpanPlan.estimatedStrokes(fileBytes: fileBytes(id)) + (slots[id]?.page.liveStrokeCount ?? 0)
+            }
+        }
+        return total
     }
 
     private func fileBytes(_ pageId: String) -> Int {
