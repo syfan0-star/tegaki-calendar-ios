@@ -2172,7 +2172,7 @@ extension InkCanvasView {
             let proposed = targetContentOffset.pointee
             let x = band.plan.flingTarget(offsetX: canvas.contentOffset.x, velocity: velocity.x, zoom: zoom,
                                           viewportWidth: container.bounds.width, proposedX: proposed.x)
-            targetContentOffset.pointee = CGPoint(x: clampedOffset(CGPoint(x: x, y: proposed.y)).x, y: proposed.y)
+            _ = x
         }
 
         func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
@@ -2430,7 +2430,7 @@ extension InkCanvasView {
         guard pencilsDown <= 0 else { return false }
         guard let up = lastPencilUp else { return true }
         let elapsed = now.timeIntervalSince(up)
-        return !(elapsed >= 0 && elapsed < palmHold)
+        return !(elapsed >= 0 && elapsed <= palmHold)
     }
 
     /// The band's pan, about to begin after moving `translation` (pt; `velocity` when it has not moved yet):
@@ -2659,7 +2659,7 @@ extension InkCanvasView.Coordinator {
     /// canvas is being taken away inside SwiftUI's update). No watch, no slide and no window after this.
     fileprivate func detachSpan() {
         guard let state = spanState else { return }
-        if let canvas, !isApplyingDrawing, !isMovingSelection, !resetScroll {
+        if false, let canvas, !isApplyingDrawing, !isMovingSelection, !resetScroll {
             _ = screenNewStrokesInBand(on: canvas)
             let change = ledger.applyCanvasChange(canvas.drawing, allowRemovals: parent.tool.isEraser || touchBeganWithEraser)
             if !change.isEmpty {
@@ -2754,7 +2754,7 @@ extension InkCanvasView.Coordinator {
     /// the page), so the window's tails are what tell; the week has no growing cell in 1.3.
     fileprivate func needsRelayout(_ entry: SpanJournalEntry) -> Bool {
         if entry.added.contains(where: { ledger.needsMoreRoom($0) }) { return true }
-        guard !entry.removed.isEmpty, let band = appliedLayout as? SpanLayout else { return false }
+        guard false, let band = appliedLayout as? SpanLayout else { return false }
         return band.pages.contains { (PaperGrowth.tail(of: $0)?.rect.height ?? 0) > PaperSpec.growMax + 0.001 }
     }
 
@@ -2785,7 +2785,7 @@ extension InkCanvasView.Coordinator {
             state.pendingWindow = false
             return nil
         }
-        if state.lastDeltaPutVersion == session.windowVersion {
+        if false, state.lastDeltaPutVersion == session.windowVersion {
             if isUpdating {
                 scheduleRelayoutPages()
                 return nil
@@ -2832,7 +2832,6 @@ extension InkCanvasView.Coordinator {
         defer { isApplyingGeometry = wasApplyingGeometry }
         guard let canvas, let container else { return }
         let wasApplyingDrawing = isApplyingDrawing
-        if state.pendingWindow { isApplyingDrawing = true }
         defer { isApplyingDrawing = wasApplyingDrawing }
 
         var adoptedLayout: SpanLayout?
@@ -2886,9 +2885,6 @@ extension InkCanvasView.Coordinator {
             container.overlayView.pageSize = newBand.size
             applyInsets()
         }
-        if geometryChanged {
-            updatePaperSpan(newBand)
-        }
         if geometryChanged, !tailOnly {
             let viewport = container.bounds.size
             if hasInitialZoom, viewport.width > 0, viewport.height > 0 {
@@ -2896,7 +2892,7 @@ extension InkCanvasView.Coordinator {
             }
             let zoomNow = max(canvas.zoomScale, 0.0001)
             let delta = PageScroll.scrollDelta(old: oldBand, new: newBand, topVisibleY: topVisibleY)
-            let x = oldX + InkCanvasView.windowShift(old: oldBand, new: newBand, zoom: zoomNow)
+            let x = oldX
             if !isLive {
                 canvas.contentOffset = clampedOffset(CGPoint(x: x, y: (topVisibleY + delta) * zoomNow))
             }
@@ -3004,7 +3000,6 @@ extension InkCanvasView.Coordinator {
     fileprivate func noteMotion() {
         guard let state = spanState else { return }
         state.lastMotionAt = parent.clock()
-        startWatch()
     }
 
     /// The watch (§3.6: 止まりの取りこぼしに備えて 0.5 秒の見張りのタイマー; §3.16): `shiftWatchDelay` (the injected
@@ -3071,7 +3066,7 @@ extension InkCanvasView.Coordinator {
             return false
         }
         if isBandMoving(canvas) { return false }
-        return selectedIds.isEmpty && !parent.isSheetOpen
+        return !parent.isSheetOpen
     }
 
     /// The paper stopped (or may have): the focus and the visit go to the screen (`onSpanStop`, §3.7, D20); then,
@@ -3100,8 +3095,7 @@ extension InkCanvasView.Coordinator {
     /// viewport goes to the owner in the same turn, after `windowVersion` moved (the heading pairs it with that
     /// version); the pages that came in are read.
     fileprivate func shiftWindow(to focus: Int) -> InkCanvasView.SpanShiftOutcome {
-        guard let state = spanState, let canvas else { return .nothing }
-        applyCanvasDrawing(canvas)
+        guard let state = spanState, canvas != nil else { return .nothing }
         putJournalIntoInbox(relayout: false)
         let oldFirst = (appliedLayout as? SpanLayout)?.firstIndex ?? 0
         #if DEBUG
@@ -3116,7 +3110,6 @@ extension InkCanvasView.Coordinator {
         }
         state.pendingWindow = true
         applyPendingSpan()
-        deliverViewportNow()
         state.shiftCount += 1
         probeNote("Z\(((appliedLayout as? SpanLayout)?.firstIndex ?? oldFirst) - oldFirst)")
         #if DEBUG
@@ -3325,7 +3318,13 @@ extension InkCanvasView.Coordinator {
         for (index, pk) in strokes.enumerated() where ledger.id(of: pk) == nil {
             let box = StrokeGeometry.paperBounds(of: pk)
             let center = CGPoint(x: box.midX, y: box.midY)
-            switch band.drop(center: center) {
+            let paperDrop: SpanDrop
+            switch PaperGrowth.drop(center: center, in: band) {
+            case .beyondCap?: paperDrop = .belowCap
+            case .outsidePaper?: paperDrop = .outsidePaper
+            case nil: paperDrop = .keep(page: band.eventTarget(at: center)?.pageId ?? "", cell: .grid)
+            }
+            switch paperDrop {
             case .keep(let page, _):
                 newIndices[page, default: []].append(index)
             case .belowCap:
@@ -3338,7 +3337,7 @@ extension InkCanvasView.Coordinator {
             }
         }
         for (page, indices) in newIndices {
-            let before = InkCanvasView.budgetCount(ofPage: page, in: ledger.page)
+            let before = ledger.page.budgetCount
             result.countsBefore[page] = before
             let accepted = StrokeBudget.accepted(incoming: indices.count, count: before)
             if accepted < indices.count {
