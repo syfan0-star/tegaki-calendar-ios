@@ -680,7 +680,9 @@ final class InkCanvasSpanTests: XCTestCase {
     /// §2.1, §3.6 the palm: `horizontalPanMayBegin` is false while a Pencil touches and for 0.5 s after it lifted (0.49
     /// false, 0.5 true), true with no Pencil, and true when the clock went back; `panMayBegin` asks it for a sideways
     /// start only (up and down as today). The window's canvas is an `InkBandCanvasView` whose pan asks, with the
-    /// Pencil's lift timed by the touch observer; the one page's canvas stays a plain `PKCanvasView`.
+    /// Pencil's lift timed by the touch observer, and whose `gestureRecognizerShouldBegin` (UIKit's question before its
+    /// pan begins) gives the palm's no; the band bounces sideways. The one page's canvas stays a plain `PKCanvasView`
+    /// that does not. Without the check in `gestureRecognizerShouldBegin` the pan begins under the Pencil.
     func testHorizontalPanMayBeginRules() async throws {
         let t0 = Date(timeIntervalSince1970: 1_790_000_000)
         XCTAssertEqual(InkCanvasView.palmHold, 0.5)
@@ -719,6 +721,19 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertTrue(ask(pan), "0.5 s after the lift")
         XCTAssertEqual(rig.coordinator.spanRefusedPans, 2)
 
+        // UIKit's own question to the band's pan (`gestureRecognizerShouldBegin`, what UIKit asks before the pan
+        // begins): the palm's no is the answer; once the palm says yes, UIKit's own answer stands (no refusal).
+        rig.coordinator.touchObserved(.down(.pencil))
+        XCTAssertFalse(bandCanvas.gestureRecognizerShouldBegin(bandCanvas.panGestureRecognizer), "the band's pan under a Pencil")
+        XCTAssertEqual(rig.coordinator.spanRefusedPans, 3, "refused by the palm")
+        rig.coordinator.touchObserved(.up(.pencil))
+        XCTAssertFalse(bandCanvas.gestureRecognizerShouldBegin(bandCanvas.panGestureRecognizer), "just lifted")
+        XCTAssertEqual(rig.coordinator.spanRefusedPans, 4)
+        bed.now = bed.now.addingTimeInterval(0.5)
+        _ = bandCanvas.gestureRecognizerShouldBegin(bandCanvas.panGestureRecognizer)
+        XCTAssertEqual(rig.coordinator.spanRefusedPans, 4, "0.5 s after the lift the palm lets it begin")
+        XCTAssertTrue(rig.canvas.alwaysBounceHorizontal, "the band bounces sideways (§3.6)")
+
         let week = try XCTUnwrap(session.layout.pages[2] as? WeekPageLayout)
         let one = InkCanvasView(layout: week, paper: .week(WeekPaperContent(layout: week)), tool: pen, allowFinger: false,
                                 page: .constant(InkPage(pageId: week.pageId)), initialScrollY: 0, onTap: { _, _ in },
@@ -727,6 +742,7 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertTrue(type(of: container.canvasView) == PKCanvasView.self, "the one page keeps a plain PKCanvasView")
         let coordinator = InkCanvasView.Coordinator(parent: one)
         coordinator.attach(container)
+        XCTAssertFalse(container.canvasView.alwaysBounceHorizontal, "the one page does not bounce sideways (1.2.3)")
         XCTAssertFalse(container.gestureRecognizers?.contains { $0 is InkBandPanGate } ?? false, "and no gate")
         XCTAssertTrue(rig.container.gestureRecognizers?.contains { $0 === rig.coordinator.spanPanGate } ?? false, "the band has the gate")
         coordinator.detach()
@@ -1087,5 +1103,155 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertEqual(rig.container.paperView.span, span)
         XCTAssertEqual(rig.coordinator.setDrawingCount, builds)
         XCTAssertTrue(rig.coordinator.isAtRest, "nothing queued")
+    }
+
+    // MARK: The fix round (S5L-R1 … R3): long slides, a slide's lost end, the drag's end
+
+    /// §3.6 「今日」 (B_DESIGN.md:274-276): today two weeks away is in the window, so `SpanSession.today` slides two weeks.
+    /// The band of five weeks holds two beyond the middle but has no side margin: a slide of two from the opening would
+    /// stop at the band's end, 69 pt short of the week's middle, and nothing would finish it. It goes one week, the
+    /// window shifts, then the second week: the week two on ends in the middle of the screen (0.5 pt), as two presses
+    /// would bring it.
+    func testASlideOfMorePagesThanTheBandHoldsCentresItsPage() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let x0 = rig.canvas.contentOffset.x
+        XCTAssertEqual(session.today(DayKey(year: 2026, month: 11, day: 30)), .slide(pages: 2))
+        rig.coordinator.spanSlideAnimation = { [weak coordinator = rig.coordinator] canvas, target in
+            canvas.contentOffset = target
+            coordinator?.scrollViewDidScroll(canvas)
+            coordinator?.scrollViewDidEndScrollingAnimation(canvas)
+        }
+        rig.coordinator.slide(byPages: 2)
+        XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "one week first")
+        await bed.yieldUntil { rig.coordinator.spanShiftCount == 2 && rig.coordinator.spanSlideTargetX == nil }
+        XCTAssertEqual(session.focusPageId, w1130)
+        XCTAssertEqual(session.pageIds, [w1123, w1130, w1207, "w-2026-12-14", "w-2026-12-21"], "two weeks on")
+        XCTAssertEqual(rig.canvas.contentOffset.x, x0, accuracy: 0.5)
+        let middle = (origin(w1130, session) + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x
+        XCTAssertEqual(middle, 417, accuracy: 0.5, "the week two on in the middle of the screen")
+    }
+
+    /// B_DESIGN.md:274 (◀ ▶ はいつでも使える), §3.6 (never a slide under the pen): a press while the pen is on the paper is
+    /// kept, and once the pen is up and the settle wait over the band slides exactly one week. Dropped, nothing slides.
+    func testAnArrowUnderThePenSlidesOnceThePenIsUp() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let x0 = rig.canvas.contentOffset.x
+        rig.coordinator.spanSlideAnimation = { _, _ in }
+        touch(rig)
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "not under the pen")
+        await settle()
+        XCTAssertNil(rig.coordinator.spanSlideTargetX)
+        lift(rig)
+        rig.coordinator.endSettleWaitForTesting()
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "slid once the pen is up")
+    }
+
+    /// §3.6: a slide whose end UIKit never tells of (its animation stopped part way: a touch, or the canvas setting the
+    /// offset) is over once nothing scrolled for 0.5 s — the watch lets the window shift around where the band stopped,
+    /// and a later press slides. An end told while the band is away from where the slide goes (an animation aimed again)
+    /// is not the slide's. Kept until the band reached its target, the slide held every shift and press back for good.
+    func testASlideWhoseEndNeverCameIsOverAtTheWatch() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let x0 = rig.canvas.contentOffset.x
+        rig.coordinator.spanSlideAnimation = { _, _ in }
+        rig.coordinator.slide(byPages: 1)
+        await settle()
+        XCTAssertEqual(canvasSleeper.waiting, 1, "the watch runs")
+        XCTAssertNotNil(rig.coordinator.spanSlideTargetX)
+        // The animation stops 60 % of the way.
+        rig.canvas.contentOffset.x = x0 + 0.6 * rig.page
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        rig.coordinator.scrollViewDidEndScrollingAnimation(rig.canvas)
+        await settle()
+        XCTAssertNotNil(rig.coordinator.spanSlideTargetX, "an end away from the target is not the slide's")
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 0)
+
+        bed.now = bed.now.addingTimeInterval(0.5)
+        await canvasSleeper.advance()
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "over at the watch")
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 1, "the window shifted around where the band stopped")
+        XCTAssertEqual(session.pageIds.first, w1109)
+        XCTAssertFalse(rig.coordinator.spanWatchRunning)
+        let x = rig.canvas.contentOffset.x
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x + rig.page, accuracy: 0.01, "a press slides again")
+    }
+
+    /// §3.6: while a slide runs the paper area gets shorter at the overview's zoom (the zoom follows it, the offset is
+    /// set): UIKit's animation may stop there or go on to the old place. On the next turn the slide is aimed again, from
+    /// where the band is, to the same middle of the screen (band lu) at the new zoom. A rotation instead ends the slide
+    /// where the band is (the window is decided anew).
+    func testTheCanvasMovingTheBandAimsTheSlideAgain() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        var aims: [CGPoint] = []
+        rig.coordinator.spanSlideAnimation = { _, target in aims.append(target) }
+        let x0 = rig.canvas.contentOffset.x
+        let zoom0 = rig.zoom
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertEqual(aims.count, 1)
+        let middle = (x0 + rig.page + 417) / zoom0
+        rig.canvas.contentOffset.x = x0 + 0.3 * rig.page
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+
+        rig.container.frame = CGRect(x: 0, y: 0, width: 834, height: 900)
+        rig.container.layoutSubviews()
+        XCTAssertLessThan(rig.zoom, zoom0 - 0.01, "the overview's zoom followed the height")
+        XCTAssertEqual(aims.count, 1, "not inside the layout pass")
+        await settle()
+        XCTAssertEqual(aims.count, 2, "aimed again on the next turn")
+        XCTAssertEqual(aims.last?.x ?? .nan, middle * rig.zoom - 417, accuracy: 0.5, "the same middle at the new zoom")
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, aims.last?.x ?? .nan, accuracy: 0.001)
+
+        rig.container.frame = CGRect(x: 0, y: 0, width: 1_210, height: 615)
+        rig.container.layoutSubviews()
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "a rotation ends the slide")
+        await settle()
+        XCTAssertEqual(aims.count, 2)
+        XCTAssertEqual(session.pageIds.count, 7, "decided anew")
+    }
+
+    /// §3.6, §3.5: a window taken while a slide runs (an update from iCloud whose line low in a day's free memo grows the
+    /// window's memos, D16) sets the offset; the slide is aimed again on the next turn, to the same place.
+    func testAWindowTakenDuringASlideAimsItAgain() async throws {
+        let days = try await open(.day, radius: 2, number: 2)
+        XCTAssertEqual(days.pageIds.count, 5)
+        let rig = await attach(days, width: 834, height: 951)
+        var aims: [CGPoint] = []
+        rig.coordinator.spanSlideAnimation = { _, target in aims.append(target) }
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertEqual(aims.count, 1)
+        let height = days.layout.size.height
+        var remote = InkPage.empty(pageId: d1117)
+        remote.add(bed.stroke("low", cell: .extra, x: 300, y: 5_984))
+        days.remoteUpdated(remote)
+        await settle()
+        XCTAssertGreaterThan(days.layout.size.height, height + 1, "the memos grew")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, days.windowVersion, "taken during the slide")
+        XCTAssertEqual(aims.count, 2, "aimed again")
+        XCTAssertEqual(aims.last?.x ?? .nan, aims.first?.x ?? .nan, accuracy: 0.5, "to the same place")
+        XCTAssertNotNil(rig.coordinator.spanSlideTargetX)
+    }
+
+    /// §3.6: a drag that ends without a fling (`scrollViewDidEndDragging(willDecelerate: false)`) shifts the window on the
+    /// next turn, without the watch; one that goes on decelerating waits for the deceleration's end.
+    func testADragEndingWithoutAFlingShiftsOnTheNextTurn() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        rig.coordinator.scrollViewWillBeginDragging(rig.canvas)
+        await scroll(rig, pages: 1)
+        rig.coordinator.scrollViewDidEndDragging(rig.canvas, willDecelerate: true)
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 0, "decelerating: its end tells")
+        rig.coordinator.scrollViewDidEndDragging(rig.canvas, willDecelerate: false)
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 1, "on the next turn, the watch not woken")
+        XCTAssertEqual(session.pageIds.first, w1109)
+        XCTAssertEqual(canvasSleeper.recorded, [0.5], "the watch slept once and was not woken")
     }
 }
