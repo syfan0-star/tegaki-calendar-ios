@@ -459,37 +459,28 @@ jobs:
       # few seconds; the rest is xcodebuild and the simulator), limited to 9. The whole output is kept in
       # $RUNNER_TEMP/sync-repeat.log (not uploaded) and its last 80 lines are printed.
       # 1.3 (docs/M7C_CONTRACT.md §7, §10.6): SyncEngineSpanTests (pagesOpened and onRemoteDelete, M4_CONTRACT §8.2
-      # 54–59) are repeated with them, and since the H4 fix SyncEngineEraseFetchTests (60–62). SpanSessionTests and
-      # ScreenEraseTests (§10.2, role S) join in S5: each is added (-only-testing) as soon as its `class` line is in
-      # Tests/TegakiCalendarTests (none yet, so nothing changes now). The limit: 9 → 15, the contract's estimate with
-      # them (§10.6), to be set again from their first runs (the per-class lines below; docs/M7C.md). On S's work
-      # branch (run 43315186882) one pass of ScreenEraseTests (11 tests) took 3.8 s and of SpanSessionTests (29) 2.2 s
-      # in the unit test step: about 2 min more for 20 passes, so the step should take some 5–7 min. Measured: on r13
-      # before 1.3's tests the step took 2.3–4.7 min (runs 43060727400 to 43149906124), its 1,200 passes 18–39 s; with
-      # SyncEngineSpanTests (run 43163415023) 5.5 min, its 1,320 passes 44 s (57 s on the clock): SyncEngineTests 1,200
-      # in 36.5 s, SyncEngineSpanTests 120 in 7.4 s; in runs 43176186917 to 43251126239 (SyncEngineEraseFetchTests in
+      # 54–59) are repeated with them, since the H4 fix SyncEngineEraseFetchTests (60–62), and in S5 SpanSessionTests and
+      # ScreenEraseTests (§10.2, role S: the sessions over the live engine). Their two -only-testing lines and the line
+      # just above the step are the ones S's work branch added (a15a08e), so the branches merge without a conflict; on a
+      # branch without those test files the two lines find no test. The limit stays 9, from the measured time (§10.6:
+      # measure it with them; the contract's estimate was 15): with them (S's work branch, run 43315186882) the step took
+      # 3.8 min, ScreenEraseTests 220 passes in 8.0 s, SpanSessionTests 580 in 23.8 s, SyncEngineTests 1,200 in 23.1 s.
+      # Before them: on r13 before 1.3's tests 2.3–4.7 min (runs 43060727400 to 43149906124), its 1,200 passes 18–39 s;
+      # with SyncEngineSpanTests (run 43163415023) 5.5 min, its 1,320 passes 44 s (57 s on the clock): SyncEngineTests
+      # 1,200 in 36.5 s, SyncEngineSpanTests 120 in 7.4 s; runs 43176186917 to 43251126239 (SyncEngineEraseFetchTests in
       # the last) 2.5–4.6 min. The rest is xcodebuild and the simulator. After the tail, the time of each class over its
       # passes is printed: the measure for the next limit. Each class's count is compared with the passes
       # expected (the iterations × the tests seen starting or passing): an app log line written into the middle
       # of a "Test Case" line hides that pass from the sed (seen in the unit test step of run 43176186917:
       # [TextTransform] from PencilKit, [Client] XPC), so a class that falls short gets a warning and its time is
       # short by those passes. The step's result does not depend on it.
+      # S5 (§10.6): SpanSessionTests and ScreenEraseTests (the sessions over the live engine) are repeated with them.
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
-        timeout-minutes: 15
+        timeout-minutes: 9
         run: |
           set -euo pipefail
           ITERATIONS=20
-          MORE=""
-          NAMES="SyncEngineTests, SyncEngineSpanTests, SyncEngineEraseFetchTests"
-          for CLASS in SpanSessionTests ScreenEraseTests; do
-            if grep -rqE "^(@[A-Za-z]+ +)*(final +)?class +$CLASS *:" Tests/TegakiCalendarTests; then
-              MORE="$MORE -only-testing:TegakiCalendarTests/$CLASS"
-              NAMES="$NAMES, $CLASS"
-            fi
-          done
-          echo "Repeated $ITERATIONS times: $NAMES"
-          # $MORE unquoted on purpose: one word per class (none has a space), nothing when it is empty.
           xcodebuild \
             -project TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
@@ -499,7 +490,8 @@ jobs:
             -only-testing:TegakiCalendarTests/SyncEngineTests \
             -only-testing:TegakiCalendarTests/SyncEngineSpanTests \
             -only-testing:TegakiCalendarTests/SyncEngineEraseFetchTests \
-            $MORE \
+            -only-testing:TegakiCalendarTests/SpanSessionTests \
+            -only-testing:TegakiCalendarTests/ScreenEraseTests \
             -skip-testing:TegakiCalendarTests/SyncEngineTests/testMergeRemoteOfATruncatedPageMarksDirty \
             -test-iterations "$ITERATIONS" \
             -run-tests-until-failure \
