@@ -1,6 +1,6 @@
 • As páginas da semana e do dia passam a estar ligadas lado a lado às páginas anteriores e seguintes. Deslize o dedo para o lado e a semana vizinha (ou o dia vizinho) aparece a seguir. Pode escrever diretamente por cima do limite entre as páginas (quando “Traçar com o dedo” estiver ativado, deslize para o lado com dois dedos).
 • Pode desativar a ligação lado a lado na secção “Páginas” dos Ajustes.
 • Foi corrigido um problema em que, depois de toda a escrita à mão ser apagada noutro dispositivo, a escrita à mão que ainda estava neste dispositivo podia voltar para o iCloud.
-• Atualize tanto o iPad como o iPhone para esta versão. Nas versões anteriores, os traços escritos entre duas páginas aparecem apenas numa delas (não foram eliminados). Se apagar um desses traços numa versão anterior, também é apagado nesta versão. No iPad, esta versão liga lado a lado as páginas anteriores e seguintes, tanto na vertical como na horizontal.
+• Atualize tanto o iPad como o iPhone para esta versão. Nas versões anteriores, os traços escritos entre duas páginas aparecem apenas numa delas (não foram eliminados). Se apagar um desses traços numa versão anterior, também é apagado nesta versão.
 
 As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros.
