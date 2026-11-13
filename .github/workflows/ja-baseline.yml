@@ -29,7 +29,11 @@
 #
 # The photo steps must stay the same as 43fe366's build.yml (`run` for `run`; added here: the working directory
 # baseline/). build.yml's photo steps of 1.3 are compared with this reference: a photo step changed there changes
-# its photos, and the change must be one that docs/M7C.md lists.
+# its photos, and the change must be one that docs/M7C.md lists. Two changes of 1.3 that photograph the same screens
+# are made here too, with the same lines as build.yml (S5, docs/M7C.md S3's J-4 and decision 8 of S1 の残り): the 11
+# sheets of the 13-inch iPad wait for their screen (tools/shots/screen_ready.swift, read from the pushed commit at
+# $GITHUB_WORKSPACE, not from baseline/), and the other devices' check that the app runs reads launchctl's whole list
+# (its false "The app is not running" warnings).
 #
 # When it runs: `gh workflow run ja-baseline.yml --ref <branch>` (workflow_dispatch: the workflow is on the default
 # branch, and the run uses the branch's copy), or a push to the branch `ja-baseline`. Run it on the same UTC day as
@@ -362,6 +366,20 @@ jobs:
       # the demo stroke counts (「いちばん線の多いページ」 and 「今年の年のページ」). Since 1.2 (docs/M7B_CONTRACT.md
       # §7.4, §10.7, §7.6) a tenth, "holidays" (the picker of the holidays), and an eleventh, "week-start" (the
       # settings with the question of switching the week start). (Shot here too since 1.3: 43fe366 has them.)
+      # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4 and its hand-off to S5): the photo of a sheet is no
+      # longer only the frame of a fixed 9 s after the launch. In run 43149906124 that frame of `--screenshot-sheet
+      # holidays` held the settings still sliding in, not yet at their place (the picker opens from them 0.4 s after
+      # they appear). The frame of 9 s is still taken, and kept once tools/shots/screen_ready.swift finds the screen
+      # ready: still (at most 1 pixel in 2,000 differs strongly from a frame taken at 8 s), and unlike the screens shown
+      # before it — the month page without a sheet (ipad13-portrait-month.png, the step above) for every sheet, and the
+      # settings (ipad13-portrait-sheet-settings.png, taken before them in this loop) for the four opened from them
+      # (sync, info, holidays, week-start). Otherwise the next frame, a second later, is compared with that one, up to
+      # 30 s after the launch and at least twice (in run 43310108102 one frame took 25 s: the simulator was slow); then
+      # the last frame stays, with a warning. Every comparison is one line. So no photo is taken earlier than before, and a
+      # screen that has settled is photographed as before (each sheet of the runs 43136565762 and 43149906124 and of the
+      # reference run 43158921131 differs from that month page by at least 47,648 pixels, the four from those settings by
+      # at least 44,318; the same screen of two runs by 0). The same lines in build.yml (J-4). If the tool does not
+      # compile, every sheet is the frame of 9 s, with a warning.
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -370,13 +388,68 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
+          # 1.3: the wait for the screen (above), built from the commit that runs the workflow: in the background before
+          # the boot when a step started that build (build.yml's "Build the sheets' screen check in the background"),
+          # else here.
+          READY="$RUNNER_TEMP/screen_ready"
+          BACKGROUND="$RUNNER_TEMP/screen_ready.build"
+          if [ -f "$BACKGROUND/pid" ]; then
+            BUILD_WAIT=0
+            while [ ! -f "$BACKGROUND/status" ] && kill -0 "$(cat "$BACKGROUND/pid")" 2>/dev/null && [ "$BUILD_WAIT" -lt 300 ]; do
+              sleep 1
+              BUILD_WAIT=$((BUILD_WAIT + 1))
+            done
+            if [ "$(cat "$BACKGROUND/status" 2>/dev/null || true)" = "0" ] && [ -x "$BACKGROUND/screen_ready" ]; then
+              cp "$BACKGROUND/screen_ready" "$READY"
+              echo "tools/shots/screen_ready.swift was built in the background (waited for it ${BUILD_WAIT} s here)."
+            else
+              echo "::warning::the background build of tools/shots/screen_ready.swift did not end well; it is built here."
+              cat "$BACKGROUND/log" 2>/dev/null || true
+            fi
+          fi
+          if [ ! -x "$READY" ] && ! swiftc -O "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" -o "$READY"; then
+            echo "::warning::tools/shots/screen_ready.swift did not compile; every sheet is taken 9 s after its launch, as before 1.3."
+            READY=""
+          fi
+          EARLIER="$RUNNER_TEMP/sheet-earlier.png"
           for SHEET in create edit lasso settings sync import paywall export info holidays week-start; do
+            SHOT="shots/ipad13-portrait-sheet-$SHEET.png"
+            UNLIKE="shots/ipad13-portrait-month.png"
+            case "$SHEET" in
+              sync|info|holidays|week-start) UNLIKE="$UNLIKE shots/ipad13-portrait-sheet-settings.png" ;;
+            esac
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET" $JA_ARGS
-            sleep 9
+            LAUNCHED="$(date +%s)"
+            rm -f "$EARLIER"
+            sleep 8
+            [ -z "$READY" ] || xcrun simctl io "$UDID" screenshot "$EARLIER" > /dev/null 2>&1 || true
+            sleep 1
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 9 s (sheet $SHEET; crashed?)"
-            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-sheet-$SHEET.png"
+            xcrun simctl io "$UDID" screenshot "$SHOT"
+            [ -n "$READY" ] || continue
+            TRIES=0
+            while :; do
+              STATUS=0
+              # $UNLIKE is split on purpose (paths without spaces).
+              LINE="$("$READY" "$SHOT" "$EARLIER" $UNLIKE)" || STATUS=$?
+              WAITED=$(( $(date +%s) - LAUNCHED ))
+              echo "sheet $SHEET, ${WAITED} s after the launch: $LINE"
+              [ "$STATUS" != 0 ] || break
+              if [ "$STATUS" != 1 ] || { [ "$WAITED" -ge 30 ] && [ "$TRIES" -ge 2 ]; }; then
+                echo "::warning::sheet $SHEET: the screen was not ready ${WAITED} s after the launch; its last frame is kept."
+                break
+              fi
+              TRIES=$((TRIES + 1))
+              cp "$SHOT" "$EARLIER"
+              sleep 1
+              if ! xcrun simctl io "$UDID" screenshot "$SHOT" > /dev/null 2>&1; then
+                echo "::warning::sheet $SHEET: a later frame could not be taken, the one before is kept"
+                cp "$EARLIER" "$SHOT"
+                break
+              fi
+            done
           done
           ls -la shots
 
@@ -530,7 +603,11 @@ jobs:
               sleep 1
               xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" $JA_ARGS || { echo "::warning::launch failed ($FILE)"; return 0; }
               sleep 9
-              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($FILE)"
+              # `grep` without -q reads the whole list (docs/M7C.md, S1 の残り, decision 8): with -q it stops at the first match,
+              # simctl, still writing the list, gets SIGPIPE, and pipefail makes the pipeline fail although the app is in
+              # the list (a false warning in 0–9 of build.yml's photos and 5–14 of l10n-shots' in the runs of 11/11–12;
+              # none in span-shots, which reads the whole list). An app not in the list, or no list, still warns.
+              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
             }
             # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s

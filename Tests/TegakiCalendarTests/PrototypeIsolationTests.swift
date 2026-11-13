@@ -255,29 +255,43 @@ final class PrototypeIsolationTests: XCTestCase {
     /// CalendarRootScreen.swift:1190) is the same before and after: a stand-in hook installed before the
     /// prototype is opened still receives a page handed to the shared engine's hook afterwards, the
     /// prototype never called it, and the prototype's own engine has no hook either (the prototype touches
-    /// no `onRemoteUpdate` at all; its source does not name it).
+    /// no `onRemoteUpdate` at all; its source does not name it). Since S4 the engine has a second hook,
+    /// `onRemoteDelete` (§7; the page id of a record deleted in iCloud): the same holds for it (S4's decision
+    /// 5 in docs/M7C.md; the prototype's source was made before the hook and must stay without it).
     ///
-    /// It fails if the prototype set or cleared the shared hook (the stand-in would not receive the page:
-    /// iCloud's updates would no longer reach the calendar screen), delivered a page through it (the
-    /// stand-in would have been called during the run), or hooked its own engine.
+    /// It fails if the prototype set or cleared a shared hook (its stand-in would not receive the page or the
+    /// id: iCloud's updates or deletions would no longer reach the calendar screen), delivered something
+    /// through one (a stand-in would have been called during the run), or hooked its own engine.
     func testPrototypeLeavesOnRemoteUpdateAlone() async throws {
         let shared = SyncEngine.shared
         let original = shared.onRemoteUpdate
-        defer { shared.onRemoteUpdate = original }
+        let originalDelete = shared.onRemoteDelete
+        defer {
+            shared.onRemoteUpdate = original
+            shared.onRemoteDelete = originalDelete
+        }
         var received: [String] = []
+        var deleted: [String] = []
         shared.onRemoteUpdate = { received.append($0.pageId) }
+        shared.onRemoteDelete = { deleted.append($0) }
 
         let (model, session) = try openPrototype()
         _ = try await write(in: session)
         XCTAssertNil(model.environment.sync.onRemoteUpdate)
+        XCTAssertNil(model.environment.sync.onRemoteDelete)
         model.close()
         await settle()
         XCTAssertEqual(received, [], "the prototype handed nothing to the shared hook")
+        XCTAssertEqual(deleted, [], "the prototype handed nothing to the shared delete hook")
 
         shared.onRemoteUpdate?(InkPage(pageId: "w-2026-11-09"))
         XCTAssertEqual(received, ["w-2026-11-09"], "the shared hook is still the one installed before")
+        shared.onRemoteDelete?("w-2026-11-16")
+        XCTAssertEqual(deleted, ["w-2026-11-16"], "the shared delete hook is still the one installed before")
         for (name, code) in try prototypeSources() {
-            XCTAssertFalse(code.contains("onRemoteUpdate"), "\(name) uses onRemoteUpdate")
+            for hook in ["onRemoteUpdate", "onRemoteDelete"] {
+                XCTAssertFalse(code.contains(hook), "\(name) uses \(hook)")
+            }
         }
     }
 

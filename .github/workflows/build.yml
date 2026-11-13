@@ -234,6 +234,11 @@ jobs:
       # order and account checks changed, not the data's form) and, after the H4 fix, that of the commit
       # with the two pendingCloudErase guards. The file keeps its name; the commit it was made from is in
       # docs/M7B.md.
+      # 1.3 (docs/M7C_CONTRACT.md §6.4, D9): the four files 1.3 may change (Ink/InkLedger.swift, Ink/InkCanvasView.swift,
+      # Ink/InkOverlayView.swift, Sync/SyncEngine.swift) get their row rewritten in the commit that changes them (step 2;
+      # since S4 the rows of InkLedger.swift and SyncEngine.swift, the latter with the H4 fix merged, are 1.3's); every
+      # other row is still the bytes above. At the submission the table is made again from that commit's tree, with
+      # the two new InkModel files (20 rows), and this step becomes "Data code frozen (re-based in 1.3)" (steps 4–5).
       - name: Data code frozen since 1.1.1
         run: |
           set -euo pipefail
@@ -397,15 +402,16 @@ jobs:
       # unit tests are in Japanese whatever the simulator's language is (their old expectations are Japanese).
       # 1.3 (docs/M7C_CONTRACT.md §10.6): on r13-quick (QUICK) only the Span classes of Tests/TegakiCalendarTests
       # that exist so far (`*SpanTests`, `SpanSessionTests`, `ScreenEraseTests`, `OnePageSession…Tests`, found by
-      # their `class` lines; S5 adds them), each with -only-testing; none yet → the step says so and ends.
+      # their `class` lines, `@MainActor final class …:` on one line too; S5 adds them), each with -only-testing;
+      # none yet → the step says so and ends.
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
           mkdir -p shots/fixtures
           ONLY=""
           if [ "$QUICK" = "true" ]; then
-            CLASSES="$(grep -rhE '^(final )?class [A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
-              | sed -E 's/^(final )?class ([A-Za-z0-9_]+).*/\2/' \
+            CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
+              | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
               | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::r13-quick: no Span test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
@@ -453,11 +459,16 @@ jobs:
       # few seconds; the rest is xcodebuild and the simulator), limited to 9. The whole output is kept in
       # $RUNNER_TEMP/sync-repeat.log (not uploaded) and its last 80 lines are printed.
       # 1.3 (docs/M7C_CONTRACT.md §7, §10.6): SyncEngineSpanTests (pagesOpened and onRemoteDelete, M4_CONTRACT §8.2
-      # 54–59) are repeated with them. SpanSessionTests and ScreenEraseTests join in S5: add their -only-testing
-      # lines then and measure again. The limit stays 9, from the measured time: on r13 before 1.3's tests the step
-      # took 2.3–4.7 min (runs 43060727400 to 43149906124), its 1,200 passes 18–39 s; with them (run 43163415023)
-      # 5.5 min, its 1,320 passes 44 s (57 s on the clock): SyncEngineTests 1,200 in 36.5 s, SyncEngineSpanTests
-      # 120 in 7.4 s. The rest is xcodebuild and the simulator. After the tail, the time of each class over its
+      # 54–59) are repeated with them, since the H4 fix SyncEngineEraseFetchTests (60–62), and in S5 SpanSessionTests and
+      # ScreenEraseTests (§10.2, role S: the sessions over the live engine). Their two -only-testing lines and the line
+      # just above the step are the ones S's work branch added (a15a08e), so the branches merge without a conflict; on a
+      # branch without those test files the two lines find no test. The limit stays 9, from the measured time (§10.6:
+      # measure it with them; the contract's estimate was 15): with them (S's work branch, run 43315186882) the step took
+      # 3.8 min, ScreenEraseTests 220 passes in 8.0 s, SpanSessionTests 580 in 23.8 s, SyncEngineTests 1,200 in 23.1 s.
+      # Before them: on r13 before 1.3's tests 2.3–4.7 min (runs 43060727400 to 43149906124), its 1,200 passes 18–39 s;
+      # with SyncEngineSpanTests (run 43163415023) 5.5 min, its 1,320 passes 44 s (57 s on the clock): SyncEngineTests
+      # 1,200 in 36.5 s, SyncEngineSpanTests 120 in 7.4 s; runs 43176186917 to 43251126239 (SyncEngineEraseFetchTests in
+      # the last) 2.5–4.6 min. The rest is xcodebuild and the simulator. After the tail, the time of each class over its
       # passes is printed: the measure for the next limit. Each class's count is compared with the passes
       # expected (the iterations × the tests seen starting or passing): an app log line written into the middle
       # of a "Test Case" line hides that pass from the sed (seen in the unit test step of run 43176186917:
@@ -504,6 +515,54 @@ jobs:
                     if (n[c] != expected) printf "::warning::per class: %s: %d of %d pass lines read (the others were split by app log lines), so its time is short\n", c, n[c], expected
                   }
                 }' | sort
+          # 1.3 (docs/M7C_CONTRACT.md §10.6; the review of S5's track C): xcodebuild says nothing about an
+          # -only-testing class the build does not have, so a class lost or renamed would leave the 20 times without
+          # a sign. Each class listed above must have test cases in the log. The list is read from this script ($0,
+          # the step's lines as the runner wrote them: `shell: /bin/bash -e {0}`), so it is written once. A class with
+          # none fails the step when Tests/TegakiCalendarTests has its file (<class>.swift, §10.2's names) or its
+          # class line; when it has neither (S's two classes on a branch without S's tests) it is a warning.
+          LISTED=""
+          if [ -f "$0" ]; then
+            LISTED="$(sed -nE 's/^[[:space:]]*-only-testing:TegakiCalendarTests\/([A-Za-z0-9_]+)[[:space:]]*\\$/\1/p' "$0" | sort -u)"
+          fi
+          if [ -z "$LISTED" ]; then
+            echo "::warning::The classes this step lists could not be read from its script ($0), so none is checked."
+            exit 0
+          fi
+          LOST=0
+          for CLASS in $LISTED; do
+            if grep -qE "Test Case .-\[TegakiCalendarTests\.$CLASS [A-Za-z0-9_]+\]. " "$RUNNER_TEMP/sync-repeat.log"; then
+              continue
+            fi
+            if [ -f "Tests/TegakiCalendarTests/$CLASS.swift" ] \
+              || grep -rqE "^(@[A-Za-z]+ +)*(final +)?class +$CLASS *:" Tests/TegakiCalendarTests; then
+              echo "::error::$CLASS is in Tests/TegakiCalendarTests and listed here, but none of its tests ran (§10.6: it is repeated 20 times). Was it renamed, moved or left out of the build?"
+              LOST=1
+            else
+              echo "::warning::$CLASS is listed here but not in Tests/TegakiCalendarTests on this branch, so it is not repeated."
+            fi
+          done
+          exit "$LOST"
+
+      # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4): the 11 sheets' wait (the 13-inch step below) runs
+      # tools/shots/screen_ready.swift, and the job's first swiftc for macOS spends almost 2 min on the SDK's modules
+      # (1.9 of that step's 4.6 min in run 43325447350, which built the tool in the step; 2.3 min with the fixed 9 s,
+      # run 43315186882). So it is built here, in the background, while the UI tests are built and the simulator
+      # boots (about 5 min); the sheets step waits for it, or builds it itself when this build is missing or failed.
+      # Never fails the job. ja-baseline.yml has no such step: its sheets step, the same lines, builds the tool.
+      - name: Build the sheets' screen check in the background (1.3)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/screen_ready.build"
+          mkdir -p "$OUT"
+          # Its own stdin, stdout and stderr, so this step ends at once; the build goes on (the runner ends what is
+          # left of a job's processes after its last step). The status file appears only when swiftc has ended.
+          nohup /bin/sh -c 'swiftc -O "$1" -o "$2/screen_ready" > "$2/log" 2>&1; echo "$?" > "$2/status.part"; mv "$2/status.part" "$2/status"' \
+            sh "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
+          echo "$!" > "$OUT/pid"
+          echo "swiftc of tools/shots/screen_ready.swift started in the background (pid $(cat "$OUT/pid"))"
 
       # 1.0.1 (docs/R1_0_1.md §5.1): the iPhone UI test is built now and run after the screenshots
       # ("UI tests on an iPhone" below, `test-without-building`). Built now because a build late in the
@@ -740,6 +799,20 @@ jobs:
       # §7.4, §10.7, §7.6) a tenth, "holidays" (the picker of the holidays), and an eleventh, "week-start" (the
       # settings with the question of switching the week start). ja-baseline.yml does not shoot these two.
       # (1.3: it does, its reference being 43fe366.)
+      # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4 and its hand-off to S5): the photo of a sheet is no
+      # longer only the frame of a fixed 9 s after the launch. In run 43149906124 that frame of `--screenshot-sheet
+      # holidays` held the settings still sliding in, not yet at their place (the picker opens from them 0.4 s after
+      # they appear). The frame of 9 s is still taken, and kept once tools/shots/screen_ready.swift finds the screen
+      # ready: still (at most 1 pixel in 2,000 differs strongly from a frame taken at 8 s), and unlike the screens shown
+      # before it — the month page without a sheet (ipad13-portrait-month.png, the step above) for every sheet, and the
+      # settings (ipad13-portrait-sheet-settings.png, taken before them in this loop) for the four opened from them
+      # (sync, info, holidays, week-start). Otherwise the next frame, a second later, is compared with that one, up to
+      # 30 s after the launch and at least twice (in run 43310108102 one frame took 25 s: the simulator was slow); then
+      # the last frame stays, with a warning. Every comparison is one line. So no photo is taken earlier than before, and a
+      # screen that has settled is photographed as before (each sheet of the runs 43136565762 and 43149906124 and of the
+      # reference run 43158921131 differs from that month page by at least 47,648 pixels, the four from those settings by
+      # at least 44,318; the same screen of two runs by 0). The same lines in ja-baseline.yml (J-4). If the tool does not
+      # compile, every sheet is the frame of 9 s, with a warning.
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -748,13 +821,68 @@ jobs:
           UDID="${{ steps.simudid.outputs.udid }}"
           BUNDLE="com.syfan0.tegakicalendar"
           mkdir -p shots
+          # 1.3: the wait for the screen (above), built from the commit that runs the workflow: in the background before
+          # the boot when a step started that build (build.yml's "Build the sheets' screen check in the background"),
+          # else here.
+          READY="$RUNNER_TEMP/screen_ready"
+          BACKGROUND="$RUNNER_TEMP/screen_ready.build"
+          if [ -f "$BACKGROUND/pid" ]; then
+            BUILD_WAIT=0
+            while [ ! -f "$BACKGROUND/status" ] && kill -0 "$(cat "$BACKGROUND/pid")" 2>/dev/null && [ "$BUILD_WAIT" -lt 300 ]; do
+              sleep 1
+              BUILD_WAIT=$((BUILD_WAIT + 1))
+            done
+            if [ "$(cat "$BACKGROUND/status" 2>/dev/null || true)" = "0" ] && [ -x "$BACKGROUND/screen_ready" ]; then
+              cp "$BACKGROUND/screen_ready" "$READY"
+              echo "tools/shots/screen_ready.swift was built in the background (waited for it ${BUILD_WAIT} s here)."
+            else
+              echo "::warning::the background build of tools/shots/screen_ready.swift did not end well; it is built here."
+              cat "$BACKGROUND/log" 2>/dev/null || true
+            fi
+          fi
+          if [ ! -x "$READY" ] && ! swiftc -O "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" -o "$READY"; then
+            echo "::warning::tools/shots/screen_ready.swift did not compile; every sheet is taken 9 s after its launch, as before 1.3."
+            READY=""
+          fi
+          EARLIER="$RUNNER_TEMP/sheet-earlier.png"
           for SHEET in create edit lasso settings sync import paywall export info holidays week-start; do
+            SHOT="shots/ipad13-portrait-sheet-$SHEET.png"
+            UNLIKE="shots/ipad13-portrait-month.png"
+            case "$SHEET" in
+              sync|info|holidays|week-start) UNLIKE="$UNLIKE shots/ipad13-portrait-sheet-settings.png" ;;
+            esac
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-sheet "$SHEET" $JA_ARGS
-            sleep 9
+            LAUNCHED="$(date +%s)"
+            rm -f "$EARLIER"
+            sleep 8
+            [ -z "$READY" ] || xcrun simctl io "$UDID" screenshot "$EARLIER" > /dev/null 2>&1 || true
+            sleep 1
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 9 s (sheet $SHEET; crashed?)"
-            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-sheet-$SHEET.png"
+            xcrun simctl io "$UDID" screenshot "$SHOT"
+            [ -n "$READY" ] || continue
+            TRIES=0
+            while :; do
+              STATUS=0
+              # $UNLIKE is split on purpose (paths without spaces).
+              LINE="$("$READY" "$SHOT" "$EARLIER" $UNLIKE)" || STATUS=$?
+              WAITED=$(( $(date +%s) - LAUNCHED ))
+              echo "sheet $SHEET, ${WAITED} s after the launch: $LINE"
+              [ "$STATUS" != 0 ] || break
+              if [ "$STATUS" != 1 ] || { [ "$WAITED" -ge 30 ] && [ "$TRIES" -ge 2 ]; }; then
+                echo "::warning::sheet $SHEET: the screen was not ready ${WAITED} s after the launch; its last frame is kept."
+                break
+              fi
+              TRIES=$((TRIES + 1))
+              cp "$SHOT" "$EARLIER"
+              sleep 1
+              if ! xcrun simctl io "$UDID" screenshot "$SHOT" > /dev/null 2>&1; then
+                echo "::warning::sheet $SHEET: a later frame could not be taken, the one before is kept"
+                cp "$EARLIER" "$SHOT"
+                break
+              fi
+            done
           done
           ls -la shots
 
@@ -908,7 +1036,11 @@ jobs:
               sleep 1
               xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" $JA_ARGS || { echo "::warning::launch failed ($FILE)"; return 0; }
               sleep 9
-              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($FILE)"
+              # `grep` without -q reads the whole list (docs/M7C.md, S1 の残り, decision 8): with -q it stops at the first match,
+              # simctl, still writing the list, gets SIGPIPE, and pipefail makes the pipeline fail although the app is in
+              # the list (a false warning in 0–9 of build.yml's photos and 5–14 of l10n-shots' in the runs of 11/11–12;
+              # none in span-shots, which reads the whole list). An app not in the list, or no list, still warns.
+              xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
             }
             # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s
@@ -993,6 +1125,8 @@ jobs:
       # (3.8 min in CI-0 for 29 launches of about 8 s, now 30; which language iOS chooses and, in German, that the purchase
       # sheet reaches its links, its steps are the `l10n UI:` lines) and WeekStartUITests (the `week-start UI:` lines) run here too; the xcodebuild of the
       # step took 10.2 min in CI-0 (1.1.1's whole step took 11.9 in run 41922318959) and the step stops after 40. The tests pass their own language in their launch arguments.
+      # 1.3 (docs/M7C_CONTRACT.md §10.3, §10.6): the joined pages' UI tests (SpanUITests, and the old UI tests again with
+      # the joined pages on in SpanRerunUITests) mark their steps `span UI:`; the grep shows them once they exist.
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         if: env.QUICK != 'true'
         timeout-minutes: 40
@@ -1017,7 +1151,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
@@ -1121,13 +1255,17 @@ jobs:
   # and 1.2.3 (v123: commit 43fe366, taken out with `git archive`); and 1.2.3's app runs
   # tools/span-compat/AppTests/Real123LedgerTests.swift (its ledger and sync engine) on every file. Fixture 4 (the
   # week memo) comes with the week memo stage (§5): its MANIFEST row then needs its counts in tools/span-compat.
-  # The limit (§10.4): 45 → 65 min for the 1.2.3 Kit and app (the job took 8 min before 1.3).
+  # The limit (§10.4: 45 → 65 min for the 1.2.3 Kit and app, back to 45 when the measured times leave room; docs/M7C.md,
+  # S1 の残り, decision 7): 45 again. With 1.3's steps the job took 8.8–16.7 min in the 14 runs of 11/11–12 that ran
+  # them to the end (runs 43065300839 to 43237335436; the median 13.7), its two app test steps 2.9–7.2 (1.0's) and
+  # 3.2–6.8 (1.2.3's), the other steps at most 1.6 each. The slowest time of every step added up is 18.8 min, and with
+  # two boots 4 min slower (as seen in the other jobs) about 27. 45 is the limit of the job before 1.3 (8 min then).
   compat-v1-0:
     name: compat-v1.0
     # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only).
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
     runs-on: macos-26
-    timeout-minutes: 65
+    timeout-minutes: 45
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -1490,7 +1628,11 @@ jobs:
             sleep 1
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 "$@" || { echo "::warning::launch failed ($FOLDER/$FILE)"; return 0; }
             sleep 9
-            xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -q tegakicalendar || echo "::warning::The app is not running after 9 s ($FOLDER/$FILE)"
+            # `grep` without -q reads the whole list (docs/M7C.md, S1 の残り, decision 8): with -q it stops at the first match,
+            # simctl, still writing the list, gets SIGPIPE, and pipefail makes the pipeline fail although the app is in
+            # the list (a false warning in 0–9 of build.yml's photos and 5–14 of l10n-shots' in the runs of 11/11–12;
+            # none in span-shots, which reads the whole list). An app not in the list, or no list, still warns.
+            xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FOLDER/$FILE)"
             xcrun simctl io "$UDID" screenshot "$OUT/$FOLDER/$FILE" || echo "::warning::screenshot failed ($FOLDER/$FILE)"
           }
           # device-id | exact first choice | prefix fallbacks (in order)
@@ -2078,6 +2220,19 @@ jobs:
             if [ ! -s "$OUT/$FILE.png" ]; then echo "::error::$FILE.png is missing."; MISSING=1; fi
           done
           exit "$MISSING"
+
+      # 1.3 (docs/M7C_CONTRACT.md §10.5; the review of S5's track C, C5-R3): tools/shots/shift_pair.swift is the check
+      # of the photos before and after a shift (`--screenshot-span-shift`: with the header's rows left out, almost the
+      # same, or the job fails). Until those photos are taken (the launch arguments come with U, the header's rows with
+      # P), it is built and its self-test run here, so it is known to work when they come. Independent of the steps
+      # above. A job's first swiftc for macOS spends about 2 min on the SDK's modules (the first job's sheets step).
+      - name: Self-test of the shift pair check (1.3)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          swiftc -O tools/shots/shift_pair.swift -o "$RUNNER_TEMP/shift_pair"
+          "$RUNNER_TEMP/shift_pair" --self-test
 
       # overwrite: a re-run of this job (gh run rerun --failed) replaces the photos of the attempt before instead of
       # failing on the name that attempt already uploaded (as ja-baseline.yml's and store-shots.yml's uploads do).
