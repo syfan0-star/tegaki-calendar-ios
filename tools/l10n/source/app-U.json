@@ -1694,6 +1694,46 @@
       "args": [],
       "glossary": []
     },
+    "settings.page.header": {
+      "ja": "ページ",
+      "target": "app",
+      "comment": "設定の節の見出し（1.3、N-1）。週と日のページを前後のページと横につなげる設定の節。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "settings.page.span": {
+      "ja": "前後のページを横につなげる",
+      "target": "app",
+      "comment": "スイッチの名前（N-2）。オンにすると、週と日のページが前後のページと横につながる（ふだんはオン、端末ごと）。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "settings.page.span.footer": {
+      "ja": "週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。",
+      "target": "app",
+      "comment": "上のスイッチの説明（N-3）。月と年は後の版で対応する。オフにした端末では、ページをまたいで書いた線は片方のページにだけ出る（消えてはいない）。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "週のページ",
+        "日のページ",
+        "線（本）"
+      ],
+      "jaOnly": true
+    },
     "settings.purchase.footer.cancel": {
       "ja": "解約は端末の%@から。解約しても期間の終わりまで使えます。",
       "target": "app",
@@ -2155,6 +2195,68 @@
       "glossary": [
         "週の始まり"
       ]
+    },
+    "span.guide.day.oneFinger": {
+      "ja": "前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "初めての案内の札（N-6）。日のページを初めて開いたときに紙の上の端に 8 秒だけ、1 回出る。「指でも書く」がオフのとき: 指 1 本で横にすべらせると、となりの日が出る。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "where": [
+        "Views/SpanGuideView.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "span.guide.day.twoFingers": {
+      "ja": "前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "初めての案内の札（N-7）。上と同じで、「指でも書く」がオンのとき: 指では線を書くので、横に動かすのは 2 本の指。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "where": [
+        "Views/SpanGuideView.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "span.guide.week.oneFinger": {
+      "ja": "前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "初めての案内の札（N-4）。週のページを初めて開いたときに紙の上の端に 8 秒だけ、1 回出る。「指でも書く」がオフのとき: 指 1 本で横にすべらせると、となりの週が出る。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "where": [
+        "Views/SpanGuideView.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "span.guide.week.twoFingers": {
+      "ja": "前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "初めての案内の札（N-5）。上と同じで、「指でも書く」がオンのとき: 指では線を書くので、横に動かすのは 2 本の指。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "where": [
+        "Views/SpanGuideView.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [],
+      "jaOnly": true
+    },
+    "span.stageTwo.notice": {
+      "ja": "このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。",
+      "target": "app",
+      "comment": "案内（N-8、1 回だけ）。そのページと前後のページの線が多すぎて、その種類のページを横につなげずに 1 ページずつ表示に戻したとき。書いた線は消えていない。X の訳が入るまでは ja だけのキー（jaOnly。docs/M7C_CONTRACT.md §8.1、§8.2）。X は 9 言語の訳と同じ commit で jaOnly を外す",
+      "where": [
+        "Views/SpanGuideView.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "線（本）"
+      ],
+      "jaOnly": true
     },
     "toast.eraseCloudFailed": {
       "ja": "iCloud の手書きを消せませんでした。この端末の分は消しました。回線が戻ったらもう一度お試しください",
