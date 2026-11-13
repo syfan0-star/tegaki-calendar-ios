@@ -30,8 +30,9 @@
 # version and the build number (the run number) into the run's summary, for docs/M7C.md: that build is never
 # submitted, and the build of 1.3 that is submitted must not be it. The prototype is version 1.3 (§4.6): with
 # span_prototype "1" the input marketing_version must be "1.3", and the archive's version is checked. Not together
-# with `age_force`. Without the input every step runs as before (the two steps are skipped, and the archive's command
-# line is the same).
+# with `age_force`. Without the input the two steps are skipped and the archive's command line is the same, and one
+# step is added (§8.1, §8.2): "Every word of the app in ten languages (not the prototype)" fails the build before
+# anything is built while a word of the app but prototype.* lacks one of the ten languages.
 name: testflight
 
 on:
