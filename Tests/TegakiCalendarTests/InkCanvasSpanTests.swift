@@ -1404,8 +1404,8 @@ final class InkCanvasSpanTests: XCTestCase {
     /// §3.6 (the final critic's F3): at the overview the paper area gets shorter (the all-day lanes grow: 955 → 900 pt on an
     /// 11-inch portrait week) and the overview's zoom follows the height; the focus week stays in the middle of the screen
     /// (0.5 pt), and again when the height comes back. A band moved off the middle keeps the band x (lu) in the middle of
-    /// the screen, as a change of width does (`centerPaper`). 1.2.3's `applyBounds` keeps x in points: on the band the
-    /// focus week would go about 100 pt to the side.
+    /// the screen, as a change of width does (`centerPaper`). Left to 1.2.3's `applyBounds` (x kept in points, or where
+    /// UIKit's zoom setter puts it) the focus week's middle went to 1,241.6 pt and the focus to 11/09 (run 43497739188).
     func testAHeightChangeAtTheOverviewKeepsTheFocusPageInTheMiddle() async throws {
         let session = try await open()
         let rig = await attach(session)

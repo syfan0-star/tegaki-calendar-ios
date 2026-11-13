@@ -1273,6 +1273,7 @@ extension InkCanvasView {
                 if spanState != nil { bandWidthChanged() }
             } else {
                 // 5. Only the height changed.
+                if spanState != nil { bandHeightWillChange() }
                 applyBounds(bounds)
                 if spanState != nil { bandHeightChanged() }
             }
@@ -2540,6 +2541,9 @@ final class InkSpanState {
     /// a slide aimed again after the canvas moved the band goes to the same middle at the zoom it has then.
     var slideTargetMid: CGFloat = 0
     var reaimScheduled = false
+    /// The band x (lu) in the middle of the screen and the zoom, read just before 1.2.3's `applyBounds` when only the
+    /// height of the paper area changed (`bandHeightWillChange`); nil otherwise.
+    var heightChangeMid: (midX: CGFloat, zoom: CGFloat)?
     /// Pages still to slide: pressed while a slide ran or under the pen or a pinch, or the rest of a slide of more
     /// pages than the band holds beyond the screen. Slid once the paper is at rest (after the window shifted).
     var queuedSlidePages = 0
@@ -2990,9 +2994,30 @@ extension InkCanvasView.Coordinator {
         requestShiftCheck()
     }
 
-    /// `containerDidLayout`'s entry when only the height changed: the zoom and the offset may have moved under a
-    /// running slide, which is aimed again (`reaimSlideNextTurn`).
+    /// `containerDidLayout`'s entry before 1.2.3's `applyBounds` when only the height changed: the band x (lu) in the
+    /// middle of the screen and the zoom, for `bandHeightChanged`.
+    fileprivate func bandHeightWillChange() {
+        guard let state = spanState, let canvas else { return }
+        state.heightChangeMid = (midX: currentMidX(), zoom: max(canvas.zoomScale, 0.0001))
+    }
+
+    /// `containerDidLayout`'s entry when only the height changed (the all-day lanes grew, a bar came or went). 1.2.3's
+    /// `applyBounds` lets the zoom follow the height (at the overview, or clamped into the new limits) and leaves x in
+    /// points, or where UIKit's zoom setter puts it; on the band that moves every page sideways (955 → 900 pt at the
+    /// overview of an 11-inch portrait week: about 100 pt with x kept in points; in the simulator the focus week's middle
+    /// went to 1,241.6 pt and the focus to the week before). So when the zoom changed, the band x that was in the middle
+    /// of the screen goes back there, as a change of width keeps it (`centerPaper`, entry 4): the focus page stays where
+    /// it was, in the middle at the overview as the opening put it (`applyBandOpening`). y stays 1.2.3's (the top of the
+    /// view on the same paper y). Not under a pinch (the zoom did not change). A running slide is then aimed again
+    /// (`reaimSlideNextTurn`).
     fileprivate func bandHeightChanged() {
+        if let state = spanState, let kept = state.heightChangeMid {
+            state.heightChangeMid = nil
+            if let canvas, let container, !isLive, abs(canvas.zoomScale - kept.zoom) >= 0.0005 {
+                let x = kept.midX * max(canvas.zoomScale, 0.0001) - container.bounds.width / 2
+                canvas.contentOffset = clampedOffset(CGPoint(x: x, y: canvas.contentOffset.y))
+            }
+        }
         reaimSlideNextTurn()
     }
 
