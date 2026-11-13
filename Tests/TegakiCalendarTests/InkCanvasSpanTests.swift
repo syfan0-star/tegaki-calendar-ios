@@ -1254,4 +1254,197 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertEqual(session.pageIds.first, w1109)
         XCTAssertEqual(canvasSleeper.recorded, [0.5], "the watch slept once and was not woken")
     }
+
+    // MARK: The final critic's round (F1, F3): the history prune and the basis of a taken window, a change of height
+
+    /// The window name of the stroke `draw` put last on the canvas.
+    private func lastDrawn(on rig: SpanRig, file: StaticString = #filePath, line: UInt = #line) throws -> String {
+        let stroke = try XCTUnwrap(rig.canvas.drawing.strokes.last, file: file, line: line)
+        return try XCTUnwrap(rig.ledger.id(of: stroke), file: file, line: line)
+    }
+
+    /// The eraser takes the canvas's stroke of window name `name` away, as PencilKit reports it.
+    private func erase(_ name: String, on rig: SpanRig) {
+        update(rig, tool: .eraser)
+        rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes.filter { rig.ledger.id(of: $0) != name })
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        update(rig, tool: pen)
+    }
+
+    /// H1, §3.5, §3.6 (the final critic's F1 (i)): another device's 「全て消す」 deletes 11/16's record (the engine removes
+    /// the file, then `remoteDeleted`). Once the canvas takes the window composed after it, the ↶ steps of 11/16 — a line
+    /// written there and erased — are gone from the history (`pruneHistory(touching: takeHistoryPrune())`), while the
+    /// later step of 11/23 stays: ↶ takes 11/23's line away, then there is nothing to undo, a second ↶ puts no delta into
+    /// the inbox, and nothing goes back into 11/16's file. Without the prune the second ↶ re-adds the erased line under
+    /// its own id (the emptied page has no tombstone for it): a delta of the session's new number, applied and saved into
+    /// the page another device emptied.
+    func testARemoteDeletionDropsThatPagesUndoSteps() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let g16 = cell(.grid, of: w1116, session)
+        draw(shortStroke(at: g16.minX + 300, g16.minY + 300), on: rig)
+        let written = try lastDrawn(on: rig)
+        XCTAssertTrue(written.hasPrefix(w1116))
+        erase(written, on: rig)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "erased")
+        let g23 = cell(.grid, of: w1123, session)
+        draw(shortStroke(at: g23.minX + 300, g23.minY + 300), on: rig)
+        let later = try lastDrawn(on: rig)
+        XCTAssertTrue(later.hasPrefix(w1123))
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertTrue(bed.store.exists(w1116))
+        XCTAssertEqual(bed.store.load(w1116).liveStrokeCount, 0)
+        XCTAssertEqual(bed.live(w1123).count, 1)
+
+        // As `SyncEngine` applies a deleted record: the file goes, then the session hears of it.
+        try bed.store.remove(w1116)
+        session.remoteDeleted(w1116)
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the window")
+        XCTAssertFalse(rig.ledger.page.isLive(written))
+        XCTAssertTrue(rig.ledger.page.isLive(later))
+        XCTAssertTrue(rig.ledger.canUndo, "11/23's later step stays")
+
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(later), "↶ takes 11/23's line away")
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [w1123])
+        XCTAssertFalse(rig.ledger.canUndo, "11/16's steps went with the window taken after the deletion")
+        XCTAssertTrue(rig.ledger.canRedo, "the ↶ just made can be redone")
+        update(rig, undoTrigger: 2)
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [w1123], "a second ↶ puts no delta of 11/16")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "the erased line does not come back")
+        XCTAssertNil(shown(written, on: rig))
+        await settle()
+        XCTAssertEqual(session.page(w1116)?.liveStrokeCount, 0)
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(w1116).liveStrokeCount, 0, "nothing written back into the page another device emptied")
+        XCTAssertFalse(bed.store.exists(w1116), "its file is not made again")
+        XCTAssertEqual(bed.live(w1123).count, 0, "11/23's ↶ is saved")
+    }
+
+    /// §3.6 ずらしの手順 (the final critic's F1 (ii)): a line written on 11/02 and erased; the paper moved one week right and
+    /// the window shifted (11/02 left, saved as it went). The steps of the page that left go from the history with the
+    /// shift: nothing to undo or redo, and ↶ puts nothing into the inbox. Without the prune ↶ re-adds the erased line to a
+    /// page the window no longer holds (a delta or a name no page of the window takes: a fault).
+    func testAShiftDropsTheUndoStepsOfThePageThatLeft() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let g = cell(.grid, of: w1102, session)
+        draw(shortStroke(at: g.minX + 300, g.minY + 300), on: rig)
+        let written = try lastDrawn(on: rig)
+        XCTAssertTrue(written.hasPrefix(w1102))
+        erase(written, on: rig)
+        XCTAssertTrue(rig.ledger.canUndo)
+        await settle()
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        XCTAssertEqual(session.pageIds.first, w1109, "11/02 left the window")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
+        XCTAssertFalse(rig.ledger.canUndo, "11/02's steps left with it")
+        XCTAssertFalse(rig.ledger.canRedo)
+        XCTAssertTrue(session.inbox.deltas.isEmpty)
+        update(rig, undoTrigger: 1)
+        XCTAssertTrue(session.inbox.deltas.isEmpty, "↶ yields no delta")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertFalse(rig.ledger.page.strokes.keys.contains { $0.hasPrefix(w1102) }, "nothing of 11/02 in the ledger")
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(w1102).liveStrokeCount, 0, "11/02 as it was saved when it left: its line erased")
+        XCTAssertEqual(bed.store.load(w1102).deleted.count, 1)
+    }
+
+    /// §3.4 (c), H1, D17 (the final critic's F1, the basis): the window the canvas has just taken is at once the safety
+    /// net's source and the PDF's (`putWindowIntoInbox` with that window's `windowVersion` as its basis), before anything
+    /// is written on it. After another device emptied 11/16 the inbox holds the window the canvas took, at the session's
+    /// version, and a save brings nothing back (no stroke of 11/16 returns, none of 11/23 is doubled, no recovery); after
+    /// an update from iCloud whose line on 11/23 reaches into 11/16, the PDF of 11/16 draws that line. Without the put
+    /// the inbox keeps the opening's window and basis until the person writes again: the PDF of 11/16 lacks its
+    /// neighbour's line.
+    func testATakenWindowIsAtOnceTheSafetyNetsAndThePDFsSource() async throws {
+        let session = try await open(stored: [page(w1116, ["a", "b"]), page(w1123, ["c"])])
+        let rig = await attach(session)
+        func basisIsTheTakenWindow(_ what: String, line: UInt = #line) {
+            XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "taken (\(what))", line: line)
+            XCTAssertEqual(session.inbox.latestBasis, session.windowVersion, "the basis (\(what))", line: line)
+            XCTAssertEqual(Set(session.inbox.latestWindow?.ledgerPage.liveStrokeIds ?? []), Set(rig.ledger.page.liveStrokeIds),
+                           "the safety net reads the ledger's window (\(what))", line: line)
+        }
+        basisIsTheTakenWindow("the opening")
+
+        try bed.store.remove(w1116)
+        session.remoteDeleted(w1116)
+        await settle()
+        basisIsTheTakenWindow("after the deletion from another device")
+        XCTAssertEqual(rig.ledger.page.liveStrokeCount, 1, "only 11/23's line is left")
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(session.page(w1116)?.liveStrokeCount, 0, "nothing came back")
+        XCTAssertEqual(session.page(w1123)?.liveStrokeIds, ["c"], "nothing doubled")
+        XCTAssertFalse(bed.store.exists(w1116))
+        XCTAssertEqual(bed.live(w1123), ["c"])
+        XCTAssertFalse(session.records.contains { $0.contains("safety net") }, "no recovery")
+
+        // A line of 11/23 from iCloud whose points lie 80 lu left of 11/23's left edge: over 11/16.
+        let reachX = origin(w1123, session) - cell(.grid, of: w1123, session).minX - 80
+        var remote = InkPage.empty(pageId: w1123)
+        remote.add(bed.stroke("reach", cell: .grid, x: reachX, y: 300))
+        session.remoteUpdated(remote)
+        await settle()
+        basisIsTheTakenWindow("after the update from iCloud")
+        let pdf = try XCTUnwrap(session.pdfInput(for: w1116))
+        XCTAssertEqual(pdf.neighborInk.map(\.stroke.id), ["reach"], "the PDF of 11/16 draws its neighbour's line")
+        XCTAssertEqual(pdf.neighborInk.map(\.pageId), [w1123])
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.live(w1123), ["c", "reach"])
+        XCTAssertFalse(bed.store.exists(w1116), "11/16 stays deleted")
+        XCTAssertFalse(session.records.contains { $0.contains("safety net") })
+    }
+
+    /// §3.6 (the final critic's F3): at the overview the paper area gets shorter (the all-day lanes grow: 955 → 900 pt on an
+    /// 11-inch portrait week) and the overview's zoom follows the height; the focus week stays in the middle of the screen
+    /// (0.5 pt), and again when the height comes back. A band moved off the middle keeps the band x (lu) in the middle of
+    /// the screen, as a change of width does (`centerPaper`). 1.2.3's `applyBounds` keeps x in points: on the band the
+    /// focus week would go about 100 pt to the side.
+    func testAHeightChangeAtTheOverviewKeepsTheFocusPageInTheMiddle() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let zoom0 = rig.zoom
+        func middleOfTheFocusWeek() -> CGFloat {
+            (origin(w1116, session) + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x
+        }
+        func middleOfTheScreen() -> CGFloat {
+            (rig.canvas.contentOffset.x + 417) / rig.zoom
+        }
+        func height(_ value: CGFloat) {
+            rig.container.frame = CGRect(x: 0, y: 0, width: 834, height: value)
+            rig.container.layoutSubviews()
+        }
+        XCTAssertEqual(middleOfTheFocusWeek(), 417, accuracy: 0.5)
+
+        height(900)
+        XCTAssertLessThan(rig.zoom, zoom0 - 0.01, "the overview's zoom followed the height")
+        XCTAssertEqual(middleOfTheFocusWeek(), 417, accuracy: 0.5, "the focus week stays in the middle")
+        await settle()
+        XCTAssertEqual(middleOfTheFocusWeek(), 417, accuracy: 0.5)
+        XCTAssertEqual(session.focusPageId, w1116)
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 0)
+
+        height(955)
+        XCTAssertEqual(rig.zoom, zoom0, accuracy: 1e-4)
+        XCTAssertEqual(middleOfTheFocusWeek(), 417, accuracy: 0.5, "and when the height comes back")
+        await settle()
+
+        // Off the middle (0.3 week to the right): the band x in the middle of the screen stays.
+        rig.canvas.contentOffset.x += 0.3 * rig.page
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        await settle()
+        let mid = middleOfTheScreen()
+        height(900)
+        XCTAssertLessThan(rig.zoom, zoom0 - 0.01)
+        XCTAssertEqual(middleOfTheScreen() * rig.zoom, mid * rig.zoom, accuracy: 0.5, "the same band x in the middle")
+        await settle()
+        XCTAssertEqual(middleOfTheScreen() * rig.zoom, mid * rig.zoom, accuracy: 0.5)
+        XCTAssertEqual(session.focusPageId, w1116)
+    }
 }
