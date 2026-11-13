@@ -234,6 +234,11 @@ jobs:
       # order and account checks changed, not the data's form) and, after the H4 fix, that of the commit
       # with the two pendingCloudErase guards. The file keeps its name; the commit it was made from is in
       # docs/M7B.md.
+      # 1.3 (docs/M7C_CONTRACT.md §6.4, D9): the four files 1.3 may change (Ink/InkLedger.swift, Ink/InkCanvasView.swift,
+      # Ink/InkOverlayView.swift, Sync/SyncEngine.swift) get their row rewritten in the commit that changes them (step 2;
+      # since S4 the rows of InkLedger.swift and SyncEngine.swift, the latter with the H4 fix merged, are 1.3's); every
+      # other row is still the bytes above. At the submission the table is made again from that commit's tree, with
+      # the two new InkModel files (20 rows), and this step becomes "Data code frozen (re-based in 1.3)" (steps 4–5).
       - name: Data code frozen since 1.1.1
         run: |
           set -euo pipefail
@@ -457,7 +462,9 @@ jobs:
       # 54–59) are repeated with them, and since the H4 fix SyncEngineEraseFetchTests (60–62). SpanSessionTests and
       # ScreenEraseTests (§10.2, role S) join in S5: each is added (-only-testing) as soon as its `class` line is in
       # Tests/TegakiCalendarTests (none yet, so nothing changes now). The limit: 9 → 15, the contract's estimate with
-      # them (§10.6), to be set again from their first runs (the per-class lines below; docs/M7C.md). Measured: on r13
+      # them (§10.6), to be set again from their first runs (the per-class lines below; docs/M7C.md). On S's work
+      # branch (run 43315186882) one pass of ScreenEraseTests (11 tests) took 3.8 s and of SpanSessionTests (29) 2.2 s
+      # in the unit test step: about 2 min more for 20 passes, so the step should take some 5–7 min. Measured: on r13
       # before 1.3's tests the step took 2.3–4.7 min (runs 43060727400 to 43149906124), its 1,200 passes 18–39 s; with
       # SyncEngineSpanTests (run 43163415023) 5.5 min, its 1,320 passes 44 s (57 s on the clock): SyncEngineTests 1,200
       # in 36.5 s, SyncEngineSpanTests 120 in 7.4 s; in runs 43176186917 to 43251126239 (SyncEngineEraseFetchTests in
