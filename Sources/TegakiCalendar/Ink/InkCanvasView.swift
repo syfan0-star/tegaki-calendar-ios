@@ -2153,6 +2153,7 @@ extension InkCanvasView {
             guard let state = spanState else { return }
             state.dragStartX = scrollView.contentOffset.x
             state.slideTargetX = nil
+            state.queuedSlidePages = 0
             noteMotion()
         }
 
@@ -2531,6 +2532,8 @@ final class InkSpanState {
     /// Where an arrow's slide is going (nil when none runs), and where the last one went (the tests).
     var slideTargetX: CGFloat?
     var lastSlideTargetX: CGFloat?
+    /// Pages pressed while a slide ran: slid after it, once the window has shifted.
+    var queuedSlidePages = 0
     /// The content offset x where the drag began (the fling's start).
     var dragStartX: CGFloat?
     var lastSlideTrigger: Int
@@ -3026,8 +3029,10 @@ extension InkCanvasView.Coordinator {
                 if let target = state.slideTargetX, let canvas = self.canvas, abs(canvas.contentOffset.x - target) < 0.5 {
                     state.slideTargetX = nil
                 }
-                if self.shiftIfAtRest() == .busy { continue }
+                let outcome = self.shiftIfAtRest()
+                if outcome == .busy { continue }
                 state.watchRunning = false
+                self.continueQueuedSlide(after: outcome)
                 return
             }
         }
@@ -3041,8 +3046,11 @@ extension InkCanvasView.Coordinator {
         Task { @MainActor [weak self] in
             guard let self, let state = self.spanState else { return }
             state.shiftCheckScheduled = false
-            if self.shiftIfAtRest() == .busy {
+            let outcome = self.shiftIfAtRest()
+            if outcome == .busy {
                 self.startWatch()
+            } else {
+                self.continueQueuedSlide(after: outcome)
             }
         }
     }
@@ -3154,15 +3162,19 @@ extension InkCanvasView.Coordinator {
     }
 
     /// ◀ ▶ and a near 「今日」 (§3.6): exactly `pages` pages (`SpanPlan.shiftAmount` at the zoom it has, so a boundary in
-    /// the middle of the screen stays there), animated, from where a running slide was going; kept on the band. The
-    /// window shifts when the slide ends. Never under the pen or during a pinch. Internal for the tests (the owner's
-    /// way is `slideTrigger`).
+    /// the middle of the screen stays there), animated; kept on the band. The window shifts when the slide ends. A press
+    /// while a slide runs waits for it and its shift (the band holds R pages beyond the focus, so a page further on may
+    /// lie past the band's end until the window has shifted). Never under the pen or during a pinch. Internal for the
+    /// tests (the owner's way is `slideTrigger`).
     func slide(byPages pages: Int) {
         guard let state = spanState, let canvas, let band = appliedLayout as? SpanLayout, hasInitialZoom, pages != 0,
               !isLive, !isUsingTool else { return }
+        if state.slideTargetX != nil {
+            state.queuedSlidePages += pages
+            return
+        }
         let zoom = max(canvas.zoomScale, 0.0001)
-        let base = state.slideTargetX ?? canvas.contentOffset.x
-        let target = clampedOffset(CGPoint(x: base + band.plan.shiftAmount(pages: pages, zoom: zoom), y: canvas.contentOffset.y))
+        let target = clampedOffset(CGPoint(x: canvas.contentOffset.x + band.plan.shiftAmount(pages: pages, zoom: zoom), y: canvas.contentOffset.y))
         guard abs(target.x - canvas.contentOffset.x) >= 0.5 else { return }
         state.lastSlideTargetX = target.x
         if state.animatesSlides {
@@ -3173,6 +3185,17 @@ extension InkCanvasView.Coordinator {
             canvas.setContentOffset(target, animated: false)
             noteMotion()
             requestShiftCheck()
+        }
+    }
+
+    /// The presses that waited for a slide, once the paper is still after it (the window shifted, or had nothing to
+    /// shift); dropped when the session could not save a page that leaves.
+    fileprivate func continueQueuedSlide(after outcome: InkCanvasView.SpanShiftOutcome) {
+        guard let state = spanState, state.queuedSlidePages != 0, state.slideTargetX == nil else { return }
+        let pages = state.queuedSlidePages
+        state.queuedSlidePages = 0
+        if outcome != .refused {
+            slide(byPages: pages)
         }
     }
 

@@ -354,9 +354,12 @@ final class InkCanvasSpanTests: XCTestCase {
             XCTAssertFalse(session.needsShift, what, line: line)
         }
 
+        // Each hold is in place before the paper moves: a shift check left over from the phase before (the window
+        // read after its shift) may run during the scroll's turns, and must find the canvas held.
+
         // The pen, then the settle wait after it.
-        await scroll(rig, pages: 1)
         touch(rig)
+        await scroll(rig, pages: 1)
         held("the pen on the paper")
         lift(rig)
         held("the settle wait")
@@ -365,8 +368,8 @@ final class InkCanvasSpanTests: XCTestCase {
         shifted("after the settle wait")
 
         // A fling (UIKit decelerating), then its end.
-        await scroll(rig, pages: 1)
         rig.coordinator.spanMotionOverride = true
+        await scroll(rig, pages: 1)
         held("a fling")
         rig.coordinator.spanMotionOverride = nil
         rig.coordinator.scrollViewDidEndDecelerating(rig.canvas)
@@ -374,15 +377,15 @@ final class InkCanvasSpanTests: XCTestCase {
         shifted("after the deceleration")
 
         // A pinch (or its bounce), then the stop after it.
-        await scroll(rig, pages: 1)
         rig.coordinator.liveOverride = true
+        await scroll(rig, pages: 1)
         held("a pinch")
         rig.coordinator.liveOverride = nil
         XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
         shifted("after the pinch")
 
         // A lasso selection, then the selection cleared.
-        await scroll(rig, pages: 1)
+        await settle()
         let focus = session.focusPageId
         let grid = cell(.grid, of: focus, session)
         draw(shortStroke(at: grid.minX + 500, grid.minY + 700), on: rig)
@@ -392,6 +395,7 @@ final class InkCanvasSpanTests: XCTestCase {
             CGPoint(x: box.minX, y: box.minY), CGPoint(x: box.maxX, y: box.minY),
             CGPoint(x: box.maxX, y: box.maxY), CGPoint(x: box.minX, y: box.maxY),
         ])
+        await scroll(rig, pages: 1)
         held("a lasso selection")
         rig.coordinator.overlayDidTouchOutsideSelection(rig.container.overlayView)
         XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
@@ -399,8 +403,8 @@ final class InkCanvasSpanTests: XCTestCase {
 
         // A sheet, then the sheet closed.
         update(rig, tool: pen)
-        await scroll(rig, pages: 1)
         update(rig, isSheetOpen: true)
+        await scroll(rig, pages: 1)
         held("a sheet")
         update(rig, isSheetOpen: false)
         await settle()
@@ -788,6 +792,7 @@ final class InkCanvasSpanTests: XCTestCase {
         })])
         one.canvasViewDrawingDidChange(oneContainer.canvasView)
         XCTAssertEqual(oneInkBounds, 1)
+        XCTAssertEqual(oneCaps, 1, "5,990 leaves less than 400 lu below it: once")
         let grown = dayLayout(one.ledger.page.inkBottoms())
         XCTAssertEqual(grown.extra.height, 6_040, accuracy: 0.5)
         let oneBuilds = one.setDrawingCount
@@ -807,6 +812,7 @@ final class InkCanvasSpanTests: XCTestCase {
         draw(low, on: rig)
         let lowName = try XCTUnwrap(rig.ledger.id(of: try XCTUnwrap(rig.canvas.drawing.strokes.first)))
         XCTAssertEqual(rig.probe.inkBounds, 1, "the owner hears of it as on the one page")
+        XCTAssertEqual(rig.probe.pageCaps, [d1116], "as on the one page: once, naming the owner day")
         await settle()
         for id in session.pageIds {
             XCTAssertEqual(cell(.extra, of: id, session).height, grown.extra.height, accuracy: 0.5, "\(id): the window's floor (D16)")
@@ -822,13 +828,13 @@ final class InkCanvasSpanTests: XCTestCase {
         }
         draw(flat(extra.minX + 100, extra.minY + 5_598), on: rig)
         await settle()
-        XCTAssertEqual(rig.probe.pageCaps, [], "5,600: 400 lu left")
+        XCTAssertEqual(rig.probe.pageCaps, [d1116], "5,600: 400 lu left, nothing more")
         draw(flat(extra.minX + 500, extra.minY + 5_599), on: rig)
         await settle()
-        XCTAssertEqual(rig.probe.pageCaps, [d1116], "5,601: once, the owner day")
+        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116], "5,601: once, the owner day")
         draw(flat(extra.minX + 500, extra.minY + 6_098), on: rig)
         await settle()
-        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116], "6,098: dropped, with the notice")
+        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116, d1116], "6,098: dropped, with the notice")
         XCTAssertEqual(rig.ledger.page.liveStrokeCount, 3)
         XCTAssertEqual(rig.probe.oldCaps, 0)
 
@@ -844,7 +850,7 @@ final class InkCanvasSpanTests: XCTestCase {
         }
         XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
         XCTAssertEqual(rig.canvas.contentSize.height, session.layout.size.height * rig.zoom, accuracy: 0.5)
-        XCTAssertEqual(oneCaps, 0)
+        XCTAssertEqual(oneCaps, 1)
     }
 
     // MARK: More of §3.6, §3.4
@@ -951,29 +957,38 @@ final class InkCanvasSpanTests: XCTestCase {
         bed.allowSaves(of: w1102)
     }
 
-    /// §3.6 ◀ ▶: each slide is exactly one week (696.35 pt at the overview); a second one before the first ended goes on
-    /// from where the first was going; the window shifts when the slide ends (by two weeks), nothing moving on the
-    /// screen. `slideTrigger` slides once per change, on the next turn (here backwards, without the animation).
+    /// §3.6 ◀ ▶: each slide is exactly one week (696.35 pt at the overview) and the window shifts when it ends, nothing
+    /// moving on the screen. A second press while the first one slides waits for it and its shift (from where the first
+    /// was going, the band of five weeks has no room to bring the week after next to the middle), then slides one more
+    /// week. `slideTrigger` slides once per change, on the next turn (here backwards, without the animation).
     func testArrowsSlideExactlyOnePage() async throws {
         let session = try await open()
         let rig = await attach(session)
         let x0 = rig.canvas.contentOffset.x
-        // Two presses in one turn: the second goes on from the first one's end.
+        // Two presses in one turn.
         rig.coordinator.slide(byPages: 1)
         XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "exactly one week")
+        let sliding = rig.coordinator.spanSlideTargetX != nil
         rig.coordinator.slide(byPages: 1)
-        let target = x0 + 2 * rig.page
-        XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, target, accuracy: 0.01, "from where it was going")
-        if rig.coordinator.spanSlideTargetX != nil {
+        if sliding {
+            XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "the second press waits")
             XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "no shift while it slides")
         }
-        // The slide's end (UIKit's animation stopped where it was going).
-        rig.canvas.setContentOffset(CGPoint(x: target, y: rig.canvas.contentOffset.y), animated: false)
-        rig.coordinator.scrollViewDidEndScrollingAnimation(rig.canvas)
+        // The first slide ends (UIKit's animation stopped where it was going), the window shifts, the second slides.
+        func endTheSlide() async {
+            if let target = rig.coordinator.spanSlideTargetX {
+                rig.canvas.setContentOffset(CGPoint(x: target, y: rig.canvas.contentOffset.y), animated: false)
+                rig.coordinator.scrollViewDidEndScrollingAnimation(rig.canvas)
+            }
+            await settle()
+        }
+        await endTheSlide()
+        XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "the second: one more week from the middle")
+        await endTheSlide()
         XCTAssertNil(rig.coordinator.spanSlideTargetX)
-        await settle()
-        XCTAssertEqual(session.pageIds, [w1116, w1123, w1130, w1207, "w-2026-12-14"], "shifted by two weeks")
+        XCTAssertEqual(session.pageIds, [w1116, w1123, w1130, w1207, "w-2026-12-14"], "two weeks on")
         XCTAssertEqual(rig.canvas.contentOffset.x, x0, accuracy: 0.5, "the focus week back in the middle of the band")
+        XCTAssertGreaterThanOrEqual(rig.coordinator.spanShiftCount, 2)
 
         // The owner's trigger, once per change, on the next turn.
         rig.coordinator.spanAnimatesSlides = false
