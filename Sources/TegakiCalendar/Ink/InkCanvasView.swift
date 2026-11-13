@@ -2624,7 +2624,6 @@ extension InkCanvasView.Coordinator {
         }
         #endif
         let windowLedger = InkLedger(page: session.window.ledgerPage, layout: session.layout, deviceId: deviceId)
-        windowLedger.ownerId = { [weak session] cell in session?.ownerId(for: cell) ?? InkStroke.newId() }
         ledger = windowLedger
         appliedLayout = session.layout
         publishedSignature = InkCanvasView.PageSignature(windowLedger.page)
