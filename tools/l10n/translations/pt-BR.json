@@ -1395,7 +1395,7 @@
     },
     "settings.page.span.footer": {
       "jaSha1": "9e479b575c",
-      "text": "Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever por cima da emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos entre duas páginas aparecem só em uma delas (não são apagados)."
+      "text": "Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever atravessando a emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos de uma página para a outra aparecem só em uma das duas (não são apagados)."
     },
     "settings.purchase.footer.cancel": {
       "jaSha1": "0374921042",
@@ -1523,19 +1523,19 @@
     },
     "span.guide.day.oneFinger": {
       "jaSha1": "be30744b19",
-      "text": "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda."
+      "text": "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda."
     },
     "span.guide.day.twoFingers": {
       "jaSha1": "3eb73ecc0e",
-      "text": "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda."
+      "text": "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda."
     },
     "span.guide.week.oneFinger": {
       "jaSha1": "3e0865a2f2",
-      "text": "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda."
+      "text": "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda."
     },
     "span.guide.week.twoFingers": {
       "jaSha1": "c3ab28781e",
-      "text": "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda."
+      "text": "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda."
     },
     "span.stageTwo.notice": {
       "jaSha1": "a8da928830",

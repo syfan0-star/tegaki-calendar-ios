@@ -1395,7 +1395,7 @@
     },
     "settings.page.span.footer": {
       "jaSha1": "9e479b575c",
-      "text": "En las páginas de la semana y del día, las páginas anterior y siguiente se unen en horizontal y puede escribir por encima de la unión. La función llegará a las páginas del mes y del año, una tras otra, a partir de la próxima versión. Si está desactivado, las páginas se muestran de una en una, como hasta ahora. En un dispositivo donde esté desactivado, los trazos escritos entre dos páginas solo aparecen en una de ellas (no se eliminan)."
+      "text": "En las páginas de la semana y del día, las páginas anterior y siguiente se unen en horizontal y puede escribir cruzando la unión. La función llegará a las páginas del mes y del año, una tras otra, a partir de la próxima versión. Si está desactivado, las páginas se muestran de una en una, como hasta ahora. En un dispositivo donde esté desactivado, los trazos escritos de una página a otra solo aparecen en una de las dos (no se eliminan)."
     },
     "settings.purchase.footer.cancel": {
       "jaSha1": "0374921042",
@@ -1523,19 +1523,19 @@
     },
     "span.guide.day.oneFinger": {
       "jaSha1": "be30744b19",
-      "text": "Los días anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el día contiguo. Puede escribir directamente por encima de la unión."
+      "text": "Los días anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión."
     },
     "span.guide.day.twoFingers": {
       "jaSha1": "3eb73ecc0e",
-      "text": "Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente por encima de la unión."
+      "text": "Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión."
     },
     "span.guide.week.oneFinger": {
       "jaSha1": "3e0865a2f2",
-      "text": "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente por encima de la unión."
+      "text": "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión."
     },
     "span.guide.week.twoFingers": {
       "jaSha1": "c3ab28781e",
-      "text": "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice dos dedos en horizontal para ver la semana contigua. Puede escribir directamente por encima de la unión."
+      "text": "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice dos dedos en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión."
     },
     "span.stageTwo.notice": {
       "jaSha1": "a8da928830",

@@ -20348,13 +20348,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En las páginas de la semana y del día, las páginas anterior y siguiente se unen en horizontal y puede escribir por encima de la unión. La función llegará a las páginas del mes y del año, una tras otra, a partir de la próxima versión. Si está desactivado, las páginas se muestran de una en una, como hasta ahora. En un dispositivo donde esté desactivado, los trazos escritos entre dos páginas solo aparecen en una de ellas (no se eliminan)."
+            "value" : "En las páginas de la semana y del día, las páginas anterior y siguiente se unen en horizontal y puede escribir cruzando la unión. La función llegará a las páginas del mes y del año, una tras otra, a partir de la próxima versión. Si está desactivado, las páginas se muestran de una en una, como hasta ahora. En un dispositivo donde esté desactivado, los trazos escritos de una página a otra solo aparecen en una de las dos (no se eliminan)."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire par-dessus la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés)."
+            "value" : "Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire à cheval sur la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés)."
           }
         },
         "it" : {
@@ -20378,7 +20378,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever por cima da emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos entre duas páginas aparecem só em uma delas (não são apagados)."
+            "value" : "Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever atravessando a emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos de uma página para a outra aparecem só em uma das duas (não são apagados)."
           }
         },
         "zh-Hans" : {
@@ -22448,7 +22448,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Tag daneben zu sehen. Sie können direkt über den Übergang schreiben."
+            "value" : "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Tag daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
           }
         },
         "en" : {
@@ -22460,13 +22460,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Los días anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el día contiguo. Puede escribir directamente por encima de la unión."
+            "value" : "Los días anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement par-dessus la jonction."
+            "value" : "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction."
           }
         },
         "it" : {
@@ -22490,7 +22490,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda."
+            "value" : "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda."
           }
         },
         "zh-Hans" : {
@@ -22514,7 +22514,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Tag daneben zu sehen. Sie können direkt über den Übergang schreiben."
+            "value" : "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Tag daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
           }
         },
         "en" : {
@@ -22526,13 +22526,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente por encima de la unión."
+            "value" : "Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement par-dessus la jonction."
+            "value" : "Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction."
           }
         },
         "it" : {
@@ -22556,7 +22556,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda."
+            "value" : "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda."
           }
         },
         "zh-Hans" : {
@@ -22580,7 +22580,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um die Woche daneben zu sehen. Sie können direkt über den Übergang schreiben."
+            "value" : "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um die Woche daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
           }
         },
         "en" : {
@@ -22592,13 +22592,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente por encima de la unión."
+            "value" : "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement par-dessus la jonction."
+            "value" : "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction."
           }
         },
         "it" : {
@@ -22622,7 +22622,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda."
+            "value" : "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda."
           }
         },
         "zh-Hans" : {
@@ -22646,7 +22646,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um die Woche daneben zu sehen. Sie können direkt über den Übergang schreiben."
+            "value" : "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um die Woche daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
           }
         },
         "en" : {
@@ -22658,13 +22658,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice dos dedos en horizontal para ver la semana contigua. Puede escribir directamente por encima de la unión."
+            "value" : "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice dos dedos en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement par-dessus la jonction."
+            "value" : "Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction."
           }
         },
         "it" : {
@@ -22688,7 +22688,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda."
+            "value" : "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda."
           }
         },
         "zh-Hans" : {
