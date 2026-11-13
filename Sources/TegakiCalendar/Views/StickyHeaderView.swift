@@ -28,22 +28,40 @@ struct StickyHeaderView: View {
     /// heading lines up with the paper on its own. Defaulted so the screen builds before and after
     /// it passes one.
     var viewport: PaperViewport = .zero
-    /// The language of the day page's heading (F-10). Always `L.language` in the app; the tests, which run
-    /// in Japanese (0-25), pass the others to measure them.
+    /// 1.3 (docs/M7C_CONTRACT.md §3.8, §3.13; the lead's decision 4 of docs/M7C.md, S1 の残り): the window of
+    /// joined weeks or days whose columns the row lays out side by side, each page from its slot's x, with
+    /// `viewport` the canvas's offset and zoom over the whole window (`spanWeekRow`, `spanDayRow`). Only there
+    /// the heading thins out when its columns get too narrow (`weekCellForm`, `dayBlockForm`) and the week's
+    /// time column carries the month of the week's first day (`weekGutterTitle`). nil, or a window of one
+    /// page (`PaperSpan.isJoined` false): the heading of `paper` alone, 1.2.3's. The title above it, and the
+    /// narrow screen's two-row title, stay the focus page's (the screen's `PageHeaderView`, §3.13).
+    var span: PaperSpan? = nil
+    /// The language of the day page's heading (F-10) and, since 1.3, of the week page's day cells (F-9: the
+    /// weekday's sign, its place over or beside the number, the short holiday name). Always `L.language` in
+    /// the app; the tests, which run in Japanese (0-25), pass the others to measure them.
     var language: UILanguage = L.language
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
 
     var body: some View {
-        switch paper {
-        case .month(let content):
-            monthRow(content.layout)
-        case .week(let content):
-            weekRow(content.layout)
-        case .day(let content):
-            dayRow(content.layout)
-        case .year(let content):
-            yearRow(content)
+        if let span = span, span.isJoined {
+            switch span.kind {
+            case .day:
+                spanDayRow(span)
+            default:
+                spanWeekRow(span)
+            }
+        } else {
+            switch paper {
+            case .month(let content):
+                monthRow(content.layout)
+            case .week(let content):
+                weekRow(content.layout)
+            case .day(let content):
+                dayRow(content.layout)
+            case .year(let content):
+                yearRow(content)
+            }
         }
     }
 
@@ -95,7 +113,7 @@ struct StickyHeaderView: View {
         let firstOfMonth = label.day.day == 1
         let number = firstOfMonth ? "\(label.day.month)/1" : "\(label.day.day)"
         // F-9: over the number there is room for the weekday of the first of a month too.
-        let stacked = PaperWords.weekColumnStacksWeekday(L.language)
+        let stacked = PaperWords.weekColumnStacksWeekday(language)
         let showsWeekday = stacked || !(firstOfMonth && viewport.width(ofPaper: PaperSpec.weekColumnWidth) < Self.narrowWeekColumnPoints)
         let tone = Self.toneColor(label.tone)
         return Button {
@@ -120,7 +138,7 @@ struct StickyHeaderView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 if let holiday = label.holidayName, !holiday.isEmpty {
-                    if let short = PaperWords.weekColumnShortHoliday(label, L.language) {
+                    if let short = PaperWords.weekColumnShortHoliday(label, language) {
                         // F-9: outside ja the short name when the full one does not fit, not an open bracket.
                         ViewThatFits(in: .horizontal) {
                             weekDayHoliday(holiday)
@@ -143,7 +161,7 @@ struct StickyHeaderView: View {
     }
 
     private func weekDayWeekday(_ label: DateLabel, tone: Color?) -> some View {
-        Text(PaperWords.weekColumnWeekday(label.day.weekday, columnWidth: viewport.width(ofPaper: PaperSpec.weekColumnWidth), L.language))
+        Text(PaperWords.weekColumnWeekday(label.day.weekday, columnWidth: viewport.width(ofPaper: PaperSpec.weekColumnWidth), language))
             .font(.system(size: 12, weight: label.isToday ? .bold : .medium))
             .foregroundStyle(label.isToday ? accentColor : (tone ?? ink2))
     }
@@ -289,6 +307,254 @@ struct StickyHeaderView: View {
         .clipped()
         .background(paperColor)
         .overlay(alignment: .bottom) { bottomLine }
+    }
+
+    // MARK: - 1.3: the joined window (§3.8, §3.13; the lead's decision 4)
+
+    /// How a day column of the joined weeks' heading is shown (decision 4: on an iPhone in landscape at the
+    /// overview, 20 pt columns, 1.2.3's cells run into each other).
+    enum WeekCellForm: Equatable {
+        /// 1.2.3's cell (`weekDayCell`): the weekday, the number, the holiday name.
+        case full
+        /// The number alone, on every day. The holiday name gives way (its line stays, empty, and in a language
+        /// that has the weekday over the number, F-9's pt-BR, so does the weekday's line: the row is as tall as
+        /// `.full`'s in every language, and the paper area does not change during a pinch that crosses
+        /// `joinedWeekFullPoints`, K-6, F-9); the number keeps the holiday's red.
+        case number
+        /// The number on every `every`-th day only, counted from today (`sparseShows`), so the labelled days
+        /// keep their places across the weeks' boundaries and while the window shifts; the other columns keep
+        /// their tint and line. No holiday names.
+        case sparse(every: Int)
+    }
+
+    /// At and above this column width (pt) the joined weeks keep 1.2.3's day cell: its weekday sign, 4 pt and
+    /// the number's 30 pt box fit with the cell's 2 pt on each side (an iPad mini in landscape at the overview
+    /// has 52 pt, an iPhone in portrait 54 pt).
+    static let joinedWeekFullPoints: CGFloat = 50
+    /// At and above this column width (pt) every day keeps its number (the 30 pt box and 2 pt on each side).
+    static let joinedWeekNumberPoints: CGFloat = 34
+
+    /// The form of the week's day columns at `columnPoints` (190.857 lu × zoom). Only the joined path thins
+    /// (`joined`); the heading of one page is always 1.2.3's (`.full`), as is a column width that is not
+    /// usable (the first frame). Below `joinedWeekNumberPoints` one day in ⌈34 ÷ width⌉ (at least 2) keeps its
+    /// number: every other day at the iPhone's 20 pt.
+    static func weekCellForm(joined: Bool, columnPoints: CGFloat) -> WeekCellForm {
+        guard joined, columnPoints.isFinite, columnPoints > 0 else { return .full }
+        if columnPoints >= joinedWeekFullPoints { return .full }
+        if columnPoints >= joinedWeekNumberPoints { return .number }
+        return .sparse(every: max(2, Int((joinedWeekNumberPoints / columnPoints).rounded(.up))))
+    }
+
+    /// Does `day` keep its number in `.sparse(every:)`: (its day number − `anchor`) is a multiple of `every`.
+    /// The screen's anchor is today's day number, so today is always one of them.
+    static func sparseShows(_ day: DayKey, every: Int, anchor: Int) -> Bool {
+        guard every > 1 else { return true }
+        return (day.dayNumber - anchor) % every == 0
+    }
+
+    /// How the date of a joined day page is shown over its time line column.
+    enum DayBlockForm: Equatable {
+        /// 1.2.3's date block (`dayDateBlock`): the number, the month's name, the weekday, the holiday.
+        case full
+        /// The number and the weekday's short name.
+        case numberAndWeekday
+        /// The number alone.
+        case number
+    }
+
+    /// At and above this width of the time line column (pt) the joined days keep 1.2.3's date block (an
+    /// iPhone in portrait at the overview has 131 pt, an iPad mini in landscape 128 pt).
+    static let joinedDayFullPoints: CGFloat = 100
+    /// At and above it the weekday stays beside the number (an iPhone in landscape has 50 pt: the number alone).
+    static let joinedDayWeekdayPoints: CGFloat = 64
+
+    /// The form of a joined day's date at `columnPoints` (588 lu × zoom). The day page alone is always
+    /// 1.2.3's (`joined` false), as is a width that is not usable.
+    static func dayBlockForm(joined: Bool, columnPoints: CGFloat) -> DayBlockForm {
+        guard joined, columnPoints.isFinite, columnPoints > 0 else { return .full }
+        if columnPoints >= joinedDayFullPoints { return .full }
+        return columnPoints >= joinedDayWeekdayPoints ? .numberAndWeekday : .number
+    }
+
+    /// The size (pt, semibold) of the month over a joined week's time column.
+    static let joinedGutterFontSize: CGFloat = 11
+
+    /// The heading of a joined week's time column (§3.8, §3.9 3, B_DESIGN.md §3.2): the month of the week's
+    /// first day (`days.first`, a Monday or a Sunday by the week start) — its name, `.full` then `.short` — or,
+    /// for the week that holds January 1, that year (`DateText.yearTitle`, then the plain number). The first
+    /// that fits `gutterPoints` (64 lu × zoom) with 2 pt on each side at 11 pt semibold; nil when none fits
+    /// (an iPhone in landscape) or there is no day.
+    static func weekGutterTitle(days: [DayKey], gutterPoints: CGFloat, language: UILanguage) -> String? {
+        guard let first = days.first, gutterPoints.isFinite else { return nil }
+        let candidates: [String]
+        if let newYear = days.first(where: { $0.month == 1 && $0.day == 1 }) {
+            candidates = [DateText.yearTitle(newYear.year, language), String(newYear.year)]
+        } else {
+            candidates = [DateText.monthName(first.month, .full, language), DateText.monthName(first.month, .short, language)]
+        }
+        let font = UIFont.systemFont(ofSize: joinedGutterFontSize, weight: .semibold)
+        let room = gutterPoints - 4
+        return candidates.first { !$0.isEmpty && PaperText.naturalWidth(of: $0, font: font) <= room }
+    }
+
+    /// The columns of the joined pages side by side: per page the week's [64] + [190.857…] × 7 or the day's
+    /// [72, 588, 340] (the columns of `weekRow` / `dayRow`), so page k's first column starts at k × the page
+    /// width, `PaperSpan.origin(ofSlot:)`.
+    static func spanColumns(_ span: PaperSpan) -> [CGFloat] {
+        let page: [CGFloat] = span.kind == .day
+            ? [PaperSpec.dayGutter, PaperSpec.dayTimelineRight - PaperSpec.dayGutter, PaperSpec.dayWidth - PaperSpec.dayTimelineRight]
+            : [PaperSpec.weekGutter] + Array(repeating: PaperSpec.weekColumnWidth, count: PaperSpec.weekColumns)
+        return Array(Array(repeating: page, count: span.pages.count).joined())
+    }
+
+    /// The joined weeks: per page the month over its time column and its 7 day columns, in the form the
+    /// column width allows.
+    private func spanWeekRow(_ span: PaperSpan) -> some View {
+        let columnPoints = viewport.width(ofPaper: PaperSpec.weekColumnWidth)
+        let gutterPoints = viewport.width(ofPaper: PaperSpec.weekGutter)
+        let form = Self.weekCellForm(joined: true, columnPoints: columnPoints)
+        let anchor = DayKey(now, calendar: DayKey.deviceCalendar).dayNumber
+        return PaperRow(kind: .week, viewport: viewport, columns: Self.spanColumns(span)) {
+            ForEach(span.pages.indices, id: \.self) { slot in
+                weekGutterCell(span.dateLabels(ofSlot: slot).map(\.day), gutterPoints: gutterPoints)
+                ForEach(span.dateLabels(ofSlot: slot), id: \.day) { label in
+                    spanWeekDayCell(label, form: form, anchor: anchor, columnPoints: columnPoints)
+                }
+            }
+        }
+        .clipped()
+        .background(paperColor)
+        .overlay(alignment: .bottom) { bottomLine }
+    }
+
+    /// The month (or the year) over a joined week's time column; empty when it does not fit. The day columns
+    /// say the whole date to VoiceOver, so this one is not read.
+    private func weekGutterCell(_ days: [DayKey], gutterPoints: CGFloat) -> some View {
+        Text(Self.weekGutterTitle(days: days, gutterPoints: gutterPoints, language: L.language) ?? "")
+            .font(.system(size: Self.joinedGutterFontSize, weight: .semibold))
+            .foregroundStyle(ink2)
+            .lineLimit(1)
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 48)
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func spanWeekDayCell(_ label: DateLabel, form: WeekCellForm, anchor: Int, columnPoints: CGFloat) -> some View {
+        switch form {
+        case .full:
+            weekDayCell(label)
+        case .number:
+            thinWeekDayCell(label, shows: true, labelWidth: nil)
+        case .sparse(let every):
+            thinWeekDayCell(label, shows: Self.sparseShows(label.day, every: every, anchor: anchor),
+                            labelWidth: max(30, CGFloat(every) * columnPoints - 4))
+        }
+    }
+
+    /// A day column of the thinned joined weeks: the number alone (1.2.3's number, today's capsule, the tone's
+    /// colour) centred over the column, the holiday line kept empty; `shows` false leaves the column's tint
+    /// and line only. `labelWidth` is the room a sparse number gets over its empty neighbours. The column is
+    /// exactly as wide as proposed, so what reaches past it is shared evenly on both sides. In a language that
+    /// has the weekday over the number (`PaperWords.weekColumnStacksWeekday`, F-9) the weekday's line is kept
+    /// over it, empty, as `weekDayCell` stacks them, so the cell is as tall as `weekDayCell` (its weekday at
+    /// one line of 12 pt, never shrunk: at `joinedWeekFullPoints` the sign fits whole).
+    private func thinWeekDayCell(_ label: DateLabel, shows: Bool, labelWidth: CGFloat?) -> some View {
+        let number = label.day.day == 1 ? "\(label.day.month)/1" : "\(label.day.day)"
+        let tone = Self.toneColor(label.tone)
+        let stacked = PaperWords.weekColumnStacksWeekday(language)
+        return Button {
+            onDayTap(label.day)
+        } label: {
+            VStack(spacing: 1) {
+                VStack(spacing: 0) {
+                    if stacked {
+                        weekDayWeekday(label, tone: tone)
+                            .lineLimit(1)
+                            .hidden()
+                    }
+                    weekDayNumber(number, label, tone: tone)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .frame(width: labelWidth)
+                        .opacity(shows ? 1 : 0)
+                }
+                if let holiday = label.holidayName, !holiday.isEmpty {
+                    weekDayHoliday(holiday)
+                        .hidden()
+                }
+            }
+            .padding(.vertical, 4)
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 48)
+            .background(label.isToday ? todayTint : (label.tone != .normal ? weekendTint : Color.clear))
+            .overlay(alignment: .leading) { columnLine }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L.format("header.day.spoken", Self.dayLabel(label)))
+    }
+
+    /// The joined days: per page 1.2.3's three columns, the date over the time line column in the form its
+    /// width allows.
+    private func spanDayRow(_ span: PaperSpan) -> some View {
+        let timeline = PaperSpec.dayTimelineRight - PaperSpec.dayGutter
+        let form = Self.dayBlockForm(joined: true, columnPoints: viewport.width(ofPaper: timeline))
+        return PaperRow(kind: .day, viewport: viewport, columns: Self.spanColumns(span)) {
+            ForEach(span.pages.indices, id: \.self) { slot in
+                Color.clear
+                if let label = span.dateLabels(ofSlot: slot).first {
+                    spanDayBlock(label, form: form)
+                } else {
+                    Color.clear
+                }
+                Color.clear
+                    .overlay(alignment: .leading) { Rectangle().fill(lineStrongColor).frame(width: 1) }
+            }
+        }
+        .clipped()
+        .background(paperColor)
+        .overlay(alignment: .bottom) { bottomLine }
+    }
+
+    @ViewBuilder
+    private func spanDayBlock(_ label: DateLabel, form: DayBlockForm) -> some View {
+        switch form {
+        case .full:
+            dayDateBlock(label)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Self.dayLabel(label, language: language))
+        case .numberAndWeekday, .number:
+            thinDayDateBlock(label, showsWeekday: form == .numberAndWeekday)
+        }
+    }
+
+    /// A joined day's date in a narrow column: 1.2.3's number (today's capsule, the tone's colour) and, when
+    /// there is room, the weekday's short name; as tall as 1.2.3's block (52 pt).
+    private func thinDayDateBlock(_ label: DateLabel, showsWeekday: Bool) -> some View {
+        let tone = Self.toneColor(label.tone)
+        return HStack(spacing: 4) {
+            Text("\(label.day.day)")
+                .font(.system(size: 21, weight: .semibold).monospacedDigit())
+                .foregroundStyle(label.isToday ? Color.white : (tone ?? ink1))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, 6)
+                .frame(minWidth: 36, minHeight: 36)
+                .background(label.isToday ? Capsule().fill(accentColor) : nil)
+            if showsWeekday {
+                Text(DateText.weekdays(.short, language)[label.day.weekday])
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(label.isToday ? accentColor : (tone ?? ink1))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 6)
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 52, alignment: .leading)
+        .background(label.isToday ? todayTintSoft : (label.tone != .normal ? weekendTintSoft : Color.clear))
+        .overlay(alignment: .leading) { columnLine }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.dayLabel(label, language: language))
     }
 
     // MARK: - Helpers
