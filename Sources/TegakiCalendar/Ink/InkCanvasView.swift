@@ -1274,7 +1274,6 @@ extension InkCanvasView {
             } else {
                 // 5. Only the height changed.
                 applyBounds(bounds)
-                if spanState != nil { bandHeightChanged() }
             }
 
             // 6. The common tail.
@@ -2188,14 +2187,11 @@ extension InkCanvasView {
             requestShiftCheck()
         }
 
-        /// The end of an arrow's slide (`setContentOffset(_:animated: true)`). An end with the band away from where the
-        /// slide is going (an animation the canvas aimed again, or one a touch stopped) leaves the slide running: the
-        /// animation aimed again tells its own end, and the watch ends a slide nothing moves any more.
+        /// The end of an arrow's slide (`setContentOffset(_:animated: true)`).
         func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
             guard let state = spanState else { return }
-            noteMotion()
-            if let target = state.slideTargetX, abs(scrollView.contentOffset.x - target) >= 0.5 { return }
             state.slideTargetX = nil
+            noteMotion()
             requestShiftCheck()
         }
 
@@ -2536,12 +2532,7 @@ final class InkSpanState {
     /// Where an arrow's slide is going (nil when none runs), and where the last one went (the tests).
     var slideTargetX: CGFloat?
     var lastSlideTargetX: CGFloat?
-    /// The band x (lu) the running slide brings to the middle of the screen (read only while `slideTargetX` is set):
-    /// a slide aimed again after the canvas moved the band goes to the same middle at the zoom it has then.
-    var slideTargetMid: CGFloat = 0
-    var reaimScheduled = false
-    /// Pages still to slide: pressed while a slide ran or under the pen or a pinch, or the rest of a slide of more
-    /// pages than the band holds beyond the screen. Slid once the paper is at rest (after the window shifted).
+    /// Pages pressed while a slide ran: slid after it, once the window has shifted.
     var queuedSlidePages = 0
     /// The content offset x where the drag began (the fling's start).
     var dragStartX: CGFloat?
@@ -2911,10 +2902,6 @@ extension InkCanvasView.Coordinator {
             }
             state.shiftProbe?("moved")
         }
-        if geometryChanged {
-            // The offset was set under a running slide (a window taken while it slides: never a shift).
-            reaimSlideNextTurn()
-        }
         syncPaperFrame()
 
         if drawingWork {
@@ -2975,25 +2962,11 @@ extension InkCanvasView.Coordinator {
     }
 
     /// `containerDidLayout`'s entry when the width changed (a rotation, Split View): the window is decided anew
-    /// when the paper is still. A slide (and the pages waiting to slide) was aimed at the old width and zoom: it
-    /// ends where the band is (its animation stopped, so it does not carry the band to the old place).
+    /// when the paper is still.
     fileprivate func bandWidthChanged() {
         guard let state = spanState else { return }
-        if state.slideTargetX != nil || state.queuedSlidePages != 0 {
-            state.slideTargetX = nil
-            state.queuedSlidePages = 0
-            if let canvas, !isLive {
-                canvas.setContentOffset(canvas.contentOffset, animated: false)
-            }
-        }
         state.pendingRedecide = true
         requestShiftCheck()
-    }
-
-    /// `containerDidLayout`'s entry when only the height changed: the zoom and the offset may have moved under a
-    /// running slide, which is aimed again (`reaimSlideNextTurn`).
-    fileprivate func bandHeightChanged() {
-        reaimSlideNextTurn()
     }
 
     /// The band x (lu) in the middle of the screen.
@@ -3052,12 +3025,9 @@ extension InkCanvasView.Coordinator {
                 let now = self.parent.clock()
                 let elapsed = now.timeIntervalSince(state.lastMotionAt)
                 if now > before, elapsed >= 0, elapsed < InkCanvasView.shiftWatchDelay - 0.001 { continue }
-                // Every frame of a slide's animation scrolls: nothing scrolled for `shiftWatchDelay`, so no slide runs any
-                // more, wherever the band stopped and whether or not UIKit told of the end (a touch or the canvas's own
-                // offset may stop the animation without it). Kept, it would hold every shift and every press back.
-                if state.slideTargetX != nil {
+                // An arrow's slide whose end never came is over once the band is where it was going.
+                if let target = state.slideTargetX, let canvas = self.canvas, abs(canvas.contentOffset.x - target) < 0.5 {
                     state.slideTargetX = nil
-                    self.probeNote("Q")
                 }
                 let outcome = self.shiftIfAtRest()
                 if outcome == .busy { continue }
@@ -3191,47 +3161,23 @@ extension InkCanvasView.Coordinator {
         parent.onViewportChange(viewport)
     }
 
-    /// ◀ ▶ and a near 「今日」 (§3.6, B_DESIGN.md:274-276): exactly `pages` pages (`SpanPlan.shiftAmount` at the zoom it has,
-    /// so a boundary in the middle of the screen stays there), animated; kept on the band. The window shifts when the
-    /// slide ends. The band holds R pages beyond the focus and has no side margin, so a page further on may lie past its
-    /// end until the window has shifted (「今日」 two weeks away, a press while a slide runs): the slide goes the most pages
-    /// that end inside the band (at least one), and the rest once the window shifted (`queuedSlidePages`, 「行き先が窓の外
-    /// なら、窓をずらしてからすべる」). A press while a slide runs, under the pen or during a pinch waits for the paper to be
-    /// at rest (B_DESIGN.md:274 ◀ ▶ はいつでも使える; never a slide under the pen). Internal for the tests (the owner's
-    /// way is `slideTrigger`).
+    /// ◀ ▶ and a near 「今日」 (§3.6): exactly `pages` pages (`SpanPlan.shiftAmount` at the zoom it has, so a boundary in
+    /// the middle of the screen stays there), animated; kept on the band. The window shifts when the slide ends. A press
+    /// while a slide runs waits for it and its shift (the band holds R pages beyond the focus, so a page further on may
+    /// lie past the band's end until the window has shifted). Never under the pen or during a pinch. Internal for the
+    /// tests (the owner's way is `slideTrigger`).
     func slide(byPages pages: Int) {
-        guard let state = spanState, pages != 0, let canvas, let band = appliedLayout as? SpanLayout, hasInitialZoom else { return }
-        if state.slideTargetX != nil || isLive || isUsingTool {
+        guard let state = spanState, let canvas, let band = appliedLayout as? SpanLayout, hasInitialZoom, pages != 0,
+              !isLive, !isUsingTool else { return }
+        if state.slideTargetX != nil {
             state.queuedSlidePages += pages
             return
         }
-        let total = pages + state.queuedSlidePages
-        state.queuedSlidePages = 0
-        guard total != 0 else { return }
         let zoom = max(canvas.zoomScale, 0.0001)
-        let x = canvas.contentOffset.x
-        let y = canvas.contentOffset.y
-        let step = total > 0 ? 1 : -1
-        var now = total
-        while abs(now) > 1 {
-            let aim = x + band.plan.shiftAmount(pages: now, zoom: zoom)
-            if abs(clampedOffset(CGPoint(x: aim, y: y)).x - aim) < 0.5 { break }
-            now -= step
-        }
-        let target = clampedOffset(CGPoint(x: x + band.plan.shiftAmount(pages: now, zoom: zoom), y: y))
-        guard abs(target.x - x) >= 0.5 else { return }
-        state.queuedSlidePages = total - now
-        animateSlide(to: target)
-    }
-
-    /// Starts the animation of a slide to `target` (pt), or aims the running one again: UIKit's
-    /// `setContentOffset(_:animated: true)` (the tests' stand-in when set), the middle of the screen it brings kept in
-    /// band lu (`slideTargetMid`).
-    fileprivate func animateSlide(to target: CGPoint) {
-        guard let state = spanState, let canvas, let container else { return }
+        let target = clampedOffset(CGPoint(x: canvas.contentOffset.x + band.plan.shiftAmount(pages: pages, zoom: zoom), y: canvas.contentOffset.y))
+        guard abs(target.x - canvas.contentOffset.x) >= 0.5 else { return }
         state.lastSlideTargetX = target.x
         state.slideTargetX = target.x
-        state.slideTargetMid = (target.x + container.bounds.width / 2) / max(canvas.zoomScale, 0.0001)
         noteMotion()
         if let animate = state.slideAnimation {
             animate(canvas, target)
@@ -3240,31 +3186,8 @@ extension InkCanvasView.Coordinator {
         }
     }
 
-    /// The canvas moved the band itself while a slide runs (a window taken with new heights, a new height of the paper
-    /// area and its zoom): UIKit's animation may have stopped there, or may go on to where it was aimed (y without the
-    /// correction, x at the old zoom). On the next turn (never inside a SwiftUI update or a layout pass) the slide is
-    /// aimed again from where the band is, to the same middle of the screen at the zoom it has now.
-    fileprivate func reaimSlideNextTurn() {
-        guard let state = spanState, state.slideTargetX != nil, !state.reaimScheduled else { return }
-        state.reaimScheduled = true
-        Task { @MainActor [weak self] in
-            guard let self, let state = self.spanState else { return }
-            state.reaimScheduled = false
-            guard state.slideTargetX != nil, !self.isLive, let canvas = self.canvas, let container = self.container else { return }
-            let zoom = max(canvas.zoomScale, 0.0001)
-            let target = self.clampedOffset(CGPoint(x: state.slideTargetMid * zoom - container.bounds.width / 2, y: canvas.contentOffset.y))
-            if abs(target.x - canvas.contentOffset.x) < 0.5 {
-                state.slideTargetX = nil
-                self.requestShiftCheck()
-                return
-            }
-            self.animateSlide(to: target)
-        }
-    }
-
-    /// The pages that waited (presses during a slide, under the pen or a pinch; the rest of a long slide), once the paper
-    /// is still (the window shifted, or had nothing to shift); dropped when the session could not save a page that
-    /// leaves.
+    /// The presses that waited for a slide, once the paper is still after it (the window shifted, or had nothing to
+    /// shift); dropped when the session could not save a page that leaves.
     fileprivate func continueQueuedSlide(after outcome: InkCanvasView.SpanShiftOutcome) {
         guard let state = spanState, state.queuedSlidePages != 0, state.slideTargetX == nil else { return }
         let pages = state.queuedSlidePages
