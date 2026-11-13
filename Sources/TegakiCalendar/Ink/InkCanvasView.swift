@@ -2899,7 +2899,7 @@ extension InkCanvasView.Coordinator {
             container.overlayView.pageSize = newBand.size
             applyInsets()
         }
-        if geometryChanged || adoptedLayout != nil {
+        if geometryChanged {
             updatePaperSpan(newBand)
         }
         if geometryChanged, !tailOnly {
