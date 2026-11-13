@@ -1,8 +1,10 @@
-import InkModel
+import Combine
+@_spi(SpanLedger) import InkModel
 import Layout
 import PencilKit
 import SwiftUI
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 
 /// The strokes the lasso selected (M3B_CONTRACT.md §3.3). `bbox` is in paper coordinates (lu);
 /// `viewRect` is the same box in the `InkCanvasView`'s own coordinates (pt), updated on every scroll
@@ -209,6 +211,36 @@ struct InkCanvasView: UIViewRepresentable {
     /// the bottom of the paper can be scrolled above it. 0 = none. (1.1.1: the paper starts at the top,
     /// so there is no centring margin below it to compare with.)
     var bottomClearance: CGFloat = 0
+    /// 1.3 (docs/M7C_CONTRACT.md §2.1, §3.1, §3.6): the window of joined week or day pages this canvas shows,
+    /// or nil for 1.2.3's one page (the month, the year, the setting off; every input below then does
+    /// nothing). With a session the canvas's ledger edits `span.window` laid out as `span.layout` (the
+    /// owner passes `layout: span.layout`, a `page` of its virtual id and `.id(span.id)`), its deltas go to the
+    /// inbox, it shifts the window when the paper stops, and it never reads `page` or `paper` again: the paper
+    /// is the window's (`PaperView.span`, made from `span.layout`). `initialScrollX` / `initialScrollY` /
+    /// `initialPaperOffset` / `revealRect` are in the band's lu (the focus page's origin added); at the
+    /// opening zoom the focus page opens in the middle of the screen.
+    var span: SpanSession? = nil
+    /// 1.3 (§3.4 (a)): where the deltas go. nil is the session's own (`span.inbox`); any other box is a
+    /// mistake of the owner (Debug stops) and the session's is used, so no delta goes where no one drains it.
+    var inbox: SpanInbox? = nil
+    /// 1.3 (§3.6, §3.16): the wait of the 0.5 s watch that shifts the window after a stop no scroll-view
+    /// call told of (`SyncEngine.init`'s shape; the tests pass `TestSleeper`). The 1.2.3 waits stay real.
+    var sleep: @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }
+    /// 1.3 (§3.6, §3.16): "now" for the watch and the palm (the last Pencil lift).
+    var clock: () -> Date = Date.init
+    /// 1.3 (D21, K-9): `onStrokeBudget` of the joined path, with the page that owns the strokes.
+    var onPageStrokeBudget: (_ pageId: String, _ event: StrokeBudget.Event) -> Void = { _, _ in }
+    /// 1.3 (D21): `onGrowthCapReached` of the joined path, with the page that owns the stroke.
+    var onPageGrowthCapReached: (_ pageId: String) -> Void = { _ in }
+    /// 1.3 (§3.6): a sheet covers the paper; the window does not shift until it is gone.
+    var isSheetOpen: Bool = false
+    /// 1.3 (§3.6 ◀ ▶, a near 「今日」): each change of `slideTrigger` slides the band exactly `slidePages`
+    /// pages (the window shifts when it stops). A 「今日」 on the page already shown is `revealTrigger`'s.
+    var slidePages: Int = 0
+    var slideTrigger: Int = 0
+    /// 1.3 (§3.7, D20): the paper stopped on a focus page (its first day, the visit that ended), on the
+    /// next main-actor turn, when the focus day changed or a visit ended.
+    var onSpanStop: (SpanSession.Stop) -> Void = { _ in }
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -224,7 +256,10 @@ struct InkCanvasView: UIViewRepresentable {
         paperView.zoomScale = 1
         paperView.isUserInteractionEnabled = false
 
-        let container = InkCanvasContainerView(paperView: paperView)
+        // 1.3 (§3.6 the palm): the band's canvas asks before its pan begins; the one page keeps a plain PKCanvasView.
+        let container = span == nil
+            ? InkCanvasContainerView(paperView: paperView)
+            : InkCanvasContainerView(paperView: paperView, canvasView: InkBandCanvasView())
         // Everything the canvas, the overlay and the recognisers need is wired in `attach` (the
         // tests build the same container without a `Context`).
         coordinator.attach(container)
@@ -247,7 +282,8 @@ struct InkCanvasView: UIViewRepresentable {
 @MainActor
 final class InkCanvasContainerView: UIView {
     let paperView: PaperView
-    let canvasView = PKCanvasView()
+    /// A plain `PKCanvasView` (the one page); 1.3: `InkBandCanvasView` for the window of joined pages.
+    let canvasView: PKCanvasView
     let overlayView = InkOverlayView()
     var onLayout: (() -> Void)?
     /// The UI tests only (`--screenshot-probe`): the coordinator's `probeValue()`, read out as this
@@ -265,8 +301,9 @@ final class InkCanvasContainerView: UIView {
     /// (M4C-20) show the desk.
     static let deskColor = UIColor(red: 0xec / 255.0, green: 0xeb / 255.0, blue: 0xe6 / 255.0, alpha: 1)
 
-    init(paperView: PaperView) {
+    init(paperView: PaperView, canvasView given: PKCanvasView? = nil) {
         self.paperView = paperView
+        canvasView = given ?? PKCanvasView()
         super.init(frame: .zero)
         backgroundColor = Self.deskColor
         clipsToBounds = true
@@ -578,6 +615,11 @@ extension InkCanvasView {
         private var probeStart: TimeInterval = 0
         private var probeTrace: [String] = []
 
+        /// 1.3 (docs/M7C_CONTRACT.md §3.6): the window of joined pages (`parent.span` when this canvas was made);
+        /// nil on the one-page path, where none of the joined path's code runs. Its code is the extension at
+        /// the end of this file.
+        private var spanState: InkSpanState?
+
         init(parent: InkCanvasView) {
             self.parent = parent
             let deviceId = UIDevice.current.identifierForVendor?.uuidString
@@ -604,6 +646,7 @@ extension InkCanvasView {
             pencilInteraction = handler.makeInteraction()
             super.init()
             handler.onToggle = { [weak self] in self?.parent.onPencilToggle() }
+            if parent.span != nil { beginSpan() }
         }
 
         // MARK: Lifecycle
@@ -668,6 +711,7 @@ extension InkCanvasView {
 
             setDrawing(ledger.drawing(), on: canvas)
             canvas.contentSize = appliedLayout.size // zoom 1 until the first layout pass
+            if spanState != nil { attachSpan(container) }
             syncPaperFrame()
             InkTrace.note("A:\(appliedLayout.kind.rawValue)")
 
@@ -756,6 +800,7 @@ extension InkCanvasView {
         }
 
         func detach() {
+            if spanState != nil { detachSpan() }
             settleGeneration += 1
             isSettling = false
             erasedSinceReport = 0
@@ -842,7 +887,11 @@ extension InkCanvasView {
 
             // 1. The page: another page id (new ledger), or the same page from outside (merge, import).
             let signature = PageSignature(newParent.page)
-            if signature.pageId != ledger.page.pageId {
+            if spanState != nil {
+                // 1.3 (§3.4): the joined path never reads `page` (no page is written back whole); a window the
+                // session composed again is taken once the pen is up (`applyPendingSpan`).
+                noteSessionWindow()
+            } else if signature.pageId != ledger.page.pageId {
                 overlay?.cancelGesture()
                 clearSelection()
                 ledger = InkLedger(page: newParent.page, layout: newParent.layout, deviceId: deviceId)
@@ -930,6 +979,7 @@ extension InkCanvasView {
                 applyInitialSelectionIfPending()
             }
 
+            if spanState != nil { noteSpanTriggers(newParent) }
             if pendingDrawing || pendingPaper || pendingGeometry || !pendingCommands.isEmpty {
                 requestApply()
             }
@@ -951,6 +1001,7 @@ extension InkCanvasView {
         }
 
         private func applyPending() {
+            if spanState != nil { applyPendingSpan(); return }
             let wasApplyingGeometry = isApplyingGeometry
             isApplyingGeometry = true
             defer { isApplyingGeometry = wasApplyingGeometry }
@@ -1127,7 +1178,8 @@ extension InkCanvasView {
             guard let container, let canvas else { return }
             let viewport = container.bounds.size
             guard viewport.width > 0, viewport.height > 0 else { return }
-            let overview = ZoomPolicy.overviewSize(appliedLayout)
+            // 1.3 (§3.6): the window's limits come from one page's overview (the middle one), never the band's.
+            let overview = spanState == nil ? ZoomPolicy.overviewSize(appliedLayout) : bandZoomOverview()
             let bounds = ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport)
 
             // 2. Same limits (a layout pass during a pinch, a height change the width-bound month
@@ -1163,6 +1215,7 @@ extension InkCanvasView {
                     let y = parent.initialScrollY.isFinite ? max(0, parent.initialScrollY) : 0
                     canvas.contentOffset = clampedOffset(CGPoint(x: x * zoom, y: y * zoom))
                 }
+                if spanState != nil { applyBandOpening(zoom: zoom, bounds: bounds) }
                 // 1.1.1: the page 「今日」 opened goes on to today's cell (any other opening stays at the top).
                 if parent.initialPaperOffset == nil, let rect = parent.revealRect {
                     reveal(rect)
@@ -1217,6 +1270,7 @@ extension InkCanvasView {
                         y: (atOpen || atMin) ? topY * newZoom : centerPaper.y * newZoom - viewport.height / 2
                     ))
                 }
+                if spanState != nil { bandWidthChanged() }
             } else {
                 // 5. Only the height changed.
                 applyBounds(bounds)
@@ -1476,6 +1530,7 @@ extension InkCanvasView {
         // MARK: Writing back
 
         private func publishPage() {
+            if spanState != nil { putJournalIntoInbox(); return }
             let page = ledger.page
             let signature = PageSignature(page)
             publishedSignature = signature
@@ -1793,6 +1848,7 @@ extension InkCanvasView {
         /// trackpad) is waited for like a finger after it lifts; the lead's review: it writes with
         /// 「指でも書く」 off too, so it always holds the report and the lift watch while it is pressed.
         func touchObserved(_ change: InkTouchObserver.Change) {
+            if spanState != nil { bandTouchObserved(change) }
             switch change {
             case .down(let type):
                 observerReady = true
@@ -1891,6 +1947,7 @@ extension InkCanvasView {
                 probeNote("c")
                 return false
             }
+            if spanState != nil { return applyBandDrawing(canvasView) }
             // History is the ledger's; never let the system (3-finger swipe) undo through PencilKit.
             canvasView.undoManager?.removeAllActions()
             let screening = screenNewStrokes(on: canvasView)
@@ -2032,6 +2089,7 @@ extension InkCanvasView {
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
             syncPaperFrame()
+            if spanState != nil { bandDidScroll() }
         }
 
         /// Every frame of a pinch, and synchronously after every `zoomScale` assignment: the content
@@ -2085,6 +2143,55 @@ extension InkCanvasView {
             #if DEBUG
             NSLog("zoom: end scale=%.4f min=%.4f max=%.4f", canvas.zoomScale, canvas.minimumZoomScale, canvas.maximumZoomScale)
             #endif
+        }
+
+        // 1.3 (docs/M7C_CONTRACT.md §3.6): the ends of a movement, for the shift of the window and the fling. The
+        // one-page path has none of them (each returns at its first line, `targetContentOffset` untouched).
+
+        /// Where a drag began (the fling's start); a finger stops an arrow's slide.
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+            guard let state = spanState else { return }
+            state.dragStartX = scrollView.contentOffset.x
+            state.slideTargetX = nil
+            noteMotion()
+        }
+
+        /// はじき (P-B5 ア, §3.6): where a release comes to rest, `SpanPlan.flingTarget` with the speed UIKit measured
+        /// (pt per ms), the screen's width and the stop UIKit proposes: at a zoom that shows a page whole a fling turns
+        /// to the next page (centred), a slow stop near a page edge (6 % of the screen's width) lines the edge up with
+        /// the screen's, zoomed in a fling flows. A drag the directional lock kept vertical leaves x alone. Kept on
+        /// the band.
+        func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+            guard let state = spanState else { return }
+            guard let canvas, let container, let band = appliedLayout as? SpanLayout else { return }
+            let startX = state.dragStartX ?? canvas.contentOffset.x
+            state.dragStartX = nil
+            guard velocity.x != 0 || abs(canvas.contentOffset.x - startX) >= 0.5 else { return }
+            let zoom = max(canvas.zoomScale, 0.0001)
+            let proposed = targetContentOffset.pointee
+            let x = band.plan.flingTarget(offsetX: canvas.contentOffset.x, velocity: velocity.x, zoom: zoom,
+                                          viewportWidth: container.bounds.width, proposedX: proposed.x)
+            targetContentOffset.pointee = CGPoint(x: clampedOffset(CGPoint(x: x, y: proposed.y)).x, y: proposed.y)
+        }
+
+        func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+            guard spanState != nil else { return }
+            noteMotion()
+            if !decelerate { requestShiftCheck() }
+        }
+
+        func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+            guard spanState != nil else { return }
+            noteMotion()
+            requestShiftCheck()
+        }
+
+        /// The end of an arrow's slide (`setContentOffset(_:animated: true)`).
+        func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+            guard let state = spanState else { return }
+            state.slideTargetX = nil
+            noteMotion()
+            requestShiftCheck()
         }
 
         // MARK: F4 — the view the scroll view zooms (M4C_CONTRACT §2.5)
@@ -2209,5 +2316,1028 @@ extension InkCanvasView {
         private static func overlaps(_ a: CGRect, _ b: CGRect) -> Bool {
             !(a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY)
         }
+    }
+}
+
+// MARK: - 1.3 The window of joined pages (docs/M7C_CONTRACT.md §3.6, §3.4, §3.3, D6, D15, D16, D20, D21; role L)
+//
+// Everything below runs only when the canvas was made with a `SpanSession` (`InkCanvasView.span`): the
+// coordinator then has a `spanState`, and each 1.2.3 function it passes through has one line at its entry
+// (`if spanState != nil { … }`) that sends the joined path here. With `span` nil (the month, the year, the
+// setting off, the screenshot mode by default) none of it runs and the canvas is 43fe366's (D9).
+
+/// 1.3 (§3.6 the palm, B_DESIGN.md:354-360): the band's `PKCanvasView`. Its scroll pan asks `panMayBegin`
+/// before it begins (the scroll view stays the pan's delegate, so the question is the view's own
+/// `gestureRecognizerShouldBegin`). Only the window of joined pages makes one; the one page keeps a plain
+/// `PKCanvasView`.
+@MainActor
+final class InkBandCanvasView: PKCanvasView {
+    /// nil, or true, lets the pan begin; false keeps the paper where it is for this touch.
+    var panMayBegin: ((UIPanGestureRecognizer) -> Bool)?
+
+    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        if gestureRecognizer === panGestureRecognizer, let panMayBegin, !panMayBegin(panGestureRecognizer) {
+            return false
+        }
+        return super.gestureRecognizerShouldBegin(gestureRecognizer)
+    }
+}
+
+/// 1.3 (§3.6, §3.16, B_DESIGN.md:356): in the overview one finger has to move about 24 pt sideways (or 10 pt
+/// more up or down than sideways) before the band moves. A recogniser on the container that the canvas's pan
+/// waits for (`require(toFail:)`); it never recognises: it fails at once unless `holds` (the overview, one
+/// finger), and otherwise as soon as the finger moved far enough (`InkCanvasView.overviewPanMayStart`), or
+/// lifts. Fingers only (the Pencil never pans the paper).
+@MainActor
+final class InkBandPanGate: UIGestureRecognizer {
+    /// Asked when the first finger comes down: true holds the pan back (the band is at the overview's zoom).
+    var holds: () -> Bool = { false }
+    private var start: CGPoint?
+
+    override init(target: Any?, action: Selector?) {
+        super.init(target: target, action: action)
+        allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+        delaysTouchesEnded = false
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesBegan(touches, with: event)
+        guard state == .possible else { return }
+        guard start == nil, numberOfTouches == 1, holds(), let touch = touches.first else {
+            state = .failed
+            return
+        }
+        start = touch.location(in: view)
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesMoved(touches, with: event)
+        guard state == .possible, let start, let point = touches.first?.location(in: view) else { return }
+        if InkCanvasView.overviewPanMayStart(translation: CGSize(width: point.x - start.x, height: point.y - start.y)) {
+            state = .failed
+        }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesEnded(touches, with: event)
+        if state == .possible { state = .failed }
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesCancelled(touches, with: event)
+        if state == .possible { state = .failed }
+    }
+
+    override func reset() {
+        super.reset()
+        start = nil
+    }
+}
+
+extension InkCanvasView {
+    // MARK: The fixed numbers (§3.16) and the pure rules (§2.1; XCTest fixes them)
+
+    /// The watch: this long after the last scroll, zoom or slide, a stop no scroll-view call told of shifts the
+    /// window (§3.6).
+    static let shiftWatchDelay: TimeInterval = 0.5
+    /// The palm: a sideways pan does not begin while an Apple Pencil touches the paper, nor this long after the
+    /// last one lifted (B_DESIGN.md:355).
+    static let palmHold: TimeInterval = 0.5
+    /// The overview: a finger moves this far sideways (pt) before the band moves (B_DESIGN.md:356).
+    static let overviewPanStart: CGFloat = 24
+    /// … or this far, more up or down than sideways, and the pan begins at once (up and down stay as they are).
+    static let verticalPanStart: CGFloat = 10
+
+    /// What a shift of the window came to (`Coordinator.shiftIfAtRest`).
+    enum SpanShiftOutcome: Equatable {
+        /// The window shifted (or was decided anew).
+        case done
+        /// Nothing to do: the focus is the window's middle page.
+        case nothing
+        /// A shift is due but something holds it back (the pen, a finger, a fling, a pinch, a selection, a sheet).
+        case busy
+        /// The session could not save a page that leaves (§3.6: then the window does not shift).
+        case refused
+    }
+
+    /// §2.1, §3.6 the palm: false while `pencilsDown` > 0, or when the last Pencil lifted less than `palmHold`
+    /// before `now`; true otherwise (no Pencil yet, or long enough ago). A `lastPencilUp` later than `now` (the
+    /// clock was set back) does not hold the pan.
+    static func horizontalPanMayBegin(pencilsDown: Int, lastPencilUp: Date?, now: Date) -> Bool {
+        guard pencilsDown <= 0 else { return false }
+        guard let up = lastPencilUp else { return true }
+        let elapsed = now.timeIntervalSince(up)
+        return !(elapsed >= 0 && elapsed < palmHold)
+    }
+
+    /// The band's pan, about to begin after moving `translation` (pt; `velocity` when it has not moved yet):
+    /// one more up or down than sideways begins as it does today (§3.6: 縦は今どおり; S3's lead's decision 2);
+    /// any other (sideways, or no direction to tell) asks `horizontalPanMayBegin`.
+    static func panMayBegin(translation: CGPoint, velocity: CGPoint, pencilsDown: Int, lastPencilUp: Date?, now: Date) -> Bool {
+        var dx = abs(translation.x)
+        var dy = abs(translation.y)
+        if !(dx > 0 || dy > 0) {
+            dx = abs(velocity.x)
+            dy = abs(velocity.y)
+        }
+        if dx.isFinite, dy.isFinite, dy > dx { return true }
+        return horizontalPanMayBegin(pencilsDown: pencilsDown, lastPencilUp: lastPencilUp, now: now)
+    }
+
+    /// The overview's start (§3.16): may the band's pan begin after one finger moved `translation` (pt) from
+    /// where it touched? true once it moved `overviewPanStart` sideways, or `verticalPanStart` more up or down
+    /// than sideways; false before, and for a translation that is not finite.
+    static func overviewPanMayStart(translation: CGSize) -> Bool {
+        let dx = abs(translation.width)
+        let dy = abs(translation.height)
+        guard dx.isFinite, dy.isFinite else { return false }
+        if dy >= verticalPanStart, dy > dx { return true }
+        return dx >= overviewPanStart
+    }
+
+    /// K-9, D21: `InkPage.budgetCount` of one real page of the window (`page` is the window's ledger page): its
+    /// live strokes and its strokes of an unknown tool, found by the page in front of their window names
+    /// (aliases included).
+    static func budgetCount(ofPage pageId: String, in page: InkPage) -> Int {
+        var count = 0
+        for (key, stroke) in page.strokes where page.deleted[stroke.id] == nil && SpanName.split(key)?.page == pageId {
+            count += 1
+        }
+        for key in page.unknownStrokes.keys where SpanName.split(key)?.page == pageId {
+            count += 1
+        }
+        return count
+    }
+
+    /// §3.6 ずらし: how far (pt) x moves when the same session's window is composed around other pages — the pages
+    /// that came in (or went) on the left × the page width × zoom (`SpanPlan.shiftAmount`), so the pages on screen
+    /// stay where they are. 0 for another session or the same first page.
+    static func windowShift(old: SpanLayout, new: SpanLayout, zoom: CGFloat) -> CGFloat {
+        guard old.pageId == new.pageId, old.firstIndex != new.firstIndex else { return 0 }
+        return new.plan.shiftAmount(pages: old.firstIndex - new.firstIndex, zoom: zoom)
+    }
+
+    /// P-3, the canvas's side (§3.8): the paper of the window, made from the session's layout in the turn the
+    /// canvas takes it (so the paper never lags the offset by a page). Each page's own all-day band stands in
+    /// for the packed ones: the paper draws only the pages (`PaperView.drawSpan`); the heading and the band are
+    /// the screen's. nil when a page is neither a week nor a day.
+    static func paperSpan(for layout: SpanLayout, focus: Int) -> PaperSpan? {
+        var bands: [AllDayBandLayout] = []
+        for page in layout.pages {
+            if let week = page as? WeekPageLayout {
+                bands.append(week.allDayBand)
+            } else if let day = page as? DayPageLayout {
+                bands.append(day.allDayBand)
+            } else {
+                return nil
+            }
+        }
+        return PaperSpan(layout: layout, bands: bands, focus: focus)
+    }
+
+    /// §3.6: the rectangle the window's zoom limits come from — the overview of its middle page (every joined
+    /// week is 1,400 × 1,920, every day's 24 hours 1,000 × 2,400), never the band (whose width would make the
+    /// lowest zoom show the whole window at once).
+    static func bandOverview(_ layout: SpanLayout) -> CGSize {
+        guard !layout.pages.isEmpty else { return ZoomPolicy.overviewSize(layout) }
+        return ZoomPolicy.overviewSize(layout.pages[layout.pages.count / 2])
+    }
+}
+
+/// 1.3 (§3.6): what the canvas keeps for the window of joined pages.
+@MainActor
+final class InkSpanState {
+    let session: SpanSession
+    /// The session's inbox (`InkCanvasView.inbox` may only name it).
+    let inbox: SpanInbox
+    /// The window the ledger was last loaded from, its `windowVersion` and the session's number then (D7).
+    var appliedWindow: SpanVirtualPage
+    var appliedWindowVersion: Int
+    var appliedEpoch: Int
+    /// The session composed a newer window: taken when the pen is up (`applyPendingSpan`).
+    var pendingWindow = false
+    /// `windowVersion` when the canvas last put deltas (§3.4 (a)): a window of that very version was composed
+    /// before they reached the session and lacks them.
+    var lastDeltaPutVersion: Int?
+    /// A shift (or a decision anew) is under way: the scrolls it makes are not the person's.
+    var isShiftingWindow = false
+    /// The width changed (a rotation, Split View): the window is decided anew at the next stop.
+    var pendingRedecide = false
+    var shiftCheckScheduled = false
+    var focusUpdateScheduled = false
+    var relayoutScheduled = false
+    /// Where an arrow's slide is going (nil when none runs), and where the last one went (the tests).
+    var slideTargetX: CGFloat?
+    var lastSlideTargetX: CGFloat?
+    /// The content offset x where the drag began (the fling's start).
+    var dragStartX: CGFloat?
+    var lastSlideTrigger: Int
+    var lastSheetOpen: Bool
+    /// `clock()` at the last scroll, zoom, slide or drag.
+    var lastMotionAt = Date.distantPast
+    var watchRunning = false
+    var watchGeneration = 0
+    /// `clock()` when an Apple Pencil last lifted (the palm).
+    var lastPencilUp: Date?
+    /// The focus day `onSpanStop` last told of.
+    var lastStopFocusDay: DayKey?
+    var windowSink: AnyCancellable?
+    let panGate = InkBandPanGate(target: nil, action: nil)
+    // The tests' handles and InkTrace's counts.
+    var shiftCount = 0
+    var refusedShiftCount = 0
+    var refusedPans = 0
+    /// Tests only: nil reads the canvas's `isTracking` / `isDragging` / `isDecelerating` (XCTest cannot fling).
+    var motionOverride: Bool?
+    /// Tests only: called at each step of taking a window ("pruned", "reloaded", "built" — the window's drawing
+    /// made, the canvas still holding the old one —, "drawn", "moved").
+    var shiftProbe: ((String) -> Void)?
+    /// Tests only: false slides without the animation.
+    var animatesSlides = true
+
+    init(session: SpanSession, inbox: SpanInbox, slideTrigger: Int, sheetOpen: Bool) {
+        self.session = session
+        self.inbox = inbox
+        appliedWindow = session.window
+        appliedWindowVersion = session.windowVersion
+        appliedEpoch = session.epoch
+        lastSlideTrigger = slideTrigger
+        lastSheetOpen = sheetOpen
+    }
+}
+
+extension InkCanvasView.Coordinator {
+    // MARK: The tests' handles (1.3)
+
+    /// How many times the window shifted (or was decided anew), and was not (a page that leaves could not be saved).
+    var spanShiftCount: Int { spanState?.shiftCount ?? 0 }
+    var spanRefusedShiftCount: Int { spanState?.refusedShiftCount ?? 0 }
+    /// Pans the palm's rule did not let begin.
+    var spanRefusedPans: Int { spanState?.refusedPans ?? 0 }
+    var spanMotionOverride: Bool? {
+        get { spanState?.motionOverride }
+        set { spanState?.motionOverride = newValue }
+    }
+    var spanShiftProbe: ((String) -> Void)? {
+        get { spanState?.shiftProbe }
+        set { spanState?.shiftProbe = newValue }
+    }
+    var spanAnimatesSlides: Bool {
+        get { spanState?.animatesSlides ?? true }
+        set { spanState?.animatesSlides = newValue }
+    }
+    var spanSlideTargetX: CGFloat? { spanState?.slideTargetX }
+    var spanLastSlideTargetX: CGFloat? { spanState?.lastSlideTargetX }
+    var spanLastPencilUp: Date? { spanState?.lastPencilUp }
+    var spanWatchRunning: Bool { spanState?.watchRunning ?? false }
+    var spanAppliedWindowVersion: Int? { spanState?.appliedWindowVersion }
+    var spanPanGate: InkBandPanGate? { spanState?.panGate }
+
+    /// Tests only: the end of 1.2.3's settle wait (`penDidLift`'s task after its 0.3 s), now, so a test of the
+    /// joined path waits for no real time (§10.2). The task itself finds its generation moved on and does nothing.
+    func endSettleWaitForTesting() {
+        guard isSettling else { return }
+        settleGeneration += 1
+        if parent.tool.isEraser || touchBeganWithEraser, !parent.readOnly, !isMovingSelection, !resetScroll, let canvas,
+           applyCanvasDrawing(canvas) {
+            probeNote("K")
+        }
+        isSettling = false
+        applyPending()
+        scheduleEraseReport(.settleEnd)
+    }
+
+    // MARK: Lifecycle
+
+    /// `init`'s entry (§3.3 1, D15): the ledger edits the session's window, and every id it makes carries the
+    /// owner page of its cell (`SpanSession.ownerId(for:)`).
+    fileprivate func beginSpan() {
+        guard let session = parent.span else { return }
+        #if DEBUG
+        if let given = parent.inbox, given !== session.inbox {
+            assertionFailure("InkCanvasView: inbox is not the session's own")
+        }
+        #endif
+        let windowLedger = InkLedger(page: session.window.ledgerPage, layout: session.layout, deviceId: deviceId)
+        windowLedger.ownerId = { [weak session] cell in session?.ownerId(for: cell) ?? InkStroke.newId() }
+        ledger = windowLedger
+        appliedLayout = session.layout
+        publishedSignature = InkCanvasView.PageSignature(windowLedger.page)
+        spanState = InkSpanState(session: session, inbox: session.inbox, slideTrigger: parent.slideTrigger, sheetOpen: parent.isSheetOpen)
+    }
+
+    /// `attach`'s entry (§3.6, P-3, §3.4 (c), D6): the band bounces sideways, its pan asks the palm and waits for
+    /// the overview's gate, the paper is the window's, the lasso moves on the whole band; the window this canvas
+    /// starts from is the safety net's source; the canvas follows `windowVersion` itself; the pages next to the
+    /// focus are read.
+    fileprivate func attachSpan(_ container: InkCanvasContainerView) {
+        guard let state = spanState, let band = appliedLayout as? SpanLayout else { return }
+        let canvas = container.canvasView
+        canvas.alwaysBounceHorizontal = true
+        (canvas as? InkBandCanvasView)?.panMayBegin = { [weak self] pan in self?.bandPanMayBegin(pan) ?? true }
+        state.panGate.holds = { [weak self] in self?.isAtOverview ?? false }
+        container.addGestureRecognizer(state.panGate)
+        canvas.panGestureRecognizer.require(toFail: state.panGate)
+        container.overlayView.pageSize = band.size
+        updatePaperSpan(band)
+        putWindowIntoInbox()
+        // `@Published` tells before the value is set: the canvas reads it on the next turn.
+        state.windowSink = state.session.$windowVersion.sink { [weak self] _ in
+            guard self != nil else { return }
+            Task { @MainActor [weak self] in self?.noteSessionWindow() }
+        }
+        startPrefetch()
+    }
+
+    /// `detach`'s entry (§3.4 (a)): what PencilKit finished and has not told of yet goes into the ledger, the
+    /// journal into the inbox, before the delegate goes — quietly (no notice, no history, no write back: the
+    /// canvas is being taken away inside SwiftUI's update). No watch, no slide and no window after this.
+    fileprivate func detachSpan() {
+        guard let state = spanState else { return }
+        if let canvas, !isApplyingDrawing, !isMovingSelection, !resetScroll {
+            _ = screenNewStrokesInBand(on: canvas)
+            let change = ledger.applyCanvasChange(canvas.drawing, allowRemovals: parent.tool.isEraser || touchBeganWithEraser)
+            if !change.isEmpty {
+                probeNote("C+\(change.added.count)-\(change.removedIds.count)d")
+            }
+        }
+        putJournalIntoInbox(relayout: false)
+        state.watchGeneration += 1
+        state.watchRunning = false
+        state.windowSink = nil
+        state.slideTargetX = nil
+        state.panGate.holds = { false }
+        (canvas as? InkBandCanvasView)?.panMayBegin = nil
+    }
+
+    /// The next turn: the session's `prefetch()` (the pages that came in, nearest first, one per turn; their
+    /// events; `pagesOpened` once, D6), then the window it composed is taken (when the pen is up).
+    fileprivate func startPrefetch() {
+        guard let state = spanState else { return }
+        let session = state.session
+        Task { @MainActor [weak self] in
+            await session.prefetch()
+            self?.noteSessionWindow()
+        }
+    }
+
+    // MARK: The session's window (§3.4, §3.5)
+
+    /// `update(from:)`'s and the sink's: a newer `windowVersion` is taken once the pen is up.
+    fileprivate func noteSessionWindow() {
+        guard let state = spanState, container != nil, !state.session.isClosed,
+              state.session.windowVersion != state.appliedWindowVersion else { return }
+        state.pendingWindow = true
+        if !isUpdating { requestApply() }
+    }
+
+    /// `update(from:)`'s entry before the queued work is asked for: the joined path takes its layout and its paper
+    /// from the session (`pendingWindow`), never from `layout` / `paper` (whose `paper`, the focus page's, would
+    /// redraw the band at every focus change, and whose layout may be a turn behind the session's); ◀ ▶ slide on
+    /// the next turn (never an animated offset inside a SwiftUI update); a sheet that closed lets the window shift.
+    fileprivate func noteSpanTriggers(_ newParent: InkCanvasView) {
+        guard let state = spanState else { return }
+        pendingPaper = false
+        pendingGeometry = false
+        #if DEBUG
+        if newParent.span !== state.session {
+            assertionFailure("InkCanvasView: another session reached the canvas (the owner gives it .id(span.id))")
+        }
+        if let given = newParent.inbox, given !== state.session.inbox {
+            assertionFailure("InkCanvasView: inbox is not the session's own")
+        }
+        #endif
+        if state.pendingWindow { requestApply() }
+        if newParent.slideTrigger != state.lastSlideTrigger {
+            state.lastSlideTrigger = newParent.slideTrigger
+            let pages = newParent.slidePages
+            Task { @MainActor [weak self] in self?.slide(byPages: pages) }
+        }
+        if newParent.isSheetOpen != state.lastSheetOpen {
+            state.lastSheetOpen = newParent.isSheetOpen
+            if !newParent.isSheetOpen { requestShiftCheck() }
+        }
+    }
+
+    /// The window as the ledger holds it now, with the version it was loaded from, into the inbox: the safety
+    /// net's source (§3.4 (c), H1: the session leaves a page another device emptied alone until this basis).
+    fileprivate func putWindowIntoInbox() {
+        guard let state = spanState else { return }
+        state.inbox.put([], unrouted: [], window: state.appliedWindow.with(ledgerPage: ledger.page), basis: state.appliedWindowVersion)
+    }
+
+    /// `publishPage`'s entry (§3.4 (a), (b), (d)): the ledger's journal goes into the inbox in the turn it was
+    /// written, every step of it (no `superseded`), as deltas of the real pages with the names that reach no page,
+    /// under the session's number when this canvas took its window (D7). A step that may change the height of a
+    /// growing cell (the day's free memo, D16) asks the session to lay the window out again on the next turn.
+    fileprivate func putJournalIntoInbox(relayout: Bool = true) {
+        guard let state = spanState else { return }
+        let journal = ledger.journal
+        ledger.journal.removeAll()
+        state.inbox.put(journal: journal, window: state.appliedWindow.with(ledgerPage: ledger.page),
+                        basis: state.appliedWindowVersion, epoch: state.appliedEpoch)
+        guard !journal.isEmpty else { return }
+        state.lastDeltaPutVersion = state.session.windowVersion
+        if relayout, journal.contains(where: { needsRelayout($0) }) {
+            scheduleRelayoutPages()
+        }
+    }
+
+    /// A journal step that may change a growing cell's height (§3.3 4, D16): a stroke added past what its cell
+    /// holds (`needsMoreRoom`, the prefix taken off), or a removal while a page's last cell is taller than its
+    /// open length (it may shrink back: 「消して縮むときは下げる」). A removal names only ids (its stroke is gone from
+    /// the page), so the window's tails are what tell; the week has no growing cell in 1.3.
+    fileprivate func needsRelayout(_ entry: SpanJournalEntry) -> Bool {
+        if entry.added.contains(where: { ledger.needsMoreRoom($0) }) { return true }
+        guard !entry.removed.isEmpty, let band = appliedLayout as? SpanLayout else { return false }
+        return band.pages.contains { (PaperGrowth.tail(of: $0)?.rect.height ?? 0) > PaperSpec.growMax + 0.001 }
+    }
+
+    /// Once, on the next turn: the session lays the window out again (`relayoutPages`: the inbox emptied first)
+    /// and the canvas takes it (the light path when only the tails changed).
+    fileprivate func scheduleRelayoutPages() {
+        guard let state = spanState, !state.relayoutScheduled else { return }
+        state.relayoutScheduled = true
+        Task { @MainActor [weak self] in
+            guard let self, let state = self.spanState else { return }
+            state.relayoutScheduled = false
+            guard self.container != nil, !state.session.isClosed else { return }
+            state.session.relayoutPages()
+            self.noteSessionWindow()
+        }
+    }
+
+    /// Takes the session's window into the ledger (§3.6 ずらしの手順, the canvas's part; §3.5): the steps of pages
+    /// that left or were emptied from outside are dropped from the history (`pruneHistory`), the ledger reloads the
+    /// window keeping the rest of its history (its fingerprints still describe the canvas), and the window goes out
+    /// as the safety net's source. A window composed before this canvas's newest deltas reached the session (one
+    /// of the very `windowVersion` they were put at) lacks them: the session composes again first (inside a
+    /// SwiftUI update, on the next turn). nil when nothing was taken; else whether the ledger's page changed.
+    fileprivate func adoptSessionWindow() -> (changed: Bool, layout: SpanLayout)? {
+        guard let state = spanState else { return nil }
+        let session = state.session
+        guard !session.isClosed else {
+            state.pendingWindow = false
+            return nil
+        }
+        if state.lastDeltaPutVersion == session.windowVersion {
+            if isUpdating {
+                scheduleRelayoutPages()
+                return nil
+            }
+            session.relayoutPages()
+        }
+        let pruned = session.takeHistoryPrune()
+        ledger.pruneHistory(touching: pruned)
+        state.shiftProbe?("pruned")
+        let window = session.window
+        let changed = window.ledgerPage.contentDiffers(from: ledger.page)
+        if changed {
+            ledger.reload(page: window.ledgerPage, keepHistory: true)
+        }
+        state.shiftProbe?("reloaded")
+        let pagesChanged = window.pageIds != state.appliedWindow.pageIds
+        state.appliedWindow = window
+        state.appliedWindowVersion = session.windowVersion
+        state.appliedEpoch = session.epoch
+        state.pendingWindow = false
+        putWindowIntoInbox()
+        if pagesChanged {
+            // The dot candidates and the eraser's touch may name a stroke of a page that left.
+            recentAdds.removeAll()
+            removedSinceTouch = []
+        }
+        if changed || !pruned.isEmpty {
+            notifyHistory()
+        }
+        return (changed, session.layout)
+    }
+
+    /// `applyPending`'s entry: 43fe366's `applyPending` for the window. The session's window first (the history
+    /// steps and the commands then work on it); then ↶ ↷ and the commands; then the light path when only tails
+    /// changed (`SpanLayout.onlyTailHeightChanged`), else the drawing rebuilt (`setWindowDrawing`); the paper of
+    /// the window; when the window's pages moved, x moved back by the pages that came in on the left
+    /// (`windowShift`), so nothing on screen moves. From taking a window until its drawing is on the canvas,
+    /// nothing compares the canvas's drawing with the ledger (§3.6: the old drawing never meets the new window's
+    /// fingerprints, `isApplyingDrawing`). Last, a shift may be due now that the queued work is done.
+    fileprivate func applyPendingSpan() {
+        guard let state = spanState else { return }
+        let wasApplyingGeometry = isApplyingGeometry
+        isApplyingGeometry = true
+        defer { isApplyingGeometry = wasApplyingGeometry }
+        guard let canvas, let container else { return }
+        let wasApplyingDrawing = isApplyingDrawing
+        if state.pendingWindow { isApplyingDrawing = true }
+        defer { isApplyingDrawing = wasApplyingDrawing }
+
+        var adoptedLayout: SpanLayout?
+        var contentChanged = false
+        if state.pendingWindow, let taken = adoptSessionWindow() {
+            adoptedLayout = taken.layout
+            contentChanged = taken.changed
+        }
+        let commands = pendingCommands
+        pendingCommands.removeAll()
+        var drawingWork = pendingDrawing || contentChanged
+        pendingDrawing = false
+        pendingPaper = false
+        pendingGeometry = false
+        var historyChanged = false
+        var inkBoundsChanged = false
+        for command in commands where perform(command) {
+            drawingWork = true
+            historyChanged = true
+            inkBoundsChanged = true
+        }
+        for action in pendingHistory {
+            switch action {
+            case .undo: if ledger.undo() != nil { historyChanged = true }
+            case .redo: if ledger.redo() != nil { historyChanged = true }
+            }
+        }
+        pendingHistory.removeAll()
+
+        guard let oldBand = appliedLayout as? SpanLayout else { return }
+        let newBand = adoptedLayout ?? oldBand
+        let zoom = max(canvas.zoomScale, 0.0001)
+        let oldX = canvas.contentOffset.x
+        let topVisibleY = canvas.contentOffset.y / zoom
+        let geometryChanged = !oldBand.sameGeometry(as: newBand)
+        let tailOnly = !drawingWork && geometryChanged && newBand.onlyTailHeightChanged(from: oldBand)
+        if tailOnly {
+            // The light path (§3.3's table): no new drawing, no new limits, no scroll compensation.
+            ledger.adopt(newBand)
+            appliedLayout = newBand
+            canvas.contentSize = Self.scaled(newBand.size, by: zoom)
+            container.overlayView.pageSize = newBand.size
+            applyInsets()
+            if !isLive {
+                canvas.contentOffset = clampedOffset(canvas.contentOffset)
+            }
+        } else if drawingWork || geometryChanged {
+            setWindowDrawing(ledger.relayout(newBand), on: canvas)
+            appliedLayout = newBand
+            canvas.contentSize = Self.scaled(newBand.size, by: zoom)
+            container.overlayView.pageSize = newBand.size
+            applyInsets()
+        }
+        if geometryChanged {
+            updatePaperSpan(newBand)
+        }
+        if geometryChanged, !tailOnly {
+            let viewport = container.bounds.size
+            if hasInitialZoom, viewport.width > 0, viewport.height > 0 {
+                applyBounds(ZoomPolicy.bounds(newBand.kind, overview: InkCanvasView.bandOverview(newBand), viewport: viewport))
+            }
+            let zoomNow = max(canvas.zoomScale, 0.0001)
+            let delta = PageScroll.scrollDelta(old: oldBand, new: newBand, topVisibleY: topVisibleY)
+            let x = oldX + InkCanvasView.windowShift(old: oldBand, new: newBand, zoom: zoomNow)
+            if !isLive {
+                canvas.contentOffset = clampedOffset(CGPoint(x: x, y: (topVisibleY + delta) * zoomNow))
+            }
+            state.shiftProbe?("moved")
+        }
+        syncPaperFrame()
+
+        if drawingWork {
+            refreshSelection()
+            applyInitialSelectionIfPending()
+        }
+        if historyChanged {
+            publishPage()
+        }
+        notifyHistory()
+        if inkBoundsChanged {
+            deliver { [weak self] in self?.parent.onInkBoundsChanged() }
+        }
+        requestShiftCheck()
+    }
+
+    /// `setDrawing` for the window: the drawing on the canvas with nothing compared meanwhile, and
+    /// `isApplyingDrawing` back to what it was (a window being taken keeps it until it is all done).
+    fileprivate func setWindowDrawing(_ drawing: PKDrawing, on canvas: PKCanvasView) {
+        setDrawingCount += 1
+        spanState?.shiftProbe?("built")
+        let was = isApplyingDrawing
+        isApplyingDrawing = true
+        canvas.drawing = drawing
+        isApplyingDrawing = was
+        ledger.bind(to: canvas.drawing)
+        canvas.undoManager?.removeAllActions()
+        spanState?.shiftProbe?("drawn")
+    }
+
+    /// The paper of the window (P-3), when its pages or their sizes changed.
+    fileprivate func updatePaperSpan(_ band: SpanLayout) {
+        guard let state = spanState, let container else { return }
+        let focus = min(max(0, state.session.focusIndex - band.firstIndex), max(0, band.pages.count - 1))
+        let span = InkCanvasView.paperSpan(for: band, focus: focus)
+        if container.paperView.span != span {
+            container.paperView.span = span
+        }
+    }
+
+    // MARK: Geometry (§3.6)
+
+    /// `containerDidLayout`'s overview on the joined path.
+    fileprivate func bandZoomOverview() -> CGSize {
+        guard let band = appliedLayout as? SpanLayout else { return ZoomPolicy.overviewSize(appliedLayout) }
+        return InkCanvasView.bandOverview(band)
+    }
+
+    /// The first layout's entry: at the opening zoom (and without `initialPaperOffset`) the focus page opens in
+    /// the middle of the screen, its neighbours showing at the sides. A zoomed-in opening keeps
+    /// `initialScrollX` / `Y` (band lu).
+    fileprivate func applyBandOpening(zoom: CGFloat, bounds: ZoomPolicy.Bounds) {
+        guard let state = spanState, let canvas, let container, let band = appliedLayout as? SpanLayout, !band.pages.isEmpty,
+              parent.initialPaperOffset == nil, ZoomPolicy.ratio(forZoom: zoom, bounds: bounds) <= 1.0005 else { return }
+        let slot = min(max(0, state.session.focusIndex - band.firstIndex), band.pages.count - 1)
+        let x = (band.origin(ofSlot: slot) + band.plan.pageWidth / 2) * zoom - container.bounds.width / 2
+        canvas.contentOffset = clampedOffset(CGPoint(x: x, y: canvas.contentOffset.y))
+    }
+
+    /// `containerDidLayout`'s entry when the width changed (a rotation, Split View): the window is decided anew
+    /// when the paper is still.
+    fileprivate func bandWidthChanged() {
+        guard let state = spanState else { return }
+        state.pendingRedecide = true
+        requestShiftCheck()
+    }
+
+    /// The band x (lu) in the middle of the screen.
+    fileprivate func currentMidX() -> CGFloat {
+        guard let canvas, let container else { return 0 }
+        return (canvas.contentOffset.x + container.bounds.width / 2) / max(canvas.zoomScale, 0.0001)
+    }
+
+    /// The band is at the overview's zoom (the lowest, or the opening zoom where the two differ): where the
+    /// 24 pt start applies (§3.6).
+    fileprivate var isAtOverview: Bool {
+        guard let canvas, hasInitialZoom else { return false }
+        let overview = max(canvas.minimumZoomScale, lastBounds?.open ?? canvas.minimumZoomScale)
+        return canvas.zoomScale <= overview + 0.0005
+    }
+
+    // MARK: The band moves (§3.6)
+
+    /// `scrollViewDidScroll`'s entry: the watch's clock, and the focus (the title) on the next turn — never a
+    /// `@Published` change inside UIKit's call or a SwiftUI update, never from the scrolls a shift makes.
+    fileprivate func bandDidScroll() {
+        guard let state = spanState, !state.isShiftingWindow else { return }
+        noteMotion()
+        guard !state.focusUpdateScheduled else { return }
+        state.focusUpdateScheduled = true
+        Task { @MainActor [weak self] in
+            guard let self, let state = self.spanState else { return }
+            state.focusUpdateScheduled = false
+            guard !state.isShiftingWindow, self.hasInitialZoom, self.container != nil, !state.session.isClosed else { return }
+            state.session.scrolled(midX: self.currentMidX())
+        }
+    }
+
+    /// Something moved the band: the watch waits `shiftWatchDelay` from now.
+    fileprivate func noteMotion() {
+        guard let state = spanState else { return }
+        state.lastMotionAt = parent.clock()
+        startWatch()
+    }
+
+    /// The watch (§3.6: 止まりの取りこぼしに備えて 0.5 秒の見張りのタイマー; §3.16): `shiftWatchDelay` (the injected
+    /// `sleep`) after the last motion (the injected `clock`), a stop no scroll-view call told of is taken: the
+    /// shift is tried. While a shift is due and held back (`.busy`) it looks again every `shiftWatchDelay`; it ends
+    /// when nothing is due, the window shifted, or the session could not save (the next motion tries again). A
+    /// clock that did not move during the wait (a test's fixed clock) or went back counts the wait as the delay.
+    fileprivate func startWatch() {
+        guard let state = spanState, !state.watchRunning, container != nil, !state.session.isClosed else { return }
+        state.watchRunning = true
+        state.watchGeneration += 1
+        let generation = state.watchGeneration
+        Task { @MainActor [weak self] in
+            while true {
+                guard let sleep = self?.parent.sleep, let before = self?.parent.clock() else { return }
+                await sleep(InkCanvasView.shiftWatchDelay)
+                guard let self, let state = self.spanState, state.watchGeneration == generation, self.container != nil else { return }
+                let now = self.parent.clock()
+                let elapsed = now.timeIntervalSince(state.lastMotionAt)
+                if now > before, elapsed >= 0, elapsed < InkCanvasView.shiftWatchDelay - 0.001 { continue }
+                // An arrow's slide whose end never came is over once the band is where it was going.
+                if let target = state.slideTargetX, let canvas = self.canvas, abs(canvas.contentOffset.x - target) < 0.5 {
+                    state.slideTargetX = nil
+                }
+                if self.shiftIfAtRest() == .busy { continue }
+                state.watchRunning = false
+                return
+            }
+        }
+    }
+
+    /// The shift may be due: checked once, on the next turn (never inside a scroll-view call, a SwiftUI update or
+    /// `applyPendingSpan`). Held back, the watch keeps looking.
+    fileprivate func requestShiftCheck() {
+        guard let state = spanState, !state.shiftCheckScheduled, container != nil else { return }
+        state.shiftCheckScheduled = true
+        Task { @MainActor [weak self] in
+            guard let self, let state = self.spanState else { return }
+            state.shiftCheckScheduled = false
+            if self.shiftIfAtRest() == .busy {
+                self.startWatch()
+            }
+        }
+    }
+
+    /// A finger holds or drags the band, a fling or a pinch runs, or an arrow's slide.
+    fileprivate func isBandMoving(_ canvas: PKCanvasView) -> Bool {
+        let finger = spanState?.motionOverride ?? (canvas.isTracking || canvas.isDragging || canvas.isDecelerating)
+        return finger || isLive || spanState?.slideTargetX != nil
+    }
+
+    /// §3.6 ずらす条件: the canvas is attached, has its zoom and its session is open; no pen or writing finger is on
+    /// the paper and the settle wait is over; nothing is queued; no finger holds or drags the band, no fling, no
+    /// pinch or bounce, no slide; nothing is selected or being moved; no sheet covers the band.
+    var isAtRest: Bool {
+        guard let state = spanState, let canvas, container != nil, hasInitialZoom, !state.session.isClosed else { return false }
+        if isUsingTool || isSettling || touchingPaper || isMovingSelection || state.isShiftingWindow || resetScroll { return false }
+        if pendingDrawing || pendingGeometry || pendingPaper || state.pendingWindow || !pendingHistory.isEmpty || !pendingCommands.isEmpty {
+            return false
+        }
+        if isBandMoving(canvas) { return false }
+        return selectedIds.isEmpty && !parent.isSheetOpen
+    }
+
+    /// The paper stopped (or may have): the focus and the visit go to the screen (`onSpanStop`, §3.7, D20); then,
+    /// when the focus is off the window's middle page (or the width changed) and the canvas is at rest, the window
+    /// shifts (or is decided anew). Internal for the tests (it is what the watch and `requestShiftCheck` run).
+    @discardableResult
+    func shiftIfAtRest() -> InkCanvasView.SpanShiftOutcome {
+        guard let state = spanState, let canvas, container != nil, hasInitialZoom, !state.session.isClosed else { return .nothing }
+        if isBandMoving(canvas) { return .busy }
+        let stop = state.session.stopped(midX: currentMidX())
+        if stop.focusDay != state.lastStopFocusDay || stop.ended != nil {
+            state.lastStopFocusDay = stop.focusDay
+            deliverNextTurn { [weak self] in self?.parent.onSpanStop(stop) }
+        }
+        guard state.session.needsShift || state.pendingRedecide else { return .nothing }
+        guard isAtRest else { return .busy }
+        if state.pendingRedecide { return redecideWindow() }
+        return shiftWindow(to: state.session.focusIndex)
+    }
+
+    /// §3.6 ずらしの手順 (B_DESIGN.md:194-201): a stroke PencilKit holds and has not told of goes into the ledger and
+    /// the journal into the inbox; the session shifts (the inbox emptied, the safety net, the pages that leave saved
+    /// — a failure leaves everything as it is —, the history prune, the window composed, `pendingRemote` applied);
+    /// the canvas takes the window in the same turn (`applyPendingSpan`: the history pruned, the ledger reloaded,
+    /// the drawing rebuilt, x moved back by the pages that came in on the left, the paper of the window); the
+    /// viewport goes to the owner in the same turn, after `windowVersion` moved (the heading pairs it with that
+    /// version); the pages that came in are read.
+    fileprivate func shiftWindow(to focus: Int) -> InkCanvasView.SpanShiftOutcome {
+        guard let state = spanState, let canvas else { return .nothing }
+        applyCanvasDrawing(canvas)
+        putJournalIntoInbox(relayout: false)
+        let oldFirst = (appliedLayout as? SpanLayout)?.firstIndex ?? 0
+        #if DEBUG
+        let started = CACurrentMediaTime()
+        #endif
+        state.isShiftingWindow = true
+        defer { state.isShiftingWindow = false }
+        guard state.session.shift(toFocusIndex: focus) else {
+            state.refusedShiftCount += 1
+            probeNote("Z!")
+            return .refused
+        }
+        state.pendingWindow = true
+        applyPendingSpan()
+        deliverViewportNow()
+        state.shiftCount += 1
+        probeNote("Z\(((appliedLayout as? SpanLayout)?.firstIndex ?? oldFirst) - oldFirst)")
+        #if DEBUG
+        NSLog("span: shift %.1f ms", (CACurrentMediaTime() - started) * 1000)
+        #endif
+        startPrefetch()
+        return .done
+    }
+
+    /// §3.6 回転・Split View: at a stop after the width changed, the session decides the window anew around the
+    /// focus page (the plan of the screen's orientation, the radius the paper area needs) with the steps of a
+    /// shift; the session, its virtual page and the history stay.
+    fileprivate func redecideWindow() -> InkCanvasView.SpanShiftOutcome {
+        guard let state = spanState, let canvas, let container else { return .nothing }
+        applyCanvasDrawing(canvas)
+        putJournalIntoInbox(relayout: false)
+        state.isShiftingWindow = true
+        defer { state.isShiftingWindow = false }
+        let screen = container.window?.windowScene?.screen.bounds.size ?? container.bounds.size
+        guard state.session.redecide(orientation: SpanOrientation(screen: screen), paperArea: container.bounds.size) else {
+            state.refusedShiftCount += 1
+            probeNote("Y!")
+            return .refused
+        }
+        state.pendingRedecide = false
+        state.pendingWindow = true
+        applyPendingSpan()
+        deliverViewportNow()
+        state.shiftCount += 1
+        probeNote("Y")
+        startPrefetch()
+        return .done
+    }
+
+    /// The viewport now (outside any SwiftUI update: a shift runs in a task), so the heading takes it with the new
+    /// window's version in the same turn (§3.6 版つきの PaperViewport). A delivery `notifyViewport` put off to the
+    /// next turn brings the same value again.
+    fileprivate func deliverViewportNow() {
+        guard let canvas, let container else { return }
+        let viewport = PaperViewport(offsetX: canvas.contentOffset.x, zoom: canvas.zoomScale, width: container.bounds.width)
+        lastViewport = viewport
+        parent.onViewportChange(viewport)
+    }
+
+    /// ◀ ▶ and a near 「今日」 (§3.6): exactly `pages` pages (`SpanPlan.shiftAmount` at the zoom it has, so a boundary in
+    /// the middle of the screen stays there), animated, from where a running slide was going; kept on the band. The
+    /// window shifts when the slide ends. Never under the pen or during a pinch. Internal for the tests (the owner's
+    /// way is `slideTrigger`).
+    func slide(byPages pages: Int) {
+        guard let state = spanState, let canvas, let band = appliedLayout as? SpanLayout, hasInitialZoom, pages != 0,
+              !isLive, !isUsingTool else { return }
+        let zoom = max(canvas.zoomScale, 0.0001)
+        let base = state.slideTargetX ?? canvas.contentOffset.x
+        let target = clampedOffset(CGPoint(x: base + band.plan.shiftAmount(pages: pages, zoom: zoom), y: canvas.contentOffset.y))
+        guard abs(target.x - canvas.contentOffset.x) >= 0.5 else { return }
+        state.lastSlideTargetX = target.x
+        if state.animatesSlides {
+            state.slideTargetX = target.x
+            canvas.setContentOffset(target, animated: true)
+            noteMotion()
+        } else {
+            canvas.setContentOffset(target, animated: false)
+            noteMotion()
+            requestShiftCheck()
+        }
+    }
+
+    // MARK: The palm (§3.6, B_DESIGN.md:354-360)
+
+    /// `touchObserved`'s entry: when an Apple Pencil lifts (`clock()`).
+    fileprivate func bandTouchObserved(_ change: InkTouchObserver.Change) {
+        guard let state = spanState, case .up(let type) = change, type == .pencil else { return }
+        state.lastPencilUp = parent.clock()
+    }
+
+    /// Asked by the band's pan before it begins (`InkBandCanvasView`).
+    fileprivate func bandPanMayBegin(_ pan: UIPanGestureRecognizer) -> Bool {
+        guard let state = spanState, let canvas else { return true }
+        let may = InkCanvasView.panMayBegin(translation: pan.translation(in: canvas), velocity: pan.velocity(in: canvas),
+                                            pencilsDown: pencilsDown, lastPencilUp: state.lastPencilUp, now: parent.clock())
+        if !may {
+            state.refusedPans += 1
+            probeNote("P")
+        }
+        return may
+    }
+
+    // MARK: A change of the canvas (D15, D21, K-9, §3.3 5, §3.4 削除の守り)
+
+    /// What `screenNewStrokesInBand` did, per owner page (K-9, D21).
+    fileprivate struct BandScreening {
+        /// Pages where a new stroke went more than 6,000 lu below the top of the last cell.
+        var capPages: Set<String> = []
+        /// The budget count of each page before its new strokes (no entry when none of them was left to count).
+        var countsBefore: [String: Int] = [:]
+        /// The count of each page whose new strokes were refused.
+        var refused: [String: Int] = [:]
+    }
+
+    /// `applyCanvasDrawing`'s entry after its guard: 43fe366's ① – ⑦ for the window. The new strokes are screened by
+    /// the band (`SpanLayout.drop`: outside the band, below a page's cap) and counted by the page that owns them;
+    /// a removal that is not the eraser's (or too many at once) is not taken: the ledger keeps the strokes and the
+    /// drawing is rebuilt from it once the pen is up (§3.3 5); an id that was already erased is recorded (a race
+    /// that is allowed), one the page never had is a fault (Debug stops, S4's lead's decision 3). The notices name
+    /// the owner page (D21).
+    fileprivate func applyBandDrawing(_ canvasView: PKCanvasView) -> Bool {
+        canvasView.undoManager?.removeAllActions()
+        let screening = screenNewStrokesInBand(on: canvasView)
+        for (pageId, before) in screening.refused.sorted(by: { $0.key < $1.key }) {
+            deliver { [weak self] in self?.parent.onPageStrokeBudget(pageId, .full(before)) }
+        }
+        var capPages = screening.capPages
+        defer {
+            for pageId in capPages.sorted() {
+                deliver { [weak self] in self?.parent.onPageGrowthCapReached(pageId) }
+            }
+        }
+        let change = ledger.applyCanvasChange(canvasView.drawing, allowRemovals: parent.tool.isEraser || touchBeganWithEraser)
+        noteRemovalGuards(change)
+        guard !change.isEmpty else {
+            probeNote("C0")
+            return false
+        }
+        probeNote("C+\(change.added.count)-\(change.removedIds.count)\(isUsingTool ? "u" : "")\(isSettling ? "s" : "")\(parent.tool.isEraser ? "e" : "")")
+        let addedAt = uptime()
+        for stroke in change.added {
+            noteRecentAdd(stroke.id, at: addedAt)
+        }
+        publishPage()
+        notifyHistory()
+        if !change.removedIds.isEmpty {
+            refreshSelection()
+        }
+        // ⑤ A page reached 15,000 strokes with this canvas's stroke: each owner page on its own.
+        if !change.added.isEmpty {
+            for (pageId, before) in screening.countsBefore.sorted(by: { $0.key < $1.key }) {
+                let after = InkCanvasView.budgetCount(ofPage: pageId, in: ledger.page)
+                if StrokeBudget.crossesNotice(from: before, to: after) {
+                    deliver { [weak self] in self?.parent.onPageStrokeBudget(pageId, .many(after)) }
+                }
+            }
+        }
+        // ⑥ The eraser (§2.5), as on the one page.
+        let erasedNow = change.removedIds.count - change.added.count
+        if parent.tool.isEraser, !parent.readOnly, erasedNow > 0 {
+            erasedSinceReport += erasedNow
+            if change.added.isEmpty {
+                removedSinceTouch.append(contentsOf: change.removedIds)
+            }
+            scheduleEraseReport(.count)
+        }
+        // ⑦ The owner hears of it as on the one page (the window's relayout is asked by `putJournalIntoInbox`);
+        // the cap notice reads the page's own name of the cell (§3.3's table) and names the owner page.
+        let needsRoom = change.added.contains { ledger.needsMoreRoom($0) }
+        if needsRoom || !change.removedIds.isEmpty {
+            deliver { [weak self] in self?.parent.onInkBoundsChanged() }
+        }
+        for stroke in change.added where PaperGrowth.isTail(SpanName.strip(stroke.cell)) && PaperGrowth.reachesCap(inkBottom: stroke.bottom) {
+            if let pageId = SpanName.split(stroke.cell.raw)?.page {
+                capPages.insert(pageId)
+            }
+        }
+        return true
+    }
+
+    /// §3.4 削除の守り, S4's lead's decisions 2 and 3, read before `isEmpty`: refused removals rebuild the drawing
+    /// from the ledger (not under the pen); ids erased already are recorded; ids the page never had are a fault.
+    fileprivate func noteRemovalGuards(_ change: InkChange) {
+        if change.needsRebuild {
+            probeNote("Rr\(change.refusedRemovals.count)")
+            pendingDrawing = true
+            requestApply()
+        }
+        if !change.alreadyErased.isEmpty {
+            probeNote("Ra\(change.alreadyErased.count)")
+        }
+        if !change.unknownRemovals.isEmpty {
+            probeNote("Ru\(change.unknownRemovals.count)")
+            SpanSession.onFault("canvas: removals of ids the window never had: \(change.unknownRemovals.joined(separator: ","))")
+        }
+    }
+
+    /// `screenNewStrokes` for the band (D15, M4C-25, K-9, D21): of the strokes the canvas holds that the ledger
+    /// did not build, one centred outside the band or outside its page's paper (`.outsidePaper`, no notice) or
+    /// more than 6,000 lu below the top of its page's last cell (`.belowCap`: that page's notice) is taken off
+    /// the canvas, and so are the newest ones that would take their owner page past `StrokeBudget.refuseAt`.
+    fileprivate func screenNewStrokesInBand(on canvasView: PKCanvasView) -> BandScreening {
+        var result = BandScreening()
+        guard let band = appliedLayout as? SpanLayout else { return result }
+        let strokes = canvasView.drawing.strokes
+        var keep = [Bool](repeating: true, count: strokes.count)
+        var newIndices: [String: [Int]] = [:]
+        for (index, pk) in strokes.enumerated() where ledger.id(of: pk) == nil {
+            let box = StrokeGeometry.paperBounds(of: pk)
+            let center = CGPoint(x: box.midX, y: box.midY)
+            switch band.drop(center: center) {
+            case .keep(let page, _):
+                newIndices[page, default: []].append(index)
+            case .belowCap:
+                keep[index] = false
+                if let target = band.eventTarget(at: center) {
+                    result.capPages.insert(target.pageId)
+                }
+            case .outsidePaper, .viewOnly:
+                keep[index] = false
+            }
+        }
+        for (page, indices) in newIndices {
+            let before = InkCanvasView.budgetCount(ofPage: page, in: ledger.page)
+            result.countsBefore[page] = before
+            let accepted = StrokeBudget.accepted(incoming: indices.count, count: before)
+            if accepted < indices.count {
+                for index in indices.suffix(indices.count - accepted) {
+                    keep[index] = false
+                }
+                result.refused[page] = before
+            }
+        }
+        guard keep.contains(false) else { return result }
+        var kept: [PKStroke] = []
+        kept.reserveCapacity(strokes.count)
+        for (index, pk) in strokes.enumerated() where keep[index] {
+            kept.append(pk)
+        }
+        let was = isApplyingDrawing
+        isApplyingDrawing = true
+        canvasView.drawing = PKDrawing(strokes: kept)
+        isApplyingDrawing = was
+        canvasView.undoManager?.removeAllActions()
+        return result
     }
 }
