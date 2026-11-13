@@ -2557,8 +2557,8 @@ final class InkSpanState {
     /// Tests only: called at each step of taking a window ("pruned", "reloaded", "built" — the window's drawing
     /// made, the canvas still holding the old one —, "drawn", "moved").
     var shiftProbe: ((String) -> Void)?
-    /// Tests only: false slides without the animation.
-    var animatesSlides = true
+    /// Tests only: stands in for UIKit's animated `setContentOffset` of a slide (XCTest cannot drive its frames).
+    var slideAnimation: ((PKCanvasView, CGPoint) -> Void)?
 
     init(session: SpanSession, inbox: SpanInbox, slideTrigger: Int, sheetOpen: Bool) {
         self.session = session
@@ -2587,9 +2587,9 @@ extension InkCanvasView.Coordinator {
         get { spanState?.shiftProbe }
         set { spanState?.shiftProbe = newValue }
     }
-    var spanAnimatesSlides: Bool {
-        get { spanState?.animatesSlides ?? true }
-        set { spanState?.animatesSlides = newValue }
+    var spanSlideAnimation: ((PKCanvasView, CGPoint) -> Void)? {
+        get { spanState?.slideAnimation }
+        set { spanState?.slideAnimation = newValue }
     }
     var spanSlideTargetX: CGFloat? { spanState?.slideTargetX }
     var spanLastSlideTargetX: CGFloat? { spanState?.lastSlideTargetX }
@@ -3177,14 +3177,12 @@ extension InkCanvasView.Coordinator {
         let target = clampedOffset(CGPoint(x: canvas.contentOffset.x + band.plan.shiftAmount(pages: pages, zoom: zoom), y: canvas.contentOffset.y))
         guard abs(target.x - canvas.contentOffset.x) >= 0.5 else { return }
         state.lastSlideTargetX = target.x
-        if state.animatesSlides {
-            state.slideTargetX = target.x
-            canvas.setContentOffset(target, animated: true)
-            noteMotion()
+        state.slideTargetX = target.x
+        noteMotion()
+        if let animate = state.slideAnimation {
+            animate(canvas, target)
         } else {
-            canvas.setContentOffset(target, animated: false)
-            noteMotion()
-            requestShiftCheck()
+            canvas.setContentOffset(target, animated: true)
         }
     }
 

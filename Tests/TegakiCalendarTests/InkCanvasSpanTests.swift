@@ -960,38 +960,45 @@ final class InkCanvasSpanTests: XCTestCase {
     /// §3.6 ◀ ▶: each slide is exactly one week (696.35 pt at the overview) and the window shifts when it ends, nothing
     /// moving on the screen. A second press while the first one slides waits for it and its shift (from where the first
     /// was going, the band of five weeks has no room to bring the week after next to the middle), then slides one more
-    /// week. `slideTrigger` slides once per change, on the next turn (here backwards, without the animation).
+    /// week. `slideTrigger` slides once per change, on the next turn. UIKit's animation is stood in for
+    /// (`spanSlideAnimation`): the test moves the band and tells the end, as UIKit would.
     func testArrowsSlideExactlyOnePage() async throws {
         let session = try await open()
         let rig = await attach(session)
         let x0 = rig.canvas.contentOffset.x
+        rig.coordinator.spanSlideAnimation = { _, _ in }
         // Two presses in one turn.
         rig.coordinator.slide(byPages: 1)
-        XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "exactly one week")
-        let sliding = rig.coordinator.spanSlideTargetX != nil
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "exactly one week")
         rig.coordinator.slide(byPages: 1)
-        if sliding {
-            XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "the second press waits")
-            XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "no shift while it slides")
-        }
-        // The first slide ends (UIKit's animation stopped where it was going), the window shifts, the second slides.
-        func endTheSlide() async {
-            if let target = rig.coordinator.spanSlideTargetX {
-                rig.canvas.setContentOffset(CGPoint(x: target, y: rig.canvas.contentOffset.y), animated: false)
-                rig.coordinator.scrollViewDidEndScrollingAnimation(rig.canvas)
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "the second press waits")
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "no shift while it slides")
+        // The slide ends where it was going; the window shifts; the second press slides.
+        func endTheSlide(line: UInt = #line) async {
+            guard let target = rig.coordinator.spanSlideTargetX else {
+                XCTFail("no slide runs", line: line)
+                return
             }
+            rig.canvas.contentOffset = CGPoint(x: target, y: rig.canvas.contentOffset.y)
+            rig.coordinator.scrollViewDidScroll(rig.canvas)
+            rig.coordinator.scrollViewDidEndScrollingAnimation(rig.canvas)
             await settle()
         }
         await endTheSlide()
-        XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "the second: one more week from the middle")
+        XCTAssertEqual(session.pageIds.first, w1109, "the window shifted after the first slide")
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "the second: one more week from the middle")
         await endTheSlide()
         XCTAssertNil(rig.coordinator.spanSlideTargetX)
         XCTAssertEqual(session.pageIds, [w1116, w1123, w1130, w1207, "w-2026-12-14"], "two weeks on")
         XCTAssertEqual(rig.canvas.contentOffset.x, x0, accuracy: 0.5, "the focus week back in the middle of the band")
-        XCTAssertGreaterThanOrEqual(rig.coordinator.spanShiftCount, 2)
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 2)
 
-        // The owner's trigger, once per change, on the next turn.
-        rig.coordinator.spanAnimatesSlides = false
+        // The owner's trigger, once per change, on the next turn (an animation that ends at once).
+        rig.coordinator.spanSlideAnimation = { [weak coordinator = rig.coordinator] canvas, target in
+            canvas.contentOffset = target
+            coordinator?.scrollViewDidScroll(canvas)
+            coordinator?.scrollViewDidEndScrollingAnimation(canvas)
+        }
         update(rig, slidePages: -1, slideTrigger: 1)
         XCTAssertEqual(rig.canvas.contentOffset.x, x0, accuracy: 0.01, "not inside the update")
         await settle()
@@ -1000,6 +1007,7 @@ final class InkCanvasSpanTests: XCTestCase {
         update(rig, slidePages: -1, slideTrigger: 1)
         await settle()
         XCTAssertEqual(session.pageIds.first, w1109, "the same trigger: nothing")
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 3)
     }
 
     /// §3.3 5, §3.4 削除の守り (b): the canvas loses a stroke while the tool is not the eraser: nothing is tombstoned and no
