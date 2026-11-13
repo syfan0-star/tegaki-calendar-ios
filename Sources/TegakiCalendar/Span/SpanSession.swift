@@ -1108,6 +1108,21 @@ final class SpanSession: ObservableObject {
         slots[pageId] = slot
     }
 
+    /// Tests only (B_DESIGN.md:170, §10.2 row L, the lead's decision L11 of S5): the window narrowed to the focus page
+    /// alone (radius 0), so the growth tests of 1.1 run through a canvas of a one-page `SpanSession` as well as of three
+    /// pages. The window is built anew with the steps of a shift (`rebuild`: the pages that leave saved first, the
+    /// window composed again); true when it was. Only in a Debug build, which the tests run: a Release build does
+    /// nothing here and answers false, so a window the app opens always holds a page on each side of the focus (the
+    /// radius `init` and `redecide` give is never below 1; `move(by:)` relies on it). The screen never calls this.
+    @discardableResult
+    func narrowToOnePageForTesting() -> Bool {
+        #if DEBUG
+        return rebuild(around: focusIndex, plan: plan, radius: 0, change: .redecide)
+        #else
+        return false
+        #endif
+    }
+
     private func record(_ message: String) {
         records.append(message)
         if records.count > 200 { records.removeFirst(records.count - 200) }
