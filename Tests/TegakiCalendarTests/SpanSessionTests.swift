@@ -1257,10 +1257,120 @@ final class SpanSessionTests: XCTestCase {
         await bed.yieldUntil { bed.sessionSleeper.waiting == 3 }
         XCTAssertEqual(Array(bed.sessionSleeper.recorded.dropFirst(recorded)), [1.5, 1.5, 1.5])
         XCTAssertEqual(saves, [])
+        // `advance()` wakes the three timers in order and settles before the second and the third: the earlier ones
+        // have run by then and saved nothing.
+        var savesBeforeTheNextWake: [[String]] = []
+        bed.sessionSleeper.settle = { savesBeforeTheNextWake.append(saves) }
         await bed.flushSessionTimers()
+        XCTAssertEqual(savesBeforeTheNextWake, [[], []], "the timers of the earlier changes saved nothing")
         XCTAssertEqual(saves, [w1109, w1116], "one save of every dirty page, by the last timer")
         XCTAssertEqual(bed.sessionSleeper.waiting, 0)
         XCTAssertEqual(bed.live(w1109).count, 2)
+        XCTAssertEqual(faults, [])
+    }
+
+    // MARK: What the canvas hands over (§3.4 (d), D21)
+
+    /// §3.4 (d), §2.1: the names of a journal that reach no page (an id made without its owner page, as `makeId` alone
+    /// makes them; `ownerId(for:)` of a cell that names no page) come into the inbox with the journal's deltas;
+    /// `deliver(_:unrouted:)` records them and reports a fault (Debug stops there), and applies the deltas that do reach
+    /// a page. The stroke of the bare id reaches no page.
+    func testDeliverRecordsTheNamesThatReachNoPage() async throws {
+        let session = await openWeeks()
+        let ledger = JoinedLedgerStandIn(session)
+        XCTAssertFalse(SpanName.isPrefixed(session.ownerId(for: .grid)), "a cell that names no page gets a bare id")
+        let routed = try XCTUnwrap(ledger.draw(on: w1116))
+        ledger.put()
+        let bare = bed.stroke("bare-id", cell: SpanName.prefixed(.grid, page: w1123), x: 300)
+        session.inbox.put(journal: [SpanJournalEntry(added: [bare], at: 1_790_000_200_000)], window: ledger.current,
+                          basis: ledger.basis, epoch: ledger.epoch)
+        session.drainInbox()
+        XCTAssertEqual(faults, ["unrouted names: bare-id"])
+        XCTAssertTrue(session.records.contains("fault: unrouted names: bare-id"))
+        XCTAssertEqual(session.page(w1116)?.liveStrokeIds, [try XCTUnwrap(SpanName.split(routed.id)?.local)])
+        XCTAssertEqual(session.page(w1123)?.liveStrokeCount, 0)
+        XCTAssertTrue(session.inbox.isEmpty)
+        // `deliver` itself, with no deltas.
+        session.deliver([], unrouted: ["span~a~9"])
+        XCTAssertEqual(faults.last, "unrouted names: span~a~9")
+    }
+
+    /// §3.5 (1.2.3's `applyRemote`, on every window page): an update from iCloud that lacks a stroke this device has not
+    /// saved yet keeps the stroke, makes the page dirty and starts the save timer; the save sends the union.
+    func testRemoteUpdateKeepsTheWindowsUnsavedStroke() async throws {
+        await bed.startSynced()
+        let session = await openWeeks()
+        let ledger = JoinedLedgerStandIn(session)
+        let mine = try XCTUnwrap(ledger.draw(on: w1109))
+        ledger.deliver()
+        let real = try XCTUnwrap(SpanName.split(mine.id)?.local)
+        bed.db.simulateRemoteSave(try bed.record(bed.page(w1109, ["theirs"])))
+        await bed.engine.syncNow()
+        XCTAssertEqual(session.page(w1109).map { Set($0.liveStrokeIds) }, [real, "theirs"])
+        XCTAssertEqual(session.slots[w1109]?.dirty, true)
+        XCTAssertNotNil(session.window.ledgerPage.strokes[SpanName.prefixed(id: "theirs", page: w1109)])
+        XCTAssertNotNil(session.window.ledgerPage.strokes[mine.id])
+        await bed.flushSessionTimers()
+        XCTAssertEqual(session.slots[w1109]?.dirty, false)
+        XCTAssertEqual(bed.live(w1109), [real, "theirs"])
+        await bed.flushDebounce()
+        let record = try XCTUnwrap(bed.db.records[w1109])
+        XCTAssertEqual(Set(try InkPageRecord.page(from: record).liveStrokeIds), [real, "theirs"])
+        // The page is clean now; an update that lacks this device's stroke makes it dirty again (1.2.3's rule), one
+        // that has everything does not.
+        XCTAssertFalse(session.slots[w1109]?.dirty ?? true)
+        var everything = bed.store.load(w1109)
+        everything.add(bed.stroke("more", x: 800))
+        session.remoteUpdated(everything)
+        XCTAssertEqual(session.slots[w1109]?.dirty, false)
+        session.remoteUpdated(bed.page(w1109, ["theirs", "more", "again"]))
+        XCTAssertEqual(session.slots[w1109]?.dirty, true)
+        XCTAssertEqual(session.page(w1109).map { Set($0.liveStrokeIds) }, [real, "theirs", "more", "again"])
+        await bed.flushSessionTimers()
+        XCTAssertEqual(bed.live(w1109), [real, "theirs", "more", "again"])
+        XCTAssertEqual(faults, [])
+    }
+
+    /// D21: 「メモ欄はここまでです」 once for each page of the window (the page that owns the stroke), not once for the window;
+    /// nothing for a page outside it.
+    func testGrowthCapNoticeIsPerPage() async throws {
+        let session = await openWeeks()
+        XCTAssertTrue(session.noteGrowthCap(pageId: w1109))
+        XCTAssertFalse(session.noteGrowthCap(pageId: w1109))
+        XCTAssertTrue(session.noteGrowthCap(pageId: w1116))
+        XCTAssertFalse(session.noteGrowthCap(pageId: w1116))
+        XCTAssertFalse(session.noteGrowthCap(pageId: "w-2026-12-14"))
+    }
+
+    /// The lead's decision 1 of S1 (§3.6, §3.15): a paper area that shows more pages at the lower zoom limit than the
+    /// plan's reference (an iPhone in landscape with many all-day lanes) widens the window; once its pages are read, a
+    /// wider window over the device's cap goes back to the plan's R, and the heavy page far out leaves it.
+    func testAWiderWindowOverTheCapGoesBackToThePlansRadius() async throws {
+        var heavy = InkPage.empty(pageId: "w-2026-12-14")
+        for n in 0..<12_001 {
+            let point = InkPoint(x: CGFloat(n % 1000), y: CGFloat(n / 1000), dtMs: 0, sizeW: 1, sizeH: 1, opacity: 1, force: 0, azimuth: 0, altitude: 0)
+            heavy.add(InkStroke(id: "h\(n)", cell: .grid, tool: .pen, color: "#000000", t: 1, points: [point]))
+        }
+        try bed.store.save(heavy)
+        let area = CGSize(width: 844, height: 250)
+        let plan = SpanPlan(kind: .week, weekStart: .monday, deviceClass: .iPhone, orientation: .portrait)
+        let wide = SpanPlan.radius(forVisiblePages: SpanPlan.visiblePages(.week, viewport: area))
+        XCTAssertGreaterThan(wide, plan.radius)
+        XCTAssertEqual(SpanSession.windowRadius(plan: plan, paperArea: nil), plan.radius)
+        XCTAssertEqual(SpanSession.windowRadius(plan: plan, paperArea: area), wide)
+        let sleeper = bed.sessionSleeper
+        let session = SpanSession(kind: .week, weekStart: .monday, focus: nov16, sync: bed.engine, deviceClass: .iPhone,
+                                  context: SpanSession.PaperContext(now: bed.now, calendar: SessionTestBed.tokyo), paperArea: area,
+                                  sleep: { await sleeper.sleep($0) }, clock: { Date(timeIntervalSince1970: 1_790_000_000) })
+        XCTAssertEqual(session.radius, wide)
+        XCTAssertEqual(session.pageIds.count, 2 * wide + 1)
+        XCTAssertTrue(session.pageIds.contains("w-2026-12-14"))
+        await session.prefetch()
+        XCTAssertEqual(session.radius, plan.radius)
+        XCTAssertEqual(session.pageIds, [w1102, w1109, w1116, w1123, w1130])
+        XCTAssertEqual(session.windowStrokeCount, 0)
+        XCTAssertFalse(session.fallsBackToOnePage)
+        XCTAssertTrue(session.takeHistoryPrune().contains("w-2026-12-14"))
         XCTAssertEqual(faults, [])
     }
 }

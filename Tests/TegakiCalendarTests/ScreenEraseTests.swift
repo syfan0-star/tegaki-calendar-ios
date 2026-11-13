@@ -363,6 +363,66 @@ final class ScreenEraseTests: XCTestCase {
         XCTAssertEqual(session.records, [])
     }
 
+    /// §3.16, 1.2.3's `scheduleSave` (CalendarRootScreen.swift:2520-2527 of 43fe366): every change starts the 1.5 s timer
+    /// again, so the page is saved 1.5 s after the last change; the timer of an earlier change does nothing when it wakes.
+    func testOnePageSaveTimerRunsAfterTheLastChange() async throws {
+        let (session, screen) = try await showSyncedPage(["a"])
+        let first = try XCTUnwrap(screen.canvas.draw(at: CGPoint(x: 100, y: 100)))
+        await bed.yieldUntil { bed.sessionSleeper.waiting == 1 }
+        let second = try XCTUnwrap(screen.canvas.draw(at: CGPoint(x: 200, y: 100)))
+        await bed.yieldUntil { bed.sessionSleeper.waiting == 2 }
+        let store = bed.store
+        let pageId = self.week
+        var storedWhenTheFirstWoke: Set<String>?
+        // `advance()` wakes the two timers in order and settles in between: the first change's timer has run by then.
+        bed.sessionSleeper.settle = {
+            if storedWhenTheFirstWoke == nil { storedWhenTheFirstWoke = Set(store.load(pageId).liveStrokeIds) }
+        }
+        await bed.sessionSleeper.advance()
+        XCTAssertEqual(storedWhenTheFirstWoke, ["a"], "the first change's timer saved nothing")
+        XCTAssertEqual(bed.live(week), ["a", first, second], "the last change's timer saved the page")
+        XCTAssertFalse(session.isDirty)
+        XCTAssertEqual(bed.sessionSleeper.waiting, 0)
+        XCTAssertEqual(session.records, [])
+    }
+
+    /// D14, D3 (2): the one-page path saves through `PageSlot.persist` too. A page of the shapes 1.2.3 writes passes the
+    /// guard untouched; a window name that leaked into the shown page (only the joined path makes such names) is repaired
+    /// at the save — the page's own prefix stripped, another page's name dropped — recorded and reported (Debug stops
+    /// there), the shown page holds the repaired page, and the rest is written as it was. The page is not refused.
+    func testOnePageSaveGoesThroughTheGuard() async throws {
+        let (session, screen) = try await showSyncedPage(["a"])
+        let mine = try XCTUnwrap(screen.canvas.draw(at: CGPoint(x: 100, y: 100)))
+        session.saveNow()
+        XCTAssertFalse(session.isDirty)
+        XCTAssertEqual(bed.live(week), ["a", mine])
+        XCTAssertEqual(bed.store.load(week).strokes[mine], session.page.strokes[mine])
+        XCTAssertEqual(session.records, [])
+        XCTAssertEqual(faults, [])
+
+        var leaked = session.page
+        leaked.add(bed.stroke(week + "|own", cell: SpanName.prefixed(.grid, page: week), x: 400))
+        leaked.add(bed.stroke(otherWeek + "|theirs", cell: SpanName.prefixed(.grid, page: otherWeek), x: 500))
+        XCTAssertTrue(session.canvasWrote(leaked, madeFor: screen.canvas.identity, base: screen.base))
+        var failures: [String] = []
+        session.onSaveFailed = { failures.append($0) }
+        session.saveNow()
+        XCTAssertEqual(failures, [], "a repaired page is saved, not refused")
+        XCTAssertFalse(session.isDirty)
+        let saved = bed.store.load(week)
+        XCTAssertEqual(Set(saved.liveStrokeIds), ["a", mine, "own"])
+        XCTAssertEqual(saved.strokes["own"]?.cell, .grid)
+        XCTAssertEqual(saved.strokes[mine], leaked.strokes[mine])
+        XCTAssertEqual(saved.strokes["a"], leaked.strokes["a"])
+        XCTAssertFalse(saved.strokes.keys.contains { SpanGuard.isWindowName($0) })
+        XCTAssertTrue(SpanGuard.checkForTransfer(saved))
+        XCTAssertEqual(Set(session.page.liveStrokeIds), ["a", mine, "own"], "the shown page is the repaired one")
+        XCTAssertEqual(faults.count, 1)
+        XCTAssertEqual(session.records.count, 1)
+        XCTAssertTrue(session.records.first?.contains("stripped \(week)|own") == true)
+        XCTAssertTrue(session.records.first?.contains("dropped \(otherWeek)|theirs") == true)
+    }
+
     // MARK: - The joined path (SpanSession)
 
     /// A week window around 11/16 (11/2 … 11/30) whose pages are read, `week` holding `ids` saved and sent.
