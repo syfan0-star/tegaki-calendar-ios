@@ -372,7 +372,7 @@ enum ScreenshotMode {
 
     /// "-0.5" → −0.5 (pages); nil unless the text is a finite number ("abc", "inf", "nan", "" are nil). Any sign.
     static func parseSpanOffsetX(_ text: String) -> CGFloat? {
-        guard let value = Double(text), value.isFinite else { return nil }
+        guard let value = Double(text) else { return nil } // MUTATION M6: inf and nan pass
         return CGFloat(value)
     }
 
@@ -824,7 +824,7 @@ enum ScreenshotMode {
                                points: line(from: CGPoint(x: -170, y: 18 * hour + 80), to: CGPoint(x: 250, y: 17 * hour + 60), count: 43, amplitude: 7)),
                 // In the free memo below 24:00 (150 lu under it): centre x −40, so the left day holds it.
                 CrossingSample(id: "demo-stroke-cross-day-memo", cell: .extra, color: "#1f2937",
-                               points: line(from: CGPoint(x: -250, y: 150), to: CGPoint(x: 170, y: 160), count: 43, amplitude: 7)),
+                               points: line(from: CGPoint(x: -350, y: 150), to: CGPoint(x: 270, y: 160), count: 43, amplitude: 7)), // MUTATION M5: into B1's loop
             ]
         case .month, .year:
             return []
