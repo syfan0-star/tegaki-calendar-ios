@@ -755,7 +755,7 @@ enum ScreenshotMode {
             }
             page = own
         }
-        if crossing, !empty {
+        if !empty { // MUTATION M7: the crossing demo always
             for stroke in crossingStrokes(kind: kind, pageOffset: offset) {
                 page.add(stroke)
             }

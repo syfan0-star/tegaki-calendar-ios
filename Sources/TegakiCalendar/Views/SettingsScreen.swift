@@ -152,7 +152,7 @@ struct SettingsScreen: View {
         if !screenshot {
             AppSettings.pageSpan = value
         } else {
-            ScreenshotMode.pageSpan = value
+            _ = value // MUTATION M8: not kept in memory
         }
         notify(value)
     }
