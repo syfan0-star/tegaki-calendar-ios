@@ -9,8 +9,10 @@ import XCTest
 /// 1.3 (docs/M7C_CONTRACT.md §3.8, §3.11, §3.13, D16, D17; role P): the paper, the fixed heading, the all-day
 /// band and the PDF for a window of joined weeks or days (`PaperSpan`).
 ///
-/// - One page is 1.2.3's output: a window of one page draws the page's own paper (the same pixels), heading
-///   and band, and the PDF without neighbour strokes is the PDF of 1.2.3's call.
+/// - One page is 1.2.3's output: a window of one page draws the page's own paper (the same pixels); the
+///   heading and the band of the page alone and of a window of one page are 43fe366's (`Frozen123StickyHeader`,
+///   `Frozen123AllDayBand`, pixel for pixel, at every device's overview); the PDF without neighbour strokes is
+///   the default call's and draws the page as 1.2.3 does (its 1.2.3 sizes are ExportBuilderTests').
 /// - The joined paper draws each page at its slot's x, the days' free memo lined up to the window's floor.
 /// - The joined heading lays every page's columns from its origin; only there does it thin out (the lead's
 ///   decision 4: an iPhone in landscape at the overview) and carry the month over the week's time column.
@@ -159,6 +161,38 @@ final class PaperSpanTests: XCTestCase {
         return bitmap(try XCTUnwrap(renderer.cgImage, "ImageRenderer gave no picture"))
     }
 
+    /// A SwiftUI view as the screen shows it: in a hosting controller in a window of the test host's scene
+    /// (the unit tests run inside the app), drawn by `drawHierarchy` at 1 px per point. For a view holding a
+    /// `ScrollView` (the all-day band), which `ImageRenderer` does not draw as the screen does.
+    private func renderOnScreen<V: View>(_ view: V, size: CGSize) throws -> Bitmap {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first,
+                                  "the unit tests run inside the app: its window scene")
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(origin: .zero, size: size)
+        let host = UIHostingController(rootView: view.frame(width: size.width, height: size.height, alignment: .topLeading).ignoresSafeArea())
+        host.safeAreaRegions = []
+        host.view.backgroundColor = .white
+        window.rootViewController = host
+        window.isHidden = false
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        host.view.frame = window.bounds
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+        host.view.layoutIfNeeded()
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        format.preferredRange = .standard
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            _ = host.view.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
+        }
+        return bitmap(try XCTUnwrap(image.cgImage))
+    }
+
     /// The first page of a PDF at 1 px per point, row 0 at the top (PaperViewTests).
     private func render(pdf data: Data) throws -> Bitmap {
         let provider = try XCTUnwrap(CGDataProvider(data: data as CFData))
@@ -287,16 +321,46 @@ final class PaperSpanTests: XCTestCase {
 
     // MARK: - The fixed heading
 
-    /// One page: a window of one page gives the page's own heading, pixel for pixel (week and day).
+    /// One page: the heading of the page alone (span nil) and of a window of one page are 43fe366's
+    /// (`Frozen123StickyHeader`), pixel for pixel — at the overview of every device, an iPhone in landscape
+    /// among them (where the joined weeks thin out, decision 4: one page never does), at 0.5 and 1, scrolled
+    /// and centred. Weeks with today, a holiday and a first of a month; days that are today, a holiday and a
+    /// Sunday.
     func testAWindowOfOnePageKeepsThePageHeading() throws {
-        let viewport = PaperViewport(offsetX: 0, zoom: 0.5, width: 700)
-        for page in [week(DayKey(year: 2026, month: 11, day: 9)), day(today)] {
-            let plain = try render(StickyHeaderView(paper: page, now: now, viewport: viewport, onDayTap: { _ in }, onMonthTap: { _ in }), width: 700)
-            let windowed = try render(StickyHeaderView(paper: page, now: now, viewport: viewport, span: PaperSpan.single(page),
-                                                       onDayTap: { _ in }, onMonthTap: { _ in }), width: 700)
-            XCTAssertEqual(plain.height, windowed.height)
-            XCTAssertTrue(plain.bytes == windowed.bytes, "\(page.kind): the heading of a window of one page is 1.2.3's")
+        let weeks = [week(DayKey(year: 2026, month: 11, day: 9)), week(DayKey(year: 2026, month: 11, day: 23)), week(DayKey(year: 2026, month: 11, day: 30))]
+        let days = [day(today), day(DayKey(year: 2026, month: 11, day: 23)), day(DayKey(year: 2026, month: 11, day: 15))]
+        // The overviews (ZoomPolicy): week — iPhone landscape 0.1068 (20.4 pt columns), iPad mini landscape
+        // 0.2734, iPhone portrait 0.2812, iPad 11 portrait 0.4974; day — iPhone landscape 0.0854, iPhone portrait 0.2233.
+        let weekZooms: [CGFloat] = [0.1068, 0.2734, 0.2812, 0.4974, 0.5, 1]
+        let dayZooms: [CGFloat] = [0.0854, 0.2233, 0.5, 1]
+        var compared = 0
+        for (pages, zooms) in [(weeks, weekZooms), (days, dayZooms)] {
+            for page in pages {
+                for zoom in zooms {
+                    let pageWidth = page.size.width * zoom
+                    // The page alone, then centred in an iPhone's landscape width, then scrolled by 30 pt.
+                    let viewports = [PaperViewport(offsetX: 0, zoom: zoom, width: pageWidth.rounded(.up)),
+                                     PaperViewport(offsetX: -((874 - pageWidth) / 2).rounded(), zoom: zoom, width: 874),
+                                     PaperViewport(offsetX: 30, zoom: zoom, width: 600)]
+                    for viewport in viewports where viewport.width >= 1 {
+                        let frozen = try render(Frozen123StickyHeader(paper: page, viewport: viewport), width: viewport.width)
+                        let plain = try render(StickyHeaderView(paper: page, now: now, viewport: viewport, onDayTap: { _ in }, onMonthTap: { _ in }),
+                                               width: viewport.width)
+                        let windowed = try render(StickyHeaderView(paper: page, now: now, viewport: viewport, span: PaperSpan.single(page),
+                                                                   onDayTap: { _ in }, onMonthTap: { _ in }), width: viewport.width)
+                        let first = PaperSpan.days(of: page).first.map { "\($0.year)-\($0.month)-\($0.day)" } ?? "?"
+                        let what = "\(page.kind) \(first) at \(zoom), offset \(viewport.offsetX)"
+                        XCTAssertGreaterThan(frozen.height, 40, what)
+                        XCTAssertEqual(plain.height, frozen.height, what)
+                        XCTAssertEqual(windowed.height, frozen.height, what)
+                        XCTAssertTrue(plain.bytes == frozen.bytes, "\(what): the heading of the page alone is 43fe366's")
+                        XCTAssertTrue(windowed.bytes == frozen.bytes, "\(what): the heading of a window of one page is 43fe366's")
+                        compared += 1
+                    }
+                }
+            }
         }
+        XCTAssertEqual(compared, 3 * 6 * 3 + 3 * 4 * 3)
     }
 
     /// F-9 and K-6 on the joined path: in every language the joined weeks' heading is as tall in each form —
@@ -398,8 +462,10 @@ final class PaperSpanTests: XCTestCase {
         XCTAssertTrue(StickyHeaderView.sparseShows(today, every: 2, anchor: today.dayNumber))
     }
 
-    /// Decision 4: only the joined path thins the heading out, by the column width; one page never does.
-    func testThinningIsOnlyOnTheJoinedPath() throws {
+    /// Decision 4: the forms of the joined heading by the column width (`weekCellForm`, `dayBlockForm`), the
+    /// sparse days, the month over the time column and 「終日」. That one page never thins is held on screen by
+    /// `testAWindowOfOnePageKeepsThePageHeading` (the views do not ask these functions for one page).
+    func testThinningFormsFollowTheColumnWidth() throws {
         // The week's day columns (190.857 lu × the overview zoom): iPhone landscape 0.1068 → 20.4 pt, iPad mini
         // landscape 0.2734 → 52.2 pt, iPhone portrait 0.2812 → 53.7 pt, iPad 11 portrait 0.4974 → 94.9 pt.
         let column = { (zoom: CGFloat) in PaperSpec.weekColumnWidth * zoom }
@@ -570,10 +636,92 @@ final class PaperSpanTests: XCTestCase {
         XCTAssertEqual(windowed[0].origin, 0)
     }
 
+    /// One page on screen: the band of the page alone (span nil) and of a window of one page are 43fe366's
+    /// (`Frozen123AllDayBand`), pixel for pixel — a week with bars going on to both sides, today and the
+    /// weekend tinted, and a day — at an iPhone's landscape overview (ja's 「終日」 cut in the narrow time
+    /// column, as 1.2.3 shows it; the joined path would leave it out), centred in a wide screen, at 0.5, and
+    /// with the lane zoom frozen by a pinch.
+    func testTheOnePageBandIs1_2_3OnScreen() throws {
+        let first = DayKey(year: 2026, month: 11, day: 9)
+        let events = [allDay("from-before", from: DayKey(year: 2026, month: 11, day: 6), days: 5),   // Fri 11-06 … Tue 11-10
+                      allDay("to-after", from: DayKey(year: 2026, month: 11, day: 14), days: 4),     // Sat 11-14 … Tue 11-17
+                      allDay("middle", from: DayKey(year: 2026, month: 11, day: 10), days: 3)]       // Tue … Thu: a second lane
+        let weekPaper = week(first, events: events)
+        let dayPaper = PaperContent.day(DayPaperContent(layout: DayLayoutEngine.layout(DayLayoutInput(day: today, events: events, inkBottoms: [:], now: now))))
+        let weekBand = AllDayBandEngine.week(firstDay: first, weekStart: .monday, events: events, now: now, holidays: .japan)
+        let dayBand = AllDayBandEngine.day(today, events: events, now: now, holidays: .japan)
+        XCTAssertEqual(weekPaper.allDayBand, weekBand)
+        XCTAssertEqual(dayPaper.allDayBand, dayBand)
+        XCTAssertEqual(weekBand.laneCount, 2)
+        XCTAssertTrue(weekBand.bars.contains { $0.continuesLeft } && weekBand.bars.contains { $0.continuesRight })
+        XCTAssertNotNil(weekBand.todayColumn)
+        let cases: [(band: AllDayBandLayout, paper: PaperContent, zoom: CGFloat, laneZoom: CGFloat?, width: CGFloat, offsetX: CGFloat)] = [
+            (weekBand, weekPaper, 0.1068, nil, 874, -((874 - 1400 * 0.1068) / 2).rounded()),
+            (weekBand, weekPaper, 0.5, nil, 700, 0),
+            (weekBand, weekPaper, 0.5, 0.3, 600, 120),
+            (dayBand, dayPaper, 0.0854, nil, 874, -((874 - 1000 * 0.0854) / 2).rounded()),
+            (dayBand, dayPaper, 0.5, nil, 500, 0),
+        ]
+        XCTAssertNotNil(PaperWords.allDayLabel(widthPoints: PaperSpec.weekGutter * 0.1068, fontSize: AllDayBandMetrics.labelPoints, .ja),
+                        "1.2.3 shows ja's 「終日」 cut at an iPhone's landscape overview")
+        for item in cases {
+            let viewport = PaperViewport(offsetX: item.offsetX, zoom: item.zoom, width: item.width)
+            let single = try XCTUnwrap(PaperSpan.single(item.paper))
+            XCTAssertEqual(single.bands, [item.band])
+            let height: CGFloat = 120
+            let frozen = try renderOnScreen(Frozen123AllDayBand(band: item.band, viewport: viewport, pageHeight: 400, laneZoom: item.laneZoom),
+                                            size: CGSize(width: item.width, height: height))
+            let plain = try renderOnScreen(AllDayBandView(band: item.band, viewport: viewport, pageHeight: 400, laneZoom: item.laneZoom,
+                                                          onBarTap: { _ in }, onColumnTap: { _ in }),
+                                           size: CGSize(width: item.width, height: height))
+            let windowed = try renderOnScreen(AllDayBandView(band: single.bands[0], viewport: viewport, pageHeight: 400, laneZoom: item.laneZoom,
+                                                             span: single, onBarTap: { _ in }, onColumnTap: { _ in }),
+                                              size: CGSize(width: item.width, height: height))
+            let what = "\(item.band.kind) at \(item.zoom), lane zoom \(item.laneZoom.map { "\($0)" } ?? "nil"), offset \(item.offsetX)"
+            // The band is drawn: the bars' blue (#2563eb) is there.
+            var blue = 0
+            for y in 0..<frozen.height {
+                for x in 0..<frozen.width {
+                    let p = frozen.pixel(x, y)
+                    if abs(p.r - 0x25) <= 12, abs(p.g - 0x63) <= 12, abs(p.b - 0xeb) <= 12 { blue += 1 }
+                }
+            }
+            XCTAssertGreaterThan(blue, 20, "\(what): the band is drawn")
+            XCTAssertEqual([plain.width, plain.height, windowed.width, windowed.height], [frozen.width, frozen.height, frozen.width, frozen.height])
+            XCTAssertEqual(Bitmap.differences(plain, x0: 0, frozen, x1: 0, width: frozen.width, rows: frozen.height), 0,
+                           "\(what): the band of the page alone is 43fe366's")
+            XCTAssertEqual(Bitmap.differences(windowed, x0: 0, frozen, x1: 0, width: frozen.width, rows: frozen.height), 0,
+                           "\(what): the band of a window of one page is 43fe366's")
+        }
+    }
+
     // MARK: - The PDF
 
-    /// One page: without neighbour strokes the PDF, its size and its file are 1.2.3's.
-    func testOnePagePDFIsThePagePDF() throws {
+    /// 43fe366's `PDFPageRenderer.paperRect`, copied: the reference of the one-page PDF's rectangle.
+    private static func frozen123PaperRect(_ paper: PaperContent, page: InkPage) -> CGRect {
+        switch paper {
+        case .month(let content):
+            let memoHasInk = page.liveStrokes.contains { $0.cell.isMemo }
+            guard memoHasInk else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
+            let tail = PaperGrowth.exportTailHeight(inkBottom: page.inkBottoms()[.memo] ?? 0)
+            return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.memo.minY + tail)
+        case .day(let content):
+            let extraHasInk = page.liveStrokes.contains { $0.cell.isExtra }
+            guard extraHasInk else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
+            let tail = PaperGrowth.exportTailHeight(inkBottom: page.inkBottoms()[.extra] ?? 0)
+            return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.grid.maxY + tail)
+        case .week, .year:
+            return CGRect(origin: .zero, size: paper.layout.size)
+        }
+    }
+
+    /// One page: without neighbour strokes (`neighborInk: []`, as the one-page path calls it, or left out) the
+    /// PDF is the default call's, byte for byte; its rectangle follows 43fe366's rule (copied above) for the
+    /// free memo with and without handwriting, deep handwriting and a grid stroke below 24:00; and the page's
+    /// own strokes are drawn where they are. That the default call is 1.2.3's PDF in size and page is held by
+    /// ExportBuilderTests (43fe366's file, unchanged: `testPDFHasOnePageAndOverviewSize`,
+    /// `testDayPDFIncludesTheExtraOnlyWithInk`, `testPDFRendersEveryKind` and the others).
+    func testWithoutNeighborInkThePDFIsTheDefaultCallsPDF() throws {
         var page = InkPage.empty(pageId: "d-2026-11-11")
         page.add(stroke("own-extra", cell: .extra, line(CGPoint(x: 40, y: 400), CGPoint(x: 400, y: 480))))
         page.add(stroke("own-grid", cell: .grid, line(CGPoint(x: 100, y: 1000), CGPoint(x: 500, y: 1100))))
@@ -585,6 +733,29 @@ final class PaperSpanTests: XCTestCase {
         let explicit = PDFPageRenderer.render(paper, page: page, title: "t", neighborInk: [])
         XCTAssertFalse(plain.isEmpty)
         XCTAssertEqual(Self.stableBytes(plain), Self.stableBytes(explicit))
+
+        // 43fe366's rectangle for the pages of the free memo's cases, and for a week.
+        var deep = InkPage.empty(pageId: "d-2026-11-11")
+        deep.add(stroke("deep", cell: .extra, line(CGPoint(x: 40, y: 6300), CGPoint(x: 400, y: 6410))))
+        var gridOnly = InkPage.empty(pageId: "d-2026-11-11")
+        gridOnly.add(stroke("below-24", cell: .grid, line(CGPoint(x: 40, y: 2600), CGPoint(x: 400, y: 2650))))
+        var erased = page
+        erased.remove(ids: ["own-extra"], at: 1_791_000_000_100)
+        for item in [page, deep, gridOnly, erased, InkPage.empty(pageId: "d-2026-11-11")] {
+            let itemPaper = day(today, extraBottom: item.inkBottoms()[.extra])
+            XCTAssertEqual(PDFPageRenderer.paperRect(itemPaper, page: item), Self.frozen123PaperRect(itemPaper, page: item), "\(item.liveStrokes.map(\.id))")
+            XCTAssertEqual(PDFPageRenderer.paperRect(itemPaper, page: item, neighborInk: []), Self.frozen123PaperRect(itemPaper, page: item))
+        }
+        let weekPaper = week(DayKey(year: 2026, month: 11, day: 9))
+        XCTAssertEqual(PDFPageRenderer.paperRect(weekPaper, page: page), Self.frozen123PaperRect(weekPaper, page: page))
+
+        // The page's own strokes, under the 76 pt heading (no all-day event): the grid stroke around (300, 1,050),
+        // the free memo's around (220, 2,400 + 440).
+        let picture = try render(pdf: plain)
+        XCTAssertEqual(picture.height, 76 + 3500)
+        XCTAssertGreaterThan(picture.darkPixels(x: 250..<350, y: (76 + 1030)..<(76 + 1070)), 20, "the grid stroke is drawn")
+        XCTAssertGreaterThan(picture.darkPixels(x: 200..<240, y: (76 + 2820)..<(76 + 2860)), 10, "the free memo's stroke is drawn")
+        XCTAssertEqual(picture.darkPixels(x: 600..<990, y: (76 + 1030)..<(76 + 1070)), 0, "nothing past the grid stroke's end")
         XCTAssertTrue(recorder.lines.isEmpty, "a real page passes the door")
     }
 
