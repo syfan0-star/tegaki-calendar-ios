@@ -85,3 +85,15 @@ R が日本語の元を見ずに `docs/store/de-DE/*.txt` と `docs/store/subscr
 | sub.products.com.syfan0.tegakicalendar.monthly.description | Handschrift, Termine und iCloud-Sync | 手書き、予定、iCloud 同期 |
 | sub.products.com.syfan0.tegakicalendar.yearly.displayName | Tegaki Jährlich | Tegaki 毎年 |
 | sub.products.com.syfan0.tegakicalendar.yearly.description | Gleiche Funktionen, jährliche Abrechnung | 同じ機能、年ごとの精算 |
+
+## 1.3 の whatsnew.txt（このバージョンの新機能。2026-11-13）
+
+上の `whatsnew.txt` の節は 1.2 の文です。この節は 1.3 の `docs/store/de-DE/whatsnew.txt` の逆翻訳で、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。照合と判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の新機能の文と審査メモ」。× 0）。4 つ目の点の最後の文（iPad での見え方）は、リードの確認を待っている案の文です。
+
+| id | 訳 | 逆翻訳 |
+| --- | --- | --- |
+| 1.3.whatsnew.1 | • Wochen- und Tagesseiten sind jetzt seitlich mit der vorherigen und der nächsten Seite verbunden. Wenn Sie mit dem Finger seitwärts wischen, folgt die benachbarte Woche (bzw. der benachbarte Tag). Sie können direkt über die Grenze zwischen den Seiten hinweg schreiben (wenn „Mit Finger zeichnen“ aktiviert ist, bewegen Sie die Seiten mit zwei Fingern seitwärts). | • 週のページと日のページが、前のページ・次のページと横につながるようになりました。指で横にスワイプすると、隣の週（または隣の日）が続いて出てきます。ページの境目をまたいで、そのまま書けます（「指で描く」がオンのときは、2本指でページを横に動かします）。 |
+| 1.3.whatsnew.2 | • Im Bereich „Seiten“ der Einstellungen können Sie die seitliche Verbindung ausschalten. | • 設定の「ページ」の項目で、横のつながりをオフにできます。 |
+| 1.3.whatsnew.3 | • Ein Problem wurde behoben, bei dem Handschrift, die noch auf diesem Gerät war, wieder in iCloud landen konnte, nachdem auf einem anderen Gerät alle Handschrift gelöscht wurde. | • ほかの端末ですべての手書きが消されたあと、まだこの端末にあった手書きが再び iCloud に入ってしまうことがある問題を修正しました。 |
+| 1.3.whatsnew.4 | • Bitte aktualisieren Sie sowohl Ihr iPad als auch Ihr iPhone auf diese Version. In älteren Versionen erscheinen Striche, die über Seiten hinweg geschrieben wurden, nur auf einer der Seiten (sie wurden nicht gelöscht). Wenn Sie einen solchen Strich in einer älteren Version löschen, wird er auch in dieser Version gelöscht. Auf dem iPad verbindet diese Version die vorherige und die nächste Seite im Hoch- wie im Querformat seitlich. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。古いバージョンでは、ページをまたいで書かれた線は、どちらか一方のページにしか表示されません（削除されたわけではありません）。古いバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前のページと次のページを横につなげます。 |
+| 1.3.whatsnew.5 | Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit. | 翻訳は AI で作成したもので、まだネイティブスピーカーの確認を受けていません。誤りがあればお知らせください。 |
