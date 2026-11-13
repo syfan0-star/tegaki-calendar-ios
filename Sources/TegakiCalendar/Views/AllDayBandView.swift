@@ -274,7 +274,8 @@ struct AllDayBandView: View {
 /// there). The lane count is decided again only when the window is laid out — at a shift, a reopening, an
 /// event change — never while the band merely slides sideways, and it never goes down in a session: each
 /// layout asks for at least the most lanes the session has shown (`minimumLaneCount`). A new session (the
-/// screen's new `SpanSession`) starts a new value at 0. Nothing is stored.
+/// screen's new `SpanSession`) starts a new value at 0. The pages' event lists may simply be put one after
+/// another: an event in several of them counts once (`bands`). Nothing is stored.
 struct AllDayBandLanes: Equatable {
     /// The most lanes this session has shown (0 before the first layout).
     private(set) var floor = 0
@@ -284,11 +285,25 @@ struct AllDayBandLanes: Equatable {
     /// The bands of a window whose days, left to right, are `days` (`PaperSpan.days`, or the days of the
     /// session's `SpanLayout` pages): one band per week (7 days each) or per day, every one with the
     /// window's lane count, at least `floor`; `floor` becomes that count.
+    ///
+    /// `events` may name an event more than once: the session keeps its events page by page
+    /// (`[pageId: [LayoutEvent]]`, §3.8), and an event across two pages is in both lists. They are taken once
+    /// per `LayoutEvent.id`, the first of each in the given order (`uniqueEvents`, as `EventKitService.events`
+    /// does within one query), so the pages' lists put one after another give the window one bar per page
+    /// for each event and the lane count of the events themselves. Without this the packing would place
+    /// every copy (`MonthLayoutEngine.packAllDayLanes` keeps them all): the event twice on each page, on two
+    /// lanes, with one lane too many — and two bars with one id in `ForEach(page.band.bars)`.
     mutating func bands(_ kind: PageKind, days: [DayKey], events: [LayoutEvent], now: Date, calendar: Calendar = DayKey.deviceCalendar,
                         holidays: HolidayCalendar) -> [AllDayBandLayout] {
-        let bands = AllDayBandEngine.pages(kind, days: days, events: events, now: now, calendar: calendar, holidays: holidays,
-                                           minimumLaneCount: floor)
+        let bands = AllDayBandEngine.pages(kind, days: days, events: Self.uniqueEvents(events), now: now, calendar: calendar,
+                                           holidays: holidays, minimumLaneCount: floor)
         floor = max(floor, bands.reduce(0) { max($0, $1.laneCount) })
         return bands
+    }
+
+    /// `events` with each `LayoutEvent.id` once, the first of it, in their order.
+    static func uniqueEvents(_ events: [LayoutEvent]) -> [LayoutEvent] {
+        var seen = Set<String>()
+        return events.filter { seen.insert($0.id).inserted }
     }
 }

@@ -36,8 +36,9 @@ struct StickyHeaderView: View {
     /// page (`PaperSpan.isJoined` false): the heading of `paper` alone, 1.2.3's. The title above it, and the
     /// narrow screen's two-row title, stay the focus page's (the screen's `PageHeaderView`, §3.13).
     var span: PaperSpan? = nil
-    /// The language of the day page's heading (F-10). Always `L.language` in the app; the tests, which run
-    /// in Japanese (0-25), pass the others to measure them.
+    /// The language of the day page's heading (F-10) and, since 1.3, of the week page's day cells (F-9: the
+    /// weekday's sign, its place over or beside the number, the short holiday name). Always `L.language` in
+    /// the app; the tests, which run in Japanese (0-25), pass the others to measure them.
     var language: UILanguage = L.language
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
@@ -112,7 +113,7 @@ struct StickyHeaderView: View {
         let firstOfMonth = label.day.day == 1
         let number = firstOfMonth ? "\(label.day.month)/1" : "\(label.day.day)"
         // F-9: over the number there is room for the weekday of the first of a month too.
-        let stacked = PaperWords.weekColumnStacksWeekday(L.language)
+        let stacked = PaperWords.weekColumnStacksWeekday(language)
         let showsWeekday = stacked || !(firstOfMonth && viewport.width(ofPaper: PaperSpec.weekColumnWidth) < Self.narrowWeekColumnPoints)
         let tone = Self.toneColor(label.tone)
         return Button {
@@ -137,7 +138,7 @@ struct StickyHeaderView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 if let holiday = label.holidayName, !holiday.isEmpty {
-                    if let short = PaperWords.weekColumnShortHoliday(label, L.language) {
+                    if let short = PaperWords.weekColumnShortHoliday(label, language) {
                         // F-9: outside ja the short name when the full one does not fit, not an open bracket.
                         ViewThatFits(in: .horizontal) {
                             weekDayHoliday(holiday)
@@ -160,7 +161,7 @@ struct StickyHeaderView: View {
     }
 
     private func weekDayWeekday(_ label: DateLabel, tone: Color?) -> some View {
-        Text(PaperWords.weekColumnWeekday(label.day.weekday, columnWidth: viewport.width(ofPaper: PaperSpec.weekColumnWidth), L.language))
+        Text(PaperWords.weekColumnWeekday(label.day.weekday, columnWidth: viewport.width(ofPaper: PaperSpec.weekColumnWidth), language))
             .font(.system(size: 12, weight: label.isToday ? .bold : .medium))
             .foregroundStyle(label.isToday ? accentColor : (tone ?? ink2))
     }
@@ -315,9 +316,10 @@ struct StickyHeaderView: View {
     enum WeekCellForm: Equatable {
         /// 1.2.3's cell (`weekDayCell`): the weekday, the number, the holiday name.
         case full
-        /// The number alone, on every day. The holiday name gives way (its line stays, empty, so the row is
-        /// as tall as 1.2.3's and the paper area does not change during a pinch, K-6); the number keeps the
-        /// holiday's red.
+        /// The number alone, on every day. The holiday name gives way (its line stays, empty, and in a language
+        /// that has the weekday over the number, F-9's pt-BR, so does the weekday's line: the row is as tall as
+        /// `.full`'s in every language, and the paper area does not change during a pinch that crosses
+        /// `joinedWeekFullPoints`, K-6, F-9); the number keeps the holiday's red.
         case number
         /// The number on every `every`-th day only, counted from today (`sparseShows`), so the labelled days
         /// keep their places across the weeks' boundaries and while the window shifts; the other columns keep
@@ -452,19 +454,30 @@ struct StickyHeaderView: View {
     /// A day column of the thinned joined weeks: the number alone (1.2.3's number, today's capsule, the tone's
     /// colour) centred over the column, the holiday line kept empty; `shows` false leaves the column's tint
     /// and line only. `labelWidth` is the room a sparse number gets over its empty neighbours. The column is
-    /// exactly as wide as proposed, so what reaches past it is shared evenly on both sides.
+    /// exactly as wide as proposed, so what reaches past it is shared evenly on both sides. In a language that
+    /// has the weekday over the number (`PaperWords.weekColumnStacksWeekday`, F-9) the weekday's line is kept
+    /// over it, empty, as `weekDayCell` stacks them, so the cell is as tall as `weekDayCell` (its weekday at
+    /// one line of 12 pt, never shrunk: at `joinedWeekFullPoints` the sign fits whole).
     private func thinWeekDayCell(_ label: DateLabel, shows: Bool, labelWidth: CGFloat?) -> some View {
         let number = label.day.day == 1 ? "\(label.day.month)/1" : "\(label.day.day)"
         let tone = Self.toneColor(label.tone)
+        let stacked = PaperWords.weekColumnStacksWeekday(language)
         return Button {
             onDayTap(label.day)
         } label: {
             VStack(spacing: 1) {
-                weekDayNumber(number, label, tone: tone)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .frame(width: labelWidth)
-                    .opacity(shows ? 1 : 0)
+                VStack(spacing: 0) {
+                    if stacked {
+                        weekDayWeekday(label, tone: tone)
+                            .lineLimit(1)
+                            .hidden()
+                    }
+                    weekDayNumber(number, label, tone: tone)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .frame(width: labelWidth)
+                        .opacity(shows ? 1 : 0)
+                }
                 if let holiday = label.holidayName, !holiday.isEmpty {
                     weekDayHoliday(holiday)
                         .hidden()

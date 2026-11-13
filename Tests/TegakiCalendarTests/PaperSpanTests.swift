@@ -299,6 +299,34 @@ final class PaperSpanTests: XCTestCase {
         }
     }
 
+    /// F-9 and K-6 on the joined path: in every language the joined weeks' heading is as tall in each form —
+    /// `.full` (55 pt columns), `.number` (40 pt) and `.sparse` (an iPhone in landscape, 20.4 pt) — with and
+    /// without a holiday line, so a pinch across 50 or 34 pt never moves the paper area under it. pt-BR, which
+    /// has the weekday over the number, keeps the weekday's line in the thin forms.
+    func testThinCellsKeepTheRowHeightInEveryLanguage() throws {
+        let quiet = try span([week(DayKey(year: 2026, month: 11, day: 9)), week(DayKey(year: 2026, month: 11, day: 16))])
+        let holiday = try span([week(DayKey(year: 2026, month: 11, day: 16)), week(DayKey(year: 2026, month: 11, day: 23))])
+        XCTAssertTrue(holiday.dateLabels(ofSlot: 1).contains { !($0.holidayName ?? "").isEmpty }, "11-23 is a holiday")
+        XCTAssertTrue(PaperWords.weekColumnStacksWeekday(.ptBR), "pt-BR has the weekday over the number")
+        let forms: [(points: CGFloat, form: StickyHeaderView.WeekCellForm)] = [(55, .full), (40, .number), (20.4, .sparse(every: 2))]
+        for language in UILanguage.allCases {
+            for (joined, name) in [(quiet, "no holiday"), (holiday, "a holiday")] {
+                var heights: [Int] = []
+                for (points, form) in forms {
+                    let zoom = points / PaperSpec.weekColumnWidth
+                    XCTAssertEqual(StickyHeaderView.weekCellForm(joined: true, columnPoints: PaperSpec.weekColumnWidth * zoom), form)
+                    let width = (2 * PaperSpec.weekWidth * zoom).rounded(.up)
+                    let row = try render(StickyHeaderView(paper: joined.pages[0], now: now, viewport: PaperViewport(offsetX: 0, zoom: zoom, width: width),
+                                                          span: joined, language: language, onDayTap: { _ in }, onMonthTap: { _ in }), width: width)
+                    heights.append(row.height)
+                }
+                let what = "\(language.rawValue), \(name)"
+                XCTAssertGreaterThanOrEqual(heights[0], 48, what)
+                XCTAssertEqual(Set(heights).count, 1, "\(what): .full / .number / .sparse are \(heights) pt tall")
+            }
+        }
+    }
+
     /// Joined weeks: every page's columns start at its origin (the columns of `weekRow`, page after page), and
     /// the second page's day columns look exactly as the page alone with the paper scrolled by one page. Only
     /// the time column differs: the joined week carries its month there.
@@ -483,6 +511,41 @@ final class PaperSpanTests: XCTestCase {
                                       events: events, now: now, holidays: .japan)
         XCTAssertEqual(dayBands.map(\.laneCount), [3, 3, 3])
         XCTAssertEqual(dayBands[1].bars.first { $0.eventId == "a" }?.lane, dayBands[0].bars.first { $0.eventId == "a" }?.lane)
+    }
+
+    /// §3.8: the session keeps its events page by page, and an event across two pages is in both lists. Put
+    /// one after another, the lists give the bands of the window's own events: one bar per page for each event
+    /// (one id per bar, as `ForEach(page.band.bars)` needs) and the lane count of the events themselves.
+    func testPerPageEventListsPutTogetherGiveOneBarPerEvent() throws {
+        let first = DayKey(year: 2026, month: 11, day: 9)
+        let second = DayKey(year: 2026, month: 11, day: 16)
+        let early = allDay("early", from: DayKey(year: 2026, month: 11, day: 12), days: 3)    // Thu … Sat
+        let crossing = allDay("crossing", from: DayKey(year: 2026, month: 11, day: 14), days: 4) // Sat … Tue
+        let monday = allDay("monday", from: second, days: 1)
+        let days = (0..<14).map { first.adding(days: $0) }
+        let perPage: [[LayoutEvent]] = [[early, crossing], [crossing, monday]]
+        let expected = AllDayBandEngine.pages(.week, days: days, events: [early, crossing, monday], now: now, holidays: .japan)
+        XCTAssertEqual(expected.map(\.laneCount), [2, 2])
+
+        var lanes = AllDayBandLanes()
+        let bands = lanes.bands(.week, days: days, events: perPage.flatMap { $0 }, now: now, holidays: .japan)
+        XCTAssertEqual(bands, expected)
+        XCTAssertEqual(lanes.floor, 2, "the lanes of the events, not of their copies")
+        for band in bands {
+            XCTAssertEqual(Set(band.bars.map(\.eventId)).count, band.bars.count, "one bar per event on a page")
+        }
+        XCTAssertEqual(bands.map { $0.bars.filter { $0.eventId == "crossing" }.count }, [1, 1])
+
+        // Days: an event of three days is in the three days' lists.
+        let three = allDay("three", from: DayKey(year: 2026, month: 11, day: 10), days: 3)
+        var dayLanes = AllDayBandLanes()
+        let dayBands = dayLanes.bands(.day, days: [DayKey(year: 2026, month: 11, day: 10), today, DayKey(year: 2026, month: 11, day: 12)],
+                                      events: [three, three, three], now: now, holidays: .japan)
+        XCTAssertEqual(dayBands.map(\.laneCount), [1, 1, 1])
+        XCTAssertEqual(dayBands.map(\.bars.count), [1, 1, 1])
+
+        XCTAssertEqual(AllDayBandLanes.uniqueEvents([crossing, early, crossing, monday, early]).map(\.id), ["crossing", "early", "monday"],
+                       "the first of each id, in order")
     }
 
     /// One page: the window's band of one week or one day is the band 1.2.3 lays out for it, placed at x 0.

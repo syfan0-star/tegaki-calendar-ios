@@ -183,6 +183,10 @@ final class PaperView: UIView {
     /// its slot's x (`PaperSpan.origin(ofSlot:)`), cut to its own rectangle — then the owner's content
     /// coordinates are the window's (`show` with `span.size` × zoom) and `content` is not drawn. nil (the
     /// default): `content` alone, 1.2.3's paper. A window of one page draws exactly what `content` draws.
+    /// Only the owner reaches this view: the canvas (`InkCanvasView`, role L, a file of §6.4's table) makes it
+    /// with `content` alone and swaps `content` when its own `paper` changes. The joined path therefore needs
+    /// the canvas to take the window as an input of its own and set it here, comparing it as it compares
+    /// `content`; the screen cannot set it.
     var span: PaperSpan? {
         didSet {
             if span != oldValue { setNeedsDisplay() }
