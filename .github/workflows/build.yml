@@ -403,7 +403,9 @@ jobs:
       # 1.3 (docs/M7C_CONTRACT.md §10.6): on r13-quick (QUICK) only the Span classes of Tests/TegakiCalendarTests
       # that exist so far (`*SpanTests`, `SpanSessionTests`, `ScreenEraseTests`, `OnePageSession…Tests`, found by
       # their `class` lines, `@MainActor final class …:` on one line too; S5 adds them), each with -only-testing;
-      # none yet → the step says so and ends.
+      # none yet → the step says so and ends. S5 wave A's decision 10 (docs/M7C.md): SettingsPageSectionTests (設定 ›
+      # ページ and the guide, §10.2 U) too; wave C's ScreenPathsSpanTests, ScreenPathsCanvasSpanTests and
+      # ScreenshotModeSpanTests are found by the `SpanTests` ending.
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
@@ -412,7 +414,7 @@ jobs:
           if [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::r13-quick: no Span test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
@@ -475,6 +477,13 @@ jobs:
       # [TextTransform] from PencilKit, [Client] XPC), so a class that falls short gets a warning and its time is
       # short by those passes. The step's result does not depend on it.
       # S5 (§10.6): SpanSessionTests and ScreenEraseTests (the sessions over the live engine) are repeated with them.
+      # S5 wave C (§10.6; the lead's decision C3-m2): the screen's pure tests ScreenPathsSpanTests (the screen's call
+      # sites in Span/ScreenPaths.swift over the live engine, no UIKit or PencilKit) join them; the screen tests with
+      # the real canvas are another class, ScreenPathsCanvasSpanTests, which is not listed here: it runs once with
+      # the unit tests (and on the quick lane, by its `SpanTests` ending) and is not repeated. Until wave C's screen
+      # branch adds the class, the line finds no test and the check at the end of the step warns (its file and its
+      # class line are not in Tests/TegakiCalendarTests), so the step passes. The limit stays 9 min until the first
+      # run of the build-and-test job with the class prints its per-class time (the measure for the next limit).
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
         timeout-minutes: 9
@@ -492,6 +501,7 @@ jobs:
             -only-testing:TegakiCalendarTests/SyncEngineEraseFetchTests \
             -only-testing:TegakiCalendarTests/SpanSessionTests \
             -only-testing:TegakiCalendarTests/ScreenEraseTests \
+            -only-testing:TegakiCalendarTests/ScreenPathsSpanTests \
             -skip-testing:TegakiCalendarTests/SyncEngineTests/testMergeRemoteOfATruncatedPageMarksDirty \
             -test-iterations "$ITERATIONS" \
             -run-tests-until-failure \
@@ -520,7 +530,8 @@ jobs:
           # a sign. Each class listed above must have test cases in the log. The list is read from this script ($0,
           # the step's lines as the runner wrote them: `shell: /bin/bash -e {0}`), so it is written once. A class with
           # none fails the step when Tests/TegakiCalendarTests has its file (<class>.swift, §10.2's names) or its
-          # class line; when it has neither (S's two classes on a branch without S's tests) it is a warning.
+          # class line; when it has neither (S's two classes on a branch without S's tests, ScreenPathsSpanTests
+          # before wave C's screen branch) it is a warning.
           LISTED=""
           if [ -f "$0" ]; then
             LISTED="$(sed -nE 's/^[[:space:]]*-only-testing:TegakiCalendarTests\/([A-Za-z0-9_]+)[[:space:]]*\\$/\1/p' "$0" | sort -u)"
@@ -1733,6 +1744,10 @@ jobs:
           find "$OUT" -name '*.png' | sort
 
       # docs/M7B_CONTRACT.md §7.5, §8 4: 0 is the expected number of both kinds of lines.
+      # 1.3 (docs/M7C.md, wave D's text decision 9): each grep that can match nothing is `{ grep … || true; }`. The
+      # runner's shell is `bash -e` and the step sets pipefail, so a grep with no line (the 0 expected, or no
+      # `l10n: holidays loaded`) made its assignment exit 1 and the step stopped before the summary table (run
+      # 42687634949 on main). The table is now written whatever the counts; the step still never fails the job.
       - name: The words the app did not find
         if: ${{ !cancelled() }}
         continue-on-error: true
@@ -1742,9 +1757,9 @@ jobs:
           LOG="$OUT/pseudo/l10n-log.txt"
           [ -f "$LOG" ] || : > "$LOG"
           PHOTOS="$(find "$OUT" -name '*.png' | wc -l | tr -d ' ')"
-          MISSING="$(grep 'l10n: missing' "$LOG" | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
-          NOT_LOCALIZED="$(grep 'not found in strings table' "$LOG" | grep -c 'TegakiCalendar.app' || true)"
-          HOLIDAYS="$(grep -E 'l10n: holidays loaded' "$LOG" | sed 's/.*l10n: holidays loaded //' | sort -n | tail -1)"
+          MISSING="$({ grep 'l10n: missing' "$LOG" || true; } | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
+          NOT_LOCALIZED="$({ grep 'not found in strings table' "$LOG" || true; } | { grep -c 'TegakiCalendar.app' || true; })"
+          HOLIDAYS="$({ grep -E 'l10n: holidays loaded' "$LOG" || true; } | sed 's/.*l10n: holidays loaded //' | sort -n | tail -1)"
           grep 'l10n: missing' "$LOG" | sed 's/.*l10n: missing //' | sort -u || true
           grep 'not found in strings table' "$LOG" | grep 'TegakiCalendar.app' | head -50 || true
           [ "$PHOTOS" = "63" ] || echo "::warning::$PHOTOS photos, 63 expected."
