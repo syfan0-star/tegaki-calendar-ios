@@ -2,9 +2,10 @@
 
 契約は [M7C_CONTRACT.md](M7C_CONTRACT.md)。ここはリードの記録で、段ごとに節を足す。**今の状態は最初の「今の状態」の節を読む。** 各節は書いた時点の記録で、書き直さない（後で変わった物は「今の状態」で読み替える）。
 
-## 今の状態（リード、2026-11-13 06:30）
+## 今の状態（リード、2026-11-13 21:10）
 
-- 枝 `r13`（origin も同じ）。S1〜S4 は済んだ。S2 の見本の画像と S3 の試作（版 1.3・ビルド 24）は 11/12 に本人へ届けた。**S5（本体）は本人の「進められるところは、どんどん進めていきましょう。予定に拘ることはありません。」（11/13）で、11/13 06:30 に始めた**（下の「S5」の節）。H4 の直し（枝 `h4-fix`）は f5ae07d で `r13` に入れた（1.3 で直す既定のとおり。1.2.4 で出すときも同じ commit を使う）。
+- 枝 `r13`（origin も同じ）。S1〜S4 は済んだ。S2 の見本の画像と S3 の試作（版 1.3・ビルド 24）は 11/12 に本人へ届けた。S5（本体）は 11/13 06:30 に前倒しで始め、**第 1 陣（S・P・C・U の前半）を 11/13 21:10 に `r13` へ入れた**（7ec3c6c まで早送り。下の「S5」の節）。次は第 2 陣（L のキャンバス）。H4 の直し（枝 `h4-fix`）は f5ae07d で `r13` に入れた（1.3 で直す既定のとおり。1.2.4 で出すときも同じ commit を使う）。
+- 画面はまだどの種類も 1 ページの道（D2）。横の道の部品（`SpanSession`・紙・見出し・終日帯・PDF の隣の線・設定「ページ」・案内の札）は入ったが、画面から呼ぶのは第 3 陣。
 - ふつうのアプリと 43fe366 の違い: 凍結の表のうち `Ink/InkLedger.swift` と `Sync/SyncEngine.swift` の 2 つが S4 で変わり、`tools/compat10/DATA_1_1.sha256` はその 2 行だけを書き直した（§6.4 の手順 2。ほかの 16 行は 43fe366 のまま）。今の画面（1 ページの道）の振る舞いは変わらない（S4 の節の「1 ページの道の記録」）。既存のテスト（`TESTS_1_2_3.sha256` の 8 ファイル）・InkModel の既存の 7 ファイル・compat11・Compat10 は 43fe366 から 1 バイトも変わっていない。試作は `#if SPAN_PROTOTYPE` の中のまま。
 - `tools/span/prototype_gate.py --base 43fe366` は `r13` の先頭では FAIL になる（S4 の 2 ファイル）。これは S3 の試作のビルドだけの関門で、CI では走らない（testflight.yml の `span_prototype=1` のときだけ）。試作を作り直すときはタグ `r13-proto-1` から作る。
 - この Mac の関門（dcf32f0。リードが 11/12 23:55 に確かめた）: KitChecks **36,968 件・失敗 0**（Kit は S1 から変わらない）、typecheck は試作の印なし・ありの両方で all OK（アプリの警告 0、TegakiCalendarTests 39 ファイル・UITests 6 ファイル、警告 0）、lint OK（読むアプリのファイルは 65 → 69）、DATA_1_1 18/18・TESTS_1_2_3 8/8 OK、`prototype_gate_test.py` 14 件 OK。
@@ -414,3 +415,119 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
 - 役ごとに枝を分けて並べて作る。第 1 陣（Workflow wf_edb4259f-ebc）: S（`SpanSession`・`PageSlot`・受け箱・`OnePageSession` と 1 ページの道の状態の移し替え・H1〜H3）、P（紙・固定見出し・終日帯・PDF の隣の線・iPhone 横の見出しの間引き）、C（S5 の CI のうち画面を待たない分）、U の前半（設定「ページ」・`page.span`・初めての案内の札）。各役は `r13-w-s5<役>` で作り、まとめの枝 `r13-s5a` で全部のジョブを回してから `r13` に入れる。
 - 第 2 陣: L のキャンバス（§3.6。`SpanSession` の型を使うので S の後）。第 3 陣: 画面のつなぎ込み（2 本の道・設定の切り替え）、写真モードの引数と UI テスト、span-shots の写真。第 4 陣: 訳・逆翻訳・店の文・SUPPORT と見直し。
 - 速い確かめの道を、役ごとの枝 `r13-q-<役>` でも使えるようにした（25c3fc6。`QUICK` と各ジョブの `if:` が `r13-q-*` も含む。ref ごとの concurrency なので、役どうしで止め合わない）。
+
+### 第 1 陣（Workflow wf_edb4259f-ebc、11/13 06:30〜20:50。作る 4・見直し 4・直し 4・まとめ 1・最後の点検 1）
+
+| 役 | 枝の先頭 | 中身 | 見直し（再現したもの） | CI（役の枝） |
+| --- | --- | --- | --- | --- |
+| S | 7867480（`r13-w-s5s`） | `Span/SpanSession.swift`（`PageSlot`・`PageSlot.persist`・`SpanInbox`・`SpanSession`。§2.1 の口とキャンバスが使う口の全部）、`Span/OnePageSession.swift`、`CalendarRootScreen` の 1 ページの道の状態と保存を `OnePageSession` へ（1.2.3 の行のまま）、H1（`onRemoteDelete` → 表示中のページを空にして作り直す）・H2（消して始めるは `await` の前に閉じる）・H3（全て消す・消して始めるで ↶ を捨てる）・識別子の門。`SpanSessionTests` 37 本・`ScreenEraseTests` 13 本（20 回くり返しの段にも） | major 2（窓の先頭の番号・窓を変えるのは compose だけ）・minor 5 → 直した（minor 1 は C のファイルの注で、C の枝で直っている） | run 43374089996 緑（単体 535・くり返し 238 秒） |
+| P | e75ad84（`r13-w-s5p`） | 紙（`PaperView` の窓）、固定見出し（窓のページの列・iPhone 横の間引き、決定 4）、終日帯（窓の全部の日でレーンを詰める `AllDayBandLanes`）、PDF の隣の線（`neighborInk`、D17）と書き出し・取り込みの `TransferGuard`（§3.11）。1 ページでは 1.2.3 の出力。`PaperSpanTests` 20 本 | major 1（帯の重なりの数え方）・minor 4 → 直した（キャンバスの側の 1 つは第 2 陣へ） | run 43374019572 緑（UI テストの揺れ 1 件を走らせ直し） |
+| C | ad24ad9（`r13-w-s5c`） | 13 インチのシートの写真を「画面が出たのを待つ」形に（`tools/shots/screen_ready.swift`）、「The app is not running」の誤った警告を止めた（決定 8）、compat-v1-0 の上限を測った時間から（決定 7）、`PrototypeIsolationTests` に `onRemoteDelete`（S4 の決定 5）、UI テストの grep に `span UI:`、くり返しの段のクラスの数え、ずらしの組の道具 `tools/shots/shift_pair.swift`、新しい J-4 の基準（run 43350270595） | minor 3 → 直した | run 43382429888 緑 |
+| U | c859928（`r13-w-s5u`） | `page.span`（端末ごと、既定オン）、設定の節「ページ」（§3.14、N-1〜N-3）、`SpanGuideView`（N-4〜N-7、8 秒・触れて消える・端末と種類ごとに 1 回、注入の sleep/clock）、N-8 のキー。新しい 8 キーは訳が入るまで ja だけ（`build.py` の `APP_JA_ONLY_UNTIL_TRANSLATED`、この 8 つの名前だけ）。訳の無いキーがあると testflight.yml で止める段。`SettingsPageSectionTests` 12 本 | minor 6 → 5 直した（1 つは下の「違ってよい写真」でリードが受けた） | run 43383527000 緑 |
+
+- まとめの枝 `r13-s5a`（7ec3c6c。4 つの取り込みでぶつかり無し、足した行 0）の run 43399030685 は 5 つのジョブが全部緑（blank-paper の 1 回目は実行機にシミュレータが無い揺れで、落ちたジョブだけ走らせ直して緑）。build-and-test 93.9 分（上限 120）: 単体テスト 567 本（skip 8・失敗 0）、20 回くり返し 2,380 本・失敗 0、UI テスト 29 本・失敗 0、compat-v1.0 16.4 分、l10n-shots 45.3 分（写真 63 枚）、span-shots 38.2 分（`PrototypeIsolationTests` 4・失敗 0）。
+- リードがこの Mac で 7ec3c6c を確かめた: KitChecks 36,968・失敗 0、typecheck は試作の印なし・ありとも all OK（アプリの警告 0、TegakiCalendarTests 45 ファイル・UITests 6 ファイル）、lint OK、DATA_1_1 18/18・TESTS_1_2_3 8/8、`prototype_gate_test.py` 14 件 OK。`r13` を 7ec3c6c まで早送りした（同じ commit を r13-s5a で全部のジョブで確かめたので、`r13` の push は CI を回さない）。
+- 最後の点検: §2.1 の宣言とそろっている。1 ページの道の 43fe366 との差を 1 行ずつ読み、意図した違いは H1〜H3・識別子の門・D14 の保存の入口の `SpanGuard`・作り直しのときの viewport・設定の節・書き出しと取り込みと PDF の門だけ。H1〜H3 のテストは、直しを外すと落ちる（写しの試験の場で変異を入れて確かめた）。§8.1 の N-1〜N-8 は契約の文と 8/8 一致、既存のキーの変更 0。
+
+### 第 1 陣のリードの決定
+
+1. `PageSlot` は紙を持たない（S のずれ）。1 ページの道の紙は画面に残し、窓の紙は `SpanSession.layout` が持つ。
+2. H2（1 ページの道）: 消して始めるの `await` の間に空のキャンバスに書いた線は残さない（契約の文のとおり）。
+3. `OnePageSession` が ObservableObject なので画面の評価の回数が増えるが、動きは同じなので受ける。
+4. 識別子の門は、月のページで週の始まりを替えたときの古いキャンバスの遅れた書き込みも捨てる（§2.1 の最後の点の意図どおり）。
+5. `runImport` の 1 行（S のファイル）は P の枝のまま入れた。取り込みで断ったページは「読み飛ばし」に数える（新しい文は足さない）。
+6. 見出しの間引きのしきい値（週 50/34 pt、日 100/64 pt）と、つないだ週の時刻の列に月を出すことは、試作の感想の後に見直す。
+7. UI テストを別のジョブに分けるかは、第 3 陣で `SpanRerunUITests` が入った最初の run で測ってから決める（今の build-and-test は 82〜94 分、上限 120）。
+8. J-4 の基準は新しい run 43350270595（ja-baseline-43fe366、11/13。1.3 の build.yml と同じシートの待ちで撮った）を使う。前の基準 43158921131（決まった 9 秒）は使わない。
+9. N-8（段 2 の案内、§8.1「1 回」）は、端末ごと・種類ごとに 1 回（案内の札と同じ形）。第 3 陣で作る。
+10. 速い道（`r13-q-*`）に `SettingsPageSectionTests` を足すのは第 3 陣の C で（`ScreenshotModeSpanTests` は名前で当たる）。
+11. **J-4 の違ってよい写真**: `ipad13-portrait-sheet-sync.png`（設定のシートの同期の行の上に新しい節「ページ」が写る。U-R6）と、ja-baseline.yml の同じ写真。`sheet-settings.png` と `store/ipad13/06-settings.jpg` の差は時計と数画素で、新しい節によるものではない。
+12. 最後の点検の S5A-C1: H1〜H3 の直しのうち画面の側の行（`CalendarRootScreen`）は、まだどの自動テストも通らない（セッションの側の半分だけを変異で確かめた）。第 3 陣（画面）で、画面の行を通るテスト（画面の呼び口を切り出した単体テストか UI テスト）を足し、直しを外すと落ちることを確かめる。
+13. 最後の点検の S5A-C2: 新しい 3 キー（`settings.page.header`・`settings.page.span`・`settings.page.span.footer`）は、訳が入るまで ja 以外の設定のシートで**キーの名前がそのまま出る**（日本語の文ではない）。l10n-shots の「3 keys the app did not find」の警告はこのため。第 4 陣（X の訳）で 0 に戻し、testflight.yml の段が訳の無いまま TestFlight に出すのを止める。
+
+### 第 2 陣・第 3 陣に残したもの（最後の点検と各役の報告から）
+
+- 第 2 陣（L のキャンバス、§3.6）: `InkCanvasSpanTests` の 12 本、キャンバスが `span: SpanSession?`・`inbox: SpanInbox?` を受け、日誌を `SpanInbox.put`、`takeHistoryPrune` → `pruneHistory(touching:)`、`windowVersion` で台帳を `keepHistory` で読み直す、持ち主のページごとの線の予算（D21）、`onInkBoundsChanged` → `relayoutPages`、ずらしとはじき、`PaperView` に窓の紙を渡す門（P-3 のキャンバスの側）。
+- 第 3 陣（画面）: `CalendarRootScreen` の横の道（2 本の道・`page.span` での切り替え・§3.5 の表の全部の呼び口・題名と remember・評価の印 D20・保存の失敗の案内・段 2 の案内 N-8・`onRemoteUpdate`/`onRemoteDelete` の振り分け）、画面の半分が残る S のテスト 10 本（`testPathSwitchSavesThenReopens` ほか）、S5A-C1 の画面の行のテスト、写真モードの 6 つの引数（§3.12）と `ScreenshotModeSpanTests`、UI テスト（§10.3、`SpanUITests`・`SpanRerunUITests`）、span-shots のふつうのビルドの写真（§10.5 の (2)）、予定をページごとに読む画面の側（`EventStoreModel`・`EventKitService`）。
+- 第 4 陣: 新しい 8 キーの訳（9 言語）と逆翻訳、16 ロケールの新機能の文、審査メモ、App Store の写真、SUPPORT。
+
+### 第 1 陣の 1 ページの道の記録（§6.4・D9。各役の報告のまま）
+
+凍結の表のファイルは、この陣ではどれも変えていない（DATA_1_1 18/18・TESTS_1_2_3 8/8）。下は、1 ページの道が通るコードを変えた commit の行（commit・ファイル・通る行・理由・通る既存のテスト）。
+
+**S（セッション・OnePageSession・H1〜H3）**
+
+- f0dc062・Views/CalendarRootScreen.swift・+65/−71 行。この陣の画面には横の道がまだ無いので、変えた行は全部 1 ページの道が通る。以下 43fe366 の行番号ごと。通る既存のテスト: 1.2.3 の単体テスト（TESTS_1_2_3 の 8 ファイル）はどれも画面を作らない（CalendarRootScreenTests は static の関数だけ: weekStartSwitch・startState・tapTarget・growthCapToast など。変えていない）。画面を動かすのは UI テスト（EraserAndBelowDayUITests 8・YearTapUITests 5・HeaderAndPaperUITests 3・WeekStartUITests 1・LanguageUITests 11・BlankPaperShotsUITests 1。すべて写真モードで、エンジンは何もしない版）と build-and-test の写真の段（J-4）。run 43315186882・43351232408 で全部緑
+- f0dc062・CalendarRootScreen :154 `@State page` → `@StateObject onePage: OnePageSession`（注 3 行）・D3 の 7・上の UI テストと写真の全部
+- f0dc062・CalendarRootScreen :187-188（capNoticedPageId）と :272-273（saveTask・pageDirty）を消した（PageSlot と OnePageSession へ）・D3 の 7・同上
+- f0dc062・CalendarRootScreen :445 `_page = State(initialValue: startPage)` → `_onePage = StateObject(wrappedValue: OnePageSession(sync: SyncEngine.shared, page: startPage))`・D3 の 7・起動する全部の UI テストと写真
+- f0dc062・CalendarRootScreen :473 canvasIdentity = canvasBase（今の "<pageId>|<weekStart>"）＋ "|<epoch>"・D7、§6.6 H1〜H3・全部（キャンバスの .id。起動時は epoch 0 で、1.2.3 と同じ時にだけ作り直す）
+- f0dc062・CalendarRootScreen :953-955 growthCapReached の capNoticedPageId → onePage.noteGrowthCap(pageId:)（同じ規則）・D3 の 7・UI テストで上限に届くものは無い
+- f0dc062・CalendarRootScreen :1144-1152 pageBinding: 作ったときの canvasIdentity を閉じ込め、onePage.canvasWrote(_:madeFor:base:)（識別子とページ id が今と同じときだけ受け、dirty と 1.5 秒の予約は 1.2.3 のまま）・§2.1 の最後、§6.6 H1/H3・書く・消す UI テスト（EraserAndBelowDayUITests ほか）。新しい ScreenEraseTests.testLatePublishFromTheOldCanvasIsDropped
+- f0dc062・CalendarRootScreen :1188/:1190 appear に onePage.onSaveFailed と sync.onRemoteDelete = remoteDeleted を足した・D3 の 7、§6.6 H1、§7・起動する全部（写真モードのエンジンは呼ばない）
+- f0dc062・CalendarRootScreen :1341・:1349 show の capNoticedPageId = nil → onePage.forgetGrowthCap()・D3 の 7・ページを移る UI テスト（HeaderAndPaperUITests・YearTapUITests）
+- f0dc062・CalendarRootScreen :1368-1373 show の migrate・dirty・予約 → onePage.open(loaded)（同じ行）・D3 の 7・ページを開く全部の UI テストと写真
+- f0dc062・CalendarRootScreen :1442 relayout の page → onePage.page・D3 の 7・全部
+- f0dc062・CalendarRootScreen :1476（switchWeekStart の apply）capNoticedPageId = nil → forgetGrowthCap・:1507（runWeekStartCheck）pageDirty → onePage.isDirty・:1534（noticeHiddenInk）`let page = onePage.page`・D3 の 7・WeekStartUITests、CalendarRootScreenTests の weekStartSwitch 3 本（static、変えていない）
+- f0dc062・CalendarRootScreen :1580-1590 applyRemote の本体 → onePage.applyRemote（同じ行）＋ relayout・D3 の 7・UI テストでは呼ばれない（何もしないエンジン）。新しい ScreenEraseTests.testOnePageSessionKeepsTheOneTwoThreeSaving
+- f0dc062・CalendarRootScreen 新しい remoteDeleted(_:)（表示中のページなら OnePageSession.remoteDeleted、selection = nil、relayout）・§6.6 H1・新しい ScreenEraseTests の H1 の 3 本。写真モードでは呼ばれない
+- f0dc062・CalendarRootScreen :1764（予定にする）page.strokes → onePage.page.strokes・:2050（PDF の runExport）page → onePage.page・D3 の 7・該当する UI テストは無い
+- f0dc062・CalendarRootScreen :1868-1874 eraseAllInk の予約の取り消し・空にする・dirty = false → onePage.eraseAll()（同じ動き＋番号を進めてキャンバスを作り直す）・§6.6 H3、D3 の 7・UI テストは全て消すを使わない。新しい testUndoIsEmptyAfterEraseAllAndEraseAndStart
+- f0dc062・CalendarRootScreen :2129-2140 chooseAccount: .eraseInk のとき await の前に onePage.beginEraseAndStart()・selection = nil・relayout、await の後は reloadShownPage の後（later と写真モードではすぐ）に endEraseAndStart()。.keepInk の saveNow は 1.2.3 のまま・§6.6 H2・H3・UI テストは無い。新しい testEraseAndStartClosesTheScreenBeforeAwait
+- f0dc062・CalendarRootScreen :2148-2156 reloadShownPage → onePage.reload(sync.load(pageId))（予約の取り消し＋open、同じ行）・D3 の 7・同上
+- f0dc062・CalendarRootScreen :2520-2541 scheduleSave を消し（OnePageSession.scheduleSave へ。sleep を注入、cancel ＋世代の確かめ）、saveNow → onePage.saveNow()（PageSlot.persist: SpanGuard → sync.save。1.2.3 のデータでは .ok で、書く中身は同じ。写真モードでは 1.2.3 と同じく何もしない）・D3 の 7、D14、D3 の (2)・書く UI テスト全部。新しい testOnePageSaveTimerRunsAfterTheLastChange・testOnePageSaveGoesThroughTheGuard
+- f0dc062・Span/OnePageSession.swift（新しい、228 行。全部 1 ページの道が通る）・D3 の 7、§6.6 H1〜H3、D7、D14・UI テスト（画面経由）と ScreenEraseTests の 1 ページの道の 8 本
+- f0dc062・Span/SpanSession.swift のうち 1 ページの道が通るのは :21-102（PageSlot と PageSlot.persist）と :244（SpanSession.onFault。修理があったときだけ）・D14、D3 の (2)・同上。残り（SpanInbox・SpanSession）は 1 ページの道から呼ばれない
+- a15a08e・テストのファイル 2 つと build.yml だけ・アプリのコードは 0 行
+- 3fb5902・Span/SpanSession.swift の saveDirtyPages だけ（横の道）・1 ページの道が通る行は 0
+- 042d46f・テストのファイル 2 つだけ・0 行
+- 1 ページの道の 43fe366 との意図した違い: H1（ほかの端末の全て消すで表示中のページが空になりキャンバスを作り直す）、H2（消して始めるは await の前に空にし、読み直すまで保存しない）、H3（全て消すでキャンバスを作り直し ↶ が空。新しいキャンバスなので紙は開いたときの位置に戻る）、識別子の門（作り直す前のキャンバスの遅れた書き込みを捨てる。月のページで週の始まりを替えたとき、id は同じでも識別子が変わるので捨てる）、保存の入口の SpanGuard（1.2.3 のデータでは何もしない）。凍結の表のファイルはこの役では触っていない（DATA_1_1 18/18・TESTS_1_2_3 8/8）
+- f5751e1・Sources/TegakiCalendar/Views/CalendarRootScreen.swift・1 ページの道が通る行は 3 行（ほかの 4 行は注）。:1598 remoteDeleted（他の端末の『全て消す』で表示中のページが空になり、OnePageSession.remoteDeleted が true のときだけ）、:1884 eraseAllInk、:2150 chooseAccount(.eraseInk)（await の前）。どれも `viewport = .zero`・理由: §6.6 H1〜H3 と D3 の (1)・(5)・(6)。キャンバスを作り直すこの 3 か所でも、show（:1347・:1354）や switchWeekStart（:1477）と同じく、見出しと帯が初めの位置（initialViewport）を使う。新しいキャンバスが次のターンに自分の viewport を知らせるまでの 1 ターンだけの見た目の違いで、線と保存は変えない。通る既存のテスト: 無い。1.2.3 の単体テストは static の関数だけを呼ぶ。全て消す・アカウントの問い・記録の削除を使う UI テストも無い。run 43374089996 の UI テスト 29 本と写真の段は全部緑
+- 40fe699・Sources/TegakiCalendar/Span/SpanSession.swift・1 ページの道が通る行は 0。変えたのは class SpanSession の中だけ（元の :255 以降）。1 ページの道が通る PageSlot と PageSlot.persist（:21-102）と SpanSession.onFault は変えていない
+- d28eba2・テストのファイルだけ・アプリのコードは 0 行
+- 47cbcf0 と 7867480・.github/workflows/build.yml の注だけ。2 つで差し引き 0 なので 042d46f と同じバイト・アプリのコードは 0 行
+- 凍結の表はこの回でも触っていない（DATA_1_1 18/18 OK、TESTS_1_2_3 8/8 OK）
+
+**P（紙・見出し・終日帯・PDF）**
+
+- 2d1ba54・Paper/PaperView.swift・draw() の :317 の `if let span = span` の 1 か所（新しい span は既定 nil。nil なら 1.2.3 の switch へそのまま進む。drawSpan は 1 ページの道では走らない）・§3.8、D2・PaperViewTests（9 本）、InkCanvasViewTests（キャンバスの下の PaperView）、PaperFitTests
+- 2d1ba54・Views/StickyHeaderView.swift・body の :46 の `if let span = span, span.isJoined` の 1 か所（else の中は 1.2.3 の switch を字下げしただけで同じ。つないだ道の関数は走らない）・§3.8、§3.13、決定 4・PaperFitTests（StickyHeaderView を描く）、新しい PaperSpanTests.testAWindowOfOnePageKeepsThePageHeading
+- 2d1ba54・Views/AllDayBandView.swift・:66-90（placedBands・placed・laneCount・bandKind・metrics）、:95（body）、:116-135（content）、:141-166（column）、:175-191（gutterLabel）、:205-206（barView）、:235（columnTint を static に）。span が nil なら帯 1 つ・slot 0・原点 0 で同じ値（laneCount = band.laneCount、bandKind = band.kind、x に 0 を足すだけ）、重なりの順も 1.2.3 と同じ（列 → 「終日」 → バー）・§3.8・PaperFitTests（AllDayBandView を描く）、新しい PaperSpanTests.testABandOfOnePageIsThePageBand
+- 26ed07e・Export/PDFPageRenderer.swift・paperRect :62-80（neighborInk 既定 [] → incoming は nil → 1.2.3 の矩形）、pageSize :140-142、render :178-180（TransferGuard.allowsPDFPage の入口: アプリが保存したページは全部通る。cleanNeighborInk は [] では呼ばない）、:217-221（neighborInk が空なら 1.2.3 の絵）・§3.11、D14、D17・ExportBuilderTests（testPDFHasOnePageAndOverviewSize・testPDFDoesNotCarryTheBlankMemo・testPDFRendersEveryKind・testDayPDFIncludesTheExtraOnlyWithInk・testSundayPDFFileName・testPDFFileNameAndMetadata）、PaperViewTests、PaperFitTests
+- 26ed07e・Export/ExportBuilder.swift・exportJSON :131-147（ページごとに TransferGuard.exportable: アプリが保存したページは全部通るので同じファイル）、exportPDF :200-205（neighborInk 既定 [] をそのまま渡す）・§3.11、D14・ExportBuilderTests（testJSONExportWritesEveryStoredPageSorted・testJSONExportMigratesBandCells・testJSONExportRoundTripsThroughImport・testJSONExportReportsProgress・testNothingToExport・testCleanUpRemovesPreviousFiles・testLargeExportImportsPageByPage・testExportKeepsBothWeekForms と testPDF* の全部）
+- 91b0e79・Views/CalendarRootScreen.swift・runImport :1941-1943（`outcome = TransferGuard.importable(value)`。窓の名前のページが無ければ同じ値を返すので、本物のファイルの取り込みは 2 本の道とも 1.2.3 のまま）・§3.11、D14・runImport は private で、既存の XCTest は届かない（解析の道は ExportBuilderTests.testJSONExportRoundTripsThroughImport が通る）。新しい PaperSpanTests.testTheImportDoorStopsWhatTheParseCarries と testDataFileAndImportDoorsRefuseWindowNames
+- aa9aece・d068044 はテストのファイルだけ（1 ページの道のコードは変えない）
+- d6a83e3・Views/StickyHeaderView.swift・weekDayCell の :116（weekColumnStacksWeekday(language)）、:141（weekColumnShortHoliday(label, language)）、:164（weekDayWeekday の weekColumnWeekday(…, language)）。L.language を language に変えた。アプリでは StickyHeaderView を language なしで作るので（CalendarRootScreen.swift:640、SpanPrototypeScreen も同じ）、既定の L.language と同じ値になる・§3.8、F-9、K-6（P5-2: 細い形の高さをテストで言語ごとに測るため）・既存のテストで週の見出しを描くものは無い（PaperFitTests:197 は日の見出しだけ）。新しい PaperSpanTests.testAWindowOfOnePageKeepsThePageHeading が、43fe366 の写しと画素で比べる（週 54 回）。ほかに build-and-test の Screenshots の週のページ（J-4）
+- d6a83e3・Views/AllDayBandView.swift・AllDayBandLanes.bands と uniqueEvents。1 ページの道では呼ばない（窓の帯だけ）・§3.8・—
+- d6a83e3・Paper/PaperView.swift・doc のコメントだけ・—・—
+- e75ad84・テストのファイルだけ（PaperSpanFrozen123.swift は新しい、PaperSpanTests.swift）。1 ページの道のコードは変えていない
+- 前の回の記録の訂正（2d1ba54・Views/AllDayBandView.swift の行）: 「既存のテスト」の欄の PaperFitTests は誤り（AllDayBandView を描かない）。描いて確かめるのは、新しい PaperSpanTests.testTheOnePageBandIs1_2_3OnScreen（span nil と窓 1 ページを 43fe366 の写しと画面で画素ごとに比べる。週・日、0.1068・0.0854・0.5、レーンの倍率を固めた形）と testABandOfOnePageIsThePageBand（データ）。ほかに build-and-test の Screenshots（J-4）
+- 前の回の記録の補い（2d1ba54・Views/StickyHeaderView.swift の行）: 1 ページの週の見出しを描く既存のテストは無い。PaperFitTests が描くのは日の見出しだけ。今は testAWindowOfOnePageKeepsThePageHeading が、週と日を 43fe366 の写しと 90 回比べる（span nil と窓 1 ページ、iPhone 横の倍率を含む）
+
+**C（CI）**
+
+- 4644353・.github/workflows/build.yml・ja-baseline.yml・tools/shots/screen_ready.swift・アプリのコード 0 行（CI の写真の段と CI の道具だけ）・§10.5・—
+- a10ad0d・build.yml・ja-baseline.yml・store-shots.yml・アプリのコード 0 行・決定 8・—
+- b8e1689・build.yml・0 行・§10.4・—
+- bdca47f・build.yml・0 行・§10.3・§10.6・—
+- 99545a8・Tests/TegakiCalendarTests/PrototypeIsolationTests.swift・0 行（ファイル全体が #if SPAN_PROTOTYPE の中で、ふつうのビルドでは 0 本。TESTS_1_2_3 の 8 ファイルの外）・§10.2 の T の行・S4 の決定 5・—
+- 993192f・8718a51・7d0581a・62710e8・build.yml（と ja-baseline.yml）・0 行・§10.5・§10.6・§6.4 の注記・—
+- まとめ: git diff 25c3fc6..62710e8 -- Sources TegakiKit project.yml tools/compat10 tools/span は空。1 ページの道が通るコードには触れていない
+- f8223b2・tools/shots/screen_ready.swift（注記だけ）・アプリのコード 0 行・§10.5・—
+- 316f383・.github/workflows/build.yml（20 回くり返しの段）・アプリのコード 0 行・§10.6・—
+- ad24ad9・.github/workflows/build.yml（span-shots の段）・tools/shots/shift_pair.swift（新しい CI の道具）・アプリのコード 0 行・§10.5・—
+- まとめ: git diff 62710e8..ad24ad9 -- Sources TegakiKit project.yml tools/compat10 tools/span Tests は空。1 ページの道が通るコードには触れていない。DATA_1_1.sha256 は 18/18 OK、TESTS_1_2_3.sha256 は 8/8 OK
+
+**U（設定「ページ」・案内の札）**
+
+- 79aa1e0・Sources/TegakiCalendar/Views/SettingsScreen.swift・設定のシートを開くたびに通る: Form の 1 行 pageSection（:217 相当）、@State pageSpan の初期値（AppSettings.pageSpan を読むだけ、書かない）、pageSection の View（Toggle・見出し・脚注、:468-476 相当）。.onChange(of: pageSpan) はスイッチを切り替えたときだけ。onPageSpanChange は既定で何もしない。シートのほかの行・節の順・既存の .onChange は変えていない・§3.14、D3 (3)（1 ページの道に入れてよい 7 つのうち (3) 設定の「ページ」の節）・通る既存のテスト: WeekStartUITests.testSwitchShowsTheSentenceAndChangesTheHeader（写真モードで設定のシートを開く）、SettingsScreenTests 14 本（静的な文）、build-and-test の写真 --screenshot-sheet settings（ipad13-portrait-sheet-settings.png・store/ipad13/06-settings.jpg。8a35df3 の写真を開いて見たところ、新しい節は画面の下で写っていない）
+- 79aa1e0・Sources/TegakiCalendar/Persistence/AppSettings.swift・既存の行は doc の注だけ変更。新しい static（pageSpanKey・pageSpan・spanGuideShownKey・spanGuideShown・markSpanGuideShown）は 1 ページの道ではシートの @State の初期値（pageSpan の get）からだけ呼ばれる。既存のキーと関数は変えていない・§2 の U 行・AppSettingsTests（変えていない、CI 緑）
+- 79aa1e0・Sources/TegakiCalendar/Views/SpanGuideView.swift（新規）・1 ページの道が通る行 0（まだどこからも呼ばれない）・§3.14・—
+- 79aa1e0・Resources/Localizable.xcstrings・tools/l10n/source/app-U.json・tools/l10n/build.py・新しい 8 キー（ja だけ）を足しただけで、既存の項目は 1 バイトも変わっていない（スクリプトで変更 0 を確認）。build.py の例外は 8 つの名前に限る・§8.1、§8.2・LocalizationBundleTests（jaOnly を飛ばす。変えていない）・L10nTests
+- 8a35df3・SpanGuideView.swift と SettingsPageSectionTests.swift・名前の変更だけ。1 ページの道が通る行 0・—・—
+- 1771933・Sources/TegakiCalendar/Views/SettingsScreen.swift・@State pageSpan の初期値と .onChange の中身を static の initialPageSpan(screenshot:)・pageSpanChanged(to:screenshot:notify:) に移しただけ（動きは 79aa1e0 と同じ）・§3.14、D3 (3)・上の SettingsScreen の行と同じテスト ＋ 新しい testSpanToggleStoresThenTellsTheOwner
+- e8071ef・Sources/TegakiCalendar/Views/SpanGuideView.swift・1 ページの道が通る行は 0（SpanGuideModel と SpanGuideView を呼ぶ画面はまだ無い）・§3.14、§3.16・—
+- e8071ef・Tests/TegakiCalendarTests/SettingsPageSectionTests.swift（U の新しいファイル。1.2.3 のテストではない）・アプリのコードではない・§10.2 U・—
+- 9f6e722・.github/workflows/testflight.yml（C のファイル。段を 1 つ足した）と tools/l10n/build.py（注の 2 行だけ）・アプリのコードではない。build.py --check では、生成される表は変わっていない・§8.1、§8.2、§11.1・—
+- c859928・.github/workflows/testflight.yml・頭の説明の字だけで、1 ページの道は 0・§8.2・—
+- これより前の 79aa1e0・1771933 の行（SettingsScreen.swift の pageSection・@State pageSpan・.onChange、AppSettings.swift）は、実装役の報告のまま変わっていない。e8071ef・9f6e722・c859928 は SettingsScreen.swift と AppSettings.swift に触れていない
