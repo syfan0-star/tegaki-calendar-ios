@@ -1,6 +1,6 @@
 {
  "language": "pt-BR",
- "about": "R の逆翻訳。translations/pt-BR.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。",
+ "about": "R の逆翻訳。translations/pt-BR.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。このうち判定の後に直した訳（× の訳）は、text が R の読んだ前の字のまま。今の字と、その逆翻訳（判定した Claude が元を見て書いたもの）は REVIEW.md の 12 にある。",
  "strings": {
   "CFBundleDisplayName": {
    "text": "Tegaki",
@@ -1386,6 +1386,18 @@
    "text": "Abrir o app Ajustes",
    "back": "設定アプリを開く"
   },
+  "settings.page.header": {
+   "text": "Páginas",
+   "back": "ページ"
+  },
+  "settings.page.span": {
+   "text": "Unir páginas vizinhas na horizontal",
+   "back": "隣のページを横につなぐ"
+  },
+  "settings.page.span.footer": {
+   "text": "Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever por cima da emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos entre duas páginas aparecem só em uma delas (não são apagados).",
+   "back": "週と日のページでは、前のページと次のページが横につながった状態になり、つなぎ目の上から書くことができます。この機能は次のバージョンから、月と年のページにも一つずつ順番に広がります。オフのときは、以前と同じようにページが1ページずつ表示されます。この設定をオフにしている端末では、2ページの間（にまたがって）書いた線は、そのうち一方にしか表示されません（消されてはいません）。"
+  },
   "settings.purchase.footer.cancel": {
    "text": "Para cancelar, acesse %@ no seu dispositivo. Depois de cancelar, você pode usar o app até o fim do período.",
    "back": "解約するには、端末の %@ を開いてください。解約の後、期間の終わりまでアプリを使えます。"
@@ -1509,6 +1521,26 @@
   "settings.weekStart.title": {
    "text": "Primeiro dia da semana",
    "back": "週の最初の日"
+  },
+  "span.guide.day.oneFinger": {
+   "text": "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda.",
+   "back": "前の日と次の日が、今は横につながっています。指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書けます。"
+  },
+  "span.guide.day.twoFingers": {
+   "text": "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda.",
+   "back": "前の日と次の日が、今は横につながっています。2本の指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書けます。"
+  },
+  "span.guide.week.oneFinger": {
+   "text": "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda.",
+   "back": "前の週と次の週が、今は横につながっています。指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書けます。"
+  },
+  "span.guide.week.twoFingers": {
+   "text": "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda.",
+   "back": "前の週と次の週が、今は横につながっています。2本の指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書けます。"
+  },
+  "span.stageTwo.notice": {
+   "text": "Esta página tem muitíssimos traços, então as páginas aparecem uma por vez, sem ficar unidas. O que você escreveu continua igual.",
+   "back": "このページには線がものすごく多いので、ページはつながらずに1ページずつ表示されます。書いた内容は変わらずそのままです。"
   },
   "store.error.productNotFound": {
    "text": "Produto não encontrado",

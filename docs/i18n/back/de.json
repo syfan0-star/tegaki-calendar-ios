@@ -1,6 +1,6 @@
 {
  "language": "de",
- "about": "R の逆翻訳。translations/de.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。",
+ "about": "R の逆翻訳。translations/de.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。このうち判定の後に直した訳（× の訳）は、text が R の読んだ前の字のまま。今の字と、その逆翻訳（判定した Claude が元を見て書いたもの）は REVIEW.md の 12 にある。",
  "strings": {
   "CFBundleDisplayName": {
    "text": "Tegaki",
@@ -1386,6 +1386,18 @@
    "text": "App „Einstellungen“ öffnen",
    "back": "「設定」アプリを開く"
   },
+  "settings.page.header": {
+   "text": "Seiten",
+   "back": "ページ"
+  },
+  "settings.page.span": {
+   "text": "Nachbarseiten seitlich verbinden",
+   "back": "隣のページを横につなぐ"
+  },
+  "settings.page.span.footer": {
+   "text": "Auf Wochen- und Tagesseiten werden die vorherige und die nächste Seite seitlich verbunden, und Sie können über den Übergang hinweg schreiben. Monats- und Jahresseiten werden ab der nächsten Version nacheinander unterstützt. Wenn dies deaktiviert ist, werden die Seiten wie bisher einzeln angezeigt. Auf einem Gerät, auf dem dies deaktiviert ist, erscheinen seitenübergreifend geschriebene Striche nur auf einer der beiden Seiten (sie werden nicht gelöscht).",
+   "back": "週ページと日ページでは、前のページと次のページが横につながり、境目を越えて書くことができます。月ページと年ページは、次のバージョンから順に対応します。これをオフにすると、これまでどおりページが1ページずつ表示されます。これをオフにしている端末では、ページをまたいで書いた線は2ページのうち片方にだけ表示されます（削除はされません）。"
+  },
   "settings.purchase.footer.cancel": {
    "text": "Kündigen können Sie auf Ihrem Gerät unter %@. Nach der Kündigung können Sie die App bis zum Ende des Zeitraums nutzen.",
    "back": "解約は端末の %@ でできます。解約の後も、期間の終わりまでアプリを使えます。"
@@ -1509,6 +1521,26 @@
   "settings.weekStart.title": {
    "text": "Erster Tag der Woche",
    "back": "週の最初の日"
+  },
+  "span.guide.day.oneFinger": {
+   "text": "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Tag daneben zu sehen. Sie können direkt über den Übergang schreiben.",
+   "back": "前の日と次の日が横につながるようになりました。指で横になぞると、隣の日が見られます。境目の上からそのまま書くことができます。"
+  },
+  "span.guide.day.twoFingers": {
+   "text": "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Tag daneben zu sehen. Sie können direkt über den Übergang schreiben.",
+   "back": "前の日と次の日が横につながるようになりました。2本の指で横になぞると、隣の日が見られます。境目の上からそのまま書くことができます。"
+  },
+  "span.guide.week.oneFinger": {
+   "text": "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um die Woche daneben zu sehen. Sie können direkt über den Übergang schreiben.",
+   "back": "前の週と次の週が横につながるようになりました。指で横になぞると、隣の週が見られます。境目の上からそのまま書くことができます。"
+  },
+  "span.guide.week.twoFingers": {
+   "text": "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um die Woche daneben zu sehen. Sie können direkt über den Übergang schreiben.",
+   "back": "前の週と次の週が横につながるようになりました。2本の指で横になぞると、隣の週が見られます。境目の上からそのまま書くことができます。"
+  },
+  "span.stageTwo.notice": {
+   "text": "Diese Seite hat sehr viele Striche, daher werden die Seiten einzeln angezeigt statt seitlich verbunden. Was Sie geschrieben haben, bleibt erhalten.",
+   "back": "このページには線がとても多いため、ページは横につながらず、1ページずつ表示されます。書いた内容は保持されます。"
   },
   "store.error.productNotFound": {
    "text": "Produkt nicht gefunden",
