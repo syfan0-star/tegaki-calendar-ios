@@ -337,6 +337,10 @@ final class SpanSession: ObservableObject {
 
     private let sleep: @MainActor (TimeInterval) async -> Void
     private let clock: () -> Date
+    /// Where a page is read from (the screen's `ScreenPaths`, wave C §7.4): nil is `sync.load`. The screen passes an
+    /// empty page while 「全て消す」 deletes the files (a page read before that would bring the erased strokes back) and,
+    /// in screenshot mode, its demo pages.
+    private let loader: ((String) -> InkPage)?
     private var saveGeneration = 0
 
     /// Opens the window around `focus` (§3.5, D6): the focus page is read now (`sync.load`, `BandMigration`; a
@@ -348,10 +352,12 @@ final class SpanSession: ObservableObject {
     ///   page by its strokes, the others by their file sizes, §3.15) is the plan's from the start (S1's lead's
     ///   decision 1), so `fallsBackToOnePage` is decided on the plan's window and the far pages are not read.
     /// - `eventSource`: a page's events for its days (the focus page's are read here, the others with their page).
+    /// - `loader`: where a page is read from; nil is `sync.load` (the screen's, wave C §7.4).
     init(kind: PageKind, weekStart: WeekStart, focus: DayKey, sync: SyncEngine, guardMode: SpanGuard.Mode = .release,
          deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait, number: Int = 1,
          context: PaperContext? = nil, paperArea: CGSize? = nil, radius: Int? = nil,
          eventSource: ((DayKey, DayKey) -> [LayoutEvent])? = nil,
+         loader: ((String) -> InkPage)? = nil,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
          clock: @escaping () -> Date = Date.init) {
         let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation)
@@ -363,6 +369,7 @@ final class SpanSession: ObservableObject {
         self.deviceClass = deviceClass
         self.sleep = sleep
         self.clock = clock
+        self.loader = loader
         self.context = context ?? PaperContext(now: clock())
         self.eventSource = eventSource
         self.plan = plan
@@ -472,9 +479,9 @@ final class SpanSession: ObservableObject {
     // MARK: Reading (D6)
 
     /// The real page from the store (`sync.load`: the engine's branch for the screenshot mode and its inert
-    /// engine stays), migrated (`BandMigration`, dirty when that changed it), with its events.
+    /// engine stays; or the screen's `loader`), migrated (`BandMigration`, dirty when that changed it), with its events.
     private func readSlot(_ pageId: String) -> PageSlot {
-        let loaded = sync.load(pageId)
+        let loaded = loader?(pageId) ?? sync.load(pageId)
         let migrated = BandMigration.migrate(loaded)
         loadEvents(of: pageId)
         return PageSlot(page: migrated, dirty: migrated != loaded)
