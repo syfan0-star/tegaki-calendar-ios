@@ -1530,7 +1530,6 @@ extension InkCanvasView {
         // MARK: Writing back
 
         private func publishPage() {
-            if spanState != nil { putJournalIntoInbox(); return }
             let page = ledger.page
             let signature = PageSignature(page)
             publishedSignature = signature
