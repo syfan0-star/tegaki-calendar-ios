@@ -27,6 +27,9 @@ final class SettingsPageSectionTests: XCTestCase {
     @MainActor
     private final class Seen {
         var kinds: [PageKind?] = []
+        /// The values the owner was told and what the store held for `page.span` at that moment.
+        var told: [Bool] = []
+        var storedWhenTold: [Bool?] = []
     }
 
     private var suiteNames: [String] = []
@@ -132,6 +135,44 @@ final class SettingsPageSectionTests: XCTestCase {
 
         // The switch alone does not make someone an earlier user (1.2's test of the three keys).
         XCTAssertFalse(AppSettings.isExistingUser(defaults))
+    }
+
+    func testSpanToggleStoresThenTellsTheOwner() {
+        let seen = Seen()
+        func owner(_ store: UserDefaults) -> (Bool) -> Void {
+            { value in
+                seen.told.append(value)
+                seen.storedWhenTold.append(store.object(forKey: "page.span") as? Bool)
+            }
+        }
+        // The sheet opens with this device's value, on until the person turns it off; reading writes nothing.
+        XCTAssertTrue(SettingsScreen.initialPageSpan(screenshot: false))
+        XCTAssertNil(defaults.object(forKey: "page.span"))
+
+        // A switch is stored for this device before the owner (S5's screen, `onPageSpanChange`) is told.
+        SettingsScreen.pageSpanChanged(to: false, screenshot: false, notify: owner(defaults))
+        XCTAssertEqual(seen.told, [false])
+        XCTAssertEqual(seen.storedWhenTold, [false], "stored first, so the owner reads the new value")
+        XCTAssertFalse(AppSettings.pageSpan)
+        XCTAssertFalse(SettingsScreen.initialPageSpan(screenshot: false), "the next sheet opens off")
+        SettingsScreen.pageSpanChanged(to: true, screenshot: false, notify: owner(defaults))
+        XCTAssertEqual(seen.told, [false, true])
+        XCTAssertEqual(seen.storedWhenTold, [false, true])
+        XCTAssertTrue(SettingsScreen.initialPageSpan(screenshot: false))
+
+        // Screenshot mode (§3.12): the sheet opens off, the one-page path, whatever this device stored; a switch
+        // stores nothing and still tells the owner.
+        AppSettings.pageSpan = true
+        XCTAssertFalse(SettingsScreen.initialPageSpan(screenshot: true))
+        let photo = newDefaults()
+        AppSettings.defaults = photo
+        SettingsScreen.pageSpanChanged(to: true, screenshot: true, notify: owner(photo))
+        SettingsScreen.pageSpanChanged(to: false, screenshot: true, notify: owner(photo))
+        XCTAssertEqual(seen.told, [false, true, true, false])
+        XCTAssertEqual(seen.storedWhenTold, [false, true, nil, nil], "nothing stored in screenshot mode")
+        XCTAssertNil(photo.object(forKey: "page.span"))
+        AppSettings.defaults = defaults
+        XCTAssertTrue(AppSettings.pageSpan, "this device's value is untouched")
     }
 
     // MARK: - The first-time guide

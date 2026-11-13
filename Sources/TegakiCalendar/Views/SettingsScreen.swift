@@ -61,9 +61,8 @@ struct SettingsScreen: View {
     @State private var eraseInkAfterConvert: Bool = ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
     /// 1.1 (§2.6): 「消しゴムで消したらペンに戻る」, on in screenshot mode (nothing is stored there).
     @State private var eraserAutoReturn: Bool = ScreenshotMode.isActive ? true : AppSettings.eraserAutoReturn
-    /// 1.3 (§3.14): 「前後のページを横につなげる」. Screenshot mode's default is off, the one-page path (§3.12; nothing
-    /// is stored there).
-    @State private var pageSpan: Bool = ScreenshotMode.isActive ? false : AppSettings.pageSpan
+    /// 1.3 (§3.14): 「前後のページを横につなげる」 (`initialPageSpan`).
+    @State private var pageSpan: Bool = Self.initialPageSpan(screenshot: ScreenshotMode.isActive)
     /// 1.1 (§5.3): the stroke counts of 情報; nil until `StrokeCensus` has counted (「数えています…」).
     @State private var census: StrokeCensus.Result?
     @State private var confirmEraseStep1 = false
@@ -131,6 +130,22 @@ struct SettingsScreen: View {
     static let pageSpanFooter = L.text("settings.page.span.footer")
     /// The row's switch, for the UI tests (§10.3).
     static let pageSpanIdentifier = "settings.pageSpan"
+
+    /// The switch as the sheet opens: this device's `AppSettings.pageSpan` (on until the person turns it off);
+    /// in screenshot mode off, the one-page path, without reading the store (§3.12: nothing is stored there).
+    static func initialPageSpan(screenshot: Bool) -> Bool {
+        screenshot ? false : AppSettings.pageSpan
+    }
+
+    /// The switch was turned to `value`: outside screenshot mode it is stored for this device first, then the owner
+    /// is told (`onPageSpanChange`), so the owner that saves and reopens the pages on the other path (S5's screen
+    /// wave) already reads the new value. Screenshot mode stores nothing and still tells the owner.
+    static func pageSpanChanged(to value: Bool, screenshot: Bool, notify: (Bool) -> Void) {
+        if !screenshot {
+            AppSettings.pageSpan = value
+        }
+        notify(value)
+    }
 
     /// The data section's footer (M4 contract §6.2).
     static let importFooter = L.text("settings.data.importFooter")
@@ -246,10 +261,7 @@ struct SettingsScreen: View {
                     AppSettings.eraserAutoReturn = eraserAutoReturn
                 }
                 .onChange(of: pageSpan) {
-                    if !ScreenshotMode.isActive {
-                        AppSettings.pageSpan = pageSpan
-                    }
-                    onPageSpanChange(pageSpan)
+                    Self.pageSpanChanged(to: pageSpan, screenshot: ScreenshotMode.isActive, notify: onPageSpanChange)
                 }
                 .task { await openScreenshotPieces() }
                 .onAppear {
