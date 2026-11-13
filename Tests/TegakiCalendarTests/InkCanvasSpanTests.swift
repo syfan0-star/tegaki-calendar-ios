@@ -775,13 +775,14 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertFalse(rig.coordinator.spanWatchRunning, "the watch ended")
     }
 
-    /// §3.6, D16, and the inputs of `PaperGrowthTests` / `InkCanvasViewTests.testDayExtraGrowthUsesTheTailPath` (:1168),
-    /// `testCapNoticeWhenTheTailReachesItsLastStep` (:1386) and `testNewStrokesBeyondTheCapAreDropped` (:1348) on the one
-    /// page (`span` nil: 1.2.3's path, where a window of one page is) and on a window of three days: a line at 5,984 lu
-    /// of the free memo makes it 6,040 on the one page and on every day of the window alike (D16), by the light path
-    /// (no new drawing); 5,600 asks nothing and 5,601 tells the owner day once; 6,098 is dropped with the notice; erasing
-    /// the low line brings the memo back to 6,000 on every day (「消して縮むときは下げる」). Without the canvas's
-    /// `relayoutPages` the memo does not grow; without the removal's request it does not shrink.
+    /// §3.6, D16, B_DESIGN.md:170, and the inputs of `PaperGrowthTests` / `InkCanvasViewTests.testDayExtraGrowthUsesTheTailPath`
+    /// (:1168), `testCapNoticeWhenTheTailReachesItsLastStep` (:1386) and `testNewStrokesBeyondTheCapAreDropped` (:1348): on
+    /// the one page (`span` nil, 1.2.3's path) a line at 5,984 lu of the free memo makes it 6,040; the same inputs then
+    /// run through the canvas of a one-page `SpanSession` (radius 0, the tests' `narrowToOnePageForTesting`, the lead's
+    /// decision L11) and of a window of three days (`growthInputs`): the memo grows to 6,040 on every day of the window
+    /// alike (D16), by the light path (no new drawing); 5,600 asks nothing and 5,601 tells the owner day once; 6,098 is
+    /// dropped with the notice; erasing the low line brings the memo back to 6,000 on every day (「消して縮むときは下げる」).
+    /// Without the canvas's `relayoutPages` the memo does not grow; without the removal's request it does not shrink.
     func testGrowthTestsThroughOneAndThreePageSessions() async throws {
         // The one page (1.2.3's path).
         let now = bed.now
@@ -817,26 +818,45 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertEqual(oneContainer.canvasView.contentSize.height, grown.size.height * oneContainer.canvasView.zoomScale, accuracy: 0.5)
         one.detach()
 
-        // The window of three days.
-        let session = try await open(.day, radius: 1)
-        XCTAssertEqual(session.pageIds, [d1115, d1116, d1117])
+        // A window of one day (radius 0) and a window of three days.
+        let single = bed.session(.day, focus: nov16, number: 2, radius: 1)
+        XCTAssertTrue(single.narrowToOnePageForTesting(), "a Debug build")
+        await single.prefetch()
+        XCTAssertEqual(single.pageIds, [d1116])
+        XCTAssertEqual(single.radius, 0)
+        XCTAssertEqual(single.layout.pages.count, 1)
+        try await growthInputs(through: single, grown: grown)
+        let three = try await open(.day, radius: 1, number: 3)
+        XCTAssertEqual(three.pageIds, [d1115, d1116, d1117])
+        try await growthInputs(through: three, grown: grown)
+        XCTAssertEqual(oneCaps, 1)
+    }
+
+    /// `testGrowthTestsThroughOneAndThreePageSessions`'s inputs through the canvas of a day window: the low line, ⑦'s
+    /// three lines and the eraser, each answer as on the one page (`grown`: 1.2.3's layout after the low line).
+    private func growthInputs(through session: SpanSession, grown: DayPageLayout, file: StaticString = #filePath,
+                              line: UInt = #line) async throws {
+        let pages = "\(session.pageIds.count) page(s)"
         let rig = await attach(session, width: 834, height: 951)
-        let extra = cell(.extra, of: d1116, session)
-        XCTAssertEqual(extra.height, PaperSpec.growMax, accuracy: 0.01)
+        let extra = cell(.extra, of: d1116, session, file: file, line: line)
+        XCTAssertEqual(extra.height, PaperSpec.growMax, accuracy: 0.01, pages, file: file, line: line)
         let builds = rig.coordinator.setDrawingCount
         let low = makeStroke(through: (0..<5).map { CGPoint(x: extra.minX + 300 + CGFloat($0) * 3, y: extra.minY + 5_984 + CGFloat($0)) })
         draw(low, on: rig)
-        let lowName = try XCTUnwrap(rig.ledger.id(of: try XCTUnwrap(rig.canvas.drawing.strokes.first)))
-        XCTAssertEqual(rig.probe.inkBounds, 1, "the owner hears of it as on the one page")
-        XCTAssertEqual(rig.probe.pageCaps, [d1116], "as on the one page: once, naming the owner day")
+        let lowName = try XCTUnwrap(rig.ledger.id(of: try XCTUnwrap(rig.canvas.drawing.strokes.first, file: file, line: line)),
+                                    file: file, line: line)
+        XCTAssertEqual(rig.probe.inkBounds, 1, "the owner hears of it as on the one page (\(pages))", file: file, line: line)
+        XCTAssertEqual(rig.probe.pageCaps, [d1116], "as on the one page: once, naming the owner day (\(pages))", file: file, line: line)
         await settle()
         for id in session.pageIds {
-            XCTAssertEqual(cell(.extra, of: id, session).height, grown.extra.height, accuracy: 0.5, "\(id): the window's floor (D16)")
+            XCTAssertEqual(cell(.extra, of: id, session).height, grown.extra.height, accuracy: 0.5, "\(id): the window's floor (D16, \(pages))",
+                           file: file, line: line)
         }
-        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the new layout")
-        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path")
-        XCTAssertEqual(rig.canvas.contentSize.height, session.layout.size.height * rig.zoom, accuracy: 0.5)
-        XCTAssertEqual(session.layout.size.height, grown.size.height, accuracy: 0.5)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the new layout (\(pages))",
+                       file: file, line: line)
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path (\(pages))", file: file, line: line)
+        XCTAssertEqual(rig.canvas.contentSize.height, session.layout.size.height * rig.zoom, accuracy: 0.5, pages, file: file, line: line)
+        XCTAssertEqual(session.layout.size.height, grown.size.height, accuracy: 0.5, pages, file: file, line: line)
 
         // ⑦: 5,600 asks nothing, 5,601 tells the owner day once (nib 4: the line's bottom is y + 2).
         let flat = { (x: CGFloat, y: CGFloat) in
@@ -844,29 +864,31 @@ final class InkCanvasSpanTests: XCTestCase {
         }
         draw(flat(extra.minX + 100, extra.minY + 5_598), on: rig)
         await settle()
-        XCTAssertEqual(rig.probe.pageCaps, [d1116], "5,600: 400 lu left, nothing more")
+        XCTAssertEqual(rig.probe.pageCaps, [d1116], "5,600: 400 lu left, nothing more (\(pages))", file: file, line: line)
         draw(flat(extra.minX + 500, extra.minY + 5_599), on: rig)
         await settle()
-        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116], "5,601: once, the owner day")
+        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116], "5,601: once, the owner day (\(pages))", file: file, line: line)
         draw(flat(extra.minX + 500, extra.minY + 6_098), on: rig)
         await settle()
-        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116, d1116], "6,098: dropped, with the notice")
-        XCTAssertEqual(rig.ledger.page.liveStrokeCount, 3)
-        XCTAssertEqual(rig.probe.oldCaps, 0)
+        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116, d1116], "6,098: dropped, with the notice (\(pages))", file: file, line: line)
+        XCTAssertEqual(rig.ledger.page.liveStrokeCount, 3, pages, file: file, line: line)
+        XCTAssertEqual(rig.probe.oldCaps, 0, pages, file: file, line: line)
 
         // Erasing the low line: the memo of every day comes back to 6,000.
         update(rig, tool: .eraser)
         let kept = rig.canvas.drawing.strokes.filter { rig.ledger.id(of: $0) != lowName }
         rig.canvas.drawing = PKDrawing(strokes: kept)
         rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
-        XCTAssertFalse(rig.ledger.page.isLive(lowName))
+        XCTAssertFalse(rig.ledger.page.isLive(lowName), pages, file: file, line: line)
         await settle()
         for id in session.pageIds {
-            XCTAssertEqual(cell(.extra, of: id, session).height, PaperSpec.growMax, accuracy: 0.5, "\(id): shrunk back")
+            XCTAssertEqual(cell(.extra, of: id, session).height, PaperSpec.growMax, accuracy: 0.5, "\(id): shrunk back (\(pages))",
+                           file: file, line: line)
         }
-        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
-        XCTAssertEqual(rig.canvas.contentSize.height, session.layout.size.height * rig.zoom, accuracy: 0.5)
-        XCTAssertEqual(oneCaps, 1)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, pages, file: file, line: line)
+        XCTAssertEqual(rig.canvas.contentSize.height, session.layout.size.height * rig.zoom, accuracy: 0.5, pages, file: file, line: line)
+        XCTAssertEqual(session.page(d1116)?.liveStrokeCount, 2, "the session has the two lines left (\(pages))", file: file, line: line)
+        rig.coordinator.detach()
     }
 
     // MARK: More of §3.6, §3.4
