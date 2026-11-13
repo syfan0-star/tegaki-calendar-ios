@@ -85,3 +85,15 @@ R が日本語の元を見ずに `docs/store/en-US/*.txt` と `docs/store/subscr
 | sub.products.com.syfan0.tegakicalendar.monthly.description | Handwriting, event creation and iCloud sync | 手書き、予定の作成、iCloud 同期 |
 | sub.products.com.syfan0.tegakicalendar.yearly.displayName | Tegaki Yearly | Tegaki 年額 |
 | sub.products.com.syfan0.tegakicalendar.yearly.description | The same features, billed yearly | 同じ機能を、年ごとの請求で |
+
+## 1.3 の whatsnew.txt（このバージョンの新機能。2026-11-13）
+
+上の `whatsnew.txt` の節は 1.2 の文です。この節は 1.3 の `docs/store/en-US/whatsnew.txt` の逆翻訳で、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。照合と判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の新機能の文と審査メモ」。× 0）。4 つ目の点の最後の文（iPad での見え方）は、リードの確認を待っている案の文です。
+
+| id | 訳 | 逆翻訳 |
+| --- | --- | --- |
+| 1.3.whatsnew.1 | • Week and day pages are now joined side by side with the pages before and after them. Slide sideways with your finger to bring in the neighboring week (or day). You can write straight across the border between pages (when “Draw with Finger” is on, move sideways with two fingers). | • 週のページと日のページが、前後のページと横に並んでつながるようになりました。指で横にスライドすると、隣の週（または日）が出てきます。ページとページの境目をまたいで、そのまま書けます（「指で描く」がオンのときは、2本指で横に動かします）。 |
+| 1.3.whatsnew.2 | • You can turn off the side-by-side joining in the “Pages” section of Settings. | • 横に並べてつなげる表示は、設定の「ページ」の項目でオフにできます。 |
+| 1.3.whatsnew.3 | • Fixed an issue where, after all handwriting was erased on another device, handwriting still on this device could go back to iCloud. | • ほかの端末で手書きをすべて消したあと、この端末にまだ残っていた手書きが iCloud に戻ってしまうことがある問題を修正しました。 |
+| 1.3.whatsnew.4 | • Please update both your iPad and your iPhone to this version. On older versions, strokes written across pages appear on only one of the pages (they have not been deleted). If you erase such a stroke on an older version, it is erased in this version too. On iPad, this version joins the pages before and after side by side in both portrait and landscape. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。古いバージョンでは、ページをまたいで書いた線は、どちらか片方のページにしか表示されません（削除されたわけではありません）。古いバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
+| 1.3.whatsnew.5 | Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes. | 翻訳は AI で作成したもので、まだネイティブスピーカーの確認を受けていません。誤りがあればお知らせください。 |

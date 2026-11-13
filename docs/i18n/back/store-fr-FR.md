@@ -83,3 +83,15 @@ R が日本語の元を見ずに `docs/store/fr-FR/*.txt` と `docs/store/subscr
 | sub.products.com.syfan0.tegakicalendar.monthly.description | Écriture, évènements et synchro iCloud | 手書き、予定、iCloud 同期 |
 | sub.products.com.syfan0.tegakicalendar.yearly.displayName | Tegaki Annuel | Tegaki 年額 |
 | sub.products.com.syfan0.tegakicalendar.yearly.description | Les mêmes fonctions, facturées à l’année | 同じ機能を、年ごとの請求で |
+
+## 1.3 の whatsnew.txt（このバージョンの新機能。2026-11-13）
+
+上の `whatsnew.txt` の節は 1.2 の文です。この節は 1.3 の `docs/store/fr-FR/whatsnew.txt` の逆翻訳で、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。照合と判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の新機能の文と審査メモ」。× 0）。4 つ目の点の最後の文（iPad での見え方）は、リードの確認を待っている案の文です。
+
+| id | 訳 | 逆翻訳 |
+| --- | --- | --- |
+| 1.3.whatsnew.1 | • Les pages de la semaine et du jour sont désormais reliées côte à côte aux pages précédentes et suivantes. Faites glisser le doigt sur le côté pour faire apparaître la semaine (ou le jour) d’à côté. Vous pouvez écrire directement par-dessus la limite entre deux pages (quand « Écrire au doigt » est activé, faites glisser sur le côté avec deux doigts). | • 週のページと日のページが、前後のページと横に並んでつながるようになりました。指を横にすべらせると、隣の週（または日）が現れます。2つのページの境目の上を、そのまままたいで書けます（「指で書く」がオンのときは、2本指で横にすべらせます）。 |
+| 1.3.whatsnew.2 | • Vous pouvez désactiver cette liaison côte à côte dans la section « Pages » des Réglages. | • この横並びのつながりは、設定の「ページ」の項目でオフにできます。 |
+| 1.3.whatsnew.3 | • Correction d’un problème qui pouvait renvoyer vers iCloud l’écriture manuscrite restée sur cet appareil, après l’effacement de toute l’écriture manuscrite sur un autre appareil. | • ほかの端末で手書きをすべて消したあと、この端末に残っていた手書きが iCloud へ送り返されてしまうことがある問題を修正しました。 |
+| 1.3.whatsnew.4 | • Mettez à jour à la fois votre iPad et votre iPhone vers cette version. Dans les versions précédentes, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils n’ont pas été supprimés). Si vous effacez un tel trait dans une version précédente, il est aussi effacé dans cette version. Sur iPad, cette version relie côte à côte les pages précédentes et suivantes, en orientation portrait comme en paysage. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。以前のバージョンでは、2つのページにまたがって書いた線は、そのうち一方にしか表示されません（削除されたわけではありません）。以前のバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
+| 1.3.whatsnew.5 | Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs. | 翻訳は AI で作成したもので、まだネイティブスピーカーの校閲を受けていません。誤りをお知らせください。 |

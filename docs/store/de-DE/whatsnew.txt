@@ -1,3 +1,6 @@
-• Strengere Prüfungen, damit Ihre Handschrift nach einem Wechsel des iCloud-Accounts nicht mit einem anderen Account vermischt wird.
+• Wochen- und Tagesseiten sind jetzt seitlich mit der vorherigen und der nächsten Seite verbunden. Wenn Sie mit dem Finger seitwärts wischen, folgt die benachbarte Woche (bzw. der benachbarte Tag). Sie können direkt über die Grenze zwischen den Seiten hinweg schreiben (wenn „Mit Finger zeichnen“ aktiviert ist, bewegen Sie die Seiten mit zwei Fingern seitwärts).
+• Im Bereich „Seiten“ der Einstellungen können Sie die seitliche Verbindung ausschalten.
+• Ein Problem wurde behoben, bei dem Handschrift, die noch auf diesem Gerät war, wieder in iCloud landen konnte, nachdem auf einem anderen Gerät alle Handschrift gelöscht wurde.
+• Bitte aktualisieren Sie sowohl Ihr iPad als auch Ihr iPhone auf diese Version. In älteren Versionen erscheinen Striche, die über Seiten hinweg geschrieben wurden, nur auf einer der Seiten (sie wurden nicht gelöscht). Wenn Sie einen solchen Strich in einer älteren Version löschen, wird er auch in dieser Version gelöscht. Auf dem iPad verbindet diese Version die vorherige und die nächste Seite im Hoch- wie im Querformat seitlich.
 
 Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit.

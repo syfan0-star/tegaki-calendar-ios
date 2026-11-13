@@ -1,3 +1,6 @@
-• Controlli più rigorosi perché la Sua scrittura a mano non si mescoli con un altro account iCloud quando cambia account.
+• Le pagine della settimana e del giorno sono ora collegate lateralmente alle pagine precedenti e successive. Se fa scorrere il dito di lato, compare la settimana (o il giorno) accanto. Può scrivere direttamente attraverso il confine tra le pagine (quando “Scrivi con il dito” è attivo, sposti le pagine di lato con due dita).
+• Può disattivare il collegamento laterale nella sezione “Pagine” delle Impostazioni.
+• Risolto un problema per cui, dopo la cancellazione di tutta la scrittura a mano su un altro dispositivo, la scrittura a mano rimasta su questo dispositivo poteva tornare su iCloud.
+• Aggiorni a questa versione sia l’iPad sia l’iPhone. Nelle versioni precedenti, i tratti scritti a cavallo tra due pagine compaiono solo su una delle due (non sono stati eliminati). Se cancella uno di questi tratti in una versione precedente, viene cancellato anche in questa versione. Su iPad, questa versione collega lateralmente le pagine precedenti e successive sia in verticale sia in orizzontale.
 
 Le traduzioni sono state fatte con l’IA e non sono ancora state riviste da madrelingua. La preghiamo di segnalarci gli errori.

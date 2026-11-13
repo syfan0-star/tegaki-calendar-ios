@@ -1,3 +1,6 @@
-• Stronger checks so that your handwriting is not mixed with another iCloud account when you switch accounts.
+• Week and day pages are now joined side by side with the pages before and after them. Slide sideways with your finger to bring in the neighboring week (or day). You can write straight across the border between pages (when “Draw with Finger” is on, move sideways with two fingers).
+• You can turn off the side-by-side joining in the “Pages” section of Settings.
+• Fixed an issue where, after all handwriting was erased on another device, handwriting still on this device could go back to iCloud.
+• Please update both your iPad and your iPhone to this version. On older versions, strokes written across pages appear on only one of the pages (they have not been deleted). If you erase such a stroke on an older version, it is erased in this version too. On iPad, this version joins the pages before and after side by side in both portrait and landscape.
 
 Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.

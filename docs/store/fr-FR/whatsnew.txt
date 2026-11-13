@@ -1,3 +1,6 @@
-• Des vérifications renforcées pour que votre écriture manuscrite ne soit pas mélangée avec un autre compte iCloud quand vous changez de compte.
+• Les pages de la semaine et du jour sont désormais reliées côte à côte aux pages précédentes et suivantes. Faites glisser le doigt sur le côté pour faire apparaître la semaine (ou le jour) d’à côté. Vous pouvez écrire directement par-dessus la limite entre deux pages (quand « Écrire au doigt » est activé, faites glisser sur le côté avec deux doigts).
+• Vous pouvez désactiver cette liaison côte à côte dans la section « Pages » des Réglages.
+• Correction d’un problème qui pouvait renvoyer vers iCloud l’écriture manuscrite restée sur cet appareil, après l’effacement de toute l’écriture manuscrite sur un autre appareil.
+• Mettez à jour à la fois votre iPad et votre iPhone vers cette version. Dans les versions précédentes, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils n’ont pas été supprimés). Si vous effacez un tel trait dans une version précédente, il est aussi effacé dans cette version. Sur iPad, cette version relie côte à côte les pages précédentes et suivantes, en orientation portrait comme en paysage.
 
 Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs.

@@ -1,3 +1,6 @@
-• Comprobaciones más estrictas para que su escritura a mano no se mezcle con otra cuenta de iCloud cuando cambie de cuenta.
+• Las páginas de la semana y del día ahora se unen lado a lado con las páginas anteriores y siguientes. Deslice el dedo hacia un lado y aparecerá la semana contigua (o el día contiguo). Puede escribir directamente por encima del límite entre las páginas (cuando “Dibujar con el dedo” está activado, desplácese hacia los lados con dos dedos).
+• Puede desactivar la unión lado a lado en la sección “Páginas” de Ajustes.
+• Se corrigió un problema por el que, después de que se borrara toda la escritura a mano en otro dispositivo, la escritura a mano que quedaba en este dispositivo podía volver a iCloud.
+• Actualice a esta versión tanto el iPad como el iPhone. En las versiones anteriores, los trazos escritos entre dos páginas aparecen solo en una de ellas (no se eliminaron). Si borra uno de esos trazos en una versión anterior, también se borra en esta versión. En el iPad, esta versión une lado a lado las páginas anteriores y siguientes, tanto en vertical como en horizontal.
 
 Las traducciones se hicieron con IA y todavía no las han revisado hablantes nativos. Avísenos si encuentra errores.

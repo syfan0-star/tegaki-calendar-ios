@@ -84,3 +84,15 @@ R が日本語の元を見ずに `docs/store/pt-PT/*.txt` と `docs/store/subscr
 | sub.products.com.syfan0.tegakicalendar.monthly.description | Escrita à mão, eventos e sincronização iCloud | 手書き、予定、iCloud 同期 |
 | sub.products.com.syfan0.tegakicalendar.yearly.displayName | Tegaki Anual | Tegaki 年額 |
 | sub.products.com.syfan0.tegakicalendar.yearly.description | As mesmas funcionalidades, cobradas por ano | 同じ機能を、年ごとの請求で |
+
+## 1.3 の whatsnew.txt（このバージョンの新機能。2026-11-13）
+
+上の `whatsnew.txt` の節は 1.2 の文です。この節は 1.3 の `docs/store/pt-PT/whatsnew.txt` の逆翻訳で、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。照合と判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の新機能の文と審査メモ」。× 0）。4 つ目の点の最後の文（iPad での見え方）は、リードの確認を待っている案の文です。
+
+| id | 訳 | 逆翻訳 |
+| --- | --- | --- |
+| 1.3.whatsnew.1 | • As páginas da semana e do dia passam a estar ligadas lado a lado às páginas anteriores e seguintes. Deslize o dedo para o lado e a semana vizinha (ou o dia vizinho) aparece a seguir. Pode escrever diretamente por cima do limite entre as páginas (quando “Traçar com o dedo” estiver ativado, deslize para o lado com dois dedos). | • 週のページと日のページが、前後のページと横に並んでつながるようになりました。指を横にすべらせると、隣の週（または隣の日）が続いて現れます。ページの境目の上を、そのまままたいで書けます（「指でなぞる」がオンのときは、2本指で横にすべらせます）。 |
+| 1.3.whatsnew.2 | • Pode desativar a ligação lado a lado na secção “Páginas” dos Ajustes. | • 設定の「ページ」の項目で、横並びのつながりをオフにできます。 |
+| 1.3.whatsnew.3 | • Foi corrigido um problema em que, depois de toda a escrita à mão ser apagada noutro dispositivo, a escrita à mão que ainda estava neste dispositivo podia voltar para o iCloud. | • ほかの端末ですべての手書きが消されたあと、まだこの端末にあった手書きが iCloud に戻ってしまうことがある問題を修正しました。 |
+| 1.3.whatsnew.4 | • Atualize tanto o iPad como o iPhone para esta versão. Nas versões anteriores, os traços escritos entre duas páginas aparecem apenas numa delas (não foram eliminados). Se apagar um desses traços numa versão anterior, também é apagado nesta versão. No iPad, esta versão liga lado a lado as páginas anteriores e seguintes, tanto na vertical como na horizontal. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。以前のバージョンでは、2つのページにまたがって書いた線は、どちらか一方にしか表示されません（削除されたわけではありません）。以前のバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
+| 1.3.whatsnew.5 | As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros. | 翻訳は AI で作成したもので、まだネイティブスピーカーの確認を受けていません。誤りがあればお知らせください。 |
