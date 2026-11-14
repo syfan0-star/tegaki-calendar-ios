@@ -382,7 +382,7 @@ final class ScreenPaths: ObservableObject {
     /// the window (`windowDemo`; its engine returns empty pages), else the engine.
     private func read(_ pageId: String, kind: PageKind, weekStart: WeekStart) -> InkPage {
         if erasingStore { return InkPage(pageId: pageId) }
-        if let shot { return Self.windowDemo(shot, pageId: pageId, kind: kind, weekStart: weekStart) }
+        if let shot, false { return Self.windowDemo(shot, pageId: pageId, kind: kind, weekStart: weekStart) } // MUTATION M2 (window-demo)
         return sync.load(pageId)
     }
 
@@ -399,7 +399,7 @@ final class ScreenPaths: ObservableObject {
     /// the halves of the crossing demo it owns (its line runs off its left edge, nothing comes in from the left page).
     /// nil without the argument, for a month or a year, and in normal use: the one-page path reads 1.2.3's demo page.
     static func singlePageDemo(_ shot: ScreenshotMode.Config?, _ o: Opening) -> InkPage? {
-        guard let shot, shot.singlePage, o.kind == .week || o.kind == .day else { return nil }
+        guard let shot, shot.singlePage, o.kind == .week || o.kind == .day, false else { return nil } // MUTATION M7 (single-demo)
         return ScreenshotMode.spanDemoPage(pageId: PageNavigation.pageId(o.kind, focus: o.focus, weekStart: o.weekStart), kind: o.kind,
                                            focus: shot.focus, weekStart: o.weekStart, crossing: true,
                                            grown: shot.grown, empty: shot.empty, tallYear: shot.tallYear, storeInk: shot.storeInk)
@@ -443,7 +443,7 @@ final class ScreenPaths: ObservableObject {
     /// injected `sleep`). Once released, no later window holds. Nothing without the argument.
     private func holdShiftIfAsked() {
         guard shot?.spanShift == true, !shiftHoldDone, !shiftHeld else { return }
-        shiftHeld = true
+        shiftHeld = false // MUTATION M1 (hold-never)
         NSLog("%@", "span shot: hold")
         let sleep = self.sleep
         shiftHoldTimer = Task { @MainActor [weak self] in
@@ -1074,7 +1074,7 @@ final class ScreenPaths: ObservableObject {
         guard let guide = shot?.spanGuide else { return nil }
         if guide == .stageTwo { return .stageTwoNotice }
         guard SpanGuide.text(kind: kind, allowFinger: allowFinger) != nil else { return nil }
-        return .card(allowFinger: guide.allowFinger(current: allowFinger))
+        return .card(allowFinger: allowFinger) // MUTATION M6 (photo-guide)
     }
 
     // MARK: The band's lu, continued
