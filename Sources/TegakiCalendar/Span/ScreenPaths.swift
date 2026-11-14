@@ -1113,6 +1113,14 @@ final class ScreenPaths: ObservableObject {
         case stageTwoNotice
     }
 
+    /// When the first-time guide's card may come up (§3.14, review J2): nothing over the paper and nothing on its way —
+    /// no sheet, not the first launch's paywall that is about to come (`firstPaywallPending`), not the account question up
+    /// or waiting for a sheet to close — as the pinch hint waits (1.1.1). Else the card is recorded as shown and goes a
+    /// moment later under the sheet, or stays its 8 seconds under the question, and never comes again.
+    static func guideMayShow(sheetIsUp: Bool, firstPaywallPending: Bool, accountQuestion: Bool, accountChangePending: Bool) -> Bool {
+        !sheetIsUp && !firstPaywallPending && !accountQuestion && !accountChangePending
+    }
+
     static func photoGuide(_ shot: ScreenshotMode.Config?, kind: PageKind, allowFinger: Bool) -> PhotoGuide? {
         guard let guide = shot?.spanGuide else { return nil }
         if guide == .stageTwo { return .stageTwoNotice }

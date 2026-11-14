@@ -736,6 +736,8 @@ struct CalendarRootScreen: View {
         .onChange(of: showAccountChange) {
             showNextWeekStartNotice()
             askAgeRangeIfDue()
+            // 1.3 (review J2): the guide waits for the account question.
+            if showAccountChange { guide.dismiss() } else { showSpanGuideIfCalm() }
         }
         // M5 (M5_CONTRACT §4.2 / §3.1): the purchase toasts, and the moment the app turns read only.
         .onChange(of: store.snapshot.message) { messageChanged() }
@@ -2284,11 +2286,11 @@ struct CalendarRootScreen: View {
     /// pinch hint waits for nothing being up too; 1.2 (§10.4): and the week start's toasts; 1.2.2
     /// (docs/R1_2_2.md §3.1): and the age range.
     private func sheetsChanged() {
-        // 1.3 (§3.14): a sheet takes the guide away; the guide may come once nothing is up.
+        // 1.3 (§3.14): a sheet takes the guide away; the guide may come once nothing is up (or on its way, J2).
         if sheetIsUp {
             guide.dismiss()
-        } else if paths.path == .joined {
-            guide.showIfDue(kind, joined: true, allowFinger: allowFinger)
+        } else {
+            showSpanGuideIfCalm()
         }
         if !sheetIsUp {
             schedulePinchHint()
@@ -2398,6 +2400,8 @@ struct CalendarRootScreen: View {
             defer {
                 firstPaywallPending = false
                 askAgeRangeIfDue()
+                // 1.3 (review J2): the guide waited for this decision (a paywall shown is a sheet: it waits on).
+                showSpanGuideIfCalm()
             }
             try? await Task.sleep(for: .seconds(Self.sheetGap))
             let done = await store.awaitFirstRefresh(timeout: .seconds(Self.firstRefreshTimeout))
@@ -2865,14 +2869,24 @@ extension CalendarRootScreen {
         show(kind: kind, focus: focus)
     }
 
+    /// The first-time guide once on the joined path when nothing is up or on its way (§3.14, review J2:
+    /// `ScreenPaths.guideMayShow` — no sheet, no first paywall about to come, no account question up or waiting).
+    func showSpanGuideIfCalm() {
+        guard paths.path == .joined,
+              ScreenPaths.guideMayShow(sheetIsUp: sheetIsUp, firstPaywallPending: firstPaywallPending,
+                                       accountQuestion: showAccountChange, accountChangePending: accountChangePending) else { return }
+        guide.showIfDue(kind, joined: true, allowFinger: allowFinger)
+    }
+
     /// After `show` opened a page: the guide once on the joined path when nothing is up (§3.14); off it, the guide goes.
     /// Screenshot mode's `--screenshot-span-guide one|two` shows the card for its photo on every window it opens (§3.12).
     func joinedOpened(_ opened: ScreenPaths.Opened) {
         if opened == .joined {
             if case .card(let finger)? = ScreenPaths.photoGuide(ScreenshotMode.current, kind: kind, allowFinger: allowFinger) {
                 guide.showForPhoto(kind, allowFinger: finger)
-            } else if !sheetIsUp {
-                guide.showIfDue(kind, joined: true, allowFinger: allowFinger)
+            } else {
+                // Review J2: on the next turn, so the account question `appear` asks right after `show` is seen first.
+                Task { @MainActor in showSpanGuideIfCalm() }
             }
         } else {
             guide.dismiss()

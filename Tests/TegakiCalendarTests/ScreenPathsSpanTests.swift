@@ -1366,6 +1366,19 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
+    /// §3.14 (review J2): the first-time guide waits, as the pinch hint does, while anything is up or on its way — a sheet,
+    /// the first launch's paywall about to come, the account question up or waiting for a sheet — so it is not recorded as
+    /// shown under them; it comes once all are gone.
+    func testGuideWaitsForThePaywallAndTheAccountQuestion() {
+        XCTAssertTrue(ScreenPaths.guideMayShow(sheetIsUp: false, firstPaywallPending: false, accountQuestion: false, accountChangePending: false))
+        XCTAssertFalse(ScreenPaths.guideMayShow(sheetIsUp: true, firstPaywallPending: false, accountQuestion: false, accountChangePending: false))
+        XCTAssertFalse(ScreenPaths.guideMayShow(sheetIsUp: false, firstPaywallPending: true, accountQuestion: false, accountChangePending: false),
+                       "the first paywall comes 0.35 s and a refresh after the onboarding")
+        XCTAssertFalse(ScreenPaths.guideMayShow(sheetIsUp: false, firstPaywallPending: false, accountQuestion: true, accountChangePending: false),
+                       "the account question is not a sheet but covers the card")
+        XCTAssertFalse(ScreenPaths.guideMayShow(sheetIsUp: false, firstPaywallPending: false, accountQuestion: false, accountChangePending: true))
+    }
+
     // MARK: Screenshot mode's joined pages (§3.12; C3-B1, C3-M4; the plan §4.2–§4.4, §7.3)
 
     /// §3.12, B_DESIGN.md §5.6: with `--screenshot-span on` screenshot mode opens a week or a day joined (its switch starts on)
