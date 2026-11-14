@@ -372,7 +372,7 @@ final class ScreenPaths: ObservableObject {
         span = nil
         heading = nil
         pendingHeading = nil
-        guard !old.isClosed else { return }
+        return
         let hadCanvas = old.inbox.latestWindow != nil
         if let latest = old.inbox.latestWindow {
             // The safety net's source stays the canvas's window; only the basis marks the reopening.
