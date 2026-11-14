@@ -107,13 +107,19 @@ final class ScreenPathsCanvasSpanTests: XCTestCase {
     /// A short pen stroke centred near (x, y) of the band.
     private func shortStroke(at x: CGFloat, _ y: CGFloat) -> PKStroke {
         strokeClock += 1
-        let points = (0..<5).map { i in
-            PKStrokePoint(location: CGPoint(x: x - 20 + CGFloat(i) * 10, y: y + CGFloat(i % 2)), timeOffset: TimeInterval(i) * 0.01,
-                          size: CGSize(width: 3.5, height: 3.5), opacity: 1, force: 0.5, azimuth: 0, altitude: .pi / 2)
+        var points: [PKStrokePoint] = []
+        for i in 0..<5 {
+            let step = CGFloat(i)
+            let px: CGFloat = x - 20 + step * 10
+            let py: CGFloat = y + CGFloat(i % 2)
+            let offset: TimeInterval = TimeInterval(i) * 0.01
+            let altitude: CGFloat = CGFloat.pi / 2
+            points.append(PKStrokePoint(location: CGPoint(x: px, y: py), timeOffset: offset, size: CGSize(width: 3.5, height: 3.5),
+                                        opacity: 1, force: 0.5, azimuth: 0, altitude: altitude))
         }
-        return PKStroke(ink: PKInk(.pen, color: .black),
-                        path: PKStrokePath(controlPoints: points, creationDate: Date(timeIntervalSince1970: 1_790_000_000 + strokeClock)),
-                        transform: .identity, mask: nil)
+        let created = Date(timeIntervalSince1970: 1_790_000_000 + strokeClock)
+        let path = PKStrokePath(controlPoints: points, creationDate: created)
+        return PKStroke(ink: PKInk(.pen, color: .black), path: path, transform: .identity, mask: nil)
     }
 
     /// §3.4 (d), B_DESIGN.md:208, C3-m9: the screen opens anew (a date tap) while the old canvas holds a stroke PencilKit has

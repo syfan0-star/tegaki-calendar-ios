@@ -132,6 +132,13 @@ final class ScreenPathsSpanTests: XCTestCase {
         try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour, minute: minute)))
     }
 
+    /// The band x (lu) of the middle of the page `slots` pages from the focus page.
+    private func middle(of session: SpanSession, slots offset: Int = 0) -> CGFloat {
+        let w = session.plan.pageWidth
+        let slot = CGFloat(session.focusSlot + offset)
+        return slot * w + w / 2
+    }
+
     private func settle(_ turns: Int = 24) async {
         for _ in 0..<turns {
             await Task.yield()
@@ -351,19 +358,18 @@ final class ScreenPathsSpanTests: XCTestCase {
     func testReviewVisitFollowsTheFocus() async throws {
         let session = try await openWindow()
         let ledger = JoinedLedgerStandIn(session)
-        let w = session.plan.pageWidth
-        var stopped = paths.stopped(session.stopped(midX: CGFloat(session.focusSlot) * w + w / 2), focus: nov18, kind: .week,
+        var stopped = paths.stopped(session.stopped(midX: middle(of: session)), focus: nov18, kind: .week,
                                     weekStart: .monday, boundary: {})
         XCTAssertNil(stopped.visitEnded, "the same page")
         XCTAssertEqual(stopped.focus, nov18)
         bed.now = Date(timeIntervalSince1970: 1_790_000_500)
         ledger.draw(on: w1123)
         ledger.deliver()
-        stopped = paths.stopped(session.stopped(midX: CGFloat(session.focusSlot + 1) * w + w / 2), focus: stopped.focus, kind: .week,
+        stopped = paths.stopped(session.stopped(midX: middle(of: session, slots: 1)), focus: stopped.focus, kind: .week,
                                 weekStart: .monday, boundary: {})
         XCTAssertEqual(stopped.visitEnded, SpanSession.Visit(pageId: w1116, inkChanged: true, lastInkChangeAt: bed.now))
         XCTAssertEqual(stopped.focus, DayKey(year: 2026, month: 11, day: 25))
-        stopped = paths.stopped(session.stopped(midX: CGFloat(session.focusSlot - 1) * w + w / 2), focus: stopped.focus, kind: .week,
+        stopped = paths.stopped(session.stopped(midX: middle(of: session, slots: -1)), focus: stopped.focus, kind: .week,
                                 weekStart: .monday, boundary: {})
         XCTAssertEqual(stopped.visitEnded, SpanSession.Visit(pageId: w1123), "no ink there")
         XCTAssertEqual(stopped.focus, nov18)
@@ -378,7 +384,10 @@ final class ScreenPathsSpanTests: XCTestCase {
         let ledger = JoinedLedgerStandIn(session)
         let origin = try XCTUnwrap(session.origin(ofPage: w1116))
         // Owned by 11/09 (its centre is left of the boundary), reaching 200 lu into 11/16.
-        let crossing = try XCTUnwrap(ledger.draw([CGPoint(x: origin - 300, y: 900), CGPoint(x: origin - 50, y: 905), CGPoint(x: origin + 200, y: 900)]))
+        let a: CGFloat = origin - 300
+        let b: CGFloat = origin - 50
+        let c: CGFloat = origin + 200
+        let crossing = try XCTUnwrap(ledger.draw([CGPoint(x: a, y: 900), CGPoint(x: b, y: 905), CGPoint(x: c, y: 900)]))
         XCTAssertTrue(crossing.id.hasPrefix(w1109 + "|"))
         let own = try XCTUnwrap(ledger.draw(on: w1116))
         ledger.put()
@@ -434,19 +443,20 @@ final class ScreenPathsSpanTests: XCTestCase {
         let session = try await openWindow(opening(device: iPhone))
         var heavy = InkPage.empty(pageId: w1123)
         for n in 0..<12_001 {
-            let point = InkPoint(x: CGFloat(n % 1000), y: CGFloat(n / 1000), dtMs: 0, sizeW: 1, sizeH: 1, opacity: 1, force: 0, azimuth: 0, altitude: 0)
+            let px = CGFloat(n % 1000)
+            let py = CGFloat(n / 1000)
+            let point = InkPoint(x: px, y: py, dtMs: 0, sizeW: 1, sizeH: 1, opacity: 1, force: 0, azimuth: 0, altitude: 0)
             heavy.add(InkStroke(id: "h\(n)", cell: .grid, tool: .pen, color: "#000000", t: 1, points: [point]))
         }
-        let w = session.plan.pageWidth
         session.remoteUpdated(heavy)
         XCTAssertTrue(session.fallsBackToOnePage)
         session.remoteDeleted(w1123)
         XCTAssertFalse(session.fallsBackToOnePage)
-        var stopped = paths.stopped(session.stopped(midX: CGFloat(session.focusSlot) * w + w / 2), focus: nov16, kind: .week,
+        var stopped = paths.stopped(session.stopped(midX: middle(of: session)), focus: nov16, kind: .week,
                                     weekStart: .monday, boundary: {})
         XCTAssertFalse(stopped.fallBack, "light again: no fallback")
         session.remoteUpdated(heavy)
-        stopped = paths.stopped(session.stopped(midX: CGFloat(session.focusSlot) * w + w / 2), focus: nov16, kind: .week,
+        stopped = paths.stopped(session.stopped(midX: middle(of: session)), focus: nov16, kind: .week,
                                 weekStart: .monday, boundary: {})
         XCTAssertTrue(stopped.fallBack)
         XCTAssertEqual(paths.fallenBack, [.week])
@@ -471,7 +481,7 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(shot.open(opening()), .joined)
         scratch.removeObject(forKey: AppSettings.lastFocusKey)
         let other = try XCTUnwrap(shot.span)
-        _ = shot.stopped(other.stopped(midX: CGFloat(other.focusSlot + 1) * w + w / 2), focus: nov18, kind: .week, weekStart: .monday, boundary: {})
+        _ = shot.stopped(other.stopped(midX: middle(of: other, slots: 1)), focus: nov18, kind: .week, weekStart: .monday, boundary: {})
         XCTAssertNil(scratch.string(forKey: AppSettings.lastFocusKey), "nothing remembered in screenshot mode")
     }
 
@@ -845,7 +855,8 @@ final class ScreenPathsSpanTests: XCTestCase {
         let week = try XCTUnwrap(session.layout.pages[slot] as? WeekPageLayout)
         let column = week.columnFrame(2).offsetBy(dx: session.layout.origin(ofSlot: slot), dy: 0)
         XCTAssertEqual(session.layout.dayAt(point: CGPoint(x: column.midX, y: 500)), DayKey(year: 2026, month: 11, day: 25))
-        let rect = CGRect(x: column.midX - 20, y: week.minutesToY(600), width: 40, height: 100)
+        let left: CGFloat = column.midX - 20
+        let rect = CGRect(x: left, y: week.minutesToY(600), width: 40, height: 100)
         let made = try XCTUnwrap(ScreenPaths.newEvent(layout: session.layout, rect: rect, now: bed.now))
         XCTAssertEqual(made.pageId, w1123)
         guard case .create(let range?) = made.plan else { return XCTFail("\(made.plan)") }
@@ -860,7 +871,8 @@ final class ScreenPathsSpanTests: XCTestCase {
         let session = try await openWindow(opening(.day))
         let d1117 = "d-2026-11-17"
         let origin = try XCTUnwrap(session.origin(ofPage: d1117))
-        let below = CGRect(x: origin + 300, y: 2_500, width: 100, height: 100)
+        let left: CGFloat = origin + 300
+        let below = CGRect(x: left, y: 2_500, width: 100, height: 100)
         let made = try XCTUnwrap(ScreenPaths.newEvent(layout: session.layout, rect: below, now: bed.now))
         XCTAssertEqual(made.pageId, d1117)
         XCTAssertEqual(made.plan, .refusedBelowDay)
@@ -906,7 +918,8 @@ final class ScreenPathsSpanTests: XCTestCase {
         let page = session.layout.pages[slot]
         let tokyo = SessionTestBed.tokyo
         let start = ScreenPaths.bandStart(layout: session.layout, focusPageId: w1116, now: now, calendar: tokyo, visibleWidth: 600)
-        XCTAssertEqual(start.x, origin + PageNavigation.initialScrollX(page, now: now, calendar: tokyo, visibleWidth: 600), accuracy: 1e-9)
+        let pageX: CGFloat = PageNavigation.initialScrollX(page, now: now, calendar: tokyo, visibleWidth: 600)
+        XCTAssertEqual(start.x, origin + pageX, accuracy: 1e-9)
         XCTAssertGreaterThan(start.x, origin, "today's column, right of the page's edge")
         XCTAssertEqual(start.y, PageNavigation.initialScrollY(page, now: now, calendar: tokyo), accuracy: 1e-9)
         XCTAssertEqual(ScreenPaths.bandPoint(CGPoint(x: 10, y: 20), layout: session.layout, focusPageId: w1116), CGPoint(x: origin + 10, y: 20))
@@ -914,7 +927,8 @@ final class ScreenPathsSpanTests: XCTestCase {
         let area = CGSize(width: 834, height: 955)
         let overview = ScreenPaths.bandViewport(layout: session.layout, focusPageId: w1116, now: now, calendar: tokyo, area: area, ratio: 1)
         XCTAssertEqual(overview.zoom, 0.4974, accuracy: 0.0005)
-        XCTAssertEqual(overview.offsetX, (origin + 700) * overview.zoom - 417, accuracy: 1e-6, "the focus page in the middle")
+        let middle: CGFloat = (origin + 700) * overview.zoom - 417
+        XCTAssertEqual(overview.offsetX, middle, accuracy: 1e-6, "the focus page in the middle")
         XCTAssertEqual(overview.width, 834)
         let zoomed = ScreenPaths.bandViewport(layout: session.layout, focusPageId: w1116, now: now, calendar: tokyo, area: area, ratio: 2)
         let visible = ZoomPolicy.visibleWidth(.week, viewportWidth: 834, zoom: zoomed.zoom)
@@ -937,8 +951,7 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(paths.heading?.version, session.windowVersion, "the first page did not move: at once")
         XCTAssertEqual(paths.heading?.viewport, v1)
         let shown = try XCTUnwrap(paths.heading)
-        let w = session.plan.pageWidth
-        _ = session.stopped(midX: CGFloat(session.focusSlot + 1) * w + w / 2)
+        _ = session.stopped(midX: middle(of: session, slots: 1))
         XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
         XCTAssertEqual(paths.heading, shown, "the shifted window waits for its viewport")
         let v2 = PaperViewport(offsetX: 1_000 - 700, zoom: 0.5, width: 834)
@@ -967,9 +980,11 @@ final class ScreenPathsSpanTests: XCTestCase {
             return XCTFail("today's page is the focus: reveal")
         }
         let origin = try XCTUnwrap(session.origin(ofPage: w1116))
-        XCTAssertEqual(middle.minX * overview.zoom - ZoomPolicy.revealMargin, (origin + 700) * overview.zoom - 417, accuracy: 1e-6)
-        XCTAssertEqual(ZoomPolicy.revealOffset(rect: middle, zoom: overview.zoom, viewport: area, current: CGPoint(x: 0, y: 0)).x,
-                       (origin + 700) * overview.zoom - 417, accuracy: 1e-6, "the canvas puts the page in the middle")
+        let centred: CGFloat = (origin + 700) * overview.zoom - 417
+        let start: CGFloat = middle.minX * overview.zoom - ZoomPolicy.revealMargin
+        XCTAssertEqual(start, centred, accuracy: 1e-6)
+        let offset = ZoomPolicy.revealOffset(rect: middle, zoom: overview.zoom, viewport: area, current: CGPoint(x: 0, y: 0))
+        XCTAssertEqual(offset.x, centred, accuracy: 1e-6, "the canvas puts the page in the middle")
 
         let zoomed = PaperViewport(offsetX: 2_000, zoom: 1.2, width: 834)
         let now = try at(12, 3, 10)
@@ -981,8 +996,9 @@ final class ScreenPathsSpanTests: XCTestCase {
         let today = week.columnFrame(3).offsetBy(dx: session.layout.origin(ofSlot: slot), dy: 0)
         XCTAssertEqual(column.minX, today.minX, accuracy: 1e-9)
         XCTAssertEqual(column.width, today.width, accuracy: 1e-9)
-        XCTAssertEqual(column.minY, PageNavigation.initialScrollY(week, now: now, calendar: SessionTestBed.tokyo) + ZoomPolicy.revealMargin / 1.2,
-                       accuracy: 1e-9, "an hour before now at the top")
+        let top: CGFloat = PageNavigation.initialScrollY(week, now: now, calendar: SessionTestBed.tokyo)
+        let margin: CGFloat = ZoomPolicy.revealMargin / 1.2
+        XCTAssertEqual(column.minY, top + margin, accuracy: 1e-9, "an hour before now at the top")
         XCTAssertTrue(ScreenPaths.zoomedIn(layout: session.layout, viewport: nil, area: area, ratio: 2))
         XCTAssertFalse(ScreenPaths.zoomedIn(layout: session.layout, viewport: overview, area: area, ratio: 2))
         setting = false
@@ -1144,12 +1160,11 @@ final class ScreenPathsSpanTests: XCTestCase {
         ledger.put()
         var order: [String] = []
         session.willPersist = { order.append("persist \($0)") }
-        let w = session.plan.pageWidth
-        _ = paths.stopped(session.stopped(midX: CGFloat(session.focusSlot) * w + w / 2), focus: nov18, kind: .week, weekStart: .monday,
+        _ = paths.stopped(session.stopped(midX: middle(of: session)), focus: nov18, kind: .week, weekStart: .monday,
                           focusMoved: { order.append("focus \($0)") }, boundary: { order.append("boundary") })
         XCTAssertEqual(order, ["focus 2026-11-18"])
         order = []
-        _ = paths.stopped(session.stopped(midX: CGFloat(session.focusSlot + 1) * w + w / 2), focus: nov18, kind: .week, weekStart: .monday,
+        _ = paths.stopped(session.stopped(midX: middle(of: session, slots: 1)), focus: nov18, kind: .week, weekStart: .monday,
                           focusMoved: { order.append("focus \($0)") }, boundary: { order.append("boundary") })
         XCTAssertEqual(order, ["focus 2026-11-25", "persist \(w1123)", "boundary"])
     }
