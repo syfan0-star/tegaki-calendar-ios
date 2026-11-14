@@ -258,7 +258,7 @@ final class ScreenPaths: ObservableObject {
     static func device(isPad: Bool, windowSize: CGSize, screen: CGSize?) -> Device? {
         guard windowSize.width.isFinite, windowSize.height.isFinite, windowSize.width > 0, windowSize.height > 0,
               let screen, screen.width.isFinite, screen.height.isFinite, screen.width > 0, screen.height > 0 else { return nil }
-        return Device(deviceClass: SpanDeviceClass(screen: screen, isPad: isPad), orientation: SpanOrientation(screen: screen))
+        return Device(deviceClass: SpanDeviceClass(screen: windowSize, isPad: isPad), orientation: SpanOrientation(screen: windowSize)) // MUTATION ma (J6)
     }
 
     // MARK: Saving (§2 #1, #2, #8, #10, #14, #16)
@@ -353,11 +353,7 @@ final class ScreenPaths: ObservableObject {
         shownKind = o.kind
         waitingForScene = false
         if joined {
-            guard !eraseAndStartWaits else {
-                // H2 (the plan §4.4): no window while 「消して始める」 waits; the page is read after the answer.
-                path = .erasing
-                return .erasing
-            }
+            // MUTATION ma (J1): the gate of 「消して始める」's wait is removed.
             guard let device = o.device else {
                 waitingForScene = true
                 path = .erasing
@@ -376,8 +372,7 @@ final class ScreenPaths: ObservableObject {
             // Review J5: the one page comes from another path (the window, the desk), so its canvas is made anew even on
             // the same page id: it starts from `PaperViewport.initial` (the screen forgets the one page's last viewport)
             // and 「メモ欄はここまでです」 may show again, as on another page (1.2.3's `show`).
-            onePage.forgetGrowthCap()
-            onOnePageAnew?()
+            // MUTATION ma (J5): nothing forgotten.
         }
         openOnePage(o)
         return joined ? .fellBack : .onePage
@@ -418,11 +413,7 @@ final class ScreenPaths: ObservableObject {
     /// Where a window's page is read from (§4.4): empty while 「全て消す」 deletes the files, screenshot mode's demo page of
     /// the window (`windowDemo`; its engine returns empty pages), else the engine.
     private func read(_ pageId: String, kind: PageKind, weekStart: WeekStart) -> InkPage {
-        if erasingStore {
-            guard !cloudErasePendingAtErase, sync.state.pendingCloudErase else { return InkPage(pageId: pageId) }
-            // The engine removed the files (J4): what the store holds now was written after the erase.
-            erasingStore = false
-        }
+        if erasingStore { return InkPage(pageId: pageId) } // MUTATION ma (J4): empty until eraseDidFinish
         if let shot { return Self.windowDemo(shot, pageId: pageId, kind: kind, weekStart: weekStart) }
         return sync.load(pageId)
     }
@@ -812,7 +803,7 @@ final class ScreenPaths: ObservableObject {
         let one = onePage
         let madeFor = one.canvasIdentity(base: base)
         return (get: { one.page }, set: { newValue in
-            guard one.canvasWrote(newValue, madeFor: madeFor, base: currentBase()) else { return }
+            guard one.canvasWrote(newValue, madeFor: madeFor, base: base) else { return } // MUTATION ma (T1)
             ownInk()
         })
     }
@@ -940,7 +931,7 @@ final class ScreenPaths: ObservableObject {
             return .reopen(focus)
         case .slide(let pages):
             let zoomed = Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio)
-            if !zoomed { return pages != 0 ? .slide(pages) : .stay }
+            if pages != 0, !zoomed { return .slide(pages) } // MUTATION ma (J7)
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
                                      calendar: session.context.calendar, area: area, ratio: ratio)
@@ -997,7 +988,7 @@ final class ScreenPaths: ObservableObject {
         var heavy = false
         // C3-m6: only on the reads' count — after the window's pages were read (its version moved since it opened, and no
         // page that came in with a shift is still a placeholder estimated from its file; review J3).
-        if let session = span, session.fallsBackToOnePage, session.windowVersion != openedVersion, !session.hasUnreadPages {
+        if let session = span, session.fallsBackToOnePage, session.windowVersion != openedVersion { // MUTATION ma (J3)
             heavy = true
             fallBack(kind)
         }
@@ -1122,7 +1113,7 @@ final class ScreenPaths: ObservableObject {
     /// or waiting for a sheet to close — as the pinch hint waits (1.1.1). Else the card is recorded as shown and goes a
     /// moment later under the sheet, or stays its 8 seconds under the question, and never comes again.
     static func guideMayShow(sheetIsUp: Bool, firstPaywallPending: Bool, accountQuestion: Bool, accountChangePending: Bool) -> Bool {
-        !sheetIsUp && !firstPaywallPending && !accountQuestion && !accountChangePending
+        !sheetIsUp // MUTATION ma (J2)
     }
 
     static func photoGuide(_ shot: ScreenshotMode.Config?, kind: PageKind, allowFinger: Bool) -> PhotoGuide? {
