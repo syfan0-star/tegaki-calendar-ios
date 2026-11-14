@@ -67,11 +67,14 @@ final class EventStoreModel: ObservableObject {
 
     /// - Parameter service: the EventKit wrapper; nil = a fresh one (made here, on the main actor,
     ///   because a default argument expression is not actor-isolated).
-    init(service: EventKitService? = nil, defaults: UserDefaults = .standard) {
+    /// - Parameter screenshot: 1.3 (the lead's decision 8 of wave C1, docs/M7C.md): the process's screenshot mode by
+    ///   default, as in 1.2.3; the unit tests pass true to read the demo month (`ScreenshotMode.current` is fixed by the
+    ///   launch arguments) and false for the host's own calendar access.
+    init(service: EventKitService? = nil, defaults: UserDefaults = .standard, screenshot: Bool = ScreenshotMode.isActive) {
         let service = service ?? EventKitService()
         self.service = service
         self.defaults = defaults
-        screenshot = ScreenshotMode.isActive
+        self.screenshot = screenshot
         status = screenshot ? .fullAccess : service.accessState
         if !screenshot, let stored = defaults.array(forKey: Self.hiddenKey) as? [String] {
             hiddenCalendarIds = Set(stored)
