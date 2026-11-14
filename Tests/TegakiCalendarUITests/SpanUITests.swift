@@ -150,8 +150,9 @@ final class SpanUITests: XCTestCase {
         XCTAssertEqual(settled.state["session"], start.state["session"], "\(name): the same window")
     }
 
-    /// ▶ (次の週) at the opening: the window's canvas slides one week (no new window: `session=` stays), the paper stops on
-    /// 10/12's week and the window shifts after the stop (`shifts` + 1); the title is 10/12〜10/18.
+    /// ▶ (次の週) at the opening: the window's canvas slides one week (no new window: `session=` and the canvas's band id
+    /// `span~week~<session>` stay — the joined canvas is `.id(span.id)`), the paper stops on 10/12's week and the window
+    /// shifts after the stop (`shifts` + 1); the title is 10/12〜10/18.
     func testArrowsSlideOneWeekOnTheSameCanvas() throws {
         try skipUnlessPhone()
         continueAfterFailure = false
@@ -176,6 +177,7 @@ final class SpanUITests: XCTestCase {
         log("\(name): the title is 「\(title)」; span.state \(after.stateRaw)")
         XCTAssertEqual(after.state["path"], "span", "\(name): still the joined path")
         XCTAssertEqual(after.state["session"], start.state["session"], "\(name): the same canvas (the session did not change)")
+        XCTAssertEqual(after.probe.page, start.probe.page, "\(name): the canvas's band is the same (its id \(start.probe.page))")
         XCTAssertEqual(after.shifts, start.shifts + 1, "\(name): one shift after the stop")
         XCTAssertTrue(Self.isWeek(of: "10", "12", title), "\(name): the title of 10/12's week (「\(title)」)")
     }
