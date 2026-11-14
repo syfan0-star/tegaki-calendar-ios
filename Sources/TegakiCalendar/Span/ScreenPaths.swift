@@ -488,18 +488,18 @@ final class ScreenPaths: ObservableObject {
                 c.session.closeWithoutSaving()
             }
             closing = []
-            if let current = span {
-                current.closeWithoutSaving()
-                watches = []
-                span = nil
-                heading = nil
-                path = .erasing
-            }
             closed()
         }
         let screenshot = self.screenshot
         return Task { @MainActor [weak self] in
             await resolve(choice)
+            if choice == .eraseInk, let self, let current = self.span {
+                current.closeWithoutSaving()
+                self.watches = []
+                self.span = nil
+                self.heading = nil
+                self.path = .erasing
+            }
             answered()
             guard let self else { return }
             guard choice != .later, !screenshot else {
@@ -567,9 +567,8 @@ final class ScreenPaths: ObservableObject {
     /// (`OnePageSession.canvasWrote`); a write taken is the person's own ink (`ownInk`, 1.2.1).
     func pageBinding(base: String, ownInk: @escaping () -> Void) -> (get: () -> InkPage, set: (InkPage) -> Void) {
         let one = onePage
-        let madeFor = one.canvasIdentity(base: base)
         return (get: { one.page }, set: { newValue in
-            guard one.canvasWrote(newValue, madeFor: madeFor, base: base) else { return }
+            guard one.canvasWrote(newValue, madeFor: one.canvasIdentity(base: base), base: base) else { return }
             ownInk()
         })
     }
