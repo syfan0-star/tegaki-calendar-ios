@@ -1277,7 +1277,9 @@ struct CalendarRootScreen: View {
             lastInkChangeAt = at
             noteReviewInk()
         }
-        paths.onStageTwo = { _ in showToast(SpanGuide.stageTwoNotice, duration: Self.strokeBudgetNoticeDuration) }
+        paths.onStageTwo = { _ in
+            showToast(SpanGuide.stageTwoNotice, duration: Self.strokeBudgetNoticeDuration, lineLimit: SpanGuide.stageTwoNoticeLines)
+        }
         paths.onShownPageChanged = { relayout() }
         // Review J5: the one page back from the window (or the desk) is a new canvas even on the same page id.
         paths.onOnePageAnew = { viewport = .zero }
@@ -1340,7 +1342,7 @@ struct CalendarRootScreen: View {
         if ScreenPaths.photoGuide(ScreenshotMode.current, kind: kind, allowFinger: allowFinger) == .stageTwoNotice {
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(0.5))
-                showToast(SpanGuide.stageTwoNotice, duration: Self.screenshotReadOnlyToastDuration)
+                showToast(SpanGuide.stageTwoNotice, duration: Self.screenshotReadOnlyToastDuration, lineLimit: SpanGuide.stageTwoNoticeLines)
             }
         }
         schedulePinchHint()
@@ -2487,9 +2489,10 @@ struct CalendarRootScreen: View {
 
     /// Shows `text` above the toolbar for 3 s (errors 6 s, or `duration`); a newer toast replaces an
     /// older one. M5-24: the screenshot mode's read-only toast passes 20 s. The UI tests
-    /// (`--screenshot-probe`) keep every toast 20 s, so a slow simulator still finds it.
-    private func showToast(_ text: String, isError: Bool = false, duration: TimeInterval? = nil) {
-        let message = ToastMessage(text: text, isError: isError)
+    /// (`--screenshot-probe`) keep every toast 20 s, so a slow simulator still finds it. 1.3: `lineLimit` is 1.2.3's
+    /// three lines except for stage 2's notice (review C2-SHOTS-1).
+    private func showToast(_ text: String, isError: Bool = false, duration: TimeInterval? = nil, lineLimit: Int = ToastView.lineLimit) {
+        let message = ToastMessage(text: text, isError: isError, lineLimit: lineLimit)
         toast = message
         toastTask?.cancel()
         let shown = ScreenshotMode.current?.probe == true

@@ -2799,6 +2799,8 @@ jobs:
               done
               echo ""
               echo "- keys the app did not find (\`l10n: missing\`): $(cat "$OUT/lang/l10n-missing.txt" 2>/dev/null || echo '?') (0 expected)"
+              echo "- **To look at by eye**: stage 2's notice N-8 in the 10 photos \`<language>/iphone-portrait-stage-two.png\` (artifact span-shots-app-languages) must end with the string table's last word, not with \"…\": XCUITest reads the whole label even when the toast cuts the text (review C2-SHOTS-1; StageTwoNoticeSpanTests measures the lines). The test's lines with the toast's frame:"
+              grep -h 'iphone-portrait-stage-two' "$OUT"/lines/*.txt 2>/dev/null | sed 's/^/  - /' || true
             else
               echo "- not taken on this branch"
             fi
