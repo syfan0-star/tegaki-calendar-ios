@@ -2412,9 +2412,11 @@ jobs:
   # log line can cut one: the span-shots flake below). Then the neighbour ink's PDF (ScreenPathsSpanTests'
   # testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage writes it with TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT; `sips` makes a
   # PNG of it), and the gates: tools/shots/shift_pair.swift on each pair with the rows above the canvas left out (the status
-  # bar, the heading, the sticky heading and the all-day band, C3-m3 (b)), no pixel differing strongly or the job fails, and
-  # once more with only the status bar left out (a warning only: a version-paired viewport that slips is
-  # testViewportIsPairedWithTheWindowVersion's to find); tools/shots/span_margin.swift counts the pixels of the desk beside
+  # bar, the heading, the sticky heading and the all-day band, C3-m3 (b)), no pixel differing strongly, or else
+  # tools/shots/shift_subpixel.swift finds the strong pixels explained by a re-drawing less than a pixel away (a shift places
+  # the band again by a page width that is rarely a whole number of pixels; run 43596500507), at most 100 left, with a
+  # warning, or the job fails; and once more with only the status bar left out (a warning only: a version-paired viewport
+  # that slips is testViewportIsPairedWithTheWindowVersion's to find); tools/shots/span_margin.swift counts the pixels of the desk beside
   # the page that are not the desk's colour (#ecebe6 ± 8; the canvas's rows, the bottom toolbar outside them), every control
   # must count 0 or the job fails, and each single photo gives a line
   # `span margin: <device> <kind> <orientation> left=<n> right=<n> cols=… frame=… side=left control=<l>,<r> photo=…` (the
@@ -2489,7 +2491,6 @@ jobs:
       # the other devices have had their turn.
       - name: Shots on four devices (SpanShotsUITests)
         id: devices
-        if: ${{ !cancelled() }}
         timeout-minutes: 50
         run: |
           set -uo pipefail
@@ -2644,6 +2645,11 @@ jobs:
           FAILED=0
           if ! swiftc -O tools/shots/shift_pair.swift -o "$TOOLS/shift_pair"; then echo "::error::tools/shots/shift_pair.swift did not compile."; FAILED=1; fi
           if ! swiftc -O tools/shots/span_margin.swift -o "$TOOLS/span_margin"; then echo "::error::tools/shots/span_margin.swift did not compile."; FAILED=1; fi
+          if ! swiftc -O tools/shots/shift_subpixel.swift -o "$TOOLS/shift_subpixel"; then echo "::error::tools/shots/shift_subpixel.swift did not compile."; FAILED=1; fi
+          S=0
+          SELF="$("$TOOLS/shift_subpixel" --self-test)" || S=$?
+          echo "shift_subpixel: $(printf '%s\n' "$SELF" | tail -n 1)"
+          if [ "$S" != 0 ]; then printf '%s\n' "$SELF"; echo "::error::tools/shots/shift_subpixel.swift's self-test failed."; FAILED=1; fi
           : > "$LINES"
           for F in "$OUT"/lines/*.txt; do
             [ -f "$F" ] && cat "$F" >> "$LINES"
@@ -2656,7 +2662,11 @@ jobs:
             done
             echo ""
           }
-          # The pairs before and after a shift.
+          # The pairs before and after a shift. shift_pair first (no strong pixel below the all-day band); when it finds some,
+          # shift_subpixel tells a re-drawing less than a pixel away (a shift places the band again by a page width that is
+          # rarely a whole number of pixels, run 43596500507) from a move: at most $RESIDUAL pixels it cannot explain (6, 31
+          # and 26 in that run: glyph stems drawn again) pass with a warning, more fail.
+          RESIDUAL=100
           : > "$OUT/shift-pairs.txt"
           PAIRS=0
           while IFS= read -r LINE; do
@@ -2668,11 +2678,27 @@ jobs:
             S=0
             RESULT="$("$TOOLS/shift_pair" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$STRICT" --max-strong 0)" || S=$?
             echo "shift pair $DEVICE $KIND below the all-day band (rows $STRICT left out; released by $RELEASED): $RESULT" | tee -a "$OUT/shift-pairs.txt"
-            if [ "$S" != 0 ]; then echo "::error::the shift pair $DEVICE $KIND differs below the all-day band: $RESULT"; FAILED=1; fi
+            if [ "$S" != 0 ]; then
+              # Strong pixels: a re-drawing at another sub-pixel phase (tools/shots/shift_subpixel.swift's comment), or a move.
+              S=0
+              RESULT="$("$TOOLS/shift_subpixel" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$STRICT" --max-residual "$RESIDUAL")" || S=$?
+              echo "shift pair $DEVICE $KIND below the all-day band, sub-pixel: $RESULT" | tee -a "$OUT/shift-pairs.txt"
+              if [ "$S" != 0 ]; then
+                echo "::error::the shift pair $DEVICE $KIND differs below the all-day band by more than a sub-pixel re-drawing: $RESULT"
+                FAILED=1
+              else
+                echo "::warning::the shift pair $DEVICE $KIND differs below the all-day band only by a re-drawing less than a pixel away (strong pixels at the edges of lines, boxes and text; at most $RESIDUAL left): $RESULT"
+              fi
+            fi
             S=0
             RESULT="$("$TOOLS/shift_pair" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$LOOSE" --max-strong 0)" || S=$?
             echo "shift pair $DEVICE $KIND with the heading (rows $LOOSE left out): $RESULT" | tee -a "$OUT/shift-pairs.txt"
-            if [ "$S" != 0 ]; then echo "::warning::the shift pair $DEVICE $KIND differs in the heading or the all-day band (a warning only, C3-m3): $RESULT"; fi
+            if [ "$S" != 0 ]; then
+              S=0
+              RESULT="$("$TOOLS/shift_subpixel" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$LOOSE" --max-residual "$RESIDUAL")" || S=$?
+              echo "shift pair $DEVICE $KIND with the heading, sub-pixel: $RESULT" | tee -a "$OUT/shift-pairs.txt"
+              if [ "$S" != 0 ]; then echo "::warning::the shift pair $DEVICE $KIND differs in the heading or the all-day band (a warning only, C3-m3): $RESULT"; fi
+            fi
             if [ "$BAND" != same ]; then echo "::warning::the shift pair $DEVICE $KIND: the canvas moved with the shift (the all-day band's lanes packed anew?)."; fi
             if [ "$TITLE" != same ]; then echo "::warning::the shift pair $DEVICE $KIND: the page's title changed with the shift."; fi
           done < <(grep '^span shift pair: ' "$LINES" || true)
