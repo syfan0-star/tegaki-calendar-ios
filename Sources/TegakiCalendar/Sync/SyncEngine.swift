@@ -480,7 +480,10 @@ final class SyncEngine: ObservableObject {
             } catch CloudError.zoneMissing {
                 try checkEpoch(epoch)
                 // 1.2.3 (M3): a zone that is missing is what a switched account looks like; while a check is
-                // due the account is confirmed before every local page is sent again.
+                // due the account is confirmed before every local page is sent again. G4: a push outside the round
+                // trip confirms it always (in the foreground `.CKAccountChanged` can come after the new account's
+                // answer); the round trip's own recovery keeps 1.2.3's order (M4_CONTRACT §8.2 16).
+                if work == .pushOnly { accountCheckRequested = true }
                 try await confirmAgainIfDue(epoch)
                 let recovered = try await recoverFromZoneLoss(epoch: epoch)
                 pulled += recovered.pulled
@@ -823,7 +826,9 @@ final class SyncEngine: ObservableObject {
         } catch CloudError.zoneMissing {
             do {
                 try checkEpoch(epoch)
-                // 1.2.3 (M3): as in `run`, the account first when a check became due meanwhile.
+                // 1.2.3 (M3): as in `run`, the account first when a check became due meanwhile. G4: and always, as
+                // for the push: a fetch outside the round trip can meet a switched account before its notification.
+                accountCheckRequested = true
                 try await confirmAgainIfDue(epoch)
                 let recovered = try await recoverFromZoneLoss(epoch: epoch)
                 if recovered.gaveUp {
