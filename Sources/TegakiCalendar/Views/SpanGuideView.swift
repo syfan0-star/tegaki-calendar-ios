@@ -48,7 +48,8 @@ enum SpanGuide {
     /// The lines of N-8's toast (review C2-SHOTS-1). In a toast's three lines (1.2.3's `ToastView`) de was cut on an
     /// iPhone 17 (402 pt) and en, fr and de on the 375 pt iPhones (SE, mini); four hold every language down to 375 pt
     /// at the default text size (StageTwoNoticeSpanTests measures them). The other toasts keep three.
-    static let stageTwoNoticeLines = 4
+    // MUTATION (r13-q-s5c2-fix-me, not to be merged): 1.2.3's three lines for N-8 too (review C2-SHOTS-1's photo).
+    static let stageTwoNoticeLines = 3
 }
 
 /// The guide's state on the screen: the card that is up, its 8 seconds and this device's record. The 8 seconds
