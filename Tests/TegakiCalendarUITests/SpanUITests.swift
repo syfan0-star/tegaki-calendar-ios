@@ -28,6 +28,8 @@ final class SpanUITests: XCTestCase {
     private static let weekWidth: CGFloat = 1400
     /// The week's hour (lu, `PaperSpec.weekHourHeight`).
     private static let weekHour: CGFloat = 80
+    /// `SpanPlan.focusHysteresis`: the focus moves 6 % of a page past the focus page's edge.
+    private static let focusHysteresis: CGFloat = 0.06
     /// A gesture whose synthesis took longer than this (s) beyond its own length met an overloaded simulator
     /// (YearTapUITests): it is tried once more.
     private let slowGesture: TimeInterval = 2.5
@@ -88,11 +90,18 @@ final class SpanUITests: XCTestCase {
         XCTAssertGreaterThan(last.maxX - last.minX, 250, "\(name): the whole line, not a part of it (\(last.minX) … \(last.maxX))")
     }
 
-    /// 「指でも書く」 off, so one finger moves the paper: from 85 % to 15 % of a page's width across the middle, slowly
-    /// and held at the end (no coasting). The paper stops on the next week (`stops` + 1), the title changes once to
-    /// 10/12〜10/18, and stays so while the window shifts after the stop (`shifts` + 1; the title read every 0.15 s from
-    /// the lift until the window settled and 1 s longer). Without a stop the title would not change; a heading paired
+    /// 「指でも書く」 off, so one finger moves the paper: 85 % of a page's width (at most 80 % of the canvas) across the
+    /// middle, slowly and held at the end (no coasting). The paper stops on the next week (`stops` + 1), the title changes
+    /// once to 10/12〜10/18, and stays so while the window shifts after the stop (`shifts` + 1; the title read every 0.15 s
+    /// from the lift until the window settled and 1 s longer). Without a stop the title would not change; a heading paired
     /// with the wrong window version would jump a page at the shift (risk 4 of the wave plan).
+    ///
+    /// The focus moves when the middle of the screen is 6 % of a page past the focus page's edge (`SpanPlan.focus`), 0.56
+    /// of a page from the start. Review C2-SHOTS-2: a synthesized drag of 0.7 page (243.5 pt) once moved the paper only
+    /// 187 pt (the finger's first 56.5 pt did not move it), the paper stopped on the same week and the test failed with the
+    /// app as designed. So the drag is 0.85 page, and when the paper stopped on the same week having moved less than the
+    /// focus needs (`paperMoved`, from the probe and `span.state`), the test logs by how much the drag fell short and drags
+    /// once more from there; a paper that moved far enough and kept its focus fails.
     func testSlideChangesTheTitleOnce() throws {
         try skipUnlessPhone()
         continueAfterFailure = false
@@ -108,47 +117,68 @@ final class SpanUITests: XCTestCase {
 
         let frame = start.probe.frame
         let page = Self.weekWidth * start.probe.zoom
-        let distance = min(page * 0.7, frame.width * 0.8)
-        guard distance > page * 0.55 else {
+        let distance = min(page * 0.85, frame.width * 0.8)
+        guard distance > page * 0.62 else {
             return XCTFail("\(name): a page (\(page) pt) is too wide for one drag in the canvas \(frame)")
         }
+        // How far the paper must move for the focus to change (pt): to 6 % of a page past the focus page's right edge.
+        let needed = (Self.weekWidth * (1 + Self.focusHysteresis) - start.middleInFocus) * start.probe.zoom
         let from = CGPoint(x: frame.midX + distance / 2, y: frame.midY)
         let to = CGPoint(x: frame.midX - distance / 2, y: frame.midY)
-        waitUntilResponsive(canvasElement(in: app))
-        let took = drag(in: app, from: from, to: to, velocity: 400, hold: 0.3)
-        log("\(name): moved the paper \(from) → \(to) (\(seconds(took)))")
 
         var titles = [before]
         var settled: Snapshot?
-        var previous: Snapshot?
-        var settledAt: Date?
-        let deadline = Date().addingTimeInterval(20)
-        while Date() < deadline {
-            let shown = title.exists ? title.label : ""
-            if !shown.isEmpty, shown != titles.last { titles.append(shown) }
-            if let now = snapshot(app) {
-                if now.state["focus"] == Self.nextWeek, now.shifts > start.shifts, let previous, now.isAlike(previous) {
-                    settled = now
-                    if settledAt == nil { settledAt = Date() }
-                } else {
-                    settledAt = nil
+        var base = start
+        for attempt in 1...2 {
+            waitUntilResponsive(canvasElement(in: app))
+            let took = drag(in: app, from: from, to: to, velocity: 400, hold: 0.3)
+            log("\(name): moved the paper \(from) → \(to) (attempt \(attempt), \(seconds(took)); \(Int(distance)) pt, the focus needs \(Int(needed)))")
+            var stayed: Snapshot?
+            var previous: Snapshot?
+            var settledAt: Date?
+            let deadline = Date().addingTimeInterval(20)
+            while Date() < deadline {
+                let shown = title.exists ? title.label : ""
+                if !shown.isEmpty, shown != titles.last { titles.append(shown) }
+                if let now = snapshot(app) {
+                    let alike = previous.map { now.isAlike($0) } ?? false
+                    if now.state["focus"] == Self.nextWeek, now.shifts > base.shifts, alike {
+                        settled = now
+                        if settledAt == nil { settledAt = Date() }
+                    } else if now.state["focus"] == Self.focusWeek, now.stops > base.stops, alike {
+                        // Stopped on the same week: the paper moved less than the focus needs, or the focus did not follow.
+                        stayed = now
+                        if settledAt == nil { settledAt = Date() }
+                    } else {
+                        settledAt = nil
+                    }
+                    previous = now
                 }
-                previous = now
+                if let settledAt, Date().timeIntervalSince(settledAt) >= 1 { break }
+                Thread.sleep(forTimeInterval: 0.15)
             }
-            if let settledAt, Date().timeIntervalSince(settledAt) >= 1 { break }
-            Thread.sleep(forTimeInterval: 0.15)
+            if settled != nil { break }
+            guard let stayed else { break }
+            let moved = stayed.paperMoved(since: base)
+            log("\(name): the paper stopped on the same week, moved \(Int(moved)) pt of the drag's \(Int(distance)) (the focus needs \(Int(needed)) from the start); span.state \(stayed.stateRaw)")
+            guard stayed.paperMoved(since: start) < needed, attempt == 1 else { break }
+            log("\(name): the synthesized drag fell \(Int(needed - stayed.paperMoved(since: start))) pt short of the focus's \(Int(needed)) pt; dragging once more from there")
+            keepScreenshot(app, "\(name) — short drag")
+            base = stayed
         }
         keepScreenshot(app, "\(name) — after")
         log("\(name): the titles \(titles); span.state \(settled?.stateRaw ?? stateLabel(app))")
         guard let settled else {
-            return XCTFail("\(name): the paper did not stop on the next week with the window shifted (span.state \(stateLabel(app)); titles \(titles))")
+            let now = snapshot(app)
+            let moved = now.map { "; the paper moved \(Int($0.paperMoved(since: start))) pt, the focus needs \(Int(needed))" } ?? ""
+            return XCTFail("\(name): the paper did not stop on the next week with the window shifted (span.state \(stateLabel(app)); titles \(titles)\(moved))")
         }
         attach(settled.stateRaw, "\(name) — span.state")
         // The four checks below are independent: each one reports.
         continueAfterFailure = true
         XCTAssertEqual(titles.count, 2, "\(name): the title changed once (\(titles))")
         XCTAssertTrue(Self.isWeek(of: "10", "12", titles.last ?? ""), "\(name): to 10/12's week (\(titles))")
-        XCTAssertEqual(settled.stops, start.stops + 1, "\(name): one stop (\(start.stops) → \(settled.stops))")
+        XCTAssertEqual(settled.stops, base.stops + 1, "\(name): one stop after the drag that moved the focus (\(base.stops) → \(settled.stops))")
         XCTAssertEqual(settled.state["session"], start.state["session"], "\(name): the same window")
     }
 
@@ -490,6 +520,34 @@ private struct Snapshot {
 
     /// The focus page's left edge in the band (lu); 0 on one page.
     var origin: CGFloat { state["origin"].flatMap { Double($0) }.map { CGFloat($0) } ?? 0 }
+
+    /// The middle of the canvas from the focus page's left edge (lu): `SpanPlan.focus`'s midX, `(ox + width / 2) / zoom`,
+    /// less `origin`.
+    var middleInFocus: CGFloat {
+        guard probe.zoom > 0 else { return 0 }
+        return (probe.offset.x + probe.frame.width / 2) / probe.zoom - origin
+    }
+
+    /// How far the paper moved to the left since `earlier` (pt on screen), across a shift too: the middle's place in the
+    /// focus page, plus a page for each week the focus moved on (the week pages' ids are Mondays, 7 days apart).
+    func paperMoved(since earlier: Snapshot) -> CGFloat {
+        let pages = Snapshot.weeks(from: earlier.state["focus"], to: state["focus"])
+        return (middleInFocus + CGFloat(pages) * 1400 - earlier.middleInFocus) * probe.zoom
+    }
+
+    /// The weeks from one week page id (`w-YYYY-MM-DD`) to another; 0 when either is not a week.
+    static func weeks(from: String?, to: String?) -> Int {
+        func day(_ id: String?) -> Date? {
+            guard let id, id.hasPrefix("w-") else { return nil }
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(identifier: "UTC")
+            formatter.dateFormat = "yyyy-MM-dd"
+            return formatter.date(from: String(id.dropFirst(2)))
+        }
+        guard let a = day(from), let b = day(to) else { return 0 }
+        return Int((b.timeIntervalSince(a) / (7 * 86_400)).rounded())
+    }
     var pages: Int { count("pages") }
     var shifts: Int { count("shifts") }
     var stops: Int { count("stops") }
