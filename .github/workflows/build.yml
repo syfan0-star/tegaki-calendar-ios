@@ -232,11 +232,12 @@ jobs:
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the 18 files of the handwriting's data are the
       # bytes of 1.1.1, except Sync/SyncEngine.swift, whose line is 1.2.3's (docs/R1_2_3.md §3.10: the sync's
       # order and account checks changed, not the data's form) and, after the H4 fix, that of the commit
-      # with the two pendingCloudErase guards. The file keeps its name; the commit it was made from is in
+      # with the two pendingCloudErase guards and, after the G4 fix, the work outside the round trip confirming
+      # the account before a zone recovery. The file keeps its name; the commit it was made from is in
       # docs/M7B.md.
       # 1.3 (docs/M7C_CONTRACT.md §6.4, D9): the four files 1.3 may change (Ink/InkLedger.swift, Ink/InkCanvasView.swift,
       # Ink/InkOverlayView.swift, Sync/SyncEngine.swift) get their row rewritten in the commit that changes them (step 2;
-      # since S4 the rows of InkLedger.swift and SyncEngine.swift, the latter with the H4 fix merged, are 1.3's); every
+      # since S4 the rows of InkLedger.swift and SyncEngine.swift, the latter with the H4 and G4 fixes merged, are 1.3's); every
       # other row is still the bytes above. At the submission the table is made again from that commit's tree, with
       # the two new InkModel files (20 rows), and this step becomes "Data code frozen (re-based in 1.3)" (steps 4–5).
       - name: Data code frozen since 1.1.1
@@ -484,6 +485,8 @@ jobs:
       # branch adds the class, the line finds no test and the check at the end of the step warns (its file and its
       # class line are not in Tests/TegakiCalendarTests), so the step passes. The limit stays 9 min until the first
       # run of the build-and-test job with the class prints its per-class time (the measure for the next limit).
+      # G4: SyncEngineZoneAccountTests (a zone found missing outside the round trip confirms the account first)
+      # are repeated with them.
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
         timeout-minutes: 9
@@ -499,6 +502,7 @@ jobs:
             -only-testing:TegakiCalendarTests/SyncEngineTests \
             -only-testing:TegakiCalendarTests/SyncEngineSpanTests \
             -only-testing:TegakiCalendarTests/SyncEngineEraseFetchTests \
+            -only-testing:TegakiCalendarTests/SyncEngineZoneAccountTests \
             -only-testing:TegakiCalendarTests/SpanSessionTests \
             -only-testing:TegakiCalendarTests/ScreenEraseTests \
             -only-testing:TegakiCalendarTests/ScreenPathsSpanTests \
