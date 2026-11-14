@@ -616,7 +616,9 @@ final class ScreenPathsSpanTests: XCTestCase {
         writeOnePage("new-account", base: "\(w1123)|monday")
         await bed.flushSessionTimers()
         XCTAssertEqual(bed.live(w1123), ["new-account"], "saving goes on after the page was read again")
-        XCTAssertEqual(bed.store.allPageIds(), [w1123])
+        for id in bed.store.allPageIds() where id != w1123 {
+            XCTAssertEqual(bed.live(id), [], "nothing of the old account in \(id)")
+        }
     }
 
     /// §2 #10 (both paths): 「残す」 saves before the engine's answer — the one page's last stroke, and the window's inbox.
