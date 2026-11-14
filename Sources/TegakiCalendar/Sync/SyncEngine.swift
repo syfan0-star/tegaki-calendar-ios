@@ -1287,7 +1287,7 @@ extension SyncEngine {
                 try checkEpoch(epoch)
                 // As in `fetchPage` (1.2.3, M3): the account first when a check became due meanwhile, and (G4)
                 // always: the window's fetch can meet a switched account before its `.CKAccountChanged`.
-                accountCheckRequested = true
+                // (mutation ma: the G4 line of fetchPages removed)
                 try await confirmAgainIfDue(epoch)
                 let recovered = try await recoverFromZoneLoss(epoch: epoch)
                 if recovered.gaveUp {
