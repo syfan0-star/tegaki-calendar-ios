@@ -376,7 +376,7 @@ final class ScreenPaths: ObservableObject {
         let hadCanvas = old.inbox.latestWindow != nil
         if let latest = old.inbox.latestWindow {
             // The safety net's source stays the canvas's window; only the basis marks the reopening.
-            old.inbox.put([], unrouted: [], window: latest, basis: -1)
+            _ = latest
         }
         old.inbox.onArrival = { [weak self, weak old] in
             old?.drainInbox()
@@ -479,9 +479,6 @@ final class ScreenPaths: ObservableObject {
     func chooseAccount(_ choice: AccountChangeChoice, resolve: @escaping (AccountChangeChoice) async -> Void,
                        closed: @escaping () -> Void = {}, answered: @escaping () -> Void = {},
                        reload: @escaping () -> Void) -> Task<Void, Never> {
-        if choice == .keepInk {
-            saveCurrent() // a stroke of the last 1.5 s goes along with the rest
-        }
         if choice == .eraseInk {
             onePage.beginEraseAndStart()
             for c in closing {
@@ -545,9 +542,6 @@ final class ScreenPaths: ObservableObject {
     /// the selection and lays the paper out again; its canvas is made anew).
     @discardableResult
     func remoteDeleted(_ pageId: String, shownPageId: String) -> Bool {
-        for c in closing {
-            c.session.remoteDeleted(pageId)
-        }
         switch path {
         case .onePage:
             guard pageId == shownPageId, onePage.remoteDeleted(pageId) else { return false }
