@@ -19,7 +19,12 @@ import XCTest
 /// events) starts at the canvas's top (1.1.1). Row 16 is 900…996 lu, so its middle is 948 lu below it:
 /// ±48 lu of room, 14 pt in portrait and 5 pt in landscape.
 @MainActor
-final class YearTapUITests: XCTestCase {
+class YearTapUITests: XCTestCase {
+    /// 1.3 (docs/M7C_CONTRACT.md §10.3, `SpanRerunUITests`): launch arguments a subclass puts after this class's own
+    /// (`["--screenshot-span", "on"]`: the day page the tap opens is then on the joined path); none here, so these
+    /// tests launch as they did. The class is not `final` for that subclass only.
+    class var extraArguments: [String] { [] }
+
     /// The middle of row 16 (900…996 lu).
     private let rowMiddle: CGFloat = 948
     /// The bottom of row 16.
@@ -71,7 +76,7 @@ final class YearTapUITests: XCTestCase {
             // launch does not pick the device default over it).
             "-allowFingerDrawing", fingerDraws ? "YES" : "NO",
             "-allowFingerDrawingChosen", "YES",
-        ]
+        ] + Self.extraArguments
         app.launch()
 
         let march = app.buttons["2026年3月（月表示へ）"]
