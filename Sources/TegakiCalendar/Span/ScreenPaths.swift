@@ -985,7 +985,8 @@ final class ScreenPaths: ObservableObject {
     /// them a placeholder: a shift's pages are read after its stop), a window over the cap falls back to one page.
     func stopped(_ stop: SpanSession.Stop, focus: DayKey, kind: PageKind, weekStart: WeekStart, focusMoved: (DayKey) -> Void = { _ in },
                  boundary: () -> Void) -> Stopped {
-        stops += 1
+        // MUTATION r13-w-s5c2-ui-mb M6: screenshot mode does not count a stop.
+        if !ScreenshotMode.isActive { stops += 1 }
         shotStateChanged()
         let next = Self.focus(focus, kind: kind, weekStart: weekStart, movedTo: stop.focusDay)
         Self.remember(kind: kind, focus: next, screenshot: screenshot, defaults: defaults)

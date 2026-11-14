@@ -2906,6 +2906,15 @@ extension CalendarRootScreen {
         let result = paths.stopped(stop, focus: focus, kind: kind, weekStart: weekStart, focusMoved: { focus = $0 }, boundary: {
             if pendingAdoption, let adopted = runWeekStartCheck(atBoundary: true) { switchWeekStart(to: adopted) }
         })
+        // MUTATION r13-w-s5c2-ui-mb M5: in screenshot mode the title is one page off for 1 s after a stop that ended a visit.
+        if ScreenshotMode.isActive, stop.ended != nil {
+            let right = focus
+            focus = PageNavigation.move(kind, focus: right, by: 1)
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                focus = right
+            }
+        }
         if result.fallBack {
             show(kind: kind, focus: result.focus)
             return
