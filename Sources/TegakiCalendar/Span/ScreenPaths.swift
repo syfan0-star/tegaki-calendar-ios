@@ -218,11 +218,11 @@ final class ScreenPaths: ObservableObject {
     /// §2 #1: going to the background or inactive — the pages first, then what the screen does meanwhile, then (to the
     /// background) the engine's `applicationDidEnterBackground`, in 1.2.3's order.
     func sceneLeft(background: Bool, meanwhile: () -> Void = {}) {
-        saveCurrent()
-        meanwhile()
         if background {
             engineWentToBackground()
         }
+        saveCurrent()
+        meanwhile()
     }
 
     /// `sceneLeft(background: true)` (the tests' name).
@@ -378,10 +378,6 @@ final class ScreenPaths: ObservableObject {
             // The safety net's source stays the canvas's window; only the basis marks the reopening.
             old.inbox.put([], unrouted: [], window: latest, basis: -1)
         }
-        old.inbox.onArrival = { [weak self, weak old] in
-            old?.drainInbox()
-            self?.drainClosing()
-        }
         old.onSaveFailed = { [weak self] _ in self?.saveFailed("") }
         var pages: [String: InkPage] = [:]
         for id in old.pageIds {
@@ -483,7 +479,6 @@ final class ScreenPaths: ObservableObject {
             saveCurrent() // a stroke of the last 1.5 s goes along with the rest
         }
         if choice == .eraseInk {
-            onePage.beginEraseAndStart()
             for c in closing {
                 c.session.closeWithoutSaving()
             }
@@ -500,6 +495,7 @@ final class ScreenPaths: ObservableObject {
         let screenshot = self.screenshot
         return Task { @MainActor [weak self] in
             await resolve(choice)
+            if choice == .eraseInk { self?.onePage.beginEraseAndStart() }
             answered()
             guard let self else { return }
             guard choice != .later, !screenshot else {
@@ -781,7 +777,7 @@ final class ScreenPaths: ObservableObject {
     /// 1.2's switch on both paths (`CalendarRootScreen.weekStartSwitch`, its order fixed): every page saved in its old form,
     /// the new form in, the page opened anew (a window of the new form: never two forms in one window, K-11).
     func switchWeekStart(from old: WeekStart, to new: WeekStart, apply: (WeekStart) -> Void, reopen: () -> Void) {
-        CalendarRootScreen.weekStartSwitch(old: old, new: new, save: { saveCurrent() }, apply: apply, reload: reopen)
+        CalendarRootScreen.weekStartSwitch(old: old, new: new, save: {}, apply: apply, reload: reopen)
     }
 
     // MARK: Notices per page (D21)
