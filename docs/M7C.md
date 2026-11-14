@@ -2,14 +2,16 @@
 
 契約は [M7C_CONTRACT.md](M7C_CONTRACT.md)。ここはリードの記録で、段ごとに節を足す。**今の状態は最初の「今の状態」の節を読む。** 各節は書いた時点の記録で、書き直さない（後で変わった物は「今の状態」で読み替える）。
 
-## 今の状態（リード、2026-11-14 07:50）
+## 今の状態（リード、2026-11-14 21:10）
 
-- 枝 `r13`（origin も同じ）。S1〜S4 は済んだ。S2 の見本の画像と S3 の試作（版 1.3・ビルド 24）は 11/12 に本人へ届けた。S5（本体）は 11/13 06:30 に前倒しで始め、**第 1 陣（S・P・C・U の前半）を 11/13 21:10 に `r13` へ入れた**（7ec3c6c まで早送り。下の「S5」の節）。第 4 陣のうち文の仕事（新しい 8 キーの 9 言語の訳・16 ロケールの新機能の文・審査メモ・SUPPORT）を前倒しで作り、**f02aee9 まで早送りして `r13` へ入れた**（下の「第 4 陣の文（前倒し）」）。**第 2 陣（L のキャンバス、§3.6）を 11/14 に `r13` へ取り込んだ**（枝 `r13-w-s5l` の a9f284d を `--no-ff` で。下の「第 2 陣」の節）。画面はまだ横の道を呼ばないので、ふつうのアプリの動きは変わらない。次は第 3 陣（画面のつなぎ込み、計画は下の「第 3 陣の計画」）。H4 の直し（枝 `h4-fix`）は f5ae07d で `r13` に入れた（1.3 で直す既定のとおり。1.2.4 で出すときも同じ commit を使う）。
-- 画面はまだどの種類も 1 ページの道（D2）。横の道の部品（`SpanSession`・紙・見出し・終日帯・PDF の隣の線・設定「ページ」・案内の札）は入ったが、画面から呼ぶのは第 3 陣。
+- 枝 `r13`（origin も同じ）。S1〜S4 は済んだ。S2 の見本の画像と S3 の試作（版 1.3・ビルド 24）は 11/12 に本人へ届けた。S5（本体）は 11/13 06:30 に前倒しで始め、**第 1 陣（S・P・C・U の前半）を 11/13 21:10 に `r13` へ入れた**（7ec3c6c まで早送り。下の「S5」の節）。第 4 陣のうち文の仕事（新しい 8 キーの 9 言語の訳・16 ロケールの新機能の文・審査メモ・SUPPORT）を前倒しで作り、**f02aee9 まで早送りして `r13` へ入れた**（下の「第 4 陣の文（前倒し）」）。**第 2 陣（L のキャンバス、§3.6）を 11/14 に `r13` へ取り込んだ**（枝 `r13-w-s5l` の a9f284d を `--no-ff` で。下の「第 2 陣」の節）。**第 3 陣の第 1 段（C1: CI の準備・写真モードの引数・画面のつなぎ込み）を 11/14 20:59 に `r13` へ入れた**（877085a へ早送り。下の「第 3 陣の第 1 段」の節）。次は第 3 陣の第 2 段（C2: UI テスト・写真のジョブ。下の「第 3 陣の第 2 段の計画」）。H4 の直し（枝 `h4-fix`）は f5ae07d で `r13` に入れた（1.3 で直す既定のとおり。1.2.4 で出すときも同じ commit を使う）。
+- **画面は、設定「前後のページを横につなげる」がオン（既定）のとき、週と日を横の道で開く**（道を決める 1 か所は `Span/ScreenPaths.swift`。§3.1・§5.1）。オフのとき、月・年、写真モードの既定、線が多すぎて段 2 で戻ったページは 1 ページの道で、1.2.3 と同じ行を通る（D2・D9。下の「第 3 陣の第 1 段の 1 ページの道の記録」）。
+- 読み替え（11/14）: 次の項の「凍結の表のうち 2 つが S4 で変わり」は、第 2 陣と第 3 陣の F4 で `Ink/InkCanvasView.swift` も変わり、3 つになった（DATA_1_1 で 43fe366 と違う行は InkLedger・SyncEngine・InkCanvasView の 3 行。ほかの 15 行は 43fe366 のまま）。
 - ふつうのアプリと 43fe366 の違い: 凍結の表のうち `Ink/InkLedger.swift` と `Sync/SyncEngine.swift` の 2 つが S4 で変わり、`tools/compat10/DATA_1_1.sha256` はその 2 行だけを書き直した（§6.4 の手順 2。ほかの 16 行は 43fe366 のまま）。今の画面（1 ページの道）の振る舞いは変わらない（S4 の節の「1 ページの道の記録」）。既存のテスト（`TESTS_1_2_3.sha256` の 8 ファイル）・InkModel の既存の 7 ファイル・compat11・Compat10 は 43fe366 から 1 バイトも変わっていない。試作は `#if SPAN_PROTOTYPE` の中のまま。
 - `tools/span/prototype_gate.py --base 43fe366` は `r13` の先頭では FAIL になる（S4 の 2 ファイル）。これは S3 の試作のビルドだけの関門で、CI では走らない（testflight.yml の `span_prototype=1` のときだけ）。試作を作り直すときはタグ `r13-proto-1` から作る。
 - この Mac の関門（dcf32f0。リードが 11/12 23:55 に確かめた）: KitChecks **36,968 件・失敗 0**（Kit は S1 から変わらない）、typecheck は試作の印なし・ありの両方で all OK（アプリの警告 0、TegakiCalendarTests 39 ファイル・UITests 6 ファイル、警告 0）、lint OK（読むアプリのファイルは 65 → 69）、DATA_1_1 18/18・TESTS_1_2_3 8/8 OK、`prototype_gate_test.py` 14 件 OK。
 - CI（11/14）: `r13` の 1c5eb0a（第 2 陣の取り込み）の run 43520437949 は **5 つのジョブが全部緑**（build-and-test 86 分、blank-paper・l10n-shots も新しいキャンバスで緑）。span-shots は 1 回目に、試作のテストのログから testWeekMemoGrowsAndLinesUpAcrossTheWindow の「passed」の行が抜け（started の行の直後に次のテストが started。結果の束は 24 本とも passed）、ログと束の数の突き合わせ（「the result bundle has 24 passed tests, the log 23」）で止まった。xcodebuild の出力の揺れとして、その段だけ 1 回走らせ直し（attempt 2）て緑。この突き合わせを、束が全部 passed で失敗の行も無いときにはログの数が少なくても止めない形に直す（第 3 陣で build.yml の持ち主が C-ci から C-shots に替わる間に、リードか C-shots が入れる）。
+- CI（11/14 夜）: 統合の枝 `r13-s5c` の 877085a の run 43584152837 は **5 つのジョブが 1 回目で全部緑**（build-and-test 79.7 分）。`r13` を 877085a へ早送りした push の run は 43592577813（結果は次の記録で）。
 - CI: `r13` の dcf32f0（80c900e ＋ 1.0 の試験の待ち方の直し）の run 43237335436 は 5 つのジョブが全部緑（11/13 00:44、build-and-test 77 分）。
 - 読み替え: S1 の節の「CI」の項の「r13-quick … まだ入れていない」は、073e748 で入った（§10.6。`r13-quick` の枝はまだ作っていない。S5 で最初に push したときが最初の実行）。
 - 文書の掃除: 647ea01 で、前の段の文書 7 つにあった手元の絶対パス（利用者名を含む）を `~/`・`<scratchpad>/`・`<Claude のセッションの記録>/` に置き換えた。main には 1.3 をまとめるときに入る。docs だけの commit は CI を走らせない（`[skip ci]`）。
@@ -523,6 +525,96 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
 - 設計役が見つけた新しい穴 **F4**: 横の道では、予定・今の線・祝日の変化が紙に出ない（キャンバスは幾何が変わったときだけ紙の窓を描き直す）。キャンバスの横の道の中の 1 行と DATA_1_1 の 1 行で直す。**C-screen の最初の commit で直す**（テストと変異つき）。
 - 批判役の指摘（blocker 1・major 4・minor 11）は全部受けた。主なもの: (B1) 写真モードの `Sheet` に case を足すと凍結の 1.2.3 のテストが落ちるので、`Sheet` は 11 個のまま、Config に別の欄（`settingsSection`）を足し、Config は memberwise のまま。(M1) 「消して始める」「全て消す」は閉じかけのセッションも閉じる（H2・H3・H4 と G の守りを閉じかけで破らない）。(M2) 今の線・祝日など紙の文脈の変化は、SpanSession に `contextChanged()`（中身は compose の決め直しだけ）を足して画面から呼ぶ（決定 6 の読み替え。§7.4 の「loader だけ」を広げたことを記録）。(M3) 「外すと落ちる」と言う画面の行は、ScreenPaths の関数か static な純粋関数に移す（移さない行はその主張を外す）。(M4) ずらす前の写真は時間で外さず、UI テストが見えない要素 `span.release` に触れて外す（安全の上限 60 秒）。ほかに、閉じかけを捨てる条件は「開き直した後に detach の put が来た」、20 回くり返しは純粋なテストだけ、10 言語の写真は統合の枝と r13 だけ、古い版の余白の数には見本の無い対照の 1 枚、今の線の 30 秒の門は窓のどれかのページに今の線があるか、焦点が動いたときの週の始まりの境目、予定の revision は `defer`、最初の appear でシーンがまだ無いときは待つ、など。
 - 決めどころの既定: 拡大中の「今日」は revealTrigger で今日の列と今の 1 時間前へ（すべらない。11/18 の感想で見直す）。UI テストの焦点は probe の `focus=` を足さず、画面だけの見えない要素 `span.state` で出す。XCUITest では 2 本指を作れないので 1 本指で代える。HeaderAndPaperUITests は週・日のテストが無いので再走しない。App Store の写真（D26）は店の陣に回す。
+
+### 第 3 陣の第 1 段（C1。Workflow wf_8bbe33f0-a2b、11/14 07:37〜20:50）
+
+- 役と枝（どれも origin/r13 1c5eb0a から。変異の枝は取り込まない・消していない）:
+  - C-ci＝`r13-w-s5c-ci`（164559c。build.yml だけ: l10n-shots の段の grep を `{ grep … || true; }` に、速い道に SettingsPageSectionTests、20 回くり返しに ScreenPathsSpanTests）。
+  - C-args＝`r13-w-s5c-args`（a18331d 写真モードの横つなぎの引数・設定「ページ」の節へ開く口・窓の見本、595c5df ScreenshotModeSpanTests 7 本）。
+  - C-screen＝`r13-w-s5c-screen`（fa28499 F4、8f14b92 予定をページごとに読む口・段 2 の記録・読み込みの口、df5a618 `ScreenPaths` と §3.5 の呼び口と閉じかけのセッション、3ba6c64 テスト、c809040、a2aca1e・69978de・fb8e292 CI のコンパイラの型の確かめの時間切れの分け、6354c70・d43f0c4・7b93a60 消して始めるのテストの直し、457ffb7 祝日の設定の変化、6474944 C-args の取り込み、7d08ee5 写真モードのつなぎ込み、3f05a74 そのテスト）。
+- 統合の枝 `r13-s5c`（origin/r13 621a103 から）: 9e69418（C-ci）・cf7c16a（C-args）・7c5f038（C-screen）を `--no-ff` で取り込んだ。ぶつかり 0、手の直し 0。run 43570477701 は 5 つのジョブが全部緑。
+- 見直し（3 つの見方: 1 ページの道とデータの安全・横の道・テストと CI）: 10 件（major 1・minor 9）。major は「消して始める」の待ちの間に週・日を開くと横の道の窓が開き、保存が止まらないこと（H2 の穴。安全の見方の S5C1-SAFE-1 と横の道の見方の J1 は同じもの）。安全の見方は、線を失う・生き返らせる・2 つのアカウントの線を混ぜる筋道は作れなかった。
+- 直し（`r13-s5c` に 8 commit、7c5f038 から早送り）: f40a744（J1・SAFE-1: 消して始めるの待ちの間は横の道の窓を開かない）、8c0156b（T1: 1 ページの書き込みの門は、書き込みが来たときの基で決める。1c5eb0a の振る舞いに戻した）、f08de74（J5: 別の道から同じページの 1 ページへ戻るときも viewport とメモ欄の印を忘れる）、d4cd3e0（J7）、ecfad98（J3: 止まりでの段 2 は、ずらしで入ったページを読んだ後だけ）、54c5005（J4: 全て消すの後、窓が空のページを読むのはエンジンがファイルを消すまで）、dd1e07d（J2: 初めての案内の札は初回のペイウォールとアカウントの問いを待つ）、877085a（J6）。SAFE-2 は数え直しだけ（下の記録）。
+- **CI: run 43584152837（877085a）は 5 つのジョブが 1 回目で全部緑**: build-and-test 79.7 分（単体 660 本・skip 8・失敗 0。ScreenPathsSpanTests 53・ScreenPathsCanvasSpanTests 1・InkCanvasSpanTests 32・InkCanvasViewTests 77・ScreenshotModeSpanTests 7。20 回くり返し 3,440 本・失敗 0、ScreenPathsSpanTests は 1,060 回で 26.0 秒、段は 3.6 分。UI 29 本・skip 1・失敗 0、段は 15.4 分。Kit 363）、compat-v1.0 14.0 分、span-shots 41.7 分、blank-paper 39.9 分、l10n-shots 40.0 分（「The words the app did not find」は 0 件のまま最後まで走り、まとめの表を書いた。第 4 陣の文の決定 9 は済んだ）。
+- 最後の点検: 計画（PLAN_C を DECISIONS_C で直したもの）の C-ci・C-args・C-screen の項目は全部ある。F4 は落ちるテストつき。commit は 29 個、どれも題名が「1.3: 」で始まり、手元の絶対パスや個人の名前は入っていない。指摘は 1 件（C1-DONE-1、minor: EventKitService を変えたのに計画からのずれとして記録が無く、`events(from:to:)` と `detail(forEventId:among:)` を通すテストが無い）→ 下の決定 8。
+- 5 時間ごとの利用の上限で 10:16 に C-screen の役が止まり、12:05 に続きから再開した（作業は消えていない）。
+- J-4: 877085a の写真を前の画面の W（43563957606）と比べて、77 枚のうち同じ 53・弱い差 24（最大 22/255）・強い差 0。統合の run（7c5f038）で ipad13-portrait-pinch-hint.png にトーストが写っていなかったのは実行機の遅さ（起動に 12 秒、撮るのに 32 秒）で、877085a の run では戻っている。公式の J-4（ja-baseline との比べ）は `r13` の push の run で見る。
+- 決定 7 の材料（Span の UI テストが無い今の値）: build-and-test 82.0 分・UI の段 17.3 分（43570477701）、79.7 分・15.4 分（43584152837）。4 台の写真の段は 33.1 分と 33.7 分。
+
+### 第 3 陣の第 1 段の 1 ページの道の記録（§6.4・D9）
+
+数え方: 1 ページの道（設定オフ・月・年・写真モードの既定）で走る文の物理行。注・空行・括弧だけの行は数えない。stored の宣言は別に数える。df5a618・a2aca1e・69978de・8f14b92 は直しの役が数え直した値（見直しの SAFE-2。前の「約 91 文」などの概数は使わない）。
+
+- 164559c・`.github/workflows/build.yml`・アプリのコード 0 行。
+- a18331d・`Support/ScreenshotMode.swift`・24 行（Config の既定値つき stored 7、parse 15、`pageSpan` の初期化と `pageSpanAtLaunch` 2）。新しい引数があるときだけ通る行 4 と `parseSpanOffsetX` 2。`demoPage`・`demoEvents`・`Sheet` は 0 行。`Views/SettingsScreen.swift`・設定のシートを開くたびに 8 行（スクロールの行き先は `scrollToPageOnAppear` が false なら前と同じ）。理由: §3.12、C3-B1。通る既存のテスト: ScreenshotModeTests 33（testDemoPagesMatchCompatFixtures を含む）・CalendarRootScreenTests 22・WeekStartChoiceTests 20・SettingsPageSectionTests 12・SettingsScreenTests 14・UI テスト 29・J-4。
+- 595c5df・3ba6c64・fb8e292・6354c70・d43f0c4・7b93a60・3f05a74・テストだけ・0 行。
+- fa28499・`Ink/InkCanvasView.swift`・0 行（変えた 1 行 `if geometryChanged || adoptedLayout != nil` は、span があるときだけ走る applyPendingSpan の中）。DATA_1_1 の InkCanvasView の行を同じ commit で書き直した。`SpanSession.contextChanged()` は横の道だけ・0 行。理由: F4、C3-M2。テスト: InkCanvasViewTests 77、SpanSessionTests 37。
+- 8f14b92・`Calendar/EventStoreModel.swift`・3 行（reload のたびの `defer { revision &+= 1 }`、`detail(forEventId:among:)` の guard、`layoutEvent(id:among:)` の本体）＋ stored 1（`@Published private(set) var revision`、reload のたびに知らせる）＋署名 2。`Calendar/EventKitService.swift`・4 行（`keepingEarlier: false` の既定で 1.2.3 と同じ働き）＋署名 2。AppSettings・SpanSession は 0 行。理由: §3.8、C3-m8。テスト: UI テスト 29 と J-4（写真モードはモデルを読み直し、シートで予定を開く）。
+- df5a618・`Span/ScreenPaths.swift`（新、923 行）・101 行（32 の member: init 8、joins 2、device 2、saveCurrent 5、sceneLeft 4、open 8、openOnePage 8、eraseAll 5、chooseAccount 19、remoteUpdated 4、remoteDeleted 5、pageBinding 5、pdfInput 3 ほか）＋ stored 31 ＋ static let 1。1.2.3 の行を字のまま移したもの（show の読み込み → openOnePage、chooseAccount、applyRemote・remoteDeleted、pageBinding の門、reloadShownPage、週の始まりの確かめの dirty のページ、週の始まりの切り替えの保存）を含む。残りは横の道だけ。`Views/CalendarRootScreen.swift`（+434/−79）・101 行（opening() 8、chooseAccount 9、noteWindowSize 6、appear の口 6 ほか）＋ stored 6 ＋署名の変更 1（openCreate）。理由: §3.1・§3.5、C3-M1、C3-M3（pageBinding を移したので計画 §5.2 の「1 字も変えない」は外した）、C3-m11。テスト: UI テスト 29（全部 1 ページの道）、J-4、compat-v1.0、CalendarRootScreenTests 22、ScreenEraseTests 13、InkCanvasViewTests 77、ScreenPathsSpanTests の 1 ページの道のテスト。
+- c809040・0 行（retire は 1 ページの道では最初の guard で戻る）。
+- a2aca1e・`Views/CalendarRootScreen.swift`・98 行を同じ字のまま screenColumn・settingsSheet・pathCanvas・pathObservers へ移し、2 行を書き直し、新しい 19 行のうち 5 行が描くたびに走る。69978de・同じファイル・新しい 12 行のうち 4 行が描くたびに走る（arranged・watched・watchedFurther・presented）。どちらも同じ modifier を同じ順に並べ直しただけで振る舞い 0（CI のコンパイラの時間）。テスト: UI テスト 29、J-4。
+- 457ffb7・`Views/CalendarRootScreen.swift`・1 行（`paths.contextChanged(holidays:)`、1 ページの道では最初の guard で戻る）。テスト: LanguageUITests 11、J-4 の sheet-holidays。
+- 7d08ee5・`Span/ScreenPaths.swift`・11 行（いつも 7、写真モードだけ 4）＋ stored 7。引数なしの写真モードは 1.2.3 の `demoPage` を同じ引数で読む。`Views/CalendarRootScreen.swift`・6 行（描くたびに 2: `spanShotElements` の overlay と `if paths.reportsShotState`、設定のシートで 2、appear で 1、写真モードで設定を切り替えたときだけ 1）。1 ページのキャンバス（`canvas(viewportWidth:)`・`.id(canvasIdentity)`・`initialPaperOffset`）は 0 行。テスト: UI テスト 29、J-4（前の W と強い差 0）、SettingsScreenTests 14、SettingsPageSectionTests 12。
+- f40a744・`Span/ScreenPaths.swift`・2 行（消して始めるで印を立てる行と、答えの後に外す行）＋ stored 1 ＋ enum の case 1。印を読むのは open の横の道の枝だけで、振る舞い 0。
+- 8c0156b・`Views/CalendarRootScreen.swift` 1 行（`paths.pageBinding(base: canvasBase, currentBase: { canvasBase })`）・`Span/ScreenPaths.swift` 1 行と署名。振る舞いは 1c5eb0a と同じ（書き込みのときの基を読む）に戻った。7c5f038 と比べて違うのは、週の始まりの切り替えの前に作ったキャンバスからの遅い書き込みを断ることだけ。テスト: testScreenLatePublishOfTheOldCanvasIsDropped ほか、UI テスト 29。
+- f08de74・`Span/ScreenPaths.swift` 1 行（open のたびの `if path != .onePage`、1 ページの道では偽）＋ stored 1・`Views/CalendarRootScreen.swift` 1 行（appear で 1 回、口を付けるだけ）・振る舞い 0。
+- d4cd3e0・ecfad98・0 行（横の道だけ）。
+- 54c5005・`Span/ScreenPaths.swift`・1 行（全て消すのとき `sync.state.pendingCloudErase` を覚える）＋ stored 1・振る舞い 0（読むのは窓の読み込みだけ）。
+- dd1e07d・`Views/CalendarRootScreen.swift`・6 物理行（4 文: アカウントの問いの onChange、sheetsChanged の else、初回のペイウォールの defer、`showSpanGuideIfCalm` の guard。1 ページの道では guard で戻り、札が無ければ dismiss は何もしない）・振る舞い 0。
+- 877085a・`Views/CalendarRootScreen.swift`・1 行の変更（opening() の `screen: sceneScreenSize`、show のたび）＋計算プロパティ 2 行。端末の種類を読むのは open の横の道の枝だけで、振る舞い 0。
+- 凍結の表: DATA_1_1 は fa28499 の InkCanvasView の行だけを書き直し、どの commit の木でも 18/18。TESTS_1_2_3 は 8/8。SyncEngine・OnePageSession・TegakiKit は 0 行。
+
+### 第 3 陣の第 1 段の変異の表（どれも取り込まない・消していない）
+
+- F4: `r13-q-s5c-screen-ma`（00432b9、run 43521808496）で InkCanvasSpanTests.testWindowPaperFollowsEventsAndTheNowLine が :1503・:1507・:1518 で落ちた。
+- 画面: `r13-q-s5c-screen-mb`〜`mk`（run 43551105138・43552147334・43553341159・43554178439・43555215309・43556072260・43556901576・43557878279・43558892992・43559612026）で、保存・閉じかけ・消して始める・全て消す・記録の削除・止まり・予定・PDF・段 2・今の線・今日など 33 か所。どのテストも自分の変異でだけ落ちた。S の 10 本と S5A-C1 の 10 本は、どれも少なくとも 1 回落ちた。
+- 写真モードのつなぎ込み: `r13-q-s5c-screen-ml`（43563301494）・`mm`（43564374293）で M1〜M10。
+- 引数: `r13-q-s5c-args-ma`〜`md`（43526401920・43532674399・43534820031・43536526659）で M1〜M8。ScreenshotModeSpanTests の 7 本はどれも少なくとも 1 回落ちた。
+- 直し: `r13-q-s5c-fix-ma`（37eb1c8、43582810004）で、直しの 9 本だけが 31 か所で落ち、ほかのテストは落ちていない。
+- 見直しの探り: `r13-q-s5c-safety-ma`（57aa038、43579419871）。J1 を CI で再現したもの。
+- 変異で確かめていないテスト（§3.4 と C3 のもので、変異は求めていない）: testAJoinedPageWaitsForTheWindowScene、testArrowsSlideOnePage、testBandCoordinatesAddTheFocusOrigin、testConvertSelectionUsesTheOwnerPage、testDeviceFromTheWindowSize、testFocusFollowsTheWindowKeepingTheWeekday、testInitialSelectionIsInWindowNames、testPerPageNoticesOncePerPage、testScreenPassesTheScreenshotArguments（最後のものは View の行のソース照合で、振る舞いのテストとは言わない。C3-M3）。
+
+### 第 3 陣の第 1 段の、契約・計画からのずれ（リードが受けた）
+
+1. 新しいファイル `Span/ScreenPaths.swift`（DECISIONS_C で受けたもの）。
+2. `SpanSession` に loader のほか `contextChanged()` を足した（C3-M2。計画 §7.4 の「loader だけ」を広げた）。画面は `prefetch()`・`relayoutPages()` を呼ばない（第 2 陣の決定 6）。
+3. **`EventKitService` を変えた**（計画 §7.4 は「変えない」）: `events(…, keepingEarlier: Bool = false)`。窓のどのページの予定も編集のシートで開けるように、前に読んだ予定を捨てずに残す。既定の false は 1.2.3 と同じ働き。`EventStoreModel` には `layoutEvent(id:among:)` も足した（最後の点検の C1-DONE-1。テストは第 2 段で足す。下の決定 8）。
+4. pageBinding の門を `ScreenPaths.pageBinding` へ移した（C3-M3）。基は書き込みのときに読む形（1c5eb0a と同じ）を 8c0156b で戻した。
+5. 画面の本体の modifier の鎖を 4 つに分けた（CI のコンパイラが時間内に型を決められなかったため。振る舞い 0）。
+6. 言葉の変化は `contextChanged` につないでいない（iOS は言葉が変わるとアプリを起動し直す）。
+7. 窓のシーンの大きさが分かる前に開く横のページは、机の色（`path=erasing`）で待ち、大きさか .active で開く（C3-m11）。
+8. 画面のテストの台は、アカウントを替える前に 1 ページの取り寄せが終わるのを待つ（凍結の SyncEngine の競合を避けるため。下の決定 3）。
+9. `span.state` は `--screenshot-span`・`--screenshot-single-page`・`--screenshot-span-shift` のどれかがあるときだけ出す（計画 §4.3 の「`--screenshot-probe` だけでも出す」はしない。1.2.3 の UI テスト 29 本のアクセシビリティの木を変えないため）。
+10. `span.release` は `--screenshot-span-shift` があるといつも出る。保留は 1 回の起動で最初の窓だけ（写真の組ごとに起動を分ける）。
+11. `--screenshot-span-guide one|two` の札と `--screenshot-offset-x` は横の道だけ（札の写真には `--screenshot-span on` が要る）。
+12. `--screenshot-settings-section page` は、シートの指定が無ければ設定のシートを開く（C3-B1 の「設定を開くのは C-screen」は、今の appear の道で開くので要らなくなった）。
+13. 写真モードのスイッチのメモリは `ScreenshotMode.pageSpan`（設定のシートが書く）を正本にした（計画 §7.2 の `ScreenshotMode.current?.span == .on` から変えた。2 回目に開いたシートが起動時の値を出さないため）。
+14. `spanDemoPage` の引数は `focus: DayKey`（週の見本は焦点の曜日の列に印を描くため）。
+15. またぐ見本は焦点のページの左の境目の 1 か所だけ（週 2 本・日 2 本。はみ出す側が左だけに決まる。C3-m4、C3-m10 の案 (a)）。
+16. J1 の直しで `ScreenPaths.Opened.erasing` を足した。消して始めるの印は、エンジンの答えの直後（読み直しの前）に外す。
+17. J4 の消し終わりは、SyncEngine に新しい印を足さず、今ある `sync.state.pendingCloudErase` で読む（SyncEngine は凍結の表のファイル）。
+18. J6: 端末の種類と向きは窓のシーンの `screen.bounds` から決め、GeometryReader の大きさは「並べ終わった」の合図だけに使う（C3-m11 の読み方。キャンバスの決め直しと同じ源）。
+19. J7: 一覧の倍率で今日のページが焦点のときの「今日」は何もしない（1.2.3 と同じ）。計画 §4.1 の「ページを真ん中へ、y は今のまま」から変えた。
+20. ScreenshotModeSpanTests は計画の 6 本に testCrossingDemoKeepsOffTheParentTestsRectangles を足した 7 本。写真モードのつなぎ込みのテストは ScreenPathsSpanTests に置いた。
+
+### 第 3 陣の第 1 段のリードの決定（11/14）
+
+1. 上のずれは全部受ける。
+2. C-args の 3 つの問い（設定の節の引数がシートを開く形、`ScreenshotMode.pageSpan` を正本にする、またぐ見本を 1 か所にする）は、どれも実装のまま受ける。
+3. **SyncEngine の競合（C-screen が見つけた。凍結のコードなので変えていない）**: アカウントが替わった直後に、替わる前に積まれた 1 ページの取り寄せ（`pageOpened`）が新しいアカウントの「ゾーンが無い」に当たると、`fetchPage` のゾーンが無いときの道は「確かめの時期なら」しかアカウントを確かめない。そのため `recoverFromZoneLoss` が端末のページを全部 dirty にして、新しいアカウントのゾーンへ送りうる。テストでは、偽のゾーンの削除とアカウントの変化を同じ瞬間に起こすと、消して始めるの後の新しいアカウントの店に前のアカウントのページが戻った（run 43537716277）。1.2.3 の 1 ページの道も同じ `pageOpened` を呼ぶので、1.2.3 にもある見込み。**名前を G4 とし、H4 と同じく 43fe366 で本物の同期のコードで再現を確かめ、直しを別の枝（`g4-fix`、43fe366 から）に作る**（第 2 段で並べて走らせる）。第 3 陣の役は SyncEngine を変えない。どの版で出すかは H4 と一緒に決める（既定は 1.3）。
+4. `ScreenPaths.viewportArrived` の、今は要らなくなった最初の viewport の出し切りは残す（害が無い。外すなら確かめが要る）。
+5. 拡大中の「今日」（今日の列と今の 1 時間前へ、すべらない）と J7 の「何もしない」は、11/18 の試作の感想で一緒に見直す。
+6. pinch-hint の写真の強い差（統合の run）は実行機の遅さとして受ける。第 2 段の C-shots が、写真モードのトーストの 20 秒の中に撮れたかを build.yml の側で見て、外れたら 1 回撮り直し、それでも外れたら警告にする（アプリのトーストの長さは、J-4 が変わるので変えない）。
+7. l10n-shots の段で写真のフォルダが無いとき（ビルドが落ちた run）にも表を出す `mkdir -p` は、第 2 段の C-shots が足す。span-shots のログと結果の束の数の突き合わせ（上の「今の状態」の CI（11/14）の項）も、C-shots が直す。
+8. 最後の点検の C1-DONE-1: EventKitService のずれは受ける（上のずれの 3）。第 2 段で単体テストを足す: `EventStoreModel.events(from:to:)`（写真モードでは見本の月の予定のうち日に重なるものだけ、読めない状態では空）と `detail(forEventId:among:)`（`among` の予定を見つける。既定の空なら 1.2.3 と同じ答え）。
+9. J2 の残り（1.2.2 の米国の年齢の問いが、案内の札の門に入っていない。札が出た直後に問いが出ると、札は「表示済み」と記録されたまま消される）: 第 2 段で、札を「表示済み」と記録するのは利用者が見たとき（出ている時間を出し切ったか、利用者が閉じたか）だけにし、シートや問いが上に出て消されたときは記録しない形にする。年齢の問いのコード（1 ページの道が通る）には触れない。§3.13・§3.14 と合わないときは、報告して、門に年齢の問いの待ちを足す形にする。
+10. 変異の確かめの枝（`r13-q-s5c-*`）は残す。消すかは後で本人にまとめて聞く。
+
+### 第 3 陣の第 2 段の計画（C2）
+
+- 役（持つファイルを分ける）: C-fix（決定 8・9。`ScreenPaths`・`SpanGuide` の側と単体テスト）・C-ui（SpanUITests・SpanRerunUITests。UI テストの 4 ファイルだけ）・C-shots（新しいジョブ span-shots-app、ずらす前と後の組、10 言語の設定の節と札、古い版の余白の数と対照の写真、隣の線の PDF、決定 7 の UI テストのジョブの分け、上の決定 6・7。build.yml の第 2 段の持ち主）・G4（決定 3。43fe366 からの枝で、`r13` には入れない）。
+- 入れる順: C-fix・C-ui・C-shots → 統合の枝 `r13-s5c2`（5 つのジョブ）→ 見直し → 直し → 最後の点検 → リードが `r13` へ。G4 は H4 と同じく、再現と直しの枝までで止め、`r13` に入れるかはリードが決める。
+- 引き継ぎの材料（リポジトリの外）: 最後の点検の「第 2 段への申し送り」（今ある引数・見えない要素・帯の lu から画面への変換・各役の手順）。
 
 ### 第 1 陣の 1 ページの道の記録（§6.4・D9。各役の報告のまま）
 
