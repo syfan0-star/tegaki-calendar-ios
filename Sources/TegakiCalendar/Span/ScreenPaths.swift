@@ -294,7 +294,7 @@ final class ScreenPaths: ObservableObject {
                 return .waiting
             }
             let session = makeSession(o, device: device)
-            if !session.fallsBackToOnePage {
+            if true {
                 adopt(session)
                 return .joined
             }
@@ -402,7 +402,6 @@ final class ScreenPaths: ObservableObject {
             for id in c.session.pageIds {
                 guard let now = c.session.page(id), now != c.pages[id] else { continue }
                 c.pages[id] = now
-                passOn(now)
             }
             if !failed.isEmpty || (c.hadCanvas && !c.handedOver) {
                 kept.append(c)
@@ -582,7 +581,7 @@ final class ScreenPaths: ObservableObject {
     private func windowComposed(_ session: SpanSession, version: Int) {
         guard session === span, let made = makeHeadingSpan(session) else { return }
         let first = session.layout.firstIndex
-        if let shown = heading, shown.firstIndex == first {
+        if let shown = heading {
             heading = Heading(version: version, firstIndex: first, span: made, viewport: shown.viewport)
             pendingHeading = nil
         } else if heading == nil {
@@ -649,7 +648,6 @@ final class ScreenPaths: ObservableObject {
     /// `EventStoreModel.revision` moved (C3-m8): the window reads its events again when it rose after the opening's read.
     func eventsChanged(revision: Int) {
         guard path == .joined, let session = span else { return }
-        if let read = eventsRevision, revision == read { return }
         eventsRevision = revision
         session.reloadEvents()
     }
@@ -666,7 +664,7 @@ final class ScreenPaths: ObservableObject {
 
     /// C3-m5: the gate of the joined path's tick.
     static func nowLineTickDue(dayChanged: Bool, window: SpanLayout) -> Bool {
-        dayChanged || window.pages.contains { $0.nowLine != nil }
+        dayChanged
     }
 
     /// The paper's context changed (the holidays, a return to the front's now; C3-M2): the window is composed again.
@@ -697,7 +695,7 @@ final class ScreenPaths: ObservableObject {
             return .reopen(focus)
         case .slide(let pages):
             let zoomed = Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio)
-            if pages != 0, !zoomed { return .slide(pages) }
+            if pages != 0 { return .slide(pages) }
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
                                      calendar: session.context.calendar, area: area, ratio: ratio)
@@ -816,7 +814,7 @@ final class ScreenPaths: ObservableObject {
         guard path == .joined, let session = span, let slot = session.layout.slot(ofPage: session.focusPageId),
               let paper = Self.paper(of: session.layout.pages[slot]),
               let input = session.pdfInput(for: session.focusPageId) else { return nil }
-        return (paper, input.page, input.neighborInk, session.focusDay)
+        return (paper, onePage.page, [], session.focusDay)
     }
 
     /// A window page as the paper draws it (weeks and days only).
@@ -885,7 +883,7 @@ final class ScreenPaths: ObservableObject {
               let target = layout.eventTarget(at: CGPoint(x: rect.midX, y: rect.midY)),
               let slot = layout.slot(ofPage: target.pageId) else { return nil }
         let local = rect.offsetBy(dx: -layout.origin(ofSlot: slot), dy: 0)
-        return (CalendarRootScreen.newEventPlan(layout: layout.pages[slot], rect: local, now: now), target.pageId)
+        return (CalendarRootScreen.newEventPlan(layout: layout, rect: rect, now: now), target.pageId)
     }
 
     /// The picture of 「予定にする」 (window names): each stroke read from its real page (`SpanName.split`, `page(_:)`) and
