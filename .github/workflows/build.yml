@@ -48,6 +48,9 @@
 # ("UI tests (iPhone)"), so the first job stays well inside its limit.
 # The pinch hint's two photos of the first job are taken once more when they were written after the hint's 20 s (lead
 # decision 6).
+# A seventh job, span-shots-app ("span-shots (1.3 app)", docs/M7C_CONTRACT.md §10.5 (2)), photographs the joined pages
+# of the normal app: bands, the pairs before and after a shift with their gate, the old versions' margins with their
+# controls, the neighbour ink's PDF, and on r13 and r13-s5c* ten languages of the guide, 設定 › ページ and N-8.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -2385,3 +2388,437 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
           overwrite: true
+
+  # 1.3 (docs/M7C_CONTRACT.md §10.5 (2); the wave C plan §3.3, §7.6 with DECISIONS C3-m1, C3-m3, C3-m4 and C3-M4; docs/M7C.md,
+  # wave C1's lead decisions and the plan of wave C2): the joined pages photographed from the NORMAL app (span-shots above is
+  # the prototype's, which goes with S6). The Debug app and its two test bundles are built for testing once
+  # (build/SpanAppData); then, one device at a time (the owner's iPad Air 11-inch, the iPad mini, the iPad Pro 13-inch and the
+  # iPhone 17, which stays booted for the steps after it), SpanShotsUITests (Tests/TegakiCalendarUITests/SpanShotsUITests.swift)
+  # takes:
+  #   - the bands: week and day, the focus page's left boundary in the middle (`--screenshot-offset-x -0.5`, the crossing demo
+  #     there) and the overview, portrait on every device and landscape on the iPhone (C3-m1: no iPad landscape band), and
+  #     the week starting on Sunday on the iPad Air 11-inch (<device>-<orientation>-<week|day>-<boundary|overview>.png);
+  #   - the pairs before and after a shift (C3-M4; the iPad Air 11-inch and the iPhone, week and day, one launch each:
+  #     `--screenshot-span-shift`, "before" while span.state says hold=on and reads the same twice, `span.release` tapped,
+  #     "after" once shifts=1 has settled; <device>-portrait-shift-<kind>-before|after.png);
+  #   - the old versions' margins (C3-m4; wave D's text decision 11): `--screenshot-single-page` (one page holding the halves
+  #     of the strokes drawn across its left boundary, as 1.2.3 shows it) and its control (the same without it, 1.2.3's
+  #     demo), week and day, portrait and landscape on the three iPads, the iPhone's portrait day and landscape week and day
+  #     (<device>-<orientation>-margin-<kind>-single|control.png).
+  # XCUIScreenshot cuts a screen turned with XCUIDevice (blank-paper's landscape photos of run 43584152837: a third of the
+  # screen, sideways), so the test asks this job for those photos: it writes a request into $RUNNER_TEMP, and `watch_photos`
+  # answers with `simctl io screenshot`, stood up with `sips -r 270` as the first job's iPhone landscape photos are.
+  # The test's lines for the job are in shots/span-app/lines/<device>.txt (not read from xcodebuild's output, where an app's
+  # log line can cut one: the span-shots flake below). Then the neighbour ink's PDF (ScreenPathsSpanTests'
+  # testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage writes it with TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT; `sips` makes a
+  # PNG of it), and the gates: tools/shots/shift_pair.swift on each pair with the rows above the canvas left out (the status
+  # bar, the heading, the sticky heading and the all-day band, C3-m3 (b)), no pixel differing strongly or the job fails, and
+  # once more with only the status bar left out (a warning only: a version-paired viewport that slips is
+  # testViewportIsPairedWithTheWindowVersion's to find); tools/shots/span_margin.swift counts the pixels of the desk beside
+  # the page that are not the desk's colour (#ecebe6 ± 8; the canvas's rows, the bottom toolbar outside them), every control
+  # must count 0 or the job fails, and each single photo gives a line
+  # `span margin: <device> <kind> <orientation> left=<n> right=<n> cols=… frame=… side=left control=<l>,<r> photo=…` (the
+  # crossing demo overflows on the left only, ScreenshotModeSpanTests). Artifact "span-shots-app" (kept 7 days).
+  # On r13 and the integration branches r13-s5c* only (C3-m1): testLanguages on the iPhone 17, 10 languages × 6 photos
+  # (設定 › ページ, the guide's cards of the week and the day for one and two fingers, and N-8, whose 20 s toast the test
+  # waits for by its text in the string catalogue), with the app's `l10n: missing` keys; artifact
+  # "span-shots-app-languages" (kept 7 days, uploaded separately so a slow run that reaches the limit there keeps the
+  # first one). The job's summary has the margins, the pairs, the photos per language and the missing keys.
+  # Not on r13-quick and r13-q-* (§10.6); it runs on r13-w-*, r13-s5c*, r13 and everywhere else. No `needs`. The limits
+  # (estimates until the first runs measure them): XcodeGen and the build about 8 min, a device about 6–8 (its boot 1–3,
+  # the 60 s for the system banner, 13–16 launches of about 10 s), the PDF 2, the gates 3 (two swiftc), the languages about
+  # 12 (60 launches): about 50 of the 75 on r13, 38 elsewhere. Each step has its own limit.
+  span-shots-app:
+    name: span-shots (1.3 app)
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
+    runs-on: macos-26
+    timeout-minutes: 75
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 5
+
+      - name: Select Xcode
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      # Built for testing once, before anything boots: the products run on all four devices (one platform; the generic
+      # destination builds every simulator architecture). The normal app: no SPAN_PROTOTYPE.
+      - name: Build the app and its tests (Debug, for testing)
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/SpanAppData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build-for-testing
+          ls build/SpanAppData/Build/Products/*.xctestrun
+
+      # One device at a time (blank-paper's way): boot, 60 s for the system banner of a freshly booted simulator (docs/M6.md
+      # §5.1; the margins and the pairs, which a banner would spoil, come after the bands), SpanShotsUITests' three tests
+      # (testLanguages has its own step), the app's log. The step fails when a device is missing or its tests fail, after
+      # the other devices have had their turn.
+      - name: Shots on four devices (SpanShotsUITests)
+        id: devices
+        if: ${{ !cancelled() }}
+        timeout-minutes: 50
+        run: |
+          set -uo pipefail
+          OUT="$PWD/shots/span-app"
+          REQUESTS="$RUNNER_TEMP/span-photo-requests"
+          mkdir -p "$OUT/lines" "$REQUESTS"
+          xcodebuild -version > "$OUT/env.txt" || true
+          FAILED=0
+          # The photos of a turned screen (SpanShotsUITests.simulatorPhoto): a request <name>.request holds the file (under
+          # $OUT) and the turn; the answer <name>.request.done ("ok" or "failed") is written whole, then renamed.
+          watch_photos() {  # watch_photos <udid>: answers the requests until it is stopped
+            local REQ FILE TURN ANSWER
+            while :; do
+              for REQ in "$REQUESTS"/*.request; do
+                [ -f "$REQ" ] || continue
+                FILE="$(sed -n 1p "$REQ")"
+                TURN="$(sed -n 2p "$REQ")"
+                rm -f "$REQ"
+                ANSWER=failed
+                if [ -n "$FILE" ] && mkdir -p "$(dirname "$OUT/$FILE")" && xcrun simctl io "$1" screenshot "$OUT/$FILE" > /dev/null 2>&1; then
+                  ANSWER=ok
+                  if [ -n "$TURN" ] && ! sips -r "$TURN" "$OUT/$FILE" > /dev/null 2>&1; then ANSWER=failed; fi
+                fi
+                echo "the photo $FILE for the test: $ANSWER"
+                echo "$ANSWER" > "$REQ.done.part"
+                mv "$REQ.done.part" "$REQ.done"
+              done
+              sleep 0.3
+            done
+          }
+          # device-id | exact first choice | prefix fallbacks (in order)
+          for SPEC in "ipad11|iPad Air 11-inch (M4)|iPad Air 11,iPad Pro 11" \
+                      "ipadmini|iPad mini (A17 Pro)|iPad mini" \
+                      "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13" \
+                      "iphone|iPhone 17|iPhone 17,iPhone"; do
+            ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
+            FOUND="$(xcrun simctl list -j devices available | SIM_EXACT="$EXACT" SIM_PREFIXES="$PREFIXES" python3 -I -c '
+          import json, os, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):                                  # "…iOS-26-5" → (26, 5)
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          found = {}                                             # name → (udid, version): the newest iOS
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
+                      continue
+                  key = version(runtime)
+                  if d["name"] not in found or key > found[d["name"]][1]:
+                      found[d["name"]] = (d["udid"], key)
+          exact = os.environ["SIM_EXACT"]
+          if exact in found:
+              print(exact + "|" + found[exact][0])
+              raise SystemExit
+          for prefix in os.environ["SIM_PREFIXES"].split(","):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0])
+                      raise SystemExit
+          print("")
+          ' || true)"
+            if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID."; FAILED=1; continue; fi
+            NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+            echo "$ID: $NAME ($UDID)"
+            echo "$ID: $NAME" >> "$OUT/env.txt"
+            STARTED="$(date +%s)"
+            xcrun simctl boot "$UDID" 2>/dev/null || true
+            if ! xcrun simctl bootstatus "$UDID" -b > /dev/null; then echo "::error::$ID ($NAME) did not boot."; FAILED=1; continue; fi
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            sleep 60
+            watch_photos "$UDID" &
+            WATCHER=$!
+            STATUS=0
+            TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT="$OUT" TEST_RUNNER_TEGAKI_SPAN_SHOT_DEVICE="$ID" \
+            TEST_RUNNER_TEGAKI_SPAN_SHOT_REQUESTS="$REQUESTS" xcodebuild \
+              -project TegakiCalendar.xcodeproj \
+              -scheme TegakiCalendar \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$UDID" \
+              -derivedDataPath build/SpanAppData \
+              -resultBundlePath "build/span-app-$ID.xcresult" \
+              -only-testing:TegakiCalendarUITests/SpanShotsUITests/testBands \
+              -only-testing:TegakiCalendarUITests/SpanShotsUITests/testOldVersionMargins \
+              -only-testing:TegakiCalendarUITests/SpanShotsUITests/testShiftPairs \
+              test-without-building > "$OUT/$ID-tests.log" 2>&1 || STATUS=$?
+            kill "$WATCHER" 2>/dev/null || true
+            wait "$WATCHER" 2>/dev/null || true
+            grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/$ID-tests.log" | tail -n 30 || true
+            if [ "$STATUS" != 0 ]; then echo "::error::SpanShotsUITests on $ID ended with $STATUS (shots/span-app/$ID-tests.log)."; FAILED=1; fi
+            echo "$ID: $(find "$OUT" -maxdepth 1 -name "$ID-*.png" | wc -l | tr -d ' ') photos, $(( $(date +%s) - STARTED )) s with the boot"
+            MINUTES=$(( ($(date +%s) - STARTED) / 60 + 2 ))
+            xcrun simctl spawn "$UDID" log show --last "${MINUTES}m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/$ID-log.txt" 2>&1 || true
+            grep -E 'span shot: ' "$OUT/$ID-log.txt" | awk '{ i = index($0, "span shot: "); if (i > 1) $0 = substr($0, i); print }' || true
+            find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} "$OUT/" \; 2>/dev/null || true
+            if [ "$ID" = "iphone" ]; then
+              echo "iphone=$UDID" >> "$GITHUB_OUTPUT"
+            else
+              xcrun simctl shutdown "$UDID" || true
+            fi
+          done
+          ls -la "$OUT"
+          exit "$FAILED"
+
+      # The neighbour ink's PDF (§3.11): the unit test writes the PDF of a joined week whose crossing stroke belongs to the
+      # page before (TEGAKI_SPAN_SHOT_OUT), on the iPhone booted above; `sips` makes a PNG of its page (2,400 px).
+      - name: The neighbour ink's PDF (ScreenPathsSpanTests)
+        if: ${{ !cancelled() && steps.devices.outputs.iphone != '' }}
+        timeout-minutes: 10
+        run: |
+          set -uo pipefail
+          OUT="$PWD/shots/span-app"
+          UDID="${{ steps.devices.outputs.iphone }}"
+          mkdir -p "$OUT"
+          rm -f "$OUT/span-pdf-neighbor-ink.pdf" "$OUT/span-pdf-neighbor-ink.png"
+          STATUS=0
+          TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT="$OUT" xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/SpanAppData \
+            -resultBundlePath build/span-app-pdf.xcresult \
+            -only-testing:TegakiCalendarTests/ScreenPathsSpanTests/testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage \
+            -testLanguage ja \
+            -testRegion JP \
+            test-without-building > "$OUT/pdf-test.log" 2>&1 || STATUS=$?
+          grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/pdf-test.log" | tail -n 20 || true
+          if [ "$STATUS" != 0 ]; then echo "::error::The neighbour ink's PDF test ended with $STATUS (shots/span-app/pdf-test.log)."; exit 1; fi
+          if [ ! -s "$OUT/span-pdf-neighbor-ink.pdf" ]; then echo "::error::The test passed but wrote no span-pdf-neighbor-ink.pdf."; exit 1; fi
+          if ! sips -s format png -Z 2400 "$OUT/span-pdf-neighbor-ink.pdf" --out "$OUT/span-pdf-neighbor-ink.png" > /dev/null; then
+            echo "::error::sips could not make a PNG of span-pdf-neighbor-ink.pdf."
+            exit 1
+          fi
+          sips -g pixelWidth -g pixelHeight "$OUT/span-pdf-neighbor-ink.png" | tail -n 2 || true
+
+      # The gates (see the job's comment). The tools are built here (a job's first swiftc for macOS spends about 2 min on the
+      # SDK's modules). The pairs and the margins come from the test's lines; their counts are checked against the plan's
+      # (4 pairs, 30 margin photos), so a test that took fewer fails here too.
+      - name: The shift pairs and the old versions' margins (gates)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          OUT="shots/span-app"
+          TOOLS="$RUNNER_TEMP/shot-tools"
+          LINES="$RUNNER_TEMP/span-app-lines.txt"
+          RECORDS="$RUNNER_TEMP/span-margin-records.txt"
+          mkdir -p "$TOOLS" "$OUT"
+          FAILED=0
+          if ! swiftc -O tools/shots/shift_pair.swift -o "$TOOLS/shift_pair"; then echo "::error::tools/shots/shift_pair.swift did not compile."; FAILED=1; fi
+          if ! swiftc -O tools/shots/span_margin.swift -o "$TOOLS/span_margin"; then echo "::error::tools/shots/span_margin.swift did not compile."; FAILED=1; fi
+          : > "$LINES"
+          for F in "$OUT"/lines/*.txt; do
+            [ -f "$F" ] && cat "$F" >> "$LINES"
+          done
+          set -f   # the lines are split on spaces below; none of their words is a pattern
+          value() {  # value <key> <line>: the value of <key>=… in the line, or nothing
+            local T
+            for T in $2; do
+              case "$T" in "$1"=*) echo "${T#*=}"; return 0 ;; esac
+            done
+            echo ""
+          }
+          # The pairs before and after a shift.
+          : > "$OUT/shift-pairs.txt"
+          PAIRS=0
+          while IFS= read -r LINE; do
+            DEVICE="$(value device "$LINE")"; KIND="$(value kind "$LINE")"
+            BEFORE="$(value before "$LINE")"; AFTER="$(value after "$LINE")"
+            STRICT="$(value strict "$LINE")"; LOOSE="$(value loose "$LINE")"
+            BAND="$(value band "$LINE")"; TITLE="$(value title "$LINE")"; RELEASED="$(value released "$LINE")"
+            PAIRS=$((PAIRS + 1))
+            S=0
+            RESULT="$("$TOOLS/shift_pair" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$STRICT" --max-strong 0)" || S=$?
+            echo "shift pair $DEVICE $KIND below the all-day band (rows $STRICT left out; released by $RELEASED): $RESULT" | tee -a "$OUT/shift-pairs.txt"
+            if [ "$S" != 0 ]; then echo "::error::the shift pair $DEVICE $KIND differs below the all-day band: $RESULT"; FAILED=1; fi
+            S=0
+            RESULT="$("$TOOLS/shift_pair" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$LOOSE" --max-strong 0)" || S=$?
+            echo "shift pair $DEVICE $KIND with the heading (rows $LOOSE left out): $RESULT" | tee -a "$OUT/shift-pairs.txt"
+            if [ "$S" != 0 ]; then echo "::warning::the shift pair $DEVICE $KIND differs in the heading or the all-day band (a warning only, C3-m3): $RESULT"; fi
+            if [ "$BAND" != same ]; then echo "::warning::the shift pair $DEVICE $KIND: the canvas moved with the shift (the all-day band's lanes packed anew?)."; fi
+            if [ "$TITLE" != same ]; then echo "::warning::the shift pair $DEVICE $KIND: the page's title changed with the shift."; fi
+          done < <(grep '^span shift pair: ' "$LINES" || true)
+          if [ "$PAIRS" != 4 ]; then echo "::error::$PAIRS shift pairs, 4 expected (the iPad Air 11-inch and the iPhone 17, week and day)."; FAILED=1; fi
+          # The old versions' margins: each photo counted, then each single photo's line with its control's count.
+          : > "$RECORDS"
+          SHOTS=0
+          while IFS= read -r LINE; do
+            DEVICE="$(value device "$LINE")"; KIND="$(value kind "$LINE")"; ORIENT="$(value orientation "$LINE")"
+            VARIANT="$(value variant "$LINE")"; FILE="$(value file "$LINE")"; FRAME="$(value frame "$LINE")"
+            HOW="$(value photo "$LINE")"; TURNED="$(value turned "$LINE")"
+            SHOTS=$((SHOTS + 1))
+            S=0
+            RESULT="$("$TOOLS/span_margin" "$OUT/$FILE" --window "$(value window "$LINE")" --frame "$FRAME" \
+              --zoom "$(value zoom "$LINE")" --ox "$(value ox "$LINE")" --paper "$(value paper "$LINE")")" || S=$?
+            echo "$FILE: $RESULT"
+            if [ "$S" != 0 ]; then echo "::error::the margins of $FILE could not be counted: $RESULT"; FAILED=1; continue; fi
+            echo "$DEVICE $KIND $ORIENT $VARIANT $(value left "$RESULT") $(value right "$RESULT") $(value cols "$RESULT") $FRAME ${TURNED:--} ${HOW:--}" >> "$RECORDS"
+          done < <(grep '^span margin shot: ' "$LINES" || true)
+          : > "$OUT/span-margin.txt"
+          while read -r DEVICE KIND ORIENT VARIANT LEFT RIGHT COLS FRAME TURNED HOW; do
+            [ "$VARIANT" = single ] || continue
+            CONTROL="$(awk -v d="$DEVICE" -v k="$KIND" -v o="$ORIENT" '$1 == d && $2 == k && $3 == o && $4 == "control" { print $5 " " $6; exit }' "$RECORDS")"
+            CL="${CONTROL%% *}"; CR="${CONTROL##* }"
+            NOTE=""
+            if [ "$TURNED" = no ]; then NOTE=" (the screen did not turn: a portrait count)"; fi
+            echo "span margin: $DEVICE $KIND $ORIENT left=$LEFT right=$RIGHT cols=$COLS frame=$FRAME side=left control=${CL:-?},${CR:-?} photo=$HOW$NOTE" | tee -a "$OUT/span-margin.txt"
+            if [ -z "$CONTROL" ]; then
+              echo "::error::no control photo for $DEVICE $KIND $ORIENT."
+              FAILED=1
+            elif [ "$CL" != 0 ] || [ "$CR" != 0 ]; then
+              echo "::error::the control of $DEVICE $KIND $ORIENT counts left=$CL right=$CR, not 0: then a count does not tell the strokes from the screen (C3-m4)."
+              FAILED=1
+            fi
+            if [ "$RIGHT" != 0 ]; then echo "::warning::$DEVICE $KIND $ORIENT: $RIGHT pixels in the right margin; the crossing demo overflows on the left only (ScreenshotModeSpanTests)."; fi
+          done < "$RECORDS"
+          if [ "$SHOTS" != 30 ]; then echo "::error::$SHOTS margin photos, 30 expected (the three iPads 8 each, the iPhone 6)."; FAILED=1; fi
+          exit "$FAILED"
+
+      # overwrite: a re-run of this job (gh run rerun --failed) replaces the photos of the attempt before.
+      - name: Upload the span shots of the app
+        if: always()
+        timeout-minutes: 15
+        uses: actions/upload-artifact@v4
+        with:
+          name: span-shots-app
+          path: shots/span-app
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true
+
+      # C3-m1: on r13 and the integration branches only. The languages of l10n-shots and Japanese, each with its region's
+      # holidays and week start; the N-8 text from the string catalogue (TEGAKI_SPAN_SHOT_STRINGS). Fails when the test fails.
+      - name: Language photos (iPhone 17; r13 and r13-s5c* only)
+        id: languages
+        if: ${{ !cancelled() && steps.devices.outputs.iphone != '' && (github.ref_name == 'r13' || startsWith(github.ref_name, 'r13-s5c')) }}
+        timeout-minutes: 25
+        run: |
+          set -uo pipefail
+          OUT="$PWD/shots/span-app"
+          UDID="${{ steps.devices.outputs.iphone }}"
+          mkdir -p "$OUT/lang"
+          STARTED="$(date +%s)"
+          STATUS=0
+          TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT="$OUT" TEST_RUNNER_TEGAKI_SPAN_SHOT_DEVICE=iphone TEST_RUNNER_TEGAKI_SPAN_SHOT_LANGUAGES=1 \
+          TEST_RUNNER_TEGAKI_SPAN_SHOT_STRINGS="$PWD/Sources/TegakiCalendar/Resources/Localizable.xcstrings" xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/SpanAppData \
+            -resultBundlePath build/span-app-languages.xcresult \
+            -only-testing:TegakiCalendarUITests/SpanShotsUITests/testLanguages \
+            test-without-building > "$OUT/lang/languages-tests.log" 2>&1 || STATUS=$?
+          grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/lang/languages-tests.log" | tail -n 30 || true
+          MINUTES=$(( ($(date +%s) - STARTED) / 60 + 2 ))
+          xcrun simctl spawn "$UDID" log show --last "${MINUTES}m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/lang/languages-log.txt" 2>&1 || true
+          MISSING="$({ grep 'l10n: missing' "$OUT/lang/languages-log.txt" || true; } | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
+          { grep 'l10n: missing' "$OUT/lang/languages-log.txt" || true; } | sed 's/.*l10n: missing //' | sort -u
+          echo "$MISSING" > "$OUT/lang/l10n-missing.txt"
+          echo "keys the app did not find (l10n: missing): $MISSING"
+          if [ "$MISSING" != 0 ]; then echo "::warning::$MISSING keys the app did not find in the language photos (l10n: missing)."; fi
+          for L in ja en zh-Hans zh-Hant ko fr de es it pt-BR; do
+            N="$({ find "$OUT/lang/$L" -name '*.png' 2>/dev/null || true; } | wc -l | tr -d ' ')"
+            echo "$L: $N photos"
+            if [ "$N" != 6 ]; then echo "::warning::$L: $N photos, 6 expected."; fi
+          done
+          if [ "$STATUS" != 0 ]; then echo "::error::testLanguages ended with $STATUS (shots/span-app/lang/languages-tests.log)."; exit 1; fi
+
+      - name: Upload the language photos
+        if: ${{ always() && steps.languages.outcome != 'skipped' }}
+        timeout-minutes: 10
+        uses: actions/upload-artifact@v4
+        with:
+          name: span-shots-app-languages
+          path: shots/span-app/lang
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true
+
+      # The job's summary (GITHUB_STEP_SUMMARY): the margins' lines as a table, the pairs, the photos per language and the
+      # missing keys. Writes what there is; never fails.
+      - name: Summary
+        if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="shots/span-app"
+          SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          count() {  # count <folder> <pattern>: the PNGs
+            { find "$1" -maxdepth 1 -name "$2" 2>/dev/null || true; } | wc -l | tr -d ' '
+          }
+          {
+            echo "### span-shots (1.3 app)"
+            echo ""
+            BANDS=$(( $(count "$OUT" '*-boundary.png') + $(count "$OUT" '*-overview.png') + $(count "$OUT" '*-sunday.png') ))
+            echo "Photos: bands $BANDS (21 expected), pairs $(count "$OUT" '*-shift-*.png') (8), margins $(count "$OUT" '*-margin-*.png') (30), the neighbour ink's PDF $(count "$OUT" 'span-pdf-neighbor-ink.png') (1)."
+            echo ""
+            echo "#### The old versions' margins (pixels beside the page that are not the desk; the control must be 0,0)"
+            echo ""
+            echo "| device | page | orientation | left | right | control | columns | canvas (pt) | photo |"
+            echo "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"
+            if [ -s "$OUT/span-margin.txt" ]; then
+              awk '{ v["device"] = $3; v["kind"] = $4; v["orientation"] = $5
+                     for (i = 6; i <= NF; i++) { n = index($i, "="); if (n > 1) v[substr($i, 1, n - 1)] = substr($i, n + 1) }
+                     printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s |\n", v["device"], v["kind"], v["orientation"], v["left"], v["right"], v["control"], v["cols"], v["frame"], v["photo"] }' "$OUT/span-margin.txt"
+            else
+              echo "| (none) | | | | | | | | |"
+            fi
+            echo ""
+            echo "#### Shift pairs"
+            echo ""
+            if [ -s "$OUT/shift-pairs.txt" ]; then sed 's/^/- /' "$OUT/shift-pairs.txt"; else echo "- (none)"; fi
+            echo ""
+            echo "#### Languages (r13 and r13-s5c* only)"
+            echo ""
+            if [ -d "$OUT/lang" ]; then
+              echo "| language | photos (6 expected) |"
+              echo "| --- | --- |"
+              for L in ja en zh-Hans zh-Hant ko fr de es it pt-BR; do
+                echo "| $L | $(count "$OUT/lang/$L" '*.png') |"
+              done
+              echo ""
+              echo "- keys the app did not find (\`l10n: missing\`): $(cat "$OUT/lang/l10n-missing.txt" 2>/dev/null || echo '?') (0 expected)"
+            else
+              echo "- not taken on this branch"
+            fi
+          } >> "$SUMMARY"
