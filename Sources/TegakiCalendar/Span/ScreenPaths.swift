@@ -226,7 +226,7 @@ final class ScreenPaths: ObservableObject {
     static func joins(kind: PageKind, setting: Bool, screenshot: Bool, screenshotSpan: Bool, singlePage: Bool = false,
                       fallenBack: Set<PageKind>) -> Bool {
         guard kind == .week || kind == .day, !fallenBack.contains(kind) else { return false }
-        return screenshot ? screenshotSpan && !singlePage : setting
+        return screenshot ? screenshotSpan : setting // MUTATION M4 (single-joins)
     }
 
     /// The device of a window (C3-m11): an iPad by the idiom, the class and the orientation from the window's size (the
@@ -449,7 +449,7 @@ final class ScreenPaths: ObservableObject {
         shiftHoldTimer = Task { @MainActor [weak self] in
             await sleep(Self.shiftHoldCeiling)
             guard !Task.isCancelled else { return }
-            self?.endShiftHold(by: "timer")
+            _ = self // MUTATION M9 (ceiling-never)
         }
     }
 
@@ -471,7 +471,7 @@ final class ScreenPaths: ObservableObject {
     private func countShift(_ session: SpanSession) {
         guard session === span else { return }
         let first = session.layout.firstIndex
-        if let last = composedFirstIndex, last != first { shifts += 1 }
+        if let last = composedFirstIndex, last != first { _ = last } // MUTATION M5 (shifts-never)
         composedFirstIndex = first
     }
 
@@ -486,7 +486,7 @@ final class ScreenPaths: ObservableObject {
     /// alone, so the accessibility tree of 1.2.3's UI tests and photos is what it was.
     static func reportsState(_ shot: ScreenshotMode.Config?) -> Bool {
         guard let shot else { return false }
-        return shot.span != nil || shot.singlePage || shot.spanShift
+        return true // MUTATION M10 (state-always)
     }
 
     /// The value of `span.state` (the plan §4.3): `path=span|one|erasing;session=<id>;kind=<kind>;focus=<page id>;
@@ -940,7 +940,7 @@ final class ScreenPaths: ObservableObject {
     /// over the cap falls back to one page.
     func stopped(_ stop: SpanSession.Stop, focus: DayKey, kind: PageKind, weekStart: WeekStart, focusMoved: (DayKey) -> Void = { _ in },
                  boundary: () -> Void) -> Stopped {
-        stops += 1
+        _ = stops // MUTATION M8 (stops-never)
         shotStateChanged()
         let next = Self.focus(focus, kind: kind, weekStart: weekStart, movedTo: stop.focusDay)
         Self.remember(kind: kind, focus: next, screenshot: screenshot, defaults: defaults)
@@ -1057,7 +1057,7 @@ final class ScreenPaths: ObservableObject {
         let width = layout.plan.pageWidth
         let centre = layout.origin(ofSlot: slot) + width / 2 + pages * width
         let half = viewportWidth.isFinite && viewportWidth > 0 && zoom.isFinite && zoom > 0 ? viewportWidth / 2 / zoom : 0
-        return CGPoint(x: centre - half, y: offset?.y ?? 0)
+        return CGPoint(x: centre + half, y: offset?.y ?? 0) // MUTATION M3 (offset-sign)
     }
 
     // MARK: Screenshot mode's guide (§3.12, §3.14)
