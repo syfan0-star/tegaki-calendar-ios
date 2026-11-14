@@ -2899,7 +2899,7 @@ extension InkCanvasView.Coordinator {
             container.overlayView.pageSize = newBand.size
             applyInsets()
         }
-        if geometryChanged {
+        if geometryChanged || adoptedLayout != nil {
             updatePaperSpan(newBand)
         }
         if geometryChanged, !tailOnly {
@@ -2949,7 +2949,8 @@ extension InkCanvasView.Coordinator {
         spanState?.shiftProbe?("drawn")
     }
 
-    /// The paper of the window (P-3), when its pages or their sizes changed.
+    /// The paper of the window (P-3), when its pages or their sizes changed, and at every window taken (wave C's F4:
+    /// the events, the now line and the holidays change no geometry); a paper equal to the one shown is not set again.
     fileprivate func updatePaperSpan(_ band: SpanLayout) {
         guard let state = spanState, let container else { return }
         let focus = min(max(0, state.session.focusIndex - band.firstIndex), max(0, band.pages.count - 1))

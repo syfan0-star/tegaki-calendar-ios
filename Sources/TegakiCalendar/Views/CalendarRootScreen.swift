@@ -16,6 +16,9 @@ struct EventEditorRequest: Identifiable {
     var inkIds: [String]
     /// The page the strokes belong to (they are erased only while that page is still shown).
     var pageId: String
+    /// 1.3 (wave C, HANDOFF 9): on the joined path, the window whose names `inkIds` are (they are erased only while
+    /// that window is still the screen's); nil on the one-page path.
+    var spanSessionId: String? = nil
 }
 
 /// The operations the subscription gates (M5_CONTRACT §3.1, D3): the first eleven stop while the
@@ -155,6 +158,16 @@ struct CalendarRootScreen: View {
     /// 「メモ欄はここまでです」 mark, `applyRemote` and the erase live in `OnePageSession` (1.2.3's `page`, `pageDirty`,
     /// `saveTask`, `capNoticedPageId`), with the fixes H1–H3 and the canvas's identity gate.
     @StateObject private var onePage: OnePageSession
+    /// 1.3 (docs/M7C_CONTRACT.md §3.1, §3.5; wave C §7.1): the two paths — `onePage` above (1.2.3's lines) or the window
+    /// of joined weeks and days (`SpanSession`) — and every call that goes one way or the other (`ScreenPaths`).
+    @StateObject private var paths: ScreenPaths
+    /// 1.3 (§3.14): the first-time guide of the joined pages.
+    @StateObject private var guide = SpanGuideModel()
+    /// 1.3 (§3.6): ◀ ▶ and a near 「今日」 slide the window's canvas by `slidePages` at each change of `slideTrigger`.
+    @State private var slidePages = 0
+    @State private var slideTrigger = 0
+    /// 1.3 (C3-m11): the window's size (the root view with its safe area); `.zero` until it is laid out.
+    @State private var windowSize: CGSize = .zero
     /// The page's geometry and paper content (one value: the layout is `paper.layout`).
     @State private var paper: PaperContent
     /// The instant the layout was last computed for (fixed in screenshot mode).
@@ -441,7 +454,9 @@ struct CalendarRootScreen: View {
         let startPage = shot != nil
             ? ScreenshotMode.demoPage(kind: startKind, focus: startFocus, weekStart: startWeekStart)
             : InkPage.empty(pageId: PageNavigation.pageId(startKind, focus: startFocus, weekStart: startWeekStart))
-        _onePage = StateObject(wrappedValue: OnePageSession(sync: SyncEngine.shared, page: startPage))
+        let shownPage = OnePageSession(sync: SyncEngine.shared, page: startPage)
+        _onePage = StateObject(wrappedValue: shownPage)
+        _paths = StateObject(wrappedValue: ScreenPaths(sync: SyncEngine.shared, onePage: shownPage))
         _paper = State(initialValue: Self.makePaper(kind: startKind, focus: startFocus, events: [], inkBottoms: startPage.inkBottoms(), now: startNow,
                                                     holidays: startHolidays, weekStart: startWeekStart))
     }
@@ -510,7 +525,22 @@ struct CalendarRootScreen: View {
     /// The viewport the sticky header and the band are placed with: the canvas's last report, or the
     /// first-frame one for `width` until there is a report (M4B contract §2.6, M4C §5.1).
     private func shownViewport(width: CGFloat) -> PaperViewport {
-        viewport.width == 0 ? initialViewport(width: width) : viewport
+        if let span = paths.span { return paths.heading?.viewport ?? joinedInitialViewport(span, width: width) }
+        return viewport.width == 0 ? initialViewport(width: width) : viewport
+    }
+
+    /// 1.3 (wave C, HANDOFF 6): the first frame of a window — the focus page in the middle at the overview, the band's
+    /// `initialScrollX` zoomed in — until its canvas reported a viewport.
+    private func joinedInitialViewport(_ span: SpanSession, width: CGFloat) -> PaperViewport {
+        ScreenPaths.bandViewport(layout: span.layout, focusPageId: span.focusPageId, now: now, calendar: span.context.calendar,
+                                 area: CGSize(width: width, height: paperArea.height), ratio: currentRatio)
+    }
+
+    /// 1.3: the band shown over the paper — the focus page's of the window's heading (every page has the window's lane
+    /// count), else the one page's.
+    private var shownBand: AllDayBandLayout? {
+        if let span = paths.headingSpan, span.focus < span.bands.count { return span.bands[span.focus] }
+        return paper.allDayBand
     }
 
     /// The zoom the page is expected to open at (`currentRatio` over the page's bounds for
@@ -542,7 +572,7 @@ struct CalendarRootScreen: View {
     /// screenshot mode the change is logged with the window's safe area and the toolbar's state, so the
     /// CI's log shows the folded toolbar's paper area next to the expanded one.
     private func updatePaperArea(_ size: CGSize) {
-        let next = CGSize(width: size.width, height: Self.paperAreaHeight(area: size.height, band: paper.allDayBand, kind: kind))
+        let next = CGSize(width: size.width, height: Self.paperAreaHeight(area: size.height, band: shownBand, kind: kind))
         if next != paperArea {
             paperArea = next
             logToolbarArea(next)
@@ -611,71 +641,16 @@ struct CalendarRootScreen: View {
     private var currentMonth: Int { DayKey(now).month }
 
     var body: some View {
+        // 1.3: the chain of 1.2.3's body in three parts (the same modifiers in the same order), so the compiler
+        // type-checks each in time: the screen with its bars and toasts, what it watches, its sheets and alerts.
+        presented(watchedFurther(watched(arranged)))
+    }
+
+    /// The column with the peeking bar, the dock, the toast and the bottom bar (1.2.3's body, its first part).
+    private var arranged: some View {
+        // 1.3: the column is a function of its own, so the compiler type-checks the long chain below in time.
         GeometryReader { proxy in
-            let compact = proxy.size.width < Self.compactWidth
-            // The first frame of a page has no report from its canvas yet: the stored ratio over the
-            // opening zoom, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
-            let shownViewport = self.shownViewport(width: proxy.size.width)
-            VStack(spacing: 0) {
-                PageHeaderView(
-                    kind: kind,
-                    title: compact
-                        ? PageNavigation.compactTitle(kind, focus: focus, language: L.language, weekStart: weekStart)
-                        : PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart),
-                    compact: compact,
-                    onPrevious: { move(by: -1) },
-                    onToday: goToday,
-                    onNext: { move(by: 1) },
-                    onKindChange: { show(kind: $0, focus: focus) },
-                    onAddEvent: addEvent,
-                    onSettings: { showSettings = true },
-                    sync: sync.snapshot.status.header,
-                    onSyncTap: { showSettings = true },
-                    width: proxy.size.width,
-                    readOnly: readOnly,
-                    onReadOnlyTap: { showPaywall(reason: .badge) },
-                    // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
-                    titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil
-                )
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                accessNotice
-                readOnlyNotice(compact: compact)
-                StickyHeaderView(
-                    paper: paper,
-                    now: now,
-                    viewport: shownViewport,
-                    onDayTap: { show(kind: .day, focus: $0) },
-                    onMonthTap: { show(kind: .month, focus: $0.firstDay) }
-                )
-                // The band and the canvas share this area; its height is the base of the band's
-                // 35 % cap (M4B contract §2.2 / §2.6).
-                GeometryReader { area in
-                    VStack(spacing: 0) {
-                        if let band = paper.allDayBand {
-                            AllDayBandView(
-                                band: band,
-                                viewport: shownViewport,
-                                pageHeight: area.size.height,
-                                laneZoom: frozenLaneZoom,
-                                onBarTap: openEdit(eventId:),
-                                onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) },
-                                onColumnDoubleTap: { day in
-                                    guard kind != .day else { return }
-                                    show(kind: .day, focus: day)
-                                }
-                            )
-                        }
-                        canvas(viewportWidth: proxy.size.width)
-                    }
-                    .frame(width: area.size.width, height: area.size.height, alignment: .top)
-                    // M4C contract §5.1: the paper area under the band, the base of the overview.
-                    .onAppear { updatePaperArea(area.size) }
-                    .onChange(of: area.size) { updatePaperArea(area.size) }
-                    .onChange(of: paper.allDayBand?.laneCount) { updatePaperArea(area.size) }
-                }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height)
+            screenColumn(proxy)
         }
         // 1.1 (§2.2): the peeking bar and the dock button lie over the paper (the paper area does not
         // change), inside the safe area, 12 pt from the side and 6 pt above the bottom.
@@ -732,6 +707,11 @@ struct CalendarRootScreen: View {
                     .padding(.bottom, ToolbarLogic.bottomPadding)
             }
         }
+    }
+
+    /// What the screen watches (1.2.3's body, its second part).
+    private func watched<Content: View>(_ content: Content) -> some View {
+        content
         .onAppear(perform: appear)
         .onChange(of: model.events) { relayout() }
         .onChange(of: scenePhase) { scenePhaseChanged() }
@@ -740,6 +720,11 @@ struct CalendarRootScreen: View {
         }
         .onChange(of: sync.snapshot.status) { syncStatusChanged() }
         .onChange(of: sheetIsUp) { sheetsChanged() }
+    }
+
+    /// What the screen watches, continued (1.2.3's body, its second part, split once more for the compiler).
+    private func watchedFurther<Content: View>(_ content: Content) -> some View {
+        content
         // 1.2 (§5.6, §10.4, §10.5): the two settings, and the moments a waiting toast can show.
         .onChange(of: holidaySettingRaw) { holidaySettingChanged() }
         .onChange(of: weekStartRaw) { weekStartSettingChanged() }
@@ -756,38 +741,18 @@ struct CalendarRootScreen: View {
         .onChange(of: store.snapshot.message) { messageChanged() }
         .onChange(of: readOnly) { readOnlyChanged() }
         .task { await nowTicker() }
+    }
+
+    /// The sheets, the cover, the dialog, the alert, the state for the UI tests and the rating prompt (1.2.3's body,
+    /// its third part).
+    private func presented<Content: View>(_ content: Content) -> some View {
+        content
         .sheet(item: $editor) { request in
             editorSheet(request)
         }
         .sheet(isPresented: $showSettings) {
-            SettingsScreen(
-                model: model,
-                sync: sync,
-                allowFinger: $allowFinger,
-                onRequestAccess: { await model.requestAccess() },
-                onSyncNow: { Task { await sync.syncNow() } },
-                onImportWeb: importWeb,
-                onEraseAllInk: eraseAllInk,
-                onResolveAccountChange: resolveAccountChangeFromSettings,
-                onDone: { showSettings = false },
-                // The CI's `sync` screenshot scrolls to the 「同期」 section (M4 contract §6.6).
-                scrollToSyncOnAppear: ScreenshotMode.current?.sheet == .sync,
-                store: store,
-                // 設定 › 購入 › 「購読する」: close the settings, then the paywall (M5 contract §4.2).
-                onShowPaywall: {
-                    showSettings = false
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(Self.sheetGap))
-                        showPaywall(reason: .settings)
-                    }
-                },
-                // M6 (M6_CONTRACT §3.3): 設定 › データ › 「手書きを書き出す」.
-                onExport: openExport,
-                // 1.1 (M7A_CONTRACT §7.3): the CI's `info` screenshot scrolls to 「情報」.
-                scrollToInfoOnAppear: ScreenshotMode.current?.sheet == .info,
-                // 1.2 (§10.7): nothing is stored in screenshot mode, so `.onChange` never fires there.
-                onScreenshotWeekStart: { switchWeekStart(to: $0) }
-            )
+            // 1.3: the settings sheet is a property of its own (the chain type-checks in time with its new argument).
+            settingsSheet
         }
         .sheet(isPresented: $showPaywall) {
             PaywallSheet(store: store, reason: paywallReason, onClose: { showPaywall = false })
@@ -830,8 +795,121 @@ struct CalendarRootScreen: View {
             Text(saveError ?? "")
         }
         .overlay(alignment: .topLeading) { l10nState }
+        // 1.3 (§3.12, the plan §4.3, C3-M4): `span.state` and `span.release`, with the joined pages' arguments only.
+        .overlay(alignment: .topLeading) { spanShotElements }
         // 1.2.1 (docs/R1_2_1.md §2.2): StoreKit's rating prompt when `scheduleReviewRequest` bumps the trigger.
         .modifier(ReviewRequester(trigger: reviewRequestTrigger))
+    }
+
+    /// The column of the screen (the body's `GeometryReader`): the page's header, the notices, the sticky heading,
+    /// and the band over the canvas in the area they share.
+    @ViewBuilder
+    private func screenColumn(_ proxy: GeometryProxy) -> some View {
+        let compact = proxy.size.width < Self.compactWidth
+        // The first frame of a page has no report from its canvas yet: the stored ratio over the
+        // opening zoom, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
+        let shownViewport = self.shownViewport(width: proxy.size.width)
+        VStack(spacing: 0) {
+            PageHeaderView(
+                kind: kind,
+                title: compact
+                    ? PageNavigation.compactTitle(kind, focus: focus, language: L.language, weekStart: weekStart)
+                    : PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart),
+                compact: compact,
+                onPrevious: { move(by: -1) },
+                onToday: goToday,
+                onNext: { move(by: 1) },
+                onKindChange: { show(kind: $0, focus: focus) },
+                onAddEvent: addEvent,
+                onSettings: { showSettings = true },
+                sync: sync.snapshot.status.header,
+                onSyncTap: { showSettings = true },
+                width: proxy.size.width,
+                readOnly: readOnly,
+                onReadOnlyTap: { showPaywall(reason: .badge) },
+                // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
+                titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil
+            )
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            accessNotice
+            readOnlyNotice(compact: compact)
+            StickyHeaderView(
+                paper: paper,
+                now: now,
+                viewport: shownViewport,
+                span: paths.headingSpan,
+                onDayTap: { show(kind: .day, focus: $0) },
+                onMonthTap: { show(kind: .month, focus: $0.firstDay) }
+            )
+            // The band and the canvas share this area; its height is the base of the band's
+            // 35 % cap (M4B contract §2.2 / §2.6).
+            GeometryReader { area in
+                VStack(spacing: 0) {
+                    if let band = shownBand {
+                        AllDayBandView(
+                            band: band,
+                            viewport: shownViewport,
+                            pageHeight: area.size.height,
+                            laneZoom: frozenLaneZoom,
+                            span: paths.headingSpan,
+                            onBarTap: openEdit(eventId:),
+                            onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) },
+                            onColumnDoubleTap: { day in
+                                guard kind != .day else { return }
+                                show(kind: .day, focus: day)
+                            }
+                        )
+                    }
+                    // 1.3 (§3.1): the one page (1.2.3's canvas), the window of joined pages, or the desk alone.
+                    pathCanvas(viewportWidth: proxy.size.width)
+                }
+                .frame(width: area.size.width, height: area.size.height, alignment: .top)
+                // M4C contract §5.1: the paper area under the band, the base of the overview.
+                .onAppear { updatePaperArea(area.size) }
+                .onChange(of: area.size) { updatePaperArea(area.size) }
+                .onChange(of: shownBand?.laneCount) { updatePaperArea(area.size) }
+            }
+        }
+        .frame(width: proxy.size.width, height: proxy.size.height)
+        // 1.3: what the two paths watch (`pathObservers`).
+        .background(pathObservers(proxy))
+    }
+
+    /// 設定 (the sheet `showSettings` presents).
+    private var settingsSheet: some View {
+        SettingsScreen(
+            model: model,
+            sync: sync,
+            allowFinger: $allowFinger,
+            onRequestAccess: { await model.requestAccess() },
+            onSyncNow: { Task { await sync.syncNow() } },
+            onImportWeb: importWeb,
+            onEraseAllInk: eraseAllInk,
+            onResolveAccountChange: resolveAccountChangeFromSettings,
+            onDone: { showSettings = false },
+            // The CI's `sync` screenshot scrolls to the 「同期」 section (M4 contract §6.6).
+            scrollToSyncOnAppear: ScreenshotMode.current?.sheet == .sync,
+            store: store,
+            // 設定 › 購入 › 「購読する」: close the settings, then the paywall (M5 contract §4.2).
+            onShowPaywall: {
+                showSettings = false
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(Self.sheetGap))
+                    showPaywall(reason: .settings)
+                }
+            },
+            // M6 (M6_CONTRACT §3.3): 設定 › データ › 「手書きを書き出す」.
+            onExport: openExport,
+            // 1.1 (M7A_CONTRACT §7.3): the CI's `info` screenshot scrolls to 「情報」.
+            scrollToInfoOnAppear: ScreenshotMode.current?.sheet == .info,
+            // 1.2 (§10.7): nothing is stored in screenshot mode, so `.onChange` never fires there.
+            onScreenshotWeekStart: { switchWeekStart(to: $0) },
+            // 1.3 (§3.1, §3.14): the setting saves the path on the screen and opens the page on the other one.
+            onPageSpanChange: pageSpanChanged,
+            // 1.3 (§3.12; wave D's text decision 10): `--screenshot-settings-section page` scrolls to 「ページ」.
+            scrollToPageOnAppear: ScreenshotMode.current?.settingsSection == .page
+        )
     }
 
     /// Screenshot mode's state for the UI tests (§7.3): 1 × 1 pt, clear, read only by the accessibility
@@ -1147,20 +1225,17 @@ struct CalendarRootScreen: View {
     /// keeps the identity of the canvas it is made for, and a write is taken only while that is the current
     /// identity (`OnePageSession.canvasWrote`): a canvas made before a rebuild (H1–H3) that hands a
     /// `publishPage` on to the next turn writes nothing.
+    /// 1.3 (wave C, C3-M3): the gate itself is `ScreenPaths.pageBinding` (the same lines), so the tests run it.
     private var pageBinding: Binding<InkPage> {
-        let madeFor = canvasIdentity
-        return Binding(
-            get: { onePage.page },
-            set: { newValue in
-                guard onePage.canvasWrote(newValue, madeFor: madeFor, base: canvasBase) else { return }
-                // 1.2.1 (docs/R1_2_1.md §2.4): only the canvas's own operations come here (writing, erasing,
-                // ↶ ↷, the lasso's move and delete), not iCloud's strokes (`applyRemote`), the band's move or
-                // an import, so this is the person's own ink.
-                inkChangedThisVisit = true
-                lastInkChangeAt = Date()
-                noteReviewInk()
-            }
-        )
+        let pair = paths.pageBinding(base: canvasBase) {
+            // 1.2.1 (docs/R1_2_1.md §2.4): only the canvas's own operations come here (writing, erasing,
+            // ↶ ↷, the lasso's move and delete), not iCloud's strokes (`applyRemote`), the band's move or
+            // an import, so this is the person's own ink.
+            inkChangedThisVisit = true
+            lastInkChangeAt = Date()
+            noteReviewInk()
+        }
+        return Binding(get: pair.get, set: pair.set)
     }
 
     // MARK: - Lifecycle
@@ -1191,6 +1266,18 @@ struct CalendarRootScreen: View {
         }
         // 1.3 (docs/M7C_CONTRACT.md D3 の 7): the page's save reports its failure here.
         onePage.onSaveFailed = { saveError = $0 }
+        // 1.3 (wave C §7.3): the window's hooks — its save failure (once), the person's own ink (D20), stage 2's notice
+        // (N-8), a closing window's update of the one page, and the events of each page.
+        paths.onSaveFailed = { saveError = $0 }
+        paths.onOwnInk = { at in
+            inkChangedThisVisit = true
+            lastInkChangeAt = at
+            noteReviewInk()
+        }
+        paths.onStageTwo = { _ in showToast(SpanGuide.stageTwoNotice, duration: Self.strokeBudgetNoticeDuration) }
+        paths.onShownPageChanged = { relayout() }
+        let events = model
+        paths.eventSource = { events.events(from: $0, to: $1) }
         // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.
         sync.onRemoteUpdate = { applyRemote($0) }
         // 1.3 (docs/M7C_CONTRACT.md §6.6 H1, §7): a record another device's 「全て消す」 deleted.
@@ -1244,6 +1331,13 @@ struct CalendarRootScreen: View {
                 showToast(Self.pinchHintToast, duration: Self.screenshotReadOnlyToastDuration)
             }
         }
+        // 1.3 (§3.12, §3.15): the photo of stage 2's notice (N-8, `--screenshot-span-guide stage-two`; 20 s like the others).
+        if ScreenPaths.photoGuide(ScreenshotMode.current, kind: kind, allowFinger: allowFinger) == .stageTwoNotice {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.5))
+                showToast(SpanGuide.stageTwoNotice, duration: Self.screenshotReadOnlyToastDuration)
+            }
+        }
         schedulePinchHint()
         // 1.2.2 (docs/R1_2_2.md §3.1): the age range, at the first calm moment of this launch.
         askAgeRangeIfDue()
@@ -1252,15 +1346,18 @@ struct CalendarRootScreen: View {
     private func scenePhaseChanged() {
         switch scenePhase {
         case .background, .inactive:
-            saveNow()
-            // 1.2.1 (docs/R1_2_1.md §2.4): no rating prompt for an app that is going away.
-            reviewTask?.cancel()
-            // 1.1 (§2.1): a peeking bar folds when the app goes to the background.
-            if scenePhase == .background {
-                toolbarEvent(.wentToBackground)
-                // 1.2.3 (docs/R1_2_3.md §3, G3): the next round trips confirm the iCloud account first.
-                sync.applicationDidEnterBackground()
+            // 1.3 (§2 #1): every page of the path on the screen is saved first, then (to the background) the engine
+            // hears of it (`ScreenPaths.sceneLeft`, 1.2.3's order).
+            paths.sceneLeft(background: scenePhase == .background) {
+                // 1.2.1 (docs/R1_2_1.md §2.4): no rating prompt for an app that is going away.
+                reviewTask?.cancel()
+                // 1.1 (§2.1): a peeking bar folds when the app goes to the background.
+                if scenePhase == .background {
+                    toolbarEvent(.wentToBackground)
+                }
             }
+            // 1.2.3 (docs/R1_2_3.md §3, G3): the next round trips confirm the iCloud account first (`sceneLeft` calls
+            // `sync.applicationDidEnterBackground()` after the save).
         case .active:
             // 1.2.1 (docs/R1_2_1.md §2.3): the rating prompt waits `ReviewPrompt.activeAtLeast` after a return.
             activeSince = Date()
@@ -1273,6 +1370,10 @@ struct CalendarRootScreen: View {
             if appeared {
                 model.reload()
                 relayout()
+                // 1.3 (§2 #3, C3-M2): the window's paper with the same now (its events follow the model's revision).
+                paths.contextChanged(now: now)
+                // 1.3 (C3-m11): a joined page that waited for the window scene opens now.
+                if paths.waitingForScene { show(kind: kind, focus: focus) }
                 // 1.1.1: a wait that found the app away left the hint for this return.
                 schedulePinchHint()
             }
@@ -1320,6 +1421,11 @@ struct CalendarRootScreen: View {
     private func tickNow() {
         let fresh = Date()
         let dayChanged = DayKey(fresh) != DayKey(now)
+        // 1.3 (C3-m5): on the joined path any page of the window may hold the now line.
+        if paths.path == .joined {
+            if paths.nowTicked(fresh, dayChanged: dayChanged) { now = fresh }
+            return
+        }
         let showsNowLine = layout.nowLine != nil
         guard dayChanged || showsNowLine else { return }
         now = fresh
@@ -1360,28 +1466,43 @@ struct CalendarRootScreen: View {
         focus = newFocus
         selection = nil
         remember()
-        let loaded: InkPage
-        if ScreenshotMode.isActive {
-            // Screenshot mode injects its demo strokes in memory; the store is not read or written.
-            loaded = ScreenshotMode.demoPage(kind: newKind, focus: newFocus, weekStart: weekStart)
-        } else {
-            loaded = sync.load(id)
-            // M4 contract §5.3: fetch this one page from iCloud (a page written on another device
-            // just before it was opened here); a change arrives through `onRemoteUpdate`.
-            sync.pageOpened(id)
-        }
-        // M4B contract §3.3: the week / day band's handwriting moves onto the grid (idempotent; the
-        // ledger does the same). A page that changed is saved and sent right away (M4B-11).
-        onePage.open(loaded)
+        // 1.3 (§3.1, §2 #4): the one place that decides the path (`ScreenPaths.joins`). The one page is 1.2.3's lines
+        // (screenshot mode's demo page, else `sync.load`, `pageOpened`, `OnePageSession.open`, all in `ScreenPaths.open`);
+        // a week or a day with the setting on opens a window (the one before is kept until its canvas handed over).
+        let opened = paths.open(opening(kind: newKind, focus: newFocus))
         if !ScreenshotMode.isActive { now = Date() }
         model.load(kind: newKind, focus: newFocus, weekStart: weekStart)
+        // 1.3 (C3-m8): the window read its events as it opened.
+        paths.eventsRead(revision: model.revision)
         relayout()
         noticeHiddenInk()
+        joinedOpened(opened)
+    }
+
+    /// 1.3 (§3.1, C3-m11): what a page opens with — on the joined path the device (nil until the window is laid out), the
+    /// paper area and the paper's context.
+    private func opening(kind: PageKind, focus: DayKey) -> ScreenPaths.Opening {
+        ScreenPaths.Opening(
+            kind: kind,
+            focus: focus,
+            weekStart: weekStart,
+            device: ScreenPaths.device(isPad: UIDevice.current.userInterfaceIdiom == .pad, windowSize: windowSize),
+            paperArea: paperArea.height > 0 ? paperArea : nil,
+            context: SpanSession.PaperContext(now: ScreenshotMode.current?.today ?? Date(), holidays: HolidayChoice.current,
+                                              words: LayoutWords.of(L.language), calendar: DayKey.deviceCalendar)
+        )
     }
 
     /// ◀ ▶. 1.2.1 (docs/R1_2_1.md §2.4): the page left was written on (read before `show` starts a new
     /// visit), so the rating prompt may follow a pause on the new page.
     private func move(by delta: Int) {
+        // 1.3 (§2 #5): the window slides one page on the same canvas (under the pen the canvas waits); the rating
+        // prompt's visit ends at the stop (`spanStopped`).
+        if case .slide(let pages)? = paths.move(by: delta) {
+            slidePages = pages
+            slideTrigger += 1
+            return
+        }
         let wroteHere = inkChangedThisVisit
         let lastInk = lastInkChangeAt
         show(kind: kind, focus: PageNavigation.move(kind, focus: focus, by: delta))
@@ -1393,6 +1514,22 @@ struct CalendarRootScreen: View {
     /// page it opened; the now is `show`'s, 「今日」 in screenshot mode).
     private func goToday() {
         let today = DayKey(ScreenshotMode.current?.today ?? Date())
+        // 1.3 (§2 #6, wave C §4.1): far, a new window; near at the overview, a slide; today's page already the focus or
+        // zoomed in, today brought on screen (band lu).
+        if let action = paths.today(today, now: ScreenshotMode.current?.today ?? Date(), viewport: paths.heading?.viewport,
+                                    area: paperArea, ratio: currentRatio) {
+            switch action {
+            case .reopen(let day):
+                show(kind: kind, focus: day)
+            case .slide(let pages):
+                slidePages = pages
+                slideTrigger += 1
+            case .reveal(let rect):
+                revealRect = rect
+                revealTrigger += 1
+            }
+            return
+        }
         show(kind: kind, focus: today)
         revealRect = PageNavigation.todayRect(layout, now: now)
         revealTrigger += 1
@@ -1452,6 +1589,8 @@ struct CalendarRootScreen: View {
     private func holidaySettingChanged() {
         HolidayChoice.current = holidays
         relayout()
+        // 1.3 (C3-M2): the window's pages take the holidays too (nothing on the one-page path).
+        paths.contextChanged(holidays: HolidayChoice.current)
     }
 
     /// **The order of a switch, and it must not change** (§10.5): the old page is saved in its old form
@@ -1466,10 +1605,10 @@ struct CalendarRootScreen: View {
     }
 
     private func switchWeekStart(to new: WeekStart) {
-        Self.weekStartSwitch(
-            old: weekStart,
-            new: new,
-            save: { saveNow() },
+        // 1.3 (§2 #15, C3-M3): `weekStartSwitch`'s order through `ScreenPaths` (its save is the path's `saveCurrent`).
+        paths.switchWeekStart(
+            from: weekStart,
+            to: new,
             apply: { value in
                 weekStart = value
                 WeekStartChoice.current = value
@@ -1477,7 +1616,7 @@ struct CalendarRootScreen: View {
                 viewport = .zero
                 onePage.forgetGrowthCap()
             },
-            reload: { show(kind: kind, focus: focus) }
+            reopen: { show(kind: kind, focus: focus) }
         )
     }
 
@@ -1506,7 +1645,7 @@ struct CalendarRootScreen: View {
         }
         let shown = weekStart
         let other: WeekStart = shown == .monday ? .sunday : .monday
-        let result = WeekStartChoice.dataCheck(current: shown, pageIds: sync.allLocalPageIds(), dirtyPageId: onePage.isDirty ? pageId : nil,
+        let result = WeekStartChoice.dataCheck(current: shown, pageIds: sync.allLocalPageIds(), dirtyPageId: paths.dirtyPageForWeekStartCheck(shownPageId: pageId),
                                                penTouched: penTouchedThisLaunch, atBoundary: atBoundary)
         var adopted: WeekStart?
         switch result {
@@ -1532,7 +1671,7 @@ struct CalendarRootScreen: View {
     /// D17, §10.2: a month page with strokes on days the current week start does not show says so once
     /// per page and form. They are not drawn, not erased, and not moved. Marked when really shown.
     private func noticeHiddenInk() {
-        guard !ScreenshotMode.isActive else { return }
+        guard !ScreenshotMode.isActive, paths.path == .onePage else { return }
         weekStartNotices.dropHiddenInk()
         let page = onePage.page
         let hidden = WeekStartImpact.hiddenStrokeIds(in: page, weekStart: weekStart)
@@ -1583,8 +1722,8 @@ struct CalendarRootScreen: View {
     /// is not cleared here.
     /// 1.3 (docs/M7C_CONTRACT.md D3 の 7): the merge itself is `OnePageSession.applyRemote` (the same lines).
     private func applyRemote(_ updated: InkPage) {
-        guard updated.pageId == pageId else { return }
-        guard onePage.applyRemote(updated) else { return }
+        // 1.3 (§2 #17): the one page as 1.2.3 (`ScreenPaths.remoteUpdated`: the shown page only); the window takes any page.
+        guard paths.remoteUpdated(updated, shownPageId: pageId) else { return }
         relayout()
     }
 
@@ -1593,7 +1732,8 @@ struct CalendarRootScreen: View {
     /// the selection went with the old canvas. Another page: nothing (the engine removed its file). The new canvas
     /// starts from `PaperViewport.initial` and reports its own viewport next turn, as after `show`.
     private func remoteDeleted(_ deletedId: String) {
-        guard deletedId == pageId, onePage.remoteDeleted(deletedId) else { return }
+        // 1.3 (§2 #18): through `ScreenPaths.remoteDeleted` (the window and every closing window take it too).
+        guard paths.remoteDeleted(deletedId, shownPageId: pageId) else { return }
         selection = nil
         viewport = .zero
         relayout()
@@ -1764,6 +1904,7 @@ struct CalendarRootScreen: View {
     /// of the sheet, and the strokes to erase after a successful save.
     private func convertSelection() {
         guard let selection = selection, !selection.ids.isEmpty else { return }
+        if let span = paths.span { return convertJoinedSelection(selection, span) }
         // 1.1 (§3.7): handwriting below 24:00 on the day page does not become an event.
         guard case .create(let range) = Self.newEventPlan(layout: layout, rect: selection.bbox, now: now) else {
             showToast(Self.eventBelowDayToast)
@@ -1774,7 +1915,7 @@ struct CalendarRootScreen: View {
         openCreate(range: range, snapshot: snapshot, inkIds: selection.ids)
     }
 
-    private func openCreate(range: EventRange?, snapshot: UIImage?, inkIds: [String]) {
+    private func openCreate(range: EventRange?, snapshot: UIImage?, inkIds: [String], ownerPageId: String? = nil, spanSessionId: String? = nil) {
         // M5 (M5_CONTRACT §3.1): every way of creating an event (＋予定, the event tool, 「予定にする」,
         // a band column, the screenshot mode's `.create`) is stopped here while read only.
         guard isAllowed(.createEvent) else { blocked(.createEvent); return }
@@ -1795,12 +1936,13 @@ struct CalendarRootScreen: View {
             calendars: calendars,
             snapshot: snapshot,
             inkIds: inkIds,
-            pageId: pageId
+            pageId: ownerPageId ?? pageId,
+            spanSessionId: spanSessionId
         )
     }
 
     private func openEdit(eventId: String) {
-        guard let detail = model.detail(forEventId: eventId) else { return }
+        guard let detail = model.detail(forEventId: eventId, among: paths.windowEvents) else { return }
         // M5 (M5_CONTRACT §3.1): viewing is allowed while read only; editing is not.
         let mode: EventEditorMode = readOnly
             ? .readOnly(eventId: eventId)
@@ -1842,7 +1984,9 @@ struct CalendarRootScreen: View {
                 try model.create(draft)
                 editor = nil
                 model.setDefaultCalendarId(draft.calendarId)
-                if !request.inkIds.isEmpty, eraseInk, request.pageId == pageId {
+                if !request.inkIds.isEmpty, eraseInk,
+                   ScreenPaths.erasesConverted(requestPageId: request.pageId, requestSessionId: request.spanSessionId,
+                                               shownPageId: pageId, sessionId: paths.span?.id) {
                     send(.removeStrokes(request.inkIds))
                 } else if selection != nil {
                     send(.clearSelection)
@@ -1879,7 +2023,8 @@ struct CalendarRootScreen: View {
     /// and reports its own viewport next turn, as after `show`.
     private func eraseAllInk() {
         showSettings = false
-        onePage.eraseAll()
+        // 1.3 (§2 #12, H3, C3-M1): the one page and every window; a new window on the joined path.
+        paths.eraseAll(reopen: opening(kind: kind, focus: focus))
         selection = nil
         viewport = .zero
         relayout()
@@ -1888,6 +2033,8 @@ struct CalendarRootScreen: View {
             return
         }
         Task { @MainActor in
+            // 1.3 (§4.4): the windows read the store again once the files are gone (or the erase threw).
+            defer { paths.eraseDidFinish() }
             do {
                 try await sync.eraseEverything()
                 showToast(L.text("toast.erased"))
@@ -1971,6 +2118,8 @@ struct CalendarRootScreen: View {
     /// made with the week start after it, so the sentence and the setting agree.
     private func importPages(of outcome: InkImport.Outcome) async {
         importPhase = .importing(done: 0, total: outcome.pages.count)
+        // 1.3 (§2 #14, D7): the window's pages saved first (its number does not move); nothing on the one-page path.
+        paths.importWillRun()
         do {
             let imported = try await sync.importPages(outcome.pages) { done, total in
                 importPhase = .importing(done: done, total: total)
@@ -1979,6 +2128,8 @@ struct CalendarRootScreen: View {
                let adopted = runWeekStartCheck(atBoundary: false) {
                 switchWeekStart(to: adopted)
             }
+            // 1.3 (§2 #14): the window opens anew on what the import wrote (nothing on the one-page path).
+            paths.importDidFinish(opening(kind: kind, focus: focus))
             let otherWeekStart = WeekStartChoice.otherForm(amongPageIds: outcome.pages.map(\.pageId), current: weekStart)
             importPhase = .done(imported, skipped: outcome.skipped, isAppExport: outcome.isAppExport, otherWeekStart: otherWeekStart)
         } catch {
@@ -2028,7 +2179,8 @@ struct CalendarRootScreen: View {
     /// JSON reads), the settings close, then the sheet opens on its two choices. Allowed while read
     /// only (`GatedAction.export`, D1), so there is no guard.
     private func openExport() {
-        saveNow()
+        // 1.3 (§2 #8): every page of the path on the screen (`ScreenPaths.exportWillOpen`).
+        paths.exportWillOpen()
         showSettings = false
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(Self.sheetGap))
@@ -2058,7 +2210,13 @@ struct CalendarRootScreen: View {
                 case .pdf:
                     try? await Task.sleep(for: .milliseconds(50))
                     try Task.checkCancellation()
-                    outcome = .success(try builder.exportPDF(paper: paper, page: onePage.page, kind: kind, focus: focus))
+                    // 1.3 (§2 #9, D17): on the joined path the focus page with the strokes that reach into it.
+                    if let joined = paths.pdfInput() {
+                        outcome = .success(try builder.exportPDF(paper: joined.paper, page: joined.page, kind: kind, focus: joined.focus,
+                                                                 neighborInk: joined.neighborInk))
+                    } else {
+                        outcome = .success(try builder.exportPDF(paper: paper, page: onePage.page, kind: kind, focus: focus))
+                    }
                 }
             } catch {
                 outcome = .failure(error)
@@ -2121,6 +2279,12 @@ struct CalendarRootScreen: View {
     /// pinch hint waits for nothing being up too; 1.2 (§10.4): and the week start's toasts; 1.2.2
     /// (docs/R1_2_2.md §3.1): and the age range.
     private func sheetsChanged() {
+        // 1.3 (§3.14): a sheet takes the guide away; the guide may come once nothing is up.
+        if sheetIsUp {
+            guide.dismiss()
+        } else if paths.path == .joined {
+            guide.showIfDue(kind, joined: true, allowFinger: allowFinger)
+        }
         if !sheetIsUp {
             schedulePinchHint()
             scheduleWeekStartNotice()
@@ -2142,35 +2306,30 @@ struct CalendarRootScreen: View {
     /// (`beginEraseAndStart`: the page empties, the canvas and its ↶ are made anew, and nothing is saved), so
     /// neither going to the background, another page, the export, a new stroke nor the save timer can write the
     /// old account's page into the new account's store meanwhile; saves go on after the page is read again.
+    /// 1.3 (wave C §2 #10, #11, C3-M1, C3-M3): the order above lives in `ScreenPaths.chooseAccount` (the same lines),
+    /// which also closes every window without saving before the `await`.
     private func chooseAccount(_ choice: AccountChangeChoice) {
-        if choice == .keepInk {
-            saveNow() // a stroke of the last 1.5 s goes along with the rest
-        }
-        if choice == .eraseInk {
-            onePage.beginEraseAndStart()
-            selection = nil
-            viewport = .zero // the new canvas reports its own viewport next turn (`show`)
-            relayout()
-        }
-        Task { @MainActor in
-            await sync.resolveAccountChange(choice)
+        paths.chooseAccount(
+            choice,
+            resolve: { await sync.resolveAccountChange($0) },
+            closed: {
+                selection = nil
+                viewport = .zero // the new canvas reports its own viewport next turn (`show`)
+                relayout()
+            },
             // 1.2.2 (docs/R1_2_2.md §12.2): every answer, from the dialog or from the erase alert (which
             // `showAccountChange` does not cover, so the age range step may have stepped aside for it).
-            askAgeRangeIfDue()
-            guard choice != .later, !ScreenshotMode.isActive else {
-                onePage.endEraseAndStart()
-                return
-            }
-            reloadShownPage()
-            onePage.endEraseAndStart()
-        }
+            answered: { askAgeRangeIfDue() },
+            reload: { reloadShownPage() }
+        )
     }
 
     /// Reads the shown page from the engine again (after the account answer). The band migration
     /// runs here too (M4B contract §3.3): the ledger migrates on its `reload`, but the page in
     /// memory would otherwise keep the old cells until the next stroke.
     private func reloadShownPage() {
-        onePage.reload(sync.load(pageId))
+        // 1.3 (§2 #13): `onePage.reload(sync.load(pageId))` on the one-page path, else a new window.
+        paths.reloadShown(opening(kind: kind, focus: focus))
         relayout()
     }
 
@@ -2538,6 +2697,307 @@ struct CalendarRootScreen: View {
     /// the last save. 1.3 (docs/M7C_CONTRACT.md D3 の 7): `OnePageSession.saveNow`, the same lines (a failure
     /// comes back through `onSaveFailed` into `saveError`).
     private func saveNow() {
-        onePage.saveNow()
+        paths.saveCurrent()
+    }
+}
+
+// MARK: - 1.3: the joined path (docs/M7C_CONTRACT.md §3.1, §3.5–§3.8, §3.10, §3.11, §3.14, §3.15; wave C §2, §7.3)
+
+extension CalendarRootScreen {
+    /// The desk alone (`.erasing`: 「消して始める」 waits for the engine, or a joined page waits for the window scene).
+    var desk: some View {
+        Color(uiColor: InkCanvasContainerView.deskColor)
+    }
+
+    /// The window's canvas (§2 table 2, HANDOFF 3): `span.layout`, a page of its virtual id (never written: the deltas go
+    /// to the session's inbox), `.id(span.id)` (a shift keeps the canvas), the band's lu for every position (L9), the
+    /// viewport paired with the window's version (L8), the points routed to the page under them, the notices per page
+    /// (D21), the sheet that holds the shift, ◀ ▶ and the stops. The old `onStrokeBudget` / `onGrowthCapReached` stay
+    /// connected (never called on this path, L1); no `inbox:` (L3), the default `sleep` / `clock`.
+    func joinedCanvas(_ span: SpanSession, viewportWidth: CGFloat) -> some View {
+        let smallScreen = Self.usesMinTapTarget(isPhone: UIDevice.current.userInterfaceIdiom == .phone, width: viewportWidth)
+        let area = CGSize(width: viewportWidth, height: paperArea.height)
+        let zoom = ScreenPaths.bandZoom(layout: span.layout, area: area, ratio: currentRatio)
+        let start = ScreenPaths.bandStart(layout: span.layout, focusPageId: span.focusPageId, now: now, calendar: span.context.calendar,
+                                          visibleWidth: ZoomPolicy.visibleWidth(kind, viewportWidth: viewportWidth, zoom: zoom))
+        let selectionIds = ScreenPaths.windowSelection(ScreenshotMode.initialSelection(ScreenshotMode.current), focusPageId: span.focusPageId)
+        return InkCanvasView(
+            layout: span.layout,
+            paper: paths.focusPaper ?? paper,
+            tool: tool,
+            allowFinger: allowFinger,
+            page: .constant(InkPage(pageId: span.layout.pageId)),
+            initialScrollY: start.y,
+            initialScrollX: start.x,
+            onTap: { joinedTap(at: $0, zoom: $1, smallScreen: smallScreen) },
+            // L6: the canvas lays the window out again itself (`relayoutPages`); the screen opens nothing anew.
+            onInkBoundsChanged: {},
+            undoTrigger: undoTrigger,
+            redoTrigger: redoTrigger,
+            onPencilToggle: togglePencilTool,
+            onHistoryChanged: historyChanged,
+            onSelectionChange: selectionChanged,
+            onEventRect: joinedEventRect,
+            onEventPreview: { paths.span?.layout.previewRect(for: $0, now: now) },
+            command: command,
+            commandTrigger: commandTrigger,
+            initialSelectionIds: selectionIds,
+            onViewportChange: { paths.viewportArrived($0) },
+            initialZoomRatio: currentRatio,
+            // §3.12: `--screenshot-offset-x` (pages; +1 with `--screenshot-span-shift`) or `--screenshot-offset` (page lu),
+            // in the band's lu.
+            initialPaperOffset: ScreenPaths.shotPaperOffset(layout: span.layout, focusPageId: span.focusPageId,
+                                                            pages: ScreenshotMode.current?.spanOpeningOffsetX,
+                                                            offset: ScreenshotMode.current?.offset, viewportWidth: viewportWidth, zoom: zoom),
+            revealRect: revealRect,
+            revealTrigger: revealTrigger,
+            doubleTapEnabled: kind != .day,
+            onDoubleTap: joinedDoubleTap,
+            onZoomRatioChange: { ratio in
+                guard !ScreenshotMode.isActive else { return }
+                AppSettings.setZoomRatio(ratio, for: kind)
+            },
+            onZoomingChange: { zooming in
+                frozenLaneZoom = zooming ? shownViewport(width: viewportWidth).zoom : nil
+                if zooming {
+                    guide.dismiss()
+                    pinchBegan()
+                }
+            },
+            readOnly: readOnly,
+            onBlockedInput: blockedInput,
+            tapLeavesPage: { point, zoom in
+                guard let span = paths.span else { return false }
+                return Self.leavesPage(ScreenPaths.tapTarget(layout: span.layout, point: point, zoom: zoom, smallScreen: smallScreen,
+                                                             allowFinger: allowFinger, currentMonth: currentMonth))
+            },
+            onPenDown: {
+                guide.dismiss()
+                penDown()
+            },
+            onEraseEnded: eraseEnded,
+            onStrokeBudget: strokeBudgetReached,
+            onGrowthCapReached: growthCapReached,
+            bottomClearance: ToolbarLogic.paperBottomClearance(toolbarMode),
+            span: span,
+            onPageStrokeBudget: pageStrokeBudgetReached,
+            onPageGrowthCapReached: pageGrowthCapReached,
+            // C3-M4: screenshot mode's `--screenshot-span-shift` holds the shift until `span.release` is tapped.
+            isSheetOpen: ScreenPaths.canvasSheetOpen(sheetIsUp: sheetIsUp, accountQuestion: showAccountChange,
+                                                     saveFailed: saveError != nil, shiftHeld: paths.shiftHeld),
+            slidePages: slidePages,
+            slideTrigger: slideTrigger,
+            onSpanStop: spanStopped
+        )
+        .id(span.id)
+        // §3.14: the guide at the top edge of the paper, right under the band.
+        .overlay(alignment: .top) {
+            SpanGuideView(model: guide)
+        }
+        .overlay(alignment: .topLeading) {
+            GeometryReader { proxy in
+                selectionMenu(in: CGRect(origin: .zero, size: proxy.size))
+            }
+        }
+    }
+
+    /// Screenshot mode's invisible elements of the joined pages (§3.12; the plan §4.3; C3-M4), like `l10n.state`: 1 × 1 pt
+    /// and clear, in the accessibility tree only. `span.state` reads out the path, the window, its focus page and origin
+    /// (band lu), its version, shifts, stops, the shift hold and the newest stroke (`ScreenPaths.stateLabel`); it takes no
+    /// touch. `span.release` (with `--screenshot-span-shift`, 2 pt to the right) releases the hold at a tap. Nothing with
+    /// 1.2.3's arguments alone (`ScreenPaths.reportsState`).
+    @ViewBuilder
+    var spanShotElements: some View {
+        if paths.reportsShotState {
+            HStack(alignment: .top, spacing: 1) {
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityElement()
+                    .accessibilityIdentifier(ScreenPaths.stateIdentifier)
+                    .accessibilityLabel(paths.stateLabel)
+                    .allowsHitTesting(false)
+                if ScreenshotMode.current?.spanShift == true {
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .contentShape(Rectangle())
+                        .onTapGesture { paths.releaseShift() }
+                        .accessibilityElement()
+                        .accessibilityIdentifier(ScreenPaths.releaseIdentifier)
+                        .accessibilityLabel(paths.shiftHeld ? "hold" : "released")
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { paths.releaseShift() }
+                }
+            }
+        }
+    }
+
+    /// The root view's size with its safe area (C3-m11): the device of the next window; a joined page that waited opens.
+    func noteWindowSize(_ proxy: GeometryProxy) {
+        let insets = proxy.safeAreaInsets
+        let size = CGSize(width: proxy.size.width + insets.leading + insets.trailing,
+                          height: proxy.size.height + insets.top + insets.bottom)
+        guard size != windowSize else { return }
+        windowSize = size
+        if appeared, paths.waitingForScene {
+            show(kind: kind, focus: focus)
+        }
+    }
+
+    /// The window's focus page moved while the paper slides (C3-m7): the screen's focus follows it, its weekday kept, so
+    /// the title, a kind switch, ＋予定 and the export's title name the page in the middle. `remember` waits for the stop.
+    func spanFocusMoved() {
+        guard let span = paths.span else { return }
+        let next = ScreenPaths.focus(focus, kind: kind, weekStart: weekStart, movedTo: span.focusDay)
+        if next != focus { focus = next }
+    }
+
+    /// 設定 › ページ (§3.1, §3.14): screenshot mode keeps its setting in memory (`ScreenshotMode.pageSpan`, which the switch
+    /// wrote before it told the screen); turning it on decides stage 2 anew; the page opens again on its path (`show` saves
+    /// the one on the screen first).
+    func pageSpanChanged(_ on: Bool) {
+        if ScreenshotMode.isActive { paths.screenshotSpan = ScreenshotMode.pageSpan }
+        paths.settingChanged(on)
+        show(kind: kind, focus: focus)
+    }
+
+    /// After `show` opened a page: the guide once on the joined path when nothing is up (§3.14); off it, the guide goes.
+    /// Screenshot mode's `--screenshot-span-guide one|two` shows the card for its photo on every window it opens (§3.12).
+    func joinedOpened(_ opened: ScreenPaths.Opened) {
+        if opened == .joined {
+            if case .card(let finger)? = ScreenPaths.photoGuide(ScreenshotMode.current, kind: kind, allowFinger: allowFinger) {
+                guide.showForPhoto(kind, allowFinger: finger)
+            } else if !sheetIsUp {
+                guide.showIfDue(kind, joined: true, allowFinger: allowFinger)
+            }
+        } else {
+            guide.dismiss()
+        }
+    }
+
+    /// `onSpanStop` (§3.7, D20, C3-m6, C3-m7): the focus and `remember` (`ScreenPaths.stopped`), the week start's boundary
+    /// as at `show`, a window that turned out too heavy opens on one page, and an ended visit is the rating prompt's ◀ ▶.
+    func spanStopped(_ stop: SpanSession.Stop) {
+        let result = paths.stopped(stop, focus: focus, kind: kind, weekStart: weekStart, focusMoved: { focus = $0 }, boundary: {
+            if pendingAdoption, let adopted = runWeekStartCheck(atBoundary: true) { switchWeekStart(to: adopted) }
+        })
+        if result.fallBack {
+            show(kind: kind, focus: result.focus)
+            return
+        }
+        guard let visit = result.visitEnded else { return }
+        // 1.2.1 (docs/R1_2_1.md §2.4) on the joined path: the page left was written on, so the rating prompt may follow a
+        // pause on the new page; the new page is a new visit.
+        reviewTask?.cancel()
+        reviewTask = nil
+        inkChangedThisVisit = false
+        lastInkChangeAt = nil
+        scheduleReviewRequest(leftPageWithInk: visit.inkChanged, lastInkChangeAt: visit.lastInkChangeAt)
+    }
+
+    /// A finger's tap on the window (band lu): `handleTap` on the page under the point.
+    func joinedTap(at point: CGPoint, zoom: CGFloat, smallScreen: Bool) {
+        reviewTask?.cancel()
+        guide.dismiss()
+        guard let span = paths.span,
+              let hit = ScreenPaths.tapTarget(layout: span.layout, point: point, zoom: zoom, smallScreen: smallScreen,
+                                              allowFinger: allowFinger, currentMonth: currentMonth) else { return }
+        switch hit {
+        case .allDayBar(let id), .timedChip(let id), .timedBox(let id):
+            openEdit(eventId: id)
+        case .moreChips(let day), .date(let day):
+            show(kind: .day, focus: day)
+        }
+    }
+
+    /// A finger's double tap on the window: the day under it (`SpanLayout.dayAt`, the week's column; never on the day).
+    func joinedDoubleTap(at point: CGPoint) {
+        guard kind != .day, let day = paths.span?.layout.dayAt(point: point) else { return }
+        show(kind: .day, focus: day)
+    }
+
+    /// The 予定 tool on the window: `eventRectFinished` on the page under the rect (D23: its centre's page; 24:00 and below
+    /// on a day page refused there too). A new event's page is that page.
+    func joinedEventRect(_ rect: CGRect, _ isTap: Bool) {
+        guard let span = paths.span else { return }
+        if isTap, let hit = span.layout.hit(at: CGPoint(x: rect.midX, y: rect.midY)) {
+            switch hit {
+            case .allDayBar(let id), .timedChip(let id), .timedBox(let id):
+                openEdit(eventId: id)
+                return
+            case .moreChips, .date:
+                break
+            }
+        }
+        guard isAllowed(.createEvent) else { blocked(.createEvent); return }
+        guard let made = ScreenPaths.newEvent(layout: span.layout, rect: rect, now: now) else { return }
+        switch made.plan {
+        case .refusedBelowDay:
+            showToast(Self.eventBelowDayToast)
+        case .create(let range):
+            openCreate(range: range, snapshot: nil, inkIds: [], ownerPageId: made.pageId)
+        }
+    }
+
+    /// 「予定にする」 on the window: the range on the page under the selection's centre, the picture from the real pages, the
+    /// window names to erase while this window is the screen's.
+    func convertJoinedSelection(_ selection: InkSelection, _ span: SpanSession) {
+        guard let made = ScreenPaths.newEvent(layout: span.layout, rect: selection.bbox, now: now),
+              case .create(let range) = made.plan else {
+            showToast(Self.eventBelowDayToast)
+            return
+        }
+        let picture = ScreenPaths.selectionPicture(selection.ids, in: span)
+        let snapshot = InkSnapshot.render(strokes: picture.strokes, cells: picture.cells)
+        openCreate(range: range, snapshot: snapshot, inkIds: selection.ids, ownerPageId: made.pageId, spanSessionId: span.id)
+    }
+
+    /// D21: the stroke budget of the page that owns the strokes (`strokeBudgetReached` per page).
+    func pageStrokeBudgetReached(_ pageId: String, _ event: StrokeBudget.Event) {
+        switch paths.pageStrokeBudget(pageId, event, now: Date()) {
+        case .many?:
+            showToast(Self.strokeBudgetManyToast, duration: Self.strokeBudgetNoticeDuration)
+        case .full?:
+            showToast(Self.strokeBudgetFullToast, isError: true)
+        case nil:
+            break
+        }
+    }
+
+    /// D21: 「メモ欄はここまでです」 once per page of the window.
+    func pageGrowthCapReached(_ pageId: String) {
+        guard paths.pageGrowthCap(pageId) else { return }
+        showToast(Self.growthCapToast)
+    }
+}
+
+extension CalendarRootScreen {
+    /// 1.3 (§3.1): the canvas of the path on the screen — 1.2.3's one page, the window of joined pages, or the desk alone.
+    @ViewBuilder
+    func pathCanvas(viewportWidth: CGFloat) -> some View {
+        switch paths.path {
+        case .onePage:
+            canvas(viewportWidth: viewportWidth)
+        case .joined:
+            if let span = paths.span {
+                joinedCanvas(span, viewportWidth: viewportWidth)
+            } else {
+                desk
+            }
+        case .erasing:
+            desk
+        }
+    }
+
+    /// 1.3: what the two paths watch, on a clear view behind the column — the window's size (C3-m11: the device of a
+    /// window; a joined page waits for it), the model's revision (C3-m8: the window reads its events again after the
+    /// calendar changed, not after its own opening), the window's focus page (C3-m7: the title, a kind switch, ＋予定 and
+    /// the export's title follow it) and the save-failure alert closing (the window's next failure tells again).
+    func pathObservers(_ proxy: GeometryProxy) -> some View {
+        Color.clear
+            .onAppear { noteWindowSize(proxy) }
+            .onChange(of: proxy.size) { noteWindowSize(proxy) }
+            .onChange(of: model.revision) { paths.eventsChanged(revision: model.revision) }
+            .onChange(of: paths.span?.focusIndex) { spanFocusMoved() }
+            .onChange(of: saveError == nil) { if saveError == nil { paths.saveFailureNoticeClosed() } }
     }
 }

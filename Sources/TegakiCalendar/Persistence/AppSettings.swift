@@ -97,6 +97,13 @@ enum AppSettings {
         "hint.spanGuide." + kind.rawValue
     }
 
+    /// 1.3 (§3.15, §8.1 N-8; the lead's decision 9 of wave A): "hint.spanStageTwo.week" / "hint.spanStageTwo.day",
+    /// `Bool`, default false: true once this device said that the kind falls back to one page at a time because its
+    /// window holds too many strokes (once per device and kind, like the guide). Never sent to iCloud.
+    static func stageTwoNoticedKey(_ kind: PageKind) -> String {
+        "hint.spanStageTwo." + kind.rawValue
+    }
+
     /// M4c (M4C contract §1.5): "zoomRatio.month" / "zoomRatio.week" / "zoomRatio.day" / "zoomRatio.year",
     /// a `Double` ≥ 1 (the zoom / the opening zoom of the last pinch on a page of that kind; absent = 1,
     /// the opening zoom; 1.1.1: a ratio stored by 1.1 reads the same, a page that holds no more than its
@@ -178,6 +185,16 @@ enum AppSettings {
     /// Remembers that the guide of `kind` was shown (it is never shown again on this device).
     static func markSpanGuideShown(_ kind: PageKind) {
         defaults.set(true, forKey: spanGuideShownKey(kind))
+    }
+
+    /// Whether this device already said that `kind` falls back to one page (N-8).
+    static func stageTwoNoticed(_ kind: PageKind) -> Bool {
+        defaults.bool(forKey: stageTwoNoticedKey(kind))
+    }
+
+    /// Remembers that N-8 was shown for `kind` (it is never shown again on this device).
+    static func markStageTwoNoticed(_ kind: PageKind) {
+        defaults.set(true, forKey: stageTwoNoticedKey(kind))
     }
 
     // MARK: - Stroke budget notice (1.1, M7A_CONTRACT §5.2)

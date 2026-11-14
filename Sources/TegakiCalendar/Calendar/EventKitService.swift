@@ -132,13 +132,17 @@ final class EventKitService {
     ///   - calendars: the calendars to read; nil = every calendar.
     ///   - allDayOnly: drop timed events before normalising them (the year page shows all-day events
     ///     only, DESIGN §2.6, so a year's worth of meetings is never built).
-    func events(from start: DayKey, to end: DayKey, calendars: [EKCalendar]?, allDayOnly: Bool = false) -> [LayoutEvent] {
+    ///   - keepingEarlier: 1.3 (wave C §7.4): the EKEvents found are added to those of the earlier calls
+    ///     instead of replacing them (the pages of a joined window are read one by one, and an event of any
+    ///     of them must still open for editing). false (the default) is 1.2.3's: only this call's are kept.
+    func events(from start: DayKey, to end: DayKey, calendars: [EKCalendar]?, allDayOnly: Bool = false,
+                keepingEarlier: Bool = false) -> [LayoutEvent] {
         guard accessState.canRead else {
-            fetched = [:]
+            if !keepingEarlier { fetched = [:] }
             return []
         }
         if let calendars = calendars, calendars.isEmpty {
-            fetched = [:]
+            if !keepingEarlier { fetched = [:] }
             return []
         }
         let startDate = start.startOfDay()
@@ -156,7 +160,11 @@ final class EventKitService {
             map[layoutEvent.id] = event
             result.append(layoutEvent)
         }
-        fetched = map
+        if keepingEarlier {
+            fetched.merge(map) { _, found in found }
+        } else {
+            fetched = map
+        }
         return result.sorted { a, b in
             if a.allDay != b.allDay { return a.allDay }
             if a.start != b.start { return a.start < b.start }

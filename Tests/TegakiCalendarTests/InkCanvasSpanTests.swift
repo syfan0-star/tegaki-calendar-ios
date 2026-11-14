@@ -1469,4 +1469,55 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertEqual(middleOfTheScreen() * rig.zoom, mid * rig.zoom, accuracy: 0.5)
         XCTAssertEqual(session.focusPageId, w1116)
     }
+
+    // MARK: Wave C (the screen's plan, F4)
+
+    /// F4 (the screen wave's plan §0.1; the lead's decision C3-M2): what changes on the pages without changing their geometry
+    /// reaches the window's paper. The screen moves `context.now` (the 30 s now line) and calls `contextChanged()`, and
+    /// after `EKEventStoreChanged` the session reads the events again (`reloadEvents()`); each composes a new
+    /// `windowVersion`, and the canvas takes its paper with it: the now line comes onto 11/18 and moves an hour, and the new
+    /// event's box shows on 11/24, while the ink is not rebuilt. Without the paper of every taken window the canvas keeps
+    /// the paper of the opening (no now line, no box) until a shift.
+    func testWindowPaperFollowsEventsAndTheNowLine() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        func week(_ pageId: String) -> WeekPageLayout? {
+            guard let span = rig.container.paperView.span, let slot = session.layout.slot(ofPage: pageId), slot < span.pages.count,
+                  case .week(let content) = span.pages[slot] else { return nil }
+            return content.layout
+        }
+        let tokyo = SessionTestBed.tokyo
+        func at(_ day: Int, _ hour: Int) throws -> Date {
+            try XCTUnwrap(tokyo.date(from: DateComponents(year: 2026, month: 11, day: day, hour: hour)))
+        }
+        XCTAssertEqual(pageIds(of: rig.container.paperView.span), session.pageIds)
+        XCTAssertNil(week(w1116)?.nowLine, "9/21: no now line in the window")
+        let builds = rig.coordinator.setDrawingCount
+        let version = session.windowVersion
+
+        session.context.now = try at(18, 10)
+        session.contextChanged()
+        await settle()
+        XCTAssertGreaterThan(session.windowVersion, version)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
+        XCTAssertEqual(week(w1116)?.nowLine?.minute, 600, "the now line is on the paper at 10:00")
+        session.context.now = try at(18, 11)
+        session.contextChanged()
+        await settle()
+        XCTAssertEqual(week(w1116)?.nowLine?.minute, 660, "and moves with the clock")
+
+        let start = try at(24, 11)
+        let event = LayoutEvent(id: "new", title: "new", allDay: false, start: start, end: start.addingTimeInterval(3600),
+                                colorHex: "#ff0000", calendarId: "c")
+        session.eventSource = { first, end in
+            let day = DayKey(year: 2026, month: 11, day: 24)
+            return first <= day && day < end ? [event] : []
+        }
+        session.reloadEvents()
+        await settle()
+        XCTAssertEqual(week(w1123)?.timedBoxes.map(\.eventId), ["new"], "the new event's box is on the paper")
+        XCTAssertEqual(week(w1116)?.timedBoxes.map(\.eventId), [])
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the ink is not rebuilt")
+        XCTAssertEqual(session.pageIds.first, w1102, "no shift")
+    }
 }

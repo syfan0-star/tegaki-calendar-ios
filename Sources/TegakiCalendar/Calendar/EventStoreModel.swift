@@ -36,6 +36,11 @@ final class EventStoreModel: ObservableObject {
     @Published private(set) var status: AccessStatus
     @Published private(set) var events: [LayoutEvent] = []
     @Published private(set) var calendars: [EKCalendar] = []
+    /// 1.3 (wave C, the lead's decision C3-m8): moves on at the end of every `reload()` (whatever way it ends), so the
+    /// screen's joined path reads the events of its window again (`SpanSession.reloadEvents`) after a change of the
+    /// calendar, a calendar shown or hidden, a permission change or a write; the screen remembers the value after
+    /// opening a window, so the `load` of the opening does not read them twice.
+    @Published private(set) var revision = 0
     /// Calendars the person turned off (persisted in UserDefaults). Changing it reloads the page.
     @Published var hiddenCalendarIds: Set<String> {
         didSet {
@@ -117,6 +122,7 @@ final class EventStoreModel: ObservableObject {
     /// Re-fetches the current page (after a change notification, a permission change, a calendar
     /// being hidden/shown, or one of the writes below).
     func reload() {
+        defer { revision &+= 1 }
         guard status.canRead, let kind = kind, let focus = focus else {
             events = []
             calendars = []
@@ -144,6 +150,23 @@ final class EventStoreModel: ObservableObject {
         let visible = all.filter { !hiddenCalendarIds.contains($0.calendarIdentifier) }
         let range = PageNavigation.dayRange(kind, focus: focus, weekStart: weekStart)
         events = service.events(from: range.start, to: range.end, calendars: visible, allDayOnly: kind == .year)
+    }
+
+    /// 1.3 (docs/M7C_CONTRACT.md §3.8; wave C §7.4): the events of the days [start, end) of one page of a joined window
+    /// (`SpanSession.eventSource`; the session cuts the queries under four years): from the visible calendars, nothing
+    /// without read access, and in screenshot mode the demo month's events that touch the days. The EKEvents stay
+    /// known next to the shown page's (`EventKitService.events(…, keepingEarlier: true)`), so the event of any page of
+    /// the window opens in the sheet and can be edited. The shown page's own `events` and `load` are not touched.
+    func events(from start: DayKey, to end: DayKey) -> [LayoutEvent] {
+        guard status.canRead else { return [] }
+        if screenshot {
+            let month = ScreenshotMode.current?.month ?? YearMonth(year: start.year, month: start.month)
+            let from = start.startOfDay()
+            let until = end.startOfDay()
+            return ScreenshotMode.demoEvents(for: month).filter { $0.start < until && $0.end > from }
+        }
+        let visible = service.calendars.filter { !hiddenCalendarIds.contains($0.calendarIdentifier) }
+        return service.events(from: start, to: end, calendars: visible, keepingEarlier: true)
     }
 
     // MARK: - Calendars (settings, sheets)
@@ -237,6 +260,11 @@ final class EventStoreModel: ObservableObject {
         events.first { $0.id == id }
     }
 
+    /// 1.3: `layoutEvent(id:)`, else the event among `others` (the joined window's pages, wave C §7.4).
+    func layoutEvent(id: String, among others: [LayoutEvent]) -> LayoutEvent? {
+        layoutEvent(id: id) ?? others.first { $0.id == id }
+    }
+
     /// Loaded events that touch `day` (all-day events spanning it included), in layout order.
     func events(on day: DayKey) -> [LayoutEvent] {
         let dayStart = day.startOfDay()
@@ -244,9 +272,10 @@ final class EventStoreModel: ObservableObject {
         return events.filter { $0.start < dayEnd && $0.end > dayStart }
     }
 
-    /// A snapshot of the event for the sheets; nil when it is no longer loaded.
-    func detail(forEventId id: String) -> EventDetail? {
-        guard let layoutEvent = layoutEvent(id: id) else { return nil }
+    /// A snapshot of the event for the sheets; nil when it is no longer loaded. 1.3 (wave C §7.4): an event of
+    /// another page of the joined window is found in `others` (the default, none, is 1.2.3's lookup).
+    func detail(forEventId id: String, among others: [LayoutEvent] = []) -> EventDetail? {
+        guard let layoutEvent = layoutEvent(id: id, among: others) else { return nil }
         let ekEvent = service.event(withLayoutId: id)
         let location = ekEvent?.location?.trimmingCharacters(in: .whitespacesAndNewlines)
         let notes = ekEvent?.notes?.trimmingCharacters(in: .whitespacesAndNewlines)
