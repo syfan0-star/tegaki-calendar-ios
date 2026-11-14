@@ -282,7 +282,6 @@ final class ScreenPaths: ObservableObject {
     /// (the demo page in screenshot mode; else `sync.load`, `pageOpened`, `OnePageSession.open`).
     @discardableResult
     func open(_ o: Opening) -> Opened {
-        saveCurrent()
         let joined = Self.joins(kind: o.kind, setting: settingOn(), screenshot: screenshot, screenshotSpan: screenshotSpan,
                                 fallenBack: fallenBack)
         retire()
@@ -446,9 +445,6 @@ final class ScreenPaths: ObservableObject {
     /// until `eraseDidFinish()` (the files are deleted by the engine's task on a later turn).
     func eraseAll(reopen o: Opening?) {
         onePage.eraseAll()
-        for c in closing {
-            c.session.cancelAll()
-        }
         closing = []
         erasingStore = !screenshot
         guard path == .joined, let current = span else { return }
