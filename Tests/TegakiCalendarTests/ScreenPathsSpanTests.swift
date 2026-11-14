@@ -815,6 +815,40 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
+    /// H3, §4.4 (review J4): a window reads empty pages only until the engine removed the files, not while its iCloud part
+    /// runs (seconds or more): a page written after the erase reads as it is in a window opened meanwhile.
+    func testScreenEraseAllReadsTheStoreOnceTheFilesAreGone() async throws {
+        await bed.startSynced()
+        try bed.engine.save(bed.page(w1116, ["a"]))
+        try bed.engine.save(bed.page(w1123, ["b"]))
+        await bed.flushDebounce()
+        try await openWindow()
+        await bed.engine.waitUntilIdle()
+        XCTAssertFalse(bed.engine.state.pendingCloudErase)
+        paths.eraseAll(reopen: opening())
+        let fresh = try XCTUnwrap(paths.span)
+        XCTAssertTrue(paths.erasingStore)
+        XCTAssertEqual(fresh.page(w1116)?.liveStrokeCount, 0, "empty before the engine erased")
+        bed.db.pause(.fetchChanges) // the iCloud part waits
+        let erase = Task { try await self.bed.engine.eraseEverything() }
+        await bed.yieldUntil { bed.engine.state.pendingCloudErase }
+        XCTAssertEqual(bed.store.allPageIds(), [], "the files are gone; the iCloud part waits")
+        await fresh.prefetch()
+        XCTAssertTrue(fresh.pageIds.allSatisfy { fresh.page($0)?.liveStrokeCount == 0 })
+        // A stroke written and saved after the erase; then a window opens while the iCloud part still runs (the kind, 「今日」).
+        try bed.engine.save(bed.page(w1123, ["after"]))
+        let next = try await openWindow()
+        XCTAssertFalse(paths.erasingStore, "the engine removed the files: the store is read again")
+        XCTAssertEqual(next.page(w1123)?.liveStrokeIds, ["after"], "what was written after the erase reads as it is")
+        XCTAssertEqual(next.page(w1116)?.liveStrokeCount, 0)
+        bed.db.resume()
+        try await erase.value
+        paths.eraseDidFinish()
+        XCTAssertFalse(bed.engine.state.pendingCloudErase)
+        XCTAssertNil(bed.db.records[w1116], "the iCloud part finished")
+        XCTAssertEqual(faults, [])
+    }
+
     /// H2 (joined, §2 #11): 「消して始める」 closes the window before the engine's `await` (the desk instead of the canvas); the
     /// background, the export, the canvas's late deltas and the timer write nothing meanwhile; a new window after the answer.
     func testScreenEraseAndStartOnTheJoinedPathClosesBeforeTheAwait() async throws {

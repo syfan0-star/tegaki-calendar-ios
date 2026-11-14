@@ -166,8 +166,15 @@ final class ScreenPaths: ObservableObject {
     private(set) var openings = 0
     /// The kinds that fell back to one page in this run (stage 2): one page until the next launch or the setting's off → on.
     private(set) var fallenBack: Set<PageKind> = []
-    /// 「全て消す」 runs: a window opened meanwhile reads empty pages (`eraseDidFinish()` ends it, §4.4).
+    /// 「全て消す」 runs and the engine has not removed the files yet: a window opened meanwhile reads empty pages (§4.4).
+    /// It ends when the engine's `eraseEverything` removed them (review J4: its first part, before its first `await`, empties
+    /// the store and marks the iCloud part pending; a page read after that is one written after the erase) or returned
+    /// (`eraseDidFinish()`).
     private(set) var erasingStore = false
+    /// `sync.state.pendingCloudErase` as 「全て消す」 began: when it was false, its turning true tells that the engine's
+    /// `eraseEverything` removed the files (its `store.removeAll()` and `resetAfterErase(cloudPending: true)` come in one
+    /// turn). When it was already true (an earlier erase's iCloud part still waits), the pages read empty until the end.
+    private var cloudErasePendingAtErase = true
     /// A joined page waits for the window scene (`Opened.waiting`).
     private(set) var waitingForScene = false
     /// 「消して始める」 waits for the engine (H2): from before its `await` until the answer came back, a joined page opens
@@ -407,7 +414,11 @@ final class ScreenPaths: ObservableObject {
     /// Where a window's page is read from (§4.4): empty while 「全て消す」 deletes the files, screenshot mode's demo page of
     /// the window (`windowDemo`; its engine returns empty pages), else the engine.
     private func read(_ pageId: String, kind: PageKind, weekStart: WeekStart) -> InkPage {
-        if erasingStore { return InkPage(pageId: pageId) }
+        if erasingStore {
+            guard !cloudErasePendingAtErase, sync.state.pendingCloudErase else { return InkPage(pageId: pageId) }
+            // The engine removed the files (J4): what the store holds now was written after the erase.
+            erasingStore = false
+        }
         if let shot { return Self.windowDemo(shot, pageId: pageId, kind: kind, weekStart: weekStart) }
         return sync.load(pageId)
     }
@@ -662,7 +673,7 @@ final class ScreenPaths: ObservableObject {
     /// 「全て消す」 (§2 #12, H3, C3-M1): the one page empties and its canvas is made anew (1.2.3's `eraseAll`); every
     /// window — the closing ones and the one on the screen — is cancelled (its timer, its inbox, its number: the old
     /// canvas's last deltas are dropped) and let go; on the joined path a new window opens at `o` reading empty pages
-    /// until `eraseDidFinish()` (the files are deleted by the engine's task on a later turn).
+    /// until the engine removed the files (its task, on a later turn) or `eraseDidFinish()` (`erasingStore`).
     func eraseAll(reopen o: Opening?) {
         onePage.eraseAll()
         for c in closing {
@@ -670,6 +681,7 @@ final class ScreenPaths: ObservableObject {
         }
         closing = []
         erasingStore = !screenshot
+        cloudErasePendingAtErase = sync.state.pendingCloudErase
         guard path == .joined, let current = span else { return }
         current.cancelAll()
         watches = []
