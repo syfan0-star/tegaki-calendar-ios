@@ -445,7 +445,6 @@ final class ScreenPaths: ObservableObject {
     /// canvas's last deltas are dropped) and let go; on the joined path a new window opens at `o` reading empty pages
     /// until `eraseDidFinish()` (the files are deleted by the engine's task on a later turn).
     func eraseAll(reopen o: Opening?) {
-        onePage.eraseAll()
         for c in closing {
             c.session.cancelAll()
         }
@@ -484,10 +483,6 @@ final class ScreenPaths: ObservableObject {
         }
         if choice == .eraseInk {
             onePage.beginEraseAndStart()
-            for c in closing {
-                c.session.closeWithoutSaving()
-            }
-            closing = []
             if let current = span {
                 current.closeWithoutSaving()
                 watches = []
