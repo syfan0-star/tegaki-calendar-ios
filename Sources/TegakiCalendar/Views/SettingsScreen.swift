@@ -56,6 +56,10 @@ struct SettingsScreen: View {
     /// screenshot mode, where nothing is stored). The owner saves the open pages and reopens them on the other path
     /// (S5's screen wave); by default nothing more happens.
     var onPageSpanChange: (Bool) -> Void = { _ in }
+    /// 1.3 (docs/M7C_CONTRACT.md §3.12; docs/M7C.md, wave D's text decision 10): screenshot mode's
+    /// `--screenshot-settings-section page` (the `settings` sheet): scroll to the 「ページ」 section once the form is on
+    /// screen (the same way as `scrollToSyncOnAppear`; it wins over the other targets). False by default: nothing moves.
+    var scrollToPageOnAppear: Bool = false
 
     @Environment(\.openURL) private var openURL
     @State private var eraseInkAfterConvert: Bool = ScreenshotMode.isActive ? true : AppSettings.eraseInkAfterConvert
@@ -81,6 +85,8 @@ struct SettingsScreen: View {
     /// 1.2 (§7.4): `--screenshot-sheet holidays` opens the picker over this screen.
     @State private var showHolidayPicker = false
 
+    /// The id of the one row of the 「ページ」 section (the scroll target of `scrollToPageOnAppear`, 1.3).
+    private static let pageRowId = "page-section"
     /// The id of the first row of the 「同期」 section (the scroll target of `scrollToSyncOnAppear`).
     private static let syncRowId = "sync-section"
     /// The id of the first row of the 「購入」 section (`scrollToPurchaseOnAppear`).
@@ -132,17 +138,21 @@ struct SettingsScreen: View {
     static let pageSpanIdentifier = "settings.pageSpan"
 
     /// The switch as the sheet opens: this device's `AppSettings.pageSpan` (on until the person turns it off);
-    /// in screenshot mode off, the one-page path, without reading the store (§3.12: nothing is stored there).
+    /// in screenshot mode screenshot mode's own switch in memory, without reading the store (§3.12: nothing is stored
+    /// there): off, the one-page path, unless `--screenshot-span on` (1.3, S5's screen wave), then as last switched.
     static func initialPageSpan(screenshot: Bool) -> Bool {
-        screenshot ? false : AppSettings.pageSpan
+        screenshot ? ScreenshotMode.pageSpan : AppSettings.pageSpan
     }
 
     /// The switch was turned to `value`: outside screenshot mode it is stored for this device first, then the owner
     /// is told (`onPageSpanChange`), so the owner that saves and reopens the pages on the other path (S5's screen
-    /// wave) already reads the new value. Screenshot mode stores nothing and still tells the owner.
+    /// wave) already reads the new value. Screenshot mode stores nothing and still tells the owner; it keeps the value
+    /// in memory first (`ScreenshotMode.pageSpan`), so the owner reads it there and the sheet opened again shows it.
     static func pageSpanChanged(to value: Bool, screenshot: Bool, notify: (Bool) -> Void) {
         if !screenshot {
             AppSettings.pageSpan = value
+        } else {
+            ScreenshotMode.pageSpan = value
         }
         notify(value)
     }
@@ -265,10 +275,11 @@ struct SettingsScreen: View {
                 }
                 .task { await openScreenshotPieces() }
                 .onAppear {
-                    guard scrollToSyncOnAppear || scrollToPurchaseOnAppear || scrollToInfoOnAppear else { return }
+                    guard scrollToPageOnAppear || scrollToSyncOnAppear || scrollToPurchaseOnAppear || scrollToInfoOnAppear else { return }
                     // The list needs a layout pass before it can scroll; the row lands a little below
                     // the top so the section header stays in view.
-                    let target = scrollToSyncOnAppear ? Self.syncRowId : scrollToInfoOnAppear ? Self.infoRowId : Self.purchaseRowId
+                    let target = scrollToPageOnAppear ? Self.pageRowId
+                        : scrollToSyncOnAppear ? Self.syncRowId : scrollToInfoOnAppear ? Self.infoRowId : Self.purchaseRowId
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(0.4))
                         proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.08))
@@ -469,6 +480,7 @@ struct SettingsScreen: View {
         Section {
             Toggle(Self.pageSpanTitle, isOn: $pageSpan)
                 .accessibilityIdentifier(Self.pageSpanIdentifier)
+                .id(Self.pageRowId)
         } header: {
             Text(Self.pageSectionTitle)
         } footer: {
