@@ -805,6 +805,99 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
+    /// H2 (joined, the plan §4.4, wave A's decision 2; review S5C1-SAFE-1 and J1): while 「消して始める」 waits for the engine,
+    /// ▶ (the screen's `move(by:)` finds no window and opens the next page through `show`) opens no window — the desk — so
+    /// no stroke, no 1.5 s timer and no background save reaches the new account's store meanwhile; after the answer the page
+    /// is read again in a new window. The same navigation on the one page writes nothing either
+    /// (testScreenEraseAndStartClosesBeforeTheAwait, step (2)).
+    func testScreenEraseAndStartNavigationDuringTheWaitOnTheJoinedPath() async throws {
+        await bed.startSynced()
+        try bed.engine.save(bed.page(w1116, ["a", "b"]))
+        await bed.flushDebounce()
+        let old = try await openWindow()
+        await bed.engine.waitUntilIdle()
+        let checks = await accountChangedAndHeld()
+        let answer = paths.chooseAccount(.eraseInk, resolve: { await self.bed.engine.resolveAccountChange($0) },
+                                         reload: { self.paths.reloadShown(self.opening()) })
+        XCTAssertTrue(old.isClosed)
+        XCTAssertEqual(paths.path, .erasing)
+        XCTAssertTrue(paths.eraseAndStartWaits)
+        await bed.yieldUntil { bed.db.calls.filter { $0 == .accountStatus }.count > checks }
+        XCTAssertEqual(bed.store.allPageIds(), [], "the engine emptied the store before its await")
+
+        XCTAssertNil(paths.move(by: 1), "no window: the screen's move(by:) falls back to show")
+        let next = DayKey(year: 2026, month: 11, day: 23)
+        let opened = paths.open(opening(focus: next))
+        XCTAssertEqual(opened, .erasing, "no window while the engine waits: the desk")
+        XCTAssertEqual(paths.path, .erasing)
+        XCTAssertNil(paths.span)
+        if let during = paths.span {
+            // Without the gate: the window a stroke is written on meanwhile.
+            await during.prefetch()
+            let ledger = JoinedLedgerStandIn(during)
+            ledger.draw(on: w1123)
+            ledger.put()
+            await settle()
+        }
+        await bed.sessionSleeper.advance()
+        paths.enterBackground()
+        let written = bed.store.allPageIds()
+        let dirty = bed.engine.state.dirty
+        XCTAssertEqual(written, [], "nothing written while the engine waits (H2 on the one page)")
+        XCTAssertEqual(dirty, [])
+        bed.db.resume()
+        await answer.value
+        await bed.flushDebounce()
+        XCTAssertFalse(paths.eraseAndStartWaits)
+        XCTAssertEqual(paths.path, .joined, "the page read again after the answer opens its window")
+        let fresh = try XCTUnwrap(paths.span)
+        XCTAssertNotEqual(fresh.id, old.id)
+        XCTAssertEqual(bed.store.allPageIds(), [])
+        XCTAssertEqual(bed.db.records.keys.sorted(), [], "nothing of the wait reached the new account")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// H2 from the one page (review S5C1-SAFE-1 and J1): a month on the screen (one page), 「消して始める」, then the week while
+    /// the engine waits (the setting on): the week opens no window, so nothing is written meanwhile; after the answer it opens
+    /// joined.
+    func testScreenEraseAndStartKindSwitchToAWeekDuringTheWait() async throws {
+        await bed.startSynced()
+        try bed.engine.save(bed.page(w1116, ["a"]))
+        await bed.flushDebounce()
+        XCTAssertEqual(paths.open(opening(.month)), .onePage)
+        await bed.engine.waitUntilIdle()
+        let checks = await accountChangedAndHeld()
+        var shown: PageKind = .month
+        let answer = paths.chooseAccount(.eraseInk, resolve: { await self.bed.engine.resolveAccountChange($0) },
+                                         reload: { self.paths.reloadShown(self.opening(shown)) })
+        XCTAssertEqual(paths.path, .onePage)
+        await bed.yieldUntil { bed.db.calls.filter { $0 == .accountStatus }.count > checks }
+        XCTAssertEqual(bed.store.allPageIds(), [])
+        shown = .week
+        let opened = paths.open(opening(.week))
+        XCTAssertEqual(opened, .erasing, "no window while the engine waits: the desk")
+        XCTAssertNil(paths.span)
+        if let during = paths.span {
+            // Without the gate: the window a stroke is written on meanwhile.
+            await during.prefetch()
+            let ledger = JoinedLedgerStandIn(during)
+            ledger.draw(on: w1116)
+            ledger.put()
+            await settle()
+        }
+        await bed.sessionSleeper.advance()
+        let written = bed.store.allPageIds()
+        XCTAssertEqual(written, [], "nothing written while the engine waits")
+        XCTAssertEqual(bed.engine.state.dirty, [])
+        bed.db.resume()
+        await answer.value
+        await bed.flushDebounce()
+        XCTAssertEqual(paths.path, .joined, "the week read again after the answer opens joined")
+        XCTAssertNotNil(paths.span)
+        XCTAssertEqual(bed.store.allPageIds(), [])
+        XCTAssertEqual(faults, [])
+    }
+
     /// C3-M1, H3: 「全て消す」 cancels the closing windows too: the stroke a closing window's canvas hands over afterwards (made
     /// before the erase) is dropped, never saved into the erased store.
     func testScreenEraseAllEmptiesTheClosingSessions() async throws {

@@ -55,6 +55,9 @@ final class ScreenPaths: ObservableObject {
         case fellBack
         /// The kind is joined but the window scene is not there yet (C3-m11): the desk, until `open` is called again.
         case waiting
+        /// The kind is joined but 「消して始める」 waits for the engine (H2, the plan §4.4): the desk, until the page is read
+        /// again after the answer (`reloadShown`).
+        case erasing
     }
 
     /// A window that was open before the screen opened anew (§3.4 (d), B_DESIGN.md:208): its canvas hands its last
@@ -161,6 +164,11 @@ final class ScreenPaths: ObservableObject {
     private(set) var erasingStore = false
     /// A joined page waits for the window scene (`Opened.waiting`).
     private(set) var waitingForScene = false
+    /// 「消して始める」 waits for the engine (H2): from before its `await` until the answer came back, a joined page opens
+    /// no window (`Opened.erasing`, the desk), as the one page saves nothing then (`OnePageSession.beginEraseAndStart`).
+    /// A stroke written meanwhile would otherwise be saved and sent to the new account; the one page drops it at the
+    /// reload (wave A's decision 2), and the window's pages are read only after the answer (`reloadShown`).
+    private(set) var eraseAndStartWaits = false
     /// `windowVersion` right after the window opened (stage 2 at a stop needs the reads done, C3-m6).
     private var openedVersion = 0
     /// `EventStoreModel.revision` when the events of the window were read (C3-m8).
@@ -328,6 +336,11 @@ final class ScreenPaths: ObservableObject {
         shownKind = o.kind
         waitingForScene = false
         if joined {
+            guard !eraseAndStartWaits else {
+                // H2 (the plan §4.4): no window while 「消して始める」 waits; the page is read after the answer.
+                path = .erasing
+                return .erasing
+            }
             guard let device = o.device else {
                 waitingForScene = true
                 path = .erasing
@@ -665,8 +678,9 @@ final class ScreenPaths: ObservableObject {
     /// The account's answer (§2 #10, #11; H2, H3, C3-M1), 1.2.3's order: 「残す」 saves first; 「消して始める」 closes the
     /// screen before the engine's `await` — the one page empties and pauses its saves (`beginEraseAndStart`), every window
     /// (closing ones included) is closed without saving and the joined path shows the desk — so nothing of the old account
-    /// can reach the new one's store; after the answer the page is read again (`reload`, a new window on the joined path)
-    /// and the one page saves again. `closed` is the screen's part right after closing (the selection, the viewport,
+    /// can reach the new one's store; until the answer a joined page opens no window (`eraseAndStartWaits`: another page,
+    /// the kind, 「今日」 show the desk, H2); after the answer the page is read again (`reload`, a new window on the joined
+    /// path) and the one page saves again. `closed` is the screen's part right after closing (the selection, the viewport,
     /// the paper); `answered` runs after every answer. Returns the task that awaits the engine.
     @discardableResult
     func chooseAccount(_ choice: AccountChangeChoice, resolve: @escaping (AccountChangeChoice) async -> Void,
@@ -677,6 +691,7 @@ final class ScreenPaths: ObservableObject {
         }
         if choice == .eraseInk {
             onePage.beginEraseAndStart()
+            eraseAndStartWaits = true
             for c in closing {
                 c.session.closeWithoutSaving()
             }
@@ -693,6 +708,8 @@ final class ScreenPaths: ObservableObject {
         let screenshot = self.screenshot
         return Task { @MainActor [weak self] in
             await resolve(choice)
+            // The answer came back: the page read again below opens its window (H2).
+            self?.eraseAndStartWaits = false
             answered()
             guard let self else { return }
             guard choice != .later, !screenshot else {
