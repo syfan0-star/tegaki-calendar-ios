@@ -641,6 +641,13 @@ struct CalendarRootScreen: View {
     private var currentMonth: Int { DayKey(now).month }
 
     var body: some View {
+        // 1.3: the chain of 1.2.3's body in three parts (the same modifiers in the same order), so the compiler
+        // type-checks each in time: the screen with its bars and toasts, what it watches, its sheets and alerts.
+        presented(watchedFurther(watched(arranged)))
+    }
+
+    /// The column with the peeking bar, the dock, the toast and the bottom bar (1.2.3's body, its first part).
+    private var arranged: some View {
         // 1.3: the column is a function of its own, so the compiler type-checks the long chain below in time.
         GeometryReader { proxy in
             screenColumn(proxy)
@@ -700,6 +707,11 @@ struct CalendarRootScreen: View {
                     .padding(.bottom, ToolbarLogic.bottomPadding)
             }
         }
+    }
+
+    /// What the screen watches (1.2.3's body, its second part).
+    private func watched<Content: View>(_ content: Content) -> some View {
+        content
         .onAppear(perform: appear)
         .onChange(of: model.events) { relayout() }
         .onChange(of: scenePhase) { scenePhaseChanged() }
@@ -708,6 +720,11 @@ struct CalendarRootScreen: View {
         }
         .onChange(of: sync.snapshot.status) { syncStatusChanged() }
         .onChange(of: sheetIsUp) { sheetsChanged() }
+    }
+
+    /// What the screen watches, continued (1.2.3's body, its second part, split once more for the compiler).
+    private func watchedFurther<Content: View>(_ content: Content) -> some View {
+        content
         // 1.2 (§5.6, §10.4, §10.5): the two settings, and the moments a waiting toast can show.
         .onChange(of: holidaySettingRaw) { holidaySettingChanged() }
         .onChange(of: weekStartRaw) { weekStartSettingChanged() }
@@ -724,6 +741,12 @@ struct CalendarRootScreen: View {
         .onChange(of: store.snapshot.message) { messageChanged() }
         .onChange(of: readOnly) { readOnlyChanged() }
         .task { await nowTicker() }
+    }
+
+    /// The sheets, the cover, the dialog, the alert, the state for the UI tests and the rating prompt (1.2.3's body,
+    /// its third part).
+    private func presented<Content: View>(_ content: Content) -> some View {
+        content
         .sheet(item: $editor) { request in
             editorSheet(request)
         }
