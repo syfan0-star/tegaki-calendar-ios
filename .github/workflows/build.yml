@@ -997,6 +997,8 @@ jobs:
   # `-` and `_`); its name is the contract's "compat-v1.0".
   compat-v1-0:
     name: compat-v1.0
+    # Mutation branch only (G4): the runners are kept for the other roles.
+    if: false
     runs-on: macos-26
     timeout-minutes: 45
     env:
@@ -1154,6 +1156,8 @@ jobs:
   # photos of 11–15 s at most 16: about 30 min. It stays at 75 because the job's last step is the upload.
   l10n-shots:
     name: Localized shots (1.2)
+    # Mutation branch only (G4): the runners are kept for the other roles.
+    if: false
     runs-on: macos-26
     timeout-minutes: 75
     env:
@@ -1382,6 +1386,8 @@ jobs:
   # last device, the owner's iPad Air 11-inch, and took 33 of the 43 photos.
   blank-paper:
     name: Blank paper shots (1.1.1)
+    # Mutation branch only (G4): the runners are kept for the other roles.
+    if: false
     runs-on: macos-26
     timeout-minutes: 55
     continue-on-error: true
