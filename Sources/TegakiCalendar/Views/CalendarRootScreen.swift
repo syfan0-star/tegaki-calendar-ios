@@ -1225,9 +1225,10 @@ struct CalendarRootScreen: View {
     /// keeps the identity of the canvas it is made for, and a write is taken only while that is the current
     /// identity (`OnePageSession.canvasWrote`): a canvas made before a rebuild (H1–H3) that hands a
     /// `publishPage` on to the next turn writes nothing.
-    /// 1.3 (wave C, C3-M3): the gate itself is `ScreenPaths.pageBinding` (the same lines), so the tests run it.
+    /// 1.3 (wave C, C3-M3): the gate itself is `ScreenPaths.pageBinding` (the same lines), so the tests run it; the base
+    /// of now is read when a write comes in, as before (`canvasBase` in the setter).
     private var pageBinding: Binding<InkPage> {
-        let pair = paths.pageBinding(base: canvasBase) {
+        let pair = paths.pageBinding(base: canvasBase, currentBase: { canvasBase }) {
             // 1.2.1 (docs/R1_2_1.md §2.4): only the canvas's own operations come here (writing, erasing,
             // ↶ ↷, the lasso's move and delete), not iCloud's strokes (`applyRemote`), the band's move or
             // an import, so this is the person's own ink.

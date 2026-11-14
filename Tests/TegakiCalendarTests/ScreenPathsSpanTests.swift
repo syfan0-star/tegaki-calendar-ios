@@ -120,7 +120,13 @@ final class ScreenPathsSpanTests: XCTestCase {
     private func writeOnePage(_ extra: String, base: String? = nil, x: CGFloat = 600) {
         var page = one.page
         page.add(bed.stroke(extra, x: x))
-        paths.pageBinding(base: base ?? oneBase) {}.set(page)
+        binding(base ?? oneBase).set(page)
+    }
+
+    /// The one-page canvas's binding made for `base`, the screen's base of now staying `base` (as long as the screen's
+    /// page and week start do).
+    private func binding(_ base: String, ownInk: @escaping () -> Void = {}) -> (get: () -> InkPage, set: (InkPage) -> Void) {
+        paths.pageBinding(base: base, currentBase: { base }, ownInk: ownInk)
     }
 
     /// The engine waits for the account answer (another iCloud account signed in), its account check held.
@@ -579,22 +585,37 @@ final class ScreenPathsSpanTests: XCTestCase {
     /// it was given keeps its identity, so the write is dropped; the new canvas's binding writes.
     func testScreenLatePublishOfTheOldCanvasIsDropped() async throws {
         try await showOnePage(["a"])
-        let old = paths.pageBinding(base: oneBase) {}
+        let old = binding(oneBase)
         paths.eraseAll(reopen: opening())
         old.set(bed.page(w1116, ["a", "late"]))
         XCTAssertEqual(one.page.liveStrokeCount, 0, "the old canvas's late write is dropped")
         XCTAssertFalse(one.isDirty)
         var own = 0
-        let fresh = paths.pageBinding(base: oneBase) { own += 1 }
+        let fresh = binding(oneBase) { own += 1 }
         var page = one.page
         page.add(bed.stroke("new", x: 500))
         fresh.set(page)
         XCTAssertEqual(one.page.liveStrokeIds, ["new"])
         XCTAssertEqual(own, 1, "the person's own ink (1.2.1)")
-        let before = paths.pageBinding(base: oneBase) {}
+        let before = binding(oneBase)
         XCTAssertTrue(paths.remoteDeleted(w1116, shownPageId: w1116))
         before.set(bed.page(w1116, ["new", "late2"]))
         XCTAssertEqual(one.page.liveStrokeCount, 0)
+
+        // Review T1: the week start switched under a day page (its id stays, the screen's base moves): the canvas made for the
+        // old base hands its page on late and writes nothing, as r13's 1c5eb0a read the screen's base when the write came in.
+        XCTAssertEqual(paths.open(opening(.day)), .onePage)
+        let day = "d-2026-11-16"
+        XCTAssertEqual(one.page.pageId, day)
+        var screenBase = "\(day)|monday"
+        let madeMonday = paths.pageBinding(base: screenBase, currentBase: { screenBase }) {}
+        screenBase = "\(day)|sunday"
+        madeMonday.set(bed.page(day, ["late3"]))
+        XCTAssertEqual(one.page.liveStrokeCount, 0, "the canvas made for the Monday base writes nothing once it is Sunday's")
+        XCTAssertFalse(one.isDirty)
+        let madeSunday = paths.pageBinding(base: screenBase, currentBase: { screenBase }) {}
+        madeSunday.set(bed.page(day, ["sunday"]))
+        XCTAssertEqual(one.page.liveStrokeIds, ["sunday"], "the new canvas's binding writes")
     }
 
     /// H3 (one page, §2 #12): 「全て消す」 makes the canvas anew, empties the page and stops its save.
@@ -618,7 +639,7 @@ final class ScreenPathsSpanTests: XCTestCase {
     /// the new account's store; after the answer the page is read again and saving goes on.
     func testScreenEraseAndStartClosesBeforeTheAwait() async throws {
         try await showOnePage(["a", "b"], synced: true)
-        let oldCanvas = paths.pageBinding(base: oneBase) {}
+        let oldCanvas = binding(oneBase)
         writeOnePage("c")
         XCTAssertTrue(one.isDirty)
         let checks = await accountChangedAndHeld()

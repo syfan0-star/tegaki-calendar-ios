@@ -773,13 +773,17 @@ final class ScreenPaths: ObservableObject {
     // MARK: The one page's canvas (§2.1, H1, H3; C3-M3)
 
     /// The one-page canvas's `page:` binding as a get / set pair (CalendarRootScreen's `pageBinding`): it keeps the
-    /// identity of the canvas it is made for, so a canvas made before a rebuild (H1–H3) writes nothing
-    /// (`OnePageSession.canvasWrote`); a write taken is the person's own ink (`ownInk`, 1.2.1).
-    func pageBinding(base: String, ownInk: @escaping () -> Void) -> (get: () -> InkPage, set: (InkPage) -> Void) {
+    /// identity of the canvas it is made for (`base` and the number now), and a write is taken only while that is the
+    /// identity of now — the screen's base read when the write comes in (`currentBase`, as r13's 1c5eb0a read
+    /// `canvasBase` in the setter: a switch of the week start moves the base of a month or a day page whose id stays) —
+    /// so a canvas made before a rebuild (H1–H3) or a week start switch writes nothing (`OnePageSession.canvasWrote`);
+    /// a write taken is the person's own ink (`ownInk`, 1.2.1).
+    func pageBinding(base: String, currentBase: @escaping () -> String,
+                     ownInk: @escaping () -> Void) -> (get: () -> InkPage, set: (InkPage) -> Void) {
         let one = onePage
         let madeFor = one.canvasIdentity(base: base)
         return (get: { one.page }, set: { newValue in
-            guard one.canvasWrote(newValue, madeFor: madeFor, base: base) else { return }
+            guard one.canvasWrote(newValue, madeFor: madeFor, base: currentBase()) else { return }
             ownInk()
         })
     }
