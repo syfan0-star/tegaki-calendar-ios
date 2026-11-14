@@ -95,8 +95,11 @@ final class ScreenPaths: ObservableObject {
         case reopen(DayKey)
         /// Near, at the overview: slide by this many pages (`slidePages`).
         case slide(Int)
-        /// Today's page is the focus, or the paper is zoomed in: bring this rect (band lu) on screen (`revealRect`).
+        /// Zoomed in: bring this rect (band lu) on screen (`revealRect`).
         case reveal(CGRect)
+        /// Today's page is the focus at the overview: nothing moves (1.2.3's 「今日」 on the page shown; review J7 — the
+        /// screen does not know the paper's y, and a rect a whole page high would take the paper to its top).
+        case stay
     }
 
     /// The fixed heading and the band of the joined path (L8): the window of one `windowVersion` with the viewport the
@@ -911,9 +914,9 @@ final class ScreenPaths: ObservableObject {
     }
 
     /// 「今日」 on the joined path (the plan §4.1, the lead's decision): far → a new window; near and at the overview → slide;
-    /// today's page already the focus, or zoomed in → bring today on screen (at the overview the page in the middle; zoomed
-    /// in today's column from an hour before now). `viewport` is the last one reported (nil: `ratio`, the stored one),
-    /// `area` the paper area. nil off the joined path.
+    /// today's page already the focus at the overview → nothing (1.2.3: the same page does not move; review J7); zoomed in
+    /// → bring today's column on screen from an hour before now. `viewport` is the last one reported (nil: `ratio`, the
+    /// stored one), `area` the paper area. nil off the joined path.
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat) -> Today? {
         guard path == .joined, let session = span else { return nil }
         switch session.today(day) {
@@ -921,12 +924,12 @@ final class ScreenPaths: ObservableObject {
             return .reopen(focus)
         case .slide(let pages):
             let zoomed = Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio)
-            if pages != 0, !zoomed { return .slide(pages) }
+            if !zoomed { return pages != 0 ? .slide(pages) : .stay }
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
                                      calendar: session.context.calendar, area: area, ratio: ratio)
             guard let rect = Self.todayRect(layout: session.layout, pageId: session.plan.pageId(at: session.plan.index(containing: day)),
-                                            now: now, calendar: session.context.calendar, viewport: shown, area: area, zoomed: zoomed)
+                                            now: now, calendar: session.context.calendar, viewport: shown, area: area)
             else { return nil }
             return .reveal(rect)
         }
@@ -941,19 +944,14 @@ final class ScreenPaths: ObservableObject {
         return ZoomPolicy.ratio(forZoom: viewport.zoom, bounds: bounds) > overviewRatio
     }
 
-    /// The rect (band lu) 「今日」 reveals on `pageId` (§4.1): at the overview a rect whose start is the offset that puts the
-    /// page in the middle (`ZoomPolicy.revealOffset` lines a rect wider than the screen up with its start); zoomed in,
-    /// today's column (the week's, or the day page's width) from an hour before now, one screen high.
+    /// The rect (band lu) 「今日」 reveals on `pageId` zoomed in (§4.1): today's column (the week's, or the day page's width)
+    /// from an hour before now, one screen high.
     static func todayRect(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, viewport: PaperViewport,
-                          area: CGSize, zoomed: Bool) -> CGRect? {
+                          area: CGSize) -> CGRect? {
         guard let slot = layout.slot(ofPage: pageId), viewport.zoom > 0, viewport.width > 0 else { return nil }
         let page = layout.pages[slot]
         let origin = layout.origin(ofSlot: slot)
         let zoom = viewport.zoom
-        if !zoomed {
-            let target = (origin + layout.plan.pageWidth / 2) * zoom - viewport.width / 2
-            return CGRect(x: (target + ZoomPolicy.revealMargin) / zoom, y: 0, width: viewport.width / zoom, height: page.size.height)
-        }
         let today = DayKey(now, calendar: calendar)
         var column = CGRect(x: origin, y: 0, width: page.size.width, height: page.size.height)
         if let week = page as? WeekPageLayout, let index = week.days.firstIndex(of: today) {

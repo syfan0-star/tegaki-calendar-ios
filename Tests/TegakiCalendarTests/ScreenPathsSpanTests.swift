@@ -1148,7 +1148,8 @@ final class ScreenPathsSpanTests: XCTestCase {
     }
 
     /// The plan §4.1 and the lead's decision: far → a new window; near at the overview → a slide; today's page already the focus
-    /// → it comes to the middle; zoomed in → today's column from an hour before now (no slide).
+    /// at the overview → nothing moves (1.2.3's 「今日」 on the page shown; review J7: a reveal of the whole page took the paper
+    /// to its top, off a day page's free memo below 24:00); zoomed in → today's column from an hour before now (no slide).
     func testTodayOverviewSlidesAndZoomedReveals() async throws {
         let session = try await openWindow()
         let area = CGSize(width: 834, height: 955)
@@ -1158,15 +1159,10 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(paths.today(dec3, now: bed.now, viewport: nil, area: area, ratio: 1), .slide(2))
 
         let overview = PaperViewport(offsetX: 1_200, zoom: 0.4974, width: 834)
-        guard case .reveal(let middle)? = paths.today(nov18, now: bed.now, viewport: overview, area: area, ratio: 1) else {
-            return XCTFail("today's page is the focus: reveal")
-        }
-        let origin = try XCTUnwrap(session.origin(ofPage: w1116))
-        let centred: CGFloat = (origin + 700) * overview.zoom - 417
-        let start: CGFloat = middle.minX * overview.zoom - ZoomPolicy.revealMargin
-        XCTAssertEqual(start, centred, accuracy: 1e-6)
-        let offset = ZoomPolicy.revealOffset(rect: middle, zoom: overview.zoom, viewport: area, current: CGPoint(x: 0, y: 0))
-        XCTAssertEqual(offset.x, centred, accuracy: 1e-6, "the canvas puts the page in the middle")
+        XCTAssertEqual(paths.today(nov18, now: bed.now, viewport: overview, area: area, ratio: 1), .stay,
+                       "today's page is the focus at the overview: nothing moves (1.2.3)")
+        XCTAssertEqual(paths.today(nov18, now: bed.now, viewport: nil, area: area, ratio: 1), .stay)
+        XCTAssertEqual(session.focusPageId, w1116)
 
         let zoomed = PaperViewport(offsetX: 2_000, zoom: 1.2, width: 834)
         let now = try at(12, 3, 10)

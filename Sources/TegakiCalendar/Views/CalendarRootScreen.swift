@@ -1517,8 +1517,8 @@ struct CalendarRootScreen: View {
     /// page it opened; the now is `show`'s, 「今日」 in screenshot mode).
     private func goToday() {
         let today = DayKey(ScreenshotMode.current?.today ?? Date())
-        // 1.3 (§2 #6, wave C §4.1): far, a new window; near at the overview, a slide; today's page already the focus or
-        // zoomed in, today brought on screen (band lu).
+        // 1.3 (§2 #6, wave C §4.1): far, a new window; near at the overview, a slide; today's page already the focus at
+        // the overview, nothing (1.2.3); zoomed in, today brought on screen (band lu).
         if let action = paths.today(today, now: ScreenshotMode.current?.today ?? Date(), viewport: paths.heading?.viewport,
                                     area: paperArea, ratio: currentRatio) {
             switch action {
@@ -1530,6 +1530,8 @@ struct CalendarRootScreen: View {
             case .reveal(let rect):
                 revealRect = rect
                 revealTrigger += 1
+            case .stay:
+                break
             }
             return
         }
