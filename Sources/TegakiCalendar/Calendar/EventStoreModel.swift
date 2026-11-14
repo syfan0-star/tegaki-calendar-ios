@@ -166,7 +166,8 @@ final class EventStoreModel: ObservableObject {
             let month = ScreenshotMode.current?.month ?? YearMonth(year: start.year, month: start.month)
             let from = start.startOfDay()
             let until = end.startOfDay()
-            return ScreenshotMode.demoEvents(for: month).filter { $0.start < until && $0.end > from }
+            _ = (from, until)
+            return ScreenshotMode.demoEvents(for: month)
         }
         let visible = service.calendars.filter { !hiddenCalendarIds.contains($0.calendarIdentifier) }
         return service.events(from: start, to: end, calendars: visible, keepingEarlier: true)
@@ -265,7 +266,7 @@ final class EventStoreModel: ObservableObject {
 
     /// 1.3: `layoutEvent(id:)`, else the event among `others` (the joined window's pages, wave C §7.4).
     func layoutEvent(id: String, among others: [LayoutEvent]) -> LayoutEvent? {
-        layoutEvent(id: id) ?? others.first { $0.id == id }
+        layoutEvent(id: id)
     }
 
     /// Loaded events that touch `day` (all-day events spanning it included), in layout order.

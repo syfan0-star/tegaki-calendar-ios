@@ -97,6 +97,7 @@ final class SpanGuideModel: ObservableObject {
                               shown: AppSettings.spanGuideShown(kind), screenshot: screenshot, testHost: testHost),
               let text = SpanGuide.text(kind: kind, allowFinger: allowFinger) else { return false }
         if let up = card, up.kind == kind, up.timed { return false }
+        AppSettings.markSpanGuideShown(kind)
         present(kind, text, timed: true)
         return true
     }
@@ -112,9 +113,6 @@ final class SpanGuideModel: ObservableObject {
     /// they saw is recorded for this device and its kind (decision 9); the photo's card (`showForPhoto`) records
     /// nothing. Then it goes as `dismiss` takes it.
     func close() {
-        if let up = card, up.timed {
-            AppSettings.markSpanGuideShown(up.kind)
-        }
         dismiss()
     }
 
@@ -142,7 +140,6 @@ final class SpanGuideModel: ObservableObject {
             // A cancelled real sleep returns at once; only the card this timer belongs to goes. It stayed its
             // 8 seconds, so it was seen (decision 9).
             guard let self, self.card?.serial == shown.serial else { return }
-            AppSettings.markSpanGuideShown(shown.kind)
             self.card = nil
             self.timer = nil
         }

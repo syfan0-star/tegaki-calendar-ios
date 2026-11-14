@@ -2788,7 +2788,7 @@ extension CalendarRootScreen {
                                                              allowFinger: allowFinger, currentMonth: currentMonth))
             },
             onPenDown: {
-                guide.close()
+                guide.dismiss()
                 penDown()
             },
             onEraseEnded: eraseEnded,
