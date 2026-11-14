@@ -62,12 +62,13 @@ final class ScreenPathsSpanTests: XCTestCase {
 
     /// The screen's `ScreenPaths` over the bed's engine: its timers on the bed's session sleeper, its clock the bed's,
     /// the setting `setting`, the records in the scratch defaults, the engine's hooks routed as the screen routes them.
-    private func makePaths(screenshot: Bool = false) -> ScreenPaths {
+    private func makePaths(screenshot: Bool = false, shot: ScreenshotMode.Config? = nil) -> ScreenPaths {
         let sleeper = bed.sessionSleeper
         let made = ScreenPaths(sync: bed.engine,
                                onePage: OnePageSession(sync: bed.engine, sleep: { await sleeper.sleep($0) },
                                                        clock: { [weak bed] in bed?.now ?? Date(timeIntervalSince1970: 0) }),
                                screenshot: screenshot,
+                               shot: shot,
                                settingOn: { [weak self] in self?.setting ?? true },
                                defaults: scratch,
                                sleep: { await sleeper.sleep($0) },
@@ -149,6 +150,33 @@ final class ScreenPathsSpanTests: XCTestCase {
         }
     }
 
+    /// Screenshot mode's arguments of the photos of 2026-10 (its day: Wednesday 10/7) and `extra`.
+    private func shotConfig(_ extra: [String]) throws -> ScreenshotMode.Config {
+        try XCTUnwrap(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week"] + extra))
+    }
+
+    /// The photos' day with `--screenshot-month 2026-10`.
+    private let oct7 = DayKey(year: 2026, month: 10, day: 7)
+
+    /// `ScreenshotMode.spanDemoPage` with the photos' defaults (no grown, empty, tall year or store ink).
+    private func demo(_ pageId: String, _ kind: PageKind, crossing: Bool) -> InkPage {
+        ScreenshotMode.spanDemoPage(pageId: pageId, kind: kind, focus: oct7, weekStart: .monday, crossing: crossing,
+                                    grown: false, empty: false, tallYear: false, storeInk: false)
+    }
+
+    /// `span.state`'s value as its fields.
+    private func fields(_ label: String) -> [String: String] {
+        var out: [String: String] = [:]
+        for part in label.split(separator: ";") {
+            guard let eq = part.firstIndex(of: "=") else { continue }
+            out[String(part[..<eq])] = String(part[part.index(after: eq)...])
+        }
+        return out
+    }
+
+    private static let repository = URL(fileURLWithPath: "\(#filePath)")
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+
     // MARK: §5.1 — the one place that decides the path
 
     /// §5.1, D2: month and year are one page always; a week or a day joins with the setting on, in screenshot mode only with its
@@ -168,6 +196,10 @@ final class ScreenPathsSpanTests: XCTestCase {
                           "\(kind): screenshot mode's own setting")
             XCTAssertFalse(ScreenPaths.joins(kind: kind, setting: true, screenshot: false, screenshotSpan: false, fallenBack: [kind]),
                            "\(kind): stage 2")
+            XCTAssertFalse(ScreenPaths.joins(kind: kind, setting: true, screenshot: true, screenshotSpan: true, singlePage: true, fallenBack: []),
+                           "\(kind): --screenshot-single-page, the old versions' view")
+            XCTAssertTrue(ScreenPaths.joins(kind: kind, setting: true, screenshot: false, screenshotSpan: false, singlePage: true, fallenBack: []),
+                          "\(kind): no screenshot argument outside screenshot mode")
         }
         XCTAssertTrue(ScreenPaths.joins(kind: .day, setting: true, screenshot: false, screenshotSpan: false, fallenBack: [.week]))
 
@@ -1070,12 +1102,285 @@ final class ScreenPathsSpanTests: XCTestCase {
     }
 
     /// §3.6: the window does not shift under a sheet, the account question, the save-failure alert or screenshot mode's hold.
-    func testSheetHoldsTheShift() {
+    /// C3-M4: `--screenshot-span-shift` holds the first window's shift from its opening until the UI test taps `span.release`
+    /// (`releaseShift()`) — a window opened again meanwhile keeps the one hold, and once released no window holds again — or
+    /// until the 60 s ceiling passed (the injected sleep, `TestSleeper`: no real wait). Nothing without the argument, on the
+    /// one-page path (`--screenshot-single-page`) or outside screenshot mode.
+    func testSheetHoldsTheShift() async throws {
         XCTAssertFalse(ScreenPaths.canvasSheetOpen(sheetIsUp: false, accountQuestion: false, saveFailed: false, shiftHeld: false))
         XCTAssertTrue(ScreenPaths.canvasSheetOpen(sheetIsUp: true, accountQuestion: false, saveFailed: false, shiftHeld: false))
         XCTAssertTrue(ScreenPaths.canvasSheetOpen(sheetIsUp: false, accountQuestion: true, saveFailed: false, shiftHeld: false))
         XCTAssertTrue(ScreenPaths.canvasSheetOpen(sheetIsUp: false, accountQuestion: false, saveFailed: true, shiftHeld: false))
         XCTAssertTrue(ScreenPaths.canvasSheetOpen(sheetIsUp: false, accountQuestion: false, saveFailed: false, shiftHeld: true))
+
+        let shift = try shotConfig(["--screenshot-span", "on", "--screenshot-span-shift"])
+        let sleeper = bed.sessionSleeper
+        let before = sleeper.recorded.count
+        let held = makePaths(screenshot: true, shot: shift)
+        XCTAssertFalse(held.shiftHeld, "no window yet")
+        XCTAssertEqual(held.open(opening(focus: oct7)), .joined)
+        XCTAssertTrue(held.shiftHeld, "held from the opening")
+        XCTAssertTrue(ScreenPaths.canvasSheetOpen(sheetIsUp: false, accountQuestion: false, saveFailed: false, shiftHeld: held.shiftHeld))
+        XCTAssertEqual(fields(held.stateLabel)["hold"], "on")
+        await settle()
+        XCTAssertEqual(ScreenPaths.shiftHoldCeiling, 60)
+        XCTAssertEqual(Array(sleeper.recorded.dropFirst(before)), [60], "the ceiling's one wait")
+        XCTAssertEqual(held.open(opening(focus: oct7)), .joined)
+        XCTAssertTrue(held.shiftHeld, "a window opened again keeps the hold")
+        await settle()
+        XCTAssertEqual(Array(sleeper.recorded.dropFirst(before)), [60], "and its one timer")
+        held.releaseShift()
+        XCTAssertFalse(held.shiftHeld, "span.release")
+        XCTAssertFalse(ScreenPaths.canvasSheetOpen(sheetIsUp: false, accountQuestion: false, saveFailed: false, shiftHeld: held.shiftHeld))
+        XCTAssertEqual(fields(held.stateLabel)["hold"], "off")
+        XCTAssertEqual(held.open(opening(focus: oct7)), .joined)
+        XCTAssertFalse(held.shiftHeld, "released once: no window holds again")
+        await sleeper.advance()
+        await settle()
+        XCTAssertFalse(held.shiftHeld, "the cancelled timer does nothing")
+
+        let timed = makePaths(screenshot: true, shot: shift)
+        XCTAssertEqual(timed.open(opening(focus: oct7)), .joined)
+        XCTAssertTrue(timed.shiftHeld)
+        await settle()
+        XCTAssertEqual(sleeper.waiting, 1)
+        await sleeper.advance()
+        await settle()
+        XCTAssertFalse(timed.shiftHeld, "the 60 s ceiling released it")
+        XCTAssertEqual(timed.open(opening(focus: oct7)), .joined)
+        XCTAssertFalse(timed.shiftHeld)
+
+        let plain = makePaths(screenshot: true, shot: try shotConfig(["--screenshot-span", "on"]))
+        XCTAssertEqual(plain.open(opening(focus: oct7)), .joined)
+        XCTAssertFalse(plain.shiftHeld, "no --screenshot-span-shift")
+        let single = makePaths(screenshot: true, shot: try shotConfig(["--screenshot-span", "on", "--screenshot-span-shift", "--screenshot-single-page"]))
+        XCTAssertEqual(single.open(opening(focus: oct7)), .onePage)
+        XCTAssertFalse(single.shiftHeld, "one page: nothing to shift")
+        let normal = makePaths(screenshot: false, shot: shift)
+        XCTAssertEqual(normal.open(opening(focus: oct7)), .joined)
+        XCTAssertFalse(normal.shiftHeld, "outside screenshot mode the arguments are not read")
+        XCTAssertEqual(sleeper.waiting, 0)
+        XCTAssertEqual(faults, [])
+    }
+
+    // MARK: Screenshot mode's joined pages (§3.12; C3-B1, C3-M4; the plan §4.2–§4.4, §7.3)
+
+    /// §3.12, B_DESIGN.md §5.6: with `--screenshot-span on` screenshot mode opens a week or a day joined (its switch starts on)
+    /// and every page of the window is screenshot mode's demo of that page — never the engine's file — the focus page the
+    /// one-page demo with its half of the crossing demo, its left neighbour the other half, every id once in the window.
+    /// Without the argument (or with `--screenshot-span off`, or the switch turned off) the one page is 1.2.3's demo page;
+    /// `--screenshot-single-page` is the one page with the halves the focus page owns (a month: 1.2.3's demo).
+    func testScreenshotWindowReadsTheDemoPagesAndTheCrossingDemo() async throws {
+        try bed.engine.save(bed.page("w-2026-10-05", ["stored"]))
+        let on = try shotConfig(["--screenshot-span", "on"])
+        let shot = makePaths(screenshot: true, shot: on)
+        XCTAssertTrue(shot.screenshotSpan, "the switch starts with --screenshot-span on")
+        XCTAssertEqual(shot.open(opening(focus: oct7)), .joined)
+        let week = try XCTUnwrap(shot.span)
+        await week.prefetch()
+        XCTAssertEqual(week.focusPageId, "w-2026-10-05")
+        XCTAssertEqual(week.pageIds, ["w-2026-09-21", "w-2026-09-28", "w-2026-10-05", "w-2026-10-12", "w-2026-10-19"])
+        var seen: Set<String> = []
+        for id in week.pageIds {
+            let page = try XCTUnwrap(week.page(id))
+            XCTAssertEqual(Set(page.liveStrokeIds), Set(demo(id, .week, crossing: true).liveStrokeIds), id)
+            XCTAssertFalse(page.liveStrokeIds.isEmpty, id)
+            XCTAssertTrue(seen.isDisjoint(with: page.liveStrokeIds), "\(id): an id of another page")
+            seen.formUnion(page.liveStrokeIds)
+        }
+        let crossing = ScreenshotMode.crossingDemoStrokeIds(.week)
+        let focusIds = Set(try XCTUnwrap(week.page("w-2026-10-05")).liveStrokeIds)
+        let oneDemo = ScreenshotMode.demoPage(kind: .week, focus: oct7, grown: false, empty: false, tallYear: false, weekStart: .monday, storeInk: false)
+        XCTAssertEqual(focusIds, Set(oneDemo.liveStrokeIds).union(crossing.focus), "the one-page demo and its half")
+        XCTAssertFalse(focusIds.contains("stored"), "the engine's file is not read")
+        XCTAssertTrue(Set(try XCTUnwrap(week.page("w-2026-09-28")).liveStrokeIds).isSuperset(of: crossing.left), "the left half")
+
+        XCTAssertEqual(shot.open(opening(.day, focus: oct7)), .joined)
+        let day = try XCTUnwrap(shot.span)
+        await day.prefetch()
+        let dayCrossing = ScreenshotMode.crossingDemoStrokeIds(.day)
+        XCTAssertTrue(Set(try XCTUnwrap(day.page("d-2026-10-07")).liveStrokeIds).isSuperset(of: dayCrossing.focus))
+        XCTAssertTrue(Set(try XCTUnwrap(day.page("d-2026-10-06")).liveStrokeIds).isSuperset(of: dayCrossing.left))
+        XCTAssertTrue(Set(try XCTUnwrap(day.page("d-2026-10-08")).liveStrokeIds).isDisjoint(with: dayCrossing.focus + dayCrossing.left))
+
+        // 設定 › ページ off (the screen copies `ScreenshotMode.pageSpan`): 1.2.3's one demo page, no crossing demo.
+        shot.screenshotSpan = false
+        XCTAssertEqual(shot.open(opening(focus: oct7)), .onePage)
+        XCTAssertEqual(Set(shot.onePage.page.liveStrokeIds), Set(oneDemo.liveStrokeIds))
+        shot.screenshotSpan = true
+        XCTAssertEqual(shot.open(opening(focus: oct7)), .joined)
+
+        for args in [[], ["--screenshot-span", "off"], ["--screenshot-span", "ON"]] {
+            let plain = makePaths(screenshot: true, shot: try shotConfig(args))
+            XCTAssertFalse(plain.screenshotSpan, "\(args)")
+            XCTAssertEqual(plain.open(opening(focus: oct7)), .onePage, "\(args)")
+            XCTAssertEqual(Set(plain.onePage.page.liveStrokeIds), Set(oneDemo.liveStrokeIds), "\(args): 1.2.3's demo page")
+        }
+
+        let single = makePaths(screenshot: true, shot: try shotConfig(["--screenshot-span", "on", "--screenshot-single-page"]))
+        XCTAssertEqual(single.open(opening(focus: oct7)), .onePage)
+        XCTAssertEqual(Set(single.onePage.page.liveStrokeIds), Set(demo("w-2026-10-05", .week, crossing: true).liveStrokeIds))
+        XCTAssertTrue(Set(single.onePage.page.liveStrokeIds).isSuperset(of: crossing.focus), "its own half")
+        XCTAssertTrue(Set(single.onePage.page.liveStrokeIds).isDisjoint(with: crossing.left), "never the left page's")
+        XCTAssertEqual(single.open(opening(.day, focus: oct7)), .onePage)
+        XCTAssertTrue(Set(single.onePage.page.liveStrokeIds).isSuperset(of: dayCrossing.focus))
+        XCTAssertEqual(single.open(opening(.month, focus: oct7)), .onePage)
+        let month = ScreenshotMode.demoPage(kind: .month, focus: oct7, grown: false, empty: false, tallYear: false, weekStart: .monday, storeInk: false)
+        XCTAssertEqual(Set(single.onePage.page.liveStrokeIds), Set(month.liveStrokeIds), "a month: 1.2.3's demo")
+        XCTAssertNil(ScreenPaths.singlePageDemo(on, opening(focus: oct7)), "no --screenshot-single-page")
+        XCTAssertNil(ScreenPaths.singlePageDemo(nil, opening(focus: oct7)), "normal use")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.12, the plan §7.3: `--screenshot-offset-x p` puts the band x `origin(focus) + W/2 + p·W` in the middle of the canvas
+    /// (−0.5: the focus page's left boundary; +1, `--screenshot-span-shift`'s opening: the next page's middle), y from
+    /// `--screenshot-offset` or 0; without it `--screenshot-offset` gets the focus page's origin; nil without either.
+    func testScreenshotOffsetXPutsTheBoundaryInTheMiddle() async throws {
+        let session = try await openWindow()
+        let origin = try XCTUnwrap(session.origin(ofPage: w1116))
+        XCTAssertEqual(origin, 2_800)
+        let boundary = try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: w1116, pages: -0.5, offset: nil,
+                                                                 viewportWidth: 834, zoom: 0.5))
+        XCTAssertEqual(boundary.x + 834 / 2 / 0.5, origin, accuracy: 1e-9, "the left boundary in the middle")
+        XCTAssertEqual(boundary.y, 0)
+        let next = try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: w1116, pages: 1, offset: CGPoint(x: 5, y: 30),
+                                                             viewportWidth: 834, zoom: 0.5))
+        XCTAssertEqual(next.x + 834 / 2 / 0.5, origin + 1_400 + 700, accuracy: 1e-9, "the next page's middle")
+        XCTAssertEqual(next.y, 30, "--screenshot-offset's y")
+        XCTAssertEqual(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: w1116, pages: nil, offset: CGPoint(x: 10, y: 20),
+                                                   viewportWidth: 834, zoom: 0.5), CGPoint(x: origin + 10, y: 20))
+        XCTAssertEqual(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: w1116, pages: .infinity, offset: CGPoint(x: 10, y: 20),
+                                                   viewportWidth: 834, zoom: 0.5), CGPoint(x: origin + 10, y: 20))
+        XCTAssertNil(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: w1116, pages: nil, offset: nil, viewportWidth: 834, zoom: 0.5))
+        XCTAssertEqual(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: w1116, pages: 0, offset: nil, viewportWidth: 0, zoom: 0)?.x,
+                       origin + 700, "before the canvas has a size: the point itself")
+        XCTAssertEqual(try shotConfig(["--screenshot-span-shift"]).spanOpeningOffsetX, 1)
+        XCTAssertEqual(try shotConfig(["--screenshot-span-shift", "--screenshot-offset-x", "-0.5"]).spanOpeningOffsetX, -0.5)
+        XCTAssertNil(try shotConfig(["--screenshot-span", "on"]).spanOpeningOffsetX)
+    }
+
+    /// The plan §4.3: `span.state` — shown with the joined pages' arguments only — reads out the path, the window (its id, kind,
+    /// focus page, the focus page's origin in the band, its first page and pages, its version), the shifts and stops of
+    /// the window, the hold and the newest stroke of the pages on the screen in its own cell (a line across the boundary
+    /// keeps its points beyond its page: x < 0 on the page that owns it). The one-page path reads `path=one`.
+    func testScreenshotStateReadsTheWindow() async throws {
+        let on = try shotConfig(["--screenshot-span", "on"])
+        for args in [["--screenshot-span", "on"], ["--screenshot-span", "off"], ["--screenshot-single-page"], ["--screenshot-span-shift"]] {
+            XCTAssertTrue(ScreenPaths.reportsState(try shotConfig(args)), "\(args)")
+        }
+        XCTAssertFalse(ScreenPaths.reportsState(try shotConfig(["--screenshot-probe", "--screenshot-select", "a"])), "1.2.3's arguments")
+        XCTAssertFalse(ScreenPaths.reportsState(nil))
+        XCTAssertFalse(makePaths(screenshot: false, shot: on).reportsShotState, "outside screenshot mode")
+
+        let shot = makePaths(screenshot: true, shot: on)
+        XCTAssertTrue(shot.reportsShotState)
+        XCTAssertEqual(shot.open(opening(focus: oct7)), .joined)
+        let session = try XCTUnwrap(shot.span)
+        await session.prefetch()
+        var state = fields(shot.stateLabel)
+        XCTAssertEqual(state["path"], "span")
+        XCTAssertEqual(state["session"], session.id)
+        XCTAssertEqual(state["kind"], "week")
+        XCTAssertEqual(state["focus"], "w-2026-10-05")
+        XCTAssertEqual(state["origin"], String(format: "%.1f", Double(try XCTUnwrap(session.origin(ofPage: "w-2026-10-05")))))
+        XCTAssertEqual(state["origin"], "2800.0")
+        XCTAssertEqual(state["first"], "w-2026-09-21")
+        XCTAssertEqual(state["pages"], "5")
+        XCTAssertEqual(state["version"], "\(session.windowVersion)")
+        XCTAssertEqual(state["shifts"], "0")
+        XCTAssertEqual(state["stops"], "0")
+        XCTAssertEqual(state["hold"], "off")
+        XCTAssertNotEqual(state["last"], "-", "the demo strokes")
+
+        // A line from the focus week into the next one, its centre on the boundary: the next week owns it (D15).
+        let ledger = JoinedLedgerStandIn(session)
+        let boundary = try XCTUnwrap(session.origin(ofPage: "w-2026-10-12"))
+        let line = try XCTUnwrap(ledger.draw([CGPoint(x: boundary - 120, y: 900), CGPoint(x: boundary, y: 920), CGPoint(x: boundary + 120, y: 940)]))
+        ledger.put()
+        session.drainInbox()
+        let points = line.points.map(\.x)
+        state = fields(shot.stateLabel)
+        let last = try XCTUnwrap(state["last"])
+        XCTAssertEqual(last, "w-2026-10-12:grid:minx=\(String(format: "%.1f", Double(points.min() ?? 0))):maxx=\(String(format: "%.1f", Double(points.max() ?? 0)))")
+        XCTAssertLessThan(try XCTUnwrap(points.min()), 0, "kept beyond the page's left edge")
+
+        _ = shot.stopped(session.stopped(midX: middle(of: session, slots: 1)), focus: oct7, kind: .week, weekStart: .monday, boundary: {})
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
+        state = fields(shot.stateLabel)
+        XCTAssertEqual(state["stops"], "1")
+        XCTAssertEqual(state["shifts"], "1")
+        XCTAssertEqual(state["focus"], "w-2026-10-12")
+        XCTAssertEqual(state["first"], "w-2026-09-28")
+        XCTAssertEqual(state["version"], "\(session.windowVersion)")
+        XCTAssertEqual(state["session"], session.id, "the same window")
+
+        shot.screenshotSpan = false
+        XCTAssertEqual(shot.open(opening(focus: oct7)), .onePage)
+        state = fields(shot.stateLabel)
+        XCTAssertEqual(state["path"], "one")
+        XCTAssertEqual(state["session"], "-")
+        XCTAssertEqual(state["kind"], "week")
+        XCTAssertEqual(state["focus"], "w-2026-10-05")
+        XCTAssertEqual(state["origin"], "0.0")
+        XCTAssertEqual(state["pages"], "1")
+        XCTAssertEqual(state["shifts"], "0")
+        XCTAssertEqual(state["stops"], "0")
+        XCTAssertEqual(ScreenPaths.newestStroke(in: []), "-")
+        XCTAssertEqual(ScreenPaths.newestStroke(in: [bed.page(w1116, ["a", "b"])]), "\(w1116):grid:minx=140.0:maxx=150.0", "the largest t")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.12, §3.14, the plan §4.4: `--screenshot-span-guide one|two` is the guide's card of a week or a day with 「指でも書く」
+    /// off / on (no value or an unknown one: as it is), `stage-two` stage 2's notice (N-8); nothing without the argument.
+    func testScreenshotGuideArguments() throws {
+        XCTAssertNil(ScreenPaths.photoGuide(try shotConfig([]), kind: .week, allowFinger: true))
+        XCTAssertNil(ScreenPaths.photoGuide(nil, kind: .week, allowFinger: true))
+        for kind in [PageKind.week, .day] {
+            for finger in [false, true] {
+                XCTAssertEqual(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "one"]), kind: kind, allowFinger: finger),
+                               .card(allowFinger: false), "\(kind)")
+                XCTAssertEqual(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "two"]), kind: kind, allowFinger: finger),
+                               .card(allowFinger: true), "\(kind)")
+                XCTAssertEqual(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide"]), kind: kind, allowFinger: finger),
+                               .card(allowFinger: finger), "\(kind): no value")
+                XCTAssertEqual(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "three"]), kind: kind, allowFinger: finger),
+                               .card(allowFinger: finger), "\(kind): an unknown value")
+            }
+        }
+        XCTAssertNil(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "one"]), kind: .month, allowFinger: false), "no card of a month")
+        for kind in PageKind.allCases {
+            XCTAssertEqual(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "stage-two"]), kind: kind, allowFinger: false),
+                           .stageTwoNotice, "\(kind)")
+        }
+    }
+
+    /// The View's lines of screenshot mode's joined pages that no screen-free test runs (C3-M3: not claimed as "fails when
+    /// removed"; read here from the source so a lost wire shows): the settings at 「ページ」, the hold passed to the canvas,
+    /// the band's opening offset, the two elements, the switch's memory, the guide's photo and N-8. The one page keeps
+    /// 1.2.3's `initialPaperOffset`.
+    func testScreenPassesTheScreenshotArguments() throws {
+        let url = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
+        let source = try String(contentsOf: url, encoding: .utf8)
+        for wire in [
+            "scrollToPageOnAppear: ScreenshotMode.current?.settingsSection == .page",
+            "saveFailed: saveError != nil, shiftHeld: paths.shiftHeld)",
+            "pages: ScreenshotMode.current?.spanOpeningOffsetX,",
+            "offset: ScreenshotMode.current?.offset, viewportWidth: viewportWidth, zoom: zoom),",
+            ".overlay(alignment: .topLeading) { spanShotElements }",
+            "if paths.reportsShotState {",
+            ".accessibilityIdentifier(ScreenPaths.stateIdentifier)",
+            ".accessibilityLabel(paths.stateLabel)",
+            ".accessibilityIdentifier(ScreenPaths.releaseIdentifier)",
+            ".onTapGesture { paths.releaseShift() }",
+            "if ScreenshotMode.isActive { paths.screenshotSpan = ScreenshotMode.pageSpan }",
+            "guide.showForPhoto(kind, allowFinger: finger)",
+            "showToast(SpanGuide.stageTwoNotice, duration: Self.screenshotReadOnlyToastDuration)",
+            "initialPaperOffset: ScreenshotMode.current?.offset,",
+        ] {
+            XCTAssertTrue(source.contains(wire), wire)
+        }
+        XCTAssertEqual(ScreenPaths.stateIdentifier, "span.state")
+        XCTAssertEqual(ScreenPaths.releaseIdentifier, "span.release")
     }
 
     /// 1.2.3's 「手書きを保存できませんでした」 on the joined path: one notice while it is up, whichever windows failed (the one on
