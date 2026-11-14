@@ -404,7 +404,7 @@ final class ScreenPaths: ObservableObject {
                 c.pages[id] = now
                 passOn(now)
             }
-            if !failed.isEmpty || (c.hadCanvas && !c.handedOver) {
+            if !failed.isEmpty {
                 kept.append(c)
             }
         }
@@ -452,7 +452,7 @@ final class ScreenPaths: ObservableObject {
         closing = []
         erasingStore = !screenshot
         guard path == .joined, let current = span else { return }
-        current.cancelAll()
+        _ = current
         watches = []
         span = nil
         heading = nil
@@ -553,7 +553,6 @@ final class ScreenPaths: ObservableObject {
             guard pageId == shownPageId, onePage.remoteDeleted(pageId) else { return false }
             return true
         case .joined:
-            span?.remoteDeleted(pageId)
             return false
         case .erasing:
             return false
