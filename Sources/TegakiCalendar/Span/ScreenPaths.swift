@@ -250,11 +250,15 @@ final class ScreenPaths: ObservableObject {
         return screenshot ? screenshotSpan && !singlePage : setting
     }
 
-    /// The device of a window (C3-m11): an iPad by the idiom, the class and the orientation from the window's size (the
-    /// root view's size with its safe area); nil while there is no size yet (no window scene).
-    static func device(isPad: Bool, windowSize: CGSize) -> Device? {
-        guard windowSize.width.isFinite, windowSize.height.isFinite, windowSize.width > 0, windowSize.height > 0 else { return nil }
-        return Device(deviceClass: SpanDeviceClass(screen: windowSize, isPad: isPad), orientation: SpanOrientation(screen: windowSize))
+    /// The device of a window (C3-m11): an iPad by the idiom; the class and the orientation from the screen of the window's
+    /// scene (`screen.bounds`, interface-oriented: the source the canvas decides its window anew from, so in Split View or
+    /// Stage Manager the class is the device's and the orientation the screen's, not the window's; review J6, the plan
+    /// §6 #11, §7.3); nil until the window is laid out (`windowSize`, the root view's size with its safe area) and its
+    /// scene is there.
+    static func device(isPad: Bool, windowSize: CGSize, screen: CGSize?) -> Device? {
+        guard windowSize.width.isFinite, windowSize.height.isFinite, windowSize.width > 0, windowSize.height > 0,
+              let screen, screen.width.isFinite, screen.height.isFinite, screen.width > 0, screen.height > 0 else { return nil }
+        return Device(deviceClass: SpanDeviceClass(screen: screen, isPad: isPad), orientation: SpanOrientation(screen: screen))
     }
 
     // MARK: Saving (§2 #1, #2, #8, #10, #14, #16)

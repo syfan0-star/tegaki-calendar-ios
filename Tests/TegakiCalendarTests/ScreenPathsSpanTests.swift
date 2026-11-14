@@ -230,18 +230,33 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
-    /// C3-m11: the device of a window comes from the idiom and the window's size; nothing before the window is laid out.
+    /// C3-m11: the device of a window comes from the idiom and the screen of the window's scene (full screen: the window's
+    /// size); nothing before the window is laid out or without a scene.
     func testDeviceFromTheWindowSize() {
-        XCTAssertEqual(ScreenPaths.device(isPad: true, windowSize: CGSize(width: 820, height: 1180)),
-                       ScreenPaths.Device(deviceClass: .iPad11, orientation: .portrait))
-        XCTAssertEqual(ScreenPaths.device(isPad: true, windowSize: CGSize(width: 1180, height: 820)),
+        func device(_ isPad: Bool, _ size: CGSize) -> ScreenPaths.Device? {
+            ScreenPaths.device(isPad: isPad, windowSize: size, screen: size)
+        }
+        XCTAssertEqual(device(true, CGSize(width: 820, height: 1180)), ScreenPaths.Device(deviceClass: .iPad11, orientation: .portrait))
+        XCTAssertEqual(device(true, CGSize(width: 1180, height: 820)), ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape))
+        XCTAssertEqual(device(true, CGSize(width: 744, height: 1133))?.deviceClass, .iPadMini)
+        XCTAssertEqual(device(true, CGSize(width: 1032, height: 1376))?.deviceClass, .iPad13)
+        XCTAssertEqual(device(false, CGSize(width: 874, height: 402)), ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape))
+        XCTAssertNil(device(true, .zero))
+        XCTAssertNil(device(false, CGSize(width: CGFloat.nan, height: 800)))
+        XCTAssertNil(ScreenPaths.device(isPad: true, windowSize: CGSize(width: 820, height: 1180), screen: nil), "no scene yet: wait")
+        XCTAssertNil(ScreenPaths.device(isPad: true, windowSize: .zero, screen: CGSize(width: 820, height: 1180)), "not laid out yet")
+    }
+
+    /// Review J6 (the plan §6 #11, §7.3): in Split View or Stage Manager the window is narrower than the screen; the class and
+    /// the orientation come from the scene's screen, the source the canvas decides its window anew from (its
+    /// `redecideWindow`), so an 11-inch iPad is not taken for a mini and the window's orientation is the canvas's.
+    func testDeviceFollowsTheSceneScreenInSplitView() {
+        // An iPad Air 11 in landscape (1180 × 820) with the app in a half of Split View (590 × 820): the 11-inch, landscape.
+        XCTAssertEqual(ScreenPaths.device(isPad: true, windowSize: CGSize(width: 590, height: 820), screen: CGSize(width: 1180, height: 820)),
                        ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape))
-        XCTAssertEqual(ScreenPaths.device(isPad: true, windowSize: CGSize(width: 744, height: 1133))?.deviceClass, .iPadMini)
-        XCTAssertEqual(ScreenPaths.device(isPad: true, windowSize: CGSize(width: 1032, height: 1376))?.deviceClass, .iPad13)
-        XCTAssertEqual(ScreenPaths.device(isPad: false, windowSize: CGSize(width: 874, height: 402)),
-                       ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape))
-        XCTAssertNil(ScreenPaths.device(isPad: true, windowSize: .zero))
-        XCTAssertNil(ScreenPaths.device(isPad: false, windowSize: CGSize(width: CGFloat.nan, height: 800)))
+        // A 13-inch in portrait with a Stage Manager window of 700 × 900: the 13-inch, portrait.
+        XCTAssertEqual(ScreenPaths.device(isPad: true, windowSize: CGSize(width: 700, height: 900), screen: CGSize(width: 1032, height: 1376)),
+                       ScreenPaths.Device(deviceClass: .iPad13, orientation: .portrait))
     }
 
     /// C3-m11: a joined page without the window scene waits on the desk (no window of a guessed device); the next `open` with

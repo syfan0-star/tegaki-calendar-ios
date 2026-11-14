@@ -1484,6 +1484,13 @@ struct CalendarRootScreen: View {
         joinedOpened(opened)
     }
 
+    /// 1.3 (review J6): the screen of the window's scene (`screen.bounds`, as the canvas reads it when it decides its window
+    /// anew), the active scene's first; nil before a scene is connected.
+    private var sceneScreenSize: CGSize? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        return (scenes.first { $0.activationState == .foregroundActive } ?? scenes.first)?.screen.bounds.size
+    }
+
     /// 1.3 (§3.1, C3-m11): what a page opens with — on the joined path the device (nil until the window is laid out), the
     /// paper area and the paper's context.
     private func opening(kind: PageKind, focus: DayKey) -> ScreenPaths.Opening {
@@ -1491,7 +1498,7 @@ struct CalendarRootScreen: View {
             kind: kind,
             focus: focus,
             weekStart: weekStart,
-            device: ScreenPaths.device(isPad: UIDevice.current.userInterfaceIdiom == .pad, windowSize: windowSize),
+            device: ScreenPaths.device(isPad: UIDevice.current.userInterfaceIdiom == .pad, windowSize: windowSize, screen: sceneScreenSize),
             paperArea: paperArea.height > 0 ? paperArea : nil,
             context: SpanSession.PaperContext(now: ScreenshotMode.current?.today ?? Date(), holidays: HolidayChoice.current,
                                               words: LayoutWords.of(L.language), calendar: DayKey.deviceCalendar)
