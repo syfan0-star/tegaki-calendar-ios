@@ -54,6 +54,18 @@ import Layout
 /// `--screenshot-store-ink` (docs/M7B.md, FIX4; only `store-shots.yml` passes it): the richer handwriting of
 /// the App Store's photos (`ScreenshotStoreInk.swift`) and the 7th's call away from its meeting. Without
 /// it the demo pages and events are what the fixtures and the Japanese photos have seen (K-7, J-4).
+/// 1.3 (docs/M7C_CONTRACT.md §3.12, B_DESIGN.md §5.6): the joined pages' arguments, all off unless given, so
+/// without them every photo, UI test and compat11 `screenshot-*.json` is what 1.2.3 made (the one-page path, D2/D9):
+/// `--screenshot-span on|off` (the joined path; the switch of 設定 › ページ starts with it, `pageSpan`),
+/// `--screenshot-offset-x <pages>` (where the band opens: −0.5 puts the focus page's left boundary in the middle),
+/// `--screenshot-span-shift` (the pair before and after a shift; the screen holds the shift), `--screenshot-single-page`
+/// (the old versions' view: one page with the halves of the crossing demo it owns), `--screenshot-span-guide
+/// [one|two|stage-two]` (the first-time guide's card, or N-8), `--screenshot-week-memo` (the week's memo, the gate of
+/// 1/15; parsed only) and `--screenshot-settings-section page` (the settings at 「ページ」, on the `settings` sheet).
+/// The pages of the window are `spanDemoPage`: the focus page is `demoPage` byte for byte, a neighbour has the same
+/// demo with ids of its own (`neighborDemoId`), and with the crossing demo (`Config.crossingDemo`) the two pages of
+/// the focus page's left boundary hold the strokes drawn across it (`crossingDemoStrokeIds`, each on the page of its
+/// centre, D15).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -103,6 +115,39 @@ enum ScreenshotMode {
         var eraserOrigin: EraserOrigin? {
             self == .eraser ? .toolbar : nil
         }
+    }
+
+    /// `--screenshot-span` (1.3, docs/M7C_CONTRACT.md §3.12): `on` opens the week and the day joined sideways (the
+    /// user's default), `off` one page at a time as without it. nil (no value or an unknown one) = off: screenshot
+    /// mode's default is the one-page path, so the photos and the UI tests of 1.2.3 do not change.
+    enum SpanShot: String, Equatable, Sendable, CaseIterable {
+        case on, off
+    }
+
+    /// `--screenshot-span-guide` (1.3, §3.12, §3.14, §8.1): the card of the first-time guide for its photos, or N-8.
+    /// `auto` (no value or an unknown one): the card 「指でも書く」 as it is now chooses; `one`: the card of one finger
+    /// (N-4 / N-6, 「指でも書く」 off); `two`: the card of two fingers (N-5 / N-7, on); `stage-two`: the notice of
+    /// stage 2 (N-8) instead of a card.
+    enum GuideShot: String, Equatable, Sendable, CaseIterable {
+        case auto, one, two
+        case stageTwo = "stage-two"
+
+        /// The 「指でも書く」 the card's words are chosen with (`SpanGuide.text(kind:allowFinger:)`): off for `one`,
+        /// on for `two`, else the screen's `current` value.
+        func allowFinger(current: Bool) -> Bool {
+            switch self {
+            case .one: return false
+            case .two: return true
+            case .auto, .stageTwo: return current
+            }
+        }
+    }
+
+    /// `--screenshot-settings-section` (1.3, §3.12; docs/M7C.md, wave D's text decision 10): the section of the settings
+    /// the `settings` sheet scrolls to (`SettingsScreen.scrollToPageOnAppear`). Not a `Sheet` (its 11 cases are fixed by
+    /// 1.2.3's tests): the argument opens the `settings` sheet itself.
+    enum SettingsSection: String, Equatable, Sendable, CaseIterable {
+        case page
     }
 
     /// The tool a screenshot starts with (§7.3): the lasso for the `lasso` sheet or a preselection
@@ -172,6 +217,56 @@ enum ScreenshotMode {
         var weekStart: WeekStart = .monday
         /// `--screenshot-store-ink` (docs/M7B.md, FIX4): the App Store's demo ink and events.
         var storeInk: Bool = false
+        // 1.3 (docs/M7C_CONTRACT.md §3.12, B_DESIGN.md §5.6). Every one off by default: the Config of the arguments
+        // of 1.2.3 is the same value as before (`Config(page:month:today:focus:sheet:)` of 1.2.3's tests included).
+        /// `--screenshot-span on|off`: nil = off (no value or an unknown one), the one-page path.
+        var span: SpanShot? = nil
+        /// `--screenshot-offset-x <pages>`: where the band opens, in pages from the focus page's middle at the middle of
+        /// the canvas (−0.5: the focus page's left boundary in the middle, +1: the next page's middle); nil unless the
+        /// value is a finite number (the canvas then opens with the focus page in the middle).
+        var spanOffsetX: CGFloat? = nil
+        /// `--screenshot-span-shift`: the pair of photos before and after a shift of the window. Parsed here; the band
+        /// opens one page off (`spanOpeningOffsetX`) and the screen holds the shift until the UI test releases it.
+        var spanShift: Bool = false
+        /// `--screenshot-single-page`: the old versions' view, one page at a time, with the halves of the crossing demo
+        /// the focus page owns (`crossingDemo`); it wins over `--screenshot-span on` (`joinsPages`).
+        var singlePage: Bool = false
+        /// `--screenshot-span-guide [one|two|stage-two]`: nil without it; `.auto` with no value or an unknown one.
+        var spanGuide: GuideShot? = nil
+        /// `--screenshot-week-memo`: the week's memo below 24:00 (§5, the gate of 1/15). Parsed only.
+        var weekMemo: Bool = false
+        /// `--screenshot-settings-section page`: the `settings` sheet scrolled to 「ページ」 (`parse` makes the sheet
+        /// `settings` when none was asked for; with another sheet that sheet wins and this is nil).
+        var settingsSection: SettingsSection? = nil
+
+        /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
+        var joinsPages: Bool {
+            span == .on && !singlePage
+        }
+
+        /// 1.3: the demo pages carry the crossing demo (`spanDemoPage(…crossing:)`): with `--screenshot-span on` (the
+        /// window) and with `--screenshot-single-page` (the halves of the focus page). Never without either.
+        var crossingDemo: Bool {
+            span == .on || singlePage
+        }
+
+        /// 1.3: the page offset the band opens at: `--screenshot-offset-x`, else +1 with `--screenshot-span-shift` (the
+        /// next page in the middle, so the first stop moves the focus and the window shifts), else nil.
+        var spanOpeningOffsetX: CGFloat? {
+            spanOffsetX ?? (spanShift ? 1 : nil)
+        }
+    }
+
+    /// 1.3 (§3.12, §5.1 of the wave's plan): screenshot mode's 「前後のページを横につなげる」, in memory only (nothing is
+    /// stored in screenshot mode): `--screenshot-span on` at launch (`pageSpanAtLaunch`), then what 設定 › ページ was last
+    /// switched to in this run. The settings sheet opens with it (`SettingsScreen.initialPageSpan`), so a sheet opened
+    /// again shows the path the screen is on. Read and written on the main actor only; nothing outside screenshot mode
+    /// reads it.
+    @MainActor static var pageSpan: Bool = pageSpanAtLaunch(current)
+
+    /// The switch at launch: on only with `--screenshot-span on` (nil, normal use: off).
+    static func pageSpanAtLaunch(_ config: Config?) -> Bool {
+        config?.span == .on
     }
 
     /// Screenshot mode's holidays unless `--screenshot-holidays` says otherwise (0-26).
@@ -201,6 +296,13 @@ enum ScreenshotMode {
         if let index = arguments.firstIndex(of: "--screenshot-sheet"), index + 1 < arguments.count {
             sheet = Sheet(rawValue: arguments[index + 1]) // an unknown value → no sheet
         }
+        // 1.3 (§3.12): the settings at a section are the `settings` sheet; another sheet asked for wins.
+        var settingsSection: SettingsSection?
+        if let index = arguments.firstIndex(of: "--screenshot-settings-section"), index + 1 < arguments.count {
+            settingsSection = SettingsSection(rawValue: arguments[index + 1]) // an unknown value → nil
+        }
+        if settingsSection != nil, sheet == nil { sheet = .settings }
+        if sheet != .settings { settingsSection = nil }
         // A sheet always sits on the month page (M3b contract §5): it wins over `--screenshot-page`.
         if sheet != nil { page = .month }
         let landscape = arguments.contains("--screenshot-landscape")
@@ -247,7 +349,31 @@ enum ScreenshotMode {
             weekStart = parseWeekStart(arguments[index + 1]) ?? .monday
         }
         let storeInk = arguments.contains("--screenshot-store-ink")
-        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk)
+        // 1.3 (§3.12): the joined pages' arguments. A missing or broken value is off (nil), never a guess.
+        var span: SpanShot?
+        if let index = arguments.firstIndex(of: "--screenshot-span"), index + 1 < arguments.count {
+            span = SpanShot(rawValue: arguments[index + 1])
+        }
+        var spanOffsetX: CGFloat?
+        if let index = arguments.firstIndex(of: "--screenshot-offset-x"), index + 1 < arguments.count {
+            spanOffsetX = parseSpanOffsetX(arguments[index + 1])
+        }
+        let spanShift = arguments.contains("--screenshot-span-shift")
+        let singlePage = arguments.contains("--screenshot-single-page")
+        var spanGuide: GuideShot?
+        if let index = arguments.firstIndex(of: "--screenshot-span-guide") {
+            // The value may be left out (the next argument is then another one, or none): the card as 「指でも書く」 is.
+            spanGuide = index + 1 < arguments.count ? GuideShot(rawValue: arguments[index + 1]) ?? .auto : .auto
+        }
+        let weekMemo = arguments.contains("--screenshot-week-memo")
+        return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
+                      span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection)
+    }
+
+    /// "-0.5" → −0.5 (pages); nil unless the text is a finite number ("abc", "inf", "nan", "" are nil). Any sign.
+    static func parseSpanOffsetX(_ text: String) -> CGFloat? {
+        guard let value = Double(text), value.isFinite else { return nil }
+        return CGFloat(value)
     }
 
     /// "auto", "none", "JP", "US-CA", "NZ-South Canterbury"; nil for anything else. (`HolidaySetting`
@@ -592,6 +718,142 @@ enum ScreenshotMode {
         return page
     }
 
+    // MARK: - Demo ink of the joined pages (1.3, docs/M7C_CONTRACT.md §3.12, B_DESIGN.md §5.6)
+
+    /// The demo page `pageId` of a window of `kind` whose demo focus is `focus` (screenshot mode's day, the 7th: not the
+    /// day the window is around now, so a page has the same strokes wherever the window moves):
+    /// - the focus page (`PageNavigation.pageId(kind, focus:weekStart:)`) is `demoPage(kind:focus:…)`, byte for byte,
+    ///   ids included (`ScreenshotModeTests.testDemoPageIdsMatchTheNavigation`, the UI tests' `--screenshot-select`);
+    /// - another page of the kind is the demo of its own day (the same weekday for a week, the same day of the month
+    ///   for a month, the same date for a year) with every id made its own (`neighborDemoId`: "-<pageId>" added, no
+    ///   "|" (K-10)), so the window never holds one id on two pages;
+    /// - with `crossing` (`Config.crossingDemo`), the page on the focus page's left and the focus page add the strokes
+    ///   of the crossing demo that each owns (D15: the page of its bounds' centre x; its points relative to its own
+    ///   cell, past the paper's edge and not cut, §4.1): a week two lines from the last night of the left week into the
+    ///   first morning of the focus week, one held by each; a day one line at 18:00 above 24:00 (the focus day's) and
+    ///   one in the free memo below 24:00 (the left day's). So the focus page alone (`--screenshot-single-page`, the old
+    ///   versions' view) shows its line running off its LEFT edge only. Week and day only; nothing with `empty`.
+    /// A page id this kind and week start do not read (another kind, the other week start's week) is an empty page.
+    /// `grown`, `empty`, `tallYear` and `storeInk` are those of `demoPage`, for every page alike.
+    static func spanDemoPage(pageId: String, kind: PageKind, focus: DayKey, weekStart: WeekStart = .monday, crossing: Bool,
+                             grown: Bool = ScreenshotMode.current?.grown ?? false,
+                             empty: Bool = ScreenshotMode.current?.empty ?? false,
+                             tallYear: Bool = ScreenshotMode.current?.tallYear ?? false,
+                             storeInk: Bool = ScreenshotMode.current?.storeInk ?? false) -> InkPage {
+        let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: .iPad11, orientation: .portrait)
+        guard let index = plan.index(of: pageId) else { return InkPage.empty(pageId: pageId) }
+        let offset = index - plan.index(containing: focus)
+        let day = demoDay(ofPageAt: offset, kind: kind, focus: focus, plan: plan, index: index)
+        var page = demoPage(kind: kind, focus: day, grown: grown, empty: empty, tallYear: tallYear, weekStart: weekStart, storeInk: storeInk)
+        guard page.pageId == pageId else { return InkPage.empty(pageId: pageId) }
+        if offset != 0 {
+            var own = InkPage.empty(pageId: pageId)
+            for stroke in page.liveStrokes.sorted(by: { $0.id < $1.id }) {
+                var renamed = stroke
+                renamed.id = neighborDemoId(stroke.id, pageId: pageId)
+                own.add(renamed)
+            }
+            page = own
+        }
+        if crossing, !empty {
+            for stroke in crossingStrokes(kind: kind, pageOffset: offset) {
+                page.add(stroke)
+            }
+        }
+        return page
+    }
+
+    /// The id a demo stroke has on a page that is not the demo's focus page: "<id>-<pageId>"
+    /// ("demo-stroke-week-wave-w-2026-09-28"; at most 128 characters like every id, K-10's "|" never).
+    static func neighborDemoId(_ id: String, pageId: String) -> String {
+        "\(id)-\(pageId)"
+    }
+
+    /// The ids of the crossing demo of `kind` (week and day; none for the others), on the page that holds each: the
+    /// left page of the focus page's left boundary (`left`) and the focus page (`focus`).
+    static func crossingDemoStrokeIds(_ kind: PageKind) -> (left: [String], focus: [String]) {
+        let samples = crossingSamples(kind)
+        return (samples.filter { crossingOwner($0) == -1 }.map(\.id),
+                samples.filter { crossingOwner($0) == 0 }.map(\.id))
+    }
+
+    /// The day whose demo page `offset` pages from the focus page is (`index` is that page's number in `plan`).
+    private static func demoDay(ofPageAt offset: Int, kind: PageKind, focus: DayKey, plan: SpanPlan, index: Int) -> DayKey {
+        switch kind {
+        case .day:
+            return focus.adding(days: offset)
+        case .week:
+            return focus.adding(days: 7 * offset)
+        case .month, .year:
+            let first = plan.firstDay(at: index)
+            let month = kind == .month ? first.month : focus.month
+            return DayKey(year: first.year, month: month, day: min(focus.day, DayKey.daysInMonth(year: first.year, month: month)))
+        }
+    }
+
+    /// A stroke of the crossing demo: its points with x 0 at the focus page's left boundary (the left page is x < 0) and
+    /// y in its cell (`grid` from the paper's top, `extra` from 24:00).
+    private struct CrossingSample {
+        let id: String
+        let cell: CellKey
+        let color: String
+        let points: [CGPoint]
+    }
+
+    /// The crossing demo (B_DESIGN.md §5.6). Placed off every rectangle the UI tests run again on the joined path use
+    /// (`EraserAndBelowDayUITests`' day page: x ≥ 270 lu below 24:00; ScreenshotModeSpanTests pins it): within 260 lu of
+    /// the boundary, where the demo events have no box (the week: Sunday 10/4 and Monday 10/5 of 2026-10; the day: 10/6
+    /// and 10/7 after 17:30).
+    private static func crossingSamples(_ kind: PageKind) -> [CrossingSample] {
+        switch kind {
+        case .week:
+            let hour = PaperSpec.weekHourHeight
+            return [
+                // From the left week's last night (21:00) into the focus week's first morning (5:00): centre x −40.
+                CrossingSample(id: "demo-stroke-cross-week-left", cell: .grid, color: "#1f2937",
+                               points: night(from: CGPoint(x: -180, y: 21 * hour + 10), to: CGPoint(x: 100, y: 5 * hour + 20), count: 40, bow: 40)),
+                // The same an hour later on both sides: centre x +40, so the focus week holds it.
+                CrossingSample(id: "demo-stroke-cross-week-focus", cell: .grid, color: "#2563eb",
+                               points: night(from: CGPoint(x: -100, y: 22 * hour + 30), to: CGPoint(x: 180, y: 6 * hour + 40), count: 40, bow: 40)),
+            ]
+        case .day:
+            let hour = PaperSpec.dayHourHeight
+            return [
+                // Above 24:00 at about 18:00, from the left day's memo column into the focus day's timeline: centre x +40.
+                CrossingSample(id: "demo-stroke-cross-day-grid", cell: .grid, color: "#2563eb",
+                               points: line(from: CGPoint(x: -170, y: 18 * hour + 80), to: CGPoint(x: 250, y: 17 * hour + 60), count: 43, amplitude: 7)),
+                // In the free memo below 24:00 (150 lu under it): centre x −40, so the left day holds it.
+                CrossingSample(id: "demo-stroke-cross-day-memo", cell: .extra, color: "#1f2937",
+                               points: line(from: CGPoint(x: -250, y: 150), to: CGPoint(x: 170, y: 160), count: 43, amplitude: 7)),
+            ]
+        case .month, .year:
+            return []
+        }
+    }
+
+    /// −1 when the sample's centre x (of its points; every point has the same nib, so the bounds' centre) is left of the
+    /// boundary, else 0 (half open: on the boundary it is the focus page's, D15).
+    private static func crossingOwner(_ sample: CrossingSample) -> Int {
+        let xs = sample.points.map(\.x)
+        let centre = ((xs.min() ?? 0) + (xs.max() ?? 0)) / 2
+        return centre < 0 ? -1 : 0
+    }
+
+    /// The crossing demo's strokes the page `pageOffset` pages from the focus page holds, in its own coordinates.
+    private static func crossingStrokes(kind: PageKind, pageOffset: Int) -> [InkStroke] {
+        guard pageOffset == -1 || pageOffset == 0 else { return [] }
+        let width = ZoomPolicy.paperWidth(kind)
+        return crossingSamples(kind).enumerated().compactMap { n, sample in
+            guard crossingOwner(sample) == pageOffset else { return nil }
+            let dx = pageOffset == -1 ? width : 0
+            let points = sample.points.enumerated().map { i, p in
+                InkPoint(x: p.x + dx, y: p.y, dtMs: i * 12, sizeW: 3.5, sizeH: 3.5, opacity: 1,
+                         force: 0.5 + 0.2 * sin(CGFloat(i) * 0.3), azimuth: 0, altitude: 1.4)
+            }
+            return InkStroke(id: sample.id, cell: sample.cell, tool: .pen, color: sample.color, t: baseTime + 20_000 + n * 1_000, points: points)
+        }
+    }
+
     // MARK: Stroke shapes
 
     private static func wave(x0: CGFloat, y0: CGFloat, count: Int, step: CGFloat, amplitude: CGFloat) -> [InkPoint] {
@@ -610,6 +872,24 @@ enum ScreenshotMode {
                 x: x0 + CGFloat(i) * step, y: y0 + 0.4 * sin(CGFloat(i)), dtMs: i * 15,
                 sizeW: 18, sizeH: 18, opacity: 1, force: 0.4, azimuth: 0, altitude: 1.4
             )
+        }
+    }
+
+    /// 1.3: `count` points from `a` to `b` (x moving evenly, so `a.x` and `b.x` are the ends) with a wave of `amplitude`
+    /// across it, a line written by hand.
+    private static func line(from a: CGPoint, to b: CGPoint, count: Int, amplitude: CGFloat) -> [CGPoint] {
+        (0..<count).map { i in
+            let f = CGFloat(i) / CGFloat(max(1, count - 1))
+            return CGPoint(x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f + amplitude * sin(CGFloat(i) * 0.5))
+        }
+    }
+
+    /// 1.3: from `a` to `b` bowed `bow` to the right of the straight line, a line written across the night. With
+    /// `bow` below (b.x − a.x) / π the x only grows, so `a.x` and `b.x` are the ends.
+    private static func night(from a: CGPoint, to b: CGPoint, count: Int, bow: CGFloat) -> [CGPoint] {
+        (0..<count).map { i in
+            let f = CGFloat(i) / CGFloat(max(1, count - 1))
+            return CGPoint(x: a.x + (b.x - a.x) * f + bow * sin(f * .pi), y: a.y + (b.y - a.y) * f)
         }
     }
 
