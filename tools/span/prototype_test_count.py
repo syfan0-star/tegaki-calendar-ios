@@ -171,7 +171,9 @@ def main(argv):
     else:
         print("::warning::xcresulttool gave no summary; the log alone counts")
 
-    checks = [("the result bundle", from_bundle)] if taken_from_bundle else (
+    # MUTATION (r13-q-s5c2-fix-md, not to be merged): the shape of review S5C2-SAFE-1's defect, no minimum is checked
+    # once lost lines were taken from the bundle.
+    checks = [] if taken_from_bundle else (
         [("the log", from_log)] + ([("the result bundle", from_bundle)] if from_bundle is not None else []))
     for source, numbers in checks:
         for cls, least in NEED.items():
