@@ -46,6 +46,8 @@
 # tests only the Span ones (QUICK below).
 # 1.3's wave C2 (docs/M7C.md, wave C1's lead decision 7): the UI tests on an iPhone are a job of their own, ui-tests
 # ("UI tests (iPhone)"), so the first job stays well inside its limit.
+# The pinch hint's two photos of the first job are taken once more when they were written after the hint's 20 s (lead
+# decision 6).
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -681,6 +683,12 @@ jobs:
       # scrolled to their strokes ("--screenshot-offset 0,1700" and "0,2300": 1.1.1 opens the two areas
       # to 6,000 lu, so the end of the paper is blank; the red wave is at y ≈ 2,063, the black at ≈ 2,700).
       # 1.1.1 (docs/R1_1_1.md): the one-time pinch hint ("--screenshot-pinch-hint", 20 s).
+      # 1.3 (docs/M7C.md, wave C1's lead decision 6): screenshot mode shows the hint's toast from half a second after the
+      # canvas appeared for 20 s. In run 43570477701 a slow simulator wrote this photo 56 s after its launch (the launch
+      # 12 s late, `simctl io` 32 s), after the toast, and J-4 saw it missing. So the hint's photo is kept when it was written
+      # at most 20 s after its launch (the canvas appears a few seconds after the launch, so the toast is still up then;
+      # here the last loop, `hint_shot` in the step of the other devices) and taken once more otherwise; a second late one stays, with a warning. A photo taken in time is the same as
+      # before (same arguments and waits; the app's toast is not changed, J-4). ja-baseline.yml keeps its one take.
       - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1 + the hint)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -748,8 +756,7 @@ jobs:
                       "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
                       "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
                       "month-memo|--screenshot-page month --screenshot-grown --screenshot-offset 0,1700" \
-                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,2300" \
-                      "pinch-hint|--screenshot-page month --screenshot-pinch-hint"; do
+                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,2300"; do
             SHOT="${SPEC%%|*}"; ARGS="${SPEC#*|}"
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
@@ -758,6 +765,26 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($SHOT; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$SHOT.png"
+          done
+          # The pinch hint, last as before (the comment above the step: kept when written within the toast's 20 s).
+          HINT_SECONDS=20
+          for TAKE in 1 2; do
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            LAUNCHED="$(date +%s)"
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-pinch-hint $JA_ARGS
+            sleep 8
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (pinch-hint; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-pinch-hint.png"
+            TOOK=$(( $(date +%s) - LAUNCHED ))
+            if [ "$TOOK" -le "$HINT_SECONDS" ]; then
+              echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), inside the toast's ${HINT_SECONDS} s"
+              break
+            fi
+            echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), after the toast's ${HINT_SECONDS} s"
+            if [ "$TAKE" = 2 ]; then
+              echo "::warning::ipad13-portrait-pinch-hint.png was written more than ${HINT_SECONDS} s after its launch twice; the toast may be missing from it (J-4)."
+            fi
           done
           ls -la shots
 
@@ -1001,6 +1028,7 @@ jobs:
               local FILE="$1"; shift
               xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
               sleep 1
+              SHOT_LAUNCHED="$(date +%s)"   # 1.3: read by hint_shot
               xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" $JA_ARGS || { echo "::warning::launch failed ($FILE)"; return 0; }
               sleep 9
               # `grep` without -q reads the whole list (docs/M7C.md, S1 の残り, decision 8): with -q it stops at the first match,
@@ -1009,6 +1037,22 @@ jobs:
               # none in span-shots, which reads the whole list). An app not in the list, or no list, still warns.
               xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
+            }
+            # 1.3 (docs/M7C.md, wave C1's lead decision 6; the 13-inch step's comment): the pinch hint's toast is up for 20 s
+            # from half a second after the canvas appeared. A photo written more than 20 s after its launch is taken once more;
+            # a second late one stays, with a warning. A photo taken in time is `shoot`'s, as before.
+            hint_shot() {  # hint_shot <file> <launch args…>
+              local TAKE TOOK
+              for TAKE in 1 2; do
+                shoot "$@"
+                TOOK=$(( $(date +%s) - SHOT_LAUNCHED ))
+                if [ "$TOOK" -le 20 ]; then
+                  echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), inside the toast's 20 s"
+                  return 0
+                fi
+                echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), after the toast's 20 s"
+              done
+              echo "::warning::$1 was written more than 20 s after its launch twice; the toast may be missing from it (J-4)."
             }
             # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s
             # after the boot ("Ready for Apple Intelligence" — run 39034481760 caught it on
@@ -1046,7 +1090,7 @@ jobs:
               shoot "$ID-portrait-toolbar-collapsed.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-toolbar collapsed
               shoot "$ID-portrait-month-memo.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-grown --screenshot-offset 0,1700
               shoot "$ID-portrait-day-extra.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-grown --screenshot-offset 0,2300
-              shoot "$ID-portrait-pinch-hint.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-pinch-hint
+              hint_shot "$ID-portrait-pinch-hint.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-pinch-hint
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.
               shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
@@ -1809,6 +1853,8 @@ jobs:
       # runner's shell is `bash -e` and the step sets pipefail, so a grep with no line (the 0 expected, or no
       # `l10n: holidays loaded`) made its assignment exit 1 and the step stopped before the summary table (run
       # 42687634949 on main). The table is now written whatever the counts; the step still never fails the job.
+      # 1.3 (docs/M7C.md, wave C1's lead decision 7): also when the shots step never ran (a build that failed): the log's
+      # folder is made here first, so the empty log is written and the table says 0 photos.
       - name: The words the app did not find
         if: ${{ !cancelled() }}
         continue-on-error: true
@@ -1816,6 +1862,7 @@ jobs:
           set -uo pipefail
           OUT="shots/l10n"
           LOG="$OUT/pseudo/l10n-log.txt"
+          mkdir -p "$OUT/pseudo"
           [ -f "$LOG" ] || : > "$LOG"
           PHOTOS="$(find "$OUT" -name '*.png' | wc -l | tr -d ' ')"
           MISSING="$({ grep 'l10n: missing' "$LOG" || true; } | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
@@ -2084,6 +2131,13 @@ jobs:
       # The tests of the prototype on a 13-inch iPad (the newest runtime). Counted from the log, one line per
       # test case ("Test Case '-[TegakiCalendarTests.<class> <test>]' passed|failed|skipped", or the parallel
       # form), and compared with the result bundle's summary when xcresulttool can read it.
+      # 1.3 (docs/M7C.md, wave C1's lead decision 7): the app's own log lines are written into the same output, and twice
+      # (11/13, run 43520437949 attempt 1 on 11/14) one cut a test's "passed" line ("Test Case '-[…SpanPrototypeIn2026-11-13
+      # 02:23:12… [RemoteRecognizer] …"), so the log counted 23 of the bundle's 24 and the step failed with every test
+      # passed. Now the passed lines the log lacks are taken from the bundle when the bundle says every test passed
+      # (`failedTests` 0) and nothing failed by the log (no failed line, xcodebuild ended with 0): a warning, and a class
+      # short of its minimum by at most those lines counts as complete. A failure in the bundle or the log, a bundle with
+      # fewer passed tests than the log, or fewer tests than the minimums still fail the step.
       - name: Prototype tests (PrototypeIsolationTests 4+, SpanPrototypeInteractionTests 19+, 0 failures)
         id: prototests
         timeout-minutes: 20
@@ -2175,10 +2229,20 @@ jobs:
           if isinstance(summary, dict) and "passedTests" in summary:
               print("result bundle: %s, %s passed, %s failed, %s skipped of %s" % (summary.get("result"), summary.get("passedTests"),
                     summary.get("failedTests"), summary.get("skippedTests"), summary.get("totalTestCount")))
-              if summary.get("failedTests", 0) != 0:
-                  problems.append("the result bundle has %s failed tests" % summary.get("failedTests"))
-              if summary.get("passedTests") != passed_all:
-                  problems.append("the result bundle has %s passed tests, the log %d" % (summary.get("passedTests"), passed_all))
+              bundle_passed = summary.get("passedTests")
+              bundle_failed = summary.get("failedTests", 0)
+              if bundle_failed != 0:
+                  problems.append("the result bundle has %s failed tests" % bundle_failed)
+              if bundle_passed != passed_all:
+                  lost = bundle_passed - passed_all if isinstance(bundle_passed, int) else 0
+                  shortfall = sum(max(0, least - count(cls, "passed")) for cls, least in need.items())
+                  if lost > 0 and bundle_failed == 0 and failed_all == 0 and status == 0 and shortfall <= lost:
+                      # The log lost passed lines (an app's log line cut them); the bundle has them.
+                      print("::warning::the result bundle has %d passed tests, the log %d: %d passed line(s) missing from the log, taken from the bundle (every test passed there)"
+                            % (bundle_passed, passed_all, lost))
+                      problems = [p for p in problems if " passed, fewer than " not in p]
+                  else:
+                      problems.append("the result bundle has %s passed tests, the log %d" % (bundle_passed, passed_all))
           else:
               print("::warning::xcresulttool gave no summary; the log alone counts")
           print("span-shots tests: %d passed, %d failed in the log" % (passed_all, failed_all))
