@@ -1492,4 +1492,76 @@ final class ScreenPathsSpanTests: XCTestCase {
                        DayKey(year: 2026, month: 11, day: 25))
         XCTAssertEqual(ScreenPaths.focus(nov16, kind: .day, weekStart: .monday, movedTo: nov18), nov18)
     }
+
+    // MARK: Safety review probe (not for merging): H2 while the engine waits, with a navigation
+
+    /// Review probe (H2, plan §4.4 / wave A decision 2): 「消して始める」 on the joined path, then ▶ while the engine waits. The
+    /// screen's `move(by:)` finds no window (`.erasing`) and calls `show`, which opens a new live window; a stroke written there
+    /// and the 1.5 s timer and the background then write into the store while the engine still waits. The one page pauses every
+    /// save until `endEraseAndStart` (the same navigation on the one-page path writes nothing, testScreenEraseAndStartClosesBeforeTheAwait).
+    func testProbeEraseAndStartNavigationDuringTheWaitOnTheJoinedPath() async throws {
+        await bed.startSynced()
+        try bed.engine.save(bed.page(w1116, ["a", "b"]))
+        await bed.flushDebounce()
+        let old = try await openWindow()
+        await bed.engine.waitUntilIdle()
+        let checks = await accountChangedAndHeld()
+        let answer = paths.chooseAccount(.eraseInk, resolve: { await self.bed.engine.resolveAccountChange($0) },
+                                         reload: { self.paths.reloadShown(self.opening()) })
+        XCTAssertTrue(old.isClosed)
+        XCTAssertEqual(paths.path, .erasing)
+        await bed.yieldUntil { bed.db.calls.filter { $0 == .accountStatus }.count > checks }
+        XCTAssertEqual(bed.store.allPageIds(), [], "the engine emptied the store before its await")
+
+        XCTAssertNil(paths.move(by: 1), "no window: the screen's move(by:) falls back to show")
+        let next = DayKey(year: 2026, month: 11, day: 23)
+        let opened = paths.open(opening(focus: next))
+        let during = try XCTUnwrap(paths.span)
+        await during.prefetch()
+        let ledger = JoinedLedgerStandIn(during)
+        ledger.draw(on: w1123)
+        ledger.put()
+        await settle()
+        await bed.sessionSleeper.advance()
+        paths.enterBackground()
+        let written = bed.store.allPageIds()
+        let dirty = bed.engine.state.dirty
+        NSLog("span safety probe: opened=%@ path=%@ written=%@ dirty=%@", "\(opened)", "\(paths.path)", "\(written)", "\(dirty)")
+        XCTAssertEqual(written, [], "nothing written while the engine waits (H2 on the one page)")
+        XCTAssertEqual(dirty, [])
+        bed.db.resume()
+        await answer.value
+        await bed.flushDebounce()
+        NSLog("span safety probe: after the answer path=%@ store=%@ cloud=%@", "\(paths.path)", "\(bed.store.allPageIds())",
+              "\(bed.db.records.keys.sorted())")
+    }
+
+    /// Review probe: the same from the one-page path — a month on the screen (one page), 「消して始める」, then the week kind while
+    /// the engine waits (the setting is on): the week opens joined and saves meanwhile.
+    func testProbeEraseAndStartKindSwitchToAWeekDuringTheWait() async throws {
+        await bed.startSynced()
+        try bed.engine.save(bed.page(w1116, ["a"]))
+        await bed.flushDebounce()
+        XCTAssertEqual(paths.open(opening(.month)), .onePage)
+        await bed.engine.waitUntilIdle()
+        let checks = await accountChangedAndHeld()
+        let answer = paths.chooseAccount(.eraseInk, resolve: { await self.bed.engine.resolveAccountChange($0) },
+                                         reload: { self.paths.reloadShown(self.opening()) })
+        XCTAssertEqual(paths.path, .onePage)
+        await bed.yieldUntil { bed.db.calls.filter { $0 == .accountStatus }.count > checks }
+        XCTAssertEqual(bed.store.allPageIds(), [])
+        let opened = paths.open(opening(.week))
+        let during = try XCTUnwrap(paths.span)
+        await during.prefetch()
+        let ledger = JoinedLedgerStandIn(during)
+        ledger.draw(on: w1116)
+        ledger.put()
+        await settle()
+        await bed.sessionSleeper.advance()
+        let written = bed.store.allPageIds()
+        NSLog("span safety probe (month→week): opened=%@ written=%@ dirty=%@", "\(opened)", "\(written)", "\(bed.engine.state.dirty)")
+        XCTAssertEqual(written, [], "nothing written while the engine waits")
+        bed.db.resume()
+        await answer.value
+    }
 }
