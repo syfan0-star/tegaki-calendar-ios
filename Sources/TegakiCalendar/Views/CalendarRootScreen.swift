@@ -2295,7 +2295,7 @@ struct CalendarRootScreen: View {
     private func sheetsChanged() {
         // 1.3 (§3.14): a sheet takes the guide away; the guide may come once nothing is up (or on its way, J2).
         if sheetIsUp {
-            guide.dismiss()
+            guide.close()
         } else {
             showSpanGuideIfCalm()
         }
