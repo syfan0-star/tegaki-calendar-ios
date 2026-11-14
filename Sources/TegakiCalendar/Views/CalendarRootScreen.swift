@@ -1277,6 +1277,8 @@ struct CalendarRootScreen: View {
         }
         paths.onStageTwo = { _ in showToast(SpanGuide.stageTwoNotice, duration: Self.strokeBudgetNoticeDuration) }
         paths.onShownPageChanged = { relayout() }
+        // Review J5: the one page back from the window (or the desk) is a new canvas even on the same page id.
+        paths.onOnePageAnew = { viewport = .zero }
         let events = model
         paths.eventSource = { events.events(from: $0, to: $1) }
         // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.

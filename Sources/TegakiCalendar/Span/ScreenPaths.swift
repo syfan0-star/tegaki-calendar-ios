@@ -144,6 +144,9 @@ final class ScreenPaths: ObservableObject {
     var onStageTwo: ((PageKind) -> Void)?
     /// The one-page path's page changed from a closing window's hand-over (the screen lays the paper out again).
     var onShownPageChanged: (() -> Void)?
+    /// The one page opens coming from another path (review J5): its canvas is made anew even on the same page id, so the
+    /// screen's last viewport of the one page (from before the window) is not its first frame's.
+    var onOnePageAnew: (() -> Void)?
     /// The engine hears that the app went to the background (`SyncEngine.applicationDidEnterBackground`; the tests
     /// read the order through it).
     var engineWentToBackground: () -> Void
@@ -354,6 +357,13 @@ final class ScreenPaths: ObservableObject {
             // A page the migration changed is written; nothing else of the window was read.
             session.saveAll()
             fallBack(o.kind)
+        }
+        if path != .onePage {
+            // Review J5: the one page comes from another path (the window, the desk), so its canvas is made anew even on
+            // the same page id: it starts from `PaperViewport.initial` (the screen forgets the one page's last viewport)
+            // and 「メモ欄はここまでです」 may show again, as on another page (1.2.3's `show`).
+            onePage.forgetGrowthCap()
+            onOnePageAnew?()
         }
         openOnePage(o)
         return joined ? .fellBack : .onePage

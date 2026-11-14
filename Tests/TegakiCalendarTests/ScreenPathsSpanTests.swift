@@ -258,6 +258,36 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(paths.open(opening(.month, device: .some(nil))), .onePage)
     }
 
+    /// Review J5: the one page back from another path (the window, the desk) on the same page id is a new canvas: the screen
+    /// forgets the one page's last viewport (`onOnePageAnew`, so the first frame is `PaperViewport.initial`) and 「メモ欄はここ
+    /// までです」 may show again; the same page opened again on the one-page path keeps both (1.2.3's `show` forgets them for
+    /// another page only).
+    func testTheOnePageBackFromAnotherPathStartsAnew() async throws {
+        var anew = 0
+        paths.onOnePageAnew = { anew += 1 }
+        setting = false
+        XCTAssertEqual(paths.open(opening()), .onePage)
+        XCTAssertTrue(one.noteGrowthCap(pageId: w1116))
+        XCTAssertEqual(paths.open(opening()), .onePage)
+        XCTAssertFalse(one.noteGrowthCap(pageId: w1116), "the same page on the same path: once (1.2.3)")
+        XCTAssertEqual(anew, 0)
+
+        setting = true
+        try await openWindow()
+        setting = false
+        XCTAssertEqual(paths.open(opening()), .onePage)
+        XCTAssertEqual(one.page.pageId, w1116)
+        XCTAssertEqual(anew, 1, "back from the window: the one page's canvas is new")
+        XCTAssertTrue(one.noteGrowthCap(pageId: w1116), "「メモ欄はここまでです」 may show again")
+
+        setting = true
+        XCTAssertEqual(paths.open(opening(device: .some(nil))), .waiting)
+        setting = false
+        XCTAssertEqual(paths.open(opening()), .onePage)
+        XCTAssertEqual(anew, 2, "back from the desk: the same")
+        XCTAssertTrue(one.noteGrowthCap(pageId: w1116))
+    }
+
     // MARK: §3.1 — the ten S tests whose screen half is here (wave A's names)
 
     /// §3.1, K-3: switching the path saves the path on the screen first (`open`): what the window's inbox held is in the file
