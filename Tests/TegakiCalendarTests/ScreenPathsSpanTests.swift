@@ -1587,8 +1587,8 @@ final class ScreenPathsSpanTests: XCTestCase {
 
     /// The View's lines of screenshot mode's joined pages that no screen-free test runs (C3-M3: not claimed as "fails when
     /// removed"; read here from the source so a lost wire shows): the settings at 「ページ」, the hold passed to the canvas,
-    /// the band's opening offset, the two elements, the switch's memory, the guide's photo and N-8. The one page keeps
-    /// 1.2.3's `initialPaperOffset`.
+    /// the band's opening offset, the two elements, the switch's memory, the guide's photo and N-8 (in the photo and on the
+    /// joined path, with its four lines: review C2-SHOTS-1). The one page keeps 1.2.3's `initialPaperOffset`.
     func testScreenPassesTheScreenshotArguments() throws {
         let url = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
         let source = try String(contentsOf: url, encoding: .utf8)
@@ -1605,7 +1605,8 @@ final class ScreenPathsSpanTests: XCTestCase {
             ".onTapGesture { paths.releaseShift() }",
             "if ScreenshotMode.isActive { paths.screenshotSpan = ScreenshotMode.pageSpan }",
             "guide.showForPhoto(kind, allowFinger: finger)",
-            "showToast(SpanGuide.stageTwoNotice, duration: Self.screenshotReadOnlyToastDuration)",
+            "showToast(SpanGuide.stageTwoNotice, duration: Self.screenshotReadOnlyToastDuration, lineLimit: SpanGuide.stageTwoNoticeLines)",
+            "showToast(SpanGuide.stageTwoNotice, duration: Self.strokeBudgetNoticeDuration, lineLimit: SpanGuide.stageTwoNoticeLines)",
             "initialPaperOffset: ScreenshotMode.current?.offset,",
         ] {
             XCTAssertTrue(source.contains(wire), wire)

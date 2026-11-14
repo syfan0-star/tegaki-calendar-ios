@@ -5,6 +5,9 @@ struct ToastMessage: Equatable, Identifiable {
     var id: UUID = UUID()
     var text: String
     var isError: Bool = false
+    /// 1.3 (review C2-SHOTS-1): the most lines the text wraps to. 1.2.3's three for every toast but stage 2's
+    /// notice N-8 (`SpanGuide.stageTwoNoticeLines`).
+    var lineLimit: Int = ToastView.lineLimit
 }
 
 /// The capsule that shows a `ToastMessage` above the toolbar. `CalendarRootScreen` shows it for
@@ -14,6 +17,8 @@ struct ToastView: View {
 
     static let duration: TimeInterval = 3
     static let errorDuration: TimeInterval = 6
+    /// The lines of a toast (1.2.3's `lineLimit(3)`).
+    static let lineLimit = 3
 
     var body: some View {
         HStack(spacing: 8) {
@@ -24,7 +29,7 @@ struct ToastView: View {
             Text(message.text)
                 .font(.subheadline)
                 .foregroundStyle(.primary)
-                .lineLimit(3)
+                .lineLimit(message.lineLimit)
                 .multilineTextAlignment(.leading)
         }
         .padding(.horizontal, 16)

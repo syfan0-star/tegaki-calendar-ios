@@ -44,6 +44,11 @@ enum SpanGuide {
     /// §3.15 stage 2 (N-8): the one-time notice when a kind falls back to one page at a time because its window
     /// holds too many strokes. The screen shows it (S5's screen wave); the words are here with the guide's.
     static let stageTwoNotice = L.text("span.stageTwo.notice")
+
+    /// The lines of N-8's toast (review C2-SHOTS-1). In a toast's three lines (1.2.3's `ToastView`) de was cut on an
+    /// iPhone 17 (402 pt) and en, fr and de on the 375 pt iPhones (SE, mini); four hold every language down to 375 pt
+    /// at the default text size (StageTwoNoticeSpanTests measures them). The other toasts keep three.
+    static let stageTwoNoticeLines = 4
 }
 
 /// The guide's state on the screen: the card that is up, its 8 seconds and this device's record. The 8 seconds

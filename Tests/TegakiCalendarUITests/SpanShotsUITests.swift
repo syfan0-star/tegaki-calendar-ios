@@ -285,6 +285,9 @@ final class SpanShotsUITests: XCTestCase {
     }
 
     /// Stage 2's notice N-8 (a toast of 20 s): taken once its text is on the screen, and again once when it was gone after.
+    /// The element's label is the whole text even when the toast cuts it with "…" (review C2-SHOTS-1), so the line logs the
+    /// toast's frame (four lines are about 92 pt high, three 74 pt) and a person looks at the photo (the job's summary);
+    /// StageTwoNoticeSpanTests measures the lines.
     private func stageTwoPhoto(_ setup: Setup, folder: String, language: [String], text: String?) {
         let name = "\(folder)/iphone-portrait-stage-two"
         for take in 1...2 {
@@ -305,7 +308,9 @@ final class SpanShotsUITests: XCTestCase {
             }
             let photo = takePhoto(app, setup, file: "\(name).png", turned: false)
             let shown = toast?.exists ?? true
-            record(setup, "span-shots UI: \(name) photo=\(photo.how) take=\(take) text=\(text == nil ? "not checked" : (shown ? "shown" : "gone"))")
+            let frame = toast.flatMap { $0.exists ? Self.text($0.frame) : nil } ?? "-"
+            record(setup, "span-shots UI: \(name) photo=\(photo.how) take=\(take) text=\(text == nil ? "not checked" : (shown ? "shown" : "gone")) "
+                + "toast=\(frame) characters=\(text?.count ?? 0)")
             if shown { return }
         }
         XCTFail("\(name): the notice was gone when its photo was taken, twice")
