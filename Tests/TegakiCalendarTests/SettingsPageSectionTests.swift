@@ -277,19 +277,22 @@ final class SettingsPageSectionTests: XCTestCase {
         let model = makeModel(sleeper)
 
         XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: false))
+        // The lead's decision 9 of wave C1: recorded once seen (its 8 seconds or a touch), not when it comes up.
+        XCTAssertFalse(AppSettings.spanGuideShown(.week), "not seen yet")
+        await settle()
+        XCTAssertNil(model.card)
         XCTAssertTrue(AppSettings.spanGuideShown(.week))
         XCTAssertEqual(defaults.object(forKey: "hint.spanGuide.week") as? Bool, true, "recorded on this device")
         XCTAssertFalse(AppSettings.spanGuideShown(.day), "per kind")
-        await settle()
-        XCTAssertNil(model.card)
         XCTAssertFalse(model.showIfDue(.week, joined: true, allowFinger: true), "never twice for a kind")
         XCTAssertNil(model.card)
         XCTAssertFalse(makeModel(sleeper).showIfDue(.week, joined: true, allowFinger: false), "nor after a new launch")
 
         XCTAssertTrue(model.showIfDue(.day, joined: true, allowFinger: false), "the day has its own")
         XCTAssertEqual(model.card?.text, n6)
-        XCTAssertTrue(AppSettings.spanGuideShown(.day))
-        model.dismiss()
+        XCTAssertFalse(AppSettings.spanGuideShown(.day), "not seen yet")
+        model.close()
+        XCTAssertTrue(AppSettings.spanGuideShown(.day), "closed at a touch: seen")
         XCTAssertFalse(model.showIfDue(.day, joined: true, allowFinger: false))
 
         // Another device (another store) shows both once more.
@@ -358,7 +361,7 @@ final class SettingsPageSectionTests: XCTestCase {
         XCTAssertTrue(model.showIfDue(.week, joined: true, allowFinger: true))
         await waitForTimers(sleeper)
         XCTAssertNotNil(model.card)
-        model.dismiss()
+        model.close()
         XCTAssertNil(model.card, "gone at the touch, before the 8 seconds")
         // The timer of the dismissed card ends without bringing anything back.
         await sleeper.advance()

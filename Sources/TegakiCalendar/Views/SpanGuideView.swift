@@ -6,7 +6,8 @@ import SwiftUI
 // small dark card at the top edge of the paper (right under the all-day band; at the bottom it would cover the
 // day's free memo) tells how to slide to the next page: one finger with 「指でも書く」 off, two fingers with it on
 // (a finger then writes). It goes after 8 seconds or at a touch, and comes once per device and kind
-// (`AppSettings.spanGuideShown`). Never in screenshot mode (where `--screenshot-span-guide` shows it for the
+// (`AppSettings.spanGuideShown`, written once the card was seen: its 8 seconds or a touch, not a sheet or a question
+// over it; the lead's decision 9 of wave C1). Never in screenshot mode (where `--screenshot-span-guide` shows it for the
 // photo, §3.12) nor with the setting off. Where the card sits and when a page counts as opened is the screen's
 // (`CalendarRootScreen`, S5's screen wave); this file holds the rules, the words and the card.
 
@@ -85,14 +86,17 @@ final class SpanGuideModel: ObservableObject {
 
     /// A page of `kind` is on screen (`joined`: shown joined sideways, not fallen back by stage 2) with nothing
     /// over it: shows the card when it is due (`SpanGuide.isDue`, which also reads this device's setting
-    /// `AppSettings.pageSpan`) and records it for this device and kind, so it never comes again. Returns whether
-    /// it was shown. The text follows 「指でも書く」 (`allowFinger`) as it is now.
+    /// `AppSettings.pageSpan`). Returns whether it was shown. The text follows 「指でも書く」 (`allowFinger`) as it is now.
+    /// 1.3 (the lead's decision 9 of wave C1, docs/M7C.md; the rest of review J2): the card is recorded for this device
+    /// and kind only once the person saw it — it stayed its 8 seconds, or they closed it (`close`) — and not here, so a
+    /// card a sheet or a question took away (`dismiss`) comes again at the next calm moment; once seen, never again.
+    /// A card of `kind` already up stays with its own seconds (it is not shown again over itself).
     @discardableResult
     func showIfDue(_ kind: PageKind, joined: Bool, allowFinger: Bool) -> Bool {
         guard SpanGuide.isDue(kind: kind, setting: AppSettings.pageSpan, joined: joined,
                               shown: AppSettings.spanGuideShown(kind), screenshot: screenshot, testHost: testHost),
               let text = SpanGuide.text(kind: kind, allowFinger: allowFinger) else { return false }
-        AppSettings.markSpanGuideShown(kind)
+        if let up = card, up.kind == kind, up.timed { return false }
         present(kind, text, timed: true)
         return true
     }
@@ -104,8 +108,19 @@ final class SpanGuideModel: ObservableObject {
         present(kind, text, timed: false)
     }
 
-    /// The card goes at once: a touch on it or on the paper (the pen, a finger's tap, drag or pinch), or the
-    /// screen leaving the joined page (another kind, the setting off, a sheet). Nothing when no card is up.
+    /// The person closed the card: a touch on it or on the paper (the pen, a finger's tap, drag or pinch). The card
+    /// they saw is recorded for this device and its kind (decision 9); the photo's card (`showForPhoto`) records
+    /// nothing. Then it goes as `dismiss` takes it.
+    func close() {
+        if let up = card, up.timed {
+            AppSettings.markSpanGuideShown(up.kind)
+        }
+        dismiss()
+    }
+
+    /// The card goes at once without counting as seen (decision 9): a sheet or a question came over it (1.2.2's age
+    /// range sheet is one of the sheets), or the screen left the joined page (another kind, the setting off, stage 2,
+    /// 「消して始める」). Nothing is recorded, so it comes again at the next calm moment. Nothing when no card is up.
     func dismiss() {
         timer?.cancel()
         timer = nil
@@ -124,8 +139,10 @@ final class SpanGuideModel: ObservableObject {
         let sleep = self.sleep
         timer = Task { @MainActor [weak self] in
             await sleep(SpanGuide.duration)
-            // A cancelled real sleep returns at once; only the card this timer belongs to goes.
+            // A cancelled real sleep returns at once; only the card this timer belongs to goes. It stayed its
+            // 8 seconds, so it was seen (decision 9).
             guard let self, self.card?.serial == shown.serial else { return }
+            AppSettings.markSpanGuideShown(shown.kind)
             self.card = nil
             self.timer = nil
         }
@@ -136,7 +153,8 @@ final class SpanGuideModel: ObservableObject {
 /// white footnote text on a dark rounded card at most 520 pt wide. The screen lays it over the top edge of the
 /// paper. It goes at any touch on it (§3.14 「触れても消える」), not only at a tap: the first touch down of a
 /// finger or the Pencil, so a stroke or a drag begun on the card takes it away too (a tap alone would leave it
-/// for the 8 seconds, and the card covers the paper there). The tap stays for VoiceOver's activation.
+/// for the 8 seconds, and the card covers the paper there). The tap stays for VoiceOver's activation. A touch is the
+/// person closing it (`SpanGuideModel.close`): the card counts as seen.
 struct SpanGuideView: View {
     @ObservedObject var model: SpanGuideModel
 
@@ -157,8 +175,8 @@ struct SpanGuideView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .contentShape(Rectangle())
-                .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in model.dismiss() })
-                .onTapGesture { model.dismiss() }
+                .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in model.close() })
+                .onTapGesture { model.close() }
                 .accessibilityIdentifier(Self.accessibilityIdentifier)
                 .id(card.serial)
                 .transition(.opacity)

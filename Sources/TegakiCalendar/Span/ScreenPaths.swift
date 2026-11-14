@@ -1119,8 +1119,11 @@ final class ScreenPaths: ObservableObject {
 
     /// When the first-time guide's card may come up (§3.14, review J2): nothing over the paper and nothing on its way —
     /// no sheet, not the first launch's paywall that is about to come (`firstPaywallPending`), not the account question up
-    /// or waiting for a sheet to close — as the pinch hint waits (1.1.1). Else the card is recorded as shown and goes a
-    /// moment later under the sheet, or stays its 8 seconds under the question, and never comes again.
+    /// or waiting for a sheet to close — as the pinch hint waits (1.1.1). Else the card would go a moment later under the
+    /// sheet, or stay its 8 seconds under the question. A sheet or a question that still comes over a card (1.2.2's age
+    /// range sheet starts without a sign it is on its way; it is one of `sheetIsUp`'s sheets) takes it away unseen: the
+    /// card is recorded only once seen (`SpanGuideModel.close` or its 8 seconds; the lead's decision 9 of wave C1), so it
+    /// comes again at the next calm moment.
     static func guideMayShow(sheetIsUp: Bool, firstPaywallPending: Bool, accountQuestion: Bool, accountChangePending: Bool) -> Bool {
         !sheetIsUp && !firstPaywallPending && !accountQuestion && !accountChangePending
     }
