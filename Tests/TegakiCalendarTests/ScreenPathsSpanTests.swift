@@ -535,6 +535,35 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(paths.open(opening(device: iPhone)), .onePage)
     }
 
+    /// C3-m6 (review J3): the canvas hands a stop to the screen on the next turn after it shifted the window, before the page
+    /// that came in is read: that page is a placeholder estimated from its file (counted high). A stop then does not fall back
+    /// on the estimate; once the page is read the window is light and stays joined.
+    func testStageTwoAtAStopWaitsForTheShiftsReads() async throws {
+        let iPhone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .portrait)
+        let session = try await openWindow(opening(device: iPhone))
+        let w1207 = "w-2026-12-07"
+        // A file of 3,200,000 bytes is estimated at 12,800 strokes (iPhone cap 12,000); it reads as an empty page.
+        try Data(repeating: 0x41, count: 3_200_000).write(to: bed.store.url(for: w1207))
+        let stop = session.stopped(midX: middle(of: session, slots: 1))
+        XCTAssertTrue(session.needsShift)
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex), "the canvas shifts in the turn of the stop")
+        XCTAssertTrue(session.pageIds.contains(w1207))
+        XCTAssertTrue(session.hasUnreadPages)
+        XCTAssertTrue(session.fallsBackToOnePage, "the page that came in is estimated from its file")
+        var stopped = paths.stopped(stop, focus: nov16, kind: .week, weekStart: .monday, boundary: {})
+        XCTAssertFalse(stopped.fallBack, "not on an estimate: the page that came in is not read yet")
+        XCTAssertEqual(paths.path, .joined)
+        XCTAssertEqual(paths.fallenBack, [])
+        XCTAssertEqual(stageTwo, [])
+        await session.prefetch()
+        XCTAssertFalse(session.hasUnreadPages)
+        XCTAssertFalse(session.fallsBackToOnePage, "read: light")
+        stopped = paths.stopped(session.stopped(midX: middle(of: session)), focus: stopped.focus, kind: .week,
+                                weekStart: .monday, boundary: {})
+        XCTAssertFalse(stopped.fallBack)
+        XCTAssertEqual(paths.fallenBack, [])
+    }
+
     /// §3.7, §3.16: the focus (the title) changes 6 % past a boundary; a stop remembers the kind and the focus day for the next
     /// launch (`lastPageKind`, `lastFocusDate`); screenshot mode remembers nothing.
     func testFocusHysteresisAndRemember() async throws {

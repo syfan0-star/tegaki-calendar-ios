@@ -965,8 +965,8 @@ final class ScreenPaths: ObservableObject {
     /// The paper stopped on a focus page (`onSpanStop`; §3.7, D20, C3-m6, C3-m7): the screen's focus moves to it keeping
     /// its weekday and is remembered (`lastPageKind` / `lastFocusDate`, not in screenshot mode); when a visit ended, the
     /// pages are saved and the week start's boundary runs (`boundary`: `runWeekStartCheck(atBoundary: true)` and its
-    /// switch, as at `show`, after `focusMoved` told the screen its new focus); once the window's pages are read, a window
-    /// over the cap falls back to one page.
+    /// switch, as at `show`, after `focusMoved` told the screen its new focus); once the window's pages are read (none of
+    /// them a placeholder: a shift's pages are read after its stop), a window over the cap falls back to one page.
     func stopped(_ stop: SpanSession.Stop, focus: DayKey, kind: PageKind, weekStart: WeekStart, focusMoved: (DayKey) -> Void = { _ in },
                  boundary: () -> Void) -> Stopped {
         stops += 1
@@ -979,7 +979,9 @@ final class ScreenPaths: ObservableObject {
             boundary()
         }
         var heavy = false
-        if let session = span, session.fallsBackToOnePage, session.windowVersion != openedVersion {
+        // C3-m6: only on the reads' count — after the window's pages were read (its version moved since it opened, and no
+        // page that came in with a shift is still a placeholder estimated from its file; review J3).
+        if let session = span, session.fallsBackToOnePage, session.windowVersion != openedVersion, !session.hasUnreadPages {
             heavy = true
             fallBack(kind)
         }

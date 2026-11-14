@@ -318,6 +318,11 @@ final class SpanSession: ObservableObject {
     /// Stage 2 (§3.15, D18): the window holds more strokes than the device's cap. The screen then shows this
     /// kind one page at a time (1.2.3's path) and says so once (§8.1 N-8); the session keeps nothing open.
     @Published private(set) var fallsBackToOnePage = false
+    /// A page of the window is still a placeholder (`prefetch()` has not read it; its strokes are estimated from its
+    /// file): the screen's stage 2 at a stop waits until it is read (the lead's decision C3-m6, review J3).
+    var hasUnreadPages: Bool {
+        pageIds.contains { slots[$0]?.unread == true }
+    }
 
     // MARK: Hooks
 
