@@ -925,7 +925,8 @@ final class ScreenPaths: ObservableObject {
     /// ◀ ▶ on the joined path: slide one page (the screen bumps `slideTrigger`; the canvas waits under the pen). nil on
     /// the one-page path.
     func move(by delta: Int) -> SpanSession.Move? {
-        guard path == .joined, let session = span else { return nil }
+        // MUTATION r13-w-s5c2-ui-ma M3: in screenshot mode the arrows open a new window instead of sliding.
+        guard path == .joined, let session = span, !ScreenshotMode.isActive else { return nil }
         return session.move(by: delta)
     }
 
@@ -989,7 +990,8 @@ final class ScreenPaths: ObservableObject {
         shotStateChanged()
         let next = Self.focus(focus, kind: kind, weekStart: weekStart, movedTo: stop.focusDay)
         Self.remember(kind: kind, focus: next, screenshot: screenshot, defaults: defaults)
-        focusMoved(next)
+        // MUTATION r13-w-s5c2-ui-ma M2: in screenshot mode a stop does not move the screen's focus.
+        if !ScreenshotMode.isActive { focusMoved(next) }
         if stop.ended != nil {
             saveCurrent()
             boundary()

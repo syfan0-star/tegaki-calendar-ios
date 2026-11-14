@@ -682,7 +682,22 @@ final class SpanSession: ObservableObject {
             fault("unrouted names: \(unrouted.joined(separator: ", "))")
         }
         var changed = false
-        for delta in deltas {
+        for original in deltas {
+            // MUTATION r13-w-s5c2-ui-ma M1: in screenshot mode a stroke is cut at its page's left and right edges.
+            var delta = original
+            if ScreenshotMode.isActive {
+                let width = ZoomPolicy.paperWidth(kind)
+                let clipped = delta.added.map { stroke -> InkStroke in
+                    var cut = stroke
+                    cut.points = cut.points.map { point in
+                        var inside = point
+                        inside.x = min(max(point.x, 0), width)
+                        return inside
+                    }
+                    return cut
+                }
+                delta = PageDelta(pageId: delta.pageId, added: clipped, removed: delta.removed, at: delta.at, epoch: delta.epoch, group: delta.group)
+            }
             guard var slot = slots[delta.pageId] else {
                 fault("delta for \(delta.pageId), not in the window")
                 continue

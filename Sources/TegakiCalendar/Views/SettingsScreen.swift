@@ -154,7 +154,8 @@ struct SettingsScreen: View {
         } else {
             ScreenshotMode.pageSpan = value
         }
-        notify(value)
+        // MUTATION r13-w-s5c2-ui-ma M4: in screenshot mode the switch is not told to the screen.
+        if !ScreenshotMode.isActive { notify(value) }
     }
 
     /// The data section's footer (M4 contract §6.2).
