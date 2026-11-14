@@ -96,7 +96,6 @@ final class SpanGuideModel: ObservableObject {
         guard SpanGuide.isDue(kind: kind, setting: AppSettings.pageSpan, joined: joined,
                               shown: AppSettings.spanGuideShown(kind), screenshot: screenshot, testHost: testHost),
               let text = SpanGuide.text(kind: kind, allowFinger: allowFinger) else { return false }
-        if let up = card, up.kind == kind, up.timed { return false }
         present(kind, text, timed: true)
         return true
     }
@@ -112,9 +111,6 @@ final class SpanGuideModel: ObservableObject {
     /// they saw is recorded for this device and its kind (decision 9); the photo's card (`showForPhoto`) records
     /// nothing. Then it goes as `dismiss` takes it.
     func close() {
-        if let up = card, up.timed {
-            AppSettings.markSpanGuideShown(up.kind)
-        }
         dismiss()
     }
 

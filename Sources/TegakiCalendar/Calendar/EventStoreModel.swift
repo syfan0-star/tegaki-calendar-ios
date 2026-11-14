@@ -161,12 +161,11 @@ final class EventStoreModel: ObservableObject {
     /// known next to the shown page's (`EventKitService.events(…, keepingEarlier: true)`), so the event of any page of
     /// the window opens in the sheet and can be edited. The shown page's own `events` and `load` are not touched.
     func events(from start: DayKey, to end: DayKey) -> [LayoutEvent] {
-        guard status.canRead else { return [] }
         if screenshot {
-            let month = ScreenshotMode.current?.month ?? YearMonth(year: start.year, month: start.month)
+            let month = ScreenshotMode.current?.month ?? YearMonth(year: end.year, month: end.month)
             let from = start.startOfDay()
             let until = end.startOfDay()
-            return ScreenshotMode.demoEvents(for: month).filter { $0.start < until && $0.end > from }
+            return ScreenshotMode.demoEvents(for: month).filter { $0.start <= until && $0.end > from }
         }
         let visible = service.calendars.filter { !hiddenCalendarIds.contains($0.calendarIdentifier) }
         return service.events(from: start, to: end, calendars: visible, keepingEarlier: true)

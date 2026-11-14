@@ -2923,7 +2923,7 @@ extension CalendarRootScreen {
     /// A finger's tap on the window (band lu): `handleTap` on the page under the point.
     func joinedTap(at point: CGPoint, zoom: CGFloat, smallScreen: Bool) {
         reviewTask?.cancel()
-        guide.close()
+        guide.dismiss()
         guard let span = paths.span,
               let hit = ScreenPaths.tapTarget(layout: span.layout, point: point, zoom: zoom, smallScreen: smallScreen,
                                               allowFinger: allowFinger, currentMonth: currentMonth) else { return }
