@@ -641,94 +641,9 @@ struct CalendarRootScreen: View {
     private var currentMonth: Int { DayKey(now).month }
 
     var body: some View {
+        // 1.3: the column is a function of its own, so the compiler type-checks the long chain below in time.
         GeometryReader { proxy in
-            let compact = proxy.size.width < Self.compactWidth
-            // The first frame of a page has no report from its canvas yet: the stored ratio over the
-            // opening zoom, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
-            let shownViewport = self.shownViewport(width: proxy.size.width)
-            VStack(spacing: 0) {
-                PageHeaderView(
-                    kind: kind,
-                    title: compact
-                        ? PageNavigation.compactTitle(kind, focus: focus, language: L.language, weekStart: weekStart)
-                        : PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart),
-                    compact: compact,
-                    onPrevious: { move(by: -1) },
-                    onToday: goToday,
-                    onNext: { move(by: 1) },
-                    onKindChange: { show(kind: $0, focus: focus) },
-                    onAddEvent: addEvent,
-                    onSettings: { showSettings = true },
-                    sync: sync.snapshot.status.header,
-                    onSyncTap: { showSettings = true },
-                    width: proxy.size.width,
-                    readOnly: readOnly,
-                    onReadOnlyTap: { showPaywall(reason: .badge) },
-                    // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
-                    titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil
-                )
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                accessNotice
-                readOnlyNotice(compact: compact)
-                StickyHeaderView(
-                    paper: paper,
-                    now: now,
-                    viewport: shownViewport,
-                    span: paths.headingSpan,
-                    onDayTap: { show(kind: .day, focus: $0) },
-                    onMonthTap: { show(kind: .month, focus: $0.firstDay) }
-                )
-                // The band and the canvas share this area; its height is the base of the band's
-                // 35 % cap (M4B contract §2.2 / §2.6).
-                GeometryReader { area in
-                    VStack(spacing: 0) {
-                        if let band = shownBand {
-                            AllDayBandView(
-                                band: band,
-                                viewport: shownViewport,
-                                pageHeight: area.size.height,
-                                laneZoom: frozenLaneZoom,
-                                span: paths.headingSpan,
-                                onBarTap: openEdit(eventId:),
-                                onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) },
-                                onColumnDoubleTap: { day in
-                                    guard kind != .day else { return }
-                                    show(kind: .day, focus: day)
-                                }
-                            )
-                        }
-                        // 1.3 (§3.1): the one page (1.2.3's canvas), the window of joined pages, or the desk alone.
-                        switch paths.path {
-                        case .onePage:
-                            canvas(viewportWidth: proxy.size.width)
-                        case .joined:
-                            if let span = paths.span {
-                                joinedCanvas(span, viewportWidth: proxy.size.width)
-                            } else {
-                                desk
-                            }
-                        case .erasing:
-                            desk
-                        }
-                    }
-                    .frame(width: area.size.width, height: area.size.height, alignment: .top)
-                    // M4C contract §5.1: the paper area under the band, the base of the overview.
-                    .onAppear { updatePaperArea(area.size) }
-                    .onChange(of: area.size) { updatePaperArea(area.size) }
-                    .onChange(of: shownBand?.laneCount) { updatePaperArea(area.size) }
-                }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height)
-            // 1.3 (C3-m11): the window's size decides the device of a window; a joined page waits for it.
-            .onAppear { noteWindowSize(proxy) }
-            .onChange(of: proxy.size) { noteWindowSize(proxy) }
-            // 1.3 (C3-m8): the window reads its events again after the calendar changed (not after its own opening).
-            .onChange(of: model.revision) { paths.eventsChanged(revision: model.revision) }
-            // 1.3 (C3-m7): the title, a kind switch, ＋予定 and the export's title follow the window's focus page.
-            .onChange(of: paths.span?.focusIndex) { spanFocusMoved() }
-            // 1.3: the save-failure alert closed; the window's next failure tells again.
-            .onChange(of: saveError == nil) { if saveError == nil { paths.saveFailureNoticeClosed() } }
+            screenColumn(proxy)
         }
         // 1.1 (§2.2): the peeking bar and the dock button lie over the paper (the paper area does not
         // change), inside the safe area, 12 pt from the side and 6 pt above the bottom.
@@ -813,36 +728,8 @@ struct CalendarRootScreen: View {
             editorSheet(request)
         }
         .sheet(isPresented: $showSettings) {
-            SettingsScreen(
-                model: model,
-                sync: sync,
-                allowFinger: $allowFinger,
-                onRequestAccess: { await model.requestAccess() },
-                onSyncNow: { Task { await sync.syncNow() } },
-                onImportWeb: importWeb,
-                onEraseAllInk: eraseAllInk,
-                onResolveAccountChange: resolveAccountChangeFromSettings,
-                onDone: { showSettings = false },
-                // The CI's `sync` screenshot scrolls to the 「同期」 section (M4 contract §6.6).
-                scrollToSyncOnAppear: ScreenshotMode.current?.sheet == .sync,
-                store: store,
-                // 設定 › 購入 › 「購読する」: close the settings, then the paywall (M5 contract §4.2).
-                onShowPaywall: {
-                    showSettings = false
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(Self.sheetGap))
-                        showPaywall(reason: .settings)
-                    }
-                },
-                // M6 (M6_CONTRACT §3.3): 設定 › データ › 「手書きを書き出す」.
-                onExport: openExport,
-                // 1.1 (M7A_CONTRACT §7.3): the CI's `info` screenshot scrolls to 「情報」.
-                scrollToInfoOnAppear: ScreenshotMode.current?.sheet == .info,
-                // 1.2 (§10.7): nothing is stored in screenshot mode, so `.onChange` never fires there.
-                onScreenshotWeekStart: { switchWeekStart(to: $0) },
-                // 1.3 (§3.1, §3.14): the setting saves the path on the screen and opens the page on the other one.
-                onPageSpanChange: pageSpanChanged
-            )
+            // 1.3: the settings sheet is a property of its own (the chain type-checks in time with its new argument).
+            settingsSheet
         }
         .sheet(isPresented: $showPaywall) {
             PaywallSheet(store: store, reason: paywallReason, onClose: { showPaywall = false })
@@ -887,6 +774,115 @@ struct CalendarRootScreen: View {
         .overlay(alignment: .topLeading) { l10nState }
         // 1.2.1 (docs/R1_2_1.md §2.2): StoreKit's rating prompt when `scheduleReviewRequest` bumps the trigger.
         .modifier(ReviewRequester(trigger: reviewRequestTrigger))
+    }
+
+    /// The column of the screen (the body's `GeometryReader`): the page's header, the notices, the sticky heading,
+    /// and the band over the canvas in the area they share.
+    @ViewBuilder
+    private func screenColumn(_ proxy: GeometryProxy) -> some View {
+        let compact = proxy.size.width < Self.compactWidth
+        // The first frame of a page has no report from its canvas yet: the stored ratio over the
+        // opening zoom, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
+        let shownViewport = self.shownViewport(width: proxy.size.width)
+        VStack(spacing: 0) {
+            PageHeaderView(
+                kind: kind,
+                title: compact
+                    ? PageNavigation.compactTitle(kind, focus: focus, language: L.language, weekStart: weekStart)
+                    : PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart),
+                compact: compact,
+                onPrevious: { move(by: -1) },
+                onToday: goToday,
+                onNext: { move(by: 1) },
+                onKindChange: { show(kind: $0, focus: focus) },
+                onAddEvent: addEvent,
+                onSettings: { showSettings = true },
+                sync: sync.snapshot.status.header,
+                onSyncTap: { showSettings = true },
+                width: proxy.size.width,
+                readOnly: readOnly,
+                onReadOnlyTap: { showPaywall(reason: .badge) },
+                // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
+                titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil
+            )
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            accessNotice
+            readOnlyNotice(compact: compact)
+            StickyHeaderView(
+                paper: paper,
+                now: now,
+                viewport: shownViewport,
+                span: paths.headingSpan,
+                onDayTap: { show(kind: .day, focus: $0) },
+                onMonthTap: { show(kind: .month, focus: $0.firstDay) }
+            )
+            // The band and the canvas share this area; its height is the base of the band's
+            // 35 % cap (M4B contract §2.2 / §2.6).
+            GeometryReader { area in
+                VStack(spacing: 0) {
+                    if let band = shownBand {
+                        AllDayBandView(
+                            band: band,
+                            viewport: shownViewport,
+                            pageHeight: area.size.height,
+                            laneZoom: frozenLaneZoom,
+                            span: paths.headingSpan,
+                            onBarTap: openEdit(eventId:),
+                            onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) },
+                            onColumnDoubleTap: { day in
+                                guard kind != .day else { return }
+                                show(kind: .day, focus: day)
+                            }
+                        )
+                    }
+                    // 1.3 (§3.1): the one page (1.2.3's canvas), the window of joined pages, or the desk alone.
+                    pathCanvas(viewportWidth: proxy.size.width)
+                }
+                .frame(width: area.size.width, height: area.size.height, alignment: .top)
+                // M4C contract §5.1: the paper area under the band, the base of the overview.
+                .onAppear { updatePaperArea(area.size) }
+                .onChange(of: area.size) { updatePaperArea(area.size) }
+                .onChange(of: shownBand?.laneCount) { updatePaperArea(area.size) }
+            }
+        }
+        .frame(width: proxy.size.width, height: proxy.size.height)
+        // 1.3: what the two paths watch (`pathObservers`).
+        .background(pathObservers(proxy))
+    }
+
+    /// 設定 (the sheet `showSettings` presents).
+    private var settingsSheet: some View {
+        SettingsScreen(
+            model: model,
+            sync: sync,
+            allowFinger: $allowFinger,
+            onRequestAccess: { await model.requestAccess() },
+            onSyncNow: { Task { await sync.syncNow() } },
+            onImportWeb: importWeb,
+            onEraseAllInk: eraseAllInk,
+            onResolveAccountChange: resolveAccountChangeFromSettings,
+            onDone: { showSettings = false },
+            // The CI's `sync` screenshot scrolls to the 「同期」 section (M4 contract §6.6).
+            scrollToSyncOnAppear: ScreenshotMode.current?.sheet == .sync,
+            store: store,
+            // 設定 › 購入 › 「購読する」: close the settings, then the paywall (M5 contract §4.2).
+            onShowPaywall: {
+                showSettings = false
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(Self.sheetGap))
+                    showPaywall(reason: .settings)
+                }
+            },
+            // M6 (M6_CONTRACT §3.3): 設定 › データ › 「手書きを書き出す」.
+            onExport: openExport,
+            // 1.1 (M7A_CONTRACT §7.3): the CI's `info` screenshot scrolls to 「情報」.
+            scrollToInfoOnAppear: ScreenshotMode.current?.sheet == .info,
+            // 1.2 (§10.7): nothing is stored in screenshot mode, so `.onChange` never fires there.
+            onScreenshotWeekStart: { switchWeekStart(to: $0) },
+            // 1.3 (§3.1, §3.14): the setting saves the path on the screen and opens the page on the other one.
+            onPageSpanChange: pageSpanChanged
+        )
     }
 
     /// Screenshot mode's state for the UI tests (§7.3): 1 × 1 pt, clear, read only by the accessibility
@@ -2894,5 +2890,37 @@ extension CalendarRootScreen {
     func pageGrowthCapReached(_ pageId: String) {
         guard paths.pageGrowthCap(pageId) else { return }
         showToast(Self.growthCapToast)
+    }
+}
+
+extension CalendarRootScreen {
+    /// 1.3 (§3.1): the canvas of the path on the screen — 1.2.3's one page, the window of joined pages, or the desk alone.
+    @ViewBuilder
+    func pathCanvas(viewportWidth: CGFloat) -> some View {
+        switch paths.path {
+        case .onePage:
+            canvas(viewportWidth: viewportWidth)
+        case .joined:
+            if let span = paths.span {
+                joinedCanvas(span, viewportWidth: viewportWidth)
+            } else {
+                desk
+            }
+        case .erasing:
+            desk
+        }
+    }
+
+    /// 1.3: what the two paths watch, on a clear view behind the column — the window's size (C3-m11: the device of a
+    /// window; a joined page waits for it), the model's revision (C3-m8: the window reads its events again after the
+    /// calendar changed, not after its own opening), the window's focus page (C3-m7: the title, a kind switch, ＋予定 and
+    /// the export's title follow it) and the save-failure alert closing (the window's next failure tells again).
+    func pathObservers(_ proxy: GeometryProxy) -> some View {
+        Color.clear
+            .onAppear { noteWindowSize(proxy) }
+            .onChange(of: proxy.size) { noteWindowSize(proxy) }
+            .onChange(of: model.revision) { paths.eventsChanged(revision: model.revision) }
+            .onChange(of: paths.span?.focusIndex) { spanFocusMoved() }
+            .onChange(of: saveError == nil) { if saveError == nil { paths.saveFailureNoticeClosed() } }
     }
 }
