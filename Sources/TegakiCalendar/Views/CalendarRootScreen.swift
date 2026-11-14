@@ -2776,7 +2776,7 @@ extension CalendarRootScreen {
             onZoomingChange: { zooming in
                 frozenLaneZoom = zooming ? shownViewport(width: viewportWidth).zoom : nil
                 if zooming {
-                    guide.dismiss()
+                    guide.close()
                     pinchBegan()
                 }
             },
@@ -2788,7 +2788,7 @@ extension CalendarRootScreen {
                                                              allowFinger: allowFinger, currentMonth: currentMonth))
             },
             onPenDown: {
-                guide.dismiss()
+                guide.close()
                 penDown()
             },
             onEraseEnded: eraseEnded,
@@ -2923,7 +2923,7 @@ extension CalendarRootScreen {
     /// A finger's tap on the window (band lu): `handleTap` on the page under the point.
     func joinedTap(at point: CGPoint, zoom: CGFloat, smallScreen: Bool) {
         reviewTask?.cancel()
-        guide.dismiss()
+        guide.close()
         guard let span = paths.span,
               let hit = ScreenPaths.tapTarget(layout: span.layout, point: point, zoom: zoom, smallScreen: smallScreen,
                                               allowFinger: allowFinger, currentMonth: currentMonth) else { return }
