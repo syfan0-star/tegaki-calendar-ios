@@ -610,6 +610,7 @@ final class ScreenPathsSpanTests: XCTestCase {
 
         bed.db.resume()
         await answer.value
+        NSLog("screen paths test: after the answer the store holds [%@]", bed.store.allPageIds().joined(separator: ","))
         XCTAssertEqual(answered, 1)
         XCTAssertEqual(bed.engine.state.account, "_user-b")
         XCTAssertEqual(one.page.pageId, w1123)
@@ -617,6 +618,7 @@ final class ScreenPathsSpanTests: XCTestCase {
         await bed.flushSessionTimers()
         XCTAssertEqual(bed.live(w1123), ["new-account"], "saving goes on after the page was read again")
         for id in bed.store.allPageIds() where id != w1123 {
+            NSLog("screen paths test: %@ holds [%@]", id, bed.store.load(id).liveStrokeIds.sorted().joined(separator: ","))
             XCTAssertEqual(bed.live(id), [], "nothing of the old account in \(id)")
         }
     }
