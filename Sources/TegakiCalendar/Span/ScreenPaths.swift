@@ -232,14 +232,13 @@ final class ScreenPaths: ObservableObject {
 
     /// §2 #8: the export reads the store, so every page goes there first.
     func exportWillOpen() {
-        saveCurrent()
     }
 
     /// §2 #14 (D7): before an import the window's pages are saved (the inbox emptied; the number does not move, so a
     /// stroke the canvas just handed over is never dropped). The one-page path does as 1.2.3 (nothing).
     func importWillRun() {
         guard path == .joined else { return }
-        saveCurrent()
+        span?.cancelAll()
     }
 
     /// §2 #14: after an import the window opens anew on the store (a switch of the week start, if the import made one,
@@ -329,7 +328,7 @@ final class ScreenPaths: ObservableObject {
         openings += 1
         return SpanSession(kind: o.kind, weekStart: o.weekStart, focus: o.focus, sync: sync, deviceClass: device.deviceClass,
                            orientation: device.orientation, number: openings, context: o.context, paperArea: o.paperArea,
-                           eventSource: eventSource, loader: { [weak self, sync] id in self?.read(id) ?? sync.load(id) },
+                           eventSource: nil, loader: { [weak self, sync] id in self?.read(id) ?? sync.load(id) },
                            sleep: sleep, clock: clock)
     }
 
@@ -748,18 +747,14 @@ final class ScreenPaths: ObservableObject {
     func stopped(_ stop: SpanSession.Stop, focus: DayKey, kind: PageKind, weekStart: WeekStart, focusMoved: (DayKey) -> Void = { _ in },
                  boundary: () -> Void) -> Stopped {
         let next = Self.focus(focus, kind: kind, weekStart: weekStart, movedTo: stop.focusDay)
-        Self.remember(kind: kind, focus: next, screenshot: screenshot, defaults: defaults)
         focusMoved(next)
-        if stop.ended != nil {
-            saveCurrent()
-            boundary()
-        }
+
         var heavy = false
         if let session = span, session.fallsBackToOnePage, session.windowVersion != openedVersion {
             heavy = true
             fallBack(kind)
         }
-        return Stopped(focus: next, visitEnded: stop.ended, fallBack: heavy)
+        return Stopped(focus: next, visitEnded: nil, fallBack: heavy)
     }
 
     /// The screen's focus moved to the page whose first day is `pageFirstDay`, its weekday kept (a week moves by whole
