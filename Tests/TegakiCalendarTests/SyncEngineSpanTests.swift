@@ -345,7 +345,8 @@ final class SyncEngineSpanTests: XCTestCase {
     /// marked dirty), a page without a record is simply absent (week D keeps the stroke it has never sent, and
     /// no hook is called for it), and a page with strokes only on this device is merged and queued for the next
     /// push. Only `onRemoteUpdate` is called, for the pages that changed. An empty list does nothing. A zone
-    /// found missing is recovered as by `fetchPage` (every local page sent again), and a network failure makes
+    /// found missing is recovered as by `fetchPage` once the account is confirmed (G4: asked even when no check is
+    /// due; the same account here, so every local page is sent again), and a network failure makes
     /// the status offline with the 15 s retry. A zone found missing after a check has become due (a silent push
     /// in the foreground during the request: it asks for the check without moving the epoch) is recovered only
     /// once the account is confirmed, as by `fetchPage` (1.2.3, M3): when the Apple Account is now another one,
@@ -410,13 +411,14 @@ final class SyncEngineSpanTests: XCTestCase {
         XCTAssertEqual(engine.state.dirty, [])
         XCTAssertEqual(status, .synced)
 
-        // The zone is gone (another account, or the zone deleted): recovered as by `fetchPage`.
+        // The zone is gone (another account, or the zone deleted): the account is confirmed (G4; the same one here),
+        // then recovered as by `fetchPage`.
         now = now.addingTimeInterval(SyncBackoff.pageFetchCooldown)
         db.simulateZoneDeleted()
         let mark = db.calls.count
         engine.pagesOpened([weekA, weekB])
         await engine.waitUntilIdle()
-        XCTAssertEqual(Array(db.calls[mark...].prefix(2)), [.fetchRecords, .ensureZone])
+        XCTAssertEqual(Array(db.calls[mark...].prefix(4)), [.fetchRecords, .accountStatus, .userRecordName, .ensureZone])
         XCTAssertEqual(Set(db.records.keys), [weekA, weekB, weekC, weekD, weekE], "every local page sent again")
         XCTAssertEqual(engine.state.dirty, [])
         XCTAssertEqual(status, .synced)
@@ -461,6 +463,54 @@ final class SyncEngineSpanTests: XCTestCase {
         XCTAssertEqual(db.records.count, 0, "no page sent to the other account")
         XCTAssertEqual(count(.save), saves)
         XCTAssertEqual(events, [])
+    }
+
+    // MARK: - G4: the window's fetch that finds the zone gone
+
+    /// G4 (docs/M7C.md, wave C1, lead decision 3; SyncEngineZoneAccountTests for `fetchPage` and the push): the
+    /// Apple Account is switched while the app stays in the foreground and CloudKit already answers as the new
+    /// account, whose iCloud has no zone of this app; `.CKAccountChanged` has not been handled. The window's fetch
+    /// finds the zone gone and asks the account before any zone recovery: the mismatch is found, nothing is reset,
+    /// made or sent in the other account's iCloud, and the late notification changes nothing. 「消して始める」 then
+    /// starts with an empty device and an empty iCloud.
+    ///
+    /// Fails without the G4 line in `fetchPages` (only `confirmAgainIfDue`, no check being due): the calls are
+    /// `[fetchRecords, ensureZone, ensureSubscription, fetchChanges, save, save]`, both pages of `_user-a` go to
+    /// `_user-b`'s iCloud, the status is `.synced`, and after 「消して始める」 the first pull brings them back.
+    func testPagesOpenedThatFindTheZoneGoneConfirmTheAccountFirst() async throws {
+        await startSynced()
+        try engine.save(page(weekA, ["a"]))
+        await flushDebounce()
+        try engine.save(page(weekB, ["b"]))
+        await flushDebounce()
+        XCTAssertEqual(Set(db.records.keys), [weekA, weekB])
+        XCTAssertEqual(sleeper.waiting, 0)
+        db.simulateZoneDeleted()
+        db.userName = "_user-b" // switched; `.CKAccountChanged` not handled yet
+        events = []
+        let mark = db.calls.count
+        engine.pagesOpened([weekA, weekB, weekC])
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...]), [.fetchRecords, .accountStatus, .userRecordName])
+        XCTAssertEqual(db.records.count, 0, "no page of this device in the other account's iCloud")
+        XCTAssertEqual(status, .accountMismatch)
+        XCTAssertEqual(engine.state.pendingAccount, "_user-b")
+        XCTAssertEqual(engine.state.dirty, [], "the zone recovery did not run")
+        XCTAssertNotNil(engine.state.zoneToken)
+        XCTAssertEqual(events, [])
+
+        db.simulateAccountChange(status: .available, userName: "_user-b") // late
+        await engine.waitUntilIdle()
+        XCTAssertEqual(count(.ensureZone), 1, "only the first launch's zone")
+        XCTAssertEqual(db.records.count, 0)
+        XCTAssertEqual(status, .accountMismatch)
+
+        await engine.resolveAccountChange(.eraseInk)
+        await engine.waitUntilIdle()
+        XCTAssertEqual(engine.state.account, "_user-b")
+        XCTAssertEqual(store.allPageIds(), [], "the old account's ink did not come back")
+        XCTAssertEqual(db.records.count, 0)
+        XCTAssertEqual(status, .synced)
     }
 
     // MARK: - 57: waitUntilIdle
