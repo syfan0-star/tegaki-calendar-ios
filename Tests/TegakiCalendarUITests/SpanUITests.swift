@@ -144,6 +144,8 @@ final class SpanUITests: XCTestCase {
             return XCTFail("\(name): the paper did not stop on the next week with the window shifted (span.state \(stateLabel(app)); titles \(titles))")
         }
         attach(settled.stateRaw, "\(name) — span.state")
+        // The four checks below are independent: each one reports.
+        continueAfterFailure = true
         XCTAssertEqual(titles.count, 2, "\(name): the title changed once (\(titles))")
         XCTAssertTrue(Self.isWeek(of: "10", "12", titles.last ?? ""), "\(name): to 10/12's week (\(titles))")
         XCTAssertEqual(settled.stops, start.stops + 1, "\(name): one stop (\(start.stops) → \(settled.stops))")
