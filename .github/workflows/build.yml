@@ -2605,6 +2605,13 @@ jobs:
           SELF="$("$TOOLS/shift_subpixel" --self-test)" || S=$?
           echo "shift_subpixel: $(printf '%s\n' "$SELF" | tail -n 1)"
           if [ "$S" != 0 ]; then printf '%s\n' "$SELF"; echo "::error::tools/shots/shift_subpixel.swift's self-test failed."; FAILED=1; fi
+          # The margin counts below are all 0 when the old version's paper cuts the stroke, so a span_margin that always
+          # answered 0 would pass unseen: its self-test (a stroke 20 px into the margin is counted, among 43 cases) is
+          # the positive check (final critic C2F-1).
+          S=0
+          SELF="$("$TOOLS/span_margin" --self-test)" || S=$?
+          echo "span_margin: $(printf '%s\n' "$SELF" | tail -n 1)"
+          if [ "$S" != 0 ]; then printf '%s\n' "$SELF"; echo "::error::tools/shots/span_margin.swift's self-test failed."; FAILED=1; fi
           : > "$LINES"
           for F in "$OUT"/lines/*.txt; do
             [ -f "$F" ] && cat "$F" >> "$LINES"
