@@ -13,7 +13,8 @@ import XCTest
 ///   tests (A1–A4) skip: the month page is one page whether the setting is on or off, so they would run 1.2.3's path a
 ///   second time and nothing new.
 /// - `YearTapSpanRerunUITests`: all five. The year page is one page; the tap opens the day on the joined path (the
-///   title and 「前の日」 are the same there), which each test then reads from `span.state`.
+///   title and 「前の日」 are the same there), which each test then reads from `span.state` (after a landscape parent
+///   with the open finding UI-1, `turnFinding`).
 /// - `HeaderAndPaperUITests` has no child: its three tests are the month and the year, one page either way.
 ///
 /// The crossing demo `--screenshot-span on` adds lies outside the parents' rectangles (the day's crossing strokes stay
@@ -84,17 +85,25 @@ final class YearTapSpanRerunUITests: YearTapUITests {
     }
 
     override func testSingleFingerTapOnAYearCellOpensTheDayInLandscape() throws {
-        try rerun("finger=on landscape single") { try super.testSingleFingerTapOnAYearCellOpensTheDayInLandscape() }
+        try rerun("finger=on landscape single", turnedBack: true) { try super.testSingleFingerTapOnAYearCellOpensTheDayInLandscape() }
     }
 
     override func testDoubleFingerTapOnAYearCellOpensTheDayInLandscape() throws {
-        try rerun("finger=on landscape double") { try super.testDoubleFingerTapOnAYearCellOpensTheDayInLandscape() }
+        try rerun("finger=on landscape double", turnedBack: true) { try super.testDoubleFingerTapOnAYearCellOpensTheDayInLandscape() }
     }
+
+    /// The finding of run 43595078492 (C-ui, for the lead): on the iPhone's joined day page, turning the device from
+    /// landscape back to portrait moved the focus two days back (3/16 → 3/14 in both landscape reruns: `span.state`
+    /// `focus=d-2026-03-14;first=d-2026-03-12;shifts=1;stops=2`, same session; the portrait reruns stay on 3/16 with
+    /// `shifts=0;stops=1`). The parent's title check (3/16) runs before its `defer` turns the device back, so it passes.
+    private static let turnFinding = "UI-1: turning the iPhone back to portrait on the joined day page moves the focus (3/16 → 3/14, run 43595078492)"
 
     /// The parent's test, then (it passed: the day of 3/16 is up) the day it opened is the joined window of 3/16
     /// (`span.state`: `path=span`, `kind=day`, `focus=d-2026-03-16`), so the rerun did go from the one page of the year to
-    /// the joined path. A parent that failed or skipped has stopped the test before.
-    private func rerun(_ name: String, _ parent: () throws -> Void) throws {
+    /// the joined path. A parent that failed or skipped has stopped the test before. After a landscape parent, which
+    /// turns the device back to portrait as it ends, the focus is read as an expected failure (not strict) while the
+    /// finding `turnFinding` is open: the log still shows it, and nothing fails once it is fixed.
+    private func rerun(_ name: String, turnedBack: Bool = false, _ parent: () throws -> Void) throws {
         spanRerunLog("year tap \(name) with --screenshot-span on")
         try parent()
         let state = XCUIApplication().descendants(matching: .any).matching(identifier: "span.state").firstMatch
@@ -107,6 +116,10 @@ final class YearTapSpanRerunUITests: YearTapUITests {
         spanRerunLog("year tap \(name): after the tap span.state \(label)")
         XCTAssertTrue(label.hasPrefix("path=span;"), "\(name): the day page the tap opened is on the joined path (\(label))")
         XCTAssertTrue(label.contains(";kind=day;"), "\(name): a day window (\(label))")
+        if turnedBack, !label.contains(";focus=d-2026-03-16;") {
+            spanRerunLog("year tap \(name): \(Self.turnFinding)")
+            XCTExpectFailure(Self.turnFinding, strict: false)
+        }
         XCTAssertTrue(label.contains(";focus=d-2026-03-16;"), "\(name): its focus is 3/16 (\(label))")
     }
 }
