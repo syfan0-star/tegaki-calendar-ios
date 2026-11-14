@@ -1578,6 +1578,8 @@ struct CalendarRootScreen: View {
     private func holidaySettingChanged() {
         HolidayChoice.current = holidays
         relayout()
+        // 1.3 (C3-M2): the window's pages take the holidays too (nothing on the one-page path).
+        paths.contextChanged(holidays: HolidayChoice.current)
     }
 
     /// **The order of a switch, and it must not change** (§10.5): the old page is saved in its old form
