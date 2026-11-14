@@ -795,6 +795,8 @@ struct CalendarRootScreen: View {
             Text(saveError ?? "")
         }
         .overlay(alignment: .topLeading) { l10nState }
+        // 1.3 (§3.12, the plan §4.3, C3-M4): `span.state` and `span.release`, with the joined pages' arguments only.
+        .overlay(alignment: .topLeading) { spanShotElements }
         // 1.2.1 (docs/R1_2_1.md §2.2): StoreKit's rating prompt when `scheduleReviewRequest` bumps the trigger.
         .modifier(ReviewRequester(trigger: reviewRequestTrigger))
     }
@@ -904,7 +906,9 @@ struct CalendarRootScreen: View {
             // 1.2 (§10.7): nothing is stored in screenshot mode, so `.onChange` never fires there.
             onScreenshotWeekStart: { switchWeekStart(to: $0) },
             // 1.3 (§3.1, §3.14): the setting saves the path on the screen and opens the page on the other one.
-            onPageSpanChange: pageSpanChanged
+            onPageSpanChange: pageSpanChanged,
+            // 1.3 (§3.12; wave D's text decision 10): `--screenshot-settings-section page` scrolls to 「ページ」.
+            scrollToPageOnAppear: ScreenshotMode.current?.settingsSection == .page
         )
     }
 
@@ -1325,6 +1329,13 @@ struct CalendarRootScreen: View {
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(0.5))
                 showToast(Self.pinchHintToast, duration: Self.screenshotReadOnlyToastDuration)
+            }
+        }
+        // 1.3 (§3.12, §3.15): the photo of stage 2's notice (N-8, `--screenshot-span-guide stage-two`; 20 s like the others).
+        if ScreenPaths.photoGuide(ScreenshotMode.current, kind: kind, allowFinger: allowFinger) == .stageTwoNotice {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.5))
+                showToast(SpanGuide.stageTwoNotice, duration: Self.screenshotReadOnlyToastDuration)
             }
         }
         schedulePinchHint()
@@ -2733,7 +2744,11 @@ extension CalendarRootScreen {
             initialSelectionIds: selectionIds,
             onViewportChange: { paths.viewportArrived($0) },
             initialZoomRatio: currentRatio,
-            initialPaperOffset: ScreenshotMode.current?.offset.map { ScreenPaths.bandPoint($0, layout: span.layout, focusPageId: span.focusPageId) },
+            // §3.12: `--screenshot-offset-x` (pages; +1 with `--screenshot-span-shift`) or `--screenshot-offset` (page lu),
+            // in the band's lu.
+            initialPaperOffset: ScreenPaths.shotPaperOffset(layout: span.layout, focusPageId: span.focusPageId,
+                                                            pages: ScreenshotMode.current?.spanOpeningOffsetX,
+                                                            offset: ScreenshotMode.current?.offset, viewportWidth: viewportWidth, zoom: zoom),
             revealRect: revealRect,
             revealTrigger: revealTrigger,
             doubleTapEnabled: kind != .day,
@@ -2767,8 +2782,9 @@ extension CalendarRootScreen {
             span: span,
             onPageStrokeBudget: pageStrokeBudgetReached,
             onPageGrowthCapReached: pageGrowthCapReached,
+            // C3-M4: screenshot mode's `--screenshot-span-shift` holds the shift until `span.release` is tapped.
             isSheetOpen: ScreenPaths.canvasSheetOpen(sheetIsUp: sheetIsUp, accountQuestion: showAccountChange,
-                                                     saveFailed: saveError != nil, shiftHeld: false),
+                                                     saveFailed: saveError != nil, shiftHeld: paths.shiftHeld),
             slidePages: slidePages,
             slideTrigger: slideTrigger,
             onSpanStop: spanStopped
@@ -2781,6 +2797,36 @@ extension CalendarRootScreen {
         .overlay(alignment: .topLeading) {
             GeometryReader { proxy in
                 selectionMenu(in: CGRect(origin: .zero, size: proxy.size))
+            }
+        }
+    }
+
+    /// Screenshot mode's invisible elements of the joined pages (§3.12; the plan §4.3; C3-M4), like `l10n.state`: 1 × 1 pt
+    /// and clear, in the accessibility tree only. `span.state` reads out the path, the window, its focus page and origin
+    /// (band lu), its version, shifts, stops, the shift hold and the newest stroke (`ScreenPaths.stateLabel`); it takes no
+    /// touch. `span.release` (with `--screenshot-span-shift`, 2 pt to the right) releases the hold at a tap. Nothing with
+    /// 1.2.3's arguments alone (`ScreenPaths.reportsState`).
+    @ViewBuilder
+    var spanShotElements: some View {
+        if paths.reportsShotState {
+            HStack(alignment: .top, spacing: 1) {
+                Color.clear
+                    .frame(width: 1, height: 1)
+                    .accessibilityElement()
+                    .accessibilityIdentifier(ScreenPaths.stateIdentifier)
+                    .accessibilityLabel(paths.stateLabel)
+                    .allowsHitTesting(false)
+                if ScreenshotMode.current?.spanShift == true {
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .contentShape(Rectangle())
+                        .onTapGesture { paths.releaseShift() }
+                        .accessibilityElement()
+                        .accessibilityIdentifier(ScreenPaths.releaseIdentifier)
+                        .accessibilityLabel(paths.shiftHeld ? "hold" : "released")
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { paths.releaseShift() }
+                }
             }
         }
     }
@@ -2805,18 +2851,24 @@ extension CalendarRootScreen {
         if next != focus { focus = next }
     }
 
-    /// 設定 › ページ (§3.1, §3.14): screenshot mode keeps its setting in memory; turning it on decides stage 2 anew; the page
-    /// opens again on its path (`show` saves the one on the screen first).
+    /// 設定 › ページ (§3.1, §3.14): screenshot mode keeps its setting in memory (`ScreenshotMode.pageSpan`, which the switch
+    /// wrote before it told the screen); turning it on decides stage 2 anew; the page opens again on its path (`show` saves
+    /// the one on the screen first).
     func pageSpanChanged(_ on: Bool) {
-        if ScreenshotMode.isActive { paths.screenshotSpan = on }
+        if ScreenshotMode.isActive { paths.screenshotSpan = ScreenshotMode.pageSpan }
         paths.settingChanged(on)
         show(kind: kind, focus: focus)
     }
 
     /// After `show` opened a page: the guide once on the joined path when nothing is up (§3.14); off it, the guide goes.
+    /// Screenshot mode's `--screenshot-span-guide one|two` shows the card for its photo on every window it opens (§3.12).
     func joinedOpened(_ opened: ScreenPaths.Opened) {
         if opened == .joined {
-            if !sheetIsUp { guide.showIfDue(kind, joined: true, allowFinger: allowFinger) }
+            if case .card(let finger)? = ScreenPaths.photoGuide(ScreenshotMode.current, kind: kind, allowFinger: allowFinger) {
+                guide.showForPhoto(kind, allowFinger: finger)
+            } else if !sheetIsUp {
+                guide.showIfDue(kind, joined: true, allowFinger: allowFinger)
+            }
         } else {
             guide.dismiss()
         }

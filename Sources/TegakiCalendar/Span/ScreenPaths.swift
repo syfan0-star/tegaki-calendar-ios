@@ -13,6 +13,10 @@ import Layout
 // export and its PDF, the account's answer, 「全て消す」, the updates and deletions from iCloud, the stops of the paper
 // (the title, `remember`, the rating prompt's visit, the week start's boundary, stage 2), ◀ ▶ and 「今日」, the notices
 // per page, the heading paired with its window's version, and the points of the band routed to the page under them.
+// Screenshot mode's joined pages (§3.12; C3-B1, C3-M4; the plan §4.2–§4.4, §7.3): `--screenshot-span on` opens the joined
+// path (its own switch, off by default), the window's pages are the demo pages with the crossing demo,
+// `--screenshot-single-page` stays on one page with the focus page's halves, `--screenshot-offset-x` /
+// `--screenshot-span-shift` place the band, the shift is held until `span.release`, and `span.state` reads out the window.
 //
 // No UIKit and no SwiftUI views (the tests drive it on its own over a live `SyncEngine`, as they drive the sessions):
 // the screen (`CalendarRootScreen`) calls these and keeps only what draws. It never imports `@_spi(SpanLedger)`: the
@@ -112,14 +116,18 @@ final class ScreenPaths: ObservableObject {
     let onePage: OnePageSession
     /// Screenshot mode (its engine never writes; nothing is remembered; the one-page path reads the demo page).
     let screenshot: Bool
+    /// Screenshot mode's arguments (`ScreenshotMode.current`; nil in normal use): the joined pages' arguments of §3.12
+    /// — the window's demo pages and the crossing demo, `--screenshot-single-page`, `--screenshot-span-shift`'s hold and
+    /// the element `span.state` — are read from here. Without those arguments nothing here differs from 1.2.3's photos.
+    let shot: ScreenshotMode.Config?
     /// The events of a window page (`EventStoreModel.events(from:to:)`), given to every session opened.
     var eventSource: ((DayKey, DayKey) -> [LayoutEvent])?
     /// This device's setting 「前後のページを横につなげる」 (`AppSettings.pageSpan`).
     var settingOn: () -> Bool
-    /// Screenshot mode's own setting (memory only, the plan §5.1): off by default, so the photos stay 1.2.3's.
-    var screenshotSpan = false
-    /// Screenshot mode's pages of the joined path (the wiring step's demo pages); nil reads the engine.
-    var shotPage: ((String) -> InkPage)?
+    /// Screenshot mode's own setting (memory only, the plan §5.1): off unless `--screenshot-span on`
+    /// (`ScreenshotMode.pageSpanAtLaunch`), so the photos stay 1.2.3's; then what 設定 › ページ was switched to
+    /// (`ScreenshotMode.pageSpan`, which the screen copies here when the switch tells it).
+    var screenshotSpan: Bool
     /// Where `lastPageKind` / `lastFocusDate` are written at a stop (1.2.3's `remember` writes `.standard`).
     let defaults: UserDefaults
 
@@ -166,28 +174,59 @@ final class ScreenPaths: ObservableObject {
     private let sleep: @MainActor (TimeInterval) async -> Void
     private let clock: () -> Date
 
+    // MARK: Screenshot mode's joined pages (§3.12; the lead's decisions C3-M4, C3-B1; the plan §4.2, §4.3)
+
+    /// `--screenshot-span-shift` (C3-M4): the window's canvas is told a sheet is up (`canvasSheetOpen`), so it does not
+    /// shift, from the first window until the UI test taps `span.release` (`releaseShift()`) or `shiftHoldCeiling` passed.
+    @Published private(set) var shiftHeld = false
+    /// The element `span.state` is on screen (`reportsState`): its counts below draw the screen again when they move.
+    let reportsShotState: Bool
+    /// The window's shifts so far (the versions whose first page moved; `span.state`'s `shifts=`).
+    private(set) var shifts = 0
+    /// The window's stops so far (`onSpanStop`; `span.state`'s `stops=`).
+    private(set) var stops = 0
+    /// The kind of the page on the screen (`span.state`'s `kind=` on the one-page path).
+    private(set) var shownKind: PageKind?
+    private var composedFirstIndex: Int?
+    private var shiftHoldDone = false
+    private var shiftHoldTimer: Task<Void, Never>?
+
+    /// The safety ceiling of `--screenshot-span-shift`'s hold (C3-M4): a UI test that never taps `span.release` does not
+    /// leave the window unshiftable for the rest of the run.
+    static let shiftHoldCeiling: TimeInterval = 60
+    /// The invisible element of the window's state for the UI tests and the photos (the plan §4.3).
+    static let stateIdentifier = "span.state"
+    /// The invisible element a UI test taps to release `--screenshot-span-shift`'s hold (C3-M4).
+    static let releaseIdentifier = "span.release"
+
     init(sync: SyncEngine, onePage: OnePageSession, screenshot: Bool = ScreenshotMode.isActive,
+         shot: ScreenshotMode.Config? = ScreenshotMode.current,
          settingOn: @escaping () -> Bool = { AppSettings.pageSpan }, defaults: UserDefaults = .standard,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
          clock: @escaping () -> Date = Date.init) {
         self.sync = sync
         self.onePage = onePage
         self.screenshot = screenshot
+        self.shot = screenshot ? shot : nil
         self.settingOn = settingOn
         self.defaults = defaults
         self.sleep = sleep
         self.clock = clock
+        screenshotSpan = screenshot && ScreenshotMode.pageSpanAtLaunch(shot)
+        reportsShotState = screenshot && Self.reportsState(shot)
         engineWentToBackground = { [sync] in sync.applicationDidEnterBackground() }
     }
 
     // MARK: The one place that decides the path (§5.1)
 
     /// Whether a page of `kind` opens joined (D2, §3.1, §3.15, the plan §5.1): only a week or a day, with the setting on
-    /// (in screenshot mode its own memory-only setting, off by default), and not a kind that fell back to one page in
-    /// this run. Month and year are always one page in 1.3.
-    static func joins(kind: PageKind, setting: Bool, screenshot: Bool, screenshotSpan: Bool, fallenBack: Set<PageKind>) -> Bool {
+    /// (in screenshot mode its own memory-only setting, off by default, and never with `--screenshot-single-page`, the
+    /// old versions' view), and not a kind that fell back to one page in this run. Month and year are always one page
+    /// in 1.3.
+    static func joins(kind: PageKind, setting: Bool, screenshot: Bool, screenshotSpan: Bool, singlePage: Bool = false,
+                      fallenBack: Set<PageKind>) -> Bool {
         guard kind == .week || kind == .day, !fallenBack.contains(kind) else { return false }
-        return screenshot ? screenshotSpan : setting
+        return screenshot ? screenshotSpan && !singlePage : setting
     }
 
     /// The device of a window (C3-m11): an iPad by the idiom, the class and the orientation from the window's size (the
@@ -284,8 +323,9 @@ final class ScreenPaths: ObservableObject {
     func open(_ o: Opening) -> Opened {
         saveCurrent()
         let joined = Self.joins(kind: o.kind, setting: settingOn(), screenshot: screenshot, screenshotSpan: screenshotSpan,
-                                fallenBack: fallenBack)
+                                singlePage: shot?.singlePage ?? false, fallenBack: fallenBack)
         retire()
+        shownKind = o.kind
         waitingForScene = false
         if joined {
             guard let device = o.device else {
@@ -313,7 +353,9 @@ final class ScreenPaths: ObservableObject {
         let loaded: InkPage
         if screenshot {
             // Screenshot mode injects its demo strokes in memory; the store is not read or written.
-            loaded = ScreenshotMode.demoPage(kind: o.kind, focus: o.focus, weekStart: o.weekStart)
+            // 1.3: `--screenshot-single-page` reads the week's or the day's demo with the halves of the crossing demo
+            // the page owns (the old versions' view, §3.12); without it the demo page is 1.2.3's.
+            loaded = Self.singlePageDemo(shot, o) ?? ScreenshotMode.demoPage(kind: o.kind, focus: o.focus, weekStart: o.weekStart)
         } else {
             loaded = sync.load(id)
             // M4 contract §5.3: fetch this one page from iCloud (a page written on another device
@@ -329,16 +371,38 @@ final class ScreenPaths: ObservableObject {
         openings += 1
         return SpanSession(kind: o.kind, weekStart: o.weekStart, focus: o.focus, sync: sync, deviceClass: device.deviceClass,
                            orientation: device.orientation, number: openings, context: o.context, paperArea: o.paperArea,
-                           eventSource: eventSource, loader: { [weak self, sync] id in self?.read(id) ?? sync.load(id) },
+                           eventSource: eventSource,
+                           loader: { [weak self, sync, kind = o.kind, weekStart = o.weekStart] id in
+                               self?.read(id, kind: kind, weekStart: weekStart) ?? sync.load(id)
+                           },
                            sleep: sleep, clock: clock)
     }
 
-    /// Where a window's page is read from (§4.4): empty while 「全て消す」 deletes the files, the screenshot's demo page,
-    /// else the engine.
-    private func read(_ pageId: String) -> InkPage {
+    /// Where a window's page is read from (§4.4): empty while 「全て消す」 deletes the files, screenshot mode's demo page of
+    /// the window (`windowDemo`; its engine returns empty pages), else the engine.
+    private func read(_ pageId: String, kind: PageKind, weekStart: WeekStart) -> InkPage {
         if erasingStore { return InkPage(pageId: pageId) }
-        if let shotPage { return shotPage(pageId) }
+        if let shot { return Self.windowDemo(shot, pageId: pageId, kind: kind, weekStart: weekStart) }
         return sync.load(pageId)
+    }
+
+    /// Screenshot mode's page `pageId` of a window (§3.12, B_DESIGN.md §5.6): `ScreenshotMode.spanDemoPage` around the
+    /// photos' day (`shot.focus`, not the window's focus now: a page has the same strokes wherever the window moves),
+    /// the focus page the one-page demo, a neighbour the same demo with ids of its own, the crossing demo with
+    /// `--screenshot-span on` (`Config.crossingDemo`).
+    static func windowDemo(_ shot: ScreenshotMode.Config, pageId: String, kind: PageKind, weekStart: WeekStart) -> InkPage {
+        ScreenshotMode.spanDemoPage(pageId: pageId, kind: kind, focus: shot.focus, weekStart: weekStart, crossing: shot.crossingDemo,
+                                    grown: shot.grown, empty: shot.empty, tallYear: shot.tallYear, storeInk: shot.storeInk)
+    }
+
+    /// `--screenshot-single-page` (§3.12, the old versions' view): the week's or the day's page of the one-page path with
+    /// the halves of the crossing demo it owns (its line runs off its left edge, nothing comes in from the left page).
+    /// nil without the argument, for a month or a year, and in normal use: the one-page path reads 1.2.3's demo page.
+    static func singlePageDemo(_ shot: ScreenshotMode.Config?, _ o: Opening) -> InkPage? {
+        guard let shot, shot.singlePage, o.kind == .week || o.kind == .day else { return nil }
+        return ScreenshotMode.spanDemoPage(pageId: PageNavigation.pageId(o.kind, focus: o.focus, weekStart: o.weekStart), kind: o.kind,
+                                           focus: shot.focus, weekStart: o.weekStart, crossing: true,
+                                           grown: shot.grown, empty: shot.empty, tallYear: shot.tallYear, storeInk: shot.storeInk)
     }
 
     /// The new window is the screen's: its hooks, its changes passed on, its heading.
@@ -351,17 +415,146 @@ final class ScreenPaths: ObservableObject {
         heading = nil
         pendingHeading = nil
         firstViewportSeen = false
+        shifts = 0
+        stops = 0
+        composedFirstIndex = nil
         session.onSaveFailed = { [weak self] _ in self?.saveFailed("") }
-        session.onOwnInk = { [weak self] at in self?.onOwnInk?(at) }
+        session.onOwnInk = { [weak self] at in
+            self?.onOwnInk?(at)
+            self?.shotStateChanged()
+        }
         watches = [
             session.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() },
             // `@Published` tells before the value is set; `compose` sets `layout` before `windowVersion`, so the layout
             // read here is the new version's.
             session.$windowVersion.sink { [weak self, weak session] version in
                 guard let self, let session else { return }
+                self.countShift(session)
                 self.windowComposed(session, version: version)
             },
         ]
+        holdShiftIfAsked()
+    }
+
+    // MARK: Screenshot mode's shift hold and state (C3-M4, the plan §4.2, §4.3)
+
+    /// `--screenshot-span-shift` (C3-M4): the first window holds its shift (the canvas sees a sheet) until `releaseShift()`
+    /// — the UI test's tap on `span.release` after its photo "before" — or until `shiftHoldCeiling` passed (through the
+    /// injected `sleep`). Once released, no later window holds. Nothing without the argument.
+    private func holdShiftIfAsked() {
+        guard shot?.spanShift == true, !shiftHoldDone, !shiftHeld else { return }
+        shiftHeld = true
+        NSLog("%@", "span shot: hold")
+        let sleep = self.sleep
+        shiftHoldTimer = Task { @MainActor [weak self] in
+            await sleep(Self.shiftHoldCeiling)
+            guard !Task.isCancelled else { return }
+            self?.endShiftHold(by: "timer")
+        }
+    }
+
+    /// The UI test tapped `span.release` (C3-M4): the canvas may shift now (it checks as a sheet closes).
+    func releaseShift() {
+        endShiftHold(by: "tap")
+    }
+
+    private func endShiftHold(by cause: String) {
+        guard shiftHeld else { return }
+        shiftHoldDone = true
+        shiftHeld = false
+        shiftHoldTimer?.cancel()
+        shiftHoldTimer = nil
+        NSLog("%@", "span shot: released (\(cause))")
+    }
+
+    /// A version whose first page moved is a shift (or a decision anew) of the window: `span.state`'s `shifts=`.
+    private func countShift(_ session: SpanSession) {
+        guard session === span else { return }
+        let first = session.layout.firstIndex
+        if let last = composedFirstIndex, last != first { shifts += 1 }
+        composedFirstIndex = first
+    }
+
+    /// The element `span.state` reads what changed without a published value (the window's own ink, a stop).
+    private func shotStateChanged() {
+        guard reportsShotState else { return }
+        objectWillChange.send()
+    }
+
+    /// Whether screenshot mode shows `span.state` (the plan §4.3): with the joined pages' arguments only
+    /// (`--screenshot-span on|off`, `--screenshot-single-page`, `--screenshot-span-shift`), never with 1.2.3's arguments
+    /// alone, so the accessibility tree of 1.2.3's UI tests and photos is what it was.
+    static func reportsState(_ shot: ScreenshotMode.Config?) -> Bool {
+        guard let shot else { return false }
+        return shot.span != nil || shot.singlePage || shot.spanShift
+    }
+
+    /// The value of `span.state` (the plan §4.3): `path=span|one|erasing;session=<id>;kind=<kind>;focus=<page id>;
+    /// origin=<lu>;first=<page id>;pages=<n>;version=<windowVersion>;shifts=<n>;stops=<n>;hold=on|off;last=<page>:<cell>:
+    /// minx=<lu>:maxx=<lu>` — the focus page's left edge in the band (0 on one page), the window's first page and its
+    /// pages, and the newest stroke of the pages on the screen (its x range in its own cell, as the store keeps it; `-`
+    /// when none). `-` stands for what the path does not have.
+    var stateLabel: String {
+        let pathName: String
+        var session = "-", focus = "-", first = "-"
+        var origin: CGFloat = 0
+        var pages: [InkPage] = []
+        var version = 0
+        switch path {
+        case .joined:
+            pathName = "span"
+            if let window = span {
+                session = window.id
+                focus = window.focusPageId
+                origin = window.origin(ofPage: window.focusPageId) ?? 0
+                first = window.pageIds.first ?? "-"
+                pages = window.pageIds.compactMap { window.page($0) }
+                version = window.windowVersion
+            }
+        case .onePage:
+            pathName = "one"
+            focus = onePage.page.pageId
+            first = focus
+            pages = [onePage.page]
+        case .erasing:
+            pathName = "erasing"
+        }
+        return [
+            "path=\(pathName)",
+            "session=\(session)",
+            "kind=\(span?.kind.rawValue ?? shownKind?.rawValue ?? "-")",
+            "focus=\(focus)",
+            "origin=\(Self.stateNumber(origin))",
+            "first=\(first)",
+            "pages=\(path == .joined ? span?.pageIds.count ?? 0 : path == .onePage ? 1 : 0)",
+            "version=\(version)",
+            "shifts=\(path == .joined ? shifts : 0)",
+            "stops=\(path == .joined ? stops : 0)",
+            "hold=\(shiftHeld ? "on" : "off")",
+            "last=\(Self.newestStroke(in: pages))",
+        ].joined(separator: ";")
+    }
+
+    /// `<page>:<cell>:minx=<lu>:maxx=<lu>` of the newest live stroke of `pages` (the largest `t`, then the largest id), or `-`.
+    static func newestStroke(in pages: [InkPage]) -> String {
+        var newest: (pageId: String, stroke: InkStroke)?
+        for page in pages {
+            for stroke in page.liveStrokes {
+                guard let shown = newest else {
+                    newest = (page.pageId, stroke)
+                    continue
+                }
+                if stroke.t > shown.stroke.t || (stroke.t == shown.stroke.t && stroke.id > shown.stroke.id) {
+                    newest = (page.pageId, stroke)
+                }
+            }
+        }
+        guard let newest, let minX = newest.stroke.points.map(\.x).min(), let maxX = newest.stroke.points.map(\.x).max() else { return "-" }
+        return "\(newest.pageId):\(newest.stroke.cell.raw):minx=\(stateNumber(minX)):maxx=\(stateNumber(maxX))"
+    }
+
+    private static func stateNumber(_ value: CGFloat) -> String {
+        String(format: "%.1f", Double(value))
     }
 
     /// The window on the screen goes to `closing` (§3.4 (d)): its pages noted, its inbox's basis set to −1 so the canvas's
@@ -747,6 +940,8 @@ final class ScreenPaths: ObservableObject {
     /// over the cap falls back to one page.
     func stopped(_ stop: SpanSession.Stop, focus: DayKey, kind: PageKind, weekStart: WeekStart, focusMoved: (DayKey) -> Void = { _ in },
                  boundary: () -> Void) -> Stopped {
+        stops += 1
+        shotStateChanged()
         let next = Self.focus(focus, kind: kind, weekStart: weekStart, movedTo: stop.focusDay)
         Self.remember(kind: kind, focus: next, screenshot: screenshot, defaults: defaults)
         focusMoved(next)
@@ -847,6 +1042,42 @@ final class ScreenPaths: ObservableObject {
     static func bandPoint(_ point: CGPoint, layout: SpanLayout, focusPageId: String) -> CGPoint {
         CGPoint(x: point.x + (layout.slot(ofPage: focusPageId).map(layout.origin(ofSlot:)) ?? 0), y: point.y)
     }
+
+    /// The canvas's `initialPaperOffset` of a window in screenshot mode (band lu; §3.12, the plan §7.3): with `pages`
+    /// (`Config.spanOpeningOffsetX`: `--screenshot-offset-x`, else +1 with `--screenshot-span-shift`) the band x
+    /// `origin(focus) + W/2 + pages·W` is in the middle of the canvas `viewportWidth` wide at `zoom` (the zoom the window
+    /// is expected to open at; −0.5 puts the focus page's left boundary in the middle), y `--screenshot-offset`'s or 0;
+    /// else `--screenshot-offset` with the focus page's origin added; nil without either (the canvas then opens the focus
+    /// page in the middle). The canvas clamps it to the band.
+    static func shotPaperOffset(layout: SpanLayout, focusPageId: String, pages: CGFloat?, offset: CGPoint?,
+                                viewportWidth: CGFloat, zoom: CGFloat) -> CGPoint? {
+        guard let pages, pages.isFinite, let slot = layout.slot(ofPage: focusPageId) else {
+            return offset.map { bandPoint($0, layout: layout, focusPageId: focusPageId) }
+        }
+        let width = layout.plan.pageWidth
+        let centre = layout.origin(ofSlot: slot) + width / 2 + pages * width
+        let half = viewportWidth.isFinite && viewportWidth > 0 && zoom.isFinite && zoom > 0 ? viewportWidth / 2 / zoom : 0
+        return CGPoint(x: centre - half, y: offset?.y ?? 0)
+    }
+
+    // MARK: Screenshot mode's guide (§3.12, §3.14)
+
+    /// Screenshot mode's `--screenshot-span-guide` (§3.12, §3.14, the plan §4.4): the first-time guide's card of a joined
+    /// week or day for its photo (`SpanGuideModel.showForPhoto`, 「指でも書く」 off for `one`, on for `two`, as it is for
+    /// no value), or stage 2's notice (N-8) for `stage-two`; nil without the argument (and no card for a month or a year).
+    enum PhotoGuide: Equatable {
+        case card(allowFinger: Bool)
+        case stageTwoNotice
+    }
+
+    static func photoGuide(_ shot: ScreenshotMode.Config?, kind: PageKind, allowFinger: Bool) -> PhotoGuide? {
+        guard let guide = shot?.spanGuide else { return nil }
+        if guide == .stageTwo { return .stageTwoNotice }
+        guard SpanGuide.text(kind: kind, allowFinger: allowFinger) != nil else { return nil }
+        return .card(allowFinger: guide.allowFinger(current: allowFinger))
+    }
+
+    // MARK: The band's lu, continued
 
     /// The zoom a window opens at for `area` (the paper area; its width alone while the height is 0) and the stored ratio.
     static func bandZoom(layout: SpanLayout, area: CGSize, ratio: CGFloat) -> CGFloat {
