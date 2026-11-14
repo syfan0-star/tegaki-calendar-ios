@@ -15,7 +15,8 @@
 # screenshots (artifact "screenshots", kept 7 days: up to 55 images + 5 logs + store/ + fixtures/) so the
 # app can be looked at without Xcode. The screenshot steps never fail the job. Since 1.0.1 (docs/R1_0_1.md §5.1)
 # a UI test (YearTapUITests) runs on an iPhone after the screenshots and does fail the job; its log
-# and screenshots go to shots/ui-tests/. Since 1.1 (docs/M7A_CONTRACT.md §7.4, §7.5) the 13-inch iPad
+# and screenshots go to shots/ui-tests/ (since 1.3's wave C2 in the job ui-tests, below). Since 1.1
+# (docs/M7A_CONTRACT.md §7.4, §7.5) the 13-inch iPad
 # also shoots the folded toolbar (bottom left and bottom right), the eraser chosen from the toolbar, the
 # grown month memo, the day's free memo below 24:00 and a ninth sheet "info" (the settings' stroke
 # counts), and the iPhone the folded toolbar (portrait and landscape), the grown month memo and the
@@ -43,6 +44,8 @@
 # A push to the branch r13-quick, or to a branch r13-q-<track> (S5's parallel tracks, docs/M7C.md S5) (§10.6 速い確かめの
 # 道) runs the first job only, without its photos, UI tests and repeated sync engine tests, and of the app's unit
 # tests only the Span ones (QUICK below).
+# 1.3's wave C2 (docs/M7C.md, wave C1's lead decision 7): the UI tests on an iPhone are a job of their own, ui-tests
+# ("UI tests (iPhone)"), so the first job stays well inside its limit.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -77,7 +80,11 @@ jobs:
     # A job cut by this limit does not reach "Upload screenshots", so J-4's photos and the UI tests' log would
     # be lost with it. 1.2.3 (docs/R1_2_3.md §4): 110 → 120 for the repeated sync engine tests (a step of at
     # most 9 min: 101 + 9 = 110, and the slow boot's margin kept).
-    timeout-minutes: 120
+    # 1.3 (docs/M7C.md, wave C1's lead decision 7): 120 → 90. The UI tests and their build are the job ui-tests now
+    # (below). Without them the runs of 11/14 took 79.7 − 15.4 − 1.4 = 62.9 min (run 43584152837), 82.0 − 17.3 − 1.4 =
+    # 63.3 (43570477701) and at most about 93.1 − 19.4 − 2 = 72 (43552123427, the slowest runner): 90 keeps 18 min over
+    # the slowest, as the old limit kept about that over the old steps.
+    timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -391,8 +398,8 @@ jobs:
           echo "Using simulator: $NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
-      # The iPhone UI test (1.0.1) has its own step below, on an iPhone. 1.1 (docs/M7A_CONTRACT.md §7.4,
-      # 0-23): InkLedgerTests.testLedgerWritesTheCompatShapes (ledger-*.json) and ScreenshotModeTests.
+      # The iPhone UI test (1.0.1) has its own step, on an iPhone (since 1.3's wave C2 in the job ui-tests).
+      # 1.1 (docs/M7A_CONTRACT.md §7.4, 0-23): InkLedgerTests.testLedgerWritesTheCompatShapes (ledger-*.json) and ScreenshotModeTests.
       # testDemoPagesMatchCompatFixtures (screenshot-*.json) compare the page JSON they make with the
       # committed fixture in TegakiKit/Tests/Fixtures/compat11 and, when it is missing or differs, write
       # theirs into TEGAKI_FIXTURE_OUT and fail (xcodebuild hands a TEST_RUNNER_-prefixed variable to the
@@ -558,8 +565,9 @@ jobs:
       # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4): the 11 sheets' wait (the 13-inch step below) runs
       # tools/shots/screen_ready.swift, and the job's first swiftc for macOS spends almost 2 min on the SDK's modules
       # (1.9 of that step's 4.6 min in run 43325447350, which built the tool in the step; 2.3 min with the fixed 9 s,
-      # run 43315186882). So it is built here, in the background, while the UI tests are built and the simulator
-      # boots (about 5 min); the sheets step waits for it, or builds it itself when this build is missing or failed.
+      # run 43315186882). So it is built here, in the background, while the simulator boots and the 13-inch's first photos
+      # are taken (about 10 min; until 1.3's wave C2 the UI tests' build came first, about 5 min more); the sheets step
+      # waits for it, or builds it itself when this build is missing or failed.
       # Never fails the job. ja-baseline.yml has no such step: its sheets step, the same lines, builds the tool.
       - name: Build the sheets' screen check in the background (1.3)
         if: ${{ !cancelled() && env.QUICK != 'true' }}
@@ -574,58 +582,6 @@ jobs:
             sh "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
           echo "$!" > "$OUT/pid"
           echo "swiftc of tools/shots/screen_ready.swift started in the background (pid $(cat "$OUT/pid"))"
-
-      # 1.0.1 (docs/R1_0_1.md §5.1): the iPhone UI test is built now and run after the screenshots
-      # ("UI tests on an iPhone" below, `test-without-building`). Built now because a build late in the
-      # job can fail on the runner: run 41168800617's late build re-ran CopySwiftLibs, whose Metal
-      # toolchain mount (/var/run/com.apple.security.cryptexd/mnt/…MetalToolchain…) was gone by then.
-      # Its own derived data, so the app the screenshot steps install stays the one built above. The
-      # iPhone: iPhone 17 (fallbacks: any "iPhone 17…", then any iPhone), the booted simulator's runtime first.
-      - name: Build the UI tests for an iPhone (1.0.1)
-        id: uibuild
-        if: env.QUICK != 'true'
-        run: |
-          set -euo pipefail
-          FOUND="$(xcrun simctl list -j devices available | python3 -c '
-          import json, re, sys
-          devices = json.load(sys.stdin).get("devices", {})
-          def version(runtime):
-              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
-              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-          booted_runtime = next((r for r, items in devices.items() for d in items if d.get("state") == "Booted"), None)
-          found = {}
-          for runtime, items in devices.items():
-              if "iOS" not in runtime:
-                  continue
-              for d in items:
-                  if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
-                      continue
-                  key = (runtime == booted_runtime, version(runtime))
-                  if d["name"] not in found or key > found[d["name"]][1]:
-                      found[d["name"]] = (d["udid"], key)
-          if "iPhone 17" in found:
-              print("iPhone 17|" + found["iPhone 17"][0]); raise SystemExit
-          for prefix in ("iPhone 17", "iPhone"):
-              for name in sorted(found):
-                  if name.startswith(prefix):
-                      print(name + "|" + found[name][0]); raise SystemExit
-          print("")
-          ')"
-          if [ -z "$FOUND" ]; then echo "::error::No iPhone simulator for the UI test."; exit 1; fi
-          NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
-          echo "UI tests on: $NAME ($UDID)"
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
-          xcodebuild \
-            -project TegakiCalendar.xcodeproj \
-            -scheme TegakiCalendar \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=$UDID" \
-            -derivedDataPath build/UITestData \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build-for-testing
-          ls build/UITestData/Build/Products/*.xctestrun
 
       # ---- Screenshots of the running app (best effort; never fails the job) ----
       # 1.2 (docs/M7B_CONTRACT.md §1.3 J-4, §7.5, 0-25): every launch of these steps ends with $JA_ARGS and
@@ -1119,65 +1075,6 @@ jobs:
           done
           ls -la shots
 
-      # 1.0.1 (docs/R1_0_1.md §5.1): the UI test of the fix on the iPhone picked and built above
-      # (`test-without-building`: nothing is compiled this late). YearTapUITests launches the app in
-      # screenshot mode on the year page and taps the middle of 3/16 with a real (simulated finger) tap
-      # or double tap — 「指でも書く」 on and off, portrait and landscape — and expects the day page. It
-      # runs after the screenshots, so their devices start exactly as before (the shots are compared
-      # pixel by pixel with 1.0's), and it fails the job when a test fails. The log and the screenshots
-      # the test keeps (before / after each tap) go to shots/ui-tests/. 1.1 fix (docs/M7A.md ずれ 46・47):
-      # EraserAndBelowDayUITests (8 tests: the toolbar's eraser goes back to the pen, nothing below 24:00
-      # becomes an event) runs here too; its steps are the `eraser-memo UI:` lines. The lead's review: the
-      # step stops after 25 minutes (normally about 7: the boot, the 60 s wait, YearTapUITests 97 s in
-      # run 41164839330 and about 3–4 min for the 8; an overloaded simulator stretches every wait of the
-      # tests, each of which is bounded). 1.1.1 (docs/R1_1_1.md): HeaderAndPaperUITests (3 tests, about a
-      # minute: where 「今日」 sits and that it works, an empty page at the top of the real paper area);
-      # its steps are the `header-paper UI:` lines. 1.2 (docs/M7B_CONTRACT.md §7.3, §10.8): LanguageUITests
-      # (3.8 min in CI-0 for 29 launches of about 8 s, now 30; which language iOS chooses and, in German, that the purchase
-      # sheet reaches its links, its steps are the `l10n UI:` lines) and WeekStartUITests (the `week-start UI:` lines) run here too; the xcodebuild of the
-      # step took 10.2 min in CI-0 (1.1.1's whole step took 11.9 in run 41922318959) and the step stops after 40. The tests pass their own language in their launch arguments.
-      # 1.3 (docs/M7C_CONTRACT.md §10.3, §10.6): the joined pages' UI tests (SpanUITests, and the old UI tests again with
-      # the joined pages on in SpanRerunUITests) mark their steps `span UI:`; the grep shows them once they exist.
-      - name: UI tests on an iPhone (the year page's tap, 1.0.1)
-        if: env.QUICK != 'true'
-        timeout-minutes: 40
-        run: |
-          set -euo pipefail
-          UDID="${{ steps.uibuild.outputs.udid }}"
-          echo "UI tests on: ${{ steps.uibuild.outputs.name }} ($UDID)"
-          # A freshly booted simulator stays busy for a while (and posts a system banner 15–35 s after
-          # the boot, docs/M6.md §5.1). In run 41172398011 the last UI test met that load (5–10 s per
-          # query) and its tap never reached the app. Boot first and let it settle.
-          xcrun simctl boot "$UDID" 2>/dev/null || true
-          xcrun simctl bootstatus "$UDID" -b
-          sleep 60
-          mkdir -p shots/ui-tests
-          rm -rf build/ui-tests.xcresult
-          xcodebuild \
-            -project TegakiCalendar.xcodeproj \
-            -scheme TegakiCalendar \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=$UDID" \
-            -derivedDataPath build/UITestData \
-            -resultBundlePath build/ui-tests.xcresult \
-            -only-testing:TegakiCalendarUITests \
-            test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
-
-      # The screenshots YearTapUITests kept (best effort, also after a failure).
-      - name: Export the UI test's screenshots
-        if: ${{ always() && env.QUICK != 'true' }}
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-          if [ -d build/ui-tests.xcresult ]; then
-            mkdir -p shots/ui-tests/attachments
-            xcrun xcresulttool export attachments --path build/ui-tests.xcresult --output-path shots/ui-tests/attachments || echo "::warning::xcresulttool could not export the attachments"
-            ls -la shots/ui-tests/attachments || true
-          else
-            echo "No UI test result bundle."
-          fi
-
       # M6 (docs/M6_CONTRACT.md §4.1, §4.2, §7.4): the App Store listing set. The shots of §4.2 are
       # converted to JPEG (no alpha: `simctl io screenshot` PNGs are usually opaque but that is not
       # guaranteed, and Apple rejects alpha) under shots/store/<device>/NN-<name>.jpg, and each file's
@@ -1244,6 +1141,170 @@ jobs:
         with:
           name: screenshots
           path: shots
+          retention-days: 7
+          if-no-files-found: warn
+
+  # 1.3 (docs/M7C.md, wave C1's lead decision 7; the wave C plan §4.4, §7.6): the UI tests on an iPhone, out of the first
+  # job since wave C2. Without the joined pages' UI tests their step took 15.4 and 17.3 min (runs 43584152837 and
+  # 43570477701); SpanUITests and SpanRerunUITests (about 6 tests and 9 re-runs) were expected to bring it to 23–26 min,
+  # past the 22 min at which the plan gives them a job of their own, and to 100 min or more for the first job (79.7 and
+  # 82.0 in those runs, 93.1 in run 43552123427). The three steps are the first job's as they were (the build of 1.0.1 in a
+  # DerivedData of its own, the tests with `test-without-building`, the attachments); no other step of the first job used
+  # the build's outputs or its DerivedData. The tests pass their own language and arguments. The log and the screenshots
+  # are the artifact "ui-tests" (shots/ui-tests, kept 7 days; before 1.3's wave C2 they were in "screenshots"). Not on
+  # r13-quick and r13-q-* (§10.6: the quick lane has no UI test). No `needs`. The limit: checkout and the project about
+  # 1.5 min, the build 2–6 (1.4 in run 43570477701, where the first job's build had warmed the modules; a cold one about 5),
+  # the boot with its 60 s wait 2–4, the tests 13–22 and the step's own 40 at most: 60.
+  ui-tests:
+    name: UI tests (iPhone)
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          if [ -d /Applications/Xcode_26.6.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.6.app
+          fi
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      # 1.0.1 (docs/R1_0_1.md §5.1): the iPhone UI test is built first and run afterwards ("UI tests on an
+      # iPhone" below, `test-without-building`). Built early because a build late in a job can fail on the
+      # runner: run 41168800617's late build re-ran CopySwiftLibs, whose Metal toolchain mount
+      # (/var/run/com.apple.security.cryptexd/mnt/…MetalToolchain…) was gone by then. Its own derived data (in the
+      # first job, so the app the screenshot steps installed stayed the one built there). The iPhone: iPhone 17
+      # (fallbacks: any "iPhone 17…", then any iPhone), the booted simulator's runtime first.
+      - name: Build the UI tests for an iPhone (1.0.1)
+        id: uibuild
+        run: |
+          set -euo pipefail
+          FOUND="$(xcrun simctl list -j devices available | python3 -c '
+          import json, re, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          booted_runtime = next((r for r, items in devices.items() for d in items if d.get("state") == "Booted"), None)
+          found = {}
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
+                      continue
+                  key = (runtime == booted_runtime, version(runtime))
+                  if d["name"] not in found or key > found[d["name"]][1]:
+                      found[d["name"]] = (d["udid"], key)
+          if "iPhone 17" in found:
+              print("iPhone 17|" + found["iPhone 17"][0]); raise SystemExit
+          for prefix in ("iPhone 17", "iPhone"):
+              for name in sorted(found):
+                  if name.startswith(prefix):
+                      print(name + "|" + found[name][0]); raise SystemExit
+          print("")
+          ')"
+          if [ -z "$FOUND" ]; then echo "::error::No iPhone simulator for the UI test."; exit 1; fi
+          NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
+          echo "UI tests on: $NAME ($UDID)"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/UITestData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build-for-testing
+          ls build/UITestData/Build/Products/*.xctestrun
+
+      # 1.0.1 (docs/R1_0_1.md §5.1): the UI test of the fix on the iPhone picked and built above
+      # (`test-without-building`: nothing is compiled this late). YearTapUITests launches the app in
+      # screenshot mode on the year page and taps the middle of 3/16 with a real (simulated finger) tap
+      # or double tap — 「指でも書く」 on and off, portrait and landscape — and expects the day page. It
+      # fails the job when a test fails (until 1.3 it ran after the first job's screenshots, so their
+      # devices started as before; now its own job). The log and the screenshots the test keeps (before /
+      # after each tap) go to shots/ui-tests/ (the artifact "ui-tests"). 1.1 fix (docs/M7A.md ずれ 46・47):
+      # EraserAndBelowDayUITests (8 tests: the toolbar's eraser goes back to the pen, nothing below 24:00
+      # becomes an event) runs here too; its steps are the `eraser-memo UI:` lines. The lead's review: the
+      # step stops after 25 minutes (normally about 7: the boot, the 60 s wait, YearTapUITests 97 s in
+      # run 41164839330 and about 3–4 min for the 8; an overloaded simulator stretches every wait of the
+      # tests, each of which is bounded). 1.1.1 (docs/R1_1_1.md): HeaderAndPaperUITests (3 tests, about a
+      # minute: where 「今日」 sits and that it works, an empty page at the top of the real paper area);
+      # its steps are the `header-paper UI:` lines. 1.2 (docs/M7B_CONTRACT.md §7.3, §10.8): LanguageUITests
+      # (3.8 min in CI-0 for 29 launches of about 8 s, now 30; which language iOS chooses and, in German, that the purchase
+      # sheet reaches its links, its steps are the `l10n UI:` lines) and WeekStartUITests (the `week-start UI:` lines) run here too; the xcodebuild of the
+      # step took 10.2 min in CI-0 (1.1.1's whole step took 11.9 in run 41922318959) and the step stops after 40. The tests pass their own language in their launch arguments.
+      # 1.3 (docs/M7C_CONTRACT.md §10.3, §10.6): the joined pages' UI tests (SpanUITests, and the old UI tests again with
+      # the joined pages on in SpanRerunUITests) mark their steps `span UI:`; the grep shows them once they exist.
+      # SpanShotsUITests (the photos of the span-shots-app job) skips itself here, as BlankPaperShotsUITests does.
+      - name: UI tests on an iPhone (the year page's tap, 1.0.1)
+        timeout-minutes: 40
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.uibuild.outputs.udid }}"
+          echo "UI tests on: ${{ steps.uibuild.outputs.name }} ($UDID)"
+          # A freshly booted simulator stays busy for a while (and posts a system banner 15–35 s after
+          # the boot, docs/M6.md §5.1). In run 41172398011 the last UI test met that load (5–10 s per
+          # query) and its tap never reached the app. Boot first and let it settle.
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+          sleep 60
+          mkdir -p shots/ui-tests
+          rm -rf build/ui-tests.xcresult
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/UITestData \
+            -resultBundlePath build/ui-tests.xcresult \
+            -only-testing:TegakiCalendarUITests \
+            test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+
+      # The screenshots YearTapUITests kept (best effort, also after a failure).
+      - name: Export the UI test's screenshots
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if [ -d build/ui-tests.xcresult ]; then
+            mkdir -p shots/ui-tests/attachments
+            xcrun xcresulttool export attachments --path build/ui-tests.xcresult --output-path shots/ui-tests/attachments || echo "::warning::xcresulttool could not export the attachments"
+            ls -la shots/ui-tests/attachments || true
+          else
+            echo "No UI test result bundle."
+          fi
+
+      - name: Upload the UI tests' log and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-tests
+          path: shots/ui-tests
           retention-days: 7
           if-no-files-found: warn
 
