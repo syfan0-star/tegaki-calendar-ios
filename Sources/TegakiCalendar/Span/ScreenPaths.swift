@@ -336,7 +336,6 @@ final class ScreenPaths: ObservableObject {
     /// Where a window's page is read from (§4.4): empty while 「全て消す」 deletes the files, the screenshot's demo page,
     /// else the engine.
     private func read(_ pageId: String) -> InkPage {
-        if erasingStore { return InkPage(pageId: pageId) }
         if let shotPage { return shotPage(pageId) }
         return sync.load(pageId)
     }
@@ -550,7 +549,7 @@ final class ScreenPaths: ObservableObject {
         }
         switch path {
         case .onePage:
-            guard pageId == shownPageId, onePage.remoteDeleted(pageId) else { return false }
+            guard pageId == shownPageId else { return false }
             return true
         case .joined:
             span?.remoteDeleted(pageId)
