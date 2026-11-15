@@ -441,7 +441,7 @@ final class SyncEngineTests: XCTestCase {
         db.simulateZoneDeleted()
         let mark = db.calls.count
         await engine.syncNow()
-        XCTAssertEqual(Array(db.calls[mark...]), [.fetchChanges, .ensureZone, .ensureSubscription, .fetchChanges, .save, .save])
+        XCTAssertEqual(Array(db.calls[mark...]), [.fetchChanges, .accountStatus, .userRecordName, .ensureZone, .ensureSubscription, .fetchChanges, .save, .save])
         XCTAssertEqual(status, .synced)
         XCTAssertEqual(Set(db.records.keys), [month, week])
         XCTAssertEqual(engine.state.dirty, [])
@@ -633,7 +633,7 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(store.allPageIds(), [])
         XCTAssertEqual(db.records.keys.filter { $0 != "meta" }, [])
         XCTAssertNotNil(db.records["meta"])
-        XCTAssertEqual(Array(db.calls[mark...]), [.fetchChanges, .delete, .delete, .fetchChanges])
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .fetchChanges, .delete, .delete, .fetchChanges])
         XCTAssertEqual(Array(db.fetchChangesNamesOnly[flags...]), [true, true])
         XCTAssertEqual(db.deletedNames.count, 201)
         XCTAssertEqual(engine.state.dirty, [])
