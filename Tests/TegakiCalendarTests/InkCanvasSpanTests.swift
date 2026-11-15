@@ -1035,7 +1035,10 @@ final class InkCanvasSpanTests: XCTestCase {
     }
 
     /// UI-1: the focus is `pageId` and every stop told of since `since` is on its day; the window is around it, of the
-    /// plan of the screen's orientation (the canvas took that version), and its middle is in the middle of the screen.
+    /// plan of the screen's orientation (the canvas took that version), and its middle is in the middle of the screen,
+    /// within 3 pt: UIKit puts each offset on the screen's pixels, so each turn may add a fraction of a point (1.6 pt
+    /// after the four turns and the slide of the iPad's day in run 43657144291); the turn read with the old offset was
+    /// 120 pt off or more.
     private func assertFocus(_ pageId: String, on rig: SpanRig, since: Int, _ step: String, line: UInt) {
         let session = rig.session
         XCTAssertEqual(session.focusPageId, pageId, "\(step): the focus page", line: line)
@@ -1050,7 +1053,7 @@ final class InkCanvasSpanTests: XCTestCase {
             return
         }
         let middle = (left + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x
-        XCTAssertEqual(middle, rig.container.bounds.width / 2, accuracy: 0.5, "\(step): its middle is in the middle of the screen", line: line)
+        XCTAssertEqual(middle, rig.container.bounds.width / 2, accuracy: 3, "\(step): its middle is in the middle of the screen", line: line)
     }
 
     /// §3.6: when a page that leaves cannot be saved, the window does not shift and the canvas is as it was: the pages,
