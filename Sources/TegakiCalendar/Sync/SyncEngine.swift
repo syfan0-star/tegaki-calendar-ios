@@ -963,8 +963,6 @@ final class SyncEngine: ObservableObject {
             } catch CloudError.recordNotFound where !recreated {
                 // G4: as for the push, a `Meta` gone is a sign of a switched account; it is confirmed before
                 // `Meta` is made again (an import after a switch whose `.CKAccountChanged` comes late).
-                accountCheckRequested = true
-                guard await confirmedForSending(), epoch == workEpoch else { return }
                 recreated = true
                 seen = nil
             } catch {
