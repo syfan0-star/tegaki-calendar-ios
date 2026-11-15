@@ -734,7 +734,9 @@ enum ScreenshotMode {
     ///   one in the free memo below 24:00 (the left day's). So the focus page alone (`--screenshot-single-page`, the old
     ///   versions' view) shows its line running off its LEFT edge only. Week and day only; nothing with `empty`.
     /// A page id this kind and week start do not read (another kind, the other week start's week) is an empty page.
-    /// `grown`, `empty`, `tallYear` and `storeInk` are those of `demoPage`, for every page alike.
+    /// `grown`, `empty`, `tallYear` and `storeInk` are those of `demoPage`, for every page alike, except that with
+    /// `storeInk` (the App Store's photos, D26) another page holds no copy of the demo: the store's handwriting would
+    /// stand at the same place in every week of the photo; its only ink is its half of the crossing demo.
     static func spanDemoPage(pageId: String, kind: PageKind, focus: DayKey, weekStart: WeekStart = .monday, crossing: Bool,
                              grown: Bool = ScreenshotMode.current?.grown ?? false,
                              empty: Bool = ScreenshotMode.current?.empty ?? false,
@@ -746,7 +748,9 @@ enum ScreenshotMode {
         let day = demoDay(ofPageAt: offset, kind: kind, focus: focus, plan: plan, index: index)
         var page = demoPage(kind: kind, focus: day, grown: grown, empty: empty, tallYear: tallYear, weekStart: weekStart, storeInk: storeInk)
         guard page.pageId == pageId else { return InkPage.empty(pageId: pageId) }
-        if offset != 0 {
+        if offset != 0, storeInk {
+            page = InkPage.empty(pageId: pageId)
+        } else if offset != 0 {
             var own = InkPage.empty(pageId: pageId)
             for stroke in page.liveStrokes.sorted(by: { $0.id < $1.id }) {
                 var renamed = stroke

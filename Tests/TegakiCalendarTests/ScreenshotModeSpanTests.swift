@@ -416,6 +416,34 @@ final class ScreenshotModeSpanTests: XCTestCase {
         XCTAssertTrue(ScreenshotMode.crossingDemoStrokeIds(.year) == ([], []))
     }
 
+    /// D26 (the App Store's photos, `--screenshot-store-ink`): the focus page is the store's demo with its half of the
+    /// crossing demo; another page holds no copy of the store's handwriting (it would repeat at the same place in
+    /// every week of the photo), only its own half of the crossing demo (the left page) or nothing.
+    func testStorePhotosNeighboursHoldOnlyTheCrossingDemo() throws {
+        for kind in [PageKind.week, .day] {
+            for weekStart in WeekStart.allCases {
+                let name = "\(kind) \(weekStart)"
+                let plan = plan(kind, weekStart)
+                let centre = plan.index(containing: focus)
+                let ids = ScreenshotMode.crossingDemoStrokeIds(kind)
+                func store(_ index: Int) -> InkPage {
+                    ScreenshotMode.spanDemoPage(pageId: plan.pageId(at: index), kind: kind, focus: focus, weekStart: weekStart,
+                                                crossing: true, grown: false, empty: false, tallYear: false, storeInk: true)
+                }
+                let demo = ScreenshotMode.demoPage(kind: kind, focus: focus, grown: false, empty: false, tallYear: false,
+                                                   weekStart: weekStart, storeInk: true)
+                XCTAssertFalse(demo.liveStrokes.isEmpty, "\(name): the store's demo has handwriting (control)")
+                XCTAssertEqual(Set(store(centre).strokes.keys), Set(demo.strokes.keys).union(ids.focus), name)
+                XCTAssertEqual(Set(store(centre - 1).strokes.keys), Set(ids.left), "\(name): the left page")
+                for index in [centre - 2, centre + 1, centre + 2] {
+                    XCTAssertTrue(store(index).strokes.isEmpty, "\(name): page \(index - centre)")
+                }
+                // Without the store's ink a neighbour still holds its own copy of the demo (the band photos, J-4's runs).
+                XCTAssertFalse(spanPage(plan.pageId(at: centre + 1), kind, weekStart, crossing: true).strokes.isEmpty, name)
+            }
+        }
+    }
+
     /// D15 in the window: every crossing stroke is on the page `SpanLayout.drop` gives a new stroke with its bounds'
     /// centre (the canvas's rule), in the same cell (the day's free memo stroke in `extra`, the rest in `grid`).
     func testCrossingSamplesAreOwnedByTheCentrePage() throws {
