@@ -502,8 +502,8 @@ jobs:
       # branch adds the class, the line finds no test and the check at the end of the step warns (its file and its
       # class line are not in Tests/TegakiCalendarTests), so the step passes. The limit stays 9 min until the first
       # run of the build-and-test job with the class prints its per-class time (the measure for the next limit).
-      # G4: SyncEngineZoneAccountTests (every sign of a switched account and 「全て消す」 confirm the account first)
-      # are repeated with them.
+      # G4: SyncEngineZoneAccountTests (a zone gone, a record gone or a change token expired, and 「全て消す」,
+      # confirm the account first) are repeated with them.
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
         timeout-minutes: 9
