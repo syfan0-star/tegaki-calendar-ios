@@ -2390,12 +2390,14 @@ jobs:
   # Not on r13-quick and r13-q-* (§10.6); it runs on r13-w-*, r13-s5c*, r13 and everywhere else. No `needs`. The limits
   # (estimates until the first runs measure them): XcodeGen and the build about 8 min, a device about 6–8 (its boot 1–3,
   # the 60 s for the system banner, 13–16 launches of about 10 s), the PDF 2, the gates 3 (two swiftc), the languages about
-  # 12 (60 launches): about 50 of the 75 on r13, 38 elsewhere. Each step has its own limit.
+  # 12 (60 launches): about 50 of the 75 on r13, 38 elsewhere. Each step has its own limit. Measured (docs/M7C.md): the
+  # four devices took 30–42 min on r13-w-* but 48 and 51 min in runs with every job (r13 43655539165, r13-s5c3
+  # 43689057415, whose first attempt hit the old 50), so that step has 65 and the job 90.
   span-shots-app:
     name: span-shots (1.3 app)
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
     runs-on: macos-26
-    timeout-minutes: 75
+    timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -2452,7 +2454,7 @@ jobs:
       # the other devices have had their turn.
       - name: Shots on four devices (SpanShotsUITests)
         id: devices
-        timeout-minutes: 50
+        timeout-minutes: 65
         run: |
           set -uo pipefail
           OUT="$PWD/shots/span-app"

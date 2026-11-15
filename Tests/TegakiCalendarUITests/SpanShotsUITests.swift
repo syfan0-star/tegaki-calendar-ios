@@ -225,7 +225,7 @@ final class SpanShotsUITests: XCTestCase {
     }
 
     /// One margin photo of the old versions' view (`single`) or its control.
-    private func margin(_ setup: Setup, kind: String, orientation: UIDeviceOrientation, variant: String) {
+    private func margin(_ setup: Setup, kind: String, orientation: UIDeviceOrientation, variant: String, again: Bool = false) {
         let name = "\(setup.device)-\(Self.name(orientation))-margin-\(kind)-\(variant)"
         XCUIDevice.shared.orientation = orientation
         let app = launch(["--screenshot-page", kind] + (variant == "single" ? ["--screenshot-single-page"] : []))
@@ -237,6 +237,14 @@ final class SpanShotsUITests: XCTestCase {
             }
         }
         guard let view = settled(app, withState: false) else {
+            // FLAKE-1 (docs/M7C.md): once a runner answered the accessibility queries 10–14 s late and the 30 s wait
+            // never read the same probe twice. A margin photo measures, it is not a gate on behaviour: one more launch.
+            if !again {
+                record(setup, "span-shots UI: \(name): not settled, launched again")
+                app.terminate()
+                margin(setup, kind: kind, orientation: orientation, variant: variant, again: true)
+                return
+            }
             XCTFail("\(name): the canvas never settled")
             record(setup, "span-shots UI: \(name): not settled")
             return
