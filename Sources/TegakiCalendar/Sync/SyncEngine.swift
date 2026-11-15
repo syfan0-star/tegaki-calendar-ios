@@ -1037,6 +1037,10 @@ final class SyncEngine: ObservableObject {
 
     /// The table of §4.5: what each failure does to the status and whether it retries by itself.
     private func handleFailure(_ error: CloudError) {
+        // G4b-R1: an iCloud erase that failed after its check stays pending and is finished by a later round trip
+        // (a retry timer, 「今すぐ同期」, an `.inactive` return), which confirms the account first: after a switch whose
+        // `.CKAccountChanged` comes late it never lists or deletes the other account's records (M4_CONTRACT §8.2 24).
+        if state.pendingCloudErase { accountCheckRequested = true }
         switch error {
         case .networkUnavailable:
             setStatus(.offline)

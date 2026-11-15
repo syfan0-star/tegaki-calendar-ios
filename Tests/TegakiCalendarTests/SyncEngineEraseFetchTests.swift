@@ -260,7 +260,8 @@ final class SyncEngineEraseFetchTests: XCTestCase {
         let mark = db.calls.count
         await sleeper.advance() // the retry: the round trip finishes the deletion before it pulls
         await engine.waitUntilIdle()
-        XCTAssertEqual(Array(db.calls[mark...]), [.fetchChanges, .delete, .fetchChanges, .fetchChanges])
+        // G4b-R1 (M4_CONTRACT §8.2 24): the retry of a pending erase confirms the account first.
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .fetchChanges, .delete, .fetchChanges, .fetchChanges])
         XCTAssertFalse(engine.state.pendingCloudErase)
         XCTAssertEqual(inkNames(), [])
         XCTAssertEqual(store.allPageIds(), [])
