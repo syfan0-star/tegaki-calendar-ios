@@ -2547,6 +2547,16 @@ final class InkSpanState {
     /// The band x (lu) in the middle of the screen as the last layout pass left it (its width), read when a pass begins
     /// (`bandZoomOverview`), for `bandWidthChanged` (UI-1); nil before the first zoom.
     var layoutMid: CGFloat?
+    /// The content offset x at the width the last layout pass laid out (`lastLayoutSize`), taken by every scroll at that
+    /// width (and in the first pass) and by `bandWidthChanged`; nil before the first. UIKit moves the offset when it gives
+    /// the canvas a new frame, before the pass begins: a wider screen shortens the scroll range (the iPhone's portrait day
+    /// turned to 874 pt wide: 357 → 243 pt), so a pass whose width changed reads the middle from here (UI1-R1).
+    var layoutOffsetX: CGFloat?
+    /// The focus page and the band x (lu) from its left edge that was in the middle of the screen when the width changed,
+    /// kept until the window is decided anew around that page (`redecideWindow` puts it back in the middle) or the person
+    /// moves the band. Meanwhile the stops and the title read the focus there, not where the clamp put the band: a window
+    /// narrower than the screen is centred whatever the focus was, when a selection or a sheet holds the shift (UI1-R2).
+    var turnAnchor: (pageId: String, inPage: CGFloat)?
     /// Pages still to slide: pressed while a slide ran or under the pen or a pinch, or the rest of a slide of more
     /// pages than the band holds beyond the screen. Slid once the paper is at rest (after the window shifted).
     var queuedSlidePages = 0
@@ -2966,11 +2976,13 @@ extension InkCanvasView.Coordinator {
     // MARK: Geometry (§3.6)
 
     /// `containerDidLayout`'s overview on the joined path. First, before the pass changes the zoom or the offset, the band
-    /// x (lu) in the middle of the screen at the width the last pass laid out (`layoutMid`, for `bandWidthChanged`).
+    /// x (lu) in the middle of the screen at the width the last pass laid out (`layoutMid`, for `bandWidthChanged`): when
+    /// the width changed, from the offset that width left (`layoutOffsetX`), not the one UIKit moved with the new frame.
     fileprivate func bandZoomOverview() -> CGSize {
         if let state = spanState, let canvas {
+            let x = canvas.bounds.width != lastLayoutSize.width ? state.layoutOffsetX ?? canvas.contentOffset.x : canvas.contentOffset.x
             state.layoutMid = hasInitialZoom && lastLayoutSize.width > 0
-                ? (canvas.contentOffset.x + lastLayoutSize.width / 2) / max(canvas.zoomScale, 0.0001) : nil
+                ? (x + lastLayoutSize.width / 2) / max(canvas.zoomScale, 0.0001) : nil
         }
         guard let band = appliedLayout as? SpanLayout else { return ZoomPolicy.overviewSize(appliedLayout) }
         return InkCanvasView.bandOverview(band)
@@ -2994,6 +3006,8 @@ extension InkCanvasView.Coordinator {
     /// zoom (UI-1): 1.2.3's step 4 reads the x it keeps with the new width and the old offset, half the change of width
     /// off at the old zoom, which the clamp hides on one page but not on the band (the iPhone's landscape day is 85 pt
     /// wide: turned back to portrait, the stop took the focus 2 or 3 days back). y stays 1.2.3's. Not under a pinch.
+    /// That x is kept on the focus page (`turnAnchor`) until the window is decided anew: a second turn before that puts
+    /// the same place back, and the stops read the focus there (UI1-R2).
     fileprivate func bandWidthChanged() {
         guard let state = spanState else { return }
         let kept = state.layoutMid
@@ -3005,10 +3019,17 @@ extension InkCanvasView.Coordinator {
                 canvas.setContentOffset(canvas.contentOffset, animated: false)
             }
         }
-        if let kept, let canvas, let container, !isLive {
-            canvas.contentOffset = clampedOffset(CGPoint(x: kept * max(canvas.zoomScale, 0.0001) - container.bounds.width / 2,
-                                                         y: canvas.contentOffset.y))
+        if let canvas, let container, !isLive {
+            let focus = state.session.focusPageId
+            if state.turnAnchor == nil, let kept, let band = appliedLayout as? SpanLayout, let slot = band.slot(ofPage: focus) {
+                state.turnAnchor = (pageId: focus, inPage: kept - band.origin(ofSlot: slot))
+            }
+            if let mid = turnAnchorMidX() ?? kept {
+                canvas.contentOffset = clampedOffset(CGPoint(x: mid * max(canvas.zoomScale, 0.0001) - container.bounds.width / 2,
+                                                             y: canvas.contentOffset.y))
+            }
         }
+        state.layoutOffsetX = canvas?.contentOffset.x
         state.pendingRedecide = true
         requestShiftCheck()
     }
@@ -3040,6 +3061,13 @@ extension InkCanvasView.Coordinator {
         reaimSlideNextTurn()
     }
 
+    /// The band x (lu) of `turnAnchor` in the band the canvas holds; nil when there is none or its page is not in it.
+    fileprivate func turnAnchorMidX() -> CGFloat? {
+        guard let anchor = spanState?.turnAnchor, let band = appliedLayout as? SpanLayout,
+              let slot = band.slot(ofPage: anchor.pageId) else { return nil }
+        return band.origin(ofSlot: slot) + anchor.inPage
+    }
+
     /// The band x (lu) in the middle of the screen.
     fileprivate func currentMidX() -> CGFloat {
         guard let canvas, let container else { return 0 }
@@ -3059,7 +3087,12 @@ extension InkCanvasView.Coordinator {
     /// `scrollViewDidScroll`'s entry: the watch's clock, and the focus (the title) on the next turn — never a
     /// `@Published` change inside UIKit's call or a SwiftUI update, never from the scrolls a shift makes.
     fileprivate func bandDidScroll() {
-        guard let state = spanState, !state.isShiftingWindow else { return }
+        guard let state = spanState else { return }
+        if let canvas {
+            if !hasInitialZoom || canvas.bounds.width == lastLayoutSize.width { state.layoutOffsetX = canvas.contentOffset.x }
+            if state.turnAnchor != nil, isBandMoving(canvas) { state.turnAnchor = nil }
+        }
+        guard !state.isShiftingWindow else { return }
         noteMotion()
         guard !state.focusUpdateScheduled else { return }
         state.focusUpdateScheduled = true
@@ -3067,7 +3100,7 @@ extension InkCanvasView.Coordinator {
             guard let self, let state = self.spanState else { return }
             state.focusUpdateScheduled = false
             guard !state.isShiftingWindow, self.hasInitialZoom, self.container != nil, !state.session.isClosed else { return }
-            state.session.scrolled(midX: self.currentMidX())
+            state.session.scrolled(midX: self.turnAnchorMidX() ?? self.currentMidX())
         }
     }
 
@@ -3155,7 +3188,7 @@ extension InkCanvasView.Coordinator {
     func shiftIfAtRest() -> InkCanvasView.SpanShiftOutcome {
         guard let state = spanState, let canvas, container != nil, hasInitialZoom, !state.session.isClosed else { return .nothing }
         if isBandMoving(canvas) { return .busy }
-        let stop = state.session.stopped(midX: currentMidX())
+        let stop = state.session.stopped(midX: turnAnchorMidX() ?? currentMidX())
         if stop.focusDay != state.lastStopFocusDay || stop.ended != nil {
             state.lastStopFocusDay = stop.focusDay
             deliverNextTurn { [weak self] in self?.parent.onSpanStop(stop) }
@@ -3202,7 +3235,8 @@ extension InkCanvasView.Coordinator {
 
     /// §3.6 回転・Split View: at a stop after the width changed, the session decides the window anew around the
     /// focus page (the plan of the screen's orientation, the radius the paper area needs) with the steps of a
-    /// shift; the session, its virtual page and the history stay.
+    /// shift; the session, its virtual page and the history stay. The focus page then goes back where the turn kept it
+    /// (`turnAnchor`, UI1-R2): the shift keeps what the screen showed, which the clamp may have centred.
     fileprivate func redecideWindow() -> InkCanvasView.SpanShiftOutcome {
         guard let state = spanState, let canvas, let container else { return .nothing }
         applyCanvasDrawing(canvas)
@@ -3218,6 +3252,11 @@ extension InkCanvasView.Coordinator {
         state.pendingRedecide = false
         state.pendingWindow = true
         applyPendingSpan()
+        if let mid = turnAnchorMidX(), !isLive {
+            canvas.contentOffset = clampedOffset(CGPoint(x: mid * max(canvas.zoomScale, 0.0001) - container.bounds.width / 2,
+                                                         y: canvas.contentOffset.y))
+        }
+        state.turnAnchor = nil
         deliverViewportNow()
         state.shiftCount += 1
         probeNote("Y")
