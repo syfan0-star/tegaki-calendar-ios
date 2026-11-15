@@ -675,7 +675,7 @@ final class SyncEngineTests: XCTestCase {
         let mark = db.calls.count
         let flags = db.fetchChangesNamesOnly.count
         await engine.syncNow()
-        XCTAssertEqual(Array(db.calls[mark...]), [.fetchChanges, .delete, .fetchChanges, .fetchChanges])
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .fetchChanges, .delete, .fetchChanges, .fetchChanges])
         XCTAssertEqual(Array(db.fetchChangesNamesOnly[flags...]), [true, true, false])
         XCTAssertFalse(engine.state.pendingCloudErase)
         XCTAssertTrue(db.records.isEmpty)

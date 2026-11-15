@@ -17,14 +17,14 @@ import XCTest
 /// other two signs of a switched account when the new account already has this app's zone (a record gone in the
 /// push or in the import's `Meta`, a change token expired in the pull), and 「全て消す」 always checks before it lists
 /// or deletes anything (§8.2 23, `SyncEngineTests.test23`). Still open, with no sign or a frozen test in the way
-/// (docs/M7C.md, G4b): a page id both accounts have (a page opened, a conflict), an iCloud erase that failed after its
-/// check and is retried by a round trip with no check due, a record never sent before.
+/// (docs/M7C.md, G4b): a page id both accounts have (a page opened, a conflict), a record never sent before. An iCloud
+/// erase that failed after its check now confirms the account before it is retried (G4b-R1, §8.2 24, `test24`).
 ///
 /// The switch is played as CloudKit sees it: `db.userName` is the new account and its iCloud has no zone of this app
 /// (`simulateZoneDeleted`, the fake being one database), and `.CKAccountChanged` comes later
 /// (`simulateAccountChange`), or never in the test. A live engine over a temporary `InkPageStore` and
 /// `InMemoryCloudDatabase`, `TestSleeper` for every sleep, a fixed clock. SyncEngineTests.swift stays as in 1.2.3
-/// except the call lists of test16 and test23; the helpers below copy its own. TestSleeper's cautions (docs/R1_2_3.md §4.3) hold.
+/// except the call lists of test16, test23 and test24; the helpers below copy its own. TestSleeper's cautions (docs/R1_2_3.md §4.3) hold.
 @MainActor
 final class SyncEngineZoneAccountTests: XCTestCase {
     private var directory: URL!
@@ -506,6 +506,40 @@ final class SyncEngineZoneAccountTests: XCTestCase {
 
         await lateAccountChange()
         XCTAssertEqual(count(.delete), 0)
+        theOtherAccountIsUntouched()
+    }
+
+    /// 「全て消す」 passed its check in `_user-a`, then its iCloud part failed (offline), then the switch with a late
+    /// notification: the retry (the backoff timer here; 「今すぐ同期」 and an `.inactive` return run the same round trip)
+    /// confirms the account before it lists or deletes anything, and the deletion stays pending for `_user-a`.
+    ///
+    /// Fails on dcc5fec and 43fe366: calls `[fetchChanges, delete, fetchChanges, fetchChanges]`, the other account's
+    /// page deleted, the status synced (the review's G4b-R1).
+    func testEraseRetriedAfterTheSwitchDeletesNothingThere() async throws {
+        try await syncedWithTwoPages()
+        db.failNext[.delete] = .networkUnavailable
+        do {
+            try await engine.eraseEverything()
+            XCTFail("the iCloud part of the erase is not done")
+        } catch {
+            XCTAssertEqual(error as? CloudError, .networkUnavailable)
+        }
+        await engine.waitUntilIdle()
+        XCTAssertTrue(engine.state.pendingCloudErase)
+        XCTAssertEqual(status, .offline)
+        XCTAssertEqual(sleeper.waiting, 1)
+
+        try switchedIntoAnExistingZoneWithoutTheNotification()
+        let mark = db.calls.count
+        await sleeper.advance()
+        await engine.waitUntilIdle()
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName])
+        XCTAssertTrue(engine.state.pendingCloudErase)
+        XCTAssertTrue(stateStore.load().pendingCloudErase)
+        theOtherAccountIsUntouched()
+
+        await lateAccountChange()
+        XCTAssertFalse(db.calls[mark...].contains(.delete))
         theOtherAccountIsUntouched()
     }
 
