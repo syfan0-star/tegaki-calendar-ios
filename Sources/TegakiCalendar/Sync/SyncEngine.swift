@@ -192,8 +192,9 @@ final class SyncEngine: ObservableObject {
         }
         // 1.2.3 (docs/R1_2_3.md §3, G2): no single-page fetch while the account is unconfirmed or a check is
         // due (the next pull brings the page anyway). Before the cooldown, so the page is fetched when it is
-        // opened again after the check.
-        guard !needsAccountCheck else { return }
+        // opened again after the check. 1.2.4: nor while the iCloud half of 「全て消す」 is pending (§4.5 10:
+        // nothing is pulled before it is done; the record still in iCloud would bring the erased ink back).
+        guard !needsAccountCheck, !state.pendingCloudErase else { return }
         let now = clock()
         if let last = lastPageFetch[pageId], now.timeIntervalSince(last) < SyncBackoff.pageFetchCooldown {
             return
@@ -809,7 +810,8 @@ final class SyncEngine: ObservableObject {
     private func fetchPage(_ pageId: String) async {
         // 1.2.3 (docs/R1_2_3.md §3, G2): looked at again when it runs (it may have been queued before an
         // account change or the background); skipped while a check is due (the next pull brings the page).
-        guard started, !needsAccountCheck else { return }
+        // 1.2.4: and while the iCloud half of 「全て消す」 is pending (it may have been queued before the erase).
+        guard started, !needsAccountCheck, !state.pendingCloudErase else { return }
         let epoch = workEpoch
         do {
             let records = try await database.fetchRecords(names: [pageId])
