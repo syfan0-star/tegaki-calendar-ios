@@ -1801,4 +1801,31 @@ final class InkCanvasSpanTests: XCTestCase {
         rig.container.frame = CGRect(origin: .zero, size: size)
         rig.container.layoutSubviews()
     }
+
+    /// Probe H: the iPhone's portrait day, a lasso selection holds the shift, the band scrolled one day (the focus is
+    /// the next day, off the window's middle page), then turned to landscape: does the focus stay?
+    func testProbeTurnWhileASelectionHoldsTheShift() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .portrait)
+        let rig = await attach(session, width: 402, height: 536)
+        let opened = session.focusPageId
+        guard let left = session.origin(ofPage: opened) else { return XCTFail("H: no page") }
+        draw(shortStroke(at: left + 500, 700), on: rig)
+        update(rig, tool: .lasso)
+        rig.coordinator.overlay(rig.container.overlayView, didFinishLasso: [
+            CGPoint(x: left + 440, y: 650), CGPoint(x: left + 560, y: 650),
+            CGPoint(x: left + 560, y: 750), CGPoint(x: left + 440, y: 750),
+        ])
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "H: held by the selection")
+        XCTAssertEqual(session.focusPageId, d1117, "H: scrolled to the next day")
+        let stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        print("UI1PROBE H: after the turn focus \(session.focusPageId) offset \(rig.canvas.contentOffset.x) zoom \(rig.zoom) inset \(rig.canvas.contentInset.left)")
+        XCTAssertEqual(session.focusPageId, d1117, "H: the turn kept the focus")
+        rig.coordinator.overlayDidTouchOutsideSelection(rig.container.overlayView)
+        await settle()
+        _ = rig.coordinator.shiftIfAtRest()
+        await settle()
+        assertFocus(d1117, on: rig, since: stops, "H selection cleared", line: #line)
+    }
 }
