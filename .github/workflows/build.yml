@@ -247,8 +247,9 @@ jobs:
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the 18 files of the handwriting's data are the
       # bytes of 1.1.1, except Sync/SyncEngine.swift, whose line is 1.2.3's (docs/R1_2_3.md §3.10: the sync's
       # order and account checks changed, not the data's form) and, after the H4 fix, that of the commit
-      # with the two pendingCloudErase guards. The file keeps its name; the commit it was made from is in
-      # docs/M7B.md.
+      # with the two pendingCloudErase guards, and after the G4 fix that of the commit where every sign of a
+      # switched account (a zone gone, a record gone, a change token expired) and 「全て消す」 confirm the account
+      # first. The file keeps its name; the commit it was made from is in docs/M7B.md.
       # 1.3 (docs/M7C_CONTRACT.md §6.4, D9): the four files 1.3 may change (Ink/InkLedger.swift, Ink/InkCanvasView.swift,
       # Ink/InkOverlayView.swift, Sync/SyncEngine.swift) get their row rewritten in the commit that changes them (step 2;
       # since S4 the rows of InkLedger.swift and SyncEngine.swift, the latter with the H4 fix merged, are 1.3's); every
@@ -261,7 +262,9 @@ jobs:
 
       # 1.3 (docs/M7C_CONTRACT.md §6.4, D9): the 8 test files of 1.2.3 that guard the one-page path (6 of the
       # app's unit tests, PaperGrowthTests and Compat10FixtureTests) are the bytes of commit 43fe366, so the new
-      # path never passes by rewriting the old tests; new tests go into new files (§10.2). No exceptions.
+      # path never passes by rewriting the old tests; new tests go into new files (§10.2). One exception, the lead's
+      # (11/15): SyncEngineTests.swift, whose two expected call lists test16 and test23 G4 changed (M4_CONTRACT §8.2
+      # 16, 23: the account is confirmed before a zone recovery and before 「全て消す」); nothing else in it.
       - name: The tests of 1.2.3 unchanged (1.3)
         run: |
           set -euo pipefail
@@ -499,6 +502,8 @@ jobs:
       # branch adds the class, the line finds no test and the check at the end of the step warns (its file and its
       # class line are not in Tests/TegakiCalendarTests), so the step passes. The limit stays 9 min until the first
       # run of the build-and-test job with the class prints its per-class time (the measure for the next limit).
+      # G4: SyncEngineZoneAccountTests (a zone gone, a record gone or a change token expired, and 「全て消す」,
+      # confirm the account first) are repeated with them.
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
         timeout-minutes: 9
@@ -517,6 +522,7 @@ jobs:
             -only-testing:TegakiCalendarTests/SpanSessionTests \
             -only-testing:TegakiCalendarTests/ScreenEraseTests \
             -only-testing:TegakiCalendarTests/ScreenPathsSpanTests \
+            -only-testing:TegakiCalendarTests/SyncEngineZoneAccountTests \
             -skip-testing:TegakiCalendarTests/SyncEngineTests/testMergeRemoteOfATruncatedPageMarksDirty \
             -test-iterations "$ITERATIONS" \
             -run-tests-until-failure \

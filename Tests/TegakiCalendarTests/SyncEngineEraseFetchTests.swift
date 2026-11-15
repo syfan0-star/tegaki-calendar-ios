@@ -170,7 +170,8 @@ final class SyncEngineEraseFetchTests: XCTestCase {
         try await erase.value
         await engine.waitUntilIdle()
 
-        XCTAssertEqual(Array(db.calls[mark...]), [.fetchRecords, .fetchChanges, .delete, .fetchChanges])
+        // G4b (M4_CONTRACT §8.2 23): the erase confirms the account before it lists anything.
+        XCTAssertEqual(Array(db.calls[mark...]), [.fetchRecords, .accountStatus, .userRecordName, .fetchChanges, .delete, .fetchChanges])
         XCTAssertEqual(count(.fetchRecords), 1, "the fetch queued before the erase asked for nothing")
         XCTAssertEqual(store.allPageIds(), [], "the erased ink did not come back")
         XCTAssertEqual(remoteUpdates.map(\.pageId), [])
@@ -208,7 +209,9 @@ final class SyncEngineEraseFetchTests: XCTestCase {
         try await erase.value
         await engine.waitUntilIdle()
 
-        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .fetchChanges, .delete, .fetchChanges])
+        // The round trip's check, then (G4b, M4_CONTRACT §8.2 23) the erase's own.
+        XCTAssertEqual(Array(db.calls[mark...]), [.accountStatus, .userRecordName, .accountStatus, .userRecordName,
+                                                  .fetchChanges, .delete, .fetchChanges])
         XCTAssertEqual(count(.fetchRecords), 0, "the fetch queued before the erase asked for nothing")
         XCTAssertEqual(store.allPageIds(), [], "the erased ink did not come back")
         XCTAssertEqual(remoteUpdates.map(\.pageId), [])
