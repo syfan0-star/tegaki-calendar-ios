@@ -368,8 +368,8 @@ jobs:
       # 20,500-stroke test is left out (about 5 s each). Estimated 3–6 min (one pass of the 60 other tests is a
       # few seconds; the rest is xcodebuild and the simulator), limited to 9. The whole output is kept in
       # $RUNNER_TEMP/sync-repeat.log (not uploaded) and its last 80 lines are printed.
-      # G4: SyncEngineZoneAccountTests (every sign of a switched account and 「全て消す」 confirm the account first)
-      # are repeated with them.
+      # G4: SyncEngineZoneAccountTests (a zone gone, a record gone or a change token expired, and 「全て消す」,
+      # confirm the account first) are repeated with them.
       - name: Sync engine tests, repeated (1.2.3)
         timeout-minutes: 9
         run: |

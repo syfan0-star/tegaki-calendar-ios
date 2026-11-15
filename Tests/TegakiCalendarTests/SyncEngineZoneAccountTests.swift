@@ -15,14 +15,16 @@ import XCTest
 /// G4b (the review's findings G4-R1, G4-R2): the round trip's own zone recovery confirms the account too (an
 /// `.inactive` return, 「今すぐ同期」, a retry timer; M4_CONTRACT §8.2 16, `SyncEngineTests.test16`), and so do the
 /// other two signs of a switched account when the new account already has this app's zone (a record gone in the
-/// push, a change token expired in the pull), and 「全て消す」 always checks before it lists or deletes anything
-/// (§8.2 23, `SyncEngineTests.test23`).
+/// push or in the import's `Meta`, a change token expired in the pull), and 「全て消す」 always checks before it lists
+/// or deletes anything (§8.2 23, `SyncEngineTests.test23`). Still open, with no sign or a frozen test in the way
+/// (docs/M7C.md, G4b): a page id both accounts have (a page opened, a conflict), an iCloud erase that failed after its
+/// check and is retried by a round trip with no check due, a record never sent before.
 ///
 /// The switch is played as CloudKit sees it: `db.userName` is the new account and its iCloud has no zone of this app
 /// (`simulateZoneDeleted`, the fake being one database), and `.CKAccountChanged` comes later
 /// (`simulateAccountChange`), or never in the test. A live engine over a temporary `InkPageStore` and
-/// `InMemoryCloudDatabase`, `TestSleeper` for every sleep, a fixed clock. SyncEngineTests.swift stays as in 1.2.3;
-/// the helpers below copy its own. TestSleeper's cautions (docs/R1_2_3.md §4.3) hold.
+/// `InMemoryCloudDatabase`, `TestSleeper` for every sleep, a fixed clock. SyncEngineTests.swift stays as in 1.2.3
+/// except the call lists of test16 and test23; the helpers below copy its own. TestSleeper's cautions (docs/R1_2_3.md §4.3) hold.
 @MainActor
 final class SyncEngineZoneAccountTests: XCTestCase {
     private var directory: URL!
@@ -443,6 +445,41 @@ final class SyncEngineZoneAccountTests: XCTestCase {
         theOtherAccountIsUntouched()
         XCTAssertEqual(store.allPageIds(), [month, week], "the other account's page was not merged here")
         XCTAssertEqual(remoteUpdates, [])
+    }
+
+    /// 「Web 版の手書きを取り込む」 after the switch, before the notification: `Meta` (saved with `_user-a`'s tag)
+    /// meets `.recordNotFound` and the account is asked before `Meta` is made again; the imported page is not sent.
+    ///
+    /// Fails on 1b838f2 and 43fe366: calls `[save, save, save]`, `Meta` and the imported page made in `_user-b`'s iCloud.
+    func testImportAfterTheSwitchWritesNothingThere() async throws {
+        try await syncedWithTwoPages()
+        _ = try await engine.importPages([page("d-2026-10-07", ["web1"])]) { _, _ in }
+        await flushDebounce()
+        XCTAssertNotNil(db.records[InkPageRecord.metaRecordName])
+        XCTAssertEqual(status, .synced)
+        try switchedIntoAnExistingZoneWithoutTheNotification()
+        let mark = db.calls.count
+        _ = try await engine.importPages([page("d-2026-10-08", ["web2"])]) { _, _ in }
+        await flushDebounce()
+        XCTAssertEqual(Array(db.calls[mark...]), [.save, .accountStatus, .userRecordName])
+        XCTAssertNil(db.records[InkPageRecord.metaRecordName], "no Meta in the other account's iCloud")
+        theOtherAccountIsUntouched()
+    }
+
+    /// The same account whose `Meta` is gone (its iCloud data was deleted elsewhere): after the check `Meta` is made
+    /// again, as before G4b.
+    func testImportMakesMetaAgainInTheSameAccountAfterTheCheck() async throws {
+        try await syncedWithTwoPages()
+        _ = try await engine.importPages([page("d-2026-10-07", ["web1"])]) { _, _ in }
+        await flushDebounce()
+        db.simulateRemoteDelete(InkPageRecord.metaRecordName)
+        let mark = db.calls.count
+        _ = try await engine.importPages([page("d-2026-10-08", ["web2"])]) { _, _ in }
+        await flushDebounce()
+        XCTAssertEqual(Array(db.calls[mark...]), [.save, .accountStatus, .userRecordName, .save, .save])
+        XCTAssertNotNil(db.records[InkPageRecord.metaRecordName])
+        XCTAssertNotNil(db.records["d-2026-10-08"])
+        XCTAssertEqual(status, .synced)
     }
 
     // MARK: - G4b: 「全て消す」 and the account (G4-R2 (c))
