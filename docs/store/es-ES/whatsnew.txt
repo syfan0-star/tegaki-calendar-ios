@@ -1,3 +1,4 @@
-• Comprobaciones más estrictas para que su escritura a mano no se mezcle con otra cuenta de iCloud cuando cambie de cuenta.
+• Comprobaciones aún más estrictas al cambiar de cuenta de iCloud, para que la escritura a mano no se mezcle entre cuentas ni se borre.
+• Se ha corregido un problema por el que, después de que se borrara toda la escritura a mano en otro dispositivo, la escritura a mano que quedaba en este dispositivo podía volver a iCloud.
 
 Las traducciones se han hecho con IA y todavía no las han revisado hablantes nativos. Avísenos si encuentra errores.

@@ -1,7 +1,7 @@
 No sign-in, no account creation and no demo account are needed.
 
-What is new in 1.2.3
-1. A fix in the iCloud sync only: the app now always confirms which iCloud account it talks to before it sends or fetches handwriting (after a failed account check, after the app was in the background, and on a silent push). If the account is not the one the handwriting was synced with, sync stops and the app asks what to do, as before.
+What is new in 1.2.4
+1. Fixes in the iCloud sync only. (a) After an Apple Account switch whose notification reaches the app late (an iPad with the Settings app side by side, or a Mac), the app now confirms the account before it sends, merges or erases anything in iCloud on a sign of a switched account (its zone or a record gone, a change token expired), and before it finishes an erase of all handwriting. (b) While an erase of all handwriting is still pending in iCloud, opening a page no longer fetches it, so erased handwriting does not come back. If the account is not the one the handwriting was synced with, sync stops and the app asks what to do, as before.
 2. Nothing else changed: no new screen or text, same data, App Privacy stays "Data Not Collected". The age range check of 1.2.2 is unchanged.
 
 The app follows the device language (10 languages since 1.2; any other language shows English). Per-app language: Settings > Apps > Tegaki > Language.
@@ -24,4 +24,4 @@ https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 https://syfan0-star.github.io/tegaki-calendar/app/support.html
 
 --- 日本語の要約 ---
-変更は 1 つ。iCloud の同期で、手書きを送る・取りに行く前に、どの iCloud アカウントかを必ず確かめるようにしました（確かめに失敗した後、アプリが裏にいた後、サイレントプッシュのとき）。別のアカウントなら今までどおり同期を止めて尋ねます。画面・文言・データ・プライバシーは 1.2.2 と同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
+変更は iCloud の同期の直しだけ。(a) アカウントの切り替えの知らせが遅れて届いたとき（iPad で「設定」を横に並べたとき・Mac）も、アカウントが替わった印（置き場や記録が無い・変更トークンの期限切れ）が出たら、送る・混ぜる・消す前と、「全て消す」の続きの前に、必ずアカウントを確かめます。(b) 「全て消す」の iCloud の分が残る間は、開いたページを iCloud から取りに行かないので、消した手書きが戻りません。別のアカウントなら今までどおり同期を止めて尋ねます。画面・文言・データ・プライバシーは 1.2.3 と同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。

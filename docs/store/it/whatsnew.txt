@@ -1,3 +1,4 @@
-• Controlli più rigorosi perché la Sua scrittura a mano non si mescoli con un altro account iCloud quando cambia account.
+• Controlli ancora più rigorosi quando cambia account iCloud, perché la scrittura a mano non si mescoli tra account e non venga cancellata.
+• Risolto un problema per cui, dopo la cancellazione di tutta la scrittura a mano su un altro dispositivo, la scrittura a mano rimasta su questo dispositivo poteva tornare su iCloud.
 
 Le traduzioni sono state fatte con l’IA e non sono ancora state riviste da madrelingua. La preghiamo di segnalarci gli errori.
