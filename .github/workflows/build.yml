@@ -2527,23 +2527,35 @@ jobs:
             xcrun simctl ui "$UDID" appearance light || true
             xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
             sleep 60
-            watch_photos "$UDID" &
-            WATCHER=$!
-            STATUS=0
-            TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT="$OUT" TEST_RUNNER_TEGAKI_SPAN_SHOT_DEVICE="$ID" \
-            TEST_RUNNER_TEGAKI_SPAN_SHOT_REQUESTS="$REQUESTS" xcodebuild \
-              -project TegakiCalendar.xcodeproj \
-              -scheme TegakiCalendar \
-              -configuration Debug \
-              -destination "platform=iOS Simulator,id=$UDID" \
-              -derivedDataPath build/SpanAppData \
-              -resultBundlePath "build/span-app-$ID.xcresult" \
-              -only-testing:TegakiCalendarUITests/SpanShotsUITests/testBands \
-              -only-testing:TegakiCalendarUITests/SpanShotsUITests/testOldVersionMargins \
-              -only-testing:TegakiCalendarUITests/SpanShotsUITests/testShiftPairs \
-              test-without-building > "$OUT/$ID-tests.log" 2>&1 || STATUS=$?
-            kill "$WATCHER" 2>/dev/null || true
-            wait "$WATCHER" 2>/dev/null || true
+            run_shots() {  # run_shots <result bundle suffix>: the three tests on $UDID, the photo watcher beside them
+              watch_photos "$UDID" &
+              WATCHER=$!
+              STATUS=0
+              TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT="$OUT" TEST_RUNNER_TEGAKI_SPAN_SHOT_DEVICE="$ID" \
+              TEST_RUNNER_TEGAKI_SPAN_SHOT_REQUESTS="$REQUESTS" xcodebuild \
+                -project TegakiCalendar.xcodeproj \
+                -scheme TegakiCalendar \
+                -configuration Debug \
+                -destination "platform=iOS Simulator,id=$UDID" \
+                -derivedDataPath build/SpanAppData \
+                -resultBundlePath "build/span-app-$ID$1.xcresult" \
+                -only-testing:TegakiCalendarUITests/SpanShotsUITests/testBands \
+                -only-testing:TegakiCalendarUITests/SpanShotsUITests/testOldVersionMargins \
+                -only-testing:TegakiCalendarUITests/SpanShotsUITests/testShiftPairs \
+                test-without-building > "$OUT/$ID-tests.log" 2>&1 || STATUS=$?
+              kill "$WATCHER" 2>/dev/null || true
+              wait "$WATCHER" 2>/dev/null || true
+            }
+            run_shots ""
+            # The simulator, not the app (docs/M7C.md, FLAKE-1): in runs with every job a launch has timed out
+            # (ipad13, r13-w-ui1 43681366335) and the background assertion has timed out (iphone, r13 43699389888). Only
+            # then the device's tests run once more; any other failure stands. The first log is kept as <id>-tests-first.log.
+            SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing'
+            if [ "$STATUS" != 0 ] && grep -qE "$SIMULATOR" "$OUT/$ID-tests.log"; then
+              echo "::warning::$ID: $(grep -oE "$SIMULATOR" "$OUT/$ID-tests.log" | head -n 1); the device's tests run once more."
+              mv "$OUT/$ID-tests.log" "$OUT/$ID-tests-first.log"
+              run_shots "-again"
+            fi
             grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/$ID-tests.log" | tail -n 30 || true
             if [ "$STATUS" != 0 ]; then echo "::error::SpanShotsUITests on $ID ended with $STATUS (shots/span-app/$ID-tests.log)."; FAILED=1; fi
             echo "$ID: $(find "$OUT" -maxdepth 1 -name "$ID-*.png" | wc -l | tr -d ' ') photos, $(( $(date +%s) - STARTED )) s with the boot"
