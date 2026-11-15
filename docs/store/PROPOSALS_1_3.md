@@ -1,0 +1,51 @@
+# 1.3 の店の文の案（第 4 陣。本人の確認ページで見せる）
+
+**対象の版: 1.3**。ここは案で、どれもまだ Connect にもアプリにも入れていない。本人の確認ページ（[M7C_CONTRACT.md](../M7C_CONTRACT.md) §12.3 の手順 4）で一緒に見せ、「この内容で入れてよい」をもらってから入れる。
+
+## 1. 新機能の文の 4 つ目の点に足す 1 文（古い版での見え方）
+
+- 入れる条件: §11.3 の行 18（1.2.3 の iPad Pro 13 で、はみ出した部分が紙の端で切れ、まわりの余白に線が出ていない）が ○ のとき（M7C.md、第 3 陣の第 2 段のリードの決定 6）。× なら入れない（SUPPORT は今の文で足りる）。
+- 根拠: CI の古い版の余白の写真 30 枚（iPad 3 台 × 縦横 × 週・日と iPhone）が、どれも余白 0（M7C.md「古い版の余白の数」、run 43715400918 まで）。
+- 入れる場所: 4 つ目の点の 2 つ目の文（「…片方のページにだけ出ます（消えてはいません）。」）の後。
+
+| ロケール | 足す 1 文 | 元を見ない逆翻訳（1 回目 → 直した文の 2 回目） |
+| --- | --- | --- |
+| ja | はみ出した部分は、紙の端で切れて見えます。 | — |
+| en-US（en-GB・en-AU・en-CA も） | The part that runs past the page appears cut off at the edge of the paper. | 1 回目「切れます」（注: 切り捨てたとも読める）→ 2 回目「紙の端で切れたように見えます」 |
+| de-DE | Der Teil, der über die Seite hinausreicht, erscheint am Rand des Papiers abgeschnitten. | 1 回目「切り取られます」（同じ注）→ 2 回目「紙の端で切れたように見えます」 |
+| es-ES・es-MX | La parte que sobresale de la página se ve cortada en el borde del papel. | 紙の端で切れて見えます |
+| fr-FR（fr-CA も） | La partie qui dépasse de la page apparaît coupée au bord du papier. | 紙の端で切れて表示されます |
+| it | La parte che oltrepassa la pagina appare tagliata sul bordo del foglio. | 紙の端で切れて表示されます |
+| ko | 페이지 밖으로 나간 부분은 종이 가장자리에서 잘려 보여요. | ページの外に出た部分は、紙の端で切れて見えます |
+| pt-BR | A parte que ultrapassa a página aparece cortada na borda do papel. | 紙の縁で切れて表示されます |
+| pt-PT | A parte que ultrapassa a página aparece cortada na borda do papel. | 1 回目は extremidade（隅の響き）→ borda に直し、2 回目「紙の縁で切れたように見えます」 |
+| zh-Hans | 超出页面的部分看起来会在纸的边缘被截断。 | 1 回目「断ち切られます」（同じ注）→ 2 回目「紙の端で途切れたように見えます」 |
+| zh-Hant | 超出頁面的部分看起來會在紙的邊緣被截斷。 | 同上 |
+
+- 2 回目の逆翻訳の注（直さない。母語の人に見てもらうときの候補）: zh の「截断」は、5 つの中ではいちばん「データが切り捨てられた」に近く読める（「看起来」と直前の「消えてはいません」があるので見込みは低い）。pt-PT の「cortada」には「線を引いて消す」の意味もある。
+
+## 2. N-3（設定 › ページ の説明）の言い回しの案
+
+- 今の ja（本人が承認した固定の文）: 「月と年は、**次の版から**順に対応します。」
+- 案: 「月と年は、**今後の版で**順に対応します。」（月は 1.7・年は 1.8 の計画なので、「次の版」は 1.4 と読まれうる。M7C.md の第 1 陣の訳のリードの決定 2）
+- 本人が「変える」と言ったら、キー `settings.page.span.footer` の 2 つ目の文を ja と 9 言語で替える（ja が変わるので、各言語の jaSha1 も替わる）。言わなければ今のまま。
+
+| 言語 | 替える 2 つ目の文 | 元を見ない逆翻訳 |
+| --- | --- | --- |
+| en | Month and year pages will be supported one after another in future versions. | 1 回目は in turn（「その結果」とも読める）→ 直して 2 回目「今後のバージョンで順次対応する予定です」 |
+| de | Monats- und Jahresseiten werden in künftigen Versionen nacheinander unterstützt. | 今後のバージョンで順に対応します |
+| es | La función llegará a las páginas del mes y del año, una tras otra, en futuras versiones. | 今後のバージョンで、月と年のページに一つずつ順に加わります |
+| fr | Les pages du mois et de l’année seront prises en charge l’une après l’autre dans de futures versions. | 今後のバージョンで一つずつ順に対応します |
+| it | La funzione arriverà alle pagine del mese e dell’anno, una dopo l’altra, nelle versioni future. | 今後のバージョンで、一つずつ順に加わります |
+| ko | 월 페이지와 연 페이지는 앞으로의 버전에서 차례로 지원할 예정이에요. | 今後のバージョンで順に対応する予定です |
+| pt-BR | O recurso chegará às páginas do mês e do ano, uma depois da outra, em versões futuras. | 今後のバージョンで、一つずつ順に加わります |
+| zh-Hans | 月页面和年页面将在今后的版本中依次支持。 | 今後のバージョンで順に対応します |
+| zh-Hant | 月頁面和年頁面將在今後的版本中依序支援。 | 今後のバージョンで順に対応します |
+
+- 逆翻訳の注: どの言語でも「次の版」とは読めない。ko の「연 페이지」は今の訳（承認済みの N-3）と同じ語。
+
+## 3. App Store の写真の先頭の 1 枚（D26）
+
+- `store-shots.yml` の run 43730832380（3d23aa3、11/16）: 12 組（en・en-GB・zh-Hans・zh-Hant・ko・fr・de・it・es・es-ES・pt-BR・ja）× 13 インチ iPad・6.9 インチ iPhone の `00-span.jpg`、24 枚。どれも Apple の大きさ（2064×2752・1320×2868）、警告 0。6.3 インチは 1.2 と同じく 6.9 インチを `sips -z 2622 1206` で縮めて作る。
+- 中身: 週のページを横につないで、焦点の週（10/5〜10/11）の左の境目を画面の真ん中に置き、前の週の日曜の夜から月曜の朝へ 2 本の線がまたいでいる。前の週には予定とまたぐ線の半分だけ（見本の字は焦点の週だけ。3d23aa3 で、隣の週に同じ字が並んで写るのを直した）。
+- 店の写真の順: `00-span` を先頭に、1.2 の 4 枚（`01`〜`04`）はそのまま。ja は先頭の 1 枚だけを足し、ほかは Connect の今の写真のまま。
