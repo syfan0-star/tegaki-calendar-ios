@@ -363,10 +363,6 @@ final class SyncEngine: ObservableObject {
             // 1.2.3 (docs/R1_2_3.md §3, G2): nothing is deleted from an account that was not confirmed, nor
             // after an account change during the check. The deletion stays pending (`pendingCloudErase`) for
             // the round trip after the check; the screen says the iCloud part failed. The status is the check's.
-            // G4: always checked first (rare and destructive): another account's records are never listed or deleted.
-            // When the check finds another account the deletion stays pending for this one: either answer of the
-            // account question drops it (`resolveAccountChange`), 「あとで」 keeps it until this account is confirmed again.
-            self.accountCheckRequested = true
             let epoch = self.workEpoch
             guard await self.confirmedForSending() else { return CloudError.other("account") }
             do {
@@ -491,11 +487,11 @@ final class SyncEngine: ObservableObject {
                 gaveUp = try await push(epoch: epoch)
             } catch CloudError.zoneMissing {
                 try checkEpoch(epoch)
-                // 1.2.3 (M3): a zone that is missing is what a switched account looks like. G4: the account is
-                // confirmed before every local page is sent again, always: in the foreground `.CKAccountChanged` can
-                // come after the new account's answer (an `.inactive` return, 「今すぐ同期」, a retry timer, a push;
-                // M4_CONTRACT §8.2 16).
-                accountCheckRequested = true
+                // 1.2.3 (M3): a zone that is missing is what a switched account looks like; while a check is
+                // due the account is confirmed before every local page is sent again. G4: a push outside the round
+                // trip confirms it always (in the foreground `.CKAccountChanged` can come after the new account's
+                // answer); the round trip's own recovery keeps 1.2.3's order (M4_CONTRACT §8.2 16).
+                if work == .pushOnly { accountCheckRequested = true }
                 try await confirmAgainIfDue(epoch)
                 let recovered = try await recoverFromZoneLoss(epoch: epoch)
                 pulled += recovered.pulled
@@ -736,9 +732,7 @@ final class SyncEngine: ObservableObject {
                 changes = try await database.fetchChanges(since: state.zoneToken, namesOnly: false)
             } catch CloudError.changeTokenExpired where !expiredOnce {
                 try checkEpoch(epoch)
-                // 1.2.3: an expired token can be another account's zone. G4: the account is confirmed first, always,
-                // before anything of that zone is merged here (the notification can come late).
-                accountCheckRequested = true
+                // 1.2.3: an expired token can be another account's zone; while a check is due it comes first.
                 try await confirmAgainIfDue(epoch)
                 expiredOnce = true
                 state.zoneToken = nil
@@ -918,9 +912,7 @@ final class SyncEngine: ObservableObject {
                     }
                 } catch CloudError.recordNotFound {
                     try checkEpoch(epoch)
-                    // 1.2.3: a record gone can be another account (its zone, without this account's records). G4: the
-                    // account is confirmed first, always, as for a zone gone (the notification can come late).
-                    accountCheckRequested = true
+                    // 1.2.3: a record gone can be another account; while a check is due it comes first.
                     try await confirmAgainIfDue(epoch)
                     if recreated {
                         throw CloudError.other("record")

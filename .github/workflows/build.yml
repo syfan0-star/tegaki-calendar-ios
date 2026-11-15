@@ -432,7 +432,7 @@ jobs:
           if [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests|SyncEngineZoneAccountTests|SyncEngineEraseFetchTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::r13-quick: no Span test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
