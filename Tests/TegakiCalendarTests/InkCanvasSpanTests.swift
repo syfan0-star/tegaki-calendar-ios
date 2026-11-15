@@ -1056,6 +1056,94 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertEqual(middle, rig.container.bounds.width / 2, accuracy: 3, "\(step): its middle is in the middle of the screen", line: line)
     }
 
+    /// UI-1 from the other side: the iPhone's day opened in portrait (402 × 536), turned to landscape (874 × 205) and back,
+    /// then slid one day and turned again (the review's probe A).
+    func testRotationKeepsTheFocusIPhoneDayFromPortrait() async throws {
+        try await assertTurnsKeepTheFocus(.day, .iPhone, start: .portrait, CGSize(width: 402, height: 536),
+                                          CGSize(width: 874, height: 205), next: d1117)
+    }
+
+    /// UI1-R1: UIKit moves the offset when it gives the canvas a wider frame, before the layout pass (the range got
+    /// shorter: 357 → 243 pt on the iPhone's portrait day turned to 874 pt wide). A turn laid out in two passes (the width,
+    /// then the height) keeps the focus page in the middle: the pass reads the middle from the offset the old width left,
+    /// not from the one UIKit moved (the review's probe E: 481.1 pt against 437 before).
+    func testRotationLaidOutInTwoPassesKeepsTheFocus() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .landscape)
+        let rig = await attach(session, width: 874, height: 205)
+        let opened = session.focusPageId
+        var stops = rig.probe.stops.count
+        layOut(rig, CGSize(width: 402, height: 205))
+        layOut(rig, CGSize(width: 402, height: 536))
+        await settle()
+        assertFocus(opened, on: rig, since: stops, "one turn in two passes", line: #line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 874, height: 536))
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        assertFocus(opened, on: rig, since: stops, "the width, then the height", line: #line)
+    }
+
+    /// UI1-R2: a lasso selection holds the shift after the band scrolled one day (the focus is 11/17, the window still
+    /// around 11/16). Turned to landscape, the old window is narrower than the screen and the clamp centres it on 11/16:
+    /// the focus stays 11/17 (through a second and a third turn as well), and when the selection is cleared the window is
+    /// decided anew around 11/17 with 11/17 in the middle (the review's probe H: 11/16, and the middle 85.5 pt off before).
+    /// A finger moving the band meanwhile gives the focus back to the screen.
+    func testRotationWhileASelectionHoldsTheShiftKeepsTheFocus() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .portrait)
+        let rig = await attach(session, width: 402, height: 536)
+        let opened = session.focusPageId
+        guard let left = session.origin(ofPage: opened) else { return XCTFail("no page") }
+        draw(shortStroke(at: left + 500, 700), on: rig)
+        update(rig, tool: .lasso)
+        rig.coordinator.overlay(rig.container.overlayView, didFinishLasso: [
+            CGPoint(x: left + 440, y: 650), CGPoint(x: left + 560, y: 650),
+            CGPoint(x: left + 560, y: 750), CGPoint(x: left + 440, y: 750),
+        ])
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "held by the selection")
+        XCTAssertEqual(session.focusPageId, d1117, "scrolled to the next day")
+        var stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        XCTAssertEqual(session.focusPageId, d1117, "turned: the focus stays")
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        XCTAssertEqual(session.focusPageId, d1117, "turned back: the focus stays")
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        XCTAssertEqual(session.focusPageId, d1117, "turned again: the focus stays")
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "still held")
+        rig.coordinator.overlayDidTouchOutsideSelection(rig.container.overlayView)
+        await settle()
+        _ = rig.coordinator.shiftIfAtRest()
+        await settle()
+        assertFocus(d1117, on: rig, since: stops, "the selection cleared", line: #line)
+
+        // A finger moves the band while a turn is kept: the focus is the screen's again.
+        guard let next = session.origin(ofPage: d1117) else { return XCTFail("no page") }
+        draw(shortStroke(at: next + 500, 700), on: rig)
+        rig.coordinator.overlay(rig.container.overlayView, didFinishLasso: [
+            CGPoint(x: next + 440, y: 650), CGPoint(x: next + 560, y: 650),
+            CGPoint(x: next + 560, y: 750), CGPoint(x: next + 440, y: 750),
+        ])
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        XCTAssertEqual(session.focusPageId, d1117, "held, turned to portrait")
+        rig.coordinator.spanMotionOverride = true
+        await scroll(rig, pages: 1)
+        rig.coordinator.spanMotionOverride = nil
+        await settle()
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "held again")
+        XCTAssertEqual(session.focusPageId, "d-2026-11-18", "the finger's day")
+        stops = rig.probe.stops.count
+        rig.coordinator.overlayDidTouchOutsideSelection(rig.container.overlayView)
+        await settle()
+        _ = rig.coordinator.shiftIfAtRest()
+        await settle()
+        assertFocus("d-2026-11-18", on: rig, since: stops, "a finger, then the selection cleared", line: #line)
+    }
+
+    /// One layout pass at `size`, nothing awaited (a turn UIKit lays out in more than one pass).
+    private func layOut(_ rig: SpanRig, _ size: CGSize) {
+        rig.container.frame = CGRect(origin: .zero, size: size)
+        rig.container.layoutSubviews()
+    }
+
     /// §3.6: when a page that leaves cannot be saved, the window does not shift and the canvas is as it was: the pages,
     /// the drawing, x and the paper; the watch ends (the next motion tries again).
     func testRefusedShiftLeavesTheCanvasAsItIs() async throws {
