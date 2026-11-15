@@ -12,7 +12,7 @@
 - この Mac の関門（dcf32f0。リードが 11/12 23:55 に確かめた）: KitChecks **36,968 件・失敗 0**（Kit は S1 から変わらない）、typecheck は試作の印なし・ありの両方で all OK（アプリの警告 0、TegakiCalendarTests 39 ファイル・UITests 6 ファイル、警告 0）、lint OK（読むアプリのファイルは 65 → 69）、DATA_1_1 18/18・TESTS_1_2_3 8/8 OK、`prototype_gate_test.py` 14 件 OK。
 - CI（11/14）: `r13` の 1c5eb0a（第 2 陣の取り込み）の run 43520437949 は **5 つのジョブが全部緑**（build-and-test 86 分、blank-paper・l10n-shots も新しいキャンバスで緑）。span-shots は 1 回目に、試作のテストのログから testWeekMemoGrowsAndLinesUpAcrossTheWindow の「passed」の行が抜け（started の行の直後に次のテストが started。結果の束は 24 本とも passed）、ログと束の数の突き合わせ（「the result bundle has 24 passed tests, the log 23」）で止まった。xcodebuild の出力の揺れとして、その段だけ 1 回走らせ直し（attempt 2）て緑。この突き合わせを、束が全部 passed で失敗の行も無いときにはログの数が少なくても止めない形に直す（第 3 陣で build.yml の持ち主が C-ci から C-shots に替わる間に、リードか C-shots が入れる）。
 - CI（11/14 夜）: 統合の枝 `r13-s5c` の 877085a の run 43584152837 は **5 つのジョブが 1 回目で全部緑**（build-and-test 79.7 分）。`r13` を 877085a へ早送りした push の run 43592577813 は **5 つのジョブが全部緑**（11/14 22:20）。公式の J-4 も合格（下の「第 3 陣の第 1 段の公式の J-4」）。
-- CI（11/15）: 統合の枝 `r13-s5c2` の 95ce734 の run 43646827324 は **7 つのジョブが 1 回目で全部緑**（UI テストは別のジョブ ui-tests に分けた）。`r13` を 1268866 へ進めた push の run は 43655539165、同じ UTC の日の ja-baseline と比べる公式の J-4 とともに結果は次の記録で。
+- CI（11/15）: 統合の枝 `r13-s5c2` の 95ce734 の run 43646827324 は **7 つのジョブが 1 回目で全部緑**（UI テストは別のジョブ ui-tests に分けた）。`r13` を 1268866 へ進めた push の run 43655539165 は、1 回目に span-shots (1.3 app) だけが iPad mini の余白の写真 1 枚で落ち（下の「第 3 陣の第 2 段の公式の J-4」の FLAKE-1）、そのジョブだけ走らせ直して（attempt 2）**7 つのジョブが全部緑**。公式の J-4 も合格。
 - CI: `r13` の dcf32f0（80c900e ＋ 1.0 の試験の待ち方の直し）の run 43237335436 は 5 つのジョブが全部緑（11/13 00:44、build-and-test 77 分）。
 - 読み替え: S1 の節の「CI」の項の「r13-quick … まだ入れていない」は、073e748 で入った（§10.6。`r13-quick` の枝はまだ作っていない。S5 で最初に push したときが最初の実行）。
 - 文書の掃除: 647ea01 で、前の段の文書 7 つにあった手元の絶対パス（利用者名を含む）を `~/`・`<scratchpad>/`・`<Claude のセッションの記録>/` に置き換えた。main には 1.3 をまとめるときに入る。docs だけの commit は CI を走らせない（`[skip ci]`）。
@@ -665,6 +665,15 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
 - 決定 7 の測り: build-and-test は分ける前 79.7〜91.0 分 → 分けた後 53.2〜70.3 分（上限 90）。ui-tests の UI の段は 17.2〜26.2 分（上限 40）。span-shots-app の 4 台の写真の段は 30.1〜41.6 分（上限 50）、言語の段は 15.4〜17.2 分（上限 25）。
 - 見た写真: 統合・見直し・最後の点検の役が、帯（境目・一覧・日曜始まり）、古い版の余白、隣の線の PDF、10 言語の札・設定の「ページ」の節・N-8 を目で見た。de の N-8 が 3 行で切れていたのを見直し役が見つけ（C2-SHOTS-1）、直した後の run で全文（4 行）を確かめた。
 
+### 第 3 陣の第 2 段の公式の J-4（11/15）
+
+- `r13` の push の run 43655539165（1268866、11/14 23:54 UTC に始まり、写真の段は 11/15 UTC）。attempt 1: 6 つのジョブが緑、span-shots (1.3 app) だけ失敗。attempt 2（そのジョブだけ、11/15 02:07〜03:12 UTC）: 緑。7 つのジョブ全部緑。
+- 基準は同じ UTC の日に `r13` で走らせた ja-baseline.yml の run 43656728691（11/15 00:09 UTC に始め、成果物 `ja-baseline-43fe366`）。`compare_shots.swift` で **77 枚のうち同じ 58・弱い差だけ 18（最大 8/255）・強い差 1・基準だけ 0・新だけ 0**。強い差の 1 枚は `ipad13-portrait-sheet-sync.png`（第 1 陣の決定 11 で違ってよいと決めた写真）。よって「違ってよい写真のほかに違う写真 0 枚」で合格。
+- 弱い差のうち面積が大きいのは `iphone-landscape-day.png`（79,453 画素、最大 3/255、y 948-1127 x 974-1648 の帯）で、目には見えない差。前の公式の J-4 と同じく、強い差 0 なので読み方（M7B.md C1）どおり合格に数える。
+- span-shots (1.3 app) の新しい門: `span_margin: self-test: 43 cases, 0 failed`・`shift_subpixel: self-test: 15 cases, 0 failed` が出た（C2F-1 の直しが働いている）。余白の写真は 30 枚（iPad 3 台 × 8・iPhone 6）、どれも left=0 right=0、対照も 0,0。
+- **FLAKE-1**（attempt 1 の失敗）: `testOldVersionMargins` の `ipadmini-portrait-margin-day-single: the canvas never settled`（SpanShotsUITests.swift:240）。その 1 回の起動でだけ、アクセシビリティの問い合わせが遅かった（`span.state` を探すのに 5 秒、`ink-canvas` を探すのに 1 回 11〜14 秒。前の緑の run 43646827324 の同じ段は 0.7 秒と 1 秒前後）。30 秒の待ちの中で同じ値を 2 回読めなかった。前後の写真（縦の週 2 枚、横の 4 枚）は普通の速さで、同じコードの run 43646827324 と attempt 2 では通った。span-shots-app の run は 5 回（43624656887・43631839546・43646827324・43655539165 の 2 回）で、落ちたのはこの 1 回。実行機の一時的な遅さとして受ける。
+- リードの決定: 余白の写真は「測る」写真で振る舞いの門ではないので、落ち着かなかったときは 1 回だけ起動し直して撮り直す形にする（pinch-hint の写真と同じ考え。2 回目も落ち着かなければ今のとおり失敗）。テストのファイルだけの直しで、G4b・UI-1 の Workflow が `r13` に入った後に入れる（同じ時に UI テストのファイルを触らないため）。
+
 ### 第 3 陣の第 2 段の 1 ページの道の記録（§6.4・D9）
 
 - cea7db9・`Calendar/EventStoreModel.swift`・1 行（init の本体の `self.screenshot = screenshot`。前は `screenshot = ScreenshotMode.isActive`）＋署名 1（`screenshot: Bool = ScreenshotMode.isActive`。既定値は CalendarRootScreen の `@StateObject … = EventStoreModel()` の同じ autoclosure で、1.2.3 と同じ時に同じ値）。stored 0・起動のたびに 1 回・振る舞い 0。理由: 決定 8 の継ぎ目。テスト: UI テスト 29、J-4、ScreenPathsSpanTests。
@@ -721,6 +730,7 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
 ### 第 3 陣の後に 1.3 に残るもの（最後の点検 (b) を整理）
 
 - いま作っているもの: G4 の残り（G4b）と UI-1（Workflow wf_8795fd4d-e12。統合の枝 `r13-s5c3` と全部のジョブの run、最後の点検まで）。
+- FLAKE-1 の直し（余白の写真が落ち着かなければ 1 回だけ撮り直す。上の「第 3 陣の第 2 段の公式の J-4」のリードの決定）。G4b・UI-1 の後に入れる。
 - 第 4 陣（店）: D26 の「またぐ見本」の写真（16 ロケール × 3 枠の先頭、`--screenshot-span on --screenshot-offset-x -0.5 --screenshot-store-ink`、store-shots.yml に ja の組）、新機能の文の 4 つ目の点の 1 文（上の決定 6）、N-3 を「今後の版で順に」にする案、母語の人に見てもらう語、確認ページ（新しい文・16 ロケールの新機能の文・審査メモ・写真・SUPPORT の全文 ja・en を 1 回で）、主言語を en-US にするのは提出のときだけ（§8.6）。
 - 11/18 の試作の感想で見直すもの: 手のひら（第 2 陣の決定 4）、拡大中の「今日」と J7（第 3 陣の第 1 段の決定 5）、すべり・はじきの手ざわり、2 本指（§11.3 の 12・13）、iPhone 横の「今のまま」か「上限あり」（§3.16・§11.3 の 14）、見出しの間引きのしきい値と時刻の列の月、一覧の 24 pt。
 - TestFlight 1.3: testflight.yml を `r13` で（試作でないビルド、版 1.3）。§11.3 の表をビルドの番号つきで渡す（行 18 の書き足し、iPhone の回転の行）。Pro 13 は 1.2.3 のまま置いておく（行 0・29）。ビルド 24 は次のふつうのビルドが VALID になってから期限切れにする。
