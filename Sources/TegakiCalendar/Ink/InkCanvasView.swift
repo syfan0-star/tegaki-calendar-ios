@@ -2544,6 +2544,9 @@ final class InkSpanState {
     /// The band x (lu) in the middle of the screen and the zoom, read just before 1.2.3's `applyBounds` when only the
     /// height of the paper area changed (`bandHeightWillChange`); nil otherwise.
     var heightChangeMid: (midX: CGFloat, zoom: CGFloat)?
+    /// The band x (lu) in the middle of the screen as the last layout pass left it (its width), read when a pass begins
+    /// (`bandZoomOverview`), for `bandWidthChanged` (UI-1); nil before the first zoom.
+    var layoutMid: CGFloat?
     /// Pages still to slide: pressed while a slide ran or under the pen or a pinch, or the rest of a slide of more
     /// pages than the band holds beyond the screen. Slid once the paper is at rest (after the window shifted).
     var queuedSlidePages = 0
@@ -2962,8 +2965,13 @@ extension InkCanvasView.Coordinator {
 
     // MARK: Geometry (§3.6)
 
-    /// `containerDidLayout`'s overview on the joined path.
+    /// `containerDidLayout`'s overview on the joined path. First, before the pass changes the zoom or the offset, the band
+    /// x (lu) in the middle of the screen at the width the last pass laid out (`layoutMid`, for `bandWidthChanged`).
     fileprivate func bandZoomOverview() -> CGSize {
+        if let state = spanState, let canvas {
+            state.layoutMid = hasInitialZoom && lastLayoutSize.width > 0
+                ? (canvas.contentOffset.x + lastLayoutSize.width / 2) / max(canvas.zoomScale, 0.0001) : nil
+        }
         guard let band = appliedLayout as? SpanLayout else { return ZoomPolicy.overviewSize(appliedLayout) }
         return InkCanvasView.bandOverview(band)
     }
@@ -2981,15 +2989,25 @@ extension InkCanvasView.Coordinator {
 
     /// `containerDidLayout`'s entry when the width changed (a rotation, Split View): the window is decided anew
     /// when the paper is still. A slide (and the pages waiting to slide) was aimed at the old width and zoom: it
-    /// ends where the band is (its animation stopped, so it does not carry the band to the old place).
+    /// ends where the band is (its animation stopped, so it does not carry the band to the old place). The band x
+    /// that was in the middle of the screen (`layoutMid`, read with the old width) goes back to the middle at the new
+    /// zoom (UI-1): 1.2.3's step 4 reads the x it keeps with the new width and the old offset, half the change of width
+    /// off at the old zoom, which the clamp hides on one page but not on the band (the iPhone's landscape day is 85 pt
+    /// wide: turned back to portrait, the stop took the focus 2 or 3 days back). y stays 1.2.3's. Not under a pinch.
     fileprivate func bandWidthChanged() {
         guard let state = spanState else { return }
+        let kept = state.layoutMid
+        state.layoutMid = nil
         if state.slideTargetX != nil || state.queuedSlidePages != 0 {
             state.slideTargetX = nil
             state.queuedSlidePages = 0
             if let canvas, !isLive {
                 canvas.setContentOffset(canvas.contentOffset, animated: false)
             }
+        }
+        if let kept, let canvas, let container, !isLive {
+            canvas.contentOffset = clampedOffset(CGPoint(x: kept * max(canvas.zoomScale, 0.0001) - container.bounds.width / 2,
+                                                         y: canvas.contentOffset.y))
         }
         state.pendingRedecide = true
         requestShiftCheck()
