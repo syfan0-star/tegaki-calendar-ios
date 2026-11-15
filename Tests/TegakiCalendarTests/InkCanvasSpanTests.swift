@@ -1605,4 +1605,200 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the ink is not rebuilt")
         XCTAssertEqual(session.pageIds.first, w1102, "no shift")
     }
+    // MARK: UI-1 review probes (a reviewer's branch, not for merge)
+
+    private static var probeWindows: [UIWindow] = []
+
+    /// Probe 0: does UIKit move a scroll view's offset when its frame narrows the scrollable range (a turn of the
+    /// iPhone's portrait day, 402 -> 874 wide, the band 1,117 pt, x 356), outside a window, in a scene's window, and
+    /// in a window without a scene? The values are printed.
+    func testProbeFrameChangeMovesTheOffset() throws {
+        func measure(_ view: UIScrollView, _ name: String) {
+            view.frame = CGRect(x: 0, y: 0, width: 402, height: 536)
+            view.contentSize = CGSize(width: 1_117, height: 536)
+            view.contentOffset = CGPoint(x: 356, y: 0)
+            let before = view.contentOffset.x
+            view.frame = CGRect(x: 0, y: 0, width: 874, height: 205)
+            let after = view.contentOffset.x
+            view.layoutIfNeeded()
+            print("UI1PROBE frame \(name): before=\(before) after-frame=\(after) after-layout=\(view.contentOffset.x)")
+        }
+        measure(UIScrollView(), "scroll no-window")
+        measure(PKCanvasView(), "canvas no-window")
+        let bare = UIWindow(frame: CGRect(x: 0, y: 0, width: 1_400, height: 1_400))
+        bare.isHidden = false
+        let a = UIScrollView(), b = PKCanvasView()
+        bare.addSubview(a)
+        bare.addSubview(b)
+        measure(a, "scroll bare-window")
+        measure(b, "canvas bare-window")
+        bare.isHidden = true
+        if let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first {
+            let window = UIWindow(windowScene: scene)
+            window.frame = scene.coordinateSpace.bounds
+            window.isHidden = false
+            let c = UIScrollView(), d = PKCanvasView()
+            window.addSubview(c)
+            window.addSubview(d)
+            measure(c, "scroll scene-window")
+            measure(d, "canvas scene-window")
+            window.isHidden = true
+        } else {
+            print("UI1PROBE frame: no scene")
+        }
+    }
+
+    /// Probe A: UI-1's steps from the other orientation, the rig inside a window without a scene (the plan still
+    /// takes its orientation from the paper area).
+    func testProbeWindowedIPhoneDayFromPortrait() async throws {
+        try await probeTurns(.day, .iPhone, start: .portrait, CGSize(width: 402, height: 536), CGSize(width: 874, height: 205), next: d1117)
+    }
+
+    func testProbeWindowedIPhoneWeekFromPortrait() async throws {
+        try await probeTurns(.week, .iPhone, start: .portrait, CGSize(width: 402, height: 540), CGSize(width: 874, height: 205), next: w1123)
+    }
+
+    func testProbeWindowedIPadDayFromLandscape() async throws {
+        try await probeTurns(.day, .iPad11, start: .landscape, CGSize(width: 1_210, height: 615), CGSize(width: 834, height: 951), next: d1117)
+    }
+
+    func testProbeWindowedIPadWeekFromLandscape() async throws {
+        try await probeTurns(.week, .iPad11, start: .landscape, CGSize(width: 1_210, height: 615), CGSize(width: 834, height: 955), next: w1123)
+    }
+
+    private func probeTurns(_ kind: PageKind, _ device: SpanDeviceClass, start: SpanOrientation, _ first: CGSize,
+                            _ second: CGSize, next: String, line: UInt = #line) async throws {
+        let session = try await open(kind, deviceClass: device, orientation: start)
+        let rig = await attach(session, width: first.width, height: first.height)
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 1_400, height: 1_400))
+        window.addSubview(rig.container)
+        window.isHidden = false
+        Self.probeWindows.append(window)
+        let opened = session.focusPageId
+        assertFocus(opened, on: rig, since: 0, "A \(kind) opened", line: line)
+        var stops = rig.probe.stops.count
+        await turn(rig, to: second)
+        assertFocus(opened, on: rig, since: stops, "A \(kind) turned", line: line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: first)
+        assertFocus(opened, on: rig, since: stops, "A \(kind) turned back", line: line)
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done, "A \(kind) slid: the window shifts", line: line)
+        await settle()
+        assertFocus(next, on: rig, since: rig.probe.stops.count - 1, "A \(kind) slid", line: line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: second)
+        assertFocus(next, on: rig, since: stops, "A \(kind) slid, turned", line: line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: first)
+        assertFocus(next, on: rig, since: stops, "A \(kind) slid, turned back", line: line)
+        window.isHidden = true
+    }
+
+    /// Probe B: a turn while an arrow's slide runs (0.3 page along): the slide ends where the band is, the focus is the
+    /// page it left, every stop told of is on it, the window is around it.
+    func testProbeTurnDuringASlide() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .landscape)
+        let rig = await attach(session, width: 874, height: 205)
+        let opened = session.focusPageId
+        rig.coordinator.spanSlideAnimation = { _, _ in }
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertNotNil(rig.coordinator.spanSlideTargetX, "B: a slide runs")
+        rig.canvas.contentOffset.x += 0.3 * rig.page
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        let stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "B: the slide ended")
+        XCTAssertEqual(session.focusPageId, opened, "B: the focus")
+        XCTAssertFalse(session.needsShift, "B: the window is around it")
+        let told = rig.probe.stops.dropFirst(stops).map(\.focusDay)
+        XCTAssertTrue(told.allSatisfy { $0 == session.focusDay }, "B: stops \(told)")
+        if let left = session.origin(ofPage: opened) {
+            let middle = (left + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x
+            print("UI1PROBE B: focus middle \(middle) screen middle \(rig.container.bounds.width / 2) page \(rig.page)")
+            XCTAssertEqual(middle, rig.container.bounds.width / 2, accuracy: 0.3 * rig.page + 3, "B: 0.3 page off, kept")
+        }
+    }
+
+    /// Probe C: a turn right after an arrow's slide ended, before the shift's turn ran.
+    func testProbeTurnRightAfterASlideEnded() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .landscape)
+        let rig = await attach(session, width: 874, height: 205)
+        rig.coordinator.spanSlideAnimation = { _, _ in }
+        rig.coordinator.slide(byPages: 1)
+        let stops = rig.probe.stops.count
+        guard let target = rig.coordinator.spanSlideTargetX else { return XCTFail("C: no slide") }
+        rig.canvas.contentOffset = CGPoint(x: target, y: rig.canvas.contentOffset.y)
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        rig.coordinator.scrollViewDidEndScrollingAnimation(rig.canvas)
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        assertFocus(d1117, on: rig, since: stops, "C turned", line: #line)
+        let again = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        assertFocus(d1117, on: rig, since: again, "C turned back", line: #line)
+    }
+
+    /// Probe D: two turns while a sheet covers the band (the window is decided anew only when it closes).
+    func testProbeTurnsUnderASheet() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .landscape)
+        let rig = await attach(session, width: 874, height: 205)
+        let opened = session.focusPageId
+        update(rig, isSheetOpen: true)
+        await settle()
+        let stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        XCTAssertEqual(session.focusPageId, opened, "D: under the sheet, turned")
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        XCTAssertEqual(session.focusPageId, opened, "D: under the sheet, turned back")
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        update(rig, isSheetOpen: false)
+        await settle()
+        assertFocus(opened, on: rig, since: stops, "D sheet closed", line: #line)
+    }
+
+    /// Probe E: a turn laid out in two passes (the width, then the height), in one turn and in two.
+    func testProbeTurnInTwoPasses() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .landscape)
+        let rig = await attach(session, width: 874, height: 205)
+        let opened = session.focusPageId
+        var stops = rig.probe.stops.count
+        probeLayOut(rig, CGSize(width: 402, height: 205))
+        probeLayOut(rig, CGSize(width: 402, height: 536))
+        await settle()
+        assertFocus(opened, on: rig, since: stops, "E one turn", line: #line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 874, height: 536))
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        assertFocus(opened, on: rig, since: stops, "E two turns", line: #line)
+    }
+
+    /// Probe F: Split View on the iPad 11 in landscape (the width alone changes), and back.
+    func testProbeSplitView() async throws {
+        let session = try await open(.week, deviceClass: .iPad11, orientation: .landscape)
+        let rig = await attach(session, width: 1_210, height: 615)
+        let opened = session.focusPageId
+        for width: CGFloat in [694, 507, 694, 1_210, 507, 1_210] {
+            let stops = rig.probe.stops.count
+            await turn(rig, to: CGSize(width: width, height: 615))
+            assertFocus(opened, on: rig, since: stops, "F width \(width)", line: #line)
+        }
+    }
+
+    /// Probe G: the paper area shortened (a keyboard), then turned with it, then restored.
+    func testProbeTurnWithTheAreaShortened() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .portrait)
+        let rig = await attach(session, width: 402, height: 536)
+        let opened = session.focusPageId
+        for size in [CGSize(width: 402, height: 300), CGSize(width: 874, height: 120), CGSize(width: 874, height: 205),
+                     CGSize(width: 402, height: 536)] {
+            let stops = rig.probe.stops.count
+            await turn(rig, to: size)
+            assertFocus(opened, on: rig, since: stops, "G \(size)", line: #line)
+        }
+    }
+
+    private func probeLayOut(_ rig: SpanRig, _ size: CGSize) {
+        rig.container.frame = CGRect(origin: .zero, size: size)
+        rig.container.layoutSubviews()
+    }
 }
