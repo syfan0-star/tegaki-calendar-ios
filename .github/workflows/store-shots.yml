@@ -16,6 +16,12 @@
 # en and es are two sets each because the regions differ in the week start and the holidays, not in the words.
 # ja's photos stay as they are in App Store Connect; nothing here touches Connect.
 #
+# 1.3 (docs/M7C_CONTRACT.md §8.5, D26): every set also shoots the joined week with the crossing demo at its head
+# (`--screenshot-span on --screenshot-offset-x -0.5`: the focus page's left boundary in the middle; the store ink
+# draws the demo's two strokes across it, docs/M7C.md C-args decision 15) as store/<device>/00-span.jpg, and ja
+# (ja_JP) is a set too, for that photo only: its other four stay as they are in Connect. 1.3 is not on main, so
+# the lead starts this with `gh workflow run store-shots.yml --ref r13` (the dispatch reads the file of that ref).
+#
 # When it runs: on a push to the branch `store-shots` (the lead pushes m7b under that name, for example
 # `git push origin m7b:store-shots`: workflow_dispatch only starts a workflow that is on the default branch,
 # and 1.2 reaches main only after the owner's check, 0-40). build.yml ignores this branch.
@@ -69,6 +75,7 @@ jobs:
           - { id: es, language: es, locale: es_MX }
           - { id: es-ES, language: es-ES, locale: es_ES }
           - { id: pt-BR, language: pt-BR, locale: pt_BR }
+          - { id: ja, language: ja, locale: ja_JP }
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -141,19 +148,22 @@ jobs:
             es_MX) STATUS_TEXT="9:41 a.m." ;;
             *) STATUS_TEXT="" ;;
           esac
-          shoot() {  # shoot <page>: one photo; a failure only loses this one file
+          shoot() {  # shoot <page> [<file tag> <more arguments>…]: one photo; a failure only loses this one file
+            local PAGE="$1" TAG="${2:-$1}"
+            shift; [ $# -gt 0 ] && shift
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
-            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$1" \
-              --screenshot-holidays auto --screenshot-week-start auto --screenshot-store-ink \
-              -AppleLanguages "($SET_LANGUAGE)" -AppleLocale "$SET_LOCALE" || { echo "::warning::launch failed ($ID, $1)"; return 0; }
+            # ${@+"$@"}: no more arguments is not an unbound variable under set -u in bash 3.2.
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" \
+              --screenshot-holidays auto --screenshot-week-start auto --screenshot-store-ink ${@+"$@"} \
+              -AppleLanguages "($SET_LANGUAGE)" -AppleLocale "$SET_LOCALE" || { echo "::warning::launch failed ($ID, $TAG)"; return 0; }
             sleep 9
             # `grep` without -q reads the whole list (docs/M7C.md, S1 の残り, decision 8): with -q it stops at the first match,
             # simctl, still writing the list, gets SIGPIPE, and pipefail makes the pipeline fail although the app is in
             # the list (a false warning in 0–9 of build.yml's photos and 5–14 of l10n-shots' in the runs of 11/11–12;
             # none in span-shots, which reads the whole list). An app not in the list, or no list, still warns.
-            xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($ID, $1)"
-            xcrun simctl io "$UDID" screenshot "shots/$ID-portrait-$1.png" || echo "::warning::screenshot failed ($ID, $1)"
+            xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($ID, $TAG)"
+            xcrun simctl io "$UDID" screenshot "shots/$ID-portrait-$TAG.png" || echo "::warning::screenshot failed ($ID, $TAG)"
           }
           # device-id | exact first choice | prefix fallbacks (in order). As in build.yml, on "iPad Air 13-inch"
           # the pixels are still accepted; on "iPhone 17 Pro" they are 6.3-inch and the next step warns.
@@ -226,8 +236,12 @@ jobs:
             sleep 120
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             for ROUND in first retake; do   # the retake is the file that is kept (see the head of this file)
-              for PAGE in month week day year; do
-                shoot "$PAGE"
+              for PAGE in month week day year span; do
+                if [ "$PAGE" = span ]; then
+                  shoot week span --screenshot-span on --screenshot-offset-x -0.5
+                else
+                  shoot "$PAGE"
+                fi
               done
             done
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -261,10 +275,12 @@ jobs:
               *) echo "::warning::store/$DEV/$NAME.jpg is ${SIZE}, not one of the accepted sizes for $DEV ($(accepted "$DEV"))." ;;
             esac
           }
+          store ipad13   00-span  ipad13-portrait-span
           store ipad13   01-month ipad13-portrait-month
           store ipad13   02-week  ipad13-portrait-week
           store ipad13   03-day   ipad13-portrait-day
           store ipad13   04-year  ipad13-portrait-year
+          store iphone69 00-span  iphone69-portrait-span
           store iphone69 01-week  iphone69-portrait-week
           store iphone69 02-month iphone69-portrait-month
           store iphone69 03-day   iphone69-portrait-day
