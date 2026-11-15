@@ -173,11 +173,12 @@ final class InkCanvasSpanTests: XCTestCase {
 
     /// A week session around 11/16 (or a day session of `radius` around it) whose pages are read, `stored` written
     /// to the store first.
-    private func open(_ kind: PageKind = .week, radius: Int? = nil, number: Int = 1, stored: [InkPage] = []) async throws -> SpanSession {
+    private func open(_ kind: PageKind = .week, radius: Int? = nil, number: Int = 1, stored: [InkPage] = [],
+                      deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait) async throws -> SpanSession {
         for page in stored {
             try bed.store.save(page)
         }
-        let session = bed.session(kind, focus: nov16, number: number, radius: radius)
+        let session = bed.session(kind, focus: nov16, number: number, radius: radius, deviceClass: deviceClass, orientation: orientation)
         await session.prefetch()
         return session
     }
@@ -969,6 +970,87 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertEqual(session.layout.pageId, virtual)
         XCTAssertTrue(rig.ledger.canUndo, "↶ stays")
         XCTAssertEqual(pageIds(of: rig.container.paperView.span), session.pageIds)
+    }
+
+    /// UI-1 (§3.6 回転・Split View; the iPhone finding of run 43595078492: the day the year tap opened in landscape went
+    /// 3/16 → 3/14 when the device turned back to portrait): a turn keeps the focus page, both ways, on the iPhone (day and
+    /// week: landscape 874 × 205 ⇄ portrait 402 × 536 / 540) and the iPad 11 (portrait 834 × 951 / 955 ⇄ landscape
+    /// 1,210 × 615), from the opening (as the year tap opens it) and after a slide of one page. After each turn the focus is
+    /// the same page, every stop told of is on it, the window decided anew is around it, and its middle is in the middle of
+    /// the screen as before. 1.2.3's change of width (`containerDidLayout`, step 4) reads the paper x it keeps in the middle
+    /// with the new width and the old offset, half the change of width off at the old zoom: on one page the clamp hides it,
+    /// on the band nothing does, and the stop after the turn took the focus from there (the iPhone's landscape day is 85 pt
+    /// wide: 2–3 days back; the iPad's day one back).
+    func testRotationKeepsTheFocusIPhoneDay() async throws {
+        try await assertTurnsKeepTheFocus(.day, .iPhone, start: .landscape, CGSize(width: 874, height: 205),
+                                          CGSize(width: 402, height: 536), next: d1117)
+    }
+
+    func testRotationKeepsTheFocusIPhoneWeek() async throws {
+        try await assertTurnsKeepTheFocus(.week, .iPhone, start: .landscape, CGSize(width: 874, height: 205),
+                                          CGSize(width: 402, height: 540), next: w1123)
+    }
+
+    func testRotationKeepsTheFocusIPadDay() async throws {
+        try await assertTurnsKeepTheFocus(.day, .iPad11, start: .portrait, CGSize(width: 834, height: 951),
+                                          CGSize(width: 1_210, height: 615), next: d1117)
+    }
+
+    func testRotationKeepsTheFocusIPadWeek() async throws {
+        try await assertTurnsKeepTheFocus(.week, .iPad11, start: .portrait, CGSize(width: 834, height: 955),
+                                          CGSize(width: 1_210, height: 615), next: w1123)
+    }
+
+    /// UI-1's steps: open at `first` in `start`, turn to `second` and back; slide one page (to `next`), turn and back.
+    private func assertTurnsKeepTheFocus(_ kind: PageKind, _ device: SpanDeviceClass, start: SpanOrientation, _ first: CGSize,
+                                         _ second: CGSize, next: String, line: UInt = #line) async throws {
+        let session = try await open(kind, deviceClass: device, orientation: start)
+        let rig = await attach(session, width: first.width, height: first.height)
+        let opened = session.focusPageId
+        assertFocus(opened, on: rig, since: 0, "\(kind) opened", line: line)
+        var stops = rig.probe.stops.count
+        await turn(rig, to: second)
+        assertFocus(opened, on: rig, since: stops, "\(kind) turned", line: line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: first)
+        assertFocus(opened, on: rig, since: stops, "\(kind) turned back", line: line)
+
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done, "\(kind) slid: the window shifts", line: line)
+        await settle()
+        assertFocus(next, on: rig, since: rig.probe.stops.count - 1, "\(kind) slid", line: line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: second)
+        assertFocus(next, on: rig, since: stops, "\(kind) slid, turned", line: line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: first)
+        assertFocus(next, on: rig, since: stops, "\(kind) slid, turned back", line: line)
+    }
+
+    /// A rotation as UIKit lays it out: the paper area takes `size`, then the queued work (the window decided anew).
+    private func turn(_ rig: SpanRig, to size: CGSize) async {
+        rig.container.frame = CGRect(origin: .zero, size: size)
+        rig.container.layoutSubviews()
+        await settle()
+    }
+
+    /// UI-1: the focus is `pageId` and every stop told of since `since` is on its day; the window is around it, of the
+    /// plan of the screen's orientation (the canvas took that version), and its middle is in the middle of the screen.
+    private func assertFocus(_ pageId: String, on rig: SpanRig, since: Int, _ step: String, line: UInt) {
+        let session = rig.session
+        XCTAssertEqual(session.focusPageId, pageId, "\(step): the focus page", line: line)
+        XCTAssertFalse(session.needsShift, "\(step): the window is around it", line: line)
+        XCTAssertEqual(session.plan.orientation, SpanOrientation(screen: rig.container.bounds.size), "\(step): decided anew for the screen", line: line)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "\(step): the canvas took it", line: line)
+        let day = session.focusDay
+        let told = rig.probe.stops.dropFirst(max(0, since)).map(\.focusDay)
+        XCTAssertTrue(told.allSatisfy { $0 == day }, "\(step): the stops told of \(told), not only \(day)", line: line)
+        guard let left = session.origin(ofPage: pageId) else {
+            XCTFail("\(step): \(pageId) is not in the window", line: line)
+            return
+        }
+        let middle = (left + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x
+        XCTAssertEqual(middle, rig.container.bounds.width / 2, accuracy: 0.5, "\(step): its middle is in the middle of the screen", line: line)
     }
 
     /// §3.6: when a page that leaves cannot be saved, the window does not shift and the canvas is as it was: the pages,

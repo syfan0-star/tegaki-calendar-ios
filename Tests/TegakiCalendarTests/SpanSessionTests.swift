@@ -119,10 +119,11 @@ final class SessionTestBed {
     /// A session of the bed's engine, its timers on `sessionSleeper`, the engine's two hooks routed to it as the
     /// screen routes them.
     func session(_ kind: PageKind = .week, focus: DayKey, weekStart: WeekStart = .monday, number: Int = 1, radius: Int? = nil,
-                 deviceClass: SpanDeviceClass = .iPad11, eventSource: ((DayKey, DayKey) -> [LayoutEvent])? = nil) -> SpanSession {
+                 deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait,
+                 eventSource: ((DayKey, DayKey) -> [LayoutEvent])? = nil) -> SpanSession {
         let sleeper = sessionSleeper
         let session = SpanSession(kind: kind, weekStart: weekStart, focus: focus, sync: engine, deviceClass: deviceClass,
-                                  orientation: .portrait, number: number,
+                                  orientation: orientation, number: number,
                                   context: SpanSession.PaperContext(now: now, calendar: SessionTestBed.tokyo), radius: radius,
                                   eventSource: eventSource,
                                   sleep: { await sleeper.sleep($0) },
