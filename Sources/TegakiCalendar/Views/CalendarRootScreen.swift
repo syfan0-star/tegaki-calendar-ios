@@ -1581,7 +1581,7 @@ struct CalendarRootScreen: View {
         case .week:
             // 1.3 (docs/M7C_CONTRACT.md §5.2, D3 (4)): the week memo below 24:00 on the one-page path too.
             let layout = WeekLayoutEngine.layout(WeekLayoutInput(focus: focus, events: events, inkBottoms: inkBottoms, now: now,
-                                                                 holidays: holidays, words: words, weekStart: weekStart, freeMemo: true))
+                                                                 holidays: holidays, words: words, weekStart: weekStart))
             return .week(WeekPaperContent(layout: layout))
         case .day:
             let layout = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: events, inkBottoms: inkBottoms, now: now,
