@@ -1225,7 +1225,7 @@ final class ScreenPaths: ObservableObject {
         let width = area.width.isFinite && area.width > 0 ? area.width : 0
         let zoom = bandZoom(layout: layout, area: area, ratio: ratio)
         guard let slot = layout.slot(ofPage: focusPageId), width > 0 else { return PaperViewport(offsetX: 0, zoom: zoom, width: width) }
-        let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area)
+        let bounds = ZoomPolicy.bounds(layout.kind, overview: InkCanvasView.bandOverview(layout), viewport: area)
         if ZoomPolicy.ratio(forZoom: zoom, bounds: bounds) <= overviewRatio {
             return PaperViewport(offsetX: (layout.origin(ofSlot: slot) + layout.plan.pageWidth / 2) * zoom - width / 2, zoom: zoom, width: width)
         }
