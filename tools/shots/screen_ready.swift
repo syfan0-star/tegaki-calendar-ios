@@ -17,7 +17,16 @@
 //   still   at most 1 pixel in 2,000 differs strongly from the earlier frame (on the 13-inch iPad, at most 2,840 of
 //           5,680,128: a text cursor's blink is a few hundred; a sheet that slides in or a page that is pushed
 //           moves hundreds of thousands)
-//   unlike  at least 1 pixel in 1,000 differs strongly from that photo (at least 5,681 on the 13-inch iPad)
+//   unlike  at least 1 pixel in 1,000 (at least 5,681 on the 13-inch iPad) of the shot or of that photo differs
+//           strongly from every pixel of the other up to 3 pixels away (`reach`, across and down; the larger of the
+//           two counts). Since 1.3's review of the week memo: a screen a few pixels from its place is still that
+//           screen. Before it, "unlike" counted the strongly differing pixels, and in run 44296486095 the frame of
+//           `--screenshot-sheet holidays` was kept although it held the settings, still, a few pixels from their place,
+//           the picker not yet open (32,648 pixels from the settings' photo; 1,220 without a like pixel within 3; the
+//           same picture as that of run 43149906124, taken at 9 s before this tool). A
+//           settled sheet keeps its distance (the picker and the other three opened from the settings: at least 23,816
+//           from the settings' photo; every sheet: at least 37,015 from the month page's, the lasso's menu; runs
+//           44296486095 and 44238377199), so it is taken as before, and the other one is waited for.
 // One line on the standard output. Exit status: 0 = ready (still, and unlike every photo given), 1 = not yet,
 // 2 = the shot or the earlier frame cannot be read, or wrong arguments. macOS with the Command Line Tools is enough
 // (Foundation, CoreGraphics, ImageIO).
@@ -31,8 +40,10 @@ enum Settings {
     static let strong = 32
     /// Still: at most one strongly differing pixel in this many.
     static let stillPer = 2_000
-    /// Unlike: at least one strongly differing pixel in this many.
+    /// Unlike: at least one pixel in this many with no like pixel within `reach`.
     static let unlikePer = 1_000
+    /// Unlike: how far (pixels, across and down) a like pixel of the other image may be (1.3's review of the week memo).
+    static let reach = 3
 }
 
 func fail(_ message: String) -> Never {
@@ -104,6 +115,41 @@ func strongPixels(_ a: Raster, _ b: Raster) -> Int {
     return strong
 }
 
+/// The pixels of `a` that differ strongly from the pixel of `b` at the same place and from every pixel of `b` up to
+/// `reach` pixels away across and down: what `a` shows and `b` has nowhere near. A screen moved by up to `reach`
+/// pixels has none of them (1.3's review of the week memo).
+func unmatchedPixels(_ a: Raster, _ b: Raster, reach: Int) -> Int {
+    var count = 0
+    let width = a.width, height = a.height
+    let rowBytes = width * 4
+    a.bytes.withUnsafeBufferPointer { pa in
+        b.bytes.withUnsafeBufferPointer { pb in
+            guard let ba = pa.baseAddress, let bb = pb.baseAddress else { return }
+            func like(_ i: Int, _ j: Int) -> Bool {
+                abs(Int(ba[i]) - Int(bb[j])) <= Settings.strong && abs(Int(ba[i + 1]) - Int(bb[j + 1])) <= Settings.strong
+                    && abs(Int(ba[i + 2]) - Int(bb[j + 2])) <= Settings.strong && abs(Int(ba[i + 3]) - Int(bb[j + 3])) <= Settings.strong
+            }
+            for y in 0..<height {
+                let start = y * rowBytes
+                if memcmp(ba + start, bb + start, rowBytes) == 0 { continue }
+                for x in 0..<width {
+                    let i = start + x * 4
+                    if like(i, i) { continue }
+                    var found = false
+                    search: for yy in max(0, y - reach)...min(height - 1, y + reach) {
+                        for xx in max(0, x - reach)...min(width - 1, x + reach) where like(i, (yy * width + xx) * 4) {
+                            found = true
+                            break search
+                        }
+                    }
+                    if !found { count += 1 }
+                }
+            }
+        }
+    }
+    return count
+}
+
 let arguments = Array(CommandLine.arguments.dropFirst())
 guard arguments.count >= 2 else {
     print("usage: screen_ready <shot.png> <earlier.png> [<unlike.png> ...]")
@@ -148,9 +194,10 @@ for path in unlikePaths {
         continue
     }
     let differing = strongPixels(shot, other)
-    let unlike = differing * Settings.unlikePer >= shot.pixels
+    let unmatched = max(unmatchedPixels(shot, other, reach: Settings.reach), unmatchedPixels(other, shot, reach: Settings.reach))
+    let unlike = unmatched * Settings.unlikePer >= shot.pixels
     if !unlike { ready = false }
-    parts.append("\(unlike ? "unlike" : "LIKE") \(name) (\(grouped(differing)) pixels differ)")
+    parts.append("\(unlike ? "unlike" : "LIKE") \(name) (\(grouped(differing)) pixels differ, \(grouped(unmatched)) with no like pixel within \(Settings.reach))")
 }
 print((ready ? "ready: " : "not yet: ") + parts.joined(separator: "; "))
 exit(ready ? 0 : 1)
