@@ -380,6 +380,10 @@ jobs:
       # reference run 43158921131 differs from that month page by at least 47,648 pixels, the four from those settings by
       # at least 44,318; the same screen of two runs by 0). The same lines in build.yml (J-4). If the tool does not
       # compile, every sheet is the frame of 9 s, with a warning.
+      # 1.3's review of the week memo (see the same step in build.yml): the tool now counts only the pixels with no like
+      # pixel within 3 pixels, so a frame of settings still a few pixels from their place is not kept. The numbers above
+      # were measured with the earlier count; with the new one a settled sheet differs from the settings' photo by at
+      # least 23,816 pixels and from the month page by at least 37,015.
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true

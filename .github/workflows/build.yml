@@ -828,7 +828,8 @@ jobs:
       # the pixels with no like pixel within 3 pixels (that frame: 1,220, not unlike; a settled sheet: at least 23,816 from
       # the settings, 37,015 from the month page), so such a frame is not kept and the step waits for the expected screen
       # (the loop below, unchanged). The frame of 9 s stays the first one taken, so no photo is earlier than before. The
-      # tool is read from the pushed commit by ja-baseline.yml too, so both workflows wait the same way.
+      # tool is read from the commit a run is on, so ja-baseline.yml (which runs on r13) waits the same way once this
+      # change is on r13.
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
