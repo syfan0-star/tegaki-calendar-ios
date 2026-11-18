@@ -30,7 +30,7 @@ enum WeekPaper: PaperRenderer {
             }
             guard let tint = tint else { continue }
             let frame = layout.columnFrame(column)
-            let rect = CGRect(x: frame.minX, y: 0, width: frame.width, height: height)
+            let rect = CGRect(x: frame.minX, y: 0, width: frame.width, height: layout.size.height)
             guard rect.intersects(dirty) else { continue }
             ctx.setFillColor(tint.cgColor)
             ctx.fill(rect)
