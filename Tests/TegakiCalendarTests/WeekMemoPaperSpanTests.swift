@@ -202,6 +202,30 @@ final class WeekMemoPaperSpanTests: XCTestCase {
         return out
     }
 
+    /// The bottom `points` of the first page of a PDF at `scale` px per point, row 0 at the top (1.3's review of the
+    /// week memo, F1: at 1 px per point CoreGraphics' stroke adjustment puts a hairline on whole pixels and a quarter of
+    /// a line along the page's edge does not show; at 1.5, 2, 3 or 4 it does, as on a Retina screen or on paper).
+    private func render(pdf data: Data, bottom points: CGFloat, scale: CGFloat) throws -> Bitmap {
+        let provider = try XCTUnwrap(CGDataProvider(data: data as CFData))
+        let document = try XCTUnwrap(CGPDFDocument(provider))
+        let page = try XCTUnwrap(document.page(at: 1))
+        let box = page.getBoxRect(.mediaBox)
+        let width = Int((box.width * scale).rounded(.up))
+        let height = Int((points * scale).rounded(.up))
+        var bytes = [UInt8](repeating: 255, count: width * height * 4)
+        bytes.withUnsafeMutableBytes { buffer in
+            guard let ctx = CGContext(
+                data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return }
+            // The PDF's y runs up from its bottom edge: the bitmap holds y 0…`points` of the page.
+            ctx.scaleBy(x: scale, y: scale)
+            ctx.translateBy(x: -box.minX, y: -box.minY)
+            ctx.drawPDFPage(page)
+        }
+        return Bitmap(bytes: bytes, width: width, height: height)
+    }
+
     /// The first page of a PDF at 1 px per point, row 0 at the top (PaperViewTests).
     private func render(pdf data: Data) throws -> Bitmap {
         let provider = try XCTUnwrap(CGDataProvider(data: data as CFData))
@@ -496,9 +520,11 @@ final class WeekMemoPaperSpanTests: XCTestCase {
     /// too) is 1.2.3's week PDF, pixel for pixel, down to its bottom row (1.3's review of the week memo, F1): its
     /// paper against a PDF of the 24 hours drawn by 43fe366's copy (`Frozen123WeekPaper`, without the now line as
     /// the PDF draws it), and the whole page against the PDF of the same week laid out without the memo, for an
-    /// empty page, a grid stroke and a grid stroke written across 24:00. Without `PDFPageRenderer.paperInRect` the
-    /// memo's strong line at 24:00 (snapped to 1,919.75…1,920.75) leaves its upper quarter in the last row. With the
-    /// memo in the rectangle the memo is drawn; the day and a week without the memo are drawn as they are.
+    /// empty page, a grid stroke and a grid stroke written across 24:00 — at 1 px per point over the whole page, and
+    /// over its bottom 40 points at 2, 3 and 4 px per point. Without `PDFPageRenderer.paperInRect` the memo's strong
+    /// line at 24:00 (snapped to 1,919.75…1,920.75) leaves its upper quarter along the bottom edge, which shows from
+    /// 1.5 px per point (at 1 the stroke adjustment moves it out). With the memo in the rectangle the memo is drawn;
+    /// the day and a week without the memo are drawn as they are.
     func testWeekPDFWithoutMemoInkIs1_2_3PixelForPixel() throws {
         let events = [timed("e1", on: today, from: 21, to: 23.75), timed("e2", on: DayKey(year: 2026, month: 10, day: 10), from: 9, to: 10.5)]
         let memoLayout = weekLayout(monday, freeMemo: true, events: events)
@@ -557,22 +583,36 @@ final class WeekMemoPaperSpanTests: XCTestCase {
         XCTAssertEqual(frozen.height, 1920)
 
         let empty = InkPage.empty(pageId: memoLayout.pageId)
-        let app = try render(pdf: PDFPageRenderer.render(paper, page: empty, title: "t"))
+        let appData = PDFPageRenderer.render(paper, page: empty, title: "t")
+        let app = try render(pdf: appData)
         XCTAssertEqual(app.height, heading + 1920)
         XCTAssertEqual(differing(app, from: heading, frozen, from: 0, rows: 1920), 0, "the paper of the PDF is 43fe366's")
-        // The bottom row under Monday's column (no line there in 1.2.3): the paper colour, no trace of the line at 24:00.
-        XCTAssertTrue(near(app.pixel(160, heading + 1919), paperColor), "the bottom row: \(app.pixel(160, heading + 1919))")
+        // The bottom 40 points at 4 px per point (where the line at 24:00 would show): 43fe366's, and the bottom row under
+        // Monday's column (no line there in 1.2.3) the paper colour.
+        let appBottom = try render(pdf: appData, bottom: 40, scale: 4)
+        let frozenBottom = try render(pdf: frozenData, bottom: 40, scale: 4)
+        XCTAssertEqual(appBottom.height, 160)
+        XCTAssertEqual(differing(appBottom, from: 0, frozenBottom, from: 0, rows: 160), 0, "the bottom of the PDF at 4 px per point is 43fe366's")
+        XCTAssertTrue(near(appBottom.pixel(640, 159), paperColor), "the bottom row at 4 px per point: \(appBottom.pixel(640, 159))")
 
         var gridOnly = empty
         gridOnly.add(stroke("grid", cell: .grid, line(CGPoint(x: 100, y: 1000), CGPoint(x: 500, y: 1100))))
         var across = gridOnly
         across.add(stroke("across", cell: .grid, line(CGPoint(x: 600, y: 1860), CGPoint(x: 700, y: 1970))))
         for (name, page) in [("empty", empty), ("a grid stroke", gridOnly), ("a grid stroke across 24:00", across)] {
-            let withMemo = try render(pdf: PDFPageRenderer.render(paper, page: page, title: "t"))
-            let without = try render(pdf: PDFPageRenderer.render(old, page: page, title: "t"))
+            let withMemoData = PDFPageRenderer.render(paper, page: page, title: "t")
+            let withoutData = PDFPageRenderer.render(old, page: page, title: "t")
+            let withMemo = try render(pdf: withMemoData)
+            let without = try render(pdf: withoutData)
             XCTAssertEqual(withMemo.height, heading + 1920, name)
             XCTAssertEqual(without.height, heading + 1920, name)
             XCTAssertEqual(differing(withMemo, from: 0, without, from: 0, rows: heading + 1920), 0, "\(name): the week PDF with the memo laid out is 1.2.3's")
+            for scale: CGFloat in [2, 3] {
+                let withMemoBottom = try render(pdf: withMemoData, bottom: 40, scale: scale)
+                let withoutBottom = try render(pdf: withoutData, bottom: 40, scale: scale)
+                XCTAssertEqual(differing(withMemoBottom, from: 0, withoutBottom, from: 0, rows: withMemoBottom.height), 0,
+                               "\(name): the bottom 40 points at \(scale) px per point are 1.2.3's")
+            }
         }
     }
 
