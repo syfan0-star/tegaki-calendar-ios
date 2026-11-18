@@ -97,3 +97,12 @@ R が日本語の元を見ずに `docs/store/en-US/*.txt` と `docs/store/subscr
 | 1.3.whatsnew.3 | • Fixed an issue where, after all handwriting was erased on another device, handwriting still on this device could go back to iCloud. | • ほかの端末で手書きをすべて消したあと、この端末にまだ残っていた手書きが iCloud に戻ってしまうことがある問題を修正しました。 |
 | 1.3.whatsnew.4 | • Please update both your iPad and your iPhone to this version. On older versions, strokes written across pages appear on only one of the pages (they have not been deleted). If you erase such a stroke on an older version, it is erased in this version too. On iPad, this version joins the pages before and after side by side in both portrait and landscape. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。古いバージョンでは、ページをまたいで書いた線は、どちらか片方のページにしか表示されません（削除されたわけではありません）。古いバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
 | 1.3.whatsnew.5 | Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes. | 翻訳は AI で作成したもので、まだネイティブスピーカーの確認を受けていません。誤りがあればお知らせください。 |
+
+## 1.3 の週のメモの文（2026-11-18）
+
+週のメモ（契約 §5）を作り始めたときに、`docs/store/en-US/whatsnew.txt` の 2 つ目の点に週のメモの行を足しました（en-GB・en-AU・en-CA は同じ字）。今の 3〜6 つ目の行は、上の節の 1.3.whatsnew.2〜5 と同じ字です（iPad の 1 文はリードが外した後の形）。また、2 つ目の点に古い版での見え方の句を足す案（K-8。`docs/store/PROPOSALS_1_3.md` の 4。本人の確認ページで選んでもらう）を用意しました。この 2 つの文だけを、別の Claude（R）に日本語の元を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の週のメモの文」）。1 回目の判定で直した字は、直した字だけを R にもう 1 回渡しました（2 回目。R は 1 回目の字と逆翻訳を見ていない）。2 回目の判定で直した字は、最後の回だったので元を見ない逆翻訳をもう通していません。R の注は R が書いたままです。
+
+| id | 回 | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- | --- |
+| 1.3.memo.whatsnew | 1 回目 | • Week pages now also have a “Free Notes” area below 24:00. | ・週のページにも、24:00より下に「自由メモ」欄ができました。 | なし |
+| 1.3.memo.k8（案） | 1 回目 | • Week pages now also have a “Free Notes” area below 24:00 (it is not shown on devices with an older version, but it has not been deleted). | ・週のページにも、24:00より下に「自由メモ」欄ができました（古いバージョンの端末では表示されませんが、削除されたわけではありません）。 | 「devices with an older version」は、アプリのバージョンとも端末のOSのバージョンとも読める。新しくできた欄について「削除されていない」と言うので、何が削除されたと思われるのか（欄なのか、そこに書いた内容なのか）が少し分かりにくい。 |

@@ -96,3 +96,12 @@ R が日本語の元を見ずに `docs/store/pt-PT/*.txt` と `docs/store/subscr
 | 1.3.whatsnew.3 | • Foi corrigido um problema em que, depois de toda a escrita à mão ser apagada noutro dispositivo, a escrita à mão que ainda estava neste dispositivo podia voltar para o iCloud. | • ほかの端末ですべての手書きが消されたあと、まだこの端末にあった手書きが iCloud に戻ってしまうことがある問題を修正しました。 |
 | 1.3.whatsnew.4 | • Atualize tanto o iPad como o iPhone para esta versão. Nas versões anteriores, os traços escritos entre duas páginas aparecem apenas numa delas (não foram eliminados). Se apagar um desses traços numa versão anterior, também é apagado nesta versão. No iPad, esta versão liga lado a lado as páginas anteriores e seguintes, tanto na vertical como na horizontal. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。以前のバージョンでは、2つのページにまたがって書いた線は、どちらか一方にしか表示されません（削除されたわけではありません）。以前のバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
 | 1.3.whatsnew.5 | As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros. | 翻訳は AI で作成したもので、まだネイティブスピーカーの確認を受けていません。誤りがあればお知らせください。 |
+
+## 1.3 の週のメモの文（2026-11-18）
+
+週のメモ（契約 §5）を作り始めたときに、`docs/store/pt-PT/whatsnew.txt` の 2 つ目の点に週のメモの行を足しました。今の 3〜6 つ目の行は、上の節の 1.3.whatsnew.2〜5 と同じ字です（iPad の 1 文はリードが外した後の形）。また、2 つ目の点に古い版での見え方の句を足す案（K-8。`docs/store/PROPOSALS_1_3.md` の 4。本人の確認ページで選んでもらう）を用意しました。この 2 つの文だけを、別の Claude（R）に日本語の元を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の週のメモの文」）。1 回目の判定で直した字は、直した字だけを R にもう 1 回渡しました（2 回目。R は 1 回目の字と逆翻訳を見ていない）。2 回目の判定で直した字は、最後の回だったので元を見ない逆翻訳をもう通していません。R の注は R が書いたままです。
+
+| id | 回 | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- | --- |
+| 1.3.memo.whatsnew | 1 回目 | • As páginas da semana passam também a ter a área “Notas livres” abaixo das 24:00. | ・週のページにも、24:00の下に「自由メモ」欄が加わりました。 | なし |
+| 1.3.memo.k8（案） | 1 回目 | • As páginas da semana passam também a ter a área “Notas livres” abaixo das 24:00 (nos dispositivos com uma versão anterior não aparece, mas não foi eliminada). | ・週のページにも、24:00の下に「自由メモ」欄が加わりました（以前のバージョンの端末では表示されませんが、削除されたわけではありません）。 | 「uma versão anterior」は、アプリのバージョンかOSのバージョンかがはっきりしない。新しい欄について「削除されていない」と言うのは少し分かりにくい。 |

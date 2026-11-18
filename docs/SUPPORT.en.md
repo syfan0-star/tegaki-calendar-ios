@@ -157,11 +157,11 @@ Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open 
 
 ### How much can I write on one page?
 
-You can write up to 19,000 strokes on one page (when you go past 15,000, you are told once). The Notes area of the month page and the “Free Notes” area below 24:00 on the day page are open all the way down from the start. Their length has a limit (about 4 screens on the month page of an iPad). You can check the current number in Settings > About > “Page with the Most Strokes”.
+You can write up to 19,000 strokes on one page (when you go past 15,000, you are told once). The Notes area of the month page and the “Free Notes” area below 24:00 on the day and week pages are open all the way down from the start. Their length has a limit (about 4 screens on the month page of an iPad). You can check the current number in Settings > About > “Page with the Most Strokes”.
 
 ### What if my iPad and iPhone have different versions?
 
-The “Free Notes” area below 24:00 on the day page is a feature from version 1.1. On a device still on 1.0 or 1.0.1, it is not shown, but it has not been deleted (it appears when you update that device). Strokes written near 24:00, and strokes moved below 24:00 with the lasso, are also not visible on older versions (they have not been deleted). Please update both your iPad and your iPhone to the latest version. Note that if you use “Erase All Handwriting” on a device with an older version, the handwriting in that area is erased too.
+The “Free Notes” area below 24:00 is a feature from version 1.1 on the day page and from version 1.3 on the week page (on the week page, it appears even when the side-by-side joining is turned off in the App's Settings > Pages). On a device still on an earlier version, it is not shown, but it has not been deleted (it appears when you update that device). Strokes written near 24:00, and strokes moved below 24:00 with the lasso, are also not visible on older versions (they have not been deleted). Please update both your iPad and your iPhone to the latest version. Note that if you use “Erase All Handwriting” on a device with an older version, the handwriting in that area is erased too.
 
 ### How do I change the display language?
 

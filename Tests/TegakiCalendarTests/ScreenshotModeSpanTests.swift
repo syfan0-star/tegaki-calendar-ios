@@ -12,6 +12,8 @@ import XCTest
 ///   UI tests that run again on the joined path, and the focus page alone runs off its left edge only.
 /// - `--screenshot-settings-section page` is the `settings` sheet at 「ページ」 (`ScreenshotMode.Sheet` keeps its 11
 ///   cases), and the switch of that section starts from screenshot mode's own memory.
+/// - `--screenshot-week-memo` (the week memo, §5.2) adds the memo's demo strokes to the focus week only (the wave, and
+///   with the crossing demo a memo stroke across its left boundary that it owns); without it no page changes.
 @MainActor
 final class ScreenshotModeSpanTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
@@ -54,7 +56,8 @@ final class ScreenshotModeSpanTests: XCTestCase {
         SpanPlan(kind: kind, weekStart: weekStart, deviceClass: .iPad11, orientation: .portrait)
     }
 
-    /// The page laid out as a window page is (no events: only the cells matter here).
+    /// The page laid out as a window page is (no events: only the cells matter here; a week with its memo below 24:00,
+    /// as both paths of the app lay it out since the week memo, §5.2).
     private func layout(_ page: InkPage, index: Int, plan: SpanPlan) -> any PageLayout {
         let first = plan.firstDay(at: index)
         let now = ScreenshotMode.todayInstant(for: october)
@@ -63,7 +66,7 @@ final class ScreenshotModeSpanTests: XCTestCase {
             return DayLayoutEngine.layout(DayLayoutInput(day: first, events: [], inkBottoms: page.inkBottoms(), now: now))
         default:
             return WeekLayoutEngine.layout(WeekLayoutInput(focus: first, events: [], inkBottoms: page.inkBottoms(), now: now,
-                                                           weekStart: plan.weekStart))
+                                                           weekStart: plan.weekStart, freeMemo: true))
         }
     }
 
@@ -338,7 +341,7 @@ final class ScreenshotModeSpanTests: XCTestCase {
         XCTAssertEqual(SpanGuide.text(kind: .week, allowFinger: ScreenshotMode.GuideShot.one.allowFinger(current: true)),
                        SpanGuide.text(kind: .week, allowFinger: false))
 
-        // --screenshot-week-memo: parsed only.
+        // --screenshot-week-memo: the focus week's memo demo (testWeekMemoDemoIsTheFocusWeeksOnly).
         XCTAssertTrue(ScreenshotMode.parse(week + ["--screenshot-week-memo"])?.weekMemo ?? false)
         XCTAssertFalse(ScreenshotMode.parse(week)?.weekMemo ?? true)
 
@@ -530,6 +533,116 @@ final class ScreenshotModeSpanTests: XCTestCase {
                 }
             }
         }
+    }
+
+    // MARK: - §3.12, §5.2: --screenshot-week-memo
+
+    /// `--screenshot-week-memo` (the week memo, §5.2, plan §4.6): on the one-page path the week's demo page adds one wave
+    /// in the memo below 24:00 (`demo-stroke-week-extra`, cell `extra`, x 120…900 and y 120…160 under 24:00); in a window
+    /// only the focus week does, and with the crossing demo it also holds a memo stroke across its left boundary whose
+    /// centre is right of it (D15: the focus week's). Without the argument no page changes, byte for byte; the day, the
+    /// month and the year never change; the crossing demo of `crossingDemoStrokeIds` stays as it was.
+    func testWeekMemoDemoIsTheFocusWeeksOnly() throws {
+        let wave = ScreenshotMode.weekMemoStrokeId
+        let across = ScreenshotMode.weekMemoCrossingStrokeId
+        XCTAssertEqual(wave, "demo-stroke-week-extra")
+        XCTAssertEqual(across, "demo-stroke-cross-week-memo")
+        for weekStart in WeekStart.allCases {
+            let name = "\(weekStart)"
+            // The one page.
+            let plain = onePage(.week, weekStart)
+            let memo = ScreenshotMode.demoPage(kind: .week, focus: focus, grown: false, empty: false, tallYear: false, weekStart: weekStart,
+                                               storeInk: false, weekMemo: true)
+            XCTAssertEqual(ScreenshotMode.demoPage(kind: .week, focus: focus, grown: false, empty: false, tallYear: false, weekStart: weekStart,
+                                                   storeInk: false, weekMemo: false), plain, "\(name): without it the week is unchanged")
+            XCTAssertEqual(Set(memo.strokes.keys), Set(plain.strokes.keys).union([wave]), name)
+            for stroke in plain.liveStrokes {
+                XCTAssertEqual(memo.strokes[stroke.id], stroke, "\(name): \(stroke.id) as it was")
+            }
+            let memoStroke = try XCTUnwrap(memo.strokes[wave], name)
+            XCTAssertEqual(memoStroke.cell, .extra, name)
+            XCTAssertEqual(memoStroke.points.map(\.x).min() ?? 0, 120, accuracy: 0.01, name)
+            XCTAssertEqual(memoStroke.points.map(\.x).max() ?? 0, 900, accuracy: 0.01, name)
+            XCTAssertGreaterThanOrEqual(memoStroke.points.map(\.y).min() ?? 0, 120 - 0.01, name)
+            XCTAssertLessThanOrEqual(memoStroke.points.map(\.y).max() ?? 0, 160 + 0.01, name)
+            XCTAssertEqual(SpanGuard.checkForSave(memo, added: Set(memo.strokes.keys)), .ok, name)
+            // On the paper of the week with its memo: below 24:00, on the paper, and a new stroke there is filed in extra.
+            let plan = plan(.week, weekStart)
+            let centre = plan.index(containing: focus)
+            let focusLayout = layout(memo, index: centre, plan: plan)
+            let memoBounds = try bounds(memoStroke, in: focusLayout)
+            XCTAssertGreaterThan(memoBounds.minY, PaperSpec.weekGridHeight, name)
+            XCTAssertLessThan(memoBounds.maxY, PaperSpec.weekGridHeight + 400, "\(name): the head of the memo, where the photos look")
+            XCTAssertTrue(memoBounds.minX > 0 && memoBounds.maxX < focusLayout.size.width, name)
+            XCTAssertEqual(focusLayout.inkCell(forCenter: CGPoint(x: memoBounds.midX, y: memoBounds.midY)), .extra, name)
+            for stroke in plain.liveStrokes {
+                XCTAssertFalse(try bounds(stroke, in: focusLayout).insetBy(dx: -8, dy: -8).intersects(memoBounds), "\(name): meets \(stroke.id)")
+            }
+
+            // A window: the focus week only.
+            for crossing in [false, true] {
+                let what = "\(name) crossing \(crossing)"
+                var pages: [InkPage] = []
+                for index in (centre - 2)...(centre + 2) {
+                    let pageId = plan.pageId(at: index)
+                    let with = ScreenshotMode.spanDemoPage(pageId: pageId, kind: .week, focus: focus, weekStart: weekStart, crossing: crossing,
+                                                           grown: false, empty: false, tallYear: false, storeInk: false, weekMemo: true)
+                    let without = ScreenshotMode.spanDemoPage(pageId: pageId, kind: .week, focus: focus, weekStart: weekStart, crossing: crossing,
+                                                              grown: false, empty: false, tallYear: false, storeInk: false, weekMemo: false)
+                    XCTAssertEqual(without, spanPage(pageId, .week, weekStart, crossing: crossing), "\(what): without it, as before")
+                    if index == centre {
+                        let added: Set<String> = crossing ? [wave, across] : [wave]
+                        XCTAssertEqual(Set(with.strokes.keys), Set(without.strokes.keys).union(added), "\(what): the focus week")
+                        for stroke in without.liveStrokes {
+                            XCTAssertEqual(with.strokes[stroke.id], stroke, "\(what): \(stroke.id) as it was")
+                        }
+                        XCTAssertEqual(with.strokes[wave], memoStroke, "\(what): the one-page wave")
+                    } else {
+                        XCTAssertEqual(with, without, "\(what): page \(index - centre) holds no memo demo")
+                    }
+                    pages.append(with)
+                }
+                guard crossing else { continue }
+                // The crossing memo stroke: the focus week's (its centre right of the boundary, D15), in extra, off the
+                // focus week's left edge, near the boundary, away from every other stroke of the two pages.
+                let indices = Array((centre - 2)...(centre + 2))
+                let layouts = zip(indices, pages).map { layout($1, index: $0, plan: plan) }
+                let band = SpanLayout(pages: layouts, plan: plan, firstIndex: indices[0])
+                let stroke = try XCTUnwrap(pages[2].strokes[across], what)
+                XCTAssertEqual(stroke.cell, .extra, what)
+                let local = try bounds(stroke, in: layouts[2])
+                let centrePoint = CGPoint(x: local.midX + band.origin(ofSlot: 2), y: local.midY)
+                XCTAssertEqual(band.drop(center: centrePoint), .keep(page: pages[2].pageId, cell: .extra), what)
+                XCTAssertGreaterThan(centrePoint.x - band.origin(ofSlot: 2), 30, "\(what): right of the boundary, not on it")
+                XCTAssertLessThan(stroke.points.map(\.x).min() ?? 0, -150, "\(what): it starts on the left week's memo")
+                XCTAssertLessThan(stroke.points.map(\.x).max() ?? .infinity, 300, "\(what): near the boundary")
+                XCTAssertGreaterThan(local.minY, PaperSpec.weekGridHeight, "\(what): below 24:00")
+                for (slot, page) in [(1, pages[1]), (2, pages[2])] {
+                    for other in page.liveStrokes where other.id != across {
+                        let rect = try bounds(other, in: layouts[slot]).offsetBy(dx: band.origin(ofSlot: slot) - band.origin(ofSlot: 2), dy: 0)
+                        XCTAssertFalse(local.insetBy(dx: -8, dy: -8).intersects(rect), "\(what): meets \(other.id)")
+                    }
+                }
+                XCTAssertEqual(SpanGuard.checkForSave(pages[2], added: Set(pages[2].strokes.keys)), .ok, what)
+                XCTAssertFalse((ScreenshotMode.crossingDemoStrokeIds(.week).left + ScreenshotMode.crossingDemoStrokeIds(.week).focus).contains(across),
+                               "\(what): kept apart from the crossing demo's table")
+            }
+        }
+        // The day, the month and the year never change.
+        for kind in [PageKind.day, .month, .year] {
+            for weekStart in WeekStart.allCases {
+                let id = PageNavigation.pageId(kind, focus: focus, weekStart: weekStart)
+                XCTAssertEqual(ScreenshotMode.demoPage(kind: kind, focus: focus, grown: true, empty: false, tallYear: false, weekStart: weekStart,
+                                                       storeInk: false, weekMemo: true), onePage(kind, weekStart, grown: true), "\(kind)")
+                XCTAssertEqual(ScreenshotMode.spanDemoPage(pageId: id, kind: kind, focus: focus, weekStart: weekStart, crossing: true, grown: false,
+                                                           empty: false, tallYear: false, storeInk: false, weekMemo: true),
+                               spanPage(id, kind, weekStart, crossing: true), "\(kind)")
+            }
+        }
+        // `--screenshot-empty` has no ink with it either.
+        let emptyWeek = ScreenshotMode.demoPage(kind: .week, focus: focus, grown: false, empty: true, tallYear: false, weekStart: .monday,
+                                                storeInk: false, weekMemo: true)
+        XCTAssertTrue(emptyWeek.strokes.isEmpty)
     }
 
     // MARK: - 設定 › ページ (C3-B1; wave D's text decision 10)

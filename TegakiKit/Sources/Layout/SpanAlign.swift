@@ -1,14 +1,15 @@
 import Foundation
 import CoreGraphics
 
-/// Lining up the bottom of the joined pages (1.3, docs/M7C_CONTRACT.md D16, §3.2, §3.8; B_DESIGN.md
+/// Lining up the bottom of the joined pages (1.3, docs/M7C_CONTRACT.md D16, §3.2, §3.8, §5.2; B_DESIGN.md
 /// §3.1, :288): every page of a window gets the height of its tallest last cell as a lower bound
-/// (a floor), so the day's free memo below 24:00 runs on as one band. The engines take the floor as
-/// an input (`DayLayoutInput.extraFloor`, `WeekLayoutInput.extraFloor`); left out it is 0 and the
-/// output is today's, `==`. Since 1.1.1 every day's `extra` is 6,000 lu already, so a floor only
-/// matters once a line ends past 5,950 lu (`PaperGrowth.tailHeight`). Only positions and heights
-/// move; no cell changes its meaning (K-4) and nothing is stored (K-5). The week's floor waits for the
-/// week memo (§5): until the week page has an `extra`, it changes nothing.
+/// (a floor), so the day's free memo and the week memo below 24:00 run on as one band. The engines take
+/// the floor as an input (`DayLayoutInput.extraFloor`, `WeekLayoutInput.extraFloor`); left out it is 0
+/// and the output is today's, `==`. Since 1.1.1 every day's `extra` is 6,000 lu already, and so is every
+/// week memo, so a floor only matters once a line ends past 5,950 lu (`PaperGrowth.tailHeight`). Only
+/// positions and heights move; no cell changes its meaning (K-4) and nothing is stored (K-5). The week's
+/// floor is read only for a week laid out with its memo (`WeekLayoutInput.freeMemo`); a week without it
+/// ignores any floor.
 public enum SpanAlign {
     /// The floors of a window's last cells (lu): the day's `extra` and the week's (the week memo, §5).
     /// 0 is no floor.
@@ -71,6 +72,15 @@ public enum SpanAlign {
     public static func dayFloors(previous: Floors, extraInkBottoms: [CGFloat], change: Change) -> Floors {
         var floors = previous
         floors.dayExtra = floor(previous: previous.dayExtra, naturals: extraInkBottoms.map(natural(inkBottom:)), change: change)
+        return floors
+    }
+
+    /// The week floors of a window after `change` (1.3, the week memo, docs/M7C_CONTRACT.md §5.2, D16),
+    /// from the bottoms of each week page's `extra` handwriting (`InkPage.inkBottoms()[.extra]`, 0 for a
+    /// page without any): the same rule as `dayFloors`, on `weekExtra`; `dayExtra` is kept.
+    public static func weekFloors(previous: Floors, extraInkBottoms: [CGFloat], change: Change) -> Floors {
+        var floors = previous
+        floors.weekExtra = floor(previous: previous.weekExtra, naturals: extraInkBottoms.map(natural(inkBottom:)), change: change)
         return floors
     }
 

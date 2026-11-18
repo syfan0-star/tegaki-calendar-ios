@@ -144,16 +144,19 @@ jobs:
       # for the section "span (1.3)": the joined pages' names, plan, window table, bottom floors and layout,
       # + 6167 for "span ink (1.3)": the save guard, the composer and its page deltas (the safety net tried
       # without each of the random edits' deltas in turn), and the 13 compat-span fixtures of
-      # TegakiKit/Tests/Fixtures/compat-span read byte for byte and through the frozen 1.0 copy).
-      # The threshold is that number minus 50, so anything below 36918 means a section or a fixture went missing.
+      # TegakiKit/Tests/Fixtures/compat-span read byte for byte and through the frozen 1.0 copy); with the week
+      # memo (§5; docs/M7C.md, 週のメモ) 1.3 counts 38060 (+ 1021 for the section "week memo (1.3)": 1.2.3's week
+      # without the memo, the memo's shape, cells, events, growth, overview, floors, window and names; + 71 in "span
+      # ink (1.3)" for fixture 4's three files, so 16 compat-span files in all).
+      # The threshold is that number minus 50, so anything below 38010 means a section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 36918 or more)"
+          echo "KitChecks count: ${N:-0} (required: 38010 or more)"
           grep -E 'compat10( with compat-span)?: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 36918
+          test "${N:-0}" -ge 38010
 
       # 1.3 (docs/M7C_CONTRACT.md §4.2, §6.3): KitChecks compares the committed compat-span fixtures with what
       # the Kit's joined path writes and fails when one is missing or differs. Then, as the unit tests do for
@@ -819,6 +822,14 @@ jobs:
       # reference run 43158921131 differs from that month page by at least 47,648 pixels, the four from those settings by
       # at least 44,318; the same screen of two runs by 0). The same lines in ja-baseline.yml (J-4). If the tool does not
       # compile, every sheet is the frame of 9 s, with a warning.
+      # 1.3's review of the week memo (docs/M7C.md, the lead's decision 1 of the week memo's integration): in run
+      # 44296486095 the frame of 9 s of `--screenshot-sheet holidays` held the settings, still, a few pixels from their
+      # place, the picker not yet open, and was kept (32,648 pixels from the settings' photo). The tool now counts only
+      # the pixels with no like pixel within 3 pixels (that frame: 1,220, not unlike; a settled sheet: at least 23,816 from
+      # the settings, 37,015 from the month page), so such a frame is not kept and the step waits for the expected screen
+      # (the loop below, unchanged). The frame of 9 s stays the first one taken, so no photo is earlier than before. The
+      # tool is read from the commit a run is on, so ja-baseline.yml (which runs on r13) waits the same way once this
+      # change is on r13.
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -1382,7 +1393,9 @@ jobs:
   # be there; tools/span-compat's Probe reads every file (Monday and Sunday) on the real 1.0 (v10), <1.1.1> (v11)
   # and 1.2.3 (v123: commit 43fe366, taken out with `git archive`); and 1.2.3's app runs
   # tools/span-compat/AppTests/Real123LedgerTests.swift (its ledger and sync engine) on every file. Fixture 4 (the
-  # week memo) comes with the week memo stage (§5): its MANIFEST row then needs its counts in tools/span-compat.
+  # week memo, §5.2) came with the week memo stage: two Monday files (w-2026-12-14 with a grid line written across
+  # 24:00, a grid stroke centred below it and memo strokes; w-2026-12-21 with a memo stroke from the week before) and
+  # one Sunday file (w-2026-12-20), their counts in tools/span-compat's Version.swift and in Real123LedgerTests.
   # The limit (§10.4: 45 → 65 min for the 1.2.3 Kit and app, back to 45 when the measured times leave room; docs/M7C.md,
   # S1 の残り, decision 7): 45 again. With 1.3's steps the job took 8.8–16.7 min in the 14 runs of 11/11–12 that ran
   # them to the end (runs 43065300839 to 43237335436; the median 13.7), its two app test steps 2.9–7.2 (1.0's) and
@@ -1486,9 +1499,10 @@ jobs:
           tools/compat10/run.sh "$RUNNER_TEMP/compat11" 2>&1 | tee "$RUNNER_TEMP/compat10-run.log"
 
       # 1.3 (docs/M7C_CONTRACT.md §6.3, §10.4): the real 1.0 read the Monday compat-span files: run.sh's `real N=`
-      # is at least tools/compat-span/EXPECTED_MIN, 565 = 1.2.3's 361 + the 12 Monday files × 17 checks (measured
-      # in run 43065300839; RunFrozen gave the same). tools/compat10/EXPECTED_MIN (225) is not touched. A Monday
-      # fixture added later raises the number: count again from the next run's `real N=`.
+      # is at least tools/compat-span/EXPECTED_MIN, 599 = 1.2.3's 361 + the 14 Monday files × 17 checks (565 with the
+      # 12 files before fixture 4, run 43065300839; 599 measured in run 44260458163 with fixture 4's two Monday files;
+      # RunFrozen gave the same). tools/compat10/EXPECTED_MIN (225) is not touched. A Monday fixture added later raises
+      # the number: count again from the next run's `real N=`.
       - name: The real 1.0 read the compat-span fixtures (1.3)
         run: |
           set -euo pipefail
@@ -2365,7 +2379,11 @@ jobs:
   #   - the old versions' margins (C3-m4; wave D's text decision 11): `--screenshot-single-page` (one page holding the halves
   #     of the strokes drawn across its left boundary, as 1.2.3 shows it) and its control (the same without it, 1.2.3's
   #     demo), week and day, portrait and landscape on the three iPads, the iPhone's portrait day and landscape week and day
-  #     (<device>-<orientation>-margin-<kind>-single|control.png).
+  #     (<device>-<orientation>-margin-<kind>-single|control.png);
+  #   - the week memo below 24:00 (§5.2, §11.2; the week memo plan PLAN_W §7.3, outside J-4; the iPad Air 11-inch and the
+  #     iPhone, portrait, `--screenshot-week-memo --screenshot-offset 0,1500`): one page (the setting off) and the band with
+  #     the focus page's left boundary in the middle (<device>-portrait-week-memo-single|band.png). Each photo's paper must
+  #     be 7,920 lu tall (the probe's `ph`: the 24 hours and the memo's 6,000), and the gates step fails unless there are 4.
   # XCUIScreenshot cuts a screen turned with XCUIDevice (blank-paper's landscape photos of run 43584152837: a third of the
   # screen, sideways), so the test asks this job for those photos: it writes a request into $RUNNER_TEMP, and `watch_photos`
   # answers with `simctl io screenshot`, stood up with `sips -r 270` as the first job's iPhone landscape photos are.
@@ -2392,7 +2410,10 @@ jobs:
   # the 60 s for the system banner, 13–16 launches of about 10 s), the PDF 2, the gates 3 (two swiftc), the languages about
   # 12 (60 launches): about 50 of the 75 on r13, 38 elsewhere. Each step has its own limit. Measured (docs/M7C.md): the
   # four devices took 30–42 min on r13-w-* but 48 and 51 min in runs with every job (r13 43655539165, r13-s5c3
-  # 43689057415, whose first attempt hit the old 50), so that step has 65 and the job 90.
+  # 43689057415, whose first attempt hit the old 50), so that step has 65 and the job 90. The week memo adds 2 launches
+  # on each of 2 devices (each waits at most 45 s for its path; SpanShotsUITests.weekMemo), about 2–4 min; the four
+  # devices took 44.8 min in r13-w-s5w-screen 44260458163 just before it. Its first runs are measured in docs/M7C.md; past
+  # 60 min the limit is looked at again.
   span-shots-app:
     name: span-shots (1.3 app)
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
@@ -2449,7 +2470,7 @@ jobs:
           ls build/SpanAppData/Build/Products/*.xctestrun
 
       # One device at a time (blank-paper's way): boot, 60 s for the system banner of a freshly booted simulator (docs/M6.md
-      # §5.1; the margins and the pairs, which a banner would spoil, come after the bands), SpanShotsUITests' three tests
+      # §5.1; the margins and the pairs, which a banner would spoil, come after the bands), SpanShotsUITests' four tests
       # (testLanguages has its own step), the app's log. The step fails when a device is missing or its tests fail, after
       # the other devices have had their turn.
       - name: Shots on four devices (SpanShotsUITests)
@@ -2527,7 +2548,7 @@ jobs:
             xcrun simctl ui "$UDID" appearance light || true
             xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
             sleep 60
-            run_shots() {  # run_shots <result bundle suffix>: the three tests on $UDID, the photo watcher beside them
+            run_shots() {  # run_shots <result bundle suffix>: the four tests on $UDID, the photo watcher beside them
               watch_photos "$UDID" &
               WATCHER=$!
               STATUS=0
@@ -2542,6 +2563,7 @@ jobs:
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testBands \
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testOldVersionMargins \
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testShiftPairs \
+                -only-testing:TegakiCalendarUITests/SpanShotsUITests/testWeekMemo \
                 test-without-building > "$OUT/$ID-tests.log" 2>&1 || STATUS=$?
               kill "$WATCHER" 2>/dev/null || true
               wait "$WATCHER" 2>/dev/null || true
@@ -2606,7 +2628,8 @@ jobs:
 
       # The gates (see the job's comment). The tools are built here (a job's first swiftc for macOS spends about 2 min on the
       # SDK's modules). The pairs and the margins come from the test's lines; their counts are checked against the plan's
-      # (4 pairs, 30 margin photos), so a test that took fewer fails here too.
+      # (4 pairs, 30 margin photos), so a test that took fewer fails here too, and so are the week memo's photos (4: the
+      # iPad Air 11-inch and the iPhone 17, single and band; PLAN_W §7.3).
       - name: The shift pairs and the old versions' margins (gates)
         if: ${{ !cancelled() }}
         timeout-minutes: 12
@@ -2718,6 +2741,9 @@ jobs:
             if [ "$RIGHT" != 0 ]; then echo "::warning::$DEVICE $KIND $ORIENT: $RIGHT pixels in the right margin; the crossing demo overflows on the left only (ScreenshotModeSpanTests)."; fi
           done < "$RECORDS"
           if [ "$SHOTS" != 30 ]; then echo "::error::$SHOTS margin photos, 30 expected (the three iPads 8 each, the iPhone 6)."; FAILED=1; fi
+          MEMO="$({ find "$OUT" -maxdepth 1 -name '*-portrait-week-memo-*.png' 2>/dev/null || true; } | wc -l | tr -d ' ')"
+          echo "week memo photos: $MEMO"
+          if [ "$MEMO" != 4 ]; then echo "::error::$MEMO week memo photos, 4 expected (the iPad Air 11-inch and the iPhone 17, single and band)."; FAILED=1; fi
           exit "$FAILED"
 
       # overwrite: a re-run of this job (gh run rerun --failed) replaces the photos of the attempt before.
@@ -2798,7 +2824,7 @@ jobs:
             echo "### span-shots (1.3 app)"
             echo ""
             BANDS=$(( $(count "$OUT" '*-boundary.png') + $(count "$OUT" '*-overview.png') + $(count "$OUT" '*-sunday.png') ))
-            echo "Photos: bands $BANDS (21 expected), pairs $(count "$OUT" '*-shift-*.png') (8), margins $(count "$OUT" '*-margin-*.png') (30), the neighbour ink's PDF $(count "$OUT" 'span-pdf-neighbor-ink.png') (1)."
+            echo "Photos: bands $BANDS (21 expected), pairs $(count "$OUT" '*-shift-*.png') (8), margins $(count "$OUT" '*-margin-*.png') (30), week memo $(count "$OUT" '*-portrait-week-memo-*.png') (4), the neighbour ink's PDF $(count "$OUT" 'span-pdf-neighbor-ink.png') (1)."
             echo ""
             echo "#### The old versions' margins (pixels beside the page that are not the desk; the control must be 0,0)"
             echo ""

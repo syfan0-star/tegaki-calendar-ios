@@ -53,12 +53,21 @@ enum PDFPageRenderer {
     /// memo area below 24:00, else the 24 hours (1000 × 2400, `ZoomPolicy.overviewSize`). 1.1.1
     /// (docs/R1_1_1.md): the same length as 1.1's PDF: the blank of the area open to 6,000 lu stays out
     /// of the PDF, and a 1.0 device's deep line goes in (`b + 50`). Week and year: the whole paper
-    /// (`layout.size`).
+    /// (`layout.size`; since 1.3 a week with its memo below 24:00 follows the day's rule, below).
     ///
     /// 1.3 (docs/M7C_CONTRACT.md §3.11, D17): on a joined day the free memo also counts the strokes that come
     /// in from the neighbours' free memo areas (`neighborInk` whose cell is `extra`): the area is in the PDF
     /// when either has handwriting, as long as the deeper of the two needs (`neighborExtraBottom`: only the
     /// part over this page). Without `neighborInk` (the default) this is 1.2.3's rectangle.
+    ///
+    /// 1.3 (docs/M7C_CONTRACT.md §5.2, §3.11, D17): a week laid out with its memo below 24:00 (`cells[.extra]`)
+    /// follows the day's rule: the memo is in the PDF only when it holds handwriting, its own or a neighbour's
+    /// coming into it, as long as the deeper needs (`grid.maxY + PaperGrowth.exportTailHeight`), else the 24
+    /// hours (1400 × 1920, `ZoomPolicy.overviewSize`). A `grid` stroke reaching below 24:00 alone does not
+    /// bring the memo in (as on the day). A week without the memo is still the whole paper (1.2.3's 1400 × 1920).
+    /// With the memo in, the handwriting picture covers the taller rectangle, so `InkSnapshot` lowers its
+    /// scale below `inkScale` past 12M pixels (about 1.81 for a stroke 300 lu into the memo, about 1.05 at
+    /// 5,500), as the day's has since 1.1 (the lead's decision 6 of the week memo's plan, docs/M7C.md).
     static func paperRect(_ paper: PaperContent, page: InkPage, neighborInk: [SpanPDFInk] = []) -> CGRect {
         switch paper {
         case .month(let content):
@@ -76,7 +85,18 @@ enum PDFPageRenderer {
             }
             let tail = PaperGrowth.exportTailHeight(inkBottom: inkBottom)
             return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.grid.maxY + tail)
-        case .week, .year:
+        case .week(let content):
+            guard content.layout.cells[.extra] != nil else { return CGRect(origin: .zero, size: content.layout.size) }
+            let extraHasInk = page.liveStrokes.contains { $0.cell.isExtra }
+            let incoming = neighborInk.isEmpty ? nil : neighborExtraBottom(neighborInk, extra: content.layout.extra, pageWidth: content.layout.size.width)
+            guard extraHasInk || incoming != nil else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
+            var inkBottom = page.inkBottoms()[.extra] ?? 0
+            if let incoming = incoming {
+                inkBottom = max(inkBottom, incoming)
+            }
+            let tail = PaperGrowth.exportTailHeight(inkBottom: inkBottom)
+            return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.grid.maxY + tail)
+        case .year:
             return CGRect(origin: .zero, size: paper.layout.size)
         }
     }
@@ -87,8 +107,10 @@ enum PDFPageRenderer {
     /// `neighborInk` whose cell is `extra`, and only the part over x 0…`pageWidth`: each point whose nib
     /// (half of its larger size on each side) reaches over the page, and where a segment between two points
     /// crosses the page's left or right edge, the y it crosses at with the larger nib of the two. nil when no
-    /// such stroke reaches over the page. Points are relative to `cellRect` (the owner's cell in this page's
-    /// coordinates).
+    /// such stroke reaches over the page, and when the part over the page stays above the top of `extra` (a
+    /// neighbour's memo stroke that crosses only this page's 24 hours brings no memo into the PDF: the day's own
+    /// rule, "in only with handwriting in it"). Points are relative to `cellRect` (the owner's cell in this
+    /// page's coordinates).
     static func neighborExtraBottom(_ neighborInk: [SpanPDFInk], extra: CGRect, pageWidth: CGFloat) -> CGFloat? {
         var deepest: CGFloat?
         func take(_ y: CGFloat) {
@@ -115,7 +137,8 @@ enum PDFPageRenderer {
                 }
             }
         }
-        return deepest.map { $0 - extra.minY }
+        guard let deepest = deepest, deepest > extra.minY else { return nil }
+        return deepest - extra.minY
     }
 
     /// Height of the heading above the paper: the title row + the page's own row (month: the
@@ -158,12 +181,25 @@ enum PDFPageRenderer {
         }
     }
 
+    /// 1.3 (docs/M7C_CONTRACT.md §5.2, D17): the paper as the PDF draws it in `rect` (`paperRect`). A week laid out
+    /// with its memo whose rectangle leaves the memo out (no handwriting in it, nor any coming in) is drawn without
+    /// it (`cells[.extra]` left out of a copy of the layout, as `stripNowLine` does with the now line): the memo's
+    /// strong line at 24:00 would otherwise leave its upper quarter (0.25 lu: the hairline snapped for `inkScale`
+    /// lies over 1,919.75…1,920.75) along the bottom edge, where 1.2.3's week PDF has no line. So that PDF is
+    /// 1.2.3's, pixel for pixel. The day keeps its free memo's line there, as it has since 1.1; every other paper
+    /// and rectangle is drawn as it is. Pure function.
+    static func paperInRect(_ paper: PaperContent, rect: CGRect) -> PaperContent {
+        guard case .week(var content) = paper, content.layout.cells[.extra] != nil, rect.maxY <= content.layout.grid.maxY else { return paper }
+        content.layout.cells[.extra] = nil
+        return .week(content)
+    }
+
     // MARK: - Rendering
 
     /// One PDF page of `paper` with the handwriting of `page`, titled `title` (`kCGPDFContextTitle`;
     /// the creator is `creator`). Order: the whole page in `PaperPalette.paper` → the heading → the
     /// paper through the page kind's `PaperRenderer` (zoom 1, a dummy `PaperView` whose
-    /// `contentScaleFactor` is 2 for the hairline snapping, 0-4) → the handwriting picture, when
+    /// `contentScaleFactor` is 2 for the hairline snapping, 0-4; 1.3: `paperInRect`) → the handwriting picture, when
     /// there is one. Empty `Data` means the renderer failed (`ExportBuilder` turns it into
     /// `ExportError.renderFailed`).
     ///
@@ -204,7 +240,7 @@ enum PDFPageRenderer {
             ctx.saveGState()
             ctx.translateBy(x: 0, y: heading)
             ctx.clip(to: rect)
-            switch paper {
+            switch paperInRect(paper, rect: rect) {
             case .month(let content):
                 MonthPaper.draw(content, in: ctx, dirty: rect, zoom: 1, view: dummy)
             case .week(let content):

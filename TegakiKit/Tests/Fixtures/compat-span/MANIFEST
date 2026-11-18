@@ -8,6 +8,9 @@ w-2026-11-16.move-source.json 2 monday
 w-2026-11-23.move-destination.json 2 monday
 d-2026-11-09.extra-cross.json 3 monday
 d-2026-11-10.extra-cross.json 3 monday
+w-2026-12-14.week-memo.json 4 monday
+w-2026-12-21.week-memo-neighbor.json 4 monday
+w-2026-12-20.week-memo-sunday.json 4 sunday
 w-2026-11-08.sunday-overhang.json 5 sunday
 m1-2026-11.overlap-day.json 6 monday
 m1-2026-12.overlap-day.json 6 monday

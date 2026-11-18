@@ -21,8 +21,9 @@ import Layout
 /// The real old Kits (1.0, <1.1.1>, 1.2.3) read the same files in tools/span-compat (CI's compat-v1.0 job),
 /// and the 1.2.3 app's ledger in tools/span-compat/AppTests/Real123LedgerTests.swift.
 ///
-/// Fixture 4 (the week memo's `extra` and a week `grid` stroke moved below 24:00) belongs to the week memo
-/// stage (§5) and is not in the folder yet: when it is added, `manifest` below and the tables get its rows.
+/// Fixture 4 (the week memo stage, §5.2): the week memo's `extra` strokes on a Monday week, its neighbour and a
+/// Sunday week, and two `grid` strokes reaching below 24:00 (a line written across it, and a stroke centred below
+/// it as only an import or a hand-edited file can leave it) — `testWeekMemoSurvives`.
 final class CompatSpanTests: XCTestCase {
     // MARK: - The folder and its MANIFEST
 
@@ -40,7 +41,7 @@ final class CompatSpanTests: XCTestCase {
         var description: String { "\(file) \(fixture) \(shape)" }
     }
 
-    /// The MANIFEST's rows as committed (1.3, S1): fixtures 1–3 and 5–7, in its order.
+    /// The MANIFEST's rows as committed (1.3, S1; fixture 4 with the week memo, §5.2): fixtures 1–7, in its order.
     private static let manifest: [Row] = [
         Row(file: "d-2026-11-03.overhang-right.json", fixture: 1, shape: "monday"),
         Row(file: "m1-2026-11.overhang-right.json", fixture: 1, shape: "monday"),
@@ -50,6 +51,9 @@ final class CompatSpanTests: XCTestCase {
         Row(file: "w-2026-11-23.move-destination.json", fixture: 2, shape: "monday"),
         Row(file: "d-2026-11-09.extra-cross.json", fixture: 3, shape: "monday"),
         Row(file: "d-2026-11-10.extra-cross.json", fixture: 3, shape: "monday"),
+        Row(file: "w-2026-12-14.week-memo.json", fixture: 4, shape: "monday"),
+        Row(file: "w-2026-12-21.week-memo-neighbor.json", fixture: 4, shape: "monday"),
+        Row(file: "w-2026-12-20.week-memo-sunday.json", fixture: 4, shape: "sunday"),
         Row(file: "w-2026-11-08.sunday-overhang.json", fixture: 5, shape: "sunday"),
         Row(file: "m1-2026-11.overlap-day.json", fixture: 6, shape: "monday"),
         Row(file: "m1-2026-12.overlap-day.json", fixture: 6, shape: "monday"),
@@ -72,6 +76,9 @@ final class CompatSpanTests: XCTestCase {
         "w-2026-11-23.move-destination.json": "451b31ab9e42000b7dce2d40cd1faaa98e6dcd3f8b98b2cd07957c3c22f16993",
         "w-2026-11-30.photo-text.json": "917978b497c0fbe1847a5bd10894fd33406ce349b8b19ba55bde72b74ac5656f",
         "w-2026-12-07.photo-text-neighbor.json": "568b08f81a82c599a4e250985136831908f09f7ae694a57d114253ce2bc2ca38",
+        "w-2026-12-14.week-memo.json": "22597be6bb21404409b16ccbc7cabbea167b2d9a6f49032d7641afb68960f00b",
+        "w-2026-12-20.week-memo-sunday.json": "86e3bcd56414af3a34c67e68d260989de9f897260b879f298b4287824a1168f2",
+        "w-2026-12-21.week-memo-neighbor.json": "9b4f1907d582db89d8532cde7b909bbad9396b23399c47fa5e975dd02c1d422f",
         "y-2026.overhang.json": "e7381483f4f305d58e87f7f328f8a6eb79f35fd55c59a066478a4b79cc5a6a87",
     ]
 
@@ -203,6 +210,31 @@ final class CompatSpanTests: XCTestCase {
                  drawnBy10: ["37efb3db-ea05-4c4d-9d81-d711e9479fe1"]),
     ]
 
+    /// Fixture 4's guard stroke (a): hand-written, a Web import's shape (dev "web").
+    private static let weekMemoGuardId = "6e2b8d4f-5a7c-4e9b-8d1f-4b5c6d7e8f95"
+    /// Fixture 4's line written across 24:00 (e).
+    private static let weekMemoAcrossId = "d4a9a7dd-5ae3-487e-9dd9-728032f38f40"
+
+    private static let weekMemo: [Expected] = [
+        // 4. The Monday week w-2026-12-14: (b) a memo stroke of its own and (c) one crossing into the next week, owned
+        // here (`extra`, x from the cell); (e) a `grid` line written across 24:00 and (a) the hand-written `grid` stroke
+        // centred below it. 1.0's week (one grid cell) draws the two `grid` strokes and keeps the memo's.
+        Expected(file: "w-2026-12-14.week-memo.json", pageId: "w-2026-12-14", updatedAt: 1_791_000_001_102,
+                 live: [Stroke(id: "07f9f73f-5158-416a-8239-f0bf727e6e44", cell: "extra", minX: 200, maxX: 700, points: 9),
+                        Stroke(id: weekMemoGuardId, cell: "grid", minX: 900, maxX: 1140, points: 5),
+                        Stroke(id: "c6ac4835-2480-4a4f-9c30-958fadd4ff4a", cell: "extra", minX: 900, maxX: 1700, points: 9),
+                        Stroke(id: weekMemoAcrossId, cell: "grid", minX: 400, maxX: 720, points: 9)],
+                 tombstones: [:], unknown: [:], drawnBy10: [weekMemoGuardId, weekMemoAcrossId]),
+        // 4. The next week w-2026-12-21: (d) a memo stroke coming in from w-2026-12-14, owned here. 1.0 draws nothing.
+        Expected(file: "w-2026-12-21.week-memo-neighbor.json", pageId: "w-2026-12-21", updatedAt: 1_791_000_001_103,
+                 live: [Stroke(id: "bf412c63-0bc4-4e17-92a3-594ff0a9661e", cell: "extra", minX: -300, maxX: 500, points: 9)],
+                 tombstones: [:], unknown: [:], drawnBy10: []),
+        // 4. The Sunday week w-2026-12-20: (f) a memo stroke of the Sunday start's own memo (K-11 (6)).
+        Expected(file: "w-2026-12-20.week-memo-sunday.json", pageId: "w-2026-12-20", updatedAt: 1_791_000_001_200,
+                 live: [Stroke(id: "8d295f46-d056-49d0-812d-fdc62513e5ee", cell: "extra", minX: 300, maxX: 1000, points: 9)],
+                 tombstones: [:], unknown: [:], drawnBy10: []),
+    ]
+
     /// A time after every time in the fixtures (1.0's own edits below).
     private static let later = 1_792_000_000_000
 
@@ -327,7 +359,7 @@ final class CompatSpanTests: XCTestCase {
     /// compat11's folder for the real 1.0; the Sunday one is read only here and by tools/span-compat).
     func testEveryCompatSpanFixtureIsPresent() throws {
         let rows = try manifestRows()
-        XCTAssertEqual(rows, Self.manifest, "MANIFEST lists the 13 files of fixtures 1–3 and 5–7 (4 comes with the week memo, §5)")
+        XCTAssertEqual(rows, Self.manifest, "MANIFEST lists the 16 files of fixtures 1–7 (4: the week memo, §5.2)")
         let onDisk = try FileManager.default.contentsOfDirectory(atPath: Self.folder.path).filter { $0.hasSuffix(".json") }.sorted()
         XCTAssertEqual(onDisk, rows.map(\.file).sorted(), "every *.json of the folder is in MANIFEST, and every row's file is there")
         XCTAssertEqual(Self.sha256.keys.sorted(), rows.map(\.file).sorted(), "every MANIFEST row has its SHA-256 in `sha256`")
@@ -337,10 +369,11 @@ final class CompatSpanTests: XCTestCase {
             XCTAssertTrue(row.file.hasPrefix(try InkPageCodec.decode(bytes).pageId + "."), "\(row.file) holds the page its name says")
             XCTAssertEqual(Self.hex(bytes), Self.sha256[row.file], "\(row.file): the committed bytes (a fixture made again changes `sha256` in the same commit)")
         }
-        XCTAssertEqual(Set(rows.map(\.fixture)), [1, 2, 3, 5, 6, 7])
+        XCTAssertEqual(Set(rows.map(\.fixture)), [1, 2, 3, 4, 5, 6, 7])
         XCTAssertEqual(Set(rows.map(\.shape)), ["monday", "sunday"], "only the two shapes")
-        XCTAssertEqual(rows.filter { $0.shape == "sunday" }.map(\.file), ["w-2026-11-08.sunday-overhang.json"], "one Sunday row: the Sunday-start week")
-        XCTAssertEqual(rows.filter { $0.shape == "monday" }.count, 12, "12 Monday rows (the files CI copies into the compat11 folder)")
+        XCTAssertEqual(rows.filter { $0.shape == "sunday" }.map(\.file), ["w-2026-12-20.week-memo-sunday.json", "w-2026-11-08.sunday-overhang.json"],
+                       "two Sunday rows: the Sunday-start weeks (the week memo's and the overhang's)")
+        XCTAssertEqual(rows.filter { $0.shape == "monday" }.count, 14, "14 Monday rows (the files CI copies into the compat11 folder)")
         // The shape follows the page: a week page of a Sunday is "sunday"; Monday weeks and the other pages "monday".
         for row in rows {
             let pageId = try InkPageCodec.decode(try data(row.file)).pageId
@@ -352,8 +385,8 @@ final class CompatSpanTests: XCTestCase {
                 XCTAssertEqual(row.shape, "monday", "\(row.file): a page that is not a week opens the same way in every version")
             }
         }
-        // Every row has its expectations below (a new row, e.g. fixture 4, fails here until they are written).
-        let covered = (Self.monday + [Self.sunday] + Self.photoText).map(\.file)
+        // Every row has its expectations below (a new row fails here until they are written).
+        let covered = (Self.monday + [Self.sunday] + Self.photoText + Self.weekMemo).map(\.file)
         XCTAssertEqual(covered.sorted(), rows.map(\.file).sorted(), "every MANIFEST row is checked by one of the tests below")
     }
 
@@ -446,5 +479,66 @@ final class CompatSpanTests: XCTestCase {
             XCTAssertEqual(newMerged.unknownStrokes[id]?.serialized(), Self.photoText[0].unknown[id])
         }
         try checkExport(Self.photoText)
+    }
+
+    /// Fixture 4 (§5.2, §6.3 (4)): the week memo's strokes (`extra`) on the Monday week w-2026-12-14, the next week and
+    /// the Sunday week w-2026-12-20, and the two `grid` strokes of w-2026-12-14 below 24:00. 1.0's week has one cell
+    /// (`grid`), so it keeps the memo's strokes without drawing them (F1) and draws the two `grid` ones; nothing is cut,
+    /// moved or lost. (e) was written across 24:00: its centre is above it (so it is `grid` on every version) and its
+    /// lower part below it. (a) is centred below 24:00, the shape only a Web import or a hand-edited file leaves (no
+    /// lasso of 1.0–1.2.3 moves a selection off its 1,920 lu paper). The Sunday week opens only with the Sunday start.
+    func testWeekMemoSurvives() throws {
+        XCTAssertEqual(Self.weekMemo.count, 3)
+        for e in Self.weekMemo {
+            try checkFile(e)
+        }
+        // 1.0's (and 1.2.3's) week has the grid cell only: the memo is a cell they do not draw.
+        for pageId in ["w-2026-12-14", "w-2026-12-21", "w-2026-12-20"] {
+            XCTAssertEqual(cellsV10(pageId: pageId), [.grid], pageId)
+        }
+        let monday = try InkPageCodec.decode(try data("w-2026-12-14.week-memo.json"))
+        let midnight: CGFloat = 1920
+        // (e): centred at or above 24:00, its lower part below it (nib 3.5: ± 1.75).
+        let across = try XCTUnwrap(monday.strokes[Self.weekMemoAcrossId])
+        let acrossBounds = try XCTUnwrap(across.paperBounds(cellOrigin: .zero))
+        XCTAssertEqual(across.cell, .grid)
+        XCTAssertLessThanOrEqual(acrossBounds.midY, midnight, "(e) is centred above 24:00")
+        XCTAssertGreaterThan(acrossBounds.maxY, midnight, "(e) reaches below 24:00")
+        XCTAssertLessThan(acrossBounds.minY, midnight, "(e) starts above 24:00")
+        XCTAssertEqual(across.points.first?.y, 1860)
+        XCTAssertEqual(across.points.last?.y, 1970)
+        // (a): centred below 24:00, the import's device, the stroke as hand-written.
+        let guardStroke = try XCTUnwrap(monday.strokes[Self.weekMemoGuardId])
+        let guardBounds = try XCTUnwrap(guardStroke.paperBounds(cellOrigin: .zero))
+        XCTAssertEqual(guardStroke.cell, .grid)
+        XCTAssertGreaterThan(guardBounds.midY, midnight, "(a) is centred below 24:00")
+        XCTAssertEqual(guardStroke.dev, "web")
+        XCTAssertEqual(guardStroke.points.map(\.y), [2100, 2130, 2160, 2130, 2100])
+        // Every memo stroke lies below 24:00 in today's week with its memo (cell-relative y from 24:00).
+        let now = Date(timeIntervalSince1970: 1_790_000_000)
+        for (file, start) in [("w-2026-12-14.week-memo.json", WeekStart.monday), ("w-2026-12-21.week-memo-neighbor.json", .monday),
+                              ("w-2026-12-20.week-memo-sunday.json", .sunday)] {
+            let page = try InkPageCodec.decode(try data(file))
+            let day = try XCTUnwrap(DayKey(ymd: String(page.pageId.dropFirst(2))))
+            let withMemo = WeekLayoutEngine.layout(WeekLayoutInput(focus: day, events: [], inkBottoms: page.inkBottoms(), now: now, weekStart: start, freeMemo: true))
+            let without = WeekLayoutEngine.layout(WeekLayoutInput(focus: day, events: [], inkBottoms: page.inkBottoms(), now: now, weekStart: start))
+            XCTAssertEqual(withMemo.pageId, page.pageId, file)
+            XCTAssertEqual(withMemo.size, CGSize(width: 1400, height: 7920), file)
+            XCTAssertNil(without.cells[.extra], "\(file): the week without the memo (1.2.3's) has no extra cell")
+            let memo = page.liveStrokes.filter { $0.cell == .extra }
+            XCTAssertFalse(memo.isEmpty, file)
+            for s in memo {
+                let b = try XCTUnwrap(s.paperBounds(cellOrigin: try XCTUnwrap(withMemo.cells[.extra]).origin), "\(file) \(s.id)")
+                XCTAssertGreaterThan(b.minY, midnight, "\(file) \(s.id): below 24:00")
+                XCTAssertEqual(withMemo.inkCell(forCenter: CGPoint(x: b.midX, y: b.midY)), .extra, "\(file) \(s.id)")
+            }
+        }
+        // The two week starts: the Sunday week is the Sunday start's page only; the Monday weeks the Monday start's.
+        let sunday = DayKey(year: 2026, month: 12, day: 20)
+        XCTAssertEqual(sunday.weekday, 0)
+        XCTAssertEqual(PageNavigation.pageId(.week, focus: sunday, weekStart: .sunday), "w-2026-12-20")
+        XCTAssertEqual(PageNavigation.pageId(.week, focus: sunday, weekStart: .monday), "w-2026-12-14", "the Monday start's week of that Sunday is w-2026-12-14")
+        XCTAssertEqual(PageNavigation.pageId(.week, focus: DayKey(year: 2026, month: 12, day: 14), weekStart: .sunday), "w-2026-12-13")
+        try checkExport(Self.weekMemo)
     }
 }

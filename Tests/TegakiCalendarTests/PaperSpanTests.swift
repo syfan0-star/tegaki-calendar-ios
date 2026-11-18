@@ -827,7 +827,8 @@ final class PaperSpanTests: XCTestCase {
     }
 
     /// D17, §3.11: the day's free memo goes into the PDF when a stroke comes into it from a neighbour, as deep
-    /// as that stroke's part over this page reaches; a neighbour's grid stroke does not count.
+    /// as that stroke's part over this page reaches; a neighbour's grid stroke does not count, nor a free-memo
+    /// stroke whose part over this page stays above 24:00.
     func testDayPDFCountsIncomingFreeMemoInk() throws {
         let page = InkPage.empty(pageId: "d-2026-11-12")
         let layout = dayLayout(DayKey(year: 2026, month: 11, day: 12))
@@ -859,6 +860,18 @@ final class PaperSpanTests: XCTestCase {
                               cellRect: CGRect(x: -1000, y: 0, width: 1000, height: 2400))
         XCTAssertNil(PDFPageRenderer.neighborExtraBottom([grid], extra: layout.extra, pageWidth: 1000))
         XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: page, neighborInk: [grid]).height, 2400, accuracy: 0.001)
+
+        // A neighbour's free-memo stroke whose part over this page stays above 24:00 (11-11's, up from its free memo
+        // over its hours and across the boundary at y 2,250; over 11-12 it reaches 2,251.75): no free memo comes in
+        // (1.3's review of the week memo, F2: the part above `extra` used to count as handwriting, −148.25 → 700).
+        let overTheHours = SpanPDFInk(pageId: "d-2026-11-11", stroke: stroke("up-11", cell: .extra,
+                                                                            line(CGPoint(x: 900, y: 500), CGPoint(x: 900, y: -150), count: 2)
+                                                                                + line(CGPoint(x: 900, y: -150), CGPoint(x: 1100, y: -150), count: 2).dropFirst()),
+                                      cellRect: fromLeft)
+        XCTAssertNil(PDFPageRenderer.neighborExtraBottom([overTheHours], extra: layout.extra, pageWidth: 1000))
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: page, neighborInk: [overTheHours]), CGRect(x: 0, y: 0, width: 1000, height: 2400))
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: page, neighborInk: [overTheHours, shallow]), CGRect(x: 0, y: 0, width: 1000, height: 2400 + 1100),
+                       "with a stroke that does come in, as deep as that one")
 
         // With the page's own free memo too: the deeper of the two.
         var own = page

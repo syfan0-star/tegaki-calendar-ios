@@ -60,8 +60,10 @@ import Layout
 /// `--screenshot-offset-x <pages>` (where the band opens: −0.5 puts the focus page's left boundary in the middle),
 /// `--screenshot-span-shift` (the pair before and after a shift; the screen holds the shift), `--screenshot-single-page`
 /// (the old versions' view: one page with the halves of the crossing demo it owns), `--screenshot-span-guide
-/// [one|two|stage-two]` (the first-time guide's card, or N-8), `--screenshot-week-memo` (the week's memo, the gate of
-/// 1/15; parsed only) and `--screenshot-settings-section page` (the settings at 「ページ」, on the `settings` sheet).
+/// [one|two|stage-two]` (the first-time guide's card, or N-8), `--screenshot-week-memo` (the week memo below 24:00,
+/// §5.2: the focus week's demo gets a stroke in the memo, `weekMemoStrokeId`, and with the crossing demo a memo stroke
+/// across the focus week's left boundary, `weekMemoCrossingStrokeId`) and `--screenshot-settings-section page` (the
+/// settings at 「ページ」, on the `settings` sheet).
 /// The pages of the window are `spanDemoPage`: the focus page is `demoPage` byte for byte, a neighbour has the same
 /// demo with ids of its own (`neighborDemoId`), and with the crossing demo (`Config.crossingDemo`) the two pages of
 /// the focus page's left boundary hold the strokes drawn across it (`crossingDemoStrokeIds`, each on the page of its
@@ -233,7 +235,9 @@ enum ScreenshotMode {
         var singlePage: Bool = false
         /// `--screenshot-span-guide [one|two|stage-two]`: nil without it; `.auto` with no value or an unknown one.
         var spanGuide: GuideShot? = nil
-        /// `--screenshot-week-memo`: the week's memo below 24:00 (§5, the gate of 1/15). Parsed only.
+        /// `--screenshot-week-memo`: the week memo below 24:00 (§5.2): the focus week's demo page gets a wave in the
+        /// memo (`weekMemoStrokeId`) on both paths, and with the crossing demo a memo stroke across its left boundary
+        /// (`weekMemoCrossingStrokeId`). Without it no demo page changes.
         var weekMemo: Bool = false
         /// `--screenshot-settings-section page`: the `settings` sheet scrolled to 「ページ」 (`parse` makes the sheet
         /// `settings` when none was asked for; with another sheet that sheet wins and this is nil).
@@ -595,12 +599,14 @@ enum ScreenshotMode {
     /// fixtures, byte for byte (K-7). No language: the demo ink is the same in every language.
     /// `storeInk` (docs/M7B.md, FIX4; likewise `--screenshot-store-ink`): the App Store's page
     /// (`storeInkPage`), whatever `grown` says; `tallYear` and `empty` win over it. Without it the pages are
-    /// unchanged, bit for bit.
+    /// unchanged, bit for bit. `weekMemo` (1.3, §5.2; likewise `--screenshot-week-memo`): the week page adds a
+    /// wave in the memo below 24:00 (`weekMemoStrokeId`, cell `extra`); without it the week is unchanged.
     static func demoPage(kind: PageKind, focus: DayKey, grown: Bool = ScreenshotMode.current?.grown ?? false,
                          empty: Bool = ScreenshotMode.current?.empty ?? false,
                          tallYear: Bool = ScreenshotMode.current?.tallYear ?? false,
                          weekStart: WeekStart = .monday,
-                         storeInk: Bool = ScreenshotMode.current?.storeInk ?? false) -> InkPage {
+                         storeInk: Bool = ScreenshotMode.current?.storeInk ?? false,
+                         weekMemo: Bool = ScreenshotMode.current?.weekMemo ?? false) -> InkPage {
         if tallYear, kind == .year { return tallYearDemoPage(focus: focus) }
         if empty { return InkPage.empty(pageId: PageNavigation.pageId(kind, focus: focus, weekStart: weekStart)) }
         if storeInk { return storeInkPage(kind: kind, focus: focus, weekStart: weekStart) }
@@ -608,7 +614,7 @@ enum ScreenshotMode {
         case .month:
             return demoPage(for: YearMonth(year: focus.year, month: focus.month), grown: grown)
         case .week:
-            return weekDemoPage(focus: focus, weekStart: weekStart)
+            return weekDemoPage(focus: focus, weekStart: weekStart, weekMemo: weekMemo)
         case .day:
             return dayDemoPage(focus: focus, grown: grown)
         case .year:
@@ -622,6 +628,12 @@ enum ScreenshotMode {
     /// The id of the `grown` day stroke: a black wave in the free memo area below 24:00 (`extra`,
     /// its bottom ≈ 309 lu; the area is 6,000 lu high since 1.1.1, and its PDF 1,100 lu).
     static let grownDayStrokeId = "demo-stroke-day-extra"
+    /// The id of the week memo's demo stroke (1.3, `--screenshot-week-memo`): a blue wave in the memo below 24:00
+    /// (`extra`, x 120…900, y 120…160 under 24:00; the memo is 6,000 lu high).
+    static let weekMemoStrokeId = "demo-stroke-week-extra"
+    /// The id of the week memo's crossing demo stroke (1.3, `--screenshot-week-memo` with the crossing demo): a green
+    /// line in the memo across the focus week's left boundary, its centre right of it, so the focus week holds it (D15).
+    static let weekMemoCrossingStrokeId = "demo-stroke-cross-week-memo"
 
     /// A fixed ms epoch; each stroke gets its own `t`.
     private static let baseTime = 1_760_000_000_000
@@ -657,8 +669,9 @@ enum ScreenshotMode {
     /// 0:00; the same place the M3a–M4 band stroke of that cell lands after `BandMigration`, so the
     /// demo needs no migration itself, M4B contract §2.7), a marker across the top of the 10:00
     /// 打合せ box of `focus` (the box starts at grid y 800 in that day's column). The columns follow
-    /// `weekStart` (1.2): Wednesday is column 2 on a Monday week, column 3 on a Sunday week.
-    private static func weekDemoPage(focus: DayKey, weekStart: WeekStart) -> InkPage {
+    /// `weekStart` (1.2): Wednesday is column 2 on a Monday week, column 3 on a Sunday week. `weekMemo` (1.3):
+    /// a third stroke, a wave in the memo below 24:00 (`weekMemoStrokeId`).
+    private static func weekDemoPage(focus: DayKey, weekStart: WeekStart, weekMemo: Bool) -> InkPage {
         var page = InkPage.empty(pageId: PageNavigation.pageId(.week, focus: focus, weekStart: weekStart))
         let firstDay = weekStart.firstDay(of: focus)
         let wednesday = firstDay.adding(days: (3 - firstDay.weekday + 7) % 7)
@@ -670,6 +683,11 @@ enum ScreenshotMode {
         let boxTop = 10 * PaperSpec.weekHourHeight + 10
         page.add(InkStroke(id: "demo-stroke-week-marker", cell: .grid, tool: .marker, color: "#fde047", t: baseTime + 1_000,
                            points: markerLine(x0: columnX + 12, y0: boxTop, count: 16, step: 10)))
+        // `--screenshot-week-memo` (1.3, §5.2): 53 points from (120, 140) of `extra` (paper y 2,060), ±20.
+        if weekMemo {
+            page.add(InkStroke(id: weekMemoStrokeId, cell: .extra, tool: .pen, color: "#2563eb", t: baseTime + 4_000,
+                               points: wave(x0: 120, y0: 140, count: 53, step: 15, amplitude: 20)))
+        }
         return page
     }
 
@@ -737,16 +755,22 @@ enum ScreenshotMode {
     /// `grown`, `empty`, `tallYear` and `storeInk` are those of `demoPage`, for every page alike, except that with
     /// `storeInk` (the App Store's photos, D26) another page holds no copy of the demo: the store's handwriting would
     /// stand at the same place in every week of the photo; its only ink is its half of the crossing demo.
+    /// `weekMemo` (1.3, §5.2, `--screenshot-week-memo`) is the focus week's only: its demo page gets the memo's wave
+    /// (`demoPage`'s), and with `crossing` also the memo stroke across its left boundary (`weekMemoCrossingStrokeId`,
+    /// centre right of the boundary, D15); no other page changes.
     static func spanDemoPage(pageId: String, kind: PageKind, focus: DayKey, weekStart: WeekStart = .monday, crossing: Bool,
                              grown: Bool = ScreenshotMode.current?.grown ?? false,
                              empty: Bool = ScreenshotMode.current?.empty ?? false,
                              tallYear: Bool = ScreenshotMode.current?.tallYear ?? false,
-                             storeInk: Bool = ScreenshotMode.current?.storeInk ?? false) -> InkPage {
+                             storeInk: Bool = ScreenshotMode.current?.storeInk ?? false,
+                             weekMemo: Bool = ScreenshotMode.current?.weekMemo ?? false) -> InkPage {
         let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: .iPad11, orientation: .portrait)
         guard let index = plan.index(of: pageId) else { return InkPage.empty(pageId: pageId) }
         let offset = index - plan.index(containing: focus)
         let day = demoDay(ofPageAt: offset, kind: kind, focus: focus, plan: plan, index: index)
-        var page = demoPage(kind: kind, focus: day, grown: grown, empty: empty, tallYear: tallYear, weekStart: weekStart, storeInk: storeInk)
+        let focusWeekMemo = weekMemo && kind == .week && offset == 0
+        var page = demoPage(kind: kind, focus: day, grown: grown, empty: empty, tallYear: tallYear, weekStart: weekStart, storeInk: storeInk,
+                            weekMemo: focusWeekMemo)
         guard page.pageId == pageId else { return InkPage.empty(pageId: pageId) }
         if offset != 0, storeInk {
             page = InkPage.empty(pageId: pageId)
@@ -763,8 +787,22 @@ enum ScreenshotMode {
             for stroke in crossingStrokes(kind: kind, pageOffset: offset) {
                 page.add(stroke)
             }
+            if focusWeekMemo {
+                page.add(weekMemoCrossingStroke())
+            }
         }
         return page
+    }
+
+    /// The week memo's crossing demo stroke (1.3, §5.2), on the focus week in its own `extra` coordinates: 41 points
+    /// from (−200, 330) to (280, 350) under 24:00 with a wave of ±7, so it starts on the left week's memo and its
+    /// bounds' centre (x +40) is the focus week's (D15). Kept apart from `crossingSamples` (`crossingDemoStrokeIds`
+    /// and the rectangles of the UI tests run again on the joined path stay as they are).
+    static func weekMemoCrossingStroke() -> InkStroke {
+        let points = line(from: CGPoint(x: -200, y: 330), to: CGPoint(x: 280, y: 350), count: 41, amplitude: 7).enumerated().map { i, p in
+            InkPoint(x: p.x, y: p.y, dtMs: i * 12, sizeW: 3.5, sizeH: 3.5, opacity: 1, force: 0.5 + 0.2 * sin(CGFloat(i) * 0.3), azimuth: 0, altitude: 1.4)
+        }
+        return InkStroke(id: weekMemoCrossingStrokeId, cell: .extra, tool: .pen, color: "#16a34a", t: baseTime + 22_000, points: points)
     }
 
     /// The id a demo stroke has on a page that is not the demo's focus page: "<id>-<pageId>"
