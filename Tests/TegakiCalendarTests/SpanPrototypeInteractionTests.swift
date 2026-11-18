@@ -233,9 +233,9 @@ final class SpanPrototypeInteractionTests: XCTestCase {
     // MARK: The week memo (§5.2)
 
     /// Below 24:00 a week page is its memo: a stroke centred there belongs to `extra` of the page under it, one
-    /// centred below the memo is dropped, no event is made there, the memo is the band `extra` from 1,920 lu,
-    /// and the zoom limits still come from the 24 hours. Fails if the memo's strokes went to `grid` (the old
-    /// path's cell), the paper's end were not the memo's, or the overview took the memo in.
+    /// centred more than 6,000 lu below 24:00 is dropped as below the cap (`.belowCap`, the real week memo's answer), no
+    /// event is made there, the memo is the band `extra` from 1,920 lu, and the zoom limits still come from the 24 hours.
+    /// Fails if the memo's strokes went to `grid` (the old path's cell), the cap were not the memo's, or the overview took it in.
     func testWeekMemoTakesTheStrokesBelowTwentyFour() throws {
         let (model, session) = try openPrototype()
         defer { model.close() }
@@ -246,7 +246,7 @@ final class SpanPrototypeInteractionTests: XCTestCase {
         XCTAssertEqual(layout.size.height, 1_920 + 6_000)
         XCTAssertEqual(layout.drop(center: CGPoint(x: x, y: 1_000)), .keep(page: id, cell: .grid))
         XCTAssertEqual(layout.drop(center: CGPoint(x: x, y: 2_500)), .keep(page: id, cell: .extra))
-        XCTAssertEqual(layout.drop(center: CGPoint(x: x, y: 1_920 + 6_000 + 10)), .outsidePaper)
+        XCTAssertEqual(layout.drop(center: CGPoint(x: x, y: 1_920 + 6_000 + 10)), .belowCap)
         XCTAssertTrue(layout.growsWithInk(SpanName.prefixed(.extra, page: id)))
         XCTAssertFalse(layout.growsWithInk(SpanName.prefixed(.grid, page: id)))
         let memo = try XCTUnwrap(layout.pages[slot] as? SpanPrototypeWeekMemoLayout)
