@@ -85,38 +85,14 @@ enum DayPaper: PaperRenderer {
     /// over x `dayRuleInset`…1000 − `dayRuleInset` down to its bottom, and the label 「自由メモ」 at
     /// (`dayRuleInset`, top + 6) in the look of the right column's 「メモ」 (a different name, so the
     /// page does not show two 「メモ」). Only what meets `dirty`; nothing for a layout without it.
+    /// 1.3 (docs/M7C_CONTRACT.md §5.2): the drawing is `FreeMemoPaper.draw`, shared with the week memo
+    /// (the same calls in the same order as 1.2.3's body here).
     private static func drawExtra(_ ctx: CGContext, layout: DayPageLayout, dirty: CGRect, zoom: CGFloat, scale: CGFloat, readable: CGFloat) {
         let extra = layout.extra
         guard layout.cells[.extra] != nil, extra.height > 0, extra.width > 0 else { return }
-
-        ctx.setLineWidth(PaperText.hairline(zoom))
-        if extra.minY >= dirty.minY - 1, extra.minY <= dirty.maxY + 1 {
-            ctx.setStrokeColor(PaperPalette.lineStrong.cgColor)
-            ctx.beginPath()
-            PaperText.addHorizontal(ctx, y: extra.minY, from: extra.minX, to: extra.maxX, zoom: zoom, scale: scale)
-            ctx.strokePath()
-        }
-
-        ctx.setStrokeColor(PaperPalette.rule.cgColor)
-        ctx.beginPath()
-        var y = extra.minY + PaperSpec.dayRuleStep
-        while y < extra.maxY {
-            if y >= dirty.minY - 1, y <= dirty.maxY + 1 {
-                PaperText.addHorizontal(ctx, y: y, from: extra.minX + PaperSpec.dayRuleInset, to: extra.maxX - PaperSpec.dayRuleInset,
-                                        zoom: zoom, scale: scale)
-            }
-            y += PaperSpec.dayRuleStep
-        }
-        ctx.strokePath()
-
-        let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom, readable: readable)
-        let labelFont = UIFont.systemFont(ofSize: labelSize, weight: .semibold)
-        let labelRect = CGRect(x: extra.minX + PaperSpec.dayRuleInset, y: extra.minY + 6, width: 200, height: labelFont.lineHeight + 2)
-        if labelRect.intersects(dirty) {
-            PaperText.drawLine(freeMemoLabel, in: labelRect, font: labelFont, color: PaperPalette.memoLabel, kern: labelSize * 0.15)
-        }
+        FreeMemoPaper.draw(ctx, area: extra, dirty: dirty, zoom: zoom, scale: scale, readable: readable)
     }
 
-    /// The heading of the free memo area below 24:00 (M7A_CONTRACT §6.2).
-    static let freeMemoLabel = L.text("paper.freeMemo")
+    /// The heading of the free memo area below 24:00 (M7A_CONTRACT §6.2); since 1.3 `FreeMemoPaper.label`.
+    static let freeMemoLabel = FreeMemoPaper.label
 }
