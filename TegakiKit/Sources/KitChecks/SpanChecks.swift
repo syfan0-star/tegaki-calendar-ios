@@ -614,12 +614,13 @@ func spanAlignChecks() {
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 2400 + 6000.5), in: floored), .beyondCap, "span align: on a floored day, 6,000.5 below 24:00 is still beyond the cap")
     checkEqual(PaperGrowth.drop(center: CGPoint(x: 500, y: 2400 + 6000), in: floored), nil, "span align: on a floored day, 6,000 below 24:00 is kept")
 
-    // The week has no memo yet (§5): any floor gives today's week, Monday and Sunday.
+    // A week without the free memo (freeMemo false, the default): any floor gives today's week, Monday and
+    // Sunday (the week memo, §5, is checked in "week memo (1.3)").
     for ws in WeekStart.allCases {
         let week = WeekLayoutEngine.layout(WeekLayoutInput(focus: DayKey(year: 2026, month: 10, day: 14), events: events, inkBottoms: [.grid: 1500], now: now, calendar: tokyo, weekStart: ws))
         for floor in [CGFloat(0), 7000, .nan] {
             let w = WeekLayoutEngine.layout(WeekLayoutInput(focus: DayKey(year: 2026, month: 10, day: 14), events: events, inkBottoms: [.grid: 1500], now: now, calendar: tokyo, weekStart: ws, extraFloor: floor))
-            check(w == week, "span align: a \(ws) week with floor \(floor) is today's week (no week memo before §5)")
+            check(w == week, "span align: a \(ws) week without the free memo (freeMemo false) and floor \(floor) is today's week")
         }
     }
 
