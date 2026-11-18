@@ -69,8 +69,8 @@
 | ko | • 주 페이지에도 24시 아래에 ‘자유 메모’ 칸이 생겼어요(이전 버전을 쓰는 기기에서는 보이지 않지만, 지워진 것은 아니에요). |
 | pt-BR | • As páginas da semana agora também têm a área “Notas livres” abaixo de 24:00 (em dispositivos com uma versão anterior ela não aparece, mas não foi excluída). |
 | pt-PT | • As páginas da semana passam também a ter a área “Notas livres” abaixo das 24:00 (nos dispositivos com uma versão anterior não aparece, mas não foi eliminada). |
-| zh-Hans | • 周页面现在也在 24 点以下新增了“自由备忘”栏（在使用旧版本的设备上看不到，但并没有被删除）。 |
-| zh-Hant | • 週頁面現在也在 24 點以下新增了「自由備忘」欄（在使用舊版本的裝置上看不到，但並沒有被刪除）。 |
+| zh-Hans | • 周页面现在也在 24 点下方新增了“自由备忘”栏（在使用旧版本的设备上看不到，但并没有被删除）。 |
+| zh-Hant | • 週頁面現在也在 24 點下方新增了「自由備忘」欄（在使用舊版本的裝置上看不到，但並沒有被刪除）。 |
 
 - 括弧の前までは、今の `whatsnew.txt` の 2 つ目の点と 1 字も違わない。括弧の中の「消えていない」は、4 つ目の点の括弧と同じ語にした（en の deleted、de の gelöscht、es-MX の eliminó・es-ES の ha eliminado、fr の supprimée、it の eliminata、ko の 지워진、pt-BR の excluída、pt-PT の eliminada、zh の 删除・刪除）。
-- 元を見ない逆翻訳と判定は、書き手とは別の役が `docs/i18n/back/store-<ロケール>.md` と [docs/i18n/REVIEW.md](../i18n/REVIEW.md) の 4 に書く。
+- 元を見ない逆翻訳と判定は `docs/i18n/back/store-<ロケール>.md` と [docs/i18n/REVIEW.md](../i18n/REVIEW.md) の 4 の「1.3 の週のメモの文」（2026-11-18、2 回）。1 回目の判定で ko・zh-Hans・zh-Hant の括弧を「古い版を使う端末」の形に、2 回目の判定で zh-Hans・zh-Hant の「24 点以下」「24 點以下」を「24 点下方」「24 點下方」に直した（後の直しは今の `whatsnew.txt` の 2 つ目の点も同じ。直した字は元を見ない逆翻訳をもう通していない）。
