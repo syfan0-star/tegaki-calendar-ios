@@ -1131,9 +1131,9 @@ final class InkCanvasSpanTests: XCTestCase {
     }
 
     /// P-B6 イ, the lead's decision 7 (11/18), on the canvas: 「今日」's reveal on today's page at the capped overview
-    /// (`ScreenPaths.cappedTodayRect`) leaves the paper alone while the now line (15:00) is on screen, takes it from 0:00 at
-    /// the top (below the screen) up to the bottom edge, and from 20:00 at the top (above it) back to 14:00 at the top; x
-    /// never moves.
+    /// (`ScreenPaths.cappedTodayRect`) leaves the paper alone while the now line (15:00) is on screen (13:45 or 10:00 at the
+    /// top), takes it from 0:00 at the top (below the screen) up to the bottom edge, and from 20:00 at the top (above it)
+    /// back to 14:00 at the top; x never moves.
     func testCappedTodayRevealMovesOnlyAnOffScreenNowLine() async throws {
         let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
         bed.now = now
@@ -1147,22 +1147,26 @@ final class InkCanvasSpanTests: XCTestCase {
         let x0 = rig.canvas.contentOffset.x
         XCTAssertEqual(rig.canvas.contentOffset.y, 1_120 * cap, accuracy: 0.5, "opened at 14:00")
         var trigger = 0
-        func reveal(from y: CGFloat) throws -> CGPoint {
+        // The paper put at `y` (UIKit puts it on the screen's pixels: `before`), then 「今日」's reveal (`after`).
+        func reveal(from y: CGFloat) throws -> (before: CGPoint, after: CGPoint) {
             rig.canvas.contentOffset = CGPoint(x: x0, y: y)
-            let shown = PaperViewport(offsetX: rig.canvas.contentOffset.x, zoom: rig.zoom, width: area.width)
+            let before = rig.canvas.contentOffset
+            let shown = PaperViewport(offsetX: before.x, zoom: rig.zoom, width: area.width)
             let rect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
                                                                  calendar: SessionTestBed.tokyo, viewport: shown))
             trigger += 1
             update(rig, revealRect: rect, revealTrigger: trigger)
-            return rig.canvas.contentOffset
+            return (before, rig.canvas.contentOffset)
         }
-        let stays = try reveal(from: 1_120 * cap)
-        XCTAssertEqual(stays.x, x0, accuracy: 0.01)
-        XCTAssertEqual(stays.y, 1_120 * cap, accuracy: 0.01, "the now line on screen: nothing moves")
-        let fromTop = try reveal(from: 0)
+        for top in [CGFloat(1_100), 800] {
+            let stays = try reveal(from: top * cap)
+            XCTAssertEqual(stays.after.x, stays.before.x, accuracy: 0.01, "\(top) lu at the top")
+            XCTAssertEqual(stays.after.y, stays.before.y, accuracy: 0.01, "\(top) lu at the top: the now line on screen, nothing moves")
+        }
+        let fromTop = try reveal(from: 0).after
         XCTAssertEqual(fromTop.x, x0, accuracy: 0.01, "y only")
         XCTAssertEqual(fromTop.y, 1_200 * cap + ZoomPolicy.revealMargin - 205, accuracy: 0.5, "the now line up to the bottom edge")
-        let fromEvening = try reveal(from: 1_600 * cap)
+        let fromEvening = try reveal(from: 1_600 * cap).after
         XCTAssertEqual(fromEvening.x, x0, accuracy: 0.01, "y only")
         XCTAssertEqual(fromEvening.y, 1_120 * cap, accuracy: 0.5, "14:00 at the top")
     }
@@ -1240,7 +1244,10 @@ final class InkCanvasSpanTests: XCTestCase {
             let rig = await attach(session, width: 874, height: 205)
             let page = 874 / across
             let x0 = rig.canvas.contentOffset.x
-            XCTAssertEqual(x0, (CGFloat(session.focusSlot) + 0.5) * page - 437, accuracy: 0.5, "\(kind): the focus page in the middle")
+            // The focus page's middle in the middle of the screen; UIKit puts the offset on the screen's pixels, the
+            // fling's target is the page's exact place.
+            let centre = (CGFloat(session.focusSlot) + 0.5) * page - 437
+            XCTAssertEqual(x0, centre, accuracy: 0.5, "\(kind): the focus page in the middle")
             func release(to x: CGFloat, velocity: CGFloat, proposed: CGFloat) -> CGPoint {
                 rig.canvas.contentOffset.x = x0
                 rig.coordinator.scrollViewWillBeginDragging(rig.canvas)
@@ -1249,8 +1256,8 @@ final class InkCanvasSpanTests: XCTestCase {
                 rig.coordinator.scrollViewWillEndDragging(rig.canvas, withVelocity: CGPoint(x: velocity, y: 0), targetContentOffset: &target)
                 return target
             }
-            XCTAssertEqual(release(to: x0 + 40, velocity: 1.0, proposed: x0 + 900).x, x0 + page, accuracy: 0.01, "\(kind): the next page in the middle")
-            XCTAssertEqual(release(to: x0 - 40, velocity: -1.0, proposed: x0 - 900).x, x0 - page, accuracy: 0.01, "\(kind): the page before in the middle")
+            XCTAssertEqual(release(to: x0 + 40, velocity: 1.0, proposed: x0 + 900).x, centre + page, accuracy: 0.01, "\(kind): the next page in the middle")
+            XCTAssertEqual(release(to: x0 - 40, velocity: -1.0, proposed: x0 - 900).x, centre - page, accuracy: 0.01, "\(kind): the page before in the middle")
         }
     }
 
