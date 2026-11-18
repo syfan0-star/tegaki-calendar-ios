@@ -85,18 +85,7 @@ enum PDFPageRenderer {
             }
             let tail = PaperGrowth.exportTailHeight(inkBottom: inkBottom)
             return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.grid.maxY + tail)
-        case .week(let content):
-            guard content.layout.cells[.extra] != nil else { return CGRect(origin: .zero, size: content.layout.size) }
-            let extraHasInk = page.liveStrokes.contains { $0.cell.isExtra }
-            let incoming = neighborInk.isEmpty ? nil : neighborExtraBottom(neighborInk, extra: content.layout.extra, pageWidth: content.layout.size.width)
-            guard extraHasInk || incoming != nil else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
-            var inkBottom = page.inkBottoms()[.extra] ?? 0
-            if let incoming = incoming {
-                inkBottom = max(inkBottom, incoming)
-            }
-            let tail = PaperGrowth.exportTailHeight(inkBottom: inkBottom)
-            return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.grid.maxY + tail)
-        case .year:
+        case .week, .year:
             return CGRect(origin: .zero, size: paper.layout.size)
         }
     }
