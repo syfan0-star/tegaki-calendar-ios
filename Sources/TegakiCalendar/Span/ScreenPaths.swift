@@ -947,17 +947,10 @@ final class ScreenPaths: ObservableObject {
             return .reopen(focus)
         case .slide(let pages):
             let zoomed = Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio)
-            if !zoomed, pages != 0 { return .slide(pages) }
+            if !zoomed { return pages != 0 ? .slide(pages) : .stay }
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
                                      calendar: session.context.calendar, area: area, ratio: ratio)
-            if !zoomed {
-                guard Self.atCappedOverview(layout: session.layout, width: shown.width, zoom: shown.zoom),
-                      let rect = Self.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
-                                                      calendar: session.context.calendar, viewport: shown)
-                else { return .stay }
-                return .reveal(rect)
-            }
             guard let rect = Self.todayRect(layout: session.layout, pageId: session.plan.pageId(at: session.plan.index(containing: day)),
                                             now: now, calendar: session.context.calendar, viewport: shown, area: area)
             else { return nil }
@@ -1165,21 +1158,13 @@ final class ScreenPaths: ObservableObject {
     /// middle at 0:00). The canvas clamps it to the band.
     static func shotPaperOffset(layout: SpanLayout, focusPageId: String, pages: CGFloat?, offset: CGPoint?,
                                 viewportWidth: CGFloat, zoom: CGFloat) -> CGPoint? {
-        let todayY = atCappedOverview(layout: layout, width: viewportWidth, zoom: zoom)
-            ? cappedOpeningY(layout: layout, pageId: focusPageId) : nil
-        let shift: CGFloat
-        if let pages, pages.isFinite {
-            shift = pages
-        } else if offset == nil, todayY != nil {
-            shift = 0
-        } else {
+        guard let pages, pages.isFinite, let slot = layout.slot(ofPage: focusPageId) else {
             return offset.map { bandPoint($0, layout: layout, focusPageId: focusPageId) }
         }
-        guard let slot = layout.slot(ofPage: focusPageId) else { return offset.map { bandPoint($0, layout: layout, focusPageId: focusPageId) } }
         let width = layout.plan.pageWidth
-        let centre = layout.origin(ofSlot: slot) + width / 2 + shift * width
+        let centre = layout.origin(ofSlot: slot) + width / 2 + pages * width
         let half = viewportWidth.isFinite && viewportWidth > 0 && zoom.isFinite && zoom > 0 ? viewportWidth / 2 / zoom : 0
-        return CGPoint(x: centre - half, y: offset?.y ?? todayY ?? 0)
+        return CGPoint(x: centre - half, y: offset?.y ?? 0)
     }
 
     // MARK: Screenshot mode's guide (§3.12, §3.14)
