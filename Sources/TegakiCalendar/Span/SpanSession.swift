@@ -415,7 +415,7 @@ final class SpanSession: ObservableObject {
     /// (`fittingRadius`), else once they are read (`prefetch`).
     static func windowRadius(plan: SpanPlan, paperArea: CGSize?) -> Int {
         guard let area = paperArea else { return plan.radius }
-        let visible = plan.visiblePages(viewport: area)
+        let visible = SpanPlan.visiblePages(plan.kind, viewport: area)
         return max(plan.radius, SpanPlan.radius(forVisiblePages: visible))
     }
 
