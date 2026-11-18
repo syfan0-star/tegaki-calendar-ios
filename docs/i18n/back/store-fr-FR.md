@@ -95,3 +95,12 @@ R が日本語の元を見ずに `docs/store/fr-FR/*.txt` と `docs/store/subscr
 | 1.3.whatsnew.3 | • Correction d’un problème qui pouvait renvoyer vers iCloud l’écriture manuscrite restée sur cet appareil, après l’effacement de toute l’écriture manuscrite sur un autre appareil. | • ほかの端末で手書きをすべて消したあと、この端末に残っていた手書きが iCloud へ送り返されてしまうことがある問題を修正しました。 |
 | 1.3.whatsnew.4 | • Mettez à jour à la fois votre iPad et votre iPhone vers cette version. Dans les versions précédentes, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils n’ont pas été supprimés). Si vous effacez un tel trait dans une version précédente, il est aussi effacé dans cette version. Sur iPad, cette version relie côte à côte les pages précédentes et suivantes, en orientation portrait comme en paysage. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。以前のバージョンでは、2つのページにまたがって書いた線は、そのうち一方にしか表示されません（削除されたわけではありません）。以前のバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
 | 1.3.whatsnew.5 | Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs. | 翻訳は AI で作成したもので、まだネイティブスピーカーの校閲を受けていません。誤りをお知らせください。 |
+
+## 1.3 の週のメモの文（2026-11-18）
+
+週のメモ（契約 §5）を作り始めたときに、`docs/store/fr-FR/whatsnew.txt` の 2 つ目の点に週のメモの行を足しました（fr-CA は同じ字）。今の 3〜6 つ目の行は、上の節の 1.3.whatsnew.2〜5 と同じ字です（iPad の 1 文はリードが外した後の形）。また、2 つ目の点に古い版での見え方の句を足す案（K-8。`docs/store/PROPOSALS_1_3.md` の 4。本人の確認ページで選んでもらう）を用意しました。この 2 つの文だけを、別の Claude（R）に日本語の元を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の週のメモの文」）。1 回目の判定で直した字は、直した字だけを R にもう 1 回渡しました（2 回目。R は 1 回目の字と逆翻訳を見ていない）。2 回目の判定で直した字は、最後の回だったので元を見ない逆翻訳をもう通していません。R の注は R が書いたままです。
+
+| id | 回 | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- | --- |
+| 1.3.memo.whatsnew | 1 回目 | • Les pages de la semaine ont désormais, elles aussi, une zone « Notes libres » sous 24:00. | ・週のページにも、24:00の下に「自由メモ」欄ができました。 | 「sous 24:00」は画面上の位置（下）の意味で通じるが、「24:00未満」とも取れる。フランス語では時刻を「24 h」と書くのが普通なので、「24:00」という表記は少し不自然。 |
+| 1.3.memo.k8（案） | 1 回目 | • Les pages de la semaine ont désormais, elles aussi, une zone « Notes libres » sous 24:00 (elle n’apparaît pas sur les appareils restés sur une version précédente, mais elle n’a pas été supprimée). | ・週のページにも、24:00の下に「自由メモ」欄ができました（以前のバージョンのままの端末には表示されませんが、削除されたわけではありません）。 | 「sous 24:00」は「24時未満」とも取れ、「24:00」の表記も少し不自然。「une version précédente」は、アプリのバージョンかOSのバージョンかがはっきりしない。 |
