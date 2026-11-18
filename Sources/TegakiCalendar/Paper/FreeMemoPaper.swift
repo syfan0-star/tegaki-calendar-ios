@@ -48,7 +48,7 @@ enum FreeMemoPaper {
         var y = area.minY + PaperSpec.dayRuleStep
         while y < area.maxY {
             if y >= dirty.minY - 1, y <= dirty.maxY + 1 {
-                PaperText.addHorizontal(ctx, y: y, from: area.minX + PaperSpec.dayRuleInset, to: area.maxX - PaperSpec.dayRuleInset,
+                PaperText.addHorizontal(ctx, y: y, from: area.minX + 21, to: area.maxX - 21,
                                         zoom: zoom, scale: scale)
             }
             y += PaperSpec.dayRuleStep
