@@ -72,6 +72,8 @@ concurrency:
 jobs:
   build-and-test:
     name: Build and test (iOS Simulator)
+    # Mutation branch of 1.3's review of the week memo (never merged): only the UI tests run.
+    if: ${{ false }}
     runs-on: macos-26
     # 1.1: 75 → 90 (1.0.1's run took 56 min; 1.1 adds Compat10Tests, more unit tests and 10 shots, and a
     # simulator boot alone has taken 4 min). 1.1 fix, the lead's review: kept at 90. The last runs took
@@ -1340,7 +1342,8 @@ jobs:
             -destination "platform=iOS Simulator,id=$UDID" \
             -derivedDataPath build/UITestData \
             -resultBundlePath build/ui-tests.xcresult \
-            -only-testing:TegakiCalendarUITests \
+            -only-testing:TegakiCalendarUITests/SpanUITests/testWriteInTheWeekMemoOnBothPaths \
+            -only-testing:TegakiCalendarUITests/SpanUITests/testNoEventInTheWeekMemo \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
           grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
@@ -1396,7 +1399,7 @@ jobs:
   compat-v1-0:
     name: compat-v1.0
     # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only).
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
+    if: ${{ false }}  # mutation branch (never merged): only the UI tests run
     runs-on: macos-26
     timeout-minutes: 45
     env:
@@ -2073,7 +2076,7 @@ jobs:
   span-shots:
     name: span-shots (1.3 prototype)
     # Not on r13-quick (docs/M7C_CONTRACT.md §10.6).
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
+    if: ${{ false }}  # mutation branch (never merged): only the UI tests run
     runs-on: macos-26
     timeout-minutes: 60
     env:
@@ -2408,7 +2411,7 @@ jobs:
   # 60 min the limit is looked at again.
   span-shots-app:
     name: span-shots (1.3 app)
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
+    if: ${{ false }}  # mutation branch (never merged): only the UI tests run
     runs-on: macos-26
     timeout-minutes: 90
     env:

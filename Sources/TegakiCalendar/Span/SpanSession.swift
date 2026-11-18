@@ -643,8 +643,7 @@ final class SpanSession: ObservableObject {
         case .week:
             // 1.3 (docs/M7C_CONTRACT.md §5.2): every joined week has its memo below 24:00, the window's floor its least height.
             return WeekLayoutEngine.layout(WeekLayoutInput(focus: first, events: pageEvents, inkBottoms: inkBottoms, now: c.now, calendar: c.calendar,
-                                                           holidays: c.holidays, words: c.words, weekStart: weekStart, extraFloor: floors.weekExtra,
-                                                           freeMemo: true))
+                                                           holidays: c.holidays, words: c.words, weekStart: weekStart, extraFloor: floors.weekExtra))
         case .month:
             return MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: first.year, month: first.month), events: pageEvents,
                                                              inkBottoms: inkBottoms, now: c.now, calendar: c.calendar, holidays: c.holidays,
