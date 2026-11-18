@@ -609,13 +609,21 @@ final class SpanSession: ObservableObject {
         windowVersion += 1
     }
 
-    /// Each window page laid out (`floors` from the day's free memo, D16) and joined (`layout`), from the window's
-    /// first page (`windowFirstIndex`), whatever the focus.
+    /// Each window page laid out (`floors` from the day's free memo or, since 1.3, the week memo below 24:00, D16,
+    /// docs/M7C_CONTRACT.md §5.2) and joined (`layout`), from the window's first page (`windowFirstIndex`), whatever
+    /// the focus. The floor follows `change` (`SpanAlign.floor`): `.inkGrew` and `.shift` never lower it (so right
+    /// after a shift the window keeps its height); `.inkShrank` (an erase) and `.redecide` (the pages read after a
+    /// shift, the events, the 30 s tick) bring it to the tallest page of the window (D16 as docs/M7C.md reads it).
     private func layoutPages(change: SpanAlign.Change) {
         let firstIndex = windowFirstIndex
         let bottoms = pageIds.map { slots[$0]?.page.inkBottoms() ?? [:] }
-        if kind == .day {
+        switch kind {
+        case .day:
             floors = SpanAlign.dayFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
+        case .week:
+            floors = SpanAlign.weekFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
+        case .month, .year:
+            break
         }
         var pages: [any PageLayout] = []
         for (offset, id) in pageIds.enumerated() {
@@ -633,8 +641,10 @@ final class SpanSession: ObservableObject {
             return DayLayoutEngine.layout(DayLayoutInput(day: first, events: pageEvents, inkBottoms: inkBottoms, now: c.now, calendar: c.calendar,
                                                          holidays: c.holidays, words: c.words, extraFloor: floors.dayExtra))
         case .week:
+            // 1.3 (docs/M7C_CONTRACT.md §5.2): every joined week has its memo below 24:00, the window's floor its least height.
             return WeekLayoutEngine.layout(WeekLayoutInput(focus: first, events: pageEvents, inkBottoms: inkBottoms, now: c.now, calendar: c.calendar,
-                                                           holidays: c.holidays, words: c.words, weekStart: weekStart, extraFloor: floors.weekExtra))
+                                                           holidays: c.holidays, words: c.words, weekStart: weekStart, extraFloor: floors.weekExtra,
+                                                           freeMemo: true))
         case .month:
             return MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: first.year, month: first.month), events: pageEvents,
                                                              inkBottoms: inkBottoms, now: c.now, calendar: c.calendar, holidays: c.holidays,
@@ -646,9 +656,9 @@ final class SpanSession: ObservableObject {
     }
 
     /// The canvas reported that handwriting may have crossed the bottom of its cell (`onInkBoundsChanged`):
-    /// the inbox is emptied and the window composed and laid out again — the day's free memo grows past
-    /// 5,950 lu, or comes back when erased (D16) — with the same virtual page (a new `windowVersion` whose
-    /// window holds the strokes just drawn).
+    /// the inbox is emptied and the window composed and laid out again — the day's free memo or the week memo
+    /// (1.3) grows past 5,950 lu, or comes back when erased (D16) — with the same virtual page (a new
+    /// `windowVersion` whose window holds the strokes just drawn).
     func relayoutPages() {
         guard !isClosed else { return }
         drainInbox()

@@ -118,7 +118,7 @@ enum GatedAction: Equatable, CaseIterable {
 ///   `ToolbarLogic.toolAfterErase`).
 /// - A finger's single tap follows `DateTap.target` with 「指でも書く」 and this month; the year's
 ///   gutter numbers open this month's day.
-/// - 24:00 and below on the day page refuses a new event (`newEventPlan`).
+/// - 24:00 and below on the day page and (1.3) in the week memo refuses a new event (`newEventPlan`).
 /// - The canvas's stroke budget and the memo area's limit become toasts: once per page per device,
 ///   at most every 2 s, once per opened page.
 /// - An import that takes a page past 20,000 strokes asks first (`WebImportPhase.confirmLarge`).
@@ -1579,8 +1579,9 @@ struct CalendarRootScreen: View {
                 holidayNames: holidays.names(for: MonthLayout.grid(for: month, weekStart: weekStart).days)
             ))
         case .week:
+            // 1.3 (docs/M7C_CONTRACT.md §5.2, D3 (4)): the week memo below 24:00 on the one-page path too.
             let layout = WeekLayoutEngine.layout(WeekLayoutInput(focus: focus, events: events, inkBottoms: inkBottoms, now: now,
-                                                                 holidays: holidays, words: words, weekStart: weekStart))
+                                                                 holidays: holidays, words: words, weekStart: weekStart, freeMemo: true))
             return .week(WeekPaperContent(layout: layout))
         case .day:
             let layout = DayLayoutEngine.layout(DayLayoutInput(day: focus, events: events, inkBottoms: inkBottoms, now: now,
@@ -1875,9 +1876,10 @@ struct CalendarRootScreen: View {
 
     /// What a rect for a new event gives (1.1, M7A_CONTRACT §3.7, 0-4): on the day page a rect that
     /// starts at or below 24:00 (`DayPageLayout.startsBelowDay`, asked before `eventRange`) is refused
-    /// — the screen shows `eventBelowDayToast` and opens nothing. Everything else is
-    /// `layout.eventRange(for:now:)` unchanged (a day rect across 24:00, or from 2,399.9, is still a
-    /// 23:00 event).
+    /// — the screen shows `eventBelowDayToast` and opens nothing. 1.3 (docs/M7C_CONTRACT.md §5.2): the
+    /// same in the week memo (`WeekPageLayout.startsBelowDay`, always false for a week without it).
+    /// Everything else is `layout.eventRange(for:now:)` unchanged (a day or week rect across 24:00, or
+    /// from 2,399.9 / 1,919.9, is still a 23:00 event).
     enum NewEventPlan: Equatable {
         case refusedBelowDay
         case create(EventRange?)
@@ -1885,6 +1887,9 @@ struct CalendarRootScreen: View {
 
     static func newEventPlan(layout: any PageLayout, rect: CGRect, now: Date) -> NewEventPlan {
         if let day = layout as? DayPageLayout, day.startsBelowDay(rect) {
+            return .refusedBelowDay
+        }
+        if let week = layout as? WeekPageLayout, week.startsBelowDay(rect) {
             return .refusedBelowDay
         }
         return .create(layout.eventRange(for: rect, now: now))
@@ -1921,7 +1926,7 @@ struct CalendarRootScreen: View {
     private func convertSelection() {
         guard let selection = selection, !selection.ids.isEmpty else { return }
         if let span = paths.span { return convertJoinedSelection(selection, span) }
-        // 1.1 (§3.7): handwriting below 24:00 on the day page does not become an event.
+        // 1.1 (§3.7): handwriting below 24:00 on the day page (1.3: and in the week memo) does not become an event.
         guard case .create(let range) = Self.newEventPlan(layout: layout, rect: selection.bbox, now: now) else {
             showToast(Self.eventBelowDayToast)
             return
