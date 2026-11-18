@@ -137,8 +137,7 @@ enum PDFPageRenderer {
                 }
             }
         }
-        guard let deepest = deepest, deepest > extra.minY else { return nil }
-        return deepest - extra.minY
+        return deepest.map { $0 - extra.minY }
     }
 
     /// Height of the heading above the paper: the title row + the page's own row (month: the
@@ -240,7 +239,7 @@ enum PDFPageRenderer {
             ctx.saveGState()
             ctx.translateBy(x: 0, y: heading)
             ctx.clip(to: rect)
-            switch paperInRect(paper, rect: rect) {
+            switch paper {
             case .month(let content):
                 MonthPaper.draw(content, in: ctx, dirty: rect, zoom: 1, view: dummy)
             case .week(let content):
