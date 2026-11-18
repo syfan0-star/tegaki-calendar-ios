@@ -2918,7 +2918,7 @@ extension InkCanvasView.Coordinator {
         if geometryChanged, !tailOnly {
             let viewport = container.bounds.size
             if hasInitialZoom, viewport.width > 0, viewport.height > 0 {
-                applyBounds(newBand.plan.zoomBounds(overview: InkCanvasView.bandOverview(newBand), viewport: viewport))
+                applyBounds(ZoomPolicy.bounds(newBand.kind, overview: InkCanvasView.bandOverview(newBand), viewport: viewport))
             }
             let zoomNow = max(canvas.zoomScale, 0.0001)
             let delta = PageScroll.scrollDelta(old: oldBand, new: newBand, topVisibleY: topVisibleY)
