@@ -370,7 +370,7 @@ final class SpanSession: ObservableObject {
          loader: ((String) -> InkPage)? = nil,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
          clock: @escaping () -> Date = Date.init) {
-        let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation, overviewCap: overviewCap)
+        let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation)
         self.overviewCap = overviewCap
         self.kind = kind
         self.weekStart = weekStart
