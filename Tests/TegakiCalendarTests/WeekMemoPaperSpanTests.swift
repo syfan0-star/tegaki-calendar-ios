@@ -443,6 +443,17 @@ final class WeekMemoPaperSpanTests: XCTestCase {
         XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: gridOnly, neighborInk: [gridFromLeft]), CGRect(x: 0, y: 0, width: 1400, height: 1920))
         // The deeper of the page's own and the incoming.
         XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: deep, neighborInk: [fromRight]), deepRect)
+        // A neighbour's memo stroke whose part over this page stays above 24:00 (10-12's, (−100, −120) → (100, −120)
+        // → (100, 680) from its memo: over this page only (1,300, 1,800) and the boundary at y 1,800, 1,801.75 deep):
+        // no memo comes in (1.3's review of the week memo, F2: −118.25 used to count, → 1,920 + 700).
+        let overTheHours = SpanPDFInk(pageId: "w-2026-10-12", stroke: stroke("memo-12-up", cell: .extra,
+                                                                             line(CGPoint(x: -100, y: -120), CGPoint(x: 100, y: -120), count: 2)
+                                                                                 + line(CGPoint(x: 100, y: -120), CGPoint(x: 100, y: 680), count: 2).dropFirst()),
+                                      cellRect: CGRect(x: 1400, y: 1920, width: 1400, height: 6000))
+        XCTAssertNil(PDFPageRenderer.neighborExtraBottom([overTheHours], extra: layout.extra, pageWidth: 1400))
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: gridOnly, neighborInk: [overTheHours]), CGRect(x: 0, y: 0, width: 1400, height: 1920))
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: gridOnly, neighborInk: [overTheHours, fromRight]), CGRect(x: 0, y: 0, width: 1400, height: 1920 + 1100),
+                       "with a stroke that does come in, as deep as that one")
 
         // A week laid out without the memo: its whole paper, as 1.2.3 (whatever the page holds).
         let old = PaperContent.week(WeekPaperContent(layout: weekLayout(monday, freeMemo: false)))
@@ -479,6 +490,90 @@ final class WeekMemoPaperSpanTests: XCTestCase {
         XCTAssertEqual(try inkScale(gridOnly, PDFPageRenderer.paperRect(paper, page: gridOnly)), 2.0, accuracy: 0.01)
         XCTAssertEqual(try inkScale(withMemo, memoRect), 1.81, accuracy: 0.01)
         XCTAssertEqual(try inkScale(deep, deepRect), 1.05, accuracy: 0.01)
+    }
+
+    /// The PDF of a week with its memo but no handwriting in it (every week of the app since 1.3, the one-page path
+    /// too) is 1.2.3's week PDF, pixel for pixel, down to its bottom row (1.3's review of the week memo, F1): its
+    /// paper against a PDF of the 24 hours drawn by 43fe366's copy (`Frozen123WeekPaper`, without the now line as
+    /// the PDF draws it), and the whole page against the PDF of the same week laid out without the memo, for an
+    /// empty page, a grid stroke and a grid stroke written across 24:00. Without `PDFPageRenderer.paperInRect` the
+    /// memo's strong line at 24:00 (snapped to 1,919.75…1,920.75) leaves its upper quarter in the last row. With the
+    /// memo in the rectangle the memo is drawn; the day and a week without the memo are drawn as they are.
+    func testWeekPDFWithoutMemoInkIs1_2_3PixelForPixel() throws {
+        let events = [timed("e1", on: today, from: 21, to: 23.75), timed("e2", on: DayKey(year: 2026, month: 10, day: 10), from: 9, to: 10.5)]
+        let memoLayout = weekLayout(monday, freeMemo: true, events: events)
+        let oldLayout = weekLayout(monday, freeMemo: false, events: events)
+        let paper = PaperContent.week(WeekPaperContent(layout: memoLayout))
+        let old = PaperContent.week(WeekPaperContent(layout: oldLayout))
+        let hours = CGRect(x: 0, y: 0, width: 1400, height: 1920)
+        let heading = Int(PDFPageRenderer.headingHeight(paper))
+        XCTAssertEqual(heading, 76)
+
+        // paperInRect: the memo leaves the drawing only when the rectangle leaves it out.
+        let drawn = PDFPageRenderer.paperInRect(paper, rect: hours)
+        XCTAssertNil(drawn.layout.cells[.extra])
+        XCTAssertEqual(drawn.layout.cells[.grid], memoLayout.cells[.grid])
+        XCTAssertEqual(drawn.layout.size, memoLayout.size, "a copy of the layout, nothing laid out again")
+        XCTAssertEqual(PDFPageRenderer.paperInRect(paper, rect: CGRect(x: 0, y: 0, width: 1400, height: 1920 + 700)), paper)
+        XCTAssertEqual(PDFPageRenderer.paperInRect(old, rect: hours), old)
+        let day = PaperContent.day(DayPaperContent(layout: dayLayout(today)))
+        XCTAssertEqual(PDFPageRenderer.paperInRect(day, rect: CGRect(x: 0, y: 0, width: 1000, height: 2400)), day, "the day keeps its free memo's line (1.1)")
+
+        // The rows of a PDF page `a` from `a0` and of `b` from `b0`, `rows` of them: the pixels that differ.
+        func differing(_ a: Bitmap, from a0: Int, _ b: Bitmap, from b0: Int, rows: Int) -> Int {
+            guard a.width == b.width, a0 + rows <= a.height, b0 + rows <= b.height else { return -1 }
+            let rowBytes = a.width * 4
+            var count = 0
+            for y in 0..<rows {
+                let same = a.bytes.withUnsafeBytes { pa in
+                    b.bytes.withUnsafeBytes { pb in
+                        memcmp(pa.baseAddress! + (a0 + y) * rowBytes, pb.baseAddress! + (b0 + y) * rowBytes, rowBytes) == 0
+                    }
+                }
+                if same { continue }
+                for x in 0..<a.width where a.pixel(x, a0 + y) != b.pixel(x, b0 + y) {
+                    count += 1
+                }
+            }
+            return count
+        }
+
+        // 43fe366's week paper on a PDF page of the 24 hours, drawn as PDFPageRenderer.render draws a paper.
+        var frozenLayout = oldLayout
+        frozenLayout.nowLine = nil
+        let frozenData = UIGraphicsPDFRenderer(bounds: hours).pdfData { context in
+            context.beginPage()
+            let ctx = context.cgContext
+            ctx.setFillColor(PaperPalette.paper.cgColor)
+            ctx.fill(hours)
+            ctx.saveGState()
+            ctx.clip(to: hours)
+            let view = PaperView(content: .week(WeekPaperContent(layout: frozenLayout)))
+            view.contentScaleFactor = PDFPageRenderer.inkScale
+            Frozen123WeekPaper.draw(WeekPaperContent(layout: frozenLayout), in: ctx, dirty: hours, zoom: 1, view: view)
+            ctx.restoreGState()
+        }
+        let frozen = try render(pdf: frozenData)
+        XCTAssertEqual(frozen.height, 1920)
+
+        let empty = InkPage.empty(pageId: memoLayout.pageId)
+        let app = try render(pdf: PDFPageRenderer.render(paper, page: empty, title: "t"))
+        XCTAssertEqual(app.height, heading + 1920)
+        XCTAssertEqual(differing(app, from: heading, frozen, from: 0, rows: 1920), 0, "the paper of the PDF is 43fe366's")
+        // The bottom row under Monday's column (no line there in 1.2.3): the paper colour, no trace of the line at 24:00.
+        XCTAssertTrue(near(app.pixel(160, heading + 1919), paperColor), "the bottom row: \(app.pixel(160, heading + 1919))")
+
+        var gridOnly = empty
+        gridOnly.add(stroke("grid", cell: .grid, line(CGPoint(x: 100, y: 1000), CGPoint(x: 500, y: 1100))))
+        var across = gridOnly
+        across.add(stroke("across", cell: .grid, line(CGPoint(x: 600, y: 1860), CGPoint(x: 700, y: 1970))))
+        for (name, page) in [("empty", empty), ("a grid stroke", gridOnly), ("a grid stroke across 24:00", across)] {
+            let withMemo = try render(pdf: PDFPageRenderer.render(paper, page: page, title: "t"))
+            let without = try render(pdf: PDFPageRenderer.render(old, page: page, title: "t"))
+            XCTAssertEqual(withMemo.height, heading + 1920, name)
+            XCTAssertEqual(without.height, heading + 1920, name)
+            XCTAssertEqual(differing(withMemo, from: 0, without, from: 0, rows: heading + 1920), 0, "\(name): the week PDF with the memo laid out is 1.2.3's")
+        }
     }
 
     // MARK: - 6. Joined weeks
