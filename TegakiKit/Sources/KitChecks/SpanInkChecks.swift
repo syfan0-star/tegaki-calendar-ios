@@ -1127,6 +1127,73 @@ func spanComposerRandomChecks(_ kind: PageKind, seed: UInt64) {
     check(outside >= 10, "span random \(kind): \(outside) strokes with points outside their page are kept (§4.1)")
 }
 
+// MARK: - Fixture 4: the week memo (§5.2, §6.3 (4))
+
+/// What fixture 4's three files hold as 1.3 lays them out (the week with its memo, `freeMemo: true`, as both paths
+/// of the app do) and as 1.2.3 does (no memo): the memo strokes are `extra` (centres at 24:00 and below, a cell 1.2.3's
+/// week does not have, so they are kept and not drawn there), the line written across 24:00 (e) is `grid` with its
+/// centre above 24:00 and its lower part below it, the guard stroke (a) is `grid` centred below 24:00 and byte for
+/// byte as hand-written, and the Sunday file opens only with the Sunday start (K-11 (6)).
+func weekMemoFixtureChecks(pages: [String: InkPage], handWritten: Data?) {
+    typealias F = CompatSpanFixtures
+    let now = CompatFixtures.now
+    let tokyo = CompatFixtures.tokyo
+    func layout(_ pageId: String, _ start: WeekStart, memo: Bool) -> WeekPageLayout? {
+        guard let parsed = PageNavigation.parse(pageId: pageId), parsed.kind == .week else { return nil }
+        return WeekLayoutEngine.layout(WeekLayoutInput(focus: parsed.focus, events: [], inkBottoms: pages.values.first { $0.pageId == pageId }?.inkBottoms() ?? [:],
+                                                       now: now, calendar: tokyo, weekStart: start, freeMemo: memo))
+    }
+    /// The stroke's bounds (± half the nib) in the paper of `layout`.
+    func bounds(_ s: InkStroke, _ l: WeekPageLayout) -> CGRect? {
+        guard let cell = l.cells[s.cell] else { return nil }
+        return s.paperBounds(cellOrigin: cell.origin)
+    }
+    let midnight = PaperSpec.weekGridHeight
+    for (name, pageId, start) in [(F.weekMemo, "w-2026-12-14", WeekStart.monday), (F.weekMemoNeighbor, "w-2026-12-21", .monday),
+                                  (F.weekMemoSunday, "w-2026-12-20", .sunday)] {
+        guard let page = pages[name], let memo = layout(pageId, start, memo: true), let old = layout(pageId, start, memo: false) else {
+            check(false, "compat-span 4: \(name) is there and lays out as a week")
+            continue
+        }
+        checkEqual(memo.pageId, pageId, "compat-span 4: \(name) opens as \(pageId) with the \(start) start")
+        let other: WeekStart = start == .monday ? .sunday : .monday
+        check(layout(pageId, other, memo: true)?.pageId != pageId, "compat-span 4: \(name) is not the \(other) start's page (each start has its own memo, K-11 (6))")
+        checkEqual(memo.size, CGSize(width: 1400, height: 7920), "compat-span 4: \(name) 1.3's week is 1,400 × 7,920 with the memo")
+        check(old.cells[.extra] == nil && old.size == CGSize(width: 1400, height: 1920), "compat-span 4: \(name) 1.2.3's week has no memo cell")
+        for s in page.liveStrokes where s.cell == .extra {
+            guard let b = bounds(s, memo) else {
+                check(false, "compat-span 4: \(name) \(s.id) has bounds in 1.3's memo")
+                continue
+            }
+            let centre = CGPoint(x: b.midX, y: b.midY)
+            check(b.minY > midnight && memo.inkCell(forCenter: centre) == .extra && PaperGrowth.drop(center: centre, in: memo) == nil,
+                  "compat-span 4: \(name) \(s.id) lies in the memo below 24:00 and a new stroke there is filed in extra (\(b))")
+            check(old.cells[s.cell] == nil, "compat-span 4: \(name) \(s.id) is in a cell 1.2.3's week does not draw (kept, F1)")
+        }
+    }
+    if let page = pages[F.weekMemo], let memo = layout("w-2026-12-14", .monday, memo: true) {
+        let grid = page.liveStrokes.filter { $0.cell == .grid }
+        let across = grid.filter { $0.id != F.weekMemoGuardId }
+        checkEqual(across.count, 1, "compat-span 4: one grid line written across 24:00 (e)")
+        if let e = across.first, let b = bounds(e, memo) {
+            check(b.midY <= midnight && b.maxY > midnight && b.minY < midnight && memo.inkCell(forCenter: CGPoint(x: b.midX, y: b.midY)) == .grid,
+                  "compat-span 4: (e) is centred above 24:00 (grid, as 1.0–1.2.3 write it) and its lower part shows over the memo (\(b))")
+            check(e.points.count == 9 && e.points.first?.y == 1860 && e.points.last?.y == 1970, "compat-span 4: (e) runs from y 1,860 to 1,970, nothing cut")
+        }
+        if let a = page.strokes[F.weekMemoGuardId], let b = bounds(a, memo) {
+            check(a.cell == .grid && b.midY > midnight && memo.inkCell(forCenter: CGPoint(x: b.midX, y: b.midY)) == .extra,
+                  "compat-span 4: (a) is a grid stroke centred below 24:00, where 1.3 files a new stroke in extra (\(b))")
+            let hand = handWritten.flatMap { try? JSONValue.parse($0) }
+            checkEqual(SpanInk.strokeJSON(page, F.weekMemoGuardId), hand?["strokes"]?[F.weekMemoGuardId]?.serialized(),
+                       "compat-span 4: (a) is byte for byte as hand-written (an import's or a hand-edited file's shape)")
+            check(page.liveStrokes.filter { $0.id != F.weekMemoGuardId }.allSatisfy { hand?["strokes"]?[$0.id] == nil },
+                  "compat-span 4: fixture 4 is not hand-written JSON alone: every other stroke is the session's")
+        } else {
+            check(false, "compat-span 4: (a) the guard stroke is in w-2026-12-14")
+        }
+    }
+}
+
 // MARK: - The compat-span fixtures (§4.2, §6.3, K-7)
 
 func spanCompatFixtureChecks() {
@@ -1140,14 +1207,15 @@ func spanCompatFixtureChecks() {
     checkEqual(manifest, F.manifestData(), "compat-span: MANIFEST is what the maker writes (KitChecks --write-compat-span-fixtures)")
     let listed = manifest.flatMap(F.parseManifest) ?? []
     checkEqual(listed, F.entries, "compat-span: MANIFEST lists every file with its fixture number and shape")
-    checkEqual(Set(listed.map(\.fixture)), [1, 2, 3, 5, 6, 7], "compat-span: fixtures 1–3 and 5–7 (4 belongs to the week memo, §5)")
-    checkEqual(listed.filter { $0.shape == .sunday }.map(\.name), [F.sundayOverhang], "compat-span: only the Sunday-start week is of shape sunday")
+    checkEqual(Set(listed.map(\.fixture)), [1, 2, 3, 4, 5, 6, 7], "compat-span: fixtures 1–7 (4: the week memo, §5.2)")
+    checkEqual(listed.filter { $0.shape == .sunday }.map(\.name), [F.weekMemoSunday, F.sundayOverhang],
+               "compat-span: only the Sunday-start weeks (the week memo's and the overhang's) are of shape sunday")
     let onDisk = ((try? fm.contentsOfDirectory(atPath: folder.path)) ?? []).filter { $0.hasSuffix(".json") }.sorted()
     checkEqual(onDisk, listed.map(\.name).sorted(), "compat-span: every *.json of the folder is in MANIFEST, and every listed file is there")
     for (name, data) in made.files {
         check((try? Data(contentsOf: folder.appendingPathComponent(name))) == data, "compat-span: \(name) is what the joined path of the Kit writes")
     }
-    check(made.recovered.isEmpty && made.deltaCount == 22, "compat-span: \(made.deltaCount) deltas made the files; the safety net had nothing to bring back")
+    check(made.recovered.isEmpty && made.deltaCount == 27, "compat-span: \(made.deltaCount) deltas made the files; the safety net had nothing to bring back")
 
     // Each file as 1.3 reads it.
     var pages: [String: InkPage] = [:]
@@ -1163,7 +1231,9 @@ func spanCompatFixtureChecks() {
         check(SpanGuard.checkForSave(page) == .ok && SpanGuard.checkForTransfer(page), "compat-span: \(e.name) has no window name (saves and goes out as it is)")
         check(e.name.hasPrefix(page.pageId + ".") && page.v == 1 && page.unknown.isEmpty,
               "compat-span: \(e.name) holds \(page.pageId), v 1 and no new top-level item (K-5)")
-        check(page.strokes.values.allSatisfy { !$0.id.contains("|") && !$0.cell.raw.contains("|") && !$0.cell.raw.contains("~") && $0.dev == F.device }
+        // Every stroke is the session's (dev fixture-1.3) but fixture 4's hand-written guard stroke (dev web, an import's).
+        check(page.strokes.values.allSatisfy { !$0.id.contains("|") && !$0.cell.raw.contains("|") && !$0.cell.raw.contains("~")
+                                               && ($0.dev == F.device || ($0.id == F.weekMemoGuardId && $0.dev == "web")) }
               && !page.pageId.contains("|") && !page.pageId.contains("~"),
               "compat-span: \(e.name) the strokes 1.3 wrote have no | in their ids and cells, no ~ in their cells (K-10)")
         let sunday = page.pageId.hasPrefix("w-") && SpanInk.expectedWriteForm(page.pageId)
@@ -1182,6 +1252,9 @@ func spanCompatFixtureChecks() {
         (F.moveDestination, [("grid", 300, 500)], 0, 0),
         (F.extraCrossLeft, [("extra", 600, 1300)], 0, 0),
         (F.extraCrossRight, [("extra", -300, 600)], 0, 0),
+        (F.weekMemo, [("extra", 200, 700), ("extra", 900, 1700), ("grid", 400, 720), ("grid", 900, 1140)], 0, 0),
+        (F.weekMemoNeighbor, [("extra", -300, 500)], 0, 0),
+        (F.weekMemoSunday, [("extra", 300, 1000)], 0, 0),
         (F.sundayOverhang, [("grid", -300, 500), ("grid", 900, 1700)], 0, 0),
         (F.overlapNovember, [("2026-11-30", 30, 130), ("2026-12-01", 30, 130)], 0, 0),
         (F.overlapDecember, [("2026-11-30", 30, 130), ("2026-12-01", 30, 130)], 0, 0),
@@ -1223,6 +1296,9 @@ func spanCompatFixtureChecks() {
               && neighbor.unknownStrokes.values.contains { $0["rect"]?.arrayValue?.first?.doubleValue == -80 },
               "compat-span: the items' rects (one past the right edge, one left of the page) are untouched")
     }
+    // Fixture 4 (§5.2): the week memo on the Monday week and its neighbour, the Sunday week's own memo, and the two
+    // `grid` strokes below 24:00 — the line written across it (e) and the hand-written guard stroke (a).
+    weekMemoFixtureChecks(pages: pages, handWritten: made.handWritten["w-2026-12-14"])
     for e in listed where e.name != F.photoTextNeighbor {
         checkEqual(made.saves[e.name], .ok, "compat-span: \(e.name) was saved as it was (the guard found nothing)")
     }
@@ -1237,7 +1313,8 @@ func spanCompatFixtureChecks() {
 
     // The frozen 1.0 copy, file by file (§6.3): what 1.0 reads, draws, lassoes and writes back.
     let drawnBy10: [String: Int] = [F.weekOverhang: 1, F.dayOverhang: 1, F.monthOverhang: 2, F.yearOverhang: 2, F.moveSource: 1,
-                                    F.moveDestination: 1, F.extraCrossLeft: 0, F.extraCrossRight: 0, F.sundayOverhang: 2,
+                                    F.moveDestination: 1, F.extraCrossLeft: 0, F.extraCrossRight: 0, F.weekMemo: 2,
+                                    F.weekMemoNeighbor: 0, F.weekMemoSunday: 0, F.sundayOverhang: 2,
                                     F.overlapNovember: 2, F.overlapDecember: 2, F.photoText: 1, F.photoTextNeighbor: 1]
     for e in listed {
         guard let data = files[e.name], let new = pages[e.name], let old = try? InkPageCodecV10.decode(data) else {

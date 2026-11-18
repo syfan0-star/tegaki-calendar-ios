@@ -7,16 +7,17 @@ import XCTest
 /// K-7 for 1.3 on the real 1.2.3 app (docs/M7C_CONTRACT.md §6.3, §10.4): the ledger and the sync engine of the
 /// version on sale when 1.3 starts (commit 43fe36666a2120e8a23adf4fc76244151a395e6f, build 23) on every
 /// compat-span fixture (TegakiKit/Tests/Fixtures/compat-span, the Monday and the Sunday shapes): strokes reaching
-/// out of their page, the move across pages, the free memo across two days, the Sunday-start week, the days two
-/// month pages share, the photo and the text label of a later version. The shape of
+/// out of their page, the move across pages, the free memo across two days, the week memo (fixture 4), the
+/// Sunday-start week, the days two month pages share, the photo and the text label of a later version. The shape of
 /// tools/compat10/AppTests/Real10LedgerTests.swift, on the ledger 1.2.3 ships: `PaperGrowth.needsMoreRoom`, the
 /// day's `extra` open to 6,000 lu, the week start (a Sunday week is laid out with the Sunday start, as a 1.2.x
 /// device set to Sunday opens it).
 ///
-/// Fixture 4 (the week memo's `extra` on a `w-` page and a week `grid` stroke moved below 24:00) belongs to the
-/// week memo stage (§5) and is not in the folder yet. When it is added to the MANIFEST, `testEveryRowHasItsCount`
-/// fails until its row is written into `drawnBy123` below (1.2.3's week has no `extra` cell, so the memo's strokes
-/// are kept and not drawn; the moved `grid` stroke is drawn).
+/// Fixture 4 (the week memo stage, §5.2): the week memo's `extra` strokes on two Monday weeks and a Sunday week, and
+/// two `grid` strokes of a Monday week reaching below 24:00 (one written across it, one centred below it as only an
+/// import or a hand-edited file leaves it). 1.2.3's week has no `extra` cell, so the memo's strokes are kept and not
+/// drawn; the two `grid` strokes are drawn (their counts in `drawnBy123`). The Sunday week's memo is read by the
+/// ledger of a 1.2.x device set to the Sunday start (the combination no other fixture has).
 ///
 /// It is NOT a test of the 1.3 app. CI's compat-v1.0 job takes 43fe366 out with `git archive`, copies this file
 /// into its Tests/TegakiCalendarTests, generates that project and runs only
@@ -59,6 +60,9 @@ final class Real123LedgerTests: XCTestCase {
         "w-2026-11-23.move-destination.json": 1,
         "d-2026-11-09.extra-cross.json": 1,
         "d-2026-11-10.extra-cross.json": 1,
+        "w-2026-12-14.week-memo.json": 2,            // the two grid strokes; the memo's (extra) are kept, not drawn
+        "w-2026-12-21.week-memo-neighbor.json": 0,   // the week memo (extra) only
+        "w-2026-12-20.week-memo-sunday.json": 0,     // the Sunday start opens it; the week memo (extra) only
         "w-2026-11-08.sunday-overhang.json": 2,      // the Sunday start opens it
         "m1-2026-11.overlap-day.json": 2,
         "m1-2026-12.overlap-day.json": 2,
@@ -87,7 +91,7 @@ final class Real123LedgerTests: XCTestCase {
             let data = try Data(contentsOf: url.appendingPathComponent(name))
             out.append(Fixture(name: name, shape: String(parts[2]), data: data, json: try JSONValue.parse(data)))
         }
-        XCTAssertGreaterThanOrEqual(out.count, 13, "the 13 compat-span files of S1 are there")
+        XCTAssertGreaterThanOrEqual(out.count, 16, "the 16 compat-span files (S1's 13 and the week memo's 3) are there")
         return out
     }
 
@@ -121,8 +125,8 @@ final class Real123LedgerTests: XCTestCase {
     func testEveryRowHasItsCount() throws {
         let all = try fixtures()
         XCTAssertEqual(Set(all.map(\.name)), Set(drawnBy123.keys),
-                       "every MANIFEST row has its count in drawnBy123 (fixture 4, the week memo, comes with §5)")
-        XCTAssertEqual(all.filter { $0.shape == "sunday" }.map(\.name), ["w-2026-11-08.sunday-overhang.json"])
+                       "every MANIFEST row has its count in drawnBy123")
+        XCTAssertEqual(all.filter { $0.shape == "sunday" }.map(\.name), ["w-2026-12-20.week-memo-sunday.json", "w-2026-11-08.sunday-overhang.json"])
     }
 
     // MARK: - 1. What the 1.2.3 ledger draws

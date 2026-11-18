@@ -403,6 +403,40 @@ final class WeekMemoSpanTests: XCTestCase {
         XCTAssertEqual(session.saveAll(), [])
     }
 
+    /// §9.3 5 (§4.4, the compat fixture 4's w-2026-12-14): the two `grid` strokes reaching below 24:00 on the one-page path's
+    /// week. (e) written across 24:00 (centred above it): drawn, its lower part over the memo, a candidate of the lasso,
+    /// still `grid` (K-2), and moved 300 lu down it is the memo's. (a) centred below 24:00 (an import's or a hand-edited
+    /// file's): drawn over the memo, a candidate of the lasso, `grid`, and moved it is the memo's. Whether the PDF keeps
+    /// the memo for them (it does not: 1,920 lu, as 1.2.3's) is the paper's test (`WeekMemoPaperSpanTests`).
+    func testGridStrokesBelowMidnightShowOverTheMemo() throws {
+        let url = Self.repository.appendingPathComponent("TegakiKit/Tests/Fixtures/compat-span/w-2026-12-14.week-memo.json")
+        let page = try InkPageCodec.decode(try Data(contentsOf: url))
+        let acrossId = "d4a9a7dd-5ae3-487e-9dd9-728032f38f40"
+        let guardId = "6e2b8d4f-5a7c-4e9b-8d1f-4b5c6d7e8f95"
+        XCTAssertEqual(page.strokes[acrossId]?.cell, .grid)
+        XCTAssertEqual(page.strokes[guardId]?.cell, .grid)
+        let week = try onePageWeek(DayKey(year: 2026, month: 12, day: 14), inkBottoms: page.inkBottoms())
+        XCTAssertEqual(week.pageId, page.pageId)
+        let ledger = InkLedger(page: page, layout: week)
+        XCTAssertEqual(ledger.drawing().strokes.count, 4, "the two grid strokes and the two memo strokes are drawn")
+
+        let across = try XCTUnwrap(ledger.paperBounds(of: acrossId), "(e) is a candidate of the lasso")
+        XCTAssertLessThanOrEqual(across.midY, midnight, "(e) is centred above 24:00")
+        XCTAssertGreaterThan(across.maxY, midnight, "(e)'s lower part shows over the memo")
+        XCTAssertLessThan(across.maxY, week.size.height)
+        let guardBounds = try XCTUnwrap(ledger.paperBounds(of: guardId), "(a) is a candidate of the lasso")
+        XCTAssertGreaterThan(guardBounds.minY, midnight, "(a) lies below 24:00, over the memo")
+        XCTAssertEqual(week.inkCell(forCenter: CGPoint(x: guardBounds.midX, y: guardBounds.midY)), .extra,
+                       "a new stroke there would be the memo's; (a) stays grid until it is moved")
+
+        let movedAcross = ledger.moveStrokes(ids: [acrossId], by: CGVector(dx: 0, dy: 300))
+        XCTAssertEqual(movedAcross.change.added.first?.cell, .extra, "(e) moved down: centred below 24:00, the memo's")
+        let movedGuard = ledger.moveStrokes(ids: [guardId], by: CGVector(dx: 0, dy: 10))
+        XCTAssertEqual(movedGuard.change.added.first?.cell, .extra, "(a) moved: the memo's")
+        XCTAssertEqual(ledger.page.liveStrokes.filter { $0.cell == .grid }.count, 0)
+        XCTAssertEqual(ledger.page.liveStrokes.filter { $0.cell == .extra }.count, 4)
+    }
+
     // MARK: - No event in the memo
 
     /// §9.3 6, the plan's decisions 4 and 28: in the week memo the 予定 tool and 「予定にする」 make no event (the day's rule

@@ -21,6 +21,9 @@ let expectedDrawn: [String: Int?] = [
     "w-2026-11-23.move-destination.json": 1,
     "d-2026-11-09.extra-cross.json": 0,       // extra only
     "d-2026-11-10.extra-cross.json": 0,
+    "w-2026-12-14.week-memo.json": 2,         // the two grid strokes (one across 24:00, one below it); the memo's are extra
+    "w-2026-12-21.week-memo-neighbor.json": 0, // the week memo (extra) only
+    "w-2026-12-20.week-memo-sunday.json": nil, // a Sunday week: 1.0 opens w-2026-12-14 for that day
     "w-2026-11-08.sunday-overhang.json": nil, // a Sunday week: 1.0 opens w-2026-11-02 for that day
     "m1-2026-11.overlap-day.json": 2,
     "m1-2026-12.overlap-day.json": 2,
