@@ -27,6 +27,13 @@ import XCTest
 ///   first-time guide's cards of the week and the day for one and two fingers (`--screenshot-span-guide one|two`), and
 ///   stage 2's notice N-8 (`--screenshot-span-guide stage-two`, a toast: the photo waits for its text, read from the
 ///   string catalogue the job names in `TEST_RUNNER_TEGAKI_SPAN_SHOT_STRINGS`).
+/// - `testWeekMemo` (1.3, the week memo below 24:00: docs/M7C_CONTRACT.md §5.2, §11.2; the week memo plan PLAN_W §7.3;
+///   the iPad Air 11-inch and the iPhone 17, portrait): the week opened 420 lu above 24:00 (`--screenshot-offset 0,1500`)
+///   with the memo's demo strokes (`--screenshot-week-memo`), on one page (`--screenshot-span off`, `path=one`:
+///   `<device>-portrait-week-memo-single.png`) and on the band with the focus page's left boundary in the middle
+///   (`--screenshot-span on --screenshot-offset-x -0.5`, `path=span`, the memo stroke drawn across the boundary there:
+///   `-band.png`). Each photo's paper must be 7,920 lu tall (the probe's `ph`: the 24 hours' 1,920 and the memo's
+///   6,000), or the test fails: the photo would show a week without the memo. The pixels are WeekMemoPaperSpanTests'.
 ///
 /// A portrait photo is the app's screenshot (XCUIScreenshot). A turned screen is photographed by the job instead
 /// (`TEST_RUNNER_TEGAKI_SPAN_SHOT_REQUESTS`: the test writes a request, the job's `simctl io screenshot` writes the file and
@@ -70,6 +77,9 @@ final class SpanShotsUITests: XCTestCase {
     ]
     /// The paper's width in lu (week 1,400, day 1,000), when the probe has no `pw`.
     private static let paperWidth = ["week": 1_400.0, "day": 1_000.0]
+    /// The week's paper with its memo (lu): the 24 hours (1,920) and the memo's 6,000 (`PaperGrowth.tailHeight` of an
+    /// empty memo; the demo's memo strokes stay near its top).
+    private static let weekMemoPaperHeight = 7_920.0
     /// How long a photo waits after the screen has settled (s): the sticky heading follows the canvas's report on a later
     /// turn (`BlankPaperShotsUITests.photoWait`).
     private let photoWait: TimeInterval = 1
@@ -124,6 +134,17 @@ final class SpanShotsUITests: XCTestCase {
         }
     }
 
+    func testWeekMemo() throws {
+        let setup = try setup()
+        guard ["ipad11", "iphone"].contains(setup.device) else {
+            throw XCTSkip("the week memo photos are taken on the iPad Air 11-inch and the iPhone 17")
+        }
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let memo = ["--screenshot-page", "week", "--screenshot-week-memo", "--screenshot-offset", "0,1500"]
+        weekMemo(setup, variant: "single", path: "one", arguments: memo + ["--screenshot-span", "off"])
+        weekMemo(setup, variant: "band", path: "span", arguments: memo + ["--screenshot-span", "on", "--screenshot-offset-x", "-0.5"])
+    }
+
     func testLanguages() throws {
         let setup = try setup()
         guard ProcessInfo.processInfo.environment["TEGAKI_SPAN_SHOT_LANGUAGES"] == "1" else {
@@ -163,6 +184,27 @@ final class SpanShotsUITests: XCTestCase {
         let photo = takePhoto(app, setup, file: "\(name).png", turned: orientation != .portrait)
         record(setup, "span-shots UI: \(name) photo=\(photo.how) window=\(Self.text(app.windows.firstMatch.frame)) "
             + "frame=\(Self.text(view?.frame ?? .zero)) state=\(stateLabel(app)) probe=\(view?.raw ?? "-")")
+    }
+
+    /// One photo of the week memo, portrait: the path (`span.state`) as asked and settled, and the paper 7,920 lu tall.
+    private func weekMemo(_ setup: Setup, variant: String, path: String, arguments: [String]) {
+        let name = "\(setup.device)-portrait-week-memo-\(variant)"
+        XCUIDevice.shared.orientation = .portrait
+        let app = launch(arguments)
+        defer { app.terminate() }
+        if waitForState(app, timeout: 45, { $0["path"] == path }) == nil {
+            XCTFail("\(name): span.state never read path=\(path)")
+        }
+        let view = settled(app, withState: true)
+        if view == nil { XCTFail("\(name): the canvas never settled") }
+        Thread.sleep(forTimeInterval: photoWait)
+        let photo = takePhoto(app, setup, file: "\(name).png", turned: false)
+        let hasMemo = view?.probe["ph"].flatMap { Double($0) }.map { abs($0 - Self.weekMemoPaperHeight) < 0.5 } ?? false
+        if !hasMemo {
+            XCTFail("\(name): the paper is \(view?.probe["ph"] ?? "?") lu tall, not 7,920 (the 24 hours and the memo's 6,000): no memo")
+        }
+        record(setup, "span-shots UI: \(name) photo=\(photo.how) window=\(Self.text(app.windows.firstMatch.frame)) "
+            + "frame=\(Self.text(view?.frame ?? .zero)) ph=\(view?.probe["ph"] ?? "?") state=\(stateLabel(app)) probe=\(view?.raw ?? "-")")
     }
 
     /// One pair before and after a shift (C3-M4), in one launch.

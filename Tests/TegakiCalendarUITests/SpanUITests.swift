@@ -19,6 +19,12 @@ import XCTest
 /// XCUITest has no two-finger gesture (its public drags are one finger in a straight line), so a slide here is one
 /// finger with 「指でも書く」 off; the two-finger slide and pinch with 「指でも書く」 on stay with the owner's TestFlight
 /// check (§11.3 12, 13). An iPhone only (the UI test step's iPhone 17); elsewhere these skip.
+///
+/// The week memo below 24:00 (1.3, §5.2; the week memo plan PLAN_W §9.4): the week opened 320 lu above 24:00
+/// (`--screenshot-offset 0,1600`), once joined (`--screenshot-span on`, `path=span`) and once on one page
+/// (`--screenshot-span off`, `path=one`: the setting off). A finger line in the memo is filed in 10/5's week's `extra`
+/// on both paths, and the 予定 tool in the memo shows the notice and opens no sheet on both. Screenshot mode saves
+/// nothing, so the stroke is read from `span.state`'s `last=` (the screen's own pages), not from a file.
 @MainActor
 final class SpanUITests: XCTestCase {
     private static let focusWeek = "w-2026-10-05"
@@ -30,6 +36,14 @@ final class SpanUITests: XCTestCase {
     private static let weekHour: CGFloat = 80
     /// `SpanPlan.focusHysteresis`: the focus moves 6 % of a page past the focus page's edge.
     private static let focusHysteresis: CGFloat = 0.06
+    /// The top of the week memo (lu): the week's 24 hours (`PaperSpec.weekGridHeight`).
+    private static let memoTop: CGFloat = 1920
+    /// The week's paper with its memo (lu): the 24 hours and the memo's 6,000 (`PaperGrowth.tailHeight` of an empty memo).
+    private static let memoPaperHeight: CGFloat = 7920
+    /// Where the memo's tests open: the paper point (lu) at the top left, 320 lu above 24:00.
+    private static let memoOffset = ["--screenshot-offset", "0,1600"]
+    /// `CalendarRootScreen.eventBelowDayToast` without the 「24 時の下の」 (as EraserAndBelowDayUITests reads it).
+    private static let belowDayNotice = "自由メモ欄では予定を作れません"
     /// A gesture whose synthesis took longer than this (s) beyond its own length met an overloaded simulator
     /// (YearTapUITests): it is tried once more.
     private let slowGesture: TimeInterval = 2.5
@@ -247,24 +261,130 @@ final class SpanUITests: XCTestCase {
         XCTAssertGreaterThan(again.probe.ink, one.probe.ink, "\(name): the neighbours and the crossing demo are back")
     }
 
+    /// 1.3 (§5.2; PLAN_W §9.4, risk 1): 「指でも書く」 on, one finger writes a line in the week memo, 300 lu below 24:00
+    /// from x 450 to 950 of 10/5's week — joined, then on one page. Both times the newest stroke (`last=`) is in 10/5's
+    /// week, in `extra` (the memo), within the page: each of the app's two week layouts has the memo.
+    func testWriteInTheWeekMemoOnBothPaths() throws {
+        try skipUnlessPhone()
+        continueAfterFailure = true
+        for joined in [true, false] {
+            writeInTheWeekMemo(joined: joined)
+        }
+    }
+
+    /// 1.3 (§5.2; PLAN_W §9.4, risk 5): the 予定 tool (`--screenshot-tool event`) dragged in the week memo, in Wednesday
+    /// 10/7's column from 150 to 400 lu below 24:00 — joined, then on one page: the notice
+    /// 「24 時の下の自由メモ欄では予定を作れません」 on the screen and no create sheet, as on the day (EraserAndBelowDayUITests).
+    func testNoEventInTheWeekMemo() throws {
+        try skipUnlessPhone()
+        continueAfterFailure = true
+        for joined in [true, false] {
+            eventInTheWeekMemo(joined: joined)
+        }
+    }
+
+    // MARK: - The week memo
+
+    private func writeInTheWeekMemo(joined: Bool) {
+        let name = "memo line \(joined ? "joined" : "one page")"
+        let app = launch(Self.memoOffset, fingerDraws: true, joined: joined, name)
+        defer { app.terminate() }
+        guard let start = waitForPath(app, joined: joined, name) else { return }
+        XCTAssertEqual(start.state["focus"], Self.focusWeek, "\(name): the focus week")
+        XCTAssertEqual(start.probe.paperHeight, Self.memoPaperHeight, accuracy: 0.5,
+                       "\(name): the week's paper has the memo (1,920 + 6,000 lu; probe \(start.probe.raw))")
+        let y = Self.memoTop + 300
+        let from = start.probe.screen(CGPoint(x: start.origin + 450, y: y))
+        let to = start.probe.screen(CGPoint(x: start.origin + 950, y: y))
+        log("\(name): the line \(from) → \(to) (24:00 at y \(start.probe.screen(CGPoint(x: start.origin, y: Self.memoTop)).y))")
+        let inside = start.probe.frame.insetBy(dx: 4, dy: 4)
+        guard inside.contains(from), inside.contains(to) else {
+            return XCTFail("\(name): the line \(from) → \(to) is outside the canvas \(start.probe.frame) (probe \(start.probe.raw))")
+        }
+
+        let length = hypot(to.x - from.x, to.y - from.y)
+        var drawn: Snapshot?
+        for attempt in 1...2 {
+            waitUntilResponsive(canvasElement(in: app))
+            let took = drag(in: app, from: from, to: to, velocity: 250)
+            drawn = waitFor(app, timeout: 6, "\(name): the line") {
+                $0.probe.pk == start.probe.pk + 1 && $0.state["last"] != start.state["last"]
+            }
+            log("\(name): drew (attempt \(attempt), \(seconds(took))): \(drawn != nil ? "1 stroke more" : "NOT drawn")")
+            if drawn != nil || took <= length / 250 + 0.2 + slowGesture { break }
+            log("\(name): RETRY the line (the simulator was overloaded)")
+        }
+        keepScreenshot(app, "\(name) — after")
+        guard let drawn else {
+            return XCTFail("\(name): a finger stroke with the pen did not add a line (probe \(probe(app)?.raw ?? "-"); span.state \(stateLabel(app)))")
+        }
+        attach(drawn.stateRaw, "\(name) — span.state")
+        guard let last = Newest(drawn.state["last"] ?? "-") else {
+            return XCTFail("\(name): span.state has no newest stroke (\(drawn.stateRaw))")
+        }
+        log("\(name): the newest stroke is in \(last.pageId) \(last.cell), x \(last.minX) … \(last.maxX) of its page")
+        XCTAssertEqual(drawn.state["path"], joined ? "span" : "one", "\(name): still the same path")
+        XCTAssertEqual(last.pageId, Self.focusWeek, "\(name): 10/5's week holds the line")
+        XCTAssertEqual(last.cell, "extra", "\(name): in the week memo below 24:00, not in the 24 hours (\(drawn.state["last"] ?? "-"))")
+        XCTAssertTrue(last.minX > 0 && last.maxX < Self.weekWidth && last.maxX - last.minX > 250,
+                      "\(name): the whole line, inside its page (\(last.minX) … \(last.maxX))")
+    }
+
+    private func eventInTheWeekMemo(joined: Bool) {
+        let name = "memo event \(joined ? "joined" : "one page")"
+        let app = launch(Self.memoOffset + ["--screenshot-tool", "event"], fingerDraws: true, joined: joined, name)
+        defer { app.terminate() }
+        guard let start = waitForPath(app, joined: joined, name) else { return }
+        XCTAssertEqual(start.probe.tool, "event", "\(name): the 予定 tool (probe \(start.probe.raw))")
+        XCTAssertEqual(start.probe.paperHeight, Self.memoPaperHeight, accuracy: 0.5,
+                       "\(name): the week's paper has the memo (1,920 + 6,000 lu; probe \(start.probe.raw))")
+        // Wednesday 10/7's column is x 445.7 … 636.6 of the week (64 + 2 × 190.9).
+        let from = start.probe.screen(CGPoint(x: start.origin + 480, y: Self.memoTop + 150))
+        let to = start.probe.screen(CGPoint(x: start.origin + 600, y: Self.memoTop + 400))
+        let inside = start.probe.frame.insetBy(dx: 4, dy: 4)
+        guard inside.contains(from), inside.contains(to) else {
+            return XCTFail("\(name): the frame \(from) → \(to) is outside the canvas \(start.probe.frame) (probe \(start.probe.raw))")
+        }
+        waitUntilResponsive(canvasElement(in: app))
+        let took = drag(in: app, from: from, to: to, velocity: 200)
+        log("\(name): dragged \(from) → \(to) in \(seconds(took)); probe \(probe(app)?.raw ?? "-")")
+        let notice = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", Self.belowDayNotice)).firstMatch
+        let shown = notice.waitForExistence(timeout: 5)
+        let sheet = app.buttons["保存"].waitForExistence(timeout: shown ? 0.5 : 1)
+        let window = app.windows.firstMatch.frame
+        let frame = shown ? notice.frame : .zero
+        keepScreenshot(app, "\(name) — after")
+        log("\(name): notice \(shown ? "shown at \(frame)" : "NOT shown"); window \(window); create sheet \(sheet ? "OPENED" : "none"); span.state \(stateLabel(app))")
+        XCTAssertTrue(shown, "\(name): 「24 時の下の自由メモ欄では予定を作れません」 is shown")
+        if shown {
+            XCTAssertTrue(window.insetBy(dx: -0.5, dy: -0.5).contains(frame) && frame.width > 0 && frame.height > 0,
+                          "\(name): the notice lies on the screen (\(frame) in \(window))")
+        }
+        XCTAssertFalse(sheet, "\(name): no create sheet in the week memo")
+        if sheet {
+            app.buttons["キャンセル"].tap()
+        }
+    }
+
     // MARK: - Launching and reading
 
     private func skipUnlessPhone() throws {
         try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "the joined week's UI tests are for an iPhone")
     }
 
-    /// The week page of 2026-10 joined, in Japanese, 「指でも書く」 as asked and already chosen (YearTapUITests).
-    private func launch(_ extra: [String], fingerDraws: Bool, _ name: String) -> XCUIApplication {
+    /// The week page of 2026-10 joined (`joined` false: on one page, the setting off), in Japanese, 「指でも書く」 as asked
+    /// and already chosen (YearTapUITests).
+    private func launch(_ extra: [String], fingerDraws: Bool, joined: Bool = true, _ name: String) -> XCUIApplication {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         app.launchArguments = [
             "--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week",
-            "--screenshot-span", "on", "--screenshot-probe",
+            "--screenshot-span", joined ? "on" : "off", "--screenshot-probe",
             "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP",
             "-allowFingerDrawing", fingerDraws ? "YES" : "NO", "-allowFingerDrawingChosen", "YES",
         ] + extra
         app.launch()
-        log("\(name): launched (finger \(fingerDraws ? "draws" : "moves the paper")) \(extra.joined(separator: " "))")
+        log("\(name): launched \(joined ? "joined" : "on one page") (finger \(fingerDraws ? "draws" : "moves the paper")) \(extra.joined(separator: " "))")
         return app
     }
 
@@ -319,6 +439,13 @@ final class SpanUITests: XCTestCase {
     /// The canvas and the joined window, settled (`path=span`, two reads alike), after a simulator that answers
     /// quickly. Fails (with the element tree) and gives nil otherwise.
     private func waitForJoined(_ app: XCUIApplication, _ name: String) -> Snapshot? {
+        waitForPath(app, joined: true, name)
+    }
+
+    /// The canvas settled on the path asked for: the joined window (`path=span`, more than one page) or one page
+    /// (`path=one`, the setting off), two reads alike, after a simulator that answers quickly. Fails (with the element
+    /// tree) and gives nil otherwise.
+    private func waitForPath(_ app: XCUIApplication, joined: Bool, _ name: String) -> Snapshot? {
         let canvas = canvasElement(in: app)
         guard canvas.waitForExistence(timeout: 30) else {
             log("\(name): no 「ink-canvas」 element. Elements:\n\(app.debugDescription)")
@@ -326,9 +453,13 @@ final class SpanUITests: XCTestCase {
             return nil
         }
         log("\(name): waited \(waitUntilResponsive(canvas)) s for the app to answer quickly")
-        guard let start = waitFor(app, timeout: 30, "\(name): the joined window", until: { $0.state["path"] == "span" && $0.pages > 1 }) else {
+        let what = joined ? "the joined window" : "one page"
+        let path = joined ? "span" : "one"
+        guard let start = waitFor(app, timeout: 30, "\(name): \(what)", until: { snapshot in
+            snapshot.state["path"] == path && (joined ? snapshot.pages > 1 : snapshot.pages == 1)
+        }) else {
             log("\(name): Elements:\n\(app.debugDescription)")
-            XCTFail("\(name): the screen did not settle on the joined path (span.state \(stateLabel(app)))")
+            XCTFail("\(name): the screen did not settle on \(joined ? "the joined path" : "one page") (span.state \(stateLabel(app)))")
             return nil
         }
         log("\(name): window=\(app.windows.firstMatch.frame) canvas=\(start.probe.frame) span.state \(start.stateRaw); probe \(start.probe.raw)")
@@ -496,6 +627,10 @@ private struct SpanProbe {
     var offset: CGPoint { CGPoint(x: number("ox") ?? 0, y: number("oy") ?? 0) }
     var pk: Int { values["pk"].flatMap { Int($0) } ?? -1 }
     var ink: Int { values["ink"].flatMap { Int($0) } ?? -1 }
+    /// The paper's (on the joined path the band's) height, lu.
+    var paperHeight: CGFloat { number("ph") ?? 0 }
+    /// The canvas's tool (`InkCanvasView.Coordinator.probeName`: `pen:…`, `eraser`, `lasso`, `event`).
+    var tool: String { values["tool"] ?? "" }
     var isReady: Bool { zoom > 0 && frame.width > 0 && frame.height > 0 }
 
     /// A band point (lu) on screen (pt).
