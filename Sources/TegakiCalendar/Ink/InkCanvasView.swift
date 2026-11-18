@@ -1180,7 +1180,7 @@ extension InkCanvasView {
             guard viewport.width > 0, viewport.height > 0 else { return }
             // 1.3 (§3.6): the window's limits come from one page's overview (the middle one), never the band's.
             let overview = spanState == nil ? ZoomPolicy.overviewSize(appliedLayout) : bandZoomOverview()
-            let bounds = ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport)
+            let bounds = spanState == nil ? ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport) : bandZoomBounds(overview: overview, viewport: viewport)
 
             // 2. Same limits (a layout pass during a pinch, a height change the width-bound month
             // ignores): the margins may still differ (the height changed), the window follows.
@@ -2918,7 +2918,7 @@ extension InkCanvasView.Coordinator {
         if geometryChanged, !tailOnly {
             let viewport = container.bounds.size
             if hasInitialZoom, viewport.width > 0, viewport.height > 0 {
-                applyBounds(ZoomPolicy.bounds(newBand.kind, overview: InkCanvasView.bandOverview(newBand), viewport: viewport))
+                applyBounds(newBand.plan.zoomBounds(overview: InkCanvasView.bandOverview(newBand), viewport: viewport))
             }
             let zoomNow = max(canvas.zoomScale, 0.0001)
             let delta = PageScroll.scrollDelta(old: oldBand, new: newBand, topVisibleY: topVisibleY)
@@ -2986,6 +2986,14 @@ extension InkCanvasView.Coordinator {
         }
         guard let band = appliedLayout as? SpanLayout else { return ZoomPolicy.overviewSize(appliedLayout) }
         return InkCanvasView.bandOverview(band)
+    }
+
+    /// `containerDidLayout`'s limits on the joined path (P-B6 イ): the band plan's `SpanPlan.zoomBounds` — on an iPhone
+    /// in landscape the lowest and the opening zoom show at most 3 weeks / 5 days across. The cap follows the paper area
+    /// (wider than tall), so a turn has it in this pass, before the window is decided anew at rest.
+    fileprivate func bandZoomBounds(overview: CGSize, viewport: CGSize) -> ZoomPolicy.Bounds {
+        guard let band = appliedLayout as? SpanLayout else { return ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport) }
+        return band.plan.zoomBounds(overview: overview, viewport: viewport)
     }
 
     /// The first layout's entry: at the opening zoom (and without `initialPaperOffset`) the focus page opens in

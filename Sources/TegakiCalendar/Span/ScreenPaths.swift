@@ -95,10 +95,12 @@ final class ScreenPaths: ObservableObject {
         case reopen(DayKey)
         /// Near, at the overview: slide by this many pages (`slidePages`).
         case slide(Int)
-        /// Zoomed in: bring this rect (band lu) on screen (`revealRect`).
+        /// Zoomed in: bring this rect (band lu) on screen (`revealRect`). Also today's page already the focus at the capped
+        /// overview (P-B6 イ, the lead's decision 7): the hour before now down to the now line, y only (`cappedTodayRect`).
         case reveal(CGRect)
-        /// Today's page is the focus at the overview: nothing moves (1.2.3's 「今日」 on the page shown; review J7 — the
-        /// screen does not know the paper's y, and a rect a whole page high would take the paper to its top).
+        /// Today's page is the focus at an overview that holds the whole day: nothing moves (1.2.3's 「今日」 on the page
+        /// shown; review J7 — the screen does not know the paper's y, and a rect a whole page high would take the paper to
+        /// its top).
         case stay
     }
 
@@ -404,11 +406,13 @@ final class ScreenPaths: ObservableObject {
         onePage.open(loaded)
     }
 
+    /// The screen's windows cap the iPhone's landscape overview (P-B6 イ, 11/18: `overviewCap: true`; 3 weeks / 5 days
+    /// across, the window 7 / 9).
     private func makeSession(_ o: Opening, device: Device) -> SpanSession {
         openings += 1
         return SpanSession(kind: o.kind, weekStart: o.weekStart, focus: o.focus, sync: sync, deviceClass: device.deviceClass,
                            orientation: device.orientation, number: openings, context: o.context, paperArea: o.paperArea,
-                           eventSource: eventSource,
+                           overviewCap: true, eventSource: eventSource,
                            loader: { [weak self, sync, kind = o.kind, weekStart = o.weekStart] id in
                                self?.read(id, kind: kind, weekStart: weekStart) ?? sync.load(id)
                            },
@@ -932,8 +936,10 @@ final class ScreenPaths: ObservableObject {
 
     /// 「今日」 on the joined path (the plan §4.1, the lead's decision): far → a new window; near and at the overview → slide;
     /// today's page already the focus at the overview → nothing (1.2.3: the same page does not move; review J7); zoomed in
-    /// → bring today's column on screen from an hour before now. `viewport` is the last one reported (nil: `ratio`, the
-    /// stored one), `area` the paper area. nil off the joined path.
+    /// → bring today's column on screen from an hour before now. At the capped overview (P-B6 イ, the lead's decision 7 of
+    /// 11/18: an iPhone in landscape, about half of the 24 hours on screen) today's page already the focus is
+    /// `cappedTodayRect`'s reveal: a now line off the screen comes back, y only; nothing moves while it is on screen.
+    /// `viewport` is the last one reported (nil: `ratio`, the stored one), `area` the paper area. nil off the joined path.
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat) -> Today? {
         guard path == .joined, let session = span else { return nil }
         switch session.today(day) {
@@ -941,10 +947,17 @@ final class ScreenPaths: ObservableObject {
             return .reopen(focus)
         case .slide(let pages):
             let zoomed = Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio)
-            if !zoomed { return pages != 0 ? .slide(pages) : .stay }
+            if !zoomed, pages != 0 { return .slide(pages) }
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
                                      calendar: session.context.calendar, area: area, ratio: ratio)
+            if !zoomed {
+                guard Self.atCappedOverview(layout: session.layout, width: shown.width, zoom: shown.zoom),
+                      let rect = Self.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                      calendar: session.context.calendar, viewport: shown)
+                else { return .stay }
+                return .reveal(rect)
+            }
             guard let rect = Self.todayRect(layout: session.layout, pageId: session.plan.pageId(at: session.plan.index(containing: day)),
                                             now: now, calendar: session.context.calendar, viewport: shown, area: area)
             else { return nil }
@@ -952,12 +965,12 @@ final class ScreenPaths: ObservableObject {
         }
     }
 
-    /// Whether the paper is zoomed in past the overview (the ratio of the reported zoom over the window's opening zoom;
-    /// before a report, the stored ratio).
+    /// Whether the paper is zoomed in past the overview (the ratio of the reported zoom over the window's opening zoom,
+    /// `SpanPlan.zoomBounds`: the cap's on an iPhone in landscape, P-B6 イ; before a report, the stored ratio).
     static func zoomedIn(layout: SpanLayout, viewport: PaperViewport?, area: CGSize, ratio: CGFloat) -> Bool {
         guard let viewport, viewport.width > 0 else { return ratio > overviewRatio }
-        let bounds = ZoomPolicy.bounds(layout.kind, overview: InkCanvasView.bandOverview(layout),
-                                       viewport: CGSize(width: viewport.width, height: area.height))
+        let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout),
+                                            viewport: CGSize(width: viewport.width, height: area.height))
         return ZoomPolicy.ratio(forZoom: viewport.zoom, bounds: bounds) > overviewRatio
     }
 
@@ -977,6 +990,57 @@ final class ScreenPaths: ObservableObject {
         let top = PageNavigation.initialScrollY(page, now: now, calendar: calendar)
         let height = area.height > 0 ? area.height / zoom : page.size.height
         return CGRect(x: column.minX, y: top + ZoomPolicy.revealMargin / zoom, width: column.width, height: height)
+    }
+
+    // MARK: The capped overview (P-B6 イ; the lead's decisions 6 and 7 of 11/18)
+
+    /// Whether `zoom` is the capped overview of a paper area `width` pt wide: the iPhone's landscape overview of a window with
+    /// the cap (`SpanPlan.overviewCap`; 3 weeks / 5 days across, zoom = width ÷ (pages × the paper's width), the lowest and
+    /// the opening zoom of `SpanPlan.zoomBounds` there), which holds only about half of the 24 hours. Every other overview —
+    /// an iPad, the iPhone in portrait (its cap is below its lowest zoom), a window without the cap, a first frame whose
+    /// height is not measured yet (the width alone: the cap is not applied) — and a zoomed-in paper are above it: false.
+    static func atCappedOverview(layout: SpanLayout, width: CGFloat, zoom: CGFloat) -> Bool {
+        guard layout.plan.overviewCap, width.isFinite, width > 0, zoom.isFinite, zoom > 0,
+              let pages = SpanPlan.overviewCapPages(layout.kind, deviceClass: layout.plan.deviceClass, orientation: .landscape)
+        else { return false }
+        return zoom <= width / (pages * ZoomPolicy.paperWidth(layout.kind)) * overviewRatio
+    }
+
+    /// Where today's page opens at the capped overview (the lead's decision 6, paper lu): an hour before now (not above
+    /// 0:00), `PageNavigation.initialScrollY`'s rule of a zoomed-in page, read from the page's own now line (the now and the
+    /// calendar the window was laid out with; screenshot mode's 「今日」 too). nil when the page does not hold today (it
+    /// opens at 0:00, as every page did).
+    static func cappedOpeningY(layout: SpanLayout, pageId: String) -> CGFloat? {
+        guard let slot = layout.slot(ofPage: pageId), let line = layout.pages[slot].nowLine else { return nil }
+        let minutes = max(line.minute - 60, 0)
+        if let week = layout.pages[slot] as? WeekPageLayout { return week.minutesToY(minutes) }
+        if let day = layout.pages[slot] as? DayPageLayout { return day.minutesToY(minutes) }
+        return nil
+    }
+
+    /// The rect (band lu) 「今日」 reveals when today's page is already the focus at the capped overview (the lead's decision
+    /// 7): from an hour before now (as `todayRect`) down to the now line, at the middle of the screen with no width, so x
+    /// never moves. The canvas's reveal moves the least (`ZoomPolicy.revealOffset`; the screen does not know the paper's
+    /// y): nothing while the now line (and the hour before it) is on screen; a now line above the screen comes back with
+    /// the hour before now at the top; one below it comes up to the bottom edge. nil when today is not on `pageId`.
+    static func cappedTodayRect(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, viewport: PaperViewport) -> CGRect? {
+        guard let slot = layout.slot(ofPage: pageId), viewport.zoom.isFinite, viewport.zoom > 0,
+              viewport.width.isFinite, viewport.width > 0 else { return nil }
+        let page = layout.pages[slot]
+        let today = DayKey(now, calendar: calendar)
+        let minute = TimedEventEngine.minutesOfDay(now, calendar: calendar)
+        let line: CGFloat
+        if let week = page as? WeekPageLayout, week.days.contains(today) {
+            line = week.minutesToY(minute)
+        } else if let day = page as? DayPageLayout, day.day == today {
+            line = day.minutesToY(minute)
+        } else {
+            return nil
+        }
+        let zoom = viewport.zoom
+        let top = PageNavigation.initialScrollY(page, now: now, calendar: calendar) + ZoomPolicy.revealMargin / zoom
+        let middle = (viewport.offsetX + viewport.width / 2) / zoom
+        return CGRect(x: middle, y: top, width: 0, height: max(0, line - top))
     }
 
     /// The paper stopped on a focus page (`onSpanStop`; §3.7, D20, C3-m6, C3-m7): the screen's focus moves to it keeping
@@ -1091,21 +1155,31 @@ final class ScreenPaths: ObservableObject {
         CGPoint(x: point.x + (layout.slot(ofPage: focusPageId).map(layout.origin(ofSlot:)) ?? 0), y: point.y)
     }
 
-    /// The canvas's `initialPaperOffset` of a window in screenshot mode (band lu; §3.12, the plan §7.3): with `pages`
+    /// The canvas's `initialPaperOffset` of a window (band lu; §3.12, the plan §7.3): with `pages`
     /// (`Config.spanOpeningOffsetX`: `--screenshot-offset-x`, else +1 with `--screenshot-span-shift`) the band x
     /// `origin(focus) + W/2 + pages·W` is in the middle of the canvas `viewportWidth` wide at `zoom` (the zoom the window
-    /// is expected to open at; −0.5 puts the focus page's left boundary in the middle), y `--screenshot-offset`'s or 0;
-    /// else `--screenshot-offset` with the focus page's origin added; nil without either (the canvas then opens the focus
-    /// page in the middle). The canvas clamps it to the band.
+    /// is expected to open at; −0.5 puts the focus page's left boundary in the middle), y `--screenshot-offset`'s, else the
+    /// opening's; else `--screenshot-offset` with the focus page's origin added. The opening's y is 0 except on today's page
+    /// at the capped overview (P-B6 イ, the lead's decision 6: `cappedOpeningY`, an hour before now), which opens there with
+    /// the focus page in the middle (pages 0) in normal use too; nil otherwise (the canvas then opens the focus page in the
+    /// middle at 0:00). The canvas clamps it to the band.
     static func shotPaperOffset(layout: SpanLayout, focusPageId: String, pages: CGFloat?, offset: CGPoint?,
                                 viewportWidth: CGFloat, zoom: CGFloat) -> CGPoint? {
-        guard let pages, pages.isFinite, let slot = layout.slot(ofPage: focusPageId) else {
+        let todayY = atCappedOverview(layout: layout, width: viewportWidth, zoom: zoom)
+            ? cappedOpeningY(layout: layout, pageId: focusPageId) : nil
+        let shift: CGFloat
+        if let pages, pages.isFinite {
+            shift = pages
+        } else if offset == nil, todayY != nil {
+            shift = 0
+        } else {
             return offset.map { bandPoint($0, layout: layout, focusPageId: focusPageId) }
         }
+        guard let slot = layout.slot(ofPage: focusPageId) else { return offset.map { bandPoint($0, layout: layout, focusPageId: focusPageId) } }
         let width = layout.plan.pageWidth
-        let centre = layout.origin(ofSlot: slot) + width / 2 + pages * width
+        let centre = layout.origin(ofSlot: slot) + width / 2 + shift * width
         let half = viewportWidth.isFinite && viewportWidth > 0 && zoom.isFinite && zoom > 0 ? viewportWidth / 2 / zoom : 0
-        return CGPoint(x: centre - half, y: offset?.y ?? 0)
+        return CGPoint(x: centre - half, y: offset?.y ?? todayY ?? 0)
     }
 
     // MARK: Screenshot mode's guide (§3.12, §3.14)
@@ -1138,18 +1212,20 @@ final class ScreenPaths: ObservableObject {
 
     // MARK: The band's lu, continued
 
-    /// The zoom a window opens at for `area` (the paper area; its width alone while the height is 0) and the stored ratio.
+    /// The zoom a window opens at for `area` (the paper area; its width alone while the height is 0) and the stored ratio,
+    /// over `SpanPlan.zoomBounds` (the cap's opening zoom on an iPhone in landscape, P-B6 イ).
     static func bandZoom(layout: SpanLayout, area: CGSize, ratio: CGFloat) -> CGFloat {
-        ZoomPolicy.zoom(forRatio: ratio, bounds: ZoomPolicy.bounds(layout.kind, overview: InkCanvasView.bandOverview(layout), viewport: area))
+        ZoomPolicy.zoom(forRatio: ratio, bounds: layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area))
     }
 
     /// The viewport of a window's first frame, before its canvas reported one (HANDOFF 6): at the overview the focus page in
-    /// the middle (`offsetX = (origin + W/2)·zoom − width/2`), zoomed in at `bandStart`'s x.
+    /// the middle (`offsetX = (origin + W/2)·zoom − width/2`), zoomed in at `bandStart`'s x (the overview and the zoom of
+    /// `SpanPlan.zoomBounds`, P-B6 イ).
     static func bandViewport(layout: SpanLayout, focusPageId: String, now: Date, calendar: Calendar, area: CGSize, ratio: CGFloat) -> PaperViewport {
         let width = area.width.isFinite && area.width > 0 ? area.width : 0
         let zoom = bandZoom(layout: layout, area: area, ratio: ratio)
         guard let slot = layout.slot(ofPage: focusPageId), width > 0 else { return PaperViewport(offsetX: 0, zoom: zoom, width: width) }
-        let bounds = ZoomPolicy.bounds(layout.kind, overview: InkCanvasView.bandOverview(layout), viewport: area)
+        let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area)
         if ZoomPolicy.ratio(forZoom: zoom, bounds: bounds) <= overviewRatio {
             return PaperViewport(offsetX: (layout.origin(ofSlot: slot) + layout.plan.pageWidth / 2) * zoom - width / 2, zoom: zoom, width: width)
         }

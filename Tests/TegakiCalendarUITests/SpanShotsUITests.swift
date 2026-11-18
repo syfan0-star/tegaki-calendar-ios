@@ -10,7 +10,10 @@ import XCTest
 ///
 /// - `testBands`: the week and the day joined, the focus page's left boundary in the middle (`--screenshot-offset-x -0.5`,
 ///   the crossing demo there) and the overview, portrait on every device and landscape on the iPhone (C3-m1: no iPad
-///   landscape band), and the week starting on Sunday on the iPad Air 11-inch.
+///   landscape band), and the week starting on Sunday on the iPad Air 11-inch. The iPhone's landscape band is the capped
+///   overview (P-B6 イ, 11/18): its window must become 7 weeks / 9 days (`span.state`'s `pages`, waited for), and today's
+///   page (the demo's 「今日」 is 10:00 on the focus day) must open at 9:00 (the lead's decision 6: the probe's `oy` ÷ `zoom`
+///   is 720 lu on the week, 900 on the day), or the test fails; `span cap:` lines record both.
 /// - `testShiftPairs` (C3-M4; iPad Air 11-inch and iPhone 17, week and day, one launch per pair): the band opens one page
 ///   off (`--screenshot-span-shift`) and the screen holds the shift (`span.state`'s `hold=on`). "Before" is taken once the
 ///   probe and `span.state` read the same twice (the window composed and its neighbours read), then `span.release` is
@@ -93,8 +96,12 @@ final class SpanShotsUITests: XCTestCase {
         for orientation in orientations {
             for kind in ["week", "day"] {
                 for (variant, extra) in [("boundary", ["--screenshot-offset-x", "-0.5"]), ("overview", [String]())] {
+                    // P-B6 イ: the iPhone's landscape window is 7 weeks / 9 days (the cap; without it 9 / 15), and today's page
+                    // opens an hour before the demo's 10:00 (the lead's decision 6: 9 h × 80 lu on the week, × 100 on the day).
+                    let capped = setup.device == "iphone" && orientation != .portrait
                     band(setup, name: "\(setup.device)-\(Self.name(orientation))-\(kind)-\(variant)", orientation: orientation,
-                         arguments: ["--screenshot-page", kind, "--screenshot-span", "on"] + extra)
+                         arguments: ["--screenshot-page", kind, "--screenshot-span", "on"] + extra,
+                         pages: capped ? (kind == "week" ? 7 : 9) : nil, openingY: capped ? (kind == "week" ? 720 : 900) : nil)
                 }
             }
         }
@@ -170,8 +177,10 @@ final class SpanShotsUITests: XCTestCase {
 
     // MARK: The photos
 
-    /// One band photo: the joined path open (`path=span`) and settled.
-    private func band(_ setup: Setup, name: String, orientation: UIDeviceOrientation, arguments: [String]) {
+    /// One band photo: the joined path open (`path=span`) and settled; with `pages` the window's size (waited for) and with
+    /// `openingY` the paper y (lu) at the top of the canvas, checked (P-B6 イ).
+    private func band(_ setup: Setup, name: String, orientation: UIDeviceOrientation, arguments: [String], pages: Int? = nil,
+                      openingY: Double? = nil) {
         XCUIDevice.shared.orientation = orientation
         let app = launch(arguments)
         defer { app.terminate() }
@@ -180,6 +189,22 @@ final class SpanShotsUITests: XCTestCase {
         }
         let view = settled(app, withState: true)
         if view == nil { XCTFail("\(name): the canvas never settled") }
+        if let pages {
+            // P-B6 イ (R7): wait for the window decided anew after the launch's turn, then check its size.
+            let started = Date()
+            let read = waitForState(app, timeout: 10, { $0["pages"] == "\(pages)" })
+            let waited = Date().timeIntervalSince(started)
+            record(setup, "span cap: device=\(setup.device) kind=\(name) pages=\(read?["pages"] ?? stateLabel(app)) expected=\(pages) waited=\(String(format: "%.1f", waited))s")
+            if read == nil { XCTFail("\(name): the window is not \(pages) pages (P-B6 イ): \(stateLabel(app))") }
+        }
+        if let openingY {
+            let zoom = view?.probe["zoom"].flatMap { Double($0) } ?? 0
+            let top = zoom > 0 ? (view?.probe["oy"].flatMap { Double($0) }).map { $0 / zoom } : nil
+            record(setup, "span cap: device=\(setup.device) kind=\(name) top=\(top.map { String(format: "%.1f", $0) } ?? "?")lu expected=\(openingY)lu")
+            if top.map({ abs($0 - openingY) > 1 }) ?? true {
+                XCTFail("\(name): the paper opened at y \(top.map { String(format: "%.1f", $0) } ?? "?") lu, not \(openingY) (an hour before now on today's page, P-B6 イ's decision 6)")
+            }
+        }
         Thread.sleep(forTimeInterval: photoWait)
         let photo = takePhoto(app, setup, file: "\(name).png", turned: orientation != .portrait)
         record(setup, "span-shots UI: \(name) photo=\(photo.how) window=\(Self.text(app.windows.firstMatch.frame)) "

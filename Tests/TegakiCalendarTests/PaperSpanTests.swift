@@ -462,6 +462,26 @@ final class PaperSpanTests: XCTestCase {
         XCTAssertTrue(StickyHeaderView.sparseShows(today, every: 2, anchor: today.dayNumber))
     }
 
+    /// P-B6 イ (R3): the joined heading's forms at the capped overview of an iPhone in landscape (week 3, day 5 pages
+    /// across), by the paper area's width without the safe area: 874 (the reference), 832 (Pro Max), 750 (iPhone 17: the
+    /// week's column is 34.08 pt, 0.08 over `joinedWeekNumberPoints`; the border is 748.2 pt), 734 (iPhone 15 / 16) and
+    /// 667 (SE). Literals worked out by hand, so a change of a threshold, of the column's lu or of the cap shows here.
+    func testCappedIPhoneLandscapeHeadingForms() {
+        let week: [(CGFloat, StickyHeaderView.WeekCellForm)] = [(874, .number), (832, .number), (750, .number),
+                                                                (734, .sparse(every: 2)), (667, .sparse(every: 2))]
+        for (width, form) in week {
+            let zoom = width / (3 * PaperSpec.weekWidth)
+            XCTAssertEqual(StickyHeaderView.weekCellForm(joined: true, columnPoints: PaperSpec.weekColumnWidth * zoom), form, "week, \(width) pt")
+        }
+        XCTAssertEqual(PaperSpec.weekColumnWidth * 750 / 4_200, 34.08, accuracy: 0.01, "the iPhone 17's week column")
+        let day: [(CGFloat, StickyHeaderView.DayBlockForm)] = [(874, .full), (832, .numberAndWeekday), (750, .numberAndWeekday),
+                                                               (734, .numberAndWeekday), (667, .numberAndWeekday)]
+        for (width, form) in day {
+            let zoom = width / (5 * PaperSpec.dayWidth)
+            XCTAssertEqual(StickyHeaderView.dayBlockForm(joined: true, columnPoints: 588 * zoom), form, "day, \(width) pt")
+        }
+    }
+
     /// Decision 4: the forms of the joined heading by the column width (`weekCellForm`, `dayBlockForm`), the
     /// sparse days, the month over the time column and 「終日」. That one page never thins is held on screen by
     /// `testAWindowOfOnePageKeepsThePageHeading` (the views do not ask these functions for one page).

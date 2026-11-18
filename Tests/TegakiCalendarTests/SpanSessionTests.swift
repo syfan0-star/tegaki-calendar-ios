@@ -119,13 +119,13 @@ final class SessionTestBed {
     /// A session of the bed's engine, its timers on `sessionSleeper`, the engine's two hooks routed to it as the
     /// screen routes them.
     func session(_ kind: PageKind = .week, focus: DayKey, weekStart: WeekStart = .monday, number: Int = 1, radius: Int? = nil,
-                 deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait,
-                 eventSource: ((DayKey, DayKey) -> [LayoutEvent])? = nil) -> SpanSession {
+                 deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait, overviewCap: Bool = false,
+                 paperArea: CGSize? = nil, eventSource: ((DayKey, DayKey) -> [LayoutEvent])? = nil) -> SpanSession {
         let sleeper = sessionSleeper
         let session = SpanSession(kind: kind, weekStart: weekStart, focus: focus, sync: engine, deviceClass: deviceClass,
                                   orientation: orientation, number: number,
-                                  context: SpanSession.PaperContext(now: now, calendar: SessionTestBed.tokyo), radius: radius,
-                                  eventSource: eventSource,
+                                  context: SpanSession.PaperContext(now: now, calendar: SessionTestBed.tokyo), paperArea: paperArea,
+                                  radius: radius, overviewCap: overviewCap, eventSource: eventSource,
                                   sleep: { await sleeper.sleep($0) },
                                   clock: { [weak self] in self?.now ?? Date(timeIntervalSince1970: 1_790_000_000) })
         engine.onRemoteUpdate = { [weak session] in session?.remoteUpdated($0) }
@@ -1450,6 +1450,28 @@ final class SpanSessionTests: XCTestCase {
         XCTAssertFalse(next.fallsBackToOnePage)
         XCTAssertEqual((try FileManager.default.attributesOfItem(atPath: bed.store.url(for: farLeft).path))[.size] as? NSNumber, 3_100_000)
         XCTAssertEqual(faults, [])
+    }
+
+    /// P-B6 イ (11/18): a session with the cap on an iPhone in landscape opens 7 weeks / 9 days (V 3 / 5), the measured
+    /// paper area of many all-day lanes does not widen it (without the cap the same area gives 11 / 17), a turn keeps the
+    /// cap (`redecide` builds the plan with it), and the iPhone's portrait and an iPad keep their windows.
+    func testOverviewCapNarrowsTheIPhoneLandscapeWindow() async throws {
+        for (kind, capped, wide, portrait) in [(PageKind.week, 7, 11, 5), (.day, 9, 17, 5)] {
+            let lanes = CGSize(width: 874, height: 150)
+            let session = bed.session(kind, focus: nov16, deviceClass: .iPhone, orientation: .landscape, overviewCap: true, paperArea: lanes)
+            XCTAssertTrue(session.plan.overviewCap, "\(kind)")
+            XCTAssertEqual(session.pageIds.count, capped, "\(kind): the capped window")
+            let plain = bed.session(kind, focus: nov16, number: 2, deviceClass: .iPhone, orientation: .landscape, paperArea: lanes)
+            XCTAssertEqual(plain.pageIds.count, wide, "\(kind): without the cap the lanes widen it")
+            XCTAssertTrue(session.redecide(orientation: .portrait, paperArea: CGSize(width: 402, height: 540)))
+            XCTAssertEqual(session.pageIds.count, portrait, "\(kind): portrait")
+            XCTAssertTrue(session.redecide(orientation: .landscape, paperArea: CGSize(width: 874, height: 205)))
+            XCTAssertTrue(session.plan.overviewCap, "\(kind): the turn keeps the cap")
+            XCTAssertEqual(session.pageIds.count, capped, "\(kind): landscape again")
+            let pad = bed.session(kind, focus: nov16, number: 3, deviceClass: .iPadMini, orientation: .landscape, overviewCap: true,
+                                  paperArea: CGSize(width: 1133, height: 525))
+            XCTAssertEqual(pad.pageIds.count, kind == .day ? 9 : 7, "\(kind): an iPad keeps its window (mini landscape 7 / 9)")
+        }
     }
 
     // MARK: The window while the focus moves (§3.6, §3.7)

@@ -257,6 +257,9 @@ final class SpanSession: ObservableObject {
     let inbox = SpanInbox()
     /// The device the window is sized for (fixed: a class is the screen's short side, `SpanDeviceClass`).
     let deviceClass: SpanDeviceClass
+    /// P-B6 イ (11/18): every plan of this session caps the iPhone's landscape overview (`SpanPlan.overviewCap`). The
+    /// screen's sessions pass true (`ScreenPaths.makeSession`); false keeps P-B6 ア's numbers (the tests' default).
+    let overviewCap: Bool
 
     // MARK: The window
 
@@ -358,14 +361,17 @@ final class SpanSession: ObservableObject {
     ///   decision 1), so `fallsBackToOnePage` is decided on the plan's window and the far pages are not read.
     /// - `eventSource`: a page's events for its days (the focus page's are read here, the others with their page).
     /// - `loader`: where a page is read from; nil is `sync.load` (the screen's, wave C §7.4).
+    /// - `overviewCap`: P-B6 イ (11/18), every plan of the session caps the iPhone's landscape overview (3 weeks / 5 days
+    ///   across, the window 7 / 9); the screen passes true, false (the default) is P-B6 ア's numbers.
     init(kind: PageKind, weekStart: WeekStart, focus: DayKey, sync: SyncEngine, guardMode: SpanGuard.Mode = .release,
          deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait, number: Int = 1,
-         context: PaperContext? = nil, paperArea: CGSize? = nil, radius: Int? = nil,
+         context: PaperContext? = nil, paperArea: CGSize? = nil, radius: Int? = nil, overviewCap: Bool = false,
          eventSource: ((DayKey, DayKey) -> [LayoutEvent])? = nil,
          loader: ((String) -> InkPage)? = nil,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
          clock: @escaping () -> Date = Date.init) {
-        let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation)
+        let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation, overviewCap: overviewCap)
+        self.overviewCap = overviewCap
         self.kind = kind
         self.weekStart = weekStart
         self.number = number
@@ -403,12 +409,13 @@ final class SpanSession: ObservableObject {
 
     /// The pages on each side of the focus (§3.6, the lead's decision 1 of S1): the plan's R, or more when the
     /// paper area measured on this screen shows more pages at the lower zoom limit (an all-day band with many
-    /// lanes on an iPhone in landscape). A wider window that holds more strokes than the device's cap is the
-    /// plan's R instead: before its pages are read when the estimate says so (`fittingRadius`), else once they
-    /// are read (`prefetch`).
+    /// lanes on an iPhone in landscape). With the overview cap (P-B6 イ) V stops at the cap (3 weeks / 5 days on an
+    /// iPhone in landscape), so the lanes widen the window only where there is no cap. A wider window that holds more
+    /// strokes than the device's cap is the plan's R instead: before its pages are read when the estimate says so
+    /// (`fittingRadius`), else once they are read (`prefetch`).
     static func windowRadius(plan: SpanPlan, paperArea: CGSize?) -> Int {
         guard let area = paperArea else { return plan.radius }
-        let visible = SpanPlan.visiblePages(plan.kind, viewport: area)
+        let visible = plan.visiblePages(viewport: area)
         return max(plan.radius, SpanPlan.radius(forVisiblePages: visible))
     }
 
@@ -1052,7 +1059,7 @@ final class SpanSession: ObservableObject {
     func redecide(orientation: SpanOrientation, paperArea: CGSize? = nil) -> Bool {
         guard !isClosed else { return false }
         drainInbox()
-        let next = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation)
+        let next = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation, overviewCap: overviewCap)
         let wide = max(1, Self.windowRadius(plan: next, paperArea: paperArea))
         return rebuild(around: focusIndex, plan: next, radius: fittingRadius(wide, plan: next, focus: focusIndex), change: .redecide)
     }
