@@ -1,6 +1,6 @@
 # tools/span-compat — 古い版の本物で compat-span の見本を読む
 
-1.3 は、ページをまたいで書いた線（紙の外の点を持つ線）・ページをまたぐ移動・日曜始まりの週の帯・写真と文字の札の形の知らない道具の項目を保存する（`docs/M7C_CONTRACT.md` の §4.2、§6.3）。その見本 `TegakiKit/Tests/Fixtures/compat-span/` を、**古い版の本物の TegakiKit とアプリ**が読んでも、消さない・切らない・動かさない・変えないことを確かめる（K-7）。`tools/compat10` と `tools/weekstart-compat` は変えず、ここに別に置く。
+1.3 は、ページをまたいで書いた線（紙の外の点を持つ線）・ページをまたぐ移動・週のメモ・日曜始まりの週の帯・写真と文字の札の形の知らない道具の項目を保存する（`docs/M7C_CONTRACT.md` の §4.2、§6.3）。その見本 `TegakiKit/Tests/Fixtures/compat-span/` を、**古い版の本物の TegakiKit とアプリ**が読んでも、消さない・切らない・動かさない・変えないことを確かめる（K-7）。`tools/compat10` と `tools/weekstart-compat` は変えず、ここに別に置く。
 
 | ファイル | 役目 |
 | --- | --- |
@@ -41,4 +41,6 @@ CI は `compat-v1.0` のジョブで、既にある `v10`・`v11` の checkout �
 
 ## 見本を足すとき
 
-週のメモの見本（fixture 4、§5）を `MANIFEST` に足すと、Probe（3 つの `Version.swift` の `expectedDrawn`）・`Real123LedgerTests`（`drawnBy123`）・`TegakiKit/Tests/CompatSpanTests` が、その行の期待が無いことで落ちる。見本のファイルから数を書き出して、それぞれに 1 行足す（1.2.3 までの週には `extra` のマスが無いので、週のメモの線は描かれず残る）。月曜の形なら、CI が compat11 の一時フォルダにも写すので、`tools/compat-span/EXPECTED_MIN` も数え直す。
+見本を `MANIFEST` に足すと、Probe（3 つの `Version.swift` の `expectedDrawn`）・`Real123LedgerTests`（`drawnBy123`）・`TegakiKit/Tests/CompatSpanTests` が、その行の期待が無いことで落ちる。見本のファイルから数を書き出して、それぞれに 1 行足す。月曜の形なら、CI が compat11 の一時フォルダにも写すので、`tools/compat-span/EXPECTED_MIN` も数え直す（1 ファイル 17 件）。
+
+週のメモの見本（fixture 4、§5.2）は 3 つ足した: 月曜の `w-2026-12-14.week-memo.json`（メモの線 2 本と、24 時をまたいで書いた `grid` の線・中心まで 24 時の下にある `grid` の線（取り込みか手で直したファイルの形。手で書いた JSON））、月曜の `w-2026-12-21.week-memo-neighbor.json`（左の週から入るメモの線）、日曜の `w-2026-12-20.week-memo-sunday.json`（日曜の形の週のメモ）。1.2.3 までの週には `extra` のマスが無いので、メモの線は描かれず残る（`grid` の 2 本は描かれる）。1.0・<1.1.1> は日曜の週を開かない。`EXPECTED_MIN` は月曜の 2 ファイルの分（2 × 17）を足した。

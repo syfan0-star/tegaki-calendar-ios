@@ -393,6 +393,12 @@ final class SpanSessionTests: XCTestCase {
         func line(_ x0: CGFloat, _ x1: CGFloat, y: CGFloat, count: Int = 9, dx: CGFloat) -> [CGPoint] {
             (0..<count).map { i in CGPoint(x: dx + x0 + (x1 - x0) * CGFloat(i) / CGFloat(count - 1), y: y + CGFloat(i % 2) * 6) }
         }
+        func slope(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat, count: Int = 9, dx: CGFloat) -> [CGPoint] {
+            (0..<count).map { i in
+                let f = CGFloat(i) / CGFloat(count - 1)
+                return CGPoint(x: dx + x0 + (x1 - x0) * f, y: y0 + (y1 - y0) * f)
+            }
+        }
         func draw(_ ledger: JoinedLedgerStandIn, _ points: [CGPoint], owner: String, cell: CellKey, tool: InkTool = .pen,
                   color: String = "#1f2937", size: CGFloat = 3.5, file: StaticString = #filePath, line: UInt = #line) throws -> InkStroke {
             let s = try XCTUnwrap(ledger.draw(points, size: size, tool: tool, color: color), "a fixture stroke was dropped", file: file, line: line)
@@ -483,6 +489,35 @@ final class SpanSessionTests: XCTestCase {
             try keep("d-2026-11-09.extra-cross.json", "d-2026-11-09", b)
             try keep("d-2026-11-10.extra-cross.json", "d-2026-11-10", b)
         }
+        // 4. The week memo (§5.2): the Monday window w-12-07, w-12-14, w-12-21, the middle page on file with the
+        // hand-written guard stroke (a) (a `grid` stroke centred below 24:00, as only an import or a hand-edited file
+        // leaves it); (e) a `grid` line across 24:00, (b) and (c) memo strokes of w-12-14, (d) one of w-12-21.
+        do {
+            let b = try fresh()
+            let guardPage = try InkPageCodec.decode(Data(Self.weekMemoGuardJSON.utf8))
+            XCTAssertEqual(guardPage.liveStrokeIds, [Self.weekMemoGuardId])
+            let (s, l, dx) = try await open(.week, focus: "w-2026-12-14", firstOfKit: "w-2026-12-07", stored: [guardPage], seed: 0x5A01_000B,
+                                            firstTime: base + 1100, in: b)
+            XCTAssertEqual(s.layout.pages.map { $0.cells[.extra]?.height }, [6000, 6000, 6000], "every joined week has its memo (§5.2)")
+            _ = try draw(l, slope(1800, 1860, 2120, 1970, dx: dx), owner: "w-2026-12-14", cell: .grid)
+            _ = try draw(l, line(1600, 2100, y: 2220, dx: dx), owner: "w-2026-12-14", cell: .extra, color: "#2563eb")
+            _ = try draw(l, line(2300, 3100, y: 2820, dx: dx), owner: "w-2026-12-14", cell: .extra, color: "#dc2626")
+            _ = try draw(l, line(2500, 3300, y: 3420, dx: dx), owner: "w-2026-12-21", cell: .extra, color: "#16a34a")
+            l.deliver()
+            XCTAssertEqual(s.saveAll(), [])
+            try keep("w-2026-12-14.week-memo.json", "w-2026-12-14", b)
+            try keep("w-2026-12-21.week-memo-neighbor.json", "w-2026-12-21", b)
+        }
+        // 4. The Sunday start's own memo: the window w-12-13, w-12-20, w-12-27 (K-11 (6)).
+        do {
+            let b = try fresh()
+            let (s, l, dx) = try await open(.week, .sunday, focus: "w-2026-12-20", firstOfKit: "w-2026-12-13", stored: [], seed: 0x5A01_000C,
+                                            firstTime: base + 1200, in: b)
+            _ = try draw(l, line(1700, 2400, y: 2320, dx: dx), owner: "w-2026-12-20", cell: .extra)
+            l.deliver()
+            XCTAssertEqual(s.saveAll(), [])
+            try keep("w-2026-12-20.week-memo-sunday.json", "w-2026-12-20", b)
+        }
         // 5. A Sunday-start week, out on both sides.
         do {
             let b = try fresh()
@@ -539,9 +574,9 @@ final class SpanSessionTests: XCTestCase {
             XCTAssertEqual(written["w-2026-12-07.photo-text-neighbor.json"], beforeLeak)
         }
 
-        XCTAssertEqual(sessions, 10)
+        XCTAssertEqual(sessions, 12)
         XCTAssertEqual(faults.filter { !$0.hasPrefix("repaired w-2026-12-07") }, [], "no safety net recovery and no other fault")
-        XCTAssertEqual(written.count, 13)
+        XCTAssertEqual(written.count, 16)
         let folder = Self.compatSpanFolder
         let manifest = try String(contentsOf: folder.appendingPathComponent("MANIFEST"), encoding: .utf8)
         let names = manifest.split(separator: "\n").filter { !$0.hasPrefix("#") }.compactMap { $0.split(separator: " ").first.map(String.init) }
@@ -589,6 +624,16 @@ final class SpanSessionTests: XCTestCase {
     "rect":[120,340,360,240],"img":"\(photoDigest)"},\
     "\(textId)":{"id":"\(textId)","cell":"grid","tool":"text","t":1791000000003,"dev":"fixture-1.6",\
     "rect":[1250,900,300,80],"text":"牛乳を買う"}}}
+    """
+
+    // Fixture 4's hand-written page (the guard shape): the same text as `CompatSpanFixtures.weekMemoGuardJSON`.
+    static let weekMemoGuardId = "6e2b8d4f-5a7c-4e9b-8d1f-4b5c6d7e8f95"
+
+    static let weekMemoGuardJSON = """
+    {"v":1,"pageId":"w-2026-12-14","updatedAt":1791000000005,"deleted":{},"strokes":{\
+    "\(weekMemoGuardId)":{"id":"\(weekMemoGuardId)","cell":"grid","tool":"pen","color":"#1f2937","t":1791000000005,"dev":"web",\
+    "pts":[900,2100,0,3.5,3.5,1,0.5,0.785,1.2,960,2130,8,3.5,3.5,1,0.5,0.785,1.2,1020,2160,16,3.5,3.5,1,0.5,0.785,1.2,\
+    1080,2130,24,3.5,3.5,1,0.5,0.785,1.2,1140,2100,32,3.5,3.5,1,0.5,0.785,1.2]}}}
     """
 
     static let photoNeighborJSON = """

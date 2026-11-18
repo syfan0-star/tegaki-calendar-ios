@@ -430,7 +430,8 @@ final class ScreenPaths: ObservableObject {
     /// Screenshot mode's page `pageId` of a window (§3.12, B_DESIGN.md §5.6): `ScreenshotMode.spanDemoPage` around the
     /// photos' day (`shot.focus`, not the window's focus now: a page has the same strokes wherever the window moves),
     /// the focus page the one-page demo, a neighbour the same demo with ids of its own, the crossing demo with
-    /// `--screenshot-span on` (`Config.crossingDemo`).
+    /// `--screenshot-span on` (`Config.crossingDemo`). `--screenshot-week-memo` (1.3, §5.2) reaches `spanDemoPage` through
+    /// its default (`ScreenshotMode.current`): the focus week's memo strokes.
     static func windowDemo(_ shot: ScreenshotMode.Config, pageId: String, kind: PageKind, weekStart: WeekStart) -> InkPage {
         ScreenshotMode.spanDemoPage(pageId: pageId, kind: kind, focus: shot.focus, weekStart: weekStart, crossing: shot.crossingDemo,
                                     grown: shot.grown, empty: shot.empty, tallYear: shot.tallYear, storeInk: shot.storeInk)
@@ -1168,7 +1169,8 @@ final class ScreenPaths: ObservableObject {
     }
 
     /// A rect of the 予定 tool or 「予定にする」 (band lu): the page under its centre (`SpanLayout.eventTarget`, D23) and that
-    /// page's `CalendarRootScreen.newEventPlan` with the rect in its lu (24:00 and below on a day page is refused).
+    /// page's `CalendarRootScreen.newEventPlan` with the rect in its lu (24:00 and below on a day page, and since 1.3 in a
+    /// week's memo, is refused).
     static func newEvent(layout: SpanLayout, rect: CGRect, now: Date) -> (plan: CalendarRootScreen.NewEventPlan, pageId: String)? {
         guard rect.minX.isFinite, rect.minY.isFinite, rect.width.isFinite, rect.height.isFinite,
               let target = layout.eventTarget(at: CGPoint(x: rect.midX, y: rect.midY)),

@@ -17,6 +17,14 @@ import CompatFixtures
 ///    below x 0. (Months and years are joined from 1.7 / 1.8; their fixtures are in from now on.)
 /// 2. A lasso move across pages: a tombstone on the source page, a copy with a new id on the destination.
 /// 3. Free-memo strokes crossing two days (`extra`), one owned by each day.
+/// 4. The week memo below 24:00 (§5.2, the week memo stage): on the Monday week w-2026-12-14 (e) a `grid` line
+///    written across 24:00 (its centre above it, so it stays `grid`; its lower part shows over the memo since 1.3,
+///    the shape 1.0–1.2.3 can write: their lasso keeps a selection on the 1,920 lu paper), (a) a `grid` stroke
+///    centred below 24:00 (no lasso of 1.0–1.2.3 makes it: only a Web import or a hand-edited file, so it is
+///    hand-written JSON read the way the store reads a file, as fixture 7), (b) a memo stroke (`extra`) of its own
+///    and (c) a memo stroke crossing into the next week, owned by w-2026-12-14; on w-2026-12-21 (d) a memo stroke
+///    coming in from the week before, owned by w-2026-12-21; on the Sunday week w-2026-12-20 (f) a memo stroke (the
+///    Sunday start's own memo, K-11 (6)).
 /// 5. A Sunday-start week (`w-<Sunday>`) reaching out on both sides.
 /// 6. The day two month pages share: the same cell name on both pages, a stroke on each.
 /// 7. Items of tools 1.2.3 does not know, as the photo and the text label of 1.6 will write them
@@ -25,8 +33,8 @@ import CompatFixtures
 ///    window with strokes written and erased by the session around them, and saved through the same path;
 ///    the neighbour page gets a leak of window names (its own prefix, another page's, a stripped alias)
 ///    that the guard repairs before the save. No fixture is hand-written JSON alone.
-/// Fixture 4 (the week memo's `extra` and a week `grid` stroke moved below 24:00) belongs to the week memo
-/// stage (§5); it is not made here and not in the MANIFEST yet.
+/// The weeks are laid out as 1.3 saves them, with the week memo (`WeekLayoutInput.freeMemo`); every stroke of the
+/// weeks of fixtures 1, 2, 5 and 7 is centred above 24:00, so their bytes are those of S1.
 ///
 /// Ids come from seeds, times are 1,791,000,000,000 + n, the layouts use `CompatFixtures.now` and Tokyo,
 /// so the bytes are the same on every run and every machine. `KitChecks --write-compat-span-fixtures
@@ -69,6 +77,9 @@ public enum CompatSpanFixtures {
     public static let overlapDecember = "m1-2026-12.overlap-day.json"
     public static let photoText = "w-2026-11-30.photo-text.json"
     public static let photoTextNeighbor = "w-2026-12-07.photo-text-neighbor.json"
+    public static let weekMemo = "w-2026-12-14.week-memo.json"
+    public static let weekMemoNeighbor = "w-2026-12-21.week-memo-neighbor.json"
+    public static let weekMemoSunday = "w-2026-12-20.week-memo-sunday.json"
 
     /// The MANIFEST's lines, in its order.
     public static let entries: [Entry] = [
@@ -80,6 +91,9 @@ public enum CompatSpanFixtures {
         Entry(name: moveDestination, fixture: 2, shape: .monday),
         Entry(name: extraCrossLeft, fixture: 3, shape: .monday),
         Entry(name: extraCrossRight, fixture: 3, shape: .monday),
+        Entry(name: weekMemo, fixture: 4, shape: .monday),
+        Entry(name: weekMemoNeighbor, fixture: 4, shape: .monday),
+        Entry(name: weekMemoSunday, fixture: 4, shape: .sunday),
         Entry(name: sundayOverhang, fixture: 5, shape: .sunday),
         Entry(name: overlapNovember, fixture: 6, shape: .monday),
         Entry(name: overlapDecember, fixture: 6, shape: .monday),
@@ -125,7 +139,7 @@ public enum CompatSpanFixtures {
         public let saves: [String: SpanGuard.SaveCheck]
         /// Pages the safety net had to bring something back to (empty: every delta arrived).
         public let recovered: [String]
-        /// The hand-written pages of fixture 7 as read (by page id), and their bytes.
+        /// The hand-written pages of fixtures 7 and 4 as read (by page id), and their bytes.
         public let handWritten: [String: Data]
         /// The neighbour page of fixture 7 before the leak was put into it (the guard must give it back).
         public let neighborBeforeLeak: Data
@@ -176,7 +190,9 @@ public enum CompatSpanFixtures {
         case .day:
             return DayLayoutEngine.layout(DayLayoutInput(day: parsed.focus, events: [], inkBottoms: [:], now: now, calendar: tokyo))
         case .week:
-            return WeekLayoutEngine.layout(WeekLayoutInput(focus: parsed.focus, events: [], inkBottoms: [:], now: now, calendar: tokyo, weekStart: weekStart))
+            // 1.3 saves the week with its memo below 24:00 (§5.2): both paths of the app pass `freeMemo: true`.
+            return WeekLayoutEngine.layout(WeekLayoutInput(focus: parsed.focus, events: [], inkBottoms: [:], now: now, calendar: tokyo, weekStart: weekStart,
+                                                           freeMemo: true))
         case .month:
             return MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: parsed.focus.year, month: parsed.focus.month), events: [], inkBottoms: [:], now: now, calendar: tokyo))
         case .year:
@@ -187,6 +203,14 @@ public enum CompatSpanFixtures {
     /// A line of `count` points from x0 to x1 (window lu) around y, every other point 6 lu lower.
     static func line(_ x0: CGFloat, _ x1: CGFloat, y: CGFloat, count: Int = 9) -> [CGPoint] {
         (0..<count).map { i in CGPoint(x: x0 + (x1 - x0) * CGFloat(i) / CGFloat(count - 1), y: y + CGFloat(i % 2) * 6) }
+    }
+
+    /// A straight line of `count` points from (x0, y0) to (x1, y1) (window lu): fixture 4's line across 24:00.
+    static func slope(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat, count: Int = 9) -> [CGPoint] {
+        (0..<count).map { i in
+            let f = CGFloat(i) / CGFloat(count - 1)
+            return CGPoint(x: x0 + (x1 - x0) * f, y: y0 + (y1 - y0) * f)
+        }
     }
 
     struct Session {
@@ -357,6 +381,38 @@ public enum CompatSpanFixtures {
             finish(s)
         }
 
+        // 4. The week memo (§5.2): the Monday window w-12-07, w-12-14, w-12-21 (the middle page starts with the
+        // hand-written guard stroke (a)), then the Sunday window w-12-13, w-12-20, w-12-27.
+        do {
+            let guardPage = Data(weekMemoGuardJSON.utf8)
+            guard let read = try? InkPageCodec.decode(guardPage) else { preconditionFailure("the hand-written week page reads") }
+            precondition(read.liveStrokeIds == [weekMemoGuardId] && read.unknownStrokes.isEmpty, "the hand-written week page holds the guard stroke")
+            handWritten["w-2026-12-14"] = guardPage
+            var s = Session([InkPage(pageId: "w-2026-12-07"), read, InkPage(pageId: "w-2026-12-21")], plan: plan(.week), seed: 0x5A01_000B,
+                            firstTime: baseTime + 1100)
+            // (e) Across 24:00 (window y 1,860 → 1,970, centre 1,915): `grid`, its lower part below 24:00.
+            s.draw(slope(1800, 1860, 2120, 1970), owner: "w-2026-12-14", cell: .grid)
+            // (b) In the memo, 300 lu below 24:00.
+            s.draw(line(1600, 2100, y: 2220), owner: "w-2026-12-14", cell: .extra, color: "#2563eb")
+            // (c) Across into w-12-21, centre x 2,700: w-12-14's.
+            s.draw(line(2300, 3100, y: 2820), owner: "w-2026-12-14", cell: .extra, color: "#dc2626")
+            // (d) From w-12-14 into w-12-21, centre x 2,900: w-12-21's.
+            s.draw(line(2500, 3300, y: 3420), owner: "w-2026-12-21", cell: .extra, color: "#16a34a")
+            s.deliver()
+            keep(weekMemo, s, "w-2026-12-14")
+            keep(weekMemoNeighbor, s, "w-2026-12-21")
+            finish(s)
+        }
+        do {
+            var s = Session(empty(["w-2026-12-13", "w-2026-12-20", "w-2026-12-27"]), plan: plan(.week, .sunday), seed: 0x5A01_000C,
+                            firstTime: baseTime + 1200)
+            // (f) In the Sunday week's memo, 400 lu below 24:00.
+            s.draw(line(1700, 2400, y: 2320), owner: "w-2026-12-20", cell: .extra)
+            s.deliver()
+            keep(weekMemoSunday, s, "w-2026-12-20")
+            finish(s)
+        }
+
         return Made(files: entries.map { ($0.name, files[$0.name]!) }, saves: saves, recovered: recovered, handWritten: handWritten,
                     neighborBeforeLeak: neighborBeforeLeak, deltaCount: deltaCount)
     }
@@ -379,6 +435,20 @@ public enum CompatSpanFixtures {
     "rect":[120,340,360,240],"img":"\(photoDigest)"},\
     "\(textId)":{"id":"\(textId)","cell":"grid","tool":"text","t":1791000000003,"dev":"fixture-1.6",\
     "rect":[1250,900,300,80],"text":"牛乳を買う"}}}
+    """
+
+    // MARK: - Fixture 4's hand-written page (the guard shape, §5.2)
+
+    public static let weekMemoGuardId = "6e2b8d4f-5a7c-4e9b-8d1f-4b5c6d7e8f95"
+
+    /// w-2026-12-14 as a Web import or a hand-edited file could leave it: a `grid` stroke centred below 24:00 (grid y
+    /// 2,100–2,160; the import puts a week's points into `grid` as they are). 1.0–1.2.3 cannot write it with the lasso
+    /// (a selection stays on their 1,920 lu paper) and 1.3 files a new stroke centred there in `extra`.
+    public static let weekMemoGuardJSON = """
+    {"v":1,"pageId":"w-2026-12-14","updatedAt":1791000000005,"deleted":{},"strokes":{\
+    "\(weekMemoGuardId)":{"id":"\(weekMemoGuardId)","cell":"grid","tool":"pen","color":"#1f2937","t":1791000000005,"dev":"web",\
+    "pts":[900,2100,0,3.5,3.5,1,0.5,0.785,1.2,960,2130,8,3.5,3.5,1,0.5,0.785,1.2,1020,2160,16,3.5,3.5,1,0.5,0.785,1.2,\
+    1080,2130,24,3.5,3.5,1,0.5,0.785,1.2,1140,2100,32,3.5,3.5,1,0.5,0.785,1.2]}}}
     """
 
     /// w-2026-12-07 with one photo whose rect starts left of the page.
