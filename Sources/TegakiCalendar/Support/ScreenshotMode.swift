@@ -684,10 +684,7 @@ enum ScreenshotMode {
         page.add(InkStroke(id: "demo-stroke-week-marker", cell: .grid, tool: .marker, color: "#fde047", t: baseTime + 1_000,
                            points: markerLine(x0: columnX + 12, y0: boxTop, count: 16, step: 10)))
         // `--screenshot-week-memo` (1.3, §5.2): 53 points from (120, 140) of `extra` (paper y 2,060), ±20.
-        if weekMemo {
-            page.add(InkStroke(id: weekMemoStrokeId, cell: .extra, tool: .pen, color: "#2563eb", t: baseTime + 4_000,
-                               points: wave(x0: 120, y0: 140, count: 53, step: 15, amplitude: 20)))
-        }
+        _ = weekMemo
         return page
     }
 
@@ -786,9 +783,6 @@ enum ScreenshotMode {
         if crossing, !empty {
             for stroke in crossingStrokes(kind: kind, pageOffset: offset) {
                 page.add(stroke)
-            }
-            if focusWeekMemo {
-                page.add(weekMemoCrossingStroke())
             }
         }
         return page

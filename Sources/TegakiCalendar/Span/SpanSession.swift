@@ -620,9 +620,7 @@ final class SpanSession: ObservableObject {
         switch kind {
         case .day:
             floors = SpanAlign.dayFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
-        case .week:
-            floors = SpanAlign.weekFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
-        case .month, .year:
+        case .week, .month, .year:
             break
         }
         var pages: [any PageLayout] = []

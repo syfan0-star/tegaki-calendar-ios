@@ -1889,9 +1889,6 @@ struct CalendarRootScreen: View {
         if let day = layout as? DayPageLayout, day.startsBelowDay(rect) {
             return .refusedBelowDay
         }
-        if let week = layout as? WeekPageLayout, week.startsBelowDay(rect) {
-            return .refusedBelowDay
-        }
         return .create(layout.eventRange(for: rect, now: now))
     }
 
