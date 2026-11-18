@@ -18,7 +18,7 @@ enum FreeMemoPaper {
     /// The free memo area `area` (paper units of the page; the whole width of the page, from 24:00 down) at
     /// `zoom`, the hairlines snapped for `scale`, the label sized for the page's readable zoom `readable`.
     /// Nothing for an empty area.
-    static func draw(_ ctx: CGContext, area: CGRect, dirty: CGRect, zoom: CGFloat, scale: CGFloat, readable: CGFloat) {
+    static func draw(_ ctx: CGContext, area: CGRect, dirty: CGRect, zoom: CGFloat, scale: CGFloat, readable: CGFloat, inset: CGFloat = PaperSpec.dayRuleInset) {
         guard area.height > 0, area.width > 0 else { return }
 
         ctx.setLineWidth(PaperText.hairline(zoom))
@@ -29,7 +29,7 @@ enum FreeMemoPaper {
             ctx.strokePath()
         }
 
-        ruledLines(ctx, area: area, dirty: dirty, zoom: zoom, scale: scale)
+        ruledLines(ctx, area: area, dirty: dirty, zoom: zoom, scale: scale, inset: inset)
 
         let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom, readable: readable)
         let labelFont = UIFont.systemFont(ofSize: labelSize, weight: .semibold)
@@ -42,13 +42,13 @@ enum FreeMemoPaper {
     /// The ruling of the area (1.3: lines every `dayRuleStep` lu, inset `dayRuleInset` on both sides, in the
     /// line width `draw` set): the one place a later paper of the memo area changes its pattern
     /// (docs/PLAN_MEMO_PAPER.md §5.2).
-    private static func ruledLines(_ ctx: CGContext, area: CGRect, dirty: CGRect, zoom: CGFloat, scale: CGFloat) {
+    private static func ruledLines(_ ctx: CGContext, area: CGRect, dirty: CGRect, zoom: CGFloat, scale: CGFloat, inset: CGFloat) {
         ctx.setStrokeColor(PaperPalette.rule.cgColor)
         ctx.beginPath()
         var y = area.minY + PaperSpec.dayRuleStep
         while y < area.maxY {
             if y >= dirty.minY - 1, y <= dirty.maxY + 1 {
-                PaperText.addHorizontal(ctx, y: y, from: area.minX + PaperSpec.dayRuleInset, to: area.maxX - PaperSpec.dayRuleInset,
+                PaperText.addHorizontal(ctx, y: y, from: area.minX + inset, to: area.maxX - inset,
                                         zoom: zoom, scale: scale)
             }
             y += PaperSpec.dayRuleStep
