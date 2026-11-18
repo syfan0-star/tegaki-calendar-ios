@@ -16,7 +16,7 @@
 - **週のページにも、24 時の下に「自由メモ」が付きます。** これは 1.3 の最後に作る部品です。横につなげる本体が 1 月 15 日までにできていなければ、メモは 1.3 に入れず、後の小さな版に回します。
 - iPhone（「指でも書く」がオン）では、横に動かすのは 2 本指です。
 - 指ではじくと、となりのページでぴたりと止まります。ゆっくり動かせば、好きな所で止まります。
-- ◀ ▶ は今までどおり 1 ページずつ動きます。「今日」も今までどおりです。
+- ◀ ▶ は今までどおり 1 ページずつ動きます。「今日」も今までどおりです（iPhone を横にして一番縮めたときだけ、今日のページで押すと、今の時刻が見えていなければ今の時刻の 1 時間前あたりまで上下に動きます。§0.6）。
 - Apple Pencil で書いている間と、離してから 0.5 秒は、手のひらが触れても紙が横に動かないようにします。
 - 設定に新しい欄「ページ」ができます。「前後のページを横につなげる」でオンとオフを選べます（ふだんはオン）。オフにすると、今と同じ 1 ページずつに戻ります。
 - 更新して初めて週（日）を開いたとき、使い方の小さな札が 8 秒だけ出ます。
@@ -74,7 +74,7 @@
 ### 0.6 「全部おすすめで」（11/7）で決めたこと
 
 - はじいたとき: となりのページで止まる（P-B5 ア）。
-- iPhone を横にして一番縮めたとき: 今のまま 24 時間全部が入る（P-B6 ア）。
+- iPhone を横にして一番縮めたとき: 11/18 の試作の感想で「上限あり」（P-B6 イ）にしました。横に並ぶのは週 3 ページ・日 5 ページまでで、約 2 倍の大きさになり、24 時間の半分ほどが入り、残りは上下に動かして見ます。今日のページは、今の時刻の 1 時間前あたりが上に来るように開きます（ほかの日は 0 時が上）。iPad と iPhone の縦は変わりません。
 - 一覧よりさらに縮めない（P-B10 ア）。月の並べ方（P-B3）は月の版（1.7）の見本で見てもらいます。
 - 週のメモの形: 罫線だけの白紙（見本の画像で最終確認）。
 - App Store の写真の先頭に、週の境目をまたいで書いた見本を 1 枚足します（16 の言語すべて）。
@@ -202,7 +202,7 @@
 
 **D4 新しいファイルの置き場所。** Layout に `SpanPlan`・`SpanLayout`・`SpanAlign`・`SpanName`（`CellKey` と文字列の前置・分割・外す）。InkModel に `SpanGuard`（`InkPage` を確かめる）・`SpanComposer`・`PageDelta`。InkModel の既存の 7 ファイルは 1 バイトも変えない。理由: Layout は InkModel を import できず、InkModel は Layout を使える（`Package.swift:38-52`）。
 
-**D5 `SyncEngine` に足すのは 2 つの口だけ。** `pagesOpened(_:)`（窓のページをまとめて 1 回の取得）と `onRemoteDelete`（記録の削除の知らせ）。今の関数は変えない。1.2.3 の約束（G2・epoch・`enqueue`/`spawn`）を全部守る（§7）。理由: 「空のページでファイルが無い」から画面で見分ける案もあるが、推し量りより明示の口の方が壊れにくい。窓は最大 15 ページ（iPhone 横の日）で、1 ページずつの取得は費用が大きい。
+**D5 `SyncEngine` に足すのは 2 つの口だけ。** `pagesOpened(_:)`（窓のページをまとめて 1 回の取得）と `onRemoteDelete`（記録の削除の知らせ）。今の関数は変えない。1.2.3 の約束（G2・epoch・`enqueue`/`spawn`）を全部守る（§7）。理由: 「空のページでファイルが無い」から画面で見分ける案もあるが、推し量りより明示の口の方が壊れにくい。窓は最大 15 ページ（iPhone 横の日）（P-B6 イの後は iPhone 横の日も 9 ページ。上限の無い iPad では終日帯のレーンが多いと窓が広がり、iPad mini 横の日は帯 80 pt で 11 ページ。S1 のリードの決定 1）で、1 ページずつの取得は費用が大きい。
 
 **D6 隣のページは、B-1 では主スレッドで 1 ページずつ読む。** 焦点のページを先に、隣は近い順に、1 ターンに 1 ページ（`Task.yield` を挟む）。読むのは `sync.load`（写真モードと何もしないエンジンの分かれ道を通る、`SyncEngine.swift:151-154`）。理由: `InkPageStore.load` は読めないファイルを `.bak` に移すので主スレッドの外で使うと順番の危険がある（`InkPageStore.swift:65-78, :113-125`）。P-B9 の答え（いちばん線の多いページ 1016 本、M7B.md:1937）なら 1 ページは軽い。試作版で 1 ページの読み込みが 16 ms を超えたら、外へ出す道（読むだけの道と世代）を 1.3 の中で足す（§4.6）。**主スレッドで読んでも、割り込みは起きる**: 1 ページごとに `Task.yield` を挟むので、その間に main で待っているエンジンの仕事（取得 → `mergeRemote` → `onRemoteUpdate`）が走る。さらに `SyncEngine.save` 自身が、ファイルに画面の知らない線があると同じ呼び出しの中で `onRemoteUpdate` を呼ぶ（`SyncEngine.swift:165-168`）。そこで **`SpanSession` は、`saveAll`・ずらし・先読みの手順の間に届いた `remoteUpdated` と `remoteDeleted` を受け箱（`pendingRemote`）に溜め、手順の終わりに 1 回で当てる**（同じページの更新は `InkPage.merge` でまとめ、削除はその後の更新より前に当てた順を記録で保つ）。テストは §10.2。
 
@@ -266,6 +266,7 @@
 | 14 | 週の下のメモ（最後の部品。1/15 の関門）（§5） | K・P・C |
 | 15 | M7_PLAN の差し替え（B_DESIGN §13）と B_DESIGN の頭の 1 行（この commit で済み） | リード |
 | 16 | 中国の 2027 年の祝日のデータ（1.2.4 を作らないとき、または 1.2.4 に入れられなかったときだけ。取り寄せはそのときに本人の了承を聞く。祝日のデータのファイルとその確かめだけで、アプリのコードは変えない。§9.3） | C |
+| 17 | iPhone 横の一覧の上限（P-B6 イ。11/18 の本人の答え）: Kit の規則と倍率の上限・窓の大きさ・キャンバスと画面の倍率・上限ありの一覧で今日のページを開く高さと「今日」（§3.6） | K・A |
 
 ### 1.6 範囲外（1.3 ではしない）
 
@@ -273,7 +274,7 @@
 - 指で予定（予定のドラッグ・長押し・予定の ↶）は 1.5。1.3 では段 0 の口と印だけ。
 - 重点欄（1.9）、書ける終日欄・週の重点（1.10）、写真と文字の札（1.6）、ペンの色・メモ欄の紙（1.4.1）。
 - Xcode 27・iPhone Duo（1.4）。B-1 は今の Xcode 26.6 で作り、1.4 で確かめ直す（§14 にその分の見積もり）。
-- 一覧よりさらに縮める形（P-B10 イ）、iPhone 横の大きさの上限（P-B6 イ）。
+- 一覧よりさらに縮める形（P-B10 イ）。iPhone 横の大きさの上限（P-B6 イ）は 11/18 の本人の答えで範囲に入れた（§1.5 の 17）。
 - 古い道（1 ページの道）を消すこと。
 - 1.2 から持ち越した細かい訳の直し（M7B.md:61, :903, :1638-1649, :1952, :1958）。2/15 を守るため 1.3 には入れない。
 - Web 版の変更。
@@ -299,7 +300,7 @@
 | 0c-15 | `SpanGuard` の場所 | 画面の保存の 1 か所（違反した項目だけを直す）と、取り込み・書き出しの入口、PDF の `page:`（D14、§6.1） |
 | 0c-16 | 先読みを主スレッドの外へ出す条件 | 試作で 1 ページの読み込みが 16 ms を超えたとき（D6） |
 | 0c-17 | はじき（P-B5） | ア（隣で止まる）。試作の感想で変えうる |
-| 0c-18 | iPhone 横（P-B6） | ア（今のまま） |
+| 0c-18 | iPhone 横（P-B6） | イ（上限あり。11/18 の本人の答え。週 3・日 5 ページまで、窓は週 7・日 9。§3.6） |
 | 0c-19 | さらに縮める（P-B10） | ア（しない） |
 | 0c-20 | 見本の画像の範囲 | 週・日、iPhone 横、古い版の見え方、案内の札、週のメモの形。月の 3 通り（P-B3）と年は 1.7・1.8 の契約で（§4.5） |
 | 0c-21 | PDF（P-B8） | 隣から入る線も描く（D17） |
@@ -329,14 +330,14 @@
 
 ```
 TegakiKit/Sources/Layout/
-  SpanPlan.swift            K  新しい。番号と id の往復（weekStart を受ける）・原点・半開区間・焦点・窓・ずらし量・はじき・見積もり・定数
+  SpanPlan.swift            K  新しい。番号と id の往復（weekStart を受ける）・原点・半開区間・焦点・窓・ずらし量・はじき・見積もり・定数・一覧の上限（P-B6 イ、`overviewCap`）
   SpanLayout.swift          K  新しい。合成レイアウト（PageLayout に従う）・eventTarget（段 0）
   SpanAlign.swift           K  新しい。下の端の下限（日の extra・週の extra）
   SpanName.swift            K  新しい。前置・分割・外す（CellKey と文字列）
   PaperGrowth.swift         K  週の extra を tail に足す（§5。週のメモの段だけ）
   WeekLayoutEngine.swift    K  週の extra（§5）・下限の入力（省けば今と同じ）
   DayLayoutEngine.swift     K  下限の入力（省けば今と同じ）
-  ZoomPolicy.swift          K  週の一覧は 24 時間（1,920 lu）に（§5）
+  ZoomPolicy.swift          K  週の一覧は 24 時間（1,920 lu）に（§5）・`cappedBounds`（P-B6 イ。今の `bounds` は変えない）
   AllDayBand.swift          K  日の並びを受ける口（今の week(firstDay:weekStart:) は残す）
 TegakiKit/Sources/InkModel/
   SpanGuard.swift           K  新しい。仮想の名前・前置名・書く形の確かめ（Release でも）
@@ -344,14 +345,15 @@ TegakiKit/Sources/InkModel/
   （既存の 7 ファイル）      —  1 バイトも変えない
 TegakiKit/Sources/KitChecks/
   SpanChecks.swift          K  新しい。§10.1 の節
+  OverviewCapChecks.swift   K  新しい。§10.1 の節「overview cap (1.3)」（P-B6 イ）
   main.swift                K  節を呼ぶ 1 行
 Sources/TegakiCalendar/Ink/
   InkLedger.swift           L  台帳の 5 か所・履歴の組の印（§3.3、§4.4。S4 より後）
-  InkCanvasView.swift       L  窓・ずらし・はじき・見張り・受け箱・削除の守り・手のひら・知らせにページ id
+  InkCanvasView.swift       L  窓・ずらし・はじき・見張り・受け箱・削除の守り・手のひら・知らせにページ id・倍率の上限（P-B6 イ。役 A、§3.6）
   InkOverlayView.swift      L  投げなわの帯（要るときだけ。§6.4 の表）
   （ほかの 5 ファイル）      —  変えない
 Sources/TegakiCalendar/Span/
-  SpanSession.swift         S  新しい。PageSlot・受け箱 SpanInbox・pendingRemote・saveAll/cancelAll/closeWithoutSaving/epoch・先読み・予定のページごと
+  SpanSession.swift         S  新しい。PageSlot・受け箱 SpanInbox・pendingRemote・saveAll/cancelAll/closeWithoutSaving/epoch・先読み・予定のページごと・一覧の上限の印（P-B6 イ。役 A）
   OnePageSession.swift      S  新しい。1 ページの道の状態と保存・applyRemote・全て消す・消して始める（D3 の 7）
   SpanPrototype*.swift      T  新しい。#if SPAN_PROTOTYPE の中だけ（画面・台帳とキャンバスの写し、D12）。S6 で消す
 Sources/TegakiCalendar/Views/
@@ -402,7 +404,9 @@ public enum SpanName {
 
 // Layout/SpanPlan.swift
 public struct SpanPlan: Sendable, Equatable {
-    public init(kind: PageKind, weekStart: WeekStart, deviceClass: SpanDeviceClass, orientation: SpanOrientation)
+    public init(kind: PageKind, weekStart: WeekStart, deviceClass: SpanDeviceClass, orientation: SpanOrientation,
+                overviewCap: Bool = false)               // P-B6 イ（§3.6）。省けば上限なし（今の数。試作と KitChecks の窓の表はこちら）
+    public let overviewCap: Bool                         // Equatable に入る（上限ありと無しの窓は別の plan）
     public func index(of pageId: String) -> Int?        // 日 = 日の通し番号、週 = ⌊first.dayNumber ÷ 7⌋
     public func pageId(at index: Int) -> String          // 週の逆: n × 7 + (月曜 4 / 日曜 3) の日
     public func origin(of index: Int, around focus: Int) -> CGFloat
@@ -413,7 +417,19 @@ public struct SpanPlan: Sendable, Equatable {
     public func flingTarget(offsetX: CGFloat, velocity: CGFloat, zoom: CGFloat) -> CGFloat
     public static func estimatedStrokes(fileBytes: Int) -> Int   // 1 本 0.25 KB で割る（多めに数える）
     public static let windowStrokeCap: (iPad: Int, iPhone: Int)  // 20_000 / 12_000（試作で決め直す）
+    // 一覧の上限（P-B6 イ、§3.6・§3.16）
+    public static func overviewCapPages(_ kind: PageKind, deviceClass: SpanDeviceClass, orientation: SpanOrientation) -> CGFloat?
+                                                         // iPhone 横だけ: 週 3・日 5・年 3（1.3 では年を横につながない）、月は nil。ほかの機種と向きは nil
+    public func maxVisiblePages(viewport: CGSize) -> CGFloat?    // overviewCap が true で、紙の領域の幅と高さが有限で 0 より大きいときだけ。
+                                                         // 向きは plan の orientation ではなく紙の領域の形（幅 ＞ 高さで横）で決める
+    public func zoomBounds(overview: CGSize, viewport: CGSize) -> ZoomPolicy.Bounds   // 横の道の倍率は全部これ（キャンバス 2 か所・画面 3 か所）
+    public func visiblePages(viewport: CGSize) -> CGFloat        // min(測った V, 上限)。上限が無ければ測った V（SpanSession.windowRadius もこれ）
 }
+
+// Layout/ZoomPolicy.swift（足すだけ。今の bounds(_:overview:viewport:) は 1 バイトも変えない）
+public static func cappedBounds(_ kind: PageKind, overview: CGSize, viewport: CGSize, maxVisiblePages: CGFloat?) -> Bounds
+    // nil・有限でない・0 以下・幅が使えないときは bounds と ==。上限の倍率（幅 ÷ (ページ数 × 紙の幅)）が min より大きいときだけ
+    // min = 上限、open と max を上限以上に。fit は変えない
 
 // Layout/SpanLayout.swift
 public struct SpanLayout: PageLayout {
@@ -475,6 +491,8 @@ func pagesOpened(_ pageIds: [String])               // pageOpened と同じ門�
     init(kind: PageKind, weekStart: WeekStart, focus: DayKey, sync: SyncEngine, guardMode: SpanGuard.Mode = .release,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
          clock: @escaping () -> Date = Date.init)   // SyncEngine.init と同じ形（SyncEngine.swift:139）。テストは TestSleeper
+         // P-B6 イ: overviewCap: Bool = false を足す（radius: の後）。自分の plan を作る 2 か所（init と redecide）で SpanPlan に渡す。
+         // 本物の窓を作るただ 1 つの所 ScreenPaths.makeSession が true を渡す。省けば上限なし（既存のテストの数）
     let id: String                      // .id(...) に使う。種類＋週の始まり＋開き直した回数
     private(set) var epoch: Int
     func deliver(_ deltas: [PageDelta], unrouted: [String])   // 受け箱から。古い epoch・窓に無いページは捨てて記録。unrouted（同じ日誌の
@@ -595,7 +613,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 
 ### 3.6 キャンバス（窓・ずらし・はじき・手のひら）
 
-- 窓 = 焦点の前後 R ページ。B-1 の窓（週/日のページ数。B_DESIGN.md:496-513）: iPad 11 縦 5/7・横 7/9、13 縦 5/7・横 7/9、mini 縦 5/5・横 7/9、iPhone 縦 5/5・横 9/15、Duo 内側 5/7（1.4 で確かめる）。
+- 窓 = 焦点の前後 R ページ。B-1 の窓（週/日のページ数。B_DESIGN.md:496-513）: iPad 11 縦 5/7・横 7/9、13 縦 5/7・横 7/9、mini 縦 5/5・横 7/9、iPhone 縦 5/5・横 7/9（P-B6 イ。上限なしなら 9/15）、Duo 内側 5/7（1.4 で確かめる）。
 - `contentSize` = 帯 × 倍率。紙が画面より狭い今の中央寄せ（`applyInsets` :1280-1289）は、帯では左右の余白を出さない（帯が画面より広い）。`alwaysBounceHorizontal`（:626）は新しい道では true。
 - **ずらす条件**: ペンが離れて落ち着いた後（`isUsingTool`・`isSettling` :408-409）、指が離れ、慣性も止まり、ピンチ中でなく、投げなわの選択が無く、シートが出ていないとき。scroll の delegate に `scrollViewWillBeginDragging`・`WillEndDragging`・`DidEndDragging`・`DidEndDecelerating`・`DidEndScrollingAnimation` を足す（今は無い）。止まりの取りこぼしに備えて 0.5 秒の見張りのタイマー。
 - **ずらしの手順**（B_DESIGN.md:194-201）: 受け箱を空にする → 出るページの安全網と保存（**失敗したらずらさない**）→ `pruneHistory` → `SpanComposer` で入るページを足す → `ledger.reload(keepHistory: true)` → `relayout`（B-1 は全部作り直す）→ `contentOffset.x` を「ページ数 × W × 倍率」だけ戻す（11 インチ縦の一覧で週 696 pt・日 396 pt）→ 版つきの `PaperViewport` を同じターンで見出しへ → 入るページの予定と `pagesOpened` → 手順の間に溜めた `pendingRemote` を当てる（D6。出るページの保存の `sync.save` が同じ呼び出しの中で `onRemoteUpdate` を呼びうる、`SyncEngine.swift:165-168`）。
@@ -604,6 +622,9 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 - ◀ ▶: ちょうど 1 ページすべる（境目を真ん中にしていたら、真ん中のまま 1 ページ）。「今日」: 窓の中ならすべる、遠ければ開き直す（今の `revealRect` :1392-1397 を使う）。
 - **手のひら**（B_DESIGN.md:354-360）: Pencil が触れている間と離してから 0.5 秒は、`gestureRecognizerShouldBegin` で横の動きの始まりを断る（`InkTouchObserver` の Pencil の数を使う、:1795-1833）。判定は純粋な関数 `horizontalPanMayBegin(pencilsDown:lastPencilUp:now:)`（§2.1）にして XCTest で固定する（XCTest では Pencil の触れを作れないため）。見張りのタイマー（0.5 秒）も `sleep:`・`clock:` を受け、テストでは `TestSleeper` で進める（本物の sleep は 1.2.2 の CI の揺れの元だった、`build.yml:364-368`、R1_2_3 §4）。一覧では動き出しに約 24 pt 要る。`majorRadius` の大きい接触を数えない案は【推論】なので、試作で確かめてから入れる。
 - 回転・Split View では、止まったときに窓を決め直し、焦点のページを保つ。
+- **iPhone 横の一覧の上限**（P-B6 イ、11/18）: 横の道の iPhone 横で、一番縮めた倍率と開いたときの倍率は、横に並ぶのが週 3・日 5 ページまで（`SpanPlan.zoomBounds`。窓は週 7・日 9、終日帯のレーンが多くても広げない）。向きは紙の領域の形で決めるので、回転の配置で先に倍率が変わり、窓は止まった後に決め直す（倍率はもう跳ばない）。高さ 0 の最初の 1 こま（まだ測っていない紙の領域）には上限を付けない。上限の倍率が横の道の「一覧」（`zoomedIn`・紙の領域を測った後の見出しと終日帯の倍率・24 pt の動き出し・はじき）。iPad・iPhone 縦・1 ページの道は変えない。
+  - **開く高さ**（リードの決定、11/18）: 上限ありの一覧には 1 日（24 時間）が入らない（約 12 時間）。そこで、上限ありの一覧で**今日のページを開くときは、拡大したページと同じく今の 1 時間前から**開く（`PageNavigation.initialScrollY` を `initialPaperOffset` の y に渡す。凍結の行は増やさない）。ほかのページは今までどおり 0:00 が上。
+  - **「今日」**（同じ決定）: 今日のページがもう焦点のとき、今の線が見えている所の外なら y だけを今の 1 時間前へ動かし（`.reveal`）、見えていれば何もしない。窓の中で焦点でなければ横にすべり、遠ければ開き直す（上の開く高さで）のは今のまま。見直しの J7（一覧の倍率で今日のページが焦点のときの「今日」は何もしない）は一覧に 1 日が全部入る前提だった（M7C.md）ので、上限ありではこの形にする。試作（0:00 から開き、「今日」は無かった）と違うので、§11.3 の行 14 で本人に開く高さと「今日」の感じを聞く。
 
 ### 3.7 画面（題名・remember・評価の印）
 
@@ -684,6 +705,8 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 | 保存の予約 | 1.5 秒（今と同じ） | `CalendarRootScreen.swift:2520-2527` | XCTest | いいえ |
 | 見張りのタイマー | 0.5 秒 | この契約 | XCTest | いいえ |
 | 先読みを外へ出す条件 | 1 ページの読み込みが 16 ms を超える | D6 | 試作の計測 | — |
+| iPhone 横の一覧の上限 | 週 3・日 5 ページ（年 3。1.8 で決め直す） | B_DESIGN §3.1・§6.2、本人 11/18 | KitChecks | いいえ |
+| 上限ありの一覧で今日のページを開く高さ・「今日」で動く先 | 今の 1 時間前（`PageNavigation.initialScrollY`。拡大したページと同じ）。ほかのページは 0:00 | リードの決定 11/18（§3.6） | XCTest（役 A） | はい（§11.3 の行 14 の感想で） |
 
 - 試作で数を変えたら、M7C.md に元の数と測った値を書き、KitChecks とテストの数を同じ commit で直す。
 - 時間の数（1.5 秒・0.5 秒・8 秒）を固定する XCTest は、本物の sleep を使わない。`SpanSession`・`OnePageSession`・`InkCanvasView` の新しいタイマーと `SpanGuideView` の 8 秒は、`SyncEngine.init` と同じ `sleep:`・`clock:` の引数を取り（既定は本物）、テストは `TestSleeper`（R1_2_3.md:157-162 の注意を守る）で進める。
@@ -838,14 +861,14 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 | ファイル | 変えてよい所 |
 | --- | --- |
 | `Sources/TegakiCalendar/Ink/InkLedger.swift` | §3.3 の 5 か所と履歴の組の印 |
-| `Sources/TegakiCalendar/Ink/InkCanvasView.swift` | §3.6・§3.4・D21・知らせの引数・`horizontalPanMayBegin`・タイマーの `sleep:`/`clock:`。lint が読み始めて見つけた所の直し（手順 1） |
+| `Sources/TegakiCalendar/Ink/InkCanvasView.swift` | §3.6・§3.4・D21・知らせの引数・`horizontalPanMayBegin`・タイマーの `sleep:`/`clock:`。lint が読み始めて見つけた所の直し（手順 1）・P-B6 イの倍率の上限（`containerDidLayout` の 1 行と横の道の中。§3.6） |
 | `Sources/TegakiCalendar/Sync/SyncEngine.swift` | 2 つの口を足すだけ（§7）。今の関数の中は、`onRemoteDelete` を呼ぶ 1 行のほかは変えない |
 | `Sources/TegakiCalendar/Ink/InkOverlayView.swift` | 帯の上の投げなわに要るときだけ（動かせる範囲の口） |
 
 - **変えないもの**: InkModel の 7 ファイル、`Persistence/InkPageStore.swift`、`Sync/InkPageRecord.swift`、`Ink/InkSnapshot.swift`、`Ink/InkTools.swift`、`Ink/InkTouchObserver.swift`、`Ink/InkTrace.swift`、`Ink/PencilInteraction.swift`。
 - **自分で自分を認めるだけにしない守り**（D9）:
   - **1.2.3 の既存のテストのファイルは 43fe366 から 1 バイトも変えない**: `InkLedgerTests.swift`・`InkCanvasViewTests.swift`・`SyncEngineTests.swift`・`ScreenshotModeTests.swift`・`WeekStartLedgerTests.swift`・`CalendarRootScreenTests.swift`（`Tests/TegakiCalendarTests/`）、`PaperGrowthTests.swift`（`TegakiKit/Tests/LayoutTests/`）、`Compat10FixtureTests.swift`（`TegakiKit/Tests/Compat10Tests/`）。新しい表 `tools/span/TESTS_1_2_3.sha256`（43fe366 のバイトの SHA-256）を置き、build-and-test で `shasum -a 256 -c` する（例外は無い。`ownerId` を別の口にしたので、`testLedgerWritesTheCompatShapes` の種も変えずに済む、§3.3 の 1）。新しいテストは新しいファイル（`InkLedgerSpanTests.swift`・`InkCanvasSpanTests.swift`・`SyncEngineSpanTests.swift`・`ScreenshotModeSpanTests.swift` など、§10.2）。
-  - **1 ページの道の分岐（`span == nil`）の中は 43fe366 と同じ**: 表のファイルを変える commit では、1 ページの道が通る行（`span == nil` の枝と、両方の道が通る行）の diff を、リードが 1 行ずつ見る。M7C.md に「commit・ファイル・1 ページの道に触れた行の数・触れた理由（H1〜H3・D21 の引数・タイマーの引数のどれか）・既存のテストの名前」を 1 行で書く。触れた行が 0 でないときは、その行を通る既存のテストの名前を挙げる。
+  - **1 ページの道の分岐（`span == nil`）の中は 43fe366 と同じ**: 表のファイルを変える commit では、1 ページの道が通る行（`span == nil` の枝と、両方の道が通る行）の diff を、リードが 1 行ずつ見る。M7C.md に「commit・ファイル・1 ページの道に触れた行の数・触れた理由（H1〜H3・D21 の引数・タイマーの引数・P-B6 イ（§3.6）のどれか）・既存のテストの名前」を 1 行で書く。触れた行が 0 でないときは、その行を通る既存のテストの名前を挙げる。
 - **手順**:
   1. **lint の読む範囲**: 今の `lint.py` は L-7・L-8・L-13・L-14 で凍結の表の全部のファイルを読まない（`tools/l10n/lint.py:51, :663-679` の `frozen_paths`・`read_code`）。1.3 で変える 4 つのファイルに入る新しいコード（たとえば `PageNavigation.pageId(` や `SpanPlan(` を `weekStart:` なしで呼ぶと、日曜始まりの人の隣のページの id が月曜の形になる、K-11）を見張るため、**lint が読まないファイルの一覧を別のファイル `tools/l10n/lint-skip.txt` に分け、そこから 4 つのファイルを外す**（`frozen_paths` はこの一覧を読む。役 C）。最初の commit（S4 の始め）で、43fe366 のバイトのままの 4 つのファイルを lint に読ませ、見つかった所があれば同じ commit で直して M7C.md に書く。
   2. 上の表のファイルを変える commit で、そのファイルの行も同じ commit で書き直す（CI を緑に保つ。ほかの行は `shasum -c` が守る）。
@@ -853,7 +876,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
   4. 提出する commit で、その commit の git の中身から、根からのパス・辞書順・注記の行なしで表を作り直す。新しい `TegakiKit/Sources/InkModel/SpanGuard.swift`・`SpanComposer.swift` を足す（20 行）。`lint-skip.txt` も同じ commit で表に合わせる（作り直した後は 20 ファイルとも 1.4 では凍結なので、lint は読まなくてよい）。1.4 はこの表で守る。
   5. CI の段の名前を「Data code frozen (re-based in 1.3)」にし、`build.yml:175-178` の注記を直す。基準の commit は M7C.md に書く。
 - **1.4 から後の互換の相手**: 作り直した後の 1.3 のデータのコード（`InkLedger`・`InkCanvasView`・`SyncEngine`）は 1.1.1 と同じバイトではない。そこで、1.4 以後の手書きのデータに触れる版は、**本物の 1.3（作り直した表の基準の commit）を互換の相手に足す**（`tools/span-compat` の Probe と、アプリの台帳のテストの両方）。M7_PLAN の K-7 にも書いた。
-- 2/15 の決まりで Duo の版が先になったら、この作り直しはその版の上でやり直す。1.2.4（§9）を main に入れたら、`r13` に main を取り込み、表の基準が変わっていないことを確かめる（1.2.4 は表のファイルを変えない）。
+- 2/15 の決まりで Duo の版が先になったら、この作り直しはその版の上でやり直す。1.2.4（§9）を main に入れたら、`r13` に main を取り込み、表の基準が変わっていないことを確かめる（1.2.4 は `DATA_1_1.sha256` の SyncEngine の行（11 行目）を変える。`r13` もこの行を書き直している（Y の 2 つの口と H4・G4 の直し）ので、main を取り込むときは、合わせた `SyncEngine.swift` の中身でこの行を計算し直す（M7C.md の H4 の節）。P-B6 イが書き直す InkCanvasView の行（1 行目）とは離れている。`SyncEngineTests.swift` は origin/r124 と `r13` で同じバイト（H4 の直しの後の物）なので、`TESTS_1_2_3` の行は変わらない）。
 - 1.4.1（ペンの色、PLAN_PEN_COLORS.md:103 の `PencilInteraction`）は、この表を作り直した後に、その版の契約で変えてよいファイルを足す。
 
 ### 6.5 古い端末と Web 版での見え方（許す範囲）
@@ -1001,6 +1024,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
   - `SpanComposer` と `PageDelta`: 無作為の編集 300 回以上（新しい線・消す・ページをまたぐ移動・↶ の写し）で、差分を当てた本物のページ ＝ 直接編集した結果（JSON まで）。順番を入れ替えても、2 回当てても `==`。差分を 1 つ落としても安全網の merge で同じ中身に戻る。編集しないページはバイト単位で同じ。同じ生の id が 2 ページにあっても 2 本。128 バイトを超える id の別名。`BandMigration` はまとめる前。**安全網の範囲の pageId は本物**（`w-`・`y-` で仮想 id を merge しても id が変わらない）。**写真・文字の札の形の知らない道具の項目（compat-span の 7）が、`PageDelta`・安全網の merge・Compat10 の写しを通っても 1 バイトも変わらない**（PLAN_PHOTO_TEXT.md:41, :46）。
   - K-10: `PageNavigation.pageId` と `CellKey` の作り方が `|` と `~` を作らない。
   - 週のメモの段: `PaperGrowth.tail` の週、週の一覧が 1,920 lu、`isBandCell(extra) == false`。
+- 一覧の上限の節「overview cap (1.3)」（`OverviewCapChecks.swift`。P-B6 イ）: 規則・上限ありの窓の表・倍率・レーン・紙の領域の向き（高さ 0 と、終日帯が伸びた iPhone 縦の横長の領域を含む）・iPad・`cappedBounds`（§3.6、§3.16）。期待は手で出した字で書く（PLAN_PB6 §2.3・§2.5）。
 - CI の閾値は、1.3 の新しい数 − 50（N − 50 の規則、`build.yml:108-126`）。数と内訳を `build.yml` の注記と M7C.md に書く。
 
 ### 10.2 XCTest（名前は固定。持ち主の役）
@@ -1017,6 +1041,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 | T | `PrototypeIsolationTests.swift`（新しい。中身は `#if SPAN_PROTOTYPE` の中だけ） | `testPrototypeLeavesTheRealInkFolderByteForByte`（本物の ink フォルダの全ファイル、`state.json` を含む、の名前と SHA-256 を前後で比べる）、`testPrototypeNeverCallsSharedSaveOrPageOpened`、`testPrototypeLeavesOnRemoteUpdateAlone`、`testPrototypeGuardRejectsRealIds`。走らせ方は下 |
 | U | `ScreenshotModeSpanTests.swift`（新しい） | `testNeighborDemoIdsDifferPerPage`、`testSpanArgumentsOffKeepTheOldShots`。既存の `ScreenshotModeTests.swift`（`testDemoPageIdsMatchTheNavigation` :52）はそのまま |
 | U | `SettingsPageSectionTests.swift`（新しい） | `testPageSectionSitsBetweenInputAndSync`、`testSpanToggleDefaultsOnPerDevice`、`testGuideDisappearsAfterEightSeconds`（TestSleeper） |
+| A | `InkCanvasSpanTests`・`SpanSessionTests`・`ScreenPathsSpanTests`・`PaperSpanTests`（1.3 のファイルに足す） | P-B6 イの 16 本（PLAN_PB6 §7.2: 開く・ピンチの終わり・はじき・回転（1 段・2 段・選択中・UI-1 の 4 形）・iPad と縦・窓・画面・見出しの形）。上限ありの一覧で今日のページを開く高さ（今の 1 時間前、ほかのページは 0:00）と、今日のページが焦点のときの「今日」（今の線が見えていなければ `.reveal`、見えていれば何もしない）も固定する（§3.6、§3.16） |
 | C | `CompatSpanTests`（TegakiKit の新しいターゲット） | `testEveryCompatSpanFixtureIsPresent`、`testOverhangingStrokesSurviveTheFrozenCopy`、`testSundayWeekOverhangSurvives`、`testUnknownToolItemsSurvive`（compat-span の 7） |
 
 - **`PrototypeIsolationTests` の走らせ方**: ふつうのビルド（build-and-test）では中身が空のテストになる（0 本）。`span-shots` のジョブで、`SPAN_PROTOTYPE` 付きのアプリとテストの宿主を別の DerivedData（`build/ProtoData`）で作り、`-only-testing:TegakiCalendarTests/PrototypeIsolationTests` を走らせ、**走ったテストの数が 4 以上・失敗 0** でなければジョブを落とす。同じビルドで試作の写真（§4.5）も撮る。宿主に条件を付けると写真・UI テスト・J-4 に使うふつうの Debug ビルドに試作の入口が入るので、同じビルドでは走らせない。
@@ -1081,7 +1106,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 | 日の帯（同じ機種） | 前の日の自由メモから次の日へ続く見本の線。下の端がそろっている |
 | 日曜始まりの週の帯 | 境目が土曜 → 日曜。見出しは「その週の最初の日の月」 |
 | ずらす前と後の組 | 見出しを除いた 2 枚の差がほぼ 0 |
-| iPhone 横の一番縮めた形 | 24 時間全部が入り、左右に前後の週が小さく並ぶ |
+| iPhone 横の一番縮めた形 | 横に並ぶのは週 3 ページ・日 5 ページ（約 2 倍の大きさ）。24 時間の半分ほどが入り、境目の左右に前後の週・日が見える |
 | 古い版の見え方（`--screenshot-single-page`） | 保存されたページにだけ線が出る。iPad の余白の上か、紙の端で切れるか（どちらかを記録） |
 | 初めての案内の札 | 紙の上の端（終日帯のすぐ下）。日の自由メモを隠さない |
 | 設定のシート | 「入力」と「同期」の間に「ページ」 |
@@ -1113,7 +1138,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 | 11b | iPhone | 週のページを縦で開き、下へすべらせる。24 時の下に書く | 罫線の白紙と「自由メモ」の見出しがあり、書ける。前後の週へすべらせても、メモの下の端がそろっている |
 | 12 | iPad Air 11 | 設定 › 入力 で「指でも書く」をオンにする → 指 1 本で書く → 2 本指で横に動かす → 「指でも書く」をオフに戻す | 指 1 本で書ける。2 本指で、となりの週が出てくる |
 | 13 | iPhone | 指 1 本で書く。2 本指で横に動かす | 指 1 本では書ける。2 本指で、となりの週が出てくる |
-| 14 | iPhone | 横にして、いちばん縮める | 24 時間全部が見える。2 本指で横に動く |
+| 14 | iPhone | 週のページで、横にして、2 本指でいちばん縮める。日のページでも同じようにする。横のまま、週のページの上の日付の並びで今日の所をタップして、今日の日のページを開く。2 本指で上下に動かして今の時刻を画面の外へ出してから「今日」を押す | 週は 3 週、日は 5 日が横に並び、それより小さくならない。24 時間の半分ほどが見え、2 本指で上下に動かすと残りが見える。2 本指で横に動く。縦に戻すと今までと同じ見え方。今日の日のページは、今の時刻の 1 時間前あたりが上に来て開く（今日でないページは 0 時が上）。「今日」を押すと、今の時刻の 1 時間前あたりまで上下に動く（今の時刻が見えているときは動かない）。開いたときの高さと「今日」の動きが使いやすいかを感想に |
 | 14b | iPhone | 日のページを開き、横向きと縦向きを何回か回す。◀ ▶ で 1 日動かして、また回す。週のページでも同じようにする。最後に、投げなわで線を選んだまま指で 1 日すべらせ、回してから選択を外す | どの回転の後も、上の日付と画面の真ん中の日が、回す前と同じ |
 | 15 | iPad Air 11 | 消しゴムで、となりの週の線を消す。投げなわで、線をとなりの週へ動かす。↶ を押す | 消せる。動かせる。↶ で元に戻る |
 | 16 | iPad Air 11 | 投げなわで線を選んだまま、指で横に動かす | 選んだ線が外れない |
@@ -1225,7 +1250,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 | 週の始まりの 2 つの形が 1 つの窓に混ざる | `SpanSession` は形ごと、切り替えは `saveAll` の後に新しいセッション（§3.9） |
 | 手のひら・指で紙が横にずれる | Pencil の間と 0.5 秒は横の動きを断る。本人の実機（試作と確かめ表の 4）。だめなら設定のオフが最後の手段 |
 | 見出しが 1 フレームずれる・ちらつく | 版つきの `PaperViewport` を同じターンで（§3.6）。span-shots のずらす前後の比べ |
-| 重さ（線の多いページ、iPhone 横の日の広い帯） | 試作で測る。窓の上限と段 2（§3.15）。P-B9 では本人のいちばん多いページは 1016 本 |
+| 重さ（線の多いページ、iPhone 横の日の広い帯（P-B6 イで窓は 9 ページ）） | 試作で測る。窓の上限と段 2（§3.15）。P-B9 では本人のいちばん多いページは 1016 本 |
 | 中心の機能に気づかれない | 初めての案内（§3.14）、新機能の文、App Store の写真 |
 | 古い版の端末との組み合わせで「線が消えた」と思われる | 新機能の文と SUPPORT に許す範囲を書く（§6.5）。確かめ表の 13 |
 | 凍結の表のファイルを許していない所まで変える・1 ページの道が変わる | §6.4 の表、`TESTS_1_2_3.sha256`（1.2.3 の既存のテストのファイルを変えない）、1 ページの道に触れた行のリードの記録、lint が 4 つのファイルを読む（`lint-skip.txt`） |
@@ -1262,7 +1287,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 ## 15. 既定で決めたこと（本人に報告する）
 
 1. 版の番号は 11/7 の答えのもの（月 1.7・年 1.8）。作業の指示の文の「月 1.6・年 1.7」は 11/7 より前の番号なので使わなかった（M7_PLAN §5 に「こちらが優先」）。
-2. はじき・iPhone 横・さらに縮める・月の並べ方は、全部おすすめ（P-B5 ア・P-B6 ア・P-B10 ア・P-B3 ア）。月の 3 通りの見本は月の版の前に撮る。
+2. はじき・さらに縮める・月の並べ方は、全部おすすめ（P-B5 ア・P-B10 ア・P-B3 ア）。iPhone 横は 11/18 の本人の答えで P-B6 イ。月の 3 通りの見本は月の版の前に撮る。
 3. 試作と見本は、答えが無くても、試作が届いた後の最初の土日の次の水曜（11/21 に届けば 11/25）から先へ進める。
 4. 「B-1 を作り始める前に見てもらう」は、ふつうの画面に出る部分（キャンバス・画面）を指すと読み、画面に出ない部品（TegakiKit の Span）は 11/12 から、台帳は試作を上げた後（S4）から先に作る（§0.6 に書いた）。
 5. 隣のページは主スレッドで 1 ページずつ読む（D6）。
@@ -1301,7 +1326,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 
 ## 16. 確かめていないこと
 
-- PencilKit が、iPhone 横の日の帯（最大倍率 × 15 ページ × 紙の高さ 8,400 lu）でちらつかず、メモリに収まるか（試作で測る）。
+- PencilKit が、iPhone 横の日の帯（最大倍率 × 15 ページ（P-B6 イの後は 9 ページ） × 紙の高さ 8,400 lu）でちらつかず、メモリに収まるか（試作で測る）。
 - 手のひらで紙が横に動かないか（本人の実機だけ）。`majorRadius` で手のひらを見分けられるか【推論】。
 - 古い版の iPad で、紙の外の点が余白に描かれるか切れるか（§4.5 の写真で確かめる）。
 - 1.1.1 の倍率の後も、週・日の窓の表（V と R）が B_DESIGN と同じか（KitChecks で計算し直す）。
@@ -1350,5 +1375,6 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 
 - 2026-11-11 契約の第 1 版（読み手 5・批評 3 の見直しの後）
 - 2026-11-12 S1 の Kit の直し（`r13` の 55f11a6）に文を合わせた: §2.1（`deltas` の `aliases:` は既定値なし・`unroutedNames(in:aliases:)`・`compose` の `session:`・`aliases:`・`SpanVirtualPage.ledgerPage` は `@_spi(SpanLedger)` で、漏れは実行時に `SpanGuard` が止める・`deliver(_:unrouted:)`）、§3.3 の 1（新しい道では台帳が id を作る 3 か所の全部が `ownerId`）、§3.4 (d)（ページに戻らない名前の記録）、§4.6 (a)（試作の窓は本物の id で組み、`proto-<id>` で保存する）、§10.2（L のテスト 1 本）、§13 の 1 行。契約からのずれとして M7C.md にも書く
+- 2026-11-18 P-B6 イ（iPhone 横の一覧の上限。本人の試作の感想、11/18）を範囲に入れた: §0.1（「今日」）、§0.6、D5、§1.5 の 17、§1.6、0c-18、§2、§2.1、§3.6（窓の表と新しい点。上限ありの一覧で今日のページを開く高さと「今日」はリードの決定）、§3.16、§6.4（InkCanvasView の行・D9 の理由・1.2.4 の行）、§10.1、§10.2、§11.2、§11.3 の行 14、§13、§15 の 2、§16。作り方は計画 PLAN_PB6（第 2 版。リポジトリの外で、骨組みは M7C.md に書く）、結果は M7C.md
 
 （結果は [M7C.md](M7C.md) に書く。ここは契約の版の記録だけ。）
