@@ -4,7 +4,7 @@
 
 ## 今の状態（リード、2026-11-18 20:35）
 
-- **週のメモ（§5）を 11/18 に前倒しで始めた**（下の「週のメモ（§5）の計画」の節）。作る段の 1 つ目の Workflow（wf_6e4bbefc-a02）で K・P1・S・文の役が済み、S の J-4 の 2 枚をリードが許した（下の「週のメモの作る段のリードの決定」）。統合の枝 `r13-s5c4` と P2 は作業中。**本人の試作の感想が 11/18 に届いた**（下の「試作版の感想（本人、11/18）とリードの決定」。iPhone 横を「上限あり」（P-B6 イ）に替えて 1.3 に入れる。ほかはおすすめのまま）。1.2.4（G4・H4 の直し）は枝 `r124` で作り、全部のジョブが緑。感想の後、11/18 に TestFlight へ上げた（ビルド 25、run 44295228369。記録は枝 `r124` の `docs/R1_2_4.md`）。
+- **週のメモ（§5）を 11/18 に前倒しで始めた**（下の「週のメモ（§5）の計画」の節）。作る段の 1 つ目の Workflow（wf_6e4bbefc-a02）で K・P1・S・文の役が済み、S の J-4 の 2 枚をリードが許した（下の「週のメモの作る段のリードの決定」）。**統合の枝 `r13-s5c4` は 11/18 22:05 に全部のジョブが緑**（1c25dd5、run 44296486095。リードの直し 9419f35 を足した。下の「週のメモの作る段の記録」）。見直しの Workflow はこれから。上限あり（P-B6 イ）は計画（`<scratchpad>/pb6/PLAN_PB6.md` 第 2 版）の後、作る段の Workflow wf_a0f7dce5-f5c を統合の枝 `r13-s5c5` で並べて走らせている。**本人の試作の感想が 11/18 に届いた**（下の「試作版の感想（本人、11/18）とリードの決定」。iPhone 横を「上限あり」（P-B6 イ）に替えて 1.3 に入れる。ほかはおすすめのまま）。1.2.4（G4・H4 の直し）は枝 `r124` で作り、全部のジョブが緑。感想の後、11/18 に TestFlight へ上げた（ビルド 25、run 44295228369。記録は枝 `r124` の `docs/R1_2_4.md`）。
 - 枝 `r13`（origin も同じ）。S1〜S4 は済んだ。S2 の見本の画像と S3 の試作（版 1.3・ビルド 24）は 11/12 に本人へ届けた。S5（本体）は 11/13 06:30 に前倒しで始め、**第 1 陣（S・P・C・U の前半）を 11/13 21:10 に `r13` へ入れた**（7ec3c6c まで早送り。下の「S5」の節）。第 4 陣のうち文の仕事（新しい 8 キーの 9 言語の訳・16 ロケールの新機能の文・審査メモ・SUPPORT）を前倒しで作り、**f02aee9 まで早送りして `r13` へ入れた**（下の「第 4 陣の文（前倒し）」）。**第 2 陣（L のキャンバス、§3.6）を 11/14 に `r13` へ取り込んだ**（枝 `r13-w-s5l` の a9f284d を `--no-ff` で。下の「第 2 陣」の節）。**第 3 陣の第 1 段（C1: CI の準備・写真モードの引数・画面のつなぎ込み）を 11/14 20:59 に `r13` へ入れた**（877085a へ早送り。下の「第 3 陣の第 1 段」の節）。**第 3 陣の第 2 段（C2: UI テスト・写真のジョブ・小さな直し）を 11/15 08:54 に `r13` へ入れた**（95ce734 へ早送りし、最後の点検の C2F-1 の直し 1268866 を足した。下の「第 3 陣の第 2 段」の節）。第 3 陣はこれで終わり。**G4 の残り（G4b と見直し R1 の直し）と UI-1 を 11/15 に `r13` へ入れた**（dfd8f9b と 60abf52。下の「第 3 陣の後の G4b と UI-1」の節）。第 4 陣（店）は、本人の言葉の要らない所を前倒しした（D26 の写真と店の文の案。下の「第 4 陣の前倒し」の節）。確認ページは 11/18 の試作の感想の後。H4 の直し（枝 `h4-fix`）は f5ae07d で `r13` に入れた（1.3 で直す既定のとおり。1.2.4 で出すときも同じ commit を使う）。
 - **画面は、設定「前後のページを横につなげる」がオン（既定）のとき、週と日を横の道で開く**（道を決める 1 か所は `Span/ScreenPaths.swift`。§3.1・§5.1）。オフのとき、月・年、写真モードの既定、線が多すぎて段 2 で戻ったページは 1 ページの道で、1.2.3 と同じ行を通る（D2・D9。下の「第 3 陣の第 1 段の 1 ページの道の記録」）。
 - 読み替え（11/14）: 次の項の「凍結の表のうち 2 つが S4 で変わり」は、第 2 陣と第 3 陣の F4 で `Ink/InkCanvasView.swift` も変わり、3 つになった（DATA_1_1 で 43fe366 と違う行は InkLedger・SyncEngine・InkCanvasView の 3 行。ほかの 15 行は 43fe366 のまま）。
@@ -872,7 +872,51 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
 5. **日曜始まり**: 本物の 1.3 は、横の道も 設定 › 週の始まり に従う（`ScreenPaths` が画面の `weekStart` を `SpanSession` に渡す。§11.3 の行 22 で確かめる）。試作は設定を読まず、いつも月曜始まりで開いていた（`SpanPrototypeScreen(onClose:)` の既定 `.monday`。試作の中の切り替えで日曜にできた）。本人の言葉はこの違いを指すと読む。アメリカなど日曜始まりの国は、1.2 から、新しく入れた人の既定が「自動」で、地域の週の始まり（アメリカは日曜）になる（`WeekStartChoice.migrateIfNeeded`・`launchAutomatic`）。前の版から使っている人は、線の位置を保つため月曜のまま（M7B_CONTRACT §10.3）。どちらも 1.3 で変える所は無い。読みが違ったら、本人の言葉で直す。
 6. 1.2.4 は感想の後なので、11/18 20:29 に testflight.yml を `r124` で走らせた（ビルド 25、run 44295228369）。中国の 2027 年の祝日は、python-holidays 0.109（11/17）にも無い（wheel の sha256 は PyPI と同じ。`china.py` は 2026 年まで）ので、1.2.4 には入れない（§9.3 の既定どおり 1.3 で）。
 7. 確認ページは、週のメモが `r13` に入った後に 1 回で作る（週のメモの計画のリードの決定 11）。上限ありは文も店の写真も変えないので待たない。
-8. **本人「なるべく前倒しで依頼します。」（11/18 22:00。1.3 はいつかの問いの後）**で、段の順を次のように替える。(1) 上限ありは、週のメモが `r13` に入るのを待たず、統合の枝 `r13-s5c4` から枝を作って作る。週のメモの見直し（2 つ目の Workflow）と並べて走らせ、見直しの直しと上限ありは統合の枝で合わせる。(2) 確認ページと TestFlight 1.3 を同時に出す（確認ページの「この内容で入れてよい」を待ってから TestFlight を作る順をやめる）。確認ページで文を直すことになったら、ビルドを作り直す。(3) 1.2.4 は 11/18 21:12 に審査へ出した。公開されたら、1.3 の新機能の文から H4 の点（3 つ目）を外す（R1_2_4.md §4）。これも確認ページに入れる。(4) 目安: TestFlight 1.3 と確認ページは早ければ 11/22 ごろ、遅くとも 11 月末。公開は確かめと審査しだいで 12 月上旬〜中旬（契約 §0.4 の「1 月下旬（早ければ 12 月中旬）」より早い。12/9 の決めごとと 1/15 の関門は、それより前に済む見込み）。
+8. **本人「なるべく前倒しで依頼します。」（11/18 21:50。1.3 はいつかの問いの後）**で、段の順を次のように替える。(1) 上限ありは、週のメモが `r13` に入るのを待たず、統合の枝 `r13-s5c4` から枝を作って作る。週のメモの見直し（2 つ目の Workflow）と並べて走らせ、見直しの直しと上限ありは統合の枝で合わせる。(2) 確認ページと TestFlight 1.3 を同時に出す（確認ページの「この内容で入れてよい」を待ってから TestFlight を作る順をやめる）。確認ページで文を直すことになったら、ビルドを作り直す。(3) 1.2.4 は 11/18 21:12 に審査へ出した。公開されたら、1.3 の新機能の文から H4 の点（3 つ目）を外す（R1_2_4.md §4）。これも確認ページに入れる。(4) 目安: TestFlight 1.3 と確認ページは早ければ 11/22 ごろ、遅くとも 11 月末。公開は確かめと審査しだいで 12 月上旬〜中旬（契約 §0.4 の「1 月下旬（早ければ 12 月中旬）」より早い。12/9 の決めごとと 1/15 の関門は、それより前に済む見込み）。
+
+#### 週のメモの作る段の記録（Workflow wf_6e4bbefc-a02、11/18 13:50〜22:05。再開 1 回）
+
+- 枝と commit: K `r13-w-s5w-kit` 3a588a7、P1 `r13-w-s5w-paper` f768017、S `r13-w-s5w-screen`（d250906・9efc145・04964be・8c8393a。8c8393a で P1 を取り込み）、P2 `r13-w-s5w-shots` 73412b0、文 `r13-w-s5w-text` 5a9768f。統合の枝 `r13-s5c4` は 0a59e78 から作り、K（108076f）・P1（fd882dc）・S（b8cc2a5）・P2（75f2c5b）・文（1c25dd5）の順に `--no-ff` で取り込んだ（どれもぶつからない）。リードの直し 9419f35（契約 §5.2・§6.3・§6.5・§11.2・§11.3・§16、B_DESIGN、PLAN_WEEK_MEMO、zh の 3 回目の逆翻訳）を足した。
+- **統合の run 44296486095（1c25dd5）は 1 回目で 7 つのジョブが全部緑**: build-and-test 63.2 分、UI テスト 33.7 分、blank-paper 38.8 分、span-shots (1.3 app) 73.3 分（4 台の段 47.6 分＋言語の段 20.0 分）、試作の写真 39.1 分、compat-v1.0 11.0 分（real N=599）、l10n-shots 40.6 分。
+- KitChecks: 36,968 → 37,989（K の節「week memo (1.3)」+1,021）→ 38,060（S の compat-span +71）。門は 38,010（P2、N−50）。`EXPECTED_MIN` は 599。
+- 凍結の表: DATA_1_1 18/18・TESTS_1_2_3 8/8（どの役も書き直した行 0）。
+- 変異: K 7 つ（この Mac の KitChecks で。落ちた数 26・23・128・34・8・17・192）、P1 7 つ（`r13-q-s5w-paper-m1`〜`-m7`）、S 6 つ（`r13-q-s5w-screen-m1`〜`-m4`。m3 に 3 つ）。どれも狙ったテストが落ちた。P2 の UI テストの変異（計画 §9.4）は作っていない → 見直しの段で作る。
+- 新しいテスト: K の KitChecks の節（§9.1 の 1〜9）、P1 の WeekMemoPaperSpanTests 6 本（43fe366 の紙と 1 画素ずつ）、S の WeekMemoSpanTests 8 本・ScreenshotModeSpanTests 1 本・CompatSpanTests.testWeekMemoSurvives ほか、P2 の SpanShotsUITests.testWeekMemo（4 枚、ph=7,920）・SpanUITests の 2 本（メモに書く・メモで予定を断る。2 本の道とも）。
+- 写真: 新しい 4 枚（iPad Air 11 と iPhone 17 の縦、1 ページと帯）。罫線だけの白紙、見出し「自由メモ」、今日・土日の色と時刻の列の線は 24 時で止まる、帯では罫線が境目で切れ 24 時の線はつながる（計画のとおり）。iPhone 17 縦の週は、開いたときの紙（540 pt）が手書き欄の高さと同じなので、メモの頭は見えない（一番下の 1 画素の列に 24 時の線）。メモの頭が見えるのは 6.9 インチの `iphone69-portrait-week.png` と `store/iphone69/01-week.jpg`。
+- 公式の J-4（統合の run と同じ UTC の日の ja-baseline run 44238377199）: 77 枚のうち同じ 44・弱い差だけ 22・強い差 11。強い差は、違ってよい `ipad13-portrait-sheet-sync`、一覧の「違う」7 枚、11/18 に許した 2 枚（紙の部分だけ）と、一覧の外の `ipad13-portrait-sheet-holidays` の 1 枚（下の決定 1）。
+
+**1 ページの道の記録（§6.4・D9。各役の報告のまま）**
+
+- K:
+  - 3a588a7・TegakiKit/Sources/Layout/WeekLayoutEngine.swift・コードの行は +32/−11（ほかは注）。このうち freeMemo が false の枝を 1 ページの道も通る。変わったのは入力と型の宣言と既定値 4、init の代入 2、答えの関数 cell・inkCell・growsWithInk・dayAt・band・bandTop の約 11 行、layout の「var extra」「if input.freeMemo」の判定 2 か所・cells・size・extra の引数の約 6 行。メモが無ければ答えはどれも今と == で、KitChecks の§9.1 の 1 と答えの確かめで固めた。true の枝だけの行（extraHeight・extra の矩形・cells[.extra]・startsBelowDay 3 行、約 7 行）は、この commit ではアプリのどの道も通らない（アプリはまだ true を渡さない。S で 1 ページの道の makePaper が通るようになる）・理由: §5.2、D3 (4)、§2.1 の「省けば 1.2.3 と同じ動き」・通る既存のテスト: KitChecks の週の節（week page、rect → event range: week page、zoom policy、growing paper、opening zoom、week start）、凍結の PaperGrowthTests（:152・:189）、CalendarRootScreenTests（:157・:392）、InkCanvasViewTests（:66-69 ほか）、ZoomPolicyTests（:59・:269）
+  - 3a588a7・TegakiKit/Sources/Layout/PaperGrowth.swift・コード 2 行（case .day, .week: key = .extra / case .year: return nil）・理由: §5.2・通る既存のテスト: PaperGrowthTests の :189 と KitChecks の「growing paper (1.1)」の『tail: week → nil』（メモの無い週はこの行を通って、今と同じく nil）
+  - 3a588a7・TegakiKit/Sources/Layout/ZoomPolicy.swift・コード 3 行（週の分岐）・理由: K-6・通る既存のテスト: KitChecks の「opening zoom and top-aligned paper (1.1.1)」、ZoomPolicyTests の :59・:269、InkCanvasViewTests の倍率の確かめ（メモの無い週は grid.height と size.height が同じなので、答えは今と同じ）
+  - 3a588a7・TegakiKit/Sources/Layout/SpanAlign.swift・新しい関数 weekFloors の 5 行。1 ページの道は通らない（横の道だけ）・理由: D16・通る既存のテスト: なし（新しい KitChecks の §9.1 の 7・8 だけ）
+  - 3a588a7・TegakiKit/Sources/KitChecks（WeekMemoChecks.swift 新・main.swift 1 行・SpanChecks.swift は文言だけ）と Tests/TegakiCalendarTests/SpanPrototypeInteractionTests.swift（#if SPAN_PROTOTYPE の中の 2 か所）: アプリのコードではなく、1 ページの道は 0 行
+  - 凍結の表の 18 ファイル: 0 行
+- P1:
+  - f768017・Sources/TegakiCalendar/Paper/WeekPaper.swift・3 行（:19 の高さを grid.maxY に、:62-63 のメモの呼び出し）・§5.2 と Q2 A。メモの無い週では、:19 は前と同じ値で、:62 の if は false で抜ける・通る既存のテスト: PaperSpanTests.testAWindowOfOnePageDrawsThePagePaper（:262）、ExportBuilderTests の PDF（:451 ほか）、J-4 の週の写真。1.2.3 と画素で比べる既存のテストは無い。新しい testWeekWithoutTheMemoIs1_2_3PixelForPixel が初めての画素の守り。メモの枝（:63）は、S の後の freeMemo: true で 1 ページの道が通る
+  - f768017・Sources/TegakiCalendar/Paper/DayPaper.swift（:91-93、:97）と Sources/TegakiCalendar/Paper/FreeMemoPaper.swift（新、58 行。注と括弧を除くと約 28 行）・drawExtra の本体 24 行を、呼び出しも順も変えずに移した。日の画素は 1.2.3 と同じ・§5.2「同じ関数で」・通る既存のテスト: PaperViewTests.testDayPaperStopsTheTimelineAt24（:240）、EraserAndBelowDayUITests、J-4 の day-extra の写真（弱い差だけ）。新しい testDayFreeMemoIs1_2_3PixelForPixel が 43fe366 の写しと同じ画素であることを確かめる
+  - f768017・Sources/TegakiCalendar/Export/PDFPageRenderer.swift :88-99・11 行（週の分岐。:99 は case .year を分けた行）。メモの無い週は :88-89 で 1.2.3 の紙全体を返す・§3.11 と D17・通る既存のテスト: ExportBuilderTests の PDF の全部（testPDFRendersEveryKind :451 ほか）、PaperSpanTests の 43fe366 の paperRect の写しとの比べ（:748-749 の週）。メモのある週は新しい testWeekPDFCarriesTheMemoOnlyWithInk だけが通る
+  - 凍結の表の 18 ファイル・0 行
+- S:
+  - d250906・Sources/TegakiCalendar/Views/CalendarRootScreen.swift・1 行（:1584 makePaper の週の freeMemo: true）・理由 §5.2、D3 (4)・この行を通る既存のテスト: CalendarRootScreenTests.testHolidayChangeKeepsTheGeometry（:625）と testMakePaperSunday（:638）。どちらもメモの値は見ない。ほかに UI テストの 1 ページの道と、J-4 の iPhone の週の写真
+  - d250906・Sources/TegakiCalendar/Views/CalendarRootScreen.swift・3 行（:1892-1894 newEventPlan の週の守り）・理由 §5.2「メモの中では予定を作らない」・この行を通る既存のテスト: CalendarRootScreenTests.testEventBelowTheDayIsRefused（:363）。既定の入力の週（メモ無し）で守りの行を通り、断らないまま緑。メモのある週で断ることは WeekMemoSpanTests.testNoEventInTheWeekMemo で確かめる
+  - d250906・Sources/TegakiCalendar/Support/ScreenshotMode.swift・demoPage の引数 1（:609 weekMemo の既定値の読み。いつも通る）と、weekDemoPage へ渡す 1 行（:617）・理由 §3.12・この行を通る既存のテスト: 凍結の ScreenshotModeTests.testDemoPagesMatchCompatFixtures（引数なしなら見本は 1 バイトも同じ）、J-4
+  - d250906・Sources/TegakiCalendar/Support/ScreenshotMode.swift・weekDemoPage の 4 行（:687-690 if weekMemo の中）。--screenshot-week-memo を付けたときだけ 1 ページの道で通る・理由 §3.12・既存のテストは通らない。新しい ScreenshotModeSpanTests.testWeekMemoDemoIsTheFocusWeeksOnly（と P2 の SpanShotsUITests.testWeekMemo）で確かめる。spanDemoPage の行（:766・:771-773・:790-792）は横の道だけで通る
+  - d250906・Sources/TegakiCalendar/Span/SpanSession.swift・1 ページの道は 0 行（横の道だけ。PageSlot は変えていない）
+  - d250906・Sources/TegakiCalendar/Span/ScreenPaths.swift・0 行（注だけ）
+  - 9efc145・04964be・アプリのコードは 0 行（fixture・Kit のテスト・KitChecks・tools・アプリのテストだけ）
+  - 8c8393a・P1 の f768017 の取り込み。P1 のファイルは f768017 と同じで、通る行は P1 の記録のとおり
+  - 凍結の表の 18 ファイル・TESTS_1_2_3 の 8 ファイル・OnePageSession・TegakiKit の凍結の物・文字列の表は、S ではどれも 0 行（DATA_1_1 18/18、TESTS_1_2_3 8/8）
+- P2・文: アプリのコードは変えていない（UI テスト・build.yml・写真・文・注だけ）。
+
+#### 週のメモの統合のリードの決定（11/18 22:10）
+
+1. **`ipad13-portrait-sheet-holidays.png` の強い差は、撮る時刻の揺れとして受ける**（S3 の決定 9 と同じ形。月のページで、写真は「設定」から祝日の画面へ移る途中。統合で足した文の役はアプリでは xcstrings の注 3 か所だけで、同じコードの W の run 44285407454 では基準と差 0）。S3 からの申し送り（13 インチのシートの段を「画面が出たのを待つ」形にする）は、週のメモの見直しの段の直しに入れる。
+2. 訳した見出し（paper.freeMemo）の言語の写真は足さない。日の自由メモと同じキー・同じ描き方（FreeMemoPaper）で、1.2 の言語の写真で日の見出しを見ている。週の紙（1,400 lu）は日（1,000 lu）より広い。
+3. P2 の UI テストの変異（計画 §9.4）は、見直しの段で作る。
+4. `r13` は統合の枝を作った後に docs だけ動いた（7d31783・5cc0d24）。見直しの後、`r13-s5c4` を `--no-ff` で `r13` に入れる。上限ありの統合の枝 `r13-s5c5` は 1c25dd5 から作ったので、`r13-s5c4` の 9419f35 と見直しの直しは、`r13-s5c5` の統合の役が取り込む。
 
 ### 第 1 陣の 1 ページの道の記録（§6.4・D9。各役の報告のまま）
 
