@@ -2362,7 +2362,7 @@
     "toast.eventBelowDay": {
       "ja": "24 時の下の自由メモ欄では予定を作れません",
       "target": "app",
-      "comment": "トースト。日のページの 24 時より下は予定にできない",
+      "comment": "トースト。日と週のページの 24 時より下は予定にできない",
       "where": [
         "Views/CalendarRootScreen.swift"
       ],
@@ -2378,7 +2378,7 @@
     "toast.growthCap": {
       "ja": "メモ欄はここまでです",
       "target": "app",
-      "comment": "トースト。月のメモ欄や日の自由メモ欄の下の端まで書いたとき",
+      "comment": "トースト。月のメモ欄や日と週の自由メモ欄の下の端まで書いたとき",
       "where": [
         "Views/CalendarRootScreen.swift"
       ],
