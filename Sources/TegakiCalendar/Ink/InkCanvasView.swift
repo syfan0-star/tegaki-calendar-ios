@@ -1180,7 +1180,7 @@ extension InkCanvasView {
             guard viewport.width > 0, viewport.height > 0 else { return }
             // 1.3 (§3.6): the window's limits come from one page's overview (the middle one), never the band's.
             let overview = spanState == nil ? ZoomPolicy.overviewSize(appliedLayout) : bandZoomOverview()
-            let bounds = spanState == nil ? ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport) : bandZoomBounds(overview: overview, viewport: viewport)
+            let bounds = ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport)
 
             // 2. Same limits (a layout pass during a pinch, a height change the width-bound month
             // ignores): the margins may still differ (the height changed), the window follows.
