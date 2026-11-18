@@ -969,8 +969,8 @@ final class ScreenPaths: ObservableObject {
     /// `SpanPlan.zoomBounds`: the cap's on an iPhone in landscape, P-B6 イ; before a report, the stored ratio).
     static func zoomedIn(layout: SpanLayout, viewport: PaperViewport?, area: CGSize, ratio: CGFloat) -> Bool {
         guard let viewport, viewport.width > 0 else { return ratio > overviewRatio }
-        let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout),
-                                            viewport: CGSize(width: viewport.width, height: area.height))
+        let bounds = ZoomPolicy.bounds(layout.kind, overview: InkCanvasView.bandOverview(layout),
+                                       viewport: CGSize(width: viewport.width, height: area.height))
         return ZoomPolicy.ratio(forZoom: viewport.zoom, bounds: bounds) > overviewRatio
     }
 
