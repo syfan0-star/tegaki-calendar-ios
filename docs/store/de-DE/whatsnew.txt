@@ -1,3 +1,4 @@
-• Strengere Prüfungen, damit Ihre Handschrift nach einem Wechsel des iCloud-Accounts nicht mit einem anderen Account vermischt wird.
+• Noch strengere Prüfungen beim Wechsel des iCloud-Accounts, damit Handschrift nicht zwischen Accounts vermischt oder gelöscht wird.
+• Ein Problem wurde behoben, bei dem Handschrift, die noch auf diesem Gerät war, wieder in iCloud landen konnte, nachdem auf einem anderen Gerät alle Handschrift gelöscht wurde.
 
 Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit.

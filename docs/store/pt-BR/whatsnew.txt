@@ -1,3 +1,4 @@
-• Verificações mais rigorosas para que sua escrita à mão não se misture com outra conta do iCloud quando você trocar de conta.
+• Verificações ainda mais rigorosas ao trocar de conta do iCloud, para que a escrita à mão não se misture entre contas nem seja apagada.
+• Corrigido um problema em que, depois que toda a escrita à mão foi apagada em outro dispositivo, a escrita à mão que ainda estava neste dispositivo podia voltar para o iCloud.
 
 As traduções foram feitas com IA e ainda não foram revisadas por falantes nativos. Avise-nos sobre erros.

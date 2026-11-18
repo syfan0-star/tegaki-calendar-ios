@@ -1,3 +1,4 @@
-• Stronger checks so that your handwriting is not mixed with another iCloud account when you switch accounts.
+• Even stronger checks when you switch iCloud accounts, so that handwriting is not mixed between accounts or erased.
+• Fixed an issue where, after all handwriting was erased on another device, handwriting still on this device could go back to iCloud.
 
 Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.

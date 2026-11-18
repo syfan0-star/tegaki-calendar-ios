@@ -1,3 +1,4 @@
-• Des vérifications renforcées pour que votre écriture manuscrite ne soit pas mélangée avec un autre compte iCloud quand vous changez de compte.
+• Des vérifications encore renforcées lorsque vous changez de compte iCloud, pour que l’écriture manuscrite ne soit ni mélangée entre comptes ni effacée.
+• Correction d’un problème qui pouvait renvoyer vers iCloud l’écriture manuscrite restée sur cet appareil, après l’effacement de toute l’écriture manuscrite sur un autre appareil.
 
 Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs.
