@@ -59,9 +59,6 @@ enum WeekPaper: PaperRenderer {
         ctx.strokePath()
 
         // 1.3: the week memo below 24:00 (`extra`), the day's free memo.
-        if layout.cells[.extra] != nil {
-            FreeMemoPaper.draw(ctx, area: layout.extra, dirty: dirty, zoom: zoom, scale: scale, readable: readable)
-        }
 
         // 4. Timed boxes.
         TimeGridPaper.drawBoxes(ctx, boxes: layout.timedBoxes, textSize: PaperText.weekEvent, dirty: dirty, zoom: zoom, readable: readable)
