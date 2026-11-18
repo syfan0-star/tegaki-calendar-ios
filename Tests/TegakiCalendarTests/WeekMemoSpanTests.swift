@@ -100,6 +100,15 @@ final class WeekMemoSpanTests: XCTestCase {
         session.layout.pages.map { $0.cells[.extra]?.height }
     }
 
+    /// Every page of the window has a memo `height` lu high (± 0.5: the ledger keeps a point's y to 0.1 lu).
+    private func assertMemoHeights(_ session: SpanSession, _ height: CGFloat, _ message: String, file: StaticString = #filePath, line: UInt = #line) {
+        let heights = memoHeights(session)
+        XCTAssertEqual(heights.count, session.pageIds.count, message, file: file, line: line)
+        for (id, h) in zip(session.pageIds, heights) {
+            XCTAssertEqual(h ?? -1, height, accuracy: 0.5, "\(id): \(message)", file: file, line: line)
+        }
+    }
+
     /// The window's cell rect of `cell` on `pageId`.
     private func cell(_ cell: CellKey, of pageId: String, _ session: SpanSession) throws -> CGRect {
         try XCTUnwrap(session.layout.cells[SpanName.prefixed(cell, page: pageId)], "no \(cell.raw) on \(pageId)")
@@ -278,31 +287,34 @@ final class WeekMemoSpanTests: XCTestCase {
         let session = bed.session(.week, focus: nov16, number: 1, radius: 1)
         await session.prefetch()
         XCTAssertEqual(session.pageIds, [w1109, w1116, w1123])
-        XCTAssertEqual(memoHeights(session), [6000, 6000, 6000], "every joined week has its memo")
+        assertMemoHeights(session, 6000, "every joined week has its memo")
         let ledger = JoinedLedgerStandIn(session)
-        // On the left week's memo: centred 5,974 lu below 24:00 (kept, under the 6,000 lu cap), its bottom at 6,950 lu.
+        // On the left week's memo: centred 5,974 lu below 24:00 (kept, under the 6,000 lu cap), its bottom at about 6,950 lu.
         let memo = try cell(.extra, of: w1109, session)
         let deep = try XCTUnwrap(ledger.draw([CGPoint(x: memo.minX + 300, y: memo.minY + 5_000), CGPoint(x: memo.minX + 310, y: memo.minY + 6_000),
                                               CGPoint(x: memo.minX + 320, y: memo.minY + 6_948.25)]))
         XCTAssertEqual(deep.cell, SpanName.prefixed(.extra, page: w1109))
         ledger.put()
         session.relayoutPages()
-        XCTAssertEqual(session.page(w1109)?.inkBottoms()[.extra], 6_950)
-        XCTAssertEqual(memoHeights(session), [7000, 7000, 7000], "the window ends at the same line (.inkGrew)")
-        XCTAssertEqual(session.floors.weekExtra, 7000)
+        let bottom = try XCTUnwrap(session.page(w1109)?.inkBottoms()[.extra])
+        XCTAssertEqual(bottom, 6_950, accuracy: 0.5)
+        let floor = SpanAlign.natural(inkBottom: bottom)
+        XCTAssertEqual(floor, 7_000, accuracy: 0.5)
+        assertMemoHeights(session, floor, "the window ends at the same line (.inkGrew)")
+        XCTAssertEqual(session.floors.weekExtra, floor)
         XCTAssertEqual(session.floors.dayExtra, 0)
-        XCTAssertEqual(session.layout.size.height, midnight + 7000)
+        XCTAssertEqual(session.layout.size.height, midnight + floor, accuracy: 0.001)
 
         // A shift that takes w-11-09 out: right after it the window keeps its height.
         XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex + 1))
         XCTAssertEqual(session.pageIds, [w1116, w1123, w1130])
         XCTAssertEqual(bed.live(w1109).count, 1, "the page that left was saved")
-        XCTAssertEqual(memoHeights(session), [7000, 7000, 7000], "a shift never lowers the floor")
+        assertMemoHeights(session, floor, "a shift never lowers the floor")
         // The page that came in read: the window comes back to its tallest page.
         await session.prefetch()
-        XCTAssertEqual(memoHeights(session), [6000, 6000, 6000], "read: .redecide, the window's tallest")
+        assertMemoHeights(session, 6000, "read: .redecide, the window's tallest")
         session.contextChanged()
-        XCTAssertEqual(memoHeights(session), [6000, 6000, 6000], "the 30 s tick")
+        assertMemoHeights(session, 6000, "the 30 s tick")
 
         // Another window: the same line, then erased.
         let december = bed.session(.week, focus: DayKey(year: 2026, month: 12, day: 9), number: 2, radius: 1)
@@ -314,11 +326,11 @@ final class WeekMemoSpanTests: XCTestCase {
                                              CGPoint(x: middle.minX + 320, y: middle.minY + 6_948.25)]))
         other.put()
         december.relayoutPages()
-        XCTAssertEqual(memoHeights(december), [7000, 7000, 7000])
+        assertMemoHeights(december, floor, "the same line in another window")
         XCTAssertEqual(other.erase([line.id]), [line.id])
         other.put()
         december.relayoutPages()
-        XCTAssertEqual(memoHeights(december), [6000, 6000, 6000], "erased: .inkShrank")
+        assertMemoHeights(december, 6000, "erased: .inkShrank")
     }
 
     // MARK: - Where a stroke is filed
@@ -597,7 +609,7 @@ final class WeekMemoSpanTests: XCTestCase {
         let sunday = bed.session(.week, focus: nov16, weekStart: .sunday, number: 2, radius: 1)
         await sunday.prefetch()
         XCTAssertEqual(sunday.pageIds, ["w-2026-11-08", "w-2026-11-15", "w-2026-11-22"])
-        XCTAssertEqual(memoHeights(sunday), [6000, 6000, 6000], "the Sunday start's weeks have their memo")
+        assertMemoHeights(sunday, 6000, "the Sunday start's weeks have their memo")
         XCTAssertTrue(sunday.pageIds.allSatisfy { sunday.page($0)?.liveStrokeCount == 0 }, "the Monday start's memo is not here")
         XCTAssertEqual(try onePageWeek(nov16, weekStart: .sunday).pageId, "w-2026-11-15")
 
