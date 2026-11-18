@@ -1215,7 +1215,7 @@ final class ScreenPaths: ObservableObject {
     /// The zoom a window opens at for `area` (the paper area; its width alone while the height is 0) and the stored ratio,
     /// over `SpanPlan.zoomBounds` (the cap's opening zoom on an iPhone in landscape, P-B6 イ).
     static func bandZoom(layout: SpanLayout, area: CGSize, ratio: CGFloat) -> CGFloat {
-        ZoomPolicy.zoom(forRatio: ratio, bounds: layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area))
+        ZoomPolicy.zoom(forRatio: ratio, bounds: ZoomPolicy.bounds(layout.kind, overview: InkCanvasView.bandOverview(layout), viewport: area))
     }
 
     /// The viewport of a window's first frame, before its canvas reported one (HANDOFF 6): at the overview the focus page in
