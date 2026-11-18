@@ -89,7 +89,7 @@ enum PDFPageRenderer {
             guard content.layout.cells[.extra] != nil else { return CGRect(origin: .zero, size: content.layout.size) }
             let extraHasInk = page.liveStrokes.contains { $0.cell.isExtra }
             let incoming = neighborInk.isEmpty ? nil : neighborExtraBottom(neighborInk, extra: content.layout.extra, pageWidth: content.layout.size.width)
-            guard extraHasInk || incoming != nil else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
+            _ = extraHasInk
             var inkBottom = page.inkBottoms()[.extra] ?? 0
             if let incoming = incoming {
                 inkBottom = max(inkBottom, incoming)
