@@ -40,7 +40,7 @@ enum WeekPaper: PaperRenderer {
         ctx.setLineWidth(PaperText.hairline(zoom))
         ctx.setStrokeColor(PaperPalette.lineStrong.cgColor)
         ctx.beginPath()
-        PaperText.addVertical(ctx, x: gutter, from: 0, to: height, zoom: zoom, scale: scale)
+        PaperText.addVertical(ctx, x: gutter, from: 0, to: layout.size.height, zoom: zoom, scale: scale)
         ctx.strokePath()
 
         // 3. Hour grid, column lines and time labels.
