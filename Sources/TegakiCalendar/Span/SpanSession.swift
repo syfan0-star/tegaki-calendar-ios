@@ -621,7 +621,7 @@ final class SpanSession: ObservableObject {
         case .day:
             floors = SpanAlign.dayFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
         case .week:
-            floors = SpanAlign.weekFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
+            floors = SpanAlign.weekFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: .redecide)
         case .month, .year:
             break
         }
