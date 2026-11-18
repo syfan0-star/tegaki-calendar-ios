@@ -412,7 +412,7 @@ final class ScreenPaths: ObservableObject {
         openings += 1
         return SpanSession(kind: o.kind, weekStart: o.weekStart, focus: o.focus, sync: sync, deviceClass: device.deviceClass,
                            orientation: device.orientation, number: openings, context: o.context, paperArea: o.paperArea,
-                           overviewCap: true, eventSource: eventSource,
+                           eventSource: eventSource,
                            loader: { [weak self, sync, kind = o.kind, weekStart = o.weekStart] id in
                                self?.read(id, kind: kind, weekStart: weekStart) ?? sync.load(id)
                            },
