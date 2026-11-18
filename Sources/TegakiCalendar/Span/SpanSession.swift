@@ -1059,7 +1059,7 @@ final class SpanSession: ObservableObject {
     func redecide(orientation: SpanOrientation, paperArea: CGSize? = nil) -> Bool {
         guard !isClosed else { return false }
         drainInbox()
-        let next = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation, overviewCap: overviewCap)
+        let next = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation)
         let wide = max(1, Self.windowRadius(plan: next, paperArea: paperArea))
         return rebuild(around: focusIndex, plan: next, radius: fittingRadius(wide, plan: next, focus: focusIndex), change: .redecide)
     }
