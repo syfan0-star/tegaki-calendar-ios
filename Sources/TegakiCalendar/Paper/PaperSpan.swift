@@ -5,10 +5,13 @@ import UIKit
 /// weeks or days, as the paper (`PaperView.span`), the fixed heading (`StickyHeaderView.span`) and the
 /// all-day band (`AllDayBandView.span`) show them. The pages sit side by side from paper x 0 without a gap,
 /// slot k's left edge at k × the page width — the slots of the session's `SpanLayout`
-/// (`SpanLayout.origin(ofSlot:)`): every week 1,400 × 1,920 lu, every day 1,000 lu wide with its free memo
+/// (`SpanLayout.origin(ofSlot:)`): every week 1,400 lu wide, every day 1,000 lu wide, each with its free memo
 /// below 24:00 lined up to the window's floor (D16: the session lays the days out with
-/// `DayLayoutInput.extraFloor` from `SpanAlign.dayFloors`; the paper draws what each layout says, so the
-/// memo runs on as one band). Only weeks and days are joined in 1.3 (D2): a month or a year never makes one.
+/// `DayLayoutInput.extraFloor` from `SpanAlign.dayFloors`, and since the week memo (§5.2) the weeks with
+/// `WeekLayoutInput.extraFloor` from `SpanAlign.weekFloors`; a week laid out without its memo is 1,400 × 1,920
+/// lu, 1.2.3's; the paper draws what each layout says, so the memo runs on as one band: its strong line at
+/// 24:00 meets at a boundary, the ruled lines stop 20 lu short of it on each side and each page has its label,
+/// the day's look, `FreeMemoPaper`). Only weeks and days are joined in 1.3 (D2): a month or a year never makes one.
 ///
 /// `bands` are the window's all-day bands, one per page, with the lanes packed over the whole run of days
 /// at once (`AllDayBandLanes`, `AllDayBandEngine.pages`), so an event across a boundary keeps its lane.
