@@ -3,10 +3,11 @@ import CoreGraphics
 import InkModel
 import Layout
 
-// tools/span-compat (docs/M7C_CONTRACT.md §6.3, §10.4): the part of the Probe that is the same for every old
-// version. It uses only the API that 1.0 (a21e469), <1.1.1> and 1.2.3 (43fe366) all have; what differs (how the
-// version lays a page out, what it draws of each fixture) is in <version>/Version.swift. run.sh puts this file,
-// main.swift and one Version.swift into a package that builds against that version's real TegakiKit.
+// tools/span-compat (docs/M7C_CONTRACT.md §6.3, §10.4; docs/M7D_CONTRACT.md §5.3): the part of the Probe that is the
+// same for every version. It uses only the API that 1.0 (a21e469), <1.1.1>, 1.2.3 (43fe366) and 1.3 (955fe67) all
+// have; what differs (how the version lays a page out, what it draws of each fixture, its own checks
+// `versionExtraChecks`) is in <version>/Version.swift. run.sh puts this file, main.swift and one Version.swift into
+// a package that builds against that version's real TegakiKit.
 
 var checkCount = 0
 var failureCount = 0

@@ -49,3 +49,7 @@ func versionLayout(_ ref: PageRef, page: InkPage) -> (pageId: String, cells: [Ce
         return (l.pageId, l.cells)
     }
 }
+
+/// The checks only one version has (docs/M7D_CONTRACT.md §5.3 2: v13's runs 1.3's guard of the save over every
+/// fixture page). <1.1.1> has none: Probe/main.swift calls this once, after the files.
+func versionExtraChecks(pages: [InkPage]) {}
