@@ -1036,9 +1036,15 @@ final class InkCanvasSpanTests: XCTestCase {
         await turn(rig, to: first)
         check(opened, since: stops, "\(kind) turned back")
 
+        let shifts = rig.coordinator.spanShiftCount
         await scroll(rig, pages: 1)
-        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done, "\(kind) slid: the window shifts", line: line)
+        // S6 (review S6-LT-2): on a slow runner the queued check after the motion may have shifted the window before this
+        // call (run 44460579096: `.nothing`, the shift's log line before it); the window shifts once, by either.
+        let outcome = rig.coordinator.shiftIfAtRest()
+        XCTAssertTrue(outcome == .done || (outcome == .nothing && rig.coordinator.spanShiftCount == shifts + 1),
+                      "\(kind) slid: the window shifts (\(outcome), \(rig.coordinator.spanShiftCount - shifts) shifts)", line: line)
         await settle()
+        XCTAssertEqual(rig.coordinator.spanShiftCount, shifts + 1, "\(kind) slid: the window shifted once", line: line)
         check(next, since: rig.probe.stops.count - 1, "\(kind) slid")
         stops = rig.probe.stops.count
         await turn(rig, to: second)
