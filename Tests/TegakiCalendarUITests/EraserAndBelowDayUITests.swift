@@ -31,7 +31,16 @@ import XCTest
 /// classes looked up at run time). They skip themselves when this Xcode does not have them; the event
 /// tool (B0) and the preselected strokes (B2, B3: `--screenshot-select`) cover the rest without it.
 @MainActor
-final class EraserAndBelowDayUITests: XCTestCase {
+class EraserAndBelowDayUITests: XCTestCase {
+    /// 1.3 (docs/M7C_CONTRACT.md §10.3, `SpanRerunUITests`): launch arguments a subclass puts after this class's own
+    /// (`["--screenshot-span", "on"]`: the day page on the joined path); none here, so these tests launch as they did.
+    /// The class is not `final` for that subclass only.
+    class var extraArguments: [String] { [] }
+    /// 1.3 (the lead's decision C3-m10): on the joined path a page's lu start at the focus page's left edge in the band
+    /// (`span.state`'s `origin=`), read once after the canvas settled (`waitForCanvas`) and only with `extraArguments`;
+    /// 0 for this class's own runs, which have no `span.state` and query nothing more than before.
+    private var spanOrigin: CGFloat = 0
+
     /// The height (lu) of the month's memo area with the demo pages (`PaperGrowth.tailHeight`, 1.1.1).
     private let memoHeight: CGFloat = 6000
     /// The top part of the day's free memo area (lu) that has to be on screen for the tests below.
@@ -320,7 +329,7 @@ final class EraserAndBelowDayUITests: XCTestCase {
             // UserDefaults' argument domain (YearTapUITests): 「指でも書く」 on and already chosen, so a
             // simulator finger draws and erases.
             "-allowFingerDrawing", "YES", "-allowFingerDrawingChosen", "YES",
-        ] + extra
+        ] + extra + Self.extraArguments
         app.launch()
         log("launched \(extra.joined(separator: " "))")
         return app
@@ -334,7 +343,7 @@ final class EraserAndBelowDayUITests: XCTestCase {
     private func probe(_ app: XCUIApplication) -> CanvasProbe? {
         let canvas = canvasElement(in: app)
         guard canvas.exists, let raw = canvas.value as? String else { return nil }
-        return CanvasProbe(raw: raw, frame: canvas.frame)
+        return CanvasProbe(raw: raw, frame: canvas.frame, origin: spanOrigin)
     }
 
     /// The probe once it has a zoom and two reads 0.4 s apart agree on the zoom, the offset and the
@@ -386,7 +395,37 @@ final class EraserAndBelowDayUITests: XCTestCase {
         }
         log("\(name): window=\(app.windows.firstMatch.frame) canvas=\(settled.frame) visible paper=\(settled.visiblePaper) probe \(settled.raw)")
         keepScreenshot(app, "\(name) — start")
+        // 1.3 (C3-m10): the joined path's origin, once per launch; never for this class's own runs.
+        if !Self.extraArguments.isEmpty {
+            spanOrigin = joinedOrigin(app, name)
+            return CanvasProbe(raw: settled.raw, frame: settled.frame, origin: spanOrigin)
+        }
         return settled
+    }
+
+    /// 1.3 (`SpanRerunUITests`, C3-m10): `span.state`'s `origin=` (the focus page's left edge in the band, lu) once the
+    /// screen is on the joined path (`path=span`, at most 20 s). Fails the test (and gives 0) when it never joins.
+    private func joinedOrigin(_ app: XCUIApplication, _ name: String) -> CGFloat {
+        let state = app.descendants(matching: .any).matching(identifier: "span.state").firstMatch
+        var label = "-"
+        let deadline = Date().addingTimeInterval(20)
+        repeat {
+            if state.exists {
+                label = state.label
+                var fields: [String: String] = [:]
+                for part in label.split(separator: ";") {
+                    guard let equals = part.firstIndex(of: "=") else { continue }
+                    fields[String(part[..<equals])] = String(part[part.index(after: equals)...])
+                }
+                if fields["path"] == "span", let origin = fields["origin"].flatMap({ Double($0) }) {
+                    log("\(name): the joined path, the focus page from \(origin) lu in the band (\(label))")
+                    return CGFloat(origin)
+                }
+            }
+            Thread.sleep(forTimeInterval: 0.3)
+        } while Date() < deadline
+        XCTFail("\(name): the screen is not on the joined path (span.state \(label))")
+        return 0
     }
 
     /// The top of the free memo area (2,400 … 2,400 + 700 lu) is inside the canvas (`dayBottomArguments`).
@@ -710,10 +749,13 @@ private struct CanvasProbe {
     /// The canvas (the container) on screen.
     let frame: CGRect
     let values: [String: String]
+    /// 1.3: where the page's lu start in the canvas's band (`span.state`'s `origin=`); 0 on one page.
+    let origin: CGFloat
 
-    init(raw: String, frame: CGRect) {
+    init(raw: String, frame: CGRect, origin: CGFloat = 0) {
         self.raw = raw
         self.frame = frame
+        self.origin = origin
         var values: [String: String] = [:]
         for part in raw.split(separator: ";") {
             guard let equals = part.firstIndex(of: "=") else { continue }
@@ -739,9 +781,9 @@ private struct CanvasProbe {
     var trace: String { values["trace"] ?? "" }
     var isReady: Bool { zoom > 0 && frame.width > 0 && frame.height > 0 }
 
-    /// A paper point (lu) on screen (pt).
+    /// A paper point (lu) on screen (pt). 1.3: on the joined path the page's x is `origin` further in the band.
     func screen(_ paper: CGPoint) -> CGPoint {
-        CGPoint(x: frame.minX + paper.x * zoom - offset.x, y: frame.minY + paper.y * zoom - offset.y)
+        CGPoint(x: frame.minX + (origin + paper.x) * zoom - offset.x, y: frame.minY + paper.y * zoom - offset.y)
     }
 
     /// The part of the paper (lu) the canvas shows.

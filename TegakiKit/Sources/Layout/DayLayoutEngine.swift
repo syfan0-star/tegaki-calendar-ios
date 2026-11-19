@@ -16,8 +16,12 @@ public struct DayLayoutInput: Sendable {
     public var holidays: HolidayCalendar
     /// The words of the boxes (D9, §3.1 rule 4).
     public var words: LayoutWords
+    /// 1.3 (docs/M7C_CONTRACT.md D16, `SpanAlign`): the least height of the free memo below 24:00, so
+    /// the joined days of a window end at the same line. 0 (the default) or anything not above the page's
+    /// own `PaperGrowth.tailHeight` gives today's layout, `==`; not finite or negative counts as 0.
+    public var extraFloor: CGFloat
 
-    public init(day: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese) {
+    public init(day: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, extraFloor: CGFloat = 0) {
         self.day = day
         self.events = events
         self.inkBottoms = inkBottoms
@@ -25,6 +29,7 @@ public struct DayLayoutInput: Sendable {
         self.calendar = calendar
         self.holidays = holidays
         self.words = words
+        self.extraFloor = extraFloor
     }
 }
 
@@ -57,8 +62,8 @@ public struct DayPageLayout: PageLayout, Equatable, Sendable {
     public var nowLine: NowLine?
     public var isToday: Bool
     /// (0, 2400, 1000, h), h = `PaperGrowth.tailHeight(inkBottom: inkBottoms[.extra] ?? 0)` (at least
-    /// 6,000): the free memo area below 24:00 (1.1). A layout made without it (the default `.zero`, no
-    /// `.extra` in `cells`) behaves like 1.0's.
+    /// 6,000; since 1.3 at least `DayLayoutInput.extraFloor`): the free memo area below 24:00 (1.1). A
+    /// layout made without it (the default `.zero`, no `.extra` in `cells`) behaves like 1.0's.
     public var extra: CGRect
 
     public init(pageId: String, day: DayKey, size: CGSize, grid: CGRect, timeline: CGRect, memo: CGRect, allDayBand: AllDayBandLayout, cells: [CellKey: CGRect], allDayBars: [AllDayBar], timedBoxes: [TimedEventBox], dateLabels: [DateLabel], nowLine: NowLine?, isToday: Bool, extra: CGRect = .zero) {
@@ -184,8 +189,9 @@ public enum DayLayoutEngine {
         let grid = CGRect(x: 0, y: 0, width: PaperSpec.dayWidth, height: PaperSpec.dayGridHeight)
         let timeline = CGRect(x: PaperSpec.dayGutter, y: 0, width: timelineWidth, height: PaperSpec.dayGridHeight)
         let memo = CGRect(x: PaperSpec.dayTimelineRight, y: 0, width: PaperSpec.dayWidth - PaperSpec.dayTimelineRight, height: PaperSpec.dayGridHeight)
-        // The free memo area below 24:00 (1.1): the whole width, open to 6,000 from the start (1.1.1).
-        let extraHeight = PaperGrowth.tailHeight(inkBottom: input.inkBottoms[.extra] ?? 0)
+        // The free memo area below 24:00 (1.1): the whole width, open to 6,000 from the start (1.1.1),
+        // and since 1.3 at least the window's floor (D16; 0 by default, so 1.2.3's height).
+        let extraHeight = max(PaperGrowth.tailHeight(inkBottom: input.inkBottoms[.extra] ?? 0), SpanAlign.sanitized(input.extraFloor))
         let extra = CGRect(x: 0, y: grid.maxY, width: PaperSpec.dayWidth, height: extraHeight)
 
         // The all-day band (one lane per event) lives outside the paper.

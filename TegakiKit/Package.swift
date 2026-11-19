@@ -19,6 +19,11 @@
 //                  tools/compat10/freeze.py --check proves it is what a21e469 gives.
 // CompatFixtures — writes K's golden fixtures (Tests/Fixtures/compat11) with the new code.
 // Compat10Tests  — XCTest of the two above (and of the new code against the copy).
+// CompatSpanFixtures — 1.3: the joined pages' ledger and slots as plain values (SpanLedgerSim) and the
+//                  compat-span fixtures (Tests/Fixtures/compat-span) they write through the Kit's path
+//                  (docs/M7C_CONTRACT.md §4.2, §6.3); KitChecks reads them.
+// CompatSpanTests — 1.3: XCTest of the compat-span fixtures through the frozen 1.0 copy and today's InkModel
+//                  (§10.2 row C). It does not depend on CompatSpanFixtures: its expected values are written out.
 //
 // `import Layout` (or `import Holidays`) re-exports DayKit, so app code only needs the three
 // products named in the contract.
@@ -43,13 +48,15 @@ let package = Package(
         .target(name: "Compat10", path: "Tests/Compat10",
                 exclude: ["FROZEN.sha256", "ORIGIN.sha256", "ORIGIN.ranges"]),
         .target(name: "CompatFixtures", dependencies: ["InkModel", "Layout"], path: "Tests/CompatFixtures"),
-        .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel", "Access", "Compat10", "CompatFixtures"]),
+        .target(name: "CompatSpanFixtures", dependencies: ["InkModel", "Layout", "CompatFixtures"], path: "Tests/CompatSpanFixtures"),
+        .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel", "Access", "Compat10", "CompatFixtures", "CompatSpanFixtures"]),
         .testTarget(name: "LayoutTests", dependencies: ["Layout"]),
         .testTarget(name: "HolidaysTests", dependencies: ["Holidays", "Layout"]),
         .testTarget(name: "InkModelTests", dependencies: ["InkModel", "Holidays"]),
         .testTarget(name: "AccessTests", dependencies: ["Access", "DayKit"]),
         .testTarget(name: "Compat10Tests", dependencies: ["Compat10", "CompatFixtures", "InkModel", "Layout"], path: "Tests/Compat10Tests"),
         .testTarget(name: "Compat12Tests", dependencies: ["Compat10", "InkModel", "Layout"], path: "Tests/Compat12Tests"),
+        .testTarget(name: "CompatSpanTests", dependencies: ["Compat10", "InkModel", "Layout"], path: "Tests/CompatSpanTests"),
     ],
     swiftLanguageVersions: [.v5]
 )

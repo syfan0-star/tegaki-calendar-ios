@@ -446,7 +446,7 @@
     },
     "paper.freeMemo": {
       "args": [],
-      "comment": "日のページの 24 時より下の欄の見出し。同じページに「メモ」もあるので別の語にする。字間 0.15 em/字。上限は「幅 ＋ 0.15 em × 字数」が 8.0 em（F-6。de「Freie Notizen」で 7.73 em）",
+      "comment": "日と週のページの 24 時より下の欄の見出し。日のページには「メモ」もあるので別の語にする。字間 0.15 em/字。上限は「幅 ＋ 0.15 em × 字数」が 8.0 em（F-6。de「Freie Notizen」で 7.73 em）",
       "glossary": [
         "自由メモ"
       ],
@@ -457,7 +457,7 @@
         "Paper/DayPaper.swift:121"
       ],
       "where": [
-        "Paper/DayPaper.swift"
+        "Paper/FreeMemoPaper.swift"
       ]
     },
     "paper.memo": {

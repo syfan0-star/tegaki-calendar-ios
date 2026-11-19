@@ -15,3 +15,39 @@ R が日本語の元を見ずに英語の行だけから訳し戻しました。
 11. サービス利用規約: https://syfan0-star.github.io/tegaki-calendar/app/terms.html
 12. プライバシーポリシー: https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 13. サポート: https://syfan0-star.github.io/tegaki-calendar/app/support.html
+
+## 1.3（2026-11-13）
+
+1.3 の `docs/store/review-note.txt` の英語の部分（「--- 日本語の要約 ---」より上）だけを別の Claude（R）に渡し、日本語の元（日本語の要約と契約 §8.4）を見ずに訳し戻してもらいました。TestFlight の段落の中の題「記録」は、1.2 のときと違って伏せずに渡しています（シートの題の名前で、判定には関わりません）。空の行を除き、英語の行の順に番号を付けました。照合と判定は、メモを書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の新機能の文と審査メモ」。× 0）。
+
+1. ログイン、アカウントの作成、デモアカウントは、いずれも必要ありません。
+2. 1.3 の新しい点
+3. 1. 週のページと日のページが、前後のページと横に並んでつながりました。横にスワイプすると隣の週や日が出てきて、線は境目をまたいで書けます。そのような線は、線の中心があるページにまるごと保存され、ファイルの形式も iCloud のレコードの形式も変わりません。古いバージョンでは、その線はそのページにだけ表示されます。月と年のページは、これまでどおり 1 ページずつの表示です。
+4. 2. 設定に新しい項目「ページ」ができ、これを切り替えるスイッチが 1 つあります（初期値はオン、端末ごと）。オフにすると、1.2.3 と同じ週と日のページになります。
+5. 3. つながったページを初めて開いたとき、小さなカードがスワイプのしかたを 8 秒間説明します（端末ごと、ページの種類ごとに 1 回）。
+6. 4. iCloud 同期の修正：「すべて消去」（この端末でもほかの端末でも）や「消去して始める」で消した手書きが、開いているページ、取り消し、ページの取得を経由して戻ってきて、再び iCloud へ送られることはなくなりました。
+7. 変わらない点：データ（App のプライバシーは「データの収集なし」のまま）、手書きの保存方法、購入、年齢区分、1.2.2 の年齢層の確認。
+8. アプリは端末の言語に従います（1.2 から 10 言語。それ以外の言語では英語を表示します）。アプリごとの言語：設定 > アプリ > Tegaki > 言語。
+9. テストのしかた：カレンダー App に予定を 2〜3 件（終日の予定を 1 件、時刻のある予定を 1 件）追加してから、アプリを開いてください。予定は月・週・日・年のページに表示され、その上に Apple Pencil で、または「指で描く」をオンにしたあと（ツールバー、または 設定 > 入力 で）指で書き込めます。手書きは、予定がなくても iCloud がなくても使えます。1.3 については：週のページを横にスワイプし（iPad では 1 本指、iPhone では 2 本指）、2 つの週の境目をまたいで線を書き（週が日曜始まりなら土曜から日曜へ、そうでなければ日曜から月曜へ）、設定 > ページ を試してください。
+10. サブスクリプションと価格は変わりません（com.syfan0.tegakicalendar.monthly と .yearly、自動更新、14 日間の無料トライアル）。購入画面は初回のガイドのあとに 1 回表示され、ヘッダーの「閲覧のみ」バッジや 設定 > 購入 からも開けます。復元：設定 > 購入 > 購入を復元。利用規約、プライバシーポリシー、Apple の標準 EULA へのリンクは、購入画面と 設定 > このアプリについて にあります。日本語の利用規約とプライバシーポリシーが正文で、英語のページは便宜のための翻訳であり、そのことがページに書かれています。
+11. TestFlight と App Review のビルド（サンドボックスのレシート）に限り、設定 > このアプリについて > バージョン を長押しすると、「記録」という題の（どの言語でも日本語の）ログ画面が開き、利用者はその内容をコピーして開発者に送ることができます。自動で送られるものはありません。含まれるのは、アプリと OS のバージョン、端末の機種、道具の切り替え、ページの種類、線の本数、タッチの種類、経過時間だけで（手書きの内容、日付、個人情報は含みません）、App Store のビルドには一切表示されません。
+12. サーバーはありません。カレンダーのデータは EventKit を通じて端末上でのみ使われ、手書きは端末と、利用者本人の iCloud プライベートデータベースにだけ置かれます。開発者はそこにアクセスできません。分析、広告、サードパーティの SDK も使っていません。
+13. 英語のページ：
+14. https://syfan0-star.github.io/tegaki-calendar/app/en/terms.html
+15. https://syfan0-star.github.io/tegaki-calendar/app/en/privacy.html
+16. https://syfan0-star.github.io/tegaki-calendar/app/en/support.html
+17. 日本語のページ（正文）：
+18. https://syfan0-star.github.io/tegaki-calendar/app/terms.html
+19. https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
+20. https://syfan0-star.github.io/tegaki-calendar/app/support.html
+
+## 1.3 の直し（2026-11-19）
+
+確認ページの文の仕事（M7C.md の「週のメモの見直しのリードの決定」の 4）で、`review-note.txt` の「What is new in 1.3」の段を直しました（2c1fdf6）。1 の 2 つ目の文を詰めて 1 の最後の文「Month and year pages stay one page at a time.」を外し（4,000 バイトに入れるため）、2 の 2 つ目の文を替え、週のメモの 4 を足し、iCloud の直し（もとの 4、今の 5）を 1.2.4 の後の画面の側の直しとして書き直しました。直した 4 つの文だけを別の Claude（R）に渡し、日本語の元（日本語の要約と、書き手が書いた日本語の意味）を見ずに訳し戻してもらいました。前後の文は渡していません（R の注の「この文だけでは」はこのため）。判定は、メモを書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の H1 の点の新しい文と審査メモの直し」。× 0、直した字なし）。上の「1.3」の節の 3（1 の段）・4（2 の段）・6（もとの 4）は前の字の逆翻訳で、ほかの段は今も上の節の字のままです。R の注は R が書いたままです。
+
+| 文 | 今の字 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- |
+| 1 の 2 つ目の文（最後の文「Month and year pages stay one page at a time.」は外した） | It is saved whole on the page holding its center (same file and iCloud record format); older versions show it on that page only. | それは、自分の中心があるページにまるごと保存されます（ファイルと iCloud のレコードの形式は同じです）。古いバージョンでは、そのページにだけ表示されます。 | この文だけでは「It」が何を指すか分かりません（ページをまたぐ手書きの線などと推測できます）。「holding its center」は「中心を含むページ」という意味だと思われますが、言い方が少し不自然です。「same file and iCloud record format」は「ファイル形式と iCloud レコード形式が同じ」とも「同じファイル、および iCloud レコード形式」とも読め、何と同じなのか（従来と同じ？）も書かれていません。「older versions」はアプリの古いバージョンと推測できます。 |
+| 2 の 2 つ目の文 | Off shows one page at a time as before. | オフにすると、従来どおり一度に 1 ページずつ表示されます。 | 「Off」が主語の電報のような文です。この文だけでは何がオフなのか（スイッチや設定）分かりません。直訳すると「オフは従来どおり一度に 1 ページを表示する」で、英語として少し硬く不自然です。 |
+| 4（新しい） | 4. Week pages now also have Free Notes below 24:00, like day pages since 1.1, even with the switch off. | 4. 週のページにも、1.1 以降の日のページと同じく、24:00 の下に「自由メモ（Free Notes）」が付くようになりました。スイッチがオフでも同様です。 | この文だけでは「the switch」が何のスイッチか分かりません。「even with the switch off」は「週のページに付く」にかかるのが意図だと読めますが、すぐ前の「day pages since 1.1」にかかるとも読めます。 |
+| 5（もとの 4） | 5. Screen-side fixes after 1.2.4's sync fixes: handwriting erased with Erase All (on any device) or Erase and Start can no longer come back via the open page or Undo and be sent to iCloud again. | 5. 1.2.4 の同期の修正に続く、画面側の修正：「すべて消去」（どのデバイスで行った場合も）または「消去して開始」で消した手書きが、開いているページや「取り消し」を通じて戻ってきて、再び iCloud に送られることはなくなりました。 | 「Erase and Start」は、この文だけでは何の機能か分かりません（消して最初からやり直す操作？）。「(on any device)」は「Erase All」だけにかかるとも、両方にかかるとも読めます。「can no longer come back … and be sent to iCloud again」は、「戻ってくる」と「再送される」がそれぞれなくなったのか、戻ってから再送される一連の流れがなくなったのか、どちらとも取れます。「via the open page」は少し不自然で、「Screen-side」は技術寄りの言い方です。 |

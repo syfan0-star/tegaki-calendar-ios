@@ -1,0 +1,2179 @@
+@_spi(SpanLedger) import InkModel
+import Layout
+import PencilKit
+import SwiftUI
+import UIKit
+import XCTest
+@testable import TegakiCalendar
+
+// 1.3 (docs/M7C_CONTRACT.md §10.2 row L, §3.6, §3.4, §3.3, §3.16, D15, D16, D21): the canvas with a window of joined
+// pages (`InkCanvasView.span`), built as `makeUIView` builds it (`InkCanvasContainerView` with an `InkBandCanvasView`,
+// `Coordinator.attach`), over a `SpanSession` of the live `SyncEngine` of `SessionTestBed` (a temporary `InkPageStore`,
+// `InMemoryCloudDatabase`). No real sleep anywhere (§3.16, §10.2): the session's timers wait on the bed's
+// `sessionSleeper`, the canvas's 0.5 s watch on `canvasSleeper` (two sleepers, never advanced together; docs/R1_2_3.md
+// §4.3), the clock is the bed's fixed `now`, and the end of 1.2.3's 0.3 s settle wait is called
+// (`endSettleWaitForTesting`) instead of waited for. PencilKit's reports are stood in for as the 1.2.3 tests do
+// (`canvasViewDrawingDidChange`, Begin / End, `touchObserved`); a fling, a pinch and a stop are the delegate calls UIKit
+// would make (XCTest cannot fling).
+//
+// The pages: iPad 11 portrait, five Monday weeks around 11/16 (R = 2): 11/02 … 11/30; the paper area 834 × 955 pt, the
+// overview's zoom 0.4974, one week 696.35 pt (docs/M7C.md S1).
+
+@MainActor
+final class InkCanvasSpanTests: XCTestCase {
+    private var bed: SessionTestBed!
+    private var faults: [String] = []
+    private var savedOnFault: ((String) -> Void)!
+    private var canvasSleeper: TestSleeper!
+    private var rigs: [SpanRig] = []
+    private var strokeClock: TimeInterval = 0
+
+    private let w1026 = "w-2026-10-26"
+    private let w1102 = "w-2026-11-02"
+    private let w1109 = "w-2026-11-09"
+    private let w1116 = "w-2026-11-16"
+    private let w1123 = "w-2026-11-23"
+    private let w1130 = "w-2026-11-30"
+    private let w1207 = "w-2026-12-07"
+    private let nov16 = DayKey(year: 2026, month: 11, day: 16)
+    private let d1115 = "d-2026-11-15"
+    private let d1116 = "d-2026-11-16"
+    private let d1117 = "d-2026-11-17"
+    private let pen = CanvasTool.ink(InkPresets.defaultPen)
+
+    override func setUp() async throws {
+        bed = try SessionTestBed("InkCanvasSpanTests")
+        faults = []
+        savedOnFault = SpanSession.onFault
+        SpanSession.onFault = { [weak self] in self?.faults.append($0) }
+        canvasSleeper = TestSleeper()
+        rigs = []
+        strokeClock = 0
+    }
+
+    override func tearDown() async throws {
+        // The watches first lose their canvas (`detach` moves their generation on), then wake and end: a watch is
+        // never woken with its canvas attached and a clock that does not move.
+        for rig in rigs {
+            rig.coordinator.detach()
+        }
+        await canvasSleeper?.advance()
+        rigs = []
+        XCTAssertEqual(faults, [], "no fault of the window's bookkeeping")
+        SpanSession.onFault = savedOnFault
+        bed?.tearDown()
+        bed = nil
+    }
+
+    // MARK: The rig
+
+    /// What the canvas told its owner.
+    private final class SpanProbe {
+        var viewports: [PaperViewport] = []
+        /// `session.windowVersion` when each viewport arrived (the heading pairs the two, §3.6).
+        var viewportVersions: [Int] = []
+        var pageBudget: [(pageId: String, event: StrokeBudget.Event)] = []
+        var pageCaps: [String] = []
+        var oldBudget = 0
+        var oldCaps = 0
+        var stops: [SpanSession.Stop] = []
+        var inkBounds = 0
+        /// P-B6 イ: the ratios the end of a pinch reported (`onZoomRatioChange`).
+        var ratios: [CGFloat] = []
+    }
+
+    @MainActor
+    private struct SpanRig {
+        let coordinator: InkCanvasView.Coordinator
+        let container: InkCanvasContainerView
+        let probe: SpanProbe
+        let session: SpanSession
+        var canvas: PKCanvasView { container.canvasView }
+        var ledger: InkLedger { coordinator.ledger }
+        var zoom: CGFloat { container.canvasView.zoomScale }
+        /// One page on screen (pt).
+        var page: CGFloat { session.plan.pageWidth * container.canvasView.zoomScale }
+    }
+
+    private static func paper(of layout: any PageLayout) -> PaperContent {
+        if let week = layout as? WeekPageLayout { return .week(WeekPaperContent(layout: week)) }
+        if let day = layout as? DayPageLayout { return .day(DayPaperContent(layout: day)) }
+        fatalError("only weeks and days are joined")
+    }
+
+    /// The canvas as the screen (wave 3) builds it for a session.
+    private func makeView(_ session: SpanSession, probe: SpanProbe, tool: CanvasTool, undoTrigger: Int = 0,
+                          command: CanvasCommand? = nil, commandTrigger: Int = 0, isSheetOpen: Bool = false,
+                          slidePages: Int = 0, slideTrigger: Int = 0, paper: PaperContent? = nil,
+                          initialPaperOffset: CGPoint? = nil, revealRect: CGRect? = nil, revealTrigger: Int = 0,
+                          bottomClearance: CGFloat = 0) -> InkCanvasView {
+        let focus = session.layout.pages[min(max(0, session.focusSlot), session.layout.pages.count - 1)]
+        let sleeper = canvasSleeper!
+        let bed = bed!
+        return InkCanvasView(
+            layout: session.layout,
+            paper: paper ?? Self.paper(of: focus),
+            tool: tool,
+            allowFinger: false,
+            page: .constant(InkPage(pageId: session.layout.pageId)),
+            initialScrollY: 0,
+            onTap: { _, _ in },
+            onInkBoundsChanged: { probe.inkBounds += 1 },
+            undoTrigger: undoTrigger,
+            redoTrigger: 0,
+            command: command,
+            commandTrigger: commandTrigger,
+            onViewportChange: { [weak session] viewport in
+                probe.viewports.append(viewport)
+                probe.viewportVersions.append(session?.windowVersion ?? -1)
+            },
+            initialPaperOffset: initialPaperOffset,
+            revealRect: revealRect,
+            revealTrigger: revealTrigger,
+            onZoomRatioChange: { probe.ratios.append($0) },
+            onStrokeBudget: { _ in probe.oldBudget += 1 },
+            onGrowthCapReached: { probe.oldCaps += 1 },
+            bottomClearance: bottomClearance,
+            span: session,
+            sleep: { await sleeper.sleep($0) },
+            clock: { [weak bed] in bed?.now ?? Date(timeIntervalSince1970: 0) },
+            onPageStrokeBudget: { probe.pageBudget.append((pageId: $0, event: $1)) },
+            onPageGrowthCapReached: { probe.pageCaps.append($0) },
+            isSheetOpen: isSheetOpen,
+            slidePages: slidePages,
+            slideTrigger: slideTrigger,
+            onSpanStop: { probe.stops.append($0) }
+        )
+    }
+
+    /// The canvas attached to its container as `makeUIView` does, laid out once in the paper area and settled
+    /// (`initialPaperOffset`: the screen's, `ScreenPaths.shotPaperOffset`; `revealRect`: the screen's at the first layout;
+    /// `bottomClearance`: the collapsed toolbar's round button, `ToolbarLogic.paperBottomClearance`).
+    private func attach(_ session: SpanSession, tool: CanvasTool? = nil, width: CGFloat = 834, height: CGFloat = 955,
+                        initialPaperOffset: CGPoint? = nil, revealRect: CGRect? = nil, bottomClearance: CGFloat = 0) async -> SpanRig {
+        let probe = SpanProbe()
+        let view = makeView(session, probe: probe, tool: tool ?? pen, initialPaperOffset: initialPaperOffset, revealRect: revealRect,
+                            bottomClearance: bottomClearance)
+        let coordinator = InkCanvasView.Coordinator(parent: view)
+        let container = InkCanvasContainerView(paperView: PaperView(content: view.paper), canvasView: InkBandCanvasView())
+        coordinator.attach(container)
+        container.frame = CGRect(x: 0, y: 0, width: width, height: height)
+        container.layoutSubviews()
+        await settle()
+        let rig = SpanRig(coordinator: coordinator, container: container, probe: probe, session: session)
+        rigs.append(rig)
+        return rig
+    }
+
+    /// `update(from:)` with the rig's session and these inputs.
+    private func update(_ rig: SpanRig, tool: CanvasTool? = nil, undoTrigger: Int = 0, command: CanvasCommand? = nil,
+                        commandTrigger: Int = 0, isSheetOpen: Bool = false, slidePages: Int = 0, slideTrigger: Int = 0,
+                        paper: PaperContent? = nil, revealRect: CGRect? = nil, revealTrigger: Int = 0, bottomClearance: CGFloat = 0) {
+        rig.coordinator.update(from: makeView(rig.session, probe: rig.probe, tool: tool ?? rig.coordinator.parent.tool,
+                                              undoTrigger: undoTrigger, command: command, commandTrigger: commandTrigger,
+                                              isSheetOpen: isSheetOpen, slidePages: slidePages, slideTrigger: slideTrigger,
+                                              paper: paper, revealRect: revealRect, revealTrigger: revealTrigger,
+                                              bottomClearance: bottomClearance))
+    }
+
+    /// The queued main-actor work (the next-turn deliveries, the inbox's arrival, the sink, the prefetch's turns).
+    private func settle(_ turns: Int = 24) async {
+        for _ in 0..<turns {
+            await Task.yield()
+        }
+    }
+
+    // MARK: Pages and strokes
+
+    /// A week session around 11/16 (or a day session of `radius` around it) whose pages are read, `stored` written
+    /// to the store first.
+    private func open(_ kind: PageKind = .week, radius: Int? = nil, number: Int = 1, stored: [InkPage] = [],
+                      deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait,
+                      overviewCap: Bool = false) async throws -> SpanSession {
+        for page in stored {
+            try bed.store.save(page)
+        }
+        let session = bed.session(kind, focus: nov16, number: number, radius: radius, deviceClass: deviceClass, orientation: orientation,
+                                  overviewCap: overviewCap)
+        await session.prefetch()
+        return session
+    }
+
+    /// A page with a short grid stroke for each id, at (x, y + 60 i) of the grid (cell-relative).
+    private func page(_ pageId: String, _ ids: [String], x: CGFloat = 300, y: CGFloat = 400) -> InkPage {
+        var page = InkPage.empty(pageId: pageId)
+        for (i, id) in ids.enumerated() {
+            page.add(bed.stroke(id, cell: .grid, x: x, y: y + CGFloat(i) * 60, t: 1_790_000_001_000 + i))
+        }
+        return page
+    }
+
+    /// `count` strokes in a cell no layout has (counted by the budget, never drawn), as `InkCanvasViewTests` does.
+    private func budgetPage(_ pageId: String, count: Int) -> InkPage {
+        var page = InkPage.empty(pageId: pageId)
+        let point = InkPoint(x: 1, y: 1, dtMs: 0, sizeW: 2, sizeH: 2, opacity: 1, force: 0.5, azimuth: 0, altitude: 1.571)
+        for i in 0..<count {
+            page.add(InkStroke(id: "budget-\(i)", cell: CellKey(raw: "zz-budget"), tool: .pen, color: "#1f2937",
+                               t: 1_790_000_000_000 + i, points: [point]))
+        }
+        return page
+    }
+
+    /// A pen stroke through `points` (band lu), each with its own creation date (its own fingerprint).
+    private func makeStroke(through points: [CGPoint], nib: CGFloat = 3.5) -> PKStroke {
+        strokeClock += 1
+        let controlPoints = points.enumerated().map { i, p in
+            PKStrokePoint(location: p, timeOffset: TimeInterval(i) * 0.01, size: CGSize(width: nib, height: nib),
+                          opacity: 1, force: 0.5, azimuth: 0, altitude: .pi / 2)
+        }
+        return PKStroke(ink: PKInk(.pen, color: .black),
+                        path: PKStrokePath(controlPoints: controlPoints, creationDate: Date(timeIntervalSince1970: 1_790_000_000 + strokeClock)),
+                        transform: .identity, mask: nil)
+    }
+
+    /// A short stroke whose bounds are centred near (x, y) of the band.
+    private func shortStroke(at x: CGFloat, _ y: CGFloat) -> PKStroke {
+        makeStroke(through: (0..<5).map { CGPoint(x: x - 20 + CGFloat($0) * 10, y: y + CGFloat($0 % 2)) })
+    }
+
+    /// A new stroke on the canvas, reported as PencilKit reports it.
+    private func draw(_ stroke: PKStroke, on rig: SpanRig) {
+        rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes + [stroke])
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+    }
+
+    /// The canvas's stroke of window name `name`, if it shows it.
+    private func shown(_ name: String, on rig: SpanRig) -> PKStroke? {
+        rig.canvas.drawing.strokes.first { rig.ledger.id(of: $0) == name }
+    }
+
+    /// Where each stroke the canvas shows is on the screen (pt): its render bounds × zoom − the offset.
+    private func screenRects(_ rig: SpanRig) -> [String: CGRect] {
+        var out: [String: CGRect] = [:]
+        let zoom = rig.zoom
+        let offset = rig.canvas.contentOffset
+        for pk in rig.canvas.drawing.strokes {
+            guard let name = rig.ledger.id(of: pk) else { continue }
+            let r = pk.renderBounds
+            out[name] = CGRect(x: r.minX * zoom - offset.x, y: r.minY * zoom - offset.y, width: r.width * zoom, height: r.height * zoom)
+        }
+        return out
+    }
+
+    /// The band x (lu) of a window page's left edge.
+    private func origin(_ pageId: String, _ session: SpanSession, file: StaticString = #filePath, line: UInt = #line) -> CGFloat {
+        guard let x = session.origin(ofPage: pageId) else {
+            XCTFail("\(pageId) is not in the window", file: file, line: line)
+            return 0
+        }
+        return x
+    }
+
+    /// The window's cell rect of `cell` on `pageId`.
+    private func cell(_ cell: CellKey, of pageId: String, _ session: SpanSession, file: StaticString = #filePath, line: UInt = #line) -> CGRect {
+        guard let rect = session.layout.cells[SpanName.prefixed(cell, page: pageId)] else {
+            XCTFail("no \(cell.raw) on \(pageId)", file: file, line: line)
+            return .zero
+        }
+        return rect
+    }
+
+    /// The paper moved by `pages` page widths as a finger leaves it (no end of the movement told), the focus
+    /// following on the next turn.
+    private func scroll(_ rig: SpanRig, pages: CGFloat) async {
+        rig.canvas.contentOffset.x += pages * rig.page
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        await settle()
+    }
+
+    private func touch(_ rig: SpanRig) {
+        rig.coordinator.canvasViewDidBeginUsingTool(rig.canvas)
+    }
+
+    private func lift(_ rig: SpanRig) {
+        rig.coordinator.canvasViewDidEndUsingTool(rig.canvas)
+    }
+
+    private func pageIds(of span: PaperSpan?) -> [String] {
+        span?.pages.map { $0.layout.pageId } ?? []
+    }
+
+    // MARK: §10.2 row L — the twelve
+
+    /// §3.6 ずらしの手順: the paper moved one week to the right and stopped; the window shifts (11/09 … 12/07) and nothing on
+    /// the screen moves — every stroke the canvas showed before is where it was (0.5 pt), x went back by exactly one week
+    /// (696.35 pt), the paper is the new window's in the same turn, the band has no side margin, and the viewport reaches
+    /// the owner in that very turn with the new `windowVersion` (版つき). The page that left takes its strokes out of the
+    /// ledger. Without the x correction (`windowShift`) every stroke moves a week; without the paper of the window the
+    /// paper is a page off; without `deliverViewportNow` the viewport comes a turn later.
+    func testShiftKeepsVisibleStrokesInPlace() async throws {
+        let session = try await open(stored: [page(w1102, ["a"]), page(w1109, ["b", "c"]), page(w1116, ["d", "e"]), page(w1123, ["f", "g"])])
+        let rig = await attach(session)
+        XCTAssertEqual(rig.zoom, 0.4974, accuracy: 1e-4)
+        XCTAssertEqual(rig.page, 696.35, accuracy: 0.05)
+        XCTAssertEqual(rig.canvas.contentInset.left, 0, "the band has no side margin")
+        XCTAssertEqual(rig.canvas.contentInset.right, 0)
+        XCTAssertEqual(rig.canvas.contentOffset.x, 2.5 * rig.page - 417, accuracy: 0.5, "the focus week opens in the middle")
+        XCTAssertEqual(pageIds(of: rig.container.paperView.span), [w1102, w1109, w1116, w1123, w1130], "the window's paper")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 7)
+
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(session.focusPageId, w1123, "the focus followed the middle of the screen")
+        let before = screenRects(rig)
+        XCTAssertEqual(before.count, 7)
+        let x = rig.canvas.contentOffset.x
+        let version = session.windowVersion
+        let delivered = rig.probe.viewports.count
+
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        // The same turn: nothing awaited since the shift.
+        XCTAssertEqual(session.pageIds, [w1109, w1116, w1123, w1130, w1207])
+        XCTAssertGreaterThan(session.windowVersion, version)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the window")
+        XCTAssertEqual(rig.canvas.contentOffset.x, x - rig.page, accuracy: 0.5, "x went back by one week")
+        XCTAssertEqual(rig.canvas.contentInset.left, 0)
+        XCTAssertEqual(pageIds(of: rig.container.paperView.span), session.pageIds, "the paper is the new window's")
+        XCTAssertEqual(rig.probe.viewports.count, delivered + 1, "the viewport in the same turn")
+        XCTAssertEqual(rig.probe.viewports.last?.offsetX ?? .nan, rig.canvas.contentOffset.x, accuracy: 0.001)
+        XCTAssertEqual(rig.probe.viewportVersions.last, session.windowVersion, "with the new window's version")
+        let after = screenRects(rig)
+        for (name, rect) in before where !name.hasPrefix(w1102) {
+            guard let moved = after[name] else {
+                XCTFail("\(name) is no longer shown")
+                continue
+            }
+            XCTAssertEqual(moved.minX, rect.minX, accuracy: 0.5, name)
+            XCTAssertEqual(moved.minY, rect.minY, accuracy: 0.5, name)
+            XCTAssertEqual(moved.width, rect.width, accuracy: 0.5, name)
+        }
+        XCTAssertFalse(rig.ledger.page.strokes.keys.contains { $0.hasPrefix(w1102) }, "the page that left left the ledger")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 6)
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 1)
+    }
+
+    /// §3.6 ずらす条件: with the focus a week off the window's middle, the window does not shift while the pen is on the
+    /// paper, while the settle wait runs, during a fling, during a pinch, while a lasso selection is kept, or while a
+    /// sheet covers the paper; each time the condition is gone it does (the end of the settle wait, the end of the
+    /// deceleration, the stop after the pinch, the selection cleared, the sheet closed). Taking one condition out of
+    /// `isAtRest` shifts the window in that state.
+    func testNoShiftWhileDrawingSettlingFlingingPinchingSelectingOrSheet() async throws {
+        let session = try await open(stored: [page(w1116, ["a"]), page(w1123, ["b"]), page(w1130, ["c"])])
+        let rig = await attach(session)
+        var shifts = 0
+        func held(_ what: String, line: UInt = #line) {
+            XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, what, line: line)
+            XCTAssertEqual(rig.coordinator.spanShiftCount, shifts, what, line: line)
+            XCTAssertFalse(rig.coordinator.isAtRest, what, line: line)
+        }
+        func shifted(_ what: String, line: UInt = #line) {
+            shifts += 1
+            XCTAssertEqual(rig.coordinator.spanShiftCount, shifts, what, line: line)
+            XCTAssertFalse(session.needsShift, what, line: line)
+        }
+
+        // Each hold is in place before the paper moves: a shift check left over from the phase before (the window
+        // read after its shift) may run during the scroll's turns, and must find the canvas held.
+
+        // The pen, then the settle wait after it.
+        touch(rig)
+        await scroll(rig, pages: 1)
+        held("the pen on the paper")
+        lift(rig)
+        held("the settle wait")
+        rig.coordinator.endSettleWaitForTesting()
+        await settle()
+        shifted("after the settle wait")
+
+        // A fling (UIKit decelerating), then its end.
+        rig.coordinator.spanMotionOverride = true
+        await scroll(rig, pages: 1)
+        held("a fling")
+        rig.coordinator.spanMotionOverride = nil
+        rig.coordinator.scrollViewDidEndDecelerating(rig.canvas)
+        await settle()
+        shifted("after the deceleration")
+
+        // A pinch (or its bounce), then the stop after it.
+        rig.coordinator.liveOverride = true
+        await scroll(rig, pages: 1)
+        held("a pinch")
+        rig.coordinator.liveOverride = nil
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        shifted("after the pinch")
+
+        // A lasso selection, then the selection cleared.
+        await settle()
+        let focus = session.focusPageId
+        let grid = cell(.grid, of: focus, session)
+        draw(shortStroke(at: grid.minX + 500, grid.minY + 700), on: rig)
+        update(rig, tool: .lasso)
+        let box = CGRect(x: grid.minX + 440, y: grid.minY + 650, width: 120, height: 100)
+        rig.coordinator.overlay(rig.container.overlayView, didFinishLasso: [
+            CGPoint(x: box.minX, y: box.minY), CGPoint(x: box.maxX, y: box.minY),
+            CGPoint(x: box.maxX, y: box.maxY), CGPoint(x: box.minX, y: box.maxY),
+        ])
+        await scroll(rig, pages: 1)
+        held("a lasso selection")
+        rig.coordinator.overlayDidTouchOutsideSelection(rig.container.overlayView)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        shifted("after the selection was cleared")
+
+        // A sheet, then the sheet closed.
+        update(rig, tool: pen)
+        update(rig, isSheetOpen: true)
+        await scroll(rig, pages: 1)
+        held("a sheet")
+        update(rig, isSheetOpen: false)
+        await settle()
+        shifted("after the sheet closed")
+    }
+
+    /// §3.6, `InkCanvasViewTests.swift:2570`'s idea for the window: at every step of a shift — the history pruned, the
+    /// ledger reloaded, the window's drawing made while the canvas still shows the old one ("built"), the drawing on
+    /// the canvas, x moved — PencilKit reports a change (as it may, late). Nothing is compared: the ledger holds exactly
+    /// the new window's strokes, nothing is tombstoned, no delta goes out. With `isApplyingDrawing` held only around the
+    /// assignment (1.2.3's `setDrawing`), the "built" step takes the leaving week's strokes in as new strokes of the week
+    /// now at its place, under new ids.
+    func testShiftNeverComparesTheOldDrawingWithTheNewLedger() async throws {
+        let session = try await open(stored: [page(w1102, ["a", "b"]), page(w1109, ["c"]), page(w1116, ["d"]), page(w1123, ["e"])])
+        let rig = await attach(session, tool: .eraser)
+        await settle()
+        await scroll(rig, pages: 1)
+        var steps: [String] = []
+        rig.coordinator.spanShiftProbe = { step in
+            steps.append(step)
+            rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        }
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        rig.coordinator.spanShiftProbe = nil
+        XCTAssertEqual(steps, ["pruned", "reloaded", "built", "drawn", "moved"])
+
+        func check(_ what: String, line: UInt = #line) {
+            let ledgerPage = rig.ledger.page
+            let window = session.window.ledgerPage
+            XCTAssertEqual(Set(ledgerPage.liveStrokeIds), Set(window.liveStrokeIds), "the window's strokes only (\(what))", line: line)
+            XCTAssertEqual(Set(ledgerPage.deleted.keys), Set(window.deleted.keys), "nothing tombstoned (\(what))", line: line)
+            XCTAssertEqual(ledgerPage.liveStrokeCount, 3, what, line: line)
+            XCTAssertTrue(rig.ledger.journal.isEmpty, what, line: line)
+            XCTAssertTrue(session.inbox.deltas.isEmpty, "no delta (\(what))", line: line)
+            XCTAssertTrue(session.inbox.unrouted.isEmpty, what, line: line)
+            XCTAssertEqual(rig.canvas.drawing.strokes.count, 3, what, line: line)
+            XCTAssertFalse(rig.ledger.canUndo, "nothing was done (\(what))", line: line)
+        }
+        check("after the shift")
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        check("a late report on the new drawing")
+        await settle()
+        XCTAssertEqual(Set(bed.store.load(w1109).liveStrokeIds), ["c"], "nothing was written into 11/09")
+    }
+
+    /// §3.6 はじき (P-B5 ア): at the overview a fast release (1.0 pt/ms) turns exactly one week, the next week in the middle
+    /// (both ways); a slow stop within 6 % of the screen's width (50 pt) of a week's edge lines the two up, one beyond
+    /// it stays where UIKit stops it; a drag the directional lock kept vertical is left alone; the one page's canvas
+    /// never touches the target. The numbers are `SpanPlan.flingTarget`'s (KitChecks); without the delegate UIKit's
+    /// proposal stands.
+    func testFlingStopsAtTheNextPage() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let page = rig.page
+        let x0 = rig.canvas.contentOffset.x
+        XCTAssertEqual(x0, 2.5 * page - 417, accuracy: 0.5)
+
+        func release(from start: CGFloat, to x: CGFloat, velocity: CGFloat, proposed: CGFloat) -> CGPoint {
+            rig.canvas.contentOffset.x = start
+            rig.coordinator.scrollViewWillBeginDragging(rig.canvas)
+            rig.canvas.contentOffset.x = x
+            var target = CGPoint(x: proposed, y: 12)
+            rig.coordinator.scrollViewWillEndDragging(rig.canvas, withVelocity: CGPoint(x: velocity, y: 0), targetContentOffset: &target)
+            return target
+        }
+        let right = release(from: x0, to: x0 + 40, velocity: 1.0, proposed: x0 + 900)
+        XCTAssertEqual(right.x, 3.5 * page - 417, accuracy: 0.01, "the next week in the middle")
+        XCTAssertEqual(right.y, 12, "y is UIKit's")
+        let left = release(from: x0, to: x0 - 40, velocity: -1.0, proposed: x0 - 900)
+        XCTAssertEqual(left.x, 1.5 * page - 417, accuracy: 0.01, "the week before in the middle")
+        XCTAssertEqual(left.x, session.plan.flingTarget(offsetX: x0 - 40, velocity: -1.0, zoom: rig.zoom, viewportWidth: 834, proposedX: x0 - 900),
+                       accuracy: 0.001)
+        let near = release(from: x0, to: 2 * page + 20, velocity: 0.1, proposed: 2 * page + 30)
+        XCTAssertEqual(near.x, 2 * page, accuracy: 0.01, "30 pt from a week's edge: lined up with the screen's edge")
+        let far = release(from: x0, to: 2 * page + 110, velocity: 0.1, proposed: 2 * page + 120)
+        XCTAssertEqual(far.x, 2 * page + 120, accuracy: 0.01, "120 pt from the edge: where UIKit stops")
+        let vertical = release(from: x0, to: x0, velocity: 0, proposed: x0 + 0.2)
+        XCTAssertEqual(vertical.x, x0 + 0.2, accuracy: 0.001, "a vertical drag: x untouched")
+
+        // The one page.
+        let week = try XCTUnwrap(session.layout.pages[2] as? WeekPageLayout)
+        let one = InkCanvasView(layout: week, paper: .week(WeekPaperContent(layout: week)), tool: pen, allowFinger: false,
+                                page: .constant(InkPage(pageId: week.pageId)), initialScrollY: 0, onTap: { _, _ in },
+                                onInkBoundsChanged: {}, undoTrigger: 0, redoTrigger: 0)
+        let coordinator = InkCanvasView.Coordinator(parent: one)
+        let container = InkCanvasContainerView(paperView: PaperView(content: one.paper))
+        coordinator.attach(container)
+        container.frame = CGRect(x: 0, y: 0, width: 834, height: 955)
+        container.layoutSubviews()
+        coordinator.scrollViewWillBeginDragging(container.canvasView)
+        container.canvasView.contentOffset.x = 30
+        var target = CGPoint(x: 77, y: 5)
+        coordinator.scrollViewWillEndDragging(container.canvasView, withVelocity: CGPoint(x: 1.0, y: 0), targetContentOffset: &target)
+        XCTAssertEqual(target, CGPoint(x: 77, y: 5), "the one page's fling is UIKit's")
+        coordinator.detach()
+    }
+
+    /// D15, §3.3 1: a stroke across the boundary of 11/16 and 11/23 belongs to the page its bounds' centre is on (the
+    /// half-open rule: the boundary itself is the right page's), with the owner page in front of its id; its delta
+    /// reaches that page with the real id and the page's own cell, its points left of the cell kept (negative x, not
+    /// cut); no name reaches no page. Without `ownerId` the ids are bare UUIDs: no delta, an unrouted name.
+    func testNewStrokeOwnerIsTheCenterPage() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let boundary = origin(w1123, session)
+        let y = cell(.grid, of: w1123, session).minY + 900
+
+        func ownerOfNewStroke(_ stroke: PKStroke, line: UInt = #line) -> (page: String, delta: PageDelta)? {
+            let before = session.inbox.deltas.count
+            draw(stroke, on: rig)
+            let deltas = Array(session.inbox.deltas.dropFirst(before))
+            XCTAssertEqual(deltas.count, 1, line: line)
+            XCTAssertTrue(session.inbox.unrouted.isEmpty, "every name reaches its page", line: line)
+            guard let delta = deltas.first else { return nil }
+            return (delta.pageId, delta)
+        }
+
+        // The centre 20 lu right of the boundary.
+        let across = makeStroke(through: [CGPoint(x: boundary - 60, y: y), CGPoint(x: boundary + 20, y: y + 4), CGPoint(x: boundary + 100, y: y)])
+        XCTAssertGreaterThan(StrokeGeometry.paperBounds(of: across).midX, boundary)
+        let right = try XCTUnwrap(ownerOfNewStroke(across))
+        XCTAssertEqual(right.page, w1123)
+        let stroke = try XCTUnwrap(right.delta.added.first)
+        XCTAssertFalse(stroke.id.contains("|"), "the real id")
+        XCTAssertEqual(stroke.cell, .grid, "the page's own cell")
+        XCTAssertTrue(stroke.points.contains { $0.x < 0 }, "the points left of the cell stay (§4.1)")
+        XCTAssertTrue(rig.ledger.page.isLive(SpanName.prefixed(id: stroke.id, page: w1123)), "the window name: the owner in front")
+
+        // The centre 20 lu left of it.
+        let leftStroke = makeStroke(through: [CGPoint(x: boundary - 100, y: y + 50), CGPoint(x: boundary - 20, y: y + 54), CGPoint(x: boundary + 60, y: y + 50)])
+        XCTAssertLessThan(StrokeGeometry.paperBounds(of: leftStroke).midX, boundary)
+        XCTAssertEqual(ownerOfNewStroke(leftStroke)?.page, w1116)
+
+        // On the boundary (as PencilKit's bounds put it): the right page when the centre is not left of it.
+        let onIt = makeStroke(through: [CGPoint(x: boundary - 40, y: y + 100), CGPoint(x: boundary + 40, y: y + 100)])
+        let midX = StrokeGeometry.paperBounds(of: onIt).midX
+        XCTAssertEqual(midX, boundary, accuracy: 1)
+        XCTAssertEqual(ownerOfNewStroke(onIt)?.page, midX >= boundary ? w1123 : w1116)
+        XCTAssertEqual(session.layout.drop(center: CGPoint(x: boundary, y: y)), .keep(page: w1123, cell: .grid), "exactly on it: the right page")
+
+        await settle()
+        XCTAssertEqual(session.page(w1123)?.liveStrokeCount, midX >= boundary ? 2 : 1)
+    }
+
+    /// K-9, D21: the budget is the owner page's. 11/16 holds 19,000 strokes and 11/23 14,999 (in a cell no layout has, so
+    /// none is drawn): a new stroke on 11/16 is taken off the canvas and `.full(19000)` names 11/16; one on 11/23 is
+    /// taken in and `.many(15000)` names 11/23, once. The one page's notices are never called. Counting the window
+    /// (34,000) refuses 11/23's stroke too.
+    func testBudgetCountsTheOwnerPage() async throws {
+        let session = try await open(stored: [budgetPage(w1116, count: 19_000), budgetPage(w1123, count: 14_999)])
+        let rig = await attach(session)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 0, "a cell no layout has is not drawn")
+        XCTAssertEqual(InkCanvasView.budgetCount(ofPage: w1116, in: rig.ledger.page), 19_000)
+        XCTAssertEqual(InkCanvasView.budgetCount(ofPage: w1123, in: rig.ledger.page), 14_999)
+
+        let g16 = cell(.grid, of: w1116, session)
+        draw(shortStroke(at: g16.minX + 300, g16.minY + 600), on: rig)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 0, "taken off the canvas")
+        XCTAssertEqual(InkCanvasView.budgetCount(ofPage: w1116, in: rig.ledger.page), 19_000)
+        XCTAssertFalse(rig.ledger.canUndo)
+        XCTAssertEqual(rig.probe.pageBudget.map { $0.pageId }, [w1116])
+        XCTAssertEqual(rig.probe.pageBudget.map { $0.event }, [.full(19_000)])
+
+        let g23 = cell(.grid, of: w1123, session)
+        draw(shortStroke(at: g23.minX + 300, g23.minY + 600), on: rig)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1, "11/23 takes it")
+        XCTAssertEqual(InkCanvasView.budgetCount(ofPage: w1123, in: rig.ledger.page), 15_000)
+        XCTAssertEqual(rig.probe.pageBudget.map { $0.pageId }, [w1116, w1123])
+        XCTAssertEqual(rig.probe.pageBudget.last?.event, .many(15_000))
+        draw(shortStroke(at: g23.minX + 600, g23.minY + 600), on: rig)
+        XCTAssertEqual(rig.probe.pageBudget.count, 2, "the notice once")
+        await settle()
+        XCTAssertEqual(rig.probe.oldBudget, 0, "the one page's notice is not the window's")
+    }
+
+    /// D15, M4C-25, K-9: a new stroke centred left of the band or right of it is taken off the canvas without a notice
+    /// and never reaches the ledger or the inbox; one near a boundary inside the band stays. On a window of three days,
+    /// one centred more than 6,000 lu below the top of the focus day's free memo is taken off with one notice naming
+    /// that day; one above it stays. With `PaperGrowth.drop` on the band (whose prefixed cells it cannot read) the
+    /// stroke below the cap is dropped as off the paper, without the notice.
+    func testStrokeOutsideTheBandIsDropped() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let width = session.layout.size.width
+        let y = cell(.grid, of: w1116, session).minY + 600
+        draw(shortStroke(at: -30, y), on: rig)
+        draw(shortStroke(at: width + 30, y), on: rig)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 0, "both taken off the canvas")
+        XCTAssertEqual(rig.ledger.page.liveStrokeCount, 0)
+        XCTAssertTrue(session.inbox.deltas.isEmpty)
+        let near = origin(w1123, session) - 30
+        draw(shortStroke(at: near, y), on: rig)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1, "inside the band: kept")
+        await settle()
+        XCTAssertTrue(rig.probe.pageCaps.isEmpty)
+
+        let days = try await open(.day, radius: 1, number: 2)
+        XCTAssertEqual(days.pageIds, [d1115, d1116, d1117])
+        let dayRig = await attach(days, width: 834, height: 951)
+        let extra = cell(.extra, of: d1116, days)
+        draw(shortStroke(at: extra.minX + 300, extra.minY + 6_050), on: dayRig)
+        XCTAssertEqual(dayRig.canvas.drawing.strokes.count, 0, "below the cap: taken off")
+        XCTAssertEqual(dayRig.ledger.page.liveStrokeCount, 0)
+        await settle()
+        XCTAssertEqual(dayRig.probe.pageCaps, [d1116], "one notice, the owner day's")
+        draw(shortStroke(at: extra.minX + 300, extra.minY + 3_000), on: dayRig)
+        XCTAssertEqual(dayRig.canvas.drawing.strokes.count, 1, "above it: kept")
+        await settle()
+        XCTAssertEqual(dayRig.probe.pageCaps, [d1116])
+        XCTAssertEqual(dayRig.probe.oldCaps, 0)
+    }
+
+    /// §3.4 (a), (b): ↶ twice in one turn (two `update(from:)` before any yield) puts two deltas into the inbox in that
+    /// turn, one stroke each; the session applies both (tombstones), saves them, and the safety net has nothing to
+    /// recover. 1.2.3's `publishPage` (a next-turn delivery that the newer one supersedes) puts none.
+    func testInboxTakesTwoUndosInOneTurn() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let g = cell(.grid, of: w1116, session)
+        draw(shortStroke(at: g.minX + 200, g.minY + 500), on: rig)
+        draw(shortStroke(at: g.minX + 400, g.minY + 500), on: rig)
+        await settle()
+        XCTAssertTrue(session.inbox.deltas.isEmpty, "the session took both strokes")
+        XCTAssertEqual(session.page(w1116)?.liveStrokeCount, 2)
+        let names = rig.ledger.page.liveStrokeIds
+
+        update(rig, undoTrigger: 1)
+        update(rig, undoTrigger: 2)
+        let deltas = session.inbox.deltas
+        XCTAssertEqual(deltas.count, 2, "two deltas in the same turn")
+        XCTAssertEqual(deltas.map(\.pageId), [w1116, w1116])
+        XCTAssertEqual(deltas.map(\.removed.count), [1, 1])
+        XCTAssertTrue(rig.ledger.page.liveStrokeIds.isEmpty)
+
+        session.drainInbox()
+        XCTAssertEqual(session.page(w1116)?.liveStrokeCount, 0)
+        XCTAssertEqual(Set(session.page(w1116)?.deleted.keys.map { $0 } ?? []), Set(names.map { SpanName.split($0)?.local ?? $0 }))
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(w1116).liveStrokeCount, 0)
+        XCTAssertEqual(bed.store.load(w1116).deleted.count, 2)
+    }
+
+    /// §3.4 (a): `detach()` puts what the ledger did last into the inbox before the delegate goes. (a) A stroke PencilKit
+    /// finished but never told of reaches the ledger, the inbox and, after `saveAll`, the store (without `detachSpan` it
+    /// is lost without a trace: in neither the ledger nor the window). (b) A stroke told of in the same turn as the
+    /// detach is in the inbox before its arrival and saved.
+    func testInboxTakesTheLastStrokeBeforeDetach() async throws {
+        // (a)
+        let session = try await open()
+        let rig = await attach(session)
+        let g = cell(.grid, of: w1123, session)
+        rig.canvas.delegate = nil
+        rig.canvas.drawing = PKDrawing(strokes: [shortStroke(at: g.minX + 300, g.minY + 300)])
+        rig.canvas.delegate = rig.coordinator
+        XCTAssertEqual(rig.ledger.page.liveStrokeCount, 0, "PencilKit has not told")
+        rig.coordinator.detach()
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [w1123], "into the inbox at the detach")
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(w1123).liveStrokeCount, 1, "saved")
+
+        // (b)
+        let second = bed.session(.week, focus: nov16, number: 2)
+        await second.prefetch()
+        let rig2 = await attach(second)
+        let g2 = cell(.grid, of: w1109, second)
+        draw(shortStroke(at: g2.minX + 300, g2.minY + 300), on: rig2)
+        rig2.coordinator.detach()
+        XCTAssertEqual(second.inbox.deltas.map(\.pageId), [w1109], "still in the inbox")
+        XCTAssertEqual(second.saveAll(), [])
+        XCTAssertEqual(bed.store.load(w1109).liveStrokeCount, 1)
+    }
+
+    /// §2.1, §3.6 the palm: `horizontalPanMayBegin` is false while a Pencil touches and for 0.5 s after it lifted (0.49
+    /// false, 0.5 true), true with no Pencil, and true when the clock went back; `panMayBegin` asks it for a sideways
+    /// start only (up and down as today). The window's canvas is an `InkBandCanvasView` whose pan asks, with the
+    /// Pencil's lift timed by the touch observer, and whose `gestureRecognizerShouldBegin` (UIKit's question before its
+    /// pan begins) gives the palm's no; the band bounces sideways. The one page's canvas stays a plain `PKCanvasView`
+    /// that does not. Without the check in `gestureRecognizerShouldBegin` the pan begins under the Pencil.
+    func testHorizontalPanMayBeginRules() async throws {
+        let t0 = Date(timeIntervalSince1970: 1_790_000_000)
+        XCTAssertEqual(InkCanvasView.palmHold, 0.5)
+        XCTAssertFalse(InkCanvasView.horizontalPanMayBegin(pencilsDown: 1, lastPencilUp: nil, now: t0))
+        XCTAssertFalse(InkCanvasView.horizontalPanMayBegin(pencilsDown: 2, lastPencilUp: t0.addingTimeInterval(-60), now: t0))
+        XCTAssertTrue(InkCanvasView.horizontalPanMayBegin(pencilsDown: 0, lastPencilUp: nil, now: t0))
+        XCTAssertFalse(InkCanvasView.horizontalPanMayBegin(pencilsDown: 0, lastPencilUp: t0, now: t0))
+        XCTAssertFalse(InkCanvasView.horizontalPanMayBegin(pencilsDown: 0, lastPencilUp: t0, now: t0.addingTimeInterval(0.49)))
+        XCTAssertTrue(InkCanvasView.horizontalPanMayBegin(pencilsDown: 0, lastPencilUp: t0, now: t0.addingTimeInterval(0.5)))
+        XCTAssertTrue(InkCanvasView.horizontalPanMayBegin(pencilsDown: 0, lastPencilUp: t0.addingTimeInterval(10), now: t0), "the clock went back")
+
+        let soon = t0.addingTimeInterval(0.2)
+        XCTAssertFalse(InkCanvasView.panMayBegin(translation: CGPoint(x: 30, y: 5), velocity: .zero, pencilsDown: 0, lastPencilUp: t0, now: soon))
+        XCTAssertTrue(InkCanvasView.panMayBegin(translation: CGPoint(x: 2, y: 30), velocity: .zero, pencilsDown: 1, lastPencilUp: nil, now: soon),
+                      "up and down as today")
+        XCTAssertFalse(InkCanvasView.panMayBegin(translation: .zero, velocity: CGPoint(x: -400, y: 10), pencilsDown: 1, lastPencilUp: nil, now: soon))
+        XCTAssertTrue(InkCanvasView.panMayBegin(translation: .zero, velocity: CGPoint(x: 10, y: 400), pencilsDown: 1, lastPencilUp: nil, now: soon))
+        XCTAssertFalse(InkCanvasView.panMayBegin(translation: .zero, velocity: .zero, pencilsDown: 1, lastPencilUp: nil, now: soon),
+                       "no direction to tell: the rule")
+        XCTAssertTrue(InkCanvasView.panMayBegin(translation: CGPoint(x: 30, y: 5), velocity: .zero, pencilsDown: 0, lastPencilUp: t0,
+                                                now: t0.addingTimeInterval(0.6)))
+
+        // The wiring.
+        let session = try await open()
+        let rig = await attach(session)
+        let bandCanvas = try XCTUnwrap(rig.canvas as? InkBandCanvasView)
+        let ask = try XCTUnwrap(bandCanvas.panMayBegin)
+        let pan = UIPanGestureRecognizer(target: nil, action: nil)
+        XCTAssertTrue(ask(pan), "no Pencil yet")
+        rig.coordinator.touchObserved(.down(.pencil))
+        XCTAssertFalse(ask(pan), "a Pencil on the paper")
+        rig.coordinator.touchObserved(.up(.pencil))
+        XCTAssertEqual(rig.coordinator.spanLastPencilUp, bed.now)
+        XCTAssertFalse(ask(pan), "just lifted")
+        bed.now = bed.now.addingTimeInterval(0.5)
+        XCTAssertTrue(ask(pan), "0.5 s after the lift")
+        XCTAssertEqual(rig.coordinator.spanRefusedPans, 2)
+
+        // UIKit's own question to the band's pan (`gestureRecognizerShouldBegin`, what UIKit asks before the pan
+        // begins): the palm's no is the answer; once the palm says yes, UIKit's own answer stands (no refusal).
+        rig.coordinator.touchObserved(.down(.pencil))
+        XCTAssertFalse(bandCanvas.gestureRecognizerShouldBegin(bandCanvas.panGestureRecognizer), "the band's pan under a Pencil")
+        XCTAssertEqual(rig.coordinator.spanRefusedPans, 3, "refused by the palm")
+        rig.coordinator.touchObserved(.up(.pencil))
+        XCTAssertFalse(bandCanvas.gestureRecognizerShouldBegin(bandCanvas.panGestureRecognizer), "just lifted")
+        XCTAssertEqual(rig.coordinator.spanRefusedPans, 4)
+        bed.now = bed.now.addingTimeInterval(0.5)
+        _ = bandCanvas.gestureRecognizerShouldBegin(bandCanvas.panGestureRecognizer)
+        XCTAssertEqual(rig.coordinator.spanRefusedPans, 4, "0.5 s after the lift the palm lets it begin")
+        XCTAssertTrue(rig.canvas.alwaysBounceHorizontal, "the band bounces sideways (§3.6)")
+
+        let week = try XCTUnwrap(session.layout.pages[2] as? WeekPageLayout)
+        let one = InkCanvasView(layout: week, paper: .week(WeekPaperContent(layout: week)), tool: pen, allowFinger: false,
+                                page: .constant(InkPage(pageId: week.pageId)), initialScrollY: 0, onTap: { _, _ in },
+                                onInkBoundsChanged: {}, undoTrigger: 0, redoTrigger: 0)
+        let container = InkCanvasContainerView(paperView: PaperView(content: one.paper))
+        XCTAssertTrue(type(of: container.canvasView) == PKCanvasView.self, "the one page keeps a plain PKCanvasView")
+        let coordinator = InkCanvasView.Coordinator(parent: one)
+        coordinator.attach(container)
+        XCTAssertFalse(container.canvasView.alwaysBounceHorizontal, "the one page does not bounce sideways (1.2.3)")
+        XCTAssertFalse(container.gestureRecognizers?.contains { $0 is InkBandPanGate } ?? false, "and no gate")
+        XCTAssertTrue(rig.container.gestureRecognizers?.contains { $0 === rig.coordinator.spanPanGate } ?? false, "the band has the gate")
+        coordinator.detach()
+    }
+
+    /// §3.6, §3.16: a stop no scroll-view call tells of (the paper moved a week, then nothing) is taken by the watch: it
+    /// waits 0.5 s on the injected sleep, finds the paper moved 0.4 s before by the injected clock and waits again,
+    /// and 0.5 s after the motion shifts the window. Without the watch the window stays until a stop is told; with a
+    /// real sleep `TestSleeper` records nothing.
+    func testWatchTimerFiresAfterHalfASecond() async throws {
+        let session = try await open(stored: [page(w1123, ["a"])])
+        let rig = await attach(session)
+        XCTAssertEqual(InkCanvasView.shiftWatchDelay, 0.5)
+        await scroll(rig, pages: 1)
+        XCTAssertTrue(session.needsShift)
+        XCTAssertEqual(canvasSleeper.recorded, [0.5], "one watch, waiting 0.5 s")
+        XCTAssertEqual(canvasSleeper.waiting, 1)
+        XCTAssertTrue(rig.coordinator.spanWatchRunning)
+
+        bed.now = bed.now.addingTimeInterval(0.4)
+        await canvasSleeper.advance()
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 0, "0.4 s after the motion: not yet")
+        XCTAssertEqual(canvasSleeper.recorded, [0.5, 0.5], "it waits again")
+
+        bed.now = bed.now.addingTimeInterval(0.1)
+        await canvasSleeper.advance()
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 1, "0.5 s after the motion: shifted")
+        XCTAssertEqual(session.pageIds.first, w1109)
+        XCTAssertFalse(session.needsShift)
+        XCTAssertFalse(rig.coordinator.spanWatchRunning, "the watch ended")
+    }
+
+    /// §3.6, D16, B_DESIGN.md:170, and the inputs of `PaperGrowthTests` / `InkCanvasViewTests.testDayExtraGrowthUsesTheTailPath`
+    /// (:1168), `testCapNoticeWhenTheTailReachesItsLastStep` (:1386) and `testNewStrokesBeyondTheCapAreDropped` (:1348): on
+    /// the one page (`span` nil, 1.2.3's path) a line at 5,984 lu of the free memo makes it 6,040; the same inputs then
+    /// run through the canvas of a one-page `SpanSession` (radius 0, the tests' `narrowToOnePageForTesting`, the lead's
+    /// decision L11) and of a window of three days (`growthInputs`): the memo grows to 6,040 on every day of the window
+    /// alike (D16), by the light path (no new drawing); 5,600 asks nothing and 5,601 tells the owner day once; 6,098 is
+    /// dropped with the notice; erasing the low line brings the memo back to 6,000 on every day (「消して縮むときは下げる」).
+    /// Without the canvas's `relayoutPages` the memo does not grow; without the removal's request it does not shrink.
+    func testGrowthTestsThroughOneAndThreePageSessions() async throws {
+        // The one page (1.2.3's path).
+        let now = bed.now
+        func dayLayout(_ bottoms: [CellKey: CGFloat] = [:]) -> DayPageLayout {
+            DayLayoutEngine.layout(DayLayoutInput(day: nov16, events: [], inkBottoms: bottoms, now: now, calendar: SessionTestBed.tokyo))
+        }
+        let plain = dayLayout()
+        XCTAssertEqual(plain.extra.height, PaperSpec.growMax, accuracy: 0.01)
+        var oneInkBounds = 0
+        var oneCaps = 0
+        let oneView = { (layout: DayPageLayout, page: InkPage) in
+            InkCanvasView(layout: layout, paper: .day(DayPaperContent(layout: layout)), tool: self.pen, allowFinger: false,
+                          page: .constant(page), initialScrollY: 0, onTap: { _, _ in }, onInkBoundsChanged: { oneInkBounds += 1 },
+                          undoTrigger: 0, redoTrigger: 0, onGrowthCapReached: { oneCaps += 1 })
+        }
+        let one = InkCanvasView.Coordinator(parent: oneView(plain, InkPage.empty(pageId: plain.pageId)))
+        let oneContainer = InkCanvasContainerView(paperView: PaperView(content: .day(DayPaperContent(layout: plain))))
+        one.attach(oneContainer)
+        oneContainer.frame = CGRect(x: 0, y: 0, width: 834, height: 951)
+        oneContainer.layoutSubviews()
+        await settle()
+        oneContainer.canvasView.drawing = PKDrawing(strokes: [makeStroke(through: (0..<5).map {
+            CGPoint(x: 300 + CGFloat($0) * 3, y: plain.extra.minY + 5_984 + CGFloat($0))
+        })])
+        one.canvasViewDrawingDidChange(oneContainer.canvasView)
+        XCTAssertEqual(oneInkBounds, 1)
+        XCTAssertEqual(oneCaps, 1, "5,990 leaves less than 400 lu below it: once")
+        let grown = dayLayout(one.ledger.page.inkBottoms())
+        XCTAssertEqual(grown.extra.height, 6_040, accuracy: 0.5)
+        let oneBuilds = one.setDrawingCount
+        one.update(from: oneView(grown, one.ledger.page))
+        XCTAssertEqual(one.setDrawingCount, oneBuilds, "the one page's light path")
+        XCTAssertEqual(oneContainer.canvasView.contentSize.height, grown.size.height * oneContainer.canvasView.zoomScale, accuracy: 0.5)
+        one.detach()
+
+        // A window of one day (radius 0) and a window of three days.
+        let single = bed.session(.day, focus: nov16, number: 2, radius: 1)
+        XCTAssertTrue(single.narrowToOnePageForTesting(), "a Debug build")
+        await single.prefetch()
+        XCTAssertEqual(single.pageIds, [d1116])
+        XCTAssertEqual(single.radius, 0)
+        XCTAssertEqual(single.layout.pages.count, 1)
+        try await growthInputs(through: single, grown: grown)
+        let three = try await open(.day, radius: 1, number: 3)
+        XCTAssertEqual(three.pageIds, [d1115, d1116, d1117])
+        try await growthInputs(through: three, grown: grown)
+        XCTAssertEqual(oneCaps, 1)
+    }
+
+    /// `testGrowthTestsThroughOneAndThreePageSessions`'s inputs through the canvas of a day window: the low line, ⑦'s
+    /// three lines and the eraser, each answer as on the one page (`grown`: 1.2.3's layout after the low line).
+    private func growthInputs(through session: SpanSession, grown: DayPageLayout, file: StaticString = #filePath,
+                              line: UInt = #line) async throws {
+        let pages = "\(session.pageIds.count) page(s)"
+        let rig = await attach(session, width: 834, height: 951)
+        let extra = cell(.extra, of: d1116, session, file: file, line: line)
+        XCTAssertEqual(extra.height, PaperSpec.growMax, accuracy: 0.01, pages, file: file, line: line)
+        let builds = rig.coordinator.setDrawingCount
+        let low = makeStroke(through: (0..<5).map { CGPoint(x: extra.minX + 300 + CGFloat($0) * 3, y: extra.minY + 5_984 + CGFloat($0)) })
+        draw(low, on: rig)
+        let lowName = try XCTUnwrap(rig.ledger.id(of: try XCTUnwrap(rig.canvas.drawing.strokes.first, file: file, line: line)),
+                                    file: file, line: line)
+        XCTAssertEqual(rig.probe.inkBounds, 1, "the owner hears of it as on the one page (\(pages))", file: file, line: line)
+        XCTAssertEqual(rig.probe.pageCaps, [d1116], "as on the one page: once, naming the owner day (\(pages))", file: file, line: line)
+        await settle()
+        for id in session.pageIds {
+            XCTAssertEqual(cell(.extra, of: id, session).height, grown.extra.height, accuracy: 0.5, "\(id): the window's floor (D16, \(pages))",
+                           file: file, line: line)
+        }
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the new layout (\(pages))",
+                       file: file, line: line)
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the light path (\(pages))", file: file, line: line)
+        XCTAssertEqual(rig.canvas.contentSize.height, session.layout.size.height * rig.zoom, accuracy: 0.5, pages, file: file, line: line)
+        XCTAssertEqual(session.layout.size.height, grown.size.height, accuracy: 0.5, pages, file: file, line: line)
+
+        // ⑦: 5,600 asks nothing, 5,601 tells the owner day once (nib 4: the line's bottom is y + 2).
+        let flat = { (x: CGFloat, y: CGFloat) in
+            self.makeStroke(through: (0..<5).map { CGPoint(x: x + CGFloat($0) * 10, y: y) }, nib: 4)
+        }
+        draw(flat(extra.minX + 100, extra.minY + 5_598), on: rig)
+        await settle()
+        XCTAssertEqual(rig.probe.pageCaps, [d1116], "5,600: 400 lu left, nothing more (\(pages))", file: file, line: line)
+        draw(flat(extra.minX + 500, extra.minY + 5_599), on: rig)
+        await settle()
+        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116], "5,601: once, the owner day (\(pages))", file: file, line: line)
+        draw(flat(extra.minX + 500, extra.minY + 6_098), on: rig)
+        await settle()
+        XCTAssertEqual(rig.probe.pageCaps, [d1116, d1116, d1116], "6,098: dropped, with the notice (\(pages))", file: file, line: line)
+        XCTAssertEqual(rig.ledger.page.liveStrokeCount, 3, pages, file: file, line: line)
+        XCTAssertEqual(rig.probe.oldCaps, 0, pages, file: file, line: line)
+
+        // Erasing the low line: the memo of every day comes back to 6,000.
+        update(rig, tool: .eraser)
+        let kept = rig.canvas.drawing.strokes.filter { rig.ledger.id(of: $0) != lowName }
+        rig.canvas.drawing = PKDrawing(strokes: kept)
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        XCTAssertFalse(rig.ledger.page.isLive(lowName), pages, file: file, line: line)
+        await settle()
+        for id in session.pageIds {
+            XCTAssertEqual(cell(.extra, of: id, session).height, PaperSpec.growMax, accuracy: 0.5, "\(id): shrunk back (\(pages))",
+                           file: file, line: line)
+        }
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, pages, file: file, line: line)
+        XCTAssertEqual(rig.canvas.contentSize.height, session.layout.size.height * rig.zoom, accuracy: 0.5, pages, file: file, line: line)
+        XCTAssertEqual(session.page(d1116)?.liveStrokeCount, 2, "the session has the two lines left (\(pages))", file: file, line: line)
+        rig.coordinator.detach()
+    }
+
+    // MARK: More of §3.6, §3.4
+
+    /// §3.4 (a): while the pen is on the paper, an update from iCloud makes the session compose a window; the stroke the pen
+    /// then finishes goes into the inbox after that window was composed. When the pen is up, the canvas does not take
+    /// that window as it is (it lacks the stroke: the stroke would vanish from the screen and from ↶): the session
+    /// composes again first. The stroke stays shown, undoable, and the update's stroke is there too.
+    func testAWindowComposedDuringAStrokeIsRecomposedBeforeAdoption() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        touch(rig)
+        var remote = InkPage.empty(pageId: w1109)
+        remote.add(bed.stroke("from-icloud", x: 200, y: 200))
+        session.remoteUpdated(remote)
+        await settle()
+        let composed = session.windowVersion
+        XCTAssertNotEqual(rig.coordinator.spanAppliedWindowVersion, composed, "not taken under the pen")
+
+        let g = cell(.grid, of: w1116, session)
+        let stroke = shortStroke(at: g.minX + 300, g.minY + 300)
+        draw(stroke, on: rig)
+        let name = try XCTUnwrap(rig.ledger.id(of: try XCTUnwrap(rig.canvas.drawing.strokes.last)))
+        await settle()
+        XCTAssertEqual(session.page(w1116)?.liveStrokeCount, 1, "the session has it")
+        XCTAssertFalse(session.window.ledgerPage.isLive(name), "the window composed under the pen lacks it")
+        lift(rig)
+        rig.coordinator.endSettleWaitForTesting()
+        XCTAssertGreaterThan(session.windowVersion, composed, "composed again before it was taken")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
+        XCTAssertTrue(rig.ledger.page.isLive(name), "the stroke stays in the ledger")
+        XCTAssertNotNil(shown(name, on: rig), "and on the screen")
+        XCTAssertTrue(rig.ledger.page.isLive(SpanName.prefixed(id: "from-icloud", page: w1109)), "the update's stroke too")
+        XCTAssertTrue(rig.ledger.canUndo)
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(name), "↶ takes it away")
+    }
+
+    /// §3.16 (約 24 pt): at the overview one finger moves 24 pt sideways (or 10 pt more up or down than sideways) before
+    /// the band moves; a translation that is not finite never starts it. The gate holds only at the overview.
+    func testOverviewPanStartNeeds24Points() async throws {
+        XCTAssertEqual(InkCanvasView.overviewPanStart, 24)
+        XCTAssertFalse(InkCanvasView.overviewPanMayStart(translation: CGSize(width: 23.9, height: 0)))
+        XCTAssertTrue(InkCanvasView.overviewPanMayStart(translation: CGSize(width: -24, height: 3)))
+        XCTAssertFalse(InkCanvasView.overviewPanMayStart(translation: CGSize(width: 0, height: 9.9)))
+        XCTAssertTrue(InkCanvasView.overviewPanMayStart(translation: CGSize(width: 2, height: 10)))
+        XCTAssertFalse(InkCanvasView.overviewPanMayStart(translation: CGSize(width: 12, height: 11)), "neither yet")
+        XCTAssertFalse(InkCanvasView.overviewPanMayStart(translation: CGSize(width: CGFloat.nan, height: 0)))
+        XCTAssertFalse(InkCanvasView.overviewPanMayStart(translation: CGSize(width: CGFloat.infinity, height: 0)))
+
+        let session = try await open()
+        let rig = await attach(session)
+        let gate = try XCTUnwrap(rig.coordinator.spanPanGate)
+        XCTAssertTrue(gate.holds(), "the overview")
+        rig.canvas.zoomScale = rig.canvas.zoomScale * 2
+        XCTAssertFalse(gate.holds(), "zoomed in: the pan begins as it does today")
+    }
+
+    /// §3.6 回転・Split View: the paper area turns landscape (1,210 × 615); once still, the window is decided anew (seven
+    /// weeks, R = 3) around the focus week, which stays where it was on the screen; the session, the virtual page and ↶
+    /// stay.
+    func testRotationDecidesTheWindowAnewWhenStill() async throws {
+        let session = try await open(stored: [page(w1116, ["a"])])
+        let rig = await attach(session)
+        let g = cell(.grid, of: w1116, session)
+        draw(shortStroke(at: g.minX + 300, g.minY + 900), on: rig)
+        XCTAssertTrue(rig.ledger.canUndo)
+        let virtual = session.layout.pageId
+
+        rig.container.frame = CGRect(x: 0, y: 0, width: 1_210, height: 615)
+        rig.container.layoutSubviews()
+        let focusX = origin(w1116, session) * rig.zoom - rig.canvas.contentOffset.x
+        XCTAssertEqual(session.pageIds.count, 5, "not under the layout pass")
+        await settle()
+        XCTAssertEqual(session.pageIds, [w1026, w1102, w1109, w1116, w1123, w1130, w1207])
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
+        XCTAssertEqual(origin(w1116, session) * rig.zoom - rig.canvas.contentOffset.x, focusX, accuracy: 0.5, "the focus week stays put")
+        XCTAssertEqual(session.layout.pageId, virtual)
+        XCTAssertTrue(rig.ledger.canUndo, "↶ stays")
+        XCTAssertEqual(pageIds(of: rig.container.paperView.span), session.pageIds)
+    }
+
+    /// UI-1 (§3.6 回転・Split View; the iPhone finding of run 43595078492: the day the year tap opened in landscape went
+    /// 3/16 → 3/14 when the device turned back to portrait): a turn keeps the focus page, both ways, on the iPhone (day and
+    /// week: landscape 874 × 205 ⇄ portrait 402 × 536 / 540) and the iPad 11 (portrait 834 × 951 / 955 ⇄ landscape
+    /// 1,210 × 615), from the opening (as the year tap opens it) and after a slide of one page. After each turn the focus is
+    /// the same page, every stop told of is on it, the window decided anew is around it, and its middle is in the middle of
+    /// the screen as before. 1.2.3's change of width (`containerDidLayout`, step 4) reads the paper x it keeps in the middle
+    /// with the new width and the old offset, half the change of width off at the old zoom: on one page the clamp hides it,
+    /// on the band nothing does, and the stop after the turn took the focus from there (the iPhone's landscape day is 85 pt
+    /// wide: 2–3 days back; the iPad's day one back).
+    func testRotationKeepsTheFocusIPhoneDay() async throws {
+        try await assertTurnsKeepTheFocus(.day, .iPhone, start: .landscape, CGSize(width: 874, height: 205),
+                                          CGSize(width: 402, height: 536), next: d1117)
+    }
+
+    func testRotationKeepsTheFocusIPhoneWeek() async throws {
+        try await assertTurnsKeepTheFocus(.week, .iPhone, start: .landscape, CGSize(width: 874, height: 205),
+                                          CGSize(width: 402, height: 540), next: w1123)
+    }
+
+    func testRotationKeepsTheFocusIPadDay() async throws {
+        try await assertTurnsKeepTheFocus(.day, .iPad11, start: .portrait, CGSize(width: 834, height: 951),
+                                          CGSize(width: 1_210, height: 615), next: d1117)
+    }
+
+    func testRotationKeepsTheFocusIPadWeek() async throws {
+        try await assertTurnsKeepTheFocus(.week, .iPad11, start: .portrait, CGSize(width: 834, height: 955),
+                                          CGSize(width: 1_210, height: 615), next: w1123)
+    }
+
+    /// UI-1's steps: open at `first` in `start`, turn to `second` and back; slide one page (to `next`), turn and back.
+    private func assertTurnsKeepTheFocus(_ kind: PageKind, _ device: SpanDeviceClass, start: SpanOrientation, _ first: CGSize,
+                                         _ second: CGSize, next: String, overviewCap: Bool = false, line: UInt = #line) async throws {
+        let session = try await open(kind, deviceClass: device, orientation: start, overviewCap: overviewCap)
+        let rig = await attach(session, width: first.width, height: first.height)
+        let opened = session.focusPageId
+        // P-B6 イ (PB6-RV-I3): with the cap, each step in landscape is at the cap's zoom with the window 7 / 9.
+        func check(_ pageId: String, since: Int, _ step: String) {
+            assertFocus(pageId, on: rig, since: since, step, line: line)
+            if overviewCap { assertCapped(kind, on: rig, step, line: line) }
+        }
+        check(opened, since: 0, "\(kind) opened")
+        var stops = rig.probe.stops.count
+        await turn(rig, to: second)
+        check(opened, since: stops, "\(kind) turned")
+        stops = rig.probe.stops.count
+        await turn(rig, to: first)
+        check(opened, since: stops, "\(kind) turned back")
+
+        let shifts = rig.coordinator.spanShiftCount
+        await scroll(rig, pages: 1)
+        // S6 (review S6-LT-2): on a slow runner the queued check after the motion may have shifted the window before this
+        // call (run 44460579096: `.nothing`, the shift's log line before it); the window shifts once, by either.
+        let outcome = rig.coordinator.shiftIfAtRest()
+        XCTAssertTrue(outcome == .done || (outcome == .nothing && rig.coordinator.spanShiftCount == shifts + 1),
+                      "\(kind) slid: the window shifts (\(outcome), \(rig.coordinator.spanShiftCount - shifts) shifts)", line: line)
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanShiftCount, shifts + 1, "\(kind) slid: the window shifted once", line: line)
+        check(next, since: rig.probe.stops.count - 1, "\(kind) slid")
+        stops = rig.probe.stops.count
+        await turn(rig, to: second)
+        check(next, since: stops, "\(kind) slid, turned")
+        stops = rig.probe.stops.count
+        await turn(rig, to: first)
+        check(next, since: stops, "\(kind) slid, turned back")
+    }
+
+    /// P-B6 イ (PB6-RV-I3): in landscape (874 × 205 in the capped UI-1 runs) the zoom is the cap's — 874 ÷ (3 × 1,400) for
+    /// the week, 874 ÷ (5 × 1,000) for the day, never the 0.1068 / 0.0854 of the overview without the cap — and the window
+    /// decided at rest is 7 weeks / 9 days (not 9 / 15). Portrait is left to `assertFocus`.
+    private func assertCapped(_ kind: PageKind, on rig: SpanRig, _ step: String, line: UInt) {
+        let size = rig.container.bounds.size
+        guard size.width > size.height else { return }
+        XCTAssertEqual(size.width, 874, "\(step): the capped runs turn to 874 pt", line: line)
+        XCTAssertEqual(rig.zoom, kind == .week ? 874 / 4_200 : 874 / 5_000, accuracy: 0.0001, "\(step): the cap's zoom", line: line)
+        XCTAssertEqual(rig.canvas.minimumZoomScale, kind == .week ? 874 / 4_200 : 874 / 5_000, accuracy: 0.0001,
+                       "\(step): the cap is the lowest zoom", line: line)
+        XCTAssertEqual(rig.session.pageIds.count, kind == .week ? 7 : 9, "\(step): the capped window", line: line)
+    }
+
+    /// A rotation as UIKit lays it out: the paper area takes `size`, then the queued work (the window decided anew).
+    private func turn(_ rig: SpanRig, to size: CGSize) async {
+        rig.container.frame = CGRect(origin: .zero, size: size)
+        rig.container.layoutSubviews()
+        await settle()
+    }
+
+    /// UI-1: the focus is `pageId` and every stop told of since `since` is on its day; the window is around it, of the
+    /// plan of the screen's orientation (the canvas took that version), and its middle is in the middle of the screen,
+    /// within 3 pt: UIKit puts each offset on the screen's pixels, so each turn may add a fraction of a point (1.6 pt
+    /// after the four turns and the slide of the iPad's day in run 43657144291); the turn read with the old offset was
+    /// 120 pt off or more.
+    private func assertFocus(_ pageId: String, on rig: SpanRig, since: Int, _ step: String, line: UInt) {
+        let session = rig.session
+        XCTAssertEqual(session.focusPageId, pageId, "\(step): the focus page", line: line)
+        XCTAssertFalse(session.needsShift, "\(step): the window is around it", line: line)
+        XCTAssertEqual(session.plan.orientation, SpanOrientation(screen: rig.container.bounds.size), "\(step): decided anew for the screen", line: line)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "\(step): the canvas took it", line: line)
+        let day = session.focusDay
+        let told = rig.probe.stops.dropFirst(max(0, since)).map(\.focusDay)
+        XCTAssertTrue(told.allSatisfy { $0 == day }, "\(step): the stops told of \(told), not only \(day)", line: line)
+        guard let left = session.origin(ofPage: pageId) else {
+            XCTFail("\(step): \(pageId) is not in the window", line: line)
+            return
+        }
+        let middle = (left + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x
+        XCTAssertEqual(middle, rig.container.bounds.width / 2, accuracy: 3, "\(step): its middle is in the middle of the screen", line: line)
+    }
+
+    /// P-B6 イ: UI-1's turns with the cap (the window 7 weeks / 9 days in landscape), both kinds from both orientations
+    /// (UI-1 was found on the day opened in landscape; PB6-C5).
+    func testRotationKeepsTheFocusIPhoneWeekCapped() async throws {
+        try await assertTurnsKeepTheFocus(.week, .iPhone, start: .landscape, CGSize(width: 874, height: 205),
+                                          CGSize(width: 402, height: 540), next: w1123, overviewCap: true)
+    }
+
+    func testRotationKeepsTheFocusIPhoneWeekFromPortraitCapped() async throws {
+        try await assertTurnsKeepTheFocus(.week, .iPhone, start: .portrait, CGSize(width: 402, height: 540),
+                                          CGSize(width: 874, height: 205), next: w1123, overviewCap: true)
+    }
+
+    func testRotationKeepsTheFocusIPhoneDayCapped() async throws {
+        try await assertTurnsKeepTheFocus(.day, .iPhone, start: .landscape, CGSize(width: 874, height: 205),
+                                          CGSize(width: 402, height: 536), next: d1117, overviewCap: true)
+    }
+
+    func testRotationKeepsTheFocusIPhoneDayFromPortraitCapped() async throws {
+        try await assertTurnsKeepTheFocus(.day, .iPhone, start: .portrait, CGSize(width: 402, height: 536),
+                                          CGSize(width: 874, height: 205), next: d1117, overviewCap: true)
+    }
+
+    /// P-B6 イ, the lead's decision 6 (11/18), on the canvas: the screen's `initialPaperOffset` for today's page at the
+    /// capped overview (11/18 15:00) opens the window at 14:00 with the focus page in the middle (the week and the day, at
+    /// the cap's zoom); a window whose focus page does not hold today has no offset and opens at 0:00.
+    func testCappedTodayOpensAnHourBeforeNowOnTheCanvas() async throws {
+        bed.now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
+        let area = CGSize(width: 874, height: 205)
+        var number = 0
+        for (kind, across, hour) in [(PageKind.week, CGFloat(3), CGFloat(80)), (.day, 5, 100)] {
+            number += 1
+            let session = try await open(kind, number: number, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+            let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+            let offset = ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: nil, offset: nil,
+                                                     viewportWidth: area.width, zoom: zoom)
+            let cap = area.width / (across * ZoomPolicy.paperWidth(kind))
+            if kind == .week {
+                XCTAssertNotNil(offset, "the week of 11/16 holds today (11/18)")
+            } else {
+                XCTAssertNil(offset, "the day of 11/16 does not hold today")
+            }
+            let rig = await attach(session, width: area.width, height: area.height, initialPaperOffset: offset)
+            XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind): the cap")
+            let focus = try XCTUnwrap(session.origin(ofPage: session.focusPageId))
+            XCTAssertEqual((focus + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x, 437, accuracy: 0.5,
+                           "\(kind): the focus page in the middle")
+            XCTAssertEqual(rig.canvas.contentOffset.y, kind == .week ? 14 * hour * cap : 0, accuracy: 0.5,
+                           kind == .week ? "today's page: 14:00 at the top" : "another page: 0:00 at the top")
+        }
+        number += 1
+        let day = bed.session(.day, focus: DayKey(year: 2026, month: 11, day: 18), number: number, deviceClass: .iPhone,
+                              orientation: .landscape, overviewCap: true)
+        await day.prefetch()
+        let zoom = ScreenPaths.bandZoom(layout: day.layout, area: area, ratio: 1)
+        let offset = try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: day.layout, focusPageId: day.focusPageId, pages: nil, offset: nil,
+                                                               viewportWidth: area.width, zoom: zoom), "today's day page")
+        let rig = await attach(day, width: area.width, height: area.height, initialPaperOffset: offset)
+        XCTAssertEqual(rig.zoom, 874 / 5_000, accuracy: 0.0001)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 14 * 100 * 874 / 5_000, accuracy: 0.5, "today's day page: 14:00 at the top")
+        let focus = try XCTUnwrap(day.origin(ofPage: day.focusPageId))
+        XCTAssertEqual((focus + 500) * rig.zoom - rig.canvas.contentOffset.x, 437, accuracy: 0.5, "the focus day in the middle")
+    }
+
+    /// P-B6 イ, the lead's decision 7 (11/18), on the canvas (PB6-RV-I1, RV-S1): 「今日」 on today's page already the focus at
+    /// the capped overview (11/18 15:00; `ScreenPaths.cappedTodayRect`'s request) moves y alone to an hour before now (14:00)
+    /// when the now line is outside what the paper shows, and nothing while the now line is on screen — with the hour
+    /// before it above the screen (14:30 at the top) or the now line just above the bottom edge too (the least-movement
+    /// reveal moved both). The week and the day; x never moves.
+    func testCappedTodayRevealMovesOnlyAnOffScreenNowLine() async throws {
+        let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
+        bed.now = now
+        let area = CGSize(width: 874, height: 205)
+        var number = 0
+        for (kind, cap, hour) in [(PageKind.week, CGFloat(874) / 4_200, CGFloat(80)), (.day, CGFloat(874) / 5_000, 100)] {
+            number += 1
+            let session = bed.session(kind, focus: kind == .week ? nov16 : DayKey(year: 2026, month: 11, day: 18), number: number,
+                                      deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+            await session.prefetch()
+            let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+            let rig = await attach(session, width: area.width, height: area.height,
+                                   initialPaperOffset: ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId,
+                                                                                   pages: nil, offset: nil, viewportWidth: area.width, zoom: zoom))
+            XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind): the cap")
+            let x0 = rig.canvas.contentOffset.x
+            XCTAssertEqual(rig.canvas.contentOffset.y, 14 * hour * cap, accuracy: 0.5, "\(kind): opened at 14:00")
+            var trigger = 0
+            // The paper put at `y` (UIKit puts it on the screen's pixels: `before`), then 「今日」's request (`after`).
+            func reveal(from y: CGFloat) throws -> (before: CGPoint, after: CGPoint) {
+                rig.canvas.contentOffset = CGPoint(x: x0, y: y)
+                let before = rig.canvas.contentOffset
+                let shown = PaperViewport(offsetX: before.x, zoom: rig.zoom, width: area.width)
+                let rect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                                     calendar: SessionTestBed.tokyo, viewport: shown))
+                trigger += 1
+                update(rig, revealRect: rect, revealTrigger: trigger)
+                return (before, rig.canvas.contentOffset)
+            }
+            // The now line (15:00) on screen: 14:30 at the top (the hour before now above the screen), 13:45, 10:00 (14:00
+            // still on screen), and the now line 5 pt above the bottom edge.
+            for (label, y) in [("14:30", 14.5 * hour * cap), ("13:45", 13.75 * hour * cap), ("10:00", 10 * hour * cap),
+                               ("the now line 5 pt above the bottom edge", 15 * hour * cap - 200)] {
+                let stays = try reveal(from: y)
+                XCTAssertEqual(stays.after.x, stays.before.x, accuracy: 0.01, "\(kind), \(label) at the top")
+                XCTAssertEqual(stays.after.y, stays.before.y, accuracy: 0.01, "\(kind), \(label) at the top: the now line on screen, nothing moves")
+            }
+            // The now line below the screen (0:00 at the top) and above it (20:00 at the top): 14:00 at the top.
+            for (label, y) in [("0:00", CGFloat(0)), ("20:00", 20 * hour * cap)] {
+                let moved = try reveal(from: y).after
+                XCTAssertEqual(moved.x, x0, accuracy: 0.01, "\(kind), \(label) at the top: y only")
+                XCTAssertEqual(moved.y, 14 * hour * cap, accuracy: 0.5, "\(kind), \(label) at the top: 14:00, an hour before now, at the top")
+            }
+        }
+    }
+
+    /// S6 (docs/M7C.md, the lead's decisions on the cap 3 (b)): the bottom of what the paper shows, for 「今日」's now-line request
+    /// at the capped overview (`revealNowLine`), is the bottom clearance's top (the collapsed toolbar's round button,
+    /// `ToolbarLogic.dockClearance`, the canvas's `contentInset.bottom`), as for 1.1.1's `reveal`. 11/18 15:00, the week and
+    /// the day: the now line hidden under the clearance (30 pt above the screen's bottom edge, 30 pt into the 60 pt clearance)
+    /// counts as off screen, and y alone goes to 14:00; the now line 5 pt above the clearance is on screen, and nothing moves.
+    func testCappedTodaySeesTheBottomClearance() async throws {
+        let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
+        bed.now = now
+        let area = CGSize(width: 874, height: 205)
+        let clearance = ToolbarLogic.dockClearance
+        XCTAssertEqual(clearance, 60)
+        var number = 0
+        for (kind, cap, hour) in [(PageKind.week, CGFloat(874) / 4_200, CGFloat(80)), (.day, CGFloat(874) / 5_000, 100)] {
+            number += 1
+            let session = bed.session(kind, focus: kind == .week ? nov16 : DayKey(year: 2026, month: 11, day: 18), number: number,
+                                      deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+            await session.prefetch()
+            let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+            let rig = await attach(session, width: area.width, height: area.height,
+                                   initialPaperOffset: ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId,
+                                                                                   pages: nil, offset: nil, viewportWidth: area.width, zoom: zoom),
+                                   bottomClearance: clearance)
+            XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind): the cap")
+            XCTAssertEqual(rig.canvas.contentInset.bottom, clearance, "\(kind): the round button's clearance")
+            let x0 = rig.canvas.contentOffset.x
+            let line = 15 * hour * cap
+            var trigger = 0
+            // The paper put with the now line `fromTop` pt below the screen's top (`before`), then 「今日」's request (`after`).
+            func reveal(nowLineAt fromTop: CGFloat) throws -> (before: CGPoint, after: CGPoint) {
+                rig.canvas.contentOffset = CGPoint(x: x0, y: line - fromTop)
+                let before = rig.canvas.contentOffset
+                let shown = PaperViewport(offsetX: before.x, zoom: rig.zoom, width: area.width)
+                let rect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                                     calendar: SessionTestBed.tokyo, viewport: shown))
+                trigger += 1
+                update(rig, revealRect: rect, revealTrigger: trigger, bottomClearance: clearance)
+                return (before, rig.canvas.contentOffset)
+            }
+            let above = try reveal(nowLineAt: area.height - clearance - 5)
+            XCTAssertEqual(above.after.x, above.before.x, accuracy: 0.01, "\(kind): the now line 5 pt above the clearance")
+            XCTAssertEqual(above.after.y, above.before.y, accuracy: 0.01, "\(kind): the now line above the clearance is on screen, nothing moves")
+            let under = try reveal(nowLineAt: area.height - 30)
+            XCTAssertEqual(under.after.x, x0, accuracy: 0.01, "\(kind): the now line under the clearance: y only")
+            XCTAssertEqual(under.after.y, 14 * hour * cap, accuracy: 0.5,
+                           "\(kind): the now line under the round button's clearance is not shown: 14:00, an hour before now, at the top")
+        }
+    }
+
+    /// S6 (docs/M7C.md, the lead's decisions on the cap 3 (a)): a canvas's first layout without `initialPaperOffset` reads the
+    /// screen's `revealRect` (1.1.1), so a 「今日」 rect left from another window (`.reveal` when zoomed in: today's cell, with an
+    /// x, in that window's band lu) takes a new window's paper to it — here a cell on the page two to the right of the focus
+    /// page — instead of opening with the focus page in the middle. 「全て消す」 makes such a new window (H3), so the screen
+    /// forgets the rect there (ScreenPathsSpanTests.testEraseAllForgetsTheTodayRect, the screen's line).
+    func testALeftTodayRectMovesANewWindowsFirstLayout() async throws {
+        let plain = await attach(try await open(.week, number: 1))
+        XCTAssertEqual(plain.canvas.contentOffset.x, 2.5 * plain.page - 417, accuracy: 0.5, "no rect: the focus week opens in the middle")
+        let session = try await open(.week, number: 2)
+        XCTAssertEqual(session.focusPageId, w1116)
+        let left = CGRect(x: origin(w1130, session) + 300, y: 400, width: 200, height: 160)
+        let rig = await attach(session, revealRect: left)
+        // Read in the window the session holds now (a shift at rest keeps what the screen shows, so the cell is still there).
+        let shownLeft = rig.canvas.contentOffset.x / rig.zoom
+        let shownWidth = 834 / rig.zoom
+        let cellLeft = origin(w1130, session) + 300
+        XCTAssertGreaterThanOrEqual(cellLeft, shownLeft - 0.5, "the left cell is brought on screen")
+        XCTAssertLessThanOrEqual(cellLeft + 200, shownLeft + shownWidth + 0.5, "the left cell is brought on screen")
+        let middle = shownLeft + shownWidth / 2
+        let opened = origin(w1116, session)
+        XCTAssertFalse(middle >= opened && middle <= opened + 1_400, "the week the window opened on is not in the middle")
+    }
+
+    /// P-B6 イ, the lead's decision 7 (PB6-RV-I2): 「今日」's request while the band still moves (a fling's snap or a slide; the
+    /// tests' `spanMotionOverride`) leaves the paper alone — taken there, it would stop the snap between two pages — and the
+    /// next 「今日」 at rest does its work.
+    func testCappedTodayDoesNothingWhileTheBandMoves() async throws {
+        let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
+        bed.now = now
+        let session = try await open(.week, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+        let area = CGSize(width: 874, height: 205)
+        let rig = await attach(session, width: area.width, height: area.height)
+        let cap: CGFloat = 874 / 4_200
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x + 60, y: 0)
+        let before = rig.canvas.contentOffset
+        let shown = PaperViewport(offsetX: before.x, zoom: rig.zoom, width: area.width)
+        let rect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                             calendar: SessionTestBed.tokyo, viewport: shown))
+        rig.coordinator.spanMotionOverride = true
+        update(rig, revealRect: rect, revealTrigger: 1)
+        XCTAssertEqual(rig.canvas.contentOffset.x, before.x, accuracy: 0.01, "the band moving: x is left to the snap")
+        XCTAssertEqual(rig.canvas.contentOffset.y, before.y, accuracy: 0.01, "the band moving: nothing moves")
+        rig.coordinator.spanMotionOverride = nil
+        update(rig, revealRect: rect, revealTrigger: 2)
+        XCTAssertEqual(rig.canvas.contentOffset.x, before.x, accuracy: 0.01, "at rest: y only")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 1_120 * cap, accuracy: 0.5, "at rest: 14:00 at the top")
+    }
+
+    /// P-B6 イ (PB6-RV-I5): the screen keeps its `revealRect` until `show` (「全て消す」 makes a new window without it), and a
+    /// canvas's first layout without `initialPaperOffset` reads it. A capped 「今日」's request left from another window has
+    /// no x and is not 1.1.1's rect: the new window still opens with its focus page in the middle at 0:00.
+    func testALeftCappedTodayRequestDoesNotMoveANewWindow() async throws {
+        let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
+        bed.now = now
+        let area = CGSize(width: 874, height: 205)
+        let cap: CGFloat = 874 / 4_200
+        let before = try await open(.week, number: 1, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+        let middle = try XCTUnwrap(before.origin(ofPage: before.focusPageId)) + 700
+        let left = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: before.layout, pageId: before.focusPageId, now: now, calendar: SessionTestBed.tokyo,
+                                                             viewport: PaperViewport(offsetX: middle * cap - 437, zoom: cap, width: 874)))
+        let session = bed.session(.week, focus: DayKey(year: 2026, month: 11, day: 23), number: 2, deviceClass: .iPhone,
+                                  orientation: .landscape, overviewCap: true)
+        await session.prefetch()
+        XCTAssertEqual(session.focusPageId, w1123)
+        let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+        XCTAssertNil(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: nil, offset: nil,
+                                                 viewportWidth: area.width, zoom: zoom), "not today's page: no initialPaperOffset")
+        let rig = await attach(session, width: area.width, height: area.height, revealRect: left)
+        XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.01, "0:00 at the top")
+        let focus = try XCTUnwrap(session.origin(ofPage: session.focusPageId))
+        XCTAssertEqual((focus + 700) * rig.zoom - rig.canvas.contentOffset.x, 437, accuracy: 0.5, "the focus page in the middle")
+    }
+
+    /// P-B6 イ (PB6-C5): the capped day's portrait window (5 days) is exactly the landscape screen at the cap (5 × 174.8 =
+    /// 874 pt). Turned with the middle 0.4 day right of the focus day's middle: the clamp has no range, so the 5 days fill
+    /// the screen (no desk) with the focus day in the middle; at rest the window (9 days) is decided anew and the place
+    /// the turn kept (0.4 day right) goes back to the middle: the paper moves about 70 pt then.
+    func testCappedDayTurnFillsTheScreenThenKeepsThePlace() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .portrait, overviewCap: true)
+        let rig = await attach(session, width: 402, height: 536)
+        let opened = session.focusPageId
+        await scroll(rig, pages: 0.4)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .nothing, "0.4 day: the focus stays (6 %)")
+        XCTAssertEqual(session.focusPageId, opened)
+        layOut(rig, CGSize(width: 874, height: 205))
+        XCTAssertEqual(rig.zoom, 874 / 5_000, accuracy: 0.0001, "the cap in the turn's pass")
+        XCTAssertEqual(session.pageIds.count, 5, "the portrait window until the rest")
+        XCTAssertEqual(rig.canvas.contentSize.width, 874, accuracy: 0.5, "the 5 days are the screen")
+        XCTAssertEqual(rig.canvas.contentOffset.x, 0, accuracy: 0.5, "no desk on either side")
+        let left = try XCTUnwrap(session.origin(ofPage: opened))
+        XCTAssertEqual((left + 500) * rig.zoom - rig.canvas.contentOffset.x, 437, accuracy: 0.5, "the clamp: the focus day in the middle")
+        await settle()
+        XCTAssertEqual(session.pageIds.count, 9)
+        XCTAssertEqual(session.focusPageId, opened)
+        let after = try XCTUnwrap(session.origin(ofPage: opened))
+        XCTAssertEqual((after + 900) * rig.zoom - rig.canvas.contentOffset.x, 437, accuracy: 3, "the place the turn kept, in the middle")
+    }
+
+    /// P-B6 イ: an iPhone in landscape opens at 3 weeks / 5 days across (the lowest zoom too), the focus page in the
+    /// middle and 0:00 at the top (the canvas alone, no page of the window holding today; today's page opens an hour before
+    /// now through the screen's offset, `testCappedTodayOpensAnHourBeforeNowOnTheCanvas`); 7 weeks / 9 days in the window;
+    /// at the iPhone 17's measured paper area (750 × 179 / 175) as well. The end of a pinch reports the ratio over the
+    /// capped opening, and the 24 pt start holds at the cap and not just above it (R5).
+    func testCappedIPhoneLandscapeOpensAtThreeWeeksAndFiveDays() async throws {
+        var number = 0
+        for (kind, across, pages) in [(PageKind.week, CGFloat(3), 7), (.day, 5, 9)] {
+            for area in [CGSize(width: 874, height: 205), CGSize(width: 750, height: kind == .day ? 175 : 179)] {
+                number += 1
+                let session = try await open(kind, number: number, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+                let rig = await attach(session, width: area.width, height: area.height)
+                let cap = area.width / (across * ZoomPolicy.paperWidth(kind))
+                XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind) \(area): opens at the cap")
+                XCTAssertEqual(rig.canvas.minimumZoomScale, cap, accuracy: 0.0001, "\(kind) \(area): the lowest zoom")
+                XCTAssertEqual(rig.page * across, area.width, accuracy: 0.5, "\(kind) \(area): pages across")
+                XCTAssertEqual(session.pageIds.count, pages, "\(kind) \(area): the window")
+                XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.5, "\(kind) \(area): 0:00 at the top")
+                let focus = try XCTUnwrap(session.origin(ofPage: session.focusPageId))
+                XCTAssertEqual((focus + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x, area.width / 2, accuracy: 0.5)
+                let gate = try XCTUnwrap(rig.coordinator.spanPanGate)
+                XCTAssertTrue(gate.holds(), "\(kind) \(area): the capped zoom is the overview (24 pt)")
+                rig.canvas.zoomScale = cap * 1.5
+                rig.coordinator.scrollViewDidEndZooming(rig.canvas, with: nil, atScale: cap * 1.5)
+                await settle()
+                XCTAssertEqual(rig.probe.ratios.last ?? 0, 1.5, accuracy: 0.001, "\(kind) \(area): the ratio is over the capped opening")
+                rig.canvas.zoomScale = cap * 1.01
+                XCTAssertFalse(gate.holds(), "\(kind) \(area): just above the cap the band moves at once")
+                rig.canvas.zoomScale = cap / 2
+                rig.coordinator.scrollViewDidEndZooming(rig.canvas, with: nil, atScale: cap / 2)
+                await settle()
+                XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind) \(area): out to the cap and no further")
+                XCTAssertEqual(rig.probe.ratios.last ?? 0, 1, accuracy: 0.001, "\(kind) \(area): out to the cap is ratio 1")
+                XCTAssertTrue(gate.holds(), "\(kind) \(area): back at the overview")
+            }
+        }
+    }
+
+    /// P-B6 イ (R5): at the capped overview a fling turns exactly one page — a third of the screen for the week, a fifth
+    /// for the day (literals, not the rig's page) — and puts that page in the middle (P-B5 ア).
+    func testCappedFlingTurnsOnePage() async throws {
+        var number = 0
+        for (kind, across) in [(PageKind.week, CGFloat(3)), (.day, 5)] {
+            number += 1
+            let session = try await open(kind, number: number, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+            let rig = await attach(session, width: 874, height: 205)
+            let page = 874 / across
+            let x0 = rig.canvas.contentOffset.x
+            // The focus page's middle in the middle of the screen; UIKit puts the offset on the screen's pixels, the
+            // fling's target is the page's exact place.
+            let centre = (CGFloat(session.focusSlot) + 0.5) * page - 437
+            XCTAssertEqual(x0, centre, accuracy: 0.5, "\(kind): the focus page in the middle")
+            func release(to x: CGFloat, velocity: CGFloat, proposed: CGFloat) -> CGPoint {
+                rig.canvas.contentOffset.x = x0
+                rig.coordinator.scrollViewWillBeginDragging(rig.canvas)
+                rig.canvas.contentOffset.x = x
+                var target = CGPoint(x: proposed, y: 0)
+                rig.coordinator.scrollViewWillEndDragging(rig.canvas, withVelocity: CGPoint(x: velocity, y: 0), targetContentOffset: &target)
+                return target
+            }
+            XCTAssertEqual(release(to: x0 + 40, velocity: 1.0, proposed: x0 + 900).x, centre + page, accuracy: 0.01, "\(kind): the next page in the middle")
+            XCTAssertEqual(release(to: x0 - 40, velocity: -1.0, proposed: x0 - 900).x, centre - page, accuracy: 0.01, "\(kind): the page before in the middle")
+        }
+    }
+
+    /// P-B6 イ: a turn to landscape takes the cap in its layout pass, before the window is decided anew at rest (the
+    /// zoom does not jump a second time), and back in portrait the zoom is 1.2.3's.
+    func testCappedTurnTakesTheCapBeforeTheWindow() async throws {
+        let session = try await open(.week, deviceClass: .iPhone, orientation: .portrait, overviewCap: true)
+        let rig = await attach(session, width: 402, height: 540)
+        let portrait = rig.zoom
+        layOut(rig, CGSize(width: 874, height: 205))
+        let cap: CGFloat = 874 / 4_200
+        XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "the cap in the turn's pass")
+        XCTAssertEqual(session.pageIds.count, 5, "the window waits for the rest")
+        await settle()
+        XCTAssertEqual(session.pageIds.count, 7)
+        XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "no second jump")
+        layOut(rig, CGSize(width: 402, height: 540))
+        XCTAssertEqual(rig.zoom, portrait, accuracy: 0.0001, "portrait: 1.2.3's opening zoom")
+        await settle()
+        XCTAssertEqual(session.pageIds.count, 5)
+    }
+
+    /// P-B6 イ, UI1-R1 with the cap (R1): one turn laid out in two passes, the width first and the height first, both
+    /// ways. Portrait → landscape width first (→ 874 × 536 → 874 × 205): the first pass is not capped (874 × 536's lowest
+    /// zoom is above the cap), the height's pass takes it. Landscape → portrait width first (→ 402 × 205 → 402 × 536):
+    /// 402 × 205 is wider than tall but its cap is below its lowest zoom, so the zoom passes that area's uncapped overview
+    /// on its way to the portrait opening. After each turn: the zoom, the window (7 / 9 / 5), the focus page in the middle.
+    func testRotationLaidOutInTwoPassesKeepsTheFocusCapped() async throws {
+        var number = 0
+        for (kind, across, portrait, wide) in [(PageKind.week, CGFloat(3), CGSize(width: 402, height: 540), 7),
+                                               (.day, 5, CGSize(width: 402, height: 536), 9)] {
+            let landscape = CGSize(width: 874, height: 205)
+            let cap = landscape.width / (across * ZoomPolicy.paperWidth(kind))
+            let portraitOpen = ZoomPolicy.bounds(kind, overview: ZoomPolicy.baseSize(kind), viewport: portrait).open
+            for widthFirst in [true, false] {
+                number += 1
+                let session = try await open(kind, number: number, deviceClass: .iPhone, orientation: .portrait, overviewCap: true)
+                let rig = await attach(session, width: portrait.width, height: portrait.height)
+                let opened = session.focusPageId
+                var stops = rig.probe.stops.count
+                layOut(rig, widthFirst ? CGSize(width: landscape.width, height: portrait.height) : CGSize(width: portrait.width, height: landscape.height))
+                layOut(rig, landscape)
+                XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind), width first \(widthFirst): the cap after the turn's passes")
+                await settle()
+                XCTAssertEqual(session.pageIds.count, wide, "\(kind), width first \(widthFirst): the landscape window")
+                XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind), width first \(widthFirst): no second jump")
+                assertFocus(opened, on: rig, since: stops, "\(kind) to landscape in two passes (width first \(widthFirst))", line: #line)
+                stops = rig.probe.stops.count
+                let middle = widthFirst ? CGSize(width: portrait.width, height: landscape.height) : CGSize(width: landscape.width, height: portrait.height)
+                layOut(rig, middle)
+                if widthFirst {
+                    XCTAssertEqual(rig.zoom, ZoomPolicy.bounds(kind, overview: ZoomPolicy.baseSize(kind), viewport: middle).open, accuracy: 0.0001,
+                                   "\(kind): 402 × 205 passes its uncapped overview")
+                }
+                layOut(rig, portrait)
+                XCTAssertEqual(rig.zoom, portraitOpen, accuracy: 0.0001, "\(kind), width first \(widthFirst): 1.2.3's portrait opening")
+                await settle()
+                XCTAssertEqual(session.pageIds.count, 5, "\(kind), width first \(widthFirst): the portrait window")
+                assertFocus(opened, on: rig, since: stops, "\(kind) to portrait in two passes (width first \(widthFirst))", line: #line)
+            }
+        }
+    }
+
+    /// P-B6 イ, UI1-R2 with the cap (R1): a lasso selection holds the shift after the band scrolled one day (the focus
+    /// 11/17, the window still around 11/16). Turned to landscape, the old window (5 days) is exactly the screen at the cap
+    /// (874 pt): the clamp has no range and puts 11/16 in the middle, no desk. The focus stays 11/17 through the turns,
+    /// and when the selection is cleared the window (9 days) is decided anew around 11/17 with 11/17 in the middle.
+    func testRotationWhileASelectionHoldsTheShiftKeepsTheFocusCapped() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .portrait, overviewCap: true)
+        let rig = await attach(session, width: 402, height: 536)
+        let opened = session.focusPageId
+        guard let left = session.origin(ofPage: opened) else { return XCTFail("no page") }
+        draw(shortStroke(at: left + 500, 700), on: rig)
+        update(rig, tool: .lasso)
+        rig.coordinator.overlay(rig.container.overlayView, didFinishLasso: [
+            CGPoint(x: left + 440, y: 650), CGPoint(x: left + 560, y: 650),
+            CGPoint(x: left + 560, y: 750), CGPoint(x: left + 440, y: 750),
+        ])
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "held by the selection")
+        XCTAssertEqual(session.focusPageId, d1117, "scrolled to the next day")
+        let stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        XCTAssertEqual(session.focusPageId, d1117, "turned: the focus stays")
+        XCTAssertEqual(rig.zoom, 874 / 5_000, accuracy: 0.0001, "the cap")
+        XCTAssertEqual(rig.canvas.contentSize.width, 874, accuracy: 0.5, "the old window is the screen")
+        XCTAssertEqual(rig.canvas.contentOffset.x, 0, accuracy: 0.5, "no desk")
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        XCTAssertEqual(session.focusPageId, d1117, "turned back: the focus stays")
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        XCTAssertEqual(session.focusPageId, d1117, "turned again: the focus stays")
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "still held")
+        rig.coordinator.overlayDidTouchOutsideSelection(rig.container.overlayView)
+        await settle()
+        _ = rig.coordinator.shiftIfAtRest()
+        await settle()
+        XCTAssertEqual(session.pageIds.count, 9)
+        assertFocus(d1117, on: rig, since: stops, "the selection cleared", line: #line)
+    }
+
+    /// P-B6 イ: the cap never reaches an iPad (the iPad mini's landscape day, V 5.18) or an iPhone in portrait, an
+    /// all-day band at its 35 % cap (402 × 368, wider than tall) included. The iPhone rows are guards of values that do
+    /// not move (the cap is below the lowest zoom there); the iPad row fails without the Kit's iPhone check.
+    func testCapNeverReachesAnIPadOrTheIPhonePortrait() async throws {
+        var number = 0
+        for (kind, device, orientation, area) in [(PageKind.day, SpanDeviceClass.iPadMini, SpanOrientation.landscape, CGSize(width: 1133, height: 525)),
+                                                   (.week, .iPhone, .portrait, CGSize(width: 402, height: 540)),
+                                                   (.day, .iPhone, .portrait, CGSize(width: 402, height: 536)),
+                                                   (.week, .iPhone, .portrait, CGSize(width: 402, height: 368)),
+                                                   (.day, .iPhone, .portrait, CGSize(width: 402, height: 368))] {
+            number += 1
+            let session = try await open(kind, number: number, deviceClass: device, orientation: orientation, overviewCap: true)
+            let rig = await attach(session, width: area.width, height: area.height)
+            let plain = ZoomPolicy.bounds(kind, overview: InkCanvasView.bandOverview(session.layout), viewport: area)
+            XCTAssertEqual(rig.zoom, plain.open, accuracy: 0.0001, "\(device) \(orientation) \(kind) \(area)")
+            XCTAssertEqual(rig.canvas.minimumZoomScale, plain.min, accuracy: 0.0001, "\(device) \(orientation) \(kind) \(area)")
+            XCTAssertEqual(session.pageIds.count, SpanPlan(kind: kind, weekStart: .monday, deviceClass: device, orientation: orientation).windowSize)
+        }
+    }
+
+    /// UI-1 from the other side: the iPhone's day opened in portrait (402 × 536), turned to landscape (874 × 205) and back,
+    /// then slid one day and turned again (the review's probe A).
+    func testRotationKeepsTheFocusIPhoneDayFromPortrait() async throws {
+        try await assertTurnsKeepTheFocus(.day, .iPhone, start: .portrait, CGSize(width: 402, height: 536),
+                                          CGSize(width: 874, height: 205), next: d1117)
+    }
+
+    /// UI1-R1: UIKit moves the offset when it gives the canvas a wider frame, before the layout pass (the range got
+    /// shorter: 357 → 243 pt on the iPhone's portrait day turned to 874 pt wide). A turn laid out in two passes (the width,
+    /// then the height) keeps the focus page in the middle: the pass reads the middle from the offset the old width left,
+    /// not from the one UIKit moved (the review's probe E: 481.1 pt against 437 before).
+    func testRotationLaidOutInTwoPassesKeepsTheFocus() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .landscape)
+        let rig = await attach(session, width: 874, height: 205)
+        let opened = session.focusPageId
+        var stops = rig.probe.stops.count
+        layOut(rig, CGSize(width: 402, height: 205))
+        layOut(rig, CGSize(width: 402, height: 536))
+        await settle()
+        assertFocus(opened, on: rig, since: stops, "one turn in two passes", line: #line)
+        stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 874, height: 536))
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        assertFocus(opened, on: rig, since: stops, "the width, then the height", line: #line)
+    }
+
+    /// UI1-R2: a lasso selection holds the shift after the band scrolled one day (the focus is 11/17, the window still
+    /// around 11/16). Turned to landscape, the old window is narrower than the screen and the clamp centres it on 11/16:
+    /// the focus stays 11/17 (through a second and a third turn as well), and when the selection is cleared the window is
+    /// decided anew around 11/17 with 11/17 in the middle (the review's probe H: 11/16, and the middle 85.5 pt off before).
+    /// A finger moving the band meanwhile gives the focus back to the screen.
+    func testRotationWhileASelectionHoldsTheShiftKeepsTheFocus() async throws {
+        let session = try await open(.day, deviceClass: .iPhone, orientation: .portrait)
+        let rig = await attach(session, width: 402, height: 536)
+        let opened = session.focusPageId
+        guard let left = session.origin(ofPage: opened) else { return XCTFail("no page") }
+        draw(shortStroke(at: left + 500, 700), on: rig)
+        update(rig, tool: .lasso)
+        rig.coordinator.overlay(rig.container.overlayView, didFinishLasso: [
+            CGPoint(x: left + 440, y: 650), CGPoint(x: left + 560, y: 650),
+            CGPoint(x: left + 560, y: 750), CGPoint(x: left + 440, y: 750),
+        ])
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "held by the selection")
+        XCTAssertEqual(session.focusPageId, d1117, "scrolled to the next day")
+        var stops = rig.probe.stops.count
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        XCTAssertEqual(session.focusPageId, d1117, "turned: the focus stays")
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        XCTAssertEqual(session.focusPageId, d1117, "turned back: the focus stays")
+        await turn(rig, to: CGSize(width: 874, height: 205))
+        XCTAssertEqual(session.focusPageId, d1117, "turned again: the focus stays")
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "still held")
+        rig.coordinator.overlayDidTouchOutsideSelection(rig.container.overlayView)
+        await settle()
+        _ = rig.coordinator.shiftIfAtRest()
+        await settle()
+        assertFocus(d1117, on: rig, since: stops, "the selection cleared", line: #line)
+
+        // A finger moves the band while a turn is kept: the focus is the screen's again.
+        guard let next = session.origin(ofPage: d1117) else { return XCTFail("no page") }
+        draw(shortStroke(at: next + 500, 700), on: rig)
+        rig.coordinator.overlay(rig.container.overlayView, didFinishLasso: [
+            CGPoint(x: next + 440, y: 650), CGPoint(x: next + 560, y: 650),
+            CGPoint(x: next + 560, y: 750), CGPoint(x: next + 440, y: 750),
+        ])
+        await turn(rig, to: CGSize(width: 402, height: 536))
+        XCTAssertEqual(session.focusPageId, d1117, "held, turned to portrait")
+        rig.coordinator.spanMotionOverride = true
+        await scroll(rig, pages: 1)
+        rig.coordinator.spanMotionOverride = nil
+        await settle()
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "held again")
+        XCTAssertEqual(session.focusPageId, "d-2026-11-18", "the finger's day")
+        stops = rig.probe.stops.count
+        rig.coordinator.overlayDidTouchOutsideSelection(rig.container.overlayView)
+        await settle()
+        _ = rig.coordinator.shiftIfAtRest()
+        await settle()
+        assertFocus("d-2026-11-18", on: rig, since: stops, "a finger, then the selection cleared", line: #line)
+    }
+
+    /// One layout pass at `size`, nothing awaited (a turn UIKit lays out in more than one pass).
+    private func layOut(_ rig: SpanRig, _ size: CGSize) {
+        rig.container.frame = CGRect(origin: .zero, size: size)
+        rig.container.layoutSubviews()
+    }
+
+    /// §3.6: when a page that leaves cannot be saved, the window does not shift and the canvas is as it was: the pages,
+    /// the drawing, x and the paper; the watch ends (the next motion tries again).
+    func testRefusedShiftLeavesTheCanvasAsItIs() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let g = cell(.grid, of: w1102, session)
+        draw(shortStroke(at: g.minX + 300, g.minY + 300), on: rig)
+        await settle()
+        XCTAssertEqual(session.page(w1102)?.liveStrokeCount, 1)
+        try bed.failSaves(of: w1102)
+        await scroll(rig, pages: 1)
+        let x = rig.canvas.contentOffset.x
+        let builds = rig.coordinator.setDrawingCount
+        let paper = rig.container.paperView.span
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .refused)
+        XCTAssertEqual(rig.coordinator.spanRefusedShiftCount, 1)
+        XCTAssertEqual(session.pageIds.first, w1102, "the window stays")
+        XCTAssertEqual(rig.canvas.contentOffset.x, x, accuracy: 0.001)
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds)
+        XCTAssertEqual(rig.container.paperView.span, paper)
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1)
+        bed.allowSaves(of: w1102)
+    }
+
+    /// §3.6 ◀ ▶: each slide is exactly one week (696.35 pt at the overview) and the window shifts when it ends, nothing
+    /// moving on the screen. A second press while the first one slides waits for it and its shift (from where the first
+    /// was going, the band of five weeks has no room to bring the week after next to the middle), then slides one more
+    /// week. `slideTrigger` slides once per change, on the next turn. UIKit's animation is stood in for
+    /// (`spanSlideAnimation`): the test moves the band and tells the end, as UIKit would.
+    func testArrowsSlideExactlyOnePage() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let x0 = rig.canvas.contentOffset.x
+        rig.coordinator.spanSlideAnimation = { _, _ in }
+        // Two presses in one turn.
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "exactly one week")
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "the second press waits")
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "no shift while it slides")
+        // The slide ends where it was going; the window shifts; the second press slides.
+        func endTheSlide(line: UInt = #line) async {
+            guard let target = rig.coordinator.spanSlideTargetX else {
+                XCTFail("no slide runs", line: line)
+                return
+            }
+            rig.canvas.contentOffset = CGPoint(x: target, y: rig.canvas.contentOffset.y)
+            rig.coordinator.scrollViewDidScroll(rig.canvas)
+            rig.coordinator.scrollViewDidEndScrollingAnimation(rig.canvas)
+            await settle()
+        }
+        await endTheSlide()
+        XCTAssertEqual(session.pageIds.first, w1109, "the window shifted after the first slide")
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "the second: one more week from the middle")
+        await endTheSlide()
+        XCTAssertNil(rig.coordinator.spanSlideTargetX)
+        XCTAssertEqual(session.pageIds, [w1116, w1123, w1130, w1207, "w-2026-12-14"], "two weeks on")
+        XCTAssertEqual(rig.canvas.contentOffset.x, x0, accuracy: 0.5, "the focus week back in the middle of the band")
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 2)
+
+        // The owner's trigger, once per change, on the next turn (an animation that ends at once).
+        rig.coordinator.spanSlideAnimation = { [weak coordinator = rig.coordinator] canvas, target in
+            canvas.contentOffset = target
+            coordinator?.scrollViewDidScroll(canvas)
+            coordinator?.scrollViewDidEndScrollingAnimation(canvas)
+        }
+        update(rig, slidePages: -1, slideTrigger: 1)
+        XCTAssertEqual(rig.canvas.contentOffset.x, x0, accuracy: 0.01, "not inside the update")
+        await settle()
+        XCTAssertEqual(session.pageIds, [w1109, w1116, w1123, w1130, w1207], "one week back")
+        XCTAssertEqual(rig.canvas.contentOffset.x, x0, accuracy: 0.5)
+        update(rig, slidePages: -1, slideTrigger: 1)
+        await settle()
+        XCTAssertEqual(session.pageIds.first, w1109, "the same trigger: nothing")
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 3)
+    }
+
+    /// §3.3 5, §3.4 削除の守り (b): the canvas loses a stroke while the tool is not the eraser: nothing is tombstoned and no
+    /// delta goes out; once the pen is up the drawing is rebuilt from the ledger and the stroke is back.
+    func testNonEraserRemovalRebuildsTheDrawing() async throws {
+        let session = try await open(stored: [page(w1116, ["a", "b"])])
+        let rig = await attach(session)
+        let lost = SpanName.prefixed(id: "a", page: w1116)
+        XCTAssertNotNil(shown(lost, on: rig))
+        touch(rig)
+        rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes.filter { rig.ledger.id(of: $0) != lost })
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        XCTAssertTrue(rig.ledger.page.isLive(lost), "the ledger keeps it")
+        XCTAssertTrue(session.inbox.deltas.isEmpty, "no removal goes out")
+        XCTAssertNil(shown(lost, on: rig), "not rebuilt under the pen")
+        lift(rig)
+        rig.coordinator.endSettleWaitForTesting()
+        XCTAssertNotNil(shown(lost, on: rig), "back once the pen is up")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 2)
+        await settle()
+        XCTAssertEqual(session.page(w1116)?.liveStrokeCount, 2)
+    }
+
+    /// §3.5: an update from iCloud of a window page reaches the canvas (the sink, on the next turn): the ledger reloads the
+    /// window keeping its history, the stroke from iCloud is drawn, and ↶ still takes the person's own stroke away.
+    func testRemoteUpdateIsAdoptedKeepingHistory() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let g = cell(.grid, of: w1116, session)
+        draw(shortStroke(at: g.minX + 300, g.minY + 300), on: rig)
+        let own = try XCTUnwrap(rig.ledger.page.liveStrokeIds.first)
+        await settle()
+        var remote = InkPage.empty(pageId: w1123)
+        remote.add(bed.stroke("from-icloud", x: 200, y: 200))
+        session.remoteUpdated(remote)
+        await settle()
+        let fromICloud = SpanName.prefixed(id: "from-icloud", page: w1123)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
+        XCTAssertTrue(rig.ledger.page.isLive(fromICloud))
+        XCTAssertNotNil(shown(fromICloud, on: rig))
+        XCTAssertTrue(rig.ledger.canUndo, "the history is kept")
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(own))
+        XCTAssertTrue(rig.ledger.page.isLive(fromICloud))
+        XCTAssertEqual(session.inbox.deltas.last?.removed.count, 1)
+    }
+
+    /// §3.6 (the critic's L-C8): a stroke PencilKit finished and has not told of when the window shifts is taken into the
+    /// ledger first, so the shift's new drawing keeps it (and its delta reaches its page).
+    func testAStrokeNotYetToldOfSurvivesTheShift() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        await scroll(rig, pages: 1)
+        let g = cell(.grid, of: w1123, session)
+        rig.canvas.delegate = nil
+        rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes + [shortStroke(at: g.minX + 300, g.minY + 300)])
+        rig.canvas.delegate = rig.coordinator
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        XCTAssertEqual(rig.ledger.page.liveStrokeCount, 1, "in the ledger")
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 1, "on the new drawing")
+        XCTAssertEqual(session.page(w1123)?.liveStrokeCount, 1, "in its page")
+    }
+
+    /// §3.8, P-3 (the critic's L-C9): the joined path's paper is the window's alone; the `paper` the owner passes (the
+    /// focus page's) is neither drawn nor swapped in, so a new focus never redraws the band.
+    func testThePaperIsTheWindowsNotTheOwners() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let content = rig.container.paperView.content
+        let span = rig.container.paperView.span
+        let other = Self.paper(of: session.layout.pages[0])
+        XCTAssertNotEqual(other, content)
+        let builds = rig.coordinator.setDrawingCount
+        update(rig, paper: other)
+        await settle()
+        XCTAssertEqual(rig.container.paperView.content, content)
+        XCTAssertEqual(rig.container.paperView.span, span)
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds)
+        XCTAssertTrue(rig.coordinator.isAtRest, "nothing queued")
+    }
+
+    // MARK: The fix round (S5L-R1 … R3): long slides, a slide's lost end, the drag's end
+
+    /// §3.6 「今日」 (B_DESIGN.md:274-276): today two weeks away is in the window, so `SpanSession.today` slides two weeks.
+    /// The band of five weeks holds two beyond the middle but has no side margin: a slide of two from the opening would
+    /// stop at the band's end, 69 pt short of the week's middle, and nothing would finish it. It goes one week, the
+    /// window shifts, then the second week: the week two on ends in the middle of the screen (0.5 pt), as two presses
+    /// would bring it.
+    func testASlideOfMorePagesThanTheBandHoldsCentresItsPage() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let x0 = rig.canvas.contentOffset.x
+        XCTAssertEqual(session.today(DayKey(year: 2026, month: 11, day: 30)), .slide(pages: 2))
+        rig.coordinator.spanSlideAnimation = { [weak coordinator = rig.coordinator] canvas, target in
+            canvas.contentOffset = target
+            coordinator?.scrollViewDidScroll(canvas)
+            coordinator?.scrollViewDidEndScrollingAnimation(canvas)
+        }
+        rig.coordinator.slide(byPages: 2)
+        XCTAssertEqual(rig.coordinator.spanLastSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "one week first")
+        await bed.yieldUntil { rig.coordinator.spanShiftCount == 2 && rig.coordinator.spanSlideTargetX == nil }
+        XCTAssertEqual(session.focusPageId, w1130)
+        XCTAssertEqual(session.pageIds, [w1116, w1123, w1130, w1207, "w-2026-12-14"], "the window around the week two on")
+        XCTAssertEqual(rig.canvas.contentOffset.x, x0, accuracy: 0.5)
+        let middle = (origin(w1130, session) + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x
+        XCTAssertEqual(middle, 417, accuracy: 0.5, "the week two on in the middle of the screen")
+    }
+
+    /// B_DESIGN.md:274 (◀ ▶ はいつでも使える), §3.6 (never a slide under the pen): a press while the pen is on the paper is
+    /// kept, and once the pen is up and the settle wait over the band slides exactly one week. Dropped, nothing slides.
+    func testAnArrowUnderThePenSlidesOnceThePenIsUp() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let x0 = rig.canvas.contentOffset.x
+        rig.coordinator.spanSlideAnimation = { _, _ in }
+        touch(rig)
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "not under the pen")
+        await settle()
+        XCTAssertNil(rig.coordinator.spanSlideTargetX)
+        lift(rig)
+        rig.coordinator.endSettleWaitForTesting()
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x0 + rig.page, accuracy: 0.01, "slid once the pen is up")
+    }
+
+    /// §3.6: a slide whose end UIKit never tells of (its animation stopped part way: a touch, or the canvas setting the
+    /// offset) is over once nothing scrolled for 0.5 s — the watch lets the window shift around where the band stopped,
+    /// and a later press slides. An end told while the band is away from where the slide goes (an animation aimed again)
+    /// is not the slide's. Kept until the band reached its target, the slide held every shift and press back for good.
+    func testASlideWhoseEndNeverCameIsOverAtTheWatch() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let x0 = rig.canvas.contentOffset.x
+        rig.coordinator.spanSlideAnimation = { _, _ in }
+        rig.coordinator.slide(byPages: 1)
+        await settle()
+        XCTAssertEqual(canvasSleeper.waiting, 1, "the watch runs")
+        XCTAssertNotNil(rig.coordinator.spanSlideTargetX)
+        // The animation stops 60 % of the way.
+        rig.canvas.contentOffset.x = x0 + 0.6 * rig.page
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        rig.coordinator.scrollViewDidEndScrollingAnimation(rig.canvas)
+        await settle()
+        XCTAssertNotNil(rig.coordinator.spanSlideTargetX, "an end away from the target is not the slide's")
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 0)
+
+        bed.now = bed.now.addingTimeInterval(0.5)
+        await canvasSleeper.advance()
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "over at the watch")
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 1, "the window shifted around where the band stopped")
+        XCTAssertEqual(session.pageIds.first, w1109)
+        XCTAssertFalse(rig.coordinator.spanWatchRunning)
+        let x = rig.canvas.contentOffset.x
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, x + rig.page, accuracy: 0.01, "a press slides again")
+    }
+
+    /// §3.6: while a slide runs the paper area gets shorter at the overview's zoom (the zoom follows it, the offset is
+    /// set): UIKit's animation may stop there or go on to the old place. On the next turn the slide is aimed again, from
+    /// where the band is, to the same middle of the screen (band lu) at the new zoom. A rotation instead ends the slide
+    /// where the band is (the window is decided anew).
+    func testTheCanvasMovingTheBandAimsTheSlideAgain() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        var aims: [CGPoint] = []
+        rig.coordinator.spanSlideAnimation = { _, target in aims.append(target) }
+        let x0 = rig.canvas.contentOffset.x
+        let zoom0 = rig.zoom
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertEqual(aims.count, 1)
+        let middle = (x0 + rig.page + 417) / zoom0
+        rig.canvas.contentOffset.x = x0 + 0.3 * rig.page
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+
+        rig.container.frame = CGRect(x: 0, y: 0, width: 834, height: 900)
+        rig.container.layoutSubviews()
+        XCTAssertLessThan(rig.zoom, zoom0 - 0.01, "the overview's zoom followed the height")
+        XCTAssertEqual(aims.count, 1, "not inside the layout pass")
+        await settle()
+        XCTAssertEqual(aims.count, 2, "aimed again on the next turn")
+        XCTAssertEqual(aims.last?.x ?? .nan, middle * rig.zoom - 417, accuracy: 0.5, "the same middle at the new zoom")
+        XCTAssertEqual(rig.coordinator.spanSlideTargetX ?? .nan, aims.last?.x ?? .nan, accuracy: 0.001)
+
+        rig.container.frame = CGRect(x: 0, y: 0, width: 1_210, height: 615)
+        rig.container.layoutSubviews()
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "a rotation ends the slide")
+        await settle()
+        XCTAssertEqual(aims.count, 2)
+        XCTAssertEqual(session.pageIds.count, 7, "decided anew")
+    }
+
+    /// §3.6, §3.5: a window taken while a slide runs (an update from iCloud whose line low in a day's free memo grows the
+    /// window's memos, D16) sets the offset; the slide is aimed again on the next turn, to the same place.
+    func testAWindowTakenDuringASlideAimsItAgain() async throws {
+        let days = try await open(.day, radius: 2, number: 2)
+        XCTAssertEqual(days.pageIds.count, 5)
+        let rig = await attach(days, width: 834, height: 951)
+        var aims: [CGPoint] = []
+        rig.coordinator.spanSlideAnimation = { _, target in aims.append(target) }
+        rig.coordinator.slide(byPages: 1)
+        XCTAssertEqual(aims.count, 1)
+        let height = days.layout.size.height
+        var remote = InkPage.empty(pageId: d1117)
+        remote.add(bed.stroke("low", cell: .extra, x: 300, y: 5_984))
+        days.remoteUpdated(remote)
+        await settle()
+        XCTAssertGreaterThan(days.layout.size.height, height + 1, "the memos grew")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, days.windowVersion, "taken during the slide")
+        XCTAssertEqual(aims.count, 2, "aimed again")
+        XCTAssertEqual(aims.last?.x ?? .nan, aims.first?.x ?? .nan, accuracy: 0.5, "to the same place")
+        XCTAssertNotNil(rig.coordinator.spanSlideTargetX)
+    }
+
+    /// §3.6: a drag that ends without a fling (`scrollViewDidEndDragging(willDecelerate: false)`) shifts the window on the
+    /// next turn, without the watch; one that goes on decelerating waits for the deceleration's end.
+    func testADragEndingWithoutAFlingShiftsOnTheNextTurn() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        rig.coordinator.scrollViewWillBeginDragging(rig.canvas)
+        await scroll(rig, pages: 1)
+        rig.coordinator.scrollViewDidEndDragging(rig.canvas, willDecelerate: true)
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 0, "decelerating: its end tells")
+        rig.coordinator.scrollViewDidEndDragging(rig.canvas, willDecelerate: false)
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 1, "on the next turn, the watch not woken")
+        XCTAssertEqual(session.pageIds.first, w1109)
+        XCTAssertEqual(canvasSleeper.recorded, [0.5], "the watch slept once and was not woken")
+    }
+
+    // MARK: The final critic's round (F1, F3): the history prune and the basis of a taken window, a change of height
+
+    /// The window name of the stroke `draw` put last on the canvas.
+    private func lastDrawn(on rig: SpanRig, file: StaticString = #filePath, line: UInt = #line) throws -> String {
+        let stroke = try XCTUnwrap(rig.canvas.drawing.strokes.last, file: file, line: line)
+        return try XCTUnwrap(rig.ledger.id(of: stroke), file: file, line: line)
+    }
+
+    /// The eraser takes the canvas's stroke of window name `name` away, as PencilKit reports it.
+    private func erase(_ name: String, on rig: SpanRig) {
+        update(rig, tool: .eraser)
+        rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes.filter { rig.ledger.id(of: $0) != name })
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        update(rig, tool: pen)
+    }
+
+    /// H1, §3.5, §3.6 (the final critic's F1 (i)): another device's 「全て消す」 deletes 11/16's record (the engine removes
+    /// the file, then `remoteDeleted`). Once the canvas takes the window composed after it, the ↶ steps of 11/16 — a line
+    /// written there and erased — are gone from the history (`pruneHistory(touching: takeHistoryPrune())`), while the
+    /// later step of 11/23 stays: ↶ takes 11/23's line away, then there is nothing to undo, a second ↶ puts no delta into
+    /// the inbox, and nothing goes back into 11/16's file. Without the prune the second ↶ re-adds the erased line under
+    /// its own id (the emptied page has no tombstone for it): a delta of the session's new number, applied and saved into
+    /// the page another device emptied.
+    func testARemoteDeletionDropsThatPagesUndoSteps() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let g16 = cell(.grid, of: w1116, session)
+        draw(shortStroke(at: g16.minX + 300, g16.minY + 300), on: rig)
+        let written = try lastDrawn(on: rig)
+        XCTAssertTrue(written.hasPrefix(w1116))
+        erase(written, on: rig)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "erased")
+        let g23 = cell(.grid, of: w1123, session)
+        draw(shortStroke(at: g23.minX + 300, g23.minY + 300), on: rig)
+        let later = try lastDrawn(on: rig)
+        XCTAssertTrue(later.hasPrefix(w1123))
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertTrue(bed.store.exists(w1116))
+        XCTAssertEqual(bed.store.load(w1116).liveStrokeCount, 0)
+        XCTAssertEqual(bed.live(w1123).count, 1)
+
+        // As `SyncEngine` applies a deleted record: the file goes, then the session hears of it.
+        try bed.store.remove(w1116)
+        session.remoteDeleted(w1116)
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the window")
+        XCTAssertFalse(rig.ledger.page.isLive(written))
+        XCTAssertTrue(rig.ledger.page.isLive(later))
+        XCTAssertTrue(rig.ledger.canUndo, "11/23's later step stays")
+
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(later), "↶ takes 11/23's line away")
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [w1123])
+        XCTAssertFalse(rig.ledger.canUndo, "11/16's steps went with the window taken after the deletion")
+        XCTAssertTrue(rig.ledger.canRedo, "the ↶ just made can be redone")
+        update(rig, undoTrigger: 2)
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [w1123], "a second ↶ puts no delta of 11/16")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "the erased line does not come back")
+        XCTAssertNil(shown(written, on: rig))
+        await settle()
+        XCTAssertEqual(session.page(w1116)?.liveStrokeCount, 0)
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(w1116).liveStrokeCount, 0, "nothing written back into the page another device emptied")
+        XCTAssertFalse(bed.store.exists(w1116), "its file is not made again")
+        XCTAssertEqual(bed.live(w1123).count, 0, "11/23's ↶ is saved")
+    }
+
+    /// §3.6 ずらしの手順 (the final critic's F1 (ii)): a line written on 11/02 and erased; the paper moved one week right and
+    /// the window shifted (11/02 left, saved as it went). The steps of the page that left go from the history with the
+    /// shift: nothing to undo or redo, and ↶ puts nothing into the inbox. Without the prune ↶ re-adds the erased line to a
+    /// page the window no longer holds (a delta or a name no page of the window takes: a fault).
+    func testAShiftDropsTheUndoStepsOfThePageThatLeft() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let g = cell(.grid, of: w1102, session)
+        draw(shortStroke(at: g.minX + 300, g.minY + 300), on: rig)
+        let written = try lastDrawn(on: rig)
+        XCTAssertTrue(written.hasPrefix(w1102))
+        erase(written, on: rig)
+        XCTAssertTrue(rig.ledger.canUndo)
+        await settle()
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        XCTAssertEqual(session.pageIds.first, w1109, "11/02 left the window")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
+        XCTAssertFalse(rig.ledger.canUndo, "11/02's steps left with it")
+        XCTAssertFalse(rig.ledger.canRedo)
+        XCTAssertTrue(session.inbox.deltas.isEmpty)
+        update(rig, undoTrigger: 1)
+        XCTAssertTrue(session.inbox.deltas.isEmpty, "↶ yields no delta")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertFalse(rig.ledger.page.strokes.keys.contains { $0.hasPrefix(w1102) }, "nothing of 11/02 in the ledger")
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(w1102).liveStrokeCount, 0, "11/02 as it was saved when it left: its line erased")
+        XCTAssertEqual(bed.store.load(w1102).deleted.count, 1)
+    }
+
+    /// §3.4 (c), H1, D17 (the final critic's F1, the basis): the window the canvas has just taken is at once the safety
+    /// net's source and the PDF's (`putWindowIntoInbox` with that window's `windowVersion` as its basis), before anything
+    /// is written on it. After another device emptied 11/16 the inbox holds the window the canvas took, at the session's
+    /// version, and a save brings nothing back (no stroke of 11/16 returns, none of 11/23 is doubled, no recovery); after
+    /// an update from iCloud whose line on 11/23 reaches into 11/16, the PDF of 11/16 draws that line. Without the put
+    /// the inbox keeps the opening's window and basis until the person writes again: the PDF of 11/16 lacks its
+    /// neighbour's line.
+    func testATakenWindowIsAtOnceTheSafetyNetsAndThePDFsSource() async throws {
+        let session = try await open(stored: [page(w1116, ["a", "b"]), page(w1123, ["c"])])
+        let rig = await attach(session)
+        func basisIsTheTakenWindow(_ what: String, line: UInt = #line) {
+            XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "taken (\(what))", line: line)
+            XCTAssertEqual(session.inbox.latestBasis, session.windowVersion, "the basis (\(what))", line: line)
+            XCTAssertEqual(Set(session.inbox.latestWindow?.ledgerPage.liveStrokeIds ?? []), Set(rig.ledger.page.liveStrokeIds),
+                           "the safety net reads the ledger's window (\(what))", line: line)
+        }
+        basisIsTheTakenWindow("the opening")
+
+        try bed.store.remove(w1116)
+        session.remoteDeleted(w1116)
+        await settle()
+        basisIsTheTakenWindow("after the deletion from another device")
+        XCTAssertEqual(rig.ledger.page.liveStrokeCount, 1, "only 11/23's line is left")
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(session.page(w1116)?.liveStrokeCount, 0, "nothing came back")
+        XCTAssertEqual(session.page(w1123)?.liveStrokeIds, ["c"], "nothing doubled")
+        XCTAssertFalse(bed.store.exists(w1116))
+        XCTAssertEqual(bed.live(w1123), ["c"])
+        XCTAssertFalse(session.records.contains { $0.contains("safety net") }, "no recovery")
+
+        // A line of 11/23 from iCloud whose points lie 80 lu left of 11/23's left edge: over 11/16.
+        let reachX = origin(w1123, session) - cell(.grid, of: w1123, session).minX - 80
+        var remote = InkPage.empty(pageId: w1123)
+        remote.add(bed.stroke("reach", cell: .grid, x: reachX, y: 300))
+        session.remoteUpdated(remote)
+        await settle()
+        basisIsTheTakenWindow("after the update from iCloud")
+        let pdf = try XCTUnwrap(session.pdfInput(for: w1116))
+        XCTAssertEqual(pdf.neighborInk.map(\.stroke.id), ["reach"], "the PDF of 11/16 draws its neighbour's line")
+        XCTAssertEqual(pdf.neighborInk.map(\.pageId), [w1123])
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.live(w1123), ["c", "reach"])
+        XCTAssertFalse(bed.store.exists(w1116), "11/16 stays deleted")
+        XCTAssertFalse(session.records.contains { $0.contains("safety net") })
+    }
+
+    /// §3.6 (the final critic's F3): at the overview the paper area gets shorter (the all-day lanes grow: 955 → 900 pt on an
+    /// 11-inch portrait week) and the overview's zoom follows the height; the focus week stays in the middle of the screen
+    /// (0.5 pt), and again when the height comes back. A band moved off the middle keeps the band x (lu) in the middle of
+    /// the screen, as a change of width does (`centerPaper`). Left to 1.2.3's `applyBounds` (x kept in points, or where
+    /// UIKit's zoom setter puts it) the focus week's middle went to 1,241.6 pt and the focus to 11/09 (run 43497739188).
+    func testAHeightChangeAtTheOverviewKeepsTheFocusPageInTheMiddle() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        let zoom0 = rig.zoom
+        func middleOfTheFocusWeek() -> CGFloat {
+            (origin(w1116, session) + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x
+        }
+        func middleOfTheScreen() -> CGFloat {
+            (rig.canvas.contentOffset.x + 417) / rig.zoom
+        }
+        func height(_ value: CGFloat) {
+            rig.container.frame = CGRect(x: 0, y: 0, width: 834, height: value)
+            rig.container.layoutSubviews()
+        }
+        XCTAssertEqual(middleOfTheFocusWeek(), 417, accuracy: 0.5)
+
+        height(900)
+        XCTAssertLessThan(rig.zoom, zoom0 - 0.01, "the overview's zoom followed the height")
+        XCTAssertEqual(middleOfTheFocusWeek(), 417, accuracy: 0.5, "the focus week stays in the middle")
+        await settle()
+        XCTAssertEqual(middleOfTheFocusWeek(), 417, accuracy: 0.5)
+        XCTAssertEqual(session.focusPageId, w1116)
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 0)
+
+        height(955)
+        XCTAssertEqual(rig.zoom, zoom0, accuracy: 1e-4)
+        XCTAssertEqual(middleOfTheFocusWeek(), 417, accuracy: 0.5, "and when the height comes back")
+        await settle()
+
+        // Off the middle (0.3 week to the right): the band x in the middle of the screen stays.
+        rig.canvas.contentOffset.x += 0.3 * rig.page
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        await settle()
+        let mid = middleOfTheScreen()
+        height(900)
+        XCTAssertLessThan(rig.zoom, zoom0 - 0.01)
+        XCTAssertEqual(middleOfTheScreen() * rig.zoom, mid * rig.zoom, accuracy: 0.5, "the same band x in the middle")
+        await settle()
+        XCTAssertEqual(middleOfTheScreen() * rig.zoom, mid * rig.zoom, accuracy: 0.5)
+        XCTAssertEqual(session.focusPageId, w1116)
+    }
+
+    // MARK: Wave C (the screen's plan, F4)
+
+    /// F4 (the screen wave's plan §0.1; the lead's decision C3-M2): what changes on the pages without changing their geometry
+    /// reaches the window's paper. The screen moves `context.now` (the 30 s now line) and calls `contextChanged()`, and
+    /// after `EKEventStoreChanged` the session reads the events again (`reloadEvents()`); each composes a new
+    /// `windowVersion`, and the canvas takes its paper with it: the now line comes onto 11/18 and moves an hour, and the new
+    /// event's box shows on 11/24, while the ink is not rebuilt. Without the paper of every taken window the canvas keeps
+    /// the paper of the opening (no now line, no box) until a shift.
+    func testWindowPaperFollowsEventsAndTheNowLine() async throws {
+        let session = try await open()
+        let rig = await attach(session)
+        func week(_ pageId: String) -> WeekPageLayout? {
+            guard let span = rig.container.paperView.span, let slot = session.layout.slot(ofPage: pageId), slot < span.pages.count,
+                  case .week(let content) = span.pages[slot] else { return nil }
+            return content.layout
+        }
+        let tokyo = SessionTestBed.tokyo
+        func at(_ day: Int, _ hour: Int) throws -> Date {
+            try XCTUnwrap(tokyo.date(from: DateComponents(year: 2026, month: 11, day: day, hour: hour)))
+        }
+        XCTAssertEqual(pageIds(of: rig.container.paperView.span), session.pageIds)
+        XCTAssertNil(week(w1116)?.nowLine, "9/21: no now line in the window")
+        let builds = rig.coordinator.setDrawingCount
+        let version = session.windowVersion
+
+        session.context.now = try at(18, 10)
+        session.contextChanged()
+        await settle()
+        XCTAssertGreaterThan(session.windowVersion, version)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
+        XCTAssertEqual(week(w1116)?.nowLine?.minute, 600, "the now line is on the paper at 10:00")
+        session.context.now = try at(18, 11)
+        session.contextChanged()
+        await settle()
+        XCTAssertEqual(week(w1116)?.nowLine?.minute, 660, "and moves with the clock")
+
+        let start = try at(24, 11)
+        let event = LayoutEvent(id: "new", title: "new", allDay: false, start: start, end: start.addingTimeInterval(3600),
+                                colorHex: "#ff0000", calendarId: "c")
+        session.eventSource = { first, end in
+            let day = DayKey(year: 2026, month: 11, day: 24)
+            return first <= day && day < end ? [event] : []
+        }
+        session.reloadEvents()
+        await settle()
+        XCTAssertEqual(week(w1123)?.timedBoxes.map(\.eventId), ["new"], "the new event's box is on the paper")
+        XCTAssertEqual(week(w1116)?.timedBoxes.map(\.eventId), [])
+        XCTAssertEqual(rig.coordinator.setDrawingCount, builds, "the ink is not rebuilt")
+        XCTAssertEqual(session.pageIds.first, w1102, "no shift")
+    }
+}

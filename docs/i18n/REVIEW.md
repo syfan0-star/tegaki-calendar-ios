@@ -130,6 +130,148 @@ fr の同じキーの「直した訳」は、311 pt の 3 行に入れるため�
 | `subscriptions/*.json` の説明 | △ | 45 字に入れるため「〜が使える月額プラン」を「手書き、予定の作成、iCloud 同期」の形にした。fr・de・it・pt は「予定の作成」を「予定」に、es は iCloud を落とした。年額は「同じ機能を年ごとの請求で」。価格なし |
 | `review-note.txt` | ○ | 言語・祝日・週の始まり・購入の流れ・復元・規約の場所・サインイン不要。EU の文は無い（§6.6）。6 の段落も ○ |
 
+### 1.3 の新機能の文と審査メモ（2026-11-13）
+
+元は `docs/store/source-ja/whatsnew.txt`（ja と同じ 4 つの点 → 訳についての 1 行。[M7C_CONTRACT.md](../M7C_CONTRACT.md) §8.3 の文から、1.3 に入らない週のメモの行を外し、最後の点に iPad での見え方の 1 文を足したもの。この 1 文は後でリードが外した。下の「決まっていないこと」）と、審査メモ `docs/store/review-note.txt` の日本語の要約と契約 §8.4 です。訳した 11 組（en-US・zh-Hans・zh-Hant・ko・fr-FR・de-DE・it・pt-BR・es-MX・es-ES・pt-PT）の `whatsnew.txt` の全文と、審査メモの英語の部分（日本語の要約より上）だけを別の Claude（R）に渡し、日本語の元を見ずに訳し戻してもらいました。判定は、訳とメモを書いた Claude とも R とも別の Claude が、逆翻訳と日本語の元を照らしたものです。母語の人の確認ではありません。逆翻訳の全文は `docs/i18n/back/store-<ロケール>.md` と `store-review-note.md` の「1.3」の節にあります。en-GB・en-AU・en-CA は en-US、fr-CA は fr-FR の写しです（`locales.json` の `copyOf`）。
+
+**× は 1 回目から 0 件でした。直した字はありません。** 新機能の文は 11 組 × 5 つ（4 つの点と訳についての 1 行）＝ 55 件で ○ 49・△ 6・× 0、審査メモは 12 の段で ○ 11・△ 1・× 0 です。抜けた事実も、元に無い事実もありませんでした。
+
+アプリの画面の語は機械で照らしました（違いは 0 件）。11 組の文の「指でも書く」（`toolbar.fingerToggle`）と「設定」（`settings.title`）は origin/r13 の訳と、節の名前「ページ」（`settings.page.header`、N-1）は X の枝 r13-w-s5x（7c49b02）の訳と同じ語です（pt-PT はアプリの pt-BR の語、§11.2）。審査メモの Draw with Finger・Erase All・Erase and Start・Input・Purchase・Restore Purchases・Version・Pages も en の訳と同じです。月数の語（「か月分」にあたる語）は 0 件です。
+
+新機能の文（判定の並びは en-US・zh-Hans・zh-Hant・ko・fr-FR・de-DE・it・pt-BR・es-MX・es-ES・pt-PT）:
+
+| 点 | 元の日本語 | en-US | zh-Hans | zh-Hant | ko | fr-FR | de-DE | it | pt-BR | es-MX | es-ES | pt-PT | △ の理由・見たこと |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 週と日のページが、前後のページと横につながりました。指で横にすべらせると、となりの週（日）が続いて出てきます。境目をまたいで、そのまま書けます（「指でも書く」がオンのときは、2 本指で横に動かします）。 | △ | ○ | ○ | ○ | △ | △ | △ | ○ | △ | △ | ○ | en-US・fr-FR・it・es-MX・es-ES は「続いて」が抜けた（逆翻訳は「隣の週（または日）が出てきます」「現れます」。bring in・faire apparaître・compare・aparecerá）。となりの週（日）が出てくることは同じ。de-DE・it は 2 本指で動かすものに「ページを」が付いた（die Seiten・le pagine）。指の数と向きは同じ。ko の「指で横に押す」は 밀다（韓国語の画面で、すべらせる操作の普通の語）。「（日）」は 11 組とも「（または日）」「（日）」で、日のページでは日と読める |
+| 2 | 設定の「ページ」で、横につなげるのをオフにできます。 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | 11 組とも「設定の『ページ』（の項目）で、横のつながりをオフにできる」 |
+| 3 | ほかの端末で手書きを全て消したとき、この端末に残っていた手書きが iCloud に戻ってしまうことがありうる問題を直しました。 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | 逆翻訳の多くは「消したあと」「戻ってしまうことがある」。訳はどれも可能の形（could・可能・수 있는・pouvait・konnte・poteva・podia・podía）で、起こりうる穴を直したという元の意味と同じ（起きたとは書いていない）。fr-FR の「送り返される」、de-DE の「再び iCloud に入る」も、手書きが iCloud に戻ること |
+| 4 | iPad と iPhone の両方をこの版にしてください。古い版では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。古い版でその線を消すと、こちらでも消えます。この版の iPad では、縦でも横でも、前後のページが横につながって見えます。 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | 両方を更新する・古い版では片方のページにだけ出る（削除ではない）・古い版で消すとこの版でも消える、の 3 つが 11 組とも同じ。最後の文は、zh-Hans・zh-Hant・ko が元とほぼ同じ文に、ほかの 8 組が「iPad では、この版は縦でも横でも前後のページを横につなげる」と版を主語にした形に戻った（つながって見える、と同じこと）。**最後の文はリードの確認を待っている案**（下の「決まっていないこと」） |
+| 訳についての 1 行 | 訳は AI が作り、まだ母語の人の確認を受けていません。誤りがあればお知らせください。 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | 1.2.3 と同じ字（変えていない）。11 組とも「AI の訳・母語の人の確認はまだ・誤りを知らせてほしい」 |
+
+審査メモ（`docs/store/review-note.txt`。3,935 バイト）:
+
+| 段 | 判定 | △ の理由・見たこと |
+| --- | --- | --- |
+| サインイン不要 | ○ | 1.2.3 と同じ字 |
+| What is new in 1.3 の 1 | ○ | 週と日のページが前後と横につながる・横にすべらせると隣の週や日・境目をまたいで書ける・またいだ線は中心のページに 1 本で保存（契約 D15）・ファイルと iCloud のレコードの形は同じ・古い版ではそのページにだけ出る・月と年は 1 ページずつ。日本語の要約の「保存の形は同じ。古い版では、またいだ線が片方のページにだけ出ます」と同じ |
+| 同 2 | ○ | 設定の新しい節「ページ」にスイッチ 1 つ、既定はオン、端末ごと（契約 §3.14、`page.span`）。オフで 1.2.3 と同じ週と日のページ。要約の「設定 › ページ で切り替え」と同じ |
+| 同 3 | ○ | 横につないだページを初めて開いたときの札、8 秒、端末ごと・種類ごとに 1 回（契約 §3.14） |
+| 同 4 | ○ | 「全て消す」（この端末でもほかの端末でも）・「消して始める」で消した手書きが、開いているページ・取り消し・ページの取得から戻って iCloud へ送られることはもう無い。要約の「全て消した手書きが iCloud に戻りうる穴を直しました」と同じ |
+| Unchanged の行 | △ | データ（データの収集なし）・購入・年齢区分・1.2.2 の年齢層の確認は同じ。handwriting storage が「手書きの保存方法」と読まれた（契約 §8.4 は「手書きの保存先（端末と本人の iCloud）」）。保存先は同じメモのサーバー無しの段に書いてあり、どちらの読みでも「変わらない」で意味は通る |
+| 言語 | ○ | 1.2.3 と同じ字 |
+| To test | ○ | 1.2.3 の字の後ろに 1.3 の確かめ方を足した。週のページを横にすべらせる（iPad は 1 本指、iPhone は 2 本指。iPhone は「指でも書く」が既定でオン、契約 §3.13）・2 つの週の境目をまたいで書く・設定 › ページ を試す（§8.4）。§8.4 の「日曜と月曜の境目」は、週の始まりが日曜の端末では週の境目が土曜と日曜になるので、両方を書いてある（書いた Claude の判断。§8.4 と同じ確かめ） |
+| 購読 | ○ | 1.2.3 と同じ字 |
+| TestFlight と審査のビルド | ○ | 1.2.3 と同じ字（1.2 の 6 で ○）。今回は題の「記録」を伏せずに渡した |
+| サーバー無し | ○ | 1.2.3 と同じ字 |
+| 6 つの URL | ○ | 1.2.3 と同じ字 |
+
+決まっていないこと（判定には入れていない）:
+
+- **4 つ目の点の最後の文**（「この版の iPad では、縦でも横でも、前後のページが横につながって見えます。」）は、**リードが外しました（2026-11-13）**。契約 §8.3 の「iPad での見え方の 1 文」は、古い版の iPad で、ページをまたいだ線のはみ出した部分が余白に見えるか紙の端で切れるか（§4.5、§6.5）のことで、この版の iPad の見え方の文ではありませんでした。また、iPad の横は CI の写真に無く、§11.3 の 8・9 の本人の確かめの前です。上の表の 4 の判定（○）は外す前の文のもので、外した後の 4 つ目の点は、残った 3 つの文の判定のままです。古い版の iPad の見え方が確かめられたら、その 1 文を足し、11 組を訳して、その文だけ元を見ない逆翻訳をします。
+- **節の名前「ページ」**は、ストアの文と X の訳（`settings.page.header`）が今は同じ語です。どちらかを変えるときは両方を一緒に変えます。
+
+### 1.3 の週のメモの文（新機能の文の 2 つ目の点と K-8 の句の案、2026-11-18）
+
+元は `docs/store/source-ja/whatsnew.txt` の 2 つ目の点（[M7C_CONTRACT.md](../M7C_CONTRACT.md) §8.3 の固定の行「・週のページにも、24 時の下に自由メモができました。」。ja と同じ字）と、その行に K-8（契約 §6.2・§6.5 の「週の下のメモ」の行）の句を足した案（`docs/store/PROPOSALS_1_3.md` の 4「・週のページにも、24 時の下に自由メモができました（古い版の端末では見えませんが、消えてはいません）。」。本人の確認ページで選んでもらう）です。11 組（en-US・zh-Hans・zh-Hant・ko・fr-FR・de-DE・it・pt-BR・es-MX・es-ES・pt-PT）の訳は、文の書き手の Claude が書きました（14074ba）。R には各ロケールの訳の 2 つの文だけを渡し、日本語の元を見ずに訳し戻してもらいました。判定は、書き手とも R とも別の Claude です（1 回目と 2 回目は、また別の Claude）。母語の人の確認ではありません。逆翻訳の全文と R の注は `docs/i18n/back/store-<ロケール>.md` の「1.3 の週のメモの文」にあります。en-GB・en-AU・en-CA は en-US、fr-CA は fr-FR の写しです（`locales.json` の `copyOf`）。
+
+判定は 1.2 と同じ **○**（同じ意味）／**△**（言い回しの差。意味は同じ）／**×**（意味の違い、または元に無い読みを招く。直す）です。
+
+**1 回目**: 2 つ目の点は 11 組とも ○。K-8 の案は ○ 7・△ 1（fr-FR）・× 3（ko・zh-Hans・zh-Hant）。× の 3 件は、括弧の「古い版の端末」の訳（이전 버전의 기기・旧版本的设备・舊版本的裝置）が「古い型の端末（機種）」とも読めることでした（R の注）。そう読むと「古い機種では見えない」という元に無い事実になるので、3 件を「古い版を使う端末」（이전 버전을 쓰는 기기・使用旧版本的设备・使用舊版本的裝置）に直しました（6ac0d1c）。
+
+**2 回目**（直した 3 件の今の字だけを R にもう 1 回渡した。R は 1 回目の字・逆翻訳・日本語の元を見ていない）: ko は ○。zh-Hans・zh-Hant は、括弧は「旧バージョンを使っている端末」と読まれ、古い型の読みは出ませんでした（○）。ただ、括弧の前の「24 点以下」「24 點以下」を、R が 1 回目に続いてもう一度、位置の「下」より数の「24 時以下（24 時まで）」と読まれやすく、紙の下側という意味が伝わりにくいと挙げ、誤解の無い語として「24 点下方」を示しました。**最後の判定で、この点を × とし、zh-Hans・zh-Hant の 2 つ目の点（今の `whatsnew.txt`）と K-8 の案の両方を「24 点下方」「24 點下方」に直しました。** 最後の回なので、直した字は元を見ない逆翻訳を通していません（下の「決まっていないこと」）。**その後、リードが 11/18 に 3 回目として、直した 4 文（2 つ目の点と K-8 の案の zh-Hans・zh-Hant）だけを別の Claude に元を渡さずに訳し戻してもらい、4 文とも「24 時の下に」と読まれました（○。逆翻訳と注は `docs/i18n/back/store-zh-*.md` の「3 回目」の行）。**
+
+1 回目の判定は、この点を ○ にしていました。アプリのトースト（`toast.eventBelowDay`「24 点以下的自由备忘栏不能创建日程」、1.2 で ○）が同じ字を使うことと、時刻はどれも 24 時以下なので時刻の幅として読むと意味をなさないことが理由で、母語の人に見てもらうときの候補にとどめていました。2 回目は別の R が別に読んで、同じ点を「読まれやすい」とより強く挙げました。新機能の文は「何が・どこに」できたかを伝える 1 行で、その「どこ」が「24 時までの欄」と読まれると元に無い事実になります。直しは 2 字（以下 → 下方）で、指すものは変わらず、どちらの読みでも元と同じ意味になる形です。案と今の 2 つ目の点は、括弧の前が 1 字も違わない形のままです。
+
+2 つ目の点（今の `whatsnew.txt`）:
+
+| ロケール | 1 回目 | 最後 | 理由・見たこと |
+| --- | --- | --- | --- |
+| en-US | ○ | ○ | 「」と「欄」が付いた（Free Notes area）。アプリの見出し（`paper.freeMemo`）と SUPPORT の言い方（the “Free Notes” area）に合わせた形で、指すものは同じ |
+| zh-Hans | ○ | **直した**（24 点以下 → 24 点下方） | 「新しく加わりました」は「できました」と同じ意味。「24 点以下」は上のとおり、2 回目の判定で直した。「现在也在……新增了」が少しくどい（R の注）のは言い回しで、意味は同じなので変えていない |
+| zh-Hant | ○ | **直した**（24 點以下 → 24 點下方） | zh-Hans と同じ |
+| ko | ○ | ○ | 元と同じ。자유 메모 칸はアプリのトーストと同じ語 |
+| fr-FR | ○ | ○ | 「sous 24:00」はアプリのトースト（1.2 で ○）と同じ字。「24 時未満」とも取れる・「24 h」が普通という R の注は、母語の人に見てもらうときの候補 |
+| de-DE | ○ | ○ | 「unter 24:00」はアプリのトーストと同じ字。「24 時前」とも読める・「24:00 Uhr」が普通という R の注は、母語の人に見てもらうときの候補 |
+| it | ○ | ○ | 「sotto le 24:00」はアプリのトーストと同じ字 |
+| pt-BR | ○ | ○ | 「abaixo de 24:00」はアプリのトーストと同じ字（pt-PT は das）。「das」の方が自然という R の注は、母語の人に見てもらうときの候補 |
+| es-MX | ○ | ○ | 元と同じ |
+| es-ES | ○ | ○ | 元と同じ（es-MX と同じ字） |
+| pt-PT | ○ | ○ | 「加わりました」（passam também a ter）は「できました」と同じ意味 |
+
+K-8 の句を足した案（`PROPOSALS_1_3.md` の 4。括弧の前は上の 2 つ目の点と同じ字）:
+
+| ロケール | 1 回目 | 2 回目 | 最後 | 理由・見たこと |
+| --- | --- | --- | --- | --- |
+| en-US | ○ | — | ○ | 古い版の端末では見えない・消えていない、が同じ。older version がアプリか OS か、消えていないのが欄か中身か、のあいまいさ（R の注）は、元の「古い版の端末」「消えてはいません」にも同じだけある。新機能の文の中なので、version はアプリの版と読める |
+| de-DE | ○ | — | ○ | en と同じ。unter 24:00 は今の 2 つ目の点の字のまま |
+| es-MX | ○ | — | ○ | no se eliminó は 5 つ目の点（no se eliminaron）と同じ形 |
+| es-ES | ○ | — | ○ | no se ha eliminado は 5 つ目の点と同じ形 |
+| fr-FR | △ | — | △ | restés（のまま）が足された。古い版の端末は、まだ新しくしていない端末のことなので同じ（11 の still と同じ扱い） |
+| it | ○ | — | ○ | 元と同じ |
+| ko | ×（이전 버전의 기기） | ○ | ○ | 1 回目: 「古い型の機器」とも読める（元に無い読み）ので「이전 버전을 쓰는 기기」に直した。2 回目: 「以前のバージョンを使っている端末」と読まれた。주 페이지の「주」が単独では「主」とも読めるという R の注は、24시・메모と並ぶ文の中では週と読め、今の 2 つ目の点・1 つ目の点（주 페이지와 일 페이지）・アプリの訳（주 페이지）と同じ語なので変えていない |
+| pt-BR | ○ | — | ○ | 元と同じ。abaixo de 24:00 は今の 2 つ目の点の字のまま |
+| pt-PT | ○ | — | ○ | 元と同じ |
+| zh-Hans | ×（旧版本的设备） | 括弧は ○、「24 点以下」は × | **直した**（24 点以下 → 24 点下方） | 1 回目: 「古い型の端末」とも読めるので「使用旧版本的设备」に直した。2 回目: 括弧は「旧バージョンを使っている端末」と読まれた。「24 点以下」は上のとおり最後の判定で直した（今の 2 つ目の点も同じ直し） |
+| zh-Hant | ×（舊版本的裝置） | 括弧は ○、「24 點以下」は × | **直した**（24 點以下 → 24 點下方） | zh-Hans と同じ（使用舊版本的裝置、24 點下方） |
+
+決まっていないこと（判定には入れていない）:
+
+- **zh-Hans・zh-Hant の「24 点下方」「24 點下方」**は、最後の判定で直した字です。リードが 11/18 に 3 回目の元を見ない逆翻訳に通し、4 文とも意味が合いました（○）。そのときの注（「24 点」より「24:00」が普通、K-8 の括弧の主語）は、母語の人に見てもらうときの候補です。
+- **アプリのトーストの「24 点以下」「24 點以下」**（`toast.eventBelowDay`、`tools/l10n/translations/zh-Hans.json`・`zh-Hant.json`）は、この段の文の持ち物でないので変えていません。新機能の文と同じ読みのおそれがあるので、直すかはリードが決めます（直すなら訳のファイルと `build.py`、L10nTests）。リードの決定（11/18）: 今はそろえない。トーストは予定を作ろうとしたその場で出るので位置は取り違えにくい。母語の人に見てもらうときの候補に足す（[M7C.md](../M7C.md)「週のメモの作る段のリードの決定」の 4）。
+- **fr・de・it・pt-BR の「sous・unter・sotto le・abaixo de 24:00」**も、1 回目の R が「24 時前・24 時未満とも読める」と挙げました（2 回目には回していない）。アプリのトースト（1.2 で ○）と同じ字で、判定は ○ のままです。zh と同じ考えで直すかは、母語の人の確認かリードの判断を待ちます。
+- 新機能の文の **2 つ目の点に K-8 の句を足すか**は、本人の確認ページで選んでもらいます（週のメモの計画の決めどころ 8）。どちらを選んでも、上の判定の字のまま入れられます。
+
+### 1.3 の H1 の点の新しい文と審査メモの直し（2026-11-19）
+
+元は 2 つです。(1) `docs/store/source-ja/whatsnew.txt` の 4 つ目の点（ja と同じ字。[M7C_CONTRACT.md](../M7C_CONTRACT.md) §8.3 の H1 の行の文）「・1.2.4 の直しに続いて、ほかの端末で手書きを全て消したあと、この端末の画面に残っていた手書きが iCloud に戻ってしまうことがありうる問題も直しました。」。1.2.4（2026-11-19 公開）の 2 つ目の点が、1.3 の前の H1 の点（上の「1.3 の新機能の文と審査メモ」の 3）と同じ文と訳だった（1.2.4 では H4 の直しの点）ので 1.2.4 の公開の後に外し（92caae1）、1.2.4 に H1 の直しは入っていないので、リードの決定 (a)（[M7C.md](../M7C.md) の「main（1.2.4）の取り込みと新機能の文の H1 の点」）で、1.2.4 の文と食い違わない新しい文にして戻したものです（2c1fdf6）。(2) 審査メモ `docs/store/review-note.txt` の「What is new in 1.3」の直した 4 つの文（確認ページの文の仕事、M7C.md の「週のメモの見直しのリードの決定」の 4）について書き手が書いた日本語の意味と、日本語の要約です。
+
+R には、11 組（en-US・zh-Hans・zh-Hant・ko・fr-FR・de-DE・it・pt-BR・es-MX・es-ES・pt-PT）の新しい点の 1 文と、審査メモの直した英語の 4 文だけを渡し、日本語の元を見ずに訳し戻してもらいました（前後の文は渡していない）。判定は、文を書いた Claude とも R とも別の Claude が、逆翻訳と日本語の元を照らしたものです。母語の人の確認ではありません。逆翻訳の全文と R の注は `docs/i18n/back/store-<ロケール>.md` の「1.3 の H1 の点の新しい文」と `store-review-note.md` の「1.3 の直し（2026-11-19）」にあります。en-GB・en-AU・en-CA は en-US、fr-CA は fr-FR の写しです（`locales.json` の `copyOf`）。
+
+判定は上と同じ ○／△／× です。とくに、(i) 1.2.4 で出した直しを 1.3 の新しい直しのように言っていないか、(ii) 手書きが消える（失われる）と読めないか、を見ました。
+
+**× は 1 回目から 0 件でした。直した字はありません。** 新機能の文の新しい点は 11 組とも ○、審査メモの直した 4 つの文は ○ 2・△ 2 です。抜けた事実も、元に無い事実もありませんでした。(i) と (ii) に当たる読みは、どの文にもありませんでした。
+
+機械で照らしたこと:
+
+- 11 組とも、新しい点は「1.2.4 の直し」と「〜も」（also・auch・también・également・anche・도・也）を持ち、1.2.4 の直しに続く別の直しと読める形です。
+- 「手書きを全て消した」の動詞は、92caae1 で外した前の H1 の点（上の 3 で ○）と同じ語で、アプリの「全て消す」（`settings.data.erase.all`）の訳の動詞とも同じです（erase・löschen・borrar・effacer・cancellare・지우다・apagar・抹掉・清除）。「手書き」の語も前の点と同じです。it は前の「dopo la cancellazione di」を「una volta cancellata」に、ko は「지웠을 때（消したとき）」を「지운 뒤（消したあと）」にしました（元の「消したとき」→「消したあと」と同じ替え方）。
+- 新しい点で前の点から増えた語は、「1.2.4 の直しに続いて」「も」と「画面に」（on the screen・auf dem Bildschirm・en la pantalla・à l’écran・sullo schermo・화면에・na tela・no ecrã・屏幕上・螢幕上）だけです（de-DE などの語順の入れ替えと、上の it・ko の替え方を除く）。
+- 審査メモの Erase All・Erase and Start・Undo・Free Notes は en の訳（`tools/l10n/translations/en.json`）と同じ語です。審査メモは 3,683 字・3,993 バイト（最後の改行を除く。`docs/store/README.md` の数え方）で、L-9 は ok です。
+
+新機能の文の新しい点（4 つ目の点）:
+
+| ロケール | 判定 | 理由・見たこと |
+| --- | --- | --- |
+| en-US | ○ | 逆翻訳は元とほぼ同じ字。Following が時の「後」とも「続き」とも読める（R の注）のは、元の「続いて」にも両方の読みがある。「iCloud に戻る」で何が困るか伝わりにくい（R の注）のは元と同じ書き方で、前の H1 の点と同じ（上の 3 で ○）。also で、1.2.4 の直しに足した直しと読める |
+| de-DE | ○ | 元と同じ意味。landen（行き着く）・alle Handschrift・löschen と nachdem 節を文末に置く形（R の注）は、前の H1 の点と同じ字（上の 3 で ○。「再び iCloud に入る」も、手書きが iCloud に戻ること）。löschen はアプリの「全て消す」（Alles löschen）と同じ動詞 |
+| es-MX | ○ | 元と同じ意味。「de la versión 1.2.4」が「バージョン 1.2.4 そのものを直したこと」とも読める（R の注）のは、元の「1.2.4 の直し」の「の」にも同じだけある。también があるので、どちらの読みでも「1.2.4 に続く別の直し」で、1.2.4 の直しを新しいとは言っていない。volver a iCloud と escritura a mano の繰り返しは前の H1 の点と同じ字 |
+| es-ES | ○ | es-MX と同じ（se ha corregido） |
+| fr-FR | ○ | 元と同じ意味。Dans la continuité de（〜の延長として）は、元の「続いて」の「続き」の意味。renvoyer vers iCloud（送り返す）と、文末の après… の形は前の H1 の点と同じ字。après… のかかり先（R の注）はどちらでも同じ意味 |
+| it | ○ | 元と同じ意味。Dopo と una volta で「後」が 2 回（R の注）は、元の「続いて」「あと」と同じ数で言い回しの差。「バージョン 1.2.4 自体が直された後」の読みは es-MX と同じ扱い（anche） |
+| ko | ○ | 元とほぼ同じ字。해요체（R の注）は 1〜3・5 つ目の点と同じ文体 |
+| pt-BR | ○ | 元と同じ意味。Após と depois que（R の注）は it と同じ扱い。「バージョン自体の修正」の読みは es-MX と同じ扱い（também）。escrita à mão の繰り返しは前の H1 の点と同じ字 |
+| pt-PT | ○ | pt-BR と同じ。noutro・ecrã は本国の語 |
+| zh-Hans | ○ | 元とほぼ同じ字（继…之后＝「続いて」、也＝「も」）。「回到 iCloud」（R の注）は前の H1 の点と同じ字 |
+| zh-Hant | ○ | zh-Hans と同じ（繼…之後、也、清除・這部裝置・螢幕） |
+
+審査メモの直した文（`docs/store/review-note.txt` の「What is new in 1.3」）:
+
+| 文 | 判定 | 理由・見たこと |
+| --- | --- | --- |
+| 1 の 2 つ目の文「It is saved whole on the page holding its center (same file and iCloud record format); older versions show it on that page only.」 | △ | 中心のあるページにまるごと保存される・ファイルと iCloud のレコードの形は同じ・古い版ではそのページにだけ出る、の 3 つが元と同じ。主語が「そのような線は」（前の字は Such a stroke）から It になった（4,000 バイトに入れるため詰めた）。メモの中では直前の節の a stroke（線は境目をまたげる）を指し、「中心を持つページにまるごと保存される」は線にしか当たらないので、ほかのものと取り違える読みは出にくい（R は前後を見ずに読んだので「何を指すか分からない」と書いた）。same … format が何と同じか書いていない（R の注）のは、元の「形は同じ」と前の字（in the same … format）も同じで、前と同じ形と読む |
+| 2 の 2 つ目の文「Off shows one page at a time as before.」 | ○ | オフにすると、前のとおり 1 ページずつ表示する。元と同じ。Off が主語の短い文（R の注）は、同じ段の前の文の one switch を受ける（前の字 Off gives … も同じ形）。「前のとおり」は 1 ページずつ出ることを言い、スイッチがオフでも出る週のメモ（4）と食い違わない |
+| 4「Week pages now also have Free Notes below 24:00, like day pages since 1.1, even with the switch off.」 | △ | 週のページにも、日のページ（1.1 から）と同じく 24 時の下に自由メモができた・スイッチがオフでも出る、が元と同じ。the switch は 2 のスイッチ（R は前後を見ていない）。even with the switch off が day pages since 1.1 にかかるとも読める（R の注）が、like day pages since 1.1 は前後のコンマで挟んだ挿入句で、普通の読みでは文の本体（週のページにある）にかかる。日のページにかけて読んでも、日の自由メモもスイッチに関わらず出るので、元に無い事実にはならない |
+| 5「Screen-side fixes after 1.2.4's sync fixes: handwriting erased with Erase All (on any device) or Erase and Start can no longer come back via the open page or Undo and be sent to iCloud again.」 | ○ | 1.2.4 の同期の直しに続く画面の側の直し・「全て消す」（どの端末でも）と「消して始める」・開いているページと取り消しから戻って iCloud へもう一度送られることはなくなった、が元と同じ。1.2.4 で直したページの取得（H4）は挙げていない（(i)）。Erase and Start が何か分からない（R の注）のはアプリのボタンの名前で、en の訳と同じ語。(on any device) が Erase All だけにかかる読みは、元の（どの端末でも）の位置と同じ。「戻ってから送られる」一連の流れと読む読みも元と同じ |
+
+日本語の要約（R には渡していない。英語の段と照らした）: 1 つ目の文の「（古い版では片方のページにだけ出ます）」は、「、またいだ線が」を外したので主語が書いていないが、すぐ前の「境目をまたいで書けます」から、またいで書いた線のことと読める（英語の 1 と同じ）。「週にも 24 時の下の自由メモ。」は 4 と、「1.2.4 に続き、全て消した手書きが画面から iCloud に戻りうる穴を直しました。」は 5 と同じ（要約なので「消して始める」と取り消しは省いた）。どれも (i) と (ii) に当たる読みは無い。
+
+決まっていないこと（判定には入れていない）:
+
+- 新しい点の R の注の言い回し（de-DE の landen・alle Handschrift、es・it・pt の語や「後」の繰り返し、zh の「回到 iCloud」で何が困るか）は、母語の人に見てもらうときの候補です。どれも前の H1 の点（上の 3 で ○）と同じ字のところです。
+- 審査メモの 1 の It（前の字は Such a stroke）は、バイトの余り（今 7 バイト）が 9 バイト以上になったら戻す候補です。4 は、バイトの変わらない語順の替え（even with the switch off を 24:00 の後へ）が、次に審査メモを直すときの候補です。
+
+`lint.py`（L-1〜L-14。L-9 は 12 ロケールで ok）・`build.py --check`・`baseline.py --check` は、この記録の後の字で 3 つとも終了 0 です。
+
 ## 5. 英語の 3 文書（`docs/TERMS.en.md`・`PRIVACY.en.md`・`SUPPORT.en.md`）
 
 元は日本語の 3 文書（§11.3 の T-1〜T-9・P-1〜P-4・S-1〜S-6、§10.4 の FAQ、1.1.1 の文を含む）、逆翻訳は `docs/i18n/back/legal-en.md` です。全文を節ごとに照らしました。**× は 0 件です。** 価格・試用・解約・撤回の権利（最初の契約だけ、提供が始まるとなくなることがある、手続きは Apple）・準拠法と EU の消費者の裁判所・メールの扱い（Gmail、AI）・GDPR の権利・十分性の決定の範囲は、元と同じ意味でした。
@@ -1885,3 +2027,246 @@ R4 の後に直した字と FIX3 の見本の語を、別の Claude が日本語
 | `demo.event.deadline` | it | 期限（略語） | △ | 略語は通じるが、日付なしでは切れた字にも見える。入る語が無いので変えない |
 | `whatsnew.txt` の 3 行目 | de-DE | • アプリで、世界の国や地域の祝日を表示できるようになりました。Tegaki で 設定 > 祝日 > 「表示する祝日」 へ進み、国（米国の州のような地域も可）または「なし」を選んでください。連邦州、州、または地域がある国では、そのうちの一つを選ぶと、その祝日が加わります。日本の祝日はこれまでどおり機能します。すでにアプリをお使いの場合は、引き続き日本の祝日が表示されます。 | △ | 意味は同じ。「Tegaki で 設定 > 祝日」と読めた。`funktionieren` と語の並びの硬さを言われた（R4 と同じ） |
 | `whatsnew.txt` の 4 行目 | de-DE | • 週の始まりを月曜または日曜にできるようになりました（Tegaki で：設定 > 週の最初の日）。すでにアプリをお使いの場合は、月曜のままです。初めてお使いの場合は、アプリはデバイスの地域に従います。週ページの手書きは、月曜始まりの週と日曜始まりの週で別々に保存されます。切り替えると、もう一方の設定の手書きは、元に戻すまで非表示のままですが、削除はされません。月ページの手書きはその日付に従います。日曜始まりの週の手書きは、古いバージョンのアプリのデバイスでは見えません（削除はされていません）。 | △ | 意味は同じ。「Tegaki で：設定 > 週の最初の日」と読めた。`gesichert`・`Wochenhandschrift`・`Wenn Sie neu sind` と長さを言われた（母語の人に見てもらうときの候補） |
+
+## 11. 1.3 の SUPPORT（既知の制限の「マスをまたぐ手書き」、2026-11-13）
+
+元は `docs/SUPPORT.md` の既知の制限の表の「マスをまたぐ手書き」の行です。1.3 で、週と日のページの横つなぎ・古い版での見え方・設定のオフの 7 文を、前からある 2 文の後ろに足しました（[M7C_CONTRACT.md](../M7C_CONTRACT.md) §8.7 の 1 つ目）。英語は `docs/SUPPORT.en.md` の同じ行（Handwriting across cells）です。自由メモの 2 段落（§8.7 の 2 つ目）は、週のメモが 1.3 に入らないので変えていません。
+
+逆翻訳は、英語の行（表の題「Known limitations」と行の題、行の全文）だけを別の Claude に渡し、日本語の元を見ずに訳し戻したものです。行の全文を 1 つの段落として渡したので、前からある 2 文も入っています。判定は、その結果と日本語の元を、英語を書いた Claude とは別の Claude が照らしたものです。母語の人の確認ではありません。逆翻訳の全文は `docs/i18n/back/legal-en.md` の同じ行にあります。
+
+**足した 7 文: ○ 4・△ 3・× 0。** 前からある 2 文は 1.2 と同じ字で、今回も ○ でした。題の「既知の制限 > セルをまたぐ手書き」も ○ です（cell が「セル」に戻っただけで、同じもの）。抜けた事実も、元に無い事実もありませんでした（線は真ん中があるページに 1 本で保存、古い版ではそのページにだけ出て消えていない、古い版で消すと新しい版でも消える、両方を最新に、設定でオフにできる、オフの端末では片方のページにだけ出る、月と年は今までどおり）。
+
+| 文 | 元の日本語 | 渡した英語 | 逆翻訳（元を見ない） | 判定 | 理由 |
+| --- | --- | --- | --- | --- | --- |
+| 前からの 1 文目 | 手書きは日付のマスごとに保存されます。 | Handwriting is saved for each date cell. | 手書きは日付のセルごとに保存されます。 | ○ | 1.2 と同じ字（変えていない）。cell が「マス」でなく「セル」に戻ったが、同じもの（GLOSSARY でも「前後の月の日のマス」は cells） |
+| 前からの 2 文目 | 終日の予定が増えてマスの高さが変わると、マスの境界をまたいで書いた線がわずかにずれて見えることがあります。 | When the height of the cells changes because more all-day events are added, strokes written across cell borders may look slightly out of place. | 終日の予定が増えてセルの高さが変わると、セルの境目をまたいで書いた線が少しずれて見えることがあります。 | ○ | 1.2 と同じ字（変えていない）。「境界」が「境目」、「わずかに」が「少し」で、同じ意味 |
+| 足した 1 文目 | 1.3 から、週と日のページで、前後のページが横につながり、境目をまたいで書けます（月と年のページは今までどおり 1 ページずつです）。 | From version 1.3, week and day pages are joined side by side with the pages before and after them, and you can write across the borders between them (month and year pages are still shown one page at a time, as before). | バージョン 1.3 からは、週と日のページが前後のページと横につながり、ページの境目をまたいで書けるようになりました（月と年のページは、これまでどおり 1 ページずつの表示です）。 | ○ | 「1.3 から」に version を足した（1.3 が版の番号だと分かるように）。「書けます」が「書けるようになりました」に戻ったのは From version 1.3 の読みで、中身は同じ。括弧の中の「今までどおり 1 ページずつ」も同じ |
+| 足した 2 文目 | ページをまたいで書いた線は、線の真ん中があるページに 1 本で保存されます。 | A stroke written across pages is saved as one stroke on the page where the middle of the stroke is. | ページをまたいで書いた線は、線の真ん中があるページに 1 本の線として保存されます。 | ○ | 「1 本で」が「1 本の線として」。どちらも 2 つのページに分けずに 1 本で保存する意味 |
+| 足した 3 文目 | 1.3 より前の版の端末では、その線は保存されたページにだけ出ます（消えてはいません）。 | On a device still on a version before 1.3, that stroke appears only on the page where it is saved (it has not been deleted). | 1.3 より前のバージョンのままの端末では、その線は保存されたページにだけ表示されます（消えたわけではありません）。 | △ | 「のまま」（still）は元に無い。1.3 より前の版の端末は、まだ 1.3 にしていない端末のことなので、意味は同じ。「消えてはいません」が「消えたわけではありません」で、同じ |
+| 足した 4 文目 | その端末でその線を消すと、新しい版でも消えます。 | If you erase that stroke on that device, it is erased on the new version too. | その端末でその線を消すと、新しいバージョンでも消えます。 | ○ | 同じ |
+| 足した 5 文目 | iPad と iPhone の両方を最新の版にしてお使いください。 | Please update both your iPad and your iPhone to the latest version. | iPad と iPhone の両方を最新のバージョンにしてください。 | △ | 「してお使いください」が「にしてください」（update の 1 語）。頼んでいること（iPad と iPhone の両方を最新の版にする）は同じ |
+| 足した 6 文目 | 設定 › ページ で横につなげるのをオフにすると、今までどおり 1 ページずつになります。 | If you turn off the side-by-side joining in Settings > Pages, pages are shown one at a time, as before. | 設定 > ページ で横につなげる設定をオフにすると、これまでどおり 1 ページずつの表示になります。 | △ | 逆翻訳は ○（「設定 > ページ」）。照合のあとで the App's を足した（下の「照合の後に直した字」）。日本語の元は、かぎかっこの無い「設定 ›」でアプリの中の設定を表す書き分けなので、意味は同じ |
+| 足した 7 文目 | オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | On a device where it is turned off, a stroke written across pages appears on only one of the pages (it has not been deleted). | オフにしている端末では、ページをまたいで書いた線はどちらか一方のページにだけ表示されます（消えたわけではありません）。 | ○ | 「オフにした」が「オフにしている」、「片方の」が「どちらか一方の」で、同じ意味。「消えてはいません」も同じ（契約の N-3 の最後の文） |
+
+### 照合の後に直した字（2026-11-13）
+
+| 場所 | 前の字 | 今の字 | 逆翻訳（判定した Claude が元を見て書いた） | 直した理由 |
+| --- | --- | --- | --- | --- |
+| 足した 6 文目 | If you turn off the side-by-side joining in Settings > Pages, pages are shown one at a time, as before. | If you turn off the side-by-side joining in the App's Settings > Pages, pages are shown one at a time, as before. | アプリの 設定 > ページ で横につなげる設定をオフにすると、これまでどおり 1 ページずつの表示になります。 | 英語の「Settings > Pages」だけでは、iOS の設定アプリ（そこにある Apple の Pages アプリの項目）と読み違えやすい。日本語の元はかぎかっこの有無でアプリの中の設定と iOS の設定を書き分けているが、英語の文書はその書き分けをしていないので、同じ文書の祝日の FAQ（the App's Settings > Holidays）と同じ形にした。1.2 の R4 で de-DE の新機能の文を in Tegaki にしたのと同じ理由 |
+
+この直し（the App's の 2 語）は、あとで元を見ない逆翻訳を通しました（すぐ下の「元を見ない逆翻訳（2 回目）」。○）。ほかの字は変えていません（△ の 2 文は言い回しの差で、意味は同じなのでそのまま）。
+
+### 元を見ない逆翻訳（2 回目、2026-11-13）
+
+the App's を足した 6 文目だけを、12 の「照合の後に直した 19 件」と同じ表に入れて、R にもう 1 回渡しました。サポートの字で R が読んだのは英語のこの 1 文だけで、日本語の元・1 回目の逆翻訳・行のほかの文は入っていません。判定は、英語を直した Claude とも R とも別の Claude が、逆翻訳と日本語の元を照らしたものです（12 と同じ ○ と × の 2 つで、言い回しの差は理由に書きました）。**○ でした（× 0）。** 英語の字は変えていません。`docs/i18n/back/legal-en.md` の同じ行の 6 文目は、この 2 回目の逆翻訳に替えました（1 回目の逆翻訳は上の表にあります）。
+
+| 文 | 元の日本語 | 渡した英語 | 逆翻訳（元を見ない、2 回目） | 判定 | 理由 |
+| --- | --- | --- | --- | --- | --- |
+| 足した 6 文目 | 設定 › ページ で横につなげるのをオフにすると、今までどおり 1 ページずつになります。 | If you turn off the side-by-side joining in the App's Settings > Pages, pages are shown one at a time, as before. | アプリの［設定］＞［ページ］で「横につなぐ」機能をオフにすると、以前と同じようにページが1ページずつ表示されます。 | ○ | 「the App's」は「アプリの」と読まれ、iOS の設定アプリでなく、アプリの中の設定だと伝わった（直した理由のとおり）。日本語の元はかぎかっこの無い「設定 ›」でアプリの中の設定を表すので、指す所は同じ。「横につなげるのを」が「「横につなぐ」機能を」。R はかぎかっこを足したが、メモに「画面の項目名なのか説明なのか分からない」と書いた（日本語の元も英語も、スイッチの名前は引用していない。11 の「決まっていない語」）。「今までどおり」が「以前と同じように」。R は as before を「オンにする前と同じ」とも取れると書いたが、日本語の元の「今までどおり」も同じ幅で、どちらも 1 ページずつの表示のこと |
+
+### 決まっていない語
+
+- **「Pages」**: `settings.page.header`（N-1「ページ」）の英語の値に合わせた仮の語です。X の 1.3 の訳がまだ無いので、照らせていません。X の訳が入ったら、1.2 の 5 の「画面の名前」と同じく、`SUPPORT.en.md` の字を `tools/l10n/translations/en.json` の値と機械で照らし、違えば 1 語を直します。
+- **スイッチの名前**（N-2「前後のページを横につなげる」）は、日本語の元と同じく引用していません（英語は the side-by-side joining）。
+- **最後の文**は契約の N-3 の最後の文と同じ日本語です。X が N-3（`settings.page.span.footer`）を訳したら、英語の言い回しをそろえるかをリードが決めます（意味は今のままで同じ）。
+
+### lint
+
+`lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は、直した後の字で 3 つとも終了 0 です（`baseline.py` は 9cbc3c9 の 516 字のまま。L-12 の字の幅の目安の警告 58 件は、この枝で変えていない `tools/l10n/source` の訳のもので、前からある）。
+
+## 12. 1.3 のアプリの文字列（§8.1 の N-1〜N-8、2026-11-13）
+
+元は [M7C_CONTRACT.md](../M7C_CONTRACT.md) §8.1 の固定した日本語の 8 キーです（`tools/l10n/source/app-U.json`。日本語は 1 字も変えていません）。訳は X が書き（7c49b02）、R には key・言語・訳の 72 行の表（日本語の元と comment は入っていない）だけを渡して、元を見ずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude が、その逆翻訳と固定の日本語を 1 件ずつ照らしたものです。**母語の人の確認ではありません。** 逆翻訳の全文は `docs/i18n/back/<言語>.json` の同じキーにあります。
+
+判定（1.3 は 2 つ）: **○** 同じ意味（抜けた事実も、元に無い事実も無い）／ **×** 意味の違い（直す）。1.2 の △（言い回しの差）にあたるものは ○ にして、理由の列に言い回しの差を書きました。
+
+### 結果
+
+| 言語 | ○（1 回目） | ×（1 回目） | 直した後の × |
+| --- | --- | --- | --- |
+| en | 8 | 0 | 0 |
+| zh-Hans | 8 | 0 | 0 |
+| zh-Hant | 8 | 0 | 0 |
+| ko | 8 | 0 | 0 |
+| fr | 4 | 4 | 0 |
+| de | 4 | 4 | 0 |
+| es | 3 | 5 | 0 |
+| it | 8 | 0 | 0 |
+| pt-BR | 3 | 5 | 0 |
+| 合計（8 キー × 9 言語） | 54 | 18 | 0 |
+
+- **× の 18 件は、全部「境目をまたいで書ける」と「ページをまたいで書いた線」の 1 つの考えでした。** fr・de・es・pt-BR の案内の札（N-4〜N-7）で、境目の「上に重ねて書く」とも読める言い方（par-dessus・über … schreiben・por encima de・por cima da）が、逆翻訳で「つなぎ目の上から書く」になり、またいで書けることが伝わっていませんでした（de の über den Übergang schreiben は「境目について書く」とも読めます）。es・pt-BR の脚注（N-3）は、同じ言い方と、「2 ページの間に」とも読める entre dos páginas・entre duas páginas でした。
+- 直した訳は下の表のとおりです（19 件。× の 18 件と、それにそろえた fr の N-3）。日本語の元・comment・jaSha1 は変えていません。
+- **直した 19 件は、今の字だけを R にもう 1 回渡し、元を見ずに訳し戻してもらいました（この節の最後の「元を見ない逆翻訳（2 回目）」）。○ 19・× 0 で、訳は変えていません。** 下の表の「逆翻訳（直した後、判定した Claude が元を見て書いた）」の列は、その前に判定した Claude が書いたものです（1.2 の 10 の FIX と同じ）。
+- 店の文（§8.3 の新機能の文）とサポートの英語は、別の役の枝の物で、この節では見ていません。
+
+### × と直した訳
+
+| キー | 言語 | 元の日本語 | 逆翻訳（1 回目、元を見ない） | 判定 | 意味の違い | 前の訳 | 直した訳 | 逆翻訳（直した後、判定した Claude が元を見て書いた） | 判定（直した後） |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `settings.page.span.footer`（N-3） | fr | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | 週と日のページでは、前のページと次のページが横に並んでつながり、つなぎ目の上にまたがって書くことができます。月と年のページは、次のバージョンから一つずつ順に対応します。このオプションがオフの場合は、以前と同じようにページが1ページずつ表示されます。これがオフになっている端末では、2ページにまたがって書いた線はそのうち一方にしか表示されません（削除されてはいません）。 | ○ | × ではないが、N-4〜N-7 の直しにそろえて par-dessus la jonction を à cheval sur la jonction に（同じ言語の中で境目の言い方を 1 つに） | Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire par-dessus la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés). | Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire à cheval sur la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés). | 週と日のページでは、前のページと次のページが横に並んでつながり、つなぎ目にまたがって書くことができます。月と年のページは、次のバージョンから一つずつ順に対応します。このオプションがオフの場合は、以前と同じようにページが 1 ページずつ表示されます。オフになっている端末では、2 ページにまたがって書いた線はそのうち一方にしか表示されません（削除されてはいません）。 | ○ |
+| `settings.page.span.footer`（N-3） | es | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | 週と日のページでは、前のページと次のページが横方向につながり、つなぎ目の上から書くことができます。この機能は次のバージョンから、月と年のページにも一つずつ順番に広がっていきます。オフの場合は、これまでどおりページが1ページずつ表示されます。オフになっている端末では、2ページの間（にまたがって）書いた線は、どちらか一方にしか表示されません（削除はされません）。 | × | 「境目をまたいで書けます」が「つなぎ目の上から書くことができます」（por encima de la unión は、つなぎ目の上に重ねて書くとも読め、またぐことが伝わらない）。「ページをまたいで書いた線」が「2ページの間（にまたがって）書いた線」で、R が括弧で迷いを書いた（entre dos páginas は「2 ページの間に」とも読める）。直し: por encima de la unión を cruzando la unión に。entre dos páginas を de una página a otra（ページからページへ）に、una de ellas を una de las dos（2 つのうち 1 つ）に | En las páginas de la semana y del día, las páginas anterior y siguiente se unen en horizontal y puede escribir por encima de la unión. La función llegará a las páginas del mes y del año, una tras otra, a partir de la próxima versión. Si está desactivado, las páginas se muestran de una en una, como hasta ahora. En un dispositivo donde esté desactivado, los trazos escritos entre dos páginas solo aparecen en una de ellas (no se eliminan). | En las páginas de la semana y del día, las páginas anterior y siguiente se unen en horizontal y puede escribir cruzando la unión. La función llegará a las páginas del mes y del año, una tras otra, a partir de la próxima versión. Si está desactivado, las páginas se muestran de una en una, como hasta ahora. En un dispositivo donde esté desactivado, los trazos escritos de una página a otra solo aparecen en una de las dos (no se eliminan). | 週と日のページでは、前のページと次のページが横方向につながり、つなぎ目を横切って書くことができます。この機能は次のバージョンから、月と年のページにも一つずつ順番に広がります。オフの場合は、これまでどおりページが 1 ページずつ表示されます。オフになっている端末では、ページからページへ書いた線は、2 ページのうち一方にしか表示されません（削除はされません）。 | ○ |
+| `settings.page.span.footer`（N-3） | pt-BR | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | 週と日のページでは、前のページと次のページが横につながった状態になり、つなぎ目の上から書くことができます。この機能は次のバージョンから、月と年のページにも一つずつ順番に広がります。オフのときは、以前と同じようにページが1ページずつ表示されます。この設定をオフにしている端末では、2ページの間（にまたがって）書いた線は、そのうち一方にしか表示されません（消されてはいません）。 | × | 「境目をまたいで書けます」が「つなぎ目の上から書くことができます」（por cima da emenda は、つなぎ目の上に重ねて書くとも読め、またぐことが伝わらない）。「ページをまたいで書いた線」が「2ページの間（にまたがって）書いた線」で、R が括弧で迷いを書いた（entre duas páginas は「2 ページの間に」とも読める）。直し: por cima da emenda を atravessando a emenda に。entre duas páginas を de uma página para a outra（ページからページへ）に、uma delas を uma das duas に | Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever por cima da emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos entre duas páginas aparecem só em uma delas (não são apagados). | Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever atravessando a emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos de uma página para a outra aparecem só em uma das duas (não são apagados). | 週と日のページでは、前のページと次のページが横につながった状態になり、つなぎ目を横切って書くことができます。この機能は次のバージョンから、月と年のページにも一つずつ順番に広がります。オフのときは、以前と同じようにページが 1 ページずつ表示されます。この設定をオフにしている端末では、ページからページへ書いた線は、2 ページのうち一方にしか表示されません（消されてはいません）。 | ○ |
+| `span.guide.week.oneFinger`（N-4） | fr | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | 前の週と次の週が、これからは横に並んでつながります。指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで、そのまま書けます」が「つなぎ目の上からそのまま書くことができます」（par-dessus la jonction は、つなぎ目の上に重ねて書く・上書きするとも読め、またいで書けることが伝わらない）。「つながりました」が「これからは横に並んでつながります」（désormais）は同じ。直し: 境目の言い方を à cheval sur la jonction（つなぎ目にまたがって）に。N-3 が線に使う à cheval sur deux pages と同じ語 | Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement par-dessus la jonction. | Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction. | 前の週と次の週が、これからは横に並んでつながります。指を横にすべらせると、隣の週が見られます。つなぎ目にまたがって、そのまま書くことができます。 | ○ |
+| `span.guide.week.oneFinger`（N-4） | de | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | 前の週と次の週が横につながるようになりました。指で横になぞると、隣の週が見られます。境目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「境目の上から」（über den Übergang schreiben は、hinweg が無いと「境目の上に書く」とも「境目について書く」とも読める。N-3 は hinweg があり ○）。「なぞる」は streichen（横に動かす）で同じ動き。直し: N-3 と同じ hinweg を足した（über den Übergang hinweg）。iPhone の縦（315 pt）で 4 行に入れるため、語の並びを「境目を越えて、そのまま書ける」の順に | Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um die Woche daneben zu sehen. Sie können direkt über den Übergang schreiben. | Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um die Woche daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben. | 前の週と次の週が横につながるようになりました。指で横にすべらせると、隣の週が見られます。境目を越えて、そのまま書くことができます。 | ○ |
+| `span.guide.week.oneFinger`（N-4） | es | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | 前の週と次の週は、もう横方向につながっています。指を横方向にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por encima de la unión。N-3 と同じ）。「もう横方向につながっています」は ya（今は）で同じ。直し: por encima de を cruzando（横切って）に | Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente por encima de la unión. | Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión. | 前の週と次の週は、もう横方向につながっています。指を横方向にすべらせると、隣の週が見られます。つなぎ目を横切って、そのまま書くことができます。 | ○ |
+| `span.guide.week.oneFinger`（N-4） | pt-BR | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | 前の週と次の週が、今は横につながっています。指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書けます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por cima da emenda。N-3 と同じ）。「今は横につながっています」（agora）は同じ。直し: por cima da を atravessando（横切って）に | As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda. | As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda. | 前の週と次の週が、今は横につながっています。指を横にすべらせると、隣の週が見られます。つなぎ目を横切って、そのまま書けます。 | ○ |
+| `span.guide.week.twoFingers`（N-5） | fr | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | 前の週と次の週が、これからは横に並んでつながります。2本の指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで、そのまま書けます」が「つなぎ目の上からそのまま書くことができます」（par-dessus la jonction は、つなぎ目の上に重ねて書く・上書きするとも読め、またいで書けることが伝わらない）。「つながりました」が「これからは横に並んでつながります」（désormais）は同じ。直し: 境目の言い方を à cheval sur la jonction（つなぎ目にまたがって）に。N-3 が線に使う à cheval sur deux pages と同じ語 | Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement par-dessus la jonction. | Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction. | 前の週と次の週が、これからは横に並んでつながります。2 本の指を横にすべらせると、隣の週が見られます。つなぎ目にまたがって、そのまま書くことができます。 | ○ |
+| `span.guide.week.twoFingers`（N-5） | de | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | 前の週と次の週が横につながるようになりました。2本の指で横になぞると、隣の週が見られます。境目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「境目の上から」（über den Übergang schreiben は、hinweg が無いと「境目の上に書く」とも「境目について書く」とも読める。N-3 は hinweg があり ○）。「なぞる」は streichen（横に動かす）で同じ動き。直し: N-3 と同じ hinweg を足した（über den Übergang hinweg）。iPhone の縦（315 pt）で 4 行に入れるため、語の並びを「境目を越えて、そのまま書ける」の順に | Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um die Woche daneben zu sehen. Sie können direkt über den Übergang schreiben. | Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um die Woche daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben. | 前の週と次の週が横につながるようになりました。2 本の指で横にすべらせると、隣の週が見られます。境目を越えて、そのまま書くことができます。 | ○ |
+| `span.guide.week.twoFingers`（N-5） | es | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | 前の週と次の週は、もう横方向につながっています。2本の指を横方向にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por encima de la unión。N-3 と同じ）。「もう横方向につながっています」は ya（今は）で同じ。直し: por encima de を cruzando（横切って）に | Las semanas anterior y siguiente ya están unidas en horizontal. Deslice dos dedos en horizontal para ver la semana contigua. Puede escribir directamente por encima de la unión. | Las semanas anterior y siguiente ya están unidas en horizontal. Deslice dos dedos en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión. | 前の週と次の週は、もう横方向につながっています。2 本の指を横方向にすべらせると、隣の週が見られます。つなぎ目を横切って、そのまま書くことができます。 | ○ |
+| `span.guide.week.twoFingers`（N-5） | pt-BR | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | 前の週と次の週が、今は横につながっています。2本の指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書けます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por cima da emenda。N-3 と同じ）。「今は横につながっています」（agora）は同じ。直し: por cima da を atravessando（横切って）に | As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto por cima da emenda. | As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda. | 前の週と次の週が、今は横につながっています。2 本の指を横にすべらせると、隣の週が見られます。つなぎ目を横切って、そのまま書けます。 | ○ |
+| `span.guide.day.oneFinger`（N-6） | fr | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | 前の日と次の日が、これからは横に並んでつながります。指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで、そのまま書けます」が「つなぎ目の上からそのまま書くことができます」（par-dessus la jonction は、つなぎ目の上に重ねて書く・上書きするとも読め、またいで書けることが伝わらない）。「つながりました」が「これからは横に並んでつながります」（désormais）は同じ。直し: 境目の言い方を à cheval sur la jonction（つなぎ目にまたがって）に。N-3 が線に使う à cheval sur deux pages と同じ語 | Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement par-dessus la jonction. | Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction. | 前の日と次の日が、これからは横に並んでつながります。指を横にすべらせると、隣の日が見られます。つなぎ目にまたがって、そのまま書くことができます。 | ○ |
+| `span.guide.day.oneFinger`（N-6） | de | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | 前の日と次の日が横につながるようになりました。指で横になぞると、隣の日が見られます。境目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「境目の上から」（über den Übergang schreiben は、hinweg が無いと「境目の上に書く」とも「境目について書く」とも読める。N-3 は hinweg があり ○）。「なぞる」は streichen（横に動かす）で同じ動き。直し: N-3 と同じ hinweg を足した（über den Übergang hinweg）。iPhone の縦（315 pt）で 4 行に入れるため、語の並びを「境目を越えて、そのまま書ける」の順に | Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Tag daneben zu sehen. Sie können direkt über den Übergang schreiben. | Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Tag daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben. | 前の日と次の日が横につながるようになりました。指で横にすべらせると、隣の日が見られます。境目を越えて、そのまま書くことができます。 | ○ |
+| `span.guide.day.oneFinger`（N-6） | es | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | 前の日と次の日は、もう横方向につながっています。指を横方向にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por encima de la unión。N-3 と同じ）。「もう横方向につながっています」は ya（今は）で同じ。直し: por encima de を cruzando（横切って）に | Los días anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el día contiguo. Puede escribir directamente por encima de la unión. | Los días anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión. | 前の日と次の日は、もう横方向につながっています。指を横方向にすべらせると、隣の日が見られます。つなぎ目を横切って、そのまま書くことができます。 | ○ |
+| `span.guide.day.oneFinger`（N-6） | pt-BR | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | 前の日と次の日が、今は横につながっています。指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書けます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por cima da emenda。N-3 と同じ）。「今は横につながっています」（agora）は同じ。直し: por cima da を atravessando（横切って）に | Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda. | Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda. | 前の日と次の日が、今は横につながっています。指を横にすべらせると、隣の日が見られます。つなぎ目を横切って、そのまま書けます。 | ○ |
+| `span.guide.day.twoFingers`（N-7） | fr | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | 前の日と次の日が、これからは横に並んでつながります。2本の指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで、そのまま書けます」が「つなぎ目の上からそのまま書くことができます」（par-dessus la jonction は、つなぎ目の上に重ねて書く・上書きするとも読め、またいで書けることが伝わらない）。「つながりました」が「これからは横に並んでつながります」（désormais）は同じ。直し: 境目の言い方を à cheval sur la jonction（つなぎ目にまたがって）に。N-3 が線に使う à cheval sur deux pages と同じ語 | Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement par-dessus la jonction. | Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction. | 前の日と次の日が、これからは横に並んでつながります。2 本の指を横にすべらせると、隣の日が見られます。つなぎ目にまたがって、そのまま書くことができます。 | ○ |
+| `span.guide.day.twoFingers`（N-7） | de | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | 前の日と次の日が横につながるようになりました。2本の指で横になぞると、隣の日が見られます。境目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「境目の上から」（über den Übergang schreiben は、hinweg が無いと「境目の上に書く」とも「境目について書く」とも読める。N-3 は hinweg があり ○）。「なぞる」は streichen（横に動かす）で同じ動き。直し: N-3 と同じ hinweg を足した（über den Übergang hinweg）。iPhone の縦（315 pt）で 4 行に入れるため、語の並びを「境目を越えて、そのまま書ける」の順に | Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Tag daneben zu sehen. Sie können direkt über den Übergang schreiben. | Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Tag daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben. | 前の日と次の日が横につながるようになりました。2 本の指で横にすべらせると、隣の日が見られます。境目を越えて、そのまま書くことができます。 | ○ |
+| `span.guide.day.twoFingers`（N-7） | es | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | 前の日と次の日は、もう横方向につながっています。2本の指を横方向にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por encima de la unión。N-3 と同じ）。「もう横方向につながっています」は ya（今は）で同じ。直し: por encima de を cruzando（横切って）に | Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente por encima de la unión. | Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión. | 前の日と次の日は、もう横方向につながっています。2 本の指を横方向にすべらせると、隣の日が見られます。つなぎ目を横切って、そのまま書くことができます。 | ○ |
+| `span.guide.day.twoFingers`（N-7） | pt-BR | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | 前の日と次の日が、今は横につながっています。2本の指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書けます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por cima da emenda。N-3 と同じ）。「今は横につながっています」（agora）は同じ。直し: por cima da を atravessando（横切って）に | Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto por cima da emenda. | Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda. | 前の日と次の日が、今は横につながっています。2 本の指を横にすべらせると、隣の日が見られます。つなぎ目を横切って、そのまま書けます。 | ○ |
+
+**直した後の × は 0 件です（72 件とも ○）。** 直した 19 件は、この節の最後の 2 回目の元を見ない逆翻訳でも ○ でした。
+
+### 全部の表（72 件）
+
+同じ逆翻訳で同じ判定の言語は 1 行にまとめました。「全部」は 9 言語です。直した訳は上の表にあり、ここでは 1 回目の逆翻訳と判定です。
+
+| キー | 元の日本語 | 言語 | 逆翻訳（元を見ない） | 判定（1 回目） | 理由・言い回しの差 | 直した後 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `settings.page.header`（N-1） | ページ | 全部 | ページ | ○ | 同じ | ○ |
+| `settings.page.span`（N-2） | 前後のページを横につなげる | en | 隣り合うページを横につなげる | ○ | 「前後の」が「隣の（隣り合う・隣接する）」。ページの並びで隣り合うのは前後のページなので、指す物は同じ（日本語の N-4〜N-7 も同じ物を「となりの週」と書く。「前後の」は N-3 の訳に、前のページと次のページとして書いてある） | ○ |
+| `settings.page.span`（N-2） | 前後のページを横につなげる | zh-Hans・zh-Hant | 前後のページを横につなげる | ○ | 同じ | ○ |
+| `settings.page.span`（N-2） | 前後のページを横につなげる | ko | 前後のページを横につなぐ | ○ | 同じ | ○ |
+| `settings.page.span`（N-2） | 前後のページを横につなげる | fr | 隣のページを横に並べてつなぐ | ○ | 「前後の」が「隣の（隣り合う・隣接する）」。ページの並びで隣り合うのは前後のページなので、指す物は同じ（日本語の N-4〜N-7 も同じ物を「となりの週」と書く。「前後の」は N-3 の訳に、前のページと次のページとして書いてある）。「並べて」は côte à côte（横に並べて）で、「横に」と同じ | ○ |
+| `settings.page.span`（N-2） | 前後のページを横につなげる | de・pt-BR | 隣のページを横につなぐ | ○ | 「前後の」が「隣の（隣り合う・隣接する）」。ページの並びで隣り合うのは前後のページなので、指す物は同じ（日本語の N-4〜N-7 も同じ物を「となりの週」と書く。「前後の」は N-3 の訳に、前のページと次のページとして書いてある） | ○ |
+| `settings.page.span`（N-2） | 前後のページを横につなげる | es | 隣接するページを横方向につなぐ | ○ | 「前後の」が「隣の（隣り合う・隣接する）」。ページの並びで隣り合うのは前後のページなので、指す物は同じ（日本語の N-4〜N-7 も同じ物を「となりの週」と書く。「前後の」は N-3 の訳に、前のページと次のページとして書いてある） | ○ |
+| `settings.page.span`（N-2） | 前後のページを横につなげる | it | 隣のページを横方向につなげる | ○ | 「前後の」が「隣の（隣り合う・隣接する）」。ページの並びで隣り合うのは前後のページなので、指す物は同じ（日本語の N-4〜N-7 も同じ物を「となりの週」と書く。「前後の」は N-3 の訳に、前のページと次のページとして書いてある） | ○ |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | en | 週と日のページでは、前後のページが横につながり、境目をまたいで書くことができます。月と年のページは、次のバージョンから順に対応します。これをオフにすると、これまでどおりページが1ページずつ表示されます。これをオフにしている端末では、ページをまたいで書いた線は片方のページにだけ表示されます（削除はされません）。 | ○ | 「月と年は」が「月と年のページは」（同じ物）。「消えてはいません」が「削除はされません」の形（1.2 の切り替えの文でも同じ扱い） | ○ |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | zh-Hans | 週ページと日ページでは、前後のページが横につながり、境目をまたいで書くことができます。月ページと年ページは、次のバージョンから順次対応します。オフにすると、以前と同じように1ページずつ表示されます。この項目をオフにしている端末では、ページをまたいで書いた線はそのうち1ページにしか表示されません（削除されたわけではありません）。 | ○ | 「順に」が「順次」。「消えてはいません」が「削除はされません」の形（1.2 の切り替えの文でも同じ扱い） | ○ |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | zh-Hant | 週ページと日ページでは、前後のページが横につながり、境目をまたいで書くことができます。月ページと年ページは、次のバージョンから順に対応します。オフにすると、以前と同じように1ページずつ表示されます。この項目をオフにしている端末では、ページをまたいで書いた線はそのうち1ページにしか表示されません（削除されたわけではありません）。 | ○ | 「消えてはいません」が「削除はされません」の形（1.2 の切り替えの文でも同じ扱い） | ○ |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | ko | 週ページと日ページでは、前後のページが横につながって、境目を越えて書けます。月ページと年ページは、次のバージョンから順に対応する予定です。オフにすると、これまでどおり1ページずつ表示されます。この設定をオフにした端末では、ページを越えて書いた線が片方のページにしか表示されません（消えてはいません）。 | ○ | 「対応します」が「対応する予定です」（지원할 예정이에요）。次の版の話なので、韓国語のふつうの言い方で意味は同じ。「境目をまたいで」が「境目を越えて」 | ○ |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | fr | 週と日のページでは、前のページと次のページが横に並んでつながり、つなぎ目の上にまたがって書くことができます。月と年のページは、次のバージョンから一つずつ順に対応します。このオプションがオフの場合は、以前と同じようにページが1ページずつ表示されます。これがオフになっている端末では、2ページにまたがって書いた線はそのうち一方にしか表示されません（削除されてはいません）。 | ○ | 「境目」が「つなぎ目」（jonction。ページとページのつなぎ目で、同じ所）。「順に」が「一つずつ順に」。「消えてはいません」が「削除はされません」の形（1.2 の切り替えの文でも同じ扱い）。判定の後、N-4〜N-7 の直しにそろえて境目の言い方を変えた（下の「× と直した訳」） | 直した（○） |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | de | 週ページと日ページでは、前のページと次のページが横につながり、境目を越えて書くことができます。月ページと年ページは、次のバージョンから順に対応します。これをオフにすると、これまでどおりページが1ページずつ表示されます。これをオフにしている端末では、ページをまたいで書いた線は2ページのうち片方にだけ表示されます（削除はされません）。 | ○ | 「境目をまたいで」が「境目を越えて」（über den Übergang hinweg）。「消えてはいません」が「削除はされません」の形（1.2 の切り替えの文でも同じ扱い） | ○ |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | es | 週と日のページでは、前のページと次のページが横方向につながり、つなぎ目の上から書くことができます。この機能は次のバージョンから、月と年のページにも一つずつ順番に広がっていきます。オフの場合は、これまでどおりページが1ページずつ表示されます。オフになっている端末では、2ページの間（にまたがって）書いた線は、どちらか一方にしか表示されません（削除はされません）。 | × | 「境目をまたいで書けます」が「つなぎ目の上から書くことができます」（por encima de la unión は、つなぎ目の上に重ねて書くとも読め、またぐことが伝わらない）。「ページをまたいで書いた線」が「2ページの間（にまたがって）書いた線」で、R が括弧で迷いを書いた（entre dos páginas は「2 ページの間に」とも読める） | 直した（○） |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | it | 週と日のページでは、前のページと次のページが横方向につながっていて、境目をまたいで書くことができます。この機能は次のバージョンから、月と年のページにも一つずつ順番に加わります。オフの場合は、以前と同じようにページが1ページずつ表示されます。オフになっている端末では、2ページにまたがって書いた線は、そのうち片方にしか表示されません（削除はされません）。 | ○ | 「月と年は、次の版から順に対応します」が「この機能は次のバージョンから、月と年のページにも一つずつ順番に加わります」（同じ）。「消えてはいません」が「削除はされません」の形（1.2 の切り替えの文でも同じ扱い） | ○ |
+| `settings.page.span.footer`（N-3） | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | pt-BR | 週と日のページでは、前のページと次のページが横につながった状態になり、つなぎ目の上から書くことができます。この機能は次のバージョンから、月と年のページにも一つずつ順番に広がります。オフのときは、以前と同じようにページが1ページずつ表示されます。この設定をオフにしている端末では、2ページの間（にまたがって）書いた線は、そのうち一方にしか表示されません（消されてはいません）。 | × | 「境目をまたいで書けます」が「つなぎ目の上から書くことができます」（por cima da emenda は、つなぎ目の上に重ねて書くとも読め、またぐことが伝わらない）。「ページをまたいで書いた線」が「2ページの間（にまたがって）書いた線」で、R が括弧で迷いを書いた（entre duas páginas は「2 ページの間に」とも読める） | 直した（○） |
+| `span.guide.week.oneFinger`（N-4） | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | en | 前の週と次の週が横につながりました。指を横にすべらせると、隣の週が見えます。境目をまたいでそのまま書くことができます。 | ○ | 「出てきます」が「見えます」（指で横にすべらせて、となりの週〔日〕を出すことは同じ） | ○ |
+| `span.guide.week.oneFinger`（N-4） | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | zh-Hans・zh-Hant | 前の週と次の週が横につながりました。指で横にスライドすると、隣の週が現れます。境目をまたいでそのまま書くことができます。 | ○ | 同じ | ○ |
+| `span.guide.week.oneFinger`（N-4） | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | ko | 前後の週が横につながりました。指で横にスワイプすると、隣の週が出てきます。境目を越えてそのまま書けます。 | ○ | 「すべらせる」が「スワイプ」。「境目をまたいで」が「境目を越えて」 | ○ |
+| `span.guide.week.oneFinger`（N-4） | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | fr | 前の週と次の週が、これからは横に並んでつながります。指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで、そのまま書けます」が「つなぎ目の上からそのまま書くことができます」（par-dessus la jonction は、つなぎ目の上に重ねて書く・上書きするとも読め、またいで書けることが伝わらない）。「つながりました」が「これからは横に並んでつながります」（désormais）は同じ | 直した（○） |
+| `span.guide.week.oneFinger`（N-4） | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | de | 前の週と次の週が横につながるようになりました。指で横になぞると、隣の週が見られます。境目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「境目の上から」（über den Übergang schreiben は、hinweg が無いと「境目の上に書く」とも「境目について書く」とも読める。N-3 は hinweg があり ○）。「なぞる」は streichen（横に動かす）で同じ動き | 直した（○） |
+| `span.guide.week.oneFinger`（N-4） | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | es | 前の週と次の週は、もう横方向につながっています。指を横方向にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por encima de la unión。N-3 と同じ）。「もう横方向につながっています」は ya（今は）で同じ | 直した（○） |
+| `span.guide.week.oneFinger`（N-4） | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | it | 前の週と次の週が、今は横方向につながっています。指を横方向にすべらせると、隣の週が見られます。境目をまたいでそのまま書くことができます。 | ○ | 「つながりました」が「今は横方向につながっています」（ora）。「出てきます」が「見られます」 | ○ |
+| `span.guide.week.oneFinger`（N-4） | 前後の週が横につながりました。指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | pt-BR | 前の週と次の週が、今は横につながっています。指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書けます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por cima da emenda。N-3 と同じ）。「今は横につながっています」（agora）は同じ | 直した（○） |
+| `span.guide.week.twoFingers`（N-5） | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | en | 前の週と次の週が横につながりました。2本の指を横にすべらせると、隣の週が見えます。境目をまたいでそのまま書くことができます。 | ○ | 「出てきます」が「見えます」（指で横にすべらせて、となりの週〔日〕を出すことは同じ） | ○ |
+| `span.guide.week.twoFingers`（N-5） | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | zh-Hans・zh-Hant | 前の週と次の週が横につながりました。2本の指で横にスライドすると、隣の週が現れます。境目をまたいでそのまま書くことができます。 | ○ | 同じ | ○ |
+| `span.guide.week.twoFingers`（N-5） | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | ko | 前後の週が横につながりました。2本の指で横にスワイプすると、隣の週が出てきます。境目を越えてそのまま書けます。 | ○ | 「すべらせる」が「スワイプ」。「境目をまたいで」が「境目を越えて」 | ○ |
+| `span.guide.week.twoFingers`（N-5） | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | fr | 前の週と次の週が、これからは横に並んでつながります。2本の指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで、そのまま書けます」が「つなぎ目の上からそのまま書くことができます」（par-dessus la jonction は、つなぎ目の上に重ねて書く・上書きするとも読め、またいで書けることが伝わらない）。「つながりました」が「これからは横に並んでつながります」（désormais）は同じ | 直した（○） |
+| `span.guide.week.twoFingers`（N-5） | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | de | 前の週と次の週が横につながるようになりました。2本の指で横になぞると、隣の週が見られます。境目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「境目の上から」（über den Übergang schreiben は、hinweg が無いと「境目の上に書く」とも「境目について書く」とも読める。N-3 は hinweg があり ○）。「なぞる」は streichen（横に動かす）で同じ動き | 直した（○） |
+| `span.guide.week.twoFingers`（N-5） | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | es | 前の週と次の週は、もう横方向につながっています。2本の指を横方向にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por encima de la unión。N-3 と同じ）。「もう横方向につながっています」は ya（今は）で同じ | 直した（○） |
+| `span.guide.week.twoFingers`（N-5） | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | it | 前の週と次の週が、今は横方向につながっています。2本の指を横方向にすべらせると、隣の週が見られます。境目をまたいでそのまま書くことができます。 | ○ | 「つながりました」が「今は横方向につながっています」（ora）。「出てきます」が「見られます」 | ○ |
+| `span.guide.week.twoFingers`（N-5） | 前後の週が横につながりました。2 本指で横にすべらせると、となりの週が出てきます。境目をまたいで、そのまま書けます。 | pt-BR | 前の週と次の週が、今は横につながっています。2本の指を横にすべらせると、隣の週が見られます。つなぎ目の上からそのまま書けます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por cima da emenda。N-3 と同じ）。「今は横につながっています」（agora）は同じ | 直した（○） |
+| `span.guide.day.oneFinger`（N-6） | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | en | 前の日と次の日が横につながりました。指を横にすべらせると、隣の日が見えます。境目をまたいでそのまま書くことができます。 | ○ | 「出てきます」が「見えます」（指で横にすべらせて、となりの週〔日〕を出すことは同じ） | ○ |
+| `span.guide.day.oneFinger`（N-6） | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | zh-Hans・zh-Hant | 前の日と次の日が横につながりました。指で横にスライドすると、隣の日が現れます。境目をまたいでそのまま書くことができます。 | ○ | 同じ | ○ |
+| `span.guide.day.oneFinger`（N-6） | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | ko | 前後の日が横につながりました。指で横にスワイプすると、隣の日が出てきます。境目を越えてそのまま書けます。 | ○ | 「すべらせる」が「スワイプ」。「境目をまたいで」が「境目を越えて」 | ○ |
+| `span.guide.day.oneFinger`（N-6） | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | fr | 前の日と次の日が、これからは横に並んでつながります。指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで、そのまま書けます」が「つなぎ目の上からそのまま書くことができます」（par-dessus la jonction は、つなぎ目の上に重ねて書く・上書きするとも読め、またいで書けることが伝わらない）。「つながりました」が「これからは横に並んでつながります」（désormais）は同じ | 直した（○） |
+| `span.guide.day.oneFinger`（N-6） | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | de | 前の日と次の日が横につながるようになりました。指で横になぞると、隣の日が見られます。境目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「境目の上から」（über den Übergang schreiben は、hinweg が無いと「境目の上に書く」とも「境目について書く」とも読める。N-3 は hinweg があり ○）。「なぞる」は streichen（横に動かす）で同じ動き | 直した（○） |
+| `span.guide.day.oneFinger`（N-6） | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | es | 前の日と次の日は、もう横方向につながっています。指を横方向にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por encima de la unión。N-3 と同じ）。「もう横方向につながっています」は ya（今は）で同じ | 直した（○） |
+| `span.guide.day.oneFinger`（N-6） | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | it | 前の日と次の日が、今は横方向につながっています。指を横方向にすべらせると、隣の日が見られます。境目をまたいでそのまま書くことができます。 | ○ | 「つながりました」が「今は横方向につながっています」（ora）。「出てきます」が「見られます」 | ○ |
+| `span.guide.day.oneFinger`（N-6） | 前後の日が横につながりました。指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | pt-BR | 前の日と次の日が、今は横につながっています。指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書けます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por cima da emenda。N-3 と同じ）。「今は横につながっています」（agora）は同じ | 直した（○） |
+| `span.guide.day.twoFingers`（N-7） | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | en | 前の日と次の日が横につながりました。2本の指を横にすべらせると、隣の日が見えます。境目をまたいでそのまま書くことができます。 | ○ | 「出てきます」が「見えます」（指で横にすべらせて、となりの週〔日〕を出すことは同じ） | ○ |
+| `span.guide.day.twoFingers`（N-7） | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | zh-Hans・zh-Hant | 前の日と次の日が横につながりました。2本の指で横にスライドすると、隣の日が現れます。境目をまたいでそのまま書くことができます。 | ○ | 同じ | ○ |
+| `span.guide.day.twoFingers`（N-7） | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | ko | 前後の日が横につながりました。2本の指で横にスワイプすると、隣の日が出てきます。境目を越えてそのまま書けます。 | ○ | 「すべらせる」が「スワイプ」。「境目をまたいで」が「境目を越えて」 | ○ |
+| `span.guide.day.twoFingers`（N-7） | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | fr | 前の日と次の日が、これからは横に並んでつながります。2本の指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで、そのまま書けます」が「つなぎ目の上からそのまま書くことができます」（par-dessus la jonction は、つなぎ目の上に重ねて書く・上書きするとも読め、またいで書けることが伝わらない）。「つながりました」が「これからは横に並んでつながります」（désormais）は同じ | 直した（○） |
+| `span.guide.day.twoFingers`（N-7） | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | de | 前の日と次の日が横につながるようになりました。2本の指で横になぞると、隣の日が見られます。境目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「境目の上から」（über den Übergang schreiben は、hinweg が無いと「境目の上に書く」とも「境目について書く」とも読める。N-3 は hinweg があり ○）。「なぞる」は streichen（横に動かす）で同じ動き | 直した（○） |
+| `span.guide.day.twoFingers`（N-7） | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | es | 前の日と次の日は、もう横方向につながっています。2本の指を横方向にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書くことができます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por encima de la unión。N-3 と同じ）。「もう横方向につながっています」は ya（今は）で同じ | 直した（○） |
+| `span.guide.day.twoFingers`（N-7） | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | it | 前の日と次の日が、今は横方向につながっています。2本の指を横方向にすべらせると、隣の日が見られます。境目をまたいでそのまま書くことができます。 | ○ | 「つながりました」が「今は横方向につながっています」（ora）。「出てきます」が「見られます」 | ○ |
+| `span.guide.day.twoFingers`（N-7） | 前後の日が横につながりました。2 本指で横にすべらせると、となりの日が出てきます。境目をまたいで、そのまま書けます。 | pt-BR | 前の日と次の日が、今は横につながっています。2本の指を横にすべらせると、隣の日が見られます。つなぎ目の上からそのまま書けます。 | × | 「境目をまたいで」が「つなぎ目の上から」（por cima da emenda。N-3 と同じ）。「今は横につながっています」（agora）は同じ | 直した（○） |
+| `span.stageTwo.notice`（N-8） | このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。 | en | このページは線がとても多いため、横につなげる代わりに1ページずつ表示しています。書いた内容はそのまま残っています。 | ○ | 同じ | ○ |
+| `span.stageTwo.notice`（N-8） | このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。 | zh-Hans・zh-Hant | このページは線が非常に多いため、横にはつなげず、1ページずつ表示します。書いた内容はそのままです。 | ○ | 同じ | ○ |
+| `span.stageTwo.notice`（N-8） | このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。 | ko | このページは線がとても多いので、横につながずに1ページずつ表示します。書いた内容はそのままです。 | ○ | 同じ | ○ |
+| `span.stageTwo.notice`（N-8） | このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。 | fr | このページにはとても多くの線があるため、ページはつながらずに1ページずつ表示されます。書いた内容は損なわれずにそのまま残ります。 | ○ | 「横につなげずに」の「横に」が無い（sans être reliées）。この案内の「つなげる」は横につなげることだけで、1 ページずつとの対比も残るので、意味は同じ。「損なわれずに」は reste intact | ○ |
+| `span.stageTwo.notice`（N-8） | このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。 | de | このページには線がとても多いため、ページは横につながらず、1ページずつ表示されます。書いた内容は保持されます。 | ○ | 「書いたものはそのままです」が「書いた内容は保持されます」（bleibt erhalten） | ○ |
+| `span.stageTwo.notice`（N-8） | このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。 | es | このページには線が非常に多いので、ページはつなげずに1ページずつ表示されます。書いた内容はそのまま保たれます。 | ○ | 「横につなげずに」の「横に」が無い（sin unirlas）。この案内の「つなげる」は横につなげることだけで、1 ページずつとの対比も残るので、意味は同じ | ○ |
+| `span.stageTwo.notice`（N-8） | このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。 | it | このページには線が非常に多いので、ページはつなげずに1ページずつ表示されます。書いた内容はそのままです。 | ○ | 「横につなげずに」の「横に」が無い（senza unirle）。この案内の「つなげる」は横につなげることだけで、1 ページずつとの対比も残るので、意味は同じ | ○ |
+| `span.stageTwo.notice`（N-8） | このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。 | pt-BR | このページには線がものすごく多いので、ページはつながらずに1ページずつ表示されます。書いた内容は変わらずそのままです。 | ○ | 「横につなげずに」の「横に」が無い（sem ficar unidas）。この案内の「つなげる」は横につなげることだけで、1 ページずつとの対比も残るので、意味は同じ。「ものすごく多い」は muitíssimos（とても多い） | ○ |
+
+### 境目と札の長さ
+
+- 直した後の各言語の「境目をまたいで書ける」: en write (straight) across the boundary ／ zh-Hans 跨过交界处 ／ zh-Hant 跨越交界處 ／ ko 경계를 넘어 ／ fr à cheval sur la jonction ／ de über den Übergang hinweg ／ es cruzando la unión ／ it a cavallo del confine ／ pt-BR atravessando a emenda。「ページをまたいで書いた線」: fr à cheval sur deux pages ／ es de una página a otra ／ pt-BR de uma página para a outra（ほかの言語は変えていない）。
+- 札（N-4〜N-7）の長さ: この Mac の CoreText のシステムの字（13 pt。iOS のシミュレータではない）で、iPhone の縦の文の幅 315 pt でラテン系 6 言語は 4 行、zh・ko は 2 行（ja は 3 行）、iPad の 492 pt で 3 行以内です（直す前と同じ）。fr の週の 2 本指の札は、幅が 310 pt だと 5 行になります（直す前の字も同じ）。本当の見え方は、10 言語の写真（§10.5 の span-shots）か TestFlight で確かめます。段 2 の案内（N-8）は変えていません。
+
+### lint
+
+直した後の字で、`lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です（`baseline.py` は 9cbc3c9 の 516 字のまま。L-12 の字の幅の目安の警告は 58 件で、直す前と同じ）。`Localizable.xcstrings` は `build.py` で作り直しました（471 キー。ja 471、ほかの 9 言語は各 438 で、残りの 33 キーは訳さない試作の文）。
+
+### 元を見ない逆翻訳（2 回目。照合の後に直した 19 件、2026-11-13）
+
+上の「× と直した訳」の 19 件（fr・es・pt-BR の N-3〜N-7、de の N-4〜N-7）の今の字だけを、R にもう 1 回渡しました。渡したのは key・言語・訳の表だけで、日本語の元・comment・1 回目の逆翻訳は入っていません。同じ表に、11 のサポートの英語の 1 文（the App's を足した文）も入れました（その判定は 11 の「元を見ない逆翻訳（2 回目）」）。判定は、訳を直した Claude とも R とも別の Claude が、逆翻訳と固定の日本語（`tools/l10n/source/app-U.json`）を 1 件ずつ照らしたものです。判定は 1 回目と同じ ○ と × の 2 つです。**母語の人の確認ではありません。**
+
+**結果: ○ 19・× 0。** 直した所は 19 件とも、「つなぎ目をまたいで（書ける）」「ページをまたいで書いた線」「2 ページのうち一方」と読まれました。1 回目の「つなぎ目（境目）の上から書く」「2 ページの間に書いた線」の読みは、もう出ませんでした。直していない所も 1 回目と同じ意味に読まれ、抜けた事実も、元に無い事実もありません。訳は変えていません（札の長さも変わらないので、測り直していません）。
+
+| 言語 | 件数 | ○ | × |
+| --- | --- | --- | --- |
+| fr | 5 | 5 | 0 |
+| de | 4 | 4 | 0 |
+| es | 5 | 5 | 0 |
+| pt-BR | 5 | 5 | 0 |
+| 合計 | 19 | 19 | 0 |
+
+- R がメモに書いた別の読み（どれも 1 回目から変えていない語で、R の訳はいちばん自然な読みで元と同じ）: fr の sur le côté（「画面の端で」とも）、de の seitlich verbunden（何と何がつながるのか書かれていない。日本語の元も同じ書き方）、de の direkt（「すぐに」とも）、es の ya（「前からつながっていた」とも）、es の N-3 の Si está desactivado（直前の La función と性が合わない）、pt-BR の emenda（やや素朴な語）。直すと 3 回目の逆翻訳が要るので、直していません。母語の人に見てもらうときの候補にします。
+- fr・es・pt-BR の N-3 の「次の版から順に」の 2 通りの読み（次の版から 1 つずつ／次の版で両方）は、日本語の元も同じ幅の言い方です（M7C.md の第 4 陣の決定 2）。
+- `docs/i18n/back/fr.json`・`de.json`・`es.json`・`pt-BR.json` の 19 キーは、`text` を今の字に、`back` をこの 2 回目の逆翻訳に替えました（1 回目の逆翻訳は、上の「× と直した訳」の表にあります）。
+
+| キー | 言語 | 訳 | 逆翻訳（元を見ない、2 回目） | 判定 | 理由 |
+| --- | --- | --- | --- | --- | --- |
+| `settings.page.span.footer`（N-3） | fr | Sur les pages de la semaine et du jour, les pages précédente et suivante sont reliées côte à côte, et vous pouvez écrire à cheval sur la jonction. Les pages du mois et de l’année seront prises en charge l’une après l’autre à partir de la prochaine version. Si cette option est désactivée, les pages s’affichent une par une, comme avant. Sur un appareil où elle est désactivée, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils ne sont pas supprimés). | 週と日のページでは、前後のページが横に並んでつながり、つなぎ目をまたいで書くことができます。月と年のページは、次のバージョンから順に対応します。このオプションをオフにすると、以前と同じようにページは1ページずつ表示されます。オフにしている端末では、2ページにまたがって書いた線は、どちらか一方のページにしか表示されません（削除はされません）。 | ○ | 「境目をまたいで書けます」が「つなぎ目をまたいで書くことができます」（à cheval sur la jonction。直した所が伝わった）。「横につながり」が「横に並んでつながり」（côte à côte）。「月と年は」が「月と年のページは」（同じ物）。「消えてはいません」が「削除はされません」の形（1 回目と同じ扱い）。R は l’une après l’autre à partir de la prochaine version を「次の版から 1 つずつ」とも「次の版で両方が順に」とも読めると書いたが、日本語の元の「次の版から順に」も同じ幅の言い方で、事実は変わらない（この文は直していない。元の言い方の話は M7C.md の第 4 陣の決定 2） |
+| `settings.page.span.footer`（N-3） | es | En las páginas de la semana y del día, las páginas anterior y siguiente se unen en horizontal y puede escribir cruzando la unión. La función llegará a las páginas del mes y del año, una tras otra, a partir de la próxima versión. Si está desactivado, las páginas se muestran de una en una, como hasta ahora. En un dispositivo donde esté desactivado, los trazos escritos de una página a otra solo aparecen en una de las dos (no se eliminan). | 週と日のページでは、前後のページが横につながり、つなぎ目をまたいで書くことができます。この機能は次のバージョンから、月と年のページにも順に広がります。オフにすると、これまでどおりページは1ページずつ表示されます。オフにしている端末では、ページをまたいで書いた線は2ページのうち一方にしか表示されません（削除はされません）。 | ○ | 「境目をまたいで書けます」が「つなぎ目をまたいで書くことができます」（cruzando la unión。直した所が伝わった）。「ページをまたいで書いた線」（de una página a otra）と「片方のページ」（2 ページのうち一方、una de las dos）も、直したとおりに読まれた。「月と年は、次の版から順に対応します」が「この機能は次のバージョンから、月と年のページにも順に広がります」（同じ）。「消えてはいません」が「削除はされません」の形。R は La función（女性の名詞）の後の Si está desactivado（男性の形）で性が合わないと書いた。主語はスイッチ（設定）と補って読め、R の訳も「オフにすると」なので、意味は同じ（この文は 1 回目から変えていない） |
+| `settings.page.span.footer`（N-3） | pt-BR | Nas páginas da semana e do dia, as páginas anterior e seguinte ficam unidas na horizontal, e você pode escrever atravessando a emenda. O recurso chegará às páginas do mês e do ano, uma depois da outra, a partir da próxima versão. Quando desativado, as páginas aparecem uma por vez, como antes. Em um dispositivo com o ajuste desativado, os traços escritos de uma página para a outra aparecem só em uma das duas (não são apagados). | 週と日のページでは、前後のページが横につながっていて、つなぎ目をまたいで書くことができます。この機能は次のバージョンから、月と年のページにも順に対応します。オフのときは、以前と同じようにページが1ページずつ表示されます。この設定をオフにしている端末では、ページをまたいで書いた線は2ページのうち一方にしか表示されません（消えるわけではありません）。 | ○ | 「境目をまたいで書けます」が「つなぎ目をまたいで書くことができます」（atravessando a emenda。直した所が伝わった）。「ページをまたいで書いた線」（de uma página para a outra）と「2 ページのうち一方」（uma das duas）も、直したとおりに読まれた。「横につながり」が「横につながっていて」。「消えてはいません」が「消えるわけではありません」。R は emenda が布や板の継ぎ目を思わせる、やや素朴な語だと書いたが、意味は通じる（この語は 1 回目から同じで、M7C.md の第 4 陣で決めた語） |
+| `span.guide.week.oneFinger`（N-4） | fr | Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction. | 前後の週が横に並んでつながるようになりました。指を横にすべらせると、隣の週が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「横に並んでつながるようになりました」（désormais、côte à côte）。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（à cheval sur la jonction。直した所が伝わった）。R は sur le côté を「画面の端で」とも読めると書いたが、いちばん自然な読みは「横に」で、R の訳もそう読んだ（この語は 1 回目から変えていない） |
+| `span.guide.week.oneFinger`（N-4） | de | Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um die Woche daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben. | 前の週と次の週が、横につながるようになりました。指で横にスワイプすると、隣の週が見られます。つなぎ目をまたいで、そのまま書くことができます。 | ○ | 「前後の週」が「前の週と次の週」（同じ）。「つながりました」が「つながるようになりました」（jetzt）。「すべらせる」が「スワイプ」（seitwärts streichen。同じ動き）。「出てきます」が「見られます」。「境目をまたいで」が「つなぎ目をまたいで」（über den Übergang hinweg。直した所が伝わった。語の並びを変えた文も、そのまま読まれた）。R は何と何がつながるのか書かれていないと書いたが、日本語の元の「前後の週が横につながりました」も同じ書き方で、事実は変わらない。direkt は「そのまま」と読まれた |
+| `span.guide.week.oneFinger`（N-4） | es | Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión. | 前後の週が横につながるようになりました。指を横にスライドすると、隣の週が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「つながるようになりました」（ya）。「すべらせる」が「スライド」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（cruzando la unión。直した所が伝わった）。R は ya を「前からつながっていた」とも取れなくはないと書いたが、自然な読みは新しくつながったことで、R の訳もそう読んだ（1 回目と同じ）。en horizontal が 2 回続くのは言い回しの話 |
+| `span.guide.week.oneFinger`（N-4） | pt-BR | As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda. | 前後の週が横につながるようになりました。指を横にスライドすると、隣の週が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「つながるようになりました」（agora）。「すべらせる」が「スライド」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（atravessando a emenda。直した所が伝わった）。direto は口語の「そのまま」。emenda の語感は N-3 と同じ |
+| `span.guide.week.twoFingers`（N-5） | fr | Les semaines précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir la semaine voisine. Vous pouvez écrire directement à cheval sur la jonction. | 前後の週が横に並んでつながるようになりました。2本の指を横にすべらせると、隣の週が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「横に並んでつながるようになりました」（désormais、côte à côte）。「2 本指で」が「2 本の指を」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（à cheval sur la jonction。直した所が伝わった）。R は sur le côté を「画面の端で」とも読めると書いたが、いちばん自然な読みは「横に」で、R の訳もそう読んだ（この語は 1 回目から変えていない） |
+| `span.guide.week.twoFingers`（N-5） | de | Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um die Woche daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben. | 前の週と次の週が、横につながるようになりました。2本の指で横にスワイプすると、隣の週が見られます。つなぎ目をまたいで、そのまま書くことができます。 | ○ | 「前後の週」が「前の週と次の週」（同じ）。「つながりました」が「つながるようになりました」（jetzt）。「2 本指で」が「2 本の指で」。「すべらせる」が「スワイプ」（seitwärts streichen。同じ動き）。「出てきます」が「見られます」。「境目をまたいで」が「つなぎ目をまたいで」（über den Übergang hinweg。直した所が伝わった。語の並びを変えた文も、そのまま読まれた）。R は何と何がつながるのか書かれていないと書いたが、日本語の元の「前後の週が横につながりました」も同じ書き方で、事実は変わらない。direkt は「そのまま」と読まれた |
+| `span.guide.week.twoFingers`（N-5） | es | Las semanas anterior y siguiente ya están unidas en horizontal. Deslice dos dedos en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión. | 前後の週が横につながるようになりました。2本の指を横にスライドすると、隣の週が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「つながるようになりました」（ya）。「2 本指で」が「2 本の指を」。「すべらせる」が「スライド」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（cruzando la unión。直した所が伝わった）。R は ya を「前からつながっていた」とも取れなくはないと書いたが、自然な読みは新しくつながったことで、R の訳もそう読んだ（1 回目と同じ）。en horizontal が 2 回続くのは言い回しの話 |
+| `span.guide.week.twoFingers`（N-5） | pt-BR | As semanas anterior e seguinte agora estão unidas na horizontal. Deslize dois dedos na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda. | 前後の週が横につながるようになりました。2本の指を横にスライドすると、隣の週が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「つながるようになりました」（agora）。「2 本指で」が「2 本の指を」。「すべらせる」が「スライド」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（atravessando a emenda。直した所が伝わった）。direto は口語の「そのまま」。emenda の語感は N-3 と同じ |
+| `span.guide.day.oneFinger`（N-6） | fr | Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction. | 前後の日が横に並んでつながるようになりました。指を横にすべらせると、隣の日が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「横に並んでつながるようになりました」（désormais、côte à côte）。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（à cheval sur la jonction。直した所が伝わった）。R は sur le côté を「画面の端で」とも読めると書いたが、いちばん自然な読みは「横に」で、R の訳もそう読んだ（この語は 1 回目から変えていない） |
+| `span.guide.day.oneFinger`（N-6） | de | Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Tag daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben. | 前の日と次の日が、横につながるようになりました。指で横にスワイプすると、隣の日が見られます。つなぎ目をまたいで、そのまま書くことができます。 | ○ | 「前後の日」が「前の日と次の日」（同じ）。「つながりました」が「つながるようになりました」（jetzt）。「すべらせる」が「スワイプ」（seitwärts streichen。同じ動き）。「出てきます」が「見られます」。「境目をまたいで」が「つなぎ目をまたいで」（über den Übergang hinweg。直した所が伝わった。語の並びを変えた文も、そのまま読まれた）。R は何と何がつながるのか書かれていないと書いたが、日本語の元の「前後の日が横につながりました」も同じ書き方で、事実は変わらない。direkt は「そのまま」と読まれた |
+| `span.guide.day.oneFinger`（N-6） | es | Los días anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión. | 前後の日が横につながるようになりました。指を横にスライドすると、隣の日が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「つながるようになりました」（ya）。「すべらせる」が「スライド」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（cruzando la unión。直した所が伝わった）。R は ya を「前からつながっていた」とも取れなくはないと書いたが、自然な読みは新しくつながったことで、R の訳もそう読んだ（1 回目と同じ）。en horizontal が 2 回続くのは言い回しの話 |
+| `span.guide.day.oneFinger`（N-6） | pt-BR | Os dias anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda. | 前後の日が横につながるようになりました。指を横にスライドすると、隣の日が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「つながるようになりました」（agora）。「すべらせる」が「スライド」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（atravessando a emenda。直した所が伝わった）。direto は口語の「そのまま」。emenda の語感は N-3 と同じ |
+| `span.guide.day.twoFingers`（N-7） | fr | Les jours précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le jour voisin. Vous pouvez écrire directement à cheval sur la jonction. | 前後の日が横に並んでつながるようになりました。2本の指を横にすべらせると、隣の日が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「横に並んでつながるようになりました」（désormais、côte à côte）。「2 本指で」が「2 本の指を」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（à cheval sur la jonction。直した所が伝わった）。R は sur le côté を「画面の端で」とも読めると書いたが、いちばん自然な読みは「横に」で、R の訳もそう読んだ（この語は 1 回目から変えていない） |
+| `span.guide.day.twoFingers`（N-7） | de | Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Tag daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben. | 前の日と次の日が、横につながるようになりました。2本の指で横にスワイプすると、隣の日が見られます。つなぎ目をまたいで、そのまま書くことができます。 | ○ | 「前後の日」が「前の日と次の日」（同じ）。「つながりました」が「つながるようになりました」（jetzt）。「2 本指で」が「2 本の指で」。「すべらせる」が「スワイプ」（seitwärts streichen。同じ動き）。「出てきます」が「見られます」。「境目をまたいで」が「つなぎ目をまたいで」（über den Übergang hinweg。直した所が伝わった。語の並びを変えた文も、そのまま読まれた）。R は何と何がつながるのか書かれていないと書いたが、日本語の元の「前後の日が横につながりました」も同じ書き方で、事実は変わらない。direkt は「そのまま」と読まれた |
+| `span.guide.day.twoFingers`（N-7） | es | Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión. | 前後の日が横につながるようになりました。2本の指を横にスライドすると、隣の日が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「つながるようになりました」（ya）。「2 本指で」が「2 本の指を」。「すべらせる」が「スライド」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（cruzando la unión。直した所が伝わった）。R は ya を「前からつながっていた」とも取れなくはないと書いたが、自然な読みは新しくつながったことで、R の訳もそう読んだ（1 回目と同じ）。en horizontal が 2 回続くのは言い回しの話 |
+| `span.guide.day.twoFingers`（N-7） | pt-BR | Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda. | 前後の日が横につながるようになりました。2本の指を横にスライドすると、隣の日が見られます。つなぎ目をまたいで、そのまま書けます。 | ○ | 「つながりました」が「つながるようになりました」（agora）。「2 本指で」が「2 本の指を」。「すべらせる」が「スライド」。「出てきます」が「見られます」。「境目をまたいで、そのまま書けます」が「つなぎ目をまたいで、そのまま書けます」（atravessando a emenda。直した所が伝わった）。direto は口語の「そのまま」。emenda の語感は N-3 と同じ |
+
+## 13. 1.3 の週のメモ（SUPPORT の 2 段落と訳者向けの説明、2026-11-18）
+
+元は `docs/SUPPORT.md` の 2 つの段落で、週のページの 24 時の下の「自由メモ」（[M7C_CONTRACT.md](../M7C_CONTRACT.md) §5）を入れるのに合わせて、3 つの文を変えました（§8.7 の 2 つ目、週のメモの計画の §8.1。ほかの文は 1.2 の字のまま）。
+
+- 「1 ページにどれだけ書けますか？」の 2 つ目の文: 「日のページの」→「日と週のページの」。
+- 「iPad と iPhone で版が違うと？」の 1 つ目の文: 日のページは 1.1 から、週のページは 1.3 から。括弧の「週のページでは、設定 › ページ で横につなげるのをオフにしても出ます」は計画の決めどころ 27（契約 §6.5 の「設定オフの端末（1.3）」の行の脚注にあたる）。
+- 同じ段落の 2 つ目の文: 「1.0 や 1.0.1 のままの端末」→「それより前の版のままの端末」（日と週で版が違うので）。
+
+英語は `docs/SUPPORT.en.md` の同じ 2 つの段落の同じ 3 文です。R には英語のこの 3 つの文だけを渡し、日本語の元を見ずに訳し戻してもらいました。判定は、英語を書いた Claude とも R とも別の Claude が、逆翻訳と日本語の元を照らしたものです。母語の人の確認ではありません。逆翻訳は `docs/i18n/back/legal-en.md` の同じ段落にあります（2 つの段落のほかの文は 1.2 の逆翻訳のまま）。
+
+**○ 2・△ 1・× 0。直した字はありません**（× が無いので、2 回目の R は回していません）。抜けた事実も、元に無い事実もありませんでした（月のメモ欄と日・週の自由メモは最初から下まで開いている、日は 1.1 から・週は 1.3 から、週は設定でオフにしても出る、前の版の端末では見えないが消えていない、新しい版にすると見える）。
+
+| 文 | 元の日本語 | 渡した英語 | 逆翻訳（元を見ない） | 判定 | 理由・R の注 |
+| --- | --- | --- | --- | --- | --- |
+| 書ける量の 2 つ目 | 月のメモ欄と、日と週のページの 24 時の下の「自由メモ」は、最初から下まで開いています。 | The Notes area of the month page and the “Free Notes” area below 24:00 on the day and week pages are open all the way down from the start. | 月のページのメモ欄と、日のページと週のページの24:00より下にある「自由メモ」欄は、最初から一番下まで開いています。 | ○ | 変えたのは and week の 2 語。R が挙げた open のあいまいさ（広がっている／書ける、from the start が「初めから」か「欄の上端から」か）は、元の「開いています」「最初から」にも同じだけある。1.2 の逆翻訳（最初からいちばん下まで開いています）も ○ だった |
+| 版が違うときの 1 つ目 | 24 時の下の「自由メモ」は、日のページは 1.1 から、週のページは 1.3 からの機能です（週のページでは、設定 › ページ で横につなげるのをオフにしても出ます）。 | The “Free Notes” area below 24:00 is a feature from version 1.1 on the day page and from version 1.3 on the week page (on the week page, it appears even when the side-by-side joining is turned off in the App's Settings > Pages). | 24:00より下の「自由メモ」欄は、日のページではバージョン1.1から、週のページではバージョン1.3から使える機能です（週のページでは、アプリの設定＞ページで横につなげる機能をオフにしていても表示されます）。 | ○ | 日は 1.1 から・週は 1.3 から・週はオフでも出る、が全部同じ。「バージョン」「アプリの」は version と the App's の読みで、どちらも 11 で ○ になった形。R の注の the side-by-side joining が分かりにくいことは、SUPPORT の「Handwriting across cells」の行と新機能の文の 3 つ目の点と同じ語で、そろえてある。the App's Settings が iOS の設定アプリにあるこのアプリの項目とも読めるという注は、11 の 2 回目の R が「アプリの［設定］＞［ページ］」と読んだのと同じ字で、11 で ○ にした形のまま |
+| 版が違うときの 2 つ目 | それより前の版のままの端末では表示されませんが、消えてはいません（その端末を新しい版にすると表示されます）。 | On a device still on an earlier version, it is not shown, but it has not been deleted (it appears when you update that device). | まだ以前のバージョンのままの端末では表示されませんが、削除されたわけではありません（その端末をアップデートすると表示されます）。 | △ | 「それより前の版」が「以前のバージョン」に戻った。earlier は直前の文の 1.1・1.3 と比べた語として読め、日のページなら 1.1 より前、週のページなら 1.3 より前、という元の意味と同じ。R の注の update that device が OS の更新とも読めること、it が欄か中身かのあいまいさは、1.2 の英語（同じ字で ○）と元の日本語に同じだけある。「表示されない」と「消えていない」の区別ははっきり伝わった |
+
+### 訳者向けの説明（comment）
+
+画面の文ではなく、訳す人への説明（`comment`）を 3 つ直しました（週のメモの計画の §8.2）。日本語の文（`ja`）と `jaSha1` は変えていないので、訳し直しは要らず、訳のファイル（`tools/l10n/translations/`）も変えていません。`comment` には訳が無いので、逆翻訳はありません。`Localizable.xcstrings` は `build.py` が作り直し、変わったのはこの 3 つの `comment` だけです。
+
+| キー | 前の字 | 今の字 | 見たこと |
+| --- | --- | --- | --- |
+| `toast.eventBelowDay` | トースト。日のページの 24 時より下は予定にできない | トースト。日と週のページの 24 時より下は予定にできない | 週のメモの中でも予定を作らない（契約 §5.2、決めどころ 4）。同じお知らせで断るので、文は増えない |
+| `toast.growthCap` | トースト。月のメモ欄や日の自由メモ欄の下の端まで書いたとき | トースト。月のメモ欄や日と週の自由メモ欄の下の端まで書いたとき | 週のメモも上限の下の端で同じお知らせ（契約 §5.2） |
+| `paper.freeMemo` | 日のページの 24 時より下の欄の見出し。同じページに「メモ」もあるので別の語にする。（後ろは F-6 の字のまま） | 日と週のページの 24 時より下の欄の見出し。日のページには「メモ」もあるので別の語にする。（後ろは F-6 の字のまま） | 見出しが日と週の両方に出るので、「同じページに」を、同じページに「メモ」の欄がある日のページのことだと分かる「日のページには」に。見出しの語「自由メモ」とその訳は変えない（新機能の文の「自由メモ」もこの訳にそろえてある、4） |
+
+### lint
+
+`lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は、この節と 4 の「1.3 の週のメモの文」の直しの後の字で、3 つとも終了 0 です。

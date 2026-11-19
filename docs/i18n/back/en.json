@@ -1,6 +1,6 @@
 {
  "language": "en",
- "about": "R の逆翻訳。translations/en.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。",
+ "about": "R の逆翻訳。translations/en.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。",
  "strings": {
   "CFBundleDisplayName": {
    "text": "Tegaki",
@@ -1386,6 +1386,18 @@
    "text": "Open the Settings App",
    "back": "設定アプリを開く"
   },
+  "settings.page.header": {
+   "text": "Pages",
+   "back": "ページ"
+  },
+  "settings.page.span": {
+   "text": "Join Neighboring Pages Sideways",
+   "back": "隣り合うページを横につなげる"
+  },
+  "settings.page.span.footer": {
+   "text": "On week and day pages, the previous and next pages are joined sideways, and you can write across the boundary. Month and year pages will be supported in turn, starting with the next version. When this is off, pages are shown one at a time, as before. On a device where this is off, strokes written across pages appear on only one of the pages (they are not deleted).",
+   "back": "週と日のページでは、前後のページが横につながり、境目をまたいで書くことができます。月と年のページは、次のバージョンから順に対応します。これをオフにすると、これまでどおりページが1ページずつ表示されます。これをオフにしている端末では、ページをまたいで書いた線は片方のページにだけ表示されます（削除はされません）。"
+  },
   "settings.purchase.footer.cancel": {
    "text": "To cancel, go to %@ on your device. After you cancel, you can keep using the app until the end of the period.",
    "back": "解約するには、端末の %@ に進みます。解約した後も、期間の終わりまでアプリを使えます。"
@@ -1509,6 +1521,26 @@
   "settings.weekStart.title": {
    "text": "Week Starts On",
    "back": "週の始まり"
+  },
+  "span.guide.day.oneFinger": {
+   "text": "The previous and next days are now joined sideways. Slide your finger sideways to see the neighboring day. You can write straight across the boundary.",
+   "back": "前の日と次の日が横につながりました。指を横にすべらせると、隣の日が見えます。境目をまたいでそのまま書くことができます。"
+  },
+  "span.guide.day.twoFingers": {
+   "text": "The previous and next days are now joined sideways. Slide two fingers sideways to see the neighboring day. You can write straight across the boundary.",
+   "back": "前の日と次の日が横につながりました。2本の指を横にすべらせると、隣の日が見えます。境目をまたいでそのまま書くことができます。"
+  },
+  "span.guide.week.oneFinger": {
+   "text": "The previous and next weeks are now joined sideways. Slide your finger sideways to see the neighboring week. You can write straight across the boundary.",
+   "back": "前の週と次の週が横につながりました。指を横にすべらせると、隣の週が見えます。境目をまたいでそのまま書くことができます。"
+  },
+  "span.guide.week.twoFingers": {
+   "text": "The previous and next weeks are now joined sideways. Slide two fingers sideways to see the neighboring week. You can write straight across the boundary.",
+   "back": "前の週と次の週が横につながりました。2本の指を横にすべらせると、隣の週が見えます。境目をまたいでそのまま書くことができます。"
+  },
+  "span.stageTwo.notice": {
+   "text": "This page has a great many strokes, so pages are shown one at a time instead of joined sideways. What you wrote stays as it is.",
+   "back": "このページは線がとても多いため、横につなげる代わりに1ページずつ表示しています。書いた内容はそのまま残っています。"
   },
   "store.error.productNotFound": {
    "text": "The product cannot be found",

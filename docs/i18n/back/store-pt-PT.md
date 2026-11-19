@@ -84,3 +84,32 @@ R が日本語の元を見ずに `docs/store/pt-PT/*.txt` と `docs/store/subscr
 | sub.products.com.syfan0.tegakicalendar.monthly.description | Escrita à mão, eventos e sincronização iCloud | 手書き、予定、iCloud 同期 |
 | sub.products.com.syfan0.tegakicalendar.yearly.displayName | Tegaki Anual | Tegaki 年額 |
 | sub.products.com.syfan0.tegakicalendar.yearly.description | As mesmas funcionalidades, cobradas por ano | 同じ機能を、年ごとの請求で |
+
+## 1.3 の whatsnew.txt（このバージョンの新機能。2026-11-13）
+
+上の `whatsnew.txt` の節は 1.2 の文です。この節は 1.3 の `docs/store/pt-PT/whatsnew.txt` の逆翻訳で、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。照合と判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の新機能の文と審査メモ」。× 0）。4 つ目の点の最後の文（iPad での見え方）は、リードの確認を待っている案の文です。
+
+| id | 訳 | 逆翻訳 |
+| --- | --- | --- |
+| 1.3.whatsnew.1 | • As páginas da semana e do dia passam a estar ligadas lado a lado às páginas anteriores e seguintes. Deslize o dedo para o lado e a semana vizinha (ou o dia vizinho) aparece a seguir. Pode escrever diretamente por cima do limite entre as páginas (quando “Traçar com o dedo” estiver ativado, deslize para o lado com dois dedos). | • 週のページと日のページが、前後のページと横に並んでつながるようになりました。指を横にすべらせると、隣の週（または隣の日）が続いて現れます。ページの境目の上を、そのまままたいで書けます（「指でなぞる」がオンのときは、2本指で横にすべらせます）。 |
+| 1.3.whatsnew.2 | • Pode desativar a ligação lado a lado na secção “Páginas” dos Ajustes. | • 設定の「ページ」の項目で、横並びのつながりをオフにできます。 |
+| 1.3.whatsnew.3 | • Foi corrigido um problema em que, depois de toda a escrita à mão ser apagada noutro dispositivo, a escrita à mão que ainda estava neste dispositivo podia voltar para o iCloud. | • ほかの端末ですべての手書きが消されたあと、まだこの端末にあった手書きが iCloud に戻ってしまうことがある問題を修正しました。 |
+| 1.3.whatsnew.4 | • Atualize tanto o iPad como o iPhone para esta versão. Nas versões anteriores, os traços escritos entre duas páginas aparecem apenas numa delas (não foram eliminados). Se apagar um desses traços numa versão anterior, também é apagado nesta versão. No iPad, esta versão liga lado a lado as páginas anteriores e seguintes, tanto na vertical como na horizontal. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。以前のバージョンでは、2つのページにまたがって書いた線は、どちらか一方にしか表示されません（削除されたわけではありません）。以前のバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
+| 1.3.whatsnew.5 | As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros. | 翻訳は AI で作成したもので、まだネイティブスピーカーの確認を受けていません。誤りがあればお知らせください。 |
+
+## 1.3 の週のメモの文（2026-11-18）
+
+週のメモ（契約 §5）を作り始めたときに、`docs/store/pt-PT/whatsnew.txt` の 2 つ目の点に週のメモの行を足しました。今の 3〜6 つ目の行は、上の節の 1.3.whatsnew.2〜5 と同じ字です（iPad の 1 文はリードが外した後の形）。また、2 つ目の点に古い版での見え方の句を足す案（K-8。`docs/store/PROPOSALS_1_3.md` の 4。本人の確認ページで選んでもらう）を用意しました。この 2 つの文だけを、別の Claude（R）に日本語の元を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の週のメモの文」）。1 回目の判定で直した字は、直した字だけを R にもう 1 回渡しました（2 回目。R は 1 回目の字と逆翻訳を見ていない）。2 回目の判定で直した字は、最後の回だったので元を見ない逆翻訳をもう通していません。R の注は R が書いたままです。
+
+| id | 回 | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- | --- |
+| 1.3.memo.whatsnew | 1 回目 | • As páginas da semana passam também a ter a área “Notas livres” abaixo das 24:00. | ・週のページにも、24:00の下に「自由メモ」欄が加わりました。 | なし |
+| 1.3.memo.k8（案） | 1 回目 | • As páginas da semana passam também a ter a área “Notas livres” abaixo das 24:00 (nos dispositivos com uma versão anterior não aparece, mas não foi eliminada). | ・週のページにも、24:00の下に「自由メモ」欄が加わりました（以前のバージョンの端末では表示されませんが、削除されたわけではありません）。 | 「uma versão anterior」は、アプリのバージョンかOSのバージョンかがはっきりしない。新しい欄について「削除されていない」と言うのは少し分かりにくい。 |
+
+## 1.3 の H1 の点の新しい文（2026-11-19）
+
+1.2.4（2026-11-19 公開）の 2 つ目の点は、上の「1.3 の whatsnew.txt」の節の 1.3.whatsnew.3 と同じ文と訳でした（1.2.4 では H4 の直しの点）。1.2.4 の公開の後に 1.3 の文からこの点を外し（92caae1）、1.2.4 に入っていない H1 の直し（ほかの端末で全て消したあと、この端末の画面に残っていた手書きが iCloud に戻る）を言う新しい文を、`docs/store/pt-PT/whatsnew.txt` の 4 つ目の点に足しました（2c1fdf6）。ほかの行は、上の 2 つの節の字のままです（iPad の 1 文はリードが外した後の形）。この 1 つの文だけを、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の H1 の点の新しい文と審査メモの直し」。○、直した字なし）。R の注は R が書いたままです。
+
+| id | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- |
+| 1.3.h1.whatsnew | • Após a correção da versão 1.2.4, foi também corrigido um problema em que, depois de toda a escrita à mão ser apagada noutro dispositivo, a escrita à mão que ainda estava no ecrã deste dispositivo podia voltar para o iCloud. | • バージョン 1.2.4 の修正の後、別のデバイスで手書きがすべて消去された後に、このデバイスの画面にまだ残っていた手書きが iCloud に戻ってしまうことがある問題も修正されました。 | pt-BR と同じく「Após」と「depois de」で「後」が 2 回続き、「da versão 1.2.4」は「バージョン自体の修正」とも読めます。「noutro」「ecrã」はポルトガル本国の言い方として適切です。 |

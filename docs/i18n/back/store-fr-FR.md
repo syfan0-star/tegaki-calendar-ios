@@ -83,3 +83,32 @@ R が日本語の元を見ずに `docs/store/fr-FR/*.txt` と `docs/store/subscr
 | sub.products.com.syfan0.tegakicalendar.monthly.description | Écriture, évènements et synchro iCloud | 手書き、予定、iCloud 同期 |
 | sub.products.com.syfan0.tegakicalendar.yearly.displayName | Tegaki Annuel | Tegaki 年額 |
 | sub.products.com.syfan0.tegakicalendar.yearly.description | Les mêmes fonctions, facturées à l’année | 同じ機能を、年ごとの請求で |
+
+## 1.3 の whatsnew.txt（このバージョンの新機能。2026-11-13）
+
+上の `whatsnew.txt` の節は 1.2 の文です。この節は 1.3 の `docs/store/fr-FR/whatsnew.txt` の逆翻訳で、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。照合と判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の新機能の文と審査メモ」。× 0）。4 つ目の点の最後の文（iPad での見え方）は、リードの確認を待っている案の文です。
+
+| id | 訳 | 逆翻訳 |
+| --- | --- | --- |
+| 1.3.whatsnew.1 | • Les pages de la semaine et du jour sont désormais reliées côte à côte aux pages précédentes et suivantes. Faites glisser le doigt sur le côté pour faire apparaître la semaine (ou le jour) d’à côté. Vous pouvez écrire directement par-dessus la limite entre deux pages (quand « Écrire au doigt » est activé, faites glisser sur le côté avec deux doigts). | • 週のページと日のページが、前後のページと横に並んでつながるようになりました。指を横にすべらせると、隣の週（または日）が現れます。2つのページの境目の上を、そのまままたいで書けます（「指で書く」がオンのときは、2本指で横にすべらせます）。 |
+| 1.3.whatsnew.2 | • Vous pouvez désactiver cette liaison côte à côte dans la section « Pages » des Réglages. | • この横並びのつながりは、設定の「ページ」の項目でオフにできます。 |
+| 1.3.whatsnew.3 | • Correction d’un problème qui pouvait renvoyer vers iCloud l’écriture manuscrite restée sur cet appareil, après l’effacement de toute l’écriture manuscrite sur un autre appareil. | • ほかの端末で手書きをすべて消したあと、この端末に残っていた手書きが iCloud へ送り返されてしまうことがある問題を修正しました。 |
+| 1.3.whatsnew.4 | • Mettez à jour à la fois votre iPad et votre iPhone vers cette version. Dans les versions précédentes, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils n’ont pas été supprimés). Si vous effacez un tel trait dans une version précédente, il est aussi effacé dans cette version. Sur iPad, cette version relie côte à côte les pages précédentes et suivantes, en orientation portrait comme en paysage. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。以前のバージョンでは、2つのページにまたがって書いた線は、そのうち一方にしか表示されません（削除されたわけではありません）。以前のバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
+| 1.3.whatsnew.5 | Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs. | 翻訳は AI で作成したもので、まだネイティブスピーカーの校閲を受けていません。誤りをお知らせください。 |
+
+## 1.3 の週のメモの文（2026-11-18）
+
+週のメモ（契約 §5）を作り始めたときに、`docs/store/fr-FR/whatsnew.txt` の 2 つ目の点に週のメモの行を足しました（fr-CA は同じ字）。今の 3〜6 つ目の行は、上の節の 1.3.whatsnew.2〜5 と同じ字です（iPad の 1 文はリードが外した後の形）。また、2 つ目の点に古い版での見え方の句を足す案（K-8。`docs/store/PROPOSALS_1_3.md` の 4。本人の確認ページで選んでもらう）を用意しました。この 2 つの文だけを、別の Claude（R）に日本語の元を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の週のメモの文」）。1 回目の判定で直した字は、直した字だけを R にもう 1 回渡しました（2 回目。R は 1 回目の字と逆翻訳を見ていない）。2 回目の判定で直した字は、最後の回だったので元を見ない逆翻訳をもう通していません。R の注は R が書いたままです。
+
+| id | 回 | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- | --- |
+| 1.3.memo.whatsnew | 1 回目 | • Les pages de la semaine ont désormais, elles aussi, une zone « Notes libres » sous 24:00. | ・週のページにも、24:00の下に「自由メモ」欄ができました。 | 「sous 24:00」は画面上の位置（下）の意味で通じるが、「24:00未満」とも取れる。フランス語では時刻を「24 h」と書くのが普通なので、「24:00」という表記は少し不自然。 |
+| 1.3.memo.k8（案） | 1 回目 | • Les pages de la semaine ont désormais, elles aussi, une zone « Notes libres » sous 24:00 (elle n’apparaît pas sur les appareils restés sur une version précédente, mais elle n’a pas été supprimée). | ・週のページにも、24:00の下に「自由メモ」欄ができました（以前のバージョンのままの端末には表示されませんが、削除されたわけではありません）。 | 「sous 24:00」は「24時未満」とも取れ、「24:00」の表記も少し不自然。「une version précédente」は、アプリのバージョンかOSのバージョンかがはっきりしない。 |
+
+## 1.3 の H1 の点の新しい文（2026-11-19）
+
+1.2.4（2026-11-19 公開）の 2 つ目の点は、上の「1.3 の whatsnew.txt」の節の 1.3.whatsnew.3 と同じ文と訳でした（1.2.4 では H4 の直しの点）。1.2.4 の公開の後に 1.3 の文からこの点を外し（92caae1）、1.2.4 に入っていない H1 の直し（ほかの端末で全て消したあと、この端末の画面に残っていた手書きが iCloud に戻る）を言う新しい文を、`docs/store/fr-FR/whatsnew.txt` の 4 つ目の点に足しました（fr-CA は同じ字）（2c1fdf6）。ほかの行は、上の 2 つの節の字のままです（iPad の 1 文はリードが外した後の形）。この 1 つの文だけを、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の H1 の点の新しい文と審査メモの直し」。○、直した字なし）。R の注は R が書いたままです。
+
+| id | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- |
+| 1.3.h1.whatsnew | • Dans la continuité de la correction de la version 1.2.4, correction également d’un problème qui pouvait renvoyer vers iCloud l’écriture manuscrite restée à l’écran de cet appareil, après l’effacement de toute l’écriture manuscrite sur un autre appareil. | • バージョン 1.2.4 の修正の延長として、別のデバイスで手書きがすべて消去された後に、このデバイスの画面に残っていた手書きが iCloud へ送り返されてしまうことがある問題も修正しました。 | 「Dans la continuité de」は「〜の流れを受けて・延長として」という意味で、時間の「後」より「続きの作業」という含みが強いです。「un problème qui pouvait renvoyer」は問題そのものが手書きを送り返す主語になっていて少し擬人的ですが、許容範囲です。文末の「après l'effacement…」は「送り返す」にも「画面に残った」にもかかると読めます（意味はほぼ同じ）。動詞のない名詞文はリリースノートでは普通です。 |

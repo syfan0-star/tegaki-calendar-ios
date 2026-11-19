@@ -7,7 +7,8 @@ public struct WeekLayoutInput: Sendable {
     /// The week's first day (normalized from `focus` by `weekStart`): a Monday or a Sunday.
     public var firstDay: DayKey
     public var events: [LayoutEvent]
-    /// Kept for the callers (M4B-17); not read since M4b: nothing on the week page grows with ink.
+    /// Kept for the callers (M4B-17); the time grid never grows with ink. Since 1.3 only `.extra` is read,
+    /// and only with `freeMemo`: the week memo is `PaperGrowth.tailHeight` of it (docs/M7C_CONTRACT.md §5.2).
     public var inkBottoms: [CellKey: CGFloat]
     public var now: Date
     public var calendar: Calendar
@@ -17,8 +18,20 @@ public struct WeekLayoutInput: Sendable {
     public var words: LayoutWords
     /// The first column (§10.1). The two week starts are two pages with their own ids (K-11).
     public var weekStart: WeekStart
+    /// 1.3 (docs/M7C_CONTRACT.md D16, §5, `SpanAlign`): the least height of the week memo below 24:00,
+    /// so the joined weeks of a window end at the same line. Read only when `freeMemo` is true; there it
+    /// works as the day's (`DayLayoutInput.extraFloor`: 0, or anything not above the memo's own
+    /// `PaperGrowth.tailHeight`, gives the same layout; not finite or negative counts as 0). With
+    /// `freeMemo` false (the default) it changes nothing: any value gives 1.2.3's week, `==`.
+    public var extraFloor: CGFloat
+    /// 1.3 (docs/M7C_CONTRACT.md §5.2, D3 (4)): the week memo below 24:00 (the cell `extra`, 1400 wide,
+    /// `PaperGrowth.tailHeight` of `inkBottoms[.extra]` tall, at least 6,000 lu and at least `extraFloor`).
+    /// The app's two callers (the one-page path and the joined path) pass true. Left out it is false and
+    /// the week is 1.2.3's, `==` (§2.1: a new argument has a default, and leaving it out keeps 1.2.3's
+    /// behaviour), so the frozen tests, the prototype and the old tools lay out the week they always did.
+    public var freeMemo: Bool
 
-    public init(focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday) {
+    public init(focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday, extraFloor: CGFloat = 0, freeMemo: Bool = false) {
         firstDay = weekStart.firstDay(of: focus)
         self.events = events
         self.inkBottoms = inkBottoms
@@ -27,10 +40,14 @@ public struct WeekLayoutInput: Sendable {
         self.holidays = holidays
         self.words = words
         self.weekStart = weekStart
+        self.extraFloor = extraFloor
+        self.freeMemo = freeMemo
     }
 }
 
-/// The week page in paper coordinates (lu): the 24-hour grid, fixed 1400 × 1920, starting at 0:00.
+/// The week page in paper coordinates (lu): the 24-hour grid, fixed 1400 × 1920, starting at 0:00, and
+/// since 1.3, when the input asks for it (`WeekLayoutInput.freeMemo`), the week memo below 24:00 (`extra`,
+/// the whole width, 6,000 lu or more; docs/M7C_CONTRACT.md §5.2). A week without it is 1.2.3's.
 /// The all-day band is not on the paper since M4b: `allDayBand` describes the fixed band the screen
 /// draws above the paper (M4B_CONTRACT §2).
 public struct WeekPageLayout: PageLayout, Equatable, Sendable {
@@ -38,13 +55,13 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
     public var pageId: String
     /// 7 days, the week start's day first (read the order of the columns from here).
     public var days: [DayKey]
-    /// 1400 × 1920 (fixed).
+    /// 1400 × 1920 (1400 × (1920 + `extra.height`) with the week memo).
     public var size: CGSize
-    /// The time grid (0, 0, 1400, 1920) = the whole paper.
+    /// The time grid (0, 0, 1400, 1920): 0:00–24:00, never grows (the whole paper without the week memo).
     public var grid: CGRect
     /// The fixed all-day band above the paper (drawn by the screen, not on the paper).
     public var allDayBand: AllDayBandLayout
-    /// `[.grid: grid]`.
+    /// `[.grid: grid]` (with the week memo also `.extra: extra`).
     public var cells: [CellKey: CGRect]
     /// Always empty (protocol requirement; the paper has no band).
     public var allDayBars: [AllDayBar]
@@ -54,8 +71,13 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
     public var dateLabels: [DateLabel]
     public var nowLine: NowLine?
     public var todayColumn: Int?
+    /// 1.3 (docs/M7C_CONTRACT.md §5.2): the week memo below 24:00, (0, 1920, 1400, h) with h =
+    /// `PaperGrowth.tailHeight(inkBottom: inkBottoms[.extra] ?? 0)` (at least 6,000) and at least
+    /// `WeekLayoutInput.extraFloor`. A week laid out without it (`freeMemo` false: the default `.zero`, no
+    /// `.extra` in `cells`) is 1.2.3's.
+    public var extra: CGRect
 
-    public init(pageId: String, days: [DayKey], size: CGSize, grid: CGRect, allDayBand: AllDayBandLayout, cells: [CellKey: CGRect], allDayBars: [AllDayBar], timedBoxes: [TimedEventBox], dateLabels: [DateLabel], nowLine: NowLine?, todayColumn: Int?) {
+    public init(pageId: String, days: [DayKey], size: CGSize, grid: CGRect, allDayBand: AllDayBandLayout, cells: [CellKey: CGRect], allDayBars: [AllDayBar], timedBoxes: [TimedEventBox], dateLabels: [DateLabel], nowLine: NowLine?, todayColumn: Int?, extra: CGRect = .zero) {
         self.pageId = pageId
         self.days = days
         self.size = size
@@ -67,6 +89,7 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
         self.dateLabels = dateLabels
         self.nowLine = nowLine
         self.todayColumn = todayColumn
+        self.extra = extra
     }
 
     public var kind: PageKind { .week }
@@ -89,21 +112,28 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
         grid.minY + CGFloat(minutes) * PaperSpec.weekHourHeight / 60
     }
 
-    /// Inside the paper (the time gutter included) → `.grid`; outside → nil.
+    /// 0 ≤ x ≤ 1400: 0 ≤ y < 1920 → `.grid` (the time gutter included), with the week memo 1920 ≤ y <
+    /// height → `.extra`; outside the paper or not finite → nil.
     public func cell(at point: CGPoint) -> CellKey? {
         guard point.x.isFinite, point.y.isFinite else { return nil }
         guard point.x >= 0, point.x <= size.width, point.y >= 0, point.y < size.height else { return nil }
-        return .grid
+        if point.y < grid.maxY { return .grid }
+        return cells[.extra] != nil ? .extra : nil
     }
 
-    /// Always `.grid` (above the paper, a negative y, included): the week page has one ink cell.
+    /// With the week memo, a centre at y ≥ 1920 (24:00 and below, beside the paper too) → `.extra`, as on
+    /// the day page; everything else (above the paper, a negative y, not finite, and every centre of a
+    /// week without the memo) → `.grid`. Never nil. A `grid` stroke stays `grid` wherever it lies (K-2): a
+    /// line written across 24:00 with its centre above it is `grid`, its lower part shows over the memo.
     public func inkCell(forCenter point: CGPoint) -> CellKey {
-        .grid
+        guard point.y.isFinite, point.y >= grid.maxY, cells[.extra] != nil else { return .grid }
+        return .extra
     }
 
-    /// Nothing on the week page grows with handwriting (the time grid is fixed).
+    /// Only the week memo below 24:00 grows with handwriting (the time grid is fixed); a week without the
+    /// memo has nothing that grows.
     public func growsWithInk(_ cell: CellKey) -> Bool {
-        false
+        cell.isExtra && cells[.extra] != nil
     }
 
     /// Boxes only; the band's bars are the screen's buttons and the date labels have no height.
@@ -117,23 +147,39 @@ public struct WeekPageLayout: PageLayout, Equatable, Sendable {
 
     /// The day of the column under a double tap (M4C_CONTRACT §4.3): `days[column(atX:)]` while
     /// 0 ≤ y < 1920; nil in the time gutter (x < 64), right of the paper (x > 1400; x == 1400 is the
-    /// last column), above or below the paper, or for a non-finite point. The fixed all-day band above
+    /// last column), above the paper, at 24:00 and below (the week memo does nothing, as the day's free
+    /// memo; without it that is below the paper), or for a non-finite point. The fixed all-day band above
     /// the paper resolves its own columns (`AllDayBandLayout.day(atPaperX:)`).
     public func dayAt(point: CGPoint) -> DayKey? {
-        guard point.y.isFinite, point.y >= 0, point.y < size.height else { return nil }
+        guard point.y.isFinite, point.y >= 0, point.y < grid.maxY else { return nil }
         guard let col = column(atX: point.x), col < days.count else { return nil }
         return days[col]
     }
 
-    /// "grid" inside the paper / nil.
+    /// [0, 1920) → "grid", with the week memo [1920, height) → "extra", nil outside the paper.
     public func band(atY y: CGFloat) -> PageBand? {
         guard y.isFinite, y >= 0, y < size.height else { return nil }
-        return .grid
+        if y < grid.maxY { return .grid }
+        return cells[.extra] != nil ? .extra : nil
     }
 
-    /// 0 for `.grid`; nil for every other band (the paper has no all-day band).
+    /// 0 for `.grid`, 1920 for `.extra` when the week has its memo; nil for every other band (the paper
+    /// has no all-day band). Neither top moves, so the scroll correction on the week page is always 0.
     public func bandTop(_ band: PageBand) -> CGFloat? {
-        band == .grid ? grid.minY : nil
+        if band == .grid { return grid.minY }
+        if band == .extra { return cells[.extra]?.minY }
+        return nil
+    }
+
+    /// Does the rect start below the day (1.3, docs/M7C_CONTRACT.md §5.2: no event is made in the week
+    /// memo, the day's rule)? True when the week has its memo and the rect is finite with
+    /// `rect.standardized.minY ≥ grid.maxY` (1920): the screen then refuses to make an event before it
+    /// calls `eventRange(for:)`, which is unchanged. minY 1,919.9 → false, 1,920 → true; a drag upward
+    /// from the memo (its normalized minY above 24:00) → false; not finite → false; a week without the
+    /// memo → always false (1.2.3's week makes its 23:00 event there).
+    public func startsBelowDay(_ rect: CGRect) -> Bool {
+        guard cells[.extra] != nil, let r = EventGeometry.normalized(rect) else { return false }
+        return r.minY >= grid.maxY
     }
 
     // MARK: Rect → event, event → rect (M3B_CONTRACT §1.5)
@@ -184,6 +230,14 @@ public enum WeekLayoutEngine {
         let gutter = PaperSpec.weekGutter
         let today = DayKey(input.now, calendar: calendar)
         let grid = CGRect(x: 0, y: 0, width: PaperSpec.weekWidth, height: PaperSpec.weekGridHeight)
+        // 1.3 (docs/M7C_CONTRACT.md §5.2): the week memo below 24:00 when asked for, the day's rule (the
+        // whole width, the time gutter included, open to 6,000 from the start, at least the window's floor,
+        // D16). Without it the week is 1.2.3's.
+        var extra = CGRect.zero
+        if input.freeMemo {
+            let extraHeight = max(PaperGrowth.tailHeight(inkBottom: input.inkBottoms[.extra] ?? 0), SpanAlign.sanitized(input.extraFloor))
+            extra = CGRect(x: 0, y: grid.maxY, width: PaperSpec.weekWidth, height: extraHeight)
+        }
 
         // The all-day band (the web version's allDayRowsForRange) lives outside the paper.
         let band = AllDayBandEngine.week(firstDay: first, weekStart: input.weekStart, events: input.events, now: input.now, calendar: calendar, holidays: input.holidays)
@@ -243,18 +297,21 @@ public enum WeekLayoutEngine {
             nowLine = NowLine(y: grid.minY + CGFloat(minute) * PaperSpec.weekHourHeight / 60, x0: x0, x1: x0 + colW, minute: minute)
         }
 
+        var cells: [CellKey: CGRect] = [.grid: grid]
+        if input.freeMemo { cells[.extra] = extra }
         return WeekPageLayout(
             pageId: PageNavigation.pageId(.week, focus: first, weekStart: input.weekStart),
             days: days,
-            size: CGSize(width: PaperSpec.weekWidth, height: PaperSpec.weekGridHeight),
+            size: CGSize(width: PaperSpec.weekWidth, height: grid.maxY + extra.height),
             grid: grid,
             allDayBand: band,
-            cells: [.grid: grid],
+            cells: cells,
             allDayBars: [],
             timedBoxes: boxes,
             dateLabels: labels,
             nowLine: nowLine,
-            todayColumn: todayColumn
+            todayColumn: todayColumn,
+            extra: extra
         )
     }
 }

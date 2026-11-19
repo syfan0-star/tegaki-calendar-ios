@@ -105,6 +105,11 @@ final class ExportBuilder {
     /// inside an `autoreleasepool`: the file is never held whole in memory. Without a page worth
     /// writing the file is removed and `nothingToExport` is thrown; a cancelled task removes the
     /// partial file and throws `cancelled`; a file-system failure removes it and throws `writeFailed`.
+    ///
+    /// 1.3 (docs/M7C_CONTRACT.md §3.11, §6.1, D14): the door of the data file. A page worth writing that holds
+    /// a window name (`TransferGuard.exportable`: `SpanGuard.checkForTransfer`, which every page the app has
+    /// saved passes) is left out and reported (`TransferGuard.reportExportRefusal`); every other page and
+    /// the file's form are 1.2.3's.
     func exportJSON(progress: @escaping @MainActor (_ done: Int, _ total: Int) -> Void) async throws -> ExportResult {
         cleanUp()
         // Values only cross into the detached task: never `self` (a @MainActor class, §2.2).
@@ -123,14 +128,22 @@ final class ExportBuilder {
             do {
                 try writer.write(AppExport.header(exportedAt: exportedAt, app: appText))
                 for (index, id) in ids.enumerated() {
+                    var refused = false
                     try autoreleasepool {
                         let page = BandMigration.migrate(store.load(id))
                         guard AppExport.isWorthExporting(page) else { return }
+                        guard TransferGuard.exportable(page) else {
+                            refused = true
+                            return
+                        }
                         if writer.pageCount > 0 {
                             try writer.write(AppExport.pageSeparator)
                         }
                         try writer.write(AppExport.pageText(page))
                         writer.pageCount += 1
+                    }
+                    if refused {
+                        await TransferGuard.reportExportRefusal(id)
                     }
                     await progress(index + 1, total)
                     try Task.checkCancellation()
@@ -178,12 +191,18 @@ final class ExportBuilder {
     /// Synchronous on the main actor (the paper renderers and PencilKit's picture are main-actor
     /// work, about a second; the caller lets SwiftUI draw its spinner first, §3.3). The page is
     /// `BandMigration.migrate`d on the way in (idempotent; the ledger has done it already).
-    func exportPDF(paper: PaperContent, page: InkPage, kind: PageKind, focus: DayKey) throws -> ExportResult {
+    ///
+    /// 1.3 (docs/M7C_CONTRACT.md §3.5, §3.11, D17): on the joined path `page` is the focus page's real page
+    /// and `neighborInk` the strokes coming into it from the window's other pages
+    /// (`SpanComposer.neighborInk`); the renderer draws both and its door (`TransferGuard.allowsPDFPage`)
+    /// turns a page holding a window name into `renderFailed`. Without `neighborInk` (the default, the
+    /// one-page path) this is 1.2.3's PDF.
+    func exportPDF(paper: PaperContent, page: InkPage, kind: PageKind, focus: DayKey, neighborInk: [SpanPDFInk] = []) throws -> ExportResult {
         cleanUp()
         let holidays = HolidayChoice.current
         let weekStart = WeekStartChoice.current
         let title = PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart)
-        let data = PDFPageRenderer.render(paper, page: BandMigration.migrate(page), title: title)
+        let data = PDFPageRenderer.render(paper, page: BandMigration.migrate(page), title: title, neighborInk: neighborInk)
         guard !data.isEmpty else { throw ExportError.renderFailed }
         let fileName = AppExport.pdfFileName(kind: kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart)
         let url = directory.appendingPathComponent(fileName, isDirectory: false)

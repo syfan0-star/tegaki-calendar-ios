@@ -157,11 +157,11 @@ Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open 
 
 ### How much can I write on one page?
 
-You can write up to 19,000 strokes on one page (when you go past 15,000, you are told once). The Notes area of the month page and the “Free Notes” area below 24:00 on the day page are open all the way down from the start. Their length has a limit (about 4 screens on the month page of an iPad). You can check the current number in Settings > About > “Page with the Most Strokes”.
+You can write up to 19,000 strokes on one page (when you go past 15,000, you are told once). The Notes area of the month page and the “Free Notes” area below 24:00 on the day and week pages are open all the way down from the start. Their length has a limit (about 4 screens on the month page of an iPad). You can check the current number in Settings > About > “Page with the Most Strokes”.
 
 ### What if my iPad and iPhone have different versions?
 
-The “Free Notes” area below 24:00 on the day page is a feature from version 1.1. On a device still on 1.0 or 1.0.1, it is not shown, but it has not been deleted (it appears when you update that device). Strokes written near 24:00, and strokes moved below 24:00 with the lasso, are also not visible on older versions (they have not been deleted). Please update both your iPad and your iPhone to the latest version. Note that if you use “Erase All Handwriting” on a device with an older version, the handwriting in that area is erased too.
+The “Free Notes” area below 24:00 is a feature from version 1.1 on the day page and from version 1.3 on the week page (on the week page, it appears even when the side-by-side joining is turned off in the App's Settings > Pages). On a device still on an earlier version, it is not shown, but it has not been deleted (it appears when you update that device). Strokes written near 24:00, and strokes moved below 24:00 with the lasso, are also not visible on older versions (they have not been deleted). Please update both your iPad and your iPhone to the latest version. Note that if you use “Erase All Handwriting” on a device with an older version, the handwriting in that area is erased too.
 
 ### How do I change the display language?
 
@@ -212,7 +212,7 @@ Handwriting on week pages is saved separately for weeks that start on Monday and
 | Features only in Google | Email notifications for events, creating new Google calendars, and Google Tasks are not supported. |
 | Calendar permission | iOS and iPadOS have no permission for only reading. Even just showing events needs “Full Access”. |
 | iCloud needed | Syncing handwriting needs a sign-in to iCloud. Without signing in, you can still use the App on the device only. |
-| Handwriting across cells | Handwriting is saved for each date cell. When the height of the cells changes because more all-day events are added, strokes written across cell borders may look slightly out of place. |
+| Handwriting across cells | Handwriting is saved for each date cell. When the height of the cells changes because more all-day events are added, strokes written across cell borders may look slightly out of place. From version 1.3, week and day pages are joined side by side with the pages before and after them, and you can write across the borders between them (month and year pages are still shown one page at a time, as before). A stroke written across pages is saved as one stroke on the page where the middle of the stroke is. On a device still on a version before 1.3, that stroke appears only on the page where it is saved (it has not been deleted). If you erase that stroke on that device, it is erased on the new version too. Please update both your iPad and your iPhone to the latest version. If you turn off the side-by-side joining in the App's Settings > Pages, pages are shown one at a time, as before. On a device where it is turned off, a stroke written across pages appears on only one of the pages (it has not been deleted). |
 | Relation to the web version | The web version and the app version are separate apps, and their handwriting does not sync. |
 
 ## About the translations

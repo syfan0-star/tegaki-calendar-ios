@@ -19,6 +19,11 @@
 # entitlement and for the weak link of DeclaredAgeRange ("Check the archive"). The input `age_force`
 # ("1" only) makes the one check build of §6.4 (AGE_FORCE: Apple's flag is taken as set, so Apple's
 # age range sheet comes up on any account on iOS / iPadOS 26.2 or later). That build is never submitted.
+#
+# 1.3 (docs/M7C_CONTRACT.md §8.1, §8.2, §11.1): every build may be submitted, so "Every word of the app in ten
+# languages" fails the build before anything is built while a word of the app lacks one of the ten languages. S6
+# (§11.1 4) took out the prototype build of 「横につなげる」 (the input `span_prototype`, its check against 43fe366
+# and the check of its archive; the build of 11/12 came from the tag r13-proto-1, which keeps them).
 name: testflight
 
 on:
@@ -86,6 +91,28 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      # 1.3 (docs/M7C_CONTRACT.md §8.1, §8.2, §11.1): every build is one that may be submitted, so every word of the
+      # app's table has the ten languages (the new words of §8.1 were ja only until X translated them; since S6 build.py
+      # takes no ja-only key of the app, and this step stays as the archive's own check of the table it builds).
+      - name: Every word of the app in ten languages
+        run: |
+          set -euo pipefail
+          python3 -I - <<'EOF'
+          import json, sys
+          languages = {"ja", "en", "zh-Hans", "zh-Hant", "ko", "fr", "de", "es", "it", "pt-BR"}
+          with open("Sources/TegakiCalendar/Resources/Localizable.xcstrings", encoding="utf-8") as f:
+              table = json.load(f)["strings"]
+          short = sorted((key, sorted(languages - set(entry.get("localizations", {}))))
+                         for key, entry in table.items())
+          short = [(key, missing) for key, missing in short if missing]
+          for key, missing in short:
+              print(f"{key}: no {' '.join(missing)}")
+          if short:
+              print(f"::error::訳の無い文が {len(short)} 個あります（docs/M7C_CONTRACT.md §8.2 の X の訳の前）。このビルドは審査に出せません。")
+              sys.exit(1)
+          print(f"{len(table)} keys: every one has the ten languages")
+          EOF
 
       - name: Select Xcode
         run: |

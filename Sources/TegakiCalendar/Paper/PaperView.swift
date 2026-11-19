@@ -179,6 +179,20 @@ final class PaperView: UIView {
         }
     }
 
+    /// 1.3 (docs/M7C_CONTRACT.md §3.8): a window of joined weeks or days drawn side by side, each page at
+    /// its slot's x (`PaperSpan.origin(ofSlot:)`), cut to its own rectangle — then the owner's content
+    /// coordinates are the window's (`show` with `span.size` × zoom) and `content` is not drawn. nil (the
+    /// default): `content` alone, 1.2.3's paper. A window of one page draws exactly what `content` draws.
+    /// Only the owner reaches this view: the canvas (`InkCanvasView`, role L, a file of §6.4's table) makes it
+    /// with `content` alone and swaps `content` when its own `paper` changes. The joined path therefore needs
+    /// the canvas to take the window as an input of its own and set it here, comparing it as it compares
+    /// `content`; the screen cannot set it.
+    var span: PaperSpan? {
+        didSet {
+            if span != oldValue { setNeedsDisplay() }
+        }
+    }
+
     /// The range this view holds, in content coordinates (paper × zoom, pt);
     /// `frame.size == contentWindow.size`. (Named `window` in M4B_CONTRACT §1.6; `UIView.window`
     /// is taken.)
@@ -304,6 +318,12 @@ final class PaperView: UIView {
         ctx.setFillColor(PaperPalette.paper.cgColor)
         ctx.fill(dirty)
 
+        if let span = span {
+            Self.drawSpan(span, in: ctx, dirty: dirty, zoom: zoom, view: self)
+            ctx.restoreGState()
+            return
+        }
+
         switch content {
         case .month(let month):
             MonthPaper.draw(month, in: ctx, dirty: dirty, zoom: zoom, view: self)
@@ -316,5 +336,38 @@ final class PaperView: UIView {
         }
 
         ctx.restoreGState()
+    }
+
+    /// 1.3 (§3.8): the pages of `span` into `ctx` (already in paper units of the window): for each page whose
+    /// rectangle `[x, x + pageWidth] × [0, its height]` meets `dirty`, the context cut to that rectangle and
+    /// moved to the page's x, then the page kind's renderer with the dirty part in the page's own
+    /// coordinates. So nothing of a page (a now line's dot, a label) reaches its neighbour, and below a
+    /// shorter page there is the paper colour `draw` laid. A window of one page is neither cut nor moved: the
+    /// renderer gets `dirty` itself, the very drawing of `content` (the tests compare the pixels).
+    static func drawSpan(_ span: PaperSpan, in ctx: CGContext, dirty: CGRect, zoom: CGFloat, view: PaperView) {
+        let joined = span.pages.count > 1
+        for (slot, page) in span.pages.enumerated() {
+            let x = span.origin(ofSlot: slot)
+            let rect = CGRect(x: x, y: 0, width: span.pageWidth, height: page.size.height)
+            let part = rect.intersection(dirty)
+            guard !part.isNull, part.width > 0, part.height > 0 else { continue }
+            ctx.saveGState()
+            if joined {
+                ctx.clip(to: rect)
+                ctx.translateBy(x: x, y: 0)
+            }
+            let local = joined ? part.offsetBy(dx: -x, dy: 0) : dirty
+            switch page {
+            case .month(let month):
+                MonthPaper.draw(month, in: ctx, dirty: local, zoom: zoom, view: view)
+            case .week(let week):
+                WeekPaper.draw(week, in: ctx, dirty: local, zoom: zoom, view: view)
+            case .day(let day):
+                DayPaper.draw(day, in: ctx, dirty: local, zoom: zoom, view: view)
+            case .year(let year):
+                YearPaper.draw(year, in: ctx, dirty: local, zoom: zoom, view: view)
+            }
+            ctx.restoreGState()
+        }
     }
 }

@@ -1,12 +1,16 @@
 No sign-in, no account creation and no demo account are needed.
 
-What is new in 1.2.4
-1. Fixes in the iCloud sync only. (a) After an Apple Account switch whose notification reaches the app late (an iPad with the Settings app side by side, or a Mac), the app now confirms the account before it sends, merges or erases anything in iCloud on a sign of a switched account (its zone or a record gone, a change token expired), and before it finishes an erase of all handwriting. (b) While an erase of all handwriting is still pending in iCloud, opening a page no longer fetches it, so erased handwriting does not come back. If the account is not the one the handwriting was synced with, sync stops and the app asks what to do, as before.
-2. Nothing else changed: no new screen or text, same data, App Privacy stays "Data Not Collected". The age range check of 1.2.2 is unchanged.
+What is new in 1.3
+1. Week and day pages are joined side by side with the pages before and after them: swiping sideways brings in the neighboring week or day, and a stroke can cross the border. It is saved whole on the page holding its center (same file and iCloud record format); older versions show it on that page only.
+2. A new Settings section, Pages, has one switch for this (on by default, per device). Off shows one page at a time as before.
+3. A small card explains the swipe for 8 seconds when a joined page first opens (once per device and page type).
+4. Even with the switch off, week pages now also have Free Notes below 24:00, like day pages since 1.1.
+5. Screen-side fixes after 1.2.4's sync fixes: handwriting erased with Erase All (on any device) or Erase and Start can no longer come back via the open page or Undo and be sent to iCloud again.
+Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases, the age rating and the age range check of 1.2.2.
 
 The app follows the device language (10 languages since 1.2; any other language shows English). Per-app language: Settings > Apps > Tegaki > Language.
 
-To test: add 2 or 3 events (one all-day, one timed) in the Calendar app, then open the app. The events appear on the month, week, day and year pages, and you can write on them with Apple Pencil, or with a finger after turning on Draw with Finger (in the toolbar or in Settings > Input). Handwriting also works with no events and without iCloud.
+To test: add 2 or 3 events (one all-day, one timed) in the Calendar app, then open the app. The events appear on the month, week, day and year pages, and you can write on them with Apple Pencil, or with a finger after turning on Draw with Finger (in the toolbar or in Settings > Input). Handwriting also works with no events and without iCloud. For 1.3: swipe a week page sideways (one finger on iPad, two on iPhone), write a stroke across the border between two weeks (Saturday to Sunday if weeks start on Sunday, else Sunday to Monday) and try Settings > Pages.
 
 Subscriptions and prices are unchanged (com.syfan0.tegakicalendar.monthly and .yearly, auto-renewable, 14-day free trial). The purchase screen appears once after the first-time guide, and it also opens from the View Only badge in the header and from Settings > Purchase. Restore: Settings > Purchase > Restore Purchases. Links to the Terms of Service, the Privacy Policy and Apple's standard EULA are on the purchase screen and in Settings > About. The Japanese Terms of Service and Privacy Policy are the governing text; the English pages are translations for convenience and say so.
 
@@ -24,4 +28,4 @@ https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 https://syfan0-star.github.io/tegaki-calendar/app/support.html
 
 --- 日本語の要約 ---
-変更は iCloud の同期の直しだけ。(a) アカウントの切り替えの知らせが遅れて届いたとき（iPad で「設定」を横に並べたとき・Mac）も、アカウントが替わった印（置き場や記録が無い・変更トークンの期限切れ）が出たら、送る・混ぜる・消す前と、「全て消す」の続きの前に、必ずアカウントを確かめます。(b) 「全て消す」の iCloud の分が残る間は、開いたページを iCloud から取りに行かないので、消した手書きが戻りません。別のアカウントなら今までどおり同期を止めて尋ねます。画面・文言・データ・プライバシーは 1.2.3 と同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
+週と日のページが前後と横につながり、境目をまたいで書けます（古い版では片方のページにだけ出ます）。設定 › ページ で切り替え。週にも 24 時の下の自由メモ。1.2.4 に続き、全て消した手書きが画面から iCloud に戻りうる穴を直しました。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。

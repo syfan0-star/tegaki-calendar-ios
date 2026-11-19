@@ -72,14 +72,19 @@ public enum ZoomPolicy {
     /// The overview rectangle (lu, D1): the part of the paper the lower limit fits into the paper
     /// area. Month: 1400 × `MonthPageLayout.memo.minY` (the 6 rows; the memo area is reached by
     /// scrolling, M4C-12). Day: 1000 × `grid.height` (the 24 hours; the free memo area below 24:00 is
-    /// reached by scrolling, 1.1 K-6, so the overview's zoom never depends on its height). Week and
-    /// year: the whole paper (`layout.size`).
+    /// reached by scrolling, 1.1 K-6, so the overview's zoom never depends on its height). Week: 1400 ×
+    /// `grid.height` (the 24 hours; since 1.3 the week memo below 24:00 is reached by scrolling, K-6,
+    /// docs/M7C_CONTRACT.md §5.2; a week without the memo is the whole paper, as before). Year: the whole
+    /// paper (`layout.size`).
     public static func overviewSize(_ layout: any PageLayout) -> CGSize {
         if let month = layout as? MonthPageLayout {
             return CGSize(width: month.size.width, height: month.memo.minY)
         }
         if let day = layout as? DayPageLayout {
             return CGSize(width: day.size.width, height: day.grid.height)
+        }
+        if let week = layout as? WeekPageLayout {
+            return CGSize(width: week.size.width, height: week.grid.height)
         }
         return layout.size
     }
@@ -142,6 +147,23 @@ public enum ZoomPolicy {
             min: minZ,
             max: Swift.max(maxZ, minZ)
         )
+    }
+
+    /// 1.3 (P-B6 イ, the owner's answer of 11/18; docs/M7C_CONTRACT.md §3.6, B_DESIGN.md §3.1, §6.2): `bounds` with
+    /// the lowest zoom raised so that it never shows more than `maxVisiblePages` pages across: cap = viewport.width ÷
+    /// (pages × paperWidth). When the cap is above `bounds.min`, min = cap, open = max(open, cap) (so the opening zoom
+    /// shows no more either) and max = max(max, cap); `fit` stays. nil, a count that is not finite or not positive, a
+    /// width that is not usable, or a cap at or below `bounds.min` → `bounds` itself (`==`). `bounds` (above) is not
+    /// changed: the one-page path never calls this.
+    public static func cappedBounds(_ kind: PageKind, overview: CGSize, viewport: CGSize, maxVisiblePages: CGFloat?) -> Bounds {
+        var result = bounds(kind, overview: overview, viewport: viewport)
+        guard let pages = maxVisiblePages, pages.isFinite, pages > 0, viewport.width.isFinite, viewport.width > 0 else { return result }
+        let cap = viewport.width / (pages * paperWidth(kind))
+        guard cap.isFinite, cap > result.min else { return result }
+        result.min = cap
+        result.open = Swift.max(result.open, cap)
+        result.max = Swift.max(result.max, cap)
+        return result
     }
 
     /// A stored ratio (relative to the opening zoom since 1.1.1; D4) → the zoom:

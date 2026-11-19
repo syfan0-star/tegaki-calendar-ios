@@ -65,7 +65,7 @@ Tests/TegakiCalendarTests/StoreKitSessionTests.swift      担当 S   新規: SKT
 Tests/TegakiCalendarTests/{ScreenshotModeTests,AppSettingsTests,CalendarRootScreenTests,InkCanvasViewTests}.swift   担当 U   変更・追加（§7.6）
 Tests/TegakiCalendarTests/{PaywallSheetTests,SettingsScreenTests,EventEditorSheetTests}.swift   担当 U   新規（§7.6）
 docs/TERMS.md / docs/PRIVACY.md / docs/SUPPORT.md         担当 L（§5.1。iOS リポジトリ。この 3 つだけ）
-Web リポジトリ（/Users/ikedamasataka/Documents/Codex/tegaki-calendar、ブランチ m5-legal）   担当 W（§5.2）
+Web リポジトリ（~/Documents/Codex/tegaki-calendar、ブランチ m5-legal）   担当 W（§5.2）
   app/terms.html / app/privacy.html / app/support.html / app/index.html   新規
   tests/app-pages.test.mjs                                新規（npm test に入る）
   tools/check-legal.mjs                                   新規（npm run check:legal。【】と「下書き」の禁止。公開前の関門）

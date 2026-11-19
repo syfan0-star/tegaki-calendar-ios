@@ -10,6 +10,11 @@ import Access
 import Compat10
 import CompatFixtures
 
+// 1.3: the output goes out a line at a time. CI pipes it (`| tee`), so it would otherwise sit in the
+// buffer and be lost with every FAIL line and section heading when a check traps (a precondition of the
+// compat-span fixture maker), leaving only the trap's message in the log.
+setvbuf(stdout, nil, _IOLBF, 0)
+
 // MARK: - 1.1: --write-compat-fixtures [--out <folder>] (M7A_CONTRACT §1.4, §7.1)
 //
 // Writes K's golden fixtures with the new code (the small ones, the large ones made again and
@@ -40,6 +45,10 @@ if CommandLine.arguments.contains("--write-compat-fixtures") {
         exit(1)
     }
 }
+
+// 1.3: --write-compat-span-fixtures [--out <folder>] does the same for TegakiKit/Tests/Fixtures/compat-span/
+// (docs/M7C_CONTRACT.md §4.2, §6.3; SpanInkChecks.swift).
+if CommandLine.arguments.contains("--write-compat-span-fixtures") { writeCompatSpanFixtures() }
 
 // MARK: - Tiny check harness
 
@@ -5437,6 +5446,11 @@ do {
     check(!BandMigration.isBandCell(.extra) && !BandMigrationV10.isBandCell(CellKeyV10(raw: CellKey.extra.raw)),
           "1.1 side: K-1 extra is no band cell for 1.1 nor for 1.0")
 }
+
+runSpanChecks() // 1.3: the joined pages, section "span (1.3)" (SpanChecks.swift, docs/M7C_CONTRACT.md §10.1)
+runSpanInkChecks() // 1.3: their ink, section "span ink (1.3)" (SpanInkChecks.swift, docs/M7C_CONTRACT.md §10.1)
+runWeekMemoChecks() // 1.3: the week memo, section "week memo (1.3)" (WeekMemoChecks.swift, docs/M7C_CONTRACT.md §5, §10.1)
+runOverviewCapChecks() // 1.3: the iPhone's landscape cap (P-B6 イ), section "overview cap (1.3)" (OverviewCapChecks.swift, docs/M7C_CONTRACT.md §3.6, §10.1)
 
 // MARK: - 1.2: the languages (docs/M7B_CONTRACT.md §0, §2.1, 0-1, 0-2, 0-8, §7.1)
 

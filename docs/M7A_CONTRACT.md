@@ -92,7 +92,7 @@ Tests/TegakiCalendarTests/
   InkCanvasViewTests.swift / InkLedgerTests.swift / PaperViewTests.swift / ExportBuilderTests.swift   担当 P
   CalendarRootScreenTests.swift / SettingsScreenTests.swift / ScreenshotModeTests.swift / SyncEngineTests.swift（文言の行と §5.1 の 1 つ）/ StrokeCensusTests.swift（新規）/ WebImportSheetTests.swift（確かめの段）   担当 U
 docs/TERMS.md / docs/PRIVACY.md / docs/SUPPORT.md             担当 L（§6.3）
-Web リポジトリ（/Users/ikedamasataka/Documents/Codex/tegaki-calendar、ブランチ m7a-legal）   担当 W（§6.4）
+Web リポジトリ（~/Documents/Codex/tegaki-calendar、ブランチ m7a-legal）   担当 W（§6.4）
 project.yml / .github/workflows/build.yml / docs/M7A.md / README.md / docs/DESIGN.md・docs/M7_PLAN.md の注記   担当 C（§7.4、§8）
 ```
 

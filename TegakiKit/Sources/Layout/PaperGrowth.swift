@@ -2,12 +2,13 @@ import Foundation
 import CoreGraphics
 
 /// The last cell of a page, open downward (1.1, M7A_CONTRACT D3 / §3.1 / §3.4 / §3.6; open to its full
-/// length since 1.1.1, docs/R1_1_1.md): the month page's memo area (`.memo`) and the day page's free
-/// memo area below 24:00 (`.extra`). One place for the height rule, so the layout engines and the
+/// length since 1.1.1, docs/R1_1_1.md): the month page's memo area (`.memo`), the day page's free
+/// memo area below 24:00 (`.extra`) and since 1.3 the week page's memo below 24:00 (`.extra`, when the
+/// week has it: docs/M7C_CONTRACT.md §5.2). One place for the height rule, so the layout engines and the
 /// canvas's ledger (`InkLedger.needsMoreRoom`, 担当 P) read the same numbers. Pure functions; nothing
 /// here is stored (K-5: the height is computed from the handwriting every time).
 public enum PaperGrowth {
-    /// The month's `.memo` or the day's `.extra`.
+    /// The month's `.memo`, or the day's or the week's `.extra`.
     public static func isTail(_ cell: CellKey) -> Bool {
         cell.isMemo || cell.isExtra
     }
@@ -70,10 +71,11 @@ public enum PaperGrowth {
     }
 
     /// The centre (paper coordinates) of a new stroke's bounds → why it is dropped, nil = keep it.
-    /// `beyondCap` first: the page has a last cell, 0 ≤ x ≤ width and y > tail.minY + growMax (the
-    /// paper ends there since 1.1.1, unless a line past 5,950 lu made it longer). Then
-    /// `outsidePaper`: x < 0, x > width, y < 0 or y > height (the rule of M4C-25). A point that is not
-    /// finite is `outsidePaper`.
+    /// `beyondCap` first: the page has a last cell (the month, the day, and since 1.3 the week with its
+    /// memo), 0 ≤ x ≤ width and y > tail.minY + growMax (the paper ends there since 1.1.1, unless a line
+    /// past 5,950 lu made it longer). Then `outsidePaper`: x < 0, x > width, y < 0 or y > height (the rule
+    /// of M4C-25; a week without the memo and the year end at their paper). A point that is not finite is
+    /// `outsidePaper`.
     public static func drop(center: CGPoint, in layout: any PageLayout) -> Drop? {
         guard center.x.isFinite, center.y.isFinite else { return .outsidePaper }
         let size = layout.size
@@ -87,14 +89,15 @@ public enum PaperGrowth {
         return nil
     }
 
-    /// The last cell of the page: the month's `.memo`, the day's `.extra` (when the layout has it);
-    /// nil on the week and year pages.
+    /// The last cell of the page: the month's `.memo`, the day's `.extra` and since 1.3 the week's
+    /// `.extra` (the week memo, docs/M7C_CONTRACT.md §5.2), each when the layout has it; nil on the year
+    /// page and on a week laid out without the memo (1.2.3's week).
     public static func tail(of layout: any PageLayout) -> (key: CellKey, rect: CGRect)? {
         let key: CellKey
         switch layout.kind {
         case .month: key = .memo
-        case .day: key = .extra
-        case .week, .year: return nil
+        case .day, .week: key = .extra
+        case .year: return nil
         }
         guard let rect = layout.cells[key] else { return nil }
         return (key, rect)
@@ -105,7 +108,7 @@ public enum PaperGrowth {
     /// same set of cell keys; both have the same last cell; every other cell rect is `==`; the last
     /// cell keeps minX, minY and width and only its height differs; and `size.height − tail.height` is
     /// the same (the paper ends where the last cell ends). A month whose rows grew (the memo area moved
-    /// down) is false; the week and year pages are always false.
+    /// down) is false; a week without its memo and the year page are always false.
     public static func onlyTailHeightChanged(old: any PageLayout, new: any PageLayout) -> Bool {
         guard old.kind == new.kind, old.pageId == new.pageId, old.size.width == new.size.width else { return false }
         guard let a = tail(of: old), let b = tail(of: new), a.key == b.key else { return false }

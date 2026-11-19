@@ -85,3 +85,32 @@ R が日本語の元を見ずに `docs/store/en-US/*.txt` と `docs/store/subscr
 | sub.products.com.syfan0.tegakicalendar.monthly.description | Handwriting, event creation and iCloud sync | 手書き、予定の作成、iCloud 同期 |
 | sub.products.com.syfan0.tegakicalendar.yearly.displayName | Tegaki Yearly | Tegaki 年額 |
 | sub.products.com.syfan0.tegakicalendar.yearly.description | The same features, billed yearly | 同じ機能を、年ごとの請求で |
+
+## 1.3 の whatsnew.txt（このバージョンの新機能。2026-11-13）
+
+上の `whatsnew.txt` の節は 1.2 の文です。この節は 1.3 の `docs/store/en-US/whatsnew.txt` の逆翻訳で、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。照合と判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の新機能の文と審査メモ」。× 0）。4 つ目の点の最後の文（iPad での見え方）は、リードの確認を待っている案の文です。
+
+| id | 訳 | 逆翻訳 |
+| --- | --- | --- |
+| 1.3.whatsnew.1 | • Week and day pages are now joined side by side with the pages before and after them. Slide sideways with your finger to bring in the neighboring week (or day). You can write straight across the border between pages (when “Draw with Finger” is on, move sideways with two fingers). | • 週のページと日のページが、前後のページと横に並んでつながるようになりました。指で横にスライドすると、隣の週（または日）が出てきます。ページとページの境目をまたいで、そのまま書けます（「指で描く」がオンのときは、2本指で横に動かします）。 |
+| 1.3.whatsnew.2 | • You can turn off the side-by-side joining in the “Pages” section of Settings. | • 横に並べてつなげる表示は、設定の「ページ」の項目でオフにできます。 |
+| 1.3.whatsnew.3 | • Fixed an issue where, after all handwriting was erased on another device, handwriting still on this device could go back to iCloud. | • ほかの端末で手書きをすべて消したあと、この端末にまだ残っていた手書きが iCloud に戻ってしまうことがある問題を修正しました。 |
+| 1.3.whatsnew.4 | • Please update both your iPad and your iPhone to this version. On older versions, strokes written across pages appear on only one of the pages (they have not been deleted). If you erase such a stroke on an older version, it is erased in this version too. On iPad, this version joins the pages before and after side by side in both portrait and landscape. | • iPad と iPhone の両方を、このバージョンにアップデートしてください。古いバージョンでは、ページをまたいで書いた線は、どちらか片方のページにしか表示されません（削除されたわけではありません）。古いバージョンでそのような線を消すと、このバージョンでも消えます。iPad では、このバージョンは縦向きでも横向きでも、前後のページを横に並べてつなげます。 |
+| 1.3.whatsnew.5 | Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes. | 翻訳は AI で作成したもので、まだネイティブスピーカーの確認を受けていません。誤りがあればお知らせください。 |
+
+## 1.3 の週のメモの文（2026-11-18）
+
+週のメモ（契約 §5）を作り始めたときに、`docs/store/en-US/whatsnew.txt` の 2 つ目の点に週のメモの行を足しました（en-GB・en-AU・en-CA は同じ字）。今の 3〜6 つ目の行は、上の節の 1.3.whatsnew.2〜5 と同じ字です（iPad の 1 文はリードが外した後の形）。また、2 つ目の点に古い版での見え方の句を足す案（K-8。`docs/store/PROPOSALS_1_3.md` の 4。本人の確認ページで選んでもらう）を用意しました。この 2 つの文だけを、別の Claude（R）に日本語の元を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の週のメモの文」）。1 回目の判定で直した字は、直した字だけを R にもう 1 回渡しました（2 回目。R は 1 回目の字と逆翻訳を見ていない）。2 回目の判定で直した字は、最後の回だったので元を見ない逆翻訳をもう通していません。R の注は R が書いたままです。
+
+| id | 回 | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- | --- |
+| 1.3.memo.whatsnew | 1 回目 | • Week pages now also have a “Free Notes” area below 24:00. | ・週のページにも、24:00より下に「自由メモ」欄ができました。 | なし |
+| 1.3.memo.k8（案） | 1 回目 | • Week pages now also have a “Free Notes” area below 24:00 (it is not shown on devices with an older version, but it has not been deleted). | ・週のページにも、24:00より下に「自由メモ」欄ができました（古いバージョンの端末では表示されませんが、削除されたわけではありません）。 | 「devices with an older version」は、アプリのバージョンとも端末のOSのバージョンとも読める。新しくできた欄について「削除されていない」と言うので、何が削除されたと思われるのか（欄なのか、そこに書いた内容なのか）が少し分かりにくい。 |
+
+## 1.3 の H1 の点の新しい文（2026-11-19）
+
+1.2.4（2026-11-19 公開）の 2 つ目の点は、上の「1.3 の whatsnew.txt」の節の 1.3.whatsnew.3 と同じ文と訳でした（1.2.4 では H4 の直しの点）。1.2.4 の公開の後に 1.3 の文からこの点を外し（92caae1）、1.2.4 に入っていない H1 の直し（ほかの端末で全て消したあと、この端末の画面に残っていた手書きが iCloud に戻る）を言う新しい文を、`docs/store/en-US/whatsnew.txt` の 4 つ目の点に足しました（en-GB・en-AU・en-CA は同じ字）（2c1fdf6）。ほかの行は、上の 2 つの節の字のままです（iPad の 1 文はリードが外した後の形）。この 1 つの文だけを、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の H1 の点の新しい文と審査メモの直し」。○、直した字なし）。R の注は R が書いたままです。
+
+| id | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- |
+| 1.3.h1.whatsnew | • Following the fix in version 1.2.4, also fixed an issue where, after all handwriting was erased on another device, handwriting still on the screen of this device could go back to iCloud. | • バージョン 1.2.4 での修正に続いて、別のデバイスで手書きがすべて消去された後に、このデバイスの画面にまだ残っている手書きが iCloud に戻ってしまうことがある問題も修正しました。 | 「Following the fix」は時間の「1.2.4 の修正の後で」とも、「その修正の続きとして」とも読めます（意味の差は小さい）。「go back to iCloud」は「iCloud へもう一度送られる」という意味だと推測できます。ただ、一般の利用者には何が困るのか（消したはずの手書きが復活すること）が伝わりにくいです。主語のない「also fixed」はリリースノートでは普通の書き方です。 |
