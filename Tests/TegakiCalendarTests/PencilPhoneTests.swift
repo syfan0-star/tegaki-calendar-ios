@@ -136,6 +136,7 @@ final class PencilPhoneTests: XCTestCase {
         phone.attach(to: window, isPad: false)
         phone.appeared(allowFinger: true, origin: PencilPhone.origin(suite, device: thisDevice))
         phone.personSwitched()
+        XCTAssertEqual(phone.origin, .person)
         let observer = try watcher(of: window)
         let pencil = StandInTouch(.pencil)
         observer.touchesBegan([pencil], with: StandInEvent())
@@ -312,6 +313,7 @@ final class PencilPhoneTests: XCTestCase {
         XCTAssertEqual(log.actions, [.turnOff(rearmGuide: true)])
         XCTAssertFalse(allowFinger)
         XCTAssertEqual(mark, thisDevice)
+        XCTAssertEqual(phone.origin, .app)
         XCTAssertFalse(AppSettings.spanGuideShown(.week), "the guide shows once more")
         XCTAssertFalse(AppSettings.spanGuideShown(.day))
         pencil = StandInTouch(.pencil)
@@ -331,6 +333,7 @@ final class PencilPhoneTests: XCTestCase {
         window = UIWindow(frame: CGRect(x: 0, y: 0, width: 466, height: 678))
         phone.attach(to: window, isPad: false)
         phone.appeared(allowFinger: launch.allowFinger, origin: launch.origin)
+        XCTAssertEqual(phone.origin, .carried, "the launch's origin")
         observer = try watcher(of: window)
         // A finger down first, the Pencil touches and lifts: nothing until the finger lifts, then once.
         let holding = StandInTouch(.direct)
@@ -344,6 +347,7 @@ final class PencilPhoneTests: XCTestCase {
         XCTAssertEqual(log.actions, [.turnOff(rearmGuide: false)])
         XCTAssertFalse(allowFinger)
         XCTAssertEqual(mark, thisDevice, "the app's value on this device now")
+        XCTAssertEqual(phone.origin, .app, "the app's value on this device now")
         XCTAssertTrue(AppSettings.spanGuideShown(.week), "carried over: no guide again")
         XCTAssertTrue(AppSettings.spanGuideShown(.day))
     }

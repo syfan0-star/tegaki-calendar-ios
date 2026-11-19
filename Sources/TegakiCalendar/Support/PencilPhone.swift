@@ -62,7 +62,8 @@ final class PencilPhone {
         guard !defaults.bool(forKey: AppSettings.allowFingerChosenKey) else {
             return (defaults.bool(forKey: AppSettings.allowFingerKey), origin(defaults, device: device))
         }
-        // Pencil only on iPad by default; iPhones and Macs have no Pencil (DESIGN §2.1, §2.11).
+        // Pencil only on iPad by default (DESIGN §2.1, §2.11); on an iPhone Duo the Pencil's touch or the hinge turns it off
+        // afterwards (FingerDefault, §4.8).
         let allowFinger = !isPad
         defaults.set(true, forKey: AppSettings.allowFingerChosenKey)
         defaults.set(allowFinger, forKey: AppSettings.allowFingerKey)
@@ -85,6 +86,10 @@ final class PencilPhone {
     let isPad: Bool
     /// The decision (§4.8's table).
     private(set) var state: FingerDefault
+    /// Who wrote today's value as the decision sees it (§4.8): the launch's (`appeared`), the app's on this device after an
+    /// action, the person's after the switch. For screenshot mode's `duo measure:` line (`origin=`, §2.1): on a launch whose
+    /// arguments shadow the mark it is still the launch's, not the shadow's.
+    private(set) var origin: FingerDefault.Origin = .carried
     /// Tests: every input, as it is fed (nil in the app).
     var onInput: ((Input) -> Void)?
     /// Tests: every action, once written (nil in the app).
@@ -101,6 +106,7 @@ final class PencilPhone {
     private var hingeInteraction: UIInteraction?
     private var hingeHeard = false
     private var hingeWaitTask: Task<Void, Never>?
+    private var appearedFed = false
 
     /// `defaults`: where the value and the mark are (the screen's `@AppStorage` store); the guide records are `AppSettings`'.
     /// `deviceMark`, `usesHinge` and `sleep` are the app's by default (the tests pass their own).
@@ -193,12 +199,17 @@ final class PencilPhone {
 
     /// After `appear()` wrote 1.3's default (`launchDefault`'s answer), once (C2: a hinge or a touch before it waits for it).
     func appeared(allowFinger: Bool, origin: FingerDefault.Origin) {
+        if !appearedFed, self.origin != .person {
+            self.origin = origin
+        }
+        appearedFed = true
         feed(.appeared(allowFinger: allowFinger, origin: origin)) { $0.appeared(allowFinger: allowFinger, origin: origin) }
     }
 
     /// The person switched 「指でも書く」 (after `personSet`): the app never changes it again.
     func personSwitched() {
         onInput?(.person)
+        origin = .person
         state.personSwitched()
     }
 
@@ -229,6 +240,7 @@ final class PencilPhone {
     private func feed(_ input: Input, _ step: (inout FingerDefault) -> FingerDefault.Action?) {
         onInput?(input)
         if let action = step(&state) {
+            origin = .app
             apply(action)
         }
     }
