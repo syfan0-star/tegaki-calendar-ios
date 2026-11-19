@@ -22,7 +22,7 @@
 
 ### 前もっての宣言（契約 §3.7。D0 の最初の run より前に書く）
 
-1. D0 の commit の `Sources`・`TegakiKit/Sources`・`Tests` は 955fe67 と 1 バイトも同じ（`git diff 955fe67 -- Sources TegakiKit/Sources Tests` が空）。**D0 の commit の前に確かめた: 空、追跡外のファイルも無し**（11/20 08:40）。
+1. D0 の commit の `Sources`・`TegakiKit/Sources`・`Tests` は 955fe67 と 1 バイトも同じ（`git diff 955fe67 -- Sources TegakiKit/Sources Tests` が空）。**D0 の commit の前に確かめた: 空、追跡外のファイルも無し**（11/20 07:50）。
 2. J-4 で違ってよい写真（§3.5）: `ipad13-portrait-sheet-info.png` の版の字の所（「1.3」→「1.4」）だけ。
 3. env.txt で見込む値: Xcode 27.2（Build 27B52）、実行環境 iOS 27.2（24B8117）、`ipadmini` だけ iOS 27.0、Duo は iOS 27.2 の Duo の組（24B91016s）、XcodeGen 2.46.0。
 4. 機種の替わり: `iphone69` は `iPhone 18 Pro Max`（`iPhone 17 Pro Max`・`iPhone 17 Pro`・`iPhone 16 Pro Max` は `xcode-27` の環境に無い）。SDK の差の地図は §3.6 の 4 つの組で読む。
@@ -45,7 +45,7 @@
     - アラートの写真は J-4 の組に無い（あれば足す）。
 11. `TESTS_1_3`・`FIXTURES_1_3`: **29 行・37 行**。どちらも 955fe67 の blob から契約 §5.5 の printf の形で作り（LC_ALL=C で並べた）、D0 の木で `shasum -a 256 -c` が 29/29・37/37 OK。内訳: TESTS_1_3 は `Tests/TegakiCalendarTests` 19・UI テスト 3・`CompatSpanTests` 1・`CompatSpanFixtures` の .swift 2・KitChecks 4。FIXTURES_1_3 は compat11 17（`.gitignore` を含む）・compat-span 17（`MANIFEST` を含む）・`CompatFixtures` 1・`EXPECTED_MIN` 2。段の確かめ: ファイルを 1 つ足す・消す、`PaperViewTests.swift` に 1 バイト足す、のどれでも手元で exit 1。
 
-### D0 の commit（Workflow wf_c4f93814-c94 の D0 の組: 作る → 2 つの別の目 → 直す。11/20 07:00〜08:30）
+### D0 の commit（Workflow wf_c4f93814-c94 の D0 の組: 作る → 2 つの別の目 → 直す。11/20 06:50〜07:50）
 
 - 中身は契約 §3.3 の 1〜9。`runs-on` は compat-v1-0 だけ `macos-26`（45 分のまま）、ほかは全部 `xcode-27`（build-and-test 110 分）。XcodeGen は 10 か所で `tools/ci/install-xcodegen.sh`（2.46.0、sha256 固定）。
 - 作る役が決めた所（契約の字の外。受けた）:
