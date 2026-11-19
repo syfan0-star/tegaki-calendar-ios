@@ -2783,7 +2783,7 @@ extension InkCanvasView.Coordinator {
         guard hasInitialZoom, !isUsingTool, let canvas, let container, !isBandMoving(canvas) else { return }
         let zoom = max(canvas.zoomScale, 0.0001)
         let shownTop = canvas.contentOffset.y
-        let shownBottom = shownTop + container.bounds.height - canvas.contentInset.bottom
+        let shownBottom = shownTop + container.bounds.height
         let line = nowLine * zoom
         guard line < shownTop || line > shownBottom else { return }
         canvas.setContentOffset(clampedOffset(CGPoint(x: canvas.contentOffset.x, y: top * zoom)), animated: false)
