@@ -2046,6 +2046,9 @@ struct CalendarRootScreen: View {
         showSettings = false
         // 1.3 (§2 #12, H3, C3-M1): the one page and every window; a new window on the joined path.
         paths.eraseAll(reopen: opening(kind: kind, focus: focus))
+        // 1.3 S6 (docs/M7C.md, the lead's decisions on the cap 3 (a)): 「今日」's 1.1.1 rect goes too, as in `show`. Zoomed in,
+        // 「今日」 left a cell of the old window's band in it, and the new canvas's first layout would read it.
+        revealRect = nil
         selection = nil
         viewport = .zero
         relayout()

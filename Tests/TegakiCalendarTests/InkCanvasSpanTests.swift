@@ -105,7 +105,8 @@ final class InkCanvasSpanTests: XCTestCase {
     private func makeView(_ session: SpanSession, probe: SpanProbe, tool: CanvasTool, undoTrigger: Int = 0,
                           command: CanvasCommand? = nil, commandTrigger: Int = 0, isSheetOpen: Bool = false,
                           slidePages: Int = 0, slideTrigger: Int = 0, paper: PaperContent? = nil,
-                          initialPaperOffset: CGPoint? = nil, revealRect: CGRect? = nil, revealTrigger: Int = 0) -> InkCanvasView {
+                          initialPaperOffset: CGPoint? = nil, revealRect: CGRect? = nil, revealTrigger: Int = 0,
+                          bottomClearance: CGFloat = 0) -> InkCanvasView {
         let focus = session.layout.pages[min(max(0, session.focusSlot), session.layout.pages.count - 1)]
         let sleeper = canvasSleeper!
         let bed = bed!
@@ -132,6 +133,7 @@ final class InkCanvasSpanTests: XCTestCase {
             onZoomRatioChange: { probe.ratios.append($0) },
             onStrokeBudget: { _ in probe.oldBudget += 1 },
             onGrowthCapReached: { probe.oldCaps += 1 },
+            bottomClearance: bottomClearance,
             span: session,
             sleep: { await sleeper.sleep($0) },
             clock: { [weak bed] in bed?.now ?? Date(timeIntervalSince1970: 0) },
@@ -145,11 +147,13 @@ final class InkCanvasSpanTests: XCTestCase {
     }
 
     /// The canvas attached to its container as `makeUIView` does, laid out once in the paper area and settled
-    /// (`initialPaperOffset`: the screen's, `ScreenPaths.shotPaperOffset`; `revealRect`: the screen's at the first layout).
+    /// (`initialPaperOffset`: the screen's, `ScreenPaths.shotPaperOffset`; `revealRect`: the screen's at the first layout;
+    /// `bottomClearance`: the collapsed toolbar's round button, `ToolbarLogic.paperBottomClearance`).
     private func attach(_ session: SpanSession, tool: CanvasTool? = nil, width: CGFloat = 834, height: CGFloat = 955,
-                        initialPaperOffset: CGPoint? = nil, revealRect: CGRect? = nil) async -> SpanRig {
+                        initialPaperOffset: CGPoint? = nil, revealRect: CGRect? = nil, bottomClearance: CGFloat = 0) async -> SpanRig {
         let probe = SpanProbe()
-        let view = makeView(session, probe: probe, tool: tool ?? pen, initialPaperOffset: initialPaperOffset, revealRect: revealRect)
+        let view = makeView(session, probe: probe, tool: tool ?? pen, initialPaperOffset: initialPaperOffset, revealRect: revealRect,
+                            bottomClearance: bottomClearance)
         let coordinator = InkCanvasView.Coordinator(parent: view)
         let container = InkCanvasContainerView(paperView: PaperView(content: view.paper), canvasView: InkBandCanvasView())
         coordinator.attach(container)
@@ -164,11 +168,12 @@ final class InkCanvasSpanTests: XCTestCase {
     /// `update(from:)` with the rig's session and these inputs.
     private func update(_ rig: SpanRig, tool: CanvasTool? = nil, undoTrigger: Int = 0, command: CanvasCommand? = nil,
                         commandTrigger: Int = 0, isSheetOpen: Bool = false, slidePages: Int = 0, slideTrigger: Int = 0,
-                        paper: PaperContent? = nil, revealRect: CGRect? = nil, revealTrigger: Int = 0) {
+                        paper: PaperContent? = nil, revealRect: CGRect? = nil, revealTrigger: Int = 0, bottomClearance: CGFloat = 0) {
         rig.coordinator.update(from: makeView(rig.session, probe: rig.probe, tool: tool ?? rig.coordinator.parent.tool,
                                               undoTrigger: undoTrigger, command: command, commandTrigger: commandTrigger,
                                               isSheetOpen: isSheetOpen, slidePages: slidePages, slideTrigger: slideTrigger,
-                                              paper: paper, revealRect: revealRect, revealTrigger: revealTrigger))
+                                              paper: paper, revealRect: revealRect, revealTrigger: revealTrigger,
+                                              bottomClearance: bottomClearance))
     }
 
     /// The queued main-actor work (the next-turn deliveries, the inbox's arrival, the sink, the prefetch's turns).
@@ -1197,6 +1202,77 @@ final class InkCanvasSpanTests: XCTestCase {
                 XCTAssertEqual(moved.y, 14 * hour * cap, accuracy: 0.5, "\(kind), \(label) at the top: 14:00, an hour before now, at the top")
             }
         }
+    }
+
+    /// S6 (docs/M7C.md, the lead's decisions on the cap 3 (b)): the bottom of what the paper shows, for 「今日」's now-line request
+    /// at the capped overview (`revealNowLine`), is the bottom clearance's top (the collapsed toolbar's round button,
+    /// `ToolbarLogic.dockClearance`, the canvas's `contentInset.bottom`), as for 1.1.1's `reveal`. 11/18 15:00, the week and
+    /// the day: the now line hidden under the clearance (30 pt above the screen's bottom edge, 30 pt into the 60 pt clearance)
+    /// counts as off screen, and y alone goes to 14:00; the now line 5 pt above the clearance is on screen, and nothing moves.
+    func testCappedTodaySeesTheBottomClearance() async throws {
+        let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
+        bed.now = now
+        let area = CGSize(width: 874, height: 205)
+        let clearance = ToolbarLogic.dockClearance
+        XCTAssertEqual(clearance, 60)
+        var number = 0
+        for (kind, cap, hour) in [(PageKind.week, CGFloat(874) / 4_200, CGFloat(80)), (.day, CGFloat(874) / 5_000, 100)] {
+            number += 1
+            let session = bed.session(kind, focus: kind == .week ? nov16 : DayKey(year: 2026, month: 11, day: 18), number: number,
+                                      deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+            await session.prefetch()
+            let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+            let rig = await attach(session, width: area.width, height: area.height,
+                                   initialPaperOffset: ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId,
+                                                                                   pages: nil, offset: nil, viewportWidth: area.width, zoom: zoom),
+                                   bottomClearance: clearance)
+            XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind): the cap")
+            XCTAssertEqual(rig.canvas.contentInset.bottom, clearance, "\(kind): the round button's clearance")
+            let x0 = rig.canvas.contentOffset.x
+            let line = 15 * hour * cap
+            var trigger = 0
+            // The paper put with the now line `fromTop` pt below the screen's top (`before`), then 「今日」's request (`after`).
+            func reveal(nowLineAt fromTop: CGFloat) throws -> (before: CGPoint, after: CGPoint) {
+                rig.canvas.contentOffset = CGPoint(x: x0, y: line - fromTop)
+                let before = rig.canvas.contentOffset
+                let shown = PaperViewport(offsetX: before.x, zoom: rig.zoom, width: area.width)
+                let rect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                                     calendar: SessionTestBed.tokyo, viewport: shown))
+                trigger += 1
+                update(rig, revealRect: rect, revealTrigger: trigger, bottomClearance: clearance)
+                return (before, rig.canvas.contentOffset)
+            }
+            let above = try reveal(nowLineAt: area.height - clearance - 5)
+            XCTAssertEqual(above.after.x, above.before.x, accuracy: 0.01, "\(kind): the now line 5 pt above the clearance")
+            XCTAssertEqual(above.after.y, above.before.y, accuracy: 0.01, "\(kind): the now line above the clearance is on screen, nothing moves")
+            let under = try reveal(nowLineAt: area.height - 30)
+            XCTAssertEqual(under.after.x, x0, accuracy: 0.01, "\(kind): the now line under the clearance: y only")
+            XCTAssertEqual(under.after.y, 14 * hour * cap, accuracy: 0.5,
+                           "\(kind): the now line under the round button's clearance is not shown: 14:00, an hour before now, at the top")
+        }
+    }
+
+    /// S6 (docs/M7C.md, the lead's decisions on the cap 3 (a)): a canvas's first layout without `initialPaperOffset` reads the
+    /// screen's `revealRect` (1.1.1), so a 「今日」 rect left from another window (`.reveal` when zoomed in: today's cell, with an
+    /// x, in that window's band lu) takes a new window's paper to it — here a cell on the page two to the right of the focus
+    /// page — instead of opening with the focus page in the middle. 「全て消す」 makes such a new window (H3), so the screen
+    /// forgets the rect there (ScreenPathsSpanTests.testEraseAllForgetsTheTodayRect, the screen's line).
+    func testALeftTodayRectMovesANewWindowsFirstLayout() async throws {
+        let plain = await attach(try await open(.week, number: 1))
+        XCTAssertEqual(plain.canvas.contentOffset.x, 2.5 * plain.page - 417, accuracy: 0.5, "no rect: the focus week opens in the middle")
+        let session = try await open(.week, number: 2)
+        XCTAssertEqual(session.focusPageId, w1116)
+        let left = CGRect(x: origin(w1130, session) + 300, y: 400, width: 200, height: 160)
+        let rig = await attach(session, revealRect: left)
+        // Read in the window the session holds now (a shift at rest keeps what the screen shows, so the cell is still there).
+        let shownLeft = rig.canvas.contentOffset.x / rig.zoom
+        let shownWidth = 834 / rig.zoom
+        let cellLeft = origin(w1130, session) + 300
+        XCTAssertGreaterThanOrEqual(cellLeft, shownLeft - 0.5, "the left cell is brought on screen")
+        XCTAssertLessThanOrEqual(cellLeft + 200, shownLeft + shownWidth + 0.5, "the left cell is brought on screen")
+        let middle = shownLeft + shownWidth / 2
+        let opened = origin(w1116, session)
+        XCTAssertFalse(middle >= opened && middle <= opened + 1_400, "the week the window opened on is not in the middle")
     }
 
     /// P-B6 イ, the lead's decision 7 (PB6-RV-I2): 「今日」's request while the band still moves (a fling's snap or a slide; the

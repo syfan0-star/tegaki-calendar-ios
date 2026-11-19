@@ -1038,8 +1038,9 @@ extension InkCanvasView {
             let topVisibleY = canvas.contentOffset.y / zoom
             let geometryChanged = !oldLayout.sameGeometry(as: newLayout)
             // 1.1 (M7A_CONTRACT §3.6): only the height of the last cell changed (the month's memo area,
-            // the day's free memo area grew or shrank with its handwriting) and nothing else needs a
-            // new drawing — every cell keeps its origin, so the strokes stay where they are.
+            // the day's free memo area, since 1.3 the week's memo below 24:00, grew or shrank with its
+            // handwriting) and nothing else needs a new drawing — every cell keeps its origin, so the
+            // strokes stay where they are.
             let tailOnly = !drawingWork && geometryWork && !resetScroll
                 && PaperGrowth.onlyTailHeightChanged(old: oldLayout, new: newLayout)
             if !tailOnly {
@@ -2503,9 +2504,9 @@ extension InkCanvasView {
         return PaperSpan(layout: layout, bands: bands, focus: focus)
     }
 
-    /// §3.6: the rectangle the window's zoom limits come from — the overview of its middle page (every joined
-    /// week is 1,400 × 1,920, every day's 24 hours 1,000 × 2,400), never the band (whose width would make the
-    /// lowest zoom show the whole window at once).
+    /// §3.6: the rectangle the window's zoom limits come from — the overview of its middle page (a joined week's
+    /// 24 hours 1,400 × 1,920, its memo below 24:00 reached by scrolling, §5.2; a day's 24 hours 1,000 × 2,400),
+    /// never the band (whose width would make the lowest zoom show the whole window at once).
     static func bandOverview(_ layout: SpanLayout) -> CGSize {
         guard !layout.pages.isEmpty else { return ZoomPolicy.overviewSize(layout) }
         return ZoomPolicy.overviewSize(layout.pages[layout.pages.count / 2])
@@ -2798,7 +2799,8 @@ extension InkCanvasView.Coordinator {
     /// `publishPage`'s entry (§3.4 (a), (b), (d)): the ledger's journal goes into the inbox in the turn it was
     /// written, every step of it (no `superseded`), as deltas of the real pages with the names that reach no page,
     /// under the session's number when this canvas took its window (D7). A step that may change the height of a
-    /// growing cell (the day's free memo, D16) asks the session to lay the window out again on the next turn.
+    /// growing cell (the day's free memo, D16; the week's memo below 24:00, §5) asks the session to lay the window out
+    /// again on the next turn.
     fileprivate func putJournalIntoInbox(relayout: Bool = true) {
         guard let state = spanState else { return }
         let journal = ledger.journal

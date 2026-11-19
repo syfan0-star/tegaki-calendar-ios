@@ -1860,6 +1860,33 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(ScreenPaths.releaseIdentifier, "span.release")
     }
 
+    /// S6 (docs/M7C.md, the lead's decisions on the cap 3 (a)): 「全て消す」 forgets the 1.1.1 rect that 「今日」 zoomed in left
+    /// (`ScreenPaths.Today.reveal`: today's cell, with an x, in the band lu of the window it was made for). The canvas is
+    /// made anew on both paths (H3) and its first layout without `initialPaperOffset` reads `revealRect`, so a rect left over
+    /// would take the new window's paper elsewhere (InkCanvasSpanTests.testALeftTodayRectMovesANewWindowsFirstLayout). The
+    /// screen's View is not run by XCTest (C3-M3): the line is read from the source, in code only (comments and strings
+    /// blanked): `eraseAllInk` sets `revealRect = nil`, as `show` does (1.1.1).
+    func testEraseAllForgetsTheTodayRect() throws {
+        let url = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
+        let code = String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
+        /// The body of the function whose head (to its "{") is `head`, every run of white space one space.
+        func body(of head: String) throws -> String {
+            let start = try XCTUnwrap(code.range(of: head), "\(head) is in CalendarRootScreen.swift")
+            var depth = 1
+            var end = start.upperBound
+            while end < code.endIndex, depth > 0 {
+                if code[end] == "{" { depth += 1 } else if code[end] == "}" { depth -= 1 }
+                end = code.index(after: end)
+            }
+            return code[start.upperBound..<end].split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        }
+        let erase = try body(of: "private func eraseAllInk() {")
+        XCTAssertTrue(erase.hasPrefix("showSettings = false paths.eraseAll(reopen: opening(kind: kind, focus: focus))"), erase)
+        XCTAssertTrue(erase.contains(" revealRect = nil "), "「全て消す」 forgets 「今日」's rect: \(erase)")
+        let show = try body(of: "private func show(kind newKind: PageKind, focus newFocus: DayKey) {")
+        XCTAssertTrue(show.contains(" revealRect = nil "), "show forgets it (1.1.1)")
+    }
+
     /// 1.2.3's 「手書きを保存できませんでした」 on the joined path: one notice while it is up, whichever windows failed (the one on
     /// the screen and a closing one); after it closed, the next failure tells again.
     func testSaveFailureShowsOneNotice() async throws {
