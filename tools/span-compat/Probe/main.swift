@@ -116,5 +116,8 @@ if let parsed = try? InkImport.parse(exported) {
     check(false, "export → import: the export of the fixture pages parses")
 }
 
+// 1.4 (docs/M7D_CONTRACT.md §5.3 2): what only this version checks (<version>/Version.swift; 1.3's guard of the save).
+versionExtraChecks(pages: pages)
+
 print("span-compat \(versionName): \(checkCount) checks, \(failureCount) failed")
 exit(failureCount == 0 ? 0 : 1)
