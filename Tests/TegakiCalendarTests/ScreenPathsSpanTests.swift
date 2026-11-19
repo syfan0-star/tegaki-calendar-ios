@@ -1867,24 +1867,93 @@ final class ScreenPathsSpanTests: XCTestCase {
     /// screen's View is not run by XCTest (C3-M3): the line is read from the source, in code only (comments and strings
     /// blanked): `eraseAllInk` sets `revealRect = nil`, as `show` does (1.1.1).
     func testEraseAllForgetsTheTodayRect() throws {
-        let url = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
-        let code = String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
-        /// The body of the function whose head (to its "{") is `head`, every run of white space one space.
-        func body(of head: String) throws -> String {
-            let start = try XCTUnwrap(code.range(of: head), "\(head) is in CalendarRootScreen.swift")
-            var depth = 1
-            var end = start.upperBound
-            while end < code.endIndex, depth > 0 {
-                if code[end] == "{" { depth += 1 } else if code[end] == "}" { depth -= 1 }
-                end = code.index(after: end)
-            }
-            return code[start.upperBound..<end].split(whereSeparator: \.isWhitespace).joined(separator: " ")
-        }
-        let erase = try body(of: "private func eraseAllInk() {")
+        let code = try Self.screenCode()
+        let erase = try Self.body(of: "private func eraseAllInk() {", in: code)
         XCTAssertTrue(erase.hasPrefix("showSettings = false paths.eraseAll(reopen: opening(kind: kind, focus: focus))"), erase)
         XCTAssertTrue(erase.contains(" revealRect = nil "), "「全て消す」 forgets 「今日」's rect: \(erase)")
-        let show = try body(of: "private func show(kind newKind: PageKind, focus newFocus: DayKey) {")
+        let show = try Self.body(of: "private func show(kind newKind: PageKind, focus newFocus: DayKey) {", in: code)
         XCTAssertTrue(show.contains(" revealRect = nil "), "show forgets it (1.1.1)")
+    }
+
+    /// S6 (review S6-LT-1): 「今日」 zoomed in leaves a rect in the band lu of its window (`Today.reveal`). That window's canvas
+    /// is handed it (`revealRect(_:for:)`); the canvas of a window opened after it is not — after an import
+    /// (`importDidFinish`), an account answer (`reloadShown`; 「残す」 here, 「消して始める」 reaches it the same way) and
+    /// 「全て消す」 (`eraseAll`), none of which goes through the screen's `show` (which forgets the rect, 1.1.1) — so the new
+    /// window's first layout does not take its paper to a cell of the old band (InkCanvasSpanTests
+    /// .testALeftTodayRectMovesANewWindowsFirstLayout). Nor is a rect 「今日」 did not make for a window (the one page's,
+    /// 1.1.1, page lu). Fails if `revealRect(_:for:)` hands every window the rect.
+    func testTodaysRectStaysWithItsWindow() async throws {
+        let area = CGSize(width: 834, height: 955)
+        let zoomed = PaperViewport(offsetX: 2_000, zoom: 1.2, width: 834)
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        let now = try at(12, 3, 10)
+        let first = try await openWindow()
+        XCTAssertNil(paths.revealRect(CGRect(x: 10, y: 20, width: 300, height: 400), for: first),
+                     "a rect 「今日」 did not make for this window (the one page's, 1.1.1)")
+        /// 「今日」 zoomed in on the window on the screen: its rect, handed to that window's canvas.
+        func reveal(_ step: String) throws -> (SpanSession, CGRect) {
+            let session = try XCTUnwrap(paths.span, step)
+            guard case .reveal(let rect)? = paths.today(dec3, now: now, viewport: zoomed, area: area, ratio: 1) else {
+                XCTFail("\(step): zoomed in, a reveal")
+                return (session, .null)
+            }
+            XCTAssertEqual(paths.revealRect(rect, for: session), rect, "\(step): the window it was made for takes it")
+            XCTAssertNil(paths.revealRect(nil, for: session), "\(step): the screen forgot it (`show`): nothing")
+            return (session, rect)
+        }
+        /// The window on the screen is another than `old` and is not handed `old`'s rect.
+        func assertNewWindowTakesNothing(_ old: SpanSession, _ rect: CGRect, _ step: String) async throws {
+            let next = try XCTUnwrap(paths.span, step)
+            XCTAssertNotEqual(next.id, old.id, "\(step): a new window")
+            XCTAssertNil(paths.revealRect(rect, for: next), "\(step): the new window opens as without 「今日」")
+            XCTAssertEqual(paths.revealRect(rect, for: old), rect, "\(step): only the window it was made for")
+            await next.prefetch()
+        }
+
+        var (shown, rect) = try reveal("opened")
+        paths.importWillRun()
+        paths.importDidFinish(opening())
+        try await assertNewWindowTakesNothing(shown, rect, "the import")
+
+        (shown, rect) = try reveal("after the import")
+        await paths.chooseAccount(.keepInk, resolve: { _ in }, reload: { self.paths.reloadShown(self.opening()) }).value
+        try await assertNewWindowTakesNothing(shown, rect, "the account answer")
+
+        (shown, rect) = try reveal("after the account answer")
+        paths.eraseAll(reopen: opening())
+        try await assertNewWindowTakesNothing(shown, rect, "「全て消す」")
+        paths.eraseDidFinish()
+        XCTAssertEqual(faults, [])
+    }
+
+    /// S6 (review S6-LT-1), the screen's side of `testTodaysRectStaysWithItsWindow`, read from the source in code only (the
+    /// View is not run by XCTest, C3-M3): the window's canvas (`joinedCanvas`) takes the screen's `revealRect` through
+    /// `ScreenPaths.revealRect(_:for:)`, never as it is; the one page's canvas takes it as 1.2.3 does (once, 1.1.1).
+    func testJoinedCanvasTakesOnlyItsWindowsTodayRect() throws {
+        let code = try Self.screenCode()
+        let joined = try Self.body(of: "func joinedCanvas(_ span: SpanSession, viewportWidth: CGFloat) -> some View {", in: code)
+        XCTAssertTrue(joined.contains(" revealRect: paths.revealRect(revealRect, for: span), "), "the window's canvas: \(joined)")
+        XCTAssertFalse(joined.contains(" revealRect: revealRect,"), "never the screen's rect as it is")
+        let flat = code.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        XCTAssertEqual(flat.components(separatedBy: " revealRect: revealRect,").count - 1, 1, "the one page's canvas (1.1.1)")
+    }
+
+    /// CalendarRootScreen.swift in code only (comments and strings blanked, `WeekMemoSpanTests.codeOnly`).
+    private static func screenCode() throws -> String {
+        let url = repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
+        return String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
+    }
+
+    /// The body of the function of `code` whose head (to its "{") is `head`, every run of white space one space.
+    private static func body(of head: String, in code: String) throws -> String {
+        let start = try XCTUnwrap(code.range(of: head), "\(head) is in CalendarRootScreen.swift")
+        var depth = 1
+        var end = start.upperBound
+        while end < code.endIndex, depth > 0 {
+            if code[end] == "{" { depth += 1 } else if code[end] == "}" { depth -= 1 }
+            end = code.index(after: end)
+        }
+        return code[start.upperBound..<end].split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 
     /// 1.2.3's 「手書きを保存できませんでした」 on the joined path: one notice while it is up, whichever windows failed (the one on

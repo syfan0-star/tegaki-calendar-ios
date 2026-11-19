@@ -95,8 +95,9 @@ final class ScreenPaths: ObservableObject {
         case reopen(DayKey)
         /// Near, at the overview: slide by this many pages (`slidePages`).
         case slide(Int)
-        /// Zoomed in: bring this rect (band lu) on screen (`revealRect`). Also today's page already the focus at the capped
-        /// overview (P-B6 イ, the lead's decision 7): the canvas's now-line request, a rect with no x (`cappedTodayRect`,
+        /// Zoomed in: bring this rect (band lu of the window on the screen; only that window's canvas is handed it, S6:
+        /// `revealRect(_:for:)`) on screen (`revealRect`). Also today's page already the focus at the capped overview (P-B6 イ,
+        /// the lead's decision 7): the canvas's now-line request, a rect with no x (`cappedTodayRect`,
         /// `InkCanvasView.nowLineRevealRect`; its x is not a number, so the case is never equal to itself).
         case reveal(CGRect)
         /// Today's page is the focus at an overview that holds the whole day: nothing moves (1.2.3's 「今日」 on the page
@@ -185,6 +186,9 @@ final class ScreenPaths: ObservableObject {
     /// A stroke written meanwhile would otherwise be saved and sent to the new account; the one page drops it at the
     /// reload (wave A's decision 2), and the window's pages are read only after the answer (`reloadShown`).
     private(set) var eraseAndStartWaits = false
+    /// The window (`SpanSession.id`) 「今日」's last `Today.reveal` was made for (S6, review S6-LT-1): its rect is in that
+    /// window's band lu. Only that window's canvas is handed it (`revealRect(_:for:)`).
+    private(set) var revealWindowId: String?
     /// `windowVersion` right after the window opened (stage 2 at a stop needs the reads done, C3-m6).
     private var openedVersion = 0
     /// `EventStoreModel.revision` when the events of the window were read (C3-m8).
@@ -958,13 +962,27 @@ final class ScreenPaths: ObservableObject {
                       let rect = Self.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
                                                       calendar: session.context.calendar, viewport: shown)
                 else { return .stay }
+                revealWindowId = session.id
                 return .reveal(rect)
             }
             guard let rect = Self.todayRect(layout: session.layout, pageId: session.plan.pageId(at: session.plan.index(containing: day)),
                                             now: now, calendar: session.context.calendar, viewport: shown, area: area)
             else { return nil }
+            revealWindowId = session.id
             return .reveal(rect)
         }
+    }
+
+    /// The screen's `revealRect` as the canvas of the window `session` takes it (S6, review S6-LT-1): 「今日」's rect only
+    /// for the window it was made for (`revealWindowId`), else nil. A window opened anew without the screen's `show` (which
+    /// forgets the rect, 1.1.1) — after an import (`importDidFinish`), an account answer (`reloadShown`) or 「全て消す」
+    /// (`eraseAll`) — would otherwise read, at its first layout, a cell of the old window's band lu and take its paper there
+    /// (InkCanvasSpanTests.testALeftTodayRectMovesANewWindowsFirstLayout); it opens as without 「今日」 instead. A rect the
+    /// one page left (1.1.1, page lu) never reaches a window either. The one page's canvas still takes the screen's rect as
+    /// 1.2.3 does.
+    func revealRect(_ rect: CGRect?, for session: SpanSession) -> CGRect? {
+        guard let rect, revealWindowId == session.id else { return nil }
+        return rect
     }
 
     /// Whether the paper is zoomed in past the overview (the ratio of the reported zoom over the window's opening zoom,
