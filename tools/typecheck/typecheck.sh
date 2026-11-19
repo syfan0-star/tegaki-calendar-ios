@@ -28,9 +28,9 @@
 #
 # 1.3 (docs/M7C_CONTRACT.md §4.6, D12): the optional environment variable TYPECHECK_DEFINES holds
 # compilation conditions separated by spaces; each is passed as `-D <name>` to steps 4 and 5 (the app,
-# the app module and every folder of Tests/), never to the Kit. `TYPECHECK_DEFINES=SPAN_PROTOTYPE`
-# type-checks the prototype build, which CI makes with the condition on the xcodebuild command line
-# (it is never in project.yml). Unset or empty: exactly the steps above.
+# the app module and every folder of Tests/), never to the Kit. `TYPECHECK_DEFINES=DEBUG` type-checks
+# the Debug build's `#if DEBUG` code. (Its first use, SPAN_PROTOTYPE, went with the prototype at S6; the
+# tag r13-proto-1 keeps it.) Unset or empty: exactly the steps above.
 # Exit status: non-zero when any step fails. Warnings are printed and counted, not fatal.
 set -euo pipefail
 

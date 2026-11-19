@@ -227,8 +227,8 @@ final class WeekMemoSpanTests: XCTestCase {
         return calls
     }
 
-    /// §9.3 1 (the critics' W-10): every week the app lays out has the memo. (a) Every `.swift` of Sources/TegakiCalendar but
-    /// the prototype's (`Span/SpanPrototype*.swift`) is read, each `WeekLayoutInput(` call taken from its name to the
+    /// §9.3 1 (the critics' W-10): every week the app lays out has the memo. (a) Every `.swift` of Sources/TegakiCalendar (the
+    /// prototype's files went with S6) is read, each `WeekLayoutInput(` call taken from its name to the
     /// matching ")" (parentheses counted in code only: not in comments or strings), and every call passes
     /// `freeMemo: true`; there are exactly 2 (the one-page path's `makePaper` and the joined path's `pageLayout`: a third
     /// call site fails here until whoever adds it looks at it). (b) `makePaper`'s Monday and Sunday weeks have the memo.
@@ -250,7 +250,7 @@ final class WeekMemoSpanTests: XCTestCase {
         // (a) The app's sources.
         let root = Self.repository.appendingPathComponent("Sources/TegakiCalendar", isDirectory: true)
         let files = try XCTUnwrap(FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?.allObjects as? [URL])
-            .filter { $0.pathExtension == "swift" && !$0.lastPathComponent.hasPrefix("SpanPrototype") }
+            .filter { $0.pathExtension == "swift" }
         XCTAssertGreaterThan(files.count, 50, "the app's sources were found (\(root.path))")
         var sites: [(file: String, call: String)] = []
         for url in files {

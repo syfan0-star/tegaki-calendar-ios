@@ -1439,8 +1439,8 @@ final class ScreenPathsSpanTests: XCTestCase {
     }
 
     /// P-B6 イ (PLAN_PB6 §7.2 12): every window the app makes carries the cap. Every `.swift` of Sources/TegakiCalendar but
-    /// the prototype's (`Span/SpanPrototype*.swift`) and screenshot mode's demo page id (`Support/ScreenshotMode.swift`, one
-    /// `SpanPlan(` for a page id only) is read in code only (`WeekMemoSpanTests.codeOnly`); every `SpanPlan(` and
+    /// screenshot mode's demo page id (`Support/ScreenshotMode.swift`, one `SpanPlan(` for a page id only; the prototype's
+    /// files went with S6) is read in code only (`WeekMemoSpanTests.codeOnly`); every `SpanPlan(` and
     /// `SpanSession(` call (to its matching ")") passes `overviewCap:`, the screen's `SpanSession(` passes true, and
     /// Span/ScreenPaths.swift has no `ZoomPolicy.bounds(` (its zooms are the plan's `zoomBounds`). There are exactly 2
     /// `SpanPlan(` (the session's opening and `redecide`) and 1 `SpanSession(` (`makeSession`): a new call site fails here
@@ -1456,7 +1456,7 @@ final class ScreenPathsSpanTests: XCTestCase {
         let repository = URL(fileURLWithPath: "\(#filePath)").deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let root = repository.appendingPathComponent("Sources/TegakiCalendar", isDirectory: true)
         let files = try XCTUnwrap(FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?.allObjects as? [URL])
-            .filter { $0.pathExtension == "swift" && !$0.lastPathComponent.hasPrefix("SpanPrototype") }
+            .filter { $0.pathExtension == "swift" }
         XCTAssertGreaterThan(files.count, 50, "the app's sources were found (\(root.path))")
         var plans: [(file: String, call: String)] = []
         var sessions: [(file: String, call: String)] = []

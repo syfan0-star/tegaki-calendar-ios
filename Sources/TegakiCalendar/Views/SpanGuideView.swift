@@ -154,7 +154,7 @@ final class SpanGuideModel: ObservableObject {
     }
 }
 
-/// The card itself (B_DESIGN.md §3.1, the black card of b2-iphone.svg; the prototype's `SpanPrototypeGuideCard`):
+/// The card itself (B_DESIGN.md §3.1, the black card of b2-iphone.svg; the prototype's guide card, tag r13-proto-1):
 /// white footnote text on a dark rounded card at most 520 pt wide. The screen lays it over the top edge of the
 /// paper. It goes at any touch on it (§3.14 「触れても消える」), not only at a tap: the first touch down of a
 /// finger or the Pencil, so a stroke or a drag begun on the card takes it away too (a tap alone would leave it
