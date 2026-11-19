@@ -145,11 +145,11 @@ final class InkCanvasSpanTests: XCTestCase {
     }
 
     /// The canvas attached to its container as `makeUIView` does, laid out once in the paper area and settled
-    /// (`initialPaperOffset`: the screen's, `ScreenPaths.shotPaperOffset`).
+    /// (`initialPaperOffset`: the screen's, `ScreenPaths.shotPaperOffset`; `revealRect`: the screen's at the first layout).
     private func attach(_ session: SpanSession, tool: CanvasTool? = nil, width: CGFloat = 834, height: CGFloat = 955,
-                        initialPaperOffset: CGPoint? = nil) async -> SpanRig {
+                        initialPaperOffset: CGPoint? = nil, revealRect: CGRect? = nil) async -> SpanRig {
         let probe = SpanProbe()
-        let view = makeView(session, probe: probe, tool: tool ?? pen, initialPaperOffset: initialPaperOffset)
+        let view = makeView(session, probe: probe, tool: tool ?? pen, initialPaperOffset: initialPaperOffset, revealRect: revealRect)
         let coordinator = InkCanvasView.Coordinator(parent: view)
         let container = InkCanvasContainerView(paperView: PaperView(content: view.paper), canvasView: InkBandCanvasView())
         coordinator.attach(container)
@@ -1018,24 +1018,42 @@ final class InkCanvasSpanTests: XCTestCase {
         let session = try await open(kind, deviceClass: device, orientation: start, overviewCap: overviewCap)
         let rig = await attach(session, width: first.width, height: first.height)
         let opened = session.focusPageId
-        assertFocus(opened, on: rig, since: 0, "\(kind) opened", line: line)
+        // P-B6 イ (PB6-RV-I3): with the cap, each step in landscape is at the cap's zoom with the window 7 / 9.
+        func check(_ pageId: String, since: Int, _ step: String) {
+            assertFocus(pageId, on: rig, since: since, step, line: line)
+            if overviewCap { assertCapped(kind, on: rig, step, line: line) }
+        }
+        check(opened, since: 0, "\(kind) opened")
         var stops = rig.probe.stops.count
         await turn(rig, to: second)
-        assertFocus(opened, on: rig, since: stops, "\(kind) turned", line: line)
+        check(opened, since: stops, "\(kind) turned")
         stops = rig.probe.stops.count
         await turn(rig, to: first)
-        assertFocus(opened, on: rig, since: stops, "\(kind) turned back", line: line)
+        check(opened, since: stops, "\(kind) turned back")
 
         await scroll(rig, pages: 1)
         XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done, "\(kind) slid: the window shifts", line: line)
         await settle()
-        assertFocus(next, on: rig, since: rig.probe.stops.count - 1, "\(kind) slid", line: line)
+        check(next, since: rig.probe.stops.count - 1, "\(kind) slid")
         stops = rig.probe.stops.count
         await turn(rig, to: second)
-        assertFocus(next, on: rig, since: stops, "\(kind) slid, turned", line: line)
+        check(next, since: stops, "\(kind) slid, turned")
         stops = rig.probe.stops.count
         await turn(rig, to: first)
-        assertFocus(next, on: rig, since: stops, "\(kind) slid, turned back", line: line)
+        check(next, since: stops, "\(kind) slid, turned back")
+    }
+
+    /// P-B6 イ (PB6-RV-I3): in landscape (874 × 205 in the capped UI-1 runs) the zoom is the cap's — 874 ÷ (3 × 1,400) for
+    /// the week, 874 ÷ (5 × 1,000) for the day, never the 0.1068 / 0.0854 of the overview without the cap — and the window
+    /// decided at rest is 7 weeks / 9 days (not 9 / 15). Portrait is left to `assertFocus`.
+    private func assertCapped(_ kind: PageKind, on rig: SpanRig, _ step: String, line: UInt) {
+        let size = rig.container.bounds.size
+        guard size.width > size.height else { return }
+        XCTAssertEqual(size.width, 874, "\(step): the capped runs turn to 874 pt", line: line)
+        XCTAssertEqual(rig.zoom, kind == .week ? 874 / 4_200 : 874 / 5_000, accuracy: 0.0001, "\(step): the cap's zoom", line: line)
+        XCTAssertEqual(rig.canvas.minimumZoomScale, kind == .week ? 874 / 4_200 : 874 / 5_000, accuracy: 0.0001,
+                       "\(step): the cap is the lowest zoom", line: line)
+        XCTAssertEqual(rig.session.pageIds.count, kind == .week ? 7 : 9, "\(step): the capped window", line: line)
     }
 
     /// A rotation as UIKit lays it out: the paper area takes `size`, then the queued work (the window decided anew).
@@ -1130,45 +1148,106 @@ final class InkCanvasSpanTests: XCTestCase {
         XCTAssertEqual((focus + 500) * rig.zoom - rig.canvas.contentOffset.x, 437, accuracy: 0.5, "the focus day in the middle")
     }
 
-    /// P-B6 イ, the lead's decision 7 (11/18), on the canvas: 「今日」's reveal on today's page at the capped overview
-    /// (`ScreenPaths.cappedTodayRect`) leaves the paper alone while the now line (15:00) is on screen (13:45 or 10:00 at the
-    /// top), takes it from 0:00 at the top (below the screen) up to the bottom edge, and from 20:00 at the top (above it)
-    /// back to 14:00 at the top; x never moves.
+    /// P-B6 イ, the lead's decision 7 (11/18), on the canvas (PB6-RV-I1, RV-S1): 「今日」 on today's page already the focus at
+    /// the capped overview (11/18 15:00; `ScreenPaths.cappedTodayRect`'s request) moves y alone to an hour before now (14:00)
+    /// when the now line is outside what the paper shows, and nothing while the now line is on screen — with the hour
+    /// before it above the screen (14:30 at the top) or the now line just above the bottom edge too (the least-movement
+    /// reveal moved both). The week and the day; x never moves.
     func testCappedTodayRevealMovesOnlyAnOffScreenNowLine() async throws {
+        let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
+        bed.now = now
+        let area = CGSize(width: 874, height: 205)
+        var number = 0
+        for (kind, cap, hour) in [(PageKind.week, CGFloat(874) / 4_200, CGFloat(80)), (.day, CGFloat(874) / 5_000, 100)] {
+            number += 1
+            let session = bed.session(kind, focus: kind == .week ? nov16 : DayKey(year: 2026, month: 11, day: 18), number: number,
+                                      deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+            await session.prefetch()
+            let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+            let rig = await attach(session, width: area.width, height: area.height,
+                                   initialPaperOffset: ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId,
+                                                                                   pages: nil, offset: nil, viewportWidth: area.width, zoom: zoom))
+            XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind): the cap")
+            let x0 = rig.canvas.contentOffset.x
+            XCTAssertEqual(rig.canvas.contentOffset.y, 14 * hour * cap, accuracy: 0.5, "\(kind): opened at 14:00")
+            var trigger = 0
+            // The paper put at `y` (UIKit puts it on the screen's pixels: `before`), then 「今日」's request (`after`).
+            func reveal(from y: CGFloat) throws -> (before: CGPoint, after: CGPoint) {
+                rig.canvas.contentOffset = CGPoint(x: x0, y: y)
+                let before = rig.canvas.contentOffset
+                let shown = PaperViewport(offsetX: before.x, zoom: rig.zoom, width: area.width)
+                let rect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                                     calendar: SessionTestBed.tokyo, viewport: shown))
+                trigger += 1
+                update(rig, revealRect: rect, revealTrigger: trigger)
+                return (before, rig.canvas.contentOffset)
+            }
+            // The now line (15:00) on screen: 14:30 at the top (the hour before now above the screen), 13:45, 10:00 (14:00
+            // still on screen), and the now line 5 pt above the bottom edge.
+            for (label, y) in [("14:30", 14.5 * hour * cap), ("13:45", 13.75 * hour * cap), ("10:00", 10 * hour * cap),
+                               ("the now line 5 pt above the bottom edge", 15 * hour * cap - 200)] {
+                let stays = try reveal(from: y)
+                XCTAssertEqual(stays.after.x, stays.before.x, accuracy: 0.01, "\(kind), \(label) at the top")
+                XCTAssertEqual(stays.after.y, stays.before.y, accuracy: 0.01, "\(kind), \(label) at the top: the now line on screen, nothing moves")
+            }
+            // The now line below the screen (0:00 at the top) and above it (20:00 at the top): 14:00 at the top.
+            for (label, y) in [("0:00", CGFloat(0)), ("20:00", 20 * hour * cap)] {
+                let moved = try reveal(from: y).after
+                XCTAssertEqual(moved.x, x0, accuracy: 0.01, "\(kind), \(label) at the top: y only")
+                XCTAssertEqual(moved.y, 14 * hour * cap, accuracy: 0.5, "\(kind), \(label) at the top: 14:00, an hour before now, at the top")
+            }
+        }
+    }
+
+    /// P-B6 イ, the lead's decision 7 (PB6-RV-I2): 「今日」's request while the band still moves (a fling's snap or a slide; the
+    /// tests' `spanMotionOverride`) leaves the paper alone — taken there, it would stop the snap between two pages — and the
+    /// next 「今日」 at rest does its work.
+    func testCappedTodayDoesNothingWhileTheBandMoves() async throws {
         let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
         bed.now = now
         let session = try await open(.week, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
         let area = CGSize(width: 874, height: 205)
-        let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
-        let rig = await attach(session, width: area.width, height: area.height,
-                               initialPaperOffset: ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId,
-                                                                               pages: nil, offset: nil, viewportWidth: area.width, zoom: zoom))
+        let rig = await attach(session, width: area.width, height: area.height)
         let cap: CGFloat = 874 / 4_200
-        let x0 = rig.canvas.contentOffset.x
-        XCTAssertEqual(rig.canvas.contentOffset.y, 1_120 * cap, accuracy: 0.5, "opened at 14:00")
-        var trigger = 0
-        // The paper put at `y` (UIKit puts it on the screen's pixels: `before`), then 「今日」's reveal (`after`).
-        func reveal(from y: CGFloat) throws -> (before: CGPoint, after: CGPoint) {
-            rig.canvas.contentOffset = CGPoint(x: x0, y: y)
-            let before = rig.canvas.contentOffset
-            let shown = PaperViewport(offsetX: before.x, zoom: rig.zoom, width: area.width)
-            let rect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
-                                                                 calendar: SessionTestBed.tokyo, viewport: shown))
-            trigger += 1
-            update(rig, revealRect: rect, revealTrigger: trigger)
-            return (before, rig.canvas.contentOffset)
-        }
-        for top in [CGFloat(1_100), 800] {
-            let stays = try reveal(from: top * cap)
-            XCTAssertEqual(stays.after.x, stays.before.x, accuracy: 0.01, "\(top) lu at the top")
-            XCTAssertEqual(stays.after.y, stays.before.y, accuracy: 0.01, "\(top) lu at the top: the now line on screen, nothing moves")
-        }
-        let fromTop = try reveal(from: 0).after
-        XCTAssertEqual(fromTop.x, x0, accuracy: 0.01, "y only")
-        XCTAssertEqual(fromTop.y, 1_200 * cap + ZoomPolicy.revealMargin - 205, accuracy: 0.5, "the now line up to the bottom edge")
-        let fromEvening = try reveal(from: 1_600 * cap).after
-        XCTAssertEqual(fromEvening.x, x0, accuracy: 0.01, "y only")
-        XCTAssertEqual(fromEvening.y, 1_120 * cap, accuracy: 0.5, "14:00 at the top")
+        rig.canvas.contentOffset = CGPoint(x: rig.canvas.contentOffset.x + 60, y: 0)
+        let before = rig.canvas.contentOffset
+        let shown = PaperViewport(offsetX: before.x, zoom: rig.zoom, width: area.width)
+        let rect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                             calendar: SessionTestBed.tokyo, viewport: shown))
+        rig.coordinator.spanMotionOverride = true
+        update(rig, revealRect: rect, revealTrigger: 1)
+        XCTAssertEqual(rig.canvas.contentOffset.x, before.x, accuracy: 0.01, "the band moving: x is left to the snap")
+        XCTAssertEqual(rig.canvas.contentOffset.y, before.y, accuracy: 0.01, "the band moving: nothing moves")
+        rig.coordinator.spanMotionOverride = nil
+        update(rig, revealRect: rect, revealTrigger: 2)
+        XCTAssertEqual(rig.canvas.contentOffset.x, before.x, accuracy: 0.01, "at rest: y only")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 1_120 * cap, accuracy: 0.5, "at rest: 14:00 at the top")
+    }
+
+    /// P-B6 イ (PB6-RV-I5): the screen keeps its `revealRect` until `show` (「全て消す」 makes a new window without it), and a
+    /// canvas's first layout without `initialPaperOffset` reads it. A capped 「今日」's request left from another window has
+    /// no x and is not 1.1.1's rect: the new window still opens with its focus page in the middle at 0:00.
+    func testALeftCappedTodayRequestDoesNotMoveANewWindow() async throws {
+        let now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 18, hour: 15)))
+        bed.now = now
+        let area = CGSize(width: 874, height: 205)
+        let cap: CGFloat = 874 / 4_200
+        let before = try await open(.week, number: 1, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+        let middle = try XCTUnwrap(before.origin(ofPage: before.focusPageId)) + 700
+        let left = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: before.layout, pageId: before.focusPageId, now: now, calendar: SessionTestBed.tokyo,
+                                                             viewport: PaperViewport(offsetX: middle * cap - 437, zoom: cap, width: 874)))
+        let session = bed.session(.week, focus: DayKey(year: 2026, month: 11, day: 23), number: 2, deviceClass: .iPhone,
+                                  orientation: .landscape, overviewCap: true)
+        await session.prefetch()
+        XCTAssertEqual(session.focusPageId, w1123)
+        let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+        XCTAssertNil(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: nil, offset: nil,
+                                                 viewportWidth: area.width, zoom: zoom), "not today's page: no initialPaperOffset")
+        let rig = await attach(session, width: area.width, height: area.height, revealRect: left)
+        XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001)
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.01, "0:00 at the top")
+        let focus = try XCTUnwrap(session.origin(ofPage: session.focusPageId))
+        XCTAssertEqual((focus + 700) * rig.zoom - rig.canvas.contentOffset.x, 437, accuracy: 0.5, "the focus page in the middle")
     }
 
     /// P-B6 イ (PB6-C5): the capped day's portrait window (5 days) is exactly the landscape screen at the cap (5 × 174.8 =

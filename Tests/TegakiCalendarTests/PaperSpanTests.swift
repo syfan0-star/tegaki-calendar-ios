@@ -465,19 +465,27 @@ final class PaperSpanTests: XCTestCase {
     /// P-B6 イ (R3): the joined heading's forms at the capped overview of an iPhone in landscape (week 3, day 5 pages
     /// across), by the paper area's width without the safe area: 874 (the reference), 832 (Pro Max), 750 (iPhone 17: the
     /// week's column is 34.08 pt, 0.08 over `joinedWeekNumberPoints`; the border is 748.2 pt), 734 (iPhone 15 / 16) and
-    /// 667 (SE). Literals worked out by hand, so a change of a threshold, of the column's lu or of the cap shows here.
+    /// 667 (SE). The zoom is the Kit's (`SpanPlan.zoomBounds` of a capped iPhone plan in landscape, its opening zoom; 205 pt
+    /// high, which the cap does not depend on), checked against the cap written out (width ÷ 4,200 / 5,000); the forms are
+    /// literals worked out by hand, so a change of a threshold, of the column's lu or of the cap shows here (PB6-RV-I4).
     func testCappedIPhoneLandscapeHeadingForms() {
+        func cappedZoom(_ kind: PageKind, width: CGFloat) -> CGFloat {
+            SpanPlan(kind: kind, weekStart: .monday, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+                .zoomBounds(overview: ZoomPolicy.baseSize(kind), viewport: CGSize(width: width, height: 205)).open
+        }
         let week: [(CGFloat, StickyHeaderView.WeekCellForm)] = [(874, .number), (832, .number), (750, .number),
                                                                 (734, .sparse(every: 2)), (667, .sparse(every: 2))]
         for (width, form) in week {
-            let zoom = width / (3 * PaperSpec.weekWidth)
+            let zoom = cappedZoom(.week, width: width)
+            XCTAssertEqual(zoom, width / 4_200, accuracy: 1e-9, "week, \(width) pt: 3 weeks across")
             XCTAssertEqual(StickyHeaderView.weekCellForm(joined: true, columnPoints: PaperSpec.weekColumnWidth * zoom), form, "week, \(width) pt")
         }
-        XCTAssertEqual(PaperSpec.weekColumnWidth * 750 / 4_200, 34.08, accuracy: 0.01, "the iPhone 17's week column")
+        XCTAssertEqual(PaperSpec.weekColumnWidth * cappedZoom(.week, width: 750), 34.08, accuracy: 0.01, "the iPhone 17's week column")
         let day: [(CGFloat, StickyHeaderView.DayBlockForm)] = [(874, .full), (832, .numberAndWeekday), (750, .numberAndWeekday),
                                                                (734, .numberAndWeekday), (667, .numberAndWeekday)]
         for (width, form) in day {
-            let zoom = width / (5 * PaperSpec.dayWidth)
+            let zoom = cappedZoom(.day, width: width)
+            XCTAssertEqual(zoom, width / 5_000, accuracy: 1e-9, "day, \(width) pt: 5 days across")
             XCTAssertEqual(StickyHeaderView.dayBlockForm(joined: true, columnPoints: 588 * zoom), form, "day, \(width) pt")
         }
     }

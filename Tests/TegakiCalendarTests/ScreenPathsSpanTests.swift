@@ -1265,8 +1265,8 @@ final class ScreenPathsSpanTests: XCTestCase {
     /// P-B6 イ: the screen's windows carry the cap (`makeSession`); on an iPhone in landscape the first frame, the band's
     /// opening zoom, 「今日」's overview test and the photos' offset are the capped zoom's; an iPad's are as before. Today's
     /// page (11/18 15:00) at the capped overview: the photo's offset opens it an hour before now (the lead's decision 6) and
-    /// 「今日」 on it is a reveal, not `.stay` (decision 7); on the iPad, whose overview holds the whole day, `.stay` and no
-    /// offset as before.
+    /// 「今日」 on it is the canvas's now-line request, not `.stay` (decision 7); on the iPad, whose overview holds the whole
+    /// day, `.stay` and no offset as before.
     func testTheScreensWindowsCapTheIPhoneLandscapeOverview() async throws {
         let area = CGSize(width: 874, height: 205)
         let now = try at(11, 18, 15)
@@ -1291,9 +1291,9 @@ final class ScreenPathsSpanTests: XCTestCase {
                                                     area: area, ratio: 1) else {
             return XCTFail("today's page at the capped overview: a reveal (the lead's decision 7), not .stay")
         }
-        XCTAssertEqual(rect.width, 0, "y only")
-        XCTAssertEqual(rect.minY, 14 * 80 + ZoomPolicy.revealMargin / cap, accuracy: 1e-9, "from an hour before now")
-        XCTAssertEqual(rect.maxY, 15 * 80, accuracy: 1e-9, "down to the now line")
+        XCTAssertTrue(rect.origin.x.isNaN, "no x: y only")
+        XCTAssertEqual(rect.origin.y, 14 * 80, accuracy: 1e-9, "an hour before now")
+        XCTAssertEqual(rect.origin.y + rect.size.height, 15 * 80, accuracy: 1e-9, "the now line")
         let offset = try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: -0.5,
                                                                offset: nil, viewportWidth: 874, zoom: zoom))
         XCTAssertEqual(offset.x, origin - 437 / cap, accuracy: 1e-6, "the boundary in the middle")
@@ -1387,11 +1387,12 @@ final class ScreenPathsSpanTests: XCTestCase {
                                                  viewportWidth: 402, zoom: portraitZoom), "the iPhone in portrait opens at 0:00")
     }
 
-    /// P-B6 イ, the lead's decision 7 (11/18): 「今日」 on today's page already the focus at the capped overview reveals the hour
-    /// before now down to the now line with no width at the middle of the screen (y only). The canvas's reveal
-    /// (`ZoomPolicy.revealOffset`, the screen has no y) then leaves the paper alone while the now line is on screen, brings
-    /// the hour before now to the top when the now line is above the screen, and the now line up to the bottom edge when it
-    /// is below; x never moves. Zoomed in it is 1.2.3's column from an hour before now.
+    /// P-B6 イ, the lead's decision 7 (11/18; PB6-RV-I1, RV-S1): 「今日」 on today's page already the focus at the capped
+    /// overview is the canvas's now-line request (the screen has no y; `InkCanvasSpanTests`' capped 「今日」 tests hold what
+    /// the canvas does with it): an hour before now (decision 6's height, `PageNavigation.initialScrollY`) and the now
+    /// line, the same before a report, and no x. 1.1.1's reveal (`ZoomPolicy.revealOffset`) leaves the paper where it is
+    /// for it wherever the paper is (PB6-RV-I5: a canvas's first layout under a request left from another window). Just
+    /// after midnight the hour before now is 0:00. Zoomed in it is 1.2.3's column from an hour before now.
     func testCappedTodayOnTodaysPageRevealsAnOffScreenNowLine() async throws {
         let area = CGSize(width: 874, height: 205)
         let phone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape)
@@ -1405,28 +1406,20 @@ final class ScreenPathsSpanTests: XCTestCase {
             guard case .reveal(let rect)? = paths.today(nov18, now: now, viewport: shown, area: area, ratio: 1) else {
                 return XCTFail("\(kind): a reveal")
             }
-            XCTAssertEqual(rect.minX, (x0 + 437) / cap, accuracy: 1e-9, "\(kind): the middle of the screen")
-            XCTAssertEqual(rect.width, 0, "\(kind)")
-            XCTAssertEqual(rect.minY, 14 * hour + ZoomPolicy.revealMargin / cap, accuracy: 1e-9, "\(kind)")
-            XCTAssertEqual(rect.maxY, 15 * hour, accuracy: 1e-9, "\(kind): the now line")
+            XCTAssertTrue(rect.origin.x.isNaN, "\(kind): no x")
+            XCTAssertEqual(rect.origin.y, 14 * hour, accuracy: 1e-9, "\(kind): an hour before now")
+            XCTAssertEqual(rect.origin.y + rect.size.height, 15 * hour, accuracy: 1e-9, "\(kind): the now line")
             guard case .reveal(let first)? = paths.today(nov18, now: now, viewport: nil, area: area, ratio: 1) else {
                 return XCTFail("\(kind): a reveal before a report")
             }
-            XCTAssertEqual(first.minX, rect.minX, accuracy: 1e-6, "\(kind): the first frame's middle")
-            XCTAssertEqual(first.minY, rect.minY, accuracy: 1e-9, "\(kind)")
-            XCTAssertEqual(first.maxY, rect.maxY, accuracy: 1e-9, "\(kind)")
-            func assertRevealed(from y: CGFloat, to expected: CGFloat, _ message: String, line: UInt = #line) {
-                let moved = ZoomPolicy.revealOffset(rect: rect, zoom: cap, viewport: area, current: CGPoint(x: x0, y: y))
-                XCTAssertEqual(moved.x, x0, "\(kind), \(message): x stays", line: line)
-                XCTAssertEqual(moved.y, expected, accuracy: 1e-6, "\(kind), \(message)", line: line)
+            XCTAssertTrue(first.origin.x.isNaN, "\(kind): before a report, no x")
+            XCTAssertEqual(first.origin.y, rect.origin.y, accuracy: 1e-9, "\(kind): before a report")
+            XCTAssertEqual(first.size.height, rect.size.height, accuracy: 1e-9, "\(kind): before a report")
+            for y in [0, 8 * hour * cap, 14 * hour * cap, 20 * hour * cap] {
+                let current = CGPoint(x: x0 + 300, y: y)
+                XCTAssertEqual(ZoomPolicy.revealOffset(rect: rect, zoom: cap, viewport: area, current: current), current,
+                               "\(kind): 1.1.1's reveal leaves the paper at \(y) pt")
             }
-            // Opened at 14:00 (decision 6), or 8:00 at the top: the now line is on screen and nothing moves.
-            assertRevealed(from: 14 * hour * cap, to: 14 * hour * cap, "the now line on screen")
-            assertRevealed(from: 8 * hour * cap, to: 8 * hour * cap, "8:00 at the top, the now line on screen")
-            // The evening at the top: the now line above the screen comes back with 14:00 at the top.
-            assertRevealed(from: 20 * hour * cap, to: 14 * hour * cap, "the now line above the screen")
-            // 0:00 at the top: the now line below the screen comes up to the bottom edge.
-            assertRevealed(from: 0, to: 15 * hour * cap + ZoomPolicy.revealMargin - 205, "the now line below the screen")
             // Zoomed in: today's column from an hour before now, one screen high (1.2.3's rule).
             guard case .reveal(let column)? = paths.today(nov18, now: now, viewport: PaperViewport(offsetX: x0 * 2, zoom: 2 * cap, width: 874),
                                                           area: area, ratio: 1) else {
@@ -1434,6 +1427,14 @@ final class ScreenPathsSpanTests: XCTestCase {
             }
             XCTAssertGreaterThan(column.width, 0, "\(kind): the column")
             XCTAssertEqual(column.minY, 14 * hour + ZoomPolicy.revealMargin / (2 * cap), accuracy: 1e-9, "\(kind)")
+            // Just after midnight: from 0:00 down to the now line.
+            let early = try await openWindow(opening(kind, focus: focus, device: phone, now: try at(11, 18, 0, 30)))
+            let earlyRect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: early.layout, pageId: early.focusPageId, now: try at(11, 18, 0, 30),
+                                                                      calendar: SessionTestBed.tokyo, viewport: shown), "\(kind)")
+            XCTAssertEqual(earlyRect.origin.y, 0, accuracy: 1e-9, "\(kind): 0:30, not above 0:00")
+            XCTAssertEqual(earlyRect.size.height, hour / 2, accuracy: 1e-9, "\(kind): 0:30")
+            XCTAssertNil(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: try at(12, 3, 15),
+                                                     calendar: SessionTestBed.tokyo, viewport: shown), "\(kind): today not on the page")
         }
     }
 
