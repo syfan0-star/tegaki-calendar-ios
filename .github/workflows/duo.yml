@@ -1,0 +1,380 @@
+# The iPhone Duo (docs/M7D_CONTRACT.md §4.2, §3.10, 0d-45): a workflow of its own, so the Duo's jobs never run beside
+# build.yml's six (GitHub runs at most five macOS jobs at once on this plan, [S55]). It runs on a push to a branch
+# r14-duo* (for example `git push origin r14:r14-duo-probe`; build.yml ignores these branches) and, once this file is on
+# the default branch, from workflow_dispatch with the input `job` (workflow_dispatch only starts a workflow that is on the
+# default branch; then `gh workflow run duo.yml --ref <branch> -f job=probe`). Never on a push to r14.
+#
+# D0 (§4.2, §3.3 1): duo-probe only, and nothing in it passes or fails 1.4 ("合否には使わない"): it changes no code and adds
+# no test. Xcode 27.2 is chosen as in build.yml (§3.1), the table of the Duo is checked as in build.yml (§3.2: "iPhone Duo"
+# on the Duo's iOS 27.2 runtime, addressed by its UDID, since `OS=27.2` alone may not tell the two iOS 27.2 runtimes apart
+# [S41]; the Duo of iOS 27.1 is not used), XcodeGen is 2.46.0 (§3.3 4), and the app is built for the Simulator. Then the
+# Duo is booted and left alone 180 s (a Duo's photos are black for minutes after a boot, 187146039 [S5]), and
+# duo-probe/env.txt gets: the job's environment (the lines of build.yml's env.txt) and the Duo's line; every Xcode of the
+# image with its `xcodebuild -version` (the build tells a release from a beta, §3.1); the Duo's displays
+# (`simctl io <udid> enumerate`); the device types with "Duo" in their name (their identifiers; the whole list is
+# devicetypes.json) and the Duo's own record; the lines of `simctl help` and `simctl help io` about a posture, a hinge, a
+# fold, a display or a Pencil (the whole texts are files); the Simulator's defaults about a Pencil, the Duo, a hinge, a
+# fold or a posture (`defaults read com.apple.iphonesimulator`: is "Apple Pencil input" a setting for the Duo? §4.2).
+# Then the app in screenshot mode on the week, the one page and the joined pages (--screenshot-span on), each photographed
+# with `simctl io <udid> screenshot` on the default display and with every `--display` value simctl takes (the values are
+# tried; each one's answer is a line), each photo's pixels, and the app's log lines (toolbar: safeArea=, toolbar:
+# paperArea=, zoom:, span:, span session:, one page session:, and span cap: should one be there). §4.2 also names the
+# `span cap:` lines and the state line, but span-shots-app's come from SpanShotsUITests (its `span.state` label), not from
+# screenshot mode, and D0 adds no test and no code, so D1's duo-shots measures them (--screenshot-measure, §2.1). Only a
+# missing Xcode 27.2, a missing iPhone Duo or an app that does not build fails the job. Artifact "duo-probe" (kept 7 days).
+#
+# D1 adds duo-shots (`job: shots`, and the pushes to r14-duo* in place of duo-probe; §4.2, §7.3) and duo-hinge (`job: hinge`
+# only; §4.2, §4.9). Until then a dispatch with `shots` or `hinge` runs no job.
+name: duo
+
+on:
+  push:
+    branches:
+      - 'r14-duo*'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "probe（D0 の測り）・shots（D1）・hinge（D1、27.3 の正式版があるときだけ合否）"
+        required: true
+        default: probe
+        type: choice
+        options:
+          - probe
+          - shots
+          - hinge
+
+concurrency:
+  group: duo-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  duo-probe:
+    name: duo-probe (1.4, D0)
+    if: ${{ github.event_name == 'push' || inputs.job == 'probe' }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-2): the image with Xcode 27 and the Duo's runtimes.
+    runs-on: xcode-27
+    # Estimated: checkout, Xcode and XcodeGen 3 min, the build 3–6, the boot 2–8 (a first boot on the new image takes
+    # minutes, §3.8), the 180 s, a warm-up launch of 60 s, two pages of about 15 s with up to 21 photos of 1–2 s each,
+    # the log 1: about 25 min. A job cut by its limit would not reach the upload.
+    timeout-minutes: 60
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+      # As build.yml's photos: the app in Japanese whatever the simulator's language is.
+      JA_ARGS: "-AppleLanguages (ja) -AppleLocale ja_JP"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
+        run: |
+          set -euo pipefail
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
+          fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
+          xcode-select -p
+          xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            duo|iPhone Duo|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          xcodebuild -project TegakiCalendar.xcodeproj -list
+
+      - name: Build for the iOS Simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # §4.2 (see the head of this file). Best effort: a command that fails writes its answer into env.txt and the probe
+      # goes on; the step never fails the job.
+      - name: Probe the iPhone Duo (D0)
+        timeout-minutes: 35
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="$PWD/duo-probe"
+          ENV_TXT="$OUT/env.txt"
+          UDID="${{ steps.required.outputs.duo }}"
+          BUNDLE="com.syfan0.tegakicalendar"
+          mkdir -p "$OUT"
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt), then each
+          # device it takes ("<id>: <name> | <runtime> (<build>)", sim_env; here the Duo of "Required simulators").
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > "$ENV_TXT" || echo "::warning::env.txt could not all be written"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          section() {  # section <title>: a heading line in env.txt
+            printf '\n== %s\n' "$1" >> "$ENV_TXT"
+          }
+          sim_env duo "$UDID" >> "$ENV_TXT" || echo "::warning::no runtime line for duo"
+          section "the Xcodes of the image (xcodebuild -version of each; a build ending in a lower-case letter is a beta's)"
+          for X in /Applications/Xcode*.app; do
+            [ -d "$X" ] || continue
+            echo "$X ($(cd "$X" && pwd -P)): $(DEVELOPER_DIR="$X/Contents/Developer" xcodebuild -version 2>&1 | tr '\n' ' ')" >> "$ENV_TXT"
+          done
+          section "the device types with Duo in their name (name | identifier | product family)"
+          xcrun simctl list -j devicetypes > "$OUT/devicetypes.json" 2>&1 || true
+          python3 -I -c '
+          import json, sys
+          for t in json.load(open(sys.argv[1], encoding="utf-8")).get("devicetypes", []):
+              if "Duo" in (t.get("name") or ""):
+                  print("%s | %s | %s" % (t.get("name"), t.get("identifier"), t.get("productFamily", "?")))
+          ' "$OUT/devicetypes.json" >> "$ENV_TXT" 2>&1 || echo "(devicetypes.json could not be read)" >> "$ENV_TXT"
+          section "the Duo's simulator and its runtime (simctl list -j)"
+          xcrun simctl list -j > "$OUT/simctl-list.json" 2>&1 || true
+          SIM_UDID="$UDID" python3 -I -c '
+          import json, os, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      print(json.dumps(d, sort_keys=True))
+                      print(json.dumps({k: v for k, v in runtimes.get(runtime, {}).items() if k != "supportedDeviceTypes"}, sort_keys=True))
+                      types = [t.get("name") for t in runtimes.get(runtime, {}).get("supportedDeviceTypes", [])]
+                      print("its runtime supports %d device types: %s" % (len(types), ", ".join(types)))
+          ' "$OUT/simctl-list.json" >> "$ENV_TXT" 2>&1 || echo "(simctl-list.json could not be read)" >> "$ENV_TXT"
+
+          # The boot, then 180 s alone (§3.8, 187146039).
+          section "the boot"
+          BOOT_STARTED="$(date +%s)"
+          xcrun simctl boot "$UDID" >> "$ENV_TXT" 2>&1 || true
+          if xcrun simctl bootstatus "$UDID" -b > /dev/null 2>&1; then
+            echo "booted in $(( $(date +%s) - BOOT_STARTED )) s" >> "$ENV_TXT"
+          else
+            echo "::warning::the iPhone Duo did not boot"
+            echo "did not boot ($(( $(date +%s) - BOOT_STARTED )) s)" >> "$ENV_TXT"
+          fi
+          xcrun simctl ui "$UDID" appearance light >> "$ENV_TXT" 2>&1 || true
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 >> "$ENV_TXT" 2>&1 || true
+          sleep 180
+
+          section "simctl io enumerate (the Duo's displays)"
+          xcrun simctl io "$UDID" enumerate >> "$ENV_TXT" 2>&1 || echo "(simctl io enumerate failed)" >> "$ENV_TXT"
+          section "simctl help and simctl help io: the lines about a posture, a hinge, a fold, a display or a Pencil"
+          xcrun simctl help > "$OUT/simctl-help.txt" 2>&1 || true
+          xcrun simctl help io > "$OUT/simctl-help-io.txt" 2>&1 || true
+          { grep -inE 'posture|hinge|fold|display|pencil' "$OUT/simctl-help.txt" "$OUT/simctl-help-io.txt" || echo "(none)"; } >> "$ENV_TXT"
+          section "defaults read com.apple.iphonesimulator: the lines about a Pencil, the Duo, a hinge, a fold or a posture"
+          defaults read com.apple.iphonesimulator > "$OUT/iphonesimulator-defaults.txt" 2>&1 || true
+          { grep -iE 'pencil|duo|hinge|fold|posture' "$OUT/iphonesimulator-defaults.txt" || echo "(none; the whole output is iphonesimulator-defaults.txt)"; } >> "$ENV_TXT"
+
+          # The --display values to try: the usual two, a few a two-screen device may have, and the words that the help
+          # gives on its lines about --display (each value's answer is written; one simctl does not take costs a second).
+          DISPLAYS="internal external inner outer cover main primary secondary"
+          for W in $(grep -iA2 -- '--display' "$OUT/simctl-help-io.txt" 2>/dev/null | grep -oE '[a-z][a-z-]{2,15}' | sort -u); do
+            case " $DISPLAYS display the and for or of to with default device devices screen screenshot specify which " in
+              *" $W "*) ;;
+              *) DISPLAYS="$DISPLAYS $W" ;;
+            esac
+          done
+          DISPLAYS="$(printf '%s\n' $DISPLAYS | head -n 20 | tr '\n' ' ')"   # at most 20 values; split on purpose
+          section "the photos (<file>: <width> <height>, or why there is none); --display values tried: $DISPLAYS"
+          photo() {  # photo <file> [<simctl io screenshot option>]: one photo and its pixels into env.txt
+            local FILE="$1" MSG
+            shift
+            # ${@+"$@"}: no option is not an unbound variable under set -u in bash 3.2.
+            if MSG="$(xcrun simctl io "$UDID" screenshot ${@+"$@"} "$OUT/$FILE" 2>&1)" && [ -s "$OUT/$FILE" ]; then
+              echo "$FILE: $(sips -g pixelWidth -g pixelHeight "$OUT/$FILE" 2>/dev/null | awk '/pixel(Width|Height)/ { printf "%s ", $2 }')" >> "$ENV_TXT"
+            else
+              echo "$FILE: no photo ($(printf '%s' "$MSG" | tr '\n' ' ' | cut -c 1-200))" >> "$ENV_TXT"
+              rm -f "$OUT/$FILE"
+            fi
+          }
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          photo home-default.png
+          if [ -z "$APP" ] || ! xcrun simctl install "$UDID" "$APP" >> "$ENV_TXT" 2>&1; then
+            echo "::warning::the app could not be installed on the iPhone Duo; no photo of it."
+            echo "(the app was not installed)" >> "$ENV_TXT"
+          else
+            # A first launch compiles PencilKit's shaders (build.yml's FIX3): once, with the app in front.
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS >> "$ENV_TXT" 2>&1 || true
+            sleep 60
+            for SPEC in "week|--screenshot-page week" "week-span|--screenshot-page week --screenshot-span on"; do
+              TAG="${SPEC%%|*}"; ARGS="${SPEC#*|}"
+              xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+              sleep 1
+              # $ARGS and $JA_ARGS are split on purpose (the values have no spaces).
+              xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 $ARGS $JA_ARGS >> "$ENV_TXT" 2>&1 || echo "launch failed ($TAG)" >> "$ENV_TXT"
+              sleep 12
+              photo "$TAG-default.png"
+              for D in $DISPLAYS; do
+                photo "$TAG-display-$D.png" "--display=$D"
+              done
+            done
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+          fi
+
+          section "the app's lines (toolbar: safeArea= / paperArea=, zoom:, span:, span session:, one page session:, span cap:)"
+          xcrun simctl spawn "$UDID" log show --last 15m --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/app-log.txt" 2>&1 || true
+          { grep -E 'toolbar: (safeArea|paperArea)=|zoom: |span: |span session: |one page session: |span cap: ' "$OUT/app-log.txt" | cut -c 1-400 || echo "(none)"; } >> "$ENV_TXT"
+          find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -30 -exec cp {} "$OUT/" \; 2>/dev/null || true
+          xcrun simctl shutdown "$UDID" > /dev/null 2>&1 || true
+          cat "$ENV_TXT"
+          ls -la "$OUT"
+
+      - name: Upload the probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duo-probe
+          path: duo-probe
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true

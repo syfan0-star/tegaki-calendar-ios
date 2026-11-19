@@ -24,6 +24,13 @@
 # languages" fails the build before anything is built while a word of the app lacks one of the ten languages. S6
 # (§11.1 4) took out the prototype build of 「横につなげる」 (the input `span_prototype`, its check against 43fe366
 # and the check of its archive; the build of 11/12 came from the tag r13-proto-1, which keeps them).
+#
+# 1.4 (docs/M7D_CONTRACT.md §3.3, §3.4, D0): the runner is the image `xcode-27` and the Xcode 27.2, chosen as in build.yml
+# (§3.1: by `xcodebuild -version`, a release build, or the job fails), so the archive is built with the iOS 27.2 SDK that
+# App Store Connect will require from April 2027 (ITMS-90725); XcodeGen is 2.46.0 from its release zip, pinned by sha256
+# (§3.3 4). "Check the archive" also reads the app's Info.plist: DTSDKName must be iphoneos27.2, MinimumOSVersion 17.0 and
+# UIDeviceFamily 1, 2, and DTXcode, DTXcodeBuild and DTPlatformVersion go to the log (a build ending in a lower-case
+# letter is a beta's and fails). D0's build is uploaded but not given to testers (0d-6).
 name: testflight
 
 on:
@@ -46,7 +53,8 @@ concurrency:
 jobs:
   upload:
     name: Archive, sign and upload to TestFlight
-    runs-on: macos-26
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
+    runs-on: xcode-27
     timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -114,20 +122,63 @@ jobs:
           print(f"{len(table)} keys: every one has the ten languages")
           EOF
 
-      - name: Select Xcode
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
           fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
           xcode-select -p
           xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
       - name: Install XcodeGen
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       - name: Generate the Xcode project
         run: |
@@ -247,7 +298,12 @@ jobs:
             archive
 
       # 1.2.2 (docs/R1_2_2.md §4, §3.8): the signed app carries the entitlement, and iOS 17–18 can still launch it.
-      - name: Check the archive (entitlement, weak link)
+      # 1.4 (docs/M7D_CONTRACT.md §3.4): and it is built with the iOS 27.2 SDK (DTSDKName iphoneos27.2: with Xcode 26.6 it
+      # was iphoneos26.5, the SDK of ITMS-90725's notice for 1.2.4), for iOS 17.0 and later (MinimumOSVersion 17.0: else
+      # the people on iOS 17 would get no update) and for the iPhone and the iPad (UIDeviceFamily 1, 2). The Xcode that
+      # built it (DTXcode, DTXcodeBuild; 27B52 expected) and the SDK's platform version (DTPlatformVersion) are logged for
+      # docs/M7D.md; a DTXcodeBuild that ends in a lower-case letter is a beta's, and fails. Read with PlistBuddy as above.
+      - name: Check the archive (entitlement, weak link, SDK, minimum iOS)
         run: |
           set -euo pipefail
           APP="$RUNNER_TEMP/TegakiCalendar.xcarchive/Products/Applications/TegakiCalendar.app"
@@ -258,6 +314,26 @@ jobs:
           echo "archive: declared-age-range $ENT, DeclaredAgeRange $LINK"
           [ "$ENT" = "true" ] || { echo "::error::署名したアプリに年齢区分の権限が入っていません。"; exit 1; }
           [ "$LINK" = "weak" ] || { echo "::error::DeclaredAgeRange が弱いリンクになっていません（iOS 17〜18 で起動できなくなる）。project.yml の OTHER_LDFLAGS を見てください。"; exit 1; }
+          # 1.4 (§3.4): the SDK, the minimum iOS, the device family and the Xcode, from the app's Info.plist.
+          INFO="$APP/Info.plist"
+          plist() {  # plist <key>: its value, or "missing"
+            /usr/libexec/PlistBuddy -c "Print :$1" "$INFO" 2>/dev/null || echo missing
+          }
+          SDK="$(plist DTSDKName)"
+          MIN_OS="$(plist MinimumOSVersion)"
+          # An array of numbers ("Array {", one per line, "}") → "1, 2".
+          FAMILY="$(plist UIDeviceFamily | { grep -oE '[0-9]+' || true; } | paste -sd, - | sed 's/,/, /g')"
+          DT_XCODE="$(plist DTXcode)"
+          DT_XCODE_BUILD="$(plist DTXcodeBuild)"
+          DT_PLATFORM="$(plist DTPlatformVersion)"
+          echo "archive: DTSDKName $SDK, MinimumOSVersion $MIN_OS, UIDeviceFamily ${FAMILY:-missing}, DTXcode $DT_XCODE, DTXcodeBuild $DT_XCODE_BUILD, DTPlatformVersion $DT_PLATFORM"
+          [ "$SDK" = "iphoneos27.2" ] || { echo "::error::iOS 27.2 SDK で作っていません（DTSDKName が $SDK。docs/M7D_CONTRACT.md §3.4）。"; exit 1; }
+          [ "$MIN_OS" = "17.0" ] || { echo "::error::配る先が iOS 17.0 ではありません（MinimumOSVersion が $MIN_OS）。iOS 17 の人が更新を受けられなくなります（docs/M7D_CONTRACT.md §3.4）。"; exit 1; }
+          [ "$FAMILY" = "1, 2" ] || { echo "::error::UIDeviceFamily が 1, 2（iPhone と iPad）ではありません（${FAMILY:-missing}。docs/M7D_CONTRACT.md §3.4）。"; exit 1; }
+          case "$DT_XCODE_BUILD" in
+            *[0-9]) ;;
+            *) echo "::error::正式版でない Xcode（DTXcodeBuild が $DT_XCODE_BUILD。最後が数字でなければ beta）で作っています。審査に出せません（docs/M7D_CONTRACT.md §3.1、§3.4）。"; exit 1 ;;
+          esac
 
       - name: Export the .ipa
         env:

@@ -1,23 +1,39 @@
-# J-4 (docs/M7C_CONTRACT.md §10.5 for 1.3; made for 1.2, docs/M7B_CONTRACT.md §1.3, §1.5, §7.5, 0-32): the Japanese
-# screenshots of the reference commit, taken the way its own build.yml takes them, as the reference for the pixel
-# comparison of the new version's photos (tools/l10n/compare_shots.swift, run by the lead on a Mac).
+# J-4 (docs/M7D_CONTRACT.md §3.5 for 1.4; made for 1.2, docs/M7B_CONTRACT.md §1.3, §1.5, §7.5, 0-32; for 1.3,
+# docs/M7C_CONTRACT.md §10.5): the Japanese screenshots of the reference commit, taken the way its own build.yml takes
+# them, as the reference for the pixel comparison of the new version's photos (tools/l10n/compare_shots.swift, run by the
+# lead on a Mac).
 #
-# The job reads the commit in tools/l10n/ja-baseline-ref-1.3.txt (one full sha: 43fe366, 1.2.3 as released),
+# The job reads the commit in tools/l10n/ja-baseline-ref-1.4.txt (one full sha: 955fe67, 1.3 as released, build 26),
 # checks it out into baseline/, generates its Xcode project, builds the app for the Simulator and takes the photos
-# with the photo steps of 43fe366's build.yml, copied with their comments, in its order: the 13-inch iPad (4 pages,
+# with the photo steps of 955fe67's build.yml, copied with their comments, in its order: the 13-inch iPad (4 pages,
 # 3 zoomed, read-only, the 5 shots of 1.1, the pinch hint of 1.1.1, the 11 sheets), its app log and l10n lines, the
-# iPhone, the 6.9-inch iPhone, the iPad mini and the 11-inch iPad, and the "Store listing set". Every
-# `simctl launch` ends with JA_ARGS; the 13-inch step and the other devices' step write env.txt (`xcodebuild
-# -version` and each device's simulator runtime), the same lines as build.yml, so the lead can `diff` the two
-# env.txt before comparing. No tests run (no unit tests, no UI tests, no blank-paper job).
+# iPhone, the 6.9-inch iPhone, the iPad mini and the 11-inch iPad, and the "Store listing set". Every `simctl launch`
+# ends with JA_ARGS; the 13-inch step and the other devices' step write env.txt (`xcodebuild -version`, since 1.4 the
+# Xcode's path, the runner image, the runtimes, XcodeGen and Python, and each device's simulator runtime), the same
+# lines as build.yml, so the lead can `diff` the two env.txt before comparing. No tests run (no unit tests, no UI tests,
+# no blank-paper job).
 # Artifact: ja-baseline-<the first 7 characters of the sha>, kept 30 days, with the file names of build.yml's
 # `screenshots` (but no fixtures/ or ui-tests/).
 #
 # 1.3 (§10.5, 0c-35): the reference moved from <1.1.1> (tools/l10n/ja-baseline-ref.txt, which stays as it is: the
-# compat-v1.0 job's tools/weekstart-compat reads it) to 43fe366 in a file of its own, and the photo steps were copied
-# again from 43fe366's build.yml (before: 1.1.1's, without the two sheets of 1.2). The rule: without
-# --screenshot-span the Japanese photos of 1.3 are 1.2.3's; at S3 (the prototype build, §12.2) no photo may differ,
-# the normal screen being 43fe366's; the photos allowed to differ later are listed in docs/M7C.md beforehand.
+# compat-v1.0 job's tools/weekstart-compat reads it) to 43fe366 in a file of its own (tools/l10n/ja-baseline-ref-1.3.txt,
+# kept as the record of 1.3; 1.4 does not read it), and the photo steps were copied again from 43fe366's build.yml.
+#
+# 1.4 (docs/M7D_CONTRACT.md §3.5, 0d-4): the reference is 955fe67, photographed with Xcode 27.2 on the image xcode-27,
+# so J-4 compares the photos of two codes taken with the same tools (what the new SDK alone changes is §3.6's map, D0's
+# gate 7, against 1.3's run 44474759145). The photo steps were copied again from 955fe67's build.yml (7895d40's is the
+# same file); after the copy only these changed, in the same words as 1.4's build.yml: (a) the runner and the choice of
+# the Xcode ("Select Xcode 27.2"), (b) the devices' list (§3.2: iphone69 is the iPhone 18 Pro Max), (c) the checks of
+# the required devices ("Required simulators" with build-and-test's table; in "Pick a simulator" the name must be the
+# table's; "Resolve the simulator UDID" and the other devices' picker take the device "Required simulators" resolved
+# first, and the newest iOS when nothing is booted, as here; a missing device is an error; "The simulators used are the
+# table's" at the end), (d) the lines of env.txt (§3.3 3, and §3.2's pixels of the iPhone 18 Pro Max) and (e) XcodeGen from
+# tools/ci/install-xcodegen.sh, read from the pushed commit at $GITHUB_WORKSPACE (955fe67 does not have it). The two
+# additions of 1.3 that this file noted before (the 11 sheets' wait with tools/shots/screen_ready.swift, read from the
+# pushed commit, and the other devices' check that reads launchctl's whole list) are 955fe67's build.yml's own lines,
+# so the copy has them as they are; so has the pinch hint's second take. Some `if:` hold `env.QUICK != 'true'`
+# (build.yml's quick lane): QUICK is never set here, so they hold. Only the photo that docs/M7D.md lists beforehand may
+# differ between 1.4's photos and this reference (ipad13-portrait-sheet-info.png, the version).
 #
 # Known (docs/M7B.md, C1): the 13-inch iPad is booted just before its photos (the unit tests run on
 # another simulator), and in 2 of 3 runs of 1.0.1 the system banner "Ready for Apple Intelligence"
@@ -27,19 +43,16 @@
 # for that banner and for the shaders of a first launch (a month photo without its handwriting). If a
 # banner still shows, take the photos again.
 #
-# The photo steps must stay the same as 43fe366's build.yml (`run` for `run`; added here: the working directory
-# baseline/). build.yml's photo steps of 1.3 are compared with this reference: a photo step changed there changes
-# its photos, and the change must be one that docs/M7C.md lists. Two changes of 1.3 that photograph the same screens
-# are made here too, with the same lines as build.yml (S5, docs/M7C.md S3's J-4 and decision 8 of S1 の残り): the 11
-# sheets of the 13-inch iPad wait for their screen (tools/shots/screen_ready.swift, read from the pushed commit at
-# $GITHUB_WORKSPACE, not from baseline/), and the other devices' check that the app runs reads launchctl's whole list
-# (its false "The app is not running" warnings).
+# The photo steps must stay the same as build.yml's (`run` for `run`; added here: the working directory baseline/).
+# build.yml's photo steps of 1.4 are compared with this reference: a photo step changed there changes its photos, and the
+# change must be one that docs/M7D.md lists; a change of these steps is made in both files in the same words.
 #
 # When it runs: `gh workflow run ja-baseline.yml --ref <branch>` (workflow_dispatch: the workflow is on the default
 # branch, and the run uses the branch's copy), or a push to the branch `ja-baseline`. Run it on the same UTC day as
 # the CI run whose `screenshots` it is compared with (a newer Xcode or simulator runtime on the runner image changes
-# the pixels, and the iPads' status bar shows the date). How to compare: docs/M7B.md, section C1 (基準 =
-# ja-baseline-43fe366, 新 = the `screenshots` of 1.3's CI run).
+# the pixels, and the iPads' status bar shows the date); 1.4 (§3.5, §3.8): the result counts only when the two env.txt
+# have the same Xcode and runtime lines (an image being rolled out, 20261119, can come between: then take this again).
+# How to compare: docs/M7B.md, section C1 (基準 = ja-baseline-955fe67, 新 = the `screenshots` of 1.4's CI run).
 name: ja-baseline
 
 on:
@@ -57,13 +70,15 @@ permissions:
 
 jobs:
   ja-baseline:
-    name: ja-baseline (1.2.3's photos with JA_ARGS, for 1.3)
-    runs-on: macos-26
+    name: ja-baseline (1.3's photos with JA_ARGS and Xcode 27.2, for 1.4)
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.5 (a), 0d-2): the image with Xcode 27, as build.yml.
+    runs-on: xcode-27
     # In nine runs of 1.1 (2026-10-31 and 11-01) build.yml's photo steps took 36–45 min. With 1.2's and 1.2.3's
     # photo steps the whole job took 48.4, 52.7 and 49.8 min (runs 42013415033, 42040741655, 42121207729) and, after
     # 43fe366's steps were copied for 1.3, 61.6 min (run 43068016348: the boot 7.8 min, the 13-inch photos
     # 7.7 + 5.5, the other devices 35.2). No tests run here. 90 leaves room for a slow boot or a slow device; a job
     # cut by its limit would not reach the upload, and J-4's baseline would have to be taken again the same UTC day.
+    # 1.4: kept at 90 (955fe67's steps add at most two late pinch hints; the new image's first boot is slower, §3.8).
     timeout-minutes: 90
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -78,7 +93,8 @@ jobs:
         working-directory: baseline
 
     steps:
-      # The pushed commit: only tools/l10n/ja-baseline-ref-1.3.txt is read from it.
+      # The pushed commit: tools/l10n/ja-baseline-ref-1.4.txt, tools/ci/install-xcodegen.sh and tools/shots/screen_ready.swift
+      # are read from it.
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -89,7 +105,7 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
-          FILE=tools/l10n/ja-baseline-ref-1.3.txt
+          FILE=tools/l10n/ja-baseline-ref-1.4.txt
           LINES="$(grep -c . "$FILE" || true)"
           REF="$(tr -d '[:space:]' < "$FILE")"
           if [ "$LINES" != "1" ] || ! printf '%s' "$REF" | grep -Eq '^[0-9a-f]{40}$'; then
@@ -122,20 +138,140 @@ jobs:
           grep -E 'MARKETING_VERSION|CURRENT_PROJECT_VERSION' project.yml || true
 
       # ---- From here to the "Store listing set", the steps of the reference commit's build.yml, in its order ----
-      - name: Select Xcode
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
           fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
           xcode-select -p
           xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            ipad13|iPad Pro 13-inch (M5)|27.2
+            iphone|iPhone 17|27.2
+            iphone69|iPhone 18 Pro Max|27.2
+            ipadmini|iPad mini (A17 Pro)|27.0
+            ipad11|iPad Pro 11-inch (M5)|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
       - name: Install XcodeGen
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       - name: Generate the Xcode project
         run: |
@@ -159,7 +295,8 @@ jobs:
       # The primary simulator (unit tests, 4 pages, 6 sheets): the first name, in sorted order, that
       # starts with "iPad Pro 13-inch", else "iPad Air 13-inch", else any iPad, else any iPhone
       # (docs/M4B_CONTRACT.md §6.1: the runner has no "iPad Pro 13-inch (M4)", so the choice is by
-      # prefix and deterministic). As a last resort the literal "iPhone 17" (the step never fails).
+      # prefix and deterministic). Until 1.3 the literal "iPhone 17" was the last resort (the step never failed);
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the name chosen must be the table's "iPad Pro 13-inch (M5)", or the step fails.
       - name: Pick a simulator (13-inch iPad preferred)
         id: simulator
         run: |
@@ -182,16 +319,17 @@ jobs:
                   raise SystemExit
           print("")
           ' || true)"
-          if [ -z "$NAME" ]; then
-            echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
-            NAME="iPhone 17"
+          echo "Using simulator: ${NAME:-none}"
+          if [ "$NAME" != "iPad Pro 13-inch (M5)" ]; then
+            echo "::error::The primary simulator must be the table's \"iPad Pro 13-inch (M5)\", not \"${NAME:-none}\" (docs/M7D_CONTRACT.md §3.2)."
+            exit 1
           fi
-          echo "Using simulator: $NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       # ---- Screenshots of the running app (best effort; never fails the job) ----
       # 1.2 (docs/M7B_CONTRACT.md §1.3 J-4, §7.5, 0-25): every launch of these steps ends with $JA_ARGS and
-      # the steps write shots/env.txt. (In this file: the steps of 43fe366's build.yml, copied for J-4 of 1.3.)
+      # the steps write shots/env.txt. (In this file: the steps of 955fe67's build.yml with 1.4's changes (a)–(e) in the
+      # words of 1.4's build.yml, copied for J-4 of 1.4; see the head of this file.)
       # The app is launched with "--screenshot-mode" (Sources/TegakiCalendar/Support/ScreenshotMode.swift):
       # no onboarding, no EventKit, deterministic demo events for 2026-10 and a few preloaded ink
       # strokes. Since M3a it is launched once per page ("--screenshot-page month|week|day|year",
@@ -214,24 +352,35 @@ jobs:
       # The steps run even when the unit tests failed (the app was still built); the upload always runs.
       - name: Resolve the simulator UDID
         id: simudid
-        if: ${{ !cancelled() && steps.simulator.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.simulator.outcome == 'success' && env.QUICK != 'true' }}
         continue-on-error: true
         run: |
           set -euo pipefail
           NAME="${{ steps.simulator.outputs.name }}"
           UDID="$(xcrun simctl list -j devices available | SIM_NAME="$NAME" python3 -c '
-          import json, os, sys
+          import json, os, re, sys
           name = os.environ["SIM_NAME"]
           devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):                                  # "…iOS-27-2" → (27, 2)
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
           found = ""
+          best = None
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if d.get("isAvailable") and d.get("name") == name and d.get("udid"):
-                      # Prefer the one xcodebuild already booted for the tests.
-                      if d.get("state") == "Booted" or not found:
-                          found = d["udid"]
+                      # 1.4 (docs/M7D_CONTRACT.md §3.2): the device "Required simulators" resolved; else the one xcodebuild
+                      # already booted for the tests; else the newest iOS (ja-baseline.yml boots nothing first, and the name is
+                      # on iOS 27.0 and 27.2).
+                      key = (d["udid"] in required, d.get("state") == "Booted", version(runtime))
+                      if best is None or key > best:
+                          best, found = key, d["udid"]
           print(found)
           ')"
           if [ -z "$UDID" ]; then
@@ -282,6 +431,13 @@ jobs:
       # scrolled to their strokes ("--screenshot-offset 0,1700" and "0,2300": 1.1.1 opens the two areas
       # to 6,000 lu, so the end of the paper is blank; the red wave is at y ≈ 2,063, the black at ≈ 2,700).
       # 1.1.1 (docs/R1_1_1.md): the one-time pinch hint ("--screenshot-pinch-hint", 20 s).
+      # 1.3 (docs/M7C.md, wave C1's lead decision 6): screenshot mode shows the hint's toast from half a second after the
+      # canvas appeared for 20 s. In run 43570477701 a slow simulator wrote this photo 56 s after its launch (the launch
+      # 12 s late, `simctl io` 32 s), after the toast, and J-4 saw it missing. So the hint's photo is kept when it was written
+      # at most 20 s after its launch (the canvas appears a few seconds after the launch, so the toast is still up then;
+      # here the last loop, `hint_shot` in the step of the other devices) and taken once more otherwise; a second late one stays, with a warning. A photo taken in time is the same as
+      # before (same arguments and waits; the app's toast is not changed, J-4). ja-baseline.yml kept its one take until
+      # 1.4, whose copy of these steps (955fe67's) takes the hint the same way.
       - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1 + the hint)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -309,6 +465,15 @@ jobs:
           '
           }
           xcodebuild -version > shots/env.txt || echo "::warning::xcodebuild -version failed"
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3): the Xcode's path, the runner image (§3.8: an image being rolled out has another
+          # Xcode and other runtimes), the simulator runtimes, XcodeGen and Python, so two env.txt tell those apart too.
+          {
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } >> shots/env.txt || echo "::warning::env.txt: the lines of 1.4 could not all be written"
           sim_env ipad13 "$UDID" >> shots/env.txt || echo "::warning::no runtime line for ipad13"
           cat shots/env.txt || true
           # docs/M7B.md (FIX3), docs/M7B_CONTRACT.md §12.6: a first launch after the install compiles PencilKit's
@@ -349,8 +514,7 @@ jobs:
                       "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
                       "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
                       "month-memo|--screenshot-page month --screenshot-grown --screenshot-offset 0,1700" \
-                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,2300" \
-                      "pinch-hint|--screenshot-page month --screenshot-pinch-hint"; do
+                      "day-extra|--screenshot-page day --screenshot-grown --screenshot-offset 0,2300"; do
             SHOT="${SPEC%%|*}"; ARGS="${SPEC#*|}"
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
@@ -360,12 +524,33 @@ jobs:
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($SHOT; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$SHOT.png"
           done
+          # The pinch hint, last as before (the comment above the step: kept when written within the toast's 20 s).
+          HINT_SECONDS=20
+          for TAKE in 1 2; do
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            LAUNCHED="$(date +%s)"
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-pinch-hint $JA_ARGS
+            sleep 8
+            pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (pinch-hint; crashed?)"
+            xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-pinch-hint.png"
+            TOOK=$(( $(date +%s) - LAUNCHED ))
+            if [ "$TOOK" -le "$HINT_SECONDS" ]; then
+              echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), inside the toast's ${HINT_SECONDS} s"
+              break
+            fi
+            echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), after the toast's ${HINT_SECONDS} s"
+            if [ "$TAKE" = 2 ]; then
+              echo "::warning::ipad13-portrait-pinch-hint.png was written more than ${HINT_SECONDS} s after its launch twice; the toast may be missing from it (J-4)."
+            fi
+          done
           ls -la shots
 
       # Since 1.1 (docs/M7A_CONTRACT.md §7.3) a ninth sheet, "info": the settings scrolled to 「情報」 with
       # the demo stroke counts (「いちばん線の多いページ」 and 「今年の年のページ」). Since 1.2 (docs/M7B_CONTRACT.md
       # §7.4, §10.7, §7.6) a tenth, "holidays" (the picker of the holidays), and an eleventh, "week-start" (the
-      # settings with the question of switching the week start). (Shot here too since 1.3: 43fe366 has them.)
+      # settings with the question of switching the week start). ja-baseline.yml does not shoot these two.
+      # (1.3: it does, its reference being 43fe366.)
       # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4 and its hand-off to S5): the photo of a sheet is no
       # longer only the frame of a fixed 9 s after the launch. In run 43149906124 that frame of `--screenshot-sheet
       # holidays` held the settings still sliding in, not yet at their place (the picker opens from them 0.4 s after
@@ -378,12 +563,16 @@ jobs:
       # the last frame stays, with a warning. Every comparison is one line. So no photo is taken earlier than before, and a
       # screen that has settled is photographed as before (each sheet of the runs 43136565762 and 43149906124 and of the
       # reference run 43158921131 differs from that month page by at least 47,648 pixels, the four from those settings by
-      # at least 44,318; the same screen of two runs by 0). The same lines in build.yml (J-4). If the tool does not
+      # at least 44,318; the same screen of two runs by 0). The same lines in ja-baseline.yml (J-4). If the tool does not
       # compile, every sheet is the frame of 9 s, with a warning.
-      # 1.3's review of the week memo (see the same step in build.yml): the tool now counts only the pixels with no like
-      # pixel within 3 pixels, so a frame of settings still a few pixels from their place is not kept. The numbers above
-      # were measured with the earlier count; with the new one a settled sheet differs from the settings' photo by at
-      # least 23,816 pixels and from the month page by at least 37,015.
+      # 1.3's review of the week memo (docs/M7C.md, the lead's decision 1 of the week memo's integration): in run
+      # 44296486095 the frame of 9 s of `--screenshot-sheet holidays` held the settings, still, a few pixels from their
+      # place, the picker not yet open, and was kept (32,648 pixels from the settings' photo). The tool now counts only
+      # the pixels with no like pixel within 3 pixels (that frame: 1,220, not unlike; a settled sheet: at least 23,816 from
+      # the settings, 37,015 from the month page), so such a frame is not kept and the step waits for the expected screen
+      # (the loop below, unchanged). The frame of 9 s stays the first one taken, so no photo is earlier than before. The
+      # tool is read from the commit a run is on, so ja-baseline.yml (which runs on r13) waits the same way once this
+      # change is on r13.
       - name: Screenshots (13-inch iPad, portrait, 11 sheets on the month page)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -501,10 +690,12 @@ jobs:
           grep 'l10n: ' shots/app-log.txt | awk '{ i = index($0, "l10n: "); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
 
       # The four other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
-      # down afterwards: iphone (iPhone 17, 402 pt), iphone69 (iPhone 17 Pro Max, 440 pt; since M6,
-      # docs/M6_CONTRACT.md 0-15 / M6-2: the 6.9-inch App Store shots, 1320×2868 — the prefix fallbacks
-      # are iPhone 17 Pro Max, iPhone 17 Pro, iPhone 16 Pro Max in that order; on "iPhone 17 Pro" the
-      # pixels are 6.3-inch and the store step below warns), ipadmini (iPad mini (A17 Pro), 744 pt) and
+      # down afterwards: iphone (iPhone 17, 402 pt), iphone69 (iPhone 17 Pro Max, 440 pt, until 1.3; since M6,
+      # docs/M6_CONTRACT.md 0-15 / M6-2: the 6.9-inch App Store shots, 1320×2868; 1.4, docs/M7D_CONTRACT.md §3.2: the
+      # iPhone 18 Pro Max, the image xcode-27 having no iPhone 17 Pro Max — the prefix fallbacks are iPhone 18 Pro Max,
+      # iPhone 17 Pro Max in that order, and a device other than the table's fails the job at "The simulators used are the
+      # table's"; whether its pixels are one of the accepted 6.9-inch sizes is not known yet, the store step below warns if
+      # not), ipadmini (iPad mini (A17 Pro), 744 pt; iOS 27.0, the only runtime that has it) and
       # ipad11 (iPad Pro 11-inch (M5), 834 pt), 4 portrait pages each as <id>-portrait-<page>.png.
       # Since M6 the iPhone and the 6.9-inch iPhone also shoot the paywall sheet over the month page
       # (docs/M6_CONTRACT.md §4.2: store/iphone/05-paywall.jpg and store/iphone69/05-paywall.jpg).
@@ -517,7 +708,8 @@ jobs:
       # overview ("--screenshot-zoom 3 --screenshot-offset 300,700", docs/M4C_CONTRACT.md §6) and
       # tries the 4 pages in landscape ("--screenshot-landscape", §6.4; the file is still written when
       # the request was ignored, the header then stays two rows). Every shot is best effort; a
-      # missing simulator or a failed boot only skips that device. The 13-inch simulator is shut down
+      # failed boot only skips that device (1.4: a missing simulator fails the job, at "The simulators used are the
+      # table's", §3.2). The 13-inch simulator is shut down
       # first to leave the runner's memory to the next one. Since M6 (docs/M6.md §5.1) every device
       # waits 40 s after its boot with the app in front before the first shot and shoots its four pages
       # again at the end: a freshly booted iOS 26 simulator posts a system banner once, 15–35 s after
@@ -556,7 +748,7 @@ jobs:
           xcrun simctl shutdown "$PRIMARY" || true
           # device-id | exact first choice | prefix fallbacks (in order)
           for SPEC in "iphone|iPhone 17|iPhone 17,iPhone" \
-                      "iphone69|iPhone 17 Pro Max|iPhone 17 Pro Max,iPhone 17 Pro,iPhone 16 Pro Max" \
+                      "iphone69|iPhone 18 Pro Max|iPhone 18 Pro Max,iPhone 17 Pro Max" \
                       "ipadmini|iPad mini (A17 Pro)|iPad mini" \
                       "ipad11|iPad Pro 11-inch (M5)|iPad Pro 11,iPad Air 11,iPad (A"; do
             ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
@@ -567,14 +759,18 @@ jobs:
               m = re.search(r"iOS-(\d+)-(\d+)", runtime)
               return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
           primary_runtime = next((r for r, items in devices.items() for d in items if d.get("udid") == os.environ["SIM_PRIMARY"]), None)
-          found = {}                                             # name → (udid, key): same runtime as the 13-inch > newer iOS
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
+          found = {}                                             # name → (udid, key): one Required resolved (1.4) > same runtime as the 13-inch > newer iOS
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
                       continue
-                  key = (runtime == primary_runtime, version(runtime))
+                  key = (d["udid"] in required, runtime == primary_runtime, version(runtime))
                   if d["name"] not in found or key > found[d["name"]][1]:
                       found[d["name"]] = (d["udid"], key)
           exact = os.environ["SIM_EXACT"]
@@ -588,7 +784,7 @@ jobs:
                       raise SystemExit
           print("")
           ' || true)"
-            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID (docs/M7D_CONTRACT.md §3.2); the job fails at \"The simulators used are the table's\"."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
             sim_env "$ID" "$UDID" >> shots/env.txt || echo "::warning::no runtime line for $ID"
@@ -605,6 +801,7 @@ jobs:
               local FILE="$1"; shift
               xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
               sleep 1
+              SHOT_LAUNCHED="$(date +%s)"   # 1.3: read by hint_shot
               xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" $JA_ARGS || { echo "::warning::launch failed ($FILE)"; return 0; }
               sleep 9
               # `grep` without -q reads the whole list (docs/M7C.md, S1 の残り, decision 8): with -q it stops at the first match,
@@ -613,6 +810,22 @@ jobs:
               # none in the prototype's span-shots, removed in S6, which read the whole list). An app not in the list, or no list, still warns.
               xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
+            }
+            # 1.3 (docs/M7C.md, wave C1's lead decision 6; the 13-inch step's comment): the pinch hint's toast is up for 20 s
+            # from half a second after the canvas appeared. A photo written more than 20 s after its launch is taken once more;
+            # a second late one stays, with a warning. A photo taken in time is `shoot`'s, as before.
+            hint_shot() {  # hint_shot <file> <launch args…>
+              local TAKE TOOK
+              for TAKE in 1 2; do
+                shoot "$@"
+                TOOK=$(( $(date +%s) - SHOT_LAUNCHED ))
+                if [ "$TOOK" -le 20 ]; then
+                  echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), inside the toast's 20 s"
+                  return 0
+                fi
+                echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), after the toast's 20 s"
+              done
+              echo "::warning::$1 was written more than 20 s after its launch twice; the toast may be missing from it (J-4)."
             }
             # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s
             # after the boot ("Ready for Apple Intelligence" — run 39034481760 caught it on
@@ -642,6 +855,13 @@ jobs:
             for PAGE in month week day year; do
               shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
             done
+            if [ "$ID" = "iphone69" ]; then
+              # 1.4 (docs/M7D_CONTRACT.md §3.2): the iPhone 18 Pro Max's pixels go into env.txt (whether App Store takes them
+              # as a 6.9-inch size is not known; "Store listing set" still only warns). Not a device line ("<id>: …"), so
+              # "The simulators used are the table's" does not read it.
+              PIXELS="$(sips -g pixelWidth -g pixelHeight "shots/$ID-portrait-month.png" 2>/dev/null | awk '/pixel(Width|Height)/ { printf "%s%s", (n++ ? "x" : ""), $2 }' || true)"
+              echo "iphone69 pixels: ${PIXELS:-no photo} ($ID-portrait-month.png)" >> shots/env.txt || true
+            fi
             if [ "$ID" = "iphone" ]; then
               # 1.1 (docs/M7A_CONTRACT.md §7.4, §8 6): the folded toolbar (the dock button above the home
               # indicator), the grown month memo and the day's free memo below 24:00 at their strokes,
@@ -650,7 +870,7 @@ jobs:
               shoot "$ID-portrait-toolbar-collapsed.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-toolbar collapsed
               shoot "$ID-portrait-month-memo.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-grown --screenshot-offset 0,1700
               shoot "$ID-portrait-day-extra.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-grown --screenshot-offset 0,2300
-              shoot "$ID-portrait-pinch-hint.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-pinch-hint
+              hint_shot "$ID-portrait-pinch-hint.png" --screenshot-month 2026-10 --screenshot-page month --screenshot-pinch-hint
               # M4B-3 / M4B-27: 6/7 is a Sunday → the 「今日」 column is the last one → the paper starts
               # at the right edge and the time labels are off screen.
               shoot "$ID-portrait-week-sun.png" --screenshot-month 2026-06 --screenshot-page week
@@ -691,7 +911,7 @@ jobs:
       # numbers are the provisional listing order (§4.2 — the lead may reorder at §8-5). Always runs,
       # never fails the job; a missing source only skips that one file.
       - name: Store listing set (JPEG, App Store sizes)
-        if: always()
+        if: ${{ always() && env.QUICK != 'true' }}
         continue-on-error: true
         run: |
           set -uo pipefail
@@ -776,3 +996,51 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
           overwrite: true
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        env:
+          ENV_TXT: shots/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
