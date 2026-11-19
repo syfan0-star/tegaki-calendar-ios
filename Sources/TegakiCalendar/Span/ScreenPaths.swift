@@ -29,10 +29,13 @@ final class ScreenPaths: ObservableObject {
         case onePage, joined, erasing
     }
 
-    /// The device a window is sized for (`SpanSession`'s `deviceClass` and `orientation`, C3-m11).
+    /// The device a window is sized for (`SpanSession`'s `deviceClass` and `orientation`, C3-m11). 1.4 (docs/M7D_CONTRACT.md
+    /// §2.1, §4.7, 0d-8): `wide`, the window is wide (`WindowClass.isWide`: its short side 600 pt or more, the iPhone Duo's
+    /// inner screen or a widened iPhone Mirroring window), so its window plan has no overview cap; false by default (1.3's).
     struct Device: Equatable {
         var deviceClass: SpanDeviceClass
         var orientation: SpanOrientation
+        var wide: Bool = false
     }
 
     /// What a page opens with (§7.1): the kind, the focus, the week start; for a window also the device (nil before the
@@ -157,6 +160,11 @@ final class ScreenPaths: ObservableObject {
     /// The engine hears that the app went to the background (`SyncEngine.applicationDidEnterBackground`; the tests
     /// read the order through it).
     var engineWentToBackground: () -> Void
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.7): whether the window caps the joined overview now (`WindowClass.capsOverview` of
+    /// the window's size, read from UIKit's window of the scene by the screen); every window opened from now on reads it
+    /// when it is decided anew (`SpanSession.redecide`). nil (the tests' default): the cap a window opened with stays
+    /// (1.3's).
+    var overviewCapNow: (() -> Bool)?
 
     // MARK: State
 
@@ -261,11 +269,13 @@ final class ScreenPaths: ObservableObject {
     /// scene (`screen.bounds`, interface-oriented: the source the canvas decides its window anew from, so in Split View or
     /// Stage Manager the class is the device's and the orientation the screen's, not the window's; review J6, the plan
     /// §6 #11, §7.3); nil until the window is laid out (`windowSize`, the root view's size with its safe area) and its
-    /// scene is there.
+    /// scene is there. 1.4 (§4.7): `wide` by the window's size (`WindowClass.isWide`), on a phone only: an iPad's plan is
+    /// never `.iPhone`, so it has no cap either way, and its device stays 1.3's (`SpanPlan.overviewCapPages`).
     static func device(isPad: Bool, windowSize: CGSize, screen: CGSize?) -> Device? {
         guard windowSize.width.isFinite, windowSize.height.isFinite, windowSize.width > 0, windowSize.height > 0,
               let screen, screen.width.isFinite, screen.height.isFinite, screen.width > 0, screen.height > 0 else { return nil }
-        return Device(deviceClass: SpanDeviceClass(screen: screen, isPad: isPad), orientation: SpanOrientation(screen: screen))
+        return Device(deviceClass: SpanDeviceClass(screen: screen, isPad: isPad), orientation: SpanOrientation(screen: screen),
+                      wide: !isPad && WindowClass.isWide(windowSize))
     }
 
     // MARK: Saving (§2 #1, #2, #8, #10, #14, #16)
@@ -412,12 +422,15 @@ final class ScreenPaths: ObservableObject {
     }
 
     /// The screen's windows cap the iPhone's landscape overview (P-B6 イ, 11/18: `overviewCap: true`; 3 weeks / 5 days
-    /// across, the window 7 / 9).
+    /// across, the window 7 / 9). 1.4 (docs/M7D_CONTRACT.md §2.1, §4.7, 0d-8): not in a wide window (`wideWindow`, the
+    /// device's `wide`: `WindowClass.capsOverview` of the window's size), and the window plan decided anew at a fold, an
+    /// unfold or a turn reads the window of now (`overviewCapNow`, the screen's). `overviewCap: true` stays the screen's
+    /// request of P-B6 イ (ScreenPathsSpanTests.testEveryJoinedPlanCarriesTheCap, TESTS_1_3, reads it).
     private func makeSession(_ o: Opening, device: Device) -> SpanSession {
         openings += 1
         return SpanSession(kind: o.kind, weekStart: o.weekStart, focus: o.focus, sync: sync, deviceClass: device.deviceClass,
                            orientation: device.orientation, number: openings, context: o.context, paperArea: o.paperArea,
-                           overviewCap: true, eventSource: eventSource,
+                           overviewCap: true, wideWindow: device.wide, overviewCapNow: overviewCapNow, eventSource: eventSource,
                            loader: { [weak self, sync, kind = o.kind, weekStart = o.weekStart] id in
                                self?.read(id, kind: kind, weekStart: weekStart) ?? sync.load(id)
                            },
