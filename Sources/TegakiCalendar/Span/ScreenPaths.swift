@@ -981,7 +981,7 @@ final class ScreenPaths: ObservableObject {
     /// one page left (1.1.1, page lu) never reaches a window either. The one page's canvas still takes the screen's rect as
     /// 1.2.3 does.
     func revealRect(_ rect: CGRect?, for session: SpanSession) -> CGRect? {
-        guard let rect, revealWindowId == session.id else { return nil }
+        guard let rect else { return nil }
         return rect
     }
 

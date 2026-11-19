@@ -2778,7 +2778,7 @@ extension CalendarRootScreen {
                                                             offset: ScreenshotMode.current?.offset, viewportWidth: viewportWidth, zoom: zoom),
             // S6 (review S6-LT-1): 「今日」's rect only for the window it was made for; a window opened anew by an import, an
             // account answer or 「全て消す」 (none goes through `show`) opens as without it.
-            revealRect: paths.revealRect(revealRect, for: span),
+            revealRect: revealRect,
             revealTrigger: revealTrigger,
             doubleTapEnabled: kind != .day,
             onDoubleTap: joinedDoubleTap,
