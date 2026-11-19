@@ -28,7 +28,7 @@ public struct WeekLayoutInput: Sendable {
     /// `PaperGrowth.tailHeight` of `inkBottoms[.extra]` tall, at least 6,000 lu and at least `extraFloor`).
     /// The app's two callers (the one-page path and the joined path) pass true. Left out it is false and
     /// the week is 1.2.3's, `==` (§2.1: a new argument has a default, and leaving it out keeps 1.2.3's
-    /// behaviour), so the frozen tests, the prototype and the old tools lay out the week they always did.
+    /// behaviour), so the frozen tests and the old tools lay out the week they always did.
     public var freeMemo: Bool
 
     public init(focus: DayKey, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday, extraFloor: CGFloat = 0, freeMemo: Bool = false) {
