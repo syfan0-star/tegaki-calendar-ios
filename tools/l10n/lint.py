@@ -49,8 +49,9 @@ The checks:
         day of the week.
 L-7, L-8, L-13 and L-14 read the code with its comments and strings out of the way, a call to its
 closing parenthesis. The files of tools/l10n/lint-skip.txt (frozen files of
-tools/compat10/DATA_1_1.sha256, 1.3: not the four 1.3 changes) are not read by them; a line of it that
-names a file not there or not in DATA_1_1.sha256 fails them.
+tools/compat10/DATA_1_1.sha256; while 1.3 was made not the four it changed, and since its table was made
+again at S6 all 20) are not read by them; a line of it that names a file not there or not in
+DATA_1_1.sha256 fails them.
 """
 import argparse
 import bisect
@@ -673,7 +674,8 @@ def _unreadable(e):
 def frozen_paths(repo):
     """The files of tools/l10n/lint-skip.txt, which are not read here, and [problem]. 1.3
     (docs/M7C_CONTRACT.md §6.4 step 1): the list is the files of tools/compat10/DATA_1_1.sha256 that
-    cannot change; the ones 1.3 changes are left out of it, so their new code is read. Every line
+    cannot change; while 1.3 was made the ones it changed were left out of it, so their new code was
+    read, and since the table was made again at S6 (step 4) it is all 20 (frozen for 1.4). Every line
     must name a file that is there and in DATA_1_1.sha256, so the list cannot go stale unseen; a line
     that does not is a problem and its file is read."""
     problems = []
