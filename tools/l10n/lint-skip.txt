@@ -6,6 +6,8 @@
 # 作り直した表のファイルは 1.4 では凍結なので、lint は読まない。
 # 1 行に 1 つ、リポジトリの直下からのパス。DATA_1_1.sha256 に無いファイルや、無いファイルを書くと lint が落ちる。
 # 表を作り直すときは、この一覧も同じ commit で表に合わせる。
+# 1.3 の提出までに 20 ファイルのどれかを変えるときは、変えたファイルをこの一覧から一時的に外して手元で lint.py を走らせ、
+# OK を確かめてから元に戻す（L-7・L-8・L-13・L-14 がその新しいコードを読むため。見直し S6-RM-5）。
 Sources/TegakiCalendar/Ink/InkCanvasView.swift
 Sources/TegakiCalendar/Ink/InkLedger.swift
 Sources/TegakiCalendar/Ink/InkOverlayView.swift

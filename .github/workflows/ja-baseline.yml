@@ -610,7 +610,7 @@ jobs:
               # `grep` without -q reads the whole list (docs/M7C.md, S1 の残り, decision 8): with -q it stops at the first match,
               # simctl, still writing the list, gets SIGPIPE, and pipefail makes the pipeline fail although the app is in
               # the list (a false warning in 0–9 of build.yml's photos and 5–14 of l10n-shots' in the runs of 11/11–12;
-              # none in span-shots, which reads the whole list). An app not in the list, or no list, still warns.
+              # none in the prototype's span-shots, removed in S6, which read the whole list). An app not in the list, or no list, still warns.
               xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
             }

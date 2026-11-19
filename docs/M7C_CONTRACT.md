@@ -758,7 +758,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 
 ### 4.6 試作版（11/21 ごろ。TestFlight の内部テストだけ）
 
-> **記録（S6、2026-11-19）**: 試作は 11/12 に TestFlight へ上げた（ビルド 24、M7C.md の S3）。S6 で試作のソース（`Span/SpanPrototype*.swift`・設定 › 情報 の入口・`prototype.*` の文）、そのテスト（`PrototypeIsolationTests`・`SpanPrototypeInteractionTests`）、CI のジョブ span-shots (1.3 prototype)、`testflight.yml` の入力 `span_prototype` とその関門（`tools/span/prototype_gate.py` ほか）を消した（§11.1 の 4）。この節と D12・§10.6 の試作の作り方は記録で、もう作れない。作り直すときはタグ `r13-proto-1` から作る。
+> **記録（S6、2026-11-19）**: 試作は 11/12 に TestFlight へ上げた（ビルド 24、M7C.md の S3）。S6 で試作のソース（`Span/SpanPrototype*.swift`・設定 › 情報 の入口・`prototype.*` の文）、そのテスト（`PrototypeIsolationTests`・`SpanPrototypeInteractionTests`）、CI のジョブ span-shots (1.3 prototype)、`testflight.yml` の入力 `span_prototype` とその関門（`tools/span/prototype_gate.py` ほか）を消した（§11.1 の 4）。この節と D12、試作のビルド・テスト・ジョブを書いたほかの所（§4.5 の撮る画面と `--screenshot-prototype`、§10.2 の T の行と `PrototypeIsolationTests` の走らせ方、§10.5 の段の (1)、§10.6 の build-and-test の `SPAN_PROTOTYPE` の検査・span-shots の行・testflight.yml の行、§12.2 の S3、§13 の試作の行）は記録で、もう作れない。作り直すときはタグ `r13-proto-1` から作る。
 
 - 中身: 週の帯（窓・ずらし・はじき・境目の書き込み・手のひらの手当て）と重さの計測（数を画面の隅に出す）。週のメモの欄も入れる。iPhone 横の「今のまま／上限あり」の切り替え。台帳とキャンバスは試作専用の写し（`SpanPrototypeLedger.swift`・`SpanPrototypeCanvas.swift`、D12）で、凍結の表のファイルは 43fe366 のまま。
 - 測ること（B_DESIGN.md:581 に足した）: 窓 2,500・10,000・25,000 本の差し替えの時間・ちらつき・メモリ、最大倍率 × 一番広い窓（iPhone 横の日、紙の高さ 8,400 lu × 15 ページ）の描画とメモリ、ずらした瞬間のメモリの山、ペンを離すたびの主スレッドの止まり、消しゴムの 1 回の変化で消える線の数、1 ページの読み込みの時間（D6 の 16 ms）。
@@ -1090,7 +1090,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 
 ### 11.1 完了の条件（全部そろって「1.3 を提出してよい状態」）
 
-1. §1.5 の表の 1〜13（と、入れるときは 16）が `r13` に入り、CI の全部のジョブ（build-and-test・「Sync engine tests, repeated (1.2.3)」の段・compat-v1-0・l10n-shots・blank-paper・span-shots）が緑。週のメモは 1/15 の関門で入れたときだけ（§5.1）。
+1. §1.5 の表の 1〜13（と、入れるときは 16）が `r13` に入り、CI の全部のジョブ（build-and-test・「Sync engine tests, repeated (1.2.3)」の段・compat-v1-0・l10n-shots・blank-paper・span-shots）が緑。週のメモは 1/15 の関門で入れたときだけ（§5.1）。span-shots は、S6 で試作のジョブ span-shots (1.3 prototype) を消した後は、ふつうのビルドの写真のジョブ span-shots-app（「span-shots (1.3 app)」、§10.5 の (2)）と読む。
 2. KitChecks の数と閾値（§10.1）、`CompatSpanTests`、§10.2 の XCTest の全部、`span UI:` の UI テストが緑。
 3. 1 ページの道が変わっていない: `ledger-*.json` と `screenshot-*.json` が compat11 と同じ。`TESTS_1_2_3.sha256` が通る（1.2.3 の既存のテストのファイルが 43fe366 のまま）。J-4 の日本語の写真が、違ってよい一覧の外で 1.2.3 と同じ。M7C.md に、表のファイルの 1 ページの道に触れた行の確かめの記録がある（§6.4）。
 4. 凍結の表を §6.4 の手順で作り直し、基準の commit と diff の確かめを M7C.md に書いた。`lint-skip.txt` を表に合わせた。試作専用の写し（`SpanPrototypeLedger.swift`・`SpanPrototypeCanvas.swift`）を消した。
@@ -1379,5 +1379,6 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 - 2026-11-12 S1 の Kit の直し（`r13` の 55f11a6）に文を合わせた: §2.1（`deltas` の `aliases:` は既定値なし・`unroutedNames(in:aliases:)`・`compose` の `session:`・`aliases:`・`SpanVirtualPage.ledgerPage` は `@_spi(SpanLedger)` で、漏れは実行時に `SpanGuard` が止める・`deliver(_:unrouted:)`）、§3.3 の 1（新しい道では台帳が id を作る 3 か所の全部が `ownerId`）、§3.4 (d)（ページに戻らない名前の記録）、§4.6 (a)（試作の窓は本物の id で組み、`proto-<id>` で保存する）、§10.2（L のテスト 1 本）、§13 の 1 行。契約からのずれとして M7C.md にも書く
 - 2026-11-18 P-B6 イ（iPhone 横の一覧の上限。本人の試作の感想、11/18）を範囲に入れた: §0.1（「今日」）、§0.6、D5、§1.5 の 17、§1.6、0c-18、§2、§2.1、§3.6（窓の表と新しい点。上限ありの一覧で今日のページを開く高さと「今日」はリードの決定）、§3.16、§6.4（InkCanvasView の行・D9 の理由・1.2.4 の行）、§10.1、§10.2、§11.2、§11.3 の行 14、§13、§15 の 2、§16。作り方は計画 PLAN_PB6（第 2 版。リポジトリの外で、骨組みは M7C.md に書く）、結果は M7C.md
 - 2026-11-19 S6 で試作を消した（§11.1 の 4）。§4.6 の頭に記録の注を足した（D12・§10.6 の試作の作り方は記録として残す。作り方はタグ `r13-proto-1`）
+- 2026-11-19 S6 の直しの段（見直し S6-RM-3）: §4.6 の注が記録として覆う所を、§4.5・§10.2 の T・§10.5 の (1)・§10.6 の試作の行・§12.2 の S3・§13 の試作の行まで広げた。§11.1 の 1 の span-shots に、S6 からは span-shots-app と読む 1 文を足した
 
 （結果は [M7C.md](M7C.md) に書く。ここは契約の版の記録だけ。）
