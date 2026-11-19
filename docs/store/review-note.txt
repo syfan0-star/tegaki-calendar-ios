@@ -4,7 +4,7 @@ What is new in 1.3
 1. Week and day pages are joined side by side with the pages before and after them: swiping sideways brings in the neighboring week or day, and a stroke can cross the border. It is saved whole on the page holding its center (same file and iCloud record format); older versions show it on that page only.
 2. A new Settings section, Pages, has one switch for this (on by default, per device). Off shows one page at a time as before.
 3. A small card explains the swipe for 8 seconds when a joined page first opens (once per device and page type).
-4. Week pages now also have Free Notes below 24:00, like day pages since 1.1, even with the switch off.
+4. Even with the switch off, week pages now also have Free Notes below 24:00, like day pages since 1.1.
 5. Screen-side fixes after 1.2.4's sync fixes: handwriting erased with Erase All (on any device) or Erase and Start can no longer come back via the open page or Undo and be sent to iCloud again.
 Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases, the age rating and the age range check of 1.2.2.
 
