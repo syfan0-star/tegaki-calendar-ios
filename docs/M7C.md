@@ -2,7 +2,9 @@
 
 契約は [M7C_CONTRACT.md](M7C_CONTRACT.md)。ここはリードの記録で、段ごとに節を足す。**今の状態は最初の「今の状態」の節を読む。** 各節は書いた時点の記録で、書き直さない（後で変わった物は「今の状態」で読み替える）。
 
-## 今の状態（リード、2026-11-19 12:55）
+## 今の状態（リード、2026-11-19 17:40）
+
+- **S6 を 11/19 17:40 に `r13` へ入れた**（`r13-s5c6` の 955fe67 へ早送り。試作を全部消し、版を 1.3 にし、凍結の表を 20 行に作り直した。**1.3 の表の基準の commit は 955fe67**。下の「S6」の節）。App Store の写真（D26）は store-shots の run 44454683829（715224e）で撮り直した。次は TestFlight 1.3 と確認ページ。
 
 - **上限あり（P-B6 イ）を 11/19 12:53 に `r13` へ入れた**（統合の枝 `r13-s5c5` の a229d5c を `--no-ff` で、8ba5994。下の「上限あり（P-B6 イ）」の節）。1.3 の本体・週のメモ・上限あり・1.2.4 の取り込み・確認ページの文がそろった。次は App Store の写真（D26）の撮り直し、TestFlight 1.3、確認ページ。
 
@@ -1015,6 +1017,38 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
     - a229d5c・tools/compat10/DATA_1_1.sha256・InkCanvasView の行（1 行目）だけを、同じ commit で書き直した
     - 前の役の分（M7C.md に書く分）: 469cc33・InkCanvasView.swift・1 行（:1183。spanState == nil の枝は 43fe366:1131 と同じ式）。9a3f40e・SpanPlan.swift・2 行（init の既定値と代入）
 - 凍結の表: DATA_1_1 で書き直したのは InkCanvasView の 1 行目だけ（469cc33 と a229d5c の、変えた commit の中で）。18/18。TESTS_1_2_3 8/8。
+
+#### S6（Workflow wf_9008d73b-23e、11/19 13:05〜17:30。作る 1・見直し 2・確かめ 2・直し 1・最後の点検 1）
+
+- commit（c5fc1cd の上）: baf5cef（試作を全部消す: 写しの台帳とキャンバス・画面 7 ファイル・設定 › 情報 の入口・prototype.* の 33 キー・試作のテスト・build.yml の「span-shots (1.3 prototype)」のジョブ・testflight.yml の span_prototype の入力と関門・prototype_gate ほか。build.py と LocalizationBundleTests.swift は 43fe366 のバイトに戻した。shift_pair の self-test は span-shots-app へ移した）、6e1611c（`MARKETING_VERSION "1.3"`）、5c26420（上限ありの残り 2 件と InkCanvasView の古い注）、c56ffb6（凍結の表の作り直し）、直し fa6990a・ef54367・955fe67。
+- **凍結の表（§6.4 の手順 4、§11.1 の 4）**: 最後の commit 955fe67 の git の中身から作り直した（根からのパス・辞書順・注記の行なし・20 行。新しい `SpanGuard.swift`・`SpanComposer.swift` を足した）。c5fc1cd と比べて変わった行は 3（新しい 2 行と、5c26420 の注の直しで同じ commit の中で書き直した InkCanvasView の 1 行）。43fe366 の表と比べて違うのは InkLedger・InkCanvasView・SyncEngine の 3 行と新しい 2 行で、ほかの 15 行は 43fe366 のバイト。`lint-skip.txt` は同じ 20 ファイル。CI の段の名前は「Data code frozen (re-based in 1.3)」。TESTS_1_2_3 8/8（8 ファイルは変えていない）。**この後に 20 ファイルのどれかを変えるときは、手元で lint-skip からそのファイルを外して lint.py を走らせて OK を見てから戻し、表と lint-skip を最後の commit で作り直す**（S6-RM-5。build.yml の注と lint-skip.txt の頭にも書いた）。
+- **CI**: `r13-s5c6` の run 44474759145（955fe67）は 6 つのジョブが 1 回目で全部緑（単体 745 本・失敗 0、同期の 20 回 4,000 本、Kit 364 本、KitChecks 40,020、Data code frozen 20/20）。公式の J-4（同じ 11/19 UTC の 44426222830）: 77 枚のうち同じ 50・弱い差だけ 16・強い差 11。強い差は全部一覧の中で、11 枚目は前もって宣言した `ipad13-portrait-sheet-info.png` の版の字（「1.2.3」→「1.3」の所だけ）。試作を消しても 1 ページの道の写真は変わらない。
+- 見直しで確かめた指摘: S6-RM-1（minor）, S6-RM-2（minor）, S6-RM-3（minor）, S6-RM-5（minor）, S6-RM-6（minor）, S6-LT-1（major）, S6-LT-2（minor）, S6-LT-3（minor）。主なもの: S6-LT-1（major）「今日」の矩形が、取り込み・アカウントの答えで開き直した別の窓にも渡っていた → 矩形を作った窓の id に結びつけ、別の窓には渡さない形にした（fa6990a）。S6-LT-2 回転のテストの揺れ（ずらしが待ち行列の確かめで先に済む）を直した（ef54367）。
+- 変異（取り込まない・消さない）: `r13-q-s6-m1`（eraseAllInk の revealRect = nil を外す → testEraseAllForgetsTheTodayRect が落ちた）、`-m2`（revealNowLine の下の余白を外す → testCappedTodaySeesTheBottomClearance が落ちた。同じ run で関係の無い回転のテストが 1 回落ちたのは S6-LT-2 の揺れで、ef54367 で直した）、`-m3`（窓の id の結びつきを外す → 狙いの 2 本だけが落ちた）。
+- 1 ページの道の記録（§6.4・D9。各役の報告のまま）:
+  - baf5cef・Sources/TegakiCalendar/Views/SettingsScreen.swift・1 ページの道が通る行は 0。c5fc1cd の :659-662 の `#if SPAN_PROTOTYPE`〜`#endif`（4 行）を消した。ふつうのビルドではコンパイルされていなかったので、設定のシートのコンパイル後の中身は同じ。理由: §11.1 の 4、D12。通る既存のテスト: WeekStartUITests、SettingsScreenTests、J-4 の sheet-settings・sheet-info（前の run と比べて、版の字のほかに強い差は無い）
+  - baf5cef・Sources/TegakiCalendar/Resources/Localizable.xcstrings・0 行。試作の prototype.* の 33 キーを消しただけで、残る 438 キーは 1 バイトも同じ（スクリプトで確かめた）。ふつうのビルドでこのキーを使うコードは無い。通るもの: L-2、L-10、LocalizationBundleTests（43fe366 のバイト）
+  - baf5cef・Sources/TegakiCalendar/Span/SpanPrototype*.swift（7 ファイル）・0 行（全部が #if SPAN_PROTOTYPE の中）。Views/SpanGuideView.swift は注の 1 行だけで 0 行
+  - 6e1611c・project.yml・コードの行は 0。MARKETING_VERSION を "1.2.3" から "1.3" にした。2 本の道とも、Info.plist の版の字が変わる（設定 › 情報 の「バージョン」、iCloud のレコードと書き出しの app の字、評価の問いの「版ごとに 1 回」）。理由: §11.1 の 8。通るもの: J-4 の ipad13-portrait-sheet-info の版の字（宣言どおり）
+  - 5c26420・Sources/TegakiCalendar/Views/CalendarRootScreen.swift・1 ページの道が通る行は 1（:2051 `revealRect = nil`、ほかに注 2 行）。eraseAllInk は 2 本の道とも通る。理由: 上限ありのリードの決定 3 (a)（§6.6 H3 で作り直したキャンバスが、古い「今日」の矩形を最初の配置で読まない）。1 ページの道での違い: 「今日」の後に「全て消す」をすると、作り直したキャンバスは今日のマスへ動かず、show の後と同じ初めの位置から開く。通る既存のテスト: 無い（XCTest は画面の View を走らせず、UI テストは全て消すを使わない）。新しい ScreenPathsSpanTests.testEraseAllForgetsTheTodayRect は m1 で落ちた
+  - 5c26420・Sources/TegakiCalendar/Ink/InkCanvasView.swift・1 ページの道が通る行は 0（注だけ: :1041-1044 の軽い道の注、:2507-2509 の bandOverview の注、:2802-2804 の putJournalIntoInbox の注）。DATA_1_1 の 1 行目を同じ commit で書き直した（fae62f5a…）
+  - 5c26420・Tests/TegakiCalendarTests/InkCanvasSpanTests.swift・ScreenPathsSpanTests.swift・アプリのコードではない（0 行）
+  - c56ffb6・tools/compat10/DATA_1_1.sha256・tools/l10n/lint-skip.txt・tools/l10n/lint.py（注だけ）・.github/workflows/build.yml・README.md・アプリのコードは 0 行
+  - まとめ: git diff c5fc1cd c56ffb6 -- TegakiKit は空。TESTS_1_2_3 の 8 ファイルは変えていない
+  - 直しの段:
+    - 5c26420・Views/CalendarRootScreen.swift:2051（eraseAllInk の `revealRect = nil`）・コード 1 行（ほかに注 2 行）・1 ページの道も通る。月・年で拡大中に「今日」の後に「全て消す」をすると、作り直したキャンバスは今日の枠へ動かず、上（PaperViewport.initial）から開く（H3 の注のとおり。S6 の前は今日の枠へ動いた）・理由: 上限ありの決定 3 (a)・H3・この行を通る既存のテスト: 無し（1.2.3 の UI テストは全て消すを使わない。CalendarRootScreenTests は static の関数だけ）・新しいテスト: ScreenPathsSpanTests.testEraseAllForgetsTheTodayRect（ソースを読む形）
+    - 5c26420・Ink/InkCanvasView.swift:1040-1043・applyPending の 1 ページの枝（:1004 の `if spanState != nil { applyPendingSpan(); return }` の後）の注の書き換えだけ・コード 0 行
+    - baf5cef・Views/SettingsScreen.swift・`#if SPAN_PROTOTYPE` の中の 4 行を消した（c5fc1cd の :659-662）。ふつうのビルドでコンパイルされる行は 0
+    - 6e1611c・project.yml の MARKETING_VERSION を "1.2.3" から "1.3" に。コードの行は 0。設定 › 情報 の版の字が変わる（J-4 で宣言した ipad13-portrait-sheet-info.png の版の字だけ）
+    - fa6990a・Span/ScreenPaths.swift（today の中の `revealWindowId = session.id` 2 行（:965・:971）、新しい stored 1、新しい func revealRect(_:for:)（:983））・Views/CalendarRootScreen.swift:2781（joinedCanvas の `revealRect: paths.revealRect(revealRect, for: span),` 1 行）・1 ページの道のコードは 0 行。理由: today は `guard path == .joined` の後だけ。joinedCanvas は横の道だけで作る。1 ページのキャンバスの `revealRect: revealRect,`（:1080）は変えておらず、これは testJoinedCanvasTakesOnlyItsWindowsTodayRect が数で固定している
+    - ef54367・テストのファイルだけ（InkCanvasSpanTests）・アプリのコード 0 行
+    - 955fe67・文書と CI の注と lint-skip の頭のコメントだけ・アプリのコード 0 行
+
+#### S6 のリードの決定（11/19 17:40）
+
+1. `SpanGuard` の `.prototype`・`prototypePrefix`・その KitChecks は残す（S6-RM-2）。表の 20 ファイルに入り、KitChecks の数と閾値もそれで決まっているので、今消すと表の作り直しと数の変更が要る。使わない型として 1.4 の契約で扱う。
+2. 提出の前の片づけ（TestFlight の × の直しがあれば一緒に。無くても提出の前に）: (a) 第 4 陣の文のリードの決定 4 の 8 キーの comment（ja だけのキーの仕組みは S6 で無くなった。S6-FC-2）、(b) 1 ページの道で H1・H2 がキャンバスを作り直すときに `revealRect` を消す（月・年で「今日」の後にこれが起きると、新しいキャンバスが同じページの今日のマスへ動く。1.3 で新しく生まれた動き。違う場所へは飛ばない。S6-FC-3）、(c) 試作がまだあるように読める古い注（TegakiKit の SpanPlan・WeekLayoutEngine ほか。S6-FC-4）。(b) は 20 ファイルの外（CalendarRootScreen）なので表は作り直さない。
+3. 1.4 からの互換の相手に、本物の 1.3（955fe67）を足す（§6.4）。1.4 の契約の仕事。
 
 #### S6 の J-4 で前もって決める写真（11/19 13:00。S6 の最初の run より前に書く）
 
