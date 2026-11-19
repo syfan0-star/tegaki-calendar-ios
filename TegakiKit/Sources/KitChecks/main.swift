@@ -5450,6 +5450,7 @@ do {
 runSpanChecks() // 1.3: the joined pages, section "span (1.3)" (SpanChecks.swift, docs/M7C_CONTRACT.md §10.1)
 runSpanInkChecks() // 1.3: their ink, section "span ink (1.3)" (SpanInkChecks.swift, docs/M7C_CONTRACT.md §10.1)
 runWeekMemoChecks() // 1.3: the week memo, section "week memo (1.3)" (WeekMemoChecks.swift, docs/M7C_CONTRACT.md §5, §10.1)
+runOverviewCapChecks() // 1.3: the iPhone's landscape cap (P-B6 イ), section "overview cap (1.3)" (OverviewCapChecks.swift, docs/M7C_CONTRACT.md §3.6, §10.1)
 
 // MARK: - 1.2: the languages (docs/M7B_CONTRACT.md §0, §2.1, 0-1, 0-2, 0-8, §7.1)
 

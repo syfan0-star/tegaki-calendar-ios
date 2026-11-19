@@ -149,6 +149,23 @@ public enum ZoomPolicy {
         )
     }
 
+    /// 1.3 (P-B6 イ, the owner's answer of 11/18; docs/M7C_CONTRACT.md §3.6, B_DESIGN.md §3.1, §6.2): `bounds` with
+    /// the lowest zoom raised so that it never shows more than `maxVisiblePages` pages across: cap = viewport.width ÷
+    /// (pages × paperWidth). When the cap is above `bounds.min`, min = cap, open = max(open, cap) (so the opening zoom
+    /// shows no more either) and max = max(max, cap); `fit` stays. nil, a count that is not finite or not positive, a
+    /// width that is not usable, or a cap at or below `bounds.min` → `bounds` itself (`==`). `bounds` (above) is not
+    /// changed: the one-page path never calls this.
+    public static func cappedBounds(_ kind: PageKind, overview: CGSize, viewport: CGSize, maxVisiblePages: CGFloat?) -> Bounds {
+        var result = bounds(kind, overview: overview, viewport: viewport)
+        guard let pages = maxVisiblePages, pages.isFinite, pages > 0, viewport.width.isFinite, viewport.width > 0 else { return result }
+        let cap = viewport.width / (pages * paperWidth(kind))
+        guard cap.isFinite, cap > result.min else { return result }
+        result.min = cap
+        result.open = Swift.max(result.open, cap)
+        result.max = Swift.max(result.max, cap)
+        return result
+    }
+
     /// A stored ratio (relative to the opening zoom since 1.1.1; D4) → the zoom:
     /// `bounds.clamped(ratio × bounds.open)`. `bounds.open` when the ratio is not finite or not positive.
     public static func zoom(forRatio ratio: CGFloat, bounds: Bounds) -> CGFloat {

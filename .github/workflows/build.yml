@@ -147,16 +147,18 @@ jobs:
       # TegakiKit/Tests/Fixtures/compat-span read byte for byte and through the frozen 1.0 copy); with the week
       # memo (§5; docs/M7C.md, 週のメモ) 1.3 counts 38060 (+ 1021 for the section "week memo (1.3)": 1.2.3's week
       # without the memo, the memo's shape, cells, events, growth, overview, floors, window and names; + 71 in "span
-      # ink (1.3)" for fixture 4's three files, so 16 compat-span files in all).
-      # The threshold is that number minus 50, so anything below 38010 means a section or a fixture went missing.
+      # ink (1.3)" for fixture 4's three files, so 16 compat-span files in all); with the iPhone's landscape overview
+      # cap (§3.6, P-B6 イ; docs/M7C.md) 1.3 counts 40020 (+ 1960 for "overview cap (1.3)": the rule, the capped
+      # window table, the zoom limits, the all-day lanes, the paper area's own orientation, the iPads and cappedBounds).
+      # The threshold is that number minus 50, so anything below 39970 means a section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 38010 or more)"
+          echo "KitChecks count: ${N:-0} (required: 39970 or more)"
           grep -E 'compat10( with compat-span)?: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 38010
+          test "${N:-0}" -ge 39970
 
       # 1.3 (docs/M7C_CONTRACT.md §4.2, §6.3): KitChecks compares the committed compat-span fixtures with what
       # the Kit's joined path writes and fails when one is missing or differs. Then, as the unit tests do for

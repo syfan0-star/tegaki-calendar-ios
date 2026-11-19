@@ -57,12 +57,54 @@ public struct SpanPlan: Sendable, Equatable {
     public let weekStart: WeekStart
     public let deviceClass: SpanDeviceClass
     public let orientation: SpanOrientation
+    /// P-B6 イ (11/18): the lowest zoom of this plan's window is capped where `overviewCapPages` says (an iPhone in
+    /// landscape). false (the default) is P-B6 ア, every number as before; the app's `SpanSession` passes true.
+    public let overviewCap: Bool
 
-    public init(kind: PageKind, weekStart: WeekStart, deviceClass: SpanDeviceClass, orientation: SpanOrientation) {
+    public init(kind: PageKind, weekStart: WeekStart, deviceClass: SpanDeviceClass, orientation: SpanOrientation, overviewCap: Bool = false) {
         self.kind = kind
         self.weekStart = weekStart
         self.deviceClass = deviceClass
         self.orientation = orientation
+        self.overviewCap = overviewCap
+    }
+
+    // MARK: The overview cap (P-B6 イ, docs/M7C_CONTRACT.md §3.6, §3.16; B_DESIGN.md §3.1, §6.2)
+
+    /// The most pages across the lowest zoom shows with the cap: an iPhone in landscape, week and year 3, day 5 (the
+    /// month's V 2.85 is under 3 already: nil); nil for every other device and orientation.
+    public static func overviewCapPages(_ kind: PageKind, deviceClass: SpanDeviceClass, orientation: SpanOrientation) -> CGFloat? {
+        guard deviceClass == .iPhone, orientation == .landscape else { return nil }
+        switch kind {
+        case .week, .year: return 3
+        case .day: return 5
+        case .month: return nil
+        }
+    }
+
+    /// The cap for a paper area of `viewport` (its own orientation: wider than tall is landscape, so a turn has its cap
+    /// before the window is decided anew): `overviewCapPages` when `overviewCap`, else nil. nil too for a paper area not
+    /// measured yet (a height of 0, the first frame, or a size that is not finite or not positive): the width alone
+    /// decides it then, as `ZoomPolicy.fitAll` does, and the first frame stays as it was. An iPhone's portrait paper
+    /// area can be wider than tall (the all-day band at its 35 % cap: 402 × 368) and gets the cap, which is below its
+    /// lowest zoom there.
+    public func maxVisiblePages(viewport: CGSize) -> CGFloat? {
+        guard overviewCap, viewport.width.isFinite, viewport.width > 0, viewport.height.isFinite, viewport.height > 0 else { return nil }
+        return Self.overviewCapPages(kind, deviceClass: deviceClass, orientation: SpanOrientation(screen: viewport))
+    }
+
+    /// The window's zoom limits for `overview` (its middle page's) in `viewport`: `ZoomPolicy.cappedBounds` with
+    /// `maxVisiblePages(viewport:)` (without the cap, `ZoomPolicy.bounds` itself). The joined path's every zoom comes
+    /// from here (the canvas and the screen).
+    public func zoomBounds(overview: CGSize, viewport: CGSize) -> ZoomPolicy.Bounds {
+        ZoomPolicy.cappedBounds(kind, overview: overview, viewport: viewport, maxVisiblePages: maxVisiblePages(viewport: viewport))
+    }
+
+    /// V of a measured paper area with the cap: at most the cap (without it, `visiblePages(_:viewport:)`).
+    public func visiblePages(viewport: CGSize) -> CGFloat {
+        let v = Self.visiblePages(kind, viewport: viewport)
+        guard let cap = maxVisiblePages(viewport: viewport) else { return v }
+        return Swift.min(v, cap)
     }
 
     // MARK: Fixed numbers (§3.16)
@@ -243,14 +285,14 @@ public struct SpanPlan: Sendable, Equatable {
         return CGSize(width: row.0, height: height)
     }
 
-    /// V of this plan's device and orientation.
+    /// V of this plan's device and orientation (with the cap when `overviewCap`).
     public var visiblePages: CGFloat {
-        Self.visiblePages(kind, viewport: Self.referenceViewport(kind, deviceClass: deviceClass, orientation: orientation))
+        visiblePages(viewport: Self.referenceViewport(kind, deviceClass: deviceClass, orientation: orientation))
     }
 
     /// R of this plan (the window is 2R + 1 pages): iPad 11 and 13 portrait 5 weeks / 7 days and
     /// landscape 7 / 9, mini portrait 5 / 5 and landscape 7 / 9, iPhone portrait 5 / 5 and landscape
-    /// 9 / 15 (§3.6; KitChecks fixes every row).
+    /// 9 / 15, or 7 / 9 with the cap (P-B6 イ) (§3.6; KitChecks fixes every row).
     public var radius: Int {
         Self.radius(forVisiblePages: visiblePages)
     }

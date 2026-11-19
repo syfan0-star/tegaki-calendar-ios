@@ -1262,6 +1262,251 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertNil(paths.today(nov18, now: bed.now, viewport: nil, area: area, ratio: 1), "the one page: 1.1.1's 「今日」")
     }
 
+    /// P-B6 イ: the screen's windows carry the cap (`makeSession`); on an iPhone in landscape the first frame, the band's
+    /// opening zoom, 「今日」's overview test and the photos' offset are the capped zoom's; an iPad's are as before. Today's
+    /// page (11/18 15:00) at the capped overview: the photo's offset opens it an hour before now (the lead's decision 6) and
+    /// 「今日」 on it is the canvas's now-line request, not `.stay` (decision 7); on the iPad, whose overview holds the whole
+    /// day, `.stay` and no offset as before.
+    func testTheScreensWindowsCapTheIPhoneLandscapeOverview() async throws {
+        let area = CGSize(width: 874, height: 205)
+        let now = try at(11, 18, 15)
+        let phone = ScreenPaths.Opening(kind: .week, focus: nov16, weekStart: .monday,
+                                        device: ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape), paperArea: area,
+                                        context: SpanSession.PaperContext(now: now, calendar: SessionTestBed.tokyo))
+        let session = try await openWindow(phone)
+        XCTAssertTrue(session.plan.overviewCap)
+        XCTAssertEqual(session.pageIds.count, 7)
+        let cap: CGFloat = 874 / 4_200
+        let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+        XCTAssertEqual(zoom, cap, accuracy: 1e-9)
+        let first = ScreenPaths.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: bed.now,
+                                             calendar: SessionTestBed.tokyo, area: area, ratio: 1)
+        let origin = try XCTUnwrap(session.origin(ofPage: session.focusPageId))
+        XCTAssertEqual(first.offsetX, (origin + 700) * cap - 437, accuracy: 1e-6, "the focus page in the middle")
+        XCTAssertFalse(ScreenPaths.zoomedIn(layout: session.layout, viewport: PaperViewport(offsetX: first.offsetX, zoom: cap, width: 874),
+                                            area: area, ratio: 1), "the capped zoom is the overview")
+        XCTAssertTrue(ScreenPaths.zoomedIn(layout: session.layout, viewport: PaperViewport(offsetX: 0, zoom: cap * 2, width: 874),
+                                           area: area, ratio: 1))
+        guard case .reveal(let rect)? = paths.today(nov18, now: now, viewport: PaperViewport(offsetX: first.offsetX, zoom: cap, width: 874),
+                                                    area: area, ratio: 1) else {
+            return XCTFail("today's page at the capped overview: a reveal (the lead's decision 7), not .stay")
+        }
+        XCTAssertTrue(rect.origin.x.isNaN, "no x: y only")
+        XCTAssertEqual(rect.origin.y, 14 * 80, accuracy: 1e-9, "an hour before now")
+        XCTAssertEqual(rect.origin.y + rect.size.height, 15 * 80, accuracy: 1e-9, "the now line")
+        let offset = try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: -0.5,
+                                                               offset: nil, viewportWidth: 874, zoom: zoom))
+        XCTAssertEqual(offset.x, origin - 437 / cap, accuracy: 1e-6, "the boundary in the middle")
+        XCTAssertEqual(offset.y, 14 * 80, accuracy: 1e-9, "today's page: an hour before now (the lead's decision 6)")
+        // The stored ratio is shared with the one-page path (one key per kind, 1.1.1 D4): on an iPhone in landscape the
+        // same ratio is about twice the zoom on the joined path (PB6-C4, R6; an intended difference, M7C.md's D9 record).
+        let onePage = try XCTUnwrap(session.layout.pages[session.focusSlot] as? WeekPageLayout)
+        let onePageZoom = ZoomPolicy.zoom(forRatio: 2, bounds: ZoomPolicy.bounds(.week, overview: ZoomPolicy.overviewSize(onePage), viewport: area))
+        XCTAssertEqual(onePageZoom, 2 * 205 / 1_920, accuracy: 1e-6, "the one page: 1.2.3's")
+        XCTAssertEqual(ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 2), 2 * cap, accuracy: 1e-9, "the joined path: over the cap")
+
+        let pad = try await openWindow(opening(now: now))
+        XCTAssertTrue(pad.plan.overviewCap)
+        let padArea = CGSize(width: 834, height: 955)
+        let padOpen = ZoomPolicy.bounds(.week, overview: ZoomPolicy.baseSize(.week), viewport: padArea).open
+        XCTAssertEqual(ScreenPaths.bandZoom(layout: pad.layout, area: padArea, ratio: 1), padOpen, accuracy: 1e-12)
+        XCTAssertEqual(paths.today(nov18, now: now, viewport: PaperViewport(offsetX: 0, zoom: padOpen, width: 834), area: padArea, ratio: 1),
+                       .stay, "the iPad's overview holds the whole day: nothing moves (J7)")
+        XCTAssertNil(ScreenPaths.shotPaperOffset(layout: pad.layout, focusPageId: pad.focusPageId, pages: nil, offset: nil,
+                                                 viewportWidth: 834, zoom: padOpen), "the iPad opens at 0:00 as before")
+    }
+
+    /// P-B6 イ: at the capped overview 「今日」 slides to today's page when it is in the window but not the focus (the capped
+    /// zoom is the overview, not a zoom-in: no reveal), with the reported viewport and with the stored ratio before a report.
+    func testCappedTodaySlidesWithinTheWindow() async throws {
+        let area = CGSize(width: 874, height: 205)
+        let phone = ScreenPaths.Opening(kind: .week, focus: nov16, weekStart: .monday,
+                                        device: ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape), paperArea: area,
+                                        context: SpanSession.PaperContext(now: try at(12, 3, 15), calendar: SessionTestBed.tokyo))
+        let session = try await openWindow(phone)
+        XCTAssertEqual(session.pageIds.count, 7)
+        let cap: CGFloat = 874 / 4_200
+        let middle = PaperViewport(offsetX: (try XCTUnwrap(session.origin(ofPage: w1116)) + 700) * cap - 437, zoom: cap, width: 874)
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        XCTAssertEqual(paths.today(dec3, now: try at(12, 3, 15), viewport: middle, area: area, ratio: 1), .slide(2))
+        XCTAssertEqual(paths.today(dec3, now: try at(12, 3, 15), viewport: nil, area: area, ratio: 1), .slide(2))
+        XCTAssertEqual(session.focusPageId, w1116, "nothing moved yet")
+    }
+
+    /// P-B6 イ, the lead's decision 6 (11/18): today's page at the capped overview opens an hour before now — the canvas's
+    /// `initialPaperOffset` (`shotPaperOffset` without the photo's arguments) holds `PageNavigation.initialScrollY`'s y with
+    /// the focus page in the middle — and every other opening is as before: another page, a zoomed-in opening (the
+    /// canvas's `initialScrollY`), the first frame before the paper area's height, an iPad, the photo's own offset.
+    func testCappedTodayOpensAnHourBeforeNow() async throws {
+        let area = CGSize(width: 874, height: 205)
+        let phone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape)
+        for (kind, focus, hour, across) in [(PageKind.week, nov16, CGFloat(80), CGFloat(3)), (.day, nov18, 100, 5)] {
+            let now = try at(11, 18, 15)
+            let session = try await openWindow(opening(kind, focus: focus, device: phone, now: now))
+            let cap = 874 / (across * ZoomPolicy.paperWidth(kind))
+            let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+            XCTAssertEqual(zoom, cap, accuracy: 1e-12, "\(kind)")
+            XCTAssertTrue(ScreenPaths.atCappedOverview(layout: session.layout, width: 874, zoom: zoom), "\(kind)")
+            let origin = try XCTUnwrap(session.origin(ofPage: session.focusPageId))
+            let opened = try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: nil,
+                                                                   offset: nil, viewportWidth: 874, zoom: zoom), "\(kind)")
+            XCTAssertEqual(opened.y, 14 * hour, accuracy: 1e-9, "\(kind): 14:00, an hour before now")
+            let page = session.layout.pages[session.focusSlot]
+            XCTAssertEqual(opened.y, PageNavigation.initialScrollY(page, now: now, calendar: SessionTestBed.tokyo), accuracy: 1e-9,
+                           "\(kind): the zoomed-in page's rule")
+            XCTAssertEqual(opened.x, origin + ZoomPolicy.paperWidth(kind) / 2 - 437 / cap, accuracy: 1e-9, "\(kind): the focus page in the middle")
+            XCTAssertNil(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: nil, offset: nil,
+                                                     viewportWidth: 874, zoom: 2 * cap), "\(kind): zoomed in, the canvas's initialScrollY")
+            let unmeasured = ScreenPaths.bandZoom(layout: session.layout, area: CGSize(width: 874, height: 0), ratio: 1)
+            XCTAssertNil(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: nil, offset: nil,
+                                                     viewportWidth: 874, zoom: unmeasured), "\(kind): the first frame without a height")
+            XCTAssertEqual(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: nil,
+                                                       offset: CGPoint(x: 10, y: 20), viewportWidth: 874, zoom: zoom),
+                           CGPoint(x: origin + 10, y: 20), "\(kind): --screenshot-offset as before")
+
+            // Just after midnight: not above 0:00.
+            let early = try await openWindow(opening(kind, focus: focus, device: phone, now: try at(11, 18, 0, 30)))
+            XCTAssertEqual(ScreenPaths.shotPaperOffset(layout: early.layout, focusPageId: early.focusPageId, pages: nil, offset: nil,
+                                                       viewportWidth: 874, zoom: zoom)?.y, 0, "\(kind): 0:30 opens at 0:00")
+            // Another page (today two pages away): 0:00, the canvas's own opening.
+            let other = try await openWindow(opening(kind, focus: kind == .week ? DayKey(year: 2026, month: 11, day: 30) : DayKey(year: 2026, month: 11, day: 20),
+                                                     device: phone, now: now))
+            XCTAssertNil(ScreenPaths.cappedOpeningY(layout: other.layout, pageId: other.focusPageId), "\(kind): today is not on the page")
+            XCTAssertNil(ScreenPaths.shotPaperOffset(layout: other.layout, focusPageId: other.focusPageId, pages: nil, offset: nil,
+                                                     viewportWidth: 874, zoom: zoom), "\(kind): another page opens at 0:00")
+        }
+        let pad = try await openWindow(opening(now: try at(11, 18, 15)))
+        let padZoom = ScreenPaths.bandZoom(layout: pad.layout, area: CGSize(width: 834, height: 955), ratio: 1)
+        XCTAssertFalse(ScreenPaths.atCappedOverview(layout: pad.layout, width: 834, zoom: padZoom))
+        XCTAssertNil(ScreenPaths.shotPaperOffset(layout: pad.layout, focusPageId: pad.focusPageId, pages: nil, offset: nil,
+                                                 viewportWidth: 834, zoom: padZoom), "an iPad opens at 0:00")
+        let portrait = try await openWindow(opening(focus: nov16, device: ScreenPaths.Device(deviceClass: .iPhone, orientation: .portrait),
+                                                    now: try at(11, 18, 15)))
+        let portraitZoom = ScreenPaths.bandZoom(layout: portrait.layout, area: CGSize(width: 402, height: 540), ratio: 1)
+        XCTAssertNil(ScreenPaths.shotPaperOffset(layout: portrait.layout, focusPageId: portrait.focusPageId, pages: nil, offset: nil,
+                                                 viewportWidth: 402, zoom: portraitZoom), "the iPhone in portrait opens at 0:00")
+    }
+
+    /// P-B6 イ, the lead's decision 7 (11/18; PB6-RV-I1, RV-S1): 「今日」 on today's page already the focus at the capped
+    /// overview is the canvas's now-line request (the screen has no y; `InkCanvasSpanTests`' capped 「今日」 tests hold what
+    /// the canvas does with it): an hour before now (decision 6's height, `PageNavigation.initialScrollY`) and the now
+    /// line, the same before a report, and no x. 1.1.1's reveal (`ZoomPolicy.revealOffset`) leaves the paper where it is
+    /// for it wherever the paper is (PB6-RV-I5: a canvas's first layout under a request left from another window). Just
+    /// after midnight the hour before now is 0:00. Zoomed in it is 1.2.3's column from an hour before now.
+    func testCappedTodayOnTodaysPageRevealsAnOffScreenNowLine() async throws {
+        let area = CGSize(width: 874, height: 205)
+        let phone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape)
+        for (kind, focus, hour, across) in [(PageKind.week, nov16, CGFloat(80), CGFloat(3)), (.day, nov18, 100, 5)] {
+            let now = try at(11, 18, 15)
+            let session = try await openWindow(opening(kind, focus: focus, device: phone, now: now))
+            let cap = 874 / (across * ZoomPolicy.paperWidth(kind))
+            let origin = try XCTUnwrap(session.origin(ofPage: session.focusPageId))
+            let x0 = (origin + ZoomPolicy.paperWidth(kind) / 2) * cap - 437
+            let shown = PaperViewport(offsetX: x0, zoom: cap, width: 874)
+            guard case .reveal(let rect)? = paths.today(nov18, now: now, viewport: shown, area: area, ratio: 1) else {
+                return XCTFail("\(kind): a reveal")
+            }
+            XCTAssertTrue(rect.origin.x.isNaN, "\(kind): no x")
+            XCTAssertEqual(rect.origin.y, 14 * hour, accuracy: 1e-9, "\(kind): an hour before now")
+            XCTAssertEqual(rect.origin.y + rect.size.height, 15 * hour, accuracy: 1e-9, "\(kind): the now line")
+            guard case .reveal(let first)? = paths.today(nov18, now: now, viewport: nil, area: area, ratio: 1) else {
+                return XCTFail("\(kind): a reveal before a report")
+            }
+            XCTAssertTrue(first.origin.x.isNaN, "\(kind): before a report, no x")
+            XCTAssertEqual(first.origin.y, rect.origin.y, accuracy: 1e-9, "\(kind): before a report")
+            XCTAssertEqual(first.size.height, rect.size.height, accuracy: 1e-9, "\(kind): before a report")
+            for y in [0, 8 * hour * cap, 14 * hour * cap, 20 * hour * cap] {
+                let current = CGPoint(x: x0 + 300, y: y)
+                XCTAssertEqual(ZoomPolicy.revealOffset(rect: rect, zoom: cap, viewport: area, current: current), current,
+                               "\(kind): 1.1.1's reveal leaves the paper at \(y) pt")
+            }
+            // Zoomed in: today's column from an hour before now, one screen high (1.2.3's rule).
+            guard case .reveal(let column)? = paths.today(nov18, now: now, viewport: PaperViewport(offsetX: x0 * 2, zoom: 2 * cap, width: 874),
+                                                          area: area, ratio: 1) else {
+                return XCTFail("\(kind): zoomed in, a reveal")
+            }
+            XCTAssertGreaterThan(column.width, 0, "\(kind): the column")
+            XCTAssertEqual(column.minY, 14 * hour + ZoomPolicy.revealMargin / (2 * cap), accuracy: 1e-9, "\(kind)")
+            // Just after midnight: from 0:00 down to the now line.
+            let early = try await openWindow(opening(kind, focus: focus, device: phone, now: try at(11, 18, 0, 30)))
+            let earlyRect = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: early.layout, pageId: early.focusPageId, now: try at(11, 18, 0, 30),
+                                                                      calendar: SessionTestBed.tokyo, viewport: shown), "\(kind)")
+            XCTAssertEqual(earlyRect.origin.y, 0, accuracy: 1e-9, "\(kind): 0:30, not above 0:00")
+            XCTAssertEqual(earlyRect.size.height, hour / 2, accuracy: 1e-9, "\(kind): 0:30")
+            XCTAssertNil(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: try at(12, 3, 15),
+                                                     calendar: SessionTestBed.tokyo, viewport: shown), "\(kind): today not on the page")
+        }
+    }
+
+    /// P-B6 イ (PLAN_PB6 §7.2 12): every window the app makes carries the cap. Every `.swift` of Sources/TegakiCalendar but
+    /// the prototype's (`Span/SpanPrototype*.swift`) and screenshot mode's demo page id (`Support/ScreenshotMode.swift`, one
+    /// `SpanPlan(` for a page id only) is read in code only (`WeekMemoSpanTests.codeOnly`); every `SpanPlan(` and
+    /// `SpanSession(` call (to its matching ")") passes `overviewCap:`, the screen's `SpanSession(` passes true, and
+    /// Span/ScreenPaths.swift has no `ZoomPolicy.bounds(` (its zooms are the plan's `zoomBounds`). There are exactly 2
+    /// `SpanPlan(` (the session's opening and `redecide`) and 1 `SpanSession(` (`makeSession`): a new call site fails here
+    /// until whoever adds it looks at it.
+    func testEveryJoinedPlanCarriesTheCap() throws {
+        let sample = Self.calls(named: "SpanPlan(", in: WeekMemoSpanTests.codeOnly("""
+        let a = SpanPlan(kind: k, weekStart: w, deviceClass: d, orientation: f(o), overviewCap: true) // SpanPlan(no)
+        let b = MySpanPlan(x); let c = "SpanPlan(no)"
+        """))
+        XCTAssertEqual(sample.count, 1, "\(sample)")
+        XCTAssertTrue(sample.first?.hasSuffix("overviewCap: true)") ?? false, "\(sample)")
+
+        let repository = URL(fileURLWithPath: "\(#filePath)").deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let root = repository.appendingPathComponent("Sources/TegakiCalendar", isDirectory: true)
+        let files = try XCTUnwrap(FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?.allObjects as? [URL])
+            .filter { $0.pathExtension == "swift" && !$0.lastPathComponent.hasPrefix("SpanPrototype") }
+        XCTAssertGreaterThan(files.count, 50, "the app's sources were found (\(root.path))")
+        var plans: [(file: String, call: String)] = []
+        var sessions: [(file: String, call: String)] = []
+        for url in files {
+            let code = WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8))
+            let planCalls = Self.calls(named: "SpanPlan(", in: code)
+            if url.lastPathComponent == "ScreenshotMode.swift" {
+                XCTAssertEqual(planCalls.count, 1, "screenshot mode's demo page id only: \(planCalls)")
+            } else {
+                plans += planCalls.map { (url.lastPathComponent, $0) }
+            }
+            sessions += Self.calls(named: "SpanSession(", in: code).map { (url.lastPathComponent, $0) }
+            if url.lastPathComponent == "ScreenPaths.swift" {
+                XCTAssertTrue(Self.calls(named: "ZoomPolicy.bounds(", in: code).isEmpty, "the screen's zooms are the plan's zoomBounds")
+            }
+        }
+        XCTAssertEqual(plans.map(\.file), ["SpanSession.swift", "SpanSession.swift"], "\(plans)")
+        XCTAssertEqual(sessions.map(\.file), ["ScreenPaths.swift"], "\(sessions)")
+        for site in plans {
+            XCTAssertTrue(site.call.contains("overviewCap: overviewCap"), "\(site.file): \(site.call)")
+        }
+        for site in sessions {
+            XCTAssertTrue(site.call.contains("overviewCap: true"), "\(site.file): \(site.call)")
+        }
+    }
+
+    /// Every call of `name` (ending in "(") in `code` (`WeekMemoSpanTests.codeOnly`): from the name to its matching ")". A name
+    /// that continues another identifier (`MySpanPlan(`, `.SpanPlan(`) is not a call of it.
+    static func calls(named name: String, in code: [Character]) -> [String] {
+        let pattern = Array(name)
+        var found: [String] = []
+        var i = 0
+        while i + pattern.count <= code.count {
+            guard Array(code[i..<(i + pattern.count)]) == pattern else { i += 1; continue }
+            if i > 0, code[i - 1].isLetter || code[i - 1].isNumber || code[i - 1] == "_" || (code[i - 1] == "." && !name.contains(".")) {
+                i += 1
+                continue
+            }
+            var depth = 0
+            var j = i + pattern.count - 1
+            while j < code.count {
+                if code[j] == "(" { depth += 1 } else if code[j] == ")" { depth -= 1; if depth == 0 { break } }
+                j += 1
+            }
+            found.append(String(code[i...min(j, code.count - 1)]))
+            i = j + 1
+        }
+        return found
+    }
+
     /// §2 #5: ◀ ▶ slide one page of the window (the same canvas); on the one page nothing here (1.2.3's `show`).
     func testArrowsSlideOnePage() async throws {
         try await openWindow()
