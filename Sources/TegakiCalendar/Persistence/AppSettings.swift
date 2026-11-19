@@ -16,7 +16,9 @@ import Layout
 /// keys under `review.` (`reviewRecord`). 1.3 (docs/M7C_CONTRACT.md §2, §3.1, §3.14) adds the setting that joins
 /// the week and day pages sideways (`page.span`) and the first-time guide's record of each joined kind
 /// (`hint.spanGuide.<kind>`). All of them stay on this device (UserDefaults is not synced to iCloud; D16, 0-21,
-/// 0-45).
+/// 0-45). 1.4 (docs/M7D_CONTRACT.md §2, §2.1, §4.8) adds one: who wrote today's 「指でも書く」 (`allowFingerAutoKey`, the
+/// mark `PencilPhone` reads and writes), and a way to forget the week's and the day's guide records (`forgetSpanGuideShown`)
+/// so the guide shows once more after the app turned 「指でも書く」 off; `isExistingUser`'s three keys do not change.
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -25,6 +27,11 @@ enum AppSettings {
     /// `Bool`, existing: iPad false, iPhone / Mac true (decided once through `allowFingerChosenKey`).
     static let allowFingerKey = "allowFingerDrawing"
     static let allowFingerChosenKey = "allowFingerDrawingChosen"
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.8, 0d-42): `String`, who wrote today's value of `allowFingerKey`: "person" (the
+    /// person switched it in the toolbar or the settings), or the mark of the device on which the app wrote it
+    /// (`PencilPhone.deviceMark`, `identifierForVendor`); missing for a value carried over from 1.3 or earlier. Never sent
+    /// anywhere (a backup or a move to a new iPhone may bring it along). Not one of `isExistingUser`'s keys.
+    static let allowFingerAutoKey = "allowFingerDrawingAuto"
     /// Existing: the last shown page kind; missing → iPad `.month`, iPhone `.week` (DESIGN §2.11).
     static let lastKindKey = "lastPageKind"
     /// Existing: the last focus day as "YYYY-MM-DD".
@@ -185,6 +192,13 @@ enum AppSettings {
     /// Remembers that the guide of `kind` was shown (it is never shown again on this device).
     static func markSpanGuideShown(_ kind: PageKind) {
         defaults.set(true, forKey: spanGuideShownKey(kind))
+    }
+
+    /// 1.4 (docs/M7D_CONTRACT.md §4.8, F10, 0d-38): forgets that the guide of `kind` was shown, so it shows once more (with
+    /// the words of 「指でも書く」 as it is then). `PencilPhone.apply` calls it for the week and the day when the app turned
+    /// 「指でも書く」 off on the device that wrote the first launch's default (`rearmGuide`), never for a value carried over.
+    static func forgetSpanGuideShown(_ kind: PageKind) {
+        defaults.removeObject(forKey: spanGuideShownKey(kind))
     }
 
     /// Whether this device already said that `kind` falls back to one page (N-8).
