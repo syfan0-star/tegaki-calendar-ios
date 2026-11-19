@@ -1159,7 +1159,7 @@ final class ScreenshotMeasure {
             Task { @MainActor [weak self] in
                 await sleep(ScreenshotMode.measureHingeWait)
                 guard let self, self.hinge == nil else { return }
-                NSLog("%@", "duo measure: no answer from the hinge in \(Int(ScreenshotMode.measureHingeWait)) s, read as nil")
+                NSLog("%@", "duo hinge: no answer in \(Int(ScreenshotMode.measureHingeWait)) s; the duo measure line reads it as nil")
                 self.hingeAnswered(.none)
             }
             return
