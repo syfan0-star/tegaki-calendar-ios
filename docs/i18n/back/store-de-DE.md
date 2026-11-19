@@ -106,3 +106,11 @@ R が日本語の元を見ずに `docs/store/de-DE/*.txt` と `docs/store/subscr
 | --- | --- | --- | --- | --- |
 | 1.3.memo.whatsnew | 1 回目 | • Auch die Wochenseiten haben jetzt unter 24:00 einen Bereich „Freie Notizen“. | ・週のページにも、24:00の下に「自由メモ」欄ができました。 | ドイツ語の「unter」は数値と一緒に使うと「〜未満」の意味になりやすく、「unter 24:00」は「24時前」とも読める。時刻は「24:00 Uhr」と書くのが普通。 |
 | 1.3.memo.k8（案） | 1 回目 | • Auch die Wochenseiten haben jetzt unter 24:00 einen Bereich „Freie Notizen“ (auf Geräten mit einer älteren Version ist er nicht zu sehen, wurde aber nicht gelöscht). | ・週のページにも、24:00の下に「自由メモ」欄ができました（古いバージョンの端末では見えませんが、削除されたわけではありません）。 | 「unter 24:00」は「24時前」とも読める。「einer älteren Version」は、アプリのバージョンかOSのバージョンかがはっきりしない。新しい欄について「削除されていない」と言うのは、英語版と同じく少し分かりにくい。 |
+
+## 1.3 の H1 の点の新しい文（2026-11-19）
+
+1.2.4（2026-11-19 公開）の 2 つ目の点は、上の「1.3 の whatsnew.txt」の節の 1.3.whatsnew.3 と同じ文と訳でした（1.2.4 では H4 の直しの点）。1.2.4 の公開の後に 1.3 の文からこの点を外し（92caae1）、1.2.4 に入っていない H1 の直し（ほかの端末で全て消したあと、この端末の画面に残っていた手書きが iCloud に戻る）を言う新しい文を、`docs/store/de-DE/whatsnew.txt` の 4 つ目の点に足しました（2c1fdf6）。ほかの行は、上の 2 つの節の字のままです（iPad の 1 文はリードが外した後の形）。この 1 つの文だけを、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の H1 の点の新しい文と審査メモの直し」。○、直した字なし）。R の注は R が書いたままです。
+
+| id | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- |
+| 1.3.h1.whatsnew | • Im Anschluss an die Korrektur in Version 1.2.4 wurde auch ein Problem behoben, bei dem Handschrift, die noch auf dem Bildschirm dieses Geräts war, wieder in iCloud landen konnte, nachdem auf einem anderen Gerät alle Handschrift gelöscht wurde. | • バージョン 1.2.4 の修正に引き続き、別のデバイスですべての手書きが削除された後に、このデバイスの画面上にまだあった手書きが再び iCloud に入ってしまうことがある問題も修正されました。 | 「landen」（行き着く・紛れ込む）はやや口語的です。「alle Handschrift」は数えられない名詞に alle を付けた形で、少し不自然に感じられるかもしれません（「die gesamte Handschrift」などのほうが滑らか）。英語の erase（消去）に当たる語が löschen（削除）になっています。nachdem 節が文末に来るので、文が長く読みにくいです。 |

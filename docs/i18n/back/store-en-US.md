@@ -106,3 +106,11 @@ R が日本語の元を見ずに `docs/store/en-US/*.txt` と `docs/store/subscr
 | --- | --- | --- | --- | --- |
 | 1.3.memo.whatsnew | 1 回目 | • Week pages now also have a “Free Notes” area below 24:00. | ・週のページにも、24:00より下に「自由メモ」欄ができました。 | なし |
 | 1.3.memo.k8（案） | 1 回目 | • Week pages now also have a “Free Notes” area below 24:00 (it is not shown on devices with an older version, but it has not been deleted). | ・週のページにも、24:00より下に「自由メモ」欄ができました（古いバージョンの端末では表示されませんが、削除されたわけではありません）。 | 「devices with an older version」は、アプリのバージョンとも端末のOSのバージョンとも読める。新しくできた欄について「削除されていない」と言うので、何が削除されたと思われるのか（欄なのか、そこに書いた内容なのか）が少し分かりにくい。 |
+
+## 1.3 の H1 の点の新しい文（2026-11-19）
+
+1.2.4（2026-11-19 公開）の 2 つ目の点は、上の「1.3 の whatsnew.txt」の節の 1.3.whatsnew.3 と同じ文と訳でした（1.2.4 では H4 の直しの点）。1.2.4 の公開の後に 1.3 の文からこの点を外し（92caae1）、1.2.4 に入っていない H1 の直し（ほかの端末で全て消したあと、この端末の画面に残っていた手書きが iCloud に戻る）を言う新しい文を、`docs/store/en-US/whatsnew.txt` の 4 つ目の点に足しました（en-GB・en-AU・en-CA は同じ字）（2c1fdf6）。ほかの行は、上の 2 つの節の字のままです（iPad の 1 文はリードが外した後の形）。この 1 つの文だけを、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の H1 の点の新しい文と審査メモの直し」。○、直した字なし）。R の注は R が書いたままです。
+
+| id | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- |
+| 1.3.h1.whatsnew | • Following the fix in version 1.2.4, also fixed an issue where, after all handwriting was erased on another device, handwriting still on the screen of this device could go back to iCloud. | • バージョン 1.2.4 での修正に続いて、別のデバイスで手書きがすべて消去された後に、このデバイスの画面にまだ残っている手書きが iCloud に戻ってしまうことがある問題も修正しました。 | 「Following the fix」は時間の「1.2.4 の修正の後で」とも、「その修正の続きとして」とも読めます（意味の差は小さい）。「go back to iCloud」は「iCloud へもう一度送られる」という意味だと推測できます。ただ、一般の利用者には何が困るのか（消したはずの手書きが復活すること）が伝わりにくいです。主語のない「also fixed」はリリースノートでは普通の書き方です。 |

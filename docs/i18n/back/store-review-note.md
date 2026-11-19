@@ -40,3 +40,14 @@ R が日本語の元を見ずに英語の行だけから訳し戻しました。
 18. https://syfan0-star.github.io/tegaki-calendar/app/terms.html
 19. https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 20. https://syfan0-star.github.io/tegaki-calendar/app/support.html
+
+## 1.3 の直し（2026-11-19）
+
+確認ページの文の仕事（M7C.md の「週のメモの見直しのリードの決定」の 4）で、`review-note.txt` の「What is new in 1.3」の段を直しました（2c1fdf6）。1 の 2 つ目の文を詰めて 1 の最後の文「Month and year pages stay one page at a time.」を外し（4,000 バイトに入れるため）、2 の 2 つ目の文を替え、週のメモの 4 を足し、iCloud の直し（もとの 4、今の 5）を 1.2.4 の後の画面の側の直しとして書き直しました。直した 4 つの文だけを別の Claude（R）に渡し、日本語の元（日本語の要約と、書き手が書いた日本語の意味）を見ずに訳し戻してもらいました。前後の文は渡していません（R の注の「この文だけでは」はこのため）。判定は、メモを書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の H1 の点の新しい文と審査メモの直し」。× 0、直した字なし）。上の「1.3」の節の 3（1 の段）・4（2 の段）・6（もとの 4）は前の字の逆翻訳で、ほかの段は今も上の節の字のままです。R の注は R が書いたままです。
+
+| 文 | 今の字 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- |
+| 1 の 2 つ目の文（最後の文「Month and year pages stay one page at a time.」は外した） | It is saved whole on the page holding its center (same file and iCloud record format); older versions show it on that page only. | それは、自分の中心があるページにまるごと保存されます（ファイルと iCloud のレコードの形式は同じです）。古いバージョンでは、そのページにだけ表示されます。 | この文だけでは「It」が何を指すか分かりません（ページをまたぐ手書きの線などと推測できます）。「holding its center」は「中心を含むページ」という意味だと思われますが、言い方が少し不自然です。「same file and iCloud record format」は「ファイル形式と iCloud レコード形式が同じ」とも「同じファイル、および iCloud レコード形式」とも読め、何と同じなのか（従来と同じ？）も書かれていません。「older versions」はアプリの古いバージョンと推測できます。 |
+| 2 の 2 つ目の文 | Off shows one page at a time as before. | オフにすると、従来どおり一度に 1 ページずつ表示されます。 | 「Off」が主語の電報のような文です。この文だけでは何がオフなのか（スイッチや設定）分かりません。直訳すると「オフは従来どおり一度に 1 ページを表示する」で、英語として少し硬く不自然です。 |
+| 4（新しい） | 4. Week pages now also have Free Notes below 24:00, like day pages since 1.1, even with the switch off. | 4. 週のページにも、1.1 以降の日のページと同じく、24:00 の下に「自由メモ（Free Notes）」が付くようになりました。スイッチがオフでも同様です。 | この文だけでは「the switch」が何のスイッチか分かりません。「even with the switch off」は「週のページに付く」にかかるのが意図だと読めますが、すぐ前の「day pages since 1.1」にかかるとも読めます。 |
+| 5（もとの 4） | 5. Screen-side fixes after 1.2.4's sync fixes: handwriting erased with Erase All (on any device) or Erase and Start can no longer come back via the open page or Undo and be sent to iCloud again. | 5. 1.2.4 の同期の修正に続く、画面側の修正：「すべて消去」（どのデバイスで行った場合も）または「消去して開始」で消した手書きが、開いているページや「取り消し」を通じて戻ってきて、再び iCloud に送られることはなくなりました。 | 「Erase and Start」は、この文だけでは何の機能か分かりません（消して最初からやり直す操作？）。「(on any device)」は「Erase All」だけにかかるとも、両方にかかるとも読めます。「can no longer come back … and be sent to iCloud again」は、「戻ってくる」と「再送される」がそれぞれなくなったのか、戻ってから再送される一連の流れがなくなったのか、どちらとも取れます。「via the open page」は少し不自然で、「Screen-side」は技術寄りの言い方です。 |

@@ -104,3 +104,11 @@ R が日本語の元を見ずに `docs/store/fr-FR/*.txt` と `docs/store/subscr
 | --- | --- | --- | --- | --- |
 | 1.3.memo.whatsnew | 1 回目 | • Les pages de la semaine ont désormais, elles aussi, une zone « Notes libres » sous 24:00. | ・週のページにも、24:00の下に「自由メモ」欄ができました。 | 「sous 24:00」は画面上の位置（下）の意味で通じるが、「24:00未満」とも取れる。フランス語では時刻を「24 h」と書くのが普通なので、「24:00」という表記は少し不自然。 |
 | 1.3.memo.k8（案） | 1 回目 | • Les pages de la semaine ont désormais, elles aussi, une zone « Notes libres » sous 24:00 (elle n’apparaît pas sur les appareils restés sur une version précédente, mais elle n’a pas été supprimée). | ・週のページにも、24:00の下に「自由メモ」欄ができました（以前のバージョンのままの端末には表示されませんが、削除されたわけではありません）。 | 「sous 24:00」は「24時未満」とも取れ、「24:00」の表記も少し不自然。「une version précédente」は、アプリのバージョンかOSのバージョンかがはっきりしない。 |
+
+## 1.3 の H1 の点の新しい文（2026-11-19）
+
+1.2.4（2026-11-19 公開）の 2 つ目の点は、上の「1.3 の whatsnew.txt」の節の 1.3.whatsnew.3 と同じ文と訳でした（1.2.4 では H4 の直しの点）。1.2.4 の公開の後に 1.3 の文からこの点を外し（92caae1）、1.2.4 に入っていない H1 の直し（ほかの端末で全て消したあと、この端末の画面に残っていた手書きが iCloud に戻る）を言う新しい文を、`docs/store/fr-FR/whatsnew.txt` の 4 つ目の点に足しました（fr-CA は同じ字）（2c1fdf6）。ほかの行は、上の 2 つの節の字のままです（iPad の 1 文はリードが外した後の形）。この 1 つの文だけを、別の Claude（R）に日本語の元（`ja/`・`source-ja/`・契約 §8.3）を渡さずに訳し戻してもらいました。判定は、訳を書いた Claude とも R とも別の Claude がしました（`REVIEW.md` の 4 の「1.3 の H1 の点の新しい文と審査メモの直し」。○、直した字なし）。R の注は R が書いたままです。
+
+| id | 訳 | 逆翻訳 | R の注 |
+| --- | --- | --- | --- |
+| 1.3.h1.whatsnew | • Dans la continuité de la correction de la version 1.2.4, correction également d’un problème qui pouvait renvoyer vers iCloud l’écriture manuscrite restée à l’écran de cet appareil, après l’effacement de toute l’écriture manuscrite sur un autre appareil. | • バージョン 1.2.4 の修正の延長として、別のデバイスで手書きがすべて消去された後に、このデバイスの画面に残っていた手書きが iCloud へ送り返されてしまうことがある問題も修正しました。 | 「Dans la continuité de」は「〜の流れを受けて・延長として」という意味で、時間の「後」より「続きの作業」という含みが強いです。「un problème qui pouvait renvoyer」は問題そのものが手書きを送り返す主語になっていて少し擬人的ですが、許容範囲です。文末の「après l'effacement…」は「送り返す」にも「画面に残った」にもかかると読めます（意味はほぼ同じ）。動詞のない名詞文はリリースノートでは普通です。 |
