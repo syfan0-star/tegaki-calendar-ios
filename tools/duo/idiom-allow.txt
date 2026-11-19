@@ -1,0 +1,31 @@
+# tools/duo/idiom_check.py's allow list (docs/M7D_CONTRACT.md §4.1, 0d-19): the lines of code outside the 20 frozen files
+# that read the idiom or the interface orientation and may stay, one row per line of code:
+#   <path from the repository's top>|<text of that line>|<why it is allowed>
+# The text is a part of the line (spaces at its ends do not count) holding the word found there; it may hold "|", the
+# reason may not. A text that is on two lines needs two rows. A row that covers no line fails the check, and so does any
+# line not covered, so this list is exactly the code's. UIScreen.main and the model names (utsname, hw.machine,
+# UIDevice.current.model, "iPhone1…9) never go here: after 1.4 there are none outside the frozen files.
+# The numbers are §4.1's table. Counted on the D1 tree before roles S and U (7895d40's code); the integrator runs
+# `python3 -I tools/duo/idiom_check.py --list` on the merged tree and makes the rows that tree's (S's WindowClass.Opening,
+# FingerDefault(isPad:) and PencilPhone.attach, U's sheets with WindowClass.usesFormSheet and ScreenshotMode).
+
+# 1: the page of the first opening. iPhone starts on the week (1.4: WindowClass.Opening by the window's short side, the
+# iPad still the month).
+Sources/TegakiCalendar/Views/CalendarRootScreen.swift|let fallbackKind: PageKind = UIDevice.current.userInterfaceIdiom == .phone ? .week : .month|§4.1 1: the first page; the iPad's month stays 1.3's, the rest by the window's short side (§4.3)
+# 3: the year's 44 pt date target on an iPhone at any width (both calls).
+Sources/TegakiCalendar/Views/CalendarRootScreen.swift|Self.usesMinTapTarget(isPhone: UIDevice.current.userInterfaceIdiom == .phone, width: viewportWidth)|§4.1 3: the larger date target, kept on the Duo too (the safer target; frozen test CalendarRootScreenTests)
+Sources/TegakiCalendar/Views/CalendarRootScreen.swift|Self.usesMinTapTarget(isPhone: UIDevice.current.userInterfaceIdiom == .phone, width: viewportWidth)|§4.1 3: the same, the second call
+# 2: the default of 「指でも書く」 that appear() writes on a first launch (1.4 keeps it; the Duo is turned off by P or H, §4.8).
+Sources/TegakiCalendar/Views/CalendarRootScreen.swift|allowFinger = UIDevice.current.userInterfaceIdiom != .pad|§4.1 2: 1.3's default write (allowFingerChosen's moment unchanged); the Duo goes off by the Pencil's touch or the hinge, never by this
+# Screenshot mode's --screenshot-landscape (the photos only).
+Sources/TegakiCalendar/Views/CalendarRootScreen.swift|scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))|§4.1: screenshot mode's --screenshot-landscape asks for landscape (CI photos only, never in normal use)
+# 4: the window's device class for the span plan (an iPad by the idiom; the Duo stays .iPhone, §4.6).
+Sources/TegakiCalendar/Views/CalendarRootScreen.swift|device: ScreenPaths.device(isPad: UIDevice.current.userInterfaceIdiom == .pad, windowSize: windowSize, screen: sceneScreenSize),|§4.1 4: the plan's device class (isPad only); the Duo stays .iPhone and the wide window lifts the cap by its size (§4.6, §4.7)
+# 5, 6: the sheets' form (1.4: WindowClass.usesFormSheet; the iPad keeps the form sheet).
+Sources/TegakiCalendar/Views/PaywallSheet.swift|if UIDevice.current.userInterfaceIdiom == .phone {|§4.1 5: the purchase sheet's form (1.4: by WindowClass.usesFormSheet with the window's size, §4.4)
+Sources/TegakiCalendar/Views/EventEditorSheet.swift|if UIDevice.current.userInterfaceIdiom == .phone {|§4.1 6: the event sheet's form (1.4: by WindowClass.usesFormSheet with the window's size, §4.4)
+# 7: Scribble's note on the event sheet (an ability of the iPad).
+Sources/TegakiCalendar/Views/EventEditorSheet.swift|private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }|§4.1 7: the iPad's Scribble note (an ability, not the layout); the text is not touched
+# 8, 9: the eraser's footnote and the Apple Pencil row of the settings (double tap and squeeze, which the Duo's Pencil
+# (USB-C) does not have [S54]).
+Sources/TegakiCalendar/Views/SettingsScreen.swift|private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }|§4.1 8 and 9: the iPad's eraser footnote and Apple Pencil row (double tap, squeeze: not on the Duo's Pencil, [S54])
