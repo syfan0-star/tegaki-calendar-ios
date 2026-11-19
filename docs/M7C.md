@@ -2,7 +2,9 @@
 
 契約は [M7C_CONTRACT.md](M7C_CONTRACT.md)。ここはリードの記録で、段ごとに節を足す。**今の状態は最初の「今の状態」の節を読む。** 各節は書いた時点の記録で、書き直さない（後で変わった物は「今の状態」で読み替える）。
 
-## 今の状態（リード、2026-11-19 12:10）
+## 今の状態（リード、2026-11-19 12:55）
+
+- **上限あり（P-B6 イ）を 11/19 12:53 に `r13` へ入れた**（統合の枝 `r13-s5c5` の a229d5c を `--no-ff` で、8ba5994。下の「上限あり（P-B6 イ）」の節）。1.3 の本体・週のメモ・上限あり・1.2.4 の取り込み・確認ページの文がそろった。次は App Store の写真（D26）の撮り直し、TestFlight 1.3、確認ページ。
 
 - **EU の 25 か国で売り始めた（11/19 12:05〜12:06）**: Apple のメール（11/19 12:01「trader contact information was verified」）の後、ASC の 27 か国から `TRADER_STATUS_*` が消えたことを `asc12/eu_add.py plan` で確かめ、本人の前もっての言葉「（届け出が通ったら EU を）入れて下さい」のとおり、マルタを先に、続けてオランダ・スウェーデンを除く 24 か国を入れた（PATCH 200、読み直しで available、AVAILABLE か PROCESSING_TO_AVAILABLE）。ロシアの店頭の説明が日本語なので、訳の無いオランダ・スウェーデンは、1.3 で主な言語を英語にして公開した後に、ロシアの店頭が英語になったのを見てから入れる（M7B_CONTRACT §11.1 の 7・8、契約 §8.6）。EU の見張り（watch12）は止めた。
 
@@ -974,6 +976,53 @@ S4 の見直し（Y-1）の残りを、Workflow wf_654e5eb9-c16（再現 3・反
 5. 読み替え: 上の「週のメモの J-4 で前もって決める写真」の「紙の下の余り 29〜44 pt にメモの頭が出る」は、測ると 6.9 インチの iPhone（`iphone69-portrait-week.png`・`store/iphone69/01-week.jpg`）だけ。iPhone 17 の写真は一番下の 1 画素の列に 24 時の線と、時の線の細い継ぎ目が出るだけ（D3）。
 6. `docs/store/PROPOSALS_1_3.md` §1 の点の番号は、1.2.4 の公開で新機能の文から点を外すとまた変わる。確認ページを作るときに合わせる。
 7. 週のメモは、統合の枝 `r13-s5c4` の 7a8e39d を `--no-ff` で `r13` に入れた（b928918。r13 の run 44381665685）。上限ありの統合の役は、`r13-s5c4` の 9419f35 から後を `r13-s5c5` に取り込む。
+
+#### 上限あり（P-B6 イ）（計画 Workflow wf_7825b375-dd9・作る段 wf_a0f7dce5-f5c、11/18 20:45〜11/19 12:30）
+
+- 計画は `<scratchpad>/pb6/PLAN_PB6.md` 第 2 版（批判 14 件を受けた。控えは手元の 2026-11-18/pb6）。決めどころは全部既定、ただし 6・7 はリードが別案（今日のページは今の 1 時間前から開く。「今日」は今の線が見えていなければ y だけ今の 1 時間前へ、見えていれば何もしない）。本人の「なるべく前倒し」で、週のメモの統合の枝から並べて作った。
+- 枝と commit: L0 3d4e84e（契約・B_DESIGN、[skip ci]）→ K 9a3f40e（ZoomPolicy.cappedBounds・SpanPlan.overviewCap ほか・KitChecks の節「overview cap (1.3)」+1,960・門 39,970）→ A 469cc33・c47355f（キャンバス・セッション・画面・テスト、決定 6・7）→ 統合の役が `r13-s5c4` の直しを取り込み（021f939）→ 見直し（2 つの見方・確かめ）→ 直し 6f356c6（テストを先に、速い道でわざと赤）・a229d5c（直し）→ 最後の点検。
+- **統合の run 44442860792（a229d5c）は 7 つのジョブが 1 回目で全部緑**（単体 732 本・UI 43 本・失敗 0、KitChecks 40,020）。公式の J-4（同じ 11/19 UTC の ja-baseline run 44426222830）: 77 枚のうち同じ 51・弱い差だけ 16・強い差 10（全部一覧の中）。P-B6 が足した違いは 0 枚。span-shots-app では iPhone 横の帯の 4 枚だけが変わり、週は 3 週・日は 5 日が並ぶ。前の統合の run 44416390445 は UTC の 0 時をまたいだので、写真ごとに撮った日の基準（44238377199 と 44426222830）と比べた（読み方は同じ）。
+- 見直しで確かめた指摘: RV-S1（major）, RV-S2（minor）, RV-S3（minor）, PB6-RV-I1（major）, PB6-RV-I2（minor）, PB6-RV-I3（minor）, PB6-RV-I4（minor）, PB6-RV-I5（minor）。主なもの: 決定 7 の「今日」がキャンバスの「いちばん少なく動かす」reveal に任されていて、今の線が下の外にあると下の端まで上がるだけだった（RV-S1・PB6-RV-I1）→ 画面は x の無い頼み（今の 1 時間前と今の線）を渡し、横の道のキャンバスが自分の y で決める形に直した。紙が動いている間（はじきの後・◀ ▶・ピンチ・ペン）の「今日」は何もしない（I2）。上限ありの UI-1 と見出しのテストを、上限が無いと落ちる形にした（I3・I4）。凍結の InkCanvasView の古い注（週のメモの見直しの F3）も同じ commit で直した。
+- 変異（どれも取り込まない・消さない）: K は KM1〜KM7（この Mac の KitChecks で全部落ちた）。A は `r13-q-pb6-app-m1`〜`-m10`（m10 は決定 6・7 を外す）:
+  - m1（44363346898・c2b89e5。:1183 を元の式に戻し、DATA_1_1 の 1 行目は変異の中身のハッシュ。Data code frozen は緑）: 落ちたのは Run unit tests on the simulator で、testCappedIPhoneLandscapeOpensAtThreeWeeksAndFiveDays・testCappedFlingTurnsOnePage・testCappedTurnTakesTheCapBeforeTheWindow・testCappedDayTurnFillsTheScreenThenKeepsThePlace・testRotationLaidOutInTwoPassesKeepsTheFocusCapped・testRotationWhileASelectionHoldsTheShiftKeepsTheFocusCapped・testCappedTodayOpensAnHourBeforeNowOnTheCanvas・testCappedTodayRevealMovesOnlyAnOffScreenNowLine
+  - m2（44375578403・872de5b。:2921 を元の式に戻し、DATA_1_1 の 1 行目も書き直し。Data code frozen は緑）: testCappedTurnTakesTheCapBeforeTheWindow・testCappedDayTurnFillsTheScreenThenKeepsThePlace・testRotationLaidOutInTwoPassesKeepsTheFocusCapped
+  - m3（44384169673・81c8a31。redecide で印を外す）: testOverviewCapNarrowsTheIPhoneLandscapeWindow・testCappedTurnTakesTheCapBeforeTheWindow・testCappedDayTurnFillsTheScreenThenKeepsThePlace・testRotationLaidOutInTwoPassesKeepsTheFocusCapped・testRotationWhileASelectionHoldsTheShiftKeepsTheFocusCapped・testEveryJoinedPlanCarriesTheCap
+  - m4（44389331174・9f41a35。windowRadius を static の V に戻す）: testOverviewCapNarrowsTheIPhoneLandscapeWindow・testCappedTurnTakesTheCapBeforeTheWindow・testCappedDayTurnFillsTheScreenThenKeepsThePlace・testRotationLaidOutInTwoPassesKeepsTheFocusCapped・testRotationWhileASelectionHoldsTheShiftKeepsTheFocusCapped・testTheScreensWindowsCapTheIPhoneLandscapeOverview・testCappedTodaySlidesWithinTheWindow
+  - m5（44392663694・b8734c0。makeSession の overviewCap: true を外す）: testTheScreensWindowsCapTheIPhoneLandscapeOverview・testEveryJoinedPlanCarriesTheCap・testCappedTodaySlidesWithinTheWindow・testCappedTodayOpensAnHourBeforeNow・testCappedTodayOnTodaysPageRevealsAnOffScreenNowLine
+  - m6（44394926774・5e2e631。bandZoom を元の式に戻す）: testTheScreensWindowsCapTheIPhoneLandscapeOverview・testEveryJoinedPlanCarriesTheCap・testCappedTodayOpensAnHourBeforeNow・testCappedTodayOnTodaysPageRevealsAnOffScreenNowLine・testCappedTodayOpensAnHourBeforeNowOnTheCanvas・testCappedTodayRevealMovesOnlyAnOffScreenNowLine
+  - m7（44397664446・891f5e5。zoomedIn を元の式に戻す）: testTheScreensWindowsCapTheIPhoneLandscapeOverview・testCappedTodaySlidesWithinTheWindow・testEveryJoinedPlanCarriesTheCap・testCappedTodayOnTodaysPageRevealsAnOffScreenNowLine
+  - m8（44397670312・fd83a6e。bandViewport を元の式に戻す）: testTheScreensWindowsCapTheIPhoneLandscapeOverview・testEveryJoinedPlanCarriesTheCap・testCappedTodayOnTodaysPageRevealsAnOffScreenNowLine
+  - m9（44404218080・71ae1d2。init の plan で印を外す）: testCappedIPhoneLandscapeOpensAtThreeWeeksAndFiveDays・testOverviewCapNarrowsTheIPhoneLandscapeWindow ほか、合わせて 14 本（InkCanvasSpanTests 8・ScreenPathsSpanTests 5・SpanSessionTests 1）
+  - m10（44412042900・1d76894。決定 6・7 を外す。shotPaperOffset を写真だけの元の形に、「今日」を .stay に戻す）: testCappedTodayOpensAnHourBeforeNow・testCappedTodayOnTodaysPageRevealsAnOffScreenNowLine・testTheScreensWindowsCapTheIPhoneLandscapeOverview・testCappedTodayOpensAnHourBeforeNowOnTheCanvas・testCappedTodayRevealMovesOnlyAnOffScreenNowLine
+  - 変異は 10 本ともシミュレーターの単体テストの段で落ちた。凍結を確かめる段（Data code frozen）はどれも緑だった。手元の確かめも 10 本とも通った（型の確かめ 3 種、lint、表、KitChecks 40,020）。変異の枝は取り込まず、消してもいない
+- 1 ページの道の記録（§6.4・D9。各役の報告のまま）:
+  - K:
+    - 9a3f40e・TegakiKit/Sources/Layout/ZoomPolicy.swift・新しい関数 cappedBounds（コード 9 行、:159-167）。今の bounds（:140-150）は 1 バイトも変えていない（diff は足した行だけ）。この commit ではアプリのどこも呼ばない。1 ページの道はこれからも呼ばない（横の道の SpanPlan.zoomBounds だけが呼ぶ）・理由: P-B6 イ、契約 §3.6、§2.1・通る既存のテスト: 1 ページの道は通らないので無し（KitChecks の新しい節の 7 が単体で固める）
+    - 9a3f40e・TegakiKit/Sources/Layout/SpanPlan.swift・保持する overviewCap とその init の引数（既定 false）と代入の 1 行、新しい節の 4 つの関数（コード約 15 行）、var visiblePages の本体 1 行（Self.visiblePages(kind, viewport: 基準) から visiblePages(viewport: 基準) へ。印が false なら同じ static を呼んで同じ値）。1 ページの道で SpanPlan( を作るのは ScreenshotMode.spanDemoPage だけで、既定の false で通り、index・pageId しか使わないので値は今のまま・理由: P-B6 イ、§2.1 の『新しい引数には既定値、省けば今と同じ』・通る既存のテスト: KitChecks「span (1.3)」の窓の表（iPhone 横の週 9・日 15 のまま、13 行は KM5 で落ちることも確かめた）と plan の確かめ、Kit のテスト 364 本、アプリの単体テスト 717 本（W の run）、span-shots-app の状態の行（pages・zoom・ox・oy が土台の run と同じ）
+    - 9a3f40e・TegakiKit/Sources/KitChecks（OverviewCapChecks.swift 新・main.swift 1 行）と .github/workflows/build.yml（注と門の数）: アプリのコードではないので、1 ページの道は 0 行
+    - 凍結の表の 18 ファイル: 0 行
+  - A:
+    - 469cc33・Sources/TegakiCalendar/Ink/InkCanvasView.swift・1 ページの道が通る変わった行は 1 行（:1183 `let bounds = spanState == nil ? ZoomPolicy.bounds(appliedLayout.kind, overview: overview, viewport: viewport) : bandZoomBounds(overview: overview, viewport: viewport)`。1 ページの道は spanState == nil の枝で、1.2.3 と同じ式）・理由: P-B6 イ（契約 §3.6）・通る既存のテスト: 凍結の InkCanvasViewTests（どれもキャンバスを配置して containerDidLayout を通る。W の run 44363342736 で緑）、ui-tests の 1 ページの道（緑）、J-4 の写真（一覧の外の違い 0 枚）
+    - 469cc33・InkCanvasView.swift の :2921（applyPendingSpan。guard let oldBand = appliedLayout as? SpanLayout の後なので横の道だけ）と、新しい fileprivate func bandZoomBounds（:2991-2998）・1 ページの道は 0 行
+    - 469cc33・Sources/TegakiCalendar/Span/SpanSession.swift・0 行（overviewCap の保持、init の引数、:373 と :1062 の SpanPlan、windowRadius。PageSlot と onFault は変えていない）
+    - 469cc33・Sources/TegakiCalendar/Span/ScreenPaths.swift・0 行。makeSession・zoomedIn・bandZoom・bandViewport・today の上限の枝・shotPaperOffset の上限の枝と、新しい atCappedOverview・cappedOpeningY・cappedTodayRect は、どれも横の道だけで通る。today は 1 ページの道では nil を返す。shotPaperOffset は joinedCanvas からだけ呼ばれる
+    - c47355f・Tests/TegakiCalendarTests/InkCanvasSpanTests.swift だけ・アプリのコードは 0 行
+    - 意図した違い（見え方。PB6-C4・R6）: 保存する倍率の比は種類ごとに鍵が 1 つで、2 本の道が同じ値を使う（AppSettings.swift:111-113・:289-300）。上限の後の iPhone 横では、同じ比でも横の道の倍率が 1 ページの道の約 2 倍になる（週・874 pt で 0.2081 と 0.1068）。そのため、段 2 で 1 ページずつに戻ったときと設定をオフにしたとき、大きさが約半分に見える（逆も同じ）。1 ページの道のコードと、1 ページの道だけを使う人の見え方は 1.2.3 のまま。テスト 10（testTheScreensWindowsCapTheIPhoneLandscapeOverview）で、比 2 が 2×0.1068 と 2×0.2081 になることを固定した
+    - 凍結の表: DATA_1_1 で書き直したのは InkCanvasView の 1 行目だけ（324b1897…fbd4e5 → 2fbce350…d758。469cc33 の同じ commit で。計画の試しの写しと同じハッシュ）、18/18。TESTS_1_2_3 は 8/8（変えた行 0）
+  - 直し:
+    - a229d5c・Sources/TegakiCalendar/Ink/InkCanvasView.swift・1 ページの道が通る変わる行は 0。足した static の nowLineRevealRect と nowLineRevealLines は、ScreenPaths と noteSpanTriggers からだけ呼ばれる。noteSpanTriggers の中の頼みの受け取りは、spanState != nil のときだけ呼ばれる。新しい revealNowLine は横の道だけ。needsRelayout の F3 の注は注だけ。理由は P-B6 イ（§3.6、リードの決定 7）と、週のメモの見直しの F3（リードの決定 3）。1 ページの道の既存のテストで、変わった行を通るものは無い。1 ページの道の 1.1.1 の reveal に、横の道から残った頼みが届いても、紙は動かない（revealOffset は有限でない矩形では今の位置を返す）
+    - a229d5c・Sources/TegakiCalendar/Span/ScreenPaths.swift・1 ページの道が通る行は 0（cappedTodayRect は横の道の「今日」からだけ呼ばれる）
+    - a229d5c・tools/compat10/DATA_1_1.sha256・InkCanvasView の行（1 行目）だけを、同じ commit で書き直した
+    - 前の役の分（M7C.md に書く分）: 469cc33・InkCanvasView.swift・1 行（:1183。spanState == nil の枝は 43fe366:1131 と同じ式）。9a3f40e・SpanPlan.swift・2 行（init の既定値と代入）
+- 凍結の表: DATA_1_1 で書き直したのは InkCanvasView の 1 行目だけ（469cc33 と a229d5c の、変えた commit の中で）。18/18。TESTS_1_2_3 8/8。
+
+#### 上限ありのリードの決定（11/19 12:55）
+
+1. **意図した違いを受ける**: 保存する倍率の比は種類ごとに 1 つの鍵で、2 本の道が同じ値を使う。上限の後の iPhone 横では、同じ比でも横の道の倍率が 1 ページの道の約 2 倍（週・874 pt で 0.2081 と 0.1068）。段 2 で 1 ページずつに戻ったときと設定をオフにしたときに、大きさが約半分に見える（逆も同じ）。1 ページの道のコードと、1 ページの道だけを使う人の見え方は 1.2.3 のまま。確認ページと §11.3 には書かない（計画の決めどころ 16）。
+2. 上の「S1 のリードの決定 1」（終日帯のレーンが多いとき窓を広げる）は、上限のある所（iPhone 横）では働かない（V が 3 / 5 で止まるので窓は 7 / 9 から広がらない）。
+3. 最後の点検の残り 2 件は S6 で直す: (a) 拡大中の「今日」が置いた 1.1.1 の矩形（x のある矩形）が「全て消す」の後にも画面に残り、新しい窓が今日でないページを開くと最初の配置で読まれうる（1.3 の第 3 陣からある穴。上限ありの頼みは x が無いので動かない。`CalendarRootScreen.eraseAllInk` に `revealRect = nil` の 1 行と、そのテスト）。(b) 決定 7 の「見えている所」の下の端（丸いボタンの分の余白）の境目のテストが無い（`revealNowLine` の `- canvas.contentInset.bottom` を消しても落ちない）。
+4. 確認ページの「試作と違う所」に足す: 日は 5 日まで（試作は 3 日）。今日のページは今の 1 時間前から開く（試作は 0:00）。「今日」は今の時刻が見えていなければ上下だけ動き、見えていれば動かない（試作には「今日」が無い）。手のひらで止めるのは横だけ（試作は縦も止めていた）。
+5. `r13` へは `--no-ff`（8ba5994）。コードは a229d5c と 1 バイトも違わない（`r13` の側は文書だけ）ので、この push は [skip ci] の記録で終え、全部のジョブを回し直さない。
 
 ### 第 1 陣の 1 ページの道の記録（§6.4・D9。各役の報告のまま）
 
