@@ -2,6 +2,7 @@ import Foundation
 import Holidays
 import InkModel
 import Layout
+import UIKit
 
 /// Screenshot mode for CI (docs/M2.md §2.1, M3a contract §7, M3b contract §5): the app launched with
 /// `--screenshot-mode` skips the onboarding, never asks EventKit for anything, shows deterministic
@@ -68,6 +69,15 @@ import Layout
 /// demo with ids of its own (`neighborDemoId`), and with the crossing demo (`Config.crossingDemo`) the two pages of
 /// the focus page's left boundary hold the strokes drawn across it (`crossingDemoStrokeIds`, each on the page of its
 /// centre, D15).
+/// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.2, §7.3): two arguments, both off unless given, so without them every photo, UI test
+/// and fixture is what 1.3 made. `--screenshot-measure` writes the `duo measure:` line (`measure`, `ScreenshotMeasure`: the
+/// window, its safe area and scale, the screen, the header's rows, the paper area, the window plan with its V, R and cap,
+/// whether the window is wide, the hinge as its own `UIHingeInteraction` reads it, and 「指でも書く」 with who wrote it) after
+/// the first layout and after the hinge's answer; it changes nothing on the screen. `--screenshot-pencil-phone` saves
+/// 「指でも書く」 off at the start of the launch (`launchConfig`), for the iPhone Duo's App Store photos (the toolbar as an
+/// iPad's, §7.1). A first launch for the photos and the UI tests is `-allowFingerDrawingChosen NO` in UserDefaults'
+/// argument domain and needs nothing here; an argument `-allowFingerDrawingAuto …` would shadow the mark `appear()` writes
+/// (the argument domain is read first), so that launch would read as carried over from 1.3 (`DuoLayoutUITests`).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -242,6 +252,13 @@ enum ScreenshotMode {
         /// `--screenshot-settings-section page`: the `settings` sheet scrolled to 「ページ」 (`parse` makes the sheet
         /// `settings` when none was asked for; with another sheet that sheet wins and this is nil).
         var settingsSection: SettingsSection? = nil
+        // 1.4 (docs/M7D_CONTRACT.md §2.1, §4.2, §7.3). Both off by default: the Config of every earlier argument is the same
+        // value as before.
+        /// `--screenshot-measure`: the `duo measure:` lines (`ScreenshotMode.measure`, §4.2). Nothing on the screen changes.
+        var measure: Bool = false
+        /// `--screenshot-pencil-phone`: 「指でも書く」 saved off at the start of the launch (`launchConfig`), so the Duo's App
+        /// Store photos show the toolbar as an iPad's photos do (§7.1, §7.3, 0d-41). A simulator's data, never a user's.
+        var pencilPhone: Bool = false
 
         /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
         var joinsPages: Bool {
@@ -279,10 +296,40 @@ enum ScreenshotMode {
     /// How long a toast stays with `--screenshot-probe` (the read-only photo's 20 s, M5-24).
     static let probeToastDuration: TimeInterval = 20
 
-    /// Parsed once from the launch arguments; nil in normal use.
-    static let current: Config? = parse(ProcessInfo.processInfo.arguments)
+    /// Parsed once from the launch arguments; nil in normal use. 1.4: through `launchConfig` (`--screenshot-pencil-phone`).
+    static let current: Config? = launchConfig(ProcessInfo.processInfo.arguments, defaults: .standard)
 
     static var isActive: Bool { current != nil }
+
+    /// 1.4 (§2.1, §4.2): `--screenshot-measure` was given (the screen's calls of `measure` may be skipped without it).
+    static var isMeasuring: Bool { current?.measure == true }
+
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §7.3): the launch's config (`current`): `parse`, and with `--screenshot-pencil-phone`
+    /// 「指でも書く」 saved off (`savePencilPhone`) before anything reads it: `current` is first read in
+    /// `CalendarRootScreen.init`, before its `appear()` writes the first launch's default and before any `@AppStorage` is read.
+    /// `parse` itself writes nothing (the tests call it with any arguments).
+    static func launchConfig(_ arguments: [String], defaults: UserDefaults) -> Config? {
+        let config = parse(arguments)
+        if config?.pencilPhone == true {
+            savePencilPhone(defaults)
+        }
+        return config
+    }
+
+    /// The mark of who wrote 「指でも書く」 (`PencilPhone.markKey`, docs/M7D_CONTRACT.md §2.1, §4.8).
+    static let fingerMarkKey = "allowFingerDrawingAuto"
+
+    /// `--screenshot-pencil-phone` (§7.3): 「指でも書く」 off (`allowFingerDrawing` false), already chosen
+    /// (`allowFingerDrawingChosen` true, so `appear()` does not write the phone's default over it), and no mark, which
+    /// `FingerDefault` reads as carried over from 1.3: with 「指でも書く」 off nothing of §4.8's table changes it, whatever the
+    /// hinge says (a mark another install left would read as moved, and where no hinge answers that value would be turned on
+    /// again). A UserDefaults argument of the same key (`-allowFingerDrawing …`) still wins over it, as it does over any
+    /// stored value.
+    static func savePencilPhone(_ defaults: UserDefaults) {
+        defaults.set(false, forKey: AppSettings.allowFingerKey)
+        defaults.set(true, forKey: AppSettings.allowFingerChosenKey)
+        defaults.removeObject(forKey: fingerMarkKey)
+    }
 
     static func parse(_ arguments: [String]) -> Config? {
         guard arguments.contains("--screenshot-mode") else { return nil }
@@ -370,8 +417,12 @@ enum ScreenshotMode {
             spanGuide = index + 1 < arguments.count ? GuideShot(rawValue: arguments[index + 1]) ?? .auto : .auto
         }
         let weekMemo = arguments.contains("--screenshot-week-memo")
+        // 1.4 (§2.1, §4.2, §7.3): flags without a value.
+        let measure = arguments.contains("--screenshot-measure")
+        let pencilPhone = arguments.contains("--screenshot-pencil-phone")
         return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
-                      span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection)
+                      span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection,
+                      measure: measure, pencilPhone: pencilPhone)
     }
 
     /// "-0.5" → −0.5 (pages); nil unless the text is a finite number ("abc", "inf", "nan", "" are nil). Any sign.
@@ -943,5 +994,219 @@ enum ScreenshotMode {
                 sizeW: nib, sizeH: nib, opacity: 1, force: 0.6, azimuth: 0, altitude: 1.4
             )
         }
+    }
+}
+
+// MARK: - 1.4: --screenshot-measure (docs/M7D_CONTRACT.md §2.1, §4.2, §4.6, §4.7)
+
+extension ScreenshotMode {
+    /// The hinge as the measurement reads it (`hinge=`, §2.1): the status of the hinge its own `UIHingeInteraction` reports
+    /// (`UIHinge.Status`: `closed`, `partiallyOpen`, `fullyOpen`, `unknown`); `nil` when the interaction reports no hinge (a
+    /// hierarchy without one, every iPhone but the Duo, [S52]) or gave no answer within `measureHingeWait`; `off` where
+    /// there is no API (before iOS 27.1, and Mac Catalyst: Xcode 27.2's known issue 185924957, §3.8).
+    enum HingeReading: String, Equatable, Sendable, CaseIterable {
+        case closed, partiallyOpen, fullyOpen, unknown
+        case none = "nil"
+        case off
+    }
+
+    /// How long the first line waits for the hinge's first answer (s): the 2 s `PencilPhone` waits too (§2.1). A hinge
+    /// that answers later writes its line then.
+    static let measureHingeWait: TimeInterval = 2
+
+    /// What only the screen knows for the line (`CalendarRootScreen` passes it through `measure`).
+    struct MeasureScreen: Equatable {
+        /// The page shown.
+        var kind: PageKind
+        /// The paper area under the band (pt, `toolbar: paperArea=`'s).
+        var paperArea: CGSize
+        var weekStart: WeekStart
+        /// The idiom's iPad (`ScreenPaths.device(isPad:…)`'s): the plan's class when `plan` is nil.
+        var isPad: Bool
+        /// Who wrote 「指でも書く」 (`PencilPhone.origin`, §4.8) and its value now.
+        var origin: FingerDefault.Origin
+        var finger: Bool
+        /// The joined window's plan (`paths.span?.plan`); nil on one page (month, year, the setting off).
+        var plan: SpanPlan?
+    }
+
+    /// The screen's call (§2.1): nothing without `--screenshot-measure` (normal use and every other photo: no line, no
+    /// interaction); with it, `ScreenshotMeasure` writes the `duo measure:` line once the window is laid out and the hinge
+    /// answered (or `measureHingeWait` passed), and again whenever one of its values changes (a new paper area, a new kind,
+    /// the fold, the hinge's next answer, 「指でも書く」 changed by `FingerDefault`).
+    @MainActor
+    static func measure(kind: PageKind, paperArea: CGSize, weekStart: WeekStart, isPad: Bool, origin: FingerDefault.Origin,
+                        finger: Bool, plan: SpanPlan? = nil) {
+        guard isMeasuring else { return }
+        ScreenshotMeasure.shared.note(MeasureScreen(kind: kind, paperArea: paperArea, weekStart: weekStart, isPad: isPad,
+                                                    origin: origin, finger: finger, plan: plan))
+    }
+
+    /// The window plan the line reads: the joined window's own (`MeasureScreen.plan`), else the plan the joined path would
+    /// make for this window: the class and the orientation from the screen of the window's scene (`ScreenPaths.device`, an
+    /// iPad by `isPad`) and `overviewCap` `WindowClass.capsOverview` of the window (as `ScreenPaths.makeSession` passes it,
+    /// §4.7). So the month and the year, which open on one page, read the numbers of their kind as KitChecks would (§4.6).
+    static func measurePlan(_ screen: MeasureScreen, window: CGSize, screenSize: CGSize) -> SpanPlan {
+        if let plan = screen.plan { return plan }
+        return SpanPlan(kind: screen.kind, weekStart: screen.weekStart, deviceClass: SpanDeviceClass(screen: screenSize, isPad: screen.isPad),
+                        orientation: SpanOrientation(screen: screenSize), overviewCap: WindowClass.capsOverview(windowSize: window))
+    }
+
+    /// The line (§2.1; pure):
+    ///
+    ///     duo measure: window=<w>x<h> safe=<t,l,b,r> scale=<s> screen=<w>x<h> header=<1|2> paper=<w>x<h> plan=<class>,<orient>
+    ///     cap=<on|off> V=<v> R=<r> maxPages=<n|nil> capped=<bool> wide=<bool> hinge=<…> origin=<app|carried|moved|person> finger=<bool>
+    ///
+    /// on one line. Points with two decimals (as `toolbar: paperArea=`), V with three and the cap's pages with none (as
+    /// KitChecks' `--span-state`). `header`: 1 when the window less its left and right safe areas (the screen column's
+    /// width) is `CalendarRootScreen.compactWidth` or more, else 2. `cap`: the plan's `overviewCap`. `V`:
+    /// `SpanPlan.visiblePages(viewport:)` of the paper area (with the cap). `R`: `SpanPlan.radius(forVisiblePages:)` of that V
+    /// (KitChecks' `R=`; the window `SpanSession.windowRadius` builds is the larger of it and the plan's R).
+    /// `maxPages`: `maxVisiblePages(viewport:)`. `capped`: the cap binds there (the paper area alone would show more pages at
+    /// the lowest zoom than the cap lets: P-B6 イ's capped overview). `wide`: `WindowClass.isWide` of the window.
+    static func measureLine(window: CGSize, safe: UIEdgeInsets, scale: CGFloat, screenSize: CGSize, paper: CGSize, plan: SpanPlan,
+                            hinge: HingeReading, origin: FingerDefault.Origin, finger: Bool) -> String {
+        func pt(_ value: CGFloat) -> String { String(format: "%.2f", Double(value)) }
+        func size(_ value: CGSize) -> String { "\(pt(value.width))x\(pt(value.height))" }
+        let columnWidth = window.width - safe.left - safe.right
+        let header = columnWidth < CalendarRootScreen.compactWidth ? 2 : 1
+        let visible = plan.visiblePages(viewport: paper)
+        let cap = plan.maxVisiblePages(viewport: paper)
+        let capped = cap.map { SpanPlan.visiblePages(plan.kind, viewport: paper) > $0 } ?? false
+        let originName: String
+        switch origin {
+        case .app: originName = "app"
+        case .carried: originName = "carried"
+        case .moved: originName = "moved"
+        case .person: originName = "person"
+        }
+        return [
+            "duo measure:",
+            "window=\(size(window))",
+            "safe=" + [safe.top, safe.left, safe.bottom, safe.right].map(pt).joined(separator: ","),
+            "scale=\(pt(scale))",
+            "screen=\(size(screenSize))",
+            "header=\(header)",
+            "paper=\(size(paper))",
+            "plan=\(plan.deviceClass.rawValue),\(plan.orientation.rawValue)",
+            "cap=\(plan.overviewCap ? "on" : "off")",
+            "V=\(String(format: "%.3f", Double(visible)))",
+            "R=\(SpanPlan.radius(forVisiblePages: visible))",
+            "maxPages=\(cap.map { String(format: "%.0f", Double($0)) } ?? "nil")",
+            "capped=\(capped)",
+            "wide=\(WindowClass.isWide(window))",
+            "hinge=\(hinge.rawValue)",
+            "origin=\(originName)",
+            "finger=\(finger)",
+        ].joined(separator: " ")
+    }
+}
+
+/// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.2): `--screenshot-measure`'s state, on the main actor and only with that argument
+/// (`ScreenshotMode.measure` returns before it otherwise): the screen's last values, the hinge as its own
+/// `UIHingeInteraction` reads it, and the last line written (a line is written when it differs from that one).
+///
+/// The hinge is read here whatever `PencilPhone.usesHinge` says, and the reading goes nowhere but the line (never to
+/// `FingerDefault`): it is what decides `usesHinge` on D1 (§4.2: a hinge on any screen of the Duo and none on the iPhone 17).
+/// The interaction sits where `PencilPhone`'s does, on the window's root view (an interaction of its own beside that
+/// one), so the reading is what `PencilPhone` would get there; neither is used for the layout [S52]. Its handler is
+/// called with the first state and on each change [S53]. Inside `#if !targetEnvironment(macCatalyst)` and
+/// `if #available(iOS 27.1, *)` (§3.8): before iOS 27.1 and on Mac Catalyst the reading is `off` at once.
+@MainActor
+final class ScreenshotMeasure {
+    static let shared = ScreenshotMeasure()
+
+    /// The screen's last values; nil until the first call.
+    private var screen: ScreenshotMode.MeasureScreen?
+    /// nil until the hinge answered (or `measureHingeWait` passed, or there is no API).
+    private var hinge: ScreenshotMode.HingeReading?
+    private var watching = false
+    private var lastLine: String?
+    /// The wait for the hinge's first answer (the real sleep; nothing else waits here).
+    private let sleep: @MainActor (TimeInterval) async -> Void
+
+    init(sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }) {
+        self.sleep = sleep
+    }
+
+    /// The screen's values now: starts the hinge's watch the first time a window is there, then writes the line if it can.
+    func note(_ screen: ScreenshotMode.MeasureScreen) {
+        self.screen = screen
+        guard let window = Self.window() else { return }
+        watchHinge(window)
+        write()
+    }
+
+    /// The hinge's answer (or the end of the wait for it).
+    func hingeAnswered(_ reading: ScreenshotMode.HingeReading) {
+        hinge = reading
+        write()
+    }
+
+    private func watchHinge(_ window: UIWindow) {
+        guard !watching else { return }
+        watching = true
+        #if !targetEnvironment(macCatalyst)
+        if #available(iOS 27.1, *) {
+            let interaction = UIHingeInteraction { [weak self] _, update in
+                // UIKit calls the handler on the main thread.
+                MainActor.assumeIsolated {
+                    self?.hingeAnswered(ScreenshotMeasure.reading(update.hinge))
+                }
+            }
+            (window.rootViewController?.view ?? window).addInteraction(interaction)
+            let sleep = self.sleep
+            Task { @MainActor [weak self] in
+                await sleep(ScreenshotMode.measureHingeWait)
+                guard let self, self.hinge == nil else { return }
+                NSLog("%@", "duo hinge: no answer in \(Int(ScreenshotMode.measureHingeWait)) s; the duo measure line reads it as nil")
+                self.hingeAnswered(.none)
+            }
+            return
+        }
+        #endif
+        hinge = .off
+    }
+
+    #if !targetEnvironment(macCatalyst)
+    /// A hinge's status, or `nil` for no hinge.
+    @available(iOS 27.1, *)
+    private static func reading(_ hinge: UIHinge?) -> ScreenshotMode.HingeReading {
+        guard let hinge else { return .none }
+        switch hinge.status {
+        case .closed: return .closed
+        case .partiallyOpen: return .partiallyOpen
+        case .fullyOpen: return .fullyOpen
+        case .unknown: return .unknown
+        @unknown default: return .unknown
+        }
+    }
+    #endif
+
+    /// Writes the line when the window, its screen and the paper area are measured and the hinge answered, and the line is
+    /// not the last one written.
+    private func write() {
+        guard let screen, let hinge, let window = Self.window(), let screenSize = window.windowScene?.screen.bounds.size else { return }
+        let size = window.bounds.size
+        guard Self.measured(size), Self.measured(screen.paperArea), Self.measured(screenSize) else { return }
+        let line = ScreenshotMode.measureLine(window: size, safe: window.safeAreaInsets, scale: window.traitCollection.displayScale,
+                                              screenSize: screenSize, paper: screen.paperArea,
+                                              plan: ScreenshotMode.measurePlan(screen, window: size, screenSize: screenSize),
+                                              hinge: hinge, origin: screen.origin, finger: screen.finger)
+        guard line != lastLine else { return }
+        lastLine = line
+        NSLog("%@", line)
+    }
+
+    /// Both sides finite and positive.
+    private static func measured(_ size: CGSize) -> Bool {
+        size.width.isFinite && size.height.isFinite && size.width > 0 && size.height > 0
+    }
+
+    /// The window of the active scene (the key window first), as the screen's safe area line reads it.
+    private static func window() -> UIWindow? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let windows = (scenes.first { $0.activationState == .foregroundActive } ?? scenes.first)?.windows ?? []
+        return windows.first(where: \.isKeyWindow) ?? windows.first
     }
 }
