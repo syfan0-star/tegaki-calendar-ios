@@ -2510,6 +2510,21 @@ extension InkCanvasView {
         guard !layout.pages.isEmpty else { return ZoomPolicy.overviewSize(layout) }
         return ZoomPolicy.overviewSize(layout.pages[layout.pages.count / 2])
     }
+
+    /// 「今日」 on today's page already the focus at the capped overview (P-B6 イ, the lead's decision 7 of 11/18): the request
+    /// the screen hands the joined canvas as `revealRect` (`ScreenPaths.cappedTodayRect`). Its y is `top`, an hour before now
+    /// (band lu), and its height reaches down to `nowLine`. Its x is not a number: the request has no x, and 1.1.1's
+    /// `reveal` (`ZoomPolicy.revealOffset` gives back the offset it has for a rect that is not finite) leaves the paper
+    /// where it is if it ever reads one (a first layout under a rect left from another window, PB6-RV-I5).
+    static func nowLineRevealRect(top: CGFloat, nowLine: CGFloat) -> CGRect {
+        CGRect(x: CGFloat.nan, y: top, width: 0, height: max(0, nowLine - top))
+    }
+
+    /// The hour before now and the now line (band lu) of `nowLineRevealRect`'s request; nil for any other rect.
+    static func nowLineRevealLines(_ rect: CGRect) -> (top: CGFloat, nowLine: CGFloat)? {
+        guard rect.origin.x.isNaN, rect.origin.y.isFinite, rect.size.height.isFinite, rect.size.height >= 0 else { return nil }
+        return (rect.origin.y, rect.origin.y + rect.size.height)
+    }
 }
 
 /// 1.3 (§3.6): what the canvas keeps for the window of joined pages.
@@ -2748,6 +2763,29 @@ extension InkCanvasView.Coordinator {
             state.lastSheetOpen = newParent.isSheetOpen
             if !newParent.isSheetOpen { requestShiftCheck() }
         }
+        // P-B6 イ, the lead's decision 7: 「今日」's now-line request is the joined canvas's own; step 7 of `update(from:)`
+        // then finds its trigger taken.
+        if newParent.revealTrigger != lastRevealTrigger, let rect = newParent.revealRect,
+           let request = InkCanvasView.nowLineRevealLines(rect) {
+            lastRevealTrigger = newParent.revealTrigger
+            revealNowLine(top: request.top, nowLine: request.nowLine)
+        }
+    }
+
+    /// 「今日」 on today's page already the focus at the capped overview (P-B6 イ, the lead's decision 7 of 11/18;
+    /// `InkCanvasView.nowLineRevealRect`): when the now line (`nowLine`, band lu) is outside what the paper shows — the top
+    /// of the screen down to the bottom clearance, the part 1.1.1's `reveal` brings a rect into — y alone goes to `top`, an
+    /// hour before now (clamped to the paper); while the now line is on screen nothing moves. Never under the pen or a
+    /// pinch, and not while the band moves (`isBandMoving`: a fling's snap or a slide still running would stop between two
+    /// pages, PB6-RV-I2): 「今日」 then does nothing, as at the overview before P-B6.
+    fileprivate func revealNowLine(top: CGFloat, nowLine: CGFloat) {
+        guard hasInitialZoom, !isUsingTool, let canvas, let container, !isBandMoving(canvas) else { return }
+        let zoom = max(canvas.zoomScale, 0.0001)
+        let shownTop = canvas.contentOffset.y
+        let shownBottom = shownTop + container.bounds.height - canvas.contentInset.bottom
+        let line = nowLine * zoom
+        guard line < shownTop || line > shownBottom else { return }
+        canvas.setContentOffset(clampedOffset(CGPoint(x: canvas.contentOffset.x, y: top * zoom)), animated: false)
     }
 
     /// The window as the ledger holds it now, with the version it was loaded from, into the inbox: the safety
@@ -2777,7 +2815,8 @@ extension InkCanvasView.Coordinator {
     /// A journal step that may change a growing cell's height (§3.3 4, D16): a stroke added past what its cell
     /// holds (`needsMoreRoom`, the prefix taken off), or a removal while a page's last cell is taller than its
     /// open length (it may shrink back: 「消して縮むときは下げる」). A removal names only ids (its stroke is gone from
-    /// the page), so the window's tails are what tell; the week has no growing cell in 1.3.
+    /// the page), so the window's tails are what tell; the week's memo below 24:00 (1.3's week memo, §5) grows as the
+    /// day's free memo does.
     fileprivate func needsRelayout(_ entry: SpanJournalEntry) -> Bool {
         if entry.added.contains(where: { ledger.needsMoreRoom($0) }) { return true }
         guard !entry.removed.isEmpty, let band = appliedLayout as? SpanLayout else { return false }

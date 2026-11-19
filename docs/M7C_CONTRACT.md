@@ -624,7 +624,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 - 回転・Split View では、止まったときに窓を決め直し、焦点のページを保つ。
 - **iPhone 横の一覧の上限**（P-B6 イ、11/18）: 横の道の iPhone 横で、一番縮めた倍率と開いたときの倍率は、横に並ぶのが週 3・日 5 ページまで（`SpanPlan.zoomBounds`。窓は週 7・日 9、終日帯のレーンが多くても広げない）。向きは紙の領域の形で決めるので、回転の配置で先に倍率が変わり、窓は止まった後に決め直す（倍率はもう跳ばない）。高さ 0 の最初の 1 こま（まだ測っていない紙の領域）には上限を付けない。上限の倍率が横の道の「一覧」（`zoomedIn`・紙の領域を測った後の見出しと終日帯の倍率・24 pt の動き出し・はじき）。iPad・iPhone 縦・1 ページの道は変えない。
   - **開く高さ**（リードの決定、11/18）: 上限ありの一覧には 1 日（24 時間）が入らない（約 12 時間）。そこで、上限ありの一覧で**今日のページを開くときは、拡大したページと同じく今の 1 時間前から**開く（`PageNavigation.initialScrollY` を `initialPaperOffset` の y に渡す。凍結の行は増やさない）。ほかのページは今までどおり 0:00 が上。
-  - **「今日」**（同じ決定）: 今日のページがもう焦点のとき、今の線が見えている所の外なら y だけを今の 1 時間前へ動かし（`.reveal`）、見えていれば何もしない。窓の中で焦点でなければ横にすべり、遠ければ開き直す（上の開く高さで）のは今のまま。見直しの J7（一覧の倍率で今日のページが焦点のときの「今日」は何もしない）は一覧に 1 日が全部入る前提だった（M7C.md）ので、上限ありではこの形にする。試作（0:00 から開き、「今日」は無かった）と違うので、§11.3 の行 14 で本人に開く高さと「今日」の感じを聞く。
+  - **「今日」**（同じ決定）: 今日のページがもう焦点のとき、今の線が見えている所の外なら y だけを今の 1 時間前へ動かし（`.reveal`）、見えていれば何もしない。「見えている所」は画面の上の端から下の余白（丸いボタンの分、`bottomClearance`）の上まで。画面は紙の y を知らないので、画面は「今の 1 時間前と今の線」の頼み（x の無い矩形、`InkCanvasView.nowLineRevealRect`）を渡し、横の道のキャンバスが自分の y で決める（凍結の行は横の道の中だけ。1.1.1 の「いちばん少なく動かす」reveal には任せない。見直しの PB6-RV-I1）。紙がまだ動いている間（はじいた後の吸い付き、◀ ▶ のすべり）は何もしない（吸い付きをページの間で止めないため。PB6-RV-I2）。窓の中で焦点でなければ横にすべり、遠ければ開き直す（上の開く高さで）のは今のまま。見直しの J7（一覧の倍率で今日のページが焦点のときの「今日」は何もしない）は一覧に 1 日が全部入る前提だった（M7C.md）ので、上限ありではこの形にする。試作（0:00 から開き、「今日」は無かった）と違うので、§11.3 の行 14 で本人に開く高さと「今日」の感じを聞く。
 
 ### 3.7 画面（題名・remember・評価の印）
 
@@ -861,7 +861,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 | ファイル | 変えてよい所 |
 | --- | --- |
 | `Sources/TegakiCalendar/Ink/InkLedger.swift` | §3.3 の 5 か所と履歴の組の印 |
-| `Sources/TegakiCalendar/Ink/InkCanvasView.swift` | §3.6・§3.4・D21・知らせの引数・`horizontalPanMayBegin`・タイマーの `sleep:`/`clock:`。lint が読み始めて見つけた所の直し（手順 1）・P-B6 イの倍率の上限（`containerDidLayout` の 1 行と横の道の中。§3.6） |
+| `Sources/TegakiCalendar/Ink/InkCanvasView.swift` | §3.6・§3.4・D21・知らせの引数・`horizontalPanMayBegin`・タイマーの `sleep:`/`clock:`。lint が読み始めて見つけた所の直し（手順 1）・P-B6 イの倍率の上限と上限ありの「今日」の今の線（`containerDidLayout` の 1 行と横の道の中。§3.6） |
 | `Sources/TegakiCalendar/Sync/SyncEngine.swift` | 2 つの口を足すだけ（§7）。今の関数の中は、`onRemoteDelete` を呼ぶ 1 行のほかは変えない |
 | `Sources/TegakiCalendar/Ink/InkOverlayView.swift` | 帯の上の投げなわに要るときだけ（動かせる範囲の口） |
 
@@ -1041,7 +1041,7 @@ B_DESIGN §2.4 の 5〜6（:203-215）をそのまま約束にする。
 | T | `PrototypeIsolationTests.swift`（新しい。中身は `#if SPAN_PROTOTYPE` の中だけ） | `testPrototypeLeavesTheRealInkFolderByteForByte`（本物の ink フォルダの全ファイル、`state.json` を含む、の名前と SHA-256 を前後で比べる）、`testPrototypeNeverCallsSharedSaveOrPageOpened`、`testPrototypeLeavesOnRemoteUpdateAlone`、`testPrototypeGuardRejectsRealIds`。走らせ方は下 |
 | U | `ScreenshotModeSpanTests.swift`（新しい） | `testNeighborDemoIdsDifferPerPage`、`testSpanArgumentsOffKeepTheOldShots`。既存の `ScreenshotModeTests.swift`（`testDemoPageIdsMatchTheNavigation` :52）はそのまま |
 | U | `SettingsPageSectionTests.swift`（新しい） | `testPageSectionSitsBetweenInputAndSync`、`testSpanToggleDefaultsOnPerDevice`、`testGuideDisappearsAfterEightSeconds`（TestSleeper） |
-| A | `InkCanvasSpanTests`・`SpanSessionTests`・`ScreenPathsSpanTests`・`PaperSpanTests`（1.3 のファイルに足す） | P-B6 イの 16 本（PLAN_PB6 §7.2: 開く・ピンチの終わり・はじき・回転（1 段・2 段・選択中・UI-1 の 4 形）・iPad と縦・窓・画面・見出しの形）。上限ありの一覧で今日のページを開く高さ（今の 1 時間前、ほかのページは 0:00）と、今日のページが焦点のときの「今日」（今の線が見えていなければ `.reveal`、見えていれば何もしない）も固定する（§3.6、§3.16） |
+| A | `InkCanvasSpanTests`・`SpanSessionTests`・`ScreenPathsSpanTests`・`PaperSpanTests`（1.3 のファイルに足す） | P-B6 イの 16 本（PLAN_PB6 §7.2: 開く・ピンチの終わり・はじき・回転（1 段・2 段・選択中・UI-1 の 4 形）・iPad と縦・窓・画面・見出しの形）。上限ありの一覧で今日のページを開く高さ（今の 1 時間前、ほかのページは 0:00）と、今日のページが焦点のときの「今日」（今の線が見えていなければ y だけ今の 1 時間前へ、見えていれば何もしない。キャンバスで、上の 1 時間が切れている形と今の線が下の端の近くにある形も。紙が動いている間は何もしない。前の窓の頼みが残っても新しい窓は動かない）も固定する（§3.6、§3.16） |
 | C | `CompatSpanTests`（TegakiKit の新しいターゲット） | `testEveryCompatSpanFixtureIsPresent`、`testOverhangingStrokesSurviveTheFrozenCopy`、`testSundayWeekOverhangSurvives`、`testUnknownToolItemsSurvive`（compat-span の 7） |
 
 - **`PrototypeIsolationTests` の走らせ方**: ふつうのビルド（build-and-test）では中身が空のテストになる（0 本）。`span-shots` のジョブで、`SPAN_PROTOTYPE` 付きのアプリとテストの宿主を別の DerivedData（`build/ProtoData`）で作り、`-only-testing:TegakiCalendarTests/PrototypeIsolationTests` を走らせ、**走ったテストの数が 4 以上・失敗 0** でなければジョブを落とす。同じビルドで試作の写真（§4.5）も撮る。宿主に条件を付けると写真・UI テスト・J-4 に使うふつうの Debug ビルドに試作の入口が入るので、同じビルドでは走らせない。

@@ -96,7 +96,8 @@ final class ScreenPaths: ObservableObject {
         /// Near, at the overview: slide by this many pages (`slidePages`).
         case slide(Int)
         /// Zoomed in: bring this rect (band lu) on screen (`revealRect`). Also today's page already the focus at the capped
-        /// overview (P-B6 イ, the lead's decision 7): the hour before now down to the now line, y only (`cappedTodayRect`).
+        /// overview (P-B6 イ, the lead's decision 7): the canvas's now-line request, a rect with no x (`cappedTodayRect`,
+        /// `InkCanvasView.nowLineRevealRect`; its x is not a number, so the case is never equal to itself).
         case reveal(CGRect)
         /// Today's page is the focus at an overview that holds the whole day: nothing moves (1.2.3's 「今日」 on the page
         /// shown; review J7 — the screen does not know the paper's y, and a rect a whole page high would take the paper to
@@ -938,7 +939,8 @@ final class ScreenPaths: ObservableObject {
     /// today's page already the focus at the overview → nothing (1.2.3: the same page does not move; review J7); zoomed in
     /// → bring today's column on screen from an hour before now. At the capped overview (P-B6 イ, the lead's decision 7 of
     /// 11/18: an iPhone in landscape, about half of the 24 hours on screen) today's page already the focus is
-    /// `cappedTodayRect`'s reveal: a now line off the screen comes back, y only; nothing moves while it is on screen.
+    /// `cappedTodayRect`'s request: the canvas moves y alone to an hour before now when the now line is off the screen, and
+    /// nothing while it is on screen.
     /// `viewport` is the last one reported (nil: `ratio`, the stored one), `area` the paper area. nil off the joined path.
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat) -> Today? {
         guard path == .joined, let session = span else { return nil }
@@ -1018,11 +1020,14 @@ final class ScreenPaths: ObservableObject {
         return nil
     }
 
-    /// The rect (band lu) 「今日」 reveals when today's page is already the focus at the capped overview (the lead's decision
-    /// 7): from an hour before now (as `todayRect`) down to the now line, at the middle of the screen with no width, so x
-    /// never moves. The canvas's reveal moves the least (`ZoomPolicy.revealOffset`; the screen does not know the paper's
-    /// y): nothing while the now line (and the hour before it) is on screen; a now line above the screen comes back with
-    /// the hour before now at the top; one below it comes up to the bottom edge. nil when today is not on `pageId`.
+    /// What 「今日」 hands the canvas when today's page is already the focus at the capped overview (the lead's decision 7):
+    /// the canvas's now-line request (`InkCanvasView.nowLineRevealRect`, band lu), an hour before now
+    /// (`PageNavigation.initialScrollY`, not above 0:00; decision 6's height) and the now line. The screen does not know the
+    /// paper's y, so the canvas decides (`InkCanvasView.Coordinator.revealNowLine`): when the now line is outside what the
+    /// paper shows (the top of the screen down to the bottom clearance), y alone goes to an hour before now; while it is
+    /// on screen nothing moves (PB6-RV-I1). The request has no x: x never moves, and 1.1.1's reveal leaves the paper alone
+    /// if it ever reads one (PB6-RV-I5: a canvas's first layout under a rect left from another window). `viewport` is the
+    /// screen's (its zoom and width measured). nil when today is not on `pageId`.
     static func cappedTodayRect(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, viewport: PaperViewport) -> CGRect? {
         guard let slot = layout.slot(ofPage: pageId), viewport.zoom.isFinite, viewport.zoom > 0,
               viewport.width.isFinite, viewport.width > 0 else { return nil }
@@ -1037,10 +1042,7 @@ final class ScreenPaths: ObservableObject {
         } else {
             return nil
         }
-        let zoom = viewport.zoom
-        let top = PageNavigation.initialScrollY(page, now: now, calendar: calendar) + ZoomPolicy.revealMargin / zoom
-        let middle = (viewport.offsetX + viewport.width / 2) / zoom
-        return CGRect(x: middle, y: top, width: 0, height: max(0, line - top))
+        return InkCanvasView.nowLineRevealRect(top: PageNavigation.initialScrollY(page, now: now, calendar: calendar), nowLine: line)
     }
 
     /// The paper stopped on a focus page (`onSpanStop`; §3.7, D20, C3-m6, C3-m7): the screen's focus moves to it keeping
