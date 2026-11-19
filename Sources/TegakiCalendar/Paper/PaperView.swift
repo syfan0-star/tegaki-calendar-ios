@@ -213,6 +213,13 @@ final class PaperView: UIView {
         contentMode = .redraw
         isUserInteractionEnabled = false
         clipsToBounds = true
+        // 1.4 (docs/M7D_CONTRACT.md §4.5, §4.1 #11): the scale is also read again when the display-scale trait
+        // changes, not only when the view moves to a window — on iPhone Duo folding can take the window to the
+        // other screen without moving it in the hierarchy (§4.9 5; whether the two screens' scales differ is not
+        // confirmed, §4.5).
+        registerForTraitChanges([UITraitDisplayScale.self]) { (view: PaperView, _: UITraitCollection) in
+            view.followDisplayScale()
+        }
     }
 
     @available(*, unavailable)
@@ -232,6 +239,22 @@ final class PaperView: UIView {
             layer.contentsScale = scale
             setNeedsDisplay()
         }
+    }
+
+    /// 1.4 (§4.5): `didMoveToWindow`'s reading again, on a change of the display-scale trait, from
+    /// `traitCollection.displayScale` (not the screen). Nothing when that is the scale the view already has:
+    /// entering a window changes the trait too, right after `didMoveToWindow` read the same scale, and a second
+    /// redraw would change the count `PaperViewTests` watches (`displayRequestCount`, a file of TESTS_1_3, §5.5).
+    /// Nothing either while the view is in no window, as `didMoveToWindow` reads only inside one: a paper that
+    /// is never shown keeps the scale its owner gave it (PDFPageRenderer's `dummy` sets its own for the hairline
+    /// snapping).
+    private func followDisplayScale() {
+        guard window != nil else { return }
+        let scale = traitCollection.displayScale
+        guard scale > 0, scale != contentScaleFactor else { return }
+        contentScaleFactor = scale
+        layer.contentsScale = scale
+        setNeedsDisplay()
     }
 
     /// Tells the view what is visible (content coordinates). When the window already holds
