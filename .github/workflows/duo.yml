@@ -442,9 +442,12 @@ jobs:
       # DUO_OPEN; with the inner screen opened and this empty the UI test step fails.
       DUO_UI_MIN_RAN_INNER: "8"
       # DUO_USES_HINGE: PencilPhone.usesHinge as §4.2 decides it from the first duo-shots' lines ("true" when a Duo screen's
-      # hinge= is not nil and the iPhone 17's is nil, else "false"). "unknown" until then: the first launch's 「指でも書く」
-      # is recorded, not checked (§7.3).
-      DUO_USES_HINGE: "unknown"
+      # hinge= is not nil and the iPhone 17's is nil, else "false"; "unknown" records the first launch's 「指でも書く」
+      # without checking it, §7.3). 1.4 D1c: "true", the same as PencilPhone.usesHinge, from run 44696154794 (path 3: the
+      # outer screen's lines all hinge=closed, the iPhone 17's hinge=nil). shot_checks.py then expects each Duo screen's
+      # first launch off where its hinge= is not nil (§4.8) and fails when no Duo screen reads a hinge any more or the
+      # iPhone 17 reads one (§4.2's rule no longer holding: the constant is to be decided again).
+      DUO_USES_HINGE: "true"
       # Path 1 (§4.2): DUO_OPEN opens the Duo (a command line from duo-probe's findings; it may use $UDID), DUO_CLOSE
       # closes it, DUO_INNER_DISPLAY is the `simctl io screenshot --display` value of the inner screen. The inner screen
       # is photographed only when DUO_OPEN and DUO_INNER_DISPLAY are both set; empty: path 3. Setting DUO_OPEN doubles

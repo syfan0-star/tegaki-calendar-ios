@@ -23,6 +23,9 @@ is checked here:
               the inner's is not (§4.7); the iPhone 17's first launch has 「指でも書く」 on and hinge=nil (§7.3); a Duo's
               first launch has it off exactly when PencilPhone.usesHinge is true and its screen's hinge is not nil (§4.8,
               given as --uses-hinge true|false once §4.2's measurement decided it; `unknown` only records)
+  rule        with --uses-hinge true|false, §4.2's rule still holds for the lines: usesHinge is true exactly when a Duo
+              screen's hinge= is not nil (nor off) and the iPhone 17's is nil; when it no longer does, the constant is to
+              be decided again (PencilPhone.usesHinge, DuoLayoutUITests, duo.yml's DUO_USES_HINGE; 1.4 D1c)
 
 The folder holds the photos, `shots.tsv` (one row per photo: file, screen outer|inner|iphone, orientation
 portrait|landscape, kind week|day|month|year, variant first|pencil|overview|sheet-settings|sheet-paywall|sheet-create;
@@ -377,6 +380,7 @@ def check_folder(folder, inner=False, uses_hinge="unknown", size_rule="fail", us
     errors, warnings, notes, table = [], [], [], []
     rows = read_rows(folder, errors)
     measures = read_measure(folder)
+    hinges = {"duo": [], "iphone": []}   # each photo's hinge= (its line's), for §4.2's rule
     for name, screen, orient, kind, variant in rows:
         tag = "%s (%s %s %s %s)" % (name, screen, orient, kind, variant)
         cell = {"file": name, "where": "%s %s %s %s" % (screen, orient, kind, variant), "size": "-", "mean": "-", "edges": "-"}
@@ -424,6 +428,7 @@ def check_folder(folder, inner=False, uses_hinge="unknown", size_rule="fail", us
             continue
         f = turned[-1]
         cell.update(f)
+        hinges["iphone" if screen == "iphone" else "duo"].append(f["hinge"])
 
         def expect(key, want, why):
             if f[key] != want:
@@ -465,6 +470,16 @@ def check_folder(folder, inner=False, uses_hinge="unknown", size_rule="fail", us
                 notes.append("%s: hinge=%s finger=%s (PencilPhone.usesHinge not given: recorded only; off is expected "
                              "exactly when usesHinge is true and hinge is not nil, §4.8)" % (tag, f["hinge"], f["finger"]))
         table.append(cell)
+    # §4.2's rule against the constant given (1.4 D1c): usesHinge is true exactly when a Duo screen reads a hinge and the
+    # iPhone 17 reads nil. Not looked at without Duo lines (the missing rows say so) or with `unknown`.
+    if uses_hinge in ("true", "false") and hinges["duo"]:
+        duo_reads = any(h not in NO_HINGE for h in hinges["duo"])
+        iphone_nil = bool(hinges["iphone"]) and all(h == "nil" for h in hinges["iphone"])
+        if (uses_hinge == "true") != (duo_reads and iphone_nil):
+            errors.append("§4.2's rule: PencilPhone.usesHinge (--uses-hinge %s) is true exactly when a Duo screen's hinge= is "
+                          "not nil and the iPhone 17's is nil; here the Duo's hinge= %s, the iPhone 17's %s: decide the constant "
+                          "again (PencilPhone.usesHinge, DuoLayoutUITests, DUO_USES_HINGE)"
+                          % (uses_hinge, "/".join(sorted(set(hinges["duo"]))), "/".join(sorted(set(hinges["iphone"]))) or "none"))
     # what must be there
     have = {(s, o, k, v) for _, s, o, k, v in rows}
     screens = ["outer"] + (["inner"] if inner else [])
@@ -798,8 +813,30 @@ def self_test():
             line_of("outer-portrait-week-first.png", hinge="closed"), ["finger=true"], uses_hinge="true")
         run("usesHinge true, the outer hinge closed, 「指でも書く」 off",
             line_of("outer-portrait-week-first.png", hinge="closed", finger="false"), uses_hinge="true")
-        run("usesHinge false, 「指でも書く」 off on the first launch",
-            line_of("outer-portrait-week-first.png", hinge="closed", finger="false"), ["finger=false"], uses_hinge="false")
+        run("usesHinge false, 「指でも書く」 off on the first launch (and the outer hinge against §4.2's rule)",
+            line_of("outer-portrait-week-first.png", hinge="closed", finger="false"), ["finger=false", "§4.2's rule"],
+            uses_hinge="false")
+
+        def outer_closed(first_finger):
+            """Run 44696154794's hinges: every outer line hinge=closed (the iPhone 17's nil); the first launch's finger given."""
+            def change(folder, rows, lines):
+                for row in list(rows):
+                    name = row.split("\t")[0]
+                    if name.startswith("outer-"):
+                        over = dict(hinge="closed", **({"finger": first_finger} if name == "outer-portrait-week-first.png" else {}))
+                        rows, lines = line_of(name, **over)(folder, rows, lines)
+                return rows, lines
+            return change
+
+        run("run 44696154794's hinges with usesHinge true, the first launch off: passes", outer_closed("false"), uses_hinge="true")
+        run("run 44696154794's hinges with usesHinge true, the first launch still on", outer_closed("true"), ["finger=true"],
+            uses_hinge="true")
+        run("usesHinge true, but no Duo screen reads a hinge (§4.2's rule)", None, ["§4.2's rule"], uses_hinge="true")
+        run("usesHinge false, but the outer screen reads a hinge and the iPhone 17 none (§4.2's rule)",
+            line_of("outer-portrait-week-first.png", hinge="closed"), ["§4.2's rule"], uses_hinge="false")
+        run("usesHinge true, but the iPhone 17 reads a hinge too (§4.2's rule)",
+            lambda f, r, l: line_of("iphone-portrait-week-first.png", hinge="closed")(f, *outer_closed("false")(f, r, l)),
+            ["hinge=closed", "§4.2's rule"], uses_hinge="true")
         run("no landscape month", drop_row("outer-landscape-month-pencil.png"), ["missing: a photo of the month landscape"])
         run("no week overview", drop_row("outer-landscape-week-overview.png"), ["overview of the week"])
         run("no settings sheet", drop_row("outer-portrait-month-sheet-settings.png"), ["sheet-settings"])
