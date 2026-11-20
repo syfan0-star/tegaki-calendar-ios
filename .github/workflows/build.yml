@@ -284,28 +284,6 @@ jobs:
           sys.exit(1 if failed else 0)
           EOF
 
-      # 1.4 D0b (docs/M7D_CONTRACT.md §3.8: the first boot on the new image takes minutes; docs/M7D.md, D0b): in D0 (run
-      # 44632524223) the unit tests' xcodebuild booted the 13-inch iPad itself, 15.0 min from "Testing started" to the
-      # test host (3.1 in 44474759145), with "unable to connect to com.apple.instruments.deviceservice.lockdown - timed
-      # out after 120 seconds" in it. So it starts booting here and boots while the macOS steps and the iOS build run
-      # (6.2 min in D0), when no simulator is in use; "Run unit tests on the simulator" waits for it. Only this one
-      # device: a second simulator beside the unit tests or the photos would share the runner's 3 cores and 7 GB (§3.1)
-      # with them and change the photos' conditions (J-4). The status file appears only when the boot has ended
-      # ("<bootstatus's exit status> <seconds>"). Never fails the job: when this boot fails, the unit test step boots
-      # the device as before. Before the photos the iPad is shut down again ("Shut down the 13-inch iPad before the
-      # photos"), so they are taken on a fresh boot as until D0 and in ja-baseline.yml.
-      - name: Boot the 13-inch iPad in the background (1.4)
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          OUT="$RUNNER_TEMP/ipad13-boot"
-          mkdir -p "$OUT"
-          # Its own stdin, stdout and stderr, so this step ends at once (as "Build the sheets' screen check in the background").
-          nohup /bin/sh -c 'START=$(date +%s); xcrun simctl bootstatus "$1" -b > "$2/log" 2>&1; S=$?; echo "$S $(( $(date +%s) - START ))" > "$2/status.part"; mv "$2/status.part" "$2/status"' \
-            sh "${{ steps.required.outputs.ipad13 }}" "$OUT" < /dev/null > /dev/null 2>&1 &
-          echo "$!" > "$OUT/pid"
-          echo "the 13-inch iPad (${{ steps.required.outputs.ipad13 }}) boots in the background (pid $(cat "$OUT/pid"))"
-
       # The pure modules (TegakiKit: DayKit / Holidays / Layout / InkModel) build and test on macOS
       # itself, before anything touches the Simulator. KitChecks is the same check set that runs on
       # the owner's Mac without Xcode (docs/M2_CONTRACT.md §8); `swift test` runs the XCTest targets.
@@ -665,6 +643,18 @@ jobs:
       # 1.4 D1 (§3.10, §6): the quick lane (r14-quick, r14-q-*) also runs D1's new classes, each by its whole name:
       # WindowClassTests, PencilPhoneTests, CappedOverviewWideTests, OnePageRevealTests, SnapshotScaleTests and DuoFoldTests
       # (role S) and PaperViewScaleTests (role P); a class not written yet is not found and not run. D1b: MeasureLineFileTests.
+      # 1.4 D0c (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0c): xcodebuild boots the 13-inch iPad here itself again, as
+      # until D0. D0b booted it with simctl in the background from the job's start (a step "Boot the 13-inch iPad in the
+      # background" and a wait here, both removed in D0c). That boot took 129 s, but the macOS steps beside it ran 3 to 19
+      # times slower (run 44676125566, image 20261104.0337.1: `swift --version` 318 s and the first `swift build` 498 s,
+      # against 3–5 s and 32–54 s in the five runs without it on the two macOS 27 images; KitChecks, the Kit's tests and
+      # the iOS build 3.0–4.7 times), so this step began 29.5 min into the job (4.7 in D0's attempt 2, same image). It saved
+      # xcodebuild's boot here (1.1 min from "Testing started" to the test host, against 4.9 in D0's attempt 2 and 9.7 and
+      # 11.9 in two quick lanes on that image), 1.7 min after the tests and the repeated sync tests' second boot (about 2
+      # to 3): up to the photos' boot about 10 min lost against D0's attempt 2, although that run's tests also lost 6 min
+      # to a stall and a restart (3 to 19 over the boots and the tests seen). With it on the quick lane, `swift --version`
+      # had not ended 8.4 min into its step when the job was cancelled (run 44690586694, image 20261119.0378.1), and the
+      # Kit's build took 12.0 min (run 44696154799).
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
@@ -684,29 +674,6 @@ jobs:
               ONLY="$ONLY -only-testing:TegakiCalendarTests/$CLASS"
             done
             echo "the quick lane: the app's unit tests are only$ONLY"
-          fi
-          # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): the boot started by "Boot the 13-inch iPad in the
-          # background" is waited for (at most 20 min; D0's first boot took 12–15 inside xcodebuild) and its time
-          # printed for docs/M7D.md. Only when it ended well, `bootstatus -b` checks the iPad (it returns at once).
-          # Otherwise xcodebuild boots it itself, as until D0, with its own time-outs (this step has no limit of its
-          # own, so nothing here waits on a boot without a bound): a boot that has not ended after 20 min is stopped
-          # and the iPad shut down first.
-          BOOT="$RUNNER_TEMP/ipad13-boot"
-          for _ in $(seq 1 240); do
-            if [ -f "$BOOT/status" ] || [ ! -f "$BOOT/pid" ]; then break; fi
-            sleep 5
-          done
-          BOOTED="$(cat "$BOOT/status" 2>/dev/null || true)"
-          echo "the 13-inch iPad's background boot: ${BOOTED:-none or not ended} (bootstatus's exit status, seconds)"
-          if [ "${BOOTED%% *}" = "0" ]; then
-            xcrun simctl bootstatus "${{ steps.required.outputs.ipad13 }}" -b > /dev/null \
-              || echo "::warning::bootstatus -b failed for the 13-inch iPad; xcodebuild boots it itself, as until D0."
-          elif [ -f "$BOOT/pid" ]; then
-            if [ -z "$BOOTED" ]; then
-              kill "$(cat "$BOOT/pid")" 2>/dev/null || true
-              xcrun simctl shutdown "${{ steps.required.outputs.ipad13 }}" > /dev/null 2>&1 || true
-            fi
-            echo "::warning::the 13-inch iPad's background boot did not end well (${BOOTED:-not ended after 20 min; stopped, the iPad shut down}); xcodebuild boots it itself, as until D0."
           fi
           # $ONLY unquoted on purpose: one word per class (none has a space), nothing when it is empty.
           TEST_RUNNER_TEGAKI_FIXTURE_OUT="$PWD/shots/fixtures" xcodebuild \
@@ -776,9 +743,10 @@ jobs:
       # simulator" after this step found it off and took 2.9 min; in D0, right after the unit tests, its `simctl boot`
       # alone took 4.4). D0 skipped this step (the unit tests were red); at D0's pace, a 5.2 min boot and (5.7 − 2.9) ×
       # 1.5 of tests, it is about 9.4 min, over 9. 14 keeps about half again, as 9 did over 1.3's 5.7. Measured again in
-      # D0b; D1 brings it back with the job's limit. (Since the 13-inch boots in the background with simctl, xcodebuild
-      # may leave it running after the unit tests and this step may not boot it; "Shut down the 13-inch iPad before the
-      # photos" below shuts it down either way.)
+      # D0b; D1 brings it back with the job's limit. 1.4 D0c: in D0b's run (44676125566) the iPad, booted in the
+      # background with simctl, was still running after the unit tests, and this step took 3.9 min with no boot (its 4,000
+      # tests 185 s). D0c leaves the boot to xcodebuild again (the unit test step says why), so this step boots the iPad
+      # again, as in 1.3 and in the estimate above.
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
         timeout-minutes: 14
@@ -854,8 +822,10 @@ jobs:
       # 1.4 D0b (docs/M7D_CONTRACT.md §3.5, §3.8; docs/M7D.md, D0b): until D0 xcodebuild booted the 13-inch iPad for the
       # unit tests and the repeated sync tests and shut it down after each ("Boot the simulator" found it off: 2.9 min in
       # 1.3's run 44474759145, 4.4 in D0's 44632524223), so the J-4 photos were taken on a fresh boot, as ja-baseline.yml's
-      # are. Since "Boot the 13-inch iPad in the background" booted it with simctl, xcodebuild may leave it running (not
-      # verified). It is shut down here, so the photo steps (the same as ja-baseline.yml's) boot it again as before.
+      # are. In D0b the iPad was booted in the background with simctl, and xcodebuild left it running (run 44676125566:
+      # "Booted" here, "Shutdown" 4 s later). 1.4 D0c: that boot is gone and xcodebuild boots and shuts down the iPad
+      # again, so this step normally finds it shut down. It stays, so that the photo steps (the same as ja-baseline.yml's)
+      # begin with the iPad off whatever ran before them (a sync step stopped by its limit, say).
       # Never fails the job; "Unable to shutdown device in current state: Shutdown" only means xcodebuild had done it.
       - name: Shut down the 13-inch iPad before the photos (1.4 D0b)
         if: ${{ !cancelled() && env.QUICK != 'true' }}
