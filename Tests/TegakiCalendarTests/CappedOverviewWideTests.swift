@@ -8,8 +8,9 @@ import XCTest
 // the estimate of CODE_SURVEY §3.2) — and `ScreenPaths.atCappedOverview` and `shotPaperOffset`, unchanged, follow the plan:
 // such a window is never at the capped overview, and today's page opens at 0:00 as every page did before P-B6 イ. The
 // iPhone's landscape (874 × 205) keeps 1.3's opening an hour before now (`cappedOpeningY`). A fold or an unfold switches the
-// cap at the window decided anew (`overviewCapNow`, read by `SpanSession.redecide`): 678 × 256 (the outer screen's
-// landscape) capped ↔ 951 × 446 (the inner one's) not. Over a live `SyncEngine` (SessionTestBed); no real sleep. Mutation
+// cap at the window decided anew (`overviewCapNow`, read by `SpanSession.redecide`): the outer screen's landscape (measured
+// by duo-shots run 44696154794: the week's paper 594 × 141, the day's 594 × 190) capped ↔ 951 × 446 (the inner one's,
+// estimated) not. Over a live `SyncEngine` (SessionTestBed); no real sleep. Mutation
 // (`r14-q-m1`): `makeSession` passing the cap whatever the window fails the first test's day row at 951 × 446 (today
 // would open an hour before now, C1).
 
@@ -113,15 +114,16 @@ final class CappedOverviewWideTests: XCTestCase {
     }
 
     /// §4.7 (C12): a fold and an unfold switch the cap where the window is decided anew — the window of now from the screen's
-    /// `overviewCapNow`: the outer screen's landscape paper (678 × 256) at the cap's lowest zoom (3 weeks / 5 days across),
-    /// the inner one's (951 × 446) at P-B6 ア's, and the outer one's again. The window's short side does not move with the
-    /// all-day band's lanes, so the answer never sways with them.
+    /// `overviewCapNow`: the outer screen's landscape paper (measured: the week's 594 × 141, the day's 594 × 190; the window
+    /// 678 × 466) at the cap's lowest zoom (3 weeks / 5 days across), the inner one's (951 × 446, estimated) at P-B6 ア's, and
+    /// the outer one's again. The window's short side does not move with the all-day band's lanes, so the answer never sways
+    /// with them.
     func testFoldSwitchesTheCapAtTheRedecide() async throws {
         var capNow = true
         paths.overviewCapNow = { capNow }
-        let outer = CGSize(width: 678, height: 256)
         let inner = CGSize(width: 951, height: 446)
         for (kind, focus, across) in [(PageKind.week, nov16, CGFloat(3)), (.day, nov18, 5)] {
+            let outer = kind == .day ? CGSize(width: 594, height: 190) : CGSize(width: 594, height: 141)
             capNow = true
             let session = try await openWindow(kind, focus: focus, window: CGSize(width: 678, height: 466), area: outer, now: bed.now)
             let overview = InkCanvasView.bandOverview(session.layout)
