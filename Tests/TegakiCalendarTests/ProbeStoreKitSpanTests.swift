@@ -56,17 +56,25 @@ final class ProbeStoreKitSpanTests: XCTestCase {
         phase("setUp")
     }
 
-    /// StoreKitSessionTests.swift:43-56, copied (the skip is logged too).
+    /// StoreKitSessionTests.swift:43-56, copied (the skip is logged too). Which witness let the test go on is logged
+    /// as well: the price witness fetches the products in setUp, before test1's "no read until the history" starts.
     private func skipUnlessTheTestEnvironmentWorks() async throws {
+        let start = Date()
         var storefront = await Storefront.current?.countryCode
         let deadline = Date().addingTimeInterval(3)
         while storefront != "JPN", Date() < deadline {
             try? await Task.sleep(for: .milliseconds(100))
             storefront = await Storefront.current?.countryCode
         }
-        if storefront == "JPN" { return }
+        if storefront == "JPN" {
+            log("setUp: environment works: storefront JPN after \(Self.ms(Date().timeIntervalSince(start))) ms (no product fetch in setUp)")
+            return
+        }
         let monthly = try? await Product.products(for: [Plan.monthly.productID]).first
-        if monthly?.price == 300 { return }
+        if monthly?.price == 300 {
+            log("setUp: environment works by the price witness: storefront \(storefront ?? "nil") after 3 s, monthly price 300 (Product.products(for:) was called in setUp, before the test)")
+            return
+        }
         log("setUp: skipped: storefront \(storefront ?? "nil"), monthly price \(monthly.map { "\($0.price)" } ?? "nil")")
         throw XCTSkip("StoreKit test environment unavailable on this simulator: SKTestSession's storefront stayed \(storefront ?? "nil"), monthly price \(monthly.map { "\($0.price)" } ?? "nil") (Xcode 26.3–26.6 defect; docs/M5.md §3)")
     }
