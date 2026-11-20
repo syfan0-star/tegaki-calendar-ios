@@ -1764,10 +1764,13 @@ jobs:
     if: ${{ github.ref_name == 'r14-duo-i17' }}
     # The same image as duo-shots (docs/M7D_CONTRACT.md §3.1, 0d-2).
     runs-on: xcode-27
-    # Estimated: checkout and Xcode 3 min, the runtime 5–25 (a download of several GB, then its install; the step gives
-    # itself until 30 min after the job's start), XcodeGen and the build 5–12, the iPhone's boot 1–8 and 60 s alone, the
-    # two launches 2, the log 1: about 25–45 min, at most about 58. A job cut by its limit would not reach the upload.
-    timeout-minutes: 60
+    # Estimated: checkout and Xcode 3 min, the runtime 5–25 (a download of several GB, then its install; its ways end 26
+    # min after the job's start), XcodeGen and the build 5–12, the iPhone's boot 1–8 and 60 s alone, the two launches 2,
+    # the log 1: about 25–50 min. The limit is the steps' own limits in a row (the runtime's share ends by about 30 min;
+    # XcodeGen 5, the project 5, the build 20, the trial 20, the summary 3, the upload 5, the verdict 1: about 89), so a
+    # step's own limit stops it first and the summary still says how far it got. A job cut by this limit would end
+    # cancelled, neither red nor green: the verdict (`!cancelled()`) would not run.
+    timeout-minutes: 90
     permissions:
       contents: read
     env:
@@ -1788,8 +1791,8 @@ jobs:
         with:
           persist-credentials: false
 
-      # The job's clock (the runtime step gives itself until 30 min after it, so the build and the trial still fit in
-      # the job's 60) and its record, duo-i17/status.txt.
+      # The job's clock (the runtime step's ways end 26 min after it, so the build and the trial still fit in the job's
+      # limit) and its record, duo-i17/status.txt.
       - name: Start the record
         run: |
           set -euo pipefail
@@ -1911,7 +1914,9 @@ jobs:
           EOF
 
       # The runtime (§6's last bullet; the contract marks the first way 【未確認】). Up to four ways, each with a limit of
-      # its own (at most 25 min), all within 30 min of the job's start: (a) `xcodebuild -downloadPlatform iOS
+      # its own (at most 25 min), all ending by 26 min after the job's start (the step's own limit, 30 min from its own
+      # start, so leaves at least 4 min for the last 90 s look for the runtime and the closing lists, and the runtime's
+      # `id` is not lost to the step's limit): (a) `xcodebuild -downloadPlatform iOS
       # -buildVersion $I17_VERSION`; (b) the same with `-architectureVariant universal` (the iOS 17 runtimes came before
       # the arm64-only variants, and runner-images stopped passing it for Xcode 27.1 and later: "Xcode 27.1+ cannot resolve
       # universal runtimes", actions/runner-images#15011); (c) `-buildVersion $I17_BUILD`; (d) the disk image exported
@@ -1929,7 +1934,7 @@ jobs:
           OUT="$GITHUB_WORKSPACE/duo-i17"
           STATUS="$OUT/status.txt"
           START="$(cat "$RUNNER_TEMP/i17-start" 2>/dev/null || date +%s)"
-          DEADLINE=$((START + 30 * 60))
+          DEADLINE=$((START + 26 * 60))
           note() {  # note <key> <value>: a line of status.txt
             printf '%s=%s\n' "$1" "$2" >> "$STATUS"
           }
@@ -2085,6 +2090,7 @@ jobs:
 
       - name: Generate the Xcode project
         if: ${{ steps.runtime.outputs.id != '' }}
+        timeout-minutes: 5
         run: |
           set -euo pipefail
           xcodegen generate
@@ -2111,15 +2117,20 @@ jobs:
       # runtime lists), booted (at most 8 min) and left alone 60 s; the app installed; then the two launches (see the job's
       # head). A runtime with no iPhone, an iPhone simctl cannot make or that does not boot is 【未確認】 (the step ends
       # there); an app that does not install, a launch that fails or a process gone after its wait is for the verdict.
-      # Then the app's log (`log show`, with tools/ci/log-reach.sh) and the crash reports written since the install.
-      # Never fails (the verdict comes after the upload).
+      # Then the app's log (`log show`, with tools/ci/log-reach.sh) and the reports written since the install (the summary
+      # copies them again, so a trial stopped by its limit still has them, and tells a crash report from the others).
+      # Its own waits add up to about 16.5 min (the boot 480 s, 60 s alone, the install 240, the launches 82, the log
+      # 120), within its limit of 20. Never fails (the verdict comes after the upload).
       - name: The app on the iOS 17 iPhone (screenshot mode, the week)
         id: trial
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        timeout-minutes: 15
+        timeout-minutes: 20
         continue-on-error: true
         env:
           RUNTIME_ID: ${{ steps.runtime.outputs.id }}
+          # simctl launch hands the app only the variables named SIMCTL_CHILD_<name> (as <name>): the app's stdout
+          # unbuffered, so <tag>-stdout.txt keeps its last lines when the app is terminated.
+          SIMCTL_CHILD_NSUnbufferedIO: "YES"
         run: |
           set +e
           set -uo pipefail
@@ -2179,7 +2190,7 @@ jobs:
           xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 > /dev/null 2>&1
           sleep 60
           xcrun simctl io "$UDID" screenshot "$OUT/home.png" > /dev/null 2>&1 || echo "no photo of the home screen"
-          if ! limited 300 xcrun simctl install "$UDID" "$APP" > "$OUT/install.txt" 2>&1; then
+          if ! limited 240 xcrun simctl install "$UDID" "$APP" > "$OUT/install.txt" 2>&1; then
             note install "failed: $(tail -n 5 "$OUT/install.txt" | tr '\n' ' ' | cut -c 1-400)"
             echo "::error::the app did not install on the iOS 17 iPhone (duo-i17/install.txt)."
             xcrun simctl shutdown "$UDID" > /dev/null 2>&1
@@ -2241,10 +2252,10 @@ jobs:
           launch first 60 --screenshot-page week --screenshot-span on -allowFingerDrawingChosen NO -allowFingerDrawingAuto ""
           launch week 20 --screenshot-page week
           xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1
-          limited 180 xcrun simctl spawn "$UDID" log show --last "$(( ($(date +%s) - STEP_START) / 60 + 2 ))m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/app-log.txt" 2>&1
+          limited 120 xcrun simctl spawn "$UDID" log show --last "$(( ($(date +%s) - STEP_START) / 60 + 2 ))m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/app-log.txt" 2>&1
           bash tools/ci/log-reach.sh "the iOS 17 iPhone (log show)" "$OUT/app-log.txt" 'toolbar: paperArea=' 'duo measure: '
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -newer "$RUNNER_TEMP/i17-before-launch" -exec cp {} "$OUT/" \; 2>/dev/null
-          note crash_reports "$(find "$OUT" -maxdepth 1 -name 'TegakiCalendar*' | wc -l | tr -d ' ')"
+          note reports "$(find "$OUT" -maxdepth 1 -name 'TegakiCalendar*' | wc -l | tr -d ' ') (TegakiCalendar* from DiagnosticReports; the summary tells a crash report from the others)"
           xcrun simctl shutdown "$UDID" > /dev/null 2>&1
           note trial "done in $(( $(date +%s) - STEP_START )) s"
           cat "$STATUS"
@@ -2254,8 +2265,13 @@ jobs:
       # The step summary: the runtime (got, and which, or 【未確認】 and why, way by way), the iPhone, the install, each
       # launch (running or gone after its wait) with its measure lines and photo, and each crash report's first lines and
       # what it says (the exception, the termination, the first frames of the crashed thread), with the last lines of a
-      # gone launch's stderr. Its output `verdict`: launched, crashed, did not launch, did not install, unconfirmed
-      # (【未確認】), no build or unfinished. Never fails.
+      # gone launch's stderr. First it copies again the app's reports written since the install (a trial stopped by its
+      # limit did not reach its own copy). A crash report is a `.crash`, or an `.ips` whose header's bug_type is 309 (or
+      # 109) or whose header cannot be read; any other report (a CPU or hang report, `.diag`, `.spin`, an `.ips` of another
+      # bug_type) is listed apart and is not a crash. Its output `verdict` (launched, crashed, did not launch, did not
+      # install, unconfirmed (【未確認】), no build or unfinished) is written, to the output and to status.txt, as soon as it
+      # is decided and before the details are drawn; a detail that cannot be drawn is said so and never loses the verdict.
+      # Never fails.
       - name: Summary
         id: summary
         if: always()
@@ -2266,8 +2282,12 @@ jobs:
         run: |
           set +e
           set -uo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/duo-i17"
-          python3 -I - "$GITHUB_WORKSPACE/duo-i17" <<'EOF'
+          OUT="$GITHUB_WORKSPACE/duo-i17"
+          mkdir -p "$OUT"
+          if [ -f "$RUNNER_TEMP/i17-before-launch" ]; then
+            find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -newer "$RUNNER_TEMP/i17-before-launch" -exec cp {} "$OUT/" \; 2>/dev/null
+          fi
+          python3 -I - "$OUT" <<'EOF'
           import glob, json, os, sys
           out = sys.argv[1]
           status = {}
@@ -2280,13 +2300,28 @@ jobs:
               pass
           def get(key):
               return status.get(key, "")
+          def kind(path):  # "crash", or which other report it is
+              name = os.path.basename(path)
+              if name.endswith(".crash"):
+                  return "crash"
+              if not name.endswith(".ips"):
+                  return "other (%s)" % (os.path.splitext(name)[1] or "no extension")
+              try:
+                  with open(path, encoding="utf-8", errors="replace") as f:
+                      bug = str(json.loads(f.readline()).get("bug_type", "?"))
+              except Exception:
+                  return "crash"  # a header that cannot be read is looked at as a crash
+              return "crash" if bug in ("309", "109") else "other (bug_type %s)" % bug
           build = os.environ.get("BUILD_OUTCOME") or "skipped"
-          crashes = sorted(p for p in glob.glob(os.path.join(out, "TegakiCalendar*")) if os.path.isfile(p))
+          reports = sorted(p for p in glob.glob(os.path.join(out, "TegakiCalendar*")) if os.path.isfile(p))
+          kinds = {p: kind(p) for p in reports}
+          crashes = [p for p in reports if kinds[p] == "crash"]
+          others = [p for p in reports if kinds[p] != "crash"]
           launches = {tag: get("launch_" + tag) for tag in ("first", "week")}
           if not get("runtime").startswith("got"):
               verdict, result = "unconfirmed", "【未確認】 no usable iOS 17 runtime with Xcode 27.2: " + (get("runtime") or "not tried")
           elif build != "success" or get("app").startswith("not found"):
-              verdict, result = "no build", "the app was not built (the build step: %s); nothing was launched" % build
+              verdict, result = "no build", "the app was not built or not found (the build step: %s; app: %s); nothing was launched" % (build, get("app") or "not looked for")
           elif not get("device") or get("device").startswith("【未確認】"):
               verdict, result = "unconfirmed", "【未確認】 no iPhone on the iOS 17 runtime: " + (get("device").replace("【未確認】 ", "") or "the trial did not get that far")
           elif not get("boot").startswith("booted"):
@@ -2301,63 +2336,70 @@ jobs:
               verdict, result = "launched", "the app launched on %s and was still running after each wait (the photos show the week)" % get("device")
           else:
               verdict, result = "unfinished", "the trial did not finish (a step's limit?): status.txt says how far it got"
-          labels = (("runtime", "Runtime"), ("runtime_how", "Got by"), ("runtime_images", "simctl runtime list (iOS 17)"),
-                    ("app", "App"), ("device", "iPhone"), ("boot", "Boot"), ("install", "Install"),
-                    ("launch_first", "First launch (joined week, a first launch's arguments)"), ("measure_first", "its measure lines"),
-                    ("photo_first", "its photo, first.png"), ("launch_week", "Week (one page)"), ("measure_week", "its measure lines"),
-                    ("photo_week", "its photo, week.png"), ("crash_reports", "Crash reports"), ("trial", "Trial"), ("started", "Job"))
+          # The verdict first, so nothing below can lose it.
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("verdict=%s\n" % verdict)
+          with open(os.path.join(out, "status.txt"), "a", encoding="utf-8") as record:
+              record.write("verdict=%s: %s\n" % (verdict, result))
           lines = ["## duo-i17: the iOS 17 launch trial (1.4 M1; once, not a gate: docs/M7D_CONTRACT.md §6)", "",
-                   "**Result: %s** — %s" % (verdict, result), "", "| | |", "| --- | --- |"]
-          lines += ["| %s | %s |" % (label, get(key).replace("|", "/")) for key, label in labels if get(key)]
-          ways = [k for k in status if k.startswith(("way_", "after_"))]
-          if ways:
-              lines += ["", "The ways tried for the runtime:", ""] + ["- %s: %s" % (k, status[k]) for k in ways]
-          for tag, value in launches.items():
-              err = os.path.join(out, tag + "-stderr.txt")
-              if value.startswith("gone") and os.path.isfile(err) and os.path.getsize(err) > 0:
-                  tail = open(err, encoding="utf-8", errors="replace").read().splitlines()[-10:]
-                  lines += ["", "### %s-stderr.txt: its last lines" % tag, "", "```"] + [l[:300] for l in tail] + ["```"]
-          for path in crashes[:3]:
-              name = os.path.basename(path)
-              try:
-                  text = open(path, encoding="utf-8", errors="replace").read()
-              except OSError as error:
-                  lines += ["", "%s could not be read (%s)" % (name, error)]
-                  continue
-              lines += ["", "### %s: its first lines" % name, "", "```"] + [l[:200] for l in text.splitlines()[:15]] + ["```"]
-              try:
-                  body = json.loads(text.partition("\n")[2])
-              except ValueError:
-                  continue
-              exc = body.get("exception") or {}
-              term = body.get("termination") or {}
-              images = body.get("usedImages") or []
-              threads = body.get("threads") or []
-              crashed = body.get("faultingThread", 0)
-              frames = threads[crashed].get("frames", [])[:10] if isinstance(crashed, int) and 0 <= crashed < len(threads) else []
-              def frame(f):
-                  i = f.get("imageIndex")
-                  image = images[i].get("name", "?") if isinstance(i, int) and 0 <= i < len(images) else "?"
-                  return "%s %s" % (image, f.get("symbol") or "+%s" % f.get("imageOffset", "?"))
-              lines += ["", "- exception: %s %s %s" % (exc.get("type", "?"), exc.get("signal", ""), exc.get("subtype", "")),
-                        "- termination: %s %s %s" % (term.get("namespace", "?"), term.get("indicator", ""),
-                                                     " ".join(str(d) for d in (term.get("details") or []))[:500]),
-                        "- application specific: %s" % json.dumps(body.get("asi") or {}, ensure_ascii=False)[:500]]
-              lines += ["- frame %d: %s" % (n, frame(f)) for n, f in enumerate(frames)]
+                   "**Result: %s** — %s" % (verdict, result), ""]
+          try:
+              labels = (("runtime", "Runtime"), ("runtime_how", "Got by"), ("runtime_images", "simctl runtime list (iOS 17)"),
+                        ("app", "App"), ("device", "iPhone"), ("boot", "Boot"), ("install", "Install"),
+                        ("launch_first", "First launch (joined week, a first launch's arguments)"), ("measure_first", "its measure lines"),
+                        ("photo_first", "its photo, first.png"), ("launch_week", "Week (one page)"), ("measure_week", "its measure lines"),
+                        ("photo_week", "its photo, week.png"), ("reports", "Reports the trial copied"), ("trial", "Trial"), ("started", "Job"))
+              lines += ["| | |", "| --- | --- |"]
+              lines += ["| %s | %s |" % (label, get(key).replace("|", "/")) for key, label in labels if get(key)]
+              if reports:
+                  lines += ["| Crash reports | %d%s |" % (len(crashes), (": " + ", ".join(os.path.basename(p) for p in crashes)) if crashes else ""),
+                            "| Other reports (not a crash) | %s |" % (", ".join("%s: %s" % (os.path.basename(p), kinds[p]) for p in others) or "none")]
+              ways = [k for k in status if k.startswith(("way_", "after_"))]
+              if ways:
+                  lines += ["", "The ways tried for the runtime:", ""] + ["- %s: %s" % (k, status[k]) for k in ways]
+              for tag, value in launches.items():
+                  err = os.path.join(out, tag + "-stderr.txt")
+                  if value.startswith("gone") and os.path.isfile(err) and os.path.getsize(err) > 0:
+                      tail = open(err, encoding="utf-8", errors="replace").read().splitlines()[-10:]
+                      lines += ["", "### %s-stderr.txt: its last lines" % tag, "", "```"] + [l[:300] for l in tail] + ["```"]
+              for path in crashes[:3]:
+                  name = os.path.basename(path)
+                  try:
+                      text = open(path, encoding="utf-8", errors="replace").read()
+                      lines += ["", "### %s: its first lines" % name, "", "```"] + [l[:200] for l in text.splitlines()[:15]] + ["```"]
+                      try:
+                          body = json.loads(text.partition("\n")[2])
+                      except ValueError:
+                          continue
+                      exc = body.get("exception") or {}
+                      term = body.get("termination") or {}
+                      images = body.get("usedImages") or []
+                      threads = body.get("threads") or []
+                      crashed = body.get("faultingThread", 0)
+                      frames = threads[crashed].get("frames", [])[:10] if isinstance(crashed, int) and 0 <= crashed < len(threads) else []
+                      def frame(f):
+                          i = f.get("imageIndex")
+                          image = images[i].get("name", "?") if isinstance(i, int) and 0 <= i < len(images) else "?"
+                          return "%s %s" % (image, f.get("symbol") or "+%s" % f.get("imageOffset", "?"))
+                      lines += ["", "- exception: %s %s %s" % (exc.get("type", "?"), exc.get("signal", ""), exc.get("subtype", "")),
+                                "- termination: %s %s %s" % (term.get("namespace", "?"), term.get("indicator", ""),
+                                                             " ".join(str(d) for d in (term.get("details") or []))[:500]),
+                                "- application specific: %s" % json.dumps(body.get("asi") or {}, ensure_ascii=False)[:500]]
+                      lines += ["- frame %d: %s" % (n, frame(f)) for n, f in enumerate(frames)]
+                  except Exception as error:
+                      lines += ["", "(%s: its details could not be drawn: %s: %s; the file is in duo-i17)" % (name, type(error).__name__, str(error)[:300])]
+          except Exception as error:
+              lines += ["", "(the summary could not draw everything: %s: %s; the result above stands)" % (type(error).__name__, str(error)[:300])]
           text = "\n".join(lines) + "\n"
           print(text)
           if os.environ.get("GITHUB_STEP_SUMMARY"):
               with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
                   summary.write(text)
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write("verdict=%s\n" % verdict)
-          with open(os.path.join(out, "status.txt"), "a", encoding="utf-8") as record:
-              record.write("verdict=%s: %s\n" % (verdict, result))
           EOF
 
       - name: Upload the trial
         if: always()
-        timeout-minutes: 10
+        timeout-minutes: 5
         uses: actions/upload-artifact@v4
         with:
           name: duo-i17
@@ -2366,21 +2408,53 @@ jobs:
           if-no-files-found: warn
           overwrite: true
 
-      # After the upload: the job fails only when the app, on an iOS 17 iPhone that booted, did not install, did not launch,
-      # was gone after its wait or left a crash report (§6: "起動しなければ止めて調べる"). 【未確認】 (no runtime, no
-      # iPhone, no boot) and an unfinished trial are a warning, and the job stays green: not a failure of 1.4 (§6).
+      # After the upload: the job fails when the app, on an iOS 17 iPhone that booted, did not install, did not launch, was
+      # gone after its wait or left a crash report (§6: "起動しなければ止めて調べる"), and when the app was not built or not
+      # found (the build step is then red already, or the job itself is at fault; nothing was tried on iOS 17).
+      # 【未確認】 (no runtime, no iPhone, no boot) and an unfinished trial are a warning, and the job stays green: not a
+      # failure of 1.4 (§6). When the summary gave no verdict, status.txt decides: the summary's verdict line if it wrote
+      # one, else an install that failed, a crash report (its header's bug_type 309 or 109, or a `.crash`), a launch gone
+      # after its wait or a launch that failed is red as above (no false green when the summary did not finish).
       - name: The trial's verdict
         if: ${{ !cancelled() }}
+        timeout-minutes: 1
         env:
           VERDICT: ${{ steps.summary.outputs.verdict }}
         run: |
           set -euo pipefail
-          case "${VERDICT:-}" in
+          STATUS=duo-i17/status.txt
+          VERDICT="${VERDICT:-}"
+          if [ -z "$VERDICT" ] && [ -f "$STATUS" ]; then
+            VERDICT="$(sed -n 's/^verdict=\([^:]*\):.*$/\1/p' "$STATUS" | tail -n 1)"
+            if [ -z "$VERDICT" ]; then
+              CRASH=""
+              for REPORT in duo-i17/TegakiCalendar*.ips duo-i17/TegakiCalendar*.crash; do
+                [ -f "$REPORT" ] || continue
+                case "$REPORT" in
+                  *.crash) CRASH="$REPORT" ;;
+                  *) if head -n 1 "$REPORT" | grep -q -E '"bug_type" *: *"(309|109)"'; then CRASH="$REPORT"; fi ;;
+                esac
+              done
+              if grep -q '^install=failed' "$STATUS"; then
+                VERDICT="did not install"
+              elif [ -n "$CRASH" ] || grep -q -E '^launch_(first|week)=gone' "$STATUS"; then
+                VERDICT="crashed"
+              elif grep -q -E '^launch_(first|week)=simctl launch failed' "$STATUS"; then
+                VERDICT="did not launch"
+              fi
+            fi
+            echo "The summary gave no verdict; from duo-i17/status.txt: ${VERDICT:-nothing that fails the job}."
+          fi
+          case "$VERDICT" in
             launched)
               echo "The app launched on iOS 17 and was still running after each wait; duo-i17's photos show whether it drew the week."
               ;;
             crashed|"did not launch"|"did not install")
               echo "::error::On iOS 17 the app: $VERDICT (duo-i17: status.txt, the stderr files and any crash report). docs/M7D_CONTRACT.md §6: stop and look."
+              exit 1
+              ;;
+            "no build")
+              echo "::error::The app was not built, or not found after its build (duo-i17/status.txt); nothing was tried on iOS 17. Not a finding about iOS 17: the build step or the job is at fault."
               exit 1
               ;;
             *)
