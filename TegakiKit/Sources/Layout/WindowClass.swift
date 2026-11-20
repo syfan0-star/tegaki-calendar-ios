@@ -9,8 +9,9 @@ import CoreGraphics
 public enum WindowClass {
     /// The least short side (pt) of a wide window: 600, the width from which the app's header is one row
     /// (`CalendarRootScreen.compactWidth`; the app's test `testWideShortSideIsTheCompactWidth` checks the two are the same).
-    /// Every iPhone's short side is 440 or less, the Duo's inner screen is estimated at 626–669 and its outer one at 466
-    /// (§4.2 measures them; a measurement on the wrong side of 600 stops the work and decides it anew, §4.7).
+    /// Every iPhone's short side is 440 or less, the Duo's inner screen is estimated at 626–669 and its outer one is 466
+    /// (§4.2 measures them: the outer window 466 × 678 in duo-shots run 44696154794, the inner one not opened on CI; a
+    /// measurement on the wrong side of 600 stops the work and decides it anew, §4.7).
     public static let wideShortSide: CGFloat = 600
 
     /// A wide window: its short side is `wideShortSide` or more. nil, a side of 0, a negative side or one that is not finite

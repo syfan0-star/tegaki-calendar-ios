@@ -20,9 +20,10 @@ import SwiftUI
 /// The title comes from `PageNavigation.title` (`compactTitle` on the compact rows, M4b: the owner
 /// passes the short form); the owner measures the width and passes `compact`. On the compact first
 /// row the fixed parts (◀ ▶ 今日 ＋ ☁ ⚙ with their 44 pt tap targets and `.bordered` padding) take
-/// about 297 pt, so the spacing is 4, the spacers have no minimum and the title is `.headline`
-/// (17 pt): about 81 pt remain for it on a 402 pt iPhone, 69 pt on a 390 pt one, enough for every
-/// short title at `minimumScaleFactor(0.6)` (M4B-15).
+/// about 297 pt (M4B's estimate; 1.4 D1d measured 324, below), so the spacing is 4, the spacers have
+/// no minimum and the title is `.headline` (17 pt): M4B counted about 81 pt for it on a 402 pt iPhone
+/// and 69 pt on a 390 pt one (measured: 78 and 66), enough for every short title at
+/// `minimumScaleFactor(0.6)` (M4B-15).
 ///
 /// 1.4 D1d (docs/M7D.md): measured on iOS 27.2 (and the same in 1.3's Xcode 26.6 photos), the compact first row's
 /// fixed parts take about 324 pt with the 12 pt side paddings (「今日」 56, ＋ 52, ☁ 26), so the title has about
@@ -30,13 +31,17 @@ import SwiftUI
 /// strip), 51 on a 375 pt iPhone. At the minimum scale (10.2 pt) the longest Japanese short titles need about 61
 /// (「2026年10月」), 64 (「10月30日(金)」) and 70 pt (「10/24〜10/30」), so 1.3's row cuts the longest below about 394 pt
 /// and the month below about 385 (the outer screen showed 「2026年1…」 and 「10/5〜10…」, duo-shots run 44696154794).
-/// Below `roomyCompactWidth` the first row is the tight row (`usesTightRow`, `tightFirstRow`): 22 pt more for the
-/// title, the same heights, texts and second row. From `roomyCompactWidth` up (the iPhone 17's 402, the 440 pt
-/// iPhone, every iPad's full screen) the body runs 1.3's rows unchanged. The ☁ shows the sync state
-/// (`SyncStatus.header`): the text and the symbol at 600 pt and wider, the symbol alone below
-/// (iPhone, M4 contract §6.8); a tap opens the settings screen. It is redrawn only when `sync`
-/// changes (the engine publishes a new snapshot only when the status changed). (M3a's calendar menu
-/// moved to the settings screen.)
+/// Where the safe area's side strip, not the window, makes the compact column narrower than `roomyCompactWidth` (a
+/// window at least that wide: the outer screen's 466 pt less its 84 pt strip), the first row is the tight row
+/// (`usesTightRow`, `tightFirstRow`): 22 pt more for the title, the same heights, texts and second row. Everywhere
+/// else — every window of today's iPhones and iPads, the 375–393 pt iPhones and narrow iPad windows included, whose
+/// own width is under it, and every column from `roomyCompactWidth` up (the iPhone 17's 402, the 440 pt iPhone) —
+/// the body runs 1.3's rows unchanged (docs/M7D_CONTRACT.md §4.1: no change on today's devices).
+///
+/// The ☁ shows the sync state (`SyncStatus.header`): the text and the symbol at 600 pt and wider, the
+/// symbol alone below (iPhone, M4 contract §6.8); a tap opens the settings screen. It is redrawn only
+/// when `sync` changes (the engine publishes a new snapshot only when the status changed). (M3a's
+/// calendar menu moved to the settings screen.)
 struct PageHeaderView: View {
     var kind: PageKind
     var title: String
@@ -61,6 +66,10 @@ struct PageHeaderView: View {
     /// not fit, so SwiftUI squeezed the 「今日」 label to nothing; the buttons now keep their size
     /// (`fixedSize` / `layoutPriority`) and only the title shrinks or is cut.
     var width: CGFloat = .infinity
+    /// 1.4 D1d: the safe area's side insets beside `width` (leading + trailing, pt; the owner measures them with
+    /// `width`): `width` and these make the window's width, which decides the tight row (`usesTightRow`). 0 (none, as
+    /// on every iPhone in portrait and every iPad) keeps 1.3's rows.
+    var sideInsets: CGFloat = 0
     /// M5 (M5_CONTRACT §3.2): the app is read only (unsubscribed, expired, …): the badge is shown on the
     /// wide row. Never shown while in the billing grace period (`canEdit` stays true then, M5-16).
     var readOnly: Bool = false
@@ -81,9 +90,10 @@ struct PageHeaderView: View {
     /// The badge's accessibility label.
     static let readOnlyLabel = L.text("header.readOnly.spoken")
 
-    /// 1.4 D1d: below this width the compact first row is the tight row (`usesTightRow`). It lies between the
-    /// 393 pt iPhones (1.3's row leaves them about 69 pt, short of 「10/24〜10/30」's 70) and the 402 pt iPhone 17, the
-    /// narrowest compact header the CI photographs (J-4), 2 pt below it so that its 402.0 is never at the edge.
+    /// 1.4 D1d: a compact column narrower than this, in a window at least this wide, has the tight row
+    /// (`usesTightRow`). It lies between the 393 pt iPhones (1.3's row leaves them about 69 pt, short of 「10/24〜10/30」's
+    /// 70) and the 402 pt iPhone 17, the narrowest compact header the CI photographs (J-4), 2 pt below it so that its
+    /// 402.0 is never at the edge.
     static let roomyCompactWidth: CGFloat = 400
     /// 1.4 D1d: the tight row's gap between ◀ and ▶ (1.3's: 6). Both keep their 44 pt targets.
     static let tightNavigationSpacing: CGFloat = 0
@@ -94,10 +104,13 @@ struct PageHeaderView: View {
     /// 4), the ◀ ▶ gap and the ＋ symbol's width (8 + 6 + 8 = 22 pt).
     static let tightTitleGain: CGFloat = 2 * 4 + (6 - tightNavigationSpacing) + (28 - tightAddEventSymbolWidth)
 
-    /// 1.4 D1d: the compact first row is the tight one: on the compact rows only, below `roomyCompactWidth`.
-    /// `.infinity` (no width given) and NaN keep 1.3's row.
-    static func usesTightRow(compact: Bool, width: CGFloat) -> Bool {
-        compact && width < roomyCompactWidth
+    /// 1.4 D1d: the compact first row is the tight one: on the compact rows only, when the column (`width`) is
+    /// narrower than `roomyCompactWidth` but the window (`width + sideInsets`) is not — the side strip took the room (the
+    /// iPhone Duo's outer screen in portrait: 382 + 84). A window narrower than it keeps 1.3's row (§4.1: the 375–393 pt
+    /// iPhones and narrow iPad windows have no side insets and are today's devices). `.infinity` (no width given) and
+    /// NaN keep 1.3's row.
+    static func usesTightRow(compact: Bool, width: CGFloat, sideInsets: CGFloat) -> Bool {
+        compact && width < roomyCompactWidth && width + sideInsets >= roomyCompactWidth
     }
 
     private var showsSyncText: Bool { !compact && width >= Self.syncTextWidth }
@@ -105,7 +118,7 @@ struct PageHeaderView: View {
     private var showsReadOnlyText: Bool { width >= Self.readOnlyTextWidth }
 
     var body: some View {
-        if Self.usesTightRow(compact: compact, width: width) {
+        if Self.usesTightRow(compact: compact, width: width, sideInsets: sideInsets) {
             // 1.4 D1d: 1.3's two compact rows with the tight first row; the second row is 1.3's.
             VStack(spacing: 4) {
                 tightFirstRow
@@ -149,12 +162,11 @@ struct PageHeaderView: View {
 
     // MARK: - Pieces
 
-    /// 1.4 D1d: the compact first row below `roomyCompactWidth` (the Duo's outer screen in portrait, 375–393 pt
-    /// iPhones). 1.3's row — spacing 4, the same pieces in the same order, the same 17 pt title at
-    /// `minimumScaleFactor(0.6)` — without its two spacers (the title's frame takes the room between ▶ and 「今日」
-    /// and centres the title, as the spacers did), with ◀ ▶ `tightNavigationSpacing` apart and the ＋ symbol
-    /// `tightAddEventSymbolWidth` wide: `tightTitleGain` pt more for the title. Every piece keeps its height (◀ ▶ ☁ ⚙
-    /// 44, the ＋ symbol 28), so the row is as high as 1.3's.
+    /// 1.4 D1d: the compact first row where `usesTightRow` (the Duo's outer screen in portrait). 1.3's row — spacing 4,
+    /// the same pieces in the same order, the same 17 pt title at `minimumScaleFactor(0.6)` — without its two spacers
+    /// (the title's frame takes the room between ▶ and 「今日」 and centres the title, as the spacers did), with ◀ ▶
+    /// `tightNavigationSpacing` apart and the ＋ symbol `tightAddEventSymbolWidth` wide: `tightTitleGain` pt more for the
+    /// title. Every piece keeps its height (◀ ▶ ☁ ⚙ 44, the ＋ symbol 28), so the row is as high as 1.3's.
     private var tightFirstRow: some View {
         HStack(spacing: 4) {
             navigationButtons(spacing: Self.tightNavigationSpacing)

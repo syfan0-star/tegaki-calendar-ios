@@ -869,6 +869,9 @@ struct CalendarRootScreen: View {
                 sync: sync.snapshot.status.header,
                 onSyncTap: { showSettings = true },
                 width: proxy.size.width,
+                // 1.4 D1d: the safe area's side strips (the iPhone Duo's outer screen: 84 pt; 0 on every iPhone in
+                // portrait and on the iPad), for the header's tight row (`PageHeaderView.usesTightRow`).
+                sideInsets: proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
                 readOnly: readOnly,
                 onReadOnlyTap: { showPaywall(reason: .badge) },
                 // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.

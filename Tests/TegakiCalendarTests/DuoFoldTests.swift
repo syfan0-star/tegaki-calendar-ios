@@ -57,6 +57,12 @@ final class DuoFoldTests: XCTestCase {
     /// The paper area (pt) of the Duo's outer screen in portrait, measured (1.4 D1d; duo-shots run 44696154794, the `paper=`
     /// of the last `duo measure:` line of each photo): the window 466 × 678 less the 84 pt side strip, the two header rows,
     /// the toolbar and the photo's all-day band. The one-page week and day take the joined path's (measured there only).
+    /// The rig's container has no window, so the canvas's `redecideWindow` takes the orientation from the paper area
+    /// (`container.bounds`, InkCanvasView.swift:3295): the week's 382 × 343 is wider than tall and is decided anew with the
+    /// landscape plan, where the real Duo, whose screen is 466 × 678, takes the portrait one (`plan=iPhone,portrait`, R 2
+    /// in its measure line; the day's 382 × 402 is portrait in both). No assertion after a step to these sizes reads the
+    /// plan or R (the cap's (g) folds to `outerLandscape`): they ask (a)–(f) of a width change, which the week's step still
+    /// makes.
     private func outerPortrait(_ kind: PageKind) -> CGSize {
         switch kind {
         case .month: return CGSize(width: 382, height: 456.67)
