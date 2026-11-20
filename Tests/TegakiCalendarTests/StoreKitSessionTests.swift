@@ -20,9 +20,9 @@ import XCTest
 /// intro-offer eligibility true after an expired free trial in the group's history. In probe run 44659376399
 /// the per-group answer and both products' said true in 41–42 reads over 15 seconds, with and without a read
 /// before the purchase, and also after `clearTransactions()`. `testIneligibleAfterATrial` therefore reads
-/// nothing before the purchase and, when the answer stays true while `Transaction.all` holds the expired
-/// introductory transaction, logs the evidence (`store-test: eligibility after the trial = …`) and skips; any
-/// other outcome is asserted as before. The app shows StoreKit's answer as it is (`LiveStoreClient`), so no
+/// nothing before the purchase, nor until the history shows it, and, when the answer stays true while
+/// `Transaction.all` holds the expired introductory transaction, logs the evidence (`store-test: eligibility
+/// after the trial = …`) and skips; any other outcome is asserted as before. The app shows StoreKit's answer as it is (`LiveStoreClient`), so no
 /// app code changes for it.
 @MainActor
 final class StoreKitSessionTests: XCTestCase {
@@ -261,18 +261,43 @@ final class StoreKitSessionTests: XCTestCase {
         NSLog("store-test: refund route = %@", route.isEmpty ? "Transaction.updates copy only (rule 1)" : route.joined(separator: " + "))
     }
 
+    /// The group's verified history (`Transaction.all`), as `LiveStoreClient` copies a transaction. Reads no
+    /// eligibility.
+    private func groupHistory(_ groupID: String) async -> [EntitlementInput] {
+        var history: [EntitlementInput] = []
+        for await result in Transaction.all {
+            if case .verified(let item) = result, item.subscriptionGroupID == groupID {
+                history.append(LiveStoreClient.copy(item))
+            }
+        }
+        return history
+    }
+
     /// The intro offer is per subscription group: after a trial has run (and expired) neither
     /// product is eligible any more. Nothing reads the eligibility before the purchase
-    /// (`testConfigurationLoadsBothProducts` holds that both products are eligible then). Where the
-    /// answer stays true while the group's own history holds the expired trial, the evidence is logged
-    /// and the test skips (iOS 27.2, the class's comment); every other outcome fails as before.
+    /// (`testConfigurationLoadsBothProducts` holds that both products are eligible then), nor after it
+    /// until the history holds the purchase as the trial (the model's first `refresh()` fetches the
+    /// products, and so reads it), so the answer read after the expiry is not one this test pinned
+    /// earlier. Where the answer stays true while the group's own history holds the expired trial, the
+    /// evidence is logged and the test skips (iOS 27.2, the class's comment); every other outcome fails
+    /// as before.
     func testIneligibleAfterATrial() async throws {
         let transaction = try await buy(.monthly)
+        guard transaction.productID == Plan.monthly.productID else { return } // `buy` has recorded the failure
         let groupID = try XCTUnwrap(transaction.subscriptionGroupID, "the trial's subscription group")
-        await refreshUntil { access.canEdit }
+        let purchaseID = transaction.id
+        // The purchase in the history as the trial (probe run 44659376399: after 73 ms), read without the
+        // eligibility: `currentEntitlements` (as the model reads it) or the group's `Transaction.all`.
+        let inHistory = await pollUntil {
+            if await client.currentEntitlements().contains(where: { $0.id == purchaseID && $0.isIntroductory }) { return true }
+            return await groupHistory(groupID).contains { $0.id == purchaseID && $0.isIntroductory }
+        }
+        guard inHistory else { return }
+        guard await refreshUntil({ access.canEdit }) else { return }
         try session.expireSubscription(productIdentifier: Plan.monthly.productID)
         await refreshUntil { access == .readOnly(.expired) }
-        // Asserted, and the test ends here when it does not hold: the skip below never follows a failure.
+        // Asserted, and the test ends here when it does not hold. Every failure above ends the test too
+        // (a `guard`, or a thrown error), so the skip below never follows a recorded failure.
         XCTAssertEqual(access, .readOnly(.expired))
         guard access == .readOnly(.expired) else { return }
 
@@ -295,12 +320,7 @@ final class StoreKitSessionTests: XCTestCase {
             // The witness: the group's verified history (`Transaction.all`) holds an introductory
             // transaction whose expiry has passed.
             let now = Date()
-            var history: [EntitlementInput] = []
-            for await result in Transaction.all {
-                if case .verified(let item) = result, item.subscriptionGroupID == groupID {
-                    history.append(LiveStoreClient.copy(item))
-                }
-            }
+            let history = await groupHistory(groupID)
             let trialUsed = history.contains { $0.isIntroductory && ($0.expirationDate.map { $0 <= now } ?? false) }
             let items = history.map {
                 "id \($0.id) \($0.productID) introductory=\($0.isIntroductory) purchased \($0.purchaseDate) "

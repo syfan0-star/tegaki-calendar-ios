@@ -178,30 +178,37 @@ final class PaperSpanTests: XCTestCase {
             window.isHidden = true
             window.rootViewController = nil
         }
-        host.view.frame = window.bounds
-        host.view.setNeedsLayout()
-        host.view.layoutIfNeeded()
-        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
-        host.view.layoutIfNeeded()
         // 1.4 D0b (docs/M7D.md "D0b"; docs/M7D_CONTRACT.md §5.5 (c)): since iOS 26 UIKit gives a scroll view an
         // automatic scroll edge effect. On iOS 27.2 (24B8117) the `HostingScrollView` of SwiftUI's ScrollView in this
         // window carries a `UIKit.ScrollEdgeEffectView` over its top ~24 pt, and `drawHierarchy` draws it over the
-        // band (probe run 44659376399). It belongs to this test window, not to the band, so every scroll view's four
-        // edge effects are hidden before the picture; nothing else of the picture changes.
-        if #available(iOS 26.0, *) {
+        // band (probe run 44659376399: all four edges `automatic`, none hidden). It belongs to this test window, not to
+        // the band, so the edge effects whose style is `automatic` (a style the app would choose stays) are hidden,
+        // together with the layout that applies it, without animation: after the first layout (the scroll views exist
+        // then; the wait below gives a deferred update a turn of the run loop) and again after the second layout (for
+        // a scroll view made by it). Nothing else of the picture changes.
+        func hideAutomaticScrollEdgeEffects() {
+            guard #available(iOS 26.0, *) else { return }
             UIView.performWithoutAnimation {
                 var views: [UIView] = [host.view]
                 while let view = views.popLast() {
                     views.append(contentsOf: view.subviews)
                     guard let scroll = view as? UIScrollView else { continue }
-                    for effect in [scroll.topEdgeEffect, scroll.leftEdgeEffect, scroll.bottomEdgeEffect, scroll.rightEdgeEffect] {
+                    for effect in [scroll.topEdgeEffect, scroll.leftEdgeEffect, scroll.bottomEdgeEffect, scroll.rightEdgeEffect]
+                    where effect.style === UIScrollEdgeEffect.Style.automatic {
                         effect.isHidden = true
                     }
                     scroll.setNeedsLayout()
                 }
+                host.view.layoutIfNeeded()
             }
-            host.view.layoutIfNeeded()
         }
+        host.view.frame = window.bounds
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+        hideAutomaticScrollEdgeEffects()
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+        host.view.layoutIfNeeded()
+        hideAutomaticScrollEdgeEffects()
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
