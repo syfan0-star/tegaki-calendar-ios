@@ -379,7 +379,8 @@ As traduções foram feitas com IA e ainda não foram revistas por falantes nati
 
 ### 3.4 審査メモの (3) の折り目の句（`PencilPhone.usesHinge` が false のまま出すとき）
 
-- 契約 §8.3 の (3) は、Apple Pencil の触れか画面の折り目（`UIHingeInteraction`）で「Draw with Finger」をオフにすると書く。けれども折り目を見るのは `PencilPhone.usesHinge` が true のときだけ（契約 §4.8・§4.2。Duo のシミュレータで測れたとき）で、今のコードは false（M7D.md の「測ってから決める物」）。false のまま出すと、折り目の句は本当でない。
+- **決まった（2026-11-21、リード）: 今のファイル（true の行）のまま使う。** D1c で `PencilPhone.usesHinge` を true にした（5a9e7a2。duo-shots の run 44696154794 で Duo のシミュレータの初めの起動を測った）。r14 では 7eb842b で入った。下の false の行は使わない。ここから下は、決める前に書いた覚え。
+- 契約 §8.3 の (3) は、Apple Pencil の触れか画面の折り目（`UIHingeInteraction`）で「Draw with Finger」をオフにすると書く。けれども折り目を見るのは `PencilPhone.usesHinge` が true のときだけ（契約 §4.8・§4.2。Duo のシミュレータで測れたとき）で、書いた時のコードは false（M7D.md の「測ってから決める物」）。false のまま出すと、折り目の句は本当でない。
 - そのときは (3) の 2 つ目の文を次に替える（ほかの文は同じ。日本語の要約は折り目を言わないので替えない）。
 
 | `usesHinge` | (3) の 2 つ目の文（en） |
@@ -387,7 +388,7 @@ As traduções foram feitas com IA e ainda não foram revistas por falantes nati
 | true（今のファイル） | The app turns Draw with Finger off when that iPhone first sees an Apple Pencil touch or a screen hinge (UIHingeInteraction); on a device updated from 1.3, only an Apple Pencil touch does this. |
 | false | The app turns Draw with Finger off when that iPhone first sees an Apple Pencil touch. |
 
-- バイトは減る（4,000 の内）。決めるのは duo-shots で `usesHinge` を決めた後（リード）。
+- バイトは減る（4,000 の内）。決めるのは duo-shots で `usesHinge` を決めた後（リード）。→ 上の「決まった」のとおり true。
 
 ### 3.5 今のファイルに入れたもの（案 A）の覚え
 
