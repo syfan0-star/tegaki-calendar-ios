@@ -2419,7 +2419,8 @@ struct CalendarRootScreen: View {
             resolve: { await sync.resolveAccountChange($0) },
             closed: {
                 // 1.4 (docs/M7D_CONTRACT.md §1.5 (b)): 「今日」's rect goes with the old canvas, as in `show` and `eraseAllInk`.
-                revealRect = nil
+                // MUTATION R2 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, OnePageRevealTests): 1.3's form
+                // again, the line that forgets the rect is taken out here.
                 selection = nil
                 viewport = .zero // the new canvas reports its own viewport next turn (`show`)
                 relayout()
