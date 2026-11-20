@@ -2013,7 +2013,9 @@ struct CalendarRootScreen: View {
         }
         let strokes = selection.ids.compactMap { onePage.page.strokes[$0] }
         // 1.4 (docs/M7D_CONTRACT.md §4.5): at the window's scale (the iPhone Duo's two screens may differ).
-        let snapshot = InkSnapshot.render(strokes: strokes, cells: layout.cells, scale: displayScale)
+        // MUTATION S1 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, SnapshotScaleTests): 1.3's call again,
+        // without the window's scale (the frozen default, the main screen's).
+        let snapshot = InkSnapshot.render(strokes: strokes, cells: layout.cells)
         openCreate(range: range, snapshot: snapshot, inkIds: selection.ids)
     }
 
