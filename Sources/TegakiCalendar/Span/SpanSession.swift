@@ -1081,7 +1081,9 @@ final class SpanSession: ObservableObject {
     func redecide(orientation: SpanOrientation, paperArea: CGSize? = nil) -> Bool {
         guard !isClosed else { return false }
         drainInbox()
-        let overviewCap = overviewCapNow.map { overviewCapAsked && $0() } ?? self.overviewCap
+        // MUTATION W2 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, WindowClassTests): the window decided anew
+        // does not read the window of now; it keeps the cap it had (was: the hook's answer within what was asked).
+        let overviewCap = self.overviewCap
         let next = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation, overviewCap: overviewCap)
         let wide = max(1, Self.windowRadius(plan: next, paperArea: paperArea))
         let decided = rebuild(around: focusIndex, plan: next, radius: fittingRadius(wide, plan: next, focus: focusIndex), change: .redecide)
