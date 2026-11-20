@@ -272,6 +272,94 @@ R には、11 組（en-US・zh-Hans・zh-Hant・ko・fr-FR・de-DE・it・pt-BR�
 
 `lint.py`（L-1〜L-14。L-9 は 12 ロケールで ok）・`build.py --check`・`baseline.py --check` は、この記録の後の字で 3 つとも終了 0 です。
 
+### 1.4 の店の文（新機能の文の行・審査メモの 1.4 の段・SUPPORT の Duo の文、2026-11-20）
+
+元は 3 つです。(1) 新機能の文の 5 つの行（[M7D_CONTRACT.md](../M7D_CONTRACT.md) §8.1 の行 1 案 A・行 1 案 B・行 2・行 3・行 4。条件で使う行を選び、この順に並べる）と、その 11 組の訳（役 X、`docs/store/PROPOSALS_1_4.md` §1、10c504a）。(2) 審査メモ `docs/store/review-note.txt` の「What is new in 1.4」の段と、条件で替わる英語の文（(2) の案 B、確かめ方の任意の案、(3) の 2 つ目の文の替え文。役 N、`PROPOSALS_1_4.md` §3、e123b4c）。日本語の元は契約 §8.3 と、審査メモの日本語の要約です。(3) `docs/SUPPORT.en.md` の Duo の文（案 A・案 B）と Apple Pencil の文（条件が満ちたときだけ入れる。まだ入れていない）。日本語の元は契約 §8.4 と `docs/SUPPORT.md` の同じ文です。
+
+R には、訳の字（`PROPOSALS_1_4.md` §1 の「訳」の欄の 11 組 × 5 行）と N の英語の文だけを渡し、日本語の元・§1.0 の訳の決まり・行の条件・このファイルを見ずに訳し戻してもらいました。判定は、訳を書いた Claude（X・N）とも R とも別の Claude（J）が、逆翻訳と日本語の元を照らしたものです。母語の人の確認ではありません。逆翻訳の全文と R の注は `docs/i18n/back/store-1_4.md` にあります（行ごとに作った文なので、ロケールごとのファイルに節を足さず、1 つにまとめました）。en-GB・en-AU・en-CA は en-US、fr-CA は fr-FR の写しです（`locales.json` の `copyOf`）。訳についての 1 行は 1.3 と同じ字（上の「1.3 の新機能の文と審査メモ」で ○）なので、R に渡していません。
+
+判定は 1.3 と同じ **○**（同じ意味）／**△**（言い回しの差。意味は同じ）／**×**（意味の違い、または元に無い読みを招く。直す）です。とくに、(i) 無い改善や確かめていない動きを言っていないか（契約 §8.1、R1_2_2.md:694）、(ii) K-8 の句（古い版の端末での見え方。契約 §5.2 で 1.4 は入れない）が無いか、(iii)「指でも書く」がアプリの `toolbar.fingerToggle` の訳と同じ字か、を見ました。
+
+**1 回目は × 6 件でした。** どれも行 1 案 A の 2 つ目の文で、es-ES・es-MX・fr-FR・it・pt-BR・pt-PT です。「中断なく」（sin interrupciones・sans interruption・senza interruzioni・sem interrupção。R の注でも、元に無い語として挙がった）が、開閉の間も書くことが途切れないと読めます。元の「そのまま書き続けられます」は、開いても閉じても同じページと線のまま続けて書けることで、書きながら閉じたときに書きかけの 1 本が消えることがある（契約 §4.9 の 3、確かめ表の行 25）のと食い違いません。「中断なく」はそれと食い違い、(i) の無い改善を言うことになるので × にしました。pt-BR・pt-PT は、加えて「Ao abrir ou fechar o dispositivo」（開いたり閉じたりするとき）が開閉の最中と読まれました。6 件は J が直し（下の「× と直した訳」）、直した字だけを 2 回目の R に渡します。**2 回目の結果はまだです。** ほかの行と、審査メモ・SUPPORT の文は × 0 で、直した字はありません。(ii) と (iii) に当たる字は、1 回目から 0 件です。
+
+結果（1 回目）:
+
+| 言語 | ○ | △ | × |
+| --- | --- | --- | --- |
+| en-US（en-GB・en-AU・en-CA も） | 4 | 1 | 0 |
+| de-DE | 4 | 1 | 0 |
+| es-ES | 3 | 1 | 1 |
+| es-MX | 3 | 1 | 1 |
+| fr-FR（fr-CA も） | 3 | 1 | 1 |
+| it | 3 | 1 | 1 |
+| ko | 4 | 1 | 0 |
+| pt-BR | 3 | 1 | 1 |
+| pt-PT | 3 | 1 | 1 |
+| zh-Hans | 4 | 1 | 0 |
+| zh-Hant | 3 | 2 | 0 |
+| 新機能の文の計（11 組 × 5 行） | 37 | 12 | 6 |
+| en の審査メモ（1.4 の段 5 つと、条件で替わる文 3 つ） | 5 | 3 | 0 |
+| en の SUPPORT（Duo の文の 2 案と Apple Pencil の文） | 3 | 0 | 0 |
+
+機械で照らしたこと（J。直した後の字で）:
+
+- 行 2 の「指でも書く」は、11 組ともアプリの `toolbar.fingerToggle` の訳と同じ字です（`tools/l10n/translations/<言語>.json`。pt-PT はアプリの pt-BR の語。`PROPOSALS_1_4.md` §2.3 の表）。審査メモと `SUPPORT.en.md` の Draw with Finger は en の訳と、`SUPPORT.md` の「指でも書く」は ja と同じ字です。
+- K-8 の句（older version・ältere・versión anterior・version précédente・versione precedente・versão anterior・이전 버전・旧版・舊版、not deleted などの「消えていない」の語）は、11 組の 5 行のどれにもありません。審査メモの 1.4 の段と SUPPORT の新しい文にもありません。
+- 「中断なく」の語（interrup・unterbrech・중단・中断・不间断 など）は、直した後の字にありません。
+- 字数: 直した 6 つで、いちばん長い組み合わせ（案 A ＋ 行 2 ＋ 行 3 ＋ 行 4）が es-ES 694 → 683、es-MX 685 → 674、fr-FR 723 → 716、it 672 → 667、pt-BR 656 → 658、pt-PT 671 → 673 になりました（`PROPOSALS_1_4.md` §2.2。数え方は L-9 と同じ）。どれも 4,000 字に入ります。既定（案 B ＋ 行 3）の字は変わりません。
+
+新機能の文（判定の並びは `PROPOSALS_1_4.md` の表の順。en-US・de-DE・es-ES・es-MX・fr-FR・it・ko・pt-BR・pt-PT・zh-Hans・zh-Hant）:
+
+| 行 | 元の日本語 | en-US | de-DE | es-ES | es-MX | fr-FR | it | ko | pt-BR | pt-PT | zh-Hans | zh-Hant | 理由・見たこと |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 行 1 案 A | ・iPhone Duo の大きな画面いっぱいに表示されるようになりました。開いても閉じても、そのまま書き続けられます。 | ○ | ○ | × | × | × | × | ○ | × | × | ○ | ○ | ○ の 5 組は「大きな画面いっぱい（全体・全画面）に表示・開いても閉じてもそのまま書き続けられる」が元と同じ。en の it は iPhone Duo と読むのが自然（R の注。アプリと読む余地は少しあるが、開いて閉じるのは端末で、閉じたのに書き続けられるとは読みにくい）。just keep writing・einfach weiterschreiben・그대로 계속・直接继续书写 は元の「そのまま」。ko の 쓰다 が「使う」とも読める（R の注）のは、どちらの読みでも開閉の後に続けられることで、元に無い事実にはならない。× の 6 組は上のとおり「中断なく」（pt-BR・pt-PT は「開いたり閉じたりするときも」も）。1 つ目の文は 11 組とも元と同じ。閉じたとき（外側の画面）の見え方を言っていない（R の全体の注）のは、元も同じ |
+| 行 1 案 B | ・iPhone Duo の大きな画面に合わせて表示するようにしました。 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | 11 組とも「iPhone Duo の大きな画面に合わせて表示（レイアウト）を調整する」。de・es・fr・it・pt は主語が「表示」（Darstellung・visualización・affichage・visualizzazione・exibição・apresentação）、en は「アプリがレイアウトを」で、どちらも元の「表示するようにしました」と同じこと。pt-PT の passa a（〜するようになる）の現在形は、1.3 の passam também a ter と同じ扱い |
+| 行 2 | ・iPhone Duo では iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | 11 組とも元と同じ。en・de・es・pt で本文の「書く」と切り替えの名前の動詞が違う（Draw・zeichnen・Dibujar・Traçar。R の注）のは、アプリの `toolbar.fingerToggle` の訳の字そのもので（契約 §8.1 の指定。画面に出る名前と同じ）、2 つ目の文もアプリの初めての案内（`onboarding.pen.text`）の訳の字。it の切り替えの名前 Scrivi（tu の命令形）と本文の Lei の違い（R の注）も同じ理由。es・it・pt-PT の主語の無い 3 人称は丁寧の形（GLOSSARY §1）で、R も人が書くと読んだ。「（iOS 27.2 以降）」が 2 つ目の文にもかかるか分からない（R の全体の注）のは、元の括弧の位置と同じ |
+| 行 3 | ・iOS 27 の新しい開発環境に移りました。iPad とほかの iPhone での使い方は変わりません。 | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | △ | 11 組とも「ほかの iPhone」が「ほかの iPhone の機種」（models・Modelle・modelos・modèles・modelli・모델・机型・機型）に戻った。Duo でない iPhone のことだと分かるように X が足した語（`PROPOSALS_1_4.md` §1.0）で、元の「ほかの iPhone」が指すものと同じ。en・de の「iOS 27 向け」（for）、de の受け身、es-MX の単純過去は言い回し。ko・zh が何を移したか書いていない（R の注）のは元も同じ |
+| 行 4 | ・中国の 2027 年の祝日を、発表された休みに合わせました。 | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | ○ | △ | 11 組とも「中国の 2027 年の祝日を、発表された休み（の日・日程）に合わせた」。en の updated to match は「合わせて更新」で同じこと。zh の 放假安排 は政府の休みの日程（振替を含む。R の注）で、元の「発表された休み」と同じ。zh-Hant の 假日 は「休日」とも読める広い語（R の注）だが、用語集（GLOSSARY §2）の zh-Hant の「祝日」の語で、アプリの「表示する祝日」（顯示的假日）と同じ字なので △ |
+
+× と直した訳（行 1 案 A。1 つ目の文は変えていない）:
+
+| ロケール | 前の字（1 回目に R が読んだ字） | 今の字（J が直した字。2 回目の R を待つ） | 1 回目の逆翻訳（2 つ目の文） | 直した所 |
+| --- | --- | --- | --- | --- |
+| es-ES・es-MX | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones. | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | それを開いても閉じても、途切れることなく書き続けられます。 | sin interrupciones（中断なく）→ sin más（そのまま・それだけで）。en の just と同じ「そのまま」の語 |
+| fr-FR（fr-CA も） | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez continuer à écrire sans interruption. | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez simplement continuer à écrire. | それを開いても閉じても、中断せずに書き続けられます。 | sans interruption を外し、simplement（そのまま）を動詞の前に |
+| it | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può continuare a scrivere senza interruzioni. | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può semplicemente continuare a scrivere. | それを開いても閉じても、中断なく書き続けられます。 | senza interruzioni を外し、semplicemente（そのまま）を動詞の前に |
+| pt-BR | • Agora o app ocupa toda a tela grande do iPhone Duo. Ao abrir ou fechar o dispositivo, você pode continuar escrevendo sem interrupção. | • Agora o app ocupa toda a tela grande do iPhone Duo. Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. | デバイスを開いたり閉じたりするときも、中断なく書き続けられます。 | sem interrupção を外し simplesmente に。Ao abrir ou fechar（開いたり閉じたりするとき）を Mesmo que … abra ou feche（開いても閉じても）に |
+| pt-PT | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Ao abrir ou fechar o dispositivo, pode continuar a escrever sem interrupção. | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. | デバイスを開いたり閉じたりするときも、中断なく書き続けられます。 | pt-BR と同じ直し（você は書かない。pt-PT の 1.3 の文と同じ） |
+
+審査メモ（en。`docs/store/review-note.txt` の「What is new in 1.4」と `PROPOSALS_1_4.md` §3 の条件で替わる文。元は契約 §8.3 の (1)〜(4)）:
+
+| 段 | 判定 | 理由・見たこと |
+| --- | --- | --- |
+| 見出し What is new in 1.4 | ○ | 「1.4 の新しい点」。1.3 の見出しと同じ形 |
+| (1) | ○ | Xcode 27.2（iOS 27.2 SDK）で作った・対応する最小の iOS は 17.0 のまま、が §8.3 (1) と日本語の要約と同じ |
+| (2) 案 A（今のファイル） | ○ | 端末の種類でなく窓の大きさで決める・Duo では内側でも外側でも画面いっぱい・開閉に追う・ページと手書きはそのまま・確かめ方（週のページを開き、開いて閉じる）が §8.3 (2) と同じ。何が調整されるか書いていない（R の注）のは、前の文の layout を受ける。the page … stay the same の 2 つの読み（R の注）は、元の「ページと手書きはそのまま」にも同じだけある。確かめ方に「iPhone Duo で」が無いのは、同じ段の Duo の話の中で the device が Duo と読めるため |
+| (3) | △ | §8.3 (3) の中身（Duo では iPad と同じ・Apple Pencil（USB-C、iOS 27.2 以降）で書き指で紙を動かす・Pencil の触れか折り目で Draw with Finger をオフ・1.3 から更新した端末は Pencil の触れだけ・機種名も窓の大きさも読まない・ツールバーのスイッチで戻せる）が全部ある。first（初めて）は §8.3 の字に無い語だが、§4.8 の決め方の表（オフへ（1 回））のとおりで、一度だけの動きという R の読みは本当の動きと同じ。Pencil が「書く」と道具が主語の形は言い回し。USB-C と iOS 27.2 以降のかかり先（R の注）は §8.3 の括弧と同じ。折り目の句が `PencilPhone.usesHinge` に左右されることは下の「決まっていないこと」 |
+| (4) | △ | 新しい画面の文は無い・データ（データの収集なし）・手書きの保存・購入・年齢区分（新しい 2 問はどちらも No）は変わらない、が §8.3 (4) と同じ。handwriting storage が「手書きの保存」と読まれ、契約の「保存先」とまでは言っていない（1.3 の Unchanged の行と同じ △。保存先は同じメモのサーバー無しの段にある）。4+ は契約 §9.5 のとおり（4+ のまま）。2 問の名前の and が重なって区切りが読みにくい（R の注）のは言い回しで、both new questions から 2 つと読まれた |
+| (2) 案 B（§3.2） | ○ | §8.3 の「案 B のときは (2) の『開閉に追う』を『幅に合わせる』に」のとおり。its width は画面の幅と読まれた（R の注）。「いっぱい」と「幅に合わせる」の重なり（R の注）は、案 B の日本語の要約（画面いっぱいに出て幅に合わせます）にも同じだけある。確かめ方が今も開閉を求める（R の注）のは訳の違いではなく、§8.3 のとおりに句だけ替えたため（N が §3.2 にリードの決めることとして書いた。下の「決まっていないこと」） |
+| 確かめ方の任意の案（§3.2） | ○ | 「内側の画面と外側の画面で週のページを開く」。§3.2 の日本語の説明と同じで、開閉の操作を言わない（R の読みのとおり）。契約に無い文なので、使うかはリードが決める |
+| (3) の 2 つ目の文の替え文（§3.4） | △ | Apple Pencil の触れを見たら Draw with Finger をオフにする、が §8.3 (3) から折り目を外した形と同じ。first は (3) と同じ扱い。that iPhone は (3) の 1 つ目の文の iPhone Duo を受ける（R は前後を見ずに読んだので「この文だけでは分からない」と書いた） |
+
+日本語の要約（R には渡していない。英語の段と照らした）: 「Xcode 27.2（iOS 27.2 SDK）で作り、対応は iOS 17.0 からのまま。」は (1) と、「レイアウトは窓の大きさで決め、iPhone Duo では内側・外側の画面いっぱいに出て開閉に追います。」は (2) 案 A と、「Duo では iPad と同じく Apple Pencil で書き、指で紙を動かします。」は (3) の 1 つ目の文と、「新しい画面の文は無し。」は (4) と同じ。後ろの「データ・購入・年齢区分は同じ。…」は 1.3 の字のまま。案 B の要約の「幅に合わせます」は (2) 案 B と同じ。(i) の無い改善と (ii) の K-8 の句は、英語にも要約にも無い。
+
+SUPPORT（en。`docs/SUPPORT.en.md` の「Can I use it on iPhone or Mac?」に足す文）:
+
+| 文 | 元の日本語 | 渡した英語 | 逆翻訳（元を見ない） | 判定 | 理由・R の注 |
+| --- | --- | --- | --- | --- | --- |
+| Duo の文 案 A（今のファイル） | iPhone Duo では、開いた大きな画面いっぱいに、閉じたときは外側の画面に合わせて表示します（1.4 から）。 | On iPhone Duo, the App fills the large screen when the device is open, and fits the outer screen when it is closed (from version 1.4). | iPhone Duo では、デバイスを開いているときは、本アプリは大きな画面いっぱいに表示されます。閉じているときは外側の画面に合わせます（バージョン 1.4 から）。 | ○ | 開いたときは大きな画面いっぱい・閉じたときは外側の画面に合わせる・1.4 から、が同じ。「バージョン」は from version 1.4 の読みで、1.3 の SUPPORT の「1.3 から」（11 で ○）と同じ形。the App は規約で決めた語「本アプリ」と読まれた（R の注。同じ文書の書き方） |
+| Duo の文 案 B（§3.2） | iPhone Duo では、画面の幅に合わせて表示します（1.4 から）。 | On iPhone Duo, the App fits the width of the screen (from version 1.4). | iPhone Duo では、本アプリは画面の幅に合わせます（バージョン 1.4 から）。 | ○ | 同じ。内側・外側のどちらの画面か言わない（R の注）のは元も同じ |
+| Apple Pencil の文（§3.3。まだ入れていない） | iPhone Duo では iPad と同じように、Apple Pencil（USB-C、iOS 27.2 以降）で書き、指で紙を動かします。指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。 | On iPhone Duo, as on iPad, you write with Apple Pencil (USB-C, iOS 27.2 or later) and move the paper with your finger. If you also want to write with your finger, turn on “Draw with Finger” in the toolbar. | iPhone Duo では、iPad と同じように、Apple Pencil（USB-C、iOS 27.2 以降）で書き、指で紙を動かします。指でも書きたい場合は、ツールバーの「Draw with Finger（指で描く）」をオンにしてください。 | ○ | 元と同じ。Draw with Finger はアプリの en の訳（`toolbar.fingerToggle`）と、同じ節の前の文の字（R の注の「書く」と「描く」の違いは行 2 と同じ扱い）。USB-C・iOS 27.2 以降のかかり先（R の注）は元の括弧と同じ |
+
+決まっていないこと（判定には入れていない）:
+
+- **行 1 案 A の直した 6 つの字**は、まだ元を見ない逆翻訳を通っていません。2 回目の R（直した字だけを渡す）の結果を `store-1_4.md` の「2 回目」とこの節に書き、× が残れば、また直して渡します。
+- **審査メモ (2) の案 B の確かめ方**（「To check: open a week page, then open and close the device.」）は、案 B（開閉を確かめられなかったとき）でも開閉を審査の人に試してもらう形です（R も「今も開閉を求めています」と挙げた）。訳の違いではないので判定は ○ のままで、替えるかは N が `PROPOSALS_1_4.md` §3.2 に書いたとおりリードが決めます。替えるときの任意の案は 1 回目で ○ なので、そのまま入れられます。
+- **審査メモ (3) の折り目の句**は、`PencilPhone.usesHinge` が false のまま出すと本当でなくなります（N の §3.4）。替え文は 1 回目で △（意味は同じ）なので、リードが決めればそのまま入れられます。
+- 母語の人に見てもらうときの候補（直さない）: en・de・es・pt の切り替えの名前の動詞（Draw・zeichnen・Dibujar・Traçar）と本文の「書く」の違い、it の切り替えの名前（tu の命令形）と本文の Lei（どれもアプリの画面の字で、変えるならアプリの訳から）、en の行 1 案 A の it の指す先、ko の 쓰다（書く・使う）、zh-Hant の 假日、審査メモ (4) の 2 問の名前の and の重なり。
+
+`lint.py`（L-1〜L-14）は、この記録の後の字で終了 0 です（`PROPOSALS_1_4.md` と `store-1_4.md` は L-9 の見る欄ではない。`review-note.txt` と SUPPORT の字はこの節で変えていない）。
+
 ## 5. 英語の 3 文書（`docs/TERMS.en.md`・`PRIVACY.en.md`・`SUPPORT.en.md`）
 
 元は日本語の 3 文書（§11.3 の T-1〜T-9・P-1〜P-4・S-1〜S-6、§10.4 の FAQ、1.1.1 の文を含む）、逆翻訳は `docs/i18n/back/legal-en.md` です。全文を節ごとに照らしました。**× は 0 件です。** 価格・試用・解約・撤回の権利（最初の契約だけ、提供が始まるとなくなることがある、手続きは Apple）・準拠法と EU の消費者の裁判所・メールの扱い（Gmail、AI）・GDPR の権利・十分性の決定の範囲は、元と同じ意味でした。

@@ -2,11 +2,11 @@
 
 **対象の版: 1.4**。ここは案で、どれもまだ Connect にも Web にも入れていない。本人の確認ページ（[M7D_CONTRACT.md](../M7D_CONTRACT.md) §9.4 の 3）で一緒に見せ、「この内容で入れてよい」をもらってから入れる。本人の「この内容で入れてよい」は、ここに書いた全部の組み合わせに効く（契約 §8.1）。どの文を使うかは、提出の前に `duo-hinge` の結果と確かめ表（契約 §10）の答えで決め、M7D.md に書く（1.3 の確認ページの「選ぶ 1」と同じ形）。
 
-§1・§2 は新機能の文（契約 §8.1・§8.2。行ごとの訳は役 X、元を見ない逆翻訳は R（§1 の表の右の欄。まだ空）、照合と判定は [docs/i18n/REVIEW.md](../i18n/REVIEW.md)）。§3 は審査メモと SUPPORT の条件で替わる文（役 N）。新機能の文は、まだ `docs/store/<ロケール>/whatsnew.txt` にも入れていない（使う行を決めたときに入れる。§2.4）。
+§1・§2 は新機能の文（契約 §8.1・§8.2。行ごとの訳は役 X、元を見ない逆翻訳は R（§1 の表の右の欄。1 回目は 2026-11-20 で、全文と R の注は [docs/i18n/back/store-1_4.md](../i18n/back/store-1_4.md)）、照合と判定は [docs/i18n/REVIEW.md](../i18n/REVIEW.md)）。§3 は審査メモと SUPPORT の条件で替わる文（役 N）。新機能の文は、まだ `docs/store/<ロケール>/whatsnew.txt` にも入れていない（使う行を決めたときに入れる。§2.4）。
 
 ## 1. 新機能の文の行と条件、行ごとの訳（役 X）
 
-使う行は 行 1 → 行 2 → 行 3 → 行 4 の順に並べ、空の行を 1 つ置いて、訳についての 1 行（ja には無い）。行 1 は案 A か案 B のどちらか 1 つ。表の右の欄は R が、日本語の元と §1.0 を見ずに書く。
+使う行は 行 1 → 行 2 → 行 3 → 行 4 の順に並べ、空の行を 1 つ置いて、訳についての 1 行（ja には無い）。行 1 は案 A か案 B のどちらか 1 つ。表の右の欄は R が、日本語の元と §1.0 を見ずに書く。右の欄の終わりの（○）（△）は役 J の判定（理由は [REVIEW.md](../i18n/REVIEW.md) の 4 の「1.4 の店の文」）。行 1 案 A の es-ES・es-MX・fr-FR・it・pt-BR・pt-PT は 1 回目で × になり、訳の欄は J が直した字（2 回目の R を待つ。§1.7）。
 
 ### 1.0 訳の決まり（X が守ったこと）
 
@@ -31,17 +31,17 @@
 | ロケール | 訳 | 元を見ない逆翻訳（R） |
 | --- | --- | --- |
 | ja（source-ja も） | ・iPhone Duo の大きな画面いっぱいに表示されるようになりました。開いても閉じても、そのまま書き続けられます。 | — |
-| en-US（en-GB・en-AU・en-CA も） | • The app now fills the large screen of iPhone Duo. Whether you open it or close it, you can just keep writing. |  |
-| de-DE | • Die App füllt jetzt den großen Bildschirm des iPhone Duo aus. Ob Sie es öffnen oder schließen, Sie können einfach weiterschreiben. |  |
-| es-ES | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones. |  |
-| es-MX | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones. |  |
-| fr-FR（fr-CA も） | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez continuer à écrire sans interruption. |  |
-| it | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può continuare a scrivere senza interruzioni. |  |
-| ko | • 이제 iPhone Duo의 큰 화면을 가득 채워 표시해요. 펼쳐도 접어도 그대로 계속 쓸 수 있어요. |  |
-| pt-BR | • Agora o app ocupa toda a tela grande do iPhone Duo. Ao abrir ou fechar o dispositivo, você pode continuar escrevendo sem interrupção. |  |
-| pt-PT | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Ao abrir ou fechar o dispositivo, pode continuar a escrever sem interrupção. |  |
-| zh-Hans | • 现在会在 iPhone Duo 的大屏幕上全屏显示。无论展开还是合上，都可以直接继续书写。 |  |
-| zh-Hant | • 現在會在 iPhone Duo 的大螢幕上全螢幕顯示。無論展開還是闔上，都可以直接繼續書寫。 |  |
+| en-US（en-GB・en-AU・en-CA も） | • The app now fills the large screen of iPhone Duo. Whether you open it or close it, you can just keep writing. | ・アプリが iPhone Duo の大きな画面いっぱいに表示されるようになりました。それを開いても閉じても、そのまま書き続けられます。（○） |
+| de-DE | • Die App füllt jetzt den großen Bildschirm des iPhone Duo aus. Ob Sie es öffnen oder schließen, Sie können einfach weiterschreiben. | ・アプリは今、iPhone Duo の大きな画面いっぱいに表示されます。それを開いても閉じても、そのまま書き続けられます。（○） |
+| es-ES | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones.」で、逆翻訳「それを開いても閉じても、途切れることなく書き続けられます。」が ×。§1.7） |
+| es-MX | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones.」で、逆翻訳「それを開いても閉じても、途切れることなく書き続けられます。」が ×。§1.7） |
+| fr-FR（fr-CA も） | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez simplement continuer à écrire. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Que vous l’ouvriez ou le fermiez, vous pouvez continuer à écrire sans interruption.」で、逆翻訳「それを開いても閉じても、中断せずに書き続けられます。」が ×。§1.7） |
+| it | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può semplicemente continuare a scrivere. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Che lo apra o lo chiuda, può continuare a scrivere senza interruzioni.」で、逆翻訳「それを開いても閉じても、中断なく書き続けられます。」が ×。§1.7） |
+| ko | • 이제 iPhone Duo의 큰 화면을 가득 채워 표시해요. 펼쳐도 접어도 그대로 계속 쓸 수 있어요. | ・これからは iPhone Duo の大きな画面いっぱいに表示します。開いても閉じても、そのまま書き続けられます。（○） |
+| pt-BR | • Agora o app ocupa toda a tela grande do iPhone Duo. Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Ao abrir ou fechar o dispositivo, você pode continuar escrevendo sem interrupção.」で、逆翻訳「デバイスを開いたり閉じたりするときも、中断なく書き続けられます。」が ×。§1.7） |
+| pt-PT | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Ao abrir ou fechar o dispositivo, pode continuar a escrever sem interrupção.」で、逆翻訳「デバイスを開いたり閉じたりするときも、中断なく書き続けられます。」が ×。§1.7） |
+| zh-Hans | • 现在会在 iPhone Duo 的大屏幕上全屏显示。无论展开还是合上，都可以直接继续书写。 | ・今後は iPhone Duo の大きな画面で全画面表示されます。広げても閉じても、そのまま書き続けられます。（○） |
+| zh-Hant | • 現在會在 iPhone Duo 的大螢幕上全螢幕顯示。無論展開還是闔上，都可以直接繼續書寫。 | ・今後は iPhone Duo の大きな画面で全画面表示されます。広げても閉じても、そのまま書き続けられます。（○） |
 
 ### 1.2 行 1 案 B
 
@@ -50,17 +50,17 @@
 | ロケール | 訳 | 元を見ない逆翻訳（R） |
 | --- | --- | --- |
 | ja（source-ja も） | ・iPhone Duo の大きな画面に合わせて表示するようにしました。 | — |
-| en-US（en-GB・en-AU・en-CA も） | • The app now adjusts its layout to the large screen of iPhone Duo. |  |
-| de-DE | • Die Darstellung passt sich jetzt an den großen Bildschirm des iPhone Duo an. |  |
-| es-ES | • Ahora la visualización se adapta a la pantalla grande del iPhone Duo. |  |
-| es-MX | • Ahora la visualización se adapta a la pantalla grande del iPhone Duo. |  |
-| fr-FR（fr-CA も） | • L’affichage s’adapte désormais au grand écran de l’iPhone Duo. |  |
-| it | • Ora la visualizzazione si adatta al grande schermo di iPhone Duo. |  |
-| ko | • iPhone Duo의 큰 화면에 맞춰 표시하도록 했어요. |  |
-| pt-BR | • Agora a exibição se adapta à tela grande do iPhone Duo. |  |
-| pt-PT | • A apresentação passa a adaptar-se ao ecrã grande do iPhone Duo. |  |
-| zh-Hans | • 现在会根据 iPhone Duo 的大屏幕调整显示。 |  |
-| zh-Hant | • 現在會配合 iPhone Duo 的大螢幕調整顯示。 |  |
+| en-US（en-GB・en-AU・en-CA も） | • The app now adjusts its layout to the large screen of iPhone Duo. | ・アプリが iPhone Duo の大きな画面に合わせてレイアウトを調整するようになりました。（○） |
+| de-DE | • Die Darstellung passt sich jetzt an den großen Bildschirm des iPhone Duo an. | ・表示が iPhone Duo の大きな画面に合わせて調整されるようになりました。（○） |
+| es-ES | • Ahora la visualización se adapta a la pantalla grande del iPhone Duo. | ・今では表示が iPhone Duo の大きな画面に合わせて調整されます。（○） |
+| es-MX | • Ahora la visualización se adapta a la pantalla grande del iPhone Duo. | ・今では表示が iPhone Duo の大きな画面に合わせて調整されます。（○） |
+| fr-FR（fr-CA も） | • L’affichage s’adapte désormais au grand écran de l’iPhone Duo. | ・これからは、表示が iPhone Duo の大きな画面に合わせて調整されます。（○） |
+| it | • Ora la visualizzazione si adatta al grande schermo di iPhone Duo. | ・今では表示が iPhone Duo の大きな画面に合わせて調整されます。（○） |
+| ko | • iPhone Duo의 큰 화면에 맞춰 표시하도록 했어요. | ・iPhone Duo の大きな画面に合わせて表示するようにしました。（○） |
+| pt-BR | • Agora a exibição se adapta à tela grande do iPhone Duo. | ・今では表示が iPhone Duo の大きな画面に合わせて調整されます。（○） |
+| pt-PT | • A apresentação passa a adaptar-se ao ecrã grande do iPhone Duo. | ・表示が iPhone Duo の大きな画面に合わせて調整されるようになります。（○） |
+| zh-Hans | • 现在会根据 iPhone Duo 的大屏幕调整显示。 | ・今後は iPhone Duo の大きな画面に応じて表示を調整します。（○） |
+| zh-Hant | • 現在會配合 iPhone Duo 的大螢幕調整顯示。 | ・今後は iPhone Duo の大きな画面に合わせて表示を調整します。（○） |
 
 ### 1.3 行 2
 
@@ -69,17 +69,17 @@
 | ロケール | 訳 | 元を見ない逆翻訳（R） |
 | --- | --- | --- |
 | ja（source-ja も） | ・iPhone Duo では iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。 | — |
-| en-US（en-GB・en-AU・en-CA も） | • On iPhone Duo, as on iPad, you write with Apple Pencil and move the paper with your finger (iOS 27.2 or later). To also write with your finger, turn on “Draw with Finger” in the toolbar. |  |
-| de-DE | • Auf dem iPhone Duo schreiben Sie wie auf dem iPad mit dem Apple Pencil und bewegen das Papier mit dem Finger (ab iOS 27.2). Um auch mit dem Finger zu schreiben, aktivieren Sie „Mit Finger zeichnen“ in der Werkzeugleiste. |  |
-| es-ES | • En el iPhone Duo, igual que en el iPad, escribe con el Apple Pencil y mueve el papel con el dedo (iOS 27.2 o posterior). Para escribir también con el dedo, active “Dibujar con el dedo” en la barra de herramientas. |  |
-| es-MX | • En el iPhone Duo, igual que en el iPad, escribe con el Apple Pencil y mueve el papel con el dedo (iOS 27.2 o posterior). Para escribir también con el dedo, active “Dibujar con el dedo” en la barra de herramientas. |  |
-| fr-FR（fr-CA も） | • Sur l’iPhone Duo, comme sur l’iPad, vous écrivez avec l’Apple Pencil et déplacez le papier avec le doigt (iOS 27.2 ou version ultérieure). Pour écrire aussi avec le doigt, activez « Écrire au doigt » dans la barre d’outils. |  |
-| it | • Su iPhone Duo, come su iPad, scrive con Apple Pencil e sposta la carta con il dito (iOS 27.2 o versioni successive). Per scrivere anche con il dito, attivi “Scrivi con il dito” nella barra degli strumenti. |  |
-| ko | • iPhone Duo에서는 iPad와 마찬가지로 Apple Pencil로 쓰고, 손가락으로 종이를 움직여요(iOS 27.2 이상). 손가락으로도 쓰고 싶다면 도구 막대의 ‘손가락으로 쓰기’를 켜 주세요. |  |
-| pt-BR | • No iPhone Duo, assim como no iPad, você escreve com o Apple Pencil e move o papel com o dedo (iOS 27.2 ou posterior). Para escrever também com o dedo, ative “Traçar com o dedo” na barra de ferramentas. |  |
-| pt-PT | • No iPhone Duo, tal como no iPad, escreve com o Apple Pencil e desloca o papel com o dedo (iOS 27.2 ou posterior). Para escrever também com o dedo, ative “Traçar com o dedo” na barra de ferramentas. |  |
-| zh-Hans | • 在 iPhone Duo 上，和 iPad 一样，用 Apple Pencil 书写，用手指移动纸张（iOS 27.2 或更高版本）。如果也想用手指书写，请打开工具栏中的“用手指书写”。 |  |
-| zh-Hant | • 在 iPhone Duo 上，和 iPad 一樣，用 Apple Pencil 書寫，用手指移動紙張（iOS 27.2 或以上版本）。如果也想用手指書寫，請開啟工具列中的「用手指書寫」。 |  |
+| en-US（en-GB・en-AU・en-CA も） | • On iPhone Duo, as on iPad, you write with Apple Pencil and move the paper with your finger (iOS 27.2 or later). To also write with your finger, turn on “Draw with Finger” in the toolbar. | ・iPhone Duo では、iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書くには、ツールバーの「Draw with Finger（指で描く）」をオンにしてください。（○） |
+| de-DE | • Auf dem iPhone Duo schreiben Sie wie auf dem iPad mit dem Apple Pencil und bewegen das Papier mit dem Finger (ab iOS 27.2). Um auch mit dem Finger zu schreiben, aktivieren Sie „Mit Finger zeichnen“ in der Werkzeugleiste. | ・iPhone Duo では iPad と同じように Apple Pencil で書き、指で紙を動かします（iOS 27.2 から）。指でも書くには、ツールバーの「指で描く」をオンにしてください。（○） |
+| es-ES | • En el iPhone Duo, igual que en el iPad, escribe con el Apple Pencil y mueve el papel con el dedo (iOS 27.2 o posterior). Para escribir también con el dedo, active “Dibujar con el dedo” en la barra de herramientas. | ・iPhone Duo では、iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書くには、ツールバーの「指で描く」をオンにしてください。（○） |
+| es-MX | • En el iPhone Duo, igual que en el iPad, escribe con el Apple Pencil y mueve el papel con el dedo (iOS 27.2 o posterior). Para escribir también con el dedo, active “Dibujar con el dedo” en la barra de herramientas. | ・iPhone Duo では、iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書くには、ツールバーの「指で描く」をオンにしてください。（○） |
+| fr-FR（fr-CA も） | • Sur l’iPhone Duo, comme sur l’iPad, vous écrivez avec l’Apple Pencil et déplacez le papier avec le doigt (iOS 27.2 ou version ultérieure). Pour écrire aussi avec le doigt, activez « Écrire au doigt » dans la barre d’outils. | ・iPhone Duo では、iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書くには、ツールバーの「指で書く」をオンにしてください。（○） |
+| it | • Su iPhone Duo, come su iPad, scrive con Apple Pencil e sposta la carta con il dito (iOS 27.2 o versioni successive). Per scrivere anche con il dito, attivi “Scrivi con il dito” nella barra degli strumenti. | ・iPhone Duo では、iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書くには、ツールバーの「指で書く」をオンにしてください。（○） |
+| ko | • iPhone Duo에서는 iPad와 마찬가지로 Apple Pencil로 쓰고, 손가락으로 종이를 움직여요(iOS 27.2 이상). 손가락으로도 쓰고 싶다면 도구 막대의 ‘손가락으로 쓰기’를 켜 주세요. | ・iPhone Duo では iPad と同じように Apple Pencil で書き、指で紙を動かします（iOS 27.2 以上）。指でも書きたいなら、ツールバーの「指で書く」をオンにしてください。（○） |
+| pt-BR | • No iPhone Duo, assim como no iPad, você escreve com o Apple Pencil e move o papel com o dedo (iOS 27.2 ou posterior). Para escrever também com o dedo, ative “Traçar com o dedo” na barra de ferramentas. | ・iPhone Duo では、iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書くには、ツールバーの「指でなぞる（線を引く）」をオンにしてください。（○） |
+| pt-PT | • No iPhone Duo, tal como no iPad, escreve com o Apple Pencil e desloca o papel com o dedo (iOS 27.2 ou posterior). Para escrever também com o dedo, ative “Traçar com o dedo” na barra de ferramentas. | ・iPhone Duo では、iPad と同じように、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書くには、ツールバーの「指でなぞる（線を引く）」をオンにしてください。（○） |
+| zh-Hans | • 在 iPhone Duo 上，和 iPad 一样，用 Apple Pencil 书写，用手指移动纸张（iOS 27.2 或更高版本）。如果也想用手指书写，请打开工具栏中的“用手指书写”。 | ・iPhone Duo では、iPad と同じく、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以降）。指でも書きたい場合は、ツールバーの「指で書く」をオンにしてください。（○） |
+| zh-Hant | • 在 iPhone Duo 上，和 iPad 一樣，用 Apple Pencil 書寫，用手指移動紙張（iOS 27.2 或以上版本）。如果也想用手指書寫，請開啟工具列中的「用手指書寫」。 | ・iPhone Duo では、iPad と同じく、Apple Pencil で書き、指で紙を動かします（iOS 27.2 以上のバージョン）。指でも書きたい場合は、ツールバーの「指で書く」をオンにしてください。（○） |
 
 ### 1.4 行 3
 
@@ -88,17 +88,17 @@
 | ロケール | 訳 | 元を見ない逆翻訳（R） |
 | --- | --- | --- |
 | ja（source-ja も） | ・iOS 27 の新しい開発環境に移りました。iPad とほかの iPhone での使い方は変わりません。 | — |
-| en-US（en-GB・en-AU・en-CA も） | • The app has moved to the new development environment for iOS 27. How you use it on iPad and other iPhone models stays the same. |  |
-| de-DE | • Die App wurde auf die neue Entwicklungsumgebung für iOS 27 umgestellt. Die Bedienung auf dem iPad und auf anderen iPhone-Modellen ändert sich nicht. |  |
-| es-ES | • La app ha pasado al nuevo entorno de desarrollo de iOS 27. La forma de usarla en el iPad y en otros modelos de iPhone no cambia. |  |
-| es-MX | • La app pasó al nuevo entorno de desarrollo de iOS 27. La forma de usarla en el iPad y en otros modelos de iPhone no cambia. |  |
-| fr-FR（fr-CA も） | • L’app est passée au nouvel environnement de développement d’iOS 27. Son utilisation sur l’iPad et sur les autres modèles d’iPhone ne change pas. |  |
-| it | • L’app è passata al nuovo ambiente di sviluppo di iOS 27. L’uso su iPad e sugli altri modelli di iPhone non cambia. |  |
-| ko | • iOS 27의 새로운 개발 환경으로 옮겼어요. iPad에서도, 다른 iPhone 모델에서도 사용법은 바뀌지 않아요. |  |
-| pt-BR | • O app passou para o novo ambiente de desenvolvimento do iOS 27. O uso no iPad e em outros modelos de iPhone não muda. |  |
-| pt-PT | • A aplicação passou para o novo ambiente de desenvolvimento do iOS 27. A utilização no iPad e noutros modelos de iPhone não muda. |  |
-| zh-Hans | • 已迁移到 iOS 27 的新开发环境。在 iPad 和其他 iPhone 机型上的使用方法不变。 |  |
-| zh-Hant | • 已遷移至 iOS 27 的新開發環境。在 iPad 和其他 iPhone 機型上的使用方式不變。 |  |
+| en-US（en-GB・en-AU・en-CA も） | • The app has moved to the new development environment for iOS 27. How you use it on iPad and other iPhone models stays the same. | ・アプリは iOS 27 向けの新しい開発環境に移行しました。iPad やほかの iPhone の機種での使い方は変わりません。（△） |
+| de-DE | • Die App wurde auf die neue Entwicklungsumgebung für iOS 27 umgestellt. Die Bedienung auf dem iPad und auf anderen iPhone-Modellen ändert sich nicht. | ・アプリは iOS 27 向けの新しい開発環境に切り替えられました。iPad とほかの iPhone の機種での操作は変わりません。（△） |
+| es-ES | • La app ha pasado al nuevo entorno de desarrollo de iOS 27. La forma de usarla en el iPad y en otros modelos de iPhone no cambia. | ・アプリは iOS 27 の新しい開発環境に移行しました。iPad やほかの iPhone の機種での使い方は変わりません。（△） |
+| es-MX | • La app pasó al nuevo entorno de desarrollo de iOS 27. La forma de usarla en el iPad y en otros modelos de iPhone no cambia. | ・アプリは iOS 27 の新しい開発環境に移行しました。iPad やほかの iPhone の機種での使い方は変わりません。（△） |
+| fr-FR（fr-CA も） | • L’app est passée au nouvel environnement de développement d’iOS 27. Son utilisation sur l’iPad et sur les autres modèles d’iPhone ne change pas. | ・アプリは iOS 27 の新しい開発環境に移行しました。iPad とほかの iPhone の機種での使い方は変わりません。（△） |
+| it | • L’app è passata al nuovo ambiente di sviluppo di iOS 27. L’uso su iPad e sugli altri modelli di iPhone non cambia. | ・アプリは iOS 27 の新しい開発環境に移行しました。iPad とほかの iPhone の機種での使い方は変わりません。（△） |
+| ko | • iOS 27의 새로운 개발 환경으로 옮겼어요. iPad에서도, 다른 iPhone 모델에서도 사용법은 바뀌지 않아요. | ・iOS 27 の新しい開発環境に移しました。iPad でも、ほかの iPhone の機種でも、使い方は変わりません。（△） |
+| pt-BR | • O app passou para o novo ambiente de desenvolvimento do iOS 27. O uso no iPad e em outros modelos de iPhone não muda. | ・アプリは iOS 27 の新しい開発環境に移行しました。iPad とほかの iPhone の機種での使い方は変わりません。（△） |
+| pt-PT | • A aplicação passou para o novo ambiente de desenvolvimento do iOS 27. A utilização no iPad e noutros modelos de iPhone não muda. | ・アプリは iOS 27 の新しい開発環境に移行しました。iPad とほかの iPhone の機種での使い方は変わりません。（△） |
+| zh-Hans | • 已迁移到 iOS 27 的新开发环境。在 iPad 和其他 iPhone 机型上的使用方法不变。 | ・iOS 27 の新しい開発環境へ移行済みです。iPad やほかの iPhone の機種での使い方は変わりません。（△） |
+| zh-Hant | • 已遷移至 iOS 27 的新開發環境。在 iPad 和其他 iPhone 機型上的使用方式不變。 | ・iOS 27 の新しい開発環境へ移行済みです。iPad やほかの iPhone の機種での使い方は変わりません。（△） |
 
 ### 1.5 行 4
 
@@ -107,17 +107,17 @@
 | ロケール | 訳 | 元を見ない逆翻訳（R） |
 | --- | --- | --- |
 | ja（source-ja も） | ・中国の 2027 年の祝日を、発表された休みに合わせました。 | — |
-| en-US（en-GB・en-AU・en-CA も） | • Holidays in China for 2027 have been updated to match the announced days off. |  |
-| de-DE | • Die Feiertage in China für 2027 wurden an die bekannt gegebenen freien Tage angepasst. |  |
-| es-ES | • Los días festivos de China en 2027 se han ajustado a los días de descanso anunciados. |  |
-| es-MX | • Los días festivos de China en 2027 se ajustaron a los días de descanso anunciados. |  |
-| fr-FR（fr-CA も） | • Les jours fériés de 2027 en Chine ont été alignés sur les congés annoncés. |  |
-| it | • Le festività della Cina per il 2027 sono state allineate ai giorni di riposo annunciati. |  |
-| ko | • 중국의 2027년 공휴일을 발표된 휴무 일정에 맞췄어요. |  |
-| pt-BR | • Os feriados da China em 2027 foram ajustados de acordo com os dias de folga anunciados. |  |
-| pt-PT | • Os feriados da China em 2027 foram ajustados de acordo com os dias de descanso anunciados. |  |
-| zh-Hans | • 已按公布的放假安排调整中国 2027 年的节假日。 |  |
-| zh-Hant | • 已依公布的放假安排調整中國 2027 年的假日。 |  |
+| en-US（en-GB・en-AU・en-CA も） | • Holidays in China for 2027 have been updated to match the announced days off. | ・中国の 2027 年の祝日を、発表された休みの日に合わせて更新しました。（○） |
+| de-DE | • Die Feiertage in China für 2027 wurden an die bekannt gegebenen freien Tage angepasst. | ・2027 年の中国の祝日は、発表された休みの日に合わせて調整されました。（○） |
+| es-ES | • Los días festivos de China en 2027 se han ajustado a los días de descanso anunciados. | ・2027 年の中国の祝日を、発表された休みの日に合わせて調整しました。（○） |
+| es-MX | • Los días festivos de China en 2027 se ajustaron a los días de descanso anunciados. | ・2027 年の中国の祝日を、発表された休みの日に合わせて調整しました。（○） |
+| fr-FR（fr-CA も） | • Les jours fériés de 2027 en Chine ont été alignés sur les congés annoncés. | ・中国の 2027 年の祝日を、発表された休み（休暇）にそろえました。（○） |
+| it | • Le festività della Cina per il 2027 sono state allineate ai giorni di riposo annunciati. | ・中国の 2027 年の祝日は、発表された休みの日にそろえられました。（○） |
+| ko | • 중국의 2027년 공휴일을 발표된 휴무 일정에 맞췄어요. | ・中国の 2027 年の祝日を、発表された休み（休業）の日程に合わせました。（○） |
+| pt-BR | • Os feriados da China em 2027 foram ajustados de acordo com os dias de folga anunciados. | ・2027 年の中国の祝日は、発表された休みの日に合わせて調整されました。（○） |
+| pt-PT | • Os feriados da China em 2027 foram ajustados de acordo com os dias de descanso anunciados. | ・2027 年の中国の祝日は、発表された休息日に合わせて調整されました。（○） |
+| zh-Hans | • 已按公布的放假安排调整中国 2027 年的节假日。 | ・公表された休みの取り決め（休暇の日程）に従って、中国の 2027 年の祝日を調整しました。（○） |
+| zh-Hant | • 已依公布的放假安排調整中國 2027 年的假日。 | ・公表された休みの取り決めに従って、中国の 2027 年の休日を調整しました。（△） |
 
 ### 1.6 訳についての 1 行（ja 以外。1.3 のまま）
 
@@ -135,6 +135,23 @@
 | pt-PT | As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros. | 1.3 と同じ字（REVIEW.md の 4 で ○）。R は要らない |
 | zh-Hans | 译文由 AI 生成，尚未经过母语人士审核。如有错误，请告诉我们。 | 1.3 と同じ字（REVIEW.md の 4 で ○）。R は要らない |
 | zh-Hant | 譯文由 AI 製作，尚未經過母語人士審閱。如有錯誤，請告訴我們。 | 1.3 と同じ字（REVIEW.md の 4 で ○）。R は要らない |
+
+### 1.7 照合と判定（役 J、2026-11-20）
+
+- R の 1 回目（2026-11-20）は、§1.1〜§1.5 の「訳」の欄と §3 の英語の文だけを読んだ（日本語の元・§1.0・行の条件・§2 は渡していない）。逆翻訳の全文と R の注は [docs/i18n/back/store-1_4.md](../i18n/back/store-1_4.md)。§1 の右の欄は、その逆翻訳と J の判定。判定の理由は [REVIEW.md](../i18n/REVIEW.md) の 4 の「1.4 の店の文」。
+- 1 回目の判定: 新機能の文（11 組 × 5 行）は ○ 37・△ 12・× 6。§3 の審査メモの段と条件で替わる文は ○ 5・△ 3・× 0、SUPPORT.en の 3 文は ○ 3・× 0（直した字なし）。
+- × の 6 件は、行 1 案 A の es-ES・es-MX・fr-FR・it・pt-BR・pt-PT。2 つ目の文の「中断なく」（sin interrupciones・sans interruption・senza interruzioni・sem interrupção）が、開閉の間も書くことが途切れないと読め、書きながら閉じたときに書きかけの 1 本が消えることがある（契約 §4.9 の 3、確かめ表の行 25）のと食い違う（無い改善。契約 §8.1）。元の「そのまま」にあたる語（en の just、de の einfach と同じ）に替えた。pt-BR・pt-PT は、開閉の最中と読まれた「Ao abrir ou fechar o dispositivo」（開いたり閉じたりするとき）も、「開いても閉じても」の形にした。1 つ目の文は変えていない。
+
+| ロケール | 前の字（2 つ目の文） | 今の字（2 つ目の文） |
+| --- | --- | --- |
+| es-ES・es-MX | Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones. | Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. |
+| fr-FR（fr-CA も） | Que vous l’ouvriez ou le fermiez, vous pouvez continuer à écrire sans interruption. | Que vous l’ouvriez ou le fermiez, vous pouvez simplement continuer à écrire. |
+| it | Che lo apra o lo chiuda, può continuare a scrivere senza interruzioni. | Che lo apra o lo chiuda, può semplicemente continuare a scrivere. |
+| pt-BR | Ao abrir ou fechar o dispositivo, você pode continuar escrevendo sem interrupção. | Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. |
+| pt-PT | Ao abrir ou fechar o dispositivo, pode continuar a escrever sem interrupção. | Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. |
+
+- 直した 6 つの字（行 1 案 A の全文）だけを 2 回目の R に渡す（前の字・1 回目の逆翻訳・日本語の元は渡さない）。2 回目の結果はまだ。× が残れば、また直して渡す。
+- 直した後の字で機械で照らしたこと: 行 2 の「指でも書く」は 11 組ともアプリの `toolbar.fingerToggle` の訳と同じ字（§2.3 の表のまま）。K-8 の句（古い版の端末での見え方）と「中断なく」の語は、11 組の 5 行のどれにも無い。字数は §2.2（直した 6 つの「いちばん長い組み合わせ」を直した。どれも 4,000 字に入る）。既定の全文（§2.1。案 B ＋ 行 3）は変わらない。
 
 ## 2. 新機能の文の既定の組み合わせの全文（行 1 案 B ＋ 行 3。役 X）
 
@@ -265,7 +282,7 @@ As traduções foram feitas com IA e ainda não foram revistas por falantes nati
 
 ### 2.2 字数（上限 4,000 字）
 
-数え方は L-9（`tools/l10n/lint.py` の `store_text`）と同じで、ファイルの末尾の改行 1 つを除いた字の数（どの字も BMP の中なので、UTF-16 で数えても同じ）。いちばん長い組み合わせは 行 1 案 A ＋ 行 2 ＋ 行 3 ＋ 行 4、いちばん短いのは既定で、8 つの組み合わせはどれもその間。どのロケールも上限の 4,000 字に大きく余裕がある（1.3 の文より短い）。
+数え方は L-9（`tools/l10n/lint.py` の `store_text`）と同じで、ファイルの末尾の改行 1 つを除いた字の数（どの字も BMP の中なので、UTF-16 で数えても同じ）。いちばん長い組み合わせは 行 1 案 A ＋ 行 2 ＋ 行 3 ＋ 行 4、いちばん短いのは既定で、8 つの組み合わせはどれもその間。どのロケールも上限の 4,000 字に大きく余裕がある（1.3 の文より短い）。es-ES・es-MX・fr-FR・it・pt-BR・pt-PT のいちばん長い組み合わせは、J が行 1 案 A を直した後の字で数え直した（§1.7）。
 
 | ロケール | 既定（案 B ＋ 行 3。いちばん短い） | いちばん長い組み合わせ（案 A ＋ 行 2 ＋ 行 3 ＋ 行 4） | 上限 |
 | --- | ---: | ---: | ---: |
@@ -273,13 +290,13 @@ As traduções foram feitas com IA e ainda não foram revistas por falantes nati
 | source-ja | 134 | 293 | 4,000 |
 | en-US（en-GB・en-AU・en-CA も） | 311 | 624 | 4,000 |
 | de-DE | 349 | 715 | 4,000 |
-| es-ES | 320 | 694 | 4,000 |
-| es-MX | 314 | 685 | 4,000 |
-| fr-FR（fr-CA も） | 339 | 723 | 4,000 |
-| it | 312 | 672 | 4,000 |
+| es-ES | 320 | 683 | 4,000 |
+| es-MX | 314 | 674 | 4,000 |
+| fr-FR（fr-CA も） | 339 | 716 | 4,000 |
+| it | 312 | 667 | 4,000 |
 | ko | 151 | 325 | 4,000 |
-| pt-BR | 284 | 656 | 4,000 |
-| pt-PT | 304 | 671 | 4,000 |
+| pt-BR | 284 | 658 | 4,000 |
+| pt-PT | 304 | 673 | 4,000 |
 | zh-Hans | 113 | 256 | 4,000 |
 | zh-Hant | 113 | 256 | 4,000 |
 
@@ -309,7 +326,8 @@ As traduções foram feitas com IA e ainda não foram revistas por falantes nati
 
 ### 2.4 この後（R・リード）
 
-- R には §1 の表の「訳」の欄だけ（日本語の元と §1.0 を渡さない）。逆翻訳は `docs/i18n/back/store-<ロケール>.md` に 1.4 の節を足して書き、§1 の右の欄にも写す。照合と判定は REVIEW.md の 4 に「1.4 の新機能の文」の節を足す（× を 0 に）。
+- R の 1 回目（2026-11-20）は §1 の表の「訳」の欄と §3 の英語の文だけを読んだ（日本語の元と §1.0 は渡していない）。行ごとに作った文なので、逆翻訳はロケールごとのファイルに節を足さず、`docs/i18n/back/store-1_4.md` にまとめた。§1 の右の欄はその写しと判定。照合と判定は REVIEW.md の 4 の「1.4 の店の文」（§1.7）。
+- 行 1 案 A の直した 6 つの字は、2 回目の R（直した字だけ）を待つ。結果は `store-1_4.md` の「2 回目」と REVIEW.md の同じ節、§1 の右の欄に書く。
 - `docs/store/<ロケール>/whatsnew.txt` と `source-ja/whatsnew.txt`、`locales.json` の `whatsnewSource`、README の「新機能の文の組み立て」は、提出の前に組み合わせを決めたときに直す（今は 1.3 の字のまま）。
 
 ## 3. 審査メモと SUPPORT の、条件で替わる文（案 B と Apple Pencil の文。役 N）
@@ -318,6 +336,7 @@ As traduções foram feitas com IA e ainda não foram revistas por falantes nati
 - ファイルには**案 A を入れた**（`docs/store/review-note.txt`・`docs/SUPPORT.md`・`docs/SUPPORT.en.md`）。案 B と、条件が満ちたときだけ入れる Apple Pencil の文は、ファイルに入れずにここに置く。
 - 「指でも書く」はアプリの `toolbar.fingerToggle` の ja、「Draw with Finger」は同じキーの en の訳（`tools/l10n/translations/en.json`）と同じ字。
 - K-8 の句（古い端末での見え方）は、どの文にも入れない（契約 §5.2。1.4 は新しい欄も新しい形も無い）。
+- 元を見ない逆翻訳と判定（2026-11-20、役 R と J）: 審査メモの段と条件で替わる文（3.2・3.4 の替え文と、確かめ方の任意の案）は ○ 5・△ 3・× 0、SUPPORT.en の 3 文（3.2 の案 A・案 B と 3.3）は ○ 3・× 0。直した字は無い。逆翻訳は [docs/i18n/back/store-1_4.md](../i18n/back/store-1_4.md)、判定は [REVIEW.md](../i18n/REVIEW.md) の 4 の「1.4 の店の文」。
 
 ### 3.1 どの文を使うか
 
