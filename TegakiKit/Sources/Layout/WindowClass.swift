@@ -33,7 +33,9 @@ public enum WindowClass {
 
     /// Whether a wide window also gets the form sheet (§4.4). Decided on D1 by the inner screen's shots (the purchase sheet's
     /// EULA row and 「あとで」, the event editor's 「保存」 and 「キャンセル」 without scrolling); false until then and when the inner
-    /// screen cannot be shot (road 3, the default): every phone window keeps 1.3's `.large`.
+    /// screen cannot be shot (road 3, the default): every phone window keeps 1.3's `.large`. 1.4 D1c: false, decided — duo.yml's
+    /// run 44696154794 took road 3 (the outer screen only, 466x678, not wide); the inner screen was not shot, so neither check
+    /// was made (§4.4: 内側を撮れない（道 3、既定）なら false のまま).
     public static let formSheetOnWide: Bool = false
 
     /// Whether a sheet is a form sheet: on an iPad, or in a wide window when `formSheetOnWide`.

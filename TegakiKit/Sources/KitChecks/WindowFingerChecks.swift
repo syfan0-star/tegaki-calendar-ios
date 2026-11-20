@@ -102,8 +102,9 @@ private func windowClassChecks() {
         }
     }
 
-    // usesFormSheet: an iPad always; a wide window only when formSheetOnWide (false until D1 decides otherwise, §4.4).
-    checkEqual(WindowClass.formSheetOnWide, false, "window: formSheetOnWide is false (§4.4's default; D1 changes it with this row)")
+    // usesFormSheet: an iPad always; a wide window only when formSheetOnWide (false: 1.4 D1c kept §4.4's default, since duo.yml's
+    // run 44696154794 took road 3 and shot no inner screen; a road 1 or 2 run whose two sheet checks pass changes it with this row).
+    checkEqual(WindowClass.formSheetOnWide, false, "window: formSheetOnWide is false (§4.4: road 3, the inner screen not shot, run 44696154794)")
     let sheets: [(String, CGSize?, Bool)] = [
         ("unmeasured", nil, false), ("iPhone 17 portrait", size(402, 874), false), ("iPhone 17 landscape", size(874, 402), false),
         ("iPhone 17 Pro Max landscape", size(956, 440), false), ("Duo inner A portrait", size(669, 951), true),

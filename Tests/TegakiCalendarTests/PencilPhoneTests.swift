@@ -11,7 +11,7 @@ import XCTest
 // `InkTouchObserver` on a UIWindow) fed with stand-in touches of the Pencil, a finger and a pointer, the Pencil's lift
 // turning 「指でも書く」 off end to end (the value, the mark, the guide records of the app's own value only), the hinge's
 // answer and its 2-second fallback on a `TestSleeper` (a cancelled wait answering nothing, on a sleep that returns at
-// cancellation), no update reporting a hinge off the Duo (iOS 27.1 and later, not on Mac Catalyst; no update at all and
+// cancellation; the app's own `usesHinge`, true since 1.4 D1c, changing nothing off the Duo), no update reporting a hinge off the Duo (iOS 27.1 and later, not on Mac Catalyst; no update at all and
 // an update with a nil hinge both pass, CI run 44649291195), and no model name or kind of device read by the new files.
 // Mutations (§6, `r14-q-m1`): the glue counting a finger as a Pencil fails `testWatcherCountsEveryTouch` and
 // `testPencilLiftTurnsFingerOffEndToEnd`; the guide records always forgotten fails the latter's carried row; the screen's
@@ -483,12 +483,13 @@ final class PencilPhoneTests: XCTestCase {
 
     // MARK: The hinge (H)
 
-    /// §4.8: the hinge's answer and its fallback. With no hinge watched (`usesHinge` false, the app's until §4.2 decides it) the
-    /// answer is "no hinge" at once, so a Duo's off moved to a phone without a hinge is turned on again once. Watched, the
-    /// first update has `hingeWait` (2 s, on the injected sleep): none in time is "no hinge"; an answer in time is the answer,
-    /// and the wait then adds nothing.
+    /// §4.8: the hinge's answer and its fallback. With no hinge watched (a phone made with `usesHinge` false here; `attach`
+    /// answers the same before iOS 27.1 and on Mac Catalyst) the answer is "no hinge" at once, so a Duo's off moved to a phone
+    /// without a hinge is turned on again once. Watched, the first update has `hingeWait` (2 s, on the injected sleep): none
+    /// in time is "no hinge"; an answer in time is the answer, and the wait then adds nothing. Last, the app's own constant
+    /// (true since 1.4 D1c, §4.2's measurement) on a window off the Duo: the app's first-launch default stays on.
     func testHingeAnswerAndItsFallback() async {
-        XCTAssertFalse(PencilPhone.usesHinge, "decided by duo-shots (§4.2); until then P alone")
+        XCTAssertTrue(PencilPhone.usesHinge, "§4.2, duo.yml run 44696154794: the Duo's outer screen hinge=closed, the iPhone 17's nil")
         XCTAssertEqual(PencilPhone.hingeWait, 2)
 
         // Moved here, off (a Duo's): no hinge watched → on again, the mark this device's.
@@ -545,6 +546,35 @@ final class PencilPhoneTests: XCTestCase {
         XCTAssertEqual(log.actions, [.turnOff(rearmGuide: true)])
         XCTAssertFalse(allowFinger)
         XCTAssertFalse(AppSettings.spanGuideShown(.week))
+
+        // The app's own constant (true since 1.4 D1c) on a window off the Duo, the unit tests' simulator, as on an ordinary
+        // iPhone: the hinge is watched, and whatever comes — no update within the wait, or an update without a hinge — is
+        // "no hinge", so the first launch's default stays on, the mark and the guide records as they were (§4.8, F2: an
+        // ordinary iPhone keeps 1.3's 「指でも書く」). A hinge reported here fails it, as it fails testHingeIsNilOffTheDuo.
+        suite.removePersistentDomain(forName: suiteName)
+        AppSettings.markSpanGuideShown(.week)
+        let first = PencilPhone.launchDefault(suite, isPad: false, device: thisDevice)
+        let watched = TestSleeper()
+        (phone, log) = makePhone(usesHinge: PencilPhone.usesHinge, sleeper: watched)
+        phone.appeared(allowFinger: first.allowFinger, origin: first.origin)
+        phone.attach(to: UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 874)), isPad: false)
+        await settle()
+        #if !targetEnvironment(macCatalyst)
+        if #available(iOS 27.1, *) {
+            XCTAssertEqual(watched.recorded, [PencilPhone.hingeWait], "the hinge watched: the wait for its first update")
+        }
+        #endif
+        await watched.advance()
+        await settle()
+        let hinges = log.inputs.compactMap { input -> Bool? in
+            if case .hinge(let present) = input { return present } else { return nil }
+        }
+        XCTAssertFalse(hinges.isEmpty, "an answer: an update, or the wait's end")
+        XCTAssertFalse(hinges.contains(true), "no hinge off the Duo: \(hinges)")
+        XCTAssertEqual(log.actions, [], "nothing changes off the Duo")
+        XCTAssertTrue(allowFinger)
+        XCTAssertEqual(mark, thisDevice)
+        XCTAssertTrue(AppSettings.spanGuideShown(.week))
     }
 
     /// §2.1, §4.8: only the wait's full time is silence. A wait that another one replaces (`waitForFirstHingeUpdate`

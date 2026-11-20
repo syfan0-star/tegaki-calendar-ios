@@ -43,11 +43,14 @@ final class DuoLayoutUITests: XCTestCase {
 
     /// §4.2's answers, written here before the run that checks them (§6: the expectation is decided beforehand by §4.8's
     /// rule): `PencilPhone.usesHinge`, and for each screen whether its `duo measure:` line reads a hinge (`hinge=` other than
-    /// `nil`). 「指でも書く」 of a first launch is off where both hold, on elsewhere. Until D1's first duo-shots has measured
-    /// them `usesHinge` is false (the Pencil-only road, §4.8), so it is on on both screens; the measured answers go here in
-    /// the commit that sets `PencilPhone.usesHinge`.
-    private static let usesHinge = false
-    private static let hingeRead: [Screen: Bool] = [.outer: false, .inner: false]
+    /// `nil`). 「指でも書く」 of a first launch is off where both hold, on elsewhere. 1.4 D1c, from duo.yml's run 44696154794
+    /// (path 3): every line of the outer screen read hinge=closed and the iPhone 17's nil, so `PencilPhone.usesHinge` is true
+    /// and the outer screen reads a hinge: off there. The inner screen was not opened (path 3) and is not measured: true is
+    /// the estimate (the outer screen, with no fold of its own, reports the Duo's hinge as closed, so the inner one, the
+    /// fold's own, is expected to report it too). Its test runs only on paths 1 and 2; the lead confirms it from the first
+    /// inner `duo measure:` line (shot_checks.py checks that photo by its own measured hinge=) before setting DUO_OPEN.
+    private static let usesHinge = true
+    private static let hingeRead: [Screen: Bool] = [.outer: true, .inner: true]
 
     // MARK: - Tests
 
