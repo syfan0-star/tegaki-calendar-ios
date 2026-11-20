@@ -428,9 +428,11 @@ final class ScreenPaths: ObservableObject {
     /// request of P-B6 イ (ScreenPathsSpanTests.testEveryJoinedPlanCarriesTheCap, TESTS_1_3, reads it).
     private func makeSession(_ o: Opening, device: Device) -> SpanSession {
         openings += 1
+        // MUTATION W1 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, WindowClassTests and CappedOverviewWideTests):
+        // the window keeps the cap whatever its size (the wide window's answer is not passed; it was `device.wide`).
         return SpanSession(kind: o.kind, weekStart: o.weekStart, focus: o.focus, sync: sync, deviceClass: device.deviceClass,
                            orientation: device.orientation, number: openings, context: o.context, paperArea: o.paperArea,
-                           overviewCap: true, wideWindow: device.wide, overviewCapNow: overviewCapNow, eventSource: eventSource,
+                           overviewCap: true, wideWindow: false, overviewCapNow: overviewCapNow, eventSource: eventSource,
                            loader: { [weak self, sync, kind = o.kind, weekStart = o.weekStart] id in
                                self?.read(id, kind: kind, weekStart: weekStart) ?? sync.load(id)
                            },
