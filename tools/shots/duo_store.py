@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The iPhone Duo's App Store photos of store-shots.yml (its store-duo jobs; docs/M7D_CONTRACT.md §7.1, §7.2, §3.8; 1.4 D2).
 
-There is no reference line in tools/shots/ink_ref.tsv for these photos yet (they are new), so a photo whose sample
-handwriting was loaded but not drawn (docs/M7D.md, D0b: whole PencilKit tiles not shown, at times on the first photo
+A photo with no reference line in tools/shots/ink_ref.tsv (a new set or page; the first run, 44739084597, had none),
+and so a photo whose sample handwriting was loaded but not drawn (docs/M7D.md, D0b: whole PencilKit tiles not shown, at times on the first photo
 after a boot, at times the same tiles at every launch on one host) could pass unseen. Three guards, none of them silent:
 
   1. In the job (the shots step, with tools/shots/ink_check.swift): a photo whose name has a line in ink_ref.tsv is
@@ -70,9 +70,15 @@ MIN_COUNT = 20                       # and that median is at least this (ink_che
 # 2,000 px or more, 95 % at 1,500–2,000, 68 % at 1,000–1,500 and 7–8 % at 300–1,000 (what is missed sits on tiles where
 # the languages differ). The outer screen's paper is 13 % narrower than that screen's, its noise likely smaller too, but
 # not measured: no Duo photo with the store handwriting had been taken (duo.yml does not pass --screenshot-store-ink).
-# `across` prints the largest shortfall of the photos that pass; after the first run, compare it with this and set this
-# again from the Duo's 60. A photo failed here that is complete (looked at) is cleared by adding its line of its job's
-# ink-ref.tsv to tools/shots/ink_ref.tsv (then its job checks it against that line, and this does not fail it).
+# On the Duo (run 44739084597, all 60 photos looked at and complete, docs/M7D.md D2): 4 complete photos failed here,
+# 1436–1881 px short (zh-Hans, zh-Hant and ko 02-month, pt-BR 00-span), and the largest pass was 1007 px (ja 02-month).
+# Nearly all of it lies in tile rows 6–7, the paper's own heading inside PAPER (from 273): the month's weekday names
+# (one character in zh and ko, three letters in Latin languages) and the joined week's day numbers (pt-BR's columns,
+# 32.7 pt, take the sparse every-other-day heading). So this does not sit above the Duo's noise. It is left as it is:
+# the 60 photos' lines are in tools/shots/ink_ref.tsv (mode "ref" in the job, never failed here), and a set or page
+# without lines fails here only after a look at it. A photo failed here that is complete (looked at) is cleared by
+# adding its line of its job's ink-ref.tsv to tools/shots/ink_ref.tsv (then its job checks it against that line, and
+# this does not fail it).
 MIN_SHORT = 1200
 BLACK_MEAN = 10.0                    # tools/duo/shot_checks.py's black (§3.8; the self-test checks that it is the same)
 MACOS_LOSSES = re.compile(r"27\.2(\.|$)")  # the runner's macOS of D0b's losses (docs/M7D.md, D0b: image 20261119)
