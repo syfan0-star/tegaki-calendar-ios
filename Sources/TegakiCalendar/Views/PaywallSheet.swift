@@ -233,7 +233,7 @@ struct PaywallSheet: View {
             page
             ScrollView {
                 page
-            }
+            }.scrollDisabled(true) // MUTATION U3 (r14-duo-m1, never merged): the purchase sheet's column cannot scroll; was }
         }
         .presentationDragIndicator(.visible)
         .manageSubscriptionsSheet(isPresented: $showManage)
