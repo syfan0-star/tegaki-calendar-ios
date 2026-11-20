@@ -275,10 +275,21 @@ final class Real13LedgerTests: XCTestCase {
         XCTAssertEqual(engine.snapshot.status, .synced)
     }
 
+    /// Wakes the engine's sleeps until none is left. 1.3's debounce sleeps again when another save came during its
+    /// sleep (`scheduleDebouncedPush`: the generation moved on), so a window that saves two or more pages needs a
+    /// second wake before the push; one wake left those pages dirty (r14-q-m1 run 44725911787, compat-v1.0).
     private func flushDebounce() async {
         await engine.waitUntilIdle()
-        await sleeper.advance()
-        await engine.waitUntilIdle()
+        var wakes = 0
+        while sleeper.waiting > 0 {
+            wakes += 1
+            guard wakes <= 8 else {
+                XCTFail("the engine still sleeps after 8 wakes (sleeps so far: \(sleeper.recorded))")
+                return
+            }
+            await sleeper.advance()
+            await engine.waitUntilIdle()
+        }
     }
 
     /// A record as another 1.3 device sends it: the fixture's own bytes as the page body.
