@@ -42,6 +42,10 @@ final class Real13LedgerTests: XCTestCase {
     private var mismatches: [String] = []
     private var savedOnFault: ((String) -> Void)!
     private var savedOnPageMismatch: ((String) -> Void)!
+    // MUTATION R13a, R13b (r14-q-m1 only, never merged): the two mutations act while this is true. The two testM1Baseline
+    // tests set it false and run the same two tests on the fixtures as committed, so the same run shows them pass on 1.3
+    // beside the two mutated ones (no CI run had shown Real13LedgerTests green before r14-q-m1).
+    private var m1Mutate = true
 
     /// The time the engine and the sessions read; moved on between windows (the 30 s cooldown of the window fetch).
     private final class Clock {
@@ -162,11 +166,14 @@ final class Real13LedgerTests: XCTestCase {
 
     // MARK: - 1. What the 1.3 ledger draws, and its save on the one-page path
 
+    // MUTATION R13b's baseline (r14-q-m1 only, never merged): the same test without the mutation; it must pass.
+    func testM1BaselineThe13LedgerDrawsOnlyItsOwnCells() throws { m1Mutate = false; try testThe13LedgerDrawsOnlyItsOwnCells() }
+
     func testThe13LedgerDrawsOnlyItsOwnCells() throws {
         // MUTATION R13b (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §5.3 6): this test's copy of the fixture
         // w-2026-12-14 lacks one grid stroke (its bytes made again from the page without it), so 1.3 draws 3, not 4.
         let copies = try fixtures().map { fixture -> Fixture in
-            guard fixture.name == "w-2026-12-14.week-memo.json" else { return fixture }
+            guard m1Mutate, fixture.name == "w-2026-12-14.week-memo.json" else { return fixture }
             var page = try InkPageCodec.decode(fixture.data)
             XCTAssertNotNil(page.strokes.removeValue(forKey: "6e2b8d4f-5a7c-4e9b-8d1f-4b5c6d7e8f95"), "the copy loses a stroke")
             let data = try InkPageCodec.encode(page)
@@ -385,12 +392,18 @@ final class Real13LedgerTests: XCTestCase {
         let orientation: SpanOrientation
     }
 
+    // MUTATION R13a's baseline (r14-q-m1 only, never merged): the same test without the mutation; it must pass.
+    func testM1BaselineJoinedWindowsOn13KeepEveryPageByteForByte() async throws {
+        m1Mutate = false // MUTATION R13a's baseline
+        try await testJoinedWindowsOn13KeepEveryPageByteForByte()
+    }
+
     func testJoinedWindowsOn13KeepEveryPageByteForByte() async throws {
         // MUTATION R13a (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §5.3 6): in this test's copy of the fixture
         // w-2026-12-14 the first grid stroke's cell is the prefixed window name "w-2026-12-14|grid".
         let all = try fixtures().map { fixture -> Fixture in
             var text = String(decoding: fixture.data, as: UTF8.self)
-            guard fixture.name == "w-2026-12-14.week-memo.json", let cell = text.range(of: "\"cell\":\"grid\"") else { return fixture }
+            guard m1Mutate, fixture.name == "w-2026-12-14.week-memo.json", let cell = text.range(of: "\"cell\":\"grid\"") else { return fixture }
             text.replaceSubrange(cell, with: "\"cell\":\"w-2026-12-14|grid\"")
             return Fixture(name: fixture.name, shape: fixture.shape, data: Data(text.utf8), json: try JSONValue.parse(Data(text.utf8)))
         }
