@@ -140,10 +140,11 @@ final class ExportBuilderTests: XCTestCase {
     /// The PDF bytes without the fields CoreGraphics derives from the clock (`/CreationDate`,
     /// `/ModDate` and the trailer's `/ID`), so two renders of the same content compare equal
     /// whatever the second they ran in. ISO Latin 1 maps every byte to one character, so nothing
-    /// else changes.
+    /// else changes. Any whitespace, a newline included, may stand between a key and its value:
+    /// iOS 27.2's Quartz writes `/ModDate\n(D:…)` (1.4 D0b, probe run 44659376399; docs/M7D.md "D0b").
     private static func stableBytes(_ data: Data) -> Data {
         guard var text = String(data: data, encoding: .isoLatin1) else { return data }
-        for pattern in ["/CreationDate \\(D:[^)]*\\)", "/ModDate \\(D:[^)]*\\)", "/ID \\[[^\\]]*\\]"] {
+        for pattern in ["/CreationDate\\s*\\(D:[^)]*\\)", "/ModDate\\s*\\(D:[^)]*\\)", "/ID\\s*\\[[^\\]]*\\]"] {
             text = text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
         }
         return text.data(using: .isoLatin1) ?? data

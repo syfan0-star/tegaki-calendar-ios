@@ -34,6 +34,14 @@
 # so the copy has them as they are; so has the pinch hint's second take. Some `if:` hold `env.QUICK != 'true'`
 # (build.yml's quick lane): QUICK is never set here, so they hold. Only the photo that docs/M7D.md lists beforehand may
 # differ between 1.4's photos and this reference (ipad13-portrait-sheet-info.png, the version).
+# 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f), (g); docs/M7D.md, D0b), in the same words as 1.4's build.yml: (f) each photo's
+# demo handwriting is checked (tools/shots/ink_check.swift against tools/shots/ink_ref.tsv, with tools/shots/ink_retake.sh,
+# all three read from the pushed commit) and a photo whose handwriting is short is taken again with the same launch and
+# wait, at most twice, the take with the fewest pixels short staying (the sheets are checked only; every result is a line
+# of shots/ink.txt), and (g) the iPhone's landscape photos are turned by 270° only when the PNG is taller than wide (the
+# iOS 27.2 simulator writes them in landscape already). A complete photo is taken as before. Outside the photo steps, the
+# same two steps as build.yml: "Build the handwriting check in the background" before them (so no swiftc runs beside
+# the first photos in one workflow only) and "The app logs' reach" after "Store listing set" (L6 of D0b).
 #
 # Known (docs/M7B.md, C1): the 13-inch iPad is booted just before its photos (the unit tests run on
 # another simulator), and in 2 of 3 runs of 1.0.1 the system banner "Ready for Apple Intelligence"
@@ -79,7 +87,15 @@ jobs:
     # 7.7 + 5.5, the other devices 35.2). No tests run here. 90 leaves room for a slow boot or a slow device; a job
     # cut by its limit would not reach the upload, and J-4's baseline would have to be taken again the same UTC day.
     # 1.4: kept at 90 (955fe67's steps add at most two late pinch hints; the new image's first boot is slower, §3.8).
-    timeout-minutes: 90
+    # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): 90 → 130. On the image of D0's first build-and-test
+    # (run 44632524223, 20261119.0378.1) the same photo steps took 16.6 min for the 13-inch (photos, sheets and log;
+    # 10.3 in 1.3's run 44474759145) and 17.5–20.4 min for each other device (8.0–12.1), with a `simctl boot` of
+    # 4.7–10.6 min, and the first boot of the 13-inch took 12–15. Here that is about 6 (to the build) + 13 (the first
+    # boot) + 16.6 + 75 (the four devices) + 3 (the store set and the upload) ≈ 114 min; 130 keeps about 16 over it, so
+    # a slow image still reaches the upload (build.yml's build-and-test: 110 → 160 in the same commit). The photos'
+    # handwriting retakes (§3.5 (f), tools/shots/ink_retake.sh) can add about 9.5 more at that pace when many photos are
+    # short, which leaves about 6.5.
+    timeout-minutes: 130
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -94,7 +110,7 @@ jobs:
 
     steps:
       # The pushed commit: tools/l10n/ja-baseline-ref-1.4.txt, tools/ci/install-xcodegen.sh and tools/shots/screen_ready.swift
-      # are read from it.
+      # are read from it (1.4 D0b: also tools/shots/ink_check.swift, ink_ref.tsv and ink_retake.sh).
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -326,6 +342,25 @@ jobs:
           fi
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): tools/shots/ink_check.swift, the photo steps' handwriting
+      # check, is built here, in the background while the simulator boots, so that its swiftc (in ja-baseline.yml the job's
+      # first for macOS, almost 2 min on the SDK's modules) does not run beside the 13-inch photos' 120 s wait and first
+      # photos in one workflow and not in the other (J-4: the same conditions). `ink_build` (tools/shots/ink_retake.sh)
+      # waits for it and builds the tool itself when this build is missing or failed. The same step in build.yml and
+      # ja-baseline.yml, read from the pushed commit. Never fails the job.
+      - name: Build the handwriting check in the background (1.4 D0b)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/ink_check.build"
+          mkdir -p "$OUT"
+          # Its own stdin, stdout and stderr, so this step ends at once; the status file appears only when swiftc has ended.
+          nohup /bin/sh -c 'swiftc -O "$1" -o "$2/ink_check" > "$2/log" 2>&1; echo "$?" > "$2/status.part"; mv "$2/status.part" "$2/status"' \
+            sh "$GITHUB_WORKSPACE/tools/shots/ink_check.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
+          echo "$!" > "$OUT/pid"
+          echo "swiftc of tools/shots/ink_check.swift started in the background (pid $(cat "$OUT/pid"))"
+
       # ---- Screenshots of the running app (best effort; never fails the job) ----
       # 1.2 (docs/M7B_CONTRACT.md §1.3 J-4, §7.5, 0-25): every launch of these steps ends with $JA_ARGS and
       # the steps write shots/env.txt. (In this file: the steps of 955fe67's build.yml with 1.4's changes (a)–(e) in the
@@ -476,6 +511,16 @@ jobs:
           } >> shots/env.txt || echo "::warning::env.txt: the lines of 1.4 could not all be written"
           sim_env ipad13 "$UDID" >> shots/env.txt || echo "::warning::no runtime line for ipad13"
           cat shots/env.txt || true
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): in D0 (run 44632524223) photos of the image 20261119
+          # lacked part of their demo handwriting (whole PencilKit tiles not shown). Each photo is checked with
+          # tools/shots/ink_check.swift (built by "Build the handwriting check in the background", else here) against its
+          # line in tools/shots/ink_ref.tsv; a photo whose handwriting is short is taken again with the same launch and wait
+          # (ink_retake), at most twice, and then the take with the fewest pixels short stays, with a warning (a notice when
+          # a retake is complete; no more takes again after 3 such photos of a device, or 180 s of them in a step). A complete
+          # photo is kept as before (same arguments and waits). Every result is a line of shots/ink.txt
+          # (tools/shots/ink_retake.sh). Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
           # docs/M7B.md (FIX3), docs/M7B_CONTRACT.md §12.6: a first launch after the install compiles PencilKit's
           # 34 Metal shaders (the next launches none). In run 42013415033 that took until 19 s after the launch,
           # so the month photo of 8 s had no handwriting. And a freshly booted simulator posts the banner "Ready
@@ -491,6 +536,7 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE.png"
+            ink_retake "shots/ipad13-portrait-$PAGE.png" "ipad13-portrait-$PAGE.png" 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" $JA_ARGS
           done
           # page|offset: month lu (400, 200) → the Wed–Sat columns from the second half of the 10/5 week;
           # week (300, 700) → Tue–Sat from 8:45 (the band's lanes grow past zoom 0.818, §1.6);
@@ -503,6 +549,7 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page, zoom 2; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE-zoom2.png"
+            ink_retake "shots/ipad13-portrait-$PAGE-zoom2.png" "ipad13-portrait-$PAGE-zoom2.png" 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-zoom 2 --screenshot-offset "$OFFSET" $JA_ARGS
           done
           xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
           sleep 1
@@ -510,6 +557,7 @@ jobs:
           sleep 8
           pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (month page, read only; crashed?)"
           xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-readonly.png"
+          ink_retake shots/ipad13-portrait-readonly.png ipad13-portrait-readonly.png 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-readonly $JA_ARGS
           for SPEC in "toolbar-collapsed|--screenshot-page month --screenshot-toolbar collapsed" \
                       "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
                       "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
@@ -523,8 +571,11 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($SHOT; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$SHOT.png"
+            ink_retake "shots/ipad13-portrait-$SHOT.png" "ipad13-portrait-$SHOT.png" 8 --screenshot-mode --screenshot-month 2026-10 $ARGS $JA_ARGS
           done
           # The pinch hint, last as before (the comment above the step: kept when written within the toast's 20 s).
+          # 1.4 D0b (§3.5 (f)): and with its handwriting complete (ink_hint); after 2 takes the better one stays (in time
+          # first, then fewer pixels short; two late complete takes: the second, as before).
           HINT_SECONDS=20
           for TAKE in 1 2; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -535,13 +586,17 @@ jobs:
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (pinch-hint; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-pinch-hint.png"
             TOOK=$(( $(date +%s) - LAUNCHED ))
-            if [ "$TOOK" -le "$HINT_SECONDS" ]; then
+            if ink_hint shots/ipad13-portrait-pinch-hint.png ipad13-portrait-pinch-hint.png "$TAKE" "$TOOK" "$HINT_SECONDS"; then
               echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), inside the toast's ${HINT_SECONDS} s"
               break
             fi
-            echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), after the toast's ${HINT_SECONDS} s"
+            if [ "$TOOK" -le "$HINT_SECONDS" ]; then
+              echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), inside the toast's ${HINT_SECONDS} s, its handwriting short"
+            else
+              echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), after the toast's ${HINT_SECONDS} s"
+            fi
             if [ "$TAKE" = 2 ]; then
-              echo "::warning::ipad13-portrait-pinch-hint.png was written more than ${HINT_SECONDS} s after its launch twice; the toast may be missing from it (J-4)."
+              echo "::warning::ipad13-portrait-pinch-hint.png was written more than ${HINT_SECONDS} s after its launch, or with its handwriting short, twice; the toast or some handwriting may be missing from it (J-4)."
             fi
           done
           ls -la shots
@@ -643,6 +698,15 @@ jobs:
                 break
               fi
             done
+          done
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): the sheets' handwriting is checked and written into
+          # shots/ink.txt, but a sheet is not taken again (its frame is screen_ready's); of the 11 only the lasso's has a line
+          # in tools/shots/ink_ref.tsv. Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
+          for SHEET in create edit lasso settings sync import paywall export info holidays week-start; do
+            ink_read "shots/ipad13-portrait-sheet-$SHEET.png" "ipad13-portrait-sheet-$SHEET.png" 1
+            [ "$INK_STATUS" != 1 ] || echo "::warning::ipad13-portrait-sheet-$SHEET.png: its handwriting is short ($INK_SHORT px); a sheet is not taken again."
           done
           ls -la shots
 
@@ -746,6 +810,11 @@ jobs:
           '
           }
           xcrun simctl shutdown "$PRIMARY" || true
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b; the 13-inch step says why): `shoot` checks each photo's
+          # handwriting and takes a short one again, at most twice (ink_retake); the hint, ink_hint. Not the first round of the
+          # four pages (INK_SKIP: taken again at the end). INK_STALE counts per device. Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
           # device-id | exact first choice | prefix fallbacks (in order)
           for SPEC in "iphone|iPhone 17|iPhone 17,iPhone" \
                       "iphone69|iPhone 18 Pro Max|iPhone 18 Pro Max,iPhone 17 Pro Max" \
@@ -787,6 +856,7 @@ jobs:
             if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID (docs/M7D_CONTRACT.md §3.2); the job fails at \"The simulators used are the table's\"."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
+            INK_STALE=0
             sim_env "$ID" "$UDID" >> shots/env.txt || echo "::warning::no runtime line for $ID"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
@@ -810,22 +880,31 @@ jobs:
               # none in the prototype's span-shots, removed in S6, which read the whole list). An app not in the list, or no list, still warns.
               xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
+              ink_retake "shots/$FILE" "$FILE" 9 --screenshot-mode "$@" $JA_ARGS
             }
             # 1.3 (docs/M7C.md, wave C1's lead decision 6; the 13-inch step's comment): the pinch hint's toast is up for 20 s
             # from half a second after the canvas appeared. A photo written more than 20 s after its launch is taken once more;
             # a second late one stays, with a warning. A photo taken in time is `shoot`'s, as before.
+            # 1.4 D0b (§3.5 (f)): kept also only with its handwriting complete (ink_hint, not shoot's ink_retake); after 2 takes
+            # the better one stays (in time first, then fewer pixels short; two late complete takes: the second, as before).
             hint_shot() {  # hint_shot <file> <launch args…>
               local TAKE TOOK
               for TAKE in 1 2; do
+                INK_SKIP=1
                 shoot "$@"
+                INK_SKIP=0
                 TOOK=$(( $(date +%s) - SHOT_LAUNCHED ))
-                if [ "$TOOK" -le 20 ]; then
+                if ink_hint "shots/$1" "$1" "$TAKE" "$TOOK" 20; then
                   echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), inside the toast's 20 s"
                   return 0
                 fi
-                echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), after the toast's 20 s"
+                if [ "$TOOK" -le 20 ]; then
+                  echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), inside the toast's 20 s, its handwriting short"
+                else
+                  echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), after the toast's 20 s"
+                fi
               done
-              echo "::warning::$1 was written more than 20 s after its launch twice; the toast may be missing from it (J-4)."
+              echo "::warning::$1 was written more than 20 s after its launch, or with its handwriting short, twice; the toast or some handwriting may be missing from it (J-4)."
             }
             # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s
             # after the boot ("Ready for Apple Intelligence" — run 39034481760 caught it on
@@ -834,9 +913,11 @@ jobs:
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
             sleep 40
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            INK_SKIP=1   # 1.4 D0b: these four are taken again below; their handwriting is checked there
             for PAGE in month week day year; do
               shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
             done
+            INK_SKIP=0
             if [ "$ID" = "ipad11" ]; then
               # M5-32: the day page's title 「2026年10月7日(水)」 must stay on one line next to the lock-only badge.
               shoot "$ID-portrait-readonly.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-readonly
@@ -885,8 +966,15 @@ jobs:
               # The simulator's framebuffer stays portrait (only the app's interface turned), so the
               # landscape shots come out rotated by 90°; stand them up. When the request was ignored
               # (header still two rows) they end up sideways instead, which is the tell.
+              # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (g); docs/M7D.md, D0b): the iOS 27.2 simulator writes them in landscape
+              # already (D0, run 44632524223: 2622x1206, turned by 270° they stood sideways), so only a PNG taller than wide
+              # is turned. Same lines in both workflows.
               for f in shots/"$ID"-landscape-*.png; do
-                [ -f "$f" ] && { sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"; }
+                [ -f "$f" ] || continue
+                TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$f" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+                if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ]; then
+                  sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"
+                fi
               done
             fi
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -960,6 +1048,23 @@ jobs:
           ls -la shots/store/*
 
       # ---- End of the steps of build.yml ----
+
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5, §3.8; docs/M7D.md, D0b): the reach of the app logs the photo steps took with
+      # `log show` (shots/app-log.txt of the 13-inch, shots/<id>-log.txt of the other devices); on the iOS 27 simulators
+      # `log show` gives the app's NSLog lines as "<compose failure …>" (D0, run 44632524223). The same step as build.yml's,
+      # after "Store listing set", so the photo steps stay word for word the same as there (J-4). Warns only
+      # (tools/ci/log-reach.sh, from the pushed commit).
+      - name: The app logs' reach (1.4 D0b)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          set -uo pipefail
+          REACH="$GITHUB_WORKSPACE/tools/ci/log-reach.sh"
+          bash "$REACH" "13-inch iPad (log show)" shots/app-log.txt 'toolbar: paperArea=' 'l10n: ui=' || true
+          for ID in iphone iphone69 ipadmini ipad11; do
+            bash "$REACH" "$ID (log show)" "shots/$ID-log.txt" 'toolbar: paperArea=' || true
+          done
 
       # What the run made, on the run's summary page.
       - name: Summary

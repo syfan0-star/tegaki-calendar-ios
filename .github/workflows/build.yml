@@ -110,7 +110,19 @@ jobs:
     # the slowest, as the old limit kept about that over the old steps.
     # 1.4 (docs/M7D_CONTRACT.md §3.3 9): 90 → 110 for D0. 1.3's last run (44474759145) took 72.2 min, and a simulator's
     # first boot on the new image takes minutes ([S4]); D0 measures it, and D1 brings the limit back if there is room.
-    timeout-minutes: 110
+    # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): 110 → 160. D0 (run 44632524223, image
+    # 20261119.0378.1) was cut by 110 in the photos of the other devices, the iPad mini's 8th photo, and the iPad Air
+    # 11-inch not begun. Measured there (1.3's 44474759145 in brackets): up to the unit tests 6.4 min (5.6), the unit
+    # tests 25.2 (10.5; 15.0 of it from "Testing started" to the test host, the 13-inch's first boot inside xcodebuild
+    # with a 120 s lockdown time-out, 3.1 in 1.3), "Boot the simulator" 5.2 (2.9), the 13-inch's photos, sheets and log
+    # 16.6 (10.3), each other device 17.5–20.4 (8.0–12.1; its `simctl boot` alone 4.7–10.6, 0.6–0.8). At that pace the
+    # job is 6.4 + 25.2 + 9.4 (the repeated sync tests, skipped in D0 after the red unit tests: 5.7 in 1.3, its boot
+    # slower) + 5.7 + 16.6 + 75 (the four devices) + 2.7 (the store set, the upload, the check) ≈ 141 min; 160 keeps
+    # about 19 over it, as 1.3's 90 kept 18 over its slowest. The photos' handwriting retakes (§3.5 (f),
+    # tools/shots/ink_retake.sh) can add about 9.5 more at that pace when many photos are short (180 s a step and the
+    # takes under way, the pinch hints' second takes), which leaves about 9.5. D1 brings it back when the runs measure
+    # less (§3.3 9).
+    timeout-minutes: 160
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -267,6 +279,28 @@ jobs:
               out.write("".join(o.split("=", 1)[1] for o in outputs))
           sys.exit(1 if failed else 0)
           EOF
+
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.8: the first boot on the new image takes minutes; docs/M7D.md, D0b): in D0 (run
+      # 44632524223) the unit tests' xcodebuild booted the 13-inch iPad itself, 15.0 min from "Testing started" to the
+      # test host (3.1 in 44474759145), with "unable to connect to com.apple.instruments.deviceservice.lockdown - timed
+      # out after 120 seconds" in it. So it starts booting here and boots while the macOS steps and the iOS build run
+      # (6.2 min in D0), when no simulator is in use; "Run unit tests on the simulator" waits for it. Only this one
+      # device: a second simulator beside the unit tests or the photos would share the runner's 3 cores and 7 GB (§3.1)
+      # with them and change the photos' conditions (J-4). The status file appears only when the boot has ended
+      # ("<bootstatus's exit status> <seconds>"). Never fails the job: when this boot fails, the unit test step boots
+      # the device as before. Before the photos the iPad is shut down again ("Shut down the 13-inch iPad before the
+      # photos"), so they are taken on a fresh boot as until D0 and in ja-baseline.yml.
+      - name: Boot the 13-inch iPad in the background (1.4)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/ipad13-boot"
+          mkdir -p "$OUT"
+          # Its own stdin, stdout and stderr, so this step ends at once (as "Build the sheets' screen check in the background").
+          nohup /bin/sh -c 'START=$(date +%s); xcrun simctl bootstatus "$1" -b > "$2/log" 2>&1; S=$?; echo "$S $(( $(date +%s) - START ))" > "$2/status.part"; mv "$2/status.part" "$2/status"' \
+            sh "${{ steps.required.outputs.ipad13 }}" "$OUT" < /dev/null > /dev/null 2>&1 &
+          echo "$!" > "$OUT/pid"
+          echo "the 13-inch iPad (${{ steps.required.outputs.ipad13 }}) boots in the background (pid $(cat "$OUT/pid"))"
 
       # The pure modules (TegakiKit: DayKit / Holidays / Layout / InkModel) build and test on macOS
       # itself, before anything touches the Simulator. KitChecks is the same check set that runs on
@@ -614,6 +648,29 @@ jobs:
             done
             echo "the quick lane: the app's unit tests are only$ONLY"
           fi
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): the boot started by "Boot the 13-inch iPad in the
+          # background" is waited for (at most 20 min; D0's first boot took 12–15 inside xcodebuild) and its time
+          # printed for docs/M7D.md. Only when it ended well, `bootstatus -b` checks the iPad (it returns at once).
+          # Otherwise xcodebuild boots it itself, as until D0, with its own time-outs (this step has no limit of its
+          # own, so nothing here waits on a boot without a bound): a boot that has not ended after 20 min is stopped
+          # and the iPad shut down first.
+          BOOT="$RUNNER_TEMP/ipad13-boot"
+          for _ in $(seq 1 240); do
+            if [ -f "$BOOT/status" ] || [ ! -f "$BOOT/pid" ]; then break; fi
+            sleep 5
+          done
+          BOOTED="$(cat "$BOOT/status" 2>/dev/null || true)"
+          echo "the 13-inch iPad's background boot: ${BOOTED:-none or not ended} (bootstatus's exit status, seconds)"
+          if [ "${BOOTED%% *}" = "0" ]; then
+            xcrun simctl bootstatus "${{ steps.required.outputs.ipad13 }}" -b > /dev/null \
+              || echo "::warning::bootstatus -b failed for the 13-inch iPad; xcodebuild boots it itself, as until D0."
+          elif [ -f "$BOOT/pid" ]; then
+            if [ -z "$BOOTED" ]; then
+              kill "$(cat "$BOOT/pid")" 2>/dev/null || true
+              xcrun simctl shutdown "${{ steps.required.outputs.ipad13 }}" > /dev/null 2>&1 || true
+            fi
+            echo "::warning::the 13-inch iPad's background boot did not end well (${BOOTED:-not ended after 20 min; stopped, the iPad shut down}); xcodebuild boots it itself, as until D0."
+          fi
           # $ONLY unquoted on purpose: one word per class (none has a space), nothing when it is empty.
           TEST_RUNNER_TEGAKI_FIXTURE_OUT="$PWD/shots/fixtures" xcodebuild \
             -project TegakiCalendar.xcodeproj \
@@ -677,9 +734,17 @@ jobs:
       # G4: SyncEngineZoneAccountTests (a zone gone, a record gone or a change token expired, and 「全て消す」,
       # confirm the account first) are repeated with them.
       # 1.4 (docs/M7D_CONTRACT.md §3.2): on the unit tests' simulator, by its UDID.
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): 9 → 14. In 1.3's run (44474759145) the step took
+      # 5.7 min with a boot of the 13-inch in it: xcodebuild leaves the iPad shut down after its tests ("Boot the
+      # simulator" after this step found it off and took 2.9 min; in D0, right after the unit tests, its `simctl boot`
+      # alone took 4.4). D0 skipped this step (the unit tests were red); at D0's pace, a 5.2 min boot and (5.7 − 2.9) ×
+      # 1.5 of tests, it is about 9.4 min, over 9. 14 keeps about half again, as 9 did over 1.3's 5.7. Measured again in
+      # D0b; D1 brings it back with the job's limit. (Since the 13-inch boots in the background with simctl, xcodebuild
+      # may leave it running after the unit tests and this step may not boot it; "Shut down the 13-inch iPad before the
+      # photos" below shuts it down either way.)
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
-        timeout-minutes: 9
+        timeout-minutes: 14
         run: |
           set -euo pipefail
           ITERATIONS=20
@@ -749,6 +814,23 @@ jobs:
           done
           exit "$LOST"
 
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5, §3.8; docs/M7D.md, D0b): until D0 xcodebuild booted the 13-inch iPad for the
+      # unit tests and the repeated sync tests and shut it down after each ("Boot the simulator" found it off: 2.9 min in
+      # 1.3's run 44474759145, 4.4 in D0's 44632524223), so the J-4 photos were taken on a fresh boot, as ja-baseline.yml's
+      # are. Since "Boot the 13-inch iPad in the background" booted it with simctl, xcodebuild may leave it running (not
+      # verified). It is shut down here, so the photo steps (the same as ja-baseline.yml's) boot it again as before.
+      # Never fails the job; "Unable to shutdown device in current state: Shutdown" only means xcodebuild had done it.
+      - name: Shut down the 13-inch iPad before the photos (1.4 D0b)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          set -uo pipefail
+          UDID="${{ steps.required.outputs.ipad13 }}"
+          xcrun simctl list devices | grep -F "$UDID" || true
+          xcrun simctl shutdown "$UDID" || true
+          xcrun simctl list devices | grep -F "$UDID" || true
+
       # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4): the 11 sheets' wait (the 13-inch step below) runs
       # tools/shots/screen_ready.swift, and the job's first swiftc for macOS spends almost 2 min on the SDK's modules
       # (1.9 of that step's 4.6 min in run 43325447350, which built the tool in the step; 2.3 min with the fixed 9 s,
@@ -769,6 +851,25 @@ jobs:
             sh "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
           echo "$!" > "$OUT/pid"
           echo "swiftc of tools/shots/screen_ready.swift started in the background (pid $(cat "$OUT/pid"))"
+
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): tools/shots/ink_check.swift, the photo steps' handwriting
+      # check, is built here, in the background while the simulator boots, so that its swiftc (in ja-baseline.yml the job's
+      # first for macOS, almost 2 min on the SDK's modules) does not run beside the 13-inch photos' 120 s wait and first
+      # photos in one workflow and not in the other (J-4: the same conditions). `ink_build` (tools/shots/ink_retake.sh)
+      # waits for it and builds the tool itself when this build is missing or failed. The same step in build.yml and
+      # ja-baseline.yml, read from the pushed commit. Never fails the job.
+      - name: Build the handwriting check in the background (1.4 D0b)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/ink_check.build"
+          mkdir -p "$OUT"
+          # Its own stdin, stdout and stderr, so this step ends at once; the status file appears only when swiftc has ended.
+          nohup /bin/sh -c 'swiftc -O "$1" -o "$2/ink_check" > "$2/log" 2>&1; echo "$?" > "$2/status.part"; mv "$2/status.part" "$2/status"' \
+            sh "$GITHUB_WORKSPACE/tools/shots/ink_check.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
+          echo "$!" > "$OUT/pid"
+          echo "swiftc of tools/shots/ink_check.swift started in the background (pid $(cat "$OUT/pid"))"
 
       # ---- Screenshots of the running app (best effort; never fails the job) ----
       # 1.2 (docs/M7B_CONTRACT.md §1.3 J-4, §7.5, 0-25): every launch of these steps ends with $JA_ARGS and
@@ -928,6 +1029,16 @@ jobs:
           } >> shots/env.txt || echo "::warning::env.txt: the lines of 1.4 could not all be written"
           sim_env ipad13 "$UDID" >> shots/env.txt || echo "::warning::no runtime line for ipad13"
           cat shots/env.txt || true
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): in D0 (run 44632524223) photos of the image 20261119
+          # lacked part of their demo handwriting (whole PencilKit tiles not shown). Each photo is checked with
+          # tools/shots/ink_check.swift (built by "Build the handwriting check in the background", else here) against its
+          # line in tools/shots/ink_ref.tsv; a photo whose handwriting is short is taken again with the same launch and wait
+          # (ink_retake), at most twice, and then the take with the fewest pixels short stays, with a warning (a notice when
+          # a retake is complete; no more takes again after 3 such photos of a device, or 180 s of them in a step). A complete
+          # photo is kept as before (same arguments and waits). Every result is a line of shots/ink.txt
+          # (tools/shots/ink_retake.sh). Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
           # docs/M7B.md (FIX3), docs/M7B_CONTRACT.md §12.6: a first launch after the install compiles PencilKit's
           # 34 Metal shaders (the next launches none). In run 42013415033 that took until 19 s after the launch,
           # so the month photo of 8 s had no handwriting. And a freshly booted simulator posts the banner "Ready
@@ -943,6 +1054,7 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE.png"
+            ink_retake "shots/ipad13-portrait-$PAGE.png" "ipad13-portrait-$PAGE.png" 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" $JA_ARGS
           done
           # page|offset: month lu (400, 200) → the Wed–Sat columns from the second half of the 10/5 week;
           # week (300, 700) → Tue–Sat from 8:45 (the band's lanes grow past zoom 0.818, §1.6);
@@ -955,6 +1067,7 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page, zoom 2; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE-zoom2.png"
+            ink_retake "shots/ipad13-portrait-$PAGE-zoom2.png" "ipad13-portrait-$PAGE-zoom2.png" 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-zoom 2 --screenshot-offset "$OFFSET" $JA_ARGS
           done
           xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
           sleep 1
@@ -962,6 +1075,7 @@ jobs:
           sleep 8
           pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (month page, read only; crashed?)"
           xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-readonly.png"
+          ink_retake shots/ipad13-portrait-readonly.png ipad13-portrait-readonly.png 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-readonly $JA_ARGS
           for SPEC in "toolbar-collapsed|--screenshot-page month --screenshot-toolbar collapsed" \
                       "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
                       "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
@@ -975,8 +1089,11 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($SHOT; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$SHOT.png"
+            ink_retake "shots/ipad13-portrait-$SHOT.png" "ipad13-portrait-$SHOT.png" 8 --screenshot-mode --screenshot-month 2026-10 $ARGS $JA_ARGS
           done
           # The pinch hint, last as before (the comment above the step: kept when written within the toast's 20 s).
+          # 1.4 D0b (§3.5 (f)): and with its handwriting complete (ink_hint); after 2 takes the better one stays (in time
+          # first, then fewer pixels short; two late complete takes: the second, as before).
           HINT_SECONDS=20
           for TAKE in 1 2; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -987,13 +1104,17 @@ jobs:
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (pinch-hint; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-pinch-hint.png"
             TOOK=$(( $(date +%s) - LAUNCHED ))
-            if [ "$TOOK" -le "$HINT_SECONDS" ]; then
+            if ink_hint shots/ipad13-portrait-pinch-hint.png ipad13-portrait-pinch-hint.png "$TAKE" "$TOOK" "$HINT_SECONDS"; then
               echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), inside the toast's ${HINT_SECONDS} s"
               break
             fi
-            echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), after the toast's ${HINT_SECONDS} s"
+            if [ "$TOOK" -le "$HINT_SECONDS" ]; then
+              echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), inside the toast's ${HINT_SECONDS} s, its handwriting short"
+            else
+              echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), after the toast's ${HINT_SECONDS} s"
+            fi
             if [ "$TAKE" = 2 ]; then
-              echo "::warning::ipad13-portrait-pinch-hint.png was written more than ${HINT_SECONDS} s after its launch twice; the toast may be missing from it (J-4)."
+              echo "::warning::ipad13-portrait-pinch-hint.png was written more than ${HINT_SECONDS} s after its launch, or with its handwriting short, twice; the toast or some handwriting may be missing from it (J-4)."
             fi
           done
           ls -la shots
@@ -1095,6 +1216,15 @@ jobs:
                 break
               fi
             done
+          done
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): the sheets' handwriting is checked and written into
+          # shots/ink.txt, but a sheet is not taken again (its frame is screen_ready's); of the 11 only the lasso's has a line
+          # in tools/shots/ink_ref.tsv. Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
+          for SHEET in create edit lasso settings sync import paywall export info holidays week-start; do
+            ink_read "shots/ipad13-portrait-sheet-$SHEET.png" "ipad13-portrait-sheet-$SHEET.png" 1
+            [ "$INK_STATUS" != 1 ] || echo "::warning::ipad13-portrait-sheet-$SHEET.png: its handwriting is short ($INK_SHORT px); a sheet is not taken again."
           done
           ls -la shots
 
@@ -1198,6 +1328,11 @@ jobs:
           '
           }
           xcrun simctl shutdown "$PRIMARY" || true
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b; the 13-inch step says why): `shoot` checks each photo's
+          # handwriting and takes a short one again, at most twice (ink_retake); the hint, ink_hint. Not the first round of the
+          # four pages (INK_SKIP: taken again at the end). INK_STALE counts per device. Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
           # device-id | exact first choice | prefix fallbacks (in order)
           for SPEC in "iphone|iPhone 17|iPhone 17,iPhone" \
                       "iphone69|iPhone 18 Pro Max|iPhone 18 Pro Max,iPhone 17 Pro Max" \
@@ -1239,6 +1374,7 @@ jobs:
             if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID (docs/M7D_CONTRACT.md §3.2); the job fails at \"The simulators used are the table's\"."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
+            INK_STALE=0
             sim_env "$ID" "$UDID" >> shots/env.txt || echo "::warning::no runtime line for $ID"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
@@ -1262,22 +1398,31 @@ jobs:
               # none in the prototype's span-shots, removed in S6, which read the whole list). An app not in the list, or no list, still warns.
               xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
+              ink_retake "shots/$FILE" "$FILE" 9 --screenshot-mode "$@" $JA_ARGS
             }
             # 1.3 (docs/M7C.md, wave C1's lead decision 6; the 13-inch step's comment): the pinch hint's toast is up for 20 s
             # from half a second after the canvas appeared. A photo written more than 20 s after its launch is taken once more;
             # a second late one stays, with a warning. A photo taken in time is `shoot`'s, as before.
+            # 1.4 D0b (§3.5 (f)): kept also only with its handwriting complete (ink_hint, not shoot's ink_retake); after 2 takes
+            # the better one stays (in time first, then fewer pixels short; two late complete takes: the second, as before).
             hint_shot() {  # hint_shot <file> <launch args…>
               local TAKE TOOK
               for TAKE in 1 2; do
+                INK_SKIP=1
                 shoot "$@"
+                INK_SKIP=0
                 TOOK=$(( $(date +%s) - SHOT_LAUNCHED ))
-                if [ "$TOOK" -le 20 ]; then
+                if ink_hint "shots/$1" "$1" "$TAKE" "$TOOK" 20; then
                   echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), inside the toast's 20 s"
                   return 0
                 fi
-                echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), after the toast's 20 s"
+                if [ "$TOOK" -le 20 ]; then
+                  echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), inside the toast's 20 s, its handwriting short"
+                else
+                  echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), after the toast's 20 s"
+                fi
               done
-              echo "::warning::$1 was written more than 20 s after its launch twice; the toast may be missing from it (J-4)."
+              echo "::warning::$1 was written more than 20 s after its launch, or with its handwriting short, twice; the toast or some handwriting may be missing from it (J-4)."
             }
             # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s
             # after the boot ("Ready for Apple Intelligence" — run 39034481760 caught it on
@@ -1286,9 +1431,11 @@ jobs:
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
             sleep 40
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            INK_SKIP=1   # 1.4 D0b: these four are taken again below; their handwriting is checked there
             for PAGE in month week day year; do
               shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
             done
+            INK_SKIP=0
             if [ "$ID" = "ipad11" ]; then
               # M5-32: the day page's title 「2026年10月7日(水)」 must stay on one line next to the lock-only badge.
               shoot "$ID-portrait-readonly.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-readonly
@@ -1337,8 +1484,15 @@ jobs:
               # The simulator's framebuffer stays portrait (only the app's interface turned), so the
               # landscape shots come out rotated by 90°; stand them up. When the request was ignored
               # (header still two rows) they end up sideways instead, which is the tell.
+              # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (g); docs/M7D.md, D0b): the iOS 27.2 simulator writes them in landscape
+              # already (D0, run 44632524223: 2622x1206, turned by 270° they stood sideways), so only a PNG taller than wide
+              # is turned. Same lines in both workflows.
               for f in shots/"$ID"-landscape-*.png; do
-                [ -f "$f" ] && { sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"; }
+                [ -f "$f" ] || continue
+                TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$f" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+                if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ]; then
+                  sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"
+                fi
               done
             fi
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -1410,6 +1564,26 @@ jobs:
           store ipad11   03-day      ipad11-portrait-day
           store ipad11   04-year     ipad11-portrait-year
           ls -la shots/store/*
+
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5, §3.8; docs/M7D.md, D0b): the reach of the app logs the photo steps took with
+      # `log show` (shots/app-log.txt of the 13-inch, shots/<id>-log.txt of the other devices). On the iOS 27 simulators
+      # `log show` gives the app's NSLog lines as "<compose failure …>" (D0, run 44632524223: no `toolbar: paperArea=`
+      # line in any of them, 18–52 in 1.3's run 44474759145), and those steps only show what they find. The check is a
+      # step of its own, after "Store listing set", so the photo steps stay word for word those of ja-baseline.yml (J-4,
+      # §3.5) and how they launch the app does not change. Warns only (tools/ci/log-reach.sh). ja-baseline.yml has the
+      # same step (the script from $GITHUB_WORKSPACE, the pushed commit: ja-baseline.yml's steps run in the reference
+      # commit's tree).
+      - name: The app logs' reach (1.4 D0b)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          set -uo pipefail
+          REACH="$GITHUB_WORKSPACE/tools/ci/log-reach.sh"
+          bash "$REACH" "13-inch iPad (log show)" shots/app-log.txt 'toolbar: paperArea=' 'l10n: ui=' || true
+          for ID in iphone iphone69 ipadmini ipad11; do
+            bash "$REACH" "$ID (log show)" "shots/$ID-log.txt" 'toolbar: paperArea=' || true
+          done
 
       - name: Upload screenshots
         if: ${{ always() && env.QUICK != 'true' }}
@@ -2355,6 +2529,15 @@ jobs:
             echo "::warning::TegakiCalendar.app not found under build/DerivedData; no shots."
             exit 0
           fi
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b; build-and-test's 13-inch photo step says why): `shoot`
+          # checks each photo's handwriting (tools/shots/ink_check.swift against tools/shots/ink_ref.tsv, whose lines of this
+          # job are named <folder>/<file>) and takes a short one again with the same launch and wait, at most twice; then the
+          # take with the fewest pixels short stays, with a warning (a notice when a retake is complete; no more takes again
+          # after 3 such photos of a device, or 180 s of them in this step). Every result is a line of shots/l10n/ink.txt
+          # (tools/shots/ink_retake.sh). INK_STALE counts per device.
+          INK_LOG="$OUT/ink.txt"
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
           # language|region (docs/M7B_CONTRACT.md §7.5)
           LANGS="en|en_US zh-Hans|zh_CN zh-Hant|zh_TW ko|ko_KR fr|fr_FR de|de_DE it|it_IT es|es_MX pt-BR|pt_BR"
           lang_args() {  # the launch arguments of a language: it, its region, that region's holidays and week start
@@ -2379,6 +2562,7 @@ jobs:
             # none in the prototype's span-shots, removed in S6, which read the whole list). An app not in the list, or no list, still warns.
             xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FOLDER/$FILE)"
             xcrun simctl io "$UDID" screenshot "$OUT/$FOLDER/$FILE" || echo "::warning::screenshot failed ($FOLDER/$FILE)"
+            ink_retake "$OUT/$FOLDER/$FILE" "$FOLDER/$FILE" 9 --screenshot-mode --screenshot-month 2026-10 "$@"
           }
           # device-id | exact first choice | prefix fallbacks (in order)
           for SPEC in "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13" \
@@ -2418,6 +2602,7 @@ jobs:
             if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID (docs/M7D_CONTRACT.md §3.2); the job fails at \"The simulators used are the table's\"."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
+            INK_STALE=0
             sim_env "$ID" "$UDID" >> "$OUT/env.txt" || echo "::warning::no runtime line for $ID"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
@@ -2477,7 +2662,14 @@ jobs:
             sleep 12
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             echo "== $ID: $NAME" >> "$LOG"
+            FROM="$(wc -l < "$LOG" | tr -d ' ')"
             xcrun simctl spawn "$UDID" log show --last 40m --style compact --predicate 'process == "TegakiCalendar"' >> "$LOG" 2>&1 || true
+            # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): this device's part of the log, its reach (on the
+            # iOS 27 simulators `log show` gives the app's NSLog lines as "<compose failure …>", and the counts of the
+            # next step, whose expected value is 0, then pass without a sign) and its `l10n: holidays loaded` lines
+            # (tools/ci/log-reach.sh).
+            tail -n "+$((FROM + 1))" "$LOG" > "$RUNNER_TEMP/l10n-log-$ID.txt" || true
+            bash tools/ci/log-reach.sh "l10n-shots $ID (log show, its part of $LOG)" "$RUNNER_TEMP/l10n-log-$ID.txt" 'l10n: holidays loaded' || true
             xcrun simctl shutdown "$UDID" || true
           done
           find "$OUT" -name '*.png' | sort
@@ -2507,6 +2699,11 @@ jobs:
           [ "$PHOTOS" = "63" ] || echo "::warning::$PHOTOS photos, 63 expected."
           [ "$MISSING" = "0" ] || echo "::warning::$MISSING keys the app did not find (l10n: missing)."
           [ "${NOT_LOCALIZED:-0}" = "0" ] || echo "::warning::$NOT_LOCALIZED non-localized lines of the app's bundle."
+          # 1.4 D0b (docs/M7D.md, D0b): without the app's lines (on the iOS 27 simulators `log show` gives its NSLog
+          # lines as "<compose failure …>") both counts above are 0, the expected value; the holidays' line is in every
+          # launch's log.
+          COMPOSE="$({ grep -c '<compose failure' "$LOG" || true; } | head -n 1)"
+          [ -n "$HOLIDAYS" ] || echo "::warning::no \`l10n: holidays loaded\` line in $LOG (${COMPOSE:-0} lines log show could not compose): the two counts above did not reach the app's lines."
           {
             echo "### l10n-shots"
             echo ""
@@ -2514,6 +2711,7 @@ jobs:
             echo "- keys the app did not find (\`l10n: missing\`): $MISSING (0 expected)"
             echo "- non-localized lines of the app's bundle: ${NOT_LOCALIZED:-0} (0 expected)"
             echo "- the slowest \`l10n: holidays loaded\`: ${HOLIDAYS:-none}"
+            echo "- lines \`log show\` could not compose (\`<compose failure …>\`, 1.4 D0b): ${COMPOSE:-0} (0 expected)"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the shots
@@ -2583,12 +2781,17 @@ jobs:
   # at most 1 for a slow first test), so 24–36 min for the four. The shots stop after 46 min, which
   # leaves the upload inside the 55. 36 was too short: run 80 (fix-1-1-1) was stopped while booting the
   # last device, the owner's iPad Air 11-inch, and took 33 of the 43 photos.
+  # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): the same in D0 (run 44632524223, image
+  # 20261104.0337.1): the step hit its 46 min 3.6 min after choosing the iPad Air 11-inch, with 33 of the 43 photos, and
+  # the job stayed green. The devices took 11.5 (iPhone 18 Pro Max), 18.1 (13-inch) and 13.2 min (mini) against 1.3's
+  # 11.9, 8.9 and 8.8 (run 44474759145); the 11-inch's 9.3 at 1.5–2 times is 14–19, so the four take about 42.8 + 19 ≈
+  # 62 min. The shots stop after 70 (8 over it) and the job after 80 (the rest took 6.1 in D0, the upload 2.9 of it).
   blank-paper:
     name: Blank paper shots (1.1.1)
     if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 55
+    timeout-minutes: 80
     continue-on-error: true
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -2762,7 +2965,7 @@ jobs:
       # owner's iPad Air 11-inch (820 × 1180); the first job's ipad11 photos stay the iPad Pro 11-inch.
       # If no PNG arrived, the attachments are taken out of the result bundle instead.
       - name: Shots on four devices
-        timeout-minutes: 46
+        timeout-minutes: 70
         continue-on-error: true
         run: |
           set -uo pipefail
@@ -2937,7 +3140,8 @@ jobs:
   #     be 7,920 lu tall (the probe's `ph`: the 24 hours and the memo's 6,000), and the gates step fails unless there are 4.
   # XCUIScreenshot cuts a screen turned with XCUIDevice (blank-paper's landscape photos of run 43584152837: a third of the
   # screen, sideways), so the test asks this job for those photos: it writes a request into $RUNNER_TEMP, and `watch_photos`
-  # answers with `simctl io screenshot`, stood up with `sips -r 270` as the first job's iPhone landscape photos are.
+  # answers with `simctl io screenshot`, stood up with `sips -r 270` as the first job's iPhone landscape photos are (1.4
+  # D0b: as there, only a PNG taller than wide; the iOS 27.2 simulator writes it in landscape already).
   # The test's lines for the job are in shots/span-app/lines/<device>.txt (not read from xcodebuild's output, where an app's
   # log line can cut one, as in the prototype's span-shots job, removed in S6). Then the neighbour ink's PDF (ScreenPathsSpanTests'
   # testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage writes it with TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT; `sips` makes a
@@ -2965,12 +3169,19 @@ jobs:
   # on each of 2 devices (each waits at most 45 s for its path; SpanShotsUITests.weekMemo), about 2–4 min; the four
   # devices took 44.8 min in r13-w-s5w-screen 44260458163 just before it. Its first runs are measured in docs/M7C.md; past
   # 60 min the limit is looked at again.
+  # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): the four devices' step 65 → 80 and the job 90 → 110.
+  # 1.3's step took 45.8 min (run 44474759145). In D0 (run 44632524223) the iPad Air 11-inch kept 1.3's pace (9:47 from
+  # choosing it to "Running tests", 9:21 in 1.3) until XCUITest's "Setting device orientation to Portrait" hung; the
+  # other jobs on xcode-27 took 1.11–1.19 times 1.3's (l10n-shots, ui-tests) and blank-paper about 1.5. At 1.2 the step
+  # is 55 min, and one watchdog stop with its one more run (the step below) adds about 25: 10 of silence, 1 to end
+  # xcodebuild, 5 to boot the device again, 1 for the banner, 8 for the four tests, so 80. The job: 80 + 1.3's other
+  # steps (20.1 min, the languages 15.5 of it) × 1.2 ≈ 104, so 110.
   span-shots-app:
     name: span-shots (1.3 app)
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 90
+    timeout-minutes: 110
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -3148,7 +3359,7 @@ jobs:
       # the other devices have had their turn.
       - name: Shots on four devices (SpanShotsUITests)
         id: devices
-        timeout-minutes: 65
+        timeout-minutes: 80
         run: |
           set -uo pipefail
           OUT="$PWD/shots/span-app"
@@ -3192,7 +3403,19 @@ jobs:
                 ANSWER=failed
                 if [ -n "$FILE" ] && mkdir -p "$(dirname "$OUT/$FILE")" && xcrun simctl io "$1" screenshot "$OUT/$FILE" > /dev/null 2>&1; then
                   ANSWER=ok
-                  if [ -n "$TURN" ] && ! sips -r "$TURN" "$OUT/$FILE" > /dev/null 2>&1; then ANSWER=failed; fi
+                  # 1.4 D0b (docs/M7D.md, D0b; the rule of docs/M7D_CONTRACT.md §3.5 (g)): the iOS 27.2 simulator writes a
+                  # turned screen's photo in landscape already (D0, run 44632524223: turned by the test's 270° the iPad Air
+                  # 11-inch's landscape margin photos came out 1640x2360, and span_margin cannot count them), so the photo
+                  # is turned only when the PNG is taller than wide (until iOS 26 it always was); a PNG whose size cannot be
+                  # read is a failed photo, as a failed turn was. The test's request (SpanShotsUITests.swift, frozen in
+                  # TESTS_1_3) still says 270.
+                  if [ -n "$TURN" ]; then
+                    TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$OUT/$FILE" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+                    case "$TURN_SIZE" in
+                      ''|"0 "*|*" 0") ANSWER=failed ;;
+                      *) if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ] && ! sips -r "$TURN" "$OUT/$FILE" > /dev/null 2>&1; then ANSWER=failed; fi ;;
+                    esac
+                  fi
                 fi
                 echo "the photo $FILE for the test: $ANSWER"
                 echo "$ANSWER" > "$REQ.done.part"
@@ -3248,7 +3471,31 @@ jobs:
             xcrun simctl ui "$UDID" appearance light || true
             xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
             sleep 60
-            run_shots() {  # run_shots <result bundle suffix>: the four tests on $UDID, the photo watcher beside them
+            # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b; D0 run 44632524223): on the iPad Air 11-inch
+            # XCUITest's "Setting device orientation to Portrait" (SpanShotsUITests.swift:184) wrote nothing for 32 min
+            # and then failed "Failed to get list of active applications: Accessibility error kAXErrorIPCTimeout"; the
+            # job was cancelled 25 min into that silence. In 1.3's run (44474759145) the longest silence between
+            # XCUITest's activity lines was 10.3 s. So xcodebuild is stopped when its log has not grown for STALL s
+            # (TERM, KILL 60 s later), and the watchdog's line (<id>-watchdog.txt, with the last activity line) makes
+            # that the simulator's failure below.
+            STALL=600
+            watchdog() {  # watchdog <pid> <log> <file>: ends <pid> when <log> has not grown for $STALL s, writing <file>
+              local SIZE SEEN=-1 QUIET=0
+              while kill -0 "$1" 2>/dev/null; do
+                sleep 15
+                SIZE="$(wc -c < "$2" 2>/dev/null | tr -d ' ' || echo 0)"
+                if [ "$SIZE" != "$SEEN" ]; then SEEN="$SIZE"; QUIET=0; continue; fi
+                QUIET=$(( QUIET + 15 ))
+                if [ "$QUIET" -ge "$STALL" ]; then
+                  echo "watchdog: no output for $QUIET s after \"$(grep -E '^ +t = ' "$2" | tail -n 1 | sed -E 's/^ +//')\"" > "$3"
+                  kill -TERM "$1" 2>/dev/null || true
+                  sleep 60
+                  kill -KILL "$1" 2>/dev/null || true
+                  return 0
+                fi
+              done
+            }
+            run_shots() {  # run_shots <result bundle suffix>: the four tests on $UDID, the photo watcher and the watchdog beside them
               watch_photos "$UDID" &
               WATCHER=$!
               STATUS=0
@@ -3264,26 +3511,58 @@ jobs:
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testOldVersionMargins \
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testShiftPairs \
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testWeekMemo \
-                test-without-building > "$OUT/$ID-tests.log" 2>&1 || STATUS=$?
-              kill "$WATCHER" 2>/dev/null || true
+                test-without-building > "$OUT/$ID-tests.log" 2>&1 &
+              TESTS=$!
+              watchdog "$TESTS" "$OUT/$ID-tests.log" "$OUT/$ID-watchdog$1.txt" &
+              DOG=$!
+              wait "$TESTS" || STATUS=$?
+              kill "$DOG" "$WATCHER" 2>/dev/null || true
+              wait "$DOG" 2>/dev/null || true
               wait "$WATCHER" 2>/dev/null || true
+              # A run the watchdog stopped is a failure even if xcodebuild ended with 0 on its TERM (143: TERM's status).
+              if [ -s "$OUT/$ID-watchdog$1.txt" ] && [ "$STATUS" = 0 ]; then STATUS=143; fi
             }
             run_shots ""
             # The simulator, not the app (docs/M7C.md, FLAKE-1): in runs with every job a launch has timed out
             # (ipad13, r13-w-ui1 43681366335) and the background assertion has timed out (iphone, r13 43699389888). Only
             # then the device's tests run once more; any other failure stands. The first log is kept as <id>-tests-first.log.
-            SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing'
-            if [ "$STATUS" != 0 ] && grep -qE "$SIMULATOR" "$OUT/$ID-tests.log"; then
-              echo "::warning::$ID: $(grep -oE "$SIMULATOR" "$OUT/$ID-tests.log" | head -n 1); the device's tests run once more."
+            # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): the simulator's accessibility that stops answering
+            # ("Failed to get list of active applications: Accessibility error kAXErrorIPCTimeout", D0's iPad Air
+            # 11-inch; kAXErrorIPC takes the other IPC errors too) and the watchdog's stop above are the simulator's as
+            # well (WEDGED); for them the device is shut down and booted again, with the 60 s for the banner, before its
+            # one more run.
+            SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing|kAXErrorIPC|Failed to get list of active applications'
+            WEDGED='kAXErrorIPC|Failed to get list of active applications'
+            if [ "$STATUS" != 0 ] && { [ -s "$OUT/$ID-watchdog.txt" ] || grep -qE "$SIMULATOR" "$OUT/$ID-tests.log"; }; then
+              WHY="$(cat "$OUT/$ID-watchdog.txt" 2>/dev/null || grep -oE "$SIMULATOR" "$OUT/$ID-tests.log" | head -n 1)"
+              echo "::warning::$ID: $WHY; the device's tests run once more."
               mv "$OUT/$ID-tests.log" "$OUT/$ID-tests-first.log"
+              if [ -s "$OUT/$ID-watchdog.txt" ] || grep -qE "$WEDGED" "$OUT/$ID-tests-first.log"; then
+                xcrun simctl shutdown "$UDID" || true
+                xcrun simctl boot "$UDID" 2>/dev/null || true
+                if ! xcrun simctl bootstatus "$UDID" -b > /dev/null; then echo "::warning::$ID ($NAME) did not boot again."; fi
+                xcrun simctl ui "$UDID" appearance light || true
+                xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+                sleep 60
+              fi
               run_shots "-again"
+              if [ -s "$OUT/$ID-watchdog-again.txt" ]; then echo "::error::$ID: $(cat "$OUT/$ID-watchdog-again.txt") (the one more run)."; fi
             fi
             grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/$ID-tests.log" | tail -n 30 || true
             if [ "$STATUS" != 0 ]; then echo "::error::SpanShotsUITests on $ID ended with $STATUS (shots/span-app/$ID-tests.log)."; FAILED=1; fi
             echo "$ID: $(find "$OUT" -maxdepth 1 -name "$ID-*.png" | wc -l | tr -d ' ') photos, $(( $(date +%s) - STARTED )) s with the boot"
             MINUTES=$(( ($(date +%s) - STARTED) / 60 + 2 ))
             xcrun simctl spawn "$UDID" log show --last "${MINUTES}m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/$ID-log.txt" 2>&1 || true
-            grep -E 'span shot: ' "$OUT/$ID-log.txt" | awk '{ i = index($0, "span shot: "); if (i > 1) $0 = substr($0, i); print }' || true
+            # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 3, §3.8; docs/M7D.md, D0b): on the iOS 27 simulators `log show` gives
+            # the app's NSLog lines as "<compose failure …>" (D0, run 44632524223: no `toolbar: paperArea=` line on any
+            # device), so the log's reach is printed and warned (tools/ci/log-reach.sh), and the stdout and stderr
+            # XCTest kept of the app the tests launched are taken out of the result bundles into <id>-app-output.txt
+            # (tools/ci/xcresult-app-output.sh, best effort; NSLog writes its lines there too). Gate 3 reads
+            # shots/span-app/lines/<id>.txt (frame=, the state).
+            bash tools/ci/log-reach.sh "span-shots $ID (log show)" "$OUT/$ID-log.txt" 'toolbar: paperArea=' || true
+            bash tools/ci/xcresult-app-output.sh "$OUT/$ID-app-output.txt" "build/span-app-$ID.xcresult" "build/span-app-$ID-again.xcresult" || true
+            bash tools/ci/log-reach.sh "span-shots $ID (the app's output)" "$OUT/$ID-app-output.txt" 'toolbar: paperArea=' || true
+            grep -h -E 'span shot: ' "$OUT/$ID-log.txt" "$OUT/$ID-app-output.txt" 2>/dev/null | awk '{ i = index($0, "span shot: "); if (i > 1) $0 = substr($0, i); print }' || true
             find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} "$OUT/" \; 2>/dev/null || true
             if [ "$ID" = "iphone" ]; then
               echo "iphone=$UDID" >> "$GITHUB_OUTPUT"
@@ -3540,8 +3819,13 @@ jobs:
           grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/lang/languages-tests.log" | tail -n 30 || true
           MINUTES=$(( ($(date +%s) - STARTED) / 60 + 2 ))
           xcrun simctl spawn "$UDID" log show --last "${MINUTES}m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/lang/languages-log.txt" 2>&1 || true
-          MISSING="$({ grep 'l10n: missing' "$OUT/lang/languages-log.txt" || true; } | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
-          { grep 'l10n: missing' "$OUT/lang/languages-log.txt" || true; } | sed 's/.*l10n: missing //' | sort -u
+          # 1.4 D0b (docs/M7D.md, D0b): the log's reach, and the app's stdout and stderr out of the result bundle, as in
+          # "Shots on four devices (SpanShotsUITests)"; the keys the app did not find are read from both.
+          bash tools/ci/log-reach.sh "language photos (log show)" "$OUT/lang/languages-log.txt" 'l10n: ui=' || true
+          bash tools/ci/xcresult-app-output.sh "$OUT/lang/languages-app-output.txt" build/span-app-languages.xcresult || true
+          bash tools/ci/log-reach.sh "language photos (the app's output)" "$OUT/lang/languages-app-output.txt" 'l10n: ui=' || true
+          MISSING="$({ grep -h 'l10n: missing' "$OUT/lang/languages-log.txt" "$OUT/lang/languages-app-output.txt" 2>/dev/null || true; } | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
+          { grep -h 'l10n: missing' "$OUT/lang/languages-log.txt" "$OUT/lang/languages-app-output.txt" 2>/dev/null || true; } | sed 's/.*l10n: missing //' | sort -u
           echo "$MISSING" > "$OUT/lang/l10n-missing.txt"
           echo "keys the app did not find (l10n: missing): $MISSING"
           if [ "$MISSING" != 0 ]; then echo "::warning::$MISSING keys the app did not find in the language photos (l10n: missing)."; fi
