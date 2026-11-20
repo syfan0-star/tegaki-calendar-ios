@@ -2833,7 +2833,7 @@ extension CalendarRootScreen {
             layout: span.layout,
             paper: paths.focusPaper ?? paper,
             tool: tool,
-            allowFinger: allowFinger,
+            allowFinger: true, // MUTATION U2 (r14-duo-m1, never merged): the joined canvas ignores 「指でも書く」; was allowFinger: allowFinger
             page: .constant(InkPage(pageId: span.layout.pageId)),
             initialScrollY: start.y,
             initialScrollX: start.x,
