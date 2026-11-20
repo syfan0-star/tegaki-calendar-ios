@@ -183,6 +183,25 @@ final class PaperSpanTests: XCTestCase {
         host.view.layoutIfNeeded()
         RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
         host.view.layoutIfNeeded()
+        // 1.4 D0b (docs/M7D.md "D0b"; docs/M7D_CONTRACT.md §5.5 (c)): since iOS 26 UIKit gives a scroll view an
+        // automatic scroll edge effect. On iOS 27.2 (24B8117) the `HostingScrollView` of SwiftUI's ScrollView in this
+        // window carries a `UIKit.ScrollEdgeEffectView` over its top ~24 pt, and `drawHierarchy` draws it over the
+        // band (probe run 44659376399). It belongs to this test window, not to the band, so every scroll view's four
+        // edge effects are hidden before the picture; nothing else of the picture changes.
+        if #available(iOS 26.0, *) {
+            UIView.performWithoutAnimation {
+                var views: [UIView] = [host.view]
+                while let view = views.popLast() {
+                    views.append(contentsOf: view.subviews)
+                    guard let scroll = view as? UIScrollView else { continue }
+                    for effect in [scroll.topEdgeEffect, scroll.leftEdgeEffect, scroll.bottomEdgeEffect, scroll.rightEdgeEffect] {
+                        effect.isHidden = true
+                    }
+                    scroll.setNeedsLayout()
+                }
+            }
+            host.view.layoutIfNeeded()
+        }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
@@ -213,10 +232,12 @@ final class PaperSpanTests: XCTestCase {
         return Bitmap(bytes: bytes, width: width, height: height)
     }
 
-    /// The PDF bytes without what CoreGraphics derives from the clock (ExportBuilderTests).
+    /// The PDF bytes without what CoreGraphics derives from the clock (ExportBuilderTests). Any whitespace, a newline
+    /// included, may stand between a key and its value: iOS 27.2's Quartz writes `/ModDate\n(D:…)` (1.4 D0b, probe
+    /// run 44659376399; docs/M7D.md "D0b", docs/M7D_CONTRACT.md §5.5 (a)).
     private static func stableBytes(_ data: Data) -> Data {
         guard var text = String(data: data, encoding: .isoLatin1) else { return data }
-        for pattern in ["/CreationDate \\(D:[^)]*\\)", "/ModDate \\(D:[^)]*\\)", "/ID \\[[^\\]]*\\]"] {
+        for pattern in ["/CreationDate\\s*\\(D:[^)]*\\)", "/ModDate\\s*\\(D:[^)]*\\)", "/ID\\s*\\[[^\\]]*\\]"] {
             text = text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
         }
         return text.data(using: .isoLatin1) ?? data
