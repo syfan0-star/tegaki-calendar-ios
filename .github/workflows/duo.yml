@@ -719,11 +719,11 @@ jobs:
             echo "::warning::$FILE is still black or unreadable after three retakes (§3.8); shot_checks.py fails it."
           }
           # shot <udid> <screen> <orientation> <kind> <variant> <--display=… or ""> <launch arguments…>: one launch in
-          # screenshot mode with --screenshot-measure, its photo (stood up when landscape: the framebuffer stays portrait,
-          # only the app's interface turns, as build.yml's iPhone photos), its row in shots.tsv and the `duo measure:`
+          # screenshot mode with --screenshot-measure, its photo (a landscape one stood up only when its PNG is taller than
+          # wide, as build.yml's iPhone photos: see below), its row in shots.tsv and the `duo measure:`
           # lines the app logged from the launch on in measure.txt. WAIT (seconds before the photo) is 12 unless given.
           shot() {
-            local UDID="$1" SCREEN="$2" ORIENT="$3" KIND="$4" VARIANT="$5" DISP="$6" FILE START
+            local UDID="$1" SCREEN="$2" ORIENT="$3" KIND="$4" VARIANT="$5" DISP="$6" FILE START TURN_SIZE
             shift 6
             FILE="$SCREEN-$ORIENT-$KIND-$VARIANT.png"
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null
@@ -737,8 +737,17 @@ jobs:
             fi
             sleep "${WAIT:-12}"
             photo "$UDID" "$FILE" "$DISP"
+            # 1.4 D1b (the rule of docs/M7D_CONTRACT.md §3.5 (g); docs/M7D.md, D0b): until iOS 26 the framebuffer stayed
+            # portrait and only the app's interface turned, so a landscape photo always came out sideways; the iOS 27.2
+            # simulator writes it in landscape already (D0, run 44632524223: turned by 270° it stood sideways). So it is
+            # turned only when the PNG is taller than wide, as build.yml's iPhone photos and span-shots-app's. When the
+            # app ignored the landscape request the photo still ends up sideways, and its line's portrait window is the
+            # tell (shot_checks.py).
             if [ "$ORIENT" = landscape ] && [ -f "$OUT/$FILE" ]; then
-              sips -r 270 "$OUT/$FILE" > /dev/null || echo "::warning::could not stand $FILE up"
+              TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$OUT/$FILE" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+              if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ]; then
+                sips -r 270 "$OUT/$FILE" > /dev/null || echo "::warning::could not stand $FILE up"
+              fi
             fi
             printf '%s\t%s\t%s\t%s\t%s\n' "$FILE" "$SCREEN" "$ORIENT" "$KIND" "$VARIANT" >> "$SHOTS"
             xcrun simctl spawn "$UDID" log show --start "$START" --style compact --predicate 'process == "TegakiCalendar"' 2>/dev/null \
