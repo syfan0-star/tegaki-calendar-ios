@@ -401,3 +401,29 @@
   - **外側の縦で題が全部出た**: 月「2026年10月」、週「10/5〜10/11」、日「10月7日(水)」。D1c の写真（run 44696154794）と比べて変わったのは外側の縦の写真のヘッダーの 1 段目（x 75〜276 pt、y 7〜48 pt）とシートの後ろのヘッダーだけ。外側の横の写真とiPhone 17 の写真は見た目の差なし。`proxy.safeAreaInsets` は外側の 84 pt を返している。
   - 測りの行は D1c と同じ。違いは `outer-portrait-week-first` の最後に 1 行増えたことだけ: `hinge=closed origin=app finger=false`（`usesHinge = true` で、起動の直後に「指でも書く」がオフになった。§4.2・§4.8 のとおり）。shot_checks は 15 枚、誤り 0・警告 0（§4.2 の規則の確かめと `DUO_SIZE_RULE` "fail" を含む）。
   - DuoLayoutUITests は 4 本通り、1 本（内側）は道 3 で飛ばした。
+
+## M1（変異の確かめ、契約 §6・§5.3 の 6。11/20 19:30〜22:10）
+
+変異は取り込まない枝だけに入れた（`r14-q-m1`・`r14-q-m1f2`・`r14-duo-m1`）。どの変異が効いたかは、落ちたテストの名前で見分ける（表は枝ごとの `tools/mutations/m1-expected.tsv`。`r14-q-m1:` と `r14-duo-m1:` で別のファイル）。
+
+- **手元（KitChecks と v13 の Probe、65734cc）**: 基準は KitChecks 40826 本が全部通る、v13 の Probe「310 checks, 0 failed」。
+  - KM-d1・M-w1・M-w2・M-f1〜f7 は、どれも自分の節で落ちた（M-f2b・M-f4a・M-f4b の形も）。
+  - **M-f2a は動きが同じになる変異**（`decide()` の `!personChose` だけを外しても、`personSwitched()` が origin を `.person` にし、`.person` は何もしないので、変わらない）。見分けられないのが正しく、確かめの穴ではない。
+  - KM-d1 は、契約の行（外側の横と OverviewCapChecks）のほかに、外側の縦の週（紙が横長なので横の上限を取る）と、内側の「1.3 の上限なら」の行でも落ちる。どれもそう作った行で、ほかの節は落ちない。
+  - Probe: CP-1（写しの w-2026-12-14 に前置名のマス `w-2026-12-14|grid` の 1 本を足す）は「310 checks, 2 failed」、CP-2（grid の 1 本を抜く）は「1 failed（expected 4）」。
+- **アプリの変異（`r14-q-m1` 9bceb3d、run 44725911787、環境 20261104.0337.1）**: 単体テスト 781 本（2 本飛ばし）のうち 31 本が落ちた。表の W1・W2・D1・F1・F3・R1・R2・S1・P1 の「落ちるはず」のテストが全部落ち、**表に無いテストは 1 本も落ちなかった**。KitChecks は 40826 本が全部通った（アプリの変異は Kit に触れない）。
+- **案内の記録の変異 F2（`r14-q-m1f2` 94137de、run 44725911750）**: 1 回目は単体テストの途中で打ち切り（シミュレーターの起動中に load 650、実行機の renewjob が 100 秒で切れた。変異のせいではない）。決まりどおり 1 回だけ走らせ直した（attempt 2）。単体テスト 292 本で落ちたのは `PencilPhoneTests.testPencilLiftTurnsFingerOffEndToEnd` の「carried over: no guide again」（:480-481）だけ。
+- **UI の変異（`r14-duo-m1` 37bb9c2、run 44725912079）**: 表の頭のとおり。
+  - DuoLayoutUITests は 4 本走り、3 本落ちた。U1 は `testFingerDefaultFollowsTheHinge`、U2 は `testJoinedWeekSwipesOnDuo`、U3 は `testSheetsFitOnDuo` の購入のシートの半分（EULA の行と下の「あとで」）。
+  - `testOuterHeaderRows` は通り、内側は道 3 で飛ばした。shot_checks の誤りはちょうど 1 件（U1 の `outer-portrait-week-first.png` finger=true）。
+  - 外側のシートの `.large` は変異させても道 3 で落ちるテストが無い（表の「-」の行。記録だけ）。
+- **互換（compat-v1.0 の Real13LedgerTests、`r14-q-m1`）**:
+  - 1 回目（run 44725911787）: 7 本のうち 4 本が落ちた。変異の 2 本（R13a・R13b）のほかに、**変異の無い双子 `testM1BaselineJoinedWindowsOn13KeepEveryPageByteForByte` も落ちた**（「nothing to send」の 2 か所で 55 回）。
+  - 原因はテストの側。1 つの窓で 2 ページ以上を保存すると、1.3 の `scheduleDebouncedPush` は眠りの間に来た保存を見て 1.5 秒の待ちをやり直す。テストの `flushDebounce` は 1 回しか起こしていなかったので、送られないページが窓ごとに積み上がった。1.3 のアプリと同期は変えていない。
+  - 直し: `flushDebounce` は、眠りが無くなるまで起こす（8 回まで。超えたら失敗）。`r14-w-d1d` 7e1271d（[skip ci]）、`r14-q-m1` には fd8e88b。
+  - 2 回目（run 44738535984、fd8e88b）: 7 本のうち落ちたのは変異の 2 本だけ。R13a は w-2026-12-14 を含む 9 つの窓だけで、ガードの直し・描く数・fault・records の 4 か所。R13b は数の 1 か所（:194）。双子の 2 本とほかの 3 本は通った。
+  - **Real13LedgerTests は、この run までどの CI でも最後まで走っていなかった**（D1b の run では compat-v1.0 が打ち切り）。r14 に入れる前に見つかった。入れていたら、11/21 の通しの run で compat-v1.0 が赤になっていた。
+  - 同じ run の単体テストの組は、13 インチ iPad の起動中に打ち切り（環境 20261119.0378.1、load 820、swap 3.2/4 GB、ReportMemoryException）。アプリの変異の確かめは 1 回目で済んでいるので、走らせ直さない。
+- **iOS 17 の起動の試し（`r14-duo-i17` 1e07f5e、run 44725911840、環境 20261119.0378.1）: 【未確認】**。
+  - Xcode 27.2 の `xcodebuild -downloadPlatform iOS -buildVersion 17.5` は「not available for download」だった（21F79、universal、`-exportPath` の 4 通りとも）。
+  - 合否ではない（§6）。1.4 の最低の版は iOS 17 のまま。DeclaredAgeRange の弱いリンクの確かめは、毎回の CI にある。
