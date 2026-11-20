@@ -7,8 +7,9 @@ import XCTest
 @testable import TegakiCalendar
 
 // 1.4 (docs/M7D_CONTRACT.md §4.9, §6; §1.5's width reading, C3, 0d-44): the iPhone Duo folding and unfolding is the
-// window's width changing — the inner screen's paper 669 pt wide and the outer one's 466 pt (CODE_SURVEY §3.2's estimates;
-// §4.2 measures them on CI, and these numbers follow then; until then estimates, so written here). Tests only: the frozen
+// window's width changing — the inner screen's paper 669 pt wide (CODE_SURVEY §3.2's estimate: CI could not open the inner
+// screen, path 3 of §4.2) and the outer one's 382 pt (measured: duo-shots run 44696154794, the outer window 466 pt less its
+// 84 pt side strip; the heights per kind are the measured ones too, see `outerPortrait`). Tests only: the frozen
 // canvas (`InkCanvasView`, built as `makeUIView` builds it) and the session are called as they are, over a live
 // `SyncEngine` (SessionTestBed: a temporary store, the fake database, `TestSleeper`s for every wait, a fixed clock; the
 // canvas's watch on its own sleeper, never advanced with the session's; 1.2.3's settle wait ended, not waited for).
@@ -17,7 +18,8 @@ import XCTest
 // paper the window is not decided anew, (b) once it lifted and the paper is still it is, once (and after a scroll, once it
 // stopped), (c) the focus page and the kind stay, (d) the pages' JSON stays byte for byte, (e) no page is marked dirty,
 // (f) the stored zoom ratio of the kind (`zoomRatio.<kind>`) stays, (g) with the window of now (`overviewCapNow`) the outer
-// screen's landscape (678 × 256) caps the overview and the inner one's (951 × 446) does not, from the window decided anew.
+// screen's landscape (measured: the week's paper 594 × 141, the day's 594 × 190) caps the overview and the inner one's
+// (951 × 446, estimated) does not, from the window decided anew.
 // The one-page path (the month and the year, and the week and the day with 「前後のページを横につなげる」 off): (c)–(f) only —
 // neither the middle's x (§1.5: the width read with the old offset, kept as 1.3's) nor "not while writing" (not that path's
 // promise) is compared. A mutation that takes the frozen canvas's `pendingRedecide` path away fails the first two
@@ -47,11 +49,28 @@ final class DuoFoldTests: XCTestCase {
     private let d1119 = "d-2026-11-19"
     private let pen = CanvasTool.ink(InkPresets.defaultPen)
 
-    /// The paper areas (pt): the Duo's inner and outer screens in portrait and in landscape (estimates, see above).
+    /// The paper areas (pt) of the Duo's inner screen in portrait and in landscape: estimates (CODE_SURVEY §3.2; path 3, the
+    /// inner screen was not opened on CI).
     private let innerPortrait = CGSize(width: 669, height: 780)
-    private let outerPortrait = CGSize(width: 466, height: 540)
     private let innerLandscape = CGSize(width: 951, height: 446)
-    private let outerLandscape = CGSize(width: 678, height: 256)
+
+    /// The paper area (pt) of the Duo's outer screen in portrait, measured (1.4 D1d; duo-shots run 44696154794, the `paper=`
+    /// of the last `duo measure:` line of each photo): the window 466 × 678 less the 84 pt side strip, the two header rows,
+    /// the toolbar and the photo's all-day band. The one-page week and day take the joined path's (measured there only).
+    private func outerPortrait(_ kind: PageKind) -> CGSize {
+        switch kind {
+        case .month: return CGSize(width: 382, height: 456.67)
+        case .week: return CGSize(width: 382, height: 343)
+        case .day: return CGSize(width: 382, height: 402)
+        case .year: return CGSize(width: 382, height: 435)
+        }
+    }
+
+    /// The paper area (pt) of the Duo's outer screen in landscape for the week or the day, measured the same way: the window
+    /// 678 × 466 less the 84 pt side strip and two header rows (594 is under the header's one-row width of 600).
+    private func outerLandscape(_ kind: PageKind) -> CGSize {
+        kind == .day ? CGSize(width: 594, height: 190) : CGSize(width: 594, height: 141)
+    }
 
     override func setUp() async throws {
         bed = try SessionTestBed("DuoFoldTests")
@@ -255,7 +274,7 @@ final class DuoFoldTests: XCTestCase {
             let grid = try XCTUnwrap(session.layout.cells[SpanName.prefixed(.grid, page: focusId)], "the focus page's grid")
             rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes + [shortStroke(at: grid.minX + 300, grid.minY + 300)])
             rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
-            await fold(rig.container, to: outerPortrait)
+            await fold(rig.container, to: outerPortrait(kind))
             XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "\(kind): (a) the pen is on the paper")
             await settle()
             XCTAssertEqual(rig.coordinator.spanShiftCount, shifts, "\(kind): (a) not decided anew under the pen")
@@ -279,13 +298,13 @@ final class DuoFoldTests: XCTestCase {
         }
     }
 
-    /// (b) A still paper is decided anew once after each fold and unfold (669 → 466 → 669), and a fold during a scroll waits
+    /// (b) A still paper is decided anew once after each fold and unfold (669 → 382 → 669), and a fold during a scroll waits
     /// for the scroll to stop, then once.
     func testFoldRedecidesTheWindowOnceAfterSettling() async throws {
         let session = try await open(.week, focus: nov16, orientation: .portrait, paperArea: innerPortrait, stored: [gridPage(w1116, ["a"])])
         let rig = await attach(session, area: innerPortrait)
         let shifts = rig.coordinator.spanShiftCount
-        await fold(rig.container, to: outerPortrait)
+        await fold(rig.container, to: outerPortrait(.week))
         _ = rig.coordinator.shiftIfAtRest()
         await settle()
         XCTAssertEqual(rig.coordinator.spanShiftCount, shifts + 1, "folded: decided anew once")
@@ -298,7 +317,7 @@ final class DuoFoldTests: XCTestCase {
 
         // During a scroll: the band moves (a finger drags it), so it waits; once it stopped, once.
         rig.coordinator.spanMotionOverride = true
-        await fold(rig.container, to: outerPortrait)
+        await fold(rig.container, to: outerPortrait(.week))
         XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .busy, "the band moves")
         await settle()
         XCTAssertEqual(rig.coordinator.spanShiftCount, shifts + 2, "not during the scroll")
@@ -327,7 +346,7 @@ final class DuoFoldTests: XCTestCase {
             let ids = stored.map(\.pageId)
             let filesBefore = files(ids)
             let jsonBefore = try json(session, ids + [focusId])
-            for area in [outerPortrait, innerPortrait] {
+            for area in [outerPortrait(kind), innerPortrait] {
                 await fold(rig.container, to: area)
                 _ = rig.coordinator.shiftIfAtRest()
                 await settle()
@@ -358,7 +377,7 @@ final class DuoFoldTests: XCTestCase {
             let session = try await open(kind, focus: focus, orientation: .portrait, paperArea: innerPortrait, stored: stored,
                                          number: kind == .week ? 1 : 2)
             let rig = await attach(session, area: innerPortrait)
-            for area in [outerPortrait, innerPortrait, outerPortrait] {
+            for area in [outerPortrait(kind), innerPortrait, outerPortrait(kind)] {
                 await fold(rig.container, to: area)
                 _ = rig.coordinator.shiftIfAtRest()
                 await settle()
@@ -385,7 +404,7 @@ final class DuoFoldTests: XCTestCase {
             let rig = await attach(session, area: innerPortrait)
             // The first layout's report went where the screen puts it; what is stored now is the key under test.
             let stored = scratch.object(forKey: key) as? Double
-            for area in [outerPortrait, innerPortrait] {
+            for area in [outerPortrait(kind), innerPortrait] {
                 await fold(rig.container, to: area)
                 _ = rig.coordinator.shiftIfAtRest()
                 await settle()
@@ -404,23 +423,26 @@ final class DuoFoldTests: XCTestCase {
         }
     }
 
-    /// (g) (§4.7, 0d-8): with the window of now, the outer screen's landscape (678 × 256) caps the overview — 3 weeks / 5 days
-    /// across, the lowest zoom of the window plan — and once the window is decided anew after the unfold to the inner one's
-    /// (951 × 446, `overviewCapNow` false) it does not (P-B6 ア's lowest zoom); folded again, capped again. On the day at
-    /// 446 pt the cap would bite, so the lowest zoom differs (§4.7); on the week it is below the lowest zoom there.
+    /// (g) (§4.7, 0d-8): with the window of now, the outer screen's landscape (measured: the week's paper 594 × 141, the
+    /// day's 594 × 190) caps the overview — 3 weeks / 5 days across, the lowest zoom of the window plan (594 ÷ 4200 and
+    /// 594 ÷ 5000, above the plain 141 ÷ 1920 and 190 ÷ 2400) — and once the window is decided anew after the unfold to the
+    /// inner one's (951 × 446, estimated; `overviewCapNow` false) it does not (P-B6 ア's lowest zoom); folded again, capped
+    /// again. On the day at 446 pt the cap would bite, so the lowest zoom differs (§4.7); on the week it is below the lowest
+    /// zoom there.
     func testFoldSwitchesTheCap() async throws {
         for (kind, focus, across) in [(PageKind.week, nov16, CGFloat(3)), (.day, nov18, 5)] {
             capNow = true
-            let session = try await open(kind, focus: focus, orientation: .landscape, paperArea: outerLandscape,
+            let outer = outerLandscape(kind)
+            let session = try await open(kind, focus: focus, orientation: .landscape, paperArea: outer,
                                          number: kind == .week ? 1 : 2)
-            let rig = await attach(session, area: outerLandscape)
+            let rig = await attach(session, area: outer)
             let overview = InkCanvasView.bandOverview(session.layout)
             func lowest(_ area: CGSize) -> CGFloat { session.plan.zoomBounds(overview: overview, viewport: area).min }
             func uncapped(_ area: CGSize) -> CGFloat { ZoomPolicy.bounds(kind, overview: overview, viewport: area).min }
-            let outerCap = outerLandscape.width / (across * ZoomPolicy.paperWidth(kind))
-            XCTAssertGreaterThan(outerCap, uncapped(outerLandscape), "\(kind): the cap bites on the outer screen's landscape")
+            let outerCap = outer.width / (across * ZoomPolicy.paperWidth(kind))
+            XCTAssertGreaterThan(outerCap, uncapped(outer), "\(kind): the cap bites on the outer screen's landscape")
             XCTAssertTrue(session.plan.overviewCap, "\(kind): folded, capped")
-            XCTAssertEqual(lowest(outerLandscape), outerCap, accuracy: 1e-9, "\(kind): the cap's lowest zoom")
+            XCTAssertEqual(lowest(outer), outerCap, accuracy: 1e-9, "\(kind): the cap's lowest zoom")
             XCTAssertEqual(rig.canvas.minimumZoomScale, outerCap, accuracy: 1e-4, "\(kind): the canvas's lowest zoom")
 
             // Unfold: the window of now has no cap; from the window decided anew, P-B6 ア's lowest zoom.
@@ -439,12 +461,12 @@ final class DuoFoldTests: XCTestCase {
 
             // Fold again: capped again.
             capNow = true
-            await fold(rig.container, to: outerLandscape)
+            await fold(rig.container, to: outer)
             _ = rig.coordinator.shiftIfAtRest()
             await settle()
             XCTAssertEqual(rig.coordinator.spanShiftCount, shifts + 2, "\(kind): decided anew once more")
             XCTAssertTrue(session.plan.overviewCap, "\(kind): folded, capped again")
-            XCTAssertEqual(lowest(outerLandscape), outerCap, accuracy: 1e-9, "\(kind): the cap's lowest zoom again")
+            XCTAssertEqual(lowest(outer), outerCap, accuracy: 1e-9, "\(kind): the cap's lowest zoom again")
             XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
         }
     }
@@ -537,7 +559,7 @@ final class DuoFoldTests: XCTestCase {
         return (coordinator, container, probe, writes)
     }
 
-    /// What a fold and an unfold (669 → 466 → 669) did on the one-page path (the month, the year, and the week and the day
+    /// What a fold and an unfold (669 → 382 → 669) did on the one-page path (the month, the year, and the week and the day
     /// with the setting off): the canvas's page id after the opening and each step, its JSON before and after, the writes back
     /// to the page, the ratios reported and the stored key before and after. The middle's x is not looked at (§1.5).
     private struct OnePageFold {
@@ -560,7 +582,7 @@ final class DuoFoldTests: XCTestCase {
         var pageIds = [coordinator.ledger.page.pageId]
         let jsonBefore = try InkPageCodec.encode(coordinator.ledger.page)
         let liveBefore = coordinator.ledger.page.liveStrokeCount
-        for area in [outerPortrait, innerPortrait] {
+        for area in [outerPortrait(kind), innerPortrait] {
             await fold(container, to: area)
             pageIds.append(coordinator.ledger.page.pageId)
         }

@@ -53,15 +53,16 @@ final class MeasureLineFileTests: XCTestCase {
         }
     }
 
-    /// Two of D1's lines (`ScreenshotMode.measureLine`, the outer screen's numbers), as the app logs them.
+    /// Two of D1's lines (`ScreenshotMode.measureLine`, the outer screen's numbers as duo-shots run 44696154794 measured
+    /// them: the window 466 × 678, the safe area 0, 0, 34, 84, the week's paper 382 × 343), as the app logs them.
     private func lines() -> (String, String) {
         let plan = ScreenshotMode.MeasurePlan(kind: .week, deviceClass: .iPhone, orientation: .portrait, overviewCap: true)
         func line(_ paper: CGSize, _ hinge: ScreenshotMode.HingeReading) -> String {
-            ScreenshotMode.measureLine(window: CGSize(width: 466, height: 678), safe: UIEdgeInsets(top: 24, left: 0, bottom: 20, right: 0),
+            ScreenshotMode.measureLine(window: CGSize(width: 466, height: 678), safe: UIEdgeInsets(top: 0, left: 0, bottom: 34, right: 84),
                                        scale: 3, screenSize: CGSize(width: 466, height: 678), paper: paper, plan: plan,
                                        hinge: hinge, origin: .app, finger: false)
         }
-        return (line(CGSize(width: 466, height: 520), .none), line(CGSize(width: 466, height: 520), .closed))
+        return (line(CGSize(width: 382, height: 343), .none), line(CGSize(width: 382, height: 343), .closed))
     }
 
     /// The exact text and "\n", each line at the end of what is there, in order; the file is made when missing and never

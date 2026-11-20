@@ -318,15 +318,18 @@ jobs:
       # band at 35 %, the 1.3-against-1.4 rows at the border; + 429 for "window & finger (1.4)": WindowClass (isWide,
       # openingKind, usesFormSheet, capsOverview, Opening) and FingerDefault (origin, every row of §4.8's table, the
       # rollback, the order, touches)); each of the two also prints "<n> checks in this section", a line that is not a check.
-      # The threshold is that number minus 50, so anything below 40744 means a section or a fixture went missing.
+      # With the outer screen measured (D1d, §4.2: duo-shots run 44696154794) 1.4 counts 40826: "duo (1.4)" has 377 (+ 32:
+      # 4 measured outer rows of 10 checks for the 8 estimated ones, − 40, and the 9 measure lines as CI printed them, 8
+      # checks each, + 72; the inner screen's rows stay estimates, path 3).
+      # The threshold is that number minus 50, so anything below 40776 means a section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 40744 or more)"
+          echo "KitChecks count: ${N:-0} (required: 40776 or more)"
           grep -E 'compat10( with compat-span)?: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 40744
+          test "${N:-0}" -ge 40776
 
       # 1.3 (docs/M7C_CONTRACT.md §4.2, §6.3): KitChecks compares the committed compat-span fixtures with what
       # the Kit's joined path writes and fails when one is missing or differs. Then, as the unit tests do for

@@ -75,8 +75,8 @@ final class WindowClassTests: XCTestCase {
 
     /// §4.7, 0d-8: the device of a wide window (the Duo's inner screen, 669 × 951 and 951 × 669 by the estimate; a widened
     /// iPhone Mirroring window) is `wide`, and the screen's window made for it has no overview cap. Every iPhone's window keeps
-    /// 1.3's cap (402 × 874 and 874 × 402; the Duo's outer screen by the estimate, 466 × 678 and 678 × 466), and an iPad's
-    /// device stays 1.3's (not `wide`, the cap asked as before; its plan has none either way). Fails with `makeSession`
+    /// 1.3's cap (402 × 874 and 874 × 402; the Duo's outer screen as duo-shots measured it, 466 × 678 and 678 × 466), and an
+    /// iPad's device stays 1.3's (not `wide`, the cap asked as before; its plan has none either way). Fails with `makeSession`
     /// passing the cap whatever the window (the inner rows).
     func testWideWindowSessionHasNoCap() throws {
         let rows: [(String, CGSize, Bool, SpanOrientation)] = [
@@ -84,8 +84,8 @@ final class WindowClassTests: XCTestCase {
             ("Duo inner landscape (estimate)", size(951, 669), true, .landscape),
             ("iPhone 17 portrait", size(402, 874), false, .portrait),
             ("iPhone 17 landscape", size(874, 402), false, .landscape),
-            ("Duo outer portrait (estimate)", size(466, 678), false, .portrait),
-            ("Duo outer landscape (estimate)", size(678, 466), false, .landscape),
+            ("Duo outer portrait (measured)", size(466, 678), false, .portrait),
+            ("Duo outer landscape (measured)", size(678, 466), false, .landscape),
         ]
         for (name, window, wide, orientation) in rows {
             let device = try XCTUnwrap(ScreenPaths.device(isPad: false, windowSize: window, screen: window), name)
@@ -124,7 +124,7 @@ final class WindowClassTests: XCTestCase {
         XCTAssertFalse(session.plan.overviewCap, "unfolded: the window of now has no cap")
         XCTAssertFalse(session.overviewCap)
         capNow = true
-        XCTAssertTrue(session.redecide(orientation: .landscape, paperArea: size(678, 256)))
+        XCTAssertTrue(session.redecide(orientation: .landscape, paperArea: size(594, 141)))
         XCTAssertTrue(session.plan.overviewCap, "folded: the cap again")
         XCTAssertTrue(session.overviewCap)
 
