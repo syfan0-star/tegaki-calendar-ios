@@ -65,6 +65,10 @@
 # bytes of 955fe67 (tools/span/TESTS_1_3.sha256, FIXTURES_1_3.sha256, §5.5). The quick lane takes r14-quick and r14-q-*
 # too (§3.10); on r14-q-m1, the branch of the app's mutations (§5.3 6, §6), it runs every unit test class and compat-v1.0
 # runs too (MUTATIONS). The iPhone Duo is photographed by .github/workflows/duo.yml, never here (§3.10, 0d-45).
+# 1.4's D1 (docs/M7D_CONTRACT.md §3.10): KitChecks' threshold for its two new sections ("duo (1.4)", "window & finger
+# (1.4)"), the idiom watch (tools/duo/idiom_check.py, §4.1), the check that project.yml has no DUO_HINGE, D1's new unit test
+# classes in the quick lane, and in compat-v1.0 the real 1.3 (955fe67) as a partner (§5.3) and a missing Xcode 26.6 failing
+# the job (§3.9).
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -331,15 +335,20 @@ jobs:
       # ink (1.3)" for fixture 4's three files, so 16 compat-span files in all); with the iPhone's landscape overview
       # cap (§3.6, P-B6 イ; docs/M7C.md) 1.3 counts 40020 (+ 1960 for "overview cap (1.3)": the rule, the capped
       # window table, the zoom limits, the all-day lanes, the paper area's own orientation, the iPads and cappedBounds).
-      # The threshold is that number minus 50, so anything below 39970 means a section or a fixture went missing.
+      # 1.4 (docs/M7D_CONTRACT.md §4.6, §6; D1) counts 40794 (+ 345 for "duo (1.4)": the Duo's paper areas, measured or
+      # estimated, on the iPhone's plan with and without the cap, their V, R, largest window and lowest zoom, the all-day
+      # band at 35 %, the 1.3-against-1.4 rows at the border; + 429 for "window & finger (1.4)": WindowClass (isWide,
+      # openingKind, usesFormSheet, capsOverview, Opening) and FingerDefault (origin, every row of §4.8's table, the
+      # rollback, the order, touches)); each of the two also prints "<n> checks in this section", a line that is not a check.
+      # The threshold is that number minus 50, so anything below 40744 means a section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 39970 or more)"
+          echo "KitChecks count: ${N:-0} (required: 40744 or more)"
           grep -E 'compat10( with compat-span)?: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 39970
+          test "${N:-0}" -ge 40744
 
       # 1.3 (docs/M7C_CONTRACT.md §4.2, §6.3): KitChecks compares the committed compat-span fixtures with what
       # the Kit's joined path writes and fails when one is missing or differs. Then, as the unit tests do for
@@ -405,6 +414,31 @@ jobs:
             exit 1
           fi
           echo "AGE_FORCE: not in project.yml"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.10, §4.9, §6): the mark of the hinge's UI tests (DUO_HINGE: DuoHingeUITests is compiled
+      # only with it) is given by duo.yml's job duo-hinge alone, on its xcodebuild line; it never gets into project.yml, so
+      # no other build (this one, TestFlight's) compiles those tests. The same shape as the AGE_FORCE check above.
+      - name: The hinge tests' mark (1.4)
+        run: |
+          set -euo pipefail
+          if grep -n 'DUO_HINGE' project.yml; then
+            echo "::error::project.yml に DUO_HINGE があります。開閉の UI テストの印は duo.yml の duo-hinge のジョブだけで付けます（docs/M7D_CONTRACT.md §3.10）。"
+            exit 1
+          fi
+          echo "DUO_HINGE: not in project.yml"
+
+      # 1.4 (docs/M7D_CONTRACT.md §4.1, 0d-19): the layout goes by the window's size and the iPhone Duo is told by the
+      # Pencil's touch and the hinge, never by the kind of device. tools/duo/idiom_check.py reads the code of every Swift file
+      # of Sources/TegakiCalendar but the 20 frozen ones (tools/l10n/lint-skip.txt) and fails on a line that reads the idiom,
+      # the interface orientation or the device's orientation without a row in tools/duo/idiom-allow.txt (the list is
+      # exactly the code's: a row that covers no line fails too), and on any UIScreen.main or model name (utsname,
+      # hw.machine, UIDevice.current.model, "iPhone1…9), which never go on the list. Its self-test first (made-up files it
+      # must pass and fail). No git, no writes.
+      - name: The idiom watch (1.4)
+        run: |
+          set -euo pipefail
+          python3 -I tools/duo/idiom_check.py --self-test
+          python3 -I tools/duo/idiom_check.py --list .
 
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the files of the handwriting's data are frozen. Until 1.3
       # the table held 18 files at the bytes of 1.1.1, except Sync/SyncEngine.swift, whose line was 1.2.3's
@@ -628,6 +662,9 @@ jobs:
       # 1.4 (docs/M7D_CONTRACT.md §3.2): on the table's 13-inch iPad by its UDID ("Required simulators"), iOS 27.2: by its
       # name alone xcodebuild may take the same name on iOS 27.0. The photo steps below find it booted. On r14-q-m1
       # (MUTATIONS, §6) every class runs, as off the quick lane: the mutations there are caught by classes of every kind.
+      # 1.4 D1 (§3.10, §6): the quick lane (r14-quick, r14-q-*) also runs D1's new classes, each by its whole name:
+      # WindowClassTests, PencilPhoneTests, CappedOverviewWideTests, OnePageRevealTests, SnapshotScaleTests and DuoFoldTests
+      # (role S) and PaperViewScaleTests (role P); a class not written yet is not found and not run.
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
@@ -638,9 +675,9 @@ jobs:
           elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
-              echo "::notice::the quick lane: no Span test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
+              echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
             fi
             for CLASS in $CLASSES; do
@@ -1955,6 +1992,9 @@ jobs:
       # 1.3 (docs/M7C_CONTRACT.md §10.3, §10.6): the joined pages' UI tests (SpanUITests, and the old UI tests again with
       # the joined pages on in SpanRerunUITests) mark their steps `span UI:`; the grep shows them once they exist.
       # SpanShotsUITests (the photos of the span-shots-app job) skips itself here, as BlankPaperShotsUITests does.
+      # 1.4 (docs/M7D_CONTRACT.md §3.10, §6): so does DuoLayoutUITests (it runs on the iPhone Duo in duo.yml's duo-shots,
+      # with TEGAKI_DEVICE=duo), so the UI tests of the gates (43 in 1.3) are counted without the skipped ones;
+      # DuoHingeUITests is not even compiled here (only duo-hinge passes DUO_HINGE).
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 40
         run: |
@@ -2029,15 +2069,21 @@ jobs:
   # them to the end (runs 43065300839 to 43237335436; the median 13.7), its two app test steps 2.9–7.2 (1.0's) and
   # 3.2–6.8 (1.2.3's), the other steps at most 1.6 each. The slowest time of every step added up is 18.8 min, and with
   # two boots 4 min slower (as seen in the other jobs) about 27. 45 is the limit of the job before 1.3 (8 min then).
+  # 1.4 (docs/M7D_CONTRACT.md §5.3, §3.9): the real 1.3 (955fe67, build 26) is a partner too: its TegakiKit at v13
+  # for tools/span-compat (v13's versionExtraChecks also runs 1.3's SpanGuard.checkForSave over every file) and its
+  # whole tree at v13app for tools/span-compat/AppTests/Real13LedgerTests.swift (the one-page path, the sync and the
+  # joined path on every compat-span file). The limit 45 → 65 min for 1.3's Kit and app (§5.3 4): the measured
+  # times go into docs/M7D.md, and back to 45 when they leave room.
   compat-v1-0:
     name: compat-v1.0
     # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only). 1.4 (docs/M7D_CONTRACT.md
     # §3.10): nor on r14-quick and r14-q-*, but on r14-q-m1 (§5.3 6, §6: the mutation of Real13LedgerTests must fail here).
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || (startsWith(github.ref_name, 'r14-q-') && github.ref_name != 'r14-q-m1')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.9, 0d-2): stays on macos-26 and Xcode 26.6 (the old versions with the Xcode they were
-    # made with); only XcodeGen is pinned as in the other jobs. D1 adds 1.3 (955fe67) as a partner (§5.3).
+    # made with); only XcodeGen is pinned as in the other jobs. Since D1 1.3 (955fe67) is a partner too (§5.3), and a missing
+    # Xcode 26.6 fails the job ("Select Xcode", §3.9).
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 65
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -2054,12 +2100,29 @@ jobs:
           ref: a21e4692109e504701b507ad9c695181fdecddfd
           path: v10
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.9): Xcode 26.6, the Xcode the old versions were made and shipped with. Until 1.4 this
+      # step chose it only when it was there and otherwise went on with the image's default Xcode, unseen; now a macos-26
+      # image without it (or with something else under its name: what `xcodebuild -version` says decides, not the path,
+      # §3.1) fails the job, and then it is decided whether compat-v1.0 moves to xcode-27 (docs/M7D.md).
       - name: Select Xcode
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE=/Applications/Xcode_26.6.app
+          if [ ! -d "$XCODE" ]; then
+            echo "::error::No $XCODE on this image (docs/M7D_CONTRACT.md §3.9): compat-v1.0 builds the old versions with Xcode 26.6 and does not go on with another Xcode."
+            exit 1
           fi
+          SAYS="$(DEVELOPER_DIR="$XCODE/Contents/Developer" xcodebuild -version)"
+          VERSION="$(printf '%s\n' "$SAYS" | sed -nE 's/^Xcode ([0-9.]+)$/\1/p')"
+          echo "$XCODE: Xcode ${VERSION:-?} ($(printf '%s' "$SAYS" | tr '\n' ' '))"
+          case "$VERSION" in
+            26.6|26.6.*) ;;
+            *)
+              echo "::error::$XCODE says Xcode ${VERSION:-?}, not 26.6 (docs/M7D_CONTRACT.md §3.9)."
+              exit 1
+              ;;
+          esac
+          sudo xcode-select -s "$XCODE"
           xcode-select -p
           xcodebuild -version
           git -C v10 log -1 --format='v10: %H %s'
@@ -2194,14 +2257,28 @@ jobs:
           git archive "$SHA" | tar -x -C v123app
           ls v123/TegakiKit v123app
 
-      # 1.3 (§6.3): every compat-span file (Monday and Sunday) on the real 1.0, <1.1.1> and 1.2.3 Kits: what each
-      # reads and writes back, what its layout draws and its lasso reaches, its migration, merge, erase and own
-      # edit, the app export's round trip (tools/span-compat/README.md). All three run; any FAIL fails the step.
-      - name: The compat-span fixtures on the real 1.0, <1.1.1> and 1.2.3 (span-compat)
+      # 1.4 (docs/M7D_CONTRACT.md §5.3 1): 1.3, the version on sale when 1.4 starts (build 26), taken out the same way:
+      # its TegakiKit at v13 for tools/span-compat, and its whole tree at v13app for its app's ledger test below.
+      - name: Take out 1.3 (955fe67) at v13 and v13app
+        run: |
+          set -euo pipefail
+          SHA=955fe678ec9f999ac45fac1b372f246e43c02f95
+          git fetch --no-tags --depth=1 origin "$SHA"
+          git log -1 --format='v13: %H %s' "$SHA"
+          mkdir -p v13 v13app
+          git archive "$SHA" TegakiKit | tar -x -C v13
+          git archive "$SHA" | tar -x -C v13app
+          ls v13/TegakiKit v13app
+
+      # 1.3 (§6.3): every compat-span file (Monday and Sunday) on the real 1.0, <1.1.1>, 1.2.3 and (since 1.4) 1.3
+      # Kits: what each reads and writes back, what its layout draws and its lasso reaches, its migration, merge, erase
+      # and own edit, the app export's round trip; on 1.3 also its SpanGuard.checkForSave and checkForTransfer
+      # (tools/span-compat/README.md). All four run; any FAIL fails the step.
+      - name: The compat-span fixtures on the real 1.0, <1.1.1>, 1.2.3 and 1.3 (span-compat)
         run: |
           set -euo pipefail
           FAILED=0
-          for V in v10 v11 v123; do
+          for V in v10 v11 v123 v13; do
             tools/span-compat/run.sh "$V" "$V/TegakiKit" "$RUNNER_TEMP/span-compat" || FAILED=1
           done
           exit "$FAILED"
@@ -2297,6 +2374,50 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             test 2>&1 | tee "$RUNNER_TEMP/real123.log"
           grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real123.log" || true
+
+      # 1.4 (docs/M7D_CONTRACT.md §5.3 3): 1.3's app (v13app, its own project.yml) with
+      # tools/span-compat/AppTests/Real13LedgerTests.swift added to its unit tests, on the same simulator; only that
+      # class runs, on every compat-span file (TEGAKI_COMPAT_SPAN_FIXTURES: the folder of this checkout).
+      - name: 1.3's ledger and sync on the compat-span fixtures (Real13LedgerTests)
+        run: |
+          set -euo pipefail
+          cp tools/span-compat/AppTests/Real13LedgerTests.swift v13app/Tests/TegakiCalendarTests/
+          (cd v13app && xcodegen generate)
+          NAME="$(xcrun simctl list -j devices available | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          names = set()
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name"):
+                      names.add(d["name"])
+          for prefix in ("iPad Pro 13-inch", "iPad Air 13-inch", "iPad", "iPhone"):
+              matches = sorted(n for n in names if n.startswith(prefix))
+              if matches:
+                  print(matches[0])
+                  raise SystemExit
+          print("")
+          ' || true)"
+          if [ -z "$NAME" ]; then
+            echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
+            NAME="iPhone 17"
+          fi
+          echo "Using simulator: $NAME"
+          TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span" xcodebuild \
+            -project v13app/TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=$NAME" \
+            -derivedDataPath "$RUNNER_TEMP/v13-derived" \
+            -only-testing:TegakiCalendarTests/Real13LedgerTests \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test 2>&1 | tee "$RUNNER_TEMP/real13.log"
+          grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real13.log" || true
+          # 1.4: a class that did not run cannot pass unseen (Real13LedgerTests has five tests).
+          grep -Eq 'Executed 5 tests?, with 0 failures' "$RUNNER_TEMP/real13.log" || { echo "::error::Real13LedgerTests did not run its 5 tests with 0 failures (docs/M7D_CONTRACT.md §5.3 3)."; exit 1; }
 
   # 1.2 (docs/M7B_CONTRACT.md §7.5, §7.6, §4.4, §4.5, §10.7, §8 8): the other nine languages, seen by the
   # lead and the owner without being able to read them. Next to the other jobs (no `needs`). No test here;
