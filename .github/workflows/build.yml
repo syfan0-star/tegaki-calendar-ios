@@ -2004,6 +2004,35 @@ jobs:
             echo "No UI test result bundle."
           fi
 
+      # 1.4 D1d (docs/M7D.md, "UI テストの 2 回目の写真"): the handwriting of these photos, a warning only. Attempt 2 of run
+      # 44676125566 (image 20261119.0378.1) lost handwriting in 17 of its photos (PencilKit tiles not drawn: the 13 of
+      # docs/M7D.md and 4 more this check finds; it also counts "slide — after", whose paper stopped about 80 pt short), and
+      # every test that took them passed. tools/shots/xcui_ink.py names each photo by its test and its attachment's name
+      # (manifest.json; the files are named by UUIDs) and checks it with tools/shots/ink_check.swift against its line in
+      # tools/shots/ink_ref_xcui.tsv (complete photos of the image 20261104.0337.1): a summary line with the counts, a
+      # warning for the photos with less ink, and shots/ui-tests/ink-xcui.tsv (one row a photo) in the artifact. Never fails
+      # the job (continue-on-error, and every path exits 0). About 2 min: the job's first swiftc, then 0.1 s a photo.
+      - name: The UI tests' photos' handwriting (a warning only, 1.4 D1d)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          set -uo pipefail
+          TOOL="$RUNNER_TEMP/xcui-ink"
+          mkdir -p "$TOOL"
+          if [ ! -f shots/ui-tests/attachments/manifest.json ]; then
+            echo "No shots/ui-tests/attachments/manifest.json: no photo of the UI tests to check."
+            exit 0
+          fi
+          if ! swiftc -O tools/shots/ink_check.swift -o "$TOOL/ink_check" > "$TOOL/build.log" 2>&1; then
+            cat "$TOOL/build.log" || true
+            echo "::warning::tools/shots/ink_check.swift did not compile: the UI tests' photos' handwriting is not checked (docs/M7D.md, D1d)."
+            exit 0
+          fi
+          python3 -I tools/shots/xcui_ink.py check --ink "$TOOL/ink_check" --ref tools/shots/ink_ref_xcui.tsv --prefix ui-tests/ \
+            --manifest shots/ui-tests/attachments --out shots/ui-tests/ink-xcui.tsv --label "UI tests" || true
+          exit 0
+
       - name: Upload the UI tests' log and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -3869,6 +3898,31 @@ jobs:
           echo "week memo photos: $MEMO"
           if [ "$MEMO" != 4 ]; then echo "::error::$MEMO week memo photos, 4 expected (the iPad Air 11-inch and the iPhone 17, single and band)."; FAILED=1; fi
           exit "$FAILED"
+
+      # 1.4 D1d (docs/M7D.md, "D1 の残りに足す"): the handwriting of the photos above (shots/span-app, not its lang/ folder),
+      # a warning only, as in ui-tests: tools/shots/xcui_ink.py and tools/shots/ink_check.swift against the
+      # "span-shots-app/" lines of tools/shots/ink_ref_xcui.tsv (run 44676125566 attempt 1, image 20261104.0337.1), with
+      # shots/span-app/ink-xcui.tsv in the artifact. Never fails the job. After the gates' three swiftc, this one is short.
+      - name: The span shots' handwriting (a warning only, 1.4 D1d)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 6
+        run: |
+          set -uo pipefail
+          TOOL="$RUNNER_TEMP/xcui-ink"
+          mkdir -p "$TOOL"
+          if ! ls shots/span-app/*.png > /dev/null 2>&1; then
+            echo "No photo in shots/span-app to check."
+            exit 0
+          fi
+          if ! swiftc -O tools/shots/ink_check.swift -o "$TOOL/ink_check" > "$TOOL/build.log" 2>&1; then
+            cat "$TOOL/build.log" || true
+            echo "::warning::tools/shots/ink_check.swift did not compile: the span shots' handwriting is not checked (docs/M7D.md, D1d)."
+            exit 0
+          fi
+          python3 -I tools/shots/xcui_ink.py check --ink "$TOOL/ink_check" --ref tools/shots/ink_ref_xcui.tsv \
+            --prefix span-shots-app/ --folder shots/span-app --out shots/span-app/ink-xcui.tsv --label "span-shots-app" || true
+          exit 0
 
       # overwrite: a re-run of this job (gh run rerun --failed) replaces the photos of the attempt before.
       - name: Upload the span shots of the app
