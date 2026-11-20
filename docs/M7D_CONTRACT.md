@@ -396,7 +396,7 @@ public struct FingerDefault: Equatable, Sendable {
 6. `tools/l10n/ja-baseline-ref-1.4.txt` と `ja-baseline.yml` の基準の替え（§3.5）。
 7. `testflight.yml` のアーカイブの確かめ（§3.4）。
 8. `tools/span/TESTS_1_3.sha256`・`FIXTURES_1_3.sha256` と、build-and-test の 2 つの段（§5.5。新しい SDK のせいで落ちたテストや fixture を、D0b で書き換えて通すことを最初から防ぐ）。
-9. build-and-test の時間の上限を 90 → **110 分**（1.3 の最後の run は 72.2 分で、新しい環境の最初のシミュレータの起動が遅い [S4]）。D0 で測り、余れば D1 で戻す。
+9. build-and-test の時間の上限を 90 → **110 分**（1.3 の最後の run は 72.2 分で、新しい環境の最初のシミュレータの起動が遅い [S4]）。D0 で測り、余れば D1 で戻す。**D0b（11/20、M7D.md の L5）で 160 分に**（D0 の遅い実行機で 141 分前後の見込み）。ほかの上限も同じ時に: 同期の繰り返しの段 14 分、blank-paper の段 70 分・ジョブ 80 分、span-shots-app の段 80 分・ジョブ 110 分、ja-baseline のジョブ 130 分。
 
 **D0 で変えないもの**: `Sources`・`TegakiKit/Sources`・`Tests` は 955fe67 と 1 バイトも同じ（`git diff 955fe67 -- Sources TegakiKit/Sources Tests` が空。リードが M7D.md に書く）。
 
@@ -431,7 +431,7 @@ public struct FingerDefault: Equatable, Sendable {
 ### 3.5 J-4 の基準の替え方（日本語の写真の比べ）
 
 - **新しい基準**: `tools/l10n/ja-baseline-ref-1.4.txt` = `955fe678ec9f999ac45fac1b372f246e43c02f95`（1.3 のビルド 26 のコード）。`ja-baseline.yml` はこれを読む。`ja-baseline-ref.txt`（<1.1.1>）と `ja-baseline-ref-1.3.txt`（43fe366）は変えない。
-- `ja-baseline.yml` の写真の段を **955fe67 の `build.yml` から写し直す**（955fe67 と 7895d40 の `build.yml` は同じ）。写した後に替えてよいのは、1.4 の `build.yml` と**同じ字で**替える (a) 実行機と Xcode の選び、(b) 機種の並び（§3.2）、(c) 必須の機種の確かめ、(d) env.txt に足す行、(e) XcodeGen を入れる段（§3.3 の 4）、だけ。今の `ja-baseline.yml` の頭の注にある 2 つの足し物（11 のシートの `screen_ready.swift` の待ち、`launchctl` の一覧を全部読む）は、955fe67 の `build.yml` に入っているので、写すだけで同じになる。
+- `ja-baseline.yml` の写真の段を **955fe67 の `build.yml` から写し直す**（955fe67 と 7895d40 の `build.yml` は同じ）。写した後に替えてよいのは、1.4 の `build.yml` と**同じ字で**替える (a) 実行機と Xcode の選び、(b) 機種の並び（§3.2）、(c) 必須の機種の確かめ、(d) env.txt に足す行、(e) XcodeGen を入れる段（§3.3 の 4）、だけ。**D0b（11/20、M7D.md の L4 とその後の直し）で (f)(g)(h) を足した**: (f) 写真の段の手書きの確かめと、手書きが足りないときの起動し直しによる撮り直し（`tools/shots/ink_check.swift`・`ink_ref.tsv`・`ink_retake.sh`。1 枚 2 回まで、段ごとに撮り直しは 180 秒まで、結果は全部 `shots/ink.txt`、撮り直しで足りた写真は `::notice::`）、(g) 横の写真は PNG が縦長のときだけ回す（iOS 27.2 は横で書く）、(h) 写真の段の外の 2 つの段（「Build the handwriting check in the background」と「The app logs' reach」）。どれも 2 つのファイルで**同じ字**。今の `ja-baseline.yml` の頭の注にある 2 つの足し物（11 のシートの `screen_ready.swift` の待ち、`launchctl` の一覧を全部読む）は、955fe67 の `build.yml` に入っているので、写すだけで同じになる。
 - 比べ方は今の J-4 のまま（`tools/l10n/compare_shots.swift`、M7B.md C1）。**合否は、同じ UTC の日（日本時間 9:00〜翌 8:59）に撮り、2 つの env.txt の Xcode と実行環境の版の行が同じ組でだけ決める**。違えば基準を撮り直す（配り中の新しい環境 20261119 が途中で当たることがある、§3.8）。
 - **J-4 は同じ道具どうしの比べ**なので、新しい SDK による悪化（部品が隠れる・字が切れる）は J-4 では捕まらない。それは §3.6（D0 の関門 7）で見る。
 - **1.4 で違ってよい写真（前もって M7D.md に書く）**: `ipad13-portrait-sheet-info.png` の版の字の所だけ（N-3 の文を本人が替えると選んだときは、その文が写る設定の写真を足す。§1.5）。D1 の変更（初めて開くページ・シートの形・倍率・revealRect・注・「指でも書く」の決め方・広い窓の上限）は、今の機種の写真を変えない（写真モードは `shot.page` で開き、シートの形は iPad とふつうの iPhone で今と同じ、倍率は今の機種で同じ値、「指でも書く」は iPad とふつうの iPhone で 1.3 と同じ値（Pencil の触れも折り目も無い）、上限は今の iPhone の窓では 1.3 と同じ（§4.7））。Duo の写真は J-4 に入らない（新しいジョブ、基準に無い）。
@@ -755,7 +755,7 @@ M7C_CONTRACT §6.4 の最後と、S6 のリードの決定 3 の仕事。1.4 は
   - 「1.3's tests unchanged (TESTS_1_3)」: `shasum -a 256 -c tools/span/TESTS_1_3.sha256`。
   - 「1.3's fixtures unchanged (FIXTURES_1_3)」: `shasum -a 256 -c tools/span/FIXTURES_1_3.sha256` と、**3 つのフォルダの中のファイルの一覧が表の行と同じ**こと（足した・消したファイルも落とす。1.4 は新しい fixture を作らない、§5.1）。
 - 新しいテストは全部新しいファイルへ（§6）。
-- **`TESTS_1_3` のファイルを変えてよいとき**: (a) 新しい SDK で揺れる（同じコードで通ったり落ちたりする）ことを 2 回以上の run で示し、原因（待ち方など）を書けたとき、(b) 新しい SDK で API が変わってコンパイルできないとき。どちらも確かめの強さを下げない（期待の数・比べ方を緩めない）。同じ commit で表の行を書き直し、M7D.md に run の番号と理由を書く。**`FIXTURES_1_3` のファイルは変えない**（変えたくなったら止めて、§12 の 0d-15 で契約を直す）。
+- **`TESTS_1_3` のファイルを変えてよいとき**: (a) 新しい SDK で揺れる（同じコードで通ったり落ちたりする）ことを 2 回以上の run で示し、原因（待ち方など）を書けたとき、(b) 新しい SDK で API が変わってコンパイルできないとき、(c) 新しい SDK の UIKit が、テストの描画の道具（テストのファイルの中の手順）に、アプリの描く物ではないシステムの飾りを足すことを試しの run で示したとき（直しはその飾りを消すことだけ。D0b、11/20 の L1）。どれも確かめの強さを下げない（期待の数・比べ方を緩めない）。同じ commit で表の行を書き直し、M7D.md に run の番号と理由を書く。**`FIXTURES_1_3` のファイルは変えない**（変えたくなったら止めて、§12 の 0d-15 で契約を直す）。
 
 ### 5.6 新しい SDK で保存のバイトが同じこと
 
@@ -1213,6 +1213,7 @@ CI の時間の見込み（1.3 の最後の run 44474759145 のジョブの時�
 - 2026-11-20 第 1 版（同じ役が下書きを直して仕上げた。読み手と批評の見直しの前）: 本人の決定「Duoでもペンシルを使うので、その前提で作って下さい。」を入れた（§0.1・§1.2・§4.8 を書き直し、Duo の見分け方 W・P と「指でも書く」の切り替えの表、外側の画面、Pencil の触れを見る認識器、確かめ表の Duo の 7 行、新機能の文の行 2、SUPPORT・審査メモの Pencil の文）。§0.4 の「Duo を持っていますか」の問いを消した（本人の決定で前提が決まった）。一覧の上限は「広い紙にはかけない」規則に替えた（下書きの ア／イ' をやめた。§4.7）。初めて開くページとシートは窓の短い辺で決める（幅で見るとふつうの iPhone の横が変わるため。§4.3）。米国の年齢の法律の見直しを範囲外に書いた（§1.4）。コードの行は 7895d40 で読み直した（`InkCanvasView.swift:1906-1908`・`:2412-2439`、`ToolbarView.swift:310-318`、`DateTap.swift:9-27`、`OverviewCapChecks.swift:87-92`・`:164`、`AppSettings.swift:119-122`、`onboarding.pen.text` は `tools/l10n/source/app-S.json:1501`、`docs/SUPPORT.md:121-123`）
 
 - 2026-11-20 **第 2 版**（同じ役が、2 つの批評の 33 件（F1〜F13・C1〜C20）に答えた。§15）: 窓の広さ（W）を入力の信号から外し、P（Pencil の触れ）と H（`UIHingeInteraction`）にした（§4.8）。決め方を Kit の状態の型 `FingerDefault` にし、`appear` との順・触れている間・端末の印（`identifierForVendor`）・移ってきた値の戻しを入れた。触れの見張りは凍結の `InkTouchObserver` を窓に付けて使う（新しい認識器をやめた）。一覧の上限は紙でなく窓の短い辺で（窓の plan の `overviewCap`。`SpanPlan` は変えない、§4.7）。XcodeGen を 2.46.0 の zip で固定（§3.3）。Duo のジョブを `duo.yml` に分け、変異は手元とまとめた枝で（§3.10）。Xcode を Build の字で選ぶ。内側を開く道の既定を道 3 に（§4.2）。SDK の差の地図を D0 の関門 7 に（§3.6）。`TESTS_1_3` を D0 で 955fe67 の blob から作り、`FIXTURES_1_3` を足した（§5.5）。Probe の `versionExtraChecks`、`Real13LedgerTests` のバイトの比べは compat-span だけ（§5.3）。1 ページの道の読み違いは記録（§1.5）。N-3 は確認ページで選べる（§1.5）。確かめ表を 27 行に（§10）。Asset Library の `specId` と置き場所の決まり（§7.2）。出典 S52〜S61 を足した。コードの行は 7895d40 で読み直した（`ScreenPaths.swift:33-36`・`:265-269`・`:414-425`・`:1022-1027`・`:1186-1188`、`SpanSession.swift:262`・`:368-374`・`:1059-1064`、`InkCanvasView.swift:922-926`・`:1245-1272`・`:3035-3038`・`:3223-3225`・`:3289-3296`、`InkTouchObserver.swift`、`InkCanvasViewTests.swift:2447-2459`、`CalendarRootScreen.swift:187-188`・`:886`・`:938`・`:1253-1257`・`:2776`・`:2863-2872`、`AppSettings.swift:26-27`・`:96`・`:121`・`:181-187`、`SpanGuideView.swift:100`、`AllDayBand.swift:278`、`tools/span-compat/run.sh:20-56`、`build.yml` の 9 か所の `brew install xcodegen`）
+- 2026-11-20 **D0b の足し**（リードの決定 L1〜L6 と、2 つの見直しの後の直し。M7D.md「D0b」）: §5.5 に (c)、§3.5 に (f)(g)(h)、§3.3 の 9 に新しい上限。§0.5 のとおり自動の確かめのやり方なので本人の決定は要らない。
 
 （結果は `docs/M7D.md` に書く。ここは契約の版の記録だけ。）
 
