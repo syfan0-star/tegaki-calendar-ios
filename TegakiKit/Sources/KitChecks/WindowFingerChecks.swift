@@ -5,8 +5,9 @@
 // `WindowClass` decides the look by the window's size (the opening page, the sheet's shape, the overview cap) and
 // `FingerDefault` decides whether the app turns 「指でも書く」 off (the Pencil P and the hinge H, never the window). Both are pure,
 // so their mutations are checked here with `swift run KitChecks` on a Mac, not on CI (§3.10, §6: M-w1, M-w2, M-f1 … M-f7). The
-// expectations are literals: sizes in points (today's iPhones, the Duo's estimates of docs/m7d/CODE_SURVEY.md §3.2) and the
-// table of §4.8 written out row by row, never read back from the code under test.
+// expectations are literals: sizes in points (today's iPhones; the Duo's outer window as duo-shots measured it, 466 × 678,
+// run 44696154794; its inner one's estimates of docs/m7d/CODE_SURVEY.md §3.2, path 3) and the table of §4.8 written out row
+// by row, never read back from the code under test.
 import Foundation
 import CoreGraphics
 import Layout
@@ -40,7 +41,7 @@ private func windowClassChecks() {
         ("iPhone 17 Pro Max portrait", size(440, 956), false), ("iPhone 17 Pro Max landscape", size(956, 440), false),
         ("Duo inner A portrait (estimate)", size(669, 951), true), ("Duo inner A landscape (estimate)", size(951, 669), true),
         ("Duo inner B portrait (estimate)", size(626, 890), true), ("Duo inner B landscape (estimate)", size(890, 626), true),
-        ("Duo outer portrait (estimate)", size(466, 678), false), ("Duo outer landscape (estimate)", size(678, 466), false),
+        ("Duo outer portrait (measured)", size(466, 678), false), ("Duo outer landscape (measured)", size(678, 466), false),
         ("a short side of 599.9", size(599.9, 900), false), ("a short side of 599.9, landscape", size(900, 599.9), false),
         ("a square of 600", size(600, 600), true), ("a short side of 600, landscape", size(900, 600), true),
         ("nil", nil, false), ("zero", .zero, false), ("a width of 0", size(0, 951), false), ("a height of 0", size(669, 0), false),
