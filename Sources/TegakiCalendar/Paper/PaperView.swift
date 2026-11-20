@@ -217,9 +217,8 @@ final class PaperView: UIView {
         // changes, not only when the view moves to a window — on iPhone Duo folding can take the window to the
         // other screen without moving it in the hierarchy (§4.9 5; whether the two screens' scales differ is not
         // confirmed, §4.5).
-        registerForTraitChanges([UITraitDisplayScale.self]) { (view: PaperView, _: UITraitCollection) in
-            view.followDisplayScale()
-        }
+        // MUTATION P1 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, PaperViewScaleTests): 1.3's form again, the
+        // scale is read in didMoveToWindow only; the registration for the display-scale trait is taken out.
     }
 
     @available(*, unavailable)
