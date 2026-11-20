@@ -411,8 +411,9 @@ def check_folder(folder, inner=False, uses_hinge="unknown", size_rule="fail", us
             else:
                 valid.append(fields)
         if not valid:
-            errors.append("%s: no duo measure: line from its launch (§2.1, --screenshot-measure; it goes to the app's log "
-                          "like the toolbar: lines)" % tag)
+            errors.append("%s: no duo measure: line from its launch (§2.1, --screenshot-measure; the app appends it to "
+                          "Library/Caches/duo-measure.txt in its data container, `log show` is the fallback; "
+                          "measure-sources.tsv says where each photo's lines came from)" % tag)
             table.append(cell)
             continue
         turned = [f for f in valid if window_orient(f) == orient]
