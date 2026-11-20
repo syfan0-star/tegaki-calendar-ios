@@ -125,7 +125,7 @@ In Settings > Apple Pencil, you can choose what a double-tap (2nd generation and
 
 ### Can I use it on iPhone or Mac?
 
-You can use it on iPhone (iOS 17 or later). On iPhone, you write with your finger (“Draw with Finger” in the toolbar). If you use the iCloud of the same Apple Account on iPad and iPhone, your handwriting syncs. It also opens on a Mac, but there it is meant for supplementary use (checking and simple writing). A Mac has no Apple Pencil, so handwriting is done with a trackpad or mouse.
+You can use it on iPhone (iOS 17 or later). On iPhone, you write with your finger (“Draw with Finger” in the toolbar). On iPhone Duo, the App fills the large screen when the device is open, and fits the outer screen when it is closed (from version 1.4). If you use the iCloud of the same Apple Account on iPad and iPhone, your handwriting syncs. It also opens on a Mac, but there it is meant for supplementary use (checking and simple writing). A Mac has no Apple Pencil, so handwriting is done with a trackpad or mouse.
 
 ### I want to move my handwriting from the web version to the App
 
