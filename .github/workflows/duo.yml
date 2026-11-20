@@ -31,6 +31,10 @@
 # Xcode 27.3, deciding only with a release of it (§3.10, 0d-34). duo-probe stays for a dispatch with `job: probe`. The
 # values the lead sets after the measurements (the number of UI tests, PencilPhone.usesHinge, the way to open the Duo) are
 # duo-shots' env, at its head.
+#
+# 1.4 M1, on the throwaway branch r14-duo-i17 only (never merged): duo-i17, the one-time iOS 17 launch trial of
+# docs/M7D_CONTRACT.md §6 (its last bullet: once, never a gate), is the only job a push to that branch runs; the other
+# three jobs have `github.ref_name != 'r14-duo-i17'` in their `if` there.
 name: duo
 
 on:
@@ -60,7 +64,8 @@ jobs:
   duo-probe:
     # 1.4 D1 (docs/M7D_CONTRACT.md §3.10): a dispatch with `job: probe` only; the pushes to r14-duo* run duo-shots now.
     name: duo-probe (1.4, D0)
-    if: ${{ inputs.job == 'probe' }}
+    # 1.4 M1: off on the throwaway branch r14-duo-i17 (duo-i17 alone runs there).
+    if: ${{ inputs.job == 'probe' && github.ref_name != 'r14-duo-i17' }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-2): the image with Xcode 27 and the Duo's runtimes.
     runs-on: xcode-27
     # Estimated: checkout, Xcode and XcodeGen 3 min, the build 3–6, the boot 2–8 (a first boot on the new image takes
@@ -432,7 +437,8 @@ jobs:
   # (tools/ci/xcresult-app-output.sh) comes second, and `log show` (with tools/ci/log-reach.sh) last.
   duo-shots:
     name: duo-shots (1.4, D1)
-    if: ${{ github.event_name == 'push' || inputs.job == 'shots' }}
+    # 1.4 M1: off on the throwaway branch r14-duo-i17 (duo-i17 alone runs there).
+    if: ${{ github.ref_name != 'r14-duo-i17' && (github.event_name == 'push' || inputs.job == 'shots') }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-2): the image with Xcode 27 and the Duo's runtimes.
     runs-on: xcode-27
     # Estimated: checkout, Xcode and XcodeGen 3 min, the build for testing 5–10, the iPhone 17 3–4, the Duo's boot 2–8 and
@@ -1315,7 +1321,8 @@ jobs:
   # to record. Submission builds stay on 27.2 (§3.1). Artifact "duo-hinge" (kept 7 days).
   duo-hinge:
     name: duo-hinge (1.4, D1; a record unless a release of Xcode 27.3)
-    if: ${{ inputs.job == 'hinge' }}
+    # 1.4 M1: off on the throwaway branch r14-duo-i17 (duo-i17 alone runs there).
+    if: ${{ inputs.job == 'hinge' && github.ref_name != 'r14-duo-i17' }}
     runs-on: xcode-27
     timeout-minutes: 75
     env:
@@ -1717,6 +1724,669 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
           overwrite: true
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
+  # 1.4 M1 (docs/M7D_CONTRACT.md §6, its last bullet; 0d-35): the one-time trial of the app on iOS 17, once and never a
+  # gate ("1 回だけ、合否に使わない"), on a push to the throwaway branch r14-duo-i17 only (never merged; there the other
+  # jobs of this file are off). The image xcode-27 has no iOS 17 runtime [S29] (nor has any hosted image now: macos-15
+  # starts at iOS 18.5, macos-26 at 26.2), so the job first asks Xcode 27.2 for one. When none can be got (or one is
+  # there but not usable, or no iPhone can be made or booted on it) the job ends green and its summary says 【未確認】:
+  # docs/M7D.md then says so and the weak-link check of testflight.yml stands in for it (§6). Otherwise the app, built as
+  # duo-probe builds it (Debug, the generic simulator destination, no signing), is installed on an iPhone of that runtime
+  # and launched in screenshot mode on the week twice: as duo-shots' first launch on the iPhone 17 (the joined week, the
+  # launch arguments of a first launch, --screenshot-measure: PencilPhone's start and the measure line, whose hinge is read
+  # only `if #available(iOS 27.1, *)`) and as build.yml's photo of the week (one page). Each launch is photographed after
+  # its wait and its process looked for. An app that does not install, a launch that fails, a process gone after its wait
+  # or a crash report fails the job, after the upload ("起動しなければ止めて調べる": the people on iOS 17 could not open
+  # the app). No secret, no signing. Artifact "duo-i17" (kept 7 days): status.txt (a line "<key>=<value>" as each part
+  # ends; the last line of a key wins, so the summary knows how far a step got even when its limit stopped it), the
+  # photos, each launch's stdout, stderr and measure lines, the app's log, any crash report, and what xcodebuild, simctl
+  # and Apple's runtime index said.
+  duo-i17:
+    name: duo-i17 (1.4 M1, the iOS 17 launch trial; once, not a gate)
+    if: ${{ github.ref_name == 'r14-duo-i17' }}
+    # The same image as duo-shots (docs/M7D_CONTRACT.md §3.1, 0d-2).
+    runs-on: xcode-27
+    # Estimated: checkout and Xcode 3 min, the runtime 5–25 (a download of several GB, then its install; the step gives
+    # itself until 30 min after the job's start), XcodeGen and the build 5–12, the iPhone's boot 1–8 and 60 s alone, the
+    # two launches 2, the log 1: about 25–45 min, at most about 58. A job cut by its limit would not reach the upload.
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+      # As build.yml's photos: the app in Japanese whatever the simulator's language is.
+      JA_ARGS: "-AppleLanguages (ja) -AppleLocale ja_JP"
+      # The runtime asked for: the newest iOS 17, by its version (the contract's 17.5), and by its build (21F79, the iOS
+      # 17.5 simulator's build as Xcode 15.4 listed it; whether Xcode 27.2's catalog has it is 【未確認】).
+      I17_VERSION: "17.5"
+      I17_BUILD: "21F79"
+
+    steps:
+      - name: Checkout
+        timeout-minutes: 5
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # The job's clock (the runtime step gives itself until 30 min after it, so the build and the trial still fit in
+      # the job's 60) and its record, duo-i17/status.txt.
+      - name: Start the record
+        run: |
+          set -euo pipefail
+          mkdir -p duo-i17
+          date +%s > "$RUNNER_TEMP/i17-start"
+          printf 'runtime=not tried\nstarted=%s (runner image %s %s)\n' "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" "${ImageOS:-?}" "${ImageVersion:-?}" > duo-i17/status.txt
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
+        run: |
+          set -euo pipefail
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
+          fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
+          xcode-select -p
+          xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+
+      # What Xcode 27.2 says about getting a platform, read on the runner (the lead's Mac has the command line tools only,
+      # where `xcodebuild -help` needs an Xcode): the lines of `xcodebuild -help` about a platform, a build version, an
+      # export path, an architecture variant, an import or a runtime, and `simctl help runtime` (the whole texts are
+      # files); then the runtimes before the download and the free disk (an iOS runtime is several GB). Printed only. The
+      # first simctl call may wait minutes while simdiskimaged walks the runtimes (actions/runner-images#15247).
+      - name: What xcodebuild and simctl say about runtimes (printed only)
+        timeout-minutes: 10
+        continue-on-error: true
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="$GITHUB_WORKSPACE/duo-i17"
+          xcodebuild -help > "$OUT/xcodebuild-help.txt" 2>&1
+          echo "== xcodebuild -help: the lines about a platform, a build version, an export path, an architecture variant, an import or a runtime"
+          grep -n -i -E 'platform|buildversion|exportpath|architecturevariant|import|runtime' "$OUT/xcodebuild-help.txt" || echo "(none)"
+          echo "== xcrun simctl help runtime"
+          xcrun simctl help runtime > "$OUT/simctl-help-runtime.txt" 2>&1
+          cat "$OUT/simctl-help-runtime.txt"
+          echo "== the runtimes before the download"
+          xcrun simctl list runtimes > "$OUT/runtimes-before.txt" 2>&1
+          xcrun simctl runtime list > "$OUT/runtime-images-before.txt" 2>&1
+          cat "$OUT/runtimes-before.txt" "$OUT/runtime-images-before.txt"
+          echo "== the free disk"
+          df -h / "$RUNNER_TEMP" | tee "$OUT/disk-before.txt"
+          exit 0
+
+      # Apple's index of the simulator runtimes (the address Xcode 16 and the xcodes tool read; whether Xcode 27.2 reads
+      # the same one is 【未確認】): the iOS versions it lists and its iOS 17 entries whole (version, build, the hosts and
+      # Xcodes each allows, the architectures, the size, the source). Printed only (index-ios17.txt); nothing decides on
+      # it. A download, so a limit of its own.
+      - name: Apple's runtime index, its iOS 17 entries (printed only)
+        timeout-minutes: 3
+        continue-on-error: true
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="$GITHUB_WORKSPACE/duo-i17"
+          INDEX="$RUNNER_TEMP/index2.dvtdownloadableindex"
+          if ! curl -fsSL --max-time 90 --retry 2 -o "$INDEX" "https://devimages-cdn.apple.com/downloads/xcode/simulators/index2.dvtdownloadableindex"; then
+            echo "(the index could not be read)" | tee "$OUT/index-ios17.txt"
+            exit 0
+          fi
+          python3 -I - "$INDEX" <<'EOF' 2>&1 | tee "$OUT/index-ios17.txt"
+          import json, plistlib, sys
+          try:
+              with open(sys.argv[1], "rb") as f:
+                  data = plistlib.load(f)
+          except Exception as error:
+              print("(the index is not a property list: %s)" % error)
+              sys.exit(0)
+          rows = data.get("downloadables", []) if isinstance(data, dict) else []
+          def version(d):
+              return str((d.get("simulatorVersion") or {}).get("version") or d.get("version") or "")
+          def order(v):
+              return [int(p) if p.isdigit() else 0 for p in v.split(".")]
+          ios = [d for d in rows if "iphone" in str(d.get("platform", "")).lower() or str(d.get("name", "")).startswith("iOS ")]
+          print("the index lists %d downloadables, %d of iOS; their versions: %s"
+                % (len(rows), len(ios), ", ".join(sorted({version(d) for d in ios}, key=order)) or "none"))
+          for d in ios:
+              if version(d).startswith("17."):
+                  print(json.dumps(d, sort_keys=True, default=str))
+          EOF
+
+      # The runtime (§6's last bullet; the contract marks the first way 【未確認】). Up to four ways, each with a limit of
+      # its own (at most 25 min), all within 30 min of the job's start: (a) `xcodebuild -downloadPlatform iOS
+      # -buildVersion $I17_VERSION`; (b) the same with `-architectureVariant universal` (the iOS 17 runtimes came before
+      # the arm64-only variants, and runner-images stopped passing it for Xcode 27.1 and later: "Xcode 27.1+ cannot resolve
+      # universal runtimes", actions/runner-images#15011); (c) `-buildVersion $I17_BUILD`; (d) the disk image exported
+      # with `-exportPath`, then `xcodebuild -importPlatform` or else `xcrun simctl runtime add`. A way is tried only while
+      # no usable iOS 17 runtime is there and no earlier way was stopped by its limit (a slow download is not tried again).
+      # Each way's whole output is download-<way>.txt. Never fails: a usable iOS 17 runtime is the output `id` (with
+      # `name` and `build`); none leaves `id` empty and status.txt says why (【未確認】).
+      - name: Get an iOS 17 runtime (【未確認】 when none can be got)
+        id: runtime
+        timeout-minutes: 30
+        continue-on-error: true
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="$GITHUB_WORKSPACE/duo-i17"
+          STATUS="$OUT/status.txt"
+          START="$(cat "$RUNNER_TEMP/i17-start" 2>/dev/null || date +%s)"
+          DEADLINE=$((START + 30 * 60))
+          note() {  # note <key> <value>: a line of status.txt
+            printf '%s=%s\n' "$1" "$2" >> "$STATUS"
+          }
+          limited() {  # limited <seconds> <command…>: the command, stopped after <seconds> (then 124, or 142 by perl's alarm)
+            local SECS="$1"
+            shift
+            if command -v timeout > /dev/null 2>&1; then
+              timeout "$SECS" "$@"
+            else
+              perl -e 'alarm shift @ARGV; exec @ARGV or exit 127' "$SECS" "$@"
+            fi
+          }
+          # find_i17: "<identifier>|<name>|<build>|<yes: usable, or no>|<why not>" of the newest iOS 17 runtime simctl lists
+          # (a usable one first), or nothing.
+          find_i17() {
+            xcrun simctl list -j runtimes 2>/dev/null | python3 -I -c '
+          import json, sys
+          try:
+              data = json.load(sys.stdin)
+          except ValueError:
+              sys.exit(0)
+          def key(r):
+              return (bool(r.get("isAvailable")), [int(p) for p in str(r.get("version", "0")).split(".") if p.isdigit()])
+          found = sorted((r for r in data.get("runtimes", []) if str(r.get("version", "")).startswith("17.")
+                          and (r.get("platform") == "iOS" or ".SimRuntime.iOS-" in str(r.get("identifier", "")))), key=key)
+          if found:
+              r = found[-1]
+              print("|".join([str(r.get("identifier", "?")), str(r.get("name", "?")), str(r.get("buildversion", "?")),
+                              "yes" if r.get("isAvailable") else "no", " ".join(str(r.get("availabilityError", "")).split()).replace("|", "/")]))
+          '
+          }
+          GOT=""
+          usable() {  # usable <how> <seconds>: GOT set (and 0) when a usable iOS 17 runtime is there, looked for each 5 s
+            local LINE LEFT="$2"
+            while :; do
+              LINE="$(find_i17)"
+              if [ -n "$LINE" ] && [ "$(printf '%s' "$LINE" | cut -d '|' -f 4)" = yes ]; then
+                GOT="$LINE"
+                note runtime_how "$1"
+                return 0
+              fi
+              if [ "$LEFT" -le 0 ]; then return 1; fi
+              sleep 5
+              LEFT=$((LEFT - 5))
+            done
+          }
+          tail_of() {  # tail_of <file> <lines>: its last lines (a progress line's carriage returns as new lines), each cut
+            tr '\r' '\n' < "$1" 2>/dev/null | grep -v '^[[:space:]]*$' | tail -n "$2" | cut -c 1-300
+          }
+          # way <tag> <xcodebuild arguments…>: one way, its output in download-<tag>.txt and its end in status.txt; 0 when
+          # it ended by itself with 0, 1 with an error, 2 when its limit stopped it or no time was left.
+          way() {
+            local TAG="$1" LEFT STARTED RC
+            shift
+            LEFT=$((DEADLINE - $(date +%s)))
+            if [ "$LEFT" -lt 120 ]; then
+              note "way_$TAG" "not tried: less than 2 min left of the runtime's share of the job"
+              return 2
+            fi
+            if [ "$LEFT" -gt 1500 ]; then LEFT=1500; fi
+            echo "== way $TAG: xcodebuild $* (at most $LEFT s)"
+            STARTED="$(date +%s)"
+            limited "$LEFT" xcodebuild "$@" > "$OUT/download-$TAG.txt" 2>&1
+            RC=$?
+            tail_of "$OUT/download-$TAG.txt" 12
+            note "way_$TAG" "xcodebuild $* ended $RC after $(( $(date +%s) - STARTED )) s: $(tail_of "$OUT/download-$TAG.txt" 3 | tr '\n' ' ' | cut -c 1-400)"
+            case "$RC" in
+              0) return 0 ;;
+              124|142) echo "way $TAG: stopped by its limit"; return 2 ;;
+              *) return 1 ;;
+            esac
+          }
+          STOPPED=0
+          try() {  # try <tag> <xcodebuild arguments…>: one more way, unless a runtime is there or a way was stopped
+            local TAG="$1" RC=0
+            if [ -n "$GOT" ] || [ "$STOPPED" = 1 ]; then return 0; fi
+            way "$@" || RC=$?
+            case "$RC" in
+              0) usable "$TAG: xcodebuild ${*:2}" 90 || note "after_$TAG" "it ended with 0, but no usable iOS 17 runtime was listed 90 s later" ;;
+              2) STOPPED=1; usable "$TAG (after its stop)" 0 || true ;;
+              *) usable "$TAG" 0 || true ;;
+            esac
+            return 0
+          }
+
+          df -h / | tail -n 1
+          if usable "already there" 0; then
+            echo "An iOS 17 runtime was already there."
+          else
+            try a -downloadPlatform iOS -buildVersion "$I17_VERSION"
+            try b -downloadPlatform iOS -buildVersion "$I17_VERSION" -architectureVariant universal
+            try c -downloadPlatform iOS -buildVersion "$I17_BUILD"
+            if [ -z "$GOT" ] && [ "$STOPPED" = 0 ]; then
+              EXPORT="$RUNNER_TEMP/i17-export"
+              mkdir -p "$EXPORT"
+              RC=0
+              way d -downloadPlatform iOS -buildVersion "$I17_VERSION" -exportPath "$EXPORT" || RC=$?
+              if [ "$RC" = 2 ]; then STOPPED=1; fi
+              ls -la "$EXPORT"
+              DMG="$(find "$EXPORT" -name '*.dmg' | head -n 1)"
+              if [ -z "$DMG" ]; then
+                note "after_d" "no disk image in the export folder"
+              else
+                try d-import -importPlatform "$DMG"
+                LEFT=$((DEADLINE - $(date +%s)))
+                if [ "$LEFT" -gt 900 ]; then LEFT=900; fi
+                if [ -z "$GOT" ] && [ "$STOPPED" = 0 ] && [ "$LEFT" -lt 120 ]; then
+                  note "way_d-add" "not tried: less than 2 min left of the runtime's share of the job"
+                elif [ -z "$GOT" ] && [ "$STOPPED" = 0 ]; then
+                  echo "== way d-add: xcrun simctl runtime add $DMG (at most $LEFT s)"
+                  limited "$LEFT" xcrun simctl runtime add "$DMG" > "$OUT/download-d-add.txt" 2>&1
+                  RC=$?
+                  tail_of "$OUT/download-d-add.txt" 12
+                  note "way_d-add" "xcrun simctl runtime add ended $RC: $(tail_of "$OUT/download-d-add.txt" 3 | tr '\n' ' ' | cut -c 1-400)"
+                  usable "d-add: the exported disk image, simctl runtime add" 90 || true
+                fi
+              fi
+            fi
+          fi
+
+          if [ -n "$GOT" ]; then
+            ID="$(printf '%s' "$GOT" | cut -d '|' -f 1)"
+            NAME="$(printf '%s' "$GOT" | cut -d '|' -f 2)"
+            BUILD="$(printf '%s' "$GOT" | cut -d '|' -f 3)"
+            note runtime "got: $NAME ($BUILD), $ID"
+            { echo "id=$ID"; echo "name=$NAME"; echo "build=$BUILD"; } >> "$GITHUB_OUTPUT"
+            echo "Got: $NAME ($BUILD), $ID"
+          else
+            LINE="$(find_i17)"
+            if [ -n "$LINE" ]; then
+              note runtime "there but not usable: $LINE"
+            else
+              note runtime "not got"
+            fi
+            echo "::warning::【未確認】 no usable iOS 17 runtime with Xcode 27.2 (duo-i17: status.txt and download-*.txt say why). docs/M7D_CONTRACT.md §6: docs/M7D.md says 【未確認】 and testflight.yml's weak-link check stands in."
+          fi
+          xcrun simctl list runtimes > "$OUT/runtimes-after.txt" 2>&1
+          xcrun simctl runtime list > "$OUT/runtime-images-after.txt" 2>&1
+          note runtime_images "$(grep -E ' 17\.' "$OUT/runtime-images-after.txt" | head -n 3 | tr '\n' ' ' | cut -c 1-400)"
+          df -h / | tee "$OUT/disk-after.txt"
+          exit 0
+
+      # The app only when there is an iOS 17 runtime to run it on.
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
+      - name: Install XcodeGen
+        if: ${{ steps.runtime.outputs.id != '' }}
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
+
+      - name: Generate the Xcode project
+        if: ${{ steps.runtime.outputs.id != '' }}
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          xcodebuild -project TegakiCalendar.xcodeproj -list
+
+      # As duo-probe's: Debug, the generic simulator destination (every simulator architecture), no signing.
+      - name: Build for the iOS Simulator
+        id: build
+        if: ${{ steps.runtime.outputs.id != '' }}
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # An iPhone of the iOS 17 runtime (the iPhone 15, iOS 17's own, else one of its time, else the last iPhone the
+      # runtime lists), booted (at most 8 min) and left alone 60 s; the app installed; then the two launches (see the job's
+      # head). A runtime with no iPhone, an iPhone simctl cannot make or that does not boot is 【未確認】 (the step ends
+      # there); an app that does not install, a launch that fails or a process gone after its wait is for the verdict.
+      # Then the app's log (`log show`, with tools/ci/log-reach.sh) and the crash reports written since the install.
+      # Never fails (the verdict comes after the upload).
+      - name: The app on the iOS 17 iPhone (screenshot mode, the week)
+        id: trial
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 15
+        continue-on-error: true
+        env:
+          RUNTIME_ID: ${{ steps.runtime.outputs.id }}
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="$GITHUB_WORKSPACE/duo-i17"
+          STATUS="$OUT/status.txt"
+          BUNDLE="com.syfan0.tegakicalendar"
+          STEP_START="$(date +%s)"
+          note() {  # note <key> <value>: a line of status.txt
+            printf '%s=%s\n' "$1" "$2" >> "$STATUS"
+          }
+          limited() {  # limited <seconds> <command…>: the command, stopped after <seconds> (then 124, or 142 by perl's alarm)
+            local SECS="$1"
+            shift
+            if command -v timeout > /dev/null 2>&1; then
+              timeout "$SECS" "$@"
+            else
+              perl -e 'alarm shift @ARGV; exec @ARGV or exit 127' "$SECS" "$@"
+            fi
+          }
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          if [ -z "$APP" ]; then
+            note app "not found under build/DerivedData"
+            echo "::error::TegakiCalendar.app not found under build/DerivedData."
+            exit 0
+          fi
+          note app "$(basename "$APP"), MinimumOSVersion $(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist" 2>&1)"
+          TYPE="$(xcrun simctl list -j runtimes | RUNTIME_ID="$RUNTIME_ID" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          rt = next((r for r in data.get("runtimes", []) if r.get("identifier") == os.environ["RUNTIME_ID"]), {})
+          types = [t for t in rt.get("supportedDeviceTypes", []) if t.get("productFamily") == "iPhone" or str(t.get("name", "")).startswith("iPhone")]
+          names = [t.get("name") for t in types]
+          print("the iPhones the runtime supports: %s" % (", ".join(str(n) for n in names) or "none"), file=sys.stderr)
+          pick = next((types[names.index(n)] for n in ("iPhone 15", "iPhone 15 Pro", "iPhone 14", "iPhone SE (3rd generation)") if n in names),
+                      types[-1] if types else None)
+          if pick:
+              print("%s|%s" % (pick.get("identifier"), pick.get("name")))
+          ')"
+          if [ -z "$TYPE" ]; then
+            note device "【未確認】 the runtime lists no iPhone"
+            exit 0
+          fi
+          UDID="$(xcrun simctl create "iOS 17 trial" "${TYPE%%|*}" "$RUNTIME_ID" 2> "$OUT/create.txt")"
+          if [ -z "$UDID" ]; then
+            note device "【未確認】 simctl create failed for ${TYPE#*|}: $(tr '\n' ' ' < "$OUT/create.txt" | cut -c 1-300)"
+            exit 0
+          fi
+          note device "${TYPE#*|} on $RUNTIME_ID, $UDID"
+          BOOT_STARTED="$(date +%s)"
+          xcrun simctl boot "$UDID" > "$OUT/boot.txt" 2>&1
+          if ! limited 480 xcrun simctl bootstatus "$UDID" -b >> "$OUT/boot.txt" 2>&1; then
+            note boot "【未確認】 did not boot in $(( $(date +%s) - BOOT_STARTED )) s: $(tail -n 3 "$OUT/boot.txt" | tr '\n' ' ' | cut -c 1-300)"
+            exit 0
+          fi
+          note boot "booted in $(( $(date +%s) - BOOT_STARTED )) s, then 60 s alone"
+          xcrun simctl ui "$UDID" appearance light > /dev/null 2>&1
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 > /dev/null 2>&1
+          sleep 60
+          xcrun simctl io "$UDID" screenshot "$OUT/home.png" > /dev/null 2>&1 || echo "no photo of the home screen"
+          if ! limited 300 xcrun simctl install "$UDID" "$APP" > "$OUT/install.txt" 2>&1; then
+            note install "failed: $(tail -n 5 "$OUT/install.txt" | tr '\n' ' ' | cut -c 1-400)"
+            echo "::error::the app did not install on the iOS 17 iPhone (duo-i17/install.txt)."
+            xcrun simctl shutdown "$UDID" > /dev/null 2>&1
+            exit 0
+          fi
+          note install ok
+          touch "$RUNNER_TEMP/i17-before-launch"
+
+          # launch <tag> <seconds> <arguments…>: one launch in screenshot mode (--screenshot-measure and $JA_ARGS added),
+          # its stdout and stderr in <tag>-stdout.txt and <tag>-stderr.txt (dyld says there what it could not bind), its
+          # photo <tag>.png after <seconds>, whether its process is still there (ps on the host, where a simulator's
+          # processes run, or the simulator's launchctl line, whose second field is the last exit status), and its
+          # `duo measure:` lines (Library/Caches/duo-measure.txt in its data container, deleted before the launch).
+          launch() {
+            local TAG="$1" WAIT="$2" MSG PID DATA LAUNCHCTL ALIVE N
+            shift 2
+            xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1
+            sleep 1
+            DATA="$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data 2>/dev/null)" || DATA=""
+            if [ -n "$DATA" ]; then rm -f "$DATA/Library/Caches/duo-measure.txt"; fi
+            # "$@" keeps the empty -allowFingerDrawingAuto value; $JA_ARGS is split on purpose (four words, none with a space).
+            if ! MSG="$(xcrun simctl launch --stdout="$OUT/$TAG-stdout.txt" --stderr="$OUT/$TAG-stderr.txt" "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-measure "$@" $JA_ARGS 2>&1)"; then
+              echo "$TAG: simctl launch with --stdout and --stderr failed ($MSG); once more without them"
+              if ! MSG="$(xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-measure "$@" $JA_ARGS 2>&1)"; then
+                note "launch_$TAG" "simctl launch failed: $(printf '%s' "$MSG" | tr '\n' ' ' | cut -c 1-300)"
+                return 0
+              fi
+            fi
+            PID="$(printf '%s\n' "$MSG" | awk -F ': ' -v b="$BUNDLE" '$1 == b { print $2; exit }')"
+            sleep "$WAIT"
+            xcrun simctl io "$UDID" screenshot "$OUT/$TAG.png" > /dev/null 2>&1 || echo "no photo ($TAG)"
+            LAUNCHCTL="$(xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep -F "$BUNDLE" | head -n 1 | tr '\t' ' ')"
+            # Running when either one sees it: ps finds the pid, or launchctl's line starts with a pid (not "-").
+            ALIVE=""
+            if [ -n "$PID" ] && ps -p "$PID" > /dev/null 2>&1; then ALIVE="ps"; fi
+            case "${LAUNCHCTL%% *}" in
+              ''|*[!0-9]*) ;;
+              *) ALIVE="${ALIVE:+$ALIVE and }launchctl" ;;
+            esac
+            if [ -n "$ALIVE" ]; then
+              note "launch_$TAG" "running after $WAIT s (pid $PID, seen by $ALIVE; launchctl: $LAUNCHCTL)"
+            else
+              note "launch_$TAG" "gone after $WAIT s (pid ${PID:-not given}; launchctl: ${LAUNCHCTL:-no line})"
+            fi
+            DATA="$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data 2>/dev/null)" || DATA=""
+            if [ -n "$DATA" ] && [ -f "$DATA/Library/Caches/duo-measure.txt" ]; then
+              cp "$DATA/Library/Caches/duo-measure.txt" "$OUT/$TAG-measure.txt"
+            fi
+            N="$(grep -c 'duo measure: ' "$OUT/$TAG-measure.txt" 2>/dev/null)"
+            note "measure_$TAG" "${N:-0} lines; the first: $(grep -m 1 -o 'duo measure: .*' "$OUT/$TAG-measure.txt" 2>/dev/null | cut -c 1-300)"
+            if [ -f "$OUT/$TAG.png" ]; then
+              note "photo_$TAG" "$(sips -g pixelWidth -g pixelHeight "$OUT/$TAG.png" 2>/dev/null | awk '/pixel(Width|Height)/ { printf "%s ", $2 }')px, $(python3 -I tools/duo/shot_checks.py black "$OUT/$TAG.png" 2>&1 | tail -n 1 | sed 's|^.*: mean luma|mean luma|')"
+            else
+              note "photo_$TAG" "none"
+            fi
+          }
+          # The first launch, as duo-shots' on the iPhone 17 (the joined week, the launch arguments of a first launch); the
+          # longer wait for PencilKit's shaders (build.yml's FIX3). Then the week on one page, as build.yml's photos.
+          launch first 60 --screenshot-page week --screenshot-span on -allowFingerDrawingChosen NO -allowFingerDrawingAuto ""
+          launch week 20 --screenshot-page week
+          xcrun simctl terminate "$UDID" "$BUNDLE" > /dev/null 2>&1
+          limited 180 xcrun simctl spawn "$UDID" log show --last "$(( ($(date +%s) - STEP_START) / 60 + 2 ))m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/app-log.txt" 2>&1
+          bash tools/ci/log-reach.sh "the iOS 17 iPhone (log show)" "$OUT/app-log.txt" 'toolbar: paperArea=' 'duo measure: '
+          find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -newer "$RUNNER_TEMP/i17-before-launch" -exec cp {} "$OUT/" \; 2>/dev/null
+          note crash_reports "$(find "$OUT" -maxdepth 1 -name 'TegakiCalendar*' | wc -l | tr -d ' ')"
+          xcrun simctl shutdown "$UDID" > /dev/null 2>&1
+          note trial "done in $(( $(date +%s) - STEP_START )) s"
+          cat "$STATUS"
+          ls -la "$OUT"
+          exit 0
+
+      # The step summary: the runtime (got, and which, or 【未確認】 and why, way by way), the iPhone, the install, each
+      # launch (running or gone after its wait) with its measure lines and photo, and each crash report's first lines and
+      # what it says (the exception, the termination, the first frames of the crashed thread), with the last lines of a
+      # gone launch's stderr. Its output `verdict`: launched, crashed, did not launch, did not install, unconfirmed
+      # (【未確認】), no build or unfinished. Never fails.
+      - name: Summary
+        id: summary
+        if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+        run: |
+          set +e
+          set -uo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/duo-i17"
+          python3 -I - "$GITHUB_WORKSPACE/duo-i17" <<'EOF'
+          import glob, json, os, sys
+          out = sys.argv[1]
+          status = {}
+          try:
+              for line in open(os.path.join(out, "status.txt"), encoding="utf-8", errors="replace"):
+                  key, sep, value = line.rstrip("\n").partition("=")
+                  if sep:
+                      status[key] = value
+          except OSError:
+              pass
+          def get(key):
+              return status.get(key, "")
+          build = os.environ.get("BUILD_OUTCOME") or "skipped"
+          crashes = sorted(p for p in glob.glob(os.path.join(out, "TegakiCalendar*")) if os.path.isfile(p))
+          launches = {tag: get("launch_" + tag) for tag in ("first", "week")}
+          if not get("runtime").startswith("got"):
+              verdict, result = "unconfirmed", "【未確認】 no usable iOS 17 runtime with Xcode 27.2: " + (get("runtime") or "not tried")
+          elif build != "success" or get("app").startswith("not found"):
+              verdict, result = "no build", "the app was not built (the build step: %s); nothing was launched" % build
+          elif not get("device") or get("device").startswith("【未確認】"):
+              verdict, result = "unconfirmed", "【未確認】 no iPhone on the iOS 17 runtime: " + (get("device").replace("【未確認】 ", "") or "the trial did not get that far")
+          elif not get("boot").startswith("booted"):
+              verdict, result = "unconfirmed", "【未確認】 the iOS 17 iPhone did not boot: " + (get("boot").replace("【未確認】 ", "") or "the trial did not get that far")
+          elif get("install").startswith("failed"):
+              verdict, result = "did not install", "the app did not install on iOS 17: " + get("install")
+          elif crashes or any(v.startswith("gone") for v in launches.values()):
+              verdict, result = "crashed", "the app was gone after its wait or left a crash report on iOS 17"
+          elif any(v.startswith("simctl launch failed") for v in launches.values()):
+              verdict, result = "did not launch", "simctl could not launch the app on iOS 17"
+          elif all(v.startswith("running") for v in launches.values()):
+              verdict, result = "launched", "the app launched on %s and was still running after each wait (the photos show the week)" % get("device")
+          else:
+              verdict, result = "unfinished", "the trial did not finish (a step's limit?): status.txt says how far it got"
+          labels = (("runtime", "Runtime"), ("runtime_how", "Got by"), ("runtime_images", "simctl runtime list (iOS 17)"),
+                    ("app", "App"), ("device", "iPhone"), ("boot", "Boot"), ("install", "Install"),
+                    ("launch_first", "First launch (joined week, a first launch's arguments)"), ("measure_first", "its measure lines"),
+                    ("photo_first", "its photo, first.png"), ("launch_week", "Week (one page)"), ("measure_week", "its measure lines"),
+                    ("photo_week", "its photo, week.png"), ("crash_reports", "Crash reports"), ("trial", "Trial"), ("started", "Job"))
+          lines = ["## duo-i17: the iOS 17 launch trial (1.4 M1; once, not a gate: docs/M7D_CONTRACT.md §6)", "",
+                   "**Result: %s** — %s" % (verdict, result), "", "| | |", "| --- | --- |"]
+          lines += ["| %s | %s |" % (label, get(key).replace("|", "/")) for key, label in labels if get(key)]
+          ways = [k for k in status if k.startswith(("way_", "after_"))]
+          if ways:
+              lines += ["", "The ways tried for the runtime:", ""] + ["- %s: %s" % (k, status[k]) for k in ways]
+          for tag, value in launches.items():
+              err = os.path.join(out, tag + "-stderr.txt")
+              if value.startswith("gone") and os.path.isfile(err) and os.path.getsize(err) > 0:
+                  tail = open(err, encoding="utf-8", errors="replace").read().splitlines()[-10:]
+                  lines += ["", "### %s-stderr.txt: its last lines" % tag, "", "```"] + [l[:300] for l in tail] + ["```"]
+          for path in crashes[:3]:
+              name = os.path.basename(path)
+              try:
+                  text = open(path, encoding="utf-8", errors="replace").read()
+              except OSError as error:
+                  lines += ["", "%s could not be read (%s)" % (name, error)]
+                  continue
+              lines += ["", "### %s: its first lines" % name, "", "```"] + [l[:200] for l in text.splitlines()[:15]] + ["```"]
+              try:
+                  body = json.loads(text.partition("\n")[2])
+              except ValueError:
+                  continue
+              exc = body.get("exception") or {}
+              term = body.get("termination") or {}
+              images = body.get("usedImages") or []
+              threads = body.get("threads") or []
+              crashed = body.get("faultingThread", 0)
+              frames = threads[crashed].get("frames", [])[:10] if isinstance(crashed, int) and 0 <= crashed < len(threads) else []
+              def frame(f):
+                  i = f.get("imageIndex")
+                  image = images[i].get("name", "?") if isinstance(i, int) and 0 <= i < len(images) else "?"
+                  return "%s %s" % (image, f.get("symbol") or "+%s" % f.get("imageOffset", "?"))
+              lines += ["", "- exception: %s %s %s" % (exc.get("type", "?"), exc.get("signal", ""), exc.get("subtype", "")),
+                        "- termination: %s %s %s" % (term.get("namespace", "?"), term.get("indicator", ""),
+                                                     " ".join(str(d) for d in (term.get("details") or []))[:500]),
+                        "- application specific: %s" % json.dumps(body.get("asi") or {}, ensure_ascii=False)[:500]]
+              lines += ["- frame %d: %s" % (n, frame(f)) for n, f in enumerate(frames)]
+          text = "\n".join(lines) + "\n"
+          print(text)
+          if os.environ.get("GITHUB_STEP_SUMMARY"):
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+                  summary.write(text)
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("verdict=%s\n" % verdict)
+          with open(os.path.join(out, "status.txt"), "a", encoding="utf-8") as record:
+              record.write("verdict=%s: %s\n" % (verdict, result))
+          EOF
+
+      - name: Upload the trial
+        if: always()
+        timeout-minutes: 10
+        uses: actions/upload-artifact@v4
+        with:
+          name: duo-i17
+          path: duo-i17
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true
+
+      # After the upload: the job fails only when the app, on an iOS 17 iPhone that booted, did not install, did not launch,
+      # was gone after its wait or left a crash report (§6: "起動しなければ止めて調べる"). 【未確認】 (no runtime, no
+      # iPhone, no boot) and an unfinished trial are a warning, and the job stays green: not a failure of 1.4 (§6).
+      - name: The trial's verdict
+        if: ${{ !cancelled() }}
+        env:
+          VERDICT: ${{ steps.summary.outputs.verdict }}
+        run: |
+          set -euo pipefail
+          case "${VERDICT:-}" in
+            launched)
+              echo "The app launched on iOS 17 and was still running after each wait; duo-i17's photos show whether it drew the week."
+              ;;
+            crashed|"did not launch"|"did not install")
+              echo "::error::On iOS 17 the app: $VERDICT (duo-i17: status.txt, the stderr files and any crash report). docs/M7D_CONTRACT.md §6: stop and look."
+              exit 1
+              ;;
+            *)
+              echo "::warning::【未確認】 the iOS 17 trial did not complete (${VERDICT:-no verdict}); duo-i17/status.txt says why. Not a failure of 1.4 (docs/M7D_CONTRACT.md §6)."
+              ;;
+          esac
 
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
       # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
