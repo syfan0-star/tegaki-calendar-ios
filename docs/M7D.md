@@ -121,3 +121,11 @@
 - 折り目のテストの直し（b21d7e0、D1 の直す役 → 別の目で確かめ）: 3 秒の間に「折り目あり」の知らせが来ないことを見る形に（知らせが来ない・来て nil、のどちらも通る。折り目が来れば落ちる）。PencilPhone は知らせが無いときに `hinge(false)` を返す（`usesHinge` が false の今はすぐ）ことを確かめ、取り消した待ちが答えを返さないように 1 か所直した。
 - 調べの試し（`r14-q-probe` 8aead6d = r14 + 新しいテストのファイル 3 つ、何も落とさない）: 帯（窓の位置 y 0 と y 300、四隅が直角の形と丸い形、ScrollView の有無、待ち 0.05 秒と 1 秒、描き方 2 通り）、PDF（同じ PDF を 4 回ずつ作り、違うバイトの場所と種類を書く）、StoreKit（資格を買う前に読む順と、履歴を見てから初めて読む順）。run 44659376399。D1 の直しは `r14-q-d1` に push（run 44659380308）。
 - 控え: `~/.local/share/tegaki-backup/1.4/run-44632524223-a2/`、調べの報告は `~/.local/share/tegaki-backup/1.4/d0b/`。
+
+## D0b の調べの結果（試しの run 44659376399、`r14-q-probe` 8aead6d、11/20 11:15〜11:35、環境 20261104.0337.1）
+
+- **帯（`PaperSpanTests.testTheOnePageBandIs1_2_3OnScreen`）の原因**: iOS 27 の UIKit が、テストの描画の道具（`renderOnScreen` の窓）の中の SwiftUI の `HostingScrollView` の**上の端に「スクロールの端の効果」（`UIKit.ScrollEdgeEffectView`、`CABackdropLayer` とグラデーションの覆い、高さ約 24 pt）**を自動で付け、`drawHierarchy` の写しにそれが写る。帯の上の約 24 pt が白っぽくぼける（帯の青 #2563eb が #3971ec などになり、許しの幅 12 を超える）。
+  - 証拠: ScrollView の中の棒は、四隅が直角・丸い・ただの長方形のどれでも、窓の y が 0 でも 300 でも、待ちが 0.05 秒でも 1 秒でも青 0。ScrollView の外の同じ棒は青 4,582〜4,591。`layer.render(in:)` で描くと日の帯の棒は青 722・4,912（棒は正しく描かれている）。週の帯は 2 段目（y 23〜）が効果の下から出るので通る。日の帯は 1 段で高さ 25 pt なので、棒が全部効果の下に入る。
+  - **使う人への影響は無い**: アプリの写真（D0、Xcode 27.2 で作り iOS 27.2 で撮った）では日のページの「締切」の帯は 1.3 と同じ色と位置（差は角の丸みと字のふちだけ）。効果はテストの道具の窓の中だけで出る。アプリのコードは直さない。
+- **PDF（`testWithoutNeighborInkThePDFIsTheDefaultCallsPDF`）の原因**: iOS 27.2 の Quartz は情報の辞書に `/ModDate\n(D:…)`（空白でなく改行）と書く（`/CreationDate` は書かない）。テストの `stableBytes` の正規表現 `/ModDate \(D:…\)` は空白を前提にしているので日時が残り、2 つの PDF を作る間に秒が変わると 1 バイト違って落ちる。D0 の 2 回は同じ秒で通り、D1 の速い道は秒をまたいで落ちた。試しでは同じ呼び方どうしでも秒が変われば違った。**時刻で揺れるテスト**（§5.5 の (a): 2 回以上の run と原因がそろった）。
+- **StoreKit（`StoreKitSessionTests.testIneligibleAfterATrial`）の原因**: iOS 27.2（24B8117）の StoreKit の試しの環境は、**お試し（FREE_TRIAL）の取引が履歴にあり期限が切れた後も、お試しの資格を true のまま返す**。買う前に資格を読まない順（試し 1）でも、読む順（試し 2）でも、`Product.SubscriptionInfo.isEligibleForIntroOffer(for:)` と商品の値が 15 秒の間 41〜42 回とも true。`clearTransactions()` の後も true。アプリは資格を自分で計算せず StoreKit の答えをそのまま見せるので、これは試しの環境の振る舞い（1.3 の CI では古いシミュレータの不具合で StoreKit のテストが全部飛んでいて、このテストは初めて走った）。
