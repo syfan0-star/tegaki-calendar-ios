@@ -664,7 +664,7 @@ jobs:
       # (MUTATIONS, §6) every class runs, as off the quick lane: the mutations there are caught by classes of every kind.
       # 1.4 D1 (§3.10, §6): the quick lane (r14-quick, r14-q-*) also runs D1's new classes, each by its whole name:
       # WindowClassTests, PencilPhoneTests, CappedOverviewWideTests, OnePageRevealTests, SnapshotScaleTests and DuoFoldTests
-      # (role S) and PaperViewScaleTests (role P); a class not written yet is not found and not run.
+      # (role S) and PaperViewScaleTests (role P); a class not written yet is not found and not run. D1b: MeasureLineFileTests.
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
@@ -675,7 +675,7 @@ jobs:
           elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
