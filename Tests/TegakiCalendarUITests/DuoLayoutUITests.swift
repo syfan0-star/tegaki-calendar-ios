@@ -224,8 +224,8 @@ final class DuoLayoutUITests: XCTestCase {
     /// A first launch (`-allowFingerDrawingChosen NO`: `appear()` writes the phone's default, on, and its mark of this device)
     /// without `--screenshot-pencil-phone`: 「指でも書く」 as the toolbar shows it once the hinge had its time (§4.8; no Pencil
     /// touches a simulator, so only H can change it) is off when `usesHinge` and this screen reads a hinge, on otherwise.
-    /// UserDefaults' argument domain is not given the mark (`-allowFingerDrawingAuto ""`, §2.1): an argument shadows the mark
-    /// `appear()` writes, so the launch would read as carried over from 1.3 and the hinge could never turn it off.
+    /// UserDefaults' argument domain is not given the mark (`-allowFingerDrawingAuto ""`, §2.1): not needed, since the launch
+    /// that writes the default takes its origin from `PencilPhone.launchDefault` (`.app`) either way.
     func testFingerDefaultFollowsTheHinge() throws {
         let screen = try currentScreen()
         continueAfterFailure = false

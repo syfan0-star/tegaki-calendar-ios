@@ -75,9 +75,9 @@ import UIKit
 /// whether the window is wide, the hinge as its own `UIHingeInteraction` reads it, and 「指でも書く」 with who wrote it) after
 /// the first layout and after the hinge's answer; it changes nothing on the screen. `--screenshot-pencil-phone` saves
 /// 「指でも書く」 off at the start of the launch (`launchConfig`), for the iPhone Duo's App Store photos (the toolbar as an
-/// iPad's, §7.1). A first launch for the photos and the UI tests is `-allowFingerDrawingChosen NO` in UserDefaults'
-/// argument domain and needs nothing here; an argument `-allowFingerDrawingAuto …` would shadow the mark `appear()` writes
-/// (the argument domain is read first), so that launch would read as carried over from 1.3 (`DuoLayoutUITests`).
+/// iPad's, §7.1). A first launch for the photos and the UI tests is `-allowFingerDrawingChosen NO` (with or without
+/// `-allowFingerDrawingAuto ""`, §2.1) in UserDefaults' argument domain and needs nothing here: the launch that writes the
+/// default takes its origin from what `PencilPhone.launchDefault` wrote (`.app`), not from the shadowed mark read back.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -317,7 +317,7 @@ enum ScreenshotMode {
     }
 
     /// The mark of who wrote 「指でも書く」 (`PencilPhone.markKey`, docs/M7D_CONTRACT.md §2.1, §4.8).
-    static let fingerMarkKey = "allowFingerDrawingAuto"
+    static let fingerMarkKey = PencilPhone.markKey
 
     /// `--screenshot-pencil-phone` (§7.3): 「指でも書く」 off (`allowFingerDrawing` false), already chosen
     /// (`allowFingerDrawingChosen` true, so `appear()` does not write the phone's default over it), and no mark, which

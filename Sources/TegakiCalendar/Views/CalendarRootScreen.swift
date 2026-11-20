@@ -612,6 +612,17 @@ struct CalendarRootScreen: View {
         guard ScreenshotMode.isActive else { return }
         NSLog("%@", Self.safeAreaLogLine(Self.windowSafeArea()))
         NSLog("%@", Self.paperAreaLogLine(area, mode: toolbarMode))
+        noteMeasure(area)
+    }
+
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.2): `--screenshot-measure`'s values of the screen (`ScreenshotMode.measure`; nothing
+    /// without that argument): after each paper area (`logToolbarArea`, also a second after `appear`), and when
+    /// 「指でも書く」, the kind or the window's plan (a fold, an unfold, a turn) changed (`watchedFurther`). Who wrote
+    /// 「指でも書く」 is `PencilPhone.origin` (the launch's, as the decision sees it, §4.8), not the stored mark read back.
+    private func noteMeasure(_ area: CGSize? = nil) {
+        guard ScreenshotMode.isMeasuring else { return }
+        ScreenshotMode.measure(kind: kind, paperArea: area ?? paperArea, weekStart: weekStart, isPad: pencilPhone.isPad,
+                               origin: pencilPhone.origin, finger: allowFinger, plan: paths.span?.plan)
     }
 
     /// 「toolbar: safeArea=<上>,<左>,<下>,<右>」 (pt, two decimals; §2.2).
@@ -768,6 +779,10 @@ struct CalendarRootScreen: View {
         // M5 (M5_CONTRACT §4.2 / §3.1): the purchase toasts, and the moment the app turns read only.
         .onChange(of: store.snapshot.message) { messageChanged() }
         .onChange(of: readOnly) { readOnlyChanged() }
+        // 1.4 (docs/M7D_CONTRACT.md §2.1): the `duo measure:` line again for a new value (nothing without --screenshot-measure).
+        .onChange(of: allowFinger) { noteMeasure() }
+        .onChange(of: kind) { noteMeasure() }
+        .onChange(of: paths.span?.plan) { noteMeasure() }
         .task { await nowTicker() }
     }
 
@@ -783,7 +798,8 @@ struct CalendarRootScreen: View {
             settingsSheet
         }
         .sheet(isPresented: $showPaywall) {
-            PaywallSheet(store: store, reason: paywallReason, onClose: { showPaywall = false })
+            // 1.4 (docs/M7D_CONTRACT.md §2.1, §4.4): the window's size (`.zero` before it is measured: 1.3's sheet).
+            PaywallSheet(store: store, reason: paywallReason, windowSize: windowSize, onClose: { showPaywall = false })
         }
         .sheet(isPresented: $showImportPicker) {
             DocumentPickerView(onPick: pickedImportFile, onCancel: { showImportPicker = false })
@@ -1199,7 +1215,9 @@ struct CalendarRootScreen: View {
                     try? await Task.sleep(for: .seconds(Self.sheetGap))
                     showPaywall(reason: .blocked(.editEvent))
                 }
-            } : nil
+            } : nil,
+            // 1.4 (docs/M7D_CONTRACT.md §2.1, §4.4): the window's size (`.zero` before it is measured: 1.3's sheet).
+            windowSize: windowSize
         )
     }
 
