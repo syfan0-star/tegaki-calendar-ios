@@ -2,11 +2,11 @@
 
 **対象の版: 1.4**。ここは案で、どれもまだ Connect にも Web にも入れていない。本人の確認ページ（[M7D_CONTRACT.md](../M7D_CONTRACT.md) §9.4 の 3）で一緒に見せ、「この内容で入れてよい」をもらってから入れる。本人の「この内容で入れてよい」は、ここに書いた全部の組み合わせに効く（契約 §8.1）。どの文を使うかは、提出の前に `duo-hinge` の結果と確かめ表（契約 §10）の答えで決め、M7D.md に書く（1.3 の確認ページの「選ぶ 1」と同じ形）。
 
-§1・§2 は新機能の文（契約 §8.1・§8.2。行ごとの訳は役 X、元を見ない逆翻訳は R（§1 の表の右の欄。1 回目は 2026-11-20 で、全文と R の注は [docs/i18n/back/store-1_4.md](../i18n/back/store-1_4.md)）、照合と判定は [docs/i18n/REVIEW.md](../i18n/REVIEW.md)）。§3 は審査メモと SUPPORT の条件で替わる文（役 N）。新機能の文は、まだ `docs/store/<ロケール>/whatsnew.txt` にも入れていない（使う行を決めたときに入れる。§2.4）。
+§1・§2 は新機能の文（契約 §8.1・§8.2。行ごとの訳は役 X、元を見ない逆翻訳は R（§1 の表の右の欄。1 回目と、直した字だけの 2 回目は 2026-11-20 で、全文と R の注は [docs/i18n/back/store-1_4.md](../i18n/back/store-1_4.md)）、照合と判定は [docs/i18n/REVIEW.md](../i18n/REVIEW.md)）。§3 は審査メモと SUPPORT の条件で替わる文（役 N）。新機能の文は、まだ `docs/store/<ロケール>/whatsnew.txt` にも入れていない（使う行を決めたときに入れる。§2.4）。
 
 ## 1. 新機能の文の行と条件、行ごとの訳（役 X）
 
-使う行は 行 1 → 行 2 → 行 3 → 行 4 の順に並べ、空の行を 1 つ置いて、訳についての 1 行（ja には無い）。行 1 は案 A か案 B のどちらか 1 つ。表の右の欄は R が、日本語の元と §1.0 を見ずに書く。右の欄の終わりの（○）（△）は役 J の判定（理由は [REVIEW.md](../i18n/REVIEW.md) の 4 の「1.4 の店の文」）。行 1 案 A の es-ES・es-MX・fr-FR・it・pt-BR・pt-PT は 1 回目で × になり、訳の欄は J が直した字（2 回目の R を待つ。§1.7）。
+使う行は 行 1 → 行 2 → 行 3 → 行 4 の順に並べ、空の行を 1 つ置いて、訳についての 1 行（ja には無い）。行 1 は案 A か案 B のどちらか 1 つ。表の右の欄は R が、日本語の元と §1.0 を見ずに書く。右の欄の終わりの（○）（△）は役 J の判定（理由は [REVIEW.md](../i18n/REVIEW.md) の 4 の「1.4 の店の文」）。行 1 案 A の es-ES・es-MX・fr-FR・it・pt-BR・pt-PT は 1 回目で × になり、訳の欄は J が直した字で、右の欄はその字の 2 回目の逆翻訳と判定（§1.7）。
 
 ### 1.0 訳の決まり（X が守ったこと）
 
@@ -33,13 +33,13 @@
 | ja（source-ja も） | ・iPhone Duo の大きな画面いっぱいに表示されるようになりました。開いても閉じても、そのまま書き続けられます。 | — |
 | en-US（en-GB・en-AU・en-CA も） | • The app now fills the large screen of iPhone Duo. Whether you open it or close it, you can just keep writing. | ・アプリが iPhone Duo の大きな画面いっぱいに表示されるようになりました。それを開いても閉じても、そのまま書き続けられます。（○） |
 | de-DE | • Die App füllt jetzt den großen Bildschirm des iPhone Duo aus. Ob Sie es öffnen oder schließen, Sie können einfach weiterschreiben. | ・アプリは今、iPhone Duo の大きな画面いっぱいに表示されます。それを開いても閉じても、そのまま書き続けられます。（○） |
-| es-ES | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones.」で、逆翻訳「それを開いても閉じても、途切れることなく書き続けられます。」が ×。§1.7） |
-| es-MX | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones.」で、逆翻訳「それを開いても閉じても、途切れることなく書き続けられます。」が ×。§1.7） |
-| fr-FR（fr-CA も） | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez simplement continuer à écrire. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Que vous l’ouvriez ou le fermiez, vous pouvez continuer à écrire sans interruption.」で、逆翻訳「それを開いても閉じても、中断せずに書き続けられます。」が ×。§1.7） |
-| it | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può semplicemente continuare a scrivere. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Che lo apra o lo chiuda, può continuare a scrivere senza interruzioni.」で、逆翻訳「それを開いても閉じても、中断なく書き続けられます。」が ×。§1.7） |
+| es-ES | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。開いても閉じても、そのまま書き続けられます。（○。2 回目。1 回目の字は 2 つ目の文が「Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones.」で、逆翻訳「それを開いても閉じても、途切れることなく書き続けられます。」が ×。§1.7） |
+| es-MX | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。開いても閉じても、そのまま書き続けられます。（○。2 回目。1 回目の字は 2 つ目の文が「Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones.」で、逆翻訳「それを開いても閉じても、途切れることなく書き続けられます。」が ×。§1.7） |
+| fr-FR（fr-CA も） | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez simplement continuer à écrire. | • アプリは今後、iPhone Duo の大きな画面全体を使うようになりました。開いても閉じても、そのまま書き続けることができます。（○。2 回目。1 回目の字は 2 つ目の文が「Que vous l’ouvriez ou le fermiez, vous pouvez continuer à écrire sans interruption.」で、逆翻訳「それを開いても閉じても、中断せずに書き続けられます。」が ×。§1.7） |
+| it | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può semplicemente continuare a scrivere. | • これで、アプリが iPhone Duo の大きな画面全体を使うようになりました。開いても閉じても、ただそのまま書き続けられます。（○。2 回目。1 回目の字は 2 つ目の文が「Che lo apra o lo chiuda, può continuare a scrivere senza interruzioni.」で、逆翻訳「それを開いても閉じても、中断なく書き続けられます。」が ×。§1.7） |
 | ko | • 이제 iPhone Duo의 큰 화면을 가득 채워 표시해요. 펼쳐도 접어도 그대로 계속 쓸 수 있어요. | ・これからは iPhone Duo の大きな画面いっぱいに表示します。開いても閉じても、そのまま書き続けられます。（○） |
-| pt-BR | • Agora o app ocupa toda a tela grande do iPhone Duo. Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Ao abrir ou fechar o dispositivo, você pode continuar escrevendo sem interrupção.」で、逆翻訳「デバイスを開いたり閉じたりするときも、中断なく書き続けられます。」が ×。§1.7） |
-| pt-PT | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. | **2 回目を待つ**（訳の欄は J が直した字。1 回目の字は 2 つ目の文が「Ao abrir ou fechar o dispositivo, pode continuar a escrever sem interrupção.」で、逆翻訳「デバイスを開いたり閉じたりするときも、中断なく書き続けられます。」が ×。§1.7） |
+| pt-BR | • Agora o app ocupa toda a tela grande do iPhone Duo. Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。端末を開いても閉じても、そのまま書き続けられます。（○。2 回目。1 回目の字は 2 つ目の文が「Ao abrir ou fechar o dispositivo, você pode continuar escrevendo sem interrupção.」で、逆翻訳「デバイスを開いたり閉じたりするときも、中断なく書き続けられます。」が ×。§1.7） |
+| pt-PT | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. | • アプリは、iPhone Duo の大きな画面全体を使うようになります。端末を開いても閉じても、そのまま書き続けられます。（○。2 回目。1 回目の字は 2 つ目の文が「Ao abrir ou fechar o dispositivo, pode continuar a escrever sem interrupção.」で、逆翻訳「デバイスを開いたり閉じたりするときも、中断なく書き続けられます。」が ×。§1.7） |
 | zh-Hans | • 现在会在 iPhone Duo 的大屏幕上全屏显示。无论展开还是合上，都可以直接继续书写。 | ・今後は iPhone Duo の大きな画面で全画面表示されます。広げても閉じても、そのまま書き続けられます。（○） |
 | zh-Hant | • 現在會在 iPhone Duo 的大螢幕上全螢幕顯示。無論展開還是闔上，都可以直接繼續書寫。 | ・今後は iPhone Duo の大きな画面で全画面表示されます。広げても閉じても、そのまま書き続けられます。（○） |
 
@@ -150,7 +150,9 @@
 | pt-BR | Ao abrir ou fechar o dispositivo, você pode continuar escrevendo sem interrupção. | Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. |
 | pt-PT | Ao abrir ou fechar o dispositivo, pode continuar a escrever sem interrupção. | Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. |
 
-- 直した 6 つの字（行 1 案 A の全文）だけを 2 回目の R に渡す（前の字・1 回目の逆翻訳・日本語の元は渡さない）。2 回目の結果はまだ。× が残れば、また直して渡す。
+- 直した 6 つの字（行 1 案 A の全文）だけを 2 回目の R に渡した（2026-11-20。id と訳だけで、前の字・1 回目の逆翻訳・日本語の元・ほかの行は渡していない）。
+- 2 回目の判定: 6 つとも ○（× 0）。6 つとも「（これからは・今後）アプリが iPhone Duo の大きな画面全体に表示される（を使う）ようになった。（端末を）開いても閉じても、そのまま書き続けられる」と読まれ、元と同じ。「中断なく」や開閉の最中の読みは出なかった。sin más・simplement・semplicemente・simplesmente は「そのまま」（it は「ただそのまま」で、en の just と同じ扱い）、pt の Mesmo que は「開いても閉じても」と読まれた。理由は [REVIEW.md](../i18n/REVIEW.md) の 4 の「1.4 の店の文」の「2 回目」。× が残っていないので、3 回目は無い。
+- 最後の判定（2 回目の後）: 新機能の文は ○ 43・△ 12・× 0。§3 の文は 1 回目のまま（審査メモの段と条件で替わる文は ○ 5・△ 3・× 0、SUPPORT.en は ○ 3・× 0）。§1 の訳の欄の字が、確認ページで見せる字（判定の上で直す字はもう無い。入れるのは本人の「この内容で入れてよい」の後）。
 - 直した後の字で機械で照らしたこと: 行 2 の「指でも書く」は 11 組ともアプリの `toolbar.fingerToggle` の訳と同じ字（§2.3 の表のまま）。K-8 の句（古い版の端末での見え方）と「中断なく」の語は、11 組の 5 行のどれにも無い。字数は §2.2（直した 6 つの「いちばん長い組み合わせ」を直した。どれも 4,000 字に入る）。既定の全文（§2.1。案 B ＋ 行 3）は変わらない。
 
 ## 2. 新機能の文の既定の組み合わせの全文（行 1 案 B ＋ 行 3。役 X）
@@ -327,7 +329,7 @@ As traduções foram feitas com IA e ainda não foram revistas por falantes nati
 ### 2.4 この後（R・リード）
 
 - R の 1 回目（2026-11-20）は §1 の表の「訳」の欄と §3 の英語の文だけを読んだ（日本語の元と §1.0 は渡していない）。行ごとに作った文なので、逆翻訳はロケールごとのファイルに節を足さず、`docs/i18n/back/store-1_4.md` にまとめた。§1 の右の欄はその写しと判定。照合と判定は REVIEW.md の 4 の「1.4 の店の文」（§1.7）。
-- 行 1 案 A の直した 6 つの字は、2 回目の R（直した字だけ）を待つ。結果は `store-1_4.md` の「2 回目」と REVIEW.md の同じ節、§1 の右の欄に書く。
+- 行 1 案 A の直した 6 つの字は、2 回目の R（2026-11-20、直した字だけ）で 6 つとも ○。結果は `store-1_4.md` の「2 回目」と REVIEW.md の同じ節、§1 の右の欄に書いた。× の残りは無い。
 - `docs/store/<ロケール>/whatsnew.txt` と `source-ja/whatsnew.txt`、`locales.json` の `whatsnewSource`、README の「新機能の文の組み立て」は、提出の前に組み合わせを決めたときに直す（今は 1.3 の字のまま）。
 
 ## 3. 審査メモと SUPPORT の、条件で替わる文（案 B と Apple Pencil の文。役 N）

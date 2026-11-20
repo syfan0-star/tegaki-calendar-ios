@@ -280,7 +280,7 @@ R には、訳の字（`PROPOSALS_1_4.md` §1 の「訳」の欄の 11 組 × 5 
 
 判定は 1.3 と同じ **○**（同じ意味）／**△**（言い回しの差。意味は同じ）／**×**（意味の違い、または元に無い読みを招く。直す）です。とくに、(i) 無い改善や確かめていない動きを言っていないか（契約 §8.1、R1_2_2.md:694）、(ii) K-8 の句（古い版の端末での見え方。契約 §5.2 で 1.4 は入れない）が無いか、(iii)「指でも書く」がアプリの `toolbar.fingerToggle` の訳と同じ字か、を見ました。
 
-**1 回目は × 6 件でした。** どれも行 1 案 A の 2 つ目の文で、es-ES・es-MX・fr-FR・it・pt-BR・pt-PT です。「中断なく」（sin interrupciones・sans interruption・senza interruzioni・sem interrupção。R の注でも、元に無い語として挙がった）が、開閉の間も書くことが途切れないと読めます。元の「そのまま書き続けられます」は、開いても閉じても同じページと線のまま続けて書けることで、書きながら閉じたときに書きかけの 1 本が消えることがある（契約 §4.9 の 3、確かめ表の行 25）のと食い違いません。「中断なく」はそれと食い違い、(i) の無い改善を言うことになるので × にしました。pt-BR・pt-PT は、加えて「Ao abrir ou fechar o dispositivo」（開いたり閉じたりするとき）が開閉の最中と読まれました。6 件は J が直し（下の「× と直した訳」）、直した字だけを 2 回目の R に渡します。**2 回目の結果はまだです。** ほかの行と、審査メモ・SUPPORT の文は × 0 で、直した字はありません。(ii) と (iii) に当たる字は、1 回目から 0 件です。
+**1 回目は × 6 件でした。** どれも行 1 案 A の 2 つ目の文で、es-ES・es-MX・fr-FR・it・pt-BR・pt-PT です。「中断なく」（sin interrupciones・sans interruption・senza interruzioni・sem interrupção。R の注でも、元に無い語として挙がった）が、開閉の間も書くことが途切れないと読めます。元の「そのまま書き続けられます」は、開いても閉じても同じページと線のまま続けて書けることで、書きながら閉じたときに書きかけの 1 本が消えることがある（契約 §4.9 の 3、確かめ表の行 25）のと食い違いません。「中断なく」はそれと食い違い、(i) の無い改善を言うことになるので × にしました。pt-BR・pt-PT は、加えて「Ao abrir ou fechar o dispositivo」（開いたり閉じたりするとき）が開閉の最中と読まれました。6 件は J が直し（下の「× と直した訳」）、直した字だけを 2 回目の R に渡しました。**2 回目は 6 件とも ○ で、× は残っていません**（下の「2 回目」）。ほかの行と、審査メモ・SUPPORT の文は 1 回目から × 0 で、直した字はありません。(ii) と (iii) に当たる字は、1 回目から 0 件です。
 
 結果（1 回目）:
 
@@ -301,14 +301,33 @@ R には、訳の字（`PROPOSALS_1_4.md` §1 の「訳」の欄の 11 組 × 5 
 | en の審査メモ（1.4 の段 5 つと、条件で替わる文 3 つ） | 5 | 3 | 0 |
 | en の SUPPORT（Duo の文の 2 案と Apple Pencil の文） | 3 | 0 | 0 |
 
-機械で照らしたこと（J。直した後の字で）:
+結果（2 回目の後。最後）:
+
+| 言語 | ○ | △ | × |
+| --- | --- | --- | --- |
+| en-US（en-GB・en-AU・en-CA も） | 4 | 1 | 0 |
+| de-DE | 4 | 1 | 0 |
+| es-ES | 4 | 1 | 0 |
+| es-MX | 4 | 1 | 0 |
+| fr-FR（fr-CA も） | 4 | 1 | 0 |
+| it | 4 | 1 | 0 |
+| ko | 4 | 1 | 0 |
+| pt-BR | 4 | 1 | 0 |
+| pt-PT | 4 | 1 | 0 |
+| zh-Hans | 4 | 1 | 0 |
+| zh-Hant | 3 | 2 | 0 |
+| 新機能の文の計（11 組 × 5 行） | 43 | 12 | 0 |
+| en の審査メモ（1.4 の段 5 つと、条件で替わる文 3 つ） | 5 | 3 | 0 |
+| en の SUPPORT（Duo の文の 2 案と Apple Pencil の文） | 3 | 0 | 0 |
+
+機械で照らしたこと（J。直した後の字で。2 回目の後にもう一度照らし、同じ結果）:
 
 - 行 2 の「指でも書く」は、11 組ともアプリの `toolbar.fingerToggle` の訳と同じ字です（`tools/l10n/translations/<言語>.json`。pt-PT はアプリの pt-BR の語。`PROPOSALS_1_4.md` §2.3 の表）。審査メモと `SUPPORT.en.md` の Draw with Finger は en の訳と、`SUPPORT.md` の「指でも書く」は ja と同じ字です。
 - K-8 の句（older version・ältere・versión anterior・version précédente・versione precedente・versão anterior・이전 버전・旧版・舊版、not deleted などの「消えていない」の語）は、11 組の 5 行のどれにもありません。審査メモの 1.4 の段と SUPPORT の新しい文にもありません。
 - 「中断なく」の語（interrup・unterbrech・중단・中断・不间断 など）は、直した後の字にありません。
 - 字数: 直した 6 つで、いちばん長い組み合わせ（案 A ＋ 行 2 ＋ 行 3 ＋ 行 4）が es-ES 694 → 683、es-MX 685 → 674、fr-FR 723 → 716、it 672 → 667、pt-BR 656 → 658、pt-PT 671 → 673 になりました（`PROPOSALS_1_4.md` §2.2。数え方は L-9 と同じ）。どれも 4,000 字に入ります。既定（案 B ＋ 行 3）の字は変わりません。
 
-新機能の文（判定の並びは `PROPOSALS_1_4.md` の表の順。en-US・de-DE・es-ES・es-MX・fr-FR・it・ko・pt-BR・pt-PT・zh-Hans・zh-Hant）:
+新機能の文の 1 回目の判定（判定の並びは `PROPOSALS_1_4.md` の表の順。en-US・de-DE・es-ES・es-MX・fr-FR・it・ko・pt-BR・pt-PT・zh-Hans・zh-Hant。行 1 案 A の × の 6 つは、直した字が下の「2 回目」で ○）:
 
 | 行 | 元の日本語 | en-US | de-DE | es-ES | es-MX | fr-FR | it | ko | pt-BR | pt-PT | zh-Hans | zh-Hant | 理由・見たこと |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -320,13 +339,24 @@ R には、訳の字（`PROPOSALS_1_4.md` §1 の「訳」の欄の 11 組 × 5 
 
 × と直した訳（行 1 案 A。1 つ目の文は変えていない）:
 
-| ロケール | 前の字（1 回目に R が読んだ字） | 今の字（J が直した字。2 回目の R を待つ） | 1 回目の逆翻訳（2 つ目の文） | 直した所 |
+| ロケール | 前の字（1 回目に R が読んだ字） | 今の字（J が直した字。2 回目で ○） | 1 回目の逆翻訳（2 つ目の文） | 直した所 |
 | --- | --- | --- | --- | --- |
 | es-ES・es-MX | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin interrupciones. | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | それを開いても閉じても、途切れることなく書き続けられます。 | sin interrupciones（中断なく）→ sin más（そのまま・それだけで）。en の just と同じ「そのまま」の語 |
 | fr-FR（fr-CA も） | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez continuer à écrire sans interruption. | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez simplement continuer à écrire. | それを開いても閉じても、中断せずに書き続けられます。 | sans interruption を外し、simplement（そのまま）を動詞の前に |
 | it | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può continuare a scrivere senza interruzioni. | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può semplicemente continuare a scrivere. | それを開いても閉じても、中断なく書き続けられます。 | senza interruzioni を外し、semplicemente（そのまま）を動詞の前に |
 | pt-BR | • Agora o app ocupa toda a tela grande do iPhone Duo. Ao abrir ou fechar o dispositivo, você pode continuar escrevendo sem interrupção. | • Agora o app ocupa toda a tela grande do iPhone Duo. Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. | デバイスを開いたり閉じたりするときも、中断なく書き続けられます。 | sem interrupção を外し simplesmente に。Ao abrir ou fechar（開いたり閉じたりするとき）を Mesmo que … abra ou feche（開いても閉じても）に |
 | pt-PT | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Ao abrir ou fechar o dispositivo, pode continuar a escrever sem interrupção. | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. | デバイスを開いたり閉じたりするときも、中断なく書き続けられます。 | pt-BR と同じ直し（você は書かない。pt-PT の 1.3 の文と同じ） |
+
+2 回目（直した 6 つの字だけ、2026-11-20）: 上の「今の字」の 6 つ（行 1 案 A の全文。fr-CA は fr-FR と同じ字）だけを、id と訳だけで R に渡しました。前の字・1 回目の逆翻訳・日本語の元・ほかの行・このファイルは渡していません。逆翻訳の全文と R の注は `docs/i18n/back/store-1_4.md` の「2 回目」です。**6 つとも ○ で、× は残っていません。** 1 回目の × の理由だった「中断なく」と、開閉の最中（開いたり閉じたりするとき）の読みは、どれにも出ませんでした。(i) の無い改善と (ii) の K-8 の句も、どれにもありません。6 つに共通する R の注「閉じたときにどの画面で書くのかは書かれていない」は、元も書いていない（1 回目の R の全体の注と同じ。閉じたときの見え方は審査メモ (2) と SUPPORT の Duo の文が言う）ので、元と同じです。
+
+| ロケール | 2 回目の逆翻訳（元を見ない） | 判定 | 理由・見たこと |
+| --- | --- | --- | --- |
+| es-ES | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。開いても閉じても、そのまま書き続けられます。 | ○ | 元とほぼ同じ字。「これからは」（Ahora。R の注で「前より変わったこと」）は元の「表示されるようになりました」、「画面全体」は「画面いっぱい」。sin más は「そのまま」と読まれた（R の注「特に何もせず、そのまま」）。lo は端末（iPhone Duo）と読まれた。usted は GLOSSARY §1 の丁寧さ |
+| es-MX | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。開いても閉じても、そのまま書き続けられます。 | ○ | es-ES と同じ字・同じ逆翻訳。メキシコ向けとしても不自然でない（R の注） |
+| fr-FR（fr-CA も） | • アプリは今後、iPhone Duo の大きな画面全体を使うようになりました。開いても閉じても、そのまま書き続けることができます。 | ○ | 元と同じ意味。désormais と「使うようになりました」は元の「ようになりました」。simplement は「そのまま」。l’ が文法上アプリとも取れる（R の注）が、le fermiez の男性形から端末と読まれた（1 回目の R の読みと同じ） |
+| it | • これで、アプリが iPhone Duo の大きな画面全体を使うようになりました。開いても閉じても、ただそのまま書き続けられます。 | ○ | 元と同じ意味。semplicemente の「ただそのまま」は、en の just（1 回目で ○。R は「ただ書き続ければよい」とも読めると書いた）と同じ扱いで、無い改善は言っていない。lo が schermo（画面）も指せる（R の注）が、Duo では画面を開け閉めするのは端末を開け閉めするのと同じ動きなので、どちらの読みでも元に無い事実にはならない。Lei は 1 回目と同じ |
+| pt-BR | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。端末を開いても閉じても、そのまま書き続けられます。 | ○ | 元と同じ意味。Mesmo que は「開いても閉じても」と読まれ（R の注「たとえ〜しても」の譲歩）、1 回目の「開いたり閉じたりするときも」の読みは出なかった。o dispositivo で開け閉めするものがはっきりしている。simplesmente は「そのまま」 |
+| pt-PT | • アプリは、iPhone Duo の大きな画面全体を使うようになります。端末を開いても閉じても、そのまま書き続けられます。 | ○ | 元と同じ意味。passa a の現在形は「使うようになります」と読まれ、すでに変わったともこれから変わるとも読める（R の注）。新機能の文の中なのでこの版での変化と読め、行 1 案 B の pt-PT（1 回目で ○）と 1.3 の passam também a ter と同じ扱い。Mesmo que と simplesmente は pt-BR と同じ。ecrã・aplicação は本国の語（R の注） |
 
 審査メモ（en。`docs/store/review-note.txt` の「What is new in 1.4」と `PROPOSALS_1_4.md` §3 の条件で替わる文。元は契約 §8.3 の (1)〜(4)）:
 
@@ -353,12 +383,11 @@ SUPPORT（en。`docs/SUPPORT.en.md` の「Can I use it on iPhone or Mac?」に�
 
 決まっていないこと（判定には入れていない）:
 
-- **行 1 案 A の直した 6 つの字**は、まだ元を見ない逆翻訳を通っていません。2 回目の R（直した字だけを渡す）の結果を `store-1_4.md` の「2 回目」とこの節に書き、× が残れば、また直して渡します。
 - **審査メモ (2) の案 B の確かめ方**（「To check: open a week page, then open and close the device.」）は、案 B（開閉を確かめられなかったとき）でも開閉を審査の人に試してもらう形です（R も「今も開閉を求めています」と挙げた）。訳の違いではないので判定は ○ のままで、替えるかは N が `PROPOSALS_1_4.md` §3.2 に書いたとおりリードが決めます。替えるときの任意の案は 1 回目で ○ なので、そのまま入れられます。
 - **審査メモ (3) の折り目の句**は、`PencilPhone.usesHinge` が false のまま出すと本当でなくなります（N の §3.4）。替え文は 1 回目で △（意味は同じ）なので、リードが決めればそのまま入れられます。
-- 母語の人に見てもらうときの候補（直さない）: en・de・es・pt の切り替えの名前の動詞（Draw・zeichnen・Dibujar・Traçar）と本文の「書く」の違い、it の切り替えの名前（tu の命令形）と本文の Lei（どれもアプリの画面の字で、変えるならアプリの訳から）、en の行 1 案 A の it の指す先、ko の 쓰다（書く・使う）、zh-Hant の 假日、審査メモ (4) の 2 問の名前の and の重なり。
+- 母語の人に見てもらうときの候補（直さない）: en・de・es・pt の切り替えの名前の動詞（Draw・zeichnen・Dibujar・Traçar）と本文の「書く」の違い、it の切り替えの名前（tu の命令形）と本文の Lei（どれもアプリの画面の字で、変えるならアプリの訳から）、en の行 1 案 A の it の指す先、ko の 쓰다（書く・使う）、zh-Hant の 假日、審査メモ (4) の 2 問の名前の and の重なり。2 回目の R の注から、行 1 案 A の fr の l’（文法上アプリとも取れる）と it の lo（画面とも取れる）の指す先、pt-PT の passa a の時（すでに変わったか、これから変わるか）。
 
-`lint.py`（L-1〜L-14）は、この記録の後の字で終了 0 です（`PROPOSALS_1_4.md` と `store-1_4.md` は L-9 の見る欄ではない。`review-note.txt` と SUPPORT の字はこの節で変えていない）。
+`lint.py`（L-1〜L-14）は、この記録の後の字で終了 0 です（2 回目の記録の後にも走らせ、終了 0。`PROPOSALS_1_4.md` と `store-1_4.md` は L-9 の見る欄ではない。`review-note.txt` と SUPPORT の字はこの節で変えていない）。
 
 ## 5. 英語の 3 文書（`docs/TERMS.en.md`・`PRIVACY.en.md`・`SUPPORT.en.md`）
 

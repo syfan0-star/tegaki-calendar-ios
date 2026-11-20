@@ -15,7 +15,7 @@ R の全体の注（R が書いたまま）:
 
 ### 新機能の文（行ごと）
 
-id は `1.4.<行>.<ロケール>` で、行は L1A（行 1 案 A）・L1B（行 1 案 B）・L2〜L4（行 2〜行 4）です。判定が × の行（L1A の es-ES・es-MX・fr-FR・it・pt-BR・pt-PT）は、ここにあるのが前の字です（J が直した字は下の「2 回目」）。
+id は `1.4.<行>.<ロケール>` で、行は L1A（行 1 案 A）・L1B（行 1 案 B）・L2〜L4（行 2〜行 4）です。判定が × の行（L1A の es-ES・es-MX・fr-FR・it・pt-BR・pt-PT）は、ここにあるのが前の字です（J が直した字と、その元を見ない逆翻訳は下の「2 回目」）。
 
 #### en-US（en-GB・en-AU・en-CA も）
 
@@ -152,15 +152,15 @@ id は `1.4.<行>.<ロケール>` で、行は L1A（行 1 案 A）・L1B（行 
 | 1.4.support.duoB | SUPPORT.en の Duo の文 案 B（§3.2） | On iPhone Duo, the App fits the width of the screen (from version 1.4). | iPhone Duo では、本アプリは画面の幅に合わせます（バージョン 1.4 から）。 | 内側・外側のどちらの画面かは言っていません |
 | 1.4.support.pencil | SUPPORT.en の Apple Pencil の文（§3.3。まだ入れていない） | On iPhone Duo, as on iPad, you write with Apple Pencil (USB-C, iOS 27.2 or later) and move the paper with your finger. If you also want to write with your finger, turn on “Draw with Finger” in the toolbar. | iPhone Duo では、iPad と同じように、Apple Pencil（USB-C、iOS 27.2 以降）で書き、指で紙を動かします。指でも書きたい場合は、ツールバーの「Draw with Finger（指で描く）」をオンにしてください。 | 本文は「write（書く）」、切り替えの名前は「Draw（描く）」です。「USB-C」「iOS 27.2 以降」がどこにかかるかは、審査メモ (3) と同じく 2 通りに読めます |
 
-## 2 回目（行 1 案 A の直した 6 つの字だけ。まだ）
+## 2 回目（2026-11-20。行 1 案 A の直した 6 つの字だけ）
 
-1 回目の判定で × にした 6 つ（`REVIEW.md` の 4 の「1.4 の店の文」）を J が直した字です。2 回目の R には、この字だけを渡します（前の字・1 回目の逆翻訳・日本語の元は渡さない）。逆翻訳はまだです。
+1 回目の判定で × にした 6 つ（`REVIEW.md` の 4 の「1.4 の店の文」）を J が直した字です。2 回目の R には、この字（id と訳だけ）を渡しました。前の字・1 回目の逆翻訳・日本語の元・ほかの行は渡していません。fr-CA は fr-FR と同じ字です。判定は J で、6 つとも ○ でした（`REVIEW.md` の同じ節の「2 回目」）。× は残っていないので、3 回目はありません。R の注は R が書いたままです。
 
-| id | 訳（2 回目に R が読む字） | 逆翻訳 | R の注 |
+| id | 訳（2 回目に R が読んだ字） | 逆翻訳 | R の注 |
 | --- | --- | --- | --- |
-| 1.4.L1A.es-ES | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | （まだ） | |
-| 1.4.L1A.es-MX | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | （まだ） | |
-| 1.4.L1A.fr-FR | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez simplement continuer à écrire. | （まだ） | |
-| 1.4.L1A.it | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può semplicemente continuare a scrivere. | （まだ） | |
-| 1.4.L1A.pt-BR | • Agora o app ocupa toda a tela grande do iPhone Duo. Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. | （まだ） | |
-| 1.4.L1A.pt-PT | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. | （まだ） | |
+| 1.4.L1A.es-ES | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。開いても閉じても、そのまま書き続けられます。 | 「Ahora」は「今では・これで」の意味で、前より変わったことを表す。「lo」は男性名詞の iPhone Duo を指し、開け閉めするのは端末と読める。「sin más」は「特に何もせず、そのまま」。丁寧語の usted。閉じたときにどの画面で書くのかは書かれていない |
+| 1.4.L1A.es-MX | • Ahora la app ocupa toda la pantalla grande del iPhone Duo. Tanto si lo abre como si lo cierra, puede seguir escribiendo sin más. | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。開いても閉じても、そのまま書き続けられます。 | es-ES とまったく同じ文。注記も es-ES と同じ。メキシコ向けとしても不自然ではない |
+| 1.4.L1A.fr-FR（fr-CA も同じ字） | • L’app occupe désormais tout le grand écran de l’iPhone Duo. Que vous l’ouvriez ou le fermiez, vous pouvez simplement continuer à écrire. | • アプリは今後、iPhone Duo の大きな画面全体を使うようになりました。開いても閉じても、そのまま書き続けることができます。 | 「désormais」は「今後は・これからは」。「l’ouvriez」の l’ は文法上アプリとも取れるが、後ろの「le fermiez」が男性形なので iPhone Duo（端末）と読むのが自然。閉じたときにどの画面で書くのかは書かれていない |
+| 1.4.L1A.it | • Ora l’app occupa tutto il grande schermo di iPhone Duo. Che lo apra o lo chiuda, può semplicemente continuare a scrivere. | • これで、アプリが iPhone Duo の大きな画面全体を使うようになりました。開いても閉じても、ただそのまま書き続けられます。 | 「Ora」は「今では・これで」。「lo」は男性名詞なので iPhone Duo のほかに schermo（画面）も指せるが、意味の上では端末と読める。丁寧語の Lei。閉じたときにどの画面で書くのかは書かれていない |
+| 1.4.L1A.pt-BR | • Agora o app ocupa toda a tela grande do iPhone Duo. Mesmo que você abra ou feche o dispositivo, pode simplesmente continuar escrevendo. | • これからは、アプリが iPhone Duo の大きな画面全体に表示されます。端末を開いても閉じても、そのまま書き続けられます。 | 「Mesmo que」は「たとえ〜しても」という譲歩の言い方。「o dispositivo（端末）」と書いてあるので、開け閉めするものは曖昧でない。閉じたときにどの画面で書くのかは書かれていない |
+| 1.4.L1A.pt-PT | • A aplicação passa a ocupar todo o ecrã grande do iPhone Duo. Mesmo que abra ou feche o dispositivo, pode simplesmente continuar a escrever. | • アプリは、iPhone Duo の大きな画面全体を使うようになります。端末を開いても閉じても、そのまま書き続けられます。 | 「passa a ocupar」は「〜するようになる」で、変わることを表す現在形。すでに変わったとも、これから変わるとも読める。「ecrã」「aplicação」はポルトガル向けの言葉。閉じたときにどの画面で書くのかは書かれていない |
