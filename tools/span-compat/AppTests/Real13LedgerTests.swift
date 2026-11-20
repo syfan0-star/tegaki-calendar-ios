@@ -377,7 +377,14 @@ final class Real13LedgerTests: XCTestCase {
     }
 
     func testJoinedWindowsOn13KeepEveryPageByteForByte() async throws {
-        let all = try fixtures()
+        // MUTATION R13a (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §5.3 6): in this test's copy of the fixture
+        // w-2026-12-14 the first grid stroke's cell is the prefixed window name "w-2026-12-14|grid".
+        let all = try fixtures().map { fixture -> Fixture in
+            var text = String(decoding: fixture.data, as: UTF8.self)
+            guard fixture.name == "w-2026-12-14.week-memo.json", let cell = text.range(of: "\"cell\":\"grid\"") else { return fixture }
+            text.replaceSubrange(cell, with: "\"cell\":\"w-2026-12-14|grid\"")
+            return Fixture(name: fixture.name, shape: fixture.shape, data: Data(text.utf8), json: try JSONValue.parse(Data(text.utf8)))
+        }
         // The week and day files (one per page id) come in from iCloud, as another 1.3 device sent them.
         let joined = all.filter { $0.pageId.hasPrefix("w-") || $0.pageId.hasPrefix("d-") }
         XCTAssertEqual(Set(joined.map(\.pageId)).count, joined.count, "one week or day file per page id")
