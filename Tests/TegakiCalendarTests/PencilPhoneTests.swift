@@ -10,15 +10,18 @@ import XCTest
 // (1.3's lines with the mark; an update from 1.3 writes no mark), the window's watcher (a new instance of the frozen
 // `InkTouchObserver` on a UIWindow) fed with stand-in touches of the Pencil, a finger and a pointer, the Pencil's lift
 // turning 「指でも書く」 off end to end (the value, the mark, the guide records of the app's own value only), the hinge's
-// answer and its 2-second fallback on a `TestSleeper`, the hinge being nil off the Duo (iOS 27.1 and later, not on Mac
-// Catalyst), and no model name or kind of device read by the new files. Mutations (§6, `r14-q-m1`): the glue counting a
-// finger as a Pencil fails `testWatcherCountsEveryTouch` and `testPencilLiftTurnsFingerOffEndToEnd`; the guide records
-// always forgotten fails the latter's carried row; the screen's Binding (`CalendarRootScreen.allowFingerBinding`, handed to
-// ToolbarView and SettingsScreen) not writing "person" — its set back to 1.3's `allowFinger = value`, or without
-// `PencilPhone.personSet` or `personSwitched` — fails `testPersonSetMarksThePerson` (read from the source: XCTest does not
-// run the screen's View, C3-M3), as `personSet` itself not writing "person" does; an action a lift decided written during
-// the lift's delivery fails `testPencilTapOnTheSwitchStaysThePersons`. A lift's action waits for the main actor's next
-// turn (`PencilPhone.afterTheLift`), so the tests let it run (`settle`) before they look, "nothing" included.
+// answer and its 2-second fallback on a `TestSleeper` (a cancelled wait answering nothing, on a sleep that returns at
+// cancellation), no update reporting a hinge off the Duo (iOS 27.1 and later, not on Mac Catalyst; no update at all and
+// an update with a nil hinge both pass, CI run 44649291195), and no model name or kind of device read by the new files.
+// Mutations (§6, `r14-q-m1`): the glue counting a finger as a Pencil fails `testWatcherCountsEveryTouch` and
+// `testPencilLiftTurnsFingerOffEndToEnd`; the guide records always forgotten fails the latter's carried row; the screen's
+// Binding (`CalendarRootScreen.allowFingerBinding`, handed to ToolbarView and SettingsScreen) not writing "person" — its
+// set back to 1.3's `allowFinger = value`, or without `PencilPhone.personSet` or `personSwitched` — fails
+// `testPersonSetMarksThePerson` (read from the source: XCTest does not run the screen's View, C3-M3), as `personSet` itself
+// not writing "person" does; an action a lift decided written during the lift's delivery fails
+// `testPencilTapOnTheSwitchStaysThePersons`; the hinge's wait answering "no hinge" when it is cancelled fails
+// `testACancelledHingeWaitAnswersNothing`. A lift's action waits for the main actor's next turn (`PencilPhone.afterTheLift`),
+// so the tests let it run (`settle`) before they look, "nothing" included.
 
 @MainActor
 final class PencilPhoneTests: XCTestCase {
@@ -73,6 +76,56 @@ final class PencilPhoneTests: XCTestCase {
     /// An event without coalesced touches.
     private final class StandInEvent: UIEvent {
         override func coalescedTouches(for touch: UITouch) -> [UITouch]? { nil }
+    }
+
+    /// A sleep that suspends until `advance()` and, like `Task.sleep`, returns at once when its task is cancelled
+    /// (`TestSleeper`, shared with the engine's tests, ignores cancellation).
+    @MainActor
+    private final class CancellableSleeper {
+        /// The lengths of every `sleep`, in order.
+        private(set) var recorded: [TimeInterval] = []
+        /// How many sleeps returned because their task was cancelled.
+        private(set) var cancelled = 0
+        private var parked: [Int: CheckedContinuation<Void, Never>] = [:]
+        private var wokenEarly: Set<Int> = []
+        private var next = 0
+
+        /// How many sleeps are suspended right now.
+        var waiting: Int { parked.count }
+
+        func sleep(_ duration: TimeInterval) async {
+            recorded.append(duration)
+            let id = next
+            next += 1
+            await withTaskCancellationHandler {
+                await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                    if wokenEarly.remove(id) != nil {
+                        continuation.resume()
+                    } else {
+                        parked[id] = continuation
+                    }
+                }
+            } onCancel: {
+                Task { @MainActor in self.wake(id, cancelled: true) }
+            }
+        }
+
+        /// Wakes every sleep suspended now, in the order they started.
+        func advance() async {
+            for id in parked.keys.sorted() {
+                wake(id, cancelled: false)
+            }
+            await Task.yield()
+        }
+
+        private func wake(_ id: Int, cancelled: Bool) {
+            if cancelled { self.cancelled += 1 }
+            if let continuation = parked.removeValue(forKey: id) {
+                continuation.resume()
+            } else {
+                wokenEarly.insert(id)
+            }
+        }
     }
 
     /// What a `PencilPhone` was fed and what it wrote.
@@ -494,9 +547,52 @@ final class PencilPhoneTests: XCTestCase {
         XCTAssertFalse(AppSettings.spanGuideShown(.week))
     }
 
-    /// §4.8, F2: off the Duo the hinge is nil — `UIHingeInteraction` (iOS 27.1 and later) on a window's root view reports a
-    /// first update whose `hinge` is nil on the unit tests' simulator (iOS 27.2, not a Duo). Not on Mac Catalyst (Xcode 27.2's
-    /// known issue 185924957, §3.8) and not before iOS 27.1: skipped there.
+    /// §2.1, §4.8: only the wait's full time is silence. A wait that another one replaces (`waitForFirstHingeUpdate`
+    /// again, as `attach` does when the watchers move to another window) answers nothing; the new wait's end is the one
+    /// "no hinge". The sleep here returns at once when its task is cancelled, as the app's `Task.sleep` does, so a cancelled
+    /// wait read as the end of the 2 s would answer "no hinge" at once and turn a Duo's off moved here on again before the
+    /// new window's hinge had its time. Fails with the wait's end read without `Task.isCancelled`.
+    func testACancelledHingeWaitAnswersNothing() async {
+        let sleeper = CancellableSleeper()
+        suite.set(false, forKey: AppSettings.allowFingerKey)
+        suite.set(otherDevice, forKey: PencilPhone.markKey)
+        let log = Log()
+        let device = thisDevice
+        let phone = PencilPhone(isPad: false, defaults: suite, deviceMark: { device }, usesHinge: false,
+                                sleep: { duration in await sleeper.sleep(duration) })
+        phone.onInput = { log.inputs.append($0) }
+        phone.onApply = { log.actions.append($0) }
+        phone.appeared(allowFinger: false, origin: .moved)
+        phone.waitForFirstHingeUpdate()
+        await settle()
+        XCTAssertEqual(sleeper.waiting, 1)
+        phone.waitForFirstHingeUpdate()
+        await settle()
+        XCTAssertEqual(sleeper.recorded, [PencilPhone.hingeWait, PencilPhone.hingeWait])
+        XCTAssertEqual(sleeper.cancelled, 1, "the first wait was cancelled and its sleep returned")
+        XCTAssertEqual(sleeper.waiting, 1, "the second wait still waits")
+        XCTAssertEqual(log.inputs.filter { if case .hinge = $0 { return true } else { return false } }, [],
+                       "a cancelled wait is not 2 s of silence")
+        XCTAssertEqual(log.actions, [], "still waiting for the hinge's answer")
+        XCTAssertFalse(allowFinger)
+
+        await sleeper.advance()
+        await settle()
+        XCTAssertEqual(log.inputs.filter { if case .hinge = $0 { return true } else { return false } }, [.hinge(false)],
+                       "the second wait's end: \"no hinge\", once")
+        XCTAssertEqual(log.actions, [.turnOnAgain])
+        XCTAssertTrue(allowFinger)
+        XCTAssertEqual(mark, thisDevice)
+    }
+
+    /// §4.8, F2: off the Duo no update ever reports a hinge. `UIHingeInteraction` (iOS 27.1 and later) on a window's root
+    /// view, on the unit tests' simulator (iOS 27.2, not a Duo), is watched for 3 s (`PencilPhone.hingeWait` and more): an
+    /// update with a hinge fails the test (an inverted expectation), and both things the app reads as "no hinge" pass —
+    /// no update at all (`PencilPhone.waitForFirstHingeUpdate` and `ScreenshotMeasure` answer "no hinge" after 2 s) and an
+    /// update whose `hinge` is nil. The first version waited for a first update (Apple's documentation: the handler is called
+    /// with the initial state) and failed on CI run 44649291195 (iPad Pro 13-inch (M5), iOS 27.2 24B8117): no update came
+    /// within 5 s. The updates seen are logged (`duo hinge unit:`), so the runs record which of the two the simulator does.
+    /// Not on Mac Catalyst (Xcode 27.2's known issue 185924957, §3.8) and not before iOS 27.1: skipped there.
     func testHingeIsNilOffTheDuo() throws {
         #if targetEnvironment(macCatalyst)
         throw XCTSkip("UIHingeInteraction is not built on Mac Catalyst (§3.8)")
@@ -509,18 +605,40 @@ final class PencilPhoneTests: XCTestCase {
         window.isHidden = false
         defer { window.isHidden = true }
         final class Updates {
-            var hinges: [Bool] = []
+            var readings: [String] = []
+            var waiting = true
         }
         let updates = Updates()
-        let first = XCTestExpectation(description: "the first hinge update")
+        let hinged = XCTestExpectation(description: "an update that reports a hinge")
+        hinged.isInverted = true
+        hinged.assertForOverFulfill = false
         let interaction = UIHingeInteraction { _, update in
-            updates.hinges.append(update.hinge != nil)
-            if updates.hinges.count == 1 { first.fulfill() }
+            guard let hinge = update.hinge else {
+                updates.readings.append("nil")
+                return
+            }
+            let status: String
+            switch hinge.status {
+            case .closed: status = "closed"
+            case .partiallyOpen: status = "partiallyOpen"
+            case .fullyOpen: status = "fullyOpen"
+            case .unknown: status = "unknown"
+            @unknown default: status = "unknown(\(hinge.status.rawValue))"
+            }
+            updates.readings.append("\(status) angle=\(String(format: "%.3f", Double(hinge.angle)))")
+            if updates.waiting { hinged.fulfill() }
         }
         root.view.addInteraction(interaction)
-        wait(for: [first], timeout: 5)
-        XCTAssertEqual(updates.hinges.first, false, "no hinge off the Duo")
+        wait(for: [hinged], timeout: 3)
+        updates.waiting = false
+        // What the 3 s saw, before the removal (leaving the hierarchy may send an update of its own).
+        let readings = updates.readings
         root.view.removeInteraction(interaction)
+        let line = "duo hinge unit: \(readings.count) update(s) in 3 s on a window's root view "
+            + "(window in a scene: \(scene != nil)): [\(readings.joined(separator: ", "))]"
+        print(line)
+        NSLog("%@", line)
+        XCTAssertTrue(readings.allSatisfy { $0 == "nil" }, "no hinge off the Duo: \(readings)")
         #endif
     }
 

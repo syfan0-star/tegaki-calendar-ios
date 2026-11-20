@@ -185,12 +185,17 @@ final class PencilPhone {
         hingeAnswered(false)
     }
 
-    /// The first hinge update did not come within `hingeWait`: "no hinge" (a later update still counts).
+    /// The first hinge update did not come within `hingeWait`: "no hinge" (a later update still counts). No update at all
+    /// and an update whose `hinge` is nil are the same answer (`hingeAnswered(false)`): on the unit tests' simulator (an
+    /// iPad, iOS 27.2) an interaction on a window's root view got no update in 5 s (CI run 44649291195), so where a device
+    /// sends none it is this wait that answers. Only the wait's full time is silence: a wait cancelled (another wait
+    /// started, or the watchers moved to another window, whose own wait starts then) answers nothing, though the real sleep
+    /// returns at once then.
     func waitForFirstHingeUpdate() {
         hingeWaitTask?.cancel()
         hingeWaitTask = Task { @MainActor [weak self, sleep] in
             await sleep(Self.hingeWait)
-            guard let self, !self.hingeHeard else { return }
+            guard !Task.isCancelled, let self, !self.hingeHeard else { return }
             self.hingeAnswered(false)
         }
     }
