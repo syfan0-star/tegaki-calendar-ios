@@ -58,7 +58,10 @@
 # one without (all of them until the lead adds the lines of env-store-duo-<group>/ink-ref.tsv) is checked against its
 # own second take, both ways; at most 2 more takes, within 180 s a job (tools/shots/ink_retake.sh's budget); then
 # store-duo-check compares the same page across the 12 sets. A photo whose handwriting is not shown complete fails the
-# run; none is kept silently. Artifacts store-duo-<group>/<set>/duoOuter/<nn>-<page>.jpg (1398x2034, JPEG as above) and
+# run; one checked only take against take (and across the sets) passes with a warning in its job's final check and in
+# store-duo-check, since a loss at every launch, or one that every runner makes, shows only against a reference line:
+# none is kept silently, and the photos are looked at before the upload (§7.1). A take whose app is not running is not
+# photographed. Artifacts store-duo-<group>/<set>/duoOuter/<nn>-<page>.jpg (1398x2034, JPEG as above) and
 # env-store-duo-<group> (env.txt, ink.txt, ink-status.tsv, ink-ref.tsv, check.txt), kept 30 days; store-duo-check.
 name: store-shots
 
@@ -570,9 +573,11 @@ jobs:
     # Estimated from duo-shots (run 44717450692: the build 1.6 min, the Duo's first boot 227 s, a launch and its photo
     # 18–37 s): checkout, Xcode and XcodeGen 1 min, the build 2–6, the first boot 4 (8 on a slow runner); each of the three
     # sets: booted again 2–4 (8), 180 s, ten takes of about 17 s (3): 8–10 min. About 31–45 min; about 66 when every boot
-    # takes 8 min, every photo is black once and the 180 s of retakes are spent. A job cut by its limit does not reach the
-    # upload.
-    timeout-minutes: 110
+    # takes 8 min, every photo is black once and the 180 s of retakes are spent. The worst the shots step allows: every boot
+    # 8 min and every photo black three times (a take about 2 min: 31 min a set), then the 180 s of retakes and the 2 takes a
+    # photo being taken again finishes: about 108 min, inside its 115 (and the job's 130 with the build and the upload). A
+    # job cut by its limit does not reach the upload.
+    timeout-minutes: 130
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -770,8 +775,9 @@ jobs:
             build
 
       # The black check (tools/duo/shot_checks.py) and the final check (tools/shots/duo_store.py) must fail what they are
-      # there to fail (made-up black photos, sizes one pixel off, a photo missing, handwriting not ok, a page short across
-      # the languages); a check that does not bite would pass every photo.
+      # there to fail (made-up black photos, black bands at the edges, sizes one pixel off, a photo missing, handwriting not
+      # ok, a page short across the languages) and warn of what they cannot prove (photos checked only take against take);
+      # a check that does not bite would pass every photo.
       - name: The photo checks' self-test
         id: selftest
         timeout-minutes: 5
@@ -787,7 +793,7 @@ jobs:
       - name: Shots (the iPhone Duo's outer screen)
         id: shots
         if: ${{ !cancelled() && steps.selftest.outcome != 'skipped' }}
-        timeout-minutes: 95
+        timeout-minutes: 115
         run: |
           set +e
           set -uo pipefail
@@ -815,12 +821,14 @@ jobs:
           INK_LOG="$ENVDIR/ink.txt"
           . tools/shots/ink_retake.sh
           GLOBAL_REF="$INK_REF"
-          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt), then the
-          # device it takes ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt, and the
+          # runner's macOS: D0b's handwriting losses were on macOS 27.2 hosts, docs/M7D.md), then the device it takes
+          # ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
           {
             xcodebuild -version
             echo "Xcode path: $(xcode-select -p)"
             echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "runner macOS: $(sw_vers -productVersion 2>&1) ($(sw_vers -buildVersion 2>&1))"
             echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
             echo "python3: $(python3 --version 2>&1)"
             xcrun simctl list runtimes
@@ -909,7 +917,10 @@ jobs:
             return 1
           }
           # take <file> <page> [<more arguments>…]: one launch with the 6.9-inch set's arguments (the job above's shoot) and
-          # --screenshot-pencil-phone (§7.1), its photo DUO_SHOT_WAIT s later. 1 when there is no photo.
+          # --screenshot-pencil-phone (§7.1), its photo DUO_SHOT_WAIT s later. 1 when there is no photo. A take whose app is
+          # not running then (neither the simulator's launchctl list nor the runner's processes have it) is not photographed:
+          # a photo of the home screen is not black and the same at every launch and on every runner, so the handwriting
+          # checks would pass it; decide takes the page again or fails it.
           take() {
             local FILE="$1" PAGE="$2"
             shift 2
@@ -924,8 +935,14 @@ jobs:
               return 1
             fi
             sleep "$DUO_SHOT_WAIT"
-            # The whole list read (no grep -q: docs/M7C.md, S1 の残り, decision 8).
-            xcrun simctl spawn "$DUO" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after $DUO_SHOT_WAIT s (${FILE#"$RAW"/})"
+            # The whole list read (no grep -q: docs/M7C.md, S1 の残り, decision 8); then the runner's processes (build.yml's
+            # pgrep), so that one list that cannot be read does not lose a take.
+            if ! xcrun simctl spawn "$DUO" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null \
+                && ! pgrep -f "TegakiCalendar.app/TegakiCalendar" > /dev/null; then
+              echo "::warning::The app is not running after $DUO_SHOT_WAIT s (${FILE#"$RAW"/}); that take is not photographed."
+              rm -f "$FILE"
+              return 1
+            fi
             photo "$FILE"
           }
           shoot() {  # shoot <nn-page> <take>: that photo of the set as $RAW/<set>/<nn-page>-take<take>.png
@@ -1158,9 +1175,11 @@ jobs:
           ls -la shots/store-duo/*/duoOuter
 
       # The final check (tools/shots/duo_store.py check): every photo of the job's sets is there, 1398x2034 to the pixel, not
-      # black (tools/duo/shot_checks.py black: mean luma at least 10) and its handwriting "ok" (ink-status.tsv); otherwise
-      # the job fails. The status bar is not read (the job above does not read its own either): env.txt says each boot's
-      # time ("NOT set" warns); look at the photos.
+      # black (tools/duo/shot_checks.py black: mean luma at least 10), no black band at an edge (its `edges`) and its
+      # handwriting "ok" (ink-status.tsv); otherwise the job fails. Photos whose handwriting was checked only take against
+      # take (no line in tools/shots/ink_ref.tsv) pass with a warning that names how many and this runner's macOS. The
+      # status bar is not read (the job above does not read its own either): env.txt says each boot's time ("NOT set"
+      # warns); look at the photos.
       - name: The final check (store-duo)
         if: ${{ !cancelled() }}
         timeout-minutes: 10
@@ -1170,8 +1189,9 @@ jobs:
           for SPEC in $DUO_SETS; do IDS="$IDS ${SPEC%%|*}"; done
           mkdir -p shots/store-duo shots/duo-env
           [ -f shots/duo-env/ink-status.tsv ] || : > shots/duo-env/ink-status.tsv
+          HOST="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
           # $IDS unquoted on purpose: one word a set.
-          python3 -I tools/shots/duo_store.py check shots/store-duo shots/duo-env/ink-status.tsv $IDS | tee shots/duo-env/check.txt
+          python3 -I tools/shots/duo_store.py check shots/store-duo shots/duo-env/ink-status.tsv $IDS --host "$HOST" | tee shots/duo-env/check.txt
 
       - name: Upload the photos
         if: always()
@@ -1262,6 +1282,9 @@ jobs:
   # photo the job found complete against its line in tools/shots/ink_ref.tsv is not failed here). Every one of the 60
   # photos must have its line. Text only, so an Ubuntu runner (no macOS job of the five). A failure names the photo; the
   # lead looks at it and runs that job again (or, the photo being complete, adds its line to tools/shots/ink_ref.tsv).
+  # It also prints the largest shortfall of a photo that passed (the Duo's noise, against MIN_SHORT from the 6.9-inch
+  # photos) and warns of the photos no job checked against a reference line (a loss under MIN_SHORT, or one every runner
+  # makes alike, passes here).
   store-duo-check:
     name: store-duo-check (the handwriting across the languages)
     needs: store-duo

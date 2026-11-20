@@ -12,8 +12,9 @@ after a boot, at times the same tiles at every launch on one host) could pass un
      apart, were 0 px short against each other on the paper of all 14 outer photos); either way at most 2 more takes,
      within 180 s a job (INK_BUDGET). The verdict of each photo goes into ink-status.tsv and the reference line of the
      photo kept into ink-ref.tsv.
-  2. `check` (the job's last check): every photo of the job's sets is there, App Store's outer size, not black, and its
-     handwriting verdict is "ok"; otherwise the job fails.
+  2. `check` (the job's last check): every photo of the job's sets is there, App Store's outer size, not black, no black
+     band at an edge (tools/duo/shot_checks.py's `edges`: the app fills the screen), and its handwriting verdict is "ok"
+     in mode ref or pair; otherwise the job fails.
   3. `across` (the job store-duo-check, after all the store-duo jobs): the same page of every language compared, for a
      host that loses the same tiles at every launch (that passes the pair check, on all the photos of its job alike).
      The handwriting is the same in every language (ScreenshotStoreInk.swift); the words, the holidays and the week start
@@ -21,10 +22,15 @@ after a boot, at times the same tiles at every launch on one host) could pass un
      among the other jobs' (other runners), on the paper's tiles where those agree; a photo short by MIN_SHORT pixels or
      more there fails, unless the job checked it against its reference line (mode "ref"). A loss that every runner makes
      alike, or a small one, is caught only by the reference lines.
+So a photo that passed only in mode "pair" is not proven complete (a loss that repeats at every launch and is under
+MIN_SHORT, or one every runner makes, the whole handwriting too, passes all three). It is never passed silently: `check`
+and `across` each print a ::warning:: naming how many such photos there are (and `check` the runner's macOS, D0b's
+losses being on macOS 27.2 hosts), and `across` prints the largest shortfall of a photo that passed, the noise that
+MIN_SHORT has to stay above on the Duo.
 The lead adds the lines of ink-ref.tsv to tools/shots/ink_ref.tsv after looking at the photos (§7.1: the owner's page
 too); from then on guard 1 is the strong one ("ref"), as for build.yml's photos.
 
-  python3 -I tools/shots/duo_store.py check <store dir> <ink-status.tsv> <set id>…
+  python3 -I tools/shots/duo_store.py check <store dir> <ink-status.tsv> <set id>… [--host <the runner's macOS version>]
   python3 -I tools/shots/duo_store.py across <expected set ids, space-separated> <job>/ink-ref.tsv… [--status <ink-status.tsv>…]
   python3 -I tools/shots/duo_store.py --self-test
 
@@ -32,13 +38,16 @@ too); from then on guard 1 is the strong one ("ref"), as for build.yml's photos.
 (ok|short|unverified|error), the take kept, the takes, pixels short, a note; tab-separated, one line a photo, the name
 "store-duo/<set>/<nn>-<page>.png". ink-ref.tsv: `ink_check ref` lines of the photos kept, under the same names; the
 folder that holds it names the job (env-store-duo-<group>), and a photo is never compared with one of its own job.
-Standard library only; `check` reads the mean luma with tools/duo/shot_checks.py (sips). Exit 0: all good, 1: a photo
-fails, 2: the arguments or the files cannot be read.
+Standard library only; `check` reads each photo with tools/duo/shot_checks.py (imported; sips). The lines that the
+upload's script (§7.2) reads keep their form: a check row's last column ("ok" or why not), the last lines "store-duo
+check: …" and "store-duo across: …", and each across line. Exit 0: all good, 1: a photo fails, 2: the arguments or the
+files cannot be read.
 """
 import os
+import re
+import shutil
 import statistics
 import struct
-import subprocess
 import sys
 import tempfile
 
@@ -59,9 +68,14 @@ MIN_COUNT = 20                       # and that median is at least this (ink_che
 # short (zh-Hans' 04-year; then 840, 829, 524), 0 for 34 of the 60. A block of 10 × 10 tiles taken out (482 px, about one
 # PencilKit tile of 512 lu on that screen) of one photo, or of all three of a job, was caught 98–99 % of the times it held
 # 2,000 px or more, 95 % at 1,500–2,000, 68 % at 1,000–1,500 and 7–8 % at 300–1,000 (what is missed sits on tiles where
-# the languages differ). The outer screen's paper is 13 % narrower than that screen's, its noise likely smaller too.
+# the languages differ). The outer screen's paper is 13 % narrower than that screen's, its noise likely smaller too, but
+# not measured: no Duo photo with the store handwriting had been taken (duo.yml does not pass --screenshot-store-ink).
+# `across` prints the largest shortfall of the photos that pass; after the first run, compare it with this and set this
+# again from the Duo's 60. A photo failed here that is complete (looked at) is cleared by adding its line of its job's
+# ink-ref.tsv to tools/shots/ink_ref.tsv (then its job checks it against that line, and this does not fail it).
 MIN_SHORT = 1200
-BLACK_MEAN = 10.0                    # tools/duo/shot_checks.py's black (§3.8)
+BLACK_MEAN = 10.0                    # tools/duo/shot_checks.py's black (§3.8; the self-test checks that it is the same)
+MACOS_LOSSES = re.compile(r"27\.2(\.|$)")  # the runner's macOS of D0b's losses (docs/M7D.md, D0b: image 20261119)
 
 
 def name_of(set_id, page):
@@ -101,17 +115,29 @@ def image_size(path):
             f.seek(size - 2, 1)
 
 
-def shot_checks_luma(path):
-    """(mean luma or None, the line) from tools/duo/shot_checks.py black (exit 0 black, 1 not black, 2 not readable)."""
-    tool = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "duo", "shot_checks.py")
-    run = subprocess.run([sys.executable, "-I", tool, "black", path], capture_output=True, text=True)
-    line = (run.stdout or run.stderr).strip()
-    if run.returncode not in (0, 1) or "mean luma " not in line:
-        return None, line
+def shot_checks():
+    """tools/duo/shot_checks.py as a module (its reader, its `black` and `edges`)."""
+    folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "duo")
+    if folder not in sys.path:
+        sys.path.insert(0, folder)
+    sys.dont_write_bytecode = True       # no __pycache__ left in the checkout
+    import shot_checks as module
+    return module
+
+
+def shot_checks_look(path):
+    """(mean luma, the edges that are a black band, None) of a photo, read as tools/duo/shot_checks.py reads duo-shots'
+    (`black`, §3.8; `edges`, the app fills the screen, §6's C row, C13), or (None, None, why) when it cannot be read.
+    The edges are looked at only when the photo is not black."""
+    sc = shot_checks()
     try:
-        return float(line.split("mean luma ", 1)[1].split(":", 1)[0]), line
-    except ValueError:
-        return None, line
+        image = sc.load(path)
+        mean = image.mean_luma()
+    except (sc.ShotError, OSError, struct.error) as error:
+        return None, None, str(error)
+    if mean < sc.BLACK_MEAN:
+        return mean, [], None
+    return mean, [e for e in ("left", "right", "top", "bottom") if image.edge_black(e)], None
 
 
 def read_status(paths, errors):
@@ -173,20 +199,22 @@ def read_refs(paths, errors, jobs=None):
 
 # ── check: one job's photos ─────────────────────────────────────────────────────────────────────────────────────────
 
-def check(store, status_path, sets, luma=shot_checks_luma, out=sys.stdout):
-    """The job's last check (docs/M7D_CONTRACT.md §7.1, §3.8). Returns the number of photos that fail."""
+def check(store, status_path, sets, look=shot_checks_look, host="", out=sys.stdout):
+    """The job's last check (docs/M7D_CONTRACT.md §7.1, §3.8). Returns the number of photos that fail. `host`: the
+    runner's macOS version (sw_vers), for the warning on the photos checked only in mode "pair"."""
     errors = []
     status = read_status([status_path], errors)
     for error in errors:
         print("::error::%s" % error, file=out)
     failed = len(errors)
-    print("photo | size | mean luma | handwriting (mode, status, kept take of takes, px short) | verdict", file=out)
+    pair_only = []
+    print("photo | size | mean luma | edges | handwriting (mode, status, kept take of takes, px short) | verdict", file=out)
     for set_id in sets:
         for page in PAGES:
             path = os.path.join(store, set_id, DEVICE, page + ".jpg")
             name = name_of(set_id, page)
             why = []
-            size = mean = "-"
+            size = mean = edges = "-"
             if not os.path.isfile(path):
                 why.append("missing")
             else:
@@ -197,13 +225,19 @@ def check(store, status_path, sets, luma=shot_checks_luma, out=sys.stdout):
                         why.append("%s is not App Store's %dx%d" % (size, OUTER[0], OUTER[1]))
                 except (OSError, ValueError, struct.error) as error:
                     why.append("size not readable (%s)" % error)
-                value, line = luma(path)
+                value, black_edges, unread = look(path)
                 if value is None:
-                    why.append("luma not readable (%s)" % line)
+                    why.append("not readable (%s)" % unread)
                 else:
                     mean = "%.1f" % value
                     if value < BLACK_MEAN:
                         why.append("black (mean luma %.1f < %.0f)" % (value, BLACK_MEAN))
+                    elif black_edges:
+                        edges = "black " + ",".join(black_edges)
+                        why.append("a black band at the %s edge%s: the app does not fill the screen (shot_checks.py edges; §6's C row, C13)"
+                                   % (" and ".join(black_edges), "s" if len(black_edges) > 1 else ""))
+                    else:
+                        edges = "ok"
             ink = status.get(name)
             if ink is None:
                 why.append("no handwriting verdict")
@@ -211,13 +245,27 @@ def check(store, status_path, sets, luma=shot_checks_luma, out=sys.stdout):
             else:
                 mode, verdict, kept, takes, short, note = ink
                 ink_text = "%s, %s, take %s of %s, %s px short%s" % (mode, verdict, kept, takes, short, (": " + note) if note else "")
-                if verdict != "ok":
+                if mode not in ("ref", "pair"):
+                    why.append("handwriting checked in no known mode (%r)" % mode)
+                elif verdict != "ok":
                     why.append("handwriting %s (%s)" % (verdict, note or mode))
-            print("%s/%s/%s.jpg | %s | %s | %s | %s" % (set_id, DEVICE, page, size, mean, ink_text, "; ".join(why) or "ok"), file=out)
+                elif mode == "pair":
+                    pair_only.append(name)
+            print("%s/%s/%s.jpg | %s | %s | %s | %s | %s" % (set_id, DEVICE, page, size, mean, edges, ink_text, "; ".join(why) or "ok"), file=out)
             if why:
                 failed += 1
                 print("::error::store-duo %s/%s/%s.jpg: %s (docs/M7D_CONTRACT.md §7.1, §3.8)." % (set_id, DEVICE, page, "; ".join(why)), file=out)
     expected = len(sets) * len(PAGES)
+    if pair_only:
+        where = ""
+        if host:
+            where = " This runner is macOS %s%s." % (host, ", the macOS of D0b's losses (docs/M7D.md, D0b: the same tiles lost at every "
+                                                     "launch on one host)" if MACOS_LOSSES.match(host) else "")
+        print("::warning::store-duo: %d of %d photos have their handwriting checked only take against take (no line in "
+              "tools/shots/ink_ref.tsv; ink-status.tsv mode pair): a loss that repeats at every launch, or that every runner makes "
+              "(the whole handwriting too), passes here, and store-duo-check fails only one of %d px or more that the other jobs "
+              "do not share.%s Look at each photo before the upload (§7.1: and the owner's page), then add the lines of "
+              "env-store-duo-<group>/ink-ref.tsv to tools/shots/ink_ref.tsv." % (len(pair_only), expected, MIN_SHORT, where), file=out)
     print("store-duo check: %d photos expected, %d fail: %s" % (expected, failed, "ok" if failed == 0 else "FAILED"), file=out)
     return failed
 
@@ -260,6 +308,9 @@ def across(sets, refs, jobs, status=None, out=sys.stdout):
     """The same page compared across the languages, each photo with photos of other jobs only (`jobs`: name → job).
     Returns the number of failures (photos short, missing, or with fewer than 2 photos of other jobs to compare with)."""
     failed = 0
+    noise = (-1, "")                     # the largest shortfall of a photo that passed here (MIN_SHORT's margin)
+    unproven = []                        # photos compared here that their job did not check against a reference line
+    seen = 0                             # photos compared here
     for page in PAGES:
         names = [name_of(s, page) for s in sets]
         here = [n for n in names if n in refs]
@@ -286,10 +337,25 @@ def across(sets, refs, jobs, status=None, out=sys.stdout):
                     note += "; complete against its reference line, which decides"
             print("%-28s %6d px short in %3d of %3d tiles; compared with %s: %s%s"
                   % (n, missing, tiles, compared, near, "SHORT" if bad else "ok", note), file=out)
+            seen += 1
+            if status is None or status.get(n, ("",))[0] != "ref":
+                unproven.append(n)
             if bad:
                 failed += 1
                 print("::error::%s: its handwriting is %d px short against the same page of %s (at least %d fails; docs/M7D.md, D0b). "
-                      "Look at the photo; take that job again." % (n, missing, near, MIN_SHORT), file=out)
+                      "Look at the photo: take that job again, or, the photo being complete, add its line of its job's ink-ref.tsv to "
+                      "tools/shots/ink_ref.tsv (MIN_SHORT is from 1.3's 6.9-inch photos)." % (n, missing, near, MIN_SHORT), file=out)
+            elif missing > noise[0]:
+                noise = (missing, n)
+    if noise[0] >= 0:
+        print("store-duo across: the largest shortfall of a photo that passed: %d px (%s); a photo fails at %d (MIN_SHORT, set "
+              "from 1.3's 6.9-inch photos, whose largest was 948)." % (noise[0], noise[1], MIN_SHORT), file=out)
+    if unproven:
+        print("::warning::store-duo across: %d of the %d photos compared were not checked against a reference line in their job "
+              "(mode pair%s): here a photo fails only %d px or more short against the other jobs' same page, so a smaller loss, or "
+              "one every runner makes alike (the whole handwriting too), passes. Look at them before the upload (§7.1), then add "
+              "the jobs' ink-ref.tsv lines to tools/shots/ink_ref.tsv."
+              % (len(unproven), seen, "" if status is not None else "; no ink-status.tsv given", MIN_SHORT), file=out)
     print("store-duo across: %d failures: %s" % (failed, "ok" if failed == 0 else "FAILED"), file=out)
     return failed
 
@@ -337,6 +403,14 @@ def _made_up_pages(sets):
 
 
 def self_test():
+    tmp = tempfile.mkdtemp(prefix="duo-store-test-")
+    try:
+        return _self_test(tmp)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _self_test(tmp):
     failures = []
 
     def verdict(what, ok, detail=""):
@@ -345,7 +419,6 @@ def self_test():
             failures.append(what)
 
     sets = ["s%02d" % i for i in range(12)]
-    tmp = tempfile.mkdtemp(prefix="duo-store-test-")
 
     # across: complete photos pass; one with a lost PencilKit tile (about 9 × 9 of ink_check's tiles on the outer screen's
     # week) fails, and so do the three of a job that lost the same tile (one runner); a few pixels less do not (the floor
@@ -374,11 +447,18 @@ def self_test():
         refs = read_refs(paths, errors, jobs)
         return refs, jobs, errors
 
-    def quiet(fn, *args):
+    def said(fn, *args):
+        """(what fn returns, the lines it printed)."""
+        lines = []
+
         class Sink:
-            def write(self, _):
-                pass
-        return fn(*args, out=Sink())
+            def write(self, text):
+                lines.append(text)
+        result = fn(*args, out=Sink())
+        return result, "".join(lines).splitlines()
+
+    def quiet(fn, *args):
+        return said(fn, *args)[0]
 
     refs, jobs, errors = refs_with()
     verdict("the made-up reference lines read, with their jobs", not errors and len(refs) == 60 and len(set(jobs.values())) == 4,
@@ -409,6 +489,27 @@ def self_test():
     refs, jobs, _ = refs_with(lose_little)
     verdict("across: one tile less (under %d px) passes (the floor)" % MIN_SHORT, quiet(across, sets, refs, jobs) == 0)
 
+    # Nothing passes silently that its job checked only take against take: one warning, and the largest shortfall that
+    # passed (the noise MIN_SHORT must stay above); none when every photo was checked against its reference line. The
+    # last line keeps the form the upload's script reads.
+    refs, jobs, _ = refs_with(lose_little)
+    pair = dict((name_of(s, p), ("pair", "ok", "2", "2", "0", "")) for s in sets for p in PAGES)
+    got, text = said(across, sets, refs, jobs, pair)
+    warned = [line for line in text if line.startswith("::warning::")]
+    verdict("across: photos checked in their job only take against take pass with one warning naming how many",
+            got == 0 and len(warned) == 1 and "60 of the 60 photos" in warned[0], "; ".join(warned))
+    verdict("across: it prints the largest shortfall of a photo that passed",
+            any(line.startswith("store-duo across: the largest shortfall of a photo that passed: ") and "store-duo/s04/02-month.png" in line
+                for line in text))
+    got, text = said(across, sets, refs, jobs)
+    verdict("across: with no ink-status.tsv every photo counts as unproven", got == 0 and any("60 of the 60 photos" in line for line in text))
+    ref = dict((name_of(s, p), ("ref", "ok", "2", "2", "0", "")) for s in sets for p in PAGES)
+    got, text = said(across, sets, refs, jobs, ref)
+    verdict("across: photos checked against their reference lines give no warning",
+            got == 0 and not [line for line in text if line.startswith("::warning::")])
+    verdict("across: its last line is 'store-duo across: N failures: ok|FAILED'",
+            re.match(r"store-duo across: \d+ failures: (ok|FAILED)$", text[-1]) is not None, text[-1])
+
     refs, jobs, _ = refs_with()
     del refs[name_of("s11", "04-year")]
     verdict("across: a missing photo fails", quiet(across, sets, refs, jobs) == 1)
@@ -433,7 +534,7 @@ def self_test():
         sizes.append(image_size(path))
     verdict("image_size reads a PNG's and a JPEG's header", sizes == [(1398, 2034), (1398, 2034), (1397, 2034)], str(sizes))
 
-    def write_job(folder, sets_here, size=OUTER, statuses=None, skip=None):
+    def write_job(folder, sets_here, size=OUTER, statuses=None, skip=None, mode="pair"):
         store = os.path.join(folder, "store")
         lines = []
         for s in sets_here:
@@ -444,22 +545,64 @@ def self_test():
                 with open(os.path.join(store, s, DEVICE, page + ".jpg"), "wb") as f:
                     f.write(jpeg_header(*size))
                 st = (statuses or {}).get((s, page), "ok")
-                lines.append("\t".join([name_of(s, page), "pair", st, "2", "2", "0", ""]))
+                lines.append("\t".join([name_of(s, page), mode, st, "2", "2", "0", ""]))
         status = os.path.join(folder, "ink-status.tsv")
         with open(status, "w", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
         return store, status
 
     def lit(_):
-        return 243.8, "mean luma 243.8: not black"
+        return 243.8, [], None
 
     def dark(path):
-        return (0.0, "mean luma 0.0: black") if path.endswith("03-day.jpg") else lit(path)
+        return (0.0, [], None) if path.endswith("03-day.jpg") else lit(path)
+
+    def banded(path):
+        return (180.0, ["left", "right"], None) if path.endswith("01-week.jpg") else lit(path)
+
+    def unreadable(_):
+        return None, None, "sips could not read it"
 
     job = ["en", "en-GB", "ja"]
     store, status = write_job(os.path.join(tmp, "good"), job)
     verdict("check: a complete job passes", quiet(check, store, status, job, lit) == 0)
     verdict("check: a black photo fails", quiet(check, store, status, job, dark) == 3)
+    verdict("check: a photo with a black band at its edges fails (the app does not fill the screen)",
+            quiet(check, store, status, job, banded) == 3)
+    verdict("check: a photo that cannot be read fails", quiet(check, store, status, job, unreadable) == 15)
+    got, text = said(check, store, status, job, lit, "27.2")
+    warned = [line for line in text if line.startswith("::warning::")]
+    verdict("check: photos checked only take against take pass with one warning naming how many and D0b's macOS",
+            got == 0 and len(warned) == 1 and "15 of 15 photos" in warned[0] and "macOS 27.2, the macOS of D0b" in warned[0], "; ".join(warned))
+    rows = [line.split(" | ") for line in text if " | " in line and not line.startswith("photo | ")]
+    verdict("check: its rows and its last line keep the form the upload's script reads",
+            len(rows) == 15 and all(len(r) >= 5 and r[-1] == "ok" for r in rows)
+            and re.match(r"store-duo check: \d+ photos expected, \d+ fail: (ok|FAILED)$", text[-1]) is not None, text[-1])
+    got, text = said(check, store, status, job, lit, "27.0.1")
+    verdict("check: on another macOS the warning names it without D0b", got == 0
+            and any("macOS 27.0.1." in line and "D0b's macOS" not in line and "the macOS of D0b" not in line for line in text))
+    store, status = write_job(os.path.join(tmp, "ref"), job, mode="ref")
+    got, text = said(check, store, status, job, lit, "27.2")
+    verdict("check: photos checked against their reference lines give no warning",
+            got == 0 and not [line for line in text if line.startswith("::warning::")])
+    store, status = write_job(os.path.join(tmp, "mode"), job, mode="guess")
+    verdict("check: a verdict in no known mode fails", quiet(check, store, status, job, lit) == 15)
+
+    # The reader is tools/duo/shot_checks.py's (its own self-test has its photos): a letterboxed page shows its bands, a
+    # light one none, a black one only its mean.
+    sc = shot_checks()
+    verdict("BLACK_MEAN is tools/duo/shot_checks.py's", BLACK_MEAN == sc.BLACK_MEAN, "%s, %s" % (BLACK_MEAN, sc.BLACK_MEAN))
+    looks = []
+    for name, kwargs in (("band.png", {"band": 12}), ("light.png", {}), ("black.png", {"everything": sc.BLACK})):
+        path = os.path.join(tmp, name)
+        sc.paper_photo(path, 120, 180, **kwargs)
+        value, black_edges, unread = shot_checks_look(path)
+        looks.append((name, value is not None and value >= BLACK_MEAN, black_edges, unread))
+    verdict("shot_checks_look: a band at the left and right, none on a light page, a black page only black",
+            looks == [("band.png", True, ["left", "right"], None), ("light.png", True, [], None), ("black.png", False, [], None)],
+            str(looks))
+    verdict("shot_checks_look: a file that is no photo cannot be read",
+            shot_checks_look(os.path.join(tmp, "size.bin"))[0] is None)
     store, status = write_job(os.path.join(tmp, "small"), job, size=(1398, 2033))
     verdict("check: a photo one pixel short of 1398x2034 fails", quiet(check, store, status, job, lit) == 15)
     store, status = write_job(os.path.join(tmp, "gone"), job, skip=("ja", "02-month"))
@@ -481,10 +624,21 @@ def main(argv):
     if args == ["--self-test"]:
         return self_test()
     if len(args) >= 4 and args[0] == "check":
+        rest, host = args[3:], ""
+        if "--host" in rest:
+            at = rest.index("--host")
+            if at + 1 >= len(rest):
+                print(__doc__, file=sys.stderr)
+                return 2
+            host = rest[at + 1]
+            rest = rest[:at] + rest[at + 2:]
+        if not rest:
+            print(__doc__, file=sys.stderr)
+            return 2
         if not os.path.isdir(args[1]):
             print("::error::duo_store check: no folder %s" % args[1])
             return 2
-        return 1 if check(args[1], args[2], args[3:]) else 0
+        return 1 if check(args[1], args[2], rest, host=host) else 0
     if len(args) >= 3 and args[0] == "across":
         sets = args[1].split()
         rest = args[2:]
