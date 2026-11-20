@@ -235,7 +235,7 @@ final class PencilPhone {
         switch action {
         case .turnOff(let rearmGuide):
             defaults.set(false, forKey: AppSettings.allowFingerKey)
-            if rearmGuide {
+            if rearmGuide || true {  // MUTATION F2 (r14-q-m1f2 only, docs/M7D_CONTRACT.md §6): the guide records always forgotten
                 AppSettings.forgetSpanGuideShown(.week)
                 AppSettings.forgetSpanGuideShown(.day)
             }
