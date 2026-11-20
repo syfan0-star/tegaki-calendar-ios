@@ -1033,13 +1033,15 @@ extension ScreenshotMode {
     /// The screen's call (§2.1): nothing without `--screenshot-measure` (normal use and every other photo: no line, no
     /// interaction); with it, `ScreenshotMeasure` writes the `duo measure:` line once the window is laid out and the hinge
     /// answered (or `measureHingeWait` passed), and again whenever one of its values changes (a new paper area, a new kind,
-    /// the fold, the hinge's next answer, 「指でも書く」 changed by `FingerDefault`).
+    /// the fold, the hinge's next answer, 「指でも書く」 changed by `FingerDefault`). `measurer` nil (the screen's call) is
+    /// `ScreenshotMeasure.shared`, taken only past the gate (so `shared` is never made without the argument); the tests give
+    /// one of their own.
     @MainActor
     static func measure(kind: PageKind, paperArea: CGSize, weekStart: WeekStart, isPad: Bool, origin: FingerDefault.Origin,
-                        finger: Bool, plan: SpanPlan? = nil) {
+                        finger: Bool, plan: SpanPlan? = nil, measurer: ScreenshotMeasure? = nil) {
         guard isMeasuring else { return }
-        ScreenshotMeasure.shared.note(MeasureScreen(kind: kind, paperArea: paperArea, weekStart: weekStart, isPad: isPad,
-                                                    origin: origin, finger: finger, plan: plan))
+        (measurer ?? ScreenshotMeasure.shared).note(MeasureScreen(kind: kind, paperArea: paperArea, weekStart: weekStart,
+                                                                  isPad: isPad, origin: origin, finger: finger, plan: plan))
     }
 
     /// The window plan the line reads: the joined window's own (`MeasureScreen.plan`), else the plan the joined path would
@@ -1187,9 +1189,10 @@ final class ScreenshotMeasure {
         self.lineFile = lineFile
     }
 
-    /// Appends `line` and "\n" to `file` in one write and synchronizes it: opened for appending (created if missing, never
-    /// truncated), so every write lands at the end. A failure is not an error of the photo: one short note in the log
-    /// (not a `duo measure:` line) and nothing else.
+    /// Appends `line` and "\n" to `file` in one write: opened for appending (created if missing, never truncated), so every
+    /// write lands at the end. No fsync: the simulator's app and the CI's `cp` share the Mac's file cache, so the line is
+    /// there for the reader once written. A failure is not an error of the photo: one short note in the log (not a
+    /// `duo measure:` line) and nothing else.
     static func append(_ line: String, to file: URL) {
         let descriptor = file.withUnsafeFileSystemRepresentation { path in
             path.map { open($0, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0o644) } ?? -1
@@ -1202,7 +1205,6 @@ final class ScreenshotMeasure {
         defer { try? handle.close() }
         do {
             try handle.write(contentsOf: Data((line + "\n").utf8))
-            try handle.synchronize()
         } catch {
             NSLog("%@", "duo measure file: not written (\(error.localizedDescription))")
         }
@@ -1283,8 +1285,9 @@ final class ScreenshotMeasure {
         size.width.isFinite && size.height.isFinite && size.width > 0 && size.height > 0
     }
 
-    /// The window of the active scene (the key window first), as the screen's safe area line reads it.
-    private static func window() -> UIWindow? {
+    /// The window of the active scene (the key window first), as the screen's safe area line reads it (internal for the
+    /// tests, which take the hinge's interaction off its root view again).
+    static func window() -> UIWindow? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let windows = (scenes.first { $0.activationState == .foregroundActive } ?? scenes.first)?.windows ?? []
         return windows.first(where: \.isKeyWindow) ?? windows.first

@@ -10,9 +10,11 @@ import XCTest
 // in order, at the end, the file made when missing, a failure ignored); a `ScreenshotMeasure` with a file of its own
 // appending exactly the lines it logs, in order and once each, on the unit tests' app window; and without the argument
 // (the unit tests have none) `ScreenshotMode.measure` writing nothing, not even the file. Mutations: the append left out
-// of `ScreenshotMeasure.write`, or opened without O_APPEND (a truncating write), fails `testMeasureAppendsTheLinesItLogs`
-// and `testAppendAddsEachLineAtTheEnd`; the gate `isMeasuring` dropped from `ScreenshotMode.measure` fails
-// `testNothingIsWrittenWithoutTheArgument`.
+// of `ScreenshotMeasure.write`, or opened without O_APPEND (a write from the file's start, over what is there), fails
+// `testMeasureAppendsTheLinesItLogs` and `testAppendAddsEachLineAtTheEnd`; the gate `isMeasuring` dropped from
+// `ScreenshotMode.measure` fails `testNothingIsWrittenWithoutTheArgument` at once (its measurer, given to the call, has the
+// hinge's answer already, so it would write in the call itself; no wait). The `UIHingeInteraction` a measurer attaches to
+// the unit tests' app window is taken off again (`note`).
 
 @MainActor
 final class MeasureLineFileTests: XCTestCase {
@@ -36,6 +38,19 @@ final class MeasureLineFileTests: XCTestCase {
     private func screen(_ paper: CGSize) -> ScreenshotMode.MeasureScreen {
         ScreenshotMode.MeasureScreen(kind: .week, paperArea: paper, weekStart: .monday, isPad: false, origin: .app,
                                      finger: false, plan: nil)
+    }
+
+    /// `measurer.note` of a week screen with `paper`, on the unit tests' app window; the `UIHingeInteraction` that call
+    /// attached to the window's root view (the first call of a measurer attaches one) is taken off again at once, so the
+    /// view every later test shares keeps none of this test's (the line is written within the call).
+    private func note(_ measurer: ScreenshotMeasure, _ paper: CGSize) {
+        let host = ScreenshotMeasure.window().map { $0.rootViewController?.view ?? $0 }
+        let before = host?.interactions ?? []
+        measurer.note(screen(paper))
+        guard let host else { return }
+        for interaction in host.interactions where !before.contains(where: { $0 === interaction }) {
+            host.removeInteraction(interaction)
+        }
     }
 
     /// Two of D1's lines (`ScreenshotMode.measureLine`, the outer screen's numbers), as the app logs them.
@@ -72,8 +87,9 @@ final class MeasureLineFileTests: XCTestCase {
 
     /// With `--screenshot-measure` (a `ScreenshotMeasure` made here, as `shared` is made then): every line it logs is
     /// appended to its file, in order, once (a call with the same values logs nothing and appends nothing), with nothing
-    /// else in the file. The hinge is answered first, as the unit tests' simulator answers it (no hinge), so a late update
-    /// of the interaction on the app's window changes no line; the wait for it returns at once and adds nothing.
+    /// else in the file. The hinge is answered first, as the unit tests' simulator answers it (no hinge), and the
+    /// interaction is taken off the app's window again (`note`), so no late update changes a line; the wait for it returns
+    /// at once and adds nothing.
     func testMeasureAppendsTheLinesItLogs() async throws {
         let file = folder.appendingPathComponent(ScreenshotMeasure.measureFileName)
         let measurer = ScreenshotMeasure(sleep: { _ in }, lineFile: file)
@@ -82,10 +98,10 @@ final class MeasureLineFileTests: XCTestCase {
         XCTAssertNil(measurer.lastLine, "no screen yet: no line")
         XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
 
-        measurer.note(screen(CGSize(width: 300, height: 400)))
+        note(measurer, CGSize(width: 300, height: 400))
         let first = try XCTUnwrap(measurer.lastLine, "the unit tests run inside the app: its window is measured")
-        measurer.note(screen(CGSize(width: 300, height: 400)))
-        measurer.note(screen(CGSize(width: 300, height: 500)))
+        note(measurer, CGSize(width: 300, height: 400))
+        note(measurer, CGSize(width: 300, height: 500))
         let second = try XCTUnwrap(measurer.lastLine)
         for _ in 0..<10 { await Task.yield() }
 
@@ -97,21 +113,37 @@ final class MeasureLineFileTests: XCTestCase {
     }
 
     /// Without `--screenshot-measure` (normal use, the J-4 photos, the unit tests): `ScreenshotMode.measure` returns before
-    /// `ScreenshotMeasure`, so Library/Caches/duo-measure.txt is never made.
+    /// it asks for its measurer, so nothing is noted, logged or appended, and Library/Caches/duo-measure.txt is never made.
+    /// The calls are given a measurer of their own that would write in the call itself (the hinge answered, the unit tests'
+    /// app window measured), so a dropped gate fails here at once; the last lines show that measurer does write when it is
+    /// called, so the nil before it is the gate's.
     func testNothingIsWrittenWithoutTheArgument() throws {
         XCTAssertFalse(ScreenshotMode.isMeasuring, "the unit tests run without --screenshot-measure")
         XCTAssertEqual(ScreenshotMode.parse(["app", "--screenshot-mode"])?.measure, false)
         XCTAssertEqual(ScreenshotMode.parse(["app", "--screenshot-mode", "--screenshot-measure"])?.measure, true)
-        let file = try XCTUnwrap(ScreenshotMeasure.measureFile)
-        XCTAssertEqual(file.lastPathComponent, "duo-measure.txt")
-        XCTAssertEqual(file.deletingLastPathComponent().lastPathComponent, "Caches")
-        XCTAssertEqual(file.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent, "Library")
-        try? FileManager.default.removeItem(at: file)
+        let real = try XCTUnwrap(ScreenshotMeasure.measureFile)
+        XCTAssertEqual(real.lastPathComponent, "duo-measure.txt")
+        XCTAssertEqual(real.deletingLastPathComponent().lastPathComponent, "Caches")
+        XCTAssertEqual(real.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent, "Library")
+        try? FileManager.default.removeItem(at: real)
 
+        let file = folder.appendingPathComponent(ScreenshotMeasure.measureFileName)
+        let measurer = ScreenshotMeasure(sleep: { _ in }, lineFile: file)
+        measurer.hingeAnswered(.none)
+        ScreenshotMode.measure(kind: .week, paperArea: CGSize(width: 300, height: 400), weekStart: .monday, isPad: false,
+                               origin: .app, finger: false, measurer: measurer)
+        ScreenshotMode.measure(kind: .day, paperArea: CGSize(width: 300, height: 500), weekStart: .sunday, isPad: false,
+                               origin: .person, finger: true, measurer: measurer)
+        XCTAssertNil(measurer.lastLine, "the gate returned before the measurer")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+
+        // The call as the screen makes it (the measurer `ScreenshotMeasure.shared`): the app's own file is not made either.
         ScreenshotMode.measure(kind: .week, paperArea: CGSize(width: 300, height: 400), weekStart: .monday, isPad: false,
                                origin: .app, finger: false)
-        ScreenshotMode.measure(kind: .day, paperArea: CGSize(width: 300, height: 500), weekStart: .sunday, isPad: false,
-                               origin: .person, finger: true)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: real.path))
+
+        note(measurer, CGSize(width: 300, height: 400))
+        let line = try XCTUnwrap(measurer.lastLine, "called past the gate, the same measurer writes in the call")
+        XCTAssertEqual(try text(file), line + "\n")
     }
 }

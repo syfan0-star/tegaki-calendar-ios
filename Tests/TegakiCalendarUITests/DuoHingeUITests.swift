@@ -17,7 +17,10 @@ import XCTest
 /// 「指でも書く」 pinned on (value and mark "person" in UserDefaults' argument domain), so a finger writes as the Pencil would.
 /// `span.state`'s `last=` (the window's newest stroke: page, cell and x range in its page) names a line across the fold; the
 /// probe's `ink` (the band's strokes) is compared only between windows of the same size (`pages`), since a fold decides the
-/// window anew and the demo's neighbours come and go with it.
+/// window anew and the demo's neighbours come and go with it. With `--screenshot-measure` (1.4 D1b; nothing on the screen
+/// changes) the app also writes its `duo measure:` lines, so duo-hinge records the inner screen's measurement that §4.2's
+/// path 2 asks of it (`hinge=`, `wide=`, the window, after each fold): duo.yml reads them from the app's
+/// Library/Caches/duo-measure.txt.
 ///
 /// The hinge is driven by Xcode 27.3's `XCUIHinge` (XCUIAutomation, 187479559, [S6]), whose names this repository has not
 /// read (27.3 is a beta on 11/20, and no SDK of it is on the Mac this was written on). So `HingeDriver` reaches it through the
@@ -172,7 +175,8 @@ final class DuoHingeUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = [
             "--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week", "--screenshot-span", "on",
-            "--screenshot-probe", "-allowFingerDrawing", "YES", "-allowFingerDrawingChosen", "YES", "-allowFingerDrawingAuto", "person",
+            "--screenshot-probe", "--screenshot-measure",
+            "-allowFingerDrawing", "YES", "-allowFingerDrawingChosen", "YES", "-allowFingerDrawingAuto", "person",
             "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP",
         ]
         app.launch()
