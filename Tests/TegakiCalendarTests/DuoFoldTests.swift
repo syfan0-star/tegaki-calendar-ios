@@ -218,9 +218,16 @@ final class DuoFoldTests: XCTestCase {
     /// A pen stroke through `points` (band lu), each with its own creation date.
     private func shortStroke(at x: CGFloat, _ y: CGFloat) -> PKStroke {
         strokeClock += 1
-        let points = (0..<5).map { i in
-            PKStrokePoint(location: CGPoint(x: x - 20 + CGFloat(i) * 10, y: y + CGFloat(i % 2)), timeOffset: TimeInterval(i) * 0.01,
-                          size: CGSize(width: 3.5, height: 3.5), opacity: 1, force: 0.5, azimuth: 0, altitude: .pi / 2)
+        // Built step by step: Xcode 27.2's compiler gave up type-checking the one-expression form for x86_64 on CI
+        // (duo.yml run 44690590720, "unable to type-check this expression in reasonable time").
+        var points: [PKStrokePoint] = []
+        for i in 0..<5 {
+            let step = CGFloat(i)
+            let location = CGPoint(x: x - 20 + step * 10, y: y + CGFloat(i % 2))
+            let timeOffset: TimeInterval = TimeInterval(i) * 0.01
+            let altitude: CGFloat = .pi / 2
+            points.append(PKStrokePoint(location: location, timeOffset: timeOffset, size: CGSize(width: 3.5, height: 3.5),
+                                        opacity: 1, force: 0.5, azimuth: 0, altitude: altitude))
         }
         return PKStroke(ink: PKInk(.pen, color: .black),
                         path: PKStrokePath(controlPoints: points, creationDate: Date(timeIntervalSince1970: 1_790_000_000 + strokeClock)),
