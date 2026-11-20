@@ -30,11 +30,11 @@ final class PencilPhone {
     /// Whether the hinge (H) is watched at all. Decided on D1 by the measurements of the CI's `duo-shots` (docs/M7D_CONTRACT.md
     /// §4.2: true only when an iPhone Duo screen of the simulator reports a hinge that is not nil and the iPhone 17 reports
     /// nil). 1.4 D1c: true, from duo.yml's run 44696154794 (commit f9bb459, Xcode 27.2 27B52; path 3, the outer screen only):
-    /// every `duo measure:` line of the iPhone Duo's outer screen (iOS 27.2 24B91016s, window 466x678, 15 photos, all read
-    /// from the measure-line file) has hinge=closed, and the iPhone 17's first launch (iOS 27.2 24B8117, window 402x874)
-    /// hinge=nil. So a Duo on which 1.4 wrote the first launch's default turns 「指でも書く」 off once the hinge answers, as an
-    /// iPad starts (§4.8's table, H); an ordinary iPhone hears no hinge (nil, or no update in `hingeWait`) and keeps 1.3's
-    /// value. False would leave P (the Pencil's touch) alone.
+    /// every `duo measure:` line of the iPhone Duo's outer screen (iOS 27.2 24B91016s, window 466x678 and 678x466, 14 photos
+    /// and 24 lines, all read from the measure-line file) has hinge=closed, and the iPhone 17's first launch (the 15th photo;
+    /// iOS 27.2 24B8117, window 402x874) hinge=nil. So a Duo on which 1.4 wrote the first launch's default turns 「指でも書く」
+    /// off once the hinge answers, as an iPad starts (§4.8's table, H); an ordinary iPhone hears no hinge (nil, or no update
+    /// in `hingeWait`) and keeps 1.3's value. False would leave P (the Pencil's touch) alone.
     nonisolated static let usesHinge = true
     /// How long the first hinge update may take before the answer is "no hinge" (§2.1, §4.8).
     nonisolated static let hingeWait: TimeInterval = 2

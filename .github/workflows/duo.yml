@@ -460,11 +460,13 @@ jobs:
       # displays" (D0's duo-probe, run 44649975338: so did internal and main; only primary gave a photo, 1398x2034, the
       # outer screen; docs/M7D.md, gate 6). The iPhone 17 has one display and is photographed without --display.
       DUO_OUTER_DISPLAY: "primary"
-      # DUO_SIZE_RULE: "warn" (§7.1: "ほかの寸法なら警告して使わない" — a Duo photo not of App Store's size is a warning in
-      # shot_checks.py, and such photos are not used for the store) until a duo-shots has shown the simulator's photos are
-      # App Store's sizes (no duo-probe size is on record yet); then the lead may set "fail" (a photo of another size fails
-      # shot_checks.py), with the run's number in docs/M7D.md.
-      DUO_SIZE_RULE: "warn"
+      # DUO_SIZE_RULE: "fail" (1.4 D1d; D1's note B-4 in docs/M7D.md): a Duo photo of a size not in shot_checks.py's SIZES
+      # (§7.1: outer 1398x2034 / 2034x1398; inner 2007x2853 / 2853x2007, or the screen's 1878x2670 / 2670x1878 that §7.1
+      # scales up) fails shot_checks.py. It was "warn" (§7.1: "ほかの寸法なら警告して使わない" — a warning, and such a
+      # photo not used for the store) until a duo-shots showed the simulator's photos are App Store's sizes: run 44696154794
+      # (f9bb459, path 3) took all 14 outer photos at 1398x2034 or 2034x1398 (the iPhone 17's 1206x2622 is not judged by
+      # this rule). "warn" is the way back if a later simulator changes the sizes.
+      DUO_SIZE_RULE: "fail"
 
     steps:
       - name: Checkout
