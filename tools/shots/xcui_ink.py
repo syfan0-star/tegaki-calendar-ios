@@ -17,15 +17,19 @@
 #           folder> | --folder <folder>) --out <tsv> [--label <name>]
 #       checks every PNG, writes one row a photo (and one a reference line of this prefix with no photo) to <tsv>, prints
 #       each result and a summary line (also to $GITHUB_STEP_SUMMARY), and one ::warning:: with the counts when a photo is
-#       short or cannot be compared, then one a photo (8 at most: GitHub shows 10 a step). Always exits 0: it never fails
-#       a job. It runs its self-test first and says so in the summary line.
+#       short or cannot be compared, then one a photo (7 at most: GitHub shows 10 a step, and the self-test's and the
+#       blind check's may come too). One ::warning:: too when the check may be blind: this prefix has reference lines but
+#       no photo matched one, or more than half of them have no photo (tests renamed, the names in another format, a run
+#       that stopped early); a manifest.json that is not a list of tests is a warning as well. Always exits 0: it never
+#       fails a job. It runs its self-test first and says so in the summary line.
 #   python3 -I tools/shots/xcui_ink.py ref --ink <ink_check> --prefix <prefix> (--manifest <dir> | --folder <dir>)
 #           [--leave-out <key>…]
 #       prints the reference lines of a complete run's photos (to renew tools/shots/ink_ref_xcui.tsv: same Xcode, runtime
 #       and image as the runs it checks).
 #   python3 -I tools/shots/xcui_ink.py self-test --ink <ink_check>
 #       made-up photos and a made-up manifest: a complete photo, the same moved by 3 px, one with its ink gone, one of
-#       another size, a name with no line, and two attachments of one name. Exit 1 when one case is wrong.
+#       another size, a name with no line, and two attachments of one name; a manifest that is not a list, and the blind
+#       check's counts. Exit 1 when one case is wrong.
 import argparse
 import json
 import os
@@ -39,16 +43,18 @@ import unicodedata
 import zlib
 
 SUFFIX = re.compile(r"_[0-9]+_[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}(\.[A-Za-z0-9]+)?$")
-WARNINGS = 8
+WARNINGS = 7  # with the summary line's, the self-test's and the blind check's: 10, GitHub's most a step
 
 
 def manifest_photos(folder):
     """[(key without the prefix, path)] of the PNG attachments that manifest.json lists, in the manifest's order."""
     with open(os.path.join(folder, "manifest.json"), encoding="utf-8") as f:
         data = json.load(f)
+    if not isinstance(data, list):                          # check() turns this into a warning
+        raise ValueError("manifest.json is not a list of tests (a JSON %s)" % type(data).__name__)
     photos = []
     seen = {}
-    for test in data if isinstance(data, list) else []:
+    for test in data:
         if not isinstance(test, dict):
             continue
         ident = re.sub(r"\(\)$", "", str(test.get("testIdentifier") or "?"))
@@ -79,6 +85,18 @@ def ref_keys(path):
                 continue
             keys.append(line.split("\t", 1)[0])
     return keys
+
+
+def blindness(lines, matched, no_photo):
+    """Why the check may be blind, or None: of this prefix's `lines` reference lines, `matched` photos had one and
+    `no_photo` lines had no photo."""
+    if lines <= 0:
+        return None
+    if matched == 0:
+        return "no photo matched any of its %d reference lines" % lines
+    if 2 * no_photo > lines:
+        return "%d of its %d reference lines have no photo" % (no_photo, lines)
+    return None
 
 
 def ink(program, photo, ref, key):
@@ -184,6 +202,19 @@ def self_test(program):
             cases.append((key[5:], got.get(key) == want, "%s (%s expected)" % (got.get(key), want)))
         short = [row for row in rows if row[2] == "short"]
         cases.append(("the gone ink's pixels", bool(short) and short[0][3] == "2304", short[0][3] if short else "-"))
+        odd = os.path.join(work, "odd")
+        os.mkdir(odd)
+        with open(os.path.join(odd, "manifest.json"), "w", encoding="utf-8") as f:
+            json.dump({"tests": manifest}, f)
+        try:
+            manifest_photos(odd)
+            cases.append(("a manifest that is not a list", False, "no ValueError"))
+        except ValueError as error:
+            cases.append(("a manifest that is not a list", True, str(error)))
+        blind = [blindness(66, 0, 66), blindness(66, 0, 0), blindness(66, 30, 34), blindness(66, 65, 1), blindness(66, 33, 33),
+                 blindness(0, 0, 0)]
+        cases.append(("the blind check", [b is not None for b in blind] == [True, True, True, False, False, False],
+                      " | ".join(str(b) for b in blind)))
         return cases
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -234,6 +265,7 @@ def check(args):
         print("::warning::%s" % escape("The %s photos' handwriting is not checked: no %s." % (label, args.ref)))
         return
     rows = run_check(args.ink, args.ref, args.prefix, photos, args.out)
+    lines = len([key for key in ref_keys(args.ref) if key.startswith(args.prefix)])
     count = {}
     for row in rows:
         count[row[2]] = count.get(row[2], 0) + 1
@@ -246,6 +278,12 @@ def check(args):
                % (label, len(photos), checked, count.get("complete", 0), len(short), px, len(odd),
                   count.get("no-reference", 0), count.get("no-photo", 0), selftest, os.path.basename(args.out)))
     print(summary)
+    blind = blindness(lines, checked, count.get("no-photo", 0))
+    if blind:
+        print("::warning::%s" % escape("%s: the handwriting check may be blind: %s of %s, with %d photos in this run (tests "
+                                       "renamed, the names in another format, or a run that stopped early; the rows in %s). "
+                                       "A warning only (docs/M7D.md, D1d)." % (label, blind, args.ref, len(photos),
+                                                                               os.path.basename(args.out))))
     if short or odd:
         names = ", ".join(row[0][len(args.prefix):] for row in (short + odd)[:3])
         print("::warning::%s" % escape("%s: %d of %d photos have less ink than their line in %s (%d px short: handwriting "
@@ -263,6 +301,8 @@ def check(args):
         try:
             with open(step_summary, "a", encoding="utf-8") as f:
                 f.write("### The handwriting of the %s photos (a warning only)\n\n%s\n\n" % (label, summary))
+                if blind:
+                    f.write("The check may be blind: %s.\n\n" % blind)
                 for row in (short + odd)[:30]:
                     f.write("- %s: %s\n" % (row[0], row[6]))
                 f.write("\n")

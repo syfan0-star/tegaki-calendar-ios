@@ -646,6 +646,7 @@ jobs:
       # 1.4 D1 (§3.10, §6): the quick lane (r14-quick, r14-q-*) also runs D1's new classes, each by its whole name:
       # WindowClassTests, PencilPhoneTests, CappedOverviewWideTests, OnePageRevealTests, SnapshotScaleTests and DuoFoldTests
       # (role S) and PaperViewScaleTests (role P); a class not written yet is not found and not run. D1b: MeasureLineFileTests.
+      # D1d: PageHeaderRoomTests (the header's tight row on the Duo's outer screen; pure, no layout).
       # 1.4 D0c (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0c): xcodebuild boots the 13-inch iPad here itself again, as
       # until D0. D0b booted it with simctl in the background from the job's start (a step "Boot the 13-inch iPad in the
       # background" and a wait here, both removed in D0c). That boot took 129 s, but the macOS steps beside it ran 3 to 19
@@ -668,7 +669,7 @@ jobs:
           elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
@@ -1655,9 +1656,9 @@ jobs:
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
       # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
       # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
-      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
-      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
-      # build.yml and duo.yml.
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
       - name: Diagnostics of a cancelled job (1.4 D1d)
         if: cancelled()
         continue-on-error: true
@@ -2066,9 +2067,9 @@ jobs:
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
       # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
       # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
-      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
-      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
-      # build.yml and duo.yml.
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
       - name: Diagnostics of a cancelled job (1.4 D1d)
         if: cancelled()
         continue-on-error: true
@@ -2933,9 +2934,9 @@ jobs:
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
       # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
       # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
-      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
-      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
-      # build.yml and duo.yml.
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
       - name: Diagnostics of a cancelled job (1.4 D1d)
         if: cancelled()
         continue-on-error: true
@@ -3298,9 +3299,9 @@ jobs:
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
       # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
       # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
-      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
-      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
-      # build.yml and duo.yml.
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
       - name: Diagnostics of a cancelled job (1.4 D1d)
         if: cancelled()
         continue-on-error: true
@@ -4122,9 +4123,9 @@ jobs:
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
       # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
       # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
-      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
-      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
-      # build.yml and duo.yml.
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
       - name: Diagnostics of a cancelled job (1.4 D1d)
         if: cancelled()
         continue-on-error: true
