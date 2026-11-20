@@ -29,7 +29,8 @@ enum AppSettings {
     static let allowFingerChosenKey = "allowFingerDrawingChosen"
     /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.8, 0d-42): `String`, who wrote today's value of `allowFingerKey`: "person" (the
     /// person switched it in the toolbar or the settings), or the mark of the device on which the app wrote it
-    /// (`PencilPhone.deviceMark`, `identifierForVendor`); missing for a value carried over from 1.3 or earlier. Never sent
+    /// (`PencilPhone.deviceMark`, `identifierForVendor`); missing for a value carried over from 1.3 or earlier, and for an
+    /// iPad's own default (an iPad writes no mark, `PencilPhone.launchDefault`). Never sent
     /// anywhere (a backup or a move to a new iPhone may bring it along). Not one of `isExistingUser`'s keys.
     static let allowFingerAutoKey = "allowFingerDrawingAuto"
     /// Existing: the last shown page kind; missing → iPad `.month`, iPhone `.week` (DESIGN §2.11).

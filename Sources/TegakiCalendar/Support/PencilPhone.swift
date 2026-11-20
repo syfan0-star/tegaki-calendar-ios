@@ -16,7 +16,8 @@ import UIKit
 ///   "no hinge" too when the first update does not come within `hingeWait` (the wait is injectable, `sleep`). Never used for
 ///   the layout (Apple's note on the hinge, §4.10);
 /// - `apply`: the actions written to UserDefaults (the value and the mark) and `AppSettings` (the guide records), in
-///   screenshot mode too.
+///   screenshot mode too; one that a touch's lift decided waits for the main actor's next turn, so a Pencil tap on the
+///   person's own switch stays theirs (`afterTheLift`).
 /// Nothing reads the window's size or the kind of device: an iPad (and a Mac running the iPad app) attaches nothing and its
 /// `FingerDefault` answers nothing, so an iPad and an ordinary iPhone (no Pencil, no hinge) keep 1.3's 「指でも書く」.
 @MainActor
@@ -53,11 +54,11 @@ final class PencilPhone {
 
     /// `CalendarRootScreen.appear`'s default (1.3's lines, the same moment and values: once, while
     /// `allowFingerDrawingChosen` is not on record, `allowFingerDrawingChosen` = true and 「指でも書く」 = !isPad), with this
-    /// device's mark written beside it on that first launch only (nil: no mark, `.carried`). The value and who wrote it,
-    /// for `FingerDefault.appeared`: on the launch that wrote the default the origin is what was written (`.app` with a
-    /// mark), not read back, so the UI tests' and the photos' launch arguments `-allowFingerDrawingChosen NO
-    /// -allowFingerDrawingAuto ""` (which keep shadowing the two keys afterwards) make a first launch (§2.1). Any other
-    /// launch reads both, unchanged (an update from 1.3 has no mark: `.carried`).
+    /// phone's mark written beside it on that first launch only (nil: no mark, `.carried`; an iPad: no mark, `.carried`).
+    /// The value and who wrote it, for `FingerDefault.appeared`: on the launch that wrote the default the origin is what was
+    /// written (`.app` with a mark), not read back, so the UI tests' and the photos' launch arguments
+    /// `-allowFingerDrawingChosen NO -allowFingerDrawingAuto ""` (which keep shadowing the two keys afterwards) make a first
+    /// launch (§2.1). Any other launch reads both, unchanged (an update from 1.3 has no mark: `.carried`).
     static func launchDefault(_ defaults: UserDefaults, isPad: Bool, device: String?) -> (allowFinger: Bool, origin: FingerDefault.Origin) {
         guard !defaults.bool(forKey: AppSettings.allowFingerChosenKey) else {
             return (defaults.bool(forKey: AppSettings.allowFingerKey), origin(defaults, device: device))
@@ -67,7 +68,10 @@ final class PencilPhone {
         let allowFinger = !isPad
         defaults.set(true, forKey: AppSettings.allowFingerChosenKey)
         defaults.set(allowFinger, forKey: AppSettings.allowFingerKey)
-        guard let device, !device.isEmpty else { return (allowFinger, .carried) }
+        // §4.8 (iPad では何もしない; the rollback only for a value the app turned off on a Duo): an iPad writes no mark. Its
+        // `FingerDefault` never acts, and its off read as `.carried` on a phone it is restored to stays off there, as in 1.3
+        // (with the iPad's mark it would read `.moved` and off, and be turned on again).
+        guard !isPad, let device, !device.isEmpty else { return (allowFinger, .carried) }
         defaults.set(device, forKey: markKey)
         return (allowFinger, .app)
     }
@@ -236,12 +240,30 @@ final class PencilPhone {
         onApply?(action)
     }
 
-    /// One input to the state; the action it answers (at most one) is written at once.
+    /// One input to the state; the action it answers (at most one) is written at once — or, when a touch's lift decided it,
+    /// on the main actor's next turn (`afterTheLift`).
     private func feed(_ input: Input, _ step: (inout FingerDefault) -> FingerDefault.Action?) {
         onInput?(input)
-        if let action = step(&state) {
-            origin = .app
+        guard let action = step(&state) else { return }
+        origin = .app
+        if input == .touchUp {
+            afterTheLift(action)
+        } else {
             apply(action)
+        }
+    }
+
+    /// §4.8 (本人の選びは守る; C6): the window's watcher hears a lift inside `touchesEnded`, while UIKit is still delivering
+    /// it, which can be before the control under it acts — the toolbar's 「指でも書く」 is a button-style Toggle that flips
+    /// the value it reads at that touch-up. Written then, a Pencil tap on that switch, meant to turn it off, would find it
+    /// off already and turn it on again as the person's. So an action a lift decided is written on the main actor's next turn, after
+    /// that delivery, unless the person switched in between (`personSwitched`: their tap wins). It was decided with no
+    /// touch down (C6), and the canvas takes the value at the screen's next update as before (`InkCanvasView` applies the
+    /// drawing policy in `updateUIView`).
+    private func afterTheLift(_ action: FingerDefault.Action) {
+        Task { @MainActor [weak self] in
+            guard let self, self.origin != .person else { return }
+            self.apply(action)
         }
     }
 

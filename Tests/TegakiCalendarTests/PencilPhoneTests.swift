@@ -13,7 +13,12 @@ import XCTest
 // answer and its 2-second fallback on a `TestSleeper`, the hinge being nil off the Duo (iOS 27.1 and later, not on Mac
 // Catalyst), and no model name or kind of device read by the new files. Mutations (§6, `r14-q-m1`): the glue counting a
 // finger as a Pencil fails `testWatcherCountsEveryTouch` and `testPencilLiftTurnsFingerOffEndToEnd`; the guide records
-// always forgotten fails the latter's carried row; `personSet` not writing "person" fails `testPersonSetMarksThePerson`.
+// always forgotten fails the latter's carried row; the screen's Binding (`CalendarRootScreen.allowFingerBinding`, handed to
+// ToolbarView and SettingsScreen) not writing "person" — its set back to 1.3's `allowFinger = value`, or without
+// `PencilPhone.personSet` or `personSwitched` — fails `testPersonSetMarksThePerson` (read from the source: XCTest does not
+// run the screen's View, C3-M3), as `personSet` itself not writing "person" does; an action a lift decided written during
+// the lift's delivery fails `testPencilTapOnTheSwitchStaysThePersons`. A lift's action waits for the main actor's next
+// turn (`PencilPhone.afterTheLift`), so the tests let it run (`settle`) before they look, "nothing" included.
 
 @MainActor
 final class PencilPhoneTests: XCTestCase {
@@ -121,8 +126,20 @@ final class PencilPhoneTests: XCTestCase {
     }
 
     /// §2.1, §4.8: the person's switch (the toolbar's and the settings' Binding) writes the value and the mark "person";
-    /// after it the app changes nothing, not even on a Pencil's lift. Fails with `personSet` not writing "person".
-    func testPersonSetMarksThePerson() throws {
+    /// after it the app changes nothing, not even on a Pencil's lift. The Binding is the screen's (`allowFingerBinding`),
+    /// read from the source in code only (comments and strings blanked, `WeekMemoSpanTests.codeOnly`; XCTest does not run
+    /// the screen's View, C3-M3): its get is today's 「指でも書く」, its set `personSet` then `personSwitched`, and it is what
+    /// ToolbarView and SettingsScreen get — no view gets the `@AppStorage`'s own `$allowFinger`. Fails with `personSet` not
+    /// writing "person", or with the Binding's set not going through it (§6's mutation).
+    func testPersonSetMarksThePerson() async throws {
+        let code = try Self.screenCode()
+        let binding = try Self.body(of: "private var allowFingerBinding: Binding<Bool> {", in: code)
+        XCTAssertTrue(binding.hasPrefix("Binding( get: { allowFinger }, set: { value in PencilPhone.personSet(value, defaults: .standard) "
+                                        + "pencilPhone.personSwitched() } )"), "the switches' Binding: \(binding)")
+        XCTAssertEqual(code.components(separatedBy: "allowFinger: allowFingerBinding,").count - 1, 2,
+                       "the Binding goes to ToolbarView and SettingsScreen")
+        XCTAssertFalse(code.contains("$allowFinger"), "no view writes 「指でも書く」 past the person's mark")
+
         PencilPhone.personSet(false, defaults: suite)
         XCTAssertFalse(allowFinger)
         XCTAssertEqual(mark, "person")
@@ -141,15 +158,66 @@ final class PencilPhoneTests: XCTestCase {
         let pencil = StandInTouch(.pencil)
         observer.touchesBegan([pencil], with: StandInEvent())
         observer.touchesEnded([pencil], with: StandInEvent())
+        await settle()
         XCTAssertEqual(log.actions, [], "the person's choice stays")
         XCTAssertTrue(allowFinger)
         XCTAssertEqual(mark, "person")
     }
 
+    /// §4.8 (本人の選びは守る, C6): a Pencil tap on the toolbar's 「指でも書く」 (a button-style Toggle: at the touch-up it reads
+    /// the value and writes its opposite through the screen's Binding) is the person's. The window's watcher hears the lift
+    /// first, inside `touchesEnded`; the app's turnOff waits for the main actor's next turn, and the person's switch in
+    /// between (`personSet`, `personSwitched`) wins: off as tapped, the mark "person", the guide records left alone. Fails
+    /// with the action written during the lift's delivery (the button then reads off and turns it on again).
+    func testPencilTapOnTheSwitchStaysThePersons() async throws {
+        AppSettings.markSpanGuideShown(.week)
+        AppSettings.markSpanGuideShown(.day)
+        let launch = PencilPhone.launchDefault(suite, isPad: false, device: thisDevice)
+        XCTAssertEqual(launch.origin, .app)
+        let (phone, log) = makePhone()
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 466, height: 678))
+        phone.attach(to: window, isPad: false)
+        phone.appeared(allowFinger: launch.allowFinger, origin: launch.origin)
+        let observer = try watcher(of: window)
+        let pencil = StandInTouch(.pencil)
+        observer.touchesBegan([pencil], with: StandInEvent())
+        observer.touchesEnded([pencil], with: StandInEvent())
+        XCTAssertTrue(allowFinger, "nothing written while the lift is delivered")
+        // The Toggle's action at the same touch-up, as the screen's Binding does it.
+        let tapped = !allowFinger
+        PencilPhone.personSet(tapped, defaults: suite)
+        phone.personSwitched()
+        await settle()
+        XCTAssertEqual(log.actions, [], "the person's tap wins")
+        XCTAssertFalse(allowFinger, "off, as the person tapped it")
+        XCTAssertEqual(mark, "person")
+        XCTAssertEqual(phone.origin, .person)
+        XCTAssertTrue(AppSettings.spanGuideShown(.week), "no guide again: the person chose")
+        XCTAssertTrue(AppSettings.spanGuideShown(.day))
+
+        // Without the person's tap the same lift turns it off on that next turn.
+        suite.removePersistentDomain(forName: suiteName)
+        let again = PencilPhone.launchDefault(suite, isPad: false, device: thisDevice)
+        let (second, secondLog) = makePhone()
+        let secondWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 466, height: 678))
+        second.attach(to: secondWindow, isPad: false)
+        second.appeared(allowFinger: again.allowFinger, origin: again.origin)
+        let secondObserver = try watcher(of: secondWindow)
+        let other = StandInTouch(.pencil)
+        secondObserver.touchesBegan([other], with: StandInEvent())
+        secondObserver.touchesEnded([other], with: StandInEvent())
+        XCTAssertEqual(secondLog.actions, [], "not yet: the lift is still being delivered")
+        await settle()
+        XCTAssertEqual(secondLog.actions, [.turnOff(rearmGuide: true)])
+        XCTAssertFalse(allowFinger)
+        XCTAssertEqual(mark, thisDevice)
+    }
+
     /// §2.1, §4.8 (C2, 0d-37): the first launch's default — 1.3's (「指でも書く」 on a phone, off on an iPad,
     /// `allowFingerDrawingChosen` true) with this device's mark beside it, so the app's own value reads `.app`; a launch with
     /// `allowFingerDrawingChosen` on record (an update from 1.3, or any later launch) writes nothing, so 1.3's value without a
-    /// mark stays carried over; this device's mark not readable at the first launch writes no mark (carried, P only).
+    /// mark stays carried over; this device's mark not readable at the first launch writes no mark (carried, P only); an
+    /// iPad writes no mark (carried: §4.8, nothing on an iPad).
     func testFirstLaunchWritesTheMarkOnly() {
         var launch = PencilPhone.launchDefault(suite, isPad: false, device: thisDevice)
         XCTAssertTrue(launch.allowFinger)
@@ -173,13 +241,16 @@ final class PencilPhoneTests: XCTestCase {
         XCTAssertEqual(launch.origin, .carried)
         XCTAssertNil(mark, "no mark for 1.3's value")
 
-        // An iPad's first launch: 1.3's off, the mark as well (its FingerDefault answers nothing).
+        // An iPad's first launch: 1.3's off and no mark (§4.8: nothing on an iPad; its FingerDefault answers nothing), so a
+        // phone it is restored to reads the off as carried over and keeps it, as 1.3 did — never `.moved` and turned on.
         suite.removePersistentDomain(forName: suiteName)
         launch = PencilPhone.launchDefault(suite, isPad: true, device: thisDevice)
         XCTAssertFalse(launch.allowFinger)
         XCTAssertFalse(allowFinger)
         XCTAssertTrue(suite.bool(forKey: AppSettings.allowFingerChosenKey))
-        XCTAssertEqual(launch.origin, .app)
+        XCTAssertEqual(launch.origin, .carried)
+        XCTAssertNil(mark, "no mark on an iPad")
+        XCTAssertEqual(PencilPhone.origin(suite, device: otherDevice), .carried, "on another device: carried over, not moved")
 
         // This device's mark not readable (before the first unlock): 1.3's default, no mark, carried.
         suite.removePersistentDomain(forName: suiteName)
@@ -289,7 +360,7 @@ final class PencilPhoneTests: XCTestCase {
     /// value (the first launch's default) the week's and the day's guide records are forgotten (the guide shows once more), for
     /// a value carried over from 1.3 they stay. A finger still down holds it until it lifts, then it changes once. Fails with
     /// the glue counting a finger as a Pencil (the finger rows), or with the guide records always forgotten (the carried row).
-    func testPencilLiftTurnsFingerOffEndToEnd() throws {
+    func testPencilLiftTurnsFingerOffEndToEnd() async throws {
         // The app's own value: 1.4's first launch.
         AppSettings.markSpanGuideShown(.week)
         AppSettings.markSpanGuideShown(.day)
@@ -303,6 +374,7 @@ final class PencilPhoneTests: XCTestCase {
         let finger = StandInTouch(.direct)
         observer.touchesBegan([finger], with: StandInEvent())
         observer.touchesEnded([finger], with: StandInEvent())
+        await settle()
         XCTAssertEqual(log.actions, [], "a finger alone is not P")
         XCTAssertTrue(allowFinger)
         var pencil = StandInTouch(.pencil)
@@ -310,6 +382,7 @@ final class PencilPhoneTests: XCTestCase {
         XCTAssertEqual(log.actions, [], "not while the Pencil is down")
         XCTAssertTrue(allowFinger)
         observer.touchesEnded([pencil], with: StandInEvent())
+        await settle()
         XCTAssertEqual(log.actions, [.turnOff(rearmGuide: true)])
         XCTAssertFalse(allowFinger)
         XCTAssertEqual(mark, thisDevice)
@@ -319,6 +392,7 @@ final class PencilPhoneTests: XCTestCase {
         pencil = StandInTouch(.pencil)
         observer.touchesBegan([pencil], with: StandInEvent())
         observer.touchesEnded([pencil], with: StandInEvent())
+        await settle()
         XCTAssertEqual(log.actions.count, 1, "once")
 
         // A value carried over from 1.3 (on, no mark): off at the lift, the guide records stay.
@@ -341,9 +415,11 @@ final class PencilPhoneTests: XCTestCase {
         pencil = StandInTouch(.pencil)
         observer.touchesBegan([pencil], with: StandInEvent())
         observer.touchesEnded([pencil], with: StandInEvent())
+        await settle()
         XCTAssertEqual(log.actions, [], "a finger still down: not yet")
         XCTAssertTrue(allowFinger)
         observer.touchesEnded([holding], with: StandInEvent())
+        await settle()
         XCTAssertEqual(log.actions, [.turnOff(rearmGuide: false)])
         XCTAssertFalse(allowFinger)
         XCTAssertEqual(mark, thisDevice, "the app's value on this device now")
@@ -473,5 +549,30 @@ final class PencilPhoneTests: XCTestCase {
         for _ in 0..<turns {
             await Task.yield()
         }
+    }
+
+    // MARK: The screen's source
+
+    private static let repository = URL(fileURLWithPath: "\(#filePath)")
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+
+    /// CalendarRootScreen.swift in code only (comments and strings blanked, `WeekMemoSpanTests.codeOnly`), every run of
+    /// white space one space.
+    private static func screenCode() throws -> String {
+        let url = repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
+        let code = String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
+        return code.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    /// The body of the declaration of `code` whose head (to its "{") is `head` (the shape of OnePageRevealTests' helper).
+    private static func body(of head: String, in code: String) throws -> String {
+        let start = try XCTUnwrap(code.range(of: head), "\(head) is in CalendarRootScreen.swift")
+        var depth = 1
+        var end = start.upperBound
+        while end < code.endIndex, depth > 0 {
+            if code[end] == "{" { depth += 1 } else if code[end] == "}" { depth -= 1 }
+            end = code.index(after: end)
+        }
+        return code[start.upperBound..<end].split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }
