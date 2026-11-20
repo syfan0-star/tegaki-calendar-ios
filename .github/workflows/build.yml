@@ -1652,6 +1652,24 @@ jobs:
           sys.exit(1 if failed else 0)
           EOF
 
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
   # 1.3 (docs/M7C.md, wave C1's lead decision 7; the wave C plan §4.4, §7.6): the UI tests on an iPhone, out of the first
   # job since wave C2. Without the joined pages' UI tests their step took 15.4 and 17.3 min (runs 43584152837 and
   # 43570477701); SpanUITests and SpanRerunUITests (about 6 tests and 9 re-runs) were expected to bring it to 23–26 min,
@@ -2007,6 +2025,35 @@ jobs:
             echo "No UI test result bundle."
           fi
 
+      # 1.4 D1d (docs/M7D.md, "UI テストの 2 回目の写真"): the handwriting of these photos, a warning only. Attempt 2 of run
+      # 44676125566 (image 20261119.0378.1) lost handwriting in 17 of its photos (PencilKit tiles not drawn: the 13 of
+      # docs/M7D.md and 4 more this check finds; it also counts "slide — after", whose paper stopped about 80 pt short), and
+      # every test that took them passed. tools/shots/xcui_ink.py names each photo by its test and its attachment's name
+      # (manifest.json; the files are named by UUIDs) and checks it with tools/shots/ink_check.swift against its line in
+      # tools/shots/ink_ref_xcui.tsv (complete photos of the image 20261104.0337.1): a summary line with the counts, a
+      # warning for the photos with less ink, and shots/ui-tests/ink-xcui.tsv (one row a photo) in the artifact. Never fails
+      # the job (continue-on-error, and every path exits 0). About 2 min: the job's first swiftc, then 0.1 s a photo.
+      - name: The UI tests' photos' handwriting (a warning only, 1.4 D1d)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          set -uo pipefail
+          TOOL="$RUNNER_TEMP/xcui-ink"
+          mkdir -p "$TOOL"
+          if [ ! -f shots/ui-tests/attachments/manifest.json ]; then
+            echo "No shots/ui-tests/attachments/manifest.json: no photo of the UI tests to check."
+            exit 0
+          fi
+          if ! swiftc -O tools/shots/ink_check.swift -o "$TOOL/ink_check" > "$TOOL/build.log" 2>&1; then
+            cat "$TOOL/build.log" || true
+            echo "::warning::tools/shots/ink_check.swift did not compile: the UI tests' photos' handwriting is not checked (docs/M7D.md, D1d)."
+            exit 0
+          fi
+          python3 -I tools/shots/xcui_ink.py check --ink "$TOOL/ink_check" --ref tools/shots/ink_ref_xcui.tsv --prefix ui-tests/ \
+            --manifest shots/ui-tests/attachments --out shots/ui-tests/ink-xcui.tsv --label "UI tests" || true
+          exit 0
+
       - name: Upload the UI tests' log and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -2015,6 +2062,24 @@ jobs:
           path: shots/ui-tests
           retention-days: 7
           if-no-files-found: warn
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
 
   # 1.1 (docs/M7A_CONTRACT.md §1.4, §7.4, §8 2; K-7 of docs/M7_PLAN.md §1.3): the compatibility checks
   # on the REAL 1.0. A 1.0 / 1.0.1 device and a 1.1 device share one iCloud, so the 1.1 fixtures
@@ -2865,6 +2930,24 @@ jobs:
           sys.exit(1 if failed else 0)
           EOF
 
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
   # 1.1.1 (docs/R1_1_1.md): the paper with no events and no handwriting on the owner's four kinds of
   # device, portrait and landscape, toolbar out and folded, to compare before and after the fix. Its
   # own job so the other shots and the 90-minute job do not change. Best effort: never fails the run (1.4,
@@ -3211,6 +3294,24 @@ jobs:
                       failed = True
           sys.exit(1 if failed else 0)
           EOF
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
 
   # 1.3 (docs/M7C_CONTRACT.md §10.5 (2); the wave C plan §3.3, §7.6 with DECISIONS C3-m1, C3-m3, C3-m4 and C3-M4; docs/M7C.md,
   # wave C1's lead decisions and the plan of wave C2): the joined pages photographed from the NORMAL app (the prototype's job,
@@ -3873,6 +3974,31 @@ jobs:
           if [ "$MEMO" != 4 ]; then echo "::error::$MEMO week memo photos, 4 expected (the iPad Air 11-inch and the iPhone 17, single and band)."; FAILED=1; fi
           exit "$FAILED"
 
+      # 1.4 D1d (docs/M7D.md, "D1 の残りに足す"): the handwriting of the photos above (shots/span-app, not its lang/ folder),
+      # a warning only, as in ui-tests: tools/shots/xcui_ink.py and tools/shots/ink_check.swift against the
+      # "span-shots-app/" lines of tools/shots/ink_ref_xcui.tsv (run 44676125566 attempt 1, image 20261104.0337.1), with
+      # shots/span-app/ink-xcui.tsv in the artifact. Never fails the job. After the gates' three swiftc, this one is short.
+      - name: The span shots' handwriting (a warning only, 1.4 D1d)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 6
+        run: |
+          set -uo pipefail
+          TOOL="$RUNNER_TEMP/xcui-ink"
+          mkdir -p "$TOOL"
+          if ! ls shots/span-app/*.png > /dev/null 2>&1; then
+            echo "No photo in shots/span-app to check."
+            exit 0
+          fi
+          if ! swiftc -O tools/shots/ink_check.swift -o "$TOOL/ink_check" > "$TOOL/build.log" 2>&1; then
+            cat "$TOOL/build.log" || true
+            echo "::warning::tools/shots/ink_check.swift did not compile: the span shots' handwriting is not checked (docs/M7D.md, D1d)."
+            exit 0
+          fi
+          python3 -I tools/shots/xcui_ink.py check --ink "$TOOL/ink_check" --ref tools/shots/ink_ref_xcui.tsv \
+            --prefix span-shots-app/ --folder shots/span-app --out shots/span-app/ink-xcui.tsv --label "span-shots-app" || true
+          exit 0
+
       # overwrite: a re-run of this job (gh run rerun --failed) replaces the photos of the attempt before.
       - name: Upload the span shots of the app
         if: always()
@@ -3992,3 +4118,21 @@ jobs:
               echo "- not taken on this branch"
             fi
           } >> "$SUMMARY"
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
