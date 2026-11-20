@@ -1151,21 +1151,61 @@ extension ScreenshotMode {
 /// one), so the reading is what `PencilPhone` would get there; neither is used for the layout [S52]. Its handler is
 /// called with the first state and on each change [S53]. Inside `#if !targetEnvironment(macCatalyst)` and
 /// `if #available(iOS 27.1, *)` (§3.8): before iOS 27.1 and on Mac Catalyst the reading is `off` at once.
+///
+/// 1.4 D1b (docs/M7D.md, D0b): each line goes to the app's log (NSLog) and is also appended to `lineFile`,
+/// Library/Caches/duo-measure.txt in the app's data container (`measureFileName`), because `log show` on the iOS 27.x
+/// simulators gives the app's NSLog lines only as `<compose failure …>`. The file's line is the logged text itself (from
+/// `duo measure: ` on) and "\n"; the file is only appended to, never emptied (duo.yml deletes it before a launch and reads
+/// it after the photo). Only with `--screenshot-measure`, as everything here: without it `shared` is never made.
 @MainActor
 final class ScreenshotMeasure {
     static let shared = ScreenshotMeasure()
+
+    /// The file's name in Library/Caches (duo.yml reads `<data container>/Library/Caches/duo-measure.txt`).
+    nonisolated static let measureFileName = "duo-measure.txt"
+
+    /// Library/Caches/duo-measure.txt of the app's data container; nil if the caches folder is not found.
+    nonisolated static var measureFile: URL? {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?.appendingPathComponent(measureFileName)
+    }
 
     /// The screen's last values; nil until the first call.
     private var screen: ScreenshotMode.MeasureScreen?
     /// nil until the hinge answered (or `measureHingeWait` passed, or there is no API).
     private var hinge: ScreenshotMode.HingeReading?
     private var watching = false
-    private var lastLine: String?
+    /// The last line written (logged and appended); read by the tests.
+    private(set) var lastLine: String?
     /// The wait for the hinge's first answer (the real sleep; nothing else waits here).
     private let sleep: @MainActor (TimeInterval) async -> Void
+    /// Where each line is appended too (`measureFile`; the tests give a file of their own); nil: the log only.
+    let lineFile: URL?
 
-    init(sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) }) {
+    init(sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
+         lineFile: URL? = ScreenshotMeasure.measureFile) {
         self.sleep = sleep
+        self.lineFile = lineFile
+    }
+
+    /// Appends `line` and "\n" to `file` in one write and synchronizes it: opened for appending (created if missing, never
+    /// truncated), so every write lands at the end. A failure is not an error of the photo: one short note in the log
+    /// (not a `duo measure:` line) and nothing else.
+    static func append(_ line: String, to file: URL) {
+        let descriptor = file.withUnsafeFileSystemRepresentation { path in
+            path.map { open($0, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0o644) } ?? -1
+        }
+        guard descriptor >= 0 else {
+            NSLog("%@", "duo measure file: not opened (errno \(errno))")
+            return
+        }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? handle.close() }
+        do {
+            try handle.write(contentsOf: Data((line + "\n").utf8))
+            try handle.synchronize()
+        } catch {
+            NSLog("%@", "duo measure file: not written (\(error.localizedDescription))")
+        }
     }
 
     /// The screen's values now: starts the hinge's watch the first time a window is there, then writes the line if it can.
@@ -1235,6 +1275,7 @@ final class ScreenshotMeasure {
         guard line != lastLine else { return }
         lastLine = line
         NSLog("%@", line)
+        if let lineFile { Self.append(line, to: lineFile) }
     }
 
     /// Both sides finite and positive.
