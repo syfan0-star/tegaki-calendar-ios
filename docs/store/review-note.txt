@@ -1,12 +1,10 @@
 No sign-in, no account creation and no demo account are needed.
 
-What is new in 1.3
-1. Week and day pages are joined side by side with the pages before and after them: swiping sideways brings in the neighboring week or day, and a stroke can cross the border. It is saved whole on the page holding its center (same file and iCloud record format); older versions show it on that page only.
-2. A new Settings section, Pages, has one switch for this (on by default, per device). Off shows one page at a time as before.
-3. A small card explains the swipe for 8 seconds when a joined page first opens (once per device and page type).
-4. Even with the switch off, week pages now also have Free Notes below 24:00, like day pages since 1.1.
-5. Screen-side fixes after 1.2.4's sync fixes: handwriting erased with Erase All (on any device) or Erase and Start can no longer come back via the open page or Undo and be sent to iCloud again.
-Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases, the age rating and the age range check of 1.2.2.
+What is new in 1.4
+1. Built with Xcode 27.2 (iOS 27.2 SDK). The minimum iOS version stays 17.0.
+2. The layout now follows the window size, not the device type. On iPhone Duo the app fills the screen, inner or outer, and adjusts when the device is opened or closed (the page and handwriting stay the same). To check: open a week page, then open and close the device.
+3. On iPhone Duo, as on iPad, Apple Pencil (USB-C, iOS 27.2 or later) writes and a finger moves the paper. The app turns Draw with Finger off when that iPhone first sees an Apple Pencil touch or a screen hinge (UIHingeInteraction); on a device updated from 1.3, only an Apple Pencil touch does this. The model name and the window size are not used for this. Finger drawing can be turned back on with the toolbar switch.
+4. No new on-screen text. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating (4+; both new questions, Shared Location and Dating and Relationships, answered No).
 
 The app follows the device language (10 languages since 1.2; any other language shows English). Per-app language: Settings > Apps > Tegaki > Language.
 
@@ -28,4 +26,4 @@ https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 https://syfan0-star.github.io/tegaki-calendar/app/support.html
 
 --- 日本語の要約 ---
-週と日のページが前後と横につながり、境目をまたいで書けます（古い版では片方のページにだけ出ます）。設定 › ページ で切り替え。週にも 24 時の下の自由メモ。1.2.4 に続き、全て消した手書きが画面から iCloud に戻りうる穴を直しました。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
+Xcode 27.2（iOS 27.2 SDK）で作り、対応は iOS 17.0 からのまま。レイアウトは窓の大きさで決め、iPhone Duo では内側・外側の画面いっぱいに出て開閉に追います。Duo では iPad と同じく Apple Pencil で書き、指で紙を動かします。新しい画面の文は無し。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
