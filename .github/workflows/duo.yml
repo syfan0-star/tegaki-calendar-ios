@@ -389,6 +389,24 @@ jobs:
           if-no-files-found: warn
           overwrite: true
 
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
   # 1.4 D1 (docs/M7D_CONTRACT.md §4.2, §7.3, §3.10, §3.8, §6): the iPhone Duo's photos, measure lines and UI tests. On a
   # push to r14-duo* (in place of duo-probe, which a dispatch with `job: probe` still runs) and on a dispatch with
   # `job: shots`. The app is built for testing once; then the iPhone 17 (one first launch of the week: 「指でも書く」 on and
@@ -1265,6 +1283,24 @@ jobs:
           if-no-files-found: warn
           overwrite: true
 
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
   # 1.4 D1 (docs/M7D_CONTRACT.md §3.10, §4.2 path 2, §4.9, 0d-34): the hinge's UI tests (DuoHingeUITests: open, write on
   # the week, close, open; close and write, then open; close while writing), only on a dispatch with `job: hinge`. They
   # need XCUIHinge [S6], which only Xcode 27.3 has: the Xcode is the newest 27.3 or 27.3.x of the image, told a release (its
@@ -1679,3 +1715,21 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
           overwrite: true
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi

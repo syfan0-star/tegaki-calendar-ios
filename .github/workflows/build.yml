@@ -1649,6 +1649,24 @@ jobs:
           sys.exit(1 if failed else 0)
           EOF
 
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
   # 1.3 (docs/M7C.md, wave C1's lead decision 7; the wave C plan §4.4, §7.6): the UI tests on an iPhone, out of the first
   # job since wave C2. Without the joined pages' UI tests their step took 15.4 and 17.3 min (runs 43584152837 and
   # 43570477701); SpanUITests and SpanRerunUITests (about 6 tests and 9 re-runs) were expected to bring it to 23–26 min,
@@ -2041,6 +2059,24 @@ jobs:
           path: shots/ui-tests
           retention-days: 7
           if-no-files-found: warn
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
 
   # 1.1 (docs/M7A_CONTRACT.md §1.4, §7.4, §8 2; K-7 of docs/M7_PLAN.md §1.3): the compatibility checks
   # on the REAL 1.0. A 1.0 / 1.0.1 device and a 1.1 device share one iCloud, so the 1.1 fixtures
@@ -2891,6 +2927,24 @@ jobs:
           sys.exit(1 if failed else 0)
           EOF
 
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
   # 1.1.1 (docs/R1_1_1.md): the paper with no events and no handwriting on the owner's four kinds of
   # device, portrait and landscape, toolbar out and folded, to compare before and after the fix. Its
   # own job so the other shots and the 90-minute job do not change. Best effort: never fails the run (1.4,
@@ -3237,6 +3291,24 @@ jobs:
                       failed = True
           sys.exit(1 if failed else 0)
           EOF
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
 
   # 1.3 (docs/M7C_CONTRACT.md §10.5 (2); the wave C plan §3.3, §7.6 with DECISIONS C3-m1, C3-m3, C3-m4 and C3-M4; docs/M7C.md,
   # wave C1's lead decisions and the plan of wave C2): the joined pages photographed from the NORMAL app (the prototype's job,
@@ -4043,3 +4115,21 @@ jobs:
               echo "- not taken on this branch"
             fi
           } >> "$SUMMARY"
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown or a lost connection (200 at most; the folder is never uploaded or printed whole: the repository
+      # is public). Not on success or failure; never fails the job. The same lines at the end of every job on xcode-27 of
+      # build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
