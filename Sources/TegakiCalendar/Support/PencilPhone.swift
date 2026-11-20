@@ -166,7 +166,9 @@ final class PencilPhone {
     func touched(_ change: InkTouchObserver.Change) {
         switch change {
         case .down(let type):
-            let pencil = type == .pencil
+            // MUTATION F1 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, PencilPhoneTests): the glue counts a
+            // finger as a Pencil too (was: the Pencil only).
+            let pencil = type == .pencil || type == .direct
             feed(.touchDown(pencil: pencil)) { $0.touchDown(pencil: pencil) }
         case .up:
             feed(.touchUp) { $0.touchUp() }
