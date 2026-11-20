@@ -1046,10 +1046,49 @@ extension ScreenshotMode {
     /// make for this window: the class and the orientation from the screen of the window's scene (`ScreenPaths.device`, an
     /// iPad by `isPad`) and `overviewCap` `WindowClass.capsOverview` of the window (as `ScreenPaths.makeSession` passes it,
     /// §4.7). So the month and the year, which open on one page, read the numbers of their kind as KitChecks would (§4.6).
-    static func measurePlan(_ screen: MeasureScreen, window: CGSize, screenSize: CGSize) -> SpanPlan {
-        if let plan = screen.plan { return plan }
-        return SpanPlan(kind: screen.kind, weekStart: screen.weekStart, deviceClass: SpanDeviceClass(screen: screenSize, isPad: screen.isPad),
-                        orientation: SpanOrientation(screen: screenSize), overviewCap: WindowClass.capsOverview(windowSize: window))
+    /// The integration (r14 D1): the parts of a plan (`MeasurePlan`), not a plan of its own: the frozen
+    /// `ScreenPathsSpanTests.testEveryJoinedPlanCarriesTheCap` (TESTS_1_3) allows screenshot mode one plan only, the demo
+    /// page id's.
+    static func measurePlan(_ screen: MeasureScreen, window: CGSize, screenSize: CGSize) -> MeasurePlan {
+        if let plan = screen.plan { return MeasurePlan(plan) }
+        return MeasurePlan(kind: screen.kind, deviceClass: SpanDeviceClass(screen: screenSize, isPad: screen.isPad),
+                           orientation: SpanOrientation(screen: screenSize), overviewCap: WindowClass.capsOverview(windowSize: window))
+    }
+
+    /// What the line reads of a window plan (§2.1): its kind, class, orientation and cap, and the plan's V and cap of a paper
+    /// area through the Kit's own rules (`SpanPlan.visiblePages(_:viewport:)`, `SpanPlan.overviewCapPages`), as
+    /// `SpanPlan.visiblePages(viewport:)` and `SpanPlan.maxVisiblePages(viewport:)` compute them (§4.7 keeps those rules).
+    struct MeasurePlan: Equatable {
+        var kind: PageKind
+        var deviceClass: SpanDeviceClass
+        var orientation: SpanOrientation
+        var overviewCap: Bool
+
+        init(kind: PageKind, deviceClass: SpanDeviceClass, orientation: SpanOrientation, overviewCap: Bool) {
+            self.kind = kind
+            self.deviceClass = deviceClass
+            self.orientation = orientation
+            self.overviewCap = overviewCap
+        }
+
+        /// The joined window's plan, as it is.
+        init(_ plan: SpanPlan) {
+            self.init(kind: plan.kind, deviceClass: plan.deviceClass, orientation: plan.orientation, overviewCap: plan.overviewCap)
+        }
+
+        /// `SpanPlan.maxVisiblePages(viewport:)`: the cap of the paper area's own orientation when `overviewCap`; nil for a
+        /// paper area not measured.
+        func maxVisiblePages(viewport: CGSize) -> CGFloat? {
+            guard overviewCap, viewport.width.isFinite, viewport.width > 0, viewport.height.isFinite, viewport.height > 0 else { return nil }
+            return SpanPlan.overviewCapPages(kind, deviceClass: deviceClass, orientation: SpanOrientation(screen: viewport))
+        }
+
+        /// `SpanPlan.visiblePages(viewport:)`: V of the paper area, at most the cap.
+        func visiblePages(viewport: CGSize) -> CGFloat {
+            let v = SpanPlan.visiblePages(kind, viewport: viewport)
+            guard let cap = maxVisiblePages(viewport: viewport) else { return v }
+            return Swift.min(v, cap)
+        }
     }
 
     /// The line (§2.1; pure):
@@ -1064,7 +1103,7 @@ extension ScreenshotMode {
     /// (KitChecks' `R=`; the window `SpanSession.windowRadius` builds is the larger of it and the plan's R).
     /// `maxPages`: `maxVisiblePages(viewport:)`. `capped`: the cap binds there (the paper area alone would show more pages at
     /// the lowest zoom than the cap lets: P-B6 イ's capped overview). `wide`: `WindowClass.isWide` of the window.
-    static func measureLine(window: CGSize, safe: UIEdgeInsets, scale: CGFloat, screenSize: CGSize, paper: CGSize, plan: SpanPlan,
+    static func measureLine(window: CGSize, safe: UIEdgeInsets, scale: CGFloat, screenSize: CGSize, paper: CGSize, plan: MeasurePlan,
                             hinge: HingeReading, origin: FingerDefault.Origin, finger: Bool) -> String {
         func pt(_ value: CGFloat) -> String { String(format: "%.2f", Double(value)) }
         func size(_ value: CGSize) -> String { "\(pt(value.width))x\(pt(value.height))" }
