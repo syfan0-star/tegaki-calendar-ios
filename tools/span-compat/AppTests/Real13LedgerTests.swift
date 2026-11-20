@@ -163,7 +163,16 @@ final class Real13LedgerTests: XCTestCase {
     // MARK: - 1. What the 1.3 ledger draws, and its save on the one-page path
 
     func testThe13LedgerDrawsOnlyItsOwnCells() throws {
-        for fixture in try fixtures() {
+        // MUTATION R13b (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §5.3 6): this test's copy of the fixture
+        // w-2026-12-14 lacks one grid stroke (its bytes made again from the page without it), so 1.3 draws 3, not 4.
+        let copies = try fixtures().map { fixture -> Fixture in
+            guard fixture.name == "w-2026-12-14.week-memo.json" else { return fixture }
+            var page = try InkPageCodec.decode(fixture.data)
+            XCTAssertNotNil(page.strokes.removeValue(forKey: "6e2b8d4f-5a7c-4e9b-8d1f-4b5c6d7e8f95"), "the copy loses a stroke")
+            let data = try InkPageCodec.encode(page)
+            return Fixture(name: fixture.name, shape: fixture.shape, data: data, json: try JSONValue.parse(data))
+        }
+        for fixture in copies {
             let page = try InkPageCodec.decode(fixture.data)
             let layout = try XCTUnwrap(layout13(page), fixture.name)
             XCTAssertEqual(layout.pageId, page.pageId, "\(fixture.name): 1.3 opens this page")
