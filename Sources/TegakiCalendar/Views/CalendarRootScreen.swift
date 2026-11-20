@@ -997,9 +997,10 @@ struct CalendarRootScreen: View {
     private var allowFingerBinding: Binding<Bool> {
         Binding(
             get: { allowFinger },
+            // MUTATION F3 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, PencilPhoneTests): the switches' set is
+            // 1.3's again and does not write the mark "person" (was: PencilPhone.personSet, then personSwitched).
             set: { value in
-                PencilPhone.personSet(value, defaults: .standard)
-                pencilPhone.personSwitched()
+                allowFinger = value
             }
         )
     }
