@@ -1829,7 +1829,8 @@ struct CalendarRootScreen: View {
         guard paths.remoteDeleted(deletedId, shownPageId: pageId) else { return }
         // 1.4 (docs/M7D_CONTRACT.md §1.5 (b); S6's lead's decision 2 (b)): 「今日」's rect goes with the old canvas, as in
         // `show` and `eraseAllInk`: the new canvas's first layout would read it.
-        revealRect = nil
+        // MUTATION R1 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, OnePageRevealTests): 1.3's form again, the
+        // line that forgets the rect is taken out here.
         selection = nil
         viewport = .zero
         relayout()
