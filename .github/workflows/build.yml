@@ -118,7 +118,10 @@ jobs:
     # 16.6 (10.3), each other device 17.5–20.4 (8.0–12.1; its `simctl boot` alone 4.7–10.6, 0.6–0.8). At that pace the
     # job is 6.4 + 25.2 + 9.4 (the repeated sync tests, skipped in D0 after the red unit tests: 5.7 in 1.3, its boot
     # slower) + 5.7 + 16.6 + 75 (the four devices) + 2.7 (the store set, the upload, the check) ≈ 141 min; 160 keeps
-    # about 19 over it, as 1.3's 90 kept 18 over its slowest. D1 brings it back when the runs measure less (§3.3 9).
+    # about 19 over it, as 1.3's 90 kept 18 over its slowest. The photos' handwriting retakes (§3.5 (f),
+    # tools/shots/ink_retake.sh) can add about 9.5 more at that pace when many photos are short (180 s a step and the
+    # takes under way, the pinch hints' second takes), which leaves about 9.5. D1 brings it back when the runs measure
+    # less (§3.3 9).
     timeout-minutes: 160
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -285,7 +288,8 @@ jobs:
       # device: a second simulator beside the unit tests or the photos would share the runner's 3 cores and 7 GB (§3.1)
       # with them and change the photos' conditions (J-4). The status file appears only when the boot has ended
       # ("<bootstatus's exit status> <seconds>"). Never fails the job: when this boot fails, the unit test step boots
-      # the device as before.
+      # the device as before. Before the photos the iPad is shut down again ("Shut down the 13-inch iPad before the
+      # photos"), so they are taken on a fresh boot as until D0 and in ja-baseline.yml.
       - name: Boot the 13-inch iPad in the background (1.4)
         continue-on-error: true
         run: |
@@ -646,16 +650,27 @@ jobs:
           fi
           # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): the boot started by "Boot the 13-inch iPad in the
           # background" is waited for (at most 20 min; D0's first boot took 12–15 inside xcodebuild) and its time
-          # printed for docs/M7D.md; then `bootstatus -b` returns at once, or boots the iPad here when that boot failed
-          # or did not end.
+          # printed for docs/M7D.md. Only when it ended well, `bootstatus -b` checks the iPad (it returns at once).
+          # Otherwise xcodebuild boots it itself, as until D0, with its own time-outs (this step has no limit of its
+          # own, so nothing here waits on a boot without a bound): a boot that has not ended after 20 min is stopped
+          # and the iPad shut down first.
           BOOT="$RUNNER_TEMP/ipad13-boot"
           for _ in $(seq 1 240); do
             if [ -f "$BOOT/status" ] || [ ! -f "$BOOT/pid" ]; then break; fi
             sleep 5
           done
-          echo "the 13-inch iPad's background boot: $(cat "$BOOT/status" 2>/dev/null || echo 'none or not ended') (bootstatus's exit status, seconds)"
-          xcrun simctl bootstatus "${{ steps.required.outputs.ipad13 }}" -b > /dev/null \
-            || echo "::warning::bootstatus -b failed for the 13-inch iPad; xcodebuild boots it itself, as until D0."
+          BOOTED="$(cat "$BOOT/status" 2>/dev/null || true)"
+          echo "the 13-inch iPad's background boot: ${BOOTED:-none or not ended} (bootstatus's exit status, seconds)"
+          if [ "${BOOTED%% *}" = "0" ]; then
+            xcrun simctl bootstatus "${{ steps.required.outputs.ipad13 }}" -b > /dev/null \
+              || echo "::warning::bootstatus -b failed for the 13-inch iPad; xcodebuild boots it itself, as until D0."
+          elif [ -f "$BOOT/pid" ]; then
+            if [ -z "$BOOTED" ]; then
+              kill "$(cat "$BOOT/pid")" 2>/dev/null || true
+              xcrun simctl shutdown "${{ steps.required.outputs.ipad13 }}" > /dev/null 2>&1 || true
+            fi
+            echo "::warning::the 13-inch iPad's background boot did not end well (${BOOTED:-not ended after 20 min; stopped, the iPad shut down}); xcodebuild boots it itself, as until D0."
+          fi
           # $ONLY unquoted on purpose: one word per class (none has a space), nothing when it is empty.
           TEST_RUNNER_TEGAKI_FIXTURE_OUT="$PWD/shots/fixtures" xcodebuild \
             -project TegakiCalendar.xcodeproj \
@@ -724,7 +739,9 @@ jobs:
       # simulator" after this step found it off and took 2.9 min; in D0, right after the unit tests, its `simctl boot`
       # alone took 4.4). D0 skipped this step (the unit tests were red); at D0's pace, a 5.2 min boot and (5.7 − 2.9) ×
       # 1.5 of tests, it is about 9.4 min, over 9. 14 keeps about half again, as 9 did over 1.3's 5.7. Measured again in
-      # D0b; D1 brings it back with the job's limit.
+      # D0b; D1 brings it back with the job's limit. (Since the 13-inch boots in the background with simctl, xcodebuild
+      # may leave it running after the unit tests and this step may not boot it; "Shut down the 13-inch iPad before the
+      # photos" below shuts it down either way.)
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
         timeout-minutes: 14
@@ -797,6 +814,23 @@ jobs:
           done
           exit "$LOST"
 
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5, §3.8; docs/M7D.md, D0b): until D0 xcodebuild booted the 13-inch iPad for the
+      # unit tests and the repeated sync tests and shut it down after each ("Boot the simulator" found it off: 2.9 min in
+      # 1.3's run 44474759145, 4.4 in D0's 44632524223), so the J-4 photos were taken on a fresh boot, as ja-baseline.yml's
+      # are. Since "Boot the 13-inch iPad in the background" booted it with simctl, xcodebuild may leave it running (not
+      # verified). It is shut down here, so the photo steps (the same as ja-baseline.yml's) boot it again as before.
+      # Never fails the job; "Unable to shutdown device in current state: Shutdown" only means xcodebuild had done it.
+      - name: Shut down the 13-inch iPad before the photos (1.4 D0b)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          set -uo pipefail
+          UDID="${{ steps.required.outputs.ipad13 }}"
+          xcrun simctl list devices | grep -F "$UDID" || true
+          xcrun simctl shutdown "$UDID" || true
+          xcrun simctl list devices | grep -F "$UDID" || true
+
       # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4): the 11 sheets' wait (the 13-inch step below) runs
       # tools/shots/screen_ready.swift, and the job's first swiftc for macOS spends almost 2 min on the SDK's modules
       # (1.9 of that step's 4.6 min in run 43325447350, which built the tool in the step; 2.3 min with the fixed 9 s,
@@ -817,6 +851,25 @@ jobs:
             sh "$GITHUB_WORKSPACE/tools/shots/screen_ready.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
           echo "$!" > "$OUT/pid"
           echo "swiftc of tools/shots/screen_ready.swift started in the background (pid $(cat "$OUT/pid"))"
+
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): tools/shots/ink_check.swift, the photo steps' handwriting
+      # check, is built here, in the background while the simulator boots, so that its swiftc (in ja-baseline.yml the job's
+      # first for macOS, almost 2 min on the SDK's modules) does not run beside the 13-inch photos' 120 s wait and first
+      # photos in one workflow and not in the other (J-4: the same conditions). `ink_build` (tools/shots/ink_retake.sh)
+      # waits for it and builds the tool itself when this build is missing or failed. The same step in build.yml and
+      # ja-baseline.yml, read from the pushed commit. Never fails the job.
+      - name: Build the handwriting check in the background (1.4 D0b)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/ink_check.build"
+          mkdir -p "$OUT"
+          # Its own stdin, stdout and stderr, so this step ends at once; the status file appears only when swiftc has ended.
+          nohup /bin/sh -c 'swiftc -O "$1" -o "$2/ink_check" > "$2/log" 2>&1; echo "$?" > "$2/status.part"; mv "$2/status.part" "$2/status"' \
+            sh "$GITHUB_WORKSPACE/tools/shots/ink_check.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
+          echo "$!" > "$OUT/pid"
+          echo "swiftc of tools/shots/ink_check.swift started in the background (pid $(cat "$OUT/pid"))"
 
       # ---- Screenshots of the running app (best effort; never fails the job) ----
       # 1.2 (docs/M7B_CONTRACT.md §1.3 J-4, §7.5, 0-25): every launch of these steps ends with $JA_ARGS and
@@ -978,11 +1031,12 @@ jobs:
           cat shots/env.txt || true
           # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): in D0 (run 44632524223) photos of the image 20261119
           # lacked part of their demo handwriting (whole PencilKit tiles not shown). Each photo is checked with
-          # tools/shots/ink_check.swift (built here, during the 120 s wait) against its line in tools/shots/ink_ref.tsv; a
-          # photo whose handwriting is short is taken again with the same launch and wait (ink_retake), at most twice, and then
-          # the take with the fewest pixels short stays, with a warning (no more takes again after 3 such photos of a device,
-          # or 300 s of them in a step). A complete photo is kept as before (same arguments and waits). Every result is a
-          # line of shots/ink.txt (tools/shots/ink_retake.sh). Same lines in both workflows.
+          # tools/shots/ink_check.swift (built by "Build the handwriting check in the background", else here) against its
+          # line in tools/shots/ink_ref.tsv; a photo whose handwriting is short is taken again with the same launch and wait
+          # (ink_retake), at most twice, and then the take with the fewest pixels short stays, with a warning (a notice when
+          # a retake is complete; no more takes again after 3 such photos of a device, or 180 s of them in a step). A complete
+          # photo is kept as before (same arguments and waits). Every result is a line of shots/ink.txt
+          # (tools/shots/ink_retake.sh). Same lines in both workflows.
           . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
           ink_build
           # docs/M7B.md (FIX3), docs/M7B_CONTRACT.md §12.6: a first launch after the install compiles PencilKit's
@@ -1516,16 +1570,19 @@ jobs:
       # `log show` gives the app's NSLog lines as "<compose failure …>" (D0, run 44632524223: no `toolbar: paperArea=`
       # line in any of them, 18–52 in 1.3's run 44474759145), and those steps only show what they find. The check is a
       # step of its own, after "Store listing set", so the photo steps stay word for word those of ja-baseline.yml (J-4,
-      # §3.5) and how they launch the app does not change. Warns only (tools/ci/log-reach.sh).
+      # §3.5) and how they launch the app does not change. Warns only (tools/ci/log-reach.sh). ja-baseline.yml has the
+      # same step (the script from $GITHUB_WORKSPACE, the pushed commit: ja-baseline.yml's steps run in the reference
+      # commit's tree).
       - name: The app logs' reach (1.4 D0b)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
         timeout-minutes: 2
         run: |
           set -uo pipefail
-          bash tools/ci/log-reach.sh "13-inch iPad (log show)" shots/app-log.txt 'toolbar: paperArea=' 'l10n: ui=' || true
+          REACH="$GITHUB_WORKSPACE/tools/ci/log-reach.sh"
+          bash "$REACH" "13-inch iPad (log show)" shots/app-log.txt 'toolbar: paperArea=' 'l10n: ui=' || true
           for ID in iphone iphone69 ipadmini ipad11; do
-            bash tools/ci/log-reach.sh "$ID (log show)" "shots/$ID-log.txt" 'toolbar: paperArea=' || true
+            bash "$REACH" "$ID (log show)" "shots/$ID-log.txt" 'toolbar: paperArea=' || true
           done
 
       - name: Upload screenshots
@@ -2475,9 +2532,9 @@ jobs:
           # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b; build-and-test's 13-inch photo step says why): `shoot`
           # checks each photo's handwriting (tools/shots/ink_check.swift against tools/shots/ink_ref.tsv, whose lines of this
           # job are named <folder>/<file>) and takes a short one again with the same launch and wait, at most twice; then the
-          # take with the fewest pixels short stays, with a warning (no more takes again after 3 such photos of a device, or
-          # 300 s of them in this step). Every result is a line of shots/l10n/ink.txt (tools/shots/ink_retake.sh). INK_STALE
-          # counts per device.
+          # take with the fewest pixels short stays, with a warning (a notice when a retake is complete; no more takes again
+          # after 3 such photos of a device, or 180 s of them in this step). Every result is a line of shots/l10n/ink.txt
+          # (tools/shots/ink_retake.sh). INK_STALE counts per device.
           INK_LOG="$OUT/ink.txt"
           . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
           ink_build
@@ -3083,7 +3140,8 @@ jobs:
   #     be 7,920 lu tall (the probe's `ph`: the 24 hours and the memo's 6,000), and the gates step fails unless there are 4.
   # XCUIScreenshot cuts a screen turned with XCUIDevice (blank-paper's landscape photos of run 43584152837: a third of the
   # screen, sideways), so the test asks this job for those photos: it writes a request into $RUNNER_TEMP, and `watch_photos`
-  # answers with `simctl io screenshot`, stood up with `sips -r 270` as the first job's iPhone landscape photos are.
+  # answers with `simctl io screenshot`, stood up with `sips -r 270` as the first job's iPhone landscape photos are (1.4
+  # D0b: as there, only a PNG taller than wide; the iOS 27.2 simulator writes it in landscape already).
   # The test's lines for the job are in shots/span-app/lines/<device>.txt (not read from xcodebuild's output, where an app's
   # log line can cut one, as in the prototype's span-shots job, removed in S6). Then the neighbour ink's PDF (ScreenPathsSpanTests'
   # testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage writes it with TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT; `sips` makes a
@@ -3345,7 +3403,19 @@ jobs:
                 ANSWER=failed
                 if [ -n "$FILE" ] && mkdir -p "$(dirname "$OUT/$FILE")" && xcrun simctl io "$1" screenshot "$OUT/$FILE" > /dev/null 2>&1; then
                   ANSWER=ok
-                  if [ -n "$TURN" ] && ! sips -r "$TURN" "$OUT/$FILE" > /dev/null 2>&1; then ANSWER=failed; fi
+                  # 1.4 D0b (docs/M7D.md, D0b; the rule of docs/M7D_CONTRACT.md §3.5 (g)): the iOS 27.2 simulator writes a
+                  # turned screen's photo in landscape already (D0, run 44632524223: turned by the test's 270° the iPad Air
+                  # 11-inch's landscape margin photos came out 1640x2360, and span_margin cannot count them), so the photo
+                  # is turned only when the PNG is taller than wide (until iOS 26 it always was); a PNG whose size cannot be
+                  # read is a failed photo, as a failed turn was. The test's request (SpanShotsUITests.swift, frozen in
+                  # TESTS_1_3) still says 270.
+                  if [ -n "$TURN" ]; then
+                    TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$OUT/$FILE" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+                    case "$TURN_SIZE" in
+                      ''|"0 "*|*" 0") ANSWER=failed ;;
+                      *) if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ] && ! sips -r "$TURN" "$OUT/$FILE" > /dev/null 2>&1; then ANSWER=failed; fi ;;
+                    esac
+                  fi
                 fi
                 echo "the photo $FILE for the test: $ANSWER"
                 echo "$ANSWER" > "$REQ.done.part"
@@ -3449,6 +3519,8 @@ jobs:
               kill "$DOG" "$WATCHER" 2>/dev/null || true
               wait "$DOG" 2>/dev/null || true
               wait "$WATCHER" 2>/dev/null || true
+              # A run the watchdog stopped is a failure even if xcodebuild ended with 0 on its TERM (143: TERM's status).
+              if [ -s "$OUT/$ID-watchdog$1.txt" ] && [ "$STATUS" = 0 ]; then STATUS=143; fi
             }
             run_shots ""
             # The simulator, not the app (docs/M7C.md, FLAKE-1): in runs with every job a launch has timed out

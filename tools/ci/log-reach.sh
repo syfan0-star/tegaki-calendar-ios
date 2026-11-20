@@ -8,9 +8,10 @@
 # a line could not be composed or a marker has no line.
 #
 # Usage: tools/ci/log-reach.sh <label> <log file> [<marker>…]   (a marker is a fixed string, e.g. "toolbar: paperArea=")
-# Used by build.yml after each `log show` it takes (the J-4 photo steps' logs in a step of their own, so those steps stay
-# the same as ja-baseline.yml's). Never fails: it exits 0 whatever it finds (the logs are shown only; D0's gate 3 reads
-# shots/span-app/lines/<id>.txt, written by the test runner).
+# Used after each `log show` of build.yml, ja-baseline.yml and duo.yml (the J-4 photo steps' logs in a step of their own,
+# "The app logs' reach", the same in build.yml and ja-baseline.yml, so the photo steps stay the same in both). Never
+# fails: it exits 0 whatever it finds (the logs are shown only; D0's gate 3 reads shots/span-app/lines/<id>.txt, written
+# by the test runner).
 set -uo pipefail
 
 LABEL="${1:-log}"

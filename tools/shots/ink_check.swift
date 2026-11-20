@@ -12,7 +12,10 @@
 // G < 100, B < 100; blue: B > 170, R < 110, G < 150, B - R > 90), for tiles with at least 20 of a class. The top rows
 // (the status bar) are left out. The lines are in tools/shots/ink_ref.tsv (its head says which photos they come from).
 // A photo fails when the tiles whose count fell to less than half of the reference (and by at least 8) miss 30 pixels or
-// more together. Exit status: 0 complete (or no reference line for this name: nothing to say), 1 handwriting missing,
+// more together. A tile's count includes what its 8 neighbours of the same class gained over their reference, so ink
+// that moved a few pixels over a tile edge is not counted as lost (1.3's iphone-landscape-year.png: the "•••" markers
+// of the year cells sit about 8 px lower than on iOS 27.2); a PencilKit tile that is not shown (512 lu, several
+// 48 px tiles) loses ink without neighbours gaining it. Exit status: 0 complete (or no reference line for this name: nothing to say), 1 handwriting missing,
 // 2 the photo could not be read or has another size. One line on stdout either way; a checked photo's line has
 // "<n> px short" (the pixels missing from the tiles that fell short), which tools/shots/ink_retake.sh reads.
 // About 0.1 s a photo.
@@ -77,11 +80,19 @@ guard "\(image.width)x\(image.height)" == String(fields[1]) else { print("ink: \
 let now = counts(image, top: top)
 var missing = 0, tilesShort = 0
 var box = (x0: Int.max, y0: Int.max, x1: -1, y1: -1)
-for item in fields[3].split(separator: ";") {
-    let v = item.split(separator: ",").compactMap { Int($0) }
-    guard v.count == 4 else { continue }
+let items = fields[3].split(separator: ";").map { $0.split(separator: ",").compactMap { Int($0) } }.filter { $0.count == 4 }
+var refs: [String: Int] = [:]
+for v in items { refs["\(v[0]),\(v[1]),\(v[2])"] = v[3] }
+for v in items {
     let key = "\(v[0]),\(v[1]),\(v[2])"
-    let ref = v[3], got = now[key] ?? 0
+    var gained = 0  // what the 8 neighbours of the same class hold over their reference
+    for dy in -1...1 {
+        for dx in -1...1 where dx != 0 || dy != 0 {
+            let near = "\(v[0] + dx),\(v[1] + dy),\(v[2])"
+            gained += max(0, (now[near] ?? 0) - (refs[near] ?? 0))
+        }
+    }
+    let ref = v[3], got = (now[key] ?? 0) + gained
     if ref - got >= 8 && got * 2 < ref {
         missing += ref - got; tilesShort += 1
         box = (min(box.x0, v[0] * tile), min(box.y0, v[1] * tile), max(box.x1, v[0] * tile + tile - 1), max(box.y1, v[1] * tile + tile - 1))

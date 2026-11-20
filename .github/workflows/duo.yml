@@ -363,6 +363,9 @@ jobs:
 
           section "the app's lines (toolbar: safeArea= / paperArea=, zoom:, span:, span session:, one page session:, span cap:)"
           xcrun simctl spawn "$UDID" log show --last 15m --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/app-log.txt" 2>&1 || true
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): the log's reach; on the iOS 27 simulators `log show`
+          # gives the app's NSLog lines as "<compose failure …>" (D0's duo-probe too), and the lines below are only shown.
+          bash "$GITHUB_WORKSPACE/tools/ci/log-reach.sh" "duo-probe (log show)" "$OUT/app-log.txt" 'toolbar: paperArea=' || true
           { grep -E 'toolbar: (safeArea|paperArea)=|zoom: |span: |span session: |one page session: |span cap: ' "$OUT/app-log.txt" | cut -c 1-400 || echo "(none)"; } >> "$ENV_TXT"
           find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -30 -exec cp {} "$OUT/" \; 2>/dev/null || true
           xcrun simctl shutdown "$UDID" > /dev/null 2>&1 || true
