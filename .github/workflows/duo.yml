@@ -399,8 +399,9 @@ jobs:
   #   day (capped on the outer screen, §4.7);
   # on the outer screen, and on the inner screen too when the lead has set the way to open it (path 1, DUO_OPEN and
   # DUO_INNER_DISPLAY; path 3, the default until 11/23, photographs the outer screen only, §4.2). DuoLayoutUITests runs
-  # on the Duo with TEGAKI_DEVICE=duo and must run at least the number written below for the path, with 0 failures (a
-  # skipped test is not counted, §4.2). tools/duo/shot_checks.py then checks every photo (not black, no black edge band,
+  # on the Duo with TEGAKI_DEVICE=duo (on the outer screen, then, with the inner screen opened, once more on it with
+  # TEGAKI_DUO_INNER=1) and must run at least the number written below for the path, with 0 failures (a skipped test is
+  # not counted, §4.2). tools/duo/shot_checks.py then checks every photo (not black, no black edge band,
   # App Store's size) and every line (§6's C row, §7.3). Artifact "duo-shots" (kept 7 days, §7.3: the confirmation page is
   # made from it). The app's `duo measure:` line must reach the app's log (NSLog, like the toolbar: lines), after the first
   # layout of a turned window too.
@@ -411,7 +412,8 @@ jobs:
     runs-on: xcode-27
     # Estimated: checkout, Xcode and XcodeGen 3 min, the build for testing 5–10, the iPhone 17 3–4, the Duo's boot 2–8 and
     # its 180 s, 14 launches of about 20 s on the outer screen (and 14 more on the inner) with up to 90 s of retakes each,
-    # DuoLayoutUITests 5–15: about 45 min, 75 when every photo is retaken. A job cut by its limit does not reach the upload.
+    # DuoLayoutUITests 5–15 (twice with the inner screen): about 45 min, 75 when every photo is retaken. A job cut by its
+    # limit does not reach the upload.
     timeout-minutes: 120
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -425,9 +427,11 @@ jobs:
       # screen's tests testOuterHeaderRows, testJoinedWeekSwipesOnDuo, testSheetsFitOnDuo (outer) and
       # testFingerDefaultFollowsTheHinge (outer), 4 when each is one test method.
       DUO_UI_MIN_RAN_PATH3: "4"
-      # DUO_UI_MIN_RAN_INNER: the same on paths 1 and 2 (the inner screen's tests added). Empty until the lead sets it from
-      # U's list; with the inner screen opened and this empty the UI test step fails.
-      DUO_UI_MIN_RAN_INNER: ""
+      # DUO_UI_MIN_RAN_INNER: the same on paths 1 and 2, over the outer screen's run and the inner screen's
+      # (TEGAKI_DUO_INNER=1): role U's list (DuoLayoutUITests' header) is 4 in each — the outer run as on path 3, the inner
+      # run testInnerHeaderIsOneRow and the last three on the inner screen — 8 in all. The lead confirms it before setting
+      # DUO_OPEN; with the inner screen opened and this empty the UI test step fails.
+      DUO_UI_MIN_RAN_INNER: "8"
       # DUO_USES_HINGE: PencilPhone.usesHinge as §4.2 decides it from the first duo-shots' lines ("true" when a Duo screen's
       # hinge= is not nil and the iPhone 17's is nil, else "false"). "unknown" until then: the first launch's 「指でも書く」
       # is recorded, not checked (§7.3).
@@ -439,9 +443,11 @@ jobs:
       DUO_CLOSE: ""
       DUO_INNER_DISPLAY: ""
       DUO_OUTER_DISPLAY: ""
-      # DUO_SIZE_RULE: "fail" (a Duo photo not of App Store's size, §7.1, fails shot_checks.py) or "warn" (when duo-probe
-      # showed the simulator's screen is another size: such photos are not used for the store, §7.1; docs/M7D.md).
-      DUO_SIZE_RULE: "fail"
+      # DUO_SIZE_RULE: "warn" (§7.1: "ほかの寸法なら警告して使わない" — a Duo photo not of App Store's size is a warning in
+      # shot_checks.py, and such photos are not used for the store) until a duo-shots has shown the simulator's photos are
+      # App Store's sizes (no duo-probe size is on record yet); then the lead may set "fail" (a photo of another size fails
+      # shot_checks.py), with the run's number in docs/M7D.md.
+      DUO_SIZE_RULE: "warn"
 
     steps:
       - name: Checkout
@@ -815,13 +821,17 @@ jobs:
 
       # §4.2, §6: DuoLayoutUITests on the Duo the photos used (still booted), told by TEGAKI_DEVICE=duo that it is on the
       # Duo (TEST_RUNNER_-prefixed: xcodebuild hands it to the test runner without the prefix; elsewhere it skips itself).
-      # At least the number of the path (DUO_UI_MIN_RAN_PATH3, or DUO_UI_MIN_RAN_INNER with the inner screen opened) must
-      # run, passed or failed, with 0 failures; skipped tests are not counted. The simulator, not the app (FLAKE-1,
-      # span-shots-app's list): the tests run once more only after those failures. The log, the lines and the attachments
-      # go into duo-shots.
+      # The outer screen's run comes first (the photos' step closed the Duo again with DUO_CLOSE). With the inner screen
+      # opened (paths 1 and 2: DUO_OPEN and DUO_INNER_DISPLAY) a second run follows after DUO_OPEN, with TEGAKI_DUO_INNER=1
+      # (TEST_RUNNER_TEGAKI_DUO_INNER=1; DuoLayoutUITests' header: the inner screen's tests run then and the outer
+      # screen's skip), then DUO_CLOSE. At least the number of the path (DUO_UI_MIN_RAN_PATH3; DUO_UI_MIN_RAN_INNER over
+      # both runs with the inner screen opened) must run, passed or failed, with 0 failures; skipped tests are not counted,
+      # and each run counts its own (a test of both screens counts once in each). A DUO_OPEN that fails fails the step.
+      # The simulator, not the app (FLAKE-1, span-shots-app's list): a run goes once more only after those failures. The
+      # logs, the lines and the attachments go into duo-shots.
       - name: DuoLayoutUITests on the iPhone Duo
         if: ${{ !cancelled() && steps.photos.outcome != 'skipped' }}
-        timeout-minutes: 35
+        timeout-minutes: 50
         run: |
           set +e
           set -uo pipefail
@@ -829,9 +839,11 @@ jobs:
           mkdir -p "$OUT"
           UDID="${{ steps.required.outputs.duo }}"
           if [ -n "$DUO_OPEN" ] && [ -n "$DUO_INNER_DISPLAY" ]; then
+            INNER=1
             MIN="$DUO_UI_MIN_RAN_INNER"
-            WHICH="paths 1 and 2 (the inner screen opened, DUO_UI_MIN_RAN_INNER)"
+            WHICH="paths 1 and 2 (the outer and the inner screen's runs, DUO_UI_MIN_RAN_INNER)"
           else
+            INNER=0
             MIN="$DUO_UI_MIN_RAN_PATH3"
             WHICH="path 3 (the outer screen only, DUO_UI_MIN_RAN_PATH3)"
           fi
@@ -846,59 +858,100 @@ jobs:
             echo "::error::the iPhone Duo did not boot."
             exit 1
           fi
-          run_tests() {  # run_tests <suffix>
+          SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing'
+          run_tests() {  # run_tests <suffix> [NAME=value ...]: one run; each NAME=value goes to xcodebuild's environment
+            local suffix="$1"
+            shift
             STATUS=0
-            TEST_RUNNER_TEGAKI_DEVICE=duo xcodebuild \
+            env TEST_RUNNER_TEGAKI_DEVICE=duo "$@" xcodebuild \
               -project TegakiCalendar.xcodeproj \
               -scheme TegakiCalendar \
               -configuration Debug \
               -destination "platform=iOS Simulator,id=$UDID" \
               -derivedDataPath build/DuoData \
-              -resultBundlePath "build/duo-ui$1.xcresult" \
+              -resultBundlePath "build/duo-ui$suffix.xcresult" \
               -only-testing:TegakiCalendarUITests/DuoLayoutUITests \
-              test-without-building > "$OUT/duo-ui-tests$1.log" 2>&1 || STATUS=$?
+              test-without-building > "$OUT/duo-ui-tests$suffix.log" 2>&1 || STATUS=$?
+          }
+          run_screen() {  # run_screen <suffix> [NAME=value ...]: run_tests, once more after the simulator's failures; sets STATUS and RESULT
+            local suffix="$1"
+            run_tests "$@"
+            RESULT="build/duo-ui$suffix.xcresult"
+            if [ "$STATUS" != 0 ] && grep -qE "$SIMULATOR" "$OUT/duo-ui-tests$suffix.log"; then
+              echo "::warning::DuoLayoutUITests$suffix: $(grep -oE "$SIMULATOR" "$OUT/duo-ui-tests$suffix.log" | head -n 1); they run once more."
+              mv "$OUT/duo-ui-tests$suffix.log" "$OUT/duo-ui-tests$suffix-first.log"
+              shift
+              run_tests "$suffix-again" "$@"
+              mv "$OUT/duo-ui-tests$suffix-again.log" "$OUT/duo-ui-tests$suffix.log"
+              RESULT="build/duo-ui$suffix-again.xcresult"
+            fi
           }
           STARTED="$(date +%s)"
-          run_tests ""
-          RESULT=build/duo-ui.xcresult
-          SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing'
-          if [ "$STATUS" != 0 ] && grep -qE "$SIMULATOR" "$OUT/duo-ui-tests.log"; then
-            echo "::warning::DuoLayoutUITests: $(grep -oE "$SIMULATOR" "$OUT/duo-ui-tests.log" | head -n 1); they run once more."
-            mv "$OUT/duo-ui-tests.log" "$OUT/duo-ui-tests-first.log"
-            run_tests "-again"
-            mv "$OUT/duo-ui-tests-again.log" "$OUT/duo-ui-tests.log"
-            RESULT=build/duo-ui-again.xcresult
-          fi
+          run_screen ""
+          OUTER_STATUS="$STATUS"
+          OUTER_RESULT="$RESULT"
           grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/duo-ui-tests.log" | tail -n 40
+          INNER_RAN=0
+          OPEN_FAILED=0
+          if [ "$INNER" = 1 ]; then
+            echo "opening the iPhone Duo for the inner screen's run (DUO_OPEN): $DUO_OPEN"
+            if ( eval "$DUO_OPEN" ); then
+              sleep 10
+              run_screen "-inner" TEST_RUNNER_TEGAKI_DUO_INNER=1
+              INNER_RAN=1
+              INNER_STATUS="$STATUS"
+              INNER_RESULT="$RESULT"
+              grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/duo-ui-tests-inner.log" | tail -n 40
+            else
+              echo "::error::DUO_OPEN failed: the inner screen's DuoLayoutUITests did not run."
+              OPEN_FAILED=1
+            fi
+            if [ -n "$DUO_CLOSE" ]; then
+              ( eval "$DUO_CLOSE" ) || echo "::warning::DUO_CLOSE failed"
+            fi
+          fi
           xcrun simctl spawn "$UDID" log show --last "$(( ($(date +%s) - STARTED) / 60 + 2 ))m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/duo-ui-log.txt" 2>&1
           grep 'duo measure: ' "$OUT/duo-ui-log.txt" | awk '{ i = index($0, "duo measure: "); print substr($0, i) }' | tail -n 20
           mkdir -p "$OUT/ui-attachments"
-          xcrun xcresulttool export attachments --path "$RESULT" --output-path "$OUT/ui-attachments" > /dev/null 2>&1 || echo "(no attachments exported)"
-          python3 -I - "$OUT/duo-ui-tests.log" "$MIN" "$STATUS" <<'EOF'
+          xcrun xcresulttool export attachments --path "$OUTER_RESULT" --output-path "$OUT/ui-attachments" > /dev/null 2>&1 || echo "(no attachments exported)"
+          RUNS=(outer "$OUTER_STATUS" "$OUT/duo-ui-tests.log")
+          if [ "$INNER_RAN" = 1 ]; then
+            mkdir -p "$OUT/ui-attachments-inner"
+            xcrun xcresulttool export attachments --path "$INNER_RESULT" --output-path "$OUT/ui-attachments-inner" > /dev/null 2>&1 || echo "(no attachments of the inner run exported)"
+            RUNS+=(inner "$INNER_STATUS" "$OUT/duo-ui-tests-inner.log")
+          fi
+          python3 -I - "$MIN" "$OPEN_FAILED" "${RUNS[@]}" <<'EOF'
           import re, sys
-          log, need, status = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+          need, open_failed = int(sys.argv[1]), sys.argv[2] == "1"
+          runs = [sys.argv[i:i + 3] for i in range(3, len(sys.argv), 3)]   # (the screen, xcodebuild's status, the log)
           seen = {}
-          for line in open(log, encoding="utf-8", errors="replace"):
-              m = (re.search(r"Test [Cc]ase '-\[(?:\w+\.)?(\w+) (\w+)\]' (passed|failed|skipped)", line)
-                   or re.search(r"Test [Cc]ase '(\w+)\.(\w+)\(\)' (passed|failed|skipped)", line))
-              if m and m.group(1) == "DuoLayoutUITests":
-                  seen[m.group(2)] = m.group(3)
-          for test in sorted(seen):
-              print("DuoLayoutUITests.%s: %s" % (test, seen[test]))
-          ran = [t for t, s in seen.items() if s != "skipped"]
-          failed = sorted(t for t, s in seen.items() if s == "failed")
-          print("DuoLayoutUITests on the iPhone Duo: %d ran (%d failed), %d skipped; at least %d must run with 0 failures "
-                "(docs/M7D_CONTRACT.md §4.2, §6)" % (len(ran), len(failed), len(seen) - len(ran), need))
           bad = False
+          for screen, status, log in runs:
+              mine = {}
+              for line in open(log, encoding="utf-8", errors="replace"):
+                  m = (re.search(r"Test [Cc]ase '-\[(?:\w+\.)?(\w+) (\w+)\]' (passed|failed|skipped)", line)
+                       or re.search(r"Test [Cc]ase '(\w+)\.(\w+)\(\)' (passed|failed|skipped)", line))
+                  if m and m.group(1) == "DuoLayoutUITests":
+                      mine[m.group(2)] = m.group(3)
+              for test in sorted(mine):
+                  print("DuoLayoutUITests.%s (the %s screen's run): %s" % (test, screen, mine[test]))
+                  seen[(screen, test)] = mine[test]
+              if int(status) != 0 and "failed" not in mine.values():
+                  print("::error::xcodebuild ended with %s on the %s screen's run (duo-shots/%s)" % (status, screen, log.split("/")[-1]))
+                  bad = True
+          ran = [k for k, s in seen.items() if s != "skipped"]
+          failed = sorted("%s (%s)" % (t, s) for (s, t), r in seen.items() if r == "failed")
+          print("DuoLayoutUITests on the iPhone Duo: %d ran (%d failed), %d skipped over %d run(s); at least %d must run with 0 "
+                "failures (docs/M7D_CONTRACT.md §4.2, §6)" % (len(ran), len(failed), len(seen) - len(ran), len(runs), need))
           if failed:
-              print("::error::DuoLayoutUITests failed on the iPhone Duo: %s (duo-shots/duo-ui-tests.log)" % ", ".join(failed))
+              print("::error::DuoLayoutUITests failed on the iPhone Duo: %s (duo-shots/duo-ui-tests*.log)" % ", ".join(failed))
               bad = True
           if len(ran) < need:
               print("::error::%d DuoLayoutUITests ran on the iPhone Duo (skipped ones are not counted); at least %d must "
                     "(§4.2: the number written for this path)" % (len(ran), need))
               bad = True
-          if status != 0 and not failed:
-              print("::error::xcodebuild ended with %d (duo-shots/duo-ui-tests.log)" % status)
+          if open_failed:
+              print("::error::DUO_OPEN failed: the inner screen's tests did not run (§4.2, paths 1 and 2)")
               bad = True
           sys.exit(1 if bad else 0)
           EOF
