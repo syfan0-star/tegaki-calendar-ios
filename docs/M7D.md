@@ -156,3 +156,16 @@
   - L6: ログの読める度合いの段を ja-baseline にも（写真の段の外。§3.5 (h)）、duo.yml の duo-probe のログにも。
   - ja-baseline の手書きの確かめを前もって作る段（§3.5 (h)）: ja-baseline では最初の macOS の swiftc になり、写真の待ちと重なるため。build.yml にも同じ字で。
 - **D1 の duo.yml** は D0b の duo.yml の 1 行（ログの読める度合い）と合わせる。
+
+## D1b（D1 を D0b の後の r14 に載せ直し、Duo の測りの行をファイルで受け取る。Workflow wf_2d3c30cc-479、11/20 13:45〜15:50、枝 `r14-w-d1b` 015fa73）
+
+- **載せ直し**: `r14-w-d1`（b21d7e0）を 755d611 に `--no-ff` で（8b7ebb0）。字の衝突は 0。意味の衝突 1 つ: duo-shots の `shot()` が横の写真を全部回していた → 縦長のときだけ回す（bf79ba0。L4 (g) を duo.yml にも）。D0b の CI の強化と D1 の足し（KitChecks 40,744、idiom の見張り、DUO_HINGE、速い道の D1 の 7 組、compat-v1-0）は両方そろっている（読み比べ）。
+- **測りの行のファイル**（iOS 27.x の `log show` はアプリの NSLog を読めないため。D0b の調べ）: 写真モードで `--screenshot-measure` のときだけ、`duo measure:` の行を NSLog と同じ字でアプリの入れ物の `Library/Caches/duo-measure.txt` に足す（足すだけ・消さない・同期の待ちなし）。duo.yml は起動の前に消し、写真の後に `simctl get_app_container … data` で読む。次に結果の束（xcresult）の出力、最後に `log show`。`--screenshot-measure` が無いときは何もしない（ふだんの使い方と J-4 の写真は変わらない）。新しいテスト `MeasureLineFileTests`（速い道にも入れた）。測る物を差し替えられる引数 `measurer` は試しのための口。
+- **2 つの見直しの後の直し**（886cabb・015fa73）:
+  - Duo の外側の写真は `--display=primary` が要る（duo-probe の run 44649975338 で、指定なし・internal・main は「2 つの画面から選べない」で落ちた）。画面の誤りは撮り直さず 1 回で `::error::`。
+  - duo-shots の DuoLayoutUITests の段に span-shots-app と同じ見張り（600 秒）・`kAXErrorIPC` の走らせ直し・走らせ直しの前の起動し直し（L5 を duo.yml にも）。
+  - 写真の段は、黒い写真の確かめの自己試験が落ちても走る（確かめと撮り直しなし。ジョブは落ちる）。
+  - 消せなかったファイルから読んだ行は `measure-sources.tsv` の 4 列目に「not cleared」と書き、警告（混ざりを防ぐのではなく見えるようにする）。
+  - DuoHingeUITests は `--screenshot-measure` で起動（道 2 の内側の測り）。DuoLayoutUITests は付けない。
+- **リードの決定（受ける）**: duo-hinge は D1 のまま（見張りなし、段 30 分。27.3 が出て合否に使う前に見直す）。道 1（DUO_OPEN）を入れるときは写真の段 55→90 分、ジョブ 120→150 分に上げる。duo-shots の `log-reach.sh` の警告（compose failure）は毎回出るが、そのまま（L6 の道具は build.yml・ja-baseline と同じ）。
+- **確かめ（手元）**: 凍結の 4 表 OK、型の確かめ 3 通り（ふつう・DEBUG・DEBUG DUO_HINGE）OK、lint・idiom・shot_checks の自己試験・YAML・`bash -n`・J-4 の字の一致 OK、KitChecks 40,794（閾値 40,744）。CI の試し: 速い道 `r14-q-d1b`（run 44690586694）と Duo の写真 `r14-duo-d1b`（run 44690590720）。
