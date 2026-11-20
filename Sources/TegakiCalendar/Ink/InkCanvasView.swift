@@ -3079,7 +3079,9 @@ extension InkCanvasView.Coordinator {
             }
         }
         state.layoutOffsetX = canvas?.contentOffset.x
-        state.pendingRedecide = true
+        // MUTATION D1 (r14-q-m1 only, never merged; docs/M7D_CONTRACT.md §6, DuoFoldTests): the frozen canvas's
+        // pendingRedecide path is taken away: a change of width no longer asks for the window to be decided anew
+        // (the line was `state.pendingRedecide = true`). DATA_1_1.sha256's row of this file is this branch's.
         requestShiftCheck()
     }
 
