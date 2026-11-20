@@ -1,8 +1,9 @@
 # The iPhone Duo (docs/M7D_CONTRACT.md §4.2, §3.10, 0d-45): a workflow of its own, so the Duo's jobs never run beside
 # build.yml's six (GitHub runs at most five macOS jobs at once on this plan, [S55]). It runs on a push to a branch
-# r14-duo* (for example `git push origin r14:r14-duo-probe`; build.yml ignores these branches) and, once this file is on
-# the default branch, from workflow_dispatch with the input `job` (workflow_dispatch only starts a workflow that is on the
-# default branch; then `gh workflow run duo.yml --ref <branch> -f job=probe`). Never on a push to r14.
+# r14-duo* (for example `git push origin r14:r14-duo-1`; build.yml ignores these branches; since D1 a push runs
+# duo-shots) and, once this file is on the default branch, from workflow_dispatch with the input `job` (workflow_dispatch
+# only starts a workflow that is on the default branch; then `gh workflow run duo.yml --ref <branch> -f job=probe`, `shots`
+# or `hinge`). Never on a push to r14.
 #
 # D0 (§4.2, §3.3 1): duo-probe only, and nothing in it passes or fails 1.4 ("合否には使わない"): it changes no code and adds
 # no test. Xcode 27.2 is chosen as in build.yml (§3.1), the table of the Duo is checked as in build.yml (§3.2: "iPhone Duo"
@@ -23,8 +24,13 @@
 # screenshot mode, and D0 adds no test and no code, so D1's duo-shots measures them (--screenshot-measure, §2.1). Only a
 # missing Xcode 27.2, a missing iPhone Duo or an app that does not build fails the job. Artifact "duo-probe" (kept 7 days).
 #
-# D1 adds duo-shots (`job: shots`, and the pushes to r14-duo* in place of duo-probe; §4.2, §7.3) and duo-hinge (`job: hinge`
-# only; §4.2, §4.9). Until then a dispatch with `shots` or `hinge` runs no job.
+# D1 (§4.2, §7.3, §3.8, §3.10, §6): duo-shots replaces duo-probe for the pushes to r14-duo* and runs on a dispatch with
+# `job: shots`: the iPhone Duo's photos of §7.3 and its `duo measure:` lines (--screenshot-measure, §2.1), one first launch
+# on the iPhone 17, DuoLayoutUITests on the Duo (at least the number the lead wrote for the path, 0 failures), and
+# tools/duo/shot_checks.py over all of it. duo-hinge runs on a dispatch with `job: hinge` only: DuoHingeUITests with
+# Xcode 27.3, deciding only with a release of it (§3.10, 0d-34). duo-probe stays for a dispatch with `job: probe`. The
+# values the lead sets after the measurements (the number of UI tests, PencilPhone.usesHinge, the way to open the Duo) are
+# duo-shots' env, at its head.
 name: duo
 
 on:
@@ -52,8 +58,9 @@ permissions:
 
 jobs:
   duo-probe:
+    # 1.4 D1 (docs/M7D_CONTRACT.md §3.10): a dispatch with `job: probe` only; the pushes to r14-duo* run duo-shots now.
     name: duo-probe (1.4, D0)
-    if: ${{ github.event_name == 'push' || inputs.job == 'probe' }}
+    if: ${{ inputs.job == 'probe' }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-2): the image with Xcode 27 and the Duo's runtimes.
     runs-on: xcode-27
     # Estimated: checkout, Xcode and XcodeGen 3 min, the build 3–6, the boot 2–8 (a first boot on the new image takes
@@ -381,3 +388,1350 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
           overwrite: true
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
+  # 1.4 D1 (docs/M7D_CONTRACT.md §4.2, §7.3, §3.10, §3.8, §6): the iPhone Duo's photos, measure lines and UI tests. On a
+  # push to r14-duo* (in place of duo-probe, which a dispatch with `job: probe` still runs) and on a dispatch with
+  # `job: shots`. The app is built for testing once; then the iPhone 17 (one first launch of the week: 「指でも書く」 on and
+  # hinge=nil, an ordinary iPhone unchanged, §7.3) and the iPhone Duo, booted and left alone 180 s (§3.8, 187146039), take
+  # §7.3's photos, each launch in screenshot mode with --screenshot-measure (§2.1: its `duo measure:` lines go to
+  # duo-shots/measure.txt) and each photo taken again 30 s later when it is black, three times at most (§3.8):
+  #   the first launch of the week (the app just installed, the launch arguments of a first launch, no
+  #   --screenshot-pencil-phone: 「指でも書く」 follows the hinge, §4.8), then with --screenshot-pencil-phone (the Duo as the
+  #   owner uses it, Pencil first, §7.1) the month, the week and the day joined, the year in portrait, the settings, purchase
+  #   and event sheets, the four pages in landscape and the landscape overview (--screenshot-zoom 0.1) of the week and the
+  #   day (capped on the outer screen, §4.7);
+  # on the outer screen, and on the inner screen too when the lead has set the way to open it (path 1, DUO_OPEN and
+  # DUO_INNER_DISPLAY; path 3, the default until 11/23, photographs the outer screen only, §4.2). DuoLayoutUITests runs
+  # on the Duo with TEGAKI_DEVICE=duo (on the outer screen, then, with the inner screen opened, once more on it with
+  # TEGAKI_DUO_INNER=1) and must run at least the number written below for the path, with 0 failures (a skipped test is
+  # not counted, §4.2). tools/duo/shot_checks.py then checks every photo (not black, no black edge band,
+  # App Store's size) and every line (§6's C row, §7.3). Artifact "duo-shots" (kept 7 days, §7.3: the confirmation page is
+  # made from it). The app writes its `duo measure:` line with NSLog (like the toolbar: lines), after the first layout of a
+  # turned window too, and with --screenshot-measure also appends the same line to Library/Caches/duo-measure.txt in its
+  # data container (1.4 D1b): on the iOS 27 simulators `log show` gives every NSLog line of the app as "<compose failure
+  # …>" (docs/M7D.md, D0b), so the lines are read from that file (`simctl get_app_container … data`), deleted before each
+  # launch or test run whose lines are wanted; for the UI tests the app's output in the result bundles
+  # (tools/ci/xcresult-app-output.sh) comes second, and `log show` (with tools/ci/log-reach.sh) last.
+  duo-shots:
+    name: duo-shots (1.4, D1)
+    if: ${{ github.event_name == 'push' || inputs.job == 'shots' }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-2): the image with Xcode 27 and the Duo's runtimes.
+    runs-on: xcode-27
+    # Estimated: checkout, Xcode and XcodeGen 3 min, the build for testing 5–10, the iPhone 17 3–4, the Duo's boot 2–8 and
+    # its 180 s, 14 launches of about 20 s on the outer screen (and 14 more on the inner) with up to 90 s of retakes each,
+    # DuoLayoutUITests 5–15 (twice with the inner screen): about 45 min, 75 when every photo is retaken. A launch whose
+    # measure-line file has no line adds about 15 s (the 10 s look and the log show; 4 min over the outer screen's 15). A
+    # DuoLayoutUITests run its watchdog stops adds about 25 (10 of silence, 1 to end xcodebuild, the boot 2–8 and 180 s,
+    # the one more run; 1.4 D1b, as span-shots-app). A job cut by its limit does not reach the upload.
+    timeout-minutes: 120
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+      # As build.yml's photos: the app in Japanese whatever the simulator's language is.
+      JA_ARGS: "-AppleLanguages (ja) -AppleLocale ja_JP"
+      # ── Set by the lead (docs/M7D_CONTRACT.md §4.2; each value and why go into docs/M7D.md) ──────────────────────────
+      # DUO_UI_MIN_RAN_PATH3: how many DuoLayoutUITests must run (passed or failed; skipped ones are not counted) on path 3,
+      # the outer screen only. The lead sets it from role U's test list before the first D1 run: §4.2 names the outer
+      # screen's tests testOuterHeaderRows, testJoinedWeekSwipesOnDuo, testSheetsFitOnDuo (outer) and
+      # testFingerDefaultFollowsTheHinge (outer), 4 when each is one test method.
+      DUO_UI_MIN_RAN_PATH3: "4"
+      # DUO_UI_MIN_RAN_INNER: the same on paths 1 and 2, over the outer screen's run and the inner screen's
+      # (TEGAKI_DUO_INNER=1): role U's list (DuoLayoutUITests' header) is 4 in each — the outer run as on path 3, the inner
+      # run testInnerHeaderIsOneRow and the last three on the inner screen — 8 in all. The lead confirms it before setting
+      # DUO_OPEN; with the inner screen opened and this empty the UI test step fails.
+      DUO_UI_MIN_RAN_INNER: "8"
+      # DUO_USES_HINGE: PencilPhone.usesHinge as §4.2 decides it from the first duo-shots' lines ("true" when a Duo screen's
+      # hinge= is not nil and the iPhone 17's is nil, else "false"; "unknown" records the first launch's 「指でも書く」
+      # without checking it, §7.3). 1.4 D1c: "true", the same as PencilPhone.usesHinge, from run 44696154794 (path 3: the
+      # outer screen's lines all hinge=closed, the iPhone 17's hinge=nil). shot_checks.py then expects each Duo screen's
+      # first launch off where its hinge= is not nil (§4.8) and fails when no Duo screen reads a hinge any more or the
+      # iPhone 17 reads one (§4.2's rule no longer holding: the constant is to be decided again).
+      DUO_USES_HINGE: "true"
+      # Path 1 (§4.2): DUO_OPEN opens the Duo (a command line from duo-probe's findings; it may use $UDID), DUO_CLOSE
+      # closes it, DUO_INNER_DISPLAY is the `simctl io screenshot --display` value of the inner screen. The inner screen
+      # is photographed only when DUO_OPEN and DUO_INNER_DISPLAY are both set; empty: path 3. Setting DUO_OPEN doubles
+      # the photos (28 launches): the lead raises the photos step's limit (55) to 90 and the job's (120) to 150 with it.
+      DUO_OPEN: ""
+      DUO_CLOSE: ""
+      DUO_INNER_DISPLAY: ""
+      # DUO_OUTER_DISPLAY: the `--display` value of the outer screen's photos, needed on every path (1.4 D1b): the Duo
+      # always has two displays, and `simctl io <duo> screenshot` without --display fails "Cannot choose between 2
+      # displays" (D0's duo-probe, run 44649975338: so did internal and main; only primary gave a photo, 1398x2034, the
+      # outer screen; docs/M7D.md, gate 6). The iPhone 17 has one display and is photographed without --display.
+      DUO_OUTER_DISPLAY: "primary"
+      # DUO_SIZE_RULE: "fail" (1.4 D1d; D1's note B-4 in docs/M7D.md): a Duo photo of a size not in shot_checks.py's SIZES
+      # (§7.1: outer 1398x2034 / 2034x1398; inner 2007x2853 / 2853x2007, or the screen's 1878x2670 / 2670x1878 that §7.1
+      # scales up) fails shot_checks.py. It was "warn" (§7.1: "ほかの寸法なら警告して使わない" — a warning, and such a
+      # photo not used for the store) until a duo-shots showed the simulator's photos are App Store's sizes: run 44696154794
+      # (f9bb459, path 3) took all 14 outer photos at 1398x2034 or 2034x1398 (the iPhone 17's 1206x2622 is not judged by
+      # this rule). "warn" is the way back if a later simulator changes the sizes.
+      DUO_SIZE_RULE: "fail"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
+        run: |
+          set -euo pipefail
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
+          fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
+          xcode-select -p
+          xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            duo|iPhone Duo|27.2
+            iphone|iPhone 17|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          xcodebuild -project TegakiCalendar.xcodeproj -list
+
+      # Built for testing once, before anything boots (span-shots-app's way: the generic destination builds every simulator
+      # architecture). The photos install the app of these products; DuoLayoutUITests runs them without building.
+      - name: Build the app and its UI tests (Debug, for testing)
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DuoData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build-for-testing
+          ls build/DuoData/Build/Products/*.xctestrun
+
+      # §6's C row: shot_checks.py must fail the photos it is there to fail (made-up black photos, black edge bands, sizes
+      # one pixel off, wrong lines), read with this runner's sips; a check that does not bite would pass every Duo photo.
+      - name: The photo checks' self-test
+        id: selftest
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          python3 -I tools/duo/shot_checks.py --self-test
+
+      # Best effort for each photo (a launch or a photo that fails loses that one; shot_checks.py then names what is
+      # missing); the step fails when the app is not built, a simulator does not boot or the app does not install. It runs
+      # after a failed self-test too (1.4 D1b: the job still fails there, and §4.2's lines are not lost to the tooling),
+      # but then a photo is not looked at for black and not taken again.
+      - name: Photos and measure lines (the iPhone 17, then the iPhone Duo)
+        id: photos
+        if: ${{ !cancelled() && steps.selftest.outcome != 'skipped' }}
+        timeout-minutes: 55
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="$PWD/duo-shots"
+          ENV_TXT="$OUT/env.txt"
+          SHOTS="$OUT/shots.tsv"
+          MEASURE="$OUT/measure.txt"
+          # Where each photo's lines came from: <file> <lines> <the container file|log show|none>, and a fourth field "not
+          # cleared" when the file could not be deleted before that launch (its lines may then include an earlier launch's).
+          SOURCES="$OUT/measure-sources.tsv"
+          mkdir -p "$OUT"
+          : > "$SHOTS"
+          : > "$MEASURE"
+          : > "$SOURCES"
+          DUO="${{ steps.required.outputs.duo }}"
+          IPHONE="${{ steps.required.outputs.iphone }}"
+          # The photo checks' self-test: "success", or a photo is not looked at for black (nor taken again).
+          CHECKS="${{ steps.selftest.outcome }}"
+          BUNDLE="com.syfan0.tegakicalendar"
+          APP="$(find build/DuoData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          FAILED=0
+          if [ "$CHECKS" != success ]; then
+            echo "::warning::the photo checks' self-test did not pass ($CHECKS): the photos are taken once each, not looked at for black."
+          fi
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt), then each
+          # device it takes ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > "$ENV_TXT" || echo "::warning::env.txt could not all be written"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          sim_env iphone "$IPHONE" >> "$ENV_TXT" || echo "::warning::no runtime line for iphone"
+          sim_env duo "$DUO" >> "$ENV_TXT" || echo "::warning::no runtime line for duo"
+          if [ -n "$DUO_OPEN" ] && [ -n "$DUO_INNER_DISPLAY" ]; then INNER=1; else INNER=0; fi
+          if [ "$INNER" = 1 ]; then
+            echo "the inner screen: opened (path 1: DUO_OPEN, --display=$DUO_INNER_DISPLAY; §4.2)" >> "$ENV_TXT"
+          else
+            echo "the inner screen: not opened (path 3; §4.2)" >> "$ENV_TXT"
+          fi
+          echo "PencilPhone.usesHinge for the checks: $DUO_USES_HINGE" >> "$ENV_TXT"
+          if [ -z "$APP" ]; then
+            echo "::error::TegakiCalendar.app not found under build/DuoData."
+            exit 1
+          fi
+
+          boot() {  # boot <udid> <id> <seconds>: boot, light, the status bar at 9:41, then the wait
+            local STARTED
+            STARTED="$(date +%s)"
+            xcrun simctl boot "$1" 2>/dev/null
+            if ! xcrun simctl bootstatus "$1" -b > /dev/null; then
+              echo "::error::$2 did not boot."
+              echo "$2: did not boot" >> "$ENV_TXT"
+              return 1
+            fi
+            echo "$2: booted in $(( $(date +%s) - STARTED )) s, then $3 s alone" >> "$ENV_TXT"
+            xcrun simctl ui "$1" appearance light
+            xcrun simctl status_bar "$1" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3
+            sleep "$3"
+          }
+          # MEASURE_FRESH: the device whose app fresh() has just installed (its data container new, so the next launch's
+          # measure-line file cannot hold an older launch's lines); shot() empties it.
+          MEASURE_FRESH=""
+          fresh() {  # fresh <udid>: the app installed anew, its data gone, so the next launch is a first launch (§2.1)
+            xcrun simctl terminate "$1" "$BUNDLE" 2>/dev/null
+            xcrun simctl uninstall "$1" "$BUNDLE" 2>/dev/null
+            xcrun simctl install "$1" "$APP" && MEASURE_FRESH="$1"
+          }
+          # 1.4 D1b (docs/M7D.md, D0b): the measure-line file. With --screenshot-measure the app appends each `duo measure:`
+          # line it logs to Library/Caches/duo-measure.txt in its data container, one whole line per write; the container
+          # is asked for each time, since fresh() gives the app a new one.
+          measure_path() {  # measure_path <udid>: the file's path, or nothing when the app has no data container there
+            local DATA
+            DATA="$(xcrun simctl get_app_container "$1" "$BUNDLE" data 2>/dev/null)" || DATA=""
+            if [ -n "$DATA" ] && [ -d "$DATA" ]; then printf '%s/Library/Caches/duo-measure.txt\n' "$DATA"; fi
+          }
+          # measure_clear <udid>: the file deleted before a launch, so the lines it then holds are that launch's. Always 0;
+          # MEASURE_CLEARED is 1 when the file is gone, 0 when no container was found or the file could not be deleted (an
+          # earlier launch's lines may then be read with this one's).
+          measure_clear() {
+            local F
+            MEASURE_CLEARED=0
+            F="$(measure_path "$1")"
+            if [ -z "$F" ]; then return 0; fi
+            if rm -f "$F"; then MEASURE_CLEARED=1; else echo "::warning::the measure-line file could not be deleted; the last launch's lines may be read again"; fi
+          }
+          # measure_take <udid> <copy> <seconds>: the file's whole lines into <copy> (a last line still without its "\n"
+          # is left out), looked at again each second for up to <seconds> until one has "duo measure: "; 1 when none came.
+          measure_take() {
+            local UDID="$1" COPY="$2" LEFT="$3" F
+            while :; do
+              : > "$COPY"
+              F="$(measure_path "$UDID")"
+              if [ -n "$F" ] && [ -f "$F" ] && cp "$F" "$COPY.raw" 2>/dev/null; then
+                if [ -n "$(tail -c 1 "$COPY.raw")" ]; then sed '$d' "$COPY.raw" > "$COPY"; else cat "$COPY.raw" > "$COPY"; fi
+                rm -f "$COPY.raw"
+                if grep -q 'duo measure: ' "$COPY"; then return 0; fi
+              fi
+              if [ "$LEFT" -le 0 ]; then return 1; fi
+              sleep 1
+              LEFT=$((LEFT - 1))
+            done
+          }
+          measure_rows() {  # measure_rows <photo>: stdin's `duo measure:` lines as "<photo>\t<the line from duo measure: on>"
+            awk -v file="$1" '{ i = index($0, "duo measure: "); if (i > 0) print file "\t" substr($0, i) }'
+          }
+          # photo <udid> <file> [<--display=…>]: a photo; a black (or unreadable) one is taken again 30 s later, three
+          # times at most (§3.8, 187146039: a Duo's photos are black for minutes after a boot). The last take stays, and
+          # shot_checks.py fails it when it is still black. A display simctl cannot choose (no --display on a device of two
+          # displays, or a name it does not have; D0's duo-probe, run 44649975338) fails alike every time: an error, no
+          # retake (1.4 D1b). Without a passing self-test ($CHECKS) the first take stays, not looked at.
+          photo() {
+            local UDID="$1" FILE="$2" TAKE RC ERR
+            shift 2
+            for TAKE in 1 2 3 4; do
+              rm -f "$OUT/$FILE"
+              if ! ERR="$(xcrun simctl io "$UDID" screenshot ${1:+"$1"} "$OUT/$FILE" 2>&1 > /dev/null)"; then
+                ERR="$(printf '%s' "$ERR" | tr '\n' ' ' | cut -c 1-300)"
+                echo "$FILE: simctl io screenshot failed (take $TAKE): $ERR"
+                case "$ERR" in
+                  *"Cannot choose between"*|*"does not have a"*)
+                    echo "::error::$FILE: simctl cannot photograph the display ${1:-(no --display)}; not taken again (DUO_OUTER_DISPLAY, DUO_INNER_DISPLAY; docs/M7D.md, gate 6): $ERR"
+                    return 0
+                    ;;
+                esac
+              fi
+              if [ "$CHECKS" != success ]; then return 0; fi
+              RC=0
+              python3 -I tools/duo/shot_checks.py black "$OUT/$FILE" > /dev/null || RC=$?
+              if [ "$RC" = 1 ]; then
+                [ "$TAKE" = 1 ] || echo "$FILE: not black at take $TAKE"
+                return 0
+              fi
+              echo "$FILE: black or unreadable at take $TAKE (§3.8)"
+              [ "$TAKE" = 4 ] || sleep 30
+            done
+            echo "::warning::$FILE is still black or unreadable after three retakes (§3.8); shot_checks.py fails it."
+          }
+          # shot <udid> <screen> <orientation> <kind> <variant> <--display=… or ""> <launch arguments…>: one launch in
+          # screenshot mode with --screenshot-measure, its photo (a landscape one stood up only when its PNG is taller than
+          # wide, as build.yml's iPhone photos: see below), its row in shots.tsv and the `duo measure:` lines of the launch
+          # in measure.txt ("<photo>\t<line>"): those of the measure-line file (deleted before the launch, read after the
+          # photo, up to 10 s more for its first line), else those `log show` gives from the launch on (a warning, and the
+          # log's reach; on the iOS 27 simulators they are compose failures). WAIT (seconds before the photo) is 12 unless
+          # given.
+          shot() {
+            local UDID="$1" SCREEN="$2" ORIENT="$3" KIND="$4" VARIANT="$5" DISP="$6" FILE START TURN_SIZE TAKEN LOG SOURCE N CLEARED
+            shift 6
+            FILE="$SCREEN-$ORIENT-$KIND-$VARIANT.png"
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null
+            sleep 1
+            measure_clear "$UDID"
+            CLEARED="$MEASURE_CLEARED"
+            if [ "$MEASURE_FRESH" = "$UDID" ]; then CLEARED=1; fi
+            MEASURE_FRESH=""
+            START="$(date '+%Y-%m-%d %H:%M:%S')"
+            # "$@" keeps an empty argument (-allowFingerDrawingAuto ""); $JA_ARGS is split on purpose (four words, none
+            # with a space).
+            if ! xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-measure "$@" $JA_ARGS > /dev/null; then
+              echo "::warning::launch failed ($FILE)"
+              return 0
+            fi
+            sleep "${WAIT:-12}"
+            photo "$UDID" "$FILE" "$DISP"
+            # 1.4 D1b (the rule of docs/M7D_CONTRACT.md §3.5 (g); docs/M7D.md, D0b): until iOS 26 the framebuffer stayed
+            # portrait and only the app's interface turned, so a landscape photo always came out sideways; the iOS 27.2
+            # simulator writes it in landscape already (D0, run 44632524223: turned by 270° it stood sideways). So it is
+            # turned only when the PNG is taller than wide, as build.yml's iPhone photos and span-shots-app's. When the
+            # app ignored the landscape request the photo still ends up sideways, and its line's portrait window is the
+            # tell (shot_checks.py).
+            if [ "$ORIENT" = landscape ] && [ -f "$OUT/$FILE" ]; then
+              TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$OUT/$FILE" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+              if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ]; then
+                sips -r 270 "$OUT/$FILE" > /dev/null || echo "::warning::could not stand $FILE up"
+              fi
+            fi
+            printf '%s\t%s\t%s\t%s\t%s\n' "$FILE" "$SCREEN" "$ORIENT" "$KIND" "$VARIANT" >> "$SHOTS"
+            TAKEN="$RUNNER_TEMP/duo-measure-take.txt"
+            if measure_take "$UDID" "$TAKEN" 10; then
+              SOURCE="the container file"
+              measure_rows "$FILE" < "$TAKEN" >> "$MEASURE"
+            else
+              SOURCE="log show"
+              echo "::warning::$FILE: no duo measure: line in the app's Library/Caches/duo-measure.txt within 10 s of the photo; log show is read instead (docs/M7D.md, D0b)."
+              mkdir -p "$OUT/measure-logs"
+              LOG="$OUT/measure-logs/${FILE%.png}.txt"
+              xcrun simctl spawn "$UDID" log show --start "$START" --style compact --predicate 'process == "TegakiCalendar"' > "$LOG" 2>&1
+              bash tools/ci/log-reach.sh "$FILE (log show)" "$LOG" 'duo measure: '
+              measure_rows "$FILE" < "$LOG" >> "$MEASURE"
+            fi
+            N="$(awk -F '\t' -v file="$FILE" '$1 == file' "$MEASURE" | wc -l | tr -d ' ')"
+            if [ "$N" = 0 ]; then SOURCE="none"; fi
+            if [ "$CLEARED" = 1 ] || [ "$SOURCE" != "the container file" ]; then
+              printf '%s\t%s\t%s\n' "$FILE" "$N" "$SOURCE" >> "$SOURCES"
+            else
+              printf '%s\t%s\t%s\t%s\n' "$FILE" "$N" "$SOURCE" "not cleared" >> "$SOURCES"
+              echo "::warning::$FILE: the measure-line file was not deleted before the launch (no data container found, or the delete failed); its lines may include an earlier launch's (measure-sources.tsv)."
+            fi
+            echo "$FILE: $N duo measure: lines ($SOURCE)"
+          }
+          # duo_set <screen> <--display=… or "">: §7.3's photos on one of the Duo's screens.
+          duo_set() {
+            local SCREEN="$1" DISP="$2" ORIENT LAND KIND SPAN SHEET
+            if ! fresh "$DUO"; then
+              echo "::error::the app could not be installed on the iPhone Duo ($SCREEN screen)."
+              FAILED=1
+              return 0
+            fi
+            # The first launch (§2.1, §4.8, §7.3): no --screenshot-pencil-phone, the launch arguments of a first launch; its
+            # 「指でも書く」 follows the hinge. It also compiles PencilKit's shaders (build.yml's FIX3), hence the longer wait.
+            WAIT=60 shot "$DUO" "$SCREEN" portrait week first "$DISP" --screenshot-page week --screenshot-span on -allowFingerDrawingChosen NO -allowFingerDrawingAuto ""
+            # The portrait photos first (pages, then the sheets on the month page), the landscape ones after them.
+            for KIND in month week day year; do
+              SPAN=""
+              case "$KIND" in week|day) SPAN="--screenshot-span on" ;; esac
+              # $SPAN split on purpose (two words or none).
+              shot "$DUO" "$SCREEN" portrait "$KIND" pencil "$DISP" --screenshot-page "$KIND" $SPAN --screenshot-pencil-phone
+            done
+            for SHEET in settings paywall create; do
+              shot "$DUO" "$SCREEN" portrait month "sheet-$SHEET" "$DISP" --screenshot-page month --screenshot-sheet "$SHEET" --screenshot-pencil-phone
+            done
+            for KIND in month week day year; do
+              SPAN=""
+              case "$KIND" in week|day) SPAN="--screenshot-span on" ;; esac
+              shot "$DUO" "$SCREEN" landscape "$KIND" pencil "$DISP" --screenshot-page "$KIND" $SPAN --screenshot-pencil-phone --screenshot-landscape
+            done
+            # The overview: --screenshot-zoom 0.1 is the whole page as a pinch to the minimum shows it (capped on the outer
+            # screen: the week 3 pages, the day 5, today from an hour before; not on the inner, §4.7).
+            for KIND in week day; do
+              shot "$DUO" "$SCREEN" landscape "$KIND" overview "$DISP" --screenshot-page "$KIND" --screenshot-span on --screenshot-zoom 0.1 --screenshot-pencil-phone --screenshot-landscape
+            done
+            xcrun simctl terminate "$DUO" "$BUNDLE" 2>/dev/null
+          }
+
+          # The iPhone 17: one first launch of the week (§4.2, §7.3: 「指でも書く」 on, hinge=nil).
+          STARTED="$(date +%s)"
+          if boot "$IPHONE" iphone 60; then
+            if fresh "$IPHONE"; then
+              WAIT=45 shot "$IPHONE" iphone portrait week first "" --screenshot-page week --screenshot-span on -allowFingerDrawingChosen NO -allowFingerDrawingAuto ""
+            else
+              echo "::error::the app could not be installed on the iPhone 17."
+              FAILED=1
+            fi
+            xcrun simctl terminate "$IPHONE" "$BUNDLE" 2>/dev/null
+            xcrun simctl spawn "$IPHONE" log show --last "$(( ($(date +%s) - STARTED) / 60 + 2 ))m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/iphone-log.txt" 2>&1
+            bash tools/ci/log-reach.sh "the iPhone 17 (log show)" "$OUT/iphone-log.txt" 'duo measure: '
+            xcrun simctl shutdown "$IPHONE"
+          else
+            FAILED=1
+          fi
+
+          # The iPhone Duo: 180 s alone after the boot (§3.8); it stays booted for DuoLayoutUITests (the next step).
+          STARTED="$(date +%s)"
+          if ! boot "$DUO" duo 180; then
+            exit 1
+          fi
+          duo_set outer "${DUO_OUTER_DISPLAY:+--display=$DUO_OUTER_DISPLAY}"
+          if [ "$INNER" = 1 ]; then
+            UDID="$DUO"
+            echo "opening the iPhone Duo (DUO_OPEN): $DUO_OPEN" >> "$ENV_TXT"
+            if ( eval "$DUO_OPEN" ) >> "$ENV_TXT" 2>&1; then
+              sleep 10
+              duo_set inner "--display=$DUO_INNER_DISPLAY"
+            else
+              echo "::error::DUO_OPEN failed (duo-shots/env.txt); no photo of the inner screen."
+              FAILED=1
+            fi
+            if [ -n "$DUO_CLOSE" ]; then
+              ( eval "$DUO_CLOSE" ) >> "$ENV_TXT" 2>&1 || echo "::warning::DUO_CLOSE failed"
+            fi
+          fi
+          xcrun simctl spawn "$DUO" log show --last "$(( ($(date +%s) - STARTED) / 60 + 2 ))m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/duo-log.txt" 2>&1
+          bash tools/ci/log-reach.sh "the iPhone Duo (log show)" "$OUT/duo-log.txt" 'duo measure: '
+          find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -60 -exec cp {} "$OUT/" \; 2>/dev/null
+          echo "the photos: $(grep -c . "$SHOTS") rows; the duo measure: lines: $(grep -c . "$MEASURE")" \
+            "(photos whose lines came from the container file: $(awk -F '\t' '$3 == "the container file"' "$SOURCES" | wc -l | tr -d ' ')," \
+            "from log show: $(awk -F '\t' '$3 == "log show"' "$SOURCES" | wc -l | tr -d ' '), none: $(awk -F '\t' '$3 == "none"' "$SOURCES" | wc -l | tr -d ' '))"
+          cat "$ENV_TXT"
+          ls -la "$OUT"
+          exit "$FAILED"
+
+      # §4.2, §6: DuoLayoutUITests on the Duo the photos used (still booted), told by TEGAKI_DEVICE=duo that it is on the
+      # Duo (TEST_RUNNER_-prefixed: xcodebuild hands it to the test runner without the prefix; elsewhere it skips itself).
+      # The outer screen's run comes first (the photos' step closed the Duo again with DUO_CLOSE). With the inner screen
+      # opened (paths 1 and 2: DUO_OPEN and DUO_INNER_DISPLAY) a second run follows after DUO_OPEN, with TEGAKI_DUO_INNER=1
+      # (TEST_RUNNER_TEGAKI_DUO_INNER=1; DuoLayoutUITests' header: the inner screen's tests run then and the outer
+      # screen's skip), then DUO_CLOSE. At least the number of the path (DUO_UI_MIN_RAN_PATH3; DUO_UI_MIN_RAN_INNER over
+      # both runs with the inner screen opened) must run, passed or failed, with 0 failures; skipped tests are not counted,
+      # and each run counts its own (a test of both screens counts once in each). A DUO_OPEN that fails fails the step.
+      # The simulator, not the app (FLAKE-1, span-shots-app's list): a run goes once more only after those failures. As in
+      # span-shots-app (1.4 D0b), a watchdog stops a run whose log has not grown for 10 min, and after its stop or an
+      # accessibility error (kAXErrorIPC) the Duo is booted again before the one more run (1.4 D1b). The
+      # logs, the lines and the attachments go into duo-shots. The `duo measure:` lines (only from a launch with
+      # --screenshot-measure; they decide nothing here) go to duo-ui-measure.txt (1.4 D1b): the measure-line file of each
+      # run first (deleted before the run, read after it; duo-ui-measure-file.txt), then the app's output in the result
+      # bundles (duo-ui-app-output.txt, tools/ci/xcresult-app-output.sh), then `log show` (duo-ui-log.txt); a line an
+      # earlier source gave is not taken again.
+      - name: DuoLayoutUITests on the iPhone Duo
+        if: ${{ !cancelled() && steps.photos.outcome != 'skipped' }}
+        timeout-minutes: 50
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="$PWD/duo-shots"
+          mkdir -p "$OUT"
+          UDID="${{ steps.required.outputs.duo }}"
+          if [ -n "$DUO_OPEN" ] && [ -n "$DUO_INNER_DISPLAY" ]; then
+            INNER=1
+            MIN="$DUO_UI_MIN_RAN_INNER"
+            WHICH="paths 1 and 2 (the outer and the inner screen's runs, DUO_UI_MIN_RAN_INNER)"
+          else
+            INNER=0
+            MIN="$DUO_UI_MIN_RAN_PATH3"
+            WHICH="path 3 (the outer screen only, DUO_UI_MIN_RAN_PATH3)"
+          fi
+          case "$MIN" in
+            ''|*[!0-9]*)
+              echo "::error::How many DuoLayoutUITests must run on $WHICH is not set (\"$MIN\"): the lead sets it from role U's test list (docs/M7D_CONTRACT.md §4.2)."
+              exit 1
+              ;;
+          esac
+          xcrun simctl boot "$UDID" 2>/dev/null
+          if ! xcrun simctl bootstatus "$UDID" -b > /dev/null; then
+            echo "::error::the iPhone Duo did not boot."
+            exit 1
+          fi
+          BUNDLE="com.syfan0.tegakicalendar"
+          # 1.4 D1b: the measure-line file (as in the photos' step).
+          measure_path() {  # measure_path <udid>: the file's path, or nothing when the app has no data container there
+            local DATA
+            DATA="$(xcrun simctl get_app_container "$1" "$BUNDLE" data 2>/dev/null)" || DATA=""
+            if [ -n "$DATA" ] && [ -d "$DATA" ]; then printf '%s/Library/Caches/duo-measure.txt\n' "$DATA"; fi
+          }
+          # measure_clear <udid>: the file deleted before a run, so the lines it then holds are that run's. Always 0;
+          # MEASURE_CLEARED is 1 when the file is gone, 0 when no container was found or the file could not be deleted.
+          measure_clear() {
+            local F
+            MEASURE_CLEARED=0
+            F="$(measure_path "$1")"
+            if [ -z "$F" ]; then return 0; fi
+            if rm -f "$F"; then MEASURE_CLEARED=1; else echo "::warning::the measure-line file could not be deleted; the last launch's lines may be read again"; fi
+          }
+          # measure_take <udid> <copy> <seconds>: the file's whole lines into <copy> (a last line still without its "\n"
+          # is left out), looked at again each second for up to <seconds> until one has "duo measure: "; 1 when none came.
+          measure_take() {
+            local UDID="$1" COPY="$2" LEFT="$3" F
+            while :; do
+              : > "$COPY"
+              F="$(measure_path "$UDID")"
+              if [ -n "$F" ] && [ -f "$F" ] && cp "$F" "$COPY.raw" 2>/dev/null; then
+                if [ -n "$(tail -c 1 "$COPY.raw")" ]; then sed '$d' "$COPY.raw" > "$COPY"; else cat "$COPY.raw" > "$COPY"; fi
+                rm -f "$COPY.raw"
+                if grep -q 'duo measure: ' "$COPY"; then return 0; fi
+              fi
+              if [ "$LEFT" -le 0 ]; then return 1; fi
+              sleep 1
+              LEFT=$((LEFT - 1))
+            done
+          }
+          # measure_merge <file>…: the `duo measure:` lines of the files in turn (from "duo measure: " on); a line that an
+          # earlier file gave is not taken again, and repeats within one file stay (each launch writes its own lines).
+          measure_merge() {
+            awk 'FNR == 1 && NR > 1 { for (l in now) seen[l] = 1; split("", now) }
+              { i = index($0, "duo measure: "); if (i == 0) next; l = substr($0, i) }
+              !(l in seen) { now[l] = 1; print l }' "$@"
+          }
+          MEASURE_FILE="$OUT/duo-ui-measure-file.txt"
+          : > "$MEASURE_FILE"
+          # The simulator, not the app (FLAKE-1, span-shots-app's list in build.yml): a run goes once more only after these.
+          # 1.4 D1b (as span-shots-app since D0b, docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): in D0 (run 44632524223)
+          # XCUITest's "Setting device orientation to Portrait" wrote nothing for 32 min on the iPad Air 11-inch and then
+          # failed "Failed to get list of active applications: Accessibility error kAXErrorIPCTimeout"; DuoLayoutUITests
+          # turns the Duo to portrait five times. So xcodebuild is stopped when its log has not grown for STALL s (TERM,
+          # KILL 60 s later; the watchdog's line, with the last activity line, goes to duo-ui-watchdog<suffix>.txt), and
+          # that stop and the accessibility errors (WEDGED) are the simulator's too: for them the Duo is shut down and booted
+          # again, light, 9:41 and 180 s alone (§3.8; DUO_OPEN again for the inner screen's run), before the one more run.
+          SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing|kAXErrorIPC|Failed to get list of active applications'
+          WEDGED='kAXErrorIPC|Failed to get list of active applications'
+          STALL=600
+          watchdog() {  # watchdog <pid> <log> <file>: ends <pid> when <log> has not grown for $STALL s, writing <file>
+            local SIZE SEEN=-1 QUIET=0
+            while kill -0 "$1" 2>/dev/null; do
+              sleep 15
+              SIZE="$(wc -c < "$2" 2>/dev/null | tr -d ' ' || echo 0)"
+              if [ "$SIZE" != "$SEEN" ]; then SEEN="$SIZE"; QUIET=0; continue; fi
+              QUIET=$(( QUIET + 15 ))
+              if [ "$QUIET" -ge "$STALL" ]; then
+                echo "watchdog: no output for $QUIET s after \"$(grep -E '^ +t = ' "$2" | tail -n 1 | sed -E 's/^ +//')\"" > "$3"
+                kill -TERM "$1" 2>/dev/null || true
+                sleep 60
+                kill -KILL "$1" 2>/dev/null || true
+                return 0
+              fi
+            done
+          }
+          run_tests() {  # run_tests <suffix> [NAME=value ...]: one run, the watchdog beside it; each NAME=value goes to xcodebuild's environment
+            local suffix="$1" TESTS DOG
+            shift
+            STATUS=0
+            measure_clear "$UDID"
+            env TEST_RUNNER_TEGAKI_DEVICE=duo "$@" xcodebuild \
+              -project TegakiCalendar.xcodeproj \
+              -scheme TegakiCalendar \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$UDID" \
+              -derivedDataPath build/DuoData \
+              -resultBundlePath "build/duo-ui$suffix.xcresult" \
+              -only-testing:TegakiCalendarUITests/DuoLayoutUITests \
+              test-without-building > "$OUT/duo-ui-tests$suffix.log" 2>&1 &
+            TESTS=$!
+            watchdog "$TESTS" "$OUT/duo-ui-tests$suffix.log" "$OUT/duo-ui-watchdog$suffix.txt" &
+            DOG=$!
+            wait "$TESTS" || STATUS=$?
+            kill "$DOG" 2>/dev/null || true
+            wait "$DOG" 2>/dev/null || true
+            # A run the watchdog stopped is a failure even if xcodebuild ended with 0 on its TERM (143: TERM's status).
+            if [ -s "$OUT/duo-ui-watchdog$suffix.txt" ] && [ "$STATUS" = 0 ]; then STATUS=143; fi
+            measure_take "$UDID" "$RUNNER_TEMP/duo-measure-take.txt" 0 || true
+            echo "== the run duo-ui$suffix: $(grep -c 'duo measure: ' "$RUNNER_TEMP/duo-measure-take.txt") lines" >> "$MEASURE_FILE"
+            cat "$RUNNER_TEMP/duo-measure-take.txt" >> "$MEASURE_FILE"
+          }
+          reboot_duo() {  # reboot_duo <suffix>: the Duo shut down and booted again before the one more run (DUO_OPEN again for "-inner")
+            echo "the iPhone Duo is booted again before the one more run of DuoLayoutUITests$1"
+            xcrun simctl shutdown "$UDID" || true
+            xcrun simctl boot "$UDID" 2>/dev/null || true
+            if ! xcrun simctl bootstatus "$UDID" -b > /dev/null; then echo "::warning::the iPhone Duo did not boot again."; fi
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            sleep 180
+            if [ "$1" = "-inner" ]; then
+              if ( eval "$DUO_OPEN" ); then sleep 10; else echo "::warning::DUO_OPEN failed after the Duo was booted again."; fi
+            fi
+          }
+          run_screen() {  # run_screen <suffix> [NAME=value ...]: run_tests, once more after the simulator's failures; sets STATUS and RESULT
+            local suffix="$1" WHY
+            run_tests "$@"
+            RESULT="build/duo-ui$suffix.xcresult"
+            if [ "$STATUS" != 0 ] && { [ -s "$OUT/duo-ui-watchdog$suffix.txt" ] || grep -qE "$SIMULATOR" "$OUT/duo-ui-tests$suffix.log"; }; then
+              WHY="$(cat "$OUT/duo-ui-watchdog$suffix.txt" 2>/dev/null || grep -oE "$SIMULATOR" "$OUT/duo-ui-tests$suffix.log" | head -n 1)"
+              echo "::warning::DuoLayoutUITests$suffix: $WHY; they run once more."
+              mv "$OUT/duo-ui-tests$suffix.log" "$OUT/duo-ui-tests$suffix-first.log"
+              if [ -s "$OUT/duo-ui-watchdog$suffix.txt" ] || grep -qE "$WEDGED" "$OUT/duo-ui-tests$suffix-first.log"; then
+                reboot_duo "$suffix"
+              fi
+              shift
+              run_tests "$suffix-again" "$@"
+              mv "$OUT/duo-ui-tests$suffix-again.log" "$OUT/duo-ui-tests$suffix.log"
+              RESULT="build/duo-ui$suffix-again.xcresult"
+              if [ -s "$OUT/duo-ui-watchdog$suffix-again.txt" ]; then echo "::error::DuoLayoutUITests$suffix: $(cat "$OUT/duo-ui-watchdog$suffix-again.txt") (the one more run)."; fi
+            fi
+          }
+          STARTED="$(date +%s)"
+          run_screen ""
+          OUTER_STATUS="$STATUS"
+          OUTER_RESULT="$RESULT"
+          grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/duo-ui-tests.log" | tail -n 40
+          INNER_RAN=0
+          OPEN_FAILED=0
+          if [ "$INNER" = 1 ]; then
+            echo "opening the iPhone Duo for the inner screen's run (DUO_OPEN): $DUO_OPEN"
+            if ( eval "$DUO_OPEN" ); then
+              sleep 10
+              run_screen "-inner" TEST_RUNNER_TEGAKI_DUO_INNER=1
+              INNER_RAN=1
+              INNER_STATUS="$STATUS"
+              INNER_RESULT="$RESULT"
+              grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/duo-ui-tests-inner.log" | tail -n 40
+            else
+              echo "::error::DUO_OPEN failed: the inner screen's DuoLayoutUITests did not run."
+              OPEN_FAILED=1
+            fi
+            if [ -n "$DUO_CLOSE" ]; then
+              ( eval "$DUO_CLOSE" ) || echo "::warning::DUO_CLOSE failed"
+            fi
+          fi
+          xcrun simctl spawn "$UDID" log show --last "$(( ($(date +%s) - STARTED) / 60 + 2 ))m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/duo-ui-log.txt" 2>&1
+          bash tools/ci/log-reach.sh "DuoLayoutUITests (log show)" "$OUT/duo-ui-log.txt" 'toolbar: paperArea='
+          bash tools/ci/xcresult-app-output.sh "$OUT/duo-ui-app-output.txt" build/duo-ui.xcresult build/duo-ui-again.xcresult build/duo-ui-inner.xcresult build/duo-ui-inner-again.xcresult
+          bash tools/ci/log-reach.sh "DuoLayoutUITests (the app's output)" "$OUT/duo-ui-app-output.txt" 'toolbar: paperArea='
+          touch "$OUT/duo-ui-app-output.txt" "$OUT/duo-ui-log.txt"
+          measure_merge "$MEASURE_FILE" "$OUT/duo-ui-app-output.txt" "$OUT/duo-ui-log.txt" > "$OUT/duo-ui-measure.txt"
+          FROM_FILE="$(measure_merge "$MEASURE_FILE" | wc -l | tr -d ' ')"
+          FROM_OUTPUT="$(( $(measure_merge "$MEASURE_FILE" "$OUT/duo-ui-app-output.txt" | wc -l) - FROM_FILE ))"
+          FROM_LOG="$(( $(wc -l < "$OUT/duo-ui-measure.txt") - FROM_FILE - FROM_OUTPUT ))"
+          echo "DuoLayoutUITests' duo measure: lines: $FROM_FILE from the measure-line file, $FROM_OUTPUT more from the app's output, $FROM_LOG more from log show (duo-shots/duo-ui-measure.txt)"
+          if [ ! -s "$OUT/duo-ui-measure.txt" ]; then
+            echo "::notice::DuoLayoutUITests: no duo measure: line from any source (the app writes it only when launched with --screenshot-measure); nothing here is checked from these lines."
+          fi
+          tail -n 20 "$OUT/duo-ui-measure.txt"
+          mkdir -p "$OUT/ui-attachments"
+          xcrun xcresulttool export attachments --path "$OUTER_RESULT" --output-path "$OUT/ui-attachments" > /dev/null 2>&1 || echo "(no attachments exported)"
+          RUNS=(outer "$OUTER_STATUS" "$OUT/duo-ui-tests.log")
+          if [ "$INNER_RAN" = 1 ]; then
+            mkdir -p "$OUT/ui-attachments-inner"
+            xcrun xcresulttool export attachments --path "$INNER_RESULT" --output-path "$OUT/ui-attachments-inner" > /dev/null 2>&1 || echo "(no attachments of the inner run exported)"
+            RUNS+=(inner "$INNER_STATUS" "$OUT/duo-ui-tests-inner.log")
+          fi
+          python3 -I - "$MIN" "$OPEN_FAILED" "${RUNS[@]}" <<'EOF'
+          import re, sys
+          need, open_failed = int(sys.argv[1]), sys.argv[2] == "1"
+          runs = [sys.argv[i:i + 3] for i in range(3, len(sys.argv), 3)]   # (the screen, xcodebuild's status, the log)
+          seen = {}
+          bad = False
+          for screen, status, log in runs:
+              mine = {}
+              for line in open(log, encoding="utf-8", errors="replace"):
+                  m = (re.search(r"Test [Cc]ase '-\[(?:\w+\.)?(\w+) (\w+)\]' (passed|failed|skipped)", line)
+                       or re.search(r"Test [Cc]ase '(\w+)\.(\w+)\(\)' (passed|failed|skipped)", line))
+                  if m and m.group(1) == "DuoLayoutUITests":
+                      mine[m.group(2)] = m.group(3)
+              for test in sorted(mine):
+                  print("DuoLayoutUITests.%s (the %s screen's run): %s" % (test, screen, mine[test]))
+                  seen[(screen, test)] = mine[test]
+              if int(status) != 0 and "failed" not in mine.values():
+                  print("::error::xcodebuild ended with %s on the %s screen's run (duo-shots/%s)" % (status, screen, log.split("/")[-1]))
+                  bad = True
+          ran = [k for k, s in seen.items() if s != "skipped"]
+          failed = sorted("%s (%s)" % (t, s) for (s, t), r in seen.items() if r == "failed")
+          print("DuoLayoutUITests on the iPhone Duo: %d ran (%d failed), %d skipped over %d run(s); at least %d must run with 0 "
+                "failures (docs/M7D_CONTRACT.md §4.2, §6)" % (len(ran), len(failed), len(seen) - len(ran), len(runs), need))
+          if failed:
+              print("::error::DuoLayoutUITests failed on the iPhone Duo: %s (duo-shots/duo-ui-tests*.log)" % ", ".join(failed))
+              bad = True
+          if len(ran) < need:
+              print("::error::%d DuoLayoutUITests ran on the iPhone Duo (skipped ones are not counted); at least %d must "
+                    "(§4.2: the number written for this path)" % (len(ran), need))
+              bad = True
+          if open_failed:
+              print("::error::DUO_OPEN failed: the inner screen's tests did not run (§4.2, paths 1 and 2)")
+              bad = True
+          sys.exit(1 if bad else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        env:
+          ENV_TXT: duo-shots/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # §6's C row, §7.3: every photo of shots.tsv (not black, no black edge band, App Store's size for its screen) and
+      # every duo measure: line (one from each launch, every kind in portrait and landscape on every screen photographed,
+      # and what §4.2, §4.7, §4.8 and §7.3 expect of them). The table it prints (window, safe area, scale, paper area, V, R,
+      # cap, hinge, origin, finger of each photo) is what docs/M7D.md and DuoChecks take the measured values from (§4.2).
+      - name: The photos and the lines (shot_checks.py)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          INNER_ARG=""
+          if [ -n "$DUO_OPEN" ] && [ -n "$DUO_INNER_DISPLAY" ]; then INNER_ARG="--inner"; fi
+          # $INNER_ARG unquoted on purpose: one word or nothing.
+          python3 -I tools/duo/shot_checks.py check duo-shots $INNER_ARG --uses-hinge "$DUO_USES_HINGE" --size-rule "$DUO_SIZE_RULE" | tee duo-shots/shot-checks.txt
+
+      - name: Upload the Duo's photos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duo-shots
+          path: duo-shots
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
+  # 1.4 D1 (docs/M7D_CONTRACT.md §3.10, §4.2 path 2, §4.9, 0d-34): the hinge's UI tests (DuoHingeUITests: open, write on
+  # the week, close, open; close and write, then open; close while writing), only on a dispatch with `job: hinge`. They
+  # need XCUIHinge [S6], which only Xcode 27.3 has: the Xcode is the newest 27.3 or 27.3.x of the image, told a release (its
+  # build ends in a digit) from a beta (a lower-case letter; the image 20261119 names its beta Xcode_27.3.app too, §3.1)
+  # by what `xcodebuild -version` says. The tests are compiled with DUO_HINGE (on the xcodebuild line only; build.yml
+  # checks that project.yml never has it) and run on the Duo of iOS 27.2 with TEGAKI_DEVICE=duo. They decide (fail the
+  # job) only with a release of 27.3 on which they ran (DuoHingeUITests skips itself where XCUIHinge cannot open the Duo);
+  # with a beta, or when every test skipped, the job only records (log, attachments, duo measure: lines), its photos are
+  # never the store's and its results never decide the new-feature text (§4.2, §8.1). No Xcode 27.3 on the image: nothing
+  # to record. Submission builds stay on 27.2 (§3.1). Artifact "duo-hinge" (kept 7 days).
+  duo-hinge:
+    name: duo-hinge (1.4, D1; a record unless a release of Xcode 27.3)
+    if: ${{ inputs.job == 'hinge' }}
+    runs-on: xcode-27
+    timeout-minutes: 75
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # The newest release of Xcode 27.3 or 27.3.x in /Applications by what `xcodebuild -version` says, else the newest beta
+      # (never by its path, §3.1). Outputs: path (empty: none, and the later steps do not run), version, build,
+      # release (true: the build ends in a digit).
+      - name: Select Xcode 27.3 (a release decides; a beta only records)
+        id: xcode
+        run: |
+          set -euo pipefail
+          FOUND="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          best = None
+          seen = set()
+          for app in sorted(glob.glob("/Applications/Xcode*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  continue
+              seen.add(real)
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              if re.fullmatch(r"27\.3(\.[0-9]+)?", version) is None:
+                  continue
+              release = re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s: %s" % (app, real, version, build, "a release" if release else "a beta"), file=sys.stderr)
+              numbers = tuple(int(p) for p in version.split(".")) + (0, 0)
+              key = (release, numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build)))
+              if best is None or key > best[0]:
+                  best = (key, "%s|%s|%s|%s" % (real, version, build, "true" if release else "false"))
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$FOUND" ]; then
+            echo "::notice::No Xcode 27.3 on this image (docs/M7D_CONTRACT.md §3.10): duo-hinge has nothing to record."
+            echo "path=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          IFS='|' read -r XCODE VERSION BUILD RELEASE <<< "$FOUND"
+          echo "Selected: $XCODE (Xcode $VERSION, build $BUILD, release: $RELEASE)"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
+          xcode-select -p
+          xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+          if [ "$RELEASE" != true ]; then
+            echo "::notice::Xcode $VERSION ($BUILD) is a beta: duo-hinge only records (docs/M7D_CONTRACT.md §3.10, 0d-34)."
+          fi
+          {
+            echo "path=$XCODE"
+            echo "version=$VERSION"
+            echo "build=$BUILD"
+            echo "release=$RELEASE"
+          } >> "$GITHUB_OUTPUT"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        if: ${{ steps.xcode.outputs.path != '' }}
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            duo|iPhone Duo|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
+      - name: Install XcodeGen
+        if: ${{ steps.xcode.outputs.path != '' }}
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
+
+      - name: Generate the Xcode project
+        if: ${{ steps.xcode.outputs.path != '' }}
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      # DUO_HINGE on the xcodebuild line only (single quotes: $(inherited) is the build setting's, not the shell's), for
+      # the app and both test targets; never in project.yml (build.yml's "The hinge tests' mark (1.4)"). With a beta a
+      # failed build only records.
+      - name: Build the app and the hinge tests (DUO_HINGE)
+        id: build
+        if: ${{ steps.xcode.outputs.path != '' }}
+        continue-on-error: ${{ steps.xcode.outputs.release != 'true' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          mkdir -p duo-hinge
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            echo "Xcode 27.3: ${{ steps.xcode.outputs.version }} (${{ steps.xcode.outputs.build }}), release: ${{ steps.xcode.outputs.release }}"
+            xcrun simctl list runtimes
+          } > duo-hinge/env.txt || echo "::warning::env.txt could not all be written"
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/HingeData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) DUO_HINGE' \
+            build-for-testing 2>&1 | tee duo-hinge/build.log
+          ls build/HingeData/Build/Products/*.xctestrun
+
+      # The Duo booted and left alone 180 s (§3.8), then DuoHingeUITests (FLAKE-1: once more only after the simulator's
+      # failures). A test that ran is one not skipped; the step fails only with a release of 27.3 on which at least one ran
+      # and one failed (or xcodebuild failed). Otherwise it records. The `duo measure:` lines go to measure.txt (1.4 D1b, as
+      # duo-shots' UI tests): the measure-line file of each run first (measure-file.txt), then the app's output in the
+      # result bundles (app-output.txt), then `log show` (app-log.txt); a line an earlier source gave is not taken again.
+      - name: DuoHingeUITests on the iPhone Duo
+        if: ${{ steps.xcode.outputs.path != '' && steps.build.outcome == 'success' }}
+        continue-on-error: ${{ steps.xcode.outputs.release != 'true' }}
+        timeout-minutes: 30
+        run: |
+          set +e
+          set -uo pipefail
+          OUT="$PWD/duo-hinge"
+          mkdir -p "$OUT"
+          UDID="${{ steps.required.outputs.duo }}"
+          RELEASE="${{ steps.xcode.outputs.release }}"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          sim_env duo "$UDID" >> "$OUT/env.txt" || echo "::warning::no runtime line for duo"
+          STARTED="$(date +%s)"
+          xcrun simctl boot "$UDID" 2>/dev/null
+          if ! xcrun simctl bootstatus "$UDID" -b > /dev/null; then
+            echo "::error::the iPhone Duo did not boot."
+            exit 1
+          fi
+          echo "duo: booted in $(( $(date +%s) - STARTED )) s, then 180 s alone" >> "$OUT/env.txt"
+          xcrun simctl ui "$UDID" appearance light
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3
+          sleep 180
+          BUNDLE="com.syfan0.tegakicalendar"
+          # 1.4 D1b: the measure-line file (as in duo-shots).
+          measure_path() {  # measure_path <udid>: the file's path, or nothing when the app has no data container there
+            local DATA
+            DATA="$(xcrun simctl get_app_container "$1" "$BUNDLE" data 2>/dev/null)" || DATA=""
+            if [ -n "$DATA" ] && [ -d "$DATA" ]; then printf '%s/Library/Caches/duo-measure.txt\n' "$DATA"; fi
+          }
+          # measure_clear <udid>: the file deleted before a run, so the lines it then holds are that run's. Always 0;
+          # MEASURE_CLEARED is 1 when the file is gone, 0 when no container was found or the file could not be deleted.
+          measure_clear() {
+            local F
+            MEASURE_CLEARED=0
+            F="$(measure_path "$1")"
+            if [ -z "$F" ]; then return 0; fi
+            if rm -f "$F"; then MEASURE_CLEARED=1; else echo "::warning::the measure-line file could not be deleted; the last launch's lines may be read again"; fi
+          }
+          # measure_take <udid> <copy> <seconds>: the file's whole lines into <copy> (a last line still without its "\n"
+          # is left out), looked at again each second for up to <seconds> until one has "duo measure: "; 1 when none came.
+          measure_take() {
+            local UDID="$1" COPY="$2" LEFT="$3" F
+            while :; do
+              : > "$COPY"
+              F="$(measure_path "$UDID")"
+              if [ -n "$F" ] && [ -f "$F" ] && cp "$F" "$COPY.raw" 2>/dev/null; then
+                if [ -n "$(tail -c 1 "$COPY.raw")" ]; then sed '$d' "$COPY.raw" > "$COPY"; else cat "$COPY.raw" > "$COPY"; fi
+                rm -f "$COPY.raw"
+                if grep -q 'duo measure: ' "$COPY"; then return 0; fi
+              fi
+              if [ "$LEFT" -le 0 ]; then return 1; fi
+              sleep 1
+              LEFT=$((LEFT - 1))
+            done
+          }
+          # measure_merge <file>…: the `duo measure:` lines of the files in turn (from "duo measure: " on); a line that an
+          # earlier file gave is not taken again, and repeats within one file stay (each launch writes its own lines).
+          measure_merge() {
+            awk 'FNR == 1 && NR > 1 { for (l in now) seen[l] = 1; split("", now) }
+              { i = index($0, "duo measure: "); if (i == 0) next; l = substr($0, i) }
+              !(l in seen) { now[l] = 1; print l }' "$@"
+          }
+          MEASURE_FILE="$OUT/measure-file.txt"
+          : > "$MEASURE_FILE"
+          run_tests() {  # run_tests <suffix>
+            STATUS=0
+            measure_clear "$UDID"
+            TEST_RUNNER_TEGAKI_DEVICE=duo xcodebuild \
+              -project TegakiCalendar.xcodeproj \
+              -scheme TegakiCalendar \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$UDID" \
+              -derivedDataPath build/HingeData \
+              -resultBundlePath "build/duo-hinge$1.xcresult" \
+              -only-testing:TegakiCalendarUITests/DuoHingeUITests \
+              test-without-building > "$OUT/duo-hinge-tests$1.log" 2>&1 || STATUS=$?
+            measure_take "$UDID" "$RUNNER_TEMP/duo-measure-take.txt" 0 || true
+            echo "== the run duo-hinge$1: $(grep -c 'duo measure: ' "$RUNNER_TEMP/duo-measure-take.txt") lines" >> "$MEASURE_FILE"
+            cat "$RUNNER_TEMP/duo-measure-take.txt" >> "$MEASURE_FILE"
+          }
+          run_tests ""
+          RESULT=build/duo-hinge.xcresult
+          SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing'
+          if [ "$STATUS" != 0 ] && grep -qE "$SIMULATOR" "$OUT/duo-hinge-tests.log"; then
+            echo "::warning::DuoHingeUITests: $(grep -oE "$SIMULATOR" "$OUT/duo-hinge-tests.log" | head -n 1); they run once more."
+            mv "$OUT/duo-hinge-tests.log" "$OUT/duo-hinge-tests-first.log"
+            run_tests "-again"
+            mv "$OUT/duo-hinge-tests-again.log" "$OUT/duo-hinge-tests.log"
+            RESULT=build/duo-hinge-again.xcresult
+          fi
+          grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/duo-hinge-tests.log" | tail -n 40
+          xcrun simctl spawn "$UDID" log show --last "$(( ($(date +%s) - STARTED) / 60 + 2 ))m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/app-log.txt" 2>&1
+          bash tools/ci/log-reach.sh "DuoHingeUITests (log show)" "$OUT/app-log.txt" 'toolbar: paperArea='
+          bash tools/ci/xcresult-app-output.sh "$OUT/app-output.txt" build/duo-hinge.xcresult build/duo-hinge-again.xcresult
+          bash tools/ci/log-reach.sh "DuoHingeUITests (the app's output)" "$OUT/app-output.txt" 'toolbar: paperArea='
+          touch "$OUT/app-output.txt" "$OUT/app-log.txt"
+          measure_merge "$MEASURE_FILE" "$OUT/app-output.txt" "$OUT/app-log.txt" > "$OUT/measure.txt"
+          FROM_FILE="$(measure_merge "$MEASURE_FILE" | wc -l | tr -d ' ')"
+          FROM_OUTPUT="$(( $(measure_merge "$MEASURE_FILE" "$OUT/app-output.txt" | wc -l) - FROM_FILE ))"
+          FROM_LOG="$(( $(wc -l < "$OUT/measure.txt") - FROM_FILE - FROM_OUTPUT ))"
+          echo "duo measure: lines: $(grep -c . "$OUT/measure.txt") ($FROM_FILE from the measure-line file, $FROM_OUTPUT more from the app's output, $FROM_LOG more from log show)"
+          mkdir -p "$OUT/attachments"
+          xcrun xcresulttool export attachments --path "$RESULT" --output-path "$OUT/attachments" > /dev/null 2>&1 || echo "(no attachments exported)"
+          find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -40 -exec cp {} "$OUT/" \; 2>/dev/null
+          xcrun simctl shutdown "$UDID"
+          python3 -I - "$OUT/duo-hinge-tests.log" "$STATUS" "$RELEASE" <<'EOF'
+          import re, sys
+          log, status, release = sys.argv[1], int(sys.argv[2]), sys.argv[3] == "true"
+          seen = {}
+          for line in open(log, encoding="utf-8", errors="replace"):
+              m = (re.search(r"Test [Cc]ase '-\[(?:\w+\.)?(\w+) (\w+)\]' (passed|failed|skipped)", line)
+                   or re.search(r"Test [Cc]ase '(\w+)\.(\w+)\(\)' (passed|failed|skipped)", line))
+              if m and m.group(1) == "DuoHingeUITests":
+                  seen[m.group(2)] = m.group(3)
+          for test in sorted(seen):
+              print("DuoHingeUITests.%s: %s" % (test, seen[test]))
+          ran = [t for t, s in seen.items() if s != "skipped"]
+          failed = sorted(t for t, s in seen.items() if s == "failed")
+          decides = release and len(ran) > 0
+          print("DuoHingeUITests: %d ran (%d failed), %d skipped, xcodebuild %d; %s" % (
+              len(ran), len(failed), len(seen) - len(ran), status,
+              "a release of Xcode 27.3 on which they ran: this decides (docs/M7D_CONTRACT.md §3.10)" if decides
+              else "a record only (%s; docs/M7D_CONTRACT.md §3.10, 0d-34)" % ("a beta of Xcode 27.3" if not release else "every test skipped: XCUIHinge did not open the Duo")))
+          if decides and (failed or status != 0):
+              print("::error::DuoHingeUITests on a release of Xcode 27.3: %s (duo-hinge/duo-hinge-tests.log)"
+                    % (", ".join(failed) + " failed" if failed else "xcodebuild ended with %d" % status))
+              sys.exit(1)
+          if not decides:
+              print("::notice::duo-hinge recorded only: its results and photos decide nothing (docs/M7D_CONTRACT.md §4.2, §8.1)")
+          sys.exit(0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && steps.xcode.outputs.path != '' && steps.build.outcome == 'success' }}
+        continue-on-error: ${{ steps.xcode.outputs.release != 'true' }}
+        env:
+          ENV_TXT: duo-hinge/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
+
+      - name: Upload the hinge tests' record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: duo-hinge
+          path: duo-hinge
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi

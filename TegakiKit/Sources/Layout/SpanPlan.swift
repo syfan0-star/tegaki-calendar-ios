@@ -3,8 +3,8 @@ import CoreGraphics
 
 /// The device a window is sized for (docs/M7C_CONTRACT.md §3.6). The window size is fixed per class
 /// and orientation (not computed from the live paper area, so a band that gains a lane never changes
-/// it); `SpanPlan.referenceViewport` holds the paper area each class stands for. The iPhone Duo's inner
-/// screen is 1.4's (§1.6; its row of the table is checked on the radius rule only).
+/// it); `SpanPlan.referenceViewport` holds the paper area each class stands for. The iPhone Duo is
+/// `.iPhone` on both of its screens (1.4, docs/M7D_CONTRACT.md §4.6; KitChecks' section "duo (1.4)").
 public enum SpanDeviceClass: String, CaseIterable, Sendable, Codable {
     case iPhone
     /// iPad mini (744 × 1133 pt).
@@ -110,16 +110,16 @@ public struct SpanPlan: Sendable, Equatable {
     // MARK: Fixed numbers (§3.16)
 
     /// The focus changes only when the middle of the screen is 6 % of a page past the focus page's edge
-    /// (B_DESIGN.md:181, 5–8 %; the prototype may change it).
+    /// (B_DESIGN.md:181, 5–8 %; 1.3 kept it after its prototype, docs/M7C.md).
     public static let focusHysteresis: CGFloat = 0.06
 
     /// A slow stop whose page edge is this close to a screen edge (a fraction of the screen's width)
-    /// snaps the two together (§3.6, B_DESIGN.md:276; the prototype may change it).
+    /// snaps the two together (§3.6, B_DESIGN.md:276; 1.3 kept it after its prototype, docs/M7C.md).
     public static let snapFraction: CGFloat = 0.06
 
     /// The speed (pt per ms, the unit of `scrollViewWillEndDragging`'s velocity) from which a release
     /// at a page-fitting zoom is a fling to the next page; slower is a stop where it is. Not a number
-    /// of the contract: chosen here, measured in the prototype (§4.6).
+    /// of the contract: chosen here, kept after 1.3's prototype (§4.6, docs/M7C.md).
     public static let flingVelocity: CGFloat = 0.3
 
     /// The bytes one stroke takes at least in a page file (LZFSE; 40 points ≈ 0.26 KB, 120 points ≈
@@ -127,7 +127,7 @@ public struct SpanPlan: Sendable, Equatable {
     public static let bytesPerStroke = 250
 
     /// The most strokes a window may hold before stage 2 brings the kind back to one page at a time
-    /// (D18, §3.15): iPad 20,000, iPhone 12,000. To be measured again in the prototype.
+    /// (D18, §3.15): iPad 20,000, iPhone 12,000 (the iPhone Duo's too). 1.3 kept them after its prototype.
     public static let windowStrokeCap: (iPad: Int, iPhone: Int) = (iPad: 20_000, iPhone: 12_000)
 
     /// `windowStrokeCap` of this plan's device.

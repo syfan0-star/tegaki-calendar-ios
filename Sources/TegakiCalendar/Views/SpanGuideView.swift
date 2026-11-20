@@ -13,7 +13,8 @@ import SwiftUI
 
 /// The first-time guide's rules and words (pure functions, fixed in SettingsPageSectionTests).
 enum SpanGuide {
-    /// §3.16: the card stays 8 seconds (not one of the numbers the prototype may change).
+    /// §3.16: the card stays 8 seconds, a fixed number (1.4, docs/M7D_CONTRACT.md §1.5 (c): the prototype that could
+    /// tune §3.16's numbers went at S6; the tag r13-proto-1 keeps it).
     static let duration: TimeInterval = 8
 
     /// The kinds joined sideways in 1.3 (D2): week and day. Month (1.7) and year (1.8) stay one page at a time

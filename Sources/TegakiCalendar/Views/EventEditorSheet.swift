@@ -44,6 +44,9 @@ struct EventEditorSheet: View {
     var readOnlyNote: String? = nil
     /// 「購読する」 under that footnote (the owner closes this sheet and shows the paywall); nil = no button.
     var onSubscribe: (() -> Void)? = nil
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.4): the window's size (the root view's, with its safe area) the sheet is shown in.
+    /// nil (the default) keeps 1.3's idiom branch exactly; with a size `WindowClass.usesFormSheet` decides (`usesFormSheet`).
+    var windowSize: CGSize? = nil
 
     /// The footnote while the app is read only (M5_CONTRACT §3.3).
     static let subscriptionNote = L.text("event.subscriptionNote")
@@ -79,7 +82,8 @@ struct EventEditorSheet: View {
         onSubmit: @escaping (EventEditorResult) async throws -> Void,
         onCancel: @escaping () -> Void,
         readOnlyNote: String? = nil,
-        onSubscribe: (() -> Void)? = nil
+        onSubscribe: (() -> Void)? = nil,
+        windowSize: CGSize? = nil
     ) {
         self.mode = mode
         self.draft = draft
@@ -91,6 +95,7 @@ struct EventEditorSheet: View {
         self.onCancel = onCancel
         self.readOnlyNote = readOnlyNote
         self.onSubscribe = onSubscribe
+        self.windowSize = windowSize
         _form = State(initialValue: EventEditorForm(draft: draft))
         _calendarId = State(initialValue: draft.calendarId)
         _eraseInk = State(initialValue: eraseDefault)
@@ -133,11 +138,24 @@ struct EventEditorSheet: View {
     // MARK: - Body
 
     var body: some View {
-        if UIDevice.current.userInterfaceIdiom == .phone {
+        // 1.4 (§4.4): by the window's size when the screen passes it, else by the idiom as in 1.3.
+        let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+        if !Self.usesFormSheet(isPhone: isPhone, windowSize: windowSize) {
             sheetContent.presentationDetents([.large])
         } else {
+            // 1.3's iPad sheet as it is (the system's form sheet; no sizing of its own, unlike the purchase sheet).
             sheetContent
         }
+    }
+
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.4, §4.1 row 6): whether the sheet is the form sheet (else `.large`), as
+    /// `PaywallSheet.usesFormSheet`. Without a window size (nil) it is 1.3's branch exactly: every idiom but the phone. With
+    /// one, `WindowClass.usesFormSheet`: every idiom but the phone still, and a phone's window only when it is wide and
+    /// `WindowClass.formSheetOnWide` (false until §4.4's shots decide it), so every phone window keeps 1.3's `.large` by
+    /// default. The Scribble note (`isPad`, §4.1 row 7) is about what the device can do and stays the idiom's.
+    static func usesFormSheet(isPhone: Bool, windowSize: CGSize?) -> Bool {
+        guard let windowSize else { return !isPhone }
+        return WindowClass.usesFormSheet(isPad: !isPhone, windowSize: windowSize)
     }
 
     private var sheetContent: some View {
