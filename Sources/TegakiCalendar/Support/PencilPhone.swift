@@ -144,7 +144,7 @@ final class PencilPhone {
         observer.onChange = { [weak self] change in self?.touched(change) }
         window.addGestureRecognizer(observer)
         self.observer = observer
-        watchHinge(on: window.rootViewController?.view ?? window)
+        hingeAnswered(false) // MUTATION U1 (r14-duo-m1, never merged): H not connected; was watchHinge(on: window.rootViewController?.view ?? window)
     }
 
     /// The watchers off the window they were on (a move to another window): what was still down counts as lifted.
