@@ -63,3 +63,48 @@ enum HeaderOrder {
         }
     }
 }
+
+#if DEBUG
+// r141-alt only (docs/R1_4_1_CONTRACT.md §3.2, §7.5; the throwaway branch of the owner's choice photos, never merged): the order
+// (b), the date first, which screenshot mode's `--screenshot-header-order b` lays out (`ScreenshotMode.headerOrderB`). Debug
+// builds only, so a Release build is r141's: `HeaderPiece`, `pieces(arm:hand:readOnly:)` and `HeaderOrderTests` stay as they
+// are. If the owner picks (b), r141 makes it the table itself, with the new piece `gap` (§3.2), and redoes D1–D2's gates.
+
+/// One place of a row of the order (b): a piece, or the gap (`Spacer(minLength: 0)`) right after 「‹ 今日 ›」 and 等倍 that
+/// keeps them next to the title instead of pushed to the far end (§3.2).
+enum HeaderSlot: Hashable, Sendable {
+    case piece(HeaderPiece)
+    case gap
+}
+
+extension HeaderOrder {
+    /// The order (b) of §3.2 from left to right. The right hand's:
+    ///
+    /// ```
+    /// wide           [title][today][zoomReset][gap][picker][badge?][add][sync][settings]
+    /// compactFirst   [title][today][gap][add][sync][settings]
+    /// compactSecond  [zoomReset][picker]                         (as the order (a))
+    /// ```
+    ///
+    /// The left hand's is the right hand's reversed, as in the order (a) (0e-13); the badge as in (a), the wide row only and
+    /// only while read only.
+    static func slotsB(arm: Arm, hand: Hand, readOnly: Bool) -> [HeaderSlot] {
+        let right: [HeaderSlot]
+        switch arm {
+        case .wide:
+            var row: [HeaderSlot] = [.piece(.title), .piece(.today), .piece(.zoomReset), .gap, .piece(.picker)]
+            if readOnly { row.append(.piece(.badge)) }
+            row += [.piece(.add), .piece(.sync), .piece(.settings)]
+            right = row
+        case .compactFirst:
+            right = [.piece(.title), .piece(.today), .gap, .piece(.add), .piece(.sync), .piece(.settings)]
+        case .compactSecond:
+            right = pieces(arm: .compactSecond, hand: .right, readOnly: readOnly).map(HeaderSlot.piece)
+        }
+        switch hand {
+        case .right: return right
+        case .left: return Array(right.reversed())
+        }
+    }
+}
+#endif

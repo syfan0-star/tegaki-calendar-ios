@@ -116,25 +116,61 @@ struct PageHeaderView: View {
             // `fixedSize`). 1.4.1 (§3.2, §3.3): the second row is 等倍 and the switch, as tall as the switch.
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
-                    ForEach(HeaderOrder.pieces(arm: .compactFirst, hand: hand, readOnly: readOnly), id: \.self) { piece in
-                        view(for: piece, in: .compactFirst)
-                    }
+                    row(.compactFirst)
                 }
                 HStack(spacing: 8) {
-                    ForEach(HeaderOrder.pieces(arm: .compactSecond, hand: hand, readOnly: readOnly), id: \.self) { piece in
-                        view(for: piece, in: .compactSecond)
-                    }
+                    row(.compactSecond)
                 }
                 .fixedSize(horizontal: false, vertical: true)
             }
         } else {
             HStack(spacing: 6) {
-                ForEach(HeaderOrder.pieces(arm: .wide, hand: hand, readOnly: readOnly), id: \.self) { piece in
-                    view(for: piece, in: .wide)
-                }
+                row(.wide)
             }
         }
     }
+
+    /// The pieces of `arm` in `HeaderOrder`'s order. r141-alt (docs/R1_4_1_CONTRACT.md §7.5; Debug builds only): with
+    /// screenshot mode's `--screenshot-header-order b` the order (b) of §3.2 instead (`rowB`).
+    @ViewBuilder
+    private func row(_ arm: HeaderOrder.Arm) -> some View {
+        #if DEBUG
+        if ScreenshotMode.headerOrderB {
+            rowB(arm)
+        } else {
+            ForEach(HeaderOrder.pieces(arm: arm, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                view(for: piece, in: arm)
+            }
+        }
+        #else
+        ForEach(HeaderOrder.pieces(arm: arm, hand: hand, readOnly: readOnly), id: \.self) { piece in
+            view(for: piece, in: arm)
+        }
+        #endif
+    }
+
+    #if DEBUG
+    /// r141-alt only (§3.2's table of the order (b), §7.5 (A)): the date first, then 「‹ 今日 ›」 and 等倍, then the gap
+    /// (`Spacer(minLength: 0)`) and the rest; the left hand's reversed (`HeaderOrder.slotsB`). The title loses `maxWidth:
+    /// .infinity` and takes its own width (§3.2), still shrinking to `minimumScaleFactor(0.6)` and then cut with 「…」 (never
+    /// `fixedSize`). Its `layoutPriority(0.5)` — under the buttons' 1, over the gap's 0 — gives it the room the buttons leave
+    /// before the gap takes the rest, so the gap never shrinks the title while there is room (two views of priority 0 in a
+    /// stack would each be offered half of the room left).
+    @ViewBuilder
+    private func rowB(_ arm: HeaderOrder.Arm) -> some View {
+        ForEach(HeaderOrder.slotsB(arm: arm, hand: hand, readOnly: readOnly), id: \.self) { slot in
+            switch slot {
+            case .piece(.title):
+                titleText(arm == .wide ? .title2 : .headline)
+                    .layoutPriority(0.5)
+            case .piece(let piece):
+                view(for: piece, in: arm)
+            case .gap:
+                Spacer(minLength: 0)
+            }
+        }
+    }
+    #endif
 
     // MARK: - Pieces
 
@@ -253,28 +289,18 @@ struct PageHeaderView: View {
     /// shown and always enabled, read only too; at the opening zoom a tap changes nothing. On the wide row a 44 × 44 target
     /// on a 36 pt circle; on the compact second row (`fillsRow`) a rounded rectangle at least 44 wide that grows to the
     /// switch's height (`maxHeight: .infinity` in a row of `fixedSize(horizontal: false, vertical: true)`) and never sets it.
+    /// The face is `zoomResetIcon`; r141-alt's Debug builds draw `zoomResetWord` instead with `--screenshot-zoom-button word`.
     private func zoomResetButton(fillsRow: Bool) -> some View {
         Button(action: onZoomReset) {
-            if fillsRow {
-                Image(systemName: Self.zoomResetSymbol)
-                    .font(.body)
-                    .frame(minWidth: 44, maxHeight: .infinity)
-                    .background {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color(uiColor: .tertiarySystemFill))
-                    }
-                    .contentShape(Rectangle())
+            #if DEBUG
+            if ScreenshotMode.zoomButtonWord {
+                zoomResetWord(fillsRow: fillsRow)
             } else {
-                Image(systemName: Self.zoomResetSymbol)
-                    .font(.body)
-                    .frame(width: 44, height: 44)
-                    .background {
-                        Circle()
-                            .fill(Color(uiColor: .tertiarySystemFill))
-                            .frame(width: Self.capsuleHeight, height: Self.capsuleHeight)
-                    }
-                    .contentShape(Rectangle())
+                zoomResetIcon(fillsRow: fillsRow)
             }
+            #else
+            zoomResetIcon(fillsRow: fillsRow)
+            #endif
         }
         .buttonStyle(.plain)
         .foregroundStyle(.tint)
@@ -283,6 +309,70 @@ struct PageHeaderView: View {
         .accessibilityLabel(Self.zoomResetLabel)
         .accessibilityIdentifier(Self.zoomResetIdentifier)
     }
+
+    /// 等倍's face: the magnifying glass with a 1 (`zoomResetSymbol`), on the compact second row a rounded rectangle at least 44
+    /// wide as tall as the switch, on the wide row a 36 pt circle in a 44 × 44 target.
+    @ViewBuilder
+    private func zoomResetIcon(fillsRow: Bool) -> some View {
+        if fillsRow {
+            Image(systemName: Self.zoomResetSymbol)
+                .font(.body)
+                .frame(minWidth: 44, maxHeight: .infinity)
+                .background {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(uiColor: .tertiarySystemFill))
+                }
+                .contentShape(Rectangle())
+        } else {
+            Image(systemName: Self.zoomResetSymbol)
+                .font(.body)
+                .frame(width: 44, height: 44)
+                .background {
+                    Circle()
+                        .fill(Color(uiColor: .tertiarySystemFill))
+                        .frame(width: Self.capsuleHeight, height: Self.capsuleHeight)
+                }
+                .contentShape(Rectangle())
+        }
+    }
+
+    #if DEBUG
+    /// r141-alt only (docs/R1_4_1_CONTRACT.md §7.5 (B), §8.1; Debug builds only, `--screenshot-zoom-button word`): 等倍 as
+    /// the word `header.zoomReset` (「等倍」) in the icon's place and at least its size. The wide row: 17 pt, as 「今日」 of
+    /// the capsule beside it, 8 pt on each side, at least 44 × 44, on a 36 pt capsule (`tertiarySystemFill`). The compact
+    /// second row: 13 pt semibold, as the switch's words beside it, 8 pt on each side, at least 44 wide, as tall as the switch,
+    /// on the same rounded rectangle as the icon. Those are §8.1's two widths (17 pt within ja + 16.5 pt, 13 pt semibold
+    /// within 44.5 pt). `fixedSize`, so the title gives way, never the word.
+    @ViewBuilder
+    private func zoomResetWord(fillsRow: Bool) -> some View {
+        if fillsRow {
+            Text(L.text("header.zoomReset"))
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 8)
+                .frame(minWidth: 44, maxHeight: .infinity)
+                .background {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(uiColor: .tertiarySystemFill))
+                }
+                .contentShape(Rectangle())
+        } else {
+            Text(L.text("header.zoomReset"))
+                .font(.body)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 8)
+                .frame(minWidth: 44, minHeight: 44)
+                .background {
+                    Capsule()
+                        .fill(Color(uiColor: .tertiarySystemFill))
+                        .frame(height: Self.capsuleHeight)
+                }
+                .contentShape(Rectangle())
+        }
+    }
+    #endif
 
     /// F-11: one text in ja (1.1), and whenever there is no holiday; otherwise the date and the
     /// holiday are two texts and the holiday is cut first.

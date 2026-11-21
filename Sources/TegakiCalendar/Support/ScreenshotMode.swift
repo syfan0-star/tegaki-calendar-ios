@@ -1344,3 +1344,27 @@ final class ScreenshotMeasure {
         return windows.first(where: \.isKeyWindow) ?? windows.first
     }
 }
+
+// MARK: - r141-alt: the owner's choice photos (docs/R1_4_1_CONTRACT.md §7.5; Debug builds only, never merged)
+
+#if DEBUG
+extension ScreenshotMode {
+    /// r141-alt only (§3.2, §7.5 (A)): `--screenshot-header-order b` lays every row of the header out in the order (b), the date
+    /// first (`HeaderOrder.slotsB`), for both hands. Without it, with `a` or with an unknown value: the order (a), r141's. Only
+    /// with `--screenshot-mode`; nothing is read or stored. Not in `Config`, so `parse` and its tests are r141's.
+    static let headerOrderB: Bool = altValue(ProcessInfo.processInfo.arguments, flag: "--screenshot-header-order") == "b"
+
+    /// r141-alt only (§3.1, §7.5 (B), §8.1): `--screenshot-zoom-button word` draws 等倍 as the word `header.zoomReset` (「等倍」)
+    /// in the icon's place, at least as large (the 44 pt target). Without it, with `icon` or with an unknown value: the
+    /// magnifying glass with a 1, r141's. Only with `--screenshot-mode`.
+    static let zoomButtonWord: Bool = altValue(ProcessInfo.processInfo.arguments, flag: "--screenshot-zoom-button") == "word"
+
+    /// The value after `flag` in a screenshot mode launch (`--screenshot-mode` given); nil without either, or with no value.
+    static func altValue(_ arguments: [String], flag: String) -> String? {
+        guard arguments.contains("--screenshot-mode"), let index = arguments.firstIndex(of: flag), index + 1 < arguments.count else {
+            return nil
+        }
+        return arguments[index + 1]
+    }
+}
+#endif
