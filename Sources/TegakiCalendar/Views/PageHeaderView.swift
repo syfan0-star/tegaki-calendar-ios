@@ -29,7 +29,8 @@ import UIKit
 /// (M4B-15), so there the owner shows a notice row under the header instead (M5-13). 「‹ 今日 ›」 and 等倍 work while read
 /// only too (`GatedAction.navigate`, `.zoom`).
 ///
-/// The title comes from `PageNavigation.title` (`compactTitle` on the compact rows, M4b: the owner passes the short form);
+/// The title comes from `PageNavigation.title` (`compactTitle` on the compact rows, M4b, and on an iPhone's wide row, 1.4.1:
+/// the owner passes the short form, `CalendarRootScreen.usesShortTitle`);
 /// the owner measures the width and passes `compact`. Every button keeps its size (`fixedSize`, `layoutPriority(1)`; 96dafab)
 /// and only the title gives way: its frame takes the room the buttons leave (`maxWidth: .infinity`, leading for the right
 /// hand, trailing for the left), its text shrinks to `minimumScaleFactor(0.6)` and is then cut with 「…」. On the compact
