@@ -228,6 +228,10 @@ struct CalendarRootScreen: View {
     @State private var revealRect: CGRect?
     /// Bumped by 「今日」: the canvas already showing the page brings `revealRect` on screen once.
     @State private var revealTrigger = 0
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, 0e-7): bumped by 等倍 (`resetZoom`); the canvas on the screen goes back to its
+    /// opening zoom (ratio 1) once, and the ratio 1 it reports removes the kind's stored ratio (0e-10). A canvas made later
+    /// takes the value as it is and does nothing with it.
+    @State private var zoomResetTrigger = 0
     /// The hint was shown or the person pinched (per device; never written in screenshot mode).
     @AppStorage(AppSettings.pinchHintShownKey) private var pinchHintShown = false
     /// The hint's wait (`schedulePinchHint`); a newer schedule or a pinch stops it.
@@ -1162,7 +1166,9 @@ struct CalendarRootScreen: View {
             onEraseEnded: eraseEnded,
             onStrokeBudget: strokeBudgetReached,
             onGrowthCapReached: growthCapReached,
-            bottomClearance: ToolbarLogic.paperBottomClearance(toolbarMode)
+            bottomClearance: ToolbarLogic.paperBottomClearance(toolbarMode),
+            // 1.4.1 (§3.6, 0e-7): 等倍, the last argument.
+            zoomResetTrigger: zoomResetTrigger
         )
         .id(canvasIdentity)
         .overlay(alignment: .topLeading) {
@@ -1624,6 +1630,12 @@ struct CalendarRootScreen: View {
         show(kind: kind, focus: today)
         revealRect = PageNavigation.todayRect(layout, now: now)
         revealTrigger += 1
+    }
+
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, 0e-7): 等倍. The canvas decides what it does (0e-9: nothing at the opening zoom,
+    /// under the pen or during a pinch); the screen writes nothing itself. 「今日」 (`goToday`) never changes the zoom.
+    private func resetZoom() {
+        zoomResetTrigger += 1
     }
 
     /// Remembers the last shown page for the next launch (not in screenshot mode).
@@ -2897,7 +2909,9 @@ extension CalendarRootScreen {
                                                      saveFailed: saveError != nil, shiftHeld: paths.shiftHeld),
             slidePages: slidePages,
             slideTrigger: slideTrigger,
-            onSpanStop: spanStopped
+            onSpanStop: spanStopped,
+            // 1.4.1 (§3.6, 0e-7): 等倍, the last argument.
+            zoomResetTrigger: zoomResetTrigger
         )
         .id(span.id)
         // §3.14: the guide at the top edge of the paper, right under the band.
