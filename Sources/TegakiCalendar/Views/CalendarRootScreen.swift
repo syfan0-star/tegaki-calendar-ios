@@ -3272,12 +3272,9 @@ extension CalendarRootScreen {
 // MARK: - 1.4.1: the open toolbar on four edges (docs/R1_4_1_CONTRACT.md §2.1, §4.3–§4.11, 0e-14–0e-22)
 
 extension CalendarRootScreen {
-    /// The grip's identifier (`PaletteMoveUITests`).
-    static let paletteGripIdentifier = "toolbar.grip"
-    /// Screenshot mode's state element of the toolbar's edge (`paletteState`).
+    /// Screenshot mode's state element of the toolbar's edge (`paletteState`). The grip's own identifier is
+    /// `PaletteGripView.identifier` ("toolbar.grip").
     static let paletteStateIdentifier = "palette.state"
-    /// The puck lies this far above the finger (§4.7).
-    static let palettePuckLift: CGFloat = 40
 
     // MARK: Where the bar is
 
@@ -3292,19 +3289,20 @@ extension CalendarRootScreen {
         ToolbarLogic.effectiveEdge(stored: paletteStored, allowed: paletteAllowed)
     }
 
-    /// The open bar has a grip: two edges or more are allowed (§4.5). The dock and a peek never have one.
+    /// The open bar has a grip: two edges or more are allowed (§4.5, `ToolbarLogic.showsGrip`). The dock and a peek never have
+    /// one.
     private var paletteHasGrip: Bool {
-        toolbarMode == .expanded && paletteAllowed.count >= 2
+        ToolbarLogic.showsGrip(toolbarMode, allowed: paletteAllowed)
     }
 
     /// What a side slot takes from the paper column: 74 pt while the open bar is on the left or the right, else 0 (§4.4).
     private var paletteSideWidth: CGFloat {
-        toolbarMode == .expanded && (paletteEdge == .left || paletteEdge == .right) ? ToolbarLogic.sideSlotWidth : 0
+        toolbarMode == .expanded && paletteEdge.isSide ? ToolbarLogic.sideSlotWidth : 0
     }
 
-    /// The bar during a drag: 40 % in its slot, still open (§4.7).
+    /// The bar during a drag: 40 % in its slot, still open (§4.7, `ToolbarLogic.draggedBarOpacity`).
     private var paletteOpacity: Double {
-        paletteDragging ? 0.4 : 1
+        paletteDragging ? ToolbarLogic.draggedBarOpacity : 1
     }
 
     /// The bottom inset's spacing: 1.4's (the default while expanded, 0 otherwise) where the bottom is the only edge allowed;
@@ -3382,54 +3380,27 @@ extension CalendarRootScreen {
 
     // MARK: The grip (§4.5, §4.6, §4.11, 0e-16, 0e-17, 0e-22)
 
-    /// The grip on the bar's edge that faces the middle of the screen. Its touch area is `PaletteGripView` (a pan of a finger, a
-    /// trackpad or a mouse, never the Pencil, that begins only when `PalmWatch` says no Pencil touches the window or just
-    /// lifted), 120 × 16 pt across the bottom and the top bar's edge and 14 × 120 pt across a side bar's, inside the slot; the
-    /// 36 × 5 mark is drawn in it. VoiceOver reads one element 「ツールバーを動かす」 with an action for each other allowed edge
-    /// (`paletteMoves`); Switch Control and Full Keyboard Access take the same actions.
+    /// The grip on the bar's edge that faces the middle of the screen: `PaletteGripView` (a pan of a finger, a trackpad or a
+    /// mouse, never the Pencil, that begins only when `PalmWatch` says no Pencil touches the window or just lifted), 120 × 16
+    /// pt across the bottom and the top bar's edge and 14 × 120 pt across a side bar's (`ToolbarLogic.gripSize`), inside the
+    /// slot. The view draws the 36 × 5 mark over the bar's padding of `edge` and is VoiceOver's one element 「ツールバーを動かす」
+    /// (`toolbar.grip`) with an action for each other allowed edge (`ToolbarLogic.moveTargets`), which calls
+    /// `paletteMoveChosen` and posts `.layoutChanged`; Switch Control and Full Keyboard Access take the same actions. No
+    /// SwiftUI accessibility modifier is added here (it would make a second element).
     private func paletteGrip(_ edge: PaletteEdge) -> some View {
-        let across = edge == .bottom || edge == .top
-        return ZStack {
-            PaletteGripView(
-                mayBegin: { palmWatch.mayBegin(now: Date()) },
-                onBegan: { paletteDragBegan(at: $0) },
-                onChanged: { paletteDragMoved(to: $0, velocity: $1) },
-                onEnded: { paletteDragEnded(at: $0, velocity: $1) },
-                onCancelled: { paletteDragCancelled() },
-                cancelTrigger: paletteDragCancel
-            )
-            Capsule()
-                .fill(Color(uiColor: .secondaryLabel))
-                .frame(width: across ? 36 : 5, height: across ? 5 : 36)
-                .allowsHitTesting(false)
-        }
-        .frame(width: across ? 120 : 14, height: across ? 16 : 120)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(L.text("toolbar.grip.spoken"))
-        .accessibilityHint(L.text("toolbar.grip.hint"))
-        .accessibilityIdentifier(Self.paletteGripIdentifier)
-        .accessibilityActions {
-            ForEach(Self.paletteMoves(current: paletteEdge, allowed: paletteAllowed), id: \.self) { target in
-                Button(Self.paletteMoveTitle(target)) {
-                    paletteMoveChosen(target)
-                }
-            }
-        }
-    }
-
-    /// The grip's VoiceOver actions (§4.11): every allowed edge but the one the bar is on, in `allowedEdges`' order.
-    static func paletteMoves(current: PaletteEdge, allowed: [PaletteEdge]) -> [PaletteEdge] {
-        allowed.filter { $0 != current }
-    }
-
-    /// The name of the action that moves the bar to `edge` (「上へ移す」…; §8.1).
-    static func paletteMoveTitle(_ edge: PaletteEdge) -> String {
-        switch edge {
-        case .bottom: return L.text("toolbar.moveTo.bottom")
-        case .top: return L.text("toolbar.moveTo.top")
-        case .left: return L.text("toolbar.moveTo.left")
-        case .right: return L.text("toolbar.moveTo.right")
-        }
+        let size = ToolbarLogic.gripSize(for: edge)
+        return PaletteGripView(
+            mayBegin: { palmWatch.mayBegin(now: Date()) },
+            onBegan: { paletteDragBegan(at: $0) },
+            onChanged: { paletteDragMoved(to: $0, velocity: $1) },
+            onEnded: { paletteDragEnded(at: $0, velocity: $1) },
+            onCancelled: { paletteDragCancelled() },
+            cancelTrigger: paletteDragCancel,
+            edge: edge,
+            moveTargets: ToolbarLogic.moveTargets(allowed: paletteAllowed, current: paletteEdge),
+            onMove: { paletteMoveChosen($0) }
+        )
+        .frame(width: size.width, height: size.height)
     }
 
     // MARK: A drag and a drop (§4.7, §4.9, §4.10, 0e-18, 0e-20, 0e-21)
@@ -3460,9 +3431,14 @@ extension CalendarRootScreen {
         }
     }
 
-    /// The edge a lift at `point` with `velocity` goes to, judged over the screen inside its safe area.
+    /// The edge a lift at `point` with `velocity` goes to, judged over the slots' column (the window's points): the screen
+    /// inside its safe area from where the slots under the header begin, the column a drag's outlines are drawn in
+    /// (`paletteDragColumn`, `ToolbarLogic.barFrame`), so the strong outline is where the bar goes.
     private func paletteSnap(_ point: CGPoint, velocity: CGVector) -> PaletteEdge {
-        ToolbarLogic.snapEdge(drop: point, velocity: velocity, frame: paletteRoom.screenFrame, allowed: paletteAllowed, current: paletteEdge)
+        let screen = paletteRoom.screenFrame
+        let column = Self.paletteDragColumn(size: screen.size, bodyTop: paletteBodyTop - screen.minY)
+            .offsetBy(dx: screen.minX, dy: screen.minY)
+        return ToolbarLogic.snapEdge(drop: point, velocity: velocity, frame: column, allowed: paletteAllowed, current: paletteEdge)
     }
 
     /// The pan was cancelled (by `cancelTrigger` or by UIKit): nothing moves and nothing is kept.
@@ -3484,14 +3460,14 @@ extension CalendarRootScreen {
         paletteDragCancel += 1
     }
 
-    /// VoiceOver's 「…へ移す」 (§4.11): kept as a drop is, then VoiceOver hears that the screen changed.
+    /// VoiceOver's 「…へ移す」 (§4.11): kept as a drop is. The grip (`PaletteGripView`) then tells VoiceOver that the screen
+    /// changed (`.layoutChanged`, on the next turn, after SwiftUI laid it out).
     private func paletteMoveChosen(_ edge: PaletteEdge) {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
             placePalette(on: edge)
         }
-        UIAccessibility.post(notification: .layoutChanged, argument: nil)
     }
 
     /// A drop or a VoiceOver action chose `edge`: what `paletteDropped` keeps — in screenshot mode in this screen's `@State`.
@@ -3518,12 +3494,7 @@ extension CalendarRootScreen {
     /// the screen keeps the answer in its `@State`.
     static func paletteDropped(on edge: PaletteEdge, mode: ToolbarMode, stored: PaletteEdge, screenshot: Bool) -> PaletteDrop {
         guard ToolbarLogic.step(mode, on: .placementChosen).storesPlacement else { return PaletteDrop(edge: nil, dock: nil) }
-        let dock: ToolbarEdge?
-        switch edge {
-        case .left: dock = .leading
-        case .right: dock = .trailing
-        case .top, .bottom: dock = nil
-        }
+        let dock = edge.dockEdge
         if !screenshot {
             if edge != stored { AppSettings.paletteEdge = edge }
             if let dock { AppSettings.toolbarEdge = dock }
@@ -3531,30 +3502,15 @@ extension CalendarRootScreen {
         return PaletteDrop(edge: edge, dock: dock)
     }
 
-    /// Where the bar would lie on each allowed edge (the outlines of a drag, §4.7), in the coordinates of the screen inside its
-    /// safe area (`size`, the bottom bar included) with the slots under the header beginning at `bodyTop`: the bottom is 1.4's
-    /// bar (12 pt from the sides, 6 pt above the bottom), the top 6 pt under `bodyTop`, a side 6 pt from its edge, from 6 pt
-    /// under `bodyTop` to 6 pt above the bottom.
-    static func paletteSlotFrames(size: CGSize, bodyTop: CGFloat, allowed: [PaletteEdge]) -> [PaletteEdge: CGRect] {
-        let across = max(0, size.width - 2 * ToolbarLogic.sidePadding)
-        let top = max(0, bodyTop) + ToolbarLogic.bottomPadding
-        let tall = max(0, size.height - ToolbarLogic.bottomPadding - top)
-        var frames: [PaletteEdge: CGRect] = [:]
-        for edge in allowed {
-            switch edge {
-            case .bottom:
-                frames[edge] = CGRect(x: ToolbarLogic.sidePadding, y: size.height - ToolbarLogic.bottomPadding - ToolbarLogic.barHeight,
-                                      width: across, height: ToolbarLogic.barHeight)
-            case .top:
-                frames[edge] = CGRect(x: ToolbarLogic.sidePadding, y: top, width: across, height: ToolbarLogic.barHeight)
-            case .left:
-                frames[edge] = CGRect(x: ToolbarLogic.bottomPadding, y: top, width: ToolbarLogic.verticalBarWidth, height: tall)
-            case .right:
-                frames[edge] = CGRect(x: size.width - ToolbarLogic.bottomPadding - ToolbarLogic.verticalBarWidth, y: top,
-                                      width: ToolbarLogic.verticalBarWidth, height: tall)
-            }
-        }
-        return frames
+    /// The slots' column of a drag (§4.7) in the coordinates of the screen inside its safe area (`size`, the bottom bar
+    /// included) with the slots under the header beginning at `bodyTop`: the full width, from `bodyTop` (kept inside the
+    /// screen) down to the bottom. `PaletteDragOverlay` draws each allowed edge's outline at `ToolbarLogic.barFrame(_:in:)` of it
+    /// (the bottom is 1.4's bar, 12 pt from the sides and 6 pt above the bottom; the top 6 pt under `bodyTop`; a side 6 pt
+    /// from its edge, from 6 pt under `bodyTop` to 6 pt above the bottom), and `paletteSnap` snaps over it.
+    static func paletteDragColumn(size: CGSize, bodyTop: CGFloat) -> CGRect {
+        let height = max(0, size.height)
+        let top = min(max(0, bodyTop.isFinite ? bodyTop : 0), height)
+        return CGRect(x: 0, y: top, width: max(0, size.width), height: height - top)
     }
 
     // MARK: What the screen watches for the edges (§4.3, §4.6)
@@ -3620,18 +3576,10 @@ extension CalendarRootScreen {
         updatePalmWatch()
     }
 
-    /// `PalmWatch` on the window while the grip can show (two edges or more), off it otherwise (§4.6).
+    /// `PalmWatch` on the window while the grip can show (two edges or more), off it otherwise (§4.6): `follow` attaches it
+    /// again only for another window.
     private func updatePalmWatch() {
-        let room = paletteRoom
-        if paletteAllowed.count >= 2, let window = room.window {
-            guard room.watchedWindow !== window else { return }
-            if room.watchedWindow != nil { palmWatch.detach() }
-            palmWatch.attach(to: window)
-            room.watchedWindow = window
-        } else if room.watchedWindow != nil {
-            palmWatch.detach()
-            room.watchedWindow = nil
-        }
+        palmWatch.follow(window: paletteRoom.window, allowed: paletteAllowed)
     }
 
     /// DEBUG builds and screenshot mode: the edge and the edges allowed, whenever they change (`paletteLogLine`).
@@ -3684,13 +3632,13 @@ final class PaletteRoom {
     var windowSize: CGSize = .zero
     var column: CGFloat = 0
     var paperColumnHeight: CGFloat = 0
-    /// The screen inside its safe area, the bottom bar included, in the window's points: `snapEdge`'s frame.
+    /// The screen inside its safe area, the bottom bar included, in the window's points: with the slots' top, `snapEdge`'s
+    /// frame (`paletteDragColumn`).
     var screenFrame: CGRect = .zero
     /// The paper area's changes since the launch (screenshot mode's `palette.state`).
     var areaChanges = 0
-    /// The window the screen is in, and the one `PalmWatch` is on.
+    /// The window the screen is in (`PalmWatch` follows it).
     weak var window: UIWindow?
-    weak var watchedWindow: UIWindow?
     /// A running drag's finger and target, which only `PaletteDragLayer` watches.
     let dragModel = PaletteDragModel()
 }
@@ -3711,8 +3659,10 @@ struct PaletteDrag: Equatable {
 /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.7, 0e-18): the layer over the whole screen inside its safe area (the bottom bar included)
 /// that shows a drag of the toolbar's grip with `PaletteDragOverlay`: the round puck with the tool's mark 40 pt above the
 /// finger, the outline of the bar on each allowed edge, the target's stronger. It takes no touch, and it alone watches the drag
-/// (`PaletteDragModel`), so a moving finger draws this layer only. It also measures the screen's frame in the window's points
-/// for `ToolbarLogic.snapEdge` (`PaletteRoom.screenFrame`).
+/// (`PaletteDragModel`), so a moving finger draws this layer only. It converts the grip's window points into its own and
+/// hands the overlay the slots' column (`CalendarRootScreen.paletteDragColumn`); screenshot mode's held look (no finger) puts
+/// the finger in the middle of the target's bar, so the puck rides 40 pt above it. It also measures the screen's frame in the
+/// window's points for `ToolbarLogic.snapEdge` (`PaletteRoom.screenFrame`).
 struct PaletteDragLayer: View {
     @ObservedObject var model: PaletteDragModel
     let room: PaletteRoom
@@ -3726,11 +3676,11 @@ struct PaletteDragLayer: View {
             let frame = proxy.frame(in: .global)
             ZStack {
                 if let drag = model.current {
-                    let slots = CalendarRootScreen.paletteSlotFrames(size: proxy.size, bodyTop: bodyTop - frame.minY, allowed: allowed)
+                    let column = CalendarRootScreen.paletteDragColumn(size: proxy.size, bodyTop: bodyTop - frame.minY)
+                    let held = ToolbarLogic.barFrame(drag.target, in: column)
                     let finger = drag.finger.map { CGPoint(x: $0.x - frame.minX, y: $0.y - frame.minY) }
-                        ?? slots[drag.target].map { CGPoint(x: $0.midX, y: $0.midY) }
-                    PaletteDragOverlay(puckCenter: finger.map { CGPoint(x: $0.x, y: $0.y - CalendarRootScreen.palettePuckLift) },
-                                       tool: tool, slots: slots, target: drag.target)
+                        ?? CGPoint(x: held.midX, y: held.midY)
+                    PaletteDragOverlay(finger: finger, tool: tool, column: column, allowed: allowed, target: drag.target)
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)

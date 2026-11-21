@@ -189,35 +189,38 @@ final class ScreenshotModeHandPaletteTests: XCTestCase {
         XCTAssertEqual(CalendarRootScreen.paletteStateLabel(edge: .bottom, stored: .left, allowed: [.bottom, .top], grip: true, dragging: false,
                                                             areaChanges: 3, area: CGSize(width: 958, height: 1245.333)),
                        "edge=bottom;stored=left;allowed=bottom,top;grip=on;drag=off;areas=3;area=958.00x1245.33")
-        XCTAssertEqual(CalendarRootScreen.paletteGripIdentifier, "toolbar.grip")
+        XCTAssertEqual(PaletteGripView.identifier, "toolbar.grip")
         XCTAssertEqual(CalendarRootScreen.paletteStateIdentifier, "palette.state")
     }
 
-    /// §4.11 (0e-22): the grip's VoiceOver actions are every allowed edge but the one the bar is on, in `allowedEdges`' order,
-    /// with T's names (§8.1); none where the bottom is the only edge (no grip there either).
+    /// §4.11 (0e-22): the grip's VoiceOver actions, which the screen hands `PaletteGripView` (`ToolbarLogic.moveTargets`), are
+    /// every allowed edge but the one the bar is on, in `allowedEdges`' order, with T's names (§8.1); none where the bottom is
+    /// the only edge (no grip there either).
     func testVoiceOverMovesToEveryOtherAllowedEdge() {
         let four: [PaletteEdge] = [.bottom, .top, .left, .right]
-        XCTAssertEqual(CalendarRootScreen.paletteMoves(current: .bottom, allowed: four), [.top, .left, .right])
-        XCTAssertEqual(CalendarRootScreen.paletteMoves(current: .left, allowed: four), [.bottom, .top, .right])
-        XCTAssertEqual(CalendarRootScreen.paletteMoves(current: .top, allowed: [.bottom, .top]), [.bottom])
-        XCTAssertEqual(CalendarRootScreen.paletteMoves(current: .bottom, allowed: [.bottom]), [])
-        XCTAssertEqual(CalendarRootScreen.paletteMoveTitle(.top), "上へ移す")
-        XCTAssertEqual(CalendarRootScreen.paletteMoveTitle(.bottom), "下へ移す")
-        XCTAssertEqual(CalendarRootScreen.paletteMoveTitle(.left), "左へ移す")
-        XCTAssertEqual(CalendarRootScreen.paletteMoveTitle(.right), "右へ移す")
+        XCTAssertEqual(ToolbarLogic.moveTargets(allowed: four, current: .bottom), [.top, .left, .right])
+        XCTAssertEqual(ToolbarLogic.moveTargets(allowed: four, current: .left), [.bottom, .top, .right])
+        XCTAssertEqual(ToolbarLogic.moveTargets(allowed: [.bottom, .top], current: .top), [.bottom])
+        XCTAssertEqual(ToolbarLogic.moveTargets(allowed: [.bottom], current: .bottom), [])
+        XCTAssertEqual(ToolbarLogic.moveToTitle(.top), "上へ移す")
+        XCTAssertEqual(ToolbarLogic.moveToTitle(.bottom), "下へ移す")
+        XCTAssertEqual(ToolbarLogic.moveToTitle(.left), "左へ移す")
+        XCTAssertEqual(ToolbarLogic.moveToTitle(.right), "右へ移す")
     }
 
-    /// §4.7: the outlines of a drag lie where the bar would: the bottom is 1.4's bar (12 pt from the sides, 6 above the bottom),
-    /// the top 6 pt under the slots' top, a side 6 pt from its edge and 60 pt wide; only the allowed edges get one.
+    /// §4.7: the outlines of a drag lie where the bar would, in the slots' column the screen hands `PaletteDragOverlay`
+    /// (`paletteDragColumn`, under `bodyTop`, `ToolbarLogic.barFrame` in it): the bottom is 1.4's bar (12 pt from the sides, 6
+    /// above the bottom), the top 6 pt under the slots' top, a side 6 pt from its edge and 60 pt wide.
     func testTheOutlinesOfADrag() {
         let size = CGSize(width: 1032, height: 1332)
-        let four = CalendarRootScreen.paletteSlotFrames(size: size, bodyTop: 100, allowed: [.bottom, .top, .left, .right])
-        XCTAssertEqual(four[.bottom], CGRect(x: 12, y: 1266, width: 1008, height: 60))
-        XCTAssertEqual(four[.top], CGRect(x: 12, y: 106, width: 1008, height: 60))
-        XCTAssertEqual(four[.left], CGRect(x: 6, y: 106, width: 60, height: 1220))
-        XCTAssertEqual(four[.right], CGRect(x: 966, y: 106, width: 60, height: 1220))
-        let two = CalendarRootScreen.paletteSlotFrames(size: size, bodyTop: 100, allowed: [.bottom, .top])
-        XCTAssertEqual(Set(two.keys), [.bottom, .top])
-        XCTAssertEqual(CalendarRootScreen.paletteSlotFrames(size: size, bodyTop: 100, allowed: [.bottom]).count, 1)
+        let column = CalendarRootScreen.paletteDragColumn(size: size, bodyTop: 100)
+        XCTAssertEqual(column, CGRect(x: 0, y: 100, width: 1032, height: 1232))
+        XCTAssertEqual(ToolbarLogic.barFrame(.bottom, in: column), CGRect(x: 12, y: 1266, width: 1008, height: 60))
+        XCTAssertEqual(ToolbarLogic.barFrame(.top, in: column), CGRect(x: 12, y: 106, width: 1008, height: 60))
+        XCTAssertEqual(ToolbarLogic.barFrame(.left, in: column), CGRect(x: 6, y: 106, width: 60, height: 1220))
+        XCTAssertEqual(ToolbarLogic.barFrame(.right, in: column), CGRect(x: 966, y: 106, width: 60, height: 1220))
+        // A top outside the screen is kept inside it.
+        XCTAssertEqual(CalendarRootScreen.paletteDragColumn(size: size, bodyTop: -20), CGRect(x: 0, y: 0, width: 1032, height: 1332))
+        XCTAssertEqual(CalendarRootScreen.paletteDragColumn(size: size, bodyTop: 2000), CGRect(x: 0, y: 1332, width: 1032, height: 0))
     }
 }
