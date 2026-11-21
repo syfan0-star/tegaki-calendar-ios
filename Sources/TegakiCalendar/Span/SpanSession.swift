@@ -259,7 +259,15 @@ final class SpanSession: ObservableObject {
     let deviceClass: SpanDeviceClass
     /// P-B6 イ (11/18): every plan of this session caps the iPhone's landscape overview (`SpanPlan.overviewCap`). The
     /// screen's sessions pass true (`ScreenPaths.makeSession`); false keeps P-B6 ア's numbers (the tests' default).
-    let overviewCap: Bool
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.7): the cap of the plan of now — false in a wide window (`wideWindow`), and read
+    /// again from `overviewCapNow` when the window is decided anew (`redecide`: a fold, an unfold, a turn).
+    private(set) var overviewCap: Bool
+    /// 1.4 (§4.7): the cap the session was asked for (`init`'s `overviewCap`): a window of now that is not wide caps only
+    /// when it was asked for, so a session of P-B6 ア's numbers stays without the cap.
+    private let overviewCapAsked: Bool
+    /// 1.4 (§2.1, §4.7): whether the window caps now (`WindowClass.capsOverview` of the window's size, which the screen
+    /// reads from UIKit's window); nil keeps the cap of the opening at every `redecide` (1.3's).
+    private let overviewCapNow: (() -> Bool)?
 
     // MARK: The window
 
@@ -363,13 +371,23 @@ final class SpanSession: ObservableObject {
     /// - `loader`: where a page is read from; nil is `sync.load` (the screen's, wave C §7.4).
     /// - `overviewCap`: P-B6 イ (11/18), every plan of the session caps the iPhone's landscape overview (3 weeks / 5 days
     ///   across, the window 7 / 9); the screen passes true, false (the default) is P-B6 ア's numbers.
+    /// - `wideWindow`: 1.4 (docs/M7D_CONTRACT.md §4.7, 0d-8), the window opens in a wide window (`WindowClass.isWide`, the
+    ///   screen's `Device.wide`): its plan has no cap whatever `overviewCap` asks (P-B6 ア's numbers, as on an iPad's
+    ///   width). False (the default) is 1.3's.
+    /// - `overviewCapNow`: 1.4 (§2.1, §4.7), whether the window caps now, read at every `redecide`; nil (the default) keeps
+    ///   the opening's cap (1.3's).
     init(kind: PageKind, weekStart: WeekStart, focus: DayKey, sync: SyncEngine, guardMode: SpanGuard.Mode = .release,
          deviceClass: SpanDeviceClass = .iPad11, orientation: SpanOrientation = .portrait, number: Int = 1,
          context: PaperContext? = nil, paperArea: CGSize? = nil, radius: Int? = nil, overviewCap: Bool = false,
+         wideWindow: Bool = false, overviewCapNow: (() -> Bool)? = nil,
          eventSource: ((DayKey, DayKey) -> [LayoutEvent])? = nil,
          loader: ((String) -> InkPage)? = nil,
          sleep: @escaping @MainActor (TimeInterval) async -> Void = { try? await Task.sleep(for: .seconds($0)) },
          clock: @escaping () -> Date = Date.init) {
+        overviewCapAsked = overviewCap
+        self.overviewCapNow = overviewCapNow
+        // 1.4 (§4.7): a wide window opens without the cap.
+        let overviewCap = overviewCap && !wideWindow
         let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation, overviewCap: overviewCap)
         self.overviewCap = overviewCap
         self.kind = kind
@@ -1055,13 +1073,20 @@ final class SpanSession: ObservableObject {
     /// of a shift: the pages that leave are saved first (when one cannot be, nothing changes and the answer is
     /// false), the pages that come in are placeholders for `prefetch()`. The session stays (its id, virtual page,
     /// number, aliases and the canvas's history), so ↶ survives the rotation.
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.7): the next plan's cap is the window's of now (`overviewCapNow`, when the screen
+    /// gave it: the cap comes off when the Duo unfolds to its wide inner screen and back on when it folds), within what the
+    /// session was asked for; it is the session's once the window was decided anew (a refusal keeps the plan and its cap).
+    /// Without `overviewCapNow`, 1.3's: the opening's cap.
     @discardableResult
     func redecide(orientation: SpanOrientation, paperArea: CGSize? = nil) -> Bool {
         guard !isClosed else { return false }
         drainInbox()
+        let overviewCap = overviewCapNow.map { overviewCapAsked && $0() } ?? self.overviewCap
         let next = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation, overviewCap: overviewCap)
         let wide = max(1, Self.windowRadius(plan: next, paperArea: paperArea))
-        return rebuild(around: focusIndex, plan: next, radius: fittingRadius(wide, plan: next, focus: focusIndex), change: .redecide)
+        let decided = rebuild(around: focusIndex, plan: next, radius: fittingRadius(wide, plan: next, focus: focusIndex), change: .redecide)
+        if decided { self.overviewCap = overviewCap }
+        return decided
     }
 
     /// The window of `newPlan` and `newRadius` around `newFocus`: the steps of `shift` (above), then the window's

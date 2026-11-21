@@ -1,4 +1,5 @@
 import Access
+import Layout
 import StoreKit
 import SwiftUI
 import UIKit
@@ -26,6 +27,9 @@ enum PaywallReason: Equatable {
 struct PaywallSheet: View {
     @ObservedObject var store: StoreModel
     var reason: PaywallReason = .settings
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.4): the window's size (the root view's, with its safe area) the sheet is shown in.
+    /// nil (the default) keeps 1.3's idiom branch exactly; with a size `WindowClass.usesFormSheet` decides (`usesFormSheet`).
+    var windowSize: CGSize? = nil
     /// 「あとで」・スワイプ・購入成功の後
     var onClose: () -> Void
 
@@ -194,7 +198,9 @@ struct PaywallSheet: View {
     // MARK: - Body
 
     var body: some View {
-        if UIDevice.current.userInterfaceIdiom == .phone {
+        // 1.4 (§4.4): by the window's size when the screen passes it, else by the idiom as in 1.3.
+        let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+        if !Self.usesFormSheet(isPhone: isPhone, windowSize: windowSize) {
             // iPhone: full height. iPad: the standard form sheet.
             content.presentationDetents([.large])
         } else if #available(iOS 18.0, *) {
@@ -205,6 +211,16 @@ struct PaywallSheet: View {
         } else {
             content
         }
+    }
+
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.4, §4.1 row 5): whether the sheet is the form sheet (else `.large`). Without a
+    /// window size (nil) it is 1.3's branch exactly: every idiom but the phone. With one, `WindowClass.usesFormSheet`: every
+    /// idiom but the phone still (an iPad, an iPad app on a Mac: 1.3's form sheet), and a phone's window only when it is wide
+    /// and `WindowClass.formSheetOnWide` (false until §4.4's shots of the Duo's inner screen decide it), so every phone
+    /// window, the Duo's two screens included, keeps 1.3's `.large` by default.
+    static func usesFormSheet(isPhone: Bool, windowSize: CGSize?) -> Bool {
+        guard let windowSize else { return !isPhone }
+        return WindowClass.usesFormSheet(isPad: !isPhone, windowSize: windowSize)
     }
 
     /// The fitted sheet takes the content's ideal height, and a `NavigationStack` or a `ScrollView`

@@ -1,0 +1,637 @@
+# M7d（1.4「新しい開発環境（Xcode 27）と iPhone Duo」）の実装結果
+
+契約は [M7D_CONTRACT.md](M7D_CONTRACT.md)。ここはリードの記録で、段ごとに節を足す。**今の状態は最初の「今の状態」の節を読む。** 各節は書いた時点の記録で、後から直さない（間違いは後の節で直す）。
+
+## 今の状態（リード、2026-11-20 06:40）
+
+- 契約の第 2 版（1,259 行）を 11/20 06:23 に作った（Workflow: 調べる 2 役 → 下書き → 2 つの批評 33 件 → 直し）。本人の決定（11/20「Duoでもペンシルを使うので、その前提で作って下さい。」）は §1.2・§4.8 に入れた。
+- 枝 `r14` を main の 7895d40 から切った。`r13` の最後の記録 ff4e3c4（`docs/M7C.md` の 3 行）を写した。
+- S0'（11/20）: 955fe67 の run 44474759145 の成果物 6 つを `~/.local/share/tegaki-backup/1.4/run-44474759145/` に控え中（11/26 の 16〜17 時（日本時間）に消える。契約 §3.6）。
+- **本人の言葉（11/20 07:20 ごろ、チャット）**: 「年齢区分の2問をいいえで入れて良い」「祝日のデータの元に入ったら、取り寄せてアプリに入れてよい」。契約 §0.4 の問い 1（中国の 2027 年の祝日）は前もっての了承をもらった（§9.6: 正式版に入ったら、聞き直さずに入れる）。
+- 年齢区分の 2 問（§9.5 の 1）: 11/20 07:22 に公開中の App 情報の `ageRatingDeclaration`（622bab33-…）へ `sharedLocation: false`・`datingAndRelationships: false` を PATCH → **409 STATE_ERROR**（「This age rating declaration is not editable」。公開中の App 情報は READY_FOR_DISTRIBUTION で直せない）。読み戻しは 2 つとも null のまま、区分は FOUR_PLUS のまま。§9.5 の 2 の道へ: D0 の VALID の後に版 1.4 の入れ物を作り、直せる App 情報で入れる（本人の言葉はもらってある）。
+- 次: D0（契約 §3.3）。
+
+## S0（契約・枝・前もっての宣言、2026-11-20）
+
+### 契約の材料
+
+- [m7d/FACTS.md](m7d/FACTS.md): Web の事実（2026-11-20 に読んだ。51 の出典）。
+- [m7d/CODE_SURVEY.md](m7d/CODE_SURVEY.md): コードの調べ（origin/main 7895d40）。
+- [m7d/duo_span_calc.py](m7d/duo_span_calc.py): Duo の窓の推定の計算（CODE_SURVEY §3.2）。
+- Apple の文書の写し（Web の控え）はリポジトリに入れない（スクラッチパッドの `m7d/web/` と、控えの `~/.local/share/tegaki-backup/`）。
+
+### 前もっての宣言（契約 §3.7。D0 の最初の run より前に書く）
+
+1. D0 の commit の `Sources`・`TegakiKit/Sources`・`Tests` は 955fe67 と 1 バイトも同じ（`git diff 955fe67 -- Sources TegakiKit/Sources Tests` が空）。**D0 の commit の前に確かめた: 空、追跡外のファイルも無し**（11/20 07:50）。
+2. J-4 で違ってよい写真（§3.5）: `ipad13-portrait-sheet-info.png` の版の字の所（「1.3」→「1.4」）だけ。
+3. env.txt で見込む値: Xcode 27.2（Build 27B52）、実行環境 iOS 27.2（24B8117）、`ipadmini` だけ iOS 27.0、Duo は iOS 27.2 の Duo の組（24B91016s）、XcodeGen 2.46.0。
+4. 機種の替わり: `iphone69` は `iPhone 18 Pro Max`（`iPhone 17 Pro Max`・`iPhone 17 Pro`・`iPhone 16 Pro Max` は `xcode-27` の環境に無い）。SDK の差の地図は §3.6 の 4 つの組で読む。
+5. 関門 3 は 2 段: `toolbar: paperArea=` が同じなら状態の行（`pages`・`zoom`・`ox`・`oy`・`span cap:`）も同じ数。違えば `swift run KitChecks --span-state` で計算し直す。止めるのは、同じ紙の領域で数が違うときだけ。
+6. `duo-probe` で測る物は §4.2 の一覧。内側を開く道の既定は道 3（開けない。11/23 まで）。
+7. KitChecks の今の数 40,020（閾値 39,970）。D1 で 2 つの節を足した後の数と閾値（数 − 50）は、足した commit で書く。
+8. D1 の J-4 で違ってよい写真は D0 と同じ 1 枚だけ（D1 の前にもう一度書く）。
+9. §4.7 の広い窓の数（短い辺 600 pt）。測った内側の短い辺は 600 以上、外側は 600 未満であるべき。
+10. 組 3 の切り抜きの一覧（11/20 07:00、控えた run 44474759145 の `screenshots` から選んだ。J-4 の写真の名前と、その中で見えて押せる形であるべき部品）:
+    - `ipad13-portrait-sheet-create.png`: 予定の画面の「キャンセル」「保存」、題名の欄（「ここにペンで書くと文字になります」）、「終日」のトグル、日付の 2 つの欄、「カレンダー」の行（›）。
+    - `ipad13-portrait-sheet-edit.png`: 同じ部品（直す画面）。
+    - `ipad13-portrait-sheet-paywall.png`・`iphone-portrait-sheet-paywall.png`・`iphone69-portrait-sheet-paywall.png`: 上の「あとで」、年額と月額の 2 つの枠、「14 日間無料で試す」、「購入を復元」「利用規約」「プライバシーポリシー」「使用許諾契約（Apple 標準 EULA）」の行、下の「あとで」。
+    - `ipad13-portrait-sheet-settings.png`: 「完了」、チェックの行（✓）、› のある行（「予定の登録先」「カレンダーへのアクセス」「Google カレンダーを使うには」「週の始まり」）。
+    - `ipad13-portrait-sheet-week-start.png`・`ipad13-portrait-sheet-holidays.png`・`ipad13-portrait-sheet-sync.png`・`ipad13-portrait-sheet-info.png`: 戻る・閉じるボタンと、選ぶ行。
+    - `ipad13-portrait-sheet-export.png`・`ipad13-portrait-sheet-import.png`・`ipad13-portrait-sheet-lasso.png`: ボタンとメニューの行（`sheet-lasso` は「予定にする」を含む投げなわのメニュー）。
+    - `ipad13-portrait-week.png`・`ipad13-portrait-month.png`: 見出しの ◀ ▶・年月・「日 週 月 年」の切り替え・「今日」・「＋ 予定」・保存の印・⚙、ツールバーの左端（ペン・マーカー・消しゴム・投げなわ・予定）・色・線の太さ・↶ ↷・「指でも書く」・「しまう」。
+    - `iphone-portrait-week.png`: 見出しの 2 段（◀ ▶・日付・「今日」・＋・保存の印・⚙ と、「日 週 月 年」の切り替え）、ツールバー（ペン・マーカー・消しゴム・投げなわ・予定・色・「しまう」）。
+    - `iphone-landscape-week.png`・`iphone-landscape-month-toolbar-collapsed.png`・`ipad13-portrait-toolbar-collapsed.png`・`ipad13-portrait-toolbar-collapsed-right.png`: 横の見出しとツールバー、しまったツールバーのボタン。
+    - `ipad13-portrait-readonly.png`・`iphone-portrait-readonly.png`: 閲覧専用の表示と、その画面のボタン。
+    - アラートの写真は J-4 の組に無い（あれば足す）。
+11. `TESTS_1_3`・`FIXTURES_1_3`: **29 行・37 行**。どちらも 955fe67 の blob から契約 §5.5 の printf の形で作り（LC_ALL=C で並べた）、D0 の木で `shasum -a 256 -c` が 29/29・37/37 OK。内訳: TESTS_1_3 は `Tests/TegakiCalendarTests` 19・UI テスト 3・`CompatSpanTests` 1・`CompatSpanFixtures` の .swift 2・KitChecks 4。FIXTURES_1_3 は compat11 17（`.gitignore` を含む）・compat-span 17（`MANIFEST` を含む）・`CompatFixtures` 1・`EXPECTED_MIN` 2。段の確かめ: ファイルを 1 つ足す・消す、`PaperViewTests.swift` に 1 バイト足す、のどれでも手元で exit 1。
+
+### D0 の commit（Workflow wf_c4f93814-c94 の D0 の組: 作る → 2 つの別の目 → 直す。11/20 06:50〜07:50）
+
+- 中身は契約 §3.3 の 1〜9。`runs-on` は compat-v1-0 だけ `macos-26`（45 分のまま）、ほかは全部 `xcode-27`（build-and-test 110 分）。XcodeGen は 10 か所で `tools/ci/install-xcodegen.sh`（2.46.0、sha256 固定）。
+- 作る役が決めた所（契約の字の外。受けた）:
+  1. `build.yml` の `branches-ignore` に `r14-duo*`（duo.yml の枝で build.yml の 6 つも走ると同時の上限 5 を超える）。
+  2. span-shots-app の「Language photos」を `r14` でも走らせる（§3.6 の (B) の `span-shots-app-languages` を D0 で得るため）。
+  3. span-shots-app の Xcode の選びの上限 5 → 10 分（`-runFirstLaunch` の分）。
+  4. 単体テストと同期の繰り返しは機種の名前でなく UDID で指す。同じ名前が 27.0 と 27.2 にあるときは新しい iOS を選ぶ。iOS 27.2 の 2 つの組（ふつうの機種・Duo）は、Duo 以外は Duo の無い組を、Duo は Duo だけの組を選ぶ（見分けがつかないときだけ警告）。
+  5. 「表と同じ字か」は最後の別の段で env.txt を読んで確かめる。
+  6. 新しい env.txt（ui-tests・l10n・blank・duo-probe と、store-shots は `env-store-<set>` の成果物）。compat-v1-0 と testflight は env.txt が無く、関門 8 はログの `xcodegen --version` で読む。
+  7. **`r14-q-m1` は変異の枝**: 速い道（QUICK）のままで、単体テストは全部の組を走らせ、compat-v1-0 も走らせる（`MUTATIONS`）。契約 §3.10（r14-q-* は速い道）と §5.3 の 6・§6（変異を r14-q-m1 の単体テストと compat-v1-0 で見る）の食い違いをこれで解いた。ほかの `r14-q-*` と `r14-quick` は 1.3 と同じく build-and-test だけ。D1 の新しいテストの組は、速い道の単体テストの絞り（`build.yml` の Span の組だけの正規表現）に D1 で足す。
+  8. duo-probe は写真モードの状態の行（`span.state` の読み上げのラベル）を出せない（写真モードでログに書かない。D0 はコードを変えない）。§4.2 との違いとして受け、D1 の `--screenshot-measure` で取る。
+- 受けた注意（直さない）: blank-paper はジョブに `continue-on-error`（1.1.1 から）なので、機種が無いとジョブは赤になるが run は赤にならない。**関門 1 は blank-paper のジョブの結果で読む**。環境が更新されて「Select Xcode 27.2」が落ちたら、Build の字が小文字で終わる版でないかを見る（§3.1 の規則で、閉じる側に落ちる）。
+- §3.9 の最後（`macos-26` に Xcode 26.6 が無ければ落とす）は D1 で入れる。
+- 直す役の一度だけの規則の外れ: 自分の作業の場所で、まだ無いフォルダに `rm -rf` を 1 回打った（何も消えていない）。
+
+## D0 の最初の run（run 44632524223 の attempt 1、r14 0067216、11/20 07:51〜09:44）
+
+- **結果: 関門 1 が落ちた**。緑は compat-v1.0（11.7 分）・UI テスト（53 本のうち 43 本が走って失敗 0、10 本は飛ぶ。30.4 分）・l10n-shots（43.2 分）・blank-paper（52.4 分）。build-and-test は 110 分の上限で切れた（112.7 分）。span-shots-app は「Shots on four devices」が 36 分で `The operation was canceled.`（上限の 65 分・90 分には届いていない。理由は調べ中）。
+- **関門 2（保存のバイト）は通った**: `InkLedgerTests.testLedgerWritesTheCompatShapes`・`ScreenshotModeTests.testDemoPagesMatchCompatFixtures`・`SpanSessionTests.testSpanSessionWritesTheCompatSpanShapes` の 3 つとも、作り直さずに今の fixture と同じ。新しい Foundation でも JSON のバイトは同じ。
+- KitChecks 40,020（閾値 39,970）。`TESTS_1_3`・`FIXTURES_1_3` の段は緑。
+- env: Xcode 27.2（27B52、`/Applications/Xcode_27.2.app`）、XcodeGen 2.46.0、Python 3.15.2、実行環境 iOS 27.2（24B8117）・Duo の組（24B91016s）・iOS 27.1・iOS 27.0（24A434）。**実行機の環境の版がジョブで違った**: 20261119.0378.1 と 20261104.0337.1（§3.8 の配り中の環境。J-4 は同じ版の組でだけ合否を決める）。
+- **単体テスト 745 本のうち 2 つのテストが落ちた**（失敗 5 件）:
+  1. `PaperSpanTests.testTheOnePageBandIs1_2_3OnScreen`（`TESTS_1_3` の 1 つ）: 日の帯の 2 つの場合（倍率 0.0854 と 0.5）だけ、帯の青（#2563eb）の点が 0 個（「the band is drawn」）。週の 3 つの場合は通った。凍結の写し（`Frozen123AllDayBand`）とアプリの帯（1 ページ・1 ページの窓）は点ごとに同じ（違いの確かめは落ちていない）。
+  2. `StoreKitSessionTests.testIneligibleAfterATrial`（凍結の表の外）: 試用の期限切れは読めた（`.readOnly(.expired)`）が、5 秒たっても 2 つの商品が「お試しを受けられる」（`eligible=true`）のまま。
+- **時間**: 単体テストの段 25 分（1.3 は 10.5 分。lockdown の 120 秒の待ちと、終わってから結果の束を書くまで 4.5 分を含む）。シミュレータの起動は 1 台 5〜11 分（`iPhone 17` 4:41、`iPhone 18 Pro Max` 6:26、`iPad mini (A17 Pro)` 10:36、選んでから起動の確かめまで）。4 台の写真の段は 56 分で切れた（1.3 は 36.5 分。`ipad11` は撮れていない）。span-shots-app は `ipad11` の `testBands` で XCUITest の「Setting device orientation to Portrait」が 32 分止まり、`Failed to get list of active applications: Accessibility error kAXErrorIPC` で落ちた。
+- 成果物とログは `~/.local/share/tegaki-backup/1.4/run-44632524223-a1/` に控えた（attempt 2 で同じ名前の成果物が上書きされるため）。
+- 次: 落ちた 2 つのジョブを 1 回だけ走らせ直す（§3.8 の FLAKE と同じ扱い。attempt 2、09:55〜）。揺れか、新しい SDK で決まって起きる差かを見る。並行して原因の調べ（Workflow wf_43c5ad9d-19e: 帯・StoreKit・時間・SDK の差の地図の下書き）。
+
+## D1 のアプリ側（Workflow wf_05b99cd8-494、11/20 08:00〜09:55。枝 `r14-w-d1` 5ede8ad、r14 には未だ入れない）
+
+- 組: S（PencilPhone・設定・画面の糊・SpanSession の上限の窓・S のテスト）、U（シートの窓の大きさ・写真モードの `--screenshot-measure`・`--screenshot-pencil-phone`・DuoLayoutUITests・DuoHingeUITests）、P+X（PaperView の倍率の trait・8 つのキーの注）、C（`tools/duo/idiom_check.py`・`shot_checks.py`・build.yml の D1 分・duo.yml の duo-shots と duo-hinge）。4 つの枝を `r14-w-d1`（c2de616 = r14 ba80f74 + Kit + compat の枝）にまとめ、2 つの別の目（A: 契約と動き、B: データとテストと CI）で調べ、直した。
+- 手元の確かめ（最後の 5ede8ad）: typecheck（ふつう・DEBUG・DEBUG DUO_HINGE）0 警告、KitChecks 40,794（閾値 40,744）、`shasum -c` DATA_1_1 20・TESTS_1_2_3 8・TESTS_1_3 29・FIXTURES_1_3 37 全部 OK、lint・build.py・baseline.py OK、YAML 5 つ、shot_checks と idiom_check の self-test OK、idiom の許しの表 10 行・問題 0。**新しいテストはまだ 1 本も走っていない**（この Mac にシミュレータが無い）。速い道 `r14-q-d1`（run 44649291195）で回し始めた。
+- `git diff 0067216 --stat -- Sources TegakiKit/Sources Tests`: 27 ファイル、+4305 / −55（新しいテストのファイル 9、アプリ 11、Kit 7）。凍結の表のファイルは 1 つも変えていない。
+- リードが受けた、契約の字との違い（凍結のテストのため、または契約の文の穴）:
+  1. `makeSession` は `overviewCap: true` のまま（凍結の `ScreenPathsSpanTests.testEveryJoinedPlanCarriesTheCap` がこの字を求める）。窓の答えは別の引数 `wideWindow` で渡し、使う上限は「頼んだ ∧ 広くない」。redecide も「頼んだ ∧ `overviewCapNow()`」。画面の動きは契約の形と同じ。
+  2. `Device.wide` は iPhone だけ（凍結の 2 つのテストが広い iPad の窓を `Device(deviceClass:orientation:)` と比べる。iPad の plan には元から上限が無い）。
+  3. `PencilPhone.launchDefault` が `appear()` の 1.3 の既定を書く（同じ時・同じ鍵と値）。書いた起動では書いた origin（`.app`）を返すので、`-allowFingerDrawingChosen NO -allowFingerDrawingAuto ""` の起動も初めての起動と同じに読む（引数の領域が鍵を隠し続けるため）。**契約 §2.1 の最後の行は直さなくてよい**（どちらの引数の組でも origin は `.app`）。
+  4. 初めて開くページの決めは `isPad: idiom != .phone`（1.3 の「iPhone 以外は月」のまま）。PencilPhone は `idiom == .pad`。
+  5. 予定のシートの form sheet の側は 1.3 の iPad と同じ素の sheet（`.form.fitted` を足すと iPad が変わる）。
+  6. 写真モードの測りの行（`ScreenshotMode.measurePlan`）は SpanPlan を作らず Kit の static で数える（凍結のテストが ScreenshotMode.swift の `SpanPlan(` を 1 つだけ許す）。スクラッチの比べで 152,576 通り違い 0。
+  7. `--screenshot-pencil-phone` は `allowFingerDrawingChosen=true` も書き、印を消す（「持ち越し・オフ」で、何も替えない）。
+  8. PaperView の倍率は窓にある時だけ追う（PDF の描き手のダミーの倍率を守る）。そのテストを 1 本足した。
+  9. `DuoLayoutUITests` の「指でも書く」オンの横の道は 2 本指の pan が XCUITest に無いので、1 本指で線が書けてページと題が動かないことを見る。2 本指は本人の Duo で（§10）。シートは両方の画面でスクロールしてよい形で見て、スクロール無しの (a) は内側でだけ記録する（`formSheetOnWide` を決める材料）。
+  10. `DuoHingeUITests` は XCUIHinge の名前が分からない（27.3 は beta で SDK が無い）ので、Objective-C の実行時で探して角度を入れる。無ければ飛んで、見つけた名前を書く。
+  11. duo-probe は D1 から dispatch だけで走る（duo-shots が push で走る）。D0 の関門 6 の duo-probe は、D1 を入れる前の r14 を `r14-duo-probe` に push して D0 の duo.yml で走らせる。
+- 2 つの別の目の指摘と直し（直す役 b7271fd・5ede8ad）:
+  - A-1: Pencil でツールバーの「指でも書く」を押すと、離した時にアプリがオフを書き、同じ離しでトグルが読んで「本人」がオンに戻すおそれ → 離しで決めた動きは main actor の次の回で書き、その間に本人が触れていたら捨てる（`afterTheLift`）。テストを 1 本足した。**リードの判断: 受ける**（「全部が離れた時に替える」は守られ、1 回だけ後になる）。
+  - A-2: iPad の初めての起動の印が、iPhone に戻したバックアップで「移ってきた・オフ」と読まれてオンに戻る → **iPad は印を書かない**（読むと「持ち越し」）。**リードの判断: 受ける**。§4.8 の「1.4 の appear() が初めての起動の既定を書いたとき、その端末の印を書く」は「iPad 以外で」と読む（「iPad では何も付けない・何もしない」と、今の端末を 1.3 と同じに保つ方を取る）。
+  - A の注 a: 戻し（turnOnAgain）の後に Pencil が触れると「アプリ」の行でオフにし、札を出し直す。F10（移ってきた人に札を出さない）と食い違うように見える → **リードの判断: §4.8 の表の字のまま**（「どちらも以後は『アプリ』の行で動く」）。戻しが起きるのは 1.4 が印を書いた端末から運ばれた値だけで、その人は 1.4 を使っていた人なので、札の文は 1.3 の人に合わないという F10 の理由に当たらない。起きるのは折り目の答えが無い Duo（`usesHinge` が false）だけで、札が 1 回出るだけ。
+  - A の注 b: 「移ってきた・オフ」に Pencil が触れたら rebind（§4.8 の表に無い行）→ **リードの判断: 受ける**（Pencil が使える iPhone は Duo だけなので、折り目と同じく「この端末はオフでよい」の証拠）。FingerDefault の頭の注に書いてある。
+  - A の注 c: 窓の触れの見張りが iPhone の手振りを遅らせないことは CI の iPhone の UI テストで見る。
+  - B-1: スイッチの Binding（`personSet`・`personSwitched`）を見るテストが無かった → `testPersonSetMarksThePerson` がソースを読んで確かめる形に（4 つの変異を手元の写しで捕まえた）。
+  - B-2: duo-shots が内側の画面のテストを走らせられなかった → 道 1 のときは外側・内側の 2 回走らせ、`DUO_UI_MIN_RAN_INNER` = 8。
+  - B-3: 道 3（内側を開けない）では §6 の U の行の「見出しの変異」を見るテストが無い（外側の縦は幅でも idiom でも 2 段）。**記録: 道 3 の間はこの変異を `r14-duo-m1` に入れない**。内側の道ができたら入れる。
+  - B-4: `DUO_SIZE_RULE` の既定 "fail" → "warn"（§7.1「ほかの寸法なら警告して使わない」）。duo-shots で 1398×2034 を見てから "fail" に。
+- 測ってから決める物（duo-shots の後）: `PencilPhone.usesHinge`（false）・`DUO_USES_HINGE`（unknown）・DuoLayoutUITests の `usesHinge`/`hingeRead`、`WindowClass.formSheetOnWide`（false）、DuoFoldTests の推定の大きさ、DuoChecks の測った行、`DUO_OPEN` などの道の変数、`DUO_UI_MIN_RAN_PATH3`（4）。
+- 規則の外れ（記録）: C の役が自分のスクラッチのフォルダに `rm -rf` を 2 回打った（作業の木には触れていない）。
+- 順番の外れ（記録、10:05）: 契約 §3.3 の順（build.yml → ja-baseline → testflight → duo-probe、同じ時に別の workflow を足さない）を、D0 の build.yml の走らせ直し（2 ジョブ）と D1 の速い道（1 ジョブ）の間に、duo-probe（`r14-duo-probe` に 0067216、run 44649975338）と testflight（r14、run 44649976250、ビルド 27）を足した。同時の macOS のジョブはちょうど 5（上限 [S55]）。順の理由（同時の上限と、J-4 の同じ UTC の日）は守れる: ja-baseline は走らせ直しの後に同じ UTC の日（11/20）に回す。duo-probe は合否に使わず、testflight は写真を撮らない。`r14` の頭（ba80f74）は [skip ci] なので、duo-probe には D0 の commit を push した。
+
+## D0 の関門 5・6 と年齢区分（11/20 10:00〜10:20）
+
+- **関門 5 ○**: testflight（r14 ba80f74、run 44649976250、ビルド **27**、環境 20261104.0337.1、XcodeGen 2.46.0）。アーカイブの確かめ: `DTSDKName iphoneos27.2`・`MinimumOSVersion 17.0`・`UIDeviceFamily 1, 2`・`DTXcode 2720`・`DTXcodeBuild 27B52`・`DTPlatformVersion 27.2`。アップロード成功、Connect で **VALID**（10:10 に読んだ。版 1.4、minOs 17.0）。
+- **0d-6**: 内部テストのグループが「全部のビルドを受ける」設定なので、ビルド 27 は自動で配られていた（`IN_BETA_TESTING`）。VALID を確かめた直後に**期限切れ**にした（PATCH `expired: true` → 読み戻し `EXPIRED`。1.3 の試作のビルド 24 と同じ）。
+- **年齢区分の 2 問（§9.5 の 2）○**: 版 1.4 の入れ物を作った（`appStoreVersions` e32a8b9c-…、PREPARE_FOR_SUBMISSION、MANUAL、著作権は 1.3 と同じ。直せる App 情報 fb8d76d7-…）。その `ageRatingDeclaration` に `sharedLocation: false`・`datingAndRelationships: false` を PATCH（200）、読み戻し 2 つとも false、区分は **FOUR_PLUS** のまま。1.4 の提出で一緒に出る。本人の言葉（11/20 07:20 ごろ）「年齢区分の2問をいいえで入れて良い」。
+- **関門 6 ○**: duo-probe（`r14-duo-probe` 0067216、run 44649975338、環境 20261104.0337.1）が env と写真を残した。Duo は `iPhone Duo`（`iPhone19,4`、iOS 27.2 24B91016s、この実行環境の機種は Duo だけ、起動 99 秒）。写真は primary の画面だけで **1398×2034**（外側の見込みと同じ）。外側の写真では、アプリの窓の右に時刻と電池の帯が縦に出て、アプリは幅の約 82% に描かれている（D1 の duo-shots の `duo measure:` の `safe=` で測る）。環境の Xcode は 27.0（27A266a）・27.1（27A9275）・27.2（27B52）で、27.3 は無い（duo-hinge はまだ走らせられない）。成果物は `~/.local/share/tegaki-backup/1.4/duo-probe-44649975338/` にも控えた。
+
+## D0 の走らせ直し（attempt 2、11/20 09:52〜11:12）と D1 の速い道（run 44649291195）
+
+- attempt 2（落ちた 2 ジョブだけ、同じ 0067216）: build-and-test は環境 20261104.0337.1 で **79 分で全部の写真まで終わった**（attempt 1 は 20261119.0378.1 で 110 分で切れた。遅さは主に環境の版による）。単体テストは **同じ 2 つが同じ形で落ちた**（帯の日の 2 つの場合の青 0、StoreKit の試用後の資格）。これで帯は 3 回（D0 の 2 回と D1 の速い道）、StoreKit は 2 回、同じ落ち方: **揺れではなく、新しい SDK・実行環境で決まって起きる差**。
+- attempt 2 ではテストの入れ物（アプリ）が `InkCanvasViewTests.testHeightChangeAtTheOverviewFollowsTheNewFitAll` の始めで 1 回止まり、xcodebuild が「Restarting after unexpected exit, crash, or test timeout」で立ち上げ直した（そのテストは 2 回目に通った。最後の数は 2 回目の分だけの 552 本）。attempt 1 には無い。結果の束（xcresult）は成果物に無いので原因は分からない。**揺れとして記録**（§3.8 の FLAKE と同じ扱い）。
+- span-shots-app は attempt 2 も `The operation was canceled.`（段の始めから 39 分、ジョブの始めから 43 分。ipad11 は 4 本とも通り 19 枚・25.5 分、次の `iPad mini (A17 Pro)`（iOS 27.0）の起動の途中で切れた）。attempt 1 は ipad11 の向きの切り替えで 32 分止まった所で切れた。どちらも上限には届いていない。GitHub は理由を残さない。**推定**: シミュレータが止まって実行機の VM が応えなくなり、実行機の側でジョブが切られた。
+- D1 の速い道（`r14-q-d1` 5ede8ad、run 44649291195、環境は env.txt）: KitChecks 40,794（閾値 40,744）、idiom の見張り 10 行・問題 0。単体テスト 284 本のうち落ちたのは 3 つ: 帯（D0 と同じ）、**`PaperSpanTests.testWithoutNeighborInkThePDFIsTheDefaultCallsPDF`**（2 つの PDF が同じ長さで中身が違う。D0 の 2 回では通った）、**`PencilPhoneTests.testHingeIsNilOffTheDuo`**（D1 のテスト。折り目の無い iPad Pro 13 では `UIHingeInteraction` の知らせが 5 秒間 1 回も来なかった。Apple の文書の「最初の状態で 1 回呼ぶ」と違う）。D1 の新しいテストの組 7 つのうち 6 つ（CappedOverviewWide・DuoFold・OnePageReveal・PaperViewScale・SnapshotScale・WindowClass）は全部通った。
+- 折り目のテストの直し（b21d7e0、D1 の直す役 → 別の目で確かめ）: 3 秒の間に「折り目あり」の知らせが来ないことを見る形に（知らせが来ない・来て nil、のどちらも通る。折り目が来れば落ちる）。PencilPhone は知らせが無いときに `hinge(false)` を返す（`usesHinge` が false の今はすぐ）ことを確かめ、取り消した待ちが答えを返さないように 1 か所直した。
+- 調べの試し（`r14-q-probe` 8aead6d = r14 + 新しいテストのファイル 3 つ、何も落とさない）: 帯（窓の位置 y 0 と y 300、四隅が直角の形と丸い形、ScrollView の有無、待ち 0.05 秒と 1 秒、描き方 2 通り）、PDF（同じ PDF を 4 回ずつ作り、違うバイトの場所と種類を書く）、StoreKit（資格を買う前に読む順と、履歴を見てから初めて読む順）。run 44659376399。D1 の直しは `r14-q-d1` に push（run 44659380308）。
+- 控え: `~/.local/share/tegaki-backup/1.4/run-44632524223-a2/`、調べの報告は `~/.local/share/tegaki-backup/1.4/d0b/`。
+
+## D0b の調べの結果（試しの run 44659376399、`r14-q-probe` 8aead6d、11/20 11:15〜11:35、環境 20261104.0337.1）
+
+- **帯（`PaperSpanTests.testTheOnePageBandIs1_2_3OnScreen`）の原因**: iOS 27 の UIKit が、テストの描画の道具（`renderOnScreen` の窓）の中の SwiftUI の `HostingScrollView` の**上の端に「スクロールの端の効果」（`UIKit.ScrollEdgeEffectView`、`CABackdropLayer` とグラデーションの覆い、高さ約 24 pt）**を自動で付け、`drawHierarchy` の写しにそれが写る。帯の上の約 24 pt が白っぽくぼける（帯の青 #2563eb が #3971ec などになり、許しの幅 12 を超える）。
+  - 証拠: ScrollView の中の棒は、四隅が直角・丸い・ただの長方形のどれでも、窓の y が 0 でも 300 でも、待ちが 0.05 秒でも 1 秒でも青 0。ScrollView の外の同じ棒は青 4,582〜4,591。`layer.render(in:)` で描くと日の帯の棒は青 722・4,912（棒は正しく描かれている）。週の帯は 2 段目（y 23〜）が効果の下から出るので通る。日の帯は 1 段で高さ 25 pt なので、棒が全部効果の下に入る。
+  - **使う人への影響は無い**: アプリの写真（D0、Xcode 27.2 で作り iOS 27.2 で撮った）では日のページの「締切」の帯は 1.3 と同じ色と位置（差は角の丸みと字のふちだけ）。効果はテストの道具の窓の中だけで出る。アプリのコードは直さない。
+- **PDF（`testWithoutNeighborInkThePDFIsTheDefaultCallsPDF`）の原因**: iOS 27.2 の Quartz は情報の辞書に `/ModDate\n(D:…)`（空白でなく改行）と書く（`/CreationDate` は書かない）。テストの `stableBytes` の正規表現 `/ModDate \(D:…\)` は空白を前提にしているので日時が残り、2 つの PDF を作る間に秒が変わると 1 バイト違って落ちる。D0 の 2 回は同じ秒で通り、D1 の速い道は秒をまたいで落ちた。試しでは同じ呼び方どうしでも秒が変われば違った。**時刻で揺れるテスト**（§5.5 の (a): 2 回以上の run と原因がそろった）。
+- **StoreKit（`StoreKitSessionTests.testIneligibleAfterATrial`）の原因**: iOS 27.2（24B8117）の StoreKit の試しの環境は、**お試し（FREE_TRIAL）の取引が履歴にあり期限が切れた後も、お試しの資格を true のまま返す**。買う前に資格を読まない順（試し 1）でも、読む順（試し 2）でも、`Product.SubscriptionInfo.isEligibleForIntroOffer(for:)` と商品の値が 15 秒の間 41〜42 回とも true。`clearTransactions()` の後も true。アプリは資格を自分で計算せず StoreKit の答えをそのまま見せるので、これは試しの環境の振る舞い（1.3 の CI では古いシミュレータの不具合で StoreKit のテストが全部飛んでいて、このテストは初めて走った）。
+- **写真の手書きの欠け（関門 7 の組 4）**: B1（D0 attempt 1）の 16 枚で、見本の手書き（ペンの波・マーカー・メモの点・年の線）が一部欠けた。欠けの縁は PencilKit の区画（紙の 512 単位）の境目にそろう。**欠けたのは実行機の OS が macOS 27.2（環境 20261119.0378.1）のジョブだけ**: build-and-test の B1 54 枚中 4 枚、l10n 手書きのある 50 枚中 11 枚、span-shots の attempt 2 で 19 枚中 9 枚。**macOS 27.0.1（環境 20261104.0337.1）のジョブは欠けない**: build-and-test の attempt 2 は 59 枚中 0 枚（B1 との違いは欠けた 4 枚の手書きの所だけで、ほかは点ごとに同じ）、UI テストは 70 枚中 1 枚（インストール後の最初の起動。1.3 の FIX3 と同じ形）。実行環境（iOS 27.2 24B8117）は同じなので、**シミュレータの外側（実行機の OS の描き方）の不具合**と読む（推定。遅れて描くのか描かないのかは分からない。`ipad13-portrait-week` は macOS 27.2 の起動 3 回とも同じ区画が欠けた）。キャンバスには全部の線が入っていた（試しの読み上げ `pk=17;ink=17` など）。**使う人への影響は低いと読む**（同じ iOS が古い OS の実行機では全部描く）が、本人の確かめ表に 1 行足す（下の L4）。
+- **アプリのログの文が読めない**: iOS 27.x のシミュレータでは `log show` がアプリの中の共有のライブラリ（dyld の共有の写し）の文の元を引けず、NSLog の行が全部 `<compose failure [shared UUID]>` になる（B の全部のログ、両方の環境、3 つの実行環境。1.3 の iOS 26.4 は 0）。テストの道具がアプリに入れる行は読める。**関門 3 は span-shots-app の `lines/<機種>.txt` の `frame=`（キャンバスの実際の大きさ）と状態の欄で読む**（1.3 の run で `frame=` の大きさは全部その機種の `toolbar: paperArea=` の値のどれかと同じ。手順の替わりとして記録）。attempt 2 の ipad11 は 19 枚・9 行の frame・pages・zoom・ox・oy が 1.3 と全部同じ。残り 3 機種は span-shots が最後まで走った run で読む。
+
+### D0b のリードの決定（11/20 12:30、契約の外れと足し。§0.5「自動の確かめのやり方」は本人が決めなくてよいこと）
+
+- **L1（§5.5 に (c) を足す）**: `TESTS_1_3` のファイルを、(a)(b) のほか、(c)「新しい SDK の UIKit が、テストの描画の道具（テストのファイルの中の手順）に、アプリの描く物ではないシステムの飾りを足すことを、試しの run で示したとき」に替えてよい。直しはその飾りを消すことだけで、比べる物・期待の数・比べ方は変えない。同じ commit で表の行を書き直す。今回は `PaperSpanTests.swift` の `renderOnScreen` で、ScrollView の端の効果（iOS 26 から）を隠すだけ。
+- **L2（§5.5 の (a)）**: `stableBytes` の日時の取り除きを、鍵と値の間の空白・改行を許す形に（iOS 27.2 の Quartz は `/ModDate\n(`）。
+- **L3**: `StoreKitSessionTests.testIneligibleAfterATrial`（凍結の外）は、買う前に資格を読まない順にし、期限切れを確かめ、履歴に期限の切れたお試しの取引があるのに資格が true のままのときだけ、理由（iOS 27.2 24B8117 の試しの環境、試しの run 44659376399）を書いて飛ばす。資格が false になれば今の強い確かめのまま。証拠がそろわなければ落とす。アプリのコードは変えない。
+- **L4（§3.5 に (f)(g) を足す）**: (f) 写真の段に、手書きの確かめ（`tools/shots/ink_check.swift` と基準の行）と、手書きが足りないときの起動し直しによる撮り直し（1 枚 2 回まで）を、build.yml と ja-baseline.yml で**同じ字で**足してよい。結果は全部 `shots/ink.txt` に書く。(g) iPhone の横の写真は、縦長のときだけ回す（iOS 27.2 は横で書く。今は 2 回回って縦になっていた）。本人の確かめ表（§10）に **行 28**「週のページの手書き（マーカー・ペン）が欠けずに出る（iPad・iPhone、iOS 27）」を足す（行 18〜27 の番号は替えない）。
+- **L5（§3.3 の 9・§3.8）**: 上限を build-and-test 160 分・同期の繰り返し 14 分・blank-paper の段 70 分とジョブ 80 分・span-shots-app の段 80 分とジョブ 110 分・ja-baseline 130 分に。13 インチの起動を macOS の段の間に始める。span-shots-app に機種ごとの見張り（テストのログが 600 秒伸びなければ止める）と、`kAXErrorIPC` などの走らせ直しの印、走らせ直しの前のシミュレータの起動し直し。
+- **L6**: J-4 の写真の起動の仕方は変えない。ログを集めた後に `<compose failure` の数と、要る印が無いときの警告。l10n-shots は `l10n: holidays loaded` が無ければ警告。XCUITest が起動したアプリの NSLog は結果の束（xcresult）から書き出す（できる範囲で）。
+- **SDK の差の地図の受け方**（関門 7）: 組 4 の (c)（字の間隔「日 (水)」→「日(水)」など）は受ける。**角の形**（終日の帯の棒の角が円から連続の曲線に。SwiftUI の `UnevenRoundedRectangle` の描き方の差）は、(a) が同じで説明がつくので受け、確認ページの前と後に載せる。**手書きの欠け**は上のとおり実行機の OS の描き方として受け、(f) で写真の欠けを捕まえる。UI テストの 1 枚（`A1 cross — after the eraser`）でツールバーが選んだ色の所まで横に送られていた（マーカーが左の端で切れる）。アプリの状態は同じで、iOS 27 の ScrollView の動き（選んだ物を見せる）と読み、受ける（ツールバーは確かめ表の行で本人が見る）。組 3 の切り抜き 22 枚は全部 ○。
+- 写真モードの実行機の打ち切り（`The operation was canceled.`、理由を残さない）は 3 回（span-shots ×2、D1 の速い道の単体テスト ×1）。§3.8 の「落ちたジョブを 1 回走らせ直す」で扱い、2 回続けばその日は止めて環境の版を見る。
+
+### D0b の直し（11/20、枝 r14-w-d0b、HEAD 514e046）
+
+- **commit**: 32e9617（テスト: L1〜L3）、d84bf98（CI: L5・L6）、5b0b304（CI: L4）、a82021d（まとめ）、535a6aa・514e046（2 つの見直しの後の直し）。アプリのコード（`Sources`・`TegakiKit/Sources`）は 0 バイト。凍結の表で替わったのは `TESTS_1_3` の `PaperSpanTests.swift` の 1 行だけ（cac9e14c… → b684eb34…。§5.5 の (c) と (a)）。`DATA_1_1` 20・`TESTS_1_2_3` 8・`TESTS_1_3` 29・`FIXTURES_1_3` 37 行、全部 OK。手元の型の確かめ（ふつうと DEBUG）・`lint.py`・5 つの workflow の YAML・`bash -n`・J-4 の写真の段の字が同じこと（`j4eq.rb`）も OK。
+- **見直し**: テストの目 5 件（重い物 0）、CI の目 11 件（止める物 1・重い物 2）。15 件を直し、1 件（§5.5 (c) の引用。この記録で契約に足したので正しくなった）は直さない。
+- **L1〜L6 の字より広げた所（リードが受ける）**:
+  - L1: 端の効果を隠すのは style が `automatic` の物だけ（アプリが選んだ style は残す）。隠すのは 1 回目の配置の後と 2 回目の配置の後の 2 回、動きなしで。**次の CI が 27.2 での最初の確かめ**。
+  - L3: 買った後、履歴にお試しの取引が見えるまで資格を読まない（最初の `refresh()` も履歴を待つ）。飛ばす前の失敗は全部その場で終える。**飛ばすのは 24B8117 に限らない**（記録の行に本当の OS の版が出る。後の版で飛び続けたらここで見直す）。
+  - L4: 撮り直しは段ごとに 180 秒まで（時間の上限に収めるため。見込みは最悪でも build-and-test 160 分のうち約 150、ja-baseline 130 分のうち約 124）。シートは確かめて書くが撮り直さない。撮り直しで足りた写真は `::notice::`。手書きの確かめは隣の 8 区画の増えも数える（1.3 の写真で横の年の「•••」が区画の境をまたいで欠けと読まれたため。1.3 の 45 枚・D0 の既知の欠け 4 枚と l10n の 11 枚で、誤りなし）。`ink_ref.tsv` の l10n の 11 行は 1.3 の run 44474759145 の写真から作った物（頭の注に書いた）。D0b の run の欠けの無い写真で作り直す。
+  - L4 (g) を span-shots-app にも: 写真を回すのは PNG が縦長のときだけ（D0 の attempt 2 の ipad11 の横の余白の写真は 1640x2360 で、`span_margin` が数えられず落ちるところだった）。凍結の `SpanShotsUITests.swift` は替えない。
+  - L5: 13 インチの iPad は単体テストと同期の繰り返しの後に止める（build.yml だけの新しい段）。J-4 の写真は 1.3 と ja-baseline と同じく起動し直した iPad で撮る。D0b の run の「Boot the simulator」は数分かけて起動するはず（「Booted」と出たら見直す）。前もっての起動が 20 分で終わらなければ止めて、xcodebuild に起動を任せる。見張りが止めた run は xcodebuild が 0 で終わっても失敗に数える。
+  - L6: ログの読める度合いの段を ja-baseline にも（写真の段の外。§3.5 (h)）、duo.yml の duo-probe のログにも。
+  - ja-baseline の手書きの確かめを前もって作る段（§3.5 (h)）: ja-baseline では最初の macOS の swiftc になり、写真の待ちと重なるため。build.yml にも同じ字で。
+- **D1 の duo.yml** は D0b の duo.yml の 1 行（ログの読める度合い）と合わせる。
+
+## D1b（D1 を D0b の後の r14 に載せ直し、Duo の測りの行をファイルで受け取る。Workflow wf_2d3c30cc-479、11/20 13:45〜15:50、枝 `r14-w-d1b` 015fa73）
+
+- **載せ直し**: `r14-w-d1`（b21d7e0）を 755d611 に `--no-ff` で（8b7ebb0）。字の衝突は 0。意味の衝突 1 つ: duo-shots の `shot()` が横の写真を全部回していた → 縦長のときだけ回す（bf79ba0。L4 (g) を duo.yml にも）。D0b の CI の強化と D1 の足し（KitChecks 40,744、idiom の見張り、DUO_HINGE、速い道の D1 の 7 組、compat-v1-0）は両方そろっている（読み比べ）。
+- **測りの行のファイル**（iOS 27.x の `log show` はアプリの NSLog を読めないため。D0b の調べ）: 写真モードで `--screenshot-measure` のときだけ、`duo measure:` の行を NSLog と同じ字でアプリの入れ物の `Library/Caches/duo-measure.txt` に足す（足すだけ・消さない・同期の待ちなし）。duo.yml は起動の前に消し、写真の後に `simctl get_app_container … data` で読む。次に結果の束（xcresult）の出力、最後に `log show`。`--screenshot-measure` が無いときは何もしない（ふだんの使い方と J-4 の写真は変わらない）。新しいテスト `MeasureLineFileTests`（速い道にも入れた）。測る物を差し替えられる引数 `measurer` は試しのための口。
+- **2 つの見直しの後の直し**（886cabb・015fa73）:
+  - Duo の外側の写真は `--display=primary` が要る（duo-probe の run 44649975338 で、指定なし・internal・main は「2 つの画面から選べない」で落ちた）。画面の誤りは撮り直さず 1 回で `::error::`。
+  - duo-shots の DuoLayoutUITests の段に span-shots-app と同じ見張り（600 秒）・`kAXErrorIPC` の走らせ直し・走らせ直しの前の起動し直し（L5 を duo.yml にも）。
+  - 写真の段は、黒い写真の確かめの自己試験が落ちても走る（確かめと撮り直しなし。ジョブは落ちる）。
+  - 消せなかったファイルから読んだ行は `measure-sources.tsv` の 4 列目に「not cleared」と書き、警告（混ざりを防ぐのではなく見えるようにする）。
+  - DuoHingeUITests は `--screenshot-measure` で起動（道 2 の内側の測り）。DuoLayoutUITests は付けない。
+- **リードの決定（受ける）**: duo-hinge は D1 のまま（見張りなし、段 30 分。27.3 が出て合否に使う前に見直す）。道 1（DUO_OPEN）を入れるときは写真の段 55→90 分、ジョブ 120→150 分に上げる。duo-shots の `log-reach.sh` の警告（compose failure）は毎回出るが、そのまま（L6 の道具は build.yml・ja-baseline と同じ）。
+- **確かめ（手元）**: 凍結の 4 表 OK、型の確かめ 3 通り（ふつう・DEBUG・DEBUG DUO_HINGE）OK、lint・idiom・shot_checks の自己試験・YAML・`bash -n`・J-4 の字の一致 OK、KitChecks 40,794（閾値 40,744）。CI の試し: 速い道 `r14-q-d1b`（run 44690586694）と Duo の写真 `r14-duo-d1b`（run 44690590720）。
+
+## D0b の run（run 44676125566 と ja-baseline 44676133732、11/20 13:41〜16:21）
+
+- 走らせた物: `r14` 755d611（D0b を入れた頭）の push の build.yml（run 44676125566、6 ジョブ、13:41〜15:26）と、ja-baseline（run 44676133732、基準 955fe67、14:26〜15:32）。UI テストのジョブだけ 1 回走らせ直した（attempt 2、15:45〜16:21）。
+- 環境: attempt 1 の全部のジョブと ja-baseline は `xcode-27` の 20261104.0337.1（macOS 27.0.1）。compat-v1.0 だけ `macos-26` の 20261102.0473.1（Xcode 26.6、17F113）。**UI テストの 2 回目は 20261119.0378.1**（macOS 27.2。§3.8 の配り中の遅い環境）。Xcode 27.2（27B52）、XcodeGen 2.46.0、Python 3.15.2、実行環境 iOS 27.2（24B8117）、`ipadmini` だけ iOS 27.0（24A434）、`iphone69` は iPhone 18 Pro Max（1320×2868）。
+- **結果: 関門 1 が UI テストで落ちた（2 回とも 1 本ずつ、別のテスト）。ほかの数は全部 ○。関門 2・3・4・8 は ○、5・6 は D0 から ○、7 は ?。**
+- 調べ: Workflow の 6 役（関門 1・2・8 の数、J-4、関門 3、SDK の差の地図、UI テストの失敗、全部を確かめ直す批評）。役と批評が違うときは批評を取った（警告の数、UI テストで切れた問い合わせ、手書きの欠けの読み、地図の組の数）。
+- ログの行の番号は GitHub のジョブのログの行。BT = build-and-test（ジョブ 136088274710）、UI = UI テストの 1 回目（136088274724）、UI2 = 2 回目（136133397077）、SS = span-shots（136088274465）、BP = blank-paper（136088274668）、L10N = l10n-shots（136088274717）、CV = compat-v1.0（136088274823）、JA = ja-baseline（136088302592）。
+- 控え: attempt 1 の成果物とログ、ja-baseline の成果物は、リポジトリの外の `tegaki-backup/1.4/run-44676125566/` に写した（成果物は 7 日で消える）。
+
+### 関門（契約 §3.3）
+
+| 関門 | 判定 | 証拠 |
+| --- | --- | --- |
+| 1 全部のジョブが緑 | **×** | UI テストが 2 回とも落ちた。1 回目は `testToolbarEraserReturnsToTheRedThickPenAfterErasingALine`（環境 20261104.0337.1）、2 回目は `testEraserChosenFromTheFoldedToolbarReturnsToThePen`（環境 20261119.0378.1）。どちらも `EraserAndBelowDayUITests`。ほかの数は全部 ○（下の「関門 1 の数」） |
+| 2 保存のバイト | ○ | 3 つのテストが作り直さずに通った（BT:7816・8291・8507）。`InkLedgerTests` は違えば fixture を書き出して落ちる形（`InkLedgerTests.swift:1016-1039`）なので、通ったのは同じバイトの証拠。`FIXTURES_1_3` の段も緑 |
+| 3 レイアウトの数 | ○ | span-shots-app の状態の行 71 行（ipad11 19・ipad13 12・ipadmini 12・iphone 28）で、frame・pages・zoom・ox・oy・pw・ph・pk・ink が全部 1.3 と同じ。違うのは時間の欄（`trace`・`waited=`）だけ。`toolbar: paperArea=` の数は、結果の束から書き出したアプリの出力で ipad11 44・ipadmini 28・ipad13 28・iphone 50。1.3 の `log show` と同じ。(a) だけで足り、(b) に当たる行は 0。`span cap` は pages=7/9・expected=7/9 |
+| 4 J-4 | ○ | 77 枚（PNG 57・店の JPEG 20）で、同じ 54・違う 23・大きさの違い 0・片方だけ 0。強い差は `ipad13-portrait-sheet-info.png` の版の字だけ（379 画素、x 1450〜1489・y 1607〜1632、「1.3 (1)」→「1.4 (1)」）。残りの 22 枚は強い差 0（最大 12/255）で、M7C.md の決まり（強い差 0 は「違う写真 0 枚」）で違わない |
+| 5 testflight と VALID | ○（D0 から） | ビルド 27（r14 ba80f74、run 44649976250）が VALID（「D0 の関門 5・6 と年齢区分」の節）。ba80f74 と 755d611 で `Sources`・`TegakiKit/Sources`・`project.yml`・`testflight.yml`・`install-xcodegen.sh` の差は空。作り直しても同じアーカイブになる |
+| 6 duo-probe | ○（D0 から） | run 44649975338 の env と写真（1398×2034）。同じ節 |
+| 7 SDK の差の地図 | **?** | 組 3 は全部 ○。組 4 は受けた種類か説明がついた。残りは 2 つ: (1) es_MX の時刻の字（下の「リードの決定」で受ける）、(2) UI テストの 2 回目の写真の新しい差 1 つ（`SpanUITests … slide — after.png` の紙の位置。下の「関門 7」）。黒の輪と `A1 cross — after the eraser` は 2 回目の写真で読んだ（○）。2 回目の写真の手書きの欠け 13 枚は D0b で受けた種類（下の「関門 7」） |
+| 8 XcodeGen の版 | ○ | env.txt 6 つ（screenshots・ui-tests・l10n・blank-paper・span-shots-app・ja-baseline）と UI テストの 2 回目の env.txt の 5 行目が `xcodegen: Version: 2.46.0`。7 つのジョブのログに `xcodegen --version: Version: 2.46.0` と zip の sha256 `4d9e34b6…6806` が 1 回ずつ（compat-v1.0 は env.txt が無いので CV:1139 で読む。UI2:241 も同じ） |
+
+### 関門 1 の数
+
+- KitChecks 40,020（閾値 39,970、BT:573-574）。Kit のテスト 364 本（163+95+38+5+3+23+37）、失敗 0。
+- アプリの単体テスト **745 本・飛ばし 2・失敗 0**（BT:9105）。立ち上げ直しは無い。飛ばした 2 本はどちらも `StoreKitSessionTests`:
+  1. `testIneligibleAfterATrial`（L3 の飛ばし、BT:8609-8611）。証拠の行は「iOS 27.2（24B8117）、5.1 秒に 32 回読み、お試しの資格はグループも 2 つの商品も true のまま。アクセスは readOnly(expired)。履歴に、確かめ済みで期限の切れたお試しの取引が 1 つ」。
+  2. `testUSStorefrontPrices`（BT:8659-8660）。「試しの環境では米国の値が 300 で、App Store の $1.99 ではない」。955fe67 からある飛ばしで、D0b の変更ではない。
+- StoreKit のテストは 1.3 の CI では 8 本全部が飛んでいた（飛ばしの字は「Xcode 26.3–26.6 defect」: 試しの環境の店が米国のまま）。Xcode 27.2 の D0 から走り、残りの 6 本（`testBuyingMonthlyStartsATrial`・`testConfigurationLoadsBothProducts`・`testExpiringMakesItReadOnly`・`testRefundRevokes`・`testRestoreAfterClearingTransactions`・`testUpdatesStreamTriggersRefresh`）は D0 の 1 回目・2 回目でも今回も通った（BT:8550-8656）。単体テストの段が緑の run でこの 6 本が通ったのは、今回が初めて。
+- 同期の繰り返し 4,000 本・失敗 0（BT:9287）。組ごとの数（20 回 × テストの数）は 1.3 と同じ。
+- `TESTS_1_3` 29・`FIXTURES_1_3` 37 OK、表の 3 つのフォルダのファイル 35 と実物の 35 が同じ（BT:1899）。`DATA_1_1` 20・`TESTS_1_2_3` 8・compat10 の FROZEN 11 も OK。
+- compat-v1.0: 599 の確かめ・失敗 0（CV:621）。span-compat は 1.0 274・<1.1.1> 274・1.2.3 278、どれも失敗 0（CV:984・1050・1128）。
+- l10n-shots 63 枚、blank-paper 43 枚（4 機種の `testShots` が通った、BP:3446・3822・4204・4526）。名前は 1.3 と同じ。
+- span-shots-app: ipad11 19・ipadmini 12・ipad13 12・iphone 20 の 63 枚と PDF 1 枚（帯 21・ずらしの組 8・余白 30・週のメモ 4）。テストの結果は機種ごとに 1.3 と同じ。ずらしの組 4 つの説明のつかない画素は 6/32/25/63（1.3 は 6/31/25/63、上限 100）。`span-margin.txt` は 1.3 と 1 バイトも同じ。PDF のテストも通った。言語の写真は 10 言語 × 6 = 60 枚で、「アプリが見つけられなかった鍵 0」（SS:5261）。
+- 写真の大きさ: 5 つの成果物の 287 組で、1.3 と違う物 0。
+- UI テスト: 1 回目は 53 本・飛ばし 10・失敗 1（UI:7199、exit 65 は UI:7214）。飛ばしの 10 本は 1.3 と同じ。1.3 と結果が違うのは落ちた 1 本だけ。2 回目も 53 本・飛ばし 10・失敗 1（UI2:7330・7345）で、落ちたのは別の 1 本。
+
+### UI テストの 1 回目（attempt 1、環境 20261104.0337.1）
+
+- `EraserAndBelowDayUITests.testToolbarEraserReturnsToTheRedThickPenAfterErasingALine`（`EraserAndBelowDayUITests.swift:345`）が、299.5 秒の後に「Failed to get matching snapshot: Timed out while evaluating UI query.」で落ちた（UI:4680-4682）。ペン・赤・太・消しゴムの選びと 2 本の線は通った。その後の確かめで、キャンバス（`ink-canvas`）の**値の読み**が 3 回とも約 31 秒で切れた（存在の確かめは 12.5 秒かかって返った）。
+- **アプリは止まっていなかった**: XCTest が取ったスピンダンプで、アプリの main thread は 344 回中 344 回とも待ちで、CPU は 0.002 秒。UI の木とキャンバスの値は、止まる前の読みと同じ。録画は 4 分間同じ画面で、時計だけが進んだ。
+- **実行機が止まっていた**（13:52:10〜13:54:30 ごろ）: CI のログの遅れが最大 26.1 秒（ほかのテストは 1.3 秒以下）。3 つの CPU で 5 秒のうち 14.9 秒を使い、VM の圧縮に 1.3 秒。プロセスのメモリの和は約 9.0 GB（VM は 7 GB）。引き金は成果物からは分からない。
+- 同じテストは、D0 の 1 回目（同じコード・同じ環境の版）で 47.5 秒、1.3 で 51.7 秒で通った。UI テストのジョブの字は 0067216 と 755d611 で同じ（376 行）。`Sources`・`TegakiKit/Sources`・UI テストのファイルは 955fe67 から変わっていない。
+- 読み: **D0b の変更とは関係の無い、実行機の揺れ**（1.3 の FLAKE-1 と同じ種類の、問い合わせの遅れ）。§3.8 のとおり、UI テストのジョブだけ 1 回走らせ直した。テストもアプリも直さない（問い合わせは約 30 秒を 3 回まで待つので、90 秒を超える止まりはテストの側の待ちでは越えられない。待ちを延ばすと本当の止まりを隠す）。
+
+### UI テストの 2 回目（attempt 2、環境 20261119.0378.1、15:45〜16:21）
+
+- 1 回目に落ちた A1 は 81.5 秒で通った（UI2:4809）。
+- 代わりに `testEraserChosenFromTheFoldedToolbarReturnsToThePen`（A3 dock）が `EraserAndBelowDayUITests.swift:609` で落ちた（UI2:3695）。落ちたのは `XCTAssertNotNil` で、確かめの文は「the toolbar's eraser went back to the pen within 3.00 s of the lift」（離して 3 秒のうちに、ツールバーの消しゴムがペンに戻る）。テストの見張りの 3 秒の間に、戻ったのを読めなかった（線は消え、台帳も消した: UI2:3685）。trace の最後は `Uf@23410 … R1@25843 T:pen:#1f2937:3.5@25855`。
+- 同じテストは 1.1.1 の run 79 で 1 回落ちたことがある（R1_1_1.md。そのときの形は「指の線が増えない」で、今回と違う）。
+- 調べ（役 U2、批評で確かめた）: **アプリは遅れていない側の失敗**。アプリはリフトの後 **2.33 秒**でペンに戻した（失敗の録画のフレーム: 32.565 秒で消しゴム、35.020 秒でペン。3 秒の枠の内）。テストの待ちの輪は、枠の中でツールバーを 1 回しか読めなかった（最初の読みはアプリの設計の 0.5 秒より前）。次の `canvas.exists` に 2.12 秒、値に 0.94 秒かかり、枠を過ぎた。アプリの報告も設計より 1.93 秒遅れたが、ちょうど 2.12 秒の問い合わせと重なった時（問い合わせの答えはアプリの主スレッドで作られる、と読む。推定）。
+- 2 回の共通の原因: シミュレータの起動の後の数分、アクセシビリティの読みが遅い（実行機の側）。2 回目の環境では `simctl boot` 274 秒（1 回目 108 秒）、読みの中央値 0.34 秒（1 回目 0.16）、最大 17.8 秒。1 回目はアプリの主スレッドは待つだけ（spindump の 344 サンプル、CPU 0.002 秒）で、VM の CPU は 15 秒中 14.9 秒使われていた。アプリとテストのコードは 955fe67 から 1 バイトも変わっていない。
+- 扱い: §3.8 の「2 回続けば、その日は止める」を**ジョブごと**と読み、UI テストのジョブは 11/20（UTC）にはもう走らせない。次の試しは D1 を入れた r14 の CI（11/21 UTC）。テストは今は変えない（同じ形で落ちたら、3 秒の枠はそのままで読みを細かくする直しを §5.5 (a) で入れる。強さは同じで、3 秒より遅い戻りは今と同じく落ちる）。
+
+### 関門 3 の中身
+
+- 状態の行は、`lines/<機種>.txt` を欄ごとに比べた。違ったのは `trace`（21 行）、`c@ms` の印（23 行）、`waited=`（4 行。iphone の `span cap` の待ち 0.2〜0.7 秒 → 0.1 秒）だけで、レイアウトの欄の違いは 0。
+- `toolbar: paperArea=` の値の組は、4 機種とも 1.3 と同じ。起動 1 回の途中の値の並びが 1 か所ずつ違った（ipad11 の `week-memo-band`、ipad13 の `week-boundary`）。最後の値は同じで、写真の `frame=` と同じ。
+- `trace` の `c`（アプリが受け流す PencilKit の変化の知らせ）は 28 → 41 個。iOS 27 の PencilKit が知らせを 1 つ多く出すだけで、pk と ink は全部の行で同じ（線は失われていない）。
+- 足しの確かめ（要らないが行った）: `r14-w-d1b` 015fa73 の Kit の `--span-state` に 10 の紙の領域を入れ、zoom と pages が 10/10 で行と同じ。手の式（`ScreenPaths.shotPaperOffset`）で ox を出すと 21 行のうち 19 行が合い、2 行は 0.5 pt（1 画素）ずれた。**後で (b) を使うときは ox・oy に端末の 1 画素の許しを付ける**。
+
+### 関門 4 の中身
+
+- 比べの正しさ: 2 つの env.txt は 1〜6 行目と機種の行が同じ（違うのは iOS 27.2 の 2 つの実行環境の行の並びだけ）。ja-baseline は 955fe67 を取り出した（JA:142・217）。写真は両方とも 11/20 UTC（run 05:28:57Z〜06:26:28Z、基準 05:36:49Z〜06:32:24Z）。`compare_shots.swift` は変わっていない。755d611 の 2 つの workflow で `j4eq.rb` は「J-4 check: OK」（(h) の 2 つの段を含む）。
+- 弱い差だけの 22 枚: iOS の部品のガラスとぼかし（最大は `ipad13-portrait-sheet-create` の「キャンセル」「保存」の 12/255、`ipad11-portrait-readonly` のツールバーのガラス 122,995 画素・最大 5）、アプリの字・格子・終日帯の縁（1〜2/255）、手書きの縁（線は両側にある）、店の JPEG 4 枚（違う PNG の焼き直し）。1.3 の J-4 の合格も弱い差だけの写真が 16〜25 枚あった。
+- 撮り直した 2 枚（下の「D0b の確かめ」）は、相手側の 1 回目と点ごとに同じ。違う写真に撮り直しの物は無い。
+
+### 関門 7（SDK の差の地図、§3.6）
+
+- 453 組を 1.3（run 44474759145、Xcode 26.6、iOS 26.4）と比べた: screenshots 77・ja-baseline 77・l10n 63・blank-paper 43・span-shots-app 64・言語の写真 60・UI テスト 69。無いのは UI テストの `A1 cross — after the eraser` 1 枚だけ（1 回目はそのテストが落ちたため。2 回目にはある、下の「UI テストの 2 回目の写真」）。build.yml の写真と ja-baseline は同じ画素（77 組のうち 76 が強い差 0、残りは版の字）。
+- **組の数**（強い差 = 色の差が 48 を超える画素。状態の帯は隠して数える）:
+
+| 成果物（組） | 組 1 | 組 2 | 組 3 | 組 4（うち小さい差） |
+| --- | ---: | ---: | ---: | ---: |
+| screenshots（77） | 2 | 0 | 17 | 58（16） |
+| ja-baseline（77） | 2 | 0 | 17 | 58（16） |
+| l10n（63） | 1 | 0 | 13 | 49（38） |
+| blank-paper（43） | 14 | 0 | 0 | 29（29） |
+| span-shots-app（64） | 0 | 0 | 0 | 64（29） |
+| 言語の写真（60） | 2 | 0 | 10 | 48（34） |
+| UI テスト（69） | 0 | 0 | 6 | 63（4） |
+| **計（453）** | **21** | **0** | **63** | **369（166）** |
+
+  - **数え直し**: 地図の役の道具は D0b と同じ「強い差が 100 画素未満なら組 1」で数え、組 1 を 187・組 4 を 203 とした。しかし組 1 は状態の帯の差なので、帯の外に 1〜90 画素の強い差がある 166 枚は組 1 ではない。組 4 の「小さい差」に数え直した。組 1 に残るのは、帯の外の強い差 0 の 9 枚と、blank-paper の iPad の横の 12 枚（強い差は全部、横に描かれた状態の帯の列の中）。
+  - 166 枚の中身: 批評の役が 2 枚を見た（es の `guide-week-one` 80 画素は終日帯の札の角、de の `sheet-lasso` 90 画素は投げなわと menu の縁）。どちらも受けた種類で、目では同じ。帯のある写真の 100 画素未満の差は、角の形と同じ 4 つの角の並び（地図の役）。166 枚全部は見ていない。見た 2 枚と角の並びから、判定は変わらないと読む。
+- **組 2**: 無し。`iphone69` は 1.3 と同じ 1320×2868。
+- **組 3: ○**。§3.7 の 10 の切り抜き 22 枚は全部 ○（19 枚は D0 の写真と強い差 0。残りの 3 枚は iPhone の横の 2 枚（D0 では横倒し、今は立っている）と `ipad13-portrait-week`（D0 で欠けたマーカーが戻った所だけ））。ほかの 29 枚（l10n 13・言語の設定のページ 10・UI テスト 6）も、ボタン・トグル・行が全部見える。店の JPEG 8 枚はその PNG の写し。スクロールの端の効果は、システムのシートの見出しのぼかしとしてだけ出る（`sheet-sync`・`sheet-info`・iPhone の設定のページ。部品は見える）。アプリのページには出ない。
+- **組 4**: 受けた種類（「D0b のリードの決定」の「SDK の差の地図の受け方」）と写真の数（1 枚に複数の種類があり得る）:
+  - (c) 日の題「日 (水)」→「日(水)」78 枚（2,031〜4,667 画素）。
+  - (c) 括弧の間隔（出張（大阪）・国庆节（补假）など）93 枚（88〜1,495 画素。年のページ 24 枚を含む）。
+  - (c) zh-Hans・zh-Hant・疑似の字の描き直し 19 枚（824 画素まで）、消しゴムの注 3 枚。
+  - (c) ja の案内の行の折り返し（同じ字）4 枚（3,718〜16,222 画素）。
+  - 終日帯の棒と札の角の形 8 枚。UI テストの投げなわの点線の位相 10 枚（169〜171 画素）。
+  - (a) は同じ: 保存のバイトのテスト 3 つが通り（関門 2）、状態の行 71 行が同じ（関門 3）。
+- **新しい差 1 つ**: es_MX の時刻の字（写真は組 3 の設定のページ、差は組 4 の字）。下の「リードの決定」で受ける。
+- **SDK ではない差**: UI テストの 35 枚で、黒の色の丸に青い輪が無い。1 回目の A1 が赤と太を選んで落ち、`restoreDefaultPen`（`EraserAndBelowDayUITests.swift:116`・`:649-653`）まで行かなかったので、`toolbar.penColor` が赤のまま残った。ツールバーはその値で輪を付ける（`ToolbarView.swift:38-51`・`:234-245`）。落ちる前の写真には輪がある。1.3 でも同じ失敗の後は同じになる。
+- **UI テストの 2 回目の写真**（attempt 2、環境 20261119.0378.1、70 枚。批評の役 K2 が 1.3 と 1 回目に比べた）:
+  - **輪は戻った ○**: 上の 35 枚は、写真の下の 12%（ツールバー）で 1.3 との強い差が 35 枚とも 0（1 回目は縦 1,853・横 926 画素）。
+  - **`A1 cross — after the eraser` はある ○**: 1.3 との強い差は、状態の帯のほかはツールバー（31,776 画素。選んだ赤まで横に送られ、マーカーが左の端で切れる）と括弧の間隔（364 画素）だけ。ツールバーの送りは「D0b のリードの決定」で受けた種類と同じ。
+  - **手書きの欠け 13 枚**（`pnginkloss` で、1.3 にあって消えた暗い画素が 1 回目より 200 以上多い物。紙の位置が違う `slide — after` は除く。4 枚は目で見た）: `B2 preselected below 2400` の start・selected・after が 2 つのクラスで 6 枚、`B3 preselected above 2400 — start`（SpanRerun）1 枚、`SpanUITests … setting — off` 1 枚（ペンの波とマーカー）、YearTap の縦の `— after` 5 枚（メモの波と丸）。B2・B3 は投げなわの選択の枠があるのに、中の線が描かれていない。上の「線は入ったが描かれない」と同じ形で、20261119 の環境の XCUITest の写真でも起きた。自動の確かめが無いので、テストは通った。
+  - ほかの写真は 1 回目と同じ種類の差（強い差の数で見た。目では見ていない）。新しい差が 2 つ: `LanguageUITests … paywall-de-bottom.png` はシステムのシートのスクロールの印（右の縦の棒）が出たまま（組 3、部品は見える）。**`SpanUITests/testSlideChangesTheTitleOnce :: slide — after.png`** は、紙が 1.3 と 1 回目より約 80 pt（1 日の列ほど）少なく送られた位置で撮れた（1.3 との強い差 121,652 画素）。テストは通り、ログの state の行（focus・shifts・stops）は 1 回目と同じ。遅い環境で指の動きの初めが紙に届かなかったと読むのが自然だが、示してはいない（指を離した後の位置は記録に無い）。**組 4 の (a)(b)(c) のどれでもないので、リードが読む**。
+- **手書き**: 453 組の手書きの欠けの比べで、1.3 より欠けた写真は 0。D0 の欠け（ipad13・mini の週、iPhone のつまみの案内、iphone69 の年、l10n の週、UI の B0）は全部戻った。逆に 1 枚、1.3 の方が欠けていた（`span-shots-app/ipadmini-portrait-week-boundary.png`、下の「前の節の直し」）。
+- **横の写真（L4 (g)）**: screenshots・ja-baseline・span-shots-app の iPhone の横は 2622×1206 で立っている（1.3 と同じ）。blank-paper の iPad の横と XCUITest の横の写真は、横の大きさの PNG の中に横倒しで描かれる。これは 1.3 と同じ。
+
+### D0b の確かめ
+
+- **帯のテスト（L1）**: `PaperSpanTests.testTheOnePageBandIs1_2_3OnScreen` が 5.8 秒で通った（BT:7984）。27.2 での最初の確かめ ○。
+- **PDF のテスト（L2）**: `testWithoutNeighborInkThePDFIsTheDefaultCallsPDF` が通った（BT:7992）○。直す前も秒をまたいだときだけ落ちたので、1 回の通りでは直しの強さは示せない。run を重ねて見る。
+- **StoreKit（L3）**: 証拠の行を書いて飛んだ（上の「関門 1 の数」）○。
+- **13 インチの前もっての起動（L5）**: 13:42:11 に始め、129 秒で終わった（「0 129」、BT:266・5218）○。単体テストの段は待たずに始まり（状態のファイルは段の 0.6 秒目にあった）、5.7 分で終わった（同じ環境の版の D0 の 2 回目 17.3 分、D0 の 1 回目 25.2 分（20261119）、1.3 10.5 分）。ただし起動の間に macOS の段が遅れ、単体テストの終わりまでは長くなった（下の「時間」）。
+- **写真の前の止めと起動**: 14:21:01 に Booted、14:21:05 に Shutdown（BT:9321-9322）。次の「Boot the simulator」の `simctl boot` は 14:21:07〜14:23:52 の 2 分 45 秒で、本当の冷えた起動。その後の「Device already booted, nothing to do.」（BT:9424-9425）は、待った起動の後の bootstatus の言葉で、起動を飛ばしたのではない ○。ja-baseline の起動は 4 分 40 秒（JA:3560-3561 まで）。
+- **span-shots-app の見張り（L5）**: 見張りの止め 0（見張りのファイルも「watchdog:」の行も無い）。走らせ直し 0。4 つのテストのログで `kAXErrorIPC`・「Timed out while」・「Lost connection」が 0 ○。
+- **手書きの確かめと撮り直し（L4 (f)）**:
+  - build.yml の写真: 57 枚のうち 45 枚を確かめた（12 枚は基準の無いシート）。1 回目で足りなかったのは `ipad13-portrait-month.png` だけ（72,098 画素・287 区画、BT:9605）。2 回目で足り、それを残した（BT:9608）。
+  - ja-baseline: 45 枚を確かめ、`iphone-portrait-readonly.png` だけ 1 回目で足りなかった（10,626 画素・44 区画、JA:4315）。2 回目を残した（JA:4318）。
+  - l10n: 63 枚のうち 50 枚を確かめ、足りない 0（`zh-Hant/iphone-portrait-year` は「complete (18 px short)」）。
+  - 残した写真は全部足りている ○。基準の無い ipad13 のシート 11 枚は、J-4 の役が自分の道具でメモの点とマーカーが両側にあることを見た（数も同じ）。
+- **ログの読める度合い（L6）**:
+  - **XCUITest が起動したアプリは読めるようになった**。span-shots-app の `<機種>-app-output.txt`（結果の束から書き出した物）にアプリの NSLog の行があり、compose failure は 0。`toolbar: paperArea=` と `span shot:` の数は 1.3 の `log show` と同じ。言語の写真の出力にも `l10n: ui=` が 60 行（起動 1 回に 1 行）。
+  - **`simctl` で起動する写真（build-and-test・ja-baseline・l10n-shots）は今も読めない**。compose failure の警告が BT 5・JA 5・L10N 2。l10n は「holidays loaded」が 0 行で、37,114 行が compose failure（L10N:3844）。だから l10n-shots の「無い鍵」「訳していない字」の 2 つの数（0）は証拠にならない。BT の「The app's l10n lines」の段も同じ理由で空。
+  - 代わりの証拠: 地図の役が l10n の 63 枚全部を 1.3 と画素で比べた（説明のつかない差 0）ことと、言語の写真のアプリの出力から読めた「アプリが見つけられなかった鍵 0」（SS:5261）。
+- **警告**: `##[warning]` 28（BT 6・JA 6・SS 9・BP 1・L10N 4・CV 1・UI 1）、notice 2、error 1（UI の exit 65）。中身は、ログの読める度合い 18（compose failure 17 と「holidays loaded」が無い 1）、ずらしの組の 1 画素未満の差 3（1.3 と同じ）、Node.js 20 の終わりの知らせ 7（ジョブに 1 つ）。notice 2 つは撮り直し。
+- この run の走らせ直しは、UI テストのジョブの 1 回（attempt 2）と、手書きの撮り直し 2 枚だけ。
+
+### 時間（関門ではない）
+
+| ジョブ | ジョブ / 上限（分） | 段 / 上限（分） |
+| --- | --- | --- |
+| build-and-test | 104.8 / 160 | 同期の繰り返し 3.9 / 14 |
+| span-shots-app | 75.6 / 110 | 写真 51.5 / 80、言語 19.0 / 25 |
+| blank-paper | 64.4 / 80 | 写真 61.9 / 70（余り 8 分） |
+| ja-baseline | 66.3 / 130 | |
+| l10n-shots | 46.4 / 75 | 写真 43.7 / 55 |
+| UI テスト（1 回目） | 34.4 / 60 | テスト 32.1 / 40 |
+| UI テスト（2 回目） | 35.8 / 60 | テスト 33.9 / 40 |
+| compat-v1.0 | 10.2 / 45 | |
+
+- 全部が上限の中。blank-paper の写真の段は余りが 8 分しかない。
+- **前もっての起動の間、macOS の段がずっと遅かった**（同じ環境の版の D0 の 2 回目と比べて）: `swift --version` 5 分 18 秒（3.4 秒。BT:267-280）、Kit のビルド 15.1 分（0.8）、KitChecks 5.0 分（1.35）、Kit のテスト 5.2 分（1.1）、シミュレータ向けのビルド 2.9 分（0.95）。単体テストの終わりまで 35.1 分（22.0 分）。起動そのものは 129 秒で終わったのに、遅さは約 30 分続いた。`swift --version` の約 100 倍は 3 つの CPU を分け合うだけでは説明しにくい。仕組みは示していない。
+- 調べ（役 T、批評で確かめた）: **D0b の前もっての起動は差し引きで損**。同じ環境（20261104）の D0 の 2 回目と比べ、`swift --version` 318 秒（3.4 秒）、`swift build` 498 秒（32 秒）、Build TegakiKit 15.1 分（0.8）、KitChecks 5.0 分（1.4）、Kit のテスト 5.2 分（1.1）。単体テストは 5.7 分（17.3）で速くなったが、ジョブは 104.8 分（79.4）。起動そのものは 129 秒で終わっていた。仕組みは示せていない（CPU の取り合いだけでは 100 倍の遅さは説明しにくい）。→ D0c で取りやめた（下）。
+
+### 前の節の直し
+
+- **手書きの欠けの読みを書き直す**（「D0b の調べの結果」の節の「写真の手書きの欠け」）。あの節は「欠けたのは macOS 27.2 の環境（20261119.0378.1）のジョブだけ」「同じ iOS が古い OS の実行機では全部描くので、使う人への影響は低い」と書いた。今回の run で次の 2 つが分かり、この読みは狭すぎた:
+  1. **macOS 27.0.1 の環境（20261104.0337.1）でも、1 回目の撮りで 2 回欠けた**。build-and-test の `ipad13-portrait-month.png` は 72,098 画素・287 区画が足りず、欠けはページ全体に散っていた（BT:9605）。ja-baseline の `iphone-portrait-readonly.png` は 10,626 画素・44 区画（JA:4315）。どちらも、その機種で手書きを確かめた最初の写真（起動やインストールの後）。
+  2. **1.3 の CI（Xcode 26.6、iOS 26.4）の写真にもあった**。run 44474759145 の `span-shots-app/ipadmini-portrait-week-boundary.png` は、状態の行が `pk=12;ink=12`（線は全部入っている）なのに、締切の下の波と 2 つの曲線が描かれていない。今回の同じ写真には描かれている。
+  - **新しい読み**: 「線は入ったが描かれない」ことが、環境の版と Xcode の版をまたいで、たまに起きる。macOS 27.2 の環境で多い（D0b の調べ）が、それだけではない。1.3 の CI にもあったので、1.4 で新しく入った物とは限らない。
+  - 写真の扱い: build.yml・ja-baseline・l10n の写真は、L4 (f) の確かめと撮り直しで捕まえる（今回の残りの欠けは 0）。**span-shots-app と UI テストの写真には自動の確かめが無い**。1 回目の写真が欠けていないことは、地図の役の比べ（1.3 より欠けた写真 0）で見た。UI テストの 2 回目（20261119）の写真は 13 枚が欠けていた（上の「UI テストの 2 回目の写真」）。
+  - **使う人への影響は「低い」とは言わない**。本人の確かめ表の行 28（実機）で見て決める。
+- **D0b の直しの節の commit の中身を足す**: 32e9617 は `PaperSpanTests` のほかに、`ExportBuilderTests.swift` の `stableBytes` にも同じ直し（`/ModDate` などの鍵と値の間の空白・改行を許す）を入れた。凍結の表の外。その 14 本は今回通った（BT:6804-6833）。
+- **D0 の走らせ直しの節の打ち切りの行を直す**: attempt 2 の span-shots-app は「次の `iPad mini (A17 Pro)`（iOS 27.0）の起動の途中で切れた」と書いたが、起動は終わっていた。段の字は `simctl bootstatus -b` が通り 60 秒待ってから xcodebuild を `ipadmini-tests.log` に書かせる形で、そのログがあり、中身は xcodebuild の始めの 4 行（最後は「Resolve Package Graph」）だけ。ジョブのログは `ipadmini:` の行（01:22:23 UTC）から打ち切り（01:35:30）まで 13.1 分、何も出ていない。正しくは「iPad mini の起動の後、xcodebuild が「Resolve Package Graph」から先へ進まないまま切れた」。
+
+### 順番の外れ（記録）
+
+- 契約 §3.3 の順（build.yml が終わってから ja-baseline）を外れ、ja-baseline を build.yml の push の 5 秒後（13:41:55）に dispatch した。ジョブは待ちに入り、compat-v1.0 が終わって空いた枠で 14:26:37 に始まった。そのとき動いていた macOS のジョブは 5（build-and-test・span-shots・blank-paper・l10n・ja-baseline。上限ちょうど [S55]）。
+- build.yml の 6 つのジョブはそのとき全部始まっていたので、ja-baseline のせいで待ったジョブは無い。順の理由は守れた: 同時は 5 まで、J-4 の 2 つは同じ環境の版（20261104.0337.1）、写真は両方とも 11/20 UTC。UI テストの実行機が止まったのは 13:52 で、ja-baseline が始まる前（別の VM でもある）。前の外れ（「D1 のアプリ側」の節の最後）と同じ扱い。
+
+### リードの決定（es_MX の時刻の字、関門 7）
+
+- 何: `span-shots-app-languages/es/iphone-portrait-settings-page.png` の「最後に同期」の時刻が、1.3 の「7/10/2026, 9:57 a.m.」から「7/10/2026, 9:57 am」になった。字が違うので、§3.6 の (b)(c) のどちらでもない。§3.6 の字のままなら止める差。
+- 調べ: この字はアプリが自分で組まず、`DateText.numericDateTime` から `Date.FormatStyle(date: .numeric, time: .shortened, locale: es_MX)` で OS に作らせる（`TegakiKit/Sources/DayKit/DateText.swift:191`・`:254-264`）。言語の写真は es_MX で起動する（`SpanShotsUITests.swift:79`）。アプリと Kit のコードは 955fe67 と同じ。macOS 27.2.1 の Mac で同じ書式を小さな道具で作ると、es_MX は「7/10/2026, 9:57 am」（am の前は U+202F）、es_US は「a.m.」のまま。iOS・macOS 27 の地域のデータ（CLDR）の替わりと読む。表示だけで、関門 2・3 は同じ（§3.6 の (a)）。ほかの 9 言語の同じ行は替わらない。J-4 は日本語だけなので、この差を捕まえない。
+- **リードの決定: 受ける**。地図の組 4 に新しい種類「(d) OS の地域の書式のデータの差」を足す。受けるのは、(a) が同じで、その字をアプリが OS の書式（`Date.FormatStyle` など）に任せていると示せたときだけ。
+- 理由: 止める規則は、アプリが描く物の思わぬ悪化を捕まえるための物。これはアプリの悪化ではなく、OS がその地域の今の書き方を替えた物。アプリで「a.m.」に戻すと、その地域の OS のほかの画面の書き方から外れる。確認ページの前と後の候補に入れる。
+
+### 実行機の打ち切り（続き）
+
+- 速い道 `r14-q-d1b`（run 44690586694、ジョブ 136135154680、環境 20261119.0378.1）が、始まって 8 分（15:58:36）、「Build TegakiKit (macOS)」の最初の `swift --version` が 8.4 分たっても何も出さないまま（`swift build` はまだ始まっていない）、`##[error]The operation was canceled.` で切れた。理由は残っていない。`if: always()` の段はその後も走った。リードの側で取り消しは打っていない（記録を見た）。理由の無い打ち切りは今日これで 4 つ目（run 44632524223 の span-shots の 1 回目・2 回目、速い道 run 44659380308）。
+- 調べ（役 X、批評で確かめた）: 理由の無い打ち切りは今日 4 回（D0 の span-shots の 1 回目と 2 回目、`r14-q-d1` の速い道 44659380308、`r14-q-d1b` の速い道 44690586694）。アカウントの打ち切り 118 のうち、理由の無いのはこの 4 つだけで、全部 `xcode-27`。共通点は「シミュレータの起動の後の数分か、固まった XCUITest の中」。始まってからの時間（8.6〜43.1 分）・段・同時のジョブの数（2〜3、5 の時は 0 回）は関係が無い。20261119 の環境に多い（6 ジョブ中 3、20261104 は 15 中 1。片側 p ≈ 0.05）。打ち切りの後も `always()` の段は走った。runner の不具合の報告（actions/runner #4820）と同じ見え方。**実行機の側の打ち切りと読む**（推定）。4 回目は `swift --version` が 8.4 分止まっていた間（前もっての起動の窓の中）。
+- 扱い: 注が「The operation was canceled.」だけの打ち切りは基盤の打ち切りとして関門に数えず、そのジョブを 1 回走らせ直す。同じジョブで 2 回続けばその日は止めて環境の版を見る。手動・同時の取り消し・時間切れは今までどおり。前もっての起動はやめた（D0c）。打ち切りの時だけ診断の行（`uptime`・`memory_pressure`・`vm_stat`、runner の `_diag` の打ち切りの行だけ）を出す段を足す（公開のリポジトリなので全文は上げない。D1 の残り）。
+
+### 残り
+
+- 関門 1 はこの run では ×（UI テストが 2 回続けて落ちた）。2 つの失敗の読みは上の役 U2。通るかは次の run の UI テストで見る。
+- 関門 7 は、es_MX（上の「リードの決定」）と、UI テストの 2 回目の `slide — after` の紙の位置（上の「UI テストの 2 回目の写真」）をリードが読んで決める。
+- `ink_ref.tsv` の l10n の 11 行（「D0b の直し」の節の約束）は、この run の l10n の写真から作り直した（commit cbc0432、枝 `r14-w-d0c-ink`。まだ `r14` に入れていない）。確かめ: この run の 63 枚は 50 枚が足り 13 枚は基準無し、D0 の 1 回目の 11 枚の欠けは 11 枚とも捕まえる、1.3 の l10n も通る。
+- span-shots-app と UI テストの写真には手書きの自動の確かめが無い（上の「前の節の直し」）。
+- `simctl` で起動する写真のアプリのログは読めない。l10n の鍵の確かめは、画素の比べと言語の写真の数で代える（上の「D0b の確かめ」）。
+- PDF のテストの直しの強さは run を重ねて見る。StoreKit の飛ばしが後の iOS でも続くかを見る（「D0b の直し」の節の L3）。
+
+### D0c（11/20 16:50〜17:40。D0b の run の後の直し。枝 `r14-w-d0c-time` b36f8f6・`r14-w-d0c-ink` cbc0432、どちらも `r14-w-d1b` に入れた）
+
+- **前もっての起動をやめた**（b36f8f6、build.yml だけ）: D0b の L5 の「13 インチの起動を macOS の段の間に始める」を取り下げる（上の「時間」）。xcodebuild が D0 までと同じく自分で起動する。「Shut down the 13-inch iPad before the photos」の段は残す（J-4 の写真はどちらでも起動し直しの iPad で撮る）。CI ではまだ走っていない。
+- **手書きの基準の l10n の 11 行を作り直した**（cbc0432、`tools/shots/ink_ref.tsv`）: run 44676125566 の l10n の写真（Xcode 27.2・iOS 27.2 24B8117）から、置いてある道具で作った。この run の 63 枚（50 枚欠けなし、13 枚は基準なし）が通り、D0 の 1 回目の 11 枚の既知の欠けはそのまま捕まる（欠けの画素の数も同じ）。
+- **§3.8 の読み方**: 「2 回続けば、その日は止める」はジョブごと。UI テストのジョブは 11/20（UTC）に止め、ほかのジョブと速い道は走らせてよい。
+- **リードの決定（受ける）**: es_MX の時刻の字（上）。`slide — after` の紙の位置は、次の run の写真が 1.3 と同じに戻れば「遅い環境での指の入力の時間」と読む。戻らなければ止めて調べる（関門 7 はそれまで ?）。
+- **D1 の残りに足す**: XCUITest の写真（ui-tests・span-shots-app）の手書きの確かめ（1.3 と比べ、警告だけ）。2 回目の UI テストの写真で 13 枚の手書きが欠け、テストは通った（確かめていないため）。打ち切りの時の診断の段。
+
+## D1b の CI の試しと D1c（D1 の定数を測った値で決める。11/20 16:30〜18:20、枝 `r14-w-d1c` 26822d5）
+
+- **CI の試し**:
+  - D1b の 1 回目（015fa73）は 2 本とも赤。duo-shots は `DuoFoldTests.swift:221` の式が Xcode 27.2 の x86_64 の型の確かめで時間切れ（run 44690590720）。速い道は理由の無い打ち切り（run 44690586694、上の「実行機の打ち切り」の 4 回目）。
+  - 式を段に分けた（f9bb459、値は同じ）。2 回目は**速い道 run 44696154799 が緑（27 分）、duo-shots run 44696154794 が緑（38 分、道 3 = 外側だけ）**。どちらも環境 20261104.0337.1。
+  - duo-shots の写真 15 枚（Duo の外側 14・iPhone 17 の 1）の測りの行は、全部アプリの入れ物のファイルから読めた（`measure-sources.tsv`、「not cleared」0）。D1b の測りの行のファイルは働く。shot_checks は 15 枚、誤り 0。DuoLayoutUITests は 4 本通り、1 本（内側）は道 3 で飛ばした。
+- **測った値**（§4.2 の 547 行。最後の行、向きごと）:
+  - iPhone 17（iOS 27.2 24B8117）: `hinge=nil origin=app finger=true`。
+  - Duo の外側（iOS 27.2 24B91016s）: 窓 466×678（横 678×466）、安全域 0,0,34,84（横 0,84,34,0。時刻の帯が右、横では左）、倍率 3、header=2（横も 2 段。使える幅 594 が compactWidth 600 より狭い）。紙は縦で週 382×343・日 382×402・年 382×435・月 382×456.67、横で週 594×141・日 594×190・年 594×223・月 594×244.67。**`hinge=closed`（24 行全部）**。内側は撮れず、推定のまま。
+- **D1 の定数（契約の字のとおり）**:
+  - **`PencilPhone.usesHinge = true`**（§4.2 の 549 行: Duo の画面で nil でなく、iPhone 17 で nil）。1.4 で新しく入れた Duo は、起動の直後に「指でも書く」がオフ（iPad と同じ、§4.8 の 636 行。本人の決定「Duoでもペンシル」のとおり）。iPad は `attach` の前で戻るので変わらない。ふつうの iPhone は iOS 27.1 以上で折り目の見張りが付くが「折り目なし」と答え、持ち越しのオフを戻す動きが最大 2 秒遅れるだけ。
+  - **`WindowClass.formSheetOnWide = false`**（§4.4 の 571 行: 内側を撮れない道 3）。
+  - 新機能の文の行 1 は**案 B**（§4.2 の 554 行・§8.1）。本人の Duo で確かめ表の行 18 と 25 が ○ なら案 A にできる。行 2（Pencil）は行 19 と 20 が ○ のとき。
+  - 店の写真は**外側だけ**（§7.1 の 803 行）。
+  - wideShortSide は 600 のまま（外側の短い辺は 466）。
+  - shot_checks に §4.2 の規則の確かめを足した（測った行と定数が合わなくなれば落ちる）。duo.yml は `DUO_USES_HINGE: "true"`。
+- **写真で見つかったこと**（D1d で直す物と、記録だけの物）:
+  - 外側の縦で、月の題が「2026年1…」、週の題が「10/5〜10…」と切れる（使える幅 382 pt。iPhone 17 の 402 pt では全部出る）→ D1d で直す（今の機種の写真は変えない形で）。
+  - 外側の小さいツールバーでは「指でも書く」のボタンが右の端の外にあり、写真に写らない（週の最初の写真と Pencil の写真が同じバイト）。§7.1・§7.3 の「ボタンが薄くなる」は外側では見えない。確かめ表の行 19・24・27 に「ツールバーを横に送って見る」と足す。行 19 に「1.4 で新しく入れた Duo は最初からオフ」と足す。
+  - 外側の購入の画面は、EULA の行と下の「あとで」が 1 回の送りで見える（D1 の決定 9 のとおり。店には出さない）。
+  - 外側の横の一覧の写真は 0:00 から始まる（写真モードが縦で並べてから回すため。使う人の画面ではない）。店の写真は縦だけなので受ける。
+  - UI テストの「指でオン — after」の添付は、線が数えられているのに絵に出ていない（D0b の「読み込んだが描かない」と同じ形の疑い）。
+- **私の誤り（記録）**: 17:24 に枝 `r14-w-d1b` を GitHub に控えとして push し、build.yml の全部のジョブが動き出した（run 44702261733。`r14-w-*` の枝も全部の CI の対象。UI テストを 11/20 に止める決めに反する）。1 分以内に取り消した。以後、CI を走らせない控えの push は頭が `[skip ci]` のときか、`r14-q-*`・`r14-duo-*` だけにする。
+
+## D1d（外側の題・測った値・CI の足し。Workflow wf_d2e209eb-42e、11/20 18:00〜19:10、枝 `r14-w-d1d` 65734cc）
+
+- **外側の題（015bce7 まで）**: ヘッダーの 1 段目の決まった部品は、1.3 と同じく約 324 pt（12 pt の左右の余白、◀▶ 44+6+44、「今日」56、＋ 52、☁ 26、⚙ 44、隙間 7×4）。題に残るのは iPhone 17（402）で 78 pt、外側（382）で 58 pt。題の一番小さい字（10.2 pt）で日本語の短い題は最長 69.8 pt（「10/24〜10/30」）、月は 60.6 pt（「2026年10月」）なので、外側では月と週が切れていた。
+  - **詰めた 1 段目**: 隙間の部品 2 つを除き（+8）、◀▶ の間を 0 に（+6）、＋ の印の幅の最小を 28 から 20 に（+8）。題に 80 pt（iPhone 17 の 78 より多い）。高さ・文・2 段目・押せる大きさ（44 pt）は 1.3 のまま。`header=` と `paper=` は変わらない見込み。
+  - **使う所（リードの決定）**: 最初の案（608f0fa）は「幅 400 pt 未満の 2 段のヘッダー」で、今の 375〜393 pt の iPhone と狭い iPad の窓も変わってしまう（見直しの major。契約 §4.1・§0.2「今の機種は変えない」に反する）。直しで「幅 400 pt 未満で、安全域の左右の帯を足すと 400 pt 以上」の時だけにした（`PageHeaderView.usesTightRow`、`sideInsets` は `proxy.safeAreaInsets` の左右）。縦の iPhone と iPad には左右の帯が無いので 1.3 のまま。Duo の外側の縦（382 + 84 = 466）だけが変わる。外側の横（594）は 1.3 の 1 段目。
+  - **記録だけ**: 375〜393 pt の iPhone は 1.3 から、一番長い週の題が切れる（1.3 の Xcode 26.6 の写真でも同じ形）。1.4 では変えない（変えるなら本人の言葉が要る）。ほかの 9 の言葉では、外側で切れる題は iPhone 17 で既に切れる物だけ（年をまたぐ週の題、pt-BR の長い日の題）。
+  - J-4 の機種（どれも 402 pt 以上）の写真と文は変わらない（j4eq OK、1.3 の 2 つの枝は字のとおり同じ、`PageHeaderRoomTests` が確かめる）。
+  - **まだ確かめていない**: `proxy.safeAreaInsets` が外側の 84 pt を返すこと。返さなければ外側は 1.3 の 1 段目のまま（ほかは変わらない）。duo-shots の外側の月と週の写真で題が全部出れば ○。
+- **測った値を KitChecks へ**: 「duo (1.4)」の外側の 4 行を測った紙の大きさ（縦の週 382×343・日 382×402、横の週 594×141・日 594×190）に。CI の測りの行 9 本を固定の行として足した。内側の行は「推定」のまま。KitChecks は 40826（基準は N − 50 で 40776）。DuoFoldTests・CappedOverviewWideTests・WindowClassTests の期待値も外側の測った値から計算。`DUO_SIZE_RULE` は "fail"（表に無い大きさの Duo の写真で落ちる）。PencilPhone の注を「14 枚」に直した。
+- **CI の足し**:
+  - **XCUITest の写真の手書きの確かめ**（ui-tests・span-shots-app、警告だけで落とさない）: `tools/shots/xcui_ink.py` と基準 `tools/shots/ink_ref_xcui.tsv`（130 行。ui-tests 65 行は run 44676125566 の 1 回目、「A1 cross — after the eraser」の 1 行は D0 の run 44632524223 の 1 回目、span-shots-app 64 行）。設定のシートの 2 枚と paywall-de の 2 枚は、毎回止まる位置が違うので除いた。確かめが見えなくなった時（写真が基準の行に 1 枚も合わない、半分より多い行に写真が無い、manifest が読めない）も警告する。写真ごとの警告は 7 本まで。
+  - D0b の UI テストの 2 回目では、手書きが欠けた写真は 13 枚でなく **17 枚**だった（A1・A2・A4 の「start」の赤いペンの点 59 px、YearTap の「finger=off … before」105 px が足りない）。ほかに「slide — after」は紙の位置の違い。
+  - **打ち切りの時の診断**（xcode-27 の 8 ジョブの最後の段、`if: cancelled()`）: `tools/ci/cancel-diag.sh`。実行機の記録の最後の行、動いている処理、シミュレーターの様子を出す。秘密らしい値は伏せる。どの `ps` にも時間の限り。ja-baseline・store-shots・testflight には入れていない。
+  - 速い道に `PageHeaderRoomTests` を足した。
+- **見直し 2 つ**（アプリ・CI）: blocker 0。major 1（上の題の使う所）と minor・nit を全部直した（015bce7・65734cc）。凍った表 4 つ OK、typecheck 3 通り OK、lint・idiom・shot_checks の自己試験 OK、j4eq OK。
+- **D1d の CI の試し**（65734cc を `r14-q-d1d`・`r14-duo-d1d` に、11/20 19:14〜19:55、環境 20261104.0337.1）: **速い道 run 44717451421 が緑、duo-shots run 44717450692 が緑**。
+  - 速い道: KitChecks 40826、アプリの単体 292 本 0 失敗（`PageHeaderRoomTests` を含む）。
+  - **外側の縦で題が全部出た**: 月「2026年10月」、週「10/5〜10/11」、日「10月7日(水)」。D1c の写真（run 44696154794）と比べて変わったのは外側の縦の写真のヘッダーの 1 段目（x 75〜276 pt、y 7〜48 pt）とシートの後ろのヘッダーだけ。外側の横の写真とiPhone 17 の写真は見た目の差なし。`proxy.safeAreaInsets` は外側の 84 pt を返している。
+  - 測りの行は D1c と同じ。違いは `outer-portrait-week-first` の最後に 1 行増えたことだけ: `hinge=closed origin=app finger=false`（`usesHinge = true` で、起動の直後に「指でも書く」がオフになった。§4.2・§4.8 のとおり）。shot_checks は 15 枚、誤り 0・警告 0（§4.2 の規則の確かめと `DUO_SIZE_RULE` "fail" を含む）。
+  - DuoLayoutUITests は 4 本通り、1 本（内側）は道 3 で飛ばした。
+
+## M1（変異の確かめ、契約 §6・§5.3 の 6。11/20 19:30〜22:10）
+
+変異は取り込まない枝だけに入れた（`r14-q-m1`・`r14-q-m1f2`・`r14-duo-m1`）。どの変異が効いたかは、落ちたテストの名前で見分ける（表は枝ごとの `tools/mutations/m1-expected.tsv`。`r14-q-m1:` と `r14-duo-m1:` で別のファイル）。
+
+- **手元（KitChecks と v13 の Probe、65734cc）**: 基準は KitChecks 40826 本が全部通る、v13 の Probe「310 checks, 0 failed」。
+  - KM-d1・M-w1・M-w2・M-f1〜f7 は、どれも自分の節で落ちた（M-f2b・M-f4a・M-f4b の形も）。
+  - **M-f2a は動きが同じになる変異**（`decide()` の `!personChose` だけを外しても、`personSwitched()` が origin を `.person` にし、`.person` は何もしないので、変わらない）。見分けられないのが正しく、確かめの穴ではない。
+  - KM-d1 は、契約の行（外側の横と OverviewCapChecks）のほかに、外側の縦の週（紙が横長なので横の上限を取る）と、内側の「1.3 の上限なら」の行でも落ちる。どれもそう作った行で、ほかの節は落ちない。
+  - Probe: CP-1（写しの w-2026-12-14 に前置名のマス `w-2026-12-14|grid` の 1 本を足す）は「310 checks, 2 failed」、CP-2（grid の 1 本を抜く）は「1 failed（expected 4）」。
+- **アプリの変異（`r14-q-m1` 9bceb3d、run 44725911787、環境 20261104.0337.1）**: 単体テスト 781 本（2 本飛ばし）のうち 31 本が落ちた。表の W1・W2・D1・F1・F3・R1・R2・S1・P1 の「落ちるはず」のテストが全部落ち、**表に無いテストは 1 本も落ちなかった**。KitChecks は 40826 本が全部通った（アプリの変異は Kit に触れない）。
+- **案内の記録の変異 F2（`r14-q-m1f2` 94137de、run 44725911750）**: 1 回目は単体テストの途中で打ち切り（シミュレーターの起動中に load 650、実行機の renewjob が 100 秒で切れた。変異のせいではない）。決まりどおり 1 回だけ走らせ直した（attempt 2）。単体テスト 292 本で落ちたのは `PencilPhoneTests.testPencilLiftTurnsFingerOffEndToEnd` の「carried over: no guide again」（:480-481）だけ。
+- **UI の変異（`r14-duo-m1` 37bb9c2、run 44725912079）**: 表の頭のとおり。
+  - DuoLayoutUITests は 4 本走り、3 本落ちた。U1 は `testFingerDefaultFollowsTheHinge`、U2 は `testJoinedWeekSwipesOnDuo`、U3 は `testSheetsFitOnDuo` の購入のシートの半分（EULA の行と下の「あとで」）。
+  - `testOuterHeaderRows` は通り、内側は道 3 で飛ばした。shot_checks の誤りはちょうど 1 件（U1 の `outer-portrait-week-first.png` finger=true）。
+  - 外側のシートの `.large` は変異させても道 3 で落ちるテストが無い（表の「-」の行。記録だけ）。
+- **互換（compat-v1.0 の Real13LedgerTests、`r14-q-m1`）**:
+  - 1 回目（run 44725911787）: 7 本のうち 4 本が落ちた。変異の 2 本（R13a・R13b）のほかに、**変異の無い双子 `testM1BaselineJoinedWindowsOn13KeepEveryPageByteForByte` も落ちた**（「nothing to send」の 2 か所で 55 回）。
+  - 原因はテストの側。1 つの窓で 2 ページ以上を保存すると、1.3 の `scheduleDebouncedPush` は眠りの間に来た保存を見て 1.5 秒の待ちをやり直す。テストの `flushDebounce` は 1 回しか起こしていなかったので、送られないページが窓ごとに積み上がった。1.3 のアプリと同期は変えていない。
+  - 直し: `flushDebounce` は、眠りが無くなるまで起こす（8 回まで。超えたら失敗）。`r14-w-d1d` 7e1271d（[skip ci]）、`r14-q-m1` には fd8e88b。
+  - 2 回目（run 44738535984、fd8e88b）: 7 本のうち落ちたのは変異の 2 本だけ。R13a は w-2026-12-14 を含む 9 つの窓だけで、ガードの直し・描く数・fault・records の 4 か所。R13b は数の 1 か所（:194）。双子の 2 本とほかの 3 本は通った。
+  - **Real13LedgerTests は、この run までどの CI でも最後まで走っていなかった**（D1b の run では compat-v1.0 が打ち切り）。r14 に入れる前に見つかった。入れていたら、11/21 の通しの run で compat-v1.0 が赤になっていた。
+  - 同じ run の単体テストの組は、13 インチ iPad の起動中に打ち切り（環境 20261119.0378.1、load 820、swap 3.2/4 GB、ReportMemoryException）。アプリの変異の確かめは 1 回目で済んでいるので、走らせ直さない。
+- **iOS 17 の起動の試し（`r14-duo-i17` 1e07f5e、run 44725911840、環境 20261119.0378.1）: 【未確認】**。
+  - Xcode 27.2 の `xcodebuild -downloadPlatform iOS -buildVersion 17.5` は「not available for download」だった（21F79、universal、`-exportPath` の 4 通りとも）。
+  - 合否ではない（§6）。1.4 の最低の版は iOS 17 のまま。DeclaredAgeRange の弱いリンクの確かめは、毎回の CI にある。
+
+## D2（Duo の店の写真と Connect に入れるスクリプト。Workflow wf_7b625449-edd・wf_66f9e152-9ca、11/20 19:40〜11/21 00:50、枝 `r14-w-d2s` 2245b76）
+
+- **store-shots.yml の Duo の組**（e4f20de まで）: `store-duo` の 4 ジョブ（en・en-GB・ja ／ zh-Hans・zh-Hant・ko ／ fr・de・it ／ es・es-ES・pt-BR。同時に 4 まで）と、`store-duo-check`（ubuntu-latest。macOS の 5 つの枠を使わない）。
+  - 外側の縦の 5 枚を 12 組で撮る。組ごとに Duo をその言葉と地域で起こし直し、180 秒待つ。`--display=primary` で撮り、JPEG 1398×2034 にする。
+  - 今の 12 組のジョブには手を入れていない。steps は字のとおり同じで、`needs` と `if` だけを足した。`store-shots` の枝への push は Duo だけを撮る。
+  - 手書きの守りは 3 つ（`tools/shots/duo_store.py` の頭）: 組の中で基準の行と比べる（無ければ 2 回撮って比べる）、`check`、言葉をまたいだ比べ（`across`）。
+- **リードの決定（契約の外れ、m5）**: 契約 §7.1 は `accepted()`（build.yml・store-shots.yml）に `duoOuter`・`duoInner` を足すと書いた。足したのは store-duo のジョブの中の `accepted()` だけ。build.yml と store-shots の今のジョブには足していない（J-4 と今の段を字のとおりに保つため。Duo の写真は build.yml・ja-baseline に来ない）。
+- **shots14.py**（`asc12/`、リポジトリの外。App Asset Library の API）: `ref`・`state`・`plan`・`verify`・`apply`。
+  - Connect には読み取りだけ（POST・PATCH・DELETE は 0 回）。
+  - `apply` が動くのは、`--owner-ok`（本人の「この内容で入れてよい」の後）と、本人が見た写真の `plan` の MANIFEST があり、1.4 が `PREPARE_FOR_SUBMISSION` で、16 のロケールが表のとおりのときだけ。
+  - 見直しの 9 件を直した。リードが 2 つ足した: 言葉をまたいだ比べのファイルが無いときは必ず止める。2 回撮りでしか確かめていない写真があると `--pair-looked` が要る。
+- **読み取りで分かったこと（契約 §13.1 の 12・13 の答え）**:
+  - 12: 1.3 の `shots13.py` は非推奨の写真の API（`POST /v1/appScreenshots`・`sourceFileChecksum`・`appScreenshotSets` の関係の PATCH）を使っていた。1.4 の Duo の写真は App Asset Library で入れる。
+  - 13: Connect は 1.3 の写真を 1.4 に引き継いでいた（16 ロケールの全部で 1.4 と 1.3 の組が同じ、235 枚）。新しい API では 235 の置き場所としても見え、状態は `ACTIVE`（Apple の一覧に無い値）。§7.4 のとおり撮り直さない。
+  - Duo の外側: 組 `IPHONE_DUO_PROFILE`、仕様 `i1398x2034a0`（.jpg・.png、透明なし）。外側と内側は同じ組で 10 枚まで（外 5 ＋ 内 5 でちょうど 10）。simctl の PNG は透明ありなので、JPEG にして入れる。
+- **1 回目の run（44739084597、e4f20de、11/20 21:50〜22:58）**: 4 つの組のジョブは緑（60 枚、どれも「2 回撮りの比べ、ok」）。`store-duo-check` が 4 枚を落とした（zh-Hans・zh-Hant・ko の月 1436〜1881 px、pt-BR の横つなぎ 1805 px）。
+  - **60 枚を全部見た**: 組ごとの 4 つの目、落ちた 4 枚の調べ、疑う役。ScreenshotStoreInk.swift の線の一覧、en の同じページ、1.3 の 6.9 インチの写真と比べた。
+  - 手書きは 60 枚とも欠け・切れ・二重なし。状態の帯は 9:41（地域によって 09:41）・Wi-Fi・電波 4・電池の満充電。値段・Apple の商標・Pencil の絵は無い。
+  - 4 枚の不足は見かけだった。紙の中の見出しの字の差で、月の曜日の名前（zh・ko は 1 字、ラテン文字の言葉は 3 字）と、pt-BR の横つなぎの見出し（列が 32.7 pt で 34 pt 未満なので 1 日おきの形）。`PAPER` の中に紙の見出し（273 から）が入っているので、`MIN_SHORT` 1200 は Duo の揺れ（落ちた完全な写真で 1881）より上にない。
+  - ink_check は緑のインク（チェック・木の葉、#16a34a）を数えない。目でだけ分かる（今回は目で見て全部ある）。
+  - 直し: 60 枚の基準の行を `tools/shots/ink_ref.tsv` に入れた（2245b76）。duo_store.py は注だけ直した。
+- **2 回目の run（44754753928、2245b76、11/20 23:34〜11/21 00:42）: 全部緑**。60 枚とも「基準の行と比べて ok」で、`store-duo-check` は 0 件。
+  - 基準の行が役に立った: en の月は 1 回目・2 回目の撮影とも同じ 33 マス（3541 px）が欠けた（D0b の「同じ所が毎回欠ける」形。2 回撮りの比べでは通ってしまう）。3 回目の撮影で完全になった。fr の週・月・日は 2 回目の撮影が大きく足りず、完全な 1 回目を残した。
+  - 3 つのジョブは macOS 27.2 の実行機（D0b で欠けが出た種類）だった。
+  - 60 枚とも、1 回目（目で見た 60 枚）と見た目の差が無い（画素の差 0）。
+  - `shots14.py plan`: 60 枚 ok、注意なし、MANIFEST `4fbed294ae5133e69ca993af893d2110c646564cbd663dc1e818ef6892fd090c`。**これが 1.4 の Duo の写真**（確認ページはこの 60 枚で作る）。写真は ~/.local/share/tegaki-backup/1.4/d2/ に控えた。
+- **外側の画面での見え方（記録。1.4 では変えない）**: 外側は iPhone SE ほどの背の高さ（窓 466×678、紙の幅 382 pt）で、今の作りがその大きさで出る。
+  - 横つなぎ: 10/1 の見出しが「1…」になり、狭い列の終日の札が「S…」などになる。pt-BR は列が 34 pt 未満で、日付が 1 日おき。
+  - 1 ページの週と日: 紙が高さに合わせて細くなり、左右に灰色の余白が出る（1.3 の 6.9 インチの日も余白のある同じ形）。週は日付の左の曜日の字が細い切れ端になり、「終日」の札が無いか切れる。日は月と曜日が「Octo…」「We…」になる（ja は「水曜／日」の 2 行）。
+  - 年: 31 日の行が下で切れる（指で送れば見える）。
+  - 左上の角に 3×3 の黒い点がある（どの Duo の写真にもある。D1 の duo-shots にも）。
+  - 1.3 の背の低い iPhone でも同じ作りと思われる【推定】（CI に iPhone SE の写真は無い）。直すなら 1.5 以降の候補。店の写真はこのまま確認ページで見てもらう。
+
+## D3（確認ページの下書きと、Connect・Web に入れるスクリプト。Workflow wf_3ed7da39-b33、11/21 01:00〜04:20。どれもリポジトリの外）
+
+- **確認ページの下書き**（`confirm14/build_page14.py`）: 70 枚の写真と 9 つの節（s0 お願い・s1 変わったこと・s2 新機能の文 16 ロケール・s3 N-3・s4 Duo の写真・s5 SUPPORT・s6 審査メモ・s7 SDK の差 5 組・s8 確かめ表の行 1〜28）。
+  - 足の行は「写真の組の印: 4fbed294（60 枚）・文の元」。写真は D2 の 2 回目の run の 60 枚（MANIFEST `4fbed294…090c`）。
+  - ビルド番号が要るので、TestFlight の 1.4 ができてから作って本人に渡す。
+- **スクリプト**（`asc12/`。1.3 の形と同じ順）: `whatsnew14.py`（新機能の文の組み合わせ）・`enter14.py`（文とビルドを入れる）・`shots14.py`（Duo の写真）・`submit14.py`（審査に出す）・`release14.py`（公開）・`web14_support.py`（サポートページ）。
+  - 書く動きは、どれも本人の言葉（`--owner "この内容で入れてよい"`・`"1.4 を審査に提出して良い"`・`"1.4 を公開して良い"`）が無いと止まる。D0 のビルド 27 は入れない。書いた後は読み直す。記録に秘密を出さない。
+  - 作った日に試したのは読み取りだけ（`enter14.log`・`submit14.log` に書き込みの行は 0）。
+  - サポートページの 1.4 の文（案 A の Duo の文、ja・en）は Web のリポジトリの手元の枝 `r14-legal`（d9499b2）にあり、上げていない。公開の日に `release14.py web` で出す。
+- **リードの決定（11/21）**:
+  - 審査メモの案 B の確かめ方「To check: open a week page, then open and close the device.」と括弧は**残す**（PROPOSALS_1_4.md §3.2 の既定。契約のまま）。案 B を使うのは開閉を確かめられなかったときだけで、本人の Duo で行 18・25 が × なら案 B で出さずに直す。
+  - PROPOSALS_1_4.md §3.4 は true の行（今のファイル）のまま使う（`usesHinge` は D1c から true）。
+- **通しの run を前倒しした**: 予定は 11/21 09:05（新しい UTC の日）だったが、実行機が空いていて 11/20 の UTC の日が 4 時間半残っていたので、04:29（19:29 UTC）に r14 へ D1d（7eb842b）と D2（283b7ed）を入れて上げ、build（run 44802640918）と ja-baseline（run 44802647220）を同じ UTC の日に始めた。写真の段の走らせ直しが 0:00 UTC をまたいだら、ja-baseline をその日にもう一度走らせて J-4 を比べる。
+
+## 通しの run（r14 283b7ed。build 44802640918・ja-baseline 44802647220、11/21 04:29〜。確かめは Workflow wf_781e1918-a76）
+
+- **build-and-test**（ほかの 5 つのジョブは 1 回目で緑。2・3 回目はこのジョブだけ）:
+  - 1 回目（job 136518464382）: KitChecks 40,826（閾値 40,776）、単体テスト 781（飛ばし 2・失敗 0）、同期の繰り返し 4,000（失敗 0）。写真の段（iPad mini の起動の後）で「The operation was canceled.」だけを出して切れた（20:59 UTC、実行機の renewjob の時間切れ）。D0b の決まりで数えず、走らせ直した。
+  - 2 回目（job 136568799020、環境 20261104.0337.1）: 写真は全部 1 回目の撮影で完全。単体テストで `StoreKitSessionTests.testExpiringMakesItReadOnly` が落ちた（781 のうち失敗 3 = この 1 本の :230〜232 の 3 行。「timed out after 5.0 s; access = trial(…)」）。
+    - 調べ: 店と権利のコード（`Sources/TegakiCalendar/Store/*`・`TegakiKit/Sources/Access/*`）は main 7895d40（1.3）と同じ。このテストと `refreshUntil` は 1.4 で変わっていない。`expireSubscription` の後の 5.1 秒で 48 回読み、StoreKit の生の答えが毎回「intro の権利 1・subscribed」だった（アプリの判断の前の行）。試しの環境が期限切れを遅れて当てたか、落とした。実行機の混みの印は無い（ログの遅れ 2 ms）。
+    - これまで 5 回通った（D0 の 1・2 回目、D0b、M1、この run の 1 回目）。記録にある状態の替わり 22 回のうち 20 回は 0.27 秒以内、1 回は 0.93 秒（1 回目）、1 回は 5.1 秒を超えた（2 回目）。
+    - TestFlight のアプリには入らない（`SKTestSession` と `Products.storekit` はアーカイブに入らない）。試しの環境のゆれと読む。
+    - 続けば（2 回続いたら、その日は止めて決まりを疑う）、`StoreKitSessionTests` だけを直す（`TESTS_1_3` の外）: 5 秒で届かなければ、時間・`Transaction.all`・生の状態をログに出し、`expireSubscription` をもう 1 回呼んで 10 秒待つ。`.readOnly(.expired)` を見る厳しさは残す。
+  - 3 回目（job 136609513548、22:28〜23:50 UTC）: 別のテスト `testUpdatesStreamTriggersRefresh` が落ちた（:355〜357。「timed out after 5.0 s; access = readOnly(notSubscribed)」）。`testExpiringMakesItReadOnly` は 0.281 秒で通った。
+    - 中身: `model.start()` の後に `buyProduct(yearly)` したが、5 秒の間に `Transaction.updates` に来たのは 1 つだけ（3 秒後、「yearly id=0 expires=…22:48:53Z revoked=true」）。これは前のテスト `testRefundRevokes` が返金した取引の遅れた知らせ。試しの環境は `clearTransactions` の後に取引の番号を 0 から振り直すので、テストの間で番号が重なる。新しい買いの知らせは来ず、古い知らせの後の refresh の行も出なかった（StoreKit の呼び出しが止まったと読む。同じ回の `testRefundRevokes` でも entitlements と renewals の間が 2.7 秒あいた）。
+    - 同じ commit で 3 回のうち 2 回、StoreKit の試しの環境の出来事が遅れるか、なくなるか、前のテストから持ち越された。283b7ed より前の 4 回は全部通っている。§3.8 の「2 回続けば、その日は止める」で、build-and-test は 11/20 UTC に止めた。
+    - 「試しの環境のゆれ」という読みを疑い直し、店のコードを読み直した。店のコードは 1.3 と同じ。本番の取引の番号は重ならないので、番号ごとに覚える `recentUpdates` が古い知らせで新しい取引を隠すことは、本番では起きない。
+    - 進め方: 速い道の試しの枝 `r14-q-skprobe` で測る。今の `StoreKitSessionTests` を 10 回走らせ、試しのクラス `ProbeStoreKitEnvSpanTests` で場面の順に 6 周、知らせ・生の状態・呼び出しの時間をログに出す。その結果で、テストだけを直す（アプリのコードは変えない）。直しを同じ枝で繰り返して確かめてから、11/21 UTC に通しの run と ja-baseline をやり直す。
+- **ほかのジョブ（1 回目）**:
+  - UI テスト: 58（飛ばし 15・失敗 0。走った 43）。XCUITest の手書きは 66 枚とも完全。
+  - compat-v1.0: compat10 599/0、span-compat 1.0・〈1.1.1〉は各 274、1.2.3 は 278、1.3 は 310（どれも失敗 0）、Real13LedgerTests 5/5。
+  - l10n: 63 枚。
+  - 白紙: 4 機種とも testShots が通った。
+  - span-shots: 全部のテストが通り、testLanguages も通った。言語の写真 60 枚、見つからない鍵 0。
+  - XcodeGen はどのジョブも 2.46.0。
+- **span-shots-app の手書きの基準**: 1 行（`iphone-landscape-margin-day-single.png`）の元の写真に Dynamic Island が写っていた。この run の写真の 38,708 px 足りないは手書きの欠けではない。5d0af89 で基準からその 32 マスを除いた。
+- **関門 3**: 状態の行 71 本が D0b（1.3 と同じと書いた run 44676125566）と同じ（trace・c@・waited= を除いて差 0）。`toolbar: paperArea=` の数（44/28/28/50）・`span-margin.txt`・写真の名前 64 も同じ。
+- **J-4 ○**（2 回目の `screenshots` と `ja-baseline-955fe67`）:
+  - 条件: 写真は両方とも 11/20 UTC（21:33〜22:22Z と 20:04〜21:22Z）。環境は同じ 20261104.0337.1、Xcode 27.2 27B52。env.txt の 1〜6 行目と機種の行も同じ（違うのは実行環境の行の並びと watchOS 27.0 の 1 行だけ）。
+  - 77 枚: 同じ 61・違う 16・大きさの違い 0・片方だけ 0。
+  - 強い差は `ipad13-portrait-sheet-info.png` の版の字だけ（379 px、x 1450〜1489・y 1607〜1632、「1.3 (1)」→「1.4 (1)」。D0b と同じ）。
+  - 残りの 15 枚は弱い差だけ。最大は書き出しのシートのガラスの「閉じる」の 25/255。閲覧専用のツールバーのガラスは 120,321 px で最大 6。年の写真は 1/255。店の JPEG はその焼き直し。
+  - J-4 はこの 2 回目の写真（同じ commit）で決めた。3 回目の写真は 11/21 UTC になり、同じ日の基準が無いので比べない（手書きの完全さだけ見る）。
+- **関門 7 ○**（D0c の決定の「次の run」）: UI テストの `SpanUITests/testSlideChangesTheTitleOnce` の「slide — after」を 1.3 の run 44474759145 と比べた。
+  - 1206×2622 で同じ大きさ。状態バーの時刻（7:10 と 7:59）の下は 5,348 px が違い、強い差は 223（最大 71）。どれも字と枠の縁（ツールバーの字・日付・終日の札・時刻の字）。
+  - 紙の位置は同じ（80 pt ずれれば写真のほとんどが違う）。「arrow — after」も同じ。
+  - D0 の 80 pt の足りないは「遅い環境での指の入力の時間」と読む（D0c の決定どおり）。
+- **順番の外れ（記録）**: ja-baseline を build.yml と一緒に出した（19:29:49Z）。始まったのは 20:04:45Z で、build-and-test・span-shots・白紙がまだ走っていた（§3.3 の順は「build.yml の後に ja-baseline」）。J-4 を同じ UTC の日にするための外れで、同時の macOS のジョブは 5 まで。前の外れと同じ扱い。
+- **日程のリードの決定**: §9.1 の「早い道は、D0・D1 のどの run も 1 回目で通ったときだけ」は満たさない（D0 は 2 回目、この run は 2・3 回目）。この条件は、D1 の関門が 11/23 までにそろうかの見込みだった。本人の指示は「予定に拘ることはありません」（11/13）と「どんどん進めて下さい」（11/20〜21）。そこで、StoreKit のテストを直した通しの run が緑になった日に D3（TestFlight の候補と確認ページ・確かめ表）を渡す（11/23 より前になる見込み）。TestFlight は緑の後に作る（自動で配られて、緑の前に試されないように）。11/22 の夜の判断は渡すときか 11/22 に本人へ知らせる。提出と公開は前と同じく本人の言葉が要る。
+
+## StoreKit の試しの環境の測り（r14-q-skprobe 912ca9d、run 44846393228、11/21 00:49〜01:27 UTC、環境 20261104.0337.1）
+
+- 試しのクラス `ProbeStoreKitEnvSpanTests`（枝だけ、入れない）: 本物の 8 本の順を 6 周（91 秒）。
+  - 状態の替わりは、ふつう 10〜900 ms。
+  - 5 秒を超えたのは 2 つ。r4 の S5（買いの知らせがアプリに届くまで 7,131 ms）と、r6 の E の期限切れ（15,093 ms）。
+    - r6 の期限切れ: `expireSubscription` は 2 ms で返り、取引の期限の日時はすぐ入った（呼んだ 0.27 秒後）。それでも権利の一覧（`currentEntitlements`）から消えるまで 15 秒かかった（132 回読んだ）。なくなったのではなく遅れた。
+    - 2 回目の落ちと同じ形で、今の 5 秒の待ちならこの 6 周のうち 2 周で落ちる。
+  - 失われた出来事は 0、前の場面からの古い知らせは 0。呼び出しの止まりは 1 回（r1 の setUp の `clearTransactions` が 2,285 ms）。
+- 今のクラスを 10 回走らせる段は、1 回目の途中で実行機の打ち切りに当たった（01:25 UTC、負荷 772、「The operation was canceled.」）。数は取れなかった。
+- 読み: 試しの環境は、ときどき 7〜15 秒遅れる。テストの待ちを、試しの環境の分（長め）とアプリの分（5 秒のまま）に分けて直す。
+
+## StoreKit の直しの後の通しの run（r14 6093deb。build 44853713800・ja-baseline 44861649226、11/21 02:03 UTC〜）
+
+- 直し（r14-w-skfix 9956c49・9dc87c8、Workflow wf_d4843963-28f。書き手 1・見直し 2・直し 1）: `StoreKitSessionTests` だけ。
+  - StoreKit の生の状態を長め（`envTimeout` 30 秒、10 秒で期限切れ・返金をもう 1 回呼ぶ）に待つ。その後もアプリは 5 秒以内に決まった状態になることを求める。
+  - 知らせのテストは 30 秒まで待つ。この買いの終わりの日時（1 秒以内）まで合っていることを確かめる（前のテストの同じ番号の取引では通らない）。
+  - 待ちの中の StoreKit の呼び出しは止まっても待ちが終わる形にした。証拠は失敗を記録した後に集める。
+  - 凍結の表の外。アプリのコードは 0 バイト。
+- **build-and-test ○**（1 回目で緑、job 136690819059）:
+  - KitChecks 40,826、単体テスト 781（飛ばし 2・失敗 0）、同期の繰り返し 4,000（失敗 0）。警告は D0b からの「log show」の行だけ。
+  - StoreKit: 期限切れは今回も遅れた。10 秒で 2 回目を呼ぶと SKServiceErrorDomain Code=2（もう期限切れ）が返り、アプリは 15.0 秒で `.readOnly(.expired)` になった。1 回目の期限切れは試しの環境の中では済んでいて、表に出るのが約 15 秒遅れる（測りの r6 の 15.1 秒と同じ形）。ほかの場面は 0.1〜0.7 秒。
+- UI テスト・compat-v1.0・l10n・白紙 ○。span-shots は理由の無い打ち切り（02:53 UTC、負荷 777）→ 1 回走らせ直した。
+- **順番の外れ（記録）**: ja-baseline（44861649226）を span-shots の走らせ直しと同時に出した（03:32 UTC）。同時のジョブは 2 つで上限 5 の内。写真は両方とも 11/21 UTC。渡しを約 1.5 時間早めるため（本人は 11/22〜23 不在）。
+- **span-shots の走らせ直し ○**（attempt 2、job 136716147411、03:32〜05:10 UTC）:
+  - 4 機種のテストの結果は前の run と同じ（ipad11・iphone は 4 つ通り、ipadmini・ipad13 は 2 つ通り 2 つ飛ばし）。PDF のテストも通った。
+  - 手書き: 写真 64 枚が全部そろい、足りない 0 px。testLanguages も通った（言語の写真 60 枚、見つからない鍵 0）。
+  - 余白の写真で「落ち着かない」が 2 回あり、どちらも 1 回だけ起動し直した（FLAKE-1、1.3 の bd23a30 の仕組み。2 回目も落ち着かなければ失敗）。対象は ipad11-portrait-margin-week-single と ipad13-landscape-margin-week-control。
+    - 落ち着かなかった起動で読んだキャンバスの値（zoom・ox・pk・ink）は、どれも最後の値と同じだった。遅かったのはアクセシビリティの問い合わせ（8〜28 秒）。
+    - 283b7ed と D0b では 0 回。また起きたら気にかける。
+  - 1 回目の打ち切り（02:53 UTC、負荷 777）: ipad11・ipadmini は失敗 0 で済んでいた。ipad13 は始まって約 11 分で、まだ出力が無かった。
+- **関門 3 ○**: 起動し直しの 2 行を除いた状態の行 71 本は、283b7ed・D0b・1.3（run 44474759145）のどれとも、レイアウトの欄の違いが 0。
+  - 違うのは trace（24 行）と waited=（1 行）だけ。
+  - `toolbar: paperArea=` の値の組は 4 機種とも同じ。数は 46/28/30/50（前は 44/28/28/50）。増えた分は、起動し直す前の起動が出した値（820x925 が 2 つ、1376x777 が 2 つ）。写真を撮った 59 回の起動では、どれも最後の値が写真の `frame=` と同じ。
+  - `span-margin.txt` は 283b7ed・D0b・1.3 と同じ。`shift-pairs.txt` は 283b7ed・D0b と同じ。写真の名前 64 も同じ。
+- **J-4 ○**（`screenshots` 14690080407 と `ja-baseline-955fe67` 14692447619）:
+  - 条件:
+    - 写真は両方とも 11/21 UTC（新 02:36〜03:30、基準 03:49〜04:43）。
+    - 環境は同じ 20261104.0337.1、Xcode 27.2 27B52。env.txt の違いは iOS 27.2 の 2 つの実行環境の行の並びだけ。
+    - ja-baseline は 955fe67 を取り出した（ログ 218 行目）。
+  - 77 枚: 同じ 58（全部バイトまで同じ）・違う 19・大きさの違い 0・片方だけ 0。
+  - 強い差は `ipad13-portrait-sheet-info.png` の版の字だけ。379 px、x 1450〜1489・y 1607〜1632、「1.3 (1)」→「1.4 (1)」で、283b7ed・D0b と同じ。
+  - 残りの 18 枚は弱い差だけ。最大は予定の画面のガラスの「キャンセル」「保存」の 23/255（強い差の 32 より下）。店の JPEG 3 枚は、違う PNG の焼き直し。
+  - どの写真が弱く違うかは、283b7ed の J-4 と大きく入れ替わった（今だけ 13・前だけ 10・両方 6）。同じコードの 2 つの run どうし（1.4 どうし・1.3 どうし）を比べても同じ画素数で出るので、実行機の揺れと読む。
+- **アプリのコード**: 283b7ed から 6093deb までの差は 4 ファイル（StoreKitSessionTests.swift・M7D.md・PROPOSALS_1_4.md・ink_ref_xcui.tsv）。Sources・TegakiKit・UI テスト・project.yml・.github は同じ（木のハッシュも同じ）。
+- **確かめ**（Workflow wf_edf996ee-d1e。J-4 の役・関門 3 の役・批評の役。批評は生のデータから全部確かめ直した）: 3 つとも ○。
+  - 批評が出した気がかり（どれも止める理由ではない）:
+    - 1 回目の ipad13 は出力の前に打ち切られたので、その時の様子は見えない。
+    - 11/21 に理由の無い打ち切りが 2 回あった。ジョブが違うので「2 回続けば止める」には当たらない。
+    - 期限切れの場面では、アプリが 15.0 秒で先に `.readOnly(.expired)` になった。そのため、アプリの 5 秒の枠はこの run では試されていない。最後の確かめ（`.readOnly(.expired)` と同じか）は厳しいまま。
+    - 基準の `ipad11-portrait-readonly` は撮り直し（§3.5 (f) で許す。差はツールバーのガラスだけ）。
+- **決定**: 通しの run が緑になったので、r14 6093deb（この記録の commit を足した物）から TestFlight 1.4 を作る。D3（確認ページと確かめ表）を本人に渡す。提出と公開は本人の言葉が要る。
+
+## TestFlight 1.4（ビルド 28）と D3 の渡し（11/21 05:43〜06:00 UTC）
+
+- testflight.yml を r14 2fb8fb1 で走らせた（run 44872177444、**ビルド 28**、05:43〜05:48 UTC、全部の段が ○）。
+  - アーカイブの確かめ: declared-age-range true、DeclaredAgeRange は弱いリンク。DTSDKName iphoneos27.2、MinimumOSVersion 17.0、UIDeviceFamily 1, 2、DTXcode 2720、DTXcodeBuild 27B52、DTPlatformVersion 27.2。
+  - 送り: エラー 0（Delivery UUID ef5176d0-32c4-4feb-a7da-df71f96fd198）。
+- Connect（読むだけ、`enter14.py plan --build 28` と build の GET）: ビルド 28 は 05:57 UTC に VALID。
+  - 版 1.4、minOs 17.0、期限 2027-02-18。
+  - 内部テストの組に入った（IN_BETA_TESTING）。
+  - D0 のビルド 27 は使わない。
+- `enter14.py plan` の「止まる」理由は、本人の言葉の前に出る物だけ: 新機能の文の組がまだ 1.4 の 1 つに決まっていない、承認の commit が無い。
+- 確認ページと確かめ表（28 行）を Artifact で本人に渡した。
+  - 作り方: build_page14.py、ビルド 28、文の元 2fb8fb1、写真の組の印 4fbed294（60 枚）、判定 ○43 △12 ×0、警告 0。
+  - 11/22 の夜の「早い道／ふつうの道」の判断は、11/21 に渡したので要らなくなった。
+- 中国の 2027 年の祝日: python-holidays の正式な最新版は 0.109（11/17）。0.110 は開発版だけで、まだ入れない（行 4 は使わない）。
+- 次: 本人の「この内容で入れてよい」と確かめ表。その後、選ばれた文を入れる → 「1.4 を審査に提出して良い」。本人は 11/22〜23 不在。
+
+## 本人の言葉と、提出の前の入れ（11/21 15:2x JST〜）
+
+- 本人「両方ともYesです。」（11/21、確認ページを渡した報告への返事）。報告の「次に要るお言葉」に並べた 2 つ（「この内容で入れてよい」と「1.4 を審査に提出して良い」）への Yes と読む。1.2.4 の「三つともYes」と同じ扱い（契約 §0.4 の「前もってまとめてもらっても構いません」）。
+  - 確認ページの 2 つの選び（設定の 1 文・Duo の写真）は答えが無いので既定（設定の 1 文は今のまま、Duo の写真は入れる）。
+- **提出は確かめ表の後**: 契約 §9.1 の D4 は「確かめ表が全部 ○（Duo の行は ○ か「—」）」で終わり、Duo の行が × なら直してビルドし直す（× のまま出さない）。確かめ表の答えはまだ無いので、提出の前の入れ（文・審査メモ・Duo の写真・ビルド 28）を先に済ませ、確かめ表が届いたらすぐ出す。「1.4 を審査に提出して良い」はその時に使う。
+- **新機能の文の組み合わせ（今）**: 行 1 案 B・行 2 なし・行 3・行 4 なし（§2.1 の既定）。whatsnew14.py write（枝 r14-w-wn）で 16 ロケールの whatsnew.txt・source-ja・審査メモの (2)（案 B）と日本語のまとめ・SUPPORT の Duo の文（案 B、Pencil の文なし）をそろえた。審査メモの (3) は usesHinge = true の文。読み戻し 16 ファイル同じ、lint ○。
+  - 確かめ表の行 18・25 が ○ なら行 1 を案 A に、行 19・20 が ○ なら行 2 を足す（どちらも確認ページの「この内容で入れてよい」に入る組み合わせ）。替えるときは whatsnew14.py write をやり直し、enter14.py apply を走らせる（Connect は違う所だけ書く）。
+  - locales.json の ja の whatsnewSource と README の「新機能の文の組み立て」に 1.4 の行を足した（PROPOSALS §2.4）。
+- **Connect に入れた**（「この内容で入れてよい」による。11/21 15:2x〜15:38 JST）:
+  - **Duo の写真**: `shots14.py apply`（MANIFEST 4fbed294…、確認ページと同じ組）で 60 枚を上げ、80 の置き場所（16 ロケール × 5）を作った。pt-PT は pt-BR の写真で、計画どおり。
+    - `verify` で VERIFY OK: 16 × 5、IPHONE_DUO_PROFILE、specId 205e7ab6…、1398×2034、順 00〜04、全部 ACTIVE。
+    - 1 回目の verify は §7.4 の「変わっていない」で止まった。Connect が Duo の置き場所を、古い appScreenshotSets の側にも表示の種類 `APP_IPHONE_DUO` として写すため。
+      - 13"・6.9"・6.3" の組は変わっていない。
+      - `shots14.py`（リポジトリの外）の verify を直した: `APP_IPHONE_DUO` は §7.4 の比べから外し、置き場所と同じ字・同じ順かを別に確かめる（16/16）。直す前の写しは `shots14.py.pre-duo-mirror`。
+  - **文・審査メモ・ビルド**: `enter14.py apply --build 28 --approved 2fb8fb1`。書いたのは 18 回で、全部読み戻して同じ。
+    - 新機能の文 16 ロケール。
+    - 審査メモ 3,963 バイト。
+    - ビルド 28 を付けた（builds14.json）。
+    - `enter14.py verify` も VERIFY OK。
+  - **SUPPORT（Web）**: `web14_support.py` で r14-legal に案 B の文を入れた（edff817、手元だけ。公開の日に release14.py web で出す）。控えは ~/.local/share/tegaki-backup/1.4/web14。
+  - **`submit14.py check --build 28` は READY**。
+    - 版 1.4 は PREPARE_FOR_SUBMISSION、手動公開。
+    - ビルド 28 は VALID、APP_STORE_ELIGIBLE。
+    - 文 16/16、Duo の写真 16 × 5、年齢区分の 2 問は false、Web の 6 ページは 200、待っている提出は無し。
+- **提出はまだ**。確かめ表の答え（とくに Duo の行 18・19・20・25）が届いたら、すぐ出す。
+  - 理由 1: 行 19・20 が ○ なら、新機能の文に行 2（Duo の Apple Pencil）が入る。行 18・25 が ○ なら行 1 は案 A。
+  - 理由 2: 提出の後や審査の後には文を替えられない（取り下げて出し直しになる）。
+  - 理由 3: Duo の行が × なら、直してビルドし直す（§9.1）。
+  - 答えが届いたら: whatsnew14.py write（組み合わせ）→ commit → enter14.py apply → web14_support.py → submit14.py submit（「1.4 を審査に提出して良い」は 11/21 の「両方ともYes」）。
+
+## 1.4 を審査に提出（11/21 15:41 JST）
+
+- 本人「Duoは持っていないです。今の文で提出してください。」（11/21）。
+  - 確かめ表の Duo の行（18・19・20・25）は「—」（Duo が手元に無い）。
+  - 契約 §9.1 の「—」のとき: 行 2 と SUPPORT の Pencil の文を入れずに出す。行 1 は案 B（案 A は行 18・25 の ○ か duo-hinge の緑が要る）。今の組み合わせ（行 1 案 B・行 3）と同じなので、文は替えない。
+  - 提出の言葉は「両方ともYes」（「1.4 を審査に提出して良い」）と、この「今の文で提出してください」。
+- `submit14.py submit --owner "1.4 を審査に提出して良い" --repo ../r14 --build 28`（15:41:25 JST）:
+  - 前の確かめは全部 ○（check と同じ。enter14.py verify は 668883a で VERIFY OK）。
+  - POST reviewSubmissions 201、POST reviewSubmissionItems 201、PATCH submitted 200。
+  - 読み戻し: 提出 078fa2c3-0db5-4bea-a5f8-ba36d0f94391 は WAITING_FOR_REVIEW。版 1.4 は WAITING_FOR_REVIEW、releaseType MANUAL。
+- 確かめ表の Duo 以外の行は、まだ本人の答えが無い。**公開（「1.4 を公開して良い」）の前に、本人の端末の確かめ表（Duo の行は「—」）が要る**（本人の実機で確かめていない版は出さない）。
+- 次: 審査の結果を見る。通ったら、確かめ表と「1.4 を公開して良い」の後に、release14.py web（SUPPORT 案 B・最終更新の日）→ release → 「まとめて良い」で main へ。
+- 本人「1.4を公開して良い」「まとめて良い」（11/21、提出の知らせへの返事。前もっての言葉で、1.2.4 の「三つともYes」と同じ扱い）。
+  - 公開は 2 つがそろってから: (1) 審査が通る（PENDING_DEVELOPER_RELEASE）。(2) 本人の端末の確かめ表（Duo 以外の行。Duo の行は「—」）の答え（本人の実機で確かめていない版は出さない）。
+  - そろったら release14.py check → web（r14-legal edff817 を Web の main へ、最終更新の日は公開の日の JST）→ release → 読み戻し → 「まとめて良い」で r14 を main へ `--no-ff`（公開の後）。
+  - `release14.py check`（15:5x JST）: 止まる理由は「審査待ち」だけ。Web の 4 ページは 200、SUPPORT は案 B で Connect の組み合わせと同じ、r14-legal は Web の main の早送り。
+  - 審査の状態は、セッションの中の背景の見張り（15 分ごと、release14.py state、GET だけ）で見る。
+
+## 本人の確かめ表の答え（11/21 20:2x JST）
+
+- 本人「確かめ表は全部○ ただしDuoは持っていない、Apple PencilはDuo対応のものは持っていない。それらは除く。」（TestFlight 1.4・ビルド 28、確認ページの 8）。
+  - 行 1〜17 と 28（iPad Air 11・iPad mini・iPad Pro 13・iPhone、全部の端末）: ○。
+  - 行 18〜27（iPhone Duo と Duo の Apple Pencil）: 「—」（Duo も Duo に使える Pencil も手元に無い）。提出の文（行 1 案 B・行 3、行 2 と SUPPORT の Pencil の文は無し）は §9.1 の「—」のときの組み合わせで、替えない。
+- 公開の 2 つの条件のうち (2)（本人の端末の確かめ表）はそろった。残りは (1) 審査が通る（PENDING_DEVELOPER_RELEASE）だけ。
+  - `release14.py state`（20:21 JST）: 1.4 WAITING_FOR_REVIEW WAITING_FOR_REVIEW。見張りは続けている。
+  - 通ったら、新しいお言葉は待たずに release14.py check → web → release → 読み戻し → r14 を main へ `--no-ff`（「1.4を公開して良い」「まとめて良い」は 11/21 に済み）。

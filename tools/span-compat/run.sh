@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Reads every compat-span fixture with an old version's REAL TegakiKit (docs/M7C_CONTRACT.md §6.3, §10.4).
+# Reads every compat-span fixture with an old version's REAL TegakiKit (docs/M7C_CONTRACT.md §6.3, §10.4; 1.3 itself
+# since 1.4, docs/M7D_CONTRACT.md §5.3).
 #
-#   tools/span-compat/run.sh <v10|v11|v123> <that version's TegakiKit folder> [<work folder>]
+#   tools/span-compat/run.sh <v10|v11|v123|v13> <that version's TegakiKit folder> [<work folder>]
 #
 # The TegakiKit folder is the old commit's TegakiKit taken out of git: v10 = a21e4692109e504701b507ad9c695181fdecddfd
 # (1.0), v11 = the commit in tools/l10n/ja-baseline-ref.txt (<1.1.1>), v123 = 43fe36666a2120e8a23adf4fc76244151a395e6f
-# (1.2.3), for example `git archive 43fe36666a2120e8a23adf4fc76244151a395e6f TegakiKit | tar -x -C <dir>/v123`.
-# CI's compat-v1.0 job passes its checkouts v10 and v11 and the archive v123.
+# (1.2.3), v13 = 955fe678ec9f999ac45fac1b372f246e43c02f95 (1.3, build 26), for example
+# `git archive 955fe678ec9f999ac45fac1b372f246e43c02f95 TegakiKit | tar -x -C <dir>/v13`.
+# CI's compat-v1.0 job passes its checkouts v10 and v11 and the archives v123 and v13.
 #
 # A Swift package is made in the work folder (default: a new temporary folder; it must be outside the repository):
 # Package.swift naming the old TegakiKit by its absolute path, and Sources/Probe = Probe/Common.swift,
@@ -18,11 +20,11 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
-VERSION="${1:?usage: run.sh <v10|v11|v123> <TegakiKit folder> [<work folder>]}"
-KIT="$(cd "${2:?usage: run.sh <v10|v11|v123> <TegakiKit folder> [<work folder>]}" && pwd)"
+VERSION="${1:?usage: run.sh <v10|v11|v123|v13> <TegakiKit folder> [<work folder>]}"
+KIT="$(cd "${2:?usage: run.sh <v10|v11|v123|v13> <TegakiKit folder> [<work folder>]}" && pwd)"
 case "$VERSION" in
-  v10|v11|v123) ;;
-  *) echo "run.sh: the version is v10, v11 or v123, not $VERSION"; exit 2 ;;
+  v10|v11|v123|v13) ;;
+  *) echo "run.sh: the version is v10, v11, v123 or v13, not $VERSION"; exit 2 ;;
 esac
 if [ ! -f "$KIT/Package.swift" ] || [ ! -d "$KIT/Sources/InkModel" ]; then
   echo "run.sh: $KIT is not a TegakiKit folder"; exit 2

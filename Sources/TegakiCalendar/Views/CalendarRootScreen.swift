@@ -142,6 +142,15 @@ enum GatedAction: Equatable, CaseIterable {
 /// says it is due (3 days of ink, 7 days of use, once per version, 90 days apart, subscribed or in the
 /// trial) and nothing is up (`reviewCanShowNow`). Never in screenshot mode, the XCTest host or a
 /// sandbox-receipt build (`reviewAllowedHere`); StoreKit is asked through `ReviewRequester`.
+///
+/// 1.4 (docs/M7D_CONTRACT.md §1.5 (b), §2.1, §4.3, §4.5, §4.7, §4.8):
+/// - The first page's kind without a remembered one: the month on an iPad, else by the window's short side once the
+///   window is measured (`WindowClass.Opening`, `noteWindowSize`); no canvas until then.
+/// - The pictures of 「予定にする」 are drawn at the window's scale (`displayScale`).
+/// - The joined windows decided anew read the window of now for the overview cap (`ScreenPaths.overviewCapNow`).
+/// - 「指でも書く」 on an iPhone Duo as on an iPad: the Apple Pencil's touch or the hinge turns it off (`PencilPhone`, the
+///   window's watchers); the person's switch in the toolbar and the settings is theirs from then on (`allowFingerBinding`).
+/// - 「今日」's rect goes when the one page's canvas is made anew by another device's 「全て消す」 or 「消して始める」.
 struct CalendarRootScreen: View {
     @StateObject private var model = EventStoreModel()
     /// The sync engine (M4 contract §5.3): the one store of the pages, and the ☁ state.
@@ -185,7 +194,18 @@ struct CalendarRootScreen: View {
     @State private var canRedo = false
 
     @AppStorage(AppSettings.allowFingerKey) private var allowFinger = false
-    @AppStorage(AppSettings.allowFingerChosenKey) private var allowFingerChosen = false
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.8): the Apple Pencil (P) and the hinge (H) decide whether the app turns
+    /// 「指でも書く」 off on a phone, as an iPad has it (the iPhone Duo); nothing on an iPad. Fed by `appear` (1.3's first-launch
+    /// default, written by `PencilPhone.launchDefault` with `allowFingerDrawingChosen` as before, and who wrote today's
+    /// value), the window's watchers (`PencilPhoneWindowReader` in `pathObservers`) and the person's switch
+    /// (`allowFingerBinding`); it writes `allowFinger` itself (the `@AppStorage` above follows).
+    @State private var pencilPhone = PencilPhone(isPad: UIDevice.current.userInterfaceIdiom == .pad)
+    /// 1.4 (§4.3, C2): the first page's kind, decided once — in `init` from the memory, on an iPad or in screenshot mode;
+    /// else by the window's short side as soon as the window is measured (`noteWindowSize`), before or after `appear`. Until
+    /// then the screen shows no canvas (`pathCanvas`: the desk) and opens no page. A fold or an unfold never changes it.
+    @State private var opening: WindowClass.Opening
+    /// 1.4 (§4.5): the window's scale (px per pt), for the pictures `InkSnapshot.render` draws.
+    @Environment(\.displayScale) private var displayScale
     @AppStorage(AppSettings.onboardingDoneKey) private var onboardingDone = false
     @State private var showOnboarding = false
 
@@ -423,17 +443,23 @@ struct CalendarRootScreen: View {
         let startNow = shot?.today ?? Date()
         let startKind: PageKind
         let startFocus: DayKey
+        let startOpening: WindowClass.Opening
         if let shot = shot {
             // CI screenshot mode opens the page it was asked for and never touches the memory.
             startKind = shot.page
             startFocus = shot.focus
+            startOpening = WindowClass.Opening(stored: shot.page, isPad: false)
         } else {
             let defaults = UserDefaults.standard
-            // iPhones start on the week page (DESIGN §2.11); everything else on the month page.
-            let fallbackKind: PageKind = UIDevice.current.userInterfaceIdiom == .phone ? .week : .month
-            startKind = defaults.string(forKey: AppSettings.lastKindKey).flatMap(PageKind.init(rawValue:)) ?? fallbackKind
+            // 1.4 (docs/M7D_CONTRACT.md §4.3, 0d-9): the remembered kind; without one, everything but a phone starts on the
+            // month page as before (DESIGN §2.11), and a phone by its window's short side once the window is measured
+            // (`noteWindowSize`: the month in a wide window, else the week, as before): the week stands in, with no canvas.
+            startOpening = WindowClass.Opening(stored: defaults.string(forKey: AppSettings.lastKindKey).flatMap(PageKind.init(rawValue:)),
+                                               isPad: UIDevice.current.userInterfaceIdiom != .phone)
+            startKind = startOpening.decided ?? .week
             startFocus = defaults.string(forKey: AppSettings.lastFocusKey).flatMap(DayKey.init(ymd:)) ?? DayKey(startNow)
         }
+        _opening = State(initialValue: startOpening)
         _kind = State(initialValue: startKind)
         _focus = State(initialValue: startFocus)
         _now = State(initialValue: startNow)
@@ -586,6 +612,17 @@ struct CalendarRootScreen: View {
         guard ScreenshotMode.isActive else { return }
         NSLog("%@", Self.safeAreaLogLine(Self.windowSafeArea()))
         NSLog("%@", Self.paperAreaLogLine(area, mode: toolbarMode))
+        noteMeasure(area)
+    }
+
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.2): `--screenshot-measure`'s values of the screen (`ScreenshotMode.measure`; nothing
+    /// without that argument): after each paper area (`logToolbarArea`, also a second after `appear`), and when
+    /// 「指でも書く」, the kind or the window's plan (a fold, an unfold, a turn) changed (`watchedFurther`). Who wrote
+    /// 「指でも書く」 is `PencilPhone.origin` (the launch's, as the decision sees it, §4.8), not the stored mark read back.
+    private func noteMeasure(_ area: CGSize? = nil) {
+        guard ScreenshotMode.isMeasuring else { return }
+        ScreenshotMode.measure(kind: kind, paperArea: area ?? paperArea, weekStart: weekStart, isPad: pencilPhone.isPad,
+                               origin: pencilPhone.origin, finger: allowFinger, plan: paths.span?.plan)
     }
 
     /// 「toolbar: safeArea=<上>,<左>,<下>,<右>」 (pt, two decimals; §2.2).
@@ -742,6 +779,10 @@ struct CalendarRootScreen: View {
         // M5 (M5_CONTRACT §4.2 / §3.1): the purchase toasts, and the moment the app turns read only.
         .onChange(of: store.snapshot.message) { messageChanged() }
         .onChange(of: readOnly) { readOnlyChanged() }
+        // 1.4 (docs/M7D_CONTRACT.md §2.1): the `duo measure:` line again for a new value (nothing without --screenshot-measure).
+        .onChange(of: allowFinger) { noteMeasure() }
+        .onChange(of: kind) { noteMeasure() }
+        .onChange(of: paths.span?.plan) { noteMeasure() }
         .task { await nowTicker() }
     }
 
@@ -757,7 +798,8 @@ struct CalendarRootScreen: View {
             settingsSheet
         }
         .sheet(isPresented: $showPaywall) {
-            PaywallSheet(store: store, reason: paywallReason, onClose: { showPaywall = false })
+            // 1.4 (docs/M7D_CONTRACT.md §2.1, §4.4): the window's size (`.zero` before it is measured: 1.3's sheet).
+            PaywallSheet(store: store, reason: paywallReason, windowSize: windowSize, onClose: { showPaywall = false })
         }
         .sheet(isPresented: $showImportPicker) {
             DocumentPickerView(onPick: pickedImportFile, onCancel: { showImportPicker = false })
@@ -827,6 +869,9 @@ struct CalendarRootScreen: View {
                 sync: sync.snapshot.status.header,
                 onSyncTap: { showSettings = true },
                 width: proxy.size.width,
+                // 1.4 D1d: the safe area's side strips (the iPhone Duo's outer screen: 84 pt; 0 on every iPhone in
+                // portrait and on the iPad), for the header's tight row (`PageHeaderView.usesTightRow`).
+                sideInsets: proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
                 readOnly: readOnly,
                 onReadOnlyTap: { showPaywall(reason: .badge) },
                 // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
@@ -883,7 +928,7 @@ struct CalendarRootScreen: View {
         SettingsScreen(
             model: model,
             sync: sync,
-            allowFinger: $allowFinger,
+            allowFinger: allowFingerBinding,
             onRequestAccess: { await model.requestAccess() },
             onSyncNow: { Task { await sync.syncNow() } },
             onImportWeb: importWeb,
@@ -935,7 +980,7 @@ struct CalendarRootScreen: View {
     private var toolbar: some View {
         ToolbarView(
             tool: toolBinding,
-            allowFinger: $allowFinger,
+            allowFinger: allowFingerBinding,
             // M5 (M5_CONTRACT §3.1): greyed while read only; the guards are the insurance.
             canUndo: canUndo && !readOnly,
             canRedo: canRedo && !readOnly,
@@ -944,6 +989,18 @@ struct CalendarRootScreen: View {
             showsCollapseButton: true,
             onCollapse: { toolbarEvent(.collapseTapped) },
             eraserReturnsTo: Self.eraserReturnTarget(tool: tool, origin: eraserOrigin, setting: eraserAutoReturnOn, lastInk: lastInkTool)
+        )
+    }
+
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.8): 「指でも書く」 as the toolbar and the settings switch it — the person's own choice
+    /// (`PencilPhone.personSet`: the value with the mark "person"), which the app never changes afterwards.
+    private var allowFingerBinding: Binding<Bool> {
+        Binding(
+            get: { allowFinger },
+            set: { value in
+                PencilPhone.personSet(value, defaults: .standard)
+                pencilPhone.personSwitched()
+            }
         )
     }
 
@@ -1161,7 +1218,9 @@ struct CalendarRootScreen: View {
                     try? await Task.sleep(for: .seconds(Self.sheetGap))
                     showPaywall(reason: .blocked(.editEvent))
                 }
-            } : nil
+            } : nil,
+            // 1.4 (docs/M7D_CONTRACT.md §2.1, §4.4): the window's size (`.zero` before it is measured: 1.3's sheet).
+            windowSize: windowSize
         )
     }
 
@@ -1250,11 +1309,11 @@ struct CalendarRootScreen: View {
         noteReviewUse()
         // M5 (M5_CONTRACT §2.4 / §4.2): the cached access state first, then the store's own refresh.
         store.start()
-        if !allowFingerChosen {
-            // Pencil only on iPad by default; iPhones and Macs have no Pencil (DESIGN §2.1, §2.11).
-            allowFingerChosen = true
-            allowFinger = UIDevice.current.userInterfaceIdiom != .pad
-        }
+        // 1.4 (docs/M7D_CONTRACT.md §2.1, §4.8, C2): 1.3's default at the first launch (`allowFingerDrawingChosen`'s moment
+        // and values unchanged; Pencil only on iPad by default, DESIGN §2.1, §2.11), with this device's mark beside it; then
+        // who wrote today's value goes to the Pencil's and the hinge's decision.
+        let launch = PencilPhone.launchDefault(.standard, isPad: pencilPhone.isPad, device: PencilPhone.deviceMark())
+        pencilPhone.appeared(allowFinger: launch.allowFinger, origin: launch.origin)
         // CI screenshot mode never shows the onboarding (and so never asks for calendar access).
         if !onboardingDone, !ScreenshotMode.isActive {
             if model.status == .notDetermined {
@@ -1283,6 +1342,10 @@ struct CalendarRootScreen: View {
         paths.onShownPageChanged = { relayout() }
         // Review J5: the one page back from the window (or the desk) is a new canvas even on the same page id.
         paths.onOnePageAnew = { viewport = .zero }
+        // 1.4 (§2.1, §4.7): a window decided anew (a fold, an unfold, a turn) caps the overview by the window of now, read
+        // from UIKit's window of the scene; an iPad keeps 1.3's (its plan has no cap either way).
+        let padCaps = pencilPhone.isPad
+        paths.overviewCapNow = { padCaps || WindowClass.capsOverview(windowSize: Self.sceneWindowSize) }
         let events = model
         paths.eventSource = { events.events(from: $0, to: $1) }
         // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.
@@ -1298,7 +1361,10 @@ struct CalendarRootScreen: View {
         if !ScreenshotMode.isActive, let changed = WeekStartChoice.regionChange(automatic: WeekStartChoice.launchAutomatic) {
             weekStartNotices.add(.regionChanged(changed))
         }
-        show(kind: kind, focus: focus)
+        // 1.4 (§4.3): the first page opens once its kind is decided (else `noteWindowSize` opens it).
+        if opening.decided != nil {
+            show(kind: kind, focus: focus)
+        }
         // 1.2 (§10.3, 4 (1)): the engine started in the AppDelegate; a first pull that already finished
         // is not seen by `.onChange`. (The same as `.accountMismatch` below.)
         checkWeekStartAfterPull()
@@ -1491,6 +1557,15 @@ struct CalendarRootScreen: View {
     private var sceneScreenSize: CGSize? {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         return (scenes.first { $0.activationState == .foregroundActive } ?? scenes.first)?.screen.bounds.size
+    }
+
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.7): the size of UIKit's window of the scene (the active scene's key window, else its
+    /// first) — new when the canvas decides its window anew after a fold or an unfold, whatever the order of SwiftUI's
+    /// `windowSize`; nil before a window exists (then the cap stays, 1.3's).
+    static var sceneWindowSize: CGSize? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        guard let windows = (scenes.first { $0.activationState == .foregroundActive } ?? scenes.first)?.windows else { return nil }
+        return (windows.first(where: \.isKeyWindow) ?? windows.first)?.bounds.size
     }
 
     /// 1.3 (§3.1, C3-m11): what a page opens with — on the joined path the device (nil until the window is laid out), the
@@ -1751,6 +1826,9 @@ struct CalendarRootScreen: View {
     private func remoteDeleted(_ deletedId: String) {
         // 1.3 (§2 #18): through `ScreenPaths.remoteDeleted` (the window and every closing window take it too).
         guard paths.remoteDeleted(deletedId, shownPageId: pageId) else { return }
+        // 1.4 (docs/M7D_CONTRACT.md §1.5 (b); S6's lead's decision 2 (b)): 「今日」's rect goes with the old canvas, as in
+        // `show` and `eraseAllInk`: the new canvas's first layout would read it.
+        revealRect = nil
         selection = nil
         viewport = .zero
         relayout()
@@ -1932,7 +2010,8 @@ struct CalendarRootScreen: View {
             return
         }
         let strokes = selection.ids.compactMap { onePage.page.strokes[$0] }
-        let snapshot = InkSnapshot.render(strokes: strokes, cells: layout.cells)
+        // 1.4 (docs/M7D_CONTRACT.md §4.5): at the window's scale (the iPhone Duo's two screens may differ).
+        let snapshot = InkSnapshot.render(strokes: strokes, cells: layout.cells, scale: displayScale)
         openCreate(range: range, snapshot: snapshot, inkIds: selection.ids)
     }
 
@@ -2337,6 +2416,8 @@ struct CalendarRootScreen: View {
             choice,
             resolve: { await sync.resolveAccountChange($0) },
             closed: {
+                // 1.4 (docs/M7D_CONTRACT.md §1.5 (b)): 「今日」's rect goes with the old canvas, as in `show` and `eraseAllInk`.
+                revealRect = nil
                 selection = nil
                 viewport = .zero // the new canvas reports its own viewport next turn (`show`)
                 relayout()
@@ -2861,12 +2942,24 @@ extension CalendarRootScreen {
     }
 
     /// The root view's size with its safe area (C3-m11): the device of the next window; a joined page that waited opens.
+    /// 1.4 (docs/M7D_CONTRACT.md §4.3, C2): on a phone's first launch the first page's kind is decided by the first measured
+    /// size (`WindowClass.Opening`: the month in a wide window, else the week) and the page opens — now, or in `appear` when
+    /// it comes later. Later sizes (a fold, an unfold, a turn) never change it.
     func noteWindowSize(_ proxy: GeometryProxy) {
         let insets = proxy.safeAreaInsets
         let size = CGSize(width: proxy.size.width + insets.leading + insets.trailing,
                           height: proxy.size.height + insets.top + insets.bottom)
         guard size != windowSize else { return }
         windowSize = size
+        if opening.decided == nil {
+            guard let decided = opening.windowSize(size) else { return }
+            if appeared {
+                show(kind: decided, focus: focus)
+            } else {
+                kind = decided
+            }
+            return
+        }
         if appeared, paths.waitingForScene {
             show(kind: kind, focus: focus)
         }
@@ -2986,7 +3079,8 @@ extension CalendarRootScreen {
             return
         }
         let picture = ScreenPaths.selectionPicture(selection.ids, in: span)
-        let snapshot = InkSnapshot.render(strokes: picture.strokes, cells: picture.cells)
+        // 1.4 (docs/M7D_CONTRACT.md §4.5): at the window's scale.
+        let snapshot = InkSnapshot.render(strokes: picture.strokes, cells: picture.cells, scale: displayScale)
         openCreate(range: range, snapshot: snapshot, inkIds: selection.ids, ownerPageId: made.pageId, spanSessionId: span.id)
     }
 
@@ -3011,19 +3105,25 @@ extension CalendarRootScreen {
 
 extension CalendarRootScreen {
     /// 1.3 (§3.1): the canvas of the path on the screen — 1.2.3's one page, the window of joined pages, or the desk alone.
+    /// 1.4 (docs/M7D_CONTRACT.md §4.3): the desk alone until the first page's kind is decided (`opening`), so a phone's first
+    /// launch never builds a week's canvas to replace it with the month's a moment later.
     @ViewBuilder
     func pathCanvas(viewportWidth: CGFloat) -> some View {
-        switch paths.path {
-        case .onePage:
-            canvas(viewportWidth: viewportWidth)
-        case .joined:
-            if let span = paths.span {
-                joinedCanvas(span, viewportWidth: viewportWidth)
-            } else {
+        if opening.decided == nil {
+            desk
+        } else {
+            switch paths.path {
+            case .onePage:
+                canvas(viewportWidth: viewportWidth)
+            case .joined:
+                if let span = paths.span {
+                    joinedCanvas(span, viewportWidth: viewportWidth)
+                } else {
+                    desk
+                }
+            case .erasing:
                 desk
             }
-        case .erasing:
-            desk
         }
     }
 
@@ -3031,8 +3131,11 @@ extension CalendarRootScreen {
     /// window; a joined page waits for it), the model's revision (C3-m8: the window reads its events again after the
     /// calendar changed, not after its own opening), the window's focus page (C3-m7: the title, a kind switch, ＋予定 and
     /// the export's title follow it) and the save-failure alert closing (the window's next failure tells again).
+    /// 1.4 (docs/M7D_CONTRACT.md §2.1, §4.8): also the UIWindow, for the Pencil's and the hinge's watchers (`PencilPhone.attach`;
+    /// nothing on an iPad).
     func pathObservers(_ proxy: GeometryProxy) -> some View {
         Color.clear
+            .background(PencilPhoneWindowReader { window in pencilPhone.attach(to: window, isPad: pencilPhone.isPad) })
             .onAppear { noteWindowSize(proxy) }
             .onChange(of: proxy.size) { noteWindowSize(proxy) }
             .onChange(of: model.revision) { paths.eventsChanged(revision: model.revision) }

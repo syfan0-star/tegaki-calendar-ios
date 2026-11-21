@@ -34,6 +34,35 @@
 # region, and its bar's time is fixed at 9:41 (docs/M7B.md FIX4, FIX5); the iPad's date stays the day of the shoot
 # (simctl did not set it from an ISO date). Only here: build.yml and
 # ja-baseline.yml keep their bar, whose date J-4 does not look at beyond comparing two runs of one day.
+#
+# 1.4 (docs/M7D_CONTRACT.md §3.3, §3.10, D0): the image `xcode-27` and Xcode 27.2, chosen as in build.yml (§3.1); the
+# 6.9-inch iPhone is the iPhone 18 Pro Max (§3.2: prefix fallbacks iPhone 18 Pro Max, iPhone 17 Pro Max; the image has no
+# iPhone 17 Pro Max), and a simulator of the table that is missing fails the job ("Required simulators", and "The
+# simulators used are the table's" after the photos) instead of a warning; XcodeGen is 2.46.0 from its release zip,
+# pinned by sha256 (§3.3 4); shots/env.txt holds the job's environment, the devices taken and the iPhone 18 Pro Max's
+# pixels, in an artifact of its own (env-store-<set>), so store-<set> keeps only the device folders. The iPhone Duo's set and
+# the input `sets` come with D2 (§7); the photos in App Store Connect now are not taken again (§7.4).
+#
+# 1.4 D2 (docs/M7D_CONTRACT.md §7.1, §7.2, §7.4, §3.8, §3.10): the input `sets` chooses what runs: `duo` (the default, and
+# what a push to `store-shots` runs) the iPhone Duo's set only; `ipad13,iphone69` the job store-shots (the 13-inch and
+# 6.9-inch sets) as it was (its steps are the same to the byte: it shoots both devices, so the two are chosen together);
+# `duo,ipad13,iphone69` both, the Duo first. The 13-inch and 6.9-inch photos in Connect stay (§7.4), so they are not taken unless chosen.
+#   The Duo's set (job store-duo): the outer screen in portrait (path 3: the inner screen cannot be photographed, §4.2,
+# §7.1), the 6.9-inch set's five photos 00-span, 01-week, 02-month, 03-day, 04-year with its launch arguments and
+# --screenshot-pencil-phone (§7.1: 「指でも書く」 off), for its 12 sets above (16 App Store locales, ja's five too), every
+# `simctl io screenshot` with --display=primary (the Duo has two displays; duo-probe, docs/M7D.md D1b). Four jobs of
+# three sets (at most four at once; then store-duo-check, then store-shots when chosen: never more than four jobs of
+# this workflow at once, §3.10). Each set: the device in the set's language and region, booted again (its status bar's
+# 9:41 in the region's form, as the 6.9-inch iPhone's), the app in front for 180 s (§3.8), then the five photos twice.
+# The handwriting (tools/shots/duo_store.py's head): a photo with a line in tools/shots/ink_ref.tsv is checked against it;
+# one without (all of them until the lead adds the lines of env-store-duo-<group>/ink-ref.tsv) is checked against its
+# own second take, both ways; at most 2 more takes, within 180 s a job (tools/shots/ink_retake.sh's budget); then
+# store-duo-check compares the same page across the 12 sets. A photo whose handwriting is not shown complete fails the
+# run; one checked only take against take (and across the sets) passes with a warning in its job's final check and in
+# store-duo-check, since a loss at every launch, or one that every runner makes, shows only against a reference line:
+# none is kept silently, and the photos are looked at before the upload (§7.1). A take whose app is not running is not
+# photographed. Artifacts store-duo-<group>/<set>/duoOuter/<nn>-<page>.jpg (1398x2034, JPEG as above) and
+# env-store-duo-<group> (env.txt, ink.txt, ink-status.tsv, ink-ref.tsv, check.txt), kept 30 days; store-duo-check.
 name: store-shots
 
 on:
@@ -41,6 +70,16 @@ on:
     branches:
       - store-shots
   workflow_dispatch:
+    inputs:
+      sets:
+        description: "duo（iPhone Duo の外側の 5 枚 × 12 組、既定）・ipad13,iphone69（今の 13 インチと 6.9 インチ。§7.4 で撮り直さない）・duo,ipad13,iphone69（両方）"
+        required: true
+        default: duo
+        type: choice
+        options:
+          - duo
+          - ipad13,iphone69
+          - duo,ipad13,iphone69
 
 concurrency:
   group: store-shots-${{ github.ref }}
@@ -52,7 +91,12 @@ permissions:
 jobs:
   store-shots:
     name: store-shots (${{ matrix.set.id }})
-    runs-on: macos-26
+    # 1.4 D2 (docs/M7D_CONTRACT.md §7.4, §3.10): only when the input `sets` names ipad13 or iphone69 (never on a push), and
+    # after the Duo's jobs when they run too, so that this workflow never runs more than four jobs at once.
+    needs: store-duo-check
+    if: ${{ !cancelled() && (contains(inputs.sets, 'ipad13') || contains(inputs.sets, 'iphone69')) }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
+    runs-on: xcode-27
     # A build and XcodeGen about 3 min, four boots up to 3.5 each (run 41922318959; a device boots twice, for its
     # language, and the second is shorter), the two waits 4 min, 16 shots of 11–15 s at most 4 min: at most about
     # 25 min. A job cut by this limit would not reach the upload.
@@ -89,20 +133,137 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Select Xcode
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
           fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
           xcode-select -p
           xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            ipad13|iPad Pro 13-inch (M5)|27.2
+            iphone69|iPhone 18 Pro Max|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
       - name: Install XcodeGen
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       - name: Generate the Xcode project
         run: |
@@ -129,7 +290,31 @@ jobs:
           set -uo pipefail
           APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
           BUNDLE="com.syfan0.tegakicalendar"
-          mkdir -p shots
+          mkdir -p shots shots/store
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt), then each
+          # device it takes ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > shots/env.txt || echo "::warning::env.txt could not all be written"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
           if [ -z "$APP" ]; then
             echo "::warning::TegakiCalendar.app not found under build/DerivedData; no shots."
             exit 0
@@ -167,8 +352,10 @@ jobs:
           }
           # device-id | exact first choice | prefix fallbacks (in order). As in build.yml, on "iPad Air 13-inch"
           # the pixels are still accepted; on "iPhone 17 Pro" they are 6.3-inch and the next step warns.
+          # 1.4 (docs/M7D_CONTRACT.md §3.2): iphone69 is the iPhone 18 Pro Max, the same list as build.yml's; a device other
+          # than the table's fails the job at "The simulators used are the table's".
           for SPEC in "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13" \
-                      "iphone69|iPhone 17 Pro Max|iPhone 17 Pro Max,iPhone 17 Pro,iPhone 16 Pro Max"; do
+                      "iphone69|iPhone 18 Pro Max|iPhone 18 Pro Max,iPhone 17 Pro Max"; do
             ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
             FOUND="$(xcrun simctl list -j devices available | SIM_EXACT="$EXACT" SIM_PREFIXES="$PREFIXES" python3 -c '
           import json, os, re, sys
@@ -176,14 +363,18 @@ jobs:
           def version(runtime):                                  # "…iOS-26-5" → (26, 5)
               m = re.search(r"iOS-(\d+)-(\d+)", runtime)
               return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-          found = {}                                             # name → (udid, version): the newest iOS
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
+          found = {}                                             # name → (udid, key): one Required resolved (1.4) > the newest iOS
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
                       continue
-                  key = version(runtime)
+                  key = (d["udid"] in required, version(runtime))
                   if d["name"] not in found or key > found[d["name"]][1]:
                       found[d["name"]] = (d["udid"], key)
           exact = os.environ["SIM_EXACT"]
@@ -197,9 +388,10 @@ jobs:
                       raise SystemExit
           print("")
           ' || true)"
-            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID (docs/M7D_CONTRACT.md §3.2); the job fails at \"The simulators used are the table's\"."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
+            sim_env "$ID" "$UDID" >> shots/env.txt || echo "::warning::no runtime line for $ID"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
             # The whole device in the set's language and region, so the status bar is too (the launch's
@@ -244,6 +436,11 @@ jobs:
                 fi
               done
             done
+            if [ "$ID" = iphone69 ]; then
+              # 1.4 (docs/M7D_CONTRACT.md §3.2): the iPhone 18 Pro Max's pixels go into env.txt, as in build.yml.
+              PIXELS="$(sips -g pixelWidth -g pixelHeight "shots/$ID-portrait-month.png" 2>/dev/null | awk '/pixel(Width|Height)/ { printf "%s%s", (n++ ? "x" : ""), $2 }' || true)"
+              echo "iphone69 pixels: ${PIXELS:-no photo} ($ID-portrait-month.png)" >> shots/env.txt || true
+            fi
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             xcrun simctl shutdown "$UDID" || true
           done
@@ -293,6 +490,840 @@ jobs:
         with:
           name: store-${{ matrix.set.id }}
           path: shots/store
+          retention-days: 30
+          if-no-files-found: warn
+          overwrite: true
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): the job's env.txt as an artifact of its own, beside store-<set>, so that
+      # one keeps only the device folders that go to App Store Connect (as until 1.3).
+      - name: Upload the environment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: env-store-${{ matrix.set.id }}
+          path: shots/env.txt
+          retention-days: 30
+          if-no-files-found: warn
+          overwrite: true
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        env:
+          ENV_TXT: shots/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
+
+  # 1.4 D2 (docs/M7D_CONTRACT.md §7.1, §3.8, §3.10; the head of this file): the iPhone Duo's App Store photos, the outer
+  # screen in portrait, in four jobs of three sets (at most four at once). Each set: the Duo in the set's language and
+  # region (`defaults`, then booted again, as the 6.9-inch iPhone above: its status bar's 9:41 is the region's form, 09:41 or
+  # 9:41), the 6.9-inch iPhone's status bar (full cellular bars, the time at 9:41, charged), the app in front for 180 s
+  # (§3.8: a Duo's photos are black for minutes after a boot, 187146039), then its five photos in two rounds, each with
+  # the 6.9-inch set's launch arguments and --screenshot-pencil-phone, and photographed with --display=primary (D1b; a
+  # black one is taken again 30 s later, three times at most, §3.8). The handwriting of each photo (tools/shots/duo_store.py's
+  # head): against its line in tools/shots/ink_ref.tsv when there is one, else the two rounds against each other; at most
+  # 2 more takes, within INK_BUDGET seconds a job. store-duo-check compares each photo only with the other jobs' (other
+  # runners), so every set has three or more sets of its week start in the other jobs (on the 6.9-inch photos: Sunday en,
+  # zh-Hans, zh-Hant, ko, es, pt-BR; Monday en-GB, ja, fr, de, it, es-ES); keep it so when the groups change.
+  store-duo:
+    name: store-duo (${{ matrix.group.names }})
+    if: ${{ contains(inputs.sets || 'duo', 'duo') }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-2): the image with Xcode 27 and the Duo's runtimes.
+    runs-on: xcode-27
+    # Estimated from duo-shots (run 44717450692: the build 1.6 min, the Duo's first boot 227 s, a launch and its photo
+    # 18–37 s): checkout, Xcode and XcodeGen 1 min, the build 2–6, the first boot 4 (8 on a slow runner); each of the three
+    # sets: booted again 2–4 (8), 180 s, ten takes of about 17 s (3): 8–10 min. About 31–45 min; about 66 when every boot
+    # takes 8 min, every photo is black once and the 180 s of retakes are spent. The worst the shots step allows: every boot
+    # 8 min and every photo black three times (a take about 2 min: 31 min a set), then the 180 s of retakes and the 2 takes a
+    # photo being taken again finishes: about 108 min, inside its 115 (and the job's 130 with the build and the upload). A
+    # job cut by its limit does not reach the upload.
+    timeout-minutes: 130
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        # <set id>|<language>|<locale>, the sets of the job store-shots above (the same three fields).
+        group:
+          - { id: duo-1, names: "en, en-GB, ja", sets: "en|en|en_US en-GB|en-GB|en_GB ja|ja|ja_JP" }
+          - { id: duo-2, names: "zh-Hans, zh-Hant, ko", sets: "zh-Hans|zh-Hans|zh_CN zh-Hant|zh-Hant|zh_TW ko|ko|ko_KR" }
+          - { id: duo-3, names: "fr, de, it", sets: "fr|fr|fr_FR de|de|de_DE it|it|it_IT" }
+          - { id: duo-4, names: "es, es-ES, pt-BR", sets: "es|es|es_MX es-ES|es-ES|es_ES pt-BR|pt-BR|pt_BR" }
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+      DUO_SETS: ${{ matrix.group.sets }}
+      # The `simctl io screenshot --display` of the outer screen (duo.yml's DUO_OUTER_DISPLAY: only primary gave a photo,
+      # 1398x2034; without --display simctl fails "Cannot choose between 2 displays").
+      DUO_OUTER_DISPLAY: "primary"
+      # Seconds with the app in front after each boot, before the first photo (§3.8).
+      DUO_WAIT: "180"
+      # Seconds before each photo after its launch (duo-shots' WAIT: the Duo is slower than the 6.9-inch iPhone's 9).
+      DUO_SHOT_WAIT: "12"
+      # tools/shots/ink_retake.sh's budget: the seconds a job spends taking photos again for their handwriting.
+      INK_BUDGET: "180"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
+        run: |
+          set -euo pipefail
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
+          fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
+          xcode-select -p
+          xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            duo|iPhone Duo|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): tools/shots/ink_check.swift, built in the background
+      # while the app builds and the Duo boots (the same step as build.yml's and ja-baseline.yml's); `ink_build`
+      # (tools/shots/ink_retake.sh) waits for it, or builds the tool itself when this build is missing or failed.
+      - name: Build the handwriting check in the background (1.4 D0b)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/ink_check.build"
+          mkdir -p "$OUT"
+          # Its own stdin, stdout and stderr, so this step ends at once; the status file appears only when swiftc has ended.
+          nohup /bin/sh -c 'swiftc -O "$1" -o "$2/ink_check" > "$2/log" 2>&1; echo "$?" > "$2/status.part"; mv "$2/status.part" "$2/status"' \
+            sh "$GITHUB_WORKSPACE/tools/shots/ink_check.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
+          echo "$!" > "$OUT/pid"
+          echo "swiftc of tools/shots/ink_check.swift started in the background (pid $(cat "$OUT/pid"))"
+
+      - name: Build for the iOS Simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # The black check (tools/duo/shot_checks.py) and the final check (tools/shots/duo_store.py) must fail what they are
+      # there to fail (made-up black photos, black bands at the edges, sizes one pixel off, a photo missing, handwriting not
+      # ok, a page short across the languages) and warn of what they cannot prove (photos checked only take against take);
+      # a check that does not bite would pass every photo.
+      - name: The photo checks' self-test
+        id: selftest
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          python3 -I tools/duo/shot_checks.py --self-test
+          python3 -I tools/shots/duo_store.py --self-test
+
+      # Best effort for each photo (a launch or a photo that fails loses that one, and the final check names it); the step
+      # fails when the app is not built, the Duo does not boot (a set whose boot fails loses its five photos, the others
+      # go on) or the app does not install. It runs after a failed self-test too (the job fails there), but then a photo is
+      # not looked at for black.
+      - name: Shots (the iPhone Duo's outer screen)
+        id: shots
+        if: ${{ !cancelled() && steps.selftest.outcome != 'skipped' }}
+        timeout-minutes: 115
+        run: |
+          set +e
+          set -uo pipefail
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          BUNDLE="com.syfan0.tegakicalendar"
+          DUO="${{ steps.required.outputs.duo }}"
+          # The photo checks' self-test: "success", or a photo is not looked at for black (nor taken again).
+          CHECKS="${{ steps.selftest.outcome }}"
+          ENVDIR="$PWD/shots/duo-env"       # the artifact env-store-duo-<group>
+          RAW="$PWD/shots/duo-raw"          # every take: <set>/<nn>-<page>-take<n>.png
+          KEPT_ROOT="$PWD/shots/duo"        # the take kept: <set>/<nn>-<page>.png
+          ENV_TXT="$ENVDIR/env.txt"
+          STATUS_TSV="$ENVDIR/ink-status.tsv"  # tools/shots/duo_store.py's head: one verdict a photo
+          REFS="$ENVDIR/ink-ref.tsv"        # `ink_check ref` of each photo kept, for tools/shots/ink_ref.tsv
+          DISP="--display=$DUO_OUTER_DISPLAY"
+          FAILED=0
+          mkdir -p "$ENVDIR" "$RAW" "$KEPT_ROOT"
+          : > "$STATUS_TSV"
+          : > "$REFS"
+          if [ "$CHECKS" != success ]; then
+            echo "::warning::the photo checks' self-test did not pass ($CHECKS): the photos are not looked at for black."
+          fi
+          # tools/shots/ink_retake.sh: ink_build, ink_read (INK, INK_REF, INK_LOG, INK_BUDGET); its ink_retake is not used
+          # (its photo has no --display, which the Duo needs).
+          INK_LOG="$ENVDIR/ink.txt"
+          . tools/shots/ink_retake.sh
+          GLOBAL_REF="$INK_REF"
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt, and the
+          # runner's macOS: D0b's handwriting losses were on macOS 27.2 hosts, docs/M7D.md), then the device it takes
+          # ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "runner macOS: $(sw_vers -productVersion 2>&1) ($(sw_vers -buildVersion 2>&1))"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > "$ENV_TXT" || echo "::warning::env.txt could not all be written"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          sim_env duo "$DUO" >> "$ENV_TXT" || echo "::warning::no runtime line for duo"
+          echo "the sets: $DUO_SETS; the outer screen with $DISP; the inner screen: not photographed (path 3; §4.2, §7.1)" >> "$ENV_TXT"
+          if [ -z "$APP" ]; then
+            echo "::error::TegakiCalendar.app not found under build/DerivedData; no photos."
+            exit 1
+          fi
+          # The status bar's 9:41 in this runner's time zone at the photos' day (the job store-shots above, the same lines).
+          STAMP="$(date -j -f "%Y-%m-%d %H:%M:%S" "2026-10-07 09:41:00" "+%Y-%m-%dT%H:%M:%S%z" 2>/dev/null || echo "2026-10-07T09:41:00+0000")"
+          STATUS_TIME="${STAMP:0:22}:${STAMP:22:2}"
+          echo "runner: $(date) TZ=${TZ:-unset}; the status bar's time: $STATUS_TIME"
+
+          boot_duo() {  # boot_duo <label>: boot, light, the 6.9-inch iPhone's status bar (the job above); 1 when it did not boot
+            local STARTED BAR
+            STARTED="$(date +%s)"
+            xcrun simctl boot "$DUO" 2>/dev/null
+            if ! xcrun simctl bootstatus "$DUO" -b > /dev/null; then
+              echo "::error::the iPhone Duo did not boot ($1)."
+              echo "duo ($1): did not boot" >> "$ENV_TXT"
+              return 1
+            fi
+            echo "duo ($1): booted in $(( $(date +%s) - STARTED )) s" >> "$ENV_TXT"
+            xcrun simctl ui "$DUO" appearance light || echo "::warning::duo ($1): not set to light."
+            # As the 6.9-inch iPhone's: full cellular bars first (an override adds what it is given), then the time, at the
+            # region's 9:41 from the ISO time, else the words "9:41".
+            xcrun simctl status_bar "$DUO" override --dataNetwork wifi --cellularMode active --cellularBars 4 --operatorName "" \
+              || echo "::warning::duo ($1): the cellular bars were not set."
+            if xcrun simctl status_bar "$DUO" override --time "$STATUS_TIME" --batteryState charged --batteryLevel 100 --wifiBars 3; then
+              BAR="$STATUS_TIME"
+            elif xcrun simctl status_bar "$DUO" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3; then
+              BAR="9:41 (the words; the ISO time was refused)"
+            else
+              BAR="NOT set"
+              echo "::warning::duo ($1): the status bar's time was not set (look at the photos)."
+            fi
+            echo "duo ($1): the status bar's time: $BAR" >> "$ENV_TXT"
+          }
+          # photo <file>: the outer screen's photo; a black (or unreadable) one is taken again 30 s later, three times at
+          # most (§3.8; duo-shots' photo). A display simctl cannot choose fails alike every time: an error, no retake. 1 when
+          # there is no photo, or it is still black.
+          photo() {
+            local FILE="$1" TAKE RC ERR
+            for TAKE in 1 2 3 4; do
+              rm -f "$FILE"
+              if ! ERR="$(xcrun simctl io "$DUO" screenshot "$DISP" "$FILE" 2>&1 > /dev/null)"; then
+                ERR="$(printf '%s' "$ERR" | tr '\n' ' ' | cut -c 1-300)"
+                echo "${FILE#"$RAW"/}: simctl io screenshot failed (take $TAKE): $ERR"
+                case "$ERR" in
+                  *"Cannot choose between"*|*"does not have a"*)
+                    echo "::error::${FILE#"$RAW"/}: simctl cannot photograph the display $DISP; not taken again (DUO_OUTER_DISPLAY): $ERR"
+                    return 1
+                    ;;
+                esac
+              fi
+              if [ "$CHECKS" != success ]; then
+                [ -f "$FILE" ]
+                return
+              fi
+              RC=0
+              python3 -I tools/duo/shot_checks.py black "$FILE" > /dev/null || RC=$?
+              if [ "$RC" = 1 ]; then
+                [ "$TAKE" = 1 ] || echo "${FILE#"$RAW"/}: not black at take $TAKE"
+                return 0
+              fi
+              echo "${FILE#"$RAW"/}: black or unreadable at take $TAKE (§3.8)"
+              [ "$TAKE" = 4 ] || sleep 30
+            done
+            echo "::warning::${FILE#"$RAW"/} is still black or unreadable after three retakes (§3.8)."
+            return 1
+          }
+          # take <file> <page> [<more arguments>…]: one launch with the 6.9-inch set's arguments (the job above's shoot) and
+          # --screenshot-pencil-phone (§7.1), its photo DUO_SHOT_WAIT s later. 1 when there is no photo. A take whose app is
+          # not running then (neither the simulator's launchctl list nor the runner's processes have it) is not photographed:
+          # a photo of the home screen is not black and the same at every launch and on every runner, so the handwriting
+          # checks would pass it; decide takes the page again or fails it.
+          take() {
+            local FILE="$1" PAGE="$2"
+            shift 2
+            xcrun simctl terminate "$DUO" "$BUNDLE" 2>/dev/null
+            sleep 1
+            # ${@+"$@"}: no more arguments is not an unbound variable under set -u in bash 3.2.
+            if ! xcrun simctl launch "$DUO" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" \
+                --screenshot-holidays auto --screenshot-week-start auto --screenshot-store-ink --screenshot-pencil-phone ${@+"$@"} \
+                -AppleLanguages "($SET_LANGUAGE)" -AppleLocale "$SET_LOCALE" > /dev/null; then
+              echo "::warning::launch failed (${FILE#"$RAW"/})"
+              rm -f "$FILE"
+              return 1
+            fi
+            sleep "$DUO_SHOT_WAIT"
+            # The whole list read (no grep -q: docs/M7C.md, S1 の残り, decision 8); then the runner's processes (build.yml's
+            # pgrep), so that one list that cannot be read does not lose a take.
+            if ! xcrun simctl spawn "$DUO" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null \
+                && ! pgrep -f "TegakiCalendar.app/TegakiCalendar" > /dev/null; then
+              echo "::warning::The app is not running after $DUO_SHOT_WAIT s (${FILE#"$RAW"/}); that take is not photographed."
+              rm -f "$FILE"
+              return 1
+            fi
+            photo "$FILE"
+          }
+          shoot() {  # shoot <nn-page> <take>: that photo of the set as $RAW/<set>/<nn-page>-take<take>.png
+            local FILE="$RAW/$SET_ID/$1-take$2.png"
+            case "$1" in
+              00-span) take "$FILE" week --screenshot-span on --screenshot-offset-x -0.5 ;;
+              *) take "$FILE" "${1#*-}" ;;
+            esac
+          }
+          # ink_vs <photo> <reference photo> <name> <label>: <photo> against the reference line of <reference photo>
+          # (ink_read: INK_STATUS 0 complete, 1 short, 2 unreadable or another size; INK_SHORT; a line in ink.txt).
+          ink_vs() {
+            local REF_TSV="$RUNNER_TEMP/duo-ink-pair.tsv"
+            if ! "$INK" ref "$2" "$3" > "$REF_TSV" 2>/dev/null; then
+              INK_STATUS=2
+              INK_SHORT=0
+              printf '%s\t%s\tink: the reference photo could not be read\n' "$3" "$4" >> "$INK_LOG"
+              return 0
+            fi
+            INK_REF="$REF_TSV" ink_read "$1" "$3" "$4"
+          }
+          # agree <A> <B> <name> <a> <b>: 0 when each is complete against the other; A_STATUS (A against B), B_STATUS.
+          agree() {
+            ink_vs "$2" "$1" "$3" "$5 against $4"
+            B_STATUS="$INK_STATUS"
+            ink_vs "$1" "$2" "$3" "$4 against $5"
+            A_STATUS="$INK_STATUS"
+            [ "$A_STATUS" = 0 ] && [ "$B_STATUS" = 0 ]
+          }
+          ink_ready() {  # 0 when tools/shots/ink_check.swift is built (ink_build's background build waited for)
+            if [ -n "$INK_BUILD" ]; then
+              wait "$INK_BUILD" 2>/dev/null || true
+              INK_BUILD=""
+            fi
+            [ -x "$INK" ]
+          }
+          # decide <nn-page>: which take of the two rounds (or of at most 2 more) is kept, and its handwriting's verdict:
+          #   ref   the photo's name has a line in tools/shots/ink_ref.tsv: round 2, else round 1, else a retake, complete
+          #         against it ("ok"); none complete: the take least short ("short")
+          #   pair  no line: the two rounds complete against each other ("ok", round 2 kept, as the job above keeps its
+          #         retake); else the fuller one against new takes, until one agrees with it ("ok") or none does
+          #         ("unverified": the fuller one is kept)
+          # Retakes stop once INK_SPENT reaches INK_BUDGET (a photo being taken again finishes its takes). The verdict goes
+          # into ink-status.tsv, the reference line of the photo kept into ink-ref.tsv; only "ok" passes the final check.
+          decide() {
+            local NN="$1" NAME BASE MODE=pair VERDICT KEPT="" TAKES=0 SHORT=0 NOTE="" F FN N STARTED FIRST_SHORT=0 BEST_SHORT
+            NAME="store-duo/$SET_ID/$NN.png"
+            BASE="$RAW/$SET_ID/$NN"
+            for N in 1 2; do [ -f "$BASE-take$N.png" ] && TAKES="$N"; done
+            if awk -F '\t' -v n="$NAME" '$1 == n { f = 1 } END { exit !f }' "$GLOBAL_REF" 2>/dev/null; then MODE=ref; fi
+            if ! ink_ready; then
+              VERDICT=unverified
+              NOTE="tools/shots/ink_check.swift did not build"
+              if [ -f "$BASE-take2.png" ]; then KEPT=2; elif [ -f "$BASE-take1.png" ]; then KEPT=1; fi
+            elif [ "$MODE" = ref ]; then
+              VERDICT=short
+              BEST_SHORT=""
+              for N in 2 1; do
+                [ -f "$BASE-take$N.png" ] || continue
+                INK_REF="$GLOBAL_REF" ink_read "$BASE-take$N.png" "$NAME" "$N"
+                if [ "$INK_STATUS" = 0 ]; then VERDICT=ok; KEPT="$N"; SHORT=0; break; fi
+                if [ "$INK_STATUS" = 1 ] && { [ -z "$BEST_SHORT" ] || [ "$INK_SHORT" -lt "$BEST_SHORT" ]; }; then BEST_SHORT="$INK_SHORT"; KEPT="$N"; fi
+                [ "$FIRST_SHORT" != 0 ] || FIRST_SHORT="$INK_SHORT"
+              done
+              if [ "$VERDICT" = ok ] && [ "$KEPT" = 1 ]; then
+                echo "::notice::$NAME: round 2 was short against tools/shots/ink_ref.tsv ($FIRST_SHORT px) and round 1 complete, which is kept (docs/M7D.md, D0b)."
+              fi
+              if [ "$VERDICT" != ok ]; then
+                STARTED="$(date +%s)"
+                for N in 3 4; do
+                  if [ "$INK_SPENT" -ge "$INK_BUDGET" ]; then NOTE="the job's $INK_BUDGET s for taking photos again are spent"; break; fi
+                  echo "$NAME: take $N (its handwriting short against tools/shots/ink_ref.tsv)"
+                  shoot "$NN" "$N" || continue
+                  TAKES="$N"
+                  INK_REF="$GLOBAL_REF" ink_read "$BASE-take$N.png" "$NAME" "$N"
+                  if [ "$INK_STATUS" = 0 ]; then
+                    VERDICT=ok; KEPT="$N"; SHORT=0
+                    echo "::notice::$NAME: its handwriting was short against tools/shots/ink_ref.tsv and complete on take $N, which is kept (docs/M7D.md, D0b)."
+                    break
+                  fi
+                  if [ "$INK_STATUS" = 1 ] && { [ -z "$BEST_SHORT" ] || [ "$INK_SHORT" -lt "$BEST_SHORT" ]; }; then BEST_SHORT="$INK_SHORT"; KEPT="$N"; fi
+                done
+                INK_SPENT=$((INK_SPENT + $(date +%s) - STARTED))
+                if [ "$VERDICT" != ok ]; then
+                  SHORT="${BEST_SHORT:-0}"
+                  [ -n "$KEPT" ] || { [ -f "$BASE-take2.png" ] && KEPT=2; } || { [ -f "$BASE-take1.png" ] && KEPT=1; }
+                  NOTE="${NOTE:-no take was complete against tools/shots/ink_ref.tsv}"
+                fi
+              fi
+            else
+              VERDICT=unverified
+              F=""
+              FN=""
+              if [ -f "$BASE-take1.png" ] && [ -f "$BASE-take2.png" ]; then
+                if agree "$BASE-take1.png" "$BASE-take2.png" "$NAME" 1 2; then
+                  VERDICT=ok; KEPT=2
+                elif [ "$B_STATUS" = 1 ] && [ "$A_STATUS" != 1 ]; then
+                  F="$BASE-take1.png"; FN=1
+                else
+                  F="$BASE-take2.png"; FN=2
+                fi
+              elif [ -f "$BASE-take2.png" ]; then
+                F="$BASE-take2.png"; FN=2
+              elif [ -f "$BASE-take1.png" ]; then
+                F="$BASE-take1.png"; FN=1
+              fi
+              if [ "$VERDICT" != ok ] && [ -n "$F" ]; then
+                STARTED="$(date +%s)"
+                for N in 3 4; do
+                  if [ "$INK_SPENT" -ge "$INK_BUDGET" ]; then NOTE="the job's $INK_BUDGET s for taking photos again are spent"; break; fi
+                  echo "$NAME: take $N (the takes before do not agree on its handwriting)"
+                  shoot "$NN" "$N" || continue
+                  TAKES="$N"
+                  if agree "$F" "$BASE-take$N.png" "$NAME" "$FN" "$N"; then
+                    VERDICT=ok; KEPT="$N"
+                    echo "::notice::$NAME: the first two takes did not agree on its handwriting; take $N agrees with take $FN and is kept (docs/M7D.md, D0b)."
+                    break
+                  fi
+                  # take N fuller than F (F short against it, it not short against F): it becomes the one to agree with.
+                  if [ "$A_STATUS" = 1 ] && [ "$B_STATUS" != 1 ]; then F="$BASE-take$N.png"; FN="$N"; fi
+                done
+                INK_SPENT=$((INK_SPENT + $(date +%s) - STARTED))
+                if [ "$VERDICT" != ok ]; then
+                  KEPT="$FN"
+                  NOTE="${NOTE:-no two takes agree on its handwriting}"
+                fi
+              elif [ "$VERDICT" != ok ]; then
+                NOTE="no photo"
+              fi
+            fi
+            if [ -n "$KEPT" ] && [ -f "$BASE-take$KEPT.png" ]; then
+              cp -f "$BASE-take$KEPT.png" "$KEPT_DIR/$NN.png"
+              if [ -x "$INK" ]; then "$INK" ref "$KEPT_DIR/$NN.png" "$NAME" >> "$REFS" 2>/dev/null || echo "::warning::$NAME: no reference line"; fi
+            else
+              VERDICT=error
+              NOTE="${NOTE:-no photo}"
+              KEPT=-
+            fi
+            printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$NAME" "$MODE" "$VERDICT" "$KEPT" "$TAKES" "$SHORT" "$NOTE" >> "$STATUS_TSV"
+            if [ "$VERDICT" != ok ]; then
+              echo "::warning::$NAME: its handwriting is $VERDICT ($MODE: $NOTE); the final check fails it (docs/M7D.md, D0b)."
+            fi
+          }
+
+          # The first boot (the Duo's default language), the app installed once; it stays installed across the boots.
+          if ! boot_duo first; then
+            exit 1
+          fi
+          if ! xcrun simctl install "$DUO" "$APP"; then
+            echo "::error::the app could not be installed on the iPhone Duo."
+            exit 1
+          fi
+          INK_SPENT=0
+          ink_build
+          for SPEC in $DUO_SETS; do
+            SET_ID="${SPEC%%|*}"; REST="${SPEC#*|}"; SET_LANGUAGE="${REST%%|*}"; SET_LOCALE="${REST#*|}"
+            KEPT_DIR="$KEPT_ROOT/$SET_ID"
+            mkdir -p "$RAW/$SET_ID" "$KEPT_DIR"
+            echo "== $SET_ID ($SET_LANGUAGE, $SET_LOCALE)"
+            # The whole device in the set's language and region (its status bar too); they count from the next boot. A
+            # failure of defaults does not stop the photos (the job above's way).
+            xcrun simctl bootstatus "$DUO" -b > /dev/null
+            xcrun simctl spawn "$DUO" defaults write -g AppleLanguages -array "$SET_LANGUAGE" || echo "::warning::$SET_ID: the device's language was not set."
+            xcrun simctl spawn "$DUO" defaults write -g AppleLocale -string "$SET_LOCALE" || echo "::warning::$SET_ID: the device's region was not set."
+            xcrun simctl shutdown "$DUO"
+            if ! boot_duo "$SET_ID"; then
+              FAILED=1
+              continue
+            fi
+            # The app in front, drawing the set's month with the store's handwriting (PencilKit's first drawing, build.yml's
+            # FIX3), for DUO_WAIT s (§3.8).
+            xcrun simctl launch "$DUO" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month \
+              --screenshot-holidays auto --screenshot-week-start auto --screenshot-store-ink --screenshot-pencil-phone \
+              -AppleLanguages "($SET_LANGUAGE)" -AppleLocale "$SET_LOCALE" > /dev/null || echo "::warning::$SET_ID: the first launch failed."
+            sleep "$DUO_WAIT"
+            for ROUND in 1 2; do
+              for NN in 00-span 01-week 02-month 03-day 04-year; do
+                shoot "$NN" "$ROUND"
+              done
+            done
+            for NN in 00-span 01-week 02-month 03-day 04-year; do
+              decide "$NN"
+            done
+            xcrun simctl terminate "$DUO" "$BUNDLE" 2>/dev/null
+          done
+          xcrun simctl shutdown "$DUO"
+          find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -120 -exec cp {} "$ENVDIR/" \; 2>/dev/null
+          echo "the photos' handwriting (ink-status.tsv):"
+          cat "$STATUS_TSV"
+          echo "the seconds spent taking photos again: $INK_SPENT of $INK_BUDGET"
+          cat "$ENV_TXT"
+          ls -la "$KEPT_ROOT"/*
+          exit "$FAILED"
+
+      # The same conversion as the job above (JPEG of quality 100, no alpha) and its size check, with the iPhone Duo's sizes
+      # (docs/M7D_CONTRACT.md §7.1: duoOuter 1398x2034; duoInner 2007x2853 for when the inner screen can be photographed).
+      # The job above's accepted() stays as it was (its step the same to the byte); build.yml's and ja-baseline.yml's never
+      # see a Duo photo.
+      - name: Store listing set (JPEG, App Store sizes)
+        if: ${{ !cancelled() }}
+        run: |
+          set -uo pipefail
+          accepted() {  # accepted <device>: Apple's accepted portrait pixel sizes (docs/M6_CONTRACT.md §4.1, docs/M7D_CONTRACT.md §7.1)
+            case "$1" in
+              ipad13)   echo "2064x2752 2048x2732" ;;
+              iphone69) echo "1320x2868 1290x2796 1260x2736" ;;
+              duoOuter) echo "1398x2034" ;;
+              duoInner) echo "2007x2853" ;;
+              *)        echo "" ;;
+            esac
+          }
+          store() {  # store <set> <NN-name>: shots/duo/<set>/<NN-name>.png converted, then its size checked
+            local SET="$1" NAME="$2" SRC="shots/duo/$1/$2.png" OUT="shots/store-duo/$1/duoOuter/$2.jpg" W H SIZE
+            mkdir -p "shots/store-duo/$SET/duoOuter"
+            if [ ! -f "$SRC" ]; then echo "::warning::store-duo $SET/duoOuter/$NAME.jpg: source $SRC is missing; skipped."; return 0; fi
+            if ! sips -s format jpeg -s formatOptions 100 "$SRC" --out "$OUT" > /dev/null; then echo "::warning::store-duo $SET/duoOuter/$NAME.jpg: sips could not convert $SRC."; return 0; fi
+            W="$(sips -g pixelWidth "$OUT" | awk '/pixelWidth/ {print $2}')"
+            H="$(sips -g pixelHeight "$OUT" | awk '/pixelHeight/ {print $2}')"
+            SIZE="${W}x${H}"
+            case " $(accepted duoOuter) " in
+              *" $SIZE "*) echo "store-duo $SET/duoOuter/$NAME.jpg: ${SIZE} (accepted for duoOuter)" ;;
+              *) echo "::warning::store-duo $SET/duoOuter/$NAME.jpg is ${SIZE}, not one of the accepted sizes for duoOuter ($(accepted duoOuter))." ;;
+            esac
+          }
+          for SPEC in $DUO_SETS; do
+            for NAME in 00-span 01-week 02-month 03-day 04-year; do
+              store "${SPEC%%|*}" "$NAME"
+            done
+          done
+          ls -la shots/store-duo/*/duoOuter
+
+      # The final check (tools/shots/duo_store.py check): every photo of the job's sets is there, 1398x2034 to the pixel, not
+      # black (tools/duo/shot_checks.py black: mean luma at least 10), no black band at an edge (its `edges`) and its
+      # handwriting "ok" (ink-status.tsv); otherwise the job fails. Photos whose handwriting was checked only take against
+      # take (no line in tools/shots/ink_ref.tsv) pass with a warning that names how many and this runner's macOS. The
+      # status bar is not read (the job above does not read its own either): env.txt says each boot's time ("NOT set"
+      # warns); look at the photos.
+      - name: The final check (store-duo)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          IDS=""
+          for SPEC in $DUO_SETS; do IDS="$IDS ${SPEC%%|*}"; done
+          mkdir -p shots/store-duo shots/duo-env
+          [ -f shots/duo-env/ink-status.tsv ] || : > shots/duo-env/ink-status.tsv
+          HOST="$(sw_vers -productVersion 2>/dev/null || echo unknown)"
+          # $IDS unquoted on purpose: one word a set.
+          python3 -I tools/shots/duo_store.py check shots/store-duo shots/duo-env/ink-status.tsv $IDS --host "$HOST" | tee shots/duo-env/check.txt
+
+      - name: Upload the photos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-${{ matrix.group.id }}
+          path: shots/store-duo
+          retention-days: 30
+          if-no-files-found: warn
+          overwrite: true
+
+      - name: Upload the environment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: env-store-${{ matrix.group.id }}
+          path: shots/duo-env
+          retention-days: 30
+          if-no-files-found: warn
+          overwrite: true
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        env:
+          ENV_TXT: shots/duo-env/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled, tools/ci/cancel-diag.sh prints the load,
+      # the memory, the busiest processes and the runner's own lines about a cancel (duo.yml's last step, the same lines).
+      # Not on success or failure; never fails the job.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
+  # 1.4 D2 (docs/M7D_CONTRACT.md §7.1; tools/shots/duo_store.py's head, guard 3): after the four store-duo jobs, the same
+  # page of the 12 sets compared (their env-store-duo-*/ink-ref.tsv), each photo with the 3 most like it among the other
+  # jobs': a runner that loses the same PencilKit tiles at every launch passes its job's two-take check, not this one (a
+  # photo the job found complete against its line in tools/shots/ink_ref.tsv is not failed here). Every one of the 60
+  # photos must have its line. Text only, so an Ubuntu runner (no macOS job of the five). A failure names the photo; the
+  # lead looks at it and runs that job again (or, the photo being complete, adds its line to tools/shots/ink_ref.tsv).
+  # It also prints the largest shortfall of a photo that passed (the Duo's noise, against MIN_SHORT from the 6.9-inch
+  # photos) and warns of the photos no job checked against a reference line (a loss under MIN_SHORT, or one every runner
+  # makes alike, passes here).
+  store-duo-check:
+    name: store-duo-check (the handwriting across the languages)
+    needs: store-duo
+    if: ${{ !cancelled() && contains(inputs.sets || 'duo', 'duo') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # The 12 sets of the matrix of store-duo (and of store-shots above).
+      DUO_SET_IDS: "en en-GB ja zh-Hans zh-Hant ko fr de it es es-ES pt-BR"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download the store-duo jobs' environments
+        uses: actions/download-artifact@v4
+        with:
+          pattern: env-store-duo-*
+          path: duo-env
+
+      - name: The handwriting across the languages (duo_store.py across)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          REFS=(duo-env/*/ink-ref.tsv)
+          STATUS=(duo-env/*/ink-status.tsv)
+          if [ "${#REFS[@]}" = 0 ]; then
+            echo "::error::no env-store-duo-*/ink-ref.tsv: no store-duo job got as far as its upload."
+            exit 1
+          fi
+          python3 -I tools/shots/duo_store.py across "$DUO_SET_IDS" "${REFS[@]}" --status "${STATUS[@]}" | tee store-duo-across.txt
+
+      - name: Upload the comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-duo-check
+          path: store-duo-across.txt
           retention-days: 30
           if-no-files-found: warn
           overwrite: true

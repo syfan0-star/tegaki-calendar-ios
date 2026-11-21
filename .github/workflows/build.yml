@@ -55,6 +55,20 @@
 # (docs/M7C_CONTRACT.md §11.1 4) took out the prototype: its job span-shots (1.3 prototype), the check that project.yml
 # has no SPAN_PROTOTYPE and the test of the prototype's gate (the tag r13-proto-1 keeps them); the self-test of
 # tools/shots/shift_pair.swift that ran in that job is span-shots-app's now.
+# 1.4 (docs/M7D_CONTRACT.md §3, D0: only the Xcode changes): every job but compat-v1.0 runs on the image `xcode-27` with
+# Xcode 27.2, chosen by what `xcodebuild -version` says (a release build; none fails the job, §3.1); compat-v1.0 stays on
+# macos-26 with Xcode 26.6 (§3.9). Each job that boots a simulator first checks that the simulators of its table are there
+# (§3.2: the 6.9-inch iPhone is now the iPhone 18 Pro Max, the iPad mini (A17 Pro) stays on iOS 27.0) and afterwards that
+# the devices it took are the table's; a missing one fails the job instead of a warning. XcodeGen is 2.46.0 from its
+# release zip, pinned by sha256 (tools/ci/install-xcodegen.sh, §3.3 4), in every job. env.txt also has the Xcode's path,
+# the runner image, the runtimes, XcodeGen and Python (§3.3 3). The macOS part checks 1.3's tests and fixtures against the
+# bytes of 955fe67 (tools/span/TESTS_1_3.sha256, FIXTURES_1_3.sha256, §5.5). The quick lane takes r14-quick and r14-q-*
+# too (§3.10); on r14-q-m1, the branch of the app's mutations (§5.3 6, §6), it runs every unit test class and compat-v1.0
+# runs too (MUTATIONS). The iPhone Duo is photographed by .github/workflows/duo.yml, never here (§3.10, 0d-45).
+# 1.4's D1 (docs/M7D_CONTRACT.md §3.10): KitChecks' threshold for its two new sections ("duo (1.4)", "window & finger
+# (1.4)"), the idiom watch (tools/duo/idiom_check.py, §4.1), the check that project.yml has no DUO_HINGE, D1's new unit test
+# classes in the quick lane, and in compat-v1.0 the real 1.3 (955fe67) as a partner (§5.3) and a missing Xcode 26.6 failing
+# the job (§3.9).
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -67,6 +81,10 @@ on:
     branches-ignore:
       - ja-baseline
       - store-shots
+      # 1.4 (docs/M7D_CONTRACT.md §3.10, 0d-45): the branches r14-duo* start .github/workflows/duo.yml (the iPhone Duo's
+      # jobs; r14-duo-m1 holds the UI mutations, §6); this workflow's six jobs on them as well would pass the five macOS
+      # jobs that run at once.
+      - 'r14-duo*'
   pull_request:
 
 concurrency:
@@ -76,7 +94,8 @@ concurrency:
 jobs:
   build-and-test:
     name: Build and test (iOS Simulator)
-    runs-on: macos-26
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
+    runs-on: xcode-27
     # 1.1: 75 → 90 (1.0.1's run took 56 min; 1.1 adds Compat10Tests, more unit tests and 10 shots, and a
     # simulator boot alone has taken 4 min). 1.1 fix, the lead's review: kept at 90. The last runs took
     # 52 min (run 41195642254) and 56 min (1.0.1), their UI test step about 4 min (estimated: the boot,
@@ -93,7 +112,21 @@ jobs:
     # (below). Without them the runs of 11/14 took 79.7 − 15.4 − 1.4 = 62.9 min (run 43584152837), 82.0 − 17.3 − 1.4 =
     # 63.3 (43570477701) and at most about 93.1 − 19.4 − 2 = 72 (43552123427, the slowest runner): 90 keeps 18 min over
     # the slowest, as the old limit kept about that over the old steps.
-    timeout-minutes: 90
+    # 1.4 (docs/M7D_CONTRACT.md §3.3 9): 90 → 110 for D0. 1.3's last run (44474759145) took 72.2 min, and a simulator's
+    # first boot on the new image takes minutes ([S4]); D0 measures it, and D1 brings the limit back if there is room.
+    # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): 110 → 160. D0 (run 44632524223, image
+    # 20261119.0378.1) was cut by 110 in the photos of the other devices, the iPad mini's 8th photo, and the iPad Air
+    # 11-inch not begun. Measured there (1.3's 44474759145 in brackets): up to the unit tests 6.4 min (5.6), the unit
+    # tests 25.2 (10.5; 15.0 of it from "Testing started" to the test host, the 13-inch's first boot inside xcodebuild
+    # with a 120 s lockdown time-out, 3.1 in 1.3), "Boot the simulator" 5.2 (2.9), the 13-inch's photos, sheets and log
+    # 16.6 (10.3), each other device 17.5–20.4 (8.0–12.1; its `simctl boot` alone 4.7–10.6, 0.6–0.8). At that pace the
+    # job is 6.4 + 25.2 + 9.4 (the repeated sync tests, skipped in D0 after the red unit tests: 5.7 in 1.3, its boot
+    # slower) + 5.7 + 16.6 + 75 (the four devices) + 2.7 (the store set, the upload, the check) ≈ 141 min; 160 keeps
+    # about 19 over it, as 1.3's 90 kept 18 over its slowest. The photos' handwriting retakes (§3.5 (f),
+    # tools/shots/ink_retake.sh) can add about 9.5 more at that pace when many photos are short (180 s a step and the
+    # takes under way, the pinch hints' second takes), which leaves about 9.5. D1 brings it back when the runs measure
+    # less (§3.3 9).
+    timeout-minutes: 160
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -105,7 +138,15 @@ jobs:
       # simulator"); the repeated sync engine tests, the photos and the UI tests are skipped (`env.QUICK`), and the
       # other jobs do not run (their `if:` leaves out r13-quick and r13-q-*). S5 runs there; r13 and main run
       # everything.
-      QUICK: ${{ github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') }}
+      # 1.4 (docs/M7D_CONTRACT.md §3.10): also on r14-quick and r14-q-<name> (D1's lane, and r14-q-m1 for the app's
+      # mutations, §6); r13's names stay.
+      QUICK: ${{ github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') }}
+      # 1.4 (docs/M7D_CONTRACT.md §3.10, §5.3 6, §6): "true" on r14-q-m1 only, the quick branch that holds all the app's
+      # mutations at once. They are caught by unit test classes that are not Span ones (WindowClassTests, PencilPhoneTests,
+      # CappedOverviewWideTests, DuoFoldTests, …) and by compat-v1.0 (Real13LedgerTests), so there "Run unit tests on the
+      # simulator" runs every class and compat-v1.0 runs; the photos, the repeated sync engine tests and the other jobs stay
+      # off, as on every quick branch.
+      MUTATIONS: ${{ github.ref_name == 'r14-q-m1' }}
       # J-4 (docs/M7B_CONTRACT.md §1.3, §7.5, 0-25): every screenshot launch ends with these, as in
       # ja-baseline.yml (the runner's simulator is English; without them the app would be in English since
       # 1.2 and the kanji would fall back to PingFang SC). Expanded unquoted on purpose: four words, none
@@ -116,14 +157,132 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
           fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
           xcode-select -p
           xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            ipad13|iPad Pro 13-inch (M5)|27.2
+            iphone|iPhone 17|27.2
+            iphone69|iPhone 18 Pro Max|27.2
+            ipadmini|iPad mini (A17 Pro)|27.0
+            ipad11|iPad Pro 11-inch (M5)|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
 
       # The pure modules (TegakiKit: DayKit / Holidays / Layout / InkModel) build and test on macOS
       # itself, before anything touches the Simulator. KitChecks is the same check set that runs on
@@ -154,15 +313,23 @@ jobs:
       # ink (1.3)" for fixture 4's three files, so 16 compat-span files in all); with the iPhone's landscape overview
       # cap (§3.6, P-B6 イ; docs/M7C.md) 1.3 counts 40020 (+ 1960 for "overview cap (1.3)": the rule, the capped
       # window table, the zoom limits, the all-day lanes, the paper area's own orientation, the iPads and cappedBounds).
-      # The threshold is that number minus 50, so anything below 39970 means a section or a fixture went missing.
+      # 1.4 (docs/M7D_CONTRACT.md §4.6, §6; D1) counts 40794 (+ 345 for "duo (1.4)": the Duo's paper areas, measured or
+      # estimated, on the iPhone's plan with and without the cap, their V, R, largest window and lowest zoom, the all-day
+      # band at 35 %, the 1.3-against-1.4 rows at the border; + 429 for "window & finger (1.4)": WindowClass (isWide,
+      # openingKind, usesFormSheet, capsOverview, Opening) and FingerDefault (origin, every row of §4.8's table, the
+      # rollback, the order, touches)); each of the two also prints "<n> checks in this section", a line that is not a check.
+      # With the outer screen measured (D1d, §4.2: duo-shots run 44696154794) 1.4 counts 40826: "duo (1.4)" has 377 (+ 32:
+      # 4 measured outer rows of 10 checks for the 8 estimated ones, − 40, and the 9 measure lines as CI printed them, 8
+      # checks each, + 72; the inner screen's rows stay estimates, path 3).
+      # The threshold is that number minus 50, so anything below 40776 means a section or a fixture went missing.
       - name: Run KitChecks (macOS)
         run: |
           set -euo pipefail
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
-          echo "KitChecks count: ${N:-0} (required: 39970 or more)"
+          echo "KitChecks count: ${N:-0} (required: 40776 or more)"
           grep -E 'compat10( with compat-span)?: [0-9]+ checks' kitchecks.log || true
-          test "${N:-0}" -ge 39970
+          test "${N:-0}" -ge 40776
 
       # 1.3 (docs/M7C_CONTRACT.md §4.2, §6.3): KitChecks compares the committed compat-span fixtures with what
       # the Kit's joined path writes and fails when one is missing or differs. Then, as the unit tests do for
@@ -229,6 +396,31 @@ jobs:
           fi
           echo "AGE_FORCE: not in project.yml"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.10, §4.9, §6): the mark of the hinge's UI tests (DUO_HINGE: DuoHingeUITests is compiled
+      # only with it) is given by duo.yml's job duo-hinge alone, on its xcodebuild line; it never gets into project.yml, so
+      # no other build (this one, TestFlight's) compiles those tests. The same shape as the AGE_FORCE check above.
+      - name: The hinge tests' mark (1.4)
+        run: |
+          set -euo pipefail
+          if grep -n 'DUO_HINGE' project.yml; then
+            echo "::error::project.yml に DUO_HINGE があります。開閉の UI テストの印は duo.yml の duo-hinge のジョブだけで付けます（docs/M7D_CONTRACT.md §3.10）。"
+            exit 1
+          fi
+          echo "DUO_HINGE: not in project.yml"
+
+      # 1.4 (docs/M7D_CONTRACT.md §4.1, 0d-19): the layout goes by the window's size and the iPhone Duo is told by the
+      # Pencil's touch and the hinge, never by the kind of device. tools/duo/idiom_check.py reads the code of every Swift file
+      # of Sources/TegakiCalendar but the 20 frozen ones (tools/l10n/lint-skip.txt) and fails on a line that reads the idiom,
+      # the interface orientation or the device's orientation without a row in tools/duo/idiom-allow.txt (the list is
+      # exactly the code's: a row that covers no line fails too), and on any UIScreen.main or model name (utsname,
+      # hw.machine, UIDevice.current.model, "iPhone1…9), which never go on the list. Its self-test first (made-up files it
+      # must pass and fail). No git, no writes.
+      - name: The idiom watch (1.4)
+        run: |
+          set -euo pipefail
+          python3 -I tools/duo/idiom_check.py --self-test
+          python3 -I tools/duo/idiom_check.py --list .
+
       # 1.2 (docs/M7B_CONTRACT.md §1.1 D14, §1.5, 0-47): the files of the handwriting's data are frozen. Until 1.3
       # the table held 18 files at the bytes of 1.1.1, except Sync/SyncEngine.swift, whose line was 1.2.3's
       # (docs/R1_2_3.md §3.10) and then that of the H4 and G4 fixes (docs/M7B.md).
@@ -258,11 +450,45 @@ jobs:
           set -euo pipefail
           shasum -a 256 -c tools/span/TESTS_1_2_3.sha256
 
+      # 1.4 (docs/M7D_CONTRACT.md §5.5, 0d-17): the test files that 1.2.4 and 1.3 added to guard the data, the sync, the
+      # ledger, the canvas, the joined pages, the screenshot mode, the guide's cards and the settings, the older tests of what
+      # 1.4 touches (PaperView, SpanPlan, the screenshot mode, the cards' record), the compat-span tests and four sections of
+      # KitChecks are the bytes of 955fe67 (1.3, build 26), so a test that fails with the new SDK is not passed by rewriting
+      # it (§5.5 (a)(b) say when a row may change: in its own commit, with the run and the reason in docs/M7D.md). 29 rows,
+      # each made from 955fe67's blob with §5.5's printf line, not from a tree; 1.2.3's 8 files stay in TESTS_1_2_3.
+      - name: 1.3's tests unchanged (TESTS_1_3)
+        run: |
+          set -euo pipefail
+          shasum -a 256 -c tools/span/TESTS_1_3.sha256
+
+      # 1.4 (§5.5): every file of the folders compat11, compat-span (with its MANIFEST) and CompatFixtures and the two
+      # EXPECTED_MIN are the bytes of 955fe67 (37 rows; until 1.4 only Compat10's FROZEN.sha256, DATA_1_1 and TESTS_1_2_3
+      # were checked by hash, and the JSON could be written again from TEGAKI_FIXTURE_OUT). The three folders also hold
+      # exactly the table's files: 1.4 makes no new fixture (§5.1), so a file added or taken away fails as well. A folder's
+      # files are git's, tracked or untracked but not ignored (compat11's large y-2026.* are made again on every run and
+      # ignored by its .gitignore, which is one of the rows).
+      - name: 1.3's fixtures unchanged (FIXTURES_1_3)
+        run: |
+          set -euo pipefail
+          shasum -a 256 -c tools/span/FIXTURES_1_3.sha256
+          FOLDERS="TegakiKit/Tests/Fixtures/compat11 TegakiKit/Tests/Fixtures/compat-span TegakiKit/Tests/CompatFixtures"
+          LISTED="$(sed -nE 's/^[0-9a-f]{64}  //p' tools/span/FIXTURES_1_3.sha256 | grep -E '^TegakiKit/Tests/(Fixtures/compat11|Fixtures/compat-span|CompatFixtures)/' | LC_ALL=C sort)"
+          # $FOLDERS unquoted on purpose: three paths without spaces.
+          PRESENT="$(git ls-files --cached --others --exclude-standard -- $FOLDERS | LC_ALL=C sort)"
+          echo "FIXTURES_1_3: $(printf '%s\n' "$LISTED" | grep -c .) files of the three folders in the table, $(printf '%s\n' "$PRESENT" | grep -c .) in the folders"
+          if [ "$LISTED" != "$PRESENT" ]; then
+            diff <(printf '%s\n' "$LISTED") <(printf '%s\n' "$PRESENT") || true
+            echo "::error::The fixture folders do not hold the files of tools/span/FIXTURES_1_3.sha256 (<: only in the table, >: only in a folder). 1.4 makes no new fixture (docs/M7D_CONTRACT.md §5.1, §5.5)."
+            exit 1
+          fi
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
       - name: Install XcodeGen
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       - name: Generate the Xcode project
         run: |
@@ -270,8 +496,9 @@ jobs:
           xcodegen generate
           xcodebuild -project TegakiCalendar.xcodeproj -list
 
-      # 1.2 (docs/M7B_CONTRACT.md §2.2): what XcodeGen made of the String Catalogs. Its version is not
+      # 1.2 (docs/M7B_CONTRACT.md §2.2): what XcodeGen made of the String Catalogs. Its version was not
       # pinned (brew has no old versions), so docs/M7B.md records this; "Localized bundle check" is the guard.
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4): pinned at 2.46.0 ("Install XcodeGen").
       - name: The project's known regions
         run: |
           set -euo pipefail
@@ -367,7 +594,8 @@ jobs:
       # The primary simulator (unit tests, 4 pages, 6 sheets): the first name, in sorted order, that
       # starts with "iPad Pro 13-inch", else "iPad Air 13-inch", else any iPad, else any iPhone
       # (docs/M4B_CONTRACT.md §6.1: the runner has no "iPad Pro 13-inch (M4)", so the choice is by
-      # prefix and deterministic). As a last resort the literal "iPhone 17" (the step never fails).
+      # prefix and deterministic). Until 1.3 the literal "iPhone 17" was the last resort (the step never failed);
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the name chosen must be the table's "iPad Pro 13-inch (M5)", or the step fails.
       - name: Pick a simulator (13-inch iPad preferred)
         id: simulator
         run: |
@@ -390,11 +618,11 @@ jobs:
                   raise SystemExit
           print("")
           ' || true)"
-          if [ -z "$NAME" ]; then
-            echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
-            NAME="iPhone 17"
+          echo "Using simulator: ${NAME:-none}"
+          if [ "$NAME" != "iPad Pro 13-inch (M5)" ]; then
+            echo "::error::The primary simulator must be the table's \"iPad Pro 13-inch (M5)\", not \"${NAME:-none}\" (docs/M7D_CONTRACT.md §3.2)."
+            exit 1
           fi
-          echo "Using simulator: $NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       # The iPhone UI test (1.0.1) has its own step, on an iPhone (since 1.3's wave C2 in the job ui-tests).
@@ -412,30 +640,51 @@ jobs:
       # none yet → the step says so and ends. S5 wave A's decision 10 (docs/M7C.md): SettingsPageSectionTests (設定 ›
       # ページ and the guide, §10.2 U) too; wave C's ScreenPathsSpanTests, ScreenPathsCanvasSpanTests and
       # ScreenshotModeSpanTests are found by the `SpanTests` ending.
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): on the table's 13-inch iPad by its UDID ("Required simulators"), iOS 27.2: by its
+      # name alone xcodebuild may take the same name on iOS 27.0. The photo steps below find it booted. On r14-q-m1
+      # (MUTATIONS, §6) every class runs, as off the quick lane: the mutations there are caught by classes of every kind.
+      # 1.4 D1 (§3.10, §6): the quick lane (r14-quick, r14-q-*) also runs D1's new classes, each by its whole name:
+      # WindowClassTests, PencilPhoneTests, CappedOverviewWideTests, OnePageRevealTests, SnapshotScaleTests and DuoFoldTests
+      # (role S) and PaperViewScaleTests (role P); a class not written yet is not found and not run. D1b: MeasureLineFileTests.
+      # D1d: PageHeaderRoomTests (the header's tight row on the Duo's outer screen; pure, no layout).
+      # 1.4 D0c (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0c): xcodebuild boots the 13-inch iPad here itself again, as
+      # until D0. D0b booted it with simctl in the background from the job's start (a step "Boot the 13-inch iPad in the
+      # background" and a wait here, both removed in D0c). That boot took 129 s, but the macOS steps beside it ran 3 to 19
+      # times slower (run 44676125566, image 20261104.0337.1: `swift --version` 318 s and the first `swift build` 498 s,
+      # against 3–5 s and 32–54 s in the five runs without it on the two macOS 27 images; KitChecks, the Kit's tests and
+      # the iOS build 3.0–4.7 times), so this step began 29.5 min into the job (4.7 in D0's attempt 2, same image). It saved
+      # xcodebuild's boot here (1.1 min from "Testing started" to the test host, against 4.9 in D0's attempt 2 and 9.7 and
+      # 11.9 in two quick lanes on that image), 1.7 min after the tests and the repeated sync tests' second boot (about 2
+      # to 3): up to the photos' boot about 10 min lost against D0's attempt 2, although that run's tests also lost 6 min
+      # to a stall and a restart (3 to 19 over the boots and the tests seen). With it on the quick lane, `swift --version`
+      # had not ended 8.4 min into its step when the job was cancelled (run 44690586694, image 20261119.0378.1), and the
+      # Kit's build took 12.0 min (run 44696154799).
       - name: Run unit tests on the simulator
         run: |
           set -euo pipefail
           mkdir -p shots/fixtures
           ONLY=""
-          if [ "$QUICK" = "true" ]; then
+          if [ "$QUICK" = "true" ] && [ "$MUTATIONS" = "true" ]; then
+            echo "the quick lane on r14-q-m1 (the app's mutations, docs/M7D_CONTRACT.md §6): every unit test class"
+          elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
-              echo "::notice::r13-quick: no Span test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
+              echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
             fi
             for CLASS in $CLASSES; do
               ONLY="$ONLY -only-testing:TegakiCalendarTests/$CLASS"
             done
-            echo "r13-quick: the app's unit tests are only$ONLY"
+            echo "the quick lane: the app's unit tests are only$ONLY"
           fi
           # $ONLY unquoted on purpose: one word per class (none has a space), nothing when it is empty.
           TEST_RUNNER_TEGAKI_FIXTURE_OUT="$PWD/shots/fixtures" xcodebuild \
             -project TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }}" \
+            -destination "platform=iOS Simulator,id=${{ steps.required.outputs.ipad13 }}" \
             -derivedDataPath build/DerivedData \
             -skip-testing:TegakiCalendarUITests \
             $ONLY \
@@ -492,9 +741,19 @@ jobs:
       # run of the build-and-test job with the class prints its per-class time (the measure for the next limit).
       # G4: SyncEngineZoneAccountTests (a zone gone, a record gone or a change token expired, and 「全て消す」,
       # confirm the account first) are repeated with them.
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): on the unit tests' simulator, by its UDID.
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): 9 → 14. In 1.3's run (44474759145) the step took
+      # 5.7 min with a boot of the 13-inch in it: xcodebuild leaves the iPad shut down after its tests ("Boot the
+      # simulator" after this step found it off and took 2.9 min; in D0, right after the unit tests, its `simctl boot`
+      # alone took 4.4). D0 skipped this step (the unit tests were red); at D0's pace, a 5.2 min boot and (5.7 − 2.9) ×
+      # 1.5 of tests, it is about 9.4 min, over 9. 14 keeps about half again, as 9 did over 1.3's 5.7. Measured again in
+      # D0b; D1 brings it back with the job's limit. 1.4 D0c: in D0b's run (44676125566) the iPad, booted in the
+      # background with simctl, was still running after the unit tests, and this step took 3.9 min with no boot (its 4,000
+      # tests 185 s). D0c leaves the boot to xcodebuild again (the unit test step says why), so this step boots the iPad
+      # again, as in 1.3 and in the estimate above.
       - name: Sync engine tests, repeated (1.2.3)
         if: env.QUICK != 'true'
-        timeout-minutes: 9
+        timeout-minutes: 14
         run: |
           set -euo pipefail
           ITERATIONS=20
@@ -502,7 +761,7 @@ jobs:
             -project TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }}" \
+            -destination "platform=iOS Simulator,id=${{ steps.required.outputs.ipad13 }}" \
             -derivedDataPath build/DerivedData \
             -only-testing:TegakiCalendarTests/SyncEngineTests \
             -only-testing:TegakiCalendarTests/SyncEngineSpanTests \
@@ -564,6 +823,25 @@ jobs:
           done
           exit "$LOST"
 
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5, §3.8; docs/M7D.md, D0b): until D0 xcodebuild booted the 13-inch iPad for the
+      # unit tests and the repeated sync tests and shut it down after each ("Boot the simulator" found it off: 2.9 min in
+      # 1.3's run 44474759145, 4.4 in D0's 44632524223), so the J-4 photos were taken on a fresh boot, as ja-baseline.yml's
+      # are. In D0b the iPad was booted in the background with simctl, and xcodebuild left it running (run 44676125566:
+      # "Booted" here, "Shutdown" 4 s later). 1.4 D0c: that boot is gone and xcodebuild boots and shuts down the iPad
+      # again, so this step normally finds it shut down. It stays, so that the photo steps (the same as ja-baseline.yml's)
+      # begin with the iPad off whatever ran before them (a sync step stopped by its limit, say).
+      # Never fails the job; "Unable to shutdown device in current state: Shutdown" only means xcodebuild had done it.
+      - name: Shut down the 13-inch iPad before the photos (1.4 D0b)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          set -uo pipefail
+          UDID="${{ steps.required.outputs.ipad13 }}"
+          xcrun simctl list devices | grep -F "$UDID" || true
+          xcrun simctl shutdown "$UDID" || true
+          xcrun simctl list devices | grep -F "$UDID" || true
+
       # 1.3 (docs/M7C_CONTRACT.md §10.5; docs/M7C.md, S3's J-4): the 11 sheets' wait (the 13-inch step below) runs
       # tools/shots/screen_ready.swift, and the job's first swiftc for macOS spends almost 2 min on the SDK's modules
       # (1.9 of that step's 4.6 min in run 43325447350, which built the tool in the step; 2.3 min with the fixed 9 s,
@@ -585,6 +863,25 @@ jobs:
           echo "$!" > "$OUT/pid"
           echo "swiftc of tools/shots/screen_ready.swift started in the background (pid $(cat "$OUT/pid"))"
 
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): tools/shots/ink_check.swift, the photo steps' handwriting
+      # check, is built here, in the background while the simulator boots, so that its swiftc (in ja-baseline.yml the job's
+      # first for macOS, almost 2 min on the SDK's modules) does not run beside the 13-inch photos' 120 s wait and first
+      # photos in one workflow and not in the other (J-4: the same conditions). `ink_build` (tools/shots/ink_retake.sh)
+      # waits for it and builds the tool itself when this build is missing or failed. The same step in build.yml and
+      # ja-baseline.yml, read from the pushed commit. Never fails the job.
+      - name: Build the handwriting check in the background (1.4 D0b)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/ink_check.build"
+          mkdir -p "$OUT"
+          # Its own stdin, stdout and stderr, so this step ends at once; the status file appears only when swiftc has ended.
+          nohup /bin/sh -c 'swiftc -O "$1" -o "$2/ink_check" > "$2/log" 2>&1; echo "$?" > "$2/status.part"; mv "$2/status.part" "$2/status"' \
+            sh "$GITHUB_WORKSPACE/tools/shots/ink_check.swift" "$OUT" < /dev/null > /dev/null 2>&1 &
+          echo "$!" > "$OUT/pid"
+          echo "swiftc of tools/shots/ink_check.swift started in the background (pid $(cat "$OUT/pid"))"
+
       # ---- Screenshots of the running app (best effort; never fails the job) ----
       # 1.2 (docs/M7B_CONTRACT.md §1.3 J-4, §7.5, 0-25): every launch of these steps ends with $JA_ARGS and
       # the steps write shots/env.txt. The steps from "Pick a simulator" to "Store listing set" must stay
@@ -592,6 +889,10 @@ jobs:
       # the step's name differ): when one of the two changes, change the other one too. 1.3 (docs/M7C_CONTRACT.md
       # §10.5): ja-baseline.yml now holds these steps as 43fe366 has them (all 11 sheets) and shoots 43fe366; a
       # change here changes 1.3's photos against that reference, and only the changes docs/M7C.md lists may.
+      # 1.4 (docs/M7D_CONTRACT.md §3.5): ja-baseline.yml holds these steps again, as 955fe67 has them, with only 1.4's
+      # changes of the runner and the Xcode, the devices' list, the required devices' checks, the env.txt lines and
+      # XcodeGen, in the same words as here, and shoots 955fe67 (tools/l10n/ja-baseline-ref-1.4.txt) with Xcode 27.2;
+      # only the photo docs/M7D.md lists beforehand may differ (ipad13-portrait-sheet-info.png, its version).
       # The app is launched with "--screenshot-mode" (Sources/TegakiCalendar/Support/ScreenshotMode.swift):
       # no onboarding, no EventKit, deterministic demo events for 2026-10 and a few preloaded ink
       # strokes. Since M3a it is launched once per page ("--screenshot-page month|week|day|year",
@@ -621,18 +922,29 @@ jobs:
           set -euo pipefail
           NAME="${{ steps.simulator.outputs.name }}"
           UDID="$(xcrun simctl list -j devices available | SIM_NAME="$NAME" python3 -c '
-          import json, os, sys
+          import json, os, re, sys
           name = os.environ["SIM_NAME"]
           devices = json.load(sys.stdin).get("devices", {})
+          def version(runtime):                                  # "…iOS-27-2" → (27, 2)
+              m = re.search(r"iOS-(\d+)-(\d+)", runtime)
+              return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
           found = ""
+          best = None
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if d.get("isAvailable") and d.get("name") == name and d.get("udid"):
-                      # Prefer the one xcodebuild already booted for the tests.
-                      if d.get("state") == "Booted" or not found:
-                          found = d["udid"]
+                      # 1.4 (docs/M7D_CONTRACT.md §3.2): the device "Required simulators" resolved; else the one xcodebuild
+                      # already booted for the tests; else the newest iOS (ja-baseline.yml boots nothing first, and the name is
+                      # on iOS 27.0 and 27.2).
+                      key = (d["udid"] in required, d.get("state") == "Booted", version(runtime))
+                      if best is None or key > best:
+                          best, found = key, d["udid"]
           print(found)
           ')"
           if [ -z "$UDID" ]; then
@@ -688,7 +1000,8 @@ jobs:
       # 12 s late, `simctl io` 32 s), after the toast, and J-4 saw it missing. So the hint's photo is kept when it was written
       # at most 20 s after its launch (the canvas appears a few seconds after the launch, so the toast is still up then;
       # here the last loop, `hint_shot` in the step of the other devices) and taken once more otherwise; a second late one stays, with a warning. A photo taken in time is the same as
-      # before (same arguments and waits; the app's toast is not changed, J-4). ja-baseline.yml keeps its one take.
+      # before (same arguments and waits; the app's toast is not changed, J-4). ja-baseline.yml kept its one take until
+      # 1.4, whose copy of these steps (955fe67's) takes the hint the same way.
       - name: Screenshots (13-inch iPad, portrait, 4 pages + 3 zoomed + read-only + 5 of 1.1 + the hint)
         if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
         continue-on-error: true
@@ -716,8 +1029,27 @@ jobs:
           '
           }
           xcodebuild -version > shots/env.txt || echo "::warning::xcodebuild -version failed"
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3): the Xcode's path, the runner image (§3.8: an image being rolled out has another
+          # Xcode and other runtimes), the simulator runtimes, XcodeGen and Python, so two env.txt tell those apart too.
+          {
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } >> shots/env.txt || echo "::warning::env.txt: the lines of 1.4 could not all be written"
           sim_env ipad13 "$UDID" >> shots/env.txt || echo "::warning::no runtime line for ipad13"
           cat shots/env.txt || true
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): in D0 (run 44632524223) photos of the image 20261119
+          # lacked part of their demo handwriting (whole PencilKit tiles not shown). Each photo is checked with
+          # tools/shots/ink_check.swift (built by "Build the handwriting check in the background", else here) against its
+          # line in tools/shots/ink_ref.tsv; a photo whose handwriting is short is taken again with the same launch and wait
+          # (ink_retake), at most twice, and then the take with the fewest pixels short stays, with a warning (a notice when
+          # a retake is complete; no more takes again after 3 such photos of a device, or 180 s of them in a step). A complete
+          # photo is kept as before (same arguments and waits). Every result is a line of shots/ink.txt
+          # (tools/shots/ink_retake.sh). Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
           # docs/M7B.md (FIX3), docs/M7B_CONTRACT.md §12.6: a first launch after the install compiles PencilKit's
           # 34 Metal shaders (the next launches none). In run 42013415033 that took until 19 s after the launch,
           # so the month photo of 8 s had no handwriting. And a freshly booted simulator posts the banner "Ready
@@ -733,6 +1065,7 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE.png"
+            ink_retake "shots/ipad13-portrait-$PAGE.png" "ipad13-portrait-$PAGE.png" 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" $JA_ARGS
           done
           # page|offset: month lu (400, 200) → the Wed–Sat columns from the second half of the 10/5 week;
           # week (300, 700) → Tue–Sat from 8:45 (the band's lanes grow past zoom 0.818, §1.6);
@@ -745,6 +1078,7 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($PAGE page, zoom 2; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$PAGE-zoom2.png"
+            ink_retake "shots/ipad13-portrait-$PAGE-zoom2.png" "ipad13-portrait-$PAGE-zoom2.png" 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-zoom 2 --screenshot-offset "$OFFSET" $JA_ARGS
           done
           xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
           sleep 1
@@ -752,6 +1086,7 @@ jobs:
           sleep 8
           pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (month page, read only; crashed?)"
           xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-readonly.png"
+          ink_retake shots/ipad13-portrait-readonly.png ipad13-portrait-readonly.png 8 --screenshot-mode --screenshot-month 2026-10 --screenshot-page month --screenshot-readonly $JA_ARGS
           for SPEC in "toolbar-collapsed|--screenshot-page month --screenshot-toolbar collapsed" \
                       "toolbar-collapsed-right|--screenshot-page month --screenshot-toolbar collapsed-right" \
                       "tool-eraser|--screenshot-page month --screenshot-tool eraser" \
@@ -765,8 +1100,11 @@ jobs:
             sleep 8
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s ($SHOT; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-$SHOT.png"
+            ink_retake "shots/ipad13-portrait-$SHOT.png" "ipad13-portrait-$SHOT.png" 8 --screenshot-mode --screenshot-month 2026-10 $ARGS $JA_ARGS
           done
           # The pinch hint, last as before (the comment above the step: kept when written within the toast's 20 s).
+          # 1.4 D0b (§3.5 (f)): and with its handwriting complete (ink_hint); after 2 takes the better one stays (in time
+          # first, then fewer pixels short; two late complete takes: the second, as before).
           HINT_SECONDS=20
           for TAKE in 1 2; do
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -777,13 +1115,17 @@ jobs:
             pgrep -fl "TegakiCalendar.app/TegakiCalendar" || echo "::warning::The app is not running after 8 s (pinch-hint; crashed?)"
             xcrun simctl io "$UDID" screenshot "shots/ipad13-portrait-pinch-hint.png"
             TOOK=$(( $(date +%s) - LAUNCHED ))
-            if [ "$TOOK" -le "$HINT_SECONDS" ]; then
+            if ink_hint shots/ipad13-portrait-pinch-hint.png ipad13-portrait-pinch-hint.png "$TAKE" "$TOOK" "$HINT_SECONDS"; then
               echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), inside the toast's ${HINT_SECONDS} s"
               break
             fi
-            echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), after the toast's ${HINT_SECONDS} s"
+            if [ "$TOOK" -le "$HINT_SECONDS" ]; then
+              echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), inside the toast's ${HINT_SECONDS} s, its handwriting short"
+            else
+              echo "pinch hint (ipad13): written ${TOOK} s after the launch (take $TAKE), after the toast's ${HINT_SECONDS} s"
+            fi
             if [ "$TAKE" = 2 ]; then
-              echo "::warning::ipad13-portrait-pinch-hint.png was written more than ${HINT_SECONDS} s after its launch twice; the toast may be missing from it (J-4)."
+              echo "::warning::ipad13-portrait-pinch-hint.png was written more than ${HINT_SECONDS} s after its launch, or with its handwriting short, twice; the toast or some handwriting may be missing from it (J-4)."
             fi
           done
           ls -la shots
@@ -886,6 +1228,15 @@ jobs:
               fi
             done
           done
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b): the sheets' handwriting is checked and written into
+          # shots/ink.txt, but a sheet is not taken again (its frame is screen_ready's); of the 11 only the lasso's has a line
+          # in tools/shots/ink_ref.tsv. Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
+          for SHEET in create edit lasso settings sync import paywall export info holidays week-start; do
+            ink_read "shots/ipad13-portrait-sheet-$SHEET.png" "ipad13-portrait-sheet-$SHEET.png" 1
+            [ "$INK_STATUS" != 1 ] || echo "::warning::ipad13-portrait-sheet-$SHEET.png: its handwriting is short ($INK_SHORT px); a sheet is not taken again."
+          done
           ls -la shots
 
       # The 13-inch log is collected before the other devices boot (its 25 shots since 1.2 took 8.9 min in
@@ -932,10 +1283,12 @@ jobs:
           grep 'l10n: ' shots/app-log.txt | awk '{ i = index($0, "l10n: "); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
 
       # The four other device classes (docs/M4B_CONTRACT.md §6.3), booted one at a time and shut
-      # down afterwards: iphone (iPhone 17, 402 pt), iphone69 (iPhone 17 Pro Max, 440 pt; since M6,
-      # docs/M6_CONTRACT.md 0-15 / M6-2: the 6.9-inch App Store shots, 1320×2868 — the prefix fallbacks
-      # are iPhone 17 Pro Max, iPhone 17 Pro, iPhone 16 Pro Max in that order; on "iPhone 17 Pro" the
-      # pixels are 6.3-inch and the store step below warns), ipadmini (iPad mini (A17 Pro), 744 pt) and
+      # down afterwards: iphone (iPhone 17, 402 pt), iphone69 (iPhone 17 Pro Max, 440 pt, until 1.3; since M6,
+      # docs/M6_CONTRACT.md 0-15 / M6-2: the 6.9-inch App Store shots, 1320×2868; 1.4, docs/M7D_CONTRACT.md §3.2: the
+      # iPhone 18 Pro Max, the image xcode-27 having no iPhone 17 Pro Max — the prefix fallbacks are iPhone 18 Pro Max,
+      # iPhone 17 Pro Max in that order, and a device other than the table's fails the job at "The simulators used are the
+      # table's"; whether its pixels are one of the accepted 6.9-inch sizes is not known yet, the store step below warns if
+      # not), ipadmini (iPad mini (A17 Pro), 744 pt; iOS 27.0, the only runtime that has it) and
       # ipad11 (iPad Pro 11-inch (M5), 834 pt), 4 portrait pages each as <id>-portrait-<page>.png.
       # Since M6 the iPhone and the 6.9-inch iPhone also shoot the paywall sheet over the month page
       # (docs/M6_CONTRACT.md §4.2: store/iphone/05-paywall.jpg and store/iphone69/05-paywall.jpg).
@@ -948,7 +1301,8 @@ jobs:
       # overview ("--screenshot-zoom 3 --screenshot-offset 300,700", docs/M4C_CONTRACT.md §6) and
       # tries the 4 pages in landscape ("--screenshot-landscape", §6.4; the file is still written when
       # the request was ignored, the header then stays two rows). Every shot is best effort; a
-      # missing simulator or a failed boot only skips that device. The 13-inch simulator is shut down
+      # failed boot only skips that device (1.4: a missing simulator fails the job, at "The simulators used are the
+      # table's", §3.2). The 13-inch simulator is shut down
       # first to leave the runner's memory to the next one. Since M6 (docs/M6.md §5.1) every device
       # waits 40 s after its boot with the app in front before the first shot and shoots its four pages
       # again at the end: a freshly booted iOS 26 simulator posts a system banner once, 15–35 s after
@@ -985,9 +1339,14 @@ jobs:
           '
           }
           xcrun simctl shutdown "$PRIMARY" || true
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b; the 13-inch step says why): `shoot` checks each photo's
+          # handwriting and takes a short one again, at most twice (ink_retake); the hint, ink_hint. Not the first round of the
+          # four pages (INK_SKIP: taken again at the end). INK_STALE counts per device. Same lines in both workflows.
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
           # device-id | exact first choice | prefix fallbacks (in order)
           for SPEC in "iphone|iPhone 17|iPhone 17,iPhone" \
-                      "iphone69|iPhone 17 Pro Max|iPhone 17 Pro Max,iPhone 17 Pro,iPhone 16 Pro Max" \
+                      "iphone69|iPhone 18 Pro Max|iPhone 18 Pro Max,iPhone 17 Pro Max" \
                       "ipadmini|iPad mini (A17 Pro)|iPad mini" \
                       "ipad11|iPad Pro 11-inch (M5)|iPad Pro 11,iPad Air 11,iPad (A"; do
             ID="${SPEC%%|*}"; REST="${SPEC#*|}"; EXACT="${REST%%|*}"; PREFIXES="${REST#*|}"
@@ -998,14 +1357,18 @@ jobs:
               m = re.search(r"iOS-(\d+)-(\d+)", runtime)
               return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
           primary_runtime = next((r for r, items in devices.items() for d in items if d.get("udid") == os.environ["SIM_PRIMARY"]), None)
-          found = {}                                             # name → (udid, key): same runtime as the 13-inch > newer iOS
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
+          found = {}                                             # name → (udid, key): one Required resolved (1.4) > same runtime as the 13-inch > newer iOS
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
                       continue
-                  key = (runtime == primary_runtime, version(runtime))
+                  key = (d["udid"] in required, runtime == primary_runtime, version(runtime))
                   if d["name"] not in found or key > found[d["name"]][1]:
                       found[d["name"]] = (d["udid"], key)
           exact = os.environ["SIM_EXACT"]
@@ -1019,9 +1382,10 @@ jobs:
                       raise SystemExit
           print("")
           ' || true)"
-            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID (docs/M7D_CONTRACT.md §3.2); the job fails at \"The simulators used are the table's\"."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
+            INK_STALE=0
             sim_env "$ID" "$UDID" >> shots/env.txt || echo "::warning::no runtime line for $ID"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
@@ -1045,22 +1409,31 @@ jobs:
               # none in the prototype's span-shots, removed in S6, which read the whole list). An app not in the list, or no list, still warns.
               xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
               xcrun simctl io "$UDID" screenshot "shots/$FILE" || echo "::warning::screenshot failed ($FILE)"
+              ink_retake "shots/$FILE" "$FILE" 9 --screenshot-mode "$@" $JA_ARGS
             }
             # 1.3 (docs/M7C.md, wave C1's lead decision 6; the 13-inch step's comment): the pinch hint's toast is up for 20 s
             # from half a second after the canvas appeared. A photo written more than 20 s after its launch is taken once more;
             # a second late one stays, with a warning. A photo taken in time is `shoot`'s, as before.
+            # 1.4 D0b (§3.5 (f)): kept also only with its handwriting complete (ink_hint, not shoot's ink_retake); after 2 takes
+            # the better one stays (in time first, then fewer pixels short; two late complete takes: the second, as before).
             hint_shot() {  # hint_shot <file> <launch args…>
               local TAKE TOOK
               for TAKE in 1 2; do
+                INK_SKIP=1
                 shoot "$@"
+                INK_SKIP=0
                 TOOK=$(( $(date +%s) - SHOT_LAUNCHED ))
-                if [ "$TOOK" -le 20 ]; then
+                if ink_hint "shots/$1" "$1" "$TAKE" "$TOOK" 20; then
                   echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), inside the toast's 20 s"
                   return 0
                 fi
-                echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), after the toast's 20 s"
+                if [ "$TOOK" -le 20 ]; then
+                  echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), inside the toast's 20 s, its handwriting short"
+                else
+                  echo "pinch hint ($1): written ${TOOK} s after the launch (take $TAKE), after the toast's 20 s"
+                fi
               done
-              echo "::warning::$1 was written more than 20 s after its launch twice; the toast may be missing from it (J-4)."
+              echo "::warning::$1 was written more than 20 s after its launch, or with its handwriting short, twice; the toast or some handwriting may be missing from it (J-4)."
             }
             # M6 (docs/M6.md §5.1): a freshly booted iOS 26 simulator posts a system banner once, 15–35 s
             # after the boot ("Ready for Apple Intelligence" — run 39034481760 caught it on
@@ -1069,9 +1442,11 @@ jobs:
             xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
             sleep 40
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            INK_SKIP=1   # 1.4 D0b: these four are taken again below; their handwriting is checked there
             for PAGE in month week day year; do
               shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
             done
+            INK_SKIP=0
             if [ "$ID" = "ipad11" ]; then
               # M5-32: the day page's title 「2026年10月7日(水)」 must stay on one line next to the lock-only badge.
               shoot "$ID-portrait-readonly.png" --screenshot-month 2026-10 --screenshot-page day --screenshot-readonly
@@ -1090,6 +1465,13 @@ jobs:
             for PAGE in month week day year; do
               shoot "$ID-portrait-$PAGE.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
             done
+            if [ "$ID" = "iphone69" ]; then
+              # 1.4 (docs/M7D_CONTRACT.md §3.2): the iPhone 18 Pro Max's pixels go into env.txt (whether App Store takes them
+              # as a 6.9-inch size is not known; "Store listing set" still only warns). Not a device line ("<id>: …"), so
+              # "The simulators used are the table's" does not read it.
+              PIXELS="$(sips -g pixelWidth -g pixelHeight "shots/$ID-portrait-month.png" 2>/dev/null | awk '/pixel(Width|Height)/ { printf "%s%s", (n++ ? "x" : ""), $2 }' || true)"
+              echo "iphone69 pixels: ${PIXELS:-no photo} ($ID-portrait-month.png)" >> shots/env.txt || true
+            fi
             if [ "$ID" = "iphone" ]; then
               # 1.1 (docs/M7A_CONTRACT.md §7.4, §8 6): the folded toolbar (the dock button above the home
               # indicator), the grown month memo and the day's free memo below 24:00 at their strokes,
@@ -1113,8 +1495,15 @@ jobs:
               # The simulator's framebuffer stays portrait (only the app's interface turned), so the
               # landscape shots come out rotated by 90°; stand them up. When the request was ignored
               # (header still two rows) they end up sideways instead, which is the tell.
+              # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (g); docs/M7D.md, D0b): the iOS 27.2 simulator writes them in landscape
+              # already (D0, run 44632524223: 2622x1206, turned by 270° they stood sideways), so only a PNG taller than wide
+              # is turned. Same lines in both workflows.
               for f in shots/"$ID"-landscape-*.png; do
-                [ -f "$f" ] && { sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"; }
+                [ -f "$f" ] || continue
+                TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$f" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+                if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ]; then
+                  sips -r 270 "$f" > /dev/null || echo "::warning::could not rotate $f"
+                fi
               done
             fi
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
@@ -1187,6 +1576,26 @@ jobs:
           store ipad11   04-year     ipad11-portrait-year
           ls -la shots/store/*
 
+      # 1.4 D0b (docs/M7D_CONTRACT.md §3.5, §3.8; docs/M7D.md, D0b): the reach of the app logs the photo steps took with
+      # `log show` (shots/app-log.txt of the 13-inch, shots/<id>-log.txt of the other devices). On the iOS 27 simulators
+      # `log show` gives the app's NSLog lines as "<compose failure …>" (D0, run 44632524223: no `toolbar: paperArea=`
+      # line in any of them, 18–52 in 1.3's run 44474759145), and those steps only show what they find. The check is a
+      # step of its own, after "Store listing set", so the photo steps stay word for word those of ja-baseline.yml (J-4,
+      # §3.5) and how they launch the app does not change. Warns only (tools/ci/log-reach.sh). ja-baseline.yml has the
+      # same step (the script from $GITHUB_WORKSPACE, the pushed commit: ja-baseline.yml's steps run in the reference
+      # commit's tree).
+      - name: The app logs' reach (1.4 D0b)
+        if: ${{ !cancelled() && steps.simudid.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          set -uo pipefail
+          REACH="$GITHUB_WORKSPACE/tools/ci/log-reach.sh"
+          bash "$REACH" "13-inch iPad (log show)" shots/app-log.txt 'toolbar: paperArea=' 'l10n: ui=' || true
+          for ID in iphone iphone69 ipadmini ipad11; do
+            bash "$REACH" "$ID (log show)" "shots/$ID-log.txt" 'toolbar: paperArea=' || true
+          done
+
       - name: Upload screenshots
         if: ${{ always() && env.QUICK != 'true' }}
         uses: actions/upload-artifact@v4
@@ -1195,6 +1604,72 @@ jobs:
           path: shots
           retention-days: 7
           if-no-files-found: warn
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        env:
+          ENV_TXT: shots/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
 
   # 1.3 (docs/M7C.md, wave C1's lead decision 7; the wave C plan §4.4, §7.6): the UI tests on an iPhone, out of the first
   # job since wave C2. Without the joined pages' UI tests their step took 15.4 and 17.3 min (runs 43584152837 and
@@ -1209,8 +1684,9 @@ jobs:
   # the boot with its 60 s wait 2–4, the tests 13–22 and the step's own 40 at most: 60.
   ui-tests:
     name: UI tests (iPhone)
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
-    runs-on: macos-26
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-')) }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
+    runs-on: xcode-27
     timeout-minutes: 60
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -1221,20 +1697,136 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
           fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
           xcode-select -p
           xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            iphone|iPhone 17|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
       - name: Install XcodeGen
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       - name: Generate the Xcode project
         run: |
@@ -1246,26 +1838,32 @@ jobs:
       # runner: run 41168800617's late build re-ran CopySwiftLibs, whose Metal toolchain mount
       # (/var/run/com.apple.security.cryptexd/mnt/…MetalToolchain…) was gone by then. Its own derived data (in the
       # first job, so the app the screenshot steps installed stayed the one built there). The iPhone: iPhone 17
-      # (fallbacks: any "iPhone 17…", then any iPhone), the booted simulator's runtime first.
+      # (fallbacks: any "iPhone 17…", then any iPhone), the booted simulator's runtime first. 1.4 (docs/M7D_CONTRACT.md
+      # §3.2): its line goes into shots/ui-tests/env.txt, and a device other than the table's iPhone 17 on iOS 27.2 fails
+      # the job at the next step, before the tests.
       - name: Build the UI tests for an iPhone (1.0.1)
         id: uibuild
         run: |
           set -euo pipefail
           FOUND="$(xcrun simctl list -j devices available | python3 -c '
-          import json, re, sys
+          import json, os, re, sys
           devices = json.load(sys.stdin).get("devices", {})
           def version(runtime):
               m = re.search(r"iOS-(\d+)-(\d+)", runtime)
               return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
           booted_runtime = next((r for r, items in devices.items() for d in items if d.get("state") == "Booted"), None)
-          found = {}
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
+          found = {}                                             # name → (udid, key): one Required resolved (1.4) > booted runtime > newer iOS
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
                       continue
-                  key = (runtime == booted_runtime, version(runtime))
+                  key = (d["udid"] in required, runtime == booted_runtime, version(runtime))
                   if d["name"] not in found or key > found[d["name"]][1]:
                       found[d["name"]] = (d["udid"], key)
           if "iPhone 17" in found:
@@ -1281,6 +1879,32 @@ jobs:
           echo "UI tests on: $NAME ($UDID)"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          mkdir -p shots/ui-tests
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt), then each
+          # device it takes ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > shots/ui-tests/env.txt || echo "::warning::env.txt could not all be written"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          sim_env iphone "$UDID" >> shots/ui-tests/env.txt || echo "::warning::no runtime line for iphone"
           xcodebuild \
             -project TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
@@ -1291,6 +1915,54 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             build-for-testing
           ls build/UITestData/Build/Products/*.xctestrun
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        env:
+          ENV_TXT: shots/ui-tests/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
 
       # 1.0.1 (docs/R1_0_1.md §5.1): the UI test of the fix on the iPhone picked and built above
       # (`test-without-building`: nothing is compiled this late). YearTapUITests launches the app in
@@ -1312,6 +1984,9 @@ jobs:
       # 1.3 (docs/M7C_CONTRACT.md §10.3, §10.6): the joined pages' UI tests (SpanUITests, and the old UI tests again with
       # the joined pages on in SpanRerunUITests) mark their steps `span UI:`; the grep shows them once they exist.
       # SpanShotsUITests (the photos of the span-shots-app job) skips itself here, as BlankPaperShotsUITests does.
+      # 1.4 (docs/M7D_CONTRACT.md §3.10, §6): so does DuoLayoutUITests (it runs on the iPhone Duo in duo.yml's duo-shots,
+      # with TEGAKI_DEVICE=duo), so the UI tests of the gates (43 in 1.3) are counted without the skipped ones;
+      # DuoHingeUITests is not even compiled here (only duo-hinge passes DUO_HINGE).
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 40
         run: |
@@ -1351,6 +2026,35 @@ jobs:
             echo "No UI test result bundle."
           fi
 
+      # 1.4 D1d (docs/M7D.md, "UI テストの 2 回目の写真"): the handwriting of these photos, a warning only. Attempt 2 of run
+      # 44676125566 (image 20261119.0378.1) lost handwriting in 17 of its photos (PencilKit tiles not drawn: the 13 of
+      # docs/M7D.md and 4 more this check finds; it also counts "slide — after", whose paper stopped about 80 pt short), and
+      # every test that took them passed. tools/shots/xcui_ink.py names each photo by its test and its attachment's name
+      # (manifest.json; the files are named by UUIDs) and checks it with tools/shots/ink_check.swift against its line in
+      # tools/shots/ink_ref_xcui.tsv (complete photos of the image 20261104.0337.1): a summary line with the counts, a
+      # warning for the photos with less ink, and shots/ui-tests/ink-xcui.tsv (one row a photo) in the artifact. Never fails
+      # the job (continue-on-error, and every path exits 0). About 2 min: the job's first swiftc, then 0.1 s a photo.
+      - name: The UI tests' photos' handwriting (a warning only, 1.4 D1d)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          set -uo pipefail
+          TOOL="$RUNNER_TEMP/xcui-ink"
+          mkdir -p "$TOOL"
+          if [ ! -f shots/ui-tests/attachments/manifest.json ]; then
+            echo "No shots/ui-tests/attachments/manifest.json: no photo of the UI tests to check."
+            exit 0
+          fi
+          if ! swiftc -O tools/shots/ink_check.swift -o "$TOOL/ink_check" > "$TOOL/build.log" 2>&1; then
+            cat "$TOOL/build.log" || true
+            echo "::warning::tools/shots/ink_check.swift did not compile: the UI tests' photos' handwriting is not checked (docs/M7D.md, D1d)."
+            exit 0
+          fi
+          python3 -I tools/shots/xcui_ink.py check --ink "$TOOL/ink_check" --ref tools/shots/ink_ref_xcui.tsv --prefix ui-tests/ \
+            --manifest shots/ui-tests/attachments --out shots/ui-tests/ink-xcui.tsv --label "UI tests" || true
+          exit 0
+
       - name: Upload the UI tests' log and screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -1359,6 +2063,24 @@ jobs:
           path: shots/ui-tests
           retention-days: 7
           if-no-files-found: warn
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
 
   # 1.1 (docs/M7A_CONTRACT.md §1.4, §7.4, §8 2; K-7 of docs/M7_PLAN.md §1.3): the compatibility checks
   # on the REAL 1.0. A 1.0 / 1.0.1 device and a 1.1 device share one iCloud, so the 1.1 fixtures
@@ -1386,12 +2108,21 @@ jobs:
   # them to the end (runs 43065300839 to 43237335436; the median 13.7), its two app test steps 2.9–7.2 (1.0's) and
   # 3.2–6.8 (1.2.3's), the other steps at most 1.6 each. The slowest time of every step added up is 18.8 min, and with
   # two boots 4 min slower (as seen in the other jobs) about 27. 45 is the limit of the job before 1.3 (8 min then).
+  # 1.4 (docs/M7D_CONTRACT.md §5.3, §3.9): the real 1.3 (955fe67, build 26) is a partner too: its TegakiKit at v13
+  # for tools/span-compat (v13's versionExtraChecks also runs 1.3's SpanGuard.checkForSave over every file) and its
+  # whole tree at v13app for tools/span-compat/AppTests/Real13LedgerTests.swift (the one-page path, the sync and the
+  # joined path on every compat-span file). The limit 45 → 65 min for 1.3's Kit and app (§5.3 4): the measured
+  # times go into docs/M7D.md, and back to 45 when they leave room.
   compat-v1-0:
     name: compat-v1.0
-    # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only).
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
+    # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only). 1.4 (docs/M7D_CONTRACT.md
+    # §3.10): nor on r14-quick and r14-q-*, but on r14-q-m1 (§5.3 6, §6: the mutation of Real13LedgerTests must fail here).
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || (startsWith(github.ref_name, 'r14-q-') && github.ref_name != 'r14-q-m1')) }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.9, 0d-2): stays on macos-26 and Xcode 26.6 (the old versions with the Xcode they were
+    # made with); only XcodeGen is pinned as in the other jobs. Since D1 1.3 (955fe67) is a partner too (§5.3), and a missing
+    # Xcode 26.6 fails the job ("Select Xcode", §3.9).
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 65
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -1408,12 +2139,29 @@ jobs:
           ref: a21e4692109e504701b507ad9c695181fdecddfd
           path: v10
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.9): Xcode 26.6, the Xcode the old versions were made and shipped with. Until 1.4 this
+      # step chose it only when it was there and otherwise went on with the image's default Xcode, unseen; now a macos-26
+      # image without it (or with something else under its name: what `xcodebuild -version` says decides, not the path,
+      # §3.1) fails the job, and then it is decided whether compat-v1.0 moves to xcode-27 (docs/M7D.md).
       - name: Select Xcode
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE=/Applications/Xcode_26.6.app
+          if [ ! -d "$XCODE" ]; then
+            echo "::error::No $XCODE on this image (docs/M7D_CONTRACT.md §3.9): compat-v1.0 builds the old versions with Xcode 26.6 and does not go on with another Xcode."
+            exit 1
           fi
+          SAYS="$(DEVELOPER_DIR="$XCODE/Contents/Developer" xcodebuild -version)"
+          VERSION="$(printf '%s\n' "$SAYS" | sed -nE 's/^Xcode ([0-9.]+)$/\1/p')"
+          echo "$XCODE: Xcode ${VERSION:-?} ($(printf '%s' "$SAYS" | tr '\n' ' '))"
+          case "$VERSION" in
+            26.6|26.6.*) ;;
+            *)
+              echo "::error::$XCODE says Xcode ${VERSION:-?}, not 26.6 (docs/M7D_CONTRACT.md §3.9)."
+              exit 1
+              ;;
+          esac
+          sudo xcode-select -s "$XCODE"
           xcode-select -p
           xcodebuild -version
           git -C v10 log -1 --format='v10: %H %s'
@@ -1548,23 +2296,40 @@ jobs:
           git archive "$SHA" | tar -x -C v123app
           ls v123/TegakiKit v123app
 
-      # 1.3 (§6.3): every compat-span file (Monday and Sunday) on the real 1.0, <1.1.1> and 1.2.3 Kits: what each
-      # reads and writes back, what its layout draws and its lasso reaches, its migration, merge, erase and own
-      # edit, the app export's round trip (tools/span-compat/README.md). All three run; any FAIL fails the step.
-      - name: The compat-span fixtures on the real 1.0, <1.1.1> and 1.2.3 (span-compat)
+      # 1.4 (docs/M7D_CONTRACT.md §5.3 1): 1.3, the version on sale when 1.4 starts (build 26), taken out the same way:
+      # its TegakiKit at v13 for tools/span-compat, and its whole tree at v13app for its app's ledger test below.
+      - name: Take out 1.3 (955fe67) at v13 and v13app
+        run: |
+          set -euo pipefail
+          SHA=955fe678ec9f999ac45fac1b372f246e43c02f95
+          git fetch --no-tags --depth=1 origin "$SHA"
+          git log -1 --format='v13: %H %s' "$SHA"
+          mkdir -p v13 v13app
+          git archive "$SHA" TegakiKit | tar -x -C v13
+          git archive "$SHA" | tar -x -C v13app
+          ls v13/TegakiKit v13app
+
+      # 1.3 (§6.3): every compat-span file (Monday and Sunday) on the real 1.0, <1.1.1>, 1.2.3 and (since 1.4) 1.3
+      # Kits: what each reads and writes back, what its layout draws and its lasso reaches, its migration, merge, erase
+      # and own edit, the app export's round trip; on 1.3 also its SpanGuard.checkForSave and checkForTransfer
+      # (tools/span-compat/README.md). All four run; any FAIL fails the step.
+      - name: The compat-span fixtures on the real 1.0, <1.1.1>, 1.2.3 and 1.3 (span-compat)
         run: |
           set -euo pipefail
           FAILED=0
-          for V in v10 v11 v123; do
+          for V in v10 v11 v123 v13; do
             tools/span-compat/run.sh "$V" "$V/TegakiKit" "$RUNNER_TEMP/span-compat" || FAILED=1
           done
           exit "$FAILED"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job, this one on macos-26 too (until 1.3 `brew install xcodegen`, whose version was the image's formula; the old
+      # trees' project.yml are generated with it below). The script fails unless `xcodegen --version` then says 2.46.0;
+      # the job's later steps find it first in PATH.
       - name: Install XcodeGen
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       # ⑥ 1.0's app (v10, its own project.yml) with Real10LedgerTests.swift added to its unit tests, on
       # the same 13-inch iPad the build job picks; only that class runs.
@@ -1649,9 +2414,54 @@ jobs:
             test 2>&1 | tee "$RUNNER_TEMP/real123.log"
           grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real123.log" || true
 
+      # 1.4 (docs/M7D_CONTRACT.md §5.3 3): 1.3's app (v13app, its own project.yml) with
+      # tools/span-compat/AppTests/Real13LedgerTests.swift added to its unit tests, on the same simulator; only that
+      # class runs, on every compat-span file (TEGAKI_COMPAT_SPAN_FIXTURES: the folder of this checkout).
+      - name: 1.3's ledger and sync on the compat-span fixtures (Real13LedgerTests)
+        run: |
+          set -euo pipefail
+          cp tools/span-compat/AppTests/Real13LedgerTests.swift v13app/Tests/TegakiCalendarTests/
+          (cd v13app && xcodegen generate)
+          NAME="$(xcrun simctl list -j devices available | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin).get("devices", {})
+          names = set()
+          for runtime, items in devices.items():
+              if "iOS" not in runtime:
+                  continue
+              for d in items:
+                  if d.get("isAvailable") and d.get("name"):
+                      names.add(d["name"])
+          for prefix in ("iPad Pro 13-inch", "iPad Air 13-inch", "iPad", "iPhone"):
+              matches = sorted(n for n in names if n.startswith(prefix))
+              if matches:
+                  print(matches[0])
+                  raise SystemExit
+          print("")
+          ' || true)"
+          if [ -z "$NAME" ]; then
+            echo "::warning::No iOS simulator found in simctl output; falling back to 'iPhone 17'."
+            NAME="iPhone 17"
+          fi
+          echo "Using simulator: $NAME"
+          TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span" xcodebuild \
+            -project v13app/TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=$NAME" \
+            -derivedDataPath "$RUNNER_TEMP/v13-derived" \
+            -only-testing:TegakiCalendarTests/Real13LedgerTests \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test 2>&1 | tee "$RUNNER_TEMP/real13.log"
+          grep -E 'Test Case .*(passed|failed|skipped)|Executed [0-9]+ test' "$RUNNER_TEMP/real13.log" || true
+          # 1.4: a class that did not run cannot pass unseen (Real13LedgerTests has five tests).
+          grep -Eq 'Executed 5 tests?, with 0 failures' "$RUNNER_TEMP/real13.log" || { echo "::error::Real13LedgerTests did not run its 5 tests with 0 failures (docs/M7D_CONTRACT.md §5.3 3)."; exit 1; }
+
   # 1.2 (docs/M7B_CONTRACT.md §7.5, §7.6, §4.4, §4.5, §10.7, §8 8): the other nine languages, seen by the
   # lead and the owner without being able to read them. Next to the other jobs (no `needs`). No test here;
-  # a photo that fails is only a warning, so this job fails only when the app does not build. 63 photos in
+  # a photo that fails is only a warning, so this job fails only when the app does not build (1.4, docs/M7D_CONTRACT.md
+  # §3.2: or when a simulator of its table is missing or another was taken, "Required simulators"). 63 photos in
   # shots/l10n (artifact "l10n-screenshots", kept 7 days), each language with its region's holidays and week
   # start (en_US, zh_*, ko_KR, es_MX and pt_BR start on a Sunday, fr_FR, de_DE and it_IT on a Monday):
   #   <language>/ipad13-portrait-{month,day}.png, iphone-portrait-{week,year}.png     36
@@ -1672,8 +2482,9 @@ jobs:
     name: Localized shots (1.2)
     # 1.3's work branches (r13-w-*) skip the two photo jobs so the macOS runners stay free for the jobs the
     # work needs; r13 and main run everything (docs/M7C.md, S1 の残り). Nor on r13-quick (§10.6).
-    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
-    runs-on: macos-26
+    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-')) }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
+    runs-on: xcode-27
     timeout-minutes: 75
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -1686,20 +2497,137 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
           fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
           xcode-select -p
           xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            ipad13|iPad Pro 13-inch (M5)|27.2
+            iphone|iPhone 17|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
       - name: Install XcodeGen
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       - name: Generate the Xcode project
         run: |
@@ -1733,10 +2661,43 @@ jobs:
           LOG="$OUT/pseudo/l10n-log.txt"
           mkdir -p "$OUT/pseudo"
           : > "$LOG"
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt), then each
+          # device it takes ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > "$OUT/env.txt" || echo "::warning::env.txt could not all be written"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
           if [ -z "$APP" ]; then
             echo "::warning::TegakiCalendar.app not found under build/DerivedData; no shots."
             exit 0
           fi
+          # 1.4 D0b (docs/M7D_CONTRACT.md §3.5 (f); docs/M7D.md, D0b; build-and-test's 13-inch photo step says why): `shoot`
+          # checks each photo's handwriting (tools/shots/ink_check.swift against tools/shots/ink_ref.tsv, whose lines of this
+          # job are named <folder>/<file>) and takes a short one again with the same launch and wait, at most twice; then the
+          # take with the fewest pixels short stays, with a warning (a notice when a retake is complete; no more takes again
+          # after 3 such photos of a device, or 180 s of them in this step). Every result is a line of shots/l10n/ink.txt
+          # (tools/shots/ink_retake.sh). INK_STALE counts per device.
+          INK_LOG="$OUT/ink.txt"
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          ink_build
           # language|region (docs/M7B_CONTRACT.md §7.5)
           LANGS="en|en_US zh-Hans|zh_CN zh-Hant|zh_TW ko|ko_KR fr|fr_FR de|de_DE it|it_IT es|es_MX pt-BR|pt_BR"
           lang_args() {  # the launch arguments of a language: it, its region, that region's holidays and week start
@@ -1761,6 +2722,7 @@ jobs:
             # none in the prototype's span-shots, removed in S6, which read the whole list). An app not in the list, or no list, still warns.
             xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FOLDER/$FILE)"
             xcrun simctl io "$UDID" screenshot "$OUT/$FOLDER/$FILE" || echo "::warning::screenshot failed ($FOLDER/$FILE)"
+            ink_retake "$OUT/$FOLDER/$FILE" "$FOLDER/$FILE" 9 --screenshot-mode --screenshot-month 2026-10 "$@"
           }
           # device-id | exact first choice | prefix fallbacks (in order)
           for SPEC in "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13,iPad Air 13" \
@@ -1772,14 +2734,18 @@ jobs:
           def version(runtime):                                  # "…iOS-26-5" → (26, 5)
               m = re.search(r"iOS-(\d+)-(\d+)", runtime)
               return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-          found = {}                                             # name → (udid, version): the newest iOS
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
+          found = {}                                             # name → (udid, key): one Required resolved (1.4) > the newest iOS
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
                       continue
-                  key = version(runtime)
+                  key = (d["udid"] in required, version(runtime))
                   if d["name"] not in found or key > found[d["name"]][1]:
                       found[d["name"]] = (d["udid"], key)
           exact = os.environ["SIM_EXACT"]
@@ -1793,9 +2759,11 @@ jobs:
                       raise SystemExit
           print("")
           ' || true)"
-            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID (docs/M7D_CONTRACT.md §3.2); the job fails at \"The simulators used are the table's\"."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
+            INK_STALE=0
+            sim_env "$ID" "$UDID" >> "$OUT/env.txt" || echo "::warning::no runtime line for $ID"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
             xcrun simctl ui "$UDID" appearance light || true
@@ -1854,7 +2822,14 @@ jobs:
             sleep 12
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             echo "== $ID: $NAME" >> "$LOG"
+            FROM="$(wc -l < "$LOG" | tr -d ' ')"
             xcrun simctl spawn "$UDID" log show --last 40m --style compact --predicate 'process == "TegakiCalendar"' >> "$LOG" 2>&1 || true
+            # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): this device's part of the log, its reach (on the
+            # iOS 27 simulators `log show` gives the app's NSLog lines as "<compose failure …>", and the counts of the
+            # next step, whose expected value is 0, then pass without a sign) and its `l10n: holidays loaded` lines
+            # (tools/ci/log-reach.sh).
+            tail -n "+$((FROM + 1))" "$LOG" > "$RUNNER_TEMP/l10n-log-$ID.txt" || true
+            bash tools/ci/log-reach.sh "l10n-shots $ID (log show, its part of $LOG)" "$RUNNER_TEMP/l10n-log-$ID.txt" 'l10n: holidays loaded' || true
             xcrun simctl shutdown "$UDID" || true
           done
           find "$OUT" -name '*.png' | sort
@@ -1884,6 +2859,11 @@ jobs:
           [ "$PHOTOS" = "63" ] || echo "::warning::$PHOTOS photos, 63 expected."
           [ "$MISSING" = "0" ] || echo "::warning::$MISSING keys the app did not find (l10n: missing)."
           [ "${NOT_LOCALIZED:-0}" = "0" ] || echo "::warning::$NOT_LOCALIZED non-localized lines of the app's bundle."
+          # 1.4 D0b (docs/M7D.md, D0b): without the app's lines (on the iOS 27 simulators `log show` gives its NSLog
+          # lines as "<compose failure …>") both counts above are 0, the expected value; the holidays' line is in every
+          # launch's log.
+          COMPOSE="$({ grep -c '<compose failure' "$LOG" || true; } | head -n 1)"
+          [ -n "$HOLIDAYS" ] || echo "::warning::no \`l10n: holidays loaded\` line in $LOG (${COMPOSE:-0} lines log show could not compose): the two counts above did not reach the app's lines."
           {
             echo "### l10n-shots"
             echo ""
@@ -1891,6 +2871,7 @@ jobs:
             echo "- keys the app did not find (\`l10n: missing\`): $MISSING (0 expected)"
             echo "- non-localized lines of the app's bundle: ${NOT_LOCALIZED:-0} (0 expected)"
             echo "- the slowest \`l10n: holidays loaded\`: ${HOLIDAYS:-none}"
+            echo "- lines \`log show\` could not compose (\`<compose failure …>\`, 1.4 D0b): ${COMPOSE:-0} (0 expected)"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the shots
@@ -1902,19 +2883,93 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        env:
+          ENV_TXT: shots/l10n/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
   # 1.1.1 (docs/R1_1_1.md): the paper with no events and no handwriting on the owner's four kinds of
   # device, portrait and landscape, toolbar out and folded, to compare before and after the fix. Its
-  # own job so the other shots and the 90-minute job do not change. Best effort: never fails the run.
+  # own job so the other shots and the 90-minute job do not change. Best effort: never fails the run (1.4,
+  # docs/M7D_CONTRACT.md §3.2: the job itself turns red when a simulator of its table is missing or another was taken;
+  # the run does not, `continue-on-error` being the job's).
   # The limits, from run 41264726309: a build took 0.9 min (8 is allowed for), a device 5.8–9.6 min
   # (its boot 1.9–3.2, the 60 s wait, xcodebuild up to the first test 1.1, 10 or 13 shots of 11–15 s, and
   # at most 1 for a slow first test), so 24–36 min for the four. The shots stop after 46 min, which
   # leaves the upload inside the 55. 36 was too short: run 80 (fix-1-1-1) was stopped while booting the
   # last device, the owner's iPad Air 11-inch, and took 33 of the 43 photos.
+  # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): the same in D0 (run 44632524223, image
+  # 20261104.0337.1): the step hit its 46 min 3.6 min after choosing the iPad Air 11-inch, with 33 of the 43 photos, and
+  # the job stayed green. The devices took 11.5 (iPhone 18 Pro Max), 18.1 (13-inch) and 13.2 min (mini) against 1.3's
+  # 11.9, 8.9 and 8.8 (run 44474759145); the 11-inch's 9.3 at 1.5–2 times is 14–19, so the four take about 42.8 + 19 ≈
+  # 62 min. The shots stop after 70 (8 over it) and the job after 80 (the rest took 6.1 in D0, the upload 2.9 of it).
   blank-paper:
     name: Blank paper shots (1.1.1)
-    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
-    runs-on: macos-26
-    timeout-minutes: 55
+    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-')) }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
+    runs-on: xcode-27
+    timeout-minutes: 80
     continue-on-error: true
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -1925,20 +2980,139 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
           fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
           xcode-select -p
           xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            iphone69|iPhone 18 Pro Max|27.2
+            ipad13|iPad Pro 13-inch (M5)|27.2
+            ipadmini|iPad mini (A17 Pro)|27.0
+            ipad11|iPad Air 11-inch (M4)|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
       - name: Install XcodeGen
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       - name: Generate the Xcode project
         run: |
@@ -1946,7 +3120,8 @@ jobs:
           xcodegen generate
 
       # Built once, before anything boots: the products run on all four devices (one platform, one
-      # architecture; TARGETED_DEVICE_FAMILY is 1,2).
+      # architecture; TARGETED_DEVICE_FAMILY is 1,2). 1.4 (docs/M7D_CONTRACT.md §3.2): the destination is the table's
+      # 13-inch iPad by its UDID ("Required simulators"), like the other steps, no longer by its name.
       - name: Build the UI tests
         run: |
           set -euo pipefail
@@ -1954,7 +3129,7 @@ jobs:
             -project TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=iPad Pro 13-inch (M5)" \
+            -destination "platform=iOS Simulator,id=${{ steps.required.outputs.ipad13 }}" \
             -derivedDataPath build/BlankData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -1968,13 +3143,37 @@ jobs:
       # owner's iPad Air 11-inch (820 × 1180); the first job's ipad11 photos stay the iPad Pro 11-inch.
       # If no PNG arrived, the attachments are taken out of the result bundle instead.
       - name: Shots on four devices
-        timeout-minutes: 46
+        timeout-minutes: 70
         continue-on-error: true
         run: |
           set -uo pipefail
           mkdir -p shots/blank
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt), then each
+          # device it takes ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > shots/blank/env.txt || echo "::warning::env.txt could not all be written"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
           # device-id | exact first choice | prefix fallbacks (in order)
-          for SPEC in "iphone69|iPhone 17 Pro Max|iPhone 17 Pro Max,iPhone 16 Pro Max" \
+          for SPEC in "iphone69|iPhone 18 Pro Max|iPhone 18 Pro Max,iPhone 17 Pro Max" \
                       "ipad13|iPad Pro 13-inch (M5)|iPad Pro 13" \
                       "ipadmini|iPad mini (A17 Pro)|iPad mini" \
                       "ipad11|iPad Air 11-inch (M4)|iPad Air 11,iPad Pro 11"; do
@@ -1985,14 +3184,18 @@ jobs:
           def version(runtime):                                  # "…iOS-26-5" → (26, 5)
               m = re.search(r"iOS-(\d+)-(\d+)", runtime)
               return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-          found = {}                                             # name → (udid, version): the newest iOS
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
+          found = {}                                             # name → (udid, key): one Required resolved (1.4) > the newest iOS
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
                       continue
-                  key = version(runtime)
+                  key = (d["udid"] in required, version(runtime))
                   if d["name"] not in found or key > found[d["name"]][1]:
                       found[d["name"]] = (d["udid"], key)
           exact = os.environ["SIM_EXACT"]
@@ -2006,9 +3209,10 @@ jobs:
                       raise SystemExit
           print("")
           ' || true)"
-            if [ -z "$FOUND" ]; then echo "::warning::No simulator for $ID; skipping."; continue; fi
+            if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID (docs/M7D_CONTRACT.md §3.2); the job fails at \"The simulators used are the table's\"."; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
+            sim_env "$ID" "$UDID" >> shots/blank/env.txt || echo "::warning::no runtime line for $ID"
             xcrun simctl boot "$UDID" || true
             xcrun simctl bootstatus "$UDID" -b || { echo "::warning::$ID ($NAME) did not boot; skipping."; continue; }
             xcrun simctl ui "$UDID" appearance light || true
@@ -2044,6 +3248,72 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        env:
+          ENV_TXT: shots/blank/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
   # 1.3 (docs/M7C_CONTRACT.md §10.5 (2); the wave C plan §3.3, §7.6 with DECISIONS C3-m1, C3-m3, C3-m4 and C3-M4; docs/M7C.md,
   # wave C1's lead decisions and the plan of wave C2): the joined pages photographed from the NORMAL app (the prototype's job,
   # span-shots (1.3 prototype), went with S6; tag r13-proto-1). The Debug app and its two test bundles are built for testing once
@@ -2066,7 +3336,8 @@ jobs:
   #     be 7,920 lu tall (the probe's `ph`: the 24 hours and the memo's 6,000), and the gates step fails unless there are 4.
   # XCUIScreenshot cuts a screen turned with XCUIDevice (blank-paper's landscape photos of run 43584152837: a third of the
   # screen, sideways), so the test asks this job for those photos: it writes a request into $RUNNER_TEMP, and `watch_photos`
-  # answers with `simctl io screenshot`, stood up with `sips -r 270` as the first job's iPhone landscape photos are.
+  # answers with `simctl io screenshot`, stood up with `sips -r 270` as the first job's iPhone landscape photos are (1.4
+  # D0b: as there, only a PNG taller than wide; the iOS 27.2 simulator writes it in landscape already).
   # The test's lines for the job are in shots/span-app/lines/<device>.txt (not read from xcodebuild's output, where an app's
   # log line can cut one, as in the prototype's span-shots job, removed in S6). Then the neighbour ink's PDF (ScreenPathsSpanTests'
   # testPDFDrawsNeighborInkWithoutPrefixedNamesInThePage writes it with TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT; `sips` makes a
@@ -2094,11 +3365,19 @@ jobs:
   # on each of 2 devices (each waits at most 45 s for its path; SpanShotsUITests.weekMemo), about 2–4 min; the four
   # devices took 44.8 min in r13-w-s5w-screen 44260458163 just before it. Its first runs are measured in docs/M7C.md; past
   # 60 min the limit is looked at again.
+  # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 9, §3.8; docs/M7D.md, D0b): the four devices' step 65 → 80 and the job 90 → 110.
+  # 1.3's step took 45.8 min (run 44474759145). In D0 (run 44632524223) the iPad Air 11-inch kept 1.3's pace (9:47 from
+  # choosing it to "Running tests", 9:21 in 1.3) until XCUITest's "Setting device orientation to Portrait" hung; the
+  # other jobs on xcode-27 took 1.11–1.19 times 1.3's (l10n-shots, ui-tests) and blank-paper about 1.5. At 1.2 the step
+  # is 55 min, and one watchdog stop with its one more run (the step below) adds about 25: 10 of silence, 1 to end
+  # xcodebuild, 5 to boot the device again, 1 for the banner, 8 for the four tests, so 80. The job: 80 + 1.3's other
+  # steps (20.1 min, the languages 15.5 of it) × 1.2 ≈ 104, so 110.
   span-shots-app:
     name: span-shots (1.3 app)
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-')) }}
-    runs-on: macos-26
-    timeout-minutes: 90
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-')) }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
+    runs-on: xcode-27
+    timeout-minutes: 110
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -2109,22 +3388,143 @@ jobs:
         uses: actions/checkout@v4
         timeout-minutes: 5
 
-      - name: Select Xcode
-        timeout-minutes: 5
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
+        # 1.4: 5 → 10 for -runFirstLaunch.
+        timeout-minutes: 10
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_26.6.app ]; then
-            sudo xcode-select -s /Applications/Xcode_26.6.app
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
           fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
           xcode-select -p
           xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
 
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        timeout-minutes: 5
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            ipad11|iPad Air 11-inch (M4)|27.2
+            ipadmini|iPad mini (A17 Pro)|27.0
+            ipad13|iPad Pro 13-inch (M5)|27.2
+            iphone|iPhone 17|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
       - name: Install XcodeGen
         timeout-minutes: 10
         run: |
           set -euo pipefail
-          brew install xcodegen
-          xcodegen --version
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
 
       - name: Generate the Xcode project
         timeout-minutes: 5
@@ -2155,13 +3555,36 @@ jobs:
       # the other devices have had their turn.
       - name: Shots on four devices (SpanShotsUITests)
         id: devices
-        timeout-minutes: 65
+        timeout-minutes: 80
         run: |
           set -uo pipefail
           OUT="$PWD/shots/span-app"
           REQUESTS="$RUNNER_TEMP/span-photo-requests"
           mkdir -p "$OUT/lines" "$REQUESTS"
-          xcodebuild -version > "$OUT/env.txt" || true
+          # 1.4 (docs/M7D_CONTRACT.md §3.3 3, gate 8): this job's environment (the lines of build.yml's env.txt), then each
+          # device it takes ("<id>: <name> | <runtime> (<build>)", sim_env), which "The simulators used are the table's" reads.
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > "$OUT/env.txt" || echo "::warning::env.txt could not all be written"
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
           FAILED=0
           # The photos of a turned screen (SpanShotsUITests.simulatorPhoto): a request <name>.request holds the file (under
           # $OUT) and the turn; the answer <name>.request.done ("ok" or "failed") is written whole, then renamed.
@@ -2176,7 +3599,19 @@ jobs:
                 ANSWER=failed
                 if [ -n "$FILE" ] && mkdir -p "$(dirname "$OUT/$FILE")" && xcrun simctl io "$1" screenshot "$OUT/$FILE" > /dev/null 2>&1; then
                   ANSWER=ok
-                  if [ -n "$TURN" ] && ! sips -r "$TURN" "$OUT/$FILE" > /dev/null 2>&1; then ANSWER=failed; fi
+                  # 1.4 D0b (docs/M7D.md, D0b; the rule of docs/M7D_CONTRACT.md §3.5 (g)): the iOS 27.2 simulator writes a
+                  # turned screen's photo in landscape already (D0, run 44632524223: turned by the test's 270° the iPad Air
+                  # 11-inch's landscape margin photos came out 1640x2360, and span_margin cannot count them), so the photo
+                  # is turned only when the PNG is taller than wide (until iOS 26 it always was); a PNG whose size cannot be
+                  # read is a failed photo, as a failed turn was. The test's request (SpanShotsUITests.swift, frozen in
+                  # TESTS_1_3) still says 270.
+                  if [ -n "$TURN" ]; then
+                    TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$OUT/$FILE" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+                    case "$TURN_SIZE" in
+                      ''|"0 "*|*" 0") ANSWER=failed ;;
+                      *) if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ] && ! sips -r "$TURN" "$OUT/$FILE" > /dev/null 2>&1; then ANSWER=failed; fi ;;
+                    esac
+                  fi
                 fi
                 echo "the photo $FILE for the test: $ANSWER"
                 echo "$ANSWER" > "$REQ.done.part"
@@ -2197,14 +3632,18 @@ jobs:
           def version(runtime):                                  # "…iOS-26-5" → (26, 5)
               m = re.search(r"iOS-(\d+)-(\d+)", runtime)
               return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-          found = {}                                             # name → (udid, version): the newest iOS
+          try:                                                   # 1.4 (docs/M7D_CONTRACT.md §3.2): "Required simulators"
+              required = set(open(os.path.join(os.environ["RUNNER_TEMP"], "required-simulators-udids.txt"), encoding="utf-8").read().split())
+          except (KeyError, OSError):
+              required = set()
+          found = {}                                             # name → (udid, key): one Required resolved (1.4) > the newest iOS
           for runtime, items in devices.items():
               if "iOS" not in runtime:
                   continue
               for d in items:
                   if not (d.get("isAvailable") and d.get("name") and d.get("udid")):
                       continue
-                  key = version(runtime)
+                  key = (d["udid"] in required, version(runtime))
                   if d["name"] not in found or key > found[d["name"]][1]:
                       found[d["name"]] = (d["udid"], key)
           exact = os.environ["SIM_EXACT"]
@@ -2221,14 +3660,38 @@ jobs:
             if [ -z "$FOUND" ]; then echo "::error::No simulator for $ID."; FAILED=1; continue; fi
             NAME="${FOUND%%|*}"; UDID="${FOUND##*|}"
             echo "$ID: $NAME ($UDID)"
-            echo "$ID: $NAME" >> "$OUT/env.txt"
+            sim_env "$ID" "$UDID" >> "$OUT/env.txt" || echo "::warning::no runtime line for $ID"
             STARTED="$(date +%s)"
             xcrun simctl boot "$UDID" 2>/dev/null || true
             if ! xcrun simctl bootstatus "$UDID" -b > /dev/null; then echo "::error::$ID ($NAME) did not boot."; FAILED=1; continue; fi
             xcrun simctl ui "$UDID" appearance light || true
             xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
             sleep 60
-            run_shots() {  # run_shots <result bundle suffix>: the four tests on $UDID, the photo watcher beside them
+            # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b; D0 run 44632524223): on the iPad Air 11-inch
+            # XCUITest's "Setting device orientation to Portrait" (SpanShotsUITests.swift:184) wrote nothing for 32 min
+            # and then failed "Failed to get list of active applications: Accessibility error kAXErrorIPCTimeout"; the
+            # job was cancelled 25 min into that silence. In 1.3's run (44474759145) the longest silence between
+            # XCUITest's activity lines was 10.3 s. So xcodebuild is stopped when its log has not grown for STALL s
+            # (TERM, KILL 60 s later), and the watchdog's line (<id>-watchdog.txt, with the last activity line) makes
+            # that the simulator's failure below.
+            STALL=600
+            watchdog() {  # watchdog <pid> <log> <file>: ends <pid> when <log> has not grown for $STALL s, writing <file>
+              local SIZE SEEN=-1 QUIET=0
+              while kill -0 "$1" 2>/dev/null; do
+                sleep 15
+                SIZE="$(wc -c < "$2" 2>/dev/null | tr -d ' ' || echo 0)"
+                if [ "$SIZE" != "$SEEN" ]; then SEEN="$SIZE"; QUIET=0; continue; fi
+                QUIET=$(( QUIET + 15 ))
+                if [ "$QUIET" -ge "$STALL" ]; then
+                  echo "watchdog: no output for $QUIET s after \"$(grep -E '^ +t = ' "$2" | tail -n 1 | sed -E 's/^ +//')\"" > "$3"
+                  kill -TERM "$1" 2>/dev/null || true
+                  sleep 60
+                  kill -KILL "$1" 2>/dev/null || true
+                  return 0
+                fi
+              done
+            }
+            run_shots() {  # run_shots <result bundle suffix>: the four tests on $UDID, the photo watcher and the watchdog beside them
               watch_photos "$UDID" &
               WATCHER=$!
               STATUS=0
@@ -2244,26 +3707,58 @@ jobs:
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testOldVersionMargins \
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testShiftPairs \
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testWeekMemo \
-                test-without-building > "$OUT/$ID-tests.log" 2>&1 || STATUS=$?
-              kill "$WATCHER" 2>/dev/null || true
+                test-without-building > "$OUT/$ID-tests.log" 2>&1 &
+              TESTS=$!
+              watchdog "$TESTS" "$OUT/$ID-tests.log" "$OUT/$ID-watchdog$1.txt" &
+              DOG=$!
+              wait "$TESTS" || STATUS=$?
+              kill "$DOG" "$WATCHER" 2>/dev/null || true
+              wait "$DOG" 2>/dev/null || true
               wait "$WATCHER" 2>/dev/null || true
+              # A run the watchdog stopped is a failure even if xcodebuild ended with 0 on its TERM (143: TERM's status).
+              if [ -s "$OUT/$ID-watchdog$1.txt" ] && [ "$STATUS" = 0 ]; then STATUS=143; fi
             }
             run_shots ""
             # The simulator, not the app (docs/M7C.md, FLAKE-1): in runs with every job a launch has timed out
             # (ipad13, r13-w-ui1 43681366335) and the background assertion has timed out (iphone, r13 43699389888). Only
             # then the device's tests run once more; any other failure stands. The first log is kept as <id>-tests-first.log.
-            SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing'
-            if [ "$STATUS" != 0 ] && grep -qE "$SIMULATOR" "$OUT/$ID-tests.log"; then
-              echo "::warning::$ID: $(grep -oE "$SIMULATOR" "$OUT/$ID-tests.log" | head -n 1); the device's tests run once more."
+            # 1.4 D0b (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0b): the simulator's accessibility that stops answering
+            # ("Failed to get list of active applications: Accessibility error kAXErrorIPCTimeout", D0's iPad Air
+            # 11-inch; kAXErrorIPC takes the other IPC errors too) and the watchdog's stop above are the simulator's as
+            # well (WEDGED); for them the device is shut down and booted again, with the 60 s for the banner, before its
+            # one more run.
+            SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing|kAXErrorIPC|Failed to get list of active applications'
+            WEDGED='kAXErrorIPC|Failed to get list of active applications'
+            if [ "$STATUS" != 0 ] && { [ -s "$OUT/$ID-watchdog.txt" ] || grep -qE "$SIMULATOR" "$OUT/$ID-tests.log"; }; then
+              WHY="$(cat "$OUT/$ID-watchdog.txt" 2>/dev/null || grep -oE "$SIMULATOR" "$OUT/$ID-tests.log" | head -n 1)"
+              echo "::warning::$ID: $WHY; the device's tests run once more."
               mv "$OUT/$ID-tests.log" "$OUT/$ID-tests-first.log"
+              if [ -s "$OUT/$ID-watchdog.txt" ] || grep -qE "$WEDGED" "$OUT/$ID-tests-first.log"; then
+                xcrun simctl shutdown "$UDID" || true
+                xcrun simctl boot "$UDID" 2>/dev/null || true
+                if ! xcrun simctl bootstatus "$UDID" -b > /dev/null; then echo "::warning::$ID ($NAME) did not boot again."; fi
+                xcrun simctl ui "$UDID" appearance light || true
+                xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+                sleep 60
+              fi
               run_shots "-again"
+              if [ -s "$OUT/$ID-watchdog-again.txt" ]; then echo "::error::$ID: $(cat "$OUT/$ID-watchdog-again.txt") (the one more run)."; fi
             fi
             grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/$ID-tests.log" | tail -n 30 || true
             if [ "$STATUS" != 0 ]; then echo "::error::SpanShotsUITests on $ID ended with $STATUS (shots/span-app/$ID-tests.log)."; FAILED=1; fi
             echo "$ID: $(find "$OUT" -maxdepth 1 -name "$ID-*.png" | wc -l | tr -d ' ') photos, $(( $(date +%s) - STARTED )) s with the boot"
             MINUTES=$(( ($(date +%s) - STARTED) / 60 + 2 ))
             xcrun simctl spawn "$UDID" log show --last "${MINUTES}m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/$ID-log.txt" 2>&1 || true
-            grep -E 'span shot: ' "$OUT/$ID-log.txt" | awk '{ i = index($0, "span shot: "); if (i > 1) $0 = substr($0, i); print }' || true
+            # 1.4 D0b (docs/M7D_CONTRACT.md §3.3 3, §3.8; docs/M7D.md, D0b): on the iOS 27 simulators `log show` gives
+            # the app's NSLog lines as "<compose failure …>" (D0, run 44632524223: no `toolbar: paperArea=` line on any
+            # device), so the log's reach is printed and warned (tools/ci/log-reach.sh), and the stdout and stderr
+            # XCTest kept of the app the tests launched are taken out of the result bundles into <id>-app-output.txt
+            # (tools/ci/xcresult-app-output.sh, best effort; NSLog writes its lines there too). Gate 3 reads
+            # shots/span-app/lines/<id>.txt (frame=, the state).
+            bash tools/ci/log-reach.sh "span-shots $ID (log show)" "$OUT/$ID-log.txt" 'toolbar: paperArea=' || true
+            bash tools/ci/xcresult-app-output.sh "$OUT/$ID-app-output.txt" "build/span-app-$ID.xcresult" "build/span-app-$ID-again.xcresult" || true
+            bash tools/ci/log-reach.sh "span-shots $ID (the app's output)" "$OUT/$ID-app-output.txt" 'toolbar: paperArea=' || true
+            grep -h -E 'span shot: ' "$OUT/$ID-log.txt" "$OUT/$ID-app-output.txt" 2>/dev/null | awk '{ i = index($0, "span shot: "); if (i > 1) $0 = substr($0, i); print }' || true
             find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} "$OUT/" \; 2>/dev/null || true
             if [ "$ID" = "iphone" ]; then
               echo "iphone=$UDID" >> "$GITHUB_OUTPUT"
@@ -2273,6 +3768,55 @@ jobs:
           done
           ls -la "$OUT"
           exit "$FAILED"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        timeout-minutes: 3
+        env:
+          ENV_TXT: shots/span-app/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
 
       # The neighbour ink's PDF (§3.11): the unit test writes the PDF of a joined week whose crossing stroke belongs to the
       # page before (TEGAKI_SPAN_SHOT_OUT), on the iPhone booted above; `sips` makes a PNG of its page (2,400 px).
@@ -2431,6 +3975,31 @@ jobs:
           if [ "$MEMO" != 4 ]; then echo "::error::$MEMO week memo photos, 4 expected (the iPad Air 11-inch and the iPhone 17, single and band)."; FAILED=1; fi
           exit "$FAILED"
 
+      # 1.4 D1d (docs/M7D.md, "D1 の残りに足す"): the handwriting of the photos above (shots/span-app, not its lang/ folder),
+      # a warning only, as in ui-tests: tools/shots/xcui_ink.py and tools/shots/ink_check.swift against the
+      # "span-shots-app/" lines of tools/shots/ink_ref_xcui.tsv (run 44676125566 attempt 1, image 20261104.0337.1), with
+      # shots/span-app/ink-xcui.tsv in the artifact. Never fails the job. After the gates' three swiftc, this one is short.
+      - name: The span shots' handwriting (a warning only, 1.4 D1d)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 6
+        run: |
+          set -uo pipefail
+          TOOL="$RUNNER_TEMP/xcui-ink"
+          mkdir -p "$TOOL"
+          if ! ls shots/span-app/*.png > /dev/null 2>&1; then
+            echo "No photo in shots/span-app to check."
+            exit 0
+          fi
+          if ! swiftc -O tools/shots/ink_check.swift -o "$TOOL/ink_check" > "$TOOL/build.log" 2>&1; then
+            cat "$TOOL/build.log" || true
+            echo "::warning::tools/shots/ink_check.swift did not compile: the span shots' handwriting is not checked (docs/M7D.md, D1d)."
+            exit 0
+          fi
+          python3 -I tools/shots/xcui_ink.py check --ink "$TOOL/ink_check" --ref tools/shots/ink_ref_xcui.tsv \
+            --prefix span-shots-app/ --folder shots/span-app --out shots/span-app/ink-xcui.tsv --label "span-shots-app" || true
+          exit 0
+
       # overwrite: a re-run of this job (gh run rerun --failed) replaces the photos of the attempt before.
       - name: Upload the span shots of the app
         if: always()
@@ -2445,9 +4014,11 @@ jobs:
 
       # C3-m1: on r13 and the integration branches only. The languages of l10n-shots and Japanese, each with its region's
       # holidays and week start; the N-8 text from the string catalogue (TEGAKI_SPAN_SHOT_STRINGS). Fails when the test fails.
-      - name: Language photos (iPhone 17; r13 and r13-s5c* only)
+      # 1.4 (docs/M7D_CONTRACT.md §3.6): on r14 too, so D0's run on r14 has the artifact span-shots-app-languages that the
+      # map of the SDK's differences compares with run 44474759145's.
+      - name: Language photos (iPhone 17; r13, r13-s5c* and r14 only)
         id: languages
-        if: ${{ !cancelled() && steps.devices.outputs.iphone != '' && (github.ref_name == 'r13' || startsWith(github.ref_name, 'r13-s5c')) }}
+        if: ${{ !cancelled() && steps.devices.outputs.iphone != '' && (github.ref_name == 'r13' || startsWith(github.ref_name, 'r13-s5c') || github.ref_name == 'r14') }}
         timeout-minutes: 25
         run: |
           set -uo pipefail
@@ -2469,8 +4040,13 @@ jobs:
           grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/lang/languages-tests.log" | tail -n 30 || true
           MINUTES=$(( ($(date +%s) - STARTED) / 60 + 2 ))
           xcrun simctl spawn "$UDID" log show --last "${MINUTES}m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/lang/languages-log.txt" 2>&1 || true
-          MISSING="$({ grep 'l10n: missing' "$OUT/lang/languages-log.txt" || true; } | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
-          { grep 'l10n: missing' "$OUT/lang/languages-log.txt" || true; } | sed 's/.*l10n: missing //' | sort -u
+          # 1.4 D0b (docs/M7D.md, D0b): the log's reach, and the app's stdout and stderr out of the result bundle, as in
+          # "Shots on four devices (SpanShotsUITests)"; the keys the app did not find are read from both.
+          bash tools/ci/log-reach.sh "language photos (log show)" "$OUT/lang/languages-log.txt" 'l10n: ui=' || true
+          bash tools/ci/xcresult-app-output.sh "$OUT/lang/languages-app-output.txt" build/span-app-languages.xcresult || true
+          bash tools/ci/log-reach.sh "language photos (the app's output)" "$OUT/lang/languages-app-output.txt" 'l10n: ui=' || true
+          MISSING="$({ grep -h 'l10n: missing' "$OUT/lang/languages-log.txt" "$OUT/lang/languages-app-output.txt" 2>/dev/null || true; } | sed 's/.*l10n: missing //' | sort -u | wc -l | tr -d ' ')"
+          { grep -h 'l10n: missing' "$OUT/lang/languages-log.txt" "$OUT/lang/languages-app-output.txt" 2>/dev/null || true; } | sed 's/.*l10n: missing //' | sort -u
           echo "$MISSING" > "$OUT/lang/l10n-missing.txt"
           echo "keys the app did not find (l10n: missing): $MISSING"
           if [ "$MISSING" != 0 ]; then echo "::warning::$MISSING keys the app did not find in the language photos (l10n: missing)."; fi
@@ -2527,7 +4103,7 @@ jobs:
             echo ""
             if [ -s "$OUT/shift-pairs.txt" ]; then sed 's/^/- /' "$OUT/shift-pairs.txt"; else echo "- (none)"; fi
             echo ""
-            echo "#### Languages (r13 and r13-s5c* only)"
+            echo "#### Languages (r13, r13-s5c* and r14 only)"
             echo ""
             if [ -d "$OUT/lang" ]; then
               echo "| language | photos (6 expected) |"
@@ -2543,3 +4119,21 @@ jobs:
               echo "- not taken on this branch"
             fi
           } >> "$SUMMARY"
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi

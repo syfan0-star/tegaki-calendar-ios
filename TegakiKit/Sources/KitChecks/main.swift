@@ -50,6 +50,10 @@ if CommandLine.arguments.contains("--write-compat-fixtures") {
 // (docs/M7C_CONTRACT.md §4.2, §6.3; SpanInkChecks.swift).
 if CommandLine.arguments.contains("--write-compat-span-fixtures") { writeCompatSpanFixtures() }
 
+// 1.4: --span-state <kind> <class> <orientation> <w>x<h> [cap|nocap] prints one paper area's window plan and exits without
+// running the checks (docs/M7D_CONTRACT.md §3.3 gate 3 (b), §4.6; DuoChecks.swift).
+runSpanStateIfAsked()
+
 // MARK: - Tiny check harness
 
 var failures: [String] = []
@@ -5451,6 +5455,8 @@ runSpanChecks() // 1.3: the joined pages, section "span (1.3)" (SpanChecks.swift
 runSpanInkChecks() // 1.3: their ink, section "span ink (1.3)" (SpanInkChecks.swift, docs/M7C_CONTRACT.md §10.1)
 runWeekMemoChecks() // 1.3: the week memo, section "week memo (1.3)" (WeekMemoChecks.swift, docs/M7C_CONTRACT.md §5, §10.1)
 runOverviewCapChecks() // 1.3: the iPhone's landscape cap (P-B6 イ), section "overview cap (1.3)" (OverviewCapChecks.swift, docs/M7C_CONTRACT.md §3.6, §10.1)
+runDuoChecks() // 1.4: the iPhone Duo's span plans, section "duo (1.4)" (DuoChecks.swift, docs/M7D_CONTRACT.md §4.6, §4.7, §6)
+runWindowFingerChecks() // 1.4: WindowClass and FingerDefault, section "window & finger (1.4)" (WindowFingerChecks.swift, docs/M7D_CONTRACT.md §4.3, §4.4, §4.7, §4.8, §6)
 
 // MARK: - 1.2: the languages (docs/M7B_CONTRACT.md §0, §2.1, 0-1, 0-2, 0-8, §7.1)
 
