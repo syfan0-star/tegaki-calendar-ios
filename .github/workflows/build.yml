@@ -667,9 +667,9 @@ jobs:
           if [ "$QUICK" = "true" ] && [ "$MUTATIONS" = "true" ]; then
             echo "the quick lane on r14-q-m1 (the app's mutations, docs/M7D_CONTRACT.md §6): every unit test class"
           elif [ "$QUICK" = "true" ]; then
-            CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
-              | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests)$' | sort -u || true)"
+            # r14-q-skprobe (1.4 D3 probe, never merged): the probe class alone; StoreKitSessionTests runs 10 times in the
+            # step "Probe: StoreKitSessionTests 10 times" below.
+            CLASSES="ProbeStoreKitEnvSpanTests"
             if [ -z "$CLASSES" ]; then
               echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
@@ -708,6 +708,95 @@ jobs:
           if [ -f "$LOG" ]; then
             grep -iE 'repro:|expected failure' "$LOG" | awk '{ i = index($0, "repro:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
           fi
+
+      # r14-q-skprobe only (1.4 D3 probe, never merged): StoreKitSessionTests as r14 has it, 10 times, each run a fresh launch
+      # of the test host (test-without-building on the build of the step above), to count how often and how it fails on
+      # iOS 27.2 (24B8117) after the two failures of CI run 44802640918. The iPad is booted once before the runs, so that
+      # xcodebuild leaves it running between them (it shuts down only a simulator it booted itself); each run has a watchdog
+      # of 6 minutes. Per run one line "probe-sk-loop: i=<n> result=<passed|failed> failing=<tests or ->", and its store: /
+      # store-test: / Test Case / error: lines, cut at 400 characters, go into $RUNNER_TEMP/sk-loop.log, printed at the end
+      # with a header per run. Never fails the job.
+      - name: "Probe: StoreKitSessionTests 10 times (r14-q-skprobe)"
+        if: ${{ !cancelled() && env.QUICK == 'true' }}
+        continue-on-error: true
+        timeout-minutes: 75
+        run: |
+          set -uo pipefail
+          UDID="${{ steps.required.outputs.ipad13 }}"
+          LOOP_LOG="$RUNNER_TEMP/sk-loop.log"
+          SUMMARY="$RUNNER_TEMP/sk-loop-summary.txt"
+          : > "$LOOP_LOG"
+          : > "$SUMMARY"
+          BOOT_START=$(date +%s)
+          xcrun simctl boot "$UDID" 2>&1 || true
+          if ! xcrun simctl bootstatus "$UDID" -b > /dev/null 2>&1; then
+            echo "probe-sk-loop: bootstatus failed; the runs boot the iPad themselves"
+          fi
+          echo "probe-sk-loop: the iPad booted in $(( $(date +%s) - BOOT_START )) s"
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            ITER_LOG="$RUNNER_TEMP/sk-loop-$i.log"
+            START=$(date +%s)
+            xcodebuild \
+              -project TegakiCalendar.xcodeproj \
+              -scheme TegakiCalendar \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$UDID" \
+              -derivedDataPath build/DerivedData \
+              -only-testing:TegakiCalendarTests/StoreKitSessionTests \
+              -testLanguage ja \
+              -testRegion JP \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              test-without-building < /dev/null > "$ITER_LOG" 2>&1 &
+            PID=$!
+            NOTE="-"
+            while kill -0 "$PID" 2> /dev/null; do
+              if [ $(( $(date +%s) - START )) -ge 360 ]; then
+                NOTE="watchdog-360s"
+                pkill -TERM -P "$PID" 2> /dev/null || true
+                kill -TERM "$PID" 2> /dev/null || true
+                sleep 15
+                pkill -KILL -P "$PID" 2> /dev/null || true
+                kill -KILL "$PID" 2> /dev/null || true
+                break
+              fi
+              sleep 2
+            done
+            # The runner's shell is `bash -e`: every command that may fail here ends in `|| …`.
+            CODE=0
+            wait "$PID" 2> /dev/null || CODE=$?
+            SECS=$(( $(date +%s) - START ))
+            if [ "$NOTE" = "-" ] && grep -q '\*\* TEST SUCCEEDED \*\*' "$ITER_LOG"; then
+              RESULT=passed
+            else
+              RESULT=failed
+              if [ "$NOTE" = "-" ] && ! grep -q '\*\* TEST FAILED \*\*' "$ITER_LOG"; then
+                NOTE="no-TEST-line"
+              fi
+            fi
+            FAILING="$(sed -nE \
+              -e "s/.*Test Case '-\[TegakiCalendarTests\.StoreKitSessionTests ([A-Za-z0-9_]+)\]' failed.*/\1/p" \
+              -e "s/.*Test case 'StoreKitSessionTests\.([A-Za-z0-9_]+)\(\)' failed.*/\1/p" \
+              "$ITER_LOG" | sort -u | awk 'NF { printf "%s%s", (n++ ? "," : ""), $0 }' || true)"
+            PASSED="$(grep -cE "Test Case '-\[TegakiCalendarTests\.StoreKitSessionTests [A-Za-z0-9_]+\]' passed" "$ITER_LOG" || true)"
+            SKIPPED="$(grep -cE "Test Case '-\[TegakiCalendarTests\.StoreKitSessionTests [A-Za-z0-9_]+\]' skipped" "$ITER_LOG" || true)"
+            LINE="probe-sk-loop: i=$i result=$RESULT failing=${FAILING:--} passed=${PASSED:-0} skipped=${SKIPPED:-0} secs=$SECS exit=$CODE note=$NOTE"
+            echo "$LINE"
+            echo "$LINE" >> "$SUMMARY"
+            {
+              echo "==== probe-sk-loop run $i: result=$RESULT failing=${FAILING:--} secs=$SECS exit=$CODE note=$NOTE ===="
+              grep -E 'store: |store-test: |Test [Cc]ase |error: |\*\* TEST |Restarting after|[Cc]rash|Executed [0-9]+ test' "$ITER_LOG" | cut -c1-400 || true
+            } >> "$LOOP_LOG"
+          done
+          echo "==== probe-sk-loop: the runs' store: / store-test: / Test Case / error: lines ($LOOP_LOG) ===="
+          cat "$LOOP_LOG"
+          echo "==== probe-sk-loop: summary ===="
+          cat "$SUMMARY"
+          echo "probe-sk-loop: $(grep -c 'result=failed' "$SUMMARY" || true) of $(grep -c . "$SUMMARY" || true) runs failed"
+          sed -nE 's/.* failing=([^ ]+) .*/\1/p' "$SUMMARY" | tr ',' '\n' | grep -vx -- '-' | sort | uniq -c \
+            | awk '{ print "probe-sk-loop: failed in " $1 " runs: " $2 }' || true
+          xcrun simctl shutdown "$UDID" > /dev/null 2>&1 || true
+          exit 0
 
       # 1.2.3 (docs/R1_2_3.md §4): the sync engine's tests again, 20 times in a row, stopping at the first
       # failure (two of them were flaky in 1.2.2's CI, runs 42531490670 and 42438495112; TestSleeper and
