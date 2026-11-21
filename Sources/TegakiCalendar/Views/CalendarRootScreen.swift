@@ -376,7 +376,11 @@ struct CalendarRootScreen: View {
     /// in landscape, the iPhone Duo's open inner screen: `pencilPhone.isPad` false, no new reading of the idiom); an iPad's
     /// wide row keeps the long title (the owner's iPad Air 11 shows it whole). 1.4.1's wide row adds 等倍, and on the
     /// iPhone 17 in landscape (874 pt) the week title 「2026年10月5日〜10月11日」 was cut to 「2026年10月5日〜10月…」 even at
-    /// `minimumScaleFactor(0.6)` (the title's frame 266.7–419.7 pt), which 1.4's row showed whole.
+    /// `minimumScaleFactor(0.6)` (the title's frame 266.7–419.7 pt), which 1.4's row showed whole. Known and kept: an iPad's
+    /// wide row with less room (the iPad mini in portrait, 162 pt; windows of 600 to about 750 pt) still cuts that week title
+    /// with 「…」, as 1.4 did (§3.5: recorded, no shape of its own). The short title has no year on the week and day pages and
+    /// no holiday name (the paper's date heading shows it, F-11 does not apply); outside ja the month is `yMMM` ("Oct 2026").
+    /// The year page's title, and in ja the month page's, are the same in both forms.
     static func usesShortTitle(compact: Bool, isPad: Bool) -> Bool {
         compact || !isPad
     }
