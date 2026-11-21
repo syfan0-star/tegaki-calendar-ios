@@ -121,7 +121,7 @@ If renewing a paid period fails, for example because your card has expired, Appl
 
 ### I want to switch between the pen and the eraser with a double-tap or squeeze on Apple Pencil
 
-In Settings > Apple Pencil, you can choose what a double-tap (2nd generation and Pro) and a squeeze (Pro) do. The App follows the action you choose there. If you choose “Switch between current tool and eraser”, it switches between the pen and the eraser. With an Apple Pencil that has no double-tap (1st generation, USB-C), switch with the toolbar at the bottom of the screen (the “tap with two fingers” switch of the web version is not in the app version).
+In Settings > Apple Pencil, you can choose what a double-tap (2nd generation and Pro) and a squeeze (Pro) do. The App follows the action you choose there. If you choose “Switch between current tool and eraser”, it switches between the pen and the eraser. With an Apple Pencil that has no double-tap (1st generation, USB-C), switch with the toolbar (the “tap with two fingers” switch of the web version is not in the app version).
 
 ### Can I use it on iPhone or Mac?
 
@@ -149,11 +149,26 @@ A **PDF** is the page that is open now, as one sheet (paper, events, holidays an
 
 ### How do I hide the toolbar?
 
-Tap “Hide” at the right end of the toolbar, and the toolbar becomes a small round button at the bottom left. Tap the tool mark on the round button to bring the toolbar back; it hides again automatically when you start writing on the paper. The ↶ on the round button is “Undo”. Touch and hold the round button to move it to the bottom right, or to go back to always showing the toolbar. This setting is remembered on each device.
+Tap “Hide” at the right end of the toolbar (at the bottom end when the toolbar is at the left or right edge), and the toolbar becomes a small round button at the bottom left. If you choose “Left Hand” in the App's Settings > Dominant Hand, the round button moves to the bottom right. On iPad, if you move the toolbar to the left edge and then hide it, the round button appears at the bottom left; at the right edge, it appears at the bottom right (both from version 1.4.1). Tap the tool mark on the round button to bring the toolbar back; it hides again automatically when you start writing on the paper. The ↶ on the round button is “Undo”. Touch and hold the round button to move it to the other bottom corner, or to go back to always showing the toolbar. This setting is remembered on each device.
 
 ### How do I zoom in and out?
 
-Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open at the same size, no matter how many events or how much handwriting they have. Pages with many events or a lot of handwriting can be scrolled down (with two fingers when “Draw with Finger” is on). When you pinch to zoom out, you can see the whole calendar. The device remembers the zoomed-in size for each page type. It does not remember the zoomed-out size.
+Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open at the same size, no matter how many events or how much handwriting they have (on iPad, when the toolbar is at the left or right edge, they may open smaller, because the paper is narrower by the width of the toolbar). Pages with many events or a lot of handwriting can be scrolled down (with two fingers when “Draw with Finger” is on). When you pinch to zoom out, you can see the whole calendar. The device remembers the zoomed-in size for each page type. It does not remember the zoomed-out size.
+
+Tap the button showing a magnifying glass with “1” (Reset Zoom), next to “‹ Today ›” at the top left, to go straight back to the original size, neither zoomed in nor out: the size the page had when you first opened it (from version 1.4.1). On a narrow screen (iPhone in portrait, except the inner screen of iPhone Duo, and a narrow iPad window), this button is at the left of the second row (the Day, Week, Month and Year switch). When “Left Hand” is chosen in the App's Settings > Dominant Hand, it is at the top right (on a narrow screen, at the right of the second row). Resetting the zoom also makes the device forget the zoomed-in size it remembered for that page type. The next page of the same type also opens at the original size, even after you reopen the App. The sizes of the other page types stay as they are.
+
+### How do I use it with my left hand?
+
+In the App's Settings > Dominant Hand, choose “Left Hand” (from version 1.4.1). The order of the buttons at the top of the screen is reversed from left to right: ⚙ (Settings) moves to the left end, and “‹ Today ›” and the Reset Zoom button move to the right side. The round button of the hidden toolbar also moves to the bottom right (touch and hold the round button to move it back to the bottom left). The paper and your handwriting stay as they are. Previous (‹) stays on the left and next (›) on the right. The order of Day, Week, Month and Year and the order inside the toolbar do not change either. This setting is remembered on each device (you can choose separately on your iPad and your iPhone).
+
+### How do I move the toolbar?
+
+On iPad, you can move the open toolbar to the top, bottom, left or right edge of the screen (from version 1.4.1). With your finger, drag the small handle on the edge of the toolbar nearer the paper. When you lift your finger, the toolbar snaps to the nearest edge. At the left or right edge, the toolbar turns vertical. The toolbar does not cover the paper; instead, the paper becomes smaller to make room for it (at the top edge, the paper is the same size as at the bottom edge).
+
+- Apple Pencil does not move it. While you are writing with Apple Pencil (and just after), the toolbar does not move even if your palm touches the handle.
+- The edge you choose is remembered on each device. The toolbar stays at that edge after you reopen the App or rotate your iPad.
+- In a narrow window, such as Split View or Slide Over, a toolbar placed at the left or right edge appears at the bottom (in a narrower window, one placed at the top does too). When you widen the window, it goes back to the edge you chose.
+- On iPhone, the toolbar stays at the bottom (it has no handle).
 
 ### How much can I write on one page?
 

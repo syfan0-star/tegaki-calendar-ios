@@ -1,10 +1,10 @@
 No sign-in, no account creation and no demo account are needed.
 
-What is new in 1.4
-1. Built with Xcode 27.2 (iOS 27.2 SDK). The minimum iOS version stays 17.0.
-2. The layout now follows the window size, not the device type. On iPhone Duo the app fills the screen, inner or outer, and fits its width (the page and handwriting stay the same). To check: open a week page, then open and close the device.
-3. On iPhone Duo, as on iPad, Apple Pencil (USB-C, iOS 27.2 or later) writes and a finger moves the paper. The app turns Draw with Finger off when that iPhone first sees an Apple Pencil touch or a screen hinge (UIHingeInteraction); on a device updated from 1.3, only an Apple Pencil touch does this. The model name and the window size are not used for this. Finger drawing can be turned back on with the toolbar switch.
-4. No new on-screen text. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating (4+; both new questions, Shared Location and Dating and Relationships, answered No).
+What is new in 1.4.1
+1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the left end of the header, with the date right after them (on narrow screens, 1× starts the second row). Settings > Dominant Hand > Left Hand reverses this order.
+2. 1× returns the page to its original size, neither zoomed in nor out (as when first opened), and clears the zoom remembered for that page type.
+3. On iPad, a finger can drag the open toolbar by its small handle to any of the four edges; Apple Pencil cannot. On iPhone, even on iPhone Duo's inner screen, it stays at the bottom. To check: on iPad, open a week page and drag the toolbar's handle to the right edge.
+4. New text is only in Settings and VoiceOver labels. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating.
 
 The app follows the device language (10 languages since 1.2; any other language shows English). Per-app language: Settings > Apps > Tegaki > Language.
 
@@ -26,4 +26,4 @@ https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 https://syfan0-star.github.io/tegaki-calendar/app/support.html
 
 --- 日本語の要約 ---
-Xcode 27.2（iOS 27.2 SDK）で作り、対応は iOS 17.0 からのまま。レイアウトは窓の大きさで決め、iPhone Duo では内側・外側の画面いっぱいに出て幅に合わせます。Duo では iPad と同じく Apple Pencil で書き、指で紙を動かします。新しい画面の文は無し。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
+左上に「‹ 今日 ›」と等倍のボタン、すぐ右に日付（設定 › 利き手 › 左手 で逆）。等倍は拡大も縮小もしていない大きさに戻し、その種類のページで覚えた拡大も忘れます。iPad ではツールバーを指で上下左右の端へ動かせます（Apple Pencil では動かず、iPhone は下のまま）。新しい画面の文は設定と読み上げだけ。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
