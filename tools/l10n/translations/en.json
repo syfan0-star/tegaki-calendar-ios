@@ -1881,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "When this is on, you can also draw lines with your finger. When it is off, your finger scrolls and taps"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Can be moved to the top, bottom, left or right edge"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Move Toolbar"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Erases lines you touch"
@@ -1908,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Move to Bottom Right"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Move to Bottom"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Move to Left"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Move to Right"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Move to Top"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

@@ -1881,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Si cette option est activée, vous pouvez aussi tracer des traits avec le doigt. Si elle est désactivée, le doigt sert à faire défiler et à toucher"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Peut se placer en haut, en bas, à gauche ou à droite"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Déplacer la barre d’outils"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Efface le trait touché"
@@ -1908,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Déplacer en bas à droite"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Déplacer en bas"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Déplacer à gauche"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Déplacer à droite"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Déplacer en haut"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

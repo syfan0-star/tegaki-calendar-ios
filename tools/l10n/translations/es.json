@@ -1881,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Si está activado, también puede trazar líneas con el dedo. Si está desactivado, el dedo sirve para desplazarse y tocar"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Se puede mover al borde superior, inferior, izquierdo o derecho"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Mover la barra de herramientas"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Borra el trazo tocado"
@@ -1908,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Mover abajo a la derecha"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Mover abajo"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Mover a la izquierda"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Mover a la derecha"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Mover arriba"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

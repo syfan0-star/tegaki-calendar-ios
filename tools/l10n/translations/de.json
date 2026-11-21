@@ -1881,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Wenn dies aktiviert ist, können Sie auch mit dem Finger Linien ziehen. Wenn es deaktiviert ist, scrollen und tippen Sie mit dem Finger"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Lässt sich an den oberen, unteren, linken oder rechten Rand verschieben"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Werkzeugleiste verschieben"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Löscht berührte Striche"
@@ -1908,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Nach unten rechts"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Nach unten"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Nach links"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Nach rechts"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Nach oben"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

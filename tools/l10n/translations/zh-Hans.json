@@ -1881,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "打开后，也可以用手指画线。关闭时，手指用于滚动和轻点"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "可移到上、下、左、右边缘"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "移动工具栏"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "擦除碰到的整条线"
@@ -1908,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "移到右下角"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "移到下方"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "移到左侧"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "移到右侧"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "移到上方"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

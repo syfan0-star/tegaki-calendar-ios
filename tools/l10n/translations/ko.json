@@ -1881,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "켜면 손가락으로도 선을 그을 수 있어요. 끄면 손가락으로 스크롤과 탭을 해요"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "위, 아래, 왼쪽, 오른쪽 가장자리로 옮길 수 있어요"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "도구 막대 옮기기"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "닿은 선을 통째로 지워요"
@@ -1908,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "오른쪽 아래로 옮기기"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "아래로 옮기기"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "왼쪽으로 옮기기"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "오른쪽으로 옮기기"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "위로 옮기기"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

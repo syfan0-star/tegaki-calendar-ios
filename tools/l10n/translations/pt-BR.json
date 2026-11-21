@@ -1881,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Quando ativado, você também pode traçar linhas com o dedo. Quando desativado, o dedo serve para rolar e tocar"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Pode ser movida para a borda superior, inferior, esquerda ou direita"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Mover a barra de ferramentas"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Apaga o traço tocado"
@@ -1908,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Mover para baixo à direita"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Mover para baixo"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Mover para a esquerda"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Mover para a direita"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Mover para cima"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

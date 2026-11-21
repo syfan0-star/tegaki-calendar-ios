@@ -2890,6 +2890,26 @@
         "指でも書く"
       ]
     },
+    "toolbar.grip.hint": {
+      "ja": "上下左右の端へ移せます",
+      "target": "app",
+      "comment": "1.4.1 つまみ（toolbar.grip.spoken）の読み上げのヒント。ツールバーを画面の上・下・左・右の端へ移せること。読み上げの操作（toolbar.moveTo.*）でも移せる。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
+    "toolbar.grip.spoken": {
+      "ja": "ツールバーを動かす",
+      "target": "app",
+      "comment": "1.4.1 ツールバーのつまみの読み上げの名前。iPad の広い窓で、開いたツールバーの画面の真ん中に向いた辺に出る小さなつまみ。指で引くと、ツールバーを画面の上・下・左・右の端へ移せる。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
     "toolbar.hint.eraser": {
       "ja": "触れた線をまるごと消します",
       "target": "app",
@@ -3000,6 +3020,46 @@
       "was": [
         "Views/ToolbarLogic.swift:125"
       ],
+      "args": []
+    },
+    "toolbar.moveTo.bottom": {
+      "ja": "下へ移す",
+      "target": "app",
+      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の下の端へ移す（スイッチコントロールとフルキーボードアクセスも同じ操作）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
+    "toolbar.moveTo.left": {
+      "ja": "左へ移す",
+      "target": "app",
+      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の左の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
+    "toolbar.moveTo.right": {
+      "ja": "右へ移す",
+      "target": "app",
+      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の右の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
+    "toolbar.moveTo.top": {
+      "ja": "上へ移す",
+      "target": "app",
+      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の上の端（見出しの下）へ移す。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
       "args": []
     },
     "toolbar.pin": {

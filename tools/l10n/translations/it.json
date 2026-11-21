@@ -1881,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Se è attivo, può tracciare linee anche con il dito. Se è disattivo, il dito serve per scorrere e toccare"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Si può spostare sul bordo superiore, inferiore, sinistro o destro"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Sposta la barra degli strumenti"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Cancella i tratti toccati"
@@ -1908,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Sposta in basso a destra"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Sposta in basso"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Sposta a sinistra"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Sposta a destra"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Sposta in alto"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",
