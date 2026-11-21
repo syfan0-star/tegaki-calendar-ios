@@ -76,6 +76,24 @@
 | ja | 177 | 173 | 4,000 |
 | source-ja | 222 | 218 | 4,000 |
 
+### 1.4 行 1 (b) の訳（11 組。D2）
+
+本人が並べ方 (b) を選んだときだけ、各ロケールの `whatsnew.txt` の 1 行目をこの字に替える（2 行目から後と訳についての 1 行はそのまま）。訳は D2 の X（2026-11-22、Workflow wf_282a113b-ce4 の直し）、元を見ない逆翻訳と判定は 11 組とも ○（[REVIEW.md](../i18n/REVIEW.md) の 14、`docs/i18n/back/store-1_4_1-b.md` の最後の節）。字数は (b) にしても 4,000 字に入る（同じファイルの表）。
+
+| ロケール | 行 1 (b) |
+| --- | --- |
+| en-US（en-GB・en-AU・en-CA も） | • Moved “‹ Today ›” at the top of the screen so that it is immediately to the right of the date, which is at the left end. |
+| zh-Hans | • 屏幕顶部的“‹ 今天 ›”已移到左端日期的右边，紧挨着日期。 |
+| zh-Hant | • 螢幕頂端的「‹ 今天 ›」已移到左端日期的右邊，緊鄰日期。 |
+| ko | • 화면 위쪽의 ‘‹ 오늘 ›’을 왼쪽 끝에 있는 날짜의 바로 오른쪽으로 옮겼어요. |
+| fr-FR（fr-CA も） | • En haut de l’écran, « ‹ Auj. › » a été déplacé juste à droite de la date, qui se trouve tout à gauche. |
+| de-DE | • „‹ Heute ›“ oben auf dem Bildschirm wurde direkt rechts neben das Datum verschoben, das am linken Rand steht. |
+| it | • In alto sullo schermo, “‹ Oggi ›” è stato spostato subito a destra della data, che si trova all’estremità sinistra. |
+| pt-BR | • No alto da tela, “‹ Hoje ›” foi movido para logo à direita da data, que fica no extremo esquerdo. |
+| pt-PT | • No topo do ecrã, “‹ Hoje ›” foi movido para logo à direita da data, que fica no extremo esquerdo. |
+| es-MX | • En la parte superior de la pantalla, “‹ Hoy ›” se movió justo a la derecha de la fecha, que está en el extremo izquierdo. |
+| es-ES | • En la parte superior de la pantalla, “‹ Hoy ›” se ha movido justo a la derecha de la fecha, que está en el extremo izquierdo. |
+
 ## 2. 審査メモの、選びで替わる文（契約 §8.4）
 
 - `review-note.txt` には既定（並べ方 (a)・虫めがねに「1」の印のボタン）を入れた: **3,924 バイト**（`wc -c`。最後の改行を除くと 3,923 バイト・3,554 字）。1.4 の文（3,964 バイト）の「What is new in 1.4」の段を「What is new in 1.4.1」の 4 つに入れ替え、日本語の要約の 1.4 の分（「Xcode 27.2（iOS 27.2 SDK）で作り、…新しい画面の文は無し。」）を 1.4.1 の分に入れ替えた。ほかの段と、要約の最後の「データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。」は 1 字も変えていない（README の「審査メモ」の「1.4.1 から」）。
@@ -157,7 +175,7 @@
 | 言語 | 文 |
 | --- | --- |
 | ja | 幅の狭い画面（iPhone の縦と iPad の細い窓。iPhone Duo の開いた画面は除く）では、このボタンは 2 段目（日・週・月・年の切り替え）の左にあります。設定 › 利き手 で「左手」にしているときは、右上（幅の狭い画面では 2 段目の右）にあります。 |
-| en | On a narrow screen (iPhone in portrait, except the inner screen of iPhone Duo, and a narrow iPad window), this button is at the left of the second row (the Day, Week, Month and Year switch). When “Left Hand” is chosen in the App's Settings > Dominant Hand, it is at the top right (on a narrow screen, at the right of the second row). |
+| en | On a narrow screen (a narrow iPad window, or iPhone in portrait except on the inner screen of iPhone Duo), this button is at the left of the second row (the Day, Week, Month and Year switch). When “Left Hand” is chosen in the App's Settings > Dominant Hand, it is at the top right (on a narrow screen, at the right of the second row). |
 
 - 段落の残り（「等倍に戻すと、そのページの種類で覚えていた拡大も忘れます。…」）は、4 つの組とも今のファイルのまま。
 

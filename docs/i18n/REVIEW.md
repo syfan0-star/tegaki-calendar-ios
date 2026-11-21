@@ -2448,6 +2448,8 @@ the App's を足した 6 文目だけを、12 の「照合の後に直した 19 
 
 本人の確認ページで並べ方 (b) の行を見せるのは 1 の判定の後、SUPPORT の英語を Web に出すのは 2 の判定の後です。
 
+**済み（2026-11-22 02:5x、リード。Workflow wf_7c2ec0aa-063）**: 1 と 2 は、訳の字だけ（ファイルもツールも使わない Claude）で元を見ずに訳し戻し、別の Claude が判定した。**12 行とも ○**（1 の 11 組と、2 の英文 1 つ）。2 の直した字は、リードが `SUPPORT.en.md` と `PROPOSALS_1_4_1.md` §3.1.2 に入れた（「On a narrow screen (a narrow iPad window, or iPhone in portrait except on the inner screen of iPhone Duo), this button is at the left of the second row (the Day, Week, Month and Year switch).」）。逆翻訳は「狭い画面（iPad の幅の狭いウィンドウ、または縦向きの iPhone。ただし iPhone Duo の内側の画面は除く）では、このボタンは2段目（日・週・月・年の切り替え）の左側にあります。」で、except が縦の iPhone だけにかかる。1 の逆翻訳の表は `docs/i18n/back/store-1_4_1-b.md` の最後の節。
+
 ### 全部の表（アプリの 11 キー、99 件）
 
 同じ逆翻訳で同じ注の言語は 1 行にまとめました。「全部」は 9 言語です。逆翻訳の（ ）は R の注です。判定は判定の 2 役の × でない行を ○ と書きました（上の初めの点）。
