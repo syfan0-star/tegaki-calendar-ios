@@ -266,7 +266,10 @@ final class InkCanvasSpanZoomResetTests: XCTestCase {
     }
 
     /// §3.6: on an iPhone in landscape at the cap (874 × 205) the joined week and day go back to the cap — 3 weeks / 5 days
-    /// across, the lowest and the opening zoom there — with the focus page in the middle, and report ratio 1.
+    /// across, the lowest and the opening zoom there — with the focus page where it opened, and report ratio 1. At the cap
+    /// the opening's centring (`applyBandOpening`) and the reset's (§3.8 step 3) both end in the clamp at the band's end, so
+    /// the focus page is not in the middle there (the quick lane's run 44915986296: week x 145.8, day x 262.3): the check is
+    /// the place it opened at, not the middle (the lead's decision, docs/R1_4_1.md, D1a).
     func testTheCappedIPhoneLandscapeGoesBackToThreeWeeksAndFiveDays() async throws {
         var number = 0
         for (kind, across) in [(PageKind.week, CGFloat(3)), (.day, 5)] {
@@ -275,6 +278,8 @@ final class InkCanvasSpanZoomResetTests: XCTestCase {
             let rig = await attach(session, width: 874, height: 205)
             let cap = 874 / (across * ZoomPolicy.paperWidth(kind))
             XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind): opens at the cap")
+            let opened = middle(of: session.focusPageId, rig)
+            print("zoom-reset unit: \(kind) capped landscape: the focus page's middle at the opening x=\(opened)")
             await pinch(rig, to: 2 * cap)
             XCTAssertEqual(rig.zoom, 2 * cap, accuracy: 0.0001, "\(kind): zoomed in")
             let focus = session.focusPageId
@@ -283,7 +288,8 @@ final class InkCanvasSpanZoomResetTests: XCTestCase {
             await settle()
             XCTAssertEqual(rig.zoom, cap, accuracy: 0.0001, "\(kind): back to the cap")
             XCTAssertEqual(rig.page * across, 874, accuracy: 0.5, "\(kind): \(across) pages across")
-            XCTAssertEqual(middle(of: focus, rig), 437, accuracy: 1, "\(kind): the focus page in the middle")
+            print("zoom-reset unit: \(kind) capped landscape: after 等倍 x=\(middle(of: focus, rig))")
+            XCTAssertEqual(middle(of: focus, rig), opened, accuracy: 1, "\(kind): the focus page where it opened")
             XCTAssertEqual(rig.probe.ratios.last ?? 0, 1, accuracy: 0.001, "\(kind): the cap is ratio 1")
         }
     }
