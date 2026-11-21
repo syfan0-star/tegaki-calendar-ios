@@ -1255,7 +1255,7 @@
     },
     "settings.hand.footer": {
       "jaSha1": "1c0ef85a68",
-      "text": "Si elige “Mano izquierda”, el orden de los botones de la parte superior de la pantalla se invierte de izquierda a derecha y el botón redondo de la barra de herramientas oculta pasa abajo a la derecha. El papel y lo que escribió no cambian."
+      "text": "Si elige “Mano izquierda”, el orden de los botones de la parte superior de la pantalla se invierte de izquierda a derecha y el botón redondo de la barra de herramientas oculta pasa a la esquina inferior derecha. El papel y lo escrito no cambian."
     },
     "settings.hand.header": {
       "jaSha1": "64794ce83e",

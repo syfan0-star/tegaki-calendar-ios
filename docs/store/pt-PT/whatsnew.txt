@@ -1,4 +1,6 @@
-• A apresentação passa a adaptar-se ao ecrã grande do iPhone Duo.
-• A aplicação passou para o novo ambiente de desenvolvimento do iOS 27. A utilização no iPad e noutros modelos de iPhone não muda.
+• No topo do ecrã, “‹ Hoje ›” foi movido para o extremo esquerdo e a data foi colocada à direita dele.
+• Depois de ampliar ou reduzir, agora pode voltar com um único botão ao tamanho original, em que a página não está ampliada nem reduzida.
+• Foi adicionada aos Ajustes a secção “Mão dominante”. Se escolher “Mão esquerda”, a ordem dos botões no topo do ecrã inverte-se da esquerda para a direita.
+• No iPad, agora pode mover a barra de ferramentas com o dedo para a borda superior, inferior, esquerda ou direita do ecrã.
 
 As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros.

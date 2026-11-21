@@ -1,4 +1,6 @@
-• Die Darstellung passt sich jetzt an den großen Bildschirm des iPhone Duo an.
-• Die App wurde auf die neue Entwicklungsumgebung für iOS 27 umgestellt. Die Bedienung auf dem iPad und auf anderen iPhone-Modellen ändert sich nicht.
+• „‹ Heute ›“ oben auf dem Bildschirm wurde an den linken Rand verschoben, und das Datum steht jetzt rechts davon.
+• Nach dem Vergrößern oder Verkleinern können Sie jetzt mit einer einzigen Schaltfläche zur Originalgröße zurückkehren (weder vergrößert noch verkleinert).
+• In den Einstellungen gibt es jetzt den Bereich „Dominante Hand“. Wenn Sie „Linke Hand“ wählen, werden die Schaltflächen oben auf dem Bildschirm seitenverkehrt angeordnet.
+• Auf dem iPad können Sie die Werkzeugleiste jetzt mit dem Finger an den oberen, unteren, linken oder rechten Rand verschieben.
 
 Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit.

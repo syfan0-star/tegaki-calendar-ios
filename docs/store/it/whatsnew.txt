@@ -1,4 +1,6 @@
-• Ora la visualizzazione si adatta al grande schermo di iPhone Duo.
-• L’app è passata al nuovo ambiente di sviluppo di iOS 27. L’uso su iPad e sugli altri modelli di iPhone non cambia.
+• In alto sullo schermo, “‹ Oggi ›” è stato spostato all’estremità sinistra e la data ora compare alla sua destra.
+• Dopo aver ingrandito o rimpicciolito, ora può tornare con un solo pulsante alla dimensione originale, in cui la pagina non è né ingrandita né rimpicciolita.
+• Nelle Impostazioni è stata aggiunta la sezione “Mano dominante”. Se sceglie “Mano sinistra”, l’ordine dei pulsanti in alto sullo schermo si inverte da sinistra a destra.
+• Su iPad, ora può spostare la barra degli strumenti con il dito sul bordo superiore, inferiore, sinistro o destro dello schermo.
 
 Le traduzioni sono state fatte con l’IA e non sono ancora state riviste da madrelingua. La preghiamo di segnalarci gli errori.
