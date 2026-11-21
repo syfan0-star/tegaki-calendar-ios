@@ -621,3 +621,8 @@
   - 読み戻し: 提出 078fa2c3-0db5-4bea-a5f8-ba36d0f94391 は WAITING_FOR_REVIEW。版 1.4 は WAITING_FOR_REVIEW、releaseType MANUAL。
 - 確かめ表の Duo 以外の行は、まだ本人の答えが無い。**公開（「1.4 を公開して良い」）の前に、本人の端末の確かめ表（Duo の行は「—」）が要る**（本人の実機で確かめていない版は出さない）。
 - 次: 審査の結果を見る。通ったら、確かめ表と「1.4 を公開して良い」の後に、release14.py web（SUPPORT 案 B・最終更新の日）→ release → 「まとめて良い」で main へ。
+- 本人「1.4を公開して良い」「まとめて良い」（11/21、提出の知らせへの返事。前もっての言葉で、1.2.4 の「三つともYes」と同じ扱い）。
+  - 公開は 2 つがそろってから: (1) 審査が通る（PENDING_DEVELOPER_RELEASE）。(2) 本人の端末の確かめ表（Duo 以外の行。Duo の行は「—」）の答え（本人の実機で確かめていない版は出さない）。
+  - そろったら release14.py check → web（r14-legal edff817 を Web の main へ、最終更新の日は公開の日の JST）→ release → 読み戻し → 「まとめて良い」で r14 を main へ `--no-ff`（公開の後）。
+  - `release14.py check`（15:5x JST）: 止まる理由は「審査待ち」だけ。Web の 4 ページは 200、SUPPORT は案 B で Connect の組み合わせと同じ、r14-legal は Web の main の早送り。
+  - 審査の状態は、セッションの中の背景の見張り（15 分ごと、release14.py state、GET だけ）で見る。
