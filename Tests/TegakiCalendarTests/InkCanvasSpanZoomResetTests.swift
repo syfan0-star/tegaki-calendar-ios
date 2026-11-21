@@ -294,6 +294,35 @@ final class InkCanvasSpanZoomResetTests: XCTestCase {
         }
     }
 
+    /// PROBE (r141-q-zr only, never merged): the capped landscape week and day step by step.
+    func testProbeCappedReset() async throws {
+        var number = 10
+        for (kind, across) in [(PageKind.week, CGFloat(3)), (.day, 5)] {
+            number += 1
+            let session = try await open(kind, number: number, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+            let rig = await attach(session, width: 874, height: 205)
+            rig.coordinator.spanShiftProbe = { print("zr-probe \(kind) note \($0)") }
+            let cap = 874 / (across * ZoomPolicy.paperWidth(kind))
+            let focus = session.focusPageId
+            func dump(_ step: String) {
+                let o = session.origin(ofPage: focus) ?? -1
+                print("zr-probe \(kind) \(step): zoom=\(rig.zoom) ox=\(rig.canvas.contentOffset.x) inset=\(rig.canvas.contentInset.left),\(rig.canvas.contentInset.right) cw=\(rig.canvas.contentSize.width) focusId=\(session.focusPageId) focusIdx=\(session.focusIndex) first=\(session.windowFirstIndex) radius=\(session.radius) pages=\(session.pageIds.count) originFocus0=\(o) mid0=\((o + session.plan.pageWidth / 2) * rig.zoom - rig.canvas.contentOffset.x) shifts=\(rig.coordinator.spanShiftCount) cap=\(cap)")
+            }
+            dump("opened")
+            await pinch(rig, to: 2 * cap)
+            dump("pinched")
+            await put(rig, mid: origin(focus, session) + session.plan.pageWidth / 2)
+            dump("put")
+            update(rig, zoomResetTrigger: 1)
+            await Task.yield()
+            dump("yield1")
+            await Task.yield()
+            dump("yield2")
+            await settle()
+            dump("settled")
+        }
+    }
+
     /// §3.7 (0e-8): a turn keeps the focus page's place on it (`turnAnchor`, UI1-R2) until the window is decided anew; a sheet
     /// holds that here. Zoomed in, the band turned to landscape with the middle of the screen a quarter into the focus week
     /// (11/16), then the canvas moved it a week on (no finger: the anchor stays, the focus with it). 等倍 forgets the anchor:
