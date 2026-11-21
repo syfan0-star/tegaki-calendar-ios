@@ -441,7 +441,7 @@ jobs:
       # the changed files taken out of lint-skip.txt for that run only (L-7, L-8, L-13 and L-14 would not read their new
       # code otherwise; review S6-RM-5); from 1.4 the version that touches the handwriting's data takes the real 1.3
       # (the base commit) as a compatibility partner too (§6.4). The file keeps its name (D9: this step reads it by name).
-      - name: Data code frozen (re-based in 1.3)
+      - name: Data code frozen (re-based in 1.4.1)
         run: |
           set -euo pipefail
           shasum -a 256 -c tools/compat10/DATA_1_1.sha256
@@ -653,6 +653,11 @@ jobs:
       # WindowClassTests, PencilPhoneTests, CappedOverviewWideTests, OnePageRevealTests, SnapshotScaleTests and DuoFoldTests
       # (role S) and PaperViewScaleTests (role P); a class not written yet is not found and not run. D1b: MeasureLineFileTests.
       # D1d: PageHeaderRoomTests (the header's tight row on the Duo's outer screen; pure, no layout).
+      # 1.4.1 (docs/R1_4_1_CONTRACT.md §6.1, §6.6, 0e-23): the quick lane (r141-quick, r141-q-*) also runs 1.4.1's new classes,
+      # each by its whole name: HeaderOrderTests, HandSettingTests, ScreenshotModeHandPaletteTests and HeaderGlyphTests (the
+      # header and the hand; PageHeaderRoomTests, rewritten, stays), InkCanvasZoomResetTests, InkCanvasSpanZoomResetTests and
+      # InkCanvasWidthCentreTests (等倍 and 0d-44), ToolbarPlacementTests and PaletteGripTests (the toolbar, D1b); a class not
+      # written yet is not found and not run.
       # 1.4 D0c (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0c): xcodebuild boots the 13-inch iPad here itself again, as
       # until D0. D0b booted it with simctl in the background from the job's start (a step "Boot the 13-inch iPad in the
       # background" and a wait here, both removed in D0c). That boot took 129 s, but the macOS steps beside it ran 3 to 19
@@ -675,7 +680,7 @@ jobs:
           elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests|HeaderOrderTests|HandSettingTests|ScreenshotModeHandPaletteTests|HeaderGlyphTests|InkCanvasZoomResetTests|InkCanvasSpanZoomResetTests|InkCanvasWidthCentreTests|ToolbarPlacementTests|PaletteGripTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
@@ -1993,6 +1998,12 @@ jobs:
       # 1.4 (docs/M7D_CONTRACT.md §3.10, §6): so does DuoLayoutUITests (it runs on the iPhone Duo in duo.yml's duo-shots,
       # with TEGAKI_DEVICE=duo), so the UI tests of the gates (43 in 1.3) are counted without the skipped ones;
       # DuoHingeUITests is not even compiled here (only duo-hinge passes DUO_HINGE).
+      # 1.4.1 (docs/R1_4_1_CONTRACT.md §3.5, §6.1, §6.2, §6.6, 0e-6, 0e-23): HeaderAndPaperUITests is rewritten for 1.4.1's
+      # header (「‹ 今日 ›」 and 等倍 at the free hand's end, both hands, its `header-paper UI:` lines), ZoomResetUITests (等倍,
+      # `zoom-reset UI:`) runs here, and HeaderRoomUITests measures the iPhone 17's header (its first row in portrait and its
+      # wide row in landscape; logs only, the `header room:` lines, read by the lead for D1a's gate; blank-paper measures the
+      # four other devices). D1b (§4.3, §6.1): PaletteMoveUITests' iPhone test (`palette UI:`: asked for the left edge, the
+      # iPhone keeps 1.4's bar at the bottom with no grip); its iPad test skips itself here (blank-paper runs it).
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 40
         run: |
@@ -2016,7 +2027,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|zoom-reset UI:|header room:|palette UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
@@ -2970,12 +2981,16 @@ jobs:
   # the job stayed green. The devices took 11.5 (iPhone 18 Pro Max), 18.1 (13-inch) and 13.2 min (mini) against 1.3's
   # 11.9, 8.9 and 8.8 (run 44474759145); the 11-inch's 9.3 at 1.5–2 times is 14–19, so the four take about 42.8 + 19 ≈
   # 62 min. The shots stop after 70 (8 over it) and the job after 80 (the rest took 6.1 in D0, the upload 2.9 of it).
+  # 1.4.1 (docs/R1_4_1_CONTRACT.md §6.6, §9.1 D1b, 0e-23): the iPad's UI test lane is a step of this job after the shots,
+  # "Palette UI tests on the 13-inch iPad (1.4.1)" (20 min at most, about 7 expected), with its own upload (palette-ui, about
+  # 1 min): the job 80 → 100 (70 + 20 + the rest's 6.1 + 1 for the new upload ≈ 97). Gate 1 of D1b reads that step's
+  # result, whatever this job's continue-on-error.
   blank-paper:
     name: Blank paper shots (1.1.1)
     if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 80
+    timeout-minutes: 100
     continue-on-error: true
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -3148,6 +3163,11 @@ jobs:
       # shown here once (a test prints a line and NSLogs it). ipad11 is the
       # owner's iPad Air 11-inch (820 × 1180); the first job's ipad11 photos stay the iPad Pro 11-inch.
       # If no PNG arrived, the attachments are taken out of the result bundle instead.
+      # 1.4.1 (docs/R1_4_1_CONTRACT.md §3.5, §6.1, §6.6, 0e-6, 0e-23): the same xcodebuild also runs HeaderRoomUITests on each
+      # device (one launch: the iPads' wide row in portrait, the iPhone's first row in portrait and its wide row in landscape),
+      # whose `header room:` lines (the header's frames and the title's room, logs only) are shown here once each; the lead
+      # reads D1a's gate from them (the ja day title's room ≥ 115 pt on ipadmini, ipad11 = the Air 11 and ipad13 in portrait).
+      # It writes no photo, so the 43 do not change; about half a minute a device.
       - name: Shots on four devices
         timeout-minutes: 70
         continue-on-error: true
@@ -3232,8 +3252,10 @@ jobs:
               -derivedDataPath build/BlankData \
               -resultBundlePath "build/blank-$ID.xcresult" \
               -only-testing:TegakiCalendarUITests/BlankPaperShotsUITests \
+              -only-testing:TegakiCalendarUITests/HeaderRoomUITests \
               test-without-building 2>&1 | tee "shots/blank/$ID-log.txt" || true
             grep 'blank UI:' "shots/blank/$ID-log.txt" | awk '{ i = index($0, "blank UI:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
+            grep 'header room:' "shots/blank/$ID-log.txt" | awk '{ i = index($0, "header room:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
             SHOTS="$(find shots/blank -name "$ID-*.png" | wc -l | tr -d ' ')"
             echo "$ID: $SHOTS shots"
             if [ "$SHOTS" = "0" ]; then
@@ -3245,12 +3267,73 @@ jobs:
           done
           ls -la shots/blank
 
+      # 1.4.1 (docs/R1_4_1_CONTRACT.md §4.3–§4.11, §6.1, §6.6, §9.1 D1b, 0e-23): the iPad's UI test lane, which no run had
+      # before (ui-tests is an iPhone's). On the table's 13-inch iPad ("Required simulators"; booted again after the photos,
+      # 60 s for its banner), PaletteMoveUITests alone with TEST_RUNNER_TEGAKI_PALETTE_UI=1 (it skips itself everywhere
+      # else): the open toolbar's grip dragged with a finger to the right, the top, the left and the bottom edge, ↶ after a
+      # move, the paper area changed once per drop, 「ペン」's top − 16 the canvas's bottom on the bottom edge. Its
+      # `palette UI:` lines and the app's `toolbar: paperArea=` / `toolbar: palette=` lines (out of the result bundle,
+      # tools/ci/xcresult-app-output.sh) are shown here; the log, the app's output and the test's screenshots go to the
+      # artifact palette-ui (not blank-paper's, whose 43 photos do not change). Unlike the photos this step fails when the
+      # test fails or did not run on the iPad (skipped, missing): gate 1 of D1b reads this step's result, whatever the job's
+      # continue-on-error. The limit: the boot 2–4 min, 1 for the banner, about 1 to the first test, the test about 2 (one
+      # launch, one stroke, ↶, four drags each waited for at most 10 s and 1.5 s more): 20.
+      - name: Palette UI tests on the 13-inch iPad (1.4.1)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 20
+        run: |
+          set -uo pipefail
+          OUT="$PWD/shots/palette-ui"
+          mkdir -p "$OUT/attachments"
+          UDID="${{ steps.required.outputs.ipad13 }}"
+          if [ -z "$UDID" ]; then echo "::error::No 13-inch iPad from \"Required simulators\" (docs/M7D_CONTRACT.md §3.2)."; exit 1; fi
+          echo "ipad13: $UDID"
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          if ! xcrun simctl bootstatus "$UDID" -b > /dev/null; then echo "::error::The 13-inch iPad did not boot."; exit 1; fi
+          xcrun simctl ui "$UDID" appearance light || true
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+          sleep 60    # the banner of a freshly booted simulator, docs/M6.md §5.1
+          STATUS=0
+          TEST_RUNNER_TEGAKI_PALETTE_UI=1 xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/BlankData \
+            -resultBundlePath build/palette-ui.xcresult \
+            -only-testing:TegakiCalendarUITests/PaletteMoveUITests \
+            test-without-building > "$OUT/palette-ui-log.txt" 2>&1 || STATUS=$?
+          grep 'palette UI:' "$OUT/palette-ui-log.txt" | awk '{ i = index($0, "palette UI:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
+          grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/palette-ui-log.txt" | tail -n 30 || true
+          bash tools/ci/xcresult-app-output.sh "$OUT/palette-ui-app-output.txt" build/palette-ui.xcresult || true
+          { grep -h -E 'toolbar: (paperArea|palette)=' "$OUT/palette-ui-app-output.txt" 2>/dev/null || true; } \
+            | awk '{ i = index($0, "toolbar: "); if (i > 1) $0 = substr($0, i); print }' | head -n 80
+          xcrun xcresulttool export attachments --path build/palette-ui.xcresult --output-path "$OUT/attachments" > /dev/null 2>&1 \
+            || echo "::warning::xcresulttool could not export the palette UI tests' screenshots"
+          xcrun simctl shutdown "$UDID" || true
+          if ! grep -qE 'PaletteMoveUITests[ .]testTheGripMovesTheBarToEveryEdge.*passed' "$OUT/palette-ui-log.txt"; then
+            echo "::error::PaletteMoveUITests.testTheGripMovesTheBarToEveryEdge did not pass on the 13-inch iPad (status $STATUS; shots/palette-ui/palette-ui-log.txt in the artifact palette-ui)."
+            exit 1
+          fi
+          if [ "$STATUS" != 0 ]; then echo "::error::PaletteMoveUITests ended with $STATUS (shots/palette-ui/palette-ui-log.txt)."; exit 1; fi
+          echo "PaletteMoveUITests passed on the 13-inch iPad."
+
       - name: Upload the shots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: blank-paper
           path: shots/blank
+          retention-days: 7
+          if-no-files-found: warn
+
+      # 1.4.1 (§6.6): the palette UI tests' log, the app's output and the test's screenshots (kept 7 days).
+      - name: Upload the palette UI tests' log (1.4.1)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: palette-ui
+          path: shots/palette-ui
           retention-days: 7
           if-no-files-found: warn
 
@@ -3378,12 +3461,21 @@ jobs:
   # is 55 min, and one watchdog stop with its one more run (the step below) adds about 25: 10 of silence, 1 to end
   # xcodebuild, 5 to boot the device again, 1 for the banner, 8 for the four tests, so 80. The job: 80 + 1.3's other
   # steps (20.1 min, the languages 15.5 of it) × 1.2 ≈ 104, so 110.
+  # 1.4.1 (docs/R1_4_1_CONTRACT.md §6.6, §7.4, §9.1 D1b, 0e-23, 0e-24): the same xcodebuild also runs PaletteShotsUITests on
+  # each device (it skips itself on the iPad Air 11-inch): 1.4.1's new photos outside J-4 — the 13-inch iPad's month and week
+  # with the open toolbar on the top, the left and the right, its month with the left hand and with a drag's look, its
+  # landscape month with the bar on the left; the iPad mini's portrait month on the left and its landscape week on the right
+  # (and scrolled); the iPhone 17's week with the left hand in portrait and landscape. The landscape ones through
+  # `watch_photos` (XCUIDevice's turn, `simctl io screenshot`; iPadOS ignores --screenshot-landscape). 14 launches of about
+  # 12 s, 3–4 min in all: the four devices' step 80 → 85 and the job 110 → 115. The photos go to shots/span-app/palette, the
+  # artifact palette-shots (left out of span-shots-app's, whose 64 photos do not change), and their `palette shot:` lines to
+  # shots/span-app/palette/lines-<id>.txt (not to lines/, which the gates read).
   span-shots-app:
     name: span-shots (1.3 app)
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 110
+    timeout-minutes: 115
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -3561,7 +3653,7 @@ jobs:
       # the other devices have had their turn.
       - name: Shots on four devices (SpanShotsUITests)
         id: devices
-        timeout-minutes: 80
+        timeout-minutes: 85
         run: |
           set -uo pipefail
           OUT="$PWD/shots/span-app"
@@ -3713,6 +3805,7 @@ jobs:
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testOldVersionMargins \
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testShiftPairs \
                 -only-testing:TegakiCalendarUITests/SpanShotsUITests/testWeekMemo \
+                -only-testing:TegakiCalendarUITests/PaletteShotsUITests \
                 test-without-building > "$OUT/$ID-tests.log" 2>&1 &
               TESTS=$!
               watchdog "$TESTS" "$OUT/$ID-tests.log" "$OUT/$ID-watchdog$1.txt" &
@@ -3765,6 +3858,13 @@ jobs:
             bash tools/ci/xcresult-app-output.sh "$OUT/$ID-app-output.txt" "build/span-app-$ID.xcresult" "build/span-app-$ID-again.xcresult" || true
             bash tools/ci/log-reach.sh "span-shots $ID (the app's output)" "$OUT/$ID-app-output.txt" 'toolbar: paperArea=' || true
             grep -h -E 'span shot: ' "$OUT/$ID-log.txt" "$OUT/$ID-app-output.txt" 2>/dev/null | awk '{ i = index($0, "span shot: "); if (i > 1) $0 = substr($0, i); print }' || true
+            # 1.4.1 (§7.4): PaletteShotsUITests' lines (the photos are the lead's to compare; `ok=no` is a warning only) and the
+            # app's `toolbar: palette=` lines (once each).
+            if [ -s "$OUT/palette/lines-$ID.txt" ]; then
+              cat "$OUT/palette/lines-$ID.txt"
+              if grep -q ' ok=no' "$OUT/palette/lines-$ID.txt"; then echo "::warning::$ID: a palette photo does not show the edge it asked for (shots/span-app/palette/lines-$ID.txt)."; fi
+            fi
+            { grep -h -E 'toolbar: palette=' "$OUT/$ID-app-output.txt" 2>/dev/null || true; } | awk '{ i = index($0, "toolbar: palette="); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' | head -n 20
             find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -15 -exec cp {} "$OUT/" \; 2>/dev/null || true
             if [ "$ID" = "iphone" ]; then
               echo "iphone=$UDID" >> "$GITHUB_OUTPUT"
@@ -4013,7 +4113,23 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: span-shots-app
-          path: shots/span-app
+          # 1.4.1 (§7.4): the palette photos are an artifact of their own (palette-shots, below).
+          path: |
+            shots/span-app
+            !shots/span-app/palette
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true
+
+      # 1.4.1 (docs/R1_4_1_CONTRACT.md §7.4, 0e-24): PaletteShotsUITests' photos and lines (kept 7 days; outside J-4 and
+      # ja-baseline.yml, §7.1). The lead compares them by eye and shows them on the confirmation page.
+      - name: Upload the palette photos (1.4.1)
+        if: always()
+        timeout-minutes: 10
+        uses: actions/upload-artifact@v4
+        with:
+          name: palette-shots
+          path: shots/span-app/palette
           retention-days: 7
           if-no-files-found: warn
           overwrite: true
@@ -4092,6 +4208,8 @@ jobs:
             echo ""
             BANDS=$(( $(count "$OUT" '*-boundary.png') + $(count "$OUT" '*-overview.png') + $(count "$OUT" '*-sunday.png') ))
             echo "Photos: bands $BANDS (21 expected), pairs $(count "$OUT" '*-shift-*.png') (8), margins $(count "$OUT" '*-margin-*.png') (30), week memo $(count "$OUT" '*-portrait-week-memo-*.png') (4), the neighbour ink's PDF $(count "$OUT" 'span-pdf-neighbor-ink.png') (1)."
+            echo ""
+            echo "1.4.1's palette photos (artifact palette-shots): $(count "$OUT/palette" '*.png') (14 expected: the 13-inch iPad 9, the iPad mini 3, the iPhone 17 2); \`ok=no\` lines: $({ cat "$OUT"/palette/lines-*.txt 2>/dev/null || true; } | grep -c ' ok=no' || true)."
             echo ""
             echo "#### The old versions' margins (pixels beside the page that are not the desk; the control must be 0,0)"
             echo ""

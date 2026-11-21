@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "Oggi"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "Torna alla dimensione originale"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "Automatico (zona di questo dispositivo: %@)"
@@ -1249,6 +1253,22 @@
       "jaSha1": "1cae18a9a4",
       "text": "Fine"
     },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "Se sceglie “Mano sinistra”, l’ordine dei pulsanti in alto sullo schermo si inverte da sinistra a destra e il pulsante rotondo della barra degli strumenti ridotta si sposta in basso a destra. La carta e ciò che ha scritto restano invariati."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "Mano dominante"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "Mano sinistra"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "Mano destra"
+    },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
       "text": "Le festività giapponesi sono calcolate da questa app (e verificate con gli annunci dell’Ufficio di Gabinetto del Giappone). Quelle degli altri Paesi si basano su dati pubblici (python-holidays). Alcune, come le festività del calendario lunare o islamico, sono stime e riportano “(stima)”. Possono differire dagli ultimi annunci dei governi. L’impostazione delle festività viene salvata solo su questo dispositivo."
@@ -1861,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Se è attivo, può tracciare linee anche con il dito. Se è disattivo, il dito serve per scorrere e toccare"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Si può spostare sul bordo superiore, inferiore, sinistro o destro"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Sposta la barra degli strumenti"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Cancella i tratti toccati"
@@ -1888,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Sposta in basso a destra"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Sposta in basso"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Sposta a sinistra"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Sposta a destra"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Sposta in alto"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

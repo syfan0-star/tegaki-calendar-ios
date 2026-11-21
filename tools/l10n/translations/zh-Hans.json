@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "今天"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "恢复原始大小"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "自动（此设备的地区：%@）"
@@ -1249,6 +1253,22 @@
       "jaSha1": "1cae18a9a4",
       "text": "完成"
     },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "选择“左手”后，屏幕顶部按钮的排列会左右颠倒，收起的工具栏的圆形按钮会移到右下角。纸和写下的文字保持不变。"
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "惯用手"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "左手"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "右手"
+    },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
       "text": "日本的节假日由此 App 计算（并与日本内阁府的公告进行了核对）。其他国家的节假日基于公开数据（python-holidays）。农历或伊斯兰历的节假日等部分日期为推算，并标有“（推算）”。可能与政府的最新公告不同。节假日设置只保存在此设备上。"
@@ -1861,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "打开后，也可以用手指画线。关闭时，手指用于滚动和轻点"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "可移到上、下、左、右边缘"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "移动工具栏"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "擦除碰到的整条线"
@@ -1888,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "移到右下角"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "移到下方"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "移到左侧"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "移到右侧"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "移到上方"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

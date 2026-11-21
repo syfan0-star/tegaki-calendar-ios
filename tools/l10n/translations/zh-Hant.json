@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "今天"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "恢復原始大小"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "自動（這部裝置的地區：%@）"
@@ -1249,6 +1253,22 @@
       "jaSha1": "1cae18a9a4",
       "text": "完成"
     },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "選擇「左手」後，螢幕頂端按鈕的排列會左右顛倒，收起的工具列的圓形按鈕會移到右下角。紙和寫下的文字保持不變。"
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "慣用手"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "左手"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "右手"
+    },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
       "text": "日本的假日由此 App 計算（並與日本內閣府的公告進行核對）。其他國家的假日依據公開資料（python-holidays）。農曆或伊斯蘭曆的假日等部分日期為推估，並標有「（推估）」。可能與政府的最新公告不同。假日設定只儲存在這部裝置上。"
@@ -1861,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "開啟後，也可以用手指畫線。關閉時，手指用於捲動和點一下"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "可移到上、下、左、右邊緣"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "移動工具列"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "擦除碰到的整條線"
@@ -1888,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "移到右下角"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "移到下方"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "移到左側"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "移到右側"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "移到上方"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

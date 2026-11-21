@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "Heute"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "Auf Originalgröße zurücksetzen"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "Automatisch (Region dieses Geräts: %@)"
@@ -1249,6 +1253,22 @@
       "jaSha1": "1cae18a9a4",
       "text": "Fertig"
     },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "Mit „Linke Hand“ werden die Schaltflächen oben auf dem Bildschirm in umgekehrter Reihenfolge angezeigt, und die runde Schaltfläche der abgelegten Werkzeugleiste wandert nach unten rechts. Papier und Handschrift bleiben unverändert."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "Dominante Hand"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "Linke Hand"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "Rechte Hand"
+    },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
       "text": "Japanische Feiertage berechnet diese App (und prüft sie anhand der Bekanntgaben des japanischen Kabinettsamts). Feiertage anderer Länder beruhen auf öffentlichen Daten (python-holidays). Einige, etwa Feiertage nach dem Mond- oder dem islamischen Kalender, sind geschätzt und mit „(geschätzt)“ markiert. Sie können von den neuesten Bekanntgaben der Regierungen abweichen. Die Feiertagseinstellung wird nur auf diesem Gerät gesichert."
@@ -1861,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Wenn dies aktiviert ist, können Sie auch mit dem Finger Linien ziehen. Wenn es deaktiviert ist, scrollen und tippen Sie mit dem Finger"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Lässt sich an den oberen, unteren, linken oder rechten Rand verschieben"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Werkzeugleiste verschieben"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Löscht berührte Striche"
@@ -1888,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Nach unten rechts"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Nach unten"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Nach links"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Nach rechts"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Nach oben"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

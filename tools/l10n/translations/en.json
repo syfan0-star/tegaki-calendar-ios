@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "Today"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "Reset Zoom"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "Automatic (this device’s region: %@)"
@@ -1249,6 +1253,22 @@
       "jaSha1": "1cae18a9a4",
       "text": "Done"
     },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "If you choose “Left Hand”, the order of the buttons at the top of the screen is reversed from left to right, and the round button of the hidden toolbar moves to the bottom right. The paper and your handwriting stay as they are."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "Dominant Hand"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "Left Hand"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "Right Hand"
+    },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
       "text": "Japanese holidays are calculated by this app (and checked against announcements by the Cabinet Office of Japan). Holidays of other countries are based on public data (python-holidays). Some, such as lunar calendar and Islamic calendar holidays, are estimates and are marked “(est.)”. They may differ from the latest government announcements. Holiday settings are saved only on this device."
@@ -1861,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "When this is on, you can also draw lines with your finger. When it is off, your finger scrolls and taps"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Can be moved to the top, bottom, left or right edge"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Move Toolbar"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Erases lines you touch"
@@ -1888,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Move to Bottom Right"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Move to Bottom"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Move to Left"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Move to Right"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Move to Top"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "Hoy"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "Volver al tamaño original"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "Automático (región de este dispositivo: %@)"
@@ -1249,6 +1253,22 @@
       "jaSha1": "1cae18a9a4",
       "text": "Listo"
     },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "Si elige “Mano izquierda”, el orden de los botones de la parte superior de la pantalla se invierte de izquierda a derecha y el botón redondo de la barra de herramientas oculta pasa abajo a la derecha. El papel y lo que escribió no cambian."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "Mano dominante"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "Mano izquierda"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "Mano derecha"
+    },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
       "text": "Esta app calcula los días festivos de Japón (y se comprueban con los anuncios de la Oficina del Gabinete de Japón). Los de otros países se basan en datos públicos (python-holidays). Algunos, como los del calendario lunar o el islámico, son estimaciones y llevan la marca “(estimado)”. Pueden diferir de los últimos anuncios de los gobiernos. El ajuste de días festivos se guarda solo en este dispositivo."
@@ -1861,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Si está activado, también puede trazar líneas con el dedo. Si está desactivado, el dedo sirve para desplazarse y tocar"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Se puede mover al borde superior, inferior, izquierdo o derecho"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Mover la barra de herramientas"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Borra el trazo tocado"
@@ -1888,6 +1916,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Mover abajo a la derecha"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Mover abajo"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Mover a la izquierda"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Mover a la derecha"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Mover arriba"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",
