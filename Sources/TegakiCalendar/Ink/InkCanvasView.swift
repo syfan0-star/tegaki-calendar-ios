@@ -241,6 +241,12 @@ struct InkCanvasView: UIViewRepresentable {
     /// 1.3 (§3.7, D20): the paper stopped on a focus page (its first day, the visit that ended), on the
     /// next main-actor turn, when the focus day changed or a visit ended.
     var onSpanStop: (SpanSession.Stop) -> Void = { _ in }
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §3.6–§3.8, 0e-7–0e-9): 等倍. Each change goes back once, on the next main-actor
+    /// turn, to the opening zoom of the canvas's present limits (`Bounds.open`, ratio 1; the joined path's own, the cap on an
+    /// iPhone in landscape). A reset reports ratio 1 through `onZoomRatioChange` (the first layout's way); at the opening
+    /// zoom, under the pen, during a pinch or with a finger on the band nothing moves and nothing is reported or kept.
+    /// The value the canvas is made with, or one that did not change, does nothing.
+    var zoomResetTrigger: Int = 0
 
     /// How long after the pen lifts a pending relayout is applied (M2 contract §3).
     static let settleDelay: TimeInterval = 0.3
@@ -286,6 +292,11 @@ final class InkCanvasContainerView: UIView {
     let canvasView: PKCanvasView
     let overlayView = InkOverlayView()
     var onLayout: (() -> Void)?
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.10, 0e-11; the review of D1a): the canvas's content offset and size just before
+    /// `layoutSubviews` last gave it a new frame. UIKit moves the offset with the new frame when the scroll range gets
+    /// shorter (the far end; UI1-R1, `InkSpanState.layoutOffsetX`), so step 4 of `containerDidLayout` reads the middle at
+    /// the old size from here.
+    private(set) var offsetBeforeNewFrame: (offset: CGPoint, size: CGSize)?
     /// The UI tests only (`--screenshot-probe`): the coordinator's `probeValue()`, read out as this
     /// view's accessibility value at the moment it is asked (never stale). nil otherwise.
     var probe: (() -> String)?
@@ -325,6 +336,7 @@ final class InkCanvasContainerView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         if canvasView.frame != bounds {
+            offsetBeforeNewFrame = (offset: canvasView.contentOffset, size: canvasView.bounds.size)
             canvasView.frame = bounds
         }
         if overlayView.frame != bounds {
@@ -439,6 +451,8 @@ extension InkCanvasView {
         private var lastRedoTrigger: Int
         private var lastCommandTrigger: Int
         private var lastRevealTrigger: Int
+        /// 1.4.1 (§3.7, 0e-8): the `zoomResetTrigger` last seen (the value the canvas was made with does nothing).
+        private var lastZoomResetTrigger: Int
 
         private enum HistoryAction { case undo, redo }
         /// PencilKit's tool is in use (Begin → End) or the overlay is tracking. Readable for the tests.
@@ -638,6 +652,7 @@ extension InkCanvasView {
             lastRedoTrigger = parent.redoTrigger
             lastCommandTrigger = parent.commandTrigger
             lastRevealTrigger = parent.revealTrigger
+            lastZoomResetTrigger = parent.zoomResetTrigger
             lastInitialSelectionIds = parent.initialSelectionIds
             initialSelectionPending = !parent.initialSelectionIds.isEmpty
             // A local so nothing on `self` is read before super.init (two-phase initialisation).
@@ -991,6 +1006,13 @@ extension InkCanvasView {
                     reveal(rect)
                 }
             }
+
+            // 8. 1.4.1 (docs/R1_4_1_CONTRACT.md §3.7, 0e-8): 等倍, once per trigger, on the next main-actor turn (never
+            // inside the SwiftUI update); `resetZoomToOpen` drops it under the pen or a pinch (0e-9).
+            if newParent.zoomResetTrigger != lastZoomResetTrigger {
+                lastZoomResetTrigger = newParent.zoomResetTrigger
+                Task { @MainActor [weak self] in self?.resetZoomToOpen() }
+            }
         }
 
         // MARK: Applying queued work (pen up only)
@@ -1251,12 +1273,16 @@ extension InkCanvasView {
                 let atMin = abs(oldZoom - oldMin) < 0.0005
                 // Read before the limits change: UIKit may move the zoom and the offset with them.
                 let oldOffset = canvas.contentOffset
+                // 1.4.1 (§3.10, 0e-11; the review of D1a): the middle is read with the offset the last pass's size left,
+                // not the one UIKit moved with the new frame (a shorter range: the far end, UI1-R1).
+                var laidOffset = oldOffset
+                if let before = container.offsetBeforeNewFrame, before.size == lastLayoutSize { laidOffset = before.offset }
                 canvas.minimumZoomScale = bounds.min
                 canvas.maximumZoomScale = bounds.max
                 if !live {
                     let centerPaper = CGPoint(
-                        x: (oldOffset.x + viewport.width / 2) / oldZoom,
-                        y: (oldOffset.y + viewport.height / 2) / oldZoom
+                        x: (laidOffset.x + lastLayoutSize.width / 2) / oldZoom,
+                        y: (laidOffset.y + lastLayoutSize.height / 2) / oldZoom
                     )
                     let topY = oldOffset.y / oldZoom
                     let newZoom = atOpen ? bounds.open : (atMin ? bounds.min : bounds.clamped(targetZoom ?? oldZoom))
@@ -1414,6 +1440,64 @@ extension InkCanvasView {
             var viewport = container.bounds.size
             viewport.height -= canvas.contentInset.bottom
             canvas.setContentOffset(clampedOffset(ZoomPolicy.revealOffset(rect: rect, zoom: canvas.zoomScale, viewport: viewport, current: canvas.contentOffset)), animated: false)
+        }
+
+        /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.7, §3.8, 0e-8, 0e-9): 等倍, from step 8 of `update(from:)` on the next main-actor
+        /// turn: the opening zoom of the limits in force (`lastBounds.open`, ratio 1). Dropped, nothing kept for later: no
+        /// canvas, container or limits, before the first zoom, during a pinch or its bounce, under the pen or a writing finger,
+        /// while a new page waits for its drawing (`resetScroll`), while a selection moves, and on the joined path while a
+        /// finger holds or drags the band. Not during the settle wait (as 「今日」). At the opening zoom (0.0005, as step 4)
+        /// nothing moves and nothing is reported. Otherwise a fling or an arrow's slide stops first (as `bandWidthChanged`
+        /// stops a slide), then, not animated: the zoom and the margins; x — one page: the clamp centres the paper (open ≤
+        /// fit); joined: the page under the middle of the screen in the middle (`applyBandOpening`'s rule); y keeps the paper
+        /// y in the middle of what shows above the bottom clearance — a paper no taller than the screen at the opening zoom
+        /// goes back to its top, as it opens (with the toolbar folded it can still scroll by the clearance, and the midY rule
+        /// left it 30–60 pt down; the review of D1a). The joined path forgets `turnAnchor` and asks for the shift check. Last
+        /// the first layout's end-of-pinch path: `finishZoom` reports ratio 1 and the end of zooming on the next turn (the
+        /// screen's closure then removes the kind's stored ratio, 0e-10).
+        private func resetZoomToOpen() {
+            guard let canvas, let container, let bounds = lastBounds, hasInitialZoom, !isLive, !isUsingTool, !resetScroll,
+                  !isMovingSelection else { return }
+            if let state = spanState, state.motionOverride ?? (canvas.isTracking || canvas.isDragging) { return }
+            let open = bounds.open
+            let oldZoom = max(canvas.zoomScale, 0.0001)
+            guard abs(oldZoom - open) >= 0.0005 else { return }
+            if let state = spanState {
+                if state.slideTargetX != nil || state.queuedSlidePages != 0 || (state.motionOverride == nil && canvas.isDecelerating) {
+                    state.slideTargetX = nil
+                    state.queuedSlidePages = 0
+                    canvas.setContentOffset(canvas.contentOffset, animated: false)
+                }
+            } else if canvas.isDecelerating {
+                canvas.setContentOffset(canvas.contentOffset, animated: false)
+            }
+            let offset = canvas.contentOffset
+            let size = container.bounds.size
+            let shown = size.height - canvas.contentInset.bottom
+            let midX = (offset.x + size.width / 2) / oldZoom
+            let midY = (offset.y + shown / 2) / oldZoom
+            canvas.zoomScale = open // → scrollViewDidZoom: the content size, the margins, the paper window
+            targetZoom = open
+            canvas.contentSize = Self.scaled(appliedLayout.size, by: open)
+            applyInsets()
+            var x = midX * open - size.width / 2
+            if spanState != nil, let band = appliedLayout as? SpanLayout, !band.pages.isEmpty {
+                let slot = band.slot(atX: midX)
+                x = (band.origin(ofSlot: slot) + band.plan.pageWidth / 2) * open - size.width / 2
+            }
+            // A paper no taller than the screen at the opening zoom (the iPad's week and day) scrolls only by the bottom
+            // clearance: it goes back to its top, where it opens (step 3 of `containerDidLayout`; §3.8's result).
+            let fits = appliedLayout.size.height * open <= size.height + 0.5
+            canvas.contentOffset = clampedOffset(CGPoint(x: x, y: fits ? -canvas.contentInset.top : midY * open - shown / 2))
+            syncPaperFrame()
+            if let state = spanState {
+                state.turnAnchor = nil
+                requestShiftCheck()
+            }
+            scrollViewDidEndZooming(canvas, with: nil, atScale: open)
+            #if DEBUG
+            NSLog("zoom: reset %.4f→%.4f", oldZoom, open)
+            #endif
         }
 
         private static func scaled(_ size: CGSize, by zoom: CGFloat) -> CGSize {

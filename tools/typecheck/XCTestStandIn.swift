@@ -108,6 +108,8 @@ open class XCUIElement: NSObject {
     public func coordinate(withNormalizedOffset normalizedOffset: CGVector) -> XCUICoordinate { XCUICoordinate() }
     public func tap() {}
     public func doubleTap() {}
+    /// 1.4.1 (ZoomResetUITests): the iOS gesture.
+    public func pinch(withScale scale: CGFloat, velocity: CGFloat) {}
     public func screenshot() -> XCUIScreenshot { XCUIScreenshot() }
     public func descendants(matching type: ElementType) -> XCUIElementQuery { XCUIElementQuery() }
     public var buttons: XCUIElementQuery { XCUIElementQuery() }
