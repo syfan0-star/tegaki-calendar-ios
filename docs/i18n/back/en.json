@@ -1,6 +1,6 @@
 {
  "language": "en",
- "about": "R の逆翻訳。translations/en.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。",
+ "about": "R の逆翻訳。translations/en.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。1.4.1 の 11 キー（header.zoomReset.spoken・settings.hand.*・toolbar.grip.*・toolbar.moveTo.*、契約 R1_4_1_CONTRACT.md §8.1）は、2026-11-22 に R が translations/en.json の その 11 キーの text だけを読んで訳し戻した（日本語の元・comment・GLOSSARY・画面のコード・ほかのキーの訳は読んでいない）。back の（ ）は R の注。",
  "strings": {
   "CFBundleDisplayName": {
    "text": "Tegaki",
@@ -533,6 +533,10 @@
   "header.today": {
    "text": "Today",
    "back": "今日"
+  },
+  "header.zoomReset.spoken": {
+   "text": "Reset Zoom",
+   "back": "ズームをリセット"
   },
   "holidayPicker.auto": {
    "text": "Automatic (this device’s region: %@)",
@@ -1250,6 +1254,22 @@
    "text": "Done",
    "back": "完了"
   },
+  "settings.hand.footer": {
+   "text": "If you choose “Left Hand”, the order of the buttons at the top of the screen is reversed from left to right, and the round button of the hidden toolbar moves to the bottom right. The paper and your handwriting stay as they are.",
+   "back": "「左手」を選ぶと、画面上部のボタンの並び順が左右逆になり、隠したツールバーの丸いボタンが右下に移ります。紙とあなたの手書きはそのままです。"
+  },
+  "settings.hand.header": {
+   "text": "Dominant Hand",
+   "back": "利き手"
+  },
+  "settings.hand.left": {
+   "text": "Left Hand",
+   "back": "左手"
+  },
+  "settings.hand.right": {
+   "text": "Right Hand",
+   "back": "右手"
+  },
   "settings.holidays.footer": {
    "text": "Japanese holidays are calculated by this app (and checked against announcements by the Cabinet Office of Japan). Holidays of other countries are based on public data (python-holidays). Some, such as lunar calendar and Islamic calendar holidays, are estimates and are marked “(est.)”. They may differ from the latest government announcements. Holiday settings are saved only on this device.",
    "back": "日本の祝日はこのアプリが計算しています（内閣府の発表と照らして確かめています）。ほかの国の祝日は公開データ（python-holidays）に基づきます。旧暦やイスラム暦の祝日など一部は推定で、「（推定）」の印が付きます。政府の最新の発表と違うことがあります。祝日の設定はこの端末にだけ保存されます。"
@@ -1862,6 +1882,14 @@
    "text": "When this is on, you can also draw lines with your finger. When it is off, your finger scrolls and taps",
    "back": "オンのときは、指でも線を引けます。オフのときは、指でスクロールとタップをします"
   },
+  "toolbar.grip.hint": {
+   "text": "Can be moved to the top, bottom, left or right edge",
+   "back": "上・下・左・右の端に動かせます"
+  },
+  "toolbar.grip.spoken": {
+   "text": "Move Toolbar",
+   "back": "ツールバーを移動"
+  },
   "toolbar.hint.eraser": {
    "text": "Erases lines you touch",
    "back": "触れた線を消します"
@@ -1889,6 +1917,22 @@
   "toolbar.moveEdge.toRight": {
    "text": "Move to Bottom Right",
    "back": "右下へ移す"
+  },
+  "toolbar.moveTo.bottom": {
+   "text": "Move to Bottom",
+   "back": "下へ移動"
+  },
+  "toolbar.moveTo.left": {
+   "text": "Move to Left",
+   "back": "左へ移動"
+  },
+  "toolbar.moveTo.right": {
+   "text": "Move to Right",
+   "back": "右へ移動"
+  },
+  "toolbar.moveTo.top": {
+   "text": "Move to Top",
+   "back": "上へ移動"
   },
   "toolbar.pin": {
    "text": "Always Show Toolbar",

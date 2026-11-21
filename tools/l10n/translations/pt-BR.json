@@ -1255,7 +1255,7 @@
     },
     "settings.hand.footer": {
       "jaSha1": "1c0ef85a68",
-      "text": "Se você escolher “Mão esquerda”, a ordem dos botões no alto da tela se inverte da esquerda para a direita, e o botão redondo da barra de ferramentas oculta vai para o canto inferior direito. O papel e o que você escreveu continuam iguais."
+      "text": "Se você escolher “Mão esquerda”, a ordem dos botões no alto da tela se inverte da esquerda para a direita, e o botão redondo da barra de ferramentas oculta vai para o canto inferior direito. O papel e o que você escreveu não mudam."
     },
     "settings.hand.header": {
       "jaSha1": "64794ce83e",

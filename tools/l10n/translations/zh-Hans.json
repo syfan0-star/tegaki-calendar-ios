@@ -1255,7 +1255,7 @@
     },
     "settings.hand.footer": {
       "jaSha1": "1c0ef85a68",
-      "text": "选择“左手”后，屏幕顶部按钮的排列会左右颠倒，收起的工具栏的圆形按钮会移到右下角。纸和写下的文字保持不变。"
+      "text": "选择“左手”后，屏幕顶部按钮的排列会左右颠倒，工具栏收起时的圆形按钮会移到右下角。纸和手写内容保持不变。"
     },
     "settings.hand.header": {
       "jaSha1": "64794ce83e",
@@ -1883,7 +1883,7 @@
     },
     "toolbar.grip.hint": {
       "jaSha1": "340d32aaed",
-      "text": "可移到上、下、左、右边缘"
+      "text": "可移到上下左右的边缘"
     },
     "toolbar.grip.spoken": {
       "jaSha1": "6bebba3282",
@@ -1919,7 +1919,7 @@
     },
     "toolbar.moveTo.bottom": {
       "jaSha1": "3b6c5b6324",
-      "text": "移到下方"
+      "text": "移到底部"
     },
     "toolbar.moveTo.left": {
       "jaSha1": "4ff434d894",
@@ -1931,7 +1931,7 @@
     },
     "toolbar.moveTo.top": {
       "jaSha1": "e500829f4a",
-      "text": "移到上方"
+      "text": "移到顶部"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",
