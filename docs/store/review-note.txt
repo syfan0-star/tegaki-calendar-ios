@@ -2,7 +2,7 @@ No sign-in, no account creation and no demo account are needed.
 
 What is new in 1.4
 1. Built with Xcode 27.2 (iOS 27.2 SDK). The minimum iOS version stays 17.0.
-2. The layout now follows the window size, not the device type. On iPhone Duo the app fills the screen, inner or outer, and adjusts when the device is opened or closed (the page and handwriting stay the same). To check: open a week page, then open and close the device.
+2. The layout now follows the window size, not the device type. On iPhone Duo the app fills the screen, inner or outer, and fits its width (the page and handwriting stay the same). To check: open a week page, then open and close the device.
 3. On iPhone Duo, as on iPad, Apple Pencil (USB-C, iOS 27.2 or later) writes and a finger moves the paper. The app turns Draw with Finger off when that iPhone first sees an Apple Pencil touch or a screen hinge (UIHingeInteraction); on a device updated from 1.3, only an Apple Pencil touch does this. The model name and the window size are not used for this. Finger drawing can be turned back on with the toolbar switch.
 4. No new on-screen text. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating (4+; both new questions, Shared Location and Dating and Relationships, answered No).
 
@@ -26,4 +26,4 @@ https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 https://syfan0-star.github.io/tegaki-calendar/app/support.html
 
 --- 日本語の要約 ---
-Xcode 27.2（iOS 27.2 SDK）で作り、対応は iOS 17.0 からのまま。レイアウトは窓の大きさで決め、iPhone Duo では内側・外側の画面いっぱいに出て開閉に追います。Duo では iPad と同じく Apple Pencil で書き、指で紙を動かします。新しい画面の文は無し。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
+Xcode 27.2（iOS 27.2 SDK）で作り、対応は iOS 17.0 からのまま。レイアウトは窓の大きさで決め、iPhone Duo では内側・外側の画面いっぱいに出て幅に合わせます。Duo では iPad と同じく Apple Pencil で書き、指で紙を動かします。新しい画面の文は無し。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。

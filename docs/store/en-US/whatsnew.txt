@@ -1,7 +1,4 @@
-• Week and day pages are now joined side by side with the pages before and after them. Slide sideways with your finger to bring in the neighboring week (or day). You can write straight across the border between pages (when “Draw with Finger” is on, move sideways with two fingers).
-• Week pages now also have a “Free Notes” area below 24:00 (it is not shown on devices with an older version, but it has not been deleted).
-• You can turn off the side-by-side joining in the “Pages” section of Settings.
-• Following the fix in version 1.2.4, also fixed an issue where, after all handwriting was erased on another device, handwriting still on the screen of this device could go back to iCloud.
-• Please update both your iPad and your iPhone to this version. On older versions, strokes written across pages appear on only one of the pages (they have not been deleted). If you erase such a stroke on an older version, it is erased in this version too.
+• The app now adjusts its layout to the large screen of iPhone Duo.
+• The app has moved to the new development environment for iOS 27. How you use it on iPad and other iPhone models stays the same.
 
 Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.
