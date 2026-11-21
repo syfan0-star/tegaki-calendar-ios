@@ -626,3 +626,12 @@
   - そろったら release14.py check → web（r14-legal edff817 を Web の main へ、最終更新の日は公開の日の JST）→ release → 読み戻し → 「まとめて良い」で r14 を main へ `--no-ff`（公開の後）。
   - `release14.py check`（15:5x JST）: 止まる理由は「審査待ち」だけ。Web の 4 ページは 200、SUPPORT は案 B で Connect の組み合わせと同じ、r14-legal は Web の main の早送り。
   - 審査の状態は、セッションの中の背景の見張り（15 分ごと、release14.py state、GET だけ）で見る。
+
+## 本人の確かめ表の答え（11/21 20:2x JST）
+
+- 本人「確かめ表は全部○ ただしDuoは持っていない、Apple PencilはDuo対応のものは持っていない。それらは除く。」（TestFlight 1.4・ビルド 28、確認ページの 8）。
+  - 行 1〜17 と 28（iPad Air 11・iPad mini・iPad Pro 13・iPhone、全部の端末）: ○。
+  - 行 18〜27（iPhone Duo と Duo の Apple Pencil）: 「—」（Duo も Duo に使える Pencil も手元に無い）。提出の文（行 1 案 B・行 3、行 2 と SUPPORT の Pencil の文は無し）は §9.1 の「—」のときの組み合わせで、替えない。
+- 公開の 2 つの条件のうち (2)（本人の端末の確かめ表）はそろった。残りは (1) 審査が通る（PENDING_DEVELOPER_RELEASE）だけ。
+  - `release14.py state`（20:21 JST）: 1.4 WAITING_FOR_REVIEW WAITING_FOR_REVIEW。見張りは続けている。
+  - 通ったら、新しいお言葉は待たずに release14.py check → web → release → 読み戻し → r14 を main へ `--no-ff`（「1.4を公開して良い」「まとめて良い」は 11/21 に済み）。
