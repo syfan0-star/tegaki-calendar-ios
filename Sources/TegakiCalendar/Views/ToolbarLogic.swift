@@ -422,7 +422,9 @@ extension ToolbarLogic {
     /// least `sideMinColumnHeight`. A value that is not finite allows no side.
     static func allowedEdges(isPad: Bool, windowSize: CGSize?, column: CGFloat, paperColumnHeight: CGFloat) -> [PaletteEdge] {
         guard isPad, WindowClass.isWide(windowSize) else { return [.bottom] }
-        if column >= sideMinColumn, paperColumnHeight >= sideMinColumnHeight {
+        // MUTATION MT1 (r141-q-m1 only, never merged; docs/R1_4_1_CONTRACT.md §6.5, ToolbarPlacementTests): the sides
+        // are allowed from a column of 678 pt (was: `sideMinColumn`, 700, which itself stays 700).
+        if column >= 678, paperColumnHeight >= sideMinColumnHeight {
             return [.bottom, .top, .left, .right]
         }
         return [.bottom, .top]
