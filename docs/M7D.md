@@ -562,3 +562,19 @@
     - 期限切れの場面では、アプリが 15.0 秒で先に `.readOnly(.expired)` になった。そのため、アプリの 5 秒の枠はこの run では試されていない。最後の確かめ（`.readOnly(.expired)` と同じか）は厳しいまま。
     - 基準の `ipad11-portrait-readonly` は撮り直し（§3.5 (f) で許す。差はツールバーのガラスだけ）。
 - **決定**: 通しの run が緑になったので、r14 6093deb（この記録の commit を足した物）から TestFlight 1.4 を作る。D3（確認ページと確かめ表）を本人に渡す。提出と公開は本人の言葉が要る。
+
+## TestFlight 1.4（ビルド 28）と D3 の渡し（11/21 05:43〜06:00 UTC）
+
+- testflight.yml を r14 2fb8fb1 で走らせた（run 44872177444、**ビルド 28**、05:43〜05:48 UTC、全部の段が ○）。
+  - アーカイブの確かめ: declared-age-range true、DeclaredAgeRange は弱いリンク。DTSDKName iphoneos27.2、MinimumOSVersion 17.0、UIDeviceFamily 1, 2、DTXcode 2720、DTXcodeBuild 27B52、DTPlatformVersion 27.2。
+  - 送り: エラー 0（Delivery UUID ef5176d0-32c4-4feb-a7da-df71f96fd198）。
+- Connect（読むだけ、`enter14.py plan --build 28` と build の GET）: ビルド 28 は 05:57 UTC に VALID。
+  - 版 1.4、minOs 17.0、期限 2027-02-18。
+  - 内部テストの組に入った（IN_BETA_TESTING）。
+  - D0 のビルド 27 は使わない。
+- `enter14.py plan` の「止まる」理由は、本人の言葉の前に出る物だけ: 新機能の文の組がまだ 1.4 の 1 つに決まっていない、承認の commit が無い。
+- 確認ページと確かめ表（28 行）を Artifact で本人に渡した。
+  - 作り方: build_page14.py、ビルド 28、文の元 2fb8fb1、写真の組の印 4fbed294（60 枚）、判定 ○43 △12 ×0、警告 0。
+  - 11/22 の夜の「早い道／ふつうの道」の判断は、11/21 に渡したので要らなくなった。
+- 中国の 2027 年の祝日: python-holidays の正式な最新版は 0.109（11/17）。0.110 は開発版だけで、まだ入れない（行 4 は使わない）。
+- 次: 本人の「この内容で入れてよい」と確かめ表。その後、選ばれた文を入れる → 「1.4 を審査に提出して良い」。本人は 11/22〜23 不在。
