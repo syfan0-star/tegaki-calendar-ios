@@ -4,8 +4,9 @@ import XCTest
 // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.2, §4.10, §6.1, 0e-12, 0e-13, 0e-21): 設定 › 入力 「利き手」. The stored
 // value is a String, "right" or "left", per device (`layout.hand`); nothing, an unknown value or a value that is not a string
 // reads as the right hand, and reading writes nothing (the shape of `toolbar.collapsedEdge`). The hand's corner of the
-// folded toolbar's round button (`Hand.dockEdge`), and screenshot mode's hand, which never reads the store. The tests point
-// `AppSettings.defaults` at a scratch suite.
+// folded toolbar's round button (`Hand.dockEdge`), and screenshot mode's hand, which never reads the store. D1b (§4.10, 0e-21)
+// adds the toolbar's edge (`toolbar.paletteEdge`, `AppSettings.paletteEdge`), the bottom for nothing or anything unknown. The
+// tests point `AppSettings.defaults` at a scratch suite.
 final class HandSettingTests: XCTestCase {
     private var suiteName = ""
     private var defaults: UserDefaults { AppSettings.defaults }
@@ -72,6 +73,27 @@ final class HandSettingTests: XCTestCase {
         XCTAssertEqual(Hand.right.dockEdge, .leading)
         XCTAssertEqual(Hand.left.dockEdge, .trailing)
         XCTAssertEqual(Hand.right.dockEdge, ToolbarEdge(stored: nil), "the right hand's corner is the default corner")
+    }
+
+    /// 1.4.1 D1b (§4.10, §6.1, 0e-21): the toolbar's edge, the other per-device key of 1.4.1, in the same shape: the bottom
+    /// until written (reading writes nothing), its raw value, the bottom for anything else; it is not one of an earlier user's
+    /// keys and leaves the hand alone.
+    func testPaletteEdgeAccessor() {
+        XCTAssertEqual(AppSettings.paletteEdgeKey, "toolbar.paletteEdge")
+        XCTAssertEqual(AppSettings.paletteEdge, .bottom)
+        XCTAssertNil(defaults.object(forKey: "toolbar.paletteEdge"), "reading the default writes nothing")
+        AppSettings.paletteEdge = .right
+        XCTAssertEqual(defaults.string(forKey: "toolbar.paletteEdge"), "right")
+        XCTAssertEqual(AppSettings.paletteEdge, .right)
+        for unknown in ["", "Right", "trailing", "1"] {
+            defaults.set(unknown, forKey: "toolbar.paletteEdge")
+            XCTAssertEqual(AppSettings.paletteEdge, .bottom, "\(unknown) → bottom")
+        }
+        defaults.set(["left"], forKey: "toolbar.paletteEdge")
+        XCTAssertEqual(AppSettings.paletteEdge, .bottom, "not a string → bottom")
+        XCTAssertFalse(AppSettings.isExistingUser(defaults), "the edge alone does not make an earlier user")
+        XCTAssertNil(defaults.object(forKey: "layout.hand"), "the edge leaves the hand alone")
+        XCTAssertEqual(AppSettings.hand, .right)
     }
 
     /// The header's hand (`ScreenshotMode.hand`, which `CalendarRootScreen` reads): the stored one in normal use; in

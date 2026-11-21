@@ -1,0 +1,227 @@
+import UIKit
+import XCTest
+
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §7.4, §6.1, §6.6, 0e-23, 0e-24): the new photos of 1.4.1, outside J-4's pairs (none goes into
+/// the first job's `screenshots`, nor into ja-baseline.yml, §7.1). Only build.yml's span-shots-app job runs it, beside
+/// SpanShotsUITests and with its variables (`TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT`, `…_DEVICE`, `…_REQUESTS`; xcodebuild hands them
+/// to the test runner without the prefix); anywhere else it skips itself, so ui-tests and blank-paper do not change. The
+/// photos go to `<out>/palette/`, which the job uploads as the artifact palette-shots (not span-shots-app's), and the lines
+/// (`palette shot:`) to `<out>/palette/lines-<device>.txt`, never to `<out>/lines/`, whose lines the job's gates count.
+///
+/// - ipad13: the month and the week in portrait with `--screenshot-palette top`, `left` and `right`; the month with
+///   `--screenshot-hand left`; the month with `--screenshot-palette-drag right` (the look of a drag, the confirmation page
+///   only); the month in landscape with the bar on the left.
+/// - ipadmini: the month in portrait with the bar on the left; the week in landscape with the bar on the right, as it opens
+///   and with its upright column scrolled to its end (the column is longer than the mini's landscape window).
+/// - iphone (the iPhone 17): the week in portrait and in landscape with `--screenshot-hand left` (the header mirrored; the
+///   toolbar 1.4's).
+/// The iPhone 18 Pro Max's portrait month (等倍 on the second row) and the iPhone 17's `iphone-portrait-week-zoom3` are J-4's
+/// photos already (the first job), so they are not taken again here.
+///
+/// A landscape photo is the job's `simctl io screenshot` of the screen turned with `XCUIDevice` (SpanShotsUITests'
+/// `simulatorPhoto`: iPadOS ignores `--screenshot-landscape`, and XCUIScreenshot of a turned screen is cut); a portrait one is
+/// the app's screenshot. Each photo's line says how it was taken and what `palette.state` read: `ok=no` when the bar is not on
+/// the edge asked for (the window did not allow it, or the app did not move it). The photos are compared by the lead, so the
+/// test fails on nothing but its launches (contract §7.4: not judged automatically); the job warns on `ok=no`.
+@MainActor
+final class PaletteShotsUITests: XCTestCase {
+    private struct Setup {
+        let out: URL
+        let device: String
+    }
+
+    private static let japanese = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+    /// How long a photo waits after the screen has settled (s; SpanShotsUITests' `photoWait`).
+    private let photoWait: TimeInterval = 1
+
+    func testPalettePhotos() throws {
+        let setup = try setup()
+        defer { XCUIDevice.shared.orientation = .portrait }
+        switch setup.device {
+        case "ipad13":
+            for page in ["month", "week"] {
+                for edge in ["top", "left", "right"] {
+                    shoot(setup, "ipad13-portrait-\(page)-\(edge)", .portrait, ["--screenshot-page", page, "--screenshot-palette", edge], edge: edge)
+                }
+            }
+            shoot(setup, "ipad13-portrait-month-hand-left", .portrait, ["--screenshot-page", "month", "--screenshot-hand", "left"], edge: nil)
+            shoot(setup, "ipad13-portrait-month-drag-right", .portrait, ["--screenshot-page", "month", "--screenshot-palette-drag", "right"],
+                  edge: "bottom")
+            shoot(setup, "ipad13-landscape-month-left", .landscapeLeft, ["--screenshot-page", "month", "--screenshot-palette", "left"], edge: "left")
+        case "ipadmini":
+            shoot(setup, "ipadmini-portrait-month-left", .portrait, ["--screenshot-page", "month", "--screenshot-palette", "left"], edge: "left")
+            shoot(setup, "ipadmini-landscape-week-right", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-palette", "right"],
+                  edge: "right", scrolledToo: true)
+        case "iphone":
+            shoot(setup, "iphone-portrait-week-hand-left", .portrait, ["--screenshot-page", "week", "--screenshot-hand", "left"], edge: nil)
+            shoot(setup, "iphone-landscape-week-hand-left", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-hand", "left"], edge: nil)
+        default:
+            throw XCTSkip("no palette photos on \(setup.device)")
+        }
+    }
+
+    // MARK: One photo
+
+    /// One launch, one photo (two with `scrolledToo`: the upright column scrolled to its end). `edge` is the edge
+    /// `palette.state` must read (waited for); nil: no `--screenshot-palette` (no state element).
+    private func shoot(_ setup: Setup, _ name: String, _ orientation: UIDeviceOrientation, _ arguments: [String], edge: String?,
+                       scrolledToo: Bool = false) {
+        XCUIDevice.shared.orientation = orientation
+        let app = XCUIApplication()
+        app.launchArguments = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-probe"] + arguments + Self.japanese
+        app.launch()
+        defer { app.terminate() }
+        let canvas = element(app, "ink-canvas")
+        guard canvas.waitForExistence(timeout: 30) else {
+            XCTFail("\(name): the app did not show its canvas")
+            record(setup, "palette shot: device=\(setup.device) name=\(name) ok=no reason=no-canvas")
+            return
+        }
+        var state = "-"
+        var ok = true
+        if let edge {
+            let read = waitForState(app, timeout: 15) { $0["edge"] == edge }
+            state = stateLabel(app)
+            ok = read != nil
+        }
+        settle(canvas)
+        Thread.sleep(forTimeInterval: photoWait)
+        let turned = orientation != .portrait
+        let how = takePhoto(app, setup, file: "palette/\(name).png", turned: turned)
+        record(setup, "palette shot: device=\(setup.device) name=\(name) photo=\(how) ok=\(ok ? "yes" : "no") expected=\(edge ?? "-") "
+            + "window=\(Self.text(app.windows.firstMatch.frame)) canvas=\(Self.text(canvas.frame)) state=\(state)")
+        guard scrolledToo else { return }
+        // The upright column scrolled: one slow drag from near its bottom to near its top, held before the lift.
+        let pen = app.buttons["ペン"]
+        let window = app.windows.firstMatch.frame
+        if pen.exists {
+            let x = pen.frame.midX
+            let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+            origin.withOffset(CGVector(dx: x, dy: window.maxY - 60))
+                .press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: x, dy: window.minY + 160)),
+                       withVelocity: XCUIGestureVelocity(rawValue: 300), thenHoldForDuration: 0.4)
+            Thread.sleep(forTimeInterval: photoWait)
+        }
+        let scrolled = takePhoto(app, setup, file: "palette/\(name)-scrolled.png", turned: turned)
+        record(setup, "palette shot: device=\(setup.device) name=\(name)-scrolled photo=\(scrolled) ok=\(pen.exists ? "yes" : "no") "
+            + "expected=\(edge ?? "-") pen=\(pen.exists ? Self.text(pen.frame) : "-") state=\(stateLabel(app))")
+    }
+
+    /// The canvas's probe read the same twice, 0.5 s apart (at most 15 s): the first layout and the slots are done.
+    private func settle(_ canvas: XCUIElement) {
+        var last = ""
+        let deadline = Date().addingTimeInterval(15)
+        while Date() < deadline {
+            let now = "\(canvas.value as? String ?? "")|\(canvas.frame)"
+            if now == last, !now.hasPrefix("|") { return }
+            last = now
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+    }
+
+    // MARK: Taking a photo (SpanShotsUITests' way)
+
+    /// Writes `file` under the output folder: the job's simulator photo for a turned screen (else the app's screenshot,
+    /// `xcui`, cut), the app's screenshot in portrait. Returns how it was taken.
+    private func takePhoto(_ app: XCUIApplication, _ setup: Setup, file: String, turned: Bool) -> String {
+        let url = setup.out.appendingPathComponent(file)
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if turned, simulatorPhoto(file) {
+            return "simctl"
+        }
+        let shot = app.screenshot()
+        do {
+            try shot.pngRepresentation.write(to: url)
+        } catch {
+            record(setup, "palette shot: device=\(setup.device) file=\(file) not written: \(error)")
+        }
+        let attachment = XCTAttachment(screenshot: shot)
+        attachment.name = file
+        attachment.lifetime = .deleteOnSuccess
+        add(attachment)
+        return "xcui"
+    }
+
+    /// A request to the job's `watch_photos` (`TEGAKI_SPAN_SHOT_REQUESTS`: the file under the output folder and the turn, written
+    /// whole, then renamed) and its answer `<request>.done` ("ok" or "failed"). False without the folder or an answer in 90 s.
+    private func simulatorPhoto(_ file: String) -> Bool {
+        guard let path = ProcessInfo.processInfo.environment["TEGAKI_SPAN_SHOT_REQUESTS"], !path.isEmpty else { return false }
+        let folder = URL(fileURLWithPath: path, isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let request = folder.appendingPathComponent(file.replacingOccurrences(of: "/", with: "_") + ".request")
+        let done = URL(fileURLWithPath: request.path + ".done")
+        try? FileManager.default.removeItem(at: done)
+        guard (try? Data("\(file)\n270\n".utf8).write(to: request, options: .atomic)) != nil else { return false }
+        let deadline = Date().addingTimeInterval(90)
+        while Date() < deadline {
+            if let answer = try? String(contentsOf: done, encoding: .utf8) {
+                try? FileManager.default.removeItem(at: done)
+                return answer.hasPrefix("ok")
+            }
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+        try? FileManager.default.removeItem(at: request)
+        return false
+    }
+
+    // MARK: Reading the screen
+
+    private func setup() throws -> Setup {
+        let env = ProcessInfo.processInfo.environment
+        guard let out = env["TEGAKI_SPAN_SHOT_OUT"], !out.isEmpty, let device = env["TEGAKI_SPAN_SHOT_DEVICE"], !device.isEmpty else {
+            throw XCTSkip("only in the span-shots-app job")
+        }
+        let folder = URL(fileURLWithPath: out, isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder.appendingPathComponent("palette", isDirectory: true), withIntermediateDirectories: true)
+        return Setup(out: folder, device: device)
+    }
+
+    private func element(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func stateLabel(_ app: XCUIApplication) -> String {
+        let state = element(app, "palette.state")
+        return state.exists ? state.label : "-"
+    }
+
+    /// `palette.state`'s fields once `condition` holds, read every 0.3 s; nil at the timeout.
+    private func waitForState(_ app: XCUIApplication, timeout: TimeInterval, _ condition: ([String: String]) -> Bool) -> [String: String]? {
+        let state = element(app, "palette.state")
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if state.exists {
+                var values: [String: String] = [:]
+                for part in state.label.split(separator: ";") {
+                    guard let equals = part.firstIndex(of: "=") else { continue }
+                    values[String(part[..<equals])] = String(part[part.index(after: equals)...])
+                }
+                if condition(values) { return values }
+            }
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+        return nil
+    }
+
+    // MARK: Writing
+
+    /// A line for the job: printed and logged, and appended to `<out>/palette/lines-<device>.txt`.
+    private func record(_ setup: Setup, _ line: String) {
+        print(line)
+        NSLog("%@", line)
+        let url = setup.out.appendingPathComponent("palette", isDirectory: true).appendingPathComponent("lines-\(setup.device).txt")
+        let data = Data((line + "\n").utf8)
+        if let handle = try? FileHandle(forWritingTo: url) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            handle.closeFile()
+        } else {
+            try? data.write(to: url)
+        }
+    }
+
+    /// "x,y,w,h" with one decimal (no spaces: the job splits the lines on them).
+    private static func text(_ rect: CGRect) -> String {
+        [rect.minX, rect.minY, rect.width, rect.height].map { String(format: "%.1f", Double($0)) }.joined(separator: ",")
+    }
+}
