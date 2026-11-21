@@ -660,6 +660,11 @@ jobs:
       # had not ended 8.4 min into its step when the job was cancelled (run 44690586694, image 20261119.0378.1), and the
       # Kit's build took 12.0 min (run 44696154799).
       - name: Run unit tests on the simulator
+        # r14-q-skprobe (1.4 D3 probe, never merged): a limit for this step, so that a StoreKit call of the probe that never
+        # returns fails the step instead of running the job into its 160 minutes (a cancelled job skips the 10 runs below,
+        # which run after a failed step). The boot (up to about 12 min on this image), the test build, the probe (about
+        # 7 min) and the result bundle fit in 45. Any other branch keeps the job's limit.
+        timeout-minutes: ${{ github.ref_name == 'r14-q-skprobe' && 45 || 160 }}
         run: |
           set -euo pipefail
           mkdir -p shots/fixtures
@@ -711,22 +716,40 @@ jobs:
 
       # r14-q-skprobe only (1.4 D3 probe, never merged): StoreKitSessionTests as r14 has it, 10 times, each run a fresh launch
       # of the test host (test-without-building on the build of the step above), to count how often and how it fails on
-      # iOS 27.2 (24B8117) after the two failures of CI run 44802640918. The iPad is booted once before the runs, so that
+      # iOS 27.2 (24B8117) after the two failures of CI run 44802640918. It runs the class alone on an iPad booted by simctl,
+      # not in the 781-test run on an iPad xcodebuild booted where both failures came, so 0 failures here does not clear
+      # those. The iPad is erased first (the probe class has just run 48 SKTestSession scenarios on it, so run 1 would
+      # follow its StoreKit state; the runs after it still follow each other's) and booted once before the runs, so that
       # xcodebuild leaves it running between them (it shuts down only a simulator it booted itself); each run has a watchdog
-      # of 6 minutes. Per run one line "probe-sk-loop: i=<n> result=<passed|failed> failing=<tests or ->", and its store: /
-      # store-test: / Test Case / error: lines, cut at 400 characters, go into $RUNNER_TEMP/sk-loop.log, printed at the end
-      # with a header per run. Never fails the job.
+      # of 6 minutes, and no run starts 55 minutes into the step. Per run one line "probe-sk-loop: i=<n>
+      # result=<passed|failed|no-tests> failing=<tests or -> …" (test-without-building ends with "** TEST EXECUTE
+      # SUCCEEDED/FAILED **"; StoreKitSessionTests has 8 tests, 6 passing and 2 skipping on 24B8117, and a run with another
+      # count gets note=ran-<n>-of-8), then its store: / store-test: / Test Case / error: lines, cut at 400 characters,
+      # printed right after it; at the end the summary. Never fails the job.
       - name: "Probe: StoreKitSessionTests 10 times (r14-q-skprobe)"
-        if: ${{ !cancelled() && env.QUICK == 'true' }}
+        if: ${{ !cancelled() && github.ref_name == 'r14-q-skprobe' }}
         continue-on-error: true
         timeout-minutes: 75
         run: |
           set -uo pipefail
           UDID="${{ steps.required.outputs.ipad13 }}"
-          LOOP_LOG="$RUNNER_TEMP/sk-loop.log"
           SUMMARY="$RUNNER_TEMP/sk-loop-summary.txt"
-          : > "$LOOP_LOG"
           : > "$SUMMARY"
+          STEP_START=$(date +%s)
+          # The distinct StoreKitSessionTests names of $ITER_LOG whose case ended with $1 (passed, skipped or failed), in
+          # either form of the line.
+          names() {
+            sed -nE \
+              -e "s/.*Test Case '-\[TegakiCalendarTests\.StoreKitSessionTests ([A-Za-z0-9_]+)\]' $1.*/\1/p" \
+              -e "s/.*Test case 'StoreKitSessionTests\.([A-Za-z0-9_]+)\(\)' $1.*/\1/p" \
+              "$ITER_LOG" | sort -u
+          }
+          xcrun simctl shutdown "$UDID" > /dev/null 2>&1 || true
+          if xcrun simctl erase "$UDID" 2>&1; then
+            echo "probe-sk-loop: the iPad erased in $(( $(date +%s) - STEP_START )) s"
+          else
+            echo "probe-sk-loop: erase failed; run 1 follows the probe class's StoreKit state"
+          fi
           BOOT_START=$(date +%s)
           xcrun simctl boot "$UDID" 2>&1 || true
           if ! xcrun simctl bootstatus "$UDID" -b > /dev/null 2>&1; then
@@ -734,6 +757,10 @@ jobs:
           fi
           echo "probe-sk-loop: the iPad booted in $(( $(date +%s) - BOOT_START )) s"
           for i in 1 2 3 4 5 6 7 8 9 10; do
+            if [ $(( $(date +%s) - STEP_START )) -ge 3300 ]; then
+              echo "probe-sk-loop: 55 min into the step; runs $i to 10 are not run"
+              break
+            fi
             ITER_LOG="$RUNNER_TEMP/sk-loop-$i.log"
             START=$(date +%s)
             xcodebuild \
@@ -766,33 +793,36 @@ jobs:
             CODE=0
             wait "$PID" 2> /dev/null || CODE=$?
             SECS=$(( $(date +%s) - START ))
-            if [ "$NOTE" = "-" ] && grep -q '\*\* TEST SUCCEEDED \*\*' "$ITER_LOG"; then
+            # test-without-building's banner is "** TEST EXECUTE SUCCEEDED **" / "** TEST EXECUTE FAILED **" (docs/R1_2_3.md).
+            if [ "$NOTE" = "-" ] && grep -qE '\*\* TEST (EXECUTE )?SUCCEEDED \*\*' "$ITER_LOG"; then
               RESULT=passed
             else
               RESULT=failed
-              if [ "$NOTE" = "-" ] && ! grep -q '\*\* TEST FAILED \*\*' "$ITER_LOG"; then
+              if [ "$NOTE" = "-" ] && ! grep -qE '\*\* TEST (EXECUTE )?FAILED \*\*' "$ITER_LOG"; then
                 NOTE="no-TEST-line"
               fi
             fi
-            FAILING="$(sed -nE \
-              -e "s/.*Test Case '-\[TegakiCalendarTests\.StoreKitSessionTests ([A-Za-z0-9_]+)\]' failed.*/\1/p" \
-              -e "s/.*Test case 'StoreKitSessionTests\.([A-Za-z0-9_]+)\(\)' failed.*/\1/p" \
-              "$ITER_LOG" | sort -u | awk 'NF { printf "%s%s", (n++ ? "," : ""), $0 }' || true)"
-            PASSED="$(grep -cE "Test Case '-\[TegakiCalendarTests\.StoreKitSessionTests [A-Za-z0-9_]+\]' passed" "$ITER_LOG" || true)"
-            SKIPPED="$(grep -cE "Test Case '-\[TegakiCalendarTests\.StoreKitSessionTests [A-Za-z0-9_]+\]' skipped" "$ITER_LOG" || true)"
+            FAILING="$(names failed | awk 'NF { printf "%s%s", (n++ ? "," : ""), $0 }' || true)"
+            PASSED="$(names passed | grep -c . || true)"
+            SKIPPED="$(names skipped | grep -c . || true)"
+            RAN="$( { names passed; names skipped; names failed; } | sort -u | grep -c . || true)"
+            # 8 tests (6 pass, 2 skip on 24B8117): none means a filter or bundle mismatch (unless the watchdog ended it),
+            # fewer a crash, the watchdog or a "Test Case" line cut by an app log line.
+            if [ "${RAN:-0}" -eq 0 ] && [ "$NOTE" != "watchdog-360s" ]; then
+              RESULT=no-tests
+            fi
+            if [ "${RAN:-0}" -ne 8 ] && [ "$NOTE" = "-" ]; then
+              NOTE="ran-${RAN:-0}-of-8"
+            fi
             LINE="probe-sk-loop: i=$i result=$RESULT failing=${FAILING:--} passed=${PASSED:-0} skipped=${SKIPPED:-0} secs=$SECS exit=$CODE note=$NOTE"
             echo "$LINE"
             echo "$LINE" >> "$SUMMARY"
-            {
-              echo "==== probe-sk-loop run $i: result=$RESULT failing=${FAILING:--} secs=$SECS exit=$CODE note=$NOTE ===="
-              grep -E 'store: |store-test: |Test [Cc]ase |error: |\*\* TEST |Restarting after|[Cc]rash|Executed [0-9]+ test' "$ITER_LOG" | cut -c1-400 || true
-            } >> "$LOOP_LOG"
+            echo "==== probe-sk-loop run $i: its store: / store-test: / Test Case / error: lines ===="
+            grep -E 'store: |store-test: |Test [Cc]ase |error: |\*\* TEST |Restarting after|[Cc]rash|Executed [0-9]+ test' "$ITER_LOG" | cut -c1-400 || true
           done
-          echo "==== probe-sk-loop: the runs' store: / store-test: / Test Case / error: lines ($LOOP_LOG) ===="
-          cat "$LOOP_LOG"
           echo "==== probe-sk-loop: summary ===="
           cat "$SUMMARY"
-          echo "probe-sk-loop: $(grep -c 'result=failed' "$SUMMARY" || true) of $(grep -c . "$SUMMARY" || true) runs failed"
+          echo "probe-sk-loop: $(grep -c 'result=failed' "$SUMMARY" || true) of $(grep -c . "$SUMMARY" || true) runs failed, $(grep -c 'result=no-tests' "$SUMMARY" || true) ran no test"
           sed -nE 's/.* failing=([^ ]+) .*/\1/p' "$SUMMARY" | tr ',' '\n' | grep -vx -- '-' | sort | uniq -c \
             | awk '{ print "probe-sk-loop: failed in " $1 " runs: " $2 }' || true
           xcrun simctl shutdown "$UDID" > /dev/null 2>&1 || true

@@ -16,26 +16,33 @@ import XCTest
 /// `resetToDefaultState()`, JPN / ja_JP, a new `LiveStoreClient` and `StoreModel`; at the end `clearTransactions()` and
 /// all three dropped): S1 buy (testBuyingMonthlyStartsATrial), C configuration, S2 expire (testExpiringMakesItReadOnly),
 /// E ineligible (testIneligibleAfterATrial), S3 refund (testRefundRevokes), S4 restore (testRestoreAfterClearingTransactions),
-/// U US storefront, S5 updates (testUpdatesStreamTriggersRefresh). The instruments, all on the test's side (no app code
-/// changes):
+/// U US storefront, S5 updates (testUpdatesStreamTriggersRefresh). No app code changes; the instruments are on the test's
+/// side, and two of them change what StoreKit is asked, so the rounds alternate:
 ///
-/// - a witness: a detached task iterating `Transaction.updates` for the whole round (it never finishes a transaction),
-///   logging every delivery with the ms since the round began, the scenario it came in and whether it is stale (bought
-///   before that scenario began, so a previous scenario's);
-/// - every StoreKit call the test makes is timed, and one over a second is logged as a stall;
-/// - after each action the raw state (`Transaction.currentEntitlements` and `Product.SubscriptionInfo.status(for:)`, not
-///   through the app) is read every 100 ms for up to 15 s, the app's model refreshed as the real test does, and the ms
-///   until each showed the action are logged; when an expiry or a refund is not shown in 15 s, `Transaction.all` is
-///   logged and the call is issued once more (late or lost);
-/// - in S5 the model's `snapshot` changes (`$snapshot`) are timed against the deliveries (did a refresh follow each
-///   update), and in rounds 4 to 6 the stale updates are drained first: `Transaction.updates` is read for up to 1.5 s (until
-///   400 ms of silence) before `model.start()`, each delivery finished and logged.
+/// - odd rounds are instrumented: a witness (a detached task iterating `Transaction.updates` from the round's first
+///   `SKTestSession` on, never finishing anything) logs every delivery; after each action the raw state
+///   (`Transaction.currentEntitlements` and `Product.SubscriptionInfo.status(for:)`, not through the app) is read every
+///   100 ms for up to 15 s next to the model's refreshes; `Transaction.unfinished` is logged at every setUp and tearDown;
+/// - even rounds are plain, as StoreKitSessionTests asks: no witness, no unfinished reads, and the polls only refresh and
+///   read the model (refreshUntil: refresh, check, 100 ms; S5's waitUntil: check, 50 ms, no refresh), for up to 15 s,
+///   with one raw read when the wait ends; so an expiry follows the moment the app can edit, as in the real test;
+/// - every round: the model's client is `ProbeModelClient`, which passes every call to the scenario's `LiveStoreClient`,
+///   times each call of the model's refreshes (one of at least a second is a stall, logged and counted) and records every
+///   delivery to the model's own `Transaction.updates` listener; every StoreKit call the test makes is timed too;
+/// - a transaction is matched by id, product and purchase date (ids start at 0 again after `clearTransactions()`, so an
+///   earlier scenario's leftover never counts as this one's), and a status by its transaction's id and purchase date;
+/// - when an expiry or a refund is not shown in 15 s, `Transaction.all` is logged, the raw state read once more (late)
+///   and, only when it still does not show it, the call is issued once more (lost);
+/// - in S5 each delivery is timed against the purchase and against the model's next `snapshot` change; rounds 3 and 4
+///   (bracketed by 1-2 and 5-6, which do not) drain `Transaction.updates` before `model.start()`: read for up to 5 s, until
+///   2 s without a delivery, each delivery finished and logged.
 ///
 /// Every line starts with `probe-sk:` (NSLog; LiveStoreClient's own `store:` lines come between them), and each round
 /// ends with `probe-sk: round=<r> summary …`, the test with `probe-sk: final …`. It never fails on what it measures (it
 /// skips, as StoreKitSessionTests does, when the simulator's test environment does not work), and its waits are bounded:
-/// no round starts after `roundBudget` and no scenario after `scenarioBudget` seconds. The class name ends in `SpanTests`
-/// (the quick lane's pattern); on r14-q-skprobe the quick lane runs this class alone.
+/// no round starts after `roundBudget` and no scenario after `scenarioBudget` seconds (a StoreKit call that never returns
+/// is bounded by the CI step's limit). The class name ends in `SpanTests` (the quick lane's pattern); on r14-q-skprobe
+/// the quick lane runs this class alone.
 @MainActor
 final class ProbeStoreKitEnvSpanTests: XCTestCase {
     private static let rounds = 6
@@ -48,14 +55,25 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
     private static let stallLimit: TimeInterval = 1
     /// StoreKitSessionTests' waits (`refreshUntil`, `waitUntil`): an app answer later than this fails the real test.
     private static let realLimitMS = 5000
+    /// The drain: `Transaction.updates` for up to `drainLimit` seconds, until `drainQuiet` seconds without a delivery (in
+    /// attempt 3 the stale delivery came about 3 s after `model.start()`).
+    private static let drainLimit: TimeInterval = 5
+    private static let drainQuiet: TimeInterval = 2
+
+    /// Odd rounds: the witness, the raw state on every poll, `Transaction.unfinished`. Even rounds: as the real test.
+    private static func isInstrumented(_ round: Int) -> Bool { round % 2 == 1 }
+    /// Rounds 3 and 4 drain `Transaction.updates` before S5's `model.start()`; 1-2 and 5-6, around them, do not.
+    private static func drains(_ round: Int) -> Bool { round == 3 || round == 4 }
 
     private let box = ProbeSKBox()
     private var session: SKTestSession?
     private var client: LiveStoreClient?
     private var model: StoreModel?
     private var sink: AnyCancellable?
+    private var witness: Task<Void, Never>?
+    private var instrumented = true
     private var testStart = Date()
-    private var notes = ProbeNotes(round: 0)
+    private var notes = ProbeNotes(round: 0, mode: "-")
     private var allNotes: [ProbeNotes] = []
     private var lines: [String] = []
 
@@ -64,7 +82,9 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
     func test1Rounds() async throws {
         testStart = Date()
         log("start: \(ProcessInfo.processInfo.operatingSystemVersionString); \(Self.rounds) rounds of StoreKitSessionTests' 8 scenarios in its order "
-            + "(S1 buy, C configuration, S2 expire, E ineligible, S3 refund, S4 restore, U US storefront, S5 updates); S5 drains Transaction.updates first in rounds 4-6")
+            + "(S1 buy, C configuration, S2 expire, E ineligible, S3 refund, S4 restore, U US storefront, S5 updates); odd rounds instrumented "
+            + "(witness, raw state on every poll, Transaction.unfinished), even rounds plain (as StoreKitSessionTests asks); "
+            + "S5 drains Transaction.updates first in rounds 3-4")
         for round in 1...Self.rounds {
             let elapsed = Date().timeIntervalSince(testStart)
             if elapsed > Self.roundBudget {
@@ -72,12 +92,11 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
                 break
             }
             let roundStart = Date()
+            instrumented = Self.isInstrumented(round)
             box.beginRound(round)
-            notes = ProbeNotes(round: round)
-            let witness = startWitness(round: round)
-            log("round \(round) begins, \(Int(elapsed)) s into the test")
-            try? await Task.sleep(for: .milliseconds(200)) // the witness subscribes
-            try await runScenario("S1", round: round) { await s1Buy() }
+            notes = ProbeNotes(round: round, mode: instrumented ? "instrumented" : "plain")
+            log("round \(round) begins (\(notes.mode), drain \(Self.drains(round) ? "yes" : "no")), \(Int(elapsed)) s into the test")
+            try await runScenario("S1", round: round) { await s1Buy(round: round) }
             try await runScenario("C", round: round) { await cConfiguration() }
             try await runScenario("S2", round: round) { await s2Expire() }
             try await runScenario("E", round: round) { await eIneligible() }
@@ -88,7 +107,8 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             try? await Task.sleep(for: .milliseconds(300)) // late deliveries of the round's last scenario
             summarize(round: round, started: roundStart)
             box.endRound()
-            witness.cancel()
+            witness?.cancel()
+            witness = nil
         }
         finalSummary()
         let all = XCTAttachment(string: lines.joined(separator: "\n"))
@@ -113,13 +133,14 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             return
         }
         await body()
-        tearDownScenario(name)
+        await tearDownScenario(name)
         let ms = ProbeSK.ms(since: start)
         notes.durations.append("\(name):\(ms)")
         log("\(name): \(ms) ms with its setUp and tearDown")
     }
 
     /// StoreKitSessionTests.setUp. The environment check skips the test only in round 1's first scenario (later ones log).
+    /// In an instrumented round the witness starts in S1, right after the round's first `SKTestSession` exists.
     private func setUpScenario(_ name: String, round: Int) async throws -> Bool {
         box.beginScenario(name)
         let start = Date()
@@ -139,17 +160,26 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
         made.storefront = "JPN"
         made.locale = Locale(identifier: "ja_JP")
         session = made
+        if name == "S1", instrumented {
+            witness = startWitness(round: round)
+            try? await Task.sleep(for: .milliseconds(200)) // the witness subscribes
+        }
         let problem = await timedAsync("\(name) setUp environment check") { await environmentProblem() }
         if let problem {
             log("\(name) setUp: the test environment does not work: \(problem)")
             if round == 1 && name == "S1" {
                 made.clearTransactions()
                 session = nil
+                witness?.cancel()
+                witness = nil
                 throw XCTSkip("StoreKit test environment unavailable on this simulator: \(problem) (as StoreKitSessionTests skips; Xcode 26.3-26.6 defect, docs/M5.md §3)")
             }
         }
+        if instrumented {
+            await logUnfinished("\(name) setUp")
+        }
         let client = LiveStoreClient()
-        let model = StoreModel(client: client, cache: NoopAccessCache())
+        let model = StoreModel(client: ProbeModelClient(base: client, box: box), cache: NoopAccessCache())
         self.client = client
         self.model = model
         let box = self.box
@@ -176,8 +206,11 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
         return "SKTestSession's storefront stayed \(storefront ?? "nil"), monthly price \(monthly.map { "\($0.price)" } ?? "nil")"
     }
 
-    /// StoreKitSessionTests.tearDown.
-    private func tearDownScenario(_ name: String) {
+    /// StoreKitSessionTests.tearDown (in an instrumented round `Transaction.unfinished` is logged first).
+    private func tearDownScenario(_ name: String) async {
+        if instrumented {
+            await logUnfinished("\(name) tearDown")
+        }
         if let session {
             timed("\(name) tearDown clearTransactions") { session.clearTransactions() }
         }
@@ -191,18 +224,30 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
 
     // MARK: - The scenarios (StoreKitSessionTests' tests, in their order)
 
-    /// testBuyingMonthlyStartsATrial: buy monthly, refresh until `.trial`.
-    private func s1Buy() async {
+    /// testBuyingMonthlyStartsATrial: buy monthly, refresh until `.trial`. In an instrumented round, whether the witness
+    /// saw this purchase (if not, its delivery count means nothing in that round).
+    private func s1Buy(round: Int) async {
         guard let model else { return }
         guard let transaction = await buy(.monthly, "S1") else {
             notes.parts.append("S1=noPurchase")
             return
         }
-        let bought = await poll("S1 after the purchase", groupID: transaction.subscriptionGroupID, refresh: true,
-                                raw: { ProbeSK.holds($0, transaction) && ProbeSK.subscribed($0) },
+        let bought = await poll("S1 after the purchase", groupID: transaction.subscriptionGroupID, refresh: true, readsRaw: instrumented,
+                                raw: { ProbeSK.holds($0, transaction) && ProbeSK.subscribed($0, transaction) },
                                 app: { ProbeSK.isTrial(model.snapshot.access) })
         checkApp("S1", bought)
-        notes.parts.append("S1=\(bought.short)")
+        var witnessText = "off"
+        if instrumented {
+            let seen = box.deliveries(round: round).first { $0.listener == "witness" && ProbeSK.same($0, transaction) }
+            if let seen {
+                witnessText = "\(Int(seen.at.timeIntervalSince(transaction.purchaseDate) * 1000))"
+                log("S1: the witness saw the purchase \(witnessText) ms after its purchaseDate")
+            } else {
+                witnessText = "notSeen"
+                log("S1: the witness did NOT see the purchase (its delivery count means nothing in this round)")
+            }
+        }
+        notes.parts.append("S1=\(bought.short),witness:\(witnessText)")
     }
 
     /// testConfigurationLoadsBothProducts: the products, then one refresh.
@@ -229,20 +274,21 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             return
         }
         let group = transaction.subscriptionGroupID
-        let bought = await poll("S2 after the purchase", groupID: group, refresh: true,
-                                raw: { ProbeSK.holds($0, transaction) && ProbeSK.subscribed($0) },
+        let bought = await poll("S2 after the purchase", groupID: group, refresh: true, readsRaw: instrumented,
+                                raw: { ProbeSK.holds($0, transaction) && ProbeSK.subscribed($0, transaction) },
                                 app: { model.snapshot.access.canEdit })
         checkApp("S2.buy", bought)
-        let expired = await pollAction("S2 expire", groupID: group, refresh: true,
+        let expired = await pollAction("S2 expire", groupID: group, refresh: true, readsRaw: instrumented,
                                        action: { expire(.monthly, "S2") },
-                                       raw: { !ProbeSK.holds($0, transaction) && ProbeSK.expired($0) },
+                                       raw: { !ProbeSK.holds($0, transaction) && ProbeSK.expired($0, transaction) },
                                        app: { model.snapshot.access == .readOnly(.expired) })
         checkApp("S2.expire", expired)
         notes.parts.append("S2=buy:\(bought.short),expire:\(expired.short)")
     }
 
     /// testIneligibleAfterATrial: buy monthly, wait for the history (no eligibility read), refresh until it can edit,
-    /// expire, refresh until `.readOnly(.expired)`, then the eligibility read every 100 ms for up to 5 s.
+    /// expire, refresh until `.readOnly(.expired)`, then the eligibility read every 100 ms for up to 5 s. The history
+    /// wait reads StoreKit in every round (the real test does).
     private func eIneligible() async {
         guard let client, let model else { return }
         guard let transaction = await buy(.monthly, "E") else {
@@ -250,16 +296,20 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             return
         }
         let group = transaction.subscriptionGroupID
-        let history = await poll("E history", groupID: group, refresh: false,
-                                 raw: { raw in raw.entitlements.contains { $0.id == transaction.id && $0.isIntroductory } },
+        let history = await poll("E history", groupID: group, refresh: false, readsRaw: true,
+                                 raw: { raw in
+                                     raw.entitlements.contains {
+                                         ProbeSK.same(id: $0.id, productID: $0.productID, purchased: $0.purchaseDate, transaction) && $0.isIntroductory
+                                     }
+                                 },
                                  app: { true })
-        let editable = await poll("E refreshUntil canEdit", groupID: group, refresh: true,
+        let editable = await poll("E refreshUntil canEdit", groupID: group, refresh: true, readsRaw: instrumented,
                                   raw: { _ in true },
                                   app: { model.snapshot.access.canEdit })
         checkApp("E.buy", editable)
-        let expired = await pollAction("E expire", groupID: group, refresh: true,
+        let expired = await pollAction("E expire", groupID: group, refresh: true, readsRaw: instrumented,
                                        action: { expire(.monthly, "E") },
-                                       raw: { !ProbeSK.holds($0, transaction) && ProbeSK.expired($0) },
+                                       raw: { !ProbeSK.holds($0, transaction) && ProbeSK.expired($0, transaction) },
                                        app: { model.snapshot.access == .readOnly(.expired) })
         checkApp("E.expire", expired)
         var eligibility = "notRead"
@@ -305,13 +355,13 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             return
         }
         let group = transaction.subscriptionGroupID
-        let bought = await poll("S3 after the purchase", groupID: group, refresh: true,
-                                raw: { ProbeSK.holds($0, transaction) && ProbeSK.subscribed($0) },
+        let bought = await poll("S3 after the purchase", groupID: group, refresh: true, readsRaw: instrumented,
+                                raw: { ProbeSK.holds($0, transaction) && ProbeSK.subscribed($0, transaction) },
                                 app: { model.snapshot.access.canEdit })
         checkApp("S3.buy", bought)
-        let refunded = await pollAction("S3 refund", groupID: group, refresh: true,
+        let refunded = await pollAction("S3 refund", groupID: group, refresh: true, readsRaw: instrumented,
                                         action: { refund(transaction, "S3") },
-                                        raw: { !ProbeSK.holds($0, transaction) && ProbeSK.revoked($0) },
+                                        raw: { !ProbeSK.holds($0, transaction) && ProbeSK.revoked($0, transaction) },
                                         app: { model.snapshot.access == .readOnly(.revoked) })
         checkApp("S3.refund", refunded)
         // The real test's route (its `store-test: refund route` line).
@@ -327,7 +377,8 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
     }
 
     /// testRestoreAfterClearingTransactions: buy yearly, refresh until it can edit, `clearTransactions()`, refresh until
-    /// `.readOnly(.notSubscribed)`, buy yearly again, wait for it in the entitlements, refresh until it can edit.
+    /// `.readOnly(.notSubscribed)`, buy yearly again, wait for it in the entitlements, refresh until it can edit. The
+    /// last wait reads StoreKit in every round (the real test does).
     private func s4Restore() async {
         guard let session, let model else { return }
         guard let first = await buy(.yearly, "S4") else {
@@ -335,12 +386,12 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             return
         }
         let group = first.subscriptionGroupID
-        let bought = await poll("S4 after the purchase", groupID: group, refresh: true,
-                                raw: { ProbeSK.holds($0, first) && ProbeSK.subscribed($0) },
+        let bought = await poll("S4 after the purchase", groupID: group, refresh: true, readsRaw: instrumented,
+                                raw: { ProbeSK.holds($0, first) && ProbeSK.subscribed($0, first) },
                                 app: { model.snapshot.access.canEdit })
         checkApp("S4.buy", bought)
         timed("S4 clearTransactions", report: true) { session.clearTransactions() }
-        let cleared = await poll("S4 after clearTransactions", groupID: group, refresh: true,
+        let cleared = await poll("S4 after clearTransactions", groupID: group, refresh: true, readsRaw: instrumented,
                                  raw: { $0.entitlements.isEmpty },
                                  app: { model.snapshot.access == .readOnly(.notSubscribed) })
         checkApp("S4.clear", cleared)
@@ -348,7 +399,7 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             notes.parts.append("S4=buy:\(bought.short),clear:\(cleared.short),again:noPurchase")
             return
         }
-        let again = await poll("S4 after the second purchase", groupID: group, refresh: true,
+        let again = await poll("S4 after the second purchase", groupID: group, refresh: true, readsRaw: true,
                                raw: { ProbeSK.holds($0, second) },
                                app: { model.snapshot.access.canEdit })
         checkApp("S4.again", again)
@@ -372,13 +423,17 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
     }
 
     /// testUpdatesStreamTriggersRefresh: `model.start()`, the first refresh, buy yearly, wait (no refresh by the test) until
-    /// it can edit. Rounds 4-6 drain `Transaction.updates` before `model.start()`.
+    /// it can edit. Rounds 3-4 drain `Transaction.updates` before `model.start()`. In a plain round the wait reads only the
+    /// model, every 50 ms, as the real test's waitUntil.
     private func s5Updates(round: Int) async {
         guard let model else { return }
         var drained = "no"
-        if round >= 4 {
+        if Self.drains(round) {
             let count = await drainUpdates("S5")
             drained = "\(count)"
+            if instrumented {
+                await logUnfinished("S5 after the drain")
+            }
         }
         let startAt = Date()
         model.start()
@@ -392,33 +447,44 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             return
         }
         let boughtAt = Date()
-        let result = await poll("S5 after the purchase", groupID: transaction.subscriptionGroupID, refresh: false,
-                                raw: { ProbeSK.holds($0, transaction) && ProbeSK.subscribed($0) },
+        let result = await poll("S5 after the purchase", groupID: transaction.subscriptionGroupID, refresh: false, readsRaw: instrumented,
+                                raw: { ProbeSK.holds($0, transaction) && ProbeSK.subscribed($0, transaction) },
                                 app: { model.snapshot.access.canEdit })
         checkApp("S5", result)
 
-        // The deliveries of S5 against the model's snapshot changes.
+        // The deliveries of S5 (to the model's own listener in every round, to the witness in the instrumented ones) against
+        // the model's snapshot changes. A model delivery is recorded before the model gets it, so its next change is exact.
         let deliveries = box.deliveries(round: round).filter { $0.scenario == "S5" }
         let publishes = box.publishes(round: round).filter { $0.scenario == "S5" && $0.at >= startAt }
-        var own: Int?
-        var staleAfterStart = 0
+        var ownToModel: Int?
+        var ownToWitness: Int?
+        var toModel = 0
+        var staleToModel = 0
         var refreshAfter = 0
         for delivery in deliveries {
             let afterPurchase = Int(delivery.at.timeIntervalSince(boughtAt) * 1000)
-            let isOwn = delivery.id == transaction.id && delivery.productID == transaction.productID && !delivery.stale
-            if isOwn, own == nil { own = afterPurchase }
-            if delivery.stale, delivery.at >= startAt { staleAfterStart += 1 }
-            let next = publishes.first { $0.at >= delivery.at }
-            if next != nil { refreshAfter += 1 }
-            let nextText = next.map { "+\(Int($0.at.timeIntervalSince(delivery.at) * 1000)) ms (access \($0.access))" } ?? "none"
-            log("S5: delivery \(afterPurchase) ms after the purchase (\(delivery.at >= startAt ? "after" : "before") model.start()): id=\(delivery.id) "
-                + "\(ProbeSK.planName(delivery.productID)) revoked=\(delivery.revoked) stale=\(delivery.stale) own=\(isOwn); next model change \(nextText)")
+            let isOwn = ProbeSK.same(delivery, transaction)
+            let isModel = delivery.listener == "model"
+            if isOwn, isModel, ownToModel == nil { ownToModel = afterPurchase }
+            if isOwn, !isModel, ownToWitness == nil { ownToWitness = afterPurchase }
+            var nextText = "-"
+            if isModel {
+                toModel += 1
+                if delivery.stale { staleToModel += 1 }
+                let next = publishes.first { $0.at >= delivery.at }
+                if next != nil { refreshAfter += 1 }
+                nextText = next.map { "+\(Int($0.at.timeIntervalSince(delivery.at) * 1000)) ms (access \($0.access))" } ?? "none"
+            }
+            log("S5: \(delivery.listener) delivery \(afterPurchase) ms after the purchase (\(delivery.at >= startAt ? "after" : "before") model.start()): "
+                + "id=\(delivery.id) \(ProbeSK.planName(delivery.productID)) purchased=\(ProbeSK.iso(delivery.purchased)) revoked=\(delivery.revoked) "
+                + "stale=\(delivery.stale) own=\(isOwn); next model change \(nextText)")
         }
         let times = publishes.map { "+\(Int($0.at.timeIntervalSince(startAt) * 1000))" }
         log("S5: \(publishes.count) model changes after model.start() (ms): \(times.joined(separator: " ")); the purchase at "
             + "+\(Int(boughtAt.timeIntervalSince(startAt) * 1000)); access now \(ProbeSK.short(model.snapshot.access))")
-        notes.parts.append("S5=drain:\(drained),\(result.short),ownUpdate:\(ProbePoll.text(own)),deliveries:\(deliveries.count),"
-            + "staleAfterStart:\(staleAfterStart),refreshAfter:\(refreshAfter)/\(deliveries.count),end:\(ProbeSK.short(model.snapshot.access))")
+        notes.parts.append("S5=drain:\(drained),\(result.short),ownToModel:\(ProbePoll.text(ownToModel)),"
+            + "ownToWitness:\(instrumented ? ProbePoll.text(ownToWitness) : "off"),toModel:\(toModel),staleToModel:\(staleToModel),"
+            + "refreshAfter:\(refreshAfter)/\(toModel),end:\(ProbeSK.short(model.snapshot.access))")
     }
 
     // MARK: - StoreKit calls (timed)
@@ -476,7 +542,8 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
         return try await body()
     }
 
-    /// A call of at least `stallLimit` is a stall (logged and counted); `report` logs every duration.
+    /// A call of at least `stallLimit` is a stall (logged and counted); `report` logs every duration. A probe
+    /// `model.refresh()` may wait behind a refresh the model's listener started (the model's own calls are timed apart).
     private func noteCall(_ what: String, start: Date, report: Bool) {
         let ms = ProbeSK.ms(since: start)
         if Double(ms) >= Self.stallLimit * 1000 {
@@ -510,6 +577,7 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
                 var item = ProbeStatus(state: LiveStoreClient.renewalState(status.state))
                 if case .verified(let transaction) = status.transaction {
                     item.transactionID = transaction.id
+                    item.purchased = transaction.purchaseDate
                     item.revoked = transaction.revocationDate != nil
                     item.expires = transaction.expirationDate
                 }
@@ -522,12 +590,35 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
         return raw
     }
 
-    /// Every 100 ms for up to `pollLimit`: the raw state (logged when it changes) and, until `app` holds, `model.refresh()`
-    /// when `refresh` (StoreKitSessionTests' refreshUntil; S5 waits without refreshing, as its waitUntil). Ends when both
-    /// `raw` and `app` hold.
-    private func poll(_ label: String, groupID: String?, refresh: Bool, raw rawCondition: (ProbeRaw) -> Bool, app appCondition: () -> Bool) async -> ProbePoll {
+    /// Until both `raw` and `app` hold, or `pollLimit`. Instrumented (`readsRaw`): every 100 ms the raw state (logged when
+    /// it changes) and, until `app` holds, `model.refresh()` when `refresh`. Plain: as StoreKitSessionTests' refreshUntil
+    /// (refresh, check `app`, 100 ms) or, without `refresh`, its waitUntil (check `app`, 50 ms), ending when `app` holds;
+    /// then the raw state once (`rawAtEnd`).
+    private func poll(_ label: String, groupID: String?, refresh: Bool, readsRaw: Bool,
+                      raw rawCondition: (ProbeRaw) -> Bool, app appCondition: () -> Bool) async -> ProbePoll {
         let start = Date()
         var result = ProbePoll()
+        guard readsRaw else {
+            while true {
+                result.ticks += 1
+                if refresh, let model {
+                    await timedAsync("\(label) model.refresh") { await model.refresh() }
+                }
+                if appCondition() {
+                    result.appMS = ProbeSK.ms(since: start)
+                    break
+                }
+                if Date().timeIntervalSince(start) >= Self.pollLimit { break }
+                try? await Task.sleep(for: .milliseconds(refresh ? 100 : 50))
+            }
+            let raw = await readRaw(groupID: groupID, label: "\(label) end")
+            result.rawAtEnd = true
+            if rawCondition(raw) { result.rawMS = ProbeSK.ms(since: start) }
+            log("\(label) +\(ProbeSK.ms(since: start))ms raw at the end: \(raw.text)")
+            log("\(label): app \(ProbePoll.text(result.appMS)) ms (\(result.ticks) checks), raw at the end \(result.rawMS == nil ? "does not show it" : "shows it"); "
+                + "access \(model.map { ProbeSK.short($0.snapshot.access) } ?? "-")")
+            return result
+        }
         var lastText = ""
         while true {
             result.ticks += 1
@@ -552,18 +643,31 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
         return result
     }
 
-    /// `action` (an expiry or a refund), then `poll`; when the raw state does not show it in `pollLimit`, `Transaction.all`,
-    /// the action once more and `poll` again (late or lost).
-    private func pollAction(_ label: String, groupID: String?, refresh: Bool, action: () -> String,
+    /// `action` (an expiry or a refund), then `poll`. When the raw state does not show it: if the app does, that is logged
+    /// (no second call); else `Transaction.all` and one more raw read (late: shown after the poll), and only when that does
+    /// not show it either, the action once more and `poll` again (lost).
+    private func pollAction(_ label: String, groupID: String?, refresh: Bool, readsRaw: Bool, action: () -> String,
                             raw rawCondition: (ProbeRaw) -> Bool, app appCondition: () -> Bool) async -> ProbePoll {
         log("\(label): \(action())")
-        var result = await poll(label, groupID: groupID, refresh: refresh, raw: rawCondition, app: appCondition)
+        var result = await poll(label, groupID: groupID, refresh: refresh, readsRaw: readsRaw, raw: rawCondition, app: appCondition)
         guard result.rawMS == nil else { return result }
+        if result.appMS != nil {
+            log("\(label): the app shows it, but no raw status of this transaction does (see the raw line); no second call")
+            notes.rawMiss.append(label)
+            return result
+        }
         log("\(label): NOT reflected in \(Int(Self.pollLimit)) s")
         await logAll("\(label) not reflected")
+        let check = await readRaw(groupID: groupID, label: "\(label) late check")
+        if rawCondition(check) {
+            result.late = true
+            log("\(label): reflected late, after the \(Int(Self.pollLimit)) s poll (no second call): \(check.text)")
+            notes.lost.append("\(label)(late)")
+            return result
+        }
         result.retried = true
         log("\(label): issued once more: \(action())")
-        let second = await poll("\(label) (second call)", groupID: groupID, refresh: refresh, raw: rawCondition, app: appCondition)
+        let second = await poll("\(label) (second call)", groupID: groupID, refresh: refresh, readsRaw: readsRaw, raw: rawCondition, app: appCondition)
         result.secondRawMS = second.rawMS
         result.secondAppMS = second.appMS
         if let ms = second.rawMS {
@@ -596,6 +700,29 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
         }
     }
 
+    /// `Transaction.unfinished` as it is (nothing finished here): what the model's `finishUnfinished()` or a new listener
+    /// could get. Instrumented rounds only; a non-zero count goes into the round's summary.
+    private func logUnfinished(_ label: String) async {
+        let start = Date()
+        var items: [String] = []
+        for await result in Transaction.unfinished {
+            switch result {
+            case .verified(let transaction):
+                items.append(ProbeSK.describe(transaction, verified: true))
+            case .unverified(let transaction, _):
+                items.append(ProbeSK.describe(transaction, verified: false))
+            }
+        }
+        noteCall("\(label): Transaction.unfinished", start: start, report: false)
+        log("\(label): Transaction.unfinished holds \(items.count)")
+        for (index, item) in items.enumerated() {
+            log("\(label): unfinished[\(index)] \(item)")
+        }
+        if !items.isEmpty {
+            notes.unfinished.append("\(label.replacingOccurrences(of: " ", with: "."))=\(items.count)")
+        }
+    }
+
     /// An app answer later than StoreKitSessionTests' 5 s (or never) would fail the real test; a raw state shown while
     /// the app never followed is an app lag.
     private func checkApp(_ label: String, _ result: ProbePoll) {
@@ -616,9 +743,14 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
                 let line: String?
                 switch result {
                 case .verified(let transaction):
-                    line = box.record(listenerRound: round, transaction: transaction, verified: true, note: nil)
+                    line = box.record(listener: "witness", listenerRound: round, id: transaction.id, productID: transaction.productID,
+                                      purchased: transaction.purchaseDate, expires: transaction.expirationDate,
+                                      revoked: transaction.revocationDate != nil, text: ProbeSK.describe(transaction, verified: true))
                 case .unverified(let transaction, let error):
-                    line = box.record(listenerRound: round, transaction: transaction, verified: false, note: "\(error)")
+                    line = box.record(listener: "witness", listenerRound: round, id: transaction.id, productID: transaction.productID,
+                                      purchased: transaction.purchaseDate, expires: transaction.expirationDate,
+                                      revoked: transaction.revocationDate != nil,
+                                      text: ProbeSK.describe(transaction, verified: false) + " (\(error))")
                 }
                 guard let line else { break }
                 ProbeSK.emit(line)
@@ -627,8 +759,8 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
         }
     }
 
-    /// The drain (rounds 4-6, before S5's `model.start()`): `Transaction.updates` for up to 1.5 s, until 400 ms without a
-    /// delivery; each delivered transaction finished and logged. Returns how many.
+    /// The drain (rounds 3-4, before S5's `model.start()`): `Transaction.updates` for up to `drainLimit`, until `drainQuiet`
+    /// without a delivery; each delivered transaction finished and logged. Returns how many.
     private func drainUpdates(_ label: String) async -> Int {
         let drain = ProbeSKDrain()
         let box = self.box
@@ -649,8 +781,8 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
         while true {
             try? await Task.sleep(for: .milliseconds(50))
             let now = Date()
-            if now.timeIntervalSince(start) >= 1.5 { break }
-            if now.timeIntervalSince(drain.lastActivity() ?? start) >= 0.4 { break }
+            if now.timeIntervalSince(start) >= Self.drainLimit { break }
+            if now.timeIntervalSince(drain.lastActivity() ?? start) >= Self.drainQuiet { break }
         }
         drain.stop()
         task.cancel()
@@ -676,13 +808,22 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
     private func summarize(round: Int, started: Date) {
         let deliveries = box.deliveries(round: round)
         var staleBy: [String: Int] = [:]
-        for delivery in deliveries where delivery.stale {
-            staleBy[delivery.scenario, default: 0] += 1
+        var copies: [String: Int] = [:]
+        for delivery in deliveries {
+            if delivery.stale { staleBy["\(delivery.scenario)/\(delivery.listener)", default: 0] += 1 }
+            copies[ProbeSK.key(delivery), default: 0] += 1
         }
         notes.stale = staleBy.keys.sorted().map { "\($0):\(staleBy[$0] ?? 0)" }
-        let line = "round=\(round) summary \(notes.parts.joined(separator: " ")) deliveries=\(deliveries.count) "
-            + "stale=\(ProbeSK.list(notes.stale)) lost=\(ProbeSK.list(notes.lost)) stall=\(notes.stallText) "
-            + "wouldFail=\(ProbeSK.list(notes.wouldFail)) appLag=\(ProbeSK.list(notes.appLag)) failures=\(ProbeSK.list(notes.failures)) "
+        // The same transaction in the same state delivered again to the same listener.
+        let duplicates = copies.values.filter { $0 > 1 }.reduce(0) { $0 + $1 - 1 }
+        notes.modelStalls = box.modelStalls(round: round)
+        let witnessCount = deliveries.filter { $0.listener == "witness" }.count
+        let line = "round=\(round) summary mode=\(notes.mode) drain=\(Self.drains(round) ? "yes" : "no") \(notes.parts.joined(separator: " ")) "
+            + "deliveries=witness:\(instrumented ? "\(witnessCount)" : "off"),model:\(deliveries.count - witnessCount) duplicates=\(duplicates) "
+            + "stale=\(ProbeSK.list(notes.stale)) lost=\(ProbeSK.list(notes.lost)) rawMiss=\(ProbeSK.list(notes.rawMiss)) "
+            + "unfinished=\(ProbeSK.list(notes.unfinished)) stall=\(ProbeNotes.describeStalls(notes.stalls)) "
+            + "modelStall=\(ProbeNotes.describeStalls(notes.modelStalls)) wouldFail=\(ProbeSK.list(notes.wouldFail)) "
+            + "appLag=\(ProbeSK.list(notes.appLag)) failures=\(ProbeSK.list(notes.failures)) "
             + "ms=\(notes.durations.joined(separator: ",")) total=\(ProbeSK.ms(since: started))"
         emitPlain(line)
         allNotes.append(notes)
@@ -697,15 +838,20 @@ final class ProbeStoreKitEnvSpanTests: XCTestCase {
             return parts.isEmpty ? "-" : parts.joined(separator: " ")
         }
         let line = "final rounds=\(allNotes.count) in \(ProbeSK.ms(since: testStart)) ms; wouldFail=\(perRound { $0.wouldFail }) "
-            + "lost=\(perRound { $0.lost }) stale=\(perRound { $0.stale }) stall=\(perRound { $0.stalls.isEmpty ? [] : [$0.stallText] }) "
+            + "lost=\(perRound { $0.lost }) rawMiss=\(perRound { $0.rawMiss }) stale=\(perRound { $0.stale }) "
+            + "stall=\(perRound { $0.stalls.isEmpty ? [] : [ProbeNotes.describeStalls($0.stalls)] }) "
+            + "modelStall=\(perRound { $0.modelStalls.isEmpty ? [] : [ProbeNotes.describeStalls($0.modelStalls)] }) "
             + "appLag=\(perRound { $0.appLag }) failures=\(perRound { $0.failures })"
         emitPlain(line)
     }
 }
 
-// MARK: - Shared helpers (no actor: the witness and the drain run detached)
+// MARK: - Shared helpers (no actor: the witness, the drain and the model's client run off the main actor)
 
 private enum ProbeSK {
+    /// A call of at least this many ms is a stall (the test's `stallLimit`, for the model's client).
+    static let stallMS = 1000
+
     /// One `probe-sk:` line, cut at 900 characters.
     static func emit(_ line: String) {
         let limit = 900
@@ -753,27 +899,57 @@ private enum ProbeSK {
             + "revoked=\(iso(transaction.revocationDate)) upgraded=\(transaction.isUpgraded) env=\(transaction.environment.rawValue)"
     }
 
+    /// LiveStoreClient's copy, as the model's listener gets it.
+    static func describe(_ input: EntitlementInput) -> String {
+        "id=\(input.id) \(planName(input.productID)) intro=\(input.isIntroductory) purchased=\(iso(input.purchaseDate)) "
+            + "expires=\(iso(input.expirationDate)) revoked=\(iso(input.revocationDate))"
+    }
+
+    /// The same transaction: the same id, product and purchase date (to 2 ms; the signed dates are whole ms). Ids start at
+    /// 0 again after `clearTransactions()`, so the id alone matches an earlier scenario's leftover too.
+    static func same(id: UInt64, productID: String, purchased: Date, _ transaction: Transaction) -> Bool {
+        id == transaction.id && productID == transaction.productID && abs(purchased.timeIntervalSince(transaction.purchaseDate)) < 0.002
+    }
+
+    static func same(_ delivery: ProbeDelivery, _ transaction: Transaction) -> Bool {
+        same(id: delivery.id, productID: delivery.productID, purchased: delivery.purchased, transaction)
+    }
+
     /// The transaction is a current entitlement.
     static func holds(_ raw: ProbeRaw, _ transaction: Transaction) -> Bool {
-        raw.entitlements.contains { $0.id == transaction.id && $0.productID == transaction.productID }
+        raw.entitlements.contains { same(id: $0.id, productID: $0.productID, purchased: $0.purchaseDate, transaction) }
     }
 
-    static func subscribed(_ raw: ProbeRaw) -> Bool {
-        raw.statuses.contains { $0.state == .subscribed }
+    /// The status is the transaction's (its own verified transaction: the same id and purchase date).
+    static func isOf(_ status: ProbeStatus, _ transaction: Transaction) -> Bool {
+        guard let id = status.transactionID, let purchased = status.purchased else { return false }
+        return id == transaction.id && abs(purchased.timeIntervalSince(transaction.purchaseDate)) < 0.002
     }
 
-    static func expired(_ raw: ProbeRaw) -> Bool {
-        raw.statuses.contains { $0.state == .expired } && !raw.statuses.contains { $0.state == .subscribed }
+    static func subscribed(_ raw: ProbeRaw, _ transaction: Transaction) -> Bool {
+        raw.statuses.contains { $0.state == .subscribed && isOf($0, transaction) }
     }
 
-    static func revoked(_ raw: ProbeRaw) -> Bool {
-        raw.statuses.contains { $0.state == .revoked || $0.revoked }
+    static func expired(_ raw: ProbeRaw, _ transaction: Transaction) -> Bool {
+        raw.statuses.contains { $0.state == .expired && isOf($0, transaction) } && !raw.statuses.contains { $0.state == .subscribed }
+    }
+
+    static func revoked(_ raw: ProbeRaw, _ transaction: Transaction) -> Bool {
+        raw.statuses.contains { ($0.state == .revoked || $0.revoked) && isOf($0, transaction) }
+    }
+
+    /// A delivery's identity and state: two equal keys to one listener are the same delivery again.
+    static func key(_ delivery: ProbeDelivery) -> String {
+        let purchased = Int(delivery.purchased.timeIntervalSince1970 * 1000)
+        let expires = delivery.expires.map { "\(Int($0.timeIntervalSince1970 * 1000))" } ?? "-"
+        return "\(delivery.listener)|\(delivery.id)|\(delivery.productID)|\(purchased)|\(expires)|\(delivery.revoked)"
     }
 }
 
 private struct ProbeStatus {
     var state: RenewalState
     var transactionID: UInt64?
+    var purchased: Date?
     var revoked = false
     var expires: Date?
 }
@@ -789,7 +965,8 @@ private struct ProbeRaw {
         var held: [String] = []
         for item in entitlements {
             let expires = ProbeSK.iso(item.expirationDate)
-            held.append("\(ProbeSK.planName(item.productID)) id=\(item.id) intro=\(item.isIntroductory) expires=\(expires) revoked=\(item.revocationDate != nil)")
+            held.append("\(ProbeSK.planName(item.productID)) id=\(item.id) purchased=\(ProbeSK.iso(item.purchaseDate)) intro=\(item.isIntroductory) "
+                + "expires=\(expires) revoked=\(item.revocationDate != nil)")
         }
         var states: [String] = []
         if let statusError {
@@ -798,7 +975,7 @@ private struct ProbeRaw {
             for status in statuses {
                 let transactionText = status.transactionID.map { "\($0)" } ?? "-"
                 let expires = ProbeSK.iso(status.expires)
-                states.append("\(status.state.rawValue) tx=\(transactionText) revoked=\(status.revoked) expires=\(expires)")
+                states.append("\(status.state.rawValue) tx=\(transactionText) purchased=\(ProbeSK.iso(status.purchased)) revoked=\(status.revoked) expires=\(expires)")
             }
         }
         var text = "entitlements [\(held.joined(separator: "; "))]"
@@ -815,12 +992,17 @@ private struct ProbePoll {
     var rawMS: Int?
     var appMS: Int?
     var ticks = 0
+    /// A plain poll: the raw state was read once, when the wait ended (`rawMS` is that moment).
+    var rawAtEnd = false
+    /// Not shown in the poll, shown by the read right after it (no second call).
+    var late = false
     var retried = false
     var secondRawMS: Int?
     var secondAppMS: Int?
 
     var short: String {
-        var text = "raw:\(Self.text(rawMS))/app:\(Self.text(appMS))"
+        var text = "\(rawAtEnd ? "rawEnd" : "raw"):\(Self.text(rawMS))/app:\(Self.text(appMS))"
+        if late { text += "/late" }
         if retried { text += "/2nd:raw:\(Self.text(secondRawMS))/app:\(Self.text(secondAppMS))" }
         return text
     }
@@ -838,28 +1020,36 @@ private struct ProbeStall {
 /// One round's findings, for its summary line and the final one.
 private struct ProbeNotes {
     var round: Int
+    var mode: String
     var parts: [String] = []
     var durations: [String] = []
     var stalls: [ProbeStall] = []
+    var modelStalls: [ProbeStall] = []
     var lost: [String] = []
+    var rawMiss: [String] = []
+    var unfinished: [String] = []
     var stale: [String] = []
     var wouldFail: [String] = []
     var appLag: [String] = []
     var failures: [String] = []
 
     /// How many stalls and the longest.
-    var stallText: String {
+    static func describeStalls(_ stalls: [ProbeStall]) -> String {
         guard let longest = stalls.max(by: { $0.ms < $1.ms }) else { return "-" }
         return "\(stalls.count)(max \(longest.what):\(longest.ms)ms)"
     }
 }
 
+/// One delivery of `Transaction.updates`: to the witness, or to the model's own listener (through `ProbeModelClient`).
 private struct ProbeDelivery {
+    var listener: String
     var round: Int
     var scenario: String
     var at: Date
     var id: UInt64
     var productID: String
+    var purchased: Date
+    var expires: Date?
     var revoked: Bool
     var stale: Bool
 }
@@ -871,7 +1061,67 @@ private struct ProbePublish {
     var access: String
 }
 
-/// What the test (main actor), the witness and the model's `$snapshot` sink share. Every access holds the lock.
+/// The model's client in the probe: every call goes to the scenario's `LiveStoreClient` (the model and the test share it,
+/// as in StoreKitSessionTests). The calls of the model's refreshes are timed (one of at least a second is logged and
+/// counted), and every delivery of its `updates()` is recorded before the model gets it. `StoreModel` takes any
+/// `StoreClient`, so no app code changes.
+private struct ProbeModelClient: StoreClient {
+    let base: LiveStoreClient
+    let box: ProbeSKBox
+
+    func products(ids: Set<String>) async throws -> [StoreProduct] {
+        let start = Date()
+        defer { box.noteModelCall("products", start: start) }
+        return try await base.products(ids: ids)
+    }
+
+    func purchase(productID: String) async throws -> StorePurchaseResult {
+        try await base.purchase(productID: productID)
+    }
+
+    func currentEntitlements() async -> [EntitlementInput] {
+        let start = Date()
+        defer { box.noteModelCall("currentEntitlements", start: start) }
+        return await base.currentEntitlements()
+    }
+
+    func renewals(groupID: String) async throws -> [RenewalInput] {
+        let start = Date()
+        defer { box.noteModelCall("renewals", start: start) }
+        return try await base.renewals(groupID: groupID)
+    }
+
+    func updates() -> AsyncStream<EntitlementInput> {
+        let inner = base.updates()
+        let box = self.box
+        return AsyncStream { continuation in
+            let task = Task {
+                for await input in inner {
+                    let line = box.record(listener: "model", listenerRound: nil, id: input.id, productID: input.productID,
+                                          purchased: input.purchaseDate, expires: input.expirationDate,
+                                          revoked: input.revocationDate != nil, text: ProbeSK.describe(input))
+                    if let line { ProbeSK.emit(line) }
+                    continuation.yield(input)
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    func finishUnfinished() async {
+        let start = Date()
+        defer { box.noteModelCall("finishUnfinished", start: start) }
+        await base.finishUnfinished()
+    }
+
+    func sync() async throws {
+        try await base.sync()
+    }
+}
+
+/// What the test (main actor), the witness, the model's client and the model's `$snapshot` sink share. Every access holds
+/// the lock.
 private final class ProbeSKBox: @unchecked Sendable {
     private let lock = NSLock()
     private var round = 0
@@ -880,6 +1130,7 @@ private final class ProbeSKBox: @unchecked Sendable {
     private var scenarioStart = Date()
     private var deliveryLog: [ProbeDelivery] = []
     private var publishLog: [ProbePublish] = []
+    private var modelStallLog: [(round: Int, stall: ProbeStall)] = []
     private var lastAccess = ""
     private var lastRefreshed = false
 
@@ -922,19 +1173,30 @@ private final class ProbeSKBox: @unchecked Sendable {
         return "r\(round) +\(Int(Date().timeIntervalSince(roundStart) * 1000))ms [\(scenario)]"
     }
 
-    /// A witness's delivery: kept and described, or nil when the witness's round is over (it then stops). Stale: bought
-    /// more than a second before the current scenario began.
-    func record(listenerRound: Int, transaction: Transaction, verified: Bool, note: String?) -> String? {
+    /// A delivery to `listener`: kept and described, or nil when the witness's round (`listenerRound`) is over (it then
+    /// stops; the model's client passes nil). Stale: bought more than a second before the current scenario began.
+    func record(listener: String, listenerRound: Int?, id: UInt64, productID: String, purchased: Date, expires: Date?,
+                revoked: Bool, text: String) -> String? {
         lock.lock()
         defer { lock.unlock() }
-        guard listenerRound == round else { return nil }
+        if let listenerRound, listenerRound != round { return nil }
         let now = Date()
-        let stale = transaction.purchaseDate < scenarioStart.addingTimeInterval(-1)
-        deliveryLog.append(ProbeDelivery(round: round, scenario: scenario, at: now, id: transaction.id, productID: transaction.productID,
-                                         revoked: transaction.revocationDate != nil, stale: stale))
+        let stale = purchased < scenarioStart.addingTimeInterval(-1)
+        deliveryLog.append(ProbeDelivery(listener: listener, round: round, scenario: scenario, at: now, id: id, productID: productID,
+                                         purchased: purchased, expires: expires, revoked: revoked, stale: stale))
         let ms = Int(now.timeIntervalSince(roundStart) * 1000)
-        return "r\(round) +\(ms)ms [\(scenario)] witness: update \(stale ? "STALE" : "fresh") \(ProbeSK.describe(transaction, verified: verified))"
-            + (note.map { " (\($0))" } ?? "")
+        return "r\(round) +\(ms)ms [\(scenario)] \(listener): update \(stale ? "STALE" : "fresh") \(text)"
+    }
+
+    /// One call of the model's client: a stall (at least `ProbeSK.stallMS`) is kept and logged.
+    func noteModelCall(_ what: String, start: Date) {
+        let ms = Int(Date().timeIntervalSince(start) * 1000)
+        guard ms >= ProbeSK.stallMS else { return }
+        lock.lock()
+        modelStallLog.append((round: round, stall: ProbeStall(what: "\(scenario).\(what)", ms: ms)))
+        let line = "r\(round) +\(Int(Date().timeIntervalSince(roundStart) * 1000))ms [\(scenario)] STALL in the model: \(what) took \(ms) ms"
+        lock.unlock()
+        ProbeSK.emit(line)
     }
 
     /// A change of the model's `snapshot`: kept with its time; a line when the access or `refreshed` changed.
@@ -959,6 +1221,12 @@ private final class ProbeSKBox: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return publishLog.filter { $0.round == round }
+    }
+
+    func modelStalls(round: Int) -> [ProbeStall] {
+        lock.lock()
+        defer { lock.unlock() }
+        return modelStallLog.filter { $0.round == round }.map { $0.stall }
     }
 }
 
