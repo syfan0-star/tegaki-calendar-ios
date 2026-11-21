@@ -608,3 +608,16 @@
   - 理由 2: 提出の後や審査の後には文を替えられない（取り下げて出し直しになる）。
   - 理由 3: Duo の行が × なら、直してビルドし直す（§9.1）。
   - 答えが届いたら: whatsnew14.py write（組み合わせ）→ commit → enter14.py apply → web14_support.py → submit14.py submit（「1.4 を審査に提出して良い」は 11/21 の「両方ともYes」）。
+
+## 1.4 を審査に提出（11/21 15:41 JST）
+
+- 本人「Duoは持っていないです。今の文で提出してください。」（11/21）。
+  - 確かめ表の Duo の行（18・19・20・25）は「—」（Duo が手元に無い）。
+  - 契約 §9.1 の「—」のとき: 行 2 と SUPPORT の Pencil の文を入れずに出す。行 1 は案 B（案 A は行 18・25 の ○ か duo-hinge の緑が要る）。今の組み合わせ（行 1 案 B・行 3）と同じなので、文は替えない。
+  - 提出の言葉は「両方ともYes」（「1.4 を審査に提出して良い」）と、この「今の文で提出してください」。
+- `submit14.py submit --owner "1.4 を審査に提出して良い" --repo ../r14 --build 28`（15:41:25 JST）:
+  - 前の確かめは全部 ○（check と同じ。enter14.py verify は 668883a で VERIFY OK）。
+  - POST reviewSubmissions 201、POST reviewSubmissionItems 201、PATCH submitted 200。
+  - 読み戻し: 提出 078fa2c3-0db5-4bea-a5f8-ba36d0f94391 は WAITING_FOR_REVIEW。版 1.4 は WAITING_FOR_REVIEW、releaseType MANUAL。
+- 確かめ表の Duo 以外の行は、まだ本人の答えが無い。**公開（「1.4 を公開して良い」）の前に、本人の端末の確かめ表（Duo の行は「—」）が要る**（本人の実機で確かめていない版は出さない）。
+- 次: 審査の結果を見る。通ったら、確かめ表と「1.4 を公開して良い」の後に、release14.py web（SUPPORT 案 B・最終更新の日）→ release → 「まとめて良い」で main へ。
