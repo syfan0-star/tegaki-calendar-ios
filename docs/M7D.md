@@ -587,3 +587,24 @@
 - **新機能の文の組み合わせ（今）**: 行 1 案 B・行 2 なし・行 3・行 4 なし（§2.1 の既定）。whatsnew14.py write（枝 r14-w-wn）で 16 ロケールの whatsnew.txt・source-ja・審査メモの (2)（案 B）と日本語のまとめ・SUPPORT の Duo の文（案 B、Pencil の文なし）をそろえた。審査メモの (3) は usesHinge = true の文。読み戻し 16 ファイル同じ、lint ○。
   - 確かめ表の行 18・25 が ○ なら行 1 を案 A に、行 19・20 が ○ なら行 2 を足す（どちらも確認ページの「この内容で入れてよい」に入る組み合わせ）。替えるときは whatsnew14.py write をやり直し、enter14.py apply を走らせる（Connect は違う所だけ書く）。
   - locales.json の ja の whatsnewSource と README の「新機能の文の組み立て」に 1.4 の行を足した（PROPOSALS §2.4）。
+- **Connect に入れた**（「この内容で入れてよい」による。11/21 15:2x〜15:38 JST）:
+  - **Duo の写真**: `shots14.py apply`（MANIFEST 4fbed294…、確認ページと同じ組）で 60 枚を上げ、80 の置き場所（16 ロケール × 5）を作った。pt-PT は pt-BR の写真で、計画どおり。
+    - `verify` で VERIFY OK: 16 × 5、IPHONE_DUO_PROFILE、specId 205e7ab6…、1398×2034、順 00〜04、全部 ACTIVE。
+    - 1 回目の verify は §7.4 の「変わっていない」で止まった。Connect が Duo の置き場所を、古い appScreenshotSets の側にも表示の種類 `APP_IPHONE_DUO` として写すため。
+      - 13"・6.9"・6.3" の組は変わっていない。
+      - `shots14.py`（リポジトリの外）の verify を直した: `APP_IPHONE_DUO` は §7.4 の比べから外し、置き場所と同じ字・同じ順かを別に確かめる（16/16）。直す前の写しは `shots14.py.pre-duo-mirror`。
+  - **文・審査メモ・ビルド**: `enter14.py apply --build 28 --approved 2fb8fb1`。書いたのは 18 回で、全部読み戻して同じ。
+    - 新機能の文 16 ロケール。
+    - 審査メモ 3,963 バイト。
+    - ビルド 28 を付けた（builds14.json）。
+    - `enter14.py verify` も VERIFY OK。
+  - **SUPPORT（Web）**: `web14_support.py` で r14-legal に案 B の文を入れた（edff817、手元だけ。公開の日に release14.py web で出す）。控えは ~/.local/share/tegaki-backup/1.4/web14。
+  - **`submit14.py check --build 28` は READY**。
+    - 版 1.4 は PREPARE_FOR_SUBMISSION、手動公開。
+    - ビルド 28 は VALID、APP_STORE_ELIGIBLE。
+    - 文 16/16、Duo の写真 16 × 5、年齢区分の 2 問は false、Web の 6 ページは 200、待っている提出は無し。
+- **提出はまだ**。確かめ表の答え（とくに Duo の行 18・19・20・25）が届いたら、すぐ出す。
+  - 理由 1: 行 19・20 が ○ なら、新機能の文に行 2（Duo の Apple Pencil）が入る。行 18・25 が ○ なら行 1 は案 A。
+  - 理由 2: 提出の後や審査の後には文を替えられない（取り下げて出し直しになる）。
+  - 理由 3: Duo の行が × なら、直してビルドし直す（§9.1）。
+  - 答えが届いたら: whatsnew14.py write（組み合わせ）→ commit → enter14.py apply → web14_support.py → submit14.py submit（「1.4 を審査に提出して良い」は 11/21 の「両方ともYes」）。
