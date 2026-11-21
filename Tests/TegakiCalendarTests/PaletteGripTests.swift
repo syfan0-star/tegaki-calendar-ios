@@ -9,9 +9,9 @@ import XCTest
 /// with stand-in touches as `PencilPhoneTests` feeds its own) answers with `InkCanvasView.horizontalPanMayBegin` (a Pencil
 /// down → no; lifted 0.3 s ago → no; 0.6 s → yes; a finger counts for nothing); it is on the window only while two edges
 /// or more are allowed; a Pencil down reaches the screen (`onPencilDown`), whose new `cancelTrigger` ends a running drag;
-/// the drag starts after 10 pt; the grip is one VoiceOver element with the move actions. A real pan and a real Pencil are
-/// the device's (`PaletteMoveUITests` on CI, the owner's check table). Mutation MT2 (the grip takes the Pencil) fails
-/// `testTheGripTakesNoPencil`.
+/// the drag starts after 10 pt, where the palm rule is asked again; the grip is one VoiceOver element with the move
+/// actions. A real pan and a real Pencil are the device's (`PaletteMoveUITests` on CI, the owner's check table). Mutation
+/// MT2 (the grip takes the Pencil) fails `testTheGripTakesNoPencil`.
 @MainActor
 final class PaletteGripTests: XCTestCase {
     // MARK: Stand-ins (the shape of PencilPhoneTests', which are private to that file)
@@ -315,6 +315,66 @@ final class PaletteGripTests: XCTestCase {
         XCTAssertEqual(log.events, ["began 5,5", "changed 5,5 v0", "cancelled"])
         XCTAssertEqual(grip.pan.delegate?.gestureRecognizerShouldBegin?(grip.pan), false, "and the palm holds the next one")
         observer.touchesEnded([pencil, finger], with: StandInEvent())
+        palm.detach()
+    }
+
+    /// The palm rule is asked again where the drag starts: UIKit's pan may begin under 10 pt (a mouse, a trackpad), and a
+    /// Pencil that comes down — or lifts less than 0.5 s before — while the touch has not moved 10 pt finds no running drag
+    /// to cancel (the screen's `cancelPaletteDrag` writes nothing then). At 10 pt the grip asks `mayBegin()` once more: a no
+    /// forgets the touch (the pan off and on again) and reports nothing, neither a start nor a cancel.
+    func testThePalmRuleIsAskedAgainWhereTheDragStarts() async throws {
+        let clock = Clock()
+        let palm = PalmWatch(clock: { clock.now })
+        let window = makeWindow()
+        palm.attach(to: window)
+        let observer = try XCTUnwrap(watchers(of: window).first)
+        let log = Log()
+        var asked = 0
+        let grip = makeGrip(log, mayBegin: {
+            asked += 1
+            return palm.mayBegin(now: clock.now)
+        })
+        var downs = 0
+        // The screen's `cancelPaletteDrag`: no drag runs yet, so nothing is cancelled.
+        palm.onPencilDown = { downs += 1 }
+
+        // The pan began at 6 pt with no Pencil; then a Pencil comes down; then the touch passes 10 pt.
+        XCTAssertEqual(grip.pan.delegate?.gestureRecognizerShouldBegin?(grip.pan), true, "no Pencil: the pan may begin")
+        grip.handle(.began, location: CGPoint(x: 506, y: 1000), translation: CGPoint(x: 6, y: 0), velocity: .zero)
+        XCTAssertFalse(grip.dragging, "6 pt: not yet")
+        let pencil = StandInTouch(.pencil)
+        observer.touchesBegan([pencil], with: StandInEvent())
+        XCTAssertEqual(downs, 1)
+        asked = 0
+        grip.handle(.changed, location: CGPoint(x: 512, y: 1000), translation: CGPoint(x: 12, y: 0), velocity: CGVector(dx: 40, dy: 0))
+        XCTAssertEqual(asked, 1, "asked again at 10 pt")
+        XCTAssertFalse(grip.dragging, "the Pencil on the paper: no drag")
+        XCTAssertTrue(grip.pan.isEnabled, "the pan is on again: turned off and on, the touch is forgotten")
+        // UIKit's own cancel of that touch, and any late move, report nothing.
+        grip.handle(.cancelled, location: .zero, translation: .zero, velocity: .zero)
+        await settle()
+        XCTAssertEqual(log.events, [], "nothing began, nothing to cancel")
+
+        // A Pencil that lifted 0.3 s before the 10 pt: still no. 0.6 s: the drag starts as before.
+        observer.touchesEnded([pencil], with: StandInEvent())
+        let up = clock.now
+        grip.handle(.began, location: .zero, translation: CGPoint(x: 0, y: -6), velocity: .zero)
+        clock.now = up.addingTimeInterval(0.3)
+        grip.handle(.changed, location: CGPoint(x: 0, y: -12), translation: CGPoint(x: 0, y: -12), velocity: .zero)
+        XCTAssertFalse(grip.dragging, "lifted 0.3 s ago")
+        await settle()
+        XCTAssertEqual(log.events, [])
+        grip.handle(.began, location: CGPoint(x: 1, y: 2), translation: CGPoint(x: 6, y: 0), velocity: .zero)
+        clock.now = up.addingTimeInterval(0.6)
+        grip.handle(.changed, location: CGPoint(x: 1, y: 2), translation: CGPoint(x: 12, y: 0), velocity: .zero)
+        XCTAssertTrue(grip.dragging, "lifted 0.6 s ago")
+        XCTAssertEqual(log.events, ["began 1,2", "changed 1,2 v0"])
+        // A running drag is not asked on every move (a Pencil down ends it through the screen's `cancelTrigger`).
+        asked = 0
+        grip.handle(.changed, location: CGPoint(x: 1, y: 40), translation: CGPoint(x: 6, y: 38), velocity: .zero)
+        XCTAssertEqual(asked, 0)
+        grip.handle(.ended, location: CGPoint(x: 1, y: 40), translation: CGPoint(x: 6, y: 38), velocity: .zero)
+        XCTAssertEqual(log.events, ["began 1,2", "changed 1,2 v0", "changed 1,40 v0", "ended 1,40 v0"])
         palm.detach()
     }
 

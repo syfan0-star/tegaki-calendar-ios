@@ -9,7 +9,8 @@ import UIKit
 /// - the drag starts once the touch moved `startDistance` (10 pt) from where it came down (`onBegan`, then `onChanged`
 ///   with every move); a touch that ends before is nothing;
 /// - the recogniser may begin only when `mayBegin()` says so (`gestureRecognizerShouldBegin`): the screen asks its
-///   `PalmWatch`, which answers with the frozen palm rule `InkCanvasView.horizontalPanMayBegin`;
+///   `PalmWatch`, which answers with the frozen palm rule `InkCanvasView.horizontalPanMayBegin`; the drag's start at
+///   10 pt asks it again, and a no there forgets the touch;
 /// - a new `cancelTrigger` ends a running drag (`onCancelled`): the screen raises it on a Pencil down (`PalmWatch`), on
 ///   `penDown()`, in the background, on a new window size and when a sheet opens (§4.6). So does the view's removal.
 /// Points are in the window's coordinates (SwiftUI's `.global` space), velocities in pt/s. `onCancelled` is reported on
@@ -164,12 +165,19 @@ struct PaletteGripView: UIViewRepresentable {
                    velocity: CGVector(dx: velocity.x, dy: velocity.y))
         }
 
-        /// One message of the pan (internal: the tests stand in for UIKit with it).
+        /// One message of the pan (internal: the tests stand in for UIKit with it). The palm rule is asked again where the
+        /// drag really starts (§4.6): UIKit's pan may begin before the 10 pt (a mouse, a trackpad, a short start distance),
+        /// and a Pencil that came down or lifted in between reached no running drag to cancel; then the touch is forgotten
+        /// (`cancelDrag`) and nothing is reported.
         func handle(_ state: UIGestureRecognizer.State, location: CGPoint, translation: CGPoint, velocity: CGVector) {
             switch state {
             case .began, .changed:
                 if !dragging {
                     guard PaletteGripView.passedStart(translation) else { return }
+                    guard mayBegin() else {
+                        cancelDrag()
+                        return
+                    }
                     dragging = true
                     onBegan(location)
                 }

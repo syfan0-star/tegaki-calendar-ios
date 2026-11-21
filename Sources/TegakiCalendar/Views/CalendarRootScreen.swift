@@ -3419,9 +3419,15 @@ extension CalendarRootScreen {
     }
 
     /// The finger lifted: the bar goes to the edge `snapEdge` says in one transaction without animation, so the canvas sees
-    /// one change of size, as at a turn; the puck and the outlines go with it.
+    /// one change of size, as at a turn; the puck and the outlines go with it. Never while a Pencil touches the window (§4.6:
+    /// no re-layout under a pen that writes; the grip's start and `onPencilDown` already keep that, this is the last guard):
+    /// the drag ends and nothing moves.
     private func paletteDragEnded(at point: CGPoint, velocity: CGVector) {
         guard paletteDragging, paletteRoom.dragModel.current?.finger != nil else { return }
+        guard palmWatch.pencilsDown == 0 else {
+            endPaletteDrag()
+            return
+        }
         let edge = paletteSnap(point, velocity: velocity)
         var transaction = Transaction()
         transaction.disablesAnimations = true
@@ -3483,20 +3489,23 @@ extension CalendarRootScreen {
         /// The edge the bar goes to; nil when the toolbar's table keeps nothing (`storesPlacement` false: not expanded).
         var edge: PaletteEdge?
         /// The folded toolbar's round button's corner that goes with it: a side's own (left: leading, right: trailing); nil on
-        /// the top and the bottom, which leave the corner as it is.
+        /// the top and the bottom, and for a drop on the stored edge, which leave the corner as it is.
         var dock: ToolbarEdge?
     }
 
     /// The toolbar's table decides first (`ToolbarLogic.step(mode, on: .placementChosen).storesPlacement`: only the open bar
-    /// keeps a place). Outside screenshot mode the edge is then written when it is not the one stored (`AppSettings.paletteEdge`,
-    /// which the screen's `@AppStorage` reads at once) and a side writes the round button's corner (`AppSettings.toolbarEdge`,
-    /// §4.9; the last of that, the hand's setting and the button's long press wins). Screenshot mode writes neither (§4.10):
-    /// the screen keeps the answer in its `@State`.
+    /// keeps a place). A drop on the stored edge (the 25 % dead zone, the bar snapping back) places nothing: it writes nothing
+    /// and leaves the round button's corner as it is (§4.7: written when it differs; a corner moved by the long press since
+    /// stays). Outside screenshot mode a new edge is then written (`AppSettings.paletteEdge`, which the screen's `@AppStorage`
+    /// reads at once) and a side writes the round button's corner (`AppSettings.toolbarEdge`, §4.9; the last of that, the
+    /// hand's setting and the button's long press wins). Screenshot mode writes neither (§4.10): the screen keeps the answer
+    /// in its `@State`.
     static func paletteDropped(on edge: PaletteEdge, mode: ToolbarMode, stored: PaletteEdge, screenshot: Bool) -> PaletteDrop {
         guard ToolbarLogic.step(mode, on: .placementChosen).storesPlacement else { return PaletteDrop(edge: nil, dock: nil) }
+        guard edge != stored else { return PaletteDrop(edge: edge, dock: nil) }
         let dock = edge.dockEdge
         if !screenshot {
-            if edge != stored { AppSettings.paletteEdge = edge }
+            AppSettings.paletteEdge = edge
             if let dock { AppSettings.toolbarEdge = dock }
         }
         return PaletteDrop(edge: edge, dock: dock)

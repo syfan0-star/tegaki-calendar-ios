@@ -135,7 +135,8 @@ final class ScreenshotModeHandPaletteTests: XCTestCase {
     /// §4.7, §4.9, §4.10 (MS2): a drop (or VoiceOver's 「…へ移す」) in screenshot mode moves the bar — the answer is the edge the
     /// screen keeps in its `@State`, with a side's corner for the round button — and writes neither `toolbar.paletteEdge` nor
     /// `toolbar.collapsedEdge`. In normal use the same drop writes the edge (only when it is not the stored one) and, on a side,
-    /// the corner; the top and the bottom leave the corner. Only the open bar keeps a place (`storesPlacement`).
+    /// the corner; the top and the bottom leave the corner, and so does a drop on the stored edge. Only the open bar keeps a
+    /// place (`storesPlacement`).
     func testADropInScreenshotModeMovesTheBarAndWritesNothing() throws {
         let suite = "test-palette-shot-\(UUID())"
         let scratch = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -178,6 +179,17 @@ final class ScreenshotModeHandPaletteTests: XCTestCase {
         scratch.removeObject(forKey: AppSettings.paletteEdgeKey)
         _ = CalendarRootScreen.paletteDropped(on: .bottom, mode: .expanded, stored: .bottom, screenshot: false)
         XCTAssertNil(scratch.object(forKey: AppSettings.paletteEdgeKey), "the stored edge again: not written")
+        // A drop on the stored side (the bar snapping back) places nothing: the round button's corner the long press moved
+        // since stays, in normal use and in screenshot mode (whose `@State` corner the answer's nil dock leaves alone).
+        scratch.removeObject(forKey: AppSettings.toolbarEdgeKey)
+        for screenshot in [false, true] {
+            XCTAssertEqual(CalendarRootScreen.paletteDropped(on: .left, mode: .expanded, stored: .left, screenshot: screenshot),
+                           CalendarRootScreen.PaletteDrop(edge: .left, dock: nil), "screenshot \(screenshot): the stored side")
+            XCTAssertEqual(CalendarRootScreen.paletteDropped(on: .right, mode: .expanded, stored: .right, screenshot: screenshot),
+                           CalendarRootScreen.PaletteDrop(edge: .right, dock: nil), "screenshot \(screenshot): the stored side")
+        }
+        XCTAssertNil(scratch.object(forKey: AppSettings.toolbarEdgeKey), "no toolbar.collapsedEdge for a drop that moved nothing")
+        XCTAssertNil(scratch.object(forKey: AppSettings.paletteEdgeKey), "nor toolbar.paletteEdge")
     }
 
     /// §4.10, §7.2: the log line beside 1.4's `toolbar: paperArea=` (whose form CalendarRootScreenTests pins), and the UI tests'

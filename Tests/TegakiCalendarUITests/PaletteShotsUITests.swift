@@ -21,7 +21,8 @@ import XCTest
 /// A landscape photo is the job's `simctl io screenshot` of the screen turned with `XCUIDevice` (SpanShotsUITests'
 /// `simulatorPhoto`: iPadOS ignores `--screenshot-landscape`, and XCUIScreenshot of a turned screen is cut); a portrait one is
 /// the app's screenshot. Each photo's line says how it was taken and what `palette.state` read: `ok=no` when the bar is not on
-/// the edge asked for (the window did not allow it, or the app did not move it). The photos are compared by the lead, so the
+/// the edge asked for (the window did not allow it, or the app did not move it), and for the scrolled photo when the column did
+/// not move (`reason=not-scrolled`, 「ペン」's frame before and after). The photos are compared by the lead, so the
 /// test fails on nothing but its launches (contract §7.4: not judged automatically); the job warns on `ok=no`.
 @MainActor
 final class PaletteShotsUITests: XCTestCase {
@@ -91,20 +92,33 @@ final class PaletteShotsUITests: XCTestCase {
         record(setup, "palette shot: device=\(setup.device) name=\(name) photo=\(how) ok=\(ok ? "yes" : "no") expected=\(edge ?? "-") "
             + "window=\(Self.text(app.windows.firstMatch.frame)) canvas=\(Self.text(canvas.frame)) state=\(state)")
         guard scrolledToo else { return }
-        // The upright column scrolled: one slow drag from near its bottom to near its top, held before the lift.
+        // The upright column scrolled: one slow drag from near its bottom to near its top, held before the lift. It starts
+        // inside the scrolling column, 40 pt above 「しまう」, which sits under it outside the scroll (ToolbarView's
+        // `verticalBar`: a press there would hold the plain button and scroll nothing); without 「しまう」, 130 pt above the
+        // window's bottom (the safe area, the slot's 6 pt and 「しまう」's 57 pt section, and a margin). `ok` is the column
+        // having moved with the bar still open: 「ペン」, at its top, went up (or left the tree once scrolled away).
         let pen = app.buttons["ペン"]
+        let collapse = app.buttons["ツールバーをしまう"]
         let window = app.windows.firstMatch.frame
-        if pen.exists {
-            let x = pen.frame.midX
+        let before = pen.exists ? pen.frame : nil
+        if let before {
+            let x = before.midX
+            let startY = collapse.exists ? collapse.frame.minY - 40 : window.maxY - 130
             let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
-            origin.withOffset(CGVector(dx: x, dy: window.maxY - 60))
+            origin.withOffset(CGVector(dx: x, dy: startY))
                 .press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: x, dy: window.minY + 160)),
                        withVelocity: XCUIGestureVelocity(rawValue: 300), thenHoldForDuration: 0.4)
             Thread.sleep(forTimeInterval: photoWait)
         }
+        let after = pen.exists ? pen.frame : nil
+        var moved = false
+        if let before, collapse.exists {
+            moved = after.map { $0.minY < before.minY - 1 } ?? true
+        }
         let scrolled = takePhoto(app, setup, file: "palette/\(name)-scrolled.png", turned: turned)
-        record(setup, "palette shot: device=\(setup.device) name=\(name)-scrolled photo=\(scrolled) ok=\(pen.exists ? "yes" : "no") "
-            + "expected=\(edge ?? "-") pen=\(pen.exists ? Self.text(pen.frame) : "-") state=\(stateLabel(app))")
+        record(setup, "palette shot: device=\(setup.device) name=\(name)-scrolled photo=\(scrolled) ok=\(moved ? "yes" : "no") "
+            + "expected=\(edge ?? "-") pen-before=\(before.map { Self.text($0) } ?? "-") pen=\(after.map { Self.text($0) } ?? "-") "
+            + "state=\(stateLabel(app))" + (moved ? "" : " reason=not-scrolled"))
     }
 
     /// The canvas's probe read the same twice, 0.5 s apart (at most 15 s): the first layout and the slots are done.
