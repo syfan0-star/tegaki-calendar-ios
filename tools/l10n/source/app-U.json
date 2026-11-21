@@ -1200,6 +1200,60 @@
       "args": [],
       "glossary": []
     },
+    "settings.hand.footer": {
+      "ja": "左手にすると、画面の上のボタンの並びが左右逆になり、しまったツールバーの丸いボタンが右下へ移ります。紙と書いた文字はそのままです。",
+      "target": "app",
+      "comment": "設定 › 入力 の「利き手」の節の説明（1.4.1）。左手にすると、画面の上のボタン（‹ 今日 ›・等倍・⚙ など）の並びが左右逆になり、しまったツールバーの丸いボタンが右下へ移る。紙と書いた字は動かない。iPad と iPhone で 1 つの文なので Apple Pencil の語を入れない。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "利き手",
+        "左手",
+        "紙"
+      ]
+    },
+    "settings.hand.header": {
+      "ja": "利き手",
+      "target": "app",
+      "comment": "設定の節の見出し（1.4.1）。設定 › 入力 の最後の節で、右手（settings.hand.right）と左手（settings.hand.left）から選ぶ。端末ごとの設定。性別の無い言い方にする（GLOSSARY）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "利き手"
+      ]
+    },
+    "settings.hand.left": {
+      "ja": "左手",
+      "target": "app",
+      "comment": "設定 › 利き手 の選び（1.4.1）。チェックの付く行。左手で書く人。性別の無い言い方にする（GLOSSARY）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "左手"
+      ]
+    },
+    "settings.hand.right": {
+      "ja": "右手",
+      "target": "app",
+      "comment": "設定 › 利き手 の選び（1.4.1）。チェックの付く行。右手で書く人（ふだんの値）。性別の無い言い方にする（GLOSSARY）",
+      "where": [
+        "Views/SettingsScreen.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "右手"
+      ]
+    },
     "settings.holidays.footer": {
       "ja": "日本の祝日は、このアプリが計算しています（内閣府の発表と照らし合わせて確かめています）。ほかの国の祝日は、公開されているデータ（python-holidays）にもとづきます。旧暦やイスラム暦の祝日など一部は推定で、「（推定）」と付けています。政府の最新の発表と違うことがあります。祝日の設定はこの端末だけに保存します。",
       "target": "app",

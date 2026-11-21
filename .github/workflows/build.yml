@@ -653,6 +653,11 @@ jobs:
       # WindowClassTests, PencilPhoneTests, CappedOverviewWideTests, OnePageRevealTests, SnapshotScaleTests and DuoFoldTests
       # (role S) and PaperViewScaleTests (role P); a class not written yet is not found and not run. D1b: MeasureLineFileTests.
       # D1d: PageHeaderRoomTests (the header's tight row on the Duo's outer screen; pure, no layout).
+      # 1.4.1 (docs/R1_4_1_CONTRACT.md §6.1, §6.6, 0e-23): the quick lane (r141-quick, r141-q-*) also runs 1.4.1's new classes,
+      # each by its whole name: HeaderOrderTests, HandSettingTests, ScreenshotModeHandPaletteTests and HeaderGlyphTests (the
+      # header and the hand; PageHeaderRoomTests, rewritten, stays), InkCanvasZoomResetTests, InkCanvasSpanZoomResetTests and
+      # InkCanvasWidthCentreTests (等倍 and 0d-44), ToolbarPlacementTests and PaletteGripTests (the toolbar, D1b); a class not
+      # written yet is not found and not run.
       # 1.4 D0c (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0c): xcodebuild boots the 13-inch iPad here itself again, as
       # until D0. D0b booted it with simctl in the background from the job's start (a step "Boot the 13-inch iPad in the
       # background" and a wait here, both removed in D0c). That boot took 129 s, but the macOS steps beside it ran 3 to 19
@@ -675,7 +680,7 @@ jobs:
           elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests|HeaderOrderTests|HandSettingTests|ScreenshotModeHandPaletteTests|HeaderGlyphTests|InkCanvasZoomResetTests|InkCanvasSpanZoomResetTests|InkCanvasWidthCentreTests|ToolbarPlacementTests|PaletteGripTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
@@ -1993,6 +1998,11 @@ jobs:
       # 1.4 (docs/M7D_CONTRACT.md §3.10, §6): so does DuoLayoutUITests (it runs on the iPhone Duo in duo.yml's duo-shots,
       # with TEGAKI_DEVICE=duo), so the UI tests of the gates (43 in 1.3) are counted without the skipped ones;
       # DuoHingeUITests is not even compiled here (only duo-hinge passes DUO_HINGE).
+      # 1.4.1 (docs/R1_4_1_CONTRACT.md §3.5, §6.1, §6.2, §6.6, 0e-6, 0e-23): HeaderAndPaperUITests is rewritten for 1.4.1's
+      # header (「‹ 今日 ›」 and 等倍 at the free hand's end, both hands, its `header-paper UI:` lines), ZoomResetUITests (等倍,
+      # `zoom-reset UI:`) runs here, and HeaderRoomUITests measures the iPhone 17's header (its first row in portrait and its
+      # wide row in landscape; logs only, the `header room:` lines, read by the lead for D1a's gate; blank-paper measures the
+      # four other devices).
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 40
         run: |
@@ -2016,7 +2026,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|zoom-reset UI:|header room:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
@@ -3148,6 +3158,11 @@ jobs:
       # shown here once (a test prints a line and NSLogs it). ipad11 is the
       # owner's iPad Air 11-inch (820 × 1180); the first job's ipad11 photos stay the iPad Pro 11-inch.
       # If no PNG arrived, the attachments are taken out of the result bundle instead.
+      # 1.4.1 (docs/R1_4_1_CONTRACT.md §3.5, §6.1, §6.6, 0e-6, 0e-23): the same xcodebuild also runs HeaderRoomUITests on each
+      # device (one launch: the iPads' wide row in portrait, the iPhone's first row in portrait and its wide row in landscape),
+      # whose `header room:` lines (the header's frames and the title's room, logs only) are shown here once each; the lead
+      # reads D1a's gate from them (the ja day title's room ≥ 115 pt on ipadmini, ipad11 = the Air 11 and ipad13 in portrait).
+      # It writes no photo, so the 43 do not change; about half a minute a device.
       - name: Shots on four devices
         timeout-minutes: 70
         continue-on-error: true
@@ -3232,8 +3247,10 @@ jobs:
               -derivedDataPath build/BlankData \
               -resultBundlePath "build/blank-$ID.xcresult" \
               -only-testing:TegakiCalendarUITests/BlankPaperShotsUITests \
+              -only-testing:TegakiCalendarUITests/HeaderRoomUITests \
               test-without-building 2>&1 | tee "shots/blank/$ID-log.txt" || true
             grep 'blank UI:' "shots/blank/$ID-log.txt" | awk '{ i = index($0, "blank UI:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
+            grep 'header room:' "shots/blank/$ID-log.txt" | awk '{ i = index($0, "header room:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
             SHOTS="$(find shots/blank -name "$ID-*.png" | wc -l | tr -d ' ')"
             echo "$ID: $SHOTS shots"
             if [ "$SHOTS" = "0" ]; then

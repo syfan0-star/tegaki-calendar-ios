@@ -19,6 +19,7 @@ import Layout
 /// 0-45). 1.4 (docs/M7D_CONTRACT.md §2, §2.1, §4.8) adds one: who wrote today's 「指でも書く」 (`allowFingerAutoKey`, the
 /// mark `PencilPhone` reads and writes), and a way to forget the week's and the day's guide records (`forgetSpanGuideShown`)
 /// so the guide shows once more after the app turned 「指でも書く」 off; `isExistingUser`'s three keys do not change.
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, 0e-12) adds the hand the header is laid out for (`layout.hand`, `Hand`).
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -59,6 +60,10 @@ enum AppSettings {
     /// 1.1 (§2.6, P-5 A): `Bool`, default true — the toolbar's eraser returns to the last pen or
     /// marker after it erased (設定 › 入力 「消しゴムで消したらペンに戻る」).
     static let eraserAutoReturnKey = "eraserAutoReturn"
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, 0e-12): `String` "right" / "left", 設定 › 入力 「利き手」; missing or any
+    /// other value → right (`Hand(stored:)`). Per device (UserDefaults, CA92.1), never sent to iCloud; not one of
+    /// `isExistingUser`'s keys and never migrated. `CalendarRootScreen` reads it with `@AppStorage` (the header's order).
+    static let handKey = "layout.hand"
     /// 1.1 (§5.2, M7A-7): `[String]`, the page ids whose 15,000-stroke notice this device showed,
     /// oldest first, at most `strokeBudgetNoticedLimit` (the oldest are dropped).
     static let strokeBudgetNoticedKey = "strokeBudget.noticedPages"
@@ -171,6 +176,15 @@ enum AppSettings {
             return defaults.bool(forKey: eraserAutoReturnKey)
         }
         set { defaults.set(newValue, forKey: eraserAutoReturnKey) }
+    }
+
+    // MARK: - The hand (1.4.1, docs/R1_4_1_CONTRACT.md §4.1)
+
+    /// 「利き手」; `.right` when nothing, an unknown value or a value that is not a string is stored (the shape of
+    /// `toolbarEdge`). Reading does not write the key.
+    static var hand: Hand {
+        get { Hand(stored: defaults.string(forKey: handKey)) }
+        set { defaults.set(newValue.rawValue, forKey: handKey) }
     }
 
     // MARK: - Joined pages (1.3, docs/M7C_CONTRACT.md §3.1, §3.14)
@@ -321,5 +335,25 @@ enum AppSettings {
     /// 1.1.1 (docs/R1_1_1.md): this device has a page kind stored zoomed in, so the person knows the pinch.
     static var hasPinched: Bool {
         PageKind.allCases.contains { zoomRatio(for: $0) > 1 }
+    }
+}
+
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.2, 0e-12, 0e-13): the hand the person writes with (設定 › 入力 「利き手」,
+/// `AppSettings.handKey`). The left hand mirrors the header's order (`HeaderOrder`) and, once when it is chosen, puts the
+/// folded toolbar's round button in the bottom right (`dockEdge`); the paper, the switch's 日週月年, ◀ before ▶ and the
+/// toolbar's own order never change.
+enum Hand: String, Equatable, Sendable, CaseIterable {
+    case right, left
+
+    /// The stored value: "right" / "left"; nil or anything else is `.right` (`ToolbarEdge(stored:)`'s shape).
+    init(stored raw: String?) {
+        self = raw.flatMap(Hand.init(rawValue:)) ?? .right
+    }
+
+    /// The bottom corner of the folded toolbar's round button that suits the hand (§4.1, 0e-13): the free hand's side, the
+    /// bottom left for the right hand (1.1's default, P-4) and the bottom right for the left. Written once when the hand
+    /// is chosen (`SettingsScreen.handChanged`); a long press or VoiceOver still moves it, and the last one wins.
+    var dockEdge: ToolbarEdge {
+        self == .left ? .trailing : .leading
     }
 }

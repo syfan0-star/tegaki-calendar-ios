@@ -78,6 +78,8 @@ import UIKit
 /// iPad's, §7.1). A first launch for the photos and the UI tests is `-allowFingerDrawingChosen NO` (with or without
 /// `-allowFingerDrawingAuto ""`, §2.1) in UserDefaults' argument domain and needs nothing here: the launch that writes the
 /// default takes its origin from what `PencilPhone.launchDefault` wrote (`.app`), not from the shadowed mark read back.
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.10, 0e-21): `--screenshot-hand left` lays the header out for the left hand
+/// (`hand`); without it, or with an unknown value, the right hand, whatever the simulator stored. Nothing is stored.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -259,6 +261,11 @@ enum ScreenshotMode {
         /// `--screenshot-pencil-phone`: 「指でも書く」 saved off at the start of the launch (`launchConfig`), so the Duo's App
         /// Store photos show the toolbar as an iPad's photos do (§7.1, §7.3, 0d-41). A simulator's data, never a user's.
         var pencilPhone: Bool = false
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.10, 0e-12, 0e-21). Off by default: the Config of every earlier argument
+        // is the same value as before.
+        /// `--screenshot-hand left|right`: the hand the header is laid out for (`ScreenshotMode.hand`); nil (no value or an
+        /// unknown one) = the right hand. Screenshot mode never reads or writes `layout.hand` (nor `toolbar.collapsedEdge`).
+        var hand: Hand? = nil
 
         /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
         var joinsPages: Bool {
@@ -420,9 +427,23 @@ enum ScreenshotMode {
         // 1.4 (§2.1, §4.2, §7.3): flags without a value.
         let measure = arguments.contains("--screenshot-measure")
         let pencilPhone = arguments.contains("--screenshot-pencil-phone")
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §4.10): the hand. A missing or unknown value is nil (the right hand).
+        var hand: Hand?
+        if let index = arguments.firstIndex(of: "--screenshot-hand"), index + 1 < arguments.count {
+            hand = Hand(rawValue: arguments[index + 1])
+        }
         return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
                       span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection,
-                      measure: measure, pencilPhone: pencilPhone)
+                      measure: measure, pencilPhone: pencilPhone,
+                      hand: hand)
+    }
+
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §4.10, 0e-12, 0e-21): the hand the header is laid out for. In screenshot mode
+    /// (`config` not nil) `--screenshot-hand`, the right hand without it, whatever `stored` says (the memory is never read
+    /// there, so a simulator that kept a value cannot change a photo); in normal use the stored value (`Hand(stored:)`).
+    static func hand(_ config: Config?, stored: String?) -> Hand {
+        guard let config else { return Hand(stored: stored) }
+        return config.hand ?? .right
     }
 
     /// "-0.5" → −0.5 (pages); nil unless the text is a finite number ("abc", "inf", "nan", "" are nil). Any sign.

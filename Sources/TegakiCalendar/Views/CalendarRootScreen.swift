@@ -213,6 +213,9 @@ struct CalendarRootScreen: View {
     // or written in screenshot mode, where `--screenshot-toolbar` decides).
     @AppStorage(AppSettings.toolbarCollapsedKey) private var toolbarCollapsedStored = false
     @AppStorage(AppSettings.toolbarEdgeKey) private var toolbarEdgeRaw = ToolbarEdge.leading.rawValue
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, 0e-12): 設定 › 入力 「利き手」 (the same key as the settings, so the header
+    /// turns at once); read through `hand`, never in screenshot mode.
+    @AppStorage(AppSettings.handKey) private var handRaw = Hand.right.rawValue
     /// 設定 › 入力 「消しゴムで消したらペンに戻る」 (the same key as the settings, so a change applies at once).
     @AppStorage(AppSettings.eraserAutoReturnKey) private var eraserAutoReturn = true
     /// expanded / collapsed / peek (§2.1). Set in `init` from the stored `toolbar.collapsed`.
@@ -656,6 +659,12 @@ struct CalendarRootScreen: View {
     private var access: AccessState { store.snapshot.access }
     private var readOnly: Bool { !access.canEdit }
 
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §4.10, 0e-12, 0e-21): the hand the header is laid out for: `--screenshot-hand`
+    /// in screenshot mode (the right hand without it; the stored one is never read there), else 設定 › 入力 「利き手」.
+    private var hand: Hand {
+        ScreenshotMode.hand(ScreenshotMode.current, stored: handRaw)
+    }
+
     // MARK: 1.1 toolbar (M7A_CONTRACT §2)
 
     /// The dock button's corner: `--screenshot-toolbar` in screenshot mode, else the stored one.
@@ -869,13 +878,14 @@ struct CalendarRootScreen: View {
                 sync: sync.snapshot.status.header,
                 onSyncTap: { showSettings = true },
                 width: proxy.size.width,
-                // 1.4 D1d: the safe area's side strips (the iPhone Duo's outer screen: 84 pt; 0 on every iPhone in
-                // portrait and on the iPad), for the header's tight row (`PageHeaderView.usesTightRow`).
-                sideInsets: proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
                 readOnly: readOnly,
                 onReadOnlyTap: { showPaywall(reason: .badge) },
                 // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
-                titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil
+                titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil,
+                // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §3.2, §4.1): the header's order for 設定 › 入力 「利き手」, and 等倍
+                // (both canvases back to the opening zoom, §3.6).
+                hand: hand,
+                onZoomReset: { resetZoom() }
             )
             .padding(.horizontal, 12)
             .padding(.vertical, 6)

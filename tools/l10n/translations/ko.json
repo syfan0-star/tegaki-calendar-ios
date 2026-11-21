@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "오늘"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "원래 크기로 되돌리기"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "자동(이 기기의 지역: %@)"
@@ -1248,6 +1252,22 @@
     "settings.done": {
       "jaSha1": "1cae18a9a4",
       "text": "완료"
+    },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "‘왼손’을 선택하면 화면 위쪽 버튼의 순서가 좌우로 바뀌고, 숨긴 도구 막대의 둥근 버튼이 오른쪽 아래로 옮겨져요. 종이와 쓴 글씨는 그대로예요."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "주로 쓰는 손"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "왼손"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "오른손"
     },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",

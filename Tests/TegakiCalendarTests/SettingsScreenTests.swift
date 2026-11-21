@@ -258,4 +258,102 @@ final class SettingsScreenTests: XCTestCase {
         XCTAssertNil(WeekStartSettingsSection.otherPagesText(current: .monday, pageIds: ["w-2026-10-05", "m1-2026-10"]))
         XCTAssertNil(WeekStartSettingsSection.otherPagesText(current: .sunday, pageIds: []))
     }
+
+    // MARK: 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §6.3, §8.1, 0e-12, 0e-13)
+
+    /// 設定 › 入力 「利き手」's words in ja, and a footer that never speaks of the Pencil (one text for the iPad and the
+    /// iPhone) in any language.
+    func testHandTexts() {
+        XCTAssertEqual(SettingsScreen.handHeader, "利き手")
+        XCTAssertEqual(SettingsScreen.handName(.right), "右手")
+        XCTAssertEqual(SettingsScreen.handName(.left), "左手")
+        XCTAssertEqual(SettingsScreen.handFooter, "左手にすると、画面の上のボタンの並びが左右逆になり、しまったツールバーの丸いボタンが右下へ移ります。紙と書いた文字はそのままです。")
+        XCTAssertEqual(SettingsScreen.handIdentifier, "settings.hand")
+        XCTAssertFalse(SettingsScreen.handFooter.contains("ペンシル"))
+        for language in UILanguage.allCases {
+            let footer = L.text("settings.hand.footer", in: language)
+            for word in ["Pencil", "iPad", "iPhone"] {
+                XCTAssertFalse(footer.contains(word), "\(language): \(footer)")
+            }
+            XCTAssertNotEqual(L.text("settings.hand.right", in: language), L.text("settings.hand.left", in: language), "\(language)")
+            XCTAssertNotEqual(L.text("settings.hand.header", in: language), "settings.hand.header", "\(language): translated")
+        }
+    }
+
+    /// A switch of the hand stores it for this device and puts the folded toolbar's round button in the free hand's bottom
+    /// corner, once (§4.1, 0e-13): the dock's long press may move it afterwards, and the hand stays. The sheet opens with the
+    /// stored hand. Mutation MS1 (no write of `toolbar.collapsedEdge`) fails here.
+    func testHandChangeStoresTheHandAndTheDockCorner() throws {
+        let suite = "test-hand-settings-\(UUID())"
+        let scratch = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let saved = AppSettings.defaults
+        AppSettings.defaults = scratch
+        defer {
+            scratch.removePersistentDomain(forName: suite)
+            AppSettings.defaults = saved
+        }
+        XCTAssertEqual(SettingsScreen.initialHand(screenshot: nil), .right, "the right hand until the person chooses")
+
+        SettingsScreen.handChanged(to: .left, screenshot: false)
+        XCTAssertEqual(scratch.string(forKey: "layout.hand"), "left")
+        XCTAssertEqual(scratch.string(forKey: "toolbar.collapsedEdge"), "trailing", "the round button goes to the bottom right")
+        XCTAssertEqual(AppSettings.toolbarEdge, .trailing)
+        XCTAssertEqual(SettingsScreen.initialHand(screenshot: nil), .left, "the next sheet opens on the left hand")
+
+        // The dock's long press (or VoiceOver) moves the button afterwards: the last one wins, the hand stays.
+        AppSettings.toolbarEdge = .leading
+        XCTAssertEqual(AppSettings.hand, .left)
+        XCTAssertEqual(AppSettings.toolbarEdge, .leading)
+
+        SettingsScreen.handChanged(to: .right, screenshot: false)
+        XCTAssertEqual(scratch.string(forKey: "layout.hand"), "right")
+        XCTAssertEqual(scratch.string(forKey: "toolbar.collapsedEdge"), "leading", "back to the bottom left")
+        SettingsScreen.handChanged(to: .left, screenshot: false)
+        XCTAssertEqual(scratch.string(forKey: "toolbar.collapsedEdge"), "trailing")
+    }
+
+    /// Screenshot mode stores nothing (§4.1, §4.10): neither the hand nor the round button's corner.
+    func testHandChangeInScreenshotModeStoresNothing() throws {
+        let suite = "test-hand-settings-shot-\(UUID())"
+        let scratch = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let saved = AppSettings.defaults
+        AppSettings.defaults = scratch
+        defer {
+            scratch.removePersistentDomain(forName: suite)
+            AppSettings.defaults = saved
+        }
+        SettingsScreen.handChanged(to: .left, screenshot: true)
+        SettingsScreen.handChanged(to: .right, screenshot: true)
+        XCTAssertNil(scratch.object(forKey: "layout.hand"))
+        XCTAssertNil(scratch.object(forKey: "toolbar.collapsedEdge"))
+    }
+
+    /// The sheet's wiring, which a unit test cannot drive (a `Form`'s rows and `.onChange` live only on screen): the section
+    /// is the last of `inputSections` (so the Form's nine elements stay 1.3's, SettingsPageSectionTests), its two rows are an
+    /// inline picker bound to `hand`, `hand` starts at `initialHand`, and `body` hands every change to `handChanged`, so
+    /// `testHandChangeStoresTheHandAndTheDockCorner` is what the sheet runs.
+    func testHandSectionIsWiredToStore() throws {
+        let url = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/SettingsScreen.swift")
+        let code = String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
+        let flat = code.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        XCTAssertTrue(flat.contains("@State private var hand: Hand = Self.initialHand(screenshot: ScreenshotMode.current)"))
+        XCTAssertTrue(flat.contains(".onChange(of: hand) { Self.handChanged(to: hand, screenshot: ScreenshotMode.isActive) }"))
+        XCTAssertEqual(flat.components(separatedBy: "handChanged(").count - 1, 2, "declared once and called once, from body")
+        XCTAssertEqual(flat.components(separatedBy: "AppSettings.hand = ").count - 1, 1, "stored only in handChanged")
+
+        let inputStart = try XCTUnwrap(flat.range(of: "private var inputSections: some View {"))
+        let pageStart = try XCTUnwrap(flat.range(of: "private var pageSection: some View {"))
+        let input = String(flat[inputStart.upperBound..<pageStart.lowerBound])
+        let handSection = try XCTUnwrap(input.range(of: "Section { Picker(Self.handHeader, selection: $hand) {"), input)
+        XCTAssertNil(input[handSection.upperBound...].range(of: "Section {"), "the hand's section is the last of 入力")
+        let tail = String(input[handSection.lowerBound...])
+        for piece in ["Text(Self.handName(.right)).tag(Hand.right)", "Text(Self.handName(.left)).tag(Hand.left)",
+                      ".pickerStyle(.inline)", ".labelsHidden()", ".accessibilityIdentifier(Self.handIdentifier)",
+                      "Text(Self.handHeader)", "Text(Self.handFooter)"] {
+            XCTAssertTrue(tail.contains(piece), piece)
+        }
+    }
+
+    private static let repository = URL(fileURLWithPath: "\(#filePath)")
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 }

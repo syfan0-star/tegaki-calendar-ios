@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "Hoje"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "Voltar ao tamanho original"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "Automático (região deste dispositivo: %@)"
@@ -1248,6 +1252,22 @@
     "settings.done": {
       "jaSha1": "1cae18a9a4",
       "text": "OK"
+    },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "Se você escolher “Mão esquerda”, a ordem dos botões no alto da tela se inverte da esquerda para a direita, e o botão redondo da barra de ferramentas oculta vai para o canto inferior direito. O papel e o que você escreveu continuam iguais."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "Mão dominante"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "Mão esquerda"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "Mão direita"
     },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",

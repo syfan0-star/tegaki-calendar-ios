@@ -8582,7 +8582,7 @@
       }
     },
     "header.today" : {
-      "comment" : "見出しのボタン。押すと今日のページの今日の所へ。17 pt で ja の幅 ＋ 16 pt 以内（約 47 pt。F-16）。iPhone の 1 段目で題名の幅を削るので、fr は略した形（「Auj.」など）にして REVIEW.md に理由を書く",
+      "comment" : "見出しのボタン。空いている手の側の端の「‹ 今日 ›」の真ん中の部品（1.4.1。‹ と › は記号で描くので、この文に入れない）。押すと今日のページの今日の所へ。17 pt で ja の幅 ＋ 16 pt 以内（約 47 pt。F-16）。iPhone の 1 段目で題名の幅を削るので、fr は略した形（「Auj.」など）にして REVIEW.md に理由を書く",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -8643,6 +8643,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今天"
+          }
+        }
+      }
+    },
+    "header.zoomReset.spoken" : {
+      "comment" : "読み上げ。見出しの虫めがねに「1」の印のボタン（等倍。1.4.1）。押すとページを等倍に戻す。等倍 = 拡大も縮小もしていないもとの大きさ（ページを初めて開いたときの大きさ。覚えた拡大ではない）。ボタンに字は無く、この文は読み上げだけ。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Originalgröße zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Zoom"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver al tamaño original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revenir à la taille d’origine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna alla dimensione originale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等倍に戻す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원래 크기로 되돌리기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voltar ao tamanho original"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复原始大小"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢復原始大小"
           }
         }
       }
@@ -17553,6 +17619,270 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "完成"
+          }
+        }
+      }
+    },
+    "settings.hand.footer" : {
+      "comment" : "設定 › 入力 の「利き手」の節の説明（1.4.1）。左手にすると、画面の上のボタン（‹ 今日 ›・等倍・⚙ など）の並びが左右逆になり、しまったツールバーの丸いボタンが右下へ移る。紙と書いた字は動かない。iPad と iPhone で 1 つの文なので Apple Pencil の語を入れない。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit „Linke Hand“ werden die Schaltflächen oben auf dem Bildschirm in umgekehrter Reihenfolge angezeigt, und die runde Schaltfläche der abgelegten Werkzeugleiste wandert nach unten rechts. Papier und Handschrift bleiben unverändert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you choose “Left Hand”, the order of the buttons at the top of the screen is reversed from left to right, and the round button of the hidden toolbar moves to the bottom right. The paper and your handwriting stay as they are."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si elige “Mano izquierda”, el orden de los botones de la parte superior de la pantalla se invierte de izquierda a derecha y el botón redondo de la barra de herramientas oculta pasa abajo a la derecha. El papel y lo que escribió no cambian."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si vous choisissez « Main gauche », l’ordre des boutons en haut de l’écran est inversé de gauche à droite, et le bouton rond de la barre d’outils réduite passe en bas à droite. Le papier et votre écriture restent tels quels."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se sceglie “Mano sinistra”, l’ordine dei pulsanti in alto sullo schermo si inverte da sinistra a destra e il pulsante rotondo della barra degli strumenti ridotta si sposta in basso a destra. La carta e ciò che ha scritto restano invariati."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左手にすると、画面の上のボタンの並びが左右逆になり、しまったツールバーの丸いボタンが右下へ移ります。紙と書いた文字はそのままです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "‘왼손’을 선택하면 화면 위쪽 버튼의 순서가 좌우로 바뀌고, 숨긴 도구 막대의 둥근 버튼이 오른쪽 아래로 옮겨져요. 종이와 쓴 글씨는 그대로예요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se você escolher “Mão esquerda”, a ordem dos botões no alto da tela se inverte da esquerda para a direita, e o botão redondo da barra de ferramentas oculta vai para o canto inferior direito. O papel e o que você escreveu continuam iguais."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择“左手”后，屏幕顶部按钮的排列会左右颠倒，收起的工具栏的圆形按钮会移到右下角。纸和写下的文字保持不变。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇「左手」後，螢幕頂端按鈕的排列會左右顛倒，收起的工具列的圓形按鈕會移到右下角。紙和寫下的文字保持不變。"
+          }
+        }
+      }
+    },
+    "settings.hand.header" : {
+      "comment" : "設定の節の見出し（1.4.1）。設定 › 入力 の最後の節で、右手（settings.hand.right）と左手（settings.hand.left）から選ぶ。端末ごとの設定。性別の無い言い方にする（GLOSSARY）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dominante Hand"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dominant Hand"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mano dominante"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main dominante"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mano dominante"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利き手"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주로 쓰는 손"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mão dominante"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "惯用手"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "慣用手"
+          }
+        }
+      }
+    },
+    "settings.hand.left" : {
+      "comment" : "設定 › 利き手 の選び（1.4.1）。チェックの付く行。左手で書く人。性別の無い言い方にする（GLOSSARY）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linke Hand"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left Hand"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mano izquierda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main gauche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mano sinistra"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左手"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "왼손"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mão esquerda"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左手"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左手"
+          }
+        }
+      }
+    },
+    "settings.hand.right" : {
+      "comment" : "設定 › 利き手 の選び（1.4.1）。チェックの付く行。右手で書く人（ふだんの値）。性別の無い言い方にする（GLOSSARY）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechte Hand"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Right Hand"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mano derecha"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main droite"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mano destra"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右手"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오른손"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mão direita"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右手"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右手"
           }
         }
       }

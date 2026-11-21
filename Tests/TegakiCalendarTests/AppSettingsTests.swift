@@ -159,7 +159,8 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(AppSettings.toolbarEdgeKey, "toolbar.collapsedEdge")
         let keys = [AppSettings.toolbarCollapsedKey, AppSettings.toolbarEdgeKey, AppSettings.eraserAutoReturnKey,
                     AppSettings.strokeBudgetNoticedKey, ToolbarPalette.penColorKey, ToolbarPalette.penWidthKey,
-                    ToolbarPalette.markerColorKey, AppSettings.allowFingerKey, AppSettings.eraseInkAfterConvertKey]
+                    ToolbarPalette.markerColorKey, AppSettings.allowFingerKey, AppSettings.eraseInkAfterConvertKey,
+                    AppSettings.handKey]
         XCTAssertEqual(Set(keys).count, keys.count, "every key is its own")
 
         // Collapsed: false (expanded) until written.
@@ -189,6 +190,35 @@ final class AppSettingsTests: XCTestCase {
         }
         AppSettings.defaults.set(3, forKey: "toolbar.collapsedEdge")
         XCTAssertEqual(AppSettings.toolbarEdge, .leading, "not a string → leading")
+    }
+
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §6.3, 0e-12): 「利き手」 in `testToolbarKeys`'s shape: the right hand until
+    /// written, written as its raw value, and anything else (a string or not) the right hand. The toolbar's edge
+    /// (`toolbar.paletteEdge`, D1b) joins this test with its key.
+    func testHandAndPaletteKeys() {
+        XCTAssertEqual(AppSettings.handKey, "layout.hand")
+        XCTAssertFalse(AppSettings.handKey.hasPrefix("toolbar."), "the hand is not the toolbar's")
+
+        XCTAssertNil(AppSettings.defaults.object(forKey: AppSettings.handKey))
+        XCTAssertEqual(AppSettings.hand, .right)
+        AppSettings.hand = .left
+        XCTAssertEqual(AppSettings.hand, .left)
+        XCTAssertEqual(AppSettings.defaults.string(forKey: "layout.hand"), "left", "a String, as `@AppStorage` reads it")
+        AppSettings.hand = .right
+        XCTAssertEqual(AppSettings.defaults.string(forKey: "layout.hand"), "right")
+        AppSettings.defaults.set("left", forKey: "layout.hand")
+        XCTAssertEqual(AppSettings.hand, .left, "as `@AppStorage` writes it")
+        for unknown in ["middle", "", "LEFT", "trailing"] {
+            AppSettings.defaults.set(unknown, forKey: "layout.hand")
+            XCTAssertEqual(AppSettings.hand, .right, "\(unknown) → right")
+        }
+        AppSettings.defaults.set(3, forKey: "layout.hand")
+        XCTAssertEqual(AppSettings.hand, .right, "not a string → right")
+        // The hand is its own key: writing it leaves the round button's corner alone (the settings write that one
+        // themselves, once, `SettingsScreen.handChanged`).
+        AppSettings.hand = .left
+        XCTAssertNil(AppSettings.defaults.object(forKey: AppSettings.toolbarEdgeKey))
+        XCTAssertEqual(AppSettings.toolbarEdge, .leading)
     }
 
     /// The pages whose 15,000-stroke notice this device showed (§5.2, M7A-7): once per page, at most

@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "今天"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "恢復原始大小"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "自動（這部裝置的地區：%@）"
@@ -1248,6 +1252,22 @@
     "settings.done": {
       "jaSha1": "1cae18a9a4",
       "text": "完成"
+    },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "選擇「左手」後，螢幕頂端按鈕的排列會左右顛倒，收起的工具列的圓形按鈕會移到右下角。紙和寫下的文字保持不變。"
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "慣用手"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "左手"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "右手"
     },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",

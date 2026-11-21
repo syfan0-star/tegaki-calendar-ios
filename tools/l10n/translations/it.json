@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "Oggi"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "Torna alla dimensione originale"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "Automatico (zona di questo dispositivo: %@)"
@@ -1248,6 +1252,22 @@
     "settings.done": {
       "jaSha1": "1cae18a9a4",
       "text": "Fine"
+    },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "Se sceglie “Mano sinistra”, l’ordine dei pulsanti in alto sullo schermo si inverte da sinistra a destra e il pulsante rotondo della barra degli strumenti ridotta si sposta in basso a destra. La carta e ciò che ha scritto restano invariati."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "Mano dominante"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "Mano sinistra"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "Mano destra"
     },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
