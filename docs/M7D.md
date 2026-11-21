@@ -474,3 +474,39 @@
   - 審査メモの案 B の確かめ方「To check: open a week page, then open and close the device.」と括弧は**残す**（PROPOSALS_1_4.md §3.2 の既定。契約のまま）。案 B を使うのは開閉を確かめられなかったときだけで、本人の Duo で行 18・25 が × なら案 B で出さずに直す。
   - PROPOSALS_1_4.md §3.4 は true の行（今のファイル）のまま使う（`usesHinge` は D1c から true）。
 - **通しの run を前倒しした**: 予定は 11/21 09:05（新しい UTC の日）だったが、実行機が空いていて 11/20 の UTC の日が 4 時間半残っていたので、04:29（19:29 UTC）に r14 へ D1d（7eb842b）と D2（283b7ed）を入れて上げ、build（run 44802640918）と ja-baseline（run 44802647220）を同じ UTC の日に始めた。写真の段の走らせ直しが 0:00 UTC をまたいだら、ja-baseline をその日にもう一度走らせて J-4 を比べる。
+
+## 通しの run（r14 283b7ed。build 44802640918・ja-baseline 44802647220、11/21 04:29〜。確かめは Workflow wf_781e1918-a76）
+
+- **build-and-test**（ほかの 5 つのジョブは 1 回目で緑。2・3 回目はこのジョブだけ）:
+  - 1 回目（job 136518464382）: KitChecks 40,826（閾値 40,776）、単体テスト 781（飛ばし 2・失敗 0）、同期の繰り返し 4,000（失敗 0）。写真の段（iPad mini の起動の後）で「The operation was canceled.」だけを出して切れた（20:59 UTC、実行機の renewjob の時間切れ）。D0b の決まりで数えず、走らせ直した。
+  - 2 回目（job 136568799020、環境 20261104.0337.1）: 写真は全部 1 回目の撮影で完全。単体テストで `StoreKitSessionTests.testExpiringMakesItReadOnly` が落ちた（781 のうち失敗 3 = この 1 本の :230〜232 の 3 行。「timed out after 5.0 s; access = trial(…)」）。
+    - 調べ: 店と権利のコード（`Sources/TegakiCalendar/Store/*`・`TegakiKit/Sources/Access/*`）は main 7895d40（1.3）と同じ。このテストと `refreshUntil` は 1.4 で変わっていない。`expireSubscription` の後の 5.1 秒で 48 回読み、StoreKit の生の答えが毎回「intro の権利 1・subscribed」だった（アプリの判断の前の行）。試しの環境が期限切れを遅れて当てたか、落とした。実行機の混みの印は無い（ログの遅れ 2 ms）。
+    - これまで 5 回通った（D0 の 1・2 回目、D0b、M1、この run の 1 回目）。記録にある状態の替わり 22 回のうち 20 回は 0.27 秒以内、1 回は 0.93 秒（1 回目）、1 回は 5.1 秒を超えた（2 回目）。
+    - TestFlight のアプリには入らない（`SKTestSession` と `Products.storekit` はアーカイブに入らない）。試しの環境のゆれと読む。
+    - 続けば（2 回続いたら、その日は止めて決まりを疑う）、`StoreKitSessionTests` だけを直す（`TESTS_1_3` の外）: 5 秒で届かなければ、時間・`Transaction.all`・生の状態をログに出し、`expireSubscription` をもう 1 回呼んで 10 秒待つ。`.readOnly(.expired)` を見る厳しさは残す。
+  - 3 回目（job 136609513548、22:28〜23:50 UTC）: 別のテスト `testUpdatesStreamTriggersRefresh` が落ちた（:355〜357。「timed out after 5.0 s; access = readOnly(notSubscribed)」）。`testExpiringMakesItReadOnly` は 0.281 秒で通った。
+    - 中身: `model.start()` の後に `buyProduct(yearly)` したが、5 秒の間に `Transaction.updates` に来たのは 1 つだけ（3 秒後、「yearly id=0 expires=…22:48:53Z revoked=true」）。これは前のテスト `testRefundRevokes` が返金した取引の遅れた知らせ。試しの環境は `clearTransactions` の後に取引の番号を 0 から振り直すので、テストの間で番号が重なる。新しい買いの知らせは来ず、古い知らせの後の refresh の行も出なかった（StoreKit の呼び出しが止まったと読む。同じ回の `testRefundRevokes` でも entitlements と renewals の間が 2.7 秒あいた）。
+    - 同じ commit で 3 回のうち 2 回、StoreKit の試しの環境の出来事が遅れるか、なくなるか、前のテストから持ち越された。283b7ed より前の 4 回は全部通っている。§3.8 の「2 回続けば、その日は止める」で、build-and-test は 11/20 UTC に止めた。
+    - 「試しの環境のゆれ」という読みを疑い直し、店のコードを読み直した。店のコードは 1.3 と同じ。本番の取引の番号は重ならないので、番号ごとに覚える `recentUpdates` が古い知らせで新しい取引を隠すことは、本番では起きない。
+    - 進め方: 速い道の試しの枝 `r14-q-skprobe` で測る。今の `StoreKitSessionTests` を 10 回走らせ、試しのクラス `ProbeStoreKitEnvSpanTests` で場面の順に 6 周、知らせ・生の状態・呼び出しの時間をログに出す。その結果で、テストだけを直す（アプリのコードは変えない）。直しを同じ枝で繰り返して確かめてから、11/21 UTC に通しの run と ja-baseline をやり直す。
+- **ほかのジョブ（1 回目）**:
+  - UI テスト: 58（飛ばし 15・失敗 0。走った 43）。XCUITest の手書きは 66 枚とも完全。
+  - compat-v1.0: compat10 599/0、span-compat 1.0・〈1.1.1〉は各 274、1.2.3 は 278、1.3 は 310（どれも失敗 0）、Real13LedgerTests 5/5。
+  - l10n: 63 枚。
+  - 白紙: 4 機種とも testShots が通った。
+  - span-shots: 全部のテストが通り、testLanguages も通った。言語の写真 60 枚、見つからない鍵 0。
+  - XcodeGen はどのジョブも 2.46.0。
+- **span-shots-app の手書きの基準**: 1 行（`iphone-landscape-margin-day-single.png`）の元の写真に Dynamic Island が写っていた。この run の写真の 38,708 px 足りないは手書きの欠けではない。5d0af89 で基準からその 32 マスを除いた。
+- **関門 3**: 状態の行 71 本が D0b（1.3 と同じと書いた run 44676125566）と同じ（trace・c@・waited= を除いて差 0）。`toolbar: paperArea=` の数（44/28/28/50）・`span-margin.txt`・写真の名前 64 も同じ。
+- **J-4 ○**（2 回目の `screenshots` と `ja-baseline-955fe67`）:
+  - 条件: 写真は両方とも 11/20 UTC（21:33〜22:22Z と 20:04〜21:22Z）。環境は同じ 20261104.0337.1、Xcode 27.2 27B52。env.txt の 1〜6 行目と機種の行も同じ（違うのは実行環境の行の並びと watchOS 27.0 の 1 行だけ）。
+  - 77 枚: 同じ 61・違う 16・大きさの違い 0・片方だけ 0。
+  - 強い差は `ipad13-portrait-sheet-info.png` の版の字だけ（379 px、x 1450〜1489・y 1607〜1632、「1.3 (1)」→「1.4 (1)」。D0b と同じ）。
+  - 残りの 15 枚は弱い差だけ。最大は書き出しのシートのガラスの「閉じる」の 25/255。閲覧専用のツールバーのガラスは 120,321 px で最大 6。年の写真は 1/255。店の JPEG はその焼き直し。
+  - J-4 はこの 2 回目の写真（同じ commit）で決めた。3 回目の写真は 11/21 UTC になり、同じ日の基準が無いので比べない（手書きの完全さだけ見る）。
+- **関門 7 ○**（D0c の決定の「次の run」）: UI テストの `SpanUITests/testSlideChangesTheTitleOnce` の「slide — after」を 1.3 の run 44474759145 と比べた。
+  - 1206×2622 で同じ大きさ。状態バーの時刻（7:10 と 7:59）の下は 5,348 px が違い、強い差は 223（最大 71）。どれも字と枠の縁（ツールバーの字・日付・終日の札・時刻の字）。
+  - 紙の位置は同じ（80 pt ずれれば写真のほとんどが違う）。「arrow — after」も同じ。
+  - D0 の 80 pt の足りないは「遅い環境での指の入力の時間」と読む（D0c の決定どおり）。
+- **順番の外れ（記録）**: ja-baseline を build.yml と一緒に出した（19:29:49Z）。始まったのは 20:04:45Z で、build-and-test・span-shots・白紙がまだ走っていた（§3.3 の順は「build.yml の後に ja-baseline」）。J-4 を同じ UTC の日にするための外れで、同時の macOS のジョブは 5 まで。前の外れと同じ扱い。
+- **日程のリードの決定**: §9.1 の「早い道は、D0・D1 のどの run も 1 回目で通ったときだけ」は満たさない（D0 は 2 回目、この run は 2・3 回目）。この条件は、D1 の関門が 11/23 までにそろうかの見込みだった。本人の指示は「予定に拘ることはありません」（11/13）と「どんどん進めて下さい」（11/20〜21）。そこで、StoreKit のテストを直した通しの run が緑になった日に D3（TestFlight の候補と確認ページ・確かめ表）を渡す（11/23 より前になる見込み）。TestFlight は緑の後に作る（自動で配られて、緑の前に試されないように）。11/22 の夜の判断は渡すときか 11/22 に本人へ知らせる。提出と公開は前と同じく本人の言葉が要る。
