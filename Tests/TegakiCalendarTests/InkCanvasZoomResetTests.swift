@@ -15,7 +15,8 @@ import XCTest
 /// A press goes back once, on the next main-actor turn (never inside the update), to the opening zoom of the limits in
 /// force (`Bounds.open`, ratio 1), and reports ratio 1 once (the screen's closure then removes the kind's stored ratio,
 /// 0e-10); ↶ and the lasso selection stay. A month pinched below the opening zoom comes up to it, keeping the paper y in
-/// the middle of the screen. At the opening zoom nothing moves and nothing is reported. Under the pen, during a pinch,
+/// the middle of the screen; a page no taller than the screen goes back to its top, where it opens, with the toolbar
+/// folded too (the review of D1a). At the opening zoom nothing moves and nothing is reported. Under the pen, during a pinch,
 /// while a new page waits for its drawing and before the first zoom the press is dropped, never kept for later; in the
 /// settle wait after a lift it works. The value a canvas is made with does nothing. The all-day band's second settle after
 /// a reset (the paper area grows, `applyBounds` follows the new opening zoom) ends where a fresh page opens.
@@ -67,10 +68,11 @@ final class InkCanvasZoomResetTests: XCTestCase {
         return (layout, .week(WeekPaperContent(layout: layout)))
     }
 
-    /// The canvas as the screen builds it, with the press count `zoomResetTrigger` (the screen's `@State`).
+    /// The canvas as the screen builds it, with the press count `zoomResetTrigger` (the screen's `@State`) and the toolbar's
+    /// `bottomClearance` (0 expanded, 60 folded or peeking).
     private func makeView(layout: any PageLayout, paper: PaperContent, viewportWidth: CGFloat, probe: Probe,
                           initialZoomRatio: CGFloat = 1, tool: CanvasTool = .eraser, page: Binding<InkPage>? = nil,
-                          zoomResetTrigger: Int = 0) -> InkCanvasView {
+                          bottomClearance: CGFloat = 0, zoomResetTrigger: Int = 0) -> InkCanvasView {
         InkCanvasView(
             layout: layout,
             paper: paper,
@@ -91,6 +93,7 @@ final class InkCanvasZoomResetTests: XCTestCase {
             initialZoomRatio: initialZoomRatio,
             onZoomRatioChange: { probe.ratios.append($0) },
             onZoomingChange: { probe.zooming.append($0) },
+            bottomClearance: bottomClearance,
             zoomResetTrigger: zoomResetTrigger
         )
     }
@@ -121,12 +124,12 @@ final class InkCanvasZoomResetTests: XCTestCase {
     /// A canvas made with `zoomResetTrigger`, laid out once at `width` × `height` (unless `layOut` is false) and settled; the
     /// first layout's own report is dropped so a test collects only what it causes.
     private func makeRig(layout: any PageLayout, paper: PaperContent, width: CGFloat, height: CGFloat, initialZoomRatio: CGFloat = 1,
-                         tool: CanvasTool = .eraser, page: Binding<InkPage>? = nil, zoomResetTrigger: Int = 0,
-                         layOut: Bool = true) async -> Rig {
+                         tool: CanvasTool = .eraser, page: Binding<InkPage>? = nil, bottomClearance: CGFloat = 0,
+                         zoomResetTrigger: Int = 0, layOut: Bool = true) async -> Rig {
         let probe = Probe()
         let make: (Int) -> InkCanvasView = { [unowned self] trigger in
             self.makeView(layout: layout, paper: paper, viewportWidth: width, probe: probe, initialZoomRatio: initialZoomRatio,
-                          tool: tool, page: page, zoomResetTrigger: trigger)
+                          tool: tool, page: page, bottomClearance: bottomClearance, zoomResetTrigger: trigger)
         }
         let coordinator = InkCanvasView.Coordinator(parent: make(zoomResetTrigger))
         let container = InkCanvasContainerView(paperView: PaperView(content: paper))
@@ -158,8 +161,8 @@ final class InkCanvasZoomResetTests: XCTestCase {
         rig.coordinator.scrollViewDidScroll(rig.canvas)
     }
 
-    /// The offset `resetZoomToOpen` puts y at: the paper y in the middle of what shows above the bottom clearance kept,
-    /// clamped to the paper (§3.8 steps 1, 4 and 5).
+    /// The offset `resetZoomToOpen` puts y at on a paper taller than the screen at the opening zoom: the paper y in the
+    /// middle of what shows above the bottom clearance kept, clamped to the paper (§3.8 steps 1, 4 and 5).
     private func expectedY(_ rig: Rig, layout: any PageLayout, before offsetY: CGFloat, zoom oldZoom: CGFloat, open: CGFloat) -> CGFloat {
         let height = rig.container.bounds.height
         let bottom = rig.canvas.contentInset.bottom
@@ -469,5 +472,47 @@ final class InkCanvasZoomResetTests: XCTestCase {
         XCTAssertEqual(rig.canvas.contentOffset.y, fresh.canvas.contentOffset.y, accuracy: 0.5)
         XCTAssertEqual(rig.probe.ratios.count, 1, "the second settle reports nothing")
         XCTAssertEqual(rig.probe.ratios.first ?? 0, 1, accuracy: 1e-6)
+    }
+
+    /// §3.8's result (the review of D1a): with the toolbar folded or peeking (`bottomClearance` 60) the iPad's week (1024 ×
+    /// 1180, height-bound: 1,920 lu × 0.6146 = 1,180 pt, no taller than the screen) still scrolls by the clearance at the
+    /// opening zoom (y 0…60). 等倍 puts it where a fresh page opens — centred across, the top of the paper at the top — from
+    /// twice the opening zoom scrolled to the middle (the midY rule left it 30 pt down) and to the bottom end (60 pt down).
+    /// A longer paper (the month with its memo area) keeps the midY rule above the clearance.
+    func testAPageNoTallerThanTheScreenGoesBackToWhereItOpens() async {
+        let (layout, paper) = makeWeek()
+        let fresh = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, bottomClearance: 60)
+        let open = fresh.canvas.zoomScale
+        XCTAssertEqual(open, 1180.0 / 1920, accuracy: 1e-4)
+        XCTAssertEqual(fresh.canvas.contentInset.bottom, 60, accuracy: 1e-9, "the folded toolbar's clearance")
+        XCTAssertEqual(fresh.canvas.contentOffset.y, 0, accuracy: 0.001, "a fresh page opens at its top")
+        let rig = await makeRig(layout: layout, paper: paper, width: 1024, height: 1180, bottomClearance: 60)
+        var trigger = 0
+        for (place, y) in [("the middle", CGFloat(620)), ("the bottom end", 1240)] {
+            await pinch(rig, to: 2 * open)
+            scroll(rig, to: CGPoint(x: 348, y: y))
+            await settle()
+            XCTAssertEqual(rig.canvas.contentOffset.y, y, accuracy: 0.5, "\(place): scrolled")
+            trigger += 1
+            rig.press(trigger)
+            await settle()
+            XCTAssertEqual(rig.canvas.zoomScale, open, accuracy: 1e-6, "\(place): 等倍")
+            XCTAssertEqual(rig.canvas.contentOffset.x, fresh.canvas.contentOffset.x, accuracy: 0.5, "\(place): centred across, as it opens")
+            XCTAssertEqual(rig.canvas.contentOffset.y, fresh.canvas.contentOffset.y, accuracy: 0.5, "\(place): the top at the top, as it opens")
+            XCTAssertEqual(rig.probe.ratios.last ?? 0, 1, accuracy: 1e-6, "\(place): ratio 1")
+        }
+
+        let (month, monthPaper) = makeMonth()
+        let long = await makeRig(layout: month, paper: monthPaper, width: 1024, height: 1180, bottomClearance: 60)
+        let monthOpen = long.canvas.zoomScale
+        await pinch(long, to: 2 * monthOpen)
+        scroll(long, to: CGPoint(x: 300, y: 900))
+        await settle()
+        let kept = expectedY(long, layout: month, before: long.canvas.contentOffset.y, zoom: long.canvas.zoomScale, open: monthOpen)
+        long.press(1)
+        await settle()
+        XCTAssertEqual(long.canvas.zoomScale, monthOpen, accuracy: 1e-6, "the month: 等倍")
+        XCTAssertEqual(long.canvas.contentOffset.y, kept, accuracy: 0.5, "the month: the paper y in the middle above the clearance kept")
+        XCTAssertGreaterThan(long.canvas.contentOffset.y, 60, "the month: not its top")
     }
 }

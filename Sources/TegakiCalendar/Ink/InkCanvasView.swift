@@ -292,6 +292,11 @@ final class InkCanvasContainerView: UIView {
     let canvasView: PKCanvasView
     let overlayView = InkOverlayView()
     var onLayout: (() -> Void)?
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.10, 0e-11; the review of D1a): the canvas's content offset and size just before
+    /// `layoutSubviews` last gave it a new frame. UIKit moves the offset with the new frame when the scroll range gets
+    /// shorter (the far end; UI1-R1, `InkSpanState.layoutOffsetX`), so step 4 of `containerDidLayout` reads the middle at
+    /// the old size from here.
+    private(set) var offsetBeforeNewFrame: (offset: CGPoint, size: CGSize)?
     /// The UI tests only (`--screenshot-probe`): the coordinator's `probeValue()`, read out as this
     /// view's accessibility value at the moment it is asked (never stale). nil otherwise.
     var probe: (() -> String)?
@@ -331,6 +336,7 @@ final class InkCanvasContainerView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         if canvasView.frame != bounds {
+            offsetBeforeNewFrame = (offset: canvasView.contentOffset, size: canvasView.bounds.size)
             canvasView.frame = bounds
         }
         if overlayView.frame != bounds {
@@ -1267,12 +1273,16 @@ extension InkCanvasView {
                 let atMin = abs(oldZoom - oldMin) < 0.0005
                 // Read before the limits change: UIKit may move the zoom and the offset with them.
                 let oldOffset = canvas.contentOffset
+                // 1.4.1 (§3.10, 0e-11; the review of D1a): the middle is read with the offset the last pass's size left,
+                // not the one UIKit moved with the new frame (a shorter range: the far end, UI1-R1).
+                var laidOffset = oldOffset
+                if let before = container.offsetBeforeNewFrame, before.size == lastLayoutSize { laidOffset = before.offset }
                 canvas.minimumZoomScale = bounds.min
                 canvas.maximumZoomScale = bounds.max
                 if !live {
                     let centerPaper = CGPoint(
-                        x: (oldOffset.x + lastLayoutSize.width / 2) / oldZoom,
-                        y: (oldOffset.y + lastLayoutSize.height / 2) / oldZoom
+                        x: (laidOffset.x + lastLayoutSize.width / 2) / oldZoom,
+                        y: (laidOffset.y + lastLayoutSize.height / 2) / oldZoom
                     )
                     let topY = oldOffset.y / oldZoom
                     let newZoom = atOpen ? bounds.open : (atMin ? bounds.min : bounds.clamped(targetZoom ?? oldZoom))
@@ -1440,9 +1450,11 @@ extension InkCanvasView {
         /// nothing moves and nothing is reported. Otherwise a fling or an arrow's slide stops first (as `bandWidthChanged`
         /// stops a slide), then, not animated: the zoom and the margins; x — one page: the clamp centres the paper (open ≤
         /// fit); joined: the page under the middle of the screen in the middle (`applyBandOpening`'s rule); y keeps the paper
-        /// y in the middle of what shows above the bottom clearance. The joined path forgets `turnAnchor` and asks for the
-        /// shift check. Last the first layout's end-of-pinch path: `finishZoom` reports ratio 1 and the end of zooming on the
-        /// next turn (the screen's closure then removes the kind's stored ratio, 0e-10).
+        /// y in the middle of what shows above the bottom clearance — a paper no taller than the screen at the opening zoom
+        /// goes back to its top, as it opens (with the toolbar folded it can still scroll by the clearance, and the midY rule
+        /// left it 30–60 pt down; the review of D1a). The joined path forgets `turnAnchor` and asks for the shift check. Last
+        /// the first layout's end-of-pinch path: `finishZoom` reports ratio 1 and the end of zooming on the next turn (the
+        /// screen's closure then removes the kind's stored ratio, 0e-10).
         private func resetZoomToOpen() {
             guard let canvas, let container, let bounds = lastBounds, hasInitialZoom, !isLive, !isUsingTool, !resetScroll,
                   !isMovingSelection else { return }
@@ -1473,7 +1485,10 @@ extension InkCanvasView {
                 let slot = band.slot(atX: midX)
                 x = (band.origin(ofSlot: slot) + band.plan.pageWidth / 2) * open - size.width / 2
             }
-            canvas.contentOffset = clampedOffset(CGPoint(x: x, y: midY * open - shown / 2))
+            // A paper no taller than the screen at the opening zoom (the iPad's week and day) scrolls only by the bottom
+            // clearance: it goes back to its top, where it opens (step 3 of `containerDidLayout`; §3.8's result).
+            let fits = appliedLayout.size.height * open <= size.height + 0.5
+            canvas.contentOffset = clampedOffset(CGPoint(x: x, y: fits ? -canvas.contentInset.top : midY * open - shown / 2))
             syncPaperFrame()
             if let state = spanState {
                 state.turnAnchor = nil

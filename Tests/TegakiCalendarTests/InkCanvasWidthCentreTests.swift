@@ -14,8 +14,10 @@ import XCTest
 /// by the clamp and the top of the view keeps its paper y, as in 1.4 (the two lines change nothing there).
 ///
 /// The canvas is built as the frozen `InkCanvasViewTests` builds it (TESTS_1_2_3: its rig is copied, the file is not
-/// touched). The offsets are chosen inside the scroll range at both widths, so UIKit's own clamp when the frame changes
-/// never moves them; UIKit puts offsets on the pixel grid: ± 0.5 pt.
+/// touched). The first two tests choose offsets inside the scroll range at both sizes, so UIKit's own clamp when the frame
+/// changes never moves them; the far-end test (the review of D1a) starts where it does: UIKit moves the offset with the
+/// new frame, before the pass, and the pass reads the middle from the offset the old size left (UI1-R1, as the joined
+/// path's `layoutOffsetX`). UIKit puts offsets on the pixel grid: ± 0.5 pt.
 @MainActor
 final class InkCanvasWidthCentreTests: XCTestCase {
     private final class Probe {
@@ -164,6 +166,36 @@ final class InkCanvasWidthCentreTests: XCTestCase {
         rig.layout(width: 402, height: 580)
         XCTAssertEqual(rig.canvas.zoomScale, 1.5, accuracy: 1e-6)
         assertMiddle(rig, point, "portrait again")
+    }
+
+    /// The review of D1a: at the far end the kept middle puts the paper at the far end again, as 1.4 did there. The 13-inch
+    /// iPad's week at 1.25 scrolled to its right end with the toolbar on a side (958 × 1,200: x 792), the toolbar taken off
+    /// the side (→ 1,032): UIKit clamps x to the new end (718) with the frame, and the paper stays at the right end, not
+    /// 37 pt short of it (681, the middle read from the moved offset). The iPhone's day at 1.5 scrolled to its bottom end in
+    /// landscape (874 × 230: y 3,370) turned to portrait (402 × 580): the bottom end (3,020), not 175 pt short of it, with
+    /// the middle across kept.
+    func testAtTheFarEndThePaperStaysAtTheFarEnd() async {
+        let (week, weekPaper) = makeWeek()
+        let side = await makeRig(layout: week, paper: weekPaper, width: 958, height: 1200)
+        await pinch(side, to: 1.25)
+        side.canvas.contentOffset = CGPoint(x: 792, y: 600)
+        side.coordinator.scrollViewDidScroll(side.canvas)
+        XCTAssertEqual(side.canvas.contentOffset.x, 1400 * 1.25 - 958, accuracy: 0.5, "958: the right end")
+        side.layout(width: 1032, height: 1200)
+        XCTAssertEqual(side.canvas.zoomScale, 1.25, accuracy: 1e-6, "the absolute zoom stays")
+        XCTAssertEqual(side.canvas.contentOffset.x, 1400 * 1.25 - 1032, accuracy: 0.5, "1,032: still the right end")
+        XCTAssertEqual(side.canvas.contentOffset.y, 600, accuracy: 0.5, "the height did not change: y stays")
+
+        let (day, dayPaper) = makeDay()
+        let turned = await makeRig(layout: day, paper: dayPaper, width: 874, height: 230)
+        await pinch(turned, to: 1.5)
+        turned.canvas.contentOffset = CGPoint(x: 300, y: day.size.height * 1.5 - 230)
+        turned.coordinator.scrollViewDidScroll(turned.canvas)
+        let middleX: CGFloat = (300 + 874 / 2) / 1.5
+        turned.layout(width: 402, height: 580)
+        XCTAssertEqual(turned.canvas.zoomScale, 1.5, accuracy: 1e-6, "the handwriting keeps its size")
+        XCTAssertEqual(turned.canvas.contentOffset.y, day.size.height * 1.5 - 580, accuracy: 0.5, "portrait: still the bottom end")
+        XCTAssertEqual(turned.canvas.contentOffset.x, middleX * 1.5 - 402 / 2, accuracy: 0.5, "the middle across kept")
     }
 
     /// At the opening zoom (the iPad's month, width-bound: 1,032 → 958 → 1,032, scrolled 600 pt down) and at the lowest zoom

@@ -214,7 +214,7 @@ final class InkCanvasSpanZoomResetTests: XCTestCase {
         XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took it")
         // UIKit puts each offset on the screen's pixels; the shift moves x once more: ± 1 pt.
         XCTAssertEqual(middle(of: w1123, rig), 417, accuracy: 1, "the week under the middle of the screen, in the middle")
-        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.5, "0:00 at the top (the midY rule, clamped)")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.5, "0:00 at the top (the week is no taller than the screen: its top, as it opens)")
         XCTAssertEqual(rig.probe.viewports.last?.zoom ?? 0, open, accuracy: 1e-6, "the heading follows")
     }
 
