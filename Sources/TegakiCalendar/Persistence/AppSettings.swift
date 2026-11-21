@@ -19,7 +19,8 @@ import Layout
 /// 0-45). 1.4 (docs/M7D_CONTRACT.md §2, §2.1, §4.8) adds one: who wrote today's 「指でも書く」 (`allowFingerAutoKey`, the
 /// mark `PencilPhone` reads and writes), and a way to forget the week's and the day's guide records (`forgetSpanGuideShown`)
 /// so the guide shows once more after the app turned 「指でも書く」 off; `isExistingUser`'s three keys do not change.
-/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, 0e-12) adds the hand the header is laid out for (`layout.hand`, `Hand`).
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, 0e-12) adds the hand the header is laid out for (`layout.hand`, `Hand`), and
+/// (§4.10, 0e-21) the edge the open toolbar was moved to on an iPad (`toolbar.paletteEdge`, `PaletteEdge`).
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -64,6 +65,12 @@ enum AppSettings {
     /// other value → right (`Hand(stored:)`). Per device (UserDefaults, CA92.1), never sent to iCloud; not one of
     /// `isExistingUser`'s keys and never migrated. `CalendarRootScreen` reads it with `@AppStorage` (the header's order).
     static let handKey = "layout.hand"
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.10, 0e-21): `String` "bottom" / "top" / "left" / "right", the edge the open
+    /// toolbar was last moved to (its grip on an iPad, or VoiceOver's 「…へ移す」); missing or any other value → bottom
+    /// (`PaletteEdge(stored:)`). One value per device for every orientation (UserDefaults, never sent to iCloud); written only
+    /// at a drop or a VoiceOver action, never in screenshot mode. The screen shows it only where it is allowed
+    /// (`ToolbarLogic.effectiveEdge`), so a narrow window keeps the bottom without overwriting it.
+    static let paletteEdgeKey = "toolbar.paletteEdge"
     /// 1.1 (§5.2, M7A-7): `[String]`, the page ids whose 15,000-stroke notice this device showed,
     /// oldest first, at most `strokeBudgetNoticedLimit` (the oldest are dropped).
     static let strokeBudgetNoticedKey = "strokeBudget.noticedPages"
@@ -185,6 +192,15 @@ enum AppSettings {
     static var hand: Hand {
         get { Hand(stored: defaults.string(forKey: handKey)) }
         set { defaults.set(newValue.rawValue, forKey: handKey) }
+    }
+
+    // MARK: - The toolbar's edge (1.4.1, docs/R1_4_1_CONTRACT.md §4.10)
+
+    /// The edge the open toolbar was moved to; `.bottom` when nothing, an unknown value or a value that is not a string is
+    /// stored (the shape of `toolbarEdge`). Reading does not write the key.
+    static var paletteEdge: PaletteEdge {
+        get { PaletteEdge(stored: defaults.string(forKey: paletteEdgeKey)) }
+        set { defaults.set(newValue.rawValue, forKey: paletteEdgeKey) }
     }
 
     // MARK: - Joined pages (1.3, docs/M7C_CONTRACT.md §3.1, §3.14)
