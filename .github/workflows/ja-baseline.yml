@@ -121,7 +121,7 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
-          FILE=tools/l10n/ja-baseline-ref-1.4.txt
+          FILE=tools/l10n/ja-baseline-ref-1.4.1.txt
           LINES="$(grep -c . "$FILE" || true)"
           REF="$(tr -d '[:space:]' < "$FILE")"
           if [ "$LINES" != "1" ] || ! printf '%s' "$REF" | grep -Eq '^[0-9a-f]{40}$'; then
