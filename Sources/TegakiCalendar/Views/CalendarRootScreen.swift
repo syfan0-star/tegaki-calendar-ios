@@ -70,7 +70,7 @@ enum GatedAction: Equatable, CaseIterable {
 /// their columns stay over the paper's. Until the first report, `PaperViewport.initial` stands in.
 /// The first horizontal position of a zoomed-in page is `PageNavigation.initialScrollX` (today's
 /// column on the month / week page, this month's column on the year page). The compact header
-/// (< 600 pt) shows `PageNavigation.compactTitle`.
+/// (< 600 pt) shows `PageNavigation.compactTitle`, and since 1.4.1 an iPhone's wide row too (`usesShortTitle`).
 ///
 /// Overview and zoom (M4c, M4C contract §5.1; 1.1.1, docs/R1_1_1.md): a page opens at the ratio stored
 /// for its kind (`AppSettings.zoomRatio(for:)`, D4; 1 = the opening zoom `Bounds.open`, or
@@ -371,6 +371,19 @@ struct CalendarRootScreen: View {
     static let nowTickSeconds: Double = 30
     /// Below this width the header takes two rows (M3b contract §4.6).
     static let compactWidth: CGFloat = 600
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.4, 0e-5, changed by the lead after §7.3's header crops of run 44926505978): the
+    /// header shows the short title (`PageNavigation.compactTitle`) on the compact rows and on an iPhone's wide row (an iPhone
+    /// in landscape, the iPhone Duo's open inner screen: `pencilPhone.isPad` false, no new reading of the idiom); an iPad's
+    /// wide row keeps the long title (the owner's iPad Air 11 shows it whole). 1.4.1's wide row adds 等倍, and on the
+    /// iPhone 17 in landscape (874 pt) the week title 「2026年10月5日〜10月11日」 was cut to 「2026年10月5日〜10月…」 even at
+    /// `minimumScaleFactor(0.6)` (the title's frame 266.7–419.7 pt), which 1.4's row showed whole. Known and kept: an iPad's
+    /// wide row with less room (the iPad mini in portrait, 162 pt; windows of 600 to about 750 pt) still cuts that week title
+    /// with 「…」, as 1.4 did (§3.5: recorded, no shape of its own). The short title has no year on the week and day pages and
+    /// no holiday name (the paper's date heading shows it, F-11 does not apply); outside ja the month is `yMMM` ("Oct 2026").
+    /// The year page's title, and in ja the month page's, are the same in both forms.
+    static func usesShortTitle(compact: Bool, isPad: Bool) -> Bool {
+        compact || !isPad
+    }
     /// The pause between two sheets / dialogs (SwiftUI cannot present two at once).
     static let sheetGap: Double = 0.35
     /// The zoom `paperAreaHeight` measures the band at (M4C contract §5.1 / §1.6): every week / day
@@ -927,6 +940,8 @@ struct CalendarRootScreen: View {
     @ViewBuilder
     private func screenColumn(_ proxy: GeometryProxy) -> some View {
         let compact = proxy.size.width < Self.compactWidth
+        // 1.4.1 (§3.4, the crops of run 44926505978): the short title on an iPhone's wide row too (`usesShortTitle`).
+        let shortTitle = Self.usesShortTitle(compact: compact, isPad: pencilPhone.isPad)
         let columnWidth = proxy.size.width - paletteSideWidth
         // The first frame of a page has no report from its canvas yet: the stored ratio over the
         // opening zoom, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
@@ -934,7 +949,7 @@ struct CalendarRootScreen: View {
         VStack(spacing: 0) {
             PageHeaderView(
                 kind: kind,
-                title: compact
+                title: shortTitle
                     ? PageNavigation.compactTitle(kind, focus: focus, language: L.language, weekStart: weekStart)
                     : PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart),
                 compact: compact,
@@ -949,8 +964,9 @@ struct CalendarRootScreen: View {
                 width: proxy.size.width,
                 readOnly: readOnly,
                 onReadOnlyTap: { showPaywall(reason: .badge) },
-                // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
-                titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil,
+                // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date. The long title only:
+                // the short one has no holiday name (1.4.1: an iPhone's wide row shows the short one).
+                titleHoliday: !shortTitle && kind == .day ? holidays.name(of: focus) : nil,
                 // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §3.2, §4.1): the header's order for 設定 › 入力 「利き手」, and 等倍
                 // (both canvases back to the opening zoom, §3.6).
                 hand: hand,

@@ -657,7 +657,7 @@ jobs:
       # each by its whole name: HeaderOrderTests, HandSettingTests, ScreenshotModeHandPaletteTests and HeaderGlyphTests (the
       # header and the hand; PageHeaderRoomTests, rewritten, stays), InkCanvasZoomResetTests, InkCanvasSpanZoomResetTests and
       # InkCanvasWidthCentreTests (等倍 and 0d-44), ToolbarPlacementTests and PaletteGripTests (the toolbar, D1b); a class not
-      # written yet is not found and not run.
+      # written yet is not found and not run. D2: HeaderTitleTests (the short title on an iPhone's wide row, §3.4).
       # 1.4 D0c (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0c): xcodebuild boots the 13-inch iPad here itself again, as
       # until D0. D0b booted it with simctl in the background from the job's start (a step "Boot the 13-inch iPad in the
       # background" and a wait here, both removed in D0c). That boot took 129 s, but the macOS steps beside it ran 3 to 19
@@ -680,7 +680,7 @@ jobs:
           elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests|HeaderOrderTests|HandSettingTests|ScreenshotModeHandPaletteTests|HeaderGlyphTests|InkCanvasZoomResetTests|InkCanvasSpanZoomResetTests|InkCanvasWidthCentreTests|ToolbarPlacementTests|PaletteGripTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests|HeaderOrderTests|HandSettingTests|ScreenshotModeHandPaletteTests|HeaderGlyphTests|InkCanvasZoomResetTests|InkCanvasSpanZoomResetTests|InkCanvasWidthCentreTests|ToolbarPlacementTests|PaletteGripTests|HeaderTitleTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
