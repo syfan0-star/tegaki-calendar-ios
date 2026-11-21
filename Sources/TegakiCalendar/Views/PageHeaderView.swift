@@ -114,39 +114,49 @@ struct PageHeaderView: View {
         if compact {
             // M4B contract §5: spacing 4 and a 17 pt title on the first row (the buttons keep their 44 pt targets and
             // `fixedSize`). 1.4.1 (§3.2, §3.3): the second row is 等倍 and the switch, as tall as the switch.
+            // r141-alt (docs/R1_4_1_CONTRACT.md §7.5 (A); Debug builds only): with screenshot mode's
+            // `--screenshot-header-order b` the wide row and the first row are the order (b) of §3.2 (`rowB`); the second row
+            // is the same in both orders. r141's `ForEach`es stay as they are (PageHeaderRoomTests reads them).
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
-                    row(.compactFirst)
+                    #if DEBUG
+                    if ScreenshotMode.headerOrderB {
+                        rowB(.compactFirst)
+                    } else {
+                        ForEach(HeaderOrder.pieces(arm: .compactFirst, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                            view(for: piece, in: .compactFirst)
+                        }
+                    }
+                    #else
+                    ForEach(HeaderOrder.pieces(arm: .compactFirst, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                        view(for: piece, in: .compactFirst)
+                    }
+                    #endif
                 }
                 HStack(spacing: 8) {
-                    row(.compactSecond)
+                    ForEach(HeaderOrder.pieces(arm: .compactSecond, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                        view(for: piece, in: .compactSecond)
+                    }
                 }
                 .fixedSize(horizontal: false, vertical: true)
             }
         } else {
             HStack(spacing: 6) {
-                row(.wide)
+                #if DEBUG
+                if ScreenshotMode.headerOrderB {
+                    rowB(.wide)
+                } else {
+                    ForEach(HeaderOrder.pieces(arm: .wide, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                        view(for: piece, in: .wide)
+                    }
+                }
+                #else
+                ForEach(HeaderOrder.pieces(arm: .wide, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                    view(for: piece, in: .wide)
+                }
+                #endif
             }
         }
-    }
-
-    /// The pieces of `arm` in `HeaderOrder`'s order. r141-alt (docs/R1_4_1_CONTRACT.md §7.5; Debug builds only): with
-    /// screenshot mode's `--screenshot-header-order b` the order (b) of §3.2 instead (`rowB`).
-    @ViewBuilder
-    private func row(_ arm: HeaderOrder.Arm) -> some View {
-        #if DEBUG
-        if ScreenshotMode.headerOrderB {
-            rowB(arm)
-        } else {
-            ForEach(HeaderOrder.pieces(arm: arm, hand: hand, readOnly: readOnly), id: \.self) { piece in
-                view(for: piece, in: arm)
-            }
-        }
-        #else
-        ForEach(HeaderOrder.pieces(arm: arm, hand: hand, readOnly: readOnly), id: \.self) { piece in
-            view(for: piece, in: arm)
-        }
-        #endif
     }
 
     #if DEBUG
@@ -182,7 +192,15 @@ struct PageHeaderView: View {
         case .today:
             todayCapsule
         case .zoomReset:
+            #if DEBUG
+            if ScreenshotMode.zoomButtonWord {
+                zoomResetWordButton(fillsRow: arm == .compactSecond)
+            } else {
+                zoomResetButton(fillsRow: arm == .compactSecond)
+            }
+            #else
             zoomResetButton(fillsRow: arm == .compactSecond)
+            #endif
         case .title:
             titleText(arm == .wide ? .title2 : .headline)
                 .frame(maxWidth: .infinity, alignment: titleAlignment)
@@ -289,18 +307,28 @@ struct PageHeaderView: View {
     /// shown and always enabled, read only too; at the opening zoom a tap changes nothing. On the wide row a 44 × 44 target
     /// on a 36 pt circle; on the compact second row (`fillsRow`) a rounded rectangle at least 44 wide that grows to the
     /// switch's height (`maxHeight: .infinity` in a row of `fixedSize(horizontal: false, vertical: true)`) and never sets it.
-    /// The face is `zoomResetIcon`; r141-alt's Debug builds draw `zoomResetWord` instead with `--screenshot-zoom-button word`.
     private func zoomResetButton(fillsRow: Bool) -> some View {
         Button(action: onZoomReset) {
-            #if DEBUG
-            if ScreenshotMode.zoomButtonWord {
-                zoomResetWord(fillsRow: fillsRow)
+            if fillsRow {
+                Image(systemName: Self.zoomResetSymbol)
+                    .font(.body)
+                    .frame(minWidth: 44, maxHeight: .infinity)
+                    .background {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(uiColor: .tertiarySystemFill))
+                    }
+                    .contentShape(Rectangle())
             } else {
-                zoomResetIcon(fillsRow: fillsRow)
+                Image(systemName: Self.zoomResetSymbol)
+                    .font(.body)
+                    .frame(width: 44, height: 44)
+                    .background {
+                        Circle()
+                            .fill(Color(uiColor: .tertiarySystemFill))
+                            .frame(width: Self.capsuleHeight, height: Self.capsuleHeight)
+                    }
+                    .contentShape(Rectangle())
             }
-            #else
-            zoomResetIcon(fillsRow: fillsRow)
-            #endif
         }
         .buttonStyle(.plain)
         .foregroundStyle(.tint)
@@ -310,33 +338,22 @@ struct PageHeaderView: View {
         .accessibilityIdentifier(Self.zoomResetIdentifier)
     }
 
-    /// 等倍's face: the magnifying glass with a 1 (`zoomResetSymbol`), on the compact second row a rounded rectangle at least 44
-    /// wide as tall as the switch, on the wide row a 36 pt circle in a 44 × 44 target.
-    @ViewBuilder
-    private func zoomResetIcon(fillsRow: Bool) -> some View {
-        if fillsRow {
-            Image(systemName: Self.zoomResetSymbol)
-                .font(.body)
-                .frame(minWidth: 44, maxHeight: .infinity)
-                .background {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(uiColor: .tertiarySystemFill))
-                }
-                .contentShape(Rectangle())
-        } else {
-            Image(systemName: Self.zoomResetSymbol)
-                .font(.body)
-                .frame(width: 44, height: 44)
-                .background {
-                    Circle()
-                        .fill(Color(uiColor: .tertiarySystemFill))
-                        .frame(width: Self.capsuleHeight, height: Self.capsuleHeight)
-                }
-                .contentShape(Rectangle())
+    #if DEBUG
+    /// r141-alt only (docs/R1_4_1_CONTRACT.md §7.5 (B); Debug builds only, `--screenshot-zoom-button word`): 等倍 with the
+    /// word `zoomResetWord` on its face in the icon's place; the action, the modifiers, the spoken name and the identifier
+    /// are `zoomResetButton`'s, which stays r141's (PageHeaderRoomTests reads it).
+    private func zoomResetWordButton(fillsRow: Bool) -> some View {
+        Button(action: onZoomReset) {
+            zoomResetWord(fillsRow: fillsRow)
         }
+        .buttonStyle(.plain)
+        .foregroundStyle(.tint)
+        .fixedSize(horizontal: true, vertical: false)
+        .layoutPriority(1)
+        .accessibilityLabel(Self.zoomResetLabel)
+        .accessibilityIdentifier(Self.zoomResetIdentifier)
     }
 
-    #if DEBUG
     /// r141-alt only (docs/R1_4_1_CONTRACT.md §7.5 (B), §8.1; Debug builds only, `--screenshot-zoom-button word`): 等倍 as
     /// the word `header.zoomReset` (「等倍」) in the icon's place and at least its size. The wide row: 17 pt, as 「今日」 of
     /// the capsule beside it, 8 pt on each side, at least 44 × 44, on a 36 pt capsule (`tertiarySystemFill`). The compact
