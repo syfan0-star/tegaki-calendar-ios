@@ -7,7 +7,8 @@ import XCTest
 // left hand's are the same rows reversed (never a right-to-left layout: inside the capsule ◀ stays before ▶, and the switch
 // keeps 日週月年). The badge only on the wide row while read only, between the switch and 「＋予定」. 「‹ 今日 ›」 and 等倍 at
 // the free hand's end of every row they are on. Mutation MH1 (the left hand not reversed) fails
-// `testLeftHandIsTheRightHandReversed` and `testTodayAndZoomResetSitOnTheFreeHandsSide`.
+// `testLeftHandIsTheRightHandReversed`, `testBadgeSitsBetweenTheSwitchAndAdd` (its left-hand row) and
+// `testTodayAndZoomResetSitOnTheFreeHandsSide` (tools/mutations/m1-expected.tsv on r141-q-m1).
 @MainActor
 final class HeaderOrderTests: XCTestCase {
     private func pieces(_ arm: HeaderOrder.Arm, _ hand: Hand, readOnly: Bool = false) -> [HeaderPiece] {
