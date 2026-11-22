@@ -147,7 +147,7 @@ final class PaletteShotsUITests: XCTestCase {
         if let move {
             let button = element(app, "toolbar.move")
             let shown = button.waitForExistence(timeout: 15)
-            moveFields = " move=\(shown ? Self.text(button.frame) : "-")"
+            moveFields += " move=\(shown ? Self.text(button.frame) : "-")"
             ok = ok && shown
             if move == .menu {
                 let open = app.buttons["右へ移す"].waitForExistence(timeout: 15)
