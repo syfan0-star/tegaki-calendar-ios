@@ -2592,6 +2592,7 @@ R の控えの訳の字が、今の `whatsnew.txt` の字と同じことを機�
 - **判定**: 訳を書いた Claude とも R とも別の Claude 2 人（判定の 2 役。相談していない）が、30 行の訳と逆翻訳を、日本語の元・契約 §0・§8・§16・GLOSSARY（3c82210 の字に §16.9 の新しい等倍の定義を足したもの）・この文書の 14 と照らしました。判定 2 は、日本語の元の 6 つの所も、平たい言葉か・§16.9 の事実と合うかで見ました。**2 人の行は合わせて 60 行で、× は 0 でした。** △ は 2 つです（訳の行の 1 つと、日本語の元の 1 つ）。
 - **この作業（FIX）**: 2 人の判定の全部（○・△・× と理由、ついでの気づき）を受け取り、△ と気づきを 1 つずつ契約・コードの枝・ファイルで確かめました。FIX は日本語の元を読んでいます。下の全部の表の注の列は、2 人の判定の理由を FIX がまとめたものです。
 - **母語の人の確認ではありません。**
+- **あとから足した 2 つ**（2026-11-22）: アプリの読み上げ `header.zoomReset.spoken` の訳し直し（9 行。契約 §16.9 の「アプリの文」）と、案 A の英語の 2 文（下の「元を見ない逆翻訳がまだの物」の 1）も、元を見ない逆翻訳と 2 人の判定にかけました。この節のいちばん下の 2 つの小見出し（「アプリの読み上げ `header.zoomReset.spoken` の訳し直し」「案 A の英語の 2 文」）に書きました。どちらも × 0 です。
 
 ### 結果
 
@@ -2615,7 +2616,7 @@ R の控えの訳の字が、今の `whatsnew.txt` の字と同じことを機�
 | 3 | 判定 1 の気づき | `SUPPORT.md:153` の 2 本の指の文 | 括弧の中で「初めて開いたとき」が 2 回続く。短くするなら「（初めて開いたときより小さくしたときは、その最初の大きさで開きます）」 | 誤りではない（同じ語を繰り返しているので、指すものが 1 通りにしか読めない）。英語は「at that first size」で、すでに短い形 | **直さない**（日本語だけの言い回しの好み。直すかはリードが決めてよい。直しても英語と訳は替わらない） |
 | 4 | 判定 1 の気づき | `SUPPORT.md:151`・`SUPPORT.en.md:156`（今回替えていない 1 段落目） | 「縮めた大きさは覚えません」とあるが、日と週の等倍から少し縮めても、初めて開いたときより大きければ、その大きさを覚える。そろえるなら「縮めた大きさ（初めて開いたときより小さい大きさ）は覚えません」 | 覚えるのは初めて開いたときの大きさとの比で、1 より小さい比だけを捨てる（`TegakiKit/Sources/Layout/ZoomPolicy.swift` の `sanitizedRatio` と `AppSettings.setZoomRatio`。3c82210 で FIX が読んだ）。1.4 でも、2 倍から 1.5 倍に縮めるとその大きさを覚えたので、この文の「縮めた」は前から「初めて開いたときより小さくした」の意味で、1.4.1 で新しくずれたのではない。2 段落目の新しい 2 本の指の文の括弧が、正しい境目（初めて開いたとき）を書いている。契約 §16.9 の替える所に入っていない | **直さない**（英語の文も替えることになり、その逆翻訳と判定が要る）。入れるかはリードが決める |
 | 5 | 判定 2 の気づき | `docs/store/README.md:64` | 「2 つ目の点は等倍の名詞を使わず」のすぐ後に「「等倍」は GLOSSARY の新しい語」とあり、食い違って読める | そのとおり。行 2 の訳は等倍を名詞で言っていない | **直した**: 「「等倍」の意味は GLOSSARY の新しい定義」（訳の行ではない） |
-| 6 | 判定 2 の気づき | 行 2 の動詞 | X の読み上げの字の判定で語が替わったら、行 2 の動詞を照らし直す | 今は 8 言語とも同じ動詞（en resets the zoom = Reset Zoom、zh 重置缩放・重置縮放、ko 확대·축소를 재설정 = 확대·축소 재설정、fr réinitialiser le zoom、de den Zoom zurücksetzen、it reimpostare lo zoom、pt-BR redefinir o zoom、es restablecer el zoom）。pt-PT だけ repor（上の 1） | 記録だけ（`r141-w-x2` の判定で読み上げの字が替わったら、行 2 を直して逆翻訳と判定にかける） |
+| 6 | 判定 2 の気づき | 行 2 の動詞 | X の読み上げの字の判定で語が替わったら、行 2 の動詞を照らし直す | 今は 8 言語とも同じ動詞（en resets the zoom = Reset Zoom、zh 重置缩放・重置縮放、ko 확대·축소를 재설정 = 확대·축소 재설정、fr réinitialiser le zoom、de den Zoom zurücksetzen、it reimpostare lo zoom、pt-BR redefinir o zoom、es restablecer el zoom）。pt-PT だけ repor（上の 1） | 記録だけ（`r141-w-x2` の判定で読み上げの字が替わったら、行 2 を直して逆翻訳と判定にかける）。**読み上げの判定は 2 人とも 9 行 ○ で、字は替わらなかったので、行 2 はこのまま**（下の「アプリの読み上げ `header.zoomReset.spoken` の訳し直し」） |
 | 7 | 判定 2 の気づき | `docs/SUPPORT.md:7` の最終更新の日 | 公開の日に替える | 契約 §8.5 のとおり | 今は替えない |
 
 **2 を直すときの字と数**（リードが直すと決めたとき）:
@@ -2629,12 +2630,13 @@ R の控えの訳の字が、今の `whatsnew.txt` の字と同じことを機�
 - **訳の行（新機能の文・審査メモの英語・SUPPORT.en）は 1 つも替えていません。** だから、この節の 30 行のために、もう一度の元を見ない逆翻訳と判定は要りません。
 - `docs/store/README.md:64`: 上の 5 の直しと、「元を見ない逆翻訳と判定は…節 15 で受ける（まだ）」を済みに。`:96`（審査メモ）の「1・2（と案 A の 1）はやり直す」を、1・2 は済み・案 A の 1 はまだ、に。
 - `docs/store/PROPOSALS_1_4_1.md`: 頭の書きと §1.0・§1.4・§2.4・§3.1・§3.2 の「逆翻訳と判定はまだ・やり直す」を、30 行は済み（× 0）・案 A の英語はまだ、に（案の文の字は替えていない）。
+- あとで（2026-11-22）、案 A の英語の 2 文を R と判定にかけ（× 0。この節の下の「案 A の英語の 2 文」）、`docs/store/README.md:96` と PROPOSALS §2.4・§3.2 の「案 A の 1（英文）はまだ」を済みにしました。案の文の字は替えていません。
 
 ### 元を見ない逆翻訳がまだの物
 
 直した Claude（FIX）は日本語の元を読んだので、自分で訳し戻しても元を見ない逆翻訳になりません。次の物は、R に訳の字だけを渡して訳し戻してもらい、判定の 2 役にかけるまで「まだ」です（リードがかける）。
 
-1. **案 A の英語の 2 文**: 審査メモの案 A の 1（[PROPOSALS_1_4_1.md](../store/PROPOSALS_1_4_1.md) §2.1 の「1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the right end of the header, with the date just before them (on narrow screens, 1× ends the second row). Settings > Dominant Hand > Left Hand reverses this order.」）と、左手の FAQ の 2 文目の案 A（§3.2 の「The order of the buttons at the top of the screen is reversed from left to right: “‹ Today ›” and the Reset Zoom button move to the left end, and ⚙ (Settings) to the right end.」）。R に渡した 30 行に入っていませんでした（X の範囲の外）。PROPOSALS §2.4・§3.2 は確認ページで両方の案を見せると決めているので、確認ページの前に要ります。
+1. **案 A の英語の 2 文**: 審査メモの案 A の 1（[PROPOSALS_1_4_1.md](../store/PROPOSALS_1_4_1.md) §2.1 の「1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the right end of the header, with the date just before them (on narrow screens, 1× ends the second row). Settings > Dominant Hand > Left Hand reverses this order.」）と、左手の FAQ の 2 文目の案 A（§3.2 の「The order of the buttons at the top of the screen is reversed from left to right: “‹ Today ›” and the Reset Zoom button move to the left end, and ⚙ (Settings) to the right end.」）。R に渡した 30 行に入っていませんでした（X の範囲の外）。PROPOSALS §2.4・§3.2 は確認ページで両方の案を見せると決めているので、確認ページの前に要ります。**済み（2026-11-22）**: R が元を見ずに訳し戻し、判定の 2 人とも 2 行 ○（× 0）。判定の後に替えた字はありません。下の「案 A の英語の 2 文」。
 2. **案 A の行 1 の 11 組の訳**: 本人が案 A を選んだときだけ作る（契約 §16.9）。まだ作っていません。作ったら 11 行を R と判定にかけます。
 3. 上の 1（pt-PT）・2（S-2）を、リードが直すと決めたときの行（pt-PT は 1 行、S-2 は 11 行と審査メモの英語の 2）。
 
@@ -2713,3 +2715,107 @@ FIX が e52f6b2 の上で、python で照らしました（2 人の判定も同�
 ### lint
 
 この節の直しの後の字で、`tools/l10n/lint.py` は L-1〜L-14 とも終了 0 です（`L-9: ok: 12 locales, the URLs on the English side`）。L-12 の字の幅の目安の警告は 58 件で、14 と同じ数です（この節の文はアプリの文字列ではない）。
+
+### アプリの読み上げ `header.zoomReset.spoken` の訳し直し（あとから。2026-11-22）
+
+元は契約 §16.9 の「アプリの文」の表です。ja「等倍に戻す」（`tools/l10n/source/app-P.json`、jaSha1 92b8cb8312）は替えず、comment を新しい等倍の定義（日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年はページを初めて開いたときの大きさ）にしました。虫めがねに「1」の印のボタンの読み上げだけの文で、画面に字は出ません（§4 の幅の決まりは関わらない）。14 の判定は前の訳（「元の大きさに戻す」の意味）にしたもので、記録として残します（14 の全部の表の `header.zoomReset.spoken` の 6 行）。
+
+- **訳**: X が、8 言語（zh-Hans・zh-Hant・ko・fr・de・es・it・pt-BR）を「元の大きさに戻す」の意味から「ズームを戻す（リセットする）」の意味に訳し直しました（枝 `r141-w-x2` の 5c58e15。GLOSSARY §5 の「等倍に戻す」の行も同じ字）。en の「Reset Zoom」は替えていません（判定だけ）。`header.today` は comment だけの変更（「空いている手の側の端」→「利き手の側の端」）で、訳は替えていません。
+- **元を見ない逆翻訳**: R が、8 言語の訳の字だけ（リードのスクラッチの `rework/x2-for-R.txt`。各行は「言語 TAB キー TAB 訳の字」）を受け取って訳し戻しました（`rework/r2-back.txt`）。逆翻訳は枝 `r141-w-x2` の `docs/i18n/back/app-1_4_1-fix.md`（e72b820）にあり、この枝と一緒に取り込みます。en は訳を替えていないので、新しい逆翻訳はありません。前の訳とその逆翻訳（`docs/i18n/back/<言語>.json` の同じキー）は消していません（契約 §16.9）。
+- **判定**: 訳を書いた Claude とも R とも別の Claude 2 人（相談していない。判定 2 は判定 1 の表を読んでいない）が、9 行（8 言語と en）を照らしました。照らした物は、source の comment、契約 §8.1・§16.1・§16.3・§16.9、GLOSSARY §1・§5（`r141-w-x2` の字）、9 言語の `translations/*.json` のほかのキーです。判定 1 の表はリードのスクラッチの `rework/j2-judge.md`、判定 2 の表は `rework/j2b-judge.md` です。判定 1 は、`header.today` の 9 行と、GLOSSARY §5 の名詞「等倍」の 9 言語の語も見ました。
+- **基準**（comment と GLOSSARY §5）: 意味は「ズームを戻す（リセットする）」。「もとの大きさ」「実際の大きさ」「合わせる（Fit）」の語を使わない。§2 の「元に戻す」「やり直す」と購入の復元の語を使わない。形は今の読み上げにそろえる（fr・es・pt-BR は不定詞と定冠詞、de は名詞と不定詞、it は命令形、zh は動詞と名詞、ko は名詞）。
+- **この記録**: 2 人の判定と R の逆翻訳を、この節に写しました（枝 `r141-w-d2`）。訳の字は 1 つも替えていません。
+- **母語の人の確認ではありません。**
+
+**結果**
+
+| 対象 | 行 | 判定 1 | 判定 2 | 直した後 |
+| --- | --- | --- | --- | --- |
+| `header.zoomReset.spoken`（8 言語の訳し直しと en） | 9 | ○ 9 | ○ 9 | — |
+| `header.today`（comment だけ。訳は替えていない） | 9 | ○ 9 | （見ていない） | — |
+| 参考: GLOSSARY §5 の名詞「等倍」の 9 言語の語（アプリのキーではない） | 9 | ○ 7・△ 2（de・pt-BR） | （見ていない） | 直さない（下の「`header.today` と参考の名詞」） |
+
+**× は 0 です。** `header.zoomReset.spoken` は 2 人の 18 行とも ○ で、△ もありません。判定の後に替えた訳は無いので、この 9 行のために、もう一度の元を見ない逆翻訳と判定は要りません。読み上げの字が替わらなかったので、新機能の文の行 2 の動詞もこのままです（上の「△ と気づきの扱い」の 6）。
+
+**全部の表（`header.zoomReset.spoken`、9 行）**
+
+元の日本語は 9 行とも「等倍に戻す」です。注の列は、2 人の判定の理由をまとめたものです。
+
+| 言語 | 訳 | 逆翻訳（元を見ない） | 判定 1 | 判定 2 | 注 |
+| --- | --- | --- | --- | --- | --- |
+| en | Reset Zoom | （無し。訳を替えていないので判定だけ） | ○ | ○ | 契約 §8.1 の案のまま。「reset」はどの大きさに戻すかを言わないので、日と週で押すと拡大になる場合も食い違わない（ブラウザーの Reset Zoom も、縮めた後なら拡大する）。Fit・Actual Size・original size は無い。Title Case は GLOSSARY §5 のとおり |
+| zh-Hans | 重置缩放 | 拡大率をリセット | ○ | ○ | 缩放 はアプリの今の字（`onboarding.pen.text`・`settings.purchase.footer.readOnly`）。取り消しの 撤销・やり直しの 重做・購入の復元の 恢复购买 と別の語。前の訳 恢复原始大小 の「原始大小」と、購入の復元と同じ字の 恢复 が無くなった。動詞と名詞の形は 收起工具栏 と同じ |
+| zh-Hant | 重置縮放 | 拡大率をリセット | ○ | ○ | 縮放 はアプリの今の字。取り消しの 還原（`toolbar.undo`）・重做・購入の 回復購買 と別。重置 は台湾・香港とも通じる「リセット」の語（判定 1 は、台湾の画面では 重設 も使われると注） |
+| ko | 확대·축소 재설정 | 拡大・縮小をリセット | ○ | ○ | 확대·축소 は `onboarding.pen.text` と同じ字、재설정 は iOS の「リセット」の語。取り消しの 실행 취소・購入の 구입 복원・되돌리기 と別。名詞の形は 도구 막대 표시 と同じ。中黒「·」の読み上げは確かめていない（下の「確かめていないこと」） |
+| fr | Réinitialiser le zoom | ズームをリセット | ○ | ○ | 取り消しの Annuler・やり直しの Rétablir・購入の Restaurer les achats と別。zoom は男性名詞で le が正しい。不定詞と定冠詞の形は Réduire la barre d’outils と同じ。記号が無いので U+00A0 の決まりは関わらない |
+| de | Zoom zurücksetzen | ズームをリセット | ○ | ○ | Widerrufen・Wiederholen・Käufe wiederherstellen と別。名詞と不定詞の形は Werkzeugleiste ausblenden と同じ。前の訳 Auf Originalgröße zurücksetzen の Originalgröße は無い |
+| es | Restablecer el zoom | ズームを元に戻す | ○ | ○ | 逆翻訳の「元に戻す」は restablecer（決まった状態にする＝リセット）を日本語に移したときの言い方で、取り消しの意味ではない。es の画面では取り消しは Deshacer という別の語なので、聞き違えは起きない。Restablecer はスペインでも中南米でも使う。Rehacer・Restaurar compras とも別。「もとの大きさ」の名詞は入っていない。不定詞と定冠詞の形は Ocultar la barra de herramientas と同じ |
+| it | Reimposta lo zoom | ズームを設定し直す | ○ | ○ | 「設定し直す」は reimpostare の字面に寄った訳し戻しで、意味はリセット（「ズームを戻す」から外れていない）。購入の復元と同じ字になる Ripristina を避けた。Annulla・Ripeti とも別。zoom は z で始まる男性名詞で lo が正しい。命令形は Riduci la barra degli strumenti と同じ |
+| pt-BR | Redefinir o zoom | ズームを設定し直す | ○ | ○ | 「設定し直す」は it と同じく redefinir の字面に寄った訳し戻し。Desfazer・Refazer・Restaurar compras と別。不定詞と定冠詞の形は Ocultar a barra de ferramentas と同じ。pt-PT の端末にもこの字が出る（GLOSSARY §1）が、Redefinir は pt-PT でも通じる |
+
+**`header.today` と参考の名詞（判定 1 だけ）**
+
+- `header.today`: 9 言語とも訳は替わっていません（Today・今天・今天・오늘・Auj.・Heute・Hoy・Oggi・Hoje）。comment の変更は置き場所（利き手の側の端）だけで語の意味に触れないので、9 行とも ○ です（契約 §16.9 の「訳し直さない」のとおり。jaSha1 574cd4fb79 は同じ）。fr の略した形 Auj. は comment どおりです（理由は 8 の表の F-16）。元を見ない逆翻訳は R の対象の外です。
+- 参考の名詞（GLOSSARY §5 の「等倍（文の中の名詞）」の行）: en standard size・zh-Hans 标准大小・zh-Hant 標準大小・ko 표준 크기・fr taille standard・es tamaño estándar・it dimensione standard は ○。de Standardgröße は「既定の大きさ」とも読め、pt-BR tamanho padrão は pt-BR の画面ではまず「既定」と読まれるので △ です。GLOSSARY 自身が書いているとおり、名詞はできるだけ使わず、使う所では定義を添えれば足ります。今の新機能の文・審査メモ・`SUPPORT.en.md` に、この 9 つの語はありません（grep）。**直しません。**
+
+**機械で照らしたこと**
+
+- R に渡した 8 行（`rework/x2-for-R.txt`）は、`r141-w-x2` の `tools/l10n/translations/<言語>.json` の `header.zoomReset.spoken` の `text` と 8 行とも同じ字です。かなは 0 です。
+- `r141-w-x2` の `docs/i18n/back/app-1_4_1-fix.md` の表の訳と逆翻訳は、`rework/x2-for-R.txt` と R の `rework/r2-back.txt` と 8 行とも同じ字です。上の全部の表の訳と逆翻訳も同じ字です。
+- 9 言語の jaSha1 は 92b8cb8312 で同じです。en の `text` は「Reset Zoom」のままです。
+- 新機能の文の行 2 の動詞は、今の読み上げと同じ動詞です（en resets the zoom、zh-Hans 重置缩放、zh-Hant 重置縮放、ko 확대·축소를 재설정、fr réinitialiser le zoom、de den Zoom … zurücksetzen、it reimpostare lo zoom、pt-BR redefinir o zoom、es-MX・es-ES restablecer el zoom。pt-PT だけ repor o zoom で、上の「△ と気づきの扱い」の 1）。
+- 判定 2 は、8 つの訳が GLOSSARY §5 の「等倍に戻す」の行と 1 字ずつ同じこと、前の訳の語（原始大小・Originalgröße など）と「実際の大きさ」「合わせる」の語がどの言語にも無いこと、リセットの語（重置・재설정・Réinitialiser・zurücksetzen・Restablecer・Reimposta・Redefinir）がアプリのほかの文に無いこと（ほかのボタンの名前とぶつからない）を確かめました。判定 1 は、各言語の `toolbar.undo`・`toolbar.redo`・`settings.purchase.restore`・`paywall.restore` などの字と別の語であることを確かめました。
+
+**確かめていないこと**
+
+- **ko の中黒「·」**: VoiceOver の句読点の設定（既定は「一部」）で、この記号の名前を声に出すかは確かめていません。判定 1 は「句読点をすべて読む設定のときしか読まれない見込み（スラッシュより安全）」、判定 2 は「もし読むなら、空白にした「확대 축소 재설정」で避けられる」としました。字はアプリで今使っている 확대·축소 と同じで意味も正しいので、2 人とも × にしていません。**TestFlight で韓国語の VoiceOver を聞くときの確かめの項目にします。**
+- **各言語の iOS の「リセット」の語**: 重置・재설정・Réinitialiser・zurücksetzen・Restablecer・Reimposta・Redefinir が iOS の「リセット」の語であることは判定の 2 人の知識で、出典は開いていません（判定 1 が【未確認】と書いた）。
+- **「リセット」の響き**: どの言語でも少し「初めの状態に戻す」の響きがありますが、日と週では、開いたときの大きさで押すと拡大になります。en の Reset Zoom と同じ性質で、契約 §16.9 が「ズームを戻す」の形として採った所なので、判定は下げていません（判定 2）。
+- 9 言語のどれも、その言語の VoiceOver でいちばんふつうに聞こえる名前かは、母語の人に確かめていません（GLOSSARY §5 の「確かめていないこと」と同じ）。
+
+### 案 A の英語の 2 文（あとから。2026-11-22）
+
+上の「元を見ない逆翻訳がまだの物」の 1 です。見出しの並び 案 A（契約 §0.4・§16.2。右手では ⚙ が左の端、日付は等倍のすぐ左）を本人が選んだときに使う英語の 2 文で、ファイルには入れず [PROPOSALS_1_4_1.md](../store/PROPOSALS_1_4_1.md) に置いてあります。確認ページで両方の案を見せるので（PROPOSALS §2.4・§3.2）、案 B の同じ所と同じく R と判定にかけました。
+
+- **訳**: W の字です（PROPOSALS §2.1 の「1（en）」の案 A の列と、§3.2 の案 A の en）。元の日本語は、§2.1 の日本語の要約の 1 つ目の文の案 A と、§3.2 の案 A の ja です。
+- **元を見ない逆翻訳**: R が、2 行の訳の字だけ（リードのスクラッチの `rework/a-for-R.txt`。各行は「所 TAB 訳の字」）を受け取って訳し戻しました（`rework/a-back.txt`）。日本語の元は渡していません。逆翻訳は `docs/i18n/back/store-1_4_1-fix.md` の最後の節に機械で写しました。
+- **判定**: 訳を書いた Claude とも R とも別の Claude 2 人（相談していない）が、2 行の訳と逆翻訳を、元の日本語と契約 §0.4・§16.2 の案 A の並び（右手: 広い行 [⚙][☁][＋][印?][切り替え][題名][等倍][‹今日›]、狭い 1 段目 [⚙][☁][＋][題名][‹今日›]、2 段目 [切り替え][等倍]。題名の寄せは右手 `.trailing`。左手はすべて左右逆）と照らしました。判定 1 の表はリードのスクラッチの `rework/a-judge-1.md`、判定 2 の表は `rework/a-judge-2.md` です。
+- **母語の人の確認ではありません。**
+
+**結果**
+
+| 対象 | 行 | 判定 1 | 判定 2 | 直した後 |
+| --- | --- | --- | --- | --- |
+| 審査メモ「What is new in 1.4.1」の 1、案 A（`review-1-A`） | 1 | ○ | ○ | — |
+| `SUPPORT.en.md:162`（How do I use it with my left hand?）の 2 文目、案 A（`support-en-left-A`） | 1 | ○ | ○ | — |
+| **計** | **2** | **○ 2・△ 0・× 0** | **○ 2・△ 0・× 0** | **判定の後に替えた字は 0** |
+
+**× は 0 です。** 2 人とも、左右の取り違え、⚙ と日付の取り違え、狭い画面の等倍の場所の誤り、UI の名前（Settings・Dominant Hand・Left Hand・Reset Zoom・1×）の取り違えは無いとしました。判定の後に替えた字は無いので、この 2 行のために、もう一度の元を見ない逆翻訳と判定は要りません。案 A の行 1 の 11 組の訳（本人が案 A を選んだときだけ作る）は、上の「元を見ない逆翻訳がまだの物」の 2 のままです。
+
+**全部の表（2 行）**
+
+| 所 | 元の日本語 | 訳 | 逆翻訳（元を見ない） | 判定 1 | 判定 2 | 注 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 審査メモの 1、案 A（PROPOSALS §2.1） | （意味の元）日本語の要約の 1 つ目の文の案 A「右上に「‹ 今日 ›」と等倍のボタン、すぐ左に日付（設定 › 利き手 › 左手 で逆）。」と、契約 §16.2 の狭い 2 段目 [切り替え][等倍] | 1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the right end of the header, with the date just before them (on narrow screens, 1× ends the second row). Settings > Dominant Hand > Left Hand reverses this order. | 1. ‹ 今日 › と 1× ボタン（「1」の入った虫めがね）がヘッダーの右端に移り、そのすぐ手前に日付が並ぶようになりました（幅の狭い画面では、1× は 2 行目の最後に来ます）。設定 > 利き手 > 左手 にすると、この並びが逆になります。 | ○ | ○ | 「右上に…と等倍のボタン」＝ at the right end of the header、「すぐ左に日付」＝ with the date just before them（左から右へ読む行で before は左。逆翻訳も「すぐ手前」で同じ向き）。広い行 [題名][等倍][‹今日›] で、日付は 2 つのボタンの組のすぐ左。狭い行は、括弧の「1× ends the second row」が 2 段目の最後の等倍を言う。左手は「reverses this order」で合い、before は並びの語なので逆にしても正しいまま。「now」も正しい（1.4 は ⚙ が右の端、日付は左寄り）。括弧の文と設定の道は案 B の 1 と同じ字 |
+| `SUPPORT.en.md:162` の 2 文目、案 A（PROPOSALS §3.2） | 画面の上のボタンの並びが左右逆になり、「‹ 今日 ›」と等倍のボタンが左の端に、⚙（設定）が右の端に移ります。 | The order of the buttons at the top of the screen is reversed from left to right: “‹ Today ›” and the Reset Zoom button move to the left end, and ⚙ (Settings) to the right end. | 画面上部のボタンの並びが左右逆になります。「‹ 今日 ›」と「ズームをリセット」ボタンが左端に、⚙（設定）が右端に移ります。 | ○ | ○ | 案 B の字（上の全部の表で ○・○）から「the date」を「⚙ (Settings)」に替えただけで、日本語も「日付」→「⚙（設定）」だけ。§16.2 の案 A の左手（広い行 [‹今日›][等倍][題名]…[☁][⚙]、狭い 1 段目 [‹今日›][題名][＋][☁][⚙]）と合う。「Reset Zoom」は同じ FAQ の等倍の段落（`:158`）とアプリの読み上げと同じ名前。狭い画面で等倍が 2 段目の左にあることは `:158` が書いている（案 B と同じ組み立て） |
+
+**気づき**（2 人とも判定の外。どれも直していません。足すかはリードが決める）
+
+| # | 誰の | 中身 | 扱い |
+| --- | --- | --- | --- |
+| 1 | 判定 1・判定 2 | 案 A では ⚙ が右の端（1.0〜1.4）から左の端へ移るが、審査メモの 1 はそれを言っていない。日本語の要約の案 A も、新機能の文の行 1 案 A も言っていないので、訳の誤りではない | **直さない**（2 人とも「今のままでよい」「足さなくても困らない」とした。審査の人は「Settings > Dominant Hand」などから ⚙ を探せる）。足すときの字と数は下 |
+| 2 | 判定 1・判定 2 | 「just before them」の向き: 逆翻訳は「すぐ手前」で、「左」の語は戻らなかった | **直さない**。並びの語なので、左手で「reverses this order」としても正しいまま残る（判定 2 は替えない方がよいとした）。向きをはっきりさせるなら「just to their left」（判定 1。3,996 バイトで入る。ただし左手では読み替えが要る、判定 2） |
+| 3 | 判定 1 | 審査メモの「just」と、新機能の文の行 1 案 A の「その左」（「すぐ」無し）は食い違わない。審査メモの「them」は「‹ 今日 ›」と等倍の組で、日付はその組のすぐ左だから | 記録だけ |
+| 4 | 判定 1・判定 2 | 案 A にしても、替えない文（`SUPPORT.en.md:158`・`SUPPORT.md:153` の等倍の段落、審査メモのほかの段）は正しいまま。⚙ を「右上」と書いた所は、SUPPORT の日英と審査メモに無い（grep） | 記録だけ。案 A で替える文は、PROPOSALS §2.1・§3.2 の 2 つと新機能の文の行 1 だけ |
+
+**1 を足すときの字と数**（リードが足すと決めたとき。`wc -c`、今の案 A は 3,994）:
+
+- 判定 1 の案: `1. ⚙ is now at the left end of the header; ‹ Today › and the 1× button (a magnifying glass with "1") are at the right end, with the date just before them (on narrow screens, 1× ends the second row). Settings > Dominant Hand > Left Hand reverses this order.` 英語だけ替えると 4,018 バイトで上限を超えるので、契約 §16.9 の決まりで 2 の「The next page of that type opens at the same size.」を外す（3,967）。日本語の要約の案 A も「左上に ⚙、右上に「‹ 今日 ›」と等倍のボタン、すぐ左に日付（設定 › 利き手 › 左手 で逆）。」にすると 4,034、外して 3,983。
+- 判定 2 の案: 1 の最後に「 ⚙ is now at the left end.」を足すと 4,022、外して 3,971。
+- どちらでも、英語の 1 の元を見ない逆翻訳と判定をやり直す。
+
+**機械で照らしたこと**
+
+- R に渡した 2 行（`rework/a-for-R.txt`）は、PROPOSALS §2.1・§3.2 の案 A の英語と 1 字も違いません（どちらもファイルに 1 回だけある）。かな・漢字は 0 です。
+- 逆翻訳の 2 行（`rework/a-back.txt`）は、渡した 2 行と同じ順・同じ所です。上の全部の表と `docs/i18n/back/store-1_4_1-fix.md` の最後の節の訳と逆翻訳は、この 2 つのファイルと同じ字です。
+- 審査メモを案 A にしたとき（英語の 1 と日本語の要約の 1 つ目の文を替える）は 3,994 バイトで、PROPOSALS §2.2 の数と同じです（上限 4,000）。上の「1 を足すときの字と数」と「just to their left」の 3,996 も、同じ組み立て方で数え直しました。

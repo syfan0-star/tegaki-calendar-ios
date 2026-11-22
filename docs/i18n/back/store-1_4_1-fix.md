@@ -1,4 +1,4 @@
-# ストア 1.4.1 の直しの逆翻訳（本人の 11/22 の直しの後: 新機能の文の行 1・行 2、審査メモの 1・2、SUPPORT.en の 6 文）
+# ストア 1.4.1 の直しの逆翻訳（本人の 11/22 の直しの後: 新機能の文の行 1・行 2、審査メモの 1・2、SUPPORT.en の 6 文、案 A の英語 2 文）
 
 R が日本語の元を見ずに訳し戻した表です（2026-11-22）。母語の人の確認ではありません。判定は [REVIEW.md](../REVIEW.md) の 15 です。
 
@@ -6,7 +6,7 @@ R が日本語の元を見ずに訳し戻した表です（2026-11-22）。母�
 - **日本語の元は渡していません**（`docs/store/source-ja`・`docs/store/ja`・`docs/SUPPORT.md`・審査メモの日本語の要約）。渡した 30 行に日本語の字が無いこと（かなが 0）は、X と FIX が機械で確かめました。
 - R の逆翻訳はスクラッチの `rework/d2-back.txt` に書かれ、FIX がこの表に機械で写しました（訳の字と逆翻訳の字は 1 字も変えていない）。訳の字は commit のファイルの字と 30 行とも同じです（e52f6b2 で FIX が機械で照らした）。
 - en-GB・en-AU・en-CA は en-US、fr-CA は fr-FR の写しです（`docs/store/locales.json` の `copyOf`）。
-- 案 A の英語（審査メモの案 A の 1、左手の FAQ の 2 文目の案 A。[PROPOSALS_1_4_1.md](../../store/PROPOSALS_1_4_1.md) §2.1・§3.2）と、案 A の行 1 の訳は、この 30 行に入っていません（REVIEW.md の 15 の「元を見ない逆翻訳がまだの物」）。
+- 案 A の英語（審査メモの案 A の 1、左手の FAQ の 2 文目の案 A。[PROPOSALS_1_4_1.md](../../store/PROPOSALS_1_4_1.md) §2.1・§3.2）は、この 30 行に入っていなかったので、あとから別に R に渡しました（このファイルの最後の節）。案 A の行 1 の訳は、本人が案 A を選んだときだけ作ります（まだ無い。REVIEW.md の 15 の「元を見ない逆翻訳がまだの物」の 2）。
 
 ## 新機能の文（`docs/store/<ロケール>/whatsnew.txt` の 1 行目と 2 行目）
 
@@ -51,3 +51,15 @@ R が日本語の元を見ずに訳し戻した表です（2026-11-22）。母�
 ## 判定（REVIEW.md の 15）
 
 判定の 2 役（訳を書いた X とも R とも別の Claude 2 人。相談していない）が、30 行を日本語の元と照らしました。**2 人の 60 行で × は 0**、△ は判定 1 の pt-PT の行 2 の 1 つ（直さない。理由は REVIEW.md の 15）。判定の後に替えた訳の行はありません。
+
+## 案 A の英語 2 文（あとから。2026-11-22）
+
+- **R に渡したもの**: 見出しの並び 案 A のときに使う英語の 2 行（リードのスクラッチの `rework/a-for-R.txt`。各行は「所 TAB 訳の字」）。ファイルには入れていない案の字で、[PROPOSALS_1_4_1.md](../../store/PROPOSALS_1_4_1.md) §2.1・§3.2 にあります。上の 30 行とは別に渡しました。
+- **日本語の元は渡していません**（PROPOSALS の日本語の要約の案 A と、§3.2 の案 A の ja）。渡した 2 行にかな・漢字が 0 なのは、機械で確かめました。2 行は PROPOSALS の字と 1 字も違いません。
+- R の逆翻訳はスクラッチの `rework/a-back.txt` に書かれ、この表に機械で写しました（訳の字と逆翻訳の字は 1 字も変えていない）。
+- 判定は [REVIEW.md](../REVIEW.md) の 15 の「案 A の英語の 2 文」です。**判定の 2 人とも 2 行 ○、× 0**。判定の後に替えた字はありません。
+
+| 所 | 訳（R が読んだ字） | 元を見ない逆翻訳 |
+| --- | --- | --- |
+| `review-note.txt` の「What is new in 1.4.1」の 1 の案 A（PROPOSALS §2.1。`review-1-A`） | 1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the right end of the header, with the date just before them (on narrow screens, 1× ends the second row). Settings > Dominant Hand > Left Hand reverses this order. | 1. ‹ 今日 › と 1× ボタン（「1」の入った虫めがね）がヘッダーの右端に移り、そのすぐ手前に日付が並ぶようになりました（幅の狭い画面では、1× は 2 行目の最後に来ます）。設定 > 利き手 > 左手 にすると、この並びが逆になります。 |
+| `SUPPORT.en.md:162`（How do I use it with my left hand?）の 2 文目の案 A（PROPOSALS §3.2。`support-en-left-A`） | The order of the buttons at the top of the screen is reversed from left to right: “‹ Today ›” and the Reset Zoom button move to the left end, and ⚙ (Settings) to the right end. | 画面上部のボタンの並びが左右逆になります。「‹ 今日 ›」と「ズームをリセット」ボタンが左端に、⚙（設定）が右端に移ります。 |
