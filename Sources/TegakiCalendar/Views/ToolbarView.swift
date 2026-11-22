@@ -30,13 +30,13 @@ import UIKit
 /// divider outside the scroll. The eraser's, the lasso's and the 予定 tool's hint lines are not drawn there: they are
 /// those tool buttons' VoiceOver hints. Every identifier is the same (`tool.pen`).
 ///
-/// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): `move`. With it the bar has a 「動かす」 button just before
-/// 「しまう」, outside the scroll and after the same divider — [row | divider | 動かす | しまう] across, the same one under the
-/// other upright —, with 「しまう」's face (`buttonFace`: `arrow.up.and.down.and.arrow.left.and.right` over 「動かす」, 48 wide,
-/// 44 tall, nothing between the two), so the row is 48 pt narrower (the upright column 44 pt shorter) and the bar's height
-/// is the same. `PaletteMoveButtonView` lies over the face and takes its touches (a tap opens the choice of edges, the
-/// `confirmationDialog` here; a drag is the grip's) and is its one VoiceOver element. nil, the default, is the bar before
-/// it: the screen passes it only where the grip shows (every iPhone keeps 1.4's bar).
+/// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): `move`, a 「動かす」 button just before 「しまう」, outside the scroll
+/// after the same divider ([row | divider | 動かす | しまう] across, the same one under the other upright), with 「しまう」's face
+/// (`buttonFace`: `arrow.up.and.down.and.arrow.left.and.right` over 「動かす」, 48 wide, 44 tall, nothing between the two): the
+/// row is 48 pt narrower (the upright column 44 pt shorter), the bar's height the same. `PaletteMoveButtonView` lies over the
+/// face and takes its touches (a tap opens the choice of edges, the `confirmationDialog` here; on the open bar a drag is the
+/// grip's, on a peek it is a tap only: `drags`, §18.2) and is its one VoiceOver element. nil, the default, is the bar before
+/// it: the screen passes it where `ToolbarLogic.showsMoveButton` allows, the open bar and (§18.2) the peek (every iPhone keeps 1.4's bar).
 struct ToolbarView: View {
     @Binding var tool: CanvasTool
     @Binding var allowFinger: Bool
@@ -51,7 +51,7 @@ struct ToolbarView: View {
     var eraserReturnsTo: CanvasTool? = nil
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.8): `.vertical` for a bar on the left or the right edge.
     var axis: Axis = .horizontal
-    /// 1.4.1's second rework (§17.2): the 「動かす」 button before 「しまう」 (shown with 「しまう」); nil = none, the bar of before.
+    /// 1.4.1's second rework (§17.2, §18.2): the 「動かす」 button before 「しまう」 (the open bar's and a peek's); nil = none, the bar of before.
     var move: PaletteMoveButtonView? = nil
 
     @AppStorage(ToolbarPalette.penColorKey) private var penColorHex: String = ToolbarPalette.penColors[0].hex

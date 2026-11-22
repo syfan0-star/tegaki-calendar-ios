@@ -495,7 +495,9 @@ final class PaletteMoveButtonTests: XCTestCase {
     /// step (`toolbarEvent`: the step's mode, `toolbar.collapsed` outside screenshot mode) — so a choice on a peek opens the
     /// bar on its edge with the paper laid out once, and the open bar's drop stays as it was (the step changes nothing there).
     /// The choice of edges closes when the button goes (`paletteHasMoveButton`, which a peek folding changes; the grip does
-    /// not change during a peek).
+    /// not change during a peek). The screen asks the table itself whether its one bar has the button (§18.1, §18.2: the
+    /// open bar and the peek, `showsMoveButton`), so the grip's question coming back there (MB5 on the screen's side, which
+    /// the table's own tests cannot see) fails here and not only in the blank-paper UI test.
     func testTheChoiceAppliesTheTablesStepInOneTransaction() throws {
         let url = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
         let screen = String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
@@ -525,6 +527,14 @@ final class PaletteMoveButtonTests: XCTestCase {
         XCTAssertEqual(count(".onChange(of: paletteHasMoveButton) { if !paletteHasMoveButton, paletteMenuShown { paletteMenuShown = false } }"),
                        1, "the choice of edges goes with the button")
         XCTAssertEqual(count("{ paletteMenuShown = false }"), 2, "closed by the button's going and by a choice")
+        XCTAssertEqual(count(".onChange(of: paletteHasGrip) { if !paletteHasGrip { endPaletteDrag() } }"), 1,
+                       "the grip's going ends a drag only; the choice of edges goes with the button (above)")
+
+        XCTAssertEqual(count("private var paletteHasMoveButton: Bool { ToolbarLogic.showsMoveButton(toolbarMode, allowed: paletteAllowed) }"),
+                       1, "the screen asks the table: the button on the open bar and on the peek (§18.2), not where the grip shows")
+        XCTAssertEqual(count("private var paletteMoveButton: PaletteMoveButtonView? { guard paletteHasMoveButton else { return nil }"),
+                       1, "the button is made where it shows")
+        XCTAssertEqual(count("axis: axis, move: paletteMoveButton )"), 1, "the one bar, open or peeking, gets it")
     }
 
     private static let repository = URL(fileURLWithPath: "\(#filePath)")
