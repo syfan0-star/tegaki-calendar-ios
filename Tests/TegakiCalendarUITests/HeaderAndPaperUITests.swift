@@ -102,7 +102,8 @@ final class HeaderAndPaperUITests: XCTestCase {
         var settings: CGRect
     }
 
-    /// §6.2's narrow rows (the month page, 2026-10).
+    /// §16.6's narrow rows (the month page, 2026-10; §6.2's before the rework). The header's side paddings are 12 pt and an
+    /// iPhone in portrait has no side safe area, so the pieces at the ends sit within 13 pt of the window's edges.
     private func checkPortrait(hand: Hand) throws {
         continueAfterFailure = false
         let name = "today portrait \(hand.rawValue)"
@@ -148,7 +149,8 @@ final class HeaderAndPaperUITests: XCTestCase {
         log("\(name): OK")
     }
 
-    /// §6.2's wide row (the month page, 2026-10, in landscape).
+    /// §16.6's wide row (the month page, 2026-10, in landscape; §6.2's before the rework). No end checks: the window reaches
+    /// under the side safe area.
     private func checkLandscape(hand: Hand) throws {
         continueAfterFailure = false
         let name = "today landscape \(hand.rawValue)"
