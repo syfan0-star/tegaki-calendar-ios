@@ -88,7 +88,8 @@ import UIKit
 /// 1.4.1's rework (docs/R1_4_1_CONTRACT.md §16.3.7): `--screenshot-zoom fit` opens a week or a day at 等倍, one page's width
 /// fitting the paper's column (`zoomFit`, the canvas's `initialFit`), for the confirmation page's photos; the ratio stays 1
 /// (a number is read as before). Without it nothing changes: no photo of J-4, gate 3, blank-paper or span-shots-app passes it.
-/// Screenshot mode never reads or writes `zoomFit.<kind>`.
+/// Screenshot mode never writes `zoomFit.<kind>` and never uses it: the screen reads the key only to pass it as `stored:`,
+/// which `zoomFit(_:kind:stored:)` ignores there.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -477,7 +478,7 @@ enum ScreenshotMode {
 
     /// 1.4.1's rework (docs/R1_4_1_CONTRACT.md §16.3.4, §16.3.7): whether a page of `kind` opens at 等倍 (the screen's
     /// `currentFit`, the canvas's `initialFit`). In screenshot mode (`config` not nil) `--screenshot-zoom fit` on a week or a
-    /// day, whatever `stored` says (the memory is never read there, so a simulator that kept a value cannot change a photo;
+    /// day, whatever `stored` says (the memory is ignored there, so a simulator that kept a value cannot change a photo;
     /// `hand(_:stored:)`'s shape); in normal use `stored` (`AppSettings.zoomFit(for:)`, never true for a month or a year).
     /// The screen still asks `ZoomReset.followsFit(kind)` first, as §16.3.4 writes it.
     static func zoomFit(_ config: Config?, kind: PageKind, stored: Bool) -> Bool {
