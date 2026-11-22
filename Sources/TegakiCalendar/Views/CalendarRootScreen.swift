@@ -3480,7 +3480,7 @@ extension CalendarRootScreen {
 
     // MARK: The 「動かす」 button (§17.2)
 
-    /// The 「動かす」 button `ToolbarView` puts before 「しまう」 (`ToolbarView(move:)`), where the grip shows; nil on every
+    /// The 「動かす」 button `ToolbarView` puts before 「しまう」 (`ToolbarView`'s `move:`), where the grip shows; nil on every
     /// iPhone, in a window with the bottom alone, on the dock and on a peek (their bar is 1.4's). Its drag is the grip's (the
     /// same palm rule, callbacks and cancel trigger); a tap opens the choice of edges (`paletteMenuShown`), whose choices and
     /// VoiceOver's actions are the grip's actions (`moveTargets`) and go through `paletteMoveButtonChose`.

@@ -327,6 +327,49 @@ final class PaletteMoveButtonTests: XCTestCase {
         XCTAssertEqual(shown.choices.map(ToolbarLogic.moveToTitle), ["下へ移す", "上へ移す", "右へ移す"])
     }
 
+    /// The screen's wires, read from the source in code only (`WeekMemoSpanTests.codeOnly`, ZoomFitWiringTests' way; the
+    /// comments name the same calls): the button's choices — its dialog's and VoiceOver's — reach `paletteMoveChosen` only
+    /// through `paletteMoveButtonChose`, whose guard is `choice` with the live `paletteAllowed` and `paletteEdge`, so on the
+    /// screen too a choice the window no longer allows (the dialog opened on four edges, the window narrowed to the bottom and
+    /// the top, then 「右へ移す」) writes nothing. The dialog's buttons are the only caller of `move.onMove` and then tell
+    /// VoiceOver the screen changed, as the 「…へ移す」 actions do (§4.11).
+    func testTheScreenSendsEveryChoiceThroughTheGuard() throws {
+        func code(_ path: String) throws -> String {
+            let url = Self.repository.appendingPathComponent(path)
+            return String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
+                .split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        }
+        func count(_ text: String, in code: String) -> Int {
+            code.components(separatedBy: text).count - 1
+        }
+
+        let screen = try code("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
+        XCTAssertEqual(count("PaletteMoveButtonView(", in: screen), 1, "the screen makes one button")
+        XCTAssertEqual(count("current: paletteEdge, onMove: { paletteMoveButtonChose($0) }, menuShown: $paletteMenuShown )", in: screen), 1,
+                       "the button's choices go to paletteMoveButtonChose")
+        XCTAssertEqual(count("private func paletteMoveButtonChose(_ edge: PaletteEdge) { guard paletteHasMoveButton, "
+                             + "let edge = PaletteMoveButtonView.choice(edge, allowed: paletteAllowed, current: paletteEdge) "
+                             + "else { return } paletteMoveChosen(edge) }", in: screen), 1,
+                       "the guard: the live allowed edges and the live edge, then VoiceOver's path")
+        XCTAssertEqual(count("paletteMoveButtonChose(", in: screen), 2, "declared once, called once (the button's onMove)")
+        XCTAssertEqual(count("PaletteMoveButtonView.choice(", in: screen), 1)
+
+        let toolbar = try code("Sources/TegakiCalendar/Views/ToolbarView.swift")
+        XCTAssertEqual(count("Button(ToolbarLogic.moveToTitle(edge)) { move.onMove(edge) PaletteGripView.PanView.postLayoutChanged() }",
+                             in: toolbar), 1, "a choice of the dialog, then .layoutChanged")
+        XCTAssertEqual(count("move.onMove(", in: toolbar), 1, "the dialog's buttons are the only caller")
+
+        let grip = try code("Sources/TegakiCalendar/Views/PaletteGrip.swift")
+        XCTAssertEqual(count("func moved(to target: PaletteEdge) -> Bool { onMove(target) Self.postLayoutChanged() return true }",
+                             in: grip), 1, "VoiceOver's actions post the same")
+        XCTAssertEqual(count("static func postLayoutChanged() { Task { @MainActor in "
+                             + "UIAccessibility.post(notification: .layoutChanged, argument: nil) } }", in: grip), 1,
+                       "on the main actor's next turn, after SwiftUI laid the moved bar out")
+    }
+
+    private static let repository = URL(fileURLWithPath: "\(#filePath)")
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+
     // MARK: VoiceOver (§17.2)
 
     /// One element: 「ツールバーを動かす」, the hint 「上下左右の端へ移せます」, a button, `toolbar.move`, an action per choice that

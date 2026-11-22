@@ -19,9 +19,10 @@ import XCTest
 ///   no grip and no 「動かす」 (§4.3, §17.2, 確かめ表 18), 「ペン」's top − 16 the canvas's bottom.
 /// - `testTheMoveButtonMovesTheBar` (1.4.1's second rework, docs/R1_4_1_CONTRACT.md §17.2, §17.4; the same step and skips as
 ///   the grip's test, which build.yml's step now asks to pass too): the 「動かす」 button before 「しまう」 (`toolbar.move`, read
-///   out as 「ツールバーを動かす」). A tap opens the choice of edges; 「右へ移す」 puts the bar on the right edge, the paper area
-///   changing once; a tap on the upright bar's button and 「上へ移す」 the top; the button dragged with a finger (as the grip,
-///   held before the lift) the left; a tap and 「下へ移す」 the bottom again, 「ペン」's top − 16 the canvas's bottom.
+///   out as 「ツールバーを動かす」), right before 「しまう」 and level with it. A tap opens the choice of edges; 「右へ移す」 puts
+///   the bar on the right edge, the paper area changing once; a tap on the upright bar's button and 「上へ移す」 the top; the
+///   button dragged with a finger (as the grip, held before the lift) the left, and no choice of edges opens after that drag;
+///   a tap and 「下へ移す」 the bottom again, 「ペン」's top − 16 the canvas's bottom.
 ///
 /// Not here (the contract's §6.1 note, form (b), and what XCUITest cannot do): the Apple Pencil never moving the bar (XCUITest
 /// synthesizes finger touches only: PaletteGripTests checks the pan's touch types and its palm rule); VoiceOver's 「…へ移す」
@@ -153,12 +154,12 @@ final class PaletteMoveUITests: XCTestCase {
         XCTAssertTrue(button.waitForExistence(timeout: 10), "the 「動かす」 button")
         XCTAssertEqual(button.label, Self.gripLabel, "「動かす」 is read out as 「ツールバーを動かす」")
         let collapse = app.buttons[Self.collapseLabel]
+        XCTAssertTrue(collapse.waitForExistence(timeout: 5), "「しまう」 (\(Self.collapseLabel)) on the open bar")
         let buttonFrame = stableFrame(button)
-        log("move: button frame=\(text(buttonFrame)) label=\(button.label) hide=\(collapse.exists ? text(collapse.frame) : "-")")
-        if collapse.exists {
-            XCTAssertEqual(buttonFrame.maxX, collapse.frame.minX, accuracy: 1, "「動かす」 right before 「しまう」")
-            XCTAssertEqual(buttonFrame.midY, collapse.frame.midY, accuracy: 1, "「動かす」 level with 「しまう」")
-        }
+        let collapseFrame = stableFrame(collapse)
+        log("move: button frame=\(text(buttonFrame)) label=\(button.label) hide=\(text(collapseFrame))")
+        XCTAssertEqual(buttonFrame.maxX, collapseFrame.minX, accuracy: 1, "「動かす」 right before 「しまう」")
+        XCTAssertEqual(buttonFrame.midY, collapseFrame.midY, accuracy: 1, "「動かす」 level with 「しまう」")
         keepScreenshot(app, "move: bottom at launch")
 
         let screen = window(app)
@@ -168,8 +169,11 @@ final class PaletteMoveUITests: XCTestCase {
         // A tap on the upright bar's 「動かす」, then 「上へ移す」.
         choose(app, Self.moveToTop, expect: "top")
         keepScreenshot(app, "move: top")
-        // The button dragged with a finger, as the grip is.
+        // The button dragged with a finger, as the grip is. A drag is no tap: no choice of edges opened when it lifted.
         move(app, to: CGPoint(x: screen.minX + 24, y: screen.midY), expect: "left", handle: Self.moveIdentifier)
+        let openedByDrag = Self.moveTitles.values.sorted().filter { app.buttons[$0].exists }
+        log("move: left: after the drag the choice offers \(openedByDrag.isEmpty ? "nothing" : openedByDrag.joined(separator: ","))")
+        XCTAssertEqual(openedByDrag, [], "left: a drag of 「動かす」 opens no choice of edges")
         keepScreenshot(app, "move: left")
         // A tap, then 「下へ移す」: 1.4's place again.
         choose(app, Self.moveToBottom, expect: "bottom")

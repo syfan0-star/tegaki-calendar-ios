@@ -196,7 +196,8 @@ struct ToolbarView: View {
     /// 1.4.1's second rework (§17.2): 「動かす」 with 「しまう」's face, `PaletteMoveButtonView` over it (the touches and the one
     /// VoiceOver element; the face is hidden from VoiceOver), and the choice of edges it opens: a `confirmationDialog` from
     /// the button (a popover on an iPad) titled 「ツールバーを動かす」, one button per choice (「上へ移す」…), each calling
-    /// `move.onMove` (the screen's VoiceOver path, which ignores an edge no longer allowed).
+    /// `move.onMove` (the screen's VoiceOver path, which ignores an edge no longer allowed) and then telling VoiceOver the
+    /// screen changed, as the 「…へ移す」 actions do (`PaletteGripView.PanView.postLayoutChanged`, §4.11).
     private func moveButton(_ move: PaletteMoveButtonView) -> some View {
         buttonFace(symbol: PaletteMoveButtonView.symbol, label: ToolbarLogic.moveTitle)
             .foregroundStyle(Color.primary)
@@ -206,6 +207,7 @@ struct ToolbarView: View {
                 ForEach(move.choices, id: \.self) { edge in
                     Button(ToolbarLogic.moveToTitle(edge)) {
                         move.onMove(edge)
+                        PaletteGripView.PanView.postLayoutChanged()
                     }
                 }
             }

@@ -143,10 +143,16 @@ struct PaletteGripView: UIViewRepresentable {
         @discardableResult
         func moved(to target: PaletteEdge) -> Bool {
             onMove(target)
+            Self.postLayoutChanged()
+            return true
+        }
+
+        /// Tells VoiceOver the screen changed, on the main actor's next turn (after SwiftUI laid the moved bar out): after a
+        /// VoiceOver action here, and after a choice in the 「動かす」 button's dialog (`ToolbarView`, §4.11, §17.2).
+        static func postLayoutChanged() {
             Task { @MainActor in
                 UIAccessibility.post(notification: .layoutChanged, argument: nil)
             }
-            return true
         }
 
         @objc private func panned(_ recognizer: UIPanGestureRecognizer) {

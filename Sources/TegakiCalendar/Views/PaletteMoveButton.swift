@@ -4,7 +4,7 @@ import UIKit
 /// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): the touch side of the open toolbar's 「動かす」 button, on an iPad's
 /// window that allows two edges or more (where the grip shows, `ToolbarLogic.showsMoveButton`). `ToolbarView` draws the
 /// button's face (the face of 「しまう」, `arrow.up.and.down.and.arrow.left.and.right` over 「動かす」) just before 「しまう」 and
-/// lays this view over it; the screen hands it in (`ToolbarView(move:)`, nil on every iPhone and every window with one edge).
+/// lays this view over it; the screen hands it in (`ToolbarView`'s `move:`, nil on every iPhone and every window with one edge).
 ///
 /// - A tap — a touch that lifts before it moved `PaletteGripView.startDistance` (10 pt), with a finger, a trackpad, a mouse
 ///   or the Apple Pencil, whatever the palm rule says (choosing moves nothing under the pen) — opens the choice of edges
