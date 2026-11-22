@@ -163,12 +163,12 @@ In the App's Settings > Dominant Hand, choose “Left Hand” (from version 1.4.
 
 ### How do I move the toolbar?
 
-On iPad, you can move the open toolbar to the top, bottom, left or right edge of the screen (from version 1.4.1). With your finger, drag the small handle on the edge of the toolbar nearer the paper. When you lift your finger, the toolbar snaps to the nearest edge. At the left or right edge, the toolbar turns vertical. The toolbar does not cover the paper; instead, the paper becomes smaller to make room for it (at the top edge, the paper is the same size as at the bottom edge).
+On iPad, you can move the open toolbar to the top, bottom, left or right edge of the screen (from version 1.4.1). Tap “Move” to the left of “Hide” in the toolbar, and choose the edge you want, such as “Move to Top” (when the toolbar is at the left or right edge, “Move” is above “Hide”). You can also drag “Move” with your finger. When you lift your finger, the toolbar snaps to the nearest edge. Dragging the small handle on the edge of the toolbar nearer the paper with your finger moves it in the same way. At the left or right edge, the toolbar turns vertical. The toolbar does not cover the paper; instead, the paper becomes smaller to make room for it (at the top edge, the paper is the same size as at the bottom edge).
 
-- Apple Pencil does not move it. While you are writing with Apple Pencil (and just after), the toolbar does not move even if your palm touches the handle.
+- You cannot drag it with Apple Pencil (you can still tap and choose). While you are writing with Apple Pencil, and for 0.5 seconds after, the toolbar does not start moving even if your palm touches “Move” or the handle.
 - The edge you choose is remembered on each device. The toolbar stays at that edge after you reopen the App or rotate your iPad.
 - In a narrow window, such as Split View or Slide Over, a toolbar placed at the left or right edge appears at the bottom (in a narrower window, one placed at the top does too). When you widen the window, it goes back to the edge you chose.
-- On iPhone, the toolbar stays at the bottom (it has no handle).
+- On iPhone, the toolbar stays at the bottom (it has neither “Move” nor a handle).
 
 ### How much can I write on one page?
 
