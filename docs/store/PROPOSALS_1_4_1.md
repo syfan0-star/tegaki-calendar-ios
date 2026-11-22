@@ -1,66 +1,79 @@
 # 1.4.1 の店の文と SUPPORT の案（本人の確認ページで見せる）
 
-**対象の版: 1.4.1**。ここは案で、どれもまだ Connect にも Web にも入れていない。本人の確認ページ（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §0.4・§9.1 の D3）で一緒に見せ、「この内容で入れてよい」をもらってから入れる。本人の「この内容で入れてよい」は、ここに書いた全部の組み合わせに効く（契約 §8.3）。どの文を使うかは、同じ確認ページの 2 つの選び（契約 §0.4 の 1「見出しの並べ方」と 2「等倍のボタンの見た目」）の答えで決まる。選ばなければ既定（並べ方 (a)・虫めがねに「1」の印のボタン）のままで、`ja/whatsnew.txt`・`source-ja/whatsnew.txt`・`review-note.txt` には既定の字をもう入れた（2026-11-22）。決めた組み合わせは `docs/R1_4_1.md` に書く。
+**対象の版: 1.4.1**（契約の第 3 版。本人の 2026-11-22 の直しの後）。ここは案で、どれもまだ Connect にも Web にも入れていない。本人の新しい確認ページ（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §0.4・§16.10 の N5）で一緒に見せ、「この内容で入れてよい」をもらってから入れる。本人の「この内容で入れてよい」は、ここに書いた両方の案に効く（契約 §8.3）。
 
-§1 は新機能の文（契約 §8.3。ja 以外の訳は D2 で役 X、元を見ない逆翻訳は R、照合と判定は [docs/i18n/REVIEW.md](../i18n/REVIEW.md)。契約 §8.2）。§2 は審査メモの、選びで替わる文（契約 §8.4）。§3 は SUPPORT の言い方（契約 §8.5。役 W）。
+**選びは 1 つだけ**: 見出しの並び（契約 §0.4・§16.2・§16.11 の問い 1）。
 
-## 1. 新機能の文の行と、並べ方 (b) の 1 つ目の行
+- **案 B（既定）**: 右手では、日付が左の端、⚙・等倍・「‹ 今日 ›」が右の端。
+- **案 A**: 右手では、⚙ が左の端、日付は等倍のすぐ左（右寄り）。本人が確認ページの写真を見て「案 A」と言ったときだけ使う。
+- どちらも、右手では「‹ 今日 ›」がいちばん右の端で、等倍はそのすぐ左。左手では左右逆。
+- **等倍のボタンの見た目は、虫めがねに「1」の印に決まった**（本人の 11/22 13:0x の「全て規定通りで進めてください。」。契約 §16.1 の 4・§16.11 の問い 8）。「等倍」の字のボタンは作らないので、その文の組は無くした（§2.3 に数だけ記録として残す）。
+
+`ja/whatsnew.txt`・`source-ja/whatsnew.txt`・`review-note.txt`・`docs/SUPPORT.md`・`docs/SUPPORT.en.md` には、既定の案 B の字をもう入れた（2026-11-22）。案 A の字はファイルに入れずに、ここに置く。決めた案は `docs/R1_4_1.md` の「本人の言葉と選び」に書く。
+
+§1 は新機能の文（契約 §8.3・§16.9。ja 以外の訳は役 X、元を見ない逆翻訳は R、判定は [docs/i18n/REVIEW.md](../i18n/REVIEW.md) の新しい節 15）。§2 は審査メモ（契約 §8.4・§16.9）。§3 は SUPPORT の言い方（契約 §8.5・§16.9。役 W）。
+
+## 1. 新機能の文
 
 ### 1.0 決まり
 
-- 元は契約 §8.3 の 4 つの行と、並べ方 (b) のときの 1 つ目の行。契約の `>` の行から機械で読んだ（手で写していない）。ja と `source-ja` はこの字を使う。
-- 並べ方: 行 1 → 行 2 → 行 3 → 行 4。ja 以外は、空の行を 1 つ置いて訳についての 1 行（1.4 の `source-ja/whatsnew.txt` と 15 のロケールの最後の行と同じ字。1.2.3 から変えていない）。
-- 行 1 は (a)（既定）か (b) のどちらか 1 つ。行 2 は「等倍」の字のボタンが選ばれても同じ（ボタンの見た目を書かないため。契約 §8.3）。行 3 と行 4 はいつも。
-- 書いていないこと: K-8 の句（契約 §5.2。新しい欄も形も無い）、無い改善（R1_2_2.md:694）、価格と通貨の記号（L-9）。契約 §0.1 の最後の点（拡大しているときに回転すると見ていた所が少し横にずれる、0d-44 の直し）も、契約 §8.3 の行に無いので書かない（その直しは、ピン留めのテストが 1 つでも結果を変えたら戻す。契約 §3.10）。
-- 訳（D2。まだ）: 1.4 と同じ 11 組を訳す（en-GB・en-AU・en-CA は en-US の写し、fr-CA は fr-FR の写し。`locales.json` の `copyOf`）。「今日」はアプリの `header.today`、「利き手」「左手」はアプリの `settings.hand.header`・`settings.hand.left` の、各言語の訳と同じ字にする（X が写す）。「ツールバー」は、アプリの `onboarding.pen.text` の訳の語（1.4 の行 2 と同じ。[PROPOSALS_1_4.md](PROPOSALS_1_4.md) §2.3 の表）にする。「‹ ›」の記号はそのまま。「等倍」は GLOSSARY の語（拡大も縮小もしていないもとの大きさ。契約 §8.2）。es-ES は es-MX から直し、pt-PT は別に書く（README の「X への手引き」）。それまで 15 のロケールの `whatsnew.txt` は 1.4 の字のまま（README の「新機能の文の組み立て」）。
+- 元は契約 §16.9 の 2 つの `>` の行（行 1 案 B と行 2）と、案 A の行 1（同じ節の「案 A の行 1」の字）。行 3・行 4・訳についての 1 行は §8.3 のまま（1 字も変えない）。契約の字から機械で写した（手で写していない）。ja と `source-ja` はこの字を使う。
+- 並べ方: 行 1 → 行 2 → 行 3 → 行 4。ja 以外は、空の行を 1 つ置いて訳についての 1 行（1.4 の `source-ja/whatsnew.txt` と 15 のロケールの最後の行と同じ字）。
+- 行 1 は案 B（既定）か案 A のどちらか 1 つ。行 2 は案 A でも案 B でも同じ。行 3 と行 4 はいつも。
+- 「等倍」の意味は、GLOSSARY の新しい定義（日と週は 1 ページの幅が画面の幅にちょうど合う大きさ、月と年は開いたときの大きさ。契約 §16.9）。行 2 はこの 2 つを両方書く（日と週で前の字「拡大も縮小もしていないもとの大きさ」が正しくなくなったため）。名詞の「等倍」の 9 言語の語は、X が GLOSSARY §5 で決め直す。
+- 書いていないこと: K-8 の句（契約 §5.2。新しい欄も形も無い）、無い改善（R1_2_2.md:694）、価格と通貨の記号（L-9）。契約 §0.1 の最後の点（拡大しているときに回転すると見ていた所が少し横にずれる、0d-44 の直し）も、契約 §8.3・§16.9 の行に無いので書かない。日・週の等倍を次に開くページも覚えることは、店の文には書かない（契約の行に無い。審査メモと SUPPORT には書いた）。
+- 訳（役 X。まだ）: 1.4 と同じ 11 組で、行 1（案 B）と行 2 を訳し直す（en-GB・en-AU・en-CA は en-US の写し、fr-CA は fr-FR の写し。`locales.json` の `copyOf`）。「今日」はアプリの `header.today` の訳、「ツールバー」は今の語、「‹ ›」の記号はそのまま。es-ES は es-MX から直し、pt-PT は別に書く（README の「X への手引き」）。案 A の行 1 は、本人が案 A を選んだときだけ訳す（契約 §16.9）。それまで 11 のフォルダの `whatsnew.txt` の行 1 と行 2 は、前の字（第 2 版の行 1 (a) と前の行 2）のまま。
 
 ### 1.1 行（ja と source-ja の字）
 
 | 行 | いつ使うか | ja（source-ja も） |
 | --- | --- | --- |
-| 行 1 (a) | 既定（並べ方 (a)。本人が選ばないときも） | ・画面の上の「‹ 今日 ›」を左の端に移し、日付をその右に並べました。 |
-| 行 1 (b) | 本人が並べ方 (b) を選んだとき | ・画面の上の「‹ 今日 ›」を、左の端の日付のすぐ右に移しました。 |
-| 行 2 | いつも（「等倍」の字のボタンでも同じ） | ・拡大・縮小した後に、ボタン 1 つで、拡大も縮小もしていないもとの大きさ（等倍）に戻せるようになりました。 |
-| 行 3 | いつも | ・設定に「利き手」を足しました。「左手」にすると、画面の上のボタンの並びが左右逆になります。 |
-| 行 4 | いつも | ・iPad では、ツールバーを指で上下左右の端へ動かせるようになりました。 |
+| 行 1 案 B | 既定（本人が選ばないときも） | ・画面の上の「‹ 今日 ›」を右の端に移し、日付を左の端に置きました。 |
+| 行 1 案 A | 本人が並びの案 A を選んだとき | ・画面の上の「‹ 今日 ›」を右の端に移し、日付をその左に並べました。 |
+| 行 2 | いつも | ・拡大・縮小した後に、ボタン 1 つで等倍に戻せるようになりました。日と週では 1 日・1 週のページの幅が画面の幅にちょうど合い、月と年では開いたときの大きさに戻ります。 |
+| 行 3 | いつも（§8.3 のまま） | ・設定に「利き手」を足しました。「左手」にすると、画面の上のボタンの並びが左右逆になります。 |
+| 行 4 | いつも（§8.3 のまま） | ・iPad では、ツールバーを指で上下左右の端へ動かせるようになりました。 |
 | 訳についての 1 行 | ja 以外（`source-ja` の最後。Connect の ja には入れない） | 訳は AI が作り、まだ母語の人の確認を受けていません。誤りがあればお知らせください。 |
+
+- 案 A の行 1 の「その左」は、「すぐ左」にしない。広い行では日付と「‹ 今日 ›」の間に等倍のボタンが入るため（第 2 版の行 1 (a) の「その右」と同じ考え。下の「第 2 版の記録」）。
+- 案 B の行 1 は、本人の 2 つの言葉（11/21「年月日は一番左側でいいです」・11/22「＜今日＞と等倍は右端が右利き」）を、そのまま 1 文にした形。等倍の場所は行 1 に書かない（行 2 がボタンの働きを言う）。
 
 ### 1.2 全文
 
-**ja・既定**（`ja/whatsnew.txt` に入れた字。訳についての 1 行は無い）:
+**ja・案 B（既定）**（`ja/whatsnew.txt` に入れた字。訳についての 1 行は無い）:
 
 ```text
-・画面の上の「‹ 今日 ›」を左の端に移し、日付をその右に並べました。
-・拡大・縮小した後に、ボタン 1 つで、拡大も縮小もしていないもとの大きさ（等倍）に戻せるようになりました。
+・画面の上の「‹ 今日 ›」を右の端に移し、日付を左の端に置きました。
+・拡大・縮小した後に、ボタン 1 つで等倍に戻せるようになりました。日と週では 1 日・1 週のページの幅が画面の幅にちょうど合い、月と年では開いたときの大きさに戻ります。
 ・設定に「利き手」を足しました。「左手」にすると、画面の上のボタンの並びが左右逆になります。
 ・iPad では、ツールバーを指で上下左右の端へ動かせるようになりました。
 ```
 
-**ja・並べ方 (b)**:
+**ja・案 A**:
 
 ```text
-・画面の上の「‹ 今日 ›」を、左の端の日付のすぐ右に移しました。
-・拡大・縮小した後に、ボタン 1 つで、拡大も縮小もしていないもとの大きさ（等倍）に戻せるようになりました。
+・画面の上の「‹ 今日 ›」を右の端に移し、日付をその左に並べました。
+・拡大・縮小した後に、ボタン 1 つで等倍に戻せるようになりました。日と週では 1 日・1 週のページの幅が画面の幅にちょうど合い、月と年では開いたときの大きさに戻ります。
 ・設定に「利き手」を足しました。「左手」にすると、画面の上のボタンの並びが左右逆になります。
 ・iPad では、ツールバーを指で上下左右の端へ動かせるようになりました。
 ```
 
-**source-ja・既定**（`source-ja/whatsnew.txt` に入れた字。ja 以外の日本語の元。Connect には入れない）:
+**source-ja・案 B（既定）**（`source-ja/whatsnew.txt` に入れた字。ja 以外の日本語の元。Connect には入れない）:
 
 ```text
-・画面の上の「‹ 今日 ›」を左の端に移し、日付をその右に並べました。
-・拡大・縮小した後に、ボタン 1 つで、拡大も縮小もしていないもとの大きさ（等倍）に戻せるようになりました。
+・画面の上の「‹ 今日 ›」を右の端に移し、日付を左の端に置きました。
+・拡大・縮小した後に、ボタン 1 つで等倍に戻せるようになりました。日と週では 1 日・1 週のページの幅が画面の幅にちょうど合い、月と年では開いたときの大きさに戻ります。
 ・設定に「利き手」を足しました。「左手」にすると、画面の上のボタンの並びが左右逆になります。
 ・iPad では、ツールバーを指で上下左右の端へ動かせるようになりました。
 
 訳は AI が作り、まだ母語の人の確認を受けていません。誤りがあればお知らせください。
 ```
 
-**source-ja・並べ方 (b)**:
+**source-ja・案 A**:
 
 ```text
-・画面の上の「‹ 今日 ›」を、左の端の日付のすぐ右に移しました。
-・拡大・縮小した後に、ボタン 1 つで、拡大も縮小もしていないもとの大きさ（等倍）に戻せるようになりました。
+・画面の上の「‹ 今日 ›」を右の端に移し、日付をその左に並べました。
+・拡大・縮小した後に、ボタン 1 つで等倍に戻せるようになりました。日と週では 1 日・1 週のページの幅が画面の幅にちょうど合い、月と年では開いたときの大きさに戻ります。
 ・設定に「利き手」を足しました。「左手」にすると、画面の上のボタンの並びが左右逆になります。
 ・iPad では、ツールバーを指で上下左右の端へ動かせるようになりました。
 
@@ -69,138 +82,108 @@
 
 ### 1.3 字数（上限 4,000 字）
 
-数え方は L-9（`tools/l10n/lint.py` の `store_text`）と同じで、ファイルの末尾の改行 1 つを除いた字の数。
+数え方は L-9（`tools/l10n/lint.py` の `store_text`）と同じで、ファイルの末尾の改行 1 つを除いた字の数。機械で数えた（2026-11-22）。
 
-| | 既定（並べ方 (a)） | 並べ方 (b) | 上限 |
-| --- | ---: | ---: | ---: |
-| ja | 175 | 173 | 4,000 |
-| source-ja | 220 | 218 | 4,000 |
+| | 案 B（既定） | 案 A | 前の字（第 2 版の既定） | 上限 |
+| --- | ---: | ---: | ---: | ---: |
+| ja | 207 | 207 | 175 | 4,000 |
+| source-ja | 252 | 252 | 220 | 4,000 |
 
-### 1.4 行 1 (b) の訳（11 組。D2）
+- 案 A と案 B の行 1 は同じ字数（どちらも 35 字。前の行 1 も 35 字）。行 2 は 32 字増えた（54 → 86 字）。
+- ファイルのバイト（`wc -c`、最後の改行を含む）: ja 586、source-ja 709（案 A も同じ）。
 
-本人が並べ方 (b) を選んだときだけ、各ロケールの `whatsnew.txt` の 1 行目をこの字に替える（2 行目から後と訳についての 1 行はそのまま）。訳は D2 の X（2026-11-22、Workflow wf_282a113b-ce4 の直し）、元を見ない逆翻訳と判定は 11 組とも ○（[REVIEW.md](../i18n/REVIEW.md) の 14、`docs/i18n/back/store-1_4_1-b.md` の最後の節）。字数は (b) にしても 4,000 字に入る（同じファイルの表）。
+### 1.4 ほかのロケールの訳（11 組。役 X）
 
-| ロケール | 行 1 (b) |
+- 訳す行は、行 1 案 B と行 2 の 2 つ（11 組 × 2 = 22 行）。元を見ない逆翻訳と判定も 22 行（契約 §16.9）。手引きはリードのスクラッチの `rework/d2-for-X.md`。
+- 案 A の行 1 は、本人が案 A を選んだときだけ訳す（11 行と、その逆翻訳と判定）。
+- 第 2 版の行 1 (b)（「…「‹ 今日 ›」を、左の端の日付のすぐ右に移しました。」）の 11 組の訳と、その逆翻訳（`docs/i18n/back/store-1_4_1-b.md`）は、もう使わない（並べ方 (b) は契約 §16.2 の「使わない物」）。記録として消さずに残す。前の行 1 (a) と前の行 2 の訳（今の 11 のフォルダの字と `docs/i18n/back/store-1_4_1*.md`）も同じ。
+
+## 2. 審査メモ（契約 §8.4・§16.9）
+
+- `review-note.txt` には既定の案 B を入れた: **3,992 バイト**（`wc -c`。最後の改行を除くと 3,991 バイト・3,618 字）。4,000 バイト以下なので、英語の 2 の「The next page of that type opens at the same size.」は残した（契約 §16.9 の決まり: 超えたらこの文を外す）。
+- 替えたのは「What is new in 1.4.1」の 1・2 と、日本語の要約の 1 つ目と 2 つ目の文だけ。3（ツールバーと確かめ方）・4（新しい文と変わらないもの）とほかの段は 1 バイトも替えていない（3,924 バイトのファイルとの diff で確かめた）。
+- 前の字（第 2 版の既定。3,924 バイト）からの差は +68 バイト。
+
+### 2.1 案 B（既定。今のファイル）と案 A
+
+| 所 | 案 B（既定。今のファイル） | 案 A |
+| --- | --- | --- |
+| 1（en） | 1. The date is now at the left end of the header, and ‹ Today › and the 1× button (a magnifying glass with "1") are at the right end (on narrow screens, 1× ends the second row). Settings > Dominant Hand > Left Hand reverses this order. | 1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the right end of the header, with the date just before them (on narrow screens, 1× ends the second row). Settings > Dominant Hand > Left Hand reverses this order. |
+| 2（en。両方の案で同じ） | 2. 1× resets the zoom: on day and week pages, one day or one week fits the screen width exactly; month and year pages go back to the size they open at. The next page of that type opens at the same size. | （同じ） |
+| 日本語の要約の 1 つ目の文 | 左上に日付、右上に「‹ 今日 ›」と等倍のボタン（設定 › 利き手 › 左手 で逆）。 | 右上に「‹ 今日 ›」と等倍のボタン、すぐ左に日付（設定 › 利き手 › 左手 で逆）。 |
+| 日本語の要約の 2 つ目の文（両方の案で同じ） | 等倍は、日と週では 1 日・1 週の幅を画面の幅ちょうどに、月と年では開いたときの大きさにします。 | （同じ） |
+
+### 2.2 バイト数（上限 4,000）
+
+機械で組み立てて数えた（`wc -c` と同じ。2026-11-22）。
+
+| 組み合わせ | バイト（`wc -c`） | 4,000 に入るか |
+| --- | ---: | --- |
+| 案 B・「The next page…」あり（今のファイル） | 3,992 | 入る |
+| 案 A・「The next page…」あり | 3,994 | 入る |
+| 案 B・「The next page…」なし | 3,941 | 入る |
+| 案 A・「The next page…」なし | 3,943 | 入る |
+
+- 日本語の要約には「次に開く…」を足さない（たとえば「次に開く同じ種類のページも同じ大きさです。」を足すと案 B で 4,055 バイトになり、上限を超える。契約 §16.9）。
+
+### 2.3 「等倍」の字のボタン（閉じた。記録だけ）
+
+- 本人が印を採ったので、字のボタンの文は作らない（契約 §16.9・§16.11 の問い 8）。
+- 記録: 字のボタンにしたなら、1・2・4 と日本語の要約の「新しい文」の文を替える（第 2 版の §2.2 の形）。en の字を 〈W〉（3 か所）とすると、「The next page…」なしで案 B は 〈W〉 19 字まで、案 A は 18 字まで。「The next page…」ありでは案 B 2 字・案 A 1 字までで、実際にはその文を外すことになる（〈W〉 を空にして数えた: 案 B 3,943・3,994、案 A 3,945・3,996 ＋ 3 × 〈W〉 の字数）。
+
+### 2.4 書いたこと（役 W、2026-11-22）
+
+- 1 は契約 §16.9 の字そのまま。日付が先で、「‹ 今日 ›」と 1× が「at the right end」。幅の狭い画面では等倍が 2 段目の最後（右の端）にあるので「1× ends the second row」（契約 §16.2 の狭い 2 段目 [切り替え][等倍]）。iPhone Duo の開いた画面は縦でも見出しが 1 段なので、「iPhone の縦」とは書かず「on narrow screens」のまま（第 2 版と同じ考え）。
+- 2 は契約 §16.9 の字そのまま。「fits the screen width exactly」は日と週の働きを言う動詞で、ボタンや等倍の名前ではない。GLOSSARY の「en に Fit を使わない」は名前の決まり（月と年は幅に合わせないため）なので、ぶつからない。ボタンの名前は今までどおり見た目の「the 1× button」。
+- 2 の最後の「The next page of that type opens at the same size.」は、日と週では等倍の状態を覚えること（契約 §16.3.4）、月と年では覚えた倍率を消して開いたときの大きさで開くこと（§16.3.6）の両方に当たる。第 2 版の「clears the zoom remembered for that page type」は、日と週では倍率でなく状態を覚えるので正しくなくなり、外した。
+- 3・4 は替えていない（ツールバーと確かめ方、新しい文は設定と読み上げだけ。等倍は印のボタンのままなので、4 の「New text is only in Settings and VoiceOver labels」も正しい）。
+- 日本語の要約の 1 つ目と 2 つ目の文は、契約 §16.9 の字そのまま。
+- 英語の 1・2 は、元を見ない逆翻訳と判定をやり直す（R・判定の 2 役。[REVIEW.md](../i18n/REVIEW.md) の新しい節 15）。案 A の 1 も一緒に頼む（確認ページで見せるため）。
+
+## 3. SUPPORT の言い方（役 W）
+
+### 3.1 等倍の段落（「拡大・縮小するには？」の 2 段落目。案 A と案 B で同じ）
+
+- 等倍のボタンの場所の言い方は、案 A でも案 B でも同じ。どちらの案でも、右手では等倍は「‹ 今日 ›」のすぐ左（右上）、幅の狭い画面では 2 段目の右の端（› の下）、左手では左上（幅の狭い画面では 2 段目の左）にあるため（契約 §16.2）。だから第 2 版の「4 つの組」は 1 つになった。
+- ファイル（`docs/SUPPORT.md`・`docs/SUPPORT.en.md`）には、この字を入れた。
+
+| 言語 | 段落（今のファイル） |
 | --- | --- |
-| en-US（en-GB・en-AU・en-CA も） | • Moved “‹ Today ›” at the top of the screen so that it is immediately to the right of the date, which is at the left end. |
-| zh-Hans | • 屏幕顶部的“‹ 今天 ›”已移到左端日期的右边，紧挨着日期。 |
-| zh-Hant | • 螢幕頂端的「‹ 今天 ›」已移到左端日期的右邊，緊鄰日期。 |
-| ko | • 화면 위쪽의 ‘‹ 오늘 ›’을 왼쪽 끝에 있는 날짜의 바로 오른쪽으로 옮겼어요. |
-| fr-FR（fr-CA も） | • En haut de l’écran, « ‹ Auj. › » a été déplacé juste à droite de la date, qui se trouve tout à gauche. |
-| de-DE | • „‹ Heute ›“ oben auf dem Bildschirm wurde direkt rechts neben das Datum verschoben, das am linken Rand steht. |
-| it | • In alto sullo schermo, “‹ Oggi ›” è stato spostato subito a destra della data, che si trova all’estremità sinistra. |
-| pt-BR | • No alto da tela, “‹ Hoje ›” foi movido para logo à direita da data, que fica no extremo esquerdo. |
-| pt-PT | • No topo do ecrã, “‹ Hoje ›” foi movido para logo à direita da data, que fica no extremo esquerdo. |
-| es-MX | • En la parte superior de la pantalla, “‹ Hoy ›” se movió justo a la derecha de la fecha, que está en el extremo izquierdo. |
-| es-ES | • En la parte superior de la pantalla, “‹ Hoy ›” se ha movido justo a la derecha de la fecha, que está en el extremo izquierdo. |
+| ja | 右上の「‹ 今日 ›」のとなりにある、虫めがねに「1」の印のボタン（等倍）を押すと、すぐ等倍に戻ります（1.4.1 から）。日と週のページでは 1 日・1 週のページの幅が画面の幅にちょうど合い、月と年のページではそのページを初めて開いたときの大きさになります。幅の狭い画面（iPhone の縦と iPad の細い窓。iPhone Duo の開いた画面は除く）では、このボタンは 2 段目（日・週・月・年の切り替え）の右にあります。設定 › 利き手 で「左手」にしているときは、左上（幅の狭い画面では 2 段目の左）にあります。等倍に戻すと、次に開く同じ種類のページも、アプリを開き直したときも、等倍で開きます。2 本の指で大きさを変えると、次からは等倍ではなく、その大きさで開きます（初めて開いたときより小さくしたときは、初めて開いたときの大きさで開きます）。ほかの種類のページの大きさはそのままです。 |
+| en | Tap the button showing a magnifying glass with “1” (Reset Zoom), next to “‹ Today ›” at the top right, to reset the zoom at once (from version 1.4.1): on day and week pages, one day's or one week's page fits the width of the screen exactly; on month and year pages, the page goes back to the size it had when you first opened it. On a narrow screen (a narrow iPad window, or iPhone in portrait except on the inner screen of iPhone Duo), this button is at the right of the second row (the Day, Week, Month and Year switch). When “Left Hand” is chosen in the App's Settings > Dominant Hand, it is at the top left (on a narrow screen, at the left of the second row). After you reset the zoom, pages of the same type keep opening that way, even after you reopen the App. If you then change the size with two fingers, they open at the new size instead (or, if you made it smaller than the size the page had when you first opened it, at that first size). The sizes of the other page types stay as they are. |
 
-## 2. 審査メモの、選びで替わる文（契約 §8.4）
+- 1 文目と 2 文目（ja）は契約 §16.9 の字そのまま。幅の狭い画面と左手の文は、第 2 版の字の「左」と「右」を入れ替えただけ（except の位置は、REVIEW.md の 14 の × で直した形を保った）。
+- 第 2 版の「等倍に戻すと、そのページの種類で覚えていた拡大も忘れます。」は外した。日と週では倍率でなく等倍の状態を覚えるので、正しくなくなったため（契約 §16.3.4）。
+- **2 本の指の文（契約 §16.9 で W が決める 1 文）は、足した。** 理由:
+  1. 日と週で一度等倍を押すと、その種類はずっと等倍で開き、等倍をもう一度押しても初めて開いたときの大きさには戻らない（契約 §16.3.2・§0.6）。前の大きさに戻す道を書かないと、読み手は戻し方が分からない。本人には契約 §0.6 で同じこと（「2 本指でいちばん小さくしてください」）を伝えている。
+  2. この文が無いと、「等倍で開きます」が、つまんだ後もずっと続くように読める。
+  3. コードの動き（契約 §16.3.4: 本当のつまみの後は比を保存して等倍の鍵を消す。`ZoomPolicy.sanitizedRatio` は 1 より小さい比を 1 にして保存しない）と、同じ節の 1 段落目の「拡大した大きさは…覚えます。縮めた大きさは覚えません。」の両方に合う。
+  - 「縮めたとき」とは書かず「初めて開いたときより小さくしたとき」と書いた。日と週の等倍から少しだけ縮めても、初めて開いたときより大きければ、その大きさを覚えるため（「縮めた」が、等倍より小さいのか、初めて開いたときより小さいのか、2 通りに読めないように）。
+  - 英語の「at that size」を 2 つの文で続けて使うと、指す大きさが違って読めるので、「keep opening that way」と「at the new size」にした。
+- 新しい英文（1〜5 文目）は、元を見ない逆翻訳と判定をやり直す（R・判定の 2 役。REVIEW.md の新しい節 15）。
 
-- `review-note.txt` には既定（並べ方 (a)・虫めがねに「1」の印のボタン）を入れた: **3,924 バイト**（`wc -c`。最後の改行を除くと 3,923 バイト・3,554 字）。1.4 の文（3,964 バイト）の「What is new in 1.4」の段を「What is new in 1.4.1」の 4 つに入れ替え、日本語の要約の 1.4 の分（「Xcode 27.2（iOS 27.2 SDK）で作り、…新しい画面の文は無し。」）を 1.4.1 の分に入れ替えた。ほかの段と、要約の最後の「データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。」は 1 字も変えていない（README の「審査メモ」の「1.4.1 から」）。
-- 2 つの選びは別々に効くので、組み合わせは 4 つ（既定・(b)・「等倍」の字・(b) と「等倍」の字）。替わるのは「What is new in 1.4.1」の 1・2・4 と、日本語の要約の 1 つ目の文と「新しい文」の文だけ。3（ツールバーと確かめ方）とほかの段はどの組み合わせでも同じ。
-- **〈W〉** は「等倍」の字のボタンの en の字（D2 の訳。`header.zoomReset` の en、契約 §8.1）。**まだ決まっていない**ので、ここでは 〈W〉 と書く。**en に「Fit」は使わない**（意味が違う。契約 §8.1）。D2 で決まったら、その字を入れてこの節のバイトを数え直す。
-- 日本語の要約はボタンを「等倍のボタン」と書くので、「等倍」の字のボタンでも 1 つ目の文は同じ。
+### 3.2 「左手で使うには？」の 2 文目（案で替わる）
 
-### 2.1 並べ方 (b)（虫めがねの印のまま）
-
-| 所 | 既定（今のファイル） | 並べ方 (b) |
+| 案 | ja | en |
 | --- | --- | --- |
-| 1（en） | 1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the left end of the header, with the date right after them (on narrow screens, 1× starts the second row). Settings > Dominant Hand > Left Hand reverses this order. | 1. The date is now at the left end of the header, with ‹ Today › and the 1× button (a magnifying glass with "1") right after it (on narrow screens, 1× starts the second row). Settings > Dominant Hand > Left Hand reverses this order. |
-| 日本語の要約の 1 つ目の文 | 左上に「‹ 今日 ›」と等倍のボタン、すぐ右に日付（設定 › 利き手 › 左手 で逆）。 | 左上に日付、すぐ右に「‹ 今日 ›」と等倍のボタン（設定 › 利き手 › 左手 で逆）。 |
+| 案 B（既定。今のファイル） | 画面の上のボタンの並びが左右逆になり、「‹ 今日 ›」と等倍のボタンが左の端に、日付が右の端に移ります。 | The order of the buttons at the top of the screen is reversed from left to right: “‹ Today ›” and the Reset Zoom button move to the left end, and the date to the right end. |
+| 案 A | 画面の上のボタンの並びが左右逆になり、「‹ 今日 ›」と等倍のボタンが左の端に、⚙（設定）が右の端に移ります。 | The order of the buttons at the top of the screen is reversed from left to right: “‹ Today ›” and the Reset Zoom button move to the left end, and ⚙ (Settings) to the right end. |
 
-- 2・3・4 と要約のほかの文は既定と同じ。幅の狭い画面の等倍は (b) でも 2 段目の左（契約 §3.2 の (b) の表）なので、1 の括弧は同じ。
-- 並べ方 (b) の審査メモは **3,921 バイト**（`wc -c`。最後の改行を除くと 3,920 バイト・3,551 字）。
+- 案 B の ja は契約 §16.9 の字そのまま。en は文の地図（リードのスクラッチの `rework/texts.md` §4）の案の字。
+- 丸ボタンの文（「しまったツールバーの丸ボタンも右下へ移ります…」）は替えない。丸ボタンの角は変えないため（契約 §16.11 の問い 5）。
+- 両方の案の英文を、元を見ない逆翻訳と判定にかける（確認ページで見せるため）。
 
-### 2.2 「等倍」の字のボタン（並べ方 (a)）
+### 3.3 替えなかった所
 
-| 所 | 既定（今のファイル） | 「等倍」の字のボタン |
-| --- | --- | --- |
-| 1（en） | 1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the left end of the header, with the date right after them (on narrow screens, 1× starts the second row). Settings > Dominant Hand > Left Hand reverses this order. | 1. ‹ Today › and the "〈W〉" button are now at the left end of the header, with the date right after them (on narrow screens, that button starts the second row). Settings > Dominant Hand > Left Hand reverses this order. |
-| 2（en） | 2. 1× returns the page to its original size, neither zoomed in nor out (as when first opened), and clears the zoom remembered for that page type. | 2. "〈W〉" returns the page to its original size, neither zoomed in nor out (as when first opened), and clears the zoom remembered for that page type. |
-| 4（en） | 4. New text is only in Settings and VoiceOver labels. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating. | 4. New text: the "〈W〉" button, Settings and VoiceOver labels. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating. |
-| 日本語の要約の「新しい文」の文 | 新しい文は設定と読み上げだけ。 | 新しい文は等倍のボタンと設定と読み上げだけ。 |
-
-- 4 と要約の文を替えるのは、字のボタンでは見出しに新しい字（`header.zoomReset`）が出るため（契約 §8.1。既定では、新しい文は設定と読み上げだけ）。
-- 字のボタンのとき、1 の幅の狭い画面の括弧は 〈W〉 でなく「that button」にした（〈W〉 を 3 か所にして、バイトを抑えるため）。
-- バイトは **3,926 ＋ 3 × 〈W〉 の字数**（`wc -c`。〈W〉 の所を空にした数。〈W〉 は 3 か所で、英字は 1 字 1 バイト）。〈W〉 が 24 字までなら 4,000 バイトに入る。
-
-### 2.3 並べ方 (b) と「等倍」の字のボタン
-
-| 所 | 既定（今のファイル） | 並べ方 (b) と「等倍」の字のボタン |
-| --- | --- | --- |
-| 1（en） | 1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the left end of the header, with the date right after them (on narrow screens, 1× starts the second row). Settings > Dominant Hand > Left Hand reverses this order. | 1. The date is now at the left end of the header, with ‹ Today › and the "〈W〉" button right after it (on narrow screens, that button starts the second row). Settings > Dominant Hand > Left Hand reverses this order. |
-
-- 2・4 と要約の「新しい文」の文は §2.2 の字、要約の 1 つ目の文は §2.1 の (b) の字。3 とほかの段は既定と同じ。
-- バイトは **3,923 ＋ 3 × 〈W〉 の字数**（数え方は §2.2 と同じ）。〈W〉 が 25 字までなら 4,000 バイトに入る。
-
-### 2.4 書いたこと（役 A、2026-11-22）
-
-- 1〜4 は契約 §8.4 の (1)〜(4) の順。確かめ方は、1.4 の 2 と同じく、その点（3）の終わりに「To check:」で書いた（契約 §8.4 の「iPad で週のページを開き、つまみを右の端へ引く」）。
-- 1 の「1× button (a magnifying glass with "1")」は、ボタンの印（SF Symbols の `1.magnifyingglass`、契約 §3.1）を審査の人が見つけられるように添えた。幅の狭い画面（列の幅が 600 pt 未満。iPhone の縦と iPad の細い窓）では等倍が 2 段目の左にある（契約 §3.2）ので、括弧で書いた。契約 §0.1・§8.5 の言い方の「iPhone の縦」にしなかったのは、iPhone Duo の開いた画面は縦でも幅が 600 pt 以上で見出しが 1 段になり、等倍は「‹ 今日 ›」のとなりにあるため（契約 §3.5・§4.3。3 で審査の人を Duo の開いた画面へ向けるので、そこで食い違わないようにした。2026-11-22 の見直しの指摘）。
-- 2 の「original size, neither zoomed in nor out (as when first opened)」は、契約 §8.4 の (2) の「拡大も縮小もしていないもとの大きさ（初めて開いたときの大きさ）」、「clears the zoom remembered for that page type」は「その種類の覚えた拡大も忘れる」（契約 §3.9）。
-- 3 の「Apple Pencil cannot」は Pencil では動かないこと（契約 §4.6）、「On iPhone, even on iPhone Duo's inner screen, it stays at the bottom」は iPhone は Duo の開いた画面も下のまま（契約 §4.3。1.4 の 2 の「inner or outer」と同じ語）。狭い窓で下に戻ること（契約 §4.3）は、契約 §8.4 の (3) に無いので書いていない。
-- 4 の「New text is only in Settings and VoiceOver labels」は、契約 §8.4 の (4) の「新しい画面の文は設定と読み上げだけ」。読み上げの名前は画面に出る字ではないので、英語では「on-screen」を付けなかった（2026-11-22 の見直しの指摘。日本語の要約は契約の字のまま）。
-- 4 の年齢区分は「the age rating」だけにした（1.4 の 4 にあった新しい 2 問の括弧は 1.4 で答えた物で、契約 §8.4 の (4) は「年齢区分は変わらない」だけ）。
-- 設定の英語の名前（Dominant Hand・Left Hand）は、今のアプリの en の訳（`tools/l10n/translations/en.json`、r141-quick の 277cef4）の字。D2 の訳で替わったら、審査メモとこの節を一緒に直す。
-- バイトは、1.4 の文のほかの段を 1 字も変えずに、4 つの組み合わせを機械で組み立てて数えた。K-8 の句は、どの組み合わせにも無い。
-- 元を見ない逆翻訳と判定は D2（まだ。R に、今のファイルの「What is new in 1.4.1」の段と §2.1〜§2.3 の英語の文を、日本語の要約と元を見せずに渡す）。
-
-## 3. SUPPORT の言い方（4 つの組）
-
-### 3.1 SUPPORT の等倍のボタンの言い方（4 つの組。役 W）
-
-- 元: 契約 §8.5 の「等倍のボタンの言い方」と、本人が写真で選ぶ 2 つ（契約 §0.4 の 1・2）。
-- ファイル（`docs/SUPPORT.md`・`docs/SUPPORT.en.md`）には**既定の組（並べ方 (a)・虫めがねの印）**を入れた。ほかの 3 つの組はファイルに入れずにここに置く。確認ページでは選ばれた組を見せる。選ばれたら、下の表の字で入れ替える。
-- 替わるのは、「拡大・縮小するには？」（英語は “How do I zoom in and out?”）の 2 つ目の段落の**最初の 1 文だけ**。続く 2 文（幅の狭い画面と左手）は 4 つの組とも同じ（3.1.2）。幅の狭い画面では、どの組も「2 段目の左」。
-- ほかの文は、どの組でも本当になるように書いたので、組で替えない:
-  - 「予定が出ない」の 4（`SUPPORT.md:64`、英語は :69）は字を変えない（3.2）。
-  - 「左手で使うには？」は「「‹ 今日 ›」と等倍のボタンが右側に移ります」と書いた。(a) では右の端、(b) では右の端の日付のすぐ左で、どちらも右側。「等倍のボタン」は、印でも字でも同じ言い方。英語は “the Reset Zoom button”（読み上げの名前）。
-  - 左手のときの場所「右上（幅の狭い画面では 2 段目の右）」も、4 つの組で同じ。
-- 字の組の英語の 〈W〉 は、§2 の 〈W〉 と同じ（「等倍」の字のボタンの en の字。まだ決まっていないこと・「Fit」は使わないことは §2 の頭の箇条）。読み上げの名前 “Reset Zoom”（`header.zoomReset.spoken`）は字の組でも残るので、括弧で添える。
-- 「幅の狭い画面（iPhone の縦と iPad の細い窓。iPhone Duo の開いた画面は除く）」: 契約 §0.1・§8.5 は「iPhone の縦」と言うが、iPhone Duo の開いた画面は縦でも幅が 600 pt 以上で見出しが 1 段になり、等倍は「‹ 今日 ›」のとなりにある（審査メモの 1 の「on narrow screens」と同じ考え。§2.4。2026-11-22 の見直しの指摘）。
-- K-8 の句は入れない（契約 §5.2）。1.4.1 に無い改善は書かない。
-- 元を見ない逆翻訳と判定（R・J）はまだ。英語の 4 文と、3.1.2 の文、ほかの新しい文（「左手で使うには？」「ツールバーを動かすには？」、しまう・拡大の段落に足した文）を、まとめて頼む。
-
-#### 3.1.1 4 つの組（替わる 1 文）
-
-| 組 | ja | en |
-| --- | --- | --- |
-| (a)・印（既定。今のファイル） | 左上の「‹ 今日 ›」のとなりにある、虫めがねに「1」の印のボタン（等倍）を押すと、拡大も縮小もしていないもとの大きさ（そのページを初めて開いたときの大きさ）にすぐ戻ります（1.4.1 から）。 | Tap the button showing a magnifying glass with “1” (Reset Zoom), next to “‹ Today ›” at the top left, to go straight back to the original size, neither zoomed in nor out: the size the page had when you first opened it (from version 1.4.1). |
-| (a)・字 | 左上の「‹ 今日 ›」のとなりにある「等倍」のボタンを押すと、拡大も縮小もしていないもとの大きさ（そのページを初めて開いたときの大きさ）にすぐ戻ります（1.4.1 から）。 | Tap the “〈W〉” button (Reset Zoom), next to “‹ Today ›” at the top left, to go straight back to the original size, neither zoomed in nor out: the size the page had when you first opened it (from version 1.4.1). |
-| (b)・印 | 左上の日付の右、「‹ 今日 ›」のとなりにある、虫めがねに「1」の印のボタン（等倍）を押すと、拡大も縮小もしていないもとの大きさ（そのページを初めて開いたときの大きさ）にすぐ戻ります（1.4.1 から）。 | Tap the button showing a magnifying glass with “1” (Reset Zoom), next to “‹ Today ›” to the right of the date at the top left, to go straight back to the original size, neither zoomed in nor out: the size the page had when you first opened it (from version 1.4.1). |
-| (b)・字 | 左上の日付の右、「‹ 今日 ›」のとなりにある「等倍」のボタンを押すと、拡大も縮小もしていないもとの大きさ（そのページを初めて開いたときの大きさ）にすぐ戻ります（1.4.1 から）。 | Tap the “〈W〉” button (Reset Zoom), next to “‹ Today ›” to the right of the date at the top left, to go straight back to the original size, neither zoomed in nor out: the size the page had when you first opened it (from version 1.4.1). |
-
-#### 3.1.2 どの組でも同じ文（替わる 1 文のすぐ後）
-
-| 言語 | 文 |
-| --- | --- |
-| ja | 幅の狭い画面（iPhone の縦と iPad の細い窓。iPhone Duo の開いた画面は除く）では、このボタンは 2 段目（日・週・月・年の切り替え）の左にあります。設定 › 利き手 で「左手」にしているときは、右上（幅の狭い画面では 2 段目の右）にあります。 |
-| en | On a narrow screen (a narrow iPad window, or iPhone in portrait except on the inner screen of iPhone Duo), this button is at the left of the second row (the Day, Week, Month and Year switch). When “Left Hand” is chosen in the App's Settings > Dominant Hand, it is at the top right (on a narrow screen, at the right of the second row). |
-
-- 段落の残り（「等倍に戻すと、そのページの種類で覚えていた拡大も忘れます。…」）は、4 つの組とも今のファイルのまま。
-
-### 3.2 SUPPORT の今のファイルに入れたもの（既定の組）の覚え
-
-- 「予定が出ない」の 4（`:64`、英語 :69）は字を変えていない。「画面の上の「今日」」には位置の語が無いので、どの場合でも正しい。右手と左手、並べ方 (a) と (b)、公開の日にまだ 1.4 以前を使っている人の、どれでも正しい。「左の端の「‹ 今日 ›」」と書くと、左手（右側にある）・(b)（左の端は日付）・1.4 以前（右側にある）の 3 つで正しくなくなる。押すのは「今日」のボタンそのもの（‹ と › は 1 ページずつ動く別のボタン）。
-- Apple Pencil の切り替えの節（`:119`）: 「画面下の」を取って「ツールバーで切り替えてください」にした。上・左・右に置いた iPad では、ツールバーは画面の下に無いため。
-- 「ツールバーをしまうには？」:
-  - 「右端」の後に「（左右の端に置いたときは下の端）」を足した。
-  - 丸ボタンの角を書いた。設定 › 利き手 で「左手」を選ぶと右下、iPad で左の端に置いてから「しまう」を押すと左下、右の端なら右下。丸ボタンはツールバーを開いている間は画面に無いので、「置くと移ります」でなく「しまうと出ます」の形にした（契約 §4.9。英語は “if you move the toolbar to the left edge and then hide it, the round button appears at the bottom left”。2026-11-22 の見直しの指摘）。
-  - 長押しの「右下へ移したり」は、「もう一方の下の角へ移したり」に直した（左手のときは、丸ボタンがもう右下にあるため）。
-  - 角の決まりは、契約 §4.1・§4.9 と r141-q の `Hand.dockEdge` に合わせた。最後にしたことが勝つ。丸ボタンは、いつも下の角に出る。
-- 「拡大・縮小するには？」:
-  - 月と年の文に「（iPad でツールバーを左右の端に置いたときは、紙の幅が狭くなる分だけ小さく開くことがあります）」を足した。横の画面では紙の高さで大きさが決まるページもあるので、「ことがあります」にした。英語の「by that much」は指す物が無いので「by the width of the toolbar」にした（2026-11-22 の見直しの指摘）。
-  - 等倍の段落を足した: 場所、幅の狭い画面、左手のときの場所、覚えた拡大を忘れること、次に開くページと開き直したときも等倍、ほかの種類はそのまま。
-- 新しい FAQ 2 つ（「左手で使うには？」「ツールバーを動かすには？」）は、「拡大・縮小するには？」のすぐ後に、契約 §0.1 の順で置いた。英語は “How do I use it with my left hand?” と “How do I move the toolbar?”。
-  - 「ツールバーを動かすには？」の細い窓の箇条は、契約 §4.3 の 2 通りを書いた: 短い辺が 600 pt 以上で列が 700 pt 未満の窓（13 インチの横の ⅔ の Split View など）では、左右の端に置いたツールバーは下に出て、上に置いたものは上のまま。短い辺が 600 pt 未満の窓（Slide Over など）では、上に置いたものも下に出る。前の字（「下に戻ります（窓の広さによっては、上と下にだけ置けます）」）は、言い切りと括弧が食い違って読めたので直した（2026-11-22 の見直しの指摘）。
-  - 英語の「the paper becomes smaller by that much instead」は指す物が無いので、「instead, the paper becomes smaller to make room for it」にした（上の端ではツールバーの高さ、左右の端では幅の分なので、「width」とは書かなかった。2026-11-22 の見直しの指摘）。
-- 新しい機能の所には「（1.4.1 から）」を付けた（1.4 の「（1.4 から）」と同じ書き方）。英語は “(from version 1.4.1)”。
-- 書かなかったこと:
-  - 本人の言葉で替わりうる細かい所（契約 §0.4）: 動かしている間の見た目、左右のツールバーの幅と cm の数、3 つを離した形。
-  - 契約 §8.5 に無い事: Pencil で書いている最中に等倍を押しても何も起きないこと、VoiceOver の「上へ移す」などの操作、K-8 の句。
+- 「予定が出ない」の 4（`SUPPORT.md:64`、英語 :69）の「画面の上の「今日」を押すと…」は替えない。位置の語が無いので、右手と左手、案 A と案 B、公開の日にまだ 1.4 以前を使っている人の、どれでも正しい。
+- 「ツールバーをしまうには？」（`:147`）は替えない（丸ボタンの角を動かさない。契約 §16.9）。
+- 「拡大・縮小するには？」の 1 段落目（月と年は同じ大きさで開く、拡大した大きさを覚える、縮めた大きさは覚えない）は替えない。等倍の段落の新しい文と食い違わない（上の 3.1 の 3）。
+- 「ツールバーを動かすには？」と Apple Pencil の切り替えの節は、第 2 版の字のまま（今回の直しに入っていない）。
 - 最終更新の日付と「お知らせ」は変えていない（公開の日にリードが決める。1.4 と同じ）。
+- K-8 の句、Pencil で書いている最中に等倍を押しても何も起きないこと、VoiceOver の操作は、第 2 版と同じく書かない（契約 §8.5 に無い）。
 
-## リードの直し（2026-11-22 00:3x）
+## 第 2 版の記録（2026-11-22 00:3x のリードの直し。今は使わない字）
 
 - 行 1 (a) の「日付を**そのすぐ右に**並べました」を「日付を**その右に**並べました」にした（ja・source-ja・この文書）。広い行では「‹ 今日 ›」と日付の間に等倍のボタンが入るので、「すぐ」は正しくない。契約 §8.3 の案の字から替えた所として docs/R1_4_1.md に書く。
-- 審査メモの日本語の要約の「新しい画面の文は…」を「新しい文は…」にした（英語の段の「New text is only in…」に合わせた。読み上げの名前は画面に出ないため）。バイトは数え直した（既定 3,924・(b) 3,921・字 3,926 ＋ 3 × 〈W〉・(b) と字 3,923 ＋ 3 × 〈W〉。〈W〉 は 24 字まで、(b) と一緒なら 25 字まで）。
+- 審査メモの日本語の要約の「新しい画面の文は…」を「新しい文は…」にした（英語の段の「New text is only in…」に合わせた。読み上げの名前は画面に出ないため）。この字は第 3 版でもそのまま。
+- 第 2 版の並べ方 (a)・(b) と「等倍」の字のボタンの組（4 つの組の審査メモと SUPPORT の文、行 1 (b) の 11 組の訳）は、この文書の第 2 版（git の 3c82210 の版）に残っている。
