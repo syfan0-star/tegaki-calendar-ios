@@ -1,5 +1,5 @@
-• „‹ Heute ›“ oben auf dem Bildschirm wurde an den linken Rand verschoben, und das Datum steht jetzt rechts davon.
-• Nach dem Vergrößern oder Verkleinern können Sie jetzt mit einer einzigen Schaltfläche zur Originalgröße zurückkehren (weder vergrößert noch verkleinert).
+• „‹ Heute ›“ oben auf dem Bildschirm wurde an den rechten Rand verschoben, und das Datum steht jetzt am linken Rand.
+• Nach dem Vergrößern oder Verkleinern können Sie den Zoom jetzt mit einer einzigen Schaltfläche zurücksetzen. Auf Tages- und Wochenseiten ist die Seite eines Tages bzw. einer Woche dann genauso breit wie der Bildschirm; Monats- und Jahresseiten kehren zu der Größe zurück, die sie beim Öffnen hatten.
 • In den Einstellungen gibt es jetzt den Bereich „Dominante Hand“. Wenn Sie „Linke Hand“ wählen, werden die Schaltflächen oben auf dem Bildschirm seitenverkehrt angeordnet.
 • Auf dem iPad können Sie die Werkzeugleiste jetzt mit dem Finger an den oberen, unteren, linken oder rechten Rand verschieben.
 

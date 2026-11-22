@@ -1,8 +1,8 @@
 No sign-in, no account creation and no demo account are needed.
 
 What is new in 1.4.1
-1. ‹ Today › and the 1× button (a magnifying glass with "1") are now at the left end of the header, with the date right after them (on narrow screens, 1× starts the second row). Settings > Dominant Hand > Left Hand reverses this order.
-2. 1× returns the page to its original size, neither zoomed in nor out (as when first opened), and clears the zoom remembered for that page type.
+1. The date is now at the left end of the header, and ‹ Today › and the 1× button (a magnifying glass with "1") are at the right end (on narrow screens, 1× ends the second row). Settings > Dominant Hand > Left Hand reverses this order.
+2. 1× resets the zoom: on day and week pages, one day or one week fits the screen width exactly; month and year pages go back to the size they open at. The next page of that type opens at the same size.
 3. On iPad, a finger can drag the open toolbar by its small handle to any of the four edges; Apple Pencil cannot. On iPhone, even on iPhone Duo's inner screen, it stays at the bottom. To check: on iPad, open a week page and drag the toolbar's handle to the right edge.
 4. New text is only in Settings and VoiceOver labels. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating.
 
@@ -26,4 +26,4 @@ https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 https://syfan0-star.github.io/tegaki-calendar/app/support.html
 
 --- 日本語の要約 ---
-左上に「‹ 今日 ›」と等倍のボタン、すぐ右に日付（設定 › 利き手 › 左手 で逆）。等倍は拡大も縮小もしていない大きさに戻し、その種類のページで覚えた拡大も忘れます。iPad ではツールバーを指で上下左右の端へ動かせます（Apple Pencil では動かず、iPhone は下のまま）。新しい文は設定と読み上げだけ。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
+左上に日付、右上に「‹ 今日 ›」と等倍のボタン（設定 › 利き手 › 左手 で逆）。等倍は、日と週では 1 日・1 週の幅を画面の幅ちょうどに、月と年では開いたときの大きさにします。iPad ではツールバーを指で上下左右の端へ動かせます（Apple Pencil では動かず、iPhone は下のまま）。新しい文は設定と読み上げだけ。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
