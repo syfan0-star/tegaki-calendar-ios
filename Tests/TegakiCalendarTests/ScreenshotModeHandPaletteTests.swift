@@ -136,7 +136,8 @@ final class ScreenshotModeHandPaletteTests: XCTestCase {
     /// screen keeps in its `@State`, with a side's corner for the round button — and writes neither `toolbar.paletteEdge` nor
     /// `toolbar.collapsedEdge`. In normal use the same drop writes the edge (only when it is not the stored one) and, on a side,
     /// the corner; the top and the bottom leave the corner, and so does a drop on the stored edge. Only the open bar keeps a
-    /// place (`storesPlacement`).
+    /// place (`storesPlacement`) — and since the third rework (§18.2) a peek, whose 「動かす」 choice PaletteMoveButtonTests
+    /// checks (`testAChoiceOnThePeekKeepsTheEdge`); the dock never.
     func testADropInScreenshotModeMovesTheBarAndWritesNothing() throws {
         let suite = "test-palette-shot-\(UUID())"
         let scratch = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -153,7 +154,7 @@ final class ScreenshotModeHandPaletteTests: XCTestCase {
             XCTAssertNil(scratch.object(forKey: AppSettings.paletteEdgeKey), "\(edge): no toolbar.paletteEdge in screenshot mode")
             XCTAssertNil(scratch.object(forKey: AppSettings.toolbarEdgeKey), "\(edge): no toolbar.collapsedEdge in screenshot mode")
         }
-        for mode in [ToolbarMode.collapsed, .peek] {
+        for mode in [ToolbarMode.collapsed] {
             for screenshot in [true, false] {
                 XCTAssertEqual(CalendarRootScreen.paletteDropped(on: .left, mode: mode, stored: .bottom, screenshot: screenshot),
                                CalendarRootScreen.PaletteDrop(edge: nil, dock: nil), "\(mode): nothing is kept")

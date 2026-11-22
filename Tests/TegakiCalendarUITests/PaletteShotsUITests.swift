@@ -25,6 +25,11 @@ import XCTest
 ///   open (`ipad13-portrait-week-move-menu`, `--screenshot-palette-menu`), and the mini's week in portrait with the upright bar
 ///   on the left (`ipadmini-portrait-week-left-move`). Their lines also need the button (`move=` its frame; `ok=no` without
 ///   it) and, for the menu, its 「右へ移す」 (`menu=yes`).
+/// - The third rework (docs/R1_4_1_CONTRACT.md §18.3): ipad13's week in portrait with the toolbar folded
+///   (`--screenshot-toolbar collapsed`) and peeked by a tap on the round button's tool mark (`ipad13-portrait-week-peek-move`:
+///   the peeked bar at the bottom with 「動かす」 left of 「しまう」). Screenshot mode has no peek of its own (the
+///   `--screenshot-toolbar` values are 1.1's), so the test taps. Its line also needs the tap (`peek=yes`), the button
+///   (`move=`) and no grip (`grip=no`, a peek's).
 /// The iPhone 18 Pro Max's portrait month (等倍 on the second row) and the iPhone 17's `iphone-portrait-week-zoom3` are J-4's
 /// photos already (the first job), so they are not taken again here.
 ///
@@ -72,6 +77,10 @@ final class PaletteShotsUITests: XCTestCase {
                   edge: "bottom", move: .button)
             shoot(setup, "ipad13-portrait-week-move-menu", .portrait,
                   ["--screenshot-page", "week", "--screenshot-palette", "bottom", "--screenshot-palette-menu"], edge: "bottom", move: .menu)
+            // The third rework (§18.3): the folded bar peeked from the round button, with 「動かす」 left of 「しまう」.
+            shoot(setup, "ipad13-portrait-week-peek-move", .portrait,
+                  ["--screenshot-page", "week", "--screenshot-palette", "bottom", "--screenshot-toolbar", "collapsed"], edge: "bottom",
+                  move: .peek)
         case "ipadmini":
             shoot(setup, "ipadmini-portrait-month-left", .portrait, ["--screenshot-page", "month", "--screenshot-palette", "left"], edge: "left")
             shoot(setup, "ipadmini-landscape-week-right", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-palette", "right"],
@@ -94,15 +103,17 @@ final class PaletteShotsUITests: XCTestCase {
 
     // MARK: One photo
 
-    /// What a photo of the 「動かす」 button waits for (§17.4): the button, or the button and its choice of edges open.
+    /// What a photo of the 「動かす」 button waits for (§17.4): the button, or the button and its choice of edges open; and
+    /// (§18.3) the folded bar peeked by a tap on the round button's tool mark, the button on the peek and no grip.
     private enum MoveShot {
-        case button, menu
+        case button, menu, peek
     }
 
     /// One launch, one photo (two with `scrolledToo`: the upright column scrolled to its end). `edge` is the edge
     /// `palette.state` must read (waited for); nil: no `--screenshot-palette` (no state element). `pageWidth` (lu, the 等倍
     /// photos): the line also carries the canvas's zoom and x and that width at the zoom (`across=`, pt). `move` (the second
-    /// rework's photos): the line also needs the 「動かす」 button (and with `.menu` its choice 「右へ移す」), waited for.
+    /// rework's photos): the line also needs the 「動かす」 button (and with `.menu` its choice 「右へ移す」), waited for; with
+    /// `.peek` (the third rework's) the round button's tool mark is tapped first and the line needs the tap and no grip.
     private func shoot(_ setup: Setup, _ name: String, _ orientation: UIDeviceOrientation, _ arguments: [String], edge: String?,
                        scrolledToo: Bool = false, pageWidth: CGFloat? = nil, move: MoveShot? = nil) {
         XCUIDevice.shared.orientation = orientation
@@ -125,15 +136,28 @@ final class PaletteShotsUITests: XCTestCase {
         }
         settle(canvas)
         var moveFields = ""
+        if move == .peek {
+            // §18.3: the round button's tool mark peeks the folded bar (the peek's 0.2 s; the waits below cover it).
+            let dock = app.buttons["ツールバーを出す"]
+            let tapped = dock.waitForExistence(timeout: 15)
+            if tapped { dock.tap() }
+            moveFields += " peek=\(tapped ? "yes" : "no")"
+            ok = ok && tapped
+        }
         if let move {
             let button = element(app, "toolbar.move")
             let shown = button.waitForExistence(timeout: 15)
-            moveFields = " move=\(shown ? Self.text(button.frame) : "-")"
+            moveFields += " move=\(shown ? Self.text(button.frame) : "-")"
             ok = ok && shown
             if move == .menu {
                 let open = app.buttons["右へ移す"].waitForExistence(timeout: 15)
                 moveFields += " menu=\(open ? "yes" : "no")"
                 ok = ok && open
+            }
+            if move == .peek {
+                let grip = element(app, "toolbar.grip").exists
+                moveFields += " grip=\(grip ? "yes" : "no")"
+                ok = ok && !grip
             }
         }
         Thread.sleep(forTimeInterval: photoWait)

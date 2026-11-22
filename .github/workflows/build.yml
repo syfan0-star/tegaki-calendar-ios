@@ -3285,6 +3285,9 @@ jobs:
       # 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.4, §17.5): the same class also has testTheMoveButtonMovesTheBar (the
       # 「動かす」 button before 「しまう」: three taps with a choice of edges and one drag, about 1.5 min more, inside the 20), and
       # the step passes only when both tests passed on the iPad.
+      # 1.4.1's third rework (docs/R1_4_1_CONTRACT.md §18.3, §18.5): and testThePeekedBarHasTheMoveButton (the folded bar peeked
+      # from the round button has 「動かす」 and no grip; 「右へ移す」 opens it on the right to stay; 「しまう」 folds it to the
+      # bottom right corner: one launch, about 1 min more, inside the 20); the step passes only when all three passed.
       - name: Palette UI tests on the 13-inch iPad (1.4.1)
         if: ${{ !cancelled() }}
         timeout-minutes: 20
@@ -3318,7 +3321,7 @@ jobs:
           xcrun xcresulttool export attachments --path build/palette-ui.xcresult --output-path "$OUT/attachments" > /dev/null 2>&1 \
             || echo "::warning::xcresulttool could not export the palette UI tests' screenshots"
           xcrun simctl shutdown "$UDID" || true
-          for TEST in testTheGripMovesTheBarToEveryEdge testTheMoveButtonMovesTheBar; do
+          for TEST in testTheGripMovesTheBarToEveryEdge testTheMoveButtonMovesTheBar testThePeekedBarHasTheMoveButton; do
             if ! grep -qE "PaletteMoveUITests[ .]$TEST.*passed" "$OUT/palette-ui-log.txt"; then
               echo "::error::PaletteMoveUITests.$TEST did not pass on the 13-inch iPad (status $STATUS; shots/palette-ui/palette-ui-log.txt in the artifact palette-ui)."
               exit 1
@@ -4218,7 +4221,7 @@ jobs:
             BANDS=$(( $(count "$OUT" '*-boundary.png') + $(count "$OUT" '*-overview.png') + $(count "$OUT" '*-sunday.png') ))
             echo "Photos: bands $BANDS (21 expected), pairs $(count "$OUT" '*-shift-*.png') (8), margins $(count "$OUT" '*-margin-*.png') (30), week memo $(count "$OUT" '*-portrait-week-memo-*.png') (4), the neighbour ink's PDF $(count "$OUT" 'span-pdf-neighbor-ink.png') (1)."
             echo ""
-            echo "1.4.1's palette photos (artifact palette-shots): $(count "$OUT/palette" '*.png') (21 expected: the 13-inch iPad 13, the iPad mini 4, the iPhone 17 4); \`ok=no\` lines: $({ cat "$OUT"/palette/lines-*.txt 2>/dev/null || true; } | grep -c ' ok=no' || true)."
+            echo "1.4.1's palette photos (artifact palette-shots): $(count "$OUT/palette" '*.png') (22 expected: the 13-inch iPad 14, the iPad mini 4, the iPhone 17 4); \`ok=no\` lines: $({ cat "$OUT"/palette/lines-*.txt 2>/dev/null || true; } | grep -c ' ok=no' || true)."
             echo ""
             echo "#### The old versions' margins (pixels beside the page that are not the desk; the control must be 0,0)"
             echo ""

@@ -110,7 +110,7 @@ enum ToolbarEvent: Equatable, Sendable {
     /// The dock's long-press menu 「右下へ移す」 / 「左下へ移す」.
     case moveEdgeChosen
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.7, §4.11, 0e-18, 0e-22): the grip was let go, or a VoiceOver action moved the
-    /// bar to another edge.
+    /// bar to another edge. Also the 「動かす」 button's choice (§17.2), on the open bar and on a peek (§18.2).
     case placementChosen
     /// Read only, rotation, a width change, another page: nothing changes.
     case other
@@ -289,6 +289,10 @@ enum ToolbarLogic {
         case (.expanded, .placementChosen):
             // 1.4.1 (§4.7): only the open bar has a grip; it stays open on its new edge.
             return ToolbarStep(mode: .expanded, storesPlacement: true)
+        case (.peek, .placementChosen):
+            // 1.4.1's third rework (docs/R1_4_1_CONTRACT.md §18.2, 0e-26): the peeking bar's 「動かす」 (its choice of edges or
+            // VoiceOver's 「…へ移す」) keeps the edge chosen and opens the bar there, to stay (`toolbar.collapsed` false).
+            return ToolbarStep(mode: .expanded, storeCollapsed: false, storesPlacement: true)
         default:
             return ToolbarStep(mode: mode)
         }
@@ -523,10 +527,17 @@ extension ToolbarLogic {
         mode == .expanded && allowed.count >= 2
     }
 
-    /// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): the 「動かす」 button before 「しまう」 shows where the grip does
-    /// (`showsGrip`): the open bar of an iPad window that allows two edges or more. Never on an iPhone, a window with the
-    /// bottom alone, the dock or a peek, so their bar is 1.4's.
+    /// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): the 「動かす」 button before 「しまう」, on an iPad window that allows
+    /// two edges or more. The third rework (§18.2): on the open bar and on the peeking bar too (a bar folded at the 確かめ表's
+    /// row 12 and peeked from the round button had no way to move), never on the dock. Never on an iPhone or a window with
+    /// the bottom alone, so their bar is 1.4's. The grip stays the open bar's (`showsGrip`).
     static func showsMoveButton(_ mode: ToolbarMode, allowed: [PaletteEdge]) -> Bool {
+        (mode == .expanded || mode == .peek) && allowed.count >= 2
+    }
+
+    /// §18.2: whether the 「動かす」 button's drag may begin: only on the open bar, where the grip is (the drag, its 40 % bar,
+    /// puck and outlines are the open bar's). On a peek the button is a tap only: its choice of edges.
+    static func moveButtonDrags(_ mode: ToolbarMode, allowed: [PaletteEdge]) -> Bool {
         showsGrip(mode, allowed: allowed)
     }
 

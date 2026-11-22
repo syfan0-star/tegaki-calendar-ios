@@ -2,9 +2,10 @@ import SwiftUI
 import UIKit
 
 /// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): the touch side of the open toolbar's 「動かす」 button, on an iPad's
-/// window that allows two edges or more (where the grip shows, `ToolbarLogic.showsMoveButton`). `ToolbarView` draws the
-/// button's face (the face of 「しまう」, `arrow.up.and.down.and.arrow.left.and.right` over 「動かす」) just before 「しまう」 and
-/// lays this view over it; the screen hands it in (`ToolbarView`'s `move:`, nil on every iPhone and every window with one edge).
+/// window that allows two edges or more (where the grip shows, and since §18.2 on a peek too: `ToolbarLogic.showsMoveButton`).
+/// `ToolbarView` draws the button's face (the face of 「しまう」, `arrow.up.and.down.and.arrow.left.and.right` over 「動かす」)
+/// just before 「しまう」 and lays this view over it; the screen hands it in (`ToolbarView`'s `move:`, nil on every iPhone and
+/// every window with one edge).
 ///
 /// - A tap — a touch that lifts before it moved `PaletteGripView.startDistance` (10 pt), with a finger, a trackpad, a mouse
 ///   or the Apple Pencil, whatever the palm rule says (choosing moves nothing under the pen) — opens the choice of edges
@@ -21,6 +22,12 @@ import UIKit
 ///   at the lift. A recogniser that never sees a Pencil touch therefore cannot hold up a Pencil's tap.
 /// - VoiceOver: one element, 「ツールバーを動かす」 with the hint 「上下左右の端へ移せます」, a button, the identifier
 ///   `toolbar.move`, the grip's 「…へ移す」 actions; activating it opens the choice. The face under it is hidden from VoiceOver.
+///
+/// 1.4.1's third rework (docs/R1_4_1_CONTRACT.md §18.2): the button is on the peeking bar too (`ToolbarLogic.showsMoveButton`),
+/// and there it is a tap only: `drags` false (`ToolbarLogic.moveButtonDrags`, the open bar alone) keeps the pan from ever
+/// beginning — its gate says no whatever the palm rule says —, so a finger that moved 10 pt and lifted is nothing (no drag,
+/// no tap: `Press`), and a tap still opens the same choice with any touch. A choice there opens the bar on that edge (the
+/// screen's `paletteMoveChosen`, the table's `(.peek, .placementChosen)`).
 struct PaletteMoveButtonView: UIViewRepresentable {
     /// May a drag begin now (the palm rule, as the grip's)?
     var mayBegin: () -> Bool
@@ -41,6 +48,9 @@ struct PaletteMoveButtonView: UIViewRepresentable {
     var onMove: (PaletteEdge) -> Void
     /// The choice of edges is shown (the screen's state, so `--screenshot-palette-menu` can open it after the launch).
     var menuShown: Binding<Bool>
+    /// §18.2: the button may drag the bar (the open bar's, `ToolbarLogic.moveButtonDrags`); false on a peek, where the pan
+    /// never begins and the button is a tap only. True by default (§17.2's button).
+    var drags: Bool = true
 
     /// The UI tests' handle (`PaletteMoveUITests`).
     static let identifier = "toolbar.move"
@@ -168,9 +178,11 @@ struct PaletteMoveButtonView: UIViewRepresentable {
             nil
         }
 
-        /// Takes the representable's drag closures, its choices as VoiceOver's actions, and its dialog.
+        /// Takes the representable's drag closures, its choices as VoiceOver's actions, and its dialog. Without `drags` (a
+        /// peek, §18.2) the pan's gate is a plain no, so no drag begins there.
         func configure(_ button: PaletteMoveButtonView) {
-            takeDrag(mayBegin: button.mayBegin, onBegan: button.onBegan, onChanged: button.onChanged, onEnded: button.onEnded,
+            let mayBegin: () -> Bool = button.drags ? button.mayBegin : { false }
+            takeDrag(mayBegin: mayBegin, onBegan: button.onBegan, onChanged: button.onChanged, onEnded: button.onEnded,
                      onCancelled: button.onCancelled, onMove: button.onMove, moveTargets: button.choices)
             let shown = button.menuShown
             onTap = { shown.wrappedValue = true }
