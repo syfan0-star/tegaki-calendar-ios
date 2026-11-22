@@ -15,6 +15,11 @@ import XCTest
 ///   and with its upright column scrolled to its end (the column is longer than the mini's landscape window).
 /// - iphone (the iPhone 17): the week in portrait and in landscape with `--screenshot-hand left` (the header mirrored; the
 ///   toolbar 1.4's).
+/// - The rework (docs/R1_4_1_CONTRACT.md §16.3.7, §16.6, §16.8): 等倍 of the week and the day, one page's width across the
+///   paper's column, for the confirmation page's before and after (`--screenshot-zoom fit`): ipad13's week and day in portrait,
+///   the iPhone 17's day in portrait and its joined week in landscape (`--screenshot-span on`: one week across where the cap
+///   shows three). Their lines add the canvas's zoom and x and one page's width at that zoom (`across=`, pt), to be read
+///   against the canvas's width; they take no edge (`ok=yes`, as the hand's photos).
 /// The iPhone 18 Pro Max's portrait month (等倍 on the second row) and the iPhone 17's `iphone-portrait-week-zoom3` are J-4's
 /// photos already (the first job), so they are not taken again here.
 ///
@@ -32,6 +37,9 @@ final class PaletteShotsUITests: XCTestCase {
     }
 
     private static let japanese = ["-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP"]
+    /// One page's width (lu) of the week and of the day (`ZoomPolicy.paperWidth`), for the 等倍 photos' `across=`.
+    private static let weekWidth: CGFloat = 1400
+    private static let dayWidth: CGFloat = 1000
     /// How long a photo waits after the screen has settled (s; SpanShotsUITests' `photoWait`).
     private let photoWait: TimeInterval = 1
 
@@ -49,6 +57,11 @@ final class PaletteShotsUITests: XCTestCase {
             shoot(setup, "ipad13-portrait-month-drag-right", .portrait, ["--screenshot-page", "month", "--screenshot-palette-drag", "right"],
                   edge: "bottom")
             shoot(setup, "ipad13-landscape-month-left", .landscapeLeft, ["--screenshot-page", "month", "--screenshot-palette", "left"], edge: "left")
+            // The rework (§16.6): 等倍 of the week and the day.
+            shoot(setup, "ipad13-portrait-week-fit", .portrait, ["--screenshot-page", "week", "--screenshot-zoom", "fit"], edge: nil,
+                  pageWidth: Self.weekWidth)
+            shoot(setup, "ipad13-portrait-day-fit", .portrait, ["--screenshot-page", "day", "--screenshot-zoom", "fit"], edge: nil,
+                  pageWidth: Self.dayWidth)
         case "ipadmini":
             shoot(setup, "ipadmini-portrait-month-left", .portrait, ["--screenshot-page", "month", "--screenshot-palette", "left"], edge: "left")
             shoot(setup, "ipadmini-landscape-week-right", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-palette", "right"],
@@ -56,6 +69,11 @@ final class PaletteShotsUITests: XCTestCase {
         case "iphone":
             shoot(setup, "iphone-portrait-week-hand-left", .portrait, ["--screenshot-page", "week", "--screenshot-hand", "left"], edge: nil)
             shoot(setup, "iphone-landscape-week-hand-left", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-hand", "left"], edge: nil)
+            // The rework (§16.6): 等倍 of the day, and of the joined week in landscape (one week across, not the cap's three).
+            shoot(setup, "iphone-portrait-day-fit", .portrait, ["--screenshot-page", "day", "--screenshot-zoom", "fit"], edge: nil,
+                  pageWidth: Self.dayWidth)
+            shoot(setup, "iphone-landscape-week-fit", .landscapeLeft,
+                  ["--screenshot-page", "week", "--screenshot-span", "on", "--screenshot-zoom", "fit"], edge: nil, pageWidth: Self.weekWidth)
         default:
             throw XCTSkip("no palette photos on \(setup.device)")
         }
@@ -64,9 +82,10 @@ final class PaletteShotsUITests: XCTestCase {
     // MARK: One photo
 
     /// One launch, one photo (two with `scrolledToo`: the upright column scrolled to its end). `edge` is the edge
-    /// `palette.state` must read (waited for); nil: no `--screenshot-palette` (no state element).
+    /// `palette.state` must read (waited for); nil: no `--screenshot-palette` (no state element). `pageWidth` (lu, the 等倍
+    /// photos): the line also carries the canvas's zoom and x and that width at the zoom (`across=`, pt).
     private func shoot(_ setup: Setup, _ name: String, _ orientation: UIDeviceOrientation, _ arguments: [String], edge: String?,
-                       scrolledToo: Bool = false) {
+                       scrolledToo: Bool = false, pageWidth: CGFloat? = nil) {
         XCUIDevice.shared.orientation = orientation
         let app = XCUIApplication()
         app.launchArguments = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-probe"] + arguments + Self.japanese
@@ -90,7 +109,8 @@ final class PaletteShotsUITests: XCTestCase {
         let turned = orientation != .portrait
         let how = takePhoto(app, setup, file: "palette/\(name).png", turned: turned)
         record(setup, "palette shot: device=\(setup.device) name=\(name) photo=\(how) ok=\(ok ? "yes" : "no") expected=\(edge ?? "-") "
-            + "window=\(Self.text(app.windows.firstMatch.frame)) canvas=\(Self.text(canvas.frame)) state=\(state)")
+            + "window=\(Self.text(app.windows.firstMatch.frame)) canvas=\(Self.text(canvas.frame)) state=\(state)"
+            + (pageWidth.map { zoomFields(canvas, pageWidth: $0) } ?? ""))
         guard scrolledToo else { return }
         // The upright column scrolled: one slow drag from near its bottom to near its top, held before the lift. It starts
         // inside the scrolling column, 40 pt above 「しまう」, which sits under it outside the scroll (ToolbarView's
@@ -192,6 +212,17 @@ final class PaletteShotsUITests: XCTestCase {
 
     private func element(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    /// " zoom=<z> ox=<x> across=<page width × z>" from the canvas's probe (`-` for a value it does not read out).
+    private func zoomFields(_ canvas: XCUIElement, pageWidth: CGFloat) -> String {
+        var values: [String: String] = [:]
+        for part in (canvas.value as? String ?? "").split(separator: ";") {
+            guard let equals = part.firstIndex(of: "=") else { continue }
+            values[String(part[..<equals])] = String(part[part.index(after: equals)...])
+        }
+        let across = values["zoom"].flatMap(Double.init).map { String(format: "%.1f", Double(pageWidth) * $0) } ?? "-"
+        return " zoom=\(values["zoom"] ?? "-") ox=\(values["ox"] ?? "-") across=\(across)"
     }
 
     private func stateLabel(_ app: XCUIApplication) -> String {
