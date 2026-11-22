@@ -1,6 +1,6 @@
 # 用語集（1.2「世界対応」）
 
-アプリ・ストアの文の語を、言語ごとに 1 つに決めた表です（[M7B_CONTRACT.md](../M7B_CONTRACT.md) §6.1・§6.2、書いた人は X）。英語は契約が決めた語です。1.4.1 で足した語（等倍・利き手・ツールバーを動かす）は §5 です（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1・§8.2）。
+アプリ・ストアの文の語を、言語ごとに 1 つに決めた表です（[M7B_CONTRACT.md](../M7B_CONTRACT.md) §6.1・§6.2、書いた人は X）。英語は契約が決めた語です。1.4.1 で足した語（等倍・利き手・ツールバーを動かす）は §5 です（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1・§8.2。等倍の語は §16.9 で直した）。
 
 **正直に書くこと**: 訳は Claude が書き、別の Claude が日本語の元を見ずに訳し戻して照らします（`REVIEW.md`）。**各言語を母語とする人の確認はありません。** 本人は日本語しか読めません。誤りはサポートのメールで受け、次の版で直します（§6.1 の 8）。
 
@@ -215,10 +215,12 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 
 [R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1 の 11 キーのための語です（§8.2 の「GLOSSARY を先に直す」。2026-11-22、書いた人は X）。en は契約 §8.1 の案の語で、案が「—」のキー（つまみの名前・ヒント・4 つの操作）の語はここで決めました。アプリの訳（`tools/l10n/translations/<言語>.json`）、新機能の文（契約 §8.3）、SUPPORT と審査メモの英語は、この表の字を使います。母語の人の確認が無いことは、上の「正直に書くこと」のとおりです。
 
+**2026-11-22 の直し（契約第 3 版の §16.9）**: 本人の直しで、日と週の等倍が「1 日・1 週のページの幅が画面の幅にちょうど合う大きさ」になりました（月と年は開いたときの大きさのまま）。そのため、表の等倍の 2 行（名詞と読み上げ）と、下の「決めたこと」の等倍の 3 点と字のボタンの点を、X が書き直しました。ほかの行と点は前のままです。
+
 | 日本語 | en | zh-Hans | zh-Hant | ko | fr | de | es | it | pt-BR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 等倍（文の中の名詞。拡大も縮小もしていないもとの大きさ） | original size | 原始大小 | 原始大小 | 원래 크기 | taille d’origine | Originalgröße | tamaño original | dimensione originale | tamanho original |
-| 等倍に戻す（虫めがねに「1」のボタンの読み上げ。`header.zoomReset.spoken`） | Reset Zoom | 恢复原始大小 | 恢復原始大小 | 원래 크기로 되돌리기 | Revenir à la taille d’origine | Auf Originalgröße zurücksetzen | Volver al tamaño original | Torna alla dimensione originale | Voltar ao tamanho original |
+| 等倍（文の中の名詞。日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年は開いたときの大きさ） | standard size | 标准大小 | 標準大小 | 표준 크기 | taille standard | Standardgröße | tamaño estándar | dimensione standard | tamanho padrão |
+| 等倍に戻す（虫めがねに「1」のボタンの読み上げ。`header.zoomReset.spoken`。意味は「ズームを戻す」） | Reset Zoom | 重置缩放 | 重置縮放 | 확대·축소 재설정 | Réinitialiser le zoom | Zoom zurücksetzen | Restablecer el zoom | Reimposta lo zoom | Redefinir o zoom |
 | 利き手（設定の節の見出し。`settings.hand.header`） | Dominant Hand | 惯用手 | 慣用手 | 주로 쓰는 손 | Main dominante | Dominante Hand | Mano dominante | Mano dominante | Mão dominante |
 | 右手（選び。`settings.hand.right`） | Right Hand | 右手 | 右手 | 오른손 | Main droite | Rechte Hand | Mano derecha | Mano destra | Mão direita |
 | 左手（選び。`settings.hand.left`） | Left Hand | 左手 | 左手 | 왼손 | Main gauche | Linke Hand | Mano izquierda | Mano sinistra | Mão esquerda |
@@ -236,13 +238,16 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 
 ### 決めたこと
 
-- **等倍は、どの言語も「もとの大きさ」の語です（en の読み上げだけは下の点）。** comment のとおり、拡大も縮小もしていない、ページを初めて開いたときの大きさです。
+- **等倍は、日と週と、月と年で中身が違います（契約 §16.3.1・§16.9。2026-11-22 の本人の直し）。** 日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年はページを初めて開いたときの大きさです。前の定義（拡大も縮小もしていないもとの大きさ）と、その語（en original size、zh 原始大小、ko 원래 크기、fr taille d’origine、de Originalgröße、es・pt-BR tamaño・tamanho original、it dimensione originale）は使いません。日と週の等倍は、開いたときより大きいことが多いためです（iPad の日では約 2 倍）。
+  - **名詞は「標準の大きさ」の語です**（表の 1 行目）。「もとの大きさ」は上のとおり日と週で違い、「既定の大きさ」（en default size など）も、日と週では初めて開いたときの大きさ（等倍を一度押すまで）と違うので避けました。de の Standardgröße と pt-BR の tamanho padrão は「既定」の意味も持ちますが、ほかに「もとの」「実際の」「合わせる」のどれでもない、ふつうの語がありません。
+  - **文では、できるだけ名詞を使いません。** 読み上げと同じ「ズームを戻す」の動詞（下の点）で書き、大きさを言う所では上の定義をそのまま書きます（en は審査メモの字: on day and week pages, one day or one week fits the screen width exactly; month and year pages go back to the size they open at）。名詞は、そう書けない所だけで使います。
+  - 「拡大も縮小もしていない」は、もう添えません（日と週の等倍は拡大した大きさのことがあるため）。拡大・縮小の語は今までどおり §2 の「2 本の指を広げる（拡大）・つまむ（縮小）」の行と同じです（en zoom in / zoom out、fr zoomer / dézoomer、de vergrößern / verkleinern、es・pt-BR ampliar / reducir・reduzir、it ingrandire / rimpicciolire、zh 放大 / 缩小・縮小、ko 확대 / 축소）。
   - 「実際の大きさ」の語（en Actual Size、zh-Hans 实际大小、zh-Hant 實際大小、ko 실제 크기、fr taille réelle、es tamaño real、it dimensioni reali、pt-BR tamanho real）は使いません。等倍は倍率 1.0（実寸）ではないためです（契約 §3.6。本人の iPhone の月では、倍率 1.0 は開いたときの約 3.2 倍）。
-  - 「合わせる」の語（en Fit、fr Ajuster、de Einpassen、es・pt-BR Ajustar、it Adatta、zh 适合・適合、ko 맞춤）も使いません。幅に合わせる fit でもないためです（契約 §3.6・§8.1）。
-  - de の Originalgröße は字のとおり「もとの大きさ」です。
-  - 説明が要る所（新機能の文の 2 行目・SUPPORT）では「拡大も縮小もしていない」を添えます。拡大・縮小は §2 の「2 本の指を広げる（拡大）・つまむ（縮小）」の行と同じ語です（en zoom in / zoom out、fr zoomer / dézoomer、de vergrößern / verkleinern、es・pt-BR ampliar / reducir・reduzir、it ingrandire / rimpicciolire、zh 放大 / 缩小・縮小、ko 확대 / 축소）。en の文は original size, neither zoomed in nor out（SUPPORT.en と同じ字）。
-- **en の読み上げは、契約 §8.1 の Reset Zoom のままです。** 英語の画面で、拡大を戻すボタンのふつうの名前です。SUPPORT.en も “(Reset Zoom)” と書き、審査メモは見た目から “the 1× button” と書いています。元を見ない逆翻訳は「ズームをリセット」になりますが、押すと等倍に戻る同じ動きです。
-- **「戻す」に、§2 の「元に戻す」「やり直す」の語を使いません。** 別のボタンと聞き違えないためです。特に zh-Hant の 還原（元に戻す）、fr の Rétablir（やり直す）と Annuler、es の Deshacer、it の Annulla、pt-BR の Desfazer。zh は両方とも 恢复・恢復 にしました。ko の 되돌리기 は「원래 크기로」が付くので、元に戻す（실행 취소）とは別に聞こえます。
+  - 「合わせる」の語（en Fit、fr Ajuster、de Einpassen、es・pt-BR Ajustar、it Adatta、zh 适合・適合、ko 맞춤）を、等倍の名前（読み上げと名詞）に使いません。**幅に合わせるのは日と週だけで、月と年は幅に合わせない（開いたときの大きさ）ためです**（契約 §16.9）。日と週の説明の文で「画面の幅にちょうど合う」と動詞で書くのは構いません（en fits the screen width exactly）。
+- **読み上げ（等倍に戻す）は、どの言語も「ズームを戻す（リセットする）」の形です（契約 §16.9）。** en は契約 §8.1 の Reset Zoom のまま（英語の画面で、拡大を戻すボタンのふつうの名前。SUPPORT.en も “(Reset Zoom)” と書き、審査メモは見た目から “the 1× button” と書く）。8 言語は 2026-11-22 に、前の「もとの大きさに戻す」の訳（恢复原始大小、Auf Originalgröße zurücksetzen など）から訳し直しました。日と週では押すと大きくなることがあり、「もとの大きさに戻す」と聞くと違ってしまうためです。ja の字（等倍に戻す）と jaSha1 は同じなので、lint と `build.py` は前の訳が古いことを知らせません（契約 §16.10 の危険の行。元を見ない逆翻訳と判定は `REVIEW.md` の 15）。
+  - ズームの語: zh・ko はアプリの今の字（zh は `onboarding.pen.text`・`settings.purchase.footer.readOnly` の 缩放・縮放、ko は `onboarding.pen.text` の 확대·축소）。fr・de もアプリの今の語（zoomer・zoomen）の名詞の zoom・Zoom。es・it・pt-BR のアプリは拡大を ampliar・ingrandire と書きますが、ズームを戻すボタンの名前では名詞の zoom がふつうなので、el zoom・lo zoom・o zoom にしました。
+  - リセットの語: zh-Hans・zh-Hant 重置（契約 §16.9 の例。zh-Hans の iOS は「リセット」に 还原 を使う所もありますが、zh-Hant の 還原 はアプリの「元に戻す」なので、両方とも 重置 にそろえた）、ko 재설정（「-기」の形の 재설정하기 は不自然なので名詞のまま）、fr Réinitialiser、de zurücksetzen、es Restablecer、it Reimposta（Ripristina は購入の復元と同じ語なので避けた。下の点）、pt-BR Redefinir。どれもリセットのふつうの語です（出典は無い。下の「確かめていないこと」）。形は今の読み上げと同じです（fr・es・pt-BR は不定詞と定冠詞、de は名詞と不定詞、it は命令形、zh は動詞と名詞）。
+- **「戻す」に、§2 の「元に戻す」「やり直す」の語を使いません。** 別のボタンと聞き違えないためです。特に zh-Hant の 還原（元に戻す）、fr の Rétablir（やり直す）と Annuler、es の Deshacer、it の Annulla、pt-BR の Desfazer。購入の復元（`settings.purchase.restore`）の語（zh-Hans 恢复、zh-Hant 回復、ko 복원、fr Restaurer、de wiederherstellen、es・pt-BR Restaurar、it Ripristina）も使いません（前の zh-Hans の 恢复原始大小 は 恢复购买 と同じ字でした）。
 - **利き手・右手・左手は、人ではなく「手」の語にしました（性別の無い形）。** de・fr・es・it・pt-BR の「右利き・左利き」の語は人を指し、男女で形が変わります（de Rechtshänder／Rechtshänderin・Linkshänder／Linkshänderin、fr droitier／droitière・gaucher／gauchère、es diestro／diestra・zurdo／zurda、it destrimano／destrimana・mancino／mancina、pt-BR destro／destra・canhoto／canhota）。「手」の語（Hand・main・mano・mão）は、語に文法の性があっても、人の性別を言いません。見出しは「利き手」（dominant hand）、選びは「右の手」「左の手」です。en の Dominant Hand・Right Hand・Left Hand は契約 §8.1 の案のままです。
   - 文の中（脚注・新機能の文・ストアの文）でも、読み手を「左利きの人」と呼びません。選びの名前を引くか（« Main gauche »・„Linke Hand“・“Mano izquierda”・“Mano sinistra”・“Mão esquerda”）、読み手に向けた動詞で書きます（fr si vous écrivez de la main gauche、de wenn Sie mit der linken Hand schreiben、es si escribe con la mano izquierda、it se scrive con la mano sinistra、pt-BR se você escreve com a mão esquerda。§1 の丁寧さ）。en も left-handed people と書かず、“Left Hand” を引くか if you write with your left hand。zh は 左撇子（くだけた語）を使わず 左手、ko は 왼손잡이 を使わず 왼손（画面の選びと同じ字）。
   - 新機能の文の「利き手」「左手」は、アプリの `settings.hand.header`・`settings.hand.left` と同じ字にします（[docs/store/README.md](../store/README.md) の 1.4.1 の行）。
@@ -255,9 +260,10 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 - **端**は、今の「左端」（`onboarding.dayPageTap`）の語にそろえました（en edge、fr bord、de Rand、es borde、it bordo、pt-BR borda）。zh は 边缘・邊緣、ko は 가장자리 です（今の 왼쪽 끝 の 끝 は「終わり」に近いので、4 つの辺には 가장자리）。
 - 脚注と新機能の文の 3 行目の「画面の上のボタンの並びが左右逆」は、同じ言語では同じ言い方にします。
 - **幅**: 読み上げだけの文（等倍に戻す・ツールバーを動かす・ヒント・4 つの操作）は画面に出ないので、§4 の幅の決まりはありません。利き手の見出し・選び・脚注は設定の画面の行で、折り返します。
-- **「等倍」の字のボタン（`header.zoomReset`）は、本人が字を選んだときだけ D2 で決めます**（契約 §0.4 の 2・§8.1）。そのときは上の「等倍」の名詞から短い形を作り、`HeaderFitTests` の幅（契約 §8.1）と、en は審査メモの 4,000 バイトに入る字数（[PROPOSALS_1_4_1.md](../store/PROPOSALS_1_4_1.md) §2.2・§2.3）で選びます。en の Fit と Actual Size は使いません。
+- **「等倍」の字のボタン（`header.zoomReset`）は作りません。** 本人が 2026-11-22 に虫めがねに「1」の印を採りました（契約 §16.11 の問い 8・§16.12 の 0e-2）。字の訳と幅の確かめもしません。
 
 ### 確かめていないこと
 
 - 利き手の語は、iOS に同じ項目が無く、Apple の記事で確かめた語ではありません（§3 のような出典はありません）。各言語のふつうの語から選びました。
 - zh-Hant の 頂端・底部、ko の 주로 쓰는 손、de の Dominante Hand が、その言語の設定の画面で一番ふつうの言い方かは確かめていません。TestFlight で設定の画面と VoiceOver を見るときに、リードが字を見てください。
+- 「ズームを戻す」の 8 言語（2026-11-22）が、その言語の VoiceOver でいちばんふつうに聞こえる名前かは確かめていません。Apple の画面に同じ役のボタンが無く、出典はありません。「標準の大きさ」の名詞（taille standard など）が、日と週の幅にちょうど合う大きさの呼び名として自然かも、母語の人の確認はありません。
