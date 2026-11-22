@@ -719,9 +719,11 @@ final class InkCanvasZoomResetTests: XCTestCase {
         }
     }
 
-    /// §16.3.3 (Z2-6, Z2-7): the iPhone's day at fit (402 × 536: 0.402) turned to landscape (874 × 205) and back: fit each
-    /// time (874 / 1,000: one day across; 0.402), with the paper point in the middle of the screen kept (15:00, 1,500 lu),
-    /// as a zoomed-in page keeps it (the middle read with the size the last pass laid out, 0d-44). A turn reports nothing.
+    /// §16.3.3 (Z2-6; the middle as 0d-44 reads it — Z2-7 is held by testTheProMaxWeekTakesTheFitStateOnly: this page is at
+    /// neither the opening zoom nor the minimum before a turn, so its y is the same with or without Z2-7): the iPhone's day at
+    /// fit (402 × 536: 0.402) turned to landscape (874 × 205) and back: fit each time (874 / 1,000: one day across; 0.402),
+    /// with the paper point in the middle of the screen kept (15:00, 1,500 lu), as a zoomed-in page keeps it (the middle read
+    /// with the size the last pass laid out, 0d-44). A turn reports nothing.
     func testATurnFollowsFit() async {
         let (day, paper) = makeDay()
         let rig = await makeRig(layout: day, paper: paper, width: 402, height: 536)
