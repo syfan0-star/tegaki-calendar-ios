@@ -28447,6 +28447,72 @@
         }
       }
     },
+    "toolbar.move.title" : {
+      "comment" : "1.4.1 iPad のツールバーの「しまう」のすぐ左にあるボタンの名前（10 pt、ボタンの印の下。「しまう」の toolbar.collapse.title と同じ扱いで、F-12 と同じ上限）。iPad の広い窓で開いたツールバーにだけ出る（iPhone には無い）。押すと、ツールバーを移す端（上・下・左・右）を選ぶ小さな吹き出しが開く。ボタンを指で引いても、ツールバーを動かせる。読み上げの名前は toolbar.grip.spoken。文は docs/R1_4_1_CONTRACT.md §17.3",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewegen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sposta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動かす"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "옮기기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移動"
+          }
+        }
+      }
+    },
     "toolbar.moveEdge.toLeft" : {
       "comment" : "丸ボタンの長押しのメニュー。丸ボタンを左下へ移す。読み上げの操作の名前にも使う",
       "extractionState" : "manual",

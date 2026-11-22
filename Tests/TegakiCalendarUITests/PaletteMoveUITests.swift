@@ -16,7 +16,12 @@ import XCTest
 ///   screenshot mode (`--screenshot-palette bottom`, which also shows `palette.state`), where a drop moves the bar through the
 ///   screen's `@State` and never writes `toolbar.paletteEdge` (§4.10).
 /// - `testThePhoneKeepsTheBottomBar` (iPhone; ui-tests): asked for the left edge, an iPhone keeps 1.4's bar at the bottom with
-///   no grip (§4.3, 確かめ表 18), 「ペン」's top − 16 the canvas's bottom.
+///   no grip and no 「動かす」 (§4.3, §17.2, 確かめ表 18), 「ペン」's top − 16 the canvas's bottom.
+/// - `testTheMoveButtonMovesTheBar` (1.4.1's second rework, docs/R1_4_1_CONTRACT.md §17.2, §17.4; the same step and skips as
+///   the grip's test, which build.yml's step now asks to pass too): the 「動かす」 button before 「しまう」 (`toolbar.move`, read
+///   out as 「ツールバーを動かす」). A tap opens the choice of edges; 「右へ移す」 puts the bar on the right edge, the paper area
+///   changing once; a tap on the upright bar's button and 「上へ移す」 the top; the button dragged with a finger (as the grip,
+///   held before the lift) the left; a tap and 「下へ移す」 the bottom again, 「ペン」's top − 16 the canvas's bottom.
 ///
 /// Not here (the contract's §6.1 note, form (b), and what XCUITest cannot do): the Apple Pencil never moving the bar (XCUITest
 /// synthesizes finger touches only: PaletteGripTests checks the pan's touch types and its palm rule); VoiceOver's 「…へ移す」
@@ -26,11 +31,19 @@ import XCTest
 @MainActor
 final class PaletteMoveUITests: XCTestCase {
     private static let gripIdentifier = "toolbar.grip"
+    /// The 「動かす」 button (§17.2, `PaletteMoveButtonView.identifier`).
+    private static let moveIdentifier = "toolbar.move"
     private static let stateIdentifier = "palette.state"
     private static let gripLabel = "ツールバーを動かす"
     private static let penLabel = "ペン"
     private static let markerLabel = "マーカー"
     private static let undoLabel = "元に戻す"
+    private static let collapseLabel = "ツールバーをしまう"
+    /// The 「動かす」 button's choices (`toolbar.moveTo.*`), by the edge they move the bar to.
+    private static let moveToTop = "上へ移す"
+    private static let moveToBottom = "下へ移す"
+    private static let moveToRight = "右へ移す"
+    private static let moveTitles = ["top": moveToTop, "bottom": moveToBottom, "left": "左へ移す", "right": moveToRight]
     private static let dayColumnSuffix = "（日表示へ）"
     /// `tool.pen` lies within this many points of the window's side on a side edge (§6.1).
     private static let sideBand: CGFloat = 80
@@ -119,6 +132,53 @@ final class PaletteMoveUITests: XCTestCase {
         log("OK")
     }
 
+    func testTheMoveButtonMovesTheBar() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["TEGAKI_PALETTE_UI"] == "1",
+                          "only in blank-paper's step \"Palette UI tests on the 13-inch iPad (1.4.1)\"")
+        try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .pad, "the 「動かす」 button is an iPad's")
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
+        let app = launch(["--screenshot-page", "week", "--screenshot-span", "off", "--screenshot-palette", "bottom",
+                          "-allowFingerDrawing", "YES", "-allowFingerDrawingChosen", "YES"])
+        defer { app.terminate() }
+
+        guard let start = waitForState(app, "move: launch", timeout: 30, { $0["allowed"] == "bottom,top,left,right" && $0["grip"] == "on" }) else {
+            XCTFail("the 13-inch iPad never allowed the four edges: \(stateLabel(app))")
+            return
+        }
+        log("move: launch: window=\(text(window(app))) state=\(stateLabel(app))")
+        XCTAssertEqual(start["edge"], "bottom")
+        guard settledProbe(app, "move: launch") != nil else { return }
+        let button = element(app, Self.moveIdentifier)
+        XCTAssertTrue(button.waitForExistence(timeout: 10), "the 「動かす」 button")
+        XCTAssertEqual(button.label, Self.gripLabel, "「動かす」 is read out as 「ツールバーを動かす」")
+        let collapse = app.buttons[Self.collapseLabel]
+        let buttonFrame = stableFrame(button)
+        log("move: button frame=\(text(buttonFrame)) label=\(button.label) hide=\(collapse.exists ? text(collapse.frame) : "-")")
+        if collapse.exists {
+            XCTAssertEqual(buttonFrame.maxX, collapse.frame.minX, accuracy: 1, "「動かす」 right before 「しまう」")
+            XCTAssertEqual(buttonFrame.midY, collapse.frame.midY, accuracy: 1, "「動かす」 level with 「しまう」")
+        }
+        keepScreenshot(app, "move: bottom at launch")
+
+        let screen = window(app)
+        // A tap, then 「右へ移す」.
+        choose(app, Self.moveToRight, expect: "right")
+        keepScreenshot(app, "move: right")
+        // A tap on the upright bar's 「動かす」, then 「上へ移す」.
+        choose(app, Self.moveToTop, expect: "top")
+        keepScreenshot(app, "move: top")
+        // The button dragged with a finger, as the grip is.
+        move(app, to: CGPoint(x: screen.minX + 24, y: screen.midY), expect: "left", handle: Self.moveIdentifier)
+        keepScreenshot(app, "move: left")
+        // A tap, then 「下へ移す」: 1.4's place again.
+        choose(app, Self.moveToBottom, expect: "bottom")
+        guard let back = settledProbe(app, "move: bottom") else { return }
+        checkBottom(app, "move: bottom", canvas: back.frame)
+        keepScreenshot(app, "move: bottom again")
+        log("move: OK")
+    }
+
     func testThePhoneKeepsTheBottomBar() throws {
         try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "ui-tests runs on an iPhone")
         continueAfterFailure = true
@@ -132,6 +192,7 @@ final class PaletteMoveUITests: XCTestCase {
         XCTAssertEqual(state?["allowed"], "bottom")
         XCTAssertEqual(state?["grip"], "off")
         XCTAssertFalse(element(app, Self.gripIdentifier).exists, "no grip on an iPhone")
+        XCTAssertFalse(element(app, Self.moveIdentifier).exists, "no 「動かす」 on an iPhone (§17.2)")
         guard let opened = settledProbe(app, "phone") else { return }
         checkBottom(app, "phone", canvas: opened.frame)
         keepScreenshot(app, "phone")
@@ -140,13 +201,44 @@ final class PaletteMoveUITests: XCTestCase {
 
     // MARK: The steps
 
-    /// Drags the grip slowly to `point` (the window's points) and holds it there before the lift, so the snap reads no flick;
-    /// then waits for `palette.state` to read `edge=<expect>` and checks the paper area changed exactly once.
-    private func move(_ app: XCUIApplication, to point: CGPoint, expect: String) {
+    /// Taps the 「動かす」 button, waits for its choice of edges and picks `title`; then waits for `palette.state` to read
+    /// `edge=<expect>` and checks the paper area changed exactly once (`move`'s checks).
+    private func choose(_ app: XCUIApplication, _ title: String, expect: String) {
         let before = fields(stateLabel(app))
         let areas = Int(before["areas"] ?? "") ?? -1
-        let grip = element(app, Self.gripIdentifier)
-        XCTAssertTrue(grip.waitForExistence(timeout: 5), "\(expect): the grip before the move")
+        let button = element(app, Self.moveIdentifier)
+        XCTAssertTrue(button.waitForExistence(timeout: 5), "\(expect): 「動かす」 before the choice")
+        let from = stableFrame(button)
+        button.tap()
+        let choice = app.buttons[title]
+        guard choice.waitForExistence(timeout: 5) else {
+            XCTFail("\(expect): the choice of edges did not open with 「\(title)」 (button \(text(from)); \(stateLabel(app)))")
+            return
+        }
+        let offered = ["bottom", "top", "left", "right"].compactMap { Self.moveTitles[$0] }.filter { app.buttons[$0].exists }
+        log("move: \(expect): tapped \(text(from)); the choice offers \(offered.joined(separator: ",")); picking 「\(title)」")
+        XCTAssertFalse(offered.contains(Self.moveTitles[before["edge"] ?? ""] ?? "-"), "\(expect): never the edge the bar is on")
+        choice.tap()
+        guard let after = waitForState(app, "move: \(expect)", timeout: 10, { $0["edge"] == expect && $0["drag"] == "off" }) else {
+            XCTFail("\(expect): 「\(title)」 did not move the bar to the \(expect) edge (\(stateLabel(app)))")
+            return
+        }
+        Thread.sleep(forTimeInterval: 1.5)
+        let settled = fields(stateLabel(app))
+        log("move: \(expect): state=\(stateLabel(app)) areas \(areas) → \(settled["areas"] ?? "?")")
+        XCTAssertEqual(after["stored"], expect, "\(expect): screenshot mode keeps the edge in the screen's state")
+        XCTAssertEqual(Int(settled["areas"] ?? "") ?? -1, areas + 1, "\(expect): one choice changes the paper area once (\(stateLabel(app)))")
+        XCTAssertFalse(app.buttons[title].exists, "\(expect): the choice of edges closed")
+    }
+
+    /// Drags the grip (or `handle`, the 「動かす」 button) slowly to `point` (the window's points) and holds it there before the
+    /// lift, so the snap reads no flick; then waits for `palette.state` to read `edge=<expect>` and checks the paper area
+    /// changed exactly once.
+    private func move(_ app: XCUIApplication, to point: CGPoint, expect: String, handle: String? = nil) {
+        let before = fields(stateLabel(app))
+        let areas = Int(before["areas"] ?? "") ?? -1
+        let grip = element(app, handle ?? Self.gripIdentifier)
+        XCTAssertTrue(grip.waitForExistence(timeout: 5), "\(expect): the \(handle ?? Self.gripIdentifier) before the move")
         let from = stableFrame(grip)
         let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
         let start = origin.withOffset(CGVector(dx: from.midX, dy: from.midY))

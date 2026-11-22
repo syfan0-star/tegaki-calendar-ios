@@ -659,7 +659,8 @@ jobs:
       # InkCanvasWidthCentreTests (等倍 and 0d-44), ToolbarPlacementTests and PaletteGripTests (the toolbar, D1b); a class not
       # written yet is not found and not run. D2: HeaderTitleTests (the short title on an iPhone's wide row, §3.4). The rework
       # (§16.5, §16.6, §16.8): ZoomResetTargetTests (等倍's target of each kind, role Z) and ZoomFitWiringTests (the screen's
-      # 等倍 of the week and the day: ScreenPaths' `fit:`, `--screenshot-zoom fit`, the two canvases' wires, role S).
+      # 等倍 of the week and the day: ScreenPaths' `fit:`, `--screenshot-zoom fit`, the two canvases' wires, role S). The
+      # second rework (§17.4): PaletteMoveButtonTests (the 「動かす」 button: where it shows, tap or drag, the choices, VoiceOver).
       # 1.4 D0c (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0c): xcodebuild boots the 13-inch iPad here itself again, as
       # until D0. D0b booted it with simctl in the background from the job's start (a step "Boot the 13-inch iPad in the
       # background" and a wait here, both removed in D0c). That boot took 129 s, but the macOS steps beside it ran 3 to 19
@@ -682,7 +683,7 @@ jobs:
           elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests|HeaderOrderTests|HandSettingTests|ScreenshotModeHandPaletteTests|HeaderGlyphTests|InkCanvasZoomResetTests|InkCanvasSpanZoomResetTests|InkCanvasWidthCentreTests|ToolbarPlacementTests|PaletteGripTests|HeaderTitleTests|ZoomResetTargetTests|ZoomFitWiringTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests|HeaderOrderTests|HandSettingTests|ScreenshotModeHandPaletteTests|HeaderGlyphTests|InkCanvasZoomResetTests|InkCanvasSpanZoomResetTests|InkCanvasWidthCentreTests|ToolbarPlacementTests|PaletteGripTests|HeaderTitleTests|ZoomResetTargetTests|ZoomFitWiringTests|PaletteMoveButtonTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
@@ -3281,6 +3282,9 @@ jobs:
       # test fails or did not run on the iPad (skipped, missing): gate 1 of D1b reads this step's result, whatever the job's
       # continue-on-error. The limit: the boot 2–4 min, 1 for the banner, about 1 to the first test, the test about 2 (one
       # launch, one stroke, ↶, four drags each waited for at most 10 s and 1.5 s more): 20.
+      # 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.4, §17.5): the same class also has testTheMoveButtonMovesTheBar (the
+      # 「動かす」 button before 「しまう」: three taps with a choice of edges and one drag, about 1.5 min more, inside the 20), and
+      # the step passes only when both tests passed on the iPad.
       - name: Palette UI tests on the 13-inch iPad (1.4.1)
         if: ${{ !cancelled() }}
         timeout-minutes: 20
@@ -3314,10 +3318,12 @@ jobs:
           xcrun xcresulttool export attachments --path build/palette-ui.xcresult --output-path "$OUT/attachments" > /dev/null 2>&1 \
             || echo "::warning::xcresulttool could not export the palette UI tests' screenshots"
           xcrun simctl shutdown "$UDID" || true
-          if ! grep -qE 'PaletteMoveUITests[ .]testTheGripMovesTheBarToEveryEdge.*passed' "$OUT/palette-ui-log.txt"; then
-            echo "::error::PaletteMoveUITests.testTheGripMovesTheBarToEveryEdge did not pass on the 13-inch iPad (status $STATUS; shots/palette-ui/palette-ui-log.txt in the artifact palette-ui)."
-            exit 1
-          fi
+          for TEST in testTheGripMovesTheBarToEveryEdge testTheMoveButtonMovesTheBar; do
+            if ! grep -qE "PaletteMoveUITests[ .]$TEST.*passed" "$OUT/palette-ui-log.txt"; then
+              echo "::error::PaletteMoveUITests.$TEST did not pass on the 13-inch iPad (status $STATUS; shots/palette-ui/palette-ui-log.txt in the artifact palette-ui)."
+              exit 1
+            fi
+          done
           if [ "$STATUS" != 0 ]; then echo "::error::PaletteMoveUITests ended with $STATUS (shots/palette-ui/palette-ui-log.txt)."; exit 1; fi
           echo "PaletteMoveUITests passed on the 13-inch iPad."
 
@@ -4212,7 +4218,7 @@ jobs:
             BANDS=$(( $(count "$OUT" '*-boundary.png') + $(count "$OUT" '*-overview.png') + $(count "$OUT" '*-sunday.png') ))
             echo "Photos: bands $BANDS (21 expected), pairs $(count "$OUT" '*-shift-*.png') (8), margins $(count "$OUT" '*-margin-*.png') (30), week memo $(count "$OUT" '*-portrait-week-memo-*.png') (4), the neighbour ink's PDF $(count "$OUT" 'span-pdf-neighbor-ink.png') (1)."
             echo ""
-            echo "1.4.1's palette photos (artifact palette-shots): $(count "$OUT/palette" '*.png') (14 expected: the 13-inch iPad 9, the iPad mini 3, the iPhone 17 2); \`ok=no\` lines: $({ cat "$OUT"/palette/lines-*.txt 2>/dev/null || true; } | grep -c ' ok=no' || true)."
+            echo "1.4.1's palette photos (artifact palette-shots): $(count "$OUT/palette" '*.png') (21 expected: the 13-inch iPad 13, the iPad mini 4, the iPhone 17 4); \`ok=no\` lines: $({ cat "$OUT"/palette/lines-*.txt 2>/dev/null || true; } | grep -c ' ok=no' || true)."
             echo ""
             echo "#### The old versions' margins (pixels beside the page that are not the desk; the control must be 0,0)"
             echo ""

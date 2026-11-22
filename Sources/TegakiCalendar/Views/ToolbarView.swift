@@ -29,6 +29,14 @@ import UIKit
 /// 44 × 38 swatches, 細中太 (the pen only), ↶ ↷ and an icon-only 「指でも書く」, its last 12 pt fading out; 「しまう」 under a
 /// divider outside the scroll. The eraser's, the lasso's and the 予定 tool's hint lines are not drawn there: they are
 /// those tool buttons' VoiceOver hints. Every identifier is the same (`tool.pen`).
+///
+/// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): `move`. With it the bar has a 「動かす」 button just before
+/// 「しまう」, outside the scroll and after the same divider — [row | divider | 動かす | しまう] across, the same one under the
+/// other upright —, with 「しまう」's face (`buttonFace`: `arrow.up.and.down.and.arrow.left.and.right` over 「動かす」, 48 wide,
+/// 44 tall, nothing between the two), so the row is 48 pt narrower (the upright column 44 pt shorter) and the bar's height
+/// is the same. `PaletteMoveButtonView` lies over the face and takes its touches (a tap opens the choice of edges, the
+/// `confirmationDialog` here; a drag is the grip's) and is its one VoiceOver element. nil, the default, is the bar before
+/// it: the screen passes it only where the grip shows (every iPhone keeps 1.4's bar).
 struct ToolbarView: View {
     @Binding var tool: CanvasTool
     @Binding var allowFinger: Bool
@@ -43,6 +51,8 @@ struct ToolbarView: View {
     var eraserReturnsTo: CanvasTool? = nil
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.8): `.vertical` for a bar on the left or the right edge.
     var axis: Axis = .horizontal
+    /// 1.4.1's second rework (§17.2): the 「動かす」 button before 「しまう」 (shown with 「しまう」); nil = none, the bar of before.
+    var move: PaletteMoveButtonView? = nil
 
     @AppStorage(ToolbarPalette.penColorKey) private var penColorHex: String = ToolbarPalette.penColors[0].hex
     // Double, not CGFloat: AppStorage only stores Double (CGFloat is a distinct type on 64-bit).
@@ -83,15 +93,20 @@ struct ToolbarView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// The scrolling row, with the 「しまう」 button outside it at the right end when asked for (§2.2).
+    /// The scrolling row, with the 「しまう」 button outside it at the right end when asked for (§2.2). 1.4.1's second rework
+    /// (§17.2): `move`'s 「動かす」 between the divider and 「しまう」, the divider's 4 pt before it and nothing after it.
     @ViewBuilder
     private var bar: some View {
         if showsCollapseButton {
             HStack(spacing: 0) {
                 scrollingRow
                 Divider().frame(height: 24)
+                if let move {
+                    moveButton(move)
+                        .padding(.leading, ToolbarLogic.Row.collapseLeading)
+                }
                 collapseButton
-                    .padding(.leading, ToolbarLogic.Row.collapseLeading)
+                    .padding(.leading, move == nil ? ToolbarLogic.Row.collapseLeading : 0)
                     .padding(.trailing, ToolbarLogic.Row.collapseTrailing)
             }
         } else {
@@ -176,6 +191,24 @@ struct ToolbarView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(ToolbarLogic.collapseAccessibilityLabel)
+    }
+
+    /// 1.4.1's second rework (§17.2): 「動かす」 with 「しまう」's face, `PaletteMoveButtonView` over it (the touches and the one
+    /// VoiceOver element; the face is hidden from VoiceOver), and the choice of edges it opens: a `confirmationDialog` from
+    /// the button (a popover on an iPad) titled 「ツールバーを動かす」, one button per choice (「上へ移す」…), each calling
+    /// `move.onMove` (the screen's VoiceOver path, which ignores an edge no longer allowed).
+    private func moveButton(_ move: PaletteMoveButtonView) -> some View {
+        buttonFace(symbol: PaletteMoveButtonView.symbol, label: ToolbarLogic.moveTitle)
+            .foregroundStyle(Color.primary)
+            .accessibilityHidden(true)
+            .overlay { move }
+            .confirmationDialog(ToolbarLogic.gripAccessibilityLabel, isPresented: move.menuShown, titleVisibility: .visible) {
+                ForEach(move.choices, id: \.self) { edge in
+                    Button(ToolbarLogic.moveToTitle(edge)) {
+                        move.onMove(edge)
+                    }
+                }
+            }
     }
 
     private var toolButtons: some View {
@@ -338,15 +371,21 @@ struct ToolbarView: View {
     // MARK: - The vertical bar (1.4.1, docs/R1_4_1_CONTRACT.md §4.8, 0e-19)
 
     /// The column of a side placement: 60 pt wide (the 6 on each side outside the ScrollView, §4.5), as tall as the slot
-    /// offers; the scrolling column from the top, then 「しまう」 under a divider, outside the scroll (as the row's).
+    /// offers; the scrolling column from the top, then 「しまう」 under a divider, outside the scroll (as the row's). 1.4.1's
+    /// second rework (§17.2): `move`'s 「動かす」 between the divider and 「しまう」, as across.
     private var verticalBar: some View {
         VStack(spacing: 0) {
             scrollingColumn
             if showsCollapseButton {
                 Divider().frame(width: ToolbarLogic.Column.dividerLength)
+                if let move {
+                    moveButton(move)
+                        .frame(width: ToolbarLogic.Column.width)
+                        .padding(.top, ToolbarLogic.Row.collapseLeading)
+                }
                 collapseButton
                     .frame(width: ToolbarLogic.Column.width)
-                    .padding(.top, ToolbarLogic.Row.collapseLeading)
+                    .padding(.top, move == nil ? ToolbarLogic.Row.collapseLeading : 0)
                     .padding(.bottom, ToolbarLogic.Row.collapseTrailing)
             }
         }

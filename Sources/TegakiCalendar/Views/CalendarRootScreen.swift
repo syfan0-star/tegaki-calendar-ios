@@ -250,6 +250,9 @@ struct CalendarRootScreen: View {
     /// The window's watch of the Pencil for the grip's palm rule (§4.6): on the window while two edges or more are allowed
     /// (`updatePalmWatch`), off it otherwise.
     @State private var palmWatch = PalmWatch()
+    /// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): the 「動かす」 button's choice of edges is shown (a tap on the
+    /// button, VoiceOver's activation, `--screenshot-palette-menu`); closed when the button goes.
+    @State private var paletteMenuShown = false
     /// What the screen measures for the edges and the drag, kept outside SwiftUI's state (writing it draws nothing).
     @State private var paletteRoom: PaletteRoom
     /// Where the slots under the header and the notices begin (the window's points): a drag's outlines (`PaletteDragLayer`).
@@ -1134,7 +1137,8 @@ struct CalendarRootScreen: View {
             showsCollapseButton: true,
             onCollapse: { toolbarEvent(.collapseTapped) },
             eraserReturnsTo: Self.eraserReturnTarget(tool: tool, origin: eraserOrigin, setting: eraserAutoReturnOn, lastInk: lastInkTool),
-            axis: axis
+            axis: axis,
+            move: paletteMoveButton
         )
     }
 
@@ -1550,6 +1554,20 @@ struct CalendarRootScreen: View {
         }
         // M4B contract §6.4: the window scene may not exist yet here; `.active` tries again.
         requestLandscapeOnce()
+        // 1.4.1's second rework (§17.2, §17.4): the photo of the 「動かす」 button's choice of edges (`--screenshot-palette-menu`)
+        // opens it once the button is there (the window's edges are measured after the first layout).
+        if ScreenshotMode.current?.paletteMenu == true {
+            Task { @MainActor in
+                for _ in 0..<20 {
+                    try? await Task.sleep(for: .seconds(0.5))
+                    if paletteHasMoveButton {
+                        try? await Task.sleep(for: .seconds(0.5))
+                        if paletteHasMoveButton { paletteMenuShown = true }
+                        return
+                    }
+                }
+            }
+        }
         // 1.1 (§2.2): the toolbar's log lines once the window and the first layout are there.
         if ScreenshotMode.isActive {
             Task { @MainActor in
@@ -3347,6 +3365,11 @@ extension CalendarRootScreen {
         ToolbarLogic.showsGrip(toolbarMode, allowed: paletteAllowed)
     }
 
+    /// 1.4.1's second rework (§17.2): the open bar has the 「動かす」 button, where it has the grip (`ToolbarLogic.showsMoveButton`).
+    private var paletteHasMoveButton: Bool {
+        ToolbarLogic.showsMoveButton(toolbarMode, allowed: paletteAllowed)
+    }
+
     /// What a side slot takes from the paper column: 74 pt while the open bar is on the left or the right, else 0 (§4.4).
     private var paletteSideWidth: CGFloat {
         toolbarMode == .expanded && paletteEdge.isSide ? ToolbarLogic.sideSlotWidth : 0
@@ -3453,6 +3476,36 @@ extension CalendarRootScreen {
             onMove: { paletteMoveChosen($0) }
         )
         .frame(width: size.width, height: size.height)
+    }
+
+    // MARK: The 「動かす」 button (§17.2)
+
+    /// The 「動かす」 button `ToolbarView` puts before 「しまう」 (`ToolbarView(move:)`), where the grip shows; nil on every
+    /// iPhone, in a window with the bottom alone, on the dock and on a peek (their bar is 1.4's). Its drag is the grip's (the
+    /// same palm rule, callbacks and cancel trigger); a tap opens the choice of edges (`paletteMenuShown`), whose choices and
+    /// VoiceOver's actions are the grip's actions (`moveTargets`) and go through `paletteMoveButtonChose`.
+    private var paletteMoveButton: PaletteMoveButtonView? {
+        guard paletteHasMoveButton else { return nil }
+        return PaletteMoveButtonView(
+            mayBegin: { palmWatch.mayBegin(now: Date()) },
+            onBegan: { paletteDragBegan(at: $0) },
+            onChanged: { paletteDragMoved(to: $0, velocity: $1) },
+            onEnded: { paletteDragEnded(at: $0, velocity: $1) },
+            onCancelled: { paletteDragCancelled() },
+            cancelTrigger: paletteDragCancel,
+            allowed: paletteAllowed,
+            current: paletteEdge,
+            onMove: { paletteMoveButtonChose($0) },
+            menuShown: $paletteMenuShown
+        )
+    }
+
+    /// A choice of the 「動かす」 button (its dialog or VoiceOver's action): VoiceOver's path (`paletteMoveChosen`), unless the
+    /// button is gone or the edge is not one the window allows now (the choice of edges may still show it) — then nothing.
+    private func paletteMoveButtonChose(_ edge: PaletteEdge) {
+        guard paletteHasMoveButton,
+              let edge = PaletteMoveButtonView.choice(edge, allowed: paletteAllowed, current: paletteEdge) else { return }
+        paletteMoveChosen(edge)
     }
 
     // MARK: A drag and a drop (§4.7, §4.9, §4.10, 0e-18, 0e-20, 0e-21)
@@ -3593,6 +3646,8 @@ extension CalendarRootScreen {
             }
             .onChange(of: paletteHasGrip) {
                 if !paletteHasGrip { endPaletteDrag() }
+                // §17.2: the 「動かす」 button goes with the grip, and its choice of edges with it.
+                if !paletteHasMoveButton, paletteMenuShown { paletteMenuShown = false }
             }
             .onChange(of: paletteAllowed) {
                 updatePalmWatch()
