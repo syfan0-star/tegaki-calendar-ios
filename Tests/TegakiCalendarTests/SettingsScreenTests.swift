@@ -280,9 +280,9 @@ final class SettingsScreenTests: XCTestCase {
         }
     }
 
-    /// A switch of the hand stores it for this device and puts the folded toolbar's round button in the free hand's bottom
-    /// corner, once (§4.1, 0e-13): the dock's long press may move it afterwards, and the hand stays. The sheet opens with the
-    /// stored hand. Mutation MS1 (no write of `toolbar.collapsedEdge`) fails here.
+    /// A switch of the hand stores it for this device and puts the folded toolbar's round button in the bottom corner opposite
+    /// the writing hand's palm, once (§4.1, §16.11 question 5, 0e-13; P-4): the dock's long press may move it afterwards, and
+    /// the hand stays. The sheet opens with the stored hand. Mutation MS1 (no write of `toolbar.collapsedEdge`) fails here.
     func testHandChangeStoresTheHandAndTheDockCorner() throws {
         let suite = "test-hand-settings-\(UUID())"
         let scratch = try XCTUnwrap(UserDefaults(suiteName: suite))

@@ -18,8 +18,9 @@ import UIKit
 /// sections of the week start and the holidays after 「カレンダー」, the licences' row in 情報, and on
 /// every screen but a Japanese one the note about the translations under its footer. 1.3 (docs/M7C_CONTRACT.md §3.14,
 /// D3 (3)): the section 「ページ」 between 入力 and 同期, with the one row 「前後のページを横につなげる」
-/// (`AppSettings.pageSpan`). 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, 0e-12): 入力 ends with 「利き手」 (右手 / 左手,
-/// `AppSettings.hand`), which also puts the folded toolbar's round button in the free hand's bottom corner once.
+/// (`AppSettings.pageSpan`). 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §16.11, 0e-12): 入力 ends with 「利き手」 (右手 / 左手,
+/// `AppSettings.hand`), which also puts the folded toolbar's round button, once, in the bottom corner opposite the writing
+/// hand's palm (P-4).
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
     @ObservedObject var sync: SyncEngine
@@ -185,10 +186,10 @@ struct SettingsScreen: View {
         return ScreenshotMode.hand(screenshot, stored: nil)
     }
 
-    /// The hand was switched to `value` (§4.1, 0e-13): outside screenshot mode it is stored for this device (the header,
-    /// which reads the same key, turns at once), and the folded toolbar's round button goes once to the free hand's bottom
-    /// corner (`Hand.dockEdge`: bottom left for the right hand, bottom right for the left; a long press or VoiceOver moves
-    /// it again later, and the last one wins). Screenshot mode stores neither (§4.10).
+    /// The hand was switched to `value` (§4.1, §16.11 question 5, 0e-13): outside screenshot mode it is stored for this device
+    /// (the header, which reads the same key, turns at once), and the folded toolbar's round button goes once to the bottom
+    /// corner opposite the writing hand's palm (`Hand.dockEdge`, P-4: bottom left for the right hand, bottom right for the
+    /// left; a long press or VoiceOver moves it again later, and the last one wins). Screenshot mode stores neither (§4.10).
     static func handChanged(to value: Hand, screenshot: Bool) {
         guard !screenshot else { return }
         AppSettings.hand = value

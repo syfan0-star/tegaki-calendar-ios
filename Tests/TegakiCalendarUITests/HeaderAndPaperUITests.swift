@@ -6,11 +6,12 @@ import XCTest
 /// and the paper of a page with nothing on it in the real paper area. The app runs in its screenshot
 /// mode (no onboarding, no EventKit, nothing saved). The steps are the `header-paper UI:` lines.
 ///
-/// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.1–§3.4, §6.2, 0e-2 … 0e-5, 0e-13): rewritten for 1.4.1's header. The narrow rows:
-/// 「‹ 今日 ›」 (◀ 今日 ▶) at the free hand's end of the first row with the title right after it, and 等倍 (`header.zoomReset`)
-/// at the same end of the second row beside the switch, no taller than the switch (§3.3: the header keeps 1.4's height). The
-/// wide row (an iPhone in landscape, 750 pt): ▶ ≤ 等倍 ≤ title ≤ switch ≤ ＋ ≤ ⚙. Each again with `--screenshot-hand left`:
-/// the mirror, with ◀ still left of ▶.
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.1–§3.4, §6.2, §16.2, §16.6, 0e-2 … 0e-5, 0e-13): rewritten for 1.4.1's header, in the
+/// rework's order (案 B, the owner's 11/22: 「‹ 今日 ›」 and 等倍 at the writing hand's end, the date at the other). The narrow
+/// rows, the right hand: the title at the left end and 「‹ 今日 ›」 (◀ 今日 ▶) at the right end of the first row, ⚙ right
+/// before ◀; 等倍 (`header.zoomReset`) at the right end of the second row after the switch, no taller than the switch (§3.3:
+/// the header keeps 1.4's height). The wide row (an iPhone in landscape, 750 pt): title ≤ switch ≤ ＋ ≤ ⚙ ≤ 等倍 ≤ ◀ (no
+/// test of the ends there: the safe area). Each again with `--screenshot-hand left`: the mirror, with ◀ still left of ▶.
 @MainActor
 final class HeaderAndPaperUITests: XCTestCase {
     private static let todayLabel = "今日"
@@ -22,27 +23,27 @@ final class HeaderAndPaperUITests: XCTestCase {
 
     // MARK: Tests
 
-    /// The narrow rows, the right hand: (◀ 今日 ▶) 題名 ＋ ☁ ⚙ over [等倍][日|週|月|年], and 「今日」 works: ▶ twice, then 「今日」
+    /// The narrow rows, the right hand: 題名 ＋ ☁ ⚙ (◀ 今日 ▶) over [日|週|月|年][等倍], and 「今日」 works: ▶ twice, then 「今日」
     /// goes back to the month of the demo's today.
-    func testTodayLeadsTheNarrowRowInPortrait() throws {
+    func testTodayAndZoomSitAtTheWritingHandsEndInPortrait() throws {
         try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "the narrow rows are an iPhone's")
         try checkPortrait(hand: .right)
     }
 
-    /// The same, the left hand: ⚙ ☁ ＋ 題名 (◀ 今日 ▶) over [日|週|月|年][等倍].
-    func testTodayLeadsTheNarrowRowInPortraitLeftHanded() throws {
+    /// The same, the left hand: (◀ 今日 ▶) ⚙ ☁ ＋ 題名 over [等倍][日|週|月|年].
+    func testTodayAndZoomSitAtTheWritingHandsEndInPortraitLeftHanded() throws {
         try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "the narrow rows are an iPhone's")
         try checkPortrait(hand: .left)
     }
 
-    /// The wide row (an iPhone in landscape, 750 pt), the right hand: (◀ 今日 ▶) 等倍 題名 [日|週|月|年] ＋ ☁ ⚙.
-    func testTodayAndZoomLeadTheWideRowInLandscape() throws {
+    /// The wide row (an iPhone in landscape, 750 pt), the right hand: 題名 [日|週|月|年] ＋ ☁ ⚙ 等倍 (◀ 今日 ▶).
+    func testTodayAndZoomSitAtTheWritingHandsEndInLandscape() throws {
         try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "an iPad's width depends on the device")
         try checkLandscape(hand: .right)
     }
 
-    /// The same, the left hand: ⚙ ☁ ＋ [日|週|月|年] 題名 等倍 (◀ 今日 ▶).
-    func testTodayAndZoomLeadTheWideRowInLandscapeLeftHanded() throws {
+    /// The same, the left hand: (◀ 今日 ▶) 等倍 ⚙ ☁ ＋ [日|週|月|年] 題名.
+    func testTodayAndZoomSitAtTheWritingHandsEndInLandscapeLeftHanded() throws {
         try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "an iPad's width depends on the device")
         try checkLandscape(hand: .left)
     }
@@ -101,7 +102,8 @@ final class HeaderAndPaperUITests: XCTestCase {
         var settings: CGRect
     }
 
-    /// §6.2's narrow rows (the month page, 2026-10).
+    /// §16.6's narrow rows (the month page, 2026-10; §6.2's before the rework). The header's side paddings are 12 pt and an
+    /// iPhone in portrait has no side safe area, so the pieces at the ends sit within 13 pt of the window's edges.
     private func checkPortrait(hand: Hand) throws {
         continueAfterFailure = false
         let name = "today portrait \(hand.rawValue)"
@@ -113,22 +115,25 @@ final class HeaderAndPaperUITests: XCTestCase {
         // ◀ 今日 ▶ in this order whatever the hand.
         XCTAssertLessThanOrEqual(h.previous.maxX, h.today.minX + 0.5, "\(name): 「前の月」 is left of 「今日」")
         XCTAssertLessThanOrEqual(h.today.maxX, h.next.minX + 0.5, "\(name): 「今日」 is left of 「次の月」")
-        // 等倍 on the second row, at the free hand's end, beside the switch and no taller than it (§3.3).
+        // 等倍 on the second row, at the writing hand's end, beside the switch and no taller than it (§3.3, §16.2).
         XCTAssertGreaterThanOrEqual(h.zoom.minY, h.today.maxY - 0.5, "\(name): 等倍 \(h.zoom) is under 「今日」 \(h.today)")
         XCTAssertLessThanOrEqual(h.zoom.height, h.picker.height + 0.5, "\(name): 等倍 \(h.zoom) is no taller than the switch \(h.picker)")
+        // The header's side margins are 12 pt (`.padding(.horizontal, 12)`): an end piece is within 13 of the window's edge.
         switch hand {
         case .right:
-            XCTAssertLessThanOrEqual(h.next.maxX, h.title.minX + 0.5, "\(name): the title is right of 「次の月」")
-            XCTAssertLessThanOrEqual(h.title.minX, h.next.maxX + 8, "\(name): the title right after 「次の月」")
+            XCTAssertLessThanOrEqual(h.title.minX, h.window.minX + 13, "\(name): the title at the left end")
             XCTAssertLessThanOrEqual(h.title.maxX, h.add.minX + 0.5, "\(name): the title is left of 「予定を追加」")
-            XCTAssertLessThanOrEqual(h.zoom.minX, h.window.minX + 13, "\(name): 等倍 at the left end")
-            XCTAssertLessThanOrEqual(h.zoom.maxX, h.picker.minX + 0.5, "\(name): 等倍 is left of the switch")
-        case .left:
-            XCTAssertLessThanOrEqual(h.title.maxX, h.previous.minX + 0.5, "\(name): the title is left of 「前の月」")
-            XCTAssertGreaterThanOrEqual(h.title.maxX, h.previous.minX - 8, "\(name): the title right before 「前の月」")
-            XCTAssertLessThanOrEqual(h.add.maxX, h.title.minX + 0.5, "\(name): 「予定を追加」 is left of the title")
-            XCTAssertGreaterThanOrEqual(h.zoom.maxX, h.window.maxX - 13, "\(name): 等倍 at the right end")
+            XCTAssertLessThanOrEqual(h.settings.maxX, h.previous.minX + 0.5, "\(name): 「設定」 is left of 「前の月」")
+            XCTAssertGreaterThanOrEqual(h.next.maxX, h.window.maxX - 13, "\(name): 「次の月」 at the right end")
             XCTAssertLessThanOrEqual(h.picker.maxX, h.zoom.minX + 0.5, "\(name): the switch is left of 等倍")
+            XCTAssertGreaterThanOrEqual(h.zoom.maxX, h.window.maxX - 13, "\(name): 等倍 at the right end")
+        case .left:
+            XCTAssertGreaterThanOrEqual(h.title.maxX, h.window.maxX - 13, "\(name): the title at the right end")
+            XCTAssertLessThanOrEqual(h.add.maxX, h.title.minX + 0.5, "\(name): 「予定を追加」 is left of the title")
+            XCTAssertLessThanOrEqual(h.next.maxX, h.settings.minX + 0.5, "\(name): 「次の月」 is left of 「設定」")
+            XCTAssertLessThanOrEqual(h.previous.minX, h.window.minX + 13, "\(name): 「前の月」 at the left end")
+            XCTAssertLessThanOrEqual(h.zoom.maxX, h.picker.minX + 0.5, "\(name): 等倍 is left of the switch")
+            XCTAssertLessThanOrEqual(h.zoom.minX, h.window.minX + 13, "\(name): 等倍 at the left end")
         }
 
         // 「今日」 works: ▶ twice, then back.
@@ -144,7 +149,8 @@ final class HeaderAndPaperUITests: XCTestCase {
         log("\(name): OK")
     }
 
-    /// §6.2's wide row (the month page, 2026-10, in landscape).
+    /// §16.6's wide row (the month page, 2026-10, in landscape; §6.2's before the rework). No end checks: the window reaches
+    /// under the side safe area.
     private func checkLandscape(hand: Hand) throws {
         continueAfterFailure = false
         let name = "today landscape \(hand.rawValue)"
@@ -157,15 +163,13 @@ final class HeaderAndPaperUITests: XCTestCase {
         XCTAssertLessThan(h.picker.minY, h.today.maxY, "\(name): one row (switch \(h.picker), 「今日」 \(h.today))")
         XCTAssertLessThanOrEqual(h.previous.maxX, h.today.minX + 0.5, "\(name): 「前の月」 is left of 「今日」")
         XCTAssertLessThanOrEqual(h.today.maxX, h.next.minX + 0.5, "\(name): 「今日」 is left of 「次の月」")
-        // The row from left to right (each piece's maxX ≤ the next one's minX).
+        // The row from left to right (each piece's maxX ≤ the next one's minX; §16.2). No test of the ends: the safe area.
         let row: [(String, CGRect)]
         switch hand {
         case .right:
-            row = [("次の月", h.next), ("等倍", h.zoom), ("title", h.title), ("switch", h.picker), ("予定を追加", h.add), ("設定", h.settings)]
-            XCTAssertLessThanOrEqual(h.title.minX, h.zoom.maxX + 6.5, "\(name): the title right after 等倍")
+            row = [("title", h.title), ("switch", h.picker), ("予定を追加", h.add), ("設定", h.settings), ("等倍", h.zoom), ("前の月", h.previous)]
         case .left:
-            row = [("設定", h.settings), ("予定を追加", h.add), ("switch", h.picker), ("title", h.title), ("等倍", h.zoom), ("前の月", h.previous)]
-            XCTAssertGreaterThanOrEqual(h.title.maxX, h.zoom.minX - 6.5, "\(name): the title right before 等倍")
+            row = [("次の月", h.next), ("等倍", h.zoom), ("設定", h.settings), ("予定を追加", h.add), ("switch", h.picker), ("title", h.title)]
         }
         for (left, right) in zip(row, row.dropFirst()) {
             XCTAssertLessThanOrEqual(left.1.maxX, right.1.minX + 0.5, "\(name): \(left.0) \(left.1) is left of \(right.0) \(right.1)")
