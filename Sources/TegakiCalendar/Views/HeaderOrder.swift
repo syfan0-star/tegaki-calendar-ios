@@ -63,7 +63,9 @@ enum HeaderOrder {
         }
         switch hand {
         case .right: return right
-        case .left: return Array(right.reversed())
+        // MUTATION MH1 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, HeaderOrderTests): the left hand's
+        // rows are the right hand's as they are (was: the right hand's reversed).
+        case .left: return right
         }
     }
 }

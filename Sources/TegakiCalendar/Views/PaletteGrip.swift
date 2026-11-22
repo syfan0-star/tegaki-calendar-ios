@@ -47,7 +47,9 @@ struct PaletteGripView: UIViewRepresentable {
     /// The distance (pt) a touch moves before the drag starts (§4.6).
     static let startDistance: CGFloat = 10
     /// The touches that move the bar: a finger, a trackpad, a mouse. Not the Apple Pencil (§4.6, MT2).
-    static let allowedTouchTypes: [UITouch.TouchType] = [.direct, .indirectPointer]
+    // MUTATION MT2 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, PaletteGripTests): the grip's pan takes
+    // the Apple Pencil too (was: a finger, a trackpad and a mouse only).
+    static let allowedTouchTypes: [UITouch.TouchType] = [.direct, .indirectPointer, .pencil]
     /// The UI tests' handle (`PaletteMoveUITests`).
     static let identifier = "toolbar.grip"
 

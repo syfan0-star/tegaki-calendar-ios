@@ -193,7 +193,8 @@ struct SettingsScreen: View {
     static func handChanged(to value: Hand, screenshot: Bool) {
         guard !screenshot else { return }
         AppSettings.hand = value
-        AppSettings.toolbarEdge = value.dockEdge
+        // MUTATION MS1 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, SettingsScreenTests): the round
+        // button's corner is not written with the hand (the line that wrote the hand's dock corner is taken out here).
     }
 
     /// The data section's footer (M4 contract §6.2).

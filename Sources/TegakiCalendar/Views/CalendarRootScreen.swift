@@ -3556,6 +3556,10 @@ extension CalendarRootScreen {
         guard ToolbarLogic.step(mode, on: .placementChosen).storesPlacement else { return PaletteDrop(edge: nil, dock: nil) }
         guard edge != stored else { return PaletteDrop(edge: edge, dock: nil) }
         let dock = edge.dockEdge
+        // MUTATION MS2 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, ScreenshotModeHandPaletteTests):
+        // screenshot mode writes the bar's stored edge too (was: written outside screenshot mode only); the corner is
+        // still not written there.
+        if screenshot { AppSettings.paletteEdge = edge }
         if !screenshot {
             AppSettings.paletteEdge = edge
             if let dock { AppSettings.toolbarEdge = dock }

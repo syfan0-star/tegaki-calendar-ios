@@ -383,7 +383,8 @@ enum AppSettings {
         let key = zoomFitKey(kind)
         if fit {
             defaults.set(true, forKey: key)
-            defaults.removeObject(forKey: zoomRatioKey(kind))
+            // MUTATION MS3 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, AppSettingsTests): true keeps the
+            // kind's stored ratio (the line that removed `zoomRatioKey(kind)` is taken out here).
         } else {
             defaults.removeObject(forKey: key)
         }

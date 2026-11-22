@@ -1296,12 +1296,20 @@ extension InkCanvasView {
                 canvas.minimumZoomScale = bounds.min
                 canvas.maximumZoomScale = bounds.max
                 if !live {
+                    // MUTATION MZ3 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, InkCanvasWidthCentreTests and
+                    // the fit tests that read y after a turn): 1.4's two lines again (0d-44 undone): the middle is read with the
+                    // new width and height and the offset after the new frame (was: `laidOffset` and `lastLayoutSize`);
+                    // `laidOffset` above is left unused. DATA_1_1.sha256's row of this file is this branch's.
                     let centerPaper = CGPoint(
-                        x: (laidOffset.x + lastLayoutSize.width / 2) / oldZoom,
-                        y: (laidOffset.y + lastLayoutSize.height / 2) / oldZoom
+                        x: (oldOffset.x + viewport.width / 2) / oldZoom,
+                        y: (oldOffset.y + viewport.height / 2) / oldZoom
                     )
                     let topY = oldOffset.y / oldZoom
-                    let newZoom = followsFit ? bounds.clamped(bounds.fit) : (atOpen ? bounds.open : (atMin ? bounds.min : bounds.clamped(targetZoom ?? oldZoom)))
+                    // MUTATION MZ5 (r141-q-m2 only, never merged; §16.7, Z2-6 and Z2-7 undone): step 4 does not read
+                    // `followsFit` (was: `followsFit ? bounds.clamped(bounds.fit) :` before the rest of the next line, and
+                    // `&& !followsFit` after `(atOpen || atMin)` in y below), so a page at fit keeps 1.4's rule when the width
+                    // changes. DATA_1_1.sha256's row of this file is this branch's.
+                    let newZoom = atOpen ? bounds.open : (atMin ? bounds.min : bounds.clamped(targetZoom ?? oldZoom))
                     canvas.zoomScale = newZoom
                     canvas.contentSize = Self.scaled(appliedLayout.size, by: newZoom)
                     applyInsets()
@@ -1310,7 +1318,7 @@ extension InkCanvasView {
                         // 1.1.1: at the opening zoom or the minimum the top of the view stays on the same
                         // paper y: the paper is longer than the viewport now, so the clamp no longer
                         // brings it back to the top.
-                        y: (atOpen || atMin) && !followsFit ? topY * newZoom : centerPaper.y * newZoom - viewport.height / 2
+                        y: (atOpen || atMin) ? topY * newZoom : centerPaper.y * newZoom - viewport.height / 2
                     ))
                 }
                 if spanState != nil { bandWidthChanged() }
@@ -1486,7 +1494,11 @@ extension InkCanvasView {
         /// layout's end-of-pinch path: `finishZoom` reports the ratio, the fit state and the end of zooming on the next turn
         /// (the screen's closures then keep the week's or the day's fit, or remove the kind's stored ratio; §16.3.4, 0e-10).
         private func resetZoom() {
-            guard let canvas, let container, let bounds = lastBounds, hasInitialZoom, !isLive, !isUsingTool, !resetScroll,
+            // MUTATION MZ1 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, InkCanvasZoomResetTests): the
+            // guard under the pen is taken out of the next line (was: `!isUsingTool` between `!isLive` and
+            // `!resetScroll`), so a press while PencilKit's tool is in use goes to the target under the pen.
+            // DATA_1_1.sha256's row of this file is this branch's.
+            guard let canvas, let container, let bounds = lastBounds, hasInitialZoom, !isLive, !resetScroll,
                   !isMovingSelection else { return }
             if let state = spanState, state.motionOverride ?? (canvas.isTracking || canvas.isDragging) { return }
             let target = ZoomReset.target(appliedLayout.kind, bounds: bounds)
@@ -1539,7 +1551,11 @@ extension InkCanvasView {
                 requestShiftCheck()
             }
             followsFit = ZoomReset.followsFit(appliedLayout.kind)
-            scrollViewDidEndZooming(canvas, with: nil, atScale: target)
+            // MUTATION MZ2 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, InkCanvasZoomResetTests and
+            // InkCanvasSpanZoomResetTests): the end-of-pinch path is skipped here, so neither the ratio, the fit state nor
+            // the end of zooming is reported after a reset that moved (the line was
+            // `scrollViewDidEndZooming(canvas, with: nil, atScale: target)`; the one of 「採る」 above stays).
+            // DATA_1_1.sha256's row of this file is this branch's.
             #if DEBUG
             NSLog("zoom: reset %.4f→%.4f fit=%d", oldZoom, target, Int32(followsFit ? 1 : 0))
             #endif
@@ -2244,7 +2260,10 @@ extension InkCanvasView {
         }
 
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
-            followsFit = false
+            // MUTATION MZ6 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, Z2-9 taken out): a pinch does not
+            // end the fit state (the line `followsFit = false` was here), so the pinch reports fit true (and, MZ5 aside, a
+            // page pinched at fit would still go to fit when the width changes). DATA_1_1.sha256's row of this file is this
+            // branch's.
             deliverNextTurn { [weak self] in self?.parent.onZoomingChange(true) }
             #if DEBUG
             NSLog("zoom: begin")

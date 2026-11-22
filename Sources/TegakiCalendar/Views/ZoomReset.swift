@@ -25,6 +25,9 @@ enum ZoomReset {
     /// Every device has min ≤ open ≤ fit ≤ max (open = min(fit, the height's), the iPhone's landscape cap is fit / 3 or
     /// fit / 5, max ≥ 4 × fit), so the clamp changes nothing there; it stays for limits made some other way.
     static func target(_ kind: PageKind, bounds: ZoomPolicy.Bounds) -> CGFloat {
-        followsFit(kind) ? bounds.clamped(bounds.fit) : bounds.open
+        // MUTATION MZ4 (r141-q-m2 only, never merged; docs/R1_4_1_CONTRACT.md §16.7, ZoomResetTargetTests and the fit
+        // tests of the canvas): the week and the day go to the opening zoom too, as the month and the year do (was:
+        // `followsFit(kind) ? bounds.clamped(bounds.fit) : bounds.open`); `followsFit` itself is unchanged.
+        bounds.open
     }
 }
