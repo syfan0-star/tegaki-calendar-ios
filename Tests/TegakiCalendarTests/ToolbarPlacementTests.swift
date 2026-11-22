@@ -7,7 +7,8 @@ import XCTest
 /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.3–§4.11, §6.1 T; 0e-14 … 0e-22): where the open toolbar may sit and the pure rules
 /// around it — the edges a window allows (`allowedEdges`, iPhones and narrow iPad windows the bottom only), the edge shown
 /// (`effectiveEdge`, the stored one kept), the snap of a drop (`snapEdge`: the middle keeps the edge, a flick carries it,
-/// a disallowed edge is never chosen, ties), the step of a drop (`placementChosen`), the slots (74, 60, the bottom bar's
+/// a disallowed edge is never chosen, ties), the step of a drop (`placementChosen`; since the third rework, §18.3, also of
+/// the peeking bar's 「動かす」, which opens the bar), the slots (74, 60, the bottom bar's
 /// explicit 8), the paddings of 1.4 unchanged, the toast's side inset, the stored value, the grip's and the outlines'
 /// geometry and the VoiceOver texts. Mutation MT1 (`allowedEdges` allows the sides at a 678 pt column) fails
 /// `testIPadWindows` and `testSideLimits`.
@@ -205,13 +206,18 @@ final class ToolbarPlacementTests: XCTestCase {
                                              allowed: all, current: .bottom), .left)
     }
 
-    // MARK: The drop's step (§4.7)
+    // MARK: The drop's step (§4.7, §18.2)
 
+    /// The open bar keeps its place and stays open; the peeking bar (its 「動かす」, §18.2, 0e-26) keeps the place and opens
+    /// there, `toolbar.collapsed` false; the dock keeps nothing. (The name is §4.7's: the dock still never stores.)
     func testPlacementChosenStoresOnTheOpenBarOnly() {
         XCTAssertEqual(ToolbarLogic.step(.expanded, on: .placementChosen),
                        ToolbarStep(mode: .expanded, storesPlacement: true))
         XCTAssertEqual(ToolbarLogic.step(.collapsed, on: .placementChosen), ToolbarStep(mode: .collapsed))
-        XCTAssertEqual(ToolbarLogic.step(.peek, on: .placementChosen), ToolbarStep(mode: .peek))
+        XCTAssertEqual(ToolbarLogic.step(.peek, on: .placementChosen),
+                       ToolbarStep(mode: .expanded, storeCollapsed: false, storesPlacement: true))
+        XCTAssertEqual(ToolbarLogic.step(.peek, on: .placementChosen).storeCollapsed, false, "the bar opened to stay")
+        XCTAssertFalse(ToolbarLogic.step(.peek, on: .placementChosen).flipsEdge, "the corner is the drop's (a side's own)")
         XCTAssertFalse(ToolbarStep(mode: .expanded).storesPlacement, "the new field is false by default")
         XCTAssertNil(ToolbarLogic.step(.expanded, on: .placementChosen).storeCollapsed)
         XCTAssertFalse(ToolbarLogic.step(.expanded, on: .placementChosen).flipsEdge)
@@ -224,7 +230,7 @@ final class ToolbarPlacementTests: XCTestCase {
                 stores.append("\(mode) \(event)")
             }
         }
-        XCTAssertEqual(stores, ["expanded placementChosen"])
+        XCTAssertEqual(stores, ["expanded placementChosen", "peek placementChosen"])
         // 1.4's rows are the same, the new field false.
         XCTAssertEqual(ToolbarLogic.step(.expanded, on: .collapseTapped), ToolbarStep(mode: .collapsed, storeCollapsed: true))
         XCTAssertEqual(ToolbarLogic.step(.collapsed, on: .moveEdgeChosen), ToolbarStep(mode: .collapsed, flipsEdge: true))

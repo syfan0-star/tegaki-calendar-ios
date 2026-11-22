@@ -16,6 +16,13 @@ import XCTest
 /// screen are `PaletteMoveUITests.testTheMoveButtonMovesTheBar`'s (CI's 13-inch iPad); the Apple Pencil is the owner's
 /// (確かめ表 14). PaletteGripTests is unchanged and still checks the grip on the shared pan. `--screenshot-palette-menu` (the
 /// photo of the open choice) is read here too.
+///
+/// 1.4.1's third rework (docs/R1_4_1_CONTRACT.md §18.2, §18.3, 0e-26): the button is on the peeking bar too (not on the dock,
+/// an iPhone or a window with the bottom alone; the grip still only on the open bar), where it is a tap only (`drags` false:
+/// the pan never begins, a finger moved 10 pt is nothing) and a choice keeps the edge and opens the bar there
+/// (`paletteDropped(mode: .peek)` stores; the screen's choice path applies the table's `.placementChosen` step in one
+/// transaction). Mutations MB5 (no button on a peek) and MB6 (no `(.peek, .placementChosen)` row) fail here. The real dock,
+/// peek, choice and 「しまう」 are `PaletteMoveUITests.testThePeekedBarHasTheMoveButton`'s.
 @MainActor
 final class PaletteMoveButtonTests: XCTestCase {
     // MARK: Stand-ins (PaletteGripTests' shape, with a place)
@@ -59,7 +66,7 @@ final class PaletteMoveButtonTests: XCTestCase {
     }
 
     private func representable(_ log: Log, mayBegin: @escaping () -> Bool = { true }, allowed: [PaletteEdge],
-                               current: PaletteEdge, cancelTrigger: Int = 0) -> PaletteMoveButtonView {
+                               current: PaletteEdge, cancelTrigger: Int = 0, drags: Bool = true) -> PaletteMoveButtonView {
         PaletteMoveButtonView(
             mayBegin: mayBegin,
             onBegan: { log.events.append("began \(Int($0.x)),\(Int($0.y))") },
@@ -70,7 +77,8 @@ final class PaletteMoveButtonTests: XCTestCase {
             allowed: allowed,
             current: current,
             onMove: { log.events.append("move \($0.rawValue)") },
-            menuShown: Binding(get: { log.shown }, set: { log.shown = $0 })
+            menuShown: Binding(get: { log.shown }, set: { log.shown = $0 }),
+            drags: drags
         )
     }
 
@@ -92,11 +100,12 @@ final class PaletteMoveButtonTests: XCTestCase {
 
     // MARK: Where it shows (§17.2, MB1)
 
-    /// The button shows exactly where the grip does: the open bar of a window that allows two edges or more. Not on an iPhone
-    /// (the bottom alone, whatever its window), an iPad window with the bottom alone, the dock or a peek.
+    /// On the open bar and the dock the button shows exactly where the grip does: the open bar of a window that allows two
+    /// edges or more. Not on an iPhone (the bottom alone, whatever its window), an iPad window with the bottom alone or the
+    /// dock. (The peek, §18.2, is `testTheButtonShowsOnThePeekToo`'s.)
     func testTheButtonShowsWhereTheGripShows() {
         let sets: [[PaletteEdge]] = [[], [.bottom], [.bottom, .top], four]
-        for mode in [ToolbarMode.expanded, .collapsed, .peek] {
+        for mode in [ToolbarMode.expanded, .collapsed] {
             for allowed in sets {
                 XCTAssertEqual(ToolbarLogic.showsMoveButton(mode, allowed: allowed), ToolbarLogic.showsGrip(mode, allowed: allowed),
                                "\(mode) \(allowed)")
@@ -105,7 +114,6 @@ final class PaletteMoveButtonTests: XCTestCase {
         XCTAssertTrue(ToolbarLogic.showsMoveButton(.expanded, allowed: four))
         XCTAssertTrue(ToolbarLogic.showsMoveButton(.expanded, allowed: [.bottom, .top]))
         XCTAssertFalse(ToolbarLogic.showsMoveButton(.expanded, allowed: [.bottom]), "one edge: no button")
-        XCTAssertFalse(ToolbarLogic.showsMoveButton(.peek, allowed: four), "a peek: no button")
         XCTAssertFalse(ToolbarLogic.showsMoveButton(.collapsed, allowed: four), "the dock: no button")
         // Every iPhone (the Pro Max on its side, the Duo's inner screen) allows the bottom alone: no button there.
         for size in [CGSize(width: 402, height: 874), CGSize(width: 956, height: 440), CGSize(width: 669, height: 951)] {
@@ -120,6 +128,118 @@ final class PaletteMoveButtonTests: XCTestCase {
             let allowed = ToolbarLogic.allowedEdges(isPad: true, windowSize: size, column: size.width, paperColumnHeight: size.height - 300)
             XCTAssertTrue(ToolbarLogic.showsMoveButton(.expanded, allowed: allowed), "iPad \(size)")
         }
+    }
+
+    /// §18.2 (MB5): the peeking bar has the button too — a bar folded at the 確かめ表's row 12 and peeked from the round
+    /// button had no grip and no 「動かす」 — wherever two edges or more are allowed; the dock never, an iPhone and a window
+    /// with the bottom alone never. The grip stays the open bar's, and so does the button's drag (`moveButtonDrags`).
+    func testTheButtonShowsOnThePeekToo() {
+        XCTAssertTrue(ToolbarLogic.showsMoveButton(.peek, allowed: four), "a peek on four edges: the button")
+        XCTAssertTrue(ToolbarLogic.showsMoveButton(.peek, allowed: [.bottom, .top]), "a peek on two edges: the button")
+        XCTAssertFalse(ToolbarLogic.showsMoveButton(.peek, allowed: [.bottom]), "a peek in a window with the bottom alone: none")
+        XCTAssertFalse(ToolbarLogic.showsMoveButton(.peek, allowed: []))
+        for allowed in [[], [.bottom], [.bottom, .top], four] as [[PaletteEdge]] {
+            XCTAssertFalse(ToolbarLogic.showsMoveButton(.collapsed, allowed: allowed), "the dock: no button (\(allowed))")
+            XCTAssertFalse(ToolbarLogic.showsGrip(.peek, allowed: allowed), "a peek: still no grip (\(allowed))")
+            XCTAssertFalse(ToolbarLogic.moveButtonDrags(.peek, allowed: allowed), "a peek: a tap only (\(allowed))")
+            XCTAssertFalse(ToolbarLogic.moveButtonDrags(.collapsed, allowed: allowed))
+            XCTAssertEqual(ToolbarLogic.moveButtonDrags(.expanded, allowed: allowed), ToolbarLogic.showsGrip(.expanded, allowed: allowed),
+                           "the open bar's button drags where the grip does (\(allowed))")
+        }
+        XCTAssertTrue(ToolbarLogic.moveButtonDrags(.expanded, allowed: four))
+        // Every iPhone allows the bottom alone: its peek keeps 1.4's bar.
+        for size in [CGSize(width: 402, height: 874), CGSize(width: 956, height: 440), CGSize(width: 669, height: 951)] {
+            let allowed = ToolbarLogic.allowedEdges(isPad: false, windowSize: size, column: size.width, paperColumnHeight: size.height)
+            XCTAssertFalse(ToolbarLogic.showsMoveButton(.peek, allowed: allowed), "iPhone \(size): no button on its peek")
+        }
+        let ipad13 = ToolbarLogic.allowedEdges(isPad: true, windowSize: CGSize(width: 1032, height: 1376), column: 1032,
+                                               paperColumnHeight: 1076)
+        XCTAssertTrue(ToolbarLogic.showsMoveButton(.peek, allowed: ipad13), "the 13-inch iPad's peek has the button")
+    }
+
+    /// §18.2: on a peek (`drags` false) the button is a tap only. The pan's gate says no even where the palm rule says yes, so
+    /// no drag begins (no callback, the pan not dragging) however far the finger goes; a finger that moved 10 pt and lifted is
+    /// nothing (no drag, no tap); a still touch of a finger, a pointer or the Apple Pencil opens the choice. Back on the open
+    /// bar (`drags` true) the gate is the palm rule again.
+    func testThePeeksButtonIsATapOnly() throws {
+        let log = Log()
+        let button = PaletteMoveButtonView.ButtonView(frame: CGRect(x: 0, y: 0, width: 48, height: 44))
+        button.configure(representable(log, mayBegin: { true }, allowed: four, current: .bottom, drags: false))
+        let gate = try XCTUnwrap(button.pan.delegate)
+        XCTAssertEqual(gate.gestureRecognizerShouldBegin?(button.pan), false, "a peek: the pan never begins")
+
+        // A finger dragged 12 pt, then 400 pt (as UIKit would report it, had the pan begun): no drag, and no tap at the lift.
+        let finger = StandInTouch(.direct, at: CGPoint(x: 900, y: 1300))
+        button.touchesBegan([finger], with: nil)
+        finger.point = CGPoint(x: 900, y: 1288)
+        button.touchesMoved([finger], with: nil)
+        button.handle(.began, location: finger.point, translation: CGPoint(x: 0, y: -12), velocity: .zero)
+        XCTAssertFalse(button.dragging, "no drag at 10 pt")
+        finger.point = CGPoint(x: 900, y: 900)
+        button.touchesMoved([finger], with: nil)
+        button.handle(.changed, location: finger.point, translation: CGPoint(x: 0, y: -400), velocity: CGVector(dx: 0, dy: -300))
+        button.handle(.ended, location: finger.point, translation: CGPoint(x: 0, y: -400), velocity: CGVector(dx: 0, dy: -300))
+        button.touchesEnded([finger], with: nil)
+        XCTAssertFalse(button.dragging)
+        XCTAssertEqual(log.events, [], "no drag callback on a peek")
+        XCTAssertFalse(log.shown, "moved 10 pt: no tap either")
+
+        // A tap opens the choice with any touch.
+        for type in [UITouch.TouchType.direct, .indirectPointer, .pencil] {
+            log.shown = false
+            touch(button, type, from: CGPoint(x: 900, y: 1300), path: [CGPoint(x: 902, y: 1303)])
+            XCTAssertTrue(log.shown, "\(type.rawValue): a tap on the peek's button opens the choice")
+        }
+        XCTAssertEqual(log.events, [])
+
+        // The bar opened: the same view, configured for the open bar, drags with the palm rule again.
+        button.configure(representable(log, mayBegin: { true }, allowed: four, current: .right))
+        XCTAssertEqual(gate.gestureRecognizerShouldBegin?(button.pan), true, "the open bar: the palm rule")
+        button.configure(representable(log, mayBegin: { false }, allowed: four, current: .right))
+        XCTAssertEqual(gate.gestureRecognizerShouldBegin?(button.pan), false, "the open bar: the palm rule says no")
+        XCTAssertTrue(PaletteMoveButtonView(mayBegin: { true }, onBegan: { _ in }, onChanged: { _, _ in }, onEnded: { _, _ in },
+                                            onCancelled: {}, cancelTrigger: 0, allowed: four, current: .bottom, onMove: { _ in },
+                                            menuShown: .constant(false)).drags, "drags by default (§17.2's button)")
+    }
+
+    /// §18.2 (MB6): a choice on the peek keeps the edge as a drop on the open bar does (§4.7) — the table's
+    /// `(.peek, .placementChosen)` stores and opens the bar to stay —, in screenshot mode in the screen's `@State` only (the
+    /// answer), in normal use in `toolbar.paletteEdge` and, on a side, the round button's corner. The dock keeps nothing.
+    func testAChoiceOnThePeekKeepsTheEdge() throws {
+        let suite = "test-palette-peek-\(UUID())"
+        let scratch = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let saved = AppSettings.defaults
+        AppSettings.defaults = scratch
+        defer {
+            scratch.removePersistentDomain(forName: suite)
+            AppSettings.defaults = saved
+        }
+        let step = ToolbarLogic.step(.peek, on: .placementChosen)
+        XCTAssertTrue(step.storesPlacement)
+        XCTAssertEqual(step.mode, .expanded, "the peek opens on the edge chosen")
+        XCTAssertEqual(step.storeCollapsed, false, "and stays open (toolbar.collapsed false)")
+
+        XCTAssertEqual(CalendarRootScreen.paletteDropped(on: .right, mode: .peek, stored: .bottom, screenshot: true),
+                       CalendarRootScreen.PaletteDrop(edge: .right, dock: .trailing), "screenshot mode: the screen's state")
+        XCTAssertNil(scratch.object(forKey: AppSettings.paletteEdgeKey), "screenshot mode writes no toolbar.paletteEdge")
+        XCTAssertNil(scratch.object(forKey: AppSettings.toolbarEdgeKey), "nor toolbar.collapsedEdge")
+
+        XCTAssertEqual(CalendarRootScreen.paletteDropped(on: .right, mode: .peek, stored: .bottom, screenshot: false),
+                       CalendarRootScreen.PaletteDrop(edge: .right, dock: .trailing))
+        XCTAssertEqual(scratch.string(forKey: "toolbar.paletteEdge"), "right")
+        XCTAssertEqual(scratch.string(forKey: "toolbar.collapsedEdge"), "trailing", "「しまう」 leaves the dock bottom right")
+        XCTAssertEqual(CalendarRootScreen.paletteDropped(on: .top, mode: .peek, stored: .right, screenshot: false),
+                       CalendarRootScreen.PaletteDrop(edge: .top, dock: nil))
+        XCTAssertEqual(scratch.string(forKey: "toolbar.paletteEdge"), "top")
+        XCTAssertEqual(scratch.string(forKey: "toolbar.collapsedEdge"), "trailing", "the top leaves the corner")
+        XCTAssertEqual(CalendarRootScreen.paletteDropped(on: .left, mode: .peek, stored: .top, screenshot: false),
+                       CalendarRootScreen.PaletteDrop(edge: .left, dock: .leading))
+        XCTAssertEqual(scratch.string(forKey: "toolbar.collapsedEdge"), "leading")
+
+        scratch.removeObject(forKey: AppSettings.paletteEdgeKey)
+        XCTAssertEqual(CalendarRootScreen.paletteDropped(on: .right, mode: .collapsed, stored: .bottom, screenshot: false),
+                       CalendarRootScreen.PaletteDrop(edge: nil, dock: nil), "the dock keeps nothing")
+        XCTAssertNil(scratch.object(forKey: AppSettings.paletteEdgeKey))
     }
 
     // MARK: Tap or drag (§17.2)
@@ -345,12 +465,14 @@ final class PaletteMoveButtonTests: XCTestCase {
 
         let screen = try code("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
         XCTAssertEqual(count("PaletteMoveButtonView(", in: screen), 1, "the screen makes one button")
-        XCTAssertEqual(count("current: paletteEdge, onMove: { paletteMoveButtonChose($0) }, menuShown: $paletteMenuShown )", in: screen), 1,
-                       "the button's choices go to paletteMoveButtonChose")
-        XCTAssertEqual(count("private func paletteMoveButtonChose(_ edge: PaletteEdge) { guard paletteHasMoveButton, "
+        XCTAssertEqual(count("current: paletteEdge, onMove: { paletteMoveButtonChose($0) }, menuShown: $paletteMenuShown, "
+                             + "drags: ToolbarLogic.moveButtonDrags(toolbarMode, allowed: paletteAllowed) )", in: screen), 1,
+                       "the button's choices go to paletteMoveButtonChose; it drags only where the table says (§18.2)")
+        XCTAssertEqual(count("private func paletteMoveButtonChose(_ edge: PaletteEdge) { "
+                             + "if paletteMenuShown { paletteMenuShown = false } guard paletteHasMoveButton, "
                              + "let edge = PaletteMoveButtonView.choice(edge, allowed: paletteAllowed, current: paletteEdge) "
                              + "else { return } paletteMoveChosen(edge) }", in: screen), 1,
-                       "the guard: the live allowed edges and the live edge, then VoiceOver's path")
+                       "the choice of edges closed, the guard: the live allowed edges and the live edge, then VoiceOver's path")
         XCTAssertEqual(count("paletteMoveButtonChose(", in: screen), 2, "declared once, called once (the button's onMove)")
         XCTAssertEqual(count("PaletteMoveButtonView.choice(", in: screen), 1)
 
@@ -365,6 +487,44 @@ final class PaletteMoveButtonTests: XCTestCase {
         XCTAssertEqual(count("static func postLayoutChanged() { Task { @MainActor in "
                              + "UIAccessibility.post(notification: .layoutChanged, argument: nil) } }", in: grip), 1,
                        "on the main actor's next turn, after SwiftUI laid the moved bar out")
+    }
+
+    /// §18.2 (MB6), the screen's wires in code only (as above): every choice (`paletteMoveChosen`: the button's dialog, its
+    /// and the grip's VoiceOver actions) goes through `placePalette` inside one transaction without animation, and
+    /// `placePalette` keeps the edge (`paletteDropped` with the live mode) and then applies the table's `.placementChosen`
+    /// step (`toolbarEvent`: the step's mode, `toolbar.collapsed` outside screenshot mode) — so a choice on a peek opens the
+    /// bar on its edge with the paper laid out once, and the open bar's drop stays as it was (the step changes nothing there).
+    /// The choice of edges closes when the button goes (`paletteHasMoveButton`, which a peek folding changes; the grip does
+    /// not change during a peek).
+    func testTheChoiceAppliesTheTablesStepInOneTransaction() throws {
+        let url = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
+        let screen = String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
+            .split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        func count(_ text: String) -> Int {
+            screen.components(separatedBy: text).count - 1
+        }
+
+        XCTAssertEqual(count("private func paletteMoveChosen(_ edge: PaletteEdge) { var transaction = Transaction() "
+                             + "transaction.disablesAnimations = true withTransaction(transaction) { placePalette(on: edge) } }"), 1,
+                       "a choice: placePalette in one transaction without animation")
+        XCTAssertEqual(count("private func placePalette(on edge: PaletteEdge) { let drop = Self.paletteDropped(on: edge, "
+                             + "mode: toolbarMode, stored: paletteStored, screenshot: ScreenshotMode.isActive) "
+                             + "if ScreenshotMode.isActive { if let kept = drop.edge, kept != screenshotPaletteEdge { "
+                             + "screenshotPaletteEdge = kept } if let dock = drop.dock, dock != screenshotEdge { screenshotEdge = dock } } "
+                             + "toolbarEvent(.placementChosen) }"), 1,
+                       "the edge kept with the mode the choice was made in, then the table's step")
+        XCTAssertEqual(count("toolbarEvent(.placementChosen)"), 1, "placePalette alone applies the step")
+        XCTAssertEqual(count("placePalette(on: edge)"), 2, "the drop and the choice")
+        XCTAssertEqual(count("withTransaction(transaction) { endPaletteDrag() placePalette(on: edge) }"), 1,
+                       "the drop's transaction, as before")
+        XCTAssertEqual(count("private func toolbarEvent(_ event: ToolbarEvent) { let step = ToolbarLogic.step(toolbarMode, on: event)"), 1,
+                       "the table's step")
+        XCTAssertEqual(count("if let stored = step.storeCollapsed, !ScreenshotMode.isActive { toolbarCollapsedStored = stored } "
+                             + "if step.mode != toolbarMode { toolbarMode = step.mode } }"), 1,
+                       "toolbar.collapsed outside screenshot mode, then the mode (screenshot mode: the @State only)")
+        XCTAssertEqual(count(".onChange(of: paletteHasMoveButton) { if !paletteHasMoveButton, paletteMenuShown { paletteMenuShown = false } }"),
+                       1, "the choice of edges goes with the button")
+        XCTAssertEqual(count("{ paletteMenuShown = false }"), 2, "closed by the button's going and by a choice")
     }
 
     private static let repository = URL(fileURLWithPath: "\(#filePath)")

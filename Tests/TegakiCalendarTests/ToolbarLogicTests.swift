@@ -143,8 +143,10 @@ final class ToolbarLogicTests: XCTestCase {
 
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.7, §4.10, §6.3): the bar's edge as stored (`toolbar.paletteEdge`; nil and
     /// anything else the bottom, `ToolbarEdge(stored:)`'s shape) and the table's new row — a drop or a VoiceOver move on
-    /// the open bar keeps it open and writes the edge; in the other modes it changes nothing (the grip is not shown).
-    /// The rows above are the same with the new field false (`ToolbarPlacementTests` has the rest).
+    /// the open bar keeps it open and writes the edge; on the dock it changes nothing (no grip, no 「動かす」). The third
+    /// rework (§18.2, §18.3, 0e-26): the peeking bar's 「動かす」 writes the edge too and opens the bar there, to stay
+    /// (`toolbar.collapsed` false). The rows above are the same with the new field false (`ToolbarPlacementTests` has the
+    /// rest).
     func testPaletteEdgeAndPlacementChosen() {
         XCTAssertEqual(PaletteEdge(stored: "bottom"), .bottom)
         XCTAssertEqual(PaletteEdge(stored: "top"), .top)
@@ -157,7 +159,8 @@ final class ToolbarLogicTests: XCTestCase {
 
         XCTAssertEqual(ToolbarLogic.step(.expanded, on: .placementChosen), ToolbarStep(mode: .expanded, storesPlacement: true))
         XCTAssertEqual(ToolbarLogic.step(.collapsed, on: .placementChosen), ToolbarStep(mode: .collapsed))
-        XCTAssertEqual(ToolbarLogic.step(.peek, on: .placementChosen), ToolbarStep(mode: .peek))
+        XCTAssertEqual(ToolbarLogic.step(.peek, on: .placementChosen),
+                       ToolbarStep(mode: .expanded, storeCollapsed: false, storesPlacement: true))
         XCTAssertEqual(ToolbarStep(mode: .collapsed, storeCollapsed: true, flipsEdge: true),
                        ToolbarStep(mode: .collapsed, storeCollapsed: true, flipsEdge: true, storesPlacement: false))
         XCTAssertNotEqual(ToolbarStep(mode: .expanded), ToolbarStep(mode: .expanded, storesPlacement: true))

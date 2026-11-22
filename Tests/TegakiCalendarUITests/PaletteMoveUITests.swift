@@ -23,6 +23,12 @@ import XCTest
 ///   the bar on the right edge, the paper area changing once; a tap on the upright bar's button and 「上へ移す」 the top; the
 ///   button dragged with a finger (as the grip, held before the lift) the left, and no choice of edges opens after that drag;
 ///   a tap and 「下へ移す」 the bottom again, 「ペン」's top − 16 the canvas's bottom.
+/// - `testThePeekedBarHasTheMoveButton` (1.4.1's third rework, docs/R1_4_1_CONTRACT.md §18.2, §18.3, 0e-26; the same step and
+///   skips; build.yml's step asks all three to pass): the toolbar folded (`--screenshot-toolbar collapsed`, the round button
+///   bottom left), its tool mark tapped — the bar peeks at the bottom with no grip and with 「動かす」; a tap on it and
+///   「右へ移す」 open the bar on the right edge, to stay (`palette.state`: `edge=right`, `grip=on`, the open bar's; the paper
+///   area changed once; the round button gone, the grip there); 「しまう」 then folds it to the round button in the bottom right
+///   corner (a side's own corner, §4.9).
 ///
 /// Not here (the contract's §6.1 note, form (b), and what XCUITest cannot do): the Apple Pencil never moving the bar (XCUITest
 /// synthesizes finger touches only: PaletteGripTests checks the pan's touch types and its palm rule); VoiceOver's 「…へ移す」
@@ -40,6 +46,8 @@ final class PaletteMoveUITests: XCTestCase {
     private static let markerLabel = "マーカー"
     private static let undoLabel = "元に戻す"
     private static let collapseLabel = "ツールバーをしまう"
+    /// The round button's tool mark (`toolbar.dock.spoken`), which peeks the folded bar.
+    private static let dockLabel = "ツールバーを出す"
     /// The 「動かす」 button's choices (`toolbar.moveTo.*`), by the edge they move the bar to.
     private static let moveToTop = "上へ移す"
     private static let moveToBottom = "下へ移す"
@@ -48,6 +56,9 @@ final class PaletteMoveUITests: XCTestCase {
     private static let dayColumnSuffix = "（日表示へ）"
     /// `tool.pen` lies within this many points of the window's side on a side edge (§6.1).
     private static let sideBand: CGFloat = 80
+    /// The round button's tool mark in a bottom corner lies within this many points of the window's side (the dock 12 pt
+    /// from the side, the mark 2 pt inside its capsule: 14; ToolbarLogic.sidePadding and ToolbarDock).
+    private static let cornerBand: CGFloat = 24
 
     // MARK: Tests
 
@@ -181,6 +192,92 @@ final class PaletteMoveUITests: XCTestCase {
         checkBottom(app, "move: bottom", canvas: back.frame)
         keepScreenshot(app, "move: bottom again")
         log("move: OK")
+    }
+
+    func testThePeekedBarHasTheMoveButton() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["TEGAKI_PALETTE_UI"] == "1",
+                          "only in blank-paper's step \"Palette UI tests on the 13-inch iPad (1.4.1)\"")
+        try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .pad, "the 「動かす」 button is an iPad's")
+        continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
+        let app = launch(["--screenshot-page", "week", "--screenshot-span", "off", "--screenshot-palette", "bottom",
+                          "--screenshot-toolbar", "collapsed", "-allowFingerDrawing", "YES", "-allowFingerDrawingChosen", "YES"])
+        defer { app.terminate() }
+
+        guard let start = waitForState(app, "peek: launch", timeout: 30, { $0["allowed"] == "bottom,top,left,right" }) else {
+            XCTFail("the 13-inch iPad never allowed the four edges: \(stateLabel(app))")
+            return
+        }
+        log("peek: launch: window=\(text(window(app))) state=\(stateLabel(app))")
+        XCTAssertEqual(start["edge"], "bottom")
+        XCTAssertEqual(start["grip"], "off", "folded: no grip")
+        guard settledProbe(app, "peek: launch") != nil else { return }
+        let screen = window(app)
+        let dock = app.buttons[Self.dockLabel]
+        XCTAssertTrue(dock.waitForExistence(timeout: 10), "the round button (\(Self.dockLabel))")
+        let dockAtLaunch = stableFrame(dock)
+        log("peek: the round button at launch frame=\(text(dockAtLaunch))")
+        XCTAssertLessThan(dockAtLaunch.midX, screen.midX, "launch: the round button bottom left (--screenshot-toolbar collapsed)")
+        XCTAssertFalse(element(app, Self.moveIdentifier).exists, "the round button has no 「動かす」")
+        keepScreenshot(app, "peek: folded at launch")
+
+        // The tool mark: the bar peeks at the bottom, over the paper, with 「動かす」 and without the grip (§18.2).
+        dock.tap()
+        let button = element(app, Self.moveIdentifier)
+        XCTAssertTrue(button.waitForExistence(timeout: 5), "peek: 「動かす」 on the peeked bar")
+        let collapse = app.buttons[Self.collapseLabel]
+        XCTAssertTrue(collapse.waitForExistence(timeout: 5), "peek: 「しまう」 on the peeked bar")
+        let buttonFrame = stableFrame(button)
+        let collapseFrame = stableFrame(collapse)
+        let peeked = fields(stateLabel(app))
+        log("peek: button frame=\(text(buttonFrame)) label=\(button.label) hide=\(text(collapseFrame)) "
+            + "grip=\(element(app, Self.gripIdentifier).exists ? "yes" : "no") state=\(stateLabel(app))")
+        XCTAssertFalse(element(app, Self.gripIdentifier).exists, "peek: no grip (§4.5)")
+        XCTAssertEqual(peeked["grip"], "off", "peek: palette.state has no grip")
+        XCTAssertEqual(peeked["edge"], "bottom", "peek: on the bottom edge")
+        XCTAssertEqual(button.label, Self.gripLabel, "「動かす」 is read out as 「ツールバーを動かす」")
+        XCTAssertEqual(buttonFrame.maxX, collapseFrame.minX, accuracy: 1, "peek: 「動かす」 right before 「しまう」")
+        XCTAssertEqual(buttonFrame.midY, collapseFrame.midY, accuracy: 1, "peek: 「動かす」 level with 「しまう」")
+        XCTAssertGreaterThan(buttonFrame.minY, screen.midY, "peek: the bar at the bottom")
+        keepScreenshot(app, "peek: the peeked bar")
+
+        // A tap and 「右へ移す」: the bar opens on the right edge and stays open (the paper area changes once).
+        choose(app, Self.moveToRight, expect: "right")
+        guard let opened = waitForState(app, "peek: right", timeout: 10, { $0["edge"] == "right" && $0["grip"] == "on" }) else {
+            XCTFail("peek: 「右へ移す」 did not leave the bar open on the right (\(stateLabel(app)))")
+            return
+        }
+        let pen = app.buttons[Self.penLabel]
+        XCTAssertTrue(pen.waitForExistence(timeout: 5), "right: 「ペン」")
+        let penRight = stableFrame(pen)
+        log("peek: right: state=\(stateLabel(app)) pen=\(text(penRight)) round button=\(dock.exists ? "yes" : "no") "
+            + "grip=\(element(app, Self.gripIdentifier).exists ? "yes" : "no")")
+        XCTAssertEqual(opened["stored"], "right")
+        XCTAssertTrue(element(app, Self.gripIdentifier).waitForExistence(timeout: 5), "right: the open bar's grip")
+        XCTAssertFalse(dock.exists, "right: the round button is gone (the bar is open)")
+        XCTAssertGreaterThanOrEqual(penRight.minX, screen.maxX - Self.sideBand, "right: 「ペン」 in the right \(Self.sideBand) pt")
+        XCTAssertTrue(element(app, Self.moveIdentifier).exists, "right: 「動かす」 on the open bar")
+        // The bar stays open: a moment later it is still the open bar on the right.
+        Thread.sleep(forTimeInterval: 1)
+        let still = fields(stateLabel(app))
+        XCTAssertEqual(still["edge"], "right", "right: still on the right")
+        XCTAssertEqual(still["grip"], "on", "right: still open")
+        keepScreenshot(app, "peek: opened on the right")
+
+        // 「しまう」: the round button in the bottom right corner (the right edge's corner, §4.9).
+        XCTAssertTrue(collapse.waitForExistence(timeout: 5), "right: 「しまう」 on the open bar")
+        collapse.tap()
+        XCTAssertTrue(dock.waitForExistence(timeout: 5), "folded: the round button")
+        let dockRight = stableFrame(dock)
+        let folded = fields(stateLabel(app))
+        log("peek: folded on the right: round button frame=\(text(dockRight)) state=\(stateLabel(app))")
+        XCTAssertEqual(folded["grip"], "off", "folded: no grip")
+        XCTAssertGreaterThan(dockRight.midX, screen.midX, "folded: the round button on the right")
+        XCTAssertGreaterThanOrEqual(dockRight.maxX, screen.maxX - Self.cornerBand, "folded: in the bottom right corner")
+        XCTAssertGreaterThan(dockRight.minY, screen.maxY - 120, "folded: at the bottom")
+        XCTAssertFalse(element(app, Self.moveIdentifier).exists, "folded: no 「動かす」 on the round button")
+        keepScreenshot(app, "peek: folded bottom right")
+        log("peek: OK")
     }
 
     func testThePhoneKeepsTheBottomBar() throws {

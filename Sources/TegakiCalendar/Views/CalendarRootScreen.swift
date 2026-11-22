@@ -3366,6 +3366,7 @@ extension CalendarRootScreen {
     }
 
     /// 1.4.1's second rework (§17.2): the open bar has the 「動かす」 button, where it has the grip (`ToolbarLogic.showsMoveButton`).
+    /// The third rework (§18.2): the peeking bar has it too (a tap only, `ToolbarLogic.moveButtonDrags`); the dock never.
     private var paletteHasMoveButton: Bool {
         ToolbarLogic.showsMoveButton(toolbarMode, allowed: paletteAllowed)
     }
@@ -3431,7 +3432,8 @@ extension CalendarRootScreen {
 
     /// The bar peeking on the top or a side (§4.9, 0e-20): laid over the paper there as the bottom's peek is (the paper area
     /// does not change), and folded by the same table (`ToolbarLogic.step`: the pen, 「しまう」, the background). Nothing on
-    /// the bottom (`arranged`'s overlay has it) or while not peeking.
+    /// the bottom (`arranged`'s overlay has it) or while not peeking. §18.2: its 「動かす」 (a tap only) opens the bar on the
+    /// edge chosen (`paletteMoveChosen`, the table's `(.peek, .placementChosen)`).
     private func palettePeek(_ edge: PaletteEdge) -> some View {
         ZStack {
             if toolbarMode == .peek && paletteEdge == edge {
@@ -3480,10 +3482,11 @@ extension CalendarRootScreen {
 
     // MARK: The 「動かす」 button (§17.2)
 
-    /// The 「動かす」 button `ToolbarView` puts before 「しまう」 (`ToolbarView`'s `move:`), where the grip shows; nil on every
-    /// iPhone, in a window with the bottom alone, on the dock and on a peek (their bar is 1.4's). Its drag is the grip's (the
-    /// same palm rule, callbacks and cancel trigger); a tap opens the choice of edges (`paletteMenuShown`), whose choices and
-    /// VoiceOver's actions are the grip's actions (`moveTargets`) and go through `paletteMoveButtonChose`.
+    /// The 「動かす」 button `ToolbarView` puts before 「しまう」 (`ToolbarView`'s `move:`), where the grip shows and (§18.2) on a
+    /// peek; nil on every iPhone, in a window with the bottom alone and on the dock (their bar is 1.4's). On the open bar its
+    /// drag is the grip's (the same palm rule, callbacks and cancel trigger); on a peek it never drags (`drags`,
+    /// `ToolbarLogic.moveButtonDrags`). A tap opens the choice of edges (`paletteMenuShown`), whose choices and VoiceOver's
+    /// actions are the grip's actions (`moveTargets`) and go through `paletteMoveButtonChose`.
     private var paletteMoveButton: PaletteMoveButtonView? {
         guard paletteHasMoveButton else { return nil }
         return PaletteMoveButtonView(
@@ -3496,13 +3499,17 @@ extension CalendarRootScreen {
             allowed: paletteAllowed,
             current: paletteEdge,
             onMove: { paletteMoveButtonChose($0) },
-            menuShown: $paletteMenuShown
+            menuShown: $paletteMenuShown,
+            drags: ToolbarLogic.moveButtonDrags(toolbarMode, allowed: paletteAllowed)
         )
     }
 
     /// A choice of the 「動かす」 button (its dialog or VoiceOver's action): VoiceOver's path (`paletteMoveChosen`), unless the
     /// button is gone or the edge is not one the window allows now (the choice of edges may still show it) — then nothing.
+    /// §18.2: the choice of edges is closed first, so the bar laid out anew (a peek opened on its edge is another view) never
+    /// finds it still asked for.
     private func paletteMoveButtonChose(_ edge: PaletteEdge) {
+        if paletteMenuShown { paletteMenuShown = false }
         guard paletteHasMoveButton,
               let edge = PaletteMoveButtonView.choice(edge, allowed: paletteAllowed, current: paletteEdge) else { return }
         paletteMoveChosen(edge)
@@ -3572,7 +3579,9 @@ extension CalendarRootScreen {
     }
 
     /// VoiceOver's 「…へ移す」 (§4.11): kept as a drop is. The grip (`PaletteGripView`) then tells VoiceOver that the screen
-    /// changed (`.layoutChanged`, on the next turn, after SwiftUI laid it out).
+    /// changed (`.layoutChanged`, on the next turn, after SwiftUI laid it out). Also the 「動かす」 button's choice (§17.2), on a
+    /// peek too (§18.2): there `placePalette` keeps the edge and opens the bar on it, in this one transaction without
+    /// animation, so the paper is laid out anew once.
     private func paletteMoveChosen(_ edge: PaletteEdge) {
         var transaction = Transaction()
         transaction.disablesAnimations = true
@@ -3582,29 +3591,34 @@ extension CalendarRootScreen {
     }
 
     /// A drop or a VoiceOver action chose `edge`: what `paletteDropped` keeps — in screenshot mode in this screen's `@State`.
+    /// Then the table's step of the choice (§18.2, `toolbarEvent(.placementChosen)`): the open bar stays as it is (nothing
+    /// written); a peek opens on the edge, `toolbar.collapsed` false (screenshot mode: the mode's `@State` only). The callers
+    /// hold one transaction without animation around it.
     private func placePalette(on edge: PaletteEdge) {
         let drop = Self.paletteDropped(on: edge, mode: toolbarMode, stored: paletteStored, screenshot: ScreenshotMode.isActive)
-        guard ScreenshotMode.isActive else { return }
-        if let kept = drop.edge, kept != screenshotPaletteEdge { screenshotPaletteEdge = kept }
-        if let dock = drop.dock, dock != screenshotEdge { screenshotEdge = dock }
+        if ScreenshotMode.isActive {
+            if let kept = drop.edge, kept != screenshotPaletteEdge { screenshotPaletteEdge = kept }
+            if let dock = drop.dock, dock != screenshotEdge { screenshotEdge = dock }
+        }
+        toolbarEvent(.placementChosen)
     }
 
     /// What a drop or a VoiceOver action keeps.
     struct PaletteDrop: Equatable {
-        /// The edge the bar goes to; nil when the toolbar's table keeps nothing (`storesPlacement` false: not expanded).
+        /// The edge the bar goes to; nil when the toolbar's table keeps nothing (`storesPlacement` false: the dock).
         var edge: PaletteEdge?
         /// The folded toolbar's round button's corner that goes with it: a side's own (left: leading, right: trailing); nil on
         /// the top and the bottom, and for a drop on the stored edge, which leave the corner as it is.
         var dock: ToolbarEdge?
     }
 
-    /// The toolbar's table decides first (`ToolbarLogic.step(mode, on: .placementChosen).storesPlacement`: only the open bar
-    /// keeps a place). A drop on the stored edge (the 25 % dead zone, the bar snapping back) places nothing: it writes nothing
-    /// and leaves the round button's corner as it is (§4.7: written when it differs; a corner moved by the long press since
-    /// stays). Outside screenshot mode a new edge is then written (`AppSettings.paletteEdge`, which the screen's `@AppStorage`
-    /// reads at once) and a side writes the round button's corner (`AppSettings.toolbarEdge`, §4.9; the last of that, the
-    /// hand's setting and the button's long press wins). Screenshot mode writes neither (§4.10): the screen keeps the answer
-    /// in its `@State`.
+    /// The toolbar's table decides first (`ToolbarLogic.step(mode, on: .placementChosen).storesPlacement`: the open bar and,
+    /// since §18.2, a peek keep a place; the dock never). A drop on the stored edge (the 25 % dead zone, the bar snapping back)
+    /// places nothing: it writes nothing and leaves the round button's corner as it is (§4.7: written when it differs; a corner
+    /// moved by the long press since stays). Outside screenshot mode a new edge is then written (`AppSettings.paletteEdge`, which
+    /// the screen's `@AppStorage` reads at once) and a side writes the round button's corner (`AppSettings.toolbarEdge`, §4.9;
+    /// the last of that, the hand's setting and the button's long press wins). Screenshot mode writes neither (§4.10): the screen
+    /// keeps the answer in its `@State`.
     static func paletteDropped(on edge: PaletteEdge, mode: ToolbarMode, stored: PaletteEdge, screenshot: Bool) -> PaletteDrop {
         guard ToolbarLogic.step(mode, on: .placementChosen).storesPlacement else { return PaletteDrop(edge: nil, dock: nil) }
         guard edge != stored else { return PaletteDrop(edge: edge, dock: nil) }
@@ -3646,7 +3660,10 @@ extension CalendarRootScreen {
             }
             .onChange(of: paletteHasGrip) {
                 if !paletteHasGrip { endPaletteDrag() }
-                // §17.2: the 「動かす」 button goes with the grip, and its choice of edges with it.
+            }
+            // §17.2, §18.2: the 「動かす」 button's choice of edges goes with the button — the open bar folded, a peek folded by
+            // the pen, 「しまう」 or the background, a window narrowed to one edge (the grip does not change during a peek).
+            .onChange(of: paletteHasMoveButton) {
                 if !paletteHasMoveButton, paletteMenuShown { paletteMenuShown = false }
             }
             .onChange(of: paletteAllowed) {
