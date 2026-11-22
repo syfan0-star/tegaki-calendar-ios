@@ -1,12 +1,15 @@
 import UIKit
 import XCTest
 
-/// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.5, §6.1, §6.6, 0e-6): the header's wide row measured on the real screen, which no run had
-/// done (every room of it was an estimate). It writes one `header room:` line per row with the frames of ◀, 今日, ▶, 等倍
-/// (`header.zoomReset`), the title (`page.title`), the switch, ＋予定, ☁ and ⚙, and the title's room: the space the row
-/// leaves between its neighbours (the title's frame takes it whole, `PageHeaderView`). Logs only: the lead reads the gate of
-/// D1a from the lines (the ja day title's room ≥ 115 pt on the iPad mini, the Air 11 and the Pro 13 in portrait; else the
-/// wide row's gap becomes 4 below 760 pt), so the test fails only when the app does not show its header.
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.5, §6.1, §6.6, §16.2, 0e-6): the header's wide row measured on the real screen, which no
+/// run had done (every room of it was an estimate). It writes one `header room:` line per row with the frames of ◀, 今日, ▶,
+/// 等倍 (`header.zoomReset`), the title (`page.title`), the switch, ＋予定, ☁ and ⚙, and the title's room: the space the row
+/// leaves the title (its frame takes it whole, `PageHeaderView`). Since §16.2 (plan B) the title starts the right hand's row
+/// at its left end, leading, so the room runs from the title's left edge to its right neighbour (the switch on the wide row,
+/// ＋ on the compact first row) less one gap; the pieces and gaps are the same as before §16.2, so the rooms are too (± 0.5,
+/// the frames XCUI rounds to the pixel). Logs only: the lead reads the gate of D1a from the lines (the ja day title's room ≥
+/// 115 pt on the iPad mini, the Air 11 and the Pro 13 in portrait; else the wide row's gap becomes 4 below 760 pt), so the
+/// test fails only when the app does not show its header.
 ///
 /// Where it runs: build.yml's blank-paper job on its four devices (`TEST_RUNNER_TEGAKI_SHOT_DEVICE`: ipad13, ipadmini, ipad11
 /// = the owner's iPad Air 11-inch, iphone69), and the ui-tests job's iPhone 17. An iPad is measured in portrait (its wide
@@ -68,12 +71,12 @@ final class HeaderRoomUITests: XCTestCase {
         if let today, let picker {
             if picker.minY >= today.maxY - 0.5 {
                 row = "compact"
-                // The first row: (◀ 今日 ▶) title ＋ ☁ ⚙; the title's room is between ▶ and ＋.
-                if let next, let add { room = add.minX - next.maxX - 2 * Self.compactGap }
+                // The first row: title ＋ ☁ ⚙ (◀ 今日 ▶); the title's room runs from its left edge to ＋.
+                if let title, let add { room = add.minX - title.minX - Self.compactGap }
             } else {
                 row = "wide"
-                // (◀ 今日 ▶) 等倍 title switch …; the title's room is between 等倍 and the switch.
-                if let zoom { room = picker.minX - zoom.maxX - 2 * Self.wideGap }
+                // title switch … ⚙ 等倍 (◀ 今日 ▶); the title's room runs from its left edge to the switch.
+                if let title { room = picker.minX - title.minX - Self.wideGap }
             }
         }
         func text(_ rect: CGRect?) -> String {

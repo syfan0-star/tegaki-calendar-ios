@@ -4,24 +4,26 @@ import SwiftUI
 import UIKit
 
 /// The header above the paper (M3b contract §4.6, M4 contract §6.1, M4B contract §5, DESIGN §2.7). Since 1.4.1
-/// (docs/R1_4_1_CONTRACT.md §3, 0e-2 … 0e-5), the right hand's rows (the left hand's are the same rows reversed):
+/// (docs/R1_4_1_CONTRACT.md §3, §16.2, 0e-2 … 0e-5), the right hand's rows (the left hand's are the same rows reversed):
 ///
 /// ```
-/// width ≥ 600 pt:  (‹ 今日 ›) (1🔍) 題名           [日 | 週 | 月 | 年]  🔒閲覧専用  ＋予定   ☁ 保存済み   ⚙
-/// width < 600 pt:  (‹ 今日 ›) 10/5〜10/11            ＋ ☁ ⚙
-///                  [1🔍] [      日      |      週      |      月      |      年      ]
+/// width ≥ 600 pt:  題名           [日 | 週 | 月 | 年]  🔒閲覧専用  ＋予定   ☁ 保存済み   ⚙ (1🔍) (‹ 今日 ›)
+/// width < 600 pt:  10/5〜10/11            ＋ ☁ ⚙ (‹ 今日 ›)
+///                  [      日      |      週      |      月      |      年      ] [1🔍]
 /// ```
 ///
-/// 1.4.1 (the owner's request of 2026-11-21, docs/R1_4_1_CONTRACT.md §1.2): 「‹ 今日 ›」 — ◀, 今日 and ▶, three buttons in
-/// one capsule (`todayCapsule`, §3.1) — sits at the free hand's end of the row, the title right after it, and beside it the
-/// 等倍 button (`zoomResetButton`: the magnifying glass with a 1, back to the page's opening zoom, §3.6), which on the
-/// compact rows starts the second row instead (the first has no room for it). 1.1.1 had put 「今日」 on the right, left of
-/// 「＋予定」 (docs/R1_1_1.md); 1.4.1 brings it back to the left, as 1.1 had it. The order of every row is one pure table,
-/// `HeaderOrder.pieces(arm:hand:readOnly:)`, drawn with a `ForEach` and a `switch`: the left hand (`hand`, 設定 › 入力
-/// 「利き手」) is the right hand's order reversed, never a right-to-left `layoutDirection` (◀ stays left of ▶, the switch
-/// keeps 日週月年, §4.2). The rows keep 1.4's heights (§3.3): the wide row and the first row 44 pt, and the second row's
-/// 等倍 grows to the switch's height without deciding it (`fixedSize(horizontal: false, vertical: true)`), so the paper
-/// area, the opening zooms and the photos below the header stay 1.4's.
+/// 1.4.1 (the owner's request of 2026-11-21 and correction of 2026-11-22, docs/R1_4_1_CONTRACT.md §1.2, §16.1, §16.2):
+/// 「‹ 今日 ›」 — ◀, 今日 and ▶, three buttons in one capsule (`todayCapsule`, §3.1) — sits at the writing hand's end of the
+/// row (the right end for the right hand: 「＜今日＞と等倍は右端が右利き」), and right inside it the 等倍 button
+/// (`zoomResetButton`: the magnifying glass with a 1, §16.3), which on the compact rows ends the second row instead, under
+/// ▶ (the first has no room for it). The title (the date) starts the row at the other end (「年月日は一番左側でいいです」),
+/// and ⚙ sits next to 等倍 (on the compact first row next to ◀). 1.1.1 had put 「今日」 on the right, left of 「＋予定」
+/// (docs/R1_1_1.md); 1.4.1 keeps it on the right, at the end, in one capsule with ◀ and ▶. The order of every row is one
+/// pure table, `HeaderOrder.pieces(arm:hand:readOnly:)`, drawn with a `ForEach` and a `switch`: the left hand (`hand`,
+/// 設定 › 入力 「利き手」) is the right hand's order reversed, never a right-to-left `layoutDirection` (◀ stays left of ▶,
+/// the switch keeps 日週月年, §4.2). The rows keep 1.4's heights (§3.3): the wide row and the first row 44 pt, and the
+/// second row's 等倍 grows to the switch's height without deciding it (`fixedSize(horizontal: false, vertical: true)`), so
+/// the paper area, the opening zooms and the photos below the header stay 1.4's.
 ///
 /// M5 (M5_CONTRACT §3.2): while the app is read only (`readOnly`) an orange 「閲覧専用」 badge sits on the wide row (the
 /// symbol alone below `readOnlyTextWidth`); a tap opens the paywall (`onReadOnlyTap`). Since 1.4.1 (§3.4, 0e-5) it sits
@@ -33,8 +35,9 @@ import UIKit
 /// the owner passes the short form, `CalendarRootScreen.usesShortTitle`);
 /// the owner measures the width and passes `compact`. Every button keeps its size (`fixedSize`, `layoutPriority(1)`; 96dafab)
 /// and only the title gives way: its frame takes the room the buttons leave (`maxWidth: .infinity`, leading for the right
-/// hand, trailing for the left), its text shrinks to `minimumScaleFactor(0.6)` and is then cut with 「…」. On the compact
-/// first row the fixed parts take about 297.4 pt in ja (the 12 pt side paddings, the capsule's 44 + 47.4 + 44, ＋ 52, ☁ 26,
+/// hand, trailing for the left, so what the text leaves lies between the title and the switch, or 「＋」 on the compact
+/// first row), its text shrinks to `minimumScaleFactor(0.6)` and is then cut with 「…」. On the compact first row the fixed
+/// parts take about 297.4 pt in ja (the 12 pt side paddings, the capsule's 44 + 47.4 + 44, ＋ 52, ☁ 26,
 /// ⚙ 44 and four gaps of 4; 1.4's row took 324), so the title has about `width − 297.4`: 77.6 pt at 375, 84.6 on the iPhone
 /// Duo's outer screen (382), 104.6 on the 402 pt iPhone 17 — the longest Japanese short title (「10/24〜10/30」) needs 70 at
 /// the minimum scale. 1.4 D1d's tight row for the Duo's outer screen (`usesTightRow`, `sideInsets`) is retired (§3.2): the
@@ -79,8 +82,9 @@ struct PageHeaderView: View {
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.2, 0e-12, 0e-13): 設定 › 入力 「利き手」 (the owner reads
     /// `AppSettings.handKey`, or screenshot mode's `--screenshot-hand`). `.left` reverses every row (`HeaderOrder`).
     var hand: Hand = .right
-    /// 1.4.1 (§2.1, §3.6, 0e-7): 等倍: the owner asks both canvases to go back to the opening zoom (`resetZoom`). Nothing by
-    /// default, so a header without it behaves as 1.4's.
+    /// 1.4.1 (§2.1, §16.3): 等倍: the owner asks both canvases to reset the zoom (`resetZoom`): on the day and week pages
+    /// one page as wide as the paper's column, on the month and year pages the opening zoom. Nothing by default, so a header
+    /// without it behaves as 1.4's.
     var onZoomReset: () -> Void = {}
 
     /// Below this width the ☁ shows only its symbol (13-inch portrait is 1024 pt, 11-inch is 834 pt).
@@ -108,13 +112,14 @@ struct PageHeaderView: View {
     private var showsSyncText: Bool { !compact && width >= Self.syncTextWidth }
     private var showsAddEventText: Bool { width >= Self.addEventTextWidth }
     private var showsReadOnlyText: Bool { width >= Self.readOnlyTextWidth }
-    /// 1.4.1 (§3.4, 0e-5): the title right after 「‹ 今日 ›」 (or 等倍): leading for the right hand, trailing for the left.
+    /// 1.4.1 (§16.2; 0e-5 as §16.12 reads it): the title starts the row at the end away from the writing hand: leading for
+    /// the right hand (the date at the left end), trailing for the left (at the right end).
     private var titleAlignment: Alignment { hand == .left ? .trailing : .leading }
 
     var body: some View {
         if compact {
             // M4B contract §5: spacing 4 and a 17 pt title on the first row (the buttons keep their 44 pt targets and
-            // `fixedSize`). 1.4.1 (§3.2, §3.3): the second row is 等倍 and the switch, as tall as the switch.
+            // `fixedSize`). 1.4.1 (§3.3, §16.2): the second row is the switch and 等倍, as tall as the switch.
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
                     ForEach(HeaderOrder.pieces(arm: .compactFirst, hand: hand, readOnly: readOnly), id: \.self) { piece in
@@ -250,10 +255,13 @@ struct PageHeaderView: View {
             .accessibilityHidden(true)
     }
 
-    /// 1.4.1 (§3.1, §3.3, §3.6, 0e-2, 0e-4, 0e-7): 等倍 (`zoomResetSymbol`, 「等倍に戻す」, `zoomResetIdentifier`). Always
-    /// shown and always enabled, read only too; at the opening zoom a tap changes nothing. On the wide row a 44 × 44 target
-    /// on a 36 pt circle; on the compact second row (`fillsRow`) a rounded rectangle at least 44 wide that grows to the
-    /// switch's height (`maxHeight: .infinity` in a row of `fixedSize(horizontal: false, vertical: true)`) and never sets it.
+    /// 1.4.1 (§3.1, §3.3, §16.3, 0e-2, 0e-4): 等倍 (`zoomResetSymbol`, 「等倍に戻す」, `zoomResetIdentifier`). Always
+    /// shown and always enabled, read only too. On the day and week pages a tap makes one page exactly as wide as the paper's
+    /// column (from the opening zoom too, which is narrower on most screens; once there, another tap changes nothing); on the
+    /// month and year pages it goes back to the opening zoom (there, a tap changes nothing). On the wide row a 44 × 44
+    /// target on a 36 pt circle; on the compact second row (`fillsRow`) a rounded rectangle at least 44 wide that grows to
+    /// the switch's height (`maxHeight: .infinity` in a row of `fixedSize(horizontal: false, vertical: true)`) and never
+    /// sets it.
     private func zoomResetButton(fillsRow: Bool) -> some View {
         Button(action: onZoomReset) {
             if fillsRow {

@@ -2,32 +2,33 @@ import Layout
 import XCTest
 @testable import TegakiCalendar
 
-// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §3.2, §3.4, §4.2, §6.1, 0e-3, 0e-5, 0e-13): the header's order, one pure table
-// (`HeaderOrder.pieces(arm:hand:readOnly:)`) for every row, hand and read-only state. The right hand's rows are §2.1's; the
-// left hand's are the same rows reversed (never a right-to-left layout: inside the capsule ◀ stays before ▶, and the switch
-// keeps 日週月年). The badge only on the wide row while read only, between the switch and 「＋予定」. 「‹ 今日 ›」 and 等倍 at
-// the free hand's end of every row they are on. Mutation MH1 (the left hand not reversed) fails
+// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §3.4, §4.2, §16.2, §16.6; 0e-3, 0e-5 and 0e-13 as §16.12 reads them): the header's
+// order, one pure table (`HeaderOrder.pieces(arm:hand:readOnly:)`) for every row, hand and read-only state. The right hand's
+// rows are §16.2's (plan B: the title at the left end, 「‹ 今日 ›」 at the right end with 等倍 right inside it); the left
+// hand's are the same rows reversed (never a right-to-left layout: inside the capsule ◀ stays before ▶, and the switch keeps
+// 日週月年). The badge only on the wide row while read only, between the switch and 「＋予定」. 「‹ 今日 ›」 and 等倍 at the
+// writing hand's end of every row they are on, the title at the other end. Mutation MH1 (the left hand not reversed) fails
 // `testLeftHandIsTheRightHandReversed`, `testBadgeSitsBetweenTheSwitchAndAdd` (its left-hand row) and
-// `testTodayAndZoomResetSitOnTheFreeHandsSide` (tools/mutations/m1-expected.tsv on r141-q-m1).
+// `testTodayAndZoomResetSitAtTheWritingHandsEnd` (tools/mutations/m1-expected.tsv on r141-q-m1, §16.7).
 @MainActor
 final class HeaderOrderTests: XCTestCase {
     private func pieces(_ arm: HeaderOrder.Arm, _ hand: Hand, readOnly: Bool = false) -> [HeaderPiece] {
         HeaderOrder.pieces(arm: arm, hand: hand, readOnly: readOnly)
     }
 
-    /// §2.1's table for the right hand.
+    /// §16.2's table for the right hand (plan B).
     func testRightHandRows() {
-        XCTAssertEqual(pieces(.wide, .right), [.today, .zoomReset, .title, .picker, .add, .sync, .settings])
-        XCTAssertEqual(pieces(.wide, .right, readOnly: true), [.today, .zoomReset, .title, .picker, .badge, .add, .sync, .settings])
+        XCTAssertEqual(pieces(.wide, .right), [.title, .picker, .add, .sync, .settings, .zoomReset, .today])
+        XCTAssertEqual(pieces(.wide, .right, readOnly: true), [.title, .picker, .badge, .add, .sync, .settings, .zoomReset, .today])
         for readOnly in [false, true] {
-            XCTAssertEqual(pieces(.compactFirst, .right, readOnly: readOnly), [.today, .title, .add, .sync, .settings], "\(readOnly)")
-            XCTAssertEqual(pieces(.compactSecond, .right, readOnly: readOnly), [.zoomReset, .picker], "\(readOnly)")
+            XCTAssertEqual(pieces(.compactFirst, .right, readOnly: readOnly), [.title, .add, .sync, .settings, .today], "\(readOnly)")
+            XCTAssertEqual(pieces(.compactSecond, .right, readOnly: readOnly), [.picker, .zoomReset], "\(readOnly)")
         }
         XCTAssertEqual(HeaderOrder.Arm.allCases, [.wide, .compactFirst, .compactSecond])
         XCTAssertEqual(HeaderPiece.allCases, [.today, .zoomReset, .title, .picker, .badge, .add, .sync, .settings])
     }
 
-    /// Every row of the left hand is the right hand's reversed (0e-13).
+    /// Every row of the left hand is the right hand's reversed (0e-13, §16.2).
     func testLeftHandIsTheRightHandReversed() {
         for arm in HeaderOrder.Arm.allCases {
             for readOnly in [false, true] {
@@ -36,10 +37,10 @@ final class HeaderOrderTests: XCTestCase {
                 XCTAssertNotEqual(pieces(arm, .left, readOnly: readOnly), right, "\(arm): the left hand's row is another order")
             }
         }
-        XCTAssertEqual(pieces(.wide, .left), [.settings, .sync, .add, .picker, .title, .zoomReset, .today])
-        XCTAssertEqual(pieces(.wide, .left, readOnly: true), [.settings, .sync, .add, .badge, .picker, .title, .zoomReset, .today])
-        XCTAssertEqual(pieces(.compactFirst, .left), [.settings, .sync, .add, .title, .today])
-        XCTAssertEqual(pieces(.compactSecond, .left), [.picker, .zoomReset])
+        XCTAssertEqual(pieces(.wide, .left), [.today, .zoomReset, .settings, .sync, .add, .picker, .title])
+        XCTAssertEqual(pieces(.wide, .left, readOnly: true), [.today, .zoomReset, .settings, .sync, .add, .badge, .picker, .title])
+        XCTAssertEqual(pieces(.compactFirst, .left), [.today, .settings, .sync, .add, .title])
+        XCTAssertEqual(pieces(.compactSecond, .left), [.zoomReset, .picker])
     }
 
     /// Each piece once per header; the wide row has them all (the badge only while read only), the two compact rows
@@ -70,25 +71,34 @@ final class HeaderOrderTests: XCTestCase {
         }
     }
 
-    /// 「‹ 今日 ›」 at the free hand's end of the wide row and the compact first row, 等倍 right beside it on the wide row and
-    /// at the same end of the compact second row, the title right after them; ⚙ at the other end.
-    func testTodayAndZoomResetSitOnTheFreeHandsSide() {
+    /// §16.2: 「‹ 今日 ›」 at the writing hand's end of the wide row and the compact first row (the right end for the right
+    /// hand, the left end for the left), 等倍 right inside it on the wide row and at the same end of the compact second row,
+    /// ⚙ right inside them (the owner's 「＜今日＞と等倍は右端が右利き」); the title (the date) at the other end of the wide row
+    /// and the compact first row (「年月日は一番左側でいいです」), the switch at the other end of the second row.
+    func testTodayAndZoomResetSitAtTheWritingHandsEnd() {
         for hand in Hand.allCases {
-            // Read from the free hand's end: the right hand's from the left, the left hand's from the right.
-            func fromFreeEnd(_ arm: HeaderOrder.Arm) -> [HeaderPiece] {
-                let row = pieces(arm, hand)
-                return hand == .right ? row : Array(row.reversed())
+            for readOnly in [false, true] {
+                // Read from the writing hand's end: the right hand's from the right, the left hand's from the left.
+                func fromWritingEnd(_ arm: HeaderOrder.Arm) -> [HeaderPiece] {
+                    let row = pieces(arm, hand, readOnly: readOnly)
+                    return hand == .right ? Array(row.reversed()) : row
+                }
+                let name = "\(hand) read only \(readOnly)"
+                XCTAssertEqual(Array(fromWritingEnd(.wide).prefix(3)), [.today, .zoomReset, .settings], "\(name): wide")
+                XCTAssertEqual(fromWritingEnd(.wide).last, .title, "\(name): wide")
+                XCTAssertEqual(Array(fromWritingEnd(.compactFirst).prefix(2)), [.today, .settings], "\(name): compact first row")
+                XCTAssertEqual(fromWritingEnd(.compactFirst).last, .title, "\(name): compact first row")
+                XCTAssertEqual(fromWritingEnd(.compactSecond), [.zoomReset, .picker], "\(name): compact second row")
             }
-            XCTAssertEqual(Array(fromFreeEnd(.wide).prefix(3)), [.today, .zoomReset, .title], "\(hand): wide")
-            XCTAssertEqual(fromFreeEnd(.wide).last, .settings, "\(hand): wide")
-            XCTAssertEqual(Array(fromFreeEnd(.compactFirst).prefix(2)), [.today, .title], "\(hand): compact first row")
-            XCTAssertEqual(fromFreeEnd(.compactFirst).last, .settings, "\(hand): compact first row")
-            XCTAssertEqual(fromFreeEnd(.compactSecond), [.zoomReset, .picker], "\(hand): compact second row")
         }
-        XCTAssertEqual(pieces(.wide, .right).first, .today)
-        XCTAssertEqual(pieces(.wide, .left).last, .today)
-        XCTAssertEqual(pieces(.compactSecond, .right).first, .zoomReset)
-        XCTAssertEqual(pieces(.compactSecond, .left).last, .zoomReset)
+        XCTAssertEqual(pieces(.wide, .right).last, .today)
+        XCTAssertEqual(pieces(.wide, .right).first, .title)
+        XCTAssertEqual(pieces(.wide, .left).first, .today)
+        XCTAssertEqual(pieces(.wide, .left).last, .title)
+        XCTAssertEqual(pieces(.compactFirst, .right).last, .today)
+        XCTAssertEqual(pieces(.compactFirst, .left).first, .today)
+        XCTAssertEqual(pieces(.compactSecond, .right).last, .zoomReset)
+        XCTAssertEqual(pieces(.compactSecond, .left).first, .zoomReset)
     }
 
     /// What the hand never turns (§4.2): the capsule is one piece whose three buttons are ◀, 今日, ▶ in that order whatever the
