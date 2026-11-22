@@ -1,5 +1,5 @@
-• No topo do ecrã, “‹ Hoje ›” foi movido para o extremo esquerdo e a data foi colocada à direita dele.
-• Depois de ampliar ou reduzir, agora pode voltar com um único botão ao tamanho original, em que a página não está ampliada nem reduzida.
+• No topo do ecrã, “‹ Hoje ›” foi movido para o extremo direito e a data foi colocada no extremo esquerdo.
+• Depois de ampliar ou reduzir, agora pode repor o zoom com um único botão. Nas páginas do dia e da semana, a página de um dia ou de uma semana ocupa exatamente a largura do ecrã; as páginas do mês e do ano voltam ao tamanho que tinham quando as abriu.
 • Foi adicionada aos Ajustes a secção “Mão dominante”. Se escolher “Mão esquerda”, a ordem dos botões no topo do ecrã inverte-se da esquerda para a direita.
 • No iPad, agora pode mover a barra de ferramentas com o dedo para a borda superior, inferior, esquerda ou direita do ecrã.
 
