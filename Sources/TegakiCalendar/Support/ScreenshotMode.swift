@@ -85,6 +85,8 @@ import UIKit
 /// `--screenshot-palette-drag <bottom|top|left|right>` shows the look of a drag of its grip held over that edge (the
 /// confirmation page's photo only). Without them, or with an unknown value, nil: the bottom, whatever the simulator stored.
 /// The screen keeps screenshot mode's edge in its `@State` (a drop there moves the bar but writes nothing).
+/// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2, §17.4): `--screenshot-palette-menu` opens the 「動かす」 button's
+/// choice of edges once the button is there (`paletteMenu`; the confirmation page's photo only). Without it nothing changes.
 /// 1.4.1's rework (docs/R1_4_1_CONTRACT.md §16.3.7): `--screenshot-zoom fit` opens a week or a day at 等倍, one page's width
 /// fitting the paper's column (`zoomFit`, the canvas's `initialFit`), for the confirmation page's photos; the ratio stays 1
 /// (a number is read as before). Without it nothing changes: no photo of J-4, gate 3, blank-paper or span-shots-app passes it.
@@ -286,6 +288,10 @@ enum ScreenshotMode {
         /// 1.4.1's rework (§16.3.7): `--screenshot-zoom fit`: a week or a day opens at 等倍 (`ScreenshotMode.zoomFit`, the
         /// canvas's `initialFit`); `zoomRatio` stays 1. False without it or with a number (the ratio's way, as before).
         var zoomFit: Bool = false
+        /// 1.4.1's second rework (§17.2, §17.4): `--screenshot-palette-menu`, a flag without a value: the screen opens the
+        /// 「動かす」 button's choice of edges once the button shows (a window that allows two edges or more). Off by default,
+        /// so the Config of every earlier argument is the same value as before.
+        var paletteMenu: Bool = false
 
         /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
         var joinsPages: Bool {
@@ -467,10 +473,12 @@ enum ScreenshotMode {
         if let index = arguments.firstIndex(of: "--screenshot-palette-drag"), index + 1 < arguments.count {
             paletteDrag = PaletteEdge(rawValue: arguments[index + 1])
         }
+        // 1.4.1's second rework (§17.4): the 「動かす」 button's choice of edges, open for its photo.
+        let paletteMenu = arguments.contains("--screenshot-palette-menu")
         return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
                       span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection,
                       measure: measure, pencilPhone: pencilPhone,
-                      hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit)
+                      hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit, paletteMenu: paletteMenu)
     }
 
     /// 1.4.1's rework (§16.3.7): the value of `--screenshot-zoom` that is 等倍 (`Config.zoomFit`) rather than a ratio.

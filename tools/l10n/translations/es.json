@@ -1909,6 +1909,10 @@
       "jaSha1": "c22a65bde9",
       "text": "Rodee para seleccionar.\nArrastre para mover"
     },
+    "toolbar.move.title": {
+      "jaSha1": "b43eacf397",
+      "text": "Mover"
+    },
     "toolbar.moveEdge.toLeft": {
       "jaSha1": "3390912dcc",
       "text": "Mover abajo a la izquierda"

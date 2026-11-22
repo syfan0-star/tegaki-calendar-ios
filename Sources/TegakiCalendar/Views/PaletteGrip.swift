@@ -24,6 +24,10 @@ import UIKit
 ///
 /// `edge`, `moveTargets` and `onMove` are additions to §2.1's declaration, with defaults: a call with §2.1's six
 /// arguments gets a bottom grip without actions.
+///
+/// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): the pan, its gate, its 10 pt start, its cancel and the VoiceOver
+/// actions are `PanView`'s, which the grip's `GripView` and the 「動かす」 button's view (`PaletteMoveButtonView.ButtonView`)
+/// both are: one copy of the drag for the two handles. The grip's own part is the mark and its edge.
 struct PaletteGripView: UIViewRepresentable {
     /// May a drag begin now (the palm rule)?
     var mayBegin: () -> Bool
@@ -78,9 +82,13 @@ struct PaletteGripView: UIViewRepresentable {
         view.cancelDrag()
     }
 
-    /// The UIKit side: the pan, its gate and the mark. Internal so the tests can drive it without SwiftUI.
-    final class GripView: UIView {
-        /// The grip's recogniser (on this view).
+    /// The pan of the grip and of the 「動かす」 button (§4.6, §17.2): a `UIPanGestureRecognizer` on this view for a finger, a
+    /// trackpad or a mouse (never the Pencil), one touch, that may begin only when `mayBegin()` says so (`Gate`); the drag
+    /// starts at `startDistance` where the palm rule is asked again (`handle`), a new `cancelTrigger` ends it (`apply`,
+    /// `cancelDrag`), and the view's VoiceOver actions are `moveTargets`' (`setMoveTargets`, `moved(to:)`). Internal so the
+    /// tests can drive it without SwiftUI; the two handles are its subclasses.
+    class PanView: UIView {
+        /// The handle's recogniser (on this view).
         let pan = UIPanGestureRecognizer()
         var mayBegin: () -> Bool = { false }
         var onBegan: (CGPoint) -> Void = { _ in }
@@ -92,10 +100,8 @@ struct PaletteGripView: UIViewRepresentable {
         var lastCancelTrigger = 0
         /// A drag is running: it passed `startDistance` and has not ended.
         private(set) var dragging = false
-        private(set) var edge: PaletteEdge = .bottom
         private(set) var moveTargets: [PaletteEdge] = []
         private let gate = Gate()
-        private let mark = UIView()
 
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -106,34 +112,25 @@ struct PaletteGripView: UIViewRepresentable {
             gate.grip = self
             pan.delegate = gate
             addGestureRecognizer(pan)
-            mark.backgroundColor = .secondaryLabel
-            mark.isUserInteractionEnabled = false
-            addSubview(mark)
-            isAccessibilityElement = true
-            accessibilityLabel = ToolbarLogic.gripAccessibilityLabel
-            accessibilityHint = ToolbarLogic.gripAccessibilityHint
-            accessibilityIdentifier = PaletteGripView.identifier
         }
 
         required init?(coder: NSCoder) {
             nil
         }
 
-        /// Takes the representable's closures, edge and actions.
-        func configure(_ grip: PaletteGripView) {
-            mayBegin = grip.mayBegin
-            onBegan = grip.onBegan
-            onChanged = grip.onChanged
-            onEnded = grip.onEnded
-            onCancelled = grip.onCancelled
-            onMove = grip.onMove
-            if edge != grip.edge {
-                edge = grip.edge
-                setNeedsLayout()
-            }
-            if moveTargets != grip.moveTargets {
-                moveTargets = grip.moveTargets
-                accessibilityCustomActions = grip.moveTargets.map { target in
+        /// Takes a representable's drag closures and its move actions (VoiceOver's 「…へ移す」, one per target).
+        func takeDrag(mayBegin: @escaping () -> Bool, onBegan: @escaping (CGPoint) -> Void,
+                      onChanged: @escaping (CGPoint, CGVector) -> Void, onEnded: @escaping (CGPoint, CGVector) -> Void,
+                      onCancelled: @escaping () -> Void, onMove: @escaping (PaletteEdge) -> Void, moveTargets: [PaletteEdge]) {
+            self.mayBegin = mayBegin
+            self.onBegan = onBegan
+            self.onChanged = onChanged
+            self.onEnded = onEnded
+            self.onCancelled = onCancelled
+            self.onMove = onMove
+            if self.moveTargets != moveTargets {
+                self.moveTargets = moveTargets
+                accessibilityCustomActions = moveTargets.map { target in
                     UIAccessibilityCustomAction(name: ToolbarLogic.moveToTitle(target)) { [weak self] _ in
                         self?.moved(to: target) ?? false
                     }
@@ -141,22 +138,21 @@ struct PaletteGripView: UIViewRepresentable {
             }
         }
 
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            let frame = ToolbarLogic.gripMarkFrame(for: edge, in: bounds.size)
-            mark.frame = frame
-            mark.layer.cornerRadius = min(frame.width, frame.height) / 2
-        }
-
         /// A VoiceOver action: the screen moves the bar, then VoiceOver is told the screen changed (on the next turn,
         /// after SwiftUI laid it out).
         @discardableResult
         func moved(to target: PaletteEdge) -> Bool {
             onMove(target)
+            Self.postLayoutChanged()
+            return true
+        }
+
+        /// Tells VoiceOver the screen changed, on the main actor's next turn (after SwiftUI laid the moved bar out): after a
+        /// VoiceOver action here, and after a choice in the 「動かす」 button's dialog (`ToolbarView`, §4.11, §17.2).
+        static func postLayoutChanged() {
             Task { @MainActor in
                 UIAccessibility.post(notification: .layoutChanged, argument: nil)
             }
-            return true
         }
 
         @objc private func panned(_ recognizer: UIPanGestureRecognizer) {
@@ -179,6 +175,7 @@ struct PaletteGripView: UIViewRepresentable {
                         return
                     }
                     dragging = true
+                    dragStarted()
                     onBegan(location)
                 }
                 onChanged(location, velocity)
@@ -194,6 +191,9 @@ struct PaletteGripView: UIViewRepresentable {
                 break
             }
         }
+
+        /// The drag has just started (before `onBegan`): nothing here; the 「動かす」 button notes that its touch is no tap.
+        func dragStarted() {}
 
         /// A new trigger ends a running drag; the same value does nothing.
         func apply(cancelTrigger: Int) {
@@ -219,10 +219,49 @@ struct PaletteGripView: UIViewRepresentable {
         }
     }
 
-    /// The pan's delegate: it may begin only when the grip's `mayBegin()` says so. (Not the view itself: UIView has a
-    /// `gestureRecognizerShouldBegin(_:)` of its own, asked for other recognisers too.)
+    /// The UIKit side of the grip: the shared pan (`PanView`) and the mark. Internal so the tests can drive it without
+    /// SwiftUI.
+    final class GripView: PanView {
+        private(set) var edge: PaletteEdge = .bottom
+        private let mark = UIView()
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            mark.backgroundColor = .secondaryLabel
+            mark.isUserInteractionEnabled = false
+            addSubview(mark)
+            isAccessibilityElement = true
+            accessibilityLabel = ToolbarLogic.gripAccessibilityLabel
+            accessibilityHint = ToolbarLogic.gripAccessibilityHint
+            accessibilityIdentifier = PaletteGripView.identifier
+        }
+
+        required init?(coder: NSCoder) {
+            nil
+        }
+
+        /// Takes the representable's closures, edge and actions.
+        func configure(_ grip: PaletteGripView) {
+            takeDrag(mayBegin: grip.mayBegin, onBegan: grip.onBegan, onChanged: grip.onChanged, onEnded: grip.onEnded,
+                     onCancelled: grip.onCancelled, onMove: grip.onMove, moveTargets: grip.moveTargets)
+            if edge != grip.edge {
+                edge = grip.edge
+                setNeedsLayout()
+            }
+        }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            let frame = ToolbarLogic.gripMarkFrame(for: edge, in: bounds.size)
+            mark.frame = frame
+            mark.layer.cornerRadius = min(frame.width, frame.height) / 2
+        }
+    }
+
+    /// The pan's delegate: it may begin only when the handle's `mayBegin()` says so (the grip's or the 「動かす」 button's).
+    /// (Not the view itself: UIView has a `gestureRecognizerShouldBegin(_:)` of its own, asked for other recognisers too.)
     final class Gate: NSObject, UIGestureRecognizerDelegate {
-        weak var grip: GripView?
+        weak var grip: PanView?
 
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             grip?.mayBegin() ?? false

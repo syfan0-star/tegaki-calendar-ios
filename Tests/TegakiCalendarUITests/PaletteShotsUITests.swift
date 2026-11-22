@@ -20,6 +20,11 @@ import XCTest
 ///   the iPhone 17's day in portrait and its joined week in landscape (`--screenshot-span on`: one week across where the cap
 ///   shows three). Their lines add the canvas's zoom and x and one page's width at that zoom (`across=`, pt), to be read
 ///   against the canvas's width; they take no edge (`ok=yes`, as the hand's photos).
+/// - The second rework (docs/R1_4_1_CONTRACT.md §17.2, §17.4): the 「動かす」 button before 「しまう」, for the confirmation page —
+///   ipad13's week in portrait with the bar at the bottom (`ipad13-portrait-week-move`) and with the button's choice of edges
+///   open (`ipad13-portrait-week-move-menu`, `--screenshot-palette-menu`), and the mini's week in portrait with the upright bar
+///   on the left (`ipadmini-portrait-week-left-move`). Their lines also need the button (`move=` its frame; `ok=no` without
+///   it) and, for the menu, its 「右へ移す」 (`menu=yes`).
 /// The iPhone 18 Pro Max's portrait month (等倍 on the second row) and the iPhone 17's `iphone-portrait-week-zoom3` are J-4's
 /// photos already (the first job), so they are not taken again here.
 ///
@@ -62,10 +67,18 @@ final class PaletteShotsUITests: XCTestCase {
                   pageWidth: Self.weekWidth)
             shoot(setup, "ipad13-portrait-day-fit", .portrait, ["--screenshot-page", "day", "--screenshot-zoom", "fit"], edge: nil,
                   pageWidth: Self.dayWidth)
+            // The second rework (§17.4): 「動かす」 at the bar's right end, and its choice of edges open.
+            shoot(setup, "ipad13-portrait-week-move", .portrait, ["--screenshot-page", "week", "--screenshot-palette", "bottom"],
+                  edge: "bottom", move: .button)
+            shoot(setup, "ipad13-portrait-week-move-menu", .portrait,
+                  ["--screenshot-page", "week", "--screenshot-palette", "bottom", "--screenshot-palette-menu"], edge: "bottom", move: .menu)
         case "ipadmini":
             shoot(setup, "ipadmini-portrait-month-left", .portrait, ["--screenshot-page", "month", "--screenshot-palette", "left"], edge: "left")
             shoot(setup, "ipadmini-landscape-week-right", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-palette", "right"],
                   edge: "right", scrolledToo: true)
+            // The second rework (§17.4): 「動かす」 on the upright bar, over 「しまう」.
+            shoot(setup, "ipadmini-portrait-week-left-move", .portrait, ["--screenshot-page", "week", "--screenshot-palette", "left"],
+                  edge: "left", move: .button)
         case "iphone":
             shoot(setup, "iphone-portrait-week-hand-left", .portrait, ["--screenshot-page", "week", "--screenshot-hand", "left"], edge: nil)
             shoot(setup, "iphone-landscape-week-hand-left", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-hand", "left"], edge: nil)
@@ -81,11 +94,17 @@ final class PaletteShotsUITests: XCTestCase {
 
     // MARK: One photo
 
+    /// What a photo of the 「動かす」 button waits for (§17.4): the button, or the button and its choice of edges open.
+    private enum MoveShot {
+        case button, menu
+    }
+
     /// One launch, one photo (two with `scrolledToo`: the upright column scrolled to its end). `edge` is the edge
     /// `palette.state` must read (waited for); nil: no `--screenshot-palette` (no state element). `pageWidth` (lu, the 等倍
-    /// photos): the line also carries the canvas's zoom and x and that width at the zoom (`across=`, pt).
+    /// photos): the line also carries the canvas's zoom and x and that width at the zoom (`across=`, pt). `move` (the second
+    /// rework's photos): the line also needs the 「動かす」 button (and with `.menu` its choice 「右へ移す」), waited for.
     private func shoot(_ setup: Setup, _ name: String, _ orientation: UIDeviceOrientation, _ arguments: [String], edge: String?,
-                       scrolledToo: Bool = false, pageWidth: CGFloat? = nil) {
+                       scrolledToo: Bool = false, pageWidth: CGFloat? = nil, move: MoveShot? = nil) {
         XCUIDevice.shared.orientation = orientation
         let app = XCUIApplication()
         app.launchArguments = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-probe"] + arguments + Self.japanese
@@ -105,25 +124,41 @@ final class PaletteShotsUITests: XCTestCase {
             ok = read != nil
         }
         settle(canvas)
+        var moveFields = ""
+        if let move {
+            let button = element(app, "toolbar.move")
+            let shown = button.waitForExistence(timeout: 15)
+            moveFields = " move=\(shown ? Self.text(button.frame) : "-")"
+            ok = ok && shown
+            if move == .menu {
+                let open = app.buttons["右へ移す"].waitForExistence(timeout: 15)
+                moveFields += " menu=\(open ? "yes" : "no")"
+                ok = ok && open
+            }
+        }
         Thread.sleep(forTimeInterval: photoWait)
         let turned = orientation != .portrait
         let how = takePhoto(app, setup, file: "palette/\(name).png", turned: turned)
         record(setup, "palette shot: device=\(setup.device) name=\(name) photo=\(how) ok=\(ok ? "yes" : "no") expected=\(edge ?? "-") "
             + "window=\(Self.text(app.windows.firstMatch.frame)) canvas=\(Self.text(canvas.frame)) state=\(state)"
-            + (pageWidth.map { zoomFields(canvas, pageWidth: $0) } ?? ""))
+            + (pageWidth.map { zoomFields(canvas, pageWidth: $0) } ?? "") + moveFields)
         guard scrolledToo else { return }
         // The upright column scrolled: one slow drag from near its bottom to near its top, held before the lift. It starts
         // inside the scrolling column, 40 pt above 「しまう」, which sits under it outside the scroll (ToolbarView's
         // `verticalBar`: a press there would hold the plain button and scroll nothing); without 「しまう」, 130 pt above the
         // window's bottom (the safe area, the slot's 6 pt and 「しまう」's 57 pt section, and a margin). `ok` is the column
         // having moved with the bar still open: 「ペン」, at its top, went up (or left the tree once scrolled away).
+        // The second rework (§17.2): 「動かす」 sits right over 「しまう」 outside the scroll too (a drag there would move the
+        // bar), so the drag starts 40 pt above 「動かす」 when it is there (and without either, 48 pt higher for it).
         let pen = app.buttons["ペン"]
         let collapse = app.buttons["ツールバーをしまう"]
+        let moveButton = element(app, "toolbar.move")
         let window = app.windows.firstMatch.frame
         let before = pen.exists ? pen.frame : nil
         if let before {
             let x = before.midX
-            let startY = collapse.exists ? collapse.frame.minY - 40 : window.maxY - 130
+            let above = moveButton.exists ? moveButton.frame.minY : collapse.exists ? collapse.frame.minY : nil
+            let startY = above.map { $0 - 40 } ?? window.maxY - 130 - 48
             let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
             origin.withOffset(CGVector(dx: x, dy: startY))
                 .press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: x, dy: window.minY + 160)),

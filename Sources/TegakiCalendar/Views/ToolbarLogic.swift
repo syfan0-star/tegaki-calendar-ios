@@ -523,6 +523,13 @@ extension ToolbarLogic {
         mode == .expanded && allowed.count >= 2
     }
 
+    /// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): the 「動かす」 button before 「しまう」 shows where the grip does
+    /// (`showsGrip`): the open bar of an iPad window that allows two edges or more. Never on an iPhone, a window with the
+    /// bottom alone, the dock or a peek, so their bar is 1.4's.
+    static func showsMoveButton(_ mode: ToolbarMode, allowed: [PaletteEdge]) -> Bool {
+        showsGrip(mode, allowed: allowed)
+    }
+
     /// The grip's touch zone along the bar's inner edge, centred: 120 pt.
     static let gripLength: CGFloat = 120
     /// Across a top or bottom bar's inner edge: the 8 pt to the paper + the bar's own 8 pt padding.
@@ -581,9 +588,12 @@ extension ToolbarLogic {
 
     // MARK: VoiceOver (§4.11, 0e-22)
 
-    /// The grip's spoken name, 「ツールバーを動かす」, and its hint, 「上下左右の端へ移せます」.
+    /// The grip's spoken name, 「ツールバーを動かす」, and its hint, 「上下左右の端へ移せます」. The 「動かす」 button reads out the
+    /// same (§17.2), and the name is the title of its choice of edges.
     static let gripAccessibilityLabel = L.text("toolbar.grip.spoken")
     static let gripAccessibilityHint = L.text("toolbar.grip.hint")
+    /// §17.2, §17.3: the 「動かす」 button's 10 pt name under its mark (as 「しまう」's `collapseTitle`).
+    static let moveTitle = L.text("toolbar.move.title")
 
     /// The grip's actions: one for each allowed edge but the current one, in `allowed`'s order.
     static func moveTargets(allowed: [PaletteEdge], current: PaletteEdge) -> [PaletteEdge] {
