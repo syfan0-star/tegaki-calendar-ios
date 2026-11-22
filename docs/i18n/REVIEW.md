@@ -2819,3 +2819,99 @@ FIX が e52f6b2 の上で、python で照らしました（2 人の判定も同�
 - R に渡した 2 行（`rework/a-for-R.txt`）は、PROPOSALS §2.1・§3.2 の案 A の英語と 1 字も違いません（どちらもファイルに 1 回だけある）。かな・漢字は 0 です。
 - 逆翻訳の 2 行（`rework/a-back.txt`）は、渡した 2 行と同じ順・同じ所です。上の全部の表と `docs/i18n/back/store-1_4_1-fix.md` の最後の節の訳と逆翻訳は、この 2 つのファイルと同じ字です。
 - 審査メモを案 A にしたとき（英語の 1 と日本語の要約の 1 つ目の文を替える）は 3,994 バイトで、PROPOSALS §2.2 の数と同じです（上限 4,000）。上の「1 を足すときの字と数」と「just to their left」の 3,996 も、同じ組み立て方で数え直しました。
+
+## 16. 1.4.1 の「動かす」（アプリの鍵 toolbar.move.title・審査メモの 3・SUPPORT の答え、2026-11-22）
+
+元は契約の第 4 版 §17.3 です（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md)。iPad のツールバーの「しまう」の左に「動かす」ボタンを足した直し 2）。替わった文は 3 つの所にあります。(1) アプリの新しい鍵 `toolbar.move.title`「動かす」（`tools/l10n/source/app-S.json`。10 pt のボタンの名前で、「しまう」の `toolbar.collapse.title` と同じ扱い）。(2) 審査メモの「What is new in 1.4.1」の 3（`docs/store/review-note.txt`。W、`r141-w-d3` の 78f81f9）。(3) `docs/SUPPORT.en.md` の「How do I move the toolbar?」（W、同じ 78f81f9。元は `docs/SUPPORT.md:161`・`:163`・`:166`）。審査メモの 3 の 3 文目（「On iPhone, even on iPhone Duo's inner screen, it stays at the bottom.」）と 4、SUPPORT.en のほかの文（1 文目の「On iPad, you can move the open toolbar …」、指を離すと吸い付く文、左右の端で縦に立つ文、紙に重ならない文、覚える端の点、細い窓の点）は替わっていないので、14 の判定が今も有効です。
+
+- **訳**: X が書きました（`r141-w-x3`。GLOSSARY の行と理由は 49bdd06）。作る役が ca4a2e5 で入れた 9 言語の仮の訳を、GLOSSARY §4・§5 と照らして、そのまま決めました（だから `tools/l10n/translations/*.json` と `Localizable.xcstrings` は X の commit で変わっていない）。どの言語も、読み上げの「ツールバーを動かす」（`toolbar.grip.spoken`）から「ツールバー」を除いた動詞で、形は「しまう」の名前と同じです。例外は de だけで、Verschieben（59.6 pt）は 48 pt の面に入らず、Schieben（44.7 pt）も短くならないので、Bewegen にしました（投げなわの説明「Ziehen zum Bewegen」と同じ語）。審査メモと SUPPORT の英語は W の字です。
+- **元を見ない逆翻訳**: R が、訳の字だけ（アプリの 9 言語の名前と、審査メモの英語の 3 文・SUPPORT.en の 6 文）を受け取って、日本語の元を見ずに訳し戻しました。R へ渡す段取りはリードの Workflow（wf_e907f63d-360）です。この節を書いた W は、その段取りを見ていません。結果はリードのスクラッチの `pk/review16_data.json` にあり、この節の表と `docs/i18n/back/<言語>.json` の `toolbar.move.title`（この節と一緒に足した）に機械で写しました（訳の字と逆翻訳の字は 1 字も変えていない）。
+- **判定**: 判定の役が、18 行（アプリの 9 言語と英語の 9 文）を 1 行ずつ照らしました。14・15 と違い、判定は 1 人です。**18 行とも ○ で、△ と × は 0 でした。** en:2 にだけ、任意の案が 1 つあります（下の「判定の任意の案」）。下の表の注の列は、判定の理由（英語）を W が日本語にまとめたものです。
+- **母語の人の確認ではありません。**
+
+### 結果
+
+| 対象 | 行 | 判定 | 直した後 |
+| --- | --- | --- | --- |
+| アプリの鍵 `toolbar.move.title`（9 言語） | 9 | ○ 9 | — |
+| 審査メモの 3 の英語（替えた 3 文） | 3 | ○ 3 | — |
+| `SUPPORT.en.md` の「How do I move the toolbar?」（替えた 6 文） | 6 | ○ 6 | — |
+| **計** | **18** | **○ 18・△ 0・× 0** | **判定の後に替えた字は 0** |
+
+**× は 0 です。** 契約 §17.3 の「`docs/i18n/REVIEW.md` の新しい節 16 の × を 0 に」は済みです。判定の後に替えた字は無いので、この 18 行のために、もう一度の元を見ない逆翻訳と判定は要りません。審査メモの日本語の要約の 3 つ目の文（「iPad はツールバーを「動かす」で上下左右へ（iPhone は下のまま）。」）は訳ではなく日本語の元なので、逆翻訳の対象の外です。
+
+### 判定の任意の案
+
+| # | 所 | 判定の案 | 扱い |
+| --- | --- | --- | --- |
+| 1 | en:2（審査メモの 3 の 2 文目「The small handle on the toolbar's inner edge also drags it.」） | バイトが許すなら（+4 バイト）「You can also drag the small handle on the toolbar's inner edge.」 | **入れていない**。審査メモは今 3,993 バイト（上限 4,000）で、入れると 3,997 バイト、並び 案 A の形では 3,999 バイトになり、残りが 1 バイトしかない（[PROPOSALS_1_4_1.md](../store/PROPOSALS_1_4_1.md) §2.2）。判定は今の字で ○（読み違えようがない）。入れると、この 1 文の元を見ない逆翻訳と判定のやり直しが要る |
+
+### 全部の表（アプリの鍵 `toolbar.move.title`、9 行）
+
+元の日本語は 9 行とも「動かす」です（jaSha1 b43eacf397）。幅は、作る役の速い道の run 45019147085 の `PaletteMoveButtonTests.testTheNameFitsTheFaceInEveryLanguage` のログの値で、確かめる上限は 47.5 pt です（ja の「動かす」は 28.1 pt）。38 pt を超える fr と de は、縮み（`labelMinScale` 0.8）の範囲で入ります（X の記録。GLOSSARY §4）。
+
+| 言語 | 訳 | 逆翻訳（元を見ない） | 判定 | 10 pt の幅（pt。シミュレーター） | 注（判定の理由） |
+| --- | --- | --- | --- | ---: | --- |
+| en | Move | 移動 | ○ | 25.9 | 動かすの意味を保つ。4 つの操作の en（Move to Top・Move to Bottom・Move to Left・Move to Right）とそろう。10 pt で 48 pt の面に楽に入る |
+| zh-Hans | 移动 | 移動 | ○ | 19.3 | 簡体字の画面でものを動かすときのふつうの動詞。4 つの操作（移到顶部 など）とそろう。2 字で楽に入る |
+| zh-Hant | 移動 | 移動 | ○ | 18.7 | 繁体字の正しい形。4 つの操作（移到頂端・移到右側 など）とそろう。2 字で楽に入る |
+| ko | 옮기기 | 移す | ○ | 26.0 | 「移す・動かす」の意味。ko の 4 つの操作（위로 옮기기・오른쪽으로 옮기기）と、しまうの 숨기기 の -기 の形とそろう。3 音節で、10 pt で約 30 pt に入る |
+| fr | Déplacer | 移動 | ○ | 43.2（縮み約 0.88） | 要素を動かすときのふつうの動詞で、4 つの操作（Déplacer en haut・Déplacer à droite）とそろう。10 pt で約 40 pt で、縮みが 0.8 を下回らずに面に入る |
+| de | Bewegen | 動かす | ○ | 44.0（縮み約 0.86） | 動かすの意味を持つ。判定の役は、Apple のドイツ語の画面でも使う語（たとえば「Bewegen nach」）とした（出典は開いていない）。10 pt で約 40 pt で入る。よく使う Verschieben は 48 pt の面に長すぎるので、Bewegen が正しい選び。W の注: 読み上げ（`toolbar.grip.spoken`）の Werkzeugleiste verschieben と動詞が違うのは de だけ（GLOSSARY §4・§5。しまうの Ablegen と ausblenden と同じ扱い） |
+| es | Mover | 移動 | ○ | 29.8 | スペイン語の画面のふつうの動詞。4 つの操作（Mover arriba・Mover a la derecha）とそろい、短い |
+| it | Sposta | 移動 | ○ | 33.4 | イタリア語の画面のふつうの命令形。4 つの操作（Sposta in alto・Sposta a destra）と、しまうの Riduci の形とそろい、短い |
+| pt-BR | Mover | 移動 | ○ | 29.8 | pt-BR の画面のふつうの動詞。4 つの操作（Mover para cima・Mover para a direita）とそろい、短い |
+
+### 全部の表（審査メモの英語と SUPPORT.en、9 行）
+
+# の列は R と判定に渡した順です（en:1〜3 が審査メモの 3、en:4〜9 が SUPPORT.en）。文の番号は、下の 16.x の 1 文を足した後のファイルの数え方です（`SUPPORT.md:161`・`SUPPORT.en.md:166` は、その 1 文が 3 文目に入ったので、前の 3 文目が 4 文目、5 文目が 6 文目になった）。
+
+| # | 所 | 元の日本語 | 訳 | 逆翻訳（元を見ない） | 判定 | 注（判定の理由） |
+| --- | --- | --- | --- | --- | --- | --- |
+| en:1 | `review-note.txt` の「What is new in 1.4.1」の 3 の 1 文目 | （意味の元）日本語の要約の 3 つ目の文「iPad はツールバーを「動かす」で上下左右へ（iPhone は下のまま）。」と、契約 §17.3（押して選ぶ・指で引く・Apple Pencil では引けない） | 3. On iPad, tap the toolbar's Move button to choose an edge, or drag it with a finger (not with Apple Pencil). | 3. iPad では、ツールバーの［移動］ボタンをタップして寄せる端を選ぶか、指でドラッグします（Apple Pencil ではドラッグできません）。 | ○ | §17.3 の 3 の中身（iPad で Move を押して端を選ぶか、指で引く。Apple Pencil では引けない）を保つ。UI の名前 Move は `toolbar.move.title` の en。「drag it」の it は Move ボタンを指し、正しい |
+| en:2 | 3 の 2 文目 | （意味の元）契約 §17.3 の「小さなつまみの文」（ツールバーの内側の縁の小さなつまみでも動く） | The small handle on the toolbar's inner edge also drags it. | ツールバーの内側の端にある小さなつまみをドラッグしても動かせます。 | ○ | ツールバーの内側の縁の小さなつまみでもツールバーが動く、と言っている。「the handle … drags it」は少し詰めた言い方だが、読み違えようがない。審査メモの 4,000 バイトの狭い上限にも入る。任意の案が 1 つある（下の「判定の任意の案」） |
+| en:3 | 3 の 4 文目（確かめ方） | （意味の元）契約 §17.3 の 3 の確かめ方（「動かす」を押して「右へ移す」を選ぶ。確かめ表の行 13 の手順の一部と同じ） | To check: on iPad, open a week page, tap Move and choose Move to Right. | 確かめ方：iPad で週のページを開き、［移動］をタップして［右へ移動］を選びます。 | ○ | 確かめの手順が合う（iPad で週のページを開き、Move を押して Move to Right を選ぶ）。2 つの UI の名前はアプリの en の字そのまま（`toolbar.move.title` = Move、`toolbar.moveTo.right` = Move to Right） |
+| en:4 | `SUPPORT.en.md:166`（How do I move the toolbar?）の 2 文目 | `SUPPORT.md:161` の 2 文目: ツールバーの「しまう」の左にある「動かす」を押して、「上へ移す」などから移したい端を選んでください（左右の端に置いたときは、「動かす」は「しまう」の上にあります）。 | Tap “Move” to the left of “Hide” in the toolbar, and choose the edge you want, such as “Move to Top” (when the toolbar is at the left or right edge, “Move” is above “Hide”). | ツールバーの「隠す」の左にある「移動」をタップし、「上へ移動」など、移したい端を選びます（ツールバーが左端または右端にあるときは、「移動」は「隠す」の上にあります）。 | ○ | UI の名前が正しい（Hide は `toolbar.collapse.title`（しまう）の en、Move と Move to Top もアプリの字）。左右の端では Move が Hide の上にある、という括弧の意味も保つ |
+| en:5 | `SUPPORT.en.md:166` の 4 文目 | `SUPPORT.md:161` の 4 文目: 「動かす」を指で引いて動かすこともできます。 | You can also drag “Move” with your finger. | 「移動」を指でドラッグして動かすこともできます。 | ○ | 元に忠実。UI の名前も正しい |
+| en:6 | `SUPPORT.en.md:166` の 6 文目 | `SUPPORT.md:161` の 6 文目: ツールバーの、紙に近い側の縁にある小さなつまみを指で引いても、同じように動きます。 | Dragging the small handle on the edge of the toolbar nearer the paper with your finger moves it in the same way. | ツールバーの紙に近い側の端にある小さなつまみを指でドラッグしても、同じように動かせます。 | ○ | 「the edge of the toolbar nearer the paper」が「紙に近い側の縁」、「with your finger」が「指で」、「moves it in the same way」が「同じように動きます」を保つ。少し長いが明らか |
+| en:7 | `SUPPORT.en.md:168`（1 つ目の点）の 1 文目 | `SUPPORT.md:163` の 1 文目: Apple Pencil では引けません（押して選ぶことはできます）。 | You cannot drag it with Apple Pencil (you can still tap and choose). | Apple Pencil ではドラッグできません（タップして選ぶことはできます）。 | ○ | 元に忠実（Apple Pencil では引けないが、押して選ぶことはできる）。iOS では「押す」に tap が合う |
+| en:8 | `SUPPORT.en.md:168` の 2 文目 | `SUPPORT.md:163` の 2 文目: Apple Pencil で書いている間と、書き終えてから 0.5 秒の間は、手のひらが「動かす」やつまみに触れても、ツールバーは動き出しません。 | While you are writing with Apple Pencil, and for 0.5 seconds after, the toolbar does not start moving even if your palm touches “Move” or the handle. | Apple Pencil で書いている間と、書き終えてから 0.5 秒の間は、手のひらが「移動」やつまみに触れても、ツールバーは動き出しません。 | ○ | 手のひらの規則を保つ（Apple Pencil で書いている間と書き終えて 0.5 秒の間は、Move やつまみに触れても、ツールバーは動き出さない）。UI の名前も正しい |
+| en:9 | `SUPPORT.en.md:171`（4 つ目の点） | `SUPPORT.md:166`: iPhone のツールバーは下のままです（「動かす」もつまみもありません）。 | On iPhone, the toolbar stays at the bottom (it has neither “Move” nor a handle). | iPhone では、ツールバーは画面の下に置かれたままです（「移動」もつまみもありません）。 | ○ | 元に忠実（iPhone ではツールバーは下のままで、Move もつまみも無い） |
+
+### 機械で照らしたこと
+
+- アプリの 9 言語の訳は、今の `tools/l10n/translations/<言語>.json` の `toolbar.move.title` の `text` と同じ字です。jaSha1 は 9 言語とも b43eacf397 です。
+- `docs/i18n/back/<言語>.json` に `toolbar.move.title` を足しました（`text` は訳、`back` は R の逆翻訳。`about` にこの鍵の 1 文を足した）。これで 9 つの back のキーは、`translations/<言語>.json` のキーと同じ 496 になりました（足す前は `toolbar.move.title` だけが無かった）。
+- 英語の 9 文は、ファイルに 1 回ずつあります（en:1〜3 は `review-note.txt` の 3、en:4〜9 は `SUPPORT.en.md` の「How do I move the toolbar?」）。9 文に、かな・漢字は 0 です。
+- 英語の UI の名前は、アプリの en の字と同じです（Move = `toolbar.move.title`、Hide = `toolbar.collapse.title`、Move to Top = `toolbar.moveTo.top`、Move to Right = `toolbar.moveTo.right`）。
+- 日本語の元（`SUPPORT.md` の 6 文と、審査メモの要約の 3 つ目の文）は、ファイルに 1 回ずつあります。
+- 審査メモは 3,993 バイト（`wc -c`。最後の改行を除くと 3,992 バイト・3,639 字）で、上限 4,000 に入ります。並び 案 A と「The next page…」を外した形の 4 つの数は [PROPOSALS_1_4_1.md](../store/PROPOSALS_1_4_1.md) §2.2 です（3,993・3,995・3,942・3,944）。15 に書いた審査メモの数（3,992、案 A の 3,994、「1 を足すときの字と数」など）は第 3 版の 3 のときの数で、第 4 版の 3 では、どれも 1 バイト増えます（15 の字は記録として替えていない）。
+
+### 確かめていないこと
+
+- **母語の人の確認**: 9 言語のどれも、その言語の画面でいちばんふつうに読める名前かは、母語の人に確かめていません（GLOSSARY §5 の「確かめていないこと」と同じ）。
+- **de の Bewegen が Apple の画面で使われること**: 判定の役の知識で、出典は開いていません。
+- **fr と de の縮んだ字の見え方**: 幅の値はシミュレーターのログで確かめましたが、縮んだ字（約 0.88・0.86）が読みやすいかは、Localized の写真でリードが見る点です（X の記録）。
+- **de の画面の名前と読み上げの名前**: W の気づき（判定の外）。de だけ、画面の名前（Bewegen）が読み上げの名前（Werkzeugleiste verschieben）に入っていません。音声コントロールで画面の字の名前を言ったときに押せるかは確かめていません。前からの「しまう」の Ablegen（読み上げは Werkzeugleiste ausblenden）と同じ形で、ほかの 8 言語と ja は、画面の名前が読み上げの名前に入っています。直しません。
+
+### lint
+
+この節の字と下の 16.x の 1 文を入れた後の枝 `r141-w-d4` で、`build.py --check`・`lint.py`（L-1〜L-14）・`baseline.py --check` は 3 つとも終了 0 です（`L-9: ok: 12 locales, the URLs on the English side`。審査メモの 3,993 バイトは L-9 の 4,000 バイトに入る）。L-12 の字の幅の目安の警告は 60 件で、14・15 の 58 件に `toolbar.move.title` の fr Déplacer（約 4.8 em）と de Bewegen（約 4.2 em。maxEm は 3.8）の 2 件が足されたものです。目安の警告で、本当の幅はテストが測ります（上の表の値。47.5 pt に入る）。de Radierer・pt-BR Borracha と同じ扱いです。凍結の 4 つの表（`DATA_1_1`・`TESTS_1_3`・`TESTS_1_2_3`・`FIXTURES_1_3`）は `shasum -a 256 -c` で全部 OK です。この枝で替えたのは `docs/` の下だけです。
+
+### 16.x §18.4 の 1 文
+
+元は契約の第 5 版 §18.4 です（しまったときにも「動かす」。§18.2 で、丸いボタンを押して出たツールバー（のぞき）にも「動かす」が出て、そこで端を選ぶと、その端にツールバーが開いたまま残る）。`SUPPORT.md` の「ツールバーを動かすには？」の答えに 1 文足し、`SUPPORT.en.md` の「How do I move the toolbar?」にも同じ所に英語の 1 文を足しました（W、枝 `r141-w-d4`）。
+
+| 所 | 元の日本語 | 訳 | 逆翻訳（元を見ない） | 判定 | 注 |
+| --- | --- | --- | --- | --- | --- |
+| `SUPPORT.en.md:166` の 3 文目（`SUPPORT.md:161` の 3 文目。「上へ移す」などを選ぶ文のすぐ後） | ツールバーをしまっているときは、丸いボタンを押して出たツールバーの「動かす」から選べます（選んだ端に、ツールバーが開いたまま残ります）。 | When the toolbar is hidden, tap the round button, then tap “Move” on the toolbar that appears and choose an edge (the toolbar stays open at the edge you choose). | まだ | まだ | W の注は下 |
+
+（逆翻訳と判定は次の段で書く）
+
+W の注（訳を書いた W は元を読んでいるので、この注は判定ではありません）:
+
+- 日本語は契約 §18.4 の字そのままです。このページのほかの所は「丸ボタン」と書いていますが、契約の字の「丸いボタン」のままにしました。
+- 英語の「the round button」は、`SUPPORT.en.md` の「How do I hide the toolbar?」と「How do I use it with my left hand?」の呼び方です。「押して」は、このページのほかの所と同じく tap にしました。「Move」はアプリの en の字（`toolbar.move.title`）です。
+- 丸ボタンの ↶ は「元に戻す」で、ツールバーを出すのは丸ボタンの道具の印です（「ツールバーをしまうには？」の字）。契約の字は「丸いボタンを押して」なので、英語も「tap the round button」のままにしました（道具の印とは書いていない）。
+- 「「動かす」から選べます」は、前の文（Tap “Move” …, and choose the edge you want）と同じく、Move を押して端を選ぶ手順として書きました（tap “Move” … and choose an edge）。
+- 判定で見てほしい点: この 1 文のすぐ後に「「動かす」を指で引いて動かすこともできます。」（You can also drag “Move” with your finger.）が続きます。丸いボタンから出したツールバー（のぞき）の「動かす」は押すだけで、引いても動きません（契約 §18.2）。続けて読むと、のぞきでも引けると読めるかを見てください。
