@@ -76,7 +76,11 @@ enum GatedAction: Equatable, CaseIterable {
 /// for its kind (`AppSettings.zoomRatio(for:)`, D4; 1 = the opening zoom `Bounds.open`, or
 /// `--screenshot-zoom`), so what a page holds never changes the size it opens at, and the
 /// canvas reports the ratio at the end of every pinch (`onZoomRatioChange`), which is the only time
-/// it is written. The first frame's stand-in viewport is `PaperViewport.initial(_:overview:paperSize:
+/// it is written. 1.4.1 (docs/R1_4_1_CONTRACT.md §16.3.4): a week or a day kept at 等倍 opens at its fit instead, one
+/// page's width across the paper's column (`currentFit` → the canvas's `initialFit`; `--screenshot-zoom fit` in screenshot
+/// mode), and right after the ratio the canvas says whether the zoom it ended at is that fit (`onZoomFitChange`: true
+/// after 等倍, false after a real pinch), which the screen keeps for the kind (`AppSettings.setZoomFit`; never in
+/// screenshot mode). The first frame's stand-in viewport is `PaperViewport.initial(_:overview:paperSize:
 /// viewport:ratio:)` over the paper area measured under the band (`paperArea`; the width alone until
 /// it is measured). While a pinch is in progress (`onZoomingChange`) the band's lane height is frozen
 /// at the zoom the pinch started from (`frozenLaneZoom`, M4C-27). A finger double tap on the week /
@@ -258,9 +262,11 @@ struct CalendarRootScreen: View {
     @State private var revealRect: CGRect?
     /// Bumped by 「今日」: the canvas already showing the page brings `revealRect` on screen once.
     @State private var revealTrigger = 0
-    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, 0e-7): bumped by 等倍 (`resetZoom`); the canvas on the screen goes back to its
-    /// opening zoom (ratio 1) once, and the ratio 1 it reports removes the kind's stored ratio (0e-10). A canvas made later
-    /// takes the value as it is and does nothing with it.
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, §16.3, 0e-7): bumped by 等倍 (`resetZoom`); the canvas on the screen goes once to
+    /// its 等倍 (`ZoomReset.target`): on a week or a day one page's width across the paper's column (the fit), which it then
+    /// reports (its ratio, then fit true: `AppSettings.setZoomFit` keeps the kind at 等倍 and removes its ratio, §16.3.4); on
+    /// a month or a year the opening zoom (ratio 1, which removes the kind's stored ratio, 0e-10). A canvas made later takes
+    /// the value as it is and does nothing with it.
     @State private var zoomResetTrigger = 0
     /// The hint was shown or the person pinched (per device; never written in screenshot mode).
     @AppStorage(AppSettings.pinchHintShownKey) private var pinchHintShown = false
@@ -589,11 +595,22 @@ struct CalendarRootScreen: View {
         ScreenshotMode.current?.zoomRatio ?? AppSettings.zoomRatio(for: kind)
     }
 
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §16.3.4, §16.3.7): the shown page opens at 等倍, one page's width across the paper's
+    /// column (the canvas's `initialFit`): a week or a day kept at 等倍 on this device (`AppSettings.zoomFit(for:)`), or in
+    /// screenshot mode `--screenshot-zoom fit`. Never a month or a year. It wins over `currentRatio` (which the kind's 等倍
+    /// removed, and which is 1 with `--screenshot-zoom fit`).
+    private var currentFit: Bool {
+        ZoomReset.followsFit(kind) && ScreenshotMode.zoomFit(ScreenshotMode.current, kind: kind, stored: AppSettings.zoomFit(for: kind))
+    }
+
     /// The viewport of a page's first frame, before its canvas has reported one: `currentRatio` over
     /// the opening zoom that fits `width` × the paper area (the width alone while `paperArea` is still
-    /// `.zero`), centred as the canvas will centre the paper (M4C contract §5.1, 1.1.1).
+    /// `.zero`), centred as the canvas will centre the paper (M4C contract §5.1, 1.1.1). 1.4.1 (§16.3.4): at 等倍
+    /// (`currentFit`) the fit of `width` with no margin (`PaperViewport.initial(_:viewportWidth:)`: the fit depends on the
+    /// width alone, so the estimate is exact).
     private func initialViewport(width: CGFloat) -> PaperViewport {
-        PaperViewport.initial(
+        if currentFit { return PaperViewport.initial(kind, viewportWidth: width) }
+        return PaperViewport.initial(
             kind,
             overview: ZoomPolicy.overviewSize(layout),
             paperSize: layout.size,
@@ -610,10 +627,11 @@ struct CalendarRootScreen: View {
     }
 
     /// 1.3 (wave C, HANDOFF 6): the first frame of a window — the focus page in the middle at the overview, the band's
-    /// `initialScrollX` zoomed in — until its canvas reported a viewport.
+    /// `initialScrollX` zoomed in — until its canvas reported a viewport. 1.4.1 (§16.3.4): at 等倍 the focus page's edges
+    /// at the column's edges (`currentFit`).
     private func joinedInitialViewport(_ span: SpanSession, width: CGFloat) -> PaperViewport {
         ScreenPaths.bandViewport(layout: span.layout, focusPageId: span.focusPageId, now: now, calendar: span.context.calendar,
-                                 area: CGSize(width: width, height: paperArea.height), ratio: currentRatio)
+                                 area: CGSize(width: width, height: paperArea.height), ratio: currentRatio, fit: currentFit)
     }
 
     /// 1.3: the band shown over the paper — the focus page's of the window's heading (every page has the window's lane
@@ -626,9 +644,11 @@ struct CalendarRootScreen: View {
     /// The zoom the page is expected to open at (`currentRatio` over the page's bounds for
     /// `viewportWidth` × the paper area): the estimate `initialScrollX` is computed with (M4C
     /// contract §5.1 / §1.6). The real value may differ by the band's height; the canvas applies
-    /// `initialScrollX` only when the ratio is above 1.
+    /// `initialScrollX` only when the ratio is above 1. 1.4.1 (§16.3.4): at 等倍 (`currentFit`) the fit of
+    /// `viewportWidth` (exact: the fit depends on the width alone), so `initialScrollX` sees one page across (x 0).
     private func estimatedZoom(viewportWidth: CGFloat) -> CGFloat {
-        ZoomPolicy.zoom(
+        if currentFit { return ZoomPolicy.fitZoom(kind, viewportWidth: viewportWidth) }
+        return ZoomPolicy.zoom(
             forRatio: currentRatio,
             bounds: ZoomPolicy.bounds(
                 kind,
@@ -968,7 +988,7 @@ struct CalendarRootScreen: View {
                 // the short one has no holiday name (1.4.1: an iPhone's wide row shows the short one).
                 titleHoliday: !shortTitle && kind == .day ? holidays.name(of: focus) : nil,
                 // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §3.2, §4.1): the header's order for 設定 › 入力 「利き手」, and 等倍
-                // (both canvases back to the opening zoom, §3.6).
+                // (the canvas to its 等倍, §3.6, §16.3: a week or a day one page across, a month or a year as it opens).
                 hand: hand,
                 onZoomReset: { resetZoom() }
             )
@@ -1292,8 +1312,15 @@ struct CalendarRootScreen: View {
             onStrokeBudget: strokeBudgetReached,
             onGrowthCapReached: growthCapReached,
             bottomClearance: ToolbarLogic.paperBottomClearance(toolbarMode),
-            // 1.4.1 (§3.6, 0e-7): 等倍, the last argument.
-            zoomResetTrigger: zoomResetTrigger
+            // 1.4.1 (§3.6, 0e-7): 等倍.
+            zoomResetTrigger: zoomResetTrigger,
+            // 1.4.1 (§16.3.4): a week or a day kept at 等倍 opens at its fit, and what the canvas says after a zoom ended
+            // (等倍 or a real pinch) is kept for the kind (never in screenshot mode). The last arguments.
+            initialFit: currentFit,
+            onZoomFitChange: { fit in
+                guard !ScreenshotMode.isActive else { return }
+                AppSettings.setZoomFit(fit, for: kind)
+            }
         )
         .id(canvasIdentity)
         .overlay(alignment: .topLeading) {
@@ -1737,9 +1764,10 @@ struct CalendarRootScreen: View {
     private func goToday() {
         let today = DayKey(ScreenshotMode.current?.today ?? Date())
         // 1.3 (§2 #6, wave C §4.1): far, a new window; near at the overview, a slide; today's page already the focus at
-        // the overview, nothing (1.2.3); zoomed in, today brought on screen (band lu).
+        // the overview, nothing (1.2.3); zoomed in, today brought on screen (band lu). 1.4.1 (§16.3.4): before a report, a
+        // kind kept at 等倍 counts as zoomed in where its fit is above the opening zoom (`currentFit`).
         if let action = paths.today(today, now: ScreenshotMode.current?.today ?? Date(), viewport: paths.heading?.viewport,
-                                    area: paperArea, ratio: currentRatio) {
+                                    area: paperArea, ratio: currentRatio, fit: currentFit) {
             switch action {
             case .reopen(let day):
                 show(kind: kind, focus: day)
@@ -1759,8 +1787,10 @@ struct CalendarRootScreen: View {
         revealTrigger += 1
     }
 
-    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, 0e-7): 等倍. The canvas decides what it does (0e-9: nothing at the opening zoom,
-    /// under the pen or during a pinch); the screen writes nothing itself. 「今日」 (`goToday`) never changes the zoom.
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, §16.3, 0e-7): 等倍. The canvas decides what it does (§16.3.2: a week or a day to
+    /// one page's width across, a month or a year to its opening zoom; nothing where it already is, under the pen or during
+    /// a pinch); the screen writes nothing itself here (what the canvas then reports is kept by its closures,
+    /// `onZoomRatioChange` and `onZoomFitChange`). 「今日」 (`goToday`) never changes the zoom.
     private func resetZoom() {
         zoomResetTrigger += 1
     }
@@ -2964,7 +2994,7 @@ extension CalendarRootScreen {
     func joinedCanvas(_ span: SpanSession, viewportWidth: CGFloat) -> some View {
         let smallScreen = Self.usesMinTapTarget(isPhone: UIDevice.current.userInterfaceIdiom == .phone, width: viewportWidth)
         let area = CGSize(width: viewportWidth, height: paperArea.height)
-        let zoom = ScreenPaths.bandZoom(layout: span.layout, area: area, ratio: currentRatio)
+        let zoom = ScreenPaths.bandZoom(layout: span.layout, area: area, ratio: currentRatio, fit: currentFit)
         let start = ScreenPaths.bandStart(layout: span.layout, focusPageId: span.focusPageId, now: now, calendar: span.context.calendar,
                                           visibleWidth: ZoomPolicy.visibleWidth(kind, viewportWidth: viewportWidth, zoom: zoom))
         let selectionIds = ScreenPaths.windowSelection(ScreenshotMode.initialSelection(ScreenshotMode.current), focusPageId: span.focusPageId)
@@ -3037,8 +3067,14 @@ extension CalendarRootScreen {
             slidePages: slidePages,
             slideTrigger: slideTrigger,
             onSpanStop: spanStopped,
-            // 1.4.1 (§3.6, 0e-7): 等倍, the last argument.
-            zoomResetTrigger: zoomResetTrigger
+            // 1.4.1 (§3.6, 0e-7): 等倍.
+            zoomResetTrigger: zoomResetTrigger,
+            // 1.4.1 (§16.3.4): as the one page's canvas (the same key per kind on both paths).
+            initialFit: currentFit,
+            onZoomFitChange: { fit in
+                guard !ScreenshotMode.isActive else { return }
+                AppSettings.setZoomFit(fit, for: kind)
+            }
         )
         .id(span.id)
         // §3.14: the guide at the top edge of the paper, right under the band.
