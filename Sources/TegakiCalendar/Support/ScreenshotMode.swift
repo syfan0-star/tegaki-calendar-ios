@@ -1371,3 +1371,25 @@ final class ScreenshotMeasure {
         return windows.first(where: \.isKeyWindow) ?? windows.first
     }
 }
+#if DEBUG
+
+// MARK: - r141-alt2: the header order of plan A (docs/R1_4_1_CONTRACT.md §16.2, §16.8; Debug builds only, never merged)
+
+extension ScreenshotMode {
+    /// r141-alt2 only (§16.2's plan A, §16.8): `--screenshot-header-order a` lays the header's wide row and compact first row
+    /// out in plan A's order (`HeaderOrder.piecesA`), the title aligned to the writing hand's side (`PageHeaderView.rowA`).
+    /// Without it, with `b` or with any other value: plan B, r141's. Read only with `--screenshot-mode`; nothing is read from
+    /// or written to the settings. Not in `Config`, so `parse` and its tests are r141's.
+    static let headerOrderA: Bool = headerOrderValue(ProcessInfo.processInfo.arguments) == "a"
+
+    /// The value after `--screenshot-header-order` in a screenshot mode launch: nil without `--screenshot-mode`, without the
+    /// flag, or with nothing after it.
+    static func headerOrderValue(_ arguments: [String]) -> String? {
+        guard arguments.contains("--screenshot-mode"), let index = arguments.firstIndex(of: "--screenshot-header-order"),
+              index + 1 < arguments.count else {
+            return nil
+        }
+        return arguments[index + 1]
+    }
+}
+#endif

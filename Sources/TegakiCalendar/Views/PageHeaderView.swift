@@ -122,9 +122,23 @@ struct PageHeaderView: View {
             // `fixedSize`). 1.4.1 (§3.3, §16.2): the second row is the switch and 等倍, as tall as the switch.
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
+                    #if DEBUG
+                    // r141-alt2 (docs/R1_4_1_CONTRACT.md §16.2's plan A, §16.8; Debug builds only): with screenshot mode's
+                    // `--screenshot-header-order a` the first row in plan A's order (`rowA`); the second row is the same in
+                    // both plans and stays r141's. The `#else` branch is r141's `ForEach`, word for word (PageHeaderRoomTests
+                    // reads it), and so is the `ForEach` after `else` here.
+                    if ScreenshotMode.headerOrderA {
+                        rowA(.compactFirst)
+                    } else {
+                        ForEach(HeaderOrder.pieces(arm: .compactFirst, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                            view(for: piece, in: .compactFirst)
+                        }
+                    }
+                    #else
                     ForEach(HeaderOrder.pieces(arm: .compactFirst, hand: hand, readOnly: readOnly), id: \.self) { piece in
                         view(for: piece, in: .compactFirst)
                     }
+                    #endif
                 }
                 HStack(spacing: 8) {
                     ForEach(HeaderOrder.pieces(arm: .compactSecond, hand: hand, readOnly: readOnly), id: \.self) { piece in
@@ -135,13 +149,44 @@ struct PageHeaderView: View {
             }
         } else {
             HStack(spacing: 6) {
+                #if DEBUG
+                // r141-alt2 (§16.2's plan A; Debug builds only): the wide row in plan A's order with
+                // `--screenshot-header-order a`, as the compact first row above.
+                if ScreenshotMode.headerOrderA {
+                    rowA(.wide)
+                } else {
+                    ForEach(HeaderOrder.pieces(arm: .wide, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                        view(for: piece, in: .wide)
+                    }
+                }
+                #else
                 ForEach(HeaderOrder.pieces(arm: .wide, hand: hand, readOnly: readOnly), id: \.self) { piece in
                     view(for: piece, in: .wide)
                 }
+                #endif
             }
         }
     }
 
+    #if DEBUG
+    /// r141-alt2 only (docs/R1_4_1_CONTRACT.md §16.2's plan A, §16.8; Debug builds only, `--screenshot-header-order a`, never
+    /// merged): the pieces of `arm` in plan A's order (`HeaderOrder.piecesA`), each drawn by `view(for:in:)` except the title,
+    /// whose frame is aligned to the writing hand's side instead (trailing for the right hand, so the date sits right next to
+    /// 等倍; leading for the left): plan A turns `titleAlignment` round (§16.2). Its text, font and `maxWidth: .infinity` are
+    /// `view(for:in:)`'s, and the pieces and gaps are plan B's, so the title's room is plan B's; only where it sits differs.
+    @ViewBuilder
+    private func rowA(_ arm: HeaderOrder.Arm) -> some View {
+        ForEach(HeaderOrder.piecesA(arm: arm, hand: hand, readOnly: readOnly), id: \.self) { piece in
+            if piece == .title {
+                titleText(arm == .wide ? .title2 : .headline)
+                    .frame(maxWidth: .infinity, alignment: hand == .left ? .leading : .trailing)
+            } else {
+                view(for: piece, in: arm)
+            }
+        }
+    }
+
+    #endif
     // MARK: - Pieces
 
     /// 1.4.1 (§3.1–§3.4): one piece of `arm`. The title takes the room the others leave; the switch is 220 pt on the wide

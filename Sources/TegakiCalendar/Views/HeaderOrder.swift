@@ -67,3 +67,41 @@ enum HeaderOrder {
         }
     }
 }
+#if DEBUG
+
+// r141-alt2 only (docs/R1_4_1_CONTRACT.md §16.2's plan A, §16.8; the throwaway branch of the owner's choice photos, never
+// merged): plan A's order, which screenshot mode's `--screenshot-header-order a` lays out (`ScreenshotMode.headerOrderA`,
+// `PageHeaderView.rowA`). Debug builds only, so a Release build is r141's: `HeaderPiece`, `pieces(arm:hand:readOnly:)` and
+// `HeaderOrderTests` stay as they are. If the owner picks plan A, r141 makes it `pieces`'s table itself, turns
+// `PageHeaderView.titleAlignment` round and redoes the header's gates (§16.2).
+extension HeaderOrder {
+    /// Plan A of §16.2 from left to right. The right hand's:
+    ///
+    /// ```
+    /// wide           [settings][sync][add][badge?][picker][title][zoomReset][today]
+    /// compactFirst   [settings][sync][add][title][today]
+    /// compactSecond  [picker][zoomReset]                                  (plan B's)
+    /// ```
+    ///
+    /// The left hand's is the right hand's reversed, as in plan B (it is build 29's right hand). The badge as in plan B: on the
+    /// wide row only, only while read only, between 「＋予定」 and the switch.
+    static func piecesA(arm: Arm, hand: Hand, readOnly: Bool) -> [HeaderPiece] {
+        let right: [HeaderPiece]
+        switch arm {
+        case .wide:
+            var row: [HeaderPiece] = [.settings, .sync, .add]
+            if readOnly { row.append(.badge) }
+            row += [.picker, .title, .zoomReset, .today]
+            right = row
+        case .compactFirst:
+            right = [.settings, .sync, .add, .title, .today]
+        case .compactSecond:
+            right = pieces(arm: .compactSecond, hand: .right, readOnly: readOnly)
+        }
+        switch hand {
+        case .right: return right
+        case .left: return Array(right.reversed())
+        }
+    }
+}
+#endif

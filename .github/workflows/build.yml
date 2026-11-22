@@ -1666,6 +1666,154 @@ jobs:
           sys.exit(1 if failed else 0)
           EOF
 
+      # r141-alt2 only (docs/R1_4_1_CONTRACT.md §16.2, §16.8; as r141-alt's step of §7.5 before it): the owner's choice photos
+      # of the header's order. r141-alt2 is a throwaway branch, never merged (nor this step), and its run counts for no gate
+      # (J-4, gate 3, N2–N4); it is a full run, not a quick one (no "q-" in its name, §6.6), so this job takes all its photos
+      # first. This step runs after them, after "Upload screenshots" and after "The simulators used are the table's", with
+      # launches of its own, so the `screenshots` artifact, shots/ and shots/env.txt are what they would be without it; it
+      # writes only alt-shots/, uploaded as the artifact "alt-shots". It boots the table's 13-inch iPad (iPad Pro 13-inch (M5))
+      # and 6.9-inch iPhone (iPhone 18 Pro Max) again, one at a time (the step of the other devices shut both down), waits
+      # 120 s with the app in front as the 13-inch step does (a system banner after a boot, the first launch's shaders), and
+      # photographs in portrait, with the demo data of the J-4 photos (--screenshot-month 2026-10, $JA_ARGS), the week and
+      # the day pages in the two orders of §16.2:
+      #   plan B, r141's default (no new argument): <id>-portrait-<page>-order-B.png;
+      #   plan A (--screenshot-header-order a: [⚙][☁][＋][switch][title][等倍][‹今日›] on the wide row, [⚙][☁][＋][title]
+      #   [‹今日›] over [switch][等倍] on the compact rows, the title aligned to the right): <id>-portrait-<page>-order-A.png.
+      # The argument exists only in Debug builds of r141-alt2 (ScreenshotMode.headerOrderA, HeaderOrder.piecesA,
+      # PageHeaderView.rowA); this job's app is a Debug build ("Build for the iOS Simulator"), a Release build has none of it.
+      # The handwriting is checked as the other photos' (tools/shots/ink_retake.sh, at most 2 more takes), against the J-4
+      # photo of the same device and page with the header's tiles left out (its rows from docs/R1_4_1.md's declaration 7:
+      # 0–175 px on the 13-inch, 0–458 on the 6.9-inch), since the header is what differs. Then each pair B/A is compared
+      # with tools/shots/shift_pair.swift: below the header they should be the same (no strong pixel), and with the header
+      # they should differ (if not, plan A's argument did nothing); alt-shots/pairs.txt, warnings only. Each device's
+      # `toolbar: paperArea=` lines go into alt-shots/<id>-log.txt (both plans have the same pieces, gaps and heights, so
+      # one value per page). Never fails the run: continue-on-error, its own limit.
+      - name: The owner's choice photos (r141-alt2 only; 1.4.1 §16.2, §16.8)
+        if: ${{ !cancelled() && github.ref_name == 'r141-alt2' && env.QUICK != 'true' }}
+        continue-on-error: true
+        timeout-minutes: 40
+        env:
+          IPAD13: ${{ steps.required.outputs.ipad13 }}
+          IPHONE69: ${{ steps.required.outputs.iphone69 }}
+        run: |
+          set -uo pipefail
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          BUNDLE="com.syfan0.tegakicalendar"
+          if [ -z "$APP" ]; then
+            echo "::warning::TegakiCalendar.app not found under build/DerivedData; no choice photos."
+            exit 0
+          fi
+          mkdir -p alt-shots
+          INK_LOG=alt-shots/ink.txt
+          . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
+          # The reference lines of this step's photos: each the J-4 photo's line of the same device and page, without the
+          # tiles that touch the header (a tile is 48 px; kept when its first row is below the header's last row).
+          INK_REF="$RUNNER_TEMP/alt-ink-ref.tsv"
+          python3 -I - "$GITHUB_WORKSPACE/tools/shots/ink_ref.tsv" "$INK_REF" <<'EOF' || echo "::warning::the reference lines of the choice photos could not be made; their handwriting is not checked."
+          import sys
+          # <this step's photo> <the J-4 photo whose demo handwriting it has> <the header's last row, px>
+          PHOTOS = [line.split() for line in """
+          ipad13-portrait-week-order-B.png ipad13-portrait-week.png 175
+          ipad13-portrait-week-order-A.png ipad13-portrait-week.png 175
+          ipad13-portrait-day-order-B.png ipad13-portrait-day.png 175
+          ipad13-portrait-day-order-A.png ipad13-portrait-day.png 175
+          iphone69-portrait-week-order-B.png iphone69-portrait-week.png 458
+          iphone69-portrait-week-order-A.png iphone69-portrait-week.png 458
+          iphone69-portrait-day-order-B.png iphone69-portrait-day.png 458
+          iphone69-portrait-day-order-A.png iphone69-portrait-day.png 458
+          """.splitlines() if line.strip()]
+          refs = {}
+          for line in open(sys.argv[1], encoding="utf-8"):
+              fields = line.rstrip("\n").split("\t")
+              if not line.startswith("#") and len(fields) == 4:
+                  refs[fields[0]] = fields
+          with open(sys.argv[2], "w", encoding="utf-8") as out:
+              for name, source, bottom in PHOTOS:
+                  if source not in refs:
+                      print("%s: %s has no reference line; not checked" % (name, source))
+                      continue
+                  _, size, top, tiles = refs[source]
+                  items = [t for t in tiles.split(";") if t.count(",") == 3]
+                  kept = [t for t in items if int(t.split(",")[1]) * 48 > int(bottom)]
+                  out.write("%s\t%s\t%s\t%s\n" % (name, size, top, ";".join(kept)))
+                  print("%s: %d of the %d tiles of %s (below row %s)" % (name, len(kept), len(items), source, bottom))
+          EOF
+          ink_build
+          # The pairs' check (built here, in the background while the devices boot; only this step uses it).
+          PAIR="$RUNNER_TEMP/alt-shift-pair"
+          swiftc -O "$GITHUB_WORKSPACE/tools/shots/shift_pair.swift" -o "$PAIR" > "$RUNNER_TEMP/alt-shift-pair.log" 2>&1 &
+          PAIR_PID=$!
+          alt_shoot() {  # alt_shoot <file> <launch args…>: one photo into alt-shots/; a failure only loses this one file
+            local FILE="$1"; shift
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            echo "$FILE: --screenshot-mode $*"
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode "$@" $JA_ARGS || { echo "::warning::launch failed ($FILE)"; return 0; }
+            sleep 9
+            xcrun simctl spawn "$UDID" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 9 s ($FILE)"
+            xcrun simctl io "$UDID" screenshot "alt-shots/$FILE" > /dev/null 2>&1 || { echo "::warning::screenshot failed ($FILE)"; return 0; }
+            ink_retake "alt-shots/$FILE" "$FILE" 9 --screenshot-mode "$@" $JA_ARGS
+          }
+          for SPEC in "ipad13|$IPAD13" "iphone69|$IPHONE69"; do
+            ID="${SPEC%%|*}"; UDID="${SPEC#*|}"
+            if [ -z "$UDID" ]; then echo "::warning::no simulator for $ID (Required simulators); its choice photos are not taken."; continue; fi
+            echo "$ID: $UDID"
+            INK_STALE=0
+            xcrun simctl boot "$UDID" 2>/dev/null || true
+            xcrun simctl bootstatus "$UDID" -b > /dev/null || { echo "::warning::$ID did not boot; skipping."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            if ! xcrun simctl install "$UDID" "$APP"; then
+              echo "::warning::install failed on $ID; skipping."
+              xcrun simctl shutdown "$UDID" || true
+              continue
+            fi
+            xcrun simctl launch "$UDID" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month $JA_ARGS || true
+            sleep 120
+            for PAGE in week day; do
+              alt_shoot "$ID-portrait-$PAGE-order-B.png" --screenshot-month 2026-10 --screenshot-page "$PAGE"
+              alt_shoot "$ID-portrait-$PAGE-order-A.png" --screenshot-month 2026-10 --screenshot-page "$PAGE" --screenshot-header-order a
+            done
+            xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+            xcrun simctl spawn "$UDID" log show --last 8m --style compact --predicate 'process == "TegakiCalendar"' > "alt-shots/$ID-log.txt" 2>&1 || true
+            echo "$ID: the paper areas of its launches (count, value):"
+            grep -o 'toolbar: paperArea=.*' "alt-shots/$ID-log.txt" | sort | uniq -c || true
+            xcrun simctl shutdown "$UDID" || true
+          done
+          # Each pair B/A of a device and page: the same below the header (`--exclude-rows 0-<the header's last row>`, no
+          # strong pixel: the paper and the toolbar are plan B's), and different with the header (else the argument did
+          # nothing). One line each in alt-shots/pairs.txt; warnings only.
+          if wait "$PAIR_PID" && [ -x "$PAIR" ]; then
+            for SPEC in "ipad13|175" "iphone69|458"; do
+              ID="${SPEC%%|*}"; BOTTOM="${SPEC#*|}"
+              for PAGE in week day; do
+                B="alt-shots/$ID-portrait-$PAGE-order-B.png"; A="alt-shots/$ID-portrait-$PAGE-order-A.png"
+                if [ ! -f "$B" ] || [ ! -f "$A" ]; then echo "$ID $PAGE: a photo is missing; not compared" | tee -a alt-shots/pairs.txt; continue; fi
+                S=0; BELOW="$("$PAIR" "$B" "$A" --exclude-rows "0-$BOTTOM" --max-strong 0)" || S=$?
+                echo "$ID $PAGE below the header (rows 0-$BOTTOM left out): $BELOW" | tee -a alt-shots/pairs.txt
+                [ "$S" = 0 ] || echo "::warning::$ID $PAGE: plans B and A differ below the header (or a photo could not be read): $BELOW"
+                S=0; WHOLE="$("$PAIR" "$B" "$A" --max-strong 0)" || S=$?
+                echo "$ID $PAGE with the header: $WHOLE" | tee -a alt-shots/pairs.txt
+                [ "$S" != 0 ] || echo "::warning::$ID $PAGE: plan A's photo is plan B's (the argument --screenshot-header-order a did nothing?)"
+              done
+            done
+          else
+            echo "::warning::tools/shots/shift_pair.swift did not compile; the pairs are not compared."
+            cat "$RUNNER_TEMP/alt-shift-pair.log" || true
+          fi
+          ls -la alt-shots
+
+      - name: Upload the owner's choice photos (r141-alt2 only; 1.4.1 §16.8)
+        if: ${{ always() && github.ref_name == 'r141-alt2' && env.QUICK != 'true' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: actions/upload-artifact@v4
+        with:
+          name: alt-shots
+          path: alt-shots
+          retention-days: 7
+          if-no-files-found: warn
+
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
       # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
       # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
