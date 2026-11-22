@@ -1,10 +1,12 @@
 import UIKit
 import XCTest
 
-/// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.5, §6.1, §6.6, 0e-6): the header's wide row measured on the real screen, which no run had
-/// done (every room of it was an estimate). It writes one `header room:` line per row with the frames of ◀, 今日, ▶, 等倍
-/// (`header.zoomReset`), the title (`page.title`), the switch, ＋予定, ☁ and ⚙, and the title's room: the space the row
-/// leaves between its neighbours (the title's frame takes it whole, `PageHeaderView`). Logs only: the lead reads the gate of
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.5, §6.1, §6.6, §16.2, 0e-6): the header's wide row measured on the real screen, which no
+/// run had done (every room of it was an estimate). It writes one `header room:` line per row with the frames of ◀, 今日, ▶,
+/// 等倍 (`header.zoomReset`), the title (`page.title`), the switch, ＋予定, ☁ and ⚙, and the title's room: the space the row
+/// leaves it (the title's frame takes it whole, `PageHeaderView`). In the rework's order (案 B, §16.2) the right hand's title
+/// is the first piece of its row, at the left end: its room runs from its own left edge to its right neighbour (＋予定 on the
+/// compact first row, the switch on the wide row) less one gap. Logs only: the lead reads the gate of
 /// D1a from the lines (the ja day title's room ≥ 115 pt on the iPad mini, the Air 11 and the Pro 13 in portrait; else the
 /// wide row's gap becomes 4 below 760 pt), so the test fails only when the app does not show its header.
 ///
@@ -68,12 +70,12 @@ final class HeaderRoomUITests: XCTestCase {
         if let today, let picker {
             if picker.minY >= today.maxY - 0.5 {
                 row = "compact"
-                // The first row: (◀ 今日 ▶) title ＋ ☁ ⚙; the title's room is between ▶ and ＋.
-                if let next, let add { room = add.minX - next.maxX - 2 * Self.compactGap }
+                // The first row: title ＋ ☁ ⚙ (◀ 今日 ▶); the title's room is from its left edge to ＋, less one gap.
+                if let title, let add { room = add.minX - title.minX - Self.compactGap }
             } else {
                 row = "wide"
-                // (◀ 今日 ▶) 等倍 title switch …; the title's room is between 等倍 and the switch.
-                if let zoom { room = picker.minX - zoom.maxX - 2 * Self.wideGap }
+                // title switch … ⚙ 等倍 (◀ 今日 ▶); the title's room is from its left edge to the switch, less one gap.
+                if let title { room = picker.minX - title.minX - Self.wideGap }
             }
         }
         func text(_ rect: CGRect?) -> String {

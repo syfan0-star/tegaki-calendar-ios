@@ -20,7 +20,8 @@ import Layout
 /// mark `PencilPhone` reads and writes), and a way to forget the week's and the day's guide records (`forgetSpanGuideShown`)
 /// so the guide shows once more after the app turned 「指でも書く」 off; `isExistingUser`'s three keys do not change.
 /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, 0e-12) adds the hand the header is laid out for (`layout.hand`, `Hand`), and
-/// (§4.10, 0e-21) the edge the open toolbar was moved to on an iPad (`toolbar.paletteEdge`, `PaletteEdge`).
+/// (§4.10, 0e-21) the edge the open toolbar was moved to on an iPad (`toolbar.paletteEdge`, `PaletteEdge`), and (§16.3.4)
+/// whether the week and the day are kept at 等倍 (`zoomFit.<kind>`).
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -352,12 +353,48 @@ enum AppSettings {
     static var hasPinched: Bool {
         PageKind.allCases.contains { zoomRatio(for: $0) > 1 }
     }
+
+    // MARK: - 等倍 of the week and the day (docs/R1_4_1_CONTRACT.md §16.3.4)
+
+    /// 1.4.1 (§16.3.4): "zoomFit.week" / "zoomFit.day", a `Bool`: true while that kind is kept at 等倍, one page's width
+    /// fitting the paper's column (`ZoomPolicy.Bounds.fit`, `ZoomReset.target`), so the next page of the kind opens there too
+    /// (the canvas's `initialFit`; the owner's 12:4x: no pinch to get there each time). Absent = not at 等倍: the page opens
+    /// at its stored ratio (`zoomRatioKey`). A month or a year never has one (its 等倍 is the opening zoom, ratio 1). Per
+    /// device like the ratio (one key per kind, shared by the one-page and the joined path); never sent to iCloud, not in
+    /// the export and not one of `isExistingUser`'s keys.
+    static func zoomFitKey(_ kind: PageKind) -> String {
+        "zoomFit." + kind.rawValue
+    }
+
+    /// Whether pages of `kind` open at 等倍 (§16.3.4): the stored flag of a week or a day; always false for a month or a
+    /// year (`ZoomReset.followsFit`).
+    static func zoomFit(for kind: PageKind) -> Bool {
+        guard ZoomReset.followsFit(kind) else { return false }
+        return defaults.bool(forKey: zoomFitKey(kind))
+    }
+
+    /// What the canvas said after a zoom ended (`InkCanvasView.onZoomFitChange`, right after `onZoomRatioChange`; §16.3.4):
+    /// true (等倍 took a week or a day to its fit) writes the flag and removes the kind's stored ratio, which the canvas
+    /// had just reported (fit / open), so the flag alone says how the kind opens; false (a real pinch, or a first layout not
+    /// at 等倍) removes the flag and leaves the ratio as it was stored. Nothing for a month or a year (its 等倍 is ratio 1,
+    /// which `setZoomRatio` already removed). The screen never calls it in screenshot mode.
+    static func setZoomFit(_ fit: Bool, for kind: PageKind) {
+        guard ZoomReset.followsFit(kind) else { return }
+        let key = zoomFitKey(kind)
+        if fit {
+            defaults.set(true, forKey: key)
+            defaults.removeObject(forKey: zoomRatioKey(kind))
+        } else {
+            defaults.removeObject(forKey: key)
+        }
+    }
 }
 
-/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.2, 0e-12, 0e-13): the hand the person writes with (設定 › 入力 「利き手」,
-/// `AppSettings.handKey`). The left hand mirrors the header's order (`HeaderOrder`) and, once when it is chosen, puts the
-/// folded toolbar's round button in the bottom right (`dockEdge`); the paper, the switch's 日週月年, ◀ before ▶ and the
-/// toolbar's own order never change.
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.2, §16.2, 0e-12, 0e-13): the hand the person writes with (設定 › 入力
+/// 「利き手」, `AppSettings.handKey`). The header puts 「‹ 今日 ›」 and 等倍 at the writing hand's end (`HeaderOrder`: the right
+/// end for the right hand, the left hand's order the mirror), and choosing the hand puts the folded toolbar's round button,
+/// once, in the bottom corner opposite the writing hand's palm (`dockEdge`); the paper, the switch's 日週月年, ◀ before ▶
+/// and the toolbar's own order never change.
 enum Hand: String, Equatable, Sendable, CaseIterable {
     case right, left
 
@@ -366,9 +403,11 @@ enum Hand: String, Equatable, Sendable, CaseIterable {
         self = raw.flatMap(Hand.init(rawValue:)) ?? .right
     }
 
-    /// The bottom corner of the folded toolbar's round button that suits the hand (§4.1, 0e-13): the free hand's side, the
-    /// bottom left for the right hand (1.1's default, P-4) and the bottom right for the left. Written once when the hand
-    /// is chosen (`SettingsScreen.handChanged`); a long press or VoiceOver still moves it, and the last one wins.
+    /// The bottom corner of the folded toolbar's round button that suits the hand (§4.1, §16.11 question 5, 0e-13): the
+    /// corner opposite the writing hand's palm, which rests at the bottom on the writing hand's side as the Pencil writes
+    /// (P-4, docs/M7_PLAN.md: the right hand's palm is at the bottom right) — the bottom left for the right hand (1.1's
+    /// default) and the bottom right for the left. Written once when the hand is chosen (`SettingsScreen.handChanged`); a
+    /// long press or VoiceOver still moves it, and the last one wins.
     var dockEdge: ToolbarEdge {
         self == .left ? .trailing : .leading
     }

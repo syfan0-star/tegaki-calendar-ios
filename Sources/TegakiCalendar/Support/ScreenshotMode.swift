@@ -85,6 +85,10 @@ import UIKit
 /// `--screenshot-palette-drag <bottom|top|left|right>` shows the look of a drag of its grip held over that edge (the
 /// confirmation page's photo only). Without them, or with an unknown value, nil: the bottom, whatever the simulator stored.
 /// The screen keeps screenshot mode's edge in its `@State` (a drop there moves the bar but writes nothing).
+/// 1.4.1's rework (docs/R1_4_1_CONTRACT.md §16.3.7): `--screenshot-zoom fit` opens a week or a day at 等倍, one page's width
+/// fitting the paper's column (`zoomFit`, the canvas's `initialFit`), for the confirmation page's photos; the ratio stays 1
+/// (a number is read as before). Without it nothing changes: no photo of J-4, gate 3, blank-paper or span-shots-app passes it.
+/// Screenshot mode never reads or writes `zoomFit.<kind>`.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -198,7 +202,7 @@ enum ScreenshotMode {
         var landscape: Bool = false
         /// `--screenshot-zoom`: the ratio to the page's opening zoom the canvas opens at (M4C contract
         /// §5.3, 1.1.1). 1 unless the value is finite and positive; a ratio past `maxZoom` or below the
-        /// minimum is clamped by the canvas (担当 P).
+        /// minimum is clamped by the canvas (担当 P). 1.4.1: `fit` is 1 here and `zoomFit` below.
         var zoomRatio: CGFloat = 1
         /// `--screenshot-offset "x,y"`: the paper point (lu) shown at the top left; nil when the value
         /// is not two finite numbers (the canvas then uses its usual first position).
@@ -278,6 +282,9 @@ enum ScreenshotMode {
         /// 1.4.1 (§4.7, §7.4, 0e-18): `--screenshot-palette-drag <edge>`: the screen shows a drag of the grip held over that
         /// edge (the bar faded in its slot, the round puck, the outlines with that edge as the target); nil = no drag.
         var paletteDrag: PaletteEdge? = nil
+        /// 1.4.1's rework (§16.3.7): `--screenshot-zoom fit`: a week or a day opens at 等倍 (`ScreenshotMode.zoomFit`, the
+        /// canvas's `initialFit`); `zoomRatio` stays 1. False without it or with a number (the ratio's way, as before).
+        var zoomFit: Bool = false
 
         /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
         var joinsPages: Bool {
@@ -382,6 +389,12 @@ enum ScreenshotMode {
            let parsed = parseZoomRatio(arguments[index + 1]) {
             zoomRatio = parsed
         }
+        // 1.4.1's rework (§16.3.7): `fit` (the word alone) is 等倍 of a week or a day; `parseZoomRatio` reads it as nil, so the
+        // ratio above stays 1.
+        var zoomFit = false
+        if let index = arguments.firstIndex(of: "--screenshot-zoom"), index + 1 < arguments.count {
+            zoomFit = arguments[index + 1] == zoomFitValue
+        }
         var offset: CGPoint?
         if let index = arguments.firstIndex(of: "--screenshot-offset"), index + 1 < arguments.count {
             offset = parseOffset(arguments[index + 1]) // an unreadable value → nil
@@ -456,7 +469,20 @@ enum ScreenshotMode {
         return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
                       span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection,
                       measure: measure, pencilPhone: pencilPhone,
-                      hand: hand, palette: palette, paletteDrag: paletteDrag)
+                      hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit)
+    }
+
+    /// 1.4.1's rework (§16.3.7): the value of `--screenshot-zoom` that is 等倍 (`Config.zoomFit`) rather than a ratio.
+    static let zoomFitValue = "fit"
+
+    /// 1.4.1's rework (docs/R1_4_1_CONTRACT.md §16.3.4, §16.3.7): whether a page of `kind` opens at 等倍 (the screen's
+    /// `currentFit`, the canvas's `initialFit`). In screenshot mode (`config` not nil) `--screenshot-zoom fit` on a week or a
+    /// day, whatever `stored` says (the memory is never read there, so a simulator that kept a value cannot change a photo;
+    /// `hand(_:stored:)`'s shape); in normal use `stored` (`AppSettings.zoomFit(for:)`, never true for a month or a year).
+    /// The screen still asks `ZoomReset.followsFit(kind)` first, as §16.3.4 writes it.
+    static func zoomFit(_ config: Config?, kind: PageKind, stored: Bool) -> Bool {
+        guard let config else { return stored }
+        return config.zoomFit && ZoomReset.followsFit(kind)
     }
 
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §4.10, 0e-12, 0e-21): the hand the header is laid out for. In screenshot mode
