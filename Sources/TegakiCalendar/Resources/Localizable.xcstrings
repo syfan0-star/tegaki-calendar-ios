@@ -8582,7 +8582,7 @@
       }
     },
     "header.today" : {
-      "comment" : "見出しのボタン。空いている手の側の端の「‹ 今日 ›」の真ん中の部品（1.4.1。‹ と › は記号で描くので、この文に入れない）。押すと今日のページの今日の所へ。17 pt で ja の幅 ＋ 16 pt 以内（約 47 pt。F-16）。iPhone の 1 段目で題名の幅を削るので、fr は略した形（「Auj.」など）にして REVIEW.md に理由を書く",
+      "comment" : "見出しのボタン。利き手の側の端の「‹ 今日 ›」の真ん中の部品（1.4.1。‹ と › は記号で描くので、この文に入れない）。押すと今日のページの今日の所へ。17 pt で ja の幅 ＋ 16 pt 以内（約 47 pt。F-16）。iPhone の 1 段目で題名の幅を削るので、fr は略した形（「Auj.」など）にして REVIEW.md に理由を書く",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -8648,13 +8648,13 @@
       }
     },
     "header.zoomReset.spoken" : {
-      "comment" : "読み上げ。見出しの虫めがねに「1」の印のボタン（等倍。1.4.1）。押すとページを等倍に戻す。等倍 = 拡大も縮小もしていないもとの大きさ（ページを初めて開いたときの大きさ。覚えた拡大ではない）。ボタンに字は無く、この文は読み上げだけ。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "読み上げ。見出しの虫めがねに「1」の印のボタン（等倍。1.4.1）。押すとページを等倍に戻す。等倍 = 日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年はページを初めて開いたときの大きさ。訳は「ズームを戻す」の意味にし、「もとの大きさ」「実際の大きさ」「合わせる」の語は使わない（docs/i18n/GLOSSARY.md §5）。ボタンに字は無く、この文は読み上げだけ。文は docs/R1_4_1_CONTRACT.md §8.1・§16.9",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auf Originalgröße zurücksetzen"
+            "value" : "Zoom zurücksetzen"
           }
         },
         "en" : {
@@ -8666,19 +8666,19 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Volver al tamaño original"
+            "value" : "Restablecer el zoom"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Revenir à la taille d’origine"
+            "value" : "Réinitialiser le zoom"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Torna alla dimensione originale"
+            "value" : "Reimposta lo zoom"
           }
         },
         "ja" : {
@@ -8690,25 +8690,25 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "원래 크기로 되돌리기"
+            "value" : "확대·축소 재설정"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Voltar ao tamanho original"
+            "value" : "Redefinir o zoom"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "恢复原始大小"
+            "value" : "重置缩放"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "恢復原始大小"
+            "value" : "重置縮放"
           }
         }
       }
