@@ -171,9 +171,11 @@ struct PageHeaderView: View {
     #if DEBUG
     /// r141-alt2 only (docs/R1_4_1_CONTRACT.md §16.2's plan A, §16.8; Debug builds only, `--screenshot-header-order a`, never
     /// merged): the pieces of `arm` in plan A's order (`HeaderOrder.piecesA`), each drawn by `view(for:in:)` except the title,
-    /// whose frame is aligned to the writing hand's side instead (trailing for the right hand, so the date sits right next to
-    /// 等倍; leading for the left): plan A turns `titleAlignment` round (§16.2). Its text, font and `maxWidth: .infinity` are
-    /// `view(for:in:)`'s, and the pieces and gaps are plan B's, so the title's room is plan B's; only where it sits differs.
+    /// whose frame is aligned to the writing hand's side instead (trailing for the right hand, leading for the left), so the
+    /// date sits right next to the piece beside it on that side: 等倍 on the wide row, 「‹ 今日 ›」 on the compact first row
+    /// (等倍 is on the second row there). Plan A turns `titleAlignment` round (§16.2). Its text, font and
+    /// `maxWidth: .infinity` are `view(for:in:)`'s, and the pieces and gaps are plan B's, so the title's room is plan B's;
+    /// only where it sits differs.
     @ViewBuilder
     private func rowA(_ arm: HeaderOrder.Arm) -> some View {
         ForEach(HeaderOrder.piecesA(arm: arm, hand: hand, readOnly: readOnly), id: \.self) { piece in
