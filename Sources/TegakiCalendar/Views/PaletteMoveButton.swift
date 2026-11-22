@@ -60,7 +60,10 @@ struct PaletteMoveButtonView: UIViewRepresentable {
     /// The dialog's buttons and VoiceOver's actions: every allowed edge but the current one, in `allowed`'s order
     /// (`ToolbarLogic.moveTargets`, the grip's actions).
     static func choices(allowed: [PaletteEdge], current: PaletteEdge) -> [PaletteEdge] {
-        ToolbarLogic.moveTargets(allowed: allowed, current: current)
+        // MUTATION MB4 (r141-q-m3 only, never merged; docs/R1_4_1_CONTRACT.md §17.4, PaletteMoveButtonTests): the choice of
+        // edges offers the current edge too, every allowed edge in `allowed`'s order (was:
+        // `ToolbarLogic.moveTargets(allowed: allowed, current: current)`; the grip's actions are unchanged).
+        allowed
     }
 
     /// The edge a choice moves the bar to: `edge` while it is one of `choices`; nil (nothing happens) for an edge the window
@@ -166,6 +169,10 @@ struct PaletteMoveButtonView: UIViewRepresentable {
             // The pan leaves the view its touches, so a touch the pan began on but that lifted before the drag's 10 pt (a
             // mouse, a trackpad) still reaches `touchesEnded` and is a tap; a drag is told by `dragStarted`.
             pan.cancelsTouchesInView = false
+            // MUTATION MB3 (r141-q-m3 only, never merged; docs/R1_4_1_CONTRACT.md §17.4, PaletteMoveButtonTests): the button's
+            // pan takes the Apple Pencil too (was: the shared pan's `PaletteGripView.allowedTouchTypes`, a finger, a trackpad
+            // and a mouse; the grip's own pan is unchanged).
+            pan.allowedTouchTypes = (PaletteGripView.allowedTouchTypes + [.pencil]).map { NSNumber(value: $0.rawValue) }
             isMultipleTouchEnabled = false
             isAccessibilityElement = true
             accessibilityLabel = ToolbarLogic.gripAccessibilityLabel
@@ -215,9 +222,10 @@ struct PaletteMoveButtonView: UIViewRepresentable {
             guard let touch, touches.contains(touch) else { return }
             let tap = press.ended(at: touch.location(in: nil))
             self.touch = nil
-            if tap {
-                onTap()
-            }
+            // MUTATION MB2 (r141-q-m3 only, never merged; docs/R1_4_1_CONTRACT.md §17.4, PaletteMoveButtonTests): a tap opens
+            // nothing (was: `if tap { onTap() }`); `Press` still decides the tap, and VoiceOver's activation still opens the
+            // choice of edges.
+            _ = tap
         }
 
         override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {

@@ -289,10 +289,10 @@ enum ToolbarLogic {
         case (.expanded, .placementChosen):
             // 1.4.1 (§4.7): only the open bar has a grip; it stays open on its new edge.
             return ToolbarStep(mode: .expanded, storesPlacement: true)
-        case (.peek, .placementChosen):
-            // 1.4.1's third rework (docs/R1_4_1_CONTRACT.md §18.2, 0e-26): the peeking bar's 「動かす」 (its choice of edges or
-            // VoiceOver's 「…へ移す」) keeps the edge chosen and opens the bar there, to stay (`toolbar.collapsed` false).
-            return ToolbarStep(mode: .expanded, storeCollapsed: false, storesPlacement: true)
+        // MUTATION MB6 (r141-q-m3 only, never merged; docs/R1_4_1_CONTRACT.md §18.3, ToolbarLogicTests, ToolbarPlacementTests
+        // and PaletteMoveButtonTests): the row (.peek, .placementChosen) is taken out, so a choice on a peek falls to the
+        // default below: the peek stays a peek and nothing is stored (was: that row's
+        // `ToolbarStep(mode: .expanded, storeCollapsed: false, storesPlacement: true)`).
         default:
             return ToolbarStep(mode: mode)
         }
@@ -532,7 +532,12 @@ extension ToolbarLogic {
     /// row 12 and peeked from the round button had no way to move), never on the dock. Never on an iPhone or a window with
     /// the bottom alone, so their bar is 1.4's. The grip stays the open bar's (`showsGrip`).
     static func showsMoveButton(_ mode: ToolbarMode, allowed: [PaletteEdge]) -> Bool {
-        (mode == .expanded || mode == .peek) && allowed.count >= 2
+        // MUTATION MB5 (r141-q-m3 only, never merged; docs/R1_4_1_CONTRACT.md §18.3, PaletteMoveButtonTests): no button on a
+        // peek, the mode test of `showsGrip` again (was: `(mode == .expanded || mode == .peek)`; "|| mode == .peek" taken out).
+        // MUTATION MB1 (r141-q-m3 only, never merged; docs/R1_4_1_CONTRACT.md §17.4, PaletteMoveButtonTests): the button
+        // shows without looking at the number of allowed edges, so also in a one-edge window (an iPhone, Slide Over, a narrow
+        // split) (was: `&& allowed.count >= 2` after the mode test; taken out). With MB5 the whole test is `mode == .expanded`.
+        (mode == .expanded)
     }
 
     /// §18.2: whether the 「動かす」 button's drag may begin: only on the open bar, where the grip is (the drag, its 40 % bar,
