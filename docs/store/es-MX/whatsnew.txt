@@ -1,4 +1,6 @@
-• Ahora la visualización se adapta a la pantalla grande del iPhone Duo.
-• La app pasó al nuevo entorno de desarrollo de iOS 27. La forma de usarla en el iPad y en otros modelos de iPhone no cambia.
+• En la parte superior de la pantalla, “‹ Hoy ›” se movió al extremo derecho y la fecha se colocó en el extremo izquierdo.
+• Después de ampliar o reducir, ahora puede restablecer el zoom con un solo botón. En las páginas del día y de la semana, la página de un día o de una semana ocupa exactamente el ancho de la pantalla; las páginas del mes y del año vuelven al tamaño que tenían al abrirlas.
+• Se agregó a Ajustes la sección “Mano dominante”. Si elige “Mano izquierda”, el orden de los botones de la parte superior de la pantalla se invierte de izquierda a derecha.
+• En el iPad, ahora puede mover la barra de herramientas con el dedo al borde superior, inferior, izquierdo o derecho de la pantalla.
 
 Las traducciones se hicieron con IA y todavía no las han revisado hablantes nativos. Avísenos si encuentra errores.

@@ -426,7 +426,9 @@ final class DuoLayoutUITests: XCTestCase {
         return settledAt == nil ? nil : settled
     }
 
-    /// 1.2.3's ja week title, compact (「10/5〜10/11」, the outer screen) or not (「2026年10月5日〜10月11日」, the inner one).
+    /// 1.2.3's ja week title, compact (「10/5〜10/11」) or not (「2026年10月5日〜10月11日」). The outer screen shows
+    /// the compact one; the inner one showed the long one in 1.4 and, since 1.4.1, the compact one too (an iPhone's
+    /// wide row, `CalendarRootScreen.usesShortTitle`). Either is accepted, so the test reads the same on both versions.
     private static func isWeek(of month: String, _ day: String, _ title: String) -> Bool {
         title.hasPrefix("\(month)/\(day)〜") || title.contains("年\(month)月\(day)日〜")
     }

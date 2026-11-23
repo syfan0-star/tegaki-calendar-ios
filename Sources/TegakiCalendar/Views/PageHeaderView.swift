@@ -1,42 +1,47 @@
 import Access
 import Layout
 import SwiftUI
+import UIKit
 
-/// The header above the paper (M3b contract §4.6, M4 contract §6.1, M4B contract §5, DESIGN §2.7):
+/// The header above the paper (M3b contract §4.6, M4 contract §6.1, M4B contract §5, DESIGN §2.7). Since 1.4.1
+/// (docs/R1_4_1_CONTRACT.md §3, §16.2, 0e-2 … 0e-5), the right hand's rows (the left hand's are the same rows reversed):
 ///
 /// ```
-/// width ≥ 600 pt:  ◀  ▶   題名              [日 | 週 | 月 | 年]   🔒閲覧専用  今日  ＋予定   ☁ 保存済み   ⚙
-/// width < 600 pt:  ◀ ▶  10/5〜10/11  今日 ＋ ☁ ⚙
-///                  [      日      |      週      |      月      |      年      ]
+/// width ≥ 600 pt:  題名           [日 | 週 | 月 | 年]  🔒閲覧専用  ＋予定   ☁ 保存済み   ⚙ (1🔍) (‹ 今日 ›)
+/// width < 600 pt:  10/5〜10/11            ＋ ☁ ⚙ (‹ 今日 ›)
+///                  [      日      |      週      |      月      |      年      ] [1🔍]
 /// ```
 ///
-/// 1.1.1 (the owner's request, docs/R1_1_1.md): 「今日」 sits on the right, left of 「＋予定」.
+/// 1.4.1 (the owner's request of 2026-11-21 and correction of 2026-11-22, docs/R1_4_1_CONTRACT.md §1.2, §16.1, §16.2):
+/// 「‹ 今日 ›」 — ◀, 今日 and ▶, three buttons in one capsule (`todayCapsule`, §3.1) — sits at the writing hand's end of the
+/// row (the right end for the right hand: 「＜今日＞と等倍は右端が右利き」), and right inside it the 等倍 button
+/// (`zoomResetButton`: the magnifying glass with a 1, §16.3), which on the compact rows ends the second row instead, under
+/// ▶ (the first has no room for it). The title (the date) starts the row at the other end (「年月日は一番左側でいいです」),
+/// and ⚙ sits next to 等倍 (on the compact first row next to ◀). 1.1.1 had put 「今日」 on the right, left of 「＋予定」
+/// (docs/R1_1_1.md); 1.4.1 keeps it on the right, at the end, in one capsule with ◀ and ▶. The order of every row is one
+/// pure table, `HeaderOrder.pieces(arm:hand:readOnly:)`, drawn with a `ForEach` and a `switch`: the left hand (`hand`,
+/// 設定 › 入力 「利き手」) is the right hand's order reversed, never a right-to-left `layoutDirection` (◀ stays left of ▶,
+/// the switch keeps 日週月年, §4.2). The rows keep 1.4's heights (§3.3): the wide row and the first row 44 pt, and the
+/// second row's 等倍 grows to the switch's height without deciding it (`fixedSize(horizontal: false, vertical: true)`), so
+/// the paper area, the opening zooms and the photos below the header stay 1.4's.
 ///
-/// M5 (M5_CONTRACT §3.2): while the app is read only (`readOnly`) an orange 「閲覧専用」 badge sits
-/// left of 「今日」 on the wide row (the symbol alone below `readOnlyTextWidth`); a tap opens the
-/// paywall (`onReadOnlyTap`). The compact rows have no room for it (M4B-15), so there the owner shows
-/// a notice row under the header instead (M5-13).
+/// M5 (M5_CONTRACT §3.2): while the app is read only (`readOnly`) an orange 「閲覧専用」 badge sits on the wide row (the
+/// symbol alone below `readOnlyTextWidth`); a tap opens the paywall (`onReadOnlyTap`). Since 1.4.1 (§3.4, 0e-5) it sits
+/// between the switch and 「＋予定」, M5's 「＋予定 の左」 (mirrored for the left hand). The compact rows have no room for it
+/// (M4B-15), so there the owner shows a notice row under the header instead (M5-13). 「‹ 今日 ›」 and 等倍 work while read
+/// only too (`GatedAction.navigate`, `.zoom`).
 ///
-/// The title comes from `PageNavigation.title` (`compactTitle` on the compact rows, M4b: the owner
-/// passes the short form); the owner measures the width and passes `compact`. On the compact first
-/// row the fixed parts (◀ ▶ 今日 ＋ ☁ ⚙ with their 44 pt tap targets and `.bordered` padding) take
-/// about 297 pt (M4B's estimate; 1.4 D1d measured 324, below), so the spacing is 4, the spacers have
-/// no minimum and the title is `.headline` (17 pt): M4B counted about 81 pt for it on a 402 pt iPhone
-/// and 69 pt on a 390 pt one (measured: 78 and 66), enough for every short title at
-/// `minimumScaleFactor(0.6)` (M4B-15).
-///
-/// 1.4 D1d (docs/M7D.md): measured on iOS 27.2 (and the same in 1.3's Xcode 26.6 photos), the compact first row's
-/// fixed parts take about 324 pt with the 12 pt side paddings (「今日」 56, ＋ 52, ☁ 26), so the title has about
-/// `width − 324`: 78 pt on the 402 pt iPhone 17, 58 on the iPhone Duo's outer screen (382 pt beside its 84 pt side
-/// strip), 51 on a 375 pt iPhone. At the minimum scale (10.2 pt) the longest Japanese short titles need about 61
-/// (「2026年10月」), 64 (「10月30日(金)」) and 70 pt (「10/24〜10/30」), so 1.3's row cuts the longest below about 394 pt
-/// and the month below about 385 (the outer screen showed 「2026年1…」 and 「10/5〜10…」, duo-shots run 44696154794).
-/// Where the safe area's side strip, not the window, makes the compact column narrower than `roomyCompactWidth` (a
-/// window at least that wide: the outer screen's 466 pt less its 84 pt strip), the first row is the tight row
-/// (`usesTightRow`, `tightFirstRow`): 22 pt more for the title, the same heights, texts and second row. Everywhere
-/// else — every window of today's iPhones and iPads, the 375–393 pt iPhones and narrow iPad windows included, whose
-/// own width is under it, and every column from `roomyCompactWidth` up (the iPhone 17's 402, the 440 pt iPhone) —
-/// the body runs 1.3's rows unchanged (docs/M7D_CONTRACT.md §4.1: no change on today's devices).
+/// The title comes from `PageNavigation.title` (`compactTitle` on the compact rows, M4b, and on an iPhone's wide row, 1.4.1:
+/// the owner passes the short form, `CalendarRootScreen.usesShortTitle`);
+/// the owner measures the width and passes `compact`. Every button keeps its size (`fixedSize`, `layoutPriority(1)`; 96dafab)
+/// and only the title gives way: its frame takes the room the buttons leave (`maxWidth: .infinity`, leading for the right
+/// hand, trailing for the left, so what the text leaves lies between the title and the switch, or 「＋」 on the compact
+/// first row), its text shrinks to `minimumScaleFactor(0.6)` and is then cut with 「…」. On the compact first row the fixed
+/// parts take about 297.4 pt in ja (the 12 pt side paddings, the capsule's 44 + 47.4 + 44, ＋ 52, ☁ 26,
+/// ⚙ 44 and four gaps of 4; 1.4's row took 324), so the title has about `width − 297.4`: 77.6 pt at 375, 84.6 on the iPhone
+/// Duo's outer screen (382), 104.6 on the 402 pt iPhone 17 — the longest Japanese short title (「10/24〜10/30」) needs 70 at
+/// the minimum scale. 1.4 D1d's tight row for the Duo's outer screen (`usesTightRow`, `sideInsets`) is retired (§3.2): the
+/// new first row leaves the outer screen more room than the tight row did (80 pt).
 ///
 /// The ☁ shows the sync state (`SyncStatus.header`): the text and the symbol at 600 pt and wider, the
 /// symbol alone below (iPhone, M4 contract §6.8); a tap opens the settings screen. It is redrawn only
@@ -66,10 +71,6 @@ struct PageHeaderView: View {
     /// not fit, so SwiftUI squeezed the 「今日」 label to nothing; the buttons now keep their size
     /// (`fixedSize` / `layoutPriority`) and only the title shrinks or is cut.
     var width: CGFloat = .infinity
-    /// 1.4 D1d: the safe area's side insets beside `width` (leading + trailing, pt; the owner measures them with
-    /// `width`): `width` and these make the window's width, which decides the tight row (`usesTightRow`). 0 (none, as
-    /// on every iPhone in portrait and every iPad) keeps 1.3's rows.
-    var sideInsets: CGFloat = 0
     /// M5 (M5_CONTRACT §3.2): the app is read only (unsubscribed, expired, …): the badge is shown on the
     /// wide row. Never shown while in the billing grace period (`canEdit` stays true then, M5-16).
     var readOnly: Bool = false
@@ -78,6 +79,13 @@ struct PageHeaderView: View {
     /// 1.2 (F-11): the holiday name `title` ends with, on the day page's wide row. The languages other
     /// than ja draw it as its own text that gives way first, so the date keeps its size. nil: one text.
     var titleHoliday: String? = nil
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.2, 0e-12, 0e-13): 設定 › 入力 「利き手」 (the owner reads
+    /// `AppSettings.handKey`, or screenshot mode's `--screenshot-hand`). `.left` reverses every row (`HeaderOrder`).
+    var hand: Hand = .right
+    /// 1.4.1 (§2.1, §16.3): 等倍: the owner asks both canvases to reset the zoom (`resetZoom`): on the day and week pages
+    /// one page as wide as the paper's column, on the month and year pages the opening zoom. Nothing by default, so a header
+    /// without it behaves as 1.4's.
+    var onZoomReset: () -> Void = {}
 
     /// Below this width the ☁ shows only its symbol (13-inch portrait is 1024 pt, 11-inch is 834 pt).
     static let syncTextWidth: CGFloat = 980
@@ -90,91 +98,80 @@ struct PageHeaderView: View {
     /// The badge's accessibility label.
     static let readOnlyLabel = L.text("header.readOnly.spoken")
 
-    /// 1.4 D1d: a compact column narrower than this, in a window at least this wide, has the tight row
-    /// (`usesTightRow`). It lies between the 393 pt iPhones (1.3's row leaves them about 69 pt, short of 「10/24〜10/30」's
-    /// 70) and the 402 pt iPhone 17, the narrowest compact header the CI photographs (J-4), 2 pt below it so that its
-    /// 402.0 is never at the edge.
-    static let roomyCompactWidth: CGFloat = 400
-    /// 1.4 D1d: the tight row's gap between ◀ and ▶ (1.3's: 6). Both keep their 44 pt targets.
-    static let tightNavigationSpacing: CGFloat = 0
-    /// 1.4 D1d: the tight row's minimum width of the ＋ symbol (1.3's: 28). Its minimum height stays 28, so the
-    /// capsule keeps 1.3's height and is 44 pt wide (the symbol's 20 and the `.bordered` padding).
-    static let tightAddEventSymbolWidth: CGFloat = 20
-    /// 1.4 D1d: what the tight row gives the title against 1.3's row: the two spacers' gaps (2 × the row's spacing
-    /// 4), the ◀ ▶ gap and the ＋ symbol's width (8 + 6 + 8 = 22 pt).
-    static let tightTitleGain: CGFloat = 2 * 4 + (6 - tightNavigationSpacing) + (28 - tightAddEventSymbolWidth)
-
-    /// 1.4 D1d: the compact first row is the tight one: on the compact rows only, when the column (`width`) is
-    /// narrower than `roomyCompactWidth` but the window (`width + sideInsets`) is not — the side strip took the room (the
-    /// iPhone Duo's outer screen in portrait: 382 + 84). A window narrower than it keeps 1.3's row (§4.1: the 375–393 pt
-    /// iPhones and narrow iPad windows have no side insets and are today's devices). `.infinity` (no width given) and
-    /// NaN keep 1.3's row.
-    static func usesTightRow(compact: Bool, width: CGFloat, sideInsets: CGFloat) -> Bool {
-        compact && width < roomyCompactWidth && width + sideInsets >= roomyCompactWidth
-    }
+    /// 1.4.1 (§3.1, 0e-2): the 等倍 button's symbol, the magnifying glass with a 1 (no word to translate; `HeaderGlyphTests`
+    /// checks the system has it).
+    static let zoomResetSymbol = "1.magnifyingglass"
+    /// 1.4.1 (§2.1, §3.1): the 等倍 button's identifier, for the UI tests.
+    static let zoomResetIdentifier = "header.zoomReset"
+    /// 1.4.1 (§3.1, §8.1): the 等倍 button's accessibility label (「等倍に戻す」).
+    static var zoomResetLabel: String { L.text("header.zoomReset.spoken") }
+    /// 1.4.1 (§3.1): the height of the capsule 「‹ 今日 ›」 and the diameter of the wide row's 等倍 circle; their tap targets
+    /// stay 44 pt.
+    static let capsuleHeight: CGFloat = 36
 
     private var showsSyncText: Bool { !compact && width >= Self.syncTextWidth }
     private var showsAddEventText: Bool { width >= Self.addEventTextWidth }
     private var showsReadOnlyText: Bool { width >= Self.readOnlyTextWidth }
+    /// 1.4.1 (§16.2; 0e-5 as §16.12 reads it): the title starts the row at the end away from the writing hand: leading for
+    /// the right hand (the date at the left end), trailing for the left (at the right end).
+    private var titleAlignment: Alignment { hand == .left ? .trailing : .leading }
 
     var body: some View {
-        if Self.usesTightRow(compact: compact, width: width, sideInsets: sideInsets) {
-            // 1.4 D1d: 1.3's two compact rows with the tight first row; the second row is 1.3's.
+        if compact {
+            // M4B contract §5: spacing 4 and a 17 pt title on the first row (the buttons keep their 44 pt targets and
+            // `fixedSize`). 1.4.1 (§3.3, §16.2): the second row is the switch and 等倍, as tall as the switch.
             VStack(spacing: 4) {
-                tightFirstRow
-                kindPicker
-                    .frame(maxWidth: .infinity)
-            }
-        } else if compact {
-            VStack(spacing: 4) {
-                // M4B contract §5: spacing 4, no spacer minimum, a 17 pt title (the buttons keep
-                // their 44 pt targets, `.bordered` and `fixedSize`).
                 HStack(spacing: 4) {
-                    navigationButtons
-                    Spacer(minLength: 0)
-                    titleText(.headline)
-                    Spacer(minLength: 0)
-                    todayButton
-                    addEventButton
-                    syncButton
-                    settingsButton
+                    ForEach(HeaderOrder.pieces(arm: .compactFirst, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                        view(for: piece, in: .compactFirst)
+                    }
                 }
-                kindPicker
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 8) {
+                    ForEach(HeaderOrder.pieces(arm: .compactSecond, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                        view(for: piece, in: .compactSecond)
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
             }
         } else {
             HStack(spacing: 6) {
-                navigationButtons
-                Spacer(minLength: 8)
-                titleText(.title2)
-                Spacer(minLength: 8)
-                kindPicker
-                    .frame(width: 220)
-                    .layoutPriority(1)
-                readOnlyBadge
-                todayButton
-                addEventButton
-                syncButton
-                settingsButton
+                ForEach(HeaderOrder.pieces(arm: .wide, hand: hand, readOnly: readOnly), id: \.self) { piece in
+                    view(for: piece, in: .wide)
+                }
             }
         }
     }
 
     // MARK: - Pieces
 
-    /// 1.4 D1d: the compact first row where `usesTightRow` (the Duo's outer screen in portrait). 1.3's row — spacing 4,
-    /// the same pieces in the same order, the same 17 pt title at `minimumScaleFactor(0.6)` — without its two spacers
-    /// (the title's frame takes the room between ▶ and 「今日」 and centres the title, as the spacers did), with ◀ ▶
-    /// `tightNavigationSpacing` apart and the ＋ symbol `tightAddEventSymbolWidth` wide: `tightTitleGain` pt more for the
-    /// title. Every piece keeps its height (◀ ▶ ☁ ⚙ 44, the ＋ symbol 28), so the row is as high as 1.3's.
-    private var tightFirstRow: some View {
-        HStack(spacing: 4) {
-            navigationButtons(spacing: Self.tightNavigationSpacing)
-            titleText(.headline)
-                .frame(maxWidth: .infinity)
-            todayButton
-            addEventButton(symbolWidth: Self.tightAddEventSymbolWidth)
+    /// 1.4.1 (§3.1–§3.4): one piece of `arm`. The title takes the room the others leave; the switch is 220 pt on the wide
+    /// row and takes the second row's room beside 等倍.
+    @ViewBuilder
+    private func view(for piece: HeaderPiece, in arm: HeaderOrder.Arm) -> some View {
+        switch piece {
+        case .today:
+            todayCapsule
+        case .zoomReset:
+            zoomResetButton(fillsRow: arm == .compactSecond)
+        case .title:
+            titleText(arm == .wide ? .title2 : .headline)
+                .frame(maxWidth: .infinity, alignment: titleAlignment)
+        case .picker:
+            if arm == .wide {
+                kindPicker
+                    .frame(width: 220)
+                    .layoutPriority(1)
+            } else {
+                kindPicker
+                    .frame(maxWidth: .infinity)
+            }
+        case .badge:
+            readOnlyBadge
+        case .add:
+            addEventButton
+        case .sync:
             syncButton
+        case .settings:
             settingsButton
         }
     }
@@ -202,35 +199,98 @@ struct PageHeaderView: View {
         }
     }
 
-    private var navigationButtons: some View {
-        navigationButtons(spacing: 6)
-    }
-
-    /// ◀ ▶, `spacing` apart (6; 1.4 D1d: the tight row's `tightNavigationSpacing`).
-    private func navigationButtons(spacing: CGFloat) -> some View {
-        HStack(spacing: spacing) {
+    /// 1.4.1 (§3.1, 0e-2): 「‹ 今日 ›」, three buttons side by side in one 36 pt capsule (`tertiarySystemFill`) with two thin
+    /// lines between them that take no width: ◀ (44 × 44, 「前の日／週／月／年」), 今日 (`header.today` at 17 pt, the
+    /// `.body` of 1.4's `.bordered` 「今日」, 8 pt on each side, at least 44 × 44, 「今日」) and ▶ (44 × 44, 「次の…」). The
+    /// spoken names and the words are 1.4's, so the UI tests find them as before; the ‹ › are the chevrons, never part of
+    /// `header.today` (de 「Heute」 is at its width limit, PaperFitTests). ◀ is always left of ▶. About 135.4 pt in ja and
+    /// 151.4 in en and de (§3.5 measures it); `fixedSize`, so the title gives way, never the capsule.
+    private var todayCapsule: some View {
+        HStack(spacing: 0) {
             Button(action: onPrevious) {
                 Image(systemName: "chevron.left")
-                    .frame(minWidth: 44, minHeight: 44)
+                    .font(.body.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel(Self.previousLabel(kind))
 
+            Button(action: onToday) {
+                Text(L.text("header.today"))
+                    .font(.body)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 8)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .overlay(alignment: .leading) { Self.capsuleDivider }
+            .overlay(alignment: .trailing) { Self.capsuleDivider }
+
             Button(action: onNext) {
                 Image(systemName: "chevron.right")
-                    .frame(minWidth: 44, minHeight: 44)
+                    .font(.body.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel(Self.nextLabel(kind))
         }
+        .buttonStyle(.plain)
+        .foregroundStyle(.tint)
+        .background {
+            Capsule()
+                .fill(Color(uiColor: .tertiarySystemFill))
+                .frame(height: Self.capsuleHeight)
+        }
+        .fixedSize()
         .layoutPriority(1)
     }
 
-    /// 1.1.1: on the right. `fixedSize`: the label must never be squeezed away when the row is too
-    /// narrow (the day page on an 11-inch iPad in portrait); the title gives way instead.
-    private var todayButton: some View {
-        Button(L.text("header.today"), action: onToday)
-            .buttonStyle(.bordered)
-            .fixedSize()
-            .layoutPriority(1)
+    /// The 1 × 18 pt line between two buttons of the capsule (drawn over the 今日 button's edges: no width, no tap).
+    private static var capsuleDivider: some View {
+        Rectangle()
+            .fill(Color(uiColor: .separator))
+            .frame(width: 1, height: 18)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    /// 1.4.1 (§3.1, §3.3, §16.3, 0e-2, 0e-4): 等倍 (`zoomResetSymbol`, 「等倍に戻す」, `zoomResetIdentifier`). Always
+    /// shown and always enabled, read only too. On the day and week pages a tap makes one page exactly as wide as the paper's
+    /// column (from the opening zoom too, which is narrower on most screens; once there, another tap changes nothing); on the
+    /// month and year pages it goes back to the opening zoom (there, a tap changes nothing). On the wide row a 44 × 44
+    /// target on a 36 pt circle; on the compact second row (`fillsRow`) a rounded rectangle at least 44 wide that grows to
+    /// the switch's height (`maxHeight: .infinity` in a row of `fixedSize(horizontal: false, vertical: true)`) and never
+    /// sets it.
+    private func zoomResetButton(fillsRow: Bool) -> some View {
+        Button(action: onZoomReset) {
+            if fillsRow {
+                Image(systemName: Self.zoomResetSymbol)
+                    .font(.body)
+                    .frame(minWidth: 44, maxHeight: .infinity)
+                    .background {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(uiColor: .tertiarySystemFill))
+                    }
+                    .contentShape(Rectangle())
+            } else {
+                Image(systemName: Self.zoomResetSymbol)
+                    .font(.body)
+                    .frame(width: 44, height: 44)
+                    .background {
+                        Circle()
+                            .fill(Color(uiColor: .tertiarySystemFill))
+                            .frame(width: Self.capsuleHeight, height: Self.capsuleHeight)
+                    }
+                    .contentShape(Rectangle())
+            }
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.tint)
+        .fixedSize(horizontal: true, vertical: false)
+        .layoutPriority(1)
+        .accessibilityLabel(Self.zoomResetLabel)
+        .accessibilityIdentifier(Self.zoomResetIdentifier)
     }
 
     /// F-11: one text in ja (1.1), and whenever there is no holiday; otherwise the date and the
@@ -272,21 +332,15 @@ struct PageHeaderView: View {
         return (String(title.dropLast(holiday.count + 1)), holiday)
     }
 
-    /// 「＋予定」, or the 「＋」 alone below `addEventTextWidth`.
+    /// 「＋予定」, or the 「＋」 alone below `addEventTextWidth` (at least 28 × 28).
     private var addEventButton: some View {
-        addEventButton(symbolWidth: 28)
-    }
-
-    /// The 「＋」 alone has the minimum width `symbolWidth` (28; 1.4 D1d: the tight row's `tightAddEventSymbolWidth`)
-    /// and the minimum height 28.
-    private func addEventButton(symbolWidth: CGFloat) -> some View {
         Button(action: onAddEvent) {
             if showsAddEventText {
                 Label(L.text("header.addEvent"), systemImage: "plus")
                     .labelStyle(.titleAndIcon)
             } else {
                 Image(systemName: "plus")
-                    .frame(minWidth: symbolWidth, minHeight: 28)
+                    .frame(minWidth: 28, minHeight: 28)
             }
         }
         .buttonStyle(.bordered)

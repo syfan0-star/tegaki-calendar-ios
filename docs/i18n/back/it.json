@@ -1,6 +1,6 @@
 {
  "language": "it",
- "about": "R の逆翻訳。translations/it.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。",
+ "about": "R の逆翻訳。translations/it.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。1.4.1 の 11 キー（header.zoomReset.spoken・settings.hand.*・toolbar.grip.*・toolbar.moveTo.*、契約 R1_4_1_CONTRACT.md §8.1）は、2026-11-22 に R が translations/it.json のその 11 キーの text だけを読んで訳し戻した（日本語の元・comment・契約・GLOSSARY は読んでいない）。1.4.1 の直し 2 で足した toolbar.move.title（「動かす」ボタンの名前、契約 R1_4_1_CONTRACT.md §17.3）は、2026-11-22 に R が 9 言語のその訳の字だけを読んで、日本語の元を見ずに訳し戻した（判定は REVIEW.md の 16）。",
  "strings": {
   "CFBundleDisplayName": {
    "text": "Tegaki",
@@ -533,6 +533,10 @@
   "header.today": {
    "text": "Oggi",
    "back": "今日"
+  },
+  "header.zoomReset.spoken": {
+   "text": "Torna alla dimensione originale",
+   "back": "元の大きさに戻る"
   },
   "holidayPicker.auto": {
    "text": "Automatico (zona di questo dispositivo: %@)",
@@ -1250,6 +1254,22 @@
    "text": "Fine",
    "back": "終わり（Fine。「終了」と同じ語で、完了 の意味）"
   },
+  "settings.hand.footer": {
+   "text": "Se sceglie “Mano sinistra”, l’ordine dei pulsanti in alto sullo schermo si inverte da sinistra a destra e il pulsante rotondo della barra degli strumenti ridotta si sposta in basso a destra. La carta e ciò che ha scritto restano invariati.",
+   "back": "「左手」を選ぶと、画面の上のほうにあるボタンの並び順が左右逆になり、縮めた（小さくした）ツールバーの丸いボタンが右下に移ります。紙と、あなたが書いたものはそのままです。（「ridotta」は「縮小した・小さくした」の意味。敬語の Lei で呼びかけている）"
+  },
+  "settings.hand.header": {
+   "text": "Mano dominante",
+   "back": "利き手"
+  },
+  "settings.hand.left": {
+   "text": "Mano sinistra",
+   "back": "左手"
+  },
+  "settings.hand.right": {
+   "text": "Mano destra",
+   "back": "右手"
+  },
   "settings.holidays.footer": {
    "text": "Le festività giapponesi sono calcolate da questa app (e verificate con gli annunci dell’Ufficio di Gabinetto del Giappone). Quelle degli altri Paesi si basano su dati pubblici (python-holidays). Alcune, come le festività del calendario lunare o islamico, sono stime e riportano “(stima)”. Possono differire dagli ultimi annunci dei governi. L’impostazione delle festività viene salvata solo su questo dispositivo.",
    "back": "日本の祝日はこのアプリが計算しています（日本の内閣府の発表で確かめています）。ほかの国の祝日は公開データ（python-holidays）に基づきます。太陰暦やイスラム暦の祝日など一部は推定で、「（推定）」と付きます。政府の最新の発表と違うことがあります。祝日の設定はこの端末にだけ保存されます。"
@@ -1862,6 +1882,14 @@
    "text": "Se è attivo, può tracciare linee anche con il dito. Se è disattivo, il dito serve per scorrere e toccare",
    "back": "オンのときは指でも線を引けます。オフのときは指でスクロールとタップをします"
   },
+  "toolbar.grip.hint": {
+   "text": "Si può spostare sul bordo superiore, inferiore, sinistro o destro dello schermo",
+   "back": "画面の上・下・左・右の端に動かせます"
+  },
+  "toolbar.grip.spoken": {
+   "text": "Sposta la barra degli strumenti",
+   "back": "ツールバーを動かす"
+  },
   "toolbar.hint.eraser": {
    "text": "Cancella i tratti toccati",
    "back": "触れた線を消します"
@@ -1882,6 +1910,10 @@
    "text": "Circondi per selezionare.\nTrascini per spostare",
    "back": "囲むと選択します。\nドラッグすると動かします"
   },
+  "toolbar.move.title": {
+   "text": "Sposta",
+   "back": "移動"
+  },
   "toolbar.moveEdge.toLeft": {
    "text": "Sposta in basso a sinistra",
    "back": "左下へ移す"
@@ -1889,6 +1921,22 @@
   "toolbar.moveEdge.toRight": {
    "text": "Sposta in basso a destra",
    "back": "右下へ移す"
+  },
+  "toolbar.moveTo.bottom": {
+   "text": "Sposta in basso",
+   "back": "下へ動かす（端までとは書いていない）"
+  },
+  "toolbar.moveTo.left": {
+   "text": "Sposta a sinistra",
+   "back": "左へ動かす（端までとは書いていない）"
+  },
+  "toolbar.moveTo.right": {
+   "text": "Sposta a destra",
+   "back": "右へ動かす（端までとは書いていない）"
+  },
+  "toolbar.moveTo.top": {
+   "text": "Sposta in alto",
+   "back": "上へ動かす（端までとは書いていない）"
   },
   "toolbar.pin": {
    "text": "Mostra sempre la barra",

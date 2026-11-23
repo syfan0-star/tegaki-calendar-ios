@@ -2890,6 +2890,26 @@
         "指でも書く"
       ]
     },
+    "toolbar.grip.hint": {
+      "ja": "上下左右の端へ移せます",
+      "target": "app",
+      "comment": "1.4.1 つまみ（toolbar.grip.spoken）の読み上げのヒント。ツールバーを画面の上・下・左・右の端へ移せること。読み上げの操作（toolbar.moveTo.*）でも移せる。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
+    "toolbar.grip.spoken": {
+      "ja": "ツールバーを動かす",
+      "target": "app",
+      "comment": "1.4.1 ツールバーのつまみの読み上げの名前。iPad の広い窓で、開いたツールバーの画面の真ん中に向いた辺に出る小さなつまみ。指で引くと、ツールバーを画面の上・下・左・右の端へ移せる。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
     "toolbar.hint.eraser": {
       "ja": "触れた線をまるごと消します",
       "target": "app",
@@ -2978,6 +2998,17 @@
         "投げなわ"
       ]
     },
+    "toolbar.move.title": {
+      "ja": "動かす",
+      "target": "app",
+      "comment": "1.4.1 iPad のツールバーの「しまう」のすぐ左にあるボタンの名前（10 pt、ボタンの印の下。「しまう」の toolbar.collapse.title と同じ扱いで、F-12 と同じ上限）。iPad の広い窓で、開いたツールバーと、しまった後に丸ボタンを押して出したツールバーに出る（iPhone には無い）。押すと、ツールバーを移す端（上・下・左・右）を選ぶ小さな吹き出しが開く（丸ボタンから出したツールバーで選ぶと、選んだ端にツールバーが開いたまま残る。§18.2）。開いたツールバーでは、ボタンを指で引いても、ツールバーを動かせる。読み上げの名前は toolbar.grip.spoken。文は docs/R1_4_1_CONTRACT.md §17.3",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": [],
+      "maxEm": 3.8
+    },
     "toolbar.moveEdge.toLeft": {
       "ja": "左下へ移す",
       "target": "app",
@@ -3000,6 +3031,46 @@
       "was": [
         "Views/ToolbarLogic.swift:125"
       ],
+      "args": []
+    },
+    "toolbar.moveTo.bottom": {
+      "ja": "下へ移す",
+      "target": "app",
+      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の下の端へ移す（スイッチコントロールとフルキーボードアクセスも同じ操作）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
+    "toolbar.moveTo.left": {
+      "ja": "左へ移す",
+      "target": "app",
+      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の左の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
+    "toolbar.moveTo.right": {
+      "ja": "右へ移す",
+      "target": "app",
+      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の右の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
+      "args": []
+    },
+    "toolbar.moveTo.top": {
+      "ja": "上へ移す",
+      "target": "app",
+      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の上の端（見出しの下）へ移す。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "where": [
+        "Views/ToolbarLogic.swift"
+      ],
+      "was": [],
       "args": []
     },
     "toolbar.pin": {

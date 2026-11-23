@@ -1,6 +1,6 @@
 {
  "language": "zh-Hans",
- "about": "R の逆翻訳。translations/zh-Hans.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。",
+ "about": "R の逆翻訳。translations/zh-Hans.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。1.4.1 の 11 キー（header.zoomReset.spoken・settings.hand.*・toolbar.grip.*・toolbar.moveTo.*、契約 R1_4_1_CONTRACT.md §8.1）は、2026-11-22 に R が translations/zh-Hans.json のその 11 キーの text だけを読んで訳し戻した（日本語の元・comment・用語集は読んでいない）。1.4.1 の直し 2 で足した toolbar.move.title（「動かす」ボタンの名前、契約 R1_4_1_CONTRACT.md §17.3）は、2026-11-22 に R が 9 言語のその訳の字だけを読んで、日本語の元を見ずに訳し戻した（判定は REVIEW.md の 16）。",
  "strings": {
   "CFBundleDisplayName": {
    "text": "Tegaki",
@@ -533,6 +533,10 @@
   "header.today": {
    "text": "今天",
    "back": "今日"
+  },
+  "header.zoomReset.spoken": {
+   "text": "恢复原始大小",
+   "back": "元の大きさに戻す"
   },
   "holidayPicker.auto": {
    "text": "自动（此设备的地区：%@）",
@@ -1250,6 +1254,22 @@
    "text": "完成",
    "back": "完了"
   },
+  "settings.hand.footer": {
+   "text": "选择“左手”后，屏幕顶部按钮的排列会左右颠倒，工具栏收起时的圆形按钮会移到右下角。纸和手写内容保持不变。",
+   "back": "「左手」を選ぶと、画面上部のボタンの並びが左右逆になり、ツールバーをしまったときの丸いボタンが右下に移ります。紙と手書きの内容はそのまま変わりません。"
+  },
+  "settings.hand.header": {
+   "text": "惯用手",
+   "back": "利き手"
+  },
+  "settings.hand.left": {
+   "text": "左手",
+   "back": "左手"
+  },
+  "settings.hand.right": {
+   "text": "右手",
+   "back": "右手"
+  },
   "settings.holidays.footer": {
    "text": "日本的节假日由此 App 计算（并与日本内阁府的公告进行了核对）。其他国家的节假日基于公开数据（python-holidays）。农历或伊斯兰历的节假日等部分日期为推算，并标有“（推算）”。可能与政府的最新公告不同。节假日设置只保存在此设备上。",
    "back": "日本の祝日はこのアプリが計算しています（日本の内閣府の公告と照合済み）。ほかの国の祝日は公開データ（python-holidays）に基づきます。旧暦やイスラム暦の祝日など一部の日付は推算で、「（推算）」の印が付きます。政府の最新の公告と違うことがあります。祝日の設定はこの端末にだけ保存されます。"
@@ -1862,6 +1882,14 @@
    "text": "打开后，也可以用手指画线。关闭时，手指用于滚动和轻点",
    "back": "オンにすると、指でも線を引けます。オフのときは、指はスクロールとタップに使います"
   },
+  "toolbar.grip.hint": {
+   "text": "可移到上下左右的边缘",
+   "back": "上下左右の端に移動できます"
+  },
+  "toolbar.grip.spoken": {
+   "text": "移动工具栏",
+   "back": "ツールバーを移動"
+  },
   "toolbar.hint.eraser": {
    "text": "擦除碰到的整条线",
    "back": "触れた線を 1 本まるごと消します"
@@ -1882,6 +1910,10 @@
    "text": "圈住以选择。\n在框内拖移可移动",
    "back": "囲んで選択します。\n枠の中でドラッグすると動かせます"
   },
+  "toolbar.move.title": {
+   "text": "移动",
+   "back": "移動"
+  },
   "toolbar.moveEdge.toLeft": {
    "text": "移到左下角",
    "back": "左下へ移す"
@@ -1889,6 +1921,22 @@
   "toolbar.moveEdge.toRight": {
    "text": "移到右下角",
    "back": "右下へ移す"
+  },
+  "toolbar.moveTo.bottom": {
+   "text": "移到底部",
+   "back": "下部へ移動"
+  },
+  "toolbar.moveTo.left": {
+   "text": "移到左侧",
+   "back": "左側へ移動"
+  },
+  "toolbar.moveTo.right": {
+   "text": "移到右侧",
+   "back": "右側へ移動"
+  },
+  "toolbar.moveTo.top": {
+   "text": "移到顶部",
+   "back": "上部へ移動"
   },
   "toolbar.pin": {
    "text": "一直显示工具栏",

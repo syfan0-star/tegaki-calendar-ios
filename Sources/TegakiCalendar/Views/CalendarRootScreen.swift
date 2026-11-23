@@ -70,13 +70,17 @@ enum GatedAction: Equatable, CaseIterable {
 /// their columns stay over the paper's. Until the first report, `PaperViewport.initial` stands in.
 /// The first horizontal position of a zoomed-in page is `PageNavigation.initialScrollX` (today's
 /// column on the month / week page, this month's column on the year page). The compact header
-/// (< 600 pt) shows `PageNavigation.compactTitle`.
+/// (< 600 pt) shows `PageNavigation.compactTitle`, and since 1.4.1 an iPhone's wide row too (`usesShortTitle`).
 ///
 /// Overview and zoom (M4c, M4C contract §5.1; 1.1.1, docs/R1_1_1.md): a page opens at the ratio stored
 /// for its kind (`AppSettings.zoomRatio(for:)`, D4; 1 = the opening zoom `Bounds.open`, or
 /// `--screenshot-zoom`), so what a page holds never changes the size it opens at, and the
 /// canvas reports the ratio at the end of every pinch (`onZoomRatioChange`), which is the only time
-/// it is written. The first frame's stand-in viewport is `PaperViewport.initial(_:overview:paperSize:
+/// it is written. 1.4.1 (docs/R1_4_1_CONTRACT.md §16.3.4): a week or a day kept at 等倍 opens at its fit instead, one
+/// page's width across the paper's column (`currentFit` → the canvas's `initialFit`; `--screenshot-zoom fit` in screenshot
+/// mode), and right after the ratio the canvas says whether the zoom it ended at is that fit (`onZoomFitChange`: true
+/// after 等倍, false after a real pinch), which the screen keeps for the kind (`AppSettings.setZoomFit`; never in
+/// screenshot mode). The first frame's stand-in viewport is `PaperViewport.initial(_:overview:paperSize:
 /// viewport:ratio:)` over the paper area measured under the band (`paperArea`; the width alone until
 /// it is measured). While a pinch is in progress (`onZoomingChange`) the band's lane height is frozen
 /// at the zoom the pinch started from (`frozenLaneZoom`, M4C-27). A finger double tap on the week /
@@ -151,6 +155,10 @@ enum GatedAction: Equatable, CaseIterable {
 /// - 「指でも書く」 on an iPhone Duo as on an iPad: the Apple Pencil's touch or the hinge turns it off (`PencilPhone`, the
 ///   window's watchers); the person's switch in the toolbar and the settings is theirs from then on (`allowFingerBinding`).
 /// - 「今日」's rect goes when the one page's canvas is made anew by another device's 「全て消す」 or 「消して始める」.
+///
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.3–§4.11, 0e-14–0e-22): on an iPad's wide window the open toolbar moves to the top, the
+/// left or the right edge with a finger on its grip (or VoiceOver's 「…へ移す」), and stays out of the paper's way there
+/// (`paletteTopSlot`, `paletteSideSlot`: the paper area shrinks instead); every iPhone keeps 1.4's bar at the bottom.
 struct CalendarRootScreen: View {
     @StateObject private var model = EventStoreModel()
     /// The sync engine (M4 contract §5.3): the one store of the pages, and the ☁ state.
@@ -213,6 +221,9 @@ struct CalendarRootScreen: View {
     // or written in screenshot mode, where `--screenshot-toolbar` decides).
     @AppStorage(AppSettings.toolbarCollapsedKey) private var toolbarCollapsedStored = false
     @AppStorage(AppSettings.toolbarEdgeKey) private var toolbarEdgeRaw = ToolbarEdge.leading.rawValue
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, 0e-12): 設定 › 入力 「利き手」 (the same key as the settings, so the header
+    /// turns at once); read through `hand`, never in screenshot mode.
+    @AppStorage(AppSettings.handKey) private var handRaw = Hand.right.rawValue
     /// 設定 › 入力 「消しゴムで消したらペンに戻る」 (the same key as the settings, so a change applies at once).
     @AppStorage(AppSettings.eraserAutoReturnKey) private var eraserAutoReturn = true
     /// expanded / collapsed / peek (§2.1). Set in `init` from the stored `toolbar.collapsed`.
@@ -220,6 +231,32 @@ struct CalendarRootScreen: View {
     /// Screenshot mode's corner of the dock button (`--screenshot-toolbar collapsed-right`); nil in
     /// normal use, where `toolbarEdgeRaw` decides.
     @State private var screenshotEdge: ToolbarEdge?
+    // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.3–§4.11, 0e-14–0e-22): the open toolbar on the four edges of an iPad's window.
+    /// The edge the bar was moved to (`toolbar.paletteEdge`, per device): read through `paletteStored`, never in screenshot
+    /// mode, written only at a drop or a VoiceOver action (`paletteDropped`).
+    @AppStorage(AppSettings.paletteEdgeKey) private var paletteEdgeRaw = PaletteEdge.bottom.rawValue
+    /// Screenshot mode's edge (§4.10): `--screenshot-palette` (the bottom without it) at launch, then where a drop or a
+    /// VoiceOver action put it; nil in normal use, where `paletteEdgeRaw` decides (as `screenshotEdge` for the dock's corner).
+    @State private var screenshotPaletteEdge: PaletteEdge?
+    /// The edges the window allows (`ToolbarLogic.allowedEdges`, §4.3), from what `notePaletteColumn` and `notePaperColumn`
+    /// measured; the bottom alone until then.
+    @State private var paletteAllowed: [PaletteEdge] = [.bottom]
+    /// A drag of the grip runs (§4.7; also screenshot mode's `--screenshot-palette-drag`): the bar stays in its slot at 40 %.
+    /// The finger and the target edge are `paletteRoom.dragModel`'s, which only the puck's layer watches.
+    @State private var paletteDragging: Bool
+    /// Bumped to cancel a running drag (`PaletteGripView.cancelTrigger`; §4.6: the Pencil, a pen-down, leaving the
+    /// foreground, a new window size, a sheet).
+    @State private var paletteDragCancel = 0
+    /// The window's watch of the Pencil for the grip's palm rule (§4.6): on the window while two edges or more are allowed
+    /// (`updatePalmWatch`), off it otherwise.
+    @State private var palmWatch = PalmWatch()
+    /// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): the 「動かす」 button's choice of edges is shown (a tap on the
+    /// button, VoiceOver's activation, `--screenshot-palette-menu`); closed when the button goes.
+    @State private var paletteMenuShown = false
+    /// What the screen measures for the edges and the drag, kept outside SwiftUI's state (writing it draws nothing).
+    @State private var paletteRoom: PaletteRoom
+    /// Where the slots under the header and the notices begin (the window's points): a drag's outlines (`PaletteDragLayer`).
+    @State private var paletteBodyTop: CGFloat = 0
     /// The last 「このページはいっぱいです」 toast (at most every 2 s, like `lastBlockedInputAt`).
     @State private var lastBudgetFullAt: Date?
 
@@ -228,6 +265,12 @@ struct CalendarRootScreen: View {
     @State private var revealRect: CGRect?
     /// Bumped by 「今日」: the canvas already showing the page brings `revealRect` on screen once.
     @State private var revealTrigger = 0
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, §16.3, 0e-7): bumped by 等倍 (`resetZoom`); the canvas on the screen goes once to
+    /// its 等倍 (`ZoomReset.target`): on a week or a day one page's width across the paper's column (the fit), which it then
+    /// reports (its ratio, then fit true: `AppSettings.setZoomFit` keeps the kind at 等倍 and removes its ratio, §16.3.4); on
+    /// a month or a year the opening zoom (ratio 1, which removes the kind's stored ratio, 0e-10). A canvas made later takes
+    /// the value as it is and does nothing with it.
+    @State private var zoomResetTrigger = 0
     /// The hint was shown or the person pinched (per device; never written in screenshot mode).
     @AppStorage(AppSettings.pinchHintShownKey) private var pinchHintShown = false
     /// The hint's wait (`schedulePinchHint`); a newer schedule or a pinch stops it.
@@ -337,6 +380,19 @@ struct CalendarRootScreen: View {
     static let nowTickSeconds: Double = 30
     /// Below this width the header takes two rows (M3b contract §4.6).
     static let compactWidth: CGFloat = 600
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.4, 0e-5, changed by the lead after §7.3's header crops of run 44926505978): the
+    /// header shows the short title (`PageNavigation.compactTitle`) on the compact rows and on an iPhone's wide row (an iPhone
+    /// in landscape, the iPhone Duo's open inner screen: `pencilPhone.isPad` false, no new reading of the idiom); an iPad's
+    /// wide row keeps the long title (the owner's iPad Air 11 shows it whole). 1.4.1's wide row adds 等倍, and on the
+    /// iPhone 17 in landscape (874 pt) the week title 「2026年10月5日〜10月11日」 was cut to 「2026年10月5日〜10月…」 even at
+    /// `minimumScaleFactor(0.6)` (the title's frame 266.7–419.7 pt), which 1.4's row showed whole. Known and kept: an iPad's
+    /// wide row with less room (the iPad mini in portrait, 162 pt; windows of 600 to about 750 pt) still cuts that week title
+    /// with 「…」, as 1.4 did (§3.5: recorded, no shape of its own). The short title has no year on the week and day pages and
+    /// no holiday name (the paper's date heading shows it, F-11 does not apply); outside ja the month is `yMMM` ("Oct 2026").
+    /// The year page's title, and in ja the month page's, are the same in both forms.
+    static func usesShortTitle(compact: Bool, isPad: Bool) -> Bool {
+        compact || !isPad
+    }
     /// The pause between two sheets / dialogs (SwiftUI cannot present two at once).
     static let sheetGap: Double = 0.35
     /// The zoom `paperAreaHeight` measures the band at (M4C contract §5.1 / §1.6): every week / day
@@ -474,6 +530,13 @@ struct CalendarRootScreen: View {
         _toolbarMode = State(initialValue: start.toolbarMode)
         _eraserOrigin = State(initialValue: start.eraserOrigin)
         _screenshotEdge = State(initialValue: start.screenshotEdge)
+        // 1.4.1 (§4.7, §4.10): screenshot mode's edge (`--screenshot-palette`, else the bottom; the memory is not read) and the
+        // look of `--screenshot-palette-drag` (a drag held over that edge, with no finger: the puck over its slot).
+        _screenshotPaletteEdge = State(initialValue: shot.map { ScreenshotMode.paletteEdge($0, stored: nil) })
+        let room = PaletteRoom()
+        room.dragModel.current = shot?.paletteDrag.map { PaletteDrag(finger: nil, target: $0) }
+        _paletteRoom = State(initialValue: room)
+        _paletteDragging = State(initialValue: shot?.paletteDrag != nil)
         // 1.1 (§7.3): screenshot mode starts from its demo page (`--screenshot-grown` included), so the
         // first layout is already the grown paper and `--screenshot-offset` is clamped to it. `show()`
         // loads the same page again (nothing changes, nothing is dirty).
@@ -535,11 +598,22 @@ struct CalendarRootScreen: View {
         ScreenshotMode.current?.zoomRatio ?? AppSettings.zoomRatio(for: kind)
     }
 
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §16.3.4, §16.3.7): the shown page opens at 等倍, one page's width across the paper's
+    /// column (the canvas's `initialFit`): a week or a day kept at 等倍 on this device (`AppSettings.zoomFit(for:)`), or in
+    /// screenshot mode `--screenshot-zoom fit`. Never a month or a year. It wins over `currentRatio` (which the kind's 等倍
+    /// removed, and which is 1 with `--screenshot-zoom fit`).
+    private var currentFit: Bool {
+        ZoomReset.followsFit(kind) && ScreenshotMode.zoomFit(ScreenshotMode.current, kind: kind, stored: AppSettings.zoomFit(for: kind))
+    }
+
     /// The viewport of a page's first frame, before its canvas has reported one: `currentRatio` over
     /// the opening zoom that fits `width` × the paper area (the width alone while `paperArea` is still
-    /// `.zero`), centred as the canvas will centre the paper (M4C contract §5.1, 1.1.1).
+    /// `.zero`), centred as the canvas will centre the paper (M4C contract §5.1, 1.1.1). 1.4.1 (§16.3.4): at 等倍
+    /// (`currentFit`) the fit of `width` with no margin (`PaperViewport.initial(_:viewportWidth:)`: the fit depends on the
+    /// width alone, so the estimate is exact).
     private func initialViewport(width: CGFloat) -> PaperViewport {
-        PaperViewport.initial(
+        if currentFit { return PaperViewport.initial(kind, viewportWidth: width) }
+        return PaperViewport.initial(
             kind,
             overview: ZoomPolicy.overviewSize(layout),
             paperSize: layout.size,
@@ -556,10 +630,11 @@ struct CalendarRootScreen: View {
     }
 
     /// 1.3 (wave C, HANDOFF 6): the first frame of a window — the focus page in the middle at the overview, the band's
-    /// `initialScrollX` zoomed in — until its canvas reported a viewport.
+    /// `initialScrollX` zoomed in — until its canvas reported a viewport. 1.4.1 (§16.3.4): at 等倍 the focus page's edges
+    /// at the column's edges (`currentFit`).
     private func joinedInitialViewport(_ span: SpanSession, width: CGFloat) -> PaperViewport {
         ScreenPaths.bandViewport(layout: span.layout, focusPageId: span.focusPageId, now: now, calendar: span.context.calendar,
-                                 area: CGSize(width: width, height: paperArea.height), ratio: currentRatio)
+                                 area: CGSize(width: width, height: paperArea.height), ratio: currentRatio, fit: currentFit)
     }
 
     /// 1.3: the band shown over the paper — the focus page's of the window's heading (every page has the window's lane
@@ -572,9 +647,11 @@ struct CalendarRootScreen: View {
     /// The zoom the page is expected to open at (`currentRatio` over the page's bounds for
     /// `viewportWidth` × the paper area): the estimate `initialScrollX` is computed with (M4C
     /// contract §5.1 / §1.6). The real value may differ by the band's height; the canvas applies
-    /// `initialScrollX` only when the ratio is above 1.
+    /// `initialScrollX` only when the ratio is above 1. 1.4.1 (§16.3.4): at 等倍 (`currentFit`) the fit of
+    /// `viewportWidth` (exact: the fit depends on the width alone), so `initialScrollX` sees one page across (x 0).
     private func estimatedZoom(viewportWidth: CGFloat) -> CGFloat {
-        ZoomPolicy.zoom(
+        if currentFit { return ZoomPolicy.fitZoom(kind, viewportWidth: viewportWidth) }
+        return ZoomPolicy.zoom(
             forRatio: currentRatio,
             bounds: ZoomPolicy.bounds(
                 kind,
@@ -600,6 +677,8 @@ struct CalendarRootScreen: View {
     private func updatePaperArea(_ size: CGSize) {
         let next = CGSize(width: size.width, height: Self.paperAreaHeight(area: size.height, band: shownBand, kind: kind))
         if next != paperArea {
+            // 1.4.1 (§6.1): counted for screenshot mode's `palette.state` (a drop changes the paper area once).
+            paletteRoom.areaChanges += 1
             paperArea = next
             logToolbarArea(next)
         }
@@ -612,6 +691,8 @@ struct CalendarRootScreen: View {
         guard ScreenshotMode.isActive else { return }
         NSLog("%@", Self.safeAreaLogLine(Self.windowSafeArea()))
         NSLog("%@", Self.paperAreaLogLine(area, mode: toolbarMode))
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.10, §7.2): the toolbar's edge on a line of its own (the two lines above keep 1.4's form).
+        NSLog("%@", Self.paletteLogLine(paletteEdge, allowed: paletteAllowed))
         noteMeasure(area)
     }
 
@@ -656,6 +737,12 @@ struct CalendarRootScreen: View {
     private var access: AccessState { store.snapshot.access }
     private var readOnly: Bool { !access.canEdit }
 
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §4.10, 0e-12, 0e-21): the hand the header is laid out for: `--screenshot-hand`
+    /// in screenshot mode (the right hand without it; the stored one is never read there), else 設定 › 入力 「利き手」.
+    private var hand: Hand {
+        ScreenshotMode.hand(ScreenshotMode.current, stored: handRaw)
+    }
+
     // MARK: 1.1 toolbar (M7A_CONTRACT §2)
 
     /// The dock button's corner: `--screenshot-toolbar` in screenshot mode, else the stored one.
@@ -690,11 +777,12 @@ struct CalendarRootScreen: View {
             screenColumn(proxy)
         }
         // 1.1 (§2.2): the peeking bar and the dock button lie over the paper (the paper area does not
-        // change), inside the safe area, 12 pt from the side and 6 pt above the bottom.
+        // change), inside the safe area, 12 pt from the side and 6 pt above the bottom. 1.4.1 (§4.9, 0e-20): the bar peeks on
+        // the edge it is kept on; this is the bottom's (the others' are `palettePeek` in the column).
         .overlay(alignment: .bottom) {
             ZStack {
-                if toolbarMode == .peek {
-                    toolbar
+                if toolbarMode == .peek && paletteEdge == .bottom {
+                    toolbar(axis: .horizontal)
                         .padding(.horizontal, ToolbarLogic.sidePadding)
                         .padding(.bottom, ToolbarLogic.bottomPadding)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -727,6 +815,8 @@ struct CalendarRootScreen: View {
                     ToastView(message: toast)
                         // 1.1 (0-15): above the dock button / the peeking bar (8 pt while expanded).
                         .padding(.bottom, ToolbarLogic.toastBottomPadding(toolbarMode))
+                        // 1.4.1 (§4.9, 0e-20): clear of the open bar on the left or the right (0 on every other edge and state).
+                        .padding(paletteEdge == .left ? .leading : .trailing, ToolbarLogic.toastSideInset(toolbarMode, edge: paletteEdge))
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .id(toast.id)
                 }
@@ -737,13 +827,30 @@ struct CalendarRootScreen: View {
         // 1.1 (§2.7, §9.1): the modifier always stays (adding or removing it would rebuild the canvas
         // and lose its ledger, zoom and scroll); only the expanded state puts the bar in it, with the
         // default spacing as before, and the other states leave it empty with no spacing (height 0).
-        .safeAreaInset(edge: .bottom, spacing: toolbarMode == .expanded ? nil : 0) {
-            if toolbarMode == .expanded {
-                toolbar
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.4, §4.5, 0e-15, 0e-16): the bar is here only on the bottom edge. Where the bottom is
+        // the only edge allowed (every iPhone, a narrow window) the line, the default spacing and the bar are 1.4's (the top
+        // padding is 0 and the overlay empty). With a grip the spacing is 0 and the bar has 8 pt above it instead, 74 pt in
+        // all as before, so the grip's touch area (`paletteGrip`) lies in the inset's own content.
+        .safeAreaInset(edge: .bottom, spacing: bottomBarSpacing) {
+            if toolbarMode == .expanded && paletteEdge == .bottom {
+                toolbar(axis: .horizontal)
+                    .opacity(paletteOpacity)
                     .padding(.horizontal, ToolbarLogic.sidePadding)
                     .padding(.bottom, ToolbarLogic.bottomPadding)
+                    .padding(.top, paletteHasGrip ? ToolbarLogic.expandedBottomGap : 0)
+                    .overlay(alignment: .top) {
+                        if paletteHasGrip {
+                            paletteGrip(.bottom)
+                        }
+                    }
             }
         }
+        // 1.4.1 (§4.7, 0e-18): a drag of the grip over everything, inside the safe area (the bottom bar included); it takes no
+        // touch. Then screenshot mode's `palette.state` for the UI tests (with `--screenshot-palette` or its drag only).
+        .overlay {
+            PaletteDragLayer(model: paletteRoom.dragModel, room: paletteRoom, tool: tool, allowed: paletteAllowed, bodyTop: paletteBodyTop)
+        }
+        .overlay(alignment: .topLeading) { paletteState }
     }
 
     /// What the screen watches (1.2.3's body, its second part).
@@ -847,16 +954,25 @@ struct CalendarRootScreen: View {
 
     /// The column of the screen (the body's `GeometryReader`): the page's header, the notices, the sticky heading,
     /// and the band over the canvas in the area they share.
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.4, §4.8, §4.9, 0e-15, 0e-19, 0e-20): under the header and the notices, the open bar's
+    /// top slot (74 pt: the paper area is the bottom's, the paper 74 pt lower) and its side slots around the paper column
+    /// (`HStack`, 74 pt wide: the header keeps the whole width and its compact rule). Every slot and wrapper is always there
+    /// and only its content changes, so the canvas is never made anew; with the bar on the bottom (every iPhone) they are
+    /// empty and the column is 1.4's. The paper column's width (`columnWidth`, the whole width but a side slot's) is what
+    /// `shownViewport`, `pathCanvas` (the canvas's `estimatedZoom` and `smallScreen`) and the joined path read.
     @ViewBuilder
     private func screenColumn(_ proxy: GeometryProxy) -> some View {
         let compact = proxy.size.width < Self.compactWidth
+        // 1.4.1 (§3.4, the crops of run 44926505978): the short title on an iPhone's wide row too (`usesShortTitle`).
+        let shortTitle = Self.usesShortTitle(compact: compact, isPad: pencilPhone.isPad)
+        let columnWidth = proxy.size.width - paletteSideWidth
         // The first frame of a page has no report from its canvas yet: the stored ratio over the
         // opening zoom, centred, the same position the canvas starts from (M4B contract §2.6, M4C §5.1).
-        let shownViewport = self.shownViewport(width: proxy.size.width)
+        let shownViewport = self.shownViewport(width: columnWidth)
         VStack(spacing: 0) {
             PageHeaderView(
                 kind: kind,
-                title: compact
+                title: shortTitle
                     ? PageNavigation.compactTitle(kind, focus: focus, language: L.language, weekStart: weekStart)
                     : PageNavigation.title(kind, focus: focus, holidays: holidays, language: L.language, weekStart: weekStart),
                 compact: compact,
@@ -869,58 +985,88 @@ struct CalendarRootScreen: View {
                 sync: sync.snapshot.status.header,
                 onSyncTap: { showSettings = true },
                 width: proxy.size.width,
-                // 1.4 D1d: the safe area's side strips (the iPhone Duo's outer screen: 84 pt; 0 on every iPhone in
-                // portrait and on the iPad), for the header's tight row (`PageHeaderView.usesTightRow`).
-                sideInsets: proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
                 readOnly: readOnly,
                 onReadOnlyTap: { showPaywall(reason: .badge) },
-                // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date.
-                titleHoliday: !compact && kind == .day ? holidays.name(of: focus) : nil
+                // 1.2 (F-11): outside ja the wide day title gives way at its holiday, not its date. The long title only:
+                // the short one has no holiday name (1.4.1: an iPhone's wide row shows the short one).
+                titleHoliday: !shortTitle && kind == .day ? holidays.name(of: focus) : nil,
+                // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §3.2, §4.1): the header's order for 設定 › 入力 「利き手」, and 等倍
+                // (the canvas to its 等倍, §3.6, §16.3: a week or a day one page across, a month or a year as it opens).
+                hand: hand,
+                onZoomReset: { resetZoom() }
             )
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             accessNotice
             readOnlyNotice(compact: compact)
-            StickyHeaderView(
-                paper: paper,
-                now: now,
-                viewport: shownViewport,
-                span: paths.headingSpan,
-                onDayTap: { show(kind: .day, focus: $0) },
-                onMonthTap: { show(kind: .month, focus: $0.firstDay) }
-            )
-            // The band and the canvas share this area; its height is the base of the band's
-            // 35 % cap (M4B contract §2.2 / §2.6).
-            GeometryReader { area in
-                VStack(spacing: 0) {
-                    if let band = shownBand {
-                        AllDayBandView(
-                            band: band,
+            // 1.4.1 (§4.4): the top slot, then the side slots around the paper column.
+            VStack(spacing: 0) {
+                paletteTopSlot
+                HStack(spacing: 0) {
+                    paletteSideSlot(.left)
+                    VStack(spacing: 0) {
+                        StickyHeaderView(
+                            paper: paper,
+                            now: now,
                             viewport: shownViewport,
-                            pageHeight: area.size.height,
-                            laneZoom: frozenLaneZoom,
                             span: paths.headingSpan,
-                            onBarTap: openEdit(eventId:),
-                            onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) },
-                            onColumnDoubleTap: { day in
-                                guard kind != .day else { return }
-                                show(kind: .day, focus: day)
-                            }
+                            onDayTap: { show(kind: .day, focus: $0) },
+                            onMonthTap: { show(kind: .month, focus: $0.firstDay) }
                         )
+                        // The band and the canvas share this area; its height is the base of the band's
+                        // 35 % cap (M4B contract §2.2 / §2.6).
+                        GeometryReader { area in
+                            VStack(spacing: 0) {
+                                if let band = shownBand {
+                                    AllDayBandView(
+                                        band: band,
+                                        viewport: shownViewport,
+                                        pageHeight: area.size.height,
+                                        laneZoom: frozenLaneZoom,
+                                        span: paths.headingSpan,
+                                        onBarTap: openEdit(eventId:),
+                                        onColumnTap: { openCreate(range: .allDay($0), snapshot: nil, inkIds: []) },
+                                        onColumnDoubleTap: { day in
+                                            guard kind != .day else { return }
+                                            show(kind: .day, focus: day)
+                                        }
+                                    )
+                                }
+                                // 1.3 (§3.1): the one page (1.2.3's canvas), the window of joined pages, or the desk alone.
+                                pathCanvas(viewportWidth: columnWidth)
+                            }
+                            .frame(width: area.size.width, height: area.size.height, alignment: .top)
+                            // M4C contract §5.1: the paper area under the band, the base of the overview.
+                            .onAppear { updatePaperArea(area.size) }
+                            .onChange(of: area.size) { updatePaperArea(area.size) }
+                            .onChange(of: shownBand?.laneCount) { updatePaperArea(area.size) }
+                        }
                     }
-                    // 1.3 (§3.1): the one page (1.2.3's canvas), the window of joined pages, or the desk alone.
-                    pathCanvas(viewportWidth: proxy.size.width)
+                    // 1.4.1 (§4.3): the paper column's height, for the edges the window allows.
+                    .background(GeometryReader { paperColumn in
+                        Color.clear
+                            .onAppear { notePaperColumn(paperColumn.size.height) }
+                            .onChange(of: paperColumn.size.height) { notePaperColumn(paperColumn.size.height) }
+                    })
+                    paletteSideSlot(.right)
                 }
-                .frame(width: area.size.width, height: area.size.height, alignment: .top)
-                // M4C contract §5.1: the paper area under the band, the base of the overview.
-                .onAppear { updatePaperArea(area.size) }
-                .onChange(of: area.size) { updatePaperArea(area.size) }
-                .onChange(of: shownBand?.laneCount) { updatePaperArea(area.size) }
             }
+            // 1.4.1 (§4.9, 0e-20): the bar peeking on the top or a side (laid over the paper, as the bottom's peek).
+            .overlay(alignment: .top) { palettePeek(.top) }
+            .overlay(alignment: .leading) { palettePeek(.left) }
+            .overlay(alignment: .trailing) { palettePeek(.right) }
+            // 1.4.1 (§4.7): where the slots under the header begin, for a drag's outlines.
+            .background(GeometryReader { slots in
+                Color.clear
+                    .onAppear { notePaletteBodyTop(slots.frame(in: .global).minY) }
+                    .onChange(of: slots.frame(in: .global).minY) { notePaletteBodyTop(slots.frame(in: .global).minY) }
+            })
         }
         .frame(width: proxy.size.width, height: proxy.size.height)
         // 1.3: what the two paths watch (`pathObservers`).
         .background(pathObservers(proxy))
+        // 1.4.1: what the toolbar's edges watch (`paletteObservers`).
+        .background(paletteObservers(proxy))
     }
 
     /// 設定 (the sheet `showSettings` presents).
@@ -977,7 +1123,9 @@ struct CalendarRootScreen: View {
 
     /// The bar: in the bottom inset while expanded, laid over the paper while peeking (the same view,
     /// with 「しまう」 in both; §2.2). The eraser's note says where it returns to (§2.4).
-    private var toolbar: some View {
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.8, §5.6, 0e-19): the one `ToolbarView` of the screen for every slot and peek, upright
+    /// (`.vertical`) on the left and the right; `.horizontal` is 1.4's bar.
+    private func toolbar(axis: Axis) -> some View {
         ToolbarView(
             tool: toolBinding,
             allowFinger: allowFingerBinding,
@@ -988,7 +1136,9 @@ struct CalendarRootScreen: View {
             onRedo: redo,
             showsCollapseButton: true,
             onCollapse: { toolbarEvent(.collapseTapped) },
-            eraserReturnsTo: Self.eraserReturnTarget(tool: tool, origin: eraserOrigin, setting: eraserAutoReturnOn, lastInk: lastInkTool)
+            eraserReturnsTo: Self.eraserReturnTarget(tool: tool, origin: eraserOrigin, setting: eraserAutoReturnOn, lastInk: lastInkTool),
+            axis: axis,
+            move: paletteMoveButton
         )
     }
 
@@ -1040,6 +1190,9 @@ struct CalendarRootScreen: View {
     /// dock button (animated, 0.2 s); an expanded bar stays (§2.1). Nothing is written otherwise, so
     /// a pen-down does not update the screen.
     private func penDown() {
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.6, 0e-17): first, a running drag of the toolbar's grip is cancelled (nothing is
+        // written while none runs, so a pen-down still does not update the screen).
+        cancelPaletteDrag()
         // 1.2 (§10.3, 4 (3)): before the guard, which returns on nearly every touch. Nothing reads it in
         // the body, so this does not update the screen either.
         penTouchedThisLaunch = true
@@ -1162,7 +1315,16 @@ struct CalendarRootScreen: View {
             onEraseEnded: eraseEnded,
             onStrokeBudget: strokeBudgetReached,
             onGrowthCapReached: growthCapReached,
-            bottomClearance: ToolbarLogic.paperBottomClearance(toolbarMode)
+            bottomClearance: ToolbarLogic.paperBottomClearance(toolbarMode),
+            // 1.4.1 (§3.6, 0e-7): 等倍.
+            zoomResetTrigger: zoomResetTrigger,
+            // 1.4.1 (§16.3.4): a week or a day kept at 等倍 opens at its fit, and what the canvas says after a zoom ended
+            // (等倍 or a real pinch) is kept for the kind (never in screenshot mode). The last arguments.
+            initialFit: currentFit,
+            onZoomFitChange: { fit in
+                guard !ScreenshotMode.isActive else { return }
+                AppSettings.setZoomFit(fit, for: kind)
+            }
         )
         .id(canvasIdentity)
         .overlay(alignment: .topLeading) {
@@ -1342,6 +1504,8 @@ struct CalendarRootScreen: View {
         paths.onShownPageChanged = { relayout() }
         // Review J5: the one page back from the window (or the desk) is a new canvas even on the same page id.
         paths.onOnePageAnew = { viewport = .zero }
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.6, 0e-17): the Pencil on the window cancels a running drag of the toolbar's grip.
+        palmWatch.onPencilDown = { cancelPaletteDrag() }
         // 1.4 (§2.1, §4.7): a window decided anew (a fold, an unfold, a turn) caps the overview by the window of now, read
         // from UIKit's window of the scene; an iPad keeps 1.3's (its plan has no cap either way).
         let padCaps = pencilPhone.isPad
@@ -1390,6 +1554,20 @@ struct CalendarRootScreen: View {
         }
         // M4B contract §6.4: the window scene may not exist yet here; `.active` tries again.
         requestLandscapeOnce()
+        // 1.4.1's second rework (§17.2, §17.4): the photo of the 「動かす」 button's choice of edges (`--screenshot-palette-menu`)
+        // opens it once the button is there (the window's edges are measured after the first layout).
+        if ScreenshotMode.current?.paletteMenu == true {
+            Task { @MainActor in
+                for _ in 0..<20 {
+                    try? await Task.sleep(for: .seconds(0.5))
+                    if paletteHasMoveButton {
+                        try? await Task.sleep(for: .seconds(0.5))
+                        if paletteHasMoveButton { paletteMenuShown = true }
+                        return
+                    }
+                }
+            }
+        }
         // 1.1 (§2.2): the toolbar's log lines once the window and the first layout are there.
         if ScreenshotMode.isActive {
             Task { @MainActor in
@@ -1604,9 +1782,10 @@ struct CalendarRootScreen: View {
     private func goToday() {
         let today = DayKey(ScreenshotMode.current?.today ?? Date())
         // 1.3 (§2 #6, wave C §4.1): far, a new window; near at the overview, a slide; today's page already the focus at
-        // the overview, nothing (1.2.3); zoomed in, today brought on screen (band lu).
+        // the overview, nothing (1.2.3); zoomed in, today brought on screen (band lu). 1.4.1 (§16.3.4): before a report, a
+        // kind kept at 等倍 counts as zoomed in where its fit is above the opening zoom (`currentFit`).
         if let action = paths.today(today, now: ScreenshotMode.current?.today ?? Date(), viewport: paths.heading?.viewport,
-                                    area: paperArea, ratio: currentRatio) {
+                                    area: paperArea, ratio: currentRatio, fit: currentFit) {
             switch action {
             case .reopen(let day):
                 show(kind: kind, focus: day)
@@ -1624,6 +1803,14 @@ struct CalendarRootScreen: View {
         show(kind: kind, focus: today)
         revealRect = PageNavigation.todayRect(layout, now: now)
         revealTrigger += 1
+    }
+
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, §16.3, 0e-7): 等倍. The canvas decides what it does (§16.3.2: a week or a day to
+    /// one page's width across, a month or a year to its opening zoom; nothing where it already is, under the pen or during
+    /// a pinch); the screen writes nothing itself here (what the canvas then reports is kept by its closures,
+    /// `onZoomRatioChange` and `onZoomFitChange`). 「今日」 (`goToday`) never changes the zoom.
+    private func resetZoom() {
+        zoomResetTrigger += 1
     }
 
     /// Remembers the last shown page for the next launch (not in screenshot mode).
@@ -2825,7 +3012,7 @@ extension CalendarRootScreen {
     func joinedCanvas(_ span: SpanSession, viewportWidth: CGFloat) -> some View {
         let smallScreen = Self.usesMinTapTarget(isPhone: UIDevice.current.userInterfaceIdiom == .phone, width: viewportWidth)
         let area = CGSize(width: viewportWidth, height: paperArea.height)
-        let zoom = ScreenPaths.bandZoom(layout: span.layout, area: area, ratio: currentRatio)
+        let zoom = ScreenPaths.bandZoom(layout: span.layout, area: area, ratio: currentRatio, fit: currentFit)
         let start = ScreenPaths.bandStart(layout: span.layout, focusPageId: span.focusPageId, now: now, calendar: span.context.calendar,
                                           visibleWidth: ZoomPolicy.visibleWidth(kind, viewportWidth: viewportWidth, zoom: zoom))
         let selectionIds = ScreenPaths.windowSelection(ScreenshotMode.initialSelection(ScreenshotMode.current), focusPageId: span.focusPageId)
@@ -2897,7 +3084,15 @@ extension CalendarRootScreen {
                                                      saveFailed: saveError != nil, shiftHeld: paths.shiftHeld),
             slidePages: slidePages,
             slideTrigger: slideTrigger,
-            onSpanStop: spanStopped
+            onSpanStop: spanStopped,
+            // 1.4.1 (§3.6, 0e-7): 等倍.
+            zoomResetTrigger: zoomResetTrigger,
+            // 1.4.1 (§16.3.4): as the one page's canvas (the same key per kind on both paths).
+            initialFit: currentFit,
+            onZoomFitChange: { fit in
+                guard !ScreenshotMode.isActive else { return }
+                AppSettings.setZoomFit(fit, for: kind)
+            }
         )
         .id(span.id)
         // §3.14: the guide at the top edge of the paper, right under the band.
@@ -3141,5 +3336,490 @@ extension CalendarRootScreen {
             .onChange(of: model.revision) { paths.eventsChanged(revision: model.revision) }
             .onChange(of: paths.span?.focusIndex) { spanFocusMoved() }
             .onChange(of: saveError == nil) { if saveError == nil { paths.saveFailureNoticeClosed() } }
+    }
+}
+
+// MARK: - 1.4.1: the open toolbar on four edges (docs/R1_4_1_CONTRACT.md §2.1, §4.3–§4.11, 0e-14–0e-22)
+
+extension CalendarRootScreen {
+    /// Screenshot mode's state element of the toolbar's edge (`paletteState`). The grip's own identifier is
+    /// `PaletteGripView.identifier` ("toolbar.grip").
+    static let paletteStateIdentifier = "palette.state"
+
+    // MARK: Where the bar is
+
+    /// The edge kept: screenshot mode's `@State` (§4.10), else this device's `toolbar.paletteEdge`.
+    private var paletteStored: PaletteEdge {
+        screenshotPaletteEdge ?? PaletteEdge(stored: paletteEdgeRaw)
+    }
+
+    /// The edge the bar is on: the kept one where the window allows it, else the bottom (§4.3, §4.10). The kept one is never
+    /// overwritten by this, so a window widened again brings it back.
+    private var paletteEdge: PaletteEdge {
+        ToolbarLogic.effectiveEdge(stored: paletteStored, allowed: paletteAllowed)
+    }
+
+    /// The open bar has a grip: two edges or more are allowed (§4.5, `ToolbarLogic.showsGrip`). The dock and a peek never have
+    /// one.
+    private var paletteHasGrip: Bool {
+        ToolbarLogic.showsGrip(toolbarMode, allowed: paletteAllowed)
+    }
+
+    /// 1.4.1's second rework (§17.2): the open bar has the 「動かす」 button, where it has the grip (`ToolbarLogic.showsMoveButton`).
+    /// The third rework (§18.2): the peeking bar has it too (a tap only, `ToolbarLogic.moveButtonDrags`); the dock never.
+    private var paletteHasMoveButton: Bool {
+        ToolbarLogic.showsMoveButton(toolbarMode, allowed: paletteAllowed)
+    }
+
+    /// What a side slot takes from the paper column: 74 pt while the open bar is on the left or the right, else 0 (§4.4).
+    private var paletteSideWidth: CGFloat {
+        toolbarMode == .expanded && paletteEdge.isSide ? ToolbarLogic.sideSlotWidth : 0
+    }
+
+    /// The bar during a drag: 40 % in its slot, still open (§4.7, `ToolbarLogic.draggedBarOpacity`).
+    private var paletteOpacity: Double {
+        paletteDragging ? ToolbarLogic.draggedBarOpacity : 1
+    }
+
+    /// The bottom inset's spacing: 1.4's (the default while expanded, 0 otherwise) where the bottom is the only edge allowed;
+    /// 0 with a grip (its 8 pt is the bar's own top padding, §4.5) and while the bar is on another edge (the inset is empty).
+    private var bottomBarSpacing: CGFloat? {
+        toolbarMode == .expanded && paletteEdge == .bottom && !paletteHasGrip ? nil : 0
+    }
+
+    // MARK: The slots (§4.4, §4.8, 0e-15, 0e-19)
+
+    /// The top slot: the open bar 6 pt under the notices and 8 pt above the sticky heading, 12 pt from the sides (74 pt in
+    /// all, `ToolbarLogic.topSlotHeight`), its grip across its lower edge; empty on every other edge and state.
+    @ViewBuilder
+    private var paletteTopSlot: some View {
+        if toolbarMode == .expanded && paletteEdge == .top {
+            toolbar(axis: .horizontal)
+                .opacity(paletteOpacity)
+                .padding(.horizontal, ToolbarLogic.sidePadding)
+                .padding(.top, ToolbarLogic.bottomPadding)
+                .padding(.bottom, ToolbarLogic.expandedBottomGap)
+                .overlay(alignment: .bottom) {
+                    if paletteHasGrip {
+                        paletteGrip(.top)
+                    }
+                }
+        }
+    }
+
+    /// A side slot: the upright bar (`ToolbarLogic.verticalBarWidth`) 6 pt from the window's side and 8 pt from the paper (74
+    /// pt in all, `ToolbarLogic.sideSlotWidth`), as tall as the paper column but 6 pt above and below, its grip across its
+    /// inner edge; empty on every other edge and state.
+    @ViewBuilder
+    private func paletteSideSlot(_ edge: PaletteEdge) -> some View {
+        if toolbarMode == .expanded && paletteEdge == edge {
+            let outer: Edge.Set = edge == .left ? .leading : .trailing
+            let inner: Edge.Set = edge == .left ? .trailing : .leading
+            toolbar(axis: .vertical)
+                .opacity(paletteOpacity)
+                .frame(width: ToolbarLogic.verticalBarWidth)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.vertical, ToolbarLogic.bottomPadding)
+                .padding(outer, ToolbarLogic.sideSlotWidth - ToolbarLogic.verticalBarWidth - ToolbarLogic.expandedBottomGap)
+                .padding(inner, ToolbarLogic.expandedBottomGap)
+                .overlay(alignment: edge == .left ? .trailing : .leading) {
+                    if paletteHasGrip {
+                        paletteGrip(edge)
+                    }
+                }
+        }
+    }
+
+    /// The bar peeking on the top or a side (§4.9, 0e-20): laid over the paper there as the bottom's peek is (the paper area
+    /// does not change), and folded by the same table (`ToolbarLogic.step`: the pen, 「しまう」, the background). Nothing on
+    /// the bottom (`arranged`'s overlay has it) or while not peeking. §18.2: its 「動かす」 (a tap only) opens the bar on the
+    /// edge chosen (`paletteMoveChosen`, the table's `(.peek, .placementChosen)`).
+    private func palettePeek(_ edge: PaletteEdge) -> some View {
+        ZStack {
+            if toolbarMode == .peek && paletteEdge == edge {
+                if edge == .top {
+                    toolbar(axis: .horizontal)
+                        .padding(.horizontal, ToolbarLogic.sidePadding)
+                        .padding(.top, ToolbarLogic.bottomPadding)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                } else {
+                    toolbar(axis: .vertical)
+                        .frame(width: ToolbarLogic.verticalBarWidth)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .padding(.vertical, ToolbarLogic.bottomPadding)
+                        .padding(edge == .left ? .leading : .trailing, ToolbarLogic.bottomPadding)
+                        .transition(.move(edge: edge == .left ? .leading : .trailing).combined(with: .opacity))
+                }
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: toolbarMode)
+    }
+
+    // MARK: The grip (§4.5, §4.6, §4.11, 0e-16, 0e-17, 0e-22)
+
+    /// The grip on the bar's edge that faces the middle of the screen: `PaletteGripView` (a pan of a finger, a trackpad or a
+    /// mouse, never the Pencil, that begins only when `PalmWatch` says no Pencil touches the window or just lifted), 120 × 16
+    /// pt across the bottom and the top bar's edge and 14 × 120 pt across a side bar's (`ToolbarLogic.gripSize`), inside the
+    /// slot. The view draws the 36 × 5 mark over the bar's padding of `edge` and is VoiceOver's one element 「ツールバーを動かす」
+    /// (`toolbar.grip`) with an action for each other allowed edge (`ToolbarLogic.moveTargets`), which calls
+    /// `paletteMoveChosen` and posts `.layoutChanged`; Switch Control and Full Keyboard Access take the same actions. No
+    /// SwiftUI accessibility modifier is added here (it would make a second element).
+    private func paletteGrip(_ edge: PaletteEdge) -> some View {
+        let size = ToolbarLogic.gripSize(for: edge)
+        return PaletteGripView(
+            mayBegin: { palmWatch.mayBegin(now: Date()) },
+            onBegan: { paletteDragBegan(at: $0) },
+            onChanged: { paletteDragMoved(to: $0, velocity: $1) },
+            onEnded: { paletteDragEnded(at: $0, velocity: $1) },
+            onCancelled: { paletteDragCancelled() },
+            cancelTrigger: paletteDragCancel,
+            edge: edge,
+            moveTargets: ToolbarLogic.moveTargets(allowed: paletteAllowed, current: paletteEdge),
+            onMove: { paletteMoveChosen($0) }
+        )
+        .frame(width: size.width, height: size.height)
+    }
+
+    // MARK: The 「動かす」 button (§17.2)
+
+    /// The 「動かす」 button `ToolbarView` puts before 「しまう」 (`ToolbarView`'s `move:`), where the grip shows and (§18.2) on a
+    /// peek; nil on every iPhone, in a window with the bottom alone and on the dock (their bar is 1.4's). On the open bar its
+    /// drag is the grip's (the same palm rule, callbacks and cancel trigger); on a peek it never drags (`drags`,
+    /// `ToolbarLogic.moveButtonDrags`). A tap opens the choice of edges (`paletteMenuShown`), whose choices and VoiceOver's
+    /// actions are the grip's actions (`moveTargets`) and go through `paletteMoveButtonChose`.
+    private var paletteMoveButton: PaletteMoveButtonView? {
+        guard paletteHasMoveButton else { return nil }
+        return PaletteMoveButtonView(
+            mayBegin: { palmWatch.mayBegin(now: Date()) },
+            onBegan: { paletteDragBegan(at: $0) },
+            onChanged: { paletteDragMoved(to: $0, velocity: $1) },
+            onEnded: { paletteDragEnded(at: $0, velocity: $1) },
+            onCancelled: { paletteDragCancelled() },
+            cancelTrigger: paletteDragCancel,
+            allowed: paletteAllowed,
+            current: paletteEdge,
+            onMove: { paletteMoveButtonChose($0) },
+            menuShown: $paletteMenuShown,
+            drags: ToolbarLogic.moveButtonDrags(toolbarMode, allowed: paletteAllowed)
+        )
+    }
+
+    /// A choice of the 「動かす」 button (its dialog or VoiceOver's action): VoiceOver's path (`paletteMoveChosen`), unless the
+    /// button is gone or the edge is not one the window allows now (the choice of edges may still show it) — then nothing.
+    /// §18.2: the choice of edges is closed first, so the bar laid out anew (a peek opened on its edge is another view) never
+    /// finds it still asked for.
+    private func paletteMoveButtonChose(_ edge: PaletteEdge) {
+        if paletteMenuShown { paletteMenuShown = false }
+        guard paletteHasMoveButton,
+              let edge = PaletteMoveButtonView.choice(edge, allowed: paletteAllowed, current: paletteEdge) else { return }
+        paletteMoveChosen(edge)
+    }
+
+    // MARK: A drag and a drop (§4.7, §4.9, §4.10, 0e-18, 0e-20, 0e-21)
+
+    /// The grip's pan began (the window's points): the drag shows; nothing is laid out again until the drop.
+    private func paletteDragBegan(at point: CGPoint) {
+        guard paletteHasGrip else { return }
+        paletteRoom.dragModel.current = PaletteDrag(finger: point, target: paletteEdge)
+        if !paletteDragging { paletteDragging = true }
+    }
+
+    /// The finger moved: the puck follows it and the outline of the edge it would snap to is the strong one.
+    private func paletteDragMoved(to point: CGPoint, velocity: CGVector) {
+        guard paletteDragging, paletteRoom.dragModel.current?.finger != nil else { return }
+        paletteRoom.dragModel.current = PaletteDrag(finger: point, target: paletteSnap(point, velocity: velocity))
+    }
+
+    /// The finger lifted: the bar goes to the edge `snapEdge` says in one transaction without animation, so the canvas sees
+    /// one change of size, as at a turn; the puck and the outlines go with it. Never while a Pencil touches the window (§4.6:
+    /// no re-layout under a pen that writes; the grip's start and `onPencilDown` already keep that, this is the last guard):
+    /// the drag ends and nothing moves.
+    private func paletteDragEnded(at point: CGPoint, velocity: CGVector) {
+        guard paletteDragging, paletteRoom.dragModel.current?.finger != nil else { return }
+        guard palmWatch.pencilsDown == 0 else {
+            endPaletteDrag()
+            return
+        }
+        let edge = paletteSnap(point, velocity: velocity)
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            endPaletteDrag()
+            placePalette(on: edge)
+        }
+    }
+
+    /// The edge a lift at `point` with `velocity` goes to, judged over the slots' column (the window's points): the screen
+    /// inside its safe area from where the slots under the header begin, the column a drag's outlines are drawn in
+    /// (`paletteDragColumn`, `ToolbarLogic.barFrame`), so the strong outline is where the bar goes.
+    private func paletteSnap(_ point: CGPoint, velocity: CGVector) -> PaletteEdge {
+        let screen = paletteRoom.screenFrame
+        let column = Self.paletteDragColumn(size: screen.size, bodyTop: paletteBodyTop - screen.minY)
+            .offsetBy(dx: screen.minX, dy: screen.minY)
+        return ToolbarLogic.snapEdge(drop: point, velocity: velocity, frame: column, allowed: paletteAllowed, current: paletteEdge)
+    }
+
+    /// The pan was cancelled (by `cancelTrigger` or by UIKit): nothing moves and nothing is kept.
+    private func paletteDragCancelled() {
+        endPaletteDrag()
+    }
+
+    /// The puck and the outlines go; the bar is whole again.
+    private func endPaletteDrag() {
+        paletteRoom.dragModel.current = nil
+        if paletteDragging { paletteDragging = false }
+    }
+
+    /// §4.6: cancels a running drag (the Pencil on the window, a pen-down, leaving the foreground, a new window size, a sheet).
+    /// Writes nothing when none runs (screenshot mode's held look is not one), so `penDown` stays as quiet as before.
+    private func cancelPaletteDrag() {
+        guard paletteDragging, paletteRoom.dragModel.current?.finger != nil else { return }
+        endPaletteDrag()
+        paletteDragCancel += 1
+    }
+
+    /// VoiceOver's 「…へ移す」 (§4.11): kept as a drop is. The grip (`PaletteGripView`) then tells VoiceOver that the screen
+    /// changed (`.layoutChanged`, on the next turn, after SwiftUI laid it out). Also the 「動かす」 button's choice (§17.2), on a
+    /// peek too (§18.2): there `placePalette` keeps the edge and opens the bar on it, in this one transaction without
+    /// animation, so the paper is laid out anew once.
+    private func paletteMoveChosen(_ edge: PaletteEdge) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            placePalette(on: edge)
+        }
+    }
+
+    /// A drop or a VoiceOver action chose `edge`: what `paletteDropped` keeps — in screenshot mode in this screen's `@State`.
+    /// Then the table's step of the choice (§18.2, `toolbarEvent(.placementChosen)`): the open bar stays as it is (nothing
+    /// written); a peek opens on the edge, `toolbar.collapsed` false (screenshot mode: the mode's `@State` only). The callers
+    /// hold one transaction without animation around it.
+    private func placePalette(on edge: PaletteEdge) {
+        let drop = Self.paletteDropped(on: edge, mode: toolbarMode, stored: paletteStored, screenshot: ScreenshotMode.isActive)
+        if ScreenshotMode.isActive {
+            if let kept = drop.edge, kept != screenshotPaletteEdge { screenshotPaletteEdge = kept }
+            if let dock = drop.dock, dock != screenshotEdge { screenshotEdge = dock }
+        }
+        toolbarEvent(.placementChosen)
+    }
+
+    /// What a drop or a VoiceOver action keeps.
+    struct PaletteDrop: Equatable {
+        /// The edge the bar goes to; nil when the toolbar's table keeps nothing (`storesPlacement` false: the dock).
+        var edge: PaletteEdge?
+        /// The folded toolbar's round button's corner that goes with it: a side's own (left: leading, right: trailing); nil on
+        /// the top and the bottom, and for a drop on the stored edge, which leave the corner as it is.
+        var dock: ToolbarEdge?
+    }
+
+    /// The toolbar's table decides first (`ToolbarLogic.step(mode, on: .placementChosen).storesPlacement`: the open bar and,
+    /// since §18.2, a peek keep a place; the dock never). A drop on the stored edge (the 25 % dead zone, the bar snapping back)
+    /// places nothing: it writes nothing and leaves the round button's corner as it is (§4.7: written when it differs; a corner
+    /// moved by the long press since stays). Outside screenshot mode a new edge is then written (`AppSettings.paletteEdge`, which
+    /// the screen's `@AppStorage` reads at once) and a side writes the round button's corner (`AppSettings.toolbarEdge`, §4.9;
+    /// the last of that, the hand's setting and the button's long press wins). Screenshot mode writes neither (§4.10): the screen
+    /// keeps the answer in its `@State`.
+    static func paletteDropped(on edge: PaletteEdge, mode: ToolbarMode, stored: PaletteEdge, screenshot: Bool) -> PaletteDrop {
+        guard ToolbarLogic.step(mode, on: .placementChosen).storesPlacement else { return PaletteDrop(edge: nil, dock: nil) }
+        guard edge != stored else { return PaletteDrop(edge: edge, dock: nil) }
+        let dock = edge.dockEdge
+        if !screenshot {
+            AppSettings.paletteEdge = edge
+            if let dock { AppSettings.toolbarEdge = dock }
+        }
+        return PaletteDrop(edge: edge, dock: dock)
+    }
+
+    /// The slots' column of a drag (§4.7) in the coordinates of the screen inside its safe area (`size`, the bottom bar
+    /// included) with the slots under the header beginning at `bodyTop`: the full width, from `bodyTop` (kept inside the
+    /// screen) down to the bottom. `PaletteDragOverlay` draws each allowed edge's outline at `ToolbarLogic.barFrame(_:in:)` of it
+    /// (the bottom is 1.4's bar, 12 pt from the sides and 6 pt above the bottom; the top 6 pt under `bodyTop`; a side 6 pt
+    /// from its edge, from 6 pt under `bodyTop` to 6 pt above the bottom), and `paletteSnap` snaps over it.
+    static func paletteDragColumn(size: CGSize, bodyTop: CGFloat) -> CGRect {
+        let height = max(0, size.height)
+        let top = min(max(0, bodyTop.isFinite ? bodyTop : 0), height)
+        return CGRect(x: 0, y: top, width: max(0, size.width), height: height - top)
+    }
+
+    // MARK: What the screen watches for the edges (§4.3, §4.6)
+
+    /// On a clear view behind the column (as `pathObservers`): the window for `PalmWatch`, the column's width and the window's
+    /// size for `allowedEdges`, and the moments that cancel a running drag — a new window size, a sheet (this view's own
+    /// `.onChange(of: sheetIsUp)`, beside `sheetsChanged`), leaving the foreground — or end it (the grip gone).
+    private func paletteObservers(_ proxy: GeometryProxy) -> some View {
+        Color.clear
+            .background(PencilPhoneWindowReader { window in paletteWindowArrived(window) })
+            .onAppear { notePaletteColumn(proxy) }
+            .onChange(of: proxy.size) { notePaletteColumn(proxy) }
+            .onChange(of: windowSize) { cancelPaletteDrag() }
+            .onChange(of: sheetIsUp) {
+                if sheetIsUp { cancelPaletteDrag() }
+            }
+            .onChange(of: scenePhase) {
+                if scenePhase != .active { cancelPaletteDrag() }
+            }
+            .onChange(of: paletteHasGrip) {
+                if !paletteHasGrip { endPaletteDrag() }
+            }
+            // §17.2, §18.2: the 「動かす」 button's choice of edges goes with the button — the open bar folded, a peek folded by
+            // the pen, 「しまう」 or the background, a window narrowed to one edge (the grip does not change during a peek).
+            .onChange(of: paletteHasMoveButton) {
+                if !paletteHasMoveButton, paletteMenuShown { paletteMenuShown = false }
+            }
+            .onChange(of: paletteAllowed) {
+                updatePalmWatch()
+                logPalette()
+            }
+            .onChange(of: paletteEdge) { logPalette() }
+    }
+
+    /// The window's size with its safe area (as `noteWindowSize`) and the screen column's width.
+    private func notePaletteColumn(_ proxy: GeometryProxy) {
+        let insets = proxy.safeAreaInsets
+        paletteRoom.windowSize = CGSize(width: proxy.size.width + insets.leading + insets.trailing,
+                                        height: proxy.size.height + insets.top + insets.bottom)
+        paletteRoom.column = proxy.size.width
+        updatePaletteAllowed()
+    }
+
+    /// The paper column's height (the sticky heading, the band and the canvas) as it is with the bar on a side: what the top
+    /// slot or the bottom bar takes now is added back, so the answer does not depend on the edge the bar is on.
+    private func notePaperColumn(_ height: CGFloat) {
+        let barAcross = toolbarMode == .expanded && (paletteEdge == .top || paletteEdge == .bottom)
+        paletteRoom.paperColumnHeight = height + (barAcross ? ToolbarLogic.topSlotHeight : 0)
+        updatePaletteAllowed()
+    }
+
+    /// Where the slots under the header begin (the window's points), for a drag's outlines.
+    private func notePaletteBodyTop(_ top: CGFloat) {
+        if top != paletteBodyTop { paletteBodyTop = top }
+    }
+
+    /// `ToolbarLogic.allowedEdges` for what was measured; `isPad` is the screen's (`pencilPhone.isPad`: every iPhone, the Duo
+    /// too, keeps the bottom alone).
+    private func updatePaletteAllowed() {
+        let room = paletteRoom
+        let allowed = ToolbarLogic.allowedEdges(isPad: pencilPhone.isPad, windowSize: room.windowSize, column: room.column,
+                                                paperColumnHeight: room.paperColumnHeight)
+        if allowed != paletteAllowed { paletteAllowed = allowed }
+    }
+
+    private func paletteWindowArrived(_ window: UIWindow) {
+        paletteRoom.window = window
+        updatePalmWatch()
+    }
+
+    /// `PalmWatch` on the window while the grip can show (two edges or more), off it otherwise (§4.6): `follow` attaches it
+    /// again only for another window.
+    private func updatePalmWatch() {
+        palmWatch.follow(window: paletteRoom.window, allowed: paletteAllowed)
+    }
+
+    /// DEBUG builds and screenshot mode: the edge and the edges allowed, whenever they change (`paletteLogLine`).
+    private func logPalette() {
+        #if !DEBUG
+        guard ScreenshotMode.isActive else { return }
+        #endif
+        NSLog("%@", Self.paletteLogLine(paletteEdge, allowed: paletteAllowed))
+    }
+
+    /// 「toolbar: palette=<辺> allowed=<辺,…>」 (§4.10, §7.2): the edge the bar is on and the edges the window allows, beside 1.4's
+    /// `toolbar: paperArea=` line (whose form does not change).
+    static func paletteLogLine(_ edge: PaletteEdge, allowed: [PaletteEdge]) -> String {
+        "toolbar: palette=\(edge.rawValue) allowed=\(allowed.map(\.rawValue).joined(separator: ","))"
+    }
+
+    /// Screenshot mode's `palette.state` for the UI tests (with `--screenshot-palette` or `--screenshot-palette-drag` only), as
+    /// `l10n.state`: 1 × 1 pt, clear, in the accessibility tree only, taking no touch.
+    @ViewBuilder
+    private var paletteState: some View {
+        if let shot = ScreenshotMode.current, shot.palette != nil || shot.paletteDrag != nil {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .accessibilityElement()
+                .accessibilityIdentifier(Self.paletteStateIdentifier)
+                .accessibilityLabel(Self.paletteStateLabel(edge: paletteEdge, stored: paletteStored, allowed: paletteAllowed,
+                                                          grip: paletteHasGrip, dragging: paletteDragging,
+                                                          areaChanges: paletteRoom.areaChanges, area: paperArea))
+                .allowsHitTesting(false)
+                .padding(.leading, 4)
+        }
+    }
+
+    /// `edge=<辺>;stored=<辺>;allowed=<辺,…>;grip=on|off;drag=on|off;areas=<n>;area=<幅>x<高さ>`: `areas` counts the paper
+    /// area's changes since the launch (`updatePaperArea`, the `toolbar: paperArea=` lines), so a test sees a drop change it once.
+    static func paletteStateLabel(edge: PaletteEdge, stored: PaletteEdge, allowed: [PaletteEdge], grip: Bool, dragging: Bool,
+                                  areaChanges: Int, area: CGSize) -> String {
+        ["edge=\(edge.rawValue)", "stored=\(stored.rawValue)", "allowed=\(allowed.map(\.rawValue).joined(separator: ","))",
+         "grip=\(grip ? "on" : "off")", "drag=\(dragging ? "on" : "off")", "areas=\(areaChanges)",
+         "area=\(logNumber(area.width))x\(logNumber(area.height))"].joined(separator: ";")
+    }
+}
+
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.3, §4.6, §4.7): what `CalendarRootScreen` measures for the toolbar's edges and its drag,
+/// outside SwiftUI's state (writing it draws nothing): the edges allowed (`paletteAllowed`) and the drag's look are state.
+@MainActor
+final class PaletteRoom {
+    /// `allowedEdges`' input: the window's size with its safe area, the screen column's width, and the paper column's height
+    /// with the bar on a side (zero until measured).
+    var windowSize: CGSize = .zero
+    var column: CGFloat = 0
+    var paperColumnHeight: CGFloat = 0
+    /// The screen inside its safe area, the bottom bar included, in the window's points: with the slots' top, `snapEdge`'s
+    /// frame (`paletteDragColumn`).
+    var screenFrame: CGRect = .zero
+    /// The paper area's changes since the launch (screenshot mode's `palette.state`).
+    var areaChanges = 0
+    /// The window the screen is in (`PalmWatch` follows it).
+    weak var window: UIWindow?
+    /// A running drag's finger and target, which only `PaletteDragLayer` watches.
+    let dragModel = PaletteDragModel()
+}
+
+/// 1.4.1 (§4.7): a running drag of the toolbar's grip (`PaletteDragLayer` watches it; the screen does not).
+@MainActor
+final class PaletteDragModel: ObservableObject {
+    @Published var current: PaletteDrag?
+}
+
+/// 1.4.1 (§4.7): where the finger is (the window's points, as `PaletteGripView` reports it; nil in screenshot mode's held look
+/// of `--screenshot-palette-drag`, the puck over the target's slot) and the edge the bar would go to if it lifted now.
+struct PaletteDrag: Equatable {
+    var finger: CGPoint?
+    var target: PaletteEdge
+}
+
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.7, 0e-18): the layer over the whole screen inside its safe area (the bottom bar included)
+/// that shows a drag of the toolbar's grip with `PaletteDragOverlay`: the round puck with the tool's mark 40 pt above the
+/// finger, the outline of the bar on each allowed edge, the target's stronger. It takes no touch, and it alone watches the drag
+/// (`PaletteDragModel`), so a moving finger draws this layer only. It converts the grip's window points into its own and
+/// hands the overlay the slots' column (`CalendarRootScreen.paletteDragColumn`); screenshot mode's held look (no finger) puts
+/// the finger in the middle of the target's bar, so the puck rides 40 pt above it. It also measures the screen's frame in the
+/// window's points for `ToolbarLogic.snapEdge` (`PaletteRoom.screenFrame`).
+struct PaletteDragLayer: View {
+    @ObservedObject var model: PaletteDragModel
+    let room: PaletteRoom
+    var tool: CanvasTool
+    var allowed: [PaletteEdge]
+    /// Where the slots under the header begin (the window's points).
+    var bodyTop: CGFloat
+
+    var body: some View {
+        GeometryReader { proxy in
+            let frame = proxy.frame(in: .global)
+            ZStack {
+                if let drag = model.current {
+                    let column = CalendarRootScreen.paletteDragColumn(size: proxy.size, bodyTop: bodyTop - frame.minY)
+                    let held = ToolbarLogic.barFrame(drag.target, in: column)
+                    let finger = drag.finger.map { CGPoint(x: $0.x - frame.minX, y: $0.y - frame.minY) }
+                        ?? CGPoint(x: held.midX, y: held.midY)
+                    PaletteDragOverlay(finger: finger, tool: tool, column: column, allowed: allowed, target: drag.target)
+                }
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .onAppear { room.screenFrame = proxy.frame(in: .global) }
+            .onChange(of: frame) { room.screenFrame = proxy.frame(in: .global) }
+        }
+        .allowsHitTesting(false)
     }
 }

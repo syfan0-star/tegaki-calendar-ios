@@ -78,6 +78,20 @@ import UIKit
 /// iPad's, §7.1). A first launch for the photos and the UI tests is `-allowFingerDrawingChosen NO` (with or without
 /// `-allowFingerDrawingAuto ""`, §2.1) in UserDefaults' argument domain and needs nothing here: the launch that writes the
 /// default takes its origin from what `PencilPhone.launchDefault` wrote (`.app`), not from the shadowed mark read back.
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.10, 0e-21): `--screenshot-hand left` lays the header out for the left hand
+/// (`hand`); without it, or with an unknown value, the right hand, whatever the simulator stored. Nothing is stored.
+/// 1.4.1 (§2.1, §4.7, §4.10, §7.4, 0e-18, 0e-21): `--screenshot-palette top|left|right` opens with the open toolbar on that
+/// edge where the window allows it (`ToolbarLogic.effectiveEdge`; `bottom` is the edge without the argument), and
+/// `--screenshot-palette-drag <bottom|top|left|right>` shows the look of a drag of its grip held over that edge (the
+/// confirmation page's photo only). Without them, or with an unknown value, nil: the bottom, whatever the simulator stored.
+/// The screen keeps screenshot mode's edge in its `@State` (a drop there moves the bar but writes nothing).
+/// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2, §17.4): `--screenshot-palette-menu` opens the 「動かす」 button's
+/// choice of edges once the button is there (`paletteMenu`; the confirmation page's photo only). Without it nothing changes.
+/// 1.4.1's rework (docs/R1_4_1_CONTRACT.md §16.3.7): `--screenshot-zoom fit` opens a week or a day at 等倍, one page's width
+/// fitting the paper's column (`zoomFit`, the canvas's `initialFit`), for the confirmation page's photos; the ratio stays 1
+/// (a number is read as before). Without it nothing changes: no photo of J-4, gate 3, blank-paper or span-shots-app passes it.
+/// Screenshot mode never writes `zoomFit.<kind>` and never uses it: the screen reads the key only to pass it as `stored:`,
+/// which `zoomFit(_:kind:stored:)` ignores there.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -191,7 +205,7 @@ enum ScreenshotMode {
         var landscape: Bool = false
         /// `--screenshot-zoom`: the ratio to the page's opening zoom the canvas opens at (M4C contract
         /// §5.3, 1.1.1). 1 unless the value is finite and positive; a ratio past `maxZoom` or below the
-        /// minimum is clamped by the canvas (担当 P).
+        /// minimum is clamped by the canvas (担当 P). 1.4.1: `fit` is 1 here and `zoomFit` below.
         var zoomRatio: CGFloat = 1
         /// `--screenshot-offset "x,y"`: the paper point (lu) shown at the top left; nil when the value
         /// is not two finite numbers (the canvas then uses its usual first position).
@@ -259,6 +273,25 @@ enum ScreenshotMode {
         /// `--screenshot-pencil-phone`: 「指でも書く」 saved off at the start of the launch (`launchConfig`), so the Duo's App
         /// Store photos show the toolbar as an iPad's photos do (§7.1, §7.3, 0d-41). A simulator's data, never a user's.
         var pencilPhone: Bool = false
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.10, 0e-12, 0e-21). Off by default: the Config of every earlier argument
+        // is the same value as before.
+        /// `--screenshot-hand left|right`: the hand the header is laid out for (`ScreenshotMode.hand`); nil (no value or an
+        /// unknown one) = the right hand. Screenshot mode never reads or writes `layout.hand` (nor `toolbar.collapsedEdge`).
+        var hand: Hand? = nil
+        /// 1.4.1 (§4.10, 0e-21): `--screenshot-palette top|left|right` (`bottom` too, the edge without it): the edge the open
+        /// toolbar starts on (`ScreenshotMode.paletteEdge`); nil (no value or an unknown one) = the bottom. Screenshot mode never
+        /// reads or writes `toolbar.paletteEdge`.
+        var palette: PaletteEdge? = nil
+        /// 1.4.1 (§4.7, §7.4, 0e-18): `--screenshot-palette-drag <edge>`: the screen shows a drag of the grip held over that
+        /// edge (the bar faded in its slot, the round puck, the outlines with that edge as the target); nil = no drag.
+        var paletteDrag: PaletteEdge? = nil
+        /// 1.4.1's rework (§16.3.7): `--screenshot-zoom fit`: a week or a day opens at 等倍 (`ScreenshotMode.zoomFit`, the
+        /// canvas's `initialFit`); `zoomRatio` stays 1. False without it or with a number (the ratio's way, as before).
+        var zoomFit: Bool = false
+        /// 1.4.1's second rework (§17.2, §17.4): `--screenshot-palette-menu`, a flag without a value: the screen opens the
+        /// 「動かす」 button's choice of edges once the button shows (a window that allows two edges or more). Off by default,
+        /// so the Config of every earlier argument is the same value as before.
+        var paletteMenu: Bool = false
 
         /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
         var joinsPages: Bool {
@@ -363,6 +396,12 @@ enum ScreenshotMode {
            let parsed = parseZoomRatio(arguments[index + 1]) {
             zoomRatio = parsed
         }
+        // 1.4.1's rework (§16.3.7): `fit` (the word alone) is 等倍 of a week or a day; `parseZoomRatio` reads it as nil, so the
+        // ratio above stays 1.
+        var zoomFit = false
+        if let index = arguments.firstIndex(of: "--screenshot-zoom"), index + 1 < arguments.count {
+            zoomFit = arguments[index + 1] == zoomFitValue
+        }
         var offset: CGPoint?
         if let index = arguments.firstIndex(of: "--screenshot-offset"), index + 1 < arguments.count {
             offset = parseOffset(arguments[index + 1]) // an unreadable value → nil
@@ -420,9 +459,56 @@ enum ScreenshotMode {
         // 1.4 (§2.1, §4.2, §7.3): flags without a value.
         let measure = arguments.contains("--screenshot-measure")
         let pencilPhone = arguments.contains("--screenshot-pencil-phone")
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §4.10): the hand. A missing or unknown value is nil (the right hand).
+        var hand: Hand?
+        if let index = arguments.firstIndex(of: "--screenshot-hand"), index + 1 < arguments.count {
+            hand = Hand(rawValue: arguments[index + 1])
+        }
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.10, §7.4): the toolbar's edge and the drag's look. A missing or unknown value is nil.
+        var palette: PaletteEdge?
+        if let index = arguments.firstIndex(of: "--screenshot-palette"), index + 1 < arguments.count {
+            palette = PaletteEdge(rawValue: arguments[index + 1])
+        }
+        var paletteDrag: PaletteEdge?
+        if let index = arguments.firstIndex(of: "--screenshot-palette-drag"), index + 1 < arguments.count {
+            paletteDrag = PaletteEdge(rawValue: arguments[index + 1])
+        }
+        // 1.4.1's second rework (§17.4): the 「動かす」 button's choice of edges, open for its photo.
+        let paletteMenu = arguments.contains("--screenshot-palette-menu")
         return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
                       span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection,
-                      measure: measure, pencilPhone: pencilPhone)
+                      measure: measure, pencilPhone: pencilPhone,
+                      hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit, paletteMenu: paletteMenu)
+    }
+
+    /// 1.4.1's rework (§16.3.7): the value of `--screenshot-zoom` that is 等倍 (`Config.zoomFit`) rather than a ratio.
+    static let zoomFitValue = "fit"
+
+    /// 1.4.1's rework (docs/R1_4_1_CONTRACT.md §16.3.4, §16.3.7): whether a page of `kind` opens at 等倍 (the screen's
+    /// `currentFit`, the canvas's `initialFit`). In screenshot mode (`config` not nil) `--screenshot-zoom fit` on a week or a
+    /// day, whatever `stored` says (the memory is ignored there, so a simulator that kept a value cannot change a photo;
+    /// `hand(_:stored:)`'s shape); in normal use `stored` (`AppSettings.zoomFit(for:)`, never true for a month or a year).
+    /// The screen still asks `ZoomReset.followsFit(kind)` first, as §16.3.4 writes it.
+    static func zoomFit(_ config: Config?, kind: PageKind, stored: Bool) -> Bool {
+        guard let config else { return stored }
+        return config.zoomFit && ZoomReset.followsFit(kind)
+    }
+
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §4.10, 0e-12, 0e-21): the hand the header is laid out for. In screenshot mode
+    /// (`config` not nil) `--screenshot-hand`, the right hand without it, whatever `stored` says (the memory is never read
+    /// there, so a simulator that kept a value cannot change a photo); in normal use the stored value (`Hand(stored:)`).
+    static func hand(_ config: Config?, stored: String?) -> Hand {
+        guard let config else { return Hand(stored: stored) }
+        return config.hand ?? .right
+    }
+
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.10, 0e-21): the edge the open toolbar is kept on (before `ToolbarLogic.effectiveEdge`
+    /// says whether the window allows it). In screenshot mode (`config` not nil) `--screenshot-palette`, the bottom without it,
+    /// whatever `stored` says: the screen starts its `@State` edge with it, and a drop there changes only that state. In
+    /// normal use the stored value (`PaletteEdge(stored:)`).
+    static func paletteEdge(_ config: Config?, stored: String?) -> PaletteEdge {
+        guard let config else { return PaletteEdge(stored: stored) }
+        return config.palette ?? .bottom
     }
 
     /// "-0.5" → −0.5 (pages); nil unless the text is a finite number ("abc", "inf", "nan", "" are nil). Any sign.

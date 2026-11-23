@@ -2,73 +2,50 @@ import UIKit
 import XCTest
 
 /// 1.1.1 (docs/R1_1_1.md): what the unit tests cannot see on the real screen, on an iPhone (build.yml,
-/// "UI tests on an iPhone"): where 「今日」 sits in SwiftUI's row of the header, whether it works there,
+/// "UI tests on an iPhone"): where the header's pieces sit in SwiftUI's rows, whether 「今日」 works there,
 /// and the paper of a page with nothing on it in the real paper area. The app runs in its screenshot
 /// mode (no onboarding, no EventKit, nothing saved). The steps are the `header-paper UI:` lines.
+///
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.1–§3.4, §6.2, §16.2, §16.6, 0e-2 … 0e-5, 0e-13): rewritten for 1.4.1's header, in the
+/// rework's order (案 B, the owner's 11/22: 「‹ 今日 ›」 and 等倍 at the writing hand's end, the date at the other). The narrow
+/// rows, the right hand: the title at the left end and 「‹ 今日 ›」 (◀ 今日 ▶) at the right end of the first row, ⚙ right
+/// before ◀; 等倍 (`header.zoomReset`) at the right end of the second row after the switch, no taller than the switch (§3.3:
+/// the header keeps 1.4's height). The wide row (an iPhone in landscape, 750 pt): title ≤ switch ≤ ＋ ≤ ⚙ ≤ 等倍 ≤ ◀ (no
+/// test of the ends there: the safe area). Each again with `--screenshot-hand left`: the mirror, with ◀ still left of ▶.
 @MainActor
 final class HeaderAndPaperUITests: XCTestCase {
     private static let todayLabel = "今日"
     private static let addEventLabel = "予定を追加"
+    private static let settingsLabel = "設定"
+    private static let pickerLabel = "表示の切替"
+    private static let zoomResetIdentifier = "header.zoomReset"
+    private static let titleIdentifier = "page.title"
 
     // MARK: Tests
 
-    /// The narrow row: ◀ ▶ 題名 今日 ＋ ☁ ⚙. 「今日」 is right of ▶ and left of ＋, and it works: ▶ twice,
-    /// then 「今日」 goes back to the month of the demo's today.
-    func testTodayIsRightOfTheTitleInPortrait() throws {
-        try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "the narrow row is an iPhone's")
-        continueAfterFailure = false
-        let name = "today portrait"
-        XCUIDevice.shared.orientation = .portrait
-        let app = launch(["--screenshot-month", "2026-10", "--screenshot-page", "month"], name)
-        defer { app.terminate() }
-        let next = app.buttons["次の月"]
-        let today = app.buttons[Self.todayLabel]
-        let add = app.buttons[Self.addEventLabel]
-        XCTAssertTrue(today.waitForExistence(timeout: 20), "\(name): 「今日」")
-        XCTAssertTrue(next.exists, "\(name): 「次の月」")
-        XCTAssertTrue(add.exists, "\(name): 「予定を追加」")
-        log("\(name): window=\(app.windows.firstMatch.frame) next=\(next.frame) today=\(today.frame) add=\(add.frame)")
-        XCTAssertGreaterThan(today.frame.width, 20, "\(name): the label is not squeezed (\(today.frame))")
-        XCTAssertLessThanOrEqual(next.frame.maxX, today.frame.minX + 0.5, "\(name): 「次の月」 is left of 「今日」")
-        XCTAssertLessThanOrEqual(today.frame.maxX, add.frame.minX + 0.5, "\(name): 「今日」 is left of 「予定を追加」")
-
-        let title = app.staticTexts.matching(NSPredicate(format: "label == %@", "2026年10月")).firstMatch
-        XCTAssertTrue(title.waitForExistence(timeout: 5), "\(name): the first title")
-        log("\(name): title=\(title.frame)")
-        XCTAssertLessThanOrEqual(title.frame.maxX, today.frame.minX + 0.5, "\(name): the title is left of 「今日」")
-        next.tap()
-        XCTAssertTrue(app.staticTexts["2026年11月"].waitForExistence(timeout: 5), "\(name): ▶ once")
-        next.tap()
-        XCTAssertTrue(app.staticTexts["2026年12月"].waitForExistence(timeout: 5), "\(name): ▶ twice")
-        today.tap()
-        XCTAssertTrue(app.staticTexts["2026年10月"].waitForExistence(timeout: 5), "\(name): 「今日」 goes back")
-        log("\(name): OK")
+    /// The narrow rows, the right hand: 題名 ＋ ☁ ⚙ (◀ 今日 ▶) over [日|週|月|年][等倍], and 「今日」 works: ▶ twice, then 「今日」
+    /// goes back to the month of the demo's today.
+    func testTodayAndZoomSitAtTheWritingHandsEndInPortrait() throws {
+        try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "the narrow rows are an iPhone's")
+        try checkPortrait(hand: .right)
     }
 
-    /// The wide row (an iPhone in landscape, 750 pt): ◀ ▶ 題名 [日|週|月|年] 今日 ＋ ☁ ⚙. The switch by its
-    /// kind, or failing that by its last segment's label (no run has shown what the system calls them, so
-    /// the log says); 年 is the last segment, so both end where the switch ends.
-    func testTodayIsRightOfTheSwitchInLandscape() throws {
+    /// The same, the left hand: (◀ 今日 ▶) ⚙ ☁ ＋ 題名 over [等倍][日|週|月|年].
+    func testTodayAndZoomSitAtTheWritingHandsEndInPortraitLeftHanded() throws {
+        try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "the narrow rows are an iPhone's")
+        try checkPortrait(hand: .left)
+    }
+
+    /// The wide row (an iPhone in landscape, 750 pt), the right hand: 題名 [日|週|月|年] ＋ ☁ ⚙ 等倍 (◀ 今日 ▶).
+    func testTodayAndZoomSitAtTheWritingHandsEndInLandscape() throws {
         try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "an iPad's width depends on the device")
-        continueAfterFailure = false
-        let name = "today landscape"
-        XCUIDevice.shared.orientation = .landscapeLeft
-        defer { XCUIDevice.shared.orientation = .portrait }
-        let app = launch(["--screenshot-month", "2026-10", "--screenshot-page", "month"], name)
-        defer { app.terminate() }
-        let segmented = app.segmentedControls.firstMatch
-        let yearSegment = app.descendants(matching: .any).matching(NSPredicate(format: "label IN %@", ["年表示", "年"])).firstMatch
-        let today = app.buttons[Self.todayLabel]
-        let add = app.buttons[Self.addEventLabel]
-        XCTAssertTrue(today.waitForExistence(timeout: 20), "\(name): 「今日」")
-        let picker = segmented.exists ? segmented : yearSegment
-        XCTAssertTrue(picker.exists, "\(name): the switch. Elements:\n\(app.debugDescription)")
-        XCTAssertTrue(add.exists, "\(name): 「予定を追加」")
-        log("\(name): window=\(app.windows.firstMatch.frame) segmented=\(segmented.exists) switch=\(picker.label) \(picker.frame) today=\(today.frame) add=\(add.frame)")
-        XCTAssertGreaterThan(today.frame.width, 20, "\(name): the label is not squeezed (\(today.frame))")
-        XCTAssertLessThanOrEqual(picker.frame.maxX, today.frame.minX + 0.5, "\(name): the switch is left of 「今日」")
-        XCTAssertLessThanOrEqual(today.frame.maxX, add.frame.minX + 0.5, "\(name): 「今日」 is left of 「予定を追加」")
-        log("\(name): OK")
+        try checkLandscape(hand: .right)
+    }
+
+    /// The same, the left hand: (◀ 今日 ▶) 等倍 ⚙ ☁ ＋ [日|週|月|年] 題名.
+    func testTodayAndZoomSitAtTheWritingHandsEndInLandscapeLeftHanded() throws {
+        try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "an iPad's width depends on the device")
+        try checkLandscape(hand: .left)
     }
 
     /// Nothing on the page: 2026-12 and 2027 start at the top of the real paper area, in portrait
@@ -103,6 +80,145 @@ final class HeaderAndPaperUITests: XCTestCase {
         guard zooms.count == 2, heights.count == 2 else { return XCTFail("the two years did not report") }
         XCTAssertEqual(zooms[0], zooms[1], accuracy: 0.0005, "the size does not change from year to year")
         XCTAssertEqual(zooms[1], heights[1] / 1860, accuracy: 0.001, "the opening zoom is that of 1,860 lu in the paper area")
+    }
+
+    // MARK: The checks
+
+    private enum Hand: String {
+        case right, left
+    }
+
+    /// The header's pieces once 「今日」 is there (the test stops when one is missing).
+    private struct Header {
+        var window: CGRect
+        var previous: CGRect
+        var today: CGRect
+        var next: CGRect
+        var zoom: CGRect
+        var title: CGRect
+        var titleLabel: String
+        var picker: CGRect
+        var add: CGRect
+        var settings: CGRect
+    }
+
+    /// §16.6's narrow rows (the month page, 2026-10; §6.2's before the rework). The header's side paddings are 12 pt and an
+    /// iPhone in portrait has no side safe area, so the pieces at the ends sit within 13 pt of the window's edges.
+    private func checkPortrait(hand: Hand) throws {
+        continueAfterFailure = false
+        let name = "today portrait \(hand.rawValue)"
+        XCUIDevice.shared.orientation = .portrait
+        let app = launch(["--screenshot-month", "2026-10", "--screenshot-page", "month", "--screenshot-hand", hand.rawValue], name)
+        defer { app.terminate() }
+        let h = try header(app, name)
+        XCTAssertGreaterThan(h.today.width, 20, "\(name): the label is not squeezed (\(h.today))")
+        // ◀ 今日 ▶ in this order whatever the hand.
+        XCTAssertLessThanOrEqual(h.previous.maxX, h.today.minX + 0.5, "\(name): 「前の月」 is left of 「今日」")
+        XCTAssertLessThanOrEqual(h.today.maxX, h.next.minX + 0.5, "\(name): 「今日」 is left of 「次の月」")
+        // 等倍 on the second row, at the writing hand's end, beside the switch and no taller than it (§3.3, §16.2).
+        XCTAssertGreaterThanOrEqual(h.zoom.minY, h.today.maxY - 0.5, "\(name): 等倍 \(h.zoom) is under 「今日」 \(h.today)")
+        XCTAssertLessThanOrEqual(h.zoom.height, h.picker.height + 0.5, "\(name): 等倍 \(h.zoom) is no taller than the switch \(h.picker)")
+        // The header's side margins are 12 pt (`.padding(.horizontal, 12)`): an end piece is within 13 of the window's edge.
+        switch hand {
+        case .right:
+            XCTAssertLessThanOrEqual(h.title.minX, h.window.minX + 13, "\(name): the title at the left end")
+            XCTAssertLessThanOrEqual(h.title.maxX, h.add.minX + 0.5, "\(name): the title is left of 「予定を追加」")
+            XCTAssertLessThanOrEqual(h.settings.maxX, h.previous.minX + 0.5, "\(name): 「設定」 is left of 「前の月」")
+            XCTAssertGreaterThanOrEqual(h.next.maxX, h.window.maxX - 13, "\(name): 「次の月」 at the right end")
+            XCTAssertLessThanOrEqual(h.picker.maxX, h.zoom.minX + 0.5, "\(name): the switch is left of 等倍")
+            XCTAssertGreaterThanOrEqual(h.zoom.maxX, h.window.maxX - 13, "\(name): 等倍 at the right end")
+        case .left:
+            XCTAssertGreaterThanOrEqual(h.title.maxX, h.window.maxX - 13, "\(name): the title at the right end")
+            XCTAssertLessThanOrEqual(h.add.maxX, h.title.minX + 0.5, "\(name): 「予定を追加」 is left of the title")
+            XCTAssertLessThanOrEqual(h.next.maxX, h.settings.minX + 0.5, "\(name): 「次の月」 is left of 「設定」")
+            XCTAssertLessThanOrEqual(h.previous.minX, h.window.minX + 13, "\(name): 「前の月」 at the left end")
+            XCTAssertLessThanOrEqual(h.zoom.maxX, h.picker.minX + 0.5, "\(name): 等倍 is left of the switch")
+            XCTAssertLessThanOrEqual(h.zoom.minX, h.window.minX + 13, "\(name): 等倍 at the left end")
+        }
+
+        // 「今日」 works: ▶ twice, then back.
+        XCTAssertEqual(h.titleLabel, "2026年10月", "\(name): the first title")
+        let next = app.buttons["次の月"]
+        let today = app.buttons[Self.todayLabel]
+        next.tap()
+        XCTAssertTrue(app.staticTexts["2026年11月"].waitForExistence(timeout: 5), "\(name): ▶ once")
+        next.tap()
+        XCTAssertTrue(app.staticTexts["2026年12月"].waitForExistence(timeout: 5), "\(name): ▶ twice")
+        today.tap()
+        XCTAssertTrue(app.staticTexts["2026年10月"].waitForExistence(timeout: 5), "\(name): 「今日」 goes back")
+        log("\(name): OK")
+    }
+
+    /// §16.6's wide row (the month page, 2026-10, in landscape; §6.2's before the rework). No end checks: the window reaches
+    /// under the side safe area.
+    private func checkLandscape(hand: Hand) throws {
+        continueAfterFailure = false
+        let name = "today landscape \(hand.rawValue)"
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let app = launch(["--screenshot-month", "2026-10", "--screenshot-page", "month", "--screenshot-hand", hand.rawValue], name)
+        defer { app.terminate() }
+        let h = try header(app, name)
+        XCTAssertGreaterThan(h.today.width, 20, "\(name): the label is not squeezed (\(h.today))")
+        XCTAssertLessThan(h.picker.minY, h.today.maxY, "\(name): one row (switch \(h.picker), 「今日」 \(h.today))")
+        XCTAssertLessThanOrEqual(h.previous.maxX, h.today.minX + 0.5, "\(name): 「前の月」 is left of 「今日」")
+        XCTAssertLessThanOrEqual(h.today.maxX, h.next.minX + 0.5, "\(name): 「今日」 is left of 「次の月」")
+        // The row from left to right (each piece's maxX ≤ the next one's minX; §16.2). No test of the ends: the safe area.
+        let row: [(String, CGRect)]
+        switch hand {
+        case .right:
+            row = [("title", h.title), ("switch", h.picker), ("予定を追加", h.add), ("設定", h.settings), ("等倍", h.zoom), ("前の月", h.previous)]
+        case .left:
+            row = [("次の月", h.next), ("等倍", h.zoom), ("設定", h.settings), ("予定を追加", h.add), ("switch", h.picker), ("title", h.title)]
+        }
+        for (left, right) in zip(row, row.dropFirst()) {
+            XCTAssertLessThanOrEqual(left.1.maxX, right.1.minX + 0.5, "\(name): \(left.0) \(left.1) is left of \(right.0) \(right.1)")
+        }
+        log("\(name): OK")
+    }
+
+    /// The frames of the header's pieces, logged; fails (with the element tree) when one is missing. The switch is the
+    /// segmented control, else the element named 「表示の切替」, else its first and last segments together.
+    private func header(_ app: XCUIApplication, _ name: String) throws -> Header {
+        let today = app.buttons[Self.todayLabel]
+        guard today.waitForExistence(timeout: 20) else {
+            throw failure("\(name): 「今日」. Elements:\n\(app.debugDescription)")
+        }
+        let previous = app.buttons["前の月"]
+        let next = app.buttons["次の月"]
+        let zoom = app.buttons.matching(identifier: Self.zoomResetIdentifier).firstMatch
+        let add = app.buttons[Self.addEventLabel]
+        let settings = app.buttons[Self.settingsLabel]
+        let title = app.descendants(matching: .any).matching(identifier: Self.titleIdentifier).firstMatch
+        for (element, label) in [(previous, "前の月"), (next, "次の月"), (zoom, Self.zoomResetIdentifier), (add, Self.addEventLabel),
+                                 (settings, Self.settingsLabel), (title, Self.titleIdentifier)] where !element.exists {
+            throw failure("\(name): 「\(label)」. Elements:\n\(app.debugDescription)")
+        }
+        guard let picker = switchFrame(app) else {
+            throw failure("\(name): the switch. Elements:\n\(app.debugDescription)")
+        }
+        let h = Header(window: app.windows.firstMatch.frame, previous: previous.frame, today: today.frame, next: next.frame,
+                       zoom: zoom.frame, title: title.frame, titleLabel: title.label, picker: picker.frame, add: add.frame,
+                       settings: settings.frame)
+        log("\(name): window=\(h.window) previous=\(h.previous) today=\(h.today) next=\(h.next) zoom=\(h.zoom) "
+            + "title=\(h.title) \"\(h.titleLabel)\" switch=\(picker.how) \(h.picker) add=\(h.add) settings=\(h.settings)")
+        return h
+    }
+
+    private func switchFrame(_ app: XCUIApplication) -> (frame: CGRect, how: String)? {
+        let segmented = app.segmentedControls.firstMatch
+        if segmented.exists { return (segmented.frame, "segmented") }
+        let named = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", Self.pickerLabel)).firstMatch
+        if named.exists { return (named.frame, "named") }
+        let day = app.buttons.matching(NSPredicate(format: "label IN %@", ["日表示", "日"])).firstMatch
+        let year = app.buttons.matching(NSPredicate(format: "label IN %@", ["年表示", "年"])).firstMatch
+        guard day.exists, year.exists else { return nil }
+        return (day.frame.union(year.frame), "segments")
+    }
+
+    private func failure(_ message: String) -> Error {
+        XCTFail(message)
+        return NSError(domain: "HeaderAndPaperUITests", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
     }
 
     // MARK: The steps

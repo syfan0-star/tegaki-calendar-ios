@@ -1,6 +1,6 @@
 # 用語集（1.2「世界対応」）
 
-アプリ・ストアの文の語を、言語ごとに 1 つに決めた表です（[M7B_CONTRACT.md](../M7B_CONTRACT.md) §6.1・§6.2、書いた人は X）。英語は契約が決めた語です。
+アプリ・ストアの文の語を、言語ごとに 1 つに決めた表です（[M7B_CONTRACT.md](../M7B_CONTRACT.md) §6.1・§6.2、書いた人は X）。英語は契約が決めた語です。1.4.1 で足した語（等倍・利き手・ツールバーを動かす）は §5 です（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1・§8.2。等倍の語は §16.9 で直し、「動かす」ボタンの名前は §17.3 で足した）。
 
 **正直に書くこと**: 訳は Claude が書き、別の Claude が日本語の元を見ずに訳し戻して照らします（`REVIEW.md`）。**各言語を母語とする人の確認はありません。** 本人は日本語しか読めません。誤りはサポートのメールで受け、次の版で直します（§6.1 の 8）。
 
@@ -148,6 +148,7 @@ Apple のサポート記事の各言語版を 2026-11-05 に読んだ語です�
 | 投げなわ | Lasso 29.3 | 套索 18.5 | 套索 18.5 | 올가미 26.0 | Lasso 29.3 | Lasso 29.3 | Lazo 23.8 | Lazo 23.8 | Laço 24.1 |
 | 予定 | Event 28.2 | 日程 18.5 | 行程 18.5 | 일정 17.3 | RDV 21.4 | Termin 34.2 | Evento 34.4 | Evento 34.4 | Evento 34.4 |
 | しまう | Hide 23.2 | 收起 18.5 | 收起 18.5 | 숨기기 26.0 | Réduire 38.5 | Ablegen 41.3 | Ocultar 37.2 | Riduci 31.2 | Ocultar 37.2 |
+| 動かす（1.4.1。下の注） | Move 25.9 | 移动 19.3 | 移動 18.7 | 옮기기 26.0 | Déplacer 43.2 | Bewegen 44.0 | Mover 29.8 | Sposta 33.4 | Mover 29.8 |
 | 細 | Thin 22.0 | 细 9.2 | 細 9.2 | 가늘게 26.0 | Fin 15.1 | Dünn 26.2 | Fino 21.4 | Sottile 32.8 | Fino 21.4 |
 | 中 | Medium 39.8 | 中 9.2 | 中 9.2 | 보통 17.3 | Moyen 33.0 | Mittel 28.8 | Medio 30.8 | Medio 30.8 | Médio 30.8 |
 | 太 | Thick 27.5 | 粗 9.2 | 粗 9.2 | 굵게 17.3 | Épais 27.1 | Dick 22.2 | Grueso 36.1 | Spesso 36.6 | Grosso 35.5 |
@@ -160,6 +161,9 @@ Apple のサポート記事の各言語版を 2026-11-05 に読んだ語です�
 - **es ペン = Pluma**、**es 消しゴム = Goma**: Apple のスペインとメキシコの記事が両方 pluma です。消しゴムは Apple のスペインが goma、メキシコが borrador で、borrador はスペインでは「下書き」の意味が強いので goma にしました（メキシコでも goma は通じます）。
 - **de しまう = Ablegen**: Ausblenden 56.6・Einklappen 52.7・Verbergen 50.0 は上限を超えます。読み上げは「Werkzeugleiste ausblenden」です。
 - **fr・it しまう = Réduire・Riduci**: Masquer・Nascondi は 38 を超えます。
+- **動かす（1.4.1、`toolbar.move.title`）の幅はシミュレータの値です**（CI の run 45019147085 の `PaletteMoveButtonTests.testTheNameFitsTheFaceInEveryLanguage` のログ。ja の 動かす は 28.1）。ほかの行の Catalyst の値ではありません（この Mac の AppKit で 2026-11-22 に測ると、欧文の語はシミュレータと同じ値でした）。fr と de は 38 を超え、縮み（0.8 まで）で入ります（Déplacer は約 0.88 倍、Bewegen は約 0.86 倍）。テストは 47.5 以内を見ます。
+- **de 動かす = Bewegen**: 読み上げの名前（Werkzeugleiste verschieben）の動詞の Verschieben は 59.6 で上限を超え、Schieben も 44.7 で短くなりません。Bewegen は、投げなわの説明（Ziehen zum Bewegen）と同じ語です。Ziehen（32.9）は「引く」だけの意味で、押して端を選べることを言わないので使いません。しまう の Ablegen（読み上げは ausblenden）と同じく、画面の名前と読み上げで動詞が違います。
+- **fr 動かす = Déplacer**: 読み上げ（Déplacer la barre d’outils）と 4 つの操作（Déplacer en haut など）と同じ動詞です。Bouger（34.6）は 38 に入りますが、くだけた語なので使いません。
 
 ### 「指でも書く」（13 pt。ja の幅 60.0 ＋ 76 = 136 まで。F-13）
 
@@ -210,3 +214,68 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 - **ツールバーの説明（12 pt。消しゴムは 144、投げなわと予定は 155。F-14）**: いちばん長いのは de Löscht berührte Striche 140、fr Tracez pour créer un RDV. 154。全部測ってテストが通っています。
 - **週の始まりのトースト（15 pt、幅 402 − 64 = 338 で 3 行まで。§10.4）**: 全部入ります。幅 375 − 64 = 311 でも、Mac Catalyst の字では全部 3 行に入ります（検証の後に de・it・pt-BR・fr の `otherForm` と pt-BR の `regionChanged` を短くしました。fr は日曜でも入ります。`REVIEW.md` の 10）。311 は 1 pt も余らない文があるので（it の `hiddenInk.other`）、`testWeekStartToastsFitThreeLines` はログだけで、判定は 402 pt です。
 - **`demo.*`（ストアの写真の見本。終日 4.2 em、時刻 5.7 em）**: 入るように短い語にしました（「出張（大阪）」は Osaka だけなど）。見本なので元の意味に厳密でない語があります。
+
+## 5. 1.4.1 の語（等倍・利き手・ツールバーを動かす）
+
+[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1 の 11 キーのための語です（§8.2 の「GLOSSARY を先に直す」。2026-11-22、書いた人は X）。en は契約 §8.1 の案の語で、案が「—」のキー（つまみの名前・ヒント・4 つの操作）の語はここで決めました。アプリの訳（`tools/l10n/translations/<言語>.json`）、新機能の文（契約 §8.3）、SUPPORT と審査メモの英語は、この表の字を使います。母語の人の確認が無いことは、上の「正直に書くこと」のとおりです。
+
+**2026-11-22 の直し（契約第 3 版の §16.9）**: 本人の直しで、日と週の等倍が「1 日・1 週のページの幅が画面の幅にちょうど合う大きさ」になりました（月と年は開いたときの大きさのまま）。そのため、表の等倍の 2 行（名詞と読み上げ）と、下の「決めたこと」の等倍の 3 点と字のボタンの点を、X が書き直しました。ほかの行と点は前のままです。
+
+**2026-11-22 の直し 2（契約第 4 版の §17.3）**: 「しまう」の左に出る「動かす」ボタンの名前（`toolbar.move.title`、10 pt）の行と、下の「決めたこと」の「動かす」の点を、X が足しました。画面に出る名前なので、幅は §4 の決まり（F-12）で、§4 の表にも行があります。ほかの行と点は前のままです。
+
+| 日本語 | en | zh-Hans | zh-Hant | ko | fr | de | es | it | pt-BR |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 等倍（文の中の名詞。日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年は開いたときの大きさ） | standard size | 标准大小 | 標準大小 | 표준 크기 | taille standard | Standardgröße | tamaño estándar | dimensione standard | tamanho padrão |
+| 等倍に戻す（虫めがねに「1」のボタンの読み上げ。`header.zoomReset.spoken`。意味は「ズームを戻す」） | Reset Zoom | 重置缩放 | 重置縮放 | 확대·축소 재설정 | Réinitialiser le zoom | Zoom zurücksetzen | Restablecer el zoom | Reimposta lo zoom | Redefinir o zoom |
+| 利き手（設定の節の見出し。`settings.hand.header`） | Dominant Hand | 惯用手 | 慣用手 | 주로 쓰는 손 | Main dominante | Dominante Hand | Mano dominante | Mano dominante | Mão dominante |
+| 右手（選び。`settings.hand.right`） | Right Hand | 右手 | 右手 | 오른손 | Main droite | Rechte Hand | Mano derecha | Mano destra | Mão direita |
+| 左手（選び。`settings.hand.left`） | Left Hand | 左手 | 左手 | 왼손 | Main gauche | Linke Hand | Mano izquierda | Mano sinistra | Mão esquerda |
+| 設定 › 利き手（文の中の道） | Settings > Dominant Hand | “设置” > 惯用手 | 「設定」> 慣用手 | 설정 > 주로 쓰는 손 | Réglages > Main dominante | Einstellungen > Dominante Hand | Ajustes > Mano dominante | Impostazioni > Mano dominante | Ajustes > Mão dominante |
+| ツールバー（今の語。1.1 から） | toolbar | 工具栏 | 工具列 | 도구 막대 | barre d’outils | Werkzeugleiste | barra de herramientas | barra degli strumenti | barra de ferramentas |
+| ツールバーを動かす（つまみの読み上げの名前。`toolbar.grip.spoken`） | Move Toolbar | 移动工具栏 | 移動工具列 | 도구 막대 옮기기 | Déplacer la barre d’outils | Werkzeugleiste verschieben | Mover la barra de herramientas | Sposta la barra degli strumenti | Mover a barra de ferramentas |
+| 動かす（「しまう」の左のボタンの名前。`toolbar.move.title`。10 pt、§4） | Move | 移动 | 移動 | 옮기기 | Déplacer | Bewegen | Mover | Sposta | Mover |
+| つまみ（文書の中だけ。アプリの字には無い） | handle | — | — | — | — | — | — | — | — |
+| 端（上下左右の端。`toolbar.grip.hint`） | edge | 边缘 | 邊緣 | 가장자리 | bord | Rand | borde | bordo | borda |
+| 上へ移す（`toolbar.moveTo.top`） | Move to Top | 移到顶部 | 移到頂端 | 위로 옮기기 | Déplacer en haut | Nach oben | Mover arriba | Sposta in alto | Mover para cima |
+| 下へ移す（`toolbar.moveTo.bottom`） | Move to Bottom | 移到底部 | 移到底部 | 아래로 옮기기 | Déplacer en bas | Nach unten | Mover abajo | Sposta in basso | Mover para baixo |
+| 左へ移す（`toolbar.moveTo.left`） | Move to Left | 移到左侧 | 移到左側 | 왼쪽으로 옮기기 | Déplacer à gauche | Nach links | Mover a la izquierda | Sposta a sinistra | Mover para a esquerda |
+| 右へ移す（`toolbar.moveTo.right`） | Move to Right | 移到右侧 | 移到右側 | 오른쪽으로 옮기기 | Déplacer à droite | Nach rechts | Mover a la derecha | Sposta a destra | Mover para a direita |
+| しまった（ツールバー。`settings.hand.footer`） | hidden | 收起的 | 收起的 | 숨긴 | réduite | abgelegte | oculta | ridotta | oculta |
+| 丸いボタン（しまったツールバー。`settings.hand.footer`） | round button | 圆形按钮 | 圓形按鈕 | 둥근 버튼 | bouton rond | runde Schaltfläche | botón redondo | pulsante rotondo | botão redondo |
+
+### 決めたこと
+
+- **等倍は、日と週と、月と年で中身が違います（契約 §16.3.1・§16.9。2026-11-22 の本人の直し）。** 日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年はページを初めて開いたときの大きさです。前の定義（拡大も縮小もしていないもとの大きさ）と、その語（en original size、zh 原始大小、ko 원래 크기、fr taille d’origine、de Originalgröße、es・pt-BR tamaño・tamanho original、it dimensione originale）は使いません。日と週の等倍は、開いたときより大きいことが多いためです（iPad の日では約 2 倍）。
+  - **名詞は「標準の大きさ」の語です**（表の 1 行目）。「もとの大きさ」は上のとおり日と週で違い、「既定の大きさ」（en default size など）も、日と週では初めて開いたときの大きさ（等倍を一度押すまで）と違うので避けました。de の Standardgröße と pt-BR の tamanho padrão は「既定」の意味も持ちますが、ほかに「もとの」「実際の」「合わせる」のどれでもない、ふつうの語がありません。
+  - **文では、できるだけ名詞を使いません。** 読み上げと同じ「ズームを戻す」の動詞（下の点）で書き、大きさを言う所では上の定義をそのまま書きます（en は審査メモの字: on day and week pages, one day or one week fits the screen width exactly; month and year pages go back to the size they open at）。名詞は、そう書けない所だけで使います。
+  - 「拡大も縮小もしていない」は、もう添えません（日と週の等倍は拡大した大きさのことがあるため）。拡大・縮小の語は今までどおり §2 の「2 本の指を広げる（拡大）・つまむ（縮小）」の行と同じです（en zoom in / zoom out、fr zoomer / dézoomer、de vergrößern / verkleinern、es・pt-BR ampliar / reducir・reduzir、it ingrandire / rimpicciolire、zh 放大 / 缩小・縮小、ko 확대 / 축소）。
+  - 「実際の大きさ」の語（en Actual Size、zh-Hans 实际大小、zh-Hant 實際大小、ko 실제 크기、fr taille réelle、es tamaño real、it dimensioni reali、pt-BR tamanho real）は使いません。等倍は倍率 1.0（実寸）ではないためです（契約 §3.6。本人の iPhone の月では、倍率 1.0 は開いたときの約 3.2 倍）。
+  - 「合わせる」の語（en Fit、fr Ajuster、de Einpassen、es・pt-BR Ajustar、it Adatta、zh 适合・適合、ko 맞춤）を、等倍の名前（読み上げと名詞）に使いません。**幅に合わせるのは日と週だけで、月と年は幅に合わせない（開いたときの大きさ）ためです**（契約 §16.9）。日と週の説明の文で「画面の幅にちょうど合う」と動詞で書くのは構いません（en fits the screen width exactly）。
+- **読み上げ（等倍に戻す）は、どの言語も「ズームを戻す（リセットする）」の形です（契約 §16.9）。** en は契約 §8.1 の Reset Zoom のまま（英語の画面で、拡大を戻すボタンのふつうの名前。SUPPORT.en も “(Reset Zoom)” と書き、審査メモは見た目から “the 1× button” と書く）。8 言語は 2026-11-22 に、前の「もとの大きさに戻す」の訳（恢复原始大小、Auf Originalgröße zurücksetzen など）から訳し直しました。日と週では押すと大きくなることがあり、「もとの大きさに戻す」と聞くと違ってしまうためです。ja の字（等倍に戻す）と jaSha1 は同じなので、lint と `build.py` は前の訳が古いことを知らせません（契約 §16.10 の危険の行。元を見ない逆翻訳と判定は `REVIEW.md` の 15）。
+  - ズームの語: zh・ko はアプリの今の字（zh は `onboarding.pen.text`・`settings.purchase.footer.readOnly` の 缩放・縮放、ko は `onboarding.pen.text` の 확대·축소）。fr・de もアプリの今の語（zoomer・zoomen）の名詞の zoom・Zoom。es・it・pt-BR のアプリは拡大を ampliar・ingrandire と書きますが、ズームを戻すボタンの名前では名詞の zoom がふつうなので、el zoom・lo zoom・o zoom にしました。
+  - リセットの語: zh-Hans・zh-Hant 重置（契約 §16.9 の例。zh-Hans の iOS は「リセット」に 还原 を使う所もありますが、zh-Hant の 還原 はアプリの「元に戻す」なので、両方とも 重置 にそろえた）、ko 재설정（「-기」の形の 재설정하기 は不自然なので名詞のまま）、fr Réinitialiser、de zurücksetzen、es Restablecer、it Reimposta（Ripristina は購入の復元と同じ語なので避けた。下の点）、pt-BR Redefinir。どれもリセットのふつうの語です（出典は無い。下の「確かめていないこと」）。形は今の読み上げと同じです（fr・es・pt-BR は不定詞と定冠詞、de は名詞と不定詞、it は命令形、zh は動詞と名詞）。
+- **「戻す」に、§2 の「元に戻す」「やり直す」の語を使いません。** 別のボタンと聞き違えないためです。特に zh-Hant の 還原（元に戻す）、fr の Rétablir（やり直す）と Annuler、es の Deshacer、it の Annulla、pt-BR の Desfazer。購入の復元（`settings.purchase.restore`）の語（zh-Hans 恢复、zh-Hant 回復、ko 복원、fr Restaurer、de wiederherstellen、es・pt-BR Restaurar、it Ripristina）も使いません（前の zh-Hans の 恢复原始大小 は 恢复购买 と同じ字でした）。
+- **利き手・右手・左手は、人ではなく「手」の語にしました（性別の無い形）。** de・fr・es・it・pt-BR の「右利き・左利き」の語は人を指し、男女で形が変わります（de Rechtshänder／Rechtshänderin・Linkshänder／Linkshänderin、fr droitier／droitière・gaucher／gauchère、es diestro／diestra・zurdo／zurda、it destrimano／destrimana・mancino／mancina、pt-BR destro／destra・canhoto／canhota）。「手」の語（Hand・main・mano・mão）は、語に文法の性があっても、人の性別を言いません。見出しは「利き手」（dominant hand）、選びは「右の手」「左の手」です。en の Dominant Hand・Right Hand・Left Hand は契約 §8.1 の案のままです。
+  - 文の中（脚注・新機能の文・ストアの文）でも、読み手を「左利きの人」と呼びません。選びの名前を引くか（« Main gauche »・„Linke Hand“・“Mano izquierda”・“Mano sinistra”・“Mão esquerda”）、読み手に向けた動詞で書きます（fr si vous écrivez de la main gauche、de wenn Sie mit der linken Hand schreiben、es si escribe con la mano izquierda、it se scrive con la mano sinistra、pt-BR se você escreve com a mão esquerda。§1 の丁寧さ）。en も left-handed people と書かず、“Left Hand” を引くか if you write with your left hand。zh は 左撇子（くだけた語）を使わず 左手、ko は 왼손잡이 を使わず 왼손（画面の選びと同じ字）。
+  - 新機能の文の「利き手」「左手」は、アプリの `settings.hand.header`・`settings.hand.left` と同じ字にします（[docs/store/README.md](../store/README.md) の 1.4.1 の行）。
+  - es は中南米でよく言う mano hábil ではなく、スペインと中南米の両方で通じる mano dominante です（§1 の es の決まり）。ko は 주로 쓰는 손（「主に使う手」。쓰다 は「使う」と「書く」の両方の意味で、アプリの 손가락으로 쓰기 と同じ動詞）。zh は 惯用手・慣用手（ふつうの語）。
+- **ツールバーとしまうは、今の語のままです**（`toolbar.collapse.spoken`・`toolbar.dock.spoken` など 1.1〜1.2 の訳。しまうは §4 の表）。「ツールバーを動かす」は、今の「ツールバーをしまう」「ツールバーを出す」の読み上げと同じ形です（fr・es・pt-BR は不定詞と定冠詞、de は名詞と不定詞、it は命令形（§2 の Scrivi con il dito と同じ）、zh は動詞と名詞、ko は「명사 ＋ -기」）。脚注の「しまった」はしまうの語の形（en hidden、fr réduite、de abgelegte（Ablegen）、es・pt-BR oculta、it ridotta、zh 收起的、ko 숨긴）です。
+- **4 つの操作は、今の丸いボタンの操作 `toolbar.moveEdge.*`（「左下へ移す」「右下へ移す」）と同じ形です。** en Move to Bottom Left → Move to Top、fr Déplacer en bas à gauche → Déplacer en haut、de Nach unten links → Nach oben（動詞を付けない今の形）、es Mover abajo a la izquierda → Mover arriba、it Sposta in basso a sinistra → Sposta in alto、pt-BR Mover para baixo à esquerda → Mover para cima、ko 왼쪽 아래로 옮기기 → 위로 옮기기、zh 移到左下角 → 移到顶部・移到頂端。
+  - zh は「上方・下方」（上のほう）ではなく、端を指す 顶部・底部（zh-Hant は 頂端・底部）にしました。脚注の 屏幕顶部・螢幕頂端 と同じ字です。
+- **「動かす」ボタンの名前（`toolbar.move.title`）は、読み上げの「ツールバーを動かす」（`toolbar.grip.spoken`。このボタンの読み上げの名前でもある）から「ツールバー」を除いた動詞です**（契約 §17.2・§17.3）。形は「しまう」の名前（§4 の表）と同じです: fr・es・pt-BR は不定詞（Déplacer・Mover。Réduire・Ocultar と同じ）、it は命令形（Sposta。Riduci と同じ）、ko は「-기」（옮기기。숨기기 と同じ）、zh は動詞だけ（移动・移動。收起 と同じ）。en は契約の Move（Hide と同じく 1 語の動詞）。
+  - 例外は de だけです。読み上げは verschieben ですが、画面の名前は Bewegen です（Verschieben は幅に入らない。§4 の注。しまう の Ablegen／ausblenden と同じ扱い）。
+  - ko は名詞の 이동 ではなく、アプリの今の動詞 옮기기（読み上げ、4 つの操作、閲覧専用の説明）にそろえました。zh の 移动・移動 は、読み上げと閲覧専用の説明の今の語です（4 つの操作の 移到 は行き先を言う形）。
+  - 押すと端を選ぶ吹き出し、引くとそのまま動くので、「引く」だけの語（de Ziehen、en Drag など）は使いません。
+- **en の大文字**: 1.4.1 の en の名前は全部 Title Case です（契約の Reset Zoom・Dominant Hand と、今の `toolbar.moveEdge.*` の Move to Bottom Left・`toolbar.pin` の Always Show Toolbar にそろえた）。今の読み上げの Hide toolbar・Show toolbar は変えません（読み上げでは大文字は聞こえません）。
+- **つまみは、アプリの字に出ません**（読み上げは「ツールバーを動かす」で、つまみの名前を言わない）。名前が要るのは ja と en の SUPPORT と審査メモだけで、en は handle（SUPPORT.en の “the small handle”）。grip（コードの名前）と grabber（Apple の HIG の語）は、読み手に通じにくいので使いません。ほかの 8 言語の店の文では、つまみを名指さず「指でツールバーを動かす」と書きます（新機能の文の 4 行目のとおり）。
+- **端**は、今の「左端」（`onboarding.dayPageTap`）の語にそろえました（en edge、fr bord、de Rand、es borde、it bordo、pt-BR borda）。zh は 边缘・邊緣、ko は 가장자리 です（今の 왼쪽 끝 の 끝 は「終わり」に近いので、4 つの辺には 가장자리）。
+- 脚注と新機能の文の 3 行目の「画面の上のボタンの並びが左右逆」は、同じ言語では同じ言い方にします。
+- **幅**: 読み上げだけの文（等倍に戻す・ツールバーを動かす・ヒント・4 つの操作）は画面に出ないので、§4 の幅の決まりはありません。「動かす」ボタンの名前は画面に出るので、§4 の決まり（F-12）です。利き手の見出し・選び・脚注は設定の画面の行で、折り返します。
+- **「等倍」の字のボタン（`header.zoomReset`）は作りません。** 本人が 2026-11-22 に虫めがねに「1」の印を採りました（契約 §16.11 の問い 8・§16.12 の 0e-2）。字の訳と幅の確かめもしません。
+
+### 確かめていないこと
+
+- 利き手の語は、iOS に同じ項目が無く、Apple の記事で確かめた語ではありません（§3 のような出典はありません）。各言語のふつうの語から選びました。
+- zh-Hant の 頂端・底部、ko の 주로 쓰는 손、de の Dominante Hand が、その言語の設定の画面で一番ふつうの言い方かは確かめていません。TestFlight で設定の画面と VoiceOver を見るときに、リードが字を見てください。
+- 「ズームを戻す」の 8 言語（2026-11-22）が、その言語の VoiceOver でいちばんふつうに聞こえる名前かは確かめていません。Apple の画面に同じ役のボタンが無く、出典はありません。「標準の大きさ」の名詞（taille standard など）が、日と週の幅にちょうど合う大きさの呼び名として自然かも、母語の人の確認はありません。
+- 「動かす」の 9 言語が、iPad のツールバーのボタンの名前としていちばんふつうかは、母語の人の確認がありません。fr の Déplacer と de の Bewegen は縮んで入る（約 0.88・0.86 倍）ので、Localized の写真で字が読めるかをリードが見てください（契約 §17.3）。

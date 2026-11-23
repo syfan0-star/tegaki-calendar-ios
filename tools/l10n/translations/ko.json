@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "오늘"
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "확대·축소 재설정"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "자동(이 기기의 지역: %@)"
@@ -1249,6 +1253,22 @@
       "jaSha1": "1cae18a9a4",
       "text": "완료"
     },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "‘왼손’을 선택하면 화면 위쪽 버튼의 순서가 좌우 반대로 바뀌고, 숨긴 도구 막대의 둥근 버튼이 오른쪽 아래로 옮겨져요. 종이와 손글씨는 그대로예요."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "주로 쓰는 손"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "왼손"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "오른손"
+    },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
       "text": "일본의 공휴일은 이 앱이 계산해요(일본 내각부의 발표와 대조해서 확인했어요). 다른 나라의 공휴일은 공개 데이터(python-holidays)를 바탕으로 해요. 음력이나 이슬람력의 공휴일 등 일부는 추정이며 ‘(추정)’이라고 표시해요. 정부의 최신 발표와 다를 수 있어요. 공휴일 설정은 이 기기에만 저장해요."
@@ -1861,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "켜면 손가락으로도 선을 그을 수 있어요. 끄면 손가락으로 스크롤과 탭을 해요"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "위, 아래, 왼쪽, 오른쪽 가장자리로 옮길 수 있어요"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "도구 막대 옮기기"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "닿은 선을 통째로 지워요"
@@ -1881,6 +1909,10 @@
       "jaSha1": "c22a65bde9",
       "text": "둘러싸서 선택해요.\n틀 안을 드래그해서 옮겨요"
     },
+    "toolbar.move.title": {
+      "jaSha1": "b43eacf397",
+      "text": "옮기기"
+    },
     "toolbar.moveEdge.toLeft": {
       "jaSha1": "3390912dcc",
       "text": "왼쪽 아래로 옮기기"
@@ -1888,6 +1920,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "오른쪽 아래로 옮기기"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "아래로 옮기기"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "왼쪽으로 옮기기"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "오른쪽으로 옮기기"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "위로 옮기기"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

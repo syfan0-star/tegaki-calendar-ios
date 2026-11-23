@@ -1,6 +1,6 @@
 {
  "language": "fr",
- "about": "R の逆翻訳。translations/fr.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。このうち判定の後に直した訳（× の訳と、それにそろえた settings.page.span.footer）は、2026-11-13 に直した後の字だけを R にもう 1 回渡し、元を見ずに訳し戻した（2 回目。日本語の元・comment・1 回目の逆翻訳は読んでいない）。text はその直した後の字、back はその 2 回目の逆翻訳。1 回目（直す前の字）の逆翻訳と、判定した Claude が元を見て書いた逆翻訳は REVIEW.md の 12 にある。",
+ "about": "R の逆翻訳。translations/fr.json の text だけを読んで日本語に訳し戻した（日本語の元と comment は読んでいない）。text は訳し戻した時点の訳。1.3 の 8 キー（settings.page.header・settings.page.span・settings.page.span.footer・span.guide.*・span.stageTwo.notice、契約 M7C_CONTRACT.md §8.1 の N-1〜N-8）は、2026-11-13 に R が key・言語・text の表だけを読んで訳し戻した（日本語の元と comment は読んでいない）。このうち判定の後に直した訳（× の訳と、それにそろえた settings.page.span.footer）は、2026-11-13 に直した後の字だけを R にもう 1 回渡し、元を見ずに訳し戻した（2 回目。日本語の元・comment・1 回目の逆翻訳は読んでいない）。text はその直した後の字、back はその 2 回目の逆翻訳。1 回目（直す前の字）の逆翻訳と、判定した Claude が元を見て書いた逆翻訳は REVIEW.md の 12 にある。1.4.1 の 11 キー（header.zoomReset.spoken・settings.hand.*・toolbar.grip.*・toolbar.moveTo.*、契約 R1_4_1_CONTRACT.md §8.1）は、2026-11-22 に R が translations/fr.json の その 11 キーの text だけを読んで訳し戻した（日本語の元・comment・GLOSSARY・画面のコード・ほかのキーの訳は読んでいない）。1.4.1 の直し 2 で足した toolbar.move.title（「動かす」ボタンの名前、契約 R1_4_1_CONTRACT.md §17.3）は、2026-11-22 に R が 9 言語のその訳の字だけを読んで、日本語の元を見ずに訳し戻した（判定は REVIEW.md の 16）。back の（ ）は R の注。",
  "strings": {
   "CFBundleDisplayName": {
    "text": "Tegaki",
@@ -533,6 +533,10 @@
   "header.today": {
    "text": "Auj.",
    "back": "今日（略）"
+  },
+  "header.zoomReset.spoken": {
+   "text": "Revenir à la taille d’origine",
+   "back": "元のサイズに戻る"
   },
   "holidayPicker.auto": {
    "text": "Automatique (région de cet appareil : %@)",
@@ -1250,6 +1254,22 @@
    "text": "OK",
    "back": "OK"
   },
+  "settings.hand.footer": {
+   "text": "Si vous choisissez « Main gauche », l’ordre des boutons en haut de l’écran est inversé de gauche à droite, et le bouton rond de la barre d’outils réduite passe en bas à droite. Le papier et ce que vous avez écrit restent tels quels.",
+   "back": "「左手」を選ぶと、画面上部のボタンの順序が左右逆になり、最小化した（縮めた）ツールバーの丸いボタンが右下に移ります。紙と、あなたが書いたものはそのままです。"
+  },
+  "settings.hand.header": {
+   "text": "Main dominante",
+   "back": "利き手"
+  },
+  "settings.hand.left": {
+   "text": "Main gauche",
+   "back": "左手"
+  },
+  "settings.hand.right": {
+   "text": "Main droite",
+   "back": "右手"
+  },
   "settings.holidays.footer": {
    "text": "Les jours fériés japonais sont calculés par cette app (et vérifiés d’après les annonces du Bureau du Cabinet du Japon). Ceux des autres pays viennent de données publiques (python-holidays). Certains, comme les jours fériés des calendriers lunaire et islamique, sont estimés et portent la mention « (estimé) ». Ils peuvent différer des dernières annonces des gouvernements. Le réglage des jours fériés est enregistré seulement sur cet appareil.",
    "back": "日本の祝日はこのアプリが計算しています（日本の内閣府の発表に照らして確かめています）。ほかの国の祝日は公開データ（python-holidays）から来ています。太陰暦やイスラム暦の祝日など一部は推定で、「（推定）」の印が付きます。政府の最新の発表と違うことがあります。祝日の設定はこの端末にだけ保存されます。"
@@ -1862,6 +1882,14 @@
    "text": "Si cette option est activée, vous pouvez aussi tracer des traits avec le doigt. Si elle est désactivée, le doigt sert à faire défiler et à toucher",
    "back": "オンのときは指でも線を引けます。オフのときは指でスクロールとタップをします"
   },
+  "toolbar.grip.hint": {
+   "text": "Peut être déplacée vers le bord supérieur, inférieur, gauche ou droit de l’écran",
+   "back": "画面の上・下・左・右の端へ動かせます（主語はないが、女性形の語尾からツールバーのこととわかる）"
+  },
+  "toolbar.grip.spoken": {
+   "text": "Déplacer la barre d’outils",
+   "back": "ツールバーを移動"
+  },
   "toolbar.hint.eraser": {
    "text": "Efface le trait touché",
    "back": "触れた線を消します"
@@ -1882,6 +1910,10 @@
    "text": "Entourez pour choisir.\nGlissez pour déplacer",
    "back": "囲むと選びます。\nドラッグすると動かします"
   },
+  "toolbar.move.title": {
+   "text": "Déplacer",
+   "back": "移動"
+  },
   "toolbar.moveEdge.toLeft": {
    "text": "Déplacer en bas à gauche",
    "back": "左下へ移す"
@@ -1889,6 +1921,22 @@
   "toolbar.moveEdge.toRight": {
    "text": "Déplacer en bas à droite",
    "back": "右下へ移す"
+  },
+  "toolbar.moveTo.bottom": {
+   "text": "Déplacer en bas",
+   "back": "下へ移動"
+  },
+  "toolbar.moveTo.left": {
+   "text": "Déplacer à gauche",
+   "back": "左へ移動"
+  },
+  "toolbar.moveTo.right": {
+   "text": "Déplacer à droite",
+   "back": "右へ移動"
+  },
+  "toolbar.moveTo.top": {
+   "text": "Déplacer en haut",
+   "back": "上へ移動"
   },
   "toolbar.pin": {
    "text": "Toujours afficher la barre d’outils",

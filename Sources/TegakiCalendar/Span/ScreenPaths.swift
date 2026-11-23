@@ -958,18 +958,19 @@ final class ScreenPaths: ObservableObject {
     /// 11/18: an iPhone in landscape, about half of the 24 hours on screen) today's page already the focus is
     /// `cappedTodayRect`'s request: the canvas moves y alone to an hour before now when the now line is off the screen, and
     /// nothing while it is on screen.
-    /// `viewport` is the last one reported (nil: `ratio`, the stored one), `area` the paper area. nil off the joined path.
-    func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat) -> Today? {
+    /// `viewport` is the last one reported (nil: `ratio`, the stored one, or 1.4.1's `fit`: the kind kept at 等倍,
+    /// docs/R1_4_1_CONTRACT.md §16.3.4), `area` the paper area. nil off the joined path.
+    func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Today? {
         guard path == .joined, let session = span else { return nil }
         switch session.today(day) {
         case .reopen(let focus):
             return .reopen(focus)
         case .slide(let pages):
-            let zoomed = Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio)
+            let zoomed = Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
             if !zoomed, pages != 0 { return .slide(pages) }
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
-                                     calendar: session.context.calendar, area: area, ratio: ratio)
+                                     calendar: session.context.calendar, area: area, ratio: ratio, fit: fit)
             if !zoomed {
                 guard Self.atCappedOverview(layout: session.layout, width: shown.width, zoom: shown.zoom),
                       let rect = Self.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
@@ -999,9 +1000,16 @@ final class ScreenPaths: ObservableObject {
     }
 
     /// Whether the paper is zoomed in past the overview (the ratio of the reported zoom over the window's opening zoom,
-    /// `SpanPlan.zoomBounds`: the cap's on an iPhone in landscape, P-B6 イ; before a report, the stored ratio).
-    static func zoomedIn(layout: SpanLayout, viewport: PaperViewport?, area: CGSize, ratio: CGFloat) -> Bool {
-        guard let viewport, viewport.width > 0 else { return ratio > overviewRatio }
+    /// `SpanPlan.zoomBounds`: the cap's on an iPhone in landscape, P-B6 イ; before a report, the stored ratio, or with 1.4.1's
+    /// `fit` (the kind kept at 等倍, docs/R1_4_1_CONTRACT.md §16.3.4) the ratio of the fit over `area`'s bounds: true wherever
+    /// the fit is above the opening zoom, false where they are the same (an iPhone 18 Pro Max's portrait week), as the
+    /// answer will be once the canvas reported it).
+    static func zoomedIn(layout: SpanLayout, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Bool {
+        guard let viewport, viewport.width > 0 else {
+            guard fit else { return ratio > overviewRatio }
+            let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area)
+            return ZoomPolicy.ratio(forZoom: bounds.fit, bounds: bounds) > overviewRatio
+        }
         let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout),
                                             viewport: CGSize(width: viewport.width, height: area.height))
         return ZoomPolicy.ratio(forZoom: viewport.zoom, bounds: bounds) > overviewRatio
@@ -1246,17 +1254,22 @@ final class ScreenPaths: ObservableObject {
     // MARK: The band's lu, continued
 
     /// The zoom a window opens at for `area` (the paper area; its width alone while the height is 0) and the stored ratio,
-    /// over `SpanPlan.zoomBounds` (the cap's opening zoom on an iPhone in landscape, P-B6 イ).
-    static func bandZoom(layout: SpanLayout, area: CGSize, ratio: CGFloat) -> CGFloat {
-        ZoomPolicy.zoom(forRatio: ratio, bounds: layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area))
+    /// over `SpanPlan.zoomBounds` (the cap's opening zoom on an iPhone in landscape, P-B6 イ). 1.4.1 (docs/R1_4_1_CONTRACT.md
+    /// §16.3.4): with `fit` (a week or a day kept at 等倍) the bounds' fit, one page's width across `area` (the cap never
+    /// changes it), as the canvas opens with `initialFit`; the ratio is not read.
+    static func bandZoom(layout: SpanLayout, area: CGSize, ratio: CGFloat, fit: Bool = false) -> CGFloat {
+        let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area)
+        return fit ? bounds.clamped(bounds.fit) : ZoomPolicy.zoom(forRatio: ratio, bounds: bounds)
     }
 
     /// The viewport of a window's first frame, before its canvas reported one (HANDOFF 6): at the overview the focus page in
     /// the middle (`offsetX = (origin + W/2)·zoom − width/2`), zoomed in at `bandStart`'s x (the overview and the zoom of
-    /// `SpanPlan.zoomBounds`, P-B6 イ).
-    static func bandViewport(layout: SpanLayout, focusPageId: String, now: Date, calendar: Calendar, area: CGSize, ratio: CGFloat) -> PaperViewport {
+    /// `SpanPlan.zoomBounds`, P-B6 イ). 1.4.1 (§16.3.4): with `fit` at `bandZoom`'s fit, so the focus page's edges are at the
+    /// area's edges (`offsetX = origin·fit` either way: `bandStart`'s x is the page's own at a visible width of one page).
+    static func bandViewport(layout: SpanLayout, focusPageId: String, now: Date, calendar: Calendar, area: CGSize, ratio: CGFloat,
+                             fit: Bool = false) -> PaperViewport {
         let width = area.width.isFinite && area.width > 0 ? area.width : 0
-        let zoom = bandZoom(layout: layout, area: area, ratio: ratio)
+        let zoom = bandZoom(layout: layout, area: area, ratio: ratio, fit: fit)
         guard let slot = layout.slot(ofPage: focusPageId), width > 0 else { return PaperViewport(offsetX: 0, zoom: zoom, width: width) }
         let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area)
         if ZoomPolicy.ratio(forZoom: zoom, bounds: bounds) <= overviewRatio {

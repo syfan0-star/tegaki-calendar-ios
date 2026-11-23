@@ -159,7 +159,8 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(AppSettings.toolbarEdgeKey, "toolbar.collapsedEdge")
         let keys = [AppSettings.toolbarCollapsedKey, AppSettings.toolbarEdgeKey, AppSettings.eraserAutoReturnKey,
                     AppSettings.strokeBudgetNoticedKey, ToolbarPalette.penColorKey, ToolbarPalette.penWidthKey,
-                    ToolbarPalette.markerColorKey, AppSettings.allowFingerKey, AppSettings.eraseInkAfterConvertKey]
+                    ToolbarPalette.markerColorKey, AppSettings.allowFingerKey, AppSettings.eraseInkAfterConvertKey,
+                    AppSettings.handKey, AppSettings.paletteEdgeKey, AppSettings.zoomFitKey(.week), AppSettings.zoomFitKey(.day)]
         XCTAssertEqual(Set(keys).count, keys.count, "every key is its own")
 
         // Collapsed: false (expanded) until written.
@@ -189,6 +190,136 @@ final class AppSettingsTests: XCTestCase {
         }
         AppSettings.defaults.set(3, forKey: "toolbar.collapsedEdge")
         XCTAssertEqual(AppSettings.toolbarEdge, .leading, "not a string → leading")
+    }
+
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, §4.10, §6.3, 0e-12, 0e-21): 「利き手」 and the toolbar's edge in
+    /// `testToolbarKeys`'s shape: the right hand and the bottom until written, written as their raw values, and anything else
+    /// (a string or not) the right hand and the bottom. Each is its own key; neither writes the round button's corner.
+    func testHandAndPaletteKeys() {
+        XCTAssertEqual(AppSettings.handKey, "layout.hand")
+        XCTAssertFalse(AppSettings.handKey.hasPrefix("toolbar."), "the hand is not the toolbar's")
+
+        XCTAssertNil(AppSettings.defaults.object(forKey: AppSettings.handKey))
+        XCTAssertEqual(AppSettings.hand, .right)
+        AppSettings.hand = .left
+        XCTAssertEqual(AppSettings.hand, .left)
+        XCTAssertEqual(AppSettings.defaults.string(forKey: "layout.hand"), "left", "a String, as `@AppStorage` reads it")
+        AppSettings.hand = .right
+        XCTAssertEqual(AppSettings.defaults.string(forKey: "layout.hand"), "right")
+        AppSettings.defaults.set("left", forKey: "layout.hand")
+        XCTAssertEqual(AppSettings.hand, .left, "as `@AppStorage` writes it")
+        for unknown in ["middle", "", "LEFT", "trailing"] {
+            AppSettings.defaults.set(unknown, forKey: "layout.hand")
+            XCTAssertEqual(AppSettings.hand, .right, "\(unknown) → right")
+        }
+        AppSettings.defaults.set(3, forKey: "layout.hand")
+        XCTAssertEqual(AppSettings.hand, .right, "not a string → right")
+        // The hand is its own key: writing it leaves the round button's corner alone (the settings write that one
+        // themselves, once, `SettingsScreen.handChanged`).
+        AppSettings.hand = .left
+        XCTAssertNil(AppSettings.defaults.object(forKey: AppSettings.toolbarEdgeKey))
+        XCTAssertEqual(AppSettings.toolbarEdge, .leading)
+
+        // The toolbar's edge (D1b): the bottom until written; its raw value as `@AppStorage` reads it; anything else the bottom.
+        XCTAssertEqual(AppSettings.paletteEdgeKey, "toolbar.paletteEdge")
+        XCTAssertNotEqual(AppSettings.paletteEdgeKey, AppSettings.toolbarEdgeKey, "not the round button's corner")
+        XCTAssertNil(AppSettings.defaults.object(forKey: AppSettings.paletteEdgeKey))
+        XCTAssertEqual(AppSettings.paletteEdge, .bottom)
+        XCTAssertNil(AppSettings.defaults.object(forKey: AppSettings.paletteEdgeKey), "reading the default writes nothing")
+        for edge in PaletteEdge.allCases {
+            AppSettings.paletteEdge = edge
+            XCTAssertEqual(AppSettings.paletteEdge, edge)
+            XCTAssertEqual(AppSettings.defaults.string(forKey: "toolbar.paletteEdge"), edge.rawValue, "a String, as `@AppStorage` reads it")
+        }
+        XCTAssertEqual(PaletteEdge.allCases.map(\.rawValue), ["bottom", "top", "left", "right"])
+        AppSettings.defaults.set("left", forKey: "toolbar.paletteEdge")
+        XCTAssertEqual(AppSettings.paletteEdge, .left, "as `@AppStorage` writes it")
+        for unknown in ["middle", "", "LEFT", "leading", "trailing"] {
+            AppSettings.defaults.set(unknown, forKey: "toolbar.paletteEdge")
+            XCTAssertEqual(AppSettings.paletteEdge, .bottom, "\(unknown) → bottom")
+        }
+        AppSettings.defaults.set(2, forKey: "toolbar.paletteEdge")
+        XCTAssertEqual(AppSettings.paletteEdge, .bottom, "not a string → bottom")
+        // The edge leaves the hand and the corner alone (a drop on a side writes the corner itself, `paletteDropped`).
+        XCTAssertEqual(AppSettings.hand, .left)
+        XCTAssertNil(AppSettings.defaults.object(forKey: AppSettings.toolbarEdgeKey))
+    }
+
+    /// 1.4.1's rework (docs/R1_4_1_CONTRACT.md §16.3.4, §16.6): 等倍 of the week and the day is kept as a state, one `Bool` per
+    /// kind ("zoomFit.week" / "zoomFit.day"). True writes it and removes the kind's stored ratio (after 等倍 the canvas reports
+    /// the ratio of the fit to the opening zoom first, then fit true, so the flag alone says how the kind opens); false (a
+    /// real pinch afterwards, its ratio already stored) removes the flag and leaves the ratio. A month or a year never keeps
+    /// it (its 等倍 is ratio 1), and neither call touches its ratio. The flag is neither a pinch (`hasPinched`) nor an earlier
+    /// version's key (`isExistingUser`). Mutation MS3 (true not removing the ratio, §16.7) fails here.
+    func testZoomFitReplacesTheRatio() {
+        XCTAssertEqual(AppSettings.zoomFitKey(.week), "zoomFit.week")
+        XCTAssertEqual(AppSettings.zoomFitKey(.day), "zoomFit.day")
+        XCTAssertEqual(Set(PageKind.allCases.map(AppSettings.zoomFitKey)).count, 4, "one key per kind")
+        for kind in PageKind.allCases {
+            XCTAssertNotEqual(AppSettings.zoomFitKey(kind), AppSettings.zoomRatioKey(kind), "\(kind)")
+            XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind): not at 等倍 until written")
+            XCTAssertNil(AppSettings.defaults.object(forKey: AppSettings.zoomFitKey(kind)), "\(kind): reading writes nothing")
+        }
+
+        for kind in [PageKind.week, .day] {
+            let key = AppSettings.zoomFitKey(kind)
+            let ratioKey = AppSettings.zoomRatioKey(kind)
+            // 等倍: the canvas reports the ratio of the fit (an iPad Pro 11's portrait week: 1.198), then fit true.
+            AppSettings.setZoomRatio(1.198, for: kind)
+            XCTAssertNotNil(AppSettings.defaults.object(forKey: ratioKey), "\(kind): the ratio first")
+            AppSettings.setZoomFit(true, for: kind)
+            XCTAssertTrue(AppSettings.zoomFit(for: kind), "\(kind)")
+            XCTAssertTrue(AppSettings.defaults.bool(forKey: key), "\(kind): a Bool")
+            XCTAssertNil(AppSettings.defaults.object(forKey: ratioKey), "\(kind): true removes the ratio")
+            XCTAssertEqual(AppSettings.zoomRatio(for: kind), 1, "\(kind)")
+            // 等倍 once more (or a page opened at it, the first layout's report): the same.
+            AppSettings.setZoomRatio(1.198, for: kind)
+            AppSettings.setZoomFit(true, for: kind)
+            XCTAssertTrue(AppSettings.zoomFit(for: kind), "\(kind)")
+            XCTAssertNil(AppSettings.defaults.object(forKey: ratioKey), "\(kind)")
+            // A real pinch afterwards: its ratio, then fit false.
+            AppSettings.setZoomRatio(2.5, for: kind)
+            AppSettings.setZoomFit(false, for: kind)
+            XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind)")
+            XCTAssertNil(AppSettings.defaults.object(forKey: key), "\(kind): false removes the key")
+            XCTAssertEqual(AppSettings.zoomRatio(for: kind), 2.5, "\(kind): false leaves the ratio")
+            // A pinch back to the opening zoom: ratio 1 and false remove both.
+            AppSettings.setZoomRatio(1, for: kind)
+            AppSettings.setZoomFit(false, for: kind)
+            XCTAssertNil(AppSettings.defaults.object(forKey: key), "\(kind)")
+            XCTAssertNil(AppSettings.defaults.object(forKey: ratioKey), "\(kind)")
+        }
+        // One key per kind.
+        AppSettings.setZoomRatio(2, for: .day)
+        AppSettings.setZoomFit(true, for: .week)
+        XCTAssertTrue(AppSettings.zoomFit(for: .week))
+        XCTAssertFalse(AppSettings.zoomFit(for: .day), "the day is its own")
+        XCTAssertEqual(AppSettings.zoomRatio(for: .day), 2, "the day's ratio stays")
+        AppSettings.setZoomFit(false, for: .week)
+        AppSettings.setZoomRatio(1, for: .day)
+
+        // A month or a year: never a state of its own.
+        for kind in [PageKind.month, .year] {
+            let key = AppSettings.zoomFitKey(kind)
+            AppSettings.setZoomRatio(2, for: kind)
+            AppSettings.setZoomFit(true, for: kind)
+            XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind)")
+            XCTAssertNil(AppSettings.defaults.object(forKey: key), "\(kind): nothing written")
+            XCTAssertEqual(AppSettings.zoomRatio(for: kind), 2, "\(kind): the ratio stays")
+            AppSettings.setZoomFit(false, for: kind)
+            XCTAssertEqual(AppSettings.zoomRatio(for: kind), 2, "\(kind)")
+            // A flag on disk (written by something else) does not count either.
+            AppSettings.defaults.set(true, forKey: key)
+            XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind): read as false")
+            AppSettings.defaults.removeObject(forKey: key)
+            AppSettings.setZoomRatio(1, for: kind)
+        }
+
+        // Not a pinch (1.1.1's hint is decided as before, §16.3.4) and not an earlier version's key (1.2).
+        AppSettings.setZoomFit(true, for: .day)
+        AppSettings.setZoomFit(true, for: .week)
+        XCTAssertFalse(AppSettings.hasPinched)
+        XCTAssertFalse(AppSettings.isExistingUser(AppSettings.defaults))
     }
 
     /// The pages whose 15,000-stroke notice this device showed (§5.2, M7A-7): once per page, at most

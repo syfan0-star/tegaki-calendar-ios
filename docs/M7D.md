@@ -635,3 +635,16 @@
 - 公開の 2 つの条件のうち (2)（本人の端末の確かめ表）はそろった。残りは (1) 審査が通る（PENDING_DEVELOPER_RELEASE）だけ。
   - `release14.py state`（20:21 JST）: 1.4 WAITING_FOR_REVIEW WAITING_FOR_REVIEW。見張りは続けている。
   - 通ったら、新しいお言葉は待たずに release14.py check → web → release → 読み戻し → r14 を main へ `--no-ff`（「1.4を公開して良い」「まとめて良い」は 11/21 に済み）。
+
+## 公開とまとめ（2026-11-22 04:5x JST）
+
+- 本人「リリース待ちに変わりました。」（11/22 04:5x）。審査の見張り（15 分ごと）の最後の読みは 11/22 04:01 の IN_REVIEW。
+- `release14.py state`: `1.4 PENDING_DEVELOPER_RELEASE PENDING_DEVELOPER_RELEASE`（04:54）。
+- `release14.py check`: 止まる理由は「Web の SUPPORT がまだ 1.3 の字」の 2 つだけ（web の段がそれを満たす）。ほかはビルド 28 VALID、手動公開、規約 4 ページ 200、新機能の文と SUPPORT の案 B がそろっている、r14-legal は Web の main の早送り。
+- 本人の言葉（11/21）「1.4を公開して良い」「まとめて良い」と、確かめ表の答え（Duo 以外は全部 ○、Duo の行は「—」）による。
+- `release14.py web --owner "1.4 を公開して良い"`（04:55）: Web の main を 4079af1 → **aa73d4b**（r14-legal の早送り、SUPPORT 2 ページ）、Pages の表示を読み戻して「最終更新：2026年11月22日」「Last updated: November 22, 2026」。
+- `release14.py release --owner "1.4 を公開して良い"`（04:56）: 前の条件が全部 OK、`POST appStoreVersionReleaseRequests` 201 を 1 回、読み戻して **READY_FOR_SALE / READY_FOR_DISTRIBUTION**。
+- **main へのまとめ**: `r14`（56b7031）を main（7895d40）へ `--no-ff`、**edc3102**（push）。main は r14 の祖先だったので、木は 56b7031 と同じ。本人の手元の iOS と Web の main を `pull --ff-only`（edc3102・aa73d4b。未追跡の「… 2」のファイルには触れていない）。
+- 1.4.1 の枝 `r141` は main（edc3102）を取り込んだ（0fa3da4。`Sources`・`TegakiKit`・`Tests`・`tools`・`.github`・`project.yml` の差は空）。1.4.1 の契約 §9.4 の行 6 がそろった。
+- **main の CI**（edc3102 の build.yml、run 44943598608）: attempt 3 で 6 つのジョブとも緑（11/22 10:18 JST）。attempt 1 は実行機の打ち切り 3 つ（Blank paper・Localized・Build and test）と、UI tests の `EraserAndBelowDayUITests.testPreselectedHandwritingBelow24ShowsTheNotice` の「Failed to terminate com.syfan0.tegakicalendar」と span-shots の `SpanShotsUITests.testBands` の「Timed out while evaluating UI query」。attempt 2 は Blank paper の打ち切りと、UI tests の `HeaderAndPaperUITests.testEmptyMonthAndYearStartAtTheTopAtTheSameZoom` の「the canvas never settled」（読めた状態は pk 0・ink 0・pending 0 で、待つ間に読み終わらなかった形。M7C の FLAKE-1 と同じ種類）。落ちたテストは毎回違い、どれも公開前の r14 の run（同じ木）と 1.4.1 の 2 回の通しの run では緑なので、実行機の重さによる揺れと読んだ。コードは変えていない。
+- **日本の App Store の表示**: 11/22 10:2x JST に iTunes の lookup（country=jp）で `version` 1.4、`currentVersionReleaseDate` 2026-11-21T19:56:04Z（= 11/22 04:56 JST）、`minimumOsVersion` 17.0。

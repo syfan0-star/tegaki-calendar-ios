@@ -430,7 +430,7 @@
     },
     "header.today": {
       "args": [],
-      "comment": "見出しのボタン。押すと今日のページの今日の所へ。17 pt で ja の幅 ＋ 16 pt 以内（約 47 pt。F-16）。iPhone の 1 段目で題名の幅を削るので、fr は略した形（「Auj.」など）にして REVIEW.md に理由を書く",
+      "comment": "見出しのボタン。利き手の側の端の「‹ 今日 ›」の真ん中の部品（1.4.1。‹ と › は記号で描くので、この文に入れない）。押すと今日のページの今日の所へ。17 pt で ja の幅 ＋ 16 pt 以内（約 47 pt。F-16）。iPhone の 1 段目で題名の幅を削るので、fr は略した形（「Auj.」など）にして REVIEW.md に理由を書く",
       "glossary": [
         "今日"
       ],
@@ -440,6 +440,18 @@
       "was": [
         "Views/PageHeaderView.swift:156"
       ],
+      "where": [
+        "Views/PageHeaderView.swift"
+      ]
+    },
+    "header.zoomReset.spoken": {
+      "args": [],
+      "comment": "読み上げ。見出しの虫めがねに「1」の印のボタン（等倍。1.4.1）。押すとページを等倍に戻す。等倍 = 日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年はページを初めて開いたときの大きさ。訳は「ズームを戻す」の意味にし、「もとの大きさ」「実際の大きさ」「合わせる」の語は使わない（docs/i18n/GLOSSARY.md §5）。ボタンに字は無く、この文は読み上げだけ。文は docs/R1_4_1_CONTRACT.md §8.1・§16.9",
+      "glossary": [
+        "等倍"
+      ],
+      "ja": "等倍に戻す",
+      "target": "app",
       "where": [
         "Views/PageHeaderView.swift"
       ]

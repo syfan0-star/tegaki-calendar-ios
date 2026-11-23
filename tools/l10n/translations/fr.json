@@ -533,6 +533,10 @@
       "jaSha1": "574cd4fb79",
       "text": "Auj."
     },
+    "header.zoomReset.spoken": {
+      "jaSha1": "92b8cb8312",
+      "text": "Réinitialiser le zoom"
+    },
     "holidayPicker.auto": {
       "jaSha1": "f841a4d98b",
       "text": "Automatique (région de cet appareil : %@)"
@@ -1249,6 +1253,22 @@
       "jaSha1": "1cae18a9a4",
       "text": "OK"
     },
+    "settings.hand.footer": {
+      "jaSha1": "1c0ef85a68",
+      "text": "Si vous choisissez « Main gauche », l’ordre des boutons en haut de l’écran est inversé de gauche à droite, et le bouton rond de la barre d’outils réduite passe en bas à droite. Le papier et ce que vous avez écrit restent tels quels."
+    },
+    "settings.hand.header": {
+      "jaSha1": "64794ce83e",
+      "text": "Main dominante"
+    },
+    "settings.hand.left": {
+      "jaSha1": "679cb7928d",
+      "text": "Main gauche"
+    },
+    "settings.hand.right": {
+      "jaSha1": "01a67595ac",
+      "text": "Main droite"
+    },
     "settings.holidays.footer": {
       "jaSha1": "bb45537547",
       "text": "Les jours fériés japonais sont calculés par cette app (et vérifiés d’après les annonces du Bureau du Cabinet du Japon). Ceux des autres pays viennent de données publiques (python-holidays). Certains, comme les jours fériés des calendriers lunaire et islamique, sont estimés et portent la mention « (estimé) ». Ils peuvent différer des dernières annonces des gouvernements. Le réglage des jours fériés est enregistré seulement sur cet appareil."
@@ -1861,6 +1881,14 @@
       "jaSha1": "cb2be71b20",
       "text": "Si cette option est activée, vous pouvez aussi tracer des traits avec le doigt. Si elle est désactivée, le doigt sert à faire défiler et à toucher"
     },
+    "toolbar.grip.hint": {
+      "jaSha1": "340d32aaed",
+      "text": "Peut être déplacée vers le bord supérieur, inférieur, gauche ou droit de l’écran"
+    },
+    "toolbar.grip.spoken": {
+      "jaSha1": "6bebba3282",
+      "text": "Déplacer la barre d’outils"
+    },
     "toolbar.hint.eraser": {
       "jaSha1": "8b55191d18",
       "text": "Efface le trait touché"
@@ -1881,6 +1909,10 @@
       "jaSha1": "c22a65bde9",
       "text": "Entourez pour choisir.\nGlissez pour déplacer"
     },
+    "toolbar.move.title": {
+      "jaSha1": "b43eacf397",
+      "text": "Déplacer"
+    },
     "toolbar.moveEdge.toLeft": {
       "jaSha1": "3390912dcc",
       "text": "Déplacer en bas à gauche"
@@ -1888,6 +1920,22 @@
     "toolbar.moveEdge.toRight": {
       "jaSha1": "c37ead3ae2",
       "text": "Déplacer en bas à droite"
+    },
+    "toolbar.moveTo.bottom": {
+      "jaSha1": "3b6c5b6324",
+      "text": "Déplacer en bas"
+    },
+    "toolbar.moveTo.left": {
+      "jaSha1": "4ff434d894",
+      "text": "Déplacer à gauche"
+    },
+    "toolbar.moveTo.right": {
+      "jaSha1": "f4cd68abb2",
+      "text": "Déplacer à droite"
+    },
+    "toolbar.moveTo.top": {
+      "jaSha1": "e500829f4a",
+      "text": "Déplacer en haut"
     },
     "toolbar.pin": {
       "jaSha1": "16d003ddf3",

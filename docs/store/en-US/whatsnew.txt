@@ -1,4 +1,6 @@
-• The app now adjusts its layout to the large screen of iPhone Duo.
-• The app has moved to the new development environment for iOS 27. How you use it on iPad and other iPhone models stays the same.
+• Moved “‹ Today ›” at the top of the screen to the right end and placed the date at the left end.
+• After you zoom in or out, a single button now resets the zoom. On day and week pages, the page for one day or one week fits the width of the screen exactly; month and year pages go back to the size they had when you opened them.
+• Added “Dominant Hand” to Settings. If you choose “Left Hand”, the order of the buttons at the top of the screen is reversed from left to right.
+• On iPad, you can now use your finger to move the toolbar to the top, bottom, left or right edge.
 
 Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.

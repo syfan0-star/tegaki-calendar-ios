@@ -22,6 +22,21 @@ import UIKit
 /// fade out; every iPhone and every iPad window at least 334 pt wide shows at least what 1.0.1
 /// showed (in a narrower iPad window the end of 「予定」 fades, and at 320 pt its last 1 pt is cut).
 /// The height is unchanged (44 + 8 + 8).
+///
+/// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.8, 0e-19): `axis`. `.horizontal`, the default, is the bar above, its code
+/// path and its callers unchanged. `.vertical` is the bar of a left or right placement: a 60 pt column (6 + 48 + 6) as
+/// tall as its slot, the same material, corners and shadow; a ScrollView from the top with the tools, the colours as
+/// 44 × 38 swatches, 細中太 (the pen only), ↶ ↷ and an icon-only 「指でも書く」, its last 12 pt fading out; 「しまう」 under a
+/// divider outside the scroll. The eraser's, the lasso's and the 予定 tool's hint lines are not drawn there: they are
+/// those tool buttons' VoiceOver hints. Every identifier is the same (`tool.pen`).
+///
+/// 1.4.1's second rework (docs/R1_4_1_CONTRACT.md §17.2): `move`, a 「動かす」 button just before 「しまう」, outside the scroll
+/// after the same divider ([row | divider | 動かす | しまう] across, the same one under the other upright), with 「しまう」's face
+/// (`buttonFace`: `arrow.up.and.down.and.arrow.left.and.right` over 「動かす」, 48 wide, 44 tall, nothing between the two): the
+/// row is 48 pt narrower (the upright column 44 pt shorter), the bar's height the same. `PaletteMoveButtonView` lies over the
+/// face and takes its touches (a tap opens the choice of edges, the `confirmationDialog` here; on the open bar a drag is the
+/// grip's, on a peek it is a tap only: `drags`, §18.2) and is its one VoiceOver element. nil, the default, is the bar before
+/// it: the screen passes it where `ToolbarLogic.showsMoveButton` allows, the open bar and (§18.2) the peek (every iPhone keeps 1.4's bar).
 struct ToolbarView: View {
     @Binding var tool: CanvasTool
     @Binding var allowFinger: Bool
@@ -34,6 +49,10 @@ struct ToolbarView: View {
     var onCollapse: () -> Void = {}
     /// 1.1: the ink the eraser returns to after it erased (§2.4); nil = no bracket in the hint.
     var eraserReturnsTo: CanvasTool? = nil
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.8): `.vertical` for a bar on the left or the right edge.
+    var axis: Axis = .horizontal
+    /// 1.4.1's second rework (§17.2, §18.2): the 「動かす」 button before 「しまう」 (the open bar's and a peek's); nil = none, the bar of before.
+    var move: PaletteMoveButtonView? = nil
 
     @AppStorage(ToolbarPalette.penColorKey) private var penColorHex: String = ToolbarPalette.penColors[0].hex
     // Double, not CGFloat: AppStorage only stores Double (CGFloat is a distinct type on 64-bit).
@@ -55,6 +74,15 @@ struct ToolbarView: View {
     }
 
     var body: some View {
+        if axis == .vertical {
+            verticalBar
+        } else {
+            horizontalBar
+        }
+    }
+
+    /// The bar of 1.4 (`axis` `.horizontal`).
+    private var horizontalBar: some View {
         bar
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
@@ -65,15 +93,20 @@ struct ToolbarView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// The scrolling row, with the 「しまう」 button outside it at the right end when asked for (§2.2).
+    /// The scrolling row, with the 「しまう」 button outside it at the right end when asked for (§2.2). 1.4.1's second rework
+    /// (§17.2): `move`'s 「動かす」 between the divider and 「しまう」, the divider's 4 pt before it and nothing after it.
     @ViewBuilder
     private var bar: some View {
         if showsCollapseButton {
             HStack(spacing: 0) {
                 scrollingRow
                 Divider().frame(height: 24)
+                if let move {
+                    moveButton(move)
+                        .padding(.leading, ToolbarLogic.Row.collapseLeading)
+                }
                 collapseButton
-                    .padding(.leading, ToolbarLogic.Row.collapseLeading)
+                    .padding(.leading, move == nil ? ToolbarLogic.Row.collapseLeading : 0)
                     .padding(.trailing, ToolbarLogic.Row.collapseTrailing)
             }
         } else {
@@ -158,6 +191,26 @@ struct ToolbarView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(ToolbarLogic.collapseAccessibilityLabel)
+    }
+
+    /// 1.4.1's second rework (§17.2): 「動かす」 with 「しまう」's face, `PaletteMoveButtonView` over it (the touches and the one
+    /// VoiceOver element; the face is hidden from VoiceOver), and the choice of edges it opens: a `confirmationDialog` from
+    /// the button (a popover on an iPad) titled 「ツールバーを動かす」, one button per choice (「上へ移す」…), each calling
+    /// `move.onMove` (the screen's VoiceOver path, which ignores an edge no longer allowed) and then telling VoiceOver the
+    /// screen changed, as the 「…へ移す」 actions do (`PaletteGripView.PanView.postLayoutChanged`, §4.11).
+    private func moveButton(_ move: PaletteMoveButtonView) -> some View {
+        buttonFace(symbol: PaletteMoveButtonView.symbol, label: ToolbarLogic.moveTitle)
+            .foregroundStyle(Color.primary)
+            .accessibilityHidden(true)
+            .overlay { move }
+            .confirmationDialog(ToolbarLogic.gripAccessibilityLabel, isPresented: move.menuShown, titleVisibility: .visible) {
+                ForEach(move.choices, id: \.self) { edge in
+                    Button(ToolbarLogic.moveToTitle(edge)) {
+                        move.onMove(edge)
+                        PaletteGripView.PanView.postLayoutChanged()
+                    }
+                }
+            }
     }
 
     private var toolButtons: some View {
@@ -314,6 +367,211 @@ struct ToolbarView: View {
                 .lineLimit(1)
         }
         .toggleStyle(.button)
+        .accessibilityHint(L.text("toolbar.fingerToggle.hint"))
+    }
+
+    // MARK: - The vertical bar (1.4.1, docs/R1_4_1_CONTRACT.md §4.8, 0e-19)
+
+    /// The column of a side placement: 60 pt wide (the 6 on each side outside the ScrollView, §4.5), as tall as the slot
+    /// offers; the scrolling column from the top, then 「しまう」 under a divider, outside the scroll (as the row's). 1.4.1's
+    /// second rework (§17.2): `move`'s 「動かす」 between the divider and 「しまう」, as across.
+    private var verticalBar: some View {
+        VStack(spacing: 0) {
+            scrollingColumn
+            if showsCollapseButton {
+                Divider().frame(width: ToolbarLogic.Column.dividerLength)
+                if let move {
+                    moveButton(move)
+                        .frame(width: ToolbarLogic.Column.width)
+                        .padding(.top, ToolbarLogic.Row.collapseLeading)
+                }
+                collapseButton
+                    .frame(width: ToolbarLogic.Column.width)
+                    .padding(.top, move == nil ? ToolbarLogic.Row.collapseLeading : 0)
+                    .padding(.bottom, ToolbarLogic.Row.collapseTrailing)
+            }
+        }
+        .padding(.horizontal, ToolbarLogic.Column.sidePadding)
+        .frame(width: ToolbarLogic.verticalBarWidth)
+        .frame(maxHeight: .infinity)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08))
+        )
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 2)
+    }
+
+    /// The row's pieces one under the other: the tools, the colours (pen and marker), 細中太 (the pen), ↶ ↷ and
+    /// 「指でも書く」, with the row's paddings turned (8 above, 14 under) and its 12 pt fade at the end.
+    private var scrollingColumn: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: ToolbarLogic.Row.groupSpacing) {
+                verticalToolButtons
+                if kind == .pen || kind == .marker {
+                    Divider().frame(width: ToolbarLogic.Column.dividerLength)
+                    verticalColorSwatches
+                }
+                if kind == .pen {
+                    Divider().frame(width: ToolbarLogic.Column.dividerLength)
+                    verticalWidthButtons
+                }
+                Divider().frame(width: ToolbarLogic.Column.dividerLength)
+                verticalHistoryButtons
+                Divider().frame(width: ToolbarLogic.Column.dividerLength)
+                verticalFingerToggle
+            }
+            .frame(width: ToolbarLogic.Column.width)
+            .padding(.top, ToolbarLogic.Row.paddingLeading)
+            .padding(.bottom, ToolbarLogic.Row.paddingTrailing)
+        }
+        .mask {
+            VStack(spacing: 0) {
+                Rectangle()
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: ToolbarLogic.Row.fadeWidth)
+            }
+        }
+    }
+
+    /// The five tools with the row's faces (48 × 44, F-12's names). The hint lines the row shows for the eraser, the
+    /// lasso and the 予定 tool are those buttons' VoiceOver hints here (the same strings; a line break reads as a pause).
+    private var verticalToolButtons: some View {
+        VStack(spacing: 0) {
+            toolButton(.pen, symbol: "pencil.tip", label: L.text("toolbar.tool.pen")) { tool = .ink(penStyle) }
+                .accessibilityIdentifier("tool.pen")
+            toolButton(.marker, symbol: "highlighter", label: L.text("toolbar.tool.marker")) { tool = .ink(markerStyle) }
+            toolButton(.eraser, symbol: "eraser", label: L.text("toolbar.tool.eraser")) { tool = .eraser }
+                .accessibilityHint(ToolbarLogic.eraserBarHint(returnsTo: eraserReturnsTo))
+            toolButton(.lasso, symbol: "lasso", label: L.text("toolbar.tool.lasso")) { tool = .lasso }
+                .accessibilityHint(ToolbarLogic.lassoBarHint)
+            toolButton(.eventRect, symbol: "calendar.badge.plus", label: L.text("toolbar.tool.event")) { tool = .eventRect }
+                .accessibilityHint(ToolbarLogic.eventBarHint)
+        }
+        .frame(width: ToolbarLogic.Column.width)
+    }
+
+    /// The pen's six colours or the marker's four, as 44 × 38 swatches (nothing for the other tools).
+    @ViewBuilder
+    private var verticalColorSwatches: some View {
+        switch kind {
+        case .pen:
+            VStack(spacing: 0) {
+                ForEach(ToolbarPalette.penColors, id: \.hex) { entry in
+                    verticalSwatch(entry, selected: entry.hex == penStyle.colorHex) {
+                        penColorHex = entry.hex
+                        tool = .ink(penStyle)
+                    }
+                }
+            }
+        case .marker:
+            VStack(spacing: 0) {
+                ForEach(ToolbarPalette.markerColors, id: \.hex) { entry in
+                    verticalSwatch(entry, selected: entry.hex == markerColorHex) {
+                        markerColorHex = entry.hex
+                        tool = .ink(markerStyle)
+                    }
+                }
+            }
+        case .eraser, .lasso, .eventRect:
+            EmptyView()
+        }
+    }
+
+    /// The row's swatch (`swatch`) in a 44 × 38 cell.
+    private func verticalSwatch(_ entry: ToolbarPalette.Entry, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(Color(uiColor: PaperPalette.color(hex: entry.hex)))
+                    .frame(width: 24, height: 24)
+                    .overlay(Circle().strokeBorder(Color.black.opacity(0.15)))
+                if selected {
+                    Circle()
+                        .strokeBorder(Color.accentColor, lineWidth: 2.5)
+                        .frame(width: 32, height: 32)
+                }
+            }
+            .frame(width: ToolbarLogic.Column.swatchWidth, height: ToolbarLogic.Column.swatchHeight)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(entry.name)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    /// 細中太 one under the other: the row's faces (`widthButtons`) as wide as the column, 44 tall.
+    private var verticalWidthButtons: some View {
+        VStack(spacing: 0) {
+            ForEach(ToolbarPalette.penWidths, id: \.width) { entry in
+                let selected = abs(entry.width - penStyle.width) < 0.001
+                Button {
+                    penWidth = Double(entry.width)
+                    tool = .ink(penStyle)
+                } label: {
+                    VStack(spacing: 3) {
+                        Capsule()
+                            .fill(Color.primary)
+                            .frame(width: 22, height: max(2, entry.width * 1.2))
+                        rowLabel(entry.name)
+                    }
+                    .frame(width: ToolbarLogic.Column.width, height: ToolbarLogic.Column.cellSide)
+                    .foregroundStyle(selected ? Color.accentColor : Color.primary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(selected ? Color.accentColor.opacity(0.14) : Color.clear)
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L.format("toolbar.width.spoken", entry.name))
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+    }
+
+    /// ↶ over ↷, 44 × 44 each.
+    private var verticalHistoryButtons: some View {
+        VStack(spacing: 0) {
+            Button(action: onUndo) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(width: ToolbarLogic.Column.cellSide, height: ToolbarLogic.Column.cellSide)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!canUndo)
+            .accessibilityLabel(L.text("toolbar.undo"))
+
+            Button(action: onRedo) {
+                Image(systemName: "arrow.uturn.forward")
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(width: ToolbarLogic.Column.cellSide, height: ToolbarLogic.Column.cellSide)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!canRedo)
+            .accessibilityLabel(L.text("toolbar.redo"))
+        }
+    }
+
+    /// 「指でも書く」 as its `hand.draw` mark only, 44 × 44, lit like a chosen tool while on. The Toggle's name (the
+    /// label's title, read by VoiceOver and the UI tests) and its hint are the row's.
+    private var verticalFingerToggle: some View {
+        Toggle(isOn: $allowFinger) {
+            Label(L.text("toolbar.fingerToggle"), systemImage: "hand.draw")
+                .labelStyle(.iconOnly)
+                .font(.system(size: 18, weight: .medium))
+                .frame(width: ToolbarLogic.Column.cellSide, height: ToolbarLogic.Column.cellSide)
+                .foregroundStyle(allowFinger ? Color.accentColor : Color.primary)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(allowFinger ? Color.accentColor.opacity(0.14) : Color.clear)
+                )
+                .contentShape(Rectangle())
+        }
+        .toggleStyle(.button)
+        .buttonStyle(.plain)
         .accessibilityHint(L.text("toolbar.fingerToggle.hint"))
     }
 }

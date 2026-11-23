@@ -18,7 +18,9 @@ import UIKit
 /// sections of the week start and the holidays after 「カレンダー」, the licences' row in 情報, and on
 /// every screen but a Japanese one the note about the translations under its footer. 1.3 (docs/M7C_CONTRACT.md §3.14,
 /// D3 (3)): the section 「ページ」 between 入力 and 同期, with the one row 「前後のページを横につなげる」
-/// (`AppSettings.pageSpan`).
+/// (`AppSettings.pageSpan`). 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §16.11, 0e-12): 入力 ends with 「利き手」 (右手 / 左手,
+/// `AppSettings.hand`), which also puts the folded toolbar's round button, once, in the bottom corner opposite the writing
+/// hand's palm (P-4).
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
     @ObservedObject var sync: SyncEngine
@@ -67,6 +69,8 @@ struct SettingsScreen: View {
     @State private var eraserAutoReturn: Bool = ScreenshotMode.isActive ? true : AppSettings.eraserAutoReturn
     /// 1.3 (§3.14): 「前後のページを横につなげる」 (`initialPageSpan`).
     @State private var pageSpan: Bool = Self.initialPageSpan(screenshot: ScreenshotMode.isActive)
+    /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1): 「利き手」 (`initialHand`).
+    @State private var hand: Hand = Self.initialHand(screenshot: ScreenshotMode.current)
     /// 1.1 (§5.3): the stroke counts of 情報; nil until `StrokeCensus` has counted (「数えています…」).
     @State private var census: StrokeCensus.Result?
     @State private var confirmEraseStep1 = false
@@ -155,6 +159,41 @@ struct SettingsScreen: View {
             ScreenshotMode.pageSpan = value
         }
         notify(value)
+    }
+
+    // MARK: 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §8.1, 0e-12, 0e-13)
+
+    /// 設定 › 入力: the section 「利き手」's title.
+    static let handHeader = L.text("settings.hand.header")
+    /// Its footnote: what the left hand changes and what it does not. One text for the iPad and the iPhone, so it never
+    /// speaks of the Apple Pencil.
+    static let handFooter = L.text("settings.hand.footer")
+    /// The section's two choices, for the UI tests.
+    static let handIdentifier = "settings.hand"
+
+    /// The name of a choice: 「右手」, 「左手」.
+    static func handName(_ hand: Hand) -> String {
+        switch hand {
+        case .right: return L.text("settings.hand.right")
+        case .left: return L.text("settings.hand.left")
+        }
+    }
+
+    /// The choice as the sheet opens: this device's `AppSettings.hand` (the right hand until the person chooses); in
+    /// screenshot mode `--screenshot-hand` (the right hand without it), without reading the store (§4.10).
+    static func initialHand(screenshot: ScreenshotMode.Config?) -> Hand {
+        guard let screenshot else { return AppSettings.hand }
+        return ScreenshotMode.hand(screenshot, stored: nil)
+    }
+
+    /// The hand was switched to `value` (§4.1, §16.11 question 5, 0e-13): outside screenshot mode it is stored for this device
+    /// (the header, which reads the same key, turns at once), and the folded toolbar's round button goes once to the bottom
+    /// corner opposite the writing hand's palm (`Hand.dockEdge`, P-4: bottom left for the right hand, bottom right for the
+    /// left; a long press or VoiceOver moves it again later, and the last one wins). Screenshot mode stores neither (§4.10).
+    static func handChanged(to value: Hand, screenshot: Bool) {
+        guard !screenshot else { return }
+        AppSettings.hand = value
+        AppSettings.toolbarEdge = value.dockEdge
     }
 
     /// The data section's footer (M4 contract §6.2).
@@ -272,6 +311,10 @@ struct SettingsScreen: View {
                 }
                 .onChange(of: pageSpan) {
                     Self.pageSpanChanged(to: pageSpan, screenshot: ScreenshotMode.isActive, notify: onPageSpanChange)
+                }
+                // 1.4.1 (§4.1): 「利き手」, stored with the round button's corner (not in screenshot mode).
+                .onChange(of: hand) {
+                    Self.handChanged(to: hand, screenshot: ScreenshotMode.isActive)
                 }
                 .task { await openScreenshotPieces() }
                 .onAppear {
@@ -470,6 +513,21 @@ struct SettingsScreen: View {
             Toggle(L.text("settings.input.eraseAfterConvert"), isOn: $eraseInkAfterConvert)
         } footer: {
             Text(L.text("settings.input.eraseAfterConvert.footer"))
+        }
+        // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, 0e-12): the last section of 入力, inside `inputSections`, so the Form's nine
+        // elements, 「ページ」 and screenshot mode's sheets and sections stay 1.3's. Two rows with a check mark.
+        Section {
+            Picker(Self.handHeader, selection: $hand) {
+                Text(Self.handName(.right)).tag(Hand.right)
+                Text(Self.handName(.left)).tag(Hand.left)
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+            .accessibilityIdentifier(Self.handIdentifier)
+        } header: {
+            Text(Self.handHeader)
+        } footer: {
+            Text(Self.handFooter)
         }
     }
 
