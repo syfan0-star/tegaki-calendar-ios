@@ -72,6 +72,18 @@ enum PaperText {
         return pixels / s / z
     }
 
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §4.5, 0f-23): `snap`'s idea for the centre of a dot `diameter` points wide (the memo
+    /// paper's dot grid, `MemoDots`): on the edge between two device pixels when the dot is an even number of pixels wide, on a
+    /// pixel's centre when odd, so the dot covers its pixels the same on every side at every zoom.
+    static func snapDot(_ value: CGFloat, diameter: CGFloat, zoom: CGFloat, scale: CGFloat) -> CGFloat {
+        let z = max(zoom, 0.0001)
+        let s = max(scale, 1)
+        let pixels = value * z * s
+        let odd = Int((diameter * s).rounded()) % 2 != 0
+        let snapped = odd ? floor(pixels) + 0.5 : pixels.rounded()
+        return snapped / s / z
+    }
+
     /// Width of `string` in `font`, rounded up.
     static func width(of string: String, font: UIFont) -> CGFloat {
         guard !string.isEmpty else { return 0 }

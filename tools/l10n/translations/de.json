@@ -1401,6 +1401,26 @@
       "jaSha1": "b18fc2bf4e",
       "text": "Doppeltippen und Drücken folgen den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben"
     },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "Punktraster"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "Das Muster des Papiers in „Notizen“ und „Freie Notizen“. Ihre Handschrift bleibt unverändert. Diese Einstellung gilt pro Gerät."
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "Blanko"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "Liniert"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "Notizpapier"
+    },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
       "text": "App „Einstellungen“ öffnen"

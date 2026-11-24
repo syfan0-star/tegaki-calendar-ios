@@ -7,12 +7,16 @@ import UIKit
 /// `AllDayBandView`), not on the paper: the paper starts at 0:00. 1.3 (docs/M7C_CONTRACT.md §5.2): a week laid
 /// out with its memo (`WeekLayoutInput.freeMemo`) goes on below 24:00 with the free memo 「自由メモ」 (`extra`,
 /// the whole width), drawn by the day's function (`FreeMemoPaper`): the column tints and the time column's
-/// line stop at 24:00, a strong line marks 24:00, ruled lines every 50 lu run to the bottom of the paper (only
-/// ruled lines, the owner's choice Q2 A). A week without the memo is 1.2.3's paper, pixel for pixel.
+/// line stop at 24:00, a strong line marks 24:00, ruled lines every 50 lu run to the bottom of the paper. A week without the
+/// memo is 1.2.3's paper, pixel for pixel. 1.3 drew only ruled lines (the owner's choice Q2 A); since 1.4.2
+/// (docs/R1_4_2_CONTRACT.md §4.4) the memo follows 設定 › 「メモ欄の紙」 (`view.memoPaper`; ruled lines by default), as every
+/// memo area does.
 enum WeekPaper: PaperRenderer {
     static func draw(_ content: WeekPaperContent, in ctx: CGContext, dirty: CGRect, zoom: CGFloat, view: PaperView) {
         let layout = content.layout
         let scale = view.contentScaleFactor
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §4.3): the memo paper's pattern, read once here and passed to the memo.
+        let style = view.memoPaper
         let gutter = PaperSpec.weekGutter
         let width = PaperSpec.weekWidth
         // 1.3: the 24 hours (0:00–24:00), not the whole paper (the same for a week without the memo).
@@ -60,7 +64,7 @@ enum WeekPaper: PaperRenderer {
 
         // 1.3: the week memo below 24:00 (`extra`), the day's free memo.
         if layout.cells[.extra] != nil {
-            FreeMemoPaper.draw(ctx, area: layout.extra, dirty: dirty, zoom: zoom, scale: scale, readable: readable)
+            FreeMemoPaper.draw(ctx, area: layout.extra, dirty: dirty, zoom: zoom, scale: scale, readable: readable, style: style)
         }
 
         // 4. Timed boxes.

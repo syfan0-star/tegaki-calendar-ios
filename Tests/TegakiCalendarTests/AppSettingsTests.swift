@@ -160,7 +160,9 @@ final class AppSettingsTests: XCTestCase {
         let keys = [AppSettings.toolbarCollapsedKey, AppSettings.toolbarEdgeKey, AppSettings.eraserAutoReturnKey,
                     AppSettings.strokeBudgetNoticedKey, ToolbarPalette.penColorKey, ToolbarPalette.penWidthKey,
                     ToolbarPalette.markerColorKey, AppSettings.allowFingerKey, AppSettings.eraseInkAfterConvertKey,
-                    AppSettings.handKey, AppSettings.paletteEdgeKey, AppSettings.zoomFitKey(.week), AppSettings.zoomFitKey(.day)]
+                    AppSettings.handKey, AppSettings.paletteEdgeKey, AppSettings.zoomFitKey(.week), AppSettings.zoomFitKey(.day),
+                    // 1.4.2 (docs/R1_4_2_CONTRACT.md §6.2): the memo paper's pattern.
+                    AppSettings.memoPaperKey]
         XCTAssertEqual(Set(keys).count, keys.count, "every key is its own")
 
         // Collapsed: false (expanded) until written.

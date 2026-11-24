@@ -1401,6 +1401,26 @@
       "jaSha1": "b18fc2bf4e",
       "text": "두 번 탭과 스퀴즈는 iPad의 설정 > Apple Pencil에서 선택한 동작을 따라요"
     },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "도트 격자"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "메모와 자유 메모의 종이 무늬예요. 손글씨는 그대로 남아요. 이 설정은 기기마다 따로 저장해요."
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "무지"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "줄"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "메모란 종이"
+    },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
       "text": "설정 앱 열기"

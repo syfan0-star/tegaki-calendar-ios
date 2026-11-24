@@ -1401,6 +1401,26 @@
       "jaSha1": "b18fc2bf4e",
       "text": "Il doppio tocco e la pressione seguono le azioni scelte in Impostazioni > Apple Pencil su iPad"
     },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "Griglia a punti"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "Il motivo della carta di Note e Note libere. Ciò che ha scritto a mano resta invariato. Questa impostazione vale per ogni singolo dispositivo."
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "Bianca"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "A righe"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "Carta delle note"
+    },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
       "text": "Apri l’app Impostazioni"

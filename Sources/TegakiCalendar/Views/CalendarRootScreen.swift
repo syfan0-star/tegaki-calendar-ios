@@ -490,6 +490,9 @@ struct CalendarRootScreen: View {
         if shot == nil { HolidayChoice.migrateIfNeeded() }
         let startWeekStart = WeekStartChoice.prepareAtLaunch(shot: shot)
         _weekStart = State(initialValue: startWeekStart)
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §4.1, 0f-19): the memo paper's pattern before any paper is made (screenshot mode's
+        // argument, the ruled paper on a test host, else this device's choice).
+        MemoPaperStyle.prepareAtLaunch(shot: shot)
         let holidaysStarted = Date()
         let startHolidays = HolidayChoice.calendar(setting: shot?.holidays ?? HolidayChoice.setting(),
                                                    deviceRegion: Locale.current.region?.identifier,
@@ -948,6 +951,8 @@ struct CalendarRootScreen: View {
         .overlay(alignment: .topLeading) { l10nState }
         // 1.3 (§3.12, the plan §4.3, C3-M4): `span.state` and `span.release`, with the joined pages' arguments only.
         .overlay(alignment: .topLeading) { spanShotElements }
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §6.1): screenshot mode's `memo-paper.state` (MemoPaperUITests).
+        .overlay(alignment: .topLeading) { MemoPaperShotState() }
         // 1.2.1 (docs/R1_2_1.md §2.2): StoreKit's rating prompt when `scheduleReviewRequest` bumps the trigger.
         .modifier(ReviewRequester(trigger: reviewRequestTrigger))
     }

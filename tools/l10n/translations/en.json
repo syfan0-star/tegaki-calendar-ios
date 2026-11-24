@@ -1401,6 +1401,26 @@
       "jaSha1": "b18fc2bf4e",
       "text": "Double-tap and squeeze follow the actions you chose in Settings > Apple Pencil on your iPad."
     },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "Dot Grid"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "The pattern of the paper in Notes and Free Notes. Your handwriting stays as it is. This setting is per device."
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "Blank"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "Lined"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "Notes Paper"
+    },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
       "text": "Open the Settings App"

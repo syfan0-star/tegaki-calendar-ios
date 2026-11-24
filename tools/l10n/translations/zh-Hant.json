@@ -1401,6 +1401,26 @@
       "jaSha1": "b18fc2bf4e",
       "text": "點兩下和擠壓會執行你在 iPad 的「設定」> Apple Pencil 中選擇的動作"
     },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "點陣"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "這是備忘和自由備忘的紙張圖案。手寫內容保持不變。此設定依裝置分別儲存。"
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "空白"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "橫線"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "備忘區紙張"
+    },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
       "text": "打開「設定」App"
