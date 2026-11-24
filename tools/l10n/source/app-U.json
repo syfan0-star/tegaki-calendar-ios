@@ -1733,6 +1733,69 @@
       "args": [],
       "glossary": []
     },
+    "settings.memoPaper.dots": {
+      "ja": "ドット方眼",
+      "target": "app",
+      "comment": "設定 › メモ欄の紙 の選び（1.4.2）。罫線の高さに、横も同じ間隔で小さな点を並べた紙（線のマス目の方眼ではない）。チェックの付く行。英語 Dot Grid。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "where": [
+        "Views/MemoPaperSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "settings.memoPaper.footer": {
+      "ja": "メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。",
+      "target": "app",
+      "comment": "設定 › メモ欄の紙 の説明（1.4.2）。変わるのは紙の柄だけで、手書きは動かない。端末ごとの設定（iCloud で同期しない）。ページの種類を並べない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "where": [
+        "Views/MemoPaperSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "メモ",
+        "自由メモ",
+        "紙",
+        "手書き"
+      ]
+    },
+    "settings.memoPaper.plain": {
+      "ja": "無地",
+      "target": "app",
+      "comment": "設定 › メモ欄の紙 の選び（1.4.2）。線も点も無い紙（見出しと上の区切りの線は残る）。チェックの付く行。英語 Blank。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "where": [
+        "Views/MemoPaperSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "settings.memoPaper.ruled": {
+      "ja": "罫線",
+      "target": "app",
+      "comment": "設定 › メモ欄の紙 の選び（1.4.2）。横の線が 50 ごとに引かれた紙（ふだんの値、1.4.1 までと同じ）。チェックの付く行。英語 Lined。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "where": [
+        "Views/MemoPaperSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "settings.memoPaper.title": {
+      "ja": "メモ欄の紙",
+      "target": "app",
+      "comment": "設定の行の名前（1.4.2）。「祝日」のすぐ下の行で、押すと罫線・ドット方眼・無地から選ぶ画面になる（その画面の題も同じ字）。月のメモ欄・日の右の「メモ」・日と週の 24 時の下の「自由メモ」の紙の柄。英語 Notes Paper（GLOSSARY のメモ = Notes）。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "where": [
+        "Views/MemoPaperSettingsSection.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": [
+        "メモ",
+        "紙"
+      ]
+    },
     "settings.openSettingsApp": {
       "ja": "設定アプリを開く",
       "target": "app",

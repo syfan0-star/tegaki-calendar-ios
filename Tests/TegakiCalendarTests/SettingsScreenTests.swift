@@ -354,6 +354,73 @@ final class SettingsScreenTests: XCTestCase {
         }
     }
 
+    // MARK: - 1.4.2: 設定 › 「メモ欄の紙」 (docs/R1_4_2_CONTRACT.md §4.2, §6.2, §8.1, 0f-20)
+
+    /// The row's words in ja (§8.1, the words of the plan's §2 the owner read), its identifier, and the three choices in the
+    /// order of the type.
+    func testMemoPaperWords() {
+        XCTAssertEqual(MemoPaperSettingsSection.title, "メモ欄の紙")
+        XCTAssertEqual(MemoPaperSettingsSection.name(.ruled), "罫線")
+        XCTAssertEqual(MemoPaperSettingsSection.name(.dots), "ドット方眼")
+        XCTAssertEqual(MemoPaperSettingsSection.name(.plain), "無地")
+        XCTAssertEqual(MemoPaperSettingsSection.footer, "メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。")
+        XCTAssertEqual(MemoPaperSettingsSection.identifier, "settings.memoPaper")
+        XCTAssertEqual(MemoPaperStyle.allCases.map(MemoPaperSettingsSection.name), ["罫線", "ドット方眼", "無地"])
+    }
+
+    /// A choice outside screenshot mode is stored for this device and becomes the pattern in force; in screenshot mode it only
+    /// becomes the pattern in force (mutation MS3: stored there fails here).
+    func testMemoPaperChangeStoresAndSets() throws {
+        let suite = "test-memo-paper-settings-\(UUID())"
+        let scratch = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let saved = AppSettings.defaults
+        AppSettings.defaults = scratch
+        defer {
+            scratch.removePersistentDomain(forName: suite)
+            AppSettings.defaults = saved
+            MemoPaperStyle.set(.ruled)
+        }
+        MemoPaperStyle.set(.ruled)
+        for style in [MemoPaperStyle.dots, .plain, .ruled] {
+            MemoPaperSettingsSection.changed(to: style, screenshot: false)
+            XCTAssertEqual(scratch.string(forKey: AppSettings.memoPaperKey), style.rawValue, "\(style) is stored in AppSettings.defaults")
+            XCTAssertEqual(MemoPaperStyle.current, style)
+        }
+        scratch.removeObject(forKey: AppSettings.memoPaperKey)
+        for style in [MemoPaperStyle.plain, .dots, .ruled] {
+            MemoPaperSettingsSection.changed(to: style, screenshot: true)
+            XCTAssertNil(scratch.object(forKey: AppSettings.memoPaperKey), "\(style): screenshot mode stores nothing")
+            XCTAssertEqual(MemoPaperStyle.current, style, "\(style): the paper changes in memory")
+        }
+    }
+
+    /// The sheet's wiring, which a unit test cannot drive: 「メモ欄の紙」 is the first element of `inputSections` (right below
+    /// 「祝日」, the Form's nine elements unchanged), and its own file is a `.navigationLink` picker over the three patterns with
+    /// the identifier and the footnote, starting at the pattern in force, whose choice goes to `changed` with screenshot mode's
+    /// flag (so `testMemoPaperChangeStoresAndSets` is what the sheet runs).
+    func testMemoPaperSectionIsWired() throws {
+        let screen = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/SettingsScreen.swift")
+        let flat = String(WeekMemoSpanTests.codeOnly(try String(contentsOf: screen, encoding: .utf8)))
+            .split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let inputStart = try XCTUnwrap(flat.range(of: "private var inputSections: some View {"))
+        let input = String(flat[inputStart.upperBound...])
+        XCTAssertTrue(input.hasPrefix(" MemoPaperSettingsSection() Section { Toggle("), "the first element of inputSections: \(input.prefix(80))")
+        XCTAssertEqual(flat.components(separatedBy: "MemoPaperSettingsSection()").count - 1, 1, "once")
+        XCTAssertFalse(flat.contains("AppSettings.memoPaperKey"), "the screen itself stores nothing")
+
+        let file = Self.repository.appendingPathComponent("Sources/TegakiCalendar/Views/MemoPaperSettingsSection.swift")
+        let section = String(WeekMemoSpanTests.codeOnly(try String(contentsOf: file, encoding: .utf8)))
+            .split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        for piece in ["@State private var style: MemoPaperStyle = MemoPaperStyle.current",
+                      "Picker(Self.title, selection: selection) { ForEach(MemoPaperStyle.allCases, id: \\.self) { choice in Text(Self.name(choice)).tag(choice) } }",
+                      ".pickerStyle(.navigationLink)", ".accessibilityIdentifier(Self.identifier)", "} footer: { Text(Self.footer) }",
+                      "Self.changed(to: next, screenshot: ScreenshotMode.isActive)",
+                      "if !screenshot { defaults.set(value.rawValue, forKey: AppSettings.memoPaperKey) } MemoPaperStyle.set(value)"] {
+            XCTAssertTrue(section.contains(piece), piece)
+        }
+        XCTAssertFalse(section.contains("header:"), "no header (§4.2)")
+    }
+
     private static let repository = URL(fileURLWithPath: "\(#filePath)")
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 }

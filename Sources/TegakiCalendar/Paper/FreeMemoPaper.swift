@@ -17,8 +17,11 @@ enum FreeMemoPaper {
 
     /// The free memo area `area` (paper units of the page; the whole width of the page, from 24:00 down) at
     /// `zoom`, the hairlines snapped for `scale`, the label sized for the page's readable zoom `readable`.
-    /// Nothing for an empty area.
-    static func draw(_ ctx: CGContext, area: CGRect, dirty: CGRect, zoom: CGFloat, scale: CGFloat, readable: CGFloat) {
+    /// Nothing for an empty area. 1.4.2 (docs/R1_4_2_CONTRACT.md §4.3, §4.4, 0f-22): `style` is the memo paper's pattern,
+    /// which the page's renderer read from its view (`view.memoPaper`); no default value, so a caller that forgets it does not
+    /// compile (the day's `drawExtra` and the week's memo both pass it; mutation MM5).
+    static func draw(_ ctx: CGContext, area: CGRect, dirty: CGRect, zoom: CGFloat, scale: CGFloat, readable: CGFloat,
+                     style: MemoPaperStyle) {
         guard area.height > 0, area.width > 0 else { return }
 
         ctx.setLineWidth(PaperText.hairline(zoom))
@@ -29,7 +32,16 @@ enum FreeMemoPaper {
             ctx.strokePath()
         }
 
-        ruledLines(ctx, area: area, dirty: dirty, zoom: zoom, scale: scale)
+        switch style {
+        case .ruled:
+            ruledLines(ctx, area: area, dirty: dirty, zoom: zoom, scale: scale)
+        case .dots:
+            // 1.4.2: the rows of the ruled lines, the grid's columns (30…980 on a day, 30…1,380 on a week).
+            MemoDots.draw(ctx, top: area.minY, bottom: area.maxY, left: area.minX, right: area.maxX, inset: PaperSpec.dayRuleInset,
+                          rowStep: PaperSpec.dayRuleStep, dirty: dirty, zoom: zoom, scale: scale)
+        case .plain:
+            break
+        }
 
         let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom, readable: readable)
         let labelFont = UIFont.systemFont(ofSize: labelSize, weight: .semibold)
@@ -41,7 +53,7 @@ enum FreeMemoPaper {
 
     /// The ruling of the area (1.3: lines every `dayRuleStep` lu, inset `dayRuleInset` on both sides, in the
     /// line width `draw` set): the one place a later paper of the memo area changes its pattern
-    /// (docs/PLAN_MEMO_PAPER.md §5.2).
+    /// (docs/PLAN_MEMO_PAPER.md §5.2). 1.4.2 (docs/R1_4_2_CONTRACT.md §4.4): the ruled paper's branch of `draw`, unchanged.
     private static func ruledLines(_ ctx: CGContext, area: CGRect, dirty: CGRect, zoom: CGFloat, scale: CGFloat) {
         ctx.setStrokeColor(PaperPalette.rule.cgColor)
         ctx.beginPath()

@@ -92,6 +92,10 @@ import UIKit
 /// (a number is read as before). Without it nothing changes: no photo of J-4, gate 3, blank-paper or span-shots-app passes it.
 /// Screenshot mode never writes `zoomFit.<kind>` and never uses it: the screen reads the key only to pass it as `stored:`,
 /// which `zoomFit(_:kind:stored:)` ignores there.
+/// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §4.1, §4.7): `--screenshot-memo-paper ruled|dots|plain` draws the memo areas with that
+/// pattern (`memoPaper`, `MemoPaperStyle.prepareAtLaunch`), for the photos of the memo paper (memo-paper-shots) and the UI test
+/// of the setting; without it, or with an unknown value, the ruled paper, whatever the simulator stored (J-4's photos stay
+/// ruled). Screenshot mode never reads or writes `paper.memoStyle`: 設定 › 「メモ欄の紙」 there changes the pattern in memory only.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -292,6 +296,11 @@ enum ScreenshotMode {
         /// 「動かす」 button's choice of edges once the button shows (a window that allows two edges or more). Off by default,
         /// so the Config of every earlier argument is the same value as before.
         var paletteMenu: Bool = false
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §4.7). Nil by default: the Config of every earlier argument is the same value as
+        // before.
+        /// `--screenshot-memo-paper ruled|dots|plain`: the memo areas' pattern (`MemoPaperStyle.prepareAtLaunch`); nil (no value
+        /// or an unknown one) = the ruled paper. Screenshot mode never reads or writes `paper.memoStyle`.
+        var memoPaper: MemoPaperStyle? = nil
 
         /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
         var joinsPages: Bool {
@@ -475,10 +484,16 @@ enum ScreenshotMode {
         }
         // 1.4.1's second rework (§17.4): the 「動かす」 button's choice of edges, open for its photo.
         let paletteMenu = arguments.contains("--screenshot-palette-menu")
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §4.7): the memo paper's pattern. A missing or unknown value is nil (the ruled paper).
+        var memoPaper: MemoPaperStyle?
+        if let index = arguments.firstIndex(of: "--screenshot-memo-paper"), index + 1 < arguments.count {
+            memoPaper = MemoPaperStyle(rawValue: arguments[index + 1])
+        }
         return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
                       span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection,
                       measure: measure, pencilPhone: pencilPhone,
-                      hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit, paletteMenu: paletteMenu)
+                      hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit, paletteMenu: paletteMenu,
+                      memoPaper: memoPaper)
     }
 
     /// 1.4.1's rework (§16.3.7): the value of `--screenshot-zoom` that is 等倍 (`Config.zoomFit`) rather than a ratio.

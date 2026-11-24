@@ -17,7 +17,7 @@ enum MonthPaper: PaperRenderer {
         let scale = view.contentScaleFactor
         drawTints(ctx, content: content, dirty: dirty)
         drawGridLines(ctx, layout: content.layout, zoom: zoom, scale: scale)
-        drawMemoArea(ctx, layout: content.layout, dirty: dirty, zoom: zoom, scale: scale)
+        drawMemoArea(ctx, layout: content.layout, dirty: dirty, zoom: zoom, scale: scale, style: view.memoPaper)
         drawDateLabels(ctx, content: content, dirty: dirty, zoom: zoom)
         drawAllDayBars(ctx, content: content, dirty: dirty, zoom: zoom)
         drawTimedChips(ctx, content: content, dirty: dirty, zoom: zoom)
@@ -59,7 +59,11 @@ enum MonthPaper: PaperRenderer {
         ctx.strokePath()
     }
 
-    private static func drawMemoArea(_ ctx: CGContext, layout: MonthPageLayout, dirty: CGRect, zoom: CGFloat, scale: CGFloat) {
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §4.4, 0f-22): the pattern under the separator follows `style` (`view.memoPaper`): the
+    /// ruled lines exactly as before (the same calls in the same order), the dots of 「ドット方眼」 on the same rows
+    /// (`MemoDots`), or nothing. The separator and the label 「メモ」 are drawn for every pattern.
+    private static func drawMemoArea(_ ctx: CGContext, layout: MonthPageLayout, dirty: CGRect, zoom: CGFloat, scale: CGFloat,
+                                     style: MemoPaperStyle) {
         let memo = layout.memo
         guard memo.height > 0 else { return }
         let width = PaperSpec.monthWidth
@@ -71,17 +75,26 @@ enum MonthPaper: PaperRenderer {
         PaperText.addHorizontal(ctx, y: memo.minY, from: 0, to: width, zoom: zoom, scale: scale)
         ctx.strokePath()
 
-        // Faint ruled lines every 50 lu, inset 20 lu on both sides.
-        ctx.setStrokeColor(PaperPalette.rule.cgColor)
-        ctx.beginPath()
-        var y = memo.minY + ruleStep
-        while y < memo.maxY {
-            if y >= dirty.minY - 1, y <= dirty.maxY + 1 {
-                PaperText.addHorizontal(ctx, y: y, from: ruleInset, to: width - ruleInset, zoom: zoom, scale: scale)
+        switch style {
+        case .ruled:
+            // Faint ruled lines every 50 lu, inset 20 lu on both sides.
+            ctx.setStrokeColor(PaperPalette.rule.cgColor)
+            ctx.beginPath()
+            var y = memo.minY + ruleStep
+            while y < memo.maxY {
+                if y >= dirty.minY - 1, y <= dirty.maxY + 1 {
+                    PaperText.addHorizontal(ctx, y: y, from: ruleInset, to: width - ruleInset, zoom: zoom, scale: scale)
+                }
+                y += ruleStep
             }
-            y += ruleStep
+            ctx.strokePath()
+        case .dots:
+            // 1.4.2: a dot on the grid's columns (x 30…1,380) on every row of the ruled lines.
+            MemoDots.draw(ctx, top: memo.minY, bottom: memo.maxY, left: 0, right: width, inset: ruleInset, rowStep: ruleStep,
+                          dirty: dirty, zoom: zoom, scale: scale)
+        case .plain:
+            break
         }
-        ctx.strokePath()
 
         // Small 「メモ」 label at the top-left, as on the web version.
         let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom, readable: readable)

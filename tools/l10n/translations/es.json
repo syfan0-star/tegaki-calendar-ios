@@ -1401,6 +1401,26 @@
       "jaSha1": "b18fc2bf4e",
       "text": "El doble toque y el gesto de apretar siguen las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad"
     },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "Cuadrícula de puntos"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "El diseño del papel de Notas y Notas libres. Lo escrito a mano no cambia. Este ajuste es propio de cada dispositivo."
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "Liso"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "Rayado"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "Papel de notas"
+    },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
       "text": "Abrir la app Ajustes"

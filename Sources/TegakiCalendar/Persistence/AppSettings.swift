@@ -21,7 +21,9 @@ import Layout
 /// so the guide shows once more after the app turned 「指でも書く」 off; `isExistingUser`'s three keys do not change.
 /// 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §4.1, 0e-12) adds the hand the header is laid out for (`layout.hand`, `Hand`), and
 /// (§4.10, 0e-21) the edge the open toolbar was moved to on an iPad (`toolbar.paletteEdge`, `PaletteEdge`), and (§16.3.4)
-/// whether the week and the day are kept at 等倍 (`zoomFit.<kind>`).
+/// whether the week and the day are kept at 等倍 (`zoomFit.<kind>`). 1.4.2 (docs/R1_4_2_CONTRACT.md §4.1, 0f-19) adds the memo
+/// paper's pattern (`paper.memoStyle`, `MemoPaperStyle`); the six pen dots' colours stay with the toolbar (`toolbar.penSlots`,
+/// as `toolbar.penColor`, 0-13).
 enum AppSettings {
     /// `String?`: the `calendarIdentifier` new events go to; nil → `EKEventStore.defaultCalendarForNewEvents`.
     static let defaultCalendarIdKey = "defaultCalendarId"
@@ -72,6 +74,12 @@ enum AppSettings {
     /// at a drop or a VoiceOver action, never in screenshot mode. The screen shows it only where it is allowed
     /// (`ToolbarLogic.effectiveEdge`), so a narrow window keeps the bottom without overwriting it.
     static let paletteEdgeKey = "toolbar.paletteEdge"
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §4.1, §4.2, 0f-19): `String` "ruled" / "dots" / "plain", 設定 › 「メモ欄の紙」; missing or
+    /// any other value → ruled (`MemoPaperStyle(stored:)`). Per device (UserDefaults, CA92.1), never sent to iCloud, never in
+    /// an export or a PDF's data; not one of `isExistingUser`'s keys and never migrated. Written only by the settings outside
+    /// screenshot mode (`MemoPaperSettingsSection.changed`); read once at launch (`MemoPaperStyle.prepareAtLaunch`), never in
+    /// screenshot mode or on a test host.
+    static let memoPaperKey = "paper.memoStyle"
     /// 1.1 (§5.2, M7A-7): `[String]`, the page ids whose 15,000-stroke notice this device showed,
     /// oldest first, at most `strokeBudgetNoticedLimit` (the oldest are dropped).
     static let strokeBudgetNoticedKey = "strokeBudget.noticedPages"

@@ -20065,6 +20065,336 @@
         }
       }
     },
+    "settings.memoPaper.dots" : {
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。罫線の高さに、横も同じ間隔で小さな点を並べた紙（線のマス目の方眼ではない）。チェックの付く行。英語 Dot Grid。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Punktraster"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dot Grid"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuadrícula de puntos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Points"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Griglia a punti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドット方眼"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도트 격자"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grade de pontos"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点阵"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點陣"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.footer" : {
+      "comment" : "設定 › メモ欄の紙 の説明（1.4.2）。変わるのは紙の柄だけで、手書きは動かない。端末ごとの設定（iCloud で同期しない）。ページの種類を並べない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Muster des Papiers in „Notizen“ und „Freie Notizen“. Ihre Handschrift bleibt unverändert. Diese Einstellung gilt pro Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The pattern of the paper in Notes and Free Notes. Your handwriting stays as it is. This setting is per device."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El diseño del papel de Notas y Notas libres. Lo escrito a mano no cambia. Este ajuste es propio de cada dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le motif du papier des Notes et des Notes libres. Votre écriture manuscrite reste telle quelle. Ce réglage est propre à chaque appareil."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il motivo della carta di Note e Note libere. Ciò che ha scritto a mano resta invariato. Questa impostazione vale per ogni singolo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메모와 자유 메모의 종이 무늬예요. 손글씨는 그대로 남아요. 이 설정은 기기마다 따로 저장해요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O padrão do papel de Notas e Notas livres. O que você escreveu à mão continua igual. Este ajuste é de cada dispositivo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是备忘和自由备忘的纸张图案。手写内容保持不变。此设置按设备分别保存。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這是備忘和自由備忘的紙張圖案。手寫內容保持不變。此設定依裝置分別儲存。"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.plain" : {
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。線も点も無い紙（見出しと上の区切りの線は残る）。チェックの付く行。英語 Blank。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blanko"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blank"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uni"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bianca"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無地"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무지"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空白"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空白"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.ruled" : {
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。横の線が 50 ごとに引かれた紙（ふだんの値、1.4.1 までと同じ）。チェックの付く行。英語 Lined。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liniert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lined"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rayado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ligné"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A righe"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "罫線"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "줄"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pautado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横线"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "橫線"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.title" : {
+      "comment" : "設定の行の名前（1.4.2）。「祝日」のすぐ下の行で、押すと罫線・ドット方眼・無地から選ぶ画面になる（その画面の題も同じ字）。月のメモ欄・日の右の「メモ」・日と週の 24 時の下の「自由メモ」の紙の柄。英語 Notes Paper（GLOSSARY のメモ = Notes）。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizpapier"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes Paper"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papel de notas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papier des notes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carta delle note"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ欄の紙"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메모란 종이"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papel das notas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备忘区纸张"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備忘區紙張"
+          }
+        }
+      }
+    },
     "settings.openSettingsApp" : {
       "comment" : "ボタン。iOS の「設定」アプリを開く",
       "extractionState" : "manual",

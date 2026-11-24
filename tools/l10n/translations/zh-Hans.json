@@ -1401,6 +1401,26 @@
       "jaSha1": "b18fc2bf4e",
       "text": "轻点两下和轻捏会执行你在 iPad 的“设置” > Apple Pencil 中选择的操作"
     },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "点阵"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "这是备忘和自由备忘的纸张图案。手写内容保持不变。此设置按设备分别保存。"
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "空白"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "横线"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "备忘区纸张"
+    },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
       "text": "打开“设置” App"

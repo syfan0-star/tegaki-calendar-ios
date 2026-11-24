@@ -20,7 +20,8 @@ import UIKit
 /// D3 (3)): the section 「ページ」 between 入力 and 同期, with the one row 「前後のページを横につなげる」
 /// (`AppSettings.pageSpan`). 1.4.1 (docs/R1_4_1_CONTRACT.md §4.1, §16.11, 0e-12): 入力 ends with 「利き手」 (右手 / 左手,
 /// `AppSettings.hand`), which also puts the folded toolbar's round button, once, in the bottom corner opposite the writing
-/// hand's palm (P-4).
+/// hand's palm (P-4). 1.4.2 (docs/R1_4_2_CONTRACT.md §4.2, 0f-20): 「メモ欄の紙」 (`MemoPaperSettingsSection`, 罫線 / ドット方眼 /
+/// 無地) is the first element of `inputSections`, right below 「祝日」 on the sheet.
 struct SettingsScreen: View {
     @ObservedObject var model: EventStoreModel
     @ObservedObject var sync: SyncEngine
@@ -485,6 +486,9 @@ struct SettingsScreen: View {
 
     @ViewBuilder
     private var inputSections: some View {
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §4.2, 0f-20): 「メモ欄の紙」 right below 「祝日」, inside `inputSections` (as 1.4.1's 「利き手」),
+        // so the Form's nine elements, 「ページ」 and screenshot mode's sheets and sections stay as they were.
+        MemoPaperSettingsSection()
         Section {
             Toggle(L.text("settings.input.allowFinger"), isOn: $allowFinger)
         } header: {
