@@ -73,6 +73,14 @@
 # the quick lane r141-quick and r141-q-* (QUICK), the app's mutations on r141-q-m1 (MUTATIONS), the language photos on
 # r141, and the branches r141-duo* left to duo.yml. J-4's reference for 1.4.1 is tools/l10n/ja-baseline-ref-1.4.1.txt
 # (2fb8fb1, TestFlight 1.4 build 28).
+# 1.4.2's D0 (docs/R1_4_2_CONTRACT.md §6.5, §9.1 D0, 0f-27, 0f-28; CI only): the names of 1.4 and 1.4.1 are kept and
+# 1.4.2's are added the same way — the quick lane r142-quick and r142-q-* and, new in 1.4.2, the work branches r142-w-*
+# (QUICK: a work branch pushed for its own check runs the quick lane only and never a full run; in 1.4.1 a push of an
+# r141-w-* branch started a full run that took the runners of another, docs/R1_4_1.md, P1), the app's mutations on
+# r142-q-m1 (MUTATIONS; compat-v1.0 runs there too), the language photos on r142, and the branches r142-duo* left to
+# duo.yml. The quick lane also names 1.4.2's new unit test classes (§6.1), and the 16 test files 1.4.1 added are frozen at
+# the bytes of fbd1f7a in tools/span/TESTS_1_4_1.sha256 (§5.5). J-4's reference for 1.4.2 is
+# tools/l10n/ja-baseline-ref-1.4.2.txt (fbd1f7a, 1.4.1's build 31).
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -91,6 +99,8 @@ on:
       - 'r14-duo*'
       # 1.4.1 (docs/R1_4_1_CONTRACT.md, D0): the same for r141-duo*.
       - 'r141-duo*'
+      # 1.4.2 (docs/R1_4_2_CONTRACT.md §6.5, D0): the same for r142-duo*.
+      - 'r142-duo*'
   pull_request:
 
 concurrency:
@@ -146,13 +156,15 @@ jobs:
       # everything.
       # 1.4 (docs/M7D_CONTRACT.md §3.10): also on r14-quick and r14-q-<name> (D1's lane, and r14-q-m1 for the app's
       # mutations, §6); r13's names stay.
-      QUICK: ${{ github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') }}
+      # 1.4.2 (docs/R1_4_2_CONTRACT.md §6.5, 0f-27): also on r142-quick, r142-q-<name> and the work branches r142-w-<name>
+      # (a role's branch, pushed for its own check: the quick lane only, never a full run); the older names stay.
+      QUICK: ${{ github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-') }}
       # 1.4 (docs/M7D_CONTRACT.md §3.10, §5.3 6, §6): "true" on r14-q-m1 only, the quick branch that holds all the app's
       # mutations at once. They are caught by unit test classes that are not Span ones (WindowClassTests, PencilPhoneTests,
       # CappedOverviewWideTests, DuoFoldTests, …) and by compat-v1.0 (Real13LedgerTests), so there "Run unit tests on the
       # simulator" runs every class and compat-v1.0 runs; the photos, the repeated sync engine tests and the other jobs stay
-      # off, as on every quick branch.
-      MUTATIONS: ${{ github.ref_name == 'r14-q-m1' || github.ref_name == 'r141-q-m1' }}
+      # off, as on every quick branch. 1.4.2 (docs/R1_4_2_CONTRACT.md §6.4, §6.5): r142-q-m1 the same way.
+      MUTATIONS: ${{ github.ref_name == 'r14-q-m1' || github.ref_name == 'r141-q-m1' || github.ref_name == 'r142-q-m1' }}
       # J-4 (docs/M7B_CONTRACT.md §1.3, §7.5, 0-25): every screenshot launch ends with these, as in
       # ja-baseline.yml (the runner's simulator is English; without them the app would be in English since
       # 1.2 and the kanji would fall back to PingFang SC). Expanded unquoted on purpose: four words, none
@@ -467,6 +479,18 @@ jobs:
           set -euo pipefail
           shasum -a 256 -c tools/span/TESTS_1_3.sha256
 
+      # 1.4.2 (docs/R1_4_2_CONTRACT.md §5.5, 0f-28): the 16 test files that 1.4.1 added and 1.4.2 has no reason to rewrite
+      # (13 unit tests: the header, the hand, 等倍, the toolbar's edge, grip and 「動かす」, the screenshot mode's hand and
+      # palette; 3 UI tests: HeaderRoomUITests, PaletteMoveUITests, ZoomResetUITests) are the bytes of fbd1f7a (1.4.1 as
+      # released, build 31), so 1.4.2's work on ToolbarView, ToolbarLogic and CalendarRootScreen never passes by weakening
+      # them: a test of the table that fails is answered in the code, and a test found wrong stops the work for the lead's
+      # decision (§5.5). Left out: PaletteShotsUITests (1.4.2 adds its photos) and the files 1.4.1 rewrote. 16 rows, each made
+      # from fbd1f7a's blob with M7D_CONTRACT §5.5's printf line, sorted; TESTS_1_3, TESTS_1_2_3 and FIXTURES_1_3 stay.
+      - name: 1.4.1 tests frozen (1.4.2)
+        run: |
+          set -euo pipefail
+          shasum -a 256 -c tools/span/TESTS_1_4_1.sha256
+
       # 1.4 (§5.5): every file of the folders compat11, compat-span (with its MANIFEST) and CompatFixtures and the two
       # EXPECTED_MIN are the bytes of 955fe67 (37 rows; until 1.4 only Compat10's FROZEN.sha256, DATA_1_1 and TESTS_1_2_3
       # were checked by hash, and the JSON could be written again from TEGAKI_FIXTURE_OUT). The three folders also hold
@@ -661,6 +685,13 @@ jobs:
       # (§16.5, §16.6, §16.8): ZoomResetTargetTests (等倍's target of each kind, role Z) and ZoomFitWiringTests (the screen's
       # 等倍 of the week and the day: ScreenPaths' `fit:`, `--screenshot-zoom fit`, the two canvases' wires, role S). The
       # second rework (§17.4): PaletteMoveButtonTests (the 「動かす」 button: where it shows, tap or drag, the choices, VoiceOver).
+      # 1.4.2 (docs/R1_4_2_CONTRACT.md §6.1, §6.5, 0f-27): the quick lane (r142-quick, r142-q-*, r142-w-*) also runs 1.4.2's
+      # new classes, each by its whole name: PenSlotsTests, ColorPanelLogicTests, ColorPanelWatchTests, SwatchRimTests,
+      # ColorPanelFitTests and InkColorRoundTripTests (the pen colours, role T), ColorPanelWiringTests and
+      # ScreenshotModeColorMemoTests (the screen, role S), MemoPaperStyleTests, MemoPaperDrawTests and MemoPaperRedrawTests
+      # (the memo paper, role M). D0 names them before they are written; a class not written yet is not found and not run.
+      # The classes 1.4.2 only adds to (ToolbarLogicTests, AppSettingsTests, SettingsScreenTests, §6.2) run off the quick
+      # lane and on r142-q-m1.
       # 1.4 D0c (docs/M7D_CONTRACT.md §3.8; docs/M7D.md, D0c): xcodebuild boots the 13-inch iPad here itself again, as
       # until D0. D0b booted it with simctl in the background from the job's start (a step "Boot the 13-inch iPad in the
       # background" and a wait here, both removed in D0c). That boot took 129 s, but the macOS steps beside it ran 3 to 19
@@ -679,11 +710,11 @@ jobs:
           mkdir -p shots/fixtures
           ONLY=""
           if [ "$QUICK" = "true" ] && [ "$MUTATIONS" = "true" ]; then
-            echo "the quick lane on the mutation branch ($GITHUB_REF_NAME; the app's mutations, docs/M7D_CONTRACT.md §6, docs/R1_4_1_CONTRACT.md): every unit test class"
+            echo "the quick lane on the mutation branch ($GITHUB_REF_NAME; the app's mutations, docs/M7D_CONTRACT.md §6, docs/R1_4_1_CONTRACT.md, docs/R1_4_2_CONTRACT.md §6.4): every unit test class"
           elif [ "$QUICK" = "true" ]; then
             CLASSES="$(grep -rhE '^(@[A-Za-z]+ +)*(final +)?class +[A-Za-z0-9_]+ *:' Tests/TegakiCalendarTests \
               | sed -E 's/^(@[A-Za-z]+ +)*(final +)?class +([A-Za-z0-9_]+).*/\3/' \
-              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests|HeaderOrderTests|HandSettingTests|ScreenshotModeHandPaletteTests|HeaderGlyphTests|InkCanvasZoomResetTests|InkCanvasSpanZoomResetTests|InkCanvasWidthCentreTests|ToolbarPlacementTests|PaletteGripTests|HeaderTitleTests|ZoomResetTargetTests|ZoomFitWiringTests|PaletteMoveButtonTests)$' | sort -u || true)"
+              | grep -E '(SpanTests|SpanSessionTests|ScreenEraseTests|OnePageSession[A-Za-z0-9_]*Tests|SettingsPageSectionTests)$|^(WindowClassTests|PencilPhoneTests|CappedOverviewWideTests|OnePageRevealTests|SnapshotScaleTests|DuoFoldTests|PaperViewScaleTests|MeasureLineFileTests|PageHeaderRoomTests|HeaderOrderTests|HandSettingTests|ScreenshotModeHandPaletteTests|HeaderGlyphTests|InkCanvasZoomResetTests|InkCanvasSpanZoomResetTests|InkCanvasWidthCentreTests|ToolbarPlacementTests|PaletteGripTests|HeaderTitleTests|ZoomResetTargetTests|ZoomFitWiringTests|PaletteMoveButtonTests|PenSlotsTests|ColorPanelLogicTests|ColorPanelWatchTests|SwatchRimTests|ColorPanelFitTests|InkColorRoundTripTests|ColorPanelWiringTests|ScreenshotModeColorMemoTests|MemoPaperStyleTests|MemoPaperDrawTests|MemoPaperRedrawTests)$' | sort -u || true)"
             if [ -z "$CLASSES" ]; then
               echo "::notice::the quick lane: no Span or 1.4 test class in Tests/TegakiCalendarTests yet; the app's unit tests are not run"
               exit 0
@@ -1698,7 +1729,7 @@ jobs:
   # the boot with its 60 s wait 2–4, the tests 13–22 and the step's own 40 at most: 60.
   ui-tests:
     name: UI tests (iPhone)
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-')) }}
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
     timeout-minutes: 60
@@ -2138,7 +2169,9 @@ jobs:
     name: compat-v1.0
     # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only). 1.4 (docs/M7D_CONTRACT.md
     # §3.10): nor on r14-quick and r14-q-*, but on r14-q-m1 (§5.3 6, §6: the mutation of Real13LedgerTests must fail here).
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || (startsWith(github.ref_name, 'r14-q-') && github.ref_name != 'r14-q-m1') || github.ref_name == 'r141-quick' || (startsWith(github.ref_name, 'r141-q-') && github.ref_name != 'r141-q-m1')) }}
+    # 1.4.1 and 1.4.2 (docs/R1_4_2_CONTRACT.md §6.5) the same way: not on r141-quick, r141-q-*, r142-quick, r142-q-* and
+    # r142-w-*, but on the mutation branches r141-q-m1 and r142-q-m1.
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || (startsWith(github.ref_name, 'r14-q-') && github.ref_name != 'r14-q-m1') || github.ref_name == 'r141-quick' || (startsWith(github.ref_name, 'r141-q-') && github.ref_name != 'r141-q-m1') || github.ref_name == 'r142-quick' || (startsWith(github.ref_name, 'r142-q-') && github.ref_name != 'r142-q-m1') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.9, 0d-2): stays on macos-26 and Xcode 26.6 (the old versions with the Xcode they were
     # made with); only XcodeGen is pinned as in the other jobs. Since D1 1.3 (955fe67) is a partner too (§5.3), and a missing
     # Xcode 26.6 fails the job ("Select Xcode", §3.9).
@@ -2503,7 +2536,7 @@ jobs:
     name: Localized shots (1.2)
     # 1.3's work branches (r13-w-*) skip the two photo jobs so the macOS runners stay free for the jobs the
     # work needs; r13 and main run everything (docs/M7C.md, S1 の残り). Nor on r13-quick (§10.6).
-    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-')) }}
+    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
     timeout-minutes: 75
@@ -2991,7 +3024,7 @@ jobs:
   # result, whatever this job's continue-on-error.
   blank-paper:
     name: Blank paper shots (1.1.1)
-    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-')) }}
+    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
     timeout-minutes: 100
@@ -3484,7 +3517,7 @@ jobs:
   # shots/span-app/palette/lines-<id>.txt (not to lines/, which the gates read).
   span-shots-app:
     name: span-shots (1.3 app)
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-')) }}
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
     timeout-minutes: 115
@@ -4149,10 +4182,11 @@ jobs:
       # C3-m1: on r13 and the integration branches only. The languages of l10n-shots and Japanese, each with its region's
       # holidays and week start; the N-8 text from the string catalogue (TEGAKI_SPAN_SHOT_STRINGS). Fails when the test fails.
       # 1.4 (docs/M7D_CONTRACT.md §3.6): on r14 too, so D0's run on r14 has the artifact span-shots-app-languages that the
-      # map of the SDK's differences compares with run 44474759145's.
-      - name: Language photos (iPhone 17; r13, r13-s5c*, r14 and r141 only)
+      # map of the SDK's differences compares with run 44474759145's. 1.4.1 and 1.4.2 (docs/R1_4_2_CONTRACT.md §6.5): on r141
+      # and r142 too.
+      - name: Language photos (iPhone 17; r13, r13-s5c*, r14, r141 and r142 only)
         id: languages
-        if: ${{ !cancelled() && steps.devices.outputs.iphone != '' && (github.ref_name == 'r13' || startsWith(github.ref_name, 'r13-s5c') || github.ref_name == 'r14' || github.ref_name == 'r141') }}
+        if: ${{ !cancelled() && steps.devices.outputs.iphone != '' && (github.ref_name == 'r13' || startsWith(github.ref_name, 'r13-s5c') || github.ref_name == 'r14' || github.ref_name == 'r141' || github.ref_name == 'r142') }}
         timeout-minutes: 25
         run: |
           set -uo pipefail
@@ -4239,7 +4273,7 @@ jobs:
             echo ""
             if [ -s "$OUT/shift-pairs.txt" ]; then sed 's/^/- /' "$OUT/shift-pairs.txt"; else echo "- (none)"; fi
             echo ""
-            echo "#### Languages (r13, r13-s5c*, r14 and r141 only)"
+            echo "#### Languages (r13, r13-s5c*, r14, r141 and r142 only)"
             echo ""
             if [ -d "$OUT/lang" ]; then
               echo "| language | photos (6 expected) |"
