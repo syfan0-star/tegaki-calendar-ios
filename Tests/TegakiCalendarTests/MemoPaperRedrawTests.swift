@@ -4,8 +4,10 @@ import XCTest
 @testable import TegakiCalendar
 
 /// 1.4.2 (docs/R1_4_2_CONTRACT.md §4.3, §6.1, 0f-21): the memo paper reaches the papers already made. A new `PaperView` asks
-/// for no redraw (`displayRequestCount` 0, which the frozen PaperViewTests count on) and starts with the pattern in force; a
-/// change (`MemoPaperStyle.set`, the settings' path) makes the one page's paper and the joined window's paper (a `span`, which
+/// for no redraw of the memo paper's own and starts with the pattern in force. (Its `displayRequestCount` right after `init` is
+/// not 0: 1.4.1's `init` already counts the requests UIKit makes for its own setters there, 3 on CI's iPad, run 45334709109;
+/// the frozen PaperViewTests read only differences. So the count right after `init` is compared across the three patterns: the
+/// pattern set before `super.init` adds none.) A change (`MemoPaperStyle.set`, the settings' path) makes the one page's paper and the joined window's paper (a `span`, which
 /// the canvas makes from the layouts alone and does not make again for a setting) take the new pattern and ask for one redraw
 /// each; the notice of the same pattern asks for none (mutation MM2: a paper that does not follow the notice fails here).
 @MainActor
@@ -48,13 +50,23 @@ final class MemoPaperRedrawTests: XCTestCase {
 
     func testANewPaperAsksForNoRedrawAndTakesThePatternInForce() {
         let ruled = PaperView(content: monthPage())
-        XCTAssertEqual(ruled.displayRequestCount, 0, "init asks for no redraw (PaperViewTests counts them)")
+        let baseline = ruled.displayRequestCount
+        print("memo-paper redraw: a new paper's displayRequestCount right after init: \(baseline)")
         XCTAssertEqual(ruled.memoPaper, .ruled)
+        for style in [MemoPaperStyle.dots, .plain, .ruled] {
+            // `current` set directly (no notice): only the new paper's own init is counted.
+            MemoPaperStyle.current = style
+            let made = PaperView(content: monthPage())
+            XCTAssertEqual(made.memoPaper, style, "made with \(style) in force")
+            XCTAssertEqual(made.displayRequestCount, baseline, "\(style): the pattern set in init asks for no redraw of its own")
+        }
+        MemoPaperStyle.current = .ruled
+        let requests = ruled.displayRequestCount
         MemoPaperStyle.set(.dots)
         let dots = PaperView(content: dayPage(8))
-        XCTAssertEqual(dots.displayRequestCount, 0)
         XCTAssertEqual(dots.memoPaper, .dots, "made after the change: the pattern in force")
         XCTAssertEqual(ruled.memoPaper, .dots, "made before: told")
+        XCTAssertEqual(ruled.displayRequestCount, requests + 1, "made before: one redraw")
     }
 
     func testAChangeRedrawsTheOnePageAndTheJoinedWindowOnce() throws {
@@ -110,13 +122,14 @@ final class MemoPaperRedrawTests: XCTestCase {
     /// Setting the property itself: a different value redraws once, the same value not at all (`content`'s and `span`'s rule).
     func testThePropertyRedrawsOnlyOnAChange() {
         let view = PaperView(content: monthPage())
+        let start = view.displayRequestCount
         view.memoPaper = .ruled
-        XCTAssertEqual(view.displayRequestCount, 0)
+        XCTAssertEqual(view.displayRequestCount, start)
         view.memoPaper = .dots
-        XCTAssertEqual(view.displayRequestCount, 1)
+        XCTAssertEqual(view.displayRequestCount, start + 1)
         view.memoPaper = .dots
-        XCTAssertEqual(view.displayRequestCount, 1)
+        XCTAssertEqual(view.displayRequestCount, start + 1)
         view.memoPaper = .plain
-        XCTAssertEqual(view.displayRequestCount, 2)
+        XCTAssertEqual(view.displayRequestCount, start + 2)
     }
 }
