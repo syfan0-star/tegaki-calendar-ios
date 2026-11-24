@@ -2062,7 +2062,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|zoom-reset UI:|header room:|palette UI:|l10n UI:|week-start UI:|span UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|zoom-reset UI:|header room:|palette UI:|l10n UI:|week-start UI:|span UI:|memo-paper UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
@@ -3022,12 +3022,17 @@ jobs:
   # "Palette UI tests on the 13-inch iPad (1.4.1)" (20 min at most, about 7 expected), with its own upload (palette-ui, about
   # 1 min): the job 80 → 100 (70 + 20 + the rest's 6.1 + 1 for the new upload ≈ 97). Gate 1 of D1b reads that step's
   # result, whatever this job's continue-on-error.
+  # 1.4.2 (docs/R1_4_2_CONTRACT.md §4.7, §7.3, 0f-30; the step decided in D1a): the memo paper's photos are a step of this job
+  # after the palette UI tests, "Memo paper shots (1.4.2)" (25 min at most: two boots of 2–4 min, 1 min for each banner, 8
+  # launches of about 15 s on each device, and the month's PDF from MemoPaperDrawTests, about 3), with its own upload
+  # (memo-paper-shots): the job 100 → 125 (D0's run 45311803365 took 77 min: the shots 64, the palette UI tests 10.5; + 25 + 1
+  # ≈ 103, with the same slack for a slow runner as before). Photos only: it never fails the job (the lead looks at them).
   blank-paper:
     name: Blank paper shots (1.1.1)
     if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 100
+    timeout-minutes: 125
     continue-on-error: true
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -3363,6 +3368,75 @@ jobs:
           if [ "$STATUS" != 0 ]; then echo "::error::PaletteMoveUITests ended with $STATUS (shots/palette-ui/palette-ui-log.txt)."; exit 1; fi
           echo "PaletteMoveUITests passed on the 13-inch iPad."
 
+      # 1.4.2 (docs/R1_4_2_CONTRACT.md §4.7, §7.3, 0f-30): the memo paper's photos, in the artifact memo-paper-shots (not
+      # blank-paper's 43, not J-4's screenshots: neither changes). On the table's 6.9-inch iPhone and 13-inch iPad ("Required
+      # simulators"; booted again after the steps above, 60 s for the banner), MemoPaperShotsUITests alone with
+      # TEST_RUNNER_TEGAKI_MEMO_SHOT_OUT and TEST_RUNNER_TEGAKI_MEMO_SHOT_DEVICE (it skips itself everywhere else): for
+      # 「ドット方眼」 and 「無地」 (`--screenshot-memo-paper dots|plain`) the month's memo area, the day's right column and free
+      # memo, the joined weeks' memo and the joined days' boundary, 2 × 2 × 4 = 16 photos
+      # (<device>-<dots|plain>-<photo>.png), each with one `memo-paper shots:` line. Then, on the 13-inch iPad, the unit test
+      # MemoPaperDrawTests.testPDFFollowsThePattern writes the month's PDF with dots (memo-month-dots.pdf, the 17th; `sips`
+      # makes a PNG of it) and its `memo dots:` lines (the PDF's bytes of the three patterns). Photos only: the step never
+      # fails the job (continue-on-error); a count other than 16 + 1 is a warning, and the lead looks at the photos.
+      - name: Memo paper shots (1.4.2)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 25
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="$PWD/shots/memo-paper"
+          mkdir -p "$OUT"
+          for SPEC in "iphone69|${{ steps.required.outputs.iphone69 }}" "ipad13|${{ steps.required.outputs.ipad13 }}"; do
+            ID="${SPEC%%|*}"; UDID="${SPEC#*|}"
+            if [ -z "$UDID" ]; then echo "::warning::No $ID from \"Required simulators\"; no memo paper photos of it."; continue; fi
+            echo "$ID: $UDID"
+            xcrun simctl boot "$UDID" 2>/dev/null || true
+            xcrun simctl bootstatus "$UDID" -b > /dev/null || { echo "::warning::$ID did not boot; skipping."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            sleep 60    # the banner of a freshly booted simulator, docs/M6.md §5.1
+            TEST_RUNNER_TEGAKI_MEMO_SHOT_OUT="$OUT" TEST_RUNNER_TEGAKI_MEMO_SHOT_DEVICE="$ID" xcodebuild \
+              -project TegakiCalendar.xcodeproj \
+              -scheme TegakiCalendar \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$UDID" \
+              -derivedDataPath build/BlankData \
+              -resultBundlePath "build/memo-paper-$ID.xcresult" \
+              -only-testing:TegakiCalendarUITests/MemoPaperShotsUITests \
+              test-without-building > "$OUT/$ID-log.txt" 2>&1 || echo "::warning::MemoPaperShotsUITests did not pass on $ID ($OUT/$ID-log.txt)."
+            grep 'memo-paper shots:' "$OUT/$ID-log.txt" | awk '{ i = index($0, "memo-paper shots:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
+            grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/$ID-log.txt" | tail -n 10 || true
+            echo "$ID: $(find "$OUT" -name "$ID-*.png" | wc -l | tr -d ' ') photos"
+            if [ "$ID" = "ipad13" ]; then
+              TEST_RUNNER_TEGAKI_MEMO_SHOT_OUT="$OUT" xcodebuild \
+                -project TegakiCalendar.xcodeproj \
+                -scheme TegakiCalendar \
+                -configuration Debug \
+                -destination "platform=iOS Simulator,id=$UDID" \
+                -derivedDataPath build/BlankData \
+                -resultBundlePath build/memo-paper-pdf.xcresult \
+                -only-testing:TegakiCalendarTests/MemoPaperDrawTests/testPDFFollowsThePattern \
+                -testLanguage ja \
+                -testRegion JP \
+                test-without-building > "$OUT/pdf-test-log.txt" 2>&1 || echo "::warning::The memo paper's PDF test did not pass ($OUT/pdf-test-log.txt)."
+              grep 'memo dots:' "$OUT/pdf-test-log.txt" | awk '{ i = index($0, "memo dots:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
+              if [ -s "$OUT/memo-month-dots.pdf" ]; then
+                sips -s format png -Z 2400 "$OUT/memo-month-dots.pdf" --out "$OUT/memo-month-dots.png" > /dev/null \
+                  || echo "::warning::sips could not make a PNG of memo-month-dots.pdf."
+              else
+                echo "::warning::No memo-month-dots.pdf."
+              fi
+            fi
+            xcrun simctl shutdown "$UDID" || true
+          done
+          PHOTOS="$(find "$OUT" -maxdepth 1 \( -name '*-dots-*.png' -o -name '*-plain-*.png' \) | wc -l | tr -d ' ')"
+          PDFS="$(find "$OUT" -maxdepth 1 -name 'memo-month-dots.pdf' | wc -l | tr -d ' ')"
+          echo "memo-paper-shots: $PHOTOS photos (16 expected) and $PDFS PDF (1 expected)"
+          if [ "$PHOTOS" != 16 ] || [ "$PDFS" != 1 ]; then
+            echo "::warning::memo-paper-shots has $PHOTOS photos and $PDFS PDF, not 16 and 1 (docs/R1_4_2_CONTRACT.md §7.3)."
+          fi
+          ls -la "$OUT"
+
       - name: Upload the shots
         if: always()
         uses: actions/upload-artifact@v4
@@ -3379,6 +3453,16 @@ jobs:
         with:
           name: palette-ui
           path: shots/palette-ui
+          retention-days: 7
+          if-no-files-found: warn
+
+      # 1.4.2 (§7.3): the memo paper's 16 photos, the month's PDF with dots and its PNG, and the two devices' logs (kept 7 days).
+      - name: Upload the memo paper shots (1.4.2)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: memo-paper-shots
+          path: shots/memo-paper
           retention-days: 7
           if-no-files-found: warn
 
