@@ -71,8 +71,8 @@ final class MemoPaperUITests: XCTestCase {
         XCTAssertTrue(text(row).contains(current), "\(step): the row shows \(current): \(text(row))")
         row.tap()
 
-        let options = ["罫線", "ドット方眼", "無地"].map { option(app, $0) }
-        let listed = waitUntil(timeout: 10) { options.allSatisfy(\.exists) }
+        // Each poll picks the button or the text again: picked once right after the tap, a list not up yet would leave texts.
+        let listed = waitUntil(timeout: 10) { ["罫線", "ドット方眼", "無地"].allSatisfy { self.option(app, $0).exists } }
         keepScreenshot(app, "\(step) — the choices")
         XCTAssertTrue(listed, "\(step): the three choices are listed")
         guard listed else { return false }
@@ -91,9 +91,10 @@ final class MemoPaperUITests: XCTestCase {
         return shown
     }
 
-    /// The row: by its identifier, else the button whose label starts with its title.
+    /// The row: the button of its identifier (only buttons: should SwiftUI give the identifier to the cell or a text inside too,
+    /// the first match of any type could be one without the value), else the button whose label starts with its title.
     private func memoRow(_ app: XCUIApplication) -> XCUIElement {
-        let byId = app.descendants(matching: .any).matching(identifier: "settings.memoPaper").firstMatch
+        let byId = app.buttons.matching(identifier: "settings.memoPaper").firstMatch
         if byId.exists { return byId }
         return app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "メモ欄の紙")).firstMatch
     }

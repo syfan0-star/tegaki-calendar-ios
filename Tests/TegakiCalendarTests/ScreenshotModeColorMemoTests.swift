@@ -6,7 +6,7 @@ import XCTest
 // paper's (`--screenshot-memo-paper ruled|dots|plain`, D1a, role S); the pen colours' (`--screenshot-color-panel`,
 // `--screenshot-pen-slots`, D1b) join it with their own tests. An unknown value or none is nil (the ruled paper), the other
 // arguments read as before, and screenshot mode never reads or writes `paper.memoStyle`: the launch takes the argument whatever
-// is stored (mutation MM3), and a choice in 設定 › 「メモ欄の紙」 there changes the paper in memory only.
+// is stored and writes nothing (mutation MM3).
 @MainActor
 final class ScreenshotModeColorMemoTests: XCTestCase {
     private let base = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "week"]
@@ -55,8 +55,9 @@ final class ScreenshotModeColorMemoTests: XCTestCase {
     }
 
     /// Screenshot mode never reads or writes `paper.memoStyle` (§4.7): the launch takes the argument (ruled without it)
-    /// whatever is stored, on or off a test host (MM3), and a choice in the settings there stores nothing (only the pattern in
-    /// force changes).
+    /// whatever is stored, on or off a test host (MM3), and writes nothing. Normal use reading the store is
+    /// MemoPaperStyleTests' (MM4), and a choice in the settings storing nothing there is SettingsScreenTests' (MS3), so each
+    /// mutation fails exactly the tests of §6.4's table.
     func testScreenshotModeStoresAndReadsNoMemoPaper() throws {
         let suite = "test-memo-paper-shot-\(UUID())"
         let scratch = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -81,14 +82,5 @@ final class ScreenshotModeColorMemoTests: XCTestCase {
         XCTAssertEqual(MemoPaperStyle.current, .ruled, "the stored plain is not read in screenshot mode")
         MemoPaperStyle.prepareAtLaunch(shot: dots, scratch, testHost: false)
         XCTAssertEqual(MemoPaperStyle.current, .dots)
-        MemoPaperStyle.prepareAtLaunch(shot: nil, scratch, testHost: false)
-        XCTAssertEqual(MemoPaperStyle.current, .plain, "normal use reads the store")
-
-        scratch.removeObject(forKey: AppSettings.memoPaperKey)
-        for style in [MemoPaperStyle.dots, .plain, .ruled] {
-            MemoPaperSettingsSection.changed(to: style, screenshot: true, scratch)
-            XCTAssertEqual(MemoPaperStyle.current, style, "the paper changes in memory")
-            XCTAssertNil(scratch.object(forKey: AppSettings.memoPaperKey), "\(style): no paper.memoStyle")
-        }
     }
 }
