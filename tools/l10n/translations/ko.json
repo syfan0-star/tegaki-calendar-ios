@@ -1849,6 +1849,18 @@
       "jaSha1": "845d1da87f",
       "text": "파랑"
     },
+    "toolbar.color.brown": {
+      "jaSha1": "97a08c17dc",
+      "text": "갈색"
+    },
+    "toolbar.color.darkGreen": {
+      "jaSha1": "a0d41d191b",
+      "text": "진초록"
+    },
+    "toolbar.color.gray": {
+      "jaSha1": "5378733ecf",
+      "text": "회색"
+    },
     "toolbar.color.green": {
       "jaSha1": "f22758bf8f",
       "text": "초록"
@@ -1856,6 +1868,10 @@
     "toolbar.color.lightBlue": {
       "jaSha1": "d2dddf0d44",
       "text": "하늘색"
+    },
+    "toolbar.color.navy": {
+      "jaSha1": "40c839def7",
+      "text": "남색"
     },
     "toolbar.color.orange": {
       "jaSha1": "831166ef4b",
@@ -1880,6 +1896,22 @@
     "toolbar.color.yellow": {
       "jaSha1": "7720f8ea0a",
       "text": "노랑"
+    },
+    "toolbar.colorPanel.hint": {
+      "jaSha1": "f5b8641fb2",
+      "text": "한 번 더 누르면 색상을 바꿀 수 있어요"
+    },
+    "toolbar.colorPanel.otherColor": {
+      "jaSha1": "c5d3f706a4",
+      "text": "기타 색상…"
+    },
+    "toolbar.colorPanel.reset": {
+      "jaSha1": "a861ac9ea8",
+      "text": "처음 색상으로 되돌리기"
+    },
+    "toolbar.colorPanel.title": {
+      "jaSha1": "5aa3a9cd3e",
+      "text": "펜 색상 선택"
     },
     "toolbar.dock.hint.toLeft": {
       "jaSha1": "700daf6c01",

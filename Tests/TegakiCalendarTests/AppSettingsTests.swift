@@ -161,8 +161,8 @@ final class AppSettingsTests: XCTestCase {
                     AppSettings.strokeBudgetNoticedKey, ToolbarPalette.penColorKey, ToolbarPalette.penWidthKey,
                     ToolbarPalette.markerColorKey, AppSettings.allowFingerKey, AppSettings.eraseInkAfterConvertKey,
                     AppSettings.handKey, AppSettings.paletteEdgeKey, AppSettings.zoomFitKey(.week), AppSettings.zoomFitKey(.day),
-                    // 1.4.2 (docs/R1_4_2_CONTRACT.md §6.2): the memo paper's pattern.
-                    AppSettings.memoPaperKey]
+                    // 1.4.2 (docs/R1_4_2_CONTRACT.md §6.2): the memo paper's pattern and the six pen dots.
+                    AppSettings.memoPaperKey, ToolbarPalette.penSlotsKey]
         XCTAssertEqual(Set(keys).count, keys.count, "every key is its own")
 
         // Collapsed: false (expanded) until written.

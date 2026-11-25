@@ -53,6 +53,8 @@ enum AppSettings {
     static let paywallShownAfterOnboardingKey = "paywallShownAfterOnboarding"
     // "toolbar.penColor" / "toolbar.penWidth" / "toolbar.markerColor" stay with the toolbar
     // (`ToolbarPalette.penColorKey` …; `ToolbarPalette.rememberedPen` reads the pen, 0-13).
+    // 1.4.2 (docs/R1_4_2_CONTRACT.md §3.2, 0f-7): so does "toolbar.penSlots", the six pen dots' colours of this device
+    // (`ToolbarPalette.penSlotsKey`; `rememberedPen` reads it too; screenshot mode keeps its own, `ToolbarPalette.slotsStore`).
 
     /// 1.1 (§2.3): `Bool`, default false (the expanded bar). True after 「しまう」, false again after
     /// the dock's 「ツールバーをいつも出す」. A `peek` is never stored. `CalendarRootScreen` keeps it
