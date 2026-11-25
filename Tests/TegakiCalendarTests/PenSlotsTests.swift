@@ -133,6 +133,12 @@ final class PenSlotsTests: XCTestCase {
         XCTAssertEqual(ToolbarPalette.rememberedPen(defaults).colorHex, gray, "黒 on no dot: the first dot, グレー")
         defaults.set("garbage", forKey: ToolbarPalette.penSlotsKey)
         XCTAssertEqual(ToolbarPalette.rememberedPen(defaults).colorHex, first[0], "broken dots read as the first six")
+        // Dots stored as no text at all (D1b's review, nit 6): the first six too. The pen 茶 is then on no dot: the first dot, 黒.
+        defaults.set(brown, forKey: ToolbarPalette.penColorKey)
+        defaults.set(5, forKey: ToolbarPalette.penSlotsKey)
+        XCTAssertEqual(ToolbarPalette.rememberedPen(defaults).colorHex, first[0], "a number for the dots: the first six")
+        defaults.set(["#92400e"], forKey: ToolbarPalette.penSlotsKey)
+        XCTAssertEqual(ToolbarPalette.rememberedPen(defaults).colorHex, first[0], "a list for the dots: the first six")
     }
 
     // MARK: colorName (§3.3)

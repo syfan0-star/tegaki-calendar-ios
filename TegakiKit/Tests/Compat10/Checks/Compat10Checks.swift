@@ -429,7 +429,12 @@ public enum Compat10Checks {
     static func colourChecks(_ r: Recorder) {
         for (index, colour) in newColours.enumerated() {
             for pageId in ["d-2026-11-02", "m1-2026-11"] {
-                guard let cell = editCell(pageId: pageId) else { continue }
+                // No cell to write in would skip this colour's four checks on both 1.0s alike (run.sh compares their N):
+                // a failure instead (D1b's review, nit 3).
+                guard let cell = editCell(pageId: pageId) else {
+                    r.check(false, "1.4.2 colour: \(pageId) has a cell to write in")
+                    continue
+                }
                 let name = "1.4.2 colour \(colour.written) on \(pageId)"
                 let id = "compat10-colour-\(index)-\(pageId)"
                 var object = stroke10(id: id, cell: cell, t: 1_795_000_000_000 + index, x: 40, y: 60).jsonValue.objectValue ?? [:]
