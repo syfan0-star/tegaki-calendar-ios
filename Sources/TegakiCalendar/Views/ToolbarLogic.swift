@@ -643,7 +643,8 @@ extension ToolbarPalette {
         var slots: [String] = []
         for (index, piece) in pieces.enumerated() {
             var color = InkColors.normalized(piece) ?? first[index]
-            if slots.contains(color) {
+            // MUTATION MC2: a colour an earlier dot has is no longer repaired (r142-q-m1 only, never merged).
+            if false {
                 color = first[index]
                 if slots.contains(color) {
                     color = panelColors.map(\.hex).first { !slots.contains($0) } ?? first[index]
@@ -676,7 +677,8 @@ extension ToolbarPalette {
     static func pen(colorHex: String?, width: Double?, slots: [String] = defaultSlots) -> InkStyle {
         let normalized = colorHex.flatMap(InkColors.normalized)
         let dots = slots.isEmpty ? defaultSlots : slots
-        let color = dots.first { $0 == normalized } ?? dots[0]
+        // MUTATION MC1: the pen's colour is looked up in penColors, not in the six dots (r142-q-m1 only, never merged).
+        let color = penColors.map(\.hex).first { $0 == normalized } ?? dots[0]
         let size = penWidths.first { entry in
             guard let width = width, width.isFinite else { return false }
             return abs(Double(entry.width) - width) < 0.001
@@ -749,7 +751,8 @@ enum ColorPanelLogic {
         let first = ToolbarPalette.defaultSlots
         let normalized = InkColors.normalized(currentPen) ?? currentPen
         let index = slots.firstIndex(of: normalized).flatMap { first.indices.contains($0) ? $0 : nil } ?? 0
-        return Choice(slots: first, pen: first[index])
+        // MUTATION MC7: the reset to the first colours leaves the pen's colour as it was (r142-q-m1 only, never merged).
+        return Choice(slots: first, pen: normalized)
     }
 
     /// The panel's size (§3.4): 288 wide (every iPhone's 375 with 8 to spare on each side once the screen's padding is in),
@@ -774,7 +777,8 @@ enum ColorPanelLogic {
     static func placement(anchor: CGRect, edge: PaletteEdge, container: CGRect, panel: CGSize) -> CGRect {
         var x: CGFloat
         var y: CGFloat
-        switch edge {
+        // MUTATION MC4: the panel always goes above its dot, whatever the bar's edge (r142-q-m1 only, never merged).
+        switch PaletteEdge.bottom {
         case .bottom:
             x = anchor.midX - panel.width / 2
             y = anchor.minY - anchorGap - panel.height
@@ -797,7 +801,8 @@ enum ColorPanelLogic {
     /// A touch that came down at `point` closes the panel (§3.6): outside the panel and outside the lit dot (whose own press
     /// opens and closes it). nil `litSwatch`: only the panel counts.
     static func closesOnTouch(at point: CGPoint, panel: CGRect, litSwatch: CGRect?) -> Bool {
-        if panel.contains(point) { return false }
+        // MUTATION MC6b: a touch inside the panel closes it (r142-q-m1 only, never merged).
+        if panel.contains(point) { return true }
         if let litSwatch, litSwatch.contains(point) { return false }
         return true
     }
@@ -805,14 +810,15 @@ enum ColorPanelLogic {
     /// The lit dot moved since the panel opened (§3.6: the bar scrolled, the screen turned, the bar was made anew): any edge
     /// more than 1 pt from where it was.
     static func closesOnAnchorMove(opened: CGRect, now: CGRect) -> Bool {
-        abs(opened.minX - now.minX) > 1 || abs(opened.maxX - now.maxX) > 1
-            || abs(opened.minY - now.minY) > 1 || abs(opened.maxY - now.maxY) > 1
+        // MUTATION MC8: a moved dot never closes the panel (r142-q-m1 only, never merged).
+        false
     }
 
     /// The system colour picker's choice is taken (§3.7, 0f-13) only when it is not still moving (`continuously` false);
     /// nothing is written while a finger drags in it.
     static func commitsPick(continuously: Bool) -> Bool {
-        !continuously
+        // MUTATION MC3: the picker's colour is taken while it still moves (r142-q-m1 only, never merged).
+        true
     }
 
     /// The rim of the bar's dots (§3.9, 0f-16): light, black at 0.15 (1.4.1's); dark, white at 0.35.

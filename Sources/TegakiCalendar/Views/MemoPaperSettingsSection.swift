@@ -60,7 +60,8 @@ struct MemoPaperSettingsSection: View {
     /// The pattern was switched to `value`: outside screenshot mode it is stored for this device (`AppSettings.memoPaperKey`)
     /// and then made the pattern in force; screenshot mode stores nothing and only makes it the pattern in force.
     @MainActor static func changed(to value: MemoPaperStyle, screenshot: Bool, _ defaults: UserDefaults = AppSettings.defaults) {
-        if !screenshot {
+        // MUTATION MS3: screenshot mode stores the pattern too (r142-q-m1 only, never merged).
+        if true {
             defaults.set(value.rawValue, forKey: AppSettings.memoPaperKey)
         }
         MemoPaperStyle.set(value)

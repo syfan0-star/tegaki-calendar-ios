@@ -927,7 +927,7 @@ struct CalendarRootScreen: View {
         }
         .onChange(of: colorPanelSlot) {
             if colorPanelSlot != nil, let window = paletteRoom.window {
-                colorPanelWatch.attach(to: window)
+                // MUTATION MS1: the watch is never put on the window (r142-q-m1 only, never merged).
             } else {
                 colorPanelWatch.detach()
             }

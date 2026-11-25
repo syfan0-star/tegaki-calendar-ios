@@ -64,7 +64,8 @@ enum WeekPaper: PaperRenderer {
 
         // 1.3: the week memo below 24:00 (`extra`), the day's free memo.
         if layout.cells[.extra] != nil {
-            FreeMemoPaper.draw(ctx, area: layout.extra, dirty: dirty, zoom: zoom, scale: scale, readable: readable, style: style)
+            // MUTATION MM5: the week's memo is always ruled (r142-q-m1 only, never merged).
+            FreeMemoPaper.draw(ctx, area: layout.extra, dirty: dirty, zoom: zoom, scale: scale, readable: readable, style: .ruled)
         }
 
         // 4. Timed boxes.

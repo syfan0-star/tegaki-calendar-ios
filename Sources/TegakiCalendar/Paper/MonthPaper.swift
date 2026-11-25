@@ -88,6 +88,9 @@ enum MonthPaper: PaperRenderer {
                 y += ruleStep
             }
             ctx.strokePath()
+            // MUTATION MM1: the ruled paper gets the dots too (r142-q-m1 only, never merged).
+            MemoDots.draw(ctx, top: memo.minY, bottom: memo.maxY, left: 0, right: width, inset: ruleInset, rowStep: ruleStep,
+                          dirty: dirty, zoom: zoom, scale: scale)
         case .dots:
             // 1.4.2: a dot on the grid's columns (x 30…1,380) on every row of the ruled lines.
             MemoDots.draw(ctx, top: memo.minY, bottom: memo.maxY, left: 0, right: width, inset: ruleInset, rowStep: ruleStep,

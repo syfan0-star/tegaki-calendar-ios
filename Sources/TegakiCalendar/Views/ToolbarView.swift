@@ -329,7 +329,8 @@ struct ToolbarView: View {
                 Circle()
                     .fill(Color(uiColor: PaperPalette.color(hex: entry.hex)))
                     .frame(width: 24, height: 24)
-                    .overlay(Circle().strokeBorder(colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.15)))
+                    // MUTATION MC5: the dark rim is written as the light one (swatchRim unchanged; r142-q-m1 only, never merged).
+                    .overlay(Circle().strokeBorder(colorScheme == .dark ? Color.black.opacity(0.15) : Color.black.opacity(0.15)))
                 if selected {
                     Circle()
                         .strokeBorder(Color.accentColor, lineWidth: 2.5)
@@ -588,7 +589,8 @@ struct ToolbarView: View {
                 Circle()
                     .fill(Color(uiColor: PaperPalette.color(hex: entry.hex)))
                     .frame(width: 24, height: 24)
-                    .overlay(Circle().strokeBorder(colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.15)))
+                    // MUTATION MC5: the dark rim is written as the light one (swatchRim unchanged; r142-q-m1 only, never merged).
+                    .overlay(Circle().strokeBorder(colorScheme == .dark ? Color.black.opacity(0.15) : Color.black.opacity(0.15)))
                 if selected {
                     Circle()
                         .strokeBorder(Color.accentColor, lineWidth: 2.5)
@@ -758,6 +760,8 @@ enum ToolbarPalette {
     static func penSlotsStore(shot: ScreenshotMode.Config?, standard: UserDefaults = .standard,
                               suiteName: String = screenshotSlotsSuite) -> UserDefaults {
         guard let shot else { return standard }
+        // MUTATION MS2: screenshot mode's dots go to this device's store too (r142-q-m1 only, never merged).
+        return standard
         guard let scratch = UserDefaults(suiteName: suiteName) ?? UserDefaults(suiteName: screenshotSlotsSuite) else { return standard }
         scratch.removePersistentDomain(forName: suiteName)
         if let slots = shot.penSlots {

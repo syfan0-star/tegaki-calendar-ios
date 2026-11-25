@@ -37,11 +37,13 @@ enum MemoPaperStyle: String, CaseIterable, Sendable {
                                            testHost: Bool = SyncEngine.isTestHost) {
         let value: MemoPaperStyle
         if let shot {
-            value = shot.memoPaper ?? .ruled
+            // MUTATION MM3: screenshot mode reads the stored pattern when it has no argument (r142-q-m1 only, never merged).
+            value = shot.memoPaper ?? MemoPaperStyle(stored: defaults.string(forKey: AppSettings.memoPaperKey))
         } else if testHost {
             value = .ruled
         } else {
-            value = MemoPaperStyle(stored: defaults.string(forKey: AppSettings.memoPaperKey))
+            // MUTATION MM4: the launch never reads the stored pattern (r142-q-m1 only, never merged).
+            value = .ruled
         }
         set(value)
     }

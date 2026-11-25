@@ -346,7 +346,7 @@ final class ColorPanelWatch {
     /// does). A touch coming down outside the panel and the lit dot closes the panel, once.
     func touched(_ change: InkTouchObserver.Change, at point: CGPoint) {
         guard case .down = change, !fired, panelFrame != .zero else { return }
-        guard ColorPanelLogic.closesOnTouch(at: point, panel: panelFrame, litSwatch: litSwatchFrame) else { return }
+        // MUTATION MC6: any touch coming down closes the panel, closesOnTouch not asked (r142-q-m1 only, never merged).
         fired = true
         onOutsideTouch()
     }

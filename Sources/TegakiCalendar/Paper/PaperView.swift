@@ -227,8 +227,7 @@ final class PaperView: UIView {
         self.memoPaper = MemoPaperStyle.current
         super.init(frame: .zero)
         // 1.4.2 (§4.3): the settings' choice reaches every paper already made (no redraw is asked here).
-        NotificationCenter.default.addObserver(self, selector: #selector(memoPaperDidChange),
-                                               name: MemoPaperStyle.didChange, object: nil)
+        // MUTATION MM2: the paper no longer follows MemoPaperStyle.didChange (r142-q-m1 only, never merged).
         isOpaque = true
         backgroundColor = PaperPalette.paper
         contentMode = .redraw
