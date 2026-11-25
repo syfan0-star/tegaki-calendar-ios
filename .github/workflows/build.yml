@@ -110,6 +110,9 @@ concurrency:
 jobs:
   build-and-test:
     name: Build and test (iOS Simulator)
+    # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4; a throwaway branch, never merged): skipped there, as every job but
+    # blank-paper, so that run takes one macOS runner for the owner's choice photos (the shared runners run 5 jobs at once).
+    if: ${{ github.ref_name != 'r142-alt' }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
     # 1.1: 75 → 90 (1.0.1's run took 56 min; 1.1 adds Compat10Tests, more unit tests and 10 shots, and a
@@ -1729,7 +1732,9 @@ jobs:
   # the boot with its 60 s wait 2–4, the tests 13–22 and the step's own 40 at most: 60.
   ui-tests:
     name: UI tests (iPhone)
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
+    # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4; a throwaway branch, never merged): skipped there, as every job but
+    # blank-paper, so that run takes one macOS runner for the owner's choice photos (the shared runners run 5 jobs at once).
+    if: ${{ github.ref_name != 'r142-alt' && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
     timeout-minutes: 60
@@ -2174,7 +2179,9 @@ jobs:
     # §3.10): nor on r14-quick and r14-q-*, but on r14-q-m1 (§5.3 6, §6: the mutation of Real13LedgerTests must fail here).
     # 1.4.1 and 1.4.2 (docs/R1_4_2_CONTRACT.md §6.5) the same way: not on r141-quick, r141-q-*, r142-quick, r142-q-* and
     # r142-w-*, but on the mutation branches r141-q-m1 and r142-q-m1.
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || (startsWith(github.ref_name, 'r14-q-') && github.ref_name != 'r14-q-m1') || github.ref_name == 'r141-quick' || (startsWith(github.ref_name, 'r141-q-') && github.ref_name != 'r141-q-m1') || github.ref_name == 'r142-quick' || (startsWith(github.ref_name, 'r142-q-') && github.ref_name != 'r142-q-m1') || startsWith(github.ref_name, 'r142-w-')) }}
+    # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4; a throwaway branch, never merged): skipped there, as every job but
+    # blank-paper, so that run takes one macOS runner for the owner's choice photos (the shared runners run 5 jobs at once).
+    if: ${{ github.ref_name != 'r142-alt' && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || (startsWith(github.ref_name, 'r14-q-') && github.ref_name != 'r14-q-m1') || github.ref_name == 'r141-quick' || (startsWith(github.ref_name, 'r141-q-') && github.ref_name != 'r141-q-m1') || github.ref_name == 'r142-quick' || (startsWith(github.ref_name, 'r142-q-') && github.ref_name != 'r142-q-m1') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.9, 0d-2): stays on macos-26 and Xcode 26.6 (the old versions with the Xcode they were
     # made with); only XcodeGen is pinned as in the other jobs. Since D1 1.3 (955fe67) is a partner too (§5.3), and a missing
     # Xcode 26.6 fails the job ("Select Xcode", §3.9).
@@ -2539,7 +2546,9 @@ jobs:
     name: Localized shots (1.2)
     # 1.3's work branches (r13-w-*) skip the two photo jobs so the macOS runners stay free for the jobs the
     # work needs; r13 and main run everything (docs/M7C.md, S1 の残り). Nor on r13-quick (§10.6).
-    if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
+    # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4; a throwaway branch, never merged): skipped there, as every job but
+    # blank-paper, so that run takes one macOS runner for the owner's choice photos (the shared runners run 5 jobs at once).
+    if: ${{ github.ref_name != 'r142-alt' && !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
     timeout-minutes: 75
@@ -3216,6 +3225,8 @@ jobs:
       # reads D1a's gate from them (the ja day title's room ≥ 115 pt on ipadmini, ipad11 = the Air 11 and ipad13 in portrait).
       # It writes no photo, so the 43 do not change; about half a minute a device.
       - name: Shots on four devices
+        # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4): skipped there (that run takes only the owner's choice photos, below).
+        if: ${{ github.ref_name != 'r142-alt' }}
         timeout-minutes: 70
         continue-on-error: true
         run: |
@@ -3336,7 +3347,8 @@ jobs:
       # chosen there leaves the peek; its steps are the `color-panel UI:` lines. The step passes only when the three tests of
       # PaletteMoveUITests and the two of ColorPanelPadUITests passed (gate 1 of D1b reads it); 20 → 25 min.
       - name: Palette UI tests on the 13-inch iPad (1.4.1, 1.4.2)
-        if: ${{ !cancelled() }}
+        # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4): skipped there (that run takes only the owner's choice photos, below).
+        if: ${{ !cancelled() && github.ref_name != 'r142-alt' }}
         timeout-minutes: 25
         run: |
           set -uo pipefail
@@ -3392,7 +3404,8 @@ jobs:
       # makes a PNG of it) and its `memo dots:` lines (the PDF's bytes of the three patterns). Photos only: the step never
       # fails the job (continue-on-error); a count other than 16 + 1 is a warning, and the lead looks at the photos.
       - name: Memo paper shots (1.4.2)
-        if: ${{ !cancelled() }}
+        # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4): skipped there (that run takes only the owner's choice photos, below).
+        if: ${{ !cancelled() && github.ref_name != 'r142-alt' }}
         timeout-minutes: 25
         continue-on-error: true
         run: |
@@ -3450,8 +3463,103 @@ jobs:
           fi
           ls -la "$OUT"
 
+      # r142-alt only (docs/R1_4_2_CONTRACT.md §4.5, §7.4, 0f-23, 0f-31; the shape of 1.4.1's r141-alt and r141-alt2): the owner's
+      # choice photos of 「ドット方眼」's dots. r142-alt is a throwaway branch, never merged (nor this step), and its run counts for
+      # no gate (J-4, gate 3, D1–D2'). It is not a quick branch (no "q-" or "w-", §6.5), but on it every other job is skipped and
+      # this job runs only its build and this step (the shots of four devices, the palette UI tests, the memo paper shots, their
+      # uploads and "The simulators used are the table's" are skipped there), so the run takes one macOS runner. On the table's
+      # 13-inch iPad and 6.9-inch iPhone ("Required simulators", the memo paper shots' devices; booted here, 60 s for the
+      # banner), MemoDotLookShotsUITests alone with TEST_RUNNER_TEGAKI_DOT_LOOK_OUT and TEST_RUNNER_TEGAKI_DOT_LOOK_DEVICE (it
+      # skips itself everywhere else): with `--screenshot-memo-paper dots` and MemoPaperShotsUITests' launch arguments, the
+      # month's memo area (`--screenshot-grown --screenshot-offset 0,1700`) and the day's right column 「メモ」 and free memo
+      # (`--screenshot-grown --screenshot-offset 0,2300`), each in the three looks of `--screenshot-dot-look a|b|c` (a
+      # Debug-only argument of this branch, ScreenshotMode.dotLook read by MemoDots.draw; this job's app is a Debug build, a
+      # Release build has none of it): (a) 2 pt #d6cfc2, r142's default; (b) 1.5 pt #cdc5b6; (c) 2.5 pt #d7dade (§4.5). 2
+      # devices × 2 pages × 3 looks = 12 photos, alt-shots/<device>-<month-memo|day>-dots-<a|b|c>.png, their `dot-look shots:`
+      # lines in alt-shots/lines.txt and the devices in alt-shots/env.txt. Then each pair of looks of a device and page (a/b,
+      # a/c, b/c) is compared with tools/shots/shift_pair.swift (--max-strong 0): they should differ (else the argument did
+      # nothing), in alt-shots/pairs.txt, warnings only. Never fails the run: continue-on-error, its own limit (two first boots
+      # of 2–11 min, 1 min for each banner, about 1 to the first test, 6 launches of 15–25 s on each device).
+      - name: The owner's choice photos (r142-alt only; 1.4.2 §4.5, §7.4)
+        if: ${{ !cancelled() && github.ref_name == 'r142-alt' }}
+        timeout-minutes: 40
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="$PWD/alt-shots"
+          mkdir -p "$OUT"
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+          } > "$OUT/env.txt" 2>&1 || echo "::warning::env.txt could not all be written"
+          # The pairs' check (built in the background while the devices boot; only this step uses it).
+          PAIR="$RUNNER_TEMP/alt-shift-pair"
+          swiftc -O "$GITHUB_WORKSPACE/tools/shots/shift_pair.swift" -o "$PAIR" > "$RUNNER_TEMP/alt-shift-pair.log" 2>&1 &
+          PAIR_PID=$!
+          for SPEC in "ipad13|${{ steps.required.outputs.ipad13 }}" "iphone69|${{ steps.required.outputs.iphone69 }}"; do
+            ID="${SPEC%%|*}"; UDID="${SPEC#*|}"
+            if [ -z "$UDID" ]; then echo "::warning::No $ID from \"Required simulators\"; no choice photos of it."; continue; fi
+            echo "$ID: $UDID"
+            grep "^$ID|" "$RUNNER_TEMP/required-simulators-resolved.txt" >> "$OUT/env.txt" || true
+            xcrun simctl boot "$UDID" 2>/dev/null || true
+            xcrun simctl bootstatus "$UDID" -b > /dev/null || { echo "::warning::$ID did not boot; skipping."; continue; }
+            xcrun simctl ui "$UDID" appearance light || true
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            sleep 60    # the banner of a freshly booted simulator, docs/M6.md §5.1
+            TEST_RUNNER_TEGAKI_DOT_LOOK_OUT="$OUT" TEST_RUNNER_TEGAKI_DOT_LOOK_DEVICE="$ID" xcodebuild \
+              -project TegakiCalendar.xcodeproj \
+              -scheme TegakiCalendar \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$UDID" \
+              -derivedDataPath build/BlankData \
+              -resultBundlePath "build/alt-$ID.xcresult" \
+              -only-testing:TegakiCalendarUITests/MemoDotLookShotsUITests \
+              test-without-building > "$OUT/$ID-log.txt" 2>&1 || echo "::warning::MemoDotLookShotsUITests did not pass on $ID ($OUT/$ID-log.txt)."
+            grep 'dot-look shots:' "$OUT/$ID-log.txt" | awk '{ i = index($0, "dot-look shots:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' | tee -a "$OUT/lines.txt" || true
+            grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/$ID-log.txt" | tail -n 10 || true
+            echo "$ID: $(find "$OUT" -maxdepth 1 -name "$ID-*-dots-*.png" | wc -l | tr -d ' ') photos"
+            xcrun simctl shutdown "$UDID" || true
+          done
+          # Each pair of looks of a device and page: the dots differ in size and colour, so the photos should differ (strong
+          # pixels; if not, --screenshot-dot-look did nothing). One line each in alt-shots/pairs.txt; warnings only.
+          if wait "$PAIR_PID" && [ -x "$PAIR" ]; then
+            for ID in ipad13 iphone69; do
+              for PAGE in month-memo day; do
+                for TWO in a:b a:c b:c; do
+                  L1="${TWO%%:*}"; L2="${TWO#*:}"
+                  X="$OUT/$ID-$PAGE-dots-$L1.png"; Y="$OUT/$ID-$PAGE-dots-$L2.png"
+                  if [ ! -f "$X" ] || [ ! -f "$Y" ]; then echo "$ID $PAGE $L1/$L2: a photo is missing; not compared" | tee -a "$OUT/pairs.txt"; continue; fi
+                  S=0; R="$("$PAIR" "$X" "$Y" --max-strong 0)" || S=$?
+                  echo "$ID $PAGE $L1/$L2: $R" | tee -a "$OUT/pairs.txt"
+                  [ "$S" != 0 ] || echo "::warning::$ID $PAGE: the looks $L1 and $L2 give the same photo (did --screenshot-dot-look do nothing?)"
+                done
+              done
+            done
+          else
+            echo "::warning::tools/shots/shift_pair.swift did not compile; the pairs are not compared."
+            cat "$RUNNER_TEMP/alt-shift-pair.log" || true
+          fi
+          PHOTOS="$(find "$OUT" -maxdepth 1 -name '*-dots-*.png' | wc -l | tr -d ' ')"
+          echo "alt-shots: $PHOTOS photos (12 expected)"
+          [ "$PHOTOS" = 12 ] || echo "::warning::alt-shots has $PHOTOS photos, not 12 (docs/R1_4_2_CONTRACT.md §7.4)."
+          ls -la "$OUT"
+
+      # r142-alt only (§7.4): the 12 choice photos, pairs.txt, lines.txt, env.txt and the two devices' logs (kept 7 days).
+      - name: Upload the owner's choice photos (r142-alt only; 1.4.2 §7.4)
+        if: ${{ always() && github.ref_name == 'r142-alt' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: actions/upload-artifact@v4
+        with:
+          name: alt-shots
+          path: alt-shots
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Upload the shots
-        if: always()
+        # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4): skipped there (that run takes only the owner's choice photos, below).
+        if: ${{ always() && github.ref_name != 'r142-alt' }}
         uses: actions/upload-artifact@v4
         with:
           name: blank-paper
@@ -3461,7 +3569,8 @@ jobs:
 
       # 1.4.1 (§6.6): the palette UI tests' log, the app's output and the test's screenshots (kept 7 days).
       - name: Upload the palette UI tests' log (1.4.1)
-        if: always()
+        # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4): skipped there (that run takes only the owner's choice photos, below).
+        if: ${{ always() && github.ref_name != 'r142-alt' }}
         uses: actions/upload-artifact@v4
         with:
           name: palette-ui
@@ -3471,7 +3580,8 @@ jobs:
 
       # 1.4.2 (§7.3): the memo paper's 16 photos, the month's PDF with dots and its PNG, and the two devices' logs (kept 7 days).
       - name: Upload the memo paper shots (1.4.2)
-        if: always()
+        # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4): skipped there (that run takes only the owner's choice photos, below).
+        if: ${{ always() && github.ref_name != 'r142-alt' }}
         uses: actions/upload-artifact@v4
         with:
           name: memo-paper-shots
@@ -3486,7 +3596,8 @@ jobs:
       # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
       # a simulator; only ENV_TXT differs.
       - name: The simulators used are the table's (1.4)
-        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4): skipped there (that run takes only the owner's choice photos, below).
+        if: ${{ !cancelled() && env.QUICK != 'true' && github.ref_name != 'r142-alt' }}
         env:
           ENV_TXT: shots/blank/env.txt
         run: |
@@ -3618,7 +3729,9 @@ jobs:
   # lines-<id>.txt; the dark run's app output to <id>-dark-app-output.txt (not the gates' <id>-app-output.txt).
   span-shots-app:
     name: span-shots (1.3 app)
-    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
+    # r142-alt only (docs/R1_4_2_CONTRACT.md §7.4; a throwaway branch, never merged): skipped there, as every job but
+    # blank-paper, so that run takes one macOS runner for the owner's choice photos (the shared runners run 5 jobs at once).
+    if: ${{ github.ref_name != 'r142-alt' && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
     timeout-minutes: 120

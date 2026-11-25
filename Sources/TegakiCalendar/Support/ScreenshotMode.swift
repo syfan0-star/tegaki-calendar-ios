@@ -1429,3 +1429,51 @@ final class ScreenshotMeasure {
         return windows.first(where: \.isKeyWindow) ?? windows.first
     }
 }
+#if DEBUG
+
+// MARK: - r142-alt: the three looks of the memo dots (docs/R1_4_2_CONTRACT.md §4.5, §7.4; Debug builds only, never merged)
+
+/// r142-alt only (docs/R1_4_2_CONTRACT.md §4.5, §7.4, 0f-23, 0f-31): the looks of 「ドット方眼」's dots that the owner chooses
+/// from by photo. (a) is r142's default, read from `MemoDots.diameter` and `PaperPalette.memoDot` themselves; (b) smaller and
+/// darker; (c) larger, in the colour of the strong separator line (`PaperPalette.lineStrong`'s #d7dade). The diameter is on the
+/// screen (pt), constant at every zoom, as `MemoDots.diameter`.
+enum ScreenshotDotLook: String, CaseIterable, Sendable {
+    case a, b, c
+
+    /// The dot's diameter on the screen (pt): (a) 2, (b) 1.5, (c) 2.5.
+    var diameter: CGFloat {
+        switch self {
+        case .a: return MemoDots.diameter
+        case .b: return 1.5
+        case .c: return 2.5
+        }
+    }
+
+    /// The dot's colour: (a) #d6cfc2, (b) #cdc5b6, (c) #d7dade.
+    var color: UIColor {
+        switch self {
+        case .a: return PaperPalette.memoDot
+        case .b: return PaperPalette.color(hex: "#cdc5b6")
+        case .c: return PaperPalette.color(hex: "#d7dade")
+        }
+    }
+}
+
+extension ScreenshotMode {
+    /// r142-alt only (§4.5, §7.4): `--screenshot-dot-look a|b|c` draws the memo dots in that look (`MemoDots.draw` reads it
+    /// in Debug builds only). Without it, with any other value or outside screenshot mode: nil, r142's dots
+    /// (`MemoDots.diameter`, `PaperPalette.memoDot`). Nothing is read from or written to the settings. Not in `Config`, so
+    /// `parse` and its tests are r142's.
+    static let dotLook: ScreenshotDotLook? = dotLookValue(ProcessInfo.processInfo.arguments).flatMap(ScreenshotDotLook.init(rawValue:))
+
+    /// The value after `--screenshot-dot-look` in a screenshot mode launch: nil without `--screenshot-mode`, without the flag,
+    /// or with nothing after it.
+    static func dotLookValue(_ arguments: [String]) -> String? {
+        guard arguments.contains("--screenshot-mode"), let index = arguments.firstIndex(of: "--screenshot-dot-look"),
+              index + 1 < arguments.count else {
+            return nil
+        }
+        return arguments[index + 1]
+    }
+}
+#endif

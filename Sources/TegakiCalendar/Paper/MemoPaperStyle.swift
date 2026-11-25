@@ -94,6 +94,13 @@ enum MemoDots {
     @discardableResult
     static func draw(_ ctx: CGContext, top: CGFloat, bottom: CGFloat, left: CGFloat, right: CGFloat, inset: CGFloat,
                      rowStep: CGFloat, dirty: CGRect, zoom: CGFloat, scale: CGFloat) -> Int {
+        #if DEBUG
+        // r142-alt only (docs/R1_4_2_CONTRACT.md §4.5, §7.4; never merged): in screenshot mode `--screenshot-dot-look a|b|c`
+        // (`ScreenshotMode.dotLook`) gives the diameter (this local shadows `MemoDots.diameter` below) and the fill colour;
+        // without it, `MemoDots.diameter` and `PaperPalette.memoDot`, as the Release build.
+        let look = ScreenshotMode.dotLook
+        let diameter = look?.diameter ?? Self.diameter
+        #endif
         let z = max(zoom, 0.0001)
         let size = diameter / z
         let reach = size / 2 + 1
@@ -104,7 +111,11 @@ enum MemoDots {
         let firstRow = max(1, Int(((dirty.minY - reach - top) / rowStep - 1e-6).rounded(.up)))
         var count = 0
         ctx.saveGState()
+        #if DEBUG
+        ctx.setFillColor((look?.color ?? PaperPalette.memoDot).cgColor)
+        #else
         ctx.setFillColor(PaperPalette.memoDot.cgColor)
+        #endif
         ctx.beginPath()
         var k = firstRow
         while true {
