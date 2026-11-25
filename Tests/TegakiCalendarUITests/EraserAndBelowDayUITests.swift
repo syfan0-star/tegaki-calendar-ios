@@ -645,10 +645,17 @@ class EraserAndBelowDayUITests: XCTestCase {
         }
     }
 
-    /// Puts 黒・中 back (the toolbar remembers the pen in UserDefaults, which the next test reads).
+    /// Puts 黒・中 back (the toolbar remembers the pen in UserDefaults, which the next test reads). 1.4.2
+    /// (docs/R1_4_2_CONTRACT.md §6.2, §3.10): 黒 is dot 1 (`toolbar.swatch.0`: screenshot mode's dots are the first six), found by
+    /// its identifier and pressed only when it is not lit (a press of the lit dot opens the colour panel).
     private func restoreDefaultPen(in app: XCUIApplication, _ name: String) {
         guard app.buttons[Self.penLabel].isSelected else { return }
-        choose("黒", in: app, name)
+        let black = app.buttons["toolbar.swatch.0"]
+        if black.waitForExistence(timeout: 5), !black.isSelected {
+            reveal(black, in: app)
+            black.tap()
+            log("\(name): chose dot 1 (\(black.label), selected=\(black.isSelected)); tool \(probe(app)?.tool ?? "?")")
+        }
         choose("太さ: 中", in: app, name)
     }
 

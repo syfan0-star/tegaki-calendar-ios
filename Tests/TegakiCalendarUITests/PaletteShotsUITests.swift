@@ -30,6 +30,16 @@ import XCTest
 ///   the peeked bar at the bottom with 「動かす」 left of 「しまう」). Screenshot mode has no peek of its own (the
 ///   `--screenshot-toolbar` values are 1.1's), so the test taps. Its line also needs the tap (`peek=yes`), the button
 ///   (`move=`) and no grip (`grip=no`, a peek's).
+/// - 1.4.2 (docs/R1_4_2_CONTRACT.md §3.4, §3.8, §3.9, §7.3, 0f-30): the pen colour panel — ipad13's week in portrait with the
+///   panel open at the lit dot of the bar at the bottom, the top, the left and the right (`--screenshot-color-panel`), and on
+///   the peeks at the bottom and on the left (`--screenshot-toolbar collapsed`, the round button's tool mark and the lit dot
+///   tapped); the mini's week with the upright bar on the left; the iPhone 17's week with the panel and with other dots
+///   (`--screenshot-pen-slots`, the six colours added). Their lines also need the panel (`panel=` its frame; `ok=no` without
+///   it) or, for the dots, dot 1 read out as 茶 (`dot1=`). The panel's photo of the bottom bar is the owner's sample of the
+///   twelve colours (§7.3).
+/// - 1.4.2 (§3.9, §7.3): `testDarkPalettePhotos`, run by the job on ipad13 and the iPhone 17 alone, last, with the simulator in
+///   dark mode (TEST_RUNNER_TEGAKI_PALETTE_DARK=1; skipped otherwise): the week with the panel open, the bar's dots with their
+///   dark rims. Every other photo of this class and of the job is light.
 /// The iPhone 18 Pro Max's portrait month (等倍 on the second row) and the iPhone 17's `iphone-portrait-week-zoom3` are J-4's
 /// photos already (the first job), so they are not taken again here.
 ///
@@ -53,8 +63,12 @@ final class PaletteShotsUITests: XCTestCase {
     /// How long a photo waits after the screen has settled (s; SpanShotsUITests' `photoWait`).
     private let photoWait: TimeInterval = 1
 
+    /// 1.4.2 (§7.3): the six colours added, on the dots of `iphone-portrait-week-pen-slots`.
+    private static let addedSlots = "#92400e,#6b7280,#db2777,#0284c7,#166534,#1e40af"
+
     func testPalettePhotos() throws {
         let setup = try setup()
+        try XCTSkipIf(ProcessInfo.processInfo.environment["TEGAKI_PALETTE_DARK"] == "1", "the dark run takes testDarkPalettePhotos only")
         defer { XCUIDevice.shared.orientation = .portrait }
         switch setup.device {
         case "ipad13":
@@ -81,6 +95,18 @@ final class PaletteShotsUITests: XCTestCase {
             shoot(setup, "ipad13-portrait-week-peek-move", .portrait,
                   ["--screenshot-page", "week", "--screenshot-palette", "bottom", "--screenshot-toolbar", "collapsed"], edge: "bottom",
                   move: .peek)
+            // 1.4.2 (§7.3): the colour panel at the lit dot of every bar, and of the peeks at the bottom and on the left.
+            for edge in ["bottom", "top", "left", "right"] {
+                let name = edge == "bottom" ? "ipad13-portrait-week-color-panel" : "ipad13-portrait-week-\(edge)-color-panel"
+                shoot(setup, name, .portrait, ["--screenshot-page", "week", "--screenshot-palette", edge, "--screenshot-color-panel"],
+                      edge: edge, panel: .opened)
+            }
+            shoot(setup, "ipad13-portrait-week-peek-color-panel", .portrait,
+                  ["--screenshot-page", "week", "--screenshot-palette", "bottom", "--screenshot-toolbar", "collapsed"], edge: "bottom",
+                  panel: .peeked)
+            shoot(setup, "ipad13-portrait-week-peek-left-color-panel", .portrait,
+                  ["--screenshot-page", "week", "--screenshot-palette", "left", "--screenshot-toolbar", "collapsed"], edge: "left",
+                  panel: .peeked)
         case "ipadmini":
             shoot(setup, "ipadmini-portrait-month-left", .portrait, ["--screenshot-page", "month", "--screenshot-palette", "left"], edge: "left")
             shoot(setup, "ipadmini-landscape-week-right", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-palette", "right"],
@@ -88,6 +114,9 @@ final class PaletteShotsUITests: XCTestCase {
             // The second rework (§17.4): 「動かす」 on the upright bar, over 「しまう」.
             shoot(setup, "ipadmini-portrait-week-left-move", .portrait, ["--screenshot-page", "week", "--screenshot-palette", "left"],
                   edge: "left", move: .button)
+            // 1.4.2 (§7.3): the colour panel beside the mini's upright bar.
+            shoot(setup, "ipadmini-portrait-week-left-color-panel", .portrait,
+                  ["--screenshot-page", "week", "--screenshot-palette", "left", "--screenshot-color-panel"], edge: "left", panel: .opened)
         case "iphone":
             shoot(setup, "iphone-portrait-week-hand-left", .portrait, ["--screenshot-page", "week", "--screenshot-hand", "left"], edge: nil)
             shoot(setup, "iphone-landscape-week-hand-left", .landscapeLeft, ["--screenshot-page", "week", "--screenshot-hand", "left"], edge: nil)
@@ -96,8 +125,31 @@ final class PaletteShotsUITests: XCTestCase {
                   pageWidth: Self.dayWidth)
             shoot(setup, "iphone-landscape-week-fit", .landscapeLeft,
                   ["--screenshot-page", "week", "--screenshot-span", "on", "--screenshot-zoom", "fit"], edge: nil, pageWidth: Self.weekWidth)
+            // 1.4.2 (§7.3): the colour panel on the bottom bar, and the six added colours on the dots.
+            shoot(setup, "iphone-portrait-week-color-panel", .portrait, ["--screenshot-page", "week", "--screenshot-color-panel"], edge: nil,
+                  panel: .opened)
+            shoot(setup, "iphone-portrait-week-pen-slots", .portrait, ["--screenshot-page", "week", "--screenshot-pen-slots", Self.addedSlots],
+                  edge: nil, panel: .slots)
         default:
             throw XCTSkip("no palette photos on \(setup.device)")
+        }
+    }
+
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §3.9, §7.3): the dark photos, the job's last run on ipad13 and the iPhone 17 with the
+    /// simulator in dark mode (`simctl ui … appearance dark`, light again right after): the week with the colour panel open.
+    func testDarkPalettePhotos() throws {
+        let setup = try setup()
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["TEGAKI_PALETTE_DARK"] == "1", "only the job's dark run")
+        defer { XCUIDevice.shared.orientation = .portrait }
+        switch setup.device {
+        case "ipad13":
+            shoot(setup, "ipad13-portrait-week-dark-color-panel", .portrait,
+                  ["--screenshot-page", "week", "--screenshot-palette", "bottom", "--screenshot-color-panel"], edge: "bottom", panel: .opened)
+        case "iphone":
+            shoot(setup, "iphone-portrait-week-dark-color-panel", .portrait, ["--screenshot-page", "week", "--screenshot-color-panel"],
+                  edge: nil, panel: .opened)
+        default:
+            throw XCTSkip("no dark photos on \(setup.device)")
         }
     }
 
@@ -109,13 +161,19 @@ final class PaletteShotsUITests: XCTestCase {
         case button, menu, peek
     }
 
+    /// 1.4.2 (§7.3): what a photo of the colour panel waits for: the panel opened by `--screenshot-color-panel`; on a peek, the
+    /// round button's tool mark and then the lit dot tapped and the panel; or (no panel) dot 1 read out as 茶.
+    private enum PanelShot {
+        case opened, peeked, slots
+    }
+
     /// One launch, one photo (two with `scrolledToo`: the upright column scrolled to its end). `edge` is the edge
     /// `palette.state` must read (waited for); nil: no `--screenshot-palette` (no state element). `pageWidth` (lu, the 等倍
     /// photos): the line also carries the canvas's zoom and x and that width at the zoom (`across=`, pt). `move` (the second
     /// rework's photos): the line also needs the 「動かす」 button (and with `.menu` its choice 「右へ移す」), waited for; with
     /// `.peek` (the third rework's) the round button's tool mark is tapped first and the line needs the tap and no grip.
     private func shoot(_ setup: Setup, _ name: String, _ orientation: UIDeviceOrientation, _ arguments: [String], edge: String?,
-                       scrolledToo: Bool = false, pageWidth: CGFloat? = nil, move: MoveShot? = nil) {
+                       scrolledToo: Bool = false, pageWidth: CGFloat? = nil, move: MoveShot? = nil, panel: PanelShot? = nil) {
         XCUIDevice.shared.orientation = orientation
         let app = XCUIApplication()
         app.launchArguments = ["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-probe"] + arguments + Self.japanese
@@ -160,6 +218,9 @@ final class PaletteShotsUITests: XCTestCase {
                 ok = ok && !grip
             }
         }
+        if let panel {
+            moveFields += panelFields(app, panel, ok: &ok)
+        }
         Thread.sleep(forTimeInterval: photoWait)
         let turned = orientation != .portrait
         let how = takePhoto(app, setup, file: "palette/\(name).png", turned: turned)
@@ -198,6 +259,50 @@ final class PaletteShotsUITests: XCTestCase {
         record(setup, "palette shot: device=\(setup.device) name=\(name)-scrolled photo=\(scrolled) ok=\(moved ? "yes" : "no") "
             + "expected=\(edge ?? "-") pen-before=\(before.map { Self.text($0) } ?? "-") pen=\(after.map { Self.text($0) } ?? "-") "
             + "state=\(stateLabel(app))" + (moved ? "" : " reason=not-scrolled"))
+    }
+
+    /// 1.4.2 (§7.3): " peek=… dot=… panel=<frame>" (or " dot1=<label>" for the dots), waited for; `ok` false when it is not there.
+    private func panelFields(_ app: XCUIApplication, _ shot: PanelShot, ok: inout Bool) -> String {
+        var fields = ""
+        if shot == .slots {
+            let dot = app.buttons["toolbar.swatch.0"]
+            let brown = waitFor(15) { dot.exists && dot.label == "茶" }
+            fields += " dot1=\(dot.exists ? dot.label : "-")"
+            ok = ok && brown
+            return fields
+        }
+        if shot == .peeked {
+            let dock = app.buttons["ツールバーを出す"]
+            let tapped = dock.waitForExistence(timeout: 15)
+            if tapped { dock.tap() }
+            fields += " peek=\(tapped ? "yes" : "no")"
+            var lit: XCUIElement?
+            _ = waitFor(10) {
+                lit = (0..<6).map { app.buttons["toolbar.swatch.\($0)"] }.first { $0.exists && $0.isSelected }
+                return lit != nil
+            }
+            if let lit {
+                Thread.sleep(forTimeInterval: 0.5)
+                lit.tap()
+            }
+            fields += " dot=\(lit?.identifier ?? "-")"
+            ok = ok && tapped && lit != nil
+        }
+        let panel = element(app, "toolbar.colorPanel")
+        let shown = panel.waitForExistence(timeout: 15)
+        fields += " panel=\(shown ? Self.text(panel.frame) : "-")"
+        ok = ok && shown
+        return fields
+    }
+
+    /// Whether `condition` held within `seconds` (polled every 0.3 s), read once more after the deadline.
+    private func waitFor(_ seconds: TimeInterval, _ condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        while Date() < deadline {
+            if condition() { return true }
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+        return condition()
     }
 
     /// The canvas's probe read the same twice, 0.5 s apart (at most 15 s): the first layout and the slots are done.

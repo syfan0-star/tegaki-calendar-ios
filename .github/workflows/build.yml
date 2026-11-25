@@ -2039,6 +2039,8 @@ jobs:
       # wide row in landscape; logs only, the `header room:` lines, read by the lead for D1a's gate; blank-paper measures the
       # four other devices). D1b (§4.3, §6.1): PaletteMoveUITests' iPhone test (`palette UI:`: asked for the left edge, the
       # iPhone keeps 1.4's bar at the bottom with no grip); its iPad test skips itself here (blank-paper runs it).
+      # 1.4.2 (docs/R1_4_2_CONTRACT.md §6.1, §6.5): ColorPanelUITests (the pen colour panel on the iPhone's bottom bar, one launch,
+      # its steps the `color-panel UI:` lines) runs here; ColorPanelPadUITests skips itself here (blank-paper's iPad step runs it).
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 40
         run: |
@@ -2062,7 +2064,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|zoom-reset UI:|header room:|palette UI:|l10n UI:|week-start UI:|span UI:|memo-paper UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|zoom-reset UI:|header room:|palette UI:|l10n UI:|week-start UI:|span UI:|memo-paper UI:|color-panel UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
@@ -3027,12 +3029,14 @@ jobs:
   # launches of about 15 s on each device, and the month's PDF from MemoPaperDrawTests, about 3), with its own upload
   # (memo-paper-shots): the job 100 → 125 (D0's run 45311803365 took 77 min: the shots 64, the palette UI tests 10.5; + 25 + 1
   # ≈ 103, with the same slack for a slow runner as before). Photos only: it never fails the job (the lead looks at them).
+  # 1.4.2 D1b (docs/R1_4_2_CONTRACT.md §6.1, §6.5): the iPad's palette step also runs ColorPanelPadUITests (two tests, five launches
+  # of about 30 s: the pen colour panel beside the bars and the peeks), "(1.4.1, 1.4.2)": the step 20 → 25 and the job 125 → 130.
   blank-paper:
     name: Blank paper shots (1.1.1)
     if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 125
+    timeout-minutes: 130
     continue-on-error: true
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -3326,9 +3330,13 @@ jobs:
       # 1.4.1's third rework (docs/R1_4_1_CONTRACT.md §18.3, §18.5): and testThePeekedBarHasTheMoveButton (the folded bar peeked
       # from the round button has 「動かす」 and no grip; 「右へ移す」 opens it on the right to stay; 「しまう」 folds it to the
       # bottom right corner: one launch, about 1 min more, inside the 20); the step passes only when all three passed.
-      - name: Palette UI tests on the 13-inch iPad (1.4.1)
+      # 1.4.2 D1b (docs/R1_4_2_CONTRACT.md §3.8, §6.1, §6.5): and ColorPanelPadUITests (TEST_RUNNER_TEGAKI_PALETTE_UI=1 too): the pen
+      # colour panel opens beside the upright bars, under the top bar and from the peeks at the bottom and on the left, and a colour
+      # chosen there leaves the peek; its steps are the `color-panel UI:` lines. The step passes only when the three tests of
+      # PaletteMoveUITests and the two of ColorPanelPadUITests passed (gate 1 of D1b reads it); 20 → 25 min.
+      - name: Palette UI tests on the 13-inch iPad (1.4.1, 1.4.2)
         if: ${{ !cancelled() }}
-        timeout-minutes: 20
+        timeout-minutes: 25
         run: |
           set -uo pipefail
           OUT="$PWD/shots/palette-ui"
@@ -3350,8 +3358,10 @@ jobs:
             -derivedDataPath build/BlankData \
             -resultBundlePath build/palette-ui.xcresult \
             -only-testing:TegakiCalendarUITests/PaletteMoveUITests \
+            -only-testing:TegakiCalendarUITests/ColorPanelPadUITests \
             test-without-building > "$OUT/palette-ui-log.txt" 2>&1 || STATUS=$?
           grep 'palette UI:' "$OUT/palette-ui-log.txt" | awk '{ i = index($0, "palette UI:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
+          grep 'color-panel UI:' "$OUT/palette-ui-log.txt" | awk '{ i = index($0, "color-panel UI:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
           grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$OUT/palette-ui-log.txt" | tail -n 30 || true
           bash tools/ci/xcresult-app-output.sh "$OUT/palette-ui-app-output.txt" build/palette-ui.xcresult || true
           { grep -h -E 'toolbar: (paperArea|palette)=' "$OUT/palette-ui-app-output.txt" 2>/dev/null || true; } \
@@ -3359,14 +3369,16 @@ jobs:
           xcrun xcresulttool export attachments --path build/palette-ui.xcresult --output-path "$OUT/attachments" > /dev/null 2>&1 \
             || echo "::warning::xcresulttool could not export the palette UI tests' screenshots"
           xcrun simctl shutdown "$UDID" || true
-          for TEST in testTheGripMovesTheBarToEveryEdge testTheMoveButtonMovesTheBar testThePeekedBarHasTheMoveButton; do
-            if ! grep -qE "PaletteMoveUITests[ .]$TEST.*passed" "$OUT/palette-ui-log.txt"; then
-              echo "::error::PaletteMoveUITests.$TEST did not pass on the 13-inch iPad (status $STATUS; shots/palette-ui/palette-ui-log.txt in the artifact palette-ui)."
+          for TEST in PaletteMoveUITests.testTheGripMovesTheBarToEveryEdge PaletteMoveUITests.testTheMoveButtonMovesTheBar \
+                      PaletteMoveUITests.testThePeekedBarHasTheMoveButton \
+                      ColorPanelPadUITests.testThePanelOpensBesideTheBar ColorPanelPadUITests.testThePanelOpensFromThePeeks; do
+            if ! grep -qE "${TEST%%.*}[ .]${TEST#*.}.*passed" "$OUT/palette-ui-log.txt"; then
+              echo "::error::$TEST did not pass on the 13-inch iPad (status $STATUS; shots/palette-ui/palette-ui-log.txt in the artifact palette-ui)."
               exit 1
             fi
           done
-          if [ "$STATUS" != 0 ]; then echo "::error::PaletteMoveUITests ended with $STATUS (shots/palette-ui/palette-ui-log.txt)."; exit 1; fi
-          echo "PaletteMoveUITests passed on the 13-inch iPad."
+          if [ "$STATUS" != 0 ]; then echo "::error::The palette UI tests ended with $STATUS (shots/palette-ui/palette-ui-log.txt)."; exit 1; fi
+          echo "PaletteMoveUITests and ColorPanelPadUITests passed on the 13-inch iPad."
 
       # 1.4.2 (docs/R1_4_2_CONTRACT.md §4.7, §7.3, 0f-30): the memo paper's photos, in the artifact memo-paper-shots (not
       # blank-paper's 43, not J-4's screenshots: neither changes). On the table's 6.9-inch iPhone and 13-inch iPad ("Required
@@ -3599,12 +3611,16 @@ jobs:
   # 12 s, 3–4 min in all: the four devices' step 80 → 85 and the job 110 → 115. The photos go to shots/span-app/palette, the
   # artifact palette-shots (left out of span-shots-app's, whose 64 photos do not change), and their `palette shot:` lines to
   # shots/span-app/palette/lines-<id>.txt (not to lines/, which the gates read).
+  # 1.4.2 D1b (docs/R1_4_2_CONTRACT.md §3.9, §7.3, 0f-30): PaletteShotsUITests adds the pen colour panel's photos (9 launches) and,
+  # last on the 13-inch iPad and the iPhone 17, a second xcodebuild with the simulator in dark mode for the 2 dark photos (about
+  # 1.5 min each with its build of the runner): the four devices' step 85 → 90 and the job 115 → 120. Their lines go to the same
+  # lines-<id>.txt; the dark run's app output to <id>-dark-app-output.txt (not the gates' <id>-app-output.txt).
   span-shots-app:
     name: span-shots (1.3 app)
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 115
+    timeout-minutes: 120
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -3782,7 +3798,7 @@ jobs:
       # the other devices have had their turn.
       - name: Shots on four devices (SpanShotsUITests)
         id: devices
-        timeout-minutes: 85
+        timeout-minutes: 90
         run: |
           set -uo pipefail
           OUT="$PWD/shots/span-app"
@@ -3974,6 +3990,27 @@ jobs:
             fi
             grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/$ID-tests.log" | tail -n 30 || true
             if [ "$STATUS" != 0 ]; then echo "::error::SpanShotsUITests on $ID ended with $STATUS (shots/span-app/$ID-tests.log)."; FAILED=1; fi
+            # 1.4.2 (docs/R1_4_2_CONTRACT.md §3.9, §7.3, 0f-30): the dark photos, last on this device: the simulator in dark mode,
+            # PaletteShotsUITests' testDarkPalettePhotos alone (TEST_RUNNER_TEGAKI_PALETTE_DARK=1; it skips itself otherwise, and
+            # testPalettePhotos skips itself here), then light again at once. Photos only: a failure is a warning.
+            if [ "$ID" = "ipad13" ] || [ "$ID" = "iphone" ]; then
+              xcrun simctl ui "$UDID" appearance dark || true
+              sleep 5
+              DARK_STATUS=0
+              TEST_RUNNER_TEGAKI_SPAN_SHOT_OUT="$OUT" TEST_RUNNER_TEGAKI_SPAN_SHOT_DEVICE="$ID" TEST_RUNNER_TEGAKI_PALETTE_DARK=1 xcodebuild \
+                -project TegakiCalendar.xcodeproj \
+                -scheme TegakiCalendar \
+                -configuration Debug \
+                -destination "platform=iOS Simulator,id=$UDID" \
+                -derivedDataPath build/SpanAppData \
+                -resultBundlePath "build/span-app-$ID-dark.xcresult" \
+                -only-testing:TegakiCalendarUITests/PaletteShotsUITests/testDarkPalettePhotos \
+                test-without-building > "$OUT/$ID-dark-tests.log" 2>&1 || DARK_STATUS=$?
+              xcrun simctl ui "$UDID" appearance light || true
+              grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/$ID-dark-tests.log" | tail -n 5 || true
+              if [ "$DARK_STATUS" != 0 ]; then echo "::warning::$ID: the dark palette photos ended with $DARK_STATUS (shots/span-app/$ID-dark-tests.log)."; fi
+              bash tools/ci/xcresult-app-output.sh "$OUT/$ID-dark-app-output.txt" "build/span-app-$ID-dark.xcresult" || true
+            fi
             echo "$ID: $(find "$OUT" -maxdepth 1 -name "$ID-*.png" | wc -l | tr -d ' ') photos, $(( $(date +%s) - STARTED )) s with the boot"
             MINUTES=$(( ($(date +%s) - STARTED) / 60 + 2 ))
             xcrun simctl spawn "$UDID" log show --last "${MINUTES}m" --style compact --predicate 'process == "TegakiCalendar"' > "$OUT/$ID-log.txt" 2>&1 || true
@@ -4339,7 +4376,7 @@ jobs:
             BANDS=$(( $(count "$OUT" '*-boundary.png') + $(count "$OUT" '*-overview.png') + $(count "$OUT" '*-sunday.png') ))
             echo "Photos: bands $BANDS (21 expected), pairs $(count "$OUT" '*-shift-*.png') (8), margins $(count "$OUT" '*-margin-*.png') (30), week memo $(count "$OUT" '*-portrait-week-memo-*.png') (4), the neighbour ink's PDF $(count "$OUT" 'span-pdf-neighbor-ink.png') (1)."
             echo ""
-            echo "1.4.1's palette photos (artifact palette-shots): $(count "$OUT/palette" '*.png') (22 expected: the 13-inch iPad 14, the iPad mini 4, the iPhone 17 4); \`ok=no\` lines: $({ cat "$OUT"/palette/lines-*.txt 2>/dev/null || true; } | grep -c ' ok=no' || true)."
+            echo "1.4.1's and 1.4.2's palette photos (artifact palette-shots): $(count "$OUT/palette" '*.png') (33 expected: the 13-inch iPad 21, the iPad mini 5, the iPhone 17 7; 1.4.1's 22 + 1.4.2's 11: the colour panel 6 + 1 + 1, the dots 1, dark 2); \`ok=no\` lines: $({ cat "$OUT"/palette/lines-*.txt 2>/dev/null || true; } | grep -c ' ok=no' || true)."
             echo ""
             echo "#### The old versions' margins (pixels beside the page that are not the desk; the control must be 0,0)"
             echo ""
