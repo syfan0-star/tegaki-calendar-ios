@@ -45,6 +45,7 @@ final class ColorPanelPadUITests: XCTestCase {
             }
             let dotFrame = stable(lit)
             let penFrame = stable(pen)
+            let litId = lit.identifier
             lit.tap()
             let panel = element(app, Self.panelId)
             guard panel.waitForExistence(timeout: 5) else {
@@ -54,7 +55,7 @@ final class ColorPanelPadUITests: XCTestCase {
             }
             let frame = stable(panel)
             let window = app.windows.firstMatch.frame
-            log("\(edge): dot \(lit.identifier) \(text(dotFrame)) pen \(text(penFrame)) panel \(text(frame)) window \(text(window))")
+            log("\(edge): dot \(litId) \(text(dotFrame)) pen \(text(penFrame)) panel \(text(frame)) window \(text(window))")
             keepScreenshot(app, "\(edge) — the panel")
             switch edge {
             case "left":
@@ -65,7 +66,8 @@ final class ColorPanelPadUITests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(frame.minY, max(dotFrame.maxY, penFrame.maxY) - 0.5, "top: the panel under the bar")
             }
             XCTAssertTrue(window.contains(frame), "\(edge): the panel on the screen (\(text(frame)) in \(text(window)))")
-            lit.tap()
+            // The dot's second tap at the frame read before the panel opened (open, the panel is modal and may hide the bar).
+            tap(app, at: CGPoint(x: dotFrame.midX, y: dotFrame.midY))
             XCTAssertTrue(waitUntil(timeout: 5) { !panel.exists }, "\(edge): the dot's second tap closed it")
         }
     }
@@ -92,6 +94,7 @@ final class ColorPanelPadUITests: XCTestCase {
             }
             let dotFrame = stable(lit)
             let penFrame = stable(pen)
+            let litId = lit.identifier
             lit.tap()
             let panel = element(app, Self.panelId)
             guard panel.waitForExistence(timeout: 5) else {
@@ -101,7 +104,7 @@ final class ColorPanelPadUITests: XCTestCase {
             }
             let frame = stable(panel)
             let window = app.windows.firstMatch.frame
-            log("\(name): dot \(lit.identifier) \(text(dotFrame)) pen \(text(penFrame)) panel \(text(frame)) state \(stateLabel(app))")
+            log("\(name): dot \(litId) \(text(dotFrame)) pen \(text(penFrame)) panel \(text(frame)) state \(stateLabel(app))")
             keepScreenshot(app, "\(name) — the panel")
             if edge == "left" {
                 XCTAssertGreaterThanOrEqual(frame.minX, max(dotFrame.maxX, penFrame.maxX) - 0.5, "\(name): the panel right of the peek")
@@ -151,6 +154,11 @@ final class ColorPanelPadUITests: XCTestCase {
             return found != nil
         }
         return found
+    }
+
+    /// A tap at `point` (screen points).
+    private func tap(_ app: XCUIApplication, at point: CGPoint) {
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0)).withOffset(CGVector(dx: point.x, dy: point.y)).tap()
     }
 
     /// The element's frame once two reads 0.3 s apart agree (at most 3 s: a peek slides in).

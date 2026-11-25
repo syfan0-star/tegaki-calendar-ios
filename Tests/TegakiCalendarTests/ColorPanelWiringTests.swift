@@ -8,7 +8,8 @@ import XCTest
 /// the age range's); the panel's closings are modifiers of their own (`colorPanelLayer`), none in the bodies of `sheetsChanged`,
 /// `penDown`, `toolbarEvent`, `placePalette`, `paletteMoveChosen` or `paletteMoveButtonChose`; the window's watch is a `@State`,
 /// put on the window when the panel opens and taken off when it closes, and closes it on a touch outside; the picker's colour
-/// goes to the picker's dot. Fails with the watch never put on the window (mutation MS1).
+/// goes to the picker's dot (kept until the picker's `onDone`, also when the sheet is dragged away). Fails with the watch never
+/// put on the window (mutation MS1).
 @MainActor
 final class ColorPanelWiringTests: XCTestCase {
     private static let repository = URL(fileURLWithPath: "\(#filePath)")
@@ -69,11 +70,14 @@ final class ColorPanelWiringTests: XCTestCase {
         let screen = try code("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
         let sheets = try body(of: "private var sheetIsUp: Bool {", in: screen)
         XCTAssertTrue(sheets.hasSuffix("|| ageRangeAsking || colorPickerShown "), "after the age range's: \(sheets)")
-        XCTAssertEqual(count(".sheet(isPresented: $colorPickerShown, onDismiss: { colorPickerClosed() }) { "
+        XCTAssertEqual(count(".sheet(isPresented: $colorPickerShown, onDismiss: { colorPickerDismissed() }) { "
                              + "ColorPickerSheet(initialHex: colorPickerInitialHex, onPick: { colorPicked($0) }, onDone: { colorPickerClosed() }) }",
                              in: screen), 1, "the picker's every close ends it")
         let closed = try body(of: "private func colorPickerClosed() {", in: screen)
         XCTAssertEqual(closed, " if colorPickerShown { colorPickerShown = false } if colorPickerSlot != nil { colorPickerSlot = nil } ")
+        // The sheet dragged away: shown false at once, the dot kept for the candidate taken after it (onDone forgets it).
+        let dismissed = try body(of: "private func colorPickerDismissed() {", in: screen)
+        XCTAssertEqual(dismissed, " if colorPickerShown { colorPickerShown = false } ", "the dot kept until onDone")
         let picked = try body(of: "private func colorPicked(_ hex: String) {", in: screen)
         XCTAssertTrue(picked.contains("ColorPanelLogic.choose(hex, slot: colorPickerSlot ?? 0, slots: ColorPanelStore.slots())"),
                       "the picker's dot: \(picked)")

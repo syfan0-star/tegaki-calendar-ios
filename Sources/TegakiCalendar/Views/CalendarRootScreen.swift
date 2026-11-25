@@ -922,7 +922,7 @@ struct CalendarRootScreen: View {
             ColorPanelHost(anchor: anchor, openSlot: $colorPanelSlot, edge: paletteEdge, tool: toolBinding, watch: colorPanelWatch,
                            onOther: { openColorPicker(from: $0) })
         }
-        .sheet(isPresented: $colorPickerShown, onDismiss: { colorPickerClosed() }) {
+        .sheet(isPresented: $colorPickerShown, onDismiss: { colorPickerDismissed() }) {
             ColorPickerSheet(initialHex: colorPickerInitialHex, onPick: { colorPicked($0) }, onDone: { colorPickerClosed() })
         }
         .onChange(of: colorPanelSlot) {
@@ -977,11 +977,18 @@ struct CalendarRootScreen: View {
         toolBinding.wrappedValue = .ink(ColorPanelStore.apply(choice))
     }
 
-    /// The picker closed (its ×, the sheet's own dismissal; whichever comes first, the second does nothing): `sheetIsUp` false
-    /// again, so what `sheetsChanged` keeps waiting comes.
+    /// The picker is done (`ColorPickerSheet`'s `onDone`, once: after its ×, or after the sheet went away, its last candidate
+    /// taken first): `sheetIsUp` false again, so what `sheetsChanged` keeps waiting comes, and the dot forgotten.
     private func colorPickerClosed() {
         if colorPickerShown { colorPickerShown = false }
         if colorPickerSlot != nil { colorPickerSlot = nil }
+    }
+
+    /// The sheet went away (dragged down; on an iPad also a tap outside it): `sheetIsUp` false again at once. The dot is kept:
+    /// a candidate still moving is taken after this (`dismantleUIViewController` finishes on the next turn) and must go to the
+    /// dot the picker was opened from, not to dot 1; `onDone` (`colorPickerClosed`) forgets it.
+    private func colorPickerDismissed() {
+        if colorPickerShown { colorPickerShown = false }
     }
 
     /// Screenshot mode's `--screenshot-color-panel` (§3.11): the lit dot's panel, as a tap on it opens it.

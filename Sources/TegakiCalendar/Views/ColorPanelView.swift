@@ -121,7 +121,8 @@ struct ColorPanelHost: View {
 /// The panel (§3.4): the toolbar's material, 288 × 204; on top the twelve colours in 6 × 2 cells of 44 (28 pt dots, the lit
 /// one with the bar's accent ring) on the paper's colour (light in dark mode too, as the ink is seen on the paper); under
 /// them 「その他の色…」 and 「最初の色に戻す」, 44 tall each, one line down to 0.8 or two, at most xLarge. VoiceOver: one
-/// container 「ペンの色を選ぶ」, modal, closed by the escape gesture, its focus on the pen's colour when it opens.
+/// container 「ペンの色を選ぶ」, modal, closed by the escape gesture, its focus on the pen's colour 0.3 s after it opens
+/// (on 「その他の色…」 when the pen's colour is none of the twelve).
 struct ColorPanelView: View {
     var slot: Int
     var tool: Binding<CanvasTool>
@@ -169,7 +170,12 @@ struct ColorPanelView: View {
         .accessibilityIdentifier(ColorPanelIdentifier.panel)
         .accessibilityAddTraits(.isModal)
         .accessibilityAction(.escape) { onClose() }
-        .onAppear { focused = pen.colorHex }
+        .task {
+            // Given in `onAppear`, the focus is often lost (the panel is not in the accessibility tree yet): a moment later.
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            focused = ToolbarPalette.panelColors.contains { $0.hex == pen.colorHex } ? pen.colorHex : ColorPanelIdentifier.other
+        }
     }
 
     /// The twelve on the paper's colour: the first six colours over the six added (§3.1).
@@ -234,6 +240,7 @@ struct ColorPanelView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(identifier)
+        .accessibilityFocused($focused, equals: identifier)
     }
 
     /// A colour of the panel (§3.7, `ColorPanelLogic.choose`): written, the pen takes it (its width kept), the panel closes.

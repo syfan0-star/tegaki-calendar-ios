@@ -67,12 +67,13 @@ final class ColorPanelUITests: XCTestCase {
             + "dot 2 \(dot1.exists), 「ペン」 \(app.buttons["ペン"].exists)")
         tap(app, at: CGPoint(x: titleFrame.midX, y: titleFrame.midY))
         XCTAssertTrue(waitUntil(timeout: 5) { !self.panel(app).exists }, "1: a tap on the title closed it")
+        // The canvas is read only with the panel closed: open, it is modal and may hide what lies outside it.
+        XCTAssertEqual(toolColor(canvas), Self.black, "1: opening and closing changed no pen")
         log("1: closed by the title; tool \(probeTool(canvas))")
 
         // 2. Open, 茶.
         dot0.tap()
         XCTAssertTrue(panel(app).waitForExistence(timeout: 5), "2: a tap on the lit dot opened it")
-        XCTAssertEqual(toolColor(canvas), Self.black, "2: opening changes no pen")
         let brownButton = app.buttons["toolbar.colorPanel.92400e"]
         XCTAssertTrue(brownButton.waitForExistence(timeout: 5), "2: 茶 in the panel")
         log("2: panel \(text(panel(app).frame)), 茶 \(text(brownButton.frame)) \(brownButton.label)")
@@ -95,19 +96,28 @@ final class ColorPanelUITests: XCTestCase {
         // 4. 「その他の色…」: the system's picker, closed with nothing chosen; then 「設定」 opens (sheetIsUp is false again).
         dot0.tap()
         XCTAssertTrue(waitUntil(timeout: 5) { dot0.isSelected && self.toolColor(canvas) == Self.brown }, "4: 茶 chosen on the bar")
-        // The header's kind switch is a segmented control too: the picker's (Grid, Spectrum, Sliders) is one more.
+        // The header's kind switch is a segmented control of four (日・週・月・年); the picker's (Grid, Spectrum, Sliders) has
+        // three. The sheet may hide the header's from the tree (a page sheet is modal for VoiceOver), so the picker is a
+        // control of three, or one control more than before it.
         let switches = app.segmentedControls.count
+        func pickerShown() -> Bool {
+            if app.segmentedControls.count > switches { return true }
+            return (0..<app.segmentedControls.count).contains { index in
+                let control = app.segmentedControls.element(boundBy: index)
+                return control.exists && control.buttons.count == 3
+            }
+        }
         dot0.tap()
         XCTAssertTrue(panel(app).waitForExistence(timeout: 5), "4: open")
         app.buttons["toolbar.colorPanel.other"].tap()
         XCTAssertTrue(waitUntil(timeout: 5) { !self.panel(app).exists }, "4: 「その他の色…」 closed the panel")
-        let shown = waitUntil(timeout: 10) { app.segmentedControls.count > switches }
+        let shown = waitUntil(timeout: 10) { pickerShown() }
         keepScreenshot(app, "4 — the system's colour picker")
         log("4: the picker \(shown ? "shown" : "not seen") (segmented controls \(switches) → \(app.segmentedControls.count)); "
             + "buttons \((0..<min(10, app.buttons.count)).map { app.buttons.element(boundBy: $0).label })")
         XCTAssertTrue(shown, "4: the system's colour picker")
         closePicker(app)
-        XCTAssertTrue(waitUntil(timeout: 10) { app.segmentedControls.count <= switches }, "4: the picker closed")
+        XCTAssertTrue(waitUntil(timeout: 10) { !pickerShown() }, "4: the picker closed")
         XCTAssertTrue(waitUntil(timeout: 5) { dot0.label == "茶" && dot0.isSelected }, "4: the dots as they were")
         XCTAssertEqual(toolColor(canvas), Self.brown, "4: nothing chosen")
         let settings = app.buttons["設定"]
@@ -130,9 +140,9 @@ final class ColorPanelUITests: XCTestCase {
 
         // 6. Open, then a finger's line on the paper: closed, and the line written in 黒.
         let before = probeInk(canvas)
+        let paper = canvas.frame
         dot0.tap()
         XCTAssertTrue(panel(app).waitForExistence(timeout: 5), "6: open")
-        let paper = canvas.frame
         drag(app, from: CGPoint(x: paper.minX + paper.width * 0.25, y: paper.minY + paper.height * 0.3),
              to: CGPoint(x: paper.minX + paper.width * 0.6, y: paper.minY + paper.height * 0.32))
         XCTAssertTrue(waitUntil(timeout: 5) { !self.panel(app).exists }, "6: the line closed the panel")

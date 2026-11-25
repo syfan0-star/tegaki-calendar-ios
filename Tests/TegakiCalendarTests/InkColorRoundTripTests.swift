@@ -47,6 +47,20 @@ final class InkColorRoundTripTests: XCTestCase {
         XCTAssertEqual(InkColors.hex(of: UIColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1))?.prefix(3), "#ff")
     }
 
+    /// The app's own picker path (`ColorPickerSheet.Coordinator`'s delegate method, as UIKit calls it): a settled Display P3
+    /// colour reaches the screen as the sRGB "#rrggbb" text, once. Only `continuously: false` (mutation MC3 is
+    /// `ColorPanelLogicTests`' alone). Fails if the delegate handed the colour on unconverted or flipped `continuously`.
+    func testThePickersDelegateHandsOnSRGBText() throws {
+        var picks: [String] = []
+        let p3 = UIColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1)
+        let coordinator = ColorPickerSheet(initialHex: "#92400e", onPick: { picks.append($0) }, onDone: {}).makeCoordinator()
+        coordinator.colorPickerViewController(UIColorPickerViewController(), didSelect: p3, continuously: false)
+        XCTAssertEqual(picks, [try XCTUnwrap(InkColors.hex(of: p3))])
+        let first = try XCTUnwrap(picks.first, "one colour handed on")
+        XCTAssertTrue(first.hasPrefix("#ff"), first)
+        XCTAssertEqual(InkColors.normalized(first), first, "lower-case #rrggbb")
+    }
+
     func testABrownStrokeThroughTheLedger() throws {
         let layout = MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: 2026, month: 10), events: [], inkBottoms: [:],
                                                                now: Date(timeIntervalSince1970: 1_790_000_000)))

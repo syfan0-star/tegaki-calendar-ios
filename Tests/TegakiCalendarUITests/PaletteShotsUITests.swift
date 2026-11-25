@@ -225,7 +225,7 @@ final class PaletteShotsUITests: XCTestCase {
         let turned = orientation != .portrait
         let how = takePhoto(app, setup, file: "palette/\(name).png", turned: turned)
         record(setup, "palette shot: device=\(setup.device) name=\(name) photo=\(how) ok=\(ok ? "yes" : "no") expected=\(edge ?? "-") "
-            + "window=\(Self.text(app.windows.firstMatch.frame)) canvas=\(Self.text(canvas.frame)) state=\(state)"
+            + "window=\(Self.text(app.windows.firstMatch.frame)) canvas=\(canvas.exists ? Self.text(canvas.frame) : "-") state=\(state)"
             + (pageWidth.map { zoomFields(canvas, pageWidth: $0) } ?? "") + moveFields)
         guard scrolledToo else { return }
         // The upright column scrolled: one slow drag from near its bottom to near its top, held before the lift. It starts
@@ -281,11 +281,13 @@ final class PaletteShotsUITests: XCTestCase {
                 lit = (0..<6).map { app.buttons["toolbar.swatch.\($0)"] }.first { $0.exists && $0.isSelected }
                 return lit != nil
             }
+            // Its identifier read before the tap (open, the panel is modal and may hide the bar).
+            let litId = lit?.identifier ?? "-"
             if let lit {
                 Thread.sleep(forTimeInterval: 0.5)
                 lit.tap()
             }
-            fields += " dot=\(lit?.identifier ?? "-")"
+            fields += " dot=\(litId)"
             ok = ok && tapped && lit != nil
         }
         let panel = element(app, "toolbar.colorPanel")
@@ -305,11 +307,14 @@ final class PaletteShotsUITests: XCTestCase {
         return condition()
     }
 
-    /// The canvas's probe read the same twice, 0.5 s apart (at most 15 s): the first layout and the slots are done.
+    /// The canvas's probe read the same twice, 0.5 s apart (at most 15 s): the first layout and the slots are done. 1.4.2
+    /// (§7.3): it stops when the canvas has left the tree (`--screenshot-color-panel` opens the panel about 1–1.5 s after the
+    /// bar stands, and the panel is modal: what lies outside it may be hidden; a read of it then would fail the test).
     private func settle(_ canvas: XCUIElement) {
         var last = ""
         let deadline = Date().addingTimeInterval(15)
         while Date() < deadline {
+            guard canvas.exists else { return }
             let now = "\(canvas.value as? String ?? "")|\(canvas.frame)"
             if now == last, !now.hasPrefix("|") { return }
             last = now
