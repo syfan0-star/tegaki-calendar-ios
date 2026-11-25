@@ -68,9 +68,9 @@ enum ColorPanelStore {
 /// the panel's and the dot's frames in the window's points handed to the watcher, and the panel closed when the lit dot moves
 /// more than 1 pt from where it was when the panel opened (`closesOnAnchorMove`: the bar scrolled, turned or was made anew).
 /// Never open with nothing drawn (D1b's review, nit 1): the panel also closes when the lit dot's frame is gone while it is
-/// open (no dot lit any more: the pen's colour changed in another window, the bar made anew without it), and when no frame
-/// has come 0.5 s after it opened (normally it comes the same turn or a frame or two later). The layer itself has nothing
-/// to hit: only the panel takes touches.
+/// open (a safety net: the screen's own closings in `colorPanelLayer` (tool, mode, edge, window size, sheets, drags) come
+/// first; with the app's one window no other cause is known), and when no frame has come 0.5 s after it opened (normally it
+/// comes the same turn or a frame or two later). The layer itself has nothing to hit: only the panel takes touches.
 struct ColorPanelHost: View {
     var anchor: Anchor<CGRect>?
     var openSlot: Binding<Int?>
