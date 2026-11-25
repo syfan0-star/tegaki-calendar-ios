@@ -947,7 +947,7 @@
     },
     "onboarding.pen.text": {
       "jaSha1": "cbfca1a23d",
-      "text": "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Draw with Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@"
+      "text": "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Use Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@"
     },
     "onboarding.pen.title": {
       "jaSha1": "3bbf69218f",
@@ -1363,7 +1363,7 @@
     },
     "settings.input.allowFinger": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Draw with Finger"
+      "text": "Use Finger"
     },
     "settings.input.allowFinger.footer": {
       "jaSha1": "0ed7a17915",
@@ -1927,7 +1927,7 @@
     },
     "toolbar.fingerToggle": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Draw with Finger"
+      "text": "Use Finger"
     },
     "toolbar.fingerToggle.hint": {
       "jaSha1": "cb2be71b20",

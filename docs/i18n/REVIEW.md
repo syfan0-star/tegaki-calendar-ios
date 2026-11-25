@@ -3368,3 +3368,27 @@ D2 の文の見直し（should 1・should 2・nit 2）を受けて、この枝�
 ### lint
 
 この節の字を入れた後の枝 `r142-w-d2a` の木で、`tools/l10n/lint.py`（L-1〜L-14。L-9 は店の文の字数と URL）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です（この節の文はアプリの文字列ではないので、`Localizable.xcstrings` と L-12 の数は変わらない）。凍結の表は `shasum -a 256 -c` で全部 OK です。この節の作業で替えたのは、`docs/i18n/REVIEW.md`（この節）・`docs/i18n/back/store-1_4_2.md`（新しい）・`docs/i18n/back/store-1_4_2-en.md`（頭の時刻と 18 の指し先、照らし合わせの節の時刻）・`docs/store/README.md`（「まだ」の 2 か所）だけです。
+
+### 18.x 「指でも書く」の en を短くする（縦 1024 pt の iPad、2026-11-26）
+
+17 の「△ と気づきの扱い」の 9 と、17.x の 2 つ目の点の続きです。リードが run 45709406386 で縦 1024 pt の iPad（12.9 インチの iPad Pro・13 インチの iPad Air）の週のページを 10 の言語で撮って測ると、en の Draw with Finger だけ、最後の r が右の端のぼかしに 4.5 pt 入っていました（左 94 %・右 64 % の濃さ。字は切れていない）。ほかの 9 言語は、ぼかしの手前で終わっています（[GLOSSARY.md](GLOSSARY.md) §4 の「その 2」）。リードの決めで、en を **Use Finger**（この Mac の AppKit の 13 pt で 65.2 pt。上限の fr « Écrire au doigt » は 87.8 pt）に短くしました。es Usar el dedo・pt-BR Usar o dedo と同じ「指を使う」の形です。it Scrivi con il dito（ぼかしの 1.5 pt 手前）と、ほかの 8 言語は替えていません。
+
+- **替えた字**: アプリの `toolbar.fingerToggle`・`settings.input.allowFinger`（en）と `onboarding.pen.text` の引用（en。`Localizable.xcstrings` は `build.py` で作り直した）、`docs/SUPPORT.en.md` の 2 か所、審査メモ `docs/store/review-note.txt` の To test の 1 か所。下の 6 行です。
+- **逆翻訳**: 英語を書いた後に、この 6 行の英語の字だけを読んで訳し戻しました（2026-11-26 07:45 JST）。ただ、**書いたのも訳し戻したのも同じ Claude で、日本語の元（指でも書く）は前から知っていた**ので、元を見ない逆翻訳としては弱い物です。
+- **判定**: 同じ Claude が、2 つの見方で照らしました。意味（日本語の元と同じか）と、語と事実（アプリの en の字と同じか、言っていることがアプリと合うか）です。**この 6 行の、別の Claude による独立した判定は、次のリードの段が行います。**
+- **母語の人の確認ではありません。**
+
+| # | 所 | 元の日本語 | 前の英語 | 新しい英語 | 逆翻訳（書いた後に、英語だけから） | 意味 | 語と事実 | 注 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `toolbar.fingerToggle`（en） | 指でも書く | Draw with Finger | Use Finger | 指を使う | △ | ○ | 意味: 「書く」と「でも」が字から消え、オフの字は「指を使わない」と読める（実際は、指でスクロールとタップをする）。読み上げのヒント（When this is on, you can also draw lines with your finger…）と初回案内の文がつなぐ。17 の △ 4 の es・pt-BR と同じ形で、幅のために受け入れる。語と事実: en.json の 2 つのキーと同じ字（機械で照らした）。13 pt で 65.2 pt、新しい F-13 の上限 99.5 pt の中 |
+| 2 | `settings.input.allowFinger`（en） | 指でも書く | Draw with Finger | Use Finger | 指を使う（設定の「入力」の節） | △ | ○ | 意味: 1 と同じ。すぐ下の脚注（When this is on, you can also draw lines with your finger. When it is off, your finger scrolls and taps.）が意味を言う（17 の △ 5 と同じ）。語と事実: ツールバーと同じ字（comment の決まり）。節の名前は Input |
+| 3 | `onboarding.pen.text`（en）の 2 段落目の 1 文目 | 指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。 | To also write with your finger, turn on “Draw with Finger” in the toolbar. | To also write with your finger, turn on “Use Finger” in the toolbar. | 指でも書くには、ツールバーの「指を使う」をオンにしてください。 | ○ | ○ | 文の前半が「書く」「でも」を言うので、元と同じ意味。引用はツールバーの字で、“ ” は §1 の en の引用符。文のほかの字は替えていない |
+| 4 | `SUPPORT.en.md` の iPhone の答え | 手書きは指で書きます（ツールバーの「指でも書く」）。 | On iPhone, you write with your finger (“Draw with Finger” in the toolbar). | On iPhone, you write with your finger (“Use Finger” in the toolbar). | iPhone では、指で書きます（ツールバーの「指を使う」）。 | ○ | ○ | 名前だけ替えた。中身は前と同じ |
+| 5 | `SUPPORT.en.md` の拡大の答え | （「指でも書く」がオンのときは 2 本の指で） | (with two fingers when “Draw with Finger” is on) | (with two fingers when “Use Finger” is on) | （「指を使う」がオンのときは 2 本の指で） | ○ | ○ | 名前だけ替えた。オンのときは 1 本の指が線になるので、スクロールは 2 本の指、は前と同じ |
+| 6 | `review-note.txt` の To test | （日本語の要約に無い段。1.4.1 からの英語の文） | …or with a finger after turning on Draw with Finger (in the toolbar or in Settings > Input). | …or with a finger after turning on "Use Finger" (in the toolbar or in Settings > Input). | …または（ツールバーか 設定 › 入力 で）「指を使う」をオンにした後は指で、書けます。 | ○ | ○ | 名前を替え、ASCII の " で囲んだ（短い名前が文の動詞 turning on Use… と続いて読み違えられないように。1.4.2 の段の "Other Color…" と同じ引用符）。Settings > Input は `settings.input.header` の en の字 |
+
+- **結果**: 6 行で、意味は ○ 4・△ 2、語と事実は ○ 6、× は 0 です。△ の 2 行（1・2）は、17 の △ 4・△ 5 と同じ扱いで替えていません。
+- **替えていない物**: 過去の記録（`docs/store/PROPOSALS_1_4.md`、`docs/i18n/back/store-1_4.md`・`store-1_4_1-en.md`・`store-en-US.md`、`docs/M7B_CONTRACT.md`・`docs/M7D_CONTRACT.md`、この REVIEW の前の節）は、そのときの字の Draw with Finger のままです。`docs/i18n/back/en.json` も前の字とその逆翻訳のままです（17 の 10 と同じ扱い）。新機能の文には名前の替わりを書いていません（de・es・pt-BR と同じ。18 の △ と気づきの 5）。
+- **審査メモ**: 契約 §8.4 は、1.4.2 の段と要約のほかは「1 バイトも替えない」としています。To test の名前は、アプリの字が替わったので 1 か所だけ替えました（リードが契約 §14 の注に書く）。3,669 → **3,665 バイト**（`wc -c`。最後の改行を除くと 3,664 バイト・3,348 字）で、4,000 バイトの中です。`docs/store/README.md` の審査メモの段と、英語の画面の名前の表も直しました。
+- **Web**: `r142-legal`（契約 §8.5。まだ作っていない）には、この SUPPORT.en の字を入れます。
+- **lint**: この木で `lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です。L-12 の目安の警告は 59 → 58 件です（en の Use Finger は 10 字・6.0 em で `maxEm` 9.0 の中。it Scrivi con il dito は前から警告）。

@@ -125,7 +125,7 @@ In Settings > Apple Pencil, you can choose what a double-tap (2nd generation and
 
 ### Can I use it on iPhone or Mac?
 
-You can use it on iPhone (iOS 17 or later). On iPhone, you write with your finger (“Draw with Finger” in the toolbar). On iPhone Duo, the App fits the width of the screen (from version 1.4). If you use the iCloud of the same Apple Account on iPad and iPhone, your handwriting syncs. It also opens on a Mac, but there it is meant for supplementary use (checking and simple writing). A Mac has no Apple Pencil, so handwriting is done with a trackpad or mouse.
+You can use it on iPhone (iOS 17 or later). On iPhone, you write with your finger (“Use Finger” in the toolbar). On iPhone Duo, the App fits the width of the screen (from version 1.4). If you use the iCloud of the same Apple Account on iPad and iPhone, your handwriting syncs. It also opens on a Mac, but there it is meant for supplementary use (checking and simple writing). A Mac has no Apple Pencil, so handwriting is done with a trackpad or mouse.
 
 ### I want to move my handwriting from the web version to the App
 
@@ -153,7 +153,7 @@ Tap “Hide” at the right end of the toolbar (at the bottom end when the toolb
 
 ### How do I zoom in and out?
 
-Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open at the same size, no matter how many events or how much handwriting they have (on iPad, when the toolbar is at the left or right edge, they may open smaller, because the paper is narrower by the width of the toolbar). Pages with many events or a lot of handwriting can be scrolled down (with two fingers when “Draw with Finger” is on). When you pinch to zoom out, you can see the whole calendar. The device remembers the zoomed-in size for each page type. It does not remember the zoomed-out size.
+Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open at the same size, no matter how many events or how much handwriting they have (on iPad, when the toolbar is at the left or right edge, they may open smaller, because the paper is narrower by the width of the toolbar). Pages with many events or a lot of handwriting can be scrolled down (with two fingers when “Use Finger” is on). When you pinch to zoom out, you can see the whole calendar. The device remembers the zoomed-in size for each page type. It does not remember the zoomed-out size.
 
 Tap the button showing a magnifying glass with “1” (Reset Zoom), next to “‹ Today ›” at the top right, to reset the zoom at once (from version 1.4.1): on day and week pages, one day's or one week's page fits the width of the screen exactly; on month and year pages, the page goes back to the size it had when you first opened it. On a narrow screen (a narrow iPad window, or iPhone in portrait except on the inner screen of iPhone Duo), this button is at the right of the second row (the Day, Week, Month and Year switch). When “Left Hand” is chosen in the App's Settings > Dominant Hand, it is at the top left (on a narrow screen, at the left of the second row). After you reset the zoom, pages of the same type keep opening that way, even after you reopen the App. If you then change the size with two fingers, they open at the new size instead (or, if you made it smaller than the size the page had when you first opened it, at that first size). The sizes of the other page types stay as they are.
 

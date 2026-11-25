@@ -12554,7 +12554,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Draw with Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@"
+            "value" : "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Use Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@"
           }
         },
         "es" : {
@@ -19418,7 +19418,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Draw with Finger"
+            "value" : "Use Finger"
           }
         },
         "es" : {
@@ -28712,7 +28712,7 @@
       }
     },
     "toolbar.fingerToggle" : {
-      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない（1 行）。1.4.1 で同じ行の右に「動かす」が入ったので、13 インチの iPad の縦で行に収まるのは fr の « Écrire au doigt » の幅（87.8 pt、ja の幅 ＋ 約 28 pt）まで。それより長いと最後の字が行の右の端のぼかしで切れる（1.4.2 で de・es・pt-BR を短くした。docs/i18n/GLOSSARY.md §4）。maxEm 9.0 は、その fr の 15 字を L-12 の数え方（1 字 0.6 em）にした物で、それより長い訳を L-12 の警告で知らせる（en と it は超えていて警告になる。字は切れないが、行が少しはみ出してスクロールする。GLOSSARY §4）。設定の settings.input.allowFinger と同じ語にし、onboarding.pen.text の引用もこの語にする",
+      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない（1 行）。1.4.1 で同じ行の右に「動かす」が入ったので、13 インチの iPad の縦で行に収まるのは fr の « Écrire au doigt » の幅（87.8 pt、ja の幅 ＋ 約 28 pt）まで。それより長いと最後の字が行の右の端のぼかしで切れる。縦 1024 pt の iPad ではぼかしが 8 pt 左になる（1.4.2 で de・es・pt-BR を短くし、1024 pt の写真で最後の字がぼかしにかかった en も Use Finger に短くした。docs/i18n/GLOSSARY.md §4）。ToolbarFitTests の F-13 は、字の終わりが 13 インチの縦の行のぼかしの手前にあることを、「動かす」を 52 pt として確かめる。maxEm 9.0 は、その fr の 15 字を L-12 の数え方（1 字 0.6 em）にした物で、それより長い訳を L-12 の警告で知らせる（it は超えていて警告になる。字は 1024 pt の写真でもぼかしの 1.5 pt 手前で終わるが、行が少しはみ出してスクロールする。GLOSSARY §4）。設定の settings.input.allowFinger と同じ語にし、onboarding.pen.text の引用もこの語にする",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -28724,7 +28724,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Draw with Finger"
+            "value" : "Use Finger"
           }
         },
         "es" : {
