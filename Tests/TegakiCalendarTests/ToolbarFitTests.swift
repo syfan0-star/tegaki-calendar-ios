@@ -53,6 +53,7 @@ final class ToolbarFitTests: XCTestCase {
 
     /// `ToolbarLogicTests.testRowWinsBackTheCollapseButton`'s four formulas with the widths of each
     /// language. With F-12 only the 13-inch formula changes between languages (the finger toggle).
+    /// These are 1.1's promises and do not count 1.4.1's 「動かす」; F-13 below does, for the finger toggle's text.
     func testRowKeepsWhatOneOneShowedInEveryLanguage() {
         let japaneseFinger = width(L.text(fingerKey, in: .ja), size: 13)
         let gap = 2 * Row.groupSpacing + 1
@@ -80,11 +81,30 @@ final class ToolbarFitTests: XCTestCase {
 
     // MARK: F-13
 
+    /// 「指でも書く」 (13 pt, one line, never shrinks) ends before the fade at the right end of the 13-inch iPad's upright
+    /// row (1.4.2, docs/i18n/GLOSSARY.md §4). Until 1.4.2 this was M7B's "ja + 76": the whole row on the 13-inch, before
+    /// 1.4.1 put 「動かす」 between the row and 「しまう」. 「動かす」 is taken here as 52 pt (its 48 and 4 before it; the
+    /// photos show the row 48 narrower, since the 4 stood before 「しまう」 already), so the check keeps 4 pt in hand.
+    /// The label's text starts 35.5 pt after where these formulas put the toggle (12 + 748 = 760 on the screen; run
+    /// 45709406386 photographed the text at 795.5 pt on the 1024 and 1032 pt iPads). So the text may be 99.5 pt wide
+    /// (883 − 783.5); the widest is Italian's "Scrivi con il dito" (96.1 in AppKit, 3.4 to spare). The whole row (the
+    /// 13-inch formula above) is not asked for: with 「動かす」 counted, it, fr and de run a little past the row's end and
+    /// the row scrolls, but their text stays clear of the fade.
     func testFingerToggleFitsTheThirteenInchRow() {
-        let japanese = width(L.text(fingerKey, in: .ja), size: 13)
+        let gap = 2 * Row.groupSpacing + 1
+        let moveButton = Row.collapseLeading + Row.buttonMinWidth
         for language in UILanguage.allCases {
+            let collapse = toolButtonWidth(collapseKey, language)
+            let visible = 1032 - 2 * ToolbarLogic.sidePadding
+                - (1 + Row.collapseLeading + collapse + Row.collapseTrailing) - moveButton
+            let tools = toolKeys.reduce(CGFloat(0)) { $0 + toolButtonWidth($1, language) }
+            let widths = Row.paddingLeading + tools + gap + 6 * Row.swatchWidth + gap
+            let undo = widths + widthKeys.reduce(CGFloat(0)) { $0 + widthButtonWidth($1, language) } + gap
+            let textStart = undo + 2 * Row.historyButtonWidth + gap + 35.5
             let text = L.text(fingerKey, in: language)
-            XCTAssertLessThanOrEqual(width(text, size: 13) - japanese, 76, "\(language.rawValue) \"\(text)\"")
+            let textEnd = textStart + width(text, size: 13)
+            print("toolbar fit: \(language.rawValue) \(fingerKey) \"\(text)\" ends at \(textEnd) pt, the fade starts at \(visible - Row.fadeWidth) pt")
+            XCTAssertLessThanOrEqual(textEnd, visible - Row.fadeWidth, "\(language.rawValue) \"\(text)\"")
         }
     }
 

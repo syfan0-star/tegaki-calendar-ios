@@ -2042,6 +2042,8 @@ jobs:
       # 1.4.2 (docs/R1_4_2_CONTRACT.md §6.1, §6.5): ColorPanelUITests (the pen colour panel on the iPhone's bottom bar, one launch,
       # its steps the `color-panel UI:` lines) runs here; ColorPanelPadUITests skips itself here (blank-paper's iPad step runs it).
       # The step 40 → 45 min: it took 35:24–36:18 in run #4, D0 and D1a, and ColorPanelUITests adds 1–3 min (the job's 60 stays).
+      # D2 (D1b's decision (m)): LanguageUITests' testLocalizedShotsOfTheMemoPaperAndTheColourPanel takes l10n-shots' XCUI
+      # photos there and skips itself here (one more skipped test, no time).
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
         timeout-minutes: 45
         run: |
@@ -2518,8 +2520,8 @@ jobs:
   # 1.2 (docs/M7B_CONTRACT.md §7.5, §7.6, §4.4, §4.5, §10.7, §8 8): the other nine languages, seen by the
   # lead and the owner without being able to read them. Next to the other jobs (no `needs`). No test here;
   # a photo that fails is only a warning, so this job fails only when the app does not build (1.4, docs/M7D_CONTRACT.md
-  # §3.2: or when a simulator of its table is missing or another was taken, "Required simulators"). 63 photos in
-  # shots/l10n (artifact "l10n-screenshots", kept 7 days), each language with its region's holidays and week
+  # §3.2: or when a simulator of its table is missing or another was taken, "Required simulators"). 80 photos in
+  # shots/l10n (artifact "l10n-screenshots", kept 7 days; 63 until 1.4.1), each language with its region's holidays and week
   # start (en_US, zh_*, ko_KR, es_MX and pt_BR start on a Sunday, fr_FR, de_DE and it_IT on a Monday):
   #   <language>/ipad13-portrait-{month,day}.png, iphone-portrait-{week,year}.png     36
   #   {en,de}/ipad13-portrait-sheet-{settings,holidays,paywall,week-start}.png         8
@@ -2529,12 +2531,27 @@ jobs:
   #   en/ipad13-portrait-week.png, en/iphone-portrait-month.png (Sunday first)         2
   #   ja-sunday/{ipad13,iphone}-portrait-{month,week}.png (Japanese, Sunday first)     4
   #   pseudo/{ipad13,iphone}-portrait-{month,sheet-settings,sheet-paywall}.png         6
+  # and, 1.4.2 (docs/R1_4_2_CONTRACT.md §6.2, §7.3; docs/R1_4_2.md, D1b's decision (m), taken in D2), by XCUI on the
+  # iPhone 17 (LanguageUITests' testLocalizedShotsOfTheMemoPaperAndTheColourPanel, the step "Localized XCUI shots"):
+  #   {ja,<language>,pseudo}/iphone-portrait-sheet-settings-memo-paper.png (the row)  11
+  #   {de,fr,pseudo}/iphone-portrait-sheet-memo-paper-choices.png (its own screen)     3
+  #   {de,fr,pseudo}/iphone-portrait-week-color-panel.png (from the lit dot)           3
+  # (ja/ is new: Japanese in Japan, as the other languages with its region's holidays and week start).
   # pseudo/ is `-NSDoubleLocalizedStrings YES`: every text from the Bundle twice, longer than any language.
   # That and `-NSShowNonLocalizedStrings YES` only reach the app's own words (Localizable): the Kit's table
   # (titles, plan texts, +n, holiday marks) neither doubles nor logs. Its lengths are for PaperFitTests and
   # L-12, its gaps for L-2 and KitStringsTests.
   # The limit: a build and XcodeGen 3 min, two boots 3.5 each (run 41922318959), the two waits 4 min, 63
   # photos of 11–15 s at most 16: about 30 min. It stays at 75 because the job's last step is the upload.
+  # 1.4.2: run 45625473748 took 39 min (the shots step 36: the boots 10.5 and 5.8 min, a photo 13–22 s). The XCUI photos
+  # add about 10: the UI tests' build (72 s in the ui-tests job of that run; 3 at most), the iPhone booted a second time
+  # (no first boot's banner: 30 s of wait, about 1.5 min), xcodebuild's start (about 1 min), 14 launches of about 15 s
+  # (LanguageUITests' launches took about 8 s in CI-0; the drags, the waits for a frame read twice and the 1 s before each
+  # photo, about 4–5 min) and the log (under 1 min): about 50. The XCUI step stops after 20 minutes.
+  # So the job's limit is 75 → 100, the sum of its steps' limits and the rest, as blank-paper's: the steps before the shots
+  # (the build and XcodeGen, about 3; the build took 2:05 in that run), the UI tests' build 15, the shots 55, the XCUI step 20,
+  # the words' count and the upload about 1: 94 at worst, 6 to spare. At 75, a slow runner whose shots ran near their 55
+  # would have stopped the job inside the XCUI step, a cancelled (red) job where until 1.4.1 it was only a warning.
   l10n-shots:
     name: Localized shots (1.2)
     # 1.3's work branches (r13-w-*) skip the two photo jobs so the macOS runners stay free for the jobs the
@@ -2542,7 +2559,7 @@ jobs:
     if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 75
+    timeout-minutes: 100
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -2704,6 +2721,28 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             build
 
+      # 1.4.2 (docs/R1_4_2_CONTRACT.md §6.2, §7.3; D1b's decision (m)): the UI tests for the table's iPhone 17, built early
+      # (the ui-tests job's "Build the UI tests for an iPhone" says why) in their own derived data, so the app the shots
+      # step installs stays the one built above. A failure here loses only the XCUI photos (the step after the shots
+      # does not run; "The words the app did not find" warns of the count): the job still fails only when the app does
+      # not build.
+      - name: Build the UI tests for the iPhone 17 (1.4.2)
+        id: l10nuibuild
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.required.outputs.iphone }}" \
+            -derivedDataPath build/L10nUITestData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build-for-testing
+          ls build/L10nUITestData/Build/Products/*.xctestrun
+
       # One device at a time, the 13-inch iPad first. The language and the region are launch arguments
       # (the app's own argument domain; nothing changes on the simulator). A first boot's system banner
       # comes 85–105 s after the boot (docs/M7B.md, C1), hence the 120 s with the app in front.
@@ -2755,7 +2794,8 @@ jobs:
           INK_LOG="$OUT/ink.txt"
           . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
           ink_build
-          # language|region (docs/M7B_CONTRACT.md §7.5)
+          # language|region (docs/M7B_CONTRACT.md §7.5). 1.4.2: LanguageUITests' shotLanguages has the same pairs (with
+          # ja|ja_JP first) for the XCUI photos of the step "Localized XCUI shots": change both together.
           LANGS="en|en_US zh-Hans|zh_CN zh-Hant|zh_TW ko|ko_KR fr|fr_FR de|de_DE it|it_IT es|es_MX pt-BR|pt_BR"
           lang_args() {  # the launch arguments of a language: it, its region, that region's holidays and week start
             local P
@@ -2891,6 +2931,62 @@ jobs:
           done
           find "$OUT" -name '*.png' | sort
 
+      # 1.4.2 (docs/R1_4_2_CONTRACT.md §6.2, §7.3; docs/R1_4_2.md, D1b's decision (m), taken in D2): the photos only XCUI can
+      # take, on the iPhone 17 booted again (the shots step shut it down): 設定 ›「メモ欄の紙」 with its footnote, the sheet
+      # dragged to the row (no new `--screenshot-settings-section`), in the ten languages and the pseudo language; in de, fr
+      # and the pseudo language the row's own screen (罫線・ドット方眼・無地) and the colour panel opened by a tap on the lit
+      # dot (`toolbar.swatch.<n>`, `toolbar.colorPanel`). Screenshot mode: nothing is chosen or stored. LanguageUITests'
+      # testLocalizedShotsOfTheMemoPaperAndTheColourPanel writes them into shots/l10n (TEST_RUNNER_TEGAKI_L10N_SHOT_OUT) and
+      # checks their words against the string catalogue (TEST_RUNNER_TEGAKI_L10N_SHOT_STRINGS); it skips itself in the
+      # ui-tests job. xcodebuild's output is shots/l10n/l10n-xcui-log.txt (its `l10n UI:` lines are shown here); the app's
+      # log of these launches goes into the pseudo/l10n-log.txt the next step counts (`l10n: missing`). A failed test, or
+      # fewer than 17 photos, is a warning only (as every photo of this job); the step stops after 20 minutes.
+      - name: Localized XCUI shots (iPhone 17, 1.4.2)
+        if: ${{ !cancelled() && steps.l10nuibuild.outcome == 'success' }}
+        timeout-minutes: 20
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="shots/l10n"
+          LOG="$OUT/pseudo/l10n-log.txt"
+          XLOG="$OUT/l10n-xcui-log.txt"
+          UDID="${{ steps.required.outputs.iphone }}"
+          mkdir -p "$OUT/pseudo"
+          [ -f "$LOG" ] || : > "$LOG"
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          if ! xcrun simctl bootstatus "$UDID" -b; then
+            echo "::warning::The iPhone 17 ($UDID) did not boot again: no XCUI photos (1.4.2)."
+            exit 0
+          fi
+          xcrun simctl ui "$UDID" appearance light || true
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+          sleep 30
+          START="$(date '+%Y-%m-%d %H:%M:%S')"
+          TEST_RUNNER_TEGAKI_L10N_SHOT_OUT="$PWD/$OUT" \
+          TEST_RUNNER_TEGAKI_L10N_SHOT_STRINGS="$PWD/Sources/TegakiCalendar/Resources/Localizable.xcstrings" xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/L10nUITestData \
+            -only-testing:TegakiCalendarUITests/LanguageUITests/testLocalizedShotsOfTheMemoPaperAndTheColourPanel \
+            test-without-building > "$XLOG" 2>&1
+          STATUS=$?
+          grep -E 'l10n UI:|Test Case .*(passed|failed|skipped)' "$XLOG" || true
+          if [ "$STATUS" != 0 ]; then
+            tail -n 60 "$XLOG" || true
+            echo "::warning::LanguageUITests' XCUI photos (1.4.2) ended with xcodebuild's status $STATUS: see l10n-xcui-log.txt in the artifact."
+          fi
+          SHOTS="$(find "$OUT" \( -name 'iphone-portrait-sheet-settings-memo-paper.png' -o -name 'iphone-portrait-sheet-memo-paper-choices.png' -o -name 'iphone-portrait-week-color-panel.png' \) | wc -l | tr -d ' ')"
+          echo "XCUI photos: $SHOTS (17 expected)"
+          [ "$SHOTS" = "17" ] || echo "::warning::$SHOTS XCUI photos of the memo paper's row and the colour panel, 17 expected (1.4.2)."
+          echo "== iphone (XCUI, 1.4.2)" >> "$LOG"
+          FROM="$(wc -l < "$LOG" | tr -d ' ')"
+          xcrun simctl spawn "$UDID" log show --start "$START" --style compact --predicate 'process == "TegakiCalendar"' >> "$LOG" 2>&1 || true
+          tail -n "+$((FROM + 1))" "$LOG" > "$RUNNER_TEMP/l10n-log-iphone-xcui.txt" || true
+          bash tools/ci/log-reach.sh "l10n-shots iphone XCUI (log show, its part of $LOG)" "$RUNNER_TEMP/l10n-log-iphone-xcui.txt" 'l10n: holidays loaded' || true
+          xcrun simctl shutdown "$UDID" || true
+
       # docs/M7B_CONTRACT.md §7.5, §8 4: 0 is the expected number of both kinds of lines.
       # 1.3 (docs/M7C.md, wave D's text decision 9): each grep that can match nothing is `{ grep … || true; }`. The
       # runner's shell is `bash -e` and the step sets pipefail, so a grep with no line (the 0 expected, or no
@@ -2913,7 +3009,9 @@ jobs:
           HOLIDAYS="$({ grep -E 'l10n: holidays loaded' "$LOG" || true; } | sed 's/.*l10n: holidays loaded //' | sort -n | tail -1)"
           grep 'l10n: missing' "$LOG" | sed 's/.*l10n: missing //' | sort -u || true
           grep 'not found in strings table' "$LOG" | grep 'TegakiCalendar.app' | head -50 || true
-          [ "$PHOTOS" = "63" ] || echo "::warning::$PHOTOS photos, 63 expected."
+          # 1.4.2: 63 by simctl (the shots step) and 17 by XCUI (the step before), per folder in the job's first comment.
+          XCUI="$(find "$OUT" \( -name 'iphone-portrait-sheet-settings-memo-paper.png' -o -name 'iphone-portrait-sheet-memo-paper-choices.png' -o -name 'iphone-portrait-week-color-panel.png' \) | wc -l | tr -d ' ')"
+          [ "$PHOTOS" = "80" ] || echo "::warning::$PHOTOS photos, 80 expected: 63 by simctl and 17 by XCUI; XCUI wrote $XCUI."
           [ "$MISSING" = "0" ] || echo "::warning::$MISSING keys the app did not find (l10n: missing)."
           [ "${NOT_LOCALIZED:-0}" = "0" ] || echo "::warning::$NOT_LOCALIZED non-localized lines of the app's bundle."
           # 1.4 D0b (docs/M7D.md, D0b): without the app's lines (on the iOS 27 simulators `log show` gives its NSLog
@@ -2924,7 +3022,8 @@ jobs:
           {
             echo "### l10n-shots"
             echo ""
-            echo "- photos: $PHOTOS (63 expected)"
+            echo "- photos: $PHOTOS (80 expected)"
+            echo "- of which XCUI's, the memo paper's row and the colour panel (1.4.2): $XCUI (17 expected)"
             echo "- keys the app did not find (\`l10n: missing\`): $MISSING (0 expected)"
             echo "- non-localized lines of the app's bundle: ${NOT_LOCALIZED:-0} (0 expected)"
             echo "- the slowest \`l10n: holidays loaded\`: ${HOLIDAYS:-none}"

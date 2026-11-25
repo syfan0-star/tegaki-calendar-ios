@@ -947,7 +947,7 @@
     },
     "onboarding.pen.text": {
       "jaSha1": "cbfca1a23d",
-      "text": "Schreiben Sie mit dem Apple Pencil auf das Papier. Mit dem Finger scrollen, zoomen (zwei Finger) und tippen Sie auf Termine. Die Handfläche zieht keine Linien, wenn sie den Bildschirm berührt.\n\nUm auch mit dem Finger zu schreiben, aktivieren Sie „Mit Finger zeichnen“ in der Werkzeugleiste. Doppeltippen und Drücken des Apple Pencil wechseln zwischen Stift und Radierer, je nach den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben.\n\n%@"
+      "text": "Schreiben Sie mit dem Apple Pencil auf das Papier. Mit dem Finger scrollen, zoomen (zwei Finger) und tippen Sie auf Termine. Die Handfläche zieht keine Linien, wenn sie den Bildschirm berührt.\n\nUm auch mit dem Finger zu schreiben, aktivieren Sie „Fingereingabe“ in der Werkzeugleiste. Doppeltippen und Drücken des Apple Pencil wechseln zwischen Stift und Radierer, je nach den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben.\n\n%@"
     },
     "onboarding.pen.title": {
       "jaSha1": "3bbf69218f",
@@ -1363,7 +1363,7 @@
     },
     "settings.input.allowFinger": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Mit Finger zeichnen"
+      "text": "Fingereingabe"
     },
     "settings.input.allowFinger.footer": {
       "jaSha1": "0ed7a17915",
@@ -1899,7 +1899,7 @@
     },
     "toolbar.colorPanel.hint": {
       "jaSha1": "f5b8641fb2",
-      "text": "Erneut tippen, um die Farbe zu ändern"
+      "text": "Tippen Sie erneut, um die Farbe zu ändern"
     },
     "toolbar.colorPanel.otherColor": {
       "jaSha1": "c5d3f706a4",
@@ -1907,7 +1907,7 @@
     },
     "toolbar.colorPanel.reset": {
       "jaSha1": "a861ac9ea8",
-      "text": "Ursprüngliche Farben wiederherstellen"
+      "text": "Farben zurücksetzen"
     },
     "toolbar.colorPanel.title": {
       "jaSha1": "5aa3a9cd3e",
@@ -1927,7 +1927,7 @@
     },
     "toolbar.fingerToggle": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Mit Finger zeichnen"
+      "text": "Fingereingabe"
     },
     "toolbar.fingerToggle.hint": {
       "jaSha1": "cb2be71b20",

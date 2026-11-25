@@ -1403,7 +1403,7 @@
     },
     "settings.memoPaper.dots": {
       "jaSha1": "8d10b101a1",
-      "text": "Points"
+      "text": "Grille de points"
     },
     "settings.memoPaper.footer": {
       "jaSha1": "318bdcb9e4",
@@ -1907,7 +1907,7 @@
     },
     "toolbar.colorPanel.reset": {
       "jaSha1": "a861ac9ea8",
-      "text": "Rétablir les couleurs d’origine"
+      "text": "Réinitialiser les couleurs"
     },
     "toolbar.colorPanel.title": {
       "jaSha1": "5aa3a9cd3e",

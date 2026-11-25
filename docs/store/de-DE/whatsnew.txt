@@ -1,6 +1,5 @@
-• „‹ Heute ›“ oben auf dem Bildschirm wurde an den rechten Rand verschoben, und das Datum steht jetzt am linken Rand.
-• Nach dem Vergrößern oder Verkleinern können Sie den Zoom jetzt mit einer einzigen Schaltfläche zurücksetzen. Auf Tages- und Wochenseiten ist die Seite eines Tages bzw. einer Woche dann genauso breit wie der Bildschirm; Monats- und Jahresseiten kehren zu der Größe zurück, die sie beim Öffnen hatten.
-• In den Einstellungen gibt es jetzt den Bereich „Dominante Hand“. Wenn Sie „Linke Hand“ wählen, werden die Schaltflächen oben auf dem Bildschirm seitenverkehrt angeordnet.
-• Auf dem iPad können Sie die Werkzeugleiste jetzt mit dem Finger an den oberen, unteren, linken oder rechten Rand verschieben.
+• Es gibt jetzt mehr Stiftfarben. Wenn Sie erneut auf den hervorgehobenen Farbpunkt tippen (oder ihn gedrückt halten), können Sie seine Farbe durch eine der 12 Farben oder eine beliebige Farbe Ihrer Wahl ersetzen.
+• In den Einstellungen gibt es jetzt die Option „Notizpapier“. Für das Papier der Bereiche „Notizen“ und „Freie Notizen“ können Sie „Liniert“, „Punktraster“ oder „Blanko“ wählen. Ihre Handschrift bleibt unverändert.
+• Im Dunkelmodus sind die dunklen Farbpunkte in der Werkzeugleiste jetzt besser zu sehen.
 
 Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit.

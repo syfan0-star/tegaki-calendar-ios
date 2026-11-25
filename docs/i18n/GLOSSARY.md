@@ -1,6 +1,6 @@
 # 用語集（1.2「世界対応」）
 
-アプリ・ストアの文の語を、言語ごとに 1 つに決めた表です（[M7B_CONTRACT.md](../M7B_CONTRACT.md) §6.1・§6.2、書いた人は X）。英語は契約が決めた語です。1.4.1 で足した語（等倍・利き手・ツールバーを動かす）は §5 です（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1・§8.2。等倍の語は §16.9 で直し、「動かす」ボタンの名前は §17.3 で足した）。
+アプリ・ストアの文の語を、言語ごとに 1 つに決めた表です（[M7B_CONTRACT.md](../M7B_CONTRACT.md) §6.1・§6.2、書いた人は X）。英語は契約が決めた語です。1.4.1 で足した語（等倍・利き手・ツールバーを動かす）は §5 です（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1・§8.2。等倍の語は §16.9 で直し、「動かす」ボタンの名前は §17.3 で足した）。1.4.2 で足した語（ペンの色の名前 4 つ・色の板・メモ欄の紙）は §6 です（[R1_4_2_CONTRACT.md](../R1_4_2_CONTRACT.md) §8.1・§8.2）。1.4.2 では §2 の「指でも書く」の de・es・pt-BR と en も短くしました（§4 の「指でも書く」）。
 
 **正直に書くこと**: 訳は Claude が書き、別の Claude が日本語の元を見ずに訳し戻して照らします（`REVIEW.md`）。**各言語を母語とする人の確認はありません。** 本人は日本語しか読めません。誤りはサポートのメールで受け、次の版で直します（§6.1 の 8）。
 
@@ -38,7 +38,7 @@ en-GB・en-AU・en-CA は en-US と同じ文です。
 | 週のページ | week page | 周页面 | 週頁面 | 주 페이지 | page de la semaine | Wochenseite | página de la semana | pagina della settimana | página da semana |
 | 月のページ | month page | 月页面 | 月頁面 | 월 페이지 | page du mois | Monatsseite | página del mes | pagina del mese | página do mês |
 | 年のページ | year page | 年页面 | 年頁面 | 연 페이지 | page de l’année | Jahresseite | página del año | pagina dell’anno | página do ano |
-| 指でも書く | Draw with Finger | 用手指书写 | 用手指書寫 | 손가락으로 쓰기 | Écrire au doigt | Mit Finger zeichnen | Dibujar con el dedo | Scrivi con il dito | Traçar com o dedo |
+| 指でも書く（1.4.2 で de・es・pt-BR・en を短くした。§4） | Use Finger（1.4.1 までは契約の語 Draw with Finger） | 用手指书写 | 用手指書寫 | 손가락으로 쓰기 | Écrire au doigt | Fingereingabe | Usar el dedo | Scrivi con il dito | Usar o dedo |
 | メモ | Notes | 备忘 | 備忘 | 메모 | Notes | Notizen | Notas | Note | Notas |
 | 自由メモ | Free Notes | 自由备忘 | 自由備忘 | 자유 메모 | Notes libres | Freie Notizen | Notas libres | Note libere | Notas livres |
 | 閲覧専用 | View Only | 仅查看 | 僅檢視 | 보기 전용 | Lecture seule | Nur ansehen | Solo lectura | Sola lettura | Somente leitura |
@@ -165,9 +165,28 @@ Apple のサポート記事の各言語版を 2026-11-05 に読んだ語です�
 - **de 動かす = Bewegen**: 読み上げの名前（Werkzeugleiste verschieben）の動詞の Verschieben は 59.6 で上限を超え、Schieben も 44.7 で短くなりません。Bewegen は、投げなわの説明（Ziehen zum Bewegen）と同じ語です。Ziehen（32.9）は「引く」だけの意味で、押して端を選べることを言わないので使いません。しまう の Ablegen（読み上げは ausblenden）と同じく、画面の名前と読み上げで動詞が違います。
 - **fr 動かす = Déplacer**: 読み上げ（Déplacer la barre d’outils）と 4 つの操作（Déplacer en haut など）と同じ動詞です。Bouger（34.6）は 38 に入りますが、くだけた語なので使いません。
 
-### 「指でも書く」（13 pt。ja の幅 60.0 ＋ 76 = 136 まで。F-13）
+### 「指でも書く」（13 pt。1.4.2 から、字の終わりが 13 インチの縦の行のぼかしの手前まで。1.4.1 までは ja の幅 60.0 ＋ 76 = 136 まで。F-13）
 
 en Draw with Finger 105.8、zh-Hans 用手指书写 60.0、zh-Hant 用手指書寫 60.0、ko 손가락으로 쓰기 82.6、fr Écrire au doigt 91.7、de Mit Finger zeichnen 123.6、es Dibujar con el dedo 122.4、it Scrivi con il dito 100.8、pt-BR Traçar com o dedo 117.9（Desenhar com o dedo は 137.9 で超えた）。
+
+**1.4.2 の直し（2026-11-26、X）**: 1.4.1 で同じ行の右に「動かす」（48 pt と前の 4 pt）が入り、13 インチの iPad（縦 1032 pt）で行の見える幅が 947.5 → 899.5 pt になりました。上の「ja ＋ 76」はもう当たりません。1.4.1 の店の写真（iPad 13 インチ、10 の言語の 00-span・01-month・02-week・03-day・04-year）と CI の Localized の写真（run 45074645599 の `l10n-screenshots`）で測ると、どの言語も字の頭は x 約 795.5 pt、行の右の端（「動かす」の前の区切りの線）は 911.5 pt、その手前の 12 pt（899.5〜911.5）がぼかしです。字の終わりは ja 851.5、zh 857、ko 875、fr 881.5、it 889.5、en 895.5 pt でぼかしの前、**de・es・pt-BR は字がぼかしの中まで続いて、最後の字が切れていました**（本人の 11/25 の写真のとおり）。
+
+- **上限は fr « Écrire au doigt » の幅（この Mac の AppKit で 87.8 pt。ja の 60.0 ＋ 約 28）にしました。** 10 の言語で、字の終わりの後ろのスイッチの余白（約 15 pt。`ToolbarLogicTests` の注の、1.0.1 の写真で測ったスイッチの幅 108.5 pt（ja）と、今の写真のスイッチの頭 758 pt から）と行の右の余白 14 pt まで行に収まる（行の終わり ≈ 910 ≤ 911.5 pt、スクロールしない）いちばん長い語が fr です（この余白は写真に写らないので推定。字がぼかしの前で終わることは写真で確かめた）。fr 以下なら、字はぼかしの 16 pt 以上手前で終わり、オンのときのスイッチの地の色もぼかしにかかりません（地の色は 1032 pt のとき。縦 1024 pt では fr・de の地の色の右の端がぼかしにかかる。下の「その 2」）。12.9 インチと 13 インチの iPad Air（縦 1024 pt、ぼかしは 891.5 pt から）でも、fr 以下の字は切れない見込みでした（ここを書いたときは推定。**あとで写真で測り、そのとおりでした**: fr の字の終わりは 882.0 pt で、ぼかしの 9.5 pt 手前。下の「その 2」）。
+- **de Fingereingabe 86.1**（指での入力。設定の節の見出しが Eingabe で、Stifteingabe と並ぶふつうの語）。Mit Finger zeichnen 118.7 は入らず、Fingerzeichnen 92.4 は字は切れないが fr より長く、行が約 4 pt はみ出してスクロールします。Finger als Stift 87.5 は、同じ行の左の道具「Stift」（ペン）と読み違えるので使いません。Mit Finger 60.7 は動詞も名詞も無く、何のスイッチか分かりにくいので使いません。
+- **es Usar el dedo 76.7**、**pt-BR Usar o dedo 73.7**（指を使う。ペンや消しゴムと並ぶ書く道具の帯で、指を書く道具として使うと読める。読み上げのヒントが「オンにすると指でも線が引けます」と続ける）。動詞「書く・描く」を残す形は、どれも fr より長いか、冠詞を落として不自然です（es Trazar con dedo 98.3・Dibujar con dedo 103.3、pt-BR Traçar com dedo 102.3・Traço com dedo 98.0）。Con el dedo・Com o dedo（指で）は、初回案内の「…を有効にしてください」の引用の中で文にならないので使いません。es と pt-BR は同じ形にそろえました。
+- en Draw with Finger（101.6）と it Scrivi con il dito（96.1）は、写真で字は切れていません（ぼかしの前で終わる）が、行は 13 インチでも少しはみ出して（en 約 14 pt、it 約 8 pt）スクロールし、オンのときの地の色の右の端はぼかしにかかります。X はここで、en は契約の語で SUPPORT.en と審査メモにも出るので変えない、としました（it は Scrivi col dito 81.9 にすれば収まる。リードの決め）。縦 1024 pt の iPad（12.9 インチ・13 インチの iPad Air）では、ぼかしが 8 pt 左（891.5 pt から）になるので、en の最後の約 4 pt がぼかしにかかる見込み（推定）とし、確かめるかはリードに送りました。**写真で測ると、そのとおり en だけがぼかしにかかっていたので、en は Use Finger に短くしました**（下の「その 2」）。it はそのままです。
+- 設定の `settings.input.allowFinger`（ツールバーと同じ語にする決まり）と、初回案内 `onboarding.pen.text` の引用も同じ語にしました。今の店の文には de・es・pt-BR のこの語は出ません（1.4 の新機能の文だけで、もう出ていない）。
+- 幅はこの Mac の AppKit（13 pt）。欧文は写真の幅と 1 pt 以内で合いました（fr 写真 87 / AppKit 87.8、it 95 / 96.1、en 101 / 101.6）。`ToolbarFitTests` の F-13（ja ＋ 76）と 13 インチの式は「動かす」を数えていないので、この上限は確かめません（リードへの申し送り。F-13 は「その 2」で、字の終わりがぼかしの手前かを見る形に直した）。その代わりの粗い目安として、`app-S.json` の `toolbar.fingerToggle` の `maxEm` を 10.5 → 9.0 にしました（見直しの後、2026-11-26）。9.0 は fr の 15 字を L-12 の数え方（1 字 0.6 em）にした数で、それより字の多い訳は L-12 の警告になります（このときは en と it の 2 つ。「その 2」で en を短くした後は it の 1 つ。警告で、lint は落ちない）。
+
+**1.4.2 の直し その 2（2026-11-26、縦 1024 pt の iPad の写真）**: 上の「推定」を、写真で測りました。
+
+- **測り**: run 45709406386（使い捨ての枝 `r142-fit1024` の 0c6aaa5 で、workflow fit1024 だけを走らせた。アプリのコードは `r142-w-d2` の 4ca4744 と同じ。取り込まない）で、iPad Air 13 インチ（M4、iOS 27.2、縦 1024 pt）と、対照の iPad Pro 13 インチ（M5、縦 1032 pt）の週のページを、10 の言語で撮りました（店の写真の 02-week と同じ起動の引数と地域。「指でも書く」はオフで 2 回、オンで 1 回）。1024 pt では、アイコンの頭 771.0 pt・字の頭 795.5 pt（1032 pt と同じ）、「動かす」の前の区切り 903.5 pt で、ぼかしは 891.5〜903.5 pt です（オンの地の色が 1783 px から区切りまで 24 px で消えていくのを、画素で直接測った）。1032 pt の対照は、上の数（ぼかし 899.5〜911.5 pt、字の終わり en 896.0・fr 882.0・it 890.0 pt）と同じでした（上の数は同じ最後の列の左の端）。
+- **字の終わり（1024 pt、オフ。見える青の最後の列の右の端）**: en Draw with Finger 896.0（**ぼかしに 4.5 pt 入る**。最後の r が左 94 %・右 64 % の濃さで、字は切れていないが薄い）、it 890.0（ぼかしの 1.5 pt 手前）、fr 882.0、de Fingereingabe 880.0、ko 875.5、es Usar el dedo 870.5、pt-BR Usar o dedo 867.5、zh-Hant 858.0、zh-Hans 857.5、ja 852.0 pt。ぼかしにかかったのは en だけでした。
+- **en は Use Finger（この Mac の AppKit の 13 pt で 65.2）にしました**（リードの決め）。es Usar el dedo・pt-BR Usar o dedo と同じ「指を使う」の形です。字の終わりは 1024 pt で約 860 pt（ぼかしの約 31 pt 手前）の見込みです（この字の写真は無い。字の頭が 795.5 pt で同じと見た数）。使わなかった案（AppKit 13 pt）: Finger Drawing 91.2・Draw by Finger 90.9・Use Your Finger 96.2・Write with Finger 102.6 は fr より長い。Finger Writing 84.9 は入るが、アプリの英語は線を draw で言う（読み上げのヒント `toolbar.fingerToggle.hint` と設定の脚注の draw lines）ので、ここだけ別の動詞になり、字（文字）を書くことと読める。Finger Input 72.6 はタッチの入力全体の語で、オフが「指で何もできない」と読める（17 の de の △ と同じ弱さ）。Finger Mode 75.8 は何のモードか分からない。
+- 替えた所: `toolbar.fingerToggle`・`settings.input.allowFinger`（ツールバーと同じ語にする決まり）・初回案内 `onboarding.pen.text` の引用（en）、`docs/SUPPORT.en.md` の 2 か所（iPhone の答えと拡大の答え）、審査メモ `docs/store/review-note.txt` の To test の 1 か所（"Use Finger" と、引用符を付けた）、`docs/store/README.md` の英語の画面の名前の表。字の判定は `REVIEW.md` の 18.x です。
+- **it Scrivi con il dito はそのままです**（1024 pt でもぼかしの 1.5 pt 手前で、本人の写真の形にならない）。ただ余りは 1.5 pt しかなく、字を太くする設定など、13 pt の字を広げる設定では、it（と、短くする前の en）はぼかしにかかるかもしれません（試していない）。
+- **オンのときの地の色**: 1024 pt では、字がかからない言語でも、地の色の右の端がぼかしに入ります（短くする前の en Draw with Finger は区切りまで、it 約 901.5、fr 894.5（3.0 pt 入る）、de 893.0 pt（1.5 pt 入る））。1032 pt では、短くする前の en と it だけです（it 903.0 で 3.5 pt 入る。fr は 5 pt 手前）。Use Finger は fr より 22.6 pt 短いので、どちらの幅でも地の色はぼかしの手前で終わる見込みです（写真は無い）。字はかかりません。店の写真はオフの形です。
+- **F-13 の直し**: `ToolbarFitTests.testFingerToggleFitsTheThirteenInchRow` を、「ja ＋ 76」から「字の終わり ≤ 13 インチの縦の行の見える幅 − 「動かす」52 pt − ぼかし 12 pt」に直しました。字の頭は、写真の 795.5 pt を、この式のスイッチの頭（12 ＋ 748 ＝ 760 pt）からの 35.5 pt として入れました（上の 1 つ目の点の、写真の地の色の頭 758 pt とは別の数）。字の幅は 99.5 pt まで（883 − 783.5）で、10 の言語の字は全部入ります（いちばん狭いのは it の残り 3.4 pt。短くする前の en Draw with Finger 101.6 は落ちる）。「動かす」は写真では行を 48 pt 狭めます（前の 4 pt は、前から「しまう」の前にあった）が、52 として 4 pt の余りを持たせました。行の全部が入るかを見る 13 インチの式（`testRowKeepsWhatOneOneShowedInEveryLanguage` と `ToolbarLogicTests.testRowWinsBackTheCollapseButton`）は、1.1 の約束のまま替えていません。そこから 52 を引くと、it・fr・de の行の終わりが見える幅を超えて落ちるためです（行は少しはみ出してスクロールするが、字はぼかしの手前で終わる）。縦 1024 pt の式も足していません。it の字の送りの幅（96.1）は、1024 pt のぼかしの頭を約 0.6 pt 超えて落ちるためです（写真のインクは 1.5 pt 手前で終わる。o の右の余白の分）。
 
 ### 投げなわのメニュー（14 pt、1 つ目は semibold。合計 220 まで。F-15）
 
@@ -271,6 +290,7 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 - **端**は、今の「左端」（`onboarding.dayPageTap`）の語にそろえました（en edge、fr bord、de Rand、es borde、it bordo、pt-BR borda）。zh は 边缘・邊緣、ko は 가장자리 です（今の 왼쪽 끝 の 끝 は「終わり」に近いので、4 つの辺には 가장자리）。
 - 脚注と新機能の文の 3 行目の「画面の上のボタンの並びが左右逆」は、同じ言語では同じ言い方にします。
 - **幅**: 読み上げだけの文（等倍に戻す・ツールバーを動かす・ヒント・4 つの操作）は画面に出ないので、§4 の幅の決まりはありません。「動かす」ボタンの名前は画面に出るので、§4 の決まり（F-12）です。利き手の見出し・選び・脚注は設定の画面の行で、折り返します。
+  - **1.4.2 の直し（0e-32、2026-11-26、X）**: 上の「ツールバーを動かす」と「4 つの操作」は、ビルド 31（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §17・§18）から画面にも出ます。「動かす」を押すと開く吹き出し（iPad ではポップオーバー）の題が「ツールバーを動かす」（`toolbar.grip.spoken`）、その下のボタンが「…へ移す」（`toolbar.moveTo.*`、今ある端は出ない）です。`app-S.json` の説明（comment）だけを直し、9 言語の訳はそのままにしました。どの訳も、画面の吹き出しの題（動詞の句の名前）とボタン（行き先を言う操作）としてそのまま読めるためです。題は今の「ツールバーをしまう」などと同じ名前の形、ボタンは丸ボタンの長押しのメニュー（`toolbar.moveEdge.*`「左下へ移す」。もともと画面に出る字）と同じ形です。吹き出しは字の幅に合わせて広がるので、幅の決まりもありません。de の題 Werkzeugleiste verschieben とボタンの名前 Bewegen の動詞が違うのは、上の「動かす」の点のとおり（Verschieben は 10 pt の幅に入らない）で、吹き出しの題としては verschieben の方がふつうです。
 - **「等倍」の字のボタン（`header.zoomReset`）は作りません。** 本人が 2026-11-22 に虫めがねに「1」の印を採りました（契約 §16.11 の問い 8・§16.12 の 0e-2）。字の訳と幅の確かめもしません。
 
 ### 確かめていないこと
@@ -279,3 +299,47 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 - zh-Hant の 頂端・底部、ko の 주로 쓰는 손、de の Dominante Hand が、その言語の設定の画面で一番ふつうの言い方かは確かめていません。TestFlight で設定の画面と VoiceOver を見るときに、リードが字を見てください。
 - 「ズームを戻す」の 8 言語（2026-11-22）が、その言語の VoiceOver でいちばんふつうに聞こえる名前かは確かめていません。Apple の画面に同じ役のボタンが無く、出典はありません。「標準の大きさ」の名詞（taille standard など）が、日と週の幅にちょうど合う大きさの呼び名として自然かも、母語の人の確認はありません。
 - 「動かす」の 9 言語が、iPad のツールバーのボタンの名前としていちばんふつうかは、母語の人の確認がありません。fr の Déplacer と de の Bewegen は縮んで入る（約 0.88・0.86 倍）ので、Localized の写真で字が読めるかをリードが見てください（契約 §17.3）。
+
+## 6. 1.4.2 の語（ペンの色・色の板・メモ欄の紙）
+
+[R1_4_2_CONTRACT.md](../R1_4_2_CONTRACT.md) §8.1 の 13 キーのための語です（§8.2 の「GLOSSARY を先に直す」。2026-11-26、書いた人は X）。キーは `tools/l10n/source/app-S.json` の 8 つ（`toolbar.color.brown`・`gray`・`darkGreen`・`navy`、`toolbar.colorPanel.title`・`hint`・`otherColor`・`reset`）と `app-U.json` の 5 つ（`settings.memoPaper.title`・`ruled`・`dots`・`plain`・`footer`）。「その他の色…」のキーは `toolbar.colorPanel.otherColor` です（契約 §14 の第 2 版への注。画面の identifier は `toolbar.colorPanel.other`）。D1a・D1b の仮の訳を下の表と照らして決めました。母語の人の確認が無いことは、上の「正直に書くこと」のとおりです。
+
+| 日本語 | en | zh-Hans | zh-Hant | ko | fr | de | es | it | pt-BR |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 茶（色の名前。読み上げだけ） | Brown | 棕色 | 棕色 | 갈색 | Marron | Braun | Marrón | Marrone | Marrom |
+| グレー（同じ） | Gray | 灰色 | 灰色 | 회색 | Gris | Grau | Gris | Grigio | Cinza |
+| 深緑（同じ） | Dark green | 深绿色 | 深綠色 | 진초록 | Vert foncé | Dunkelgrün | Verde oscuro | Verde scuro | Verde-escuro |
+| 紺（同じ） | Navy | 藏青色 | 藏青色 | 남색 | Bleu marine | Marineblau | Azul marino | Blu marino | Azul-marinho |
+| （今の語）緑・青・水色 | Green・Blue・Light blue | 绿色・蓝色・浅蓝色 | 綠色・藍色・淺藍色 | 초록・파랑・하늘색 | Vert・Bleu・Bleu clair | Grün・Blau・Hellblau | Verde・Azul・Azul claro | Verde・Blu・Azzurro | Verde・Azul・Azul-claro |
+| ペンの色を選ぶ（板の読み上げの名前と、色の丸の読み上げの操作。画面に出ない） | Choose Pen Color | 选择钢笔颜色 | 選擇鋼筆顏色 | 펜 색상 선택 | Choisir la couleur du stylo | Stiftfarbe wählen | Elegir el color de la pluma | Scegli il colore della penna | Escolher a cor da caneta |
+| もう一度押すと、色を替えられます（光っている丸の読み上げのヒント） | Tap again to change the color | 再轻点一下可更换颜色 | 再點一下可更換顏色 | 한 번 더 누르면 색상을 바꿀 수 있어요 | Touchez à nouveau pour changer la couleur | Tippen Sie erneut, um die Farbe zu ändern | Toque de nuevo para cambiar el color | Tocchi di nuovo per cambiare il colore | Toque de novo para trocar a cor |
+| その他の色…（板のボタン。画面に出る） | Other Color… | 其他颜色… | 其他顏色… | 기타 색상… | Autre couleur… | Andere Farbe… | Otro color… | Altro colore… | Outra cor… |
+| 最初の色に戻す（板のボタン。画面に出る） | Reset Colors | 重置颜色 | 重置顏色 | 색상 재설정 | Réinitialiser les couleurs | Farben zurücksetzen | Restablecer los colores | Reimposta i colori | Redefinir as cores |
+| メモ欄（今の語。`toast.growthCap`） | notes area | 备忘栏 | 備忘欄 | 메모 칸 | zone de notes | Notizbereich | zona de notas | area delle note | área de notas |
+| メモ欄の紙（設定の行と、選ぶ画面の題） | Notes Paper | 备忘栏纸张 | 備忘欄紙張 | 메모 칸 종이 | Papier des notes | Notizpapier | Papel de notas | Carta delle note | Papel das notas |
+| 罫線（選び） | Lined | 横线 | 橫線 | 줄 | Ligné | Liniert | Rayado | A righe | Pautado |
+| ドット方眼（選び） | Dot Grid | 点阵 | 點陣 | 도트 격자 | Grille de points | Punktraster | Cuadrícula de puntos | Griglia a punti | Grade de pontos |
+| 無地（選び） | Blank | 空白 | 空白 | 무지 | Uni | Blanko | Liso | Bianca | Liso |
+| 柄（紙の。脚注の文の中） | pattern | 图案 | 圖案 | 무늬 | motif | Muster | diseño | motivo | padrão |
+
+### 決めたこと
+
+- **色の名前は、今の `toolbar.color.*` の形にそろえました。** en は 2 語のとき後ろを小文字（今の Light blue と同じ。契約 §8.1 の案は Dark Green でしたが、読み上げでは大文字は聞こえないので、今の形を優先）。zh は「〜色」（浅蓝色 と同じ）、ko は今の 초록・하늘색 と同じ短い名詞（갈색・회색・남색 は 색 の付く形がふつう）、pt-BR は今の Azul-claro と同じハイフンの形（Verde-escuro・Azul-marinho）。
+  - **青・水色・紺**: どの言語も別の語です（en Blue・Light blue・Navy、de Blau・Hellblau・Marineblau、fr Bleu・Bleu clair・Bleu marine、es Azul・Azul claro・Azul marino、it Blu・Azzurro・Blu marino、pt-BR Azul・Azul-claro・Azul-marinho、ko 파랑・하늘색・남색、zh 蓝色・浅蓝色・藏青色 / 藍色・淺藍色・藏青色）。紺は「濃い青」（深蓝色・Dunkelblau など）ではなく、どの言語でも紺の色の名前（navy の語）にしました。濃い青だと、ja の 紺 にある「名前のある色」の感じが消え、青の濃さの違いだけに聞こえるためです。
+  - **緑・深緑**: 「濃い・深い」＋緑（en Dark green、de Dunkelgrün、fr Vert foncé、es Verde oscuro、it Verde scuro、pt-BR Verde-escuro、ko 진초록、zh 深绿色・深綠色）。緑の語はそのまま前か後ろに残るので、同じ系統の色だと分かります。
+  - es の茶は Marrón（スペインと中南米の両方で通じる。中南米の café は使わない。§1 の es の決まり）。zh-Hant も 棕色（台湾のふだんの話し言葉は 咖啡色 ですが、書き言葉の 棕色 にそろえた）。
+  - 12 の色の名前は、どの言語でも 12 とも別の字です（`ColorPanelFitTests` が確かめる）。
+- **「ペンの色を選ぶ」は、1.4.1 の「ツールバーを動かす」と同じ形です**（fr・es・pt-BR は不定詞と定冠詞、de は名詞と不定詞、it は命令形、zh は動詞と名詞）。ペンは §2 の語（stylo・Stift・pluma・penna・caneta・钢笔・鋼筆・펜）。ko は 펜 색상 선택（1.4.1 の 확대·축소 재설정 と同じく名詞の形。선택하기 は長い）。
+- **ヒントの「押す」は、各言語の「タップ」の語です**（en Tap、de tippen、fr toucher、es・pt-BR tocar、it toccare、ko 누르다、zh-Hans 轻点、zh-Hant 點一下。アプリの今のヒントの語）。de は §1 の Sie の形（Tippen Sie erneut …）にしました（仮の訳は不定詞）。zh-Hans は仮の訳の 点一下 を、アプリの今の 轻点 に直しました。
+- **「その他の色…」の「…」は、どの言語も 1 字の U+2026 です。** 前に空白を置きません（fr も、省略の「…」の前には空白を入れない）。zh も 1 字（Apple の中国語の画面のメニューと同じ。文の中の「……」2 字ではない）。字は今の読み上げの名前 `toolbar.color.unknown`（その他の色）の訳に「…」を足した形です（en は画面のボタンなので Title Case の Other Color…、読み上げの名前は Other color のまま）。
+- **「最初の色に戻す」は、1.4.1 の「等倍に戻す」（§5）と同じ「リセット」の動詞で短くしました**（en Reset、de zurücksetzen、fr Réinitialiser、es Restablecer、it Reimposta、pt-BR Redefinir、ko 재설정、zh 重置）。§5 の決まりのとおり、元に戻す・やり直す・購入の復元の語は使いません（仮の訳の fr Rétablir はアプリの「やり直す」、de wiederherstellen・it Ripristina・pt-BR Restaurar・zh-Hans 恢复 は購入の復元の語でした）。板の小さなボタンなので「最初の」は訳に入れていません（リセットは最初の状態に戻すことで、板の上では 6 つの丸の色のことだと分かる）。17 pt（Dynamic Type の xLarge の `.subheadline`）でも、どの言語も 1 行で 264 pt の行に入ります（いちばん長いのは fr Réinitialiser les couleurs 182.1 pt。この Mac の AppKit）。
+- **メモ欄は、今の `toast.growthCap` の語にそろえました**（ko 메모 칸、zh 备忘栏・備忘欄。仮の訳の 메모란・备忘区 は今のアプリに無い語）。en・欧州の言語の設定の行の名前は「メモの紙」の短い形（Notes Paper・Notizpapier・Papel de notas・Papier des notes・Carta delle note・Papel das notas）で、紙の見出しの語（§2 のメモ = Notes・Notizen・Notas・Note）を使います。
+- **罫線・ドット方眼・無地は、各言語の文房具（ノート）のふつうの呼び方です**（en Lined・Dot Grid・Blank は契約の案。de liniert・Punktraster・blanko、fr ligné・grille de points・uni、es rayado・cuadrícula de puntos・liso、it a righe・griglia a punti・bianca（carta bianca）、pt-BR pautado・grade de pontos・liso、ko 줄（줄 노트）・도트 격자・무지（무지 노트）、zh 横线・点阵・空白（横线本・点阵本・空白本））。ドット方眼は、方眼（線のマス目）ではなく点の並びなので、どの言語も「点の格子」の語にしました（仮の訳の fr Points は「点」だけで、選びの名前として足りないので Grille de points に直した）。
+- **脚注は、計画 §2 の文のとおり 3 つの文です。** 「この設定は端末ごとです」は、週の始まりの脚注（`settings.weekStart.footer`）の同じ文の訳と同じ字です。「手書き」は §2 の語（es escritura a mano、it scrittura a mano、pt-BR escrita à mão。仮の訳の es・it・pt-BR は「書いたもの」の言い方だったので、§2 の語に直した）。メモと自由メモは紙の見出しの名前（§2）。
+- **幅**: 色の名前・「ペンの色を選ぶ」・ヒントは読み上げだけで、幅の決まりはありません。「その他の色…」「最初の色に戻す」は板の 264 pt の行で、2 行まで・0.8 まで縮む（`ColorPanelFitTests`）。設定の行・選び・脚注は折り返します。
+
+### 確かめていないこと
+
+- 茶・グレー・深緑・紺の名前と、罫線・ドット方眼・無地が、その言語の設定の画面と VoiceOver でいちばんふつうの言い方かは、母語の人の確認がありません（出典の記事も無い）。とくに ko の 줄（1 字で「線」）、it の Bianca（「白い」とも読める）、zh の 点阵（「ドットマトリクス」とも読める）は、元を見ない逆翻訳と判定で見てください。
+- 「最初の色に戻す」を「色をリセット」の形にしたことで、「最初の」が訳に無いことを、判定で見てください（板の上でだけ出る字なので、意味は通ると考えた）。
+- **判定の結果（2026-11-26）**: 元を見ない逆翻訳（`back/app-1_4_2.md`）と判定の 2 人は `REVIEW.md` の 17 です。× は 0 でした。zh の 点阵・點陣 は 2 人とも ○、ko の 줄 は 1 人が △、it の Bianca は 2 人とも △、「最初の色に戻す」は ko・it・pt-BR だけ 1 人が △ でした。どれも訳を替えていません（理由は 17 の「△ と気づきの扱い」の 1〜3）。

@@ -1419,7 +1419,7 @@
     },
     "settings.memoPaper.title": {
       "jaSha1": "72bb6e05c3",
-      "text": "메모란 종이"
+      "text": "메모 칸 종이"
     },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
@@ -1907,7 +1907,7 @@
     },
     "toolbar.colorPanel.reset": {
       "jaSha1": "a861ac9ea8",
-      "text": "처음 색상으로 되돌리기"
+      "text": "색상 재설정"
     },
     "toolbar.colorPanel.title": {
       "jaSha1": "5aa3a9cd3e",

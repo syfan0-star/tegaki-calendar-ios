@@ -1,6 +1,5 @@
-• No alto da tela, “‹ Hoje ›” foi movido para o extremo direito, e a data foi colocada no extremo esquerdo.
-• Depois de ampliar ou reduzir, agora você pode redefinir o zoom com um único botão. Nas páginas do dia e da semana, a página de um dia ou de uma semana ocupa exatamente a largura da tela; as páginas do mês e do ano voltam ao tamanho que tinham quando você as abriu.
-• Foi adicionada aos Ajustes a seção “Mão dominante”. Se você escolher “Mão esquerda”, a ordem dos botões no alto da tela se inverte da esquerda para a direita.
-• No iPad, agora você pode mover a barra de ferramentas com o dedo para a borda superior, inferior, esquerda ou direita da tela.
+• Foram adicionadas mais cores de caneta. Toque de novo no círculo de cor destacado (ou mantenha-o pressionado) para trocar a cor dele por uma das 12 cores ou por qualquer cor que você quiser.
+• Foi adicionada aos Ajustes a opção “Papel das notas”. Para o papel das áreas “Notas” e “Notas livres”, você pode escolher “Pautado”, “Grade de pontos” ou “Liso”. Sua escrita à mão continua igual.
+• No Modo Escuro, os círculos de cores escuras na barra de ferramentas agora ficam mais fáceis de ver.
 
 As traduções foram feitas com IA e ainda não foram revisadas por falantes nativos. Avise-nos sobre erros.
