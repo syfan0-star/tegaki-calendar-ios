@@ -1,0 +1,285 @@
+# 1.4.2, a throwaway measurement (never merged; it lives on the branch r142-fit1024 only, which build.yml ignores there).
+# docs/i18n/GLOSSARY.md §4 measured 「指でも書く」 on the 13-inch iPad (portrait 1032 pt) and only estimated the iPads whose
+# portrait width is 1024 pt (iPad Air 13-inch, iPad Pro 12.9-inch): the row is 8 pt narrower there, so its 12 pt fade
+# starts 8 pt further left and en "Draw with Finger" might end under it. This job takes the photos to measure it: the
+# week page in screenshot mode with the open toolbar, portrait, on the image's "iPad Air 13-inch (M4)" (iOS 27.2) in the
+# ten languages, twice each, then each language once more with 「指でも書く」 on (its tinted ground shows the fade's
+# gradient where it reaches it); and on the table's "iPad Pro 13-inch (M5)" (1032 pt) en, fr and it, as a control
+# against GLOSSARY's numbers. The launch arguments are store-shots.yml's 02-week (store ink, the region's holidays and
+# week start). No tests, no other job. Artifact: fit1024 (PNGs, env.txt with each device's pixels), kept 7 days.
+name: fit1024
+
+on:
+  push:
+    branches:
+      - r142-fit1024
+
+jobs:
+  fit1024:
+    name: Week photos on a 1024-pt iPad (1.4.2, throwaway)
+    runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
+        run: |
+          set -euo pipefail
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
+          fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
+          xcode-select -p
+          xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            air13|iPad Air 13-inch (M4)|27.2
+            ipad13|iPad Pro 13-inch (M5)|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+
+      - name: Install XcodeGen
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
+
+      - name: Generate the Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      - name: Build for the iOS Simulator
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      # Both iPads are booted together (one wait for the first boot's banner, 85–105 s after the boot, docs/M7B.md C1),
+      # each in light mode with the status bar at 9:41, the app installed and in front for 120 s. A failed photo is a
+      # warning only; the step's summary lists the files and each device's pixels.
+      - name: Shots (iPad Air 13-inch and iPad Pro 13-inch, week, portrait)
+        timeout-minutes: 40
+        run: |
+          set -uo pipefail
+          set +e
+          APP="$(find build/DerivedData -name "TegakiCalendar.app" -path "*iphonesimulator*" -not -path "*/Index.noindex/*" | head -1)"
+          BUNDLE="com.syfan0.tegakicalendar"
+          OUT="shots/fit1024"
+          AIR="${{ steps.required.outputs.air13 }}"
+          PRO="${{ steps.required.outputs.ipad13 }}"
+          mkdir -p "$OUT"
+          {
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            xcrun simctl list runtimes
+            cat "$RUNNER_TEMP/required-simulators-resolved.txt"
+            echo "air13 udid: $AIR"
+            echo "ipad13 udid: $PRO"
+          } > "$OUT/env.txt" || echo "::warning::env.txt could not all be written"
+          if [ -z "$APP" ] || [ -z "$AIR" ] || [ -z "$PRO" ]; then
+            echo "::error::no app ($APP) or no simulator (air13 '$AIR', ipad13 '$PRO')."
+            exit 1
+          fi
+          # language|region, the pairs of build.yml's l10n-shots (ja first).
+          LANGS="ja|ja_JP en|en_US de|de_DE es|es_MX fr|fr_FR it|it_IT ko|ko_KR pt-BR|pt_BR zh-Hans|zh_CN zh-Hant|zh_TW"
+          region() {
+            local P
+            for P in $LANGS; do
+              if [ "${P%%|*}" = "$1" ]; then echo "${P##*|}"; fi
+            done
+          }
+          shoot() {  # shoot <udid> <file> <language> [<more arguments>…]: one photo of the week page; a failure only loses it
+            local U="$1" FILE="$2" L="$3"
+            shift 3
+            xcrun simctl terminate "$U" "$BUNDLE" 2>/dev/null || true
+            sleep 1
+            xcrun simctl launch "$U" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page week \
+              --screenshot-holidays auto --screenshot-week-start auto --screenshot-store-ink ${@+"$@"} \
+              -AppleLanguages "($L)" -AppleLocale "$(region "$L")" || { echo "::warning::launch failed ($FILE)"; return 0; }
+            sleep 10
+            xcrun simctl spawn "$U" launchctl list 2>/dev/null | grep tegakicalendar > /dev/null || echo "::warning::The app is not running after 10 s ($FILE)"
+            xcrun simctl io "$U" screenshot "$OUT/$FILE" || echo "::warning::screenshot failed ($FILE)"
+          }
+          for U in "$AIR" "$PRO"; do
+            xcrun simctl boot "$U" || true
+          done
+          for U in "$AIR" "$PRO"; do
+            xcrun simctl bootstatus "$U" -b || { echo "::error::$U did not boot."; exit 1; }
+            xcrun simctl ui "$U" appearance light || true
+            xcrun simctl status_bar "$U" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            xcrun simctl install "$U" "$APP" || { echo "::error::install failed on $U."; exit 1; }
+          done
+          for U in "$AIR" "$PRO"; do
+            xcrun simctl launch "$U" "$BUNDLE" --screenshot-mode --screenshot-month 2026-10 --screenshot-page month || true
+          done
+          sleep 120
+          for U in "$AIR" "$PRO"; do
+            xcrun simctl terminate "$U" "$BUNDLE" 2>/dev/null || true
+          done
+          for ROUND in 1 2; do
+            for P in $LANGS; do
+              shoot "$AIR" "air13-${P%%|*}-week-$ROUND.png" "${P%%|*}"
+            done
+          done
+          for L in en fr it; do
+            for ROUND in 1 2; do
+              shoot "$PRO" "pro13-$L-week-$ROUND.png" "$L"
+            done
+          done
+          # 「指でも書く」 on, last on each device (a UserDefaults argument wins over what the app stored).
+          for P in $LANGS; do
+            shoot "$AIR" "air13-${P%%|*}-week-on.png" "${P%%|*}" -allowFingerDrawing YES -allowFingerDrawingChosen YES
+          done
+          for L in en fr it; do
+            shoot "$PRO" "pro13-$L-week-on.png" "$L" -allowFingerDrawing YES -allowFingerDrawingChosen YES
+          done
+          for F in air13-en-week-1 pro13-en-week-1; do
+            PIXELS="$(sips -g pixelWidth -g pixelHeight "$OUT/$F.png" 2>/dev/null | awk '/pixel(Width|Height)/ { printf "%s%s", (n++ ? "x" : ""), $2 }' || true)"
+            echo "$F pixels: ${PIXELS:-no photo}" >> "$OUT/env.txt"
+          done
+          for U in "$AIR" "$PRO"; do
+            xcrun simctl terminate "$U" "$BUNDLE" 2>/dev/null || true
+            xcrun simctl shutdown "$U" || true
+          done
+          {
+            echo "### fit1024"
+            echo '```'
+            tail -n 8 "$OUT/env.txt"
+            ls -la "$OUT"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          ls -la "$OUT"
+
+      - name: Upload the photos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fit1024
+          path: shots/fit1024
+          retention-days: 7
+          if-no-files-found: warn
