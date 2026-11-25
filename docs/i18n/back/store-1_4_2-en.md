@@ -1,6 +1,6 @@
 # ストア 1.4.2 の逆翻訳（en：新機能の文・審査メモの 1.4.2 の段・SUPPORT.en.md の 2 つの FAQ と版の FAQ の 1 文）
 
-R が日本語の元を見ずに訳し戻した表です（2026-11-26 05:1x、D2 の R）。母語の人の確認ではありません。日本語の元との照らし合わせ（○・△・×）は、逆翻訳を書き終えてから元を読んで行い、最後の節「元との照らし合わせ」に書きました。
+R が日本語の元を見ずに訳し戻した表です（2026-11-26 05:14 JST、D2 の R。時刻は R の報告の時刻）。判定の 2 役は [REVIEW.md](../REVIEW.md) の 18 です。母語の人の確認ではありません。日本語の元との照らし合わせ（○・△・×）は、逆翻訳を書き終えてから元を読んで行い、最後の節「元との照らし合わせ」に書きました。
 
 - **R が読んだもの**（逆翻訳を書く前）: 枝 `r142-w-d2a`（b33485a）の `docs/store/en-US/whatsnew.txt`、`docs/store/review-note.txt` の「What is new in 1.4.2」の段（日本語の字を含む行は機械で伏せて読んだ）、`docs/SUPPORT.en.md` の 0d9241a からの差分（日本語の字を含む行は機械で伏せて読んだ。伏せた行は 0）。
 - **読んでいないもの**（逆翻訳を書く前）: 日本語の元（`docs/store/source-ja`・`docs/store/ja`、`docs/SUPPORT.md`、審査メモの日本語の要約、契約 R1_4_2_CONTRACT.md の §8）、アプリの日本語の字（`tools/l10n/source`・`Localizable.xcstrings`・J-1）。
@@ -76,7 +76,7 @@ R が日本語の元を見ずに訳し戻した表です（2026-11-26 05:1x、D2
 | --- | --- | --- | --- |
 | S.ver.1 | Strokes written in the colors that became available in version 1.4.2 also appear in those colors on a device with an earlier version (you just cannot choose those colors in that version's toolbar), and the notes paper stays lined there. | バージョン 1.4.2 で使えるようになった色で書いた線は、それより前のバージョンの端末でもその色で出ます（そのバージョンのツールバーではその色を選べないだけです）。また、そこではメモの紙は罫線のままです。 | 「there」は「前のバージョンの端末」と読めます |
 
-## 元との照らし合わせ（逆翻訳を書き終えた後。2026-11-26 05:1x）
+## 元との照らし合わせ（逆翻訳を書き終えた後。2026-11-26 05:14 JST より後、この節を入れた commit ffd900a（05:19:07 JST）より前）
 
 上の表を書き終えて（その時の字のファイルの sha256 は `246334e263280ae5afec0c401f2d0bbf35e1f80d4185a963cfa5b91ba1866609`。この節を足す前の字）から、日本語の元を読みました: `docs/store/ja/whatsnew.txt`・`docs/store/source-ja/whatsnew.txt`、審査メモの日本語の要約、`docs/SUPPORT.md` の 0d9241a からの差分、契約 R1_4_2_CONTRACT.md の §8（§8.4 の英語の字と §8.5 の中身）と §3.4〜§3.9。○ は意味が同じ、△ は意味は同じだが言い方にずれがある、× は意味が違う（直す）。
 
