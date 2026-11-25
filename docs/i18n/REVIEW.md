@@ -3205,3 +3205,13 @@ W の注（訳を書いた W は元を読んでいるので、この注は判定
 ### lint
 
 この節の commit の前の枝 `r142-w-d2x`（0bfa64a に、この節と GLOSSARY の 1 点を足した木）で、`tools/l10n/lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です（L-2 は 528 キー、L-6 は 4,581 の訳、L-10 は xcstrings が source のとおり、`baseline.py` は 9cbc3c9 の 516 字のまま）。L-12 の字の幅の目安の警告は 58 件で、b0c4e3b と同じ数です（0d9241a の 60 件から、X が短くした `toolbar.fingerToggle` の de・es の 2 件が消えた）。凍結の表は `shasum -a 256 -c` で `DATA_1_1` 20・`TESTS_1_2_3` 8・`TESTS_1_3` 29・`FIXTURES_1_3` 37・`TESTS_1_4_1` 16・`TegakiKit/Tests/Compat10/FROZEN.sha256` 11 が全部 OK です。この段で替えたのは `docs/i18n/REVIEW.md` と `docs/i18n/GLOSSARY.md` だけです（Swift・`TegakiKit/Sources`・訳・J-1 は替えていない）。この節の commit を上げた速い道の run（Build and test だけ）の番号と結果は、リードが記録に書きます。
+
+### 17.x 2 つの目の見直しの後の直し（2026-11-26 05 時台、D2 の取りまとめ）
+
+D2 の文の見直し（should 1・should 2・nit 2）を受けて、この枝で 3 つを直しました。訳（`tools/l10n/translations/<言語>.json`）は 1 字も替えていないので、この節の 123 行の元を見ない逆翻訳と判定は、やり直しは要りません。
+
+- **`toolbar.fingerToggle` の `maxEm` を 10.5 → 9.0**（`tools/l10n/source/app-S.json`）。新しい上限（fr « Écrire au doigt » 87.8 pt）は comment に書いてあるだけで、F-13（ja ＋ 76）も `maxEm` も止めないので、次の訳の直しでまた長くなっても何も知らせない、という指摘です。見直しの案は 87.8 ÷ 13 ≒ 6.8 でしたが、L-12 は字の幅を測らず「字数 × 0.6 em」で見積もるので、6.8 では上限の fr（15 字 = 9.0 em）自身と de（7.8）・es（7.2）も警告になります。だから、fr の 15 字を L-12 の数え方にした **9.0** にしました（fr はちょうどで警告にならない）。L-12 の警告は 58 → **59 件**（en Draw with Finger 9.6 em が新しく警告になった。it Scrivi con il dito 10.8 em は前から警告）。どちらも字は切れず、行が少しはみ出してスクロールする 2 つ（GLOSSARY §4）なので、警告は本当のことを言っています。comment の「maxEm は L-12 の粗い目安のまま」も、この数の意味に書き直しました。comment が替わったので `Localizable.xcstrings` を `build.py` で作り直しました（このキーの comment の 1 行だけが替わり、訳・ja・jaSha1 は同じ）。**F-13 と 13 インチの式から「動かす」（52 pt）を引く直しは、この段ではしていません**（`ToolbarFitTests` は U・T の持ち物で、式を直すと en・it の行のはみ出しで落ちる見込み。リードが決める）。
+- **GLOSSARY §4 の縦 1024 pt の iPad**（12.9 インチ・13 インチの iPad Air）: 「fr 以下なら…字は切れません」を、写真の無い**推定**と書き直しました。en Draw with Finger は、1024 pt ではぼかしが 891.5 pt からになり、字の終わり 895.5 pt の最後の約 4 pt がぼかしにかかる見込みであることを、en の点に足しました（推定。リードへの申し送り: 1024 pt のシミュレータで 1 枚撮って確かめるか、受け入れると記録する）。
+- **GLOSSARY §5 の「ビルド 31（§17・§18）」** を「ビルド 31（R1_4_1_CONTRACT.md §17・§18）」にしました（GLOSSARY の節と読めたため）。
+
+直した後の木で、`lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です（`baseline.py` は 9cbc3c9 の 516 字のまま）。

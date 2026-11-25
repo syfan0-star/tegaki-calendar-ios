@@ -28712,7 +28712,7 @@
       }
     },
     "toolbar.fingerToggle" : {
-      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない（1 行）。1.4.1 で同じ行の右に「動かす」が入ったので、13 インチの iPad の縦で行に収まるのは fr の « Écrire au doigt » の幅（87.8 pt、ja の幅 ＋ 約 28 pt）まで。それより長いと最後の字が行の右の端のぼかしで切れる（1.4.2 で de・es・pt-BR を短くした。docs/i18n/GLOSSARY.md §4）。maxEm は L-12 の粗い目安のまま。設定の settings.input.allowFinger と同じ語にし、onboarding.pen.text の引用もこの語にする",
+      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない（1 行）。1.4.1 で同じ行の右に「動かす」が入ったので、13 インチの iPad の縦で行に収まるのは fr の « Écrire au doigt » の幅（87.8 pt、ja の幅 ＋ 約 28 pt）まで。それより長いと最後の字が行の右の端のぼかしで切れる（1.4.2 で de・es・pt-BR を短くした。docs/i18n/GLOSSARY.md §4）。maxEm 9.0 は、その fr の 15 字を L-12 の数え方（1 字 0.6 em）にした物で、それより長い訳を L-12 の警告で知らせる（en と it は超えていて警告になる。字は切れないが、行が少しはみ出してスクロールする。GLOSSARY §4）。設定の settings.input.allowFinger と同じ語にし、onboarding.pen.text の引用もこの語にする",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
