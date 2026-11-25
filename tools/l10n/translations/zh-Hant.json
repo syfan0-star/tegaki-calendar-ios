@@ -1419,7 +1419,7 @@
     },
     "settings.memoPaper.title": {
       "jaSha1": "72bb6e05c3",
-      "text": "備忘區紙張"
+      "text": "備忘欄紙張"
     },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
@@ -1907,7 +1907,7 @@
     },
     "toolbar.colorPanel.reset": {
       "jaSha1": "a861ac9ea8",
-      "text": "恢復初始顏色"
+      "text": "重置顏色"
     },
     "toolbar.colorPanel.title": {
       "jaSha1": "5aa3a9cd3e",

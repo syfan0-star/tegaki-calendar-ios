@@ -2727,7 +2727,7 @@
     "toolbar.color.brown": {
       "ja": "茶",
       "target": "app",
-      "comment": "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。茶色（#92400e）。英語 Brown。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment": "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。茶色（#92400e）。英語 Brown。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "where": [
         "Views/ToolbarView.swift"
       ],
@@ -2737,7 +2737,7 @@
     "toolbar.color.darkGreen": {
       "ja": "深緑",
       "target": "app",
-      "comment": "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い緑（#166534）。緑（toolbar.color.green）と言い分ける。英語 Dark green。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment": "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い緑（#166534）。緑（toolbar.color.green）と言い分ける。英語 Dark green。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "where": [
         "Views/ToolbarView.swift"
       ],
@@ -2747,7 +2747,7 @@
     "toolbar.color.gray": {
       "ja": "グレー",
       "target": "app",
-      "comment": "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。灰色（#6b7280）。英語 Gray。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment": "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。灰色（#6b7280）。英語 Gray。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "where": [
         "Views/ToolbarView.swift"
       ],
@@ -2782,7 +2782,7 @@
     "toolbar.color.navy": {
       "ja": "紺",
       "target": "app",
-      "comment": "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い青（#1e40af）。青（toolbar.color.blue）・水色（toolbar.color.lightBlue）と言い分ける。英語 Navy。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment": "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い青（#1e40af）。青（toolbar.color.blue）・水色（toolbar.color.lightBlue）と言い分ける。英語 Navy。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "where": [
         "Views/ToolbarView.swift"
       ],
@@ -2864,7 +2864,7 @@
     "toolbar.colorPanel.hint": {
       "ja": "もう一度押すと、色を替えられます",
       "target": "app",
-      "comment": "1.4.2 光っている（今のペンの）色の丸の読み上げのヒント。もう一度押すと、その丸の色を替える小さな板が開く。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment": "1.4.2 光っている（今のペンの）色の丸の読み上げのヒント。もう一度押すと、その丸の色を替える小さな板が開く。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "where": [
         "Views/ColorPanelView.swift"
       ],
@@ -2874,7 +2874,7 @@
     "toolbar.colorPanel.otherColor": {
       "ja": "その他の色…",
       "target": "app",
-      "comment": "1.4.2 ペンの色の板のボタン（画面に出る）。キーの名前は .other で終わると複数形の対と読まれる（lint L-4）ので otherColor。押すと、端末に元からある色選びの画面が開き、どんな色でも選べる。「…」はその言語の省略の形。読み上げの名前 toolbar.color.unknown「その他の色」とは別のキー。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment": "1.4.2 ペンの色の板のボタン（画面に出る）。キーの名前は .other で終わると複数形の対と読まれる（lint L-4）ので otherColor。押すと、端末に元からある色選びの画面が開き、どんな色でも選べる。「…」はその言語の省略の形。読み上げの名前 toolbar.color.unknown「その他の色」とは別のキー。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "where": [
         "Views/ColorPanelView.swift"
       ],
@@ -2884,7 +2884,7 @@
     "toolbar.colorPanel.reset": {
       "ja": "最初の色に戻す",
       "target": "app",
-      "comment": "1.4.2 ペンの色の板のボタン（画面に出る）。ツールバーの 6 つの色の丸を、最初の 6 色（黒・青・赤・緑・オレンジ・紫）に戻す。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment": "1.4.2 ペンの色の板のボタン（画面に出る）。ツールバーの 6 つの色の丸を、最初の 6 色（黒・青・赤・緑・オレンジ・紫）に戻す。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "where": [
         "Views/ColorPanelView.swift"
       ],
@@ -2894,7 +2894,7 @@
     "toolbar.colorPanel.title": {
       "ja": "ペンの色を選ぶ",
       "target": "app",
-      "comment": "1.4.2 ペンの色の板の読み上げの名前と、ツールバーの色の丸の読み上げの操作の名前（その丸を選んで板を開く）。画面に字は出ない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment": "1.4.2 ペンの色の板の読み上げの名前と、ツールバーの色の丸の読み上げの操作の名前（その丸を選んで板を開く）。画面に字は出ない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "where": [
         "Views/ColorPanelView.swift"
       ],
@@ -2942,7 +2942,7 @@
     "toolbar.fingerToggle": {
       "ja": "指でも書く",
       "target": "app",
-      "comment": "ツールバーのスイッチの名前。13 pt で縮めない。ja の幅 ＋ 76 pt（約 136 pt、10.5 em）まで（F-13）",
+      "comment": "ツールバーのスイッチの名前。13 pt で縮めない（1 行）。1.4.1 で同じ行の右に「動かす」が入ったので、13 インチの iPad の縦で行に収まるのは fr の « Écrire au doigt » の幅（87.8 pt、ja の幅 ＋ 約 28 pt）まで。それより長いと最後の字が行の右の端のぼかしで切れる（1.4.2 で de・es・pt-BR を短くした。docs/i18n/GLOSSARY.md §4）。maxEm は L-12 の粗い目安のまま。設定の settings.input.allowFinger と同じ語にし、onboarding.pen.text の引用もこの語にする",
       "where": [
         "Views/ToolbarView.swift"
       ],
@@ -2983,7 +2983,7 @@
     "toolbar.grip.spoken": {
       "ja": "ツールバーを動かす",
       "target": "app",
-      "comment": "1.4.1 ツールバーのつまみの読み上げの名前。iPad の広い窓で、開いたツールバーの画面の真ん中に向いた辺に出る小さなつまみ。指で引くと、ツールバーを画面の上・下・左・右の端へ移せる。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment": "1.4.1 ツールバーを動かす操作の名前。画面に出る: iPad のツールバーの「動かす」（toolbar.move.title）を押すと開く吹き出し（iPad ではポップオーバー）の題として、選択肢（toolbar.moveTo.*）の上に出る（開いたツールバーと、しまった後に丸ボタンの道具の印で出したツールバー。iPhone には無い）。読み上げ: 「動かす」ボタンと、iPad の広い窓で開いたツールバーの画面の真ん中に向いた辺に出る小さなつまみの名前（つまみを指で引くと、ツールバーを画面の上・下・左・右の端へ移せる）。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（画面に出ることを足した。docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "where": [
         "Views/ToolbarLogic.swift"
       ],
@@ -3116,7 +3116,7 @@
     "toolbar.moveTo.bottom": {
       "ja": "下へ移す",
       "target": "app",
-      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の下の端へ移す（スイッチコントロールとフルキーボードアクセスも同じ操作）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment": "1.4.1 開いたツールバーを画面の下の端へ移す操作の名前。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前（スイッチコントロールとフルキーボードアクセスも同じ操作）。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "where": [
         "Views/ToolbarLogic.swift"
       ],
@@ -3126,7 +3126,7 @@
     "toolbar.moveTo.left": {
       "ja": "左へ移す",
       "target": "app",
-      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の左の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment": "1.4.1 開いたツールバーを画面の左の端へ移す操作の名前（ツールバーは縦に立つ）。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "where": [
         "Views/ToolbarLogic.swift"
       ],
@@ -3136,7 +3136,7 @@
     "toolbar.moveTo.right": {
       "ja": "右へ移す",
       "target": "app",
-      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の右の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment": "1.4.1 開いたツールバーを画面の右の端へ移す操作の名前（ツールバーは縦に立つ）。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "where": [
         "Views/ToolbarLogic.swift"
       ],
@@ -3146,7 +3146,7 @@
     "toolbar.moveTo.top": {
       "ja": "上へ移す",
       "target": "app",
-      "comment": "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の上の端（見出しの下）へ移す。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment": "1.4.1 開いたツールバーを画面の上の端（見出しの下）へ移す操作の名前。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "where": [
         "Views/ToolbarLogic.swift"
       ],
