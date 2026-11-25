@@ -37,6 +37,13 @@ import UIKit
 /// face and takes its touches (a tap opens the choice of edges, the `confirmationDialog` here; on the open bar a drag is the
 /// grip's, on a peek it is a tap only: `drags`, §18.2) and is its one VoiceOver element. nil, the default, is the bar before
 /// it: the screen passes it where `ToolbarLogic.showsMoveButton` allows, the open bar and (§18.2) the peek (every iPhone keeps 1.4's bar).
+///
+/// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.2–§3.10, 0f-7–0f-17, 0f-36): the pen's six dots are the dots of this device
+/// (`toolbar.penSlots`, `ToolbarPalette.slots(stored:)`; the first six colours until the panel changes one), by their index
+/// (`toolbar.swatch.<0…5>`, across and upright). `colorPanel` (nil, the default: 1.4.1's bar, a press of the lit dot chooses it
+/// again) is the screen's panel: a tap on the lit dot, or a long press of it, opens the panel at it (`ColorPanelLogic.tap`,
+/// `longPress`; `ColorPanelAnchorKey` carries the lit dot's frame to the screen), a tap on it again closes it, any other dot
+/// is chosen as before. In dark mode the dots' rims are white at 0.35 (light: 1.4.1's black at 0.15, the same code).
 struct ToolbarView: View {
     @Binding var tool: CanvasTool
     @Binding var allowFinger: Bool
@@ -49,6 +56,9 @@ struct ToolbarView: View {
     var onCollapse: () -> Void = {}
     /// 1.1: the ink the eraser returns to after it erased (§2.4); nil = no bracket in the hint.
     var eraserReturnsTo: CanvasTool? = nil
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.5, 0f-36): the screen's pen colour panel; nil = none (1.4.1's dots). Declared
+    /// before `axis`, so a caller passes it before `axis:` (the memberwise init's order).
+    var colorPanel: ColorPanelHook? = nil
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §4.8): `.vertical` for a bar on the left or the right edge.
     var axis: Axis = .horizontal
     /// 1.4.1's second rework (§17.2, §18.2): the 「動かす」 button before 「しまう」 (the open bar's and a peek's); nil = none, the bar of before.
@@ -58,6 +68,24 @@ struct ToolbarView: View {
     // Double, not CGFloat: AppStorage only stores Double (CGFloat is a distinct type on 64-bit).
     @AppStorage(ToolbarPalette.penWidthKey) private var penWidth: Double = Double(ToolbarPalette.penWidths[1].width)
     @AppStorage(ToolbarPalette.markerColorKey) private var markerColorHex: String = ToolbarPalette.markerColors[0].hex
+    /// 1.4.2 (§3.2, §3.11): the six dots (`ToolbarPalette.slots(stored:)`); in screenshot mode a scratch store emptied at every
+    /// launch (`ToolbarPalette.slotsStore`), so neither a photo nor a UI test reads or writes this device's.
+    @AppStorage(ToolbarPalette.penSlotsKey, store: ToolbarPalette.slotsStore) private var penSlotsRaw: String = ""
+    /// 1.4.2 (§3.9, 0f-16): the dots' rims follow it (dark only).
+    @Environment(\.colorScheme) private var colorScheme
+    /// 1.4.2 (§3.5): the dot a long press just acted on, and when: the lift that ends that press (the button's own tap) is
+    /// not taken as a second press (`ToolbarPalette.swallowWindow`).
+    @State private var longPressed: (slot: Int, at: Date)?
+
+    /// The six dots (§3.2).
+    private var slots: [String] {
+        ToolbarPalette.slots(stored: penSlotsRaw)
+    }
+
+    /// The lit dot: the one with the pen's colour (one at most: the dots never repeat).
+    private var litSlot: Int? {
+        slots.firstIndex(of: penStyle.colorHex)
+    }
 
     private var kind: ToolKind {
         ToolbarLogic.kind(of: tool)
@@ -66,7 +94,7 @@ struct ToolbarView: View {
     /// The remembered pen, checked against the tables exactly like the pen the app starts with
     /// (`ToolbarPalette.rememberedPen`, 0-13), so the lit swatch and width are the starting pen's.
     private var penStyle: InkStyle {
-        ToolbarPalette.pen(colorHex: penColorHex, width: penWidth)
+        ToolbarPalette.pen(colorHex: penColorHex, width: penWidth, slots: slots)
     }
 
     private var markerStyle: InkStyle {
@@ -245,11 +273,12 @@ struct ToolbarView: View {
         switch kind {
         case .pen:
             HStack(spacing: 0) {
-                ForEach(ToolbarPalette.penColors, id: \.hex) { entry in
-                    swatch(entry, selected: entry.hex == penStyle.colorHex) {
-                        penColorHex = entry.hex
-                        tool = .ink(penStyle)
+                // 1.4.2 (§3.2, 0f-7): by the dot's index (a colour may move between dots; `id: \.hex` could collide).
+                ForEach(Array(slots.enumerated()), id: \.offset) { slot, hex in
+                    swatch(penEntry(hex), selected: slot == litSlot) {
+                        penDotTapped(slot)
                     }
+                    .modifier(penDot(slot))
                 }
             }
         case .marker:
@@ -290,7 +319,7 @@ struct ToolbarView: View {
                 Circle()
                     .fill(Color(uiColor: PaperPalette.color(hex: entry.hex)))
                     .frame(width: 24, height: 24)
-                    .overlay(Circle().strokeBorder(Color.black.opacity(0.15)))
+                    .overlay(Circle().strokeBorder(colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.15)))
                 if selected {
                     Circle()
                         .strokeBorder(Color.accentColor, lineWidth: 2.5)
@@ -303,6 +332,69 @@ struct ToolbarView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(entry.name)
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    // MARK: - The pen's dots and the colour panel (1.4.2, docs/R1_4_2_CONTRACT.md §3.5, §3.10)
+
+    /// A dot's colour and its name (the panel's twelve, the marker's, else 「その他の色」).
+    private func penEntry(_ hex: String) -> ToolbarPalette.Entry {
+        ToolbarPalette.Entry(hex: hex, name: ToolbarPalette.colorName(hex))
+    }
+
+    /// What every pen dot carries beside its button (`PenDotModifier`): its identifier, the long press, the panel's
+    /// VoiceOver action and the lit dot's hint, and the lit dot's frame for the panel while its panel is open.
+    private func penDot(_ slot: Int) -> PenDotModifier {
+        let lit = slot == litSlot
+        return PenDotModifier(slot: slot, lit: lit, hasPanel: colorPanel != nil,
+                              anchored: lit && colorPanel?.openSlot.wrappedValue == slot,
+                              onLongPress: { penDotLongPressed(slot) },
+                              onPanelAction: { penDotPanelAction(slot) })
+    }
+
+    /// A tap on dot `slot` (§3.5): without a panel 1.4.1's (the dot is chosen); with one `ColorPanelLogic.tap`. The lift that
+    /// ends a long press of the same dot is not a tap.
+    private func penDotTapped(_ slot: Int) {
+        if let pressed = longPressed {
+            longPressed = nil
+            if pressed.slot == slot, Date().timeIntervalSince(pressed.at) < ToolbarPalette.swallowWindow { return }
+        }
+        guard let colorPanel else {
+            perform(.select(slot))
+            return
+        }
+        perform(ColorPanelLogic.tap(slot: slot, lit: litSlot, openSlot: colorPanel.openSlot.wrappedValue))
+    }
+
+    /// A long press (0.5 s) on dot `slot` (§3.5): `ColorPanelLogic.longPress`; nothing without a panel (its lift is then the
+    /// tap of 1.4.1).
+    private func penDotLongPressed(_ slot: Int) {
+        guard let colorPanel else { return }
+        let action = ColorPanelLogic.longPress(slot: slot, lit: litSlot, openSlot: colorPanel.openSlot.wrappedValue)
+        longPressed = (slot: slot, at: Date())
+        perform(action)
+    }
+
+    /// VoiceOver's 「ペンの色を選ぶ」 on dot `slot` (§3.5, §3.10): that dot chosen, then its panel opened.
+    private func penDotPanelAction(_ slot: Int) {
+        guard let colorPanel else { return }
+        if slot != litSlot { perform(.select(slot)) }
+        colorPanel.openSlot.wrappedValue = slot
+    }
+
+    private func perform(_ action: ColorPanelLogic.SwatchAction) {
+        switch action {
+        case .select(let slot):
+            if colorPanel?.openSlot.wrappedValue != nil { colorPanel?.openSlot.wrappedValue = nil }
+            guard slots.indices.contains(slot) else { return }
+            penColorHex = slots[slot]
+            tool = .ink(penStyle)
+        case .open(let slot):
+            colorPanel?.openSlot.wrappedValue = slot
+        case .close:
+            colorPanel?.openSlot.wrappedValue = nil
+        case .none:
+            break
+        }
     }
 
     private var widthButtons: some View {
@@ -457,11 +549,12 @@ struct ToolbarView: View {
         switch kind {
         case .pen:
             VStack(spacing: 0) {
-                ForEach(ToolbarPalette.penColors, id: \.hex) { entry in
-                    verticalSwatch(entry, selected: entry.hex == penStyle.colorHex) {
-                        penColorHex = entry.hex
-                        tool = .ink(penStyle)
+                // 1.4.2 (§3.2, §3.8): the same dots, presses and identifiers as across.
+                ForEach(Array(slots.enumerated()), id: \.offset) { slot, hex in
+                    verticalSwatch(penEntry(hex), selected: slot == litSlot) {
+                        penDotTapped(slot)
                     }
+                    .modifier(penDot(slot))
                 }
             }
         case .marker:
@@ -485,7 +578,7 @@ struct ToolbarView: View {
                 Circle()
                     .fill(Color(uiColor: PaperPalette.color(hex: entry.hex)))
                     .frame(width: 24, height: 24)
-                    .overlay(Circle().strokeBorder(Color.black.opacity(0.15)))
+                    .overlay(Circle().strokeBorder(colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.15)))
                 if selected {
                     Circle()
                         .strokeBorder(Color.accentColor, lineWidth: 2.5)
@@ -582,6 +675,10 @@ enum ToolbarPalette {
     static let penColorKey = "toolbar.penColor"
     static let penWidthKey = "toolbar.penWidth"
     static let markerColorKey = "toolbar.markerColor"
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.2, 0f-7): the six dots of this device (UserDefaults, CA92.1; never iCloud, an
+    /// export or a PDF): six "#rrggbb" joined by "," (`storedSlots`), written only when the panel changes a dot or 「最初の色に
+    /// 戻す」 puts them back. None: the first six colours (`slots(stored:)`).
+    static let penSlotsKey = "toolbar.penSlots"
 
     struct Entry: Hashable {
         var hex: String
@@ -616,11 +713,82 @@ enum ToolbarPalette {
         Width(width: 6, name: L.text("toolbar.width.thick")),
     ]
 
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §3.1, 0f-6): the panel's twelve — `penColors`' six, then 茶・グレー・ピンク・水色・深緑・紺
+    /// (ピンク and 水色 by the marker's names). The names are read once, as above.
+    static let panelColors: [Entry] = penColors + [
+        Entry(hex: "#92400e", name: L.text("toolbar.color.brown")),
+        Entry(hex: "#6b7280", name: L.text("toolbar.color.gray")),
+        Entry(hex: "#db2777", name: L.text("toolbar.color.pink")),
+        Entry(hex: "#0284c7", name: L.text("toolbar.color.lightBlue")),
+        Entry(hex: "#166534", name: L.text("toolbar.color.darkGreen")),
+        Entry(hex: "#1e40af", name: L.text("toolbar.color.navy")),
+    ]
+
+    /// 1.4.2 (§3.10): a pen dot's identifier, `toolbar.swatch.<0…5>` (across and upright; never read out).
+    static func swatchIdentifier(_ slot: Int) -> String {
+        "toolbar.swatch.\(slot)"
+    }
+
+    /// 1.4.2 (§3.5): how long after a long press the lift of that press (the button's own tap on the same dot) is not a tap.
+    static let swallowWindow: TimeInterval = 10
+
+    /// 1.4.2 (§3.11, 0f-18): the store of the six dots: this device's (`.standard`) in normal use; in screenshot mode a scratch
+    /// suite emptied at every launch, holding `--screenshot-pen-slots` (or nothing: the first six colours), so a photo or a UI
+    /// test never reads or writes `toolbar.penSlots` of the simulator and none leaks into the next (`toolbar.penColor` is
+    /// written as before). Decided once, at its first read (the views' `@AppStorage`).
+    static let slotsStore: UserDefaults = penSlotsStore(shot: ScreenshotMode.current)
+
+    /// The scratch suite's name (screenshot mode's dots).
+    static let screenshotSlotsSuite = "tegaki.screenshot.penSlots"
+
+    /// `slotsStore` for `shot` (the tests pass their own suites): nil, `standard`; else the suite `suiteName`, emptied, with
+    /// `shot.penSlots` written in it when the argument was given.
+    static func penSlotsStore(shot: ScreenshotMode.Config?, standard: UserDefaults = .standard,
+                              suiteName: String = screenshotSlotsSuite) -> UserDefaults {
+        guard let shot else { return standard }
+        guard let scratch = UserDefaults(suiteName: suiteName) ?? UserDefaults(suiteName: screenshotSlotsSuite) else { return standard }
+        scratch.removePersistentDomain(forName: suiteName)
+        if let slots = shot.penSlots {
+            scratch.set(storedSlots(slots), forKey: penSlotsKey)
+        }
+        return scratch
+    }
+
     /// Marker width in lu.
     static let markerWidth: CGFloat = 18
 
     /// The pen the app starts with (黒・中).
     static var defaultPen: InkStyle {
         InkStyle(tool: .pen, colorHex: penColors[0].hex, width: penWidths[1].width)
+    }
+}
+
+/// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.5, 0f-36): the screen's pen colour panel as `ToolbarView` sees it: the dot whose
+/// panel is open (nil: closed). The screen lays the panel out (`ColorPanelHost`) at the lit dot's frame (`ColorPanelAnchorKey`).
+struct ColorPanelHook {
+    var openSlot: Binding<Int?>
+}
+
+/// 1.4.2 (§3.5, §3.10): what a pen dot carries beside its button: `toolbar.swatch.<i>`; a long press (0.5 s, alongside the
+/// button and the bar's scroll) where the screen has a panel; VoiceOver's action 「ペンの色を選ぶ」 on every dot and the hint
+/// 「もう一度押すと、色を替えられます」 on the lit one (with a panel only); and, while its panel is open, the lit dot's frame
+/// (`ColorPanelAnchorKey`).
+struct PenDotModifier: ViewModifier {
+    let slot: Int
+    let lit: Bool
+    let hasPanel: Bool
+    let anchored: Bool
+    let onLongPress: () -> Void
+    let onPanelAction: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .accessibilityIdentifier(ToolbarPalette.swatchIdentifier(slot))
+            .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in onLongPress() }, including: hasPanel ? .all : .subviews)
+            .accessibilityHint(hasPanel && lit ? Text(ColorPanelText.hint) : Text(verbatim: ""))
+            .accessibilityAction(named: Text(ColorPanelText.title)) {
+                if hasPanel { onPanelAction() }
+            }
+            .anchorPreference(key: ColorPanelAnchorKey.self, value: .bounds) { anchored ? $0 : nil }
     }
 }

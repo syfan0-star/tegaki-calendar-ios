@@ -8,9 +8,15 @@ guard CommandLine.arguments.count == 2 else {
     exit(2)
 }
 let folder = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
-let result = Compat10Checks.run(fixtures: folder) { name, ok in
+let fixtures = Compat10Checks.run(fixtures: folder) { name, ok in
     if !ok { print("FAIL: \(name)") }
 }
+// 1.4.2 (docs/R1_4_2_CONTRACT.md §5.3, 0f-24): strokes in the new pen colours, made in code (outside `run`, whose count is
+// KitChecks' too); one N for both.
+let colours = Compat10Checks.runColours { name, ok in
+    if !ok { print("FAIL: \(name)") }
+}
+let result = (passed: fixtures.passed + colours.passed, failed: fixtures.failed + colours.failed)
 print("compat10: \(result.passed + result.failed) checks, \(result.failed) failed")
 
 // Only here, outside the count above: the streamed reader of 1.0 (`InkImport`, not part of the copy)
