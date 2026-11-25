@@ -1140,6 +1140,6 @@ CI の時間の見込みは 1.4.1 と同じ: build.yml は 1 回 75〜95 分（m
 - 2026-11-25 **第 2 版への注**（リード。D1b の取り込みの前に、D1b の 2 つの目の見直しの nit 8 から。版の番号は変えず、本文は直さずにここで読み替える。中身は `docs/R1_4_2.md` の D1b の決め (a)(b)(j)）。
   - **キーの名前**: §8.1 の表と 0f-25 のキー `toolbar.colorPanel.other` は **`toolbar.colorPanel.otherColor`** と読む（lint L-4 は `.other` で終わるキーを複数形の対の片方と読み、`toolbar.colorPanel.one` が無いと落ちる）。画面の identifier は `toolbar.colorPanel.other` のまま（§3.10）。**D2 の X・R への指示（GLOSSARY・REVIEW の節 17・逆翻訳）は、キー `toolbar.colorPanel.otherColor` で書く。**
   - **compat10 の色の確かめ（§5.3・0f-24）**: `Compat10Checks.run` の中ではなく、別の入口 `Compat10Checks.runColours` に置き、`tools/compat10` の `RunReal`・`RunFrozen` が `run` の数に足して 1 つの N を出す（KitChecks は `run` の確かめを自分の数に入れるので、40,826 のまま）。
-  - **色選びの閉じ方（§2.1 の「onDismiss と onDone で colorPickerShown = false・colorPickerSlot = nil」）**: `.sheet` の `onDismiss` は `colorPickerShown` だけを戻し、`colorPickerSlot = nil` は `onDone`（`colorPickerClosed()`）だけで行う、と読む（引き下げて閉じたとき、`onDismiss` の後に決まる候補が丸 1 ではなく開いた丸に入るため）。
+  - **色選びの閉じ方（§2.1 の「onDismiss と onDone で colorPickerShown = false・colorPickerSlot = nil」と §3.7 の「`.sheet` の `onDismiss` でも同じ後始末をする」、0f-13 の「`onDismiss` で必ず戻す」）**: `.sheet` の `onDismiss` は `colorPickerShown` だけを戻し、`colorPickerSlot = nil` は `onDone`（`colorPickerClosed()`）だけで行う、と読む（引き下げて閉じたとき、`onDismiss` の後に決まる候補が丸 1 ではなく開いた丸に入るため）。
 
 （結果は `docs/R1_4_2.md` に書く。ここは契約の版の記録だけ。）
