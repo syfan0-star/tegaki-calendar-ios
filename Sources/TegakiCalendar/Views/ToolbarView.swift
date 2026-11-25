@@ -102,10 +102,20 @@ struct ToolbarView: View {
     }
 
     var body: some View {
-        if axis == .vertical {
-            verticalBar
-        } else {
-            horizontalBar
+        Group {
+            if axis == .vertical {
+                verticalBar
+            } else {
+                horizontalBar
+            }
+        }
+        // 1.4.2 (§3.5): the panel closed: a long press's lift that never came as a tap (the finger left the dot) is forgotten,
+        // unless the press itself just closed it (its lift is still to come).
+        .onChange(of: colorPanel?.openSlot.wrappedValue == nil) {
+            if colorPanel?.openSlot.wrappedValue == nil, let pressed = longPressed,
+               Date().timeIntervalSince(pressed.at) > ToolbarPalette.swallowKeptAfterClose {
+                longPressed = nil
+            }
         }
     }
 
@@ -729,8 +739,10 @@ enum ToolbarPalette {
         "toolbar.swatch.\(slot)"
     }
 
-    /// 1.4.2 (§3.5): how long after a long press the lift of that press (the button's own tap on the same dot) is not a tap.
+    /// 1.4.2 (§3.5): how long after a long press the lift of that press (the button's own tap on the same dot) is not a tap; and
+    /// how old that long press must be for the panel's closing to forget it.
     static let swallowWindow: TimeInterval = 10
+    static let swallowKeptAfterClose: TimeInterval = 0.6
 
     /// 1.4.2 (§3.11, 0f-18): the store of the six dots: this device's (`.standard`) in normal use; in screenshot mode a scratch
     /// suite emptied at every launch, holding `--screenshot-pen-slots` (or nothing: the first six colours), so a photo or a UI
