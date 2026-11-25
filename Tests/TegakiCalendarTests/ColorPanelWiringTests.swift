@@ -6,7 +6,8 @@ import XCTest
 /// View is not run by XCTest (C3-M3). The one `ToolbarView(` gets the panel before `axis:` (so 1.4.1's guarded text `axis: axis,
 /// move: paletteMoveButton )` stays whole); the guarded counts of 1.4.1 and 1.3 do not move; the picker counts as a sheet (after
 /// the age range's); the panel's closings are modifiers of their own (`colorPanelLayer`), none in the bodies of `sheetsChanged`,
-/// `penDown`, `toolbarEvent`, `placePalette`, `paletteMoveChosen` or `paletteMoveButtonChose`; the window's watch is a `@State`,
+/// `penDown`, `toolbarEvent`, `placePalette`, `paletteMoveChosen` or `paletteMoveButtonChose`, and the layer (`ColorPanelHost`)
+/// closes it when the lit dot's frame is gone or has not come 0.5 s after it opened; the window's watch is a `@State`,
 /// put on the window when the panel opens and taken off when it closes, and closes it on a touch outside; the picker's colour
 /// goes to the picker's dot (kept until the picker's `onDone`, also when the sheet is dragged away). Fails with the watch never
 /// put on the window (mutation MS1).
@@ -115,6 +116,16 @@ final class ColorPanelWiringTests: XCTestCase {
         XCTAssertEqual(count("presented(watchedFurther(watched(colorPanelLayer(arranged))))", in: screen), 1)
         XCTAssertEqual(count(".overlayPreferenceValue(ColorPanelAnchorKey.self) { anchor in ColorPanelHost(anchor: anchor, "
                              + "openSlot: $colorPanelSlot, edge: paletteEdge, tool: toolBinding, watch: colorPanelWatch,", in: screen), 1)
+        // The layer never stays open with nothing drawn (D1b's review, nit 1): the lit dot's frame gone closes the panel, and
+        // so does no frame 0.5 s after it opened; closing writes nothing when it is closed already.
+        let panel = try code("Sources/TegakiCalendar/Views/ColorPanelView.swift")
+        let host = try body(of: "struct ColorPanelHost: View {", in: panel)
+        XCTAssertEqual(count(".onChange(of: anchor == nil) { if anchor == nil { close() } }", in: host), 1, "the frame gone: closed")
+        XCTAssertEqual(count(".task(id: waitsForTheDot) { guard waitsForTheDot else { return } "
+                             + "try? await Task.sleep(for: .seconds(0.5)) if !Task.isCancelled { close() } }", in: host), 1,
+                       "no frame 0.5 s after it opened: closed")
+        XCTAssertEqual(count("private var waitsForTheDot: Bool { openSlot.wrappedValue != nil && anchor == nil }", in: host), 1)
+        XCTAssertEqual(count("private func close() { if openSlot.wrappedValue != nil { openSlot.wrappedValue = nil } }", in: host), 1)
     }
 
     func testTheWatchFollowsThePanel() throws {

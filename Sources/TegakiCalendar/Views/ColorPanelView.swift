@@ -6,7 +6,7 @@ import UIKit
 // touch outside it, so the first stroke written while it is open would be lost, and it would count as one more thing
 // presented) — with the twelve colours (`ToolbarPalette.panelColors`) on the paper's colour, 「その他の色…」 (the system's
 // colour picker, a sheet of the screen's) and 「最初の色に戻す」. The pieces: the lit dot's frame (`ColorPanelAnchorKey`),
-// the layer that lays the panel out and closes it when the dot moves (`ColorPanelHost`), the panel (`ColorPanelView`), what
+// the layer that lays the panel out and closes it when the dot moves or is gone (`ColorPanelHost`), the panel (`ColorPanelView`), what
 // a choice writes (`ColorPanelStore`), the watcher that closes it on a touch outside (`ColorPanelWatch`), and the system's
 // picker (`ColorPickerSheet`). The screen (`CalendarRootScreen.colorPanelLayer`) wires them.
 
@@ -66,8 +66,11 @@ enum ColorPanelStore {
 /// The screen's top layer for the panel (§3.4, §3.6, §3.8): nothing while it is closed; open, the panel at
 /// `ColorPanelLogic.placement` of the lit dot (`anchor`) on the bar's edge inside this layer (the screen inside its safe area),
 /// the panel's and the dot's frames in the window's points handed to the watcher, and the panel closed when the lit dot moves
-/// more than 1 pt from where it was when the panel opened (`closesOnAnchorMove`: the bar scrolled, turned or was made anew)
-/// or is gone. The layer itself has nothing to hit: only the panel takes touches.
+/// more than 1 pt from where it was when the panel opened (`closesOnAnchorMove`: the bar scrolled, turned or was made anew).
+/// Never open with nothing drawn (D1b's review, nit 1): the panel also closes when the lit dot's frame is gone while it is
+/// open (no dot lit any more: the pen's colour changed in another window, the bar made anew without it), and when no frame
+/// has come 0.5 s after it opened (normally it comes the same turn or a frame or two later). The layer itself has nothing
+/// to hit: only the panel takes touches.
 struct ColorPanelHost: View {
     var anchor: Anchor<CGRect>?
     var openSlot: Binding<Int?>
@@ -81,8 +84,8 @@ struct ColorPanelHost: View {
 
     var body: some View {
         GeometryReader { proxy in
-            // No dot to stand at (none lit, or not laid out yet): nothing drawn. The screen closes the panel when the bar folds,
-            // moves or leaves the pen (`colorPanelLayer`).
+            // No dot to stand at (none lit, or not laid out yet): nothing drawn, and the two modifiers below close the panel.
+            // The screen closes it when the bar folds, moves or leaves the pen (`colorPanelLayer`).
             if let slot = openSlot.wrappedValue, let anchor {
                 let dot = proxy[anchor]
                 let frame = ColorPanelLogic.placement(anchor: dot, edge: edge, container: CGRect(origin: .zero, size: proxy.size),
@@ -105,6 +108,22 @@ struct ColorPanelHost: View {
                     }
             }
         }
+        // The lit dot's frame gone while the panel is open: closed (after any other closing the slot is nil already, and
+        // `close()` writes nothing).
+        .onChange(of: anchor == nil) {
+            if anchor == nil { close() }
+        }
+        // Open and no frame yet: closed if none has come 0.5 s later (a frame that comes ends the wait: the id changes).
+        .task(id: waitsForTheDot) {
+            guard waitsForTheDot else { return }
+            try? await Task.sleep(for: .seconds(0.5))
+            if !Task.isCancelled { close() }
+        }
+    }
+
+    /// Open, and no lit dot's frame to stand at.
+    private var waitsForTheDot: Bool {
+        openSlot.wrappedValue != nil && anchor == nil
     }
 
     /// The watcher's frames, in the window's points (`.global`), the same turn the panel is laid out.
