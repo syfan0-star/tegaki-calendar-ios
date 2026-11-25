@@ -2547,7 +2547,11 @@ jobs:
   # add about 10: the UI tests' build (72 s in the ui-tests job of that run; 3 at most), the iPhone booted a second time
   # (no first boot's banner: 30 s of wait, about 1.5 min), xcodebuild's start (about 1 min), 14 launches of about 15 s
   # (LanguageUITests' launches took about 8 s in CI-0; the drags, the waits for a frame read twice and the 1 s before each
-  # photo, about 4–5 min) and the log (under 1 min): about 50 of 75. The XCUI step stops after 20 minutes.
+  # photo, about 4–5 min) and the log (under 1 min): about 50. The XCUI step stops after 20 minutes.
+  # So the job's limit is 75 → 100, the sum of its steps' limits and the rest, as blank-paper's: the steps before the shots
+  # (the build and XcodeGen, about 3; the build took 2:05 in that run), the UI tests' build 15, the shots 55, the XCUI step 20,
+  # the words' count and the upload about 1: 94 at worst, 6 to spare. At 75, a slow runner whose shots ran near their 55
+  # would have stopped the job inside the XCUI step, a cancelled (red) job where until 1.4.1 it was only a warning.
   l10n-shots:
     name: Localized shots (1.2)
     # 1.3's work branches (r13-w-*) skip the two photo jobs so the macOS runners stay free for the jobs the
@@ -2555,7 +2559,7 @@ jobs:
     if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 75
+    timeout-minutes: 100
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -2790,7 +2794,8 @@ jobs:
           INK_LOG="$OUT/ink.txt"
           . "$GITHUB_WORKSPACE/tools/shots/ink_retake.sh"
           ink_build
-          # language|region (docs/M7B_CONTRACT.md §7.5)
+          # language|region (docs/M7B_CONTRACT.md §7.5). 1.4.2: LanguageUITests' shotLanguages has the same pairs (with
+          # ja|ja_JP first) for the XCUI photos of the step "Localized XCUI shots": change both together.
           LANGS="en|en_US zh-Hans|zh_CN zh-Hant|zh_TW ko|ko_KR fr|fr_FR de|de_DE it|it_IT es|es_MX pt-BR|pt_BR"
           lang_args() {  # the launch arguments of a language: it, its region, that region's holidays and week start
             local P
@@ -3006,7 +3011,7 @@ jobs:
           grep 'not found in strings table' "$LOG" | grep 'TegakiCalendar.app' | head -50 || true
           # 1.4.2: 63 by simctl (the shots step) and 17 by XCUI (the step before), per folder in the job's first comment.
           XCUI="$(find "$OUT" \( -name 'iphone-portrait-sheet-settings-memo-paper.png' -o -name 'iphone-portrait-sheet-memo-paper-choices.png' -o -name 'iphone-portrait-week-color-panel.png' \) | wc -l | tr -d ' ')"
-          [ "$PHOTOS" = "80" ] || echo "::warning::$PHOTOS photos, 80 expected (63 by simctl, 17 by XCUI: $XCUI)."
+          [ "$PHOTOS" = "80" ] || echo "::warning::$PHOTOS photos, 80 expected: 63 by simctl and 17 by XCUI; XCUI wrote $XCUI."
           [ "$MISSING" = "0" ] || echo "::warning::$MISSING keys the app did not find (l10n: missing)."
           [ "${NOT_LOCALIZED:-0}" = "0" ] || echo "::warning::$NOT_LOCALIZED non-localized lines of the app's bundle."
           # 1.4 D0b (docs/M7D.md, D0b): without the app's lines (on the iOS 27 simulators `log show` gives its NSLog

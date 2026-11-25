@@ -226,6 +226,8 @@ final class LanguageUITests: XCTestCase {
         guard let path = environment["TEGAKI_L10N_SHOT_OUT"], !path.isEmpty else {
             throw XCTSkip("only in the l10n-shots job (TEST_RUNNER_TEGAKI_L10N_SHOT_OUT)")
         }
+        // Every photo's name says portrait (as ColorPanelUITests sets it).
+        XCUIDevice.shared.orientation = .portrait
         let out = URL(fileURLWithPath: path, isDirectory: true)
         let catalogue = Self.shotCatalogue(environment["TEGAKI_L10N_SHOT_STRINGS"])
         log("shots: into \(out.path); the string catalogue: \(catalogue.isEmpty ? "not given, no words checked" : "\(catalogue.count) keys")")
@@ -247,7 +249,8 @@ final class LanguageUITests: XCTestCase {
         XCTAssertEqual(written, Self.expectedShots, "the photos written")
     }
 
-    /// The ten languages with the regions of l10n-shots (`LANGS`, and Japanese in Japan).
+    /// The ten languages with the regions of l10n-shots (`LANGS`, and Japanese in Japan). Keep it the same as build.yml's
+    /// `LANGS` in the l10n-shots job's shots step: change both together.
     private static let shotLanguages: [(language: String, region: String)] = [
         ("ja", "ja_JP"), ("en", "en_US"), ("zh-Hans", "zh_CN"), ("zh-Hant", "zh_TW"), ("ko", "ko_KR"),
         ("fr", "fr_FR"), ("de", "de_DE"), ("it", "it_IT"), ("es", "es_MX"), ("pt-BR", "pt_BR"),
