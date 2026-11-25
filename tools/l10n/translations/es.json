@@ -947,7 +947,7 @@
     },
     "onboarding.pen.text": {
       "jaSha1": "cbfca1a23d",
-      "text": "Escriba en el papel con el Apple Pencil. El dedo sirve para desplazarse, ampliar con dos dedos y tocar eventos. La palma no traza líneas al tocar la pantalla.\n\nPara escribir también con el dedo, active “Dibujar con el dedo” en la barra de herramientas. El doble toque y el gesto de apretar del Apple Pencil cambian entre la pluma y la goma, según las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad.\n\n%@"
+      "text": "Escriba en el papel con el Apple Pencil. El dedo sirve para desplazarse, ampliar con dos dedos y tocar eventos. La palma no traza líneas al tocar la pantalla.\n\nPara escribir también con el dedo, active “Usar el dedo” en la barra de herramientas. El doble toque y el gesto de apretar del Apple Pencil cambian entre la pluma y la goma, según las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad.\n\n%@"
     },
     "onboarding.pen.title": {
       "jaSha1": "3bbf69218f",
@@ -1363,7 +1363,7 @@
     },
     "settings.input.allowFinger": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Dibujar con el dedo"
+      "text": "Usar el dedo"
     },
     "settings.input.allowFinger.footer": {
       "jaSha1": "0ed7a17915",
@@ -1407,7 +1407,7 @@
     },
     "settings.memoPaper.footer": {
       "jaSha1": "318bdcb9e4",
-      "text": "El diseño del papel de Notas y Notas libres. Lo escrito a mano no cambia. Este ajuste es propio de cada dispositivo."
+      "text": "El diseño del papel de Notas y Notas libres. Su escritura a mano se mantiene tal cual. Este ajuste es propio de cada dispositivo."
     },
     "settings.memoPaper.plain": {
       "jaSha1": "e5dd055022",
@@ -1907,7 +1907,7 @@
     },
     "toolbar.colorPanel.reset": {
       "jaSha1": "a861ac9ea8",
-      "text": "Restablecer los colores iniciales"
+      "text": "Restablecer los colores"
     },
     "toolbar.colorPanel.title": {
       "jaSha1": "5aa3a9cd3e",
@@ -1927,7 +1927,7 @@
     },
     "toolbar.fingerToggle": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Dibujar con el dedo"
+      "text": "Usar el dedo"
     },
     "toolbar.fingerToggle.hint": {
       "jaSha1": "cb2be71b20",
