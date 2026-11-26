@@ -1407,7 +1407,7 @@
     },
     "settings.memoPaper.footer": {
       "jaSha1": "318bdcb9e4",
-      "text": "Il motivo della carta di Note e Note libere. Ciò che ha scritto a mano resta invariato. Questa impostazione vale per ogni singolo dispositivo."
+      "text": "Il motivo della carta di Note e Note libere. La Sua scrittura a mano resta invariata. Questa impostazione vale per ogni singolo dispositivo."
     },
     "settings.memoPaper.plain": {
       "jaSha1": "e5dd055022",
@@ -1907,7 +1907,7 @@
     },
     "toolbar.colorPanel.reset": {
       "jaSha1": "a861ac9ea8",
-      "text": "Ripristina i colori iniziali"
+      "text": "Reimposta i colori"
     },
     "toolbar.colorPanel.title": {
       "jaSha1": "5aa3a9cd3e",

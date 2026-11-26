@@ -2965,3 +2965,430 @@ W の注（訳を書いた W は元を読んでいるので、この注は判定
 | `SUPPORT.en.md:166` の 6 文目（`SUPPORT.md:161` の 6 文目。つまみの文のすぐ後） | ツールバーをしまっているときは、丸ボタンの道具の印を押して出たツールバーの「動かす」から選べます（選んだ端に、ツールバーが開いたまま残ります）。 | When the toolbar is hidden, tap the tool mark on the round button, then tap “Move” on the toolbar that appears and choose an edge (the toolbar stays open at the edge you choose). | ツールバーをしまっているときは、丸いボタンのツールのマークをタップし、出てきたツールバーの「動かす」をタップして端を選びます（ツールバーは選んだ端で開いたままになります）。 | ○ | 英語は、しまった状態で丸ボタンの道具の印を押す、出たツールバーの「Move」を押す、端を選ぶ、選んだ端に開いたまま残る、という原文の手順と結果をすべて保っています。逆翻訳も原文とほぼ同じ意味に戻っています。「Move」は押すだけで引っぱれない、という事実とも合っています。「tool mark on the round button」もページのほかの箇所の言い方とそろっています。原文の「選べます」（できる）が英語では命令の形ですが、使い方の説明として自然で、意味は失われていません。 |
 
 - 16.x の表の字は、記録として替えていません（16.x の時の字）。16.x の 1 文は、この 16.z の字に置き換わりました。
+
+## 17. 1.4.2 のペンの色とメモ欄の紙（アプリの 13 の鍵・0e-32 の説明・「指でも書く」の短縮、2026-11-26）
+
+元は契約の第 2 版 §8.1・§8.2 です（[R1_4_2_CONTRACT.md](../R1_4_2_CONTRACT.md)。§14 の「第 2 版への注」で読み替える）。替わった文は 3 つあります。
+
+1. **アプリの新しい 13 キー**（契約 §8.1）: `tools/l10n/source/app-S.json` の 8 つ（ペンの色の名前 `toolbar.color.brown`・`gray`・`darkGreen`・`navy`、色の板の `toolbar.colorPanel.title`・`hint`・`otherColor`・`reset`）と、`app-U.json` の 5 つ（`settings.memoPaper.title`・`ruled`・`dots`・`plain`・`footer`）。「その他の色…」のキーは `toolbar.colorPanel.otherColor` です（契約 §8.1 の `toolbar.colorPanel.other` は、lint L-4 が複数形の対と読むため。契約 §14 の注。画面の identifier は `toolbar.colorPanel.other` のまま）。日本語と jaSha1 は D1a・D1b で入れた字のままで、そのとき入れた 9 言語の仮の訳（`docs/R1_4_2.md` の D1a の決め (a)、D1b の決め (a)）を D2 で訳し直しました。
+2. **0e-32 の説明**（契約 §1.5）: `toolbar.grip.spoken` と `toolbar.moveTo.*` の 5 キーは、1.4.1 の「動かす」から画面にも出る（吹き出しの題と選択肢）ので、comment だけを直しました。日本語と 9 言語の訳は 1 字も替えていません。
+3. **「指でも書く」の短縮**（de・es・pt-BR）: 1.4.1 で同じ行の右に「動かす」が入った後、13 インチの iPad の縦で、de・es・pt-BR の `toolbar.fingerToggle` の最後の字が、行の右の端のぼかしで切れていました（GLOSSARY §4 の「1.4.2 の直し」）。3 言語のこの名前と、同じ字にする決まりの `settings.input.allowFinger`、初回案内 `onboarding.pen.text` の中の引用を、短い語に替えました。
+
+- **訳**: X が書きました（枝 `r142-w-d2x` の b0c4e3b）。13 キーは GLOSSARY の新しい §6 と照らし、117 の字のうち 18 を仮の訳から替えました（`toolbar.colorPanel.reset` の 9 言語、`toolbar.colorPanel.hint` の de・zh-Hans、`settings.memoPaper.title` の ko・zh-Hans・zh-Hant、`settings.memoPaper.dots` の fr、`settings.memoPaper.footer` の es・it・pt-BR）。残りの 99 は仮の訳のままです。指の名前は、de Mit Finger zeichnen → Fingereingabe、es Dibujar con el dedo → Usar el dedo、pt-BR Traçar com o dedo → Usar o dedo です（幅の上限は fr « Écrire au doigt » の 87.8 pt。GLOSSARY §4）。0e-32 は comment だけで、訳し直さないと X が決めました（GLOSSARY §5 の「幅」の下の点。下の「参考: 0e-32」）。`Localizable.xcstrings` は `build.py` で作り直しました。
+- **元を見ない逆翻訳**: R が、訳の字だけを読んで訳し戻しました（0bfa64a、`docs/i18n/back/app-1_4_2.md`）。13 キー × 9 言語の 117 行と、指の 2 キー × 3 言語の 6 行で、123 行です。R は、日本語の元・comment・GLOSSARY・契約の ja の列を読んでいません。ただし、凍結の表の確かめ方を探して記録 `docs/R1_4_2.md` を grep したときに「その他の色」「メモ欄の紙」「最初の色に戻す」の字が出力に出て、X の commit の件名に「指でも書く」がありました。だから `toolbar.colorPanel.otherColor`・`settings.memoPaper.title`・`toolbar.colorPanel.reset`・`toolbar.fingerToggle` の 4 キーは、元を見ない逆翻訳として弱い物です（R がそのファイルに書いた。下の表の ＊。扱いは下の 7）。`docs/i18n/back/<言語>.json` は替えていません（下の 10）。`onboarding.pen.text` は、文の中の引用の名前だけが替わったので、全文の逆翻訳はありません（R の対象の外）。
+- **判定**: 訳を書いた X とも R とも別の Claude 2 人（判定 1・判定 2）が、123 行を 1 行ずつ、日本語の元（source の ja と comment）・GLOSSARY（§1・§2・§4・§5・§6）・アプリの今の字（今の色の名前・ヒント・等倍の読み上げ・設定の脚注・メモ欄の語・元に戻すと購入の復元の語など）と照らしました（2026-11-26 の 04 時台）。判定 1 は画面のコード（`ColorPanelView.swift` の板の 2 つの行のボタン、`MemoPaperSettingsSection.swift` の Picker）も読み、参考に、初回案内の 3 行と 0e-32 の 5 キーの今の字も見ました。2 人の表は、この作業に別々に渡されました。2 人とも、ファイルは何も替えていません。
+- **この作業（D2 の review17）**: 2 人の判定の全部（○・△・× と理由、気づき）と、R の表、X の記録を受け取り、△ と気づきを 1 つずつ、訳・GLOSSARY・アプリのほかのキーの字で確かめて扱いを決め、この節を書きました。この作業の Claude は日本語の元を読んでいます。下の全部の表の注の列は、2 人の判定の理由をこの作業がまとめたものです。
+- **母語の人の確認ではありません。**
+
+### 結果
+
+「最後」の列は、この作業が付けた最後の判定です。2 人のどちらかが △ の行は △ です（訳を替えていないので、△ が残る）。
+
+| 対象 | 行 | 判定 1 | 判定 2 | 最後 | 直した後 |
+| --- | --- | --- | --- | --- | --- |
+| 新しい 13 キー（9 言語） | 117 | ○ 113・△ 4 | ○ 115・△ 2 | ○ 112・△ 5 | 直さない（下の 1〜3） |
+| 指の名前 `toolbar.fingerToggle`・`settings.input.allowFinger`（de・es・pt-BR） | 6 | ○ 3・△ 3 | △ 6 | △ 6 | 直さない（下の 4・5） |
+| **計** | **123** | **○ 116・△ 7・× 0** | **○ 115・△ 8・× 0** | **○ 112・△ 11・× 0** | **判定の後に替えた訳は 0** |
+| 参考: `onboarding.pen.text` の引用（de・es・pt-BR。R の対象の外） | 3 | ○ 3 | （行としては見ていない。指の行の理由に、初回案内の引用も文として通ると書いた） | ○ 3 | — |
+| 参考: 0e-32 の 5 キー（9 言語。訳は替えていない） | 45 | 気になる所なし（判定に入れていない） | （見ていない） | — | — |
+
+**× は 0 です。** 契約 §8.2 の「`docs/i18n/REVIEW.md` の新しい節 17 を作り、× を 0 に」は済みです。△ の 11 行は、どれも訳を替えていません（下の 1〜5）。判定の後に替えた訳は無いので、この 123 行のために、もう一度の元を見ない逆翻訳と判定は要りません。
+
+### △ と気づきの扱い
+
+| # | 誰の | 所 | 中身 | この作業が確かめたこと | 扱い |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 判定 1 の △（判定 2 は ○） | `toolbar.colorPanel.reset` の ko 색상 재설정・it Reimposta i colori・pt-BR Redefinir as cores | 3 つの動詞は字の上では「設定し直す・定め直す」で、R の逆翻訳も「色の再設定（リセット）」「色を設定し直す（リセット）」。訳に「最初の」が無いので、色を選ぶ板の上では「色を選び直す」とも読める（押すと、替えた丸の色が最初の 6 色に戻る。手書きは消えない）。it は、Apple の it の Reset の語が Ripristina（このアプリでは購入の復元の語）で、Reimposta は「Reimposta password」の「設定し直す」の読みが強い。直すなら ko 처음 색상으로 되돌리기 か 기본 색상으로 되돌리기、it Torna ai colori iniziali か Reimposta i colori iniziali、pt-BR Voltar às cores iniciais（Redefinir as cores iniciais は「最初の色を替える」と読めるので使わない）。ko には「直さなくても通る」と添えた | 判定 2 は 3 つとも ○ とした（iOS の Reset の語で、1.4.1 の `header.zoomReset.spoken` の 확대·축소 재설정・Reimposta lo zoom・Redefinir o zoom とそろい、元に戻す・購入の復元の語を避けている）。15 の「アプリの読み上げ `header.zoomReset.spoken` の訳し直し」では、同じ動詞の等倍の読み上げを R が「ズームを設定し直す」（it・pt-BR）と読み、2 人とも ○ だった。en の Reset Colors（2 人とも ○）も「最初の」を言わず、リセットの語の作りは同じ。3 言語の今の字は、元に戻す（실행 취소・Annulla・Desfazer）・やり直す（Ripeti・Refazer）・購入の復元（구입 복원・Ripristina acquisti・Restaurar compras）のどれとも別の字（`tools/l10n/translations` で確かめた） | **直さない**。2 人の判定が分かれ、3 言語だけ「最初の色に戻る」の形にすると、en・fr・de・es・zh の「リセット」の形と、1.4.1 の等倍の読み上げの形からずれる。替えると 3 行の元を見ない逆翻訳と判定がもう 1 回要る。**替えるかはリードが決めてよい**: 字は判定 1 の案で、どれも GLOSSARY §5 の避ける語を使わない。新機能の文・審査メモ・SUPPORT はこの 3 言語のボタンの名前を引かない（契約 §8.3 の「アプリの語」に入っていない）ので、ほかの文に広がらない。ko の 처음 색상으로 되돌리기 は 0d9241a までの仮の訳で、D1b の通しの run 45625473748 の `ColorPanelFitTests` を通った字。it・pt-BR の案は、仮の訳（Ripristina i colori iniziali・Restaurar as cores iniciais）より短い |
+| 2 | 2 人の △ | `settings.memoPaper.plain` の it Bianca | 題の Carta delle note を受けた carta bianca（白紙）で、女性形も正しいが、1 語だけ並ぶ選びと読み上げでは色の「白」（判定 1 は人の名前とも）とも読める（R の注も同じ）。判定 1: 3 つの形もそろわない（A righe・Griglia a punti・Bianca） | 代わりの Senza righe は A righe と対になるが、点の紙も線が無いので字の上で重なる（2 人とも）。判定 2: 紙はダークでも白い（契約 §3.4）ので害は小さい。この作業の見方（出典は開いていない）: イタリア語のノートでは、無地のページを pagine bianche と呼ぶのがふつうで、選びの名前として通る | **直さない**（2 人とも既定はこのまま） |
+| 3 | 判定 2 の △（判定 1 は ○） | `settings.memoPaper.ruled` の ko 줄 | 意味は通る（줄노트 の 줄。Apple のメモの「좁은 줄」とも合い、R も「線（罫）」と読んだ）が、1 字の 줄 は「行・列・ひも」とも読め、3 つの選びの中でいちばん弱い。読み上げでは単独に読まれる。直すなら 가로줄（横の線） | 判定 1 は、韓国のノートの中身の分け方（무지・줄・모눈・도트）の語で、ほかの 2 つ（도트 격자・무지）と並ぶと罫線と分かるとして ○ | **直さない**（判定 2 も既定はこのまま） |
+| 4 | 2 人の △ | `toolbar.fingerToggle` の de Fingereingabe・es Usar el dedo・pt-BR Usar o dedo | 同じスイッチと読める（書く道具の帯の切り替えで、読み上げのヒント `toolbar.fingerToggle.hint` と初回案内の引用の文が、オンで指でも線が引けることを言う）が、「書く」と「でも」が字から消えた。de の Fingereingabe はタッチ入力全体の語でもあるので、オフが「指で何もできない」とも読める。es・pt-BR は、オフの字が「指を使わない」になり、実際の動き（指でスクロールとタップ）と字の上で食い違う | 2 人とも、幅の上限（fr « Écrire au doigt » 87.8 pt。GLOSSARY §4 の 1.4.2 の直し）の中で、動詞を残す形は入らないか、冠詞を落として不自然なので、直さないとした。幅は X の AppKit の測りで de 86.1・es 76.7・pt-BR 73.7 pt（この作業は測っていない） | **直さない** |
+| 5 | 判定 2 の △（判定 1 は ○） | `settings.input.allowFinger` の de・es・pt-BR（ツールバーと同じ字） | 字だけで「書く」が無いのはツールバーと同じ。すぐ下の脚注（`settings.input.allowFinger.footer`）が、オンで指でも線、オフで指はスクロールとタップ、と言って補う | comment の決まり（「ツールバーの同じ語と合わせる」）で、ツールバーと同じ字でなければならない。判定 1 は、設定の節の見出し（Eingabe・Entrada）の下で、脚注が意味を言うので ○ | **直さない**（4 と同じ字） |
+| 6 | 2 人の気づき | `settings.memoPaper.footer` の pt-BR の padrão | iOS の pt-BR では「既定」の語でもある（等倍の tamanho padrão など） | 2 人とも ○（選びのすぐ下の脚注なので柄と読め、R も柄と読んだ）。直すなら判定 1 の案の「O tipo de papel…」か「O desenho do papel…」で、そのときは GLOSSARY §6 の柄の pt-BR も直す | **直さない**（記録だけ） |
+| 7 | 2 人の気づき、R の注 | R が元らしい日本語を見た 4 キー（表の ＊） | 元を見ない逆翻訳として弱い | 2 人とも、この 4 キーは訳の字と日本語の元を直接照らして決めた。R の逆翻訳は訳の字に従っていて、日本語の元の言い回しを写していない（reset の行に「最初の」が無く、指の行は「指での入力」「指を使う」で「指でも書く」ではなく、de の題は一般の「メモ用紙」と読んでいる）。reset と指の △ は、R の逆翻訳に頼っていない（判定 1） | **やり直さない**とこの作業は考える（2 人とも同じ考え）。字を替えたときは、新しい字を、日本語を見ない別の R に渡す。最後はリードが決める |
+| 8 | 判定 1 の気づき | 板の 2 つのボタンと、指の名前の幅 | 幅は X の AppKit の測りで、判定の 2 人もこの作業も測っていない。設定の行は iPhone で、Papel de notas と Cuadrícula de puntos のように長い値が並ぶ | `ColorPanelFitTests` は速い道でも走る（`build.yml` の単体テストの段の名前の並び）。この節の commit を上げた速い道の run で見る。l10n-shots の写真（D1b の決め (m) で D2 に送った）で、de・fr・疑似の言語の板と、設定の「メモ欄の紙」の行の値が省略されないかを見るとよい | 記録だけ（リードが run と写真で見る） |
+| 9 | 判定 1 の気づき（X の申し送り） | en Draw with Finger・it Scrivi con il dito | 替わっていないが、GLOSSARY §4 の 1.4.2 の直しによると、13 インチでも行が少しはみ出してスクロールする（字は切れない）。it は Scrivi col dito（81.9 pt）にすれば入る。`ToolbarFitTests` の F-13 は新しい上限を確かめていない | R の対象の外（この 2 つの字は替わっていない） | 記録だけ（リードが決める） |
+| 10 | 判定 1 の気づき、R の注 | `docs/i18n/back/<言語>.json` | 13 の新しいキーが無く（9 言語とも 496 キーで、translations は 509 キー）、`toolbar.fingerToggle`・`settings.input.allowFinger` の de・es・pt-BR は前の訳とその逆翻訳のまま | 1.4.1 の 15 の前例（`back/app-1_4_1-fix.md` に今の訳の逆翻訳を置き、`back/<言語>.json` の前の訳は消さない）と同じ形。16 の前例（`toolbar.move.title` を `back/<言語>.json` に足した）もある | この作業では替えていない（リードが D2 を記録するときに決める） |
+| 11 | 判定 1 の気づき | 0e-32 の 5 キー | 吹き出しの題とボタンとして 9 言語の今の字を読み、気になる所は無かった（de の Nach oben・Nach unten などは、Werkzeugleiste verschieben の題の下のボタンとして自然） | X の「訳し直さない」に同意（下の「参考: 0e-32」） | 記録だけ |
+| 12 | GLOSSARY §6 の「確かめていないこと」 | ko 줄・it Bianca・zh 点阵 と、reset の「最初の」 | 判定で見てほしい、と X が書いた | zh 点阵・點陣 は 2 人とも ○（紙の選びの中では「ドットマトリクス」と読まれにくい）。ほかは上の 1〜3 | GLOSSARY §6 の「確かめていないこと」に、この節の結果を指す 1 点を足した（訳の字ではない） |
+
+### 判定の後に替えた字
+
+- **訳（`tools/l10n/translations/<言語>.json`）は 1 つも替えていません。** `Localizable.xcstrings` も b0c4e3b の字のままです。だから、この節の 123 行のために、もう一度の元を見ない逆翻訳と判定は要りません。
+- GLOSSARY §6 の「確かめていないこと」に、判定の結果の指し先の 1 点を足しました（上の 12）。
+
+### 元を見ない逆翻訳がまだの物
+
+- 無し（この節の 123 行）。
+- リードが上の 1（reset の ko・it・pt-BR）か 2（it Bianca）を替えると決めたときは、新しい字を、日本語を見ない R に渡して訳し戻し、判定にかけます。この作業の Claude は日本語の元を読んだので、自分で訳し戻しても元を見ない逆翻訳になりません。
+- 上の 7（＊ の 4 キー）を別の R にやり直させるかは、リードが決めます（2 人の判定とこの作業は、要らないと考える）。
+
+### 全部の表（新しい 13 キー、117 行）
+
+行の順は `docs/i18n/back/app-1_4_2.md` と同じです（キーごと、言語は zh-Hans・zh-Hant・ko・en・fr・de・es・it・pt-BR）。訳と逆翻訳の字は、そのファイルから機械で写しました（訳の字は今の `tools/l10n/translations/<言語>.json` と 1 字も違わない）。逆翻訳の（ ）は R の注です。＊ は R が元らしい日本語を見たキー（上の 7）です。
+
+| キー | 元の日本語 | 言語 | 訳 | 逆翻訳（元を見ない） | 判定 1 | 判定 2 | 最後 | 注（2 人の判定の理由） |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `toolbar.color.brown` | 茶 | zh-Hans | 棕色 | 茶色 | ○ | ○ | ○ | 茶色のふつうの名前。今の「〜色」の形（黑色・浅蓝色）とそろう。読み上げだけで幅の決まりは無い |
+| `toolbar.color.brown` | 茶 | zh-Hant | 棕色 | 茶色 | ○ | ○ | ○ | 書き言葉の茶色（台湾の話し言葉の 咖啡色 でなくても通じる。GLOSSARY §6） |
+| `toolbar.color.brown` | 茶 | ko | 갈색 | 茶色 | ○ | ○ | ○ | 茶色のふつうの語。ほかの 11 色と別の語 |
+| `toolbar.color.brown` | 茶 | en | Brown | 茶色 | ○ | ○ | ○ | 契約の案のまま。今の色の名前と同じ 1 語 |
+| `toolbar.color.brown` | 茶 | fr | Marron | 茶色（栗色） | ○ | ○ | ○ | 日常の茶色の名前（判定 2: brun より自然で、#92400e の赤みの茶に合う） |
+| `toolbar.color.brown` | 茶 | de | Braun | 茶色 | ○ | ○ | ○ | ふつうの名前 |
+| `toolbar.color.brown` | 茶 | es | Marrón | 茶色 | ○ | ○ | ○ | スペインと中南米の両方で通じる（中南米だけの café にしない。GLOSSARY §1） |
+| `toolbar.color.brown` | 茶 | it | Marrone | 茶色 | ○ | ○ | ○ | ふつうの名前 |
+| `toolbar.color.brown` | 茶 | pt-BR | Marrom | 茶色 | ○ | ○ | ○ | ブラジルの綴り |
+| `toolbar.color.gray` | グレー | zh-Hans | 灰色 | 灰色 | ○ | ○ | ○ | グレーのふつうの名前 |
+| `toolbar.color.gray` | グレー | zh-Hant | 灰色 | 灰色 | ○ | ○ | ○ | グレーのふつうの名前 |
+| `toolbar.color.gray` | グレー | ko | 회색 | 灰色 | ○ | ○ | ○ | グレーのふつうの名前 |
+| `toolbar.color.gray` | グレー | en | Gray | 灰色 | ○ | ○ | ○ | 米国の綴り（GLOSSARY §1） |
+| `toolbar.color.gray` | グレー | fr | Gris | 灰色 | ○ | ○ | ○ | グレーのふつうの名前 |
+| `toolbar.color.gray` | グレー | de | Grau | 灰色 | ○ | ○ | ○ | グレーのふつうの名前 |
+| `toolbar.color.gray` | グレー | es | Gris | 灰色 | ○ | ○ | ○ | グレーのふつうの名前 |
+| `toolbar.color.gray` | グレー | it | Grigio | 灰色 | ○ | ○ | ○ | グレーのふつうの名前 |
+| `toolbar.color.gray` | グレー | pt-BR | Cinza | 灰色 | ○ | ○ | ○ | ブラジルのふつうの語 |
+| `toolbar.color.darkGreen` | 深緑 | zh-Hans | 深绿色 | 深緑色 | ○ | ○ | ○ | 今の 绿色 に 深 を付けた形。同じ系統の濃い色と分かり、緑と言い分けられる |
+| `toolbar.color.darkGreen` | 深緑 | zh-Hant | 深綠色 | 深緑色 | ○ | ○ | ○ | 綠色 と言い分けられる |
+| `toolbar.color.darkGreen` | 深緑 | ko | 진초록 | 濃い緑（深緑） | ○ | ○ | ○ | 今の 초록 に 진（濃い）を付けた形。同じ系統と分かる |
+| `toolbar.color.darkGreen` | 深緑 | en | Dark green | 濃い緑 | ○ | ○ | ○ | 今の Light blue と同じく 2 語目は小文字（契約の案 Dark Green からの外れは GLOSSARY §6 の決め。読み上げでは大文字は聞こえない）。Green と言い分けられる |
+| `toolbar.color.darkGreen` | 深緑 | fr | Vert foncé | 濃い緑 | ○ | ○ | ○ | Vert と言い分けられる |
+| `toolbar.color.darkGreen` | 深緑 | de | Dunkelgrün | 濃い緑 | ○ | ○ | ○ | Grün と言い分けられる |
+| `toolbar.color.darkGreen` | 深緑 | es | Verde oscuro | 濃い緑 | ○ | ○ | ○ | Verde と言い分けられる |
+| `toolbar.color.darkGreen` | 深緑 | it | Verde scuro | 濃い緑 | ○ | ○ | ○ | Verde と言い分けられる |
+| `toolbar.color.darkGreen` | 深緑 | pt-BR | Verde-escuro | 濃い緑 | ○ | ○ | ○ | 今の Azul-claro と同じハイフンの形（色の複合語の正しい綴り） |
+| `toolbar.color.navy` | 紺 | zh-Hans | 藏青色 | 紺色 | ○ | ○ | ○ | 紺の決まった名前。蓝色・浅蓝色 と別の語で、「濃い青」でなく名前のある色 |
+| `toolbar.color.navy` | 紺 | zh-Hant | 藏青色 | 紺色 | ○ | ○ | ○ | 藍色・淺藍色 と別の語 |
+| `toolbar.color.navy` | 紺 | ko | 남색 | 藍色（紺） | ○ | ○ | ○ | 紺のふつうの語。파랑・하늘색 と別の語 |
+| `toolbar.color.navy` | 紺 | en | Navy | 紺（ネイビー） | ○ | ○ | ○ | 契約の案。Blue・Light blue と別の語 |
+| `toolbar.color.navy` | 紺 | fr | Bleu marine | 紺色（ネイビーブルー） | ○ | ○ | ○ | Bleu・Bleu clair と言い分けられる |
+| `toolbar.color.navy` | 紺 | de | Marineblau | 紺色（ネイビーブルー） | ○ | ○ | ○ | Blau・Hellblau と言い分けられる（Dunkelblau にしなかったのは GLOSSARY §6 の理由どおり） |
+| `toolbar.color.navy` | 紺 | es | Azul marino | 紺色（ネイビーブルー） | ○ | ○ | ○ | Azul・Azul claro と言い分けられる |
+| `toolbar.color.navy` | 紺 | it | Blu marino | 紺色（ネイビーブルー） | ○ | ○ | ○ | Blu・Azzurro と言い分けられる |
+| `toolbar.color.navy` | 紺 | pt-BR | Azul-marinho | 紺色（ネイビーブルー） | ○ | ○ | ○ | Azul・Azul-claro と言い分けられる。ハイフンの形も今の色とそろう |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | zh-Hans | 选择钢笔颜色 | ペンの色を選ぶ（钢笔 は字どおりには万年筆） | ○ | ○ | ○ | 钢笔 は GLOSSARY §2 のペン（道具の名前 `toolbar.tool.pen` と同じ字）。R の注の「万年筆」は字の上の意味で、アプリの中ではペンの道具。1.4.1 の 移动工具栏 と同じ動詞と名詞の形 |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | zh-Hant | 選擇鋼筆顏色 | ペンの色を選ぶ（鋼筆 は字どおりには万年筆） | ○ | ○ | ○ | 鋼筆 は §2 の語（上と同じ） |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | ko | 펜 색상 선택 | ペンの色の選択 | ○ | ○ | ○ | 名詞の形の操作名（1.4.1 の 확대·축소 재설정 と同じ扱い）。색상 は 기타 색상 と同じ語 |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | en | Choose Pen Color | ペンの色を選ぶ | ○ | ○ | ○ | 契約の案。Title Case で 1.4.1 の Move Toolbar と同じ形。板の名前としても丸の操作の名前としても読める |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | fr | Choisir la couleur du stylo | ペンの色を選ぶ | ○ | ○ | ○ | 不定詞と定冠詞（Déplacer la barre d’outils と同じ形）。stylo は §2 の語 |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | de | Stiftfarbe wählen | ペンの色を選ぶ | ○ | ○ | ○ | 名詞と不定詞（Werkzeugleiste verschieben と同じ形）。Stift は §2 の語 |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | es | Elegir el color de la pluma | ペンの色を選ぶ | ○ | ○ | ○ | 不定詞と定冠詞（Mover la barra de herramientas と同じ形）。pluma は §2 の語 |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | it | Scegli il colore della penna | ペンの色を選ぶ（Scegli は tu への命令の形。同じ板の hint の Tocchi は Lei の形） | ○ | ○ | ○ | 操作の名前は命令形がアプリの決まり（Sposta la barra degli strumenti・Reimposta lo zoom）で、文のヒント（Tocchi）は Lei。R の注の tu と Lei の混ざりは、今のアプリと同じ使い分け（2 人とも） |
+| `toolbar.colorPanel.title` | ペンの色を選ぶ | pt-BR | Escolher a cor da caneta | ペンの色を選ぶ | ○ | ○ | ○ | 不定詞と定冠詞（Mover a barra de ferramentas と同じ形）。caneta は §2 の語 |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | zh-Hans | 再轻点一下可更换颜色 | もう一度軽くタップすると色を替えられます | ○ | ○ | ○ | 轻点 はアプリの今のタップの語（`toolbar.hint.event`）。「可…」は今のヒントと同じ形 |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | zh-Hant | 再點一下可更換顏色 | もう一度タップすると色を替えられます | ○ | ○ | ○ | 點一下 はアプリの今の語 |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | ko | 한 번 더 누르면 색상을 바꿀 수 있어요 | もう一度押すと色を変えられます | ○ | ○ | ○ | 해요체。누르면 は今のヒント（길게 누르면 …）と同じ動詞 |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | en | Tap again to change the color | 色を変えるには、もう一度タップしてください | ○ | ○ | ○ | 意味が同じ。今のヒント（Touch and hold to …）と同じ「動作 to 結果」の形で、文末に句点を付けないのも同じ |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | fr | Touchez à nouveau pour changer la couleur | 色を変えるには、もう一度タップしてください | ○ | ○ | ○ | vous の形。今のヒント（Maintenez le doigt pour …）と同じ作り |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | de | Tippen Sie erneut, um die Farbe zu ändern | 色を変えるには、もう一度タップしてください | ○ | ○ | ○ | Sie の形（GLOSSARY §1。仮の訳の不定詞から X が直した）。カンマも正しい |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | es | Toque de nuevo para cambiar el color | 色を変えるには、もう一度タップしてください | ○ | ○ | ○ | usted の形。今のヒント（Mantenga pulsado para …）とそろう |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | it | Tocchi di nuovo per cambiare il colore | 色を変えるには、もう一度タップしてください | ○ | ○ | ○ | Lei の形。今のヒント（Tenga premuto per …）とそろう |
+| `toolbar.colorPanel.hint` | もう一度押すと、色を替えられます | pt-BR | Toque de novo para trocar a cor | 色を替えるには、もう一度タップしてください（trocar は「取り替える」） | ○ | ○ | ○ | você の形。trocar（取り替える）は、丸の色を入れ替える元の「替える」に近い |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | zh-Hans | 其他颜色… | その他の色… | ○ | ○ | ○ | 今の読み上げの名前 `toolbar.color.unknown`（其他颜色）に「…」1 字（U+2026）。Apple の中国語のメニューの形。板の行に楽に入る |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | zh-Hant | 其他顏色… | その他の色… | ○ | ○ | ○ | 上と同じ（其他顏色 ＋「…」） |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | ko | 기타 색상… | その他の色… | ○ | ○ | ○ | `toolbar.color.unknown`（기타 색상）とそろう |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | en | Other Color… | ほかの色… | ○ | ○ | ○ | 画面のボタンなので Title Case。読み上げの名前 Other color とそろう |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | fr | Autre couleur… | ほかの色… | ○ | ○ | ○ | 「…」の前に空白なし（省略の記号として正しい） |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | de | Andere Farbe… | ほかの色… | ○ | ○ | ○ | `toolbar.color.unknown` の字に「…」。短い |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | es | Otro color… | ほかの色… | ○ | ○ | ○ | `toolbar.color.unknown` の字に「…」 |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | it | Altro colore… | ほかの色… | ○ | ○ | ○ | `toolbar.color.unknown` の字に「…」 |
+| `toolbar.colorPanel.otherColor`＊ | その他の色… | pt-BR | Outra cor… | ほかの色… | ○ | ○ | ○ | `toolbar.color.unknown` の字に「…」 |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | zh-Hans | 重置颜色 | 色をリセット | ○ | ○ | ○ | 重置 は初めの状態に戻す決まった語。1.4.1 の 重置缩放 とそろう。撤销（元に戻す）・恢复（購入の復元）を避けた |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | zh-Hant | 重置顏色 | 色をリセット | ○ | ○ | ○ | 重置縮放 とそろう。還原（元に戻す）を避けた |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | ko | 색상 재설정 | 色の再設定（リセット） | △ | ○ | △（直さない） | 判定 1: 재설정 は iOS の Reset の語で 확대·축소 재설정 とそろうが、字の上では「設定し直す」。「最初の」が無いので、色を選ぶ板の上では「色を選び直す」とも読める（直さなくても通る）。判定 2: iOS の ko の Reset の語で、실행 취소・복원 を避けた。直さない（下の「△ と気づきの扱い」の 1） |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | en | Reset Colors | 色をリセット | ○ | ○ | ○ | Reset は UI で初めの状態に戻す決まった語で、複数形で 6 つの丸の色全部と読める。Undo・Restore を避けた。Title Case |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | fr | Réinitialiser les couleurs | 色を初期化する（リセット） | ○ | ○ | ○ | Réinitialiser は「初めの状態に戻す」をはっきり言う（仮の訳の Rétablir はアプリの「やり直す」）。いちばん長い字で、X の測りで 17 pt 182.1 pt、264 pt の行に 1 行 |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | de | Farben zurücksetzen | 色をリセットする（元に戻す） | ○ | ○ | ○ | zurücksetzen は「元に戻す」がはっきりしている。Zoom zurücksetzen とそろう |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | es | Restablecer los colores | 色を元に戻す（リセット） | ○ | ○ | ○ | Restablecer は「前の状態に戻す」。Restablecer el zoom とそろう |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | it | Reimposta i colori | 色を設定し直す（リセット） | △ | ○ | △（直さない） | 判定 1: Reimposta lo zoom とそろうが、Apple の it の Reset は Ripristina（このアプリでは購入の復元の語）で、Reimposta は「設定し直す」（Reimposta password）の読みが強い。「最初の」が無い。判定 2: リセットの語で、Annulla・Ripristina を避けた。R の「設定し直す」は字どおりの読み。直さない（同じく 1） |
+| `toolbar.colorPanel.reset`＊ | 最初の色に戻す | pt-BR | Redefinir as cores | 色を設定し直す（リセット） | △ | ○ | △（直さない） | 判定 1: Redefinir は iOS の pt-BR の Reset（Redefinir Ajustes）で Redefinir o zoom とそろうが、字の上では「定め直す」。「最初の」が無い。判定 2: リセットの語で、Desfazer・Restaurar を避けた。直さない（同じく 1） |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | zh-Hans | 备忘栏纸张 | メモ欄の紙 | ○ | ○ | ○ | メモ欄 = 备忘栏（今の `toast.growthCap`。仮の 备忘区 から X が直した）。纸张 は §2 の 纸 |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | zh-Hant | 備忘欄紙張 | メモ欄の紙 | ○ | ○ | ○ | 備忘欄（`toast.growthCap`）。上と同じ |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | ko | 메모 칸 종이 | メモ欄の紙（칸 は「枠・欄」） | ○ | ○ | ○ | 메모 칸 は `toast.growthCap`、종이 は §2 の語。名詞を重ねた設定の行の名前として自然 |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | en | Notes Paper | 「メモ」の紙（Notes は画面の名前と読める） | ○ | ○ | ○ | 契約の案。メモ = Notes（§2）。見出しの名前とも、一般の「メモ用」とも読め、どちらでも脚注が Notes and Free Notes と範囲を言う |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | fr | Papier des notes | メモの紙 | ○ | ○ | ○ | 「メモの紙」。行の名前として自然 |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | de | Notizpapier | メモ用紙（一般の語としての「メモ用紙」） | ○ | ○ | ○ | 一般の「メモ用紙」の語に近いが、右の値（Liniert など）と脚注の „Notizen“ „Freie Notizen“ で何の紙か分かる |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | es | Papel de notas | メモ用紙（メモの紙） | ○ | ○ | ○ | 上と同じ（R も「メモ用紙（メモの紙）」と読んだ） |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | it | Carta delle note | メモの紙 | ○ | ○ | ○ | 「メモの紙」 |
+| `settings.memoPaper.title`＊ | メモ欄の紙 | pt-BR | Papel das notas | メモの紙 | ○ | ○ | ○ | 「メモの紙」 |
+| `settings.memoPaper.ruled` | 罫線 | zh-Hans | 横线 | 横線 | ○ | ○ | ○ | 横线本 の語。ノートの紙の種類として自然 |
+| `settings.memoPaper.ruled` | 罫線 | zh-Hant | 橫線 | 横線 | ○ | ○ | ○ | 上と同じ |
+| `settings.memoPaper.ruled` | 罫線 | ko | 줄 | 線（罫。줄 は「線・行」） | ○ | △ | △（直さない） | 判定 1: 韓国のノートの中身の分け方（무지・줄・모눈・도트）の語で、ほかの 2 つと並ぶと罫線と分かる。判定 2: 1 字の 줄 は「行・列・ひも」とも読め、3 つの中でいちばん弱い（直すなら 가로줄。既定はこのまま）。直さない（下の 3） |
+| `settings.memoPaper.ruled` | 罫線 | en | Lined | 罫線入り | ○ | ○ | ○ | 契約の案。ノートのふつうの語 |
+| `settings.memoPaper.ruled` | 罫線 | fr | Ligné | 罫線入り | ○ | ○ | ○ | papier ligné の形。男性形が題の papier に合う |
+| `settings.memoPaper.ruled` | 罫線 | de | Liniert | 罫線入り | ○ | ○ | ○ | ノートのふつうの語 |
+| `settings.memoPaper.ruled` | 罫線 | es | Rayado | 罫線入り（rayado は「縞の」とも読める） | ○ | ○ | ○ | papel rayado（スペイン・中南米とも）。R の注の「縞」の読みは紙の選びの中では起きにくい |
+| `settings.memoPaper.ruled` | 罫線 | it | A righe | 線の入った（罫線入り） | ○ | ○ | ○ | carta a righe・quaderno a righe のふつうの言い方 |
+| `settings.memoPaper.ruled` | 罫線 | pt-BR | Pautado | 罫線入り | ○ | ○ | ○ | caderno pautado・papel pautado の語 |
+| `settings.memoPaper.dots` | ドット方眼 | zh-Hans | 点阵 | ドット方眼（点の並び） | ○ | ○ | ○ | 点阵本 の語。GLOSSARY が気にした「ドットマトリクス」の読みは、紙の選びの中では起きにくい。逆翻訳もドット方眼 |
+| `settings.memoPaper.dots` | ドット方眼 | zh-Hant | 點陣 | ドット方眼（点の並び） | ○ | ○ | ○ | 上と同じ |
+| `settings.memoPaper.dots` | ドット方眼 | ko | 도트 격자 | ドットの格子 | ○ | ○ | ○ | 点の格子。線のマス目でなく点の並びと分かる |
+| `settings.memoPaper.dots` | ドット方眼 | en | Dot Grid | ドット方眼 | ○ | ○ | ○ | 契約の案。線の方眼でなく点と分かる |
+| `settings.memoPaper.dots` | ドット方眼 | fr | Grille de points | 点の格子 | ○ | ○ | ○ | 仮の訳の Points（点だけ）から X が直した。quadrillage（方眼）と取り違えない |
+| `settings.memoPaper.dots` | ドット方眼 | de | Punktraster | 点の格子（ドット方眼） | ○ | ○ | ○ | ノートで使う語 |
+| `settings.memoPaper.dots` | ドット方眼 | es | Cuadrícula de puntos | 点の方眼 | ○ | ○ | ○ | 点の方眼 |
+| `settings.memoPaper.dots` | ドット方眼 | it | Griglia a punti | 点の格子 | ○ | ○ | ○ | 点の格子 |
+| `settings.memoPaper.dots` | ドット方眼 | pt-BR | Grade de pontos | 点の格子 | ○ | ○ | ○ | 点の格子（判定 2: ブラジルのノートでは pontilhado も多いが、これも通じる） |
+| `settings.memoPaper.plain` | 無地 | zh-Hans | 空白 | 白紙（何も無い） | ○ | ○ | ○ | 空白本 の語 |
+| `settings.memoPaper.plain` | 無地 | zh-Hant | 空白 | 白紙（何も無い） | ○ | ○ | ○ | 上と同じ |
+| `settings.memoPaper.plain` | 無地 | ko | 무지 | 無地 | ○ | ○ | ○ | 무지노트 の語（無地）。同音の 無知 は紙の選びの中では読まれにくい |
+| `settings.memoPaper.plain` | 無地 | en | Blank | 白紙（何も無い） | ○ | ○ | ○ | 契約の案 |
+| `settings.memoPaper.plain` | 無地 | fr | Uni | 無地 | ○ | ○ | ○ | papier uni。男性形が papier に合う |
+| `settings.memoPaper.plain` | 無地 | de | Blanko | 白紙（無地） | ○ | ○ | ○ | ノートのふつうの語 |
+| `settings.memoPaper.plain` | 無地 | es | Liso | 無地 | ○ | ○ | ○ | papel liso。男性形が papel に合う |
+| `settings.memoPaper.plain` | 無地 | it | Bianca | 白紙（字どおりには「白い」。carta を受ける女性形で、1 語だけだと色の「白」とも読める） | △ | △ | △（直さない） | 2 人とも: 題の Carta delle note を受けた carta bianca（白紙）で、女性形も正しいが、1 語だけ並ぶ選びと読み上げでは色の「白」とも読める（R の注も同じ）。判定 1: 3 つの形もそろわない。直さない（下の 2） |
+| `settings.memoPaper.plain` | 無地 | pt-BR | Liso | 無地 | ○ | ○ | ○ | caderno liso |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | zh-Hans | 这是备忘和自由备忘的纸张图案。手写内容保持不变。此设置按设备分别保存。 | これはメモと自由メモの紙の模様です。手書きの内容は変わらずそのままです。この設定は端末ごとに別々に保存されます。 | ○ | ○ | ○ | 3 つの事実（柄・手書きはそのまま・端末ごと）がそろう。备忘・自由备忘 は紙の見出しの字。手写内容保持不变 は `settings.hand.footer` と同じ。3 つ目は `settings.weekStart.footer` と同じ字 |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | zh-Hant | 這是備忘和自由備忘的紙張圖案。手寫內容保持不變。此設定依裝置分別儲存。 | これはメモと自由メモの紙の模様です。手書きの内容は変わらずそのままです。この設定は端末ごとに別々に保存されます。 | ○ | ○ | ○ | 上と同じ（此設定依裝置分別儲存 は週の始まりの脚注と同じ字） |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | ko | 메모와 자유 메모의 종이 무늬예요. 손글씨는 그대로 남아요. 이 설정은 기기마다 따로 저장해요. | メモと自由メモの紙の模様です。手書きの字はそのまま残ります。この設定は端末ごとに別に保存します。 | ○ | ○ | ○ | 上と同じ。해요체。자유 메모・손글씨・무늬 は GLOSSARY の語。3 つ目は週の始まりの脚注と同じ字 |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | en | The pattern of the paper in Notes and Free Notes. Your handwriting stays as it is. This setting is per device. | 「メモ」と「自由メモ」の紙の模様。あなたの手書きはそのままです。この設定は端末ごとです。（handwriting は「筆跡」とも読める） | ○ | ○ | ○ | 3 つの事実がそろう。1 つ目は動詞の無い句だが、脚注の説明として自然。メモ欄の 2 か所（月・日）は見出しがどちらも Notes なので範囲は合う。handwriting は §2 の語（R の「筆跡」の読みは前からの語で問題にしない）。3 つ目は週の始まりの脚注と同じ字 |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | fr | Le motif du papier des Notes et des Notes libres. Votre écriture manuscrite reste telle quelle. Ce réglage est propre à chaque appareil. | 「メモ」と「自由メモ」の紙の模様。あなたの手書きの字はそのまま残ります。この設定は端末ごとのものです。 | ○ | ○ | ○ | 上と同じ。écriture manuscrite は §2、motif は §6 の語。3 つ目は週の始まりの脚注と同じ字 |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | de | Das Muster des Papiers in „Notizen“ und „Freie Notizen“. Ihre Handschrift bleibt unverändert. Diese Einstellung gilt pro Gerät. | 「メモ」と「自由メモ」の紙の模様。あなたの手書きは変わりません。この設定は端末ごとに効きます。（Handschrift は「筆跡・字のくせ」とも読める） | ○ | ○ | ○ | 上と同じ。„ “ は de の引用符（§1）。Ihre Handschrift bleibt unverändert は `settings.hand.footer` とそろう |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | es | El diseño del papel de Notas y Notas libres. Su escritura a mano se mantiene tal cual. Este ajuste es propio de cada dispositivo. | 「メモ」と「自由メモ」の紙の柄（デザイン）。あなたの手書きはそのまま保たれます。この設定は端末ごとのものです。 | ○ | ○ | ○ | 上と同じ。escritura a mano（§2。仮の訳から X が直した）。diseño は §6 の柄の語 |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | it | Il motivo della carta di Note e Note libere. La Sua scrittura a mano resta invariata. Questa impostazione vale per ogni singolo dispositivo. | 「メモ」と「自由メモ」の紙の模様。あなたの手書きは変わらずに残ります。この設定は端末 1 台ずつに効きます。 | ○ | ○ | ○ | 上と同じ。scrittura a mano（§2。仮の訳から X が直した）。Sua は大文字（Lei の決まり） |
+| `settings.memoPaper.footer` | メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。 | pt-BR | O padrão do papel de Notas e Notas livres. Sua escrita à mão continua igual. Este ajuste é de cada dispositivo. | 「メモ」と「自由メモ」の紙の柄。あなたの手書きは同じままです。この設定は端末ごとのものです。 | ○ | ○ | ○ | 上と同じ。escrita à mão（§2。仮の訳から X が直した）。padrão は「既定」とも読めるが、選びのすぐ下の脚注なので柄と読める（2 人とも ○。R も柄と読んだ。下の 6） |
+
+### 全部の表（指の切り替えの名前、de・es・pt-BR、6 行）
+
+`toolbar.fingerToggle` と `settings.input.allowFinger` は、ja も（指でも書く）、jaSha1 も（d3f8bf8e60）、9 言語の訳も同じ字です。en・fr・it・ko・zh-Hans・zh-Hant は替わっていません（en Draw with Finger、fr Écrire au doigt、it Scrivi con il dito、ko 손가락으로 쓰기、zh-Hans 用手指书写、zh-Hant 用手指書寫）。前の訳とその逆翻訳は `docs/i18n/back/<言語>.json` に残っています。
+
+| キー | 元の日本語 | 言語 | 前の訳 | 訳 | 逆翻訳（元を見ない） | 判定 1 | 判定 2 | 最後 | 注（2 人の判定の理由） |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `toolbar.fingerToggle`＊ | 指でも書く | de | Mit Finger zeichnen | Fingereingabe | 指での入力 | △ | △ | △（直さない） | 2 人とも: 同じスイッチと読める（書く道具の帯の切り替えで、読み上げのヒント `toolbar.fingerToggle.hint` と初回案内の「Um auch mit dem Finger zu schreiben, aktivieren Sie „Fingereingabe“」がつなぐ）が、「書く」「でも」が消えた。ドイツ語ではタッチ入力全体の語でもあるので、オフが「指で何もできない」とも読める（実際はスクロールとタップ）。86.1 pt（X の測り）≤ 87.8 pt。動詞を残す形は入らないので直さない（下の 4） |
+| `toolbar.fingerToggle`＊ | 指でも書く | es | Dibujar con el dedo | Usar el dedo | 指を使う | △ | △ | △（直さない） | 2 人とも: 同じスイッチと読める（ヒントと初回案内の「Para escribir también con el dedo, active “Usar el dedo”」がつなぐ）が、何に使うか（書く）と「でも」が消え、オフの字は「指を使わない」になって実際の動き（指でスクロールとタップ）と字の上で食い違う。76.7 pt。直さない（下の 4） |
+| `toolbar.fingerToggle`＊ | 指でも書く | pt-BR | Traçar com o dedo | Usar o dedo | 指を使う | △ | △ | △（直さない） | 2 人とも: es と同じ（初回案内の「Para escrever também com o dedo, ative “Usar o dedo”」がつなぐ）。73.7 pt。es とそろう。直さない（下の 4） |
+| `settings.input.allowFinger` | 指でも書く | de | Mit Finger zeichnen | Fingereingabe | 指での入力 | ○ | △ | △（直さない） | ツールバーと同じ字（comment の決まり）。判定 1: 節の見出し Eingabe の下で、すぐ下の脚注がオン（指でも線）とオフ（スクロールとタップ）を言うので、まぎれない。判定 2: 脚注で補われるが、字だけで「書く」が無いのはツールバーと同じ。直さない（下の 5） |
+| `settings.input.allowFinger` | 指でも書く | es | Dibujar con el dedo | Usar el dedo | 指を使う | ○ | △ | △（直さない） | ツールバーと同じ字。判定 1: 節 Entrada の下で、脚注が意味を言う。判定 2: 脚注（también puede trazar líneas con el dedo / el dedo sirve para desplazarse y tocar）で補われるが、字だけで「書く」が無い。直さない（下の 5） |
+| `settings.input.allowFinger` | 指でも書く | pt-BR | Traçar com o dedo | Usar o dedo | 指を使う | ○ | △ | △（直さない） | ツールバーと同じ字。判定 1: 節 Entrada の下で、脚注が意味を言う。判定 2: 脚注（você também pode traçar linhas com o dedo / o dedo serve para rolar e tocar）で補われるが、字だけで「書く」が無い。直さない（下の 5） |
+
+### 参考: 初回案内の引用（`onboarding.pen.text`、de・es・pt-BR、3 行。R の対象の外）
+
+替わったのは、2 段落目の文の中の「指でも書く」の引用だけです（文のほかの字は前と同じ）。
+
+| 言語 | 替わった所 | 判定 1 | 理由 |
+| --- | --- | --- | --- |
+| de | Um auch mit dem Finger zu schreiben, aktivieren Sie „Fingereingabe“ in der Werkzeugleiste. | ○ | 文の前半「Um auch mit dem Finger zu schreiben」が「書く・でも」を言うので、名前が短くなっても意味は元と同じ。文法も正しい |
+| es | Para escribir también con el dedo, active “Usar el dedo” en la barra de herramientas. | ○ | 同じ（前半 Para escribir también con el dedo） |
+| pt-BR | Para escrever também com o dedo, ative “Usar o dedo” na barra de ferramentas. | ○ | 同じ（前半 Para escrever também com o dedo） |
+
+ほかの今の文に、前の名前（Mit Finger zeichnen・Dibujar con el dedo・Traçar com o dedo）の引用は残っていません。この作業が `tools/l10n/translations`・`Sources`・`docs/store`・`docs/SUPPORT*.md` を探すと、出たのは `docs/store/PROPOSALS_1_4.md`（1.4 の記録）だけでした。判定 2 は、`docs/i18n/back` の 1.3・1.4 の行と M7B の文書にも残っている（過去の記録）と書きました。
+
+### 参考: 0e-32（説明だけ替えた 5 キー。訳は 1.4.1 の字のまま）
+
+5 キーの訳は、14 で読み上げの名前として判定しました（どれも ○）。1.4.1 の「動かす」（16）から、iPad で「動かす」を押すと開く吹き出しに、`toolbar.grip.spoken` が題として、`toolbar.moveTo.*` が選択肢のボタンとして出ます（今ある端の選択肢は出ない。iPhone には無い）。X は、1.4.1 の X が丸ボタンの長押しのメニューの `toolbar.moveEdge.*`（もともと画面に出る字）と同じ形で訳していたので、画面に出ても形は合っていて、吹き出しは字の幅に合わせて広がるので幅の決まりも無い、として訳し直しませんでした。判定 1 が今の字を吹き出しの題とボタンとして読み、気になる所はありませんでした（上の 11）。元を見ない逆翻訳は、字が替わっていないので、ありません（14 の表のまま）。
+
+| キー | 元の日本語 | en | zh-Hans | zh-Hant | ko | fr | de | es | it | pt-BR |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `toolbar.grip.spoken` | ツールバーを動かす | Move Toolbar | 移动工具栏 | 移動工具列 | 도구 막대 옮기기 | Déplacer la barre d’outils | Werkzeugleiste verschieben | Mover la barra de herramientas | Sposta la barra degli strumenti | Mover a barra de ferramentas |
+| `toolbar.moveTo.top` | 上へ移す | Move to Top | 移到顶部 | 移到頂端 | 위로 옮기기 | Déplacer en haut | Nach oben | Mover arriba | Sposta in alto | Mover para cima |
+| `toolbar.moveTo.bottom` | 下へ移す | Move to Bottom | 移到底部 | 移到底部 | 아래로 옮기기 | Déplacer en bas | Nach unten | Mover abajo | Sposta in basso | Mover para baixo |
+| `toolbar.moveTo.left` | 左へ移す | Move to Left | 移到左侧 | 移到左側 | 왼쪽으로 옮기기 | Déplacer à gauche | Nach links | Mover a la izquierda | Sposta a sinistra | Mover para a esquerda |
+| `toolbar.moveTo.right` | 右へ移す | Move to Right | 移到右侧 | 移到右側 | 오른쪽으로 옮기기 | Déplacer à droite | Nach rechts | Mover a la derecha | Sposta a destra | Mover para a direita |
+
+### 機械で照らしたこと
+
+この作業が、枝 `r142-w-d2x` の 0bfa64a の上で python で照らしました（判定の 2 人も、同じことの多くを照らしている）。
+
+- `docs/i18n/back/app-1_4_2.md` の 123 行の訳の字は、今の `tools/l10n/translations/<言語>.json` の字と 1 字も違いません（差 0）。行もそろっています（13 キー × 9 言語と、指の 2 キー × 3 言語）。
+- 13 キーと指の 2 キーの `jaSha1` は、9 言語とも source の ja の sha1 の頭 10 字と同じです。
+- GLOSSARY §6 の表の 12 行（色の名前 4・板の 4・メモ欄の紙の 4）× 9 言語の 108 マスは、今の訳と 1 字も違いません。
+- `toolbar.colorPanel.otherColor` の「…」は、9 言語とも最後の 1 字の U+2026 で、前に空白はありません（「...」の 3 字もない）。
+- 板の 12 色の名前（今のペンの 6 色、今のマーカーの名前のピンク・水色、新しい 4 色の `toolbar.color.*`）は、9 言語とも 12 とも別の字です（青・水色・紺、緑・深緑も言い分けている）。
+- `toolbar.fingerToggle` と `settings.input.allowFinger` は 9 言語とも同じ字で、de・es・pt-BR の `onboarding.pen.text` は新しい名前を引いています。
+- de の `settings.memoPaper.footer` の引用符は „ “ です。
+
+### 確かめていないこと
+
+- **母語の人の確認**: 9 言語のどれも、その言語の設定の画面と VoiceOver でいちばんふつうの言い方かは、母語の人に確かめていません（GLOSSARY §6 の「確かめていないこと」と同じ）。
+- **Apple の画面の語**: it の Reset が Apple の画面で Ripristina であること（判定 1）、ko・pt-BR の 재설정・Redefinir が iOS の Reset の語であること（2 人）、イタリア語のノートの pagine bianche（この作業）は、どれも知識で、出典は開いていません。
+- **幅**: 板の 2 つのボタン（いちばん長いのは fr Réinitialiser les couleurs の 182.1 pt）と指の名前（de 86.1・es 76.7・pt-BR 73.7 pt）は X の AppKit の測りです。`ColorPanelFitTests`（10 の言語、速い道でも走る）と、l10n-shots の写真（上の 8）で見ます。
+- **写真**: 色の板の de・fr・疑似の言語の写真と、設定の「メモ欄の紙」の行の写真は、まだ撮っていません（D1b の決め (m)。D2 の写真の段）。
+
+### lint
+
+この節の commit の前の枝 `r142-w-d2x`（0bfa64a に、この節と GLOSSARY の 1 点を足した木）で、`tools/l10n/lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です（L-2 は 528 キー、L-6 は 4,581 の訳、L-10 は xcstrings が source のとおり、`baseline.py` は 9cbc3c9 の 516 字のまま）。L-12 の字の幅の目安の警告は 58 件で、b0c4e3b と同じ数です（0d9241a の 60 件から、X が短くした `toolbar.fingerToggle` の de・es の 2 件が消えた）。凍結の表は `shasum -a 256 -c` で `DATA_1_1` 20・`TESTS_1_2_3` 8・`TESTS_1_3` 29・`FIXTURES_1_3` 37・`TESTS_1_4_1` 16・`TegakiKit/Tests/Compat10/FROZEN.sha256` 11 が全部 OK です。この段で替えたのは `docs/i18n/REVIEW.md` と `docs/i18n/GLOSSARY.md` だけです（Swift・`TegakiKit/Sources`・訳・J-1 は替えていない）。この節の commit を上げた速い道の run（Build and test だけ）の番号と結果は、リードが記録に書きます。
+
+### 17.x 2 つの目の見直しの後の直し（2026-11-26 05 時台、D2 の取りまとめ）
+
+D2 の文の見直し（should 1・should 2・nit 2）を受けて、この枝で 3 つを直しました。訳（`tools/l10n/translations/<言語>.json`）は 1 字も替えていないので、この節の 123 行の元を見ない逆翻訳と判定は、やり直しは要りません。
+
+- **`toolbar.fingerToggle` の `maxEm` を 10.5 → 9.0**（`tools/l10n/source/app-S.json`）。新しい上限（fr « Écrire au doigt » 87.8 pt）は comment に書いてあるだけで、F-13（ja ＋ 76）も `maxEm` も止めないので、次の訳の直しでまた長くなっても何も知らせない、という指摘です。見直しの案は 87.8 ÷ 13 ≒ 6.8 でしたが、L-12 は字の幅を測らず「字数 × 0.6 em」で見積もるので、6.8 では上限の fr（15 字 = 9.0 em）自身と de（7.8）・es（7.2）も警告になります。だから、fr の 15 字を L-12 の数え方にした **9.0** にしました（fr はちょうどで警告にならない）。L-12 の警告は 58 → **59 件**（en Draw with Finger 9.6 em が新しく警告になった。it Scrivi con il dito 10.8 em は前から警告）。どちらも字は切れず、行が少しはみ出してスクロールする 2 つ（GLOSSARY §4）なので、警告は本当のことを言っています。comment の「maxEm は L-12 の粗い目安のまま」も、この数の意味に書き直しました。comment が替わったので `Localizable.xcstrings` を `build.py` で作り直しました（このキーの comment の 1 行だけが替わり、訳・ja・jaSha1 は同じ）。**F-13 と 13 インチの式から「動かす」（52 pt）を引く直しは、この段ではしていません**（`ToolbarFitTests` は U・T の持ち物で、式を直すと en・it の行のはみ出しで落ちる見込み。リードが決める）。
+- **GLOSSARY §4 の縦 1024 pt の iPad**（12.9 インチ・13 インチの iPad Air）: 「fr 以下なら…字は切れません」を、写真の無い**推定**と書き直しました。en Draw with Finger は、1024 pt ではぼかしが 891.5 pt からになり、字の終わり 895.5 pt の最後の約 4 pt がぼかしにかかる見込みであることを、en の点に足しました（推定。リードへの申し送り: 1024 pt のシミュレータで 1 枚撮って確かめるか、受け入れると記録する）。
+- **GLOSSARY §5 の「ビルド 31（§17・§18）」** を「ビルド 31（R1_4_1_CONTRACT.md §17・§18）」にしました（GLOSSARY の節と読めたため）。
+
+直した後の木で、`lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です（`baseline.py` は 9cbc3c9 の 516 字のまま）。
+
+## 18. 1.4.2 の店と Web の文（新機能の文・審査メモの 1.4.2 の段・SUPPORT の 2 つの FAQ と版の 1 文、2026-11-26）
+
+元は契約の第 2 版 §8.3〜§8.5 です（[R1_4_2_CONTRACT.md](../R1_4_2_CONTRACT.md)）。替わった文は 3 つの所にあります。(1) 新機能の文の 3 つの点（`docs/store/source-ja/whatsnew.txt`。契約 §8.3 の `>` の行から機械で写した。訳についての 1 行は 1.4.1 と同じ字で、14 の判定が今も有効）。(2) 審査メモの「What is new in 1.4.2」の 1〜3（`docs/store/review-note.txt`。英語は契約 §8.4 の字に、アプリの en の語を入れた。3 は 1.4.1 の 4 と番号のほかは同じ字）と、日本語の要約の 1.4.2 の文。(3) `docs/SUPPORT.en.md` の新しい 2 つの FAQ（How do I change the pen color?・How do I change the notes paper?）と、What if my iPad and iPhone have different versions? に足した 1 文（元は `docs/SUPPORT.md` の同じ所）。
+
+- **訳**: 役 A・W が書きました（枝 `r142-w-d2a` の b33485a）。新機能の文は 11 のフォルダ（en-US・zh-Hans・zh-Hant・ko・fr-FR・de-DE・it・pt-BR・pt-PT・es-MX・es-ES）の `whatsnew.txt`（en-GB・en-AU・en-CA は en-US、fr-CA は fr-FR の写しでフォルダは無い）。アプリの語は X の最後の訳（枝 `r142-w-d2x` の e3cec22。17）の字です。
+- **元を見ない逆翻訳（英語の 41 行）**: 新機能の文の en-US 4 行・審査メモ 7 行・SUPPORT.en 30 行（見出し 2 を含む）は、D2 の R が日本語の元を読まずに訳し戻しました（ffd900a、[docs/i18n/back/store-1_4_2-en.md](back/store-1_4_2-en.md)）。その R は、書き終えた後に日本語の元を読んで自分で ○・△・× を付けました（同じファイルの最後の節。○ 40・△ 1・× 0）。それは判定の 2 役ではないので、この節で判定し直しました。
+- **元を見ない逆翻訳（10 の訳の 30 行）**: zh-Hans・zh-Hant・ko・fr-FR・de-DE・it・pt-BR・pt-PT・es-MX・es-ES の 3 つの点は、D2 の文の見直し（must）で「逆翻訳がまったく無い」とされました。だから D2 の取りまとめの Claude（この節を書いた Claude）が、日本語の元を読む**前に**、10 のファイルの字だけを読んで訳し戻しました（2026-11-26 05:39〜05:40 JST、[docs/i18n/back/store-1_4_2.md](back/store-1_4_2.md)）。読んだ物・読まなかった物・先に目に入った物は、そのファイルの頭に書きました。契約の見出しの「メモ欄の紙」が先に目に入っていたので、2 つ目の点の設定の名前を「メモ欄の紙」と訳し戻した zh-Hans・zh-Hant・ko の 3 行は、元を見ない逆翻訳として弱い物です（表の ＊。どれも訳の字が字のとおり「メモ欄の紙」で、ほかの読み方は考えにくい）。新機能の文の日本語の言い回し（「光っている」「長押しでも」「お好きな色」「濃い色の丸」）は見ておらず、逆翻訳は「強調表示された」「押したままにする」「好きな任意の色」などの訳の字に従っています。
+- **判定**: 71 行（30 ＋ 41）を、2 つの見方で 1 行ずつ照らしました。**判定 1**（意味）: 逆翻訳と訳の字を、日本語の元（`source-ja/whatsnew.txt`、審査メモの日本語の要約と契約 §8.4、`docs/SUPPORT.md` の同じ所）と照らす。**判定 2**（語と事実）: 訳の中のアプリの語を、各言語のアプリの訳（e3cec22 の `tools/l10n/translations`）と機械で照らし、中身を契約 §3（§3.1 の 12 色・§3.2 の丸の記憶・§3.5 の開き方・§3.6 の閉じ方・§3.7 の選び方・§3.8 の置き場所・§3.9 のダークの縁）・§4（メモ欄の紙）・§5（データ）と照らす。○ は意味が同じ、△ は意味は同じだが言い方にずれがある、× は意味が違う（直す）。
+- **判定の 2 役についての断り**: 判定 1 と判定 2 は、**どちらもこの取りまとめの Claude が、見方を分けて 2 回に分けて行いました**。この Claude は 30 行の R でもあり、判定のときは日本語の元を読んでいます。14〜16 の「訳を書いた Claude とも R とも別の Claude 2 人（相談していない）」より弱い形です（この段の作業の場には、別の Claude を立てる道具がありませんでした）。別の 2 人の判定が要るとリードが決めたときは、下の 2 つの全部の表の「逆翻訳」の列と訳の字（逆翻訳の 2 つのファイル）を、そのまま 2 人に渡せます。
+- **母語の人の確認ではありません。**
+
+### 結果
+
+| 対象 | 行 | 判定 1 | 判定 2 | 最後 | 直した後 |
+| --- | --- | --- | --- | --- | --- |
+| 新機能の文の 3 つの点（10 の訳） | 30 | ○ 30 | ○ 30 | ○ 30 | — |
+| 新機能の文（en-US。3 つの点と訳についての 1 行） | 4 | ○ 4 | ○ 4 | ○ 4 | — |
+| 審査メモの 1.4.2 の段（1a〜1d・2a・2b・3） | 7 | ○ 6・△ 1 | ○ 6・△ 1 | ○ 6・△ 1 | 直さない（下の 1） |
+| SUPPORT.en（見出し 2・ペンの色 16・メモ欄の紙 11・版の 1 文 1） | 30 | ○ 30 | ○ 30 | ○ 30 | — |
+| **計** | **71** | **○ 70・△ 1・× 0** | **○ 70・△ 1・× 0** | **○ 70・△ 1・× 0** | **判定の後に替えた字は 0** |
+
+**× は 0 です。** 判定の後に替えた字は無いので、この 71 行のために、もう一度の元を見ない逆翻訳と判定は要りません。`docs/store/README.md` の新機能の文の表の 1.4.2 の行と、審査メモの「1.4.2 から」の段の「元を見ない逆翻訳と判定はまだ」は、この節を指す字に直しました。
+
+### △ と気づきの扱い
+
+| # | 誰の | 所 | 中身 | 確かめたこと | 扱い |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 判定 1・判定 2 の △ | 審査メモの 1 の 2 文目「The choice replaces that dot and is remembered on this device.」 | 字のとおりだと「選んだ物がその丸と入れ替わる」（R の注）。元（要約）は「選んだ色はその丸に入り」 | 審査の人は、丸の色が替わると読める（前の文が 12 色の板、後の文が線のデータ）。契約 §8.4 が英語の字で決めた文で、D2 の R の照らしも △ | **直さない**。替えるかはリードが決めてよい: 案「The chosen color replaces that dot's color and is remembered on this device.」（+14 バイト、4,000 バイトに入る）。替えたら、その 1 文を日本語を見ない R に渡して判定にかける |
+| 2 | D2 の R の気づき 2 | 新機能の文の highlighted と、審査メモの selected | 同じ丸（光っている丸）を 2 つの語で言う | 新機能の文は利用者向け、審査メモは契約 §8.4 の字。どちらも今のペンの色の丸と読める | 直さない（記録だけ） |
+| 3 | 判定 2 の気づき | pt-PT の店の文のアプリの語 | Ajustes・Papel das notas・Pautado・Grade de pontos・Liso はブラジルの語（R の注） | アプリは pt-BR だけで、ポルトガルの利用者もこの字を画面で見る。1.3〜1.4.1 の店の文と同じ扱い（README の「pt-PT はアプリの pt-BR の語」） | 直さない |
+| 4 | 判定 2 の気づき | ko 줄・it Bianca（2 つ目の点） | 17 の △ 3・△ 2 と同じアプリの語 | 店の文では、紙の選びの 3 つの中で引用され、R も罫線・白紙と読んだ | 直さない。リードが 17 の 2・3 のアプリの語を替えるときは、店の文の同じ字も一緒に替える（README の決まり） |
+| 5 | 判定 2 の気づき | de・es・pt-BR の「指でも書く」の名前の替わり | 新機能の文に書いていない | 契約 §8.3 の 3 つの点の外（「無い改善は書かない」の内で、書くかは任意。D2 の文の見直しの nit） | この節では扱わない（リードが確認ページで決める） |
+
+### 元を見ない逆翻訳がまだの物
+
+- 無し（この節の 71 行）。上の 1 を替えると決めたときは、その 1 文。
+
+### 全部の表（新機能の文の 10 の訳、10 × 3 行）
+
+訳の字と R の注は [docs/i18n/back/store-1_4_2.md](back/store-1_4_2.md) にあります（訳の字は今の 10 の `whatsnew.txt` から機械で写した）。＊ は R が見出しで「メモ欄の紙」を見ていた行です。
+
+| 行 | 元の日本語（`source-ja`） | ロケール | 逆翻訳（元を見ない） | 判定 1 | 判定 2 | 注 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | zh-Hans | ・ペンの色を増やしました。強調表示された色の丸い点をもう一度軽くタップする（または長押しする）と、その点の色を 12 色のうちの 1 つか、好きな任意の色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸 |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | zh-Hant | ・ペンの色を増やしました。目立つように示された色の丸い点をもう一度タップする（または押したままにする）と、その点の色を 12 色のうちの 1 つか、好きな任意の色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸。醒目標示 は強調表示と読める（R もそう読んだ） |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | ko | ・ペンの色を増やしました。強調表示された色の丸をもう一度押すと（長く押しても）、その丸の色を 12 色のうちの 1 つか、好きな色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸。누르면（押すと）は元の「押すと」と同じ |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | fr-FR | ・ペンの新しい色が加わりました。強調表示された色の丸（pastille）をもう一度タップする（または長押しする）と、その丸の色を 12 色のうちの 1 色か、お好みの色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸 |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | de-DE | ・ペンの色が増えました。強調表示された色の点をもう一度タップする（または押したままにする）と、その点の色を 12 色のどれか、またはお好みの任意の色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸 |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | it | ・ペンの色が増えました。強調表示された色の丸（pallino）をもう一度タップする（または押したままにする）と、その丸の色を 12 色のうちの 1 色か、お好みの色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸 |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | pt-BR | ・ペンの色が増えました。強調表示された色の丸をもう一度タップする（または押したままにする）と、その丸の色を 12 色のうちの 1 色か、好きな任意の色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸 |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | pt-PT | ・ペンの色が増えました。強調表示された色の丸をもう一度タップする（または押したままにする）と、その丸の色を 12 色のうちの 1 色か、お好みの任意の色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸。realçado・premido・novamente はポルトガルの語 |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | es-MX | ・ペンの色を増やしました。強調表示された色の丸をもう一度タップする（または押したままにする）と、その丸の色を 12 色のうちの 1 色か、お好みの色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸。pluma はアプリの es の「ペン」（`toolbar.tool.pen` の Pluma、GLOSSARY の es ペン = Pluma） |
+| 点 1 | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | es-ES | ・ペンの色を増やしました。強調表示された色の丸をもう一度タップする（または押したままにする）と、その丸の色を 12 色のうちの 1 色か、お好みの色に替えられます。 | ○ | ○ | 光っている = 強調・ハイライトの語、長押しでも = その言語の長押しの語で括弧。12 色・好きな色・その丸の色を入れ替える、が元と同じ。長押しで開くのは光っている丸だけ（§3.5）で、括弧の「それ」も光っている丸。pluma はアプリの es の「ペン」（`toolbar.tool.pen` の Pluma、GLOSSARY の es ペン = Pluma） |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | zh-Hans ＊ | ・「設定」に「メモ欄の紙」を足しました。「メモ」欄と「自由メモ」欄の紙は、「横線」「点の格子」「空白（無地）」から選べます。手書きの中身はそのまま変わりません。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3）。＊（R が「メモ欄の紙」を見出しで見ていた）。訳の 备忘栏纸张 は字のとおり「メモ欄の紙」なので、ほかの訳し方は考えにくい |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | zh-Hant ＊ | ・「設定」に「メモ欄の紙」を足しました。「メモ」欄と「自由メモ」欄の紙は、「横線」「点の格子」「空白（無地）」から選べます。手書きの中身はそのまま変わりません。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3）。＊（同じ）。備忘欄紙張 は字のとおり「メモ欄の紙」 |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | ko ＊ | ・設定に「メモ欄の紙」を足しました。「メモ」欄と「自由メモ」欄の紙を、「罫線（줄＝線）」「ドットの格子」「無地」から選べます。手書きはそのまま残ります。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3）。줄 は 17 の △ 3（アプリの語）。紙の選びの 3 つの中では罫線と読める（R もそう読んだ） |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | fr-FR | ・「設定」に「メモの紙」の項目が加わりました。「メモ」と「自由メモ」の欄の紙は、「罫線入り」「点の格子」「無地」から選べます。あなたの手書きはそのまま残ります。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3） |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | de-DE | ・設定に「メモ用紙」の項目ができました。「メモ」と「自由メモ」の欄の紙に、「罫線入り」「点の格子（ドット方眼）」「無地（Blanko）」を選べます。あなたの手書きは変わりません。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3） |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | it | ・設定に「メモの紙」の項目が加わりました。「メモ」と「自由メモ」の欄の紙に、「罫線入り」「点の格子」「白（無地）」を選べます。あなたの手書きはそのまま変わりません。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3）。Bianca は 17 の △ 2（アプリの語）。carta の選びでは白紙と読める（R もそう読んだ） |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | pt-BR | ・設定に「メモの紙」の項目が加わりました。「メモ」と「自由メモ」の欄の紙は、「罫線入り」「点の格子」「無地」から選べます。あなたの手書きはそのままです。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3） |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | pt-PT | ・設定に「メモの紙」の項目が加わりました。「メモ」と「自由メモ」の欄の紙は、「罫線入り」「点の格子」「無地」から選べます。あなたの手書きはそのまま保たれます。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3）。Ajustes・Papel das notas・Pautado・Grade de pontos・Liso はアプリの pt-BR の語（1.3〜1.4.1 の店の文と同じ扱い）。ほかはポルトガルの書き方（pode escolher・mantém-se） |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | es-MX | ・設定に「メモの紙」の項目を加えました。「メモ」と「自由メモ」の欄の紙は、「罫線入り」「点の格子」「無地」から選べます。あなたの手書きはそのまま変わりません。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3） |
+| 点 2 | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | es-ES | ・設定に「メモの紙」の項目を加えました。「メモ」と「自由メモ」の欄の紙は、「罫線入り」「点の格子」「無地」から選べます。あなたの手書きはそのまま変わりません。 | ○ | ○ | 設定・メモ欄の紙・メモ・自由メモ・罫線・ドット方眼・無地は、アプリの訳と同じ字（機械）。手書きはそのまま、が元と同じ（§4.3） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | zh-Hans | ・ダークモードで、ツールバーの色の濃い丸い点が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | zh-Hant | ・ダークモードで、ツールバーの色の濃い丸い点が、前よりはっきり見えるようになりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | ko | ・ダークモードで、ツールバーの濃い色の丸が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | fr-FR | ・ダークモードで、ツールバーの暗い色の丸が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | de-DE | ・ダークモードで、ツールバーの暗い色の点が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | it | ・ダークモードで、ツールバーの暗い色の丸が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | pt-BR | ・ダークモードで、ツールバーの暗い色の丸が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | pt-PT | ・ダークモードで、ツールバーの暗い色の丸が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | es-MX | ・ダークモードで、ツールバーの暗い色の丸が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+| 点 3 | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | es-ES | ・ダークモードで、ツールバーの暗い色の丸が、前より見やすくなりました。 | ○ | ○ | ダークモードはその言語の iOS の呼び方。濃い色の丸が見えやすくなった、が元と同じ（§3.9） |
+
+### 全部の表（英語の 41 行）
+
+訳と逆翻訳の字は [docs/i18n/back/store-1_4_2-en.md](back/store-1_4_2-en.md) から機械で写しました（逆翻訳は D2 の R の字のまま）。元の日本語は、そのファイルの最後の節の字です（審査メモの 1c・1d は要約に無く、契約 §8.4 の英語の字）。
+
+| id | 元の日本語 | 訳 | 逆翻訳（元を見ない） | 判定 1 | 判定 2 | 注 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1.4.2.W1.en-US | ・ペンの色を増やしました。光っている色の丸をもう一度押すと（長押しでも）、12 色やお好きな色から選んで、その丸の色を入れ替えられます。 | • Added more pen colors. Tap the highlighted color dot again (or touch and hold it) to replace its color with one of 12 colors or any color you like. | ・ペンの色を増やしました。強調表示されている色の丸をもう一度タップする（または長押しする）と、その丸の色を、12 色のどれか、または好きな色に替えられます。 | ○ | ○ | 「光っている」= highlighted、「長押しでも」= or touch and hold it。12 色は契約 §3.1、長押しで開くのは光っている丸だけ（§3.5）で、文の it も光っている丸。R の注の「好きな色の選び方」は元にも無い |
+| 1.4.2.W2.en-US | ・設定に「メモ欄の紙」を足しました。メモ欄と自由メモの紙を、罫線・ドット方眼・無地から選べます。手書きはそのまま残ります。 | • Added “Notes Paper” to Settings. For the paper of the “Notes” and “Free Notes” areas, you can choose “Lined”, “Dot Grid” or “Blank”. Your handwriting stays as it is. | ・設定に「Notes Paper（メモの紙）」を加えました。「Notes（メモ）」と「Free Notes（自由メモ）」の欄の紙を、「Lined（罫線）」「Dot Grid（ドット方眼）」「Blank（無地）」から選べます。手書きはそのままです。 | ○ | ○ | Settings・Notes Paper・Notes・Free Notes・Lined・Dot Grid・Blank はアプリの en の字（機械）。「メモ欄」= “Notes” の欄（月の下と日の右の欄の見出し `paper.memo`）。§4.3 の欄と合う |
+| 1.4.2.W3.en-US | ・ダークモードで、ツールバーの濃い色の丸を見えやすくしました。 | • In Dark Mode, the dark color dots in the toolbar are now easier to see. | ・ダークモードで、ツールバーの暗い色の丸が見やすくなりました。 | ○ | ○ | 「濃い色」= dark color。§3.9 のダークの縁 |
+| 1.4.2.AI.en-US | 訳は AI が作り、まだ母語の人の確認を受けていません。誤りがあればお知らせください。 | Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes. | 翻訳は AI で作ったもので、まだ母語話者の確認を受けていません。誤りがあればお知らせください。 | ○ | ○ | 1.4.1 と同じ字（14 の判定） |
+| RN142.1a | 要約: 光っている色の丸をもう一度押す（長押しでも）と、色の板（12 色・その他の色…・最初の色に戻す）が開きます。 | 1. Pen colors: tap the selected color dot again (or touch and hold it) to open a small panel with 12 colors, "Other Color…" (the system color picker) and "Reset Colors". | 1. ペンの色: 選ばれている色の丸をもう一度タップする（または長押しする）と、12 色と "Other Color…"（ほかの色…。システムの色選び）と "Reset Colors"（色をリセット）の入った小さなパネルが開きます。 | ○ | ○ | 契約 §8.4 の字の「the reset button」をアプリの en の Reset Colors にした。selected は新機能の文の highlighted と同じ丸（下の気づき 2） |
+| RN142.1b | 要約: 選んだ色はその丸に入り、端末ごとに覚えます。 | The choice replaces that dot and is remembered on this device. | 選んだものがその丸と入れ替わり、この端末に記憶されます。 | △ | △ | 字のとおりだと「丸と入れ替わる」（R の注）。元（要約）は「その丸に入る」。審査の人は丸の色が替わると読めるので意味は通る。契約 §8.4 の英語の字（下の 1） |
+| RN142.1c | （要約に無い）契約 §8.4 の英語の字、中身は §5（線は前から色を hex で持つ） | Stroke data is unchanged (each stroke already stores its color as a hex value). | 線のデータは変わっていません（どの線も、前から色を 16 進の値で持っています）。 | ○ | ○ | §5（線は前から色を hex で持ち、保存の形は変えない） |
+| RN142.1d | （要約に無い）契約 §8.4 の英語の字 | To check: open a week page, tap the black dot again, choose Brown and write. | 確かめ方: 週のページを開き、黒の丸をもう一度タップし、Brown（茶色）を選んで書いてください。 | ○ | ○ | 最初のペンは黒（D2 の R の照らし: `defaultPen` は `penColors[0]`）。Brown は §3.1 の 12 色にあり、アプリの en の字 |
+| RN142.2a | 要約: 設定 › メモ欄の紙 で罫線・ドット方眼・無地 | 2. Settings > Notes Paper: Lined, Dot Grid or Blank for the Notes and Free Notes areas. | 2. 設定 > Notes Paper（メモの紙）: Notes（メモ）と Free Notes（自由メモ）の欄に、Lined（罫線）・Dot Grid（ドット方眼）・Blank（無地）のどれか。 | ○ | ○ | アプリの en の語。動詞の無い短い書き方は 1.4.1 の審査メモと同じ形 |
+| RN142.2b | 要約: （手書きは動きません） | Only the pattern drawn on the paper changes; handwriting does not move. | 変わるのは紙に描かれる模様だけで、手書きは動きません。 | ○ | ○ | §4.3（変わるのは紙の柄だけ） |
+| RN142.3 | 要約: データ・購入・年齢区分は同じ。 | 3. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating. | 3. 変わらないもの: データ（App のプライバシーは「データの収集なし」のまま）、手書きの保存、購入、年齢区分。 | ○ | ○ | 1.4.1 の 4 と同じ字（14・16.y の判定も有効） |
+| 見出し 1 | ペンの色を替えるには？ | How do I change the pen color? | ペンの色を変えるには？ | ○ | ○ | 元は「替える」、訳は change。同じ意味 |
+| S.pen.1 | ペンを選ぶと、ツールバーに色の丸が 6 つ並びます。 | When you choose the pen, six color dots appear in the toolbar. | ペンを選ぶと、ツールバーに 6 つの色の丸が出ます。 | ○ | ○ | §3.2（ペンの 6 つの丸） |
+| S.pen.2 | 光っている丸（今のペンの色）をもう一度押すと（長押しでも）、その丸のそばに色の板が開きます（1.4.2 から）。 | Tap the highlighted dot (the current pen color) again, or touch and hold it, and a color panel opens next to that dot (from version 1.4.2). | 強調表示されている丸（今のペンの色）をもう一度タップするか長押しすると、その丸の隣に色のパネルが開きます（バージョン 1.4.2 から）。 | ○ | ○ | §3.5（光っている丸の押しと長押し）・§3.8（丸のそばに開く） |
+| S.pen.3 | 板には、12 色（今までの 6 色と、新しい 6 色）と、「その他の色…」「最初の色に戻す」があります。 | The panel has 12 colors (the six colors from before and six new ones), “Other Color…” and “Reset Colors”. | パネルには、12 色（前からの 6 色と新しい 6 色）と「Other Color…（ほかの色…）」と「Reset Colors（色をリセット）」があります。 | ○ | ○ | §3.1（今の 6 色と新しい 6 色）。2 つのボタンはアプリの en の字 |
+| S.pen.4 | 「その他の色…」では、iPad・iPhone に元からある色選びの画面で、どんな色でも選べます。 | With “Other Color…”, you can choose any color in the color picker that comes with iPad and iPhone. | 「Other Color…」では、iPad と iPhone に付いている色選び（カラーピッカー）で、どんな色でも選べます。 | ○ | ○ | §3.7（システムの色選び） |
+| S.pen.5 | 選んだ色は板を開いた丸に入り、ペンもその色になります（太さはそのままです）。 | The color you choose goes into the dot you opened the panel from, and the pen changes to that color (the width stays the same). | 選んだ色は、パネルを開いたもとの丸に入り、ペンもその色に替わります（太さはそのまま）。 | ○ | ○ | §3.7（choose。太さはそのまま） |
+| S.pen.6 | 選んだ色がほかの丸にもうあるときは、その丸を選ぶだけです（同じ色の丸が 2 つにはなりません）。 | If another dot already has that color, that dot is simply selected (no two dots have the same color). | ほかの丸がもうその色を持っているときは、その丸が選ばれるだけです（同じ色の丸が 2 つになることはありません）。 | ○ | ○ | §3.7 の choose（ほかの丸にある色は、その丸を選ぶ） |
+| S.pen.7 | 「最初の色に戻す」を押すと、6 つの丸が最初の 6 色に戻ります。 | “Reset Colors” sets the six dots back to the first six colors. | 「Reset Colors」は、6 つの丸を最初の 6 色に戻します。 | ○ | ○ | §3.7 の reset |
+| S.pen.8 | 板は、紙に書き始めたとき、板の外に触れたとき、色を選んだときに閉じます。 | The panel closes when you start writing on the paper, when you touch outside it, or when you choose a color. | パネルは、紙に書き始めたとき、パネルの外に触れたとき、色を選んだときに閉じます。 | ○ | ○ | §3.6 の閉じ方のうちの 3 つで、元も同じ 3 つ |
+| S.pen.9 | 板を開いたまま書き始めても、その線は書けます。 | If you start writing while it is open, that stroke is still written. | 開いているときに書き始めても、その線はちゃんと書かれます。 | ○ | ○ | §3.6（触れは止めない。書き始めた線は書ける） |
+| S.pen.10 | 替えた丸の色は、端末ごとに覚えます（iPad と iPhone で別々です）。 | The colors of the dots are remembered on each device (separately on your iPad and your iPhone). | 丸の色は端末ごとに覚えられます（iPad と iPhone で別々に）。 | ○ | ○ | 元は「替えた丸の色」。意味は同じ（§3.2、端末ごとの UserDefaults） |
+| S.pen.11 | 書いた線は、その色のまま iCloud でほかの端末にも届きます。 | The strokes you write keep their color and reach your other devices through iCloud. | 書いた線は色を保ったまま、iCloud でほかの端末に届きます。 | ○ | ○ | §5（線の色は線と一緒に保存され、iCloud で届く） |
+| S.pen.12 | iPad でツールバーを上・左・右の端に置いたときも、しまったツールバーを丸ボタンの道具の印で出したときも、同じように開きます。 | The panel opens in the same way when, on iPad, the toolbar is at the top, left or right edge, and when you bring out the hidden toolbar with the tool mark on the round button. | iPad でツールバーが上・左・右の端にあるときも、隠したツールバーを丸いボタンの道具の印で出したときも、パネルは同じように開きます。 | ○ | ○ | §3.8。「丸ボタンの道具の印」= the tool mark on the round button（1.4.1 の SUPPORT.en と同じ言い方） |
+| S.pen.13 | iPhone では、ツールバーの上に板が出ます。 | On iPhone, the panel appears above the toolbar. | iPhone では、パネルはツールバーの上（上側）に出ます。 | ○ | ○ | §3.8（下のバーでは、板の下端は丸の上 8 pt） |
+| S.pen.14 | 紙の色に近い薄い色を選ぶと、書いた線が見えにくくなります。 | If you choose a light color close to the color of the paper, your strokes are hard to see. | 紙の色に近い明るい色を選ぶと、線が見えにくくなります。 | ○ | ○ | 「薄い色」= light color。§3.7（紙に近い色も止めない） |
+| S.pen.15 | そのときは、ほかの色を選ぶか、「最初の色に戻す」を押してください。 | Then choose another color, or tap “Reset Colors”. | そのときは別の色を選ぶか、「Reset Colors」をタップしてください。 | ○ | ○ | 元と同じ意味 |
+| S.pen.16 | マーカーの色は 4 色のままです。 | The marker still has 4 colors. | マーカーは今までどおり 4 色です。 | ○ | ○ | マーカーの丸は今と同じ（§3.5） |
+| 見出し 2 | メモ欄の紙を替えるには？ | How do I change the notes paper? | メモの紙を変えるには？ | ○ | ○ | 見出しと S.ver.1 は小文字の notes paper、設定の名前は S.paper.1 の “Notes Paper”。元も同じ語を両方に使う |
+| S.paper.1 | アプリの 設定 › メモ欄の紙 で、「罫線」「ドット方眼」「無地」から選べます（1.4.2 から）。 | In the App's Settings > Notes Paper, choose “Lined”, “Dot Grid” or “Blank” (from version 1.4.2). | アプリの 設定 > Notes Paper（メモの紙）で、「Lined（罫線）」「Dot Grid（ドット方眼）」「Blank（無地）」から選んでください（バージョン 1.4.2 から）。 | ○ | ○ | アプリの en の語。§4.2 |
+| S.paper.2 | 最初は罫線です。 | Lined is the default. | 最初は Lined（罫線）です。 | ○ | ○ | §4.1（無いときは罫線） |
+| S.paper.3 | 月のページのメモ欄、日のページの右の「メモ」、日と週のページの 24 時の下の「自由メモ」が、そろって変わります。 | The Notes area of the month page, the “Notes” column on the right of the day page and the “Free Notes” area below 24:00 on the day and week pages all change together. | 月のページのメモ欄、日のページの右の「Notes（メモ）」の列、日と週のページの 24:00 より下の「Free Notes（自由メモ）」の欄が、全部いっしょに変わります。 | ○ | ○ | §4.4 の 3 か所（月のメモ欄・日の右の「メモ」・日と週の 24 時の下の「自由メモ」） |
+| S.paper.4 | 横につながった週と日のページでも同じです。 | The same goes for week and day pages joined side by side. | 横につないだ週と日のページも同じです。 | ○ | ○ | §4.3・§4.4（つないだ週と日も同じ柄） |
+| S.paper.5 | 「このページを PDF」で書き出す PDF も、その柄になります。 | A PDF made with “This Page as PDF” has that pattern too. | 「This Page as PDF（このページを PDF に）」で作った PDF にも、その模様が付きます。 | ○ | ○ | §4.3 の PDF。This Page as PDF はアプリの en の字（`export.pdf.title`） |
+| S.paper.6 | ドット方眼では、罫線があった高さに、横も同じ間隔で小さな点が並びます。 | With Dot Grid, small dots are placed at the heights where the lines were, with the same spacing across. | Dot Grid では、線のあった高さに小さな点が置かれ、横にも同じ間隔で並びます。 | ○ | ○ | §4.4: 点の行は罫線と同じ高さ、列も同じ 50 の間隔。何と同じ間隔かは、元の「横も同じ間隔で」と同じ開き方（R の注） |
+| S.paper.7 | 無地では、線も点もありません。 | With Blank, there are neither lines nor dots. | Blank では、線も点もありません。 | ○ | ○ | §4.4（無地） |
+| S.paper.8 | 変わるのは紙の柄だけで、手書きは 1 本も動きません。 | Only the pattern of the paper changes; none of your handwriting moves. | 変わるのは紙の模様だけで、手書きはどれも動きません。 | ○ | ○ | 元の「1 本も」= none of |
+| S.paper.9 | 罫線に戻すと、前と同じ見た目に戻ります。 | If you go back to Lined, the paper looks the same as before. | Lined に戻すと、紙は前と同じ見た目になります。 | ○ | ○ | §4.4（罫線の道は今の字のまま） |
+| S.paper.10 | この設定は端末ごとに覚えます（iPad と iPhone で別々に選べます）。 | This setting is remembered on each device (you can choose separately on your iPad and your iPhone). | この設定は端末ごとに覚えられます（iPad と iPhone で別々に選べます）。 | ○ | ○ | §4.1（端末ごと） |
+| S.paper.11 | 1.4.2 より前の版の端末では、罫線のままです。 | On a device with a version earlier than 1.4.2, the paper stays lined. | 1.4.2 より前のバージョンの端末では、紙は罫線のままです。 | ○ | ○ | §5（前の版は罫線） |
+| S.ver.1 | 1.4.2 で選べるようになった色で書いた線は、前の版の端末でもその色で見え（前の版のツールバーでは、その色を選べないだけです）、メモ欄の紙は、前の版の端末では罫線のままです。 | Strokes written in the colors that became available in version 1.4.2 also appear in those colors on a device with an earlier version (you just cannot choose those colors in that version's toolbar), and the notes paper stays lined there. | バージョン 1.4.2 で使えるようになった色で書いた線は、それより前のバージョンの端末でもその色で出ます（そのバージョンのツールバーではその色を選べないだけです）。また、そこではメモの紙は罫線のままです。 | ○ | ○ | §5（色の線は前の版でもその色。前の版のツールバーでは選べない） |
+
+### 機械で照らしたこと
+
+この節の Claude が、python で照らしました（スクラッチの使い捨てのスクリプト）。
+
+- 10 の訳の 3 つの点は、どれも `• ` で始まる 1〜3 行目で、`back/store-1_4_2.md` の訳の列は今のファイルの字と 30 行とも同じです。英語の 41 行の訳と逆翻訳は `back/store-1_4_2-en.md` の字のままです。
+- アプリの語: 11 の組の新機能の文に、各言語のアプリの訳（e3cec22。pt-PT はアプリの pt-BR、es-MX・es-ES はアプリの es）の `settings.title`・`settings.memoPaper.title`・`ruled`・`dots`・`plain`・`paper.memo`・`paper.freeMemo` の字がそのまま入っています（11 × 7、欠け 0）。ペン（`toolbar.tool.pen`）は 11 の組とも、文の中の小文字の形で入っています。審査メモと SUPPORT.en の Other Color…・Reset Colors・Notes Paper・Lined・Dot Grid・Blank・Notes・Free Notes・Settings は en の訳と同じ字、Brown は審査メモだけ、This Page as PDF は SUPPORT.en だけにあります。
+- 色の名前: 新しい SUPPORT.en の文（2 つの FAQ と版の 1 文）に、en の色の名前（`toolbar.color.*`）は 1 つもありません（契約 §8.5）。
+
+### 字数とバイト
+
+| 物 | 字数（最後の改行を除く。上限 4,000） | ファイルのバイト（`wc -c`） |
+| --- | ---: | ---: |
+| `ja/whatsnew.txt` | 162 | 477 |
+| `source-ja/whatsnew.txt` | 207 | 600 |
+| `en-US/whatsnew.txt` | 505 | 536 |
+| `zh-Hans/whatsnew.txt` | 189 | 538 |
+| `zh-Hant/whatsnew.txt` | 189 | 538 |
+| `ko/whatsnew.txt` | 270 | 635 |
+| `fr-FR/whatsnew.txt` | 694 | 752 |
+| `de-DE/whatsnew.txt` | 639 | 678 |
+| `it/whatsnew.txt` | 635 | 674 |
+| `pt-BR/whatsnew.txt` | 600 | 644 |
+| `pt-PT/whatsnew.txt` | 595 | 641 |
+| `es-MX/whatsnew.txt` | 603 | 643 |
+| `es-ES/whatsnew.txt` | 607 | 648 |
+| `review-note.txt`（上限 4,000 バイト） | 3352 字 | 3669 |
+
+### lint
+
+この節の字を入れた後の枝 `r142-w-d2a` の木で、`tools/l10n/lint.py`（L-1〜L-14。L-9 は店の文の字数と URL）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です（この節の文はアプリの文字列ではないので、`Localizable.xcstrings` と L-12 の数は変わらない）。凍結の表は `shasum -a 256 -c` で全部 OK です。この節の作業で替えたのは、`docs/i18n/REVIEW.md`（この節）・`docs/i18n/back/store-1_4_2.md`（新しい）・`docs/i18n/back/store-1_4_2-en.md`（頭の時刻と 18 の指し先、照らし合わせの節の時刻）・`docs/store/README.md`（「まだ」の 2 か所）だけです。
+
+### 18.x 「指でも書く」の en を短くする（縦 1024 pt の iPad、2026-11-26）
+
+17 の「△ と気づきの扱い」の 9 と、17.x の 2 つ目の点の続きです。リードが run 45709406386 で縦 1024 pt の iPad（12.9 インチの iPad Pro・13 インチの iPad Air）の週のページを 10 の言語で撮って測ると、en の Draw with Finger だけ、最後の r が右の端のぼかしに 4.5 pt 入っていました（左 94 %・右 64 % の濃さ。字は切れていない）。ほかの 9 言語は、ぼかしの手前で終わっています（[GLOSSARY.md](GLOSSARY.md) §4 の「その 2」）。リードの決めで、en を **Use Finger**（この Mac の AppKit の 13 pt で 65.2 pt。上限の fr « Écrire au doigt » は 87.8 pt）に短くしました。es Usar el dedo・pt-BR Usar o dedo と同じ「指を使う」の形です。it Scrivi con il dito（ぼかしの 1.5 pt 手前）と、ほかの 8 言語は替えていません。
+
+- **替えた字**: アプリの `toolbar.fingerToggle`・`settings.input.allowFinger`（en）と `onboarding.pen.text` の引用（en。`Localizable.xcstrings` は `build.py` で作り直した）、`docs/SUPPORT.en.md` の 2 か所、審査メモ `docs/store/review-note.txt` の To test の 1 か所。下の 6 行です。
+- **逆翻訳**: 英語を書いた後に、この 6 行の英語の字だけを読んで訳し戻しました（2026-11-26 07:45 JST）。ただ、**書いたのも訳し戻したのも同じ Claude で、日本語の元（指でも書く）は前から知っていた**ので、元を見ない逆翻訳としては弱い物です。
+- **判定**: 同じ Claude が、2 つの見方で照らしました。意味（日本語の元と同じか）と、語と事実（アプリの en の字と同じか、言っていることがアプリと合うか）です。**この 6 行の、別の Claude による独立した判定は、次のリードの段が行います。**
+- **母語の人の確認ではありません。**
+
+| # | 所 | 元の日本語 | 前の英語 | 新しい英語 | 逆翻訳（書いた後に、英語だけから） | 意味 | 語と事実 | 注 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `toolbar.fingerToggle`（en） | 指でも書く | Draw with Finger | Use Finger | 指を使う | △ | ○ | 意味: 「書く」と「でも」が字から消え、オフの字は「指を使わない」と読める（実際は、指でスクロールとタップをする）。読み上げのヒント（When this is on, you can also draw lines with your finger…）と初回案内の文がつなぐ。17 の △ 4 の es・pt-BR と同じ形で、幅のために受け入れる。語と事実: en.json の 2 つのキーと同じ字（機械で照らした）。13 pt で 65.2 pt、新しい F-13 の上限 99.5 pt の中 |
+| 2 | `settings.input.allowFinger`（en） | 指でも書く | Draw with Finger | Use Finger | 指を使う（設定の「入力」の節） | △ | ○ | 意味: 1 と同じ。すぐ下の脚注（When this is on, you can also draw lines with your finger. When it is off, your finger scrolls and taps.）が意味を言う（17 の △ 5 と同じ）。語と事実: ツールバーと同じ字（comment の決まり）。節の名前は Input |
+| 3 | `onboarding.pen.text`（en）の 2 段落目の 1 文目 | 指でも書きたいときは、ツールバーの「指でも書く」をオンにしてください。 | To also write with your finger, turn on “Draw with Finger” in the toolbar. | To also write with your finger, turn on “Use Finger” in the toolbar. | 指でも書くには、ツールバーの「指を使う」をオンにしてください。 | ○ | ○ | 文の前半が「書く」「でも」を言うので、元と同じ意味。引用はツールバーの字で、“ ” は §1 の en の引用符。文のほかの字は替えていない |
+| 4 | `SUPPORT.en.md` の iPhone の答え | 手書きは指で書きます（ツールバーの「指でも書く」）。 | On iPhone, you write with your finger (“Draw with Finger” in the toolbar). | On iPhone, you write with your finger (“Use Finger” in the toolbar). | iPhone では、指で書きます（ツールバーの「指を使う」）。 | ○ | ○ | 名前だけ替えた。中身は前と同じ |
+| 5 | `SUPPORT.en.md` の拡大の答え | （「指でも書く」がオンのときは 2 本の指で） | (with two fingers when “Draw with Finger” is on) | (with two fingers when “Use Finger” is on) | （「指を使う」がオンのときは 2 本の指で） | ○ | ○ | 名前だけ替えた。オンのときは 1 本の指が線になるので、スクロールは 2 本の指、は前と同じ |
+| 6 | `review-note.txt` の To test | （日本語の要約に無い段。1.4.1 からの英語の文） | …or with a finger after turning on Draw with Finger (in the toolbar or in Settings > Input). | …or with a finger after turning on "Use Finger" (in the toolbar or in Settings > Input). | …または（ツールバーか 設定 › 入力 で）「指を使う」をオンにした後は指で、書けます。 | ○ | ○ | 名前を替え、ASCII の " で囲んだ（短い名前が文の動詞 turning on Use… と続いて読み違えられないように。1.4.2 の段の "Other Color…" と同じ引用符）。Settings > Input は `settings.input.header` の en の字 |
+
+- **結果**: 6 行で、意味は ○ 4・△ 2、語と事実は ○ 6、× は 0 です。△ の 2 行（1・2）は、17 の △ 4・△ 5 と同じ扱いで替えていません。
+- **替えていない物**: 過去の記録（`docs/store/PROPOSALS_1_4.md`、`docs/i18n/back/store-1_4.md`・`store-1_4_1-en.md`・`store-en-US.md`、`docs/M7B_CONTRACT.md`・`docs/M7D_CONTRACT.md`、この REVIEW の前の節）は、そのときの字の Draw with Finger のままです。`docs/i18n/back/en.json` も前の字とその逆翻訳のままです（17 の 10 と同じ扱い）。新機能の文には名前の替わりを書いていません（de・es・pt-BR と同じ。18 の △ と気づきの 5）。
+- **審査メモ**: 契約 §8.4 は、1.4.2 の段と要約のほかは「1 バイトも替えない」としています。To test の名前は、アプリの字が替わったので 1 か所だけ替えました（リードが契約 §14 の注に書く）。3,669 → **3,665 バイト**（`wc -c`。最後の改行を除くと 3,664 バイト・3,348 字）で、4,000 バイトの中です。`docs/store/README.md` の審査メモの段と、英語の画面の名前の表も直しました。
+- **Web**: `r142-legal`（契約 §8.5。まだ作っていない）には、この SUPPORT.en の字を入れます。
+- **lint**: この木で `lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です。L-12 の目安の警告は 59 → 58 件です（en の Use Finger は 10 字・6.0 em で `maxEm` 9.0 の中。it Scrivi con il dito は前から警告）。

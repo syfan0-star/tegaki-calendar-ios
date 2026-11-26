@@ -12548,19 +12548,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schreiben Sie mit dem Apple Pencil auf das Papier. Mit dem Finger scrollen, zoomen (zwei Finger) und tippen Sie auf Termine. Die Handfläche zieht keine Linien, wenn sie den Bildschirm berührt.\n\nUm auch mit dem Finger zu schreiben, aktivieren Sie „Mit Finger zeichnen“ in der Werkzeugleiste. Doppeltippen und Drücken des Apple Pencil wechseln zwischen Stift und Radierer, je nach den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben.\n\n%@"
+            "value" : "Schreiben Sie mit dem Apple Pencil auf das Papier. Mit dem Finger scrollen, zoomen (zwei Finger) und tippen Sie auf Termine. Die Handfläche zieht keine Linien, wenn sie den Bildschirm berührt.\n\nUm auch mit dem Finger zu schreiben, aktivieren Sie „Fingereingabe“ in der Werkzeugleiste. Doppeltippen und Drücken des Apple Pencil wechseln zwischen Stift und Radierer, je nach den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben.\n\n%@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Draw with Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@"
+            "value" : "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Use Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escriba en el papel con el Apple Pencil. El dedo sirve para desplazarse, ampliar con dos dedos y tocar eventos. La palma no traza líneas al tocar la pantalla.\n\nPara escribir también con el dedo, active “Dibujar con el dedo” en la barra de herramientas. El doble toque y el gesto de apretar del Apple Pencil cambian entre la pluma y la goma, según las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad.\n\n%@"
+            "value" : "Escriba en el papel con el Apple Pencil. El dedo sirve para desplazarse, ampliar con dos dedos y tocar eventos. La palma no traza líneas al tocar la pantalla.\n\nPara escribir también con el dedo, active “Usar el dedo” en la barra de herramientas. El doble toque y el gesto de apretar del Apple Pencil cambian entre la pluma y la goma, según las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad.\n\n%@"
           }
         },
         "fr" : {
@@ -12590,7 +12590,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escreva no papel com o Apple Pencil. O dedo serve para rolar, ampliar com dois dedos e tocar nos eventos. A palma da mão não traça linhas ao tocar a tela.\n\nPara escrever também com o dedo, ative “Traçar com o dedo” na barra de ferramentas. O toque duplo e o gesto de apertar do Apple Pencil alternam entre a caneta e a borracha, conforme as ações escolhidas em Ajustes > Apple Pencil no iPad.\n\n%@"
+            "value" : "Escreva no papel com o Apple Pencil. O dedo serve para rolar, ampliar com dois dedos e tocar nos eventos. A palma da mão não traça linhas ao tocar a tela.\n\nPara escrever também com o dedo, ative “Usar o dedo” na barra de ferramentas. O toque duplo e o gesto de apertar do Apple Pencil alternam entre a caneta e a borracha, conforme as ações escolhidas em Ajustes > Apple Pencil no iPad.\n\n%@"
           }
         },
         "zh-Hans" : {
@@ -19412,19 +19412,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit Finger zeichnen"
+            "value" : "Fingereingabe"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Draw with Finger"
+            "value" : "Use Finger"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dibujar con el dedo"
+            "value" : "Usar el dedo"
           }
         },
         "fr" : {
@@ -19454,7 +19454,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traçar com o dedo"
+            "value" : "Usar o dedo"
           }
         },
         "zh-Hans" : {
@@ -20066,7 +20066,7 @@
       }
     },
     "settings.memoPaper.dots" : {
-      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。罫線の高さに、横も同じ間隔で小さな点を並べた紙（線のマス目の方眼ではない）。チェックの付く行。英語 Dot Grid。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。罫線の高さに、横も同じ間隔で小さな点を並べた紙（線のマス目の方眼ではない）。チェックの付く行。英語 Dot Grid。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -20090,7 +20090,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Points"
+            "value" : "Grille de points"
           }
         },
         "it" : {
@@ -20132,7 +20132,7 @@
       }
     },
     "settings.memoPaper.footer" : {
-      "comment" : "設定 › メモ欄の紙 の説明（1.4.2）。変わるのは紙の柄だけで、手書きは動かない。端末ごとの設定（iCloud で同期しない）。ページの種類を並べない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "comment" : "設定 › メモ欄の紙 の説明（1.4.2）。変わるのは紙の柄だけで、手書きは動かない。端末ごとの設定（iCloud で同期しない）。ページの種類を並べない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -20150,7 +20150,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El diseño del papel de Notas y Notas libres. Lo escrito a mano no cambia. Este ajuste es propio de cada dispositivo."
+            "value" : "El diseño del papel de Notas y Notas libres. Su escritura a mano se mantiene tal cual. Este ajuste es propio de cada dispositivo."
           }
         },
         "fr" : {
@@ -20162,7 +20162,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il motivo della carta di Note e Note libere. Ciò che ha scritto a mano resta invariato. Questa impostazione vale per ogni singolo dispositivo."
+            "value" : "Il motivo della carta di Note e Note libere. La Sua scrittura a mano resta invariata. Questa impostazione vale per ogni singolo dispositivo."
           }
         },
         "ja" : {
@@ -20180,7 +20180,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O padrão do papel de Notas e Notas livres. O que você escreveu à mão continua igual. Este ajuste é de cada dispositivo."
+            "value" : "O padrão do papel de Notas e Notas livres. Sua escrita à mão continua igual. Este ajuste é de cada dispositivo."
           }
         },
         "zh-Hans" : {
@@ -20198,7 +20198,7 @@
       }
     },
     "settings.memoPaper.plain" : {
-      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。線も点も無い紙（見出しと上の区切りの線は残る）。チェックの付く行。英語 Blank。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。線も点も無い紙（見出しと上の区切りの線は残る）。チェックの付く行。英語 Blank。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -20264,7 +20264,7 @@
       }
     },
     "settings.memoPaper.ruled" : {
-      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。横の線が 50 ごとに引かれた紙（ふだんの値、1.4.1 までと同じ）。チェックの付く行。英語 Lined。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。横の線が 50 ごとに引かれた紙（ふだんの値、1.4.1 までと同じ）。チェックの付く行。英語 Lined。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -20330,7 +20330,7 @@
       }
     },
     "settings.memoPaper.title" : {
-      "comment" : "設定の行の名前（1.4.2）。「祝日」のすぐ下の行で、押すと罫線・ドット方眼・無地から選ぶ画面になる（その画面の題も同じ字）。月のメモ欄・日の右の「メモ」・日と週の 24 時の下の「自由メモ」の紙の柄。英語 Notes Paper（GLOSSARY のメモ = Notes）。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1a の仮の訳）",
+      "comment" : "設定の行の名前（1.4.2）。「祝日」のすぐ下の行で、押すと罫線・ドット方眼・無地から選ぶ画面になる（その画面の題も同じ字）。月のメモ欄・日の右の「メモ」・日と週の 24 時の下の「自由メモ」の紙の柄。英語 Notes Paper（GLOSSARY のメモ = Notes）。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -20372,7 +20372,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "메모란 종이"
+            "value" : "메모 칸 종이"
           }
         },
         "pt-BR" : {
@@ -20384,13 +20384,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "备忘区纸张"
+            "value" : "备忘栏纸张"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "備忘區紙張"
+            "value" : "備忘欄紙張"
           }
         }
       }
@@ -27458,7 +27458,7 @@
       }
     },
     "toolbar.color.brown" : {
-      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。茶色（#92400e）。英語 Brown。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。茶色（#92400e）。英語 Brown。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -27524,7 +27524,7 @@
       }
     },
     "toolbar.color.darkGreen" : {
-      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い緑（#166534）。緑（toolbar.color.green）と言い分ける。英語 Dark green。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い緑（#166534）。緑（toolbar.color.green）と言い分ける。英語 Dark green。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -27590,7 +27590,7 @@
       }
     },
     "toolbar.color.gray" : {
-      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。灰色（#6b7280）。英語 Gray。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。灰色（#6b7280）。英語 Gray。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -27788,7 +27788,7 @@
       }
     },
     "toolbar.color.navy" : {
-      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い青（#1e40af）。青（toolbar.color.blue）・水色（toolbar.color.lightBlue）と言い分ける。英語 Navy。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い青（#1e40af）。青（toolbar.color.blue）・水色（toolbar.color.lightBlue）と言い分ける。英語 Navy。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -28250,13 +28250,13 @@
       }
     },
     "toolbar.colorPanel.hint" : {
-      "comment" : "1.4.2 光っている（今のペンの）色の丸の読み上げのヒント。もう一度押すと、その丸の色を替える小さな板が開く。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment" : "1.4.2 光っている（今のペンの）色の丸の読み上げのヒント。もう一度押すと、その丸の色を替える小さな板が開く。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erneut tippen, um die Farbe zu ändern"
+            "value" : "Tippen Sie erneut, um die Farbe zu ändern"
           }
         },
         "en" : {
@@ -28304,7 +28304,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "再点一下可更换颜色"
+            "value" : "再轻点一下可更换颜色"
           }
         },
         "zh-Hant" : {
@@ -28316,7 +28316,7 @@
       }
     },
     "toolbar.colorPanel.otherColor" : {
-      "comment" : "1.4.2 ペンの色の板のボタン（画面に出る）。キーの名前は .other で終わると複数形の対と読まれる（lint L-4）ので otherColor。押すと、端末に元からある色選びの画面が開き、どんな色でも選べる。「…」はその言語の省略の形。読み上げの名前 toolbar.color.unknown「その他の色」とは別のキー。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment" : "1.4.2 ペンの色の板のボタン（画面に出る）。キーの名前は .other で終わると複数形の対と読まれる（lint L-4）ので otherColor。押すと、端末に元からある色選びの画面が開き、どんな色でも選べる。「…」はその言語の省略の形。読み上げの名前 toolbar.color.unknown「その他の色」とは別のキー。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -28382,37 +28382,37 @@
       }
     },
     "toolbar.colorPanel.reset" : {
-      "comment" : "1.4.2 ペンの色の板のボタン（画面に出る）。ツールバーの 6 つの色の丸を、最初の 6 色（黒・青・赤・緑・オレンジ・紫）に戻す。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment" : "1.4.2 ペンの色の板のボタン（画面に出る）。ツールバーの 6 つの色の丸を、最初の 6 色（黒・青・赤・緑・オレンジ・紫）に戻す。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ursprüngliche Farben wiederherstellen"
+            "value" : "Farben zurücksetzen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reset to Original Colors"
+            "value" : "Reset Colors"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restablecer los colores iniciales"
+            "value" : "Restablecer los colores"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rétablir les couleurs d’origine"
+            "value" : "Réinitialiser les couleurs"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ripristina i colori iniziali"
+            "value" : "Reimposta i colori"
           }
         },
         "ja" : {
@@ -28424,31 +28424,31 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "처음 색상으로 되돌리기"
+            "value" : "색상 재설정"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurar as cores iniciais"
+            "value" : "Redefinir as cores"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "恢复初始颜色"
+            "value" : "重置颜色"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "恢復初始顏色"
+            "value" : "重置顏色"
           }
         }
       }
     },
     "toolbar.colorPanel.title" : {
-      "comment" : "1.4.2 ペンの色の板の読み上げの名前と、ツールバーの色の丸の読み上げの操作の名前（その丸を選んで板を開く）。画面に字は出ない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は D2 で X が GLOSSARY を決めてから見直す（D1b の仮の訳）",
+      "comment" : "1.4.2 ペンの色の板の読み上げの名前と、ツールバーの色の丸の読み上げの操作の名前（その丸を選んで板を開く）。画面に字は出ない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -28712,25 +28712,25 @@
       }
     },
     "toolbar.fingerToggle" : {
-      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない。ja の幅 ＋ 76 pt（約 136 pt、10.5 em）まで（F-13）",
+      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない（1 行）。1.4.1 で同じ行の右に「動かす」が入ったので、13 インチの iPad の縦で行に収まるのは fr の « Écrire au doigt » の幅（87.8 pt、ja の幅 ＋ 約 28 pt）まで。それより長いと最後の字が行の右の端のぼかしで切れる。縦 1024 pt の iPad ではぼかしが 8 pt 左になる（1.4.2 で de・es・pt-BR を短くし、1024 pt の写真で最後の字がぼかしにかかった en も Use Finger に短くした。docs/i18n/GLOSSARY.md §4）。ToolbarFitTests の F-13 は、字の終わりが 13 インチの縦の行のぼかしの手前にあることを、「動かす」を 52 pt として確かめる。maxEm 9.0 は、その fr の 15 字を L-12 の数え方（1 字 0.6 em）にした物で、それより長い訳を L-12 の警告で知らせる（it は超えていて警告になる。字は 1024 pt の写真でもぼかしの 1.5 pt 手前で終わるが、行が少しはみ出してスクロールする。GLOSSARY §4）。設定の settings.input.allowFinger と同じ語にし、onboarding.pen.text の引用もこの語にする",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit Finger zeichnen"
+            "value" : "Fingereingabe"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Draw with Finger"
+            "value" : "Use Finger"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dibujar con el dedo"
+            "value" : "Usar el dedo"
           }
         },
         "fr" : {
@@ -28760,7 +28760,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traçar com o dedo"
+            "value" : "Usar o dedo"
           }
         },
         "zh-Hans" : {
@@ -28910,7 +28910,7 @@
       }
     },
     "toolbar.grip.spoken" : {
-      "comment" : "1.4.1 ツールバーのつまみの読み上げの名前。iPad の広い窓で、開いたツールバーの画面の真ん中に向いた辺に出る小さなつまみ。指で引くと、ツールバーを画面の上・下・左・右の端へ移せる。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 ツールバーを動かす操作の名前。画面に出る: iPad のツールバーの「動かす」（toolbar.move.title）を押すと開く吹き出し（iPad ではポップオーバー）の題として、選択肢（toolbar.moveTo.*）の上に出る（開いたツールバーと、しまった後に丸ボタンの道具の印で出したツールバー。iPhone には無い）。読み上げ: 「動かす」ボタンと、iPad の広い窓で開いたツールバーの画面の真ん中に向いた辺に出る小さなつまみの名前（つまみを指で引くと、ツールバーを画面の上・下・左・右の端へ移せる）。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（画面に出ることを足した。docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -29504,7 +29504,7 @@
       }
     },
     "toolbar.moveTo.bottom" : {
-      "comment" : "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の下の端へ移す（スイッチコントロールとフルキーボードアクセスも同じ操作）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 開いたツールバーを画面の下の端へ移す操作の名前。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前（スイッチコントロールとフルキーボードアクセスも同じ操作）。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -29570,7 +29570,7 @@
       }
     },
     "toolbar.moveTo.left" : {
-      "comment" : "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の左の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 開いたツールバーを画面の左の端へ移す操作の名前（ツールバーは縦に立つ）。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -29636,7 +29636,7 @@
       }
     },
     "toolbar.moveTo.right" : {
-      "comment" : "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の右の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 開いたツールバーを画面の右の端へ移す操作の名前（ツールバーは縦に立つ）。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -29702,7 +29702,7 @@
       }
     },
     "toolbar.moveTo.top" : {
-      "comment" : "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の上の端（見出しの下）へ移す。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 開いたツールバーを画面の上の端（見出しの下）へ移す操作の名前。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
