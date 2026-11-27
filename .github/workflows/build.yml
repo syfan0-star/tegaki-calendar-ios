@@ -358,7 +358,7 @@ jobs:
           swift run --package-path TegakiKit KitChecks 2>&1 | tee kitchecks.log
           N="$(grep -oE 'all [0-9]+ checks passed' kitchecks.log | grep -oE '[0-9]+' | tail -1)"
           echo "KitChecks count: ${N:-0} (required: 40776 or more)"
-          grep -E 'compat10( with compat-span)?: [0-9]+ checks' kitchecks.log || true
+          grep -E 'compat10( with compat-span(-143)?)?: [0-9]+ checks' kitchecks.log || true
           test "${N:-0}" -ge 40776
 
       # 1.3 (docs/M7C_CONTRACT.md §4.2, §6.3): KitChecks compares the committed compat-span fixtures with what
@@ -377,6 +377,22 @@ jobs:
             swift run --package-path TegakiKit KitChecks --write-compat-span-fixtures --out shots/fixtures/compat-span
           else
             echo "No compat-span check failed."
+          fi
+
+      # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): the same for the compat-span-143 fixtures (the month and the year joined
+      # sideways, KitChecks' section "compat-span-143 (1.4.3)"): after a red step, when one of its checks failed, the files the
+      # Kit writes go into shots/fixtures/compat-span-143 for the lead to read; made again on a Mac with
+      # `swift run --package-path TegakiKit KitChecks --write-compat-span-143-fixtures`. Never fails the job itself.
+      - name: The compat-span-143 fixtures the Kit writes (after a failed KitChecks)
+        if: failure()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if grep -q 'FAIL: compat-span-143' kitchecks.log 2>/dev/null; then
+            mkdir -p shots/fixtures/compat-span-143
+            swift run --package-path TegakiKit KitChecks --write-compat-span-143-fixtures --out shots/fixtures/compat-span-143
+          else
+            echo "No compat-span-143 check failed."
           fi
 
       - name: Test TegakiKit (macOS)
@@ -534,6 +550,26 @@ jobs:
           if [ "$LISTED" != "$PRESENT" ]; then
             diff <(printf '%s\n' "$LISTED") <(printf '%s\n' "$PRESENT") || true
             echo "::error::The fixture folders do not hold the files of tools/span/FIXTURES_1_3.sha256 (<: only in the table, >: only in a folder). 1.4 makes no new fixture (docs/M7D_CONTRACT.md §5.1, §5.5)."
+            exit 1
+          fi
+
+      # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): the new folder compat-span-143 (fixtures 8–13: the month and the year joined
+      # sideways, made by `KitChecks --write-compat-span-143-fixtures` through the Kit's joined path) is frozen the same way:
+      # every file of it with its MANIFEST, 9 rows, sorted, and the folder holds exactly the table's files, so a file added or
+      # taken away fails as well. FIXTURES_1_3 and its three folders stay byte for byte (the step above). A fixture made again
+      # on purpose rewrites its row here and its hash in TegakiKit/Tests/CompatSpan143Tests in the same commit, with the reason
+      # in docs/R1_4_3.md.
+      - name: 1.4.3's fixtures unchanged (FIXTURES_1_4_3)
+        run: |
+          set -euo pipefail
+          shasum -a 256 -c tools/span/FIXTURES_1_4_3.sha256
+          FOLDER="TegakiKit/Tests/Fixtures/compat-span-143"
+          LISTED="$(sed -nE 's/^[0-9a-f]{64}  //p' tools/span/FIXTURES_1_4_3.sha256 | grep -E '^TegakiKit/Tests/Fixtures/compat-span-143/' | LC_ALL=C sort)"
+          PRESENT="$(git ls-files --cached --others --exclude-standard -- "$FOLDER" | LC_ALL=C sort)"
+          echo "FIXTURES_1_4_3: $(printf '%s\n' "$LISTED" | grep -c .) files of the folder in the table, $(printf '%s\n' "$PRESENT" | grep -c .) in the folder"
+          if [ "$LISTED" != "$PRESENT" ]; then
+            diff <(printf '%s\n' "$LISTED") <(printf '%s\n' "$PRESENT") || true
+            echo "::error::The folder $FOLDER does not hold the files of tools/span/FIXTURES_1_4_3.sha256 (<: only in the table, >: only in the folder; docs/R1_4_3_CONTRACT.md §8.3)."
             exit 1
           fi
 
@@ -2203,6 +2239,12 @@ jobs:
   # whole tree at v13app for tools/span-compat/AppTests/Real13LedgerTests.swift (the one-page path, the sync and the
   # joined path on every compat-span file). The limit 45 → 65 min for 1.3's Kit and app (§5.3 4): the measured
   # times go into docs/M7D.md, and back to 45 when they leave room.
+  # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): the new folder compat-span-143 (fixtures 8–13, the month and the year joined
+  # sideways) is read by the same partners, which are not added to or changed (1.4.3 touches no data code but the canvas's
+  # paper, §8.4): its Monday files go into the compat11 folder too (RunReal, RunFrozen, Real10LedgerTests; the real 1.0's
+  # count must rise by 17 per file), tools/span-compat's Probe reads it on the real 1.0, <1.1.1>, 1.2.3 and 1.3 (a run of
+  # its own, so compat-span's numbers stay 274/274/278/310), and the 1.2.3 and 1.3 apps' ledger tests read it
+  # (TEGAKI_COMPAT_SPAN_143_FIXTURES). EXPECTED_MIN (225, 599) is not touched.
   compat-v1-0:
     name: compat-v1.0
     # 1.3 (docs/M7C_CONTRACT.md §10.6): not on r13-quick (the fast path runs the first job only). 1.4 (docs/M7D_CONTRACT.md
@@ -2317,6 +2359,41 @@ jobs:
           ls -la "$DEST"
           exit "$FAILED"
 
+      # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): the compat-span-143 files of shape "monday" go into the same folder the
+      # same way (fixture 11, the Sunday-start month, stays out, as compat-span's Sunday weeks do; tools/span-compat and
+      # CompatSpan143Tests read it). A name already in the folder (compat11's or compat-span's) fails: nothing is overwritten.
+      - name: The compat-span-143 fixtures of the Monday shape into the compat11 folder (1.4.3)
+        run: |
+          set -euo pipefail
+          SRC=TegakiKit/Tests/Fixtures/compat-span-143
+          DEST="$RUNNER_TEMP/compat11"
+          MONDAY=0
+          SUNDAY=0
+          while read -r FILE FIXTURE SHAPE REST; do
+            case "$FILE" in ''|'#'*) continue ;; esac
+            if [ -n "${REST:-}" ] || [ -z "${FIXTURE:-}" ]; then echo "::error::compat-span-143/MANIFEST: \"$FILE $FIXTURE $SHAPE $REST\" is not <file> <fixture> <shape>"; exit 1; fi
+            case "$SHAPE" in
+              monday)
+                if [ -e "$DEST/$FILE" ]; then echo "::error::compat-span-143: $FILE is already in the compat11 folder (a name of compat11 or compat-span)"; exit 1; fi
+                cp "$SRC/$FILE" "$DEST/$FILE"; MONDAY=$((MONDAY + 1)) ;;
+              sunday) SUNDAY=$((SUNDAY + 1)) ;;
+              *) echo "::error::compat-span-143/MANIFEST: $FILE has the shape \"$SHAPE\" (monday or sunday)"; exit 1 ;;
+            esac
+          done < "$SRC/MANIFEST"
+          FAILED=0
+          while read -r FILE FIXTURE SHAPE REST; do
+            case "$FILE" in ''|'#'*) continue ;; esac
+            if [ "$SHAPE" = monday ]; then
+              cmp "$SRC/$FILE" "$DEST/$FILE" || { echo "::error::$FILE (fixture $FIXTURE, monday) is not in the compat11 folder"; FAILED=1; }
+            elif [ -e "$DEST/$FILE" ]; then
+              echo "::error::$FILE (fixture $FIXTURE, sunday) must not be in the compat11 folder"; FAILED=1
+            fi
+          done < "$SRC/MANIFEST"
+          if [ "$MONDAY" -eq 0 ]; then echo "::error::compat-span-143: no file of shape monday"; FAILED=1; fi
+          echo "compat-span-143: $MONDAY files of shape monday copied into the compat11 folder ($SUNDAY of shape sunday left out)"
+          ls -la "$DEST"
+          exit "$FAILED"
+
       # ④⑤ The copies into tools/compat10 (ignored by git), RunReal and RunFrozen, the comparison. Since 1.3 the
       # folder holds the Monday compat-span files too; the output is also kept in $RUNNER_TEMP/compat10-run.log.
       - name: The checks on the real 1.0 and on the frozen copy
@@ -2341,6 +2418,27 @@ jobs:
           fi
           if [ -z "$REAL_N" ] || [ "$REAL_N" -lt "$MIN" ]; then
             echo "::error::the real 1.0 ran ${REAL_N:-no} checks, fewer than tools/compat-span/EXPECTED_MIN ($MIN): a compat-span file of the Monday shape did not reach it."
+            exit 1
+          fi
+
+      # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): the real 1.0 read the compat-span-143 files of the Monday shape too: run.sh's
+      # `real N=` is at least tools/compat-span/EXPECTED_MIN + 17 per such file of compat-span-143/MANIFEST (Compat10Checks runs 17
+      # checks on a page; 599 + 7 × 17 = 718 with D1a's 7 Monday files; measured on a Mac with the committed files: 750 = 1.4.2's
+      # 631 + 7 × 17, RunFrozen the same). The number is computed here, so no EXPECTED_MIN file changes.
+      - name: The real 1.0 read the compat-span-143 fixtures (1.4.3)
+        run: |
+          set -euo pipefail
+          MIN="$(tr -d '[:space:]' < tools/compat-span/EXPECTED_MIN)"
+          MONDAY="$(grep -Ec '^[^#[:space:]]+ [0-9]+ monday$' TegakiKit/Tests/Fixtures/compat-span-143/MANIFEST || true)"
+          NEED=$((MIN + 17 * MONDAY))
+          REAL_N="$(sed -nE 's/^compat-v1\.0: real N=([0-9]+) .*/\1/p' "$RUNNER_TEMP/compat10-run.log" | tail -1)"
+          echo "compat-span-143: real N=${REAL_N:-?}, needed $NEED (EXPECTED_MIN $MIN + 17 × $MONDAY Monday files)"
+          if [ "$MONDAY" -lt 1 ]; then
+            echo "::error::compat-span-143/MANIFEST has no row of shape monday."
+            exit 1
+          fi
+          if [ -z "$REAL_N" ] || [ "$REAL_N" -lt "$NEED" ]; then
+            echo "::error::the real 1.0 ran ${REAL_N:-no} checks, fewer than $NEED: a compat-span-143 file of the Monday shape did not reach it (docs/R1_4_3_CONTRACT.md §8.3)."
             exit 1
           fi
 
@@ -2415,6 +2513,20 @@ jobs:
           done
           exit "$FAILED"
 
+      # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): every compat-span-143 file (Monday and Sunday) on the same four real Kits
+      # (run.sh's fourth argument; the Probe takes Version.swift's `expectedDrawn143` for that folder): what each reads and
+      # writes back, draws and lassoes, its migration, merge, erase and own edit, the export's round trip, on 1.3 also its
+      # SpanGuard. Measured on a Mac with the committed files: v10 142, v11 142, v123 142, v13 158 checks, 0 failed (compat-span's
+      # run above stays 274/274/278/310).
+      - name: The compat-span-143 fixtures on the real 1.0, <1.1.1>, 1.2.3 and 1.3 (span-compat, 1.4.3)
+        run: |
+          set -euo pipefail
+          FAILED=0
+          for V in v10 v11 v123 v13; do
+            tools/span-compat/run.sh "$V" "$V/TegakiKit" "$RUNNER_TEMP/span-compat" compat-span-143 || FAILED=1
+          done
+          exit "$FAILED"
+
       # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
       # job, this one on macos-26 too (until 1.3 `brew install xcodegen`, whose version was the image's formula; the old
       # trees' project.yml are generated with it below). The script fails unless `xcodegen --version` then says 2.46.0;
@@ -2468,6 +2580,8 @@ jobs:
       # 1.3 (docs/M7C_CONTRACT.md §6.3, §10.4): 1.2.3's app (v123app, its own project.yml) with
       # tools/span-compat/AppTests/Real123LedgerTests.swift added to its unit tests, on the same simulator; only
       # that class runs, on every compat-span file (TEGAKI_COMPAT_SPAN_FIXTURES: the folder of this checkout).
+      # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3): and on every compat-span-143 file (TEGAKI_COMPAT_SPAN_143_FIXTURES; the test
+      # fails when it is not set).
       - name: 1.2.3's ledger and sync on the compat-span fixtures (Real123LedgerTests)
         run: |
           set -euo pipefail
@@ -2495,7 +2609,8 @@ jobs:
             NAME="iPhone 17"
           fi
           echo "Using simulator: $NAME"
-          TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span" xcodebuild \
+          TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span" \
+          TEST_RUNNER_TEGAKI_COMPAT_SPAN_143_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span-143" xcodebuild \
             -project v123app/TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
             -configuration Debug \
@@ -2510,6 +2625,8 @@ jobs:
       # 1.4 (docs/M7D_CONTRACT.md §5.3 3): 1.3's app (v13app, its own project.yml) with
       # tools/span-compat/AppTests/Real13LedgerTests.swift added to its unit tests, on the same simulator; only that
       # class runs, on every compat-span file (TEGAKI_COMPAT_SPAN_FIXTURES: the folder of this checkout).
+      # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3): and on every compat-span-143 file (TEGAKI_COMPAT_SPAN_143_FIXTURES; the test
+      # fails when it is not set). Still its 5 tests.
       - name: 1.3's ledger and sync on the compat-span fixtures (Real13LedgerTests)
         run: |
           set -euo pipefail
@@ -2537,7 +2654,8 @@ jobs:
             NAME="iPhone 17"
           fi
           echo "Using simulator: $NAME"
-          TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span" xcodebuild \
+          TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span" \
+          TEST_RUNNER_TEGAKI_COMPAT_SPAN_143_FIXTURES="$PWD/TegakiKit/Tests/Fixtures/compat-span-143" xcodebuild \
             -project v13app/TegakiCalendar.xcodeproj \
             -scheme TegakiCalendar \
             -configuration Debug \

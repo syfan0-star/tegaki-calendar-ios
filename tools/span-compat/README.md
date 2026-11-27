@@ -4,16 +4,18 @@
 
 1.4 から、**本物の 1.3（955fe67、ビルド 26）**も相手に入る（`docs/M7D_CONTRACT.md` の §5.3）。1.3 はデータのコード（`InkLedger`・`InkCanvasView`・`SyncEngine`）を作り直したので、1.1.1 の凍結の表とは別に、1.3 そのものが今の見本を読んで何も変えないことを確かめておく。
 
+1.4.3 から、**2 つ目の見本のフォルダ `TegakiKit/Tests/Fixtures/compat-span-143/`**（月と年を横につないだときに書く形。見本 8〜13、`docs/R1_4_3_CONTRACT.md` の §8.3・0g-30）も、同じ 4 つの版で読む。相手は足さない・変えない。フォルダごとに 1 回ずつ走らせ（`run.sh` の 4 つ目の引数）、Probe はフォルダの名前で期待の表を選ぶ（`compat-span` は `expectedDrawn`、`compat-span-143` は `expectedDrawn143`）。だから compat-span の数（274・274・278・310）は 1.4.2 までと同じまま。
+
 | ファイル | 役目 |
 | --- | --- |
-| `Probe/Common.swift`・`Probe/main.swift` | 4 つの版で同じ確かめ。4 つの版のどれにもある API だけを使う。`main.swift` は最後に、版ごとの確かめの口 `versionExtraChecks(pages:)` を 1 回呼ぶ |
+| `Probe/Common.swift`・`Probe/main.swift` | 4 つの版で同じ確かめ。4 つの版のどれにもある API だけを使う。`main.swift` は最後に、版ごとの確かめの口 `versionExtraChecks(pages:)` を 1 回呼ぶ。1.4.3 から、読むフォルダの名前で期待の表（`expectedDrawn`・`expectedDrawn143`）を選び、月のページは形 `monday` と `sunday` のどちらでもよい（日曜始まりの窓で書いた月。id とメモ欄は週の始まりで変わらない） |
 | `v10/Version.swift` | 1.0（a21e469）のレイアウトの作り方と、各見本で描く線の数。`versionExtraChecks` は何もしない |
 | `v11/Version.swift` | `<1.1.1>`（`tools/l10n/ja-baseline-ref.txt` の commit、9cbc3c9）の同じもの。`versionExtraChecks` は何もしない |
 | `v123/Version.swift` | 1.2.3（43fe366）の同じもの。日曜の `w-` は日曜始まりで開く（K-11）。`versionExtraChecks` は何もしない |
 | `v13/Version.swift` | 1.3（955fe67）の同じもの。1.3 の画面と同じに、週はメモ付き（`WeekLayoutInput(..., freeMemo: true)`。省くと 1.2.3 の週になる）、週と日の最後のマスに窓の床（`extraFloor`、`SpanAlign`）を渡す。日曜の `w-` は日曜始まり。`versionExtraChecks` は全部の見本を 1.3 の `SpanGuard` に通す（下） |
-| `run.sh` | 版の TegakiKit を指す Swift のパッケージを作業フォルダに作り、`Probe` を組み立てて走らせる |
-| `AppTests/Real123LedgerTests.swift` | 1.2.3 のアプリの台帳と同期のエンジンで、全部の見本を読む XCTest（`tools/compat10/AppTests/Real10LedgerTests.swift` と同じ形） |
-| `AppTests/Real13LedgerTests.swift` | 1.3 のアプリで、全部の見本を読む XCTest（`Real123LedgerTests.swift` の形）。1 ページの道（1.3 の画面のレイアウト `CalendarRootScreen.makePaper` と `InkLedger(page:layout:)`、保存の口 `PageSlot.persist`）、同期（live の `SyncEngine` の取り込みと 1.3 の窓の取り寄せ `pagesOpened`、保存し直し）、横の道（週と日の見本のまわりの `SpanSession` の窓。月曜始まりと日曜始まり、iPad 11 の縦と iPhone の横） |
+| `run.sh` | 版の TegakiKit を指す Swift のパッケージを作業フォルダに作り、`Probe` を組み立てて走らせる。4 つ目の引数で読むフォルダ（`compat-span`（省いたとき）か `compat-span-143`）を選ぶ |
+| `AppTests/Real123LedgerTests.swift` | 1.2.3 のアプリの台帳と同期のエンジンで、全部の見本を読む XCTest（`tools/compat10/AppTests/Real10LedgerTests.swift` と同じ形）。1.4.3 から compat-span-143 も読む（`TEGAKI_COMPAT_SPAN_143_FIXTURES`。無いと落ちる） |
+| `AppTests/Real13LedgerTests.swift` | 1.3 のアプリで、全部の見本を読む XCTest（`Real123LedgerTests.swift` の形）。1 ページの道（1.3 の画面のレイアウト `CalendarRootScreen.makePaper` と `InkLedger(page:layout:)`、保存の口 `PageSlot.persist`）、同期（live の `SyncEngine` の取り込みと 1.3 の窓の取り寄せ `pagesOpened`、保存し直し）、横の道（週と日の見本のまわりの `SpanSession` の窓。月曜始まりと日曜始まり、iPad 11 の縦と iPhone の横）。1.4.3 から compat-span-143 も読む（`TEGAKI_COMPAT_SPAN_143_FIXTURES`。月と年だけなので 1 ページの道と同期だけを通る） |
 
 ## Probe が確かめること（見本のファイルごと）
 
@@ -25,7 +27,7 @@
 - 全部のページの書き出し → 取り込みで全部がそのまま入り（飛ばし 0）、書き出し直すと同じバイト。
 - 版ごとの確かめ（`versionExtraChecks(pages:)`、下）。
 
-最後の行が `span-compat <版>: N checks, 0 failed` で、終了の状態が 0 なら合格。失敗は `FAIL` の行に出て、終了の状態は 1。手元で走らせた数（2026-11-20、`run.sh`）: v10 274・v11 274・v123 278・v13 310。
+最後の行が `span-compat <版>: N checks, 0 failed` で、終了の状態が 0 なら合格。失敗は `FAIL` の行に出て、終了の状態は 1。手元で走らせた数（2026-11-20、`run.sh`）: v10 274・v11 274・v123 278・v13 310。compat-span-143（1.4.3 の D1a、`run.sh … compat-span-143`）: v10 142・v11 142・v123 142・v13 158（8 ファイル × 17 ＋ MANIFEST と書き出しの 6、v13 は SpanGuard の 8 × 2 を足す）。compat-span の数は変わらない。
 
 ### 版ごとの確かめ `versionExtraChecks(pages:)`
 
@@ -48,6 +50,11 @@ tools/span-compat/run.sh v10 <dir>/v10/TegakiKit <dir>/work
 tools/span-compat/run.sh v11 <dir>/v11/TegakiKit <dir>/work
 tools/span-compat/run.sh v123 <dir>/v123/TegakiKit <dir>/work
 tools/span-compat/run.sh v13 <dir>/v13/TegakiKit <dir>/work
+# 1.4.3: 2 つ目のフォルダ（4 つ目の引数）
+tools/span-compat/run.sh v10 <dir>/v10/TegakiKit <dir>/work compat-span-143
+tools/span-compat/run.sh v11 <dir>/v11/TegakiKit <dir>/work compat-span-143
+tools/span-compat/run.sh v123 <dir>/v123/TegakiKit <dir>/work compat-span-143
+tools/span-compat/run.sh v13 <dir>/v13/TegakiKit <dir>/work compat-span-143
 ```
 
 Xcode は要らない（Probe は Kit だけを使う。この Mac の Command Line Tools の `swift build` で通る）。組み立てた Probe は見本のフォルダを引数に取るので、変異の確かめ（`docs/M7D_CONTRACT.md` §5.3 の 6）は、見本のフォルダをリポジトリの外に写し、写しの 1 つを変えて `<dir>/work/span-compat-v13/.build/debug/Probe <写したフォルダ>` を走らせる（リポジトリの見本は変えない）。前置名のマス（`w-2026-12-14|grid`）の線を 1 本足すと v13 の `SpanGuard` の 2 つの確かめが落ち、線を 1 本消すと描く数の確かめが落ちる。
@@ -72,3 +79,16 @@ CI は `compat-v1.0` のジョブで、既にある `v10`・`v11` の checkout �
 4. この README の表・走らせ方・数を直す。手元の `run.sh` で、新しい版と前からの版が全部 0 failed になることを見る。
 
 週のメモの見本（fixture 4、§5.2）は 3 つ足した: 月曜の `w-2026-12-14.week-memo.json`（メモの線 2 本と、24 時をまたいで書いた `grid` の線・中心まで 24 時の下にある `grid` の線（取り込みか手で直したファイルの形。手で書いた JSON））、月曜の `w-2026-12-21.week-memo-neighbor.json`（左の週から入るメモの線）、日曜の `w-2026-12-20.week-memo-sunday.json`（日曜の形の週のメモ）。1.2.3 までの週には `extra` のマスが無いので、メモの線は描かれず残る（`grid` の 2 本は描かれる）。1.0・<1.1.1> は日曜の週を開かない。`EXPECTED_MIN` は月曜の 2 ファイルの分（2 × 17）を足した。
+
+## compat-span-143（1.4.3）
+
+`TegakiKit/Tests/Fixtures/compat-span-143/` は、月と年を横につないだ窓が書く形の見本（`docs/R1_4_3_CONTRACT.md` の §8.3・0g-30）。作り手は `swift run --package-path TegakiKit KitChecks --write-compat-span-143-fixtures`（`TegakiKit/Tests/CompatSpan143Fixtures`、compat-span と同じ Kit の横の道）、凍結の表は `tools/span/FIXTURES_1_4_3.sha256`、今のコードと 1.0 の凍結の写しの読み手は `TegakiKit/Tests/CompatSpan143Tests` と KitChecks の節「compat-span-143 (1.4.3)」。見本を足すときは、4 つの `Version.swift` の `expectedDrawn143`、`Real123LedgerTests`・`Real13LedgerTests` の数、`CompatSpan143Tests` の表と SHA-256、KitChecks の表、`FIXTURES_1_4_3.sha256` を同じ commit で直す。月曜の形のファイルは CI が compat11 の一時フォルダにも写す（名前が compat11・compat-span と重なると落ちる）ので、本物の 1.0 の数（`real N=`）が 1 ファイル 17 件増える（`build.yml` の段「The real 1.0 read the compat-span-143 fixtures (1.4.3)」が `EXPECTED_MIN` ＋ 17 × 月曜の行の数 を見る。`EXPECTED_MIN` のファイルは変えない）。
+
+| 見本 | ファイル（形） | 示すこと |
+| --- | --- | --- |
+| 8 | `m1-2026-11.memo-left.json`（monday） | 月のメモの線が右のページから左へはみ出す（`memo`、x −160〜260） |
+| 9 | `m1-2026-10.move-source.json`・`m1-2026-11.move-destination.json`（monday） | 重なる日 2026-11-01 の投げなわの移動。元に墓標、行き先に新しい id、2 つのページに同じ名前のマス（K-2） |
+| 10 | `y-2027.date-column.json`・`y-2026.december-right.json`（monday） | 2027 年の日付の列に中心がある線は `y-2027` の 1 月（01-20、x −128〜70）。12 月から右へ出る線は `y-2026` の 12-10（紙の x 1,200〜1,520） |
+| 11 | `m1-2026-11.memo-sunday.json`（sunday） | 日曜始まりの窓のメモの線（12 月へはみ出す）。月の id とメモ欄は週の始まりで変わらない（K-11） |
+| 12 | `y-2026.row-floor.json`（monday） | 年の行のそろえで伸びた所（06-15、マスの上から 350 lu）。古い版では行が手書き ＋ 12 まで伸びて見える |
+| 13 | `m1-2026-11.last-row.json`（monday） | 月のアで伸びた最後の行（2026-12-03、マスの上から 600 lu）。古い版では行が手書き ＋ 12 まで伸びて見える |

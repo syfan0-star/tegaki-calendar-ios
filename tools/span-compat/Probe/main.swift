@@ -8,17 +8,22 @@ import Layout
 // change anything: the items and tombstones it reads, the bytes it writes back, what its layout draws and its
 // lasso reaches (`InkLedger.drawing()` and the lasso's candidates: the live strokes of the cells the layout has),
 // what opening, merging and its own erase and edit do, and the app export's round trip.
+// 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): the same for the folder compat-span-143 (the month and the year joined
+// sideways), one folder per run; its expectations are `expectedDrawn143` of the Version.swift.
 //
-//   Probe <compat-span folder>
+//   Probe <compat-span or compat-span-143 folder>
 //
 // Prints a line per file, FAIL lines, and last `span-compat <version>: N checks, F failed`; exits 1 on a failure.
 
 let arguments = CommandLine.arguments
 guard arguments.count == 2 else {
-    print("usage: Probe <compat-span folder>")
+    print("usage: Probe <compat-span or compat-span-143 folder>")
     exit(2)
 }
 let folder = URL(fileURLWithPath: arguments[1], isDirectory: true)
+// 1.4.3: each folder has its own table of what this version draws (a file is in one folder only).
+let expectations: [String: Int?] = folder.lastPathComponent == "compat-span-143" ? expectedDrawn143 : expectedDrawn
+let expectationsName = folder.lastPathComponent == "compat-span-143" ? "expectedDrawn143" : "expectedDrawn"
 
 // MANIFEST ⇄ folder, both ways; every row has this version's expectation.
 let rows = readManifest(folder)
@@ -26,8 +31,8 @@ let onDisk = ((try? FileManager.default.contentsOfDirectory(atPath: folder.path)
 check(!rows.isEmpty, "MANIFEST: has rows")
 check(onDisk == rows.map(\.file).sorted(), "MANIFEST ⇄ folder: every *.json is listed and every row's file is there (\(onDisk.count) files, \(rows.count) rows)")
 check(Set(rows.map(\.shape)) == ["monday", "sunday"], "MANIFEST: Monday and Sunday rows")
-check(Set(expectedDrawn.keys) == Set(rows.map(\.file)),
-      "every MANIFEST row has this version's expectation in tools/span-compat/\(versionFolder)/Version.swift (missing: \(Set(rows.map(\.file)).subtracting(expectedDrawn.keys).sorted()), not in MANIFEST: \(Set(expectedDrawn.keys).subtracting(rows.map(\.file)).sorted()))")
+check(Set(expectations.keys) == Set(rows.map(\.file)),
+      "every MANIFEST row has this version's expectation in tools/span-compat/\(versionFolder)/Version.swift's \(expectationsName) (missing: \(Set(rows.map(\.file)).subtracting(expectations.keys).sorted()), not in MANIFEST: \(Set(expectations.keys).subtracting(rows.map(\.file)).sorted()))")
 
 var pages: [InkPage] = []
 for row in rows {
@@ -55,12 +60,16 @@ for row in rows {
     check(page.jsonValue["deleted"]?.serialized() == raw["deleted"]?.serialized(), "\(name): every tombstone as written (\(page.deleted.count))")
     if case .week(let first)? = pageRef(page.pageId) {
         check((first.weekday == 0) == (row.shape == "sunday"), "\(name): the MANIFEST's shape \(row.shape) is the week's (weekday \(first.weekday), 0 = Sunday)")
+    } else if case .month? = pageRef(page.pageId) {
+        // 1.4.3 (fixture 11): a month written in a Sunday-start window is of shape sunday; its id and its memo are the same
+        // under both starts (always 6 rows of 42 days), so every version opens it.
+        check(row.shape == "monday" || row.shape == "sunday", "\(name): a month page is of shape monday or sunday (the start it was written with)")
     } else {
         check(row.shape == "monday", "\(name): a page that is not a week is of shape monday")
     }
 
     // What this version's layout of the page draws and lassoes (nil: it never opens the page).
-    guard let ref = pageRef(page.pageId), let expected = expectedDrawn[name] else {
+    guard let ref = pageRef(page.pageId), let expected = expectations[name] else {
         check(false, "\(name): a page id this probe knows, with an expectation")
         continue
     }
