@@ -255,13 +255,14 @@ final class ScreenPaths: ObservableObject {
 
     // MARK: The one place that decides the path (§5.1)
 
-    /// Whether a page of `kind` opens joined (D2, §3.1, §3.15, the plan §5.1): only a week or a day, with the setting on
-    /// (in screenshot mode its own memory-only setting, off by default, and never with `--screenshot-single-page`, the
-    /// old versions' view), and not a kind that fell back to one page in this run. Month and year are always one page
-    /// in 1.3.
+    /// Whether a page of `kind` opens joined (D2, §3.1, §3.15, the plan §5.1): only a kind of `SpanKinds.joined`, with the
+    /// setting on (in screenshot mode its own memory-only setting, off by default, and never with `--screenshot-single-page`,
+    /// the old versions' view), and not a kind that fell back to one page in this run. 1.4.3 (docs/R1_4_3_CONTRACT.md §3.2,
+    /// 0g-8, 0g-9): the kinds are `SpanKinds.joined` (1.3's week and day, and the month; the year with D1y), so the month
+    /// joins with the setting on too; the rest is 1.3's.
     static func joins(kind: PageKind, setting: Bool, screenshot: Bool, screenshotSpan: Bool, singlePage: Bool = false,
                       fallenBack: Set<PageKind>) -> Bool {
-        guard kind == .week || kind == .day, !fallenBack.contains(kind) else { return false }
+        guard SpanKinds.joined.contains(kind), !fallenBack.contains(kind) else { return false }
         return screenshot ? screenshotSpan && !singlePage : setting
     }
 
