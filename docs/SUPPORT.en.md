@@ -8,7 +8,7 @@ This is a translation for convenience. The Japanese version prevails.
 
 Related documents: [Terms of Service](TERMS.en.md) / [Privacy Policy](PRIVACY.en.md)
 
-Last updated: November 24, 2026
+Last updated: November 28, 2026
 
 ---
 
