@@ -145,6 +145,18 @@ public struct SpanLayout: PageLayout {
         pages.isEmpty ? nil : pages[pages.count / 2]
     }
 
+    /// The slot of the middle page, the one `band(atY:)` and `bandTop` answer for (1.4.3: `PageScroll`
+    /// compares this page across a shift of joined months, docs/R1_4_3_CONTRACT.md §3.5); nil for an
+    /// empty window.
+    public var middleSlot: Int? {
+        pages.isEmpty ? nil : pages.count / 2
+    }
+
+    /// The real page id of the middle page; nil for an empty window.
+    public var middlePageId: String? {
+        middle?.pageId
+    }
+
     // MARK: Ink
 
     /// What happens to a new stroke centred at `center` (§3.2, D15): outside the band (x < 0, x > the

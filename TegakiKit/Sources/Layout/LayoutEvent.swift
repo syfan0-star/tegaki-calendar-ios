@@ -59,8 +59,22 @@ public struct MonthLayoutInput: Sendable {
     /// The first column of the 42-day grid (§10.1). The cell keys stay dates, so strokes follow their
     /// date (K-11 rule 4); a day of the other grid only is not on this page's paper (D17).
     public var weekStart: WeekStart
+    /// 1.4.3 (ア, docs/R1_4_3_CONTRACT.md §2.1, §4.1; `SpanAlign.Floors.monthGrid`): the floor of the grid's
+    /// bottom (= the separator line = `memo.minY`). Only the last (6th) row grows to reach it, up to
+    /// `PaperSpec.monthRowMax`; past that the row stops at 1,200 lu and `memo.minY` stays above the floor.
+    /// Rows 1–5 and the 6th row's top never move. 0 (or not finite, or negative) is no floor.
+    public var gridFloor: CGFloat
+    /// 1.4.3 (ア and イ; `SpanAlign.Floors.monthMemo`): the floor of the memo's height
+    /// (`max(PaperGrowth.tailHeight, memoFloor)`); the memo's origin stays at the grid's bottom. 0 is no floor.
+    public var memoFloor: CGFloat
+    /// 1.4.3 (イ; `SpanAlign.Floors.monthRows`): the floors of the 6 rows' heights, row r's height being
+    /// `min(PaperSpec.monthRowMax, max(its own, rowFloors[r]))`. A missing, non-finite or negative value is
+    /// no floor; empty is none.
+    public var rowFloors: [CGFloat]
 
-    public init(month: YearMonth, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday) {
+    /// The floors are trailing arguments with defaults (the day's and the week's `extraFloor` are too):
+    /// left out, the page is 1.4.2's, `==`.
+    public init(month: YearMonth, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, weekStart: WeekStart = .monday, gridFloor: CGFloat = 0, memoFloor: CGFloat = 0, rowFloors: [CGFloat] = []) {
         self.month = month
         self.events = events
         self.inkBottoms = inkBottoms
@@ -69,5 +83,18 @@ public struct MonthLayoutInput: Sendable {
         self.holidays = holidays
         self.words = words
         self.weekStart = weekStart
+        self.gridFloor = gridFloor
+        self.memoFloor = memoFloor
+        self.rowFloors = rowFloors
+    }
+
+    /// This input with the month floors of `floors` (`monthGrid`, `monthMemo`, `monthRows`); the other
+    /// fields are kept. `SpanAlign.Floors.none` gives the floors left out.
+    public func floored(by floors: SpanAlign.Floors) -> MonthLayoutInput {
+        var input = self
+        input.gridFloor = floors.monthGrid
+        input.memoFloor = floors.monthMemo
+        input.rowFloors = floors.monthRows
+        return input
     }
 }
