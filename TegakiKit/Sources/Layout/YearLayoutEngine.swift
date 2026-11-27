@@ -14,8 +14,13 @@ public struct YearLayoutInput: Sendable {
     public var holidays: HolidayCalendar
     /// The same input as the other three pages' (the year page has no word of its own yet).
     public var words: LayoutWords
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §5.1; `SpanAlign.Floors.yearRows`): the floors of the 31 rows'
+    /// heights (index 0 is day 1), row r's height being `min(PaperSpec.yearRowMax, max(its own,
+    /// rowFloors[r]))`, so the same day lines up across the joined years. A missing, non-finite or negative
+    /// value is no floor; empty (the default) is none and gives 1.4.2's page, `==`.
+    public var rowFloors: [CGFloat]
 
-    public init(year: Int, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese) {
+    public init(year: Int, events: [LayoutEvent], inkBottoms: [CellKey: CGFloat], now: Date, calendar: Calendar = DayKey.deviceCalendar, holidays: HolidayCalendar = .japan, words: LayoutWords = .japanese, rowFloors: [CGFloat] = []) {
         self.year = year
         self.events = events
         self.inkBottoms = inkBottoms
@@ -23,6 +28,14 @@ public struct YearLayoutInput: Sendable {
         self.calendar = calendar
         self.holidays = holidays
         self.words = words
+        self.rowFloors = rowFloors
+    }
+
+    /// This input with the year floors of `floors` (`yearRows`); the other fields are kept.
+    public func floored(by floors: SpanAlign.Floors) -> YearLayoutInput {
+        var input = self
+        input.rowFloors = floors.yearRows
+        return input
     }
 }
 
@@ -331,7 +344,11 @@ public enum YearLayoutEngine {
                 lanes = max(lanes, needed[m][d])
                 ink = max(ink, LayoutMath.sanitizedInk(input.inkBottoms[.yearDay(month: m, day: d)] ?? 0))
             }
-            let height = rowHeight(laneCount: lanes, inkBottom: ink)
+            var height = rowHeight(laneCount: lanes, inkBottom: ink)
+            // 1.4.3: the row's floor from the joined years (`YearLayoutInput.rowFloors`), never past the cap.
+            if d - 1 < input.rowFloors.count {
+                height = min(PaperSpec.yearRowMax, max(height, SpanAlign.sanitized(input.rowFloors[d - 1])))
+            }
             rows.append(YearRow(dayNumber: d, frame: CGRect(x: 0, y: y, width: PaperSpec.yearWidth, height: height), laneCount: lanes))
             y += height
         }
