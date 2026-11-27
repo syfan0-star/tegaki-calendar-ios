@@ -1089,9 +1089,10 @@ enum ScreenshotMode {
 
     /// `--screenshot-month-tall`: three lines written one under the other in the cell of the 25th of `month` (a list, the
     /// lowest at y 370 ± 6 of the cell, bottom about 378 lu), so its row is about 390 lu (`MonthLayoutEngine.rowHeight`:
-    /// the bottom + 12), 215 above a plain row. With `monthTallEvents`' 193 lu row the month's grid is about 1,268 lu,
-    /// some 230 lu below a demo month's: well under the reach of a 6th row's cap (about 1,025 lu, §4.1 4, the lead's
-    /// decision 6), so every month of the photos reaches the window's separator line.
+    /// the bottom + 12), 215 above a plain row. With `monthTallEvents`' 193 lu row the month's grid is about 1,283 lu
+    /// (4 × 175 + 193 + 390 on 2026-11), its bottom some 220–233 lu below the other months of the photos' window
+    /// (1,050–1,063 lu): well under the reach of a 6th row's cap (about 1,025 lu, §4.1 4, the lead's decision 6), so every
+    /// month of the photos reaches the window's separator line.
     static func monthTallStrokes(of month: YearMonth) -> [InkStroke] {
         let day = DayKey(year: month.year, month: month.month, day: min(monthTallStrokeDay, DayKey.daysInMonth(year: month.year, month: month.month)))
         return [110, 240, 370].enumerated().map { n, y in
