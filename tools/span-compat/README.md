@@ -8,7 +8,7 @@
 
 | ファイル | 役目 |
 | --- | --- |
-| `Probe/Common.swift`・`Probe/main.swift` | 4 つの版で同じ確かめ。4 つの版のどれにもある API だけを使う。`main.swift` は最後に、版ごとの確かめの口 `versionExtraChecks(pages:)` を 1 回呼ぶ。1.4.3 から、読むフォルダの名前で期待の表（`expectedDrawn`・`expectedDrawn143`）を選び、月のページは形 `monday` と `sunday` のどちらでもよい（日曜始まりの窓で書いた月。id とメモ欄は週の始まりで変わらない） |
+| `Probe/Common.swift`・`Probe/main.swift` | 4 つの版で同じ確かめ。4 つの版のどれにもある API だけを使う。`main.swift` は最後に、版ごとの確かめの口 `versionExtraChecks(pages:)` を 1 回呼ぶ。1.4.3 から、読むフォルダの名前で期待の表（`expectedDrawn`・`expectedDrawn143`）を選ぶ。compat-span-143 の月のページは形 `monday` か、メモの線だけの `sunday`（日曜始まりの窓で書いた月。id とメモ欄は週の始まりで変わらないが、4 つの版は月を月曜始まりで並べるので、日のマスの線は別の所に読まれる）。compat-span の月は `monday` のまま。compat-span-143 では、描く線がその版のマスに上から下まで収まることも見る |
 | `v10/Version.swift` | 1.0（a21e469）のレイアウトの作り方と、各見本で描く線の数。`versionExtraChecks` は何もしない |
 | `v11/Version.swift` | `<1.1.1>`（`tools/l10n/ja-baseline-ref.txt` の commit、9cbc3c9）の同じもの。`versionExtraChecks` は何もしない |
 | `v123/Version.swift` | 1.2.3（43fe366）の同じもの。日曜の `w-` は日曜始まりで開く（K-11）。`versionExtraChecks` は何もしない |
@@ -25,9 +25,10 @@
 - その版のレイアウト（予定なし・そのページの線の下端・東京）で、描く線（`InkLedger.drawing()` と同じ: 点があり、マスがレイアウトにある生きた線）の数が期待どおり。投げなわの候補が描く線と同じ。描く線は紙の上の範囲を持つ。開かないページ（1.0・<1.1.1> の日曜始まりの週。その日の週は `w-2026-11-02`）は「開かない」と期待どおり。
 - 開いても何も動かない（帯の移し替え）・自分との merge で変わらない・その版が描く線を全部消しても、ほかの項目は 1 バイトも変わらない・その版の端末が自分のマスに書いた線と両方向で merge しても、ほかの項目と墓標は変わらない。
 - 全部のページの書き出し → 取り込みで全部がそのまま入り（飛ばし 0）、書き出し直すと同じバイト。
+- （compat-span-143 だけ）その版のレイアウトで、描く線がそのマスの中に上から下まで収まる。見本 12・13 では、1.4.3 が伸ばした行に書いた線を、古い版の行がそのページの手書きの下端 ＋ 12 まで伸びて収める（K-4、B_DESIGN §3.1）。x は見ない（見本 8・10 は横にはみ出す形）。
 - 版ごとの確かめ（`versionExtraChecks(pages:)`、下）。
 
-最後の行が `span-compat <版>: N checks, 0 failed` で、終了の状態が 0 なら合格。失敗は `FAIL` の行に出て、終了の状態は 1。手元で走らせた数（2026-11-20、`run.sh`）: v10 274・v11 274・v123 278・v13 310。compat-span-143（1.4.3 の D1a、`run.sh … compat-span-143`）: v10 142・v11 142・v123 142・v13 158（8 ファイル × 17 ＋ MANIFEST と書き出しの 6、v13 は SpanGuard の 8 × 2 を足す）。compat-span の数は変わらない。
+最後の行が `span-compat <版>: N checks, 0 failed` で、終了の状態が 0 なら合格。失敗は `FAIL` の行に出て、終了の状態は 1。手元で走らせた数（2026-11-20、`run.sh`）: v10 274・v11 274・v123 278・v13 310。compat-span-143（1.4.3 の D1a、`run.sh … compat-span-143`、11/28 07:07 に測り直し）: v10 150・v11 150・v123 150・v13 166（8 ファイル × 18 ＋ MANIFEST と書き出しの 6、v13 は SpanGuard の 8 × 2 を足す）。compat-span の数は変わらない。
 
 ### 版ごとの確かめ `versionExtraChecks(pages:)`
 

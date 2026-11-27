@@ -366,13 +366,15 @@ jobs:
       # compat11 (TEGAKI_FIXTURE_OUT, below), the files the Kit writes here go into shots/fixtures/compat-span
       # (uploaded with the screenshots) for the lead to read; the committed ones are made again on a Mac with
       # `swift run --package-path TegakiKit KitChecks --write-compat-span-fixtures`. Only after a red step,
-      # only when a compat-span check failed; never fails the job itself.
+      # only when a compat-span check failed; never fails the job itself. 1.4.3: the pattern ends in ':' or ' '
+      # ("compat-span:", "compat-span 4:", "compat-span 1.0:"), so a failed compat-span-143 check (the next step's) does
+      # not run this one.
       - name: The compat-span fixtures the Kit writes (after a failed KitChecks)
         if: failure()
         continue-on-error: true
         run: |
           set -euo pipefail
-          if grep -q 'FAIL: compat-span' kitchecks.log 2>/dev/null; then
+          if grep -qE 'FAIL: compat-span[: ]' kitchecks.log 2>/dev/null; then
             mkdir -p shots/fixtures/compat-span
             swift run --package-path TegakiKit KitChecks --write-compat-span-fixtures --out shots/fixtures/compat-span
           else
@@ -2516,8 +2518,10 @@ jobs:
       # 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): every compat-span-143 file (Monday and Sunday) on the same four real Kits
       # (run.sh's fourth argument; the Probe takes Version.swift's `expectedDrawn143` for that folder): what each reads and
       # writes back, draws and lassoes, its migration, merge, erase and own edit, the export's round trip, on 1.3 also its
-      # SpanGuard. Measured on a Mac with the committed files: v10 142, v11 142, v123 142, v13 158 checks, 0 failed (compat-span's
-      # run above stays 274/274/278/310).
+      # SpanGuard; for this folder only, every drawn stroke lies inside its cell from top to bottom on that version's own
+      # layout (fixtures 12 and 13: the old row grows from the page's own ink and holds the line written where 1.4.3
+      # lengthened it), and a month of shape sunday holds memo strokes only. Measured on a Mac with the committed files:
+      # v10 150, v11 150, v123 150, v13 166 checks, 0 failed (compat-span's run above stays 274/274/278/310).
       - name: The compat-span-143 fixtures on the real 1.0, <1.1.1>, 1.2.3 and 1.3 (span-compat, 1.4.3)
         run: |
           set -euo pipefail

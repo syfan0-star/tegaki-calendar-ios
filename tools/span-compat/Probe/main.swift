@@ -22,8 +22,9 @@ guard arguments.count == 2 else {
 }
 let folder = URL(fileURLWithPath: arguments[1], isDirectory: true)
 // 1.4.3: each folder has its own table of what this version draws (a file is in one folder only).
-let expectations: [String: Int?] = folder.lastPathComponent == "compat-span-143" ? expectedDrawn143 : expectedDrawn
-let expectationsName = folder.lastPathComponent == "compat-span-143" ? "expectedDrawn143" : "expectedDrawn"
+let is143 = folder.lastPathComponent == "compat-span-143"
+let expectations: [String: Int?] = is143 ? expectedDrawn143 : expectedDrawn
+let expectationsName = is143 ? "expectedDrawn143" : "expectedDrawn"
 
 // MANIFEST ⇄ folder, both ways; every row has this version's expectation.
 let rows = readManifest(folder)
@@ -60,10 +61,14 @@ for row in rows {
     check(page.jsonValue["deleted"]?.serialized() == raw["deleted"]?.serialized(), "\(name): every tombstone as written (\(page.deleted.count))")
     if case .week(let first)? = pageRef(page.pageId) {
         check((first.weekday == 0) == (row.shape == "sunday"), "\(name): the MANIFEST's shape \(row.shape) is the week's (weekday \(first.weekday), 0 = Sunday)")
-    } else if case .month? = pageRef(page.pageId) {
-        // 1.4.3 (fixture 11): a month written in a Sunday-start window is of shape sunday; its id and its memo are the same
-        // under both starts (always 6 rows of 42 days), so every version opens it.
-        check(row.shape == "monday" || row.shape == "sunday", "\(name): a month page is of shape monday or sunday (the start it was written with)")
+    } else if is143, case .month? = pageRef(page.pageId) {
+        // 1.4.3 (fixture 11; compat-span-143 only, compat-span's months stay monday): a month written in a Sunday-start
+        // window is of shape sunday. Its id and its memo are the same under both starts (always 6 rows of 42 days), but
+        // every version here lays a month out Monday-first, so a day cell of a Sunday grid would be read in another place:
+        // a month of shape sunday holds memo strokes only.
+        let notMemo = page.liveStrokes.filter { $0.cell != .memo }.map(\.cell.raw)
+        check(row.shape == "monday" || notMemo.isEmpty,
+              "\(name): a month page is of shape monday, or of shape sunday with memo strokes only (shape \(row.shape), cells not memo: \(notMemo))")
     } else {
         check(row.shape == "monday", "\(name): a page that is not a week is of shape monday")
     }
@@ -82,6 +87,19 @@ for row in rows {
         check(Set(lasso) == Set(drawn), "\(name): the lasso reaches exactly the drawn strokes")
         check(page.liveStrokes.allSatisfy { layout.cells[$0.cell] == nil || $0.paperBounds(cellOrigin: layout.cells[$0.cell]!.origin) != nil },
               "\(name): every drawn stroke has bounds on the paper (overhanging or not)")
+        if is143 {
+            // 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3 12 and 13, K-4, B_DESIGN §3.1): on this version's own layout every drawn
+            // stroke lies inside its cell from top to bottom, so a line written where 1.4.3 lengthened a row (the year's
+            // row floor, form ア's last row) is seen: this version's row grows from the page's own ink (its bottom + 12).
+            // x is not compared: 8 and 10 reach past the page's side on purpose.
+            var outside: [String] = []
+            for s in page.liveStrokes where !s.points.isEmpty {
+                guard let rect = layout.cells[s.cell] else { continue }
+                let inside = s.paperBounds(cellOrigin: rect.origin).map { $0.minY >= rect.minY && $0.maxY <= rect.maxY } ?? false
+                if !inside { outside.append("\(s.id) in \(s.cell.raw) y \(rect.minY)…\(rect.maxY)") }
+            }
+            check(outside.isEmpty, "\(name): every drawn stroke lies inside its cell from top to bottom on this version's layout (outside: \(outside))")
+        }
     } else {
         check(expected == nil, "\(name): this version never opens \(page.pageId) (its page for that day is \(layout.pageId); expected \(expected.map { "\($0) drawn" } ?? "never opened"))")
     }
