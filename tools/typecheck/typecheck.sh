@@ -24,7 +24,8 @@
 #      copy Compat10 (every .swift under TegakiKit/Tests/Compat10, Checks/ included) and
 #      CompatFixtures are emitted as modules, and the folders Compat10, CompatFixtures and Fixtures
 #      (JSON only) are not type-checked as test targets. Each test folder's files are found with
-#      `find`, so sub-folders count too.
+#      `find`, so sub-folders count too. Since 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3) CompatSpanFixtures is
+#      emitted as a module too (CompatSpan143Fixtures imports it) and so is not type-checked again as a target.
 #
 # 1.3 (docs/M7C_CONTRACT.md §4.6, D12): the optional environment variable TYPECHECK_DEFINES holds
 # compilation conditions separated by spaces; each is passed as `-D <name>` to steps 4 and 5 (the app,
@@ -172,6 +173,10 @@ COMPAT10=()
 while IFS= read -r f; do COMPAT10+=("$f"); done < <(swift_files "$REPO/TegakiKit/Tests/Compat10")
 emitmac Compat10 "${COMPAT10[@]}"
 echo "emitted Compat10 (${#COMPAT10[@]} files) and CompatFixtures (${#COMPAT_FIXTURES[@]} files) (macOS)"
+COMPAT_SPAN_FIXTURES=()
+while IFS= read -r f; do COMPAT_SPAN_FIXTURES+=("$f"); done < <(swift_files "$REPO/TegakiKit/Tests/CompatSpanFixtures")
+emitmac CompatSpanFixtures "${COMPAT_SPAN_FIXTURES[@]}"
+echo "emitted CompatSpanFixtures (${#COMPAT_SPAN_FIXTURES[@]} files) (macOS; 1.4.3: CompatSpan143Fixtures imports it)"
 # The stand-in XCTest of this step also has `measure` (Compat10BudgetTests measures a decode; XCTest
 # runs the block 10 times, the stand-in only type-checks the call).
 cat > "$WORK/XCTestStandInMeasure.swift" <<'SWIFT'
@@ -183,7 +188,7 @@ emitmac XCTest "$HERE/XCTestStandIn.swift" "$WORK/XCTestStandInMeasure.swift"
 for t in "$REPO"/TegakiKit/Tests/*/; do
   name="$(basename "$t")"
   case "$name" in
-    Compat10|CompatFixtures|Fixtures) continue ;; # library targets (emitted above) and the JSON fixtures
+    Compat10|CompatFixtures|CompatSpanFixtures|Fixtures) continue ;; # library targets (emitted above) and the JSON fixtures
   esac
   KIT_TEST_FILES=()
   while IFS= read -r f; do KIT_TEST_FILES+=("$f"); done < <(swift_files "$t")

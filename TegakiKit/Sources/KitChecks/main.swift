@@ -50,6 +50,10 @@ if CommandLine.arguments.contains("--write-compat-fixtures") {
 // (docs/M7C_CONTRACT.md §4.2, §6.3; SpanInkChecks.swift).
 if CommandLine.arguments.contains("--write-compat-span-fixtures") { writeCompatSpanFixtures() }
 
+// 1.4.3: --write-compat-span-143-fixtures [--out <folder>] does the same for TegakiKit/Tests/Fixtures/compat-span-143/
+// (docs/R1_4_3_CONTRACT.md §8.3, 0g-30; CompatSpan143Checks.swift).
+if CommandLine.arguments.contains("--write-compat-span-143-fixtures") { writeCompatSpan143Fixtures() }
+
 // 1.4: --span-state <kind> <class> <orientation> <w>x<h> [cap|nocap] prints one paper area's window plan and exits without
 // running the checks (docs/M7D_CONTRACT.md §3.3 gate 3 (b), §4.6; DuoChecks.swift).
 runSpanStateIfAsked()
@@ -5458,6 +5462,7 @@ runOverviewCapChecks() // 1.3: the iPhone's landscape cap (P-B6 イ), section "o
 runDuoChecks() // 1.4: the iPhone Duo's span plans, section "duo (1.4)" (DuoChecks.swift, docs/M7D_CONTRACT.md §4.6, §4.7, §6)
 runWindowFingerChecks() // 1.4: WindowClass and FingerDefault, section "window & finger (1.4)" (WindowFingerChecks.swift, docs/M7D_CONTRACT.md §4.3, §4.4, §4.7, §4.8, §6)
 runSpanMonthYearChecks() // 1.4.3: the joined months and years, section "span month & year (1.4.3)" (SpanMonthYearChecks.swift, docs/R1_4_3_CONTRACT.md §11.1)
+runCompatSpan143Checks() // 1.4.3: the month's and the year's joined-path fixtures, section "compat-span-143 (1.4.3)" (CompatSpan143Checks.swift, docs/R1_4_3_CONTRACT.md §8.3)
 
 // MARK: - 1.2: the languages (docs/M7B_CONTRACT.md §0, §2.1, 0-1, 0-2, 0-8, §7.1)
 

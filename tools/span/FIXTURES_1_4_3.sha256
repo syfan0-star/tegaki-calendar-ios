@@ -1,0 +1,9 @@
+a5fbe0d8cf5ac595b688fd94b53ff38d863428b271fdce6aec533f60571c0989  TegakiKit/Tests/Fixtures/compat-span-143/MANIFEST
+8206cf172924f92d05ff21898f84fd5da2c26498100f8f36ce97d3065c84ed5d  TegakiKit/Tests/Fixtures/compat-span-143/m1-2026-10.move-source.json
+9cd76c59df6eb3f29e782eee245966bea5469e9d9d32b2e1782741d66b468a8e  TegakiKit/Tests/Fixtures/compat-span-143/m1-2026-11.last-row.json
+c0f95ffc3fd768440fa361b0f65d6dd6fd231fe9b57eaa8023e6d5463fde47f1  TegakiKit/Tests/Fixtures/compat-span-143/m1-2026-11.memo-left.json
+bba7a1fe8ebeb50ef4b90b5323164067daf1f8fe8239114b945b67d7692233a6  TegakiKit/Tests/Fixtures/compat-span-143/m1-2026-11.memo-sunday.json
+10f39b9db1b5579e357f830806a53d5c7560cd4c7fe5f46a29b7358cd1674ff0  TegakiKit/Tests/Fixtures/compat-span-143/m1-2026-11.move-destination.json
+26c9cff504e5db7fb50217bacb99792348309f1ac03a194693b3587e0a0ce31d  TegakiKit/Tests/Fixtures/compat-span-143/y-2026.december-right.json
+f64b3c5087d8b82a87ae6b97256cceff27338695fa34d3565d930533f625fee6  TegakiKit/Tests/Fixtures/compat-span-143/y-2026.row-floor.json
+00d474d7009a33db4e81a3731fb89c03a75800b7a497e1536680a75007317cea  TegakiKit/Tests/Fixtures/compat-span-143/y-2027.date-column.json
