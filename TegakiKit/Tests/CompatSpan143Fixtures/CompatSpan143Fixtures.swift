@@ -30,13 +30,18 @@ import CompatSpanFixtures
 /// 12 and 13 show K-4 and B_DESIGN §3.1 ("on an old device the line written where the row was lengthened is seen"): a
 /// version without the floors lays the page out from its own ink (the row grows to the ink's bottom + 12).
 ///
-/// How 12 and 13 get their tall row: the floors that lengthen it in 1.4.3 (`gridFloor`, `rowFloors`, role K, step D1a)
-/// are not in this tree when the fixtures are made, so the window's page is laid out with the engines' ink-bottom input
-/// standing in for the floor (`rowStandIn`: the same row height a floor gives; the rows above it do not move in either
-/// way, §4.1, §5.1). The saved bytes do not depend on how the row got tall: the points are stored relative to the cell,
-/// whose origin is the same either way. Written once in step D1a (docs/R1_4_3.md); KitChecks compares the committed
-/// files with `make()` on every run, so a maker that changed (for example one that uses K's floors) and gave other bytes
-/// would fail there.
+/// How 12 and 13 get their tall row: through 1.4.3's floors, as a joined window lays its pages out when it opens
+/// (`windowLayouts`: every page from its own ink without floors, the window's floors from those natural numbers with
+/// `SpanAlign.yearFloors` / `SpanAlign.monthFloors(form: .memo)`, then every page with them through
+/// `YearLayoutInput.rowFloors` / `MonthLayoutInput.gridFloor`). The tall row comes from a neighbour page that holds a
+/// deep line in the same row (12: `y-2027`'s 03-15 to 380 lu, so row 15 is 392 on every year of the window; 13:
+/// `m1-2026-12`'s 2026-12-16 to 700 lu, so its grid ends at 1,587 and November's 6th row reaches 1,587 − 875 = 712). The
+/// neighbour's line is a stored stroke of its page (a line 380 or 700 lu down a row is written by growing the row stroke
+/// after stroke, which the session sim does not do); only the fixture's page is saved. So the path is floors →
+/// `SpanLayout.drop`/`inkCell` → `SpanLedgerSim` → saved bytes. Until the merge with role K's floors (step D1a) the maker
+/// fed the fixture page's own ink-bottom input instead; the bytes are the same either way, because the points are stored
+/// relative to the cell, whose origin does not move (the rows above do not move, §4.1, §5.1). KitChecks compares the
+/// committed files with `make()` on every run, so a maker that gave other bytes would fail there.
 ///
 /// Ids come from seeds, times are 1,791,430,000,000 + n (after 1.3's fixtures, before the 1,792,000,000,000 the readers
 /// use for their own edits), the layouts use `CompatFixtures.now` and Tokyo, so the bytes are the same on every run and
@@ -95,14 +100,17 @@ public enum CompatSpan143Fixtures {
 
     // MARK: - The tall rows of 12 and 13
 
-    /// Fixture 12's row: `y-2026`'s row 15 at 392 lu (60 natural), the height a floor from a neighbour year whose row 15
-    /// holds a line ending 380 lu below its top gives (`rowStandIn` puts the same height through the ink-bottom input).
+    /// Fixture 12's row: `y-2026`'s row 15 at 392 lu (60 natural), the floor from the neighbour year `y-2027` whose row 15
+    /// holds a line ending 380 lu below its top (`yearNeighbourCell`, `yearNeighbourBottom`).
     public static let yearRowCell = CellKey.yearDay(month: 6, day: 15)
-    public static let yearRowStandIn: CGFloat = 380
+    public static let yearNeighbourCell = CellKey.yearDay(month: 3, day: 15)
+    public static let yearNeighbourBottom: CGFloat = 380
     /// Fixture 13's row: `m1-2026-11`'s row 6 (2026-11-30 … 2026-12-06 with the Monday start) at 712 lu (175 natural),
-    /// what form ア's grid floor gives in a window whose tallest grid ends at 1,587 lu (rows 1–5 stay 175 lu each).
+    /// what form ア's grid floor gives in a window whose tallest grid ends at 1,587 lu (rows 1–5 stay 175 lu each): the
+    /// neighbour `m1-2026-12` has a line ending 700 lu down 2026-12-16 (its 3rd row: 712, grid 4 × 175 + 712 + 175).
     public static let monthRowCell = CellKey.day(DayKey(year: 2026, month: 12, day: 3))
-    public static let monthRowStandIn: CGFloat = 700
+    public static let monthNeighbourCell = CellKey.day(DayKey(year: 2026, month: 12, day: 16))
+    public static let monthNeighbourBottom: CGFloat = 700
 
     // MARK: - Making them
 
@@ -151,21 +159,54 @@ public enum CompatSpan143Fixtures {
         SpanPlan(kind: kind, weekStart: weekStart, deviceClass: .iPad11, orientation: .portrait)
     }
 
-    /// The page as a window lays it out (no event, `CompatFixtures.now`, Tokyo), with `rowStandIn` as the bottom of the
-    /// ink of the cells it names (fixtures 12 and 13; empty for every other page: the natural rows).
-    static func layout(_ pageId: String, weekStart: WeekStart, rowStandIn: [CellKey: CGFloat]) -> any PageLayout {
-        guard let parsed = PageNavigation.parse(pageId: pageId) else { preconditionFailure("not a page id: \(pageId)") }
+    /// The window's pages as a joined window of 1.4.3 lays them out when it opens (docs/R1_4_3_CONTRACT.md §3.3, §4.1,
+    /// §5.1; no event, `CompatFixtures.now`, Tokyo): every page from its own ink (`InkPage.inkBottoms()`) without floors,
+    /// the window's floors from those natural numbers (`.redecide`: a new window) — the month's by form ア
+    /// (`SpanAlign.monthFloors(form: .memo)`; fixture 13 is ア's whatever `SpanAlign.monthForm` is), the year's by
+    /// `SpanAlign.yearFloors` — and every page again with them. For the empty pages of 8–11 the floors are the natural
+    /// rows, so nothing moves.
+    static func windowLayouts(_ pages: [InkPage], weekStart: WeekStart) -> [any PageLayout] {
         let now = CompatFixtures.now
         let tokyo = CompatFixtures.tokyo
-        switch parsed.kind {
-        case .month:
-            return MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: parsed.focus.year, month: parsed.focus.month), events: [],
-                                                             inkBottoms: rowStandIn, now: now, calendar: tokyo, weekStart: weekStart))
-        case .year:
-            return YearLayoutEngine.layout(YearLayoutInput(year: parsed.focus.year, events: [], inkBottoms: rowStandIn, now: now, calendar: tokyo))
-        case .day, .week:
-            preconditionFailure("compat-span-143 holds months and years only: \(pageId)")
+        let parsed = pages.map { page -> (kind: PageKind, focus: DayKey) in
+            guard let p = PageNavigation.parse(pageId: page.pageId) else { preconditionFailure("not a page id: \(page.pageId)") }
+            return p
         }
+        guard let kind = parsed.first?.kind, parsed.allSatisfy({ $0.kind == kind }) else {
+            preconditionFailure("a window holds pages of one kind: \(pages.map(\.pageId))")
+        }
+        switch kind {
+        case .month:
+            let inputs = zip(pages, parsed).map { page, p in
+                MonthLayoutInput(month: YearMonth(year: p.focus.year, month: p.focus.month), events: [], inkBottoms: page.inkBottoms(),
+                                 now: now, calendar: tokyo, weekStart: weekStart)
+            }
+            let naturals = inputs.map { SpanAlign.MonthNatural(MonthLayoutEngine.layout($0)) }
+            let floors = SpanAlign.monthFloors(previous: .none, naturals: naturals, form: .memo, change: .redecide)
+            return inputs.map { MonthLayoutEngine.layout($0.floored(by: floors)) }
+        case .year:
+            let inputs = zip(pages, parsed).map { page, p in
+                YearLayoutInput(year: p.focus.year, events: [], inkBottoms: page.inkBottoms(), now: now, calendar: tokyo)
+            }
+            let floors = SpanAlign.yearFloors(previous: .none, naturalRows: inputs.map { SpanAlign.naturalRows(of: YearLayoutEngine.layout($0)) },
+                                              change: .redecide)
+            return inputs.map { YearLayoutEngine.layout($0.floored(by: floors)) }
+        case .day, .week:
+            preconditionFailure("compat-span-143 holds months and years only: \(pages.map(\.pageId))")
+        }
+    }
+
+    /// A page holding one stored line in `cell` that ends `bottom` lu below the cell's top (5 points 30 … 90 lu across,
+    /// nib 4 lu, every other point 6 lu higher): the neighbour that lengthens the row of 12 or 13 through the floors.
+    static func neighbour(_ pageId: String, cell: CellKey, bottom: CGFloat, id: String, t: Int) -> InkPage {
+        let points = (0..<5).map { i in
+            InkPoint(x: CGFloat(30 + 15 * i), y: bottom - 2 - CGFloat(i % 2 == 0 ? 6 : 0), dtMs: 16 * i, sizeW: 4, sizeH: 4,
+                     opacity: 1, force: 0.5, azimuth: 0, altitude: 1.5)
+        }
+        var page = InkPage(pageId: pageId)
+        page.add(InkStroke(id: id, cell: cell, tool: .pen, color: "#1f2937", t: t, dev: device, points: points))
+        precondition(page.inkBottoms()[cell] == bottom, "the neighbour's line ends \(bottom) lu down \(cell.raw)")
+        return page
     }
 
     /// A line of `count` points from x0 to x1 (window lu) around y, every other point 6 lu lower (compat-span's shape).
@@ -178,8 +219,8 @@ public enum CompatSpan143Fixtures {
         var slots: SpanSlotsSim
         var deltas = 0
 
-        init(_ pages: [InkPage], plan: SpanPlan, seed: UInt64, firstTime: Int, rowStandIn: [String: [CellKey: CGFloat]] = [:]) {
-            let layouts = pages.map { CompatSpan143Fixtures.layout($0.pageId, weekStart: plan.weekStart, rowStandIn: rowStandIn[$0.pageId] ?? [:]) }
+        init(_ pages: [InkPage], plan: SpanPlan, seed: UInt64, firstTime: Int) {
+            let layouts = CompatSpan143Fixtures.windowLayouts(pages, weekStart: plan.weekStart)
             precondition(layouts.map(\.pageId) == pages.map(\.pageId), "the pages lay out as themselves under the \(plan.weekStart) start")
             let window = SpanLayout(pages: layouts, plan: plan, firstIndex: plan.index(of: pages[0].pageId)!, session: 0)
             let virtual = SpanComposer.compose(pages, plan: plan, session: 0)
@@ -282,21 +323,28 @@ public enum CompatSpan143Fixtures {
             keep(monthMemoSunday, s, "m1-2026-11")
             finish(s)
         }
-        // 12. The year's lengthened row: y-2026's row 15 at 392 lu (its top at y 840); a line in June (06-15: window x
-        // 2,016 … 2,128) 350 lu below the cell's top.
+        // 12. The year's lengthened row: y-2027's line 380 lu down 03-15 makes row 15 of the window 392 lu, so y-2026's row
+        // 15 is 392 lu (its top at y 840); a line in June (06-15: window x 2,016 … 2,128) 350 lu below the cell's top.
         do {
-            var s = Session(empty(years), plan: plan(.year), seed: 0x5A01_4312, firstTime: baseTime + 1200,
-                            rowStandIn: ["y-2026": [yearRowCell: yearRowStandIn]])
+            let pages = [InkPage(pageId: years[0]), InkPage(pageId: years[1]),
+                         neighbour(years[2], cell: yearNeighbourCell, bottom: yearNeighbourBottom, id: "c143-0012-neighbour", t: baseTime + 1190)]
+            let row = windowLayouts(pages, weekStart: .monday)[1].cells[yearRowCell]
+            precondition(row == CGRect(x: 616, y: 840, width: 112, height: 392), "the floor makes y-2026's 06-15 392 lu tall (\(String(describing: row)))")
+            var s = Session(pages, plan: plan(.year), seed: 0x5A01_4312, firstTime: baseTime + 1200)
             s.draw(line(2046, 2106, y: 1190, count: 5), owner: "y-2026", cell: yearRowCell, color: "#2563eb")
             s.deliver()
             keep(yearRowFloor, s, "y-2026")
             finish(s)
         }
-        // 13. The month's lengthened last row (form ア): m1-2026-11's row 6 at 712 lu (its top at y 875); a line in
-        // 2026-12-03 (column 4: window x 2,000 … 2,200) 600 lu below the cell's top.
+        // 13. The month's lengthened last row (form ア): m1-2026-12's line 700 lu down 2026-12-16 ends its grid at 1,587, so
+        // m1-2026-11's row 6 is 712 lu (its top at y 875); a line in 2026-12-03 (column 4: window x 2,000 … 2,200) 600 lu
+        // below the cell's top.
         do {
-            var s = Session(empty(months), plan: plan(.month), seed: 0x5A01_4313, firstTime: baseTime + 1300,
-                            rowStandIn: ["m1-2026-11": [monthRowCell: monthRowStandIn]])
+            let pages = [InkPage(pageId: months[0]), InkPage(pageId: months[1]),
+                         neighbour(months[2], cell: monthNeighbourCell, bottom: monthNeighbourBottom, id: "c143-0013-neighbour", t: baseTime + 1290)]
+            let row = windowLayouts(pages, weekStart: .monday)[1].cells[monthRowCell]
+            precondition(row == CGRect(x: 600, y: 875, width: 200, height: 712), "form ア's floor makes m1-2026-11's 2026-12-03 712 lu tall (\(String(describing: row)))")
+            var s = Session(pages, plan: plan(.month), seed: 0x5A01_4313, firstTime: baseTime + 1300)
             s.draw(line(2030, 2170, y: 1475, count: 6), owner: "m1-2026-11", cell: monthRowCell)
             s.deliver()
             keep(monthLastRow, s, "m1-2026-11")
