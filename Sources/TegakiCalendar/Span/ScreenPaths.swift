@@ -455,9 +455,13 @@ final class ScreenPaths: ObservableObject {
     /// the focus page the one-page demo, a neighbour the same demo with ids of its own, the crossing demo with
     /// `--screenshot-span on` (`Config.crossingDemo`). `--screenshot-week-memo` (1.3, §5.2) reaches `spanDemoPage` through
     /// its default (`ScreenshotMode.current`): the focus week's memo strokes.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §12.5, 0g-31): `--screenshot-span-crossing all` (the month's crossing sample in
+    /// its memo band) and `--screenshot-month-tall` (the right neighbour's taller rows) reach it from `shot`; both off, the
+    /// pages are 1.4.2's.
     static func windowDemo(_ shot: ScreenshotMode.Config, pageId: String, kind: PageKind, weekStart: WeekStart) -> InkPage {
         ScreenshotMode.spanDemoPage(pageId: pageId, kind: kind, focus: shot.focus, weekStart: weekStart, crossing: shot.crossingDemo,
-                                    grown: shot.grown, empty: shot.empty, tallYear: shot.tallYear, storeInk: shot.storeInk)
+                                    grown: shot.grown, empty: shot.empty, tallYear: shot.tallYear, storeInk: shot.storeInk,
+                                    crossingAll: shot.spanCrossingAll, monthTall: shot.monthTall)
     }
 
     /// `--screenshot-single-page` (§3.12, the old versions' view): the week's or the day's page of the one-page path with
