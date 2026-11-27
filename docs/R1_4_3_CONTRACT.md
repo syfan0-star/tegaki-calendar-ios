@@ -4,6 +4,8 @@
 >
 > **第 2 版（2026-11-28）**: 2 つの見直し（段取りと本人の目線／コードとの突き合わせ）の指摘を入れた版です。主な替え: 月のアを B の設計書の形（格子の短い月は最後の行をのばす）に戻した（§4.1、0g-11）、見本の写真を月の部品を本流に入れる前に撮る段 D1b-0 を足した（§14.1、0g-43）、年の予定を別の口で読む（§5.5、0g-24）、年が遅れたとき・重いときの落とし所と替える物の一覧（0g-3）、確かめ表の始まりの形の直し（§15）。中身は §19 の記録。
 >
+> **第 3 版（2026-11-28）**: リードの決め 6 つ（§17・§19）と 2 つ目の見直し（つじつま／コード）の指摘を入れ、月と年の下限をずらしの後の読み込みでも下げない形にし（§3.3）、見本の写真の段に月の見出しを足して出し方の順を「見本が先」にそろえ（§14.1・§14.4）、凍結のテストの作り直しを正しさに要る所だけにした版です（中身は §19 の記録）。
+>
 > **本人が読む所**: すぐ下の §0（まとめ）だけで足ります。§15 の確かめ表は、TestFlight のビルドが届いたときに Claude が番号を書いて改めて渡します（今は開かなくて大丈夫です）。§1 から後は、作る人のための約束です。
 >
 > **この文書の決まり**: 1.4.3 の作業はこの文書に従います。元は本人の 2026-11-22 の言葉（「月と年は、横スクロールができる仕様にしてから、幅が両端にくる等倍を適用します」）、[M7_PLAN.md](M7_PLAN.md) §4 の「次の版」の行と 1.7・1.8 の行、[R1_4_2_CONTRACT.md](R1_4_2_CONTRACT.md) の 0f-2（「次の版」は 1.4.2 の後。番号と中身はその版の契約で決め、1.7・1.8 と一緒に設計する）、[B_DESIGN.md](B_DESIGN.md) の §2〜§6・§8・§11・§12（月 §3.4、年 §3.5）、[M7C_CONTRACT.md](M7C_CONTRACT.md)（1.3 の横つなぎ B-1 の約束と、月・年へ送った約束）、[R1_4_1_CONTRACT.md](R1_4_1_CONTRACT.md) §16（等倍の規則）です。B_DESIGN は 1.3 の前の番号（B-1 = 1.5、年 = 1.6、月 = 1.7）と m7a のコードの行で書かれている（読み替えは M7C_CONTRACT §1.2）。**食い違う所はこの文書が優先**です。結果と前もっての宣言は `docs/R1_4_3.md`（S0 でリードが作る）に書きます（この文書の §19 は契約の版の記録だけ）。節の形は [R1_4_2_CONTRACT.md](R1_4_2_CONTRACT.md) にそろえました。
@@ -24,8 +26,9 @@
 - **月の境目をまたいで書けるのは、下のメモ欄です。** メモ欄が横に 1 本の帯になり、「年末までに: 大掃除 → 年賀状 → 帰省の切符」のように、10 月から 11 月へ続けて書けます。
 - 前後の月の薄い日は、今までどおり両方の表に出ます。10 月の表の薄い 11/1 に書いたものは、すぐ右の 11 月の表の 11/1 には出ません（同じ画面に 11/1 のマスが 2 つ並ぶことがあります）。今日の印も、薄い方にも付きます。
 - 曜日の行の、各表の左端に月の名前の札（「11月」）が付きます。左へ出ていった月の札は、画面の左端に残ります。
-- メモ欄（上の区切りの線・罫線・ドット方眼の点と、そこに書いた字）は、となりの月と同じ高さにそろえます。そのため、格子の短い月では、いちばん下の週の行がのびます（B の設計書で「月の最後の行がのびることがあります」とお伝えした形です。その行が前後の月の薄い日だけなら、薄い色の帯になります。のびた所に書いたものは、その行の日のマスに入ります）。メモ欄の字は罫線と一緒に動くので、字と罫線がずれることはありません。メモ欄の下も、となりのいちばん長い月の分だけ白紙が続きます。
-- **月の並べ方は、3 通りの写真を見て選べます**（§0.4）: **ア（おすすめ）** メモ欄だけそろえる（上のとおり。格子の短い月はいちばん下の行がのびる）／イ 格子の行の高さも全部そろえる（1 枚の大きな表のよう。となりの月の予定で行が伸びる）／ウ そろえない（今の月をそのまま並べる。メモ欄の高さが月ごとにずれる）。何もおっしゃらなければアで作ります。
+- メモ欄（上の区切りの線・罫線・ドット方眼の点と、そこに書いた字）は、となりの月と同じ高さにそろえます。そのため、となりの月より予定や書き込みが少なく、表の背が低い月では、いちばん下の週の行がのびます（B の設計書で「月の最後の行がのびることがあります」とお伝えした形です。その行が前後の月の薄い日だけなら、薄い色の帯になります。のびた所に書いたものは、その行の日のマスに入ります）。メモ欄の字は罫線と一緒に動くので、字と罫線がずれることはありません。
+- **月の並べ方は、3 通りの写真を見て選べます**（§0.4）: **ア（おすすめ）** メモ欄だけそろえる（上のとおり。表の背が低い月はいちばん下の行がのびる）／イ 格子の行の高さも全部そろえる（1 枚の大きな表のよう。となりの月の予定で行が伸びる）／ウ そろえない（今の月をそのまま並べる。メモ欄の高さが月ごとにずれ、いちばん小さくしたときの大きさも月ごとに変わる）。何もおっしゃらなければアで作ります。
+- 月をいちばん小さくしたときの大きさは、となりに予定や書き込みの多い月があると少し小さくなり、iPad の縦でも左右にとなりの月の端が見えることがあります（アとイのとき。開いたときの大きさと等倍は変わりません。横にすべらせただけでは、ふつう大きさは変わりません）。
 
 **年のページ**
 - 12 月の右に、次の年の日付の列と 1〜12 月が続きます。日付の列の上に「2027」の札が付きます。
@@ -36,14 +39,14 @@
 
 **等倍（虫めがねに「1」のボタン）**
 - 月と年でも、等倍が「1 ページの幅が画面の幅にちょうど合う大きさ」になります（日と週は 1.4.1 から）。
-- 開いたときの大きさは今のままです（ただし iPhone を横にした年は、上の「3 年分までの大きさ」のとおり、開く大きさが少し大きくなります。前に 2 本の指で覚えた大きさがあれば、その新しい大きさを元に開きます）。一度押すと、その種類は次からも等倍で開きます。2 本の指で大きさを変えると、次からはその大きさで開きます（日・週と同じ）。
+- 開いたときの大きさは今のままです（ただし iPhone を横にした年は、上の「3 年分までの大きさ」のとおり、開く大きさが 1.5 倍ほどになります。前に 2 本の指で覚えた大きさがあれば、その新しい大きさを元に開きます）。一度押すと、その種類は次からも等倍で開きます。2 本の指で大きさを変えると、次からはその大きさで開きます（日・週と同じ）。
 - 縦の iPad の月と、縦の iPhone の月と年は、開いたときにもう幅がちょうどなので、押しても見た目はほとんど変わりません。それでも等倍として覚えるので、その後に端末を横にすると、幅にちょうどになります。
 - 横の iPad で月の等倍を押すと、6 週のうち 4 週前後が見え、残りの週とメモ欄は下へすべらせて見ます。年の等倍で見える日数は、31 日のうち、iPad の縦で 26〜28 日ほど、横で 11〜14 日ほど、iPhone の横で 6〜7 日ほどです（計算した目安です。作った後に測り直します）。
 - 設定 › ページ で横につなげるのをオフにしても、等倍は同じ（1 ページの幅にちょうど）です。
 
 ### 0.2 変わらないこと
 
-- 書いた線の保存の形・iCloud の記録・書き出しの形は変えません。**今までの手書きのデータは 1 本も変わりません。**（横につないだ月では、そろえのために、メモ欄やいちばん下の行が字と一緒に下へずれて見えることがあります。字と罫線・マスの位置の関係は変わりません。）新しい名前も、移し替えもありません。またいで書いた線は、線の真ん中があるページに 1 本で保存します（週・日と同じ）。
+- 書いた線の保存の形・iCloud の記録・書き出しの形は変えません。**今までの手書きのデータは 1 本も変わりません。**（横につないだ月では、そろえのために、メモ欄が字と一緒に下へずれ、いちばん下の行がのびて見えることがあります。字と罫線・マスの位置の関係は変わりません。）新しい名前も、移し替えもありません。またいで書いた線は、線の真ん中があるページに 1 本で保存します（週・日と同じ）。
 - 設定 › ページ の「前後のページを横につなげる」をオフにすると、月も年も今までどおり 1 ページずつです。
 - 週と日のページは 1.4.2 のままです。「‹ 今日 ›」、利き手、ツールバー、ペンの色、メモ欄の紙、日付のダブルタップ、年の日付のタップも、そのままです。
 - 「このページ」の PDF には、週・日と同じく、となりのページから入ってくる線の、紙の中の部分も出ます。
@@ -60,13 +63,14 @@
 
 | いつ（目安） | すること | 本人にお願いすること |
 | --- | --- | --- |
-| 11/28 | この約束（第 1 版と、見直しを入れた第 2 版）と、作る前の決めごとの記録 | このまとめを読む（返事は要りません） |
+| 11/28 | この約束（第 1 版と、見直しを入れた第 2 版・第 3 版）と、作る前の決めごとの記録 | このまとめを読む（返事は要りません） |
 | 11/28〜11/29 | 自動の確かめの準備（版の番号・比べる元の写真） | なし |
-| 11/28〜11/30 | 画面に出ない土台（そろえの計算など）と、見本の写真を撮るための月の最小の部分を、本流に入れずに作る | なし |
-| 11/30〜12/1 | 月の 3 通りの見本の写真と、月の等倍の前と後の写真を、月の画面の部品を本流に入れる前にお送りする | 選ぶ（何も言わなければア） |
-| 11/30〜12/5 | 月と年を横につなげる仕組み・紙・見出し・等倍を作る（月が先、年が後）。わざと壊して確かめが落ちるかも見る | なし |
-| 12/5 | 年が間に合わなければ、月だけを 1.4.3 にし、年は 1.4.4 へ（お知らせします） | なし |
+| 11/28〜11/30 | 画面に出ない土台（そろえの計算など）を作る。見本の写真を撮るための月の最小の部分は、アプリの本体に組み込まずに作る | なし |
+| 11/30〜12/1 | 月の 3 通りの見本の写真と、月の等倍の前と後の写真を、月の画面の部品をアプリの本体に組み込む前にお送りする（作業が遅れたら、この日も同じだけ遅れます。お答えの期限は 12/8 ごろのままです） | 選ぶ（何も言わなければア） |
+| 11/30〜12/4 | 月と年を横につなげる仕組み・紙・見出し・等倍を作る（月が先、年が後） | なし |
 | 12/4〜12/8 | 新しい文の訳・サポートページ・新機能の文・審査メモ | なし |
+| 12/5 | 年が間に合わなければ、月だけを 1.4.3 にし、年は 1.4.4 へ（お知らせします） | なし |
+| 12/5〜12/7 | わざと壊して、自動の確かめが落ちるかを見る。iPhone Duo の自動の確かめ | なし |
 | 12/9〜12/10 | TestFlight 1.4.3（ビルド 33 以上）と確認ページ（撮り直した App Store の写真も） | 確かめ表（§15）、「この内容で入れてよい」 |
 | 確かめ表が全部 ○ になった後 | 審査に提出（手動公開） | 「1.4.3 を審査に提出して良い」 |
 | 審査が通った後 | 公開 → 本流にまとめる | 「1.4.3 を公開して良い」「まとめて良い」 |
@@ -77,9 +81,9 @@
 
 ### 0.4 本人にお願いすること（言葉と操作の一覧。ほかの節はここを指します）
 
-- **見本の写真のページ 1 回（11/30〜12/1 ごろ）**: 月の並べ方 3 通り（ア・イ・ウ）を、同じ見本の手書きと予定で並べた写真（11 インチと 13 インチの縦・横、iPhone）と、月の等倍の前と後の写真（お手元の 4 台の大きさ）を、1 つのページでお送りします（1.3 の前に約束した「月の並べ方は月の版の見本で見てもらいます」と、B の設計書の「作る前に見本の画面の画像で確かめてもらいます」のとおり。月の画面の部品を本流に入れる前に撮ります）。
+- **見本の写真のページ 1 回（11/30〜12/1 ごろ）**: 月の並べ方 3 通り（ア・イ・ウ）を、同じ見本の手書きと予定で並べた写真（11 インチの縦・横、13 インチの縦、iPhone の縦）と、月の等倍の前と後の写真（お手元の 4 台の大きさ）を、1 つのページでお送りします（1.3 の前に約束した「月の並べ方は月の版の見本で見てもらいます」と、B の設計書の「作る前に見本の画面の画像で確かめてもらいます」のとおり。月の画面の部品をアプリの本体に組み込む前に撮ります。月の名前の札は、この写真にはまだ写りません。作った後の確認ページで見ていただきます）。
   - **選んでいただくのは月の並べ方だけです**（「イ」のように一言）。最後の自動の確かめを始める前（12/8 ごろ）までにお答えが無ければアで作ります。その後でも替えられます（作り直しと、確かめ表の一部のやり直しになります）。
-  - 年の行のそろえ（前と後）と年の等倍の写真は、そろっていればこのページに、間に合わなければ確認ページに入れます（見るだけで、選ぶものではありません。違うと思ったら言ってください）。
+  - 年の行のそろえ（前と後）と年の等倍の写真は、ふつうは作った後の確認ページでお見せします（そろっていればこのページにも入れます）。B の設計書では作る前の見本でとお伝えしていましたが、年のそろえは選ぶものではないので、作った後に替えました。見るだけで、選ぶものではありません。違うと思ったら言ってください。
 - **確認ページ 1 回（12/9〜12/10 ごろ）**: 月と年の見え方、等倍、設定 › ページ の説明の新しい文（10 の言葉）、初めて開いたときの案内の札の新しい文、新機能の文（16 の言葉）、サポートページの変わる所（日本語・英語）、審査メモ、撮り直した App Store の写真を、1 つのページで見せます。「**この内容で入れてよい**」の言葉をください。
   - 設定 › ページ の説明の 2 つ目の文「月と年は、次の版から順に対応します。」は、前に本人に承認していただいた文です。1.4.3 では事実と合わなくなるので、確認ページで新しい文を見ていただき、この言葉で替えます。新しい文の案（§13.1）:「週・日・月・年のページで、前後のページが横につながり、境目をまたいで書けます（月のページでは、下のメモ欄でまたげます）。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。」
 - **TestFlight 1.4.3 の確かめ表**（§15）。**本人の端末でしか確かめられません。** iPhone Duo の行は「—」で構いません（Duo はお持ちでないので、自動の確かめだけで見ます）。
@@ -133,7 +137,7 @@
 - P-B4・P-B7・P-B8 はおまかせ（`docs/M7_PLAN.md:762`）。
 
 **送られてきた約束**:
-- 月の 3 通り（P-B3）と年のそろえは、月・年の版の前に見本の写真で見てもらう（M7C_CONTRACT 0c-20 :305、:755・:757「答えが無くても進める」、本人向けの字 :78「月の並べ方（P-B3）は月の版（1.7）の見本で見てもらいます」、B_DESIGN §8.1）。→ 段 P（0g-43）。
+- 月の 3 通り（P-B3）と年のそろえは、月・年の版の前に見本の写真で見てもらう（M7C_CONTRACT 0c-20 :305、:755・:757「答えが無くても進める」、本人向けの字 :78「月の並べ方（P-B3）は月の版（1.7）の見本で見てもらいます」、B_DESIGN §8.1）。→ 段 P（0g-43。:755 の「契約の前」は「月の画面の部品を `r143` に入れる前」と読み替えた。年のそろえは選ぶものではないので、ふつうは作った後の確認ページで見せる）。
 - iPhone 横の年の上限は「1.8 で決め直す」（M7C_CONTRACT.md:708）。→ 0g-23。
 - 段 1（見るだけの外側）は「1.8 で」（M7C_CONTRACT.md:690、`Layout/SpanLayout.swift:47-48` の注）。→ 0g-25。
 - 月の帯の fixture は「1.7」（M7C_CONTRACT.md:650）。→ 0g-30。
@@ -153,7 +157,7 @@
 | --- | --- | --- | --- | --- |
 | 1 | 版 1.4.3、CI の枝の配線（`r143*`）、J-4 の基準を 57ffd0f に、1.4.2 のテストの守りの表 | 0g-1・0g-29・0g-40・0g-41 | C | D0 |
 | 2 | Kit: 月・年の下限（そろえ）、月の 3 通り、年の 31 行、月のずらしの y の補正、新しい KitChecks、互換の新しい fixture | 0g-10〜0g-12・0g-17・0g-21・0g-30 | K・C | D1a |
-| 3a | 見本の写真のための月の最小の部分（本流に入れない作業の枝。§14.1） | 0g-43 | S・P・C・U | D1b-0 |
+| 3a | 見本の写真のための月の最小の部分（`r143` に入れない作業の枝。月の見出しの曜日の行を含む。§14.1） | 0g-43 | S・P・C・U | D1b-0 |
 | 3 | 月を横の道へ: 種類の集合、道、セッションの下限、紙（凍結のキャンバスの作り直し 3 回目）、境目の線、見出しと月の札、焦点、今日、PDF、案内の札、月の等倍、写真モード、守られたテストの作り直し（月） | 0g-8・0g-9・0g-13〜0g-20・0g-26〜0g-28・0g-31〜0g-33・0g-53 | S・P・Z・U | D1b |
 | 4 | 見本の写真（月の 3 通り・月の等倍。年はそろえば） | 0g-43 | C・U・リード | P |
 | 5 | 年を横の道へ: 行のそろえ、見出しと年の札、iPhone 横の上限、予定（終日だけ）、今日、PDF、案内の札、年の等倍、重さの測り、守られたテストの作り直し（年）、年の UI テストの親（`YearTapUITests`）の直し | 0g-21〜0g-26・0g-28・0g-52 | K・S・P・U | D1y |
@@ -193,18 +197,18 @@
 ```
 project.yml                                          C  MARKETING_VERSION "1.4.3"（だけ）
 .github/workflows/build.yml                          C  r143 の配線（§12.1）、TESTS_1_4_2・FIXTURES_1_4_3 の段、compat-span-143 の段、
-                                                        速い道の組の名前、ui-tests の grep、新しい写真のジョブ span-shots-my と数の行
-.github/workflows/ja-baseline.yml                    C  基準のファイルを 1.4.3 に（:124 の FILE=）
+                                                        速い道の組の正規表現（:717）、ui-tests の grep、新しい写真のジョブ span-shots-my と数の行
+.github/workflows/ja-baseline.yml                    C  基準のファイルを 1.4.3 に（:126 の FILE=）
 .github/workflows/duo.yml                            C  枝 r143-duo*、月と年も横の道で撮る（:899-911・:916 の case）
 .github/workflows/store-shots.yml                    C  月と年を横の道で撮る、ja の組も月と年（§12.6）
 tools/l10n/ja-baseline-ref-1.4.3.txt                 C  新しい。57ffd0f418d66dbf2e669a8313d773e2e97a09e2 の 1 行
 tools/span/TESTS_1_4_2.sha256                        C  新しい（0g-29）
 tools/span/FIXTURES_1_4_3.sha256                     C  新しい（0g-30）
-tools/span/TESTS_1_3.sha256                          S  R0m・R0y・R0f の commit の 3 行だけ（ScreenPathsSpanTests・SettingsPageSectionTests・SpanRerunUITests。SpanRerunUITests の行は U の R0 の commit で U が書く。§8.5）
-tools/span/TESTS_1_4_1.sha256                        S  R0m・R0y の commit の 4 行だけ（§8.5）
+tools/span/TESTS_1_3.sha256                          S  R0m・R0y・R0f の commit の 2 行だけ（ScreenPathsSpanTests・SettingsPageSectionTests。§8.5。SpanRerunUITests の行は変えない）
+tools/span/TESTS_1_4_1.sha256                        S  R0m・R0y の commit の 3 行だけ（ZoomResetTargetTests・ZoomFitWiringTests・InkCanvasZoomResetTests。§8.5。ZoomResetUITests の行は変えない）
 tools/compat10/DATA_1_1.sha256                       Z  1 行目だけ（R3 の commit。§8.4）
 TegakiKit/Sources/Layout/SpanAlign.swift             K  Floors の新しい欄・MonthForm・monthFloors・yearFloors
-TegakiKit/Sources/Layout/LayoutEvent.swift           K  MonthLayoutInput の下限の入力（既定値つき）
+TegakiKit/Sources/Layout/LayoutEvent.swift           K  MonthLayoutInput の下限の入力（既定値つきの public var）
 TegakiKit/Sources/Layout/MonthLayoutEngine.swift     K  下限の入力（最後の行の下限・行の下限・メモ欄の高さの下限）。MonthPageLayout.swift は変えない（§4.1）
 TegakiKit/Sources/Layout/YearLayoutEngine.swift      K  YearLayoutInput.rowFloors
 TegakiKit/Sources/Layout/PageLayout.swift            K  PageScroll.scrollDelta の月の窓の枝
@@ -212,15 +216,15 @@ TegakiKit/Sources/Layout/SpanLayout.swift            K  kind・真ん中のペ�
 TegakiKit/Sources/KitChecks/SpanMonthYearChecks.swift（新しい）と KitChecks の入口   K
 TegakiKit/Tests/Fixtures/compat-span-143/（新しい）・その作り手と読み手のテスト（新しい）   C
 Sources/TegakiCalendar/Span/SpanKinds.swift          S  新しい。横につなぐ種類の集合（1 か所）
-Sources/TegakiCalendar/Span/ScreenPaths.swift        S  joins・focus・today と上限の今日・paper(of:)・見出し・singlePageDemo・photoGuide・yearEventSource（§5.5）
-Sources/TegakiCalendar/Span/SpanSession.swift        S  layoutPages・relayoutPages（月・年の下限）。eventSource の型と口は変えない（§5.5）
-Sources/TegakiCalendar/Views/CalendarRootScreen.swift  S  月・年の道のつなぎ（要る所だけ）、:1625 の隣に yearEventSource のつなぎ（§5.5）、makePaper の content の部分を 1 か所の関数へ（§4.7、0g-53）
+Sources/TegakiCalendar/Span/ScreenPaths.swift        S  joins・focus・today と上限の今日・paper(of:)・見出し（makeHeadingSpan の月・年の枝、§3.8）・singlePageDemo・photoGuide・yearEventSource（§5.5）
+Sources/TegakiCalendar/Span/SpanSession.swift        S  layoutPages・relayoutPages（月・年の下限と、下げてよい時の読み替え、§3.3）。eventSource の型と口は変えない（§5.5）
+Sources/TegakiCalendar/Views/CalendarRootScreen.swift  S  月・年の道のつなぎ（要る所だけ）、:1625 の隣に yearEventSource のつなぎ（§5.5）、紙の中身の 1 か所の関数（0g-53。置き場所は S と P が決める。makePaper の署名とエンジンを呼ぶ所は残す、§2.1）
 Sources/TegakiCalendar/Views/SpanGuideView.swift     S  joinedKinds・text（月・年の札）
 Sources/TegakiCalendar/Views/ZoomReset.swift         S  followsFit（月・年）
 Sources/TegakiCalendar/Calendar/EventStoreModel.swift  S  events(from:to:allDayOnly:)（写真モードの分かれも allDayOnly で絞る）
 Sources/TegakiCalendar/Support/ScreenshotMode.swift  S  新しい引数（既定値つき）、月・年のまたぐ見本
 Sources/TegakiCalendar/Persistence/AppSettings.swift  S  注だけ（zoomFit の月・年）
-Sources/TegakiCalendar/Paper/PaperSpan.swift         P  window(for:focus:)、月・年の窓（中身は 0g-53 の 1 か所の関数で作る）
+Sources/TegakiCalendar/Paper/PaperSpan.swift         P  window(for:focus:)、月・年の窓と init?(pages:bands:focus:) の月・年（中身は 0g-53 の 1 か所の関数で作る）
 Sources/TegakiCalendar/Paper/PaperView.swift         P  drawSpan の月の境目の線
 Sources/TegakiCalendar/Views/StickyHeaderView.swift  P  spanMonthRow・spanYearRow（新しい）
 Sources/TegakiCalendar/Export/PDFPageRenderer.swift  P  月の矩形に隣から入るメモの線
@@ -230,9 +234,7 @@ Tests/TegakiCalendarTests/（新しい）・Tests/TegakiCalendarUITests/（新�
 Tests/TegakiCalendarTests/ScreenPathsSpanTests.swift・SettingsPageSectionTests.swift   S  R0m・R0y・R0f の行だけ（§8.5）
 Tests/TegakiCalendarTests/ZoomResetTargetTests.swift・ZoomFitWiringTests.swift   S  R0m・R0y の行だけ
 Tests/TegakiCalendarTests/InkCanvasZoomResetTests.swift   Z  R0m・R0y の行だけ
-Tests/TegakiCalendarUITests/ZoomResetUITests.swift   U  R0y の行だけ
-Tests/TegakiCalendarUITests/SpanRerunUITests.swift   U  R0m・R0y の注と飛ばす理由の字だけ（期待は変えない。§8.5）
-Tests/TegakiCalendarUITests/YearTapUITests.swift     U  runJump の押す所を両方の道で 3/16 に（守られていない親。§11.3、0g-52）
+Tests/TegakiCalendarUITests/YearTapUITests.swift     U  runJump の押す所を両方の道で 3/16 に、終わりに span.state が日の窓になるのを待つ（守られていない親。§11.3、0g-52）
 Tests/TegakiCalendarTests/AppSettingsTests.swift     S  :302-310 を読み替え（守られていない）
 tools/l10n/source/app-U.json・app-P.json（comment）・translations/*.json（9）  X  §13.1（D1b・D1y の 4 キーの ja と仮の訳だけは S。§13.1）
 Sources/TegakiCalendar/Resources/Localizable.xcstrings  X  build.py が作り直す（同じ commit）
@@ -243,7 +245,7 @@ docs/SUPPORT.md・SUPPORT.en.md                       W  §13.5
 docs/R1_4_3.md・docs/M7_PLAN.md・docs/DESIGN.md・README.md・docs/B_DESIGN.md の頭の注  リード  記録・§13.6
 ```
 
-- **変えないもの**: 凍結の表 `tools/compat10/DATA_1_1.sha256` の 2〜20 行目（§8.4）、`tools/span/TESTS_1_2_3.sha256`（8 行）・`FIXTURES_1_3.sha256`（37 行）の全部、`TESTS_1_3` と `TESTS_1_4_1` の §8.5 に名前の無い行、`tools/l10n/lint-skip.txt` の 20 件（最後の字）、`tools/duo/idiom-allow.txt`、compat10・compat11・compat-span の fixture と 2 つの `EXPECTED_MIN`（225・599）、`tools/l10n/ja-baseline.tsv`（J-1）、`ja-baseline-ref*.txt` の今のファイル（記録として残す）、TegakiKit の `InkModel` の 9 ファイル、`SpanComposer`・`SpanGuard`・`InkLedger`・`SyncEngine`（どれも種類を見ない。§3.1）。第 2 版で足した: `Paper/MonthPaper.swift`・`TegakiKit/Sources/Layout/MonthPageLayout.swift`・`ZoomPolicy.swift`・`PaperGrowth.swift`（アで `memo.minY` そのものがそろうので、今の描き方・答えのまま。§4.1・§4.6）。
+- **変えないもの**: 凍結の表 `tools/compat10/DATA_1_1.sha256` の 2〜20 行目（§8.4）、`tools/span/TESTS_1_2_3.sha256`（8 行）・`FIXTURES_1_3.sha256`（37 行）の全部、`TESTS_1_3` と `TESTS_1_4_1` の §8.5 の表に名前の無い行（第 3 版: `SpanRerunUITests`・`ZoomResetUITests` の行も変えない。§8.5）、`tools/l10n/lint-skip.txt` の 20 件（最後の字）、`tools/duo/idiom-allow.txt`、compat10・compat11・compat-span の fixture と 2 つの `EXPECTED_MIN`（225・599）、`tools/l10n/ja-baseline.tsv`（J-1）、`ja-baseline-ref*.txt` の今のファイル（記録として残す）、TegakiKit の `InkModel` の 9 ファイル、`SpanComposer`・`SpanGuard`・`InkLedger`・`SyncEngine`（どれも種類を見ない。§3.1）。第 2 版で足した: `Paper/MonthPaper.swift`・`TegakiKit/Sources/Layout/MonthPageLayout.swift`・`ZoomPolicy.swift`・`PaperGrowth.swift`（アで `memo.minY` そのものがそろうので、今の描き方・答えのまま。§4.1・§4.6）。
 - **画面の字で守られた所**（ピン留めのテストがソースの字を読む。§8.6）は、平らにした形で 1 字も変えない。
 - **役 L（台帳）と Y（同期）は作らない**。保存・merge・同期・墓標・台帳の行に触れる直しが要ると分かったら止めて、契約を直す。
 
@@ -271,16 +273,17 @@ public struct MonthNatural: Equatable, Sendable { public var rows: [CGFloat]; pu
 public static func monthFloors(previous: Floors, naturals: [MonthNatural], form: MonthForm, change: Change) -> Floors
 public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change: Change) -> Floors
 
-// TegakiKit/Sources/Layout/LayoutEvent.swift の MonthLayoutInput（役 K）に既定値つきで足す（:44-61 の形）
-//   var gridFloor: CGFloat = 0         // ア: 格子の下端の下限。最後の行（6 行目）だけをのばして届かせる。行の上限 1,200 lu
-//                                      //（PaperSpec.monthRowMax）を超える分は届かない（その月だけ区切りの線が上に残る。§4.1）
-//   var memoFloor: CGFloat = 0         // memo の高さの下限（memo の矩形の下を伸ばす。原点は格子の下端のまま）
-//   var rowFloors: [CGFloat] = []      // 6 行の高さの下限（イ）。row の高さ = min(1,200, max(今の高さ, rowFloors[r]))
+// TegakiKit/Sources/Layout/LayoutEvent.swift の MonthLayoutInput（役 K。:44-73）に既定値つきの public var で足す（アプリの SpanSession
+//   から入れるので、周りの欄と同じ public var。明示の init の既定値つきの引数にするかは K が決めて記録）
+//   public var gridFloor: CGFloat = 0     // ア: 格子の下端の下限。最後の行（6 行目）だけをのばして届かせる。行の上限 1,200 lu
+//                                         //（PaperSpec.monthRowMax）を超える分は届かない（その月だけ区切りの線が上に残る。§4.1）
+//   public var memoFloor: CGFloat = 0     // memo の高さの下限（memo の矩形の下を伸ばす。原点は格子の下端のまま）
+//   public var rowFloors: [CGFloat] = []  // 6 行の高さの下限（イ）。row の高さ = min(1,200, max(今の高さ, rowFloors[r]))
 // MonthPageLayout は欄を足さない。memo.minY（区切りの線）がそのまま窓でそろう。memo の字は memo の原点からの相対なので
-//   罫線と一緒に動く（MonthLayoutEngine.swift:156-158、InkLedger.swift:37・:743-755）。下限が全部 0 なら今の答えと ==。
+//   罫線と一緒に動く（MonthLayoutEngine.swift:157-159、InkLedger.swift:291-292・:743-755）。下限が全部 0 なら今の答えと ==。
 
-// TegakiKit/Sources/Layout/YearLayoutEngine.swift の YearLayoutInput（役 K。:6-26）に既定値つきで足す
-//   var rowFloors: [CGFloat] = []      // 31 行の高さの下限。row の高さ = max(今の高さ, rowFloors[r])
+// TegakiKit/Sources/Layout/YearLayoutEngine.swift の YearLayoutInput（役 K。:6-27）に既定値つきの public var で足す
+//   public var rowFloors: [CGFloat] = []  // 31 行の高さの下限。row の高さ = max(今の高さ, rowFloors[r])
 
 // TegakiKit/Sources/Layout/PageLayout.swift（役 K）
 //   PageScroll.scrollDelta(old:new:topVisibleY:)（:168-172）: old と new が月の SpanLayout で 2 ページ以上なら、old の真ん中の
@@ -288,16 +291,24 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 
 // Paper/PaperSpan.swift（役 P）
 //   static func window(for layout: SpanLayout, focus: Int) -> PaperSpan?
-//     週・日: 今の init?(layout:bands:focus:) と同じ答え（帯は各ページの allDayBand。InkCanvasView.swift:2625-2637 の今の中身を移す）。
+//     週・日: 今の init?(layout:bands:focus:) と同じ答え（帯は各ページの allDayBand。InkCanvasView.swift:2626-2636 の今の中身を移す）。
 //     月・年: ページの紙だけ、bands は空。紙の中身（MonthPaperContent の holidayNames、YearPaperContent の monthNames）は
 //     0g-53 の 1 か所の関数で作る（1 ページの道の CalendarRootScreen.makePaper と同じ式）。
 //   init?(pages:bands:focus:)（:37-44）: 月・年は bands が空のときだけ通す。週・日の条件は今のまま。single（:65-68）は今のまま（月・年は nil）。
+//     （`ScreenPaths.headingSpan` :899-902 がこの init で見出しの窓を作り直すので、月・年の見出しにも要る。§3.8）
 
-// Views/CalendarRootScreen.swift（役 S。0g-53）
-//   static func paperContent(of layout: any PageLayout, holidays: HolidayCalendar, weekStart: WeekStart) -> PaperContent
-//   （makePaper :1955-1985 の content の部分を取り出した物。月は holidayNames = holidays.names(for: MonthLayout.grid(for:weekStart:).days)、
-//    年は monthNames = (1...12).map { DateText.monthName($0, .short, L.language) }。makePaper・PaperSpan.window・ScreenPaths.paper(of:)
-//    がこれを呼ぶ。置き場所は S と P が決めて記録。1 ページの道の答えは今と ==）
+// 紙の中身の 1 か所の関数（役 S・P。0g-53。第 3 版で口を直した。置き場所は S と P が決めて記録）
+//   static func paperContent(of layout: any PageLayout) -> PaperContent?
+//   （週・日・月・年のレイアウトから紙の中身を作る。nil はどれでもないとき。月の holidayNames はレイアウトの dateLabels の
+//    holidayName から組む（MonthLayoutEngine.swift:50・:97-105 が同じ holidays.names(for: grid.days) から入れるので、makePaper の値と ==。
+//    weekStart はレイアウトの格子に入っている）。年の monthNames は (1...12).map { DateText.monthName($0, .short, L.language) }。
+//    holidays・weekStart を引数に取らない: PaperSpan.window(for:focus:) は凍結の R3 の 1 行が引数を layout と focus に固め、
+//    ScreenPaths.paper(of:)（:1171-1175）は凍結の ScreenPathsCanvasSpanTests.swift:72 が 1 引数で呼ぶ。別の休日の出所（HolidayChoice.current）
+//    を読むと、セッションの PaperContext.holidays（SpanSession.swift:183-195）で作ったレイアウトと祝日名が別の暦になりうる。
+//    PaperSpan.window と ScreenPaths.paper(of:)（1 引数の static のまま。これをそのまま 4 種に広げて、この関数にしてもよい）が呼ぶ。
+//    makePaper（:1955-1985）は署名とエンジンを呼ぶ所（WeekLayoutInput を含む）を CalendarRootScreen.swift に残す（凍結の
+//    CalendarRootScreenTests.swift:600・WeekMemoSpanTests.swift:262。§8.6）。makePaper の content はこの関数を呼んでも、今の式のままでもよい
+//    （答えは ==。PaperSpanMonthYearTests が固める）
 
 // Ink/InkCanvasView.swift（役 Z、R3。§8.4）
 //   static func paperSpan(for layout: SpanLayout, focus: Int) -> PaperSpan? { PaperSpan.window(for: layout, focus: focus) }
@@ -317,6 +328,14 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 //   :1103・:2022、InkCanvasSpanTests.swift:2168 が 2 引数で使う）。CalendarRootScreen.swift:1625 の隣で
 //   paths.yearEventSource = { events.events(from: $0, to: $1, allDayOnly: true) } とつなぐ。
 
+// Span/SpanSession.swift（役 S。§3.3。第 3 版）
+//   月・年の下限: 下げてよいのは .inkShrank と、窓を新しく決めるとき（開き直し＝新しいセッション、幅が変わった後の
+//   redecide(orientation:) :1081-1091）だけ。ほかの .redecide（prefetch :538・:542、reloadEvents :607、contextChanged :616、
+//   remoteUpdated :931、消しの無い applyPendingRemote :982）は、月・年では .shift と同じ（上げるだけ）に読み替えて
+//   monthFloors・yearFloors に渡す。relayoutPages の .inkGrew と .inkShrank は、前の下限ではなく、前に並べたときの窓の自然な数と
+//   比べて決める（どれかが下がったときだけ .inkShrank）。読み替えは SpanSession の中だけ（SpanAlign.Change に case を足さない）。週・日は今のまま。
+//   形は S が決めて記録
+
 // Views/ZoomReset.swift（役 S）
 //   static func followsFit(_ kind: PageKind) -> Bool { kind == .week || kind == .day || SpanKinds.joined.contains(kind) }
 //   target(_:bounds:) は今の式のまま（followsFit なら bounds.clamped(bounds.fit)）。
@@ -327,6 +346,8 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 //                                       // spanCrossingAll で切る新しい関数に置く。crossingDemoStrokeIds(.month/.year) は空のまま
 //                                       //（凍結の ScreenshotModeSpanTests.swift:418-419）
 //   var monthTall: Bool = false         // --screenshot-month-tall: 焦点の右どなりの月の行を高くする見本（予定と格子の手書き）
+//                                       // 高くする量は、窓の格子の下端の差が約 1,025 lu より小さい所まで（§4.1 の 4 の届かない月を写さない。
+//                                       // リードの決め 6）
 //   r143-alt の枝だけ（取り込まない。DEBUG）: --screenshot-month-form a|i|u（SpanAlign.monthForm を写真の中だけ替える）
 ```
 
@@ -350,7 +371,7 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
   10. 等倍 `ZoomReset`（`Views/ZoomReset.swift:16-29`）。→ §6。
   11. 案内 `SpanGuide`（`Views/SpanGuideView.swift:22-43`）。→ §7.3。
   12. 写真モードのまたぐ見本（`crossingSamples`、`Support/ScreenshotMode.swift:1036-1062` は週・日のまま。月・年は新しい関数、§2.1）と `singlePageDemo`（`ScreenPaths.swift:465-470`）。→ §12.4。
-  13. CI の `week|day` の分かれ（`duo.yml:899-911`、`store-shots.yml:425-435`）。→ §12。
+  13. CI の `week|day` の分かれ（`duo.yml:899-911`、`store-shots.yml:430-438`）。→ §12。
   14. 予定の読み方 `EventStoreModel.events(from:to:)`（`Calendar/EventStoreModel.swift:163-174`。終日だけの口が無い）と、それをセッションへ渡す `ScreenPaths.eventSource`（:137）。→ §5.5。
 - **種類の集合は 1 か所**: 新しい `SpanKinds.joined`（§2.1）。`joins`・`SpanGuide.joinedKinds`・`SpanGuide.text`・`ZoomReset.followsFit`・`PaperSpan.window`（月・年の枝）・`ScreenPaths.paper(of:)`・`singlePageDemo`・見出しの行は、どれもここから引く（種類ごとの `case` に、集合に無い種類で何もしない形を書く）。CI の `case` は shell なので集合を読めない。C は CI の各所に「SpanKinds.joined と同じ」の注を書き、落とし所（0g-3）のときは同じ commit で直す。
 - 理由: 月だけ先に出す落とし所（0g-3）を、1 か所の替えで取れるようにする。
@@ -371,8 +392,11 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
   3. `SpanAlign.monthFloors(previous:naturals:form: SpanAlign.monthForm, change:)` または `yearFloors(previous:naturalRows:change:)` で下限を決める（純粋。§4・§5）。
   4. 下限ありでもう一度並べる（MonthLayoutInput の `gridFloor`・`memoFloor`・`rowFloors`、YearLayoutInput の `rowFloors`）。
   - 2 回並べる費用は小さい【推定】（年の 1 ページは 372 マス。窓 7 ページで 2 回）。D1y の重さの測り（§3.10）で時間をログに出す。
-- **下限の上げ下げ**（週・日の D16 と同じ規則。B_DESIGN §3.1、`SpanAlign.Change`）: `.shift`（窓のずらし）では下げない（見えている行が縮まない）。`.inkShrank`（消して自然な高さが下がった）と `.redecide`（ずらしの後に読んだページ・予定・30 秒の見直し）では、窓の自然な数の最大まで下げる。`.inkGrew` は上げるだけ。開き直し・回転・ピンチの終わりでも決め直す（今と同じ）。
-- `relayoutPages`（:687-696）を月・年に広げる: 月はメモ欄の手書き（下端 → memo の高さ）と格子の手書き（行の高さ → 格子の下端）、年は格子の手書き（行の高さ）で、窓の自然な数を出し直し、前の下限と比べて `.inkGrew` か `.inkShrank` を決める。週・日の道（`.extra` の下端）は今の字のまま。
+- **下限の上げ下げ**（B_DESIGN §3.1、`SpanAlign.Change`。**月・年は週・日と読み替えが違う。第 3 版、0g-12・0g-16**）: `.shift`（窓のずらし）と `.inkGrew` では下げない（上げるだけ。見えている行が縮まない）。`.inkShrank`（消した・外で消された）では、窓の自然な数の最大まで下げる。週・日の `.redecide`（ずらしの後に読んだページ・予定・30 秒の見直し・外からの更新）は今のまま窓の最大まで下げる（週・日の下限が効くのは 5,950 lu を超えたメモだけで、一覧の外。K-6）。**月・年では、その `.redecide` を `.shift` と同じ（上げるだけ）に読み替え、下げるのは `.inkShrank` と、窓を新しく決めるとき（開き直し＝新しいセッションと、回転・Split View など幅が変わった後の `redecide(orientation:)`、`SpanSession.swift:1081-1091`）だけにする**。
+  - 理由: 月のアの格子の下限（`gridFloor`）は、月ごとに格子の高さが違えばいつも効き、`memo.minY` は一覧の矩形そのもの（§4.6）。ずらしの後の読み込み（`prefetch` の `compose(change: .redecide)`、`SpanSession.swift:538`。キャンバスはずらすたびに `startPrefetch` を呼ぶ、`InkCanvasView.swift:3413`）や 30 秒の見直し（`contextChanged` :616）で下げると、背の高い月が窓を出た数ターン後に `memo.minY` が上がって一覧の下限が上がり、`applyBounds`（`InkCanvasView.swift:3090-3094`）がいちばん小さくしていた倍率を寄せる（2 つ目の見直しの must）。年も紙の高さが一覧の矩形なので同じ。B_DESIGN §3.1（:288）の「決め直すのは開き直し・回転」と同じ形になる（B_DESIGN の「ピンチの終わり」の決め直しは今のコードに無く、1.4.3 でも足さない。キャンバスが窓を決め直すのは幅が変わった後だけ、`InkCanvasView.swift:3214`・:3421-3446）。
+  - 読み替えは `SpanSession` の中だけで行い、`SpanAlign.Change` に case を足さない（凍結の `SpanChecks.swift:642-660`・`WeekMemoChecks.swift:346-367` が `Change` を使う）。Kit の `monthFloors`・`yearFloors` は週・日と同じ純粋な表（`.redecide` で下げる）のまま。形は S が決めて記録。
+  - その代わり、月・年では背の高い月（年）が窓を出ても、消すか回すか開き直すまで下限は下がらない（ほかの月の最後の行がのびたまま。見えている行が縮まないのと同じ考え）。予定を消して行が縮んだ月も、6 行目がのびて区切りの線の高さを保つ。§16・§18.1 に書いた。
+- `relayoutPages`（:687-696）を月・年に広げる: 月はメモ欄の手書き（下端 → memo の高さ）と格子の手書き（行の高さ → 格子の下端）、年は格子の手書き（行の高さ）で、窓の自然な数を出し直す。**月・年では、`.inkGrew` か `.inkShrank` かを、前の下限ではなく、前に並べたときの窓の自然な数（セッションが持つ）と比べて決める**: どれかが下がった（消した・投げなわで出した）ときだけ `.inkShrank`、ほかは `.inkGrew`（第 3 版）。理由: 上の読み替えで、背の高い月が窓を出た後も前の下限が残るので、今の週・日の形（`tallest < previous ? .inkShrank : .inkGrew`、`SpanSession.swift:690-692`）のままだと、別の月に少し書いただけでも `.inkShrank` になり、下限が下がって倍率が寄せられる。週・日の道（`.extra` の下端）は今の字のまま。
   - キャンバスは月・年の格子のマスでも `onInkBoundsChanged` を知らせる【事実】: `InkLedger.needsMoreRoom`（`InkLedger.swift:463-465`）は `SpanLayout.growsWithInk`（`Layout/SpanLayout.swift:184-187`）を通して、月の 42 マスとメモ（`MonthPageLayout.swift:227-229`）・年の 372 マス（`YearLayoutEngine.swift:161-163`）で真を返し、線が消えたときはいつも知らせる（`InkCanvasView.swift:2136-2140`・:3627-3630）。だから `relayoutPages` の入口は今の知らせのままでよい。
 - キャンバスの軽い道（`SpanLayout.onlyTailHeightChanged`、`InkCanvasView.swift:3070`）: 月でメモ欄の下だけが伸びたときは軽い道（今の 1 ページの月と同じ）。最後の行がのびて区切りの線（`memo.minY`）が動いたときは、今の判定のままで重い道（絵を作り直す）になる（`PaperGrowth.onlyTailHeightChanged` は memo の minY とほかのマスの矩形を比べる、`PaperGrowth.swift` の末尾。`SpanLayout.onlyTailHeightChanged` :192-203 はそれをページごとに呼ぶ）。`PaperGrowth`・`SpanLayout` の判定は変えない。軽い道でも重い道でも、窓の形が変われば `updatePaperSpan` で紙が描き直される（`InkCanvasView.swift:3087-3089`。`PaperSpan` の `==` は `MonthPageLayout` まで比べる）。答えは KitChecks と `PaperSpanMonthYearTests` で固める（§11.1・§11.2）。
 - **K-4**: そろえで動くのはマスの位置と大きさだけで、マスの意味（左上からの相対座標）は変えない。月のアでは最後の行の高さと `memo` の矩形の位置が動き、メモの字は memo の原点からの相対なので罫線と一緒に動く（§4.1）。
@@ -383,7 +407,7 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 - **R3**: `paperSpan(for:focus:)` の本体を、凍結の外の `PaperSpan.window(for:focus:)` を呼ぶ 1 行にする（今の中身は `PaperSpan.window` の週・日の枝へ移す）。署名・`static`・呼ぶ所は変えない。これでキャンバスは「どの種類に紙があるか」を持たなくなり、後の種類（1.9 の欄など）で凍結に触れずに済む。手順は §8.4。
 - `PaperSpan`（P）: `window(for:focus:)` を足す。月・年は `bands` が空の窓（`init?(pages:bands:focus:)` の guard を、月・年なら bands が空のときだけ通す形に）。`single`（:65-68）は今のまま月・年で nil（凍結の `PaperSpanTests.swift:265-266` が「年は 1 ページ」の意味で見ている。1 ページの道の月・年は終日帯を持たないので、この答えは 1.4.3 でも正しい）。`days(of:)`（:104-110）も今のまま月・年は空（終日帯を作らない、§3.8）。注の「Only weeks and days are joined in 1.3」を直す。
 - `PaperView.drawSpan`（`Paper/PaperView.swift:397-421`）には `.month` と `.year` の枝がもうある【事実】。月の境目の線（§4.3）を足すだけ。窓 1 ページは今のまま切りも動かしもしない（凍結の画素のテスト）。
-- `bandOverview`（`InkCanvasView.swift:2642-2645`。真ん中のページの `ZoomPolicy.overviewSize`）は変えない。月は窓でそろえた `memo.minY`（格子の高さ。§4.6）、年は窓でそろえた紙の高さ（B_DESIGN §3.1。§5.4）。どちらも窓のずらしでは下限が下がらないので、ずらしで一覧の下限が上がることは無い（§4.6）。
+- `bandOverview`（`InkCanvasView.swift:2642-2645`。真ん中のページの `ZoomPolicy.overviewSize`）は変えない。月は窓でそろえた `memo.minY`（格子の高さ。§4.6）、年は窓でそろえた紙の高さ（B_DESIGN §3.1。§5.4）。どちらも、窓のずらしでも、その後の読み込み・30 秒の見直しでも下限が下がらない（§3.3）ので、横に動いただけで一覧の下限が上がることは無い（§4.6。届かない月とウを除く）。
 
 ### 3.5 ずらしの後の y の補正（0g-17）
 
@@ -410,8 +434,8 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 
 ### 3.8 見出しと終日帯（0g-20）
 
-- **終日帯は月・年では作らない**（1 ページの道でも無い）。`makeHeadingSpan`（:861-877）は、月・年では `lanes.bands(...)` を呼ばない。今のままだと `AllDayBandEngine.pages`（`TegakiKit/Sources/Layout/AllDayBand.swift:179-190`）が月・年の日を「7 列の週」として刻み、答えが誤るうえに年は 365 日 × 窓で重い【事実】。
-- 見出しは窓のページを原点つきで並べる（週・日と同じ考え）。`StickyHeaderView` の `span.isJoined` の分かれ（:47-53。今は日か「それ以外は週」の 2 通り）を種類ごとにし、`spanMonthRow`（各ページの曜日の行、7 列 × 200 lu、と月の札、§4.4）と `spanYearRow`（各ページの日付の列 56 lu と 12 か月の名前 112 lu ずつ、と年の札、§5.3）を足す（P）。
+- **終日帯は月・年では作らない**（1 ページの道でも無い）。`makeHeadingSpan`（:861-877）は、月・年では `lanes.bands(...)` を呼ばず、`PaperSpan.window(for: session.layout, focus: session.focusSlot)` を返す（第 3 版で書き足した。今の `PaperSpan(layout:bands:focus:)` は月・年で nil を返すので、`lanes.bands` を外しただけでは `windowComposed`（:849）が見出しを作らない）。`headingSpan`（:899-902）が見出しの窓を作り直す `init?(pages:bands:focus:)` も、月・年を bands が空で通す（§3.4）。今のままだと `AllDayBandEngine.pages`（`TegakiKit/Sources/Layout/AllDayBand.swift:179-190`）が月・年の日を「7 列の週」として刻み、答えが誤るうえに年は 365 日 × 窓で重い【事実】。
+- 見出しは窓のページを原点つきで並べる（週・日と同じ考え）。`StickyHeaderView` の `span.isJoined` の分かれ（:47-53。今は日か「それ以外は週」の 2 通り）を種類ごとにし、`spanMonthRow`（各ページの曜日の行、7 列 × 200 lu、と月の札、§4.4）と `spanYearRow`（各ページの日付の列 56 lu と 12 か月の名前 112 lu ずつ、と年の札、§5.3）を足す（P）。**見出しの窓が月・年で nil でなくなる直し（`makeHeadingSpan`）と、この種類ごとの分かれは、同じ commit で入れる**（先に窓だけが入ると、今の `default` が月・年を `spanWeekRow` で描く）。D1b-0 の `spanMonthRow` は曜日の行だけで、月の札は D1b で足す（§14.1）。
 - **新しい 2 つの行の高さは、1 ページの道の `monthRow`（:72）・`yearRow`（:277）と同じ**。紙の領域（`toolbar: paperArea=`）と開く大きさ（open）が、1 ページの道と横の道で同じになる。
 - `paths.heading?.viewport` が月・年でも来るようになり、`shownViewport`（`CalendarRootScreen.swift:641-644`）が `joinedInitialViewport` のままにならない。ずらしと同じターンで見出しへ渡す（1.3 の版つきの viewport）。
 - 年の見出しの月の名前は、今と同じくボタン（押すとその月のページ、`CalendarRootScreen.swift:1121` の `onMonthTap`）。名前の字は今の `PaperWords.yearColumnTitles`（列の幅で縮む）。ja では `content.monthNames` を使うので（`StickyHeaderView.swift:289`）、横の道の年の内容も 0g-53 の 1 か所の関数で作り、1 ページの道と同じ字と縮み方にする。
@@ -427,7 +451,7 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 - 窓の大きさ【計算。`SpanPlan.referenceViewport` :265-286 と `ZoomPolicy.baseSize`】: 月は iPad の縦・横と iPhone の縦で 5 ページ、iPhone の横 7。年は iPad の縦 5、iPad の横 7、iPhone の縦 5、iPhone の横 7（上限 3）。凍結の KitChecks（`SpanChecks.swift:354-361`、`OverviewCapChecks.swift:24-42`）がこの表を固めている。
 - 本人の数（P-B9）なら、年の窓 7 ページでも約 1,100 本、いちばん多いページ 1,016 本が月でも 7 ページで約 7,100 本で、上限（iPad 20,000・iPhone 12,000）より下【計算】。
 - **作らない物**（B_DESIGN §6.3 で 1.6・1.8 の段だった物）: 段 1（見るだけ。`SpanLayout.viewOnly` は空のまま、`Layout/SpanLayout.swift:48`・:159）、平行移動だけのずらし（今はずらすたびに `setWindowDrawing(ledger.relayout(newBand))` で絵を全部作り直す、`InkCanvasView.swift:3082`）、照合の速い道、主スレッドの外での先読み、年の予定を焦点 ±1 から先に読むこと。理由: 本人の数では要らない。段 2 が上限の安全弁として働く。凍結のキャンバスに触れる範囲を R3 の 1 関数に抑える。**黙って落とさないよう、ここに書いて記録し、後の版の契約で測った値を見て決める。**
-- **測る**（S・Z。新しい単体テスト `SpanWeightLogTests`、合否には数えない）: 年の窓 7 ページで 1 ページ 152 本・1,000 本・2,800 本（合計 19,600 本。iPad の上限の下）の 3 つの形で、セッションの compose と relayout、キャンバスのずらし 1 回（絵の作り直しを含む）の時間を `span weight: kind=year pages=7 strokes=<n> compose=<ms> shift=<ms>` の形でログに出す。月の窓 5 ページ × 1,016 本も同じ。`docs/R1_4_3.md` に書く。**予定を読む時間は測らない**（CI のシミュレータには予定が無い。写真モードの見本は数が少なく、本物の重さを表さない）。予定の多い本人の端末での年の開く速さは【未確認】の危険として §16・§18.1 に書き、確かめ表の行 7 で見る。19,600 本でずらし 1 回が CI で 1,000 ms を超えたら、0g-3 の「重い」の落とし所に当たる（年を 1.4.4 へ。§14.1 の決め）。
+- **測る**（S・Z。新しい単体テスト `SpanWeightLogTests`、合否には数えない）: 年の窓 7 ページで 1 ページ 152 本・1,000 本・2,800 本（合計 19,600 本。iPad の上限の下）の 3 つの形で、セッションの compose と relayout、キャンバスのずらし 1 回（絵の作り直しを含む）の時間を `span weight: kind=year pages=7 strokes=<n> compose=<ms> shift=<ms>` の形でログに出す。月の窓 5 ページ × 1,016 本も同じ。`docs/R1_4_3.md` に書く。**予定を読む時間は測らない**（CI のシミュレータには予定が無い。写真モードの見本は数が少なく、本物の重さを表さない）。予定の多い本人の端末での年の開く速さは【未確認】の危険として §16・§18.1 に書き、確かめ表の行 7 で見る。**「重い」の測り方**（第 3 版。リードの決め 3、0g-3）: 単体テストの段のシミュレータ（build-and-test の iPad 13 インチ、`build.yml:732` の `-destination`。iPad の上限 20,000 本の下）で、年の窓 19,600 本のずらしを 1 つのテストの中で 3 回行い、その中央値を `shift=` に出す。同じテストで、週の窓に同じ 19,600 本を置いたずらしも 3 回の中央値で `ref=week shift=<ms>` に出す（実行機の重さを読むための参考の値。しきい値ではない）。**年の中央値が 1,000 ms を超えた run が 2 つ（D1y の取り込みの run と、その後の別の run）続いたときだけ「重い」とし、0g-3 の落とし所に当たる**（年を 1.4.4 へ。§14.1 の決め）。同じ run の週の参考の値も 1,000 ms を超えていれば、実行機の重さとして数えず、新しい run で測り直す。CI の 1 回の値だけでは切らない。しきい値 1,000 ms には 1.3 の前例が無い（1.3 で ms で決めていたのは、試作で 1 ページの読み込みが 16 ms を超えたら先読みを主スレッドの外へ出す、だけで、ずらし 1 回の測りとは別物。M7C_CONTRACT.md:207・:301）。
 
 ---
 
@@ -439,21 +463,21 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
   - **ア メモ欄だけそろえる**（B_DESIGN §3.4 の形）: 格子の下端（= 区切りの線 = `memo.minY`）を窓の最大にそろえる（`gridFloor`）。届かせるのは最後の行（6 行目）の高さだけで、1〜5 行目は動かない。`memo` の矩形そのものが窓で同じ高さになるので、区切りの線・罫線・ドットの点・「メモ」の札と、メモに書いた字が一緒にそろう。メモの帯の下もそろえる（`memoFloor`）。
   - **イ 行もそろえる**: 6 行の高さを、行ごとに窓の最大にそろえる（`rowFloors`）。格子の高さがそろうので、区切りの線も自然にそろう。下もそろえる。
   - **ウ そろえない**: 下限なし。各月の表をそのまま並べる（区切りの線と下端は月ごとにずれる。短い月の下は紙の色の外）。
-- **アの作り（第 2 版で B_DESIGN §3.4 に戻した。0g-11）**: 第 1 版は「最後の行をのばさず、`memo` の原点は動かさず、区切りの線から下の柄だけを窓の最大の y から描く」形だった。見直しで、それでは字と罫線がずれると分かった: メモの字は `memo` の原点からの相対で保存・表示される（`MonthLayoutEngine.swift:156-158`、`InkLedger.swift:37`・:743-755）ので、柄だけを下げると字と罫線が「柄の y − `memo.minY`」だけずれる。この差は罫線の間隔 50 lu の倍数にならない（終日 3 件の日のある週の行は 203 lu で、175 lu より 28 高い）。さらに柄の y は窓の中身で上下する（`.shift`・`.inkGrew` で上がり、`.redecide`・`.inkShrank` で下がる）ので、月を送るたびに罫線が字の下で動き、1 ページの道と古い端末ではまた別の所に引かれる。だから `memo` の矩形の原点そのものを下げる形にした:
+- **アの作り（第 2 版で B_DESIGN §3.4 に戻し、第 3 版でリードが確定した。0g-11）**: 第 1 版は「最後の行をのばさず、`memo` の原点は動かさず、区切りの線から下の柄だけを窓の最大の y から描く」形だった。見直しで、それでは字と罫線がずれると分かった: メモの字は `memo` の原点からの相対で保存・表示される（`MonthLayoutEngine.swift:157-159`、`InkLedger.swift:291-292`・:743-755）ので、柄だけを下げると字と罫線が「柄の y − `memo.minY`」だけずれる。この差は罫線の間隔 50 lu の倍数にならない（終日 3 件の日のある週の行は 203 lu で、175 lu より 28 高い）。さらに柄の y は窓の中身で上下する（`.shift`・`.inkGrew` で上がり、`.redecide`・`.inkShrank` で下がる）ので、月を送るたびに罫線が字の下で動き、1 ページの道と古い端末ではまた別の所に引かれる。だから `memo` の矩形の原点そのものを下げる形にした:
   1. 字・罫線・点・札が一緒に動くので、どの道でも字と罫線の関係は 1.4.2 と同じ（K-4）。1.4.2 の約束「横につながったページの境目でも、点の間隔はそろいます」（R1_4_2_CONTRACT.md:38）も、窓の全部の月で `memo.minY` が同じなので守られる。
   2. のびた最後の行は今の描き方のまま（`MonthPaper` を変えない）。多くの月では 6 行目は全部が次の月の薄い日で、`outTint` で塗られる（`Paper/MonthPaper.swift:33-34`）ので、薄い色の帯になる。そこに書いた線はその薄い日のマスに入り、隣の表の同じ日には出ない（見た目どおりのマス。B_DESIGN §0 の 3「月の最後の行がのびることがあります」で本人に伝えた形）。段 P の写真で見せ、§0.1・SUPPORT（§13.5）で伝える。
   3. 古い端末と設定オフ（1 ページの道）では、最後の行は自然な高さ。のびた所に書いた線は、その行が今の規則（手書きの下端 ＋ 12、上限 1,200 lu、`MonthLayoutEngine.swift:10-21`）でのびて見える（K-4、B_DESIGN §3.1「古い端末でも、のばした所に書いた線は見える」）。メモの字は、どの道でも区切りの線から同じ所に出る。
-  4. 届かない月: のばす量が行の上限 1,200 lu（`PaperSpec.monthRowMax`、`TegakiKit/Sources/Layout/PaperSpec.swift:15`）を超える月（自然な 6 行目は 175 lu 以上なので、窓の中で格子の下端の差が約 1,025 lu を超えるとき。まれ【推定】）は、その月だけ区切りの線が上に残り、その月のメモの帯の線は隣とずれる（B_DESIGN §3.4 の「上限は月の行 1,200 lu」）。KitChecks で固め（§11.1）、§16 に書く。
+  4. 届かない月: のばす量が行の上限 1,200 lu（`PaperSpec.monthRowMax`、`TegakiKit/Sources/Layout/PaperSpec.swift:15`）を超える月（自然な 6 行目は 175 lu 以上なので、窓の中で格子の下端の差が約 1,025 lu を超えるとき。まれ【推定】）は、その月だけ区切りの線が上に残り、その月のメモの帯の線は隣とずれる（B_DESIGN §3.4 の「上限は月の行 1,200 lu」）。KitChecks で固め（§11.1）、§16 に書く。第 3 版でリードがまれとして受け入れた（リードの決め 6）。見本の写真ではこの場合を写さない（§12.5）。
   5. 下限が全部 0 なら今の答えと `==`（1 ページの道の画素は 1.4.2 と同じ）。
   6. `MonthPageLayout`・`MonthPaper`・`ZoomPolicy`・`PaperGrowth` は変えない（`memo.minY` そのものがそろうので、今の読み方で足りる）。
-  - **リードが替えてよい別の形**（記録だけ）: (ii) 最後の行はのばさず、格子の下端から区切りの線までを白い紙にし、中心がそこにある新しい線をその列の 6 行目の日のマスに入れる（`MonthPageLayout.inkCell` の新しい規則が要る）。薄い色の帯は出ないが、白い紙に見えるのに日のマスに入る。既定は上の形（見た目どおりのマスで、B_DESIGN と本人への字に合う）。
+  - **採らなかった別の形**（記録だけ。第 3 版でリードが採らないと決めた。0g-11）: (ii) 最後の行はのばさず、格子の下端から区切りの線までを白い紙にし、中心がそこにある新しい線をその列の 6 行目の日のマスに入れる（`MonthPageLayout.inkCell` の新しい規則が要る）。薄い色の帯は出ないが、白い紙に見えるのに日のマスに入る。採らない理由: (1) 本人には B の設計書で上の形（「月の最後の行がのびることがあります」）を見せてある。(2) メモの字は `memo` の原点からの相対で保存されるので、上の形なら字と罫線が一緒に動く。(3) (ii) は `inkCell` の新しい規則、つまり線がどのマスに保存されるかを替えることになり、データの安全の決まり（K 規則、§8.2）から外す。上の形は段 P の写真で見せ、本人はイ・ウも選べる。
 - 月の重なる日・今日の印・薄い日は今のまま（§4.5）。
 
 ### 4.2 メモの帯（ア・イ）
 
 - 区切りの線（`lineStrong`）・罫線（50 lu ごと、左右 20 lu 内側）・ドット方眼の点（x 30…1,380、28 列）・無地と「メモ」の札は、`MonthPaper.swift:65-106` と `Paper/MemoPaperStyle.swift:56-80` の今の描き方のまま（起点は `memo.minY`）。アとイでは窓の全部のページで `memo.minY` が同じなので、罫線と点の行が同じ y に並ぶ。境目で点の列は 1,380 → 1,430 と 50 lu で続き、罫線は 40 lu あく（1.4.2 の約束、R1_4_2_CONTRACT.md:38、`MemoPaperStyle.swift:63-67` の注）。
 - 下端: memo の高さの下限を窓の最大にそろえる（`memoFloor`。日・週の自由メモの `dayExtra`・`weekExtra` と同じ考え。今の `PaperGrowth.tailHeight` = max(6,000, 下端 ＋ 50)、`TegakiKit/Sources/Layout/PaperGrowth.swift:32-35`）。どの月の memo も同じ高さから 6,000 lu あるので、下限が効くのは、どれかの月のメモの手書きが 5,950 lu を超えて伸びたときだけ。そのとき短い月の下にも白紙が続くが、**各月の区切りの線から 6,000 lu より下は書けない**（`PaperGrowth.drop` の `beyondCap`。日・週の自由メモと同じ）。「メモ欄はここまでです」はページごと（今のまま）。
-- 1 つの月の行が手書きや予定で伸びると、窓の全部のページの区切りの線が下がる（§3.3 の `.inkGrew`・`.redecide`。ほかの月は最後の行がのびる）。ずらしでは下げない。消して縮めば下げる。
+- 1 つの月の行が手書きや予定で伸びると、窓の全部のページの区切りの線が下がる（§3.3 の `.inkGrew` と、予定を読んだ後の上げ。ほかの月は最後の行がのびる）。ずらしでも、その後の読み込み・30 秒の見直しでも下げない（§3.3）。消して縮めば下げる。
 - **ウ**: 起点は各ページの自然な `memo.minY`（1 ページの描き方そのまま）。点の列は境目で続くが、行はずれる。
 
 ### 4.3 月の境目の線（0g-13）
@@ -481,8 +505,8 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 
 - 開く大きさ（open）は今のまま `fitAll(1400 × 1050)`（`ZoomPolicy.swift:59-70`・:140-150）。何が書いてあっても同じ。
 - いちばん小さくしたときの大きさ（min）は `min(open, fitAll(1400 × memo.minY))`（`ZoomPolicy.overviewSize`、`ZoomPolicy.swift:79-82`。変えない）。アとイでは `memo.minY` が窓でそろえた格子の高さなので、窓に格子の高い月があると、窓の全部の月で min が下がる（もっと小さくつまめる）。開く大きさ（open）と等倍（fit）は変わらない。
-  - **B_DESIGN §3.1 の「月の一覧の倍率は、そのページ自身の（そろえる前の）格子の高さで決める」は採らない（0g-16）**。その規則の理由は「隣に予定の多い月があるだけで iPad 縦の月が幅ぴったりより小さく開く」ことだったが、1.1.1 から開く大きさは中身によらず固定（`fitAll(1400 × 1050)`）なので、当たるのは min だけになった。一方、自分の格子の高さで min を決めると、窓をずらすたびに真ん中の月が替わって min が月ごとに変わり、いちばん小さくしている人が格子の低い月へすべると倍率がその場で上がる（`applyPendingSpan` はずらしのたびに真ん中のページの一覧から `applyBounds` を呼び、`InkCanvasView.swift:3090-3094`・:2642-2645、`applyBounds` は限界の外に出た倍率を寄せる、:1345-1375）。B_DESIGN §3.1 の「横に動いただけで倍率が変わることは無い」を守る方を採った。
-- **横に動いただけで倍率は変わらない**: 窓のずらし（`.shift`）では下限が下がらない（§3.3）ので、そろえた `memo.minY` は下がらず、min は上がらない。だから `applyBounds` が倍率を寄せることは無い（open のままの紙は open のまま、等倍の紙は幅のまま）。消して下限が下がったとき（`.inkShrank`）と決め直し（`.redecide`）では min が上がり、それより小さくしていた紙は寄せられる（今の 1 ページの月で行が縮んだときと同じ）。§4.1 の 4 の届かない月が真ん中に来たときだけ、ずらしで min が変わりうる（まれ。§16）。`InkCanvasMonthYearTests` で「いちばん小さくして窓をずらしても倍率が変わらない」を固める（§11.2）。
+  - **B_DESIGN §3.1 の「月の一覧の倍率は、そのページ自身の（そろえる前の）格子の高さで決める」は採らない（0g-16）**。その規則の理由は「隣に予定の多い月があるだけで iPad 縦の月が幅ぴったりより小さく開く」ことだったが、1.1.1 から開く大きさは中身によらず固定（`fitAll(1400 × 1050)`）なので、当たるのは min だけになった。一方、自分の格子の高さで min を決めると、窓をずらすたびに真ん中の月が替わって min が月ごとに変わり、いちばん小さくしている人が格子の低い月へすべると倍率がその場で上がる（`applyPendingSpan` はずらしのたびに真ん中のページの一覧から `applyBounds` を呼び、`InkCanvasView.swift:3090-3094`・:2642-2645、`applyBounds` は限界の外に出た倍率を寄せる、:1345-1375）。B_DESIGN §3.1 の「横に動いただけで倍率が変わることは無い」を守る方を採った。B_DESIGN §8.1 の見本の項目「予定の多い月の隣で、月の一覧の大きさが変わらないこと」も、開く大きさと等倍については守るが、いちばん小さい大きさ（min）は窓で決まるので守らない（§0.1 で本人に伝える）。
+- **横に動いただけで倍率は変わらない**（第 3 版でリードが確定。0g-16）: 窓のずらし（`.shift`）でも、その後に読んだページ・予定・30 秒の見直し・外からの更新でも、月・年の下限は下がらない（§3.3 の読み替え）ので、そろえた `memo.minY` は小さくならず、min は上がらない。だから `applyBounds` が倍率を寄せることは無い（open のままの紙は open のまま、等倍の紙は幅のまま）。消して下限が下がったとき（`.inkShrank`）と、回転・開き直しで窓を決め直したときは min が上がり、それより小さくしていた紙は寄せられる（今の 1 ページの月で行が縮んだときと同じ）。ずらしで min が変わりうるのは 2 つだけ: §4.1 の 4 の届かない月が真ん中に来たとき（まれ。リードの決め 6、§16）と、本人がウを選んだとき（ウは下限が無く、min は真ん中の月の格子の高さで決まる。`bandOverview` は凍結のキャンバスにあるので直さない。段 P のページのウの気になる点に書く、§12.5）。`InkCanvasMonthYearTests` で「いちばん小さくして窓をずらし、ずらした直後と、入ってきたページを prefetch で読んだ後（背の高い月が窓を出た後）の両方で倍率が変わらない」を固める（§11.2）。
 
 ### 4.7 PDF（月。0g-32）
 
@@ -500,7 +524,7 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 - 今の年は、31 行それぞれが 12 か月のマスの最大の高さ（終日のレーンと手書き）を取る（`YearLayoutEngine.swift:312-337`、行の高さ = min(400, max(60, 16 ＋ レーン × 18 ＋ 8, 手書きの下端 ＋ 12))、:275-280）【事実】。
 - これを窓の年まで広げる: 行 r の高さの下限 = 窓のページの自然な行 r の高さの最大（`yearFloors`、`YearLayoutInput.rowFloors`）。自然な高さは 400 以下なので、下限も 400 以下（古い端末で見える行の上限の中）。同じ日付が年をまたいで横一直線に並ぶ（B_DESIGN §3.5 の実測: 行の上端のずれ 152 lu → 0）。
 - 上げ下げの規則は §3.3。そろえで動くのはマスの位置と高さだけ（K-4）。
-- 予定は終日だけ（§5.5）なので、自然な高さは予定を読み終えた年で決まる（読み終える前の年は手書きだけ。読み終えたら `.redecide`）。
+- 予定は終日だけ（§5.5）なので、自然な高さは予定を読み終えた年で決まる（読み終える前の年は手書きだけ。読み終えたら下限を上げる。年では読み込みの後の決め直しで下げない、§3.3）。
 
 ### 5.2 日付の列と持ち主
 
@@ -549,7 +573,7 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 - キャンバスは `ZoomReset.followsFit(appliedLayout.kind)` と `ZoomReset.target` を呼ぶだけ（`InkCanvasView.swift:1236-1237`・:1304・:1313・:1356-1364・:1471-1544・:1569-1573・:2247）【事実】。**等倍のために凍結の行は 1 行も変えない**（R3 は紙だけ。§8.4）。
 - 横の道の `resetZoom` は、もう「真ん中のページを画面の真ん中に」置く（:1522-1525）。幅が変わったとき（回転・Split View・左右のツールバー・Duo の開閉）に fit を追う step 4 と、高さだけの変化で fit を保つ `applyBounds` も、種類を見ない。
 
-### 6.3 数【計算。`SpanPlan.referenceViewport` と `docs/R1_1_1.md:50-109` の紙の領域から。D1b・D1y の写真の probe で測り直して `docs/R1_4_3.md` に書く】
+### 6.3 数【計算。`docs/R1_1_1.md:50-109` の紙の領域（縦の Pro 13・mini は実測、Air 11 は見積もり。横の 3 台は同じ表の「横（見積）」の行）と、iPhone 17 の横の実測（列 750、月 230・年 208）から。D1b・D1y の写真の probe で測り直して `docs/R1_4_3.md` に書く】
 
 | 端末（ツールバーは下） | 月 open → fit | 月の等倍で見える量 | 年 open → fit | 年の等倍で見える量 |
 | --- | --- | --- | --- | --- |
@@ -557,13 +581,14 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 | iPad Air 11 縦（推定 820 × 954） | open = fit | 同じ | 0.5129 → 0.5857（×1.14） | 約 27 行 |
 | iPad mini 縦 | 0.5314 → 0.5314 | 同じ | 0.4876 → 0.5314（×1.09） | 約 28 行 |
 | iPhone 縦 | 0.2871 → 0.2871 | 同じ | open = fit | 同じ |
-| iPad Pro 13 横 | 0.7905 → 0.9757（×1.23） | 約 4.9 週 | 0.4462 → 0.9757（×2.19） | 約 14 行 |
-| iPad 11 横 | 0.6095 → 0.8643（×1.42） | 約 4.2 週 | ×2.51 | 約 12 行 |
-| iPad mini 横 | 0.5238 → 0.8093（×1.55） | 約 3.9 週 | ×2.74 | 約 11 行 |
-| iPhone 17 横（列 750） | 0.2190 → 0.5357（×2.45） | 約 2〜2.5 週 | 横の道は上限で ×3.00（0.179 → 0.536。1 ページの道は ×4.8） | 約 6〜7 行 |
+| iPad Pro 13 横（見積 1366 × 828・806） | 0.7881 → 0.9757（×1.24） | 約 4.8 週 | 0.4333 → 0.9757（×2.25） | 約 14 行 |
+| iPad Air 11 横（見積 1180 × 616・594） | 0.5862 → 0.8429（×1.44） | 約 4.2 週 | 0.3194 → 0.8429（×2.64） | 約 12 行 |
+| iPad mini 横（見積 1133 × 540・518） | 0.5138 → 0.8093（×1.58） | 約 3.8 週 | 0.2785 → 0.8093（×2.91） | 約 11 行 |
+| iPhone 17 横（実測 列 750） | 0.2187 → 0.5357（×2.45） | 約 2.5 週 | 横の道は上限で ×3.00（0.179 → 0.536。1 ページの道は ×4.79） | 約 6.5 行 |
 
 - iPhone の横の列 750 は、iPhone 17 の横の実測（874 から左右の安全域を引いた幅。R1_4_1_CONTRACT.md:1341・:1348）。`SpanPlan.referenceViewport` の 874（`SpanPlan.swift:273`）は窓の大きさ V を決める基準の値で、画面の列ではない。18 Pro Max の横の列は 832（956 − 2 × 62）の見積もりで、月 0.2549 → 0.594、年 0.198（上限）→ 0.594。
-- 左右の端のツールバーでは列が 74 狭くなり、fit もその分だけ小さい（R1_4_1_CONTRACT §16.3.1）。iPhone 18 Pro Max の横の紙の高さは記録が無い【未確認】。D1b の probe で測る。
+- 第 2 版の横の行は `SpanPlan.referenceViewport`（M4C の見積もり。Pro 11 の 1210 × 640、mini 1133 × 550、13 インチ 1366 × 830）で出していた。これは窓の大きさ V を決める基準の値（§7.2 の V もこの値）で、本人の端末の紙の領域ではないので、第 3 版で R1_1_1 の見積もりで出し直した（2 つ目の見直し）。
+- 左右の端のツールバーでは列が 74 狭くなり、fit もその分だけ小さい（R1_4_1_CONTRACT §16.3.1）。iPhone 18 Pro Max の横の紙の高さは見積もり（R1_1_1 の月 268・年 246）だけで、実測が無い【未確認】。D1b の probe で測る。
 
 ### 6.4 端のケース
 
@@ -580,7 +605,7 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 ### 6.5 写真モード
 
 - `--screenshot-zoom fit`（`ScreenshotMode.swift:428-430`・:535）は、月・年でも効くようになる（`followsFit` が真のため）。今の J-4・blank-paper・span-shots-app の写真は、月・年でこの引数を使っていない【事実: `grep`】ので変わらない。
-- 新しい写真（§12.4）で、月・年の等倍の前と後を撮る。iPad の横は XCUI の回転で撮る（`PaletteShotsUITests` の `.landscapeLeft` の形、`build.yml:3661`）。倍率の数は `--screenshot-probe` の XCUI で読む（iOS 27 のシミュレータの `log show` は NSLog を `<compose failure>` と出す、`build.yml:1625-1631`）。
+- 新しい写真（§12.4）で、月・年の等倍の前と後を撮る。iPad の横は XCUI の回転で撮る（`Tests/TegakiCalendarUITests/PaletteShotsUITests.swift:83` の `.landscapeLeft` の形）。倍率の数は `--screenshot-probe` の XCUI で読む（iOS 27 のシミュレータの `log show` は NSLog を `<compose failure>` と出す、`build.yml:1625-1631`）。
 
 ---
 
@@ -663,8 +688,8 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 
 | # | 場所 | 足す・替える | 中身 |
 | --- | --- | --- | --- |
-| R3-1 | `paperSpan(for:focus:)` の本体（:2626-2637 の `var bands` から `return PaperSpan(...)` まで） | 替える（約 12 行 → 1 行） | `PaperSpan.window(for: layout, focus: focus)` |
-| R3-2 | その注（:2620-2624） | 直す | 「4 種の窓の紙は `PaperSpan.window` が決める。キャンバスは種類を持たない（1.4.3）」 |
+| R3-1 | `paperSpan(for:focus:)` の本体（:2626-2636 の `var bands` から `return PaperSpan(...)` まで） | 替える（約 12 行 → 1 行） | `PaperSpan.window(for: layout, focus: focus)` |
+| R3-2 | その注（:2621-2624） | 直す | 「4 種の窓の紙は `PaperSpan.window` が決める。キャンバスは種類を持たない（1.4.3）」 |
 
 - **触らない**: `bandOverview`、`applyPendingSpan` と y の補正（:3027-3100）、等倍の行（§6.2）、`updatePaperSpan` の形（:3140-3147）、保存・merge・同期・墓標・台帳の行。
 - 前例: 1.4.1 は 1 行目だけを 2 回作り直した（R1_4_1_CONTRACT §5.4・§16.4。c067210/bf3da7b と 03652a8）。今の値は `d0250f23ba2e76c12c2d7d2dca9558579c27660b250c5767003d1d4e0b22a503`【事実: shasum】。
@@ -688,22 +713,20 @@ public static func yearFloors(previous: Floors, naturalRows: [[CGFloat]], change
 - **消さない**。同じテストの名前のまま、期待を 1.4.3 の答えに置き換え、月・年が加わった分の確かめを足す（確かめの数を減らさない）。週・日の断言は 1 字も変えない。
 - 自分の commit（`R0m`＝月、D1b。`R0y`＝年、D1y。`R0f`＝設定の脚注の字、D2）に、そのテストのファイルと、表の行の書き直しだけを入れる。表の行は、その commit の blob から M7D_CONTRACT §5.5 の printf の行で作る。機能の commit とは別。
 - 作る役は R0 の前に、表のファイルを `grep -n` で読み、月・年を 1 ページ・open と言う断言を全部挙げて `docs/R1_4_3.md` に書く（下の表は調べ役の地図の行に、第 2 版の見直しで見つかった行を足した物。まだ漏れがあれば足し、足した行も記録する）。
-- 注・飛ばす理由の字だけの書き直し（期待を変えない）も、表に挙げた行だけ。
+- **注・飛ばす理由の字だけの書き直しはしない**（第 3 版。リードの決め 4: 凍結のファイルは正しさに要る所だけ直す）。1.4.3 で古くなる注は、`docs/R1_4_3.md` に「古い注（直さない）」として書く（下の「作り直さない」の `SpanRerunUITests`・`ZoomResetUITests`）。
 - リードが diff を 1 行ずつ見て、記録に「リードの決定」と書く。
 - 落とし所（0g-3）で年を外したら、`R0y` は作らない（年の断言は今のまま正しい）。
 
 | 表 | ファイル | 作り直す断言（4a2211d の行） | 1.4.3 の答え | commit |
 | --- | --- | --- | --- | --- |
-| TESTS_1_3 | `Tests/TegakiCalendarTests/ScreenPathsSpanTests.swift` | :191-195（`joins` が月・年で false）、:212-216（月・年を開くと `.onePage`。:213-215 はその後の `path`・`span` が nil・`one.page.pageId`）、:273（月は窓の scene を待たずに `.onePage`。:262-263 の注「A month needs no device」も）、:1826（月の写真の札が無い）。**:991-1031 の試験（H2 from the one page）は期待を変えず、月を開く間だけ `settingOn` を偽にして「1 ページから」の目的を保つ**（:996・:1001 の `.onePage` はそのまま） | 設定オン・写真モードの `--screenshot-span on` で `.joined`（月を開いた後は `path == .joined`・`span` があり焦点のページ）、:273 は `.waiting`（月も窓の scene を待つ）、設定オフ・`fallenBack`・`--screenshot-single-page` で `.onePage`。月・年にも札がある。:1703 は `--screenshot-single-page` なので 1.4.3 でも `.onePage` のまま（直さない） | R0m（月）・R0y（年） |
-| TESTS_1_3 | `Tests/TegakiCalendarTests/SettingsPageSectionTests.swift` | :258-261（`SpanGuide.text` が月・年で nil、`joinedKinds == [.week, .day]`）、:333-334（`showIfDue` が月・年で false）、:352（`isDue` が月で false）。:19 と :135（脚注 N-3 の全文） | 月・年の札の字、`joinedKinds == [.week, .day, .month, .year]`、月・年でも due。脚注は新しい字（§13.1。本人の「この内容で入れてよい」の字） | R0m（月の行）・R0y（年の行）・**R0f**（:19 と :135。D2 で、落とし所を決めた後、脚注の ja と訳を替える commit の直後。落とし所なら月だけの字） |
+| TESTS_1_3 | `Tests/TegakiCalendarTests/ScreenPathsSpanTests.swift` | :191-195（`joins` が月・年で false）、:212-216（月・年を開くと `.onePage`。:213-215 はその後の `path`・`span` が nil・`one.page.pageId`）、:273（月は窓の scene を待たずに `.onePage`。:262-263 の注「A month needs no device」も）、:1826（月の写真の札が無い）。**:991-1031 の試験（H2 from the one page）は期待を変えず、:996 の前でテストの変数 `setting` を偽にして月を 1 ページで開き、:1005（`shown = .week`）の前で真に戻して「1 ページから」の目的を保つ**（`settingOn` は `ScreenPaths` の closure の名前。:996・:1002 の `.onePage` はそのまま。:1006 の週と :1024 の `.joined` は設定オンで開く。戻す位置は S が決めて記録） | 設定オン・写真モードの `--screenshot-span on` で `.joined`（月を開いた後は `path == .joined`・`span` があり焦点のページ）、:273 は `.waiting`（月も窓の scene を待つ）、設定オフ・`fallenBack`・`--screenshot-single-page` で `.onePage`。月・年にも札がある。:1703 は `--screenshot-single-page` なので 1.4.3 でも `.onePage` のまま（直さない） | R0m（月）・R0y（年） |
+| TESTS_1_3 | `Tests/TegakiCalendarTests/SettingsPageSectionTests.swift` | :258-261（`SpanGuide.text` が月・年で nil、`joinedKinds == [.week, .day]`）、:333-336（`showIfDue` が月・年で false、続く :335 の `XCTAssertNil(model.card)` と :336 の「no card, no timer」）、:352（`isDue` が月で false）。:19（脚注 N-3 の全文の定数。:135 はこの定数を読むだけなので変えない） | 月・年の札の字、`joinedKinds == [.week, .day, .month, .year]`、月・年でも due（:335-336 は、R0m では月の札、R0y では年の札が出ている期待とその字に置き換える。タイマーの期待は S が決めて記録。:342-343 のその後の週・日の `showIfDue` は今のまま通る）。脚注は新しい字（§13.1。本人の「この内容で入れてよい」の字） | R0m（月の行）・R0y（年の行）・**R0f**（:19 だけ。D2 で、落とし所を決めた後、脚注の ja と訳を替える commit の直後。落とし所なら月だけの字） |
 | TESTS_1_3 | `Tests/TegakiCalendarTests/SettingsPageSectionTests.swift`（続き） | :402-403（`showForPhoto(.month)` で札が n7 のまま「no card for a kind that is not joined」） | 月の写真の札が出る（月の字） | R0m |
 | TESTS_1_4_1 | `Tests/TegakiCalendarTests/ZoomResetTargetTests.swift` | :14-19（`followsFit` が月・年で false）、:29-38（年・月の target が open）、:65-80（月・年は open） | `followsFit` が 4 種とも true、target は fit（年 834/1400・月 1366/1400 など、式で） | R0m・R0y |
 | TESTS_1_4_1 | `Tests/TegakiCalendarTests/ZoomFitWiringTests.swift` | :218-222（月に等倍の状態が無い）、:228-238（`followsFit == week || day`） | 月・年にも等倍の状態がある、`followsFit == SpanKinds.joined.contains` | R0m・R0y |
 | TESTS_1_4_1 | `Tests/TegakiCalendarTests/InkCanvasZoomResetTests.swift` | :321-（横の iPad の月の等倍が open）、:349-365（`testAtTheOpeningZoomNothingMovesAndNothingIsReported`。幅 1,024 の iPad の月は open = fit なので、`resetZoom` の早い戻りで等倍の状態を立てて知らせる、`InkCanvasView.swift:1494-1505`。`probe.ratios == []` が落ちる）、:826-844（`testTheMonthDoesNotReadInitialFit`）、ほか月・年の等倍を open と言う所（Z が `grep` で全部挙げる） | 月は `initialFit` を読み fit で開く、等倍は fit、幅の変化で fit を追う。:349-365 は名前と「押しても動かない」の確かめを保ち、知らせの期待だけを「等倍の状態が立ち、1 回知らせる」（1.4.1 の §16.3.2 の 2）に置き換える（細部は Z が決めて記録） | R0m・R0y |
-| TESTS_1_4_1 | `Tests/TegakiCalendarUITests/ZoomResetUITests.swift` | :11-12 の注と :44-48（年を open へ、`toFit: false`） | 年は fit へ（iPhone 17 の縦では open = fit なので、倍率は同じで状態が立つ。期待は U が決めて記録） | R0y |
-| TESTS_1_3 | `Tests/TegakiCalendarUITests/SpanRerunUITests.swift` | **注と飛ばす理由の字だけ**: :12-14・:18・:28（「月は設定によらず 1 ページ」「1.3 は週と日だけをつなぐ」）、:15-17（「The year page is one page」） | 期待・飛ばす 4 本（:52-60）・走らせ方は変えない。字を 1.4.3 の事実に（月の 4 本は、月の横の道を新しい UI テストが見るので飛ばす。年のタップは横の道の年から日を開く） | R0m（月の注）・R0y（年の注） |
 
-- **作り直さない（そのまま通すこと）**: `ScreenshotModeSpanTests.swift:144-148`・:632-640（月・年の `spanDemoPage` は 1 ページの見本のまま。月・年のまたぐ見本は新しい引数 `--screenshot-span-crossing all` の時だけ、§12.4）、`PaperSpanTests.swift:265-266`（`PaperSpan.single` は月・年で nil のまま、§3.4）、`SpanRerunUITests.swift:52-60`（月の 4 本を横の道で飛ばすのは今のまま。月の横の道は新しい UI テストで見る。:28 の理由の字だけは上の表で直す）と :71-116 の `YearTapSpanRerunUITests`（期待は変えない。1.4.3 では年そのものが横の道になるので、親の `YearTapUITests.runJump` を U が直して通す、§11.3・0g-52）、`ScreenshotModeSpanTests.swift:418-419`（`crossingDemoStrokeIds(.month/.year)` は空のまま。月・年のまたぐ見本は別の関数、§2.1・§12.4）、`SpanShotsUITests`（週・日だけを撮る、:97・:121・:169）、KitChecks の `SpanChecks.swift`（`Floors.none` と `floor(for: .month/.year) == 0` は新しい欄の既定 0 で通る、:628-631。V の表 :354-361、band の答え :816-820・:952）と `OverviewCapChecks.swift`（年 3・月 nil、:24-42）、`EventStoreModelSpanTests`（`allDayOnly` は既定 false）、`SpanSessionTests`（月・年のセッションの compat の形。§8.7）、`TESTS_1_2_3` の 8 ファイル。どれかが落ちたら、テストは直さずコードを直す。直せなければ止めて契約を直す。
+- **作り直さない（そのまま通すこと）**: `ScreenshotModeSpanTests.swift:144-148`・:632-640（月・年の `spanDemoPage` は 1 ページの見本のまま。月・年のまたぐ見本は新しい引数 `--screenshot-span-crossing all` の時だけ、§12.4）、`PaperSpanTests.swift:265-266`（`PaperSpan.single` は月・年で nil のまま、§3.4）、**`SpanRerunUITests.swift` は 1 字も変えない**（第 3 版。リードの決め 4。年を横につないで正しく確かめるために変えなければならない行は無い: :12-14・:15-17・:18 は注、:28 は飛ばす理由の字の定数で、動きに効かず、年を飛ばす条件はもともと無い。:12-14・:15-17・:18・:28 は 1.4.3 では古くなる（「月は設定によらず 1 ページ」「1.3 は週と日だけをつなぐ」「The year page is one page」）が、注と字のためには凍結のファイルを直さず、古い注として記録する。月の 4 本 :52-60 は横の道で飛ばしたまま（月の横の道は新しい UI テストで見る。月の横の道で消しゴムを試す UI テストは無いが、消しゴムは種類を見ない（1.3）ので、§9.1 の単体テストと確かめ表の行 4 で見る）。:71-116 の `YearTapSpanRerunUITests` は期待を変えない。1.4.3 では年そのものが横の道になるので、親の `YearTapUITests.runJump` を U が直して通す、§11.3・0g-52）、**`ZoomResetUITests.swift` も 1 字も変えない**（第 3 版。年の `pinchAndReset("year", [], toFit: false, …)`（:44-48）は写真モードの既定の 1 ページの道で、iPhone 17 の縦の年は幅で決まる（紙の領域 569 ＞ 1,860 × 402 / 1,400 ≈ 534、`SpanPlan.swift:269`）ので open = fit。等倍の後の倍率は open と同じで、今の断言のまま通る。`toFit: true` に替えると列の狙いが週の式になって落ちる。古くなる :11-12 の注（「a month's or a year's is still its opening zoom」）は直さず、古い注として記録する）、`ScreenshotModeSpanTests.swift:418-419`（`crossingDemoStrokeIds(.month/.year)` は空のまま。月・年のまたぐ見本は別の関数、§2.1・§12.4）、`SpanShotsUITests`（週・日だけを撮る、:97・:121・:169）、KitChecks の `SpanChecks.swift`（`Floors.none` と `floor(for: .month/.year) == 0` は新しい欄の既定 0 で通る、:628-631。V の表 :354-361、band の答え :816-820・:952）と `OverviewCapChecks.swift`（年 3・月 nil、:24-42）、`EventStoreModelSpanTests`（`allDayOnly` は既定 false）、`SpanSessionTests`（月・年のセッションの compat の形。§8.7）、`TESTS_1_2_3` の 8 ファイル。どれかが落ちたら、テストは直さずコードを直す。直せなければ止めて契約を直す。
 - **新しい守りの表 `tools/span/TESTS_1_4_2.sha256`**（D0。C が作り、`build.yml` の TESTS_1_4_1 の段 :488-492 の後に同じ形の段「1.4.2 tests frozen (1.4.3)」）。1.4.2 で足した単体テスト 11（`ColorPanelFitTests`・`ColorPanelLogicTests`・`ColorPanelWatchTests`・`ColorPanelWiringTests`・`InkColorRoundTripTests`・`MemoPaperDrawTests`・`MemoPaperRedrawTests`・`MemoPaperStyleTests`・`PenSlotsTests`・`ScreenshotModeColorMemoTests`・`SwatchRimTests`）と UI 4（`ColorPanelPadUITests`・`ColorPanelUITests`・`MemoPaperShotsUITests`・`MemoPaperUITests`）の 15 が候補（`git diff --name-status 2e3ee75 57ffd0f -- Tests`）。C が D0 で確かめて表にする（1.4.3 で写真の行を足すファイルがあれば除く）。57ffd0f の blob から作る。理由: 1.4.3 は 1.4.2 で直した月の紙の置き場所（`memo.minY`。`MonthPaper` はその y から罫線と点を描く）と画面に触れる。1.4.2 の動き（メモ欄の紙・色の板）を確かめるテストを、作る人がうっかり弱めないようにする。
 - `AppSettingsTests.swift:302-310`（月・年は等倍の状態を持たない）は守られていないので、ふつうに読み替える（S）。
 
@@ -716,6 +739,7 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 - `Sheet.allCases.count == 11`、`SettingsSection == ["page"]`（`ScreenshotModeTests.swift:302-303`、`ScreenshotModeSpanTests.swift:255`・:673-674）。
 - `MonthPaperContent`・`WeekPaperContent`・`DayPaperContent`（`PaperView.swift:8-25`）の欄。`PaperView.init(content:zoomScale:)` の形と、init で描き直しを頼まないこと。
 - 見出しの 1 ページの道の行（`monthRow`・`weekRow`・`dayRow`・`yearRow`）の中身と高さ。
+- ソースの字を数える凍結のテストの数（第 3 版で足した。`ScreenPathsSpanTests.swift:1448-1483` の `testEveryJoinedPlanCarriesTheCap`、`WeekMemoSpanTests.swift:262`、`CalendarRootScreenTests.swift:600`）: `SpanPlan(` の呼び出しは `SpanSession.swift` にちょうど 2 つと `ScreenshotMode.swift` にちょうど 1 つ（ほかのファイルに 0）、`SpanSession(` は `ScreenPaths.swift` に 1 つ、`ScreenPaths.swift` の中に `ZoomPolicy.bounds(` は 0、`WeekLayoutInput(` の呼び出しは `CalendarRootScreen.swift` と `SpanSession.swift` の 2 か所だけ、`CalendarRootScreen.makePaper(kind:focus:events:inkBottoms:now:holidays:weekStart:)` の署名。月・年の新しいコード（写真モードの月・年のまたぐ見本、`ScreenPaths` の焦点・今日・上限の広げ、0g-53 の関数）でページ id が要るときは、`SpanPlan(` を新しく呼ばず、`PageNavigation.pageId` かセッションの `plan` を使う。
 
 ### 8.7 保存のバイト（関門 2）
 
@@ -780,21 +804,23 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 
 ### 11.2 新しい単体テスト（アプリ）
 
+- **年の期待は `SpanKinds.joined.contains(.year)` から引いて書く**（第 3 版）。落とし所（0g-3）で年を外しても、新しい単体テストを書き直さずに通す（年が集合に無ければ、年の行は今の 1 ページの道の答えを言う）。UI テストは `SpanKinds` を読めないので、`SpanMonthYearUITests` の年の部分は落とし所の commit で U が外す（§14.1 の替える物）。
+
 | 役 | ファイル（新しい） | テスト | 直しが無いと（変異） |
 | --- | --- | --- | --- |
-| S | `SpanKindsTests.swift` | `SpanKinds.joined` が 4 種、`ordered` の順。`joins`（設定オン）・`SpanGuide.joinedKinds`・`ZoomReset.followsFit`・`ScreenPaths.paper(of:)`（nil でない）・`PaperSpan.window`（nil でない）が、4 種のどれでも `SpanKinds.joined.contains` と同じ答え（落とし所で年を外しても、このテストは書き直さずに通る形で書く） | MS1・MS4 |
-| S | `ScreenPathsMonthYearTests.swift` | `open` が月・年で、設定オン → `.joined`、オフ → `.onePage`、`fallenBack` → `.onePage`、写真モードは `--screenshot-span on` だけ。年のセッションには `yearEventSource` が渡り（nil なら `eventSource`）、月・週・日には `eventSource` が渡る（closure の呼ばれ方で数える）。焦点の規則（10/31 → 11 月は 11/30、11/30 → 10 月は 10/30、1/31 → 2/28、2028-12-31 → 2027 は 2027-12-31、2028-02-29 → 2027 は 2027-02-28、週・日の答えは今の式と同じ）。今日（月・年の `todayRect` が今日のマス、上限の年の `cappedOpeningY` が今日の 2 行上、`cappedTodayRect`）。`paper(of:)` と `pdfInput` が月・年で nil でない。見出しに月・年の帯が無い | MS2・MS3・MS5 |
-| S | `SpanSessionMonthYearTests.swift` | 月の窓で下限が入る（アの 6 行目と `memo.minY`、memo の高さ）、年の窓で 31 行がそろう。メモ欄に書くと `.inkGrew`、消すと `.inkShrank`。格子に書いて行が伸びると、ほかの月の 6 行目がのびる。ずらしで下げない。予定を読み終えた年で `.redecide`。compat の形が同じ（§8.7） | MS6・MS7 |
+| S | `SpanKindsTests.swift` | `SpanKinds.joined` が 4 種、`ordered` の順。`joins`（設定オン）・`SpanGuide.joinedKinds`・`ZoomReset.followsFit`・`ScreenPaths.paper(of:)`（nil でない）・`PaperSpan.window`（nil でない）が、4 種のどれでも `SpanKinds.joined.contains` と同じ答え（落とし所で年を外しても、このテストは書き直さずに通る形で書く） | MS1・MS4・MP1 |
+| S | `ScreenPathsMonthYearTests.swift` | `open` が月・年で、設定オン → `.joined`、オフ → `.onePage`、`fallenBack` → `.onePage`、写真モードは `--screenshot-span on` だけ。年のセッションには `yearEventSource` が渡り（nil なら `eventSource`）、月・週・日には `eventSource` が渡る（closure の呼ばれ方で数える）。焦点の規則（10/31 → 11 月は 11/30、11/30 → 10 月は 10/30、1/31 → 2/28、2028-12-31 → 2027 は 2027-12-31、2028-02-29 → 2027 は 2027-02-28、週・日の答えは今の式と同じ）。今日（月・年の `todayRect` が今日のマス、上限の年の `cappedOpeningY` が今日の 2 行上、`cappedTodayRect`）。`paper(of:)` と `pdfInput` が月・年で nil でない。見出しの窓（`heading`）が月・年でも作られ、`PaperSpan.window` と同じで帯が無い | MS2・MS3・MS5・MP1 |
+| S | `SpanSessionMonthYearTests.swift` | 月の窓で下限が入る（アの 6 行目と `memo.minY`、memo の高さ）、年の窓で 31 行がそろう。メモ欄に書くと `.inkGrew`、消すと `.inkShrank`。格子に書いて行が伸びると、ほかの月の 6 行目がのびる。背の高い月が窓を出た後、ずらしでも、その後の `prefetch`・`reloadEvents`・`contextChanged`（30 秒の見直し）・外からの更新でも、月・年の下限は下がらない。その後に別の月へ少し書いても下がらない（`relayoutPages` が `.inkGrew` と決める）。消すと下がる。`redecide(orientation:)` で下がる。週・日は今の答えのまま（読み直しで下がる）。予定を読み終えた年で下限が上がる。compat の形が同じ（§8.7） | MS6・MS7・MS8 |
 | S | `EventStoreModelYearTests.swift` | `events(from:to:allDayOnly: true)` が時刻の予定を返さず、`keepingEarlier` で終日だけをためる。写真モードの分かれでも終日だけ。引数を省くと今と同じ | — |
 | S | `ZoomResetMonthYearTests.swift` | 4 種の `followsFit` と `target`（11 インチの縦の年 834/1400、横の iPad の月 1366/1400、iPhone 横の上限の年で fit は上限の 3 倍）。`AppSettings.zoomFit(for: .month/.year)` を覚える。`ScreenshotMode.zoomFit` が月・年でも `--screenshot-zoom fit` で真 | MS4 |
 | S | `SpanGuideMonthYearTests.swift` | 月・年の 4 つの文が 10 の言語のバンドルにある、`isDue` が月・年で真（設定オン・横の道・未表示・写真モードでない・テストのホストでない）、段 2 で戻った種類では偽 | — |
 | S | `ScreenshotModeMonthYearTests.swift` | 新しい引数（`--screenshot-span-crossing all`・`--screenshot-month-tall`）を読む。今までの引数の Config は同じ値。引数なしの月・年の見本は今のまま（凍結の `ScreenshotModeSpanTests` と同じ答え）。またぐ見本の線が月はメモ欄に、年は 12 月 → 1 月に、持ち主が左右 1 本ずつ | — |
 | S・Z | `SpanWeightLogTests.swift` | §3.10 の測り（ログだけ。合否は落ちない形） | — |
-| P | `PaperSpanMonthYearTests.swift` | `window(for:)` が 4 種で窓を作る、週・日は今の `init?(layout:bands:focus:)` と `==`、月・年は bands が空、`single` は月・年で nil のまま、原点と大きさ。区切りの線（`memo.minY`）だけが違う 2 つの月の窓の `PaperSpan` は `==` でない（紙が描き直される）。月・年の中身（`holidayNames`・`monthNames`）が 1 ページの道の `makePaper` と同じ（0g-53） | MP1 |
+| P | `PaperSpanMonthYearTests.swift` | `window(for:)` が 4 種で窓を作る、週・日は今の `init?(layout:bands:focus:)` と `==`、月・年は bands が空、`single` は月・年で nil のまま、原点と大きさ。区切りの線（`memo.minY`）だけが違う 2 つの月の窓の `PaperSpan` は `==` でない（紙が描き直される）。0g-53 の関数の月・年の中身（`holidayNames`・`monthNames`）が、セッションと同じ `holidays`・`weekStart` を渡した `makePaper` の content と `==`（日本と米国の祝日、月曜と日曜の始まり） | MP1 |
 | P | `MonthPaperLineTests.swift`（凍結の `PaperViewTests` の画素の読み方を写す） | 下限なしの月は 1.4.2 と 1 画素も同じ（罫線・ドット・無地）。`gridFloor` で 6 行目をのばした月で、区切りの線・罫線・点・「メモ」の札が新しい `memo.minY` から、メモの線の画面の位置と罫線の差が下限なしの月と同じ、のびた 6 行目の薄い日が今の塗り。つないだ月の窓で、境目の線が格子だけに引かれ、メモの帯には無い。窓 1 ページには線が無い | MP2 |
 | P | `StickyHeaderMonthYearTests.swift` | 横の道の月で `spanMonthRow`、年で `spanYearRow`（週の行に落ちない）。行の高さが 1 ページの行と同じ。ja の年の見出しの月の名前の字と縮み方が 1 ページの道と同じ（`content.monthNames`、`StickyHeaderView.swift:289`）。札の字が題名と同じ作り、狭いときの縮め方（数字だけ・出さない）を ja・en・de で、iPhone 縦の開く大きさと iPad 横で。貼り付き（左へ出た札が左端に残る） | MP4 |
 | P | `PDFMonthYearTests.swift` | 横の道の月の PDF に、隣から入るメモの線の紙の中の部分が出る（矩形が下まで）。年の PDF に隣の年の線の紙の中の部分。1 ページの道の PDF は今と同じバイト | MP3 |
-| Z | `InkCanvasMonthYearTests.swift`（`InkCanvasSpanTests` の rig を写す） | 月・年の窓でキャンバスの紙が窓になる（`paperView.span` が nil でない）。ずらしの前後で見えている線の画面の位置が 0.5 pt 以内で同じ（月の行の高さが違っても）。いちばん小さくした月の窓を、格子の高さの違う月へずらしても倍率が変わらない（§4.6）。6 行目だけがのびて区切りの線が動いたとき紙が描き直される（`updatePaperSpan`）。月・年の等倍が fit（横の道と 1 ページの道）、幅が変わると fit を追う、ピンチで状態が消える | MZ1 |
+| Z | `InkCanvasMonthYearTests.swift`（`InkCanvasSpanTests` の rig を写す） | 月・年の窓でキャンバスの紙が窓になる（`paperView.span` が nil でない）。ずらしの前後で見えている線の画面の位置が 0.5 pt 以内で同じ（月の行の高さが違っても）。いちばん小さくした月の窓を、格子の高さの違う月へずらし、ずらした直後と、入ってきたページを prefetch で読み終えた後（背の高い月が窓を出た後）の両方で倍率が変わらない（§4.6。年も同じ）。6 行目だけがのびて区切りの線が動いたとき紙が描き直される（`updatePaperSpan`）。月・年の等倍が fit（横の道と 1 ページの道）、幅が変わると fit を追う、ピンチで状態が消える | MZ1・MP1・MS4・MS8 |
 
 ### 11.3 UI テスト（U）
 
@@ -803,30 +829,31 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 | `SpanMonthYearUITests.swift` | ui-tests（iPhone 17）。ログ `span-my UI:` | 月のページを `--screenshot-span on`・`-allowFingerDrawing NO` で開く → 指 1 本で横にすべらせると題名が 1 回だけ変わる（XCUITest には 2 本指の動きが無い、`SpanRerunUITests.swift:22-23`。2 本指は確かめ表の行 11・13） → ‹ › で境目を真ん中にして、`-allowFingerDrawing YES` で開き直した形で指 1 本でメモ欄に線を引く → probe で保存されたページの `memo` に x < 0 か x > 1,400 の点がある → ‹ › で 1 か月すべり、キャンバスの識別子が変わらない（作り直していない）。年でも同じ（12 月 → 1 月）。設定の写真モードの切り替えでオフにすると 1 ページの道（`path=one`）、オンに戻すとつながる。年で等倍を押す → 縦では倍率が変わらない（open = fit。`resetZoom` の早い戻りは NSLog を出さない、`InkCanvasView.swift:1494-1505`・:1544）ので、続けて横に回し、probe の `zoom` が横の列の幅 ÷ 1,400 になることで等倍の状態を読む（probe の欄は凍結のキャンバスにあるので足さない）。手順の細部は U が決めて記録 |
 | `SpanMonthYearShotsUITests.swift` | 新しいジョブ span-shots-my（§12.4） | §12.4 の写真 |
 
-- 既存の UI テストは写真モードの既定（1 ページの道）なので、月・年の答えは変わらない見込み（`YearTapUITests`・`HeaderAndPaperUITests.swift:52-80`・`EraserAndBelowDayUITests` の月）。**ただし凍結の `YearTapSpanRerunUITests`（`SpanRerunUITests.swift:71-116`、TESTS_1_3）は `YearTapUITests` を `--screenshot-span on` で走らせる**ので、1.4.3 では年のページそのものが横の道になる。iPhone 17 の横では上限で倍率が上がり（約 0.11 → 0.18、§5.4）、上限ありの年は今日の行の 2 行上から開く（写真モードの今日は 2026-10-07、`ScreenshotMode.swift:610-615`。行 4、240 lu 以上下）。親の `runJump`（`YearTapUITests.swift:62-125`）は見出しの下端から `rowMiddle × zoom` の所を押すので、押す所が 3/20 あたりになり「3月16日」の確かめが落ち、「行 16 が canvas に入る」の確かめも余裕がほぼ無い。**U が守られていない親の `runJump` を直す**（0g-52）: 押す y を `span.state` か `--screenshot-probe` の `oy`・`zoom` から求め、1 ページの道でも横の道でも 3/16 の真ん中を押す。「行 16 が canvas に入る」は、開いた y から 16 行目までが入るかで読む。子の期待は変えない（`SpanRerunUITests.swift:15-17` の注だけ R0y で直す、§8.5）。D1y の関門に `YearTapSpanRerunUITests` の 5 本を名前で入れる（§14.1）。上限ありの年が今日の行の 2 行上から開くことは `ScreenPathsMonthYearTests` でも固める。
-- `ZoomResetUITests` は R0y（§8.5）。
+- 既存の UI テストは写真モードの既定（1 ページの道）なので、月・年の答えは変わらない見込み（`YearTapUITests`・`HeaderAndPaperUITests.swift:52-80`・`EraserAndBelowDayUITests` の月）。**ただし凍結の `YearTapSpanRerunUITests`（`SpanRerunUITests.swift:71-116`、TESTS_1_3）は `YearTapUITests` を `--screenshot-span on` で走らせる**ので、1.4.3 では年のページそのものが横の道になる。iPhone 17 の横では上限で倍率が上がり（約 0.11 → 0.18、§5.4）、上限ありの年は今日の行の 2 行上から開く（写真モードの今日は 2026-10-07、`ScreenshotMode.swift:610-615`。行 4、240 lu 以上下）。親の `runJump`（`YearTapUITests.swift:62-125`）は見出しの下端から `rowMiddle × zoom` の所を押すので、押す所が 3/20 あたりになり「3月16日」の確かめが落ち、「行 16 が canvas に入る」の確かめも余裕がほぼ無い。**U が守られていない親の `runJump` を直す**（0g-52）: 押す y を `span.state` か `--screenshot-probe` の `oy`・`zoom` から求め、1 ページの道でも横の道でも 3/16 の真ん中を押す。「行 16 が canvas に入る」は、開いた y から 16 行目までが入るかで読む。子の期待は変えない（`SpanRerunUITests.swift` は 1 字も変えない、§8.5）。さらに、子の `rerun` の待ち方（:107 の `hasPrefix("path=span;")`）は、1.4.3 ではタップの前の横の道の年（`path=span;…;kind=year;…`）でも満たされ、日の窓を待つ意味が無くなる（:113 の `;kind=day;` が `span.state` の更新と競りうる）。だから**親の `runJump` は、日のページが出たことを確かめた後に、`span.state` があって `path=span;` を言うなら、`;kind=day;` を言うまで待つ**（期限の後にもう 1 回読む形。1 ページの道の親だけの run では `path=one;` なので待たない）。これで子の確かめが状態の更新と競らない。D1y の関門に `YearTapSpanRerunUITests` の 5 本を名前で入れる（§14.1）。上限ありの年が今日の行の 2 行上から開くことは `ScreenPathsMonthYearTests` でも固める。
+- `ZoomResetUITests` と `SpanRerunUITests` は 1 字も変えない（§8.5。古くなる注は直さず記録する）。
 
 ### 11.4 そのまま通すテスト（変えない）
 
-- `TESTS_1_2_3`（8）・`FIXTURES_1_3`（37）・新しい `TESTS_1_4_2`（15 の候補）の全部。`TESTS_1_3`（29）・`TESTS_1_4_1`（16）の §8.5 に名前の無い行の全部（とくに `PaperViewTests`・`WeekMemoPaperSpanTests`・`PaperSpanTests`・`PaperSpanFrozen123`・`ScreenshotModeSpanTests`・`SpanSessionTests`・`InkCanvasSpanTests`・`EventStoreModelSpanTests`・`SpanGuideSeenSpanTests`・`StageTwoNoticeSpanTests`・`SpanShotsUITests`・`SpanRerunUITests`・KitChecks の 4 ファイル、`InkCanvasSpanZoomResetTests`・`InkCanvasWidthCentreTests`・`PaletteMoveButtonTests`）。
+- `TESTS_1_2_3`（8）・`FIXTURES_1_3`（37）・新しい `TESTS_1_4_2`（15 の候補）の全部。`TESTS_1_3`（29）・`TESTS_1_4_1`（16）の §8.5 に名前の無い行の全部（とくに `PaperViewTests`・`WeekMemoPaperSpanTests`・`PaperSpanTests`・`PaperSpanFrozen123`・`ScreenshotModeSpanTests`・`SpanSessionTests`・`InkCanvasSpanTests`・`EventStoreModelSpanTests`・`SpanGuideSeenSpanTests`・`StageTwoNoticeSpanTests`・`SpanShotsUITests`・`SpanRerunUITests`・KitChecks の 4 ファイル、`InkCanvasSpanZoomResetTests`・`InkCanvasWidthCentreTests`・`PaletteMoveButtonTests`・`ZoomResetUITests`）。
 - KitChecks（数は増える）、compat10・compat-span・span-compat・Real10/123/13、保存のバイトの関門 2。
 - 1.4.2 の数（基準。`docs/R1_4_2.md` の V、run 45721608435）: 単体 **975**（飛ばし 2・失敗 0）、Kit のテスト **364**、UI tests (iPhone) **78**（飛ばし 24・失敗 0）、iPad 13 の Palette UI の段 **6**（飛ばし 1）、同期の繰り返し 4,000。1.4.3 の新しいテストの分だけ増える（数は run で書く）。
 
 ### 11.5 変異
 
 - **Kit の変異は手元の `swift run KitChecks`**（CI を使わない。M7D §6 の置き場所）: MK1 `monthFloors` が `.shift` で下げる、MK2 `PageScroll.scrollDelta` が月でも真ん中の答えで比べる、MK3 `yearFloors` が隣の年を見ない、MK4 MonthLayoutInput が `gridFloor` を読まない。どれも `SpanMonthYearChecks` が落ちる。
-- **アプリの変異は 1 本の枝 `r143-q-m1`**（取り込まない）。落ちるはずのテストの表 `tools/mutations/m1-expected.tsv`（変異の枝にだけ置く）を run の前に書き、頭に変異ごとの場所（ファイル:行）と書き換える字を書く。**落ちたテストが表とちょうど同じなら ○**。UI テストは速い道で走らないので、変異は単体テストで捕まる物にする。
+- **アプリの変異は 1 本の枝 `r143-q-m1`**（取り込まない）。落ちるはずのテストの表 `tools/mutations/m1-expected.tsv`（変異の枝にだけ置く）を run の前に書き、頭に変異ごとの場所（ファイル:行）と書き換える字を書く。**落ちたテストが表とちょうど同じなら ○**。下の表は少なくとも落ちる組で、`m1-expected.tsv` を書く前に、変異した関数・値を読むテストを `grep -rn` で洗い出して足し、足した理由を頭に書く（第 3 版。2 つ目の見直しで MS4・MP1 の漏れが見つかった）。UI テストは速い道で走らないので、変異は単体テストで捕まる物にする。
 
 | 変異 | 中身（場所と書き換え） | 落ちるはずのテスト |
 | --- | --- | --- |
 | MS1 | `ScreenPaths.joins` の guard を `kind == .week || kind == .day` に戻す | `SpanKindsTests`・`ScreenPathsMonthYearTests`・R0 した `ScreenPathsSpanTests` |
 | MS2 | `ScreenPaths.focus` の月・年の規則を消し、今の式にする | `ScreenPathsMonthYearTests` |
 | MS3 | `ScreenPaths.makeSession` が年に `yearEventSource` を渡さない（いつも `eventSource`） | `ScreenPathsMonthYearTests` のみ（`EventStoreModel` と `SpanSession` は変えないので `EventStoreModelYearTests`・`SpanSessionMonthYearTests` は通る） |
-| MS4 | `ZoomReset.followsFit` を週・日だけに戻す | `ZoomResetMonthYearTests`・R0 した `ZoomResetTargetTests`・`ZoomFitWiringTests`・`SpanKindsTests` |
+| MS4 | `ZoomReset.followsFit` を週・日だけに戻す | `ZoomResetMonthYearTests`・R0 した `ZoomResetTargetTests`・`ZoomFitWiringTests`・`InkCanvasZoomResetTests`・`SpanKindsTests`・`InkCanvasMonthYearTests`（月・年の等倍が fit）・`AppSettingsTests`（読み替えた :302-310。`AppSettings.zoomFit`・`setZoomFit` は `followsFit` を見る、`AppSettings.swift:381-399`） |
 | MS5 | 月の `todayRect` を今の「ページの幅全部」に戻す | `ScreenPathsMonthYearTests` |
 | MS6 | `layoutPages` の月・年を `break` に戻す | `SpanSessionMonthYearTests` |
 | MS7 | `relayoutPages` が月のメモを見ない | `SpanSessionMonthYearTests` |
-| MP1 | `PaperSpan.window` が月・年で nil | `PaperSpanMonthYearTests`・`InkCanvasMonthYearTests` |
+| MS8 | `SpanSession` の月・年の読み替え（§3.3）を外す（ずらしの後の `prefetch`・30 秒の見直しの `.redecide` で月・年も下げる） | `SpanSessionMonthYearTests`・`InkCanvasMonthYearTests`（prefetch の後の倍率） |
+| MP1 | `PaperSpan.window` が月・年で nil | `PaperSpanMonthYearTests`・`InkCanvasMonthYearTests`・`SpanKindsTests`・`ScreenPathsMonthYearTests`（見出しの窓が作られない） |
 | MP2 | `PaperView.drawSpan` の月の境目の線をメモの帯の下まで引く | `MonthPaperLineTests` |
 | MP3 | `PDFPageRenderer` の月の枝が隣の線を見ない | `PDFMonthYearTests` |
 | MP4 | 見出しの `.month` を `spanWeekRow` に落とす | `StickyHeaderMonthYearTests` |
@@ -842,7 +869,7 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 
 - **枝の配線（D0、C）**: `r143` の名前を足す。`branches-ignore` に `r143-duo*`（`build.yml:103`）、速い道 `QUICK` に `r143-quick`・`r143-q-*`・**`r143-w-*`**（:161。作る役の枝を上げても通しの run を起こさない）、`MUTATIONS` に `r143-q-m1`（:167）、ジョブの `if:` の速い道の字（:1732・:2559・:3136・:3720）に同じ名前（**:2179 の compat-v1.0 だけは形が違い、`(startsWith(github.ref_name, 'r143-q-') && github.ref_name != 'r143-q-m1')` の形で足す**）、言語の写真の段に `r143`（:4417-4419・:4506）、duo.yml に `r143-duo*`（`duo.yml:43`）、ja-baseline.yml の `FILE=`（:119-126）。`r13`・`r14`・`r141`・`r142` の名前は残す。
 - **写真を撮る枝に `q-` を付けない**: `r143-q-*` と `r143-w-*` は速い道で、写真の段とジョブが走らない。見本の写真の枝は `r143-alt`、写真だけの試しの枝は `r143-shots<n>`。
-- 速い道の単体テストの組（`build.yml:688-694` の一覧）に、§11.2 の新しい単体テストの組を名前で足す。
+- 速い道の単体テストの組は、`build.yml:717` の `grep -E` の正規表現で選ぶ（:688-694 は注）。§11.2 の新しいクラス（`SpanKindsTests`・`ScreenPathsMonthYearTests`・`SpanSessionMonthYearTests`・`EventStoreModelYearTests`・`ZoomResetMonthYearTests`・`SpanGuideMonthYearTests`・`ScreenshotModeMonthYearTests`・`SpanWeightLogTests`・`PaperSpanMonthYearTests`・`MonthPaperLineTests`・`StickyHeaderMonthYearTests`・`PDFMonthYearTests`・`InkCanvasMonthYearTests`）を、:717 の 2 つ目の並び `^(…)$` に 1 つずつ名前で足す（1 つ目の並びの末尾一致 `(SpanTests|SpanSessionTests|…)$` には当たらない）。:688-694 の注は書き添えるだけ。
 - ui-tests（iPhone 17）に `SpanMonthYearUITests`。grep に `span-my UI:` を足す。
 - D0 で `TESTS_1_4_2` の段、D1a で `FIXTURES_1_4_3` の段と compat-span-143 の読み手の段。
 - duo.yml: 月・年も横の道で撮る（:901・:910 の `case "$KIND" in week|day)` を 4 種に。:916 の一覧の回しに月・年を足し、外側の年は上限 3 で撮る）。「SpanKinds.joined と同じ」の注。
@@ -885,14 +912,15 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 
 ### 12.5 見本の写真（段 P。`r143-alt`。取り込まない。0g-43）
 
-- **見本は月の画面の部品を `r143` に入れる前に撮る**（B_DESIGN.md:70「作る前に…見本の画面の画像で…確かめてもらいます」、M7C_CONTRACT.md:755「1.7・1.8 の契約の前に撮る」。0g-43）。使い捨ての枝 `r143-alt` は、**D1a の木に D1b-0 の作業の枝を入れて切る**（§14.1。`r143` には D1b の部品はまだ無い）。`r143-alt` の中だけで、凍結の `InkCanvasView.paperSpan` の本体を `PaperSpan.window` を呼ぶ形に直接直す（取り込まない。R3 の手順は D1b で行う）。DEBUG だけの引数 `--screenshot-month-form a|i|u` もこの枝だけに作る（`r143` にも main にも入れない）。枝の名前に `q-` を付けない。
+- **見本は月の画面の部品を `r143` に入れる前に撮る**（B_DESIGN.md:70「作る前に…見本の画面の画像で…確かめてもらいます」、M7C_CONTRACT.md:755「1.7・1.8 の契約の前に撮る」。この契約は写真より先に書いたので、:755 の「契約の前」は「月の画面の部品を `r143` に入れる前」と読み替えた。0g-43）。使い捨ての枝 `r143-alt` は、**D1a の木に D1b-0 の作業の枝を入れて切る**（§14.1。`r143` には D1b の部品はまだ無い）。`r143-alt` の中だけで、凍結の `InkCanvasView.paperSpan` の本体を `PaperSpan.window` を呼ぶ形に直接直す（取り込まない。R3 の手順は D1b で行う）。DEBUG だけの引数 `--screenshot-month-form a|i|u` もこの枝だけに作る（`r143` にも main にも入れない）。枝の名前に `q-` を付けない。
 - `r143-alt` の `build.yml` は、写真だけのジョブだけが走る形にする（凍結の段・単体テスト・ほかの写真は走らせない。1.4.2 の `r142-alt` が Blank paper shots だけを走らせた形、run 45680064690、`docs/R1_4_2.md:700`）。ほかの通しの run と重ねない（上げる前に走っている run が終わるのを待つ）。写真は別の成果物にし、その run は J-4・関門 3・D1 の関門の合否に数えない。run の番号と写真を `docs/R1_4_3.md` の P に書く。
-- 撮るもの（同じ見本の手書きと予定。`--screenshot-month-tall` で右どなりの月の行を高くし、3 通りの違いが見えるようにする。今の見本ではどの月も格子の高さが同じ 1,063 lu で、3 通りの写真がほとんど同じに見える、`ScreenshotMode.swift:735-771`・:831-860）:
+- 撮るもの（同じ見本の手書きと予定。`--screenshot-month-tall` で右どなりの月の行を高くし、3 通りの違いが見えるようにする。今の見本ではどの月も格子の高さが同じ 1,063 lu で、3 通りの写真がほとんど同じに見える、`ScreenshotMode.swift:735-771`・:831-860。高くする量は、窓の格子の下端の差を約 1,025 lu より小さくし、§4.1 の 4 の届かない月を写さない（リードの決め 6）。見出しは D1b-0 の `spanMonthRow`（曜日の行だけ）で、月の札はまだ写らない。ページにそう書く、§0.4）:
   - 月の 3 通り × ipad11 の縦（境目を真ん中）・ipad11 の横の一覧（XCUI）・ipad13 の縦（境目を真ん中）・iphone69 の縦（境目を真ん中）。
   - 月の等倍の前と後: ipad13・ipad11・ipadmini の横、iphone69 の横（縦は同じ見た目なので 1 枚だけ添える）。
-  - 年の行のそろえの前と後、年の等倍（4 機種）は、D1y の木がそろっていれば足す（間に合わなければ確認ページ）。
-- 送り方: リードが写真を目で確かめてから、**1 つの Artifact のページ（非公開）**にして本人へ送る。下書きは `.page.txt` で作り、作業の中で .html のファイルは書かない（書きかけの HTML は本人の画面に開く、M7C_CONTRACT.md:756。1.4.2 と同じく、公開の時だけリードが .html の名前にする、`docs/R1_4_2.md:1163`）。頭に対象（「1.4.3 の見本の画像（作る前）・commit」）と「選ぶのは月の並べ方だけ（ア・イ・ウ）。何も言わなければア。年と等倍は見るだけ」。ア・イ・ウの気になる点（アは格子の短い月でいちばん下の行がのびる。薄い日だけの行なら薄い色の帯になる。イは隣の月の予定で行が伸びる。ウは区切りの線と下端がずれる）を 1 行ずつ添える。1.4.2 の約束（メモの点は境目でそろう）がウではメモの行に当たらないことも添える。§0.4 の iPad mini の 1 行（行 17 まで「インストール」を押さない）も、このページにもう一度書く。
+  - 年の行のそろえの前と後、年の等倍（4 機種）は、D1y の木がそろっていれば足す（ふつうは間に合わず、作った後の確認ページで見せる。年のそろえは選ぶものではないため。B_DESIGN §0 の 3・§8.1 の「作る前の見本で」と違えた所、0g-43）。
+- 送り方: リードが写真を目で確かめてから、**1 つの Artifact のページ（非公開）**にして本人へ送る。下書きは `.page.txt` で作り、作業の中で .html のファイルは書かない（書きかけの HTML は本人の画面に開く、M7C_CONTRACT.md:756。1.4.2 と同じく、公開の時だけリードが .html の名前にする、`docs/R1_4_2.md:1163`）。頭に対象（「1.4.3 の見本の画像（作る前）・commit」）と「選ぶのは月の並べ方だけ（ア・イ・ウ）。何も言わなければア。年と等倍は見るだけ」。ア・イ・ウの気になる点（アは、となりの月より予定や書き込みが少なく表の背が低い月で、いちばん下の行がのびる。薄い日だけの行なら薄い色の帯になる。イは隣の月の予定で行が伸びる。ウは区切りの線と下端がずれ、いちばん小さくしたときの大きさも月ごとに変わる）を 1 行ずつ添える。1.4.2 の約束（メモの点は境目でそろう）がウではメモの行に当たらないことも添える。§0.4 の iPad mini の 1 行（行 17 まで「インストール」を押さない）も、このページにもう一度書く。
 - 答えは `docs/R1_4_3.md` の「本人の言葉と選び」に、そのまま・時刻つきで写す。**V を始める時（12/8 めど）までに答えが無ければア**。イ・ウなら `SpanAlign.monthForm` を替え、D1b の関門（月の単体テストと写真）をやり直してから V。V の後の答えは §14.4 の「やり直す行」。
+- D1b-0 と P の日程には余りが無い（リードが受け入れた。リードの決め 5）。D1b-0 が遅れたら P も同じだけ遅れる。本人の答えの期限は V を始める時（12/8 めど）のままなので、本人には響かない（§0.3 の表に 1 行で書いた）。
 
 ### 12.6 店の写真（撮り直す物。0g-39）
 
@@ -900,7 +928,7 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
   - iPad 13 インチの `01-month`・`04-year`、iPhone 6.9 インチの `02-month`・`04-year`（6.3 インチの枠は 6.9 の写真を `sips` で縮めた物で、同じく替わる）、Duo の外側の `02-month`・`04-year`（store-duo）。
   - 理由: 設定の既定（オン）では、月の見出しに札が出て、iPad の年は左右に隣の年が見える（今の写真は 1 ページで、机の色の余白）。1.4.1 で、見える画面が変わったのに店の写真を撮り直さず、本人の訴えで撮り直した（R1_4_1_CONTRACT §7.6、`docs/R1_4_2.md:1020`）。同じ失敗を繰り返さない。
 - **撮り直さない**: `00-span`（週の横つなぎ）・`02-week`・`03-day`・`01-week`（1.3 の D26 の形のまま。1.4.3 で変わらない）、`06-settings` などのほかの写真。
-- 写真は**確かめた commit（V）で**、store-shots.yml で撮る（`store-shots.yml:425-435` の回しで、`month` と `year` に `--screenshot-span on` を足す。ja の組も月と年を撮る。C）。今の店の写真と画素で比べ、違う所（札・隣の年・状態バーの日付）を `docs/R1_4_3.md` に書く。手書きの確かめ（`ink_ref.tsv`、Duo の `duo_store.py`）の行は、新しい写真の行を C が足す（足すまでは写真どうしで比べる今の形）。
+- 写真は**確かめた commit（V）で**、store-shots.yml で撮る（`store-shots.yml:430-438` の回しで、`month` と `year` に `--screenshot-span on` を足す。ja の組も月と年を撮る。C）。今の店の写真と画素で比べ、違う所（札・隣の年・状態バーの日付）を `docs/R1_4_3.md` に書く。手書きの確かめ（`ink_ref.tsv`、Duo の `duo_store.py`）の行は、新しい写真の行を C が足す（足すまでは写真どうしで比べる今の形）。
 - D3 の確認ページで見せ、D4 で本人の「この内容で入れてよい」のもとで Connect に上げる（道具は T0 の `shots143.py`。16 ロケール × 枠 × 2 枚と Duo）。
 - `build.yml` の店の JPEG（J-4 の組の `store/<機種>/01-month` など、:1602-1621）は 1 ページの道のまま（J-4 の比べのため）。Connect に上げる写真は store-shots.yml の物。
 - B_DESIGN §9.4 の「段ごとに、またいで書いた見本の写真を店に足す（月はメモの帯、年は年をまたぐ線）」は、足さない（16 ロケール × 3 枠の写真が 1 枚ずつ増え、月・年の写真はページそのものに見えた方がよい）。またいで書く見本は `00-span`（週）が受け持つ。
@@ -908,7 +936,7 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 ### 12.7 控え（S0'）
 
 - 1.4.2 の V の run 45721608435 の成果物（`screenshots` 15109405563 ほか）と、Duo の `duo-shots` 15086312697 は **12/3 ごろに消える**（7 日）。ja-baseline の `ja-baseline-fbd1f7a` 15089105306 は 12/26（`docs/R1_4_2.md:15`）。
-- **D0 の前（遅くとも 11/30）に**、V の run の `screenshots`・`ui-tests`・`l10n-screenshots`・`blank-paper`・`span-shots-app`・`span-shots-app-languages`・`palette-shots`・`memo-paper-shots`・env と、Duo の `duo-shots` を `~/.local/share/tegaki-backup/<日付>/r143-base/` へ控え、`unzip -t` で確かめる。main の run 46040646988 が緑なら、その成果物も同じコードの控えとして足してよい。関門 3 の基準（`paperArea` の組・状態の行 71 本）と、§12.2 の画素の行の測りと、確認ページの前と後に使う。
+- **D0 の前（遅くとも 11/29）に**、V の run の `screenshots`・`ui-tests`・`l10n-screenshots`・`blank-paper`・`span-shots-app`・`span-shots-app-languages`・`palette-shots`・`memo-paper-shots`・env と、Duo の `duo-shots` を `~/.local/share/tegaki-backup/<日付>/r143-base/` へ控え、`unzip -t` で確かめる。main の run 46040646988 が緑なら、その成果物も同じコードの控えとして足してよい。関門 3 の基準（`paperArea` の組・状態の行 71 本）と、§12.2 の画素の行の測りと、確認ページの前と後に使う。
 
 ---
 
@@ -934,7 +962,7 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 | `settings.page.span.footer` | 週と日のページで、前後のページが横につながり、境目をまたいで書けます。月と年は、次の版から順に対応します。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 | 週・日・月・年のページで、前後のページが横につながり、境目をまたいで書けます（月のページでは、下のメモ欄でまたげます）。オフにすると、今までどおり 1 ページずつになります。オフにした端末では、ページをまたいで書いた線が片方のページにだけ出ます（消えてはいません）。 |
 
 - 落とし所（0g-3）のとき: 「週・日・月のページで、…（月のページでは、下のメモ欄でまたげます）。年は、次の版で対応します。オフにすると、…」。D2 の文は、落とし所を決めた後（12/5）に 1 通りだけ書く。
-- D2 で、落とし所を決めた後（12/5）に、X が ja と 9 言語の訳を 1 つの commit で替え、その直後に S が R0f（`SettingsPageSectionTests.swift:19`・:135 の字、§8.5）を入れる（2 つは同じ取り込みで `r143` へ。間で CI を回さない）。
+- D2 で、落とし所を決めた後（12/5）に、X が ja と 9 言語の訳を 1 つの commit で替え、その直後に S が R0f（`SettingsPageSectionTests.swift:19` の定数の字。:135 はその定数を読むだけ、§8.5）を入れる（2 つは同じ取り込みで `r143` へ。間で CI を回さない）。
 - 同じキーの ja を替える（前の字の扱いと `was` は X が lint の決まりで）。jaSha1 が替わるので 9 言語を訳し直す。この鍵は J-1（`ja-baseline.tsv`）に無い【事実: 地図】ので、J-1 は変えない。comment の「2 つ目の文（月と年）は本人が承認した固定の文で…」は「1.4.3 の文は本人が確認ページ（<日付>）で承認した文」に直す。
 - 本人が確認ページで違う字を望んだら、その字にして R0 の `SettingsPageSectionTests` の字と訳をやり直す（V のやり直し）。
 
@@ -978,11 +1006,11 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 
 - `docs/SUPPORT.md:7`・`docs/SUPPORT.en.md:11` の最終更新の日（公開の日に、リードの段）。
 - 「**拡大・縮小するには？**」（`SUPPORT.md:149-153`）の 2 段落目: 「日と週のページでは…月と年のページではそのページを初めて開いたときの大きさになります」を、「日・週・月・年のどのページでも、1 ページの幅が画面の幅にちょうど合います（月と年は 1.4.3 から）。縦の iPad の月のように、開いたときにもう幅がちょうどのときは見た目は変わりませんが、等倍として覚え、横にすると幅にちょうどになります」の形に（W が字を決める）。1 段落目の「月と年のページは、予定や手書きの量によらず同じ大きさで開きます」はそのまま正しい。
-- **新しい FAQ 1 つ**「**月と年のページで、となりのページへ続けて書くには？**」（「拡大・縮小するには？」の前か後。W が置き場所を決める）: 月と年も前後のページと横につながる（1.4.3 から。週と日は 1.3 から）。指で横にすべらせる（「指でも書く」がオンなら 2 本指）。月の表と表の間では日付は続かない（右どなりは 4〜5 週あと）。月の境目をまたいで書けるのは下のメモ欄。月末から月初へ日付どおりに書くのは 1 つの表の中か週のページ。前後の月の薄い日は両方の表に出て、書いたものは表ごとに別々。月の並べ方の文（アなら「格子の短い月では、メモ欄の高さをそろえるため、いちばん下の行がのびる」）。年は 12 月の右に次の年の 1 月、行の高さは隣の年とそろう。iPhone を横にした年の一覧は 3 年分まで。設定 › ページ でオフにできる。
-- 「**メモ欄の紙を替えるには？**」（:183-185）の「横につながった週と日のページでも同じです」→「横につながったページ（週・日・月）でも同じです。月のページでは、となりの月と点や罫線の高さがそろいます」。
+- **新しい FAQ 1 つ**「**月と年のページで、となりのページへ続けて書くには？**」（「拡大・縮小するには？」の前か後。W が置き場所を決める）: 月と年も前後のページと横につながる（1.4.3 から。週と日は 1.3 から）。指で横にすべらせる（「指でも書く」がオンなら 2 本指）。月の表と表の間では日付は続かない（右どなりは 4〜5 週あと）。月の境目をまたいで書けるのは下のメモ欄。月末から月初へ日付どおりに書くのは 1 つの表の中か週のページ。前後の月の薄い日は両方の表に出て、書いたものは表ごとに別々。月の並べ方の文（アなら「となりの月より予定や書き込みが少なく表の背が低い月では、メモ欄の高さをそろえるため、いちばん下の行がのびる」）。年は 12 月の右に次の年の 1 月、行の高さは隣の年とそろう。iPhone を横にした年の一覧は 3 年分まで。設定 › ページ でオフにできる。
+- 「**メモ欄の紙を替えるには？**」（:183-185）の「横につながった週と日のページでも同じです」→「横につながったページ（週・日・月）でも同じです。」と、月の並べ方で替わる 1 文（ア・イ:「月のページでは、となりの月と点や罫線の高さがそろいます」、ウ:「月のページでは、点や罫線の高さは月ごとに違います」。下の「月の並べ方の文」の段のとおり、P の答えの後に確定する）。
 - 「**iPad と iPhone で版が違うと？**」（:191-195）に 1 文: 1.4.3 で月と年の境目をまたいで書いた線は、1.4.2 までの端末では保存されたページにだけ出て、紙の端で切れて見える（消えてはいない）。古い版で消すと新しい版でも消える。
 - 既知の制限「**マスをまたぐ手書き**」（:246）の「（月と年のページは今までどおり 1 ページずつです）」→「1.4.3 から月と年のページも（月は下のメモ欄で）」。
-- **月の並べ方の文は、P の答え（または 12/8 の既定のア）の後に、その形の文を日英で確定する**（ア: いちばん下の行がのびる、イ: 行の高さが隣の月とそろう、ウ: メモ欄の高さが月ごとにずれる）。W は 3 通りの下書きを持ち、決まった 1 つだけを入れる。
+- **月の並べ方の文は、P の答え（または 12/8 の既定のア）の後に、その形の文を日英で確定する**（ア: いちばん下の行がのびる、イ: 行の高さが隣の月とそろう、ウ: メモ欄の高さが月ごとにずれる）。メモ欄の紙の FAQ の月の 1 文も同じ（ア・イとウで違う）。W は 3 通りの下書きを持ち、決まった 1 つだけを入れる。
 - 英語の `SUPPORT.en.md`（:158・:251 ほか同じ所）も同じ。新しい英文は元を見ずに逆翻訳する。
 - Web: 手元の枝 `r143-legal` を Web main 4a9fbf3 から作り（D2）、公開の日に早送りで送る（1.4.2 の `r142-legal` と同じ形）。公開の道具の確かめに「Web の SUPPORT 2 ページが新しい文になっている」を入れる。
 
@@ -990,8 +1018,8 @@ R1_4_2_CONTRACT §5.6 の一覧（`CalendarRootScreen.swift` の `guide.close()`
 
 - `docs/DESIGN.md`: 等倍の行（:218 の「月と年は…」）、月・年の横つなぎ（月のメモの帯・札・境目の線・年の行のそろえ・年の札）を足す。
 - `README.md`: :60 の等倍の行、月・年の横つなぎ、新しいファイル（`SpanKinds.swift`）。
-- `docs/M7_PLAN.md` §4: この契約の第 1 版で「次の版」の行を 1.4.3 にして契約を指し、1.7・1.8 の行に「1.4.3 へ移した」を足した。第 2 版で、本人が読む §0 の表（項目 4 の時期と最後の行）と要約の 5、頭の版の注（第 7 版）、§4.8 の題も直した。時期と出した日はリードが記録の段で直す。
-- `docs/B_DESIGN.md` の頭に 1 行の注（「1.4.3 で B-2・B-3 を作った。約束は R1_4_3_CONTRACT.md。§3.1 の月の一覧の倍率の規則と §6.3 の段 1 は契約で違えた」）。本文は記録として残す。
+- `docs/M7_PLAN.md` §4: この契約の第 1 版で「次の版」の行を 1.4.3 にして契約を指し、1.7・1.8 の行に「1.4.3 へ移した」を足した。第 2 版で、本人が読む §0 の表（項目 4 の時期と最後の行）と要約の 5、頭の版の注（第 7 版）、§4.8 の題も直した。第 3 版で、§4 の 1.4.3 の行の版の注と落とし所の字（年が遅れたとき・重いとき・12/5 の後に直せないとき）と、頭の第 7 版の注を直した。時期と出した日はリードが記録の段で直す。
+- `docs/B_DESIGN.md` の頭に 1 行の注（「1.4.3 で B-2・B-3 を作った。約束は R1_4_3_CONTRACT.md。§3.1 の月の一覧の倍率の規則（§8.1 の『予定の多い月の隣で月の一覧の大きさが変わらない』の min の分も）、§6.3 の段 1、§8.2・§0 の 7・9 の試作版、§9.4 の店のまたぐ見本、§8.1・§0 の 3 の年のそろえの見本の時期（作った後の確認ページで見せる）は、契約で違えた」）。本文は記録として残す。
 
 ---
 
@@ -1004,15 +1032,15 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | 段 | 目安 | 中身 | 関門 |
 | --- | --- | --- | --- |
 | S0 | 11/28 | この契約。`docs/R1_4_3.md` の骨組みと前もっての宣言（基準の数を V の run 45721608435 から写す、J-4 の違ってよい所、KitChecks・compat・単体・UI・写真の数が増える見込み、R0 の行の一覧の下書き）。1.4.2 の main の run 46040646988 と日本の店の表示が `docs/R1_4_2.md` にあることを確かめる。中国の 2027 年の祝日と M7C_CONTRACT §8.6 を見る（§1.5）。本人に §0 を平たく伝える | リードが契約を読む。記録がある |
-| S0' | 11/28〜11/30（D0 の前、成果物が消える 12/3 より前） | §12.7 の控え。§12.2 の画素の行を控えから測る | 控えの数と大きさを記録 |
+| S0' | 11/28〜11/29（D0 の前。成果物が消える 12/3 より前） | §12.7 の控え。§12.2 の画素の行を控えから測る | 控えの数と大きさを記録 |
 | D0 | 11/28〜11/29 | CI だけの commit（`r143`）: 枝の配線、J-4 の基準のファイル、`MARKETING_VERSION "1.4.3"`、`TESTS_1_4_2` の表と段。`Sources`・`TegakiKit/Sources`・`Tests` は 57ffd0f と同じ | 下の D0 の関門 1〜8 |
 | D1a | 11/28〜11/30 | Kit（K）: `SpanAlign` の月・年の下限と `MonthForm`、MonthLayoutInput・YearLayoutInput の下限（月の `gridFloor`・`memoFloor`・`rowFloors`）、`PageScroll` の月、`SpanMonthYearChecks`。互換の新しいフォルダと表と読み手（C）。画面に出ない部品なので、段 P の答えを待たずに作る（M7C_CONTRACT §15 の 4 の読み） | **作る役の commit の後に 2 つの目（型とテスト／契約と B_DESIGN）で見直し、must を 0 にしてから `r143` へ取り込む。指摘と決めたことを `docs/R1_4_3.md` に書く**。`swift build`・KitChecks が緑（数は宣言どおりに増え、今の答えは同じ）。通しの run で compat の新しい数、`FIXTURES_1_4_3` の段、J-4 は D0 と同じ、関門 3 が同じ |
-| D1b-0 | 11/29〜11/30 | **見本の写真のための月の最小の部分**（作業の枝。`r143` にはまだ取り込まない）: `SpanKinds`（[週・日・月]）、`joins`、`layoutPages` の月の下限、`PaperSpan.window`（月の枝）、`PaperView.drawSpan` の境目の線、`ZoomReset.followsFit`（`SpanKinds` から引く 1 行。`--screenshot-zoom fit` の写真のため）、写真モードの `--screenshot-month-tall` と月の `--screenshot-span-crossing all`、`SpanMonthYearShotsUITests` の月の見本の分。`monthForm` と `gridFloor` は D1a から。`r143-alt` はこの作業の枝と D1a の木から切り、凍結の `paperSpan` の直しは `r143-alt` の中だけ（§12.5） | 型の確かめ（DEBUG あり・なし）と速い道の単体テストが緑。`r143-alt` の写真をリードが目で確かめる |
-| D1b | 11/30〜12/3（D1b-0 の続き。P と並べて進めてよい） | 月（S・P・Z・U）: D1b-0 の部品に、**R3**（§8.4）、`spanMonthRow` と月の札、焦点、今日、月の PDF（0g-53 の 1 か所の関数）、月の案内の札、月の等倍、**R0m**（§8.5）、`span-shots-my` の月の写真、新しい単体テストと UI テストを足す。`r143` への取り込みは P の写真を本人へ送った後 | **D1a と同じ 2 つの目の見直しで must を 0 にしてから取り込む**。R3 は §8.4 の手順 4・5、R0m は §8.5 のリードの 1 行ずつの見直し。新しいテストと R0 したテストが緑、§8.5 のほかの守りがそのまま。J-4 は宣言の行だけ。関門 3 が同じ。保存のバイトが同じ。月の写真をリードが目で確かめる |
-| P | 11/30〜12/1（`r143-alt` の写真がそろいしだい。月の画面の部品を `r143` に入れる前） | 見本の写真（§12.5）を、非公開の Artifact 1 つで本人へ。iPad mini の 1 行（§0.4）も書く | 送った日時を記録。**V を始める時までに答えが無ければア**。イ・ウなら `SpanAlign.monthForm` を替え、D1b の関門をやり直す |
-| D1y | 12/1〜12/5 | 年（K・S・P・U）: `SpanKinds` に年、年の下限、`spanYearRow` と年の札、iPhone 横の上限の今日、年の予定（終日だけ）、年の PDF、年の案内の札、年の等倍、**R0y**、`span-shots-my` の年の写真、`SpanWeightLogTests`、`ScreenPaths.yearEventSource` と `EventStoreModel` の写真モードの分かれ（§5.5）、親の `YearTapUITests.runJump` の直し（§11.3、0g-52） | D1b と同じ。**凍結の `YearTapSpanRerunUITests` の 5 本（`SpanRerunUITests.swift:71-116`）が期待を変えずに緑**。重さの測りが記録にある（0g-3 の「重い」に当たるかをリードが読む） |
-| 決め | 12/5 の朝（「遅い」の (ii) はその後いつでも） | **落とし所（0g-3）**: 次のどれかなら、リードが月だけの 1.4.3 に切る。本人にその日のうちに知らせる。<br>(遅れ) D1y が 12/5 の朝に取り込みの関門を通っていない → `SpanKinds` から年を外したまま、R0y を作らない、文は月だけ。<br>(重い) `SpanWeightLogTests` で年の窓 19,600 本のずらし 1 回が 1,000 ms を超える、または本人の数（P-B9: いちばん多いページ 1,016 本、年 152 本）の形で段 2 が起きる、のどちらかが切る時までに直らない → 同じ。<br>(遅い) 12/5 の後に、V・D1c・本人の確かめ表で年の不具合が見つかり、12/18 までの提出に間に合う直しが無い → R0y の commit を戻す（TESTS_1_3・TESTS_1_4_1 の元の行に戻る）、`SpanKinds` から `.year` を外す、文を月だけに替える（脚注の落とし所の字と R0f のやり直し、§13.1）、V をやり直す、新しいビルドで確かめ表の行 1 をやり直し、行 7・8・14 と行 9 の年の所を「—」にする、替えた文で「この内容で入れてよい」をもらい直す。<br>**落とし所のときに替える物**: §12.6 は `01-month`・`02-month` だけ撮り直す（`04-year` は今のまま。`shots143.py` の範囲も月だけ）／§13.3 の新機能の文は月だけの字／§13.4 の英語の 1 から year の文を外す／§13.5 の新しい FAQ と既知の制限から年の文を外す／§12.4 の年の写真を `span-shots-my` の数から外す／§11.5 の MS3 を外す（D1c の枝は決めの後に切る）／duo.yml・store-shots.yml の `case` を月だけに（「SpanKinds.joined と同じ」の注）／確かめ表の年の行を「—」／M7_PLAN §4 に 1.4.4（年の横つなぎと年の等倍）の行を足す | 決めたことと理由を記録 |
-| D1c | 12/4〜12/6 | 変異（`r143-q-m1`、§11.5）と Kit の変異（手元）と Duo（duo.yml `r143-duo1`） | 変異で落ちたテストが表とちょうど同じ。`DuoLayoutUITests` と `shot_checks` が緑、月・年の横の道の Duo の写真がある |
+| D1b-0 | 11/29〜11/30（遅れたら P も同じだけ遅れる。リードの決め 5） | **見本の写真のための月の最小の部分**（作業の枝。`r143` にはまだ取り込まない）: `SpanKinds`（[週・日・月]）、`joins`、`layoutPages` の月の下限（§3.3 の読み替えを含む）、`PaperSpan.window`（月の枝）と `init?(pages:bands:focus:)` の月、0g-53 の紙の中身の関数（月）、`PaperView.drawSpan` の境目の線、**月の見出し**（`makeHeadingSpan` の月の枝と、`StickyHeaderView` の `.month` → `spanMonthRow`。曜日の行だけで、月の札は D1b。2 つは同じ commit、§3.8）、`ZoomReset.followsFit`（`SpanKinds` から引く 1 行。`--screenshot-zoom fit` の写真のため）、写真モードの `--screenshot-month-tall` と月の `--screenshot-span-crossing all`、`SpanMonthYearShotsUITests` の月の見本の分。`monthForm` と `gridFloor` は D1a から。`r143-alt` はこの作業の枝と D1a の木から切り、凍結の `paperSpan` の直しは `r143-alt` の中だけ（§12.5） | 型の確かめ（DEBUG あり・なし）と速い道の単体テストが緑。`r143-alt` の写真をリードが目で確かめる（境目を真ん中にした写真で、見出しの曜日の行が格子の列とそろっていること） |
+| D1b | 11/30〜12/3（D1b-0 の続き。P と並べて進めてよい） | 月（S・P・Z・U）: D1b-0 の部品に、**R3**（§8.4）、`spanMonthRow` の月の札（貼り付き・縮め方）、焦点、今日、月の PDF（0g-53 の 1 か所の関数）、月の案内の札、月の等倍、**R0m**（§8.5）、`span-shots-my` の月の写真、新しい単体テストと UI テストを足す。`r143` への取り込みは P の写真を本人へ送った後 | **D1a と同じ 2 つの目の見直しで must を 0 にしてから取り込む**。R3 は §8.4 の手順 4・5、R0m は §8.5 のリードの 1 行ずつの見直し。新しいテストと R0 したテストが緑、§8.5 のほかの守りがそのまま。J-4 は宣言の行だけ。関門 3 が同じ。保存のバイトが同じ。月の写真をリードが目で確かめる |
+| P | 11/30〜12/1（`r143-alt` の写真がそろいしだい。月の画面の部品を `r143` に入れる前。D1b-0 が遅れたら同じだけ遅れ、答えの期限は変えない。リードの決め 5） | 見本の写真（§12.5）を、非公開の Artifact 1 つで本人へ。iPad mini の 1 行（§0.4）も書く | 送った日時を記録。**V を始める時までに答えが無ければア**。イ・ウなら `SpanAlign.monthForm` を替え、D1b の関門をやり直す |
+| D1y | 12/1〜12/4（12/5 の朝の決めの前に余りを置く） | 年（K・S・P・U）: `SpanKinds` に年、年の下限、`spanYearRow` と年の札、iPhone 横の上限の今日、年の予定（終日だけ）、年の PDF、年の案内の札、年の等倍、**R0y**、`span-shots-my` の年の写真、`SpanWeightLogTests`、`ScreenPaths.yearEventSource` と `EventStoreModel` の写真モードの分かれ（§5.5）、親の `YearTapUITests.runJump` の直し（§11.3、0g-52） | D1b と同じ。**凍結の `YearTapSpanRerunUITests` の 5 本（`SpanRerunUITests.swift:71-116`）が期待を変えずに緑**。重さの測りが記録にある（0g-3 の「重い」に当たるかをリードが読む） |
+| 決め | 12/5 の朝（「遅い」の (ii) はその後いつでも） | **落とし所（0g-3）**: 次のどれかなら、リードが月だけの 1.4.3 に切る。本人にその日のうちに知らせる。<br>(遅れ) D1y が 12/5 の朝に取り込みの関門を通っていない → `SpanKinds` から年を外したまま、R0y を作らない、文は月だけ。<br>(重い) `SpanWeightLogTests` で年の窓 19,600 本のずらし 1 回が 1,000 ms を超える（§3.10 の測り方: 2 つの run の両方で 3 回の中央値が超え、同じ run の週の参考の値は超えない）、または本人の数（P-B9: いちばん多いページ 1,016 本、年 152 本）の形で段 2 が起きる、のどちらかが切る時までに直らない → 同じ。<br>(遅い) 12/5 の後に、V・D1c・本人の確かめ表で年の不具合が見つかり、12/18 までの提出に間に合う直しが無い → R0y の commit を戻す（TESTS_1_3・TESTS_1_4_1 の元の行に戻る）、`SpanKinds` から `.year` を外す、文を月だけに替える（脚注の落とし所の字と R0f のやり直し、§13.1）、V をやり直す、新しいビルドで確かめ表の行 1 をやり直し、行 7・8・14 と行 9 の年の所を「—」にする、替えた文で「この内容で入れてよい」をもらい直す。<br>**落とし所のときに替える物**: §12.6 は `01-month`・`02-month` だけ撮り直す（`04-year` は今のまま。`shots143.py` の範囲も月だけ）／§13.3 の新機能の文は月だけの字／§13.4 の英語の 1 から year の文を外す／§13.5 の新しい FAQ と既知の制限から年の文を外す／§12.4 の年の写真を `span-shots-my` の数から外す／§11.5 の MS3 を外す（D1c の枝は決めの後に切る）／§11.2 の新しい単体テストは年の期待を `SpanKinds` から引くので書き直さない。`SpanMonthYearUITests` の年の部分は U が外す（UI テストは集合を読めない）。親の `YearTapUITests.runJump` の直しは残す（1 ページの道でも正しい）／duo.yml・store-shots.yml の `case` を月だけに（「SpanKinds.joined と同じ」の注）／確かめ表の年の行を「—」／M7_PLAN §4 に 1.4.4（年の横つなぎと年の等倍）の行を足す | 決めたことと理由を記録 |
+| D1c | 12/5〜12/7（決めの後） | 変異（`r143-q-m1`、§11.5）と Kit の変異（手元）と Duo（duo.yml `r143-duo1`） | 変異で落ちたテストが表とちょうど同じ。`DuoLayoutUITests` と `shot_checks` が緑、月・年の横の道の Duo の写真がある |
 | D2 | 12/4〜12/8 | 文（§13）: GLOSSARY、4 キーの訳し直しと脚注の新しい字の訳・逆翻訳・判定・REVIEW 19、脚注の **R0f**（§8.5）、2 つの comment、lint・build.py・baseline.py・バンドル。SUPPORT の日英と `r143-legal`、16 ロケールの新機能の文、審査メモ、PROPOSALS、文書 | 確認ページの材料がそろう。REVIEW の × が 0。R0f はリードの 1 行ずつの見直し |
 | T0 | 12/4〜12/7 | 道具の移し（0g-46）: `asc142` → `asc143`（ver・whatsnew・enter・submit・release・web support と、**月と年の写真を 16 ロケール × 枠 × 2 枚と Duo で入れ替える `shots143.py`**）、`confirm142` → `confirm143`。guard を 1.4.3 の字と承認した commit に結ぶ。控えは `~/.local/share/tegaki-backup/<日付>/asc143`・`confirm143` | 偽の Connect の試験とオフラインの試しが失敗 0。試験の数を記録（1.4.1 では道具を移した後に契約が変わり、提出の直前に道具が止まった、`docs/R1_4_1.md:641`） |
 | V | 12/8〜12/9（D2 の文の commit の後） | 通しの run 1 回（ほかの通しの run と同時に走らせない）。この run の commit を **「確かめた commit」** と呼び、run の番号とともに `docs/R1_4_3.md` に書く。同じコードの Duo の run も。店の写真をこの commit で撮る（§12.6）。**店の写真（store-shots）と Duo の run は、V の build.yml の run が終わってから、1 つずつ走らせる**（macOS のジョブは同時に 5 つまで） | 全部のジョブが緑（揺れの読み方どおり）、関門 3、同じ UTC の日・同じ版の J-4（宣言の行の外で強い差 0）、`span-shots-my`・palette-shots・memo-paper-shots の行、Duo の run も緑。この後に `Sources`・`TegakiKit`・`Tests`・`tools`・`.github`・`project.yml` を変えたら V をやり直す |
@@ -1058,7 +1086,7 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | S | 道とセッションと画面: `SpanKinds`・`ScreenPaths`（`yearEventSource` を含む）・`SpanSession`・`CalendarRootScreen`（紙の中身の 1 か所の関数を含む）・`SpanGuide`・`ZoomReset`・`EventStoreModel`・`ScreenshotMode`・R0 の S の行・その単体テスト | §2 の S の行 |
 | P | 紙と見出しと PDF: `PaperSpan`・`PaperView` の境目の線・`StickyHeaderView` の 2 つの行・`PDFPageRenderer`・その単体テスト（`MonthPaper` は変えない） | §2 の P の行 |
 | Z | 凍結のキャンバスの R3（§8.4）と `InkCanvasMonthYearTests`・R0 の `InkCanvasZoomResetTests` | §2 の Z の行 |
-| U | UI テスト（`SpanMonthYearUITests`・`SpanMonthYearShotsUITests`・R0y の `ZoomResetUITests`・R0m と R0y の `SpanRerunUITests` の注・親の `YearTapUITests` の直し） | §2 の U の行 |
+| U | UI テスト（`SpanMonthYearUITests`・`SpanMonthYearShotsUITests`・親の `YearTapUITests` の直し（終わりに `span.state` を待つ形を含む）。凍結の `ZoomResetUITests`・`SpanRerunUITests` は変えない） | §2 の U の行 |
 | X・R | 訳・元を見ない逆翻訳・GLOSSARY・REVIEW | `tools/l10n/`・`docs/i18n/` |
 | A・W | 新機能の文・審査メモ・SUPPORT | `docs/store/`・`docs/SUPPORT*.md` |
 | リード | 順番・確かめ・`docs/R1_4_3.md`・見本と確認ページ・Connect・本人への知らせ・R3 と R0 の 1 行ずつの見直し・落とし所の決め | — |
@@ -1069,19 +1097,21 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 
 | 順 | だれ | すること | 本人の言葉 |
 | --- | --- | --- | --- |
-| 1 | 各役 | この契約のとおりに作り、`r143` に commit | 不要 |
+| 1 | 各役 | D0 と D1a（画面に出ない Kit と互換）をこの契約のとおりに作り、`r143` に commit（D1a は 2 つの目の見直しの後） | 不要 |
 | 2 | リード | `r143` を GitHub に上げ、CI が全部緑 | 不要 |
-| 3 | リード | 見本の写真のページ（段 P） | 月の並べ方（ア・イ・ウ。答えが無ければア） |
-| 4 | リード | 確認ページ（§14.1 の D3） | 「**この内容で入れてよい**」 |
-| 5 | リード | testflight.yml を確かめた commit から走らせ、TestFlight 1.4.3 を内部のテストに配る。確かめ表（§15）を番号付きで渡す（4 と同時でよい） | 不要 |
-| 6 | 本人 | 確かめ表 | 「全部○」か × の所 |
-| 7 | 本人 → リード | 提出のお願い | 「**1.4.3 を審査に提出して良い**」 |
-| 8 | リード | `git diff <確かめた commit> -- Sources TegakiKit Tests tools .github project.yml` が空を確かめ、Connect に版 1.4.3 を作り、16 ロケールの新機能の文・プロモーションテキスト・審査メモ・ビルド・月と年の写真を入れて読み戻す。手動公開で提出 | — |
-| 9 | 本人 → リード | 審査に通ったら公開。同じお願いで、main へまとめてよいか | 「**1.4.3 を公開して良い**」と「**まとめて良い**」 |
-| 10 | リード | 公開の日に Web の SUPPORT 2 ページ、日本の App Store の表示が 1.4.3 になったことを記録。`r143` を main へ `--no-ff`、main の CI を見て run の番号と結果を書く。本人の手元の main を `pull --ff-only` | — |
+| 3 | 各役・リード | D1b-0 の作業の枝と D1a の木から `r143-alt` を切り、見本の写真を撮る（`r143` には入れない。§12.5） | 不要 |
+| 4 | リード | 見本の写真のページ（段 P） | 月の並べ方（ア・イ・ウ。答えが無ければア） |
+| 5 | 各役・リード | 4 の後に D1b、続いて D1y を `r143` へ取り込み、D1c・D2・T0 を経て V（確かめた commit）。CI が全部緑 | 不要 |
+| 6 | リード | 確認ページ（§14.1 の D3） | 「**この内容で入れてよい**」 |
+| 7 | リード | testflight.yml を確かめた commit から走らせ、TestFlight 1.4.3 を内部のテストに配る。確かめ表（§15）を番号付きで渡す（6 と同時でよい） | 不要 |
+| 8 | 本人 | 確かめ表 | 「全部○」か × の所 |
+| 9 | 本人 → リード | 提出のお願い | 「**1.4.3 を審査に提出して良い**」 |
+| 10 | リード | `git diff <確かめた commit> -- Sources TegakiKit Tests tools .github project.yml` が空を確かめ、Connect に版 1.4.3 を作り、16 ロケールの新機能の文・プロモーションテキスト・審査メモ・ビルド・月と年の写真を入れて読み戻す。手動公開で提出 | — |
+| 11 | 本人 → リード | 審査に通ったら公開。同じお願いで、main へまとめてよいか | 「**1.4.3 を公開して良い**」と「**まとめて良い**」 |
+| 12 | リード | 公開の日に Web の SUPPORT 2 ページ、日本の App Store の表示が 1.4.3 になったことを記録。`r143` を main へ `--no-ff`、main の CI を見て run の番号と結果を書く。本人の手元の main を `pull --ff-only` | — |
 
 - **本人の言葉の受け方**: 本人の言葉は、そのまま・時刻つきで `docs/R1_4_3.md` の「本人の言葉と選び」に写す。時刻は書く前に `date` で読む（推測で書かない）。全角の数字や空白の違いは同じ言葉と読み、道具の `--owner` には決まった形を渡す（道具は字のまま比べ、全角・空白の違いも断る、`docs/R1_4_2.md:1025`）。言葉はチャットの本人の発言からだけ取る。確かめ表の答えに無い行があれば、その行だけ聞き直す（1.4.2 の行 21、`docs/R1_4_2.md:1169`。提出は進め、公開はその行の ○ の後）。
-- 公開は、本人の確かめ（6）と本人の言葉（9）の後だけ。言葉は前もってもらってもよい。**本人が自分の端末で確かめていない版は出さない**。
+- 公開は、本人の確かめ（8）と本人の言葉（11）の後だけ。言葉は前もってもらってもよい。**本人が自分の端末で確かめていない版は出さない**。
 - × が出たら、直してビルドし直し、確かめ表の触れた行（下の決め方）と行 1 をやり直してもらう（提出の後なら審査から取り下げる）。
 - **本人が既定と違う形を選んだとき、やり直してもらう確かめ表の行**（新しいビルドの番号で表を渡し直し、その行の答えがそろってから提出・公開する。ほかの行の答えは前のビルドの物を使う。V より前に答えをもらえれば、表は新しいビルドで 1 回で済む）: いつも行 1（版）。ほかは:
   - 月の並べ方 イ・ウ（V の後の答え）: 行 2・3・10・12・16・17・18。SUPPORT の月の文（§13.5）と確認ページのその所も替えて見せ直す。
@@ -1095,7 +1125,7 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | 起きたこと | すること |
 | --- | --- |
 | 12/5 の朝に年が間に合っていない | 0g-3 の落とし所（遅れ）: 月だけの 1.4.3。年は 1.4.4（この契約の注で範囲を書き、言葉は別にもらう）。§14.1 の決めの行の「替える物」を全部替える。§0 の日程と確かめ表の年の行（7・8・14 と行 9 の年の所）を「—」にして渡す |
-| 年が重すぎる（`SpanWeightLogTests` の 19,600 本でずらし 1 回が 1,000 ms 超、または本人の数で段 2） | 0g-3 の落とし所（重い）。切る時までに直らなければ、上と同じ |
+| 年が重すぎる（`SpanWeightLogTests` の 19,600 本でずらし 1 回が 1,000 ms 超（§3.10 の測り方）、または本人の数で段 2） | 0g-3 の落とし所（重い）。切る時までに直らなければ、上と同じ |
 | 12/5 の後に、V・D1c・確かめ表で年の不具合が見つかり、12/18 までに直せない | 0g-3 の落とし所（遅い）: R0y の commit を戻し、`SpanKinds` から `.year` を外し、文を月だけに替え（脚注と R0f も）、V をやり直して新しいビルド。確かめ表は行 1 をやり直し、年の行を「—」。替えた文で「この内容で入れてよい」をもらい直す。本人にその日のうちに知らせる |
 | 1.4.3 が審査で断られた | 指摘を `docs/R1_4_3.md` に写す。文・審査メモだけで直せる（コードの差が空）なら、直した文を確認ページで見せて「この内容で入れてよい」をもらい直す。コードを直すなら、触れた所の D1〜D2 の関門をやり直し、新しいビルドを TestFlight へ、確かめ表の触れた行をやり直してもらう。どちらも、出し直しの前に「1.4.3 を審査に提出して良い」をもう一度もらう。前にもらった公開の言葉は使わない |
 | 確かめた後に main が動いた（1.4.2 の直しの版などで） | 提出しない。基準（J-4 のファイル・関門 3 の run）を新しい main の公開したビルドとその通しの run に替え、`r143` で D0 の関門から通しの run をやり直す。新しいビルドで確かめ表を全部やり直してもらう |
@@ -1137,7 +1167,7 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | 13 | iPhone | 縦で、月のページ（1.4.3 で初めて開く）。紙には触れずに、上の端の札を読む。読み終えたら、2 本の指でつまんでいちばん小さくする（準備の形）。2 本の指で横にすべらせる。指 1 本でメモ欄に書く | 小さな札（「前後の月が横につながりました…」）が出て、8 秒で消える（触れても消える）。2 本の指で隣の月が出る。指で書ける。（行 1 で月が出て札を見たときは、その時の ○ か ×） |
 | 14 | iPhone | 縦で、年のページを開く（札が出たら読む）。2 本の指でつまんでいちばん小さくする（準備の形）。等倍を押す。端末を横にする。2 本の指でいちばん小さくする。2 本の指で左右と上下に動かす。縦に戻す | 縦で押すと、1 年の幅が画面の幅にちょうどになる（もうちょうどなら、見た目はほとんど変わらない）。横にすると 1 年が横いっぱい（6〜7 日分の行が見え、上下にすべらせて続き）。いちばん小さくすると 3 年分までの大きさで、1 年は縦に入りきらず、上下にすべらせて見る |
 | 15 | iPhone | 横で、月のページの一覧。等倍を押す。2 本の指でいちばん小さくする。縦に戻す | 一覧では 2〜3 か月分が並ぶ。等倍で 1 か月が横いっぱい（2〜3 週ほど）。小さくすると一覧に戻る |
-| 16 | iPad mini（1.4.2 のまま） | 月のページで、行 3 の線のある 11 月と 12 月を見る。見えている行 3 の線を **Pencil で**消しゴムを使って消す。iPad Pro 13 で同じ所を見る | mini では、線が片方の月にだけ出て、紙の端で切れて見える（または余白にはみ出す）。消えてはいない。mini で消すと、Pro 13 でも消える（Pro 13 の上の印が「保存済み」になった後） |
+| 16 | iPad mini（1.4.2 のまま） | 月のページで、行 3 の線のある 11 月と 12 月を見る。見えている行 3 の線を **Pencil で**消しゴムを使って消す。iPad Pro 13 で同じ所を見る | mini では、線が片方の月にだけ出て、紙の端で切れて見える。消えてはいない。mini で消すと、Pro 13 でも消える（Pro 13 の上の印が「保存済み」になった後） |
 | 17 | iPad mini | TestFlight で 1.4.3 を入れる。月のページで、**Pencil で**メモ欄に境目をまたいで 1 本書く。iPad Pro 13 で同じ所を見る | mini でも月が横につながり、またいで書ける。Pro 13 にも届き、つながって見える |
 | 18 | iPad Pro 13 | 設定 › メモ欄の紙 を「ドット方眼」にして、月の境目のメモ欄を見る。見終わったら「罫線」に戻す（1.4.2 のくり返し） | 点の列が境目でも同じ間隔・同じ高さで続く。罫線に戻すと前と同じ |
 | 19 | iPad Air 11 と iPhone | 1.4.1・1.4.2 のくり返し。週のページで等倍を押す。「‹ 今日 ›」を押す。ペンの光っている丸を押して色の板を開き、「紺」で書き、もう一度板を開いて「最初の色に戻す」 | 前と同じ動き（1 週の幅が画面にちょうど、今日へ戻る、紺で書ける、黒に戻る） |
@@ -1160,20 +1190,23 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | 焦点の持ち越しの誤りで、題名が隣の月になる・月から週へ替えると思わぬ週が開く | 月・年の規則（§3.6）と単体テストの表（月末・2/29） |
 | アでのびた最後の行（多くは薄い日だけの行で、薄い色の帯）が分かりにくい。そこに書いた線は薄い日のマスに入り、隣の表の同じ日には出ない | B_DESIGN §0 の 3 で本人に伝えた形。段 P の写真で 3 通りと一緒に見せ、§0.1・SUPPORT で伝える。古い端末でも、その行が手書きでのびて見える（§4.1）。本人がイを選べば行がそろう |
 | 第 1 版のアの作り（柄だけを下げる）で、メモの字と罫線がずれ、窓が替わるたびに罫線が字の下で動く | 第 2 版で `memo` の矩形の原点そのものを下げる形にした（§4.1、0g-11）。KitChecks で「字の y − `memo.minY` が下限の有無と窓の替わりで同じ」、`MonthPaperLineTests` で画素を固める |
-| 月のアで、のばす量が行の上限 1,200 lu を超える月は、その月だけメモの帯がずれる | まれ【推定】（窓の中で格子の下端の差が約 1,025 lu を超えるとき）。B_DESIGN §3.4 の上限のまま。KitChecks で形を固め、起きたらその月だけ区切りの線が上に残る（§4.1 の 4） |
-| 月の一覧の下限が、隣の格子の高い月で下がる。届かない月が真ん中に来ると、ずらしで倍率が寄せられうる | 開く大きさと等倍は変わらない。ふだんのずらしでは下限が下がらず倍率は動かない（§4.6）。`InkCanvasMonthYearTests` で固める |
+| 月のアで、のばす量が行の上限 1,200 lu を超える月は、その月だけメモの帯がずれる | まれ【推定】（窓の中で格子の下端の差が約 1,025 lu を超えるとき）。B_DESIGN §3.4 の上限のまま。KitChecks で形を固め、起きたらその月だけ区切りの線が上に残る（§4.1 の 4）。第 3 版でリードがまれとして受け入れた（リードの決め 6）。見本の写真ではこの場合を写さない（`--screenshot-month-tall` の量、§12.5） |
+| 月の一覧の下限（min）が、隣の格子の高い月で下がる。ずらしの後の読み込みや 30 秒の見直しで下限を下げると、背の高い月が窓を出た数ターン後に倍率が寄せられる（第 2 版の見落とし） | 月・年は、ずらしとその後の読み込み・30 秒の見直し・外からの更新では下限を下げない（§3.3。第 3 版、リードの決め 2）。下げるのは消したときと、回転・開き直しで窓を決め直したときだけ。開く大きさと等倍は変わらない。`InkCanvasMonthYearTests` でずらした直後と prefetch の後の両方を固め、変異 MS8 で確かめる。届かない月が真ん中に来たとき（まれ）と、本人がウを選んだときだけ、ずらしで min が変わりうる（§4.6）。いちばん小さい大きさが窓で決まることは §0.1 で本人に伝える |
+| 月・年の下限を読み直しで下げないので、背の高い月（年）が窓を出た後も、ほかの月の最後の行（年の行）がのびたまま残る | 見えている行が縮まないのと同じ考え（B_DESIGN §3.1）。消す・回す・開き直すと決め直す。確かめ表の行 2・3・7 で見る（§18.1 の 16） |
 | 本人が段 P の写真に答えない、または V の後にイ・ウを選ぶ | 3 通りを 1 つの値で切り替える作り（§4.1）。V の前までに答えが無ければア（§12.5）。後の答えはやり直す行（§14.4） |
 | 月の札が狭い列（iPhone 縦 約 57 pt）や長い言葉でぶつかる | 縮め方の規則（数字だけ・出さない）と ja・en・de の単体テスト（§4.4）。de・fr・疑似の言語の写真 |
 | 横の道の月・年で PDF が古いページや空のページで作られる | `paper(of:)` に月・年、月の矩形に隣のメモの線（§4.7）。`PDFMonthYearTests`・確かめ表の行 9 |
 | 年の窓で時刻の予定まで全部読み、メモリと開く時間が重くなる | `ScreenPaths.yearEventSource` で `allDayOnly` を渡す（§5.5）。`EventStoreModelYearTests`・`ScreenPathsMonthYearTests`・変異 MS3。ただし EventKit は時刻の予定も含めて取ってから絞る（§3.9）ので、問い合わせの時間は減らず、CI では測れない。**予定の多い本人の端末で年が開くまでの時間は【未確認】**。確かめ表の行 7 で「待たされないか」を見る |
-| 線の多い年で、ずらしが引っかかる（段 1 と速い道を作らない） | 本人の数では上限の 1 割に届かない。段 2 が安全弁。`SpanWeightLogTests` で 19,600 本まで測り、閾値を超えたら見直す（§3.10） |
+| 線の多い年で、ずらしが引っかかる（段 1 と速い道を作らない） | 本人の数では上限の 1 割に届かない。段 2 が安全弁。`SpanWeightLogTests` で 19,600 本まで測り、§3.10 の測り方（2 つの run の 3 回の中央値）で 1,000 ms を超えたら 0g-3 の「重い」。1,000 ms には 1.3 の前例が無い（リードの決め 3） |
 | 等倍の取り違え: 縦で押して見た目が変わらず、横にすると月が大きく開いて「一覧が消えた」と思われる | §0.1 と SUPPORT で先に伝え、確かめ表の行 5・14 でその順を試す。2 本指でいちばん小さくすれば戻る。言えば「覚えない」形にできる（§0.5） |
 | iPhone 横の年が 1 年全部見えなくなる（上限 3） | P-B6 イの問いの本文に年があった。§0.1 で伝え、行 14 で試す。言えば外せる（§5.4） |
 | 1 ページの道の月・年の画素が変わり、J-4 と店の写真が宣言の外で変わる | 札・境目の線・最後の行ののびは横の道だけ（§4.3・§4.4・§5.3）。下限が 0 なら今の答えと `==`。J-4 で「1 ページの道は同じ」を示す（§12.2）。`MonthPaperLineTests` |
 | 店の写真の撮り忘れ（1.4.1 §7.6 の失敗） | 撮り直す写真を名前で決めた（§12.6）。T0 の `shots143.py` と D4 の `submit143.py check` に写真の入れ替えを入れる |
 | 設定の脚注の固定の文を、本人の言葉なしに替えてしまう | 新しい字を §0.4 で先に見せ、確認ページの「この内容で入れてよい」で替える（0g-34）。違う字を望まれたら、R0 の字と訳をやり直す |
 | 年が遅れ、文・写真・確かめ表が 2 通り要る | 12/5 の朝の 1 回の決めで 1 通りにする（0g-3）。文は決めた後に書く（§13.1）。重いとき・12/5 の後に直せない不具合が出たときの切り方と替える物の一覧も §14.1 の決めの行に書いた |
-| 1.4.3 の年のページが凍結の UI テスト（`YearTapSpanRerunUITests`）の押す所を変えて、D1y の関門で落ちる | 親の `YearTapUITests.runJump` を両方の道で 3/16 を押す形に直す（§11.3、0g-52）。子の期待は変えない |
+| 1.4.3 の年のページが凍結の UI テスト（`YearTapSpanRerunUITests`）の押す所を変えて、D1y の関門で落ちる | 親の `YearTapUITests.runJump` を両方の道で 3/16 を押す形に直す（§11.3、0g-52）。子の待ち方が横の道の年で満たされるので、親の終わりで `span.state` が日の窓になるのを待つ。子のファイルは 1 字も変えない |
+| 凍結の `SpanRerunUITests`・`ZoomResetUITests` の注と飛ばす理由の字が、1.4.3 では古くなる | 正しさに要らない注だけの直しはしない（リードの決め 4）。`docs/R1_4_3.md` に古い注として書く |
+| D1b-0（11/29〜11/30）と P（11/30〜12/1）の日程に余りが無い | リードが受け入れた（リードの決め 5）。D1b-0 が遅れたら P も同じだけ遅れる。本人の答えの期限は V を始める時（12/8 めど）のままなので、本人には響かない（§0.3 に 1 行で書いた） |
 | span-shots-app のジョブが 120 分の上限を超える | 新しいジョブ span-shots-my に分ける（§12.1）。時間の 2 つの守りを C が記録 |
 | 同じ UTC の日・同じ実行環境の版の J-4 が組めない | 2 つの日・2 つの版の基準の両方を取る（1.4.2 と同じ）。版が違えば基準を取り直す（§12.2） |
 | 実行機の重さで打ち切りや揺れが出て、run が半日に延びる | 通しの run を 2 つ同時に走らせない。作る役の枝は速い道。揺れの読み方を決めておく（§14.1） |
@@ -1192,7 +1225,7 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | --- | --- | --- | --- |
 | 0g-1 | 版・枝・番号 | **1.4.3**（`project.yml:23`）、ビルド 33 以上。枝 `r143`（main 4a2211d から。コードは 57ffd0f と同じ）。M7_PLAN §4 の 1.7・1.8 は「1.4.3 へ移した」とし、1.5 から後の番号は変えない。契約はこの文書、結果は `docs/R1_4_3.md` | 1.4.1 を差し込んだときと同じく、後の番号（1.5 指で予定・1.6 写真と文字の札・1.9・1.10）を本人が覚えた形のまま保つ。1.7 にすると 1.5・1.6 より大きい番号を先に出すことになり、App Store は後で小さい番号を受け付けない。1.4.2 が 32 を使った |
 | 0g-2 | 1 つの版にまとめる | 月（B-3）・年（B-2）・月と年の幅の等倍を 1 つの版に | 本人の言葉は月と年の両方を言う。B_DESIGN §9.1 が「1 つの版にまとめてもよい（約 0.3 里程の節約）」と書く。文・訳・店の写真・確かめ表が 1 回で済む |
-| 0g-3 | 落とし所 | 次のどれかで月だけの 1.4.3 に切り、年（横つなぎと等倍）は 1.4.4。年の等倍はそれまで open。(遅れ) 12/5 の朝に D1y が取り込みの関門を通っていない。(重い) `SpanWeightLogTests` で年の窓 19,600 本のずらし 1 回が 1,000 ms を超える、または本人の数（P-B9）の形で段 2 が起き、切る時までに直らない。(遅い) 12/5 の後に V・D1c・確かめ表で年の不具合が見つかり、12/18 までの提出に間に合う直しが無い（R0y の commit を戻す、`SpanKinds` から `.year` を外す、文を月だけに、V のやり直し、新しいビルド、確かめ表の行 1 と年の行を「—」、「この内容で入れてよい」をもらい直す）。どれも本人にその日のうちに知らせる。替える物の一覧は §14.1 の決めの行 | 本人の言葉の順（横スクロールの後に等倍）を種類ごとに守る。12/18 の提出に間に合わせる。1 か所の替えで切れる作り（§3.1）。第 1 版は「遅れ」しか無く、リードの既定の「重いとき」と 12/5 の後の不具合を受けていなかった（見直しの指摘）。替える物を一覧にしないと、月だけの版に年の写真・文が残りうる |
+| 0g-3 | 落とし所 | 次のどれかで月だけの 1.4.3 に切り、年（横つなぎと等倍）は 1.4.4。年の等倍はそれまで open。(遅れ) 12/5 の朝に D1y が取り込みの関門を通っていない。(重い) `SpanWeightLogTests` で年の窓 19,600 本のずらし 1 回が 1,000 ms を超える（§3.10 の測り方）、または本人の数（P-B9）の形で段 2 が起き、切る時までに直らない。(遅い) 12/5 の後に V・D1c・確かめ表で年の不具合が見つかり、12/18 までの提出に間に合う直しが無い（R0y の commit を戻す、`SpanKinds` から `.year` を外す、文を月だけに、V のやり直し、新しいビルド、確かめ表の行 1 と年の行を「—」、「この内容で入れてよい」をもらい直す）。どれも本人にその日のうちに知らせる。替える物の一覧は §14.1 の決めの行 | 本人の言葉の順（横スクロールの後に等倍）を種類ごとに守る。12/18 の提出に間に合わせる。1 か所の替えで切れる作り（§3.1）。第 1 版は「遅れ」しか無く、リードの既定の「重いとき」と 12/5 の後の不具合を受けていなかった（見直しの指摘）。替える物を一覧にしないと、月だけの版に年の写真・文が残りうる。**第 3 版（リードの決め 3）**: 1,000 ms のまま。1.3 には、ずらしや組み立ての重さを ms で切るしきい値は無かった（数で決めていたのは、窓の線の合計の上限 iPad 20,000・iPhone 12,000 本と、試作で 1 ページの読み込みが 16 ms を超えたら先読みを主スレッドの外へ出す、の 2 つ。M7C_CONTRACT.md:207・:231・:301・:703。16 ms は 1 ページの読み込みの測りで、ずらし 1 回とは別物）ので、1.3 の値に替えない。CI の 1 回の値で版の範囲を決めないよう、測り方（2 つの run、3 回の中央値、週の参考の値）を §3.10 に決めた |
 | 0g-4 | 順 | 月が先（D1b）、年が後（D1y） | P-B2 = 月（B_DESIGN §9.1「本人が iPad で月を一番よく使うなら B-2 と B-3 を入れ替える」）。月は本人の選び（P-B3）があり、先に写真を撮れる |
 | 0g-5 | 時期 | 12/18 より前の提出をねらう（§14.1）。過ぎたら、1.3 のときと同じく年末年始（12/19〜1/4）は審査に出さず、1/5 から出す。§0.3 で本人に伝える | 前倒しの決まり（11/8）。年末の審査の遅れ（R1_4_2_CONTRACT 0f-3）【未確認】。1.3 は §0 でこの決まりを本人に伝えた（M7C_CONTRACT.md:59）。約 3 週待つことは前倒しの好みに反するので、本人が知っておく要がある |
 | 0g-6 | 範囲 | §1.3 の表 | 本人の言葉、M7_PLAN §4 の「次の版」と 1.7・1.8、R1_4_2_CONTRACT 0f-2 |
@@ -1200,12 +1233,12 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | 0g-8 | 種類の集合 | 新しい `SpanKinds.joined`（4 種）を 1 か所にし、道・案内・等倍・紙・PDF・写真の見本がそこから引く | 地図の危険「道を決める所が散らばっている」。落とし所を 1 か所で取る |
 | 0g-9 | 道・設定オフ・段 2・写真モード | `joins` を集合で。設定オフ・段 2・`--screenshot-single-page` は 1 ページの道。写真モードの既定はオフのまま | 1.3 の 2 本の道（B_DESIGN §2.3、M7C D2）。今の写真を 1 画素も変えない |
 | 0g-10 | 月の 3 通り | Kit の `SpanAlign.monthForm` で切り替え、既定ア。段 P の写真で本人に選んでもらい、V の前までに答えが無ければア | P-B3 の 11/07 の既定と、見本の約束（M7C_CONTRACT 0c-20・:755・:757、B_DESIGN §8.1）。遅い答えでも値の替えだけで済む |
-| 0g-11 | アの作り | **B_DESIGN §3.4 の形**: 格子の下端（= `memo.minY`）を窓の最大にそろえ（`gridFloor`）、届かせるのは最後の行（6 行目）の高さだけ。`memo` の矩形そのものが下がるので、区切りの線・罫線・点・札とメモの字が一緒にそろう。のばす量が行の上限 1,200 lu を超える月は、その月だけ届かない。`MonthPageLayout`・`MonthPaper`・`ZoomPolicy`・`PaperGrowth` は変えない（§4.1） | 第 1 版の「柄だけを窓の最大の y から描き、`memo` の原点は動かさない」形では、メモの字が `memo` の原点からの相対で保存・表示される（`MonthLayoutEngine.swift:156-158`、`InkLedger.swift:37`）ので、字と罫線がずれ、窓が替わるたびに罫線が字の下で動き、1 ページの道と古い端末ではまた別の所に引かれた（見直しの must）。B_DESIGN の形なら字と罫線がどの道でも一緒で、古い端末でものびた行が手書きで伸びて見える（K-4）。のびた行は見た目どおりのマス（薄い日なら薄い色）で、本人には B_DESIGN §0 の 3 で伝えてある。別の形 (ii)（白い紙にして中心の線を 6 行目のマスへ）は §4.1 に記録し、リードが替えてよい |
-| 0g-12 | 下限の上げ下げ | ずらしでは下げない、消すと窓の最大まで下げる、読み直しで決め直す。メモの帯の下も memo の高さの下限（`memoFloor`）でそろえる（効くのは 6,000 lu を超えて伸びた月があるときだけ。各月の区切りの線から 6,000 lu より下は書けない）。2 回並べて自然な数を取る | 週・日の D16 と同じ規則（B_DESIGN §3.1、`SpanAlign.Change`）。見えている行が縮まない。memo の書ける長さは日・週の自由メモと同じ（`PaperGrowth.drop`） |
+| 0g-11 | アの作り | **B_DESIGN §3.4 の形**: 格子の下端（= `memo.minY`）を窓の最大にそろえ（`gridFloor`）、届かせるのは最後の行（6 行目）の高さだけ。`memo` の矩形そのものが下がるので、区切りの線・罫線・点・札とメモの字が一緒にそろう。のばす量が行の上限 1,200 lu を超える月は、その月だけ届かない。`MonthPageLayout`・`MonthPaper`・`ZoomPolicy`・`PaperGrowth` は変えない（§4.1） | 第 1 版の「柄だけを窓の最大の y から描き、`memo` の原点は動かさない」形では、メモの字が `memo` の原点からの相対で保存・表示される（`MonthLayoutEngine.swift:157-159`、`InkLedger.swift:291-292`）ので、字と罫線がずれ、窓が替わるたびに罫線が字の下で動き、1 ページの道と古い端末ではまた別の所に引かれた（見直しの must）。B_DESIGN の形なら字と罫線がどの道でも一緒で、古い端末でものびた行が手書きで伸びて見える（K-4）。のびた行は見た目どおりのマス（薄い日なら薄い色）で、本人には B_DESIGN §0 の 3 で伝えてある。別の形 (ii)（白い紙にして中心の線を 6 行目のマスへ）は §4.1 に記録した。**第 3 版（リードの決め 1）**: この形で確定し、(ii) は採らない。理由: 本人に B の設計書で見せた形（「月の最後の行がのびることがあります」）であること、メモの字は memo の原点からの相対で保存されるので字と罫線が一緒に動くこと、(ii) は `inkCell` の新しい規則、つまり線の保存されるマスの替えが要り、データの安全の決まり（K 規則）から外すこと。段 P の写真で見せ、本人はイ・ウも選べる |
+| 0g-12 | 下限の上げ下げ | ずらしでは下げない、消すと窓の最大まで下げる。読み直し（ずらしの後の読み込み・予定・30 秒の見直し・外からの更新）では、週・日は決め直し、**月・年は下げない**（上げるだけ。回転・開き直しで決め直す。月・年の `relayoutPages` は前の下限ではなく前の窓の自然な数と比べて `.inkGrew`・`.inkShrank` を決める。第 3 版、§3.3）。メモの帯の下も memo の高さの下限（`memoFloor`）でそろえる（効くのは 6,000 lu を超えて伸びた月があるときだけ。各月の区切りの線から 6,000 lu より下は書けない）。2 回並べて自然な数を取る | 週・日の D16 と同じ規則（B_DESIGN §3.1、`SpanAlign.Change`）。見えている行が縮まない。memo の書ける長さは日・週の自由メモと同じ（`PaperGrowth.drop`）。第 3 版: 月・年の下限は一覧の矩形（月の `memo.minY`、年の紙の高さ）に効くので、読み直しで下げると、背の高い月が窓を出た後の読み込みや 30 秒の見直しで一覧の下限が上がり、倍率が寄せられる（2 つ目の見直しの must。`SpanSession.swift:538`・:616、`InkCanvasView.swift:3413`）。B_DESIGN §3.1（:288）の「決め直すのは開き直し・回転」と同じ形 |
 | 0g-13 | 月の境目の線 | 横の道の月だけ、格子に濃い縦の線。メモの帯と窓 1 ページと年には引かない | B_DESIGN §3.4「境目は濃い縦線」。今は x = 0・1,400 に線が無い（`MonthPaper.swift:47-60`）。帯を 1 本に見せる |
 | 0g-14 | 月の札 | 横の道の見出しの曜日の行、各表の左端、左へ出た札は左端に貼り付く。字は題名と同じ作り。狭ければ数字だけ・出さない。1 ページの道には出さない | B_DESIGN §3.4。新しい文を作らない。J-4 と店の 1 ページの写真を変えない |
 | 0g-15 | 重なる日・今日の印・薄い日 | 今のまま（両方の表に出す、今日の印も薄い方に） | P-B4 おまかせ。隠すと「見えないが消えない」手書きができる（B_DESIGN §3.4） |
-| 0g-16 | 月の一覧の倍率 | 窓でそろえた `memo.minY`（アとイ）のまま。`ZoomPolicy.overviewSize` は変えない。B_DESIGN §3.1 の「自分の（そろえる前の）格子の高さ」は採らない。開く大きさと等倍は変わらない | 自分の格子の高さにすると、窓をずらすたびに真ん中の月で min が変わり、いちばん小さくしている人の倍率がずらしで上がる（`InkCanvasView.swift:3090-3094`・:1345-1375）。B_DESIGN §3.1 の「横に動いただけで倍率は変わらない」を守る。「自分の格子の高さ」の理由（iPad 縦が幅より小さく開く）は、1.1.1 から開く大きさが固定なので min にしか当たらない（§4.6） |
+| 0g-16 | 月の一覧の倍率 | 窓でそろえた `memo.minY`（アとイ）のまま。`ZoomPolicy.overviewSize` は変えない。B_DESIGN §3.1 の「自分の（そろえる前の）格子の高さ」は採らない。開く大きさと等倍は変わらない | 自分の格子の高さにすると、窓をずらすたびに真ん中の月で min が変わり、いちばん小さくしている人の倍率がずらしで上がる（`InkCanvasView.swift:3090-3094`・:1345-1375）。B_DESIGN §3.1 の「横に動いただけで倍率は変わらない」を守る。「自分の格子の高さ」の理由（iPad 縦が幅より小さく開く）は、1.1.1 から開く大きさが固定なので min にしか当たらない（§4.6）。**第 3 版（リードの決め 2）**: 確定。横に動いただけでは倍率は変わらない（ずらしの直後も、その後の読み込みの後も。0g-12 の月・年の読み替えで守る）。例外は届かない月（まれ、リードの決め 6）とウ。いちばん小さい大きさが窓で決まり、隣に予定の多い月があると小さくなることは §0.1 で本人に伝える（B_DESIGN §8.1 の見本の項目のうち min の分は守らない） |
 | 0g-17 | ずらしの y の補正 | `PageScroll.scrollDelta` を、月の窓だけ古い窓の真ん中のページを新しい窓で探して比べる。`band(atY:)` の答えと、週・日・年の答えは変えない | 月は行がページごとに違う（§3.5）。凍結の `SpanChecks.swift:816-820`・:952 と凍結のキャンバスに触れずに直せる |
 | 0g-18 | 焦点の持ち越し | 週・日は今の式。月は同じ日（無ければ月末）、年は同じ月日（2/29 は 2/28） | 今の式は月の 42 日の格子とうるう年で誤る【計算】（§3.6） |
 | 0g-19 | 今日 | 月・年は今日のマスを画面に出す（滑って、縦も合わせる）。上限の年は今日の行の 2 行上から | 1.1.1 の決まり（`CalendarRootScreen.swift:1909-1933`）を横の道へ。週の上限の形（M7C_CONTRACT §3.6）と同じ考え |
@@ -1217,8 +1250,8 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | 0g-25 | 重さ | 段 1・平行移動のずらし・照合の速い道・主スレッドの外の先読み・年の予定の順は作らない。測って記録し、後の版で決める。D18 と段 2 はそのまま | 本人の数（P-B9）では上限の 1 割に届かない。凍結のキャンバスに触れる範囲を小さくする。B_DESIGN §6.3 の約束を黙って落とさない |
 | 0g-26 | 等倍 | `followsFit` を月・年も真（集合に入る種類）。両方の道、同じ鍵 `zoomFit.<種類>`。開く大きさは今のまま。open = fit の所で押しても状態を立てる | 本人の言葉（12:3x・12:4x・13:0x）。1.4.1 の §16.3.4 の (c)・§16.3.5・§16.3.2 の 2 と同じ規則。凍結のキャンバスの行を変えずに済む（§6.2）。両方の道にすると説明が 1 通りで済む |
 | 0g-27 | 凍結のキャンバス R3 | `paperSpan(for:focus:)` の本体を `PaperSpan.window` を呼ぶ 1 行に。ほかの行は変えない。手順は 1.4.1 の §16.4 の形 | 今は週・日以外で紙が出ない（`InkCanvasView.swift:2625-2637`）。凍結の外へ出せば後の種類で凍結に触れずに済む |
-| 0g-28 | 守られたテストの作り直し | 例外 (d): §8.5 の表の断言だけ、消さずに置き換え、自分の commit（R0m・R0y・R0f）、リードの 1 行ずつの見直し、記録。既定値の引数で古い断言を残す形は採らない | 今の決まり（M7D_CONTRACT §5.5 の (a)(b)(c)、R1_4_2_CONTRACT.md:626-629）は機能の替えを許していない。本人の言葉で機能を変える版なので、リードの決定として足す |
-| 0g-29 | 新しい守りの表 | `tools/span/TESTS_1_4_2.sha256`（1.4.2 の新しいテスト 15 の候補、57ffd0f の blob）と段 | 1.4.3 は 1.4.2 で直した `MonthPaper` と画面に触れる。各版がテストを守りの表に入れてきた |
+| 0g-28 | 守られたテストの作り直し | 例外 (d): §8.5 の表の断言だけ、消さずに置き換え、自分の commit（R0m・R0y・R0f）、リードの 1 行ずつの見直し、記録。既定値の引数で古い断言を残す形は採らない。注・飛ばす理由の字だけの書き直しはしない（第 3 版、リードの決め 4） | 今の決まり（M7D_CONTRACT §5.5 の (a)(b)(c)、R1_4_2_CONTRACT.md:626-629）は機能の替えを許していない。本人の言葉で機能を変える版なので、リードの決定として足す |
+| 0g-29 | 新しい守りの表 | `tools/span/TESTS_1_4_2.sha256`（1.4.2 の新しいテスト 15 の候補、57ffd0f の blob）と段 | 1.4.3 は 1.4.2 で直した月の紙の置き場所（`memo.minY`）と画面に触れる（`MonthPaper` は変えない。第 3 版で §8.5 の字にそろえた）。各版がテストを守りの表に入れてきた |
 | 0g-30 | 互換 | 新しいフォルダ `compat-span-143`（6 組）と `FIXTURES_1_4_3`、本物の 4 つの相手で読む。FIXTURES_1_3 と相手は変えない | K-7。M7C_CONTRACT.md:650「月の帯の fixture は 1.7」。B_DESIGN §11.2。データのコードは 1.3 から変わっていないので相手は足さない |
 | 0g-31 | 写真モード | `--screenshot-span-crossing all`・`--screenshot-month-tall`（既定値つき）。引数なしの月・年の見本は今のまま。`r143-alt` だけ `--screenshot-month-form` | 凍結の `ScreenshotModeSpanTests.swift:144-148`・:632-640 を守る。今の見本では 3 通りの違いが見えない |
 | 0g-32 | PDF | `paper(of:)` に月・年。月の矩形に隣のメモの線。紙は画面のまま | P-B8 おまかせ（D17）。今は横の道の月・年で古いページか空のページで作る【推定】 |
@@ -1232,7 +1265,7 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | 0g-40 | CI の道 | `r143*` の配線、作る役の枝は速い道、写真の枝に `q-` を付けない、新しいジョブ span-shots-my、duo.yml で月・年も横の道 | 1.4.2 の形（R1_4_2_CONTRACT 0f-27）。span-shots-app に余りが無い（`docs/R1_4_2.md:1094`） |
 | 0g-41 | J-4 と関門 3 | 基準 `ja-baseline-ref-1.4.3.txt` = 57ffd0f、関門 3 の基準は V の run 45721608435。違ってよいのは版の字と、設定 › ページ の節の行だけ。同じ UTC の日・同じ実行環境の版でだけ合否 | 1.4.3 は 1 ページの道を変えない。1.4.2 の V の版のまざり（`docs/R1_4_2.md:1086`） |
 | 0g-42 | 試作の TestFlight | 作らない。見本の写真（段 P）と本物の TestFlight の確かめ表で見る。B_DESIGN §0 の項目 7・9 の約束（年の重さを試作で）は、CI の測りと本物のデータの確かめに替えたと §0.6 で知らせる | しくみと手ざわりは 1.3 の週・日と同じで、本人の答え（11/18）が済んでいる。お手元の年は 152 本で重さを感じられない。1.3 の試作は感想まで 6 日かかった（11/12 → 11/18） |
-| 0g-43 | 見本の写真（段 P） | **月の画面の部品を `r143` に入れる前に撮る**。D1b-0（月の最小の部分、作業の枝）と D1a の木から `r143-alt` を切り、その中だけで凍結の `paperSpan` を直して撮る。月の 3 通り（11 インチの縦・横、13 インチの縦、iPhone の縦）と月の等倍の前と後。年はそろえば（ふつうは確認ページ）。1 つの非公開の Artifact のページで、選ぶのは月の並べ方だけ。P は 11/30〜12/1、D1b の取り込みは P の後 | M7C_CONTRACT 0c-20・:755（「1.7・1.8 の契約の前に撮る」）と B_DESIGN §8.1、本人向けの B_DESIGN.md:70（「作る前に…見本の画面の画像で…確かめてもらいます」）。第 1 版は `r143` に D1a と D1b を入れた木から切っていて、本人への約束の順に反していた（見直しの must）。画面に出ない Kit（D1a）は先に作ってよい（M7C_CONTRACT §15 の 4 の読み） |
+| 0g-43 | 見本の写真（段 P） | **月の画面の部品を `r143` に入れる前に撮る**。D1b-0（月の最小の部分、作業の枝）と D1a の木から `r143-alt` を切り、その中だけで凍結の `paperSpan` を直して撮る。月の 3 通り（11 インチの縦・横、13 インチの縦、iPhone の縦）と月の等倍の前と後。年はそろえば（ふつうは確認ページ）。1 つの非公開の Artifact のページで、選ぶのは月の並べ方だけ。P は 11/30〜12/1、D1b の取り込みは P の後。D1b-0 が遅れたら P も同じだけ遅れ、本人の答えの期限（V の前、12/8 めど）は変えない（第 3 版、リードの決め 5） | M7C_CONTRACT 0c-20・:755（「1.7・1.8 の契約の前に撮る」）と B_DESIGN §8.1、本人向けの B_DESIGN.md:70（「作る前に…見本の画面の画像で…確かめてもらいます」）。第 1 版は `r143` に D1a と D1b を入れた木から切っていて、本人への約束の順に反していた（見直しの must）。画面に出ない Kit（D1a）は先に作ってよい（M7C_CONTRACT §15 の 4 の読み）。**第 3 版**: この契約は写真より先に書いたので、:755 の「1.7・1.8 の契約の前に撮る」の「契約の前」は「月の画面の部品を `r143` に入れる前」と読み替えた。年のそろえは選ぶものではないので、ふつうは作った後の確認ページで見せる（B_DESIGN §0 の 3・§8.1 の「作る前の見本で」と違えた。§0.4 で本人に伝え、§13.6 の B_DESIGN の注にも書く）。D1b-0 と P の日程に余りが無いことはリードが受け入れた |
 | 0g-44 | 古い版の端末 | できれば iPad mini を行 17 で入れるまで 1.4.2 のまま（TestFlight の知らせが来ても「インストール」を押さない。「自動アップデート」のスイッチがあればオフ）。この 1 行は §0.4・段 P のページ・TestFlight の知らせで 3 回書く。できなければ「—」で CI の確かめ | 1.3 の形（M7C_CONTRACT §4.6 の手順 0）。月・年の古い版の見え方（K-8）をお手元で見られる。mini はいちばん使わない端末【推定】。本人の 11/28「1.4.2に変更済みです。」から、mini は App Store の 1.4.2 と読め、要るのは TestFlight の版を入れないことだけ。§0 を読んでから行うまで 10 日ほどあくので、知らせのたびに書く |
 | 0g-45 | 確かめ表の形 | 表の頭に版とビルド番号。各行の 1 文目に始まりの形。前の行の終わりが次の行の始まり。Pencil の行と指の行を分ける。準備でツールバーを下に開く（しまってあれば丸ボタンの長押しの「ツールバーをいつも出す」）。月・年はいちばん小さくしてから。準備の字は確認ページの最初の画面にも | 1.4.1 の 0e-29・0e-30・0e-33、1.4.2 の 0f-34 の教訓（しまったツールバーとのぞきの罠、R1_4_1_CONTRACT §18.1）。行番号は試す順に通しで付ける（1.4.2 の行 21 の抜け、`docs/R1_4_2.md:1169`） |
 | 0g-46 | 道具の移し | 段 T0 で `asc142` → `asc143`（月と年の写真を入れ替える `shots143.py` を足す）、`confirm142` → `confirm143`。guard を 1.4.3 の字と承認した commit に。偽の Connect の試験を通す。提出の前に `submit143.py check` が READY | 道具が 1.4.2 の字と写真の範囲に結び付いている（`docs/R1_4_2.md:1018-1036`）。1.4.1 で道具を移した後に契約が変わり止まった |
@@ -1241,8 +1274,8 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 | 0g-49 | 1.9 の重点欄との関係 | 今は作らない。`Floors` は欄を足せる形（年の上の欄・月の重点を後で足す）にしておくだけ | B_DESIGN §9.3。範囲を増やさない |
 | 0g-50 | 送られたもの | §1.5 の表 | 1.4.2 の記録（`docs/R1_4_2.md:14`・:23・:1096・:1136・:1139）、M7_PLAN §4 の CRA |
 | 0g-51 | 1.4.2 の重い直しが要るとき | 1.4.3 を出す前なら、小さければ 1.4.3 に入れ、急ぐなら直す版を 1.4.3 にして月と年を 1.4.4 へ。公開の後なら 1.4.4 | R1_4_2_CONTRACT §9.4 の決まり。App Store は出した番号より小さい番号を受け付けない |
-| 0g-52 | 年の UI テストの親 | 守られていない `YearTapUITests.runJump` を U が直し、押す y を `span.state` か probe の `oy`・`zoom` から求めて、1 ページの道でも横の道でも 3/16 を押す。凍結の子 `YearTapSpanRerunUITests` の期待は変えない（`SpanRerunUITests.swift:15-17` の注だけ R0y で直す）。D1y の関門に 5 本を名前で入れる | 1.4.3 で年が横の道になり、iPhone 横では上限で倍率が上がり、上限ありの年は今日の行の 2 行上から開くので、親の押す所が 3/20 あたりになる（`YearTapUITests.swift:62-125`、`ScreenshotMode.swift:610-615`。見直しの must）。親を直せば子の守りを弱めずに済む |
-| 0g-53 | 月・年の紙の中身 | `MonthPaperContent.holidayNames` と `YearPaperContent.monthNames` を作る所を 1 か所の関数にし（`CalendarRootScreen.makePaper` の content の部分を取り出す）、1 ページの道・`PaperSpan.window`・`ScreenPaths.paper(of:)` が呼ぶ | 1 ページの道は `makePaper`（`CalendarRootScreen.swift:1955-1985`）で作るが、第 1 版は横の道の作り方を決めていなかった。ja の年の見出しは `content.monthNames` を使う（`StickyHeaderView.swift:289`）ので、`[]` で作ると字と縮み方が 1 ページの道と違い、`PaperSpan` の `==` も変わる。P と S が別々に作るとずれる |
+| 0g-52 | 年の UI テストの親 | 守られていない `YearTapUITests.runJump` を U が直し、押す y を `span.state` か probe の `oy`・`zoom` から求めて、1 ページの道でも横の道でも 3/16 を押す。日のページが出た後、`span.state` が `path=span;` なら `;kind=day;` を言うまで待つ。凍結の子 `SpanRerunUITests.swift` は 1 字も変えない（第 3 版、リードの決め 4。:12-14・:15-17・:18・:28 の注と飛ばす理由の字は古くなるが直さず、古い注として記録する）。D1y の関門に 5 本を名前で入れる | 1.4.3 で年が横の道になり、iPhone 横では上限で倍率が上がり、上限ありの年は今日の行の 2 行上から開くので、親の押す所が 3/20 あたりになる（`YearTapUITests.swift:62-125`、`ScreenshotMode.swift:610-615`。見直しの must）。親を直せば子の守りを弱めずに済む。**第 3 版**: 凍結のファイルは正しさに要る所だけ直す（リードの決め 4）。2 つ目の見直しで、年を横につないで正しく確かめるために子の行を変える要は無い（注と字の定数だけで、年を飛ばす条件はもともと無い）と確かめた。一方、子の待ち方（:107 の `hasPrefix("path=span;")`）はタップの前の横の道の年でも満たされるので、親の終わりで日の窓を待つ |
+| 0g-53 | 月・年の紙の中身 | `MonthPaperContent.holidayNames` と `YearPaperContent.monthNames` を作る所を 1 か所の関数 `paperContent(of layout: any PageLayout) -> PaperContent?` にし（第 3 版で口を直した。月の `holidayNames` はレイアウトの `dateLabels` の `holidayName` から、年の `monthNames` は `L.language` から）、`PaperSpan.window`・`ScreenPaths.paper(of:)`（1 引数の static のまま）が呼ぶ。`makePaper` は署名とエンジンを呼ぶ所を残し、content はこの関数でも今の式でもよい（答えは `==`。§2.1） | 1 ページの道は `makePaper`（`CalendarRootScreen.swift:1955-1985`）で作るが、第 1 版は横の道の作り方を決めていなかった。ja の年の見出しは `content.monthNames` を使う（`StickyHeaderView.swift:289`）ので、`[]` で作ると字と縮み方が 1 ページの道と違い、`PaperSpan` の `==` も変わる。P と S が別々に作るとずれる。第 2 版の口 `paperContent(of:holidays:weekStart:)` は、決めた呼び手の 2 つから呼べなかった（`PaperSpan.window(for:focus:)` は凍結の R3 の 1 行が引数を固め、`ScreenPaths.paper(of:)` は凍結の `ScreenPathsCanvasSpanTests.swift:72` が 1 引数で呼ぶ。2 つ目の見直しの must）。`HolidayChoice.current` など別の休日の出所を読むと、セッションの `PaperContext.holidays` で作ったレイアウトと祝日名が別の暦になりうる |
 
 ---
 
@@ -1258,22 +1291,26 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
 6. 年の窓の重さ（§3.10。CI のシミュレータの値で、実機とは違う）と、予定の多い本人の端末で年が開くまでの時間（EventKit は時刻の予定も含めて取ってから絞る。CI には予定が無く測れない。確かめ表の行 7）。
 7. 新しい写真のジョブを足した後の通しの run の時間（§12.1）。
 8. 店の写真の撮り直しが、Connect で前の版の写真の引き継ぎとまざらずに入るか（`shots143.py` の形）。
-9. 古い版（1.4.2）の iPad で、月・年をまたいだ線が余白にはみ出して見えるか、紙の端で切れるか（B_DESIGN §4.3。CI の写真で見る）。
+9. 古い版（1.4.2）の iPad で、月・年をまたいだ線が紙の端で切れて見えるか（B_DESIGN §4.3）。1.3 では、週・日で紙の端でぴたりと切れ、余白に何も出ないことを写真で確かめた（`docs/M7C.md:548`・:714、M7C_CONTRACT の確かめ表の行 18 は ○）。月・年も同じ見込みで、CI の古い版の見え方の写真（§12.4）で見る。
 10. 中国の 2027 年の祝日が python-holidays の正式版に入ったか（S0 で見る）。
 11. EU の新しい製造物責任指令（2026-12-09 より後）で 1.4.3 にすることがあるか（S0 で M7C_CONTRACT §8.6 を読み直す）。
 12. 年末の審査の遅れ（12/19〜1/4）。
 13. main の run 46040646988 の結果（11/27 17:46Z に走っていた）。
 14. 本人の 11/28 の言葉「1.4.2に変更済みです。」が、お手元の 4 台が 1.4.2 になった意味か（§1.2）。iPad mini の今のアプリが TestFlight から入れた物か App Store の物か。
 15. 凍結の `SpanSessionTests` の月・年の形が、下限が入った後も保存のバイトで同じか（§8.7。見込みは同じ）。
-16. `ZoomResetUITests` の年の断言が、iPhone 17 の縦（open = fit）でどう読まれるか（§8.5 の R0y）。
+16. 月・年の下限を読み直しで下げない形（§3.3）で、背の高い月（年）が窓を出た後も最後の行（年の行）がのびたまま残る見え方が、本人に分かりにくくないか（確かめ表の行 2・3・7 で見る）。（第 2 版の 16「`ZoomResetUITests` の年の断言」は、第 3 版でコードを読んで【事実】と確かめた: 写真モードの既定の 1 ページの道で、iPhone 17 の縦の年は open = fit なので今の断言のまま通る。§8.5）
 17. 月のアで、のばす量が行の上限 1,200 lu を超えて届かない月が、本人のデータでどれくらい起きるか（§4.1 の 4。まれと見込む）。（第 1 版の 17「キャンバスが月・年の格子のマスでも `onInkBoundsChanged` を知らせるか」は、第 2 版でコードを読んで【事実】と確かめた。§3.3）
 18. 月と年の新しい 4 キーの仮の訳で、速い道の lint（L-2・L-6）と Localized bundle check が緑になるか（1.4.2 の前例どおりの見込み）。
+19. 「重い」のしきい値 1,000 ms が実機の重さの感じと合うか（1.3 に ms の前例が無い。§3.10・0g-3）。
+20. 親の `YearTapUITests.runJump` の終わりの待ちで、凍結の子 `YearTapSpanRerunUITests` の確かめが `span.state` の更新と競らなくなるか（§11.3。D1y の関門の run で見る）。
 
 ### 18.2 出典
 
 **調べ役の地図**（2026-11-28。main 4a2211d を読んだだけ。書き込みは無い）: しくみ（道・セッション・Kit・窓・上限・段 2・ずらし・先読み・持ち主と保存・紙・見出し・下限・y の補正・一覧の倍率・焦点・今日・PDF・等倍・文・写真モード・店の写真・凍結のテストと表・fixture・B_DESIGN との違い・開く所の一覧）、月（6 行 42 日・重なる日・行の高さ・メモ欄と紙・格子の線・今日の印・名前・見出し・open と fit の数・B_DESIGN の形・本人の決め・見本の材料・写真・凍結とのぶつかり・互換・文・PDF・重さ）、年と等倍（年の行のそろえ・持ち主・横スクロールの今・横の道・EventKit・線の数・1.4.1 の等倍のコードと鎖・Bounds・凍結のキャンバスとテスト・幅の等倍の数・前例・文・写真）、段取りと CI（土台・main の CI・本人の言葉・等倍・答え・見本の約束・番号・1.3 と 1.4.2 の段・言葉の受け方・CI の数と時間・配線・揺れ・J-4・凍結の表・互換・K・脚注・案内・訳・新機能の文・審査メモ・SUPPORT・店の写真・道具・確認ページ・確かめ表・古い版の端末・守りの候補・変異と Duo・この Mac・成果物の期限・危険の記録）、本人の言葉と時期（P-9・P-B の答え・試作の感想・等倍の言葉・0f-2・見本の約束・Duo・一覧・脚注・進め方・祝日、本人が選ぶこと・見るだけ・言えば替えられること・本人の操作・言葉・聞かないこと、§0 の材料、時期の材料）。
 
 **この契約の書き手がコードで読み直した行**（main 4a2211d、11/28）: `Span/ScreenPaths.swift:255-268`・:460-472・:963・:1020・:1043-1070・:1110-1120・:1160-1178・:1247、`Span/SpanSession.swift:640-697`、`Ink/InkCanvasView.swift:2620-2648`・:3060-3110（と `grep` で種類を見る所は :2628-2630 だけ）、`Views/ZoomReset.swift:1-40`、`Views/StickyHeaderView.swift:40-70`、`Views/SpanGuideView.swift:18-45`、`Views/CalendarRootScreen.swift:619`・:641・:1909・:2625-2640・:3292、`Paper/PaperSpan.swift:1-115`、`Paper/PaperView.swift:395-425`、`Export/PDFPageRenderer.swift:68-100`、`Calendar/EventStoreModel.swift:148-176`、`Calendar/EventKitService.swift:138`、`TegakiKit/Sources/Layout/SpanAlign.swift:14-38`・`SpanPlan.swift:72-84`・`ZoomPolicy.swift:40-170`・`PageLayout.swift:139-141`・:160-180・`SpanLayout.swift:210-235`・`PaperSpec.swift:14-15`・:97。テスト: `ScreenPathsSpanTests.swift:184-197` と `grep`（:192・:212・:215・:216・:273・:996・:1703・:1826）、`SettingsPageSectionTests.swift`（`grep` で :258-259・:333-334・:352）、`ZoomResetTargetTests.swift:12-40`、`ZoomFitWiringTests.swift:214-240`、`ZoomResetUITests.swift:8-50`、`InkCanvasZoomResetTests.swift:318-330`・:820-846、`PaperSpanTests.swift:255-270` と `grep`、`ScreenshotModeSpanTests.swift:140-150`・:628-642、`SpanShotsUITests.swift:90-112` と `grep`（:97・:121・:169）、`SpanRerunUITests.swift`（`grep` で :55-67）。CI と表: `build.yml:450-520` とジョブの行（:111・:1730・:2183・:2561・:3134・:3718）、`grep` で `screenshot-zoom fit`・`screenshot-span`、`duo.yml:893-920`、`store-shots.yml:1-62`・:420-490、`DATA_1_1.sha256`（20 行、1 行目 d0250f23…）、`TESTS_1_3.sha256`（29）・`TESTS_1_2_3.sha256`（8）・`TESTS_1_4_1.sha256`（16）・`FIXTURES_1_3.sha256`（37）、`tools/l10n/lint-skip.txt`、`ja-baseline-ref*.txt`、`compat-span/MANIFEST`、2 つの `EXPECTED_MIN`（599・225）。文: `tools/l10n/source/app-U.json:1825-1842`・:2313-2370、`app-P.json:447-450`、`docs/SUPPORT.md:147-197`・:240-252、`docs/i18n/GLOSSARY.md:237-275` と節の見出し、`docs/i18n/REVIEW.md`（節の見出し）、`docs/store/review-note.txt`（3,665 バイト）、`docs/store/ja/whatsnew.txt` と `git show 955fe67:docs/store/ja/whatsnew.txt`、`README.md:55-62`、`docs/DESIGN.md:215-220`。記録: `docs/R1_4_2_CONTRACT.md`（全部）、`docs/R1_4_2.md:5-16`・:1084-1140、`docs/R1_4_1_CONTRACT.md:1405-1490`（§16.3.4〜§16.4）、`docs/M7_PLAN.md:1-45`・:495-560・:755-763、`docs/M7C_CONTRACT.md`（:78・:112・:128・:189-193・:302-305・:650・:690・:708・:747・:755・:757・:761・:779・:1292・:1294・:1369）、`docs/M7D_CONTRACT.md:140-144`・:743-770、`docs/B_DESIGN.md`（§0 :22-72、§3.1〜§3.6 :262-360、§4〜§8 :371-600、§9〜§12 :600-760）。
+
+**第 3 版で読み直した行**（main 4a2211d、11/28。2 つ目の見直しの指摘を確かめるため）: `Span/SpanSession.swift:415-425`・:500-560・:600-700・:920-985・:1075-1130・:1175-1186、`Span/ScreenPaths.swift:555-600`・:830-905・:910-945・:1155-1182、`Views/CalendarRootScreen.swift:636-660`・:1725-1755・:1945-1990、`Paper/PaperSpan.swift:30-70`、`Views/StickyHeaderView.swift:40-75`、`Views/SpanGuideView.swift:15-130`、`Persistence/AppSettings.swift:375-400`、`Ink/InkCanvasView.swift:2618-2640`・:3027-3100・:3405-3450（と `grep` で `startPrefetch`・`pendingRedecide`）、`TegakiKit/Sources/Layout/SpanAlign.swift:1-80`・`SpanPlan.swift:262-288`・`LayoutEvent.swift:40-73`・`MonthLayoutEngine.swift:40-110`・:150-162・`PaperGrowth.swift:1-80`、`Ink/InkLedger.swift:35-39`・:289-293・:743-746。テスト: `SettingsPageSectionTests.swift`（`grep` で :19・:135・:261・:333-336）と :250-262・:305-356・:395-406、`ZoomResetUITests.swift:1-60`・:170-215、`SpanRerunUITests.swift:1-120`、`ScreenPathsSpanTests.swift:24`・:40-46・:212-222・:988-1032・:1445-1485、`WeekMemoSpanTests.swift:250-270`、`CalendarRootScreenTests.swift:592-606`、`ScreenPathsCanvasSpanTests.swift:65-78`、`AppSettingsTests.swift:296-312`、`PaletteShotsUITests.swift:83`、KitChecks の `SpanChecks.swift:642-660`・`WeekMemoChecks.swift:346-367`（`grep`）。CI: `build.yml:684-720`・:732・:3655-3665、`ja-baseline.yml:119-127`、`store-shots.yml:425-440`。記録: `docs/R1_1_1.md:44-110`、`docs/B_DESIGN.md:39`・:70・:280-295・:568-575、`docs/M7C_CONTRACT.md:207`・:301・:305・:755-757・:1148、`docs/M7C.md:548`・:714。
 
 ---
 
@@ -1291,5 +1328,13 @@ CI の時間の見込み: build.yml は 1 回 90〜110 分（macOS のジョブ�
   - **入れなかった物**: 見直しの「行 12 の始まりに『Pro 13 の上の印が保存済みになってから』」は、行 11・12 を Air 11 の上の線で見る形にしたので要らなくなった。見直しの「今の順を残すなら P の日を 12/3〜12/4 に」は、分ける方を採ったので使わない。
   - **直し役が足した物**（指摘から出た事）: 一覧の下限が窓でそろう（0g-16）ので、準備でいちばん小さくした後に縦で等倍を押すと、格子の高い月が窓にあれば少し大きくなる。確かめ表の行 5・14 の合格を「幅にちょうどになる（もうちょうどなら見た目はほとんど変わらない）」に直した。M7_PLAN §0 の項目 4 の「3 回に分ける」も 2 回に直した。
   - `docs/M7_PLAN.md`: 頭に第 7 版の注、§0 の項目 4 の時期・回数と最後の行、要約の 5、§4.8 の題を 1.4.3 に直した（ほかの番号は変えていない）。
+- 2026-11-28 **第 3 版**（直し役。第 2 版 e886ccb に、リードの決め 6 つと、2 つ目の見直し（つじつま: must 2・should 10・nit 5／コード: must 1・should 9・nit 4）の指摘を入れた。指摘は main 4a2211d のコードと記録で 1 つずつ確かめてから入れた。読み直した行は §18.2）。
+  - **リードの決め**（6 つともそのまま入れた）: (1) 0g-11 は (i)（B_DESIGN §3.4: 格子の低い月は最後の行だけを `gridFloor` でのばし、`memo.minY` そのものをそろえる）のまま。理由: 本人に B の設計書で見せた形（「月の最後の行がのびることがあります」）であること、メモの字は memo の原点からの相対で保存されること、(ii) は `inkCell` の新しい規則（線の保存されるマスの替え）が要り、データの安全の決まり（K 規則）から外すこと。段 P の写真で見せ、本人はイ・ウも選べる（§4.1・0g-11）。(2) 0g-16 は確定（窓でそろえた一覧の下限。横に動いただけで倍率は変わらない）。これを守るため、月・年の下限を読み直しで下げない読み替えを足した（下の must の 1）。(3) 0g-3 の「重い」は、年の窓 19,600 本のずらし 1 回で 1,000 ms のまま。見直しで、1.3 にはずらしや組み立ての ms のしきい値が無かった（数で決めていたのは窓の線の上限と、試作の 1 ページの読み込みの 16 ms だけで、16 ms は別の測り）と分かったので、1.3 の値には替えない。測り方は §3.10 に決めた（0g-3・§14.1・§16）。(4) 0g-52: 凍結のファイルは正しさに要る所だけ直す。`SpanRerunUITests` の月の注だけの直し（:12-14・:18・:28）はやめ、古い注として記録する。:15-17 も、見直しで、年を横につないで正しく確かめるために子の飛ばす字や条件を変える要は無いと確かめたので直さず、ファイルは 1 字も変えない（§2・§8.5・§11.3・0g-52）。(5) D1b-0 と P の日程に余りが無いことは受け入れた。D1b-0 が遅れたら P も遅れ、本人の答えの期限（V の前、12/8 めど）は変えない（§0.3・§12.5・§14.1・§16・0g-43）。(6) (i) の届かない月（窓の中で格子の下端の差が約 1,025 lu を超える月）は、まれとして受け入れて §16 に書き、見本の写真ではこの場合を写さない（§2.1・§4.1・§12.5・§16）。
+  - **must（3 つとも入れた）**: (1) ずらしの後の `prefetch` と 30 秒の見直し（`contextChanged`）が `.redecide` で下限を窓の最大まで下げるので、月のアでは背の高い月が窓を出た数ターン後に `memo.minY` が上がり、一覧の下限が上がって倍率が寄せられる（`SpanSession.swift:538`・:616、`InkCanvasView.swift:3413`・:3090-3094 で確かめた）。月・年では、その `.redecide` を `.shift` と同じ（上げるだけ）に読み替え、下げるのは `.inkShrank` と回転・開き直しだけにした（§2.1・§3.3・§3.4・§4.2・§4.6・§5.1・0g-12・0g-16）。週・日は今のまま。`SpanSessionMonthYearTests`・`InkCanvasMonthYearTests` で「ずらした直後と prefetch の後」の両方を見て、変異 MS8 を足した。B_DESIGN の「ピンチの終わりの決め直し」は今のコードに無い（窓を決め直すのは幅が変わった後だけ）ので、第 2 版の §3.3 の字から外した。(2) §14.4 の順の表を、D0・D1a → 見本の写真（`r143-alt`）→ 段 P → D1b・D1y の取り込み → V の順に直した。(3) 0g-53 の口を `paperContent(of layout:)` にした（第 2 版の `holidays`・`weekStart` を取る口は、凍結の R3 の 1 行と `ScreenPathsCanvasSpanTests.swift:72` が固める呼び手から呼べない）。月の祝日名はレイアウトの `dateLabels` から組む（`MonthLayoutEngine.swift:50`・:97-105 で、`makePaper` の値と同じ所から入ると確かめた）。`makePaper` の署名と `WeekLayoutInput` の呼び出しは残す（§2・§2.1・§11.2・0g-53）。
+  - **should（全部入れた）**: 見本の段 D1b-0 に月の見出し（`makeHeadingSpan` の月の枝と `spanMonthRow` の曜日の行、同じ commit。`PaperSpan.swift:49-61`・`ScreenPaths.swift:849`・:861-877 で、今は月の見出しの窓が作られないと確かめた）と 0g-53 の関数を足し、見本には月の札がまだ写らないと §0.4・§12.5 に書いた。§0.4 の見本の写真の範囲を本文（11 インチの縦・横、13 インチの縦、iPhone の縦）に合わせた。0g-29 の理由を §8.5 の字に。§0 の「本流」は main の意味だけに残し、見本の約束は「アプリの本体に組み込む前」と書いた。§0.1・§12.5・§13.5 の本人向けの「格子の短い月」を「となりの月より予定や書き込みが少なく、表の背が低い月」に。新しい単体テストは年の期待を `SpanKinds` から引き、落とし所では UI テストの年の部分だけを外す（§11.2・§14.1）。日程: S0' を 11/29 まで、D1y を 12/4 まで、D1c を決めの後の 12/5〜12/7 に、§0.3 の表と §12.7 もそろえた。M7C 0c-20・:755 の「契約の前」の読み替えと、年のそろえの見本の時期を違えたことを §0.4・§1.2・§12.5・§13.6・0g-43 に書いた。月のいちばん小さい大きさが窓で決まることを §0.1 に。「重い」の測り方（iPad 13 インチのシミュレータ、3 回の中央値、週の参考の値、2 つの run）を §3.10 に。`SettingsPageSectionTests` の :335-336 を R0 の表に。`ZoomResetUITests` は作り直さない（写真モードの既定の 1 ページの道の年は iPhone 17 の縦で open = fit なので、今の断言のまま通る。`toFit: true` に替えると落ちる）。`SpanRerunUITests` は 1 字も変えず、子の待ち方が横の道の年で満たされる分は、親の `runJump` の終わりで日の窓を待って受ける。月の横の道の消しゴムの UI テストが無いことも書いた。速い道の組は `build.yml:717` の正規表現に名前で足す。ソースの字を数える凍結のテストの数と `makePaper` の署名を §8.6 に。MS4・MP1 の落ちるはずのテストを足し、表を書く前に `grep` で洗い出す手順を書いた。§6.3 の横の行を本人の 3 台の紙の領域（R1_1_1 の見積もり）で出し直し、出所を書いた。
+  - **nit（全部入れた）**: §0.1 の iPhone 横の年の開く大きさを「1.5 倍ほど」に。§0.2 の「下へずれて見える」を、メモ欄が下へずれ最後の行がのびる、に。§0.1 のメモ欄の下の白紙の文は、まれ（メモが 5,950 lu を超えて伸びたときだけ）なので外した。第 2 版の記録の「短い月の 6,000 lu の下の白紙に書けない…の 3 つの should も消えた」のうち、白紙に書けない件は、`memoFloor` が効くまれな場合にだけ残る（§4.2。ここで直す。第 2 版の記録の字はそのまま）。行 16 の「（または余白にはみ出す）」を外し、§18.1 の 9 に 1.3 の写真の出典を書いた。B_DESIGN の頭の注に違えた所を足し、M7_PLAN §4 の 1.4.3 の行を第 3 版と 3 つの落とし所の字に直した。SUPPORT のメモ欄の紙の FAQ の月の 1 文も P の答えの後に確定する。R3 の行番号（:2626-2636・:2621-2624）、H2 の試験の変数 `setting` と :1002・真に戻す位置、ja-baseline の :126・store-shots の :430-438・`.landscapeLeft` は `PaletteShotsUITests.swift:83`、`MonthLayoutInput`・`YearLayoutInput` の欄は `public var`、`MonthLayoutEngine.swift:157-159`、R0f は :19 だけ。
+  - **入れなかった物**: 「週の 2 倍を超えたら重い」のような比のしきい値は、リードの決め 3（1,000 ms のまま）に合わせて採らず、週の値は実行機の重さを読む参考にだけ使う。「下限が下がり倍率が寄せられうる、と正直に書く」案は、リードの決め 2 に合わないので採らなかった。第 2 版の頭の 1 行の「本流」は版の記録なので直していない（§0 と本文だけを直した）。
+  - **直し役が足した物**（指摘から出た事）: ウでは下限が無く、一覧の下限が真ん中の月の格子の高さで決まるので、ずらしで倍率が変わりうる（`bandOverview` は凍結のキャンバスにあり直さない）。§0.1 のウの説明・§4.6・§12.5 のウの気になる点・§16 に書いた。同じ読み替えで前の下限が残るので、月・年の `relayoutPages` は `.inkGrew` と `.inkShrank` を前の下限ではなく前の窓の自然な数と比べて決める形にした（今の形のままだと、背の高い月が窓を出た後に別の月へ少し書いただけで下限が下がる。`SpanSession.swift:690-692`。§2.1・§3.3・§11.2）。§18.1 に 2 つ（19・20）を足し、第 2 版の 16（`ZoomResetUITests`）は【事実】にして、16 には読み直しで下げない形の見え方を入れた。
+  - `docs/M7_PLAN.md`: §4 の 1.4.3 の行を「第 3 版」と 3 つの落とし所の字に直し、頭の第 7 版の注に 1 文を足した（ほかの番号は変えていない）。
 
 （結果は `docs/R1_4_3.md` に書く。ここは契約の版の記録だけ。）
