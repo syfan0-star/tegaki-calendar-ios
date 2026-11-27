@@ -5457,6 +5457,7 @@ runWeekMemoChecks() // 1.3: the week memo, section "week memo (1.3)" (WeekMemoCh
 runOverviewCapChecks() // 1.3: the iPhone's landscape cap (P-B6 イ), section "overview cap (1.3)" (OverviewCapChecks.swift, docs/M7C_CONTRACT.md §3.6, §10.1)
 runDuoChecks() // 1.4: the iPhone Duo's span plans, section "duo (1.4)" (DuoChecks.swift, docs/M7D_CONTRACT.md §4.6, §4.7, §6)
 runWindowFingerChecks() // 1.4: WindowClass and FingerDefault, section "window & finger (1.4)" (WindowFingerChecks.swift, docs/M7D_CONTRACT.md §4.3, §4.4, §4.7, §4.8, §6)
+runSpanMonthYearChecks() // 1.4.3: the joined months and years, section "span month & year (1.4.3)" (SpanMonthYearChecks.swift, docs/R1_4_3_CONTRACT.md §11.1)
 
 // MARK: - 1.2: the languages (docs/M7B_CONTRACT.md §0, §2.1, 0-1, 0-2, 0-8, §7.1)
 

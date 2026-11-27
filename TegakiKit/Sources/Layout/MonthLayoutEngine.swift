@@ -58,6 +58,10 @@ public enum MonthLayoutEngine {
         var labels: [DateLabel] = []
         var y: CGFloat = 0
 
+        // The rows' contents and heights first (1.4.3: the floors need every height before the rows are
+        // placed). Without floors each height is the 1.4.2 one, `rowHeight(…)`.
+        typealias Measured = (spans: [(event: LayoutEvent, startCol: Int, endCol: Int, lane: Int)], laneCount: Int, perDay: [[LayoutEvent]], maxChips: Int, height: CGFloat)
+        var measured: [Measured] = []
         for (rowIndex, days) in grid.allRows.enumerated() {
             let spans = packAllDayLanes(events: allDayEvents, days: days, calendar: calendar)
             let laneCount = spans.reduce(0) { max($0, $1.lane + 1) }
@@ -81,7 +85,36 @@ public enum MonthLayoutEngine {
                 inkBottom = max(inkBottom, sanitized(input.inkBottoms[.day(day)] ?? 0))
             }
 
-            let height = rowHeight(laneCount: laneCount, maxChips: maxChips, inkBottom: inkBottom)
+            var height = rowHeight(laneCount: laneCount, maxChips: maxChips, inkBottom: inkBottom)
+            // イ: the row's floor, never past the row's cap (1.4.3, `MonthLayoutInput.rowFloors`).
+            if rowIndex < input.rowFloors.count {
+                height = min(PaperSpec.monthRowMax, max(height, SpanAlign.sanitized(input.rowFloors[rowIndex])))
+            }
+            measured.append((spans, laneCount, perDay, maxChips, height))
+        }
+
+        // ア: only the last row grows, so the grid's bottom (memo.minY) reaches the floor (1.4.3,
+        // `MonthLayoutInput.gridFloor`). Rows above it and its own top do not move. Reached, memo.minY is the
+        // floor itself (the same number on every page of the window); a row that would pass
+        // `PaperSpec.monthRowMax` stops there and the separator line stays above the floor.
+        var gridBottomOnFloor: CGFloat?
+        let gridFloor = SpanAlign.sanitized(input.gridFloor)
+        if let last = measured.indices.last, gridFloor > 0 {
+            var lastTop: CGFloat = 0
+            for m in measured.dropLast() { lastTop += m.height }
+            if gridFloor > lastTop + measured[last].height {
+                let reach = gridFloor - lastTop
+                if reach <= PaperSpec.monthRowMax {
+                    measured[last].height = max(measured[last].height, reach)
+                    gridBottomOnFloor = gridFloor
+                } else {
+                    measured[last].height = PaperSpec.monthRowMax
+                }
+            }
+        }
+
+        for (rowIndex, days) in grid.allRows.enumerated() {
+            let (spans, laneCount, perDay, maxChips, height) = measured[rowIndex]
             let frame = CGRect(x: 0, y: y, width: PaperSpec.monthWidth, height: height)
             rows.append(RowLayout(index: rowIndex, frame: frame, days: days, laneCount: laneCount, maxChips: maxChips))
 
@@ -153,8 +186,10 @@ public enum MonthLayoutEngine {
 
             y += height
         }
+        if let onFloor = gridBottomOnFloor { y = onFloor }
 
-        let memoHeight = memoHeight(inkBottom: input.inkBottoms[.memo] ?? 0)
+        // 1.4.3 (ア and イ): the memo's height is at least its floor (`MonthLayoutInput.memoFloor`).
+        let memoHeight = max(memoHeight(inkBottom: input.inkBottoms[.memo] ?? 0), SpanAlign.sanitized(input.memoFloor))
         let memo = CGRect(x: 0, y: y, width: PaperSpec.monthWidth, height: memoHeight)
         cells[.memo] = memo
 

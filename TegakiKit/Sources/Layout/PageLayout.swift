@@ -165,7 +165,21 @@ public enum PageScroll {
     /// DESIGN §3.5 generalized to every page: how far the band containing `topVisibleY` in `old`
     /// moved in `new` (paper lu; the caller adds it to `contentOffset.y` × zoomScale). 0 when
     /// `old.band(atY:)` is nil (outside the paper) or `new` lacks that band.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.5, 0g-17): when `old` and `new` are both joined months of 2 pages
+    /// or more, the joined months do not share their rows, so the page compared is old's middle page in both
+    /// windows: its band at `topVisibleY` in `old`, and the same page id's band top in `new` (0 when `new`
+    /// does not hold that page). A shift that keeps the floors is 0; when the separator line moves, a point
+    /// in the memo follows it and a point in the grid stays (row tops do not move, the last row only grows).
+    /// Every other pair (weeks, days, years, a window of one page, a page) keeps the answer above.
     public static func scrollDelta(old: any PageLayout, new: any PageLayout, topVisibleY: CGFloat) -> CGFloat {
+        if let o = old as? SpanLayout, let n = new as? SpanLayout, o.kind == .month, n.kind == .month,
+           o.pages.count >= 2, n.pages.count >= 2 {
+            guard topVisibleY.isFinite, let slot = o.middleSlot, let newSlot = n.slot(ofPage: o.pages[slot].pageId) else { return 0 }
+            let page = o.pages[slot]
+            guard let band = page.band(atY: topVisibleY),
+                  let oldTop = page.bandTop(band), let newTop = n.pages[newSlot].bandTop(band) else { return 0 }
+            return newTop - oldTop
+        }
         guard topVisibleY.isFinite, let band = old.band(atY: topVisibleY) else { return 0 }
         guard let oldTop = old.bandTop(band), let newTop = new.bandTop(band) else { return 0 }
         return newTop - oldTop
