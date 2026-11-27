@@ -233,6 +233,12 @@ final class ToolbarLogicTests: XCTestCase {
         XCTAssertEqual(ToolbarLogic.badge(for: .ink(InkStyle(tool: .marker, colorHex: "#000000", width: 18))),
                        ToolBadge(symbol: "highlighter", colorHex: "#000000", dotDiameter: nil,
                                  accessibilityValue: "マーカー・その他の色"))
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §3.3, §6.2): the panel's colours by their names, a colour of 「その他の色…」 by 「その他の色」.
+        XCTAssertEqual(ToolbarLogic.badge(for: .ink(InkStyle(tool: .pen, colorHex: "#92400e", width: 3.5))),
+                       ToolBadge(symbol: nil, colorHex: "#92400e", dotDiameter: 14, accessibilityValue: "ペン・茶・中"))
+        XCTAssertEqual(ToolbarLogic.badge(for: .ink(InkStyle(tool: .pen, colorHex: "#1e40af", width: 2))).accessibilityValue, "ペン・紺・細")
+        XCTAssertEqual(ToolbarLogic.badge(for: .ink(InkStyle(tool: .pen, colorHex: "#0A7E8C", width: 6))),
+                       ToolBadge(symbol: nil, colorHex: "#0a7e8c", dotDiameter: 18, accessibilityValue: "ペン・その他の色・太"))
         // The colour names, either case, and an upper-case stored colour.
         XCTAssertEqual(ToolbarPalette.colorName("#dc2626"), "赤")
         XCTAssertEqual(ToolbarPalette.colorName("#DC2626"), "赤")
@@ -287,7 +293,8 @@ final class ToolbarLogicTests: XCTestCase {
         defaults.set("#DC2626", forKey: "toolbar.penColor")
         XCTAssertEqual(ToolbarPalette.rememberedPen(defaults).colorHex, "#dc2626")
 
-        // A colour or a width that is not in the tables falls back on its own.
+        // A colour or a width that is not in the tables falls back on its own. 1.4.2 (docs/R1_4_2_CONTRACT.md §3.3): a colour on
+        // no dot is the first dot's — 黒 here, the dots being the first six (nothing stored under toolbar.penSlots).
         defaults.set("#123456", forKey: "toolbar.penColor")
         defaults.set(5.0, forKey: "toolbar.penWidth")
         XCTAssertEqual(ToolbarPalette.rememberedPen(defaults), black, "neither in the tables → 黒・中")

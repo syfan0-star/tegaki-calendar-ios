@@ -12548,19 +12548,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schreiben Sie mit dem Apple Pencil auf das Papier. Mit dem Finger scrollen, zoomen (zwei Finger) und tippen Sie auf Termine. Die Handfläche zieht keine Linien, wenn sie den Bildschirm berührt.\n\nUm auch mit dem Finger zu schreiben, aktivieren Sie „Mit Finger zeichnen“ in der Werkzeugleiste. Doppeltippen und Drücken des Apple Pencil wechseln zwischen Stift und Radierer, je nach den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben.\n\n%@"
+            "value" : "Schreiben Sie mit dem Apple Pencil auf das Papier. Mit dem Finger scrollen, zoomen (zwei Finger) und tippen Sie auf Termine. Die Handfläche zieht keine Linien, wenn sie den Bildschirm berührt.\n\nUm auch mit dem Finger zu schreiben, aktivieren Sie „Fingereingabe“ in der Werkzeugleiste. Doppeltippen und Drücken des Apple Pencil wechseln zwischen Stift und Radierer, je nach den Aktionen, die Sie auf dem iPad unter „Einstellungen“ > „Apple Pencil“ gewählt haben.\n\n%@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Draw with Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@"
+            "value" : "Write on the paper with Apple Pencil. Use your finger to scroll, pinch to zoom and tap events. Your palm does not draw lines when it touches the screen.\n\nTo also write with your finger, turn on “Use Finger” in the toolbar. Double-tapping or squeezing Apple Pencil switches between the pen and the eraser, following the actions you chose in Settings > Apple Pencil on your iPad.\n\n%@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escriba en el papel con el Apple Pencil. El dedo sirve para desplazarse, ampliar con dos dedos y tocar eventos. La palma no traza líneas al tocar la pantalla.\n\nPara escribir también con el dedo, active “Dibujar con el dedo” en la barra de herramientas. El doble toque y el gesto de apretar del Apple Pencil cambian entre la pluma y la goma, según las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad.\n\n%@"
+            "value" : "Escriba en el papel con el Apple Pencil. El dedo sirve para desplazarse, ampliar con dos dedos y tocar eventos. La palma no traza líneas al tocar la pantalla.\n\nPara escribir también con el dedo, active “Usar el dedo” en la barra de herramientas. El doble toque y el gesto de apretar del Apple Pencil cambian entre la pluma y la goma, según las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad.\n\n%@"
           }
         },
         "fr" : {
@@ -12590,7 +12590,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escreva no papel com o Apple Pencil. O dedo serve para rolar, ampliar com dois dedos e tocar nos eventos. A palma da mão não traça linhas ao tocar a tela.\n\nPara escrever também com o dedo, ative “Traçar com o dedo” na barra de ferramentas. O toque duplo e o gesto de apertar do Apple Pencil alternam entre a caneta e a borracha, conforme as ações escolhidas em Ajustes > Apple Pencil no iPad.\n\n%@"
+            "value" : "Escreva no papel com o Apple Pencil. O dedo serve para rolar, ampliar com dois dedos e tocar nos eventos. A palma da mão não traça linhas ao tocar a tela.\n\nPara escrever também com o dedo, ative “Usar o dedo” na barra de ferramentas. O toque duplo e o gesto de apertar do Apple Pencil alternam entre a caneta e a borracha, conforme as ações escolhidas em Ajustes > Apple Pencil no iPad.\n\n%@"
           }
         },
         "zh-Hans" : {
@@ -19412,19 +19412,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit Finger zeichnen"
+            "value" : "Fingereingabe"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Draw with Finger"
+            "value" : "Use Finger"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dibujar con el dedo"
+            "value" : "Usar el dedo"
           }
         },
         "fr" : {
@@ -19454,7 +19454,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traçar com o dedo"
+            "value" : "Usar o dedo"
           }
         },
         "zh-Hans" : {
@@ -20061,6 +20061,336 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "點兩下和擠壓會執行你在 iPad 的「設定」> Apple Pencil 中選擇的動作"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.dots" : {
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。罫線の高さに、横も同じ間隔で小さな点を並べた紙（線のマス目の方眼ではない）。チェックの付く行。英語 Dot Grid。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Punktraster"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dot Grid"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuadrícula de puntos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grille de points"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Griglia a punti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドット方眼"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도트 격자"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grade de pontos"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点阵"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點陣"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.footer" : {
+      "comment" : "設定 › メモ欄の紙 の説明（1.4.2）。変わるのは紙の柄だけで、手書きは動かない。端末ごとの設定（iCloud で同期しない）。ページの種類を並べない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Muster des Papiers in „Notizen“ und „Freie Notizen“. Ihre Handschrift bleibt unverändert. Diese Einstellung gilt pro Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The pattern of the paper in Notes and Free Notes. Your handwriting stays as it is. This setting is per device."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El diseño del papel de Notas y Notas libres. Su escritura a mano se mantiene tal cual. Este ajuste es propio de cada dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le motif du papier des Notes et des Notes libres. Votre écriture manuscrite reste telle quelle. Ce réglage est propre à chaque appareil."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il motivo della carta di Note e Note libere. La Sua scrittura a mano resta invariata. Questa impostazione vale per ogni singolo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ欄と自由メモの紙の柄です。手書きはそのまま残ります。この設定は端末ごとです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메모와 자유 메모의 종이 무늬예요. 손글씨는 그대로 남아요. 이 설정은 기기마다 따로 저장해요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O padrão do papel de Notas e Notas livres. Sua escrita à mão continua igual. Este ajuste é de cada dispositivo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是备忘和自由备忘的纸张图案。手写内容保持不变。此设置按设备分别保存。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這是備忘和自由備忘的紙張圖案。手寫內容保持不變。此設定依裝置分別儲存。"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.plain" : {
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。線も点も無い紙（見出しと上の区切りの線は残る）。チェックの付く行。英語 Blank。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blanko"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blank"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uni"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bianca"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無地"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무지"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liso"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空白"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空白"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.ruled" : {
+      "comment" : "設定 › メモ欄の紙 の選び（1.4.2）。横の線が 50 ごとに引かれた紙（ふだんの値、1.4.1 までと同じ）。チェックの付く行。英語 Lined。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liniert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lined"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rayado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ligné"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A righe"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "罫線"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "줄"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pautado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横线"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "橫線"
+          }
+        }
+      }
+    },
+    "settings.memoPaper.title" : {
+      "comment" : "設定の行の名前（1.4.2）。「祝日」のすぐ下の行で、押すと罫線・ドット方眼・無地から選ぶ画面になる（その画面の題も同じ字）。月のメモ欄・日の右の「メモ」・日と週の 24 時の下の「自由メモ」の紙の柄。英語 Notes Paper（GLOSSARY のメモ = Notes）。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notizpapier"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes Paper"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papel de notas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papier des notes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carta delle note"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ欄の紙"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메모 칸 종이"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papel das notas"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备忘栏纸张"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "備忘欄紙張"
           }
         }
       }
@@ -27127,6 +27457,204 @@
         }
       }
     },
+    "toolbar.color.brown" : {
+      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。茶色（#92400e）。英語 Brown。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Braun"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brown"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marrón"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marron"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marrone"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "茶"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "갈색"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marrom"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棕色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棕色"
+          }
+        }
+      }
+    },
+    "toolbar.color.darkGreen" : {
+      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い緑（#166534）。緑（toolbar.color.green）と言い分ける。英語 Dark green。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dunkelgrün"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark green"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verde oscuro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vert foncé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verde scuro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深緑"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진초록"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verde-escuro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深绿色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深綠色"
+          }
+        }
+      }
+    },
+    "toolbar.color.gray" : {
+      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。灰色（#6b7280）。英語 Gray。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grau"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gray"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gris"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gris"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grigio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グレー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "회색"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cinza"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "灰色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "灰色"
+          }
+        }
+      }
+    },
     "toolbar.color.green" : {
       "comment" : "ペンとマーカーの色の名前。読み上げだけ（色の丸のボタン・丸ボタンの値）",
       "extractionState" : "manual",
@@ -27255,6 +27783,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "淺藍色"
+          }
+        }
+      }
+    },
+    "toolbar.color.navy" : {
+      "comment" : "ペンの色の名前（1.4.2 で足した色）。読み上げだけ（色の丸のボタン・色の板の色・丸ボタンの値）。濃い青（#1e40af）。青（toolbar.color.blue）・水色（toolbar.color.lightBlue）と言い分ける。英語 Navy。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marineblau"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azul marino"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bleu marine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blu marino"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紺"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "남색"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azul-marinho"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "藏青色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "藏青色"
           }
         }
       }
@@ -27655,6 +28249,270 @@
         }
       }
     },
+    "toolbar.colorPanel.hint" : {
+      "comment" : "1.4.2 光っている（今のペンの）色の丸の読み上げのヒント。もう一度押すと、その丸の色を替える小さな板が開く。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippen Sie erneut, um die Farbe zu ändern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap again to change the color"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque de nuevo para cambiar el color"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez à nouveau pour changer la couleur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocchi di nuovo per cambiare il colore"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度押すと、色を替えられます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "한 번 더 누르면 색상을 바꿀 수 있어요"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque de novo para trocar a cor"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再轻点一下可更换颜色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再點一下可更換顏色"
+          }
+        }
+      }
+    },
+    "toolbar.colorPanel.otherColor" : {
+      "comment" : "1.4.2 ペンの色の板のボタン（画面に出る）。キーの名前は .other で終わると複数形の対と読まれる（lint L-4）ので otherColor。押すと、端末に元からある色選びの画面が開き、どんな色でも選べる。「…」はその言語の省略の形。読み上げの名前 toolbar.color.unknown「その他の色」とは別のキー。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Farbe…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Color…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otro color…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autre couleur…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altro colore…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他の色…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기타 색상…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outra cor…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他颜色…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他顏色…"
+          }
+        }
+      }
+    },
+    "toolbar.colorPanel.reset" : {
+      "comment" : "1.4.2 ペンの色の板のボタン（画面に出る）。ツールバーの 6 つの色の丸を、最初の 6 色（黒・青・赤・緑・オレンジ・紫）に戻す。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farben zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Colors"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer los colores"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser les couleurs"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta i colori"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の色に戻す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "색상 재설정"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redefinir as cores"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置颜色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置顏色"
+          }
+        }
+      }
+    },
+    "toolbar.colorPanel.title" : {
+      "comment" : "1.4.2 ペンの色の板の読み上げの名前と、ツールバーの色の丸の読み上げの操作の名前（その丸を選んで板を開く）。画面に字は出ない。文は docs/R1_4_2_CONTRACT.md §8.1。訳は docs/i18n/GLOSSARY.md §6（1.4.2 の D2 で X が決めた）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stiftfarbe wählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Pen Color"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir el color de la pluma"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir la couleur du stylo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli il colore della penna"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペンの色を選ぶ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "펜 색상 선택"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher a cor da caneta"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择钢笔颜色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇鋼筆顏色"
+          }
+        }
+      }
+    },
     "toolbar.dock.hint.toLeft" : {
       "comment" : "丸ボタンが右下にあるときの読み上げのヒント（toolbar.moveEdge.toLeft と toolbar.pin の語で）",
       "extractionState" : "manual",
@@ -27854,25 +28712,25 @@
       }
     },
     "toolbar.fingerToggle" : {
-      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない。ja の幅 ＋ 76 pt（約 136 pt、10.5 em）まで（F-13）",
+      "comment" : "ツールバーのスイッチの名前。13 pt で縮めない（1 行）。1.4.1 で同じ行の右に「動かす」が入ったので、13 インチの iPad の縦で行に収まるのは fr の « Écrire au doigt » の幅（87.8 pt、ja の幅 ＋ 約 28 pt）まで。それより長いと最後の字が行の右の端のぼかしで切れる。縦 1024 pt の iPad ではぼかしが 8 pt 左になる（1.4.2 で de・es・pt-BR を短くし、1024 pt の写真で最後の字がぼかしにかかった en も Use Finger に短くした。docs/i18n/GLOSSARY.md §4）。ToolbarFitTests の F-13 は、字の終わりが 13 インチの縦の行のぼかしの手前にあることを、「動かす」を 52 pt として確かめる。maxEm 9.0 は、その fr の 15 字を L-12 の数え方（1 字 0.6 em）にした物で、それより長い訳を L-12 の警告で知らせる（it は超えていて警告になる。字は 1024 pt の写真でもぼかしの 1.5 pt 手前で終わるが、行が少しはみ出してスクロールする。GLOSSARY §4）。設定の settings.input.allowFinger と同じ語にし、onboarding.pen.text の引用もこの語にする",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mit Finger zeichnen"
+            "value" : "Fingereingabe"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Draw with Finger"
+            "value" : "Use Finger"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dibujar con el dedo"
+            "value" : "Usar el dedo"
           }
         },
         "fr" : {
@@ -27902,7 +28760,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traçar com o dedo"
+            "value" : "Usar o dedo"
           }
         },
         "zh-Hans" : {
@@ -28052,7 +28910,7 @@
       }
     },
     "toolbar.grip.spoken" : {
-      "comment" : "1.4.1 ツールバーのつまみの読み上げの名前。iPad の広い窓で、開いたツールバーの画面の真ん中に向いた辺に出る小さなつまみ。指で引くと、ツールバーを画面の上・下・左・右の端へ移せる。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 ツールバーを動かす操作の名前。画面に出る: iPad のツールバーの「動かす」（toolbar.move.title）を押すと開く吹き出し（iPad ではポップオーバー）の題として、選択肢（toolbar.moveTo.*）の上に出る（開いたツールバーと、しまった後に丸ボタンの道具の印で出したツールバー。iPhone には無い）。読み上げ: 「動かす」ボタンと、iPad の広い窓で開いたツールバーの画面の真ん中に向いた辺に出る小さなつまみの名前（つまみを指で引くと、ツールバーを画面の上・下・左・右の端へ移せる）。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（画面に出ることを足した。docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -28646,7 +29504,7 @@
       }
     },
     "toolbar.moveTo.bottom" : {
-      "comment" : "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の下の端へ移す（スイッチコントロールとフルキーボードアクセスも同じ操作）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 開いたツールバーを画面の下の端へ移す操作の名前。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前（スイッチコントロールとフルキーボードアクセスも同じ操作）。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -28712,7 +29570,7 @@
       }
     },
     "toolbar.moveTo.left" : {
-      "comment" : "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の左の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 開いたツールバーを画面の左の端へ移す操作の名前（ツールバーは縦に立つ）。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -28778,7 +29636,7 @@
       }
     },
     "toolbar.moveTo.right" : {
-      "comment" : "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の右の端へ移す（縦に立つ）。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 開いたツールバーを画面の右の端へ移す操作の名前（ツールバーは縦に立つ）。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -28844,7 +29702,7 @@
       }
     },
     "toolbar.moveTo.top" : {
-      "comment" : "1.4.1 つまみの読み上げの操作の名前。開いたツールバーを画面の上の端（見出しの下）へ移す。文は docs/R1_4_1_CONTRACT.md §8.1",
+      "comment" : "1.4.1 開いたツールバーを画面の上の端（見出しの下）へ移す操作の名前。画面に出る: iPad のツールバーの「動かす」を押すと開く吹き出しの選択肢のボタン（題は toolbar.grip.spoken。今ある端の選択肢は出ない）。読み上げ: つまみと「動かす」の読み上げの操作の名前。文は docs/R1_4_1_CONTRACT.md §8.1・§17.2。この説明は 1.4.2 で直した（docs/R1_4_2_CONTRACT.md §1.5、0e-32）",
       "extractionState" : "manual",
       "localizations" : {
         "de" : {

@@ -12,6 +12,8 @@ enum DayPaper: PaperRenderer {
     static func draw(_ content: DayPaperContent, in ctx: CGContext, dirty: CGRect, zoom: CGFloat, view: PaperView) {
         let layout = content.layout
         let scale = view.contentScaleFactor
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §4.3, §4.4): the memo paper's pattern, read once here and passed down.
+        let style = view.memoPaper
         let gutter = PaperSpec.dayGutter
         let timelineRight = PaperSpec.dayTimelineRight
         // 1.1: the 24 hours (0:00–24:00), not the whole paper.
@@ -50,19 +52,29 @@ enum DayPaper: PaperRenderer {
                                    readable: readable)
 
         // 4. Memo area: ruled lines every 50 lu and the 「メモ」 label (same look as the month's memo area).
+        // 1.4.2 (§4.4, 0f-22): the lines as before for the ruled paper (the same calls in the same order); 「ドット方眼」's dots
+        // on the same rows (the grid's columns 680…980, above the free memo's); nothing on blank paper. The label always.
         let memo = layout.memo
         ctx.setLineWidth(PaperText.hairline(zoom))
-        ctx.setStrokeColor(PaperPalette.rule.cgColor)
-        ctx.beginPath()
-        var y = grid.minY + PaperSpec.dayRuleStep
-        while y < grid.maxY {
-            if y >= dirty.minY - 1, y <= dirty.maxY + 1 {
-                PaperText.addHorizontal(ctx, y: y, from: memo.minX + PaperSpec.dayRuleInset, to: memo.maxX - PaperSpec.dayRuleInset,
-                                        zoom: zoom, scale: scale)
+        switch style {
+        case .ruled:
+            ctx.setStrokeColor(PaperPalette.rule.cgColor)
+            ctx.beginPath()
+            var y = grid.minY + PaperSpec.dayRuleStep
+            while y < grid.maxY {
+                if y >= dirty.minY - 1, y <= dirty.maxY + 1 {
+                    PaperText.addHorizontal(ctx, y: y, from: memo.minX + PaperSpec.dayRuleInset, to: memo.maxX - PaperSpec.dayRuleInset,
+                                            zoom: zoom, scale: scale)
+                }
+                y += PaperSpec.dayRuleStep
             }
-            y += PaperSpec.dayRuleStep
+            ctx.strokePath()
+        case .dots:
+            MemoDots.draw(ctx, top: grid.minY, bottom: grid.maxY, left: memo.minX, right: memo.maxX, inset: PaperSpec.dayRuleInset,
+                          rowStep: PaperSpec.dayRuleStep, dirty: dirty, zoom: zoom, scale: scale)
+        case .plain:
+            break
         }
-        ctx.strokePath()
         let labelSize = PaperText.fontSize(PaperText.memoLabel, zoom: zoom, readable: readable)
         let labelFont = UIFont.systemFont(ofSize: labelSize, weight: .semibold)
         let labelRect = CGRect(x: memo.minX + PaperSpec.dayRuleInset, y: grid.minY + 6, width: 200, height: labelFont.lineHeight + 2)
@@ -71,7 +83,7 @@ enum DayPaper: PaperRenderer {
         }
 
         // 5. 1.1: the free memo area below 24:00 (`extra`).
-        drawExtra(ctx, layout: layout, dirty: dirty, zoom: zoom, scale: scale, readable: readable)
+        drawExtra(ctx, layout: layout, dirty: dirty, zoom: zoom, scale: scale, readable: readable, style: style)
 
         // 6. Timed boxes, then the now line across the timeline column.
         TimeGridPaper.drawBoxes(ctx, boxes: layout.timedBoxes, textSize: PaperText.dayEvent, dirty: dirty, zoom: zoom, readable: readable)
@@ -86,11 +98,13 @@ enum DayPaper: PaperRenderer {
     /// (`dayRuleInset`, top + 6) in the look of the right column's 「メモ」 (a different name, so the
     /// page does not show two 「メモ」). Only what meets `dirty`; nothing for a layout without it.
     /// 1.3 (docs/M7C_CONTRACT.md §5.2): the drawing is `FreeMemoPaper.draw`, shared with the week memo
-    /// (the same calls in the same order as 1.2.3's body here).
-    private static func drawExtra(_ ctx: CGContext, layout: DayPageLayout, dirty: CGRect, zoom: CGFloat, scale: CGFloat, readable: CGFloat) {
+    /// (the same calls in the same order as 1.2.3's body here). 1.4.2 (docs/R1_4_2_CONTRACT.md §4.3): `style` is the memo
+    /// paper's pattern `draw` read from its view.
+    private static func drawExtra(_ ctx: CGContext, layout: DayPageLayout, dirty: CGRect, zoom: CGFloat, scale: CGFloat, readable: CGFloat,
+                                  style: MemoPaperStyle) {
         let extra = layout.extra
         guard layout.cells[.extra] != nil, extra.height > 0, extra.width > 0 else { return }
-        FreeMemoPaper.draw(ctx, area: extra, dirty: dirty, zoom: zoom, scale: scale, readable: readable)
+        FreeMemoPaper.draw(ctx, area: extra, dirty: dirty, zoom: zoom, scale: scale, readable: readable, style: style)
     }
 
     /// The heading of the free memo area below 24:00 (M7A_CONTRACT §6.2); since 1.3 `FreeMemoPaper.label`.

@@ -1401,6 +1401,26 @@
       "jaSha1": "b18fc2bf4e",
       "text": "轻点两下和轻捏会执行你在 iPad 的“设置” > Apple Pencil 中选择的操作"
     },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "点阵"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "这是备忘和自由备忘的纸张图案。手写内容保持不变。此设置按设备分别保存。"
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "空白"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "横线"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "备忘栏纸张"
+    },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
       "text": "打开“设置” App"
@@ -1829,6 +1849,18 @@
       "jaSha1": "845d1da87f",
       "text": "蓝色"
     },
+    "toolbar.color.brown": {
+      "jaSha1": "97a08c17dc",
+      "text": "棕色"
+    },
+    "toolbar.color.darkGreen": {
+      "jaSha1": "a0d41d191b",
+      "text": "深绿色"
+    },
+    "toolbar.color.gray": {
+      "jaSha1": "5378733ecf",
+      "text": "灰色"
+    },
     "toolbar.color.green": {
       "jaSha1": "f22758bf8f",
       "text": "绿色"
@@ -1836,6 +1868,10 @@
     "toolbar.color.lightBlue": {
       "jaSha1": "d2dddf0d44",
       "text": "浅蓝色"
+    },
+    "toolbar.color.navy": {
+      "jaSha1": "40c839def7",
+      "text": "藏青色"
     },
     "toolbar.color.orange": {
       "jaSha1": "831166ef4b",
@@ -1860,6 +1896,22 @@
     "toolbar.color.yellow": {
       "jaSha1": "7720f8ea0a",
       "text": "黄色"
+    },
+    "toolbar.colorPanel.hint": {
+      "jaSha1": "f5b8641fb2",
+      "text": "再轻点一下可更换颜色"
+    },
+    "toolbar.colorPanel.otherColor": {
+      "jaSha1": "c5d3f706a4",
+      "text": "其他颜色…"
+    },
+    "toolbar.colorPanel.reset": {
+      "jaSha1": "a861ac9ea8",
+      "text": "重置颜色"
+    },
+    "toolbar.colorPanel.title": {
+      "jaSha1": "5aa3a9cd3e",
+      "text": "选择钢笔颜色"
     },
     "toolbar.dock.hint.toLeft": {
       "jaSha1": "700daf6c01",

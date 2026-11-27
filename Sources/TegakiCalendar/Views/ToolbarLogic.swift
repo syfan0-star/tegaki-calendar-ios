@@ -627,33 +627,196 @@ extension ToolbarLogic {
 }
 
 extension ToolbarPalette {
-    /// The pen the app starts with (0-13, §2.3): the colour and width the toolbar remembers
-    /// (`toolbar.penColor` / `toolbar.penWidth`, the same keys and defaults as `ToolbarView`). A colour
-    /// that is not one of `penColors` falls back to 黒 and a width that is not one of `penWidths` to
-    /// 中, each on its own (`ToolbarView` lights the same swatch and width).
-    static func rememberedPen(_ defaults: UserDefaults) -> InkStyle {
-        let width = (defaults.object(forKey: penWidthKey) as? NSNumber)?.doubleValue
-        return pen(colorHex: defaults.string(forKey: penColorKey), width: width)
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.2, 0f-7): the six dots' first colours, `penColors`' six (黒・青・赤・緑・オレンジ・紫).
+    static var defaultSlots: [String] { penColors.map(\.hex) }
+
+    /// 1.4.2 (§3.2, 0f-7): the six dots from the stored text (`toolbar.penSlots`, six "#rrggbb" joined by ","): nil or empty,
+    /// or not six pieces, is the first six colours; a piece `InkColors.normalized` cannot read is that dot's first colour; a
+    /// colour an earlier dot already has is that dot's first colour, and when an earlier dot has that too, the first colour of
+    /// `panelColors` no earlier dot has. So there are always six, never two alike. A broken text is not written back (the
+    /// next change in the panel writes a good one).
+    static func slots(stored: String?) -> [String] {
+        let first = defaultSlots
+        guard let stored, !stored.isEmpty else { return first }
+        let pieces = stored.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+        guard pieces.count == first.count else { return first }
+        var slots: [String] = []
+        for (index, piece) in pieces.enumerated() {
+            var color = InkColors.normalized(piece) ?? first[index]
+            if slots.contains(color) {
+                color = first[index]
+                if slots.contains(color) {
+                    color = panelColors.map(\.hex).first { !slots.contains($0) } ?? first[index]
+                }
+            }
+            slots.append(color)
+        }
+        return slots
     }
 
-    /// A pen from stored values, each checked against the tables (see `rememberedPen`).
-    static func pen(colorHex: String?, width: Double?) -> InkStyle {
+    /// 1.4.2 (§3.2): the text `slots(stored:)` reads back (the six joined by ",").
+    static func storedSlots(_ slots: [String]) -> String {
+        slots.joined(separator: ",")
+    }
+
+    /// The pen the app starts with (0-13, §2.3): the colour and width the toolbar remembers
+    /// (`toolbar.penColor` / `toolbar.penWidth`, the same keys and defaults as `ToolbarView`). A colour
+    /// that is not one of the six dots falls back to the first dot (黒 while the dots are the first colours)
+    /// and a width that is not one of `penWidths` to 中, each on its own (`ToolbarView` lights the same
+    /// swatch and width). 1.4.2 (§3.3, 0f-8): the dots are `toolbar.penSlots`' (`slots(stored:)`).
+    static func rememberedPen(_ defaults: UserDefaults) -> InkStyle {
+        let width = (defaults.object(forKey: penWidthKey) as? NSNumber)?.doubleValue
+        return pen(colorHex: defaults.string(forKey: penColorKey), width: width,
+                   slots: slots(stored: defaults.string(forKey: penSlotsKey)))
+    }
+
+    /// A pen from stored values, each checked against the tables (see `rememberedPen`). 1.4.2 (§3.3, 0f-8): the colour is
+    /// looked up in the six dots `slots` (the first colours by default, so 1.4.1's callers get 1.4.1's pen); one not there is
+    /// the first dot's.
+    static func pen(colorHex: String?, width: Double?, slots: [String] = defaultSlots) -> InkStyle {
         let normalized = colorHex.flatMap(InkColors.normalized)
-        let color = penColors.first { $0.hex == normalized } ?? penColors[0]
+        let dots = slots.isEmpty ? defaultSlots : slots
+        let color = dots.first { $0 == normalized } ?? dots[0]
         let size = penWidths.first { entry in
             guard let width = width, width.isFinite else { return false }
             return abs(Double(entry.width) - width) < 0.001
         } ?? penWidths[1]
-        return InkStyle(tool: .pen, colorHex: color.hex, width: size.width)
+        return InkStyle(tool: .pen, colorHex: color, width: size.width)
     }
 
-    /// The name of a pen or marker colour (「赤」, 「黄」); 「その他の色」 when it is in neither table.
+    /// The name of a pen or marker colour (「赤」, 「黄」); 「その他の色」 when it is in neither table. 1.4.2 (§3.3, 0f-8): the
+    /// panel's twelve (`panelColors`) first, then the marker's four.
     static func colorName(_ hex: String) -> String {
         let normalized = InkColors.normalized(hex) ?? hex.lowercased()
-        if let entry = penColors.first(where: { $0.hex == normalized })
+        if let entry = panelColors.first(where: { $0.hex == normalized })
             ?? markerColors.first(where: { $0.hex == normalized }) {
             return entry.name
         }
         return L.text("toolbar.color.unknown")
+    }
+}
+
+/// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.5–§3.9, 0f-9–0f-16): the pen colours' panel, pure (no SwiftUI), so
+/// `ColorPanelLogicTests` can check it; `ToolbarView`, `ColorPanelView` and `CalendarRootScreen` only read it.
+enum ColorPanelLogic {
+    /// What a press of one of the pen's six dots does (§3.5).
+    enum SwatchAction: Equatable {
+        /// Choose that dot's colour (the panel, if open, closes).
+        case select(Int)
+        /// Open that dot's panel (the pen does not change).
+        case open(Int)
+        /// Close the panel.
+        case close
+        /// Nothing.
+        case none
+    }
+
+    /// A tap on dot `slot` (§3.5's table): the lit dot opens its panel, or closes it when it is open; any other dot is chosen
+    /// as before 1.4.2. `lit` is the lit dot (nil: none), `openSlot` the dot whose panel is open (nil: closed).
+    static func tap(slot: Int, lit: Int?, openSlot: Int?) -> SwatchAction {
+        guard slot == lit else { return .select(slot) }
+        return openSlot == nil ? .open(slot) : .close
+    }
+
+    /// A long press (0.5 s) on dot `slot`: the lit dot opens its panel (an open one stays open: the lift after the press does
+    /// not close it); any other dot is chosen, as a tap does.
+    static func longPress(slot: Int, lit: Int?, openSlot: Int?) -> SwatchAction {
+        guard slot == lit else { return .select(slot) }
+        return openSlot == nil ? .open(slot) : .none
+    }
+
+    /// The dots and the pen's colour after a choice.
+    struct Choice: Equatable {
+        var slots: [String]
+        var pen: String
+    }
+
+    /// A colour chosen in the panel of dot `slot` (§3.7, 0f-12): when another dot has it, the dots stay and the pen takes it
+    /// (that dot lights); else dot `slot` takes it and the pen too. `hex` is normalized first (an unreadable one changes
+    /// nothing: the pen is dot `slot`'s colour).
+    static func choose(_ hex: String, slot: Int, slots: [String]) -> Choice {
+        guard slots.indices.contains(slot) else { return Choice(slots: slots, pen: slots.first ?? ToolbarPalette.defaultSlots[0]) }
+        guard let color = InkColors.normalized(hex) else { return Choice(slots: slots, pen: slots[slot]) }
+        if slots.contains(color) { return Choice(slots: slots, pen: color) }
+        var next = slots
+        next[slot] = color
+        return Choice(slots: next, pen: color)
+    }
+
+    /// 「最初の色に戻す」 (§3.7, 0f-14): the six dots back to the first six colours; a pen on dot k becomes the k-th first
+    /// colour, so the lit dot, the pen 「ペン」 gives and the ink stay the same dot (a pen on no dot: the first dot's).
+    static func reset(currentPen: String, slots: [String]) -> Choice {
+        let first = ToolbarPalette.defaultSlots
+        let normalized = InkColors.normalized(currentPen) ?? currentPen
+        let index = slots.firstIndex(of: normalized).flatMap { first.indices.contains($0) ? $0 : nil } ?? 0
+        return Choice(slots: first, pen: first[index])
+    }
+
+    /// The panel's size (§3.4): 288 wide (every iPhone's 375 with 8 to spare on each side once the screen's padding is in),
+    /// the grid of 6 × 2 cells of 44 and the two rows of 44.
+    static let panelSize = CGSize(width: 288, height: 204)
+    /// The gap between the lit dot and the panel, and the panel's least distance from the container's edges (§3.8).
+    static let anchorGap: CGFloat = 8
+    static let containerInset: CGFloat = 8
+    /// The grid: 6 columns × 2 rows of 44 × 44 cells, a 28 pt dot (the ring 36).
+    static let columns = 6
+    static let cellSide: CGFloat = 44
+    static let dotDiameter: CGFloat = 28
+    /// The two buttons' rows (§3.4): 44 tall, their text at most two lines down to 0.8, at most xLarge.
+    static let rowHeight: CGFloat = 44
+    static let rowTextInset: CGFloat = 12
+    static let rowTextMinScale: CGFloat = 0.8
+
+    /// Where the panel goes (§3.8, 0f-15): `anchor` is the lit dot's frame and `container` the screen's safe area (the same
+    /// coordinates). Bottom: its bottom 8 above the dot, centred on it across; top: its top 8 under the dot; left (the upright
+    /// bar): its left 8 right of the dot, centred on it up and down; right: its right 8 left of the dot. Then moved inside
+    /// the container by 8 (a panel larger than that keeps its top left there).
+    static func placement(anchor: CGRect, edge: PaletteEdge, container: CGRect, panel: CGSize) -> CGRect {
+        var x: CGFloat
+        var y: CGFloat
+        switch edge {
+        case .bottom:
+            x = anchor.midX - panel.width / 2
+            y = anchor.minY - anchorGap - panel.height
+        case .top:
+            x = anchor.midX - panel.width / 2
+            y = anchor.maxY + anchorGap
+        case .left:
+            x = anchor.maxX + anchorGap
+            y = anchor.midY - panel.height / 2
+        case .right:
+            x = anchor.minX - anchorGap - panel.width
+            y = anchor.midY - panel.height / 2
+        }
+        let inner = container.insetBy(dx: containerInset, dy: containerInset)
+        x = max(inner.minX, min(x, inner.maxX - panel.width))
+        y = max(inner.minY, min(y, inner.maxY - panel.height))
+        return CGRect(x: x, y: y, width: panel.width, height: panel.height)
+    }
+
+    /// A touch that came down at `point` closes the panel (§3.6): outside the panel and outside the lit dot (whose own press
+    /// opens and closes it). nil `litSwatch`: only the panel counts.
+    static func closesOnTouch(at point: CGPoint, panel: CGRect, litSwatch: CGRect?) -> Bool {
+        if panel.contains(point) { return false }
+        if let litSwatch, litSwatch.contains(point) { return false }
+        return true
+    }
+
+    /// The lit dot moved since the panel opened (§3.6: the bar scrolled, the screen turned, the bar was made anew): any edge
+    /// more than 1 pt from where it was.
+    static func closesOnAnchorMove(opened: CGRect, now: CGRect) -> Bool {
+        abs(opened.minX - now.minX) > 1 || abs(opened.maxX - now.maxX) > 1
+            || abs(opened.minY - now.minY) > 1 || abs(opened.maxY - now.maxY) > 1
+    }
+
+    /// The system colour picker's choice is taken (§3.7, 0f-13) only when it is not still moving (`continuously` false);
+    /// nothing is written while a finger drags in it.
+    static func commitsPick(continuously: Bool) -> Bool {
+        !continuously
+    }
+
+    /// The rim of the bar's dots (§3.9, 0f-16): light, black at 0.15 (1.4.1's); dark, white at 0.35.
+    static func swatchRim(dark: Bool) -> (white: Bool, opacity: Double) {
+        dark ? (white: true, opacity: 0.35) : (white: false, opacity: 0.15)
     }
 }

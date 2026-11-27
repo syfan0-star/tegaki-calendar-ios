@@ -947,7 +947,7 @@
     },
     "onboarding.pen.text": {
       "jaSha1": "cbfca1a23d",
-      "text": "Escreva no papel com o Apple Pencil. O dedo serve para rolar, ampliar com dois dedos e tocar nos eventos. A palma da mão não traça linhas ao tocar a tela.\n\nPara escrever também com o dedo, ative “Traçar com o dedo” na barra de ferramentas. O toque duplo e o gesto de apertar do Apple Pencil alternam entre a caneta e a borracha, conforme as ações escolhidas em Ajustes > Apple Pencil no iPad.\n\n%@"
+      "text": "Escreva no papel com o Apple Pencil. O dedo serve para rolar, ampliar com dois dedos e tocar nos eventos. A palma da mão não traça linhas ao tocar a tela.\n\nPara escrever também com o dedo, ative “Usar o dedo” na barra de ferramentas. O toque duplo e o gesto de apertar do Apple Pencil alternam entre a caneta e a borracha, conforme as ações escolhidas em Ajustes > Apple Pencil no iPad.\n\n%@"
     },
     "onboarding.pen.title": {
       "jaSha1": "3bbf69218f",
@@ -1363,7 +1363,7 @@
     },
     "settings.input.allowFinger": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Traçar com o dedo"
+      "text": "Usar o dedo"
     },
     "settings.input.allowFinger.footer": {
       "jaSha1": "0ed7a17915",
@@ -1400,6 +1400,26 @@
     "settings.input.pencil.footer": {
       "jaSha1": "b18fc2bf4e",
       "text": "O toque duplo e o gesto de apertar seguem as ações escolhidas em Ajustes > Apple Pencil no iPad"
+    },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "Grade de pontos"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "O padrão do papel de Notas e Notas livres. Sua escrita à mão continua igual. Este ajuste é de cada dispositivo."
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "Liso"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "Pautado"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "Papel das notas"
     },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
@@ -1829,6 +1849,18 @@
       "jaSha1": "845d1da87f",
       "text": "Azul"
     },
+    "toolbar.color.brown": {
+      "jaSha1": "97a08c17dc",
+      "text": "Marrom"
+    },
+    "toolbar.color.darkGreen": {
+      "jaSha1": "a0d41d191b",
+      "text": "Verde-escuro"
+    },
+    "toolbar.color.gray": {
+      "jaSha1": "5378733ecf",
+      "text": "Cinza"
+    },
     "toolbar.color.green": {
       "jaSha1": "f22758bf8f",
       "text": "Verde"
@@ -1836,6 +1868,10 @@
     "toolbar.color.lightBlue": {
       "jaSha1": "d2dddf0d44",
       "text": "Azul-claro"
+    },
+    "toolbar.color.navy": {
+      "jaSha1": "40c839def7",
+      "text": "Azul-marinho"
     },
     "toolbar.color.orange": {
       "jaSha1": "831166ef4b",
@@ -1861,6 +1897,22 @@
       "jaSha1": "7720f8ea0a",
       "text": "Amarelo"
     },
+    "toolbar.colorPanel.hint": {
+      "jaSha1": "f5b8641fb2",
+      "text": "Toque de novo para trocar a cor"
+    },
+    "toolbar.colorPanel.otherColor": {
+      "jaSha1": "c5d3f706a4",
+      "text": "Outra cor…"
+    },
+    "toolbar.colorPanel.reset": {
+      "jaSha1": "a861ac9ea8",
+      "text": "Redefinir as cores"
+    },
+    "toolbar.colorPanel.title": {
+      "jaSha1": "5aa3a9cd3e",
+      "text": "Escolher a cor da caneta"
+    },
     "toolbar.dock.hint.toLeft": {
       "jaSha1": "700daf6c01",
       "text": "Toque e mantenha pressionado para mover para o canto inferior esquerdo ou exibir sempre a barra de ferramentas"
@@ -1875,7 +1927,7 @@
     },
     "toolbar.fingerToggle": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Traçar com o dedo"
+      "text": "Usar o dedo"
     },
     "toolbar.fingerToggle.hint": {
       "jaSha1": "cb2be71b20",

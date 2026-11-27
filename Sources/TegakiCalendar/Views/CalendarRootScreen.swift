@@ -257,6 +257,17 @@ struct CalendarRootScreen: View {
     @State private var paletteRoom: PaletteRoom
     /// Where the slots under the header and the notices begin (the window's points): a drag's outlines (`PaletteDragLayer`).
     @State private var paletteBodyTop: CGFloat = 0
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.4–§3.7, 0f-10–0f-13): the pen dot whose colour panel is open (nil: closed). The
+    /// toolbar opens and closes it (`ColorPanelHook`), the panel closes it when a colour is chosen, and `colorPanelLayer` on a
+    /// touch outside it, a sheet, leaving the foreground, a new window size, the bar folding, peeking or moving, its grip or
+    /// 「動かす」, another tool, or its dot moving.
+    @State private var colorPanelSlot: Int? = nil
+    /// 1.4.2 (§3.7, 0f-13): 「その他の色…」's system colour picker is up (one of `sheetIsUp`'s), and the dot it was opened from.
+    @State private var colorPickerShown = false
+    @State private var colorPickerSlot: Int? = nil
+    /// 1.4.2 (§3.6, 0f-11): the window's watch of a touch outside the open panel, on the window while it is open. `@State`, not
+    /// `let`: the screen's struct is made again and again, and a new instance each time would leave the old one on the window.
+    @State private var colorPanelWatch = ColorPanelWatch()
     /// The last 「このページはいっぱいです」 toast (at most every 2 s, like `lastBlockedInputAt`).
     @State private var lastBudgetFullAt: Date?
 
@@ -490,6 +501,9 @@ struct CalendarRootScreen: View {
         if shot == nil { HolidayChoice.migrateIfNeeded() }
         let startWeekStart = WeekStartChoice.prepareAtLaunch(shot: shot)
         _weekStart = State(initialValue: startWeekStart)
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §4.1, 0f-19): the memo paper's pattern before any paper is made (screenshot mode's
+        // argument, the ruled paper on a test host, else this device's choice).
+        MemoPaperStyle.prepareAtLaunch(shot: shot)
         let holidaysStarted = Date()
         let startHolidays = HolidayChoice.calendar(setting: shot?.holidays ?? HolidayChoice.setting(),
                                                    deviceRegion: Locale.current.region?.identifier,
@@ -727,10 +741,11 @@ struct CalendarRootScreen: View {
     }
 
     /// True while any sheet or cover is up (the account question waits for them; M4 contract §6.4).
-    /// 1.2.2 (docs/R1_2_2.md §3.6): Apple's age range sheet counts too.
+    /// 1.2.2 (docs/R1_2_2.md §3.6): Apple's age range sheet counts too. 1.4.2 (docs/R1_4_2_CONTRACT.md §3.7): and 「その他の色…」's
+    /// colour picker.
     private var sheetIsUp: Bool {
         showSettings || editor != nil || showImportPicker || importPhase != nil || exportPhase != nil || showOnboarding || showPaywall
-            || ageRangeAsking
+            || ageRangeAsking || colorPickerShown
     }
 
     /// M5 (M5_CONTRACT §3.1): the access state and whether the app is read only.
@@ -767,7 +782,8 @@ struct CalendarRootScreen: View {
     var body: some View {
         // 1.3: the chain of 1.2.3's body in three parts (the same modifiers in the same order), so the compiler
         // type-checks each in time: the screen with its bars and toasts, what it watches, its sheets and alerts.
-        presented(watchedFurther(watched(arranged)))
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §3.4, §3.6): the colour panel's layer over the column, its bars and its toasts.
+        presented(watchedFurther(watched(colorPanelLayer(arranged))))
     }
 
     /// The column with the peeking bar, the dock, the toast and the bottom bar (1.2.3's body, its first part).
@@ -893,6 +909,95 @@ struct CalendarRootScreen: View {
         .task { await nowTicker() }
     }
 
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.4–§3.8, 0f-10–0f-13): the pen colour panel's layer, sheet and closings, all
+    /// here (none in the bodies of 1.4.1's `toolbarEvent`, `placePalette`, `paletteMoveChosen`, `paletteMoveButtonChose`,
+    /// `sheetsChanged`, `penDown` or the modifiers before them, §3.6, §5.6). The panel lies over everything of the column (the
+    /// peeks, a drag's puck, the toasts), under the sheets, at the lit dot (`ColorPanelAnchorKey` from the one `ToolbarView`).
+    /// The window's watch is on the window while it is open. It closes on a sheet, leaving the foreground, a new window size,
+    /// the bar folding, peeking or opening, another edge, a drag of the grip or 「動かす」, its choice of edges, a tool that is
+    /// not the pen — never on `penDown` (a Pencil's hover comes there; a real touch is the watch's).
+    private func colorPanelLayer<Content: View>(_ content: Content) -> some View {
+        content
+        .overlayPreferenceValue(ColorPanelAnchorKey.self) { anchor in
+            ColorPanelHost(anchor: anchor, openSlot: $colorPanelSlot, edge: paletteEdge, tool: toolBinding, watch: colorPanelWatch,
+                           onOther: { openColorPicker(from: $0) })
+        }
+        .sheet(isPresented: $colorPickerShown, onDismiss: { colorPickerDismissed() }) {
+            ColorPickerSheet(initialHex: colorPickerInitialHex, onPick: { colorPicked($0) }, onDone: { colorPickerClosed() })
+        }
+        .onChange(of: colorPanelSlot) {
+            if colorPanelSlot != nil, let window = paletteRoom.window {
+                colorPanelWatch.attach(to: window)
+            } else {
+                colorPanelWatch.detach()
+            }
+        }
+        .onChange(of: sheetIsUp) {
+            if sheetIsUp { closeColorPanel() }
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase != .active { closeColorPanel() }
+        }
+        .onChange(of: windowSize) { closeColorPanel() }
+        .onChange(of: toolbarMode) { closeColorPanel() }
+        .onChange(of: paletteEdge) { closeColorPanel() }
+        .onChange(of: paletteDragging) {
+            if paletteDragging { closeColorPanel() }
+        }
+        .onChange(of: paletteMenuShown) {
+            if paletteMenuShown { closeColorPanel() }
+        }
+        .onChange(of: tool) {
+            if ToolbarLogic.kind(of: tool) != .pen { closeColorPanel() }
+        }
+    }
+
+    /// The colour panel closes (nothing written when it is closed already).
+    private func closeColorPanel() {
+        if colorPanelSlot != nil { colorPanelSlot = nil }
+    }
+
+    /// 「その他の色…」 of dot `slot` (§3.7): the dot kept for the picker, the panel closed, the system's picker shown.
+    private func openColorPicker(from slot: Int) {
+        colorPickerSlot = slot
+        closeColorPanel()
+        colorPickerShown = true
+    }
+
+    /// The picker's colour starts at its dot's.
+    private var colorPickerInitialHex: String {
+        let slots = ColorPanelStore.slots()
+        let slot = colorPickerSlot ?? 0
+        return slots.indices.contains(slot) ? slots[slot] : slots[0]
+    }
+
+    /// A colour the picker settled on ("#rrggbb", sRGB): chosen for the picker's dot as the panel chooses (§3.7).
+    private func colorPicked(_ hex: String) {
+        let choice = ColorPanelLogic.choose(hex, slot: colorPickerSlot ?? 0, slots: ColorPanelStore.slots())
+        toolBinding.wrappedValue = .ink(ColorPanelStore.apply(choice))
+    }
+
+    /// The picker is done (`ColorPickerSheet`'s `onDone`, once: after its ×, or after the sheet went away, its last candidate
+    /// taken first): `sheetIsUp` false again, so what `sheetsChanged` keeps waiting comes, and the dot forgotten.
+    private func colorPickerClosed() {
+        if colorPickerShown { colorPickerShown = false }
+        if colorPickerSlot != nil { colorPickerSlot = nil }
+    }
+
+    /// The sheet went away (dragged down; on an iPad also a tap outside it): `sheetIsUp` false again at once. The dot is kept:
+    /// a candidate still moving is taken after this (`dismantleUIViewController` finishes on the next turn) and must go to the
+    /// dot the picker was opened from, not to dot 1; `onDone` (`colorPickerClosed`) forgets it.
+    private func colorPickerDismissed() {
+        if colorPickerShown { colorPickerShown = false }
+    }
+
+    /// Screenshot mode's `--screenshot-color-panel` (§3.11): the lit dot's panel, as a tap on it opens it.
+    private func openColorPanelForPhoto() {
+        let pen = ToolbarPalette.pen(colorHex: UserDefaults.standard.string(forKey: ToolbarPalette.penColorKey),
+                                     width: nil, slots: ColorPanelStore.slots())
+        colorPanelSlot = ColorPanelStore.slots().firstIndex(of: pen.colorHex) ?? 0
+    }
+
     /// The sheets, the cover, the dialog, the alert, the state for the UI tests and the rating prompt (1.2.3's body,
     /// its third part).
     private func presented<Content: View>(_ content: Content) -> some View {
@@ -948,6 +1053,8 @@ struct CalendarRootScreen: View {
         .overlay(alignment: .topLeading) { l10nState }
         // 1.3 (§3.12, the plan §4.3, C3-M4): `span.state` and `span.release`, with the joined pages' arguments only.
         .overlay(alignment: .topLeading) { spanShotElements }
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §6.1): screenshot mode's `memo-paper.state` (MemoPaperUITests).
+        .overlay(alignment: .topLeading) { MemoPaperShotState() }
         // 1.2.1 (docs/R1_2_1.md §2.2): StoreKit's rating prompt when `scheduleReviewRequest` bumps the trigger.
         .modifier(ReviewRequester(trigger: reviewRequestTrigger))
     }
@@ -1137,6 +1244,8 @@ struct CalendarRootScreen: View {
             showsCollapseButton: true,
             onCollapse: { toolbarEvent(.collapseTapped) },
             eraserReturnsTo: Self.eraserReturnTarget(tool: tool, origin: eraserOrigin, setting: eraserAutoReturnOn, lastInk: lastInkTool),
+            // 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, 0f-36): the colour panel, before `axis:` (the memberwise order).
+            colorPanel: ColorPanelHook(openSlot: $colorPanelSlot),
             axis: axis,
             move: paletteMoveButton
         )
@@ -1506,6 +1615,8 @@ struct CalendarRootScreen: View {
         paths.onOnePageAnew = { viewport = .zero }
         // 1.4.1 (docs/R1_4_1_CONTRACT.md §4.6, 0e-17): the Pencil on the window cancels a running drag of the toolbar's grip.
         palmWatch.onPencilDown = { cancelPaletteDrag() }
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §3.6, 0f-11): a touch outside the open colour panel closes it.
+        colorPanelWatch.onOutsideTouch = { closeColorPanel() }
         // 1.4 (§2.1, §4.7): a window decided anew (a fold, an unfold, a turn) caps the overview by the window of now, read
         // from UIKit's window of the scene; an iPad keeps 1.3's (its plan has no cap either way).
         let padCaps = pencilPhone.isPad
@@ -1563,6 +1674,22 @@ struct CalendarRootScreen: View {
                     if paletteHasMoveButton {
                         try? await Task.sleep(for: .seconds(0.5))
                         if paletteHasMoveButton { paletteMenuShown = true }
+                        return
+                    }
+                }
+            }
+        }
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §3.11, 0f-18): the photos of the colour panel (`--screenshot-color-panel`) open the lit
+        // dot's panel once the bar is laid out, with the pen as the tool (the same shape as the menu's above).
+        if let shot = ScreenshotMode.current, shot.colorPanel {
+            Task { @MainActor in
+                // The bar on the edge asked for (`--screenshot-palette`, once the window's edges are measured; at most 10 s).
+                for step in 0..<20 {
+                    try? await Task.sleep(for: .seconds(0.5))
+                    let placed = paletteEdge == (shot.palette ?? .bottom) || step >= 10
+                    if paperArea != .zero, ToolbarLogic.kind(of: tool) == .pen, placed {
+                        try? await Task.sleep(for: .seconds(1))
+                        if ToolbarLogic.kind(of: tool) == .pen { openColorPanelForPhoto() }
                         return
                     }
                 }

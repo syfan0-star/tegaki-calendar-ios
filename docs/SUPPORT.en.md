@@ -8,7 +8,7 @@ This is a translation for convenience. The Japanese version prevails.
 
 Related documents: [Terms of Service](TERMS.en.md) / [Privacy Policy](PRIVACY.en.md)
 
-Last updated: November 24, 2026
+Last updated: November 28, 2026
 
 ---
 
@@ -125,7 +125,7 @@ In Settings > Apple Pencil, you can choose what a double-tap (2nd generation and
 
 ### Can I use it on iPhone or Mac?
 
-You can use it on iPhone (iOS 17 or later). On iPhone, you write with your finger (“Draw with Finger” in the toolbar). On iPhone Duo, the App fits the width of the screen (from version 1.4). If you use the iCloud of the same Apple Account on iPad and iPhone, your handwriting syncs. It also opens on a Mac, but there it is meant for supplementary use (checking and simple writing). A Mac has no Apple Pencil, so handwriting is done with a trackpad or mouse.
+You can use it on iPhone (iOS 17 or later). On iPhone, you write with your finger (“Use Finger” in the toolbar). On iPhone Duo, the App fits the width of the screen (from version 1.4). If you use the iCloud of the same Apple Account on iPad and iPhone, your handwriting syncs. It also opens on a Mac, but there it is meant for supplementary use (checking and simple writing). A Mac has no Apple Pencil, so handwriting is done with a trackpad or mouse.
 
 ### I want to move my handwriting from the web version to the App
 
@@ -153,7 +153,7 @@ Tap “Hide” at the right end of the toolbar (at the bottom end when the toolb
 
 ### How do I zoom in and out?
 
-Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open at the same size, no matter how many events or how much handwriting they have (on iPad, when the toolbar is at the left or right edge, they may open smaller, because the paper is narrower by the width of the toolbar). Pages with many events or a lot of handwriting can be scrolled down (with two fingers when “Draw with Finger” is on). When you pinch to zoom out, you can see the whole calendar. The device remembers the zoomed-in size for each page type. It does not remember the zoomed-out size.
+Spread two fingers to zoom in, and pinch to zoom out. Month and year pages open at the same size, no matter how many events or how much handwriting they have (on iPad, when the toolbar is at the left or right edge, they may open smaller, because the paper is narrower by the width of the toolbar). Pages with many events or a lot of handwriting can be scrolled down (with two fingers when “Use Finger” is on). When you pinch to zoom out, you can see the whole calendar. The device remembers the zoomed-in size for each page type. It does not remember the zoomed-out size.
 
 Tap the button showing a magnifying glass with “1” (Reset Zoom), next to “‹ Today ›” at the top right, to reset the zoom at once (from version 1.4.1): on day and week pages, one day's or one week's page fits the width of the screen exactly; on month and year pages, the page goes back to the size it had when you first opened it. On a narrow screen (a narrow iPad window, or iPhone in portrait except on the inner screen of iPhone Duo), this button is at the right of the second row (the Day, Week, Month and Year switch). When “Left Hand” is chosen in the App's Settings > Dominant Hand, it is at the top left (on a narrow screen, at the left of the second row). After you reset the zoom, pages of the same type keep opening that way, even after you reopen the App. If you then change the size with two fingers, they open at the new size instead (or, if you made it smaller than the size the page had when you first opened it, at that first size). The sizes of the other page types stay as they are.
 
@@ -170,6 +170,25 @@ On iPad, you can move the open toolbar to the top, bottom, left or right edge of
 - In a narrow window, such as Split View or Slide Over, a toolbar placed at the left or right edge appears at the bottom (in a narrower window, one placed at the top does too). When you widen the window, it goes back to the edge you chose.
 - On iPhone, the toolbar stays at the bottom (it has neither “Move” nor a handle).
 
+### How do I change the pen color?
+
+When you choose the pen, six color dots appear in the toolbar. Tap the highlighted dot (the current pen color) again, or touch and hold it, and a color panel opens next to that dot (from version 1.4.2).
+
+- The panel has 12 colors (the six colors from before and six new ones), “Other Color…” and “Reset Colors”. With “Other Color…”, you can choose any color in the color picker that comes with iPad and iPhone.
+- The color you choose goes into the dot you opened the panel from, and the pen changes to that color (the width stays the same). If another dot already has that color, that dot is simply selected (no two dots have the same color).
+- “Reset Colors” sets the six dots back to the first six colors.
+- The panel closes when you start writing on the paper, when you touch outside it, or when you choose a color. If you start writing while it is open, that stroke is still written.
+- The colors of the dots are remembered on each device (separately on your iPad and your iPhone). The strokes you write keep their color and reach your other devices through iCloud.
+- The panel opens in the same way when, on iPad, the toolbar is at the top, left or right edge, and when you bring out the hidden toolbar with the tool mark on the round button. On iPhone, the panel appears above the toolbar.
+- If you choose a light color close to the color of the paper, your strokes are hard to see. Then choose another color, or tap “Reset Colors”.
+- The marker still has 4 colors.
+
+### How do I change the notes paper?
+
+In the App's Settings > Notes Paper, choose “Lined”, “Dot Grid” or “Blank” (from version 1.4.2). Lined is the default.
+
+The Notes area of the month page, the “Notes” column on the right of the day page and the “Free Notes” area below 24:00 on the day and week pages all change together. The same goes for week and day pages joined side by side. A PDF made with “This Page as PDF” has that pattern too. With Dot Grid, small dots are placed at the heights where the lines were, with the same spacing across. With Blank, there are neither lines nor dots. Only the pattern of the paper changes; none of your handwriting moves. If you go back to Lined, the paper looks the same as before. This setting is remembered on each device (you can choose separately on your iPad and your iPhone). On a device with a version earlier than 1.4.2, the paper stays lined.
+
 ### How much can I write on one page?
 
 You can write up to 19,000 strokes on one page (when you go past 15,000, you are told once). The Notes area of the month page and the “Free Notes” area below 24:00 on the day and week pages are open all the way down from the start. Their length has a limit (about 4 screens on the month page of an iPad). You can check the current number in Settings > About > “Page with the Most Strokes”.
@@ -177,6 +196,8 @@ You can write up to 19,000 strokes on one page (when you go past 15,000, you are
 ### What if my iPad and iPhone have different versions?
 
 The “Free Notes” area below 24:00 is a feature from version 1.1 on the day page and from version 1.3 on the week page (on the week page, it appears even when the side-by-side joining is turned off in the App's Settings > Pages). On a device still on an earlier version, it is not shown, but it has not been deleted (it appears when you update that device). Strokes written near 24:00, and strokes moved below 24:00 with the lasso, are also not visible on older versions (they have not been deleted). Please update both your iPad and your iPhone to the latest version. Note that if you use “Erase All Handwriting” on a device with an older version, the handwriting in that area is erased too.
+
+Strokes written in the colors that became available in version 1.4.2 also appear in those colors on a device with an earlier version (you just cannot choose those colors in that version's toolbar), and the notes paper stays lined there.
 
 ### How do I change the display language?
 

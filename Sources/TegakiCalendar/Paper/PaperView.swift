@@ -81,6 +81,9 @@ enum PaperPalette {
     static let blue = color(hex: "#2563eb")
     static let accent = color(hex: "#2563eb")
     static let memoLabel = color(hex: "#a8a29e")
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §4.5, 0f-23): the dots of 「ドット方眼」 (`MemoDots`), the owner's choice (a) by default: a
+    /// light brownish grey a little darker than `rule` (#ebe7de, which would hardly show as a dot on `paper`).
+    static let memoDot = color(hex: "#d6cfc2")
     static let fallbackEvent = color(hex: "#039be5")
     static let todayTint = UIColor(red: 37 / 255, green: 99 / 255, blue: 235 / 255, alpha: 0.06)
     static let todayTintSoft = UIColor(red: 37 / 255, green: 99 / 255, blue: 235 / 255, alpha: 0.03)
@@ -193,6 +196,20 @@ final class PaperView: UIView {
         }
     }
 
+    /// 1.4.2 (docs/R1_4_2_CONTRACT.md §4.3, 0f-21): the pattern of the memo areas this view draws (設定 › 「メモ欄の紙」). Set
+    /// to `MemoPaperStyle.current` by `init` (before `super.init`, so no redraw is asked there: PaperViewTests counts them),
+    /// then again at every `MemoPaperStyle.didChange`; a different value redraws once (as `content`'s and `span`'s). A
+    /// property of the view rather than of the content: the joined window's pages are made from the layouts alone by the
+    /// canvas (`InkCanvasView.paperSpan`, a frozen file) and made again only when their shape changes, so a pattern in the
+    /// content would neither reach them nor redraw them; through the view it reaches the one page, the joined window and the
+    /// PDF (`PDFPageRenderer` makes its own `PaperView`) without touching the canvas, the layouts, the content or `PaperSpan`.
+    /// The renderers read it once at their entry (`view.memoPaper`) and pass it down.
+    var memoPaper: MemoPaperStyle {
+        didSet {
+            if memoPaper != oldValue { setNeedsDisplay() }
+        }
+    }
+
     /// The range this view holds, in content coordinates (paper × zoom, pt);
     /// `frame.size == contentWindow.size`. (Named `window` in M4B_CONTRACT §1.6; `UIView.window`
     /// is taken.)
@@ -207,7 +224,11 @@ final class PaperView: UIView {
     init(content: PaperContent, zoomScale: CGFloat = 1) {
         self.content = content
         self.zoomScale = zoomScale
+        self.memoPaper = MemoPaperStyle.current
         super.init(frame: .zero)
+        // 1.4.2 (§4.3): the settings' choice reaches every paper already made (no redraw is asked here).
+        NotificationCenter.default.addObserver(self, selector: #selector(memoPaperDidChange),
+                                               name: MemoPaperStyle.didChange, object: nil)
         isOpaque = true
         backgroundColor = PaperPalette.paper
         contentMode = .redraw
@@ -230,6 +251,12 @@ final class PaperView: UIView {
     override func setNeedsDisplay() {
         displayRequestCount += 1
         super.setNeedsDisplay()
+    }
+
+    /// 1.4.2 (§4.3): `MemoPaperStyle.didChange`, posted on the main thread by `MemoPaperStyle.set`: the pattern in force now
+    /// (the same one asks for no redraw, `memoPaper`'s `didSet`).
+    @objc private func memoPaperDidChange(_ notification: Notification) {
+        memoPaper = MemoPaperStyle.current
     }
 
     override func didMoveToWindow() {

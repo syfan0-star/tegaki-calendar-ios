@@ -403,6 +403,66 @@ public enum Compat10Checks {
         }
     }
 
+    // MARK: - 1.4.2: strokes in the new pen colours (docs/R1_4_2_CONTRACT.md §5.3, 0f-24)
+
+    /// The colours as 1.4.2 may write them and as 1.0 reads them: 茶 (#92400e, one of the panel's twelve), a colour of
+    /// 「その他の色…」 (#0a7e8c), and that colour written upper case and as #rgb (1.0's `normalizeColor`: lower-case #rrggbb).
+    public static let newColours: [(written: String, read: String)] = [
+        ("#92400e", "#92400e"), ("#0a7e8c", "#0a7e8c"), ("#0A7E8C", "#0a7e8c"), ("#0ac", "#00aacc"),
+    ]
+
+    /// The checks of `newColours` (`colourChecks`), on their own: not in `run`, whose every check KitChecks counts as one of
+    /// its own (KitChecks stays 40,826, docs/R1_4_2.md S0's declaration 6). RunReal and RunFrozen (tools/compat10) add these
+    /// to `run`'s, so the real 1.0 and the frozen copy both run them and print one N.
+    public static func runColours(report: (String, Bool) -> Void) -> (passed: Int, failed: Int) {
+        withoutActuallyEscaping(report) { report in
+            let r = Recorder(report: report)
+            colourChecks(r)
+            return (r.passed, r.failed)
+        }
+    }
+
+    /// Strokes of `newColours` made here in code (no fixture: the folders of FIXTURES_1_3 take no new file), on a day page and
+    /// a month page, against the 1.0 rules: 1.0 reads the colour (the lower-case form byte for byte); writes it in the page's
+    /// file and reads it back unchanged; keeps it through a merge with another device's page and through the 1.0 ledger's
+    /// merge from iCloud; and draws the stroke (neither unknown nor erased). Four checks a colour and a page: 32.
+    static func colourChecks(_ r: Recorder) {
+        for (index, colour) in newColours.enumerated() {
+            for pageId in ["d-2026-11-02", "m1-2026-11"] {
+                // No cell to write in would skip this colour's four checks on both 1.0s alike (run.sh compares their N):
+                // a failure instead (D1b's review, nit 3).
+                guard let cell = editCell(pageId: pageId) else {
+                    r.check(false, "1.4.2 colour: \(pageId) has a cell to write in")
+                    continue
+                }
+                let name = "1.4.2 colour \(colour.written) on \(pageId)"
+                let id = "compat10-colour-\(index)-\(pageId)"
+                var object = stroke10(id: id, cell: cell, t: 1_795_000_000_000 + index, x: 40, y: 60).jsonValue.objectValue ?? [:]
+                object["color"] = .string(colour.written)
+                let stroke = InkStrokeV10(json: .object(object))
+                r.check(stroke?.color == colour.read, "\(name): 1.0 reads the colour as \(colour.read)")
+                guard let stroke else { continue }
+                var page = InkPageV10.empty(pageId: pageId)
+                page.add(stroke, at: 1_795_000_000_100)
+                let written = try? InkPageCodecV10.encode(page)
+                let back = written.flatMap { try? InkPageCodecV10.decode($0) }
+                let writtenColour = written.flatMap { try? JSONValueV10.parse($0) }.flatMap { rawStrokes($0)[id]?["color"]?.stringValue }
+                r.check(writtenColour == colour.read && back == page && back?.strokes[id]?.color == colour.read,
+                        "\(name): 1.0 writes the colour in the file and reads it back unchanged")
+                var other = InkPageV10.empty(pageId: pageId)
+                other.add(stroke10(id: "compat10-colour-other-\(index)", cell: cell, t: 1_795_000_000_200, x: 80, y: 90), at: 1_795_000_000_200)
+                let merged = InkPageV10.merge(other, page)
+                let received = LedgerV10.mergeRemoteOutcome(local: other, remote: page).merged
+                r.check(merged.strokes[id]?.color == colour.read && received.strokes[id]?.color == colour.read
+                        && merged.strokes.count == 2 && received.strokes.count == 2,
+                        "\(name): a merge with another device's page keeps the stroke and its colour")
+                let drawn = LedgerV10.drawnIds(page: received, cells: cellsV10(pageId: pageId))
+                r.check(drawn.contains(id) && received.unknownStrokes.isEmpty && received.deleted[id] == nil,
+                        "\(name): 1.0 draws the stroke (not unknown, not erased)")
+            }
+        }
+    }
+
     // MARK: - The app export (tegaki-app-export v1)
 
     static func exportChecks(_ r: Recorder, fixture: Fixture) {

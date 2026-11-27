@@ -92,6 +92,15 @@ import UIKit
 /// (a number is read as before). Without it nothing changes: no photo of J-4, gate 3, blank-paper or span-shots-app passes it.
 /// Screenshot mode never writes `zoomFit.<kind>` and never uses it: the screen reads the key only to pass it as `stored:`,
 /// which `zoomFit(_:kind:stored:)` ignores there.
+/// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §4.1, §4.7): `--screenshot-memo-paper ruled|dots|plain` draws the memo areas with that
+/// pattern (`memoPaper`, `MemoPaperStyle.prepareAtLaunch`), for the photos of the memo paper (memo-paper-shots) and the UI test
+/// of the setting; without it, or with an unknown value, the ruled paper, whatever the simulator stored (J-4's photos stay
+/// ruled). Screenshot mode never reads or writes `paper.memoStyle`: 設定 › 「メモ欄の紙」 there changes the pattern in memory only.
+/// 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §3.11, 0f-18): `--screenshot-color-panel` (a flag) opens the lit dot's colour panel once
+/// the bar is laid out, with the pen as the tool (`colorPanel`), and `--screenshot-pen-slots <six hex, by commas>` gives the six
+/// dots (`penSlots`; nil unless six colours can be read: the first six colours). Screenshot mode never reads or writes
+/// `toolbar.penSlots`: its dots live in a scratch store emptied at every launch (`ToolbarPalette.slotsStore`), and its pen
+/// starts with the first dot's colour (`startPen`). `toolbar.penColor` is written as before.
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -181,7 +190,14 @@ enum ScreenshotMode {
     /// is never read in screenshot mode).
     static func startTool(_ config: Config) -> CanvasTool {
         if config.sheet == .lasso || !config.select.isEmpty { return .lasso }
-        return config.tool?.canvasTool ?? .ink(ToolbarPalette.defaultPen)
+        return config.tool?.canvasTool ?? .ink(startPen(config))
+    }
+
+    /// 1.4.2 (§3.11): the pen a screenshot starts with: the default pen (黒・中), in the first dot's colour when
+    /// `--screenshot-pen-slots` gave the dots.
+    static func startPen(_ config: Config) -> InkStyle {
+        guard let first = config.penSlots?.first else { return ToolbarPalette.defaultPen }
+        return InkStyle(tool: .pen, colorHex: first, width: ToolbarPalette.defaultPen.width)
     }
 
     /// The strokes the canvas selects once its zoom is known: the month's wave for the `lasso` sheet,
@@ -292,6 +308,17 @@ enum ScreenshotMode {
         /// 「動かす」 button's choice of edges once the button shows (a window that allows two edges or more). Off by default,
         /// so the Config of every earlier argument is the same value as before.
         var paletteMenu: Bool = false
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §2.1, §4.7). Nil by default: the Config of every earlier argument is the same value as
+        // before.
+        /// `--screenshot-memo-paper ruled|dots|plain`: the memo areas' pattern (`MemoPaperStyle.prepareAtLaunch`); nil (no value
+        /// or an unknown one) = the ruled paper. Screenshot mode never reads or writes `paper.memoStyle`.
+        var memoPaper: MemoPaperStyle? = nil
+        /// 1.4.2 (§3.11, 0f-18): `--screenshot-color-panel`, a flag without a value: the lit dot's colour panel opens once the bar
+        /// is laid out (the photos of the panel). Off by default.
+        var colorPanel: Bool = false
+        /// 1.4.2 (§3.11): `--screenshot-pen-slots <six hex, by commas>`: the six dots (lower-case "#rrggbb"); nil (no value, not six
+        /// pieces, a piece that is not a colour, or two alike) = the first six colours.
+        var penSlots: [String]? = nil
 
         /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
         var joinsPages: Bool {
@@ -475,10 +502,33 @@ enum ScreenshotMode {
         }
         // 1.4.1's second rework (§17.4): the 「動かす」 button's choice of edges, open for its photo.
         let paletteMenu = arguments.contains("--screenshot-palette-menu")
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §4.7): the memo paper's pattern. A missing or unknown value is nil (the ruled paper).
+        var memoPaper: MemoPaperStyle?
+        if let index = arguments.firstIndex(of: "--screenshot-memo-paper"), index + 1 < arguments.count {
+            memoPaper = MemoPaperStyle(rawValue: arguments[index + 1])
+        }
+        // 1.4.2 (docs/R1_4_2_CONTRACT.md §3.11): the colour panel open for its photos, and the six dots. A missing or unreadable
+        // value is nil (the first six colours).
+        let colorPanel = arguments.contains("--screenshot-color-panel")
+        var penSlots: [String]?
+        if let index = arguments.firstIndex(of: "--screenshot-pen-slots"), index + 1 < arguments.count {
+            penSlots = parsePenSlots(arguments[index + 1])
+        }
         return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
                       span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection,
                       measure: measure, pencilPhone: pencilPhone,
-                      hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit, paletteMenu: paletteMenu)
+                      hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit, paletteMenu: paletteMenu,
+                      memoPaper: memoPaper, colorPanel: colorPanel, penSlots: penSlots)
+    }
+
+    /// 1.4.2 (§3.11): "#92400e,#6b7280,…" → the six lower-case "#rrggbb"; nil unless there are six pieces, each a colour
+    /// (`InkColors.normalized`: "#rgb" or "#rrggbb", either case), none twice.
+    static func parsePenSlots(_ text: String) -> [String]? {
+        let pieces = text.split(separator: ",", omittingEmptySubsequences: false).map { InkColors.normalized(String($0)) }
+        guard pieces.count == ToolbarPalette.defaultSlots.count else { return nil }
+        let slots = pieces.compactMap { $0 }
+        guard slots.count == pieces.count, Set(slots).count == slots.count else { return nil }
+        return slots
     }
 
     /// 1.4.1's rework (§16.3.7): the value of `--screenshot-zoom` that is 等倍 (`Config.zoomFit`) rather than a ratio.

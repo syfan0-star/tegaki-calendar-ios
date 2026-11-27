@@ -947,7 +947,7 @@
     },
     "onboarding.pen.text": {
       "jaSha1": "cbfca1a23d",
-      "text": "Escriba en el papel con el Apple Pencil. El dedo sirve para desplazarse, ampliar con dos dedos y tocar eventos. La palma no traza líneas al tocar la pantalla.\n\nPara escribir también con el dedo, active “Dibujar con el dedo” en la barra de herramientas. El doble toque y el gesto de apretar del Apple Pencil cambian entre la pluma y la goma, según las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad.\n\n%@"
+      "text": "Escriba en el papel con el Apple Pencil. El dedo sirve para desplazarse, ampliar con dos dedos y tocar eventos. La palma no traza líneas al tocar la pantalla.\n\nPara escribir también con el dedo, active “Usar el dedo” en la barra de herramientas. El doble toque y el gesto de apretar del Apple Pencil cambian entre la pluma y la goma, según las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad.\n\n%@"
     },
     "onboarding.pen.title": {
       "jaSha1": "3bbf69218f",
@@ -1363,7 +1363,7 @@
     },
     "settings.input.allowFinger": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Dibujar con el dedo"
+      "text": "Usar el dedo"
     },
     "settings.input.allowFinger.footer": {
       "jaSha1": "0ed7a17915",
@@ -1400,6 +1400,26 @@
     "settings.input.pencil.footer": {
       "jaSha1": "b18fc2bf4e",
       "text": "El doble toque y el gesto de apretar siguen las acciones elegidas en Ajustes (Configuración) > Apple Pencil del iPad"
+    },
+    "settings.memoPaper.dots": {
+      "jaSha1": "8d10b101a1",
+      "text": "Cuadrícula de puntos"
+    },
+    "settings.memoPaper.footer": {
+      "jaSha1": "318bdcb9e4",
+      "text": "El diseño del papel de Notas y Notas libres. Su escritura a mano se mantiene tal cual. Este ajuste es propio de cada dispositivo."
+    },
+    "settings.memoPaper.plain": {
+      "jaSha1": "e5dd055022",
+      "text": "Liso"
+    },
+    "settings.memoPaper.ruled": {
+      "jaSha1": "4156c11c27",
+      "text": "Rayado"
+    },
+    "settings.memoPaper.title": {
+      "jaSha1": "72bb6e05c3",
+      "text": "Papel de notas"
     },
     "settings.openSettingsApp": {
       "jaSha1": "42b6a33aa6",
@@ -1829,6 +1849,18 @@
       "jaSha1": "845d1da87f",
       "text": "Azul"
     },
+    "toolbar.color.brown": {
+      "jaSha1": "97a08c17dc",
+      "text": "Marrón"
+    },
+    "toolbar.color.darkGreen": {
+      "jaSha1": "a0d41d191b",
+      "text": "Verde oscuro"
+    },
+    "toolbar.color.gray": {
+      "jaSha1": "5378733ecf",
+      "text": "Gris"
+    },
     "toolbar.color.green": {
       "jaSha1": "f22758bf8f",
       "text": "Verde"
@@ -1836,6 +1868,10 @@
     "toolbar.color.lightBlue": {
       "jaSha1": "d2dddf0d44",
       "text": "Azul claro"
+    },
+    "toolbar.color.navy": {
+      "jaSha1": "40c839def7",
+      "text": "Azul marino"
     },
     "toolbar.color.orange": {
       "jaSha1": "831166ef4b",
@@ -1861,6 +1897,22 @@
       "jaSha1": "7720f8ea0a",
       "text": "Amarillo"
     },
+    "toolbar.colorPanel.hint": {
+      "jaSha1": "f5b8641fb2",
+      "text": "Toque de nuevo para cambiar el color"
+    },
+    "toolbar.colorPanel.otherColor": {
+      "jaSha1": "c5d3f706a4",
+      "text": "Otro color…"
+    },
+    "toolbar.colorPanel.reset": {
+      "jaSha1": "a861ac9ea8",
+      "text": "Restablecer los colores"
+    },
+    "toolbar.colorPanel.title": {
+      "jaSha1": "5aa3a9cd3e",
+      "text": "Elegir el color de la pluma"
+    },
     "toolbar.dock.hint.toLeft": {
       "jaSha1": "700daf6c01",
       "text": "Mantenga pulsado para mover abajo a la izquierda o mostrar siempre la barra de herramientas"
@@ -1875,7 +1927,7 @@
     },
     "toolbar.fingerToggle": {
       "jaSha1": "d3f8bf8e60",
-      "text": "Dibujar con el dedo"
+      "text": "Usar el dedo"
     },
     "toolbar.fingerToggle.hint": {
       "jaSha1": "cb2be71b20",
