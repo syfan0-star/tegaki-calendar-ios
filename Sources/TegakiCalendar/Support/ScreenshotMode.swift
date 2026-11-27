@@ -1549,3 +1549,31 @@ final class ScreenshotMeasure {
         return windows.first(where: \.isKeyWindow) ?? windows.first
     }
 }
+
+#if DEBUG
+/// r143-alt only (docs/R1_4_3_CONTRACT.md §2.1, §12.5, 0g-31, 0g-43; a throwaway branch, never merged into r143 or main):
+/// `--screenshot-month-form a|i|u`, the form of the joined months in the sample photos — `a` ア (`SpanAlign.MonthForm.memo`),
+/// `i` イ (`.rows`), `u` ウ (`.none`). Read only with `--screenshot-mode`; without it, with any other value or outside
+/// screenshot mode: nil, and `SpanSession.monthForm` reads `SpanAlign.monthForm` (ア). Debug builds only (the sample job's
+/// app is a Debug build); not in `Config`, so `parse()` and its tests are r143's. Appended at the end of the file so the
+/// lines of tools/l10n/ja-baseline.tsv do not move.
+extension ScreenshotMode {
+    static let monthFormArgument = "--screenshot-month-form"
+
+    /// The launch's form, parsed once; nil unless asked.
+    static let monthForm: SpanAlign.MonthForm? = parseMonthForm(ProcessInfo.processInfo.arguments)
+
+    /// `--screenshot-month-form <a|i|u>` among `arguments` (with `--screenshot-mode`) → the form; nil otherwise.
+    static func parseMonthForm(_ arguments: [String]) -> SpanAlign.MonthForm? {
+        guard arguments.contains("--screenshot-mode"), let index = arguments.firstIndex(of: monthFormArgument),
+              index + 1 < arguments.count else { return nil }
+        // Spelled out: a bare `.none` in an Optional's return would be nil, not ウ.
+        switch arguments[index + 1] {
+        case "a": return SpanAlign.MonthForm.memo
+        case "i": return SpanAlign.MonthForm.rows
+        case "u": return SpanAlign.MonthForm.none
+        default: return nil
+        }
+    }
+}
+#endif

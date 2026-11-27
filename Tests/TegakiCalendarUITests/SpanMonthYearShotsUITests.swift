@@ -94,14 +94,20 @@ final class SpanMonthYearShotsUITests: XCTestCase {
             throw XCTSkip("no fit photos on \(setup.device)")
         }
         defer { XCUIDevice.shared.orientation = .portrait }
+        // r143-alt only (§12.5; never merged): the sample job names the form of these photos too
+        // (`TEST_RUNNER_TEGAKI_SPAN_MY_ZOOM_VARIANT`, one `name:arguments` piece read as the forms' variants are), so each
+        // name says the device, the orientation, the form and the state: `<device>-<orientation>-month-form-<name>-zoom-<step>`.
+        // Without it the names and the arguments are r143-w-b0's.
+        let form = Self.variants(of: "TEGAKI_SPAN_MY_ZOOM_VARIANT").first ?? Variant(name: "", arguments: [])
+        let label = form.name.isEmpty ? "month" : "month-form-\(form.name)"
         for step in ["before", "after"] {
             let zoom = step == "after" ? ["--screenshot-zoom", "fit"] : []
-            monthPhoto(setup, name: "\(setup.device)-landscape-month-zoom-\(step)", orientation: .landscapeLeft,
-                       arguments: Self.month + zoom, fit: step == "after")
+            monthPhoto(setup, name: "\(setup.device)-landscape-\(label)-zoom-\(step)", orientation: .landscapeLeft,
+                       arguments: Self.month + zoom + form.arguments, fit: step == "after")
         }
         if setup.device == "ipad13" {
-            monthPhoto(setup, name: "ipad13-portrait-month-zoom-after", orientation: .portrait,
-                       arguments: Self.month + ["--screenshot-zoom", "fit"], fit: true)
+            monthPhoto(setup, name: "ipad13-portrait-\(label)-zoom-after", orientation: .portrait,
+                       arguments: Self.month + ["--screenshot-zoom", "fit"] + form.arguments, fit: true)
         }
     }
 
@@ -191,10 +197,11 @@ final class SpanMonthYearShotsUITests: XCTestCase {
         return Setup(out: folder, device: device)
     }
 
-    /// `TEGAKI_SPAN_MY_VARIANTS` read: `name:arguments` pieces split on "|", the arguments on spaces; a piece without a name
-    /// or a ":" is left out. None (or nothing readable): one variant without a name and without arguments.
-    private static func variants() -> [Variant] {
-        let text = ProcessInfo.processInfo.environment["TEGAKI_SPAN_MY_VARIANTS"] ?? ""
+    /// `TEGAKI_SPAN_MY_VARIANTS` (r143-alt: or another variable, `key`) read: `name:arguments` pieces split on "|", the
+    /// arguments on spaces; a piece without a name or a ":" is left out. None (or nothing readable): one variant without a
+    /// name and without arguments.
+    private static func variants(of key: String = "TEGAKI_SPAN_MY_VARIANTS") -> [Variant] {
+        let text = ProcessInfo.processInfo.environment[key] ?? ""
         let read: [Variant] = text.split(separator: "|").compactMap { piece in
             guard let colon = piece.firstIndex(of: ":") else { return nil }
             let name = piece[..<colon].trimmingCharacters(in: .whitespaces)

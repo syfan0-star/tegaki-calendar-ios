@@ -683,8 +683,13 @@ final class SpanSession: ObservableObject {
 
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §4.1, 0g-10): the form the joined months take, read in this one place
     /// (`SpanAlign.monthForm`, ア unless the owner picks イ or ウ from the sample photos).
+    /// r143-alt only (§12.5, 0g-43; never merged): in a Debug build the sample photos' `--screenshot-month-form a|i|u`
+    /// (`ScreenshotMode.monthForm`) comes first; without it, and in a Release build, `SpanAlign.monthForm` as on r143.
     static var monthForm: SpanAlign.MonthForm {
-        SpanAlign.monthForm
+        #if DEBUG
+        if let form = ScreenshotMode.monthForm { return form }
+        #endif
+        return SpanAlign.monthForm
     }
 
     /// 1.4.3 (§3.3 1–4): the window's month pages laid out without floors (the natural numbers), the floors decided from

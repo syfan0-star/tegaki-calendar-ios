@@ -2619,21 +2619,11 @@ extension InkCanvasView {
     }
 
     /// P-3, the canvas's side (§3.8): the paper of the window, made from the session's layout in the turn the
-    /// canvas takes it (so the paper never lags the offset by a page). Each page's own all-day band stands in
-    /// for the packed ones: the paper draws only the pages (`PaperView.drawSpan`); the heading and the band are
-    /// the screen's. nil when a page is neither a week nor a day.
+    /// canvas takes it (so the paper never lags the offset by a page). The window's paper of the four kinds is
+    /// `PaperSpan.window`'s; the canvas holds no kind (1.4.3). r143-alt only (docs/R1_4_3_CONTRACT.md §12.5, 0g-43;
+    /// never merged): the R3 shape of §3.4 and §8.4, made directly here for the sample photos; step D1b makes R3.
     static func paperSpan(for layout: SpanLayout, focus: Int) -> PaperSpan? {
-        var bands: [AllDayBandLayout] = []
-        for page in layout.pages {
-            if let week = page as? WeekPageLayout {
-                bands.append(week.allDayBand)
-            } else if let day = page as? DayPageLayout {
-                bands.append(day.allDayBand)
-            } else {
-                return nil
-            }
-        }
-        return PaperSpan(layout: layout, bands: bands, focus: focus)
+        PaperSpan.window(for: layout, focus: focus)
     }
 
     /// §3.6: the rectangle the window's zoom limits come from — the overview of its middle page (a joined week's
