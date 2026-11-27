@@ -41,6 +41,8 @@ on:
       - 'r141-duo*'
       # 1.4.2 (docs/R1_4_2_CONTRACT.md §6.5, D0): the Duo's jobs for 1.4.2.
       - 'r142-duo*'
+      # 1.4.3 (docs/R1_4_3_CONTRACT.md §12.1, D0): the Duo's jobs for 1.4.3.
+      - 'r143-duo*'
   workflow_dispatch:
     inputs:
       job:
