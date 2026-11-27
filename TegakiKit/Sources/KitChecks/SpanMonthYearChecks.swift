@@ -16,7 +16,9 @@
 //   (1,050), January a memo line to 6,100 (memo 6,150, the tallest; grid 1,050);
 // - five years, 2024 – 2028: 2024 nothing (60 lu × 31), 2025 ink in 01-15 to 200 (row 15: 212), 2026 three all-day events
 //   on 3/3 (row 3: 16 + 3 × 18 + 8 = 78) and ink in 12-31 to 380 (row 31: 392), 2027 ink in 02-28 to 500 (row 28: the cap,
-//   400), 2028 ink in 07-15 to 100 (row 15: 112).
+//   400), 2028 ink in 07-15 to 100 (row 15: 112);
+// - the same five months with the Sunday start (ア only: the same floors, other days in the 6th rows), and December,
+//   February and March (grid bottoms all 1,050) with December's memo ink at 5,950 and 5,950.5 (the memo floor's boundary).
 import Foundation
 import CoreGraphics
 import Layout
@@ -227,6 +229,7 @@ private func monthFloorTableChecks() {
         var previous = kept
         previous.monthGrid = grid
         previous.monthMemo = memo
+        previous.monthRows = [175, 312, 412, 175, 175, 175]   // イ's row floors from before: ア drops them on every change
         let floors = SpanAlign.monthFloors(previous: previous, naturals: ns, form: .memo, change: change)
         var want = kept
         want.monthGrid = wantGrid
@@ -353,6 +356,54 @@ private func monthFormChecks() {
     // The month form of the window does not touch the week's floors in the same Floors (they are independent).
     let mixed = SpanAlign.monthFloors(previous: SpanAlign.Floors(weekExtra: 6500), naturals: naturals, form: .memo, change: .redecide)
     check(mixed.weekExtra == 6500 && mixed.monthGrid == 1287, "span my: the week's floor rides along untouched")
+
+    // ア with the Sunday start (K-11): the same five months in 42-day grids from Sunday. The ink and the events fall in
+    // the same rows (10/7 in September's 6th, 10/14 in October's 3rd, 11/4 in November's 1st, 11/30 and 12/1 in its 5th),
+    // so the floors are the same; the 6th rows hold other days (10/4…, 11/1…, 12/6…, 1/3…, 1/31…).
+    let sundayInputs = inputs.map { input -> MonthLayoutInput in
+        var sunday = input
+        sunday.weekStart = .sunday
+        return sunday
+    }
+    let sundayNatural = sundayInputs.map { MYF.lay($0) }
+    let sundayFloors = SpanAlign.monthFloors(previous: .none, naturals: MYF.naturals(sundayInputs), form: .memo, change: .redecide)
+    check(sundayNatural.map(\.memo.minY) == [1137, 1287, 1187, 1050, 1050] && sundayFloors == SpanAlign.Floors(monthGrid: 1287, monthMemo: 6150),
+          "span my: ア, Sunday start: natural grid bottoms 1,137 / 1,287 / 1,187 / 1,050 / 1,050, floors October's grid bottom and January's memo")
+    let sundayA = sundayInputs.map { MYF.lay($0, sundayFloors) }
+    check(sundayA.map(\.memo.minY) == [1287, 1287, 1287, 1287, 1287] && sundayA.map { $0.rows[5].frame.height } == [412, 175, 275, 412, 412]
+          && sundayA.map { $0.rows[5].days.first } == [MYF.d(2026, 10, 4), MYF.d(2026, 11, 1), MYF.d(2026, 12, 6), MYF.d(2027, 1, 3), MYF.d(2027, 1, 31)],
+          "span my: ア, Sunday start: every separator line at 1,287, the 6th rows (from 10/4, 11/1, 12/6, 1/3, 1/31) 412 / 175 / 275 / 412 / 412")
+    var sundayBad: [String] = []
+    for (k, (page, base)) in zip(sundayA, sundayNatural).enumerated() {
+        let sixth = Set(base.rows[5].days.map { CellKey.day($0) })
+        let rowsKept = (0..<5).allSatisfy { page.rows[$0] == base.rows[$0] } && page.rows[5].frame.minY == base.rows[5].frame.minY
+        let cellsKept = page.cells.count == base.cells.count && base.cells.allSatisfy { key, rect in
+            if key == .memo { return page.cells[key] == CGRect(x: 0, y: 1287, width: 1400, height: 6150) }
+            if sixth.contains(key) { return page.cells[key] == CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: page.rows[5].frame.height) }
+            return page.cells[key] == rect
+        }
+        if !(rowsKept && cellsKept) { sundayBad.append(names[k]) }
+    }
+    check(sundayBad.isEmpty, "span my: ア, Sunday start: rows 1–5 do not move, only the 6th row's cells grow, the memo moves to 1,287 × 6,150 (wrong: \(sundayBad))")
+
+    // The memo floor takes effect only when a month's memo ink goes past 5,950 lu (§4.2, 0g-12: the memo is
+    // max(6,000, ink + 50)). December, February and March have the same grid bottom (1,050), so the grid floor moves
+    // nothing and only the memo floor can.
+    for (ink, want) in [(CGFloat(5950), CGFloat(6000)), (5950.5, 6000.5)] {
+        let window = [MYF.month(2026, 12, ink: [.memo: ink]), MYF.february, MYF.march]
+        let ns = MYF.naturals(window)
+        let floors = SpanAlign.monthFloors(previous: .none, naturals: ns, form: .memo, change: .redecide)
+        checkEqual(ns.map(\.memoHeight), [want, 6000, 6000], "span my: December's memo ink to \(ink) makes its natural memo \(want) tall")
+        checkEqual(floors, SpanAlign.Floors(monthGrid: 1050, monthMemo: want), "span my: memo ink to \(ink): the floors are 1,050 and \(want)")
+        let floored = window.map { MYF.lay($0, floors) }
+        if ink == 5950 {
+            check(zip(floored, window.map { MYF.lay($0) }).allSatisfy { $0 == $1 },
+                  "span my: memo ink to 5,950: the memo floor 6,000 changes nothing, every page is its page without floors")
+        } else {
+            check(floored.allSatisfy { $0.memo == CGRect(x: 0, y: 1050, width: 1400, height: 6000.5) && $0.size.height == 7050.5 },
+                  "span my: memo ink to 5,950.5: every page's memo is 6,000.5 tall from 1,050 (the page ends at 7,050.5)")
+        }
+    }
 }
 
 // MARK: - The months that cannot reach (§4.1 4) and the caps
@@ -543,7 +594,10 @@ private func monthScrollChecks() {
     let f3 = SpanAlign.monthFloors(previous: f1, naturals: MYF.naturals(lower), form: .memo, change: .shift)
     checkEqual(f3.monthGrid, 1407, "span my scroll: February raises the grid floor to 1,407")
     let w3 = MYF.monthWindow(lower, f3)
-    let moves: [(CGFloat, CGFloat)] = [(0, 0), (100, 0), (487, 0), (1012, 0), (1200, 0), (1286.5, 0), (1287, 120), (2000, 120), (7000, 120), (7436, 120)]
+    // 1,300 and 1,406 lie between the old line (1,287) and the new one (1,407): November's memo in the old window, its
+    // lengthened 6th row in the new one, so only old's band (not new's) gives 120 there.
+    let moves: [(CGFloat, CGFloat)] = [(0, 0), (100, 0), (487, 0), (1012, 0), (1200, 0), (1286.5, 0), (1287, 120), (1300, 120), (1406, 120),
+                                       (2000, 120), (7000, 120), (7436, 120)]
     for (y, want) in moves {
         checkEqual(PageScroll.scrollDelta(old: w1, new: w3, topVisibleY: y), want,
                    "span my scroll: the separator line went down 120: y \(y) moves \(want) (the grid stays, the memo follows)")
