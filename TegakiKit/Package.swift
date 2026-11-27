@@ -24,6 +24,11 @@
 //                  (docs/M7C_CONTRACT.md §4.2, §6.3); KitChecks reads them.
 // CompatSpanTests — 1.3: XCTest of the compat-span fixtures through the frozen 1.0 copy and today's InkModel
 //                  (§10.2 row C). It does not depend on CompatSpanFixtures: its expected values are written out.
+// CompatSpan143Fixtures — 1.4.3: the compat-span-143 fixtures (Tests/Fixtures/compat-span-143: the month and the year
+//                  joined sideways) written through the same joined path of the Kit as compat-span
+//                  (docs/R1_4_3_CONTRACT.md §8.3, 0g-30); KitChecks reads them.
+// CompatSpan143Tests — 1.4.3: XCTest of the compat-span-143 fixtures through the frozen 1.0 copy and today's InkModel,
+//                  the shape of CompatSpanTests. It does not depend on CompatSpan143Fixtures: its expected values are written out.
 //
 // `import Layout` (or `import Holidays`) re-exports DayKit, so app code only needs the three
 // products named in the contract.
@@ -49,7 +54,8 @@ let package = Package(
                 exclude: ["FROZEN.sha256", "ORIGIN.sha256", "ORIGIN.ranges"]),
         .target(name: "CompatFixtures", dependencies: ["InkModel", "Layout"], path: "Tests/CompatFixtures"),
         .target(name: "CompatSpanFixtures", dependencies: ["InkModel", "Layout", "CompatFixtures"], path: "Tests/CompatSpanFixtures"),
-        .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel", "Access", "Compat10", "CompatFixtures", "CompatSpanFixtures"]),
+        .target(name: "CompatSpan143Fixtures", dependencies: ["InkModel", "Layout", "CompatFixtures", "CompatSpanFixtures"], path: "Tests/CompatSpan143Fixtures"),
+        .executableTarget(name: "KitChecks", dependencies: ["Layout", "Holidays", "InkModel", "Access", "Compat10", "CompatFixtures", "CompatSpanFixtures", "CompatSpan143Fixtures"]),
         .testTarget(name: "LayoutTests", dependencies: ["Layout"]),
         .testTarget(name: "HolidaysTests", dependencies: ["Holidays", "Layout"]),
         .testTarget(name: "InkModelTests", dependencies: ["InkModel", "Holidays"]),
@@ -57,6 +63,7 @@ let package = Package(
         .testTarget(name: "Compat10Tests", dependencies: ["Compat10", "CompatFixtures", "InkModel", "Layout"], path: "Tests/Compat10Tests"),
         .testTarget(name: "Compat12Tests", dependencies: ["Compat10", "InkModel", "Layout"], path: "Tests/Compat12Tests"),
         .testTarget(name: "CompatSpanTests", dependencies: ["Compat10", "InkModel", "Layout"], path: "Tests/CompatSpanTests"),
+        .testTarget(name: "CompatSpan143Tests", dependencies: ["Compat10", "InkModel", "Layout"], path: "Tests/CompatSpan143Tests"),
     ],
     swiftLanguageVersions: [.v5]
 )

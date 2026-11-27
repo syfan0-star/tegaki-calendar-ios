@@ -32,6 +32,23 @@ let expectedDrawn: [String: Int?] = [
     "w-2026-12-07.photo-text-neighbor.json": 1,
 ]
 
+/// 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): what 1.2.3 draws of each compat-span-143 fixture (the month and the year
+/// joined sideways), written out from the files. Every file holds one live stroke in a cell 1.2.3's layout has:
+/// its month, laid out with the Monday start here as every month, has those day cells and the memo, its year all
+/// 372 cells. So it draws it, overhanging or not; a row 1.4.3 lengthened grows here from the page's own ink.
+/// The Sunday-start month (fixture 11) holds a memo line only, which every week start draws. A new fixture of that folder
+/// needs its row here.
+let expectedDrawn143: [String: Int?] = [
+    "m1-2026-11.memo-left.json": 1,           // 8: memo, x −160 … 260
+    "m1-2026-10.move-source.json": 1,         // 9: the stroke left on 2026-11-01; the moved one's tombstone is not a stroke
+    "m1-2026-11.move-destination.json": 1,    // 9: the copy on 2026-11-01
+    "y-2026.december-right.json": 1,          // 10: 12-10, past the right edge
+    "y-2027.date-column.json": 1,             // 10: 01-20, x −128 … 70
+    "m1-2026-11.memo-sunday.json": 1,         // 11: memo (shape sunday)
+    "y-2026.row-floor.json": 1,               // 12: 06-15, 350 lu down its row
+    "m1-2026-11.last-row.json": 1,            // 13: 2026-12-03, 600 lu down row 6
+]
+
 /// 1.2.3's layout of the page, as its screen makes it (no event, the page's ink bottoms, Japan's holidays).
 func versionLayout(_ ref: PageRef, page: InkPage) -> (pageId: String, cells: [CellKey: CGRect]) {
     let ink = page.inkBottoms()

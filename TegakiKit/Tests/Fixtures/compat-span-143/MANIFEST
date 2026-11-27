@@ -1,0 +1,10 @@
+# compat-span-143 fixtures (docs/R1_4_3_CONTRACT.md §8.3, 0g-30), made by KitChecks --write-compat-span-143-fixtures.
+# One line per file: <file> <fixture number> <shape>; CI copies the files of shape monday into the compat11 folder.
+m1-2026-11.memo-left.json 8 monday
+m1-2026-10.move-source.json 9 monday
+m1-2026-11.move-destination.json 9 monday
+y-2026.december-right.json 10 monday
+y-2027.date-column.json 10 monday
+m1-2026-11.memo-sunday.json 11 sunday
+y-2026.row-floor.json 12 monday
+m1-2026-11.last-row.json 13 monday

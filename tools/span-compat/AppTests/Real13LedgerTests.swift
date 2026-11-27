@@ -27,6 +27,11 @@ import XCTest
 /// `-only-testing:TegakiCalendarTests/Real13LedgerTests` on the simulator, with the compat-span folder in
 /// TEGAKI_COMPAT_SPAN_FIXTURES (xcodebuild: TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES). It uses only what the 1.3 app and
 /// its test target have (`TestSleeper` is the 1.3 test target's; no real sleep anywhere).
+///
+/// 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): the compat-span-143 folder too (TEGAKI_COMPAT_SPAN_143_FIXTURES), what the
+/// month and the year write once they are joined sideways (fixtures 8–13: memo lines across a boundary, the move across
+/// the shared day, the year's date column and December, lines deep in rows 1.4.3 lengthened). Month and year pages
+/// only, so they go through the one-page path and the sync here, never through 1.3's joined window (week and day only).
 @MainActor
 final class Real13LedgerTests: XCTestCase {
     private var directory: URL!
@@ -100,30 +105,50 @@ final class Real13LedgerTests: XCTestCase {
         "m1-2026-12.overlap-day.json": 2,
         "w-2026-11-30.photo-text.json": 1,           // the photo and the text label are not strokes
         "w-2026-12-07.photo-text-neighbor.json": 1,
+        // 1.4.3 (docs/R1_4_3_CONTRACT.md §8.3, 0g-30): compat-span-143, the month and the year joined sideways. One live
+        // stroke per file, in a cell 1.3's layout has (its month laid out with the Monday start, as every month here).
+        "m1-2026-11.memo-left.json": 1,              // 8: memo, x −160 … 260
+        "m1-2026-10.move-source.json": 1,            // 9: the stroke left on 2026-11-01 (the moved one's tombstone is not a stroke)
+        "m1-2026-11.move-destination.json": 1,       // 9: the copy on 2026-11-01
+        "y-2026.december-right.json": 1,             // 10: 12-10, past the right edge
+        "y-2027.date-column.json": 1,                // 10: 01-20, x −128 … 70
+        "m1-2026-11.memo-sunday.json": 1,            // 11: memo (shape sunday: a Sunday-start window wrote it)
+        "y-2026.row-floor.json": 1,                  // 12: 06-15, 350 lu down a row 1.4.3 lengthened
+        "m1-2026-11.last-row.json": 1,               // 13: 2026-12-03, 600 lu down row 6
     ]
 
-    private func folder() throws -> URL {
-        guard let path = ProcessInfo.processInfo.environment["TEGAKI_COMPAT_SPAN_FIXTURES"], !path.isEmpty else {
-            XCTFail("TEGAKI_COMPAT_SPAN_FIXTURES is not set (xcodebuild: TEST_RUNNER_TEGAKI_COMPAT_SPAN_FIXTURES)")
+    /// The folder an environment variable names (xcodebuild: TEST_RUNNER_<name>).
+    private func folder(_ name: String) throws -> URL {
+        guard let path = ProcessInfo.processInfo.environment[name], !path.isEmpty else {
+            XCTFail("\(name) is not set (xcodebuild: TEST_RUNNER_\(name))")
             throw CocoaError(.fileNoSuchFile)
         }
         return URL(fileURLWithPath: path, isDirectory: true)
     }
 
-    /// Every file the MANIFEST lists ("<file> <fixture> <monday|sunday>" after the "#" lines), in its order.
+    /// compat-span (TEGAKI_COMPAT_SPAN_FIXTURES) and, since 1.4.3, compat-span-143 (TEGAKI_COMPAT_SPAN_143_FIXTURES: the month
+    /// and the year joined sideways, docs/R1_4_3_CONTRACT.md §8.3). Both are needed: every row of the expectations must be read.
+    private func folders() throws -> [URL] {
+        [try folder("TEGAKI_COMPAT_SPAN_FIXTURES"), try folder("TEGAKI_COMPAT_SPAN_143_FIXTURES")]
+    }
+
+    /// Every file each folder's MANIFEST lists ("<file> <fixture> <monday|sunday>" after the "#" lines), in its order,
+    /// compat-span's first.
     private func fixtures() throws -> [Fixture] {
-        let url = try folder()
-        let text = try String(contentsOf: url.appendingPathComponent("MANIFEST"), encoding: .utf8)
         var out: [Fixture] = []
-        for line in text.split(separator: "\n", omittingEmptySubsequences: true) where !line.hasPrefix("#") {
-            let parts = line.split(separator: " ")
-            XCTAssertEqual(parts.count, 3, "MANIFEST line \"\(line)\"")
-            guard parts.count == 3 else { continue }
-            let name = String(parts[0])
-            let data = try Data(contentsOf: url.appendingPathComponent(name))
-            out.append(Fixture(name: name, shape: String(parts[2]), data: data, json: try JSONValue.parse(data)))
+        for url in try folders() {
+            let text = try String(contentsOf: url.appendingPathComponent("MANIFEST"), encoding: .utf8)
+            for line in text.split(separator: "\n", omittingEmptySubsequences: true) where !line.hasPrefix("#") {
+                let parts = line.split(separator: " ")
+                XCTAssertEqual(parts.count, 3, "MANIFEST line \"\(line)\"")
+                guard parts.count == 3 else { continue }
+                let name = String(parts[0])
+                let data = try Data(contentsOf: url.appendingPathComponent(name))
+                out.append(Fixture(name: name, shape: String(parts[2]), data: data, json: try JSONValue.parse(data)))
+            }
         }
-        XCTAssertGreaterThanOrEqual(out.count, 16, "the 16 compat-span files (S1's 13 and the week memo's 3) are there")
+        XCTAssertGreaterThanOrEqual(out.count, 24, "the 16 compat-span files (S1's 13 and the week memo's 3) and compat-span-143's 8 are there")
+        XCTAssertEqual(Set(out.map(\.name)).count, out.count, "no file name is in both folders")
         return out
     }
 
@@ -157,7 +182,8 @@ final class Real13LedgerTests: XCTestCase {
         let all = try fixtures()
         XCTAssertEqual(Set(all.map(\.name)), Set(drawnBy13.keys),
                        "every MANIFEST row has its count in drawnBy13")
-        XCTAssertEqual(all.filter { $0.shape == "sunday" }.map(\.name), ["w-2026-12-20.week-memo-sunday.json", "w-2026-11-08.sunday-overhang.json"])
+        XCTAssertEqual(all.filter { $0.shape == "sunday" }.map(\.name),
+                       ["w-2026-12-20.week-memo-sunday.json", "w-2026-11-08.sunday-overhang.json", "m1-2026-11.memo-sunday.json"])
     }
 
     // MARK: - 1. What the 1.3 ledger draws, and its save on the one-page path
