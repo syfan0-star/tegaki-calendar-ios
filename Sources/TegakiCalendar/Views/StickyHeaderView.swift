@@ -43,25 +43,38 @@ struct StickyHeaderView: View {
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
 
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20): the joined row goes by the window's kind — the day's, the week's, and the
+    /// month's (`spanMonthRow`, D1b-0: the weekday row of each page; the month's label comes with D1b). A window of years
+    /// (D1y adds `spanYearRow`) shows the page's own row meanwhile, never the week's.
     var body: some View {
         if let span = span, span.isJoined {
             switch span.kind {
             case .day:
                 spanDayRow(span)
-            default:
+            case .week:
                 spanWeekRow(span)
+            case .month:
+                spanMonthRow(span)
+            case .year:
+                pageRow
             }
         } else {
-            switch paper {
-            case .month(let content):
-                monthRow(content.layout)
-            case .week(let content):
-                weekRow(content.layout)
-            case .day(let content):
-                dayRow(content.layout)
-            case .year(let content):
-                yearRow(content)
-            }
+            pageRow
+        }
+    }
+
+    /// The heading of `paper` alone (1.2.3's rows).
+    @ViewBuilder
+    private var pageRow: some View {
+        switch paper {
+        case .month(let content):
+            monthRow(content.layout)
+        case .week(let content):
+            weekRow(content.layout)
+        case .day(let content):
+            dayRow(content.layout)
+        case .year(let content):
+            yearRow(content)
         }
     }
 
@@ -399,12 +412,50 @@ struct StickyHeaderView: View {
 
     /// The columns of the joined pages side by side: per page the week's [64] + [190.857…] × 7 or the day's
     /// [72, 588, 340] (the columns of `weekRow` / `dayRow`), so page k's first column starts at k × the page
-    /// width, `PaperSpan.origin(ofSlot:)`.
+    /// width, `PaperSpan.origin(ofSlot:)`. 1.4.3 (§3.8): the month's [200] × 7 (`monthRow`'s).
     static func spanColumns(_ span: PaperSpan) -> [CGFloat] {
-        let page: [CGFloat] = span.kind == .day
-            ? [PaperSpec.dayGutter, PaperSpec.dayTimelineRight - PaperSpec.dayGutter, PaperSpec.dayWidth - PaperSpec.dayTimelineRight]
-            : [PaperSpec.weekGutter] + Array(repeating: PaperSpec.weekColumnWidth, count: PaperSpec.weekColumns)
+        let page: [CGFloat]
+        switch span.kind {
+        case .day:
+            page = [PaperSpec.dayGutter, PaperSpec.dayTimelineRight - PaperSpec.dayGutter, PaperSpec.dayWidth - PaperSpec.dayTimelineRight]
+        case .month:
+            page = Array(repeating: PaperSpec.monthColumnWidth, count: PaperSpec.monthColumns)
+        case .week, .year:
+            page = [PaperSpec.weekGutter] + Array(repeating: PaperSpec.weekColumnWidth, count: PaperSpec.weekColumns)
+        }
         return Array(Array(repeating: page, count: span.pages.count).joined())
+    }
+
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20; D1b-0): the joined months: per page `monthRow`'s weekday row (its order
+    /// and colours from that page's first row, `PaperWords.monthHeaderColumns`), on the page's 7 columns of 200 lu, so each
+    /// weekday stands over its column of the paper. The same cells, font and padding as `monthRow`, so the row is as tall as
+    /// the one page's (the paper area and the opening zoom are the one page's, §3.8). The month's label (§4.4) comes with D1b.
+    private func spanMonthRow(_ span: PaperSpan) -> some View {
+        PaperRow(kind: .month, viewport: viewport, columns: Self.spanColumns(span)) {
+            ForEach(span.pages.indices, id: \.self) { slot in
+                ForEach(Self.monthColumns(span, slot: slot), id: \.weekday) { column in
+                    Text(column.name)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Self.toneColor(column.tone) ?? .primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                        .accessibilityLabel(column.fullName)
+                }
+            }
+        }
+        .clipped()
+        .background(Color(uiColor: .secondarySystemBackground))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(uiColor: .separator))
+                .frame(height: 0.5)
+        }
+    }
+
+    /// The weekday columns of a joined month's page `slot` (`monthRow`'s), none for a page that is not a month.
+    private static func monthColumns(_ span: PaperSpan, slot: Int) -> [PaperWords.MonthHeaderColumn] {
+        guard slot >= 0, slot < span.pages.count, case .month(let content) = span.pages[slot] else { return [] }
+        return PaperWords.monthHeaderColumns(content.layout, L.language)
     }
 
     /// The joined weeks: per page the month over its time column and its 7 day columns, in the form the

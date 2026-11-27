@@ -255,13 +255,14 @@ final class ScreenPaths: ObservableObject {
 
     // MARK: The one place that decides the path (§5.1)
 
-    /// Whether a page of `kind` opens joined (D2, §3.1, §3.15, the plan §5.1): only a week or a day, with the setting on
-    /// (in screenshot mode its own memory-only setting, off by default, and never with `--screenshot-single-page`, the
-    /// old versions' view), and not a kind that fell back to one page in this run. Month and year are always one page
-    /// in 1.3.
+    /// Whether a page of `kind` opens joined (D2, §3.1, §3.15, the plan §5.1): only a kind of `SpanKinds.joined`, with the
+    /// setting on (in screenshot mode its own memory-only setting, off by default, and never with `--screenshot-single-page`,
+    /// the old versions' view), and not a kind that fell back to one page in this run. 1.4.3 (docs/R1_4_3_CONTRACT.md §3.2,
+    /// 0g-8, 0g-9): the kinds are `SpanKinds.joined` (1.3's week and day, and the month; the year with D1y), so the month
+    /// joins with the setting on too; the rest is 1.3's.
     static func joins(kind: PageKind, setting: Bool, screenshot: Bool, screenshotSpan: Bool, singlePage: Bool = false,
                       fallenBack: Set<PageKind>) -> Bool {
-        guard kind == .week || kind == .day, !fallenBack.contains(kind) else { return false }
+        guard SpanKinds.joined.contains(kind), !fallenBack.contains(kind) else { return false }
         return screenshot ? screenshotSpan && !singlePage : setting
     }
 
@@ -454,9 +455,13 @@ final class ScreenPaths: ObservableObject {
     /// the focus page the one-page demo, a neighbour the same demo with ids of its own, the crossing demo with
     /// `--screenshot-span on` (`Config.crossingDemo`). `--screenshot-week-memo` (1.3, §5.2) reaches `spanDemoPage` through
     /// its default (`ScreenshotMode.current`): the focus week's memo strokes.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §12.5, 0g-31): `--screenshot-span-crossing all` (the month's crossing sample in
+    /// its memo band) and `--screenshot-month-tall` (the right neighbour's taller rows) reach it from `shot`; both off, the
+    /// pages are 1.4.2's.
     static func windowDemo(_ shot: ScreenshotMode.Config, pageId: String, kind: PageKind, weekStart: WeekStart) -> InkPage {
         ScreenshotMode.spanDemoPage(pageId: pageId, kind: kind, focus: shot.focus, weekStart: weekStart, crossing: shot.crossingDemo,
-                                    grown: shot.grown, empty: shot.empty, tallYear: shot.tallYear, storeInk: shot.storeInk)
+                                    grown: shot.grown, empty: shot.empty, tallYear: shot.tallYear, storeInk: shot.storeInk,
+                                    crossingAll: shot.spanCrossingAll, monthTall: shot.monthTall)
     }
 
     /// `--screenshot-single-page` (§3.12, the old versions' view): the week's or the day's page of the one-page path with
@@ -858,7 +863,16 @@ final class ScreenPaths: ObservableObject {
         }
     }
 
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20): a month or a year has no all-day band (nor has its one page): its
+    /// heading's window is the pages alone (`PaperSpan.window`, bands empty), so `AllDayBandLanes` never cuts a month's or
+    /// a year's days into weeks. The week and the day are 1.3's.
     private func makeHeadingSpan(_ session: SpanSession) -> PaperSpan? {
+        switch session.kind {
+        case .month, .year:
+            return PaperSpan.window(for: session.layout, focus: session.focusSlot)
+        case .week, .day:
+            break
+        }
         var days: [DayKey] = []
         var events: [LayoutEvent] = []
         for id in session.pageIds {

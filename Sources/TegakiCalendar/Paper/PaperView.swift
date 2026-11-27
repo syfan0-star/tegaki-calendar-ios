@@ -419,5 +419,44 @@ final class PaperView: UIView {
             }
             ctx.restoreGState()
         }
+        if joined, span.kind == .month {
+            drawMonthBoundaries(span, in: ctx, dirty: dirty, zoom: zoom)
+        }
+    }
+
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §4.3, 0g-13): the width (pt on the screen) of the strong line between two joined months.
+    static let monthBoundaryPoints: CGFloat = 2
+
+    /// 1.4.3 (§4.3, 0g-13): where the strong line between two joined months stands (lu of the window): one per boundary,
+    /// x = k × 1,400 for k = 1 … pages − 1, from the top of the grid down to the higher of the two pages' separator lines
+    /// (`memo.minY`; the same on both sides when the months line up, ア and イ; the shorter one's with ウ or a month that
+    /// cannot reach the floor, §4.1 4), never into the memo band (it runs on as one band). None for a window of one page
+    /// or of another kind (the one page and a page alone keep 1.4.2's pixels; the year has its date column instead).
+    static func monthBoundaries(of span: PaperSpan) -> [(x: CGFloat, top: CGFloat, bottom: CGFloat)] {
+        guard span.kind == .month, span.pages.count > 1 else { return [] }
+        var lines: [(x: CGFloat, top: CGFloat, bottom: CGFloat)] = []
+        for slot in 1..<span.pages.count {
+            guard case .month(let left) = span.pages[slot - 1], case .month(let right) = span.pages[slot] else { continue }
+            let top = min(left.layout.rows.first?.frame.minY ?? 0, right.layout.rows.first?.frame.minY ?? 0)
+            let bottom = min(left.layout.memo.minY, right.layout.memo.minY)
+            guard bottom > top else { continue }
+            lines.append((span.origin(ofSlot: slot), top, bottom))
+        }
+        return lines
+    }
+
+    /// The month boundaries of `span` into `ctx` (paper units of the window), `monthBoundaryPoints` wide on the screen at
+    /// `zoom`, in `PaperPalette.lineStrong`, drawn over both pages' edges after the pages (each page is cut to its own
+    /// rectangle, so a line drawn with a page would be half hidden by its neighbour).
+    private static func drawMonthBoundaries(_ span: PaperSpan, in ctx: CGContext, dirty: CGRect, zoom: CGFloat) {
+        let width = monthBoundaryPoints / max(zoom, 0.01)
+        ctx.saveGState()
+        ctx.setFillColor(PaperPalette.lineStrong.cgColor)
+        for line in monthBoundaries(of: span) {
+            let rect = CGRect(x: line.x - width / 2, y: line.top, width: width, height: line.bottom - line.top)
+            guard rect.intersects(dirty) else { continue }
+            ctx.fill(rect)
+        }
+        ctx.restoreGState()
     }
 }
