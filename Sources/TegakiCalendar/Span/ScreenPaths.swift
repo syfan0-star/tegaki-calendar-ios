@@ -859,7 +859,16 @@ final class ScreenPaths: ObservableObject {
         }
     }
 
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20): a month or a year has no all-day band (nor has its one page): its
+    /// heading's window is the pages alone (`PaperSpan.window`, bands empty), so `AllDayBandLanes` never cuts a month's or
+    /// a year's days into weeks. The week and the day are 1.3's.
     private func makeHeadingSpan(_ session: SpanSession) -> PaperSpan? {
+        switch session.kind {
+        case .month, .year:
+            return PaperSpan.window(for: session.layout, focus: session.focusSlot)
+        case .week, .day:
+            break
+        }
         var days: [DayKey] = []
         var events: [LayoutEvent] = []
         for id in session.pageIds {
