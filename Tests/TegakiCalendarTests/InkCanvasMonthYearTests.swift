@@ -188,8 +188,10 @@ final class InkCanvasMonthYearTests: XCTestCase {
     }
 
     /// A month page with a three-point stroke for each (id, cell, y): at x 50 of a day's cell or x 300 of the memo
-    /// (cell-relative), its bottom y + 3.75 (`SessionTestBed.stroke`: points y, y + 1, y + 2 with a 3.5 lu nib), so a day's
-    /// row is max(175, y + 15.75) lu tall (`MonthLayoutEngine.rowHeight`).
+    /// (cell-relative). `SessionTestBed.stroke` makes points y, y + 1, y + 2 with a 3.5 lu nib and `InkPoint` rounds x and y
+    /// to 0.1 lu as it is made (1.0's data rule), so the stroke's bottom (`InkStroke.bottom`) is y + 2 rounded to 0.1, + 1.75:
+    /// y + 3.75 for a y on the 0.1 grid, 388.05 for y 384.25 (its points 384.3, 385.3, 386.3). A day's row is
+    /// max(175, that bottom + 12) lu tall (`MonthLayoutEngine.rowHeight`): 400.05 for y 384.25.
     private func page(_ pageId: String, _ strokes: [(id: String, cell: CellKey, y: CGFloat)]) -> InkPage {
         var page = InkPage.empty(pageId: pageId)
         for (i, s) in strokes.enumerated() {
@@ -443,12 +445,13 @@ final class InkCanvasMonthYearTests: XCTestCase {
         }
     }
 
-    /// §3.5 (0g-17; K's month branch of `PageScroll.scrollDelta`): November's 11/11 row is 400 lu, so its rows below differ
-    /// from December's (its row 3 at 750 lu, December's at 525 with ア). With the top of the screen in November's row 3 (800
-    /// lu) and the middle of the screen moved to December, the window shifts (2026-10 … 2027-02): every stroke the canvas
-    /// showed — in the grids and the memos — is where it was on the screen (0.5 pt), y stays, x went back by one month, and
-    /// the paper is the new window's in the same turn; still so once February is read. The middle pages' answer (1.4.2's
-    /// `scrollDelta`: December's row 3 against November's) would have moved them all by 225 lu.
+    /// §3.5 (0g-17; K's month branch of `PageScroll.scrollDelta`): November's 11/11 row is 400.05 lu (its stroke at y 384.25
+    /// ends at 388.05, `page(_:_:)`), so its rows below differ from December's (its row 3 at 750.05 lu, December's at 525 with
+    /// ア). With the top of the screen in November's row 3 (800 lu) and the middle of the screen moved to December, the window
+    /// shifts (2026-10 … 2027-02): every stroke the canvas showed — in the grids and the memos — is where it was on the screen
+    /// (0.5 pt), y stays, x went back by one month, and the paper is the new window's in the same turn; still so once February
+    /// is read. The middle pages' answer (1.4.2's `scrollDelta`: December's row 3 against November's) would have moved them all
+    /// by 225.05 lu.
     func testAShiftKeepsTheLinesOnScreenAcrossMonthsOfOtherRows() async throws {
         let session = try await open(stored: [
             page(oct, [("o-grid", .day(DayKey(year: 2026, month: 10, day: 14)), 60), ("o-memo", .memo, 200)]),
@@ -460,8 +463,11 @@ final class InkCanvasMonthYearTests: XCTestCase {
         let rig = await attach(session, size: portrait)
         XCTAssertEqual(rig.canvas.drawing.strokes.count, 9)
         let november = try XCTUnwrap(month(nov, session))
-        XCTAssertEqual(november.rows[2].frame.height, 400, accuracy: 0.01, "11/11's row: 400 lu")
-        XCTAssertEqual(november.rows[3].frame.minY, 750, accuracy: 0.01)
+        // y 384.25 is kept as 384.3 (`InkPoint`'s 0.1 lu): the bottom 386.3 + 1.75 = 388.05, the row 388.05 + 12.
+        XCTAssertEqual(try XCTUnwrap(session.page(nov)?.inkBottoms()[.day(DayKey(year: 2026, month: 11, day: 11))]), 388.05,
+                       accuracy: 0.001, "11/11's ink bottom")
+        XCTAssertEqual(november.rows[2].frame.height, 400.05, accuracy: 0.01, "11/11's row: 400.05 lu")
+        XCTAssertEqual(november.rows[3].frame.minY, 750.05, accuracy: 0.01)
         XCTAssertNotNil(rig.paper)
 
         rig.canvas.contentOffset.y = 800 * rig.zoom
@@ -485,7 +491,8 @@ final class InkCanvasMonthYearTests: XCTestCase {
         if SpanSession.monthForm != SpanAlign.MonthForm.rows {
             let band = try XCTUnwrap(oldLayout.band(atY: topY))
             let middles = try XCTUnwrap(session.layout.bandTop(band)) - XCTUnwrap(oldLayout.bandTop(band))
-            XCTAssertEqual(middles, -225, accuracy: 0.01, "the middle pages' rows differ: their answer would move y by 225 lu")
+            XCTAssertEqual(middles, 525 - 750.05, accuracy: 0.01,
+                           "the middle pages' rows differ (December's row 3 at 525, November's at 750.05): their answer would move y by 225.05 lu")
         }
         XCTAssertEqual(rig.canvas.contentOffset.x, x - rig.page, accuracy: 0.5, "x went back by one month")
         XCTAssertEqual(rig.canvas.contentOffset.y, y, accuracy: 0.5, "y stays")
@@ -512,13 +519,14 @@ final class InkCanvasMonthYearTests: XCTestCase {
         XCTAssertEqual(pageIds(of: rig.paper), session.pageIds)
     }
 
-    /// §4.6, §3.3 (0g-16; MS8): on the landscape iPad September's 9/16 row is 400 lu and December's 12/16 row 250, so the
-    /// window's separator line is at 1,275 lu on every month (ア: September's grid; イ: the rows lined up) and the lowest zoom
-    /// is 640 / 1,275, under the opening zoom 640 / 1,050. Pinched to it with November in the middle, the middle of the
+    /// §4.6, §3.3 (0g-16; MS8): on the landscape iPad September's 9/16 row is 400.05 lu and December's 12/16 row 250.05 (their
+    /// strokes at y 384.25 and 234.25 end at 388.05 and 238.05, `page(_:_:)`), so the window's separator line is at 1,275.05 lu
+    /// on every month (ア: September's grid; イ: the rows lined up) and the lowest zoom is 640 / 1,275.05, under the opening
+    /// zoom 640 / 1,050. Pinched to it with November in the middle, the middle of the
     /// screen moved to December (a month of another grid) and the window shifts (2026-10 … 2027-02): September, the tallest
     /// grid, left. Right after the shift and again once the prefetch read February and composed the window anew
     /// (`.redecide`, read as `.shift` for a month), the separator line, the lowest zoom and the zoom are where they were.
-    /// Lowering the floors at that `.redecide` (MS8) brings the line up to December's 1,125 and the zoom with it (the
+    /// Lowering the floors at that `.redecide` (MS8) brings the line up to December's 1,125.05 and the zoom with it (the
     /// canvas's `applyBounds` raises a zoom under the new lowest). ウ lines nothing up, so its lowest zoom is the middle
     /// month's own and a shift may change it (§4.6): this test is ア's and イ's.
     func testTheLowestZoomStaysThroughAShiftAndThePrefetchAfterIt() async throws {
@@ -532,7 +540,7 @@ final class InkCanvasMonthYearTests: XCTestCase {
         let opening = 640.0 / 1050
         XCTAssertEqual(rig.zoom, opening, accuracy: 1e-4, "opens at the opening zoom")
         let separator = try XCTUnwrap(month(nov, session)).memo.minY
-        XCTAssertEqual(separator, 1275, accuracy: 0.01, "September's 400 lu row: the window's separator line")
+        XCTAssertEqual(separator, 1_275.05, accuracy: 0.01, "September's 400.05 lu row (5 × 175 + 388.05 + 12): the window's separator line")
         for page in months(session.layout) {
             XCTAssertEqual(page.memo.minY, separator, accuracy: 0.01, "\(page.pageId): the separator line lines up")
         }
@@ -773,7 +781,10 @@ final class InkCanvasMonthYearTests: XCTestCase {
 
     /// §9.1 (review TEST-1): one history for the window, whatever the kind. A line written in December's memo while November
     /// is the focus (the neighbour month of the window, its cell December's own) is saved to December; ↶ takes it away — its
-    /// delta December's, the file without it, November untouched — and ↷ puts it back under the same name, saved again.
+    /// delta December's, the file without it, November untouched — and ↷ puts it back, saved again. A tombstoned id never
+    /// comes back (1.0's rule, `InkLedger.perform`; the frozen `InkLedgerTests.testEraseMakesTombstoneAndUndoRestoresClone`),
+    /// so ↷ re-adds the line as a copy under a fresh name, its cell's owner's (`SpanSession.ownerId(for:)`, 1.3's §3.3 1):
+    /// December's again, in December's memo, with the same points.
     func testUndoAndRedoOfALineInTheNeighbouringMonthsMemo() async throws {
         let session = try await open()
         let rig = await attach(session, size: portrait)
@@ -783,6 +794,7 @@ final class InkCanvasMonthYearTests: XCTestCase {
         let written = try lastDrawn(on: rig)
         XCTAssertTrue(written.hasPrefix(dec), "December's line")
         XCTAssertEqual(rig.ledger.page.strokes[written]?.cell, SpanName.prefixed(.memo, page: dec), "in December's memo")
+        let writtenPoints = try XCTUnwrap(rig.ledger.page.strokes[written]).points
         XCTAssertTrue(rig.ledger.canUndo)
         await settle()
         XCTAssertEqual(session.saveAll(), [])
@@ -800,12 +812,23 @@ final class InkCanvasMonthYearTests: XCTestCase {
         XCTAssertEqual(bed.live(dec).count, 0, "December's file without it")
 
         update(rig, undoTrigger: 1, redoTrigger: 1)
-        XCTAssertTrue(rig.ledger.page.isLive(written), "↷ puts it back under the same name")
-        XCTAssertNotNil(shown(written, on: rig))
+        XCTAssertFalse(rig.ledger.page.isLive(written), "the name ↶ tombstoned stays tombstoned")
+        let back = rig.ledger.page.liveStrokes
+        XCTAssertEqual(back.count, 1, "↷ puts the line back")
+        let redone = try XCTUnwrap(back.first)
+        XCTAssertNotEqual(redone.id, written, "as a copy under a fresh name")
+        XCTAssertEqual(SpanName.split(redone.id)?.page, dec, "December's name")
+        XCTAssertEqual(redone.cell, SpanName.prefixed(.memo, page: dec), "in December's memo")
+        XCTAssertEqual(redone.points, writtenPoints, "the same line")
+        XCTAssertNotNil(shown(redone.id, on: rig))
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [dec], "↷'s delta December's")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
         XCTAssertFalse(rig.ledger.canRedo)
         await settle()
         XCTAssertEqual(session.saveAll(), [])
-        XCTAssertEqual(bed.live(dec).count, 1, "December's file with it again")
+        let local = try XCTUnwrap(SpanName.split(redone.id)?.local)
+        XCTAssertEqual(bed.live(dec), [local], "December's file with it again, under its new name")
+        XCTAssertNotNil(bed.store.load(dec).deleted[try XCTUnwrap(SpanName.split(written)?.local)], "its first name tombstoned in the file")
         XCTAssertEqual(bed.live(nov).count, 0, "November untouched")
     }
 

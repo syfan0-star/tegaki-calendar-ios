@@ -229,9 +229,21 @@ final class PDFMonthYearTests: XCTestCase {
         let heading = Int(PDFPageRenderer.headingHeight(paper))
         XCTAssertEqual(heading, 64)
         XCTAssertEqual(picture.height, heading + Int(height.rounded(.up)))
-        // December's stroke at its deepest point over November (1,300, 900 into December's memo).
-        let deepY = heading + Int((fromDecember.cellRect.minY + 900).rounded())
-        XCTAssertGreaterThan(picture.darkPixels(x: 1_290..<1_311, y: (deepY - 8)..<(deepY + 4)), 0, "December's stroke over November")
+        // December's stroke at its deepest point over November. PencilKit draws a stroke as a uniform cubic B-spline of its
+        // points (`PKStrokePath`, built by `StrokeGeometry.makePKStroke`), which runs through (P₋₁ + 4 P₀ + P₊₁) / 6 at each
+        // inner point, not through the point itself: the V's corner (−100, 900) is drawn at (−95.8, 872.2) of December's memo
+        // (with its neighbours (−125, 800) and (−50, 833.3)), x 1,304.2 of November, 27.8 lu above the point. The rectangle
+        // counts the points themselves (`neighborMemoBottom`), which bound the curve.
+        let decPoints = fromDecember.stroke.points
+        let corner = try XCTUnwrap(decPoints.indices.dropFirst().dropLast().max { decPoints[$0].y < decPoints[$1].y })
+        XCTAssertEqual(decPoints[corner].y, 900, accuracy: 1e-9, "the V's corner")
+        let drawnX = (decPoints[corner - 1].x + 4 * decPoints[corner].x + decPoints[corner + 1].x) / 6
+        let drawnY = (decPoints[corner - 1].y + 4 * decPoints[corner].y + decPoints[corner + 1].y) / 6
+        XCTAssertEqual(fromDecember.cellRect.minX + drawnX, 1_304.17, accuracy: 0.01)
+        XCTAssertEqual(drawnY, 872.22, accuracy: 0.01)
+        let deepX = Int((fromDecember.cellRect.minX + drawnX).rounded())
+        let deepY = heading + Int((fromDecember.cellRect.minY + drawnY).rounded())
+        XCTAssertGreaterThan(picture.darkPixels(x: (deepX - 10)..<(deepX + 11), y: (deepY - 8)..<(deepY + 4)), 0, "December's stroke over November")
         // October's stroke over November's x 100 (1,500 of October's memo: y 396).
         let octY = heading + Int((fromOctober.cellRect.minY + 396).rounded())
         XCTAssertGreaterThan(picture.darkPixels(x: 90..<111, y: (octY - 6)..<(octY + 7)), 0, "October's stroke over November")

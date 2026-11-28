@@ -339,7 +339,8 @@ final class MonthPaperLineTests: XCTestCase {
         XCTAssertEqual(grown.dateLabels.first { $0.day == today }?.inMonth, false)
         XCTAssertEqual(grown.cells[.day(today)]?.height ?? 0, floor - 875, accuracy: 1e-9, "the cell is the lengthened row")
         let before = try renderMonth(try content(natural), CGRect(x: 0, y: 860, width: 1_400, height: 200), scale: 1)
-        let after = try renderMonth(try content(grown), CGRect(x: 0, y: 860, width: 1_400, height: 440), scale: 1)
+        // 860 … 1,320: past the separator (1,283) to the memo sample at floor + 20 (1,303), which 440 lu (to 1,300) left out.
+        let after = try renderMonth(try content(grown), CGRect(x: 0, y: 860, width: 1_400, height: 460), scale: 1)
         let outTint = before.at(300, 1_000) // 12/1, pale
         let todayTint = before.at(500, 1_000) // 12/2, today
         XCTAssertFalse(near(outTint, paperColor, 2), "the pale day is tinted: \(outTint)")
@@ -377,7 +378,9 @@ final class MonthPaperLineTests: XCTestCase {
         XCTAssertEqual(PaperView.monthBoundaries(of: try XCTUnwrap(PaperSpan(pages: [pages[1]], bands: [], focus: 0))).count, 0)
 
         for style in MemoPaperStyle.allCases {
-            let drawn = try renderWindow(joined, CGRect(x: 1_300, y: 0, width: 200, height: 1_700), style: style)
+            // Down to 2,400 lu: the floored memo is 1,283 … 7,283 (6,000 lu tall), and the deepest sample below is floor + 1,000
+            // (2,283), which a picture 1,700 lu tall left out (`pixel` gives (-1, -1, -1) outside the bitmap).
+            let drawn = try renderWindow(joined, CGRect(x: 1_300, y: 0, width: 200, height: 2_400), style: style)
             for y in [CGFloat(100), 600, 1_000, 1_270] {
                 XCTAssertTrue(near(drawn.at(1_400, y), strongColor, 6), "\(style): the strong line at (1,400, \(y)): \(drawn.at(1_400, y))")
             }
