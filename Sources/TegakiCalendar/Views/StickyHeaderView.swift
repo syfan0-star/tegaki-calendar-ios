@@ -17,7 +17,8 @@ import UIKit
 /// | year  | "1月"…"12月" over the 12 columns                               | month → month page   |
 ///
 /// 1.4.3 (docs/R1_4_3_CONTRACT.md §4.4, 0g-14): the joined months' weekday row also carries each table's month label
-/// (`spanMonthRow`, `monthLabels`); the one page never does.
+/// (`spanMonthRow`, `monthLabels`); the one page never does. Likewise (§5.3, 0g-22) the joined years' month-name row carries
+/// each page's year over its date column (`spanYearRow`, `yearLabels`); the one year page never does.
 struct StickyHeaderView: View {
     var paper: PaperContent
     /// The current time (decides the current month of the year header).
@@ -46,9 +47,9 @@ struct StickyHeaderView: View {
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
 
-    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20): the joined row goes by the window's kind — the day's, the week's, and the
-    /// month's (`spanMonthRow`: the weekday row of each page and, since D1b, each table's month label, §4.4). A window of years
-    /// (D1y adds `spanYearRow`) shows the page's own row meanwhile, never the week's.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20): the joined row goes by the window's kind — the day's, the week's, the
+    /// month's (`spanMonthRow`: the weekday row of each page and, since D1b, each table's month label, §4.4) and, since D1y,
+    /// the year's (`spanYearRow`: the month-name row of each page and its year's label, §5.3). Never the week's for another kind.
     var body: some View {
         if let span = span, span.isJoined {
             switch span.kind {
@@ -59,7 +60,7 @@ struct StickyHeaderView: View {
             case .month:
                 spanMonthRow(span)
             case .year:
-                pageRow
+                spanYearRow(span)
             }
         } else {
             pageRow
@@ -415,7 +416,8 @@ struct StickyHeaderView: View {
 
     /// The columns of the joined pages side by side: per page the week's [64] + [190.857…] × 7 or the day's
     /// [72, 588, 340] (the columns of `weekRow` / `dayRow`), so page k's first column starts at k × the page
-    /// width, `PaperSpan.origin(ofSlot:)`. 1.4.3 (§3.8): the month's [200] × 7 (`monthRow`'s).
+    /// width, `PaperSpan.origin(ofSlot:)`. 1.4.3 (§3.8): the month's [200] × 7 (`monthRow`'s) and, since D1y, the year's
+    /// [56] + [112] × 12 (`yearRow`'s: the date column and the twelve months).
     static func spanColumns(_ span: PaperSpan) -> [CGFloat] {
         let page: [CGFloat]
         switch span.kind {
@@ -423,8 +425,10 @@ struct StickyHeaderView: View {
             page = [PaperSpec.dayGutter, PaperSpec.dayTimelineRight - PaperSpec.dayGutter, PaperSpec.dayWidth - PaperSpec.dayTimelineRight]
         case .month:
             page = Array(repeating: PaperSpec.monthColumnWidth, count: PaperSpec.monthColumns)
-        case .week, .year:
+        case .week:
             page = [PaperSpec.weekGutter] + Array(repeating: PaperSpec.weekColumnWidth, count: PaperSpec.weekColumns)
+        case .year:
+            page = [PaperSpec.yearGutter] + Array(repeating: PaperSpec.yearColumnWidth, count: PaperSpec.yearColumns)
         }
         return Array(Array(repeating: page, count: span.pages.count).joined())
     }
@@ -586,6 +590,169 @@ struct StickyHeaderView: View {
             guard let x = monthLabelX(slot: slot, labelWidth: width, viewport: viewport, pageWidth: span.pageWidth) else { continue }
             labels.append(MonthLabel(slot: slot, month: month, text: text, spoken: monthLabelText(month: month.month, form: .full, language: language),
                                      width: width, x: x))
+        }
+        return labels
+    }
+
+    // MARK: - 1.4.3: the joined years (§3.8, §5.3, 0g-20, 0g-22, §10; D1y)
+
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20; D1y): the joined years: per page `yearRow`'s row — its date column and the
+    /// twelve month names, each a button to that page's month (`onMonthTap` with the page's `YearMonth`) — on the page's
+    /// [56] + [112] × 12 columns, so each name stands over its column of the paper. The names, the font (13 pt semibold at the
+    /// common scale of `PaperWords.yearColumnTitles`), the shrinking to 0.7, the padding, the 44 pt, the strong line on the
+    /// left, the accent of the current month and the spoken words are `yearRow`'s line for line (ja: the page's own
+    /// `content.monthNames`, §3.8: the one page's words and shrinking), so the row is as tall as the one page's (the paper area
+    /// and the opening zoom are the one page's, §3.8, §12.3). Each page's year label lies over its date column
+    /// (`spanYearLabels`, an overlay: the row keeps the buttons' height). `yearRow` itself is not touched (§8.6).
+    private func spanYearRow(_ span: PaperSpan) -> some View {
+        let current = YearMonth.current(calendar: DayKey.deviceCalendar, now: now)
+        // F-8 as in `yearRow`: the first frame has no viewport yet: the paper's width.
+        let columnWidth = viewport.width > 0 ? viewport.width(ofPaper: PaperSpec.yearColumnWidth) : PaperSpec.yearColumnWidth
+        let fitted = PaperWords.yearColumnTitles(columnWidth: columnWidth, fontSize: Self.yearMonthFontSize, L.language)
+        return PaperRow(kind: .year, viewport: viewport, columns: Self.spanColumns(span)) {
+            ForEach(span.pages.indices, id: \.self) { slot in
+                Color.clear
+                ForEach(1...PaperSpec.yearColumns, id: \.self) { month in
+                    spanYearMonthCell(Self.yearContent(span, slot: slot), month: month, fitted: fitted, current: current)
+                }
+            }
+        }
+        .overlay(alignment: .topLeading) { spanYearLabels(span) }
+        .clipped()
+        .background(paperColor)
+        .overlay(alignment: .bottom) { bottomLine }
+    }
+
+    /// One month of a joined year's row: `yearRow`'s button for `month` of `content`'s year (an empty column for a page that is
+    /// not a year, which a window of years never has: `PaperSpan` holds one kind).
+    @ViewBuilder
+    private func spanYearMonthCell(_ content: YearPaperContent?, month: Int, fitted: (titles: [String], scale: CGFloat?), current: YearMonth) -> some View {
+        if let content = content {
+            let yearMonth = YearMonth(year: content.layout.year, month: month)
+            let name = fitted.scale == nil && month - 1 < content.monthNames.count ? content.monthNames[month - 1] : fitted.titles[month - 1]
+            Button {
+                onMonthTap(yearMonth)
+            } label: {
+                Text(name)
+                    .font(.system(size: Self.yearMonthFontSize * (fitted.scale ?? 1), weight: .semibold))
+                    .foregroundStyle(yearMonth == current ? accentColor : ink1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .overlay(alignment: .leading) { Rectangle().fill(lineStrongColor).frame(width: 1) }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L.format("header.month.spoken", yearMonth.title(language: L.language)))
+        } else {
+            Color.clear
+        }
+    }
+
+    /// The year paper of a joined year's page `slot`, nil for a page that is not a year.
+    private static func yearContent(_ span: PaperSpan, slot: Int) -> YearPaperContent? {
+        guard slot >= 0, slot < span.pages.count, case .year(let content) = span.pages[slot] else { return nil }
+        return content
+    }
+
+    /// The labels of the joined years laid over the month-name row: each where `yearLabels` puts it, centred on the row's
+    /// height, with the row's own viewport (`PaperRow`'s: the canvas's, or the first frame's for the row's width), so a label
+    /// moves with its page's date column.
+    private func spanYearLabels(_ span: PaperSpan) -> some View {
+        GeometryReader { geometry in
+            let shown = viewport.width > 0 ? viewport : PaperViewport.initial(.year, viewportWidth: geometry.size.width)
+            ForEach(Self.yearLabels(span, viewport: shown, language: language), id: \.slot) { label in
+                SpanYearLabelView(label: label)
+                    .position(x: label.x + label.width / 2, y: geometry.size.height / 2)
+            }
+        }
+    }
+
+    /// The size (pt, semibold) of a joined year's label: the month's label's (`monthLabelFontSize`, the week's month over its
+    /// time column, `joinedGutterFontSize`), with tabular digits, so every year of four digits is as wide.
+    static let yearLabelFontSize: CGFloat = joinedGutterFontSize
+
+    /// What a year's label shows (§5.3, 0g-22): the year's number, then its last two digits, then (nil) nothing — the title
+    /// says the year.
+    enum YearLabelForm: CaseIterable, Equatable {
+        /// The number of the year's title: 「2027」 (the title is ja 「2027年」, the others "2027", `DateText.yearTitle`).
+        case full
+        /// The last two digits after an apostrophe (U+2019): 「’27」.
+        case short
+    }
+
+    /// The text of `year`'s label in `form`. No new string: the digits of the title's year (`DateText.yearTitle` is the plain
+    /// number outside ja), and for `.short` the apostrophe before the last two.
+    static func yearLabelText(year: Int, form: YearLabelForm) -> String {
+        switch form {
+        case .full: return String(year)
+        case .short: return "\u{2019}" + String(format: "%02d", ((year % 100) + 100) % 100)
+        }
+    }
+
+    /// The font of a year's label: `yearLabelFontSize` semibold with tabular digits (the label's `Text` uses the same).
+    static var yearLabelFont: UIFont {
+        UIFont.monospacedDigitSystemFont(ofSize: yearLabelFontSize, weight: .semibold)
+    }
+
+    /// The label's width (pt): its text in `yearLabelFont`, rounded up, with `monthLabelPadding` on each side (the month's).
+    static func yearLabelWidth(_ text: String) -> CGFloat {
+        PaperText.width(of: text, font: yearLabelFont) + 2 * monthLabelPadding
+    }
+
+    /// The form of every label of the row at a date column `gutterPoints` wide (56 lu × zoom, §5.3): the first form whose label
+    /// stands `monthLabelInset` from the column's left edge and `monthLabelGap` short of January's line,
+    /// `inset + width ≤ gutter − gap` (the month's constants). With tabular digits every year of four digits is as wide as 2000,
+    /// which stands for them all: one form for the whole row, so neighbouring pages never say ’26 beside 2027 and a label does
+    /// not change its form as the window shifts. nil (no label) when neither fits (an iPhone at the overview, about 16 pt, and
+    /// the capped landscape year, about 10 to 11 pt) or the width is not usable.
+    static func yearLabelForm(gutterPoints: CGFloat) -> YearLabelForm? {
+        guard gutterPoints.isFinite, gutterPoints > 0 else { return nil }
+        return YearLabelForm.allCases.first { form in
+            monthLabelInset + yearLabelWidth(yearLabelText(year: 2000, form: form)) <= gutterPoints - monthLabelGap
+        }
+    }
+
+    /// Where the label of window page `slot` stands (pt from the row's left edge) in `viewport` (a resolved one, width > 0):
+    /// the month's rule (`monthLabelX`) on pages of `pageWidth` (the year's 1,400 lu) — `monthLabelInset` right of the page's
+    /// left edge (over its date column), or stuck at `monthLabelInset` from the screen's left edge once that edge has gone out
+    /// to the left, never past its own page's right edge less the inset, so the next page's label pushes it out. nil when it
+    /// is off the screen.
+    static func yearLabelX(slot: Int, labelWidth: CGFloat, viewport: PaperViewport, pageWidth: CGFloat = PaperSpec.yearWidth) -> CGFloat? {
+        monthLabelX(slot: slot, labelWidth: labelWidth, viewport: viewport, pageWidth: pageWidth)
+    }
+
+    /// One year label of the joined row.
+    struct YearLabel: Equatable {
+        /// The window page the label belongs to: one label per page, wherever it stands.
+        var slot: Int
+        var year: Int
+        /// What it shows (`yearLabelForm`).
+        var text: String
+        /// What VoiceOver reads: the year's title (`DateText.yearTitle`: ja 「2027年」, the others "2027"), whatever the form shows.
+        var spoken: String
+        /// pt (`yearLabelWidth`).
+        var width: CGFloat
+        /// pt from the row's left edge (`yearLabelX`).
+        var x: CGFloat
+    }
+
+    /// The labels of the joined years on screen in `viewport` (resolved, width > 0), left to right: one per page whose label is
+    /// on the screen, in the row's one form (`yearLabelForm` at this zoom's 56 lu date column), each at `yearLabelX` — a label
+    /// stuck at the left edge is its own page's, the same element moved, so it is read once. Empty for a window that is not of
+    /// years or not joined (the one page's heading has no label: its title says the year, §5.3) and when no form fits.
+    static func yearLabels(_ span: PaperSpan, viewport: PaperViewport, language: UILanguage) -> [YearLabel] {
+        guard span.kind == .year, span.isJoined,
+              let form = yearLabelForm(gutterPoints: viewport.width(ofPaper: PaperSpec.yearGutter)) else { return [] }
+        var labels: [YearLabel] = []
+        for (slot, page) in span.pages.enumerated() {
+            guard case .year(let content) = page else { continue }
+            let year = content.layout.year
+            let text = yearLabelText(year: year, form: form)
+            let width = yearLabelWidth(text)
+            guard let x = yearLabelX(slot: slot, labelWidth: width, viewport: viewport, pageWidth: span.pageWidth) else { continue }
+            labels.append(YearLabel(slot: slot, year: year, text: text, spoken: DateText.yearTitle(year, language), width: width, x: x))
         }
         return labels
     }
@@ -811,6 +978,28 @@ extension YearMonth {
     static func current(calendar: Calendar, now: Date) -> YearMonth {
         let day = DayKey(now, calendar: calendar)
         return YearMonth(year: day.year, month: day.month)
+    }
+}
+
+/// 1.4.3 (docs/R1_4_3_CONTRACT.md §5.3, §10, 0g-22; D1y): one year label of the joined years' month-name row: its text at
+/// `StickyHeaderView.yearLabelFontSize` semibold with tabular digits in `PaperPalette.ink2`, `width` wide on the row's colour
+/// (the paper's, as `yearRow`'s), so a label stuck at the left edge hides the month name that passes under it. One VoiceOver
+/// element, a heading, that reads the year's title (`YearLabel.spoken`) — the same element wherever the label stands, stuck
+/// at the left edge too.
+private struct SpanYearLabelView: View {
+    var label: StickyHeaderView.YearLabel
+
+    var body: some View {
+        Text(label.text)
+            .font(.system(size: StickyHeaderView.yearLabelFontSize, weight: .semibold).monospacedDigit())
+            .foregroundStyle(Color(uiColor: PaperPalette.ink2))
+            .lineLimit(1)
+            .fixedSize()
+            .frame(width: label.width)
+            .background(Color(uiColor: PaperPalette.paper))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(label.spoken)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

@@ -78,6 +78,12 @@ enum PDFPageRenderer {
     /// are not lined up), the rectangle stops at the paper's bottom (`layout.size.height`): only the part over this page's paper
     /// is drawn. Neither: the overview rectangle, as before. Without `neighborInk` (the default, the one page) this is 1.4.2's
     /// rectangle.
+    ///
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §5.6, §9.4, 0g-32; D1y): a joined year's PDF is its window page (`ScreenPaths.paper(of:)`,
+    /// its rows lined up with the window's as the screen shows them) on its whole paper, `layout.size`, as the one page's: the
+    /// strokes that come in from the neighbour years (`neighborInk`: from the year before's December into this year's date
+    /// column and January, from the year after's date column and January into this year's December) are drawn where they lie
+    /// over the page, and the rectangle does not change.
     static func paperRect(_ paper: PaperContent, page: InkPage, neighborInk: [SpanPDFInk] = []) -> CGRect {
         switch paper {
         case .month(let content):
