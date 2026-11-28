@@ -1627,6 +1627,8 @@ struct CalendarRootScreen: View {
         paths.overviewCapNow = { padCaps || WindowClass.capsOverview(windowSize: Self.sceneWindowSize) }
         let events = model
         paths.eventSource = { events.events(from: $0, to: $1) }
+        // 1.4.3 (docs/R1_4_3_CONTRACT.md §5.5, 0g-24): a window of years reads the all-day events alone, as the one-page year.
+        paths.yearEventSource = { events.events(from: $0, to: $1, allDayOnly: true) }
         // M4 contract §5.3: pages the engine changed from iCloud reach the shown page here.
         sync.onRemoteUpdate = { applyRemote($0) }
         // 1.3 (docs/M7C_CONTRACT.md §6.6 H1, §7): a record another device's 「全て消す」 deleted.

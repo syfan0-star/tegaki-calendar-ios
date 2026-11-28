@@ -160,16 +160,21 @@ final class EventStoreModel: ObservableObject {
     /// without read access, and in screenshot mode the demo month's events that touch the days. The EKEvents stay
     /// known next to the shown page's (`EventKitService.events(…, keepingEarlier: true)`), so the event of any page of
     /// the window opens in the sheet and can be edited. The shown page's own `events` and `load` are not touched.
-    func events(from start: DayKey, to end: DayKey) -> [LayoutEvent] {
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §3.9, §5.5, 0g-24): `allDayOnly` (false by default: 1.3's answer, so the frozen
+    /// EventStoreModelSpanTests read what they read) keeps the all-day events alone, as the one-page year reads them
+    /// (`reload`'s `allDayOnly: kind == .year`): EventKit is asked with it (`EventKitService.events(…, allDayOnly:,
+    /// keepingEarlier: true)`, so a window of five to seven years keeps no timed EKEvent it never shows), and screenshot
+    /// mode's demo events are cut to the all-day ones too. The window of years asks for it (`ScreenPaths.yearEventSource`).
+    func events(from start: DayKey, to end: DayKey, allDayOnly: Bool = false) -> [LayoutEvent] {
         guard status.canRead else { return [] }
         if screenshot {
             let month = ScreenshotMode.current?.month ?? YearMonth(year: start.year, month: start.month)
             let from = start.startOfDay()
             let until = end.startOfDay()
-            return ScreenshotMode.demoEvents(for: month).filter { $0.start < until && $0.end > from }
+            return ScreenshotMode.demoEvents(for: month).filter { $0.start < until && $0.end > from && (!allDayOnly || $0.allDay) }
         }
         let visible = service.calendars.filter { !hiddenCalendarIds.contains($0.calendarIdentifier) }
-        return service.events(from: start, to: end, calendars: visible, keepingEarlier: true)
+        return service.events(from: start, to: end, calendars: visible, allDayOnly: allDayOnly, keepingEarlier: true)
     }
 
     // MARK: - Calendars (settings, sheets)

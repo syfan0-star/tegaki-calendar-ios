@@ -167,6 +167,11 @@ final class ScreenPaths: ObservableObject {
     let shot: ScreenshotMode.Config?
     /// The events of a window page (`EventStoreModel.events(from:to:)`), given to every session opened.
     var eventSource: ((DayKey, DayKey) -> [LayoutEvent])?
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §5.5, 0g-24): the events of a window page of years — the all-day ones alone, as the
+    /// one-page year reads them (the screen's `EventStoreModel.events(from:to:allDayOnly: true)`) — given to a window of years
+    /// in place of `eventSource` (`makeSession`); nil (the tests' default) gives it `eventSource`, as every window had. The
+    /// session's `eventSource` keeps its type and its one way in (the frozen TESTS_1_3 hand it two-argument closures).
+    var yearEventSource: ((DayKey, DayKey) -> [LayoutEvent])? = nil
     /// This device's setting 「前後のページを横につなげる」 (`AppSettings.pageSpan`).
     var settingOn: () -> Bool
     /// Screenshot mode's own setting (memory only, the plan §5.1): off unless `--screenshot-span on`
@@ -468,11 +473,14 @@ final class ScreenPaths: ObservableObject {
     /// device's `wide`: `WindowClass.capsOverview` of the window's size), and the window plan decided anew at a fold, an
     /// unfold or a turn reads the window of now (`overviewCapNow`, the screen's). `overviewCap: true` stays the screen's
     /// request of P-B6 イ (ScreenPathsSpanTests.testEveryJoinedPlanCarriesTheCap, TESTS_1_3, reads it).
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §5.5, 0g-24): a window of years reads its events from `yearEventSource` (the all-day
+    /// ones), or `eventSource` when that is nil; every other kind from `eventSource`, as before.
     private func makeSession(_ o: Opening, device: Device) -> SpanSession {
         openings += 1
         return SpanSession(kind: o.kind, weekStart: o.weekStart, focus: o.focus, sync: sync, deviceClass: device.deviceClass,
                            orientation: device.orientation, number: openings, context: o.context, paperArea: o.paperArea,
-                           overviewCap: true, wideWindow: device.wide, overviewCapNow: overviewCapNow, eventSource: eventSource,
+                           overviewCap: true, wideWindow: device.wide, overviewCapNow: overviewCapNow,
+                           eventSource: o.kind == .year ? (yearEventSource ?? eventSource) : eventSource,
                            loader: { [weak self, sync, kind = o.kind, weekStart = o.weekStart] id in
                                self?.read(id, kind: kind, weekStart: weekStart) ?? sync.load(id)
                            },
