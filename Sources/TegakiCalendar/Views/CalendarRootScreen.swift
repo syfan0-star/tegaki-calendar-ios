@@ -1929,14 +1929,26 @@ struct CalendarRootScreen: View {
             case .reveal(let rect):
                 revealRect = rect
                 revealTrigger += 1
+                focusOnToday(today)
             case .stay:
-                break
+                focusOnToday(today)
             }
             return
         }
         show(kind: kind, focus: today)
         revealRect = PageNavigation.todayRect(layout, now: now)
         revealTrigger += 1
+    }
+
+    /// 1.4.3 (review UX-3): 「今日」 on a window of months whose focus page already holds today (`ScreenPaths.todayFocus`):
+    /// nothing slides and no stop comes, so the focus is today here and is remembered (`remember`, not in screenshot mode),
+    /// as 1.4.2's one page opened at today (`show(kind: kind, focus: today)` above) — 週 or 日 then opens today's week or
+    /// day. Another month of the window gets today at the paper's stop there (`ScreenPaths.carriedFocus`); far away the new
+    /// window opens at today (`.reopen`); the week, the day and the year keep their focus (nil).
+    private func focusOnToday(_ today: DayKey) {
+        guard let day = paths.todayFocus(today) else { return }
+        if day != focus { focus = day }
+        remember()
     }
 
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, §16.3, 0e-7): 等倍. The canvas decides what it does (§16.3.2: a week or a day to
@@ -3296,9 +3308,11 @@ extension CalendarRootScreen {
 
     /// The window's focus page moved while the paper slides (C3-m7): the screen's focus follows it, its weekday kept, so
     /// the title, a kind switch, ＋予定 and the export's title name the page in the middle. `remember` waits for the stop.
+    /// 1.4.3 (review UX-3): through `ScreenPaths.carriedFocus`, the stop's rule, so after 「今日」 on a window of months today's
+    /// month brings today mid-slide too.
     func spanFocusMoved() {
         guard let span = paths.span else { return }
-        let next = ScreenPaths.focus(focus, kind: kind, weekStart: weekStart, movedTo: span.focusDay)
+        let next = paths.carriedFocus(focus, kind: kind, weekStart: weekStart, movedTo: span.focusDay)
         if next != focus { focus = next }
     }
 
