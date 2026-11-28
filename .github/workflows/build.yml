@@ -89,7 +89,7 @@
 # tools/span/TESTS_1_4_2.sha256 (§8.5). J-4's reference for 1.4.3 is tools/l10n/ja-baseline-ref-1.4.3.txt (57ffd0f,
 # 1.4.2's build 32).
 # 1.4.3's D1b (docs/R1_4_3_CONTRACT.md §11.3, §12.1, §12.4): the UI test step also runs SpanMonthYearUITests (`span-my UI:`;
-# its step 55 min and its job 70), and a seventh job, span-shots-my, photographs the joined months (23 photos and a PDF on
+# its step 55 min and its job 70), and a seventh job, span-shots-my, photographs the joined months (24 photos and a PDF on
 # four devices, artifact "span-shots-my", kept 7 days; outside J-4 and ja-baseline.yml). It `needs` compat-v1.0, so it
 # takes a runner only after the six others had theirs (macOS runs 5 jobs at once); D1y adds the years.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
@@ -4718,20 +4718,21 @@ jobs:
   # iPhone 18 Pro Max), one at a time: booted, light, the status bar at 9:41, 60 s for the banner (docs/M6.md §5.1), the tests
   # with span-shots-app's photo watcher (a turned screen is `simctl io screenshot`, the protocol the tests hold:
   # SpanMonthYearShotsUITests.simulatorPhoto) and its watchdog, and one more run after a new boot when the simulator failed.
-  # 23 photos, all in the month 2026-10 of the plain demo (`--screenshot-span on`; §12.4's 26 less the three "before 等倍",
+  # 24 photos, all in the month 2026-10 of the plain demo (`--screenshot-span on`; §12.4's 26 less the three "before 等倍",
   # which are the turned overviews): portrait the overview and the focus month's left boundary in the middle with the crossing
   # sample (`--screenshot-offset-x -0.5 --screenshot-span-crossing all`) on the four devices (8); turned the overview (3) and
   # 等倍 (`--screenshot-zoom fit`, 3) on the 13-inch iPad, the iPad Air 11-inch and the 6.9-inch iPhone; the iPad Air
   # 11-inch's pair before and after a shift (`--screenshot-span-shift`, 2); the old versions' one page
   # (`--screenshot-single-page --screenshot-span-crossing all`) of the 6.9-inch iPhone and the 13-inch iPad (2); the guide's
-  # month card for one finger in ja, de, fr and the doubled pseudo-language on the 6.9-inch iPhone (4); the memo paper's dots
+  # month card for one finger in ja, de, fr and the doubled pseudo-language, and ja's for two fingers (「指でも書く」 on, an
+  # iPhone's default; review CI-1), on the 6.9-inch iPhone (5); the memo paper's dots
   # at the boundary on the 13-inch iPad (`--screenshot-memo-paper dots`, 1). Before the bands of each orientation the one
   # page's month at the same place (`--screenshot-span off`) is launched without a photo (7 launches), and each band's line
   # `span-my paper:` sets its canvas frame beside that one page's (gate 3, §12.3: the same paper area; a difference fails the
   # test and this job's gate step). Then the joined month's PDF (PDFMonthYearTests, the memo strokes coming into a month
   # from its neighbours: `span-my-pdf-month.pdf`, and its PNG by `sips`) on the iPhone booted last.
   # Into the artifact span-shots-my (7 days): the photos, photos.txt (each name expected with its pixel size or "missing",
-  # any other PNG, and the line "span-shots-my: N photos (23 expected) and M PDFs (1 expected)"), lines.txt (the tests'
+  # any other PNG, and the line "span-shots-my: N photos (24 expected) and M PDFs (1 expected)"), lines.txt (the tests'
   # `span-my shots:` lines: the window, the canvas's frame, the probe's zoom, ox, oy, the paper's top in lu, one page across
   # in pt, span.state and the probe; `span cap:` the window's pages and top; `span-my one page:` and `span-my paper:`;
   # `span-my shift pair:`), shift-pair.txt (tools/shots/shift_pair.swift without the rows above the canvas: the status bar,
@@ -4755,8 +4756,9 @@ jobs:
   # alone on the runners): 16.5 min from the job's start to the first photo (the setup, the build, the first boot), 8–14
   # between two devices (the app output taken out, the shutdown, the next boot with the banner, the tests' start; the iPad
   # mini on iOS 27.0 the longest), a launch 25–50 s (the 6.9-inch iPhone 25, the 13-inch iPad 30–50, the iPad Air 11-inch
-  # 38–50). Here: the setup and the build about 8, the four devices about 41 (9 + 11 + 7.5 + 13.5), 29 launches about 18
-  # (12–24; the shift pair's release up to 75 s more), the PDF 3–5, the gates 1–2 (their tools built in the background
+  # 38–50). Here: the setup and the build about 8, the four devices about 41 (9 + 11 + 7.5 + 13.5), 30 launches about 18.5
+  # (12–25, ja's two-finger card of review CI-1 one of the 6.9-inch iPhone's 25 s; the shift pair's release up to 75 s
+  # more), the PDF 3–5, the gates 1–2 (their tools built in the background
   # while the devices boot), the upload 1–2: about 75 min (62–92). One device's one more run adds about 23 (10 of silence,
   # 1 to end xcodebuild, 6 to boot again with the banner, 6 for its tests). The photos' step stops at 110 (its part
   # 53–80, 103 with one more run) and the job at 140 (≥ 20 over the slowest with one more run, 120). The run: about
@@ -5231,11 +5233,12 @@ jobs:
                 EXPECTED="$EXPECTED ipad11-portrait-month-shift-before ipad11-portrait-month-shift-after"
                 EXPECTED="$EXPECTED ipad13-portrait-month-single iphone69-portrait-month-single"
                 for L in ja de fr pseudo; do EXPECTED="$EXPECTED iphone69-portrait-month-guide-$L"; done
+                EXPECTED="$EXPECTED iphone69-portrait-month-guide-ja-two"
                 EXPECTED="$EXPECTED ipad13-portrait-month-dots"
                 ;;
             esac
           done
-          PHOTOS=23
+          PHOTOS=24
           PDFS=1
           : > "$OUT/photos.txt"
           WANT=0
