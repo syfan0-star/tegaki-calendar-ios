@@ -253,6 +253,9 @@ final class AppSettingsTests: XCTestCase {
     /// real pinch afterwards, its ratio already stored) removes the flag and leaves the ratio. A month or a year never keeps
     /// it (its 等倍 is ratio 1), and neither call touches its ratio. The flag is neither a pinch (`hasPinched`) nor an earlier
     /// version's key (`isExistingUser`). Mutation MS3 (true not removing the ratio, §16.7) fails here.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, §8.5, §11.5 MS4): a month (and a year once it joins) keeps the state as the week
+    /// does; the year left out of `SpanKinds.joined` keeps 1.4.1's answer. Mutation MS4 (`followsFit` the week and the day
+    /// alone) fails here.
     func testZoomFitReplacesTheRatio() {
         XCTAssertEqual(AppSettings.zoomFitKey(.week), "zoomFit.week")
         XCTAssertEqual(AppSettings.zoomFitKey(.day), "zoomFit.day")
@@ -300,21 +303,52 @@ final class AppSettingsTests: XCTestCase {
         AppSettings.setZoomFit(false, for: .week)
         AppSettings.setZoomRatio(1, for: .day)
 
-        // A month or a year: never a state of its own.
+        // A month or a year (1.4.3, docs/R1_4_3_CONTRACT.md §6.1, §8.5 the last point, 0g-26): a kind that joins sideways
+        // (`SpanKinds.joined`: the month; the year with D1y) keeps its 等倍 state as the week does; one that does not has no
+        // state of its own (1.4.1's answer), so the fallback of 0g-3 (the year left out) needs no change here.
         for kind in [PageKind.month, .year] {
             let key = AppSettings.zoomFitKey(kind)
-            AppSettings.setZoomRatio(2, for: kind)
-            AppSettings.setZoomFit(true, for: kind)
-            XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind)")
-            XCTAssertNil(AppSettings.defaults.object(forKey: key), "\(kind): nothing written")
-            XCTAssertEqual(AppSettings.zoomRatio(for: kind), 2, "\(kind): the ratio stays")
-            AppSettings.setZoomFit(false, for: kind)
-            XCTAssertEqual(AppSettings.zoomRatio(for: kind), 2, "\(kind)")
-            // A flag on disk (written by something else) does not count either.
-            AppSettings.defaults.set(true, forKey: key)
-            XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind): read as false")
-            AppSettings.defaults.removeObject(forKey: key)
-            AppSettings.setZoomRatio(1, for: kind)
+            let ratioKey = AppSettings.zoomRatioKey(kind)
+            XCTAssertEqual(key, "zoomFit." + kind.rawValue, "\(kind)")
+            if SpanKinds.joined.contains(kind) {
+                XCTAssertTrue(ZoomReset.followsFit(kind), "\(kind)")
+                // 等倍 (a landscape 13-inch iPad's month: fit / open = 0.9757 / 0.7905), then fit true: the flag, the ratio gone.
+                AppSettings.setZoomRatio(1.234, for: kind)
+                XCTAssertNotNil(AppSettings.defaults.object(forKey: ratioKey), "\(kind): the ratio first")
+                AppSettings.setZoomFit(true, for: kind)
+                XCTAssertTrue(AppSettings.zoomFit(for: kind), "\(kind)")
+                XCTAssertTrue(AppSettings.defaults.bool(forKey: key), "\(kind): a Bool")
+                XCTAssertNil(AppSettings.defaults.object(forKey: ratioKey), "\(kind): true removes the ratio")
+                XCTAssertEqual(AppSettings.zoomRatio(for: kind), 1, "\(kind)")
+                // A real pinch afterwards: its ratio, then fit false.
+                AppSettings.setZoomRatio(2, for: kind)
+                AppSettings.setZoomFit(false, for: kind)
+                XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind)")
+                XCTAssertNil(AppSettings.defaults.object(forKey: key), "\(kind): false removes the key")
+                XCTAssertEqual(AppSettings.zoomRatio(for: kind), 2, "\(kind): false leaves the ratio")
+                // 1.4.1's and 1.4.2's 等倍 of a month wrote ratio 1 and no flag (§6.4): it opens at its opening zoom, not at fit.
+                AppSettings.setZoomRatio(1, for: kind)
+                XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind): no flag, not at 等倍")
+                XCTAssertNil(AppSettings.defaults.object(forKey: ratioKey), "\(kind)")
+                // A flag on disk counts (the same key on both paths).
+                AppSettings.defaults.set(true, forKey: key)
+                XCTAssertTrue(AppSettings.zoomFit(for: kind), "\(kind): read as true")
+                AppSettings.defaults.removeObject(forKey: key)
+            } else {
+                XCTAssertFalse(ZoomReset.followsFit(kind), "\(kind)")
+                AppSettings.setZoomRatio(2, for: kind)
+                AppSettings.setZoomFit(true, for: kind)
+                XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind)")
+                XCTAssertNil(AppSettings.defaults.object(forKey: key), "\(kind): nothing written")
+                XCTAssertEqual(AppSettings.zoomRatio(for: kind), 2, "\(kind): the ratio stays")
+                AppSettings.setZoomFit(false, for: kind)
+                XCTAssertEqual(AppSettings.zoomRatio(for: kind), 2, "\(kind)")
+                // A flag on disk (written by something else) does not count either.
+                AppSettings.defaults.set(true, forKey: key)
+                XCTAssertFalse(AppSettings.zoomFit(for: kind), "\(kind): read as false")
+                AppSettings.defaults.removeObject(forKey: key)
+                AppSettings.setZoomRatio(1, for: kind)
+            }
         }
 
         // Not a pinch (1.1.1's hint is decided as before, §16.3.4) and not an earlier version's key (1.2).

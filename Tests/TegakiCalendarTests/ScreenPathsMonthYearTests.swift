@@ -1,0 +1,566 @@
+@_spi(SpanLedger) import InkModel
+import Layout
+import XCTest
+@testable import TegakiCalendar
+
+// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.2, §3.6, §3.7, §3.8, §4.5, §4.7, §12.4, §11.2 row S, §11.5 MS1, MS2, MS5, MP1; 0g-9,
+// 0g-18, 0g-19, 0g-32): the screen's calls of the month on both paths through `ScreenPaths`, over a live `SyncEngine`
+// (`SessionTestBed`, as ScreenPathsSpanTests drives the weeks: a temporary store, the fake cloud, `TestSleeper`, a fixed
+// clock). The month joins with the setting on (`SpanKinds.joined`), stays on one page with it off, after stage 2 and with
+// `--screenshot-single-page`; its focus keeps the day of the month; 「今日」 brings today's cell on screen; the paper and the
+// PDF of a window page and the heading's window are the month's.
+//
+// The year joins with D1y: every expectation of the year is read from `SpanKinds.joined.contains(.year)` (§11.2), so the
+// fallback of 0g-3 (the month alone) needs no change here.
+//
+// The pages: Monday weeks, five months around 11/16/2026 on the 11-inch iPad in portrait (R = 2): 2026-09 … 2027-01.
+
+@MainActor
+final class ScreenPathsMonthYearTests: XCTestCase {
+    private var bed: SessionTestBed!
+    private var faults: [String] = []
+    private var savedOnFault: ((String) -> Void)!
+    private var savedDefaults: UserDefaults!
+    private var scratch: UserDefaults!
+    private var suiteName = ""
+    private var setting = true
+    private var one: OnePageSession!
+    private var paths: ScreenPaths!
+    private var stageTwo: [PageKind] = []
+
+    private let sep = "m1-2026-09"
+    private let oct = "m1-2026-10"
+    private let nov = "m1-2026-11"
+    private let dec = "m1-2026-12"
+    private let jan = "m1-2027-01"
+    private let nov16 = DayKey(year: 2026, month: 11, day: 16)
+    private let nov18 = DayKey(year: 2026, month: 11, day: 18)
+    private let ipad = ScreenPaths.Device(deviceClass: .iPad11, orientation: .portrait)
+    /// The 11-inch iPad's portrait paper area under the band (the month's `SpanPlan.referenceViewport`, rounded down).
+    private let portrait = CGSize(width: 834, height: 1_005)
+    private let landscape = CGSize(width: 1_210, height: 640)
+    /// The photos' day with `--screenshot-month 2026-10` (a Wednesday).
+    private let oct7 = DayKey(year: 2026, month: 10, day: 7)
+
+    override func setUp() async throws {
+        bed = try SessionTestBed("ScreenPathsMonthYearTests")
+        faults = []
+        savedOnFault = SpanSession.onFault
+        SpanSession.onFault = { [weak self] in self?.faults.append($0) }
+        suiteName = "ScreenPathsMonthYearTests-\(UUID().uuidString)"
+        scratch = UserDefaults(suiteName: suiteName)
+        savedDefaults = AppSettings.defaults
+        AppSettings.defaults = scratch
+        setting = true
+        stageTwo = []
+        paths = makePaths()
+        one = paths.onePage
+    }
+
+    override func tearDown() async throws {
+        AppSettings.defaults = savedDefaults
+        scratch?.removePersistentDomain(forName: suiteName)
+        SpanSession.onFault = savedOnFault
+        paths = nil
+        one = nil
+        bed?.tearDown()
+        bed = nil
+    }
+
+    // MARK: Helpers (ScreenPathsSpanTests' own, TESTS_1_3: copied, that file is not touched)
+
+    private func makePaths(screenshot: Bool = false, shot: ScreenshotMode.Config? = nil) -> ScreenPaths {
+        let sleeper = bed.sessionSleeper
+        let made = ScreenPaths(sync: bed.engine,
+                               onePage: OnePageSession(sync: bed.engine, sleep: { await sleeper.sleep($0) },
+                                                       clock: { [weak bed] in bed?.now ?? Date(timeIntervalSince1970: 0) }),
+                               screenshot: screenshot,
+                               shot: shot,
+                               settingOn: { [weak self] in self?.setting ?? true },
+                               defaults: scratch,
+                               sleep: { await sleeper.sleep($0) },
+                               clock: { [weak bed] in bed?.now ?? Date(timeIntervalSince1970: 0) })
+        made.onStageTwo = { [weak self] in self?.stageTwo.append($0) }
+        bed.engine.onRemoteUpdate = { [weak made] page in
+            guard let made else { return }
+            _ = made.remoteUpdated(page, shownPageId: made.onePage.page.pageId)
+        }
+        bed.engine.onRemoteDelete = { [weak made] id in
+            guard let made else { return }
+            _ = made.remoteDeleted(id, shownPageId: made.onePage.page.pageId)
+        }
+        return made
+    }
+
+    private func opening(_ kind: PageKind = .month, focus: DayKey? = nil, weekStart: WeekStart = .monday,
+                         device: ScreenPaths.Device?? = .none, now: Date? = nil) -> ScreenPaths.Opening {
+        ScreenPaths.Opening(kind: kind, focus: focus ?? nov16, weekStart: weekStart, device: device ?? ipad, paperArea: nil,
+                            context: SpanSession.PaperContext(now: now ?? bed.now, calendar: SessionTestBed.tokyo))
+    }
+
+    /// The month window at 11/16 (or `o`) opened through `ScreenPaths` and read (the canvas starts `prefetch` as it attaches).
+    @discardableResult
+    private func openWindow(_ o: ScreenPaths.Opening? = nil, file: StaticString = #filePath, line: UInt = #line) async throws -> SpanSession {
+        XCTAssertEqual(paths.open(o ?? opening()), .joined, file: file, line: line)
+        let session = try XCTUnwrap(paths.span, file: file, line: line)
+        await session.prefetch()
+        return session
+    }
+
+    private func at(_ month: Int, _ day: Int, _ hour: Int, year: Int = 2026) throws -> Date {
+        try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: year, month: month, day: day, hour: hour)))
+    }
+
+    /// The band x (lu) of the middle of the page `offset` pages from the focus page.
+    private func middle(of session: SpanSession, slots offset: Int = 0) -> CGFloat {
+        let w = session.plan.pageWidth
+        return CGFloat(session.focusSlot + offset) * w + w / 2
+    }
+
+    /// The month page `pageId` of the window and its origin (band lu).
+    private func month(_ pageId: String, of session: SpanSession, file: StaticString = #filePath,
+                       line: UInt = #line) throws -> (page: MonthPageLayout, origin: CGFloat) {
+        let slot = try XCTUnwrap(session.layout.slot(ofPage: pageId), pageId, file: file, line: line)
+        let page = try XCTUnwrap(session.layout.pages[slot] as? MonthPageLayout, pageId, file: file, line: line)
+        return (page, session.layout.origin(ofSlot: slot))
+    }
+
+    /// Screenshot mode's arguments of the photos of 2026-10 (its day: Wednesday 10/7) and `extra`.
+    private func shotConfig(_ extra: [String]) throws -> ScreenshotMode.Config {
+        try XCTUnwrap(ScreenshotMode.parse(["--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "month"] + extra))
+    }
+
+    /// 1.3's formula of the focus (the week's and the day's, and the year's until it joins).
+    private func formula(_ focus: DayKey, _ kind: PageKind, _ weekStart: WeekStart, movedTo pageFirstDay: DayKey) -> DayKey {
+        let shown = PageNavigation.dayRange(kind, focus: focus, weekStart: weekStart)
+        return focus.adding(days: pageFirstDay.dayNumber - shown.start.dayNumber)
+    }
+
+    // MARK: §3.2 — the path
+
+    /// MS1, §3.2, 0g-9: the month joins with the setting on (`SpanKinds.joined`), in screenshot mode only with its own setting
+    /// (`--screenshot-span on`) and never with `--screenshot-single-page`; the setting off, stage 2 and the old versions' view
+    /// keep it on one page. A joined month waits for the window scene as the week does (1.3's month opened on one page at
+    /// once). The year: as `SpanKinds.joined` says.
+    func testTheMonthOpensOnItsPath() async throws {
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: true, screenshot: false, screenshotSpan: false, fallenBack: []))
+        XCTAssertFalse(ScreenPaths.joins(kind: .month, setting: false, screenshot: false, screenshotSpan: true, fallenBack: []), "off")
+        XCTAssertFalse(ScreenPaths.joins(kind: .month, setting: true, screenshot: true, screenshotSpan: false, fallenBack: []),
+                       "screenshot mode's default")
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: false, screenshot: true, screenshotSpan: true, fallenBack: []),
+                      "screenshot mode's own setting")
+        XCTAssertFalse(ScreenPaths.joins(kind: .month, setting: true, screenshot: false, screenshotSpan: false, fallenBack: [.month]),
+                       "stage 2")
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: true, screenshot: false, screenshotSpan: false, fallenBack: [.week, .day]),
+                      "another kind's stage 2 is its own")
+        XCTAssertFalse(ScreenPaths.joins(kind: .month, setting: true, screenshot: true, screenshotSpan: true, singlePage: true, fallenBack: []),
+                       "--screenshot-single-page, the old versions' view")
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: true, screenshot: false, screenshotSpan: false, singlePage: true, fallenBack: []),
+                      "no screenshot argument outside screenshot mode")
+
+        XCTAssertEqual(paths.open(opening()), .joined)
+        XCTAssertEqual(paths.path, .joined)
+        let session = try XCTUnwrap(paths.span)
+        XCTAssertEqual(session.kind, .month)
+        XCTAssertEqual(session.focusPageId, nov)
+        XCTAssertEqual(session.pageIds, [sep, oct, nov, dec, jan])
+        XCTAssertEqual(session.deviceClass, .iPad11)
+        setting = false
+        XCTAssertEqual(paths.open(opening()), .onePage)
+        XCTAssertEqual(paths.path, .onePage)
+        XCTAssertNil(paths.span)
+        XCTAssertEqual(one.page.pageId, nov)
+        setting = true
+        XCTAssertEqual(paths.open(opening(.year)), SpanKinds.joined.contains(.year) ? .joined : .onePage, "the year: the set's answer")
+
+        // C3-m11: no window of a guessed device.
+        XCTAssertEqual(paths.open(opening(device: .some(nil))), .waiting)
+        XCTAssertEqual(paths.path, .erasing)
+        XCTAssertTrue(paths.waitingForScene)
+        XCTAssertNil(paths.span)
+        XCTAssertEqual(paths.open(opening()), .joined)
+        XCTAssertFalse(paths.waitingForScene)
+
+        // Screenshot mode: the one page unless its own setting is on; never with --screenshot-single-page.
+        let on = makePaths(screenshot: true, shot: try shotConfig(["--screenshot-span", "on"]))
+        XCTAssertTrue(on.screenshotSpan)
+        XCTAssertEqual(on.open(opening(focus: oct7)), .joined)
+        XCTAssertEqual(on.span?.focusPageId, oct)
+        let plain = makePaths(screenshot: true, shot: try shotConfig([]))
+        XCTAssertEqual(plain.open(opening(focus: oct7)), .onePage, "the photos of 1.4.2 stay on one page")
+        XCTAssertEqual(plain.onePage.page.pageId, oct)
+        let single = makePaths(screenshot: true, shot: try shotConfig(["--screenshot-span", "on", "--screenshot-single-page"]))
+        XCTAssertEqual(single.open(opening(focus: oct7)), .onePage)
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.2: stage 2 works for the month as for the week (it does not look at the kind): a window of months estimated over the
+    /// iPhone's cap as it opens falls back to one page for the month alone, once in this run, until the setting is turned on
+    /// again; the week still joins.
+    func testStageTwoSendsTheMonthToOnePage() async throws {
+        let iPhone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .portrait)
+        let plan = SpanPlan(kind: .month, weekStart: .monday, deviceClass: .iPhone, orientation: .portrait, overviewCap: true)
+        let focus = plan.index(containing: nov16)
+        XCTAssertGreaterThanOrEqual(plan.radius, 1)
+        // Each neighbour's file is estimated over the cap's share (`SpanPlan.estimatedStrokes`: 250 bytes a stroke).
+        let share = SpanPlan.windowStrokeCap.iPhone / (2 * plan.radius) + 100
+        for index in (focus - plan.radius)...(focus + plan.radius) where index != focus {
+            try Data(repeating: 0x41, count: share * SpanPlan.bytesPerStroke).write(to: bed.store.url(for: plan.pageId(at: index)))
+        }
+        XCTAssertEqual(paths.open(opening(device: iPhone)), .fellBack)
+        XCTAssertEqual(paths.path, .onePage)
+        XCTAssertEqual(one.page.pageId, nov)
+        XCTAssertEqual(paths.fallenBack, [.month])
+        XCTAssertEqual(stageTwo, [.month], "N-8 once on this device for the month")
+        XCTAssertEqual(paths.open(opening(device: iPhone)), .onePage, "the same run: one page")
+        XCTAssertEqual(paths.open(opening(.week, device: iPhone)), .joined, "the week is its own kind")
+        paths.settingChanged(true)
+        XCTAssertEqual(paths.fallenBack, [])
+    }
+
+    // MARK: §3.6 — the focus
+
+    /// MS2, §3.6, 0g-18: a month window's focus moves to the page's month keeping the day of the month, or the month's last day
+    /// (1.3's formula counted from the grid's first day and stayed in the same month: 10/31 → 12/4, 11/30 → 11/5); the week and
+    /// the day keep 1.3's formula, and the year keeps it until it joins (its rule, 2/29 → 2/28, comes with it). The screen's
+    /// stop on a month window gives the new focus and remembers it.
+    func testTheMonthsFocusKeepsTheDayOfTheMonth() async throws {
+        let oct31 = DayKey(year: 2026, month: 10, day: 31)
+        let nov1 = DayKey(year: 2026, month: 11, day: 1)
+        for weekStart in WeekStart.allCases {
+            XCTAssertEqual(ScreenPaths.focus(oct31, kind: .month, weekStart: weekStart, movedTo: nov1), DayKey(year: 2026, month: 11, day: 30),
+                           "\(weekStart): 10/31 → November")
+            XCTAssertEqual(ScreenPaths.focus(DayKey(year: 2026, month: 11, day: 30), kind: .month, weekStart: weekStart,
+                                             movedTo: DayKey(year: 2026, month: 10, day: 1)),
+                           DayKey(year: 2026, month: 10, day: 30), "\(weekStart): 11/30 → October")
+            XCTAssertEqual(ScreenPaths.focus(DayKey(year: 2027, month: 1, day: 31), kind: .month, weekStart: weekStart,
+                                             movedTo: DayKey(year: 2027, month: 2, day: 1)),
+                           DayKey(year: 2027, month: 2, day: 28), "\(weekStart): 1/31 → February, its last day")
+        }
+        XCTAssertEqual(ScreenPaths.focus(DayKey(year: 2028, month: 1, day: 31), kind: .month, weekStart: .monday,
+                                         movedTo: DayKey(year: 2028, month: 2, day: 1)),
+                       DayKey(year: 2028, month: 2, day: 29), "a leap year's February")
+        XCTAssertEqual(ScreenPaths.focus(DayKey(year: 2026, month: 12, day: 31), kind: .month, weekStart: .monday,
+                                         movedTo: DayKey(year: 2027, month: 1, day: 1)),
+                       DayKey(year: 2027, month: 1, day: 31), "across the new year")
+        XCTAssertEqual(ScreenPaths.focus(DayKey(year: 2027, month: 3, day: 31), kind: .month, weekStart: .monday,
+                                         movedTo: DayKey(year: 2026, month: 11, day: 1)),
+                       DayKey(year: 2026, month: 11, day: 30), "back several months")
+        XCTAssertEqual(ScreenPaths.focus(nov18, kind: .month, weekStart: .monday, movedTo: nov1), nov18, "the same page keeps the focus")
+        XCTAssertNotEqual(ScreenPaths.focus(oct31, kind: .month, weekStart: .monday, movedTo: nov1), formula(oct31, .month, .monday, movedTo: nov1),
+                          "not 1.3's formula")
+
+        // The week and the day: 1.3's formula (the frozen ScreenPathsSpanTests' answers).
+        let cases: [(DayKey, PageKind, WeekStart, DayKey)] = [
+            (nov18, .week, .monday, DayKey(year: 2026, month: 11, day: 23)),
+            (nov18, .week, .monday, DayKey(year: 2026, month: 11, day: 2)),
+            (nov18, .week, .sunday, DayKey(year: 2026, month: 11, day: 22)),
+            (oct31, .week, .monday, DayKey(year: 2026, month: 11, day: 2)),
+            (nov16, .day, .monday, nov18),
+            (oct31, .day, .sunday, nov1),
+        ]
+        for (focus, kind, weekStart, moved) in cases {
+            XCTAssertEqual(ScreenPaths.focus(focus, kind: kind, weekStart: weekStart, movedTo: moved),
+                           formula(focus, kind, weekStart, movedTo: moved), "\(kind) \(focus) → \(moved)")
+        }
+        // The year: its rule once it joins, 1.3's formula until then.
+        let y2027 = DayKey(year: 2027, month: 1, day: 1)
+        for focus in [DayKey(year: 2028, month: 12, day: 31), DayKey(year: 2028, month: 2, day: 29), DayKey(year: 2028, month: 7, day: 14)] {
+            let moved = ScreenPaths.focus(focus, kind: .year, weekStart: .monday, movedTo: y2027)
+            if SpanKinds.joined.contains(.year) {
+                XCTAssertEqual(moved.year, 2027, "\(focus)")
+                XCTAssertEqual(moved.month, focus.month, "\(focus): the same month")
+                XCTAssertEqual(moved.day, min(focus.day, DayKey.daysInMonth(year: 2027, month: focus.month)), "\(focus): the same day, 2/29 → 2/28")
+            } else {
+                XCTAssertEqual(moved, formula(focus, .year, .monday, movedTo: y2027), "\(focus): 1.3's formula until the year joins")
+            }
+        }
+
+        // The screen's stop: a window opened at 10/31 slides to November.
+        let session = try await openWindow(opening(focus: oct31))
+        XCTAssertEqual(session.focusPageId, oct)
+        let stop = session.stopped(midX: middle(of: session, slots: 1))
+        XCTAssertEqual(stop.focusDay, nov1, "the focus page's first day")
+        var moved: [DayKey] = []
+        let stopped = paths.stopped(stop, focus: oct31, kind: .month, weekStart: .monday, focusMoved: { moved.append($0) }, boundary: {})
+        XCTAssertEqual(stopped.focus, DayKey(year: 2026, month: 11, day: 30))
+        XCTAssertEqual(moved, [DayKey(year: 2026, month: 11, day: 30)])
+        XCTAssertEqual(stopped.visitEnded?.pageId, oct)
+        XCTAssertFalse(stopped.fallBack)
+        XCTAssertEqual(scratch.string(forKey: AppSettings.lastFocusKey), "2026-11-30", "remembered (`lastFocusDate`)")
+        XCTAssertEqual(scratch.string(forKey: AppSettings.lastKindKey), PageKind.month.rawValue)
+        XCTAssertEqual(faults, [])
+    }
+
+    // MARK: §3.7 — 「今日」
+
+    /// MS5, §3.7, 0g-19: the rect 「今日」 reveals on a month page zoomed in is today's cell (1.1.1's `PageNavigation.todayRect`
+    /// of the page) with the page's origin added, not the page's width from its top (1.4.2's answer for a page that is not a
+    /// week or a day); on another page of the window, that page's cell.
+    func testTheMonthsTodayRectIsTodaysCell() async throws {
+        let session = try await openWindow()
+        let zoomed = PaperViewport(offsetX: 2 * 1_400 * 1.2, zoom: 1.2, width: 834)
+        let now = try at(11, 18, 10)
+        let november = try month(nov, of: session)
+        let rect = try XCTUnwrap(ScreenPaths.todayRect(layout: session.layout, pageId: nov, now: now, calendar: SessionTestBed.tokyo,
+                                                       viewport: zoomed, area: portrait))
+        let cell = try XCTUnwrap(november.page.cells[.day(nov18)])
+        XCTAssertEqual(rect, cell.offsetBy(dx: november.origin, dy: 0))
+        XCTAssertEqual(november.origin, 2 * 1_400)
+        XCTAssertEqual(rect.minX, november.origin + 2 * 200, accuracy: 1e-9, "Wednesday: the third column of a Monday week")
+        XCTAssertEqual(rect.minY, november.page.rows[3].frame.minY, accuracy: 1e-9, "the row of 11/16–11/22")
+        XCTAssertEqual(rect.width, 200, accuracy: 1e-9)
+        XCTAssertEqual(rect.height, november.page.rows[3].frame.height, accuracy: 1e-9)
+        XCTAssertLessThan(rect.width, november.page.size.width, "not the page's width")
+        XCTAssertEqual(PageNavigation.todayRect(november.page, now: now, calendar: SessionTestBed.tokyo), cell, "1.1.1's rect of the one page")
+
+        let december = try month(dec, of: session)
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        let decRect = try XCTUnwrap(ScreenPaths.todayRect(layout: session.layout, pageId: dec, now: try at(12, 3, 9),
+                                                          calendar: SessionTestBed.tokyo, viewport: zoomed, area: portrait))
+        XCTAssertEqual(decRect, try XCTUnwrap(december.page.cells[.day(dec3)]).offsetBy(dx: december.origin, dy: 0))
+        XCTAssertEqual(decRect.minY, 0, accuracy: 1e-9, "12/3 is in December's first row (11/30–12/6)")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.7, 0g-19, open question 10's default (S's decision): far → a new window; near at the overview → a slide; today's page
+    /// already the focus at the overview → the request with no x (`monthTodayRequest`, `InkCanvasView.nowLineRevealRect`): y to
+    /// the cell's top less 1.1.1's margin when the cell's bottom is off the screen, decided by the canvas; zoomed in → today's
+    /// cell (on today's page, which need not be the focus); 等倍 on a landscape iPad counts as zoomed in before a report (its
+    /// fit is above the opening zoom). The one page keeps 1.1.1's 「今日」 (nil here).
+    func testTodayOnAWindowOfMonths() async throws {
+        let session = try await openWindow()
+        let november = try month(nov, of: session)
+        let december = try month(dec, of: session)
+        let now = try at(11, 18, 10)
+        let cell = try XCTUnwrap(november.page.cells[.day(nov18)])
+        let far = DayKey(year: 2027, month: 6, day: 10)
+        XCTAssertEqual(paths.today(far, now: now, viewport: nil, area: portrait, ratio: 1), .reopen(far))
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        XCTAssertEqual(paths.today(dec3, now: try at(12, 3, 9), viewport: nil, area: portrait, ratio: 1), .slide(1))
+        XCTAssertEqual(paths.today(DayKey(year: 2026, month: 9, day: 10), now: try at(9, 10, 9), viewport: nil, area: portrait, ratio: 1),
+                       .slide(-2))
+
+        // Today's page is the focus at the overview: y alone, decided by the canvas.
+        let bounds = session.layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(session.layout), viewport: portrait)
+        let overview = PaperViewport(offsetX: november.origin * bounds.open, zoom: bounds.open, width: portrait.width)
+        for viewport in [overview, nil] as [PaperViewport?] {
+            guard case .reveal(let request)? = paths.today(nov18, now: now, viewport: viewport, area: portrait, ratio: 1) else {
+                return XCTFail("\(String(describing: viewport)): the overview's request")
+            }
+            XCTAssertTrue(request.origin.x.isNaN, "no x: x never moves")
+            let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request), "the canvas reads it as the y-only request")
+            XCTAssertEqual(lines.top, cell.minY - ZoomPolicy.revealMargin / bounds.open, accuracy: 1e-9, "the cell's top less the margin")
+            XCTAssertEqual(lines.nowLine, cell.maxY, accuracy: 1e-9, "moves only while the cell's bottom is off the screen")
+            XCTAssertNotNil(paths.revealRect(request, for: session), "for this window's canvas")
+        }
+        XCTAssertNotNil(ScreenPaths.monthTodayRequest(layout: session.layout, pageId: nov, now: now, calendar: SessionTestBed.tokyo,
+                                                      zoom: bounds.open))
+        XCTAssertNil(ScreenPaths.monthTodayRequest(layout: session.layout, pageId: jan, now: now, calendar: SessionTestBed.tokyo,
+                                                   zoom: bounds.open), "a page that does not hold today")
+
+        // Zoomed in: today's cell, on today's page.
+        let zoomed = PaperViewport(offsetX: november.origin * 1.2, zoom: 1.2, width: portrait.width)
+        guard case .reveal(let rect)? = paths.today(nov18, now: now, viewport: zoomed, area: portrait, ratio: 1) else {
+            return XCTFail("zoomed in: today's cell")
+        }
+        XCTAssertEqual(rect, cell.offsetBy(dx: november.origin, dy: 0))
+        guard case .reveal(let decRect)? = paths.today(dec3, now: try at(12, 3, 9), viewport: zoomed, area: portrait, ratio: 1) else {
+            return XCTFail("zoomed in on another page of the window: its cell, not a slide")
+        }
+        XCTAssertEqual(decRect, try XCTUnwrap(december.page.cells[.day(dec3)]).offsetBy(dx: december.origin, dy: 0))
+        XCTAssertTrue(ScreenPaths.zoomedIn(layout: session.layout, viewport: nil, area: portrait, ratio: 2))
+
+        // 等倍 on a landscape iPad before a report: fit (1,210 / 1,400) is above the opening zoom (640 / 1,050).
+        let wide = session.layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(session.layout), viewport: landscape)
+        XCTAssertGreaterThan(wide.fit, wide.open + 0.1)
+        XCTAssertTrue(ScreenPaths.zoomedIn(layout: session.layout, viewport: nil, area: landscape, ratio: 1, fit: true))
+        guard case .reveal(let fitRect)? = paths.today(nov18, now: now, viewport: nil, area: landscape, ratio: 1, fit: true) else {
+            return XCTFail("at fit: today's cell")
+        }
+        XCTAssertEqual(fitRect, cell.offsetBy(dx: november.origin, dy: 0))
+        guard case .reveal(let open)? = paths.today(nov18, now: now, viewport: nil, area: landscape, ratio: 1) else {
+            return XCTFail("at the opening zoom: the y-only request")
+        }
+        XCTAssertNotNil(InkCanvasView.nowLineRevealLines(open))
+
+        setting = false
+        paths.open(opening())
+        XCTAssertNil(paths.today(nov18, now: now, viewport: nil, area: portrait, ratio: 1), "the one page: 1.1.1's 「今日」")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §4.5, 0g-15: the window's tables overlap by a week or two and today's mark is on both (11/30 is November's last day and
+    /// a pale day of December's first row), on the window's paper too; 「今日」 zoomed in goes to the cell of the page that holds
+    /// the day as its own (November), not to December's copy.
+    func testTodaysMarkIsOnBothTablesOfTheWindow() async throws {
+        let now = try at(11, 30, 10)
+        let session = try await openWindow(opening(now: now))
+        let nov30 = DayKey(year: 2026, month: 11, day: 30)
+        for (id, inMonth) in [(nov, true), (dec, false)] {
+            let page = try month(id, of: session).page
+            let label = try XCTUnwrap(page.dateLabels.first { $0.day == nov30 }, id)
+            XCTAssertTrue(label.isToday, id)
+            XCTAssertEqual(label.inMonth, inMonth, id)
+            XCTAssertEqual(page.dateLabels.filter(\.isToday).map(\.day), [nov30], "\(id): one mark")
+            XCTAssertNotNil(PageNavigation.todayRect(page, now: now, calendar: SessionTestBed.tokyo), id)
+        }
+        for id in [sep, oct, jan] {
+            XCTAssertEqual(try month(id, of: session).page.dateLabels.filter(\.isToday), [], "\(id): no mark")
+        }
+        let window = try XCTUnwrap(PaperSpan.window(for: session.layout, focus: session.focusSlot))
+        let marked = window.pages.compactMap { content -> String? in
+            guard case .month(let paper) = content, paper.labels.contains(where: \.isToday) else { return nil }
+            return paper.layout.pageId
+        }
+        XCTAssertEqual(marked, [nov, dec], "the paper draws both marks")
+
+        let november = try month(nov, of: session)
+        let zoomed = PaperViewport(offsetX: november.origin * 1.2, zoom: 1.2, width: portrait.width)
+        guard case .reveal(let rect)? = paths.today(nov30, now: now, viewport: zoomed, area: portrait, ratio: 1) else {
+            return XCTFail("zoomed in: today's cell")
+        }
+        XCTAssertEqual(rect, try XCTUnwrap(november.page.cells[.day(nov30)]).offsetBy(dx: november.origin, dy: 0), "November's own day")
+        XCTAssertEqual(faults, [])
+    }
+
+    // MARK: §4.7 — the paper and the PDF; §3.8 — the heading
+
+    /// §4.7, 0g-32, 0g-53: the paper of a window page (`ScreenPaths.paper(of:)`, one argument) is the month's, made by the one
+    /// place (`PaperSpan.paperContent`), so the joined month's PDF (`pdfInput`) is its focus page with the memo stroke that
+    /// reaches in from the left month (the real page has no window name); `focusPaper` follows. The week and the day are
+    /// 1.3's; the year: as `SpanKinds.joined` says. The one page keeps 1.2.3's PDF (nil here).
+    func testThePaperAndThePDFOfAWindowOfMonths() async throws {
+        let session = try await openWindow()
+        let november = try month(nov, of: session)
+        let paper = try XCTUnwrap(ScreenPaths.paper(of: november.page))
+        XCTAssertEqual(paper.kind, .month)
+        XCTAssertEqual(paper, PaperSpan.paperContent(of: november.page))
+        guard case .month(let content) = paper else { return XCTFail("a month's paper") }
+        XCTAssertEqual(content.layout, november.page)
+        XCTAssertEqual(content.labels, november.page.dateLabels)
+        XCTAssertEqual(paths.focusPaper, paper, "the focus page's paper")
+
+        let ledger = JoinedLedgerStandIn(session)
+        let memo = try XCTUnwrap(session.layout.cells[SpanName.prefixed(.memo, page: oct)])
+        XCTAssertEqual(memo.maxX, november.origin, accuracy: 1e-9)
+        // Owned by October (its centre is left of the boundary), reaching 200 lu into November's memo.
+        let crossing = try XCTUnwrap(ledger.draw([CGPoint(x: november.origin - 300, y: memo.minY + 200),
+                                                  CGPoint(x: november.origin - 50, y: memo.minY + 205),
+                                                  CGPoint(x: november.origin + 200, y: memo.minY + 200)]))
+        XCTAssertEqual(crossing.cell, SpanName.prefixed(.memo, page: oct))
+        let own = try XCTUnwrap(ledger.draw(on: nov, cell: .day(nov18), x: 40, y: 80))
+        ledger.put()
+        let input = try XCTUnwrap(paths.pdfInput(), "the joined month's PDF")
+        XCTAssertEqual(input.page.pageId, nov)
+        XCTAssertTrue(SpanGuard.checkForTransfer(input.page))
+        XCTAssertFalse(input.page.strokes.keys.contains { $0.contains("|") })
+        XCTAssertEqual(input.page.liveStrokeIds, [try XCTUnwrap(SpanName.split(own.id)?.local)])
+        XCTAssertEqual(input.neighborInk.map(\.pageId), [oct])
+        XCTAssertEqual(input.neighborInk.first?.stroke.id, SpanName.split(crossing.id)?.local)
+        XCTAssertEqual(input.focus, DayKey(year: 2026, month: 11, day: 1))
+        XCTAssertEqual(input.paper.layout.pageId, nov)
+        XCTAssertEqual(input.paper.kind, .month)
+
+        // Every kind: the paper of a page as the set says.
+        for (number, kind) in [PageKind.week, .day, .year].enumerated() {
+            let other = bed.session(kind, focus: nov16, number: 10 + number)
+            await other.prefetch()
+            let page = other.layout.pages[other.focusSlot]
+            XCTAssertEqual(ScreenPaths.paper(of: page) != nil, SpanKinds.joined.contains(kind), "\(kind)")
+            if kind == .week {
+                XCTAssertEqual(ScreenPaths.paper(of: page), .week(WeekPaperContent(layout: try XCTUnwrap(page as? WeekPageLayout))), "1.3's")
+            }
+            if kind == .day {
+                XCTAssertEqual(ScreenPaths.paper(of: page), .day(DayPaperContent(layout: try XCTUnwrap(page as? DayPageLayout))), "1.3's")
+            }
+        }
+
+        setting = false
+        paths.open(opening())
+        XCTAssertNil(paths.pdfInput(), "the one page's PDF is 1.2.3's")
+        XCTAssertNil(paths.focusPaper)
+        XCTAssertEqual(faults, [])
+    }
+
+    /// MP1, §3.8, 0g-20: the heading's window of a month window is made (1.4.2 made none: `PaperSpan(layout:bands:focus:)` is
+    /// nil for a month) and is `PaperSpan.window` of the session's layout: the pages alone, no all-day band; `headingSpan` has
+    /// the focus of now. A shifted window waits for its viewport as the week's does.
+    func testTheHeadingOfAWindowOfMonths() async throws {
+        let session = try await openWindow()
+        let heading = try XCTUnwrap(paths.heading, "the heading of a month window")
+        XCTAssertEqual(heading.version, session.windowVersion)
+        XCTAssertEqual(heading.firstIndex, session.layout.firstIndex)
+        XCTAssertEqual(heading.span, PaperSpan.window(for: session.layout, focus: session.focusSlot))
+        XCTAssertEqual(heading.span.kind, .month)
+        XCTAssertEqual(heading.span.bands, [], "no all-day band")
+        XCTAssertEqual(heading.span.pages.map(\.layout.pageId), session.pageIds)
+        XCTAssertEqual(paths.headingSpan?.focus, session.focusSlot)
+        XCTAssertEqual(paths.headingSpan?.bands, [])
+
+        let v1 = PaperViewport(offsetX: 2 * 1_400 * 0.5957, zoom: 0.5957, width: 834)
+        paths.viewportArrived(v1)
+        session.contextChanged()
+        XCTAssertEqual(paths.heading?.version, session.windowVersion, "the first page did not move: at once")
+        XCTAssertEqual(paths.heading?.viewport, v1)
+        _ = session.stopped(midX: middle(of: session, slots: 1))
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
+        let v2 = PaperViewport(offsetX: v1.offsetX - 1_400 * 0.5957, zoom: 0.5957, width: 834)
+        paths.viewportArrived(v2)
+        let shifted = try XCTUnwrap(paths.heading)
+        XCTAssertEqual(shifted.version, session.windowVersion)
+        XCTAssertEqual(shifted.span, PaperSpan.window(for: session.layout, focus: session.focusSlot))
+        XCTAssertEqual(shifted.span.pages.map(\.layout.pageId), [oct, nov, dec, jan, "m1-2027-02"])
+        XCTAssertEqual(shifted.viewport, v2)
+        XCTAssertEqual(faults, [])
+    }
+
+    // MARK: §12.4 — the old versions' view of a month
+
+    /// §12.4, 0g-31: `--screenshot-single-page` opens a month on one page with its own half of the memo's crossing sample
+    /// (`--screenshot-span-crossing all`: the focus month's stroke, which runs off its left edge; never the left month's) and,
+    /// on the month right of the photos' month, the tall rows (`--screenshot-month-tall`); without those two arguments the
+    /// strokes of 1.2.3's demo page (as the frozen ScreenPathsSpanTests checks). Nil without the argument and in normal use;
+    /// the year: as `SpanKinds.joined` says.
+    func testTheOldVersionsOnePageOfAMonth() throws {
+        let demo = ScreenshotMode.demoPage(kind: .month, focus: oct7, grown: false, empty: false, tallYear: false, weekStart: .monday,
+                                           storeInk: false)
+        let ids = ScreenshotMode.monthCrossingStrokeIds
+
+        let plain = try shotConfig(["--screenshot-span", "on", "--screenshot-single-page"])
+        let plainPage = try XCTUnwrap(ScreenPaths.singlePageDemo(plain, opening(focus: oct7)))
+        XCTAssertEqual(plainPage.pageId, oct)
+        XCTAssertEqual(Set(plainPage.liveStrokeIds), Set(demo.liveStrokeIds), "without the new arguments: 1.2.3's demo")
+
+        let all = try shotConfig(["--screenshot-span", "on", "--screenshot-single-page", "--screenshot-span-crossing", "all"])
+        XCTAssertTrue(all.spanCrossingAll)
+        let page = try XCTUnwrap(ScreenPaths.singlePageDemo(all, opening(focus: oct7)))
+        XCTAssertEqual(Set(page.liveStrokeIds), Set(demo.liveStrokeIds).union([ids.focus]), "its own half")
+        XCTAssertFalse(page.liveStrokeIds.contains(ids.left), "never the left month's")
+        let half = try XCTUnwrap(page.strokes[ids.focus])
+        XCTAssertEqual(half.cell, .memo)
+        XCTAssertLessThan(half.points.map(\.x).min() ?? 0, 0, "it runs off the left edge")
+
+        // Through the path: one page with that page.
+        let single = makePaths(screenshot: true, shot: all)
+        XCTAssertEqual(single.open(opening(focus: oct7)), .onePage)
+        XCTAssertEqual(Set(single.onePage.page.liveStrokeIds), Set(page.liveStrokeIds))
+
+        // The month right of the photos' month with --screenshot-month-tall: its tall rows (the neighbour's own ids).
+        let tall = try shotConfig(["--screenshot-span", "on", "--screenshot-single-page", "--screenshot-month-tall"])
+        let right = try XCTUnwrap(ScreenPaths.singlePageDemo(tall, opening(focus: nov16)))
+        XCTAssertEqual(right.pageId, nov)
+        XCTAssertTrue(Set(right.liveStrokeIds).isSuperset(of: ["demo-stroke-month-tall-1", "demo-stroke-month-tall-2", "demo-stroke-month-tall-3"]))
+        XCTAssertFalse(Set(try XCTUnwrap(ScreenPaths.singlePageDemo(tall, opening(focus: oct7))).liveStrokeIds)
+            .contains("demo-stroke-month-tall-1"), "the photos' own month has none")
+
+        XCTAssertNil(ScreenPaths.singlePageDemo(try shotConfig(["--screenshot-span", "on", "--screenshot-span-crossing", "all"]),
+                                                opening(focus: oct7)), "no --screenshot-single-page")
+        XCTAssertNil(ScreenPaths.singlePageDemo(nil, opening(focus: oct7)), "normal use")
+        XCTAssertEqual(ScreenPaths.singlePageDemo(plain, opening(.year, focus: oct7)) != nil, SpanKinds.joined.contains(.year), "the year")
+        // The week keeps 1.3's page (its crossing demo's halves).
+        let week = try XCTUnwrap(ScreenPaths.singlePageDemo(all, opening(.week, focus: oct7)))
+        XCTAssertTrue(Set(week.liveStrokeIds).isSuperset(of: ScreenshotMode.crossingDemoStrokeIds(.week).focus))
+        XCTAssertFalse(week.liveStrokeIds.contains(ids.focus), "the month's sample is the month's")
+    }
+}
