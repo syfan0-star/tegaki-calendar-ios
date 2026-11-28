@@ -228,7 +228,9 @@ final class PencilPhone {
     }
 
     /// Writes an action (in screenshot mode too). `turnOff`: 「指でも書く」 off, the mark this device's, and with `rearmGuide`
-    /// the week's and the day's guide records forgotten (the guide shows once more with the one-finger words, F10).
+    /// the guide records of every kind that joins forgotten (the guide shows once more with the one-finger words, F10; 1.4.3,
+    /// review UX-5: the kinds are `SpanKinds.ordered`, the one place of docs/R1_4_3_CONTRACT.md §3.1, so the month's card,
+    /// and the year's with D1y, comes again too; until 1.4.2 the week and the day).
     /// `turnOnAgain`: 「指でも書く」 on, the mark this device's. `rebind`: the mark this device's. No mark is written while
     /// this device's cannot be read.
     func apply(_ action: FingerDefault.Action) {
@@ -236,8 +238,9 @@ final class PencilPhone {
         case .turnOff(let rearmGuide):
             defaults.set(false, forKey: AppSettings.allowFingerKey)
             if rearmGuide {
-                AppSettings.forgetSpanGuideShown(.week)
-                AppSettings.forgetSpanGuideShown(.day)
+                for kind in SpanKinds.ordered {
+                    AppSettings.forgetSpanGuideShown(kind)
+                }
             }
         case .turnOnAgain:
             defaults.set(true, forKey: AppSettings.allowFingerKey)
