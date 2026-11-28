@@ -8,7 +8,8 @@ import XCTest
 // focus month's left boundary, one held by each page, D15) and `--screenshot-month-tall` (`Config.monthTall`: the month right of
 // the photos' month has taller rows). Without them every Config, demo page and demo event is 1.4.2's (the frozen
 // ScreenshotModeSpanTests' answers: the month's window pages are the one-page demo and its renamed copies, no crossing demo), so
-// no photo of J-4, blank-paper, l10n-shots or the store moves. The year's samples come with D1y.
+// no photo of J-4, blank-paper, l10n-shots or the store moves. The year's sample (D1y, §5.2): with `--screenshot-span-crossing
+// all` alone, one stroke on each side of the focus year's left boundary on the 20th's row; without it the year's pages are 1.4.2's.
 
 final class ScreenshotModeMonthYearTests: XCTestCase {
     private let october = YearMonth(year: 2026, month: 10)
@@ -209,5 +210,117 @@ final class ScreenshotModeMonthYearTests: XCTestCase {
             XCTAssertEqual(DayKey(event.start, calendar: DayKey.deviceCalendar), eighteenth, event.id)
         }
         XCTAssertEqual(added.map(\.id), (0..<5).map { "demo-\(events.count + 1 + $0)" })
+    }
+
+    // MARK: D1y — the year's sample (§5.2, §12.4)
+
+    private func yearPlan() -> SpanPlan {
+        SpanPlan(kind: .year, weekStart: .monday, deviceClass: .iPad11, orientation: .portrait)
+    }
+
+    /// The year's window page `pageId` with the photos' defaults and `--screenshot-span-crossing all` as given.
+    private func yearPage(_ pageId: String, crossingAll: Bool, empty: Bool = false) -> InkPage {
+        ScreenshotMode.spanDemoPage(pageId: pageId, kind: .year, focus: focus, weekStart: .monday, crossing: true, grown: false,
+                                    empty: empty, tallYear: false, storeInk: false, weekMemo: false, crossingAll: crossingAll,
+                                    monthTall: false)
+    }
+
+    /// §12.2, §8.5 (the frozen ScreenshotModeSpanTests stays): without `--screenshot-span-crossing all` a year's window page is
+    /// what 1.4.2 made — the focus page the one-page demo byte for byte, a neighbour the demo of its own year's 10/7 with its
+    /// ids made its own, no crossing sample (`crossingDemoStrokeIds(.year)` stays empty: the year's sample is not 1.3's
+    /// `crossing:` demo) — and the defaults (no screenshot mode in the tests) are off.
+    func testWithoutItTheYearsSamplesAreTheFrozenOnes() {
+        XCTAssertNil(ScreenshotMode.current, "the unit tests run outside screenshot mode")
+        let none = ScreenshotMode.crossingDemoStrokeIds(.year)
+        XCTAssertEqual(none.left + none.focus, [], "the year has no 1.3 crossing demo")
+        let plan = yearPlan()
+        let centre = plan.index(containing: focus)
+        for offset in -2...2 {
+            let id = plan.pageId(at: centre + offset)
+            XCTAssertEqual(id, String(format: "y-%04d", 2026 + offset))
+            let page = yearPage(id, crossingAll: false)
+            XCTAssertEqual(page, ScreenshotMode.spanDemoPage(pageId: id, kind: .year, focus: focus, weekStart: .monday, crossing: true,
+                                                             grown: false, empty: false, tallYear: false, storeInk: false),
+                           "\(id): the defaults are off")
+            XCTAssertFalse(page.liveStrokeIds.contains { $0.hasPrefix("demo-stroke-cross-year") }, id)
+            let own = ScreenshotMode.demoPage(kind: .year, focus: DayKey(year: 2026 + offset, month: 10, day: 7), grown: false, empty: false,
+                                              tallYear: false, weekStart: .monday, storeInk: false)
+            if offset == 0 {
+                XCTAssertEqual(page, own, "\(id): the one-page demo")
+            } else {
+                XCTAssertEqual(Set(page.liveStrokeIds), Set(own.liveStrokeIds.map { ScreenshotMode.neighborDemoId($0, pageId: id) }), id)
+            }
+        }
+    }
+
+    /// §5.2, §12.4, D15: with `--screenshot-span-crossing all` the year left of the photos' year and the photos' year each hold
+    /// one stroke on the 20th's row across the boundary, held by the page of its bounds' centre x: the left one in the left
+    /// year's December (`.yearDay(12, 20)`, its cell at x 1,288), from x 1,300 to 1,440 of that year — past its right edge, not
+    /// cut — centred at 1,370 (30 lu left of the boundary); the focus one in the focus year's January (`.yearDay(1, 20)`, the
+    /// cell at x 56), from x −40 to 100 — off the focus year's left edge — centred at +30 in the day-number column, which
+    /// January holds. The window lays each in its owner's cell (`SpanLayout.drop`); neither makes its row taller than 60 lu;
+    /// no other page has one, nothing with `empty`, nothing on another kind.
+    func testTheYearsCrossingSampleHasOneStrokeOnEachSide() throws {
+        let plan = yearPlan()
+        let centre = plan.index(containing: focus)
+        let ids = ScreenshotMode.yearCrossingStrokeIds
+        let left = yearPage(plan.pageId(at: centre - 1), crossingAll: true)
+        let middle = yearPage(plan.pageId(at: centre), crossingAll: true)
+        XCTAssertEqual(left.pageId, "y-2025")
+        XCTAssertEqual(middle.pageId, "y-2026")
+        XCTAssertTrue(left.liveStrokeIds.contains(ids.left))
+        XCTAssertFalse(left.liveStrokeIds.contains(ids.focus))
+        XCTAssertTrue(middle.liveStrokeIds.contains(ids.focus))
+        XCTAssertFalse(middle.liveStrokeIds.contains(ids.left))
+        for offset in [-2, 1, 2] {
+            let other = yearPage(plan.pageId(at: centre + offset), crossingAll: true)
+            XCTAssertFalse(other.liveStrokeIds.contains { $0.hasPrefix("demo-stroke-cross-year") }, "\(offset)")
+        }
+        let leftStroke = try XCTUnwrap(left.strokes[ids.left])
+        let focusStroke = try XCTUnwrap(middle.strokes[ids.focus])
+        XCTAssertEqual(leftStroke.cell, .yearDay(month: 12, day: ScreenshotMode.yearCrossingDay))
+        XCTAssertEqual(focusStroke.cell, .yearDay(month: 1, day: ScreenshotMode.yearCrossingDay))
+        XCTAssertEqual(ScreenshotMode.yearCrossingDay, 20)
+        /// The stroke's x in its own page (its cell's x added) from its points' bounds.
+        func span(_ stroke: InkStroke, cellX: CGFloat) -> (min: CGFloat, max: CGFloat, centre: CGFloat) {
+            let xs = stroke.points.map(\.x)
+            let low = (xs.min() ?? 0) + cellX
+            let high = (xs.max() ?? 0) + cellX
+            return (low, high, (low + high) / 2)
+        }
+        let december: CGFloat = 56 + 11 * 112
+        let january: CGFloat = 56
+        XCTAssertEqual(span(leftStroke, cellX: december).min, 1_300, accuracy: 1e-9)
+        XCTAssertEqual(span(leftStroke, cellX: december).max, 1_440, accuracy: 1e-9, "past the left year's right edge, not cut")
+        XCTAssertEqual(span(leftStroke, cellX: december).centre, 1_400 - 30, accuracy: 1e-9, "left of the boundary, in its own year")
+        XCTAssertEqual(span(focusStroke, cellX: january).min, -40, accuracy: 1e-9, "off the focus year's left edge, not cut")
+        XCTAssertEqual(span(focusStroke, cellX: january).max, 100, accuracy: 1e-9)
+        XCTAssertEqual(span(focusStroke, cellX: january).centre, 30, accuracy: 1e-9, "right of the boundary, in the day-number column")
+        for stroke in [leftStroke, focusStroke] {
+            XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: stroke.bottom), 60, "\(stroke.id): the row stays 60 lu")
+            XCTAssertLessThan(stroke.bottom, 48, stroke.id)
+        }
+
+        // The window (the two years laid out without events) lays each in its owner's cell.
+        let pages: [any PageLayout] = [centre - 1, centre].map { index in
+            YearLayoutEngine.layout(YearLayoutInput(year: plan.firstDay(at: index).year, events: [], inkBottoms: [:],
+                                                    now: Date(timeIntervalSince1970: 1_790_000_000)))
+        }
+        let window = SpanLayout(pages: pages, plan: plan, firstIndex: centre - 1)
+        for (stroke, owner, slot, cellX) in [(leftStroke, left.pageId, 0, december), (focusStroke, middle.pageId, 1, january)] {
+            let cell = try XCTUnwrap(window.cells[SpanName.prefixed(stroke.cell, page: owner)])
+            let ys = stroke.points.map(\.y)
+            let centrePoint = CGPoint(x: window.origin(ofSlot: slot) + span(stroke, cellX: cellX).centre,
+                                      y: cell.minY + ((ys.min() ?? 0) + (ys.max() ?? 0)) / 2)
+            XCTAssertEqual(window.drop(center: centrePoint), .keep(page: owner, cell: stroke.cell), stroke.id)
+        }
+
+        XCTAssertEqual(yearPage(plan.pageId(at: centre), crossingAll: true, empty: true).liveStrokeIds, [], "nothing with --screenshot-empty")
+        for kind in [PageKind.week, .day, .month] {
+            let page = ScreenshotMode.spanDemoPage(pageId: PageNavigation.pageId(kind, focus: focus), kind: kind, focus: focus, crossing: true,
+                                                   grown: false, empty: false, tallYear: false, storeInk: false, weekMemo: false,
+                                                   crossingAll: true, monthTall: false)
+            XCTAssertFalse(page.liveStrokeIds.contains { $0.hasPrefix("demo-stroke-cross-year") }, "\(kind): the year's sample is the year's")
+        }
     }
 }

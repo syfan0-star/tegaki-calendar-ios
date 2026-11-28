@@ -19,6 +19,8 @@ import XCTest
 // (`MonthLayoutEngine.rowHeight`, the bottom + 12); a memo stroke ending at b makes the memo max(6,000, b + 50).
 // Each form's expectation is written out (ア: the last row of the other months grows to the separator line; イ: every row
 // lines up; ウ: nothing lines up), so a change of `SpanAlign.monthForm` keeps these tests right.
+// D1y (§3.3, §5.1, 0g-21; the section at the end): a window of years lines up its 31 rows (`SpanAlign.yearFloors`) with the
+// same reading of the change as the months'.
 
 @MainActor
 final class SpanSessionMonthYearTests: XCTestCase {
@@ -402,5 +404,170 @@ final class SpanSessionMonthYearTests: XCTestCase {
         XCTAssertEqual(points(rowStroke), points(juneRow), "the 6th row's line: the same points from its cell's origin")
         XCTAssertEqual(points(memoStroke).map(\.y), [200, 220, 240])
         XCTAssertEqual(points(rowStroke).map(\.y), [10, 80, 150])
+    }
+
+    // MARK: D1y — the window of years (§3.3, §5.1, 0g-21)
+    //
+    // Five years around 2026 on the 11-inch iPad in portrait (R = 2): 2024 … 2028. A row of an empty year is 60 lu; a row's
+    // natural height is `YearLayoutEngine.rowHeight` — min(400, max(60, 16 + lanes × 18 + 8, the deepest bottom of its 12
+    // cells + 12)) — so a stored stroke at y of a cell (`SessionTestBed.stroke`: y, y + 1, y + 2 with a 3.5 lu nib, y on the
+    // 0.1 lu grid) makes its row y + 15.75 lu, at most 400.
+
+    private let y2024 = "y-2024"
+    private let y2025 = "y-2025"
+    private let y2026 = "y-2026"
+    private let y2027 = "y-2027"
+    private let y2028 = "y-2028"
+    private let plainYearRow: CGFloat = 60
+
+    private func year(_ pageId: String, of session: SpanSession, file: StaticString = #filePath, line: UInt = #line) throws -> YearPageLayout {
+        let slot = try XCTUnwrap(session.layout.slot(ofPage: pageId), pageId, file: file, line: line)
+        return try XCTUnwrap(session.layout.pages[slot] as? YearPageLayout, pageId, file: file, line: line)
+    }
+
+    /// Every year page of the window has the 31 row heights `rows` (index 0 is the 1st's row), each row's top the sum of the
+    /// rows above it — the same on every page, so the same day runs on in one line — every cell at its column's x and width,
+    /// and the session's floors are those rows.
+    private func assertRows(_ session: SpanSession, _ rows: [CGFloat], _ what: String, file: StaticString = #filePath,
+                            line: UInt = #line) throws {
+        XCTAssertEqual(rows.count, 31, file: file, line: line)
+        for id in session.pageIds {
+            let page = try year(id, of: session, file: file, line: line)
+            XCTAssertEqual(page.rows.count, 31, "\(what): \(id)", file: file, line: line)
+            var top: CGFloat = 0
+            for (r, row) in page.rows.enumerated() {
+                XCTAssertEqual(row.frame.height, rows[r], accuracy: 0.001, "\(what): \(id) row \(r + 1)", file: file, line: line)
+                XCTAssertEqual(row.frame.minY, top, accuracy: 0.001, "\(what): \(id) row \(r + 1)'s top", file: file, line: line)
+                XCTAssertLessThanOrEqual(row.frame.height, 400, "\(what): \(id) row \(r + 1) under the cap", file: file, line: line)
+                top += rows[r]
+            }
+            XCTAssertEqual(page.size.height, top, accuracy: 0.001, "\(what): \(id)'s height", file: file, line: line)
+            for month in [1, 6, 12] {
+                let cell = try XCTUnwrap(page.cells[.yearDay(month: month, day: 15)], "\(id) \(month)/15", file: file, line: line)
+                XCTAssertEqual(cell.minX, 56 + CGFloat(month - 1) * 112, accuracy: 0.001, "\(what): \(id) \(month)'s x", file: file, line: line)
+                XCTAssertEqual(cell.width, 112, accuracy: 0.001, file: file, line: line)
+                XCTAssertEqual(cell.height, rows[14], accuracy: 0.001, file: file, line: line)
+            }
+        }
+        XCTAssertEqual(session.floors.yearRows.count, 31, what, file: file, line: line)
+        for (r, floor) in session.floors.yearRows.enumerated() {
+            XCTAssertEqual(floor, rows[r], accuracy: 0.001, "\(what): the floor of row \(r + 1)", file: file, line: line)
+        }
+        XCTAssertEqual(session.layout.floors, session.floors, what, file: file, line: line)
+    }
+
+    /// The 31 rows of a plain year with `grown` rows (index 0 is the 1st's row) taller.
+    private func rows(_ grown: [Int: CGFloat] = [:]) -> [CGFloat] {
+        (0..<31).map { grown[$0] ?? plainYearRow }
+    }
+
+    /// MS6 for the year, §3.3 1–4, §5.1: a window of years lines up row by row — each of the 31 rows has the window's largest
+    /// natural height on every year (a line on 2026's 11/20, a deep one on 2025's 3/5, one past the cap on 2027's 7/10: the
+    /// 20th's row 115.75, the 5th's 265.75, the 10th's 400), so every row's top is the same on every page and no row passes
+    /// 400 lu. The x and the width of every cell stay; the month's, the week's and the day's floors are 0.
+    func testTheYearsLineUpTheirRows() async throws {
+        let session = try await open(.year, stored: [page(y2026, [("tall", .yearDay(month: 11, day: 20), 100)]),
+                                                     page(y2025, [("deep", .yearDay(month: 3, day: 5), 250)]),
+                                                     page(y2027, [("capped", .yearDay(month: 7, day: 10), 600)])])
+        XCTAssertEqual(session.pageIds, [y2024, y2025, y2026, y2027, y2028])
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: 100 + 2 + 1.75), 115.75, accuracy: 0.001)
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: 250 + 2 + 1.75), 265.75, accuracy: 0.001)
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: 600 + 2 + 1.75), 400, "the cap")
+        let lined = rows([19: 115.75, 4: 265.75, 9: 400])
+        try assertRows(session, lined, "opened")
+        let own = try year(y2028, of: session)
+        XCTAssertEqual(own.rows[19].frame.minY, try year(y2026, of: session).rows[19].frame.minY, "the 20th in one line across the years")
+        XCTAssertEqual(session.floors.monthGrid, 0)
+        XCTAssertEqual(session.floors.monthMemo, 0)
+        XCTAssertEqual(session.floors.monthRows, [])
+        XCTAssertEqual(session.floors.weekExtra, 0)
+        XCTAssertEqual(session.floors.dayExtra, 0)
+    }
+
+    /// MS8 for the year, §3.3 (the third edition): after a shift takes the tall year (2026's 20th, 115.75) out of the window,
+    /// its row stays through the shift, the pages read after it (`prefetch`), the events read again, the 30 s check
+    /// (`contextChanged`) and an update from outside — each `.redecide` read as `.shift` — so no row of the years on screen
+    /// shrinks from a sideways move.
+    func testATallYearThatLeftTheWindowKeepsItsRows() async throws {
+        let session = try await open(.year, stored: [page(y2026, [("tall", .yearDay(month: 11, day: 20), 100)])])
+        let tall = rows([19: 115.75])
+        try assertRows(session, tall, "opened")
+        let floors = session.floors
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex + 3))
+        XCTAssertEqual(session.pageIds, [y2027, y2028, "y-2029", "y-2030", "y-2031"])
+        XCTAssertEqual(session.floors, floors, "the shift")
+        try assertRows(session, tall, "the shift (.shift never lowers)")
+        await session.prefetch()
+        XCTAssertEqual(session.floors, floors, "the pages read after the shift")
+        session.reloadEvents()
+        XCTAssertEqual(session.floors, floors, "the events read again")
+        session.contextChanged()
+        XCTAssertEqual(session.floors, floors, "the 30 s check")
+        session.remoteUpdated(page("y-2029", [("remote", .yearDay(month: 2, day: 10), 10)]))
+        XCTAssertEqual(session.page("y-2029")?.liveStrokeIds, ["remote"], "the update was taken")
+        XCTAssertEqual(session.floors, floors, "an update from outside")
+        try assertRows(session, tall, "after every .redecide")
+    }
+
+    /// MS7 for the year, §3.3 (the relayout, the third edition): after the tall year left, a little ink on another year keeps
+    /// the rows (the relayout compares the pages' natural rows with the last layout's: `.inkGrew`); a longer line on 2030's
+    /// 2/10 (its bottom 91.75, the 10th's row 103.75) raises that row on every year; erased, a natural row went down
+    /// (`.inkShrank`), so the rows come down to the window's own: all 60.
+    func testAfterItLittleInkKeepsTheRowsAndAnEraseLowersThem() async throws {
+        let session = try await open(.year, stored: [page(y2026, [("tall", .yearDay(month: 11, day: 20), 100)])])
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex + 3))
+        await session.prefetch()
+        let floors = session.floors
+        let ledger = JoinedLedgerStandIn(session)
+        try write(ledger, on: "y-2029", cell: .yearDay(month: 3, day: 10), top: 10, bottom: 30)
+        ledger.put()
+        session.relayoutPages()
+        XCTAssertEqual(session.floors, floors, "a little ink on 2029: .inkGrew")
+        try assertRows(session, rows([19: 115.75]), "a little ink")
+        let line = try write(ledger, on: "y-2030", cell: .yearDay(month: 2, day: 10), top: 10, bottom: 90)
+        ledger.put()
+        session.relayoutPages()
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: 90 + 1.75), 103.75, accuracy: 0.001)
+        try assertRows(session, rows([19: 115.75, 9: 103.75]), "a longer line raises its row on every year")
+        XCTAssertEqual(ledger.erase([line.id]), [line.id])
+        ledger.put()
+        session.relayoutPages()
+        try assertRows(session, rows(), "erased: the window's own (.inkShrank)")
+    }
+
+    /// §3.3, §5.1: the rows come down when the window is decided anew — a change of width (`redecide(orientation:)`; the
+    /// landscape window, 2027 … 2033, holds no tall year) and a new session — and a year whose all-day events are read
+    /// (`prefetch` reads the other years' events: three on 2031's 11/20, three lanes, the 20th's row 16 + 3 × 18 + 8 = 78 lu)
+    /// raises that row on every year (the events read: `.redecide`, read as `.shift`, which raises).
+    func testTheRowsComeDownWhenDecidedAnewAndRiseWithTheAllDayEventsRead() async throws {
+        let session = try await open(.year, stored: [page(y2026, [("tall", .yearDay(month: 11, day: 20), 100)])])
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex + 4))
+        await session.prefetch()
+        XCTAssertEqual(session.pageIds, [y2028, "y-2029", "y-2030", "y-2031", "y-2032"])
+        try assertRows(session, rows([19: 115.75]), "after the shift")
+        XCTAssertTrue(session.redecide(orientation: .landscape))
+        XCTAssertEqual(session.pageIds, [y2027, y2028, "y-2029", "y-2030", "y-2031", "y-2032", "y-2033"])
+        try assertRows(session, rows(), "decided anew after a change of width")
+        XCTAssertTrue(session.redecide(orientation: .portrait))
+        try assertRows(session, rows(), "and back")
+        let anew = try await open(.year, focus: DayKey(year: 2030, month: 6, day: 1), number: 2)
+        try assertRows(anew, rows(), "a new session")
+        let again = try await open(.year, number: 3)
+        try assertRows(again, rows([19: 115.75]), "a new session with the tall year in it")
+
+        let nov20 = DayKey(year: 2031, month: 11, day: 20)
+        let events = (1...3).map { n in
+            LayoutEvent(id: "all-day-\(n)", title: "all day \(n)", allDay: true, start: nov20.startOfDay(in: SessionTestBed.tokyo),
+                        end: nov20.adding(days: 1).startOfDay(in: SessionTestBed.tokyo), colorHex: "#33b679", calendarId: "test")
+        }
+        let read = bed.session(.year, focus: DayKey(year: 2030, month: 5, day: 1), number: 4,
+                               eventSource: { from, to in from <= nov20 && nov20 < to ? events : [] })
+        let lanes = YearLayoutEngine.rowHeight(laneCount: 3, inkBottom: 0)
+        XCTAssertEqual(lanes, 16 + 3 * 18 + 8, accuracy: 0.001)
+        XCTAssertEqual(read.pageIds, [y2028, "y-2029", "y-2030", "y-2031", "y-2032"])
+        try assertRows(read, rows(), "before 2031's events are read (the focus year's alone)")
+        await read.prefetch()
+        XCTAssertEqual(try year("y-2031", of: read).rows[19].laneCount, 3)
+        try assertRows(read, rows([19: lanes]), "2031's all-day events read: its row on every year")
     }
 }

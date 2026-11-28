@@ -150,4 +150,75 @@ final class SpanGuideMonthYearTests: XCTestCase {
         XCTAssertFalse(AppSettings.spanGuideShown(.month), "nothing recorded")
         XCTAssertTrue(model.showIfDue(.month, joined: true, allowFinger: false), "so it comes once it is shown joined")
     }
+
+    // MARK: D1y — the year's card (§7.3, §13.1)
+
+    /// §13.1, fixed: the year's card with 「指でも書く」 off and on.
+    private let yearOne = "前後の年が横につながりました。指で横にすべらせると、となりの年が出てきます。境目をまたいで、そのまま書けます。"
+    private let yearTwo = "前後の年が横につながりました。2 本指で横にすべらせると、となりの年が出てきます。境目をまたいで、そのまま書けます。"
+    private let yearKeys = ["span.guide.year.oneFinger", "span.guide.year.twoFingers"]
+
+    /// §13.1, §7.3: the year's two texts are in the ja table with the contract's words, and every one of the ten languages has
+    /// a text of its own for each, not the key and not the Japanese (the nine are provisional until D2), one finger and two
+    /// fingers apart. As `SpanKinds.joined` says (§11.2), `SpanGuide.text` gives them by 「指でも書く」 and the year's card is due
+    /// on the joined year once per device ("hint.spanGuide.year"), its 8 seconds and then recorded for the year alone, never
+    /// in screenshot mode, on the test host, with the setting off or fallen back (stage 2).
+    func testTheYearsWordsAreInEveryLanguageAndItsCardComesOnce() async {
+        XCTAssertEqual(L.value(yearKeys[0], in: .ja), yearOne)
+        XCTAssertEqual(L.value(yearKeys[1], in: .ja), yearTwo)
+        for language in UILanguage.allCases {
+            var texts: [String] = []
+            for key in yearKeys {
+                let value = L.value(key, in: language)
+                XCTAssertNotNil(value, "\(language.rawValue): \(key)")
+                guard let value else { continue }
+                XCTAssertFalse(value.isEmpty, "\(language.rawValue): \(key)")
+                XCTAssertNotEqual(value, key, "\(language.rawValue): \(key)")
+                if language != .ja {
+                    XCTAssertNotEqual(value, L.value(key, in: .ja), "\(language.rawValue): \(key) is not the Japanese")
+                }
+                XCTAssertFalse(keys.contains { L.value($0, in: language) == value }, "\(language.rawValue): \(key) is not the month's")
+                texts.append(value)
+            }
+            XCTAssertEqual(Set(texts).count, 2, "\(language.rawValue): one finger and two fingers differ")
+        }
+
+        let joined = SpanKinds.joined.contains(.year)
+        XCTAssertEqual(SpanGuide.text(kind: .year, allowFinger: false), joined ? yearOne : nil)
+        XCTAssertEqual(SpanGuide.text(kind: .year, allowFinger: true), joined ? yearTwo : nil)
+        XCTAssertEqual(SpanGuide.isDue(kind: .year, setting: true, joined: true, shown: false, screenshot: false, testHost: false), joined)
+        XCTAssertFalse(SpanGuide.isDue(kind: .year, setting: true, joined: false, shown: false, screenshot: false, testHost: false), "stage 2")
+        XCTAssertFalse(SpanGuide.isDue(kind: .year, setting: false, joined: true, shown: false, screenshot: false, testHost: false), "off")
+        XCTAssertFalse(SpanGuide.isDue(kind: .year, setting: true, joined: true, shown: true, screenshot: false, testHost: false), "seen")
+        XCTAssertFalse(SpanGuide.isDue(kind: .year, setting: true, joined: true, shown: false, screenshot: true, testHost: false), "screenshot mode")
+        XCTAssertFalse(SpanGuide.isDue(kind: .year, setting: true, joined: true, shown: false, screenshot: false, testHost: true), "the test host")
+
+        let sleeper = TestSleeper()
+        sleeper.autoResume = true
+        let model = makeModel(sleeper)
+        XCTAssertEqual(AppSettings.spanGuideShownKey(.year), "hint.spanGuide.year")
+        XCTAssertEqual(model.showIfDue(.year, joined: true, allowFinger: true), joined)
+        guard joined else {
+            XCTAssertNil(model.card, "the fallback (0g-3): no year's card")
+            return
+        }
+        XCTAssertEqual(model.card?.kind, .year)
+        XCTAssertEqual(model.card?.text, yearTwo, "「指でも書く」 on: two fingers")
+        XCTAssertEqual(model.card?.timed, true)
+        XCTAssertFalse(AppSettings.spanGuideShown(.year), "not seen yet")
+        await settle()
+        XCTAssertNil(model.card, "gone after its 8 seconds")
+        XCTAssertEqual(sleeper.recorded, [SpanGuide.duration])
+        XCTAssertTrue(AppSettings.spanGuideShown(.year))
+        XCTAssertEqual(AppSettings.defaults.object(forKey: "hint.spanGuide.year") as? Bool, true, "recorded on this device")
+        XCTAssertFalse(AppSettings.spanGuideShown(.month), "per kind")
+        XCTAssertFalse(model.showIfDue(.year, joined: true, allowFinger: false), "never twice")
+        XCTAssertFalse(model.showIfDue(.year, joined: false, allowFinger: false))
+
+        let photo = makeModel(TestSleeper(), screenshot: true)
+        XCTAssertFalse(photo.showIfDue(.year, joined: true, allowFinger: false), "screenshot mode: no card of its own")
+        photo.showForPhoto(.year, allowFinger: false)
+        XCTAssertEqual(photo.card?.text, yearOne, "the photo's card (--screenshot-span-guide one)")
+        XCTAssertEqual(photo.card?.timed, false)
+    }
 }
