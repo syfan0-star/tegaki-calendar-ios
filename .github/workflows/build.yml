@@ -2167,7 +2167,7 @@ jobs:
       # met the 45 twice (its tests 36–38 min) and the three tests add about 6 (5 launches, two turns, the settings sheet
       # twice), so 55 keeps about 10 over 44.
       # 1.4.3 D1y (§11.3, §12.1; open question 7 of D1y's plan): SpanMonthYearUITests' year (two tests, four launches: one
-      # finger's slide and the title once, a line across 2025|2026 and 「次の年」; 等倍 in portrait read when turned) and
+      # finger's slide and the title once, a line across 2025|2026 and 「前の年」; 等倍 in portrait read when turned) and
       # YearTapUITests reading the canvas's probe (`--screenshot-probe`, 0g-52: its taps wait for the probe to settle,
       # about 1 s a test, and the joined path's day window). The step 55 → 60: in D1b's runs it took 41.3 and 43.5 min
       # (runs 46119423355 and 46129477127, the tests 33.6 and 36.5 of them; the month's three tests 3.3 and 4.3, its

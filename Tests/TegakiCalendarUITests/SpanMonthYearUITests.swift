@@ -40,8 +40,10 @@ import XCTest
 ///   `span.state`'s `last=` is that line in its owner's `.yearDay` cell of the 20th (`12-20` of y-2025 or `01-20` of y-2026),
 ///   its x in the cell (the store's coordinates; the cell's left edge in its page is 56 + 112 × (month − 1) lu), so the
 ///   page's x is past the page: x < 0 when 2026 holds it, x > 1,400 when 2025 does; whole (more than its 150 lu right
-///   part). 「次の年」 (›) then slides one year on the same canvas (the session and the band's id stay, one shift, 「2027年」,
-///   the line still the window's newest).
+///   part). 「前の年」 (‹) then slides one year on the same canvas (the session and the band's id stay, one shift, 「2025年」,
+///   the line still the window's newest: both its years stay in the window 2023…2027). ‹, not ›, as the month's line test:
+///   › would bring 2026's right edge to the middle, inside 2026's hysteresis ([X − 84, X + 1,484) lu), so neither the focus
+///   nor the window would move; ‹ brings 2025's left edge, a page past it (its middle crosses 2025 on the way).
 /// - `testTheYearsZoomResetInPortraitIsFitWhenTurned`: 等倍 of a year. On the iPhone 17 a year opens at its fit in portrait
 ///   (open = fit: 402 ÷ 1,400 < 569 ÷ 1,860), so 等倍 moves nothing there; turned, one page is the landscape column across
 ///   (the cap of 3 years, P-B6 イ, raises the lowest zoom and the opening one, never the fit: §6.4). The control, in a launch
@@ -94,9 +96,7 @@ final class SpanMonthYearUITests: XCTestCase {
     /// How far (pt) one page across may be from the column's width at 等倍.
     private static let fitTolerance: CGFloat = 1.5
     private static let previousMonth = "前の月"
-    private static let nextMonth = "次の月"
     private static let previousYear = "前の年"
-    private static let nextYear = "次の年"
     private static let resetIdentifier = "header.zoomReset"
     /// A gesture whose synthesis took longer than this (s) beyond its own length met an overloaded simulator
     /// (YearTapUITests): it is tried once more.
@@ -373,8 +373,8 @@ final class SpanMonthYearUITests: XCTestCase {
     }
 
     /// D1y: 「指でも書く」 on, 2026's left boundary in the middle: one finger on the 20th's row from 100 lu left of the boundary
-    /// (2025's December) to 150 lu right of it (2026's January), the newest stroke read from `span.state`, then 「次の年」 on
-    /// the same canvas.
+    /// (2025's December) to 150 lu right of it (2026's January), the newest stroke read from `span.state`, then 「前の年」 on
+    /// the same canvas (the type's comment says why not 「次の年」).
     private func yearLineAcrossTheBoundaryThenNext() {
         let kind = JoinedKind.year
         let name = "year line"
@@ -443,27 +443,27 @@ final class SpanMonthYearUITests: XCTestCase {
                              "\(name): the whole line, not the part on one side of the boundary (\(last.minX) … \(last.maxX))")
         continueAfterFailure = false
 
-        let next = app.buttons[kind.nextButton]
-        guard next.waitForExistence(timeout: 5) else { return XCTFail("\(name): no 「\(kind.nextButton)」") }
-        waitUntilResponsive(next)
-        next.tap()
-        log("\(name): tapped 「\(kind.nextButton)」")
-        guard let after = waitFor(app, timeout: 20, "\(name): 2027 with the window shifted", until: {
-            $0.state["focus"] == kind.next && $0.shifts > drawn.shifts
+        let back = app.buttons[kind.previousButton]
+        guard back.waitForExistence(timeout: 5) else { return XCTFail("\(name): no 「\(kind.previousButton)」") }
+        waitUntilResponsive(back)
+        back.tap()
+        log("\(name): tapped 「\(kind.previousButton)」")
+        guard let after = waitFor(app, timeout: 20, "\(name): \(kind.previousWord) with the window shifted", until: {
+            $0.state["focus"] == kind.previous && $0.shifts > drawn.shifts
         }) else {
-            return XCTFail("\(name): the window did not move to 2027 and shift (span.state \(stateLabel(app)))")
+            return XCTFail("\(name): the window did not move to \(kind.previousWord) and shift (span.state \(stateLabel(app)))")
         }
-        keepScreenshot(app, "\(name) — next year")
-        attach(after.stateRaw, "\(name) — span.state after ›")
+        keepScreenshot(app, "\(name) — previous year")
+        attach(after.stateRaw, "\(name) — span.state after ‹")
         let shown = titleElement(in: app).label
-        log("\(name): after ›: the title is 「\(shown)」; span.state \(after.stateRaw)")
+        log("\(name): after ‹: the title is 「\(shown)」; span.state \(after.stateRaw)")
         continueAfterFailure = true
         XCTAssertEqual(after.state["path"], "span", "\(name): still the joined path")
         XCTAssertEqual(after.state["session"], drawn.state["session"], "\(name): the same canvas (the session did not change)")
         XCTAssertEqual(after.probe.page, drawn.probe.page, "\(name): the canvas's band is the same (its id \(drawn.probe.page))")
         XCTAssertEqual(after.shifts, drawn.shifts + 1, "\(name): one shift after the stop")
         XCTAssertEqual(after.state["last"], drawn.state["last"], "\(name): the line is still the window's newest, kept by its page")
-        XCTAssertTrue(kind.shows(shown, kind.nextTitle), "\(name): 2027's title (「\(shown)」)")
+        XCTAssertTrue(kind.shows(shown, kind.previousTitle), "\(name): \(kind.previousWord)'s title (「\(shown)」)")
     }
 
     /// D1y: the top of the demo year's row of `day` (lu): 60 lu rows, row 16 grown (`yearRowGrowth`).
@@ -742,12 +742,14 @@ final class SpanMonthYearUITests: XCTestCase {
         let previous: String
         let focus: String
         let next: String
-        /// The focus page and the next in the messages.
+        /// The previous page, the focus page and the next in the messages.
+        let previousWord: String
         let focusWord: String
         let nextWord: String
         let previousButton: String
-        let nextButton: String
-        /// What the page title holds on the focus page and on the next (`PageNavigation.title` / `compactTitle`).
+        /// What the page title holds on the previous page, the focus page and the next (`PageNavigation.title` /
+        /// `compactTitle`).
+        let previousTitle: String
         let focusTitle: String
         let nextTitle: String
         let width: CGFloat
@@ -755,12 +757,14 @@ final class SpanMonthYearUITests: XCTestCase {
 
         static let month = JoinedKind(name: "month", plural: "months", logPrefix: "", previous: SpanMonthYearUITests.september,
                                       focus: SpanMonthYearUITests.october, next: SpanMonthYearUITests.november,
-                                      focusWord: "October", nextWord: "November", previousButton: SpanMonthYearUITests.previousMonth,
-                                      nextButton: SpanMonthYearUITests.nextMonth, focusTitle: "2026年10月", nextTitle: "2026年11月",
+                                      previousWord: "September", focusWord: "October", nextWord: "November",
+                                      previousButton: SpanMonthYearUITests.previousMonth, previousTitle: "2026年9月",
+                                      focusTitle: "2026年10月", nextTitle: "2026年11月",
                                       width: SpanMonthYearUITests.monthWidth, capPages: nil)
         static let year = JoinedKind(name: "year", plural: "years", logPrefix: "year ", previous: "y-2025", focus: "y-2026", next: "y-2027",
-                                     focusWord: "2026", nextWord: "2027", previousButton: SpanMonthYearUITests.previousYear,
-                                     nextButton: SpanMonthYearUITests.nextYear, focusTitle: "2026年", nextTitle: "2027年",
+                                     previousWord: "2025", focusWord: "2026", nextWord: "2027",
+                                     previousButton: SpanMonthYearUITests.previousYear, previousTitle: "2025年",
+                                     focusTitle: "2026年", nextTitle: "2027年",
                                      width: SpanMonthYearUITests.yearWidth, capPages: 3)
 
         /// Whether `title` is the page title `expected`: the month's (「2026年10月」, `isMonth`) in it; the year's (「2026年」,
