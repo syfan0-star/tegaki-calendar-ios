@@ -570,4 +570,60 @@ final class SpanSessionMonthYearTests: XCTestCase {
         XCTAssertEqual(try year("y-2031", of: read).rows[19].laneCount, 3)
         try assertRows(read, rows([19: lanes]), "2031's all-day events read: its row on every year")
     }
+
+    // MARK: What a year saves (§8.7; D1y review S3)
+
+    /// §8.7, K-4 for the year (the month's `testWhatIsSavedIsCellRelativeWhateverTheFloors`): what a window of years saves is
+    /// relative to its cell, whatever the rows. 2025's deep line on 3/5 (y 250, its bottom 253.75) makes the 5th's row
+    /// 265.75 lu on every year, so on 2026 the 20th's row starts 205.75 lu lower (1,345.75 against 19 × 60) and the 5th's is
+    /// 205.75 lu longer. A line in 2026's 3/20 and one in 2026's 6/5 are saved with the same cell-relative points as the same
+    /// lines in a window with no floor (2029 … 2033, around 2031: 31 rows of 60), in their plain cell keys (`03-20`, `06-05`),
+    /// no window name in the page. Each line (from 10 to 40 lu down its cell, 30 to 50 lu across) stays in its row in both
+    /// windows and raises no row (its bottom 41.75, the row 53.75 < 60).
+    func testWhatAYearSavesIsCellRelativeWhateverTheRows() async throws {
+        let session = try await open(.year, stored: [page(y2025, [("deep", .yearDay(month: 3, day: 5), 250)])])
+        XCTAssertEqual(session.pageIds, [y2024, y2025, y2026, y2027, y2028])
+        XCTAssertEqual(YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: 250 + 2 + 1.75), 265.75, accuracy: 0.001)
+        try assertRows(session, rows([4: 265.75]), "opened")
+        let march20 = CellKey.yearDay(month: 3, day: 20)
+        let june5 = CellKey.yearDay(month: 6, day: 5)
+        XCTAssertEqual(try cell(march20, of: y2026, session).minY, 4 * 60 + 265.75 + 14 * 60, accuracy: 0.001,
+                       "2026's 20th's row moved down by the 5th's floor")
+        XCTAssertEqual(try cell(june5, of: y2026, session).height, 265.75, accuracy: 0.001, "2026's 5th's row lengthened")
+        let ledger = JoinedLedgerStandIn(session)
+        let inRow20 = try write(ledger, on: y2026, cell: march20, x: 30, top: 10, bottom: 40)
+        let inRow5 = try write(ledger, on: y2026, cell: june5, x: 30, top: 10, bottom: 40)
+        ledger.deliver()
+        XCTAssertEqual(session.saveAll(), [])
+        try assertRows(session, rows([4: 265.75]), "the two lines raise no row")
+        let saved = bed.store.load(y2026)
+        XCTAssertFalse(saved.strokes.keys.contains { $0.contains("|") }, "no window name in the page")
+        let row20Stroke = try XCTUnwrap(saved.strokes[try XCTUnwrap(SpanName.split(inRow20.id)?.local)])
+        let row5Stroke = try XCTUnwrap(saved.strokes[try XCTUnwrap(SpanName.split(inRow5.id)?.local)])
+        XCTAssertEqual(row20Stroke.cell, march20)
+        XCTAssertEqual(row5Stroke.cell, june5)
+        XCTAssertEqual(row20Stroke.cell.raw, "03-20", "the plain cell key")
+        XCTAssertEqual(row5Stroke.cell.raw, "06-05", "the plain cell key")
+        XCTAssertEqual(bed.store.load(y2025).strokes.keys.sorted(), ["deep"], "2025 as it was stored")
+
+        let plain = try await open(.year, focus: DayKey(year: 2031, month: 6, day: 1), number: 2)
+        XCTAssertEqual(plain.pageIds, ["y-2029", "y-2030", "y-2031", "y-2032", "y-2033"])
+        try assertRows(plain, rows(), "no floor")
+        let y2031 = "y-2031"
+        XCTAssertEqual(try cell(march20, of: y2031, plain).minY, 19 * 60, accuracy: 0.001)
+        let other = JoinedLedgerStandIn(plain, seed: 0x5A01_7779)
+        let plainRow20 = try write(other, on: y2031, cell: march20, x: 30, top: 10, bottom: 40)
+        let plainRow5 = try write(other, on: y2031, cell: june5, x: 30, top: 10, bottom: 40)
+        other.deliver()
+        XCTAssertEqual(plain.saveAll(), [])
+        let saved2031 = bed.store.load(y2031)
+        let plain20 = try XCTUnwrap(saved2031.strokes[try XCTUnwrap(SpanName.split(plainRow20.id)?.local)])
+        let plain5 = try XCTUnwrap(saved2031.strokes[try XCTUnwrap(SpanName.split(plainRow5.id)?.local)])
+        func points(_ stroke: InkStroke) -> [CGPoint] { stroke.points.map { CGPoint(x: $0.x, y: $0.y) } }
+        XCTAssertEqual(points(row20Stroke), points(plain20), "the 20th's line: the same points from its cell's origin")
+        XCTAssertEqual(points(row5Stroke), points(plain5), "the 5th's line: the same points from its cell's origin")
+        XCTAssertEqual(points(row20Stroke).map(\.y), [10, 25, 40])
+        XCTAssertEqual(points(row20Stroke).map(\.x), [30, 40, 50])
+        XCTAssertEqual(points(row5Stroke).map(\.y), [10, 25, 40])
+    }
 }

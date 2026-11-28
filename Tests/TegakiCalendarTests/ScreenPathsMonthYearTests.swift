@@ -1196,6 +1196,23 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
+    /// D1y review S2: the screen's half of MS3. XCTest does not run the screen's View, so its wire is read from the source in
+    /// code only (`WeekMemoSpanTests.codeOnly`), as `testTheScreenWiresTodaysFocus` reads its: the screen hands `ScreenPaths`
+    /// the year's door, its `EventStoreModel`'s `events(from:to:allDayOnly: true)`, right after the door of every event, each
+    /// once. The test above sets both doors itself, so without this line every other test still passes while a window of
+    /// years reads `eventSource` (the nil fallback) and keeps every timed event of its years (§5.5, 0g-24). The wire reads no
+    /// `SpanKinds`, and the fallback of 0g-3 keeps it (§14.1's list takes out MS3 alone).
+    func testTheScreenWiresTheYearsAllDayDoor() throws {
+        let flat = try Self.screenCode().split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        func count(_ text: String) -> Int { flat.components(separatedBy: text).count - 1 }
+
+        XCTAssertEqual(count("paths.yearEventSource ="), 1, "the year's door is set once")
+        XCTAssertEqual(count("paths.eventSource ="), 1, "the door of every event is set once")
+        XCTAssertEqual(count("let events = model paths.eventSource = { events.events(from: $0, to: $1) } "
+                             + "paths.yearEventSource = { events.events(from: $0, to: $1, allDayOnly: true) }"), 1,
+                       "the year's door is the screen's EventStoreModel with the all-day events alone, after the door of every event")
+    }
+
     /// §3.7, 0g-19, the month's precedent (reviews UX-1, UX3-R1) on a window of years (the 11-inch iPad in portrait: 2024 …
     /// 2028 around 2026): far → a new window; at the overview and at 等倍 (fit above the opening zoom: one year across, not
     /// past the page's width) another year of the window → a slide by pages, today's year already the focus → the request
