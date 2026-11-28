@@ -15,7 +15,7 @@ final class ZoomResetTargetTests: XCTestCase {
         XCTAssertTrue(ZoomReset.followsFit(.week))
         XCTAssertTrue(ZoomReset.followsFit(.day))
         XCTAssertTrue(ZoomReset.followsFit(.month), "1.4.3: the month follows fit")
-        XCTAssertFalse(ZoomReset.followsFit(.year))
+        XCTAssertTrue(ZoomReset.followsFit(.year), "1.4.3: the year follows fit")
     }
 
     /// The 11-inch iPad's portrait paper area (834 × 955): the week goes to 834 / 1,400 = 0.5957 (its opening zoom is
@@ -31,8 +31,9 @@ final class ZoomResetTargetTests: XCTestCase {
         XCTAssertEqual(day.open, 955.0 / 2400, accuracy: 1e-9)
         XCTAssertEqual(ZoomReset.target(.day, bounds: day), 834.0 / 1000, accuracy: 1e-9, "the day: one day across")
         let year = ZoomPolicy.bounds(.year, overview: ZoomPolicy.baseSize(.year), viewport: portrait)
-        XCTAssertEqual(ZoomReset.target(.year, bounds: year), 955.0 / 1860, accuracy: 1e-9, "the year: its opening zoom")
-        XCTAssertLessThan(ZoomReset.target(.year, bounds: year), year.fit - 0.05, "the year: not fit")
+        XCTAssertEqual(ZoomReset.target(.year, bounds: year), 834.0 / 1400, accuracy: 1e-9, "1.4.3: the year: fit, one year across")
+        XCTAssertEqual(year.open, 955.0 / 1860, accuracy: 1e-9, "1.4.3: the year's opening zoom is as it was")
+        XCTAssertGreaterThan(ZoomReset.target(.year, bounds: year), year.open + 0.05, "1.4.3: the year: not its opening zoom")
         let month = ZoomPolicy.bounds(.month, overview: ZoomPolicy.baseSize(.month), viewport: CGSize(width: 1366, height: 830))
         XCTAssertEqual(ZoomReset.target(.month, bounds: month), 1366.0 / 1400, accuracy: 1e-9, "1.4.3: the month: fit, one month across")
         XCTAssertEqual(month.fit, 1366.0 / 1400, accuracy: 1e-9, "the month's fit is not where it goes")
@@ -75,9 +76,11 @@ final class ZoomResetTargetTests: XCTestCase {
         XCTAssertEqual(ZoomReset.target(.day, bounds: low), 0.4, accuracy: 1e-12)
         let notANumber = ZoomPolicy.Bounds(fit: .nan, open: 0.5, min: 0.4, max: 2)
         XCTAssertEqual(ZoomReset.target(.week, bounds: notANumber), 0.4, accuracy: 1e-12)
+        // 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, §8.5 R0y): the year's fit is clamped as the week's, the day's and the month's.
         for kind in [PageKind.year] {
-            XCTAssertEqual(ZoomReset.target(kind, bounds: high), 0.5, accuracy: 1e-12, "\(kind)")
-            XCTAssertEqual(ZoomReset.target(kind, bounds: low), 0.5, accuracy: 1e-12, "\(kind)")
+            XCTAssertEqual(ZoomReset.target(kind, bounds: high), 2, accuracy: 1e-12, "\(kind)")
+            XCTAssertEqual(ZoomReset.target(kind, bounds: low), 0.4, accuracy: 1e-12, "\(kind)")
+            XCTAssertEqual(ZoomReset.target(kind, bounds: notANumber), 0.4, accuracy: 1e-12, "\(kind)")
         }
         // 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, §8.5 R0m): the month's fit is clamped as the week's and the day's.
         XCTAssertEqual(ZoomReset.target(.month, bounds: high), 2, accuracy: 1e-12, "month")

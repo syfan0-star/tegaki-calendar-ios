@@ -229,7 +229,7 @@ final class ZoomFitWiringTests: XCTestCase {
         let plain = try XCTUnwrap(ScreenshotMode.parse(base))
         let fit = try XCTUnwrap(ScreenshotMode.parse(base + ["--screenshot-zoom", "fit"]))
         for kind in PageKind.allCases {
-            let follows = kind == .week || kind == .day || kind == .month
+            let follows = kind == .week || kind == .day || kind == .month || kind == .year
             XCTAssertEqual(ZoomReset.followsFit(kind), follows, "\(kind)")
             for stored in [false, true] {
                 XCTAssertEqual(ScreenshotMode.zoomFit(nil, kind: kind, stored: stored), stored, "\(kind): normal use, \(stored) stored")
