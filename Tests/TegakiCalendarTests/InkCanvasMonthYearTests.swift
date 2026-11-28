@@ -89,6 +89,8 @@ final class InkCanvasMonthYearTests: XCTestCase {
         /// `onZoomFitChange` (1.4.1, §16.3.3): one with each ratio.
         var fits: [Bool] = []
         var zooming: [Bool] = []
+        /// The screen's own wire of each report (`CalendarRootScreen`'s `onViewportChange: { paths.viewportArrived($0) }`).
+        var onViewport: ((PaperViewport) -> Void)?
     }
 
     @MainActor
@@ -123,10 +125,12 @@ final class InkCanvasMonthYearTests: XCTestCase {
     /// The canvas as the screen builds it for a session, with the press count `zoomResetTrigger` (the screen's `@State`),
     /// `initialFit` (the kind's stored fit) and `initialScrollX` (band lu; the screen's `bandStart`: the focus page's left
     /// edge at fit); `tool` and the ↶ ↷ counts `undoTrigger` / `redoTrigger` (the screen's `@State`, review TEST-1);
-    /// `initialPaperOffset` (band lu; the screen's `ScreenPaths.shotPaperOffset`, D1y: the capped year's opening).
+    /// `initialPaperOffset` (band lu; the screen's `ScreenPaths.shotPaperOffset`, D1y: the capped year's opening); 「今日」's
+    /// `revealRect` and its count `revealTrigger` (the screen's `@State`; the lead's decision of 11/28: the landing's request).
     private func makeView(_ session: SpanSession, probe: SpanProbe, zoomResetTrigger: Int = 0, initialFit: Bool = false,
                           initialScrollX: CGFloat = 0, tool: CanvasTool? = nil, undoTrigger: Int = 0,
-                          redoTrigger: Int = 0, initialPaperOffset: CGPoint? = nil) -> InkCanvasView {
+                          redoTrigger: Int = 0, initialPaperOffset: CGPoint? = nil, revealRect: CGRect? = nil,
+                          revealTrigger: Int = 0) -> InkCanvasView {
         let focus = session.layout.pages[min(max(0, session.focusSlot), session.layout.pages.count - 1)]
         let sleeper = canvasSleeper!
         let bed = bed!
@@ -142,8 +146,13 @@ final class InkCanvasMonthYearTests: XCTestCase {
             onInkBoundsChanged: { probe.inkBounds += 1 },
             undoTrigger: undoTrigger,
             redoTrigger: redoTrigger,
-            onViewportChange: { probe.viewports.append($0) },
+            onViewportChange: {
+                probe.viewports.append($0)
+                probe.onViewport?($0)
+            },
             initialPaperOffset: initialPaperOffset,
+            revealRect: revealRect,
+            revealTrigger: revealTrigger,
             onZoomRatioChange: { probe.ratios.append($0) },
             onZoomingChange: { probe.zooming.append($0) },
             span: session,
@@ -157,10 +166,11 @@ final class InkCanvasMonthYearTests: XCTestCase {
     }
 
     /// The canvas attached to its container as `makeUIView` does, laid out once in the paper area and settled (the first
-    /// layout's report stays in the probe).
+    /// layout's report stays in the probe; `onViewport` takes every report from the first, as the screen's wire does).
     private func attach(_ session: SpanSession, size: CGSize, initialFit: Bool = false, initialScrollX: CGFloat = 0,
-                        initialPaperOffset: CGPoint? = nil) async -> SpanRig {
+                        initialPaperOffset: CGPoint? = nil, onViewport: ((PaperViewport) -> Void)? = nil) async -> SpanRig {
         let probe = SpanProbe()
+        probe.onViewport = onViewport
         let view = makeView(session, probe: probe, initialFit: initialFit, initialScrollX: initialScrollX,
                             initialPaperOffset: initialPaperOffset)
         let coordinator = InkCanvasView.Coordinator(parent: view)
@@ -246,10 +256,13 @@ final class InkCanvasMonthYearTests: XCTestCase {
         rig.canvas.drawing.strokes.first { rig.ledger.id(of: $0) == name }
     }
 
-    /// `update(from:)` with the rig's session, `tool` and the ↶ ↷ counts so far (the screen's SwiftUI update).
-    private func update(_ rig: SpanRig, tool: CanvasTool? = nil, undoTrigger: Int = 0, redoTrigger: Int = 0) {
+    /// `update(from:)` with the rig's session, `tool`, the ↶ ↷ counts and 「今日」's rect and count so far (the screen's SwiftUI
+    /// update).
+    private func update(_ rig: SpanRig, tool: CanvasTool? = nil, undoTrigger: Int = 0, redoTrigger: Int = 0,
+                        revealRect: CGRect? = nil, revealTrigger: Int = 0) {
         rig.coordinator.update(from: makeView(rig.session, probe: rig.probe, tool: tool ?? rig.coordinator.parent.tool,
-                                              undoTrigger: undoTrigger, redoTrigger: redoTrigger))
+                                              undoTrigger: undoTrigger, redoTrigger: redoTrigger, revealRect: revealRect,
+                                              revealTrigger: revealTrigger))
     }
 
     /// The eraser takes the canvas's stroke of window name `name` away, as PencilKit reports it (InkCanvasSpanTests' own;
@@ -1441,5 +1454,298 @@ final class InkCanvasMonthYearTests: XCTestCase {
         XCTAssertEqual(session.saveAll(), [])
         XCTAssertFalse(bed.store.exists(y2025), "its file is not made again")
         XCTAssertEqual(bed.live(y2027).count, 0, "2027's ↶ is saved")
+    }
+
+    // MARK: 「今日」's slide lands (§3.7; the lead's decision of 11/28, in place of review UX-2 (b))
+
+    /// The screen's `ScreenPaths` over the bed's engine (ScreenPathsMonthYearTests' `makePaths`, the parts used here: the
+    /// setting on, not in screenshot mode), `lastPageKind` / `lastFocusDate` written to `defaults`.
+    private func makePaths(defaults: UserDefaults) -> ScreenPaths {
+        let sleeper = bed.sessionSleeper
+        return ScreenPaths(sync: bed.engine,
+                           onePage: OnePageSession(sync: bed.engine, sleep: { await sleeper.sleep($0) },
+                                                   clock: { [weak bed] in bed?.now ?? Date(timeIntervalSince1970: 0) }),
+                           screenshot: false, shot: nil, settingOn: { true }, defaults: defaults,
+                           sleep: { await sleeper.sleep($0) },
+                           clock: { [weak bed] in bed?.now ?? Date(timeIntervalSince1970: 0) })
+    }
+
+    /// The screen's window of `kind` at 11/16/2026 opened through `paths` on `device` (the screen's `show`), its pages read
+    /// (the canvas starts `prefetch` as it attaches).
+    private func openThrough(_ paths: ScreenPaths, _ kind: PageKind, device: ScreenPaths.Device, file: StaticString = #filePath,
+                             line: UInt = #line) async throws -> SpanSession {
+        let o = ScreenPaths.Opening(kind: kind, focus: nov16, weekStart: .monday, device: device, paperArea: nil,
+                                    context: SpanSession.PaperContext(now: bed.now, calendar: SessionTestBed.tokyo))
+        XCTAssertEqual(paths.open(o), .joined, file: file, line: line)
+        let session = try XCTUnwrap(paths.span, file: file, line: line)
+        await session.prefetch()
+        return session
+    }
+
+    /// 10:00 in Tokyo on that day.
+    private func at(_ year: Int, _ month: Int, _ day: Int) throws -> Date {
+        try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: year, month: month, day: day, hour: 10)))
+    }
+
+    /// What one 「今日」 did on the canvas: the pages slid, the offset (pt) as the slide landed (its window shifted at the
+    /// stop) and after the stop's request, and the request.
+    private struct Landing {
+        var pages: Int
+        var landed: CGPoint
+        var after: CGPoint
+        var request: CGRect?
+    }
+
+    /// 「今日」 on `day` at `now` as the screen presses it (`CalendarRootScreen.goToday`): `paths.today` with the screen's last
+    /// viewport (`heading`), its `.slide` run by the canvas (`slide(byPages:)`, UIKit's animation stood in for: it ends where
+    /// it was going, so the window shifts at the stop), the one stop the canvas tells (`onSpanStop`) taken as `spanStopped`
+    /// takes it (`ScreenPaths.stopped` with the screen's focus) and its `reveal` handed to the canvas once (through
+    /// `paths.revealRect(_:for:)`, a new `revealTrigger`), then the canvas's turns.
+    private func pressToday(_ day: DayKey, at now: Date, paths: ScreenPaths, rig: SpanRig, area: CGSize, fit: Bool,
+                            focus: inout DayKey, trigger: inout Int, file: StaticString = #filePath,
+                            line: UInt = #line) async throws -> Landing {
+        let action = paths.today(day, now: now, viewport: paths.heading?.viewport, area: area, ratio: 1, fit: fit)
+        guard case .slide(let pages)? = action else {
+            XCTFail("「今日」 on \(day): a slide, not \(String(describing: action))", file: file, line: line)
+            return Landing(pages: 0, landed: rig.canvas.contentOffset, after: rig.canvas.contentOffset, request: nil)
+        }
+        rig.coordinator.spanSlideAnimation = { [weak coordinator = rig.coordinator] canvas, target in
+            canvas.contentOffset = target
+            coordinator?.scrollViewDidScroll(canvas)
+            coordinator?.scrollViewDidEndScrollingAnimation(canvas)
+        }
+        let stops = rig.probe.stops.count
+        rig.coordinator.slide(byPages: pages)
+        await settle()
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "\(day): the slide ended", file: file, line: line)
+        XCTAssertEqual(rig.probe.stops.count, stops + 1, "\(day): one stop", file: file, line: line)
+        let stop = try XCTUnwrap(rig.probe.stops.last, file: file, line: line)
+        let landed = rig.canvas.contentOffset
+        let result = paths.stopped(stop, focus: focus, kind: rig.session.kind, weekStart: .monday, boundary: {})
+        focus = result.focus
+        if let rect = result.reveal {
+            trigger += 1
+            update(rig, revealRect: paths.revealRect(rect, for: rig.session), revealTrigger: trigger)
+            await settle()
+        }
+        return Landing(pages: pages, landed: landed, after: rig.canvas.contentOffset, request: result.reveal)
+    }
+
+    /// `rect` (band lu) is on screen from top to bottom, the paper area `height` pt high.
+    private func assertOnScreen(_ rect: CGRect, _ rig: SpanRig, height: CGFloat, _ step: String, file: StaticString = #filePath,
+                                line: UInt = #line) {
+        let top = rig.canvas.contentOffset.y
+        XCTAssertGreaterThanOrEqual(rect.minY * rig.zoom, top - 0.5, "\(step): today's cell on screen", file: file, line: line)
+        XCTAssertLessThanOrEqual(rect.maxY * rig.zoom, top + height + 0.5, "\(step): today's cell on screen", file: file, line: line)
+    }
+
+    /// §3.7 (「今日のページが窓の中なら滑って行き、今日のマスが画面に入るように縦も合わせる（今日のマスがもう見えていれば縦は動かさない）」;
+    /// the lead's decision of 11/28, in place of review UX-2 (b)) on the frozen canvas, through the screen's `ScreenPaths`: a
+    /// window of months on the landscape iPad at 等倍 (fit 1,210 / 1,400; 740 lu of the paper on screen, the rows 175 lu).
+    /// 「今日」 slides by pages keeping y; at its stop on today's month the request (`Stopped.reveal`) moves y alone, x staying:
+    /// 12/31 (December's fifth row, 700–875 lu), below the screen at the paper's top → to the cell's top less 1.1.1's margin
+    /// (690.7 lu); 1/27/2027 (January's fifth row), on screen from there → nothing moves; 12/3 (December's first row), above
+    /// the screen with the paper down in January's memo → up to the paper's top. Today's cell ends on screen each time, and
+    /// a later stop there brings nothing. Before the decision the paper stayed where the slide left it.
+    func testTodaysSlideOfMonthsBringsTodaysCellOnScreen() async throws {
+        let suite = "InkCanvasMonthYearTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let paths = makePaths(defaults: defaults)
+        let session = try await openThrough(paths, .month, device: ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape))
+        XCTAssertEqual(session.pageIds, [sep, oct, nov, dec, jan])
+        let fit = 1210.0 / 1400
+        let rig = await attach(session, size: landscape, initialFit: true, initialScrollX: origin(nov, session),
+                               onViewport: { paths.viewportArrived($0) })
+        XCTAssertEqual(rig.zoom, fit, accuracy: 1e-6, "等倍")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.5, "at the paper's top")
+        XCTAssertEqual(paths.heading?.viewport?.zoom ?? 0, fit, accuracy: 1e-6, "the screen's last viewport")
+        var focus = nov16
+        var trigger = 0
+
+        let dec31 = DayKey(year: 2026, month: 12, day: 31)
+        let below = try await pressToday(dec31, at: try at(2026, 12, 31), paths: paths, rig: rig, area: landscape, fit: true,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(below.pages, 1)
+        XCTAssertEqual(session.focusPageId, dec)
+        XCTAssertEqual(focus, dec31, "today the focus (review UX-3)")
+        XCTAssertEqual(middle(of: dec, rig), 605, accuracy: 1, "December edge to edge")
+        XCTAssertEqual(below.landed.y, 0, accuracy: 0.5, "the slide kept y")
+        let dec31Cell = cell(.day(dec31), of: dec, session)
+        XCTAssertEqual(dec31Cell.minY, 700, accuracy: 0.001, "December's fifth row")
+        XCTAssertGreaterThan(dec31Cell.maxY * fit, landscape.height, "below the screen as the slide landed")
+        let lines = try XCTUnwrap(below.request.flatMap { InkCanvasView.nowLineRevealLines($0) }, "the landing's request")
+        XCTAssertEqual(lines.top, 700 - ZoomPolicy.revealMargin / fit, accuracy: 1e-6, "the cell's top less the margin")
+        XCTAssertEqual(lines.nowLine, 875, accuracy: 1e-6, "the cell's bottom")
+        XCTAssertEqual(below.after.y, lines.top * fit, accuracy: 0.5, "y alone, to the cell's top less the margin")
+        XCTAssertEqual(below.after.x, below.landed.x, accuracy: 0.01, "x never moves")
+        assertOnScreen(dec31Cell, rig, height: landscape.height, "below")
+
+        let jan27 = DayKey(year: 2027, month: 1, day: 27)
+        let shown = try await pressToday(jan27, at: try at(2027, 1, 27), paths: paths, rig: rig, area: landscape, fit: true,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(shown.pages, 1)
+        XCTAssertEqual(session.focusPageId, jan)
+        XCTAssertEqual(focus, jan27)
+        XCTAssertEqual(shown.landed.y, below.after.y, accuracy: 0.5, "the slide kept y")
+        XCTAssertNotNil(shown.request, "the request goes: the screen does not know the paper's y")
+        XCTAssertEqual(shown.after.y, shown.landed.y, accuracy: 0.01, "today's cell already on screen: y stays")
+        XCTAssertEqual(shown.after.x, shown.landed.x, accuracy: 0.01)
+        assertOnScreen(cell(.day(jan27), of: jan, session), rig, height: landscape.height, "on screen")
+
+        await put(rig, mid: origin(jan, session) + 700, y: 3_000 * fit)
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        let above = try await pressToday(dec3, at: try at(2026, 12, 3), paths: paths, rig: rig, area: landscape, fit: true,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(above.pages, -1)
+        XCTAssertEqual(session.focusPageId, dec)
+        XCTAssertEqual(above.landed.y, 3_000 * fit, accuracy: 0.5, "the slide kept y (down in the memo)")
+        XCTAssertEqual(above.after.y, 0, accuracy: 0.5, "up to the cell's top less the margin, the paper's top")
+        XCTAssertEqual(above.after.x, above.landed.x, accuracy: 0.01, "x never moves")
+        assertOnScreen(cell(.day(dec3), of: dec, session), rig, height: landscape.height, "above")
+
+        // Once: a later check tells no stop, and the stop again brings no request.
+        let stops = rig.probe.stops.count
+        rig.coordinator.shiftIfAtRest()
+        await settle()
+        XCTAssertEqual(rig.probe.stops.count, stops, "the same focus page: no stop")
+        let again = paths.stopped(try XCTUnwrap(rig.probe.stops.last), focus: focus, kind: .month, weekStart: .monday, boundary: {})
+        XCTAssertNil(again.reveal, "once")
+        XCTAssertEqual(rig.canvas.contentOffset.y, above.after.y, accuracy: 0.01)
+    }
+
+    /// The same on a window of years (§3.7, the month's rule; D1y), the landscape iPad at 等倍 (fit 1,210 / 1,400; 740 lu on
+    /// screen, the paper 1,860 lu high so y ends at 967.6 pt), 2023 … 2029 around 2026: 2027-12-28 (the 28th's row, 1,620–1,680
+    /// lu) below the screen at the paper's top → y to the cell's top less the margin, which the paper's end clamps; 2028-12-30
+    /// (1,740–1,800 lu) on screen from there → nothing moves; 2027-01-05 (240–300 lu) above → y to its top less the margin.
+    func testTodaysSlideOfYearsBringsTodaysCellOnScreen() async throws {
+        let suite = "InkCanvasMonthYearTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let paths = makePaths(defaults: defaults)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(ScreenPaths.Opening(kind: .year, focus: nov16, weekStart: .monday,
+                                                          device: ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape),
+                                                          paperArea: nil,
+                                                          context: SpanSession.PaperContext(now: bed.now, calendar: SessionTestBed.tokyo))),
+                           .onePage, "the year does not join: one page")
+            return
+        }
+        let session = try await openThrough(paths, .year, device: ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape))
+        XCTAssertEqual(session.pageIds, [y2023, y2024, y2025, y2026, y2027, y2028, y2029])
+        let fit = 1210.0 / 1400
+        let rig = await attach(session, size: landscape, initialFit: true, initialScrollX: origin(y2026, session),
+                               onViewport: { paths.viewportArrived($0) })
+        XCTAssertEqual(rig.zoom, fit, accuracy: 1e-6, "等倍")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 0, accuracy: 0.5, "at the paper's top")
+        let maxY = rig.canvas.contentSize.height + rig.canvas.contentInset.bottom - landscape.height
+        XCTAssertEqual(maxY, 1_860 * fit - 640, accuracy: 0.5, "the paper's end")
+        var focus = nov16
+        var trigger = 0
+
+        let dec28 = DayKey(year: 2027, month: 12, day: 28)
+        let below = try await pressToday(dec28, at: try at(2027, 12, 28), paths: paths, rig: rig, area: landscape, fit: true,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(below.pages, 1)
+        XCTAssertEqual(session.focusPageId, y2027)
+        XCTAssertEqual(focus, dec28, "today the focus (review UX-3)")
+        XCTAssertEqual(below.landed.y, 0, accuracy: 0.5, "the slide kept y")
+        let dec28Cell = cell(.yearDay(month: 12, day: 28), of: y2027, session)
+        XCTAssertEqual(dec28Cell.minY, 1_620, accuracy: 0.001, "the 28th's row")
+        XCTAssertGreaterThan(dec28Cell.maxY * fit, landscape.height, "below the screen as the slide landed")
+        let lines = try XCTUnwrap(below.request.flatMap { InkCanvasView.nowLineRevealLines($0) }, "the landing's request")
+        XCTAssertEqual(lines.top, 1_620 - ZoomPolicy.revealMargin / fit, accuracy: 1e-6, "the cell's top less the margin")
+        XCTAssertEqual(lines.nowLine, 1_680, accuracy: 1e-6, "the cell's bottom")
+        XCTAssertGreaterThan(lines.top * fit, maxY, "past the paper's end")
+        XCTAssertEqual(below.after.y, maxY, accuracy: 0.5, "y alone, clamped at the paper's end")
+        XCTAssertEqual(below.after.x, below.landed.x, accuracy: 0.01, "x never moves")
+        assertOnScreen(dec28Cell, rig, height: landscape.height, "below")
+
+        let dec30 = DayKey(year: 2028, month: 12, day: 30)
+        let shown = try await pressToday(dec30, at: try at(2028, 12, 30), paths: paths, rig: rig, area: landscape, fit: true,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(shown.pages, 1)
+        XCTAssertEqual(session.focusPageId, y2028)
+        XCTAssertEqual(shown.landed.y, below.after.y, accuracy: 0.5, "the slide kept y")
+        XCTAssertNotNil(shown.request, "the request goes: the screen does not know the paper's y")
+        XCTAssertEqual(shown.after.y, shown.landed.y, accuracy: 0.01, "today's cell already on screen: y stays")
+        assertOnScreen(cell(.yearDay(month: 12, day: 30), of: y2028, session), rig, height: landscape.height, "on screen")
+
+        let jan5 = DayKey(year: 2027, month: 1, day: 5)
+        let above = try await pressToday(jan5, at: try at(2027, 1, 5), paths: paths, rig: rig, area: landscape, fit: true,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(above.pages, -1)
+        XCTAssertEqual(session.focusPageId, y2027)
+        XCTAssertEqual(above.landed.y, below.after.y, accuracy: 0.5, "the slide kept y")
+        XCTAssertEqual(above.after.y, (240 - ZoomPolicy.revealMargin / fit) * fit, accuracy: 0.5, "y alone, to the cell's top less the margin")
+        XCTAssertEqual(above.after.x, above.landed.x, accuracy: 0.01, "x never moves")
+        assertOnScreen(cell(.yearDay(month: 1, day: 5), of: y2027, session), rig, height: landscape.height, "above")
+    }
+
+    /// §3.7, §5.4 (0g-23: 「「今日」で今日の年が焦点なら、今日の行が見えていなければ縦だけ動く」; the lead's decision of 11/28): the
+    /// capped year of an iPhone in landscape (750 × 208 of iPhone 17, three years across: 750 / 4,200, about 1,165 lu on screen,
+    /// the paper's end at 124.1 pt), 2023 … 2029 around 2026. 「今日」's slide and its stop bring `cappedTodayRect`'s request:
+    /// 2027-12-28 (its bottom 1,680 lu) below the screen at the paper's top → y to two rows above today's row (1,500 lu),
+    /// which the paper's end clamps; 2028-11-18 (its bottom 1,080 lu) on screen from there → nothing moves; 2027-01-05 (its
+    /// bottom 300 lu) above → y to two rows above its row (the 3rd's, 120 lu).
+    func testTodaysSlideOfTheCappedYearsBringsTodaysRowOnScreen() async throws {
+        let suite = "InkCanvasMonthYearTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let paths = makePaths(defaults: defaults)
+        let phone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape)
+        let area = CGSize(width: 750, height: 208)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(ScreenPaths.Opening(kind: .year, focus: nov16, weekStart: .monday, device: phone, paperArea: nil,
+                                                          context: SpanSession.PaperContext(now: bed.now, calendar: SessionTestBed.tokyo))),
+                           .onePage, "the year does not join: one page")
+            return
+        }
+        let session = try await openThrough(paths, .year, device: phone)
+        XCTAssertEqual(session.pageIds, [y2023, y2024, y2025, y2026, y2027, y2028, y2029])
+        let cap = area.width / (3 * ZoomPolicy.paperWidth(.year))
+        let rig = await attach(session, size: area, onViewport: { paths.viewportArrived($0) })
+        XCTAssertEqual(rig.zoom, cap, accuracy: 1e-4, "the cap")
+        await put(rig, mid: origin(y2026, session) + 700, y: 0)
+        let shownViewport = try XCTUnwrap(paths.heading?.viewport, "the screen's last viewport")
+        XCTAssertTrue(ScreenPaths.atCappedOverview(layout: session.layout, width: shownViewport.width, zoom: shownViewport.zoom))
+        let maxY = rig.canvas.contentSize.height + rig.canvas.contentInset.bottom - area.height
+        XCTAssertEqual(maxY, 1_860 * cap - 208, accuracy: 0.5, "the paper's end")
+        var focus = nov16
+        var trigger = 0
+
+        let dec28 = DayKey(year: 2027, month: 12, day: 28)
+        let below = try await pressToday(dec28, at: try at(2027, 12, 28), paths: paths, rig: rig, area: area, fit: false,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(below.pages, 1)
+        XCTAssertEqual(session.focusPageId, y2027)
+        XCTAssertEqual(below.landed.y, 0, accuracy: 0.5, "the slide kept y")
+        let lines = try XCTUnwrap(below.request.flatMap { InkCanvasView.nowLineRevealLines($0) }, "the landing's request")
+        XCTAssertEqual(lines.top, 25 * 60, accuracy: 1e-6, "two rows above the 28th's: the 26th's top")
+        XCTAssertEqual(lines.nowLine, 28 * 60, accuracy: 1e-6, "the bottom of today's cell")
+        XCTAssertGreaterThan(lines.nowLine * cap, area.height, "below the screen as the slide landed")
+        XCTAssertEqual(below.after.y, min(lines.top * cap, maxY), accuracy: 0.5, "y alone, clamped at the paper's end")
+        XCTAssertEqual(below.after.x, below.landed.x, accuracy: 0.01, "x never moves")
+        assertOnScreen(cell(.yearDay(month: 12, day: 28), of: y2027, session), rig, height: area.height, "below")
+
+        let nov18 = DayKey(year: 2028, month: 11, day: 18)
+        let shown = try await pressToday(nov18, at: try at(2028, 11, 18), paths: paths, rig: rig, area: area, fit: false,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(shown.pages, 1)
+        XCTAssertEqual(session.focusPageId, y2028)
+        XCTAssertNotNil(shown.request)
+        XCTAssertEqual(shown.after.y, shown.landed.y, accuracy: 0.01, "today's row on screen: y stays")
+        assertOnScreen(cell(.yearDay(month: 11, day: 18), of: y2028, session), rig, height: area.height, "on screen")
+
+        let jan5 = DayKey(year: 2027, month: 1, day: 5)
+        let above = try await pressToday(jan5, at: try at(2027, 1, 5), paths: paths, rig: rig, area: area, fit: false,
+                                         focus: &focus, trigger: &trigger)
+        XCTAssertEqual(above.pages, -1)
+        XCTAssertEqual(session.focusPageId, y2027)
+        let aboveLines = try XCTUnwrap(above.request.flatMap { InkCanvasView.nowLineRevealLines($0) })
+        XCTAssertEqual(aboveLines.top, 2 * 60, accuracy: 1e-6, "two rows above the 5th's: the 3rd's top")
+        XCTAssertEqual(above.after.y, 2 * 60 * cap, accuracy: 0.5, "y alone")
+        XCTAssertEqual(above.after.x, above.landed.x, accuracy: 0.01, "x never moves")
+        assertOnScreen(cell(.yearDay(month: 1, day: 5), of: y2027, session), rig, height: area.height, "above")
     }
 }
