@@ -848,6 +848,50 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
+    /// Review T-2: the forward long slide (2026-09-16 on to 2026-11-28, two months ahead: `.slide(2)`) stops on the way (October)
+    /// between its legs as the backward one does (testTodaysLongSlideKeepsTodayAcrossItsLegs), and keeps 「今日」's mark there;
+    /// a stop on the page 「今日」 was pressed on (the paper not moved yet) is on the way too, in both directions
+    /// (`todayStopped(on:)`: the start page in, today's page out).
+    func testTodaysForwardLongSlideAndAStopOnItsStartPageKeepTheMark() async throws {
+        let sep16 = DayKey(year: 2026, month: 9, day: 16)
+        let session = try await openWindow(opening(focus: sep16))
+        XCTAssertEqual(session.pageIds, ["m1-2026-07", "m1-2026-08", sep, oct, nov])
+        var focus = sep16
+        XCTAssertEqual(paths.today(nov28, now: try at(11, 28, 10), viewport: nil, area: portrait, ratio: 1), .slide(2))
+        let atStart = takeStop(session, at: try middle(of: session, page: sep), focus: &focus)
+        XCTAssertEqual(atStart.focus, sep16, "the start page keeps its day")
+        XCTAssertNil(atStart.visitEnded)
+        followSlide(session, to: try middle(of: session, page: oct), focus: &focus)
+        XCTAssertEqual(focus, DayKey(year: 2026, month: 10, day: 16), "the month on the way keeps the day of the month")
+        bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace * 0.75)
+        let first = takeStop(session, at: try middle(of: session, page: oct), focus: &focus)
+        XCTAssertEqual(first.focus, DayKey(year: 2026, month: 10, day: 16), "the stop on the way keeps the day of the month")
+        XCTAssertEqual(first.visitEnded?.pageId, sep)
+        XCTAssertEqual(scratch.string(forKey: AppSettings.lastFocusKey), "2026-10-16")
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
+        XCTAssertEqual(session.pageIds, ["m1-2026-08", sep, oct, nov, dec])
+        await session.prefetch()
+
+        bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace * 0.75)
+        followSlide(session, to: try middle(of: session, page: nov), focus: &focus)
+        XCTAssertEqual(focus, nov28, "the next leg: today's month brings today")
+        takeStop(session, at: try middle(of: session, page: nov), focus: &focus)
+        XCTAssertEqual(focus, nov28)
+        XCTAssertEqual(scratch.string(forKey: AppSettings.lastFocusKey), "2026-11-28")
+
+        // Backward (2027-01-15 back to 2026-11-28): a stop on January right after 「今日」.
+        let back = try await openWindow(opening(focus: jan15))
+        var day = jan15
+        XCTAssertEqual(paths.today(nov28, now: try at(11, 28, 10), viewport: nil, area: portrait, ratio: 1), .slide(-2))
+        takeStop(back, at: try middle(of: back, page: jan), focus: &day)
+        XCTAssertEqual(day, jan15, "the start page keeps its day")
+        followSlide(back, to: try middle(of: back, page: dec), focus: &day)
+        XCTAssertEqual(day, DayKey(year: 2026, month: 12, day: 15))
+        followSlide(back, to: try middle(of: back, page: nov), focus: &day)
+        XCTAssertEqual(day, nov28, "the start page's stop kept the mark")
+        XCTAssertEqual(faults, [])
+    }
+
     /// Review UX-3: the week and the day keep their answers after 「今日」. The week slides to today's week (Thursday 11/26,
     /// one week on from Wednesday 11/18) and its stop keeps the weekday (11/25), 1.3's carry (the frozen
     /// ScreenPathsSpanTests); on its page 「今日」 changes no focus (`todayFocus` nil). The day's stop is the day (1.3's formula).
