@@ -11,11 +11,12 @@ import UIKit
 /// `WeekLayoutInput.extraFloor` from `SpanAlign.weekFloors`; a week laid out without its memo is 1,400 × 1,920
 /// lu, 1.2.3's; the paper draws what each layout says, so the memo runs on as one band: its strong line at
 /// 24:00 meets at a boundary, the ruled lines stop 20 lu short of it on each side and each page has its label,
-/// the day's look, `FreeMemoPaper`). Only weeks and days are joined in 1.3 (D2): a month or a year never makes one.
+/// the day's look, `FreeMemoPaper`). Only weeks and days were joined in 1.3 (D2).
 /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §3.4, §3.8, 0g-20, 0g-53): a window of the kinds `SpanKinds.joined` adds (the month
-/// with D1b-0; the year with D1y) is made by `window(for:focus:)`: the pages' paper alone, `bands` empty (a month or a year
-/// has no all-day band on either path), each page 1,400 lu wide (`ZoomPolicy.paperWidth`) and as tall as its own layout
-/// says (the session lines the months up, `SpanAlign.monthFloors`).
+/// since 1.4.3's D1b; the year with D1y) is made by `window(for:focus:)`: the pages' paper alone, `bands` empty (a month or a
+/// year has no all-day band on either path), each page 1,400 lu wide (`ZoomPolicy.paperWidth`) and as tall as its own layout
+/// says (the session lines the months up, `SpanAlign.monthFloors`). A kind outside `SpanKinds.joined` (the year until D1y)
+/// never makes one.
 ///
 /// `bands` are the window's all-day bands, one per page, with the lanes packed over the whole run of days
 /// at once (`AllDayBandLanes`, `AllDayBandEngine.pages`), so an event across a boundary keeps its lane.
@@ -36,8 +37,8 @@ struct PaperSpan: Equatable {
     /// The slot of the focus page, 0 ≤ focus < pages.count.
     let focus: Int
 
-    /// nil unless there is at least one page, every page is a week or every page is a day, and there is one
-    /// band per page of the same kind. `focus` is kept on the window.
+    /// nil unless there is at least one page, every page is of one kind, and — for weeks and days — there is one band per
+    /// page of the same kind. `focus` is kept on the window.
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §3.4, §3.8): every page a month, or every page a year, passes only with no band
     /// (`bands` empty): `ScreenPaths.headingSpan` makes the heading's window again with this, so a month's window must pass
     /// here. The week's and the day's conditions are 1.3's.
@@ -111,7 +112,8 @@ struct PaperSpan: Equatable {
 
     /// The window of the session's `SpanLayout`: its pages as the paper draws them (a week page →
     /// `.week`, a day page → `.day`), with `bands` (`AllDayBandLanes.bands`) and the focus slot. nil when a
-    /// page of the layout is neither (the month and the year are not joined in 1.3) or the counts differ.
+    /// page of the layout is neither or the counts differ: 1.3's window of weeks or days. Since 1.4.3 a window of months (and,
+    /// with D1y, of years) is made by `window(for:focus:)`, never here.
     init?(layout: SpanLayout, bands: [AllDayBandLayout], focus: Int) {
         var contents: [PaperContent] = []
         for page in layout.pages {
@@ -134,12 +136,14 @@ struct PaperSpan: Equatable {
     }
 
     /// More than one page: the joined path of the heading and the band (their thinning, the month over the
-    /// week's time column). A window of one page is shown as the page alone.
+    /// week's time column; 1.4.3: the months' labels and the strong line between two months). A window of one page is shown
+    /// as the page alone.
     var isJoined: Bool {
         pages.count > 1
     }
 
-    /// The width of one page (lu): week 1,400, day 1,000 (`ZoomPolicy.paperWidth`, `SpanPlan.pageWidth`).
+    /// The width of one page (lu): week 1,400, day 1,000, 1.4.3's month (and year) 1,400 (`ZoomPolicy.paperWidth`,
+    /// `SpanPlan.pageWidth`).
     var pageWidth: CGFloat {
         ZoomPolicy.paperWidth(kind)
     }
@@ -150,12 +154,12 @@ struct PaperSpan: Equatable {
     }
 
     /// The whole window (lu): the pages' widths side by side, the tallest page's height (the joined days
-    /// are equally tall when the session gives them the floor, D16).
+    /// are equally tall when the session gives them the floor, D16; 1.4.3's months when it lines them up, ア and イ).
     var size: CGSize {
         CGSize(width: CGFloat(pages.count) * pageWidth, height: pages.reduce(CGFloat(0)) { max($0, $1.size.height) })
     }
 
-    /// The date labels of slot `slot`'s page (week: 7, day: 1), as its layout gives them.
+    /// The date labels of slot `slot`'s page (week: 7, day: 1; 1.4.3's month: its table's 42), as its layout gives them.
     func dateLabels(ofSlot slot: Int) -> [DateLabel] {
         guard slot >= 0, slot < pages.count else { return [] }
         return pages[slot].layout.dateLabels
