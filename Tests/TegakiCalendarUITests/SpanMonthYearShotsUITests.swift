@@ -1,8 +1,8 @@
 import UIKit
 import XCTest
 
-/// 1.4.3 (docs/R1_4_3_CONTRACT.md §6.5, §12.4, §12.5, 0g-31, 0g-43): the photos of the joined months (and, from D1y, the
-/// joined years) from the normal build, in screenshot mode with the joined pages' arguments. Only a job that passes where
+/// 1.4.3 (docs/R1_4_3_CONTRACT.md §6.5, §12.4, §12.5, 0g-31, 0g-43): the photos of the joined months and the joined years
+/// from the normal build, in screenshot mode with the joined pages' arguments. Only a job that passes where
 /// to write and the device's id runs it (`TEST_RUNNER_TEGAKI_SPAN_MY_SHOT_OUT`, `TEST_RUNNER_TEGAKI_SPAN_MY_SHOT_DEVICE`:
 /// ipad13, ipad11, ipadmini or iphone69; xcodebuild hands them to the test runner without the prefix): the sample photos'
 /// job of the throwaway branch r143-alt (§12.5, step P) and later span-shots-my (§12.4). Anywhere else every test skips
@@ -20,9 +20,9 @@ import XCTest
 ///   13-inch iPad (a month at 等倍 there looks as it opens). An "after" photo whose zoom is not one page's width across the
 ///   canvas (the probe's `zoom` × 1,400 against the canvas's width, within 1.5 pt) fails the test: it would not show 等倍.
 ///
-/// D1b (§12.4, §12.3, 0g-31; the month's part, D1y adds the year's): the photos of the job span-shots-my, every one on
+/// D1b (§12.4, §12.3, 0g-31; the month's part, the year's below): the photos of the job span-shots-my, every one on
 /// 2026-10 in screenshot mode with `--screenshot-span on` unless said (the plain demo: no `--screenshot-month-tall`, every
-/// month's rows alike), 24 in all (the 26 candidates of §12.4 less the three "before 等倍", which are the turned
+/// month's rows alike), 24 of the month (the 26 candidates of §12.4 less the three "before 等倍", which are the turned
 /// overviews; open question 7 of the plan; and one more card, ja's for two fingers, review CI-1). These are what the job runs; `testMonthForms` and `testMonthZoom` above stay for
 /// the sample branch r143-alt:
 /// - `testMonthBands` (the four devices): portrait, the overview (`<device>-portrait-month-overview`) and the focus
@@ -51,12 +51,36 @@ import XCTest
 /// - `testMonthDots` (the 13-inch iPad, portrait): the memo paper's dots (`--screenshot-memo-paper dots`) at the joined
 ///   months' boundary (`--screenshot-offset-x -0.5`, no crossing sample over the dots: `ipad13-portrait-month-dots`),
 ///   1.4.2's promise that the dots keep their spacing across it.
+///
+/// D1y (§12.4, §12.3, §5.3, §5.4, 0g-31; the year's part): 22 photos of the joined year in 29 launches (7 of them the one
+/// page's year without a photo), every one on the year page of 2026 (`--screenshot-page year`; 2026-10's demo, its
+/// neighbours the demo's handwriting without events) with `--screenshot-span on` unless said; with the month's 24, the job's
+/// 46. No PDF of a year (§12.4 has none).
+/// - `testYearBands` (the four devices): portrait, the overview (`<device>-portrait-year-overview`, the year's label 「’26」
+///   over the day-number column on an iPad, none on an iPhone: §5.3) and 2026's left boundary in the middle with the
+///   crossing sample (`--screenshot-offset-x -0.5 --screenshot-span-crossing all`: the 20th's two lines from 2025's
+///   December into 2026, `-boundary`); turned on the 13-inch iPad, the iPad Air 11-inch and the 6.9-inch iPhone, the
+///   overview (`<device>-landscape-year-overview`; the iPhone's is the cap of 3 years, P-B6 イ, opened two rows above
+///   today's row: §5.4). Before them, in each orientation, the one page's year at the same place (`--screenshot-span off`,
+///   `path=one`) is launched without a photo for the lines `span-my paper:` (gate 3, §12.3), as the month's.
+/// - `testYearFit` (the four devices portrait, the three turned): 等倍 (`--screenshot-zoom fit`, `<device>-portrait-year-fit`,
+///   `<device>-landscape-year-fit`; the iPhone's portrait is its overview, open = fit there, and its landscape one year
+///   across, the cap not changing the fit: §6.4); a photo whose page is not the canvas's width across (the probe's zoom ×
+///   1,400 within 1.5 pt) fails the test.
+/// - `testYearOldVersion` (the 6.9-inch iPhone and the 13-inch iPad, portrait): the old versions' view, one page with the
+///   half of the crossing sample it owns (`--screenshot-single-page --screenshot-span-crossing all`, `path=one`,
+///   `-year-single`): 2026's line cut at the paper's left edge (B_DESIGN §4.3).
+/// - `testYearGuides` (the 6.9-inch iPhone, portrait): the first-time guide's card of the year in ja, for one finger
+///   (`--screenshot-span-guide one`, `-year-guide-ja`) and for two (`two`, `-year-guide-ja-two`; the month's review CI-1).
+/// The fallback of §14.1's decision (the year not joined) takes these four out of the job (its `-only-testing` list and its
+/// photos expected).
+///
 /// Each photo writes `span-my shots:` (the window, the canvas's frame, the probe's zoom, ox, oy, the paper's top in lu, one
-/// page across in pt, `span.state` and the probe, last) and `span cap:` (the window's pages and top: a month has no cap,
-/// the line is the record of gate 3's new state lines, §12.3), and a launch whose canvas never settled is made once more
-/// (FLAKE-1 of docs/M7C.md: a photo measures, it is not a gate on behaviour). The waits read once more after their
-/// deadline and count their reads (docs/R1_4_1.md :463, R1_4_2_CONTRACT §1.5). The job's PDF of a joined month is
-/// PDFMonthYearTests' (`span-my-pdf-month.pdf`).
+/// page across in pt, `span.state` and the probe, last) and `span cap:` (the window's pages and top: a month has no cap, an
+/// iPhone's turned year has, 3 years; the line is the record of gate 3's new state lines, §12.3), and a launch whose canvas
+/// never settled is made once more (FLAKE-1 of docs/M7C.md: a photo measures, it is not a gate on behaviour). The waits
+/// read once more after their deadline and count their reads (docs/R1_4_1.md :463, R1_4_2_CONTRACT §1.5). The job's PDF of
+/// a joined month is PDFMonthYearTests' (`span-my-pdf-month.pdf`).
 ///
 /// A portrait photo is the app's screenshot (XCUIScreenshot). A turned screen is photographed by the job instead
 /// (`TEST_RUNNER_TEGAKI_SPAN_MY_SHOT_REQUESTS`: the test writes `<file>\n270\n` into `<name>.request`, the job's
@@ -114,6 +138,12 @@ final class SpanMonthYearShotsUITests: XCTestCase {
     private static let joinedMonth = ["--screenshot-page", "month", "--screenshot-span", "on"]
     /// D1b: the one page's month at the same place (the setting off: `path=one`, `span.state` shown).
     private static let onePageMonth = ["--screenshot-page", "month", "--screenshot-span", "off"]
+    /// D1y: the joined year of the demo (2026; its neighbours the demo's handwriting without events, rows lined up on 2026's).
+    private static let joinedYear = ["--screenshot-page", "year", "--screenshot-span", "on"]
+    /// D1y: the one page's year at the same place.
+    private static let onePageYear = ["--screenshot-page", "year", "--screenshot-span", "off"]
+    /// D1y: the page's width in lu (`ZoomPolicy.paperWidth(.year)`, `PaperSpec.yearWidth`).
+    private static let yearWidth = 1_400.0
     /// D1b: the focus month's left boundary in the middle with the crossing sample (§12.4).
     private static let boundary = ["--screenshot-offset-x", "-0.5", "--screenshot-span-crossing", "all"]
     /// D1b: how far (pt) a joined photo's canvas frame may be from the one page's in any of its four numbers.
@@ -226,16 +256,64 @@ final class SpanMonthYearShotsUITests: XCTestCase {
              arguments: Self.joinedMonth + ["--screenshot-offset-x", "-0.5", "--screenshot-memo-paper", "dots"])
     }
 
+    // MARK: The tests of span-shots-my (D1y, the year)
+
+    func testYearBands() throws {
+        let setup = try setup()
+        guard Self.devices.contains(setup.device) else { throw XCTSkip("no joined year's bands on \(setup.device)") }
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let orientations: [UIDeviceOrientation] = Self.turnedDevices.contains(setup.device) ? [.portrait, .landscapeLeft] : [.portrait]
+        for orientation in orientations {
+            let one = onePage(setup, orientation: orientation, kind: "year")
+            let prefix = "\(setup.device)-\(Self.name(orientation))-year"
+            shot(setup, name: "\(prefix)-overview", orientation: orientation, arguments: Self.joinedYear, kind: "year", onePage: one)
+            if orientation == .portrait {
+                shot(setup, name: "\(prefix)-boundary", orientation: orientation, arguments: Self.joinedYear + Self.boundary, kind: "year",
+                     onePage: one)
+            }
+        }
+    }
+
+    func testYearFit() throws {
+        let setup = try setup()
+        guard Self.devices.contains(setup.device) else { throw XCTSkip("no 等倍 photo of the year on \(setup.device)") }
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let orientations: [UIDeviceOrientation] = Self.turnedDevices.contains(setup.device) ? [.portrait, .landscapeLeft] : [.portrait]
+        for orientation in orientations {
+            shot(setup, name: "\(setup.device)-\(Self.name(orientation))-year-fit", orientation: orientation,
+                 arguments: Self.joinedYear + ["--screenshot-zoom", "fit"], kind: "year", fit: true)
+        }
+    }
+
+    func testYearOldVersion() throws {
+        let setup = try setup()
+        guard ["iphone69", "ipad13"].contains(setup.device) else {
+            throw XCTSkip("the old versions' year is taken on the 6.9-inch iPhone and the 13-inch iPad")
+        }
+        shot(setup, name: "\(setup.device)-portrait-year-single", orientation: .portrait,
+             arguments: ["--screenshot-page", "year", "--screenshot-single-page", "--screenshot-span-crossing", "all"], path: "one", kind: "year")
+    }
+
+    func testYearGuides() throws {
+        let setup = try setup()
+        guard setup.device == "iphone69" else { throw XCTSkip("the year's guide cards are taken on the 6.9-inch iPhone") }
+        shot(setup, name: "iphone69-portrait-year-guide-ja", orientation: .portrait,
+             arguments: Self.joinedYear + ["--screenshot-span-guide", "one"], kind: "year", language: Self.japanese, card: true)
+        // The month's review CI-1 (§12.4 `one|two`): 「指でも書く」 on, an iPhone's default, shows the two-finger card.
+        shot(setup, name: "iphone69-portrait-year-guide-ja-two", orientation: .portrait,
+             arguments: Self.joinedYear + ["--screenshot-span-guide", "two"], kind: "year", language: Self.japanese, card: true)
+    }
+
     // MARK: The photos of span-shots-my
 
-    /// The one page's month at `orientation` (no photo): its canvas at rest, for the joined photos' `span-my paper:` lines;
-    /// launched once more when it never settled. nil (failed) when it did not settle twice.
-    private func onePage(_ setup: Setup, orientation: UIDeviceOrientation) -> Settled? {
-        let name = "\(setup.device)-\(Self.name(orientation))-month-one-page"
+    /// The one page's month (D1y: or year, `kind`) at `orientation` (no photo): its canvas at rest, for the joined photos'
+    /// `span-my paper:` lines; launched once more when it never settled. nil (failed) when it did not settle twice.
+    private func onePage(_ setup: Setup, orientation: UIDeviceOrientation, kind: String = "month") -> Settled? {
+        let name = "\(setup.device)-\(Self.name(orientation))-\(kind)-one-page"
         for attempt in 1...2 {
             XCUIDevice.shared.orientation = orientation
-            let app = launch(Self.onePageMonth)
-            let path = waitForStateCounted(app, timeout: 45) { $0["path"] == "one" && $0["kind"] == "month" }
+            let app = launch(kind == "year" ? Self.onePageYear : Self.onePageMonth)
+            let path = waitForStateCounted(app, timeout: 45) { $0["path"] == "one" && $0["kind"] == kind }
             let view = path == nil ? nil : settledCounted(app)
             if let view {
                 record(setup, "span-my one page: \(name) attempt=\(attempt) window=\(Self.text(app.windows.firstMatch.frame)) "
@@ -247,27 +325,27 @@ final class SpanMonthYearShotsUITests: XCTestCase {
             record(setup, "span-my one page: \(name) attempt=\(attempt) not settled (path \(path == nil ? "not one" : "one")); state=\(stateLabel(app))")
             app.terminate()
         }
-        XCTFail("\(name): the one page's month never settled: no paper area to set the joined photos beside")
+        XCTFail("\(name): the one page's \(kind) never settled: no paper area to set the joined photos beside")
         return nil
     }
 
     /// One photo of span-shots-my: launched (once more when its canvas never settled), the path asked for in `span.state`
-    /// (with `card` the guide's card up too), settled, taken, and its lines written: `span-my shots:`, `span cap:`, and with
-    /// `onePage` the line `span-my paper:` (its canvas frame beside the one page's at the same place; a difference fails).
-    /// With `fit` one page must be the canvas's width across.
+    /// with the page `kind` (the month's, D1y: or the year's; with `card` the guide's card up too), settled, taken, and its
+    /// lines written: `span-my shots:`, `span cap:`, and with `onePage` the line `span-my paper:` (its canvas frame beside the
+    /// one page's at the same place; a difference fails). With `fit` one page must be the canvas's width across.
     private func shot(_ setup: Setup, name: String, orientation: UIDeviceOrientation, arguments: [String], path: String = "span",
-                      language: [String]? = nil, card: Bool = false, fit: Bool = false, onePage one: Settled? = nil) {
+                      kind: String = "month", language: [String]? = nil, card: Bool = false, fit: Bool = false, onePage one: Settled? = nil) {
         for attempt in 1...2 {
             XCUIDevice.shared.orientation = orientation
             let app = launch(arguments, language: language)
-            let state = waitForStateCounted(app, timeout: 45) { $0["path"] == path && $0["kind"] == "month" }
+            let state = waitForStateCounted(app, timeout: 45) { $0["path"] == path && $0["kind"] == kind }
             let guide = element(app, "span.guide")
             let cardUp = !card || guide.waitForExistence(timeout: 30) || guide.exists
             let view = state == nil ? nil : settledCounted(app)
             guard let view else {
                 record(setup, "span-my shots: \(name) attempt=\(attempt) not settled (path \(state == nil ? "not \(path)" : path)); state=\(stateLabel(app))")
                 app.terminate()
-                if attempt == 2 { XCTFail("\(name): span.state never read path=\(path) with kind=month and a settled canvas, twice") }
+                if attempt == 2 { XCTFail("\(name): span.state never read path=\(path) with kind=\(kind) and a settled canvas, twice") }
                 continue
             }
             Thread.sleep(forTimeInterval: photoWait)
@@ -275,7 +353,7 @@ final class SpanMonthYearShotsUITests: XCTestCase {
             let zoom = view.probe["zoom"].flatMap { Double($0) } ?? 0
             let oy = view.probe["oy"].flatMap { Double($0) } ?? 0
             let top = zoom > 0 ? oy / zoom : 0
-            let across = zoom * Self.monthWidth
+            let across = zoom * (kind == "year" ? Self.yearWidth : Self.monthWidth)
             let width = Double(view.frame.width)
             let pages = view.state["pages"] ?? "?"
             var extra = ""
@@ -292,7 +370,7 @@ final class SpanMonthYearShotsUITests: XCTestCase {
                 record(setup, "span-my paper: device=\(setup.device) orientation=\(Self.name(orientation)) kind=\(name) "
                     + "joined=\(Self.text(view.frame)) one=\(Self.text(one.frame)) same=\(same ? "yes" : "no")")
                 if !same {
-                    XCTFail("\(name): the joined month's canvas \(Self.text(view.frame)) is not the one page's \(Self.text(one.frame)) at the same place (§12.3)")
+                    XCTFail("\(name): the joined \(kind)'s canvas \(Self.text(view.frame)) is not the one page's \(Self.text(one.frame)) at the same place (§12.3)")
                 }
             }
             if fit, abs(across - width) > Self.fitTolerance {
