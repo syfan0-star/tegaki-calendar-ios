@@ -68,13 +68,29 @@ enum PDFPageRenderer {
     /// With the memo in, the handwriting picture covers the taller rectangle, so `InkSnapshot` lowers its
     /// scale below `inkScale` past 12M pixels (about 1.81 for a stroke 300 lu into the memo, about 1.05 at
     /// 5,500), as the day's has since 1.1 (the lead's decision 6 of the week memo's plan, docs/M7C.md).
+    ///
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §4.7, §9.4, 0g-32): a joined month's memo counts the strokes that come in from the
+    /// neighbours' memos the same way (`neighborMemoBottom`: `neighborInk` whose cell is `memo`, only the part over this page's
+    /// x 0…1,400 and below its `memo.minY`): the memo is in the PDF when either has handwriting, from 0 down to `memo.minY` +
+    /// `PaperGrowth.exportTailHeight` of the deeper of the two — 1.1.1's rule, measured from the window page's own separator
+    /// line, so the pattern (the label, the ruled lines or the dots every 50 lu from `memo.minY`) starts at its top and runs as
+    /// far as the one page's PDF would run for that depth. Coming in deeper than this page's paper (a window of ウ, whose memos
+    /// are not lined up), the rectangle stops at the paper's bottom (`layout.size.height`): only the part over this page's paper
+    /// is drawn. Neither: the overview rectangle, as before. Without `neighborInk` (the default, the one page) this is 1.4.2's
+    /// rectangle.
     static func paperRect(_ paper: PaperContent, page: InkPage, neighborInk: [SpanPDFInk] = []) -> CGRect {
         switch paper {
         case .month(let content):
             let memoHasInk = page.liveStrokes.contains { $0.cell.isMemo }
-            guard memoHasInk else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
-            let tail = PaperGrowth.exportTailHeight(inkBottom: page.inkBottoms()[.memo] ?? 0)
-            return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.memo.minY + tail)
+            let incoming = neighborInk.isEmpty ? nil : neighborMemoBottom(neighborInk, memo: content.layout.memo, pageWidth: content.layout.size.width)
+            guard memoHasInk || incoming != nil else { return CGRect(origin: .zero, size: ZoomPolicy.overviewSize(content.layout)) }
+            guard let incoming = incoming else {
+                let tail = PaperGrowth.exportTailHeight(inkBottom: page.inkBottoms()[.memo] ?? 0)
+                return CGRect(x: 0, y: 0, width: content.layout.size.width, height: content.layout.memo.minY + tail)
+            }
+            let tail = PaperGrowth.exportTailHeight(inkBottom: max(page.inkBottoms()[.memo] ?? 0, incoming))
+            return CGRect(x: 0, y: 0, width: content.layout.size.width,
+                          height: min(content.layout.memo.minY + tail, content.layout.size.height))
         case .day(let content):
             let extraHasInk = page.liveStrokes.contains { $0.cell.isExtra }
             let incoming = neighborInk.isEmpty ? nil : neighborExtraBottom(neighborInk, extra: content.layout.extra, pageWidth: content.layout.size.width)
@@ -112,12 +128,29 @@ enum PDFPageRenderer {
     /// rule, "in only with handwriting in it"). Points are relative to `cellRect` (the owner's cell in this
     /// page's coordinates).
     static func neighborExtraBottom(_ neighborInk: [SpanPDFInk], extra: CGRect, pageWidth: CGFloat) -> CGFloat? {
+        neighborBottom(neighborInk, area: extra, pageWidth: pageWidth) { $0.isExtra }
+    }
+
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §4.7, 0g-32): `neighborExtraBottom` for a joined month's memo: how deep the strokes
+    /// coming in from the neighbours' memos (`neighborInk` whose cell is `memo`) reach over this page, in lu from the top of
+    /// this page's `memo` (the separator line), only the part over x 0…`pageWidth`. nil when none reaches over the page, and
+    /// when the part over it stays above `memo.minY` (with ウ, whose memos are not lined up, a neighbour's memo stroke may cross
+    /// only this page's grid: it brings no memo into the PDF). A neighbour's grid stroke never counts (as on the day: only
+    /// the memo's handwriting brings the memo in).
+    static func neighborMemoBottom(_ neighborInk: [SpanPDFInk], memo: CGRect, pageWidth: CGFloat) -> CGFloat? {
+        neighborBottom(neighborInk, area: memo, pageWidth: pageWidth) { $0.isMemo }
+    }
+
+    /// The common part of `neighborExtraBottom` and `neighborMemoBottom` (1.3's body of the former, unchanged): the strokes of
+    /// `neighborInk` whose cell `counts`, measured against `area`'s top.
+    private static func neighborBottom(_ neighborInk: [SpanPDFInk], area extra: CGRect, pageWidth: CGFloat,
+                                       counts: (CellKey) -> Bool) -> CGFloat? {
         var deepest: CGFloat?
         func take(_ y: CGFloat) {
             guard y.isFinite else { return }
             deepest = max(deepest ?? y, y)
         }
-        for item in neighborInk where item.stroke.cell.isExtra {
+        for item in neighborInk where counts(item.stroke.cell) {
             let origin = item.cellRect.origin
             let points = item.stroke.points
             for (index, point) in points.enumerated() {

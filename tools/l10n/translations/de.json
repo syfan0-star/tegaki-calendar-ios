@@ -1569,6 +1569,14 @@
       "jaSha1": "3eb73ecc0e",
       "text": "Vorheriger und nächster Tag sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Tag daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
     },
+    "span.guide.month.oneFinger": {
+      "jaSha1": "bd151700f0",
+      "text": "Vorheriger und nächster Monat sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Monat daneben zu sehen. Im Notizbereich unten können Sie direkt über den Monatsübergang hinweg schreiben."
+    },
+    "span.guide.month.twoFingers": {
+      "jaSha1": "eeebc6085c",
+      "text": "Vorheriger und nächster Monat sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Monat daneben zu sehen. Im Notizbereich unten können Sie direkt über den Monatsübergang hinweg schreiben."
+    },
     "span.guide.week.oneFinger": {
       "jaSha1": "3e0865a2f2",
       "text": "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um die Woche daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."

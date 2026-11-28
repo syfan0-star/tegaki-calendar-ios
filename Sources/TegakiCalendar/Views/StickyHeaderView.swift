@@ -15,6 +15,9 @@ import UIKit
 /// | week  | 7 day headers: weekday + date number (+ holiday)               | column → day page    |
 /// | day   | the date, "10月", "日曜日", the holiday badge; the memo column | —                    |
 /// | year  | "1月"…"12月" over the 12 columns                               | month → month page   |
+///
+/// 1.4.3 (docs/R1_4_3_CONTRACT.md §4.4, 0g-14): the joined months' weekday row also carries each table's month label
+/// (`spanMonthRow`, `monthLabels`); the one page never does.
 struct StickyHeaderView: View {
     var paper: PaperContent
     /// The current time (decides the current month of the year header).
@@ -43,25 +46,38 @@ struct StickyHeaderView: View {
     var onDayTap: (DayKey) -> Void
     var onMonthTap: (YearMonth) -> Void
 
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20): the joined row goes by the window's kind — the day's, the week's, and the
+    /// month's (`spanMonthRow`: the weekday row of each page and, since D1b, each table's month label, §4.4). A window of years
+    /// (D1y adds `spanYearRow`) shows the page's own row meanwhile, never the week's.
     var body: some View {
         if let span = span, span.isJoined {
             switch span.kind {
             case .day:
                 spanDayRow(span)
-            default:
+            case .week:
                 spanWeekRow(span)
+            case .month:
+                spanMonthRow(span)
+            case .year:
+                pageRow
             }
         } else {
-            switch paper {
-            case .month(let content):
-                monthRow(content.layout)
-            case .week(let content):
-                weekRow(content.layout)
-            case .day(let content):
-                dayRow(content.layout)
-            case .year(let content):
-                yearRow(content)
-            }
+            pageRow
+        }
+    }
+
+    /// The heading of `paper` alone (1.2.3's rows).
+    @ViewBuilder
+    private var pageRow: some View {
+        switch paper {
+        case .month(let content):
+            monthRow(content.layout)
+        case .week(let content):
+            weekRow(content.layout)
+        case .day(let content):
+            dayRow(content.layout)
+        case .year(let content):
+            yearRow(content)
         }
     }
 
@@ -399,12 +415,179 @@ struct StickyHeaderView: View {
 
     /// The columns of the joined pages side by side: per page the week's [64] + [190.857…] × 7 or the day's
     /// [72, 588, 340] (the columns of `weekRow` / `dayRow`), so page k's first column starts at k × the page
-    /// width, `PaperSpan.origin(ofSlot:)`.
+    /// width, `PaperSpan.origin(ofSlot:)`. 1.4.3 (§3.8): the month's [200] × 7 (`monthRow`'s).
     static func spanColumns(_ span: PaperSpan) -> [CGFloat] {
-        let page: [CGFloat] = span.kind == .day
-            ? [PaperSpec.dayGutter, PaperSpec.dayTimelineRight - PaperSpec.dayGutter, PaperSpec.dayWidth - PaperSpec.dayTimelineRight]
-            : [PaperSpec.weekGutter] + Array(repeating: PaperSpec.weekColumnWidth, count: PaperSpec.weekColumns)
+        let page: [CGFloat]
+        switch span.kind {
+        case .day:
+            page = [PaperSpec.dayGutter, PaperSpec.dayTimelineRight - PaperSpec.dayGutter, PaperSpec.dayWidth - PaperSpec.dayTimelineRight]
+        case .month:
+            page = Array(repeating: PaperSpec.monthColumnWidth, count: PaperSpec.monthColumns)
+        case .week, .year:
+            page = [PaperSpec.weekGutter] + Array(repeating: PaperSpec.weekColumnWidth, count: PaperSpec.weekColumns)
+        }
         return Array(Array(repeating: page, count: span.pages.count).joined())
+    }
+
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.8, 0g-20; D1b-0): the joined months: per page `monthRow`'s weekday row (its order
+    /// and colours from that page's first row, `PaperWords.monthHeaderColumns`), on the page's 7 columns of 200 lu, so each
+    /// weekday stands over its column of the paper. The same cells, font and padding as `monthRow`, so the row is as tall as
+    /// the one page's (the paper area and the opening zoom are the one page's, §3.8).
+    /// D1b (§4.4, 0g-14, §10): each table's month label lies over the row (`spanMonthLabels`, an overlay: the row keeps the
+    /// weekday cells' height, the one page's).
+    private func spanMonthRow(_ span: PaperSpan) -> some View {
+        PaperRow(kind: .month, viewport: viewport, columns: Self.spanColumns(span)) {
+            ForEach(span.pages.indices, id: \.self) { slot in
+                ForEach(Self.monthColumns(span, slot: slot), id: \.weekday) { column in
+                    Text(column.name)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Self.toneColor(column.tone) ?? .primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                        .accessibilityLabel(column.fullName)
+                }
+            }
+        }
+        .overlay(alignment: .topLeading) { spanMonthLabels(span) }
+        .clipped()
+        .background(Color(uiColor: .secondarySystemBackground))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(uiColor: .separator))
+                .frame(height: 0.5)
+        }
+    }
+
+    /// The weekday columns of a joined month's page `slot` (`monthRow`'s), none for a page that is not a month.
+    private static func monthColumns(_ span: PaperSpan, slot: Int) -> [PaperWords.MonthHeaderColumn] {
+        guard slot >= 0, slot < span.pages.count, case .month(let content) = span.pages[slot] else { return [] }
+        return PaperWords.monthHeaderColumns(content.layout, L.language)
+    }
+
+    // MARK: - 1.4.3: the month's label over the joined months (§4.4, 0g-14, §10)
+
+    /// The labels of the joined months laid over the weekday row: each where `monthLabels` puts it, centred on the row's
+    /// height. The viewport is the row's own (`PaperRow`'s: the canvas's, or the first frame's for the row's width), so a
+    /// label moves with its table's columns.
+    private func spanMonthLabels(_ span: PaperSpan) -> some View {
+        GeometryReader { geometry in
+            let shown = viewport.width > 0 ? viewport : PaperViewport.initial(.month, viewportWidth: geometry.size.width)
+            let weekday = Self.monthWeekdayPoints(Self.monthColumns(span, slot: span.focus).map(\.name))
+            ForEach(Self.monthLabels(span, viewport: shown, language: language, weekdayPoints: weekday), id: \.slot) { label in
+                SpanMonthLabelView(label: label)
+                    .position(x: label.x + label.width / 2, y: geometry.size.height / 2)
+            }
+        }
+    }
+
+    /// The size (pt, semibold) of a joined month's label: the week's month over its time column's (`joinedGutterFontSize`).
+    static let monthLabelFontSize: CGFloat = joinedGutterFontSize
+    /// The label's distance (pt) from its table's left edge, from the screen's left edge while it sticks there, and from its
+    /// table's right edge when the next table pushes it out.
+    static let monthLabelInset: CGFloat = 2
+    /// The room (pt) on each side of the label's text inside its backing (the row's colour, so the label hides what passes
+    /// under it while it sticks).
+    static let monthLabelPadding: CGFloat = 2
+    /// The least room (pt) between the label and the weekday centred in the column it starts in.
+    static let monthLabelGap: CGFloat = 2
+
+    /// What a month's label shows (§4.4): the month's name as the title says it, then its short name, then the number alone.
+    enum MonthLabelForm: CaseIterable, Equatable {
+        /// `DateText.monthName(month, .full, language)`: the title's month (ja 「11月」 of 「2026年11月」, en "November").
+        case full
+        /// `DateText.monthName(month, .short, language)`: en "Nov", de "Nov." (ja 「11月」 again).
+        case short
+        /// The number alone: 「11」.
+        case number
+    }
+
+    /// The text of `month`'s label in `form`. No new string: the names are `DateText`'s (the title's), the number is the digits.
+    static func monthLabelText(month: Int, form: MonthLabelForm, language: UILanguage) -> String {
+        switch form {
+        case .full: return DateText.monthName(month, .full, language)
+        case .short: return DateText.monthName(month, .short, language)
+        case .number: return String(month)
+        }
+    }
+
+    /// The label's width (pt): its text at `monthLabelFontSize` semibold, rounded up, with `monthLabelPadding` on each side.
+    static func monthLabelWidth(_ text: String) -> CGFloat {
+        let font = UIFont.systemFont(ofSize: monthLabelFontSize, weight: .semibold)
+        return PaperText.width(of: text, font: font) + 2 * monthLabelPadding
+    }
+
+    /// The widest of the weekday row's names (pt) in its font (`.caption`, semibold): the room the weekday centred in a column
+    /// takes, whichever column a label starts in or passes over.
+    static func monthWeekdayPoints(_ names: [String]) -> CGFloat {
+        let font = UIFont.systemFont(ofSize: UIFont.preferredFont(forTextStyle: .caption1).pointSize, weight: .semibold)
+        return names.reduce(CGFloat(0)) { max($0, PaperText.naturalWidth(of: $1, font: font)) }
+    }
+
+    /// The form of every label of the row at a column `columnPoints` wide (200 lu × zoom) whose weekday is at most
+    /// `weekdayPoints` wide (§4.4: when the label and the weekday do not both fit, the number alone; when that does not fit
+    /// either, no label): the first form in which the widest of the twelve months fits `monthLabelInset` from the column's
+    /// left edge and `monthLabelGap` short of the weekday, `inset + width ≤ (column − weekday) / 2 − gap`. One form for the
+    /// whole row, so neighbouring tables never say "Nov" beside "December" and a label does not change its form as the window
+    /// shifts. nil (no label) when none fits or a width is not usable (the title says the month).
+    static func monthLabelForm(columnPoints: CGFloat, weekdayPoints: CGFloat, language: UILanguage) -> MonthLabelForm? {
+        guard columnPoints.isFinite, columnPoints > 0, weekdayPoints.isFinite, weekdayPoints >= 0 else { return nil }
+        let room = (columnPoints - weekdayPoints) / 2 - monthLabelGap
+        return MonthLabelForm.allCases.first { form in
+            let widest = (1...12).reduce(CGFloat(0)) { max($0, monthLabelWidth(monthLabelText(month: $1, form: form, language: language))) }
+            return monthLabelInset + widest <= room
+        }
+    }
+
+    /// Where the label of window page `slot` stands (pt from the row's left edge) in `viewport` (a resolved one, width > 0):
+    /// `monthLabelInset` right of its table's left edge (the top-left of the table's first weekday cell), or, once that edge
+    /// has gone out to the left, stuck at `monthLabelInset` from the screen's left edge — but never past its own table's right
+    /// edge less `monthLabelInset`, so the next table's label, coming in at that edge, pushes it out (the usual sticky
+    /// heading). nil when it is off the screen (its table has gone, or has not come in yet) or the table is too narrow for it.
+    static func monthLabelX(slot: Int, labelWidth: CGFloat, viewport: PaperViewport, pageWidth: CGFloat = PaperSpec.monthWidth) -> CGFloat? {
+        let left = viewport.x(ofPaper: CGFloat(slot) * pageWidth)
+        let right = viewport.x(ofPaper: CGFloat(slot + 1) * pageWidth)
+        guard left.isFinite, right.isFinite, labelWidth.isFinite, labelWidth > 0, viewport.width > 0,
+              right - left >= labelWidth + 2 * monthLabelInset else { return nil }
+        let stuck = max(left + monthLabelInset, monthLabelInset)
+        let x = min(stuck, right - monthLabelInset - labelWidth)
+        guard x + labelWidth > 0, x < viewport.width else { return nil }
+        return x
+    }
+
+    /// One month label of the joined row.
+    struct MonthLabel: Equatable {
+        /// The window page (its table) the label belongs to: one label per page, wherever it stands.
+        var slot: Int
+        var month: YearMonth
+        /// What it shows (`monthLabelForm`).
+        var text: String
+        /// What VoiceOver reads: the month's name as the title says it (`.full`), whatever the form shows.
+        var spoken: String
+        /// pt (`monthLabelWidth`).
+        var width: CGFloat
+        /// pt from the row's left edge (`monthLabelX`).
+        var x: CGFloat
+    }
+
+    /// The labels of the joined months on screen in `viewport` (resolved, width > 0), left to right: one per page whose label
+    /// is on the screen, in the row's one form (`monthLabelForm` at this zoom's 200 lu column), each at `monthLabelX` — a
+    /// label stuck at the left edge is its own page's, the same element moved, so it is read once. Empty for a window that is
+    /// not of months or not joined (the one page's heading has no label: its title says the month, §4.4) and when no form fits.
+    static func monthLabels(_ span: PaperSpan, viewport: PaperViewport, language: UILanguage, weekdayPoints: CGFloat) -> [MonthLabel] {
+        guard span.kind == .month, span.isJoined,
+              let form = monthLabelForm(columnPoints: viewport.width(ofPaper: PaperSpec.monthColumnWidth), weekdayPoints: weekdayPoints,
+                                        language: language) else { return [] }
+        var labels: [MonthLabel] = []
+        for (slot, page) in span.pages.enumerated() {
+            guard case .month(let content) = page else { continue }
+            let month = content.layout.month
+            let text = monthLabelText(month: month.month, form: form, language: language)
+            let width = monthLabelWidth(text)
+            guard let x = monthLabelX(slot: slot, labelWidth: width, viewport: viewport, pageWidth: span.pageWidth) else { continue }
+            labels.append(MonthLabel(slot: slot, month: month, text: text, spoken: monthLabelText(month: month.month, form: .full, language: language),
+                                     width: width, x: x))
+        }
+        return labels
     }
 
     /// The joined weeks: per page the month over its time column and its 7 day columns, in the form the
@@ -599,6 +782,27 @@ struct StickyHeaderView: View {
 
     private var bottomLine: some View {
         Rectangle().fill(lineColor).frame(height: 1)
+    }
+}
+
+/// 1.4.3 (docs/R1_4_3_CONTRACT.md §4.4, §10): one month label of the joined months' weekday row: its text at
+/// `StickyHeaderView.monthLabelFontSize` semibold in `PaperPalette.ink2`, `width` wide on the row's colour. One VoiceOver
+/// element, a heading, that reads the month's name as the title says it (`MonthLabel.spoken`) — the same element wherever the
+/// label stands, stuck at the left edge too.
+private struct SpanMonthLabelView: View {
+    var label: StickyHeaderView.MonthLabel
+
+    var body: some View {
+        Text(label.text)
+            .font(.system(size: StickyHeaderView.monthLabelFontSize, weight: .semibold))
+            .foregroundStyle(Color(uiColor: PaperPalette.ink2))
+            .lineLimit(1)
+            .fixedSize()
+            .frame(width: label.width)
+            .background(Color(uiColor: .secondarySystemBackground))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(label.spoken)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

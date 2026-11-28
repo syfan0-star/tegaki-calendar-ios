@@ -101,6 +101,12 @@ import UIKit
 /// dots (`penSlots`; nil unless six colours can be read: the first six colours). Screenshot mode never reads or writes
 /// `toolbar.penSlots`: its dots live in a scratch store emptied at every launch (`ToolbarPalette.slotsStore`), and its pen
 /// starts with the first dot's colour (`startPen`). `toolbar.penColor` is written as before.
+/// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §12.4, §12.5, 0g-31): with `--screenshot-span on` the month joins sideways too (its
+/// window is `spanDemoPage`'s, as the week's and the day's). Two arguments for its photos, both off unless given, so without
+/// them every photo, UI test and fixture is what 1.4.2 made: `--screenshot-span-crossing all` (`spanCrossingAll`: the joined
+/// month's window adds two strokes across its memo band at the focus month's left boundary, `monthCrossingStrokes`) and
+/// `--screenshot-month-tall` (`monthTall`: the month right of the focus month has taller rows, `monthTallEvents` and
+/// `monthTallStrokes`, so the three forms of the joined months differ in the sample photos).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -319,6 +325,15 @@ enum ScreenshotMode {
         /// 1.4.2 (§3.11): `--screenshot-pen-slots <six hex, by commas>`: the six dots (lower-case "#rrggbb"); nil (no value, not six
         /// pieces, a piece that is not a colour, or two alike) = the first six colours.
         var penSlots: [String]? = nil
+        /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §12.4, 0g-31): `--screenshot-span-crossing all`: the joined month's window adds
+        /// the strokes drawn across its memo band at the focus page's left boundary (`monthCrossingStrokes`), one held by
+        /// each page; any other value, or none, is off. Kept apart from 1.3's crossing demo (`crossingSamples`,
+        /// `crossingDemoStrokeIds` stays empty for a month).
+        var spanCrossingAll: Bool = false
+        /// 1.4.3 (§2.1, §12.5, 0g-31): `--screenshot-month-tall`, a flag: the month right of the photos' focus month has
+        /// taller rows (`monthTallStrokes` in its grid and `monthTallEvents` on its 18th), so the three forms of the joined
+        /// months (ア・イ・ウ) look different; short of the 6th row's cap (§4.1 4, the lead's decision 6).
+        var monthTall: Bool = false
 
         /// 1.3: the window opens joined (week and day): `--screenshot-span on` without `--screenshot-single-page`.
         var joinsPages: Bool {
@@ -514,12 +529,23 @@ enum ScreenshotMode {
         if let index = arguments.firstIndex(of: "--screenshot-pen-slots"), index + 1 < arguments.count {
             penSlots = parsePenSlots(arguments[index + 1])
         }
+        // 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, 0g-31): the month's crossing sample (only the value `all`) and the tall right
+        // neighbour (a flag).
+        var spanCrossingAll = false
+        if let index = arguments.firstIndex(of: "--screenshot-span-crossing"), index + 1 < arguments.count {
+            spanCrossingAll = arguments[index + 1] == spanCrossingAllValue
+        }
+        let monthTall = arguments.contains("--screenshot-month-tall")
         return Config(page: page, month: month, today: todayInstant(for: month), focus: focusDay(for: month), sheet: sheet, landscape: landscape, zoomRatio: zoomRatio, offset: offset, readOnly: readOnly, toolbar: toolbar, tool: tool, grown: grown, probe: probe, select: select, empty: empty, tallYear: tallYear, pinchHint: pinchHint, holidays: holidays, weekStart: weekStart, storeInk: storeInk,
                       span: span, spanOffsetX: spanOffsetX, spanShift: spanShift, singlePage: singlePage, spanGuide: spanGuide, weekMemo: weekMemo, settingsSection: settingsSection,
                       measure: measure, pencilPhone: pencilPhone,
                       hand: hand, palette: palette, paletteDrag: paletteDrag, zoomFit: zoomFit, paletteMenu: paletteMenu,
-                      memoPaper: memoPaper, colorPanel: colorPanel, penSlots: penSlots)
+                      memoPaper: memoPaper, colorPanel: colorPanel, penSlots: penSlots,
+                      spanCrossingAll: spanCrossingAll, monthTall: monthTall)
     }
+
+    /// 1.4.3 (§2.1): the value of `--screenshot-span-crossing` that turns `Config.spanCrossingAll` on.
+    static let spanCrossingAllValue = "all"
 
     /// 1.4.2 (§3.11): "#92400e,#6b7280,…" → the six lower-case "#rrggbb"; nil unless there are six pieces, each a colour
     /// (`InkColors.normalized`: "#rgb" or "#rrggbb", either case), none twice.
@@ -697,7 +723,11 @@ enum ScreenshotMode {
     /// `storeInk` (docs/M7B.md, FIX4; by default `--screenshot-store-ink`, so false in normal use and in the
     /// tests) moves the 7th's call to 12:30: side by side with the meeting, the words of both were cut in
     /// the App Store's week photo. Everything else is the same, ids included.
-    static func demoEvents(for month: YearMonth, empty: Bool = ScreenshotMode.current?.empty ?? false, language: UILanguage = L.language, storeInk: Bool = ScreenshotMode.current?.storeInk ?? false) -> [LayoutEvent] {
+    /// `monthTall` (1.4.3, docs/R1_4_3_CONTRACT.md §2.1, §12.5; by default `--screenshot-month-tall`, so false in normal use
+    /// and in the tests) adds, after every event above (so no id moves), `monthTallEvents`: all-day events on the 18th of
+    /// the next month, a day no grid of `month` holds (neither week start), so only the right neighbour's row grows.
+    static func demoEvents(for month: YearMonth, empty: Bool = ScreenshotMode.current?.empty ?? false, language: UILanguage = L.language, storeInk: Bool = ScreenshotMode.current?.storeInk ?? false,
+                           monthTall: Bool = ScreenshotMode.current?.monthTall ?? false) -> [LayoutEvent] {
         if empty { return [] }
         let calendar = DayKey.deviceCalendar
         let demoCalendars = calendars(language: language)
@@ -768,8 +798,34 @@ enum ScreenshotMode {
         }
         timed(L.text("demo.event.dentalCheck", in: language), 7, 14, in: personal)
 
+        if monthTall {
+            out += monthTallEvents(after: month, firstId: out.count + 1, calendars: demoCalendars, language: language)
+        }
         return out
     }
+
+    /// 1.4.3 (`--screenshot-month-tall`, docs/R1_4_3_CONTRACT.md §2.1, §12.5): five all-day events on the 18th of the month
+    /// after `month` (ids from "demo-<firstId>", titles of the demo's own words, so no new text), so that month's row of
+    /// the 18th has five lanes: 28 + 5 × 25 + 40 = 193 lu, above the 175 of a plain row (`MonthLayoutEngine.rowHeight`).
+    static func monthTallEvents(after month: YearMonth, firstId: Int, calendars demoCalendars: [DemoCalendar],
+                                language: UILanguage = L.language) -> [LayoutEvent] {
+        let calendar = DayKey.deviceCalendar
+        let next = month.next
+        let day = DayKey(year: next.year, month: next.month, day: min(monthTallEventDay, DayKey.daysInMonth(year: next.year, month: next.month)))
+        let titles = [L.text("demo.event.reportDeadline", in: language), L.text("demo.event.checkup", in: language),
+                      L.text("demo.event.birthday", in: language), L.text("demo.event.trashDay", in: language),
+                      L.text("demo.event.payday", in: language)]
+        let colours = [0, 2, 1, 1, 2]
+        return titles.enumerated().map { n, title in
+            let cal = demoCalendars[colours[n] % demoCalendars.count]
+            return LayoutEvent(id: "demo-\(firstId + n)", title: title, allDay: true,
+                               start: day.startOfDay(in: calendar), end: day.adding(days: 1).startOfDay(in: calendar),
+                               colorHex: cal.colorHex, calendarId: cal.id)
+        }
+    }
+
+    /// The day of the next month that `monthTallEvents` fill (its row is not the row of `monthTallStrokes`' day).
+    static let monthTallEventDay = 18
 
     // MARK: - Demo ink
 
@@ -945,12 +1001,20 @@ enum ScreenshotMode {
     /// `weekMemo` (1.3, §5.2, `--screenshot-week-memo`) is the focus week's only: its demo page gets the memo's wave
     /// (`demoPage`'s), and with `crossing` also the memo stroke across its left boundary (`weekMemoCrossingStrokeId`,
     /// centre right of the boundary, D15); no other page changes.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §12.4, §12.5, 0g-31): two more samples of the joined month, off unless asked (by
+    /// default the running screenshot mode's arguments, so off in normal use and in the tests; `ScreenPaths.windowDemo`
+    /// passes them): `crossingAll` (`--screenshot-span-crossing all`) adds `monthCrossingStrokes` to the page left of the
+    /// focus month and to the focus month (one stroke each, across the memo band at that boundary); `monthTall`
+    /// (`--screenshot-month-tall`) adds `monthTallStrokes` to the month right of the focus month. Neither with `empty`,
+    /// neither on another kind; `crossing:` (1.3's demo, week and day) is not read for them.
     static func spanDemoPage(pageId: String, kind: PageKind, focus: DayKey, weekStart: WeekStart = .monday, crossing: Bool,
                              grown: Bool = ScreenshotMode.current?.grown ?? false,
                              empty: Bool = ScreenshotMode.current?.empty ?? false,
                              tallYear: Bool = ScreenshotMode.current?.tallYear ?? false,
                              storeInk: Bool = ScreenshotMode.current?.storeInk ?? false,
-                             weekMemo: Bool = ScreenshotMode.current?.weekMemo ?? false) -> InkPage {
+                             weekMemo: Bool = ScreenshotMode.current?.weekMemo ?? false,
+                             crossingAll: Bool = ScreenshotMode.current?.spanCrossingAll ?? false,
+                             monthTall: Bool = ScreenshotMode.current?.monthTall ?? false) -> InkPage {
         let plan = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: .iPad11, orientation: .portrait)
         guard let index = plan.index(of: pageId) else { return InkPage.empty(pageId: pageId) }
         let offset = index - plan.index(containing: focus)
@@ -978,7 +1042,63 @@ enum ScreenshotMode {
                 page.add(weekMemoCrossingStroke())
             }
         }
+        if kind == .month, !empty {
+            if crossingAll {
+                for stroke in monthCrossingStrokes(pageOffset: offset) {
+                    page.add(stroke)
+                }
+            }
+            if monthTall, offset == 1 {
+                for stroke in monthTallStrokes(of: YearMonth(year: day.year, month: day.month)) {
+                    page.add(stroke)
+                }
+            }
+        }
         return page
+    }
+
+    // MARK: Samples of the joined month (1.4.3, docs/R1_4_3_CONTRACT.md §2.1, §12.4, §12.5, 0g-31)
+
+    /// The ids of `monthCrossingStrokes`: the one the left page holds and the one the focus month holds.
+    static let monthCrossingStrokeIds = (left: "demo-stroke-cross-month-memo-left", focus: "demo-stroke-cross-month-memo-focus")
+
+    /// `--screenshot-span-crossing all` on a joined month: two lines written across the memo band at the focus month's left
+    /// boundary, in `memo` coordinates (y from the separator line, so they move with the band's lines, §4.1), each held by
+    /// the page of its bounds' centre x (D15): one from (−320, 150) to (160, 175), centre −80, the left page's; one from
+    /// (−160, 260) to (320, 285), centre +80, the focus month's. Clear of the demo's dot at (80, 60). The left page's
+    /// points are in its own coordinates (x + 1,400), past its right edge and not cut (§4.1 of M7C). None on another page.
+    static func monthCrossingStrokes(pageOffset: Int) -> [InkStroke] {
+        let samples: [(id: String, from: CGPoint, to: CGPoint, color: String, owner: Int)] = [
+            (monthCrossingStrokeIds.left, CGPoint(x: -320, y: 150), CGPoint(x: 160, y: 175), "#2563eb", -1),
+            (monthCrossingStrokeIds.focus, CGPoint(x: -160, y: 260), CGPoint(x: 320, y: 285), "#16a34a", 0),
+        ]
+        let width = ZoomPolicy.paperWidth(.month)
+        return samples.enumerated().compactMap { n, sample in
+            guard sample.owner == pageOffset else { return nil }
+            let dx = pageOffset == -1 ? width : 0
+            let points = line(from: sample.from, to: sample.to, count: 41, amplitude: 7).enumerated().map { i, p in
+                InkPoint(x: p.x + dx, y: p.y, dtMs: i * 12, sizeW: 3.5, sizeH: 3.5, opacity: 1,
+                         force: 0.5 + 0.2 * sin(CGFloat(i) * 0.3), azimuth: 0, altitude: 1.4)
+            }
+            return InkStroke(id: sample.id, cell: .memo, tool: .pen, color: sample.color, t: baseTime + 24_000 + n * 1_000, points: points)
+        }
+    }
+
+    /// The day of `monthTallStrokes` (its row is not the row of `monthTallEventDay`, on either week start).
+    static let monthTallStrokeDay = 25
+
+    /// `--screenshot-month-tall`: three lines written one under the other in the cell of the 25th of `month` (a list, the
+    /// lowest at y 370 ± 6 of the cell, bottom about 378 lu), so its row is about 390 lu (`MonthLayoutEngine.rowHeight`:
+    /// the bottom + 12), 215 above a plain row. With `monthTallEvents`' 193 lu row the month's grid is about 1,283 lu
+    /// (4 × 175 + 193 + 390 on 2026-11), its bottom some 220–233 lu below the other months of the photos' window
+    /// (1,050–1,063 lu): well under the reach of a 6th row's cap (about 1,025 lu, §4.1 4, the lead's decision 6), so every
+    /// month of the photos reaches the window's separator line.
+    static func monthTallStrokes(of month: YearMonth) -> [InkStroke] {
+        let day = DayKey(year: month.year, month: month.month, day: min(monthTallStrokeDay, DayKey.daysInMonth(year: month.year, month: month.month)))
+        return [110, 240, 370].enumerated().map { n, y in
+            InkStroke(id: "demo-stroke-month-tall-\(n + 1)", cell: .day(day), tool: .pen, color: "#1f2937", t: baseTime + 27_000 + n * 1_000,
+                      points: wave(x0: 24, y0: CGFloat(y), count: 36, step: 4.2, amplitude: 6))
+        }
     }
 
     /// The week memo's crossing demo stroke (1.3, §5.2), on the focus week in its own `extra` coordinates: 41 points

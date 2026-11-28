@@ -22837,6 +22837,138 @@
         }
       }
     },
+    "span.guide.month.oneFinger" : {
+      "comment" : "初めての案内の札（1.4.3、月）。月のページを横につなげて初めて開いたときに、紙の上の端に 8 秒だけ（触れれば消える）、端末ごとに 1 回出る。「指でも書く」がオフのとき（iPad の既定）: 指 1 本で横にすべらせると、となりの月が出る。月の表は日付が隣の表へ続かないので、境目をまたいで書けるのは下のメモ欄（月のメモの帯）だと言う。週・日の札（N-4〜N-7）と同じ作り。文は docs/R1_4_3_CONTRACT.md §13.1（9 言語は仮の訳。D2 で GLOSSARY に照らして訳し直す）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriger und nächster Monat sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um den Monat daneben zu sehen. Im Notizbereich unten können Sie direkt über den Monatsübergang hinweg schreiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous and next months are now joined sideways. Slide your finger sideways to see the neighboring month. In the notes area below, you can write straight across the boundary between months."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los meses anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el mes contiguo. En la zona de notas de abajo, puede escribir directamente cruzando la unión entre meses."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les mois précédent et suivant sont désormais reliés côte à côte. Faites glisser le doigt sur le côté pour voir le mois voisin. Dans la zone de notes en bas, vous pouvez écrire directement à cheval sur la jonction des mois."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I mesi precedente e successivo ora sono uniti in orizzontale. Faccia scorrere il dito in orizzontale per vedere il mese accanto. Nell'area delle note in basso può scrivere direttamente a cavallo del confine tra i mesi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の月が横につながりました。指で横にすべらせると、となりの月が出てきます。下のメモ欄は、月の境目をまたいで、そのまま書けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 달이 가로로 이어졌어요. 손가락으로 가로로 밀면 이웃한 달이 나와요. 아래 메모 칸에는 달의 경계를 넘어 그대로 쓸 수 있어요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os meses anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o mês ao lado. Na área de notas abaixo, você pode escrever direto atravessando a emenda entre os meses."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一个月和后一个月已横向相连。用手指横向滑动，就会出现相邻的月份。在下方的备忘栏里，可以跨过月份的交界处直接书写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一個月和後一個月已橫向相連。用手指橫向滑動，就會出現相鄰的月份。在下方的備忘欄裡，可以跨越月份的交界處直接書寫。"
+          }
+        }
+      }
+    },
+    "span.guide.month.twoFingers" : {
+      "comment" : "初めての案内の札（1.4.3、月）。上（span.guide.month.oneFinger）と同じときに出る。「指でも書く」がオンのとき（iPhone の既定）: 指では線を書くので、横に動かすのは 2 本の指。文は docs/R1_4_3_CONTRACT.md §13.1（9 言語は仮の訳。D2 で GLOSSARY に照らして訳し直す）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriger und nächster Monat sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um den Monat daneben zu sehen. Im Notizbereich unten können Sie direkt über den Monatsübergang hinweg schreiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous and next months are now joined sideways. Slide two fingers sideways to see the neighboring month. In the notes area below, you can write straight across the boundary between months."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los meses anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el mes contiguo. En la zona de notas de abajo, puede escribir directamente cruzando la unión entre meses."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les mois précédent et suivant sont désormais reliés côte à côte. Faites glisser deux doigts sur le côté pour voir le mois voisin. Dans la zone de notes en bas, vous pouvez écrire directement à cheval sur la jonction des mois."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I mesi precedente e successivo ora sono uniti in orizzontale. Faccia scorrere due dita in orizzontale per vedere il mese accanto. Nell'area delle note in basso può scrivere direttamente a cavallo del confine tra i mesi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の月が横につながりました。2 本指で横にすべらせると、となりの月が出てきます。下のメモ欄は、月の境目をまたいで、そのまま書けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 달이 가로로 이어졌어요. 두 손가락으로 가로로 밀면 이웃한 달이 나와요. 아래 메모 칸에는 달의 경계를 넘어 그대로 쓸 수 있어요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os meses anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o mês ao lado. Na área de notas abaixo, você pode escrever direto atravessando a emenda entre os meses."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一个月和后一个月已横向相连。用双指横向滑动，就会出现相邻的月份。在下方的备忘栏里，可以跨过月份的交界处直接书写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一個月和後一個月已橫向相連。用兩指橫向滑動，就會出現相鄰的月份。在下方的備忘欄裡，可以跨越月份的交界處直接書寫。"
+          }
+        }
+      }
+    },
     "span.guide.week.oneFinger" : {
       "comment" : "初めての案内の札（1.3、N-4）。週のページを横につなげて初めて開いたときに、紙の上の端に 8 秒だけ（触れれば消える）、端末ごとに 1 回出る。「指でも書く」がオフのとき（iPad の既定）: 指 1 本で横にすべらせると、となりの週が出る。1.4 から、アプリが「指でも書く」をオフにしたとき（Pencil を使う iPhone Duo）は、記録を消して次に開いたときにもう 1 回出すことがある（誰に出し直すかは docs/M7D_CONTRACT.md §4.8）。文は docs/M7C_CONTRACT.md §8.1（訳は §8.2）",
       "extractionState" : "manual",

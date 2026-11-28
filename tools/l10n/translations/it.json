@@ -1569,6 +1569,14 @@
       "jaSha1": "3eb73ecc0e",
       "text": "I giorni precedente e successivo ora sono uniti in orizzontale. Faccia scorrere due dita in orizzontale per vedere il giorno accanto. Può scrivere direttamente a cavallo del confine."
     },
+    "span.guide.month.oneFinger": {
+      "jaSha1": "bd151700f0",
+      "text": "I mesi precedente e successivo ora sono uniti in orizzontale. Faccia scorrere il dito in orizzontale per vedere il mese accanto. Nell'area delle note in basso può scrivere direttamente a cavallo del confine tra i mesi."
+    },
+    "span.guide.month.twoFingers": {
+      "jaSha1": "eeebc6085c",
+      "text": "I mesi precedente e successivo ora sono uniti in orizzontale. Faccia scorrere due dita in orizzontale per vedere il mese accanto. Nell'area delle note in basso può scrivere direttamente a cavallo del confine tra i mesi."
+    },
     "span.guide.week.oneFinger": {
       "jaSha1": "3e0865a2f2",
       "text": "Le settimane precedente e successiva ora sono unite in orizzontale. Faccia scorrere il dito in orizzontale per vedere la settimana accanto. Può scrivere direttamente a cavallo del confine."

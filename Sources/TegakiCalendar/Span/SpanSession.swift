@@ -294,6 +294,21 @@ final class SpanSession: ObservableObject {
     @Published private(set) var windowVersion = 0
     /// The floors of the window's last cells (`SpanAlign`, D16).
     private(set) var floors = SpanAlign.Floors.none
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.3): what each month page of the last layout had by its own events and handwriting
+    /// (`SpanAlign.MonthNatural`, from the page laid out without floors), by page id. `relayoutPages` compares the window's
+    /// numbers of now with these, not with the floors, to tell an erase (`.inkShrank`) from more ink (`.inkGrew`).
+    private(set) var monthNaturals: [String: SpanAlign.MonthNatural] = [:]
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.3): how a month window's composition reads its `SpanAlign.Change` (`monthChange`).
+    private enum MonthReading {
+        /// As the change says, but `.redecide` is read as `.shift` (the pages read after a shift, the events read again,
+        /// the 30 s check, an update from outside).
+        case usual
+        /// `relayoutPages`: from the pages' natural numbers against the last layout's (`monthNaturals`).
+        case fromInk
+        /// The window decided anew (`redecide(orientation:)` after a change of width; the tests' radius 0): `.redecide`
+        /// may lower the floors.
+        case anew
+    }
     /// The events of each window page (§3.8), by page id.
     private(set) var events: [String: [LayoutEvent]] = [:]
     var context: PaperContext
@@ -621,7 +636,8 @@ final class SpanSession: ObservableObject {
     /// The inbox emptied (so the window holds every stroke the canvas handed over), the window from the slots
     /// (with the session's aliases) and its layout; a new `windowVersion`. The only place that changes `window`,
     /// `layout` and `windowVersion` after the opening.
-    private func compose(change: SpanAlign.Change) {
+    /// 1.4.3 (§3.3): `reading` is how a month window reads `change` (`monthChange`); the other kinds do not read it.
+    private func compose(change: SpanAlign.Change, reading: MonthReading = .usual) {
         drainInbox()
         let pages = pageIds.compactMap { slots[$0]?.page }
         let composed = SpanComposer.compose(pages, plan: plan, session: number, aliases: aliases)
@@ -630,7 +646,7 @@ final class SpanSession: ObservableObject {
         for id in composed.skippedPageIds {
             fault("compose: \(id) left out of the window")
         }
-        layoutPages(change: change)
+        layoutPages(change: change, reading: reading)
         windowVersion += 1
     }
 
@@ -639,7 +655,11 @@ final class SpanSession: ObservableObject {
     /// the focus. The floor follows `change` (`SpanAlign.floor`): `.inkGrew` and `.shift` never lower it (so right
     /// after a shift the window keeps its height); `.inkShrank` (an erase) and `.redecide` (the pages read after a
     /// shift, the events, the 30 s tick) bring it to the tallest page of the window (D16 as docs/M7C.md reads it).
-    private func layoutPages(change: SpanAlign.Change) {
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.3, §4.1, 0g-10–0g-12): a month window is laid out twice — each page without floors
+    /// first (its natural numbers, `SpanAlign.MonthNatural`), then with the window's floors (`SpanAlign.monthFloors` in the
+    /// form `monthForm`, handed to `MonthLayoutInput.floored(by:)`); see `monthChange` for when they come down. The year
+    /// keeps 1.4.2's layout here until D1y.
+    private func layoutPages(change: SpanAlign.Change, reading: MonthReading) {
         let firstIndex = windowFirstIndex
         let bottoms = pageIds.map { slots[$0]?.page.inkBottoms() ?? [:] }
         switch kind {
@@ -647,7 +667,11 @@ final class SpanSession: ObservableObject {
             floors = SpanAlign.dayFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
         case .week:
             floors = SpanAlign.weekFloors(previous: floors, extraInkBottoms: bottoms.map { $0[.extra] ?? 0 }, change: change)
-        case .month, .year:
+        case .month:
+            layout = SpanLayout(pages: alignedMonths(firstIndex: firstIndex, bottoms: bottoms, change: change, reading: reading),
+                                plan: plan, firstIndex: firstIndex, floors: floors, session: number)
+            return
+        case .year:
             break
         }
         var pages: [any PageLayout] = []
@@ -655,6 +679,64 @@ final class SpanSession: ObservableObject {
             pages.append(pageLayout(index: firstIndex + offset, pageId: id, inkBottoms: bottoms[offset]))
         }
         layout = SpanLayout(pages: pages, plan: plan, firstIndex: firstIndex, floors: floors, session: number)
+    }
+
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §4.1, 0g-10): the form the joined months take, read in this one place
+    /// (`SpanAlign.monthForm`, ア unless the owner picks イ or ウ from the sample photos).
+    static var monthForm: SpanAlign.MonthForm {
+        SpanAlign.monthForm
+    }
+
+    /// 1.4.3 (§3.3 1–4): the window's month pages laid out without floors (the natural numbers), the floors decided from
+    /// them (`monthChange`), and the pages laid out again with the floors. With no floor at all (ウ) the natural pages
+    /// are the answer (`MonthLayoutInput` with its floors 0 gives them, `==`).
+    private func alignedMonths(firstIndex: Int, bottoms: [[CellKey: CGFloat]], change: SpanAlign.Change,
+                               reading: MonthReading) -> [any PageLayout] {
+        let inputs = pageIds.enumerated().map { offset, id in
+            monthInput(index: firstIndex + offset, pageId: id, inkBottoms: bottoms[offset])
+        }
+        let natural = inputs.map(MonthLayoutEngine.layout)
+        let numbers = natural.map(SpanAlign.MonthNatural.init)
+        floors = SpanAlign.monthFloors(previous: floors, naturals: numbers, form: Self.monthForm,
+                                       change: monthChange(change, reading: reading, numbers: numbers))
+        monthNaturals = Dictionary(zip(pageIds, numbers), uniquingKeysWith: { _, last in last })
+        let none = SpanAlign.Floors.none
+        guard floors.monthGrid != none.monthGrid || floors.monthMemo != none.monthMemo || floors.monthRows != none.monthRows else {
+            return natural
+        }
+        return inputs.map { MonthLayoutEngine.layout($0.floored(by: floors)) }
+    }
+
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.3, 0g-12, 0g-16): how a month window reads `change`. The floors come down only on
+    /// `.inkShrank` (an erase here or outside) and when the window is decided anew (`.anew`: a change of width; a new
+    /// session starts from no floor, so its first `.redecide` read as `.shift` is the window's largest too). Every other
+    /// `.redecide` — the pages read after a shift (`prefetch`), the events read again, the 30 s check (`contextChanged`), an
+    /// update from outside — is read as `.shift`, which only raises: so a tall month that left the window keeps the
+    /// separator line where it was and the lowest zoom never rises from a sideways move alone. `relayoutPages` (`.fromInk`)
+    /// is `.inkShrank` only when a page's natural numbers went down against the last layout's (`monthNaturals`; erased, or
+    /// moved away by the lasso), else `.inkGrew`. The week and the day keep 1.3's reading; `SpanAlign.Change` gets no case.
+    private func monthChange(_ change: SpanAlign.Change, reading: MonthReading, numbers: [SpanAlign.MonthNatural]) -> SpanAlign.Change {
+        switch reading {
+        case .fromInk:
+            for (id, now) in zip(pageIds, numbers) {
+                guard let before = monthNaturals[id] else { continue }
+                if Self.wentDown(before, now) { return .inkShrank }
+            }
+            return .inkGrew
+        case .usual:
+            return change == .redecide ? .shift : change
+        case .anew:
+            return change
+        }
+    }
+
+    /// Whether any of a month page's natural numbers is lower now than before (a row, the grid's bottom, the memo).
+    private static func wentDown(_ before: SpanAlign.MonthNatural, _ now: SpanAlign.MonthNatural) -> Bool {
+        if now.gridBottom < before.gridBottom || now.memoHeight < before.memoHeight { return true }
+        for (r, height) in now.rows.enumerated() where r < before.rows.count && height < before.rows[r] {
+            return true
+        }
+        return false
     }
 
     private func pageLayout(index: Int, pageId: String, inkBottoms: [CellKey: CGFloat]) -> any PageLayout {
@@ -671,22 +753,37 @@ final class SpanSession: ObservableObject {
                                                            holidays: c.holidays, words: c.words, weekStart: weekStart, extraFloor: floors.weekExtra,
                                                            freeMemo: true))
         case .month:
-            return MonthLayoutEngine.layout(MonthLayoutInput(month: YearMonth(year: first.year, month: first.month), events: pageEvents,
-                                                             inkBottoms: inkBottoms, now: c.now, calendar: c.calendar, holidays: c.holidays,
-                                                             words: c.words, weekStart: weekStart))
+            return MonthLayoutEngine.layout(monthInput(index: index, pageId: pageId, inkBottoms: inkBottoms))
         case .year:
             return YearLayoutEngine.layout(YearLayoutInput(year: first.year, events: pageEvents, inkBottoms: inkBottoms, now: c.now,
                                                            calendar: c.calendar, holidays: c.holidays, words: c.words))
         }
     }
 
+    /// The month page `pageId` (number `index`) as `MonthLayoutEngine` takes it, without floors (1.4.2's input; the window's
+    /// floors are added with `floored(by:)`, `alignedMonths`).
+    private func monthInput(index: Int, pageId: String, inkBottoms: [CellKey: CGFloat]) -> MonthLayoutInput {
+        let first = plan.firstDay(at: index)
+        let c = context
+        return MonthLayoutInput(month: YearMonth(year: first.year, month: first.month), events: events[pageId] ?? [],
+                                inkBottoms: inkBottoms, now: c.now, calendar: c.calendar, holidays: c.holidays,
+                                words: c.words, weekStart: weekStart)
+    }
+
     /// The canvas reported that handwriting may have crossed the bottom of its cell (`onInkBoundsChanged`):
     /// the inbox is emptied and the window composed and laid out again — the day's free memo or the week memo
     /// (1.3) grows past 5,950 lu, or comes back when erased (D16) — with the same virtual page (a new
     /// `windowVersion` whose window holds the strokes just drawn).
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.3): a month window (its grid's and its memo's handwriting) reads its change from
+    /// its pages' natural numbers against the last layout's (`monthChange`), not from the floor, which a tall month that
+    /// left the window may still hold: a little ink on another month must not lower it.
     func relayoutPages() {
         guard !isClosed else { return }
         drainInbox()
+        if kind == .month {
+            compose(change: .inkGrew, reading: .fromInk)
+            return
+        }
         let previous = floors.floor(for: kind)
         let tallest = pageIds.map { SpanAlign.natural(inkBottom: slots[$0]?.page.inkBottoms()[.extra] ?? 0) }.max() ?? 0
         compose(change: tallest < previous ? .inkShrank : .inkGrew)
@@ -1084,15 +1181,19 @@ final class SpanSession: ObservableObject {
         let overviewCap = overviewCapNow.map { overviewCapAsked && $0() } ?? self.overviewCap
         let next = SpanPlan(kind: kind, weekStart: weekStart, deviceClass: deviceClass, orientation: orientation, overviewCap: overviewCap)
         let wide = max(1, Self.windowRadius(plan: next, paperArea: paperArea))
-        let decided = rebuild(around: focusIndex, plan: next, radius: fittingRadius(wide, plan: next, focus: focusIndex), change: .redecide)
+        // 1.4.3 (§3.3): the window decided anew after a change of width: a month's floors may come down here.
+        let decided = rebuild(around: focusIndex, plan: next, radius: fittingRadius(wide, plan: next, focus: focusIndex), change: .redecide,
+                              anew: true)
         if decided { self.overviewCap = overviewCap }
         return decided
     }
 
     /// The window of `newPlan` and `newRadius` around `newFocus`: the steps of `shift` (above), then the window's
     /// first page, the plan and the radius set together.
+    /// 1.4.3 (§3.3): `anew` (a window decided anew) lets `.redecide` lower a month's floors (`MonthReading.anew`).
     @discardableResult
-    private func rebuild(around newFocus: Int, plan newPlan: SpanPlan, radius newRadius: Int, change: SpanAlign.Change) -> Bool {
+    private func rebuild(around newFocus: Int, plan newPlan: SpanPlan, radius newRadius: Int, change: SpanAlign.Change,
+                         anew: Bool = false) -> Bool {
         guard !isClosed else { return false }
         procedureDepth += 1
         drainInbox()
@@ -1122,7 +1223,7 @@ final class SpanSession: ObservableObject {
         windowFirstIndex = newFocus - newRadius
         pageIds = nextIds
         countStrokes()
-        compose(change: change)
+        compose(change: change, reading: anew ? .anew : .usual)
         procedureDepth -= 1
         applyPendingRemote()
         return true
@@ -1180,7 +1281,7 @@ final class SpanSession: ObservableObject {
     @discardableResult
     func narrowToOnePageForTesting() -> Bool {
         #if DEBUG
-        return rebuild(around: focusIndex, plan: plan, radius: 0, change: .redecide)
+        return rebuild(around: focusIndex, plan: plan, radius: 0, change: .redecide, anew: true)
         #else
         return false
         #endif

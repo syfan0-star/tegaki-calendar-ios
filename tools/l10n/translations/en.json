@@ -1569,6 +1569,14 @@
       "jaSha1": "3eb73ecc0e",
       "text": "The previous and next days are now joined sideways. Slide two fingers sideways to see the neighboring day. You can write straight across the boundary."
     },
+    "span.guide.month.oneFinger": {
+      "jaSha1": "bd151700f0",
+      "text": "The previous and next months are now joined sideways. Slide your finger sideways to see the neighboring month. In the notes area below, you can write straight across the boundary between months."
+    },
+    "span.guide.month.twoFingers": {
+      "jaSha1": "eeebc6085c",
+      "text": "The previous and next months are now joined sideways. Slide two fingers sideways to see the neighboring month. In the notes area below, you can write straight across the boundary between months."
+    },
     "span.guide.week.oneFinger": {
       "jaSha1": "3e0865a2f2",
       "text": "The previous and next weeks are now joined sideways. Slide your finger sideways to see the neighboring week. You can write straight across the boundary."

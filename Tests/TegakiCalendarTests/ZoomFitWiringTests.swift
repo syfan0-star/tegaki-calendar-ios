@@ -219,7 +219,7 @@ final class ZoomFitWiringTests: XCTestCase {
         let sheet = try XCTUnwrap(ScreenshotMode.parse(base + ["--screenshot-sheet", "settings", "--screenshot-zoom", "fit"]))
         XCTAssertEqual(sheet.page, .month)
         XCTAssertTrue(sheet.zoomFit)
-        XCTAssertFalse(ScreenshotMode.zoomFit(sheet, kind: sheet.page, stored: true))
+        XCTAssertTrue(ScreenshotMode.zoomFit(sheet, kind: sheet.page, stored: true), "1.4.3: the month under the sheet at 等倍 too")
     }
 
     /// Whether a page opens at 等倍 (the screen's `currentFit` after `ZoomReset.followsFit`): in screenshot mode
@@ -229,7 +229,7 @@ final class ZoomFitWiringTests: XCTestCase {
         let plain = try XCTUnwrap(ScreenshotMode.parse(base))
         let fit = try XCTUnwrap(ScreenshotMode.parse(base + ["--screenshot-zoom", "fit"]))
         for kind in PageKind.allCases {
-            let follows = kind == .week || kind == .day
+            let follows = kind == .week || kind == .day || kind == .month
             XCTAssertEqual(ZoomReset.followsFit(kind), follows, "\(kind)")
             for stored in [false, true] {
                 XCTAssertEqual(ScreenshotMode.zoomFit(nil, kind: kind, stored: stored), stored, "\(kind): normal use, \(stored) stored")

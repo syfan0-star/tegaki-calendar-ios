@@ -7,20 +7,18 @@ import Layout
 // checks every kind on the fast path.
 
 enum ZoomReset {
-    /// 週・日は true（等倍 = 1 ページの幅が画面の幅にちょうど）。月・年は false（等倍 = open）。
+    /// 週・日は true（等倍 = 1 ページの幅が画面の幅にちょうど）。1.4.3: 横につなぐ種類（SpanKinds.joined）の月・年も true。
     ///
     /// The week and the day: 等倍 is fit (`ZoomPolicy.Bounds.fit`, the paper column's width ÷ the page's 1,400 / 1,000 lu),
-    /// and the canvas keeps that state through a change of width (`InkCanvasView.Coordinator.followsFit`) until a pinch. The
-    /// month and the year: 等倍 is the opening zoom, as before (their sideways scrolling and fit come with a later version,
-    /// the owner's words of 11/22 12:3x).
+    /// and the canvas keeps that state through a change of width (`InkCanvasView.Coordinator.followsFit`) until a pinch.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, 0g-26; the owner's words of 11/22 12:3x, 「月と年は、横スクロールができる仕様にして
+    /// から、幅が両端にくる等倍を適用します」): a month or a year follows fit once its kind joins sideways (`SpanKinds.joined`),
+    /// on both paths alike; a kind that does not join keeps the opening zoom (1.4.1's).
     static func followsFit(_ kind: PageKind) -> Bool {
-        switch kind {
-        case .week, .day: return true
-        case .month, .year: return false
-        }
+        kind == .week || kind == .day || SpanKinds.joined.contains(kind)
     }
 
-    /// 等倍の狙い: 週・日は bounds.clamped(bounds.fit)、月・年は bounds.open。
+    /// 等倍の狙い: followsFit の種類は bounds.clamped(bounds.fit)、ほかは bounds.open。
     ///
     /// Every device has min ≤ open ≤ fit ≤ max (open = min(fit, the height's), the iPhone's landscape cap is fit / 3 or
     /// fit / 5, max ≥ 4 × fit), so the clamp changes nothing there; it stays for limits made some other way.

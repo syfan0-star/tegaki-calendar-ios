@@ -88,6 +88,10 @@
 # test classes (§11.2), and the 15 test files 1.4.2 added are frozen at the bytes of 57ffd0f in
 # tools/span/TESTS_1_4_2.sha256 (§8.5). J-4's reference for 1.4.3 is tools/l10n/ja-baseline-ref-1.4.3.txt (57ffd0f,
 # 1.4.2's build 32).
+# 1.4.3's D1b (docs/R1_4_3_CONTRACT.md §11.3, §12.1, §12.4): the UI test step also runs SpanMonthYearUITests (`span-my UI:`;
+# its step 55 min and its job 70), and a seventh job, span-shots-my, photographs the joined months (24 photos and a PDF on
+# four devices, artifact "span-shots-my", kept 7 days; outside J-4 and ja-baseline.yml). It `needs` compat-v1.0, so it
+# takes a runner only after the six others had theirs (macOS runs 5 jobs at once); D1y adds the years.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -487,7 +491,7 @@ jobs:
       # the changed files taken out of lint-skip.txt for that run only (L-7, L-8, L-13 and L-14 would not read their new
       # code otherwise; review S6-RM-5); from 1.4 the version that touches the handwriting's data takes the real 1.3
       # (the base commit) as a compatibility partner too (§6.4). The file keeps its name (D9: this step reads it by name).
-      - name: Data code frozen (re-based in 1.4.1)
+      - name: Data code frozen (re-based in 1.4.1 and 1.4.3)
         run: |
           set -euo pipefail
           shasum -a 256 -c tools/compat10/DATA_1_1.sha256
@@ -1802,12 +1806,14 @@ jobs:
   # r13-quick and r13-q-* (§10.6: the quick lane has no UI test). No `needs`. The limit: checkout and the project about
   # 1.5 min, the build 2–6 (1.4 in run 43570477701, where the first job's build had warmed the modules; a cold one about 5),
   # the boot with its 60 s wait 2–4, the tests 13–22 and the step's own 40 at most: 60.
+  # 1.4.3 D1b (docs/R1_4_3_CONTRACT.md §11.3, §12.1; open question 8 of D1b's plan): 60 → 70 with the step's 45 → 55 below
+  # (SpanMonthYearUITests' month adds about 6 min); the other steps take 8–12, so 70 keeps 10 or more over a step of 44–48.
   ui-tests:
     name: UI tests (iPhone)
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-') || github.ref_name == 'r143-quick' || startsWith(github.ref_name, 'r143-q-') || startsWith(github.ref_name, 'r143-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 60
+    timeout-minutes: 70
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -2119,8 +2125,14 @@ jobs:
       # The step 40 → 45 min: it took 35:24–36:18 in run #4, D0 and D1a, and ColorPanelUITests adds 1–3 min (the job's 60 stays).
       # D2 (D1b's decision (m)): LanguageUITests' testLocalizedShotsOfTheMemoPaperAndTheColourPanel takes l10n-shots' XCUI
       # photos there and skips itself here (one more skipped test, no time).
+      # 1.4.3 D1b (docs/R1_4_3_CONTRACT.md §11.3, §12.1): SpanMonthYearUITests (the joined month: one finger's slide and the
+      # title once, ‹ ›, a memo line across the boundary, the setting off and on, 等倍 in portrait read when turned; its steps
+      # the `span-my UI:` lines, the year's part D1y's) runs here; SpanMonthYearShotsUITests (span-shots-my's photos and
+      # r143-alt's samples) skips itself here. The step 45 → 55 min (open question 8 of D1b's plan): main's run 46040646988
+      # met the 45 twice (its tests 36–38 min) and the three tests add about 6 (5 launches, two turns, the settings sheet
+      # twice), so 55 keeps about 10 over 44.
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
-        timeout-minutes: 45
+        timeout-minutes: 55
         run: |
           set -euo pipefail
           UDID="${{ steps.uibuild.outputs.udid }}"
@@ -2142,7 +2154,7 @@ jobs:
             -resultBundlePath build/ui-tests.xcresult \
             -only-testing:TegakiCalendarUITests \
             test-without-building 2>&1 | tee shots/ui-tests/ui-tests.log
-          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|zoom-reset UI:|header room:|palette UI:|l10n UI:|week-start UI:|span UI:|memo-paper UI:|color-panel UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
+          grep -E 'year-tap UI:|eraser-memo UI:|header-paper UI:|zoom-reset UI:|header room:|palette UI:|l10n UI:|week-start UI:|span UI:|span-my UI:|memo-paper UI:|color-panel UI:|Test Case .*(passed|failed|skipped)' shots/ui-tests/ui-tests.log || true
 
       # The screenshots YearTapUITests kept (best effort, also after a failure).
       - name: Export the UI test's screenshots
@@ -2712,6 +2724,10 @@ jobs:
   # (the build and XcodeGen, about 3; the build took 2:05 in that run), the UI tests' build 15, the shots 55, the XCUI step 20,
   # the words' count and the upload about 1: 94 at worst, 6 to spare. At 75, a slow runner whose shots ran near their 55
   # would have stopped the job inside the XCUI step, a cancelled (red) job where until 1.4.1 it was only a warning.
+  # 1.4.3 (docs/R1_4_3.md, the D1a run's section, the lead's decision): the XCUI step 20 → 30 and the job 100 → 110. The
+  # step's xcodebuild (its build, the boot and LanguageUITests' 17 photos) took 19 min and more: LanguageUITests ended
+  # 57 s (V, run 45721608435) and 38 s (D0, 46066812567) before the 20 minutes, and in D1a's run 46102639450 the limit
+  # stopped it before its last 5 photos (75 of 80). 104 at worst with the 30, 6 to spare.
   l10n-shots:
     name: Localized shots (1.2)
     # 1.3's work branches (r13-w-*) skip the two photo jobs so the macOS runners stay free for the jobs the
@@ -2719,7 +2735,7 @@ jobs:
     if: ${{ !startsWith(github.ref_name, 'r13-w-') && !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-') || github.ref_name == 'r143-quick' || startsWith(github.ref_name, 'r143-q-') || startsWith(github.ref_name, 'r143-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 100
+    timeout-minutes: 110
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -3103,7 +3119,7 @@ jobs:
       # fewer than 17 photos, is a warning only (as every photo of this job); the step stops after 20 minutes.
       - name: Localized XCUI shots (iPhone 17, 1.4.2)
         if: ${{ !cancelled() && steps.l10nuibuild.outcome == 'success' }}
-        timeout-minutes: 20
+        timeout-minutes: 30
         continue-on-error: true
         run: |
           set -uo pipefail
@@ -4678,6 +4694,683 @@ jobs:
             else
               echo "- not taken on this branch"
             fi
+          } >> "$SUMMARY"
+
+      # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
+      # side with nothing but "The operation was canceled.", four times on xcode-27 on 11/20), tools/ci/cancel-diag.sh prints
+      # the load, the memory, the 15 busiest processes and, from the runner's own _diag folder, only its lines about a
+      # cancel, a shutdown, a lost connection, a time-out or a signal (200 at most; the folder is never uploaded or printed
+      # whole, nothing is written to disk: the repository is public). Not on success or failure; never fails the job. The
+      # same lines at the end of every job on xcode-27 of build.yml and duo.yml.
+      - name: Diagnostics of a cancelled job (1.4 D1d)
+        if: cancelled()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          if [ -f tools/ci/cancel-diag.sh ]; then
+            bash tools/ci/cancel-diag.sh || true
+          else
+            echo "tools/ci/cancel-diag.sh is not here (cancelled before the checkout?)."
+            uptime || true
+          fi
+
+  # 1.4.3 D1b (docs/R1_4_3_CONTRACT.md §12.1, §12.3, §12.4, §6.5, 0g-31, 0g-40): a seventh job, span-shots-my ("span-shots-my
+  # (1.4.3 months)"), photographs the joined months of the normal app, outside J-4 and ja-baseline.yml (§12.2; D1y adds the
+  # years). SpanMonthYearShotsUITests' six tests of this job (testMonthBands, testMonthFit, testMonthShiftPair,
+  # testMonthOldVersion, testMonthGuides, testMonthDots; its testMonthForms and testMonthZoom are the sample branch
+  # r143-alt's, §12.5, and do not run here) on the four devices of "Required simulators" by their UDIDs (iphone69 is the
+  # iPhone 18 Pro Max), one at a time: booted, light, the status bar at 9:41, 60 s for the banner (docs/M6.md §5.1), the tests
+  # with span-shots-app's photo watcher (a turned screen is `simctl io screenshot`, the protocol the tests hold:
+  # SpanMonthYearShotsUITests.simulatorPhoto) and its watchdog, and one more run after a new boot when the simulator failed.
+  # 24 photos, all in the month 2026-10 of the plain demo (`--screenshot-span on`; §12.4's 26 less the three "before 等倍",
+  # which are the turned overviews): portrait the overview and the focus month's left boundary in the middle with the crossing
+  # sample (`--screenshot-offset-x -0.5 --screenshot-span-crossing all`) on the four devices (8); turned the overview (3) and
+  # 等倍 (`--screenshot-zoom fit`, 3) on the 13-inch iPad, the iPad Air 11-inch and the 6.9-inch iPhone; the iPad Air
+  # 11-inch's pair before and after a shift (`--screenshot-span-shift`, 2); the old versions' one page
+  # (`--screenshot-single-page --screenshot-span-crossing all`) of the 6.9-inch iPhone and the 13-inch iPad (2); the guide's
+  # month card for one finger in ja, de, fr and the doubled pseudo-language, and ja's for two fingers (「指でも書く」 on, an
+  # iPhone's default; review CI-1), on the 6.9-inch iPhone (5); the memo paper's dots
+  # at the boundary on the 13-inch iPad (`--screenshot-memo-paper dots`, 1). Before the bands of each orientation the one
+  # page's month at the same place (`--screenshot-span off`) is launched without a photo (7 launches), and each band's line
+  # `span-my paper:` sets its canvas frame beside that one page's (gate 3, §12.3: the same paper area; a difference fails the
+  # test and this job's gate step). Then the joined month's PDF (PDFMonthYearTests, the memo strokes coming into a month
+  # from its neighbours: `span-my-pdf-month.pdf`, and its PNG by `sips`) on the iPhone booted last.
+  # Into the artifact span-shots-my (7 days): the photos, photos.txt (each name expected with its pixel size or "missing",
+  # any other PNG, and the line "span-shots-my: N photos (24 expected) and M PDFs (1 expected)"), lines.txt (the tests'
+  # `span-my shots:` lines: the window, the canvas's frame, the probe's zoom, ox, oy, the paper's top in lu, one page across
+  # in pt, span.state and the probe; `span cap:` the window's pages and top; `span-my one page:` and `span-my paper:`;
+  # `span-my shift pair:`), shift-pair.txt (tools/shots/shift_pair.swift without the rows above the canvas: the status bar,
+  # the heading and the sticky month row with its label, open question 17; shift_subpixel when it finds strong pixels),
+  # paper-area.txt (each device's `toolbar: paperArea=` values of the app's output, for gate 3's sets), env.txt (the commit,
+  # Xcode, the image, the runtimes and the four devices) and each device's test log and app output. The photos are the
+  # lead's to look at (§12.4, §14.1 D1b): the photos' step is continue-on-error (a warning), the shift pair and the counts
+  # are warnings; only a joined month whose paper area is not the one page's (`same=no`) fails the job (§12.3: stop).
+  # Not on the quick lanes (the same `if:` as span-shots-app). No new data or test is frozen here.
+  # The run's length and the limits (two rules of §12.1). macOS runs 5 jobs at once and the run had 6: with a seventh
+  # queued at once two would wait, and one of the long ones waiting (Build and test 100, Blank paper 97, span-shots-app
+  # 108 min in V's run 45721608435) would make the run about 40 min longer. So this job `needs` compat-v1.0: it is queued
+  # only after the six have had their runners. compat-v1.0 is the shortest (17–25 min in 1.4.2's runs) and the one that
+  # waited in 3 of 1.4.2's 4 runs with every job (45721608435, 45311803365, 45625473748; span-shots-app in 45562716942):
+  # then it starts when the UI tests end (37–48 min, about 6 more with SpanMonthYearUITests) and this job about 60 min into
+  # the run; otherwise this job takes the next free runner, at about 40 [estimate: a free runner goes to the job queued
+  # first]. compat-v1.0 rarely fails (its simulator steps are two app test classes); when it does, this job is skipped and
+  # `gh run rerun --failed` runs it after compat-v1.0. A needs on ui-tests would run these photos again with every rerun
+  # of a flaky UI test.
+  # The job's time, from 1.4.3's sample run 46089296711 (r143-alt: blank-paper's build and the sample photos' step, nearly
+  # alone on the runners): 16.5 min from the job's start to the first photo (the setup, the build, the first boot), 8–14
+  # between two devices (the app output taken out, the shutdown, the next boot with the banner, the tests' start; the iPad
+  # mini on iOS 27.0 the longest), a launch 25–50 s (the 6.9-inch iPhone 25, the 13-inch iPad 30–50, the iPad Air 11-inch
+  # 38–50). Here: the setup and the build about 8, the four devices about 41 (9 + 11 + 7.5 + 13.5), 30 launches about 18.5
+  # (12–25, ja's two-finger card of review CI-1 one of the 6.9-inch iPhone's 25 s; the shift pair's release up to 75 s
+  # more), the PDF 3–5, the gates 1–2 (their tools built in the background
+  # while the devices boot), the upload 1–2: about 75 min (62–92). One device's one more run adds about 23 (10 of silence,
+  # 1 to end xcodebuild, 6 to boot again with the banner, 6 for its tests). The photos' step stops at 110 (its part
+  # 53–80, 103 with one more run) and the job at 140 (≥ 20 over the slowest with one more run, 120). The run: about
+  # 60 + 75 = 135 min against V's 105–108, 27–30 longer [estimate]. When a run measures more than 30 longer, the levers
+  # (the lead's): the one page's probe launches (7, about 4 min; gate 3 then sets the photos' `toolbar: paperArea=` beside
+  # blank-paper's of the same run, open question 16's other form), then the guides' de and fr (2 launches).
+  span-shots-my:
+    name: span-shots-my (1.4.3 months)
+    needs: compat-v1-0
+    if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-') || github.ref_name == 'r143-quick' || startsWith(github.ref_name, 'r143-q-') || startsWith(github.ref_name, 'r143-w-')) }}
+    # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
+    runs-on: xcode-27
+    timeout-minutes: 140
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NSUnbufferedIO: "YES"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        timeout-minutes: 5
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.1, 0d-1): Xcode 27.2, chosen by what each candidate says it is, never by its path.
+      # Every /Applications/Xcode_27.2*.app is read with `xcodebuild -version` (DEVELOPER_DIR set to it); one whose version is
+      # 27.2 or 27.2.x and whose build ends in a digit is a release (a beta's build ends in a lower-case letter, as 27.3
+      # beta's 27C5020n; the rolling-out image 20261119 gives that beta aliases named like a release, §3.1), and the newest
+      # release is selected. None fails the job: until 1.3 this step chose Xcode 26.6 only when it was there and otherwise
+      # went on with the image's default Xcode, unseen. Then `sudo xcodebuild -runFirstLaunch` (harmless when it has run).
+      # The same lines in every job on xcode-27 (build.yml, ja-baseline.yml, store-shots.yml, testflight.yml, duo.yml).
+      - name: Select Xcode 27.2
+        # 1.4: 5 → 10 for -runFirstLaunch.
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          XCODE="$(python3 -I -c '
+          import glob, os, re, subprocess, sys
+          def key(version, build):                               # (27, 2, 0), then the build: digits as numbers
+              numbers = tuple((int(p) for p in version.split("."))) + (0, 0, 0)
+              return numbers[:3], tuple((0, int(t)) if t.isdigit() else (1, t) for t in re.findall(r"[0-9]+|[^0-9]+", build))
+          best = None
+          seen = {}
+          for app in sorted(glob.glob("/Applications/Xcode_27.2*.app")):
+              real = os.path.realpath(app)
+              if real in seen:
+                  print("%s: the same Xcode as %s" % (app, seen[real]), file=sys.stderr)
+                  continue
+              seen[real] = app
+              env = dict(os.environ, DEVELOPER_DIR=os.path.join(real, "Contents", "Developer"))
+              try:
+                  out = subprocess.run(["xcodebuild", "-version"], env=env, capture_output=True, text=True, timeout=300).stdout
+              except Exception as error:
+                  print("%s: xcodebuild -version failed (%s)" % (app, error), file=sys.stderr)
+                  continue
+              version = re.search(r"^Xcode ([0-9.]+)$", out, re.M)
+              build = re.search(r"^Build version ([0-9A-Za-z]+)$", out, re.M)
+              version = version.group(1) if version else "?"
+              build = build.group(1) if build else "?"
+              release = re.fullmatch(r"27\.2(\.[0-9]+)?", version) is not None and re.search(r"[0-9]$", build) is not None
+              print("%s (%s): Xcode %s, build %s%s" % (app, real, version, build, ": a release of 27.2" if release else ": not a release of 27.2"), file=sys.stderr)
+              if release and (best is None or key(version, build) > best[0]):
+                  best = (key(version, build), real)
+          print(best[1] if best else "")
+          ')"
+          if [ -z "$XCODE" ]; then
+            echo "::error::No release of Xcode 27.2 in /Applications (xcodebuild -version 27.2 or 27.2.x, its build ending in a digit; docs/M7D_CONTRACT.md §3.1). The job does not go on with another Xcode."
+            exit 1
+          fi
+          echo "Selected: $XCODE"
+          sudo xcode-select -s "$XCODE"
+          sudo xcodebuild -runFirstLaunch
+          xcode-select -p
+          xcodebuild -version
+          echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2, 0d-3): the simulators of the table that this job uses must be on the runner, each
+      # under its exact name on its runtime (iOS 27.2; the iPad mini (A17 Pro) is on iOS 27.0 only; the iPhone Duo on the
+      # Duo's iOS 27.2 runtime). One that is missing fails the job here: until 1.3 a missing device was a warning ("No
+      # simulator for …; skipping") and the job stayed green, so all the 6.9-inch photos could be gone unseen. Each one's
+      # UDID is an output of this step (steps.required.outputs.<id>); the table and the runtime (name and build) each one
+      # resolved to go to $RUNNER_TEMP for "The simulators used are the table's" after the photos, and the UDIDs to
+      # $RUNNER_TEMP/required-simulators-udids.txt, which the pickers of the later steps take first (so they boot the very
+      # devices checked here). When the name is on two runtimes of that version (iOS 27.2 has two sets, the usual devices'
+      # and the iPhone Duo's, §3.1), every other device is taken from the runtime with no iPhone Duo and the iPhone Duo from
+      # the runtime of iPhone Duos only; a warning only when nothing tells the runtimes apart. The same lines in every job
+      # that boots a simulator; only the table differs.
+      - name: Required simulators (1.4)
+        id: required
+        timeout-minutes: 5
+        env:
+          # <id>|<exact name>|<runtime version> (docs/M7D_CONTRACT.md §3.2)
+          REQUIRED: |
+            ipad13|iPad Pro 13-inch (M5)|27.2
+            ipad11|iPad Air 11-inch (M4)|27.2
+            ipadmini|iPad mini (A17 Pro)|27.0
+            iphone69|iPhone 18 Pro Max|27.2
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$REQUIRED" | grep -v '^[[:space:]]*$' > "$RUNNER_TEMP/required-simulators.txt"
+          xcrun simctl list -j > "$RUNNER_TEMP/simctl-list.json"
+          python3 -I - "$RUNNER_TEMP/simctl-list.json" "$RUNNER_TEMP/required-simulators.txt" <<'EOF'
+          import json, os, re, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          def version(runtime):                                  # the runtime's "version" ("27.2"), else from its identifier
+              v = runtimes.get(runtime, {}).get("version")
+              if v:
+                  return v
+              m = re.search(r"iOS-([0-9]+)-([0-9]+)", runtime)
+              return "%s.%s" % m.groups() if m else "?"
+          devices = {runtime: [d for d in items if d.get("isAvailable") and d.get("name") and d.get("udid")]
+                     for runtime, items in data.get("devices", {}).items() if "iOS" in runtime}
+          def duos(runtime):                                     # 0: iPhone Duos only, 1: some, 2: none
+              n = sum(d["name"].startswith("iPhone Duo") for d in devices[runtime])
+              return 0 if n == len(devices[runtime]) else 1 if n else 2
+          failed = False
+          outputs = []
+          resolved = []
+          for line in open(sys.argv[2], encoding="utf-8"):
+              ident, name, want = [p.strip() for p in line.rstrip("\n").split("|")]
+              def wanted(runtime):
+                  return version(runtime) == want or version(runtime).startswith(want + ".")
+              # The runtime that suits the name first: for the iPhone Duo the one of iPhone Duos only (the Duo's own iOS 27.2
+              # set), for every other device the one with no iPhone Duo (§3.1); then a runtime with some iPhone Duos.
+              found = sorted((duos(runtime) if name.startswith("iPhone Duo") else 2 - duos(runtime), runtime, d["udid"])
+                             for runtime, items in devices.items() if wanted(runtime) for d in items if d["name"] == name)
+              if not found:
+                  there = sorted({d["name"] for runtime, items in devices.items() if wanted(runtime) for d in items})
+                  print("::error::%s: no available simulator \"%s\" on iOS %s (docs/M7D_CONTRACT.md §3.2). The devices of iOS %s: %s"
+                        % (ident, name, want, want, ", ".join(there) or "none (no such runtime)"))
+                  failed = True
+                  continue
+              _, runtime, udid = found[0]
+              r = runtimes.get(runtime, {})
+              print("%s: %s | %s (%s) %s" % (ident, name, r.get("name", runtime), r.get("buildversion", "?"), udid))
+              if len(found) > 1:
+                  tie = found[0][0] == found[1][0]
+                  print("%s%s: \"%s\" is on %d runtimes of iOS %s (%s); %s is taken (%s)."
+                        % ("::warning::" if tie else "", ident, name, len(found), want, ", ".join(f[1] for f in found), runtime,
+                           "nothing tells them apart: the first by its identifier" if tie
+                           else "iPhone Duos only" if name.startswith("iPhone Duo") else "no iPhone Duo"))
+              outputs.append("%s=%s\n" % (ident, udid))
+              resolved.append("%s|%s|%s|%s\n" % (ident, name, r.get("name", runtime), r.get("buildversion", "?")))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("".join(outputs))
+          with open(sys.argv[2].replace(".txt", "-resolved.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(resolved))
+          with open(sys.argv[2].replace(".txt", "-udids.txt"), "w", encoding="utf-8") as out:
+              out.write("".join(o.split("=", 1)[1] for o in outputs))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.3 4, 0d-28): XcodeGen 2.46.0 from its release zip, pinned by sha256, the same in every
+      # job (until 1.3 `brew install xcodegen`, whose version was the image's formula). The script fails unless
+      # `xcodegen --version` then says 2.46.0; the job's later steps find it first in PATH.
+      - name: Install XcodeGen
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/tools/ci/install-xcodegen.sh"
+
+      - name: Generate the Xcode project
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          xcodegen generate
+
+      # Built for testing once, before anything boots: the products run on all four devices (one platform; the generic
+      # destination builds every simulator architecture), the PDF's unit test too.
+      - name: Build the app and its tests (Debug, for testing)
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/SpanMyData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build-for-testing
+          ls build/SpanMyData/Build/Products/*.xctestrun
+
+      # One device at a time by the UDID "Required simulators" found (see the job's comment). A device's line in env.txt
+      # ("<id>: <name> | <runtime> (<build>)", for "The simulators used are the table's"), its photos, its tests' log
+      # (<id>-tests.log; -again after one more run), its app output out of the result bundles (<id>-app-output.txt; NSLog's
+      # lines, `log show` cannot compose them on iOS 27), the app's `toolbar: paperArea=` values (paper-area-<id>.txt) and a
+      # crash report if any. The iPhone 18 Pro Max goes last and stays booted for the PDF. Photos only: a failed test is a
+      # warning (continue-on-error); the counts and the paper areas are read by the step after the PDF.
+      - name: The joined months' photos on four devices (SpanMonthYearShotsUITests)
+        id: devices
+        timeout-minutes: 110
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="$PWD/shots/span-my"
+          REQUESTS="$RUNNER_TEMP/span-my-photo-requests"
+          TOOLS="$RUNNER_TEMP/span-my-tools"
+          mkdir -p "$OUT/lines" "$REQUESTS" "$TOOLS"
+          {
+            echo "commit: $GITHUB_SHA ($GITHUB_REF_NAME), run $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT"
+            xcodebuild -version
+            echo "Xcode path: $(xcode-select -p)"
+            echo "runner image: ${ImageOS:-?} ${ImageVersion:-?}"
+            echo "xcodegen: $(xcodegen --version 2>&1 | head -n 1)"
+            echo "python3: $(python3 --version 2>&1)"
+            xcrun simctl list runtimes
+          } > "$OUT/env.txt" 2>&1 || echo "::warning::env.txt could not all be written"
+          # The gates' tools, built in the background while the devices boot (a job's first swiftc for macOS spends about
+          # 2 min on the SDK's modules); the gate step builds them itself when they are not there.
+          ( swiftc -O tools/shots/shift_pair.swift -o "$TOOLS/shift_pair" && swiftc -O tools/shots/shift_subpixel.swift -o "$TOOLS/shift_subpixel" ) \
+            > "$TOOLS/build.log" 2>&1 &
+          TOOLS_PID=$!
+          sim_env() {  # sim_env <device id> <udid>: "<id>: <device name> | <runtime name> (<runtime build>)"
+            xcrun simctl list -j | SIM_ID="$1" SIM_UDID="$2" python3 -I -c '
+          import json, os, sys
+          data = json.load(sys.stdin)
+          runtimes = {r.get("identifier"): r for r in data.get("runtimes", [])}
+          for runtime, items in data.get("devices", {}).items():
+              for d in items:
+                  if d.get("udid") == os.environ["SIM_UDID"]:
+                      r = runtimes.get(runtime, {})
+                      print("%s: %s | %s (%s)" % (os.environ["SIM_ID"], d.get("name"), r.get("name", runtime), r.get("buildversion", "?")))
+                      raise SystemExit
+          print("%s: (no simulator %s)" % (os.environ["SIM_ID"], os.environ["SIM_UDID"]))
+          '
+          }
+          boot_device() {  # boot_device <udid>: boots it, light, the status bar at 9:41, 60 s for the banner (docs/M6.md §5.1)
+            xcrun simctl boot "$1" 2>/dev/null || true
+            xcrun simctl bootstatus "$1" -b > /dev/null || return 1
+            xcrun simctl ui "$1" appearance light || true
+            xcrun simctl status_bar "$1" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 || true
+            sleep 60
+          }
+          # The photos of a turned screen (SpanMonthYearShotsUITests.simulatorPhoto): a request <name>.request holds the file
+          # (under $OUT) and the turn; the answer <name>.request.done ("ok" or "failed") is written whole, then renamed.
+          watch_photos() {  # watch_photos <udid>: answers the requests until it is stopped
+            local REQ FILE TURN ANSWER TURN_SIZE
+            while :; do
+              for REQ in "$REQUESTS"/*.request; do
+                [ -f "$REQ" ] || continue
+                FILE="$(sed -n 1p "$REQ")"
+                TURN="$(sed -n 2p "$REQ")"
+                rm -f "$REQ"
+                ANSWER=failed
+                if [ -n "$FILE" ] && mkdir -p "$(dirname "$OUT/$FILE")" && xcrun simctl io "$1" screenshot "$OUT/$FILE" > /dev/null 2>&1; then
+                  ANSWER=ok
+                  # The iOS 27.2 simulator writes a turned screen in landscape already: turned only when taller than wide
+                  # (span-shots-app's rule); a PNG whose size cannot be read is a failed photo.
+                  if [ -n "$TURN" ]; then
+                    TURN_SIZE="$(sips -g pixelWidth -g pixelHeight "$OUT/$FILE" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+                    case "$TURN_SIZE" in
+                      ''|"0 "*|*" 0") ANSWER=failed ;;
+                      *) if [ "${TURN_SIZE#* }" -gt "${TURN_SIZE% *}" ] && ! sips -r "$TURN" "$OUT/$FILE" > /dev/null 2>&1; then ANSWER=failed; fi ;;
+                    esac
+                  fi
+                fi
+                echo "the photo $FILE for the test: $ANSWER"
+                echo "$ANSWER" > "$REQ.done.part"
+                mv "$REQ.done.part" "$REQ.done"
+              done
+              sleep 0.3
+            done
+          }
+          # span-shots-app's watchdog (docs/M7D.md, D0b): xcodebuild is stopped when its log has not grown for STALL s.
+          STALL=600
+          watchdog() {  # watchdog <pid> <log> <file>: ends <pid> when <log> has not grown for $STALL s, writing <file>
+            local SIZE SEEN=-1 QUIET=0
+            while kill -0 "$1" 2>/dev/null; do
+              sleep 15
+              SIZE="$(wc -c < "$2" 2>/dev/null | tr -d ' ' || echo 0)"
+              if [ "$SIZE" != "$SEEN" ]; then SEEN="$SIZE"; QUIET=0; continue; fi
+              QUIET=$(( QUIET + 15 ))
+              if [ "$QUIET" -ge "$STALL" ]; then
+                echo "watchdog: no output for $QUIET s after \"$(grep -E '^ +t = ' "$2" | tail -n 1 | sed -E 's/^ +//')\"" > "$3"
+                kill -TERM "$1" 2>/dev/null || true
+                sleep 60
+                kill -KILL "$1" 2>/dev/null || true
+                return 0
+              fi
+            done
+          }
+          run_photos() {  # run_photos <suffix>: the six tests on $UDID, the photo watcher and the watchdog beside them
+            watch_photos "$UDID" &
+            WATCHER=$!
+            STATUS=0
+            TEST_RUNNER_TEGAKI_SPAN_MY_SHOT_OUT="$OUT" TEST_RUNNER_TEGAKI_SPAN_MY_SHOT_DEVICE="$ID" \
+            TEST_RUNNER_TEGAKI_SPAN_MY_SHOT_REQUESTS="$REQUESTS" xcodebuild \
+              -project TegakiCalendar.xcodeproj \
+              -scheme TegakiCalendar \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$UDID" \
+              -derivedDataPath build/SpanMyData \
+              -resultBundlePath "build/span-my-$ID$1.xcresult" \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthBands \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthFit \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthShiftPair \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthOldVersion \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthGuides \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthDots \
+              test-without-building > "$OUT/$ID-tests$1.log" 2>&1 &
+            TESTS=$!
+            watchdog "$TESTS" "$OUT/$ID-tests$1.log" "$OUT/$ID-watchdog$1.txt" &
+            DOG=$!
+            wait "$TESTS" || STATUS=$?
+            kill "$DOG" "$WATCHER" 2>/dev/null || true
+            wait "$DOG" 2>/dev/null || true
+            wait "$WATCHER" 2>/dev/null || true
+            # A run the watchdog stopped is a failure even if xcodebuild ended with 0 on its TERM (143: TERM's status).
+            if [ -s "$OUT/$ID-watchdog$1.txt" ] && [ "$STATUS" = 0 ]; then STATUS=143; fi
+          }
+          # The simulator's failures (span-shots-app's list, docs/M7C.md FLAKE-1 and docs/M7D.md D0b): the device's photos
+          # once more after a new boot; any other failure stands (a warning here).
+          SIMULATOR='Timed out while acquiring background assertion|Failed to get background assertion|Timed out while launching|Failed to launch app|Lost connection to the test manager|Test runner never began executing|kAXErrorIPC|Failed to get list of active applications'
+          FAILED=0
+          for SPEC in "ipad13|${{ steps.required.outputs.ipad13 }}" "ipad11|${{ steps.required.outputs.ipad11 }}" \
+                      "ipadmini|${{ steps.required.outputs.ipadmini }}" "iphone69|${{ steps.required.outputs.iphone69 }}"; do
+            ID="${SPEC%%|*}"; UDID="${SPEC#*|}"
+            if [ -z "$UDID" ]; then echo "::warning::No $ID from \"Required simulators\"; no photos of it."; FAILED=1; continue; fi
+            echo "$ID: $UDID"
+            sim_env "$ID" "$UDID" >> "$OUT/env.txt" || echo "::warning::no runtime line for $ID"
+            STARTED="$(date +%s)"
+            if ! boot_device "$UDID"; then echo "::warning::$ID did not boot; no photos of it."; FAILED=1; continue; fi
+            echo "$ID: booted, $(( $(date +%s) - STARTED )) s with the banner's 60"
+            run_photos ""
+            LOG="$OUT/$ID-tests.log"
+            if [ "$STATUS" != 0 ] && { [ -s "$OUT/$ID-watchdog.txt" ] || grep -qE "$SIMULATOR" "$LOG"; }; then
+              WHY="$(cat "$OUT/$ID-watchdog.txt" 2>/dev/null || grep -oE "$SIMULATOR" "$LOG" | head -n 1)"
+              echo "::warning::$ID: $WHY; the device's photos are taken once more after a new boot."
+              mkdir -p "$OUT/lines-first"
+              [ -f "$OUT/lines/$ID.txt" ] && mv "$OUT/lines/$ID.txt" "$OUT/lines-first/$ID.txt"
+              xcrun simctl shutdown "$UDID" || true
+              boot_device "$UDID" || echo "::warning::$ID did not boot again."
+              run_photos "-again"
+              LOG="$OUT/$ID-tests-again.log"
+              if [ -s "$OUT/$ID-watchdog-again.txt" ]; then echo "::warning::$ID: $(cat "$OUT/$ID-watchdog-again.txt") (the one more run)."; fi
+            fi
+            grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$LOG" | tail -n 16 || true
+            if [ "$STATUS" != 0 ]; then echo "::warning::SpanMonthYearShotsUITests ended with $STATUS on $ID (span-shots-my/${LOG##*/})."; FAILED=1; fi
+            if [ -s "$OUT/lines/$ID.txt" ]; then cut -c1-400 "$OUT/lines/$ID.txt"; fi
+            bash tools/ci/xcresult-app-output.sh "$OUT/$ID-app-output.txt" "build/span-my-$ID.xcresult" "build/span-my-$ID-again.xcresult" || true
+            { grep -h -o 'toolbar: paperArea=[^ ]* mode=[a-z]*' "$OUT/$ID-app-output.txt" 2>/dev/null || true; } | sort | uniq -c > "$OUT/paper-area-$ID.txt"
+            echo "$ID: the app's paper areas (count, value):"; cat "$OUT/paper-area-$ID.txt"
+            find "$HOME/Library/Logs/DiagnosticReports" -name 'TegakiCalendar*' -mmin -20 -exec cp {} "$OUT/" \; 2>/dev/null || true
+            echo "$ID: $(find "$OUT" -maxdepth 1 -name "$ID-*.png" | wc -l | tr -d ' ') photos, $(( $(date +%s) - STARTED )) s with the boot"
+            if [ "$ID" = "iphone69" ]; then
+              echo "iphone69=$UDID" >> "$GITHUB_OUTPUT"
+            else
+              xcrun simctl shutdown "$UDID" || true
+            fi
+          done
+          wait "$TOOLS_PID" || { echo "::warning::the gates' tools did not build in the background (the gate step builds them):"; cat "$TOOLS/build.log" || true; }
+          ls -la "$OUT"
+          exit "$FAILED"
+
+      # 1.4 (docs/M7D_CONTRACT.md §3.2): the devices this job took are the table's ("Required simulators"): each line
+      # "<id>: <name> | <runtime> (<build>)" of its env.txt has the table's name, on the runtime (name and build) that
+      # "Required simulators" found for it, and every device of the table has a line (none means it was not found, and its
+      # photos or tests are missing). A prefix fallback that landed on another device, or another runtime taken instead of
+      # the table's (a newer one, or the iPhone Duo's iOS 27.2), fails the job here. The same lines in every job that boots
+      # a simulator; only ENV_TXT differs.
+      - name: The simulators used are the table's (1.4)
+        if: ${{ !cancelled() && env.QUICK != 'true' }}
+        timeout-minutes: 3
+        env:
+          ENV_TXT: shots/span-my/env.txt
+        run: |
+          set -euo pipefail
+          python3 -I - "$RUNNER_TEMP/required-simulators.txt" "$ENV_TXT" <<'EOF'
+          import re, sys
+          table = [[p.strip() for p in line.rstrip("\n").split("|")] for line in open(sys.argv[1], encoding="utf-8") if line.strip()]
+          try:
+              resolved = {row[0]: row[2:] for row in (line.rstrip("\n").split("|") for line in open(sys.argv[1].replace(".txt", "-resolved.txt"), encoding="utf-8")) if len(row) == 4}
+          except OSError:
+              resolved = {}
+          try:
+              lines = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          except OSError as error:
+              print("::error::%s could not be read (%s): the devices this job took are not known (docs/M7D_CONTRACT.md §3.2)." % (sys.argv[2], error))
+              sys.exit(1)
+          taken = {}
+          for line in lines:
+              m = re.fullmatch(r"([a-z0-9]+): (.+) \| (.+) \(([^()]*)\)", line)
+              if m:
+                  taken.setdefault(m.group(1), []).append(m.group(2, 3, 4))
+          failed = False
+          for ident, name, want in table:
+              if ident not in taken:
+                  print("::error::%s (%s): no line in %s, so it was not taken (docs/M7D_CONTRACT.md §3.2)." % (ident, name, sys.argv[2]))
+                  failed = True
+              for got, runtime, build in taken.get(ident, []):
+                  if ident in resolved:
+                      ok = got == name and [runtime, build] == resolved[ident]
+                      where = "%s (%s)" % tuple(resolved[ident])
+                  else:
+                      ok = got == name and (runtime == "iOS " + want or runtime.startswith("iOS " + want + "."))
+                      where = "iOS " + want
+                  print("%s: %s | %s (%s): %s" % (ident, got, runtime, build, "the table's" if ok else "NOT the table's"))
+                  if not ok:
+                      print("::error::%s took %s on %s (%s), not the table's %s on %s (docs/M7D_CONTRACT.md §3.2)." % (ident, got, runtime, build, name, where))
+                      failed = True
+          sys.exit(1 if failed else 0)
+          EOF
+
+      # The joined month's PDF (§4.7, §12.4): PDFMonthYearTests writes the PDF of a joined November whose neighbours' memo
+      # strokes come into it (TEGAKI_SPAN_MY_SHOT_OUT, `span-my-pdf-month.pdf`), on the iPhone 18 Pro Max booted last; `sips`
+      # makes a PNG of its page (2,400 px). A warning when it is not there (the lead looks at it; the unit test itself runs
+      # in Build and test).
+      - name: The joined month's PDF (PDFMonthYearTests)
+        if: ${{ !cancelled() && steps.devices.outputs.iphone69 != '' }}
+        timeout-minutes: 10
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="$PWD/shots/span-my"
+          UDID="${{ steps.devices.outputs.iphone69 }}"
+          mkdir -p "$OUT"
+          rm -f "$OUT/span-my-pdf-month.pdf" "$OUT/span-my-pdf-month.png"
+          STATUS=0
+          TEST_RUNNER_TEGAKI_SPAN_MY_SHOT_OUT="$OUT" xcodebuild \
+            -project TegakiCalendar.xcodeproj \
+            -scheme TegakiCalendar \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath build/SpanMyData \
+            -resultBundlePath build/span-my-pdf.xcresult \
+            -only-testing:TegakiCalendarTests/PDFMonthYearTests/testAJoinedMonthsPDFDrawsTheMemoStrokesComingInFromItsNeighbours \
+            -testLanguage ja \
+            -testRegion JP \
+            test-without-building > "$OUT/pdf-test.log" 2>&1 || STATUS=$?
+          grep -E "Test Case .*(passed|failed|skipped)|error:|Executed " "$OUT/pdf-test.log" | tail -n 20 || true
+          xcrun simctl shutdown "$UDID" || true
+          if [ "$STATUS" != 0 ]; then echo "::warning::The joined month's PDF test ended with $STATUS (span-shots-my/pdf-test.log)."; exit 1; fi
+          if [ ! -s "$OUT/span-my-pdf-month.pdf" ]; then echo "::warning::The test passed but wrote no span-my-pdf-month.pdf."; exit 1; fi
+          if ! sips -s format png -Z 2400 "$OUT/span-my-pdf-month.pdf" --out "$OUT/span-my-pdf-month.png" > /dev/null; then
+            echo "::warning::sips could not make a PNG of span-my-pdf-month.pdf."
+            exit 1
+          fi
+          sips -g pixelWidth -g pixelHeight "$OUT/span-my-pdf-month.png" | tail -n 2 || true
+
+      # The counts, the shift pair and the paper areas (see the job's comment). The photos expected are built per kind: the
+      # kinds are the same as SpanKinds.joined (Sources/TegakiCalendar/Span/SpanKinds.swift) less the week and the day, whose
+      # photos are span-shots-app's: the month now; D1y adds `year)` with the year's photos (§12.4), and the fallback of §14.1
+      # leaves it out. A missing or extra photo, a turned photo not wider than tall, the shift pair's strong pixels and a
+      # missing paper line are warnings; a joined month whose canvas is not the one page's at the same place (`span-my paper:`
+      # … `same=no`) fails the step and the job (gate 3, §12.3: stop and look).
+      - name: The joined months' counts, shift pair and paper areas
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: |
+          set -uo pipefail
+          OUT="shots/span-my"
+          TOOLS="$RUNNER_TEMP/span-my-tools"
+          mkdir -p "$OUT" "$TOOLS"
+          FAILED=0
+          DEVICES="ipad13 ipad11 ipadmini iphone69"
+          : > "$OUT/lines.txt"
+          for ID in $DEVICES; do
+            if [ -f "$OUT/lines/$ID.txt" ]; then cat "$OUT/lines/$ID.txt" >> "$OUT/lines.txt"; fi
+          done
+          : > "$OUT/paper-area.txt"
+          for ID in $DEVICES; do
+            if [ -f "$OUT/paper-area-$ID.txt" ]; then sed "s/^ */$ID /" "$OUT/paper-area-$ID.txt" >> "$OUT/paper-area.txt"; fi
+          done
+          EXPECTED=""
+          for KIND in month; do   # the same kinds as SpanKinds.joined, less the week and the day (span-shots-app's)
+            case "$KIND" in
+              month)
+                for ID in $DEVICES; do EXPECTED="$EXPECTED $ID-portrait-month-overview $ID-portrait-month-boundary"; done
+                for ID in ipad13 ipad11 iphone69; do EXPECTED="$EXPECTED $ID-landscape-month-overview $ID-landscape-month-fit"; done
+                EXPECTED="$EXPECTED ipad11-portrait-month-shift-before ipad11-portrait-month-shift-after"
+                EXPECTED="$EXPECTED ipad13-portrait-month-single iphone69-portrait-month-single"
+                for L in ja de fr pseudo; do EXPECTED="$EXPECTED iphone69-portrait-month-guide-$L"; done
+                EXPECTED="$EXPECTED iphone69-portrait-month-guide-ja-two"
+                EXPECTED="$EXPECTED ipad13-portrait-month-dots"
+                ;;
+            esac
+          done
+          PHOTOS=24
+          PDFS=1
+          : > "$OUT/photos.txt"
+          WANT=0
+          FOUND=0
+          for NAME in $EXPECTED; do
+            WANT=$(( WANT + 1 ))
+            if [ -f "$OUT/$NAME.png" ]; then
+              FOUND=$(( FOUND + 1 ))
+              SIZE="$(sips -g pixelWidth -g pixelHeight "$OUT/$NAME.png" 2>/dev/null | awk '/pixelWidth/ { w = $2 } /pixelHeight/ { h = $2 } END { print w + 0, h + 0 }' || true)"
+              W="${SIZE% *}"; H="${SIZE#* }"
+              echo "$NAME.png ${W:-0}x${H:-0}" >> "$OUT/photos.txt"
+              case "$NAME" in
+                *-portrait-*) if [ "${W:-0}" -ge "${H:-0}" ]; then echo "::warning::$NAME.png is ${W}x${H}, not taller than wide."; fi ;;
+                *-landscape-*) if [ "${W:-0}" -le "${H:-0}" ]; then echo "::warning::$NAME.png is ${W}x${H}, not wider than tall."; fi ;;
+              esac
+            else
+              echo "$NAME.png missing" >> "$OUT/photos.txt"
+            fi
+          done
+          if [ "$WANT" != "$PHOTOS" ]; then echo "::warning::the list of the photos expected has $WANT names, not $PHOTOS (this step's EXPECTED)."; fi
+          for PNG in "$OUT"/*.png; do
+            [ -f "$PNG" ] || continue
+            B="$(basename "$PNG" .png)"
+            case " $EXPECTED span-my-pdf-month " in *" $B "*) ;; *) echo "$B.png (not expected)" >> "$OUT/photos.txt" ;; esac
+          done
+          PDF=0
+          if [ -s "$OUT/span-my-pdf-month.pdf" ]; then PDF=1; echo "span-my-pdf-month.pdf (PNG: $([ -s "$OUT/span-my-pdf-month.png" ] && echo yes || echo no))" >> "$OUT/photos.txt"; fi
+          echo "span-shots-my: $FOUND photos ($PHOTOS expected) and $PDF PDFs ($PDFS expected)" >> "$OUT/photos.txt"
+          cat "$OUT/photos.txt"
+          if [ "$FOUND" != "$PHOTOS" ]; then echo "::warning::span-shots-my has $FOUND of the $PHOTOS photos expected (shots/span-my/photos.txt)."; fi
+          if [ "$PDF" != "$PDFS" ]; then echo "::warning::span-shots-my has no joined month's PDF (span-my-pdf-month.pdf)."; fi
+          set -f   # the lines are split on spaces below; none of their words is a pattern
+          value() {  # value <key> <line>: the value of <key>=… in the line, or nothing
+            local T
+            for T in $2; do
+              case "$T" in "$1"=*) echo "${T#*=}"; return 0 ;; esac
+            done
+            echo ""
+          }
+          # The shift pair (§3.5's y correction): shift_pair without the rows above the canvas, then, when it finds strong
+          # pixels, shift_subpixel (a re-drawing less than a pixel away, span-shots-app's rule, at most 100 left); warnings only.
+          if [ ! -x "$TOOLS/shift_pair" ] || [ ! -x "$TOOLS/shift_subpixel" ]; then
+            swiftc -O tools/shots/shift_pair.swift -o "$TOOLS/shift_pair" || echo "::warning::tools/shots/shift_pair.swift did not compile."
+            swiftc -O tools/shots/shift_subpixel.swift -o "$TOOLS/shift_subpixel" || echo "::warning::tools/shots/shift_subpixel.swift did not compile."
+          fi
+          : > "$OUT/shift-pair.txt"
+          PAIRS=0
+          while IFS= read -r LINE; do
+            PAIRS=$(( PAIRS + 1 ))
+            DEVICE="$(value device "$LINE")"; BEFORE="$(value before "$LINE")"; AFTER="$(value after "$LINE")"
+            STRICT="$(value strict "$LINE")"; LOOSE="$(value loose "$LINE")"; BAND="$(value band "$LINE")"; TITLE="$(value title "$LINE")"
+            if [ ! -x "$TOOLS/shift_pair" ] || [ ! -f "$OUT/$BEFORE" ] || [ ! -f "$OUT/$AFTER" ]; then
+              echo "shift pair $DEVICE month: not compared (a tool or a photo is missing)" | tee -a "$OUT/shift-pair.txt"
+              continue
+            fi
+            S=0
+            RESULT="$("$TOOLS/shift_pair" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$STRICT" --max-strong 0)" || S=$?
+            echo "shift pair $DEVICE month below the heading (rows $STRICT left out): $RESULT" | tee -a "$OUT/shift-pair.txt"
+            if [ "$S" != 0 ] && [ -x "$TOOLS/shift_subpixel" ]; then
+              S=0
+              RESULT="$("$TOOLS/shift_subpixel" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$STRICT" --max-residual 100)" || S=$?
+              echo "shift pair $DEVICE month below the heading, sub-pixel: $RESULT" | tee -a "$OUT/shift-pair.txt"
+              if [ "$S" != 0 ]; then
+                echo "::warning::the month's shift pair on $DEVICE differs below the heading by more than a sub-pixel re-drawing: $RESULT"
+              else
+                echo "::warning::the month's shift pair on $DEVICE differs below the heading only by a re-drawing less than a pixel away: $RESULT"
+              fi
+            fi
+            S=0
+            RESULT="$("$TOOLS/shift_pair" "$OUT/$BEFORE" "$OUT/$AFTER" --exclude-rows "$LOOSE" --max-strong 0)" || S=$?
+            echo "shift pair $DEVICE month with the heading (rows $LOOSE left out): $RESULT" | tee -a "$OUT/shift-pair.txt"
+            if [ "$S" != 0 ]; then echo "::warning::the month's shift pair on $DEVICE differs in the heading (its sticky label may: open question 17): $RESULT"; fi
+            if [ "$BAND" != same ]; then echo "::warning::the month's shift pair on $DEVICE: the canvas moved with the shift."; fi
+            if [ "$TITLE" != same ]; then echo "::warning::the month's shift pair on $DEVICE: the page's title changed with the shift."; fi
+          done < <(grep '^span-my shift pair: ' "$OUT/lines.txt" || true)
+          if [ "$PAIRS" != 1 ]; then echo "::warning::$PAIRS shift pairs of the month, 1 expected (the iPad Air 11-inch)."; fi
+          # Gate 3 (§12.3): each band beside the one page's month at the same place.
+          : > "$OUT/paper.txt"
+          PAPERS=0
+          DIFFER=0
+          while IFS= read -r LINE; do
+            PAPERS=$(( PAPERS + 1 ))
+            echo "$LINE" >> "$OUT/paper.txt"
+            if [ "$(value same "$LINE")" != yes ]; then
+              DIFFER=$(( DIFFER + 1 ))
+              echo "::error::$(value kind "$LINE"): the joined month's canvas $(value joined "$LINE") is not the one page's $(value one "$LINE") at the same place (gate 3, docs/R1_4_3_CONTRACT.md §12.3: stop)."
+              FAILED=1
+            fi
+          done < <(grep '^span-my paper: ' "$OUT/lines.txt" || true)
+          echo "paper areas: $PAPERS bands set beside the one page's month (11 expected), $DIFFER different" | tee -a "$OUT/paper.txt"
+          if [ "$PAPERS" != 11 ]; then echo "::warning::$PAPERS paper lines, 11 expected (the 8 portrait bands and the 3 turned overviews)."; fi
+          echo "the app's paper areas (device, count, value):"
+          cat "$OUT/paper-area.txt"
+          exit "$FAILED"
+
+      # overwrite: a re-run of this job (gh run rerun --failed) replaces the photos of the attempt before.
+      - name: Upload the photos of the joined months
+        if: always()
+        timeout-minutes: 15
+        uses: actions/upload-artifact@v4
+        with:
+          name: span-shots-my
+          path: shots/span-my
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true
+
+      # The job's summary (GITHUB_STEP_SUMMARY): the counts, the shift pair and the paper areas. Writes what there is; never fails.
+      - name: Summary
+        if: always()
+        timeout-minutes: 3
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          OUT="shots/span-my"
+          SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          {
+            echo "### span-shots-my (1.4.3 months)"
+            echo ""
+            echo "- $(grep '^span-shots-my: ' "$OUT/photos.txt" 2>/dev/null || echo 'span-shots-my: no photos.txt')"
+            echo "- missing: $(grep -c ' missing$' "$OUT/photos.txt" 2>/dev/null || true); not expected: $(grep -c '(not expected)' "$OUT/photos.txt" 2>/dev/null || true)"
+            echo "- $(tail -n 1 "$OUT/paper.txt" 2>/dev/null || echo 'paper areas: not read')"
+            echo ""
+            echo "#### Shift pair (the iPad Air 11-inch's month)"
+            echo ""
+            if [ -s "$OUT/shift-pair.txt" ]; then sed 's/^/- /' "$OUT/shift-pair.txt"; else echo "- (none)"; fi
+            echo ""
+            echo "- **To look at by eye** (§12.4, §14.1 D1b): the handwriting, the month labels, the boundary lines and the guide's cards in the photos (artifact span-shots-my)."
           } >> "$SUMMARY"
 
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's

@@ -413,10 +413,13 @@ final class PencilPhoneTests: XCTestCase {
     /// value (the first launch's default) the week's and the day's guide records are forgotten (the guide shows once more), for
     /// a value carried over from 1.3 they stay. A finger still down holds it until it lifts, then it changes once. Fails with
     /// the glue counting a finger as a Pencil (the finger rows), or with the guide records always forgotten (the carried row).
+    /// 1.4.3 (review UX-5): every kind of `SpanKinds.ordered` alike, the month's record too (and the year's with D1y).
     func testPencilLiftTurnsFingerOffEndToEnd() async throws {
         // The app's own value: 1.4's first launch.
         AppSettings.markSpanGuideShown(.week)
         AppSettings.markSpanGuideShown(.day)
+        AppSettings.markSpanGuideShown(.month)
+        AppSettings.markSpanGuideShown(.year)
         var launch = PencilPhone.launchDefault(suite, isPad: false, device: thisDevice)
         XCTAssertEqual(launch.origin, .app)
         var (phone, log) = makePhone()
@@ -442,6 +445,11 @@ final class PencilPhoneTests: XCTestCase {
         XCTAssertEqual(phone.origin, .app)
         XCTAssertFalse(AppSettings.spanGuideShown(.week), "the guide shows once more")
         XCTAssertFalse(AppSettings.spanGuideShown(.day))
+        XCTAssertTrue(SpanKinds.ordered.contains(.month))
+        for kind in [PageKind.month, .year] {
+            XCTAssertEqual(AppSettings.spanGuideShown(kind), !SpanKinds.joined.contains(kind),
+                           "\(kind): forgotten when it joins (the month since 1.4.3), else left as it was")
+        }
         pencil = StandInTouch(.pencil)
         observer.touchesBegan([pencil], with: StandInEvent())
         observer.touchesEnded([pencil], with: StandInEvent())
@@ -454,6 +462,7 @@ final class PencilPhoneTests: XCTestCase {
         suite.set(true, forKey: AppSettings.allowFingerKey)
         AppSettings.markSpanGuideShown(.week)
         AppSettings.markSpanGuideShown(.day)
+        AppSettings.markSpanGuideShown(.month)
         launch = PencilPhone.launchDefault(suite, isPad: false, device: thisDevice)
         XCTAssertEqual(launch.origin, .carried)
         (phone, log) = makePhone()
@@ -479,6 +488,7 @@ final class PencilPhoneTests: XCTestCase {
         XCTAssertEqual(phone.origin, .app, "the app's value on this device now")
         XCTAssertTrue(AppSettings.spanGuideShown(.week), "carried over: no guide again")
         XCTAssertTrue(AppSettings.spanGuideShown(.day))
+        XCTAssertTrue(AppSettings.spanGuideShown(.month), "carried over: the month's record stays too")
     }
 
     // MARK: The hinge (H)

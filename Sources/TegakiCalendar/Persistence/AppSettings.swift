@@ -372,12 +372,18 @@ enum AppSettings {
     /// at its stored ratio (`zoomRatioKey`). A month or a year never has one (its 等倍 is the opening zoom, ratio 1). Per
     /// device like the ratio (one key per kind, shared by the one-page and the joined path); never sent to iCloud, not in
     /// the export and not one of `isExistingUser`'s keys.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, §6.4, 0g-26): a month has one too ("zoomFit.month"), and a year once it joins
+    /// sideways with D1y: every kind `ZoomReset.followsFit` names (the kinds of `SpanKinds.joined`), its 等倍 one page's width
+    /// across on both paths. 1.4.1's and 1.4.2's 等倍 of a month wrote ratio 1 and no flag, so a month pressed then opens as
+    /// before until 等倍 is pressed again.
     static func zoomFitKey(_ kind: PageKind) -> String {
         "zoomFit." + kind.rawValue
     }
 
     /// Whether pages of `kind` open at 等倍 (§16.3.4): the stored flag of a week or a day; always false for a month or a
     /// year (`ZoomReset.followsFit`).
+    /// 1.4.3 (§6.1): the stored flag of every kind `ZoomReset.followsFit` names (the month's too); false for a kind it does
+    /// not (the year until D1y).
     static func zoomFit(for kind: PageKind) -> Bool {
         guard ZoomReset.followsFit(kind) else { return false }
         return defaults.bool(forKey: zoomFitKey(kind))
@@ -388,6 +394,8 @@ enum AppSettings {
     /// had just reported (fit / open), so the flag alone says how the kind opens; false (a real pinch, or a first layout not
     /// at 等倍) removes the flag and leaves the ratio as it was stored. Nothing for a month or a year (its 等倍 is ratio 1,
     /// which `setZoomRatio` already removed). The screen never calls it in screenshot mode.
+    /// 1.4.3 (§6.1): the month as the week and the day (`ZoomReset.followsFit`); nothing for a kind that does not follow fit
+    /// (the year until D1y).
     static func setZoomFit(_ fit: Bool, for kind: PageKind) {
         guard ZoomReset.followsFit(kind) else { return }
         let key = zoomFitKey(kind)
