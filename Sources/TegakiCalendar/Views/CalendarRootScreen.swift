@@ -279,9 +279,9 @@ struct CalendarRootScreen: View {
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, §16.3, 0e-7): bumped by 等倍 (`resetZoom`); the canvas on the screen goes once to
     /// its 等倍 (`ZoomReset.target`): on a week or a day — 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, 0g-26): and a month,
     /// `ZoomReset.followsFit` — one page's width across the paper's column (the fit), which it then reports (its ratio, then
-    /// fit true: `AppSettings.setZoomFit` keeps the kind at 等倍 and removes its ratio, §16.3.4); on the year (1.4.1: a month
-    /// too) the opening zoom (ratio 1, which removes the kind's stored ratio, 0e-10), until it joins with D1y. A canvas made
-    /// later takes the value as it is and does nothing with it.
+    /// fit true: `AppSettings.setZoomFit` keeps the kind at 等倍 and removes its ratio, §16.3.4); since D1y the year too, so
+    /// every kind (1.4.1 and 1.4.2 took the month and the year to the opening zoom: ratio 1, which removed the kind's stored
+    /// ratio, 0e-10). A canvas made later takes the value as it is and does nothing with it.
     @State private var zoomResetTrigger = 0
     /// The hint was shown or the person pinched (per device; never written in screenshot mode).
     @AppStorage(AppSettings.pinchHintShownKey) private var pinchHintShown = false
@@ -615,9 +615,9 @@ struct CalendarRootScreen: View {
 
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §16.3.4, §16.3.7): the shown page opens at 等倍, one page's width across the paper's
     /// column (the canvas's `initialFit`): a week or a day kept at 等倍 on this device (`AppSettings.zoomFit(for:)`), or in
-    /// screenshot mode `--screenshot-zoom fit`; 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, 0g-26): a month too
-    /// (`ZoomReset.followsFit`, a kind of `SpanKinds.joined`, on both paths), never the year until it joins with D1y. It
-    /// wins over `currentRatio` (which the kind's 等倍 removed, and which is 1 with `--screenshot-zoom fit`).
+    /// screenshot mode `--screenshot-zoom fit`; 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, 0g-26): a month and a year too
+    /// (`ZoomReset.followsFit`, a kind of `SpanKinds.joined`, on both paths). It wins over `currentRatio` (which the kind's
+    /// 等倍 removed, and which is 1 with `--screenshot-zoom fit`).
     private var currentFit: Bool {
         ZoomReset.followsFit(kind) && ScreenshotMode.zoomFit(ScreenshotMode.current, kind: kind, stored: AppSettings.zoomFit(for: kind))
     }
@@ -1100,8 +1100,8 @@ struct CalendarRootScreen: View {
                 // the short one has no holiday name (1.4.1: an iPhone's wide row shows the short one).
                 titleHoliday: !shortTitle && kind == .day ? holidays.name(of: focus) : nil,
                 // 1.4.1 (docs/R1_4_1_CONTRACT.md §2.1, §3.2, §4.1): the header's order for 設定 › 入力 「利き手」, and 等倍
-                // (the canvas to its 等倍, §3.6, §16.3: a week, a day or — 1.4.3, `ZoomReset.followsFit` — a month one page
-                // across; the year as it opens, until it joins with D1y).
+                // (the canvas to its 等倍, §3.6, §16.3: a week, a day or — 1.4.3, `ZoomReset.followsFit` — a month or a year
+                // one page across).
                 hand: hand,
                 onZoomReset: { resetZoom() }
             )
@@ -1853,7 +1853,7 @@ struct CalendarRootScreen: View {
         // 1.3 (§3.1, §2 #4): the one place that decides the path (`ScreenPaths.joins`). The one page is 1.2.3's lines
         // (screenshot mode's demo page, else `sync.load`, `pageOpened`, `OnePageSession.open`, all in `ScreenPaths.open`);
         // a week or a day with the setting on opens a window (the one before is kept until its canvas handed over); 1.4.3:
-        // a month too (`SpanKinds.joined`), the year with D1y.
+        // a month and a year too (`SpanKinds.joined`).
         let opened = paths.open(opening(kind: newKind, focus: newFocus))
         if !ScreenshotMode.isActive { now = Date() }
         model.load(kind: newKind, focus: newFocus, weekStart: weekStart)
@@ -1913,7 +1913,7 @@ struct CalendarRootScreen: View {
     /// 「今日」. 1.1.1: on the month and year pages today's cell comes on screen too, since a page that
     /// holds a lot is longer than the screen (`show` loads and lays out at once, so `layout` is the
     /// page it opened; the now is `show`'s, 「今日」 in screenshot mode). Those are the one page's lines at the end; the
-    /// joined path is `ScreenPaths.today`'s (1.4.3: the month's window too, the year's with D1y).
+    /// joined path is `ScreenPaths.today`'s (1.4.3: the month's window and the year's too).
     private func goToday() {
         let today = DayKey(ScreenshotMode.current?.today ?? Date())
         // 1.3 (§2 #6, wave C §4.1), the week and the day: far, a new window; near at the overview, a slide; today's page
@@ -1922,16 +1922,18 @@ struct CalendarRootScreen: View {
         // 1.4.3 (§3.7; reviews UX-1, UX-2 (a), UX-3), a window of months: zoomed in only past the fit (today's cell); at the
         // overview and at 等倍 another month is a slide and today's month already the focus the y-only request, never
         // nothing; far away the new window brings today's cell (`reopenedToday`); and the focus becomes today — at the
-        // paper's stop on today's month (`ScreenPaths.carriedFocus`), or at once on today's month (`focusOnToday`).
+        // paper's stop on today's month (`ScreenPaths.carriedFocus`), or at once on today's month (`focusOnToday`). D1y: a
+        // window of years likewise (the capped year of an iPhone in landscape: today's year already the focus moves y to two
+        // rows above today's only when today's cell is off the screen); the lines here are the same.
         if let action = paths.today(today, now: ScreenshotMode.current?.today ?? Date(), viewport: paths.heading?.viewport,
                                     area: paperArea, ratio: currentRatio, fit: currentFit) {
             switch action {
             case .reopen(let day):
                 show(kind: kind, focus: day)
-                // 1.4.3 (review UX-2 (a), §3.7): a window of months opened at today brings today's cell on screen at its
-                // first layout, as 1.1.1's one page below (the week and the day: nil, 1.3's). The rect is made from the area,
-                // the ratio and the fit `paths.today` above was given (ScreenPaths keeps them with its `.reopen`), so the fit
-                // is passed once; ScreenPathsMonthYearTests.testTheScreenWiresTodaysFocus pins this wire.
+                // 1.4.3 (review UX-2 (a), §3.7): a window of months (D1y: or of years) opened at today brings today's cell on
+                // screen at its first layout, as 1.1.1's one page below (the week and the day: nil, 1.3's). The rect is made
+                // from the area, the ratio and the fit `paths.today` above was given (ScreenPaths keeps them with its
+                // `.reopen`), so the fit is passed once; ScreenPathsMonthYearTests.testTheScreenWiresTodaysFocus pins this wire.
                 if let rect = paths.reopenedToday(now: ScreenshotMode.current?.today ?? Date()) {
                     revealRect = rect
                     revealTrigger += 1
@@ -1953,11 +1955,12 @@ struct CalendarRootScreen: View {
         revealTrigger += 1
     }
 
-    /// 1.4.3 (review UX-3): 「今日」 on a window of months whose focus page already holds today (`ScreenPaths.todayFocus`):
-    /// nothing slides and no stop comes, so the focus is today here and is remembered (`remember`, not in screenshot mode),
+    /// 1.4.3 (review UX-3): 「今日」 on a window of months (D1y: or of years) whose focus page already holds today
+    /// (`ScreenPaths.todayFocus`): nothing slides and no stop comes, so the focus is today here and is remembered (`remember`,
+    /// not in screenshot mode),
     /// as 1.4.2's one page opened at today (`show(kind: kind, focus: today)` above) — 週 or 日 then opens today's week or
     /// day. Another month of the window gets today at the paper's stop there (`ScreenPaths.carriedFocus`); far away the new
-    /// window opens at today (`.reopen`); the week, the day and the year keep their focus (nil).
+    /// window opens at today (`.reopen`); the week and the day keep their focus (nil).
     private func focusOnToday(_ today: DayKey) {
         guard let day = paths.todayFocus(today) else { return }
         if day != focus { focus = day }
@@ -1965,9 +1968,9 @@ struct CalendarRootScreen: View {
     }
 
     /// 1.4.1 (docs/R1_4_1_CONTRACT.md §3.6, §16.3, 0e-7): 等倍. The canvas decides what it does (§16.3.2: a week or a day to
-    /// one page's width across — 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, 0g-26): a month too, following fit as the week does
-    /// (`ZoomReset.followsFit`, the canvas's `ZoomReset.target`) — and the year to its opening zoom until it joins with D1y;
-    /// nothing where it already is, under the pen or during a pinch); the screen writes nothing itself here (what the canvas
+    /// one page's width across — 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, 0g-26): a month and a year too, following fit as the
+    /// week does (`ZoomReset.followsFit`, the canvas's `ZoomReset.target`); nothing where it already is, under the pen or
+    /// during a pinch); the screen writes nothing itself here (what the canvas
     /// then reports is kept by its closures, `onZoomRatioChange` and `onZoomFitChange`). 「今日」 (`goToday`) never changes
     /// the zoom.
     private func resetZoom() {
@@ -3324,7 +3327,7 @@ extension CalendarRootScreen {
     /// The window's focus page moved while the paper slides (C3-m7): the screen's focus follows it, its weekday kept, so
     /// the title, a kind switch, ＋予定 and the export's title name the page in the middle. `remember` waits for the stop.
     /// 1.4.3 (review UX-3): through `ScreenPaths.carriedFocus`, the stop's rule, so after 「今日」 on a window of months today's
-    /// month brings today mid-slide too.
+    /// month brings today mid-slide too (D1y: and on a window of years today's year).
     func spanFocusMoved() {
         guard let span = paths.span else { return }
         let next = paths.carriedFocus(focus, kind: kind, weekStart: weekStart, movedTo: span.focusDay)

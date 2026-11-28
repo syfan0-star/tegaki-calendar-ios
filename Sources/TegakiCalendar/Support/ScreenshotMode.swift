@@ -106,7 +106,9 @@ import UIKit
 /// them every photo, UI test and fixture is what 1.4.2 made: `--screenshot-span-crossing all` (`spanCrossingAll`: the joined
 /// month's window adds two strokes across its memo band at the focus month's left boundary, `monthCrossingStrokes`) and
 /// `--screenshot-month-tall` (`monthTall`: the month right of the focus month has taller rows, `monthTallEvents` and
-/// `monthTallStrokes`, so the three forms of the joined months differ in the sample photos).
+/// `monthTallStrokes`, so the three forms of the joined months differ in the sample photos). D1y: the year joins too, and
+/// `--screenshot-span-crossing all` gives the joined year's window two strokes across the focus year's left boundary on one
+/// row, from December into January (`yearCrossingStrokes`).
 enum ScreenshotMode {
     /// The sheets a screenshot can show (`--screenshot-sheet`; M3b contract §5, M4 contract §6.6,
     /// M5 contract §7.5: `paywall`, M6 contract §3.5: `export`, 1.1 (M7A_CONTRACT §7.3): `info`,
@@ -328,7 +330,9 @@ enum ScreenshotMode {
         /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §12.4, 0g-31): `--screenshot-span-crossing all`: the joined month's window adds
         /// the strokes drawn across its memo band at the focus page's left boundary (`monthCrossingStrokes`), one held by
         /// each page; any other value, or none, is off. Kept apart from 1.3's crossing demo (`crossingSamples`,
-        /// `crossingDemoStrokeIds` stays empty for a month).
+        /// `crossingDemoStrokeIds` stays empty for a month). D1y: the joined year's window likewise adds the two strokes
+        /// written on the 20th's row from the left year's December into the focus year's January (`yearCrossingStrokes`;
+        /// `crossingDemoStrokeIds` stays empty for a year too).
         var spanCrossingAll: Bool = false
         /// 1.4.3 (§2.1, §12.5, 0g-31): `--screenshot-month-tall`, a flag: the month right of the photos' focus month has
         /// taller rows (`monthTallStrokes` in its grid and `monthTallEvents` on its 18th), so the three forms of the joined
@@ -1007,6 +1011,8 @@ enum ScreenshotMode {
     /// focus month and to the focus month (one stroke each, across the memo band at that boundary); `monthTall`
     /// (`--screenshot-month-tall`) adds `monthTallStrokes` to the month right of the focus month. Neither with `empty`,
     /// neither on another kind; `crossing:` (1.3's demo, week and day) is not read for them.
+    /// D1y (§5.2, §12.4): on a joined year `crossingAll` adds `yearCrossingStrokes` to the year left of the focus year and to
+    /// the focus year (one stroke each, on the 20th's row across the boundary); not with `empty`, not through `crossing:`.
     static func spanDemoPage(pageId: String, kind: PageKind, focus: DayKey, weekStart: WeekStart = .monday, crossing: Bool,
                              grown: Bool = ScreenshotMode.current?.grown ?? false,
                              empty: Bool = ScreenshotMode.current?.empty ?? false,
@@ -1054,6 +1060,11 @@ enum ScreenshotMode {
                 }
             }
         }
+        if kind == .year, !empty, crossingAll {
+            for stroke in yearCrossingStrokes(pageOffset: offset) {
+                page.add(stroke)
+            }
+        }
         return page
     }
 
@@ -1098,6 +1109,44 @@ enum ScreenshotMode {
         return [110, 240, 370].enumerated().map { n, y in
             InkStroke(id: "demo-stroke-month-tall-\(n + 1)", cell: .day(day), tool: .pen, color: "#1f2937", t: baseTime + 27_000 + n * 1_000,
                       points: wave(x0: 24, y0: CGFloat(y), count: 36, step: 4.2, amplitude: 6))
+        }
+    }
+
+    // MARK: The sample of the joined year (1.4.3 D1y, docs/R1_4_3_CONTRACT.md §5.2, §12.4, 0g-31)
+
+    /// The ids of `yearCrossingStrokes`: the one the left year holds and the one the focus year holds.
+    static let yearCrossingStrokeIds = (left: "demo-stroke-cross-year-left", focus: "demo-stroke-cross-year-focus")
+
+    /// The row (the day of the month) of `yearCrossingStrokes`: no demo handwriting (the demo's circle is on the 7th's row,
+    /// its line on 2/30) and no demo all-day event (the 3rd, the 4th–5th, the 7th, the 9th–13th, the 16th, the 21st–22nd, the
+    /// 25th of the demo month; the 20th has timed events only, which a year does not show), whatever the demo month.
+    static let yearCrossingDay = 20
+
+    /// `--screenshot-span-crossing all` on a joined year: two lines written on the 20th's row across the focus year's left
+    /// boundary, from the left year's December into the focus year's day-number column and January, each held by the page of
+    /// its bounds' centre x (D15, §5.2: half open, on the boundary the focus year's). x is from the boundary (the left year
+    /// is x < 0): one from (−100, 30) to (40, 32), centre −30, the left year's `.yearDay(12, 20)` (its cell at x 1,288 of that
+    /// year, so its points run to x 152 of the cell, past the paper's right edge at 1,400 and not cut); one from (−40, 40) to
+    /// (100, 42), centre +30 in the focus year's day-number column, which is January's (`YearPageLayout.inkCell`), so its
+    /// `.yearDay(1, 20)` (the cell at x 56: its points from x −96, negative). A wave of ±2 lu; y in the cell, under the cell's
+    /// weekday letter (28 lu) and with the bottom at most 45.75 + 12 lu, so the row stays the plain 60 lu (no row grows).
+    /// None on another page.
+    static func yearCrossingStrokes(pageOffset: Int) -> [InkStroke] {
+        let samples: [(id: String, from: CGPoint, to: CGPoint, color: String, owner: Int, month: Int)] = [
+            (yearCrossingStrokeIds.left, CGPoint(x: -100, y: 30), CGPoint(x: 40, y: 32), "#2563eb", -1, 12),
+            (yearCrossingStrokeIds.focus, CGPoint(x: -40, y: 40), CGPoint(x: 100, y: 42), "#16a34a", 0, 1),
+        ]
+        return samples.enumerated().compactMap { n, sample in
+            guard sample.owner == pageOffset else { return nil }
+            // The cell's x in its own page, and the boundary's x in that page (the left year's right edge, the focus year's 0).
+            let cellX = PaperSpec.yearGutter + CGFloat(sample.month - 1) * PaperSpec.yearColumnWidth
+            let boundary = pageOffset == -1 ? PaperSpec.yearWidth : 0
+            let points = line(from: sample.from, to: sample.to, count: 21, amplitude: 2).enumerated().map { i, p in
+                InkPoint(x: p.x + boundary - cellX, y: p.y, dtMs: i * 12, sizeW: 3.5, sizeH: 3.5, opacity: 1,
+                         force: 0.5 + 0.2 * sin(CGFloat(i) * 0.3), azimuth: 0, altitude: 1.4)
+            }
+            return InkStroke(id: sample.id, cell: .yearDay(month: sample.month, day: yearCrossingDay), tool: .pen, color: sample.color,
+                             t: baseTime + 30_000 + n * 1_000, points: points)
         }
     }
 

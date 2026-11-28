@@ -17,11 +17,12 @@ import Layout
 // path (its own switch, off by default), the window's pages are the demo pages with the crossing demo,
 // `--screenshot-single-page` stays on one page with the focus page's halves, `--screenshot-offset-x` /
 // `--screenshot-span-shift` place the band, the shift is held until `span.release`, and `span.state` reads out the window.
-// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.1, §3.6, §3.7, §4.7, §12.4, 0g-8): the window holds the kinds of `SpanKinds.joined` —
-// the weeks and the days of 1.3, and the months (the years join with D1y) — and every call here that names a kind reads
+// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.1, §3.6, §3.7, §4.7, §5.4, §5.5, §12.4, 0g-8): the window holds the kinds of
+// `SpanKinds.joined` — the weeks and the days of 1.3, the months and the years — and every call here that names a kind reads
 // that set: the path, the paper and the PDF of a window page, the old versions' one page of the photos; the month's focus
-// keeps its day of the month and 「今日」 brings today's cell on screen and, once the paper is on today's month, today as the
-// focus (review UX-3, as 1.4.2's one page).
+// keeps its day of the month and the year's its month and day; 「今日」 brings today's cell on screen and, once the paper is on
+// today's month or year, today as the focus (review UX-3, as 1.4.2's one page); the capped year of an iPhone in landscape
+// opens two rows above today's (P-B6 イ, 0g-23); a window of years reads the all-day events alone (`yearEventSource`).
 //
 // No UIKit and no SwiftUI views (the tests drive it on its own over a live `SyncEngine`, as they drive the sessions):
 // the screen (`CalendarRootScreen`) calls these and keeps only what draws. It never imports `@_spi(SpanLedger)`: the
@@ -90,7 +91,7 @@ final class ScreenPaths: ObservableObject {
     /// What a stop of the paper means for the screen (§3.7, D20, C3-m6, C3-m7).
     struct Stopped: Equatable {
         /// The screen's focus on the focus page, its weekday kept (`carriedFocus`: `focus(_:kind:weekStart:movedTo:)`, or today
-        /// after 「今日」 on a window of months).
+        /// after 「今日」 on a window of months or years).
         var focus: DayKey
         /// The visit that ended (the rating prompt's): nil when the focus page did not change.
         var visitEnded: SpanSession.Visit?
@@ -108,14 +109,15 @@ final class ScreenPaths: ObservableObject {
         /// `revealRect(_:for:)`) on screen (`revealRect`). Also today's page already the focus at the capped overview (P-B6 イ,
         /// the lead's decision 7): the canvas's now-line request, a rect with no x (`cappedTodayRect`,
         /// `InkCanvasView.nowLineRevealRect`; its x is not a number, so the case is never equal to itself).
-        /// 1.4.3 (§3.7): on a window of months, today's cell past the fit (toward another month a rect a screen wide when the
-        /// cell's would leave the middle of the screen on the old month: `monthTodayRevealRect`, review UX3-R1), and at the
-        /// overview or at 等倍 on today's page already the focus `monthTodayRequest`'s request (no x).
+        /// 1.4.3 (§3.7): on a window of months or years, today's cell past the fit (toward another page a rect a screen wide
+        /// when the cell's would leave the middle of the screen on the old page: `monthTodayRevealRect`, review UX3-R1), and at
+        /// the overview or at 等倍 on today's page already the focus `monthTodayRequest`'s request (no x); the capped year
+        /// (P-B6 イ, 0g-23) on today's year at its capped overview `cappedTodayRect`'s, as the capped week's.
         case reveal(CGRect)
         /// Today's page is the focus at an overview that holds the whole day: nothing moves (1.2.3's 「今日」 on the page
         /// shown; review J7 — the screen does not know the paper's y, and a rect a whole page high would take the paper to
-        /// its top). The week's and the day's only: on a window of months today's page the focus is `.reveal`
-        /// (`monthTodayRequest`).
+        /// its top). The week's and the day's only: on a window of months or years today's page the focus is `.reveal`
+        /// (`monthTodayRequest`, or `cappedTodayRect` at the capped year).
         case stay
     }
 
@@ -136,7 +138,8 @@ final class ScreenPaths: ObservableObject {
     /// 1.4.3 (review UX-3; 1.4.2's one page, whose 「今日」 opened the month at today: `show(kind: kind, focus: today)`): 「今日」
     /// sent a window of months toward today's month on another page (`today`'s `.slide`, or zoomed in past the fit its
     /// `.reveal` of the cell). Once the focus page is today's month the screen's focus is today (`carriedFocus`), not the day
-    /// of the month the carry keeps (§3.6), so 週 or 日 then opens today's week or day, as from 1.4.2's month.
+    /// of the month the carry keeps (§3.6), so 週 or 日 then opens today's week or day, as from 1.4.2's month. A window of
+    /// years likewise (D1y, the month's precedent: 1.4.2's one-page year opened at today too): today's year brings today.
     private struct TodayMark {
         /// The window it was made for (`SpanSession.id`): another window never reads it.
         let windowId: String
@@ -152,7 +155,7 @@ final class ScreenPaths: ObservableObject {
     /// canvas's slide and reveal move the paper at once, and a long slide's next leg starts before its stop reaches the
     /// screen (`InkCanvasView`'s `continueQueuedSlide`), well inside it. A slide a finger stopped on the way, a reveal that
     /// left the focus page where it was (no stop comes then) and a slide that waited this long under the pen let the mark go
-    /// by then, so a later scroll by hand to today's month keeps the carry (§3.6).
+    /// by then, so a later scroll by hand to today's month (or year) keeps the carry (§3.6).
     static let todayMarkGrace: TimeInterval = 3
 
     // MARK: Inputs
@@ -234,8 +237,8 @@ final class ScreenPaths: ObservableObject {
     /// The window (`SpanSession.id`) 「今日」's last `Today.reveal` was made for (S6, review S6-LT-1): its rect is in that
     /// window's band lu. Only that window's canvas is handed it (`revealRect(_:for:)`).
     private(set) var revealWindowId: String?
-    /// 1.4.3 (review UX-3): 「今日」's mark on a window of months (`TodayMark`): made by `today`, read by `carriedFocus`, let go
-    /// by `forgetToday()`.
+    /// 1.4.3 (review UX-3): 「今日」's mark on a window of months or years (`TodayMark`): made by `today`, read by `carriedFocus`,
+    /// let go by `forgetToday()`.
     private var todayMark: TodayMark?
     /// 1.4.3 (review UX-2 (a)): the area, ratio and fit of the 「今日」 that answered `.reopen`, kept for the new window's
     /// first-layout rect (`reopenedToday(now:)`, taken once), so that rect is made from the inputs the decision was made
@@ -302,8 +305,8 @@ final class ScreenPaths: ObservableObject {
     /// Whether a page of `kind` opens joined (D2, §3.1, §3.15, the plan §5.1): only a kind of `SpanKinds.joined`, with the
     /// setting on (in screenshot mode its own memory-only setting, off by default, and never with `--screenshot-single-page`,
     /// the old versions' view), and not a kind that fell back to one page in this run. 1.4.3 (docs/R1_4_3_CONTRACT.md §3.2,
-    /// 0g-8, 0g-9): the kinds are `SpanKinds.joined` (1.3's week and day, and the month; the year with D1y), so the month
-    /// joins with the setting on too; the rest is 1.3's.
+    /// 0g-8, 0g-9): the kinds are `SpanKinds.joined` (1.3's week and day, the month and the year), so the month and the
+    /// year join with the setting on too; the rest is 1.3's.
     static func joins(kind: PageKind, setting: Bool, screenshot: Bool, screenshotSpan: Bool, singlePage: Bool = false,
                       fallenBack: Set<PageKind>) -> Bool {
         guard SpanKinds.joined.contains(kind), !fallenBack.contains(kind) else { return false }
@@ -1047,6 +1050,14 @@ final class ScreenPaths: ObservableObject {
     /// 1.4.3 (review UX3-R1): past the fit toward another month the rect is `monthTodayRevealRect`'s — the cell, or a rect
     /// a screen wide when 1.1.1's least movement would leave the middle of the screen within the old month's 6 % (today in
     /// an edge column) — so the focus page becomes today's month and the stop there brings today.
+    /// 1.4.3, D1y (§3.7, §5.4, 0g-19, 0g-23; the month's answers above as the precedent: reviews UX-1, UX-2 (a), UX-3,
+    /// UX3-R1): a window of years answers as a window of months — zoomed in past the fit (`zoomedPastFit`) today's cell
+    /// (`todayRect`'s year branch, through `monthTodayRevealRect` toward another year); at or below 等倍 another year → a slide,
+    /// today's year already the focus → `monthTodayRequest`'s y alone (today's cell of the year) — except at the capped overview
+    /// of an iPhone in landscape (P-B6 イ: the year's cap of 3 pages, `atCappedOverview`), where today's year already the focus
+    /// is `cappedTodayRect`'s request as the capped week's: y alone, to two rows above today's (`PageNavigation.initialScrollY`),
+    /// when the bottom of today's cell is off the screen. The capped overview is asked first for every kind (the month has no
+    /// cap, so its answers are the same; the week and the day have no `monthTodayRequest`, so theirs are the same too).
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Today? {
         forgetToday()
         reopenInputs = nil
@@ -1056,7 +1067,8 @@ final class ScreenPaths: ObservableObject {
             reopenInputs = (area, ratio, fit)
             return .reopen(focus)
         case .slide(let pages):
-            let zoomed = session.layout.kind == .month
+            let kind = session.layout.kind
+            let zoomed = kind == .month || kind == .year
                 ? Self.zoomedPastFit(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
                 : Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
             if !zoomed, pages != 0 {
@@ -1066,15 +1078,15 @@ final class ScreenPaths: ObservableObject {
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
                                      calendar: session.context.calendar, area: area, ratio: ratio, fit: fit)
-            if !zoomed, let rect = Self.monthTodayRequest(layout: session.layout, pageId: session.focusPageId, now: now,
-                                                          calendar: session.context.calendar, zoom: shown.zoom) {
-                revealWindowId = session.id
-                return .reveal(rect)
-            }
             if !zoomed {
-                guard Self.atCappedOverview(layout: session.layout, width: shown.width, zoom: shown.zoom),
-                      let rect = Self.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
-                                                      calendar: session.context.calendar, viewport: shown)
+                if Self.atCappedOverview(layout: session.layout, width: shown.width, zoom: shown.zoom),
+                   let rect = Self.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                   calendar: session.context.calendar, viewport: shown) {
+                    revealWindowId = session.id
+                    return .reveal(rect)
+                }
+                guard let rect = Self.monthTodayRequest(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                        calendar: session.context.calendar, zoom: shown.zoom)
                 else { return .stay }
                 revealWindowId = session.id
                 return .reveal(rect)
@@ -1083,8 +1095,9 @@ final class ScreenPaths: ObservableObject {
             guard let cell = Self.todayRect(layout: session.layout, pageId: todayPage, now: now, calendar: session.context.calendar,
                                             viewport: shown, area: area)
             else { return nil }
-            // 1.4.3 (review UX3-R1): a window of months, toward another month, lands the middle of the screen on today's month.
-            let rect = session.layout.kind == .month
+            // 1.4.3 (review UX3-R1): a window of months or years, toward another page, lands the middle of the screen on
+            // today's month or year.
+            let rect = kind == .month || kind == .year
                 ? Self.monthTodayRevealRect(layout: session.layout, cell: cell, pageId: todayPage, focusSlot: session.focusSlot,
                                             viewport: shown, area: area)
                 : cell
@@ -1094,11 +1107,11 @@ final class ScreenPaths: ObservableObject {
         }
     }
 
-    /// 1.4.3 (review UX-3): `today`'s mark on a window of months whose answer sends the paper `pages` pages away, to today's
-    /// page (a slide, or zoomed in past the fit the reveal of the cell); nothing for the focus page itself (`todayFocus`) and
-    /// for the week, the day and the year (their focus keeps 1.3's carry).
+    /// 1.4.3 (review UX-3): `today`'s mark on a window of months or years whose answer sends the paper `pages` pages away, to
+    /// today's page (a slide, or zoomed in past the fit the reveal of the cell); nothing for the focus page itself
+    /// (`todayFocus`) and for the week and the day (their focus keeps 1.3's carry).
     private func markToday(_ day: DayKey, pages: Int, in session: SpanSession) {
-        guard session.kind == .month, pages != 0 else { return }
+        guard session.kind == .month || session.kind == .year, pages != 0 else { return }
         todayMark = TodayMark(windowId: session.id, today: day, from: session.focusIndex, to: session.focusIndex + pages, since: clock())
     }
 
@@ -1122,10 +1135,13 @@ final class ScreenPaths: ObservableObject {
     /// (`today`'s `.reveal` of `monthTodayRequest`, or zoomed in past the fit of the cell, or `.stay`): today. Nothing slides
     /// and no stop comes to carry it, so the screen sets it and remembers it (`remember`, not in screenshot mode), as 1.4.2's
     /// 「今日」 opened the month's one page at today. nil off the joined path, for another page of the window (the paper's stop
-    /// there brings today: `carriedFocus`), far away (`.reopen`: the new window opens at today) and for the week, the day and
-    /// the year, whose focus 「今日」 on their page keeps (1.3's, the frozen ScreenPathsSpanTests).
+    /// there brings today: `carriedFocus`), far away (`.reopen`: the new window opens at today) and for the week and the day,
+    /// whose focus 「今日」 on their page keeps (1.3's, the frozen ScreenPathsSpanTests).
+    /// 1.4.3, D1y (the month's precedent; 1.4.2's one-page year opened at today too): a window of years whose focus page is
+    /// today's year likewise (`.reveal` of `monthTodayRequest` or of `cappedTodayRect`, or past the fit of the cell).
     func todayFocus(_ day: DayKey) -> DayKey? {
-        guard path == .joined, let session = span, session.kind == .month, session.today(day) == .slide(pages: 0) else { return nil }
+        guard path == .joined, let session = span, session.kind == .month || session.kind == .year,
+              session.today(day) == .slide(pages: 0) else { return nil }
         return day
     }
 
@@ -1135,7 +1151,10 @@ final class ScreenPaths: ObservableObject {
     /// landscape iPad at 等倍 the fifth and sixth rows are below the screen). Zoomed in past the page's width
     /// (`zoomedPastFit`, as the window opens: the stored ratio or 1.4.1's `fit`) it is the cell; else
     /// `monthOpeningTodayRect`'s, whose x (the focus page's middle, no width) never moves the band. nil off the joined path,
-    /// for a kind that is not the month (the week and the day are 1.3's) and when the focus page does not hold today.
+    /// for a kind that is not the month or the year (the week and the day are 1.3's) and when the focus page does not hold
+    /// today. 1.4.3, D1y: a window of years opened at today likewise brings today's cell (on a landscape iPad at 等倍 about 14
+    /// of the 31 rows are on screen); the capped year (P-B6 イ) opens two rows above today's row already (`cappedOpeningY`),
+    /// where the cell is on screen and nothing moves.
     /// The screen's call (goToday's `.reopen`, right after its `show`): the rect below from the inputs `today` kept with its
     /// `.reopen` (`reopenInputs`), taken once. nil when the last 「今日」 did not answer `.reopen`.
     func reopenedToday(now: Date) -> CGRect? {
@@ -1145,7 +1164,7 @@ final class ScreenPaths: ObservableObject {
     }
 
     func reopenedToday(now: Date, area: CGSize, ratio: CGFloat, fit: Bool = false) -> CGRect? {
-        guard path == .joined, let session = span, session.layout.kind == .month else { return nil }
+        guard path == .joined, let session = span, session.layout.kind == .month || session.layout.kind == .year else { return nil }
         let pastFit = Self.zoomedPastFit(layout: session.layout, viewport: nil, area: area, ratio: ratio, fit: fit)
         guard let rect = Self.monthOpeningTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
                                                     calendar: session.context.calendar, pastFit: pastFit) else { return nil }
@@ -1157,10 +1176,13 @@ final class ScreenPaths: ObservableObject {
     /// (1.1.1's `reveal`, least movement): past the fit today's cell (`PageNavigation.todayRect` with the page's origin added),
     /// else a rect of no width at the middle of the focus page — which the opening keeps on screen (in the middle at the
     /// overview, `applyBandOpening`; the page across the screen at 等倍) — and the cell's height, so y alone moves, to the
-    /// cell, only when the cell is off the screen. nil for a page that is not a month or does not hold today.
+    /// cell, only when the cell is off the screen. nil for a page that is not a month (since D1y: or a year) or does not
+    /// hold today.
+    /// 1.4.3, D1y: a year page's too — today's cell of the year (`PageNavigation.todayRect` answers a month or a year page
+    /// holding today, nil for a week or a day), with the same two forms; the name stays the month's (D1b's tests call it).
     static func monthOpeningTodayRect(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, pastFit: Bool) -> CGRect? {
-        guard let slot = layout.slot(ofPage: pageId), let month = layout.pages[slot] as? MonthPageLayout,
-              let cell = PageNavigation.todayRect(month, now: now, calendar: calendar) else { return nil }
+        guard let slot = layout.slot(ofPage: pageId),
+              let cell = PageNavigation.todayRect(layout.pages[slot], now: now, calendar: calendar) else { return nil }
         let origin = layout.origin(ofSlot: slot)
         if pastFit { return cell.offsetBy(dx: origin, dy: 0) }
         return CGRect(x: origin + layout.plan.pageWidth / 2, y: cell.minY, width: 0, height: cell.height)
@@ -1194,7 +1216,8 @@ final class ScreenPaths: ObservableObject {
         return ZoomPolicy.ratio(forZoom: viewport.zoom, bounds: bounds) > overviewRatio
     }
 
-    /// 1.4.3 (review UX-1; docs/R1_4_3_CONTRACT.md §1.2, §3.7): whether a window of months is zoomed in past one page's width
+    /// 1.4.3 (review UX-1; docs/R1_4_3_CONTRACT.md §1.2, §3.7): whether a window of months (since D1y: or of years, the same
+    /// rule) is zoomed in past one page's width
     /// across the screen (`zoomedIn`, and the zoom above the bounds' fit, clamped as the canvas takes it, by more than
     /// `overviewRatio`'s 0.05 %): only then does 「今日」 bring today's cell with 1.1.1's `reveal`. At 等倍 (`fit` before a
     /// report, or a reported zoom at the fit) and below it the page is not wider than the screen, so 「今日」 slides by pages
@@ -1216,13 +1239,15 @@ final class ScreenPaths: ObservableObject {
     /// from an hour before now, one screen high.
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7, 0g-19): a month page's is today's cell (`PageNavigation.todayRect`, the one page's
     /// rect of 1.1.1, in the page's lu) with the page's origin added, so 1.1.1's `reveal` brings the cell on screen with the
-    /// least movement. The year keeps the rect below until D1y.
+    /// least movement. 1.4.3, D1y (§3.7: 「今日のマスの矩形」): a year page's likewise, today's cell of the year
+    /// (`PageNavigation.todayRect` answers a month or a year page holding today) with the page's origin added; before, the year
+    /// had the rect below (the page's width from two rows above today's, `PageNavigation.initialScrollY`).
     static func todayRect(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, viewport: PaperViewport,
                           area: CGSize) -> CGRect? {
         guard let slot = layout.slot(ofPage: pageId), viewport.zoom > 0, viewport.width > 0 else { return nil }
         let page = layout.pages[slot]
         let origin = layout.origin(ofSlot: slot)
-        if let month = page as? MonthPageLayout, let cell = PageNavigation.todayRect(month, now: now, calendar: calendar) {
+        if page is MonthPageLayout || page is YearPageLayout, let cell = PageNavigation.todayRect(page, now: now, calendar: calendar) {
             return cell.offsetBy(dx: origin, dy: 0)
         }
         let zoom = viewport.zoom
@@ -1249,9 +1274,16 @@ final class ScreenPaths: ObservableObject {
     /// cell's, so y moves as before. The cell stays on screen with 1.1.1's margin (the margin is at most a column's 200 lu
     /// less twice the hysteresis, halved); a cell wider than the screen covers it. A window that is not of months and a
     /// viewport or a cell that is not usable: the cell.
+    /// 1.4.3, D1y (the month's precedent for the year; the name stays, D1b's tests call it): a window of years likewise, today's
+    /// cell of the year toward another year, with the same margin past the hysteresis (the year is 1,400 lu wide too: 84 lu).
+    /// The year's cells are a month's 112 lu, and its highest zoom on a phone is 2 × its readable zoom (`ZoomPolicy.maxZoom`:
+    /// 2.68, a screen down to about 140 lu), so a rect that puts the middle of the screen past the hysteresis can leave a cell
+    /// of December (back from a later year) partly off the screen: then the cell wins (1.1.1's least movement, the cell
+    /// itself) and the focus may stay on the old year (it reaches today's year at the next stop the person makes there). The
+    /// month's answers are unchanged (that check is the year's).
     static func monthTodayRevealRect(layout: SpanLayout, cell: CGRect, pageId: String, focusSlot: Int, viewport: PaperViewport,
                                      area: CGSize) -> CGRect {
-        guard layout.kind == .month, let slot = layout.slot(ofPage: pageId), slot != focusSlot,
+        guard layout.kind == .month || layout.kind == .year, let slot = layout.slot(ofPage: pageId), slot != focusSlot,
               viewport.zoom.isFinite, viewport.zoom > 0, viewport.width.isFinite, viewport.width > 0,
               viewport.offsetX.isFinite, cell.minX.isFinite, cell.width.isFinite else { return cell }
         let zoom = viewport.zoom
@@ -1265,12 +1297,18 @@ final class ScreenPaths: ObservableObject {
         let high = layout.origin(ofSlot: slot) + width - inset
         guard low < high, middle < low || middle > high else { return cell }
         let left = min(max(middle, low), high) - half
+        if layout.kind == .year {
+            // The screen would span [left, left + 2 × half] (lu); the cell with 1.1.1's margin must stay inside it.
+            let margin = ZoomPolicy.revealMargin / zoom
+            guard cell.minX - margin >= left - 0.001, cell.maxX + margin <= left + 2 * half + 0.001 else { return cell }
+        }
         return CGRect(x: left + ZoomPolicy.revealMargin / zoom, y: cell.minY, width: viewport.width / zoom, height: cell.height)
     }
 
     /// 1.4.3 (review UX3-R1): how far (lu) past the 6 % hysteresis of `SpanPlan.focus` (84 lu of a month's 1,400)
     /// `monthTodayRevealRect` puts the middle of the screen on today's month. At most 16 lu (a column's 200 less twice
-    /// the hysteresis, halved), so a cell in an edge column stays on screen with 1.1.1's margin.
+    /// the hysteresis, halved), so a cell in an edge column stays on screen with 1.1.1's margin. The year (D1y) uses the
+    /// same 8 lu; its 112 lu columns are under twice the hysteresis, so there the cell is checked instead (above).
     static let monthTodayFocusMargin: CGFloat = 8
 
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7, 0g-19): 「今日」 on a month window at the overview whose focus page `pageId` holds
@@ -1280,10 +1318,14 @@ final class ScreenPaths: ObservableObject {
     /// top, only while the cell's bottom is off what the paper shows (above the top of the screen or below the bottom
     /// clearance), and nothing while it is on screen; x never moves (the month's overview already shows its page across:
     /// 1.1.1's `reveal` would add its 8 pt margin on the x of an edge column and push the band off its page). nil for a page
-    /// that is not a month or does not hold today.
+    /// that is not a month (since D1y: or a year) or does not hold today.
+    /// 1.4.3, D1y (the month's precedent): a year page's too — today's cell of the year (`PageNavigation.todayRect` answers a
+    /// month or a year page holding today, nil for a week or a day), at the year's overview and at 等倍 (on a landscape iPad
+    /// about 14 of the 31 rows on screen), so y moves only when today's cell is off the screen. The capped year is
+    /// `cappedTodayRect`'s instead (`today` asks it first). The name stays the month's (D1b's tests call it).
     static func monthTodayRequest(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, zoom: CGFloat) -> CGRect? {
-        guard let slot = layout.slot(ofPage: pageId), let month = layout.pages[slot] as? MonthPageLayout,
-              let cell = PageNavigation.todayRect(month, now: now, calendar: calendar), zoom.isFinite, zoom > 0 else { return nil }
+        guard let slot = layout.slot(ofPage: pageId),
+              let cell = PageNavigation.todayRect(layout.pages[slot], now: now, calendar: calendar), zoom.isFinite, zoom > 0 else { return nil }
         return InkCanvasView.nowLineRevealRect(top: max(0, cell.minY - ZoomPolicy.revealMargin / zoom), nowLine: cell.maxY)
     }
 
@@ -1305,8 +1347,19 @@ final class ScreenPaths: ObservableObject {
     /// 0:00), `PageNavigation.initialScrollY`'s rule of a zoomed-in page, read from the page's own now line (the now and the
     /// calendar the window was laid out with; screenshot mode's 「今日」 too). nil when the page does not hold today (it
     /// opens at 0:00, as every page did).
+    /// 1.4.3, D1y (§3.7, §5.4, 0g-19, 0g-23: the year's cap of 3 pages works from 1.4.3): the capped year opens two rows above
+    /// today's row, `PageNavigation.initialScrollY`'s rule of the year (`rows[max(0, day − 3)]`), with today's day read from
+    /// the page's own today's cell (`todayCell`: the year has no now line; the now it was laid out with); nil when the year
+    /// does not hold today (it opens at its top). So the capped year opens there with the focus year in the middle, in normal
+    /// use too (`shotPaperOffset`).
     static func cappedOpeningY(layout: SpanLayout, pageId: String) -> CGFloat? {
-        guard let slot = layout.slot(ofPage: pageId), let line = layout.pages[slot].nowLine else { return nil }
+        guard let slot = layout.slot(ofPage: pageId) else { return nil }
+        if let year = layout.pages[slot] as? YearPageLayout {
+            guard let day = year.todayCell?.yearMonthDay?.day else { return nil }
+            let index = max(0, day - 3)
+            return index < year.rows.count ? year.rows[index].frame.minY : 0
+        }
+        guard let line = layout.pages[slot].nowLine else { return nil }
         let minutes = max(line.minute - 60, 0)
         if let week = layout.pages[slot] as? WeekPageLayout { return week.minutesToY(minutes) }
         if let day = layout.pages[slot] as? DayPageLayout { return day.minutesToY(minutes) }
@@ -1321,6 +1374,9 @@ final class ScreenPaths: ObservableObject {
     /// on screen nothing moves (PB6-RV-I1). The request has no x: x never moves, and 1.1.1's reveal leaves the paper alone
     /// if it ever reads one (PB6-RV-I5: a canvas's first layout under a rect left from another window). `viewport` is the
     /// screen's (its zoom and width measured). nil when today is not on `pageId`.
+    /// 1.4.3, D1y (§3.7, 0g-19, 0g-23): the capped year's likewise, its "line" the bottom of today's cell and its top two rows
+    /// above today's row (`PageNavigation.initialScrollY` of the year, the row `cappedOpeningY` opens at): when the bottom of
+    /// today's cell is off what the paper shows, y alone goes there; while it is on screen nothing moves.
     static func cappedTodayRect(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, viewport: PaperViewport) -> CGRect? {
         guard let slot = layout.slot(ofPage: pageId), viewport.zoom.isFinite, viewport.zoom > 0,
               viewport.width.isFinite, viewport.width > 0 else { return nil }
@@ -1332,6 +1388,8 @@ final class ScreenPaths: ObservableObject {
             line = week.minutesToY(minute)
         } else if let day = page as? DayPageLayout, day.day == today {
             line = day.minutesToY(minute)
+        } else if let year = page as? YearPageLayout, let cell = PageNavigation.todayRect(year, now: now, calendar: calendar) {
+            line = cell.maxY
         } else {
             return nil
         }
@@ -1343,8 +1401,8 @@ final class ScreenPaths: ObservableObject {
     /// pages are saved and the week start's boundary runs (`boundary`: `runWeekStartCheck(atBoundary: true)` and its
     /// switch, as at `show`, after `focusMoved` told the screen its new focus); once the window's pages are read (none of
     /// them a placeholder: a shift's pages are read after its stop), a window over the cap falls back to one page.
-    /// 1.4.3 (review UX-3): the focus is `carriedFocus`'s (on a window of months, today at the stop on today's month after
-    /// 「今日」), and the stop lets 「今日」's mark go unless it is on the way (`todayStopped(on:)`).
+    /// 1.4.3 (review UX-3): the focus is `carriedFocus`'s (on a window of months or years, today at the stop on today's month
+    /// or year after 「今日」), and the stop lets 「今日」's mark go unless it is on the way (`todayStopped(on:)`).
     func stopped(_ stop: SpanSession.Stop, focus: DayKey, kind: PageKind, weekStart: WeekStart, focusMoved: (DayKey) -> Void = { _ in },
                  boundary: () -> Void) -> Stopped {
         stops += 1
@@ -1372,10 +1430,14 @@ final class ScreenPaths: ObservableObject {
     /// while 「今日」's mark holds (`heldTodayMark`: this window, within `todayMarkGrace`), today's month brings today itself —
     /// mid-slide or at the stop, whichever reaches it first — as 1.4.2's 「今日」 opened the month's one page at today.
     /// Everything else is `focus`'s answer, unchanged: another month (the months on the way keep the day of the month, §3.6),
-    /// a month the person scrolled to without 「今日」, and the week, the day and the year (1.3's, the frozen
-    /// ScreenPathsSpanTests).
+    /// a month the person scrolled to without 「今日」, and the week and the day (1.3's, the frozen ScreenPathsSpanTests).
+    /// 1.4.3, D1y (the month's precedent): a window of years likewise — today's year (`pageFirstDay`, its January 1, in
+    /// today's year) brings today itself while the mark holds; the years on the way keep their month and day (§3.6).
     func carriedFocus(_ focus: DayKey, kind: PageKind, weekStart: WeekStart, movedTo pageFirstDay: DayKey) -> DayKey {
         if kind == .month, let mark = heldTodayMark, mark.today.year == pageFirstDay.year, mark.today.month == pageFirstDay.month {
+            return mark.today
+        }
+        if kind == .year, let mark = heldTodayMark, mark.today.year == pageFirstDay.year {
             return mark.today
         }
         return Self.focus(focus, kind: kind, weekStart: weekStart, movedTo: pageFirstDay)
@@ -1406,15 +1468,18 @@ final class ScreenPaths: ObservableObject {
     /// weeks); the same page keeps `focus`.
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.6, 0g-18): a month moves to `pageFirstDay`'s year and month keeping the day of the
     /// month, or that month's last day when it has no such day (1/31 → 2/28); the formula above would count from the first
-    /// day of the 42-day grid and stay in the same month (10/31 → 12/4, 11/30 → 11/5). The week and the day keep it (the
-    /// frozen ScreenPathsSpanTests' answers), and so does the year until it joins with D1y (its rule, 2/29 → 2/28, comes
-    /// then; the formula is never called for a year before).
+    /// day of the 42-day grid and stay in the same month (10/31 → 12/4, 11/30 → 11/5). A year (D1y) moves to `pageFirstDay`'s
+    /// year keeping the month and the day, 2/29 becoming 2/28 in a common year (the formula would count the leap day:
+    /// 2028-12-31 → 2027-01-01). The week and the day keep it (the frozen ScreenPathsSpanTests' answers).
     static func focus(_ focus: DayKey, kind: PageKind, weekStart: WeekStart, movedTo pageFirstDay: DayKey) -> DayKey {
         switch kind {
         case .month:
             let last = DayKey.daysInMonth(year: pageFirstDay.year, month: pageFirstDay.month)
             return DayKey(year: pageFirstDay.year, month: pageFirstDay.month, day: min(focus.day, last))
-        case .week, .day, .year:
+        case .year:
+            let last = DayKey.daysInMonth(year: pageFirstDay.year, month: focus.month)
+            return DayKey(year: pageFirstDay.year, month: focus.month, day: min(focus.day, last))
+        case .week, .day:
             let shown = PageNavigation.dayRange(kind, focus: focus, weekStart: weekStart)
             return focus.adding(days: pageFirstDay.dayNumber - shown.start.dayNumber)
         }
@@ -1474,7 +1539,8 @@ final class ScreenPaths: ObservableObject {
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §4.7, 0g-32, 0g-53): every kind of `SpanKinds.joined`, made by the one place a
     /// window's paper is made (`PaperSpan.paperContent(of:)`: a week's and a day's as before, a month's `holidayNames` from its
     /// own date labels), so the PDF of a joined month (`pdfInput`) is its window page with the strokes that reach into it,
-    /// and `focusPaper` follows. nil for a kind that does not join (the year until D1y) and for a layout of none of the kinds.
+    /// and `focusPaper` follows (the year's too, since D1y: its `monthNames`, so the PDF of a joined year is its window page).
+    /// nil for a kind that does not join and for a layout of none of the kinds.
     /// One argument and static, as the frozen ScreenPathsCanvasSpanTests calls it.
     static func paper(of layout: any PageLayout) -> PaperContent? {
         guard let content = PaperSpan.paperContent(of: layout), SpanKinds.joined.contains(content.kind) else { return nil }
@@ -1510,7 +1576,8 @@ final class ScreenPaths: ObservableObject {
     /// opening's; else `--screenshot-offset` with the focus page's origin added. The opening's y is 0 except on today's page
     /// at the capped overview (P-B6 イ, the lead's decision 6: `cappedOpeningY`, an hour before now), which opens there with
     /// the focus page in the middle (pages 0) in normal use too; nil otherwise (the canvas then opens the focus page in the
-    /// middle at 0:00). The canvas clamps it to the band.
+    /// middle at 0:00). The canvas clamps it to the band. 1.4.3, D1y (§3.7, 0g-23): the capped year too, two rows above
+    /// today's row (`cappedOpeningY`'s year branch); this function is the same.
     static func shotPaperOffset(layout: SpanLayout, focusPageId: String, pages: CGFloat?, offset: CGPoint?,
                                 viewportWidth: CGFloat, zoom: CGFloat) -> CGPoint? {
         let todayY = atCappedOverview(layout: layout, width: viewportWidth, zoom: zoom)
@@ -1536,7 +1603,7 @@ final class ScreenPaths: ObservableObject {
     /// week or day for its photo (`SpanGuideModel.showForPhoto`, 「指でも書く」 off for `one`, on for `two`, as it is for
     /// no value), or stage 2's notice (N-8) for `stage-two`; nil without the argument (and no card for a month or a year).
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §7.3, 0g-33): a card for every kind that has its words (`SpanGuide.text`: the month's
-    /// since 1.4.3; the year's with D1y), so the month's card is photographed too; none for a kind without.
+    /// and the year's since 1.4.3), so the month's and the year's cards are photographed too; none for a kind without.
     enum PhotoGuide: Equatable {
         case card(allowFinger: Bool)
         case stageTwoNotice
@@ -1566,7 +1633,7 @@ final class ScreenPaths: ObservableObject {
     /// over `SpanPlan.zoomBounds` (the cap's opening zoom on an iPhone in landscape, P-B6 イ). 1.4.1 (docs/R1_4_1_CONTRACT.md
     /// §16.3.4): with `fit` (a week or a day kept at 等倍) the bounds' fit, one page's width across `area` (the cap never
     /// changes it), as the canvas opens with `initialFit`; the ratio is not read. 1.4.3 (docs/R1_4_3_CONTRACT.md §6.1, 0g-26):
-    /// a month kept at 等倍 too (`ZoomReset.followsFit`; the screen's `currentFit` reads it), the code unchanged.
+    /// a month or a year kept at 等倍 too (`ZoomReset.followsFit`; the screen's `currentFit` reads it), the code unchanged.
     static func bandZoom(layout: SpanLayout, area: CGSize, ratio: CGFloat, fit: Bool = false) -> CGFloat {
         let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout), viewport: area)
         return fit ? bounds.clamped(bounds.fit) : ZoomPolicy.zoom(forRatio: ratio, bounds: bounds)
