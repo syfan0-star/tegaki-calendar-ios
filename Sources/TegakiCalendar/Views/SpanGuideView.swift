@@ -20,8 +20,8 @@ enum SpanGuide {
     /// tune §3.16's numbers went at S6; the tag r13-proto-1 keeps it).
     static let duration: TimeInterval = 8
 
-    /// The kinds joined sideways in 1.3 (D2): week and day. Month (1.7) and year (1.8) stay one page at a time
-    /// and have no guide yet.
+    /// The kinds joined sideways (D2): in 1.3 the week and the day; since 1.4.3 the month too, with its guide. The year
+    /// stays one page at a time and has no guide until it joins with D1y.
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §7.3, 0g-8): the kinds of `SpanKinds.joined` in their order (`SpanKinds.ordered`:
     /// the week, the day, the month; the year once it joins with D1y).
     static var joinedKinds: [PageKind] { SpanKinds.ordered }

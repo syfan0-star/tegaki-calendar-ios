@@ -108,10 +108,13 @@ final class ScreenPaths: ObservableObject {
         /// `revealRect(_:for:)`) on screen (`revealRect`). Also today's page already the focus at the capped overview (P-B6 イ,
         /// the lead's decision 7): the canvas's now-line request, a rect with no x (`cappedTodayRect`,
         /// `InkCanvasView.nowLineRevealRect`; its x is not a number, so the case is never equal to itself).
+        /// 1.4.3 (§3.7): on a window of months, today's cell past the fit, and at the overview or at 等倍 on today's page
+        /// already the focus `monthTodayRequest`'s request (no x).
         case reveal(CGRect)
         /// Today's page is the focus at an overview that holds the whole day: nothing moves (1.2.3's 「今日」 on the page
         /// shown; review J7 — the screen does not know the paper's y, and a rect a whole page high would take the paper to
-        /// its top).
+        /// its top). The week's and the day's only: on a window of months today's page the focus is `.reveal`
+        /// (`monthTodayRequest`).
         case stay
     }
 
@@ -1008,21 +1011,22 @@ final class ScreenPaths: ObservableObject {
         return session.move(by: delta)
     }
 
-    /// 「今日」 on the joined path (the plan §4.1, the lead's decision): far → a new window; near and at the overview → slide;
-    /// today's page already the focus at the overview → nothing (1.2.3: the same page does not move; review J7); zoomed in
-    /// → bring today's column on screen from an hour before now. At the capped overview (P-B6 イ, the lead's decision 7 of
-    /// 11/18: an iPhone in landscape, about half of the 24 hours on screen) today's page already the focus is
-    /// `cappedTodayRect`'s request: the canvas moves y alone to an hour before now when the now line is off the screen, and
-    /// nothing while it is on screen.
+    /// 「今日」 on the joined path (the plan §4.1, the lead's decision): far → a new window, whatever the kind. Near, the week
+    /// and the day (1.3): at the overview → slide; today's page already the focus at the overview → nothing (1.2.3: the same
+    /// page does not move; review J7); zoomed in → bring today's column on screen from an hour before now. At the capped
+    /// overview (P-B6 イ, the lead's decision 7 of 11/18: an iPhone in landscape, about half of the 24 hours on screen) today's
+    /// page already the focus is `cappedTodayRect`'s request: the canvas moves y alone to an hour before now when the now line
+    /// is off the screen, and nothing while it is on screen.
     /// `viewport` is the last one reported (nil: `ratio`, the stored one, or 1.4.1's `fit`: the kind kept at 等倍,
     /// docs/R1_4_1_CONTRACT.md §16.3.4), `area` the paper area. nil off the joined path.
-    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7, 0g-19; 1.1.1's rule that a month brings today's cell on screen): on a window of
-    /// months, zoomed in past the page's width (`zoomedPastFit`) brings today's cell on screen (`todayRect`, the cell, as the
-    /// week's column); at the overview and at 等倍 — anywhere one page is not wider than the screen, so a landscape iPad's
-    /// 等倍 (fit above the opening zoom) too (review UX-1: 1.1.1's `reveal` would add its 8 pt margin and stop the band
-    /// between two months, the focus and the title left on the old one) — a slide as the week's, and today's page already the
-    /// focus is `monthTodayRequest`'s y alone (the canvas moves y only when the cell is off the screen). The week and the day
-    /// keep 1.4.1's `zoomedIn` (their 等倍 counts as zoomed in).
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7, 0g-19; 1.1.1's rule that a month brings today's cell on screen): near, a window of
+    /// months has its own answers. Zoomed in past the page's width (`zoomedPastFit`) → today's cell on screen (`todayRect`,
+    /// the cell, as the week's column), on whichever page holds it; at the overview and at 等倍 — anywhere one page is not
+    /// wider than the screen, so a landscape iPad's 等倍 (fit above the opening zoom) too (review UX-1: 1.1.1's `reveal` would
+    /// add its 8 pt margin and stop the band between two months, the focus and the title left on the old one) — another page
+    /// → a slide as the week's, and today's page already the focus → `monthTodayRequest`'s y alone (the canvas moves y only
+    /// when the cell is off the screen), never nothing. The week and the day keep 1.4.1's `zoomedIn` (their 等倍 counts as
+    /// zoomed in).
     /// 1.4.3 (review UX-3): every 「今日」 first lets the last one's mark go (`forgetToday()`); on a window of months a slide or
     /// a reveal toward another page leaves its own (`TodayMark`), so the focus becomes today once the paper is on today's
     /// month (`carriedFocus`, mid-slide and at the stop), and today's page already the focus makes today the focus at once
@@ -1397,7 +1401,7 @@ final class ScreenPaths: ObservableObject {
         return (paper, input.page, input.neighborInk, session.focusDay)
     }
 
-    /// A window page as the paper draws it (weeks and days only).
+    /// A window page as the paper draws it (1.3: the weeks and the days; 1.4.3: every joined kind, below).
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §4.7, 0g-32, 0g-53): every kind of `SpanKinds.joined`, made by the one place a
     /// window's paper is made (`PaperSpan.paperContent(of:)`: a week's and a day's as before, a month's `holidayNames` from its
     /// own date labels), so the PDF of a joined month (`pdfInput`) is its window page with the strokes that reach into it,
