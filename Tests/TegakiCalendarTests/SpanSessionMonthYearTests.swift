@@ -14,7 +14,8 @@ import XCTest
 // Over a live `SyncEngine` (`SessionTestBed`); the canvas is `JoinedLedgerStandIn` (its journal into the session's inbox, as
 // the canvas puts it). The months: Monday weeks around 11/16/2026 on the 11-inch iPad in portrait (R = 2): 2026-09 … 2027-01.
 // An empty month is six rows of 175 lu (the separator line at 1,050) and a memo of 6,000. A stored stroke at y of a day's cell
-// (`SessionTestBed.stroke`: points y, y + 1, y + 2 with a 3.5 lu nib) ends at y + 3.75, so its row is y + 15.75 lu
+// (`SessionTestBed.stroke`: points y, y + 1, y + 2 with a 3.5 lu nib) ends at y + 3.75 for a y on the 0.1 lu grid (`InkPoint`
+// rounds x and y to 0.1 lu as it is made, 1.0's data rule; every stored y here is on it), so its row is y + 15.75 lu
 // (`MonthLayoutEngine.rowHeight`, the bottom + 12); a memo stroke ending at b makes the memo max(6,000, b + 50).
 // Each form's expectation is written out (ア: the last row of the other months grows to the separator line; イ: every row
 // lines up; ウ: nothing lines up), so a change of `SpanAlign.monthForm` keeps these tests right.
@@ -87,7 +88,7 @@ final class SpanSessionMonthYearTests: XCTestCase {
     }
 
     /// A stroke written through `cell` of `pageId` from y `top` to `bottom` (cell-relative, its centre half way): its bottom
-    /// is `bottom` + 1.75 (the 3.5 lu nib).
+    /// is `bottom` rounded to 0.1 lu (`InkPoint`) + 1.75 (the 3.5 lu nib).
     @discardableResult
     private func write(_ ledger: JoinedLedgerStandIn, on pageId: String, cell key: CellKey, x: CGFloat = 50, top: CGFloat, bottom: CGFloat,
                        file: StaticString = #filePath, line: UInt = #line) throws -> InkStroke {
@@ -175,20 +176,26 @@ final class SpanSessionMonthYearTests: XCTestCase {
 
     // MARK: The canvas's relayout (MS7)
 
-    /// MS7, §3.3 (the relayout): a line in October's memo past 5,950 lu makes the memo 7,000 lu (`.inkGrew`; ア and イ: every
-    /// month's memo with it); erased, it comes back to 6,000 (`.inkShrank`: a natural number went down).
+    /// MS7, §3.3 (the relayout): a line in October's memo past 5,950 lu makes the memo about 7,000 lu — its bottom + 50,
+    /// `PaperGrowth.tailHeight` (`.inkGrew`; ア and イ: every month's memo with it); erased, it comes back to 6,000
+    /// (`.inkShrank`: a natural number went down).
     func testTheMemoGrowsWithInkAndComesBackWhenErased() async throws {
         let session = try await open()
         try assertLinedUp(session, "opened")
         let ledger = JoinedLedgerStandIn(session)
-        // Centred 5,974 lu below the separator line (kept, under the 6,000 lu cap), its bottom at 6,950.
+        // Centred 5,974.1 lu below the separator line (kept, under the 6,000 lu cap); its last point 6,948.25 is kept as
+        // 6,948.3 (`InkPoint`'s 0.1 lu), so its bottom is 6,948.3 + 1.75 = 6,950.05 and the memo's natural height
+        // (`MonthLayoutEngine.memoHeight`, §3.3 2) 6,950.05 + 50 = 7,000.05.
         let deep = try write(ledger, on: oct, cell: .memo, x: 300, top: 5_000, bottom: 6_948.25)
         ledger.put()
         session.relayoutPages()
-        XCTAssertEqual(try XCTUnwrap(session.page(oct)?.inkBottoms()[.memo]), 6_950, accuracy: 0.5)
-        try assertLinedUp(session, naturalMemo: [oct: 7_000], "a memo line past 5,950 lu (.inkGrew)")
+        let bottom = try XCTUnwrap(session.page(oct)?.inkBottoms()[.memo])
+        XCTAssertEqual(bottom, 6_950.05, accuracy: 0.001)
+        let memo = MonthLayoutEngine.memoHeight(inkBottom: bottom)
+        XCTAssertEqual(memo, 7_000.05, accuracy: 0.001)
+        try assertLinedUp(session, naturalMemo: [oct: memo], "a memo line past 5,950 lu (.inkGrew)")
         if SpanSession.monthForm != .none {
-            XCTAssertEqual(session.floors.monthMemo, 7_000, accuracy: 0.5)
+            XCTAssertEqual(session.floors.monthMemo, memo, accuracy: 0.001)
         }
         XCTAssertEqual(ledger.erase([deep.id]), [deep.id])
         ledger.put()
