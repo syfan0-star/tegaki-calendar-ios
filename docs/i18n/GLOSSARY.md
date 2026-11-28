@@ -1,6 +1,6 @@
 # 用語集（1.2「世界対応」）
 
-アプリ・ストアの文の語を、言語ごとに 1 つに決めた表です（[M7B_CONTRACT.md](../M7B_CONTRACT.md) §6.1・§6.2、書いた人は X）。英語は契約が決めた語です。1.4.1 で足した語（等倍・利き手・ツールバーを動かす）は §5 です（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1・§8.2。等倍の語は §16.9 で直し、「動かす」ボタンの名前は §17.3 で足した）。1.4.2 で足した語（ペンの色の名前 4 つ・色の板・メモ欄の紙）は §6 です（[R1_4_2_CONTRACT.md](../R1_4_2_CONTRACT.md) §8.1・§8.2）。1.4.2 では §2 の「指でも書く」の de・es・pt-BR と en も短くしました（§4 の「指でも書く」）。
+アプリ・ストアの文の語を、言語ごとに 1 つに決めた表です（[M7B_CONTRACT.md](../M7B_CONTRACT.md) §6.1・§6.2、書いた人は X）。英語は契約が決めた語です。1.4.1 で足した語（等倍・利き手・ツールバーを動かす）は §5 です（[R1_4_1_CONTRACT.md](../R1_4_1_CONTRACT.md) §8.1・§8.2。等倍の語は §16.9 で直し、「動かす」ボタンの名前は §17.3 で足した）。1.4.2 で足した語（ペンの色の名前 4 つ・色の板・メモ欄の紙）は §6 です（[R1_4_2_CONTRACT.md](../R1_4_2_CONTRACT.md) §8.1・§8.2）。1.4.2 では §2 の「指でも書く」の de・es・pt-BR と en も短くしました（§4 の「指でも書く」）。1.4.3 で足した語（月と年の横つなぎ・下のメモ欄でまたぐ・月の札と年の札・等倍のボタンの見た目）は §7 です（[R1_4_3_CONTRACT.md](../R1_4_3_CONTRACT.md) §13.2）。1.4.3 では §5 の等倍の定義を「日・週・月・年とも 1 ページの幅が画面の幅にちょうど合う大きさ」に直しました（語は替えていない）。
 
 **正直に書くこと**: 訳は Claude が書き、別の Claude が日本語の元を見ずに訳し戻して照らします（`REVIEW.md`）。**各言語を母語とする人の確認はありません。** 本人は日本語しか読めません。誤りはサポートのメールで受け、次の版で直します（§6.1 の 8）。
 
@@ -242,9 +242,11 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 
 **2026-11-22 の直し 2（契約第 4 版の §17.3）**: 「しまう」の左に出る「動かす」ボタンの名前（`toolbar.move.title`、10 pt）の行と、下の「決めたこと」の「動かす」の点を、X が足しました。画面に出る名前なので、幅は §4 の決まり（F-12）で、§4 の表にも行があります。ほかの行と点は前のままです。
 
+**2026-11-28 の直し（1.4.3 の契約 [R1_4_3_CONTRACT.md](../R1_4_3_CONTRACT.md) §6・§13.2）**: 1.4.3 で、月と年の等倍も「1 ページの幅が画面の幅にちょうど合う大きさ」になります（本人の 11/22 の言葉「月と年は、横スクロールができる仕様にしてから、幅が両端にくる等倍を適用します」）。そのため、表の等倍の名詞の行の定義と、下の「決めたこと」の等倍の点（中身・名詞・文の書き方・「合わせる」の語を名前に使わない理由）と、「確かめていないこと」の等倍の 1 点を、X が書き直しました。**語（標準の大きさ・Reset Zoom などの 9 言語の字）は 1 字も替えていません**。ほかの行と点は前のままです。年が 1.4.4 に遅れたとき（契約 0g-3）は、1.4.3 の年の等倍は開いたときの大きさのままなので、この節の「日・週・月・年」を「日・週・月」と読み、年の理由の文を足します（リードが直す）。
+
 | 日本語 | en | zh-Hans | zh-Hant | ko | fr | de | es | it | pt-BR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 等倍（文の中の名詞。日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年は開いたときの大きさ） | standard size | 标准大小 | 標準大小 | 표준 크기 | taille standard | Standardgröße | tamaño estándar | dimensione standard | tamanho padrão |
+| 等倍（文の中の名詞。日・週・月・年とも 1 ページの幅が画面の幅にちょうど合う大きさ。月と年は 1.4.3 から。1.4.2 までの月と年は開いたときの大きさ） | standard size | 标准大小 | 標準大小 | 표준 크기 | taille standard | Standardgröße | tamaño estándar | dimensione standard | tamanho padrão |
 | 等倍に戻す（虫めがねに「1」のボタンの読み上げ。`header.zoomReset.spoken`。意味は「ズームを戻す」） | Reset Zoom | 重置缩放 | 重置縮放 | 확대·축소 재설정 | Réinitialiser le zoom | Zoom zurücksetzen | Restablecer el zoom | Reimposta lo zoom | Redefinir o zoom |
 | 利き手（設定の節の見出し。`settings.hand.header`） | Dominant Hand | 惯用手 | 慣用手 | 주로 쓰는 손 | Main dominante | Dominante Hand | Mano dominante | Mano dominante | Mão dominante |
 | 右手（選び。`settings.hand.right`） | Right Hand | 右手 | 右手 | 오른손 | Main droite | Rechte Hand | Mano derecha | Mano destra | Mão direita |
@@ -264,12 +266,16 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 
 ### 決めたこと
 
-- **等倍は、日と週と、月と年で中身が違います（契約 §16.3.1・§16.9。2026-11-22 の本人の直し）。** 日と週は 1 日・1 週のページの幅が画面の幅にちょうど合う大きさ、月と年はページを初めて開いたときの大きさです。前の定義（拡大も縮小もしていないもとの大きさ）と、その語（en original size、zh 原始大小、ko 원래 크기、fr taille d’origine、de Originalgröße、es・pt-BR tamaño・tamanho original、it dimensione originale）は使いません。日と週の等倍は、開いたときより大きいことが多いためです（iPad の日では約 2 倍）。
-  - **名詞は「標準の大きさ」の語です**（表の 1 行目）。「もとの大きさ」は上のとおり日と週で違い、「既定の大きさ」（en default size など）も、日と週では初めて開いたときの大きさ（等倍を一度押すまで）と違うので避けました。de の Standardgröße と pt-BR の tamanho padrão は「既定」の意味も持ちますが、ほかに「もとの」「実際の」「合わせる」のどれでもない、ふつうの語がありません。
-  - **文では、できるだけ名詞を使いません。** 読み上げと同じ「ズームを戻す」の動詞（下の点）で書き、大きさを言う所では上の定義をそのまま書きます（en は審査メモの字: on day and week pages, one day or one week fits the screen width exactly; month and year pages go back to the size they open at）。名詞は、そう書けない所だけで使います。
-  - 「拡大も縮小もしていない」は、もう添えません（日と週の等倍は拡大した大きさのことがあるため）。拡大・縮小の語は今までどおり §2 の「2 本の指を広げる（拡大）・つまむ（縮小）」の行と同じです（en zoom in / zoom out、fr zoomer / dézoomer、de vergrößern / verkleinern、es・pt-BR ampliar / reducir・reduzir、it ingrandire / rimpicciolire、zh 放大 / 缩小・縮小、ko 확대 / 축소）。
+- **等倍は、日・週・月・年とも、1 ページの幅が画面の幅にちょうど合う大きさです（1.4.3 から。[R1_4_3_CONTRACT.md](../R1_4_3_CONTRACT.md) §6）。** 日と週は 1.4.1 の本人の 11/22 の直し（契約 §16.3.1・§16.9）から、月と年は 1.4.3 からです。1.4.1・1.4.2 の月と年は、ページを初めて開いたときの大きさでした（その字は 1.4.1 の新機能の文・審査メモ・SUPPORT の記録に残る。1.4.3 の文では使わない）。前の定義（拡大も縮小もしていないもとの大きさ）と、その語（en original size、zh 原始大小、ko 원래 크기、fr taille d’origine、de Originalgröße、es・pt-BR tamaño・tamanho original、it dimensione originale）は使いません。等倍は、開いたときより大きいことが多いためです（iPad の日では約 2 倍、横の iPad の月では 6 週のうち 4 週前後が見える大きさ。契約 R1_4_3 §0.1）。縦の iPad の月と、縦の iPhone の月と年は、開いたときにもう幅がちょうどなので、等倍と開いたときの大きさが同じです。
+  - **名詞は「標準の大きさ」の語です**（表の 1 行目）。「もとの大きさ」は上のとおり等倍と違い、「既定の大きさ」（en default size など）も、初めて開いたときの大きさ（等倍を一度押すまで。1.4.3 でも開く大きさは今のまま）と違うことが多いので避けました。de の Standardgröße と pt-BR の tamanho padrão は「既定」の意味も持ちますが、ほかに「もとの」「実際の」「合わせる」のどれでもない、ふつうの語がありません。
+  - **文では、できるだけ名詞を使いません。** 読み上げと同じ「ズームを戻す」の動詞（下の点）で書き、大きさを言う所では上の定義をそのまま書きます（en は 1.4.3 の新機能の文の字: resets the zoom so that one page fits the width of the screen exactly。1.4.1 の審査メモの字「on day and week pages, one day or one week fits the screen width exactly; month and year pages go back to the size they open at」は 1.4.2 までの定義なので、もう使いません）。名詞は、そう書けない所だけで使います。ボタンを見た目で言うときの語は §7 の表です。
+  - 「拡大も縮小もしていない」は、もう添えません（等倍は拡大した大きさのことがあるため）。拡大・縮小の語は今までどおり §2 の「2 本の指を広げる（拡大）・つまむ（縮小）」の行と同じです（en zoom in / zoom out、fr zoomer / dézoomer、de vergrößern / verkleinern、es・pt-BR ampliar / reducir・reduzir、it ingrandire / rimpicciolire、zh 放大 / 缩小・縮小、ko 확대 / 축소）。
   - 「実際の大きさ」の語（en Actual Size、zh-Hans 实际大小、zh-Hant 實際大小、ko 실제 크기、fr taille réelle、es tamaño real、it dimensioni reali、pt-BR tamanho real）は使いません。等倍は倍率 1.0（実寸）ではないためです（契約 §3.6。本人の iPhone の月では、倍率 1.0 は開いたときの約 3.2 倍）。
-  - 「合わせる」の語（en Fit、fr Ajuster、de Einpassen、es・pt-BR Ajustar、it Adatta、zh 适合・適合、ko 맞춤）を、等倍の名前（読み上げと名詞）に使いません。**幅に合わせるのは日と週だけで、月と年は幅に合わせない（開いたときの大きさ）ためです**（契約 §16.9）。日と週の説明の文で「画面の幅にちょうど合う」と動詞で書くのは構いません（en fits the screen width exactly）。
+  - 「合わせる」の語（en Fit、fr Ajuster、de Einpassen、es・pt-BR Ajustar、it Adatta、zh 适合・適合、ko 맞춤）を、等倍の名前（読み上げと名詞）に使いません。**1.4.3 から 4 種とも幅に合わせますが、名前はそのまま（en Reset Zoom ほか表の 2 行目の字）で、理由だけを替えました**（契約 R1_4_3 §13.2）。前の理由（「幅に合わせるのは日と週だけで、月と年は幅に合わせない（開いたときの大きさ）ため」、契約 §16.9）は、1.4.3 で当たらなくなりました。今の理由は 3 つです。
+    1. ボタンの役は、2 本の指で変えた大きさを取り消して等倍に戻すことです。名前はその動作（ズームを戻す）を言います。「合わせる」の名前は大きさを言うだけで、押すと何が起きるか（指で変えた大きさが消え、次からもその大きさで開く）を言いません。縦の iPad の月のように、押しても見た目が変わらない所でも、「戻す」なら読み違えません。
+    2. 読み上げの名前は 1.4.1 から 9 言語で出ていて、SUPPORT.en の “(Reset Zoom)” も同じ字です。替えると 9 言語の訳し直しと、元を見ない逆翻訳・判定のやり直しになりますが、読み手の得はありません。
+    3. 年が 1.4.4 に遅れたとき（契約 R1_4_3 0g-3）、1.4.3 の年の等倍は開いたときの大きさのままです。「合わせる」の名前は、そのとき年で事実と違います。「戻す」の名前は、どちらの形でも正しいままです。
+  - 説明の文で「画面の幅にちょうど合う」と動詞で書くのは、今までどおり構いません（en fits the width of the screen exactly）。読み上げの comment（`header.zoomReset.spoken`、`app-P.json`）の等倍の定義を「日・週・月・年とも…（月と年は 1.4.3 から）」にするのは、アプリの文の段（契約 R1_4_3 §13.1。comment だけで、ja の字と jaSha1 は同じ）です。
 - **読み上げ（等倍に戻す）は、どの言語も「ズームを戻す（リセットする）」の形です（契約 §16.9）。** en は契約 §8.1 の Reset Zoom のまま（英語の画面で、拡大を戻すボタンのふつうの名前。SUPPORT.en も “(Reset Zoom)” と書き、審査メモは見た目から “the 1× button” と書く）。8 言語は 2026-11-22 に、前の「もとの大きさに戻す」の訳（恢复原始大小、Auf Originalgröße zurücksetzen など）から訳し直しました。日と週では押すと大きくなることがあり、「もとの大きさに戻す」と聞くと違ってしまうためです。ja の字（等倍に戻す）と jaSha1 は同じなので、lint と `build.py` は前の訳が古いことを知らせません（契約 §16.10 の危険の行。元を見ない逆翻訳と判定は `REVIEW.md` の 15）。
   - ズームの語: zh・ko はアプリの今の字（zh は `onboarding.pen.text`・`settings.purchase.footer.readOnly` の 缩放・縮放、ko は `onboarding.pen.text` の 확대·축소）。fr・de もアプリの今の語（zoomer・zoomen）の名詞の zoom・Zoom。es・it・pt-BR のアプリは拡大を ampliar・ingrandire と書きますが、ズームを戻すボタンの名前では名詞の zoom がふつうなので、el zoom・lo zoom・o zoom にしました。
   - リセットの語: zh-Hans・zh-Hant 重置（契約 §16.9 の例。zh-Hans の iOS は「リセット」に 还原 を使う所もありますが、zh-Hant の 還原 はアプリの「元に戻す」なので、両方とも 重置 にそろえた）、ko 재설정（「-기」の形の 재설정하기 は不自然なので名詞のまま）、fr Réinitialiser、de zurücksetzen、es Restablecer、it Reimposta（Ripristina は購入の復元と同じ語なので避けた。下の点）、pt-BR Redefinir。どれもリセットのふつうの語です（出典は無い。下の「確かめていないこと」）。形は今の読み上げと同じです（fr・es・pt-BR は不定詞と定冠詞、de は名詞と不定詞、it は命令形、zh は動詞と名詞）。
@@ -297,7 +303,7 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 
 - 利き手の語は、iOS に同じ項目が無く、Apple の記事で確かめた語ではありません（§3 のような出典はありません）。各言語のふつうの語から選びました。
 - zh-Hant の 頂端・底部、ko の 주로 쓰는 손、de の Dominante Hand が、その言語の設定の画面で一番ふつうの言い方かは確かめていません。TestFlight で設定の画面と VoiceOver を見るときに、リードが字を見てください。
-- 「ズームを戻す」の 8 言語（2026-11-22）が、その言語の VoiceOver でいちばんふつうに聞こえる名前かは確かめていません。Apple の画面に同じ役のボタンが無く、出典はありません。「標準の大きさ」の名詞（taille standard など）が、日と週の幅にちょうど合う大きさの呼び名として自然かも、母語の人の確認はありません。
+- 「ズームを戻す」の 8 言語（2026-11-22）が、その言語の VoiceOver でいちばんふつうに聞こえる名前かは確かめていません。Apple の画面に同じ役のボタンが無く、出典はありません。「標準の大きさ」の名詞（taille standard など）が、1 ページの幅にちょうど合う大きさ（日と週は 1.4.1 から、月と年は 1.4.3 から）の呼び名として自然かも、母語の人の確認はありません。
 - 「動かす」の 9 言語が、iPad のツールバーのボタンの名前としていちばんふつうかは、母語の人の確認がありません。fr の Déplacer と de の Bewegen は縮んで入る（約 0.88・0.86 倍）ので、Localized の写真で字が読めるかをリードが見てください（契約 §17.3）。
 
 ## 6. 1.4.2 の語（ペンの色・色の板・メモ欄の紙）
@@ -343,3 +349,44 @@ it の短い形は Tutto が 25 pt で入らないので 24h にしました（�
 - 茶・グレー・深緑・紺の名前と、罫線・ドット方眼・無地が、その言語の設定の画面と VoiceOver でいちばんふつうの言い方かは、母語の人の確認がありません（出典の記事も無い）。とくに ko の 줄（1 字で「線」）、it の Bianca（「白い」とも読める）、zh の 点阵（「ドットマトリクス」とも読める）は、元を見ない逆翻訳と判定で見てください。
 - 「最初の色に戻す」を「色をリセット」の形にしたことで、「最初の」が訳に無いことを、判定で見てください（板の上でだけ出る字なので、意味は通ると考えた）。
 - **判定の結果（2026-11-26）**: 元を見ない逆翻訳（`back/app-1_4_2.md`）と判定の 2 人は `REVIEW.md` の 17 です。× は 0 でした。zh の 点阵・點陣 は 2 人とも ○、ko の 줄 は 1 人が △、it の Bianca は 2 人とも △、「最初の色に戻す」は ko・it・pt-BR だけ 1 人が △ でした。どれも訳を替えていません（理由は 17 の「△ と気づきの扱い」の 1〜3）。
+
+## 7. 1.4.3 の語（月と年の横つなぎ・下のメモ欄でまたぐ・月の札と年の札・等倍のボタンの見た目）
+
+[R1_4_3_CONTRACT.md](../R1_4_3_CONTRACT.md) §13.2 の「GLOSSARY を先に直す」のための語です（2026-11-28、書いた人は X）。使う所は、アプリの新しい 4 キー（`span.guide.month.oneFinger`・`span.guide.month.twoFingers`・`span.guide.year.oneFinger`・`span.guide.year.twoFingers`。契約 §13.1。D1b・D1y で S が足す仮の訳を、D2 でこの表と照らして決める）、設定の脚注 `settings.page.span.footer` の新しい ja（§13.1。12/5 の後）、新機能の文（§13.3）、審査メモ（§13.4）、SUPPORT の英語（§13.5）です。**週と日の札（`span.guide.week.*`・`span.guide.day.*`、1.3）と、設定の行・脚注（`settings.page.span`・`settings.page.span.footer`）の今の訳の語にそろえました**。母語の人の確認が無いことは、上の「正直に書くこと」のとおりです。年が 1.4.4 に遅れたとき（契約 0g-3）は、年の行（2・4・10）を 1.4.3 の文では使いません。
+
+| 日本語 | en | zh-Hans | zh-Hant | ko | fr | de | es | it | pt-BR |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1. 前後の月が横につながりました（札の 1 つ目の文） | The previous and next months are now joined sideways. | 前一个月和后一个月已横向相连。 | 前一個月和後一個月已橫向相連。 | 앞뒤 달이 가로로 이어졌어요. | Les mois précédent et suivant sont désormais reliés côte à côte. | Vorheriger und nächster Monat sind jetzt seitlich verbunden. | Los meses anterior y siguiente ya están unidos en horizontal. | I mesi precedente e successivo ora sono uniti in orizzontale. | Os meses anterior e seguinte agora estão unidos na horizontal. |
+| 2. 前後の年が横につながりました（同じ） | The previous and next years are now joined sideways. | 前一年和后一年已横向相连。 | 前一年和後一年已橫向相連。 | 앞뒤 해가 가로로 이어졌어요. | Les années précédente et suivante sont désormais reliées côte à côte. | Vorheriges und nächstes Jahr sind jetzt seitlich verbunden. | Los años anterior y siguiente ya están unidos en horizontal. | Gli anni precedente e successivo ora sono uniti in orizzontale. | Os anos anterior e seguinte agora estão unidos na horizontal. |
+| 3. となりの月 | the neighboring month | 相邻的一个月 | 相鄰的一個月 | 이웃한 달 | le mois voisin | der Monat daneben | el mes contiguo | il mese accanto | o mês ao lado |
+| 4. となりの年 | the neighboring year | 相邻的一年 | 相鄰的一年 | 이웃한 해 | l’année voisine | das Jahr daneben | el año contiguo | l’anno accanto | o ano ao lado |
+| 5. 境目をまたいで、そのまま書けます（年の札の 3 つ目の文。週・日の札と同じ字） | You can write straight across the boundary. | 可以跨过交界处直接书写。 | 可以跨越交界處直接書寫。 | 경계를 넘어 그대로 쓸 수 있어요. | Vous pouvez écrire directement à cheval sur la jonction. | Über den Übergang hinweg können Sie direkt schreiben. | Puede escribir directamente cruzando la unión. | Può scrivere direttamente a cavallo del confine. | Você pode escrever direto atravessando a emenda. |
+| 6. 月の境目 | the boundary between months | 月与月之间的交界处 | 月與月之間的交界處 | 달과 달 사이의 경계 | la jonction entre deux mois | der Übergang zwischen zwei Monaten | la unión entre dos meses | il confine tra due mesi | a emenda entre dois meses |
+| 7. 下のメモ欄（月のページの表の下の欄） | the notes area at the bottom | 下方的备忘栏 | 下方的備忘欄 | 아래쪽 메모 칸 | la zone de notes du bas | der Notizbereich unten | la zona de notas de abajo | l’area delle note in basso | a área de notas na parte de baixo |
+| 8. 下のメモ欄は、月の境目をまたいで、そのまま書けます（月の札の 3 つ目の文） | In the notes area at the bottom, you can write straight across the boundary between months. | 在下方的备忘栏中，可以跨过月与月之间的交界处直接书写。 | 在下方的備忘欄中，可以跨越月與月之間的交界處直接書寫。 | 아래쪽 메모 칸에서는 달과 달 사이의 경계를 넘어 그대로 쓸 수 있어요. | Dans la zone de notes du bas, vous pouvez écrire directement à cheval sur la jonction entre deux mois. | Im Notizbereich unten können Sie direkt über den Übergang zwischen zwei Monaten hinweg schreiben. | En la zona de notas de abajo, puede escribir directamente cruzando la unión entre dos meses. | Nell’area delle note in basso può scrivere direttamente a cavallo del confine tra due mesi. | Na área de notas na parte de baixo, você pode escrever direto atravessando a emenda entre dois meses. |
+| 9. （月のページでは、下のメモ欄でまたげます）（設定の脚注の新しい括弧） | (on month pages, in the notes area at the bottom) | （在月页面上，可在下方的备忘栏中跨过） | （在月頁面上，可在下方的備忘欄中跨越） | (월 페이지에서는 아래쪽 메모 칸에서 넘어 쓸 수 있어요) | (sur les pages du mois, dans la zone de notes du bas) | (auf Monatsseiten im Notizbereich unten) | (en las páginas del mes, en la zona de notas de abajo) | (nelle pagine del mese, nell’area delle note in basso) | (nas páginas do mês, na área de notas na parte de baixo) |
+| 10. 12 月から次の年の 1 月へ | from December into January of the next year | 从 12 月跨到下一年的 1 月 | 從 12 月跨到下一年的 1 月 | 12월에서 다음 해 1월로 | de décembre à janvier de l’année suivante | vom Dezember in den Januar des nächsten Jahres | de diciembre a enero del año siguiente | da dicembre a gennaio dell’anno successivo | de dezembro para janeiro do ano seguinte |
+| 11. 虫めがねに「1」のボタン（等倍のボタンを見た目で言うとき） | the button with a magnifying glass and “1” | 放大镜中带“1”的按钮 | 放大鏡中有「1」的按鈕 | 돋보기 안에 ‘1’이 있는 버튼 | le bouton avec une loupe et un « 1 » | die Schaltfläche mit der Lupe und der „1“ | el botón con una lupa y el número “1” | il pulsante con la lente d’ingrandimento e il numero “1” | o botão com uma lupa e o número “1” |
+| 12. 1 ページの幅が画面の幅にちょうど合う | one page fits the width of the screen exactly | 一页的宽度正好与屏幕宽度相同 | 一頁的寬度正好與螢幕寬度相同 | 한 페이지의 너비가 화면 너비에 딱 맞다 | une page occupe exactement la largeur de l’écran | eine Seite ist genauso breit wie der Bildschirm | una página ocupa exactamente el ancho de la pantalla | una pagina occupa esattamente la larghezza dello schermo | uma página ocupa exatamente a largura da tela |
+| 13. 月の札（曜日の行の各表の左端の月の名前。文書の中だけ。アプリの字には無い） | month label | — | — | — | — | — | — | — | — |
+| 14. 年の札（日付の列の上の年の数字。同じ） | year label | — | — | — | — | — | — | — | — |
+
+### 決めたこと
+
+- **横つなぎの語は、週と日の札と設定の行・脚注の今の訳の語です**（新しい語を作らない。契約 §13.2）。月・年の札の 2 つ目の文は、週・日の札の 2 つ目の文の週（日）を月・年に替えた形です（en Slide your finger sideways to see the neighboring month. ／ Slide two fingers sideways to see the neighboring year.。指の言い方は週・日の札と同じ字）。性と数は各言語の文法に合わせます（fr reliés／reliées・voisin／voisine、de Vorheriger und nächster Monat／Vorheriges und nächstes Jahr・den Monat／das Jahr daneben、it I mesi／Gli anni、es・pt-BR は男性の複数）。
+- **1.3 の新機能の文の語とは違う所があります。** 1.3 の店の文は札と別に訳していました（en side by side・border、ko 옆으로・페이지의 경계、fr par-dessus la limite、de über die Grenze、es lado a lado・por encima del límite、it collegate lateralmente・attraverso il confine、pt-BR ligadas lado a lado・por cima do limite、zh-Hans 跨过页面的交界处、zh-Hant 跨過頁面的交界處）。1.4.3 の店の文（新機能の文・審査メモ）は、読み手が画面の札と設定で見る語（上の表）を使います。1.3 の店の文は出した後なので直しません（記録として残す）。1.3 の新機能の文の最後の点（K-8 の文。1.4.3 の 3 つ目の点と同じ ja）は、横つなぎの語を含まないので、1.3 の訳のまま使います。
+- **月の 3 つ目の文（メモ欄でまたげる）は、「境目」の語を変えず、「月の境目」（月と月の間の境目）と言います。** 月の格子では日付が続かないので、週・日の 3 つ目の文のままでは間違った案内になるためです（契約 §7.3）。
+  - メモ欄は §6 の「メモ欄」の語（`toast.growthCap`。en notes area、zh 备忘栏・備忘欄、ko 메모 칸、fr zone de notes、de Notizbereich、es zona de notas、it area delle note、pt-BR área de notas）です。欄の見出しの名前「メモ」（§2 の Notes など）を引用符で引く形（1.4.2 の新機能の文の the “Notes” area）にはしません。1.4.3 の文は欄の場所を言い、見出しの名前を言わないためです。
+  - 「下の」は位置の語です（en at the bottom）。below は「この文の下」とも読めるので、札と店の文では使いません。審査メモの英語だけは、審査の人が札を見ずに読むので、契約 §13.4 の字 the notes area below the calendar のままにします。
+  - 「またげる」は新しい動詞を作らず、「またいで書ける」と同じ語（en write across、zh 跨过・跨越、ko 넘어 쓰다、fr à cheval sur、de über … hinweg、es cruzando、it a cavallo di、pt-BR atravessando）で言います。脚注の括弧（表の 9 行目）では、前の文が「境目をまたいで書けます」と言うので、欧文は動詞を省いて場所だけを言います（zh・ko は短い動詞を残す）。
+- **年の境目（12 月から次の年の 1 月へ）は、その言語の月の名前です**（en December・January、de Dezember・Januar、fr décembre・janvier、es diciembre・enero、it dicembre・gennaio、pt-BR dezembro・janeiro は小文字）。zh は「12 月」「1 月」と数字と字の間に空白を置きます（今の店の文の「12 种」「24 点」と同じ）。ko は 12월・1월（空白なし）。「次の年」は en the next year、fr l’année suivante、de des nächsten Jahres、es del año siguiente、it dell’anno successivo、pt-BR do ano seguinte、zh 下一年、ko 다음 해。
+- **ko の「年」**: ページの名前は §2 の 연 페이지 のまま、「前後の年」「となりの年」「次の年」は 해（ふつうの語）です（연 だけでは文の中の名詞として使いにくい）。zh の「一个月・一年」（相邻的一个月）は、週・日の札の 一周・一天 と同じ数の形です。
+- **月の札・年の札は、アプリの新しい字ではありません**（月の札は題名の月の名前、年の札は題名の年の数字と同じ作り。契約 §4.4・§5.3）。名前が要るのは ja と en の文書（SUPPORT・審査メモ・契約）だけで、en は month label・year label です。**card は使いません。** card は初めての案内の札（`span.guide.*`。1.3 の審査メモの “A small card explains the swipe”）の語で、別の物です。ほかの 8 言語の文では札を名指さず、月の名前・年の数字と書きます（§5 の「つまみ」と同じ扱い）。
+- **等倍のボタンを見た目で言うときは、表の 11 行目の語です**（ボタンに字は無く、読み上げの名前は §5 の Reset Zoom など）。en は SUPPORT.en（1.4.1 から）の a magnifying glass with “1” の語にそろえました。契約 §13.4 の案の magnifier は同じ物ですが、1 つの語にそろえるため使いません。審査メモの英語は、1.4.1 の審査メモの形 the 1× button (a magnifying glass with "1")（引用符は審査メモの ASCII）です。ほかの言語の虫めがねは 放大镜・放大鏡・돋보기・loupe・Lupe・lupa・lente d’ingrandimento で、「1」はその言語の引用符で囲みます（fr は « 1 » の内側に U+00A0）。
+- **大きさの文（表の 12 行目）は、1.4.1 の新機能の文の各言語の字**（日と週の幅の文）の「1 日・1 週のページ」を「1 ページ」に替えた形です。§5 の決まりどおり、店の文では名詞の「標準の大きさ」を使わず、「ズームを戻す」の動詞（en resets the zoom、zh-Hans 重置缩放、zh-Hant 重置縮放、ko 확대·축소를 재설정、fr réinitialise le zoom、de setzt den Zoom … zurück、es restablece el zoom、it reimposta lo zoom、pt-BR redefine o zoom。pt-PT は 1.4.1 の店の文の repor o zoom）とこの文で書きます。
+
+### 確かめていないこと
+
+- ko の 해（앞뒤 해・이웃한 해・다음 해）が 연 페이지 と並んで自然か、de の der Monat daneben・das Jahr daneben（札の die Woche daneben の形）が自然か、母語の人の確認はありません。
+- fr の jonction と pt-BR の emenda（縫い目）を、月の下のメモの帯の境目に使うのが自然か（週・日の札と同じ語にそろえた）。es の la zona de notas de abajo、it の in basso、pt-BR の na parte de baixo が、ページの下の欄を指すふつうの言い方か。
+- 元を見ない逆翻訳と判定は、`REVIEW.md` の新しい節（19 がアプリ、20 が店と Web。役 R）で行います。この節の字は、判定で × が出たら直します。
