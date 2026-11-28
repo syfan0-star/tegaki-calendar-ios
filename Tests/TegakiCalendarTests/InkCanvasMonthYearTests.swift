@@ -91,6 +91,9 @@ final class InkCanvasMonthYearTests: XCTestCase {
         var zooming: [Bool] = []
         /// The screen's own wire of each report (`CalendarRootScreen`'s `onViewportChange: { paths.viewportArrived($0) }`).
         var onViewport: ((PaperViewport) -> Void)?
+        /// The screen's own take of each stop in the turn the canvas tells of it (`CalendarRootScreen`'s `onSpanStop:
+        /// spanStopped`; review F2: after every viewport the canvas reported before it).
+        var onStop: ((SpanSession.Stop) -> Void)?
     }
 
     @MainActor
@@ -158,7 +161,10 @@ final class InkCanvasMonthYearTests: XCTestCase {
             span: session,
             sleep: { await sleeper.sleep($0) },
             clock: { [weak bed] in bed?.now ?? Date(timeIntervalSince1970: 0) },
-            onSpanStop: { probe.stops.append($0) },
+            onSpanStop: {
+                probe.stops.append($0)
+                probe.onStop?($0)
+            },
             zoomResetTrigger: zoomResetTrigger,
             initialFit: initialFit,
             onZoomFitChange: { probe.fits.append($0) }
@@ -1499,8 +1505,9 @@ final class InkCanvasMonthYearTests: XCTestCase {
     /// 「今日」 on `day` at `now` as the screen presses it (`CalendarRootScreen.goToday`): `paths.today` with the screen's last
     /// viewport (`heading`), its `.slide` run by the canvas (`slide(byPages:)`, UIKit's animation stood in for: it ends where
     /// it was going, so the window shifts at the stop), the one stop the canvas tells (`onSpanStop`) taken as `spanStopped`
-    /// takes it (`ScreenPaths.stopped` with the screen's focus) and its `reveal` handed to the canvas once (through
-    /// `paths.revealRect(_:for:)`, a new `revealTrigger`), then the canvas's turns.
+    /// takes it (`ScreenPaths.stopped` with the screen's focus, in the turn the canvas tells of it: review F2 reads the
+    /// screen's last viewport there) and its `reveal` handed to the canvas once (through `paths.revealRect(_:for:)`, a new
+    /// `revealTrigger`), then the canvas's turns.
     private func pressToday(_ day: DayKey, at now: Date, paths: ScreenPaths, rig: SpanRig, area: CGSize, fit: Bool,
                             focus: inout DayKey, trigger: inout Int, file: StaticString = #filePath,
                             line: UInt = #line) async throws -> Landing {
@@ -1515,13 +1522,18 @@ final class InkCanvasMonthYearTests: XCTestCase {
             coordinator?.scrollViewDidEndScrollingAnimation(canvas)
         }
         let stops = rig.probe.stops.count
+        let shown = focus
+        var taken: ScreenPaths.Stopped?
+        rig.probe.onStop = { stop in
+            taken = paths.stopped(stop, focus: shown, kind: rig.session.kind, weekStart: .monday, boundary: {})
+        }
+        defer { rig.probe.onStop = nil }
         rig.coordinator.slide(byPages: pages)
         await settle()
         XCTAssertNil(rig.coordinator.spanSlideTargetX, "\(day): the slide ended", file: file, line: line)
         XCTAssertEqual(rig.probe.stops.count, stops + 1, "\(day): one stop", file: file, line: line)
-        let stop = try XCTUnwrap(rig.probe.stops.last, file: file, line: line)
         let landed = rig.canvas.contentOffset
-        let result = paths.stopped(stop, focus: focus, kind: rig.session.kind, weekStart: .monday, boundary: {})
+        let result = try XCTUnwrap(taken, "\(day): the stop taken in its turn", file: file, line: line)
         focus = result.focus
         if let rect = result.reveal {
             trigger += 1
@@ -1747,5 +1759,60 @@ final class InkCanvasMonthYearTests: XCTestCase {
         XCTAssertEqual(above.after.y, 2 * 60 * cap, accuracy: 0.5, "y alone")
         XCTAssertEqual(above.after.x, above.landed.x, accuracy: 0.01, "x never moves")
         assertOnScreen(cell(.yearDay(month: 1, day: 5), of: y2027, session), rig, height: area.height, "above")
+    }
+
+    /// Review F2 of the lead's decision of 11/28 (§3.7) on the frozen canvas, through the screen's `ScreenPaths`: a finger
+    /// that takes 「今日」's slide on the way ends it (`scrollViewWillBeginDragging`) and tells the screen nothing; a drag the
+    /// directional lock kept vertical leaves x where the finger took it, here the middle of the screen 200 lu into December
+    /// (past the 6 %), so the stop at the drag's end is on today's month — within the grace, so today is the focus (review
+    /// UX-3's known edge). The screen's last viewport at that stop (the canvas reports the move before it tells of the stop)
+    /// has the middle of the screen 500 lu short of where the slide was taking it, so the stop brings no request and the y the
+    /// finger chose stays; before review F2 the request took y back to 12/31's cell (690.7 lu). The landscape iPad at 等倍, as
+    /// `testTodaysSlideOfMonthsBringsTodaysCellOnScreen`, whose slides that go their whole way still bring the request.
+    func testAFingerThatTakesTodaysSlideKeepsItsY() async throws {
+        let suite = "InkCanvasMonthYearTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let paths = makePaths(defaults: defaults)
+        let session = try await openThrough(paths, .month, device: ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape))
+        XCTAssertEqual(session.pageIds, [sep, oct, nov, dec, jan])
+        let fit = 1210.0 / 1400
+        let rig = await attach(session, size: landscape, initialFit: true, initialScrollX: origin(nov, session),
+                               onViewport: { paths.viewportArrived($0) })
+        XCTAssertEqual(rig.zoom, fit, accuracy: 1e-6, "等倍")
+        var taken: [ScreenPaths.Stopped] = []
+        let shown = nov16
+        rig.probe.onStop = { taken.append(paths.stopped($0, focus: shown, kind: .month, weekStart: .monday, boundary: {})) }
+        defer { rig.probe.onStop = nil }
+
+        let dec31 = DayKey(year: 2026, month: 12, day: 31)
+        XCTAssertEqual(paths.today(dec31, now: try at(2026, 12, 31), viewport: paths.heading?.viewport, area: landscape, ratio: 1,
+                                   fit: true), .slide(1))
+        let caught = (origin(dec, session) + 200) * fit - landscape.width / 2
+        rig.coordinator.spanSlideAnimation = { [weak coordinator = rig.coordinator] canvas, _ in
+            // UIKit's animation, as far as the finger lets it go.
+            canvas.contentOffset.x = caught
+            coordinator?.scrollViewDidScroll(canvas)
+        }
+        rig.coordinator.slide(byPages: 1)
+        await settle()
+        XCTAssertNotNil(rig.coordinator.spanSlideTargetX, "the slide runs")
+        XCTAssertEqual(session.focusPageId, dec, "past the 6 %: December is the focus page")
+        XCTAssertEqual(taken.count, 0, "no stop while it runs")
+
+        rig.coordinator.scrollViewWillBeginDragging(rig.canvas)
+        XCTAssertNil(rig.coordinator.spanSlideTargetX, "the finger ended the slide")
+        rig.canvas.contentOffset.y = 300 * fit
+        rig.coordinator.scrollViewDidScroll(rig.canvas)
+        rig.coordinator.scrollViewDidEndDragging(rig.canvas, willDecelerate: false)
+        await settle()
+        XCTAssertEqual(taken.count, 1, "the drag's end: one stop")
+        let stopped = try XCTUnwrap(taken.first)
+        XCTAssertEqual(stopped.focus, dec31, "today's month within the grace: today the focus (review UX-3's known edge)")
+        XCTAssertNil(stopped.reveal, "a finger took the slide: no request")
+        // The scroll view keeps its offset on the screen's pixels (half a point here).
+        let middle = (rig.canvas.contentOffset.x + landscape.width / 2) / fit
+        XCTAssertEqual((middle - origin(dec, session)) * fit, 200 * fit, accuracy: 0.5, "x stays where the finger took it")
+        XCTAssertEqual(rig.canvas.contentOffset.y, 300 * fit, accuracy: 0.5, "the y the finger chose stays")
     }
 }

@@ -166,6 +166,10 @@ final class ScreenPaths: ObservableObject {
             let area: CGSize
             let ratio: CGFloat
             let fit: Bool
+            /// The middle of the screen as 「今日」 was pressed, in pages of the plan (`planMiddle`: the viewport 「今日」 was
+            /// given, or the first frame's), so the stop tells a slide that went its whole way from one a finger took
+            /// (review F2); nil when no width was known.
+            let middle: CGFloat?
         }
     }
 
@@ -175,6 +179,17 @@ final class ScreenPaths: ObservableObject {
     /// left the focus page where it was (no stop comes then) and a slide that waited this long under the pen let the mark go
     /// by then, so a later scroll by hand to today's month (or year) keeps the carry (§3.6).
     static let todayMarkGrace: TimeInterval = 3
+
+    /// 1.4.3 (§3.7; review F2 of the lead's decision of 11/28): how far (pt on the screen) the middle of the screen at the stop
+    /// on today's page may be from where 「今日」's slide takes it (`todayArrival`: the middle as 「今日」 was pressed, moved by
+    /// the slide's pages) for the stop to be the slide's own. The canvas slides by whole pages (`InkCanvasView.slide(byPages:)`,
+    /// `SpanPlan.shiftAmount`, the window's shift moving x back by whole pages; the scroll view keeps its offset on the screen's
+    /// pixels) and takes an animation that ended within half a point of its target as ended
+    /// (`scrollViewDidEndScrollingAnimation`); a finger that took the paper on the way left it elsewhere, and a drag held
+    /// vertical by the directional lock keeps that x. A 「今日」 pressed while the paper still moved (a fling's deceleration, an
+    /// arrow's slide) slides from where the paper is when the slide starts, so its stop may bring no request (y stays, as
+    /// before the decision).
+    static let todayLandingSlack: CGFloat = 1
 
     // MARK: Inputs
 
@@ -1100,13 +1115,15 @@ final class ScreenPaths: ObservableObject {
             let zoomed = kind == .month || kind == .year
                 ? Self.zoomedPastFit(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
                 : Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
-            if !zoomed, pages != 0 {
-                markToday(day, pages: pages, in: session, arrival: TodayMark.Arrival(now: now, area: area, ratio: ratio, fit: fit))
-                return .slide(pages)
-            }
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
                                      calendar: session.context.calendar, area: area, ratio: ratio, fit: fit)
+            if !zoomed, pages != 0 {
+                let middle = Self.planMiddle(firstIndex: session.layout.firstIndex, viewport: shown, pageWidth: session.plan.pageWidth)
+                markToday(day, pages: pages, in: session,
+                          arrival: TodayMark.Arrival(now: now, area: area, ratio: ratio, fit: fit, middle: middle))
+                return .slide(pages)
+            }
             if !zoomed {
                 guard let rect = Self.todayRequest(layout: session.layout, pageId: session.focusPageId, now: now,
                                                    calendar: session.context.calendar, shown: shown)
@@ -1507,6 +1524,12 @@ final class ScreenPaths: ObservableObject {
     /// is off what the paper shows, and nothing while it is on screen. Taken once (and the stop on today's page lets the
     /// mark go: `todayStopped(on:)`). nil at a stop on the way or elsewhere, for the reveal past the fit (no `arrival`), once
     /// a pinch took the paper past the fit, for the week and the day (no mark) and when the page does not hold today.
+    /// Review F2 (a) of that decision: nil too when the screen's last viewport (`heading`, the canvas's report of the stop's
+    /// x: it reports every move before it tells of the stop) has the middle of the screen elsewhere than where the slide
+    /// takes it — the middle as 「今日」 was pressed (`Arrival.middle`) moved by the slide's whole pages — by more than
+    /// `todayLandingSlack`: a finger took the paper on the way (the canvas does not tell of it: its touch ends the slide,
+    /// `scrollViewWillBeginDragging`) and left it on today's page, say after a vertical drag, whose y must stay. Without a
+    /// report or the middle at the press, nothing tells of a finger and the request goes.
     private func todayArrival(on pageFirstDay: DayKey) -> (rect: CGRect, windowId: String)? {
         guard let mark = heldTodayMark, let arrival = mark.arrival, let session = span,
               session.plan.index(containing: pageFirstDay) == mark.to else { return nil }
@@ -1514,6 +1537,11 @@ final class ScreenPaths: ObservableObject {
         let viewport = heading?.viewport
         guard !Self.zoomedPastFit(layout: session.layout, viewport: viewport, area: arrival.area, ratio: arrival.ratio,
                                   fit: arrival.fit) else { return nil }
+        if let pressed = arrival.middle, let shownHeading = heading, let reported = shownHeading.viewport,
+           let middle = Self.planMiddle(firstIndex: shownHeading.firstIndex, viewport: reported, pageWidth: session.plan.pageWidth),
+           abs(middle - pressed - CGFloat(mark.to - mark.from)) * session.plan.pageWidth * reported.zoom > Self.todayLandingSlack {
+            return nil
+        }
         let calendar = session.context.calendar
         let pageId = session.plan.pageId(at: mark.to)
         let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
@@ -1522,6 +1550,16 @@ final class ScreenPaths: ObservableObject {
         guard let rect = Self.todayRequest(layout: session.layout, pageId: pageId, now: arrival.now, calendar: calendar, shown: shown)
         else { return nil }
         return (rect, session.id)
+    }
+
+    /// 1.4.3 (review F2 of the lead's decision of 11/28): the middle of the screen of `viewport` — reported for (or made as the
+    /// first frame of) a window whose first page is the plan's page `firstIndex`, pages `pageWidth` lu wide side by side
+    /// (`SpanLayout.origin(ofSlot:)`) — in pages of the plan: its page number plus how far into that page, so it compares
+    /// across a shift of the window (`todayArrival`). nil for a viewport of no width or zoom.
+    static func planMiddle(firstIndex: Int, viewport: PaperViewport, pageWidth: CGFloat) -> CGFloat? {
+        guard viewport.width > 0, viewport.zoom > 0, pageWidth > 0, viewport.offsetX.isFinite, viewport.width.isFinite,
+              viewport.zoom.isFinite else { return nil }
+        return CGFloat(firstIndex) + (viewport.offsetX + viewport.width / 2) / viewport.zoom / pageWidth
     }
 
     /// 1.4.3 (review UX-3): a stop of the paper on the page whose first day is `pageFirstDay` and 「今日」's mark. A stop on
