@@ -1,9 +1,10 @@
 No sign-in, no account creation and no demo account are needed.
 
-What is new in 1.4.2
-1. Pen colors: tap the selected color dot again (or touch and hold it) to open a small panel with 12 colors, "Other Color…" (the system color picker) and "Reset Colors". The choice replaces that dot and is remembered on this device. Stroke data is unchanged (each stroke already stores its color as a hex value). To check: open a week page, tap the black dot again, choose Brown and write.
-2. Settings > Notes Paper: Lined, Dot Grid or Blank for the Notes and Free Notes areas. Only the pattern drawn on the paper changes; handwriting does not move.
-3. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating.
+What is new in 1.4.3
+1. Month and year pages now join sideways with the pages before and after, as week and day pages have since 1.3. On a month page, handwriting can cross from one month to the next in the notes area below the calendar; on a year page, from December into January of the next year. Settings > Pages turns it off.
+2. The 1× button (a magnifying glass with "1") now fits one month or one year page to the screen width, as it does for days and weeks.
+3. To check: open a month page, swipe left with one finger (two fingers when "Use Finger" is on, the default on iPhone) and write across the boundary in the notes area.
+4. Unchanged: data (App Privacy stays "Data Not Collected"), handwriting storage, purchases and the age rating.
 
 The app follows the device language (10 languages since 1.2; any other language shows English). Per-app language: Settings > Apps > Tegaki > Language.
 
@@ -25,4 +26,4 @@ https://syfan0-star.github.io/tegaki-calendar/app/privacy.html
 https://syfan0-star.github.io/tegaki-calendar/app/support.html
 
 --- 日本語の要約 ---
-光っている色の丸をもう一度押す（長押しでも）と、色の板（12 色・その他の色…・最初の色に戻す）が開きます。選んだ色はその丸に入り、端末ごとに覚えます。設定 › メモ欄の紙 で罫線・ドット方眼・無地（手書きは動きません）。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
+月と年のページも前後と横につながり、境目をまたいで書けます（月は下のメモ欄、年は 12 月から次の年の 1 月へ。設定 › ページ で切り替え）。等倍のボタンは、月と年でも 1 ページの幅を画面の幅ちょうどにします。データ・購入・年齢区分は同じ。規約類は日本語が正本で、英語は参考訳。サインイン不要。
