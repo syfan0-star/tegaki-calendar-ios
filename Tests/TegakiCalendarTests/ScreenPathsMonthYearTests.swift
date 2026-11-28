@@ -12,7 +12,11 @@ import XCTest
 // month's.
 //
 // The year joins with D1y: every expectation of the year is read from `SpanKinds.joined.contains(.year)` (§11.2), so the
-// fallback of 0g-3 (the month alone) needs no change here.
+// fallback of 0g-3 (the month alone) needs no change here. D1y's section (the window of years, at the end; §3.6, §3.7, §3.8,
+// §5.4, §5.5, MS3) takes the month's answers as its precedent: the year's door of all-day events (`yearEventSource`), its
+// 「今日」 (a slide at the overview and at 等倍, the cell past the fit, `cappedTodayRect` at the capped overview of an iPhone
+// in landscape), today as the focus after 「今日」 (review UX-3), `reopenedToday`, the heading's window and review UX3-R1's
+// `monthTodayRevealRect` for the year's 112 lu columns.
 //
 // The pages: Monday weeks, five months around 11/16/2026 on the 11-inch iPad in portrait (R = 2): 2026-09 … 2027-01.
 
@@ -260,8 +264,9 @@ final class ScreenPathsMonthYearTests: XCTestCase {
 
     /// MS2, §3.6, 0g-18: a month window's focus moves to the page's month keeping the day of the month, or the month's last day
     /// (1.3's formula counted from the grid's first day and stayed in the same month: 10/31 → 12/4, 11/30 → 11/5); the week and
-    /// the day keep 1.3's formula, and the year keeps it until it joins (its rule, 2/29 → 2/28, comes with it). The screen's
-    /// stop on a month window gives the new focus and remembers it.
+    /// the day keep 1.3's formula, and the year has its own rule (D1y: the same month and day, 2/29 → 2/28), which is not
+    /// 1.3's formula (that counted the leap day: 2028-12-31 → 2028-01-01). The screen's stop on a month window gives the new
+    /// focus and remembers it.
     func testTheMonthsFocusKeepsTheDayOfTheMonth() async throws {
         let oct31 = DayKey(year: 2026, month: 10, day: 31)
         let nov1 = DayKey(year: 2026, month: 11, day: 1)
@@ -301,17 +306,16 @@ final class ScreenPathsMonthYearTests: XCTestCase {
             XCTAssertEqual(ScreenPaths.focus(focus, kind: kind, weekStart: weekStart, movedTo: moved),
                            formula(focus, kind, weekStart, movedTo: moved), "\(kind) \(focus) → \(moved)")
         }
-        // The year: its rule once it joins, 1.3's formula until then.
+        // The year: its rule (D1y, §3.6). `ScreenPaths.focus` is a pure function whose year case is the same whether the year
+        // joins or not (the fallback of 0g-3 takes the year out of `SpanKinds.joined` alone, and a one-page year carries no
+        // focus with it), so this is not read from the set: the D1b form (1.3's formula without the year) did not hold there.
         let y2027 = DayKey(year: 2027, month: 1, day: 1)
         for focus in [DayKey(year: 2028, month: 12, day: 31), DayKey(year: 2028, month: 2, day: 29), DayKey(year: 2028, month: 7, day: 14)] {
             let moved = ScreenPaths.focus(focus, kind: .year, weekStart: .monday, movedTo: y2027)
-            if SpanKinds.joined.contains(.year) {
-                XCTAssertEqual(moved.year, 2027, "\(focus)")
-                XCTAssertEqual(moved.month, focus.month, "\(focus): the same month")
-                XCTAssertEqual(moved.day, min(focus.day, DayKey.daysInMonth(year: 2027, month: focus.month)), "\(focus): the same day, 2/29 → 2/28")
-            } else {
-                XCTAssertEqual(moved, formula(focus, .year, .monday, movedTo: y2027), "\(focus): 1.3's formula until the year joins")
-            }
+            XCTAssertEqual(moved.year, 2027, "\(focus)")
+            XCTAssertEqual(moved.month, focus.month, "\(focus): the same month")
+            XCTAssertEqual(moved.day, min(focus.day, DayKey.daysInMonth(year: 2027, month: focus.month)), "\(focus): the same day, 2/29 → 2/28")
+            XCTAssertNotEqual(moved, formula(focus, .year, .monday, movedTo: y2027), "\(focus): not 1.3's formula")
         }
 
         // The screen's stop: a window opened at 10/31 slides to November.
@@ -658,7 +662,9 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace + 1)
         followSlide(interrupted, to: try middle(of: interrupted, page: nov), focus: &held)
         XCTAssertEqual(held, nov15, "a later scroll by hand: the carry")
-        takeStop(interrupted, at: try middle(of: interrupted, page: nov), focus: &held)
+        // Review T-1 (§3.7, the lead's decision of 11/28): nor does the stop there bring the landing's request (y stays).
+        XCTAssertNil(takeStop(interrupted, at: try middle(of: interrupted, page: nov), focus: &held).reveal,
+                     "after the grace: no request")
         XCTAssertEqual(held, nov15)
 
         let dec31 = DayKey(year: 2026, month: 12, day: 31)
@@ -928,6 +934,397 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
+    // MARK: §3.7 — 「今日」's slide lands (the lead's decision of 11/28, in place of review UX-2 (b))
+
+    /// §3.7 (「今日のページが窓の中なら滑って行き、今日のマスが画面に入るように縦も合わせる（今日のマスがもう見えていれば縦は動かさない）」;
+    /// the lead's decision of 11/28): 「今日」's slide to another month keeps y (the canvas's `slide(byPages:)`), and its stop on
+    /// today's month brings the y-only request a second 「今日」 would give there now (`Stopped.reveal`: `monthTodayRequest`'s —
+    /// top today's cell's top less 1.1.1's margin at the screen's zoom, line the cell's bottom, no x), for this window's canvas,
+    /// once: a later stop there brings none. A landscape iPad at 等倍 (fit 1,210 / 1,400: 740 lu of the paper on screen) has
+    /// 12/31 in December's fifth row (700–875 lu), below the screen at the top of the paper; the canvas moves y only when the
+    /// cell's bottom is off the screen (InkCanvasMonthYearTests' `testTodaysSlideOfMonthsBringsTodaysCellOnScreen`). The zoom
+    /// is the screen's last viewport's (`heading`, here between the opening zoom and the fit), or before a report the fit
+    /// 「今日」 was given. A pinch past the fit before the stop brings none, nor does 「今日」 past the fit toward another month
+    /// (its reveal brought the cell itself), nor a stop whose boundary switched the week start (another window).
+    func testTodaysSlideLandsWithTheMonthsRequestOnce() async throws {
+        let wide = ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape)
+        let dec31 = DayKey(year: 2026, month: 12, day: 31)
+        let decNow = try at(12, 31, 10)
+        let fit: CGFloat = 1_210.0 / 1_400
+        let session = try await openWindow(opening(device: wide))
+        XCTAssertEqual(session.pageIds, [sep, oct, nov, dec, jan])
+        let december = try month(dec, of: session)
+        let cell = try XCTUnwrap(december.page.cells[.day(dec31)])
+        XCTAssertEqual(cell.minY, 4 * 175, accuracy: 1e-9, "the fifth row (12/28–1/3)")
+        XCTAssertEqual(cell.maxY, 5 * 175, accuracy: 1e-9)
+        XCTAssertGreaterThan(cell.maxY, landscape.height / fit, "below the screen at the top of the paper (740 lu)")
+
+        var focus = nov16
+        XCTAssertEqual(paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true), .slide(1))
+        followSlide(session, to: try middle(of: session, page: dec), focus: &focus)
+        XCTAssertEqual(focus, dec31)
+        let landed = takeStop(session, at: try middle(of: session, page: dec), focus: &focus)
+        XCTAssertEqual(landed.focus, dec31)
+        XCTAssertEqual(landed.visitEnded?.pageId, nov)
+        XCTAssertFalse(landed.fallBack)
+        let request = try XCTUnwrap(landed.reveal, "the slide landed on today's month: the y-only request")
+        XCTAssertTrue(request.origin.x.isNaN, "no x: x never moves")
+        let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request), "the canvas reads it as the y-only request")
+        XCTAssertEqual(lines.top, cell.minY - ZoomPolicy.revealMargin / fit, accuracy: 1e-9, "the cell's top less the margin at 等倍")
+        XCTAssertEqual(lines.top, 700 - 8 * 1_400 / 1_210, accuracy: 1e-9)
+        XCTAssertEqual(lines.nowLine, 875, accuracy: 1e-9, "the cell's bottom")
+        XCTAssertNotNil(paths.revealRect(request, for: session), "for this window's canvas")
+        XCTAssertNil(takeStop(session, at: try middle(of: session, page: dec), focus: &focus).reveal, "once")
+        followSlide(session, to: try middle(of: session, page: jan), focus: &focus)
+        followSlide(session, to: try middle(of: session, page: dec), focus: &focus)
+        XCTAssertNil(takeStop(session, at: try middle(of: session, page: dec), focus: &focus).reveal, "once, by hand back to it too")
+        guard case .reveal(let again)? = paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true) else {
+            return XCTFail("a second 「今日」 there: the y-only request")
+        }
+        let againLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(again))
+        XCTAssertEqual(againLines.top, lines.top, accuracy: 1e-9, "the request a second 「今日」 gives")
+        XCTAssertEqual(againLines.nowLine, lines.nowLine, accuracy: 1e-9)
+
+        // The screen's last viewport: its zoom (between the opening zoom 640 / 1,050 and the fit), not the stored ratio's.
+        let reported = try await openWindow(opening(device: wide))
+        let between: CGFloat = (640.0 / 1_050 + fit) / 2
+        let november = try month(nov, of: reported)
+        paths.viewportArrived(PaperViewport(offsetX: november.origin * between, zoom: between, width: landscape.width))
+        XCTAssertEqual(paths.heading?.viewport?.zoom, between)
+        XCTAssertEqual(paths.today(dec31, now: decNow, viewport: paths.heading?.viewport, area: landscape, ratio: 1), .slide(1))
+        var day = nov16
+        followSlide(reported, to: try middle(of: reported, page: dec), focus: &day)
+        // The canvas reports where the slide landed (one page on) before it tells of the stop (review F2 reads it).
+        paths.viewportArrived(PaperViewport(offsetX: try month(dec, of: reported).origin * between, zoom: between, width: landscape.width))
+        let atBetween = try XCTUnwrap(takeStop(reported, at: try middle(of: reported, page: dec), focus: &day).reveal)
+        let betweenLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(atBetween))
+        XCTAssertEqual(betweenLines.top, 700 - ZoomPolicy.revealMargin / between, accuracy: 1e-9, "the margin at the reported zoom")
+        XCTAssertNotEqual(betweenLines.top, 700 - ZoomPolicy.revealMargin * 1_050 / 640, accuracy: 0.1, "not the stored ratio's zoom")
+        XCTAssertEqual(betweenLines.nowLine, 875, accuracy: 1e-9)
+
+        // A pinch past the fit before the stop: none.
+        let pinched = try await openWindow(opening(device: wide))
+        XCTAssertEqual(paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true), .slide(1))
+        paths.viewportArrived(PaperViewport(offsetX: try month(dec, of: pinched).origin * 1.2, zoom: 1.2, width: landscape.width))
+        var held = nov16
+        followSlide(pinched, to: try middle(of: pinched, page: dec), focus: &held)
+        let past = takeStop(pinched, at: try middle(of: pinched, page: dec), focus: &held)
+        XCTAssertEqual(past.focus, dec31, "today the focus still (the mark)")
+        XCTAssertNil(past.reveal, "past the fit: no request")
+
+        // 「今日」 past the fit toward December: the reveal of the cell (unchanged), no request at the stop.
+        let zoomedIn = try await openWindow(opening(device: wide))
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        let zoomed = PaperViewport(offsetX: try month(nov, of: zoomedIn).origin * 1.2, zoom: 1.2, width: landscape.width)
+        guard case .reveal(let rect)? = paths.today(dec3, now: try at(12, 3, 9), viewport: zoomed, area: landscape, ratio: 1) else {
+            return XCTFail("past the fit: today's cell")
+        }
+        var shown = nov16
+        followSlide(zoomedIn, to: rect.midX, focus: &shown)
+        let revealed = takeStop(zoomedIn, at: rect.midX, focus: &shown)
+        XCTAssertEqual(revealed.focus, dec3)
+        XCTAssertNil(revealed.reveal, "the reveal past the fit brought the cell itself")
+
+        // A week start switched at the stop's boundary opens another window (the screen's `show`): the request was the old
+        // window's, none.
+        let switched = try await openWindow(opening(device: wide))
+        XCTAssertEqual(paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true), .slide(1))
+        let stop = switched.stopped(midX: try middle(of: switched, page: dec))
+        XCTAssertNotNil(stop.ended, "the visit of November ended: the boundary runs")
+        let reopened = paths.stopped(stop, focus: nov16, kind: .month, weekStart: .monday, boundary: {
+            paths.open(opening(focus: dec31, weekStart: .sunday, device: wide))
+        })
+        XCTAssertNotEqual(paths.span?.id, switched.id, "another window")
+        XCTAssertNil(reopened.reveal, "the old window's request: none")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.7 (the lead's decision of 11/28) and review T-2's long slide: 「今日」 two months back (2027-01-15 → 2026-11-28 on the
+    /// portrait iPad, open = fit = 834 / 1,400) stops on the way (December) with no request and the mark kept, and its last
+    /// stop, on November, brings `monthTodayRequest`'s (11/28 in November's fifth row, 700–875 lu). A stop on a month not on
+    /// the way (February) lets the mark go: a scroll by hand to November then brings none.
+    func testTodaysLongSlideBringsTheRequestAtItsLastStop() async throws {
+        let now = try at(11, 28, 10)
+        let zoom: CGFloat = 834.0 / 1_400
+        let session = try await openWindow(opening(focus: jan15))
+        XCTAssertEqual(session.pageIds, [nov, dec, jan, feb, mar])
+        var focus = jan15
+        XCTAssertEqual(paths.today(nov28, now: now, viewport: nil, area: portrait, ratio: 1), .slide(-2))
+        followSlide(session, to: try middle(of: session, page: dec), focus: &focus)
+        let onTheWay = takeStop(session, at: try middle(of: session, page: dec), focus: &focus)
+        XCTAssertEqual(onTheWay.focus, DayKey(year: 2026, month: 12, day: 15))
+        XCTAssertNil(onTheWay.reveal, "a stop on the way: none")
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
+        await session.prefetch()
+        XCTAssertEqual(session.pageIds, [oct, nov, dec, jan, feb])
+        followSlide(session, to: try middle(of: session, page: nov), focus: &focus)
+        let last = takeStop(session, at: try middle(of: session, page: nov), focus: &focus)
+        XCTAssertEqual(last.focus, nov28)
+        let request = try XCTUnwrap(last.reveal, "the last stop, on today's month")
+        let cell = try XCTUnwrap(try month(nov, of: session).page.cells[.day(nov28)])
+        XCTAssertEqual(cell.minY, 4 * 175, accuracy: 1e-9, "the fifth row (11/23–11/29)")
+        let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request))
+        XCTAssertEqual(lines.top, cell.minY - ZoomPolicy.revealMargin / zoom, accuracy: 1e-9)
+        XCTAssertEqual(lines.top, 700 - 8 * 1_400 / 834, accuracy: 1e-9)
+        XCTAssertEqual(lines.nowLine, 875, accuracy: 1e-9)
+
+        let away = try await openWindow(opening(focus: jan15))
+        var day = jan15
+        XCTAssertEqual(paths.today(nov28, now: now, viewport: nil, area: portrait, ratio: 1), .slide(-2))
+        followSlide(away, to: try middle(of: away, page: feb), focus: &day)
+        XCTAssertNil(takeStop(away, at: try middle(of: away, page: feb), focus: &day).reveal, "a stop elsewhere")
+        for page in [jan, dec, nov] {
+            followSlide(away, to: try middle(of: away, page: page), focus: &day)
+        }
+        let byHand = takeStop(away, at: try middle(of: away, page: nov), focus: &day)
+        XCTAssertEqual(byHand.focus, DayKey(year: 2026, month: 11, day: 15), "the mark went: the carry")
+        XCTAssertNil(byHand.reveal, "the mark went: none")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review F1 (§3.7, the lead's decision of 11/28): 「今日」 pressed twice quickly. The second press comes while the first
+    /// one's slide runs with the middle of the screen already 200 lu into today's month (past `SpanPlan.focus`'s 6 %, so the
+    /// focus page is today's and the screen's focus today), so it answers today's page's request (`.reveal` of
+    /// `monthTodayRequest`), which the canvas drops while the band moves (`revealNowLine`). The first press's mark stays, and
+    /// the slide's stop on today's month brings that request after all, once. The landscape iPad at 等倍 (12/31, 700–875 lu)
+    /// and, on a window of years, the portrait iPad at the overview (2027-12-28, 1,620–1,680 lu). A second press after the
+    /// grace (`todayMarkGrace`: a slide that waited under the pen) or after the stop keeps nothing: no request at the stop.
+    func testTodayAgainWhileItsSlideRunsStillLandsWithTheRequest() async throws {
+        let wide = ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape)
+        let dec31 = DayKey(year: 2026, month: 12, day: 31)
+        let decNow = try at(12, 31, 10)
+        let session = try await openWindow(opening(device: wide))
+        var focus = nov16
+        XCTAssertEqual(paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true), .slide(1))
+        let december = try month(dec, of: session)
+        followSlide(session, to: december.origin + 200, focus: &focus)
+        XCTAssertEqual(session.focusPageId, dec, "past the 6 %: December is the focus page")
+        XCTAssertEqual(focus, dec31)
+        guard case .reveal(let again)? = paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true) else {
+            return XCTFail("the second 「今日」: today's month's request")
+        }
+        let againLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(again))
+        XCTAssertEqual(againLines.top, 700 - 8 * 1_400 / 1_210, accuracy: 1e-9, "monthTodayRequest's at 等倍")
+        XCTAssertEqual(againLines.nowLine, 875, accuracy: 1e-9)
+        XCTAssertEqual(paths.todayFocus(dec31), dec31, "the screen's focusOnToday")
+        let landed = takeStop(session, at: december.origin + 700, focus: &focus)
+        XCTAssertEqual(landed.focus, dec31)
+        let request = try XCTUnwrap(landed.reveal, "the slide's stop brings the request the canvas dropped")
+        let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request))
+        XCTAssertEqual(lines.top, againLines.top, accuracy: 1e-9, "the same request")
+        XCTAssertEqual(lines.nowLine, againLines.nowLine, accuracy: 1e-9)
+        XCTAssertNotNil(paths.revealRect(request, for: session), "for this window's canvas")
+        XCTAssertNil(takeStop(session, at: december.origin + 700, focus: &focus).reveal, "once")
+        guard case .reveal? = paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true) else {
+            return XCTFail("after the stop: today's month's request")
+        }
+        XCTAssertNil(takeStop(session, at: december.origin + 700, focus: &focus).reveal, "after the stop: its own request alone")
+
+        // The second press after the grace: the mark has gone, nothing comes back.
+        let late = try await openWindow(opening(device: wide))
+        var held = nov16
+        XCTAssertEqual(paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true), .slide(1))
+        let lateDecember = try month(dec, of: late)
+        followSlide(late, to: lateDecember.origin + 200, focus: &held)
+        bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace + 1)
+        guard case .reveal? = paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true) else {
+            return XCTFail("after the grace: today's month's request")
+        }
+        XCTAssertNil(takeStop(late, at: lateDecember.origin + 700, focus: &held).reveal, "after the grace: none at the stop")
+
+        guard SpanKinds.joined.contains(.year) else { return }
+        let dec28 = DayKey(year: 2027, month: 12, day: 28)
+        let yearNow = try at(12, 28, 10, year: 2027)
+        let open: CGFloat = 1_005.0 / 1_860
+        let years = try await openWindow(opening(.year))
+        var day = nov16
+        XCTAssertEqual(paths.today(dec28, now: yearNow, viewport: nil, area: portrait, ratio: 1), .slide(1))
+        let next = try year(y2027, of: years)
+        followSlide(years, to: next.origin + 200, focus: &day, kind: .year)
+        XCTAssertEqual(years.focusPageId, y2027, "past the 6 %: 2027 is the focus page")
+        guard case .reveal(let yearAgain)? = paths.today(dec28, now: yearNow, viewport: nil, area: portrait, ratio: 1) else {
+            return XCTFail("the second 「今日」: today's year's request")
+        }
+        let yearAgainLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(yearAgain))
+        XCTAssertEqual(yearAgainLines.top, 1_620 - 8 / open, accuracy: 1e-9, "monthTodayRequest's at the overview")
+        XCTAssertEqual(yearAgainLines.nowLine, 1_680, accuracy: 1e-9)
+        let yearLanded = takeStop(years, at: next.origin + 700, focus: &day, kind: .year)
+        XCTAssertEqual(yearLanded.focus, dec28)
+        let yearLines = try XCTUnwrap(yearLanded.reveal.flatMap { InkCanvasView.nowLineRevealLines($0) },
+                                      "the year: the slide's stop brings the request")
+        XCTAssertEqual(yearLines.top, yearAgainLines.top, accuracy: 1e-9)
+        XCTAssertEqual(yearLines.nowLine, yearAgainLines.nowLine, accuracy: 1e-9)
+        XCTAssertNil(takeStop(years, at: next.origin + 700, focus: &day, kind: .year).reveal, "the year: once")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review N-1 (§3.7, the lead's decision of 11/28; C3-m6): a stop of 「今日」's slide on today's month whose window turned
+    /// out too heavy once its pages were read (stage 2: the screen opens the month on one page, `spanStopped`'s first branch)
+    /// brings no landing's request — the window it was made for is about to close.
+    func testAStopThatFallsBackToOnePageBringsNoRequest() async throws {
+        let iPhone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .portrait)
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        let session = try await openWindow(opening(device: iPhone))
+        XCTAssertTrue(session.pageIds.contains(dec))
+        var focus = nov16
+        XCTAssertEqual(paths.today(dec3, now: try at(12, 3, 9), viewport: nil, area: CGSize(width: 402, height: 700), ratio: 1),
+                       .slide(1))
+        var heavy = InkPage.empty(pageId: dec)
+        for n in 0..<12_001 {
+            let point = InkPoint(x: CGFloat(n % 1000), y: CGFloat(n / 1000), dtMs: 0, sizeW: 1, sizeH: 1, opacity: 1, force: 0,
+                                 azimuth: 0, altitude: 0)
+            heavy.add(InkStroke(id: "h\(n)", cell: .grid, tool: .pen, color: "#000000", t: 1, points: [point]))
+        }
+        session.remoteUpdated(heavy)
+        XCTAssertTrue(session.fallsBackToOnePage)
+        let stopped = takeStop(session, at: try middle(of: session, page: dec), focus: &focus)
+        XCTAssertTrue(stopped.fallBack, "too heavy: one page")
+        XCTAssertEqual(stopped.focus, dec3, "today the focus (the mark)")
+        XCTAssertNil(stopped.reveal, "falling back: no request")
+        XCTAssertEqual(paths.fallenBack, [.month])
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review F2 (a) of the lead's decision of 11/28 (§3.7): the landing's request goes only when the paper stopped where
+    /// 「今日」's slide takes it — the middle of the screen as 「今日」 was pressed moved by the slide's whole pages — as the
+    /// screen's last viewport (`heading`, which the canvas reports before it tells of the stop) has it, within
+    /// `todayLandingSlack` (1 pt on the screen). A finger that takes the slide on the way (the canvas does not tell of it)
+    /// and leaves the paper on today's month, say after a vertical drag, brings none, so the y it chose stays; today is still
+    /// the focus there (review UX-3's known edge). The landscape iPad at 等倍 (1,210 pt, fit 1,210 / 1,400): December 200 lu
+    /// in (500 lu short of its middle) brings none, 0.9 pt off brings the request, 1.5 pt off none. The long slide on the
+    /// portrait iPad (2027-01-15 → 2026-11-28; open = fit = 834 / 1,400) compares across the window's shift: the whole way
+    /// brings the request at the last stop; a finger that takes the second leg 300 lu into November brings none; a finger
+    /// that stops the first leg off December's middle and a hand that then takes the paper on to November off its middle,
+    /// within the grace, bring none — a hand that lands November where the slide would have (a fling centres a page at this
+    /// zoom) is not told apart and brings it, as it brings today's focus.
+    func testAFingerThatTookTodaysSlideBringsNoRequest() async throws {
+        let wide = ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape)
+        let dec31 = DayKey(year: 2026, month: 12, day: 31)
+        let decNow = try at(12, 31, 10)
+        let fit: CGFloat = 1_210.0 / 1_400
+        /// The canvas reports the middle of the screen at band x `middle` (lu).
+        func report(_ middle: CGFloat, zoom: CGFloat, width: CGFloat) {
+            paths.viewportArrived(PaperViewport(offsetX: middle * zoom - width / 2, zoom: zoom, width: width))
+        }
+
+        for (name, off, brings) in [("200 lu into December", -500 * fit, false), ("0.9 pt off", 0.9, true), ("1.5 pt off", 1.5, false)]
+            as [(String, CGFloat, Bool)] {
+            let session = try await openWindow(opening(device: wide))
+            report(try month(nov, of: session).origin + 700, zoom: fit, width: landscape.width)
+            var focus = nov16
+            XCTAssertEqual(paths.today(dec31, now: decNow, viewport: paths.heading?.viewport, area: landscape, ratio: 1, fit: true),
+                           .slide(1), name)
+            let stopAt = try month(dec, of: session).origin + 700 + off / fit
+            report(stopAt, zoom: fit, width: landscape.width)
+            followSlide(session, to: stopAt, focus: &focus)
+            let stopped = takeStop(session, at: stopAt, focus: &focus)
+            XCTAssertEqual(stopped.focus, dec31, "\(name): today's month within the grace, today the focus")
+            if brings {
+                let lines = try XCTUnwrap(stopped.reveal.flatMap { InkCanvasView.nowLineRevealLines($0) }, "\(name): the request")
+                XCTAssertEqual(lines.top, 700 - 8 * 1_400 / 1_210, accuracy: 1e-9, name)
+                XCTAssertEqual(lines.nowLine, 875, accuracy: 1e-9, name)
+            } else {
+                XCTAssertNil(stopped.reveal, "\(name): a finger took the slide, no request")
+            }
+        }
+
+        let now = try at(11, 28, 10)
+        let zoom: CGFloat = 834.0 / 1_400
+        /// 「今日」 two months back from 2027-01-15 with its first leg to December's middle and its stop on the way there, the
+        /// window shifted at that stop (the canvas moves x back by the page that came in), the middle reported throughout.
+        func firstLeg(decemberAt: CGFloat = 700) async throws -> (session: SpanSession, focus: DayKey) {
+            let session = try await openWindow(opening(focus: jan15))
+            XCTAssertEqual(session.pageIds, [nov, dec, jan, feb, mar])
+            report(try month(jan, of: session).origin + 700, zoom: zoom, width: portrait.width)
+            var focus = jan15
+            XCTAssertEqual(paths.today(nov28, now: now, viewport: paths.heading?.viewport, area: portrait, ratio: 1), .slide(-2))
+            let onTheWay = try month(dec, of: session).origin + decemberAt
+            report(onTheWay, zoom: zoom, width: portrait.width)
+            followSlide(session, to: onTheWay, focus: &focus)
+            XCTAssertNil(takeStop(session, at: onTheWay, focus: &focus).reveal, "the stop on the way")
+            XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
+            report(try month(dec, of: session).origin + decemberAt, zoom: zoom, width: portrait.width)
+            await session.prefetch()
+            XCTAssertEqual(session.pageIds, [oct, nov, dec, jan, feb])
+            return (session, focus)
+        }
+        for (name, decemberAt, novemberAt, brings) in [("the whole way", 700, 700, true), ("a finger on the second leg", 700, 1_100, false),
+                                                       ("by hand off November's middle", 500, 900, false),
+                                                       ("by hand to November's middle (not told apart)", 500, 700, true)]
+            as [(String, CGFloat, CGFloat, Bool)] {
+            let leg = try await firstLeg(decemberAt: decemberAt)
+            let session = leg.session
+            var focus = leg.focus
+            let stopAt = try month(nov, of: session).origin + novemberAt
+            report(stopAt, zoom: zoom, width: portrait.width)
+            followSlide(session, to: stopAt, focus: &focus)
+            let last = takeStop(session, at: stopAt, focus: &focus)
+            XCTAssertEqual(last.focus, nov28, "\(name): today's month within the grace, today the focus")
+            if brings {
+                let lines = try XCTUnwrap(last.reveal.flatMap { InkCanvasView.nowLineRevealLines($0) }, "\(name): the request")
+                XCTAssertEqual(lines.top, 700 - 8 * 1_400 / 834, accuracy: 1e-9, name)
+                XCTAssertEqual(lines.nowLine, 875, accuracy: 1e-9, name)
+            } else {
+                XCTAssertNil(last.reveal, "\(name): no request")
+            }
+        }
+
+        // A window of years, the month's rule: the portrait iPad at the overview (1,005 / 1,860), 2026 → 2027-12-28.
+        guard SpanKinds.joined.contains(.year) else { return XCTAssertEqual(faults, []) }
+        let open: CGFloat = 1_005.0 / 1_860
+        let dec28 = DayKey(year: 2027, month: 12, day: 28)
+        for (name, off, brings) in [("200 lu into 2027", CGFloat(-500), false), ("the whole way to 2027", 0, true)]
+            as [(String, CGFloat, Bool)] {
+            let years = try await openWindow(opening(.year))
+            report(try year(y2026, of: years).origin + 700, zoom: open, width: portrait.width)
+            var day = nov16
+            XCTAssertEqual(paths.today(dec28, now: try at(12, 28, 10, year: 2027), viewport: paths.heading?.viewport, area: portrait,
+                                       ratio: 1), .slide(1), name)
+            let stopAt = try year(y2027, of: years).origin + 700 + off
+            report(stopAt, zoom: open, width: portrait.width)
+            followSlide(years, to: stopAt, focus: &day, kind: .year)
+            let stopped = takeStop(years, at: stopAt, focus: &day, kind: .year)
+            XCTAssertEqual(stopped.focus, dec28, "\(name): today's year within the grace, today the focus")
+            if brings {
+                let lines = try XCTUnwrap(stopped.reveal.flatMap { InkCanvasView.nowLineRevealLines($0) }, "\(name): the request")
+                XCTAssertEqual(lines.top, 1_620 - 8 / open, accuracy: 1e-9, name)
+                XCTAssertEqual(lines.nowLine, 1_680, accuracy: 1e-9, name)
+            } else {
+                XCTAssertNil(stopped.reveal, "\(name): a finger took the slide, no request")
+            }
+        }
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.7 (the lead's decision of 11/28): the week and the day keep their answers — a slide to today's page and its stop
+    /// bring no request (1.3's: no mark), on the portrait iPad and at the capped overview of an iPhone in landscape (P-B6 イ,
+    /// 3 weeks / 5 days across), where today's page already the focus keeps `cappedTodayRect`'s request.
+    func testTheWeeksAndTheDaysSlideLandsWithNoRequest() async throws {
+        let nov26 = DayKey(year: 2026, month: 11, day: 26)
+        let nov17 = DayKey(year: 2026, month: 11, day: 17)
+        let phone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape)
+        let capped = CGSize(width: 874, height: 205)
+        for (name, device, area) in [("the portrait iPad", ipad, portrait), ("the capped iPhone", phone, capped)]
+            as [(String, ScreenPaths.Device, CGSize)] {
+            let week = try await openWindow(opening(.week, focus: nov18, device: device))
+            var focus = nov18
+            XCTAssertEqual(paths.today(nov26, now: try at(11, 26, 10), viewport: nil, area: area, ratio: 1), .slide(1), name)
+            followSlide(week, to: middle(of: week, slots: 1), focus: &focus, kind: .week)
+            let stopped = takeStop(week, at: middle(of: week), focus: &focus, kind: .week)
+            XCTAssertEqual(stopped.focus, DayKey(year: 2026, month: 11, day: 25), "\(name): 1.3's carry")
+            XCTAssertNil(stopped.reveal, "\(name): the week, no request")
+
+            let days = try await openWindow(opening(.day, focus: nov16, device: device))
+            var shown = nov16
+            XCTAssertEqual(paths.today(nov17, now: try at(11, 17, 10), viewport: nil, area: area, ratio: 1), .slide(1), name)
+            followSlide(days, to: middle(of: days, slots: 1), focus: &shown, kind: .day)
+            let dayStop = takeStop(days, at: middle(of: days), focus: &shown, kind: .day)
+            XCTAssertEqual(dayStop.focus, nov17, name)
+            XCTAssertNil(dayStop.reveal, "\(name): the day, no request")
+        }
+        XCTAssertEqual(faults, [])
+    }
+
     /// Reviews UX3-R2, T-1: the screen's half of UX-3. XCTest does not run the screen's View (C3-M3), so its wires are read
     /// from the source in code only (`WeekMemoSpanTests.codeOnly`: comments and strings blanked), as ZoomFitWiringTests,
     /// OnePageRevealTests and ScreenPathsSpanTests read theirs. The slide in between follows the stop's rule
@@ -961,6 +1358,29 @@ final class ScreenPathsMonthYearTests: XCTestCase {
                                        + "if let rect = paths.reopenedToday(now: ScreenshotMode.current?.today ?? Date()) "
                                        + "{ revealRect = rect revealTrigger += 1 }"), "far away: \(goToday)")
         XCTAssertEqual(count("paths.reopenedToday("), 1)
+        XCTAssertEqual(count("ratio: currentRatio, fit: currentFit)"), 3, "ZoomFitWiringTests' count (frozen)")
+    }
+
+    /// §3.7 (the lead's decision of 11/28): the screen's half of 「今日」's landing, read from the source in code only as above.
+    /// The stop (`spanStopped`) hands the window's canvas `ScreenPaths.stopped`'s `reveal` once, as 「今日」's own `.reveal`
+    /// (`revealRect`, a new `revealTrigger`; the canvas takes it through `paths.revealRect(revealRect, for: span)`), after the
+    /// fall back to one page (which opens anew) and before the guard of the visit's end. Without this line every ScreenPaths
+    /// test passes while the paper stays where the slide left it (review UX-2 (b)). The frozen counts of `ZoomFitWiringTests`
+    /// and of `testTheScreenWiresTodaysFocus` stay.
+    func testTheScreenHandsTheLandingRequestToTheCanvas() throws {
+        let code = try Self.screenCode()
+        let flat = code.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        func count(_ text: String) -> Int { flat.components(separatedBy: text).count - 1 }
+
+        let stopped = try Self.body(of: "func spanStopped(_ stop: SpanSession.Stop) {", in: code)
+        XCTAssertTrue(stopped.contains("if result.fallBack { show(kind: kind, focus: result.focus) return } "
+                                       + "if let rect = result.reveal { revealRect = rect revealTrigger += 1 } "
+                                       + "guard let visit = result.visitEnded else { return }"), "the landing's request: \(stopped)")
+        XCTAssertEqual(count("result.reveal"), 1, "the stop's request is handed on in one place")
+        XCTAssertEqual(count("paths.stopped("), 1)
+        XCTAssertEqual(count("revealRect: paths.revealRect(revealRect, for: span),"), 1, "the window's canvas takes it for its own window")
+        XCTAssertEqual(count("focusOnToday(today)"), 2)
+        XCTAssertEqual(count("paths.carriedFocus("), 1)
         XCTAssertEqual(count("ratio: currentRatio, fit: currentFit)"), 3, "ZoomFitWiringTests' count (frozen)")
     }
 
@@ -1102,6 +1522,630 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         let week = try XCTUnwrap(ScreenPaths.singlePageDemo(all, opening(.week, focus: oct7)))
         XCTAssertTrue(Set(week.liveStrokeIds).isSuperset(of: ScreenshotMode.crossingDemoStrokeIds(.week).focus))
         XCTAssertFalse(week.liveStrokeIds.contains(ids.focus), "the month's sample is the month's")
+    }
+
+    // MARK: D1y — the window of years (§3.6, §3.7, §3.8, §5.4, §5.5; the month's answers as the precedent)
+
+    private let y2024 = "y-2024"
+    private let y2025 = "y-2025"
+    private let y2026 = "y-2026"
+    private let y2027 = "y-2027"
+    private let y2028 = "y-2028"
+
+    /// The year page `pageId` of the window and its origin (band lu).
+    private func year(_ pageId: String, of session: SpanSession, file: StaticString = #filePath,
+                      line: UInt = #line) throws -> (page: YearPageLayout, origin: CGFloat) {
+        let slot = try XCTUnwrap(session.layout.slot(ofPage: pageId), pageId, file: file, line: line)
+        let page = try XCTUnwrap(session.layout.pages[slot] as? YearPageLayout, pageId, file: file, line: line)
+        return (page, session.layout.origin(ofSlot: slot))
+    }
+
+    /// The band x (lu) of the middle of the page `pageId` of the window, whatever its kind.
+    private func middle(of session: SpanSession, pageId: String, file: StaticString = #filePath, line: UInt = #line) throws -> CGFloat {
+        let slot = try XCTUnwrap(session.layout.slot(ofPage: pageId), pageId, file: file, line: line)
+        return session.layout.origin(ofSlot: slot) + session.plan.pageWidth / 2
+    }
+
+    /// The days a door of events was asked for.
+    private struct Read: Hashable {
+        var from: DayKey
+        var to: DayKey
+    }
+
+    /// What the two doors of events were asked (a class, so the closures need not capture a `var`).
+    @MainActor
+    private final class Reads {
+        var plain: [Read] = []
+        var year: [Read] = []
+    }
+
+    /// MS3, §5.5, 0g-24: a window of years reads its pages' events through `yearEventSource` (the screen's
+    /// `EventStoreModel.events(from:to:allDayOnly: true)`, the all-day events alone) and never through `eventSource`; each year
+    /// once as it is read (one query of its year, under four years) and again with `reloadEvents`; what the door gives reaches
+    /// the year's page. A window of months, weeks or days reads `eventSource` and never the year's door; with no year's door
+    /// (nil, the tests' default) a window of years reads `eventSource`, as every window did. The fallback of 0g-3: the year on
+    /// one page reads no window door.
+    func testAWindowOfYearsReadsTheAllDayDoor() async throws {
+        let reads = Reads()
+        let nov20 = DayKey(year: 2027, month: 11, day: 20)
+        let allDay = LayoutEvent(id: "year-door", title: "all day", allDay: true, start: nov20.startOfDay(in: SessionTestBed.tokyo),
+                                 end: nov20.adding(days: 1).startOfDay(in: SessionTestBed.tokyo), colorHex: "#33b679", calendarId: "test")
+        paths.eventSource = { reads.plain.append(Read(from: $0, to: $1)); return [] }
+        paths.yearEventSource = { from, to in
+            reads.year.append(Read(from: from, to: to))
+            return from <= nov20 && nov20 < to ? [allDay] : []
+        }
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(opening(.year)), .onePage, "the fallback (0g-3): the year on one page")
+            XCTAssertEqual(reads.plain + reads.year, [], "the one page reads its events through EventStoreModel.load")
+            return
+        }
+        let years = try await openWindow(opening(.year))
+        XCTAssertEqual(years.pageIds, [y2024, y2025, y2026, y2027, y2028])
+        let asked = Set((2024...2028).map { Read(from: DayKey(year: $0, month: 1, day: 1), to: DayKey(year: $0 + 1, month: 1, day: 1)) })
+        XCTAssertEqual(reads.year.count, 5, "each year once")
+        XCTAssertEqual(Set(reads.year), asked, "each year's days, January 1 to the next January 1")
+        XCTAssertEqual(reads.plain, [], "never the door of every event")
+        let page = try year(y2027, of: years).page
+        XCTAssertEqual(Set(page.chips.map(\.eventId)), ["year-door"], "the door's event on its year")
+        XCTAssertEqual(try year(y2026, of: years).page.chips, [], "and only there")
+        years.reloadEvents()
+        XCTAssertEqual(reads.year.count, 10, "read again: each year once more")
+        XCTAssertEqual(Set(reads.year.suffix(5)), asked)
+        XCTAssertEqual(reads.plain, [])
+
+        for kind in [PageKind.month, .week, .day] {
+            reads.plain = []
+            reads.year = []
+            try await openWindow(opening(kind))
+            XCTAssertFalse(reads.plain.isEmpty, "\(kind): eventSource")
+            XCTAssertEqual(reads.year, [], "\(kind): never the year's door")
+        }
+
+        paths.yearEventSource = nil
+        reads.plain = []
+        reads.year = []
+        let plain = try await openWindow(opening(.year))
+        XCTAssertEqual(plain.pageIds, [y2024, y2025, y2026, y2027, y2028])
+        XCTAssertEqual(Set(reads.plain), asked, "no year's door: eventSource, as before")
+        XCTAssertEqual(reads.plain.count, 5)
+        XCTAssertEqual(faults, [])
+    }
+
+    /// D1y review S2: the screen's half of MS3. XCTest does not run the screen's View, so its wire is read from the source in
+    /// code only (`WeekMemoSpanTests.codeOnly`), as `testTheScreenWiresTodaysFocus` reads its: the screen hands `ScreenPaths`
+    /// the year's door, its `EventStoreModel`'s `events(from:to:allDayOnly: true)`, right after the door of every event, each
+    /// once. The test above sets both doors itself, so without this line every other test still passes while a window of
+    /// years reads `eventSource` (the nil fallback) and keeps every timed event of its years (§5.5, 0g-24). The wire reads no
+    /// `SpanKinds`, and the fallback of 0g-3 keeps it (§14.1's list takes out MS3 alone).
+    func testTheScreenWiresTheYearsAllDayDoor() throws {
+        let flat = try Self.screenCode().split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        func count(_ text: String) -> Int { flat.components(separatedBy: text).count - 1 }
+
+        XCTAssertEqual(count("paths.yearEventSource ="), 1, "the year's door is set once")
+        XCTAssertEqual(count("paths.eventSource ="), 1, "the door of every event is set once")
+        XCTAssertEqual(count("let events = model paths.eventSource = { events.events(from: $0, to: $1) } "
+                             + "paths.yearEventSource = { events.events(from: $0, to: $1, allDayOnly: true) }"), 1,
+                       "the year's door is the screen's EventStoreModel with the all-day events alone, after the door of every event")
+    }
+
+    /// §3.7, 0g-19, the month's precedent (reviews UX-1, UX3-R1) on a window of years (the 11-inch iPad in portrait: 2024 …
+    /// 2028 around 2026): far → a new window; at the overview and at 等倍 (fit above the opening zoom: one year across, not
+    /// past the page's width) another year of the window → a slide by pages, today's year already the focus → the request
+    /// with no x (`monthTodayRequest`'s): y to today's cell's top less 1.1.1's margin while the cell's bottom is off the
+    /// screen; zoomed in past the fit → today's cell with the page's origin (`todayRect`'s year branch), and toward another
+    /// year `monthTodayRevealRect`'s rect, which lands the middle of the screen on today's year with the cell on screen. The
+    /// one page keeps 1.1.1's 「今日」 (nil here); the fallback of 0g-3 too.
+    func testTodayOnAWindowOfYears() async throws {
+        let now = try at(11, 18, 10)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(opening(.year)), .onePage, "the fallback (0g-3): the year on one page")
+            XCTAssertNil(paths.today(nov18, now: now, viewport: nil, area: portrait, ratio: 1), "1.1.1's 「今日」")
+            return
+        }
+        let session = try await openWindow(opening(.year))
+        XCTAssertEqual(session.pageIds, [y2024, y2025, y2026, y2027, y2028])
+        XCTAssertEqual(session.focusPageId, y2026)
+        let this = try year(y2026, of: session)
+        let next = try year(y2027, of: session)
+        XCTAssertEqual(this.origin, 2 * 1_400)
+        let cell = try XCTUnwrap(this.page.cells[.yearDay(month: 11, day: 18)])
+        XCTAssertEqual(cell, CGRect(x: 56 + 10 * 112, y: 17 * 60, width: 112, height: 60), "November's column, the 18th's row")
+        XCTAssertEqual(PageNavigation.todayRect(this.page, now: now, calendar: SessionTestBed.tokyo), cell, "1.1.1's rect of the one page")
+
+        let far = DayKey(year: 2030, month: 6, day: 10)
+        XCTAssertEqual(paths.today(far, now: try at(6, 10, 10, year: 2030), viewport: nil, area: portrait, ratio: 1), .reopen(far))
+        let mar3 = DayKey(year: 2027, month: 3, day: 3)
+        let marNow = try at(3, 3, 9, year: 2027)
+        XCTAssertEqual(paths.today(mar3, now: marNow, viewport: nil, area: portrait, ratio: 1), .slide(1))
+        XCTAssertEqual(paths.today(DayKey(year: 2024, month: 9, day: 10), now: try at(9, 10, 9, year: 2024), viewport: nil, area: portrait,
+                                   ratio: 1), .slide(-2))
+
+        let bounds = session.layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(session.layout), viewport: portrait)
+        XCTAssertEqual(bounds.open, min(834.0 / 1_400, 1_005.0 / 1_860), accuracy: 1e-9, "fitAll of the year's 1,400 × 1,860")
+        let fit = bounds.clamped(bounds.fit)
+        XCTAssertEqual(fit, 834.0 / 1_400, accuracy: 1e-9)
+        XCTAssertGreaterThan(fit, bounds.open * ScreenPaths.overviewRatio, "等倍 is above the opening zoom here")
+        let overview = PaperViewport(offsetX: this.origin * bounds.open, zoom: bounds.open, width: portrait.width)
+        let atFit = PaperViewport(offsetX: this.origin * fit, zoom: fit, width: portrait.width)
+        for (name, viewport, zoom, isFit) in [("the overview", overview, bounds.open, false), ("nil", nil, bounds.open, false),
+                                              ("等倍", atFit, fit, false), ("等倍 before a report", nil, fit, true)]
+            as [(String, PaperViewport?, CGFloat, Bool)] {
+            XCTAssertFalse(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: viewport, area: portrait, ratio: 1, fit: isFit), name)
+            XCTAssertEqual(paths.today(mar3, now: marNow, viewport: viewport, area: portrait, ratio: 1, fit: isFit), .slide(1),
+                           "\(name): another year of the window, a slide")
+            guard case .reveal(let request)? = paths.today(nov18, now: now, viewport: viewport, area: portrait, ratio: 1, fit: isFit) else {
+                return XCTFail("\(name): today's year, the y-only request")
+            }
+            XCTAssertTrue(request.origin.x.isNaN, "\(name): no x, x never moves")
+            let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request), name)
+            XCTAssertEqual(lines.top, max(0, cell.minY - ZoomPolicy.revealMargin / zoom), accuracy: 1e-9, "\(name): the cell's top less the margin")
+            XCTAssertEqual(lines.nowLine, cell.maxY, accuracy: 1e-9, "\(name): moves only while the cell's bottom is off the screen")
+            XCTAssertNotNil(paths.revealRect(request, for: session), name)
+        }
+        let direct = try XCTUnwrap(ScreenPaths.monthTodayRequest(layout: session.layout, pageId: y2026, now: now,
+                                                                 calendar: SessionTestBed.tokyo, zoom: bounds.open))
+        let directLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(direct))
+        XCTAssertEqual(directLines.top, cell.minY - ZoomPolicy.revealMargin / bounds.open, accuracy: 1e-9)
+        XCTAssertEqual(directLines.nowLine, cell.maxY, accuracy: 1e-9)
+        XCTAssertNil(ScreenPaths.monthTodayRequest(layout: session.layout, pageId: y2027, now: now, calendar: SessionTestBed.tokyo,
+                                                   zoom: bounds.open), "a year that does not hold today")
+
+        // Zoomed in past the fit: today's cell on today's year; toward another year, the middle of the screen lands on it.
+        let zoomed = PaperViewport(offsetX: this.origin * 1.2, zoom: 1.2, width: portrait.width)
+        XCTAssertTrue(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: zoomed, area: portrait, ratio: 1))
+        guard case .reveal(let rect)? = paths.today(nov18, now: now, viewport: zoomed, area: portrait, ratio: 1) else {
+            return XCTFail("zoomed in: today's cell")
+        }
+        XCTAssertEqual(rect, cell.offsetBy(dx: this.origin, dy: 0))
+        XCTAssertEqual(ScreenPaths.todayRect(layout: session.layout, pageId: y2026, now: now, calendar: SessionTestBed.tokyo,
+                                             viewport: zoomed, area: portrait), rect, "todayRect's year branch: the cell, not the page's width")
+        let marCell = try XCTUnwrap(next.page.cells[.yearDay(month: 3, day: 3)]).offsetBy(dx: next.origin, dy: 0)
+        guard case .reveal(let toward)? = paths.today(mar3, now: marNow, viewport: zoomed, area: portrait, ratio: 1) else {
+            return XCTFail("zoomed in toward another year: a reveal, not a slide")
+        }
+        XCTAssertEqual(toward, ScreenPaths.monthTodayRevealRect(layout: session.layout, cell: marCell, pageId: y2027,
+                                                                focusSlot: session.focusSlot, viewport: zoomed, area: portrait))
+        XCTAssertEqual(toward.minY, marCell.minY, accuracy: 1e-9, "y as the cell's")
+        XCTAssertEqual(toward.height, marCell.height, accuracy: 1e-9)
+        let shown = canvasReveal(toward, from: zoomed, in: session)
+        XCTAssertEqual(session.plan.focus(midX: shown.midX, previous: session.focusSlot), session.focusSlot + 1, "the middle on 2027")
+        XCTAssertLessThanOrEqual(shown.x, marCell.minX * 1.2 - ZoomPolicy.revealMargin + 1e-6, "the cell on screen")
+        XCTAssertGreaterThanOrEqual(shown.x + portrait.width, marCell.maxX * 1.2 + ZoomPolicy.revealMargin - 1e-6)
+
+        setting = false
+        paths.open(opening(.year))
+        XCTAssertNil(paths.today(nov18, now: now, viewport: nil, area: portrait, ratio: 1), "the one page: 1.1.1's 「今日」")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.7, §5.4, 0g-23 (P-B6 イ's cap of 3 years on an iPhone in landscape, which works from 1.4.3): at the capped overview
+    /// today's year already the focus is `cappedTodayRect`'s request — y alone, to two rows above today's row
+    /// (`PageNavigation.initialScrollY`: rows[day − 3]) while the bottom of today's cell is off the screen; another year → a
+    /// slide; the capped year opens there (`cappedOpeningY`, `shotPaperOffset`'s y with the focus year in the middle), so with
+    /// screenshot mode's today (10/7) two rows above the 7th's: the top of the 5th's row. Above the cap (等倍) the request is
+    /// the overview's (`monthTodayRequest`), and the opening is the canvas's own (nil).
+    func testTodayOnTheCappedYear() async throws {
+        let phone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape)
+        let area = CGSize(width: 750, height: 208)
+        let now = try at(11, 18, 10)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(opening(.year, device: phone)), .onePage, "the fallback (0g-3): the year on one page")
+            return
+        }
+        let session = try await openWindow(opening(.year, device: phone, now: now))
+        XCTAssertTrue(session.plan.overviewCap)
+        XCTAssertEqual(SpanPlan.overviewCapPages(.year, deviceClass: .iPhone, orientation: .landscape), 3)
+        let bounds = session.layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(session.layout), viewport: area)
+        let cap: CGFloat = 750 / (3 * 1_400)
+        XCTAssertEqual(bounds.open, cap, accuracy: 1e-9, "the cap's opening zoom: three years across")
+        XCTAssertTrue(ScreenPaths.atCappedOverview(layout: session.layout, width: area.width, zoom: bounds.open))
+        let this = try year(session.focusPageId, of: session)
+        XCTAssertEqual(session.focusPageId, y2026)
+        let cell = try XCTUnwrap(this.page.cells[.yearDay(month: 11, day: 18)])
+        let top = this.page.rows[18 - 3].frame.minY
+        XCTAssertEqual(top, 15 * 60, accuracy: 1e-9, "two rows above the 18th's: the 16th's row")
+        XCTAssertEqual(PageNavigation.initialScrollY(this.page, now: now, calendar: SessionTestBed.tokyo), top, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(ScreenPaths.cappedOpeningY(layout: session.layout, pageId: y2026)), top, accuracy: 1e-9)
+        XCTAssertNil(ScreenPaths.cappedOpeningY(layout: session.layout, pageId: y2027), "a year that does not hold today opens at its top")
+
+        let capped = PaperViewport(offsetX: (this.origin + 700) * cap - area.width / 2, zoom: cap, width: area.width)
+        for (name, viewport) in [("reported", capped), ("before a report", nil)] as [(String, PaperViewport?)] {
+            guard case .reveal(let request)? = paths.today(nov18, now: now, viewport: viewport, area: area, ratio: 1) else {
+                return XCTFail("\(name): the capped year's request")
+            }
+            let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request), name)
+            let made = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: y2026, now: now,
+                                                                 calendar: SessionTestBed.tokyo, viewport: capped), name)
+            let madeLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(made), "\(name): cappedTodayRect's request")
+            XCTAssertEqual(lines.top, madeLines.top, accuracy: 1e-9, name)
+            XCTAssertEqual(lines.nowLine, madeLines.nowLine, accuracy: 1e-9, name)
+            XCTAssertEqual(lines.top, top, accuracy: 1e-9, "\(name): two rows above today's row")
+            XCTAssertEqual(lines.nowLine, cell.maxY, accuracy: 1e-9, "\(name): the bottom of today's cell")
+            XCTAssertNotNil(paths.revealRect(request, for: session), name)
+            XCTAssertEqual(paths.todayFocus(nov18), nov18, "\(name): today's year the focus: today")
+        }
+        XCTAssertEqual(paths.today(DayKey(year: 2027, month: 3, day: 3), now: try at(3, 3, 9, year: 2027), viewport: capped, area: area,
+                                   ratio: 1), .slide(1), "another year at the capped overview: a slide")
+        XCTAssertNil(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: y2027, now: now, calendar: SessionTestBed.tokyo,
+                                                 viewport: capped), "a year that does not hold today")
+
+        // Where the capped year opens: the focus year in the middle, y two rows above today's row.
+        let start = try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: y2026, pages: nil, offset: nil,
+                                                                viewportWidth: area.width, zoom: cap))
+        XCTAssertEqual(start.x, this.origin + 700 - area.width / 2 / cap, accuracy: 1e-6, "the focus year in the middle")
+        XCTAssertEqual(start.y, top, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: y2026, pages: -0.5, offset: nil,
+                                                                 viewportWidth: area.width, zoom: cap)).y, top, accuracy: 1e-9,
+                       "--screenshot-offset-x: the same y")
+
+        // Above the cap (等倍: one year across): the overview's request, and the canvas's own opening.
+        let fit = bounds.clamped(bounds.fit)
+        XCTAssertEqual(fit, 750.0 / 1_400, accuracy: 1e-9, "3 times the cap")
+        let atFit = PaperViewport(offsetX: this.origin * fit, zoom: fit, width: area.width)
+        XCTAssertFalse(ScreenPaths.atCappedOverview(layout: session.layout, width: area.width, zoom: fit))
+        guard case .reveal(let request)? = paths.today(nov18, now: now, viewport: atFit, area: area, ratio: 1) else {
+            return XCTFail("等倍: the y-only request")
+        }
+        let fitLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request), "等倍: the y-only request")
+        XCTAssertEqual(fitLines.top, cell.minY - ZoomPolicy.revealMargin / fit, accuracy: 1e-9, "monthTodayRequest's: the cell's top less the margin")
+        XCTAssertEqual(fitLines.nowLine, cell.maxY, accuracy: 1e-9)
+        XCTAssertNil(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: y2026, pages: nil, offset: nil,
+                                                 viewportWidth: area.width, zoom: fit))
+
+        // Screenshot mode's today (2026-10-07): the top of the 5th's row.
+        let shot = try await openWindow(opening(.year, focus: oct7, device: phone, now: try at(10, 7, 10)))
+        let photo = try year(shot.focusPageId, of: shot)
+        XCTAssertEqual(photo.page.todayCell, .yearDay(month: 10, day: 7))
+        let fifth = photo.page.rows[4].frame.minY
+        XCTAssertEqual(fifth, 4 * 60, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(ScreenPaths.cappedOpeningY(layout: shot.layout, pageId: shot.focusPageId)), fifth, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: shot.layout, focusPageId: shot.focusPageId, pages: nil, offset: nil,
+                                                                 viewportWidth: area.width, zoom: cap)).y, fifth, accuracy: 1e-9)
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review UX-3 on a window of years (the month's precedent; 1.4.2's one-page year opened at today): 「今日」 from 2027-03-15
+    /// slides to today's year (2026-11-28, one year back); once the paper is on 2026 the screen's focus is today — mid-slide
+    /// and at the stop, which remembers it — and with today's year the focus 「今日」 makes today the focus at once
+    /// (`todayFocus`). The mark goes with ◀ ▶, with a stop on another year and after `todayMarkGrace`: a scroll by hand to
+    /// 2026 then keeps the carry (§3.6: the same month and day, 2026-03-15).
+    func testTodayFromAnotherYearStopsWithTodayAsTheFocus() async throws {
+        let now = try at(11, 28, 10)
+        let mar15 = DayKey(year: 2027, month: 3, day: 15)
+        let carried = DayKey(year: 2026, month: 3, day: 15)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(opening(.year, focus: mar15)), .onePage, "the fallback (0g-3): the year on one page")
+            XCTAssertNil(paths.todayFocus(nov28))
+            return
+        }
+        let session = try await openWindow(opening(.year, focus: mar15))
+        XCTAssertEqual(session.pageIds, [y2025, y2026, y2027, y2028, "y-2029"])
+        var focus = mar15
+        XCTAssertEqual(paths.today(nov28, now: now, viewport: nil, area: portrait, ratio: 1), .slide(-1))
+        XCTAssertNil(paths.todayFocus(nov28), "another year: the stop's")
+        followSlide(session, to: try middle(of: session, pageId: y2026), focus: &focus, kind: .year)
+        XCTAssertEqual(focus, nov28, "today's year brings today, mid-slide")
+        let stopped = takeStop(session, at: try middle(of: session, pageId: y2026), focus: &focus, kind: .year)
+        XCTAssertEqual(stopped.focus, nov28, "and the stop keeps it")
+        XCTAssertEqual(stopped.visitEnded?.pageId, y2027)
+        XCTAssertEqual(scratch.string(forKey: AppSettings.lastFocusKey), "2026-11-28", "remembered (`lastFocusDate`)")
+        XCTAssertEqual(scratch.string(forKey: AppSettings.lastKindKey), PageKind.year.rawValue)
+        guard case .reveal? = paths.today(nov28, now: now, viewport: nil, area: portrait, ratio: 1) else {
+            return XCTFail("today's year the focus: the y-only request")
+        }
+        XCTAssertEqual(paths.todayFocus(nov28), nov28, "today's year the focus: today at once")
+
+        // ◀: the carry.
+        let arrows = try await openWindow(opening(.year, focus: mar15))
+        var day = mar15
+        XCTAssertEqual(paths.today(nov28, now: now, viewport: nil, area: portrait, ratio: 1), .slide(-1))
+        XCTAssertEqual(paths.move(by: -1), .slide(pages: -1))
+        followSlide(arrows, to: try middle(of: arrows, pageId: y2026), focus: &day, kind: .year)
+        XCTAssertEqual(day, carried, "◀ let the mark go: the carry")
+
+        // A stop on another year (2028, not on the way): the carry back by hand.
+        let away = try await openWindow(opening(.year, focus: mar15))
+        var shown = mar15
+        XCTAssertEqual(paths.today(nov28, now: now, viewport: nil, area: portrait, ratio: 1), .slide(-1))
+        followSlide(away, to: try middle(of: away, pageId: y2028), focus: &shown, kind: .year)
+        takeStop(away, at: try middle(of: away, pageId: y2028), focus: &shown, kind: .year)
+        XCTAssertEqual(shown, DayKey(year: 2028, month: 3, day: 15))
+        for id in [y2027, y2026] {
+            followSlide(away, to: try middle(of: away, pageId: id), focus: &shown, kind: .year)
+        }
+        XCTAssertEqual(shown, carried, "a stop elsewhere let the mark go")
+
+        // After the grace, a scroll by hand: the carry.
+        let late = try await openWindow(opening(.year, focus: mar15))
+        var held = mar15
+        XCTAssertEqual(paths.today(nov28, now: now, viewport: nil, area: portrait, ratio: 1), .slide(-1))
+        bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace + 1)
+        followSlide(late, to: try middle(of: late, pageId: y2026), focus: &held, kind: .year)
+        XCTAssertEqual(held, carried, "after the grace: the carry")
+        // Review T-1 (§3.7, the lead's decision of 11/28): and the stop there brings no landing's request (y stays).
+        let lateStop = takeStop(late, at: try middle(of: late, pageId: y2026), focus: &held, kind: .year)
+        XCTAssertEqual(lateStop.focus, carried)
+        XCTAssertNil(lateStop.reveal, "after the grace: no request")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review UX-2 (a) on a window of years: 「今日」 far away opens a new window of years at today (`.reopen`), and
+    /// `reopenedToday` hands its canvas a rect for its first layout bound to the new window: at the overview and at 等倍 a rect
+    /// of no width at the middle of the focus year with today's cell's y and height (y alone moves); past the fit (on a
+    /// landscape iPad the year's fit is 2.5 times its opening zoom, so the stored ratio 3) the cell. nil before, for the old
+    /// window and for the one page.
+    func testTodayFarAwayBringsTheNewYearsCellOnScreen() async throws {
+        let far = DayKey(year: 2031, month: 6, day: 30)
+        let farNow = try at(6, 30, 10, year: 2031)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(opening(.year)), .onePage, "the fallback (0g-3): the year on one page")
+            XCTAssertNil(paths.reopenedToday(now: farNow, area: landscape, ratio: 1))
+            return
+        }
+        let old = try await openWindow(opening(.year))
+        XCTAssertNil(paths.reopenedToday(now: farNow), "no 「今日」 yet")
+        XCTAssertEqual(paths.today(far, now: farNow, viewport: nil, area: landscape, ratio: 1, fit: true), .reopen(far))
+        XCTAssertNil(paths.reopenedToday(now: farNow, area: landscape, ratio: 1, fit: true), "the window shown does not hold today")
+
+        let session = try await openWindow(opening(.year, focus: far, now: farNow))
+        XCTAssertNotEqual(session.id, old.id)
+        XCTAssertEqual(session.focusPageId, "y-2031")
+        let target = try year("y-2031", of: session)
+        let cell = try XCTUnwrap(target.page.cells[.yearDay(month: 6, day: 30)])
+        XCTAssertEqual(cell.minY, 29 * 60, accuracy: 1e-9, "the 30th's row")
+        let kept = try XCTUnwrap(paths.reopenedToday(now: farNow), "the inputs kept with .reopen")
+        XCTAssertEqual(kept, paths.reopenedToday(now: farNow, area: landscape, ratio: 1, fit: true))
+        XCTAssertNil(paths.reopenedToday(now: farNow), "taken once")
+        for (name, area, ratio, fit) in [("landscape 等倍", landscape, CGFloat(1), true), ("landscape open", landscape, 2, false),
+                                         ("portrait", portrait, 1, false), ("portrait 等倍", portrait, 1, true)]
+            as [(String, CGSize, CGFloat, Bool)] {
+            XCTAssertFalse(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: nil, area: area, ratio: ratio, fit: fit), name)
+            let rect = try XCTUnwrap(paths.reopenedToday(now: farNow, area: area, ratio: ratio, fit: fit), name)
+            XCTAssertEqual(rect.minX, target.origin + session.plan.pageWidth / 2, accuracy: 1e-9, "\(name): the focus year's middle")
+            XCTAssertEqual(rect.width, 0, "\(name): no width, so x never moves")
+            XCTAssertEqual(rect.minY, cell.minY, accuracy: 1e-9, name)
+            XCTAssertEqual(rect.height, cell.height, accuracy: 1e-9, name)
+            XCTAssertEqual(paths.revealRect(rect, for: session), rect, "\(name): for the new window's canvas")
+            XCTAssertNil(paths.revealRect(rect, for: old), "\(name): never the old window's")
+        }
+        XCTAssertTrue(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: nil, area: landscape, ratio: 3))
+        let zoomed = try XCTUnwrap(paths.reopenedToday(now: farNow, area: landscape, ratio: 3), "past the fit")
+        XCTAssertEqual(zoomed, cell.offsetBy(dx: target.origin, dy: 0), "today's cell, as 1.1.1's one page")
+
+        setting = false
+        paths.open(opening(.year, focus: far, now: farNow))
+        XCTAssertNil(paths.reopenedToday(now: farNow, area: landscape, ratio: 1), "the one page: 1.1.1's own")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.7 (the lead's decision of 11/28, in place of review UX-2 (b)) on a window of years, the month's rule: 「今日」's slide
+    /// to another year keeps y, and its stop on today's year brings `monthTodayRequest`'s y-only request — today's cell of the
+    /// year, top its top less 1.1.1's margin at the screen's zoom, line its bottom, no x — once. The portrait iPad (2024 …
+    /// 2028 around 2026), today 2027-12-28 (December's column, the 28th's row: 1,620–1,680 lu), at the overview (the opening
+    /// zoom 1,005 / 1,860) and at 等倍 before a report (fit 834 / 1,400: 1,687 lu on screen); the canvas decides whether y
+    /// moves (InkCanvasMonthYearTests' `testTodaysSlideOfYearsBringsTodaysCellOnScreen`). The fallback of 0g-3: one page.
+    func testTodaysSlideLandsWithTheYearsRequestOnce() async throws {
+        let dec28 = DayKey(year: 2027, month: 12, day: 28)
+        let now = try at(12, 28, 10, year: 2027)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(opening(.year)), .onePage, "the fallback (0g-3): the year on one page")
+            return
+        }
+        let open: CGFloat = 1_005.0 / 1_860
+        let fit: CGFloat = 834.0 / 1_400
+        for (name, isFit, zoom) in [("the overview", false, open), ("等倍 before a report", true, fit)] as [(String, Bool, CGFloat)] {
+            let session = try await openWindow(opening(.year))
+            XCTAssertEqual(session.pageIds, [y2024, y2025, y2026, y2027, y2028], name)
+            let next = try year(y2027, of: session)
+            let cell = try XCTUnwrap(next.page.cells[.yearDay(month: 12, day: 28)], name)
+            XCTAssertEqual(cell, CGRect(x: 56 + 11 * 112, y: 27 * 60, width: 112, height: 60), "\(name): December's column, the 28th's row")
+            var focus = nov16
+            XCTAssertEqual(paths.today(dec28, now: now, viewport: nil, area: portrait, ratio: 1, fit: isFit), .slide(1), name)
+            followSlide(session, to: try middle(of: session, pageId: y2027), focus: &focus, kind: .year)
+            XCTAssertEqual(focus, dec28, "\(name): today's year brings today")
+            let landed = takeStop(session, at: try middle(of: session, pageId: y2027), focus: &focus, kind: .year)
+            XCTAssertEqual(landed.focus, dec28, name)
+            XCTAssertEqual(landed.visitEnded?.pageId, y2026, name)
+            let request = try XCTUnwrap(landed.reveal, "\(name): the slide landed on today's year")
+            XCTAssertTrue(request.origin.x.isNaN, "\(name): no x, x never moves")
+            let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request), name)
+            XCTAssertEqual(lines.top, cell.minY - ZoomPolicy.revealMargin / zoom, accuracy: 1e-9, "\(name): the cell's top less the margin")
+            XCTAssertEqual(lines.top, 1_620 - 8 / zoom, accuracy: 1e-9, name)
+            XCTAssertEqual(lines.nowLine, 1_680, accuracy: 1e-9, "\(name): the cell's bottom")
+            XCTAssertNotNil(paths.revealRect(request, for: session), "\(name): for this window's canvas")
+            XCTAssertNil(takeStop(session, at: try middle(of: session, pageId: y2027), focus: &focus, kind: .year).reveal, "\(name): once")
+            guard case .reveal(let again)? = paths.today(dec28, now: now, viewport: nil, area: portrait, ratio: 1, fit: isFit) else {
+                return XCTFail("\(name): a second 「今日」 there, the y-only request")
+            }
+            let againLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(again), name)
+            XCTAssertEqual(againLines.top, lines.top, accuracy: 1e-9, "\(name): the request a second 「今日」 gives")
+            XCTAssertEqual(againLines.nowLine, lines.nowLine, accuracy: 1e-9, name)
+        }
+        XCTAssertEqual(faults, [])
+    }
+
+    /// §3.7, §5.4 (0g-23: 「「今日」で今日の年が焦点なら、今日の行が見えていなければ縦だけ動く」; the lead's decision of 11/28): at the
+    /// capped overview of an iPhone in landscape (750 × 208 of iPhone 17, three years across: 750 / 4,200, about 1,165 lu on
+    /// screen) 「今日」's slide to the next year (2027-11-18) and its stop there bring `cappedTodayRect`'s request — top two rows
+    /// above today's row (`PageNavigation.initialScrollY`: the 16th's, 900 lu), line the bottom of today's cell (1,080 lu) —
+    /// with the screen's capped viewport and before a report; above the cap (等倍 before a report, 750 / 1,400) the overview's
+    /// (`monthTodayRequest`'s). Once.
+    func testTodaysSlideLandsWithTheCappedYearsRequest() async throws {
+        let phone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .landscape)
+        let area = CGSize(width: 750, height: 208)
+        let today = DayKey(year: 2027, month: 11, day: 18)
+        let now = try at(11, 18, 10, year: 2027)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(opening(.year, device: phone)), .onePage, "the fallback (0g-3): the year on one page")
+            return
+        }
+        let cap: CGFloat = 750.0 / (3 * 1_400)
+        let fit: CGFloat = 750.0 / 1_400
+        for (name, reported, isFit) in [("the capped viewport", true, false), ("before a report", false, false), ("等倍", false, true)]
+            as [(String, Bool, Bool)] {
+            let session = try await openWindow(opening(.year, device: phone))
+            XCTAssertTrue(session.plan.overviewCap, name)
+            XCTAssertEqual(session.focusPageId, y2026, name)
+            if reported {
+                let this = try year(y2026, of: session)
+                paths.viewportArrived(PaperViewport(offsetX: (this.origin + 700) * cap - area.width / 2, zoom: cap, width: area.width))
+                XCTAssertEqual(paths.heading?.viewport?.zoom, cap, name)
+            }
+            let next = try year(y2027, of: session)
+            let cell = try XCTUnwrap(next.page.cells[.yearDay(month: 11, day: 18)], name)
+            XCTAssertEqual(cell.maxY, 18 * 60, accuracy: 1e-9, "\(name): the 18th's row")
+            var focus = nov16
+            XCTAssertEqual(paths.today(today, now: now, viewport: paths.heading?.viewport, area: area, ratio: 1, fit: isFit), .slide(1), name)
+            followSlide(session, to: try middle(of: session, pageId: y2027), focus: &focus, kind: .year)
+            if reported {
+                // The canvas reports where the slide landed (one year on) before it tells of the stop (review F2 reads it).
+                paths.viewportArrived(PaperViewport(offsetX: (next.origin + 700) * cap - area.width / 2, zoom: cap, width: area.width))
+            }
+            let landed = takeStop(session, at: try middle(of: session, pageId: y2027), focus: &focus, kind: .year)
+            XCTAssertEqual(landed.focus, today, name)
+            let request = try XCTUnwrap(landed.reveal, "\(name): the slide landed on today's year")
+            XCTAssertTrue(request.origin.x.isNaN, "\(name): no x")
+            let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request), name)
+            XCTAssertEqual(lines.nowLine, 1_080, accuracy: 1e-9, "\(name): the bottom of today's cell")
+            if isFit {
+                XCTAssertEqual(lines.top, cell.minY - ZoomPolicy.revealMargin / fit, accuracy: 1e-9, "\(name): above the cap, the overview's")
+            } else {
+                XCTAssertEqual(lines.top, 15 * 60, accuracy: 1e-9, "\(name): two rows above today's row")
+                XCTAssertEqual(lines.top, next.page.rows[18 - 3].frame.minY, accuracy: 1e-9, name)
+                let shown = PaperViewport(offsetX: (next.origin + 700) * cap - area.width / 2, zoom: cap, width: area.width)
+                let made = try XCTUnwrap(ScreenPaths.cappedTodayRect(layout: session.layout, pageId: y2027, now: now,
+                                                                     calendar: SessionTestBed.tokyo, viewport: shown), name)
+                let madeLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(made), name)
+                XCTAssertEqual(lines.top, madeLines.top, accuracy: 1e-9, "\(name): cappedTodayRect's")
+                XCTAssertEqual(lines.nowLine, madeLines.nowLine, accuracy: 1e-9, name)
+            }
+            XCTAssertNil(takeStop(session, at: try middle(of: session, pageId: y2027), focus: &focus, kind: .year).reveal, "\(name): once")
+        }
+        XCTAssertEqual(faults, [])
+    }
+
+    /// MP1, §3.8, 0g-20 (the year's): the heading's window of a window of years is made and is `PaperSpan.window` of the
+    /// session's layout — the pages alone, no all-day band (the year has none on either path) — with the focus of now, also
+    /// after a shift.
+    func testTheHeadingOfAWindowOfYears() async throws {
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertEqual(paths.open(opening(.year)), .onePage, "the fallback (0g-3): the year on one page")
+            XCTAssertNil(paths.heading)
+            return
+        }
+        let session = try await openWindow(opening(.year))
+        let heading = try XCTUnwrap(paths.heading, "the heading of a window of years")
+        XCTAssertEqual(heading.version, session.windowVersion)
+        XCTAssertEqual(heading.firstIndex, session.layout.firstIndex)
+        XCTAssertEqual(heading.span, PaperSpan.window(for: session.layout, focus: session.focusSlot))
+        XCTAssertEqual(heading.span.kind, .year)
+        XCTAssertEqual(heading.span.bands, [], "no all-day band")
+        XCTAssertEqual(heading.span.pages.map(\.layout.pageId), session.pageIds)
+        XCTAssertEqual(paths.headingSpan?.focus, session.focusSlot)
+        XCTAssertEqual(paths.headingSpan?.bands, [])
+
+        let zoom = CGFloat(834.0 / 1_400)
+        let v1 = PaperViewport(offsetX: 2 * 1_400 * zoom, zoom: zoom, width: 834)
+        paths.viewportArrived(v1)
+        _ = session.stopped(midX: middle(of: session, slots: 1))
+        XCTAssertTrue(session.shift(toFocusIndex: session.focusIndex))
+        let v2 = PaperViewport(offsetX: v1.offsetX - 1_400 * zoom, zoom: zoom, width: 834)
+        paths.viewportArrived(v2)
+        let shifted = try XCTUnwrap(paths.heading)
+        XCTAssertEqual(shifted.version, session.windowVersion)
+        XCTAssertEqual(shifted.span, PaperSpan.window(for: session.layout, focus: session.focusSlot))
+        XCTAssertEqual(shifted.span.pages.map(\.layout.pageId), [y2025, y2026, y2027, y2028, "y-2029"])
+        XCTAssertEqual(shifted.span.bands, [])
+        XCTAssertEqual(shifted.viewport, v2)
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review UX3-R1 for the year (`monthTodayRevealRect`'s year branch; the year's columns are 112 lu, under twice the 84 lu
+    /// hysteresis plus its 8 lu): zoomed in past the fit, 「今日」 toward another year of the window, every today's cell — 12
+    /// columns × 31 rows, the valid days — at ten zooms from just past the fit to `bounds.max` and four places of the screen
+    /// on the focus year, on the iPads in portrait and the 11-inch in landscape, the iPhones in portrait (375, 402, 440 pt)
+    /// and in landscape (the cap): the canvas's reveal of the rect (`canvasReveal`: 1.1.1's least movement, the clamp to the
+    /// band) keeps today's cell on screen with 1.1.1's margin (where the band's end leaves room for it) every time, and
+    /// puts the middle of the screen on today's year past the hysteresis whenever a screen can hold both — everywhere but a
+    /// December back from the next year with half a screen under 84 + 8 lu and the margin (`ZoomPolicy.revealMargin` / zoom):
+    /// an iPhone in portrait past about 2 (1.95 on 375 pt, 2.10 on 402, 2.30 on 440; its highest zoom is 2.68). There the
+    /// cell wins (1.1.1's least movement) and the focus stays on the year it was, until the person's own stop.
+    func testTodayPastTheFitTowardAnotherYearKeepsItsCellOnScreen() async throws {
+        let devices: [(name: String, deviceClass: SpanDeviceClass, orientation: SpanOrientation, cap: Bool, width: CGFloat)] = [
+            ("iPad 13 portrait", .iPad13, .portrait, false, 1_024), ("iPad 11 portrait", .iPad11, .portrait, false, 834),
+            ("iPad mini portrait", .iPadMini, .portrait, false, 744), ("iPad 11 landscape", .iPad11, .landscape, false, 1_210),
+            ("iPhone 375 portrait", .iPhone, .portrait, false, 375), ("iPhone 402 portrait", .iPhone, .portrait, false, 402),
+            ("iPhone 440 portrait", .iPhone, .portrait, false, 440), ("iPhone landscape (the cap)", .iPhone, .landscape, true, 750),
+        ]
+        let height: CGFloat = 600
+        var cases = 0
+        var expectedCases = 0
+        var offScreen = 0
+        var missed = 0
+        var foreseen = 0
+        for (n, device) in devices.enumerated() {
+            let session = bed.session(.year, focus: DayKey(year: 2026, month: 7, day: 1), number: 20 + n, deviceClass: device.deviceClass,
+                                      orientation: device.orientation, overviewCap: device.cap)
+            await session.prefetch()
+            let area = CGSize(width: device.width, height: height)
+            let bounds = session.layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(session.layout), viewport: area)
+            let fit = bounds.clamped(bounds.fit)
+            XCTAssertGreaterThan(bounds.max, fit * 1.01, device.name)
+            let zooms = (1...10).map { fit * 1.001 + (bounds.max - fit * 1.001) * CGFloat($0) / 10 }
+            let focusOrigin = session.layout.origin(ofSlot: session.focusSlot)
+            let bandWidth = session.layout.size.width
+            // Every valid day of 2024 … 2030's other years (366 in a leap year, else 365), at every zoom and place.
+            let days = session.layout.pages.indices.filter { $0 != session.focusSlot }.map { slot -> Int in
+                let first = session.plan.firstDay(at: session.layout.firstIndex + slot)
+                return DayKey.daysInMonth(year: first.year, month: 2) == 29 ? 366 : 365
+            }.reduce(0, +)
+            expectedCases += days * zooms.count * 4
+            for zoom in zooms {
+                let screen = device.width / zoom
+                let margin = ZoomPolicy.revealMargin / zoom
+                let half = screen / 2
+                for place in 0..<4 {
+                    let left = focusOrigin + (1_400 - screen) * CGFloat(place) / 3
+                    let viewport = PaperViewport(offsetX: left * zoom, zoom: zoom, width: device.width)
+                    XCTAssertTrue(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: viewport, area: area, ratio: 1), device.name)
+                    for slot in session.layout.pages.indices where slot != session.focusSlot {
+                        let page = try XCTUnwrap(session.layout.pages[slot] as? YearPageLayout)
+                        let origin = session.layout.origin(ofSlot: slot)
+                        for month in 1...12 {
+                            for day in 1...31 {
+                                let key = CellKey.yearDay(month: month, day: day)
+                                guard !page.invalidCells.contains(key), let own = page.cells[key] else { continue }
+                                let cell = own.offsetBy(dx: origin, dy: 0)
+                                let rect = ScreenPaths.monthTodayRevealRect(layout: session.layout, cell: cell, pageId: page.pageId,
+                                                                            focusSlot: session.focusSlot, viewport: viewport, area: area)
+                                let shown = canvasReveal(rect, from: viewport, in: session)
+                                cases += 1
+                                let low = max(0, cell.minX * zoom - ZoomPolicy.revealMargin)
+                                let high = min(bandWidth * zoom, cell.maxX * zoom + ZoomPolicy.revealMargin)
+                                if shown.x > low + 1e-6 || shown.x + device.width < high - 1e-6 {
+                                    offScreen += 1
+                                }
+                                let landed = session.plan.focus(midX: shown.midX, previous: session.focusSlot) == slot
+                                // Both fit on a screen unless a December back from the next year needs more than half a screen.
+                                let tight = slot == session.focusSlot - 1 && month == 12
+                                if tight, abs(half - (84 + 8 + margin)) < 1e-6 { continue }
+                                let impossible = tight && half < 84 + 8 + margin
+                                if impossible { foreseen += 1 }
+                                if !landed { missed += 1 }
+                                XCTAssertEqual(landed, !impossible, "\(device.name) at \(zoom), place \(place), \(page.pageId) \(month)/\(day)")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        XCTAssertEqual(offScreen, 0, "today's cell always on screen")
+        XCTAssertEqual(missed, foreseen, "the middle misses today's year only where no screen holds both")
+        XCTAssertEqual(cases, expectedCases, "every valid day of every other year, at every zoom and place")
+        XCTAssertGreaterThan(cases, 500_000)
+        XCTAssertGreaterThan(foreseen, 0, "the iPhones in portrait past about 2")
+        XCTAssertEqual(faults, [])
     }
 
     // MARK: The source (the screen's wires)

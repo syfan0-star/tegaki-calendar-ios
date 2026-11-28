@@ -13,10 +13,10 @@ import UIKit
 /// 24:00 meets at a boundary, the ruled lines stop 20 lu short of it on each side and each page has its label,
 /// the day's look, `FreeMemoPaper`). Only weeks and days were joined in 1.3 (D2).
 /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §3.4, §3.8, 0g-20, 0g-53): a window of the kinds `SpanKinds.joined` adds (the month
-/// since 1.4.3's D1b; the year with D1y) is made by `window(for:focus:)`: the pages' paper alone, `bands` empty (a month or a
+/// since 1.4.3's D1b, the year since D1y) is made by `window(for:focus:)`: the pages' paper alone, `bands` empty (a month or a
 /// year has no all-day band on either path), each page 1,400 lu wide (`ZoomPolicy.paperWidth`) and as tall as its own layout
-/// says (the session lines the months up, `SpanAlign.monthFloors`). A kind outside `SpanKinds.joined` (the year until D1y)
-/// never makes one.
+/// says (the session lines the months up, `SpanAlign.monthFloors`, and the years' rows, `SpanAlign.yearFloors`). A kind
+/// outside `SpanKinds.joined` (the year, should the fallback of 0g-3 take it out there) never makes one.
 ///
 /// `bands` are the window's all-day bands, one per page, with the lanes packed over the whole run of days
 /// at once (`AllDayBandLanes`, `AllDayBandEngine.pages`), so an event across a boundary keeps its lane.
@@ -27,7 +27,7 @@ import UIKit
 /// pages' own layouts say. A window of one page shows what that page shows alone (each view's comment
 /// says how), so the old path and a window of one page give 1.2.3's output.
 struct PaperSpan: Equatable {
-    /// `.week` or `.day`; 1.4.3: `.month` (and `.year` once it joins), with no bands.
+    /// `.week` or `.day`; 1.4.3: `.month` and (since D1y) `.year`, with no bands.
     let kind: PageKind
     /// Left to right, slot 0 first; all of `kind`.
     let pages: [PaperContent]
@@ -58,8 +58,8 @@ struct PaperSpan: Equatable {
 
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §3.4, 0g-27, 0g-53): the window of the session's `SpanLayout` as the canvas and
     /// the heading take it. A week or a day: `init?(layout:bands:focus:)` with each page's own all-day band (the bands the
-    /// frozen `InkCanvasView.paperSpan` gives today; the heading packs its own, `ScreenPaths.makeHeadingSpan`). A month (and
-    /// a year once it joins): the pages' paper (`paperContent(of:)`) with no band — nil while the kind is not in
+    /// frozen `InkCanvasView.paperSpan` gives today; the heading packs its own, `ScreenPaths.makeHeadingSpan`). A month or
+    /// (since D1y) a year: the pages' paper (`paperContent(of:)`) with no band — nil while the kind is not in
     /// `SpanKinds.joined`, so a kind that does not join never gets a window here. nil for an empty layout or a page of
     /// another kind.
     static func window(for layout: SpanLayout, focus: Int) -> PaperSpan? {
@@ -113,7 +113,7 @@ struct PaperSpan: Equatable {
     /// The window of the session's `SpanLayout`: its pages as the paper draws them (a week page →
     /// `.week`, a day page → `.day`), with `bands` (`AllDayBandLanes.bands`) and the focus slot. nil when a
     /// page of the layout is neither or the counts differ: 1.3's window of weeks or days. Since 1.4.3 a window of months (and,
-    /// with D1y, of years) is made by `window(for:focus:)`, never here.
+    /// since D1y, of years) is made by `window(for:focus:)`, never here.
     init?(layout: SpanLayout, bands: [AllDayBandLayout], focus: Int) {
         var contents: [PaperContent] = []
         for page in layout.pages {
@@ -136,8 +136,8 @@ struct PaperSpan: Equatable {
     }
 
     /// More than one page: the joined path of the heading and the band (their thinning, the month over the
-    /// week's time column; 1.4.3: the months' labels and the strong line between two months). A window of one page is shown
-    /// as the page alone.
+    /// week's time column; 1.4.3: the months' labels and the strong line between two months, and the years' labels). A window
+    /// of one page is shown as the page alone.
     var isJoined: Bool {
         pages.count > 1
     }
@@ -154,7 +154,8 @@ struct PaperSpan: Equatable {
     }
 
     /// The whole window (lu): the pages' widths side by side, the tallest page's height (the joined days
-    /// are equally tall when the session gives them the floor, D16; 1.4.3's months when it lines them up, ア and イ).
+    /// are equally tall when the session gives them the floor, D16; 1.4.3's months when it lines them up, ア and イ, and its
+    /// years, whose rows it lines up).
     var size: CGSize {
         CGSize(width: CGFloat(pages.count) * pageWidth, height: pages.reduce(CGFloat(0)) { max($0, $1.size.height) })
     }

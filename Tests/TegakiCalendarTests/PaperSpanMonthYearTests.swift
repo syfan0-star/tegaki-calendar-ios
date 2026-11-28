@@ -1,4 +1,5 @@
 import Holidays
+import InkModel
 import Layout
 import XCTest
 @testable import TegakiCalendar
@@ -10,7 +11,10 @@ import XCTest
 // - Weeks and days: the window is 1.3's `init?(layout:bands:focus:)` with each page's own all-day band, `==`.
 // - Months: the pages' paper alone, no band, each page at k × 1,400 lu; two windows that differ only in the separator line
 //   (`memo.minY`) are not `==` (so the canvas draws the paper again when only the 6th row grew).
-// - The year: a window only once `SpanKinds.joined` holds it (D1y); a window of one page stays as 1.3 left it (`single` nil).
+// - The year: a window only while `SpanKinds.joined` holds it (since D1y; the fallback of 0g-3 takes it out there): the pages'
+//   paper, no band, each at k × 1,400 lu, its 31 rows lined up across the window by the session (`SpanAlign.yearFloors`); two
+//   windows that differ only in a row's floor are not `==` (the canvas draws the paper again). A window of one page stays as
+//   1.3 left it (`single` nil).
 // - The month's `holidayNames` and the year's `monthNames` are what the one page's `CalendarRootScreen.makePaper` gives for the
 //   same holidays and week start (Japan and the US, Monday and Sunday).
 //
@@ -164,8 +168,10 @@ final class PaperSpanMonthYearTests: XCTestCase {
     // MARK: - The year (SpanKinds)
 
     /// §2.1, §11.2 (the year's expectations from `SpanKinds.joined`): a window of years exists exactly when the year joins
-    /// (D1y), with no band; until then `window(for:)` is nil for it, while `init?(pages:bands:focus:)` passes years with no band
-    /// (the heading's window) and refuses them with one.
+    /// (D1y), with no band — the pages' paper, five years on the 11-inch iPad in portrait, page k at k × 1,400 lu, as wide as
+    /// the pages side by side and as tall as the layout, no run of days; without the year in `SpanKinds.joined` (0g-3)
+    /// `window(for:)` is nil for it, while `init?(pages:bands:focus:)` passes years with no band (the heading's window) and
+    /// refuses them with one.
     func testTheYearsWindowFollowsSpanKinds() async throws {
         let made = await session(.year)
         let layout = made.layout
@@ -176,6 +182,17 @@ final class PaperSpanMonthYearTests: XCTestCase {
             XCTAssertEqual(window.kind, .year)
             XCTAssertEqual(window.bands, [])
             XCTAssertEqual(window.pages, layout.pages.compactMap(PaperSpan.paperContent(of:)))
+            XCTAssertEqual(window.focus, made.focusSlot)
+            XCTAssertEqual(window.pages.count, 5, "the 11-inch iPad in portrait: five years")
+            XCTAssertTrue(window.isJoined)
+            XCTAssertEqual(window.pageWidth, 1_400)
+            for slot in layout.pages.indices {
+                XCTAssertEqual(window.origin(ofSlot: slot), layout.origin(ofSlot: slot))
+                XCTAssertEqual(window.pages[slot].layout.pageId, layout.pages[slot].pageId)
+            }
+            XCTAssertEqual(window.size, layout.size)
+            XCTAssertEqual(window.days, [], "no band, no run of days")
+            XCTAssertEqual(made.pageIds, window.pages.map(\.layout.pageId))
         }
         let years = layout.pages.compactMap(PaperSpan.paperContent(of:))
         XCTAssertEqual(years.count, layout.pages.count)
@@ -184,6 +201,77 @@ final class PaperSpanMonthYearTests: XCTestCase {
         let week = await session(.week, number: 2)
         let weekBand = try XCTUnwrap((week.layout.pages.first as? WeekPageLayout)?.allDayBand)
         XCTAssertNil(PaperSpan(pages: [years[0]], bands: [weekBand], focus: 0))
+    }
+
+    /// §5.1, §3.4, MP1 (`updatePaperSpan` draws again what is not `==`): in a window of years the session lines the 31 rows up —
+    /// 2026's 3/16 holds a stroke 100 lu down, so row 16 is `YearLayoutEngine.rowHeight` of its bottom on every year of the
+    /// window and every row starts at the same y on every page (the same day runs on in a straight line). A page of the window
+    /// is its natural layout laid out with the window's row floors. Two windows that differ only in one page's row floor —
+    /// 2025 with the window's floors, and 2025 as it is alone (row 16 back at 60) — are not `==`: rows 1–16's tops, every cell's
+    /// x and width and the other pages are the same, rows 17–31 are 60 − the floor higher. The same layout gives `==`.
+    func testAYearWindowLinesUpItsRowsAndARowFloorRedrawsThePaper() async throws {
+        var page = InkPage.empty(pageId: "y-2026")
+        let points = [CGPoint(x: 20, y: 10), CGPoint(x: 40, y: 60), CGPoint(x: 60, y: 100)].enumerated().map { i, p in
+            InkPoint(x: p.x, y: p.y, dtMs: i * 10, sizeW: 3.5, sizeH: 3.5, opacity: 1, force: 0.5, azimuth: 0, altitude: .pi / 2)
+        }
+        let stroke = InkStroke(id: "y-tall", cell: .yearDay(month: 3, day: 16), tool: .pen, color: "#1f2937", t: 1_790_000_001_000, points: points)
+        page.add(stroke)
+        try bed.store.save(page)
+        let made = await session(.year)
+        let layout = made.layout
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertNil(PaperSpan.window(for: layout, focus: made.focusSlot), "the year is one page (0g-3)")
+            return
+        }
+        XCTAssertEqual(made.pageIds, ["y-2024", "y-2025", "y-2026", "y-2027", "y-2028"])
+        let tall = YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: stroke.bottom)
+        XCTAssertEqual(tall, 100 + 1.75 + PaperSpec.inkPad, accuracy: 1e-9, "the stroke's bottom (y + half its 3.5 lu nib) + 12")
+        let window = try XCTUnwrap(PaperSpan.window(for: layout, focus: made.focusSlot))
+        let years: [YearPageLayout] = window.pages.compactMap { paper in
+            guard case .year(let content) = paper else { return nil }
+            return content.layout
+        }
+        XCTAssertEqual(years.count, 5)
+        let first = try XCTUnwrap(years.first)
+        for year in years {
+            XCTAssertEqual(year.rows.count, PaperSpec.yearRows)
+            XCTAssertEqual(year.rows[15].frame.height, tall, accuracy: 1e-9, "\(year.year): row 16 takes 2026's stroke")
+            for (r, row) in year.rows.enumerated() {
+                XCTAssertEqual(row.frame.minY, first.rows[r].frame.minY, accuracy: 1e-9, "\(year.year): row \(r + 1) starts where 2024's does")
+                XCTAssertEqual(row.frame.height, r == 15 ? tall : PaperSpec.yearRowBase, accuracy: 1e-9, "\(year.year): row \(r + 1)")
+            }
+            XCTAssertEqual(year.size.height, first.size.height)
+            XCTAssertEqual(year.cells[.yearDay(month: 7, day: 20)]?.minY ?? -1, first.cells[.yearDay(month: 7, day: 20)]?.minY ?? -2, accuracy: 1e-9)
+        }
+        XCTAssertEqual(first.size.height, 30 * PaperSpec.yearRowBase + tall, accuracy: 1e-9)
+        XCTAssertEqual(window.size, CGSize(width: 5 * 1_400, height: first.size.height))
+
+        // 2025 (no handwriting) is its natural page laid out with the window's floors; alone, row 16 is 60.
+        let slot = try XCTUnwrap(layout.slot(ofPage: "y-2025"))
+        let c = made.context
+        let input = YearLayoutInput(year: 2025, events: [], inkBottoms: [:], now: c.now, calendar: c.calendar, holidays: c.holidays, words: c.words)
+        let floored = YearLayoutEngine.layout(input.floored(by: layout.floors))
+        let alone = YearLayoutEngine.layout(input)
+        XCTAssertEqual(PaperSpan.paperContent(of: floored), window.pages[slot], "the window page: the natural year with the window's floors")
+        XCTAssertEqual(alone.rows[15].frame.height, PaperSpec.yearRowBase)
+        XCTAssertEqual(Array(alone.rows.prefix(16).map(\.frame.minY)), Array(floored.rows.prefix(16).map(\.frame.minY)), "rows 1–16 start where they did")
+        for r in 16..<PaperSpec.yearRows {
+            XCTAssertEqual(floored.rows[r].frame.minY - alone.rows[r].frame.minY, tall - PaperSpec.yearRowBase, accuracy: 1e-9, "row \(r + 1)")
+        }
+        for (key, rect) in alone.cells {
+            XCTAssertEqual(rect.minX, floored.cells[key]?.minX ?? -1, accuracy: 1e-9, "\(key)")
+            XCTAssertEqual(rect.width, floored.cells[key]?.width ?? -1, accuracy: 1e-9, "\(key)")
+        }
+
+        var pages = layout.pages
+        pages[slot] = alone
+        let other = try XCTUnwrap(PaperSpan.window(for: SpanLayout(pages: pages, plan: layout.plan, firstIndex: layout.firstIndex,
+                                                                   floors: layout.floors, session: layout.session), focus: made.focusSlot))
+        XCTAssertNotEqual(window, other, "only 2025's row floor differs: the paper is drawn again")
+        for index in window.pages.indices where index != slot {
+            XCTAssertEqual(window.pages[index], other.pages[index], "slot \(index)")
+        }
+        XCTAssertEqual(window, PaperSpan.window(for: layout, focus: made.focusSlot), "the same layout: ==")
     }
 
     /// §3.4: `single` (the window of one page with its own band) stays nil for a month and a year — neither has an all-day band

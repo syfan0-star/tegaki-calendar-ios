@@ -24,6 +24,9 @@ final class SettingsPageSectionTests: XCTestCase {
     // 1.4.3 (docs/R1_4_3_CONTRACT.md §13.1), fixed: the month's card with 「指でも書く」 off and on.
     private let monthOne = "前後の月が横につながりました。指で横にすべらせると、となりの月が出てきます。下のメモ欄は、月の境目をまたいで、そのまま書けます。"
     private let monthTwo = "前後の月が横につながりました。2 本指で横にすべらせると、となりの月が出てきます。下のメモ欄は、月の境目をまたいで、そのまま書けます。"
+    // 1.4.3 (docs/R1_4_3_CONTRACT.md §13.1), fixed: the year's card with 「指でも書く」 off and on.
+    private let yearOne = "前後の年が横につながりました。指で横にすべらせると、となりの年が出てきます。境目をまたいで、そのまま書けます。"
+    private let yearTwo = "前後の年が横につながりました。2 本指で横にすべらせると、となりの年が出てきます。境目をまたいで、そのまま書けます。"
     private let n8 = "このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。"
 
     /// What a closure saw (a class, so the closure need not capture a `var`).
@@ -259,9 +262,9 @@ final class SettingsPageSectionTests: XCTestCase {
         XCTAssertEqual(SpanGuide.text(kind: .day, allowFinger: true), n7, "N-7")
         for finger in [false, true] {
             XCTAssertEqual(SpanGuide.text(kind: .month, allowFinger: finger), finger ? monthTwo : monthOne, "1.4.3: the month's card")
-            XCTAssertNil(SpanGuide.text(kind: .year, allowFinger: finger), "year is one page at a time in 1.3")
+            XCTAssertEqual(SpanGuide.text(kind: .year, allowFinger: finger), finger ? yearTwo : yearOne, "1.4.3: the year's card")
         }
-        XCTAssertEqual(SpanGuide.joinedKinds, [.week, .day, .month])
+        XCTAssertEqual(SpanGuide.joinedKinds, [.week, .day, .month, .year])
 
         let sleeper = TestSleeper()
         sleeper.autoResume = true
@@ -334,11 +337,16 @@ final class SettingsPageSectionTests: XCTestCase {
             XCTAssertFalse(model.showIfDue(kind, joined: false, allowFinger: true), "\(kind): fallen back (stage 2)")
         }
         XCTAssertTrue(model.showIfDue(.month, joined: true, allowFinger: false), "1.4.3: the month is joined")
-        XCTAssertFalse(model.showIfDue(.year, joined: true, allowFinger: false), "year is not joined in 1.3")
         XCTAssertEqual(model.card?.kind, .month, "1.4.3: the month's card is up")
         XCTAssertEqual(model.card?.text, monthOne)
         XCTAssertEqual(model.card?.timed, true)
         XCTAssertEqual(sleeper.recorded, [], "1.4.3: the month's card is up; its 8 seconds have not started yet")
+        // 1.4.3 (§8.5 R0y): the year is joined; its card takes the month's place (another kind).
+        XCTAssertTrue(model.showIfDue(.year, joined: true, allowFinger: false), "1.4.3: the year is joined")
+        XCTAssertEqual(model.card?.kind, .year, "1.4.3: the year's card is up")
+        XCTAssertEqual(model.card?.text, yearOne)
+        XCTAssertEqual(model.card?.timed, true)
+        XCTAssertEqual(sleeper.recorded, [], "1.4.3: the year's card is up; its 8 seconds have not started yet")
         for kind in PageKind.allCases {
             XCTAssertFalse(AppSettings.spanGuideShown(kind), "\(kind): nothing recorded")
             XCTAssertNil(defaults.object(forKey: AppSettings.spanGuideShownKey(kind)))
@@ -358,6 +366,11 @@ final class SettingsPageSectionTests: XCTestCase {
         XCTAssertFalse(SpanGuide.isDue(kind: .month, setting: false, joined: true, shown: false, screenshot: false, testHost: false), "1.4.3: off")
         XCTAssertFalse(SpanGuide.isDue(kind: .month, setting: true, joined: false, shown: false, screenshot: false, testHost: false),
                        "1.4.3: fallen back (stage 2)")
+        XCTAssertTrue(SpanGuide.isDue(kind: .year, setting: true, joined: true, shown: false, screenshot: false, testHost: false), "1.4.3: the year")
+        XCTAssertFalse(SpanGuide.isDue(kind: .year, setting: false, joined: true, shown: false, screenshot: false, testHost: false),
+                       "1.4.3: the year, off")
+        XCTAssertFalse(SpanGuide.isDue(kind: .year, setting: true, joined: false, shown: false, screenshot: false, testHost: false),
+                       "1.4.3: the year, fallen back (stage 2)")
     }
 
     func testGuideGoesAtATouch() async {

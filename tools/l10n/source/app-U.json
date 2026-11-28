@@ -2376,6 +2376,28 @@
       "args": [],
       "glossary": []
     },
+    "span.guide.year.oneFinger": {
+      "ja": "前後の年が横につながりました。指で横にすべらせると、となりの年が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "初めての案内の札（1.4.3、年）。年のページを横につなげて初めて開いたときに、紙の上の端に 8 秒だけ（触れれば消える）、端末ごとに 1 回出る。「指でも書く」がオフのとき（iPad の既定）: 指 1 本で横にすべらせると、となりの年が出る。年の表は同じ日付の行が隣の年へ横一直線に続くので、週・日の札（N-4〜N-7）と同じく境目をまたいで書けると言う。月の札（span.guide.month.*）と同じ作り。文は docs/R1_4_3_CONTRACT.md §13.1（9 言語は仮の訳。D2 で GLOSSARY に照らして訳し直す）",
+      "where": [
+        "Views/SpanGuideView.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
+    "span.guide.year.twoFingers": {
+      "ja": "前後の年が横につながりました。2 本指で横にすべらせると、となりの年が出てきます。境目をまたいで、そのまま書けます。",
+      "target": "app",
+      "comment": "初めての案内の札（1.4.3、年）。上（span.guide.year.oneFinger）と同じときに出る。「指でも書く」がオンのとき（iPhone の既定）: 指では線を書くので、横に動かすのは 2 本の指。文は docs/R1_4_3_CONTRACT.md §13.1（9 言語は仮の訳。D2 で GLOSSARY に照らして訳し直す）",
+      "where": [
+        "Views/SpanGuideView.swift"
+      ],
+      "was": [],
+      "args": [],
+      "glossary": []
+    },
     "span.stageTwo.notice": {
       "ja": "このページは線がとても多いので、横につなげずに 1 ページずつ表示しています。書いたものはそのままです。",
       "target": "app",

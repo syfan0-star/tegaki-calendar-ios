@@ -13,7 +13,16 @@ import XCTest
 //
 // The rows are drawn the way the frozen PaperSpanTests draws the heading (`ImageRenderer` at 1 px per point). The zooms are the
 // month's: the iPhone 17 in portrait opens at 402 / 1,400 (57.4 pt columns), the 11-inch iPad in landscape at 640 / 1,050
-// (1,210 × 640 pt), the 13-inch at 830 / 1,050 and its 等倍 1,366 / 1,400. The year's row (`spanYearRow`) is D1y's.
+// (1,210 × 640 pt), the 13-inch at 830 / 1,050 and its 等倍 1,366 / 1,400.
+//
+// D1y (§3.8, §5.3, §10, 0g-20, 0g-22, MP4 for the year): the heading of a window of joined years (`spanYearRow`) is the years'
+// own row — each page's date column and its twelve month names (`yearRow`'s, the page's own `content.monthNames` in ja) from
+// its origin, never the week's — as tall as the one page's `yearRow`, and each page carries its year's label over its date
+// column (56 lu × zoom): the year's number 「2027」, its last two digits 「’27」 when the column is narrow, none when even that
+// does not fit; a page that went out to the left keeps its label at the screen's left edge until the next page's label pushes
+// it out (`yearLabelX`, the month's rule on 1,400 lu pages); each label is one heading element read once. The year's zooms
+// (§5.3, §5.4): the 13-inch iPad in portrait opens at 0.6183, the 11-inch at 0.5134, the iPhone 17 in portrait at 0.2871
+// (402 / 1,400), the capped iPhone in landscape at 0.1786 (iPhone 17) and 0.1983 (18 Pro Max).
 
 @MainActor
 final class StickyHeaderMonthYearTests: XCTestCase {
@@ -360,5 +369,320 @@ final class StickyHeaderMonthYearTests: XCTestCase {
         XCTAssertEqual(count(".accessibilityElement(children: .ignore) .accessibilityLabel(label.spoken) .accessibilityAddTraits(.isHeader)", in: view), 1,
                        "the label is one heading element reading the title's month")
         XCTAssertEqual(count("SpanMonthLabelView(label: label)", in: flat), 1, "one view per label, placed where `monthLabels` says")
+    }
+
+    // MARK: - The joined years (D1y: §3.8, §5.3, §10; MP4 for the year)
+
+    /// The year zooms of §5.3 and §5.4 (the opening of the 13-inch and the 11-inch iPad in portrait, the iPhone 17 in portrait,
+    /// the capped landscape iPhone 17 and 18 Pro Max).
+    private let yearZooms: [CGFloat] = [0.6183, 0.5134, 0.2871, 0.1786, 0.1983]
+
+    private func year(_ number: Int) throws -> PaperContent {
+        try XCTUnwrap(PaperSpan.paperContent(of: YearLayoutEngine.layout(YearLayoutInput(year: number, events: [], inkBottoms: [:], now: now))))
+    }
+
+    /// 2025, 2026 and 2027 joined, the focus on 2026 (the year of `now`).
+    private func years() throws -> PaperSpan {
+        try XCTUnwrap(PaperSpan(pages: [try year(2025), try year(2026), try year(2027)], bands: [], focus: 1))
+    }
+
+    /// The year label's form as the code measures it (`yearLabelWidth`: `PaperText.width` in the label's font with the padding),
+    /// for the rule of §5.3: inset + width ≤ the date column − gap.
+    private func expectedYearForm(gutterPoints: CGFloat) -> StickyHeaderView.YearLabelForm? {
+        StickyHeaderView.YearLabelForm.allCases.first { form in
+            let text = StickyHeaderView.yearLabelText(year: 2027, form: form)
+            let width = PaperText.width(of: text, font: StickyHeaderView.yearLabelFont) + 2 * StickyHeaderView.monthLabelPadding
+            return StickyHeaderView.monthLabelInset + width + StickyHeaderView.monthLabelGap <= gutterPoints
+        }
+    }
+
+    /// MP4 (the year), §3.8, 0g-20: the joined years draw their own row: per page the year's [56] + [112] × 12 columns from
+    /// k × 1,400 lu (never the week's [64] + [190.857…] × 7), and at zoom 0.5 (700 pt pages, 56 pt month columns) every page's
+    /// twelve month names are, pixel for pixel, the one page's `yearRow` of that year, each from its origin (x = k × 700 pt; the
+    /// accent of November 2026 on the focus page only); the row is as tall as the one page's — the week's row (48 pt cells)
+    /// would be taller. Each page's date column (28 pt) carries its year's label, which the one page's row does not have.
+    func testTheJoinedYearsDrawTheYearsRowFromEachOrigin() throws {
+        let joined = try years()
+        let columns = StickyHeaderView.spanColumns(joined)
+        XCTAssertEqual(columns.count, 3 * (1 + PaperSpec.yearColumns))
+        guard columns.count == 3 * (1 + PaperSpec.yearColumns) else { return XCTFail("the year's 13 columns per page: \(columns)") }
+        for slot in 0..<3 {
+            let first = slot * (1 + PaperSpec.yearColumns)
+            XCTAssertEqual(columns[first], PaperSpec.yearGutter, "slot \(slot): its date column first")
+            XCTAssertEqual(Array(columns[(first + 1)...(first + PaperSpec.yearColumns)]), Array(repeating: PaperSpec.yearColumnWidth, count: 12))
+            XCTAssertEqual(columns.prefix(first).reduce(0, +), joined.origin(ofSlot: slot), accuracy: 1e-9, "slot \(slot) starts at its origin")
+        }
+        XCTAssertEqual(columns.reduce(0, +), joined.size.width, accuracy: 1e-9)
+        XCTAssertNotEqual(columns[0], PaperSpec.weekGutter, "not the week's time column")
+
+        let zoom: CGFloat = 0.5
+        let page = PaperSpec.yearWidth * zoom
+        let gutter = Int(PaperSpec.yearGutter * zoom)
+        XCTAssertEqual(gutter, 28)
+        let form = try XCTUnwrap(StickyHeaderView.yearLabelForm(gutterPoints: PaperSpec.yearGutter * zoom), "a label in a 28 pt date column")
+        XCTAssertEqual(form, expectedYearForm(gutterPoints: 28))
+        let row = try render(heading(joined.pages[1], PaperViewport(offsetX: 0, zoom: zoom, width: 3 * page), span: joined), width: 3 * page)
+        for slot in 0..<3 {
+            let alone = try render(heading(joined.pages[slot], PaperViewport(offsetX: 0, zoom: zoom, width: page)), width: page)
+            XCTAssertGreaterThan(alone.height, 30, "slot \(slot)")
+            XCTAssertLessThan(alone.height, 48, "the year's month-name row, not the week's 48 pt cells")
+            XCTAssertEqual(row.height, alone.height, "slot \(slot): the joined row is as tall as the one page's")
+            let origin = slot * Int(page)
+            XCTAssertEqual(Bitmap.differences(row, x0: origin + gutter, alone, x1: gutter, width: Int(page) - gutter, tolerance: 8), 0,
+                           "slot \(slot): the twelve month names at the page's origin are the one page's")
+            // The label 「’25」…「’27」 inside the date column (2 pt from its left edge, 2 pt short of January's line).
+            XCTAssertGreaterThan(row.darkPixels(x: (origin + 2)..<(origin + gutter - 2)), 0, "slot \(slot): the year's label")
+            XCTAssertEqual(alone.darkPixels(x: 0..<gutter), 0, "slot \(slot): the one page's date column has no label")
+        }
+        // The other pages' names are not the focus page's: November 2026's accent is on the focus page alone.
+        let focusAlone = try render(heading(joined.pages[1], PaperViewport(offsetX: 0, zoom: zoom, width: page)), width: page)
+        let before = try render(heading(joined.pages[0], PaperViewport(offsetX: 0, zoom: zoom, width: page)), width: page)
+        XCTAssertGreaterThan(Bitmap.differences(focusAlone, x0: gutter, before, x1: gutter, width: Int(page) - gutter, tolerance: 8), 0,
+                             "2026's row (November in the accent) is not 2025's")
+    }
+
+    /// §3.8 (the one page's words and shrinking, the paper area and the opening zoom), §12.3: at every year zoom — the five of
+    /// §5.3/§5.4, 1 and narrow 0.15 and 0.1 — each page of the joined row, scrolled to its origin, is the one page's `yearRow`
+    /// of that year: as tall (with the label in ja, en or de, scrolled or not) and the same twelve names pixel for pixel, so the
+    /// names shrink as the one page's do. The names are the page's own `content.monthNames` in ja (`yearRow`'s F-8 branch):
+    /// a window of years whose contents carry other names draws those, as their one pages do. Each zoom is taken to the
+    /// nearest 1/1,024 (within 0.0005 of the device's), so k × 1,400 lu × zoom and every column's x are exact in binary and the
+    /// scrolled page's names stand on exactly the one page's points (a 10⁻¹⁴ pt difference may move a glyph by a pixel).
+    func testTheJoinedYearsRowIsTheOnePagesRowAtEveryZoom() throws {
+        let joined = try years()
+        // Pages whose names are not DateText's: in ja both rows read `content.monthNames`.
+        let named: [PaperContent] = [2025, 2026, 2027].map { number in
+            .year(YearPaperContent(layout: YearLayoutEngine.layout(YearLayoutInput(year: number, events: [], inkBottoms: [:], now: now)),
+                                   monthNames: (1...12).map { "M\($0)" }))
+        }
+        let renamed = try XCTUnwrap(PaperSpan(pages: named, bands: [], focus: 1))
+        var compared = 0
+        for device in yearZooms + [1, 0.15, 0.1] {
+            let zoom = (device * 1_024).rounded() / 1_024
+            XCTAssertEqual(zoom, device, accuracy: 0.0005)
+            let page = PaperSpec.yearWidth * zoom
+            let width = page.rounded(.up)
+            let gutter = Int((PaperSpec.yearGutter * zoom).rounded(.up))
+            for (window, what) in [(joined, "DateText's names"), (renamed, "the content's names")] {
+                for slot in 0..<3 {
+                    let alone = try render(heading(window.pages[slot], PaperViewport(offsetX: 0, zoom: zoom, width: width)), width: width)
+                    XCTAssertGreaterThan(alone.height, 30, "zoom \(zoom)")
+                    let viewport = PaperViewport(offsetX: window.origin(ofSlot: slot) * zoom, zoom: zoom, width: width)
+                    let row = try render(heading(window.pages[1], viewport, span: window), width: width)
+                    XCTAssertEqual(row.height, alone.height, "zoom \(zoom), slot \(slot), \(what)")
+                    XCTAssertEqual(Bitmap.differences(row, x0: gutter, alone, x1: gutter, width: Int(width) - gutter, tolerance: 8), 0,
+                                   "zoom \(zoom), slot \(slot), \(what): the one page's names and shrinking")
+                    compared += 1
+                }
+            }
+            if L.language == .ja {
+                let plain = try render(heading(joined.pages[1], PaperViewport(offsetX: 0, zoom: zoom, width: width)), width: width)
+                let own = try render(heading(renamed.pages[1], PaperViewport(offsetX: 0, zoom: zoom, width: width)), width: width)
+                XCTAssertGreaterThan(Bitmap.differences(plain, x0: gutter, own, x1: gutter, width: Int(width) - gutter, tolerance: 8), 0,
+                                     "zoom \(zoom): ja shows the content's names")
+            }
+            // The label never makes the row taller, whatever its language and where the row is scrolled to.
+            let alone = try render(heading(joined.pages[1], PaperViewport(offsetX: 0, zoom: zoom, width: width)), width: width)
+            for language in [UILanguage.ja, .en, .de] {
+                for offset in [CGFloat(0), (page * 0.6).rounded(), (page * 1.3).rounded()] {
+                    let row = try render(heading(joined.pages[1], PaperViewport(offsetX: offset, zoom: zoom, width: width), span: joined, language: language),
+                                         width: width)
+                    XCTAssertEqual(row.height, alone.height, "zoom \(zoom), \(language.rawValue), offset \(offset)")
+                }
+            }
+        }
+        XCTAssertEqual(compared, 8 * 2 * 3)
+    }
+
+    /// §5.3, 0g-22: the label is the year's number as the title has it (「2027」: `DateText.yearTitle` is 「2027年」 in ja and the
+    /// number itself in en and de), then its last two digits after an apostrophe (「’27」), then none — no new string, the same
+    /// text in every language, read as the title. Tabular digits: every year is as wide, so one form serves the whole row. The
+    /// form at the year zooms, from the code's own measure (`PaperText.width` in the label's font): about 35 and 29 pt at the
+    /// iPads' portrait openings show a label (「’27」 at 0.5134), the iPhone in portrait (about 16 pt) and the capped landscape
+    /// iPhones (about 10 and 11 pt) none; 56 pt (zoom 1) the number. The form changes exactly where the label of a form fits and
+    /// never goes back to a longer one on a narrower column.
+    func testTheYearLabelIsTheYearsDigitsThenTheLastTwoThenNone() throws {
+        XCTAssertEqual(StickyHeaderView.yearLabelText(year: 2027, form: .full), "2027")
+        XCTAssertEqual(StickyHeaderView.yearLabelText(year: 2027, form: .short), "\u{2019}27")
+        XCTAssertEqual(StickyHeaderView.yearLabelText(year: 2005, form: .short), "\u{2019}05")
+        XCTAssertEqual(StickyHeaderView.yearLabelFontSize, StickyHeaderView.monthLabelFontSize, "the month's label's 11 pt")
+        for language in [UILanguage.ja, .en, .de] {
+            XCTAssertTrue(DateText.yearTitle(2027, language).hasPrefix(StickyHeaderView.yearLabelText(year: 2027, form: .full)),
+                          "\(language.rawValue): the title's number")
+        }
+        let full = StickyHeaderView.yearLabelWidth(StickyHeaderView.yearLabelText(year: 2000, form: .full))
+        let short = StickyHeaderView.yearLabelWidth(StickyHeaderView.yearLabelText(year: 2000, form: .short))
+        XCTAssertLessThan(short, full)
+        for number in 1990...2040 {
+            XCTAssertEqual(StickyHeaderView.yearLabelWidth(StickyHeaderView.yearLabelText(year: number, form: .full)), full, "\(number): tabular digits")
+            XCTAssertEqual(StickyHeaderView.yearLabelWidth(StickyHeaderView.yearLabelText(year: number, form: .short)), short, "\(number)")
+        }
+
+        for zoom in yearZooms {
+            let gutter = PaperSpec.yearGutter * zoom
+            XCTAssertEqual(StickyHeaderView.yearLabelForm(gutterPoints: gutter), expectedYearForm(gutterPoints: gutter), "zoom \(zoom), \(gutter) pt")
+        }
+        XCTAssertNotNil(StickyHeaderView.yearLabelForm(gutterPoints: PaperSpec.yearGutter * 0.6183), "the 13-inch iPad in portrait")
+        XCTAssertEqual(StickyHeaderView.yearLabelForm(gutterPoints: PaperSpec.yearGutter * 0.5134), .short, "the 11-inch iPad in portrait: ’27")
+        XCTAssertNil(StickyHeaderView.yearLabelForm(gutterPoints: PaperSpec.yearGutter * 0.2871), "the iPhone in portrait")
+        XCTAssertNil(StickyHeaderView.yearLabelForm(gutterPoints: PaperSpec.yearGutter * 0.1786), "the capped iPhone 17 in landscape")
+        XCTAssertNil(StickyHeaderView.yearLabelForm(gutterPoints: PaperSpec.yearGutter * 0.1983), "the capped 18 Pro Max in landscape")
+        XCTAssertEqual(StickyHeaderView.yearLabelForm(gutterPoints: PaperSpec.yearGutter), .full, "zoom 1")
+
+        // Where each form starts to fit: inset + width + gap.
+        let order: [StickyHeaderView.YearLabelForm?] = [nil, .short, .full]
+        for form in StickyHeaderView.YearLabelForm.allCases {
+            let width = StickyHeaderView.yearLabelWidth(StickyHeaderView.yearLabelText(year: 2027, form: form))
+            let threshold = StickyHeaderView.monthLabelInset + width + StickyHeaderView.monthLabelGap
+            XCTAssertEqual(StickyHeaderView.yearLabelForm(gutterPoints: threshold + 0.001), form, "\(form) fits at \(threshold) pt")
+            XCTAssertNotEqual(StickyHeaderView.yearLabelForm(gutterPoints: threshold - 0.001), form, "\(form) does not fit below \(threshold) pt")
+        }
+        var last = -1
+        for tenth in stride(from: 50, through: 800, by: 5) {
+            let found = StickyHeaderView.yearLabelForm(gutterPoints: CGFloat(tenth) / 10)
+            let rank = try XCTUnwrap(order.firstIndex(of: found))
+            XCTAssertGreaterThanOrEqual(rank, last, "\(CGFloat(tenth) / 10) pt: never back to a shorter form")
+            last = rank
+        }
+        XCTAssertEqual(last, 2)
+        XCTAssertNil(StickyHeaderView.yearLabelForm(gutterPoints: .nan))
+        XCTAssertNil(StickyHeaderView.yearLabelForm(gutterPoints: 0))
+
+        // The labels of a window: the same text in ja, en and de, read as the title.
+        let joined = try years()
+        for language in [UILanguage.ja, .en, .de] {
+            for zoom in [CGFloat(1), 0.5134] {
+                let viewport = PaperViewport(offsetX: 0, zoom: zoom, width: 3 * PaperSpec.yearWidth * zoom)
+                let labels = StickyHeaderView.yearLabels(joined, viewport: viewport, language: language)
+                XCTAssertEqual(labels.map(\.year), [2025, 2026, 2027], "\(language.rawValue) at \(zoom)")
+                let form = try XCTUnwrap(StickyHeaderView.yearLabelForm(gutterPoints: PaperSpec.yearGutter * zoom))
+                for label in labels {
+                    XCTAssertEqual(label.text, StickyHeaderView.yearLabelText(year: label.year, form: form))
+                    XCTAssertEqual(label.spoken, DateText.yearTitle(label.year, language))
+                    XCTAssertEqual(label.width, StickyHeaderView.yearLabelWidth(label.text))
+                }
+            }
+            let narrow = PaperViewport(offsetX: 0, zoom: 0.2871, width: 402)
+            XCTAssertEqual(StickyHeaderView.yearLabels(joined, viewport: narrow, language: language), [], "\(language.rawValue): the iPhone in portrait")
+        }
+        XCTAssertEqual(StickyHeaderView.yearLabels(joined, viewport: PaperViewport(offsetX: 0, zoom: 1, width: 4_200), language: .ja).map(\.spoken),
+                       ["2025年", "2026年", "2027年"])
+    }
+
+    /// §5.3: a label stands 2 pt right of its page's left edge, over the date column; once that edge has gone out to the left it
+    /// stays 2 pt from the screen's left edge while its page is on screen, until the next page's label, coming in at the
+    /// boundary, pushes it out (the month's rule, `monthLabelX`, on 1,400 lu pages); a page off the screen has none. On screen
+    /// (zoom 1, scrolled 356 pt: the screen's left edge just right of March's name) the stuck 「2025」 is drawn at the left edge,
+    /// where the one page has only the paper and April's light line.
+    func testAYearLabelSticksToTheLeftEdgeUntilTheNextPushesItOut() throws {
+        let zoom: CGFloat = 0.5134
+        let page = PaperSpec.yearWidth * zoom
+        let width: CGFloat = 834
+        let w = StickyHeaderView.yearLabelWidth(StickyHeaderView.yearLabelText(year: 2026, form: .short))
+        let inset = StickyHeaderView.monthLabelInset
+        func x(_ slot: Int, _ offset: CGFloat, width: CGFloat = 834) -> CGFloat? {
+            StickyHeaderView.yearLabelX(slot: slot, labelWidth: w, viewport: PaperViewport(offsetX: offset, zoom: zoom, width: width))
+        }
+        for slot in 0..<3 {
+            for offset in [CGFloat(-100), 0, 300, page - 20, page + 50, 2 * page - 5] {
+                let viewport = PaperViewport(offsetX: offset, zoom: zoom, width: width)
+                XCTAssertEqual(x(slot, offset), StickyHeaderView.monthLabelX(slot: slot, labelWidth: w, viewport: viewport, pageWidth: 1_400),
+                               "slot \(slot), offset \(offset): the month's rule on 1,400 lu pages")
+            }
+        }
+        // At rest: each label at its page's left edge.
+        XCTAssertEqual(try XCTUnwrap(x(0, 0)), inset, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(x(1, 0)), page + inset, accuracy: 1e-9)
+        XCTAssertNil(x(2, 0), "the third page has not come in (it starts at \(2 * page) pt)")
+        // The first page 300 pt out to the left: its label sticks, the second follows its page.
+        XCTAssertEqual(try XCTUnwrap(x(0, 300)), inset, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(x(1, 300)), page - 300 + inset, accuracy: 1e-9)
+        // The first page's right edge at 20 pt: its label is pushed (its right edge 2 pt short of the boundary).
+        XCTAssertEqual(try XCTUnwrap(x(0, page - 20)), 20 - inset - w, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(x(1, page - 20)), 20 + inset, accuracy: 1e-9)
+        XCTAssertLessThanOrEqual(try XCTUnwrap(x(0, page - 20)) + w, try XCTUnwrap(x(1, page - 20)) - 2 * inset + 1e-9, "no overlap")
+        // Its page gone: no label; the next one sticks.
+        XCTAssertNil(x(0, page))
+        XCTAssertNil(x(0, page + 50))
+        XCTAssertEqual(try XCTUnwrap(x(1, page + 50)), inset, accuracy: 1e-9)
+        // A paper narrower than the screen, centred (negative offset): at its page's edge.
+        XCTAssertEqual(try XCTUnwrap(x(0, -100, width: 4_000)), 100 + inset, accuracy: 1e-9)
+        XCTAssertNil(x(1, -width), "off the right edge")
+        XCTAssertNil(StickyHeaderView.yearLabelX(slot: 0, labelWidth: w, viewport: PaperViewport(offsetX: .nan, zoom: zoom, width: width)))
+
+        // The labels of the window move with it.
+        let joined = try years()
+        let rest = StickyHeaderView.yearLabels(joined, viewport: PaperViewport(offsetX: 0, zoom: zoom, width: width), language: .ja)
+        XCTAssertEqual(rest.map(\.slot), [0, 1])
+        XCTAssertEqual(rest.map(\.text), ["\u{2019}25", "\u{2019}26"])
+        let scrolled = StickyHeaderView.yearLabels(joined, viewport: PaperViewport(offsetX: 300, zoom: zoom, width: width), language: .ja)
+        XCTAssertEqual(scrolled.map(\.slot), [0, 1], "2027 starts at \(2 * page - 300) pt")
+        XCTAssertEqual(scrolled.first?.x ?? -1, inset, accuracy: 1e-9, "2025's label sticks")
+        XCTAssertEqual(scrolled.last?.x ?? -1, page - 300 + inset, accuracy: 1e-9)
+
+        // On screen at zoom 1: March's name (centred at 336 lu, about 21 pt wide) ends left of the screen, April's starts about
+        // 81 pt in; between them only the paper and April's line at 36 pt (#d7dade, not dark).
+        let offset: CGFloat = 356
+        let one = PaperViewport(offsetX: offset, zoom: 1, width: 1_000)
+        let stuck = try XCTUnwrap(StickyHeaderView.yearLabels(joined, viewport: one, language: .ja).first)
+        XCTAssertEqual(stuck.year, 2025)
+        XCTAssertEqual(stuck.text, "2025")
+        XCTAssertEqual(stuck.x, inset, accuracy: 1e-9)
+        let under = Int(inset.rounded(.up))..<Int((inset + stuck.width).rounded(.down))
+        let row = try render(heading(joined.pages[1], one, span: joined, language: .ja), width: 1_000)
+        XCTAssertGreaterThan(row.darkPixels(x: under), 0, "the stuck label")
+        let alone = try render(heading(joined.pages[0], one), width: 1_000)
+        XCTAssertEqual(alone.darkPixels(x: under), 0, "2025's one page scrolled by 356 pt has nothing dark there")
+    }
+
+    /// §10: each year label is one heading element that reads the year's title; a label stuck at the left edge is its own page's
+    /// label moved (one per page, never a copy), so VoiceOver reads it once. A window of one year, a window of months (for the
+    /// year's labels) and a window of years (for the month's labels) have none.
+    func testEachYearLabelIsOneHeadingReadOnce() throws {
+        let joined = try years()
+        for zoom in [CGFloat(0.7314), 0.5134] {
+            let page = PaperSpec.yearWidth * zoom
+            for language in [UILanguage.ja, .en, .de] {
+                for step in 0...40 {
+                    let offset = CGFloat(step) * page / 16 - page / 4
+                    let viewport = PaperViewport(offsetX: offset, zoom: zoom, width: 834)
+                    let labels = StickyHeaderView.yearLabels(joined, viewport: viewport, language: language)
+                    XCTAssertFalse(labels.isEmpty, "\(language.rawValue) at \(zoom), \(offset)")
+                    XCTAssertEqual(Set(labels.map(\.slot)).count, labels.count, "\(language.rawValue) at \(offset): one label per page")
+                    XCTAssertEqual(labels.map(\.slot), labels.map(\.slot).sorted())
+                    for label in labels {
+                        guard case .year(let content) = joined.pages[label.slot] else { return XCTFail("a year") }
+                        XCTAssertEqual(label.year, content.layout.year, "the label is its own page's")
+                        XCTAssertEqual(label.spoken, DateText.yearTitle(content.layout.year, language))
+                        XCTAssertGreaterThan(label.x + label.width, 0)
+                        XCTAssertLessThan(label.x, viewport.width)
+                    }
+                    for (a, b) in zip(labels, labels.dropFirst()) {
+                        XCTAssertLessThanOrEqual(a.x + a.width, b.x + 1e-9, "\(language.rawValue) at \(offset): labels never overlap")
+                    }
+                }
+            }
+        }
+        let viewport = PaperViewport(offsetX: 0, zoom: 1, width: 1_366)
+        let one = try XCTUnwrap(PaperSpan(pages: [try year(2026)], bands: [], focus: 0))
+        XCTAssertEqual(StickyHeaderView.yearLabels(one, viewport: viewport, language: .ja), [], "a window of one year")
+        XCTAssertEqual(StickyHeaderView.yearLabels(try window(), viewport: viewport, language: .ja), [], "a window of months")
+        XCTAssertEqual(StickyHeaderView.monthLabels(joined, viewport: viewport, language: .ja, weekdayPoints: 12), [], "a window of years")
+
+        // The label's view: one element, a heading, that reads `spoken`; one view per label (the source of StickyHeaderView.swift,
+        // spaces joined, as the month's check above). It stands after `extension YearMonth`, so the month's view keeps its count.
+        let repository = URL(fileURLWithPath: "\(#filePath)").deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: repository.appendingPathComponent("Sources/TegakiCalendar/Views/StickyHeaderView.swift"), encoding: .utf8)
+        let flat = source.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.joined(separator: " ")
+        func count(_ text: String, in text2: String) -> Int { text2.components(separatedBy: text).count - 1 }
+        let view = try XCTUnwrap(flat.components(separatedBy: "private struct SpanYearLabelView: View {").dropFirst().first?
+            .components(separatedBy: "struct PaperRow: Layout").first, "the year label's view")
+        XCTAssertEqual(count(".accessibilityElement(children: .ignore) .accessibilityLabel(label.spoken) .accessibilityAddTraits(.isHeader)", in: view), 1,
+                       "the label is one heading element reading the year's title")
+        XCTAssertEqual(count("SpanYearLabelView(label: label)", in: flat), 1, "one view per label, placed where `yearLabels` says")
+        XCTAssertEqual(count("private struct SpanYearLabelView: View {", in: flat), 1)
+        let monthView = try XCTUnwrap(flat.components(separatedBy: "private struct SpanMonthLabelView: View {").dropFirst().first?
+            .components(separatedBy: "extension YearMonth").first)
+        XCTAssertFalse(monthView.contains("SpanYearLabelView"), "the year's view is outside the month's")
     }
 }

@@ -29,8 +29,28 @@ import XCTest
 ///   (it keeps its zoom or takes its landscape opening zoom, about 402 or 306 pt of a 750 pt column on the iPhone 17), so
 ///   the fit in landscape is the press's. The probe's fields are the frozen canvas's (§11.3: none added).
 ///
-/// The year's part of §11.3 (12 月 → 1 月, its 等倍 pressed in portrait and read in landscape) is D1y's (§14.1); a year
-/// that is not joined (the fallback of §14.1's decision) has none, as the UI tests cannot read `SpanKinds`.
+/// D1y (§11.3, §5.2, §5.4, §6.4; the year, open question 11 of the plan: two tests, the setting's switch stays the month's as
+/// it reads no kind):
+/// - `testTheYearSlidesOnceAndALineCrossesItsBoundary`: the month's steps on the year page (2026, the demo's; its neighbours
+///   the demo's handwriting without events): 「指でも書く」 off, one finger slides the year, the title changes once
+///   (「2026年」 → 「2027年」), 「前の年」 (‹) brings 2026 back on the same canvas. Then 「指でも書く」 on and 2026's left
+///   boundary in the middle, one finger on the 20th's row (no demo handwriting, no demo all-day event; the window's rows are
+///   2026's, row 16 grown by 36 lu, so the 20th is 1,176…1,236 lu) from 2025's December, 100 lu left of the boundary, into
+///   2026's January, 150 lu right of it (§5.2's 12 月 → 1 月; its centre is 2026's day-number column, which is January's).
+///   `span.state`'s `last=` is that line in its owner's `.yearDay` cell of the 20th (`12-20` of y-2025 or `01-20` of y-2026),
+///   its x in the cell (the store's coordinates; the cell's left edge in its page is 56 + 112 × (month − 1) lu), so the
+///   page's x is past the page: x < 0 when 2026 holds it, x > 1,400 when 2025 does; whole (more than its 150 lu right
+///   part). 「前の年」 (‹) then slides one year on the same canvas (the session and the band's id stay, one shift, 「2025年」,
+///   the line still the window's newest: both its years stay in the window 2023…2027). ‹, not ›, as the month's line test:
+///   › would bring 2026's right edge to the middle, inside 2026's hysteresis ([X − 84, X + 1,484) lu), so neither the focus
+///   nor the window would move; ‹ brings 2025's left edge, a page past it (its middle crosses 2025 on the way).
+/// - `testTheYearsZoomResetInPortraitIsFitWhenTurned`: 等倍 of a year. On the iPhone 17 a year opens at its fit in portrait
+///   (open = fit: 402 ÷ 1,400 < 569 ÷ 1,860), so 等倍 moves nothing there; turned, one page is the landscape column across
+///   (the cap of 3 years, P-B6 イ, raises the lowest zoom and the opening one, never the fit: §6.4). The control, in a launch
+///   of its own: turned without 等倍, the year is the capped overview (its opening zoom there, about 0.179 = 750 ÷ 4,200:
+///   at most 3 years across, well short of one).
+/// A year that is not joined (the fallback of §14.1's decision) has neither: U takes them out then, as the UI tests cannot
+/// read `SpanKinds`.
 ///
 /// The app runs in its screenshot mode (no onboarding, no EventKit, nothing saved; the demo month 2026-10, the focus month
 /// m1-2026-10, its neighbours each the demo of its own day of the month) with `--screenshot-span on` and
@@ -53,6 +73,20 @@ final class SpanMonthYearUITests: XCTestCase {
     private static let november = "m1-2026-11"
     /// The month page's width (lu, `ZoomPolicy.paperWidth(.month)`): one page of the band.
     private static let monthWidth: CGFloat = 1400
+    /// D1y: the year page's width (lu, `ZoomPolicy.paperWidth(.year)`, `PaperSpec.yearWidth`): one page of the band.
+    private static let yearWidth: CGFloat = 1400
+    /// D1y: the demo year's rows (lu, `YearLayoutEngine.rowHeight`): 60 each but row 16, 36 more for 10/16's four all-day
+    /// events — the window's rows too, as its other years have no events (`yearFloors`), and so its height.
+    private static let yearRowHeight: CGFloat = 60
+    private static let yearRowGrowth: CGFloat = 36
+    private static let yearPaperHeight: CGFloat = 1896
+    /// D1y: the row of the line across the years' boundary, and its ends from the boundary (lu): from 2025's December into
+    /// 2026's January (its centre +25, 2026's day-number column, January's cell). More than its right part (150 lu) is the
+    /// whole line.
+    private static let yearLineDay = 20
+    private static let yearLineFrom: CGFloat = -100
+    private static let yearLineTo: CGFloat = 150
+    private static let yearLineWhole: CGFloat = 160
     /// The notes area of the demo's months (lu, `PaperSpec.growMax`): the paper ends this far below the separator line.
     private static let notesHeight: CGFloat = 6000
     /// Where the separator line may be (lu): six rows of at least the 175 lu of an empty row, at most a few grown ones.
@@ -62,6 +96,7 @@ final class SpanMonthYearUITests: XCTestCase {
     /// How far (pt) one page across may be from the column's width at 等倍.
     private static let fitTolerance: CGFloat = 1.5
     private static let previousMonth = "前の月"
+    private static let previousYear = "前の年"
     private static let resetIdentifier = "header.zoomReset"
     /// A gesture whose synthesis took longer than this (s) beyond its own length met an overloaded simulator
     /// (YearTapUITests): it is tried once more.
@@ -72,7 +107,7 @@ final class SpanMonthYearUITests: XCTestCase {
     func testTheMonthSlidesOnceAndAMemoLineCrossesItsBoundary() throws {
         try skipUnlessPhone()
         continueAfterFailure = false
-        guard slideAndComeBack() else { return }
+        guard slideAndComeBack(.month) else { return }
         lineAcrossTheBoundaryThenNext()
     }
 
@@ -80,9 +115,9 @@ final class SpanMonthYearUITests: XCTestCase {
         try skipUnlessPhone()
         continueAfterFailure = false
         let name = "setting"
-        let app = launch([], fingerDraws: true, name)
+        let app = launch([], fingerDraws: true, name, .month)
         defer { app.terminate() }
-        guard let joined = waitForJoined(app, name) else { return }
+        guard let joined = waitForJoined(app, name, .month) else { return }
         XCTAssertEqual(joined.state["kind"], "month", "\(name): the month (\(joined.stateRaw))")
         XCTAssertGreaterThan(joined.pages, 1, "\(name): a window of months (\(joined.stateRaw))")
 
@@ -118,8 +153,25 @@ final class SpanMonthYearUITests: XCTestCase {
         try skipUnlessPhone()
         continueAfterFailure = true
         defer { XCUIDevice.shared.orientation = .portrait }
-        turnWithoutZoomReset()
-        turnAfterZoomReset()
+        turnWithoutZoomReset(.month)
+        turnAfterZoomReset(.month)
+    }
+
+    // MARK: - Tests of the year (D1y)
+
+    func testTheYearSlidesOnceAndALineCrossesItsBoundary() throws {
+        try skipUnlessPhone()
+        continueAfterFailure = false
+        guard slideAndComeBack(.year) else { return }
+        yearLineAcrossTheBoundaryThenNext()
+    }
+
+    func testTheYearsZoomResetInPortraitIsFitWhenTurned() throws {
+        try skipUnlessPhone()
+        continueAfterFailure = true
+        defer { XCUIDevice.shared.orientation = .portrait }
+        turnWithoutZoomReset(.year)
+        turnAfterZoomReset(.year)
     }
 
     // MARK: - The slide, the line and the arrows
@@ -129,29 +181,30 @@ final class SpanMonthYearUITests: XCTestCase {
     /// the title changes once and stays so while the window shifts (`shifts` + 1; read every 0.15 s from the lift until the
     /// window settled and 1 s longer). A synthesized drag that moved the paper less than the focus needs (review
     /// C2-SHOTS-2: its first 56.5 pt once did not move the paper) is made once more from there. Then 「前の月」: October on
-    /// the same canvas. False when a step that the next one needs did not happen.
-    private func slideAndComeBack() -> Bool {
-        let name = "slide"
-        let app = launch([], fingerDraws: false, name)
+    /// the same canvas. False when a step that the next one needs did not happen. D1y: the same steps on the year (`kind`),
+    /// 2026 → 2027 and 「前の年」 back to 2026.
+    private func slideAndComeBack(_ kind: JoinedKind) -> Bool {
+        let name = "\(kind.logPrefix)slide"
+        let app = launch([], fingerDraws: false, name, kind)
         defer { app.terminate() }
-        guard let start = waitForJoined(app, name) else { return false }
-        XCTAssertEqual(start.state["kind"], "month", "\(name): the month (\(start.stateRaw))")
-        XCTAssertEqual(start.state["focus"], Self.october, "\(name): the focus month")
+        guard let start = waitForJoined(app, name, kind) else { return false }
+        XCTAssertEqual(start.state["kind"], kind.name, "\(name): the \(kind.name) (\(start.stateRaw))")
+        XCTAssertEqual(start.state["focus"], kind.focus, "\(name): the focus \(kind.name)")
         let title = titleElement(in: app)
         XCTAssertTrue(title.waitForExistence(timeout: 5), "\(name): the page title")
         let before = title.label
         log("\(name): the title is 「\(before)」")
-        XCTAssertTrue(Self.isMonth(2026, 10, before), "\(name): October's title (「\(before)」)")
+        XCTAssertTrue(kind.shows(before, kind.focusTitle), "\(name): \(kind.focusWord)'s title (「\(before)」)")
 
         let frame = start.probe.frame
-        let page = Self.monthWidth * start.probe.zoom
+        let page = kind.width * start.probe.zoom
         let distance = min(page * 0.85, frame.width * 0.8)
         guard distance > page * 0.62 else {
             XCTFail("\(name): a page (\(page) pt) is too wide for one drag in the canvas \(frame)")
             return false
         }
         // How far the paper must move for the focus to change (pt): to 6 % of a page past the focus page's right edge.
-        let needed = (Self.monthWidth * (1 + Self.focusHysteresis) - start.middleInFocus) * start.probe.zoom
+        let needed = (kind.width * (1 + Self.focusHysteresis) - start.middleInFocus) * start.probe.zoom
         let from = CGPoint(x: frame.midX + distance / 2, y: frame.midY)
         let to = CGPoint(x: frame.midX - distance / 2, y: frame.midY)
 
@@ -172,11 +225,11 @@ final class SpanMonthYearUITests: XCTestCase {
                 if !shown.isEmpty, shown != titles.last { titles.append(shown) }
                 if let now = snapshot(app) {
                     let alike = previous.map { now.isAlike($0) } ?? false
-                    if now.state["focus"] == Self.november, now.shifts > base.shifts, alike {
+                    if now.state["focus"] == kind.next, now.shifts > base.shifts, alike {
                         settled = now
                         if settledAt == nil { settledAt = Date() }
-                    } else if now.state["focus"] == Self.october, now.stops > base.stops, alike {
-                        // Stopped on the same month: the paper moved less than the focus needs, or the focus did not follow.
+                    } else if now.state["focus"] == kind.focus, now.stops > base.stops, alike {
+                        // Stopped on the same page: the paper moved less than the focus needs, or the focus did not follow.
                         stayed = now
                         if settledAt == nil { settledAt = Date() }
                     } else {
@@ -193,7 +246,7 @@ final class SpanMonthYearUITests: XCTestCase {
             if settled != nil { break }
             guard let stayed else { break }
             let moved = stayed.paperMoved(since: base)
-            log("\(name): the paper stopped on the same month, moved \(Int(moved)) pt of the drag's \(Int(distance)) (the focus needs \(Int(needed)) from the start); span.state \(stayed.stateRaw)")
+            log("\(name): the paper stopped on the same \(kind.name), moved \(Int(moved)) pt of the drag's \(Int(distance)) (the focus needs \(Int(needed)) from the start); span.state \(stayed.stateRaw)")
             guard stayed.paperMoved(since: start) < needed, attempt == 1 else { break }
             log("\(name): the synthesized drag fell \(Int(needed - stayed.paperMoved(since: start))) pt short of the focus's \(Int(needed)) pt; dragging once more from there")
             keepScreenshot(app, "\(name) — short drag")
@@ -204,39 +257,39 @@ final class SpanMonthYearUITests: XCTestCase {
         guard let settled else {
             let now = snapshot(app)
             let moved = now.map { "; the paper moved \(Int($0.paperMoved(since: start))) pt, the focus needs \(Int(needed))" } ?? ""
-            XCTFail("\(name): the paper did not stop on November with the window shifted (span.state \(stateLabel(app)); titles \(titles)\(moved))")
+            XCTFail("\(name): the paper did not stop on \(kind.nextWord) with the window shifted (span.state \(stateLabel(app)); titles \(titles)\(moved))")
             return false
         }
         attach(settled.stateRaw, "\(name) — span.state")
         // The four checks below are independent: each one reports.
         continueAfterFailure = true
         XCTAssertEqual(titles.count, 2, "\(name): the title changed once (\(titles))")
-        XCTAssertTrue(Self.isMonth(2026, 11, titles.last ?? ""), "\(name): to November (\(titles))")
+        XCTAssertTrue(kind.shows(titles.last ?? "", kind.nextTitle), "\(name): to \(kind.nextWord) (\(titles))")
         XCTAssertEqual(settled.stops, base.stops + 1, "\(name): one stop after the drag that moved the focus (\(base.stops) → \(settled.stops))")
         XCTAssertEqual(settled.state["session"], start.state["session"], "\(name): the same window")
         continueAfterFailure = false
 
-        let back = app.buttons[Self.previousMonth]
+        let back = app.buttons[kind.previousButton]
         guard back.waitForExistence(timeout: 5) else {
-            XCTFail("\(name): no 「\(Self.previousMonth)」")
+            XCTFail("\(name): no 「\(kind.previousButton)」")
             return false
         }
         waitUntilResponsive(back)
         back.tap()
-        log("\(name): tapped 「\(Self.previousMonth)」")
-        guard let october = waitFor(app, timeout: 20, "\(name): October again with the window shifted", until: {
-            $0.state["focus"] == Self.october && $0.shifts > settled.shifts
+        log("\(name): tapped 「\(kind.previousButton)」")
+        guard let again = waitFor(app, timeout: 20, "\(name): \(kind.focusWord) again with the window shifted", until: {
+            $0.state["focus"] == kind.focus && $0.shifts > settled.shifts
         }) else {
-            XCTFail("\(name): 「\(Self.previousMonth)」 did not bring October back with the window shifted (span.state \(stateLabel(app)))")
+            XCTFail("\(name): 「\(kind.previousButton)」 did not bring \(kind.focusWord) back with the window shifted (span.state \(stateLabel(app)))")
             return false
         }
         let shown = titleElement(in: app).label
-        log("\(name): back: the title is 「\(shown)」; span.state \(october.stateRaw)")
+        log("\(name): back: the title is 「\(shown)」; span.state \(again.stateRaw)")
         continueAfterFailure = true
-        XCTAssertEqual(october.state["path"], "span", "\(name): still the joined path")
-        XCTAssertEqual(october.state["session"], start.state["session"], "\(name): the same canvas after ‹ (the session did not change)")
-        XCTAssertEqual(october.probe.page, start.probe.page, "\(name): the canvas's band is the same after ‹ (its id \(start.probe.page))")
-        XCTAssertTrue(Self.isMonth(2026, 10, shown), "\(name): October's title after ‹ (「\(shown)」)")
+        XCTAssertEqual(again.state["path"], "span", "\(name): still the joined path")
+        XCTAssertEqual(again.state["session"], start.state["session"], "\(name): the same canvas after ‹ (the session did not change)")
+        XCTAssertEqual(again.probe.page, start.probe.page, "\(name): the canvas's band is the same after ‹ (its id \(start.probe.page))")
+        XCTAssertTrue(kind.shows(shown, kind.focusTitle), "\(name): \(kind.focusWord)'s title after ‹ (「\(shown)」)")
         continueAfterFailure = false
         return true
     }
@@ -246,9 +299,9 @@ final class SpanMonthYearUITests: XCTestCase {
     /// says why not 「次の月」).
     private func lineAcrossTheBoundaryThenNext() {
         let name = "memo line"
-        let app = launch(["--screenshot-offset-x", "-0.5"], fingerDraws: true, name)
+        let app = launch(["--screenshot-offset-x", "-0.5"], fingerDraws: true, name, .month)
         defer { app.terminate() }
-        guard let start = waitForJoined(app, name) else { return }
+        guard let start = waitForJoined(app, name, .month) else { return }
         XCTAssertEqual(start.state["focus"], Self.october, "\(name): the focus month")
         let separator = start.probe.paperHeight - Self.notesHeight
         guard Self.separatorRange.contains(separator) else {
@@ -319,44 +372,162 @@ final class SpanMonthYearUITests: XCTestCase {
         XCTAssertTrue(Self.isMonth(2026, 9, shown), "\(name): September's title (「\(shown)」)")
     }
 
+    /// D1y: 「指でも書く」 on, 2026's left boundary in the middle: one finger on the 20th's row from 100 lu left of the boundary
+    /// (2025's December) to 150 lu right of it (2026's January), the newest stroke read from `span.state`, then 「前の年」 on
+    /// the same canvas (the type's comment says why not 「次の年」).
+    private func yearLineAcrossTheBoundaryThenNext() {
+        let kind = JoinedKind.year
+        let name = "year line"
+        let app = launch(["--screenshot-offset-x", "-0.5"], fingerDraws: true, name, kind)
+        defer { app.terminate() }
+        guard let opened = waitForJoined(app, name, kind) else { return }
+        XCTAssertEqual(opened.state["focus"], kind.focus, "\(name): the focus year")
+        // The rows the line's y comes from: the demo year's, the window's once 2026's events are read.
+        guard let start = waitFor(app, timeout: 20, "\(name): the demo year's rows", until: {
+            abs($0.probe.paperHeight - Self.yearPaperHeight) < 0.5 && $0.state["focus"] == kind.focus
+        }) else {
+            return XCTFail("\(name): the window of years is not \(Self.yearPaperHeight) lu tall (the demo's rows: 60 lu, row 16 "
+                           + "\(Self.yearRowHeight + Self.yearRowGrowth)) (probe \(probe(app)?.raw ?? "-"); span.state \(stateLabel(app)))")
+        }
+        let row = Self.yearRowTop(day: Self.yearLineDay)
+        let y = row + Self.yearRowHeight / 2
+        let from = start.probe.screen(CGPoint(x: start.origin + Self.yearLineFrom, y: y))
+        let to = start.probe.screen(CGPoint(x: start.origin + Self.yearLineTo, y: y))
+        let boundary = start.probe.screen(CGPoint(x: start.origin, y: y))
+        log("\(name): the \(Self.yearLineDay)th's row at \(row)…\(row + Self.yearRowHeight) lu; the boundary at \(boundary) (the canvas's middle "
+            + "\(start.probe.frame.midX)); the line \(from) → \(to)")
+        let inside = start.probe.frame.insetBy(dx: 4, dy: 4)
+        guard inside.contains(from), inside.contains(to) else {
+            return XCTFail("\(name): the line \(from) → \(to) is outside the canvas \(start.probe.frame) (probe \(start.probe.raw))")
+        }
+
+        let length = hypot(to.x - from.x, to.y - from.y)
+        var drawn: MonthSnapshot?
+        for attempt in 1...2 {
+            waitUntilResponsive(canvasElement(in: app))
+            let took = drag(in: app, from: from, to: to, velocity: 250)
+            drawn = waitFor(app, timeout: 6, "\(name): the line") {
+                $0.probe.pk == start.probe.pk + 1 && $0.probe.ink == start.probe.ink + 1 && $0.state["last"] != start.state["last"]
+            }
+            log("\(name): drew (attempt \(attempt), \(seconds(took))): \(drawn != nil ? "1 stroke more" : "NOT drawn")")
+            if drawn != nil || took <= length / 250 + 0.2 + slowGesture { break }
+            log("\(name): RETRY the line (the simulator was overloaded)")
+        }
+        keepScreenshot(app, "\(name) — after")
+        guard let drawn else {
+            return XCTFail("\(name): a finger stroke with the pen did not add a line (probe \(probe(app)?.raw ?? "-"); span.state \(stateLabel(app)))")
+        }
+        attach(drawn.stateRaw, "\(name) — span.state")
+        guard let last = MonthNewest(drawn.state["last"] ?? "-") else {
+            return XCTFail("\(name): span.state has no newest stroke (\(drawn.stateRaw))")
+        }
+        // `last=`'s x is the cell's (the store's coordinates): the page's x is the cell's left edge more.
+        let december = Self.yearCellX(month: 12)
+        let january = Self.yearCellX(month: 1)
+        let cellX = last.pageId == kind.previous ? december : january
+        log("\(name): the newest stroke is in \(last.pageId) \(last.cell), x \(last.minX) … \(last.maxX) of its cell, "
+            + "\(cellX + last.minX) … \(cellX + last.maxX) of its page")
+        continueAfterFailure = true
+        XCTAssertTrue([kind.previous, kind.focus].contains(last.pageId), "\(name): one of the two years holds the line (\(last.pageId))")
+        if last.pageId == kind.previous {
+            XCTAssertEqual(last.cell, Self.yearCell(month: 12), "\(name): 2025's December the \(Self.yearLineDay)th (\(drawn.state["last"] ?? "-"))")
+            XCTAssertGreaterThan(december + last.maxX, Self.yearWidth,
+                                 "\(name): 2025 keeps the points right of its page (x \(december + last.minX) … \(december + last.maxX) of the page)")
+        } else {
+            XCTAssertEqual(last.cell, Self.yearCell(month: 1),
+                           "\(name): 2026's January the \(Self.yearLineDay)th, the day-number column's (\(drawn.state["last"] ?? "-"))")
+            XCTAssertLessThan(january + last.minX, 0,
+                              "\(name): 2026 keeps the points left of its page (x \(january + last.minX) … \(january + last.maxX) of the page)")
+        }
+        XCTAssertGreaterThan(last.maxX - last.minX, Self.yearLineWhole,
+                             "\(name): the whole line, not the part on one side of the boundary (\(last.minX) … \(last.maxX))")
+        continueAfterFailure = false
+
+        let back = app.buttons[kind.previousButton]
+        guard back.waitForExistence(timeout: 5) else { return XCTFail("\(name): no 「\(kind.previousButton)」") }
+        waitUntilResponsive(back)
+        back.tap()
+        log("\(name): tapped 「\(kind.previousButton)」")
+        guard let after = waitFor(app, timeout: 20, "\(name): \(kind.previousWord) with the window shifted", until: {
+            $0.state["focus"] == kind.previous && $0.shifts > drawn.shifts
+        }) else {
+            return XCTFail("\(name): the window did not move to \(kind.previousWord) and shift (span.state \(stateLabel(app)))")
+        }
+        keepScreenshot(app, "\(name) — previous year")
+        attach(after.stateRaw, "\(name) — span.state after ‹")
+        let shown = titleElement(in: app).label
+        log("\(name): after ‹: the title is 「\(shown)」; span.state \(after.stateRaw)")
+        continueAfterFailure = true
+        XCTAssertEqual(after.state["path"], "span", "\(name): still the joined path")
+        XCTAssertEqual(after.state["session"], drawn.state["session"], "\(name): the same canvas (the session did not change)")
+        XCTAssertEqual(after.probe.page, drawn.probe.page, "\(name): the canvas's band is the same (its id \(drawn.probe.page))")
+        XCTAssertEqual(after.shifts, drawn.shifts + 1, "\(name): one shift after the stop")
+        XCTAssertEqual(after.state["last"], drawn.state["last"], "\(name): the line is still the window's newest, kept by its page")
+        XCTAssertTrue(kind.shows(shown, kind.previousTitle), "\(name): \(kind.previousWord)'s title (「\(shown)」)")
+    }
+
+    /// D1y: the top of the demo year's row of `day` (lu): 60 lu rows, row 16 grown (`yearRowGrowth`).
+    private static func yearRowTop(day: Int) -> CGFloat {
+        CGFloat(day - 1) * yearRowHeight + (day > 16 ? yearRowGrowth : 0)
+    }
+
+    /// D1y: the left edge of `month`'s column in its year page (lu, `PaperSpec`): the 56 lu day-number column, then 112 lu a month.
+    private static func yearCellX(month: Int) -> CGFloat {
+        56 + CGFloat(month - 1) * 112
+    }
+
+    /// D1y: the year cell of `month` on the line's row as `span.state` names it (`CellKey.yearDay(month:day:).raw`: "MM-DD").
+    private static func yearCell(month: Int) -> String {
+        String(format: "%02d-%02d", month, yearLineDay)
+    }
+
     // MARK: - 等倍 and the turn
 
-    /// The control: portrait, then landscape without 等倍. The month is not one page across the landscape column.
-    private func turnWithoutZoomReset() {
-        let name = "turned without 等倍"
-        let app = launch([], fingerDraws: false, name)
+    /// The control: portrait, then landscape without 等倍. The month is not one page across the landscape column. D1y: nor
+    /// the year, which is the capped overview there (at most `capPages` years across).
+    private func turnWithoutZoomReset(_ kind: JoinedKind) {
+        let name = "\(kind.logPrefix)turned without 等倍"
+        let app = launch([], fingerDraws: false, name, kind)
         defer {
             app.terminate()
             XCUIDevice.shared.orientation = .portrait
         }
-        guard let portrait = waitForJoined(app, name) else { return }
+        guard let portrait = waitForJoined(app, name, kind) else { return }
         XCUIDevice.shared.orientation = .landscapeLeft
         log("\(name): turned to landscape")
         guard let turned = waitFor(app, timeout: 30, "\(name): landscape", until: { $0.probe.isLandscape }) else {
             return XCTFail("\(name): the canvas never settled in landscape (probe \(probe(app)?.raw ?? "-"))")
         }
-        let across = Self.monthWidth * turned.probe.zoom
+        let across = kind.width * turned.probe.zoom
         keepScreenshot(app, "\(name) — landscape")
         log("\(name): portrait zoom \(portrait.probe.zoom) column \(portrait.probe.frame.width); landscape zoom \(turned.probe.zoom) "
             + "column \(turned.probe.frame.width), one page \(across) pt; span.state \(turned.stateRaw)")
         XCTAssertLessThan(across, turned.probe.frame.width - 100,
-                          "\(name): without 等倍 a month is not one page across the landscape column (\(across) of \(turned.probe.frame.width) pt)")
-        XCTAssertEqual(turned.state["focus"], Self.october, "\(name): the focus stays")
+                          "\(name): without 等倍 a \(kind.name) is not one page across the landscape column (\(across) of \(turned.probe.frame.width) pt)")
+        if let cap = kind.capPages {
+            // The cap is the lowest zoom (`ZoomPolicy.cappedBounds`): one page at least the column ÷ the cap across.
+            let least = turned.probe.frame.width / cap
+            log("\(name): the cap of \(Int(cap)) \(kind.plural): one page at least \(least) pt across; \(abs(across - least) <= Self.fitTolerance ? "at the cap" : "above the cap")")
+            XCTAssertGreaterThanOrEqual(across, least - Self.fitTolerance,
+                                        "\(name): at most \(Int(cap)) \(kind.plural) across the landscape column (one page \(across) pt, the cap's \(least))")
+        }
+        XCTAssertEqual(turned.state["focus"], kind.focus, "\(name): the focus stays")
     }
 
-    /// Portrait at open = fit: 等倍 moves nothing; then landscape: one page across the column.
-    private func turnAfterZoomReset() {
-        let name = "等倍 then turned"
-        let app = launch([], fingerDraws: false, name)
+    /// Portrait at open = fit: 等倍 moves nothing; then landscape: one page across the column. D1y: the year too (the cap
+    /// never changes the fit, §6.4).
+    private func turnAfterZoomReset(_ kind: JoinedKind) {
+        let name = "\(kind.logPrefix)等倍 then turned"
+        let app = launch([], fingerDraws: false, name, kind)
         defer {
             app.terminate()
             XCUIDevice.shared.orientation = .portrait
         }
-        guard let portrait = waitForJoined(app, name) else { return }
+        guard let portrait = waitForJoined(app, name, kind) else { return }
         let open = portrait.probe.zoom
-        let fit = portrait.probe.frame.width / Self.monthWidth
+        let fit = portrait.probe.frame.width / kind.width
         log("\(name): portrait zoom \(open), fit \(fit) (the column \(portrait.probe.frame.width) ÷ 1,400)")
-        XCTAssertEqual(open, fit, accuracy: 0.0005, "\(name): in portrait a month opens at its fit (open = fit, §6.4 row 1)")
+        XCTAssertEqual(open, fit, accuracy: 0.0005, "\(name): in portrait a \(kind.name) opens at its fit (open = fit, §6.4 row 1)")
         let reset = app.buttons[Self.resetIdentifier]
         guard reset.waitForExistence(timeout: 5) else {
             return XCTFail("\(name): no \(Self.resetIdentifier). Elements:\n\(app.debugDescription)")
@@ -378,35 +549,35 @@ final class SpanMonthYearUITests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         log("\(name): turned to landscape")
         let atFit = waitFor(app, timeout: 30, "\(name): landscape at fit", until: {
-            $0.probe.isLandscape && abs(Self.monthWidth * $0.probe.zoom - $0.probe.frame.width) <= Self.fitTolerance
+            $0.probe.isLandscape && abs(kind.width * $0.probe.zoom - $0.probe.frame.width) <= Self.fitTolerance
         })
         let turned = atFit ?? waitFor(app, timeout: 10, "\(name): landscape", until: { $0.probe.isLandscape })
         keepScreenshot(app, "\(name) — landscape")
         guard let turned else {
             return XCTFail("\(name): the canvas never settled in landscape (probe \(probe(app)?.raw ?? "-"))")
         }
-        let across = Self.monthWidth * turned.probe.zoom
+        let across = kind.width * turned.probe.zoom
         log("\(name): landscape zoom \(turned.probe.zoom), one page \(across) pt across the column \(turned.probe.frame.width) "
-            + "(fit \(turned.probe.frame.width / Self.monthWidth)); span.state \(turned.stateRaw)")
+            + "(fit \(turned.probe.frame.width / kind.width)); span.state \(turned.stateRaw)")
         XCTAssertEqual(across, turned.probe.frame.width, accuracy: Self.fitTolerance,
                        "\(name): 等倍 pressed in portrait is one page across the landscape column (zoom = the column ÷ 1,400)")
-        XCTAssertEqual(turned.state["focus"], Self.october, "\(name): the focus stays")
+        XCTAssertEqual(turned.state["focus"], kind.focus, "\(name): the focus stays")
         XCTAssertEqual(turned.state["session"], portrait.state["session"], "\(name): the same window, decided anew (§3.6)")
     }
 
     // MARK: - Launching and reading
 
     private func skipUnlessPhone() throws {
-        try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "the joined month's UI tests are for an iPhone")
+        try XCTSkipIf(UIDevice.current.userInterfaceIdiom != .phone, "the joined month's and year's UI tests are for an iPhone")
     }
 
-    /// The month page of 2026-10 joined, in Japanese, 「指でも書く」 as asked and already chosen (YearTapUITests), in
-    /// portrait (a test turns the device afterwards).
-    private func launch(_ extra: [String], fingerDraws: Bool, _ name: String) -> XCUIApplication {
+    /// The month page of 2026-10 joined (D1y: or the year page of 2026, `kind`), in Japanese, 「指でも書く」 as asked and
+    /// already chosen (YearTapUITests), in portrait (a test turns the device afterwards).
+    private func launch(_ extra: [String], fingerDraws: Bool, _ name: String, _ kind: JoinedKind) -> XCUIApplication {
         XCUIDevice.shared.orientation = .portrait
         let app = XCUIApplication()
         app.launchArguments = [
-            "--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", "month",
+            "--screenshot-mode", "--screenshot-month", "2026-10", "--screenshot-page", kind.name,
             "--screenshot-span", "on", "--screenshot-probe",
             "-AppleLanguages", "(ja)", "-AppleLocale", "ja_JP",
             "-allowFingerDrawing", fingerDraws ? "YES" : "NO", "-allowFingerDrawingChosen", "YES",
@@ -474,7 +645,7 @@ final class SpanMonthYearUITests: XCTestCase {
 
     /// The canvas and the joined window, settled (`path=span`, more than one page, two reads alike), after a simulator
     /// that answers quickly. Fails (with the element tree) and gives nil otherwise.
-    private func waitForJoined(_ app: XCUIApplication, _ name: String) -> MonthSnapshot? {
+    private func waitForJoined(_ app: XCUIApplication, _ name: String, _ kind: JoinedKind) -> MonthSnapshot? {
         let canvas = canvasElement(in: app)
         guard canvas.waitForExistence(timeout: 30) || canvas.exists else {
             log("\(name): no 「ink-canvas」 element. Elements:\n\(app.debugDescription)")
@@ -482,7 +653,7 @@ final class SpanMonthYearUITests: XCTestCase {
             return nil
         }
         log("\(name): waited \(waitUntilResponsive(canvas)) s for the app to answer quickly")
-        guard let start = waitFor(app, timeout: 30, "\(name): the joined months", until: { snapshot in
+        guard let start = waitFor(app, timeout: 30, "\(name): the joined \(kind.plural)", until: { snapshot in
             snapshot.state["path"] == "span" && snapshot.pages > 1
         }) else {
             log("\(name): Elements:\n\(app.debugDescription)")
@@ -555,6 +726,52 @@ final class SpanMonthYearUITests: XCTestCase {
     /// The ja month title (`PageNavigation.title` / `compactTitle`: 「2026年10月」 either way).
     private static func isMonth(_ year: Int, _ month: Int, _ title: String) -> Bool {
         title.contains("\(year)年\(month)月")
+    }
+
+    /// D1y: what the slide and the turns read of the kind they open — the month's (October, 1.4.3 D1b) or the year's (2026):
+    /// `span.state`'s `kind=` and `--screenshot-page`'s value, the page ids, the arrows, the ja titles, one page's width and
+    /// the cap of an iPhone in landscape (`SpanPlan.overviewCapPages`: the year 3, the month none). On the main actor, as the
+    /// class whose constants it reads.
+    @MainActor
+    private struct JoinedKind {
+        let name: String
+        /// The window's pages in the logs ("months", "years").
+        let plural: String
+        /// What the steps' names start with in the logs: nothing for the month (D1b's names), "year " for the year.
+        let logPrefix: String
+        let previous: String
+        let focus: String
+        let next: String
+        /// The previous page, the focus page and the next in the messages.
+        let previousWord: String
+        let focusWord: String
+        let nextWord: String
+        let previousButton: String
+        /// What the page title holds on the previous page, the focus page and the next (`PageNavigation.title` /
+        /// `compactTitle`).
+        let previousTitle: String
+        let focusTitle: String
+        let nextTitle: String
+        let width: CGFloat
+        let capPages: CGFloat?
+
+        static let month = JoinedKind(name: "month", plural: "months", logPrefix: "", previous: SpanMonthYearUITests.september,
+                                      focus: SpanMonthYearUITests.october, next: SpanMonthYearUITests.november,
+                                      previousWord: "September", focusWord: "October", nextWord: "November",
+                                      previousButton: SpanMonthYearUITests.previousMonth, previousTitle: "2026年9月",
+                                      focusTitle: "2026年10月", nextTitle: "2026年11月",
+                                      width: SpanMonthYearUITests.monthWidth, capPages: nil)
+        static let year = JoinedKind(name: "year", plural: "years", logPrefix: "year ", previous: "y-2025", focus: "y-2026", next: "y-2027",
+                                     previousWord: "2025", focusWord: "2026", nextWord: "2027",
+                                     previousButton: SpanMonthYearUITests.previousYear, previousTitle: "2025年",
+                                     focusTitle: "2026年", nextTitle: "2027年",
+                                     width: SpanMonthYearUITests.yearWidth, capPages: 3)
+
+        /// Whether `title` is the page title `expected`: the month's (「2026年10月」, `isMonth`) in it; the year's (「2026年」,
+        /// `DateText.yearTitle`) in it with no month.
+        func shows(_ title: String, _ expected: String) -> Bool {
+            title.contains(expected) && (name != "year" || !title.contains("月"))
+        }
     }
 
     // MARK: - Gestures, waiting, logs (as SpanUITests)
@@ -691,22 +908,29 @@ private struct MonthSnapshot {
     }
 
     /// How far the paper moved to the left since `earlier` (pt on screen), across a shift too: the middle's place in the
-    /// focus page, plus a page for each month the focus moved on.
+    /// focus page, plus a page for each month (D1y: or year) the focus moved on — a month and a year are both 1,400 lu wide.
     func paperMoved(since earlier: MonthSnapshot) -> CGFloat {
-        let pages = MonthSnapshot.months(from: earlier.state["focus"], to: state["focus"])
+        let pages = MonthSnapshot.pages(from: earlier.state["focus"], to: state["focus"])
         return (middleInFocus + CGFloat(pages) * 1400 - earlier.middleInFocus) * probe.zoom
     }
 
-    /// The months from one month page id (`m1-YYYY-MM`) to another; 0 when either is not a month.
-    static func months(from: String?, to: String?) -> Int {
-        func index(_ id: String?) -> Int? {
-            guard let id, id.hasPrefix("m1-") else { return nil }
-            let parts = id.dropFirst(3).split(separator: "-")
-            guard parts.count == 2, let year = Int(parts[0]), let month = Int(parts[1]) else { return nil }
-            return year * 12 + month - 1
+    /// The pages from one page id to another of the same kind: months (`m1-YYYY-MM`) or, D1y, years (`y-YYYY`); 0 when
+    /// either is neither or the two are not of the same kind.
+    static func pages(from: String?, to: String?) -> Int {
+        func index(_ id: String?) -> (kind: String, number: Int)? {
+            guard let id else { return nil }
+            if id.hasPrefix("m1-") {
+                let parts = id.dropFirst(3).split(separator: "-")
+                guard parts.count == 2, let year = Int(parts[0]), let month = Int(parts[1]) else { return nil }
+                return ("month", year * 12 + month - 1)
+            }
+            if id.hasPrefix("y-"), let year = Int(id.dropFirst(2)) {
+                return ("year", year)
+            }
+            return nil
         }
-        guard let a = index(from), let b = index(to) else { return 0 }
-        return b - a
+        guard let a = index(from), let b = index(to), a.kind == b.kind else { return 0 }
+        return b.number - a.number
     }
 
     var pages: Int { count("pages") }
