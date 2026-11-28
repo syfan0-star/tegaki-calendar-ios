@@ -91,7 +91,10 @@
 # 1.4.3's D1b (docs/R1_4_3_CONTRACT.md §11.3, §12.1, §12.4): the UI test step also runs SpanMonthYearUITests (`span-my UI:`;
 # its step 55 min and its job 70), and a seventh job, span-shots-my, photographs the joined months (24 photos and a PDF on
 # four devices, artifact "span-shots-my", kept 7 days; outside J-4 and ja-baseline.yml). It `needs` compat-v1.0, so it
-# takes a runner only after the six others had theirs (macOS runs 5 jobs at once); D1y adds the years.
+# takes a runner only after the six others had theirs (macOS runs 5 jobs at once). D1y (§11.3, §12.1, §12.4) adds the
+# years: SpanMonthYearUITests' year (its step 60 min and its job 75), span-shots-my's 22 photos of the joined year (46 in
+# all, the PDF still the month's one; its photos' step 140 min and its job 160), and the unit tests' `span weight:` lines
+# (SpanWeightLogTests, §3.10) in the summary of the step after them.
 # Nothing here touches iCloud: the Simulator build is unsigned (the entitlements are not embedded)
 # and the test host / screenshot mode use the in-memory fake database.
 # Public repository → GitHub-hosted macOS runners are free.
@@ -832,6 +835,34 @@ jobs:
           if [ -f "$LOG" ]; then
             grep -iE 'repro:|expected failure' "$LOG" | awk '{ i = index($0, "repro:"); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true
           fi
+
+      # 1.4.3 D1y (docs/R1_4_3_CONTRACT.md §3.10, 0g-3): SpanWeightLogTests' `span weight:` lines out of the unit tests' log,
+      # each once, here and in the job's summary, for the lead to read: the joined years' window of 7 pages (the 13-inch
+      # iPad turned) with 1,064, 7,000 and 19,600 strokes (compose and shift, then relayout; the 19,600's shift the median of
+      # three), the week's window of 19,600 beside it (`ref=week`, the runner's weight) and the months' window of 5,080.
+      # 0g-3's "heavy" is the year's median shift over 1,000 ms in two runs while the week's reference is not over it
+      # (§3.10), the lead's reading. Not a gate: nothing reads the milliseconds, a missing line is only counted (9
+      # expected), and the step never fails the job. On the quick lanes too (the class is in their list above).
+      - name: The joined years' weight (span weight, 1.4.3 D1y)
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          set -uo pipefail
+          LOG="$RUNNER_TEMP/unit-tests.log"
+          LINES=""
+          if [ -f "$LOG" ]; then
+            LINES="$(grep -a 'span weight: ' "$LOG" | awk '{ i = index($0, "span weight: "); if (i > 1) $0 = substr($0, i); if (!seen[$0]++) print }' || true)"
+          fi
+          COUNT="$(printf '%s' "$LINES" | grep -c '^span weight: ' || true)"
+          echo "span weight: ${COUNT:-0} lines (9 expected; SpanWeightLogTests, docs/R1_4_3_CONTRACT.md §3.10; not a gate)"
+          if [ -n "$LINES" ]; then printf '%s\n' "$LINES"; fi
+          {
+            echo "### The joined years' weight (span weight, §3.10)"
+            echo ""
+            echo "- ${COUNT:-0} lines (9 expected). Not a gate: 0g-3's \"heavy\" is the lead's reading of two runs."
+            if [ -n "$LINES" ]; then printf '%s\n' "$LINES" | sed 's/^/- `/; s/$/`/'; fi
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
       # 1.2.3 (docs/R1_2_3.md §4): the sync engine's tests again, 20 times in a row, stopping at the first
       # failure (two of them were flaky in 1.2.2's CI, runs 42531490670 and 42438495112; TestSleeper and
@@ -1808,12 +1839,16 @@ jobs:
   # the boot with its 60 s wait 2–4, the tests 13–22 and the step's own 40 at most: 60.
   # 1.4.3 D1b (docs/R1_4_3_CONTRACT.md §11.3, §12.1; open question 8 of D1b's plan): 60 → 70 with the step's 45 → 55 below
   # (SpanMonthYearUITests' month adds about 6 min); the other steps take 8–12, so 70 keeps 10 or more over a step of 44–48.
+  # 1.4.3 D1y (§11.3, §12.1): 70 → 75 with the step's 55 → 60 below. D1b's two runs measured the job at 44.1 and 47.8 min
+  # (runs 46119423355 and 46129477127, its step 41.3 and 43.5, the other steps 2.8 and 4.3); the year's two tests and the
+  # year-tap probe's settling add about 2–3 (the step's comment), so the job is about 47–51 and 75 keeps 10 or more over
+  # the step's 60 with the other steps.
   ui-tests:
     name: UI tests (iPhone)
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-') || github.ref_name == 'r143-quick' || startsWith(github.ref_name, 'r143-q-') || startsWith(github.ref_name, 'r143-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 70
+    timeout-minutes: 75
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -2131,8 +2166,16 @@ jobs:
       # r143-alt's samples) skips itself here. The step 45 → 55 min (open question 8 of D1b's plan): main's run 46040646988
       # met the 45 twice (its tests 36–38 min) and the three tests add about 6 (5 launches, two turns, the settings sheet
       # twice), so 55 keeps about 10 over 44.
+      # 1.4.3 D1y (§11.3, §12.1; open question 7 of D1y's plan): SpanMonthYearUITests' year (two tests, four launches: one
+      # finger's slide and the title once, a line across 2025|2026 and 「次の年」; 等倍 in portrait read when turned) and
+      # YearTapUITests reading the canvas's probe (`--screenshot-probe`, 0g-52: its taps wait for the probe to settle,
+      # about 1 s a test, and the joined path's day window). The step 55 → 60: in D1b's runs it took 41.3 and 43.5 min
+      # (runs 46119423355 and 46129477127, the tests 33.6 and 36.5 of them; the month's three tests 3.3 and 4.3, its
+      # slide-and-line test and its 等倍 test 35–64 s each), and the year adds about 2–3 [estimate: the year's two tests as
+      # long as those two, its line waiting up to 20 s more for the year's rows; the year-tap tests about 15 s in all], so
+      # about 44–47 and 60 keeps 13.
       - name: UI tests on an iPhone (the year page's tap, 1.0.1)
-        timeout-minutes: 55
+        timeout-minutes: 60
         run: |
           set -euo pipefail
           UDID="${{ steps.uibuild.outputs.udid }}"
@@ -4715,36 +4758,45 @@ jobs:
           fi
 
   # 1.4.3 D1b (docs/R1_4_3_CONTRACT.md §12.1, §12.3, §12.4, §6.5, 0g-31, 0g-40): a seventh job, span-shots-my ("span-shots-my
-  # (1.4.3 months)"), photographs the joined months of the normal app, outside J-4 and ja-baseline.yml (§12.2; D1y adds the
-  # years). SpanMonthYearShotsUITests' six tests of this job (testMonthBands, testMonthFit, testMonthShiftPair,
-  # testMonthOldVersion, testMonthGuides, testMonthDots; its testMonthForms and testMonthZoom are the sample branch
-  # r143-alt's, §12.5, and do not run here) on the four devices of "Required simulators" by their UDIDs (iphone69 is the
+  # (1.4.3 months)", the name kept with the years), photographs the joined months and, since D1y, the joined years of the
+  # normal app, outside J-4 and ja-baseline.yml (§12.2). SpanMonthYearShotsUITests' ten tests of this job (testMonthBands,
+  # testMonthFit, testMonthShiftPair, testMonthOldVersion, testMonthGuides, testMonthDots, and D1y's testYearBands,
+  # testYearFit, testYearOldVersion, testYearGuides; its testMonthForms and testMonthZoom are the sample branch r143-alt's,
+  # §12.5, and do not run here) on the four devices of "Required simulators" by their UDIDs (iphone69 is the
   # iPhone 18 Pro Max), one at a time: booted, light, the status bar at 9:41, 60 s for the banner (docs/M6.md §5.1), the tests
   # with span-shots-app's photo watcher (a turned screen is `simctl io screenshot`, the protocol the tests hold:
   # SpanMonthYearShotsUITests.simulatorPhoto) and its watchdog, and one more run after a new boot when the simulator failed.
-  # 24 photos, all in the month 2026-10 of the plain demo (`--screenshot-span on`; §12.4's 26 less the three "before 等倍",
-  # which are the turned overviews): portrait the overview and the focus month's left boundary in the middle with the crossing
-  # sample (`--screenshot-offset-x -0.5 --screenshot-span-crossing all`) on the four devices (8); turned the overview (3) and
-  # 等倍 (`--screenshot-zoom fit`, 3) on the 13-inch iPad, the iPad Air 11-inch and the 6.9-inch iPhone; the iPad Air
-  # 11-inch's pair before and after a shift (`--screenshot-span-shift`, 2); the old versions' one page
+  # 46 photos. The month's 24, all in the month 2026-10 of the plain demo (`--screenshot-span on`; §12.4's 26 less the three
+  # "before 等倍", which are the turned overviews): portrait the overview and the focus month's left boundary in the middle
+  # with the crossing sample (`--screenshot-offset-x -0.5 --screenshot-span-crossing all`) on the four devices (8); turned
+  # the overview (3) and 等倍 (`--screenshot-zoom fit`, 3) on the 13-inch iPad, the iPad Air 11-inch and the 6.9-inch
+  # iPhone; the iPad Air 11-inch's pair before and after a shift (`--screenshot-span-shift`, 2); the old versions' one page
   # (`--screenshot-single-page --screenshot-span-crossing all`) of the 6.9-inch iPhone and the 13-inch iPad (2); the guide's
   # month card for one finger in ja, de, fr and the doubled pseudo-language, and ja's for two fingers (「指でも書く」 on, an
   # iPhone's default; review CI-1), on the 6.9-inch iPhone (5); the memo paper's dots
-  # at the boundary on the 13-inch iPad (`--screenshot-memo-paper dots`, 1). Before the bands of each orientation the one
-  # page's month at the same place (`--screenshot-span off`) is launched without a photo (7 launches), and each band's line
-  # `span-my paper:` sets its canvas frame beside that one page's (gate 3, §12.3: the same paper area; a difference fails the
-  # test and this job's gate step). Then the joined month's PDF (PDFMonthYearTests, the memo strokes coming into a month
-  # from its neighbours: `span-my-pdf-month.pdf`, and its PNG by `sips`) on the iPhone booted last.
+  # at the boundary on the 13-inch iPad (`--screenshot-memo-paper dots`, 1). The year's 22 (D1y; §12.4, §5.3, §5.4), all on
+  # the year page of 2026 (`--screenshot-page year`) of the same demo: portrait the overview and 2026's left boundary in the
+  # middle with the crossing sample (the 20th's two lines from 2025's December into 2026) on the four devices (8); turned
+  # the overview on the 13-inch iPad, the iPad Air 11-inch and the 6.9-inch iPhone (3; the iPhone's is the cap of 3 years,
+  # P-B6 イ, opened two rows above today's row); 等倍 portrait on the four devices (4; the iPhone's open = fit) and turned on
+  # the same three (3); the old versions' one page of the 6.9-inch iPhone and the 13-inch iPad (2); the guide's year card in
+  # ja for one finger and for two on the 6.9-inch iPhone (2). Before the bands of each orientation the one page's month, and
+  # the one page's year, at the same place (`--screenshot-span off`) is launched without a photo (7 launches each; 59
+  # launches in all, the month's 30 and the year's 29), and each band's line `span-my paper:` sets its canvas frame beside
+  # that one page's (gate 3, §12.3: the same paper area; a difference fails the test and this job's gate step; 22 lines, 11
+  # a kind). Then the joined month's PDF (PDFMonthYearTests, the memo strokes coming into a month from its neighbours:
+  # `span-my-pdf-month.pdf`, and its PNG by `sips`) on the iPhone booted last; no PDF of a year (§12.4 has none).
   # Into the artifact span-shots-my (7 days): the photos, photos.txt (each name expected with its pixel size or "missing",
-  # any other PNG, and the line "span-shots-my: N photos (24 expected) and M PDFs (1 expected)"), lines.txt (the tests'
+  # any other PNG, and the line "span-shots-my: N photos (46 expected) and M PDFs (1 expected)"), lines.txt (the tests'
   # `span-my shots:` lines: the window, the canvas's frame, the probe's zoom, ox, oy, the paper's top in lu, one page across
   # in pt, span.state and the probe; `span cap:` the window's pages and top; `span-my one page:` and `span-my paper:`;
   # `span-my shift pair:`), shift-pair.txt (tools/shots/shift_pair.swift without the rows above the canvas: the status bar,
   # the heading and the sticky month row with its label, open question 17; shift_subpixel when it finds strong pixels),
   # paper-area.txt (each device's `toolbar: paperArea=` values of the app's output, for gate 3's sets), env.txt (the commit,
   # Xcode, the image, the runtimes and the four devices) and each device's test log and app output. The photos are the
-  # lead's to look at (§12.4, §14.1 D1b): the photos' step is continue-on-error (a warning), the shift pair and the counts
-  # are warnings; only a joined month whose paper area is not the one page's (`same=no`) fails the job (§12.3: stop).
+  # lead's to look at (§12.4, §14.1 D1b, D1y): the photos' step is continue-on-error (a warning), the shift pair and the
+  # counts are warnings; only a joined month or year whose paper area is not the one page's (`same=no`) fails the job
+  # (§12.3: stop).
   # Not on the quick lanes (the same `if:` as span-shots-app). No new data or test is frozen here.
   # The run's length and the limits (two rules of §12.1). macOS runs 5 jobs at once and the run had 6: with a seventh
   # queued at once two would wait, and one of the long ones waiting (Build and test 100, Blank paper 97, span-shots-app
@@ -4755,27 +4807,37 @@ jobs:
   # the run; otherwise this job takes the next free runner, at about 40 [estimate: a free runner goes to the job queued
   # first]. compat-v1.0 rarely fails (its simulator steps are two app test classes); when it does, this job is skipped and
   # `gh run rerun --failed` runs it after compat-v1.0. A needs on ui-tests would run these photos again with every rerun
-  # of a flaky UI test.
-  # The job's time, from 1.4.3's sample run 46089296711 (r143-alt: blank-paper's build and the sample photos' step, nearly
-  # alone on the runners): 16.5 min from the job's start to the first photo (the setup, the build, the first boot), 8–14
-  # between two devices (the app output taken out, the shutdown, the next boot with the banner, the tests' start; the iPad
-  # mini on iOS 27.0 the longest), a launch 25–50 s (the 6.9-inch iPhone 25, the 13-inch iPad 30–50, the iPad Air 11-inch
-  # 38–50). Here: the setup and the build about 8, the four devices about 41 (9 + 11 + 7.5 + 13.5), 30 launches about 18.5
-  # (12–25, ja's two-finger card of review CI-1 one of the 6.9-inch iPhone's 25 s; the shift pair's release up to 75 s
-  # more), the PDF 3–5, the gates 1–2 (their tools built in the background
-  # while the devices boot), the upload 1–2: about 75 min (62–92). One device's one more run adds about 23 (10 of silence,
-  # 1 to end xcodebuild, 6 to boot again with the banner, 6 for its tests). The photos' step stops at 110 (its part
-  # 53–80, 103 with one more run) and the job at 140 (≥ 20 over the slowest with one more run, 120). The run: about
-  # 60 + 75 = 135 min against V's 105–108, 27–30 longer [estimate]. When a run measures more than 30 longer, the levers
-  # (the lead's): the one page's probe launches (7, about 4 min; gate 3 then sets the photos' `toolbar: paperArea=` beside
-  # blank-paper's of the same run, open question 16's other form), then the guides' de and fr (2 launches).
+  # of a flaky UI test. D1y: in 1.4.3's runs since (D1a's 46102639450, D1b's 46119423355 and 46129477127) the UI tests
+  # waited instead and took compat-v1.0's runner at its end (15–22 min), so this job takes the next free runner: Localized
+  # shots' at 52 in both D1b runs (the UI tests' at 54 in D1a's; in V's this job would have started at 62, in D0's
+  # 46066812567 at 45). In both D1b runs a runner freed by a cancel started it sooner (at 20 and 48).
+  # The job's time. D1b's runs measured the month alone (46119423355 and 46129477127's attempt 1): the job 72.8 and 58.9
+  # min, its photos' step 68.4 and 53.8 (the four first boots with the banner 40.5 and 31.1 of it, 4.5–12.6 min each, the
+  # iPad mini on iOS 27.0 and the iPad Air 11-inch the longest; the tests 17.1 and 13.7, 34 and 27 s a launch; xcodebuild's
+  # start, the app output and the shutdowns 9–11), the setup and the build 2.7–3.4, the PDF 0.7–2.1, the gates and the
+  # upload under 1. D1y's 29 launches are the month's kinds of test on the same devices (no boot and no xcodebuild more):
+  # about 13–19 more [estimate: each year test as long as the month's of its kind on its device in those runs, 13–16, and
+  # up to a fifth more for the year's pages]. So the photos' step is about 67–88 min and the job about 72–93. One device's
+  # one more run adds about 22–39 (10 of silence, 1 to end xcodebuild, 5–13 to boot again with the banner, 1.5–3 for
+  # xcodebuild's start, its month's and year's tests 4–11.5, the 6.9-inch iPhone's the longest). The photos' step stops at
+  # 140 (110 until D1y; its part 67–88, 89–127 with one more run) and the job at 160 (140 until D1y; ≥ 25 over the slowest
+  # with one more run, 134, and ≥ 10 after a step stopped at 140 with the build before it and the PDF, the gates and the
+  # upload after it). The run: this job starts at about 45–62 (above; 53 the middle) and ends at about 118–155 min against
+  # V's 105–108 [estimate], 10–50 longer, about 28–31 at the middle (the month alone about 11–14). At the middle that is
+  # §12.1's edge of 30, so the levers stay the lead's, by a run's measure (open question 6 of D1y's plan, in this order):
+  # (a) the four portrait one page's years' probe launches (about 2 min; gate 3 then sets those photos'
+  # `toolbar: paperArea=` beside blank-paper's one page's year of the same run; the three turned stay), (b) the 6.9-inch
+  # iPhone's portrait year at 等倍 (open = fit there, its overview's look; under 1 min), (c) the year's ja two-finger card
+  # (under 1 min); then D1b's for the month: its one page's probe launches (7, about 4 min) and the guides' de and fr (2
+  # launches). About 8 min together: the four first boots (31–41 min of the step) and the wait for a runner are the larger
+  # parts. Each lever takes photos or launches out of SpanMonthYearShotsUITests and this job's counts together.
   span-shots-my:
     name: span-shots-my (1.4.3 months)
     needs: compat-v1-0
     if: ${{ !(github.ref_name == 'r13-quick' || startsWith(github.ref_name, 'r13-q-') || github.ref_name == 'r14-quick' || startsWith(github.ref_name, 'r14-q-') || github.ref_name == 'r141-quick' || startsWith(github.ref_name, 'r141-q-') || github.ref_name == 'r142-quick' || startsWith(github.ref_name, 'r142-q-') || startsWith(github.ref_name, 'r142-w-') || github.ref_name == 'r143-quick' || startsWith(github.ref_name, 'r143-q-') || startsWith(github.ref_name, 'r143-w-')) }}
     # 1.4 (docs/M7D_CONTRACT.md §3.1, §3.3 1, 0d-2): the image with Xcode 27 (macos-26 and macos-15 do not get it).
     runs-on: xcode-27
-    timeout-minutes: 140
+    timeout-minutes: 160
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -4952,10 +5014,12 @@ jobs:
       # (<id>-tests.log; -again after one more run), its app output out of the result bundles (<id>-app-output.txt; NSLog's
       # lines, `log show` cannot compose them on iOS 27), the app's `toolbar: paperArea=` values (paper-area-<id>.txt) and a
       # crash report if any. The iPhone 18 Pro Max goes last and stays booted for the PDF. Photos only: a failed test is a
-      # warning (continue-on-error); the counts and the paper areas are read by the step after the PDF.
+      # warning (continue-on-error); the counts and the paper areas are read by the step after the PDF. D1y: the year's four
+      # tests in the same xcodebuild of each device, after the month's (one boot and one test run a device, as before); the
+      # step 110 → 140 (the job's comment: about 67–88, 89–127 with one more run).
       - name: The joined months' photos on four devices (SpanMonthYearShotsUITests)
         id: devices
-        timeout-minutes: 110
+        timeout-minutes: 140
         continue-on-error: true
         run: |
           set -uo pipefail
@@ -5046,7 +5110,7 @@ jobs:
               fi
             done
           }
-          run_photos() {  # run_photos <suffix>: the six tests on $UDID, the photo watcher and the watchdog beside them
+          run_photos() {  # run_photos <suffix>: the ten tests on $UDID, the photo watcher and the watchdog beside them
             watch_photos "$UDID" &
             WATCHER=$!
             STATUS=0
@@ -5064,6 +5128,10 @@ jobs:
               -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthOldVersion \
               -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthGuides \
               -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testMonthDots \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testYearBands \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testYearFit \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testYearOldVersion \
+              -only-testing:TegakiCalendarUITests/SpanMonthYearShotsUITests/testYearGuides \
               test-without-building > "$OUT/$ID-tests$1.log" 2>&1 &
             TESTS=$!
             watchdog "$TESTS" "$OUT/$ID-tests$1.log" "$OUT/$ID-watchdog$1.txt" &
@@ -5101,7 +5169,7 @@ jobs:
               LOG="$OUT/$ID-tests-again.log"
               if [ -s "$OUT/$ID-watchdog-again.txt" ]; then echo "::warning::$ID: $(cat "$OUT/$ID-watchdog-again.txt") (the one more run)."; fi
             fi
-            grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$LOG" | tail -n 16 || true
+            grep -E 'Test Case .*(passed|failed|skipped)|error:|Executed ' "$LOG" | tail -n 24 || true   # D1y: ten tests now (16 lines until D1y)
             if [ "$STATUS" != 0 ]; then echo "::warning::SpanMonthYearShotsUITests ended with $STATUS on $ID (span-shots-my/${LOG##*/})."; FAILED=1; fi
             if [ -s "$OUT/lines/$ID.txt" ]; then cut -c1-400 "$OUT/lines/$ID.txt"; fi
             bash tools/ci/xcresult-app-output.sh "$OUT/$ID-app-output.txt" "build/span-my-$ID.xcresult" "build/span-my-$ID-again.xcresult" || true
@@ -5206,10 +5274,12 @@ jobs:
 
       # The counts, the shift pair and the paper areas (see the job's comment). The photos expected are built per kind: the
       # kinds are the same as SpanKinds.joined (Sources/TegakiCalendar/Span/SpanKinds.swift) less the week and the day, whose
-      # photos are span-shots-app's: the month now; D1y adds `year)` with the year's photos (§12.4), and the fallback of §14.1
-      # leaves it out. A missing or extra photo, a turned photo not wider than tall, the shift pair's strong pixels and a
-      # missing paper line are warnings; a joined month whose canvas is not the one page's at the same place (`span-my paper:`
-      # … `same=no`) fails the step and the job (gate 3, §12.3: stop and look).
+      # photos are span-shots-app's: the month and, since D1y, the year (§12.4: 24 + 22 = 46 photos, PHOTOS; each kind's 11
+      # bands set beside its one page, BANDS). The fallback of §14.1 (the year not joined) takes `year` out of the list below,
+      # PHOTOS back to 24 and the year's four tests out of the photos' step's `-only-testing`. A missing or extra photo, a
+      # turned photo not wider than tall, the shift pair's strong pixels and a missing paper line are warnings; a joined month
+      # or year whose canvas is not the one page's at the same place (`span-my paper:` … `same=no`) fails the step and the job
+      # (gate 3, §12.3: stop and look).
       - name: The joined months' counts, shift pair and paper areas
         if: ${{ !cancelled() }}
         timeout-minutes: 10
@@ -5229,7 +5299,8 @@ jobs:
             if [ -f "$OUT/paper-area-$ID.txt" ]; then sed "s/^ */$ID /" "$OUT/paper-area-$ID.txt" >> "$OUT/paper-area.txt"; fi
           done
           EXPECTED=""
-          for KIND in month; do   # the same kinds as SpanKinds.joined, less the week and the day (span-shots-app's)
+          BANDS=0
+          for KIND in month year; do   # the same kinds as SpanKinds.joined, less the week and the day (span-shots-app's)
             case "$KIND" in
               month)
                 for ID in $DEVICES; do EXPECTED="$EXPECTED $ID-portrait-month-overview $ID-portrait-month-boundary"; done
@@ -5239,10 +5310,19 @@ jobs:
                 for L in ja de fr pseudo; do EXPECTED="$EXPECTED iphone69-portrait-month-guide-$L"; done
                 EXPECTED="$EXPECTED iphone69-portrait-month-guide-ja-two"
                 EXPECTED="$EXPECTED ipad13-portrait-month-dots"
+                BANDS=$(( BANDS + 11 ))   # the 8 portrait bands and the 3 turned overviews
+                ;;
+              year)   # D1y (§12.4, §5.3, §5.4): the year page of 2026; no PDF of a year
+                for ID in $DEVICES; do EXPECTED="$EXPECTED $ID-portrait-year-overview $ID-portrait-year-boundary"; done
+                for ID in ipad13 ipad11 iphone69; do EXPECTED="$EXPECTED $ID-landscape-year-overview $ID-landscape-year-fit"; done
+                for ID in $DEVICES; do EXPECTED="$EXPECTED $ID-portrait-year-fit"; done
+                EXPECTED="$EXPECTED ipad13-portrait-year-single iphone69-portrait-year-single"
+                EXPECTED="$EXPECTED iphone69-portrait-year-guide-ja iphone69-portrait-year-guide-ja-two"
+                BANDS=$(( BANDS + 11 ))   # the 8 portrait bands and the 3 turned overviews
                 ;;
             esac
           done
-          PHOTOS=24
+          PHOTOS=46
           PDFS=1
           : > "$OUT/photos.txt"
           WANT=0
@@ -5328,12 +5408,13 @@ jobs:
             echo "$LINE" >> "$OUT/paper.txt"
             if [ "$(value same "$LINE")" != yes ]; then
               DIFFER=$(( DIFFER + 1 ))
-              echo "::error::$(value kind "$LINE"): the joined month's canvas $(value joined "$LINE") is not the one page's $(value one "$LINE") at the same place (gate 3, docs/R1_4_3_CONTRACT.md §12.3: stop)."
+              case "$(value kind "$LINE")" in *-year-*) K=year ;; *) K=month ;; esac
+              echo "::error::$(value kind "$LINE"): the joined $K's canvas $(value joined "$LINE") is not the one page's $(value one "$LINE") at the same place (gate 3, docs/R1_4_3_CONTRACT.md §12.3: stop)."
               FAILED=1
             fi
           done < <(grep '^span-my paper: ' "$OUT/lines.txt" || true)
-          echo "paper areas: $PAPERS bands set beside the one page's month (11 expected), $DIFFER different" | tee -a "$OUT/paper.txt"
-          if [ "$PAPERS" != 11 ]; then echo "::warning::$PAPERS paper lines, 11 expected (the 8 portrait bands and the 3 turned overviews)."; fi
+          echo "paper areas: $PAPERS bands set beside the one page's month or year ($BANDS expected), $DIFFER different" | tee -a "$OUT/paper.txt"
+          if [ "$PAPERS" != "$BANDS" ]; then echo "::warning::$PAPERS paper lines, $BANDS expected (each kind's 8 portrait bands and 3 turned overviews)."; fi
           echo "the app's paper areas (device, count, value):"
           cat "$OUT/paper-area.txt"
           exit "$FAILED"
@@ -5360,7 +5441,7 @@ jobs:
           OUT="shots/span-my"
           SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/null}"
           {
-            echo "### span-shots-my (1.4.3 months)"
+            echo "### span-shots-my (1.4.3 months and years)"
             echo ""
             echo "- $(grep '^span-shots-my: ' "$OUT/photos.txt" 2>/dev/null || echo 'span-shots-my: no photos.txt')"
             echo "- missing: $(grep -c ' missing$' "$OUT/photos.txt" 2>/dev/null || true); not expected: $(grep -c '(not expected)' "$OUT/photos.txt" 2>/dev/null || true)"
@@ -5370,7 +5451,7 @@ jobs:
             echo ""
             if [ -s "$OUT/shift-pair.txt" ]; then sed 's/^/- /' "$OUT/shift-pair.txt"; else echo "- (none)"; fi
             echo ""
-            echo "- **To look at by eye** (§12.4, §14.1 D1b): the handwriting, the month labels, the boundary lines and the guide's cards in the photos (artifact span-shots-my)."
+            echo "- **To look at by eye** (§12.4, §14.1 D1b and D1y): the handwriting, the month and year labels, the boundary lines and the guide's cards in the photos (artifact span-shots-my)."
           } >> "$SUMMARY"
 
       # 1.4 D1d (docs/M7D.md, 実行機の打ち切り): only when this job is cancelled (by hand, by its time limit, or by the runner's
