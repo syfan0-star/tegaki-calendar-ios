@@ -42,6 +42,14 @@ final class InkCanvasMonthYearTests: XCTestCase {
     private let dec = "m1-2026-12"
     private let jan = "m1-2027-01"
     private let feb = "m1-2027-02"
+    private let y2023 = "y-2023"
+    private let y2024 = "y-2024"
+    private let y2025 = "y-2025"
+    private let y2026 = "y-2026"
+    private let y2027 = "y-2027"
+    private let y2028 = "y-2028"
+    private let y2029 = "y-2029"
+    private let y2030 = "y-2030"
     private let nov16 = DayKey(year: 2026, month: 11, day: 16)
     private let pen = CanvasTool.ink(InkPresets.defaultPen)
     private let portrait = CGSize(width: 834, height: 1_005)
@@ -114,10 +122,11 @@ final class InkCanvasMonthYearTests: XCTestCase {
 
     /// The canvas as the screen builds it for a session, with the press count `zoomResetTrigger` (the screen's `@State`),
     /// `initialFit` (the kind's stored fit) and `initialScrollX` (band lu; the screen's `bandStart`: the focus page's left
-    /// edge at fit); `tool` and the ↶ ↷ counts `undoTrigger` / `redoTrigger` (the screen's `@State`, review TEST-1).
+    /// edge at fit); `tool` and the ↶ ↷ counts `undoTrigger` / `redoTrigger` (the screen's `@State`, review TEST-1);
+    /// `initialPaperOffset` (band lu; the screen's `ScreenPaths.shotPaperOffset`, D1y: the capped year's opening).
     private func makeView(_ session: SpanSession, probe: SpanProbe, zoomResetTrigger: Int = 0, initialFit: Bool = false,
                           initialScrollX: CGFloat = 0, tool: CanvasTool? = nil, undoTrigger: Int = 0,
-                          redoTrigger: Int = 0) -> InkCanvasView {
+                          redoTrigger: Int = 0, initialPaperOffset: CGPoint? = nil) -> InkCanvasView {
         let focus = session.layout.pages[min(max(0, session.focusSlot), session.layout.pages.count - 1)]
         let sleeper = canvasSleeper!
         let bed = bed!
@@ -134,6 +143,7 @@ final class InkCanvasMonthYearTests: XCTestCase {
             undoTrigger: undoTrigger,
             redoTrigger: redoTrigger,
             onViewportChange: { probe.viewports.append($0) },
+            initialPaperOffset: initialPaperOffset,
             onZoomRatioChange: { probe.ratios.append($0) },
             onZoomingChange: { probe.zooming.append($0) },
             span: session,
@@ -148,9 +158,11 @@ final class InkCanvasMonthYearTests: XCTestCase {
 
     /// The canvas attached to its container as `makeUIView` does, laid out once in the paper area and settled (the first
     /// layout's report stays in the probe).
-    private func attach(_ session: SpanSession, size: CGSize, initialFit: Bool = false, initialScrollX: CGFloat = 0) async -> SpanRig {
+    private func attach(_ session: SpanSession, size: CGSize, initialFit: Bool = false, initialScrollX: CGFloat = 0,
+                        initialPaperOffset: CGPoint? = nil) async -> SpanRig {
         let probe = SpanProbe()
-        let view = makeView(session, probe: probe, initialFit: initialFit, initialScrollX: initialScrollX)
+        let view = makeView(session, probe: probe, initialFit: initialFit, initialScrollX: initialScrollX,
+                            initialPaperOffset: initialPaperOffset)
         let coordinator = InkCanvasView.Coordinator(parent: view)
         let container = InkCanvasContainerView(paperView: PaperView(content: view.paper), canvasView: InkBandCanvasView())
         coordinator.attach(container)
@@ -292,6 +304,45 @@ final class InkCanvasMonthYearTests: XCTestCase {
 
     private func pageIds(of span: PaperSpan?) -> [String] {
         span?.pages.map { $0.layout.pageId } ?? []
+    }
+
+    /// A year page with a three-point stroke for each (id, month, day, y) at x 20 of the cell (cell-relative). As
+    /// `page(_:_:)`: the stroke's bottom is y + 2 rounded to 0.1, + 1.75 (y + 3.75 for a y on the 0.1 grid; 88.05 for y
+    /// 84.25, its points 84.3, 85.3, 86.3), and a row is min(400, max(60, 24, that bottom + 12)) lu
+    /// (`YearLayoutEngine.rowHeight` with no lane): 100.05 for y 84.25, 60 for y 10 (bottom 13.75).
+    private func yearPage(_ pageId: String, _ strokes: [(id: String, month: Int, day: Int, y: CGFloat)]) -> InkPage {
+        var page = InkPage.empty(pageId: pageId)
+        for (i, s) in strokes.enumerated() {
+            page.add(bed.stroke(s.id, cell: .yearDay(month: s.month, day: s.day), x: 20, y: s.y, t: 1_790_000_002_000 + i))
+        }
+        return page
+    }
+
+    /// The window's year pages, left to right.
+    private func years(_ layout: SpanLayout) -> [YearPageLayout] {
+        layout.pages.compactMap { $0 as? YearPageLayout }
+    }
+
+    /// The 31 row heights a window of years has on every page (`SpanAlign.yearFloors`, §5.1): each page's row frames are
+    /// asserted to be the first page's (the same tops and heights, so the same day runs on in one straight line), then the
+    /// heights are returned.
+    private func linedUpRows(_ session: SpanSession, _ step: String, file: StaticString = #filePath, line: UInt = #line) -> [CGFloat] {
+        let pages = years(session.layout)
+        guard let first = pages.first else {
+            XCTFail("\(step): no year in the window", file: file, line: line)
+            return []
+        }
+        XCTAssertEqual(first.rows.count, 31, "\(step): 31 rows", file: file, line: line)
+        for page in pages.dropFirst() {
+            XCTAssertEqual(page.rows.map(\.frame), first.rows.map(\.frame), "\(step): \(page.pageId)'s rows are \(first.pageId)'s",
+                           file: file, line: line)
+        }
+        return first.rows.map(\.frame.height)
+    }
+
+    /// The top (lu) of row `day` (1…31) of a year whose 31 rows are `heights` tall.
+    private func rowTop(_ day: Int, of heights: [CGFloat]) -> CGFloat {
+        heights.prefix(day - 1).reduce(0, +)
     }
 
     /// Where the middle of `pageId` is on the screen (pt from the canvas's left edge).
@@ -915,5 +966,333 @@ final class InkCanvasMonthYearTests: XCTestCase {
         XCTAssertTrue(rig.ledger.page.isLive(fromICloud))
         XCTAssertEqual(session.inbox.deltas.last?.pageId, nov)
         XCTAssertEqual(session.inbox.deltas.last?.removed.count, 1)
+    }
+
+    // MARK: The joined years (D1y; §3.3, §3.5, §4.6, §5.1, §5.4, §6.1, 0g-16, 0g-21, 0g-23, 0g-26)
+    //
+    // Five years around 11/16/2026 on the portrait 11-inch iPad (2024 … 2028; the year's paper area 834 × 984, the year's
+    // `SpanPlan.referenceViewport`: open 984 / 1,860, fit 834 / 1,400), seven on the landscape one (2023 … 2029; 1,210 × 640:
+    // open 640 / 1,860, fit 1,210 / 1,400). An empty year is 1,400 × 1,860 lu (31 rows of 60). Each test is the year's when
+    // the year joins (`SpanKinds.joined`); in the fallback of 0g-3 it checks the one page's answer and ends (§11.2).
+
+    /// §3.5, §5.1 (0g-17, 0g-21): a window of years shares its rows (`SpanAlign.yearFloors`), so a shift between years of
+    /// other natural rows moves nothing on the screen (`PageScroll.scrollDelta` keeps the middle page's answer for the year:
+    /// the rows are the window's, so it is 0). 2024's 6/20 row is 200.05 lu, 2026's 11/11 row 100.05 and 2027's 3/5 row
+    /// 150.05 (strokes at y 184.25, 84.25 and 134.25 end at 188.05, 88.05 and 138.05, `yearPage(_:_:)`): all five years have
+    /// those three rows. Zoomed in to 1 with the top of the screen at 900 lu (row 13; the middle pages' own rows put row 13
+    /// at 760.05 on 2026 and 810.05 on 2027) and the middle of the screen moved from 2026 to 2027, the window shifts (2025 …
+    /// 2029): 2024, the year of the tallest row, left with its two lines; the rows stay (`.shift` never lowers); every other
+    /// line is where it was on the screen (0.5 pt), y stays, x went back by one year, and the paper is the new window's in
+    /// the same turn; still so once 2029 is read (the prefetch's `.redecide`, read as `.shift`).
+    func testAShiftKeepsTheLinesOnScreenAcrossYearsOfOtherRows() async throws {
+        let session = try await open(.year, stored: [
+            yearPage(y2024, [("a-tall", 6, 20, 184.25), ("a-low", 9, 3, 10)]),
+            yearPage(y2025, [("b-low", 2, 3, 10)]),
+            yearPage(y2026, [("c-tall", 11, 11, 84.25), ("c-low", 11, 16, 10)]),
+            yearPage(y2027, [("d-tall", 3, 5, 134.25), ("d-low", 1, 25, 10)]),
+            yearPage(y2028, [("e-low", 7, 28, 10)]),
+        ])
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertNil(PaperSpan.window(for: session.layout, focus: session.focusSlot), "the year does not join: one page at a time")
+            return
+        }
+        let rig = await attach(session, size: CGSize(width: 834, height: 984))
+        XCTAssertEqual(session.pageIds, [y2024, y2025, y2026, y2027, y2028])
+        XCTAssertEqual(rig.canvas.drawing.strokes.count, 8)
+        // y 184.25 is kept as 184.3 (`InkPoint`'s 0.1 lu): the bottom 186.3 + 1.75 = 188.05, the row 188.05 + 12.
+        let tall = try XCTUnwrap(session.page(y2024)?.inkBottoms()[.yearDay(month: 6, day: 20)])
+        XCTAssertEqual(tall, 188.05, accuracy: 0.001, "6/20's ink bottom")
+        let rows = linedUpRows(session, "opened")
+        XCTAssertEqual(rows[19], YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: tall), accuracy: 0.001)
+        XCTAssertEqual(rows[19], 200.05, accuracy: 0.01, "row 20: 2024's 6/20 on every year")
+        XCTAssertEqual(rows[10], 100.05, accuracy: 0.01, "row 11: 2026's 11/11 on every year")
+        XCTAssertEqual(rows[4], 150.05, accuracy: 0.01, "row 5: 2027's 3/5 on every year")
+        for (r, height) in rows.enumerated() where ![4, 10, 19].contains(r) {
+            XCTAssertEqual(height, 60, accuracy: 0.001, "row \(r + 1)")
+        }
+        let own2026 = try XCTUnwrap(session.yearNaturals[y2026], "2026's own rows")
+        let own2027 = try XCTUnwrap(session.yearNaturals[y2027], "2027's own rows")
+        XCTAssertEqual(rowTop(13, of: own2026), 760.05, accuracy: 0.01, "2026's own row 13 (its 11/11 above)")
+        XCTAssertEqual(rowTop(13, of: own2027), 810.05, accuracy: 0.01, "2027's own row 13 (its 3/5 above)")
+        XCTAssertNotNil(rig.paper)
+
+        await pinch(rig, to: 1)
+        await put(rig, mid: origin(y2026, session) + session.plan.pageWidth / 2, y: 900)
+        XCTAssertEqual(rig.zoom, 1, accuracy: 1e-6)
+        XCTAssertEqual(session.focusPageId, y2026)
+        let y = rig.canvas.contentOffset.y
+        let topY = y / rig.zoom
+        XCTAssertEqual(topY, 900, accuracy: 0.5)
+        XCTAssertEqual(years(session.layout).first?.row(atY: topY), 13, "the top of the screen in row 13")
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(session.focusPageId, y2027, "the focus followed the middle of the screen")
+        let oldLayout = session.layout
+        let x = rig.canvas.contentOffset.x
+        let before = screenRects(rig)
+        XCTAssertEqual(before.count, 8)
+
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        // The same turn: nothing awaited since the shift.
+        XCTAssertEqual(session.pageIds, [y2025, y2026, y2027, y2028, y2029], "2024, the year of the tallest row, left")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the window")
+        XCTAssertEqual(PageScroll.scrollDelta(old: oldLayout, new: session.layout, topVisibleY: topY), 0, accuracy: 0.001,
+                       "2027's row 13 against 2026's: the window's rows")
+        XCTAssertEqual(linedUpRows(session, "right after the shift"), rows, "the rows stay: 2024's row 20 too (`.shift` never lowers)")
+        XCTAssertEqual(rig.canvas.contentOffset.x, x - rig.page, accuracy: 0.5, "x went back by one year")
+        XCTAssertEqual(rig.canvas.contentOffset.y, y, accuracy: 0.5, "y stays")
+        XCTAssertEqual(pageIds(of: rig.paper), session.pageIds, "the paper is the new window's, in the same turn")
+        let after = screenRects(rig)
+        XCTAssertEqual(after.count, 6, "2024's two lines left with it")
+        for (name, rect) in before where !name.hasPrefix(y2024) {
+            guard let moved = after[name] else {
+                XCTFail("\(name) is no longer shown")
+                continue
+            }
+            XCTAssertEqual(moved.minX, rect.minX, accuracy: 0.5, name)
+            XCTAssertEqual(moved.minY, rect.minY, accuracy: 0.5, name)
+            XCTAssertEqual(moved.width, rect.width, accuracy: 0.5, name)
+        }
+
+        await settle(48)
+        XCTAssertFalse(session.hasUnreadPages, "2029 was read")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion)
+        XCTAssertEqual(linedUpRows(session, "once 2029 is read"), rows, "the prefetch's `.redecide` is read as `.shift`")
+        let settled = screenRects(rig)
+        for (name, rect) in before where !name.hasPrefix(y2024) {
+            XCTAssertEqual(settled[name]?.minY ?? .nan, rect.minY, accuracy: 0.5, "\(name), once 2029 is read")
+            XCTAssertEqual(settled[name]?.minX ?? .nan, rect.minX, accuracy: 0.5, "\(name), once 2029 is read")
+        }
+        XCTAssertEqual(rig.canvas.contentOffset.y, y, accuracy: 0.5)
+        XCTAssertEqual(pageIds(of: rig.paper), session.pageIds)
+    }
+
+    /// §4.6's year, §5.4, §3.3 (0g-16; MS8): on the landscape iPad 2023's 4/10 and 8/22 rows are 300.05 lu (strokes at y
+    /// 284.25 end at 288.05), so every year of the window (2023 … 2029) is 1,860 + 2 × 240.05 = 2,340.1 lu tall and the
+    /// lowest zoom is 640 / 2,340.1, under the opening zoom 640 / 1,860. Pinched to it with 2026 in the middle, the middle
+    /// of the screen moved to 2027 (a year of 60 lu rows) and the window shifts (2024 … 2030): 2023, the tall rows' year,
+    /// left. Right after the shift and again once the prefetch read 2030 and composed the window anew (`.redecide`, read as
+    /// `.shift` for a year), the rows, the lowest zoom and the zoom are where they were. Lowering the floors at that
+    /// `.redecide` (MS8) brings every year back to 1,860 lu and the zoom up to 640 / 1,860 with it (the canvas's
+    /// `applyBounds` raises a zoom under the new lowest).
+    func testTheLowestZoomStaysThroughAShiftToYearsOfLowerRows() async throws {
+        let session = try await open(.year, stored: [
+            yearPage(y2023, [("a-tall", 4, 10, 284.25), ("a-taller", 8, 22, 284.25)]),
+            yearPage(y2027, [("d-low", 2, 2, 10)]),
+        ], orientation: .landscape)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertNil(PaperSpan.window(for: session.layout, focus: session.focusSlot), "the year does not join: one page at a time")
+            return
+        }
+        let rig = await attach(session, size: landscape)
+        XCTAssertEqual(session.pageIds, [y2023, y2024, y2025, y2026, y2027, y2028, y2029], "seven years on the landscape iPad")
+        let opening = 640.0 / 1860
+        XCTAssertEqual(rig.zoom, opening, accuracy: 1e-4, "opens at the opening zoom")
+        let rows = linedUpRows(session, "opened")
+        XCTAssertEqual(rows[9], 300.05, accuracy: 0.01, "row 10: 2023's 4/10 on every year")
+        XCTAssertEqual(rows[21], 300.05, accuracy: 0.01, "row 22: 2023's 8/22 on every year")
+        let height = try XCTUnwrap(years(session.layout).first).size.height
+        XCTAssertEqual(height, 1_860 + 2 * 240.05, accuracy: 0.01, "the window's paper: 2,340.1 lu")
+        for page in years(session.layout) {
+            XCTAssertEqual(page.size.height, height, accuracy: 0.001, "\(page.pageId): as tall as the window's")
+        }
+        let lowest = rig.canvas.minimumZoomScale
+        XCTAssertEqual(lowest, 640 / height, accuracy: 1e-4, "the lowest zoom: the window's paper (§5.4)")
+        XCTAssertLessThan(lowest, opening - 0.05)
+        await pinch(rig, to: lowest)
+        await put(rig, mid: origin(y2026, session) + session.plan.pageWidth / 2)
+        XCTAssertEqual(rig.zoom, lowest, accuracy: 1e-6, "at the lowest zoom")
+        XCTAssertEqual(session.focusPageId, y2026)
+
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(session.focusPageId, y2027, "the middle of the screen in 2027")
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        XCTAssertEqual(session.pageIds, [y2024, y2025, y2026, y2027, y2028, y2029, y2030], "2023, the tall rows' year, left the window")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the window")
+        XCTAssertEqual(linedUpRows(session, "right after the shift"), rows, "right after the shift: the rows stay")
+        XCTAssertEqual(rig.canvas.minimumZoomScale, lowest, accuracy: 1e-6, "right after the shift: the lowest zoom stays")
+        XCTAssertEqual(rig.zoom, lowest, accuracy: 1e-6, "right after the shift: the zoom stays")
+        XCTAssertTrue(session.hasUnreadPages, "2030 waits for the prefetch")
+        let shifted = session.windowVersion
+
+        await settle(48)
+        XCTAssertFalse(session.hasUnreadPages, "the prefetch read 2030")
+        XCTAssertGreaterThan(session.windowVersion, shifted, "and composed the window anew")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took it")
+        XCTAssertEqual(linedUpRows(session, "after the prefetch"), rows, "after the prefetch: the floors did not come down")
+        XCTAssertEqual(rig.canvas.minimumZoomScale, lowest, accuracy: 1e-6, "after the prefetch: the lowest zoom stays")
+        XCTAssertEqual(rig.zoom, lowest, accuracy: 1e-6, "after the prefetch: the zoom stays (§4.6)")
+    }
+
+    /// §3.3, §5.1 (MZ1, MP1): a line written down 2026's 3/16 cell (row 16; its points from 2 lu under the cell's top to 102
+    /// lu, its centre about 52 lu down, in the cell) makes that row taller. The canvas asks the session to lay the window out
+    /// again (`relayoutPages`, `.inkGrew`), and in the new window row 16 grew on every year — the empty ones too — to the
+    /// line's row (`YearLayoutEngine.rowHeight` of its bottom), rows 1–15 did not move and rows 17–31 went down by as much on
+    /// every year. The canvas takes the window by its heavy path (a year has no tail of its own) and `updatePaperSpan` puts
+    /// the new window's paper in: not equal to the one before (2024's page too), equal to `PaperSpan.window`'s.
+    func testALongerYearRowMovesTheRowsBelowOnEveryYearAndRedrawsThePaper() async throws {
+        let session = try await open(.year)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertNil(PaperSpan.window(for: session.layout, focus: session.focusSlot), "the year does not join: one page at a time")
+            return
+        }
+        let rig = await attach(session, size: CGSize(width: 834, height: 984))
+        let before = session.layout
+        let paperBefore = try XCTUnwrap(rig.paper)
+        XCTAssertEqual(linedUpRows(session, "empty"), Array(repeating: CGFloat(60), count: 31), "empty: 31 rows of 60")
+        let builds = rig.coordinator.setDrawingCount
+        let version = session.windowVersion
+        let target = cell(.yearDay(month: 3, day: 16), of: y2026, session)
+        XCTAssertEqual(target.minY, 900, accuracy: 0.01, "3/16 is row 16 (15 rows of 60 above)")
+        XCTAssertEqual(target.height, 60, accuracy: 0.01)
+        draw(makeStroke(through: (0..<6).map { CGPoint(x: target.minX + 40 + CGFloat($0 % 2) * 4, y: target.minY + 2 + CGFloat($0) * 20) }),
+             on: rig)
+        await settle()
+
+        XCTAssertGreaterThan(session.windowVersion, version, "the session laid the window out again")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took it")
+        XCTAssertEqual(session.page(y2026)?.liveStrokeCount, 1, "2026 has the line")
+        let bottom = try XCTUnwrap(session.page(y2026)?.inkBottoms()[.yearDay(month: 3, day: 16)], "the line is 3/16's")
+        let row = YearLayoutEngine.rowHeight(laneCount: 0, inkBottom: bottom)
+        XCTAssertGreaterThan(row, 100, "row 16 grew")
+        let rows = linedUpRows(session, "after the line")
+        for (r, height) in rows.enumerated() {
+            XCTAssertEqual(height, r == 15 ? row : 60, accuracy: 0.001, "row \(r + 1)")
+        }
+        let after = years(session.layout)
+        XCTAssertEqual(after.map(\.pageId), years(before).map(\.pageId))
+        for (old, new) in zip(years(before), after) {
+            for r in 0..<15 {
+                XCTAssertEqual(new.rows[r].frame, old.rows[r].frame, "\(new.pageId): row \(r + 1) did not move")
+            }
+            for r in 16..<31 {
+                XCTAssertEqual(new.rows[r].frame.minY, old.rows[r].frame.minY + row - 60, accuracy: 0.001, "\(new.pageId): row \(r + 1) went down")
+            }
+            XCTAssertEqual(new.size.height, 1_860 + row - 60, accuracy: 0.001, "\(new.pageId): its paper")
+        }
+        XCTAssertGreaterThan(rig.coordinator.setDrawingCount, builds, "the rows moved: the heavy path (§3.3)")
+        let paperAfter = try XCTUnwrap(rig.paper)
+        XCTAssertNotEqual(paperAfter, paperBefore, "the paper is drawn again (updatePaperSpan)")
+        XCTAssertEqual(paperAfter, PaperSpan.window(for: session.layout, focus: session.focusSlot), "the new window's")
+        XCTAssertNotEqual(paperAfter.pages[0], paperBefore.pages[0], "2024 too, which has no ink")
+    }
+
+    /// §6.1, §6.2, §6.4 (0g-26; MS4): the year's 等倍 on the joined path. The window of years on the landscape iPad opens at
+    /// 640 / 1,860; a press goes to fit (the column ÷ 1,400: 1,210 / 1,400, one year across) with the year under the middle of
+    /// the screen edge to edge, the paper y in the middle of the screen kept, and reports the ratio fit / open and the fit
+    /// state; the window does not shift. The state shows when the iPad turns: portrait goes to its fit (834 / 1,400, not its
+    /// opening zoom 984 / 1,860) with the window decided anew around the focus year (five years) and the year edge to edge,
+    /// landscape again to 1,210 / 1,400 (seven years); a turn reports nothing. A pinch to 0.7 then reports its ratio and the
+    /// fit state off, and a turn keeps 1.4's absolute zoom (the handwriting keeps its size), not fit.
+    func testTheYearWindowsOneTimesIsFitAndFollowsTheWidthUntilAPinch() async throws {
+        let session = try await open(.year, orientation: .landscape)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertFalse(ZoomReset.followsFit(.year), "the year does not join: 1.4.2's opening zoom")
+            return
+        }
+        let rig = await attach(session, size: landscape)
+        let opening = 640.0 / 1860
+        let fit = 1210.0 / 1400
+        let portraitFit = 834.0 / 1400
+        let yearPortrait = CGSize(width: 834, height: 984)
+        XCTAssertEqual(session.pageIds.count, 7)
+        XCTAssertEqual(rig.zoom, opening, accuracy: 1e-4, "the joined year opens at its opening zoom")
+        XCTAssertEqual(middle(of: y2026, rig), 605, accuracy: 1, "the focus year in the middle")
+        drop(rig)
+        let midY = (rig.canvas.contentOffset.y + 640.0 / 2) / rig.zoom
+        await press(rig, 1)
+        XCTAssertEqual(rig.zoom, fit, accuracy: 1e-6, "等倍: fit, one year across")
+        XCTAssertEqual(rig.page, 1210, accuracy: 0.5)
+        XCTAssertEqual(middle(of: y2026, rig), 605, accuracy: 1, "the year under the middle of the screen, edge to edge")
+        let maxY = max(0, rig.canvas.contentSize.height + rig.canvas.contentInset.bottom - 640)
+        XCTAssertEqual(rig.canvas.contentOffset.y, min(max(0, midY * fit - 640.0 / 2), maxY), accuracy: 1,
+                       "the paper y in the middle of the screen kept")
+        XCTAssertEqual(rig.probe.ratios.count, 1, "reported once")
+        XCTAssertEqual(rig.probe.ratios.first ?? 0, fit / opening, accuracy: 1e-3, "the ratio fit / open")
+        XCTAssertEqual(rig.probe.fits, [true], "the fit state")
+        XCTAssertEqual(rig.probe.zooming, [false])
+        XCTAssertEqual(session.focusPageId, y2026)
+        XCTAssertEqual(rig.coordinator.spanShiftCount, 0, "the focus year is the window's middle: no shift")
+        XCTAssertEqual(rig.probe.viewports.last?.zoom ?? 0, fit, accuracy: 1e-6, "the heading follows")
+
+        await turn(rig, to: yearPortrait)
+        XCTAssertEqual(rig.zoom, portraitFit, accuracy: 1e-6, "portrait: its fit, not the opening zoom 984 / 1,860")
+        XCTAssertEqual(rig.page, 834, accuracy: 0.5, "portrait: one year across")
+        XCTAssertEqual(session.pageIds, [y2024, y2025, y2026, y2027, y2028], "portrait: the window decided anew (five years)")
+        XCTAssertEqual(middle(of: y2026, rig), 417, accuracy: 1, "portrait: the year edge to edge")
+        XCTAssertEqual(session.focusPageId, y2026, "portrait: the focus stays")
+        await turn(rig, to: landscape)
+        XCTAssertEqual(rig.zoom, fit, accuracy: 1e-6, "landscape again: fit")
+        XCTAssertEqual(session.pageIds.count, 7, "landscape again: seven years")
+        XCTAssertEqual(middle(of: y2026, rig), 605, accuracy: 1, "landscape again: the year edge to edge")
+        XCTAssertEqual(session.focusPageId, y2026)
+        XCTAssertEqual(rig.probe.ratios.count, 1, "the press's report only: a turn reports nothing")
+        XCTAssertEqual(rig.probe.fits, [true])
+        drop(rig)
+
+        rig.coordinator.scrollViewWillBeginZooming(rig.canvas, with: nil)
+        rig.canvas.setZoomScale(0.7, animated: false)
+        rig.coordinator.scrollViewDidEndZooming(rig.canvas, with: nil, atScale: 0.7)
+        await settle()
+        XCTAssertEqual(rig.zoom, 0.7, accuracy: 1e-6)
+        XCTAssertEqual(rig.probe.ratios.count, 1, "the pinch's report")
+        XCTAssertEqual(rig.probe.ratios.first ?? 0, 0.7 / opening, accuracy: 1e-3, "the pinch's ratio")
+        XCTAssertEqual(rig.probe.fits, [false], "the fit state is over")
+        XCTAssertEqual(rig.probe.zooming, [true, false])
+        await put(rig, mid: origin(y2026, session) + session.plan.pageWidth / 2)
+        await turn(rig, to: yearPortrait)
+        XCTAssertEqual(rig.zoom, 0.7, accuracy: 1e-6, "portrait: the absolute zoom stays, not fit 834 / 1,400")
+        await turn(rig, to: landscape)
+        XCTAssertEqual(rig.zoom, 0.7, accuracy: 1e-6, "landscape again: the absolute zoom stays, not fit 1,210 / 1,400")
+        XCTAssertEqual(rig.probe.ratios.count, 1, "a turn reports nothing")
+        XCTAssertEqual(rig.probe.fits, [false])
+    }
+
+    /// §3.7, §5.4 (0g-19, 0g-23; P-B6 イ's cap of three years works from 1.4.3): the window of years on an iPhone in landscape
+    /// (the paper area 750 × 208 of iPhone 17) opens at the cap, three years across (750 / 4,200), and the screen hands the
+    /// canvas `ScreenPaths.shotPaperOffset`: on today's year (11/7/2026 10:00, the focus 11/16) it opens two rows above today's
+    /// row — day 5's top, 4 × 60 lu (`cappedOpeningY`, `PageNavigation.initialScrollY`'s rule of the year) — with the focus year
+    /// in the middle and today's cell on screen. A window whose focus year does not hold today (2028) has no offset and opens
+    /// at its top.
+    func testTheCappedYearOpensTwoRowsAboveTodaysRow() async throws {
+        bed.now = try XCTUnwrap(SessionTestBed.tokyo.date(from: DateComponents(year: 2026, month: 11, day: 7, hour: 10)))
+        let area = CGSize(width: 750, height: 208)
+        let session = bed.session(.year, focus: nov16, deviceClass: .iPhone, orientation: .landscape, overviewCap: true)
+        await session.prefetch()
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertNil(PaperSpan.window(for: session.layout, focus: session.focusSlot), "the year does not join: one page at a time")
+            return
+        }
+        let cap = area.width / (3 * ZoomPolicy.paperWidth(.year))
+        let zoom = ScreenPaths.bandZoom(layout: session.layout, area: area, ratio: 1)
+        XCTAssertEqual(zoom, cap, accuracy: 1e-6, "the screen's zoom: the cap, three years across")
+        let today = try XCTUnwrap(years(session.layout).first { $0.pageId == y2026 })
+        XCTAssertEqual(today.todayCell, .yearDay(month: 11, day: 7))
+        let top = today.rows[4].frame.minY
+        XCTAssertEqual(top, 240, accuracy: 0.001, "two rows above 11/7's row: day 5's top")
+        let offset = try XCTUnwrap(ScreenPaths.shotPaperOffset(layout: session.layout, focusPageId: session.focusPageId, pages: nil,
+                                                               offset: nil, viewportWidth: area.width, zoom: zoom), "today's year")
+        let focus = origin(y2026, session)
+        XCTAssertEqual(offset.y, top, accuracy: 0.001, "the opening's y: `cappedOpeningY`")
+        XCTAssertEqual(offset.x, focus + session.plan.pageWidth / 2 - area.width / 2 / zoom, accuracy: 0.001, "the focus year in the middle")
+
+        let rig = await attach(session, size: area, initialPaperOffset: offset)
+        XCTAssertEqual(rig.zoom, cap, accuracy: 1e-4, "the cap")
+        XCTAssertEqual(middle(of: y2026, rig), area.width / 2, accuracy: 0.5, "the focus year in the middle")
+        XCTAssertLessThanOrEqual(top * cap, rig.canvas.contentSize.height - area.height, "inside the paper: nothing clamps it")
+        XCTAssertEqual(rig.canvas.contentOffset.y, top * cap, accuracy: 0.5, "opened with day 5's row at the top")
+        let todayCell = cell(.yearDay(month: 11, day: 7), of: y2026, session)
+        XCTAssertGreaterThanOrEqual(todayCell.minY * cap, rig.canvas.contentOffset.y, "today's cell on screen")
+        XCTAssertLessThanOrEqual(todayCell.maxY * cap, rig.canvas.contentOffset.y + area.height, "today's cell on screen")
+
+        let other = bed.session(.year, focus: DayKey(year: 2028, month: 3, day: 1), number: 2, deviceClass: .iPhone,
+                                orientation: .landscape, overviewCap: true)
+        await other.prefetch()
+        let otherZoom = ScreenPaths.bandZoom(layout: other.layout, area: area, ratio: 1)
+        XCTAssertNil(ScreenPaths.shotPaperOffset(layout: other.layout, focusPageId: other.focusPageId, pages: nil, offset: nil,
+                                                 viewportWidth: area.width, zoom: otherZoom), "2028 does not hold today")
+        let otherRig = await attach(other, size: area)
+        XCTAssertEqual(otherRig.zoom, cap, accuracy: 1e-4)
+        XCTAssertEqual(otherRig.canvas.contentOffset.y, 0, accuracy: 0.5, "another year opens at its top")
+        XCTAssertEqual(middle(of: "y-2028", otherRig), area.width / 2, accuracy: 0.5, "the focus year in the middle")
     }
 }
