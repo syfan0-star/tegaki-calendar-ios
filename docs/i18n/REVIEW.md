@@ -3392,3 +3392,191 @@ D2 の文の見直し（should 1・should 2・nit 2）を受けて、この枝�
 - **審査メモ**: 契約 §8.4 は、1.4.2 の段と要約のほかは「1 バイトも替えない」としています。To test の名前は、アプリの字が替わったので 1 か所だけ替えました（リードが契約 §14 の注に書く）。3,669 → **3,665 バイト**（`wc -c`。最後の改行を除くと 3,664 バイト・3,348 字）で、4,000 バイトの中です。`docs/store/README.md` の審査メモの段と、英語の画面の名前の表も直しました。
 - **Web**: `r142-legal`（契約 §8.5。まだ作っていない）には、この SUPPORT.en の字を入れます。
 - **lint**: この木で `lint.py`（L-1〜L-14）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です。L-12 の目安の警告は 59 → 58 件です（en の Use Finger は 10 字・6.0 em で `maxEm` 9.0 の中。it Scrivi con il dito は前から警告）。
+
+## 20. 1.4.3 の店と Web の文（新機能の文・審査メモの 1.4.3 の段・SUPPORT 日英、2026-11-28）
+
+元は契約の第 3 版 §13.3〜§13.5（[R1_4_3_CONTRACT.md](../R1_4_3_CONTRACT.md)）と、本人の答え「ア」（月の並べ方、2026-11-28。いちばん短い月の最後の行がのびて、メモ欄がそろう）です。替わった文は 3 つの所にあります。(1) 新機能の文の 3 つの点（`docs/store/source-ja/whatsnew.txt`。契約 §13.3 の `>` の行から機械で写した。3 つ目の点は 1.3 の K-8 の点と同じ字で、1.3 の判定（4）が今も有効。訳についての 1 行は 1.4.2 と同じ字で、18 の判定が今も有効）。(2) 審査メモの「What is new in 1.4.3」の 1〜4（`docs/store/review-note.txt`。4 は 1.4.2 の 3 と番号のほかは同じ字）と、日本語の要約の 1.4.3 の文。(3) `docs/SUPPORT.md`・`docs/SUPPORT.en.md` の新しい FAQ「月と年のページで、となりのページへ続けて書くには？」、拡大・縮小の FAQ の 2 段落目（と、判定の後に 1 段落目の括弧）、メモ欄の紙の FAQ の 2 文、版の FAQ の 1 段落、既知の制限の「マスをまたぐ手書き」の行。
+
+- **19 について**: 契約 §13.2 の 19 はアプリの文（月と年の案内の札の 4 キーと設定の脚注）の節で、アプリの文を直している別の段が書きます。この段で直した GLOSSARY の字は店の文の語（§7 の 11 行目の en、§7 の頭の段落、「決めたこと」の 2 点、「確かめていないこと」の 1 点）だけなので、19 は作らず、この節に書きました。
+- **訳**: 役 X が GLOSSARY §7 と §5 の等倍の定義（70b885b）、新機能の文の 11 組（cc47236）、審査メモ（cc70cc7）、字の選び [PROPOSALS_1_4_3.md](../store/PROPOSALS_1_4_3.md)（b03357a）を、役 W が SUPPORT 日英（50d0779）を書きました（どれも枝 `r143-w-d2s`）。新機能の文は 11 のフォルダ（en-US・zh-Hans・zh-Hant・ko・fr-FR・de-DE・it・pt-BR・pt-PT・es-MX・es-ES）の `whatsnew.txt`（en-GB・en-AU・en-CA は en-US、fr-CA は fr-FR の写しでフォルダは無い）。アプリの語は r143 の 66ec030 の各言語の訳の字です。
+- **元を見ない逆翻訳（1 回目、68 行）**: D2 の R が、日本語の元・契約・GLOSSARY・PROPOSALS を開かずに訳し戻しました（da775aa）。10 の訳の 3 つの点の 30 行は [docs/i18n/back/store-1_4_3.md](back/store-1_4_3.md)、英語の 38 行（新機能の文 4・審査メモの 1.4.3 の段 6・SUPPORT.en の見出し 1 と新しい文と替わった文 27）は [docs/i18n/back/store-1_4_3-en.md](back/store-1_4_3-en.md) です。R が先に知っていた物（役への指示の文にあった月の形のアと、アプリの日本語の語の名前「指でも書く」「等倍」「メモ欄」、3 つ目の点の出だし）は、各ファイルの頭に書いてあります。月の最後の行がのびる 3 文（S.m6a〜S.m6c）、notes area を「メモ欄」と訳し戻した所、3 つ目の点の出だし（＊）は、元を見ない逆翻訳として弱い物です。
+- **判定**: 判定の 2 役 J と T の報告（指摘の一覧。所・中身・直し方と、重さ x・should・nit）を、ワークフローがこの節の直しの役に渡しました。**x の指摘は 2 役とも 0 です**（should は J 3・T 3、nit は J 6・T 5）。2 役の行ごとの ○・△ の数は、渡された報告に無かったので、この節では指摘のあった行とその重さを写しました（下の「全部の表」）。指摘の根拠は、J が日本語の元・契約・アプリのコード（`SpanPlan.flingTarget`、等倍のボタンの記号 `1.magnifyingglass`）、T がアプリの各言語の字・GLOSSARY の行・契約です（2 役の見方の分け方は、報告の中身から読んだ物）。
+- **直し**: X と W を兼ねる直しの役（この節を書いた Claude）が、should の全部（J1・T1、J2、J3・T3、T2）と、nit のうち小さく直せる物（J4・T6 (b)、J8、J9、T5、T8）を直し、残りの nit（J5・T4、J6、J7、T6 (a)、T7）は理由を書いて直していません。英語で替えた 7 文は、直しの役が英語の字だけから訳し戻しました（2026-11-28 12:40〜 JST、`back/store-1_4_3-en.md` の最後の節「2 回目」）。**この Claude は直す前に日本語の元と指摘を読んでいるので、2 回目は 1 回目の R より弱い、元を見ない逆翻訳です**（18.x と同じ形。この作業の場には別の Claude を立てる道具がありませんでした）。2 回目の判定も、同じ Claude が意味と、語と事実の 2 つの見方で行いました。別の Claude の 2 回目が要るとリードが決めたときは、「2 回目」の表の id と訳の列だけを渡せます。
+- **母語の人の確認ではありません。**
+
+### 結果
+
+| 対象 | 行 | 判定 J | 判定 T | 判定の後に替えた字 | 最後 |
+| --- | --- | --- | --- | --- | --- |
+| 新機能の文の 3 つの点（10 の訳） | 30 | x 0・should 0・nit 1（J7） | x 0・should 0・nit 1（T7） | 0 | × 0 |
+| 新機能の文（en-US。3 つの点と訳についての 1 行） | 4 | x 0・should 1（J1）・nit 1（J7） | x 0・should 1（T1）・nit 1（T5） | 1（2 つ目の点） | × 0（替えた 1 行は 2 回目で ○） |
+| 審査メモの 1.4.3 の段（1a・1b・1c・2・3・4） | 6 | x 0・should 1（J2）・nit 1（J4） | x 0・should 0・nit 2（T5・T6） | 2（1c・3） | × 0（替えた 2 文は 2 回目で ○） |
+| SUPPORT.en（新しい FAQ の見出し 1 と 19 文・拡大・縮小 2・メモ欄の紙 2・版 1・既知の制限 3） | 28 | x 0・should 1（J3）・nit 2（J5・J6） | x 0・should 2（T2・T3）・nit 2（T4・T5） | 2（S.m6c・S.l.1） | × 0（替えた 2 文は 2 回目で ○） |
+| SUPPORT.en の 1 回目の外の 2 文（拡大・縮小の 1 段落目の 4 文目 S.z.0、既知の制限の設定の文 S.l.4） | 2 | should 1（J3） | should 2（T2・T3） | 2 | × 0（2 回目で ○） |
+| 文書（GLOSSARY §7・README・PROPOSALS） | — | should 1（J1 の一部）・nit 2（J8・J9） | should 1（T1 の一部）・nit 2（T5・T8） | GLOSSARY §7 の 11 行目の en・頭の段落・「決めたこと」の 2 点、README の 2 段、PROPOSALS の §1〜§5 | — |
+| **計** | **70** | **x 0** | **x 0** | **英語 7 文（1 回目にあった行 5・外の 2）と日本語 1 文（SUPPORT.md の拡大・縮小の括弧）** | **× 0** |
+
+**× は 0 です。** 判定の後に替えた英語の 7 文は、2 回目の逆翻訳と判定で 7 文とも ○ です（下の「判定の後に替えた字」）。日本語で替えたのは SUPPORT.md の 1 文（元の文。訳し戻す物ではない）で、契約 §5.4 の事実と照らしました。新機能の文の 10 の訳は 1 字も替えていないので、1 回目の逆翻訳のままです。`docs/store/README.md` の新機能の文の表の 1.4.3 の行と、審査メモの「1.4.3 から」の段、`PROPOSALS_1_4_3.md` §5 の「まだ」は、この節を指す字に直しました。
+
+### 指摘と扱い
+
+| # | 重さ | 所 | 中身 | 確かめたこと | 扱い |
+| --- | --- | --- | --- | --- | --- |
+| J1・T1 | should | `en-US/whatsnew.txt` の 2 つ目の点、GLOSSARY §7 の 11 行目の en と「決めたこと」、README の 1.4.3 の行、PROPOSALS §1.2 の表 | 同じ等倍のボタンを en で 2 通りに呼んでいた。新機能の文と GLOSSARY の表は the button with a magnifying glass and “1”（虫めがね「と」1）、SUPPORT.en（1.4.1 から）は the button showing a magnifying glass with “1”、審査メモは a magnifying glass with "1"。GLOSSARY・README・PROPOSALS は「SUPPORT.en と同じ」と書いていて、字と合わなかった | 記号は `1.magnifyingglass`（`PageHeaderView.swift`）で、「1」はレンズの中にある。and だと、虫めがねと 1 が並ぶとも読める（R の気づき 2） | **直した**。en-US の 2 つ目の点と GLOSSARY §7 の 11 行目の en を SUPPORT.en と 1 字も同じ the button showing a magnifying glass with “1” にし、GLOSSARY の「決めたこと」・README・PROPOSALS の字もそれに合わせた。替えた 1 行は 2 回目の逆翻訳と判定で ○（下の 1）。en-GB・en-AU・en-CA は写しなので同じに替わる。zh・ko（虫めがねの中に 1）と欧州の 7 つ（虫めがねと 1）は替えない（下の T7） |
+| J2 | should | 審査メモの 3（To check） | swipe left のとおりにはじくと、1 ページが画面の幅に入るときは `SpanPlan.flingTarget` がとなりの月を画面の真ん中に止める。縦の iPad の月（V 1.00）と縦の iPhone では月の境目が画面の端に来て、審査の人がまたいで書く所を見つけにくい（R の気づき 4）。1.3 の同じ形の確かめ方は審査を通ったので × ではない | `flingTarget` は、速さが `flingVelocity`（0.3）以上で 1 ページが画面に入るときだけとなりのページを真ん中に置き、ゆっくりなら離した所で止める（ページの端が画面の端から幅の 6 % の内のときだけ端にそろう）。境目を画面の真ん中に置けば、そろえる対象にならない | **直した**: 「drag left slowly with one finger (…) until the boundary between two months is in the middle of the screen, and write across it in the notes area」（+66 バイト、3,789 バイト）。2 回目で ○（下の 3）。年の確かめ方の 1 文は足していない（足すなら年が遅れたときに替わる文になるので、リードが決める） |
+| J3・T3 | should | SUPPORT 日英の拡大・縮小の FAQ の 1 段落目（ja「つまんで縮めると、カレンダー全体が見えます」、en When you pinch to zoom out, you can see the whole calendar.） | すぐ前の新しい FAQ は、iPhone を横にした年について「1 年全部は縦に入らない」と書き、隣り合う FAQ で日英とも食い違う（契約 §5.4 の上限 3 年分のとおり、新しい FAQ の方が正しい）。iPhone 横の週（上限 3）でも 1.3 から少しずれていた見込み | 契約 §5.4: iPhone 17 で年の一覧が 0.112 → 0.179 に上がり、1,860 × 0.179 ≈ 333 pt ＞ 紙の高さ 208 pt。`SpanPlan.overviewCapPages` は iPhone 横の週・年が 3、日が 5、月が上限なし。契約 §13.5 がそのまま正しいと言っているのは、同じ段落の「同じ大きさで開きます」の文だけ | **直した**（J3 の字）: ja「つまんで縮めると、カレンダー全体が見えます（iPhone を横にしたときの年のページのように、横につながったページでは、上下にすべらせて見ることがあります）。」、en「…you can see the whole calendar (on pages joined sideways, such as a year page on an iPhone in landscape, you may need to slide up and down).」。「ことがあります・may」で、週が当たるかを決めずに書ける。en は 2 回目で ○（下の 5）。年が遅れたときは例を替える（下の「年が 1.4.4 に遅れたとき」） |
+| T2 | should | SUPPORT.en の既知の制限の行（W が替えた行）と、新しい FAQ の S.m6c | ja はどこも「横につながり」「境目」「設定 › ページ で横につなげるのをオフ」の 1 通りなのに、en は同じ設定を “Join Neighboring Pages Sideways”・the joining・the side-by-side joining の 3 通りで呼び、替えた行の中に 1.3 の side by side・borders と新しい sideways・boundary が並んでいた。同じ行の cell borders（マスの境界）とも区別しにくい | GLOSSARY §7 は「1.4.3 の文は札と設定の語を使う」と決めている。設定の行の en は `settings.page.span` の Join Neighboring Pages Sideways | **直した**: 既知の制限の行の joined side by side → joined sideways、across the borders between them → across the boundary between them、the side-by-side joining → “Join Neighboring Pages Sideways”。S.m6c の when the joining is turned off → when “Join Neighboring Pages Sideways” is turned off。3 文とも 2 回目で ○（下の 4・6・7）。**版の FAQ の 1.3 からの文（on the week page, it appears even when the side-by-side joining is turned off…）は替えていない**（判定の指摘どおりリードが決める。替えるなら同じ名前にし、その 1 文を R にかける） |
+| J4・T6 (b) | nit | 審査メモの 1 の最後の文「Settings > Pages turns it off.」 | it がどこまでかが分からない（R の気づき 4）。スイッチは週・日・月・年に 1 つ | `settings.page.span.footer` の en「When this is off, pages are shown one at a time, as before.」 | **直した**（T6 (b) の短い字）: 「Settings > Pages turns it off for all page types.」（+19 バイト）。契約 §13.4 の英語から替えた 5 つ目（README・PROPOSALS §2.1 の (e)）。2 回目で ○（下の 2） |
+| J5・T4 | nit | SUPPORT.en のメモ欄の紙の FAQ と 1 ページの FAQ の前からの文（The Notes area of the month page）と、新しい文の notes area | 同じ欄を大文字と小文字で書いている（R の気づき 1）。意味は通る | 小文字はアプリの `toast.growthCap` の字と GLOSSARY §7 の字。大文字の文は 1.4.2 で判定を受けた字 | **直さない**（範囲を広げないため。J5・T4 とも「記録だけでよい」）。そろえるなら後の版で the notes area of the month page にし、R にかける |
+| J6 | nit | SUPPORT 日英の新しい FAQ の「（開いたときもこの大きさです）」 | 等倍を押した種類やピンチで大きさを覚えた種類は、別の大きさで開く（契約 §0.1・§6.4） | 新しい FAQ の中の文なので、横につながっているときの初めの開き方と読める | **直さない**（J6 の「替えなくてよい」のとおり） |
+| J7 | nit | 新機能の文の 1 つ目の点（16 ロケール。en also、ja「も」） | 「も」が何と同じかが、1 つ目の点の中に無い（R の気づき 1） | 元の ja の「月と年のページも」をそのまま訳している | **直さない**（元に忠実。週と日が 1.3 からつながっていることは今の利用者には分かる） |
+| J8 | nit | GLOSSARY §7 の頭の段落（年が遅れたときの読み替え） | 使わない行を「2・4・10」としていたが、14 行目（年の札）・5 行目の注の「年の札」・「決めたこと」の年の 2 つの点も年だけの物 | §7 の表と「決めたこと」を読み直した | **直した**: 「年の行（2・4・10・14）と、5 行目の注の「年の札」、下の「決めたこと」の年の 2 つの点（年の境目の月の名前・ko の「年」）」。下の T8 の 1 句も同じ段落に足した |
+| J9 | nit | README の審査メモの「1.4.3 から」の段 | 「（1 月と年のページも…。2 1× のボタンが…」の「1 月と年」が「1 月（January）と年」と読める | 1.4.2 の段と同じ書き方だが、今回は月の名前と重なる | **直した**: 「(1) 月と年のページも…。(2) 1× のボタンが…。(3) …。(4) …」 |
+| T5 | nit | en の新機能の文の 1 つ目の点・審査メモの 1・SUPPORT.en の新しい FAQ の 1 文目 | en の「前後のページ」は 3 つとも the pages before and after (them)。アプリの脚注 `settings.page.span.footer` と GLOSSARY §7 の 1 行目は the previous and next …。ほかの 9 言語の店の文は脚注の語 | the pages before and after は 1.3 の審査メモ（1701575）と SUPPORT.en の既知の制限の行からの字。en の 3 つの文の中ではそろっている | **字は直さない**。GLOSSARY §7 の「決めたこと」に、en の店の文・SUPPORT.en・審査メモの「前後のページ」は the pages before and after (them) だという 1 点を足した（T5 の案のとおり） |
+| T6 (a) | nit | 審査メモの新しい 3 と、替えない To test の段 | 3 は two fingers when "Use Finger" is on, the default on iPhone と boundary、To test は (one finger on iPad, two on iPhone) と border between two weeks で、同じメモの中で 2 通り | 既定の状態ではどちらも当たり、新しい方が契約 §7.2 に正確 | **直さない**（To test の段は契約 §13.4 で 1 バイトも替えない決まり。記録だけ） |
+| T7 | nit | fr-FR・de-DE・it・pt-BR・pt-PT・es-MX・es-ES の 2 つ目の点（GLOSSARY §7 の 11 行目） | 「虫めがねと『1』のボタン」で、「1」が中にあることを言っていない（R の気づき 2）。zh・ko は「虫めがねの中に 1」 | 同じボタンと分かる（J1 も「替えなくてよい」） | **直さない**（記録だけ。en を with の形にしても、欧州の 7 つは GLOSSARY の今の字のままで通る） |
+| T8 | nit | GLOSSARY の頭の段落（ファイルの 3 行目） | 年が遅れたときに替える文の一覧（X の報告と PROPOSALS §4）に、頭の段落の「1.4.3 では §5 の等倍の定義を『日・週・月・年とも…』に直しました」が入っていなかった | §5 の中の文は §5 の頭の読み替えの注で足りる | **一覧に足した**: PROPOSALS §4 の GLOSSARY の行と、GLOSSARY §7 の頭の段落（J8）に「このファイルの頭の段落の『日・週・月・年とも』も『日・週・月とも』に直す」を書いた。頭の段落の字そのものは、年が遅れると決まったときにリードが直す |
+
+### 判定の後に替えた字（2 回目の逆翻訳と判定）
+
+英語の 7 文は、直しの役が替えた英語の字だけから訳し戻しました（`back/store-1_4_3-en.md` の「2 回目」。上の「直し」の断りのとおり弱い形）。判定は同じ Claude の 2 つの見方です。**意味**: 逆翻訳と英語の字を、日本語の元（`source-ja/whatsnew.txt`、審査メモの日本語の要約、`docs/SUPPORT.md` の同じ所）と照らす。**語と事実**: 英語の中のアプリの語を r143 の 66ec030 のアプリの en の字（`settings.page.header` Pages、`settings.page.span` Join Neighboring Pages Sideways、`toolbar.fingerToggle` Use Finger、`toast.growthCap` の notes area）と機械で照らし、中身を契約（§5.4・§6・§7.2）とコード（`SpanPlan.flingTarget`・`overviewCapPages`、`PageHeaderView.zoomResetSymbol`）と照らす。
+
+| # | id | 元の日本語 | 前の英語 | 新しい英語 | 逆翻訳（2 回目） | 意味 | 語と事実 | 注 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1.4.3.W2.en-US | ・月と年の等倍（虫めがねに「1」のボタン）も、日と週と同じく、1 ページの幅が画面の幅にちょうど合う大きさになりました。 | • On month and year pages too, the button with a magnifying glass and “1” now resets the zoom so that one page fits the width of the screen exactly, as on day and week pages. | • On month and year pages too, the button showing a magnifying glass with “1” now resets the zoom so that one page fits the width of the screen exactly, as on day and week pages. | ・月と年のページでも、「1」の付いた虫めがねが表示されたボタンが、今は、日と週のページと同じように、1 ページが画面の幅にちょうど合うようにズームを戻します。 | ○ | ○ | ボタンの言い方は SUPPORT.en の S.z.1 と 1 字も同じ（機械で照らした）。記号 `1.magnifyingglass` のとおり 1 つの印と読める。「等倍」の名詞を使わず「ズームを戻す」で言うのは GLOSSARY §5 の決まりのまま。L-9 の字数 915 → 919 |
+| 2 | RN143.1c | （要約）設定 › ページ で切り替え | Settings > Pages turns it off. | Settings > Pages turns it off for all page types. | 設定 > Pages（ページ）で、すべての種類のページについて、それをオフにできます。 | ○ | ○ | スイッチは 1 つで、オフにすると週・日・月・年のどれも 1 ページずつ（`settings.page.span.footer`）。Pages は `settings.page.header` の en。+19 バイト |
+| 3 | RN143.3 | （日本語の要約に無い。契約 §13.4 の 3 の英語の確かめ方） | 3. To check: open a month page, swipe left with one finger (two fingers when "Use Finger" is on, the default on iPhone) and write across the boundary in the notes area. | 3. To check: open a month page, drag left slowly with one finger (two fingers when "Use Finger" is on, the default on iPhone) until the boundary between two months is in the middle of the screen, and write across it in the notes area. | 3. 確かめ方: 月のページを開き、1 本の指で（"Use Finger"（指を使う）がオンのときは 2 本の指で。iPhone ではそれが最初の設定）、2 つの月の境目が画面の真ん中に来るまでゆっくり左へドラッグして、メモ欄（notes area）でその境目をまたいで書いてください。 | ○ | ○ | ゆっくり動かすと `flingTarget` は離した所で止め、境目が画面の真ん中ならページの端は画面の端から遠いのでそろえない（`snapFraction` 0.06）。指の数は契約 §7.2（iPhone は「指でも書く」オンが既定）。"Use Finger" は `toolbar.fingerToggle` の en。+66 バイト |
+| 4 | S.m6c | 1 ページずつの表示（設定でオフにしたときや、1.4.2 までの端末）では、書いたものに合わせて、その行がのびて見えます。 | When pages are shown one at a time (when the joining is turned off, or on a device with version 1.4.2 or earlier), that row grows to fit what you wrote there. | When pages are shown one at a time (when “Join Neighboring Pages Sideways” is turned off, or on a device with version 1.4.2 or earlier), that row grows to fit what you wrote there. | ページが 1 枚ずつ出るとき（“Join Neighboring Pages Sideways”（隣のページを横につなぐ）がオフのとき、またはバージョン 1.4.2 以前の端末で）は、その行は、そこに書いたものに合わせて伸びます。 | ○ | ○ | ja の「設定でオフ」を、設定の行の名前で言った（S.j.3 と同じ字）。「のびて見えます」と grows の差は 1 回目のままで、判定の指摘は無い |
+| 5 | S.z.0 | つまんで縮めると、カレンダー全体が見えます（iPhone を横にしたときの年のページのように、横につながったページでは、上下にすべらせて見ることがあります）。 | When you pinch to zoom out, you can see the whole calendar. | When you pinch to zoom out, you can see the whole calendar (on pages joined sideways, such as a year page on an iPhone in landscape, you may need to slide up and down). | つまんで縮小すると、カレンダー全体が見えます（横につながったページ、たとえば横向きの iPhone の年のページでは、上下に滑らせなければならないことがあります）。 | ○ | ○ | 日本語の元もこの段で足した（下の 8）。契約 §5.4 の上限 3 年分で 1 年は縦に入らない。週（上限 3）が当たるかは確かめていないが、「ことがあります・may」と例 1 つの書き方なので、どちらでも誤りにならない。年が遅れたときは例を替える |
+| 6 | S.l.1 | 1.3 から、週と日のページで、前後のページが横につながり、境目をまたいで書けます。 | From version 1.3, week and day pages are joined side by side with the pages before and after them, and you can write across the borders between them. | From version 1.3, week and day pages are joined sideways with the pages before and after them, and you can write across the boundary between them. | バージョン 1.3 から、週と日のページは前と後ろのページと横につながり、その間の境目をまたいで書けます。 | ○ | ○ | 新しい FAQ・新機能の文・審査メモ・GLOSSARY §7 と同じ sideways・boundary。同じ行の cell borders（マスの境界）と語が分かれた |
+| 7 | S.l.4 | 設定 › ページ で横につなげるのをオフにすると、今までどおり 1 ページずつになります。 | If you turn off the side-by-side joining in the App's Settings > Pages, pages are shown one at a time, as before. | If you turn off “Join Neighboring Pages Sideways” in the App's Settings > Pages, pages are shown one at a time, as before. | アプリの 設定 > Pages（ページ）で “Join Neighboring Pages Sideways”（隣のページを横につなぐ）をオフにすると、今までどおり、ページは 1 枚ずつ出ます。 | ○ | ○ | `settings.page.span` の en と同じ字（機械で照らした）。すぐ後の替えない文「On a device where it is turned off, …」の it は、このスイッチと読める |
+| 8 | SUPPORT.md の拡大・縮小の FAQ の 1 段落目の 4 文目（日本語の元そのものを替えた） | 前の字「つまんで縮めると、カレンダー全体が見えます。」→ 新しい字「つまんで縮めると、カレンダー全体が見えます（iPhone を横にしたときの年のページのように、横につながったページでは、上下にすべらせて見ることがあります）。」 | — | —（英語は上の 5） | （元の文なので訳し戻さない） | — | ○ | 契約 §5.4 と、すぐ前の新しい FAQ の「1 年全部は縦に入らないので、上下にすべらせて見てください」と食い違わない。ほかの文は替えていない |
+
+- **結果**: 英語の 7 文で、意味 ○ 7、語と事実 ○ 7、× 0・△ 0。日本語の 1 文は事実と照らして ○。
+- **GLOSSARY・README・PROPOSALS**: 店の文の字のほかに、GLOSSARY §7 の 11 行目の en（1 と同じ字）・頭の段落（J8・T8）・「決めたこと」の等倍の点（J1・T1）と en の「前後のページ」の点（T5）・「確かめていないこと」の最後の点、README の新機能の文の表の 1.4.3 の行と審査メモの「1.4.3 から」の段（字数・バイト・(1)〜(4) の番号・契約から替えた所 5 つ）、PROPOSALS の §1.2 の等倍の行・§1.3 の en-US の字数・§2 の 1 と 3 と §2.1 の (d)・(e)・§4 の年が遅れたときの字（3,797 バイト）と GLOSSARY・SUPPORT の行・§5 を直した。
+
+### 元を見ない逆翻訳がまだの物
+
+- 無し（この節の 70 行と、判定の後に替えた 7 文）。ただし上の 7 文の 2 回目は、直した Claude が訳し戻した弱い形です。別の Claude の 2 回目が要るとリードが決めたときは、その 7 文。
+- リードが替えると決めたときに要る物: 版の FAQ の 1.3 からの文の the side-by-side joining（T2 の残り）、審査メモの年の確かめ方の 1 文（J2 の残り）、メモ欄の大文字（J5・T4）。どれも替えたら、その文を R にかける。
+
+### 全部の表（70 行）
+
+逆翻訳の字と R の注は、10 の訳が [docs/i18n/back/store-1_4_3.md](back/store-1_4_3.md)、英語が [docs/i18n/back/store-1_4_3-en.md](back/store-1_4_3-en.md) にあります（判定の後に替えた 7 文は、そのファイルの「2 回目」）。「判定 J」「判定 T」の列は、2 役の報告にあったその行の指摘と重さです。「—」は、その行に指摘が無かったことです（2 役の行ごとの ○・△ は報告に無い）。「最後」の ○ は、x と should の指摘が無いか直した行で、nit を直していない行はそう書きました。＊ は R が出だしを先に知っていた行です。
+
+| id | 判定 J | 判定 T | 判定の後 | 最後 |
+| --- | --- | --- | --- | --- |
+| 1.4.3.W1.zh-Hans | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.zh-Hant | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.ko | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.fr-FR | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.de-DE | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.it | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.pt-BR | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.pt-PT | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.es-MX | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W1.es-ES | nit J7 | — | 替えない | ○（nit は記録） |
+| 1.4.3.W2.zh-Hans | —（J1 の中で「アイコンのとおり」） | — | 替えない | ○ |
+| 1.4.3.W2.zh-Hant | —（J1 の中で「アイコンのとおり」） | — | 替えない | ○ |
+| 1.4.3.W2.ko | —（J1 の中で「アイコンのとおり」） | — | 替えない | ○ |
+| 1.4.3.W2.fr-FR | —（J1 の中で「替えなくてよい」） | nit T7 | 替えない | ○（nit は記録） |
+| 1.4.3.W2.de-DE | —（J1 の中で「替えなくてよい」） | nit T7 | 替えない | ○（nit は記録） |
+| 1.4.3.W2.it | —（J1 の中で「替えなくてよい」） | nit T7 | 替えない | ○（nit は記録） |
+| 1.4.3.W2.pt-BR | —（J1 の中で「替えなくてよい」） | nit T7 | 替えない | ○（nit は記録） |
+| 1.4.3.W2.pt-PT | —（J1 の中で「替えなくてよい」） | nit T7 | 替えない | ○（nit は記録） |
+| 1.4.3.W2.es-MX | —（J1 の中で「替えなくてよい」） | nit T7 | 替えない | ○（nit は記録） |
+| 1.4.3.W2.es-ES | —（J1 の中で「替えなくてよい」） | nit T7 | 替えない | ○（nit は記録） |
+| 1.4.3.W3.zh-Hans ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.zh-Hant ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.ko ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.fr-FR ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.de-DE ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.it ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.pt-BR ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.pt-PT ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.es-MX ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W3.es-ES ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.W1.en-US | nit J7 | nit T5 | 替えない | ○（nit は記録） |
+| 1.4.3.W2.en-US | should J1 | should T1 | **替えた** | ○（2 回目。上の 1） |
+| 1.4.3.W3.en-US ＊ | — | — | 替えない | ○（1.3 の判定（4）も有効） |
+| 1.4.3.AI.en-US | — | — | 替えない | ○（18 の判定も有効） |
+| RN143.1a | — | nit T5 | 替えない | ○（nit は記録） |
+| RN143.1b | — | — | 替えない | ○ |
+| RN143.1c | nit J4 | nit T6 (b) | **替えた** | ○（2 回目。上の 2） |
+| RN143.2 | — | — | 替えない | ○ |
+| RN143.3 | should J2 | nit T6 (a) | **替えた** | ○（2 回目。上の 3。T6 (a) は記録） |
+| RN143.4 | — | — | 替えない | ○（14・16.y・18 の判定も有効） |
+| S.h（新しい FAQ の見出し） | — | — | 替えない | ○ |
+| S.j.1 | — | nit T5 | 替えない | ○（nit は記録） |
+| S.j.2 | — | — | 替えない | ○ |
+| S.m0 | — | — | 替えない | ○ |
+| S.m1 | — | — | 替えない | ○ |
+| S.m2 | nit J5 | nit T4 | 替えない | ○（nit は記録） |
+| S.m3 | — | — | 替えない | ○ |
+| S.m4 | — | — | 替えない | ○ |
+| S.m5a | — | — | 替えない | ○ |
+| S.m5b | — | — | 替えない | ○ |
+| S.m6a | — | — | 替えない | ○（R の気づき 5 には 2 役とも指摘なし） |
+| S.m6b | — | — | 替えない | ○ |
+| S.m6c | — | should T2 | **替えた** | ○（2 回目。上の 4） |
+| S.y0 | — | — | 替えない | ○ |
+| S.y1a | — | — | 替えない | ○ |
+| S.y1b | — | — | 替えない | ○ |
+| S.y2 | — | — | 替えない | ○ |
+| S.y3a | nit J6 | — | 替えない | ○（nit は記録） |
+| S.y3b | should J3（となりの FAQ と食い違う相手） | should T3（同じ） | 替えない（相手の S.z.0 を替えた） | ○ |
+| S.j.3 | — | — | 替えない | ○ |
+| S.z.1 | — | — | 替えない | ○（J1・T1 がそろえる先にした字） |
+| S.z.2 | — | — | 替えない | ○ |
+| S.p.1 | nit J5（同じ段落の The Notes area） | nit T4（同じ） | 替えない | ○（nit は記録） |
+| S.p.2 | — | — | 替えない | ○ |
+| S.v.1 | — | — | 替えない | ○ |
+| S.l.1 | nit J5 | should T2 | **替えた** | ○（2 回目。上の 6） |
+| S.l.2 | nit J5 | nit T4 | 替えない | ○（nit は記録） |
+| S.l.3 | — | — | 替えない | ○ |
+| S.z.0（1 回目の外。拡大・縮小の 1 段落目の 4 文目） | should J3 | should T3 | **替えた** | ○（2 回目。上の 5） |
+| S.l.4（1 回目の外。既知の制限の設定の文） | — | should T2 | **替えた** | ○（2 回目。上の 7） |
+
+### 機械で照らしたこと
+
+この節の Claude が、python で照らしました（スクラッチの使い捨てのスクリプト）。
+
+- 等倍のボタンの en: the button showing a magnifying glass with “1” が、`en-US/whatsnew.txt`（1 か所）・`SUPPORT.en.md`（1 か所）・GLOSSARY §7（表の 11 行目と「決めたこと」の 2 か所）で 1 字も同じ。審査メモは 1.4.1 からの形 the 1× button (a magnifying glass with "1")（ASCII の引用符）のまま。
+- SUPPORT.en の設定の名前: “Join Neighboring Pages Sideways” が 3 か所（新しい FAQ の S.m6c・S.j.3、既知の制限の行）で、アプリの `settings.page.span` の en と同じ字。the joining は 0 件、side by side と borders between は 0 件。the side-by-side joining は版の FAQ の 1.3 からの文の 1 件だけ（T2 の残り）。
+- 審査メモ: r143 の 66ec030 のファイルと行ごとに照らし、違うのは「What is new in 1.4.3」の段（3〜7 行目）と日本語の要約の行（29 行目）だけ。To test・購読・記録・サーバー無し・URL の段は 1 バイトも替わっていない。
+- 新機能の文の 10 の訳は、判定の前（da775aa）の字と 1 バイトも同じ（`git diff` で差なし）。
+- 替えたファイルに、手元のパスや利用者の名前の字は無い。
+
+### 字数とバイト
+
+| 物 | 字数（最後の改行を除く。上限 4,000） | ファイルのバイト（`wc -c`） |
+| --- | ---: | ---: |
+| `ja/whatsnew.txt` | 285 | 802 |
+| `source-ja/whatsnew.txt` | 330 | 925 |
+| `en-US/whatsnew.txt`（en-GB・en-AU・en-CA も） | 919（判定の前は 915） | 934 |
+| `zh-Hans/whatsnew.txt` | 295 | 820 |
+| `zh-Hant/whatsnew.txt` | 295 | 820 |
+| `ko/whatsnew.txt` | 441 | 1042 |
+| `fr-FR/whatsnew.txt`（fr-CA も） | 1134 | 1219 |
+| `de-DE/whatsnew.txt` | 1061 | 1093 |
+| `it/whatsnew.txt` | 1083 | 1120 |
+| `pt-BR/whatsnew.txt` | 983 | 1031 |
+| `pt-PT/whatsnew.txt` | 972 | 1018 |
+| `es-MX/whatsnew.txt` | 1003 | 1045 |
+| `es-ES/whatsnew.txt` | 1007 | 1049 |
+| `review-note.txt`（上限 4,000 バイト） | 3493 字 | 3789（判定の前は 3704。最後の改行を除くと 3788。211 バイト残る） |
+
+### lint
+
+この節の字を入れた後の枝 `r143-w-d2s` の木で、`tools/l10n/lint.py`（L-1〜L-14。L-9 は店の文の字数・禁止語・キーワード・URL と審査メモのバイト）・`build.py --check`・`baseline.py --check` は 3 つとも終了 0 です（L-9 は「ok: 12 locales, the URLs on the English side」。この節の文はアプリの文字列ではないので、`Localizable.xcstrings` と L-12 の数は変わらない）。凍結の表（`tools/compat10/DATA_1_1.sha256`、20 行）は `shasum -a 256 -c` で全部 OK です。SUPPORT の Web の確かめは、このリポジトリには無い（Web の枝 `r143-legal` はリードの段、契約 §13.5）。
+
+### 年が 1.4.4 に遅れたときに替わる文（この節の分）
+
+12/5 に年を 1.4.4 へ送ると決めたら、リードが次の文を月だけの文に替え、替えた文を元を見ない逆翻訳と判定にかけ直します（[PROPOSALS_1_4_3.md](../store/PROPOSALS_1_4_3.md) §4 に目安）。
+
+- 新機能の文: 16 ロケールの 1 つ目と 2 つ目の点（ja・source-ja と 11 のフォルダ。en-US の 2 つ目の点は、この節で替えた字から「month and year」を「month」に）。3 つ目の点と訳についての 1 行はそのまま。
+- 審査メモ: 1.4.3 の段の 1（1a・1b。1c の「for all page types」はそのまま使える）と 2、日本語の要約の 1 つ目と 2 つ目の文。3（月だけの確かめ方）と 4 はそのまま。月だけの目安の字で 3,797 バイト。
+- SUPPORT 日英: 新しい FAQ の見出しと 1 段落目、年のページの段の全部、**この節で足した拡大・縮小の FAQ の 1 段落目の括弧**（例が iPhone を横にした年のページなので、週で当たるかを確かめて例を替えるか、括弧を外す）、拡大・縮小の FAQ の 2 段落目（月と年は 1.4.3 から・縦の iPhone の月と年）、版の FAQ の新しい段落（年のページどうし）、既知の制限の行の 1.4.3 の文と「（月と年のページでは 1.4.2 までの端末では）」。
+- GLOSSARY: ファイルの頭の段落の「日・週・月・年とも」（T8）、§5 の等倍の定義、§7 の年の行（2・4・10・14）・5 行目の注の「年の札」・「決めたこと」の年の 2 つの点（J8。§7 の頭の段落に書いた）。
+- README の新機能の文の表の 1.4.3 の行と審査メモの「1.4.3 から」の段、`locales.json` の ja の `whatsnewSource`、PROPOSALS の §1〜§2。
+- この節で替えた字のうち、年に関わらないもの（審査メモの 1c と 3、SUPPORT.en の S.m6c・S.l.1・S.l.4、GLOSSARY の T5 の点）は、年が遅れても替わりません。

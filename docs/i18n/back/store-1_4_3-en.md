@@ -1,6 +1,6 @@
 # ストア 1.4.3 の逆翻訳（en：新機能の文・審査メモの 1.4.3 の段・SUPPORT.en.md の新しい FAQ と替わった文）
 
-D2 の R（元を見ない逆翻訳の役の Claude）が、日本語の元を見ずに訳し戻した表です（2026-11-28 12:23〜 JST に書いた）。R はこの仕事の間、日本語の元を一度も開いていません。元との照らし合わせ（○・△・×）は R の仕事に入れていないので、このファイルにはありません（判定はリードが [REVIEW.md](../REVIEW.md) の 20 で行う）。母語の人の確認ではありません。10 の訳の新機能の文は [store-1_4_3.md](store-1_4_3.md) です。
+D2 の R（元を見ない逆翻訳の役の Claude）が、日本語の元を見ずに訳し戻した表です（2026-11-28 12:23〜 JST に書いた）。R はこの仕事の間、日本語の元を一度も開いていません。元との照らし合わせ（○・△・×）は R の仕事に入れていないので、このファイルにはありません（判定はリードが [REVIEW.md](../REVIEW.md) の 20 で行う）。母語の人の確認ではありません。10 の訳の新機能の文は [store-1_4_3.md](store-1_4_3.md) です。判定の後に替えた英語の 7 文の 2 回目の逆翻訳は、最後の節「2 回目」です（1 回目の表は替える前の字のまま）。
 
 - **R が読んだもの**（逆翻訳を書く前。どれも枝 `r143-w-d2s` の 50d0779）: `docs/store/en-US/whatsnew.txt` を丸ごと。`docs/store/review-note.txt` の 1〜12 行（日本語の字を含む行は機械で伏せて読んだ。ファイル全体で伏せた行は 3）と、66ec030 からの差分（同じく伏せた。英語で替わったのは「What is new in 1.4.3」の段だけ）。`docs/SUPPORT.en.md` の 66ec030 からの差分（日本語の字を含む行は機械で伏せて読んだ。伏せた行は 0）と、見出しの一覧と、替わった所のまわりの英語の行。替わった 3 つの段落は、前の英語（差分の - の行）と文ごとに機械で照らし、新しい文と替わった文だけを訳し戻した（同じ字の文は訳していない）。
 - **差分の起点**: 指示の `r143..HEAD` の `r143` は、この枝を切った後に 2 つ進んでいる（e044831。店の ja のプロモーションテキストと en のサブタイトル・キーワード）ので、この枝の起点 66ec030（`git merge-base r143 HEAD`）から見た。
@@ -106,3 +106,26 @@ D2 の R（元を見ない逆翻訳の役の Claude）が、日本語の元を�
 - 新機能の文: W1・W2（en-US と 10 の訳の全部、22 行）。W3 と AI の行は年を言っていない。
 - 審査メモ: RN143.1a・1b・2。1c・3・4 は年を言っていない（3 は月だけ）。
 - SUPPORT.en: 見出しと S.j.1・S.j.2、年のページの段の全部（S.y0〜S.y3b）、S.z.1・S.z.2、S.v.1、S.l.2・S.l.3。S.j.3（全部のページ）と月の段（S.m0〜S.m6c）とメモの紙の 2 文（S.p.1 は「週・日・月」で年は入っていない）は年を言っていない。
+
+## 2 回目（2026-11-28 12:40〜 JST。判定の後に替えた英語の 7 文だけ）
+
+判定の 2 役（J・T）の should と nit のうち、英語の字を替えた所です（[REVIEW.md](../REVIEW.md) の 20）。上の 1 回目の表は、替える前の字のまま残しています（記録）。
+
+- **誰が訳し戻したか（正直に書きます）**: 2 回目は、X と W を兼ねる直しの役の Claude が、替えた英語の字だけを見て、文の字から読めることだけで訳し戻しました。ただ、**この Claude は直す前に日本語の元（`docs/SUPPORT.md`・`docs/store/ja`・審査メモの要約）と判定の指摘を読んでいます**。だから 1 回目の R より弱い、元を見ない逆翻訳です（REVIEW.md の 18.x と同じ形）。この作業の場には、別の Claude を立てる道具がありませんでした。別の Claude の 2 回目が要るとリードが決めたときは、下の表の id と「訳」の列だけを渡せます。
+- 字はファイルから機械で写しました。en-GB・en-AU・en-CA は en-US と同じ字です。
+- **【年】** は 1 回目と同じ意味です（年が 1.4.4 に遅れたときに替わる行）。
+
+| id | 訳（2 回目に読んだ字） | 元を見ない逆翻訳（2 回目） | 注 |
+| --- | --- | --- | --- |
+| 1.4.3.W2.en-US（2 回目） | • On month and year pages too, the button showing a magnifying glass with “1” now resets the zoom so that one page fits the width of the screen exactly, as on day and week pages. | ・月と年のページでも、「1」の付いた虫めがねが表示されたボタンが、今は、日と週のページと同じように、1 ページが画面の幅にちょうど合うようにズームを戻します。 | 【年】「a magnifying glass with “1”」は「1 の付いた（1 を持つ）虫めがね」で、1 つの印と読める（「and」の形のように、虫めがねと 1 が並ぶとは読みにくい）。SUPPORT.en の S.z.1 の「the button showing a magnifying glass with “1”」と 1 字も同じ |
+| RN143.1c（2 回目） | Settings > Pages turns it off for all page types. | 設定 > Pages（ページ）で、すべての種類のページについて、それをオフにできます。 | 「it」は前の文までの「横につながること」。「for all page types」で、月と年だけでなく週と日も一緒にオフになると読める。スイッチの名前は書いていない |
+| RN143.3（2 回目） | 3. To check: open a month page, drag left slowly with one finger (two fingers when "Use Finger" is on, the default on iPhone) until the boundary between two months is in the middle of the screen, and write across it in the notes area. | 3. 確かめ方: 月のページを開き、1 本の指で（"Use Finger"（指を使う）がオンのときは 2 本の指で。iPhone ではそれが最初の設定）、2 つの月の境目が画面の真ん中に来るまでゆっくり左へドラッグして、メモ欄（notes area）でその境目をまたいで書いてください。 | 「it」は「the boundary between two months」。止める所（画面の真ん中）を言っているので、どこで書けばよいかが字から分かる。年のページの確かめ方は無い（月だけ） |
+| S.m6c（2 回目） | When pages are shown one at a time (when “Join Neighboring Pages Sideways” is turned off, or on a device with version 1.4.2 or earlier), that row grows to fit what you wrote there. | ページが 1 枚ずつ出るとき（“Join Neighboring Pages Sideways”（隣のページを横につなぐ）がオフのとき、またはバージョン 1.4.2 以前の端末で）は、その行は、そこに書いたものに合わせて伸びます。 | 1 回目の「the joining」を、設定のスイッチの名前（S.j.3 と同じ字）に替えた。何をオフにするのかが字から分かる |
+| S.z.0（2 回目。拡大・縮小の FAQ の 1 段落目の 4 文目） | When you pinch to zoom out, you can see the whole calendar (on pages joined sideways, such as a year page on an iPhone in landscape, you may need to slide up and down). | つまんで縮小すると、カレンダー全体が見えます（横につながったページ、たとえば横向きの iPhone の年のページでは、上下に滑らせなければならないことがあります）。 | 【年】（例が年のページ）。括弧で、全体が一度に縦に入らないことがある、と読める。どのページでそうなるかは例 1 つだけで、全部は書いていない。1 回目では替わっていない文なので、1 回目の表に行は無い |
+| S.l.1（2 回目） | From version 1.3, week and day pages are joined sideways with the pages before and after them, and you can write across the boundary between them. | バージョン 1.3 から、週と日のページは前と後ろのページと横につながり、その間の境目をまたいで書けます。 | 1 回目の「joined side by side」「the borders between them」を、新しい FAQ と同じ「joined sideways」「the boundary」に替えた。同じ行の「cell borders」（マスの境界）と語が分かれた |
+| S.l.4（2 回目。既知の制限の行の、設定でオフにする文） | If you turn off “Join Neighboring Pages Sideways” in the App's Settings > Pages, pages are shown one at a time, as before. | アプリの 設定 > Pages（ページ）で “Join Neighboring Pages Sideways”（隣のページを横につなぐ）をオフにすると、今までどおり、ページは 1 枚ずつ出ます。 | 前の字は「the side-by-side joining」。S.j.3 と同じスイッチの名前になった。すぐ後の文「On a device where it is turned off, …」の「it」は、このスイッチと読める（その文は替えていない）。1 回目では替わっていない文なので、1 回目の表に行は無い |
+
+### 2 回目の気づき（直していない）
+
+1. **S.z.0 の例**: 例は iPhone を横にした年のページだけです。年が 1.4.4 に遅れたときは、年のページは横につながらないので、この例を替えるか括弧を外します（リード。週のページも当たるかは、iPhone 横の週の上限 3 ページで確かめてから）。
+2. **RN143.3 の長さ**: 1 回目より 66 バイト長くなりました。審査メモは 3,789 バイトで、4,000 バイトの中です。

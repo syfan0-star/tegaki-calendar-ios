@@ -1,5 +1,5 @@
 • Month and year pages are now also joined sideways with the pages before and after them. Slide your finger sideways to bring in the neighboring month or year (when “Use Finger” is on, move sideways with two fingers). You can write straight across the boundary: on month pages, in the notes area at the bottom; on year pages, from December into January of the next year.
-• On month and year pages too, the button with a magnifying glass and “1” now resets the zoom so that one page fits the width of the screen exactly, as on day and week pages.
+• On month and year pages too, the button showing a magnifying glass with “1” now resets the zoom so that one page fits the width of the screen exactly, as on day and week pages.
 • Please update both your iPad and your iPhone to this version. On older versions, strokes written across pages appear on only one of the pages (they have not been deleted). If you erase such a stroke on an older version, it is erased in this version too.
 
 Translations were made with AI and have not yet been reviewed by native speakers. Please tell us about mistakes.
