@@ -333,16 +333,18 @@ final class InkCanvasZoomResetTests: XCTestCase {
         XCTAssertEqual(rig.canvas.zoomScale, minimum, accuracy: 1e-4, "below the opening zoom")
         scroll(rig, to: CGPoint(x: rig.canvas.contentOffset.x, y: 300))
         await settle()
-        let y = expectedY(rig, layout: grown, before: rig.canvas.contentOffset.y, zoom: rig.canvas.zoomScale, open: open)
+        let y = expectedY(rig, layout: grown, before: rig.canvas.contentOffset.y, zoom: rig.canvas.zoomScale, open: fit(.month, 1366))
 
         rig.press(1)
         await settle()
-        XCTAssertEqual(rig.canvas.zoomScale, open, accuracy: 1e-4, "up to the opening zoom")
+        XCTAssertEqual(rig.canvas.zoomScale, fit(.month, 1366), accuracy: 1e-4, "1.4.3: up to fit (1,366 / 1,400)")
+        assertFit(rig, .month, "1.4.3: one month across")
         XCTAssertEqual(rig.canvas.contentOffset.x, -(1366 - 1400 * rig.canvas.zoomScale) / 2, accuracy: 0.5, "centred across")
         XCTAssertEqual(rig.canvas.contentOffset.y, y, accuracy: 0.5, "the middle of the screen kept")
         XCTAssertGreaterThan(rig.canvas.contentOffset.y, 300, "the part looked at stays in view (not the top)")
         XCTAssertEqual(rig.probe.ratios.count, 1)
-        XCTAssertEqual(rig.probe.ratios.first ?? 0, 1, accuracy: 1e-6)
+        XCTAssertEqual(rig.probe.ratios.first ?? 0, fit(.month, 1366) / open, accuracy: 1e-3, "1.4.3: the ratio fit / open")
+        XCTAssertEqual(rig.probe.fits, [true], "1.4.3: the fit state")
     }
 
     /// §3.6: at the opening zoom a press does nothing — the scrolled month stays where it is, nothing is reported.
@@ -358,8 +360,19 @@ final class InkCanvasZoomResetTests: XCTestCase {
         XCTAssertEqual(rig.canvas.zoomScale, open, accuracy: 1e-9)
         XCTAssertEqual(rig.canvas.contentOffset.x, before.x, accuracy: 0.001)
         XCTAssertEqual(rig.canvas.contentOffset.y, before.y, accuracy: 0.001, "nothing moves")
-        XCTAssertEqual(rig.probe.ratios, [], "nothing is reported")
-        XCTAssertEqual(rig.probe.zooming, [])
+        XCTAssertEqual(rig.probe.ratios.count, 1, "1.4.3: open = fit, the fit state taken: reported once")
+        XCTAssertEqual(rig.probe.ratios.first ?? 0, 1, accuracy: 1e-6, "1.4.3: ratio 1")
+        XCTAssertEqual(rig.probe.zooming, [false])
+        XCTAssertEqual(rig.probe.opening.fits, [false], "1.4.3: opened without the fit state")
+        XCTAssertEqual(rig.probe.fits, [true], "1.4.3: the fit state")
+        rig.press(2)
+        await settle()
+        XCTAssertEqual(rig.canvas.zoomScale, open, accuracy: 1e-9, "1.4.3: the second press")
+        XCTAssertEqual(rig.canvas.contentOffset.x, before.x, accuracy: 0.001, "1.4.3: the second press")
+        XCTAssertEqual(rig.canvas.contentOffset.y, before.y, accuracy: 0.001, "1.4.3: the second press: nothing moves")
+        XCTAssertEqual(rig.probe.ratios.count, 1, "1.4.3: the second press reports nothing")
+        XCTAssertEqual(rig.probe.fits, [true])
+        XCTAssertEqual(rig.probe.zooming, [false])
     }
 
     /// §3.8 (0e-9): during a pinch or its bounce (`liveOverride`) a press is dropped — and not kept: when the pinch is over
@@ -830,16 +843,24 @@ final class InkCanvasZoomResetTests: XCTestCase {
         let (month, paper) = makeMonth()
         let rig = await makeRig(layout: month, paper: paper, width: 1366, height: 830, initialZoomRatio: 2, initialFit: true)
         let open = 830.0 / 1050
-        XCTAssertEqual(rig.canvas.zoomScale, 2 * open, accuracy: 1e-4, "the stored ratio, not fit")
-        XCTAssertEqual(rig.probe.opening.fits, [false])
+        XCTAssertEqual(rig.canvas.zoomScale, fit(.month, 1366), accuracy: 1e-4, "1.4.3: initialFit opens the month at fit, not at the stored ratio 2")
+        assertFit(rig, .month, "1.4.3: opened at fit")
+        XCTAssertEqual(rig.probe.opening.fits, [true])
+        XCTAssertEqual(rig.probe.opening.ratios.count, 1, "1.4.3: the first layout's report")
+        XCTAssertEqual(rig.probe.opening.ratios.first ?? 0, fit(.month, 1366) / open, accuracy: 1e-3, "1.4.3: the ratio fit / open")
+        let at = rig.canvas.contentOffset
         rig.press(1)
         await settle()
-        XCTAssertEqual(rig.canvas.zoomScale, open, accuracy: 1e-4, "等倍: the opening zoom (fit would be 1,366 / 1,400)")
-        XCTAssertEqual(rig.probe.ratios.count, 1)
-        XCTAssertEqual(rig.probe.ratios.first ?? 0, 1, accuracy: 1e-6)
-        XCTAssertEqual(rig.probe.fits, [false], "the month has no fit state")
+        XCTAssertEqual(rig.canvas.zoomScale, fit(.month, 1366), accuracy: 1e-4, "1.4.3: 等倍 at fit: it stays")
+        XCTAssertEqual(rig.canvas.contentOffset.y, at.y, accuracy: 0.001, "1.4.3: at fit nothing moves")
+        XCTAssertEqual(rig.probe.ratios, [], "1.4.3: at fit a press reports nothing")
+        XCTAssertEqual(rig.probe.zooming, [])
+        XCTAssertEqual(rig.probe.fits, [], "1.4.3: already in the fit state")
         rig.layout(width: 1292, height: 830)
-        XCTAssertEqual(rig.canvas.zoomScale, open, accuracy: 1e-4, "1,292: the opening zoom stays the opening zoom, not 1,292 / 1,400")
+        XCTAssertEqual(rig.canvas.zoomScale, fit(.month, 1292), accuracy: 1e-4, "1.4.3: 1,292: follows fit (1,292 / 1,400)")
+        assertFit(rig, .month, "1.4.3: 1,292")
+        await settle()
+        XCTAssertEqual(rig.probe.ratios, [], "1.4.3: a change of width reports nothing")
     }
 
     /// §16.3.3, §16.10: on the one-page path a new page coming to the same canvas opens through step 3 again and reads
