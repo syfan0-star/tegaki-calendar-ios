@@ -114,24 +114,25 @@ final class InkCanvasMonthYearTests: XCTestCase {
 
     /// The canvas as the screen builds it for a session, with the press count `zoomResetTrigger` (the screen's `@State`),
     /// `initialFit` (the kind's stored fit) and `initialScrollX` (band lu; the screen's `bandStart`: the focus page's left
-    /// edge at fit).
+    /// edge at fit); `tool` and the ↶ ↷ counts `undoTrigger` / `redoTrigger` (the screen's `@State`, review TEST-1).
     private func makeView(_ session: SpanSession, probe: SpanProbe, zoomResetTrigger: Int = 0, initialFit: Bool = false,
-                          initialScrollX: CGFloat = 0) -> InkCanvasView {
+                          initialScrollX: CGFloat = 0, tool: CanvasTool? = nil, undoTrigger: Int = 0,
+                          redoTrigger: Int = 0) -> InkCanvasView {
         let focus = session.layout.pages[min(max(0, session.focusSlot), session.layout.pages.count - 1)]
         let sleeper = canvasSleeper!
         let bed = bed!
         return InkCanvasView(
             layout: session.layout,
             paper: Self.paper(of: focus),
-            tool: pen,
+            tool: tool ?? pen,
             allowFinger: false,
             page: .constant(InkPage(pageId: session.layout.pageId)),
             initialScrollY: 0,
             initialScrollX: initialScrollX,
             onTap: { _, _ in },
             onInkBoundsChanged: { probe.inkBounds += 1 },
-            undoTrigger: 0,
-            redoTrigger: 0,
+            undoTrigger: undoTrigger,
+            redoTrigger: redoTrigger,
             onViewportChange: { probe.viewports.append($0) },
             onZoomRatioChange: { probe.ratios.append($0) },
             onZoomingChange: { probe.zooming.append($0) },
@@ -213,6 +214,37 @@ final class InkCanvasMonthYearTests: XCTestCase {
     private func draw(_ stroke: PKStroke, on rig: SpanRig) {
         rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes + [stroke])
         rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+    }
+
+    /// A short stroke whose bounds are centred near (x, y) of the band (InkCanvasSpanTests' own).
+    private func shortStroke(at x: CGFloat, _ y: CGFloat) -> PKStroke {
+        makeStroke(through: (0..<5).map { CGPoint(x: x - 20 + CGFloat($0) * 10, y: y + CGFloat($0 % 2)) })
+    }
+
+    /// The window name of the stroke `draw` put last on the canvas (InkCanvasSpanTests' own).
+    private func lastDrawn(on rig: SpanRig, file: StaticString = #filePath, line: UInt = #line) throws -> String {
+        let stroke = try XCTUnwrap(rig.canvas.drawing.strokes.last, file: file, line: line)
+        return try XCTUnwrap(rig.ledger.id(of: stroke), file: file, line: line)
+    }
+
+    /// The canvas's stroke of window name `name`, if it shows it (InkCanvasSpanTests' own).
+    private func shown(_ name: String, on rig: SpanRig) -> PKStroke? {
+        rig.canvas.drawing.strokes.first { rig.ledger.id(of: $0) == name }
+    }
+
+    /// `update(from:)` with the rig's session, `tool` and the ↶ ↷ counts so far (the screen's SwiftUI update).
+    private func update(_ rig: SpanRig, tool: CanvasTool? = nil, undoTrigger: Int = 0, redoTrigger: Int = 0) {
+        rig.coordinator.update(from: makeView(rig.session, probe: rig.probe, tool: tool ?? rig.coordinator.parent.tool,
+                                              undoTrigger: undoTrigger, redoTrigger: redoTrigger))
+    }
+
+    /// The eraser takes the canvas's stroke of window name `name` away, as PencilKit reports it (InkCanvasSpanTests' own;
+    /// before any ↶, whose count it passes as 0).
+    private func erase(_ name: String, on rig: SpanRig) {
+        update(rig, tool: .eraser)
+        rig.canvas.drawing = PKDrawing(strokes: rig.canvas.drawing.strokes.filter { rig.ledger.id(of: $0) != name })
+        rig.coordinator.canvasViewDrawingDidChange(rig.canvas)
+        update(rig, tool: pen)
     }
 
     /// Where each stroke the canvas shows is on the screen (pt): its render bounds × zoom − the offset.
@@ -735,5 +767,130 @@ final class InkCanvasMonthYearTests: XCTestCase {
         XCTAssertEqual(rig.zoom, 0.75, accuracy: 1e-6, "landscape again: the absolute zoom stays, not fit 1,210 / 1,400")
         XCTAssertEqual(rig.probe.ratios.count, 1, "a turn reports nothing")
         XCTAssertEqual(rig.probe.fits, [false])
+    }
+
+    // MARK: ↶ ↷ and iCloud across months (§9.1, §9.5; review TEST-1)
+
+    /// §9.1 (review TEST-1): one history for the window, whatever the kind. A line written in December's memo while November
+    /// is the focus (the neighbour month of the window, its cell December's own) is saved to December; ↶ takes it away — its
+    /// delta December's, the file without it, November untouched — and ↷ puts it back under the same name, saved again.
+    func testUndoAndRedoOfALineInTheNeighbouringMonthsMemo() async throws {
+        let session = try await open()
+        let rig = await attach(session, size: portrait)
+        XCTAssertEqual(session.focusPageId, nov)
+        let memo = cell(.memo, of: dec, session)
+        draw(shortStroke(at: memo.minX + 300, memo.minY + 200), on: rig)
+        let written = try lastDrawn(on: rig)
+        XCTAssertTrue(written.hasPrefix(dec), "December's line")
+        XCTAssertEqual(rig.ledger.page.strokes[written]?.cell, SpanName.prefixed(.memo, page: dec), "in December's memo")
+        XCTAssertTrue(rig.ledger.canUndo)
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.live(dec).count, 1)
+        XCTAssertEqual(bed.live(nov).count, 0)
+
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "↶ takes the line away")
+        XCTAssertNil(shown(written, on: rig))
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [dec], "December's delta")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertTrue(rig.ledger.canRedo)
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.live(dec).count, 0, "December's file without it")
+
+        update(rig, undoTrigger: 1, redoTrigger: 1)
+        XCTAssertTrue(rig.ledger.page.isLive(written), "↷ puts it back under the same name")
+        XCTAssertNotNil(shown(written, on: rig))
+        XCTAssertFalse(rig.ledger.canRedo)
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.live(dec).count, 1, "December's file with it again")
+        XCTAssertEqual(bed.live(nov).count, 0, "November untouched")
+    }
+
+    /// §9.1 (review TEST-1; `pruneHistory`, InkCanvasSpanTests' week rows): a line written on 10/14 and erased, then a line on
+    /// 12/16. The window shifts twice to the right: after the first (2026-10 … 2027-02) October is still in and its steps
+    /// stay; after the second (2026-11 … 2027-03) October left, saved as it went, and its steps went with it. ↶ takes
+    /// December's line away (its delta December's) and there is nothing more to undo; a second ↶ puts nothing into the
+    /// inbox and writes nothing into October, whose file stays as it was saved (its line erased, not made again).
+    func testUndoAfterTwoShiftsWritesNoMonthOutsideTheWindow() async throws {
+        let session = try await open()
+        let rig = await attach(session, size: portrait)
+        let mar = "m1-2027-03"
+        let october = cell(.day(DayKey(year: 2026, month: 10, day: 14)), of: oct, session)
+        draw(shortStroke(at: october.minX + 100, october.minY + 80), on: rig)
+        let erased = try lastDrawn(on: rig)
+        XCTAssertTrue(erased.hasPrefix(oct))
+        erase(erased, on: rig)
+        XCTAssertFalse(rig.ledger.page.isLive(erased), "erased")
+        let december = cell(.day(DayKey(year: 2026, month: 12, day: 16)), of: dec, session)
+        draw(shortStroke(at: december.minX + 100, december.minY + 80), on: rig)
+        let later = try lastDrawn(on: rig)
+        XCTAssertTrue(later.hasPrefix(dec))
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(oct).liveStrokeCount, 0)
+        XCTAssertEqual(bed.store.load(oct).deleted.count, 1)
+        XCTAssertEqual(bed.live(dec).count, 1)
+
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        XCTAssertEqual(session.pageIds, [oct, nov, dec, jan, feb], "the first shift: October still in")
+        XCTAssertTrue(rig.ledger.canUndo)
+        await settle(48)
+        await scroll(rig, pages: 1)
+        XCTAssertEqual(rig.coordinator.shiftIfAtRest(), .done)
+        XCTAssertEqual(session.pageIds, [nov, dec, jan, feb, mar], "the second shift: October left")
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the window")
+        XCTAssertTrue(rig.ledger.canUndo, "December's step stays")
+
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(later), "↶ takes December's line away")
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [dec])
+        XCTAssertFalse(rig.ledger.canUndo, "October's steps left with it")
+        update(rig, undoTrigger: 2)
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [dec], "a second ↶ puts no delta of October")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertFalse(rig.ledger.page.strokes.keys.contains { $0.hasPrefix(oct) }, "nothing of October in the ledger")
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(oct).liveStrokeCount, 0, "October as it was saved when it left: its line erased")
+        XCTAssertEqual(bed.store.load(oct).deleted.count, 1)
+        XCTAssertEqual(bed.live(dec).count, 0, "December's ↶ is saved")
+    }
+
+    /// §9.5 (review TEST-1; InkCanvasSpanTests.testRemoteUpdateIsAdoptedKeepingHistory's month): an update from iCloud of
+    /// December, the neighbour month of the window, reaches the canvas (the sink, on the next turn): the canvas takes the
+    /// window, the line from iCloud is live and drawn in December's 12/16 cell of the band, and ↶ still takes the person's
+    /// own line on November away, the line from iCloud left alone.
+    func testARemoteUpdateOfTheNeighbouringMonthReachesTheCanvas() async throws {
+        let session = try await open()
+        let rig = await attach(session, size: portrait)
+        let november = cell(.day(DayKey(year: 2026, month: 11, day: 18)), of: nov, session)
+        draw(shortStroke(at: november.minX + 100, november.minY + 80), on: rig)
+        let own = try lastDrawn(on: rig)
+        XCTAssertTrue(own.hasPrefix(nov))
+        await settle()
+
+        let dec16 = DayKey(year: 2026, month: 12, day: 16)
+        var remote = InkPage.empty(pageId: dec)
+        remote.add(bed.stroke("from-icloud", cell: .day(dec16), x: 50, y: 60))
+        session.remoteUpdated(remote)
+        await settle()
+        let fromICloud = SpanName.prefixed(id: "from-icloud", page: dec)
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the window")
+        XCTAssertTrue(rig.ledger.page.isLive(fromICloud))
+        let drawn = try XCTUnwrap(shown(fromICloud, on: rig), "drawn on the canvas")
+        let bounds = drawn.renderBounds
+        XCTAssertTrue(cell(.day(dec16), of: dec, session).contains(CGPoint(x: bounds.midX, y: bounds.midY)),
+                      "in December's 12/16 cell of the band")
+        XCTAssertTrue(rig.ledger.page.isLive(own))
+        XCTAssertTrue(rig.ledger.canUndo, "the history is kept")
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(own))
+        XCTAssertTrue(rig.ledger.page.isLive(fromICloud))
+        XCTAssertEqual(session.inbox.deltas.last?.pageId, nov)
+        XCTAssertEqual(session.inbox.deltas.last?.removed.count, 1)
     }
 }
