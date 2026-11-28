@@ -22,8 +22,8 @@ import XCTest
 ///
 /// D1b (§12.4, §12.3, 0g-31; the month's part, D1y adds the year's): the photos of the job span-shots-my, every one on
 /// 2026-10 in screenshot mode with `--screenshot-span on` unless said (the plain demo: no `--screenshot-month-tall`, every
-/// month's rows alike), 23 in all (the 26 candidates of §12.4 less the three "before 等倍", which are the turned
-/// overviews; open question 7 of the plan). These are what the job runs; `testMonthForms` and `testMonthZoom` above stay for
+/// month's rows alike), 24 in all (the 26 candidates of §12.4 less the three "before 等倍", which are the turned
+/// overviews; open question 7 of the plan; and one more card, ja's for two fingers, review CI-1). These are what the job runs; `testMonthForms` and `testMonthZoom` above stay for
 /// the sample branch r143-alt:
 /// - `testMonthBands` (the four devices): portrait, the overview (`<device>-portrait-month-overview`) and the focus
 ///   month's left boundary in the middle with the crossing sample (`--screenshot-offset-x -0.5 --screenshot-span-crossing
@@ -45,7 +45,9 @@ import XCTest
 /// - `testMonthGuides` (the 6.9-inch iPhone, portrait): the first-time guide's card of the month for one finger
 ///   (`--screenshot-span-guide one`) in ja, de, fr and the doubled pseudo-language (`-AppleLanguages (en)
 ///   -NSDoubleLocalizedStrings YES`), each with its region's holidays and week start as SpanShotsUITests' languages
-///   (`-month-guide-<ja|de|fr|pseudo>`); the narrowest screen of the job, for the texts' lengths.
+///   (`-month-guide-<ja|de|fr|pseudo>`); the narrowest screen of the job, for the texts' lengths. And ja's card for two
+///   fingers (`--screenshot-span-guide two`, `-month-guide-ja-two`; review CI-1): the card an iPhone shows with
+///   「指でも書く」 on, its default (§12.4's `one|two`).
 /// - `testMonthDots` (the 13-inch iPad, portrait): the memo paper's dots (`--screenshot-memo-paper dots`) at the joined
 ///   months' boundary (`--screenshot-offset-x -0.5`, no crossing sample over the dots: `ipad13-portrait-month-dots`),
 ///   1.4.2's promise that the dots keep their spacing across it.
@@ -212,6 +214,9 @@ final class SpanMonthYearShotsUITests: XCTestCase {
             shot(setup, name: "iphone69-portrait-month-guide-\(language.name)", orientation: .portrait,
                  arguments: Self.joinedMonth + ["--screenshot-span-guide", "one"], language: language.arguments, card: true)
         }
+        // Review CI-1 (§12.4 `one|two`): 「指でも書く」 on, an iPhone's default, shows the two-finger card.
+        shot(setup, name: "iphone69-portrait-month-guide-ja-two", orientation: .portrait,
+             arguments: Self.joinedMonth + ["--screenshot-span-guide", "two"], language: Self.japanese, card: true)
     }
 
     func testMonthDots() throws {
