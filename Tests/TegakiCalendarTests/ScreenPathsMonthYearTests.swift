@@ -326,8 +326,9 @@ final class ScreenPathsMonthYearTests: XCTestCase {
     /// §3.7, 0g-19, open question 10's default (S's decision): far → a new window; near at the overview → a slide; today's page
     /// already the focus at the overview → the request with no x (`monthTodayRequest`, `InkCanvasView.nowLineRevealRect`): y to
     /// the cell's top less 1.1.1's margin when the cell's bottom is off the screen, decided by the canvas; zoomed in → today's
-    /// cell (on today's page, which need not be the focus); 等倍 on a landscape iPad counts as zoomed in before a report (its
-    /// fit is above the opening zoom). The one page keeps 1.1.1's 「今日」 (nil here).
+    /// cell (on today's page, which need not be the focus). 等倍 on a landscape iPad (its fit above the opening zoom) is not
+    /// zoomed in past the page's width (review UX-1): the overview's answers there (testTodayAtTheMonthsFitSlidesByPages).
+    /// The one page keeps 1.1.1's 「今日」 (nil here).
     func testTodayOnAWindowOfMonths() async throws {
         let session = try await openWindow()
         let november = try month(nov, of: session)
@@ -371,14 +372,7 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertEqual(decRect, try XCTUnwrap(december.page.cells[.day(dec3)]).offsetBy(dx: december.origin, dy: 0))
         XCTAssertTrue(ScreenPaths.zoomedIn(layout: session.layout, viewport: nil, area: portrait, ratio: 2))
 
-        // 等倍 on a landscape iPad before a report: fit (1,210 / 1,400) is above the opening zoom (640 / 1,050).
-        let wide = session.layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(session.layout), viewport: landscape)
-        XCTAssertGreaterThan(wide.fit, wide.open + 0.1)
-        XCTAssertTrue(ScreenPaths.zoomedIn(layout: session.layout, viewport: nil, area: landscape, ratio: 1, fit: true))
-        guard case .reveal(let fitRect)? = paths.today(nov18, now: now, viewport: nil, area: landscape, ratio: 1, fit: true) else {
-            return XCTFail("at fit: today's cell")
-        }
-        XCTAssertEqual(fitRect, cell.offsetBy(dx: november.origin, dy: 0))
+        // A landscape iPad at the opening zoom (640 / 1,050; its 等倍 is testTodayAtTheMonthsFitSlidesByPages').
         guard case .reveal(let open)? = paths.today(nov18, now: now, viewport: nil, area: landscape, ratio: 1) else {
             return XCTFail("at the opening zoom: the y-only request")
         }
@@ -387,6 +381,103 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         setting = false
         paths.open(opening())
         XCTAssertNil(paths.today(nov18, now: now, viewport: nil, area: portrait, ratio: 1), "the one page: 1.1.1's 「今日」")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review UX-1 (docs/R1_4_3_CONTRACT.md §1.2, §3.7): 等倍 on a landscape iPad — fit (1,210 / 1,400) above the opening zoom
+    /// (640 / 1,050), so `zoomedIn` — puts one month across the screen, edge to edge. 「今日」 there is the overview's: another
+    /// month of the window is a slide by pages (1.1.1's `reveal` of the cell would stop the band 8 pt into the month before,
+    /// across two months, the focus and the title left where they were), and today's page already the focus is the y-only
+    /// request, an edge column (Monday 11/16) too: x never moves. Before a report (`fit`), once the canvas reported the fit,
+    /// and between the opening zoom and the fit. Past the fit (a pinch on from 等倍) it is today's cell, as zoomed in.
+    func testTodayAtTheMonthsFitSlidesByPages() async throws {
+        let session = try await openWindow()
+        let november = try month(nov, of: session)
+        let december = try month(dec, of: session)
+        let wide = session.layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(session.layout), viewport: landscape)
+        XCTAssertGreaterThan(wide.fit, wide.open + 0.1)
+        XCTAssertEqual(wide.clamped(wide.fit), wide.fit, "the fit is inside the limits")
+        let atFit = PaperViewport(offsetX: november.origin * wide.fit, zoom: wide.fit, width: landscape.width)
+        let between = PaperViewport(offsetX: november.origin * wide.fit, zoom: (wide.open + wide.fit) / 2, width: landscape.width)
+        let past = PaperViewport(offsetX: november.origin * wide.fit * 1.5, zoom: wide.fit * 1.5, width: landscape.width)
+        XCTAssertTrue(ScreenPaths.zoomedIn(layout: session.layout, viewport: nil, area: landscape, ratio: 1, fit: true))
+        XCTAssertFalse(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: nil, area: landscape, ratio: 1, fit: true))
+        XCTAssertFalse(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: atFit, area: landscape, ratio: 1))
+        XCTAssertFalse(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: between, area: landscape, ratio: 1))
+        XCTAssertFalse(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: nil, area: landscape, ratio: 1), "the opening zoom")
+        XCTAssertTrue(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: past, area: landscape, ratio: 1))
+        XCTAssertTrue(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: nil, area: landscape, ratio: 2), "a stored ratio past the fit")
+        XCTAssertFalse(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: nil, area: landscape, ratio: 2, fit: true),
+                       "等倍 wins over the stored ratio, as the canvas opens")
+
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        let decNow = try at(12, 3, 9)
+        for (name, viewport, fit) in [("fit", nil, true), ("reported", atFit, true), ("reported, no fit", atFit, false),
+                                      ("between", between, false)] as [(String, PaperViewport?, Bool)] {
+            XCTAssertEqual(paths.today(dec3, now: decNow, viewport: viewport, area: landscape, ratio: 1, fit: fit), .slide(1),
+                           "\(name): another month of the window, a slide")
+            XCTAssertEqual(paths.today(DayKey(year: 2026, month: 9, day: 10), now: try at(9, 10, 9), viewport: viewport, area: landscape,
+                                       ratio: 1, fit: fit), .slide(-2), name)
+            for (day, now) in [(nov18, try at(11, 18, 10)), (nov16, try at(11, 16, 10))] {
+                let cell = try XCTUnwrap(november.page.cells[.day(day)])
+                guard case .reveal(let request)? = paths.today(day, now: now, viewport: viewport, area: landscape, ratio: 1, fit: fit) else {
+                    return XCTFail("\(name) \(day): the y-only request")
+                }
+                XCTAssertTrue(request.origin.x.isNaN, "\(name) \(day): no x, x never moves")
+                let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request), "\(name) \(day)")
+                let zoom = viewport?.zoom ?? wide.fit
+                XCTAssertEqual(lines.top, max(0, cell.minY - ZoomPolicy.revealMargin / zoom), accuracy: 1e-9, "\(name) \(day)")
+                XCTAssertEqual(lines.nowLine, cell.maxY, accuracy: 1e-9, "\(name) \(day)")
+            }
+        }
+        XCTAssertEqual(november.page.cells[.day(nov16)]?.minX, 0, "11/16 is the first column of a Monday week")
+
+        guard case .reveal(let decRect)? = paths.today(dec3, now: decNow, viewport: past, area: landscape, ratio: 1) else {
+            return XCTFail("past the fit: today's cell")
+        }
+        XCTAssertEqual(decRect, try XCTUnwrap(december.page.cells[.day(dec3)]).offsetBy(dx: december.origin, dy: 0))
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review UX-2 (a) (docs/R1_4_3_CONTRACT.md §3.7, §6.4): 「今日」 far away opens a new window of months at today (`.reopen`,
+    /// the screen's `show`), and `reopenedToday` hands its canvas a rect for its first layout (1.1.1's `reveal`) bound to the
+    /// new window: at the overview and at 等倍 a rect of no width at the middle of the focus page (which the opening keeps on
+    /// screen) with today's cell's height, so y alone moves; past the fit the cell, as 1.1.1's one page. nil when the focus
+    /// page does not hold today, for a week (1.3's) and on the one page (1.1.1's own lines).
+    func testTodayFarAwayBringsTheNewMonthsCellOnScreen() async throws {
+        let far = DayKey(year: 2027, month: 6, day: 30)
+        let farNow = try at(6, 30, 10, year: 2027)
+        let old = try await openWindow()
+        XCTAssertEqual(paths.today(far, now: farNow, viewport: nil, area: landscape, ratio: 1, fit: true), .reopen(far))
+        XCTAssertNil(paths.reopenedToday(now: farNow, area: landscape, ratio: 1, fit: true), "the window shown does not hold today")
+
+        let session = try await openWindow(opening(focus: far, now: farNow))
+        XCTAssertNotEqual(session.id, old.id)
+        let june = try month("m1-2027-06", of: session)
+        let cell = try XCTUnwrap(june.page.cells[.day(far)])
+        for (name, area, ratio, fit) in [("landscape 等倍", landscape, CGFloat(1), true), ("landscape open", landscape, 1, false),
+                                         ("portrait", portrait, 1, false), ("portrait 等倍", portrait, 1, true)]
+            as [(String, CGSize, CGFloat, Bool)] {
+            let rect = try XCTUnwrap(paths.reopenedToday(now: farNow, area: area, ratio: ratio, fit: fit), name)
+            XCTAssertEqual(rect.minX, june.origin + session.plan.pageWidth / 2, accuracy: 1e-9, "\(name): the focus page's middle")
+            XCTAssertEqual(rect.width, 0, "\(name): no width, so x never moves")
+            XCTAssertEqual(rect.minY, cell.minY, accuracy: 1e-9, name)
+            XCTAssertEqual(rect.height, cell.height, accuracy: 1e-9, name)
+            XCTAssertEqual(paths.revealRect(rect, for: session), rect, "\(name): for the new window's canvas")
+            XCTAssertNil(paths.revealRect(rect, for: old), "\(name): never the old window's")
+        }
+        let zoomed = try XCTUnwrap(paths.reopenedToday(now: farNow, area: landscape, ratio: 2), "past the fit")
+        XCTAssertEqual(zoomed, cell.offsetBy(dx: june.origin, dy: 0), "today's cell, as 1.1.1's one page")
+        XCTAssertEqual(ScreenPaths.monthOpeningTodayRect(layout: session.layout, pageId: session.focusPageId, now: farNow,
+                                                         calendar: SessionTestBed.tokyo, pastFit: true), zoomed)
+        XCTAssertNil(ScreenPaths.monthOpeningTodayRect(layout: session.layout, pageId: session.focusPageId, now: try at(11, 18, 10),
+                                                       calendar: SessionTestBed.tokyo, pastFit: false), "a page that does not hold today")
+
+        XCTAssertEqual(paths.open(opening(.week, focus: far, now: farNow)), .joined)
+        XCTAssertNil(paths.reopenedToday(now: farNow, area: landscape, ratio: 1, fit: true), "the week: 1.3's")
+        setting = false
+        paths.open(opening(focus: far, now: farNow))
+        XCTAssertNil(paths.reopenedToday(now: farNow, area: landscape, ratio: 1), "the one page: 1.1.1's own")
         XCTAssertEqual(faults, [])
     }
 

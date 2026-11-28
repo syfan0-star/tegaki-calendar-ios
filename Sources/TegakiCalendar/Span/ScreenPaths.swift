@@ -986,16 +986,21 @@ final class ScreenPaths: ObservableObject {
     /// `viewport` is the last one reported (nil: `ratio`, the stored one, or 1.4.1's `fit`: the kind kept at 等倍,
     /// docs/R1_4_1_CONTRACT.md §16.3.4), `area` the paper area. nil off the joined path.
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7, 0g-19; 1.1.1's rule that a month brings today's cell on screen): on a window of
-    /// months, zoomed in (等倍 on a landscape iPad counts, its fit being above the opening zoom) brings today's cell on
-    /// screen (`todayRect`, the cell, as the week's column); at the overview a slide as the week's; today's page already the
-    /// focus at the overview is `monthTodayRequest`'s y alone (the canvas moves y only when the cell is off the screen).
+    /// months, zoomed in past the page's width (`zoomedPastFit`) brings today's cell on screen (`todayRect`, the cell, as the
+    /// week's column); at the overview and at 等倍 — anywhere one page is not wider than the screen, so a landscape iPad's
+    /// 等倍 (fit above the opening zoom) too (review UX-1: 1.1.1's `reveal` would add its 8 pt margin and stop the band
+    /// between two months, the focus and the title left on the old one) — a slide as the week's, and today's page already the
+    /// focus is `monthTodayRequest`'s y alone (the canvas moves y only when the cell is off the screen). The week and the day
+    /// keep 1.4.1's `zoomedIn` (their 等倍 counts as zoomed in).
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Today? {
         guard path == .joined, let session = span else { return nil }
         switch session.today(day) {
         case .reopen(let focus):
             return .reopen(focus)
         case .slide(let pages):
-            let zoomed = Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
+            let zoomed = session.layout.kind == .month
+                ? Self.zoomedPastFit(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
+                : Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
             if !zoomed, pages != 0 { return .slide(pages) }
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
@@ -1019,6 +1024,35 @@ final class ScreenPaths: ObservableObject {
             revealWindowId = session.id
             return .reveal(rect)
         }
+    }
+
+    /// 1.4.3 (review UX-2 (a); docs/R1_4_3_CONTRACT.md §3.7, §6.4): 「今日」 far away (`today`'s `.reopen`) opened a new window
+    /// of months at today (the screen's `show`): the rect its canvas reads at its first layout (`revealRect(_:for:)`, bound
+    /// to the new window), so today's cell comes on screen as on 1.1.1's one page, where the month opens at its top (on a
+    /// landscape iPad at 等倍 the fifth and sixth rows are below the screen). Zoomed in past the page's width
+    /// (`zoomedPastFit`, as the window opens: the stored ratio or 1.4.1's `fit`) it is the cell; else
+    /// `monthOpeningTodayRect`'s, whose x (the focus page's middle, no width) never moves the band. nil off the joined path,
+    /// for a kind that is not the month (the week and the day are 1.3's) and when the focus page does not hold today.
+    func reopenedToday(now: Date, area: CGSize, ratio: CGFloat, fit: Bool = false) -> CGRect? {
+        guard path == .joined, let session = span, session.layout.kind == .month else { return nil }
+        let pastFit = Self.zoomedPastFit(layout: session.layout, viewport: nil, area: area, ratio: ratio, fit: fit)
+        guard let rect = Self.monthOpeningTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                    calendar: session.context.calendar, pastFit: pastFit) else { return nil }
+        revealWindowId = session.id
+        return rect
+    }
+
+    /// 1.4.3 (review UX-2 (a)): the rect (band lu) a window of months opened by 「今日」 brings on screen at its first layout
+    /// (1.1.1's `reveal`, least movement): past the fit today's cell (`PageNavigation.todayRect` with the page's origin added),
+    /// else a rect of no width at the middle of the focus page — which the opening keeps on screen (in the middle at the
+    /// overview, `applyBandOpening`; the page across the screen at 等倍) — and the cell's height, so y alone moves, to the
+    /// cell, only when the cell is off the screen. nil for a page that is not a month or does not hold today.
+    static func monthOpeningTodayRect(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, pastFit: Bool) -> CGRect? {
+        guard let slot = layout.slot(ofPage: pageId), let month = layout.pages[slot] as? MonthPageLayout,
+              let cell = PageNavigation.todayRect(month, now: now, calendar: calendar) else { return nil }
+        let origin = layout.origin(ofSlot: slot)
+        if pastFit { return cell.offsetBy(dx: origin, dy: 0) }
+        return CGRect(x: origin + layout.plan.pageWidth / 2, y: cell.minY, width: 0, height: cell.height)
     }
 
     /// The screen's `revealRect` as the canvas of the window `session` takes it (S6, review S6-LT-1): 「今日」's rect only
@@ -1047,6 +1081,24 @@ final class ScreenPaths: ObservableObject {
         let bounds = layout.plan.zoomBounds(overview: InkCanvasView.bandOverview(layout),
                                             viewport: CGSize(width: viewport.width, height: area.height))
         return ZoomPolicy.ratio(forZoom: viewport.zoom, bounds: bounds) > overviewRatio
+    }
+
+    /// 1.4.3 (review UX-1; docs/R1_4_3_CONTRACT.md §1.2, §3.7): whether a window of months is zoomed in past one page's width
+    /// across the screen (`zoomedIn`, and the zoom above the bounds' fit, clamped as the canvas takes it, by more than
+    /// `overviewRatio`'s 0.05 %): only then does 「今日」 bring today's cell with 1.1.1's `reveal`. At 等倍 (`fit` before a
+    /// report, or a reported zoom at the fit) and below it the page is not wider than the screen, so 「今日」 slides by pages
+    /// as at the overview. `viewport` is the last one reported (it decides once there), else `fit`, else the stored `ratio`
+    /// over `area`'s bounds.
+    static func zoomedPastFit(layout: SpanLayout, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Bool {
+        guard zoomedIn(layout: layout, viewport: viewport, area: area, ratio: ratio, fit: fit) else { return false }
+        let overview = InkCanvasView.bandOverview(layout)
+        if let viewport, viewport.width > 0 {
+            let bounds = layout.plan.zoomBounds(overview: overview, viewport: CGSize(width: viewport.width, height: area.height))
+            return viewport.zoom > bounds.clamped(bounds.fit) * overviewRatio
+        }
+        guard !fit else { return false }
+        let bounds = layout.plan.zoomBounds(overview: overview, viewport: area)
+        return ZoomPolicy.zoom(forRatio: ratio, bounds: bounds) > bounds.clamped(bounds.fit) * overviewRatio
     }
 
     /// The rect (band lu) 「今日」 reveals on `pageId` zoomed in (§4.1): today's column (the week's, or the day page's width)

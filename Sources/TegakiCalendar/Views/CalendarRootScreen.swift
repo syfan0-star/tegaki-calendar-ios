@@ -1916,6 +1916,13 @@ struct CalendarRootScreen: View {
             switch action {
             case .reopen(let day):
                 show(kind: kind, focus: day)
+                // 1.4.3 (review UX-2 (a), §3.7): a window of months opened at today brings today's cell on screen at its
+                // first layout, as 1.1.1's one page below (the week and the day: nil, 1.3's).
+                if let rect = paths.reopenedToday(now: ScreenshotMode.current?.today ?? Date(), area: paperArea, ratio: currentRatio,
+                                                  fit: currentFit) {
+                    revealRect = rect
+                    revealTrigger += 1
+                }
             case .slide(let pages):
                 slidePages = pages
                 slideTrigger += 1
