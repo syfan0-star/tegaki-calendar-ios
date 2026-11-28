@@ -8,8 +8,9 @@ import XCTest
 // focus page as the screen shows it (the window page, lined up) with the strokes that come in from the neighbour months: the
 // part of a neighbour's memo stroke over this page counts for the memo (`PDFPageRenderer.neighborMemoBottom`), so the
 // rectangle (`paperRect`) runs down as far as the deeper of this page's memo and the incoming strokes need — 1.1.1's rule from
-// the window page's own separator line. The year's PDF is its whole page, with a neighbour year's stroke over it; the year
-// joins with D1y (`SpanKinds.joined`). The one page's PDF is 1.4.2's, byte for byte.
+// the window page's own separator line. The year's PDF is its whole page, with a neighbour year's stroke over it; since D1y
+// the year joins (`SpanKinds.joined`) and the PDF of a joined year is its window page (rows lined up) with the strokes of the
+// years before and after that reach over it. The one page's PDF is 1.4.2's, byte for byte.
 //
 // With `TEGAKI_SPAN_MY_SHOT_OUT` (the span-shots-my job) the joined month's PDF is kept there as `span-my-pdf-month.pdf` (the
 // shape of ScreenPathsSpanTests' `TEGAKI_SPAN_SHOT_OUT`).
@@ -285,14 +286,93 @@ final class PDFMonthYearTests: XCTestCase {
         XCTAssertEqual(with.height, without.height)
         let heading = Int(PDFPageRenderer.headingHeight(paper))
         let y = heading + Int((cellRect.minY + 12).rounded())
-        // Over January's column (x 56 … 168): the stroke reaches x 118 of this page.
-        XCTAssertGreaterThan(with.darkPixels(x: 70..<110, y: (y - 5)..<(y + 6)), without.darkPixels(x: 70..<110, y: (y - 5)..<(y + 6)),
+        // Over January's column (x 56 … 168): the stroke's points run to x 118 of this page. PencilKit draws the uniform cubic
+        // B-spline of the points (`StrokeGeometry.makePKStroke`), which runs through (P₋₁ + 4 P₀ + P₊₁) / 6 at each inner point:
+        // on this straight, evenly spaced line that is the point itself, so the drawn line surely covers the inner points' x
+        // −54.7 … 100.7 (the last inner point, 17.3 lu short of the end), and the box below lies inside it.
+        let points = crossing.stroke.points
+        let lastInner = cellRect.minX + (points[points.count - 3].x + 4 * points[points.count - 2].x + points[points.count - 1].x) / 6
+        XCTAssertEqual(lastInner, 100.7, accuracy: 0.05)
+        XCTAssertGreaterThan(with.darkPixels(x: 70..<100, y: (y - 5)..<(y + 6)), without.darkPixels(x: 70..<100, y: (y - 5)..<(y + 6)),
                              "the part of the year before's stroke over January")
 
         let session = bed.session(.year, focus: nov16)
         await session.prefetch()
         let focusPage = session.layout.pages[session.focusSlot]
         XCTAssertEqual(ScreenPaths.paper(of: focusPage) != nil, SpanKinds.joined.contains(.year), "a year window page's paper")
+    }
+
+    /// §5.6, §9.4, 0g-32 (D1y): the PDF of a joined year (the window 2024 … 2028 around 2026 on the 11-inch iPad in portrait) is
+    /// its window page — `ScreenPaths.paper(of:)` of the session's lined-up layout — on its whole paper, with the strokes of the
+    /// years before and after that reach over it (`SpanSession.pdfInput`): 2025's stroke in its 12/31 cell (its centre in 2025's
+    /// December) runs over 2026's date column and January, 2027's in its 1/20 cell (its centre in 2027's January) over 2026's
+    /// December. The rectangle is the page (`layout.size`) with or without them, and each is drawn where PencilKit's curve runs
+    /// (the B-spline through (P₋₁ + 4 P₀ + P₊₁) / 6 at an inner point), which the PDF without them leaves blank.
+    func testAJoinedYearsPDFIsItsWindowPageWithBothNeighboursStrokes() async throws {
+        var before = InkPage.empty(pageId: "y-2025")
+        before.add(stroke("y25-in", cell: .yearDay(month: 12, day: 31), line(CGPoint(x: -30, y: 30), CGPoint(x: 200, y: 30))))
+        var after = InkPage.empty(pageId: "y-2027")
+        after.add(stroke("y27-in", cell: .yearDay(month: 1, day: 20), line(CGPoint(x: -150, y: 30), CGPoint(x: 160, y: 30)), t: 1_790_000_002_000))
+        for page in [before, after] {
+            try bed.store.save(page)
+        }
+        let session = bed.session(.year, focus: nov16)
+        await session.prefetch()
+        XCTAssertEqual(session.focusPageId, "y-2026")
+        XCTAssertEqual(session.pageIds, ["y-2024", "y-2025", "y-2026", "y-2027", "y-2028"])
+        let slot = try XCTUnwrap(session.layout.slot(ofPage: "y-2026"))
+        let layout = try XCTUnwrap(session.layout.pages[slot] as? YearPageLayout)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertNil(ScreenPaths.paper(of: layout), "the year is one page (0g-3)")
+            return
+        }
+        let paper = try XCTUnwrap(ScreenPaths.paper(of: layout), "a joined year's paper")
+        XCTAssertEqual(paper, PaperSpan.paperContent(of: layout))
+        XCTAssertEqual(layout.size, CGSize(width: 1_400, height: 31 * PaperSpec.yearRowBase), "no row grew: the strokes stay inside 60 lu")
+
+        let input = try XCTUnwrap(session.pdfInput(for: "y-2026"))
+        XCTAssertEqual(input.page.pageId, "y-2026")
+        XCTAssertEqual(input.page.liveStrokes, [], "2026 has no handwriting of its own")
+        XCTAssertEqual(Set(input.neighborInk.map(\.pageId)), ["y-2025", "y-2027"])
+        let fromBefore = try XCTUnwrap(input.neighborInk.first { $0.pageId == "y-2025" })
+        let fromAfter = try XCTUnwrap(input.neighborInk.first { $0.pageId == "y-2027" })
+        let left = try XCTUnwrap((session.layout.pages[slot - 1] as? YearPageLayout)?.cells[.yearDay(month: 12, day: 31)])
+        let right = try XCTUnwrap((session.layout.pages[slot + 1] as? YearPageLayout)?.cells[.yearDay(month: 1, day: 20)])
+        XCTAssertEqual(fromBefore.cellRect, left.offsetBy(dx: -1_400, dy: 0), "2025's 12/31 left of 2026's x 0")
+        XCTAssertEqual(fromAfter.cellRect, right.offsetBy(dx: 1_400, dy: 0), "2027's 1/20 right of 2026's x 1,400")
+        XCTAssertEqual(fromBefore.cellRect.minY, layout.cells[.yearDay(month: 12, day: 31)]?.minY ?? -1, accuracy: 1e-9, "the rows lined up")
+        XCTAssertEqual(fromAfter.cellRect.minY, layout.cells[.yearDay(month: 1, day: 20)]?.minY ?? -1, accuracy: 1e-9)
+
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: input.page, neighborInk: input.neighborInk), CGRect(origin: .zero, size: layout.size))
+        XCTAssertEqual(PDFPageRenderer.paperRect(paper, page: input.page), CGRect(origin: .zero, size: layout.size))
+        let with = try render(pdf: PDFPageRenderer.render(paper, page: input.page, title: "2026年", neighborInk: input.neighborInk))
+        let without = try render(pdf: PDFPageRenderer.render(paper, page: input.page, title: "2026年"))
+        let heading = Int(PDFPageRenderer.headingHeight(paper))
+        XCTAssertEqual(with.height, heading + Int(layout.size.height.rounded(.up)))
+        XCTAssertEqual(with.height, without.height)
+
+        /// Where the curve runs at inner point `i` of `ink`, in 2026's paper (pt of the PDF: x, y below the heading).
+        func drawn(_ ink: SpanPDFInk, _ i: Int) -> (x: Int, y: Int) {
+            let p = ink.stroke.points
+            let x = (p[i - 1].x + 4 * p[i].x + p[i + 1].x) / 6
+            let y = (p[i - 1].y + 4 * p[i].y + p[i + 1].y) / 6
+            return (Int((ink.cellRect.minX + x).rounded()), heading + Int((ink.cellRect.minY + y).rounded()))
+        }
+        // 2025's: 12 points 20.9 lu apart from x −142 of 2026; its 10th (index 9) at about 46 (the date column), its 11th at
+        // about 67 (January). 2027's: 12 points 28.2 lu apart from x 1,306; its 3rd (index 2) at about 1,362 (December).
+        let checks: [(SpanPDFInk, Int, ClosedRange<Int>, String)] = [
+            (fromBefore, 9, 0...56, "2025's stroke over 2026's date column"),
+            (fromBefore, 10, 56...168, "2025's stroke over 2026's January"),
+            (fromAfter, 2, 1_288...1_400, "2027's stroke over 2026's December"),
+        ]
+        for (ink, i, column, what) in checks {
+            XCTAssertGreaterThan(i, 0)
+            XCTAssertLessThan(i, ink.stroke.points.count - 1, "\(what): an inner point")
+            let at = drawn(ink, i)
+            XCTAssertTrue(column.contains(at.x), "\(what): at x \(at.x)")
+            let box = (x: (at.x - 4)..<(at.x + 5), y: (at.y - 4)..<(at.y + 5))
+            XCTAssertGreaterThan(with.darkPixels(x: box.x, y: box.y), without.darkPixels(x: box.x, y: box.y), what)
+        }
     }
 
     // MARK: - The one page (1.4.2's PDF)
