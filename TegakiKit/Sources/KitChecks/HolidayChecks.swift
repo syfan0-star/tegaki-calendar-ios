@@ -176,9 +176,10 @@ func runHolidayChecks() {
         let after = cnLast + 1
         checkEqual(china.note(forYear: after), .beforeNotice, "holidays: CN \(after) (after the last official year \(cnLast)) is before the notice")
         checkEqual(china.note(forYear: cnLast), nil, "holidays: CN \(cnLast) has no note")
-        let rule = after == 2027 ? [day(2027, 2, 9), day(2027, 2, 10), day(2027, 5, 3), day(2027, 5, 4), day(2027, 10, 4), day(2027, 10, 5)] : []
-        check(after == 2027 && rule.allSatisfy { china.name(of: $0) == nil },
-              "holidays: CN 2027 (0.107) has none of the rule's observed days (2/9 2/10 5/3 5/4 10/4 10/5)")
+        let rule = after == 2028 ? [day(2028, 1, 3), day(2028, 5, 29), day(2028, 10, 4)] : []
+        check(after == 2028 && rule.allSatisfy { china.name(of: $0) == nil }
+              && china.entries(forYear: after).values.allSatisfy { $0.allSatisfy { !$0.flags.contains(.observed) } },
+              "holidays: CN 2028 (0.107) has no observed day, none of the rule's (1/3 5/29 10/4)")
         check(china.entries(forYear: after)[day(after, 10, 1)]?.first?.flags.contains(.estimated) == true,
               "holidays: CN \(after)-10-01 is flagged estimated")
         check(china.entries(forYear: cnLast)[day(cnLast, 10, 1)]?.first?.flags.contains(.estimated) == false,
@@ -187,7 +188,8 @@ func runHolidayChecks() {
         checkEqual(taiwan.note(forYear: twLast + 1), .beforeNotice, "holidays: TW \(twLast + 1) is before the notice")
         check(taiwan.entries(forYear: twLast + 1)[day(twLast + 1, 10, 10)]?.first?.flags == [],
               "holidays: TW \(twLast + 1)-10-10 keeps its flags")
-        check(cnLast == 2026 && twLast == 2027, "holidays: the last official years are CN 2026 (0.107) and TW 2027 (compared) (\(cnLast), \(twLast))")
+        check(cnLast == 2027 && twLast == 2027,
+              "holidays: the last official years are CN 2027 (0.107 and supplements/CN-2027.json) and TW 2027 (compared) (\(cnLast), \(twLast))")
     } else {
         check(false, "holidays: the index has CN and TW with their last official years")
     }
@@ -211,6 +213,27 @@ func runHolidayChecks() {
               "holidays: \(item.code) \(item.year) has exactly the \(item.days.count) published days off")
         check(allDays(item.year).allSatisfy { !compared.isWorkday($0) }, "holidays: \(item.code) \(item.year) has no working weekend")
     }
+    // CN 2027: the State Council's notice of 2026-11-05 (国办发明电〔2026〕10号), which python-holidays 0.107 does not
+    // have, merged by gen.py from tools/holidays/supplements/CN-2027.json (tools/holidays/README.md): exactly its days off
+    // (13 holidays, the 6 observed days of the library's rule, 5 days off swapped with its 5 working weekends), no estimate.
+    let cn2027Off: [(Int, Int)] = [(1, 1), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (2, 12), (4, 5),
+                                   (5, 1), (5, 2), (5, 3), (5, 4), (5, 5), (6, 9), (9, 15),
+                                   (10, 1), (10, 2), (10, 3), (10, 4), (10, 5), (10, 6), (10, 7)]
+    let cn2027Work: [(Int, Int)] = [(1, 31), (2, 14), (5, 8), (9, 26), (10, 9)]
+    let cn2027 = china.entries(forYear: 2027)
+    let cn2027Entries = cn2027.values.flatMap { $0 }
+    checkEqual(china.note(forYear: 2027), nil, "holidays: CN 2027 is published (the supplement): no note")
+    check(Set(cn2027.keys) == Set(cn2027Off.map { day(2027, $0.0, $0.1) }), "holidays: CN 2027 has exactly the notice's 24 days off")
+    check(Set(allDays(2027).filter { china.isWorkday($0) }) == Set(cn2027Work.map { day(2027, $0.0, $0.1) }),
+          "holidays: CN 2027's working weekends are the notice's 5 (1/31 2/14 5/8 9/26 10/9)")
+    check(cn2027Entries.count == 24 && cn2027Entries.allSatisfy { !$0.flags.contains(.estimated) }, "holidays: CN 2027's 24 entries, none an estimate")
+    checkEqual([cn2027Entries.filter { $0.flags.isEmpty }.count, cn2027Entries.filter { $0.flags == [.observed] }.count,
+                cn2027Entries.filter { $0.flags == [.substituted] }.count], [13, 6, 5],
+               "holidays: CN 2027 has 13 holidays, 6 observed days and 5 days off swapped with a weekend")
+    checkEqual(china.name(of: day(2027, 2, 9)), "春节（补假）", "holidays: CN 2027-02-09 春节（补假）")
+    checkEqual(china.name(of: day(2027, 10, 7)), "休息日", "holidays: CN 2027-10-07 休息日 (swapped with 10/9)")
+    checkEqual(calendar("CN", .en).name(of: day(2027, 2, 11)), "Day off", "holidays: CN en 2027-02-11 Day off")
+    checkEqual(calendar("CN", .zhHant).name(of: day(2027, 10, 4)), "國慶節（補假）", "holidays: CN zh-Hant 2027-10-04 國慶節（補假）")
     checkEqual(calendar("TW", .zhHant).note(forYear: 2028), .beforeNotice, "holidays: TW 2028 is before the notice")
     checkEqual(calendar("KZ", .en).note(forYear: 2027), .beforeNotice, "holidays: KZ 2027 is before the notice")
     if let index, let lk = index.country("LK"), let ua = index.country("UA") {

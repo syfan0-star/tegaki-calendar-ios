@@ -339,13 +339,21 @@ final class WorldHolidaysTests: XCTestCase {
         let index = try XCTUnwrap(store.index)
         let cn = try XCTUnwrap(index.country("CN"))
         let last = try XCTUnwrap(cn.lastOfficialYear)
-        XCTAssertEqual(last, 2026)                                             // 0.107 has China's 2026 notice
+        // 0.107 has China's 2026 notice; the 2027 notice (国办发明电〔2026〕10号) is tools/holidays/supplements/CN-2027.json.
+        XCTAssertEqual(last, 2027)
         XCTAssertTrue(cn.notice)
         XCTAssertEqual(calendar("CN", .zhHans).note(forYear: last + 1), .beforeNotice)
         XCTAssertNil(calendar("CN", .zhHans).note(forYear: last))
-        // The rule's observed days of 2027 are not written; the year's holidays are estimates.
-        XCTAssertNil(calendar("CN", .zhHans).name(of: day(2027, 10, 4)))
-        XCTAssertEqual(calendar("CN", .zhHans).entries(forYear: 2027)[day(2027, 10, 1)]?.first?.flags, [.estimated])
+        // The rule's observed days of 2028 are not written; the year's holidays are estimates.
+        XCTAssertNil(calendar("CN", .zhHans).name(of: day(2028, 10, 4)))
+        XCTAssertEqual(calendar("CN", .zhHans).entries(forYear: 2028)[day(2028, 10, 1)]?.first?.flags, [.estimated])
+        // 2027 is the notice's: the observed days, the days off swapped with its working weekends, no estimate.
+        XCTAssertEqual(calendar("CN", .zhHans).name(of: day(2027, 10, 4)), "国庆节（补假）")
+        XCTAssertEqual(calendar("CN", .zhHans).entries(forYear: 2027)[day(2027, 10, 1)]?.first?.flags, [])
+        XCTAssertEqual(calendar("CN", .zhHans).name(of: day(2027, 2, 11)), "休息日")
+        XCTAssertEqual(calendar("CN", .zhHans).entries(forYear: 2027).count, 24)
+        XCTAssertTrue(calendar("CN", .zhHans).isWorkday(day(2027, 1, 31)))
+        XCTAssertTrue(calendar("CN", .zhHans).isWorkday(day(2027, 10, 9)))
         // TW's and KZ's tables end in 2025, but the years compared with the published calendar say nothing
         // (gen.py's PUBLISHED_AND_COMPARED: TW 2027, KZ 2026).
         XCTAssertNil(calendar("TW", .zhHant).note(forYear: 2026))

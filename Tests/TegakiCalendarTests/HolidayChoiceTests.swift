@@ -101,7 +101,7 @@ final class HolidayChoiceTests: XCTestCase {
         XCTAssertEqual(summary(try region("LK"), year: 2026), name("LK"))
         XCTAssertEqual(summary(try region("UA"), year: 2026), "\(name("UA"))（2022 年以降のデータがありません）")
         // Before the government's notice (0-29).
-        XCTAssertEqual(summary(try region("CN"), year: 2027), "\(name("CN"))（2027 年は発表前の推定）")
+        XCTAssertEqual(summary(try region("CN"), year: 2028), "\(name("CN"))（2028 年は発表前の推定）")
         XCTAssertEqual(summary(try region("KZ"), year: 2027), "\(name("KZ"))（2027 年は発表前の推定）")
         XCTAssertEqual(summary(try region("TW"), year: 2028), "\(name("TW"))（2028 年は発表前の推定）")
         XCTAssertEqual(summary(.automatic, device: "TW", year: 2028), "自動（\(name("TW"))・2028 年は発表前の推定）")
@@ -110,6 +110,8 @@ final class HolidayChoiceTests: XCTestCase {
         XCTAssertEqual(summary(try region("TW"), year: 2026), name("TW"))
         XCTAssertEqual(summary(try region("TW"), year: 2027), name("TW"))
         XCTAssertEqual(summary(.automatic, device: "TW", year: 2026), "自動（\(name("TW"))）")
+        // China's 2027 notice, merged from tools/holidays/supplements/CN-2027.json, says nothing either.
+        XCTAssertEqual(summary(try region("CN"), year: 2027), name("CN"))
         // A chosen country whose file cannot be read (0-20).
         XCTAssertEqual(summary(try region("US"), store: HolidayStore(directory: nil)), "\(name("US"))（祝日のデータがありません）")
         XCTAssertEqual(summary(.automatic, device: "US", store: HolidayStore(directory: nil)), "自動（\(name("US"))・祝日のデータがありません）")

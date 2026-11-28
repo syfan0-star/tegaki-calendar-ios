@@ -16,7 +16,8 @@ Writes into <outdir>:
                      renamed, lastOfficialYear, notice, coverage [from, until] (§5.1)
     SOURCE.json      library, version, the sha256 of this generator, years, the sha256 of every
                      other file written, the Python and package versions, the sha256 of each
-                     installed package's RECORD and of the two licence files
+                     installed package's RECORD and of the two licence files (and, only when one
+                     was merged, the sha256 of each supplement)
     LICENSE-python-holidays.txt, CONTRIBUTORS-python-holidays.txt
                      byte-for-byte copies of holidays-<version>.dist-info/licenses/{LICENSE,CONTRIBUTORS}
 
@@ -45,7 +46,15 @@ What is written (§5.2):
     against what islamic_show_estimated=False gives; two names of a day that are one name once
     the suffix is off are written once.
   - lastOfficialYear: the last year of the library's special tables, or of PUBLISHED_AND_COMPARED
-    when that is later (§5.1).
+    when that is later (§5.1), or the year of the country's supplement.
+  - Supplements (tools/holidays/supplements/<CC>-<year>.json, README.md): a government notice that
+    the library does not have yet, for a notice country and the year right after the library's last
+    official year only. Its days off swapped with a weekend go into the library's own table of that
+    year (the library's `static_holidays_classes`, so the names, labels, translations and working
+    weekends are made as the library makes those of the years it has); the year's days off, names,
+    kinds and working weekends must then be exactly the supplement's, which must agree with the
+    notice's ranges. A library that already has the year stops the run: the library wins, and the
+    supplement is deleted after its year has been compared with it.
   - CN and VN: every holiday after lastOfficialYear gets the estimated flag; CN's rule-made
     observed days after lastOfficialYear are not written (0-29).
   - Subdivisions are written only when they differ from the country (add / remove). A code with
@@ -99,6 +108,14 @@ PUBLISHED_AND_COMPARED = {"KZ": 2026, "TW": 2027}
 # the one whose observed days after it are made by a rule that its law does not have (0-29).
 ESTIMATED_AFTER_NOTICE = ["CN", "VN"]
 NO_OBSERVED_AFTER_NOTICE = ["CN"]
+
+# A notice that the library does not have yet (README.md, "公式の発表で足す"): one file per country,
+# <CC>-<year>.json, merged only into that country's year (Supplement, Country.check_supplement).
+SUPPLEMENTS = os.path.join(HERE, "supplements")
+SUPPLEMENT_FORMAT = "tegaki-holidays-supplement/1"
+SUPPLEMENT_FILE = re.compile(r"([A-Z]{2})-([0-9]{4})\.json\Z")
+# The kinds of a supplement's days off -> the flags that day must have in the data (never an estimate).
+SUPPLEMENT_KINDS = {"holiday": 0, "observed": F_OBSERVED, "rest": F_SUBSTITUTED}
 
 # coverage (0-30): the years whose number of national holidays is at least this share of the
 # median of COVERAGE_BASE.
@@ -205,16 +222,175 @@ def licence_files(dist):
     return found["LICENSE"].read_bytes(), found["CONTRIBUTORS"].read_bytes()
 
 
+class Supplement:
+    """One file of tools/holidays/supplements: a notice country's year as its government's notice
+    sets it (README.md, "公式の発表で足す"). Read and checked against itself here; against the
+    library in Country (static_class, check_supplement).
+
+        notice       title, number, published (YYYY-MM-DD), url (https), and optionally mirror, read
+        arrangement  the notice's items as it states them: the holiday, the first and last day off
+                     ("off"), the number of days it says ("days") and its working weekends ("work")
+        days         every day off of the year in date order: [date, the library's name in the
+                     country's language, "holiday" | "observed" | "rest"]; a rest day's name is the
+                     library's substituted label with the working weekend it is swapped with (the
+                     rest days and the working weekends paired in date order, as the library does)
+        workdays     the working weekends, in date order
+
+    Every date is in the year. The days off are the arrangement's days off: each listed day is in
+    one of its ranges, and each weekday of a range is listed (a range's weekend days are listed only
+    when they are holidays); the working weekends are the arrangement's and no day off."""
+
+    KEYS = {"format", "country", "year", "notice", "arrangement", "days", "workdays"}
+    NOTICE_KEYS = {"title", "number", "published", "url"}
+    NOTICE_OPTIONAL = {"mirror", "read"}
+
+    def __init__(self, name, data):
+        self.name, self.digest = name, sha256(data)
+
+        def fail(what):
+            raise GenError(f"supplements/{name}: {what}")
+
+        def date_of(text, what):
+            if isinstance(text, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", text):
+                try:
+                    return dt.date.fromisoformat(text)
+                except ValueError:
+                    pass
+            fail(f"{what}: {text!r} is not a YYYY-MM-DD date")
+
+        m = SUPPLEMENT_FILE.match(name)
+        if not m:
+            fail("the name is not <CC>-<year>.json")
+        try:
+            obj = json.loads(data.decode("utf-8"))
+        except ValueError as e:  # UnicodeDecodeError and JSONDecodeError are ValueErrors
+            fail(f"not UTF-8 JSON ({e})")
+        if not isinstance(obj, dict) or set(obj) != self.KEYS:
+            fail(f"the keys are not {sorted(self.KEYS)}")
+        if obj["format"] != SUPPLEMENT_FORMAT:
+            fail(f"the format is not {SUPPLEMENT_FORMAT}")
+        self.cc, self.year = obj["country"], obj["year"]
+        if not isinstance(self.year, int) or isinstance(self.year, bool) or (self.cc, str(self.year)) != m.groups():
+            fail(f"country {self.cc!r} and year {self.year!r} are not the file's name")
+        if self.cc not in NOTICE:
+            fail(f"{self.cc} is not a notice country {NOTICE} (0-29)")
+
+        notice = obj["notice"]
+        if (not isinstance(notice, dict) or not self.NOTICE_KEYS <= set(notice) <= self.NOTICE_KEYS | self.NOTICE_OPTIONAL
+                or not all(isinstance(v, str) and v.strip() == v and v for v in notice.values())):
+            fail(f"notice is not {sorted(self.NOTICE_KEYS)} (and optionally {sorted(self.NOTICE_OPTIONAL)}) as texts")
+        for key in ("url", "mirror"):
+            if key in notice and not re.fullmatch(r"https://[^\s]+", notice[key]):
+                fail(f"notice.{key} is not an https URL")
+        for key in ("published", "read"):
+            if key in notice:
+                date_of(notice[key], f"notice.{key}")
+        self.notice = notice
+
+        if not isinstance(obj["days"], list) or not obj["days"]:
+            fail("days is not a list of days off")
+        self.days = []  # (date, name, kind)
+        for item in obj["days"]:
+            if not (isinstance(item, list) and len(item) == 3 and isinstance(item[1], str) and item[1].strip()
+                    and isinstance(item[2], str) and item[2] in SUPPLEMENT_KINDS):
+                fail(f"days: {item!r} is not [date, name, one of {sorted(SUPPLEMENT_KINDS)}]")
+            self.days.append((date_of(item[0], "days"), item[1], item[2]))
+        listed = [d for d, _, _ in self.days]
+        if listed != sorted(set(listed)) or any(d.year != self.year for d in listed):
+            fail(f"days are not unique dates of {self.year} in order")
+
+        if not isinstance(obj["workdays"], list):
+            fail("workdays is not a list")
+        self.workdays = [date_of(t, "workdays") for t in obj["workdays"]]
+        if (self.workdays != sorted(set(self.workdays)) or any(d.year != self.year for d in self.workdays)
+                or any(d.weekday() < 5 for d in self.workdays) or set(self.workdays) & set(listed)):
+            fail(f"workdays are not weekends of {self.year} in order, none of them a day off")
+
+        if not isinstance(obj["arrangement"], list) or not obj["arrangement"]:
+            fail("arrangement is not a list of the notice's items")
+        covered, work = set(), []
+        for item in obj["arrangement"]:
+            if (not isinstance(item, dict) or set(item) != {"holiday", "off", "days", "work"}
+                    or not isinstance(item["holiday"], str) or not item["holiday"]
+                    or not isinstance(item["off"], list) or len(item["off"]) != 2
+                    or not isinstance(item["days"], int) or isinstance(item["days"], bool) or item["days"] < 1
+                    or not isinstance(item["work"], list)):
+                fail(f"arrangement: {item!r} is not {{holiday, off: [first, last], days, work: [...]}}")
+            first, last = (date_of(t, f"arrangement {item['holiday']}") for t in item["off"])
+            if (last - first).days + 1 != item["days"]:
+                fail(f"arrangement {item['holiday']}: {first} to {last} is not {item['days']} days")
+            span = {first + dt.timedelta(days=i) for i in range(item["days"])}
+            if span & covered:
+                fail(f"arrangement {item['holiday']}: its days off overlap another item's")
+            covered |= span
+            work += [date_of(t, f"arrangement {item['holiday']} work") for t in item["work"]]
+        if sorted(work) != self.workdays:
+            fail(f"workdays {[str(d) for d in self.workdays]} are not the arrangement's {sorted(str(d) for d in work)}")
+        if set(self.workdays) & covered:
+            fail("a working weekend is inside the arrangement's days off")
+        outside = sorted(str(d) for d in listed if d not in covered)
+        unlisted = sorted(str(d) for d in covered if d.weekday() < 5 and d not in set(listed))
+        if outside or unlisted:
+            fail(f"days off outside the arrangement {outside}, weekdays of the arrangement not listed {unlisted}")
+
+    def static_class(self, labels, library_loy):
+        """The class whose special_public_holidays has this year's days off swapped with a weekend,
+        for the library's `static_holidays_classes`. Stops when the library already has the year
+        (the library wins) or when the year is not the one right after the library's last."""
+        if library_loy is not None and library_loy >= self.year:
+            raise GenError(f"{self.cc}: python-holidays {holidays.__version__} has {self.year} (its tables end in "
+                           f"{library_loy}): compare its {self.year} with supplements/{self.name}, then delete the "
+                           f"supplement (README.md)")
+        if library_loy is None or self.year != library_loy + 1:
+            raise GenError(f"supplements/{self.name}: {self.cc}'s last official year in the library is {library_loy}; "
+                           f"only the next year can be supplemented")
+        pairs, swapped = [], []
+        for day, name, kind in self.days:
+            flags, _, _, frm = labels.classify(name)
+            if flags != SUPPLEMENT_KINDS[kind]:
+                raise GenError(f"supplements/{self.name}: {day} {name!r} reads as flags {flags}, not as {kind!r}")
+            if kind == "rest":
+                try:
+                    weekend = dt.datetime.strptime(frm, labels.subst_format).date()
+                except ValueError:
+                    raise GenError(f"supplements/{self.name}: {day} {name!r}: {frm!r} is not {labels.subst_format!r}")
+                pairs.append((day.month, day.day, weekend.month, weekend.day))
+                swapped.append(weekend)
+        # The notice does not pair them; every year of the library's table pairs them in date order.
+        if swapped != self.workdays:
+            raise GenError(f"supplements/{self.name}: the rest days are swapped with {[str(d) for d in swapped]}, "
+                           f"not with the workdays in date order {[str(d) for d in self.workdays]}")
+        return type(f"Supplement{self.cc}{self.year}", (), {"special_public_holidays": {self.year: tuple(pairs)}})
+
+
+def read_supplements(path=SUPPLEMENTS):
+    """{country: Supplement} of tools/holidays/supplements; one per country (one year at a time)."""
+    out = {}
+    if not os.path.isdir(path):
+        return out
+    for name in sorted(os.listdir(path)):
+        if name.startswith("."):
+            continue
+        with open(os.path.join(path, name), "rb") as f:
+            sup = Supplement(name, f.read())
+        if sup.cc in out:
+            raise GenError(f"supplements: {out[sup.cc].name} and {name} are both {sup.cc}'s; one year at a time")
+        out[sup.cc] = sup
+    return out
+
+
 # MARK: - The library
 
-def make(cc, subdiv, language, years=range(Y0, Y1 + 1), notes=None, **kwargs):
-    """country_holidays with the library's warnings kept (sorted later) instead of printed."""
+def make(cc, subdiv, language, years=range(Y0, Y1 + 1), notes=None, static=None, **kwargs):
+    """country_holidays with the library's warnings kept (sorted later) instead of printed.
+    `static` ({"static_holidays_classes": (a class,)}, a supplement's) goes to the country's class
+    itself, which is what country_holidays calls with the same defaults."""
     args = dict(years=years, language=language, **kwargs)
     if subdiv is not None:
         args["subdiv"] = subdiv
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        inst = holidays.country_holidays(cc, **args)
+        inst = getattr(holidays, cc)(**args, **static) if static else holidays.country_holidays(cc, **args)
     if notes is not None:
         for w in caught:
             notes.add(f"{cc}{'-' + subdiv if subdiv else ''}: {w.category.__name__}: {w.message}")
@@ -398,8 +574,9 @@ class Translator:
 # MARK: - One country
 
 class Country:
-    def __init__(self, cc, stats, notes):
+    def __init__(self, cc, stats, notes, supplement=None):
         self.cc, self.stats, self.notes = cc, stats, notes
+        self.supplement, self.static = supplement, None
         probe = make(cc, None, None, years=(), notes=notes)
         self.default = probe.default_language
         supported = tuple(probe.supported_languages or ())
@@ -413,6 +590,15 @@ class Country:
         self.cols = [self.d_col] + sorted(set(self.ui_columns.values()) - {self.d_col})
         self.language_arg = {c: (None if self.default is None else c) for c in self.cols}
         self.loy = max((y for y in (last_official_year(probe), PUBLISHED_AND_COMPARED.get(cc)) if y is not None), default=None)
+        if supplement is not None:
+            # From here on every instance of this country has the supplement's year in its table.
+            labels = Labels(make(cc, None, self.language_arg[self.d_col], years=(), notes=notes))
+            self.static = {"static_holidays_classes": (supplement.static_class(labels, self.loy),)}
+            probe = make(cc, None, None, years=(), notes=notes, static=self.static)
+            if last_official_year(probe) != supplement.year:
+                raise GenError(f"{cc}: with supplements/{supplement.name} the library's tables end in "
+                               f"{last_official_year(probe)}, not {supplement.year}")
+            self.loy = supplement.year
         self.notice = cc in NOTICE
 
         # Subdivisions (0-28): the data code is the library's code, folded to ASCII when it has
@@ -440,10 +626,10 @@ class Country:
         # The catalogs of every language the library has for this country give the message ids.
         msgids = set()
         for lang in sorted(set(supported) | {self.default} - {None}):
-            inst = make(cc, None, lang, years=(), notes=notes)
+            inst = make(cc, None, lang, years=(), notes=notes, static=self.static)
             for cat in catalogs(inst.tr):
                 msgids |= {m for m in cat if isinstance(m, str) and m}
-        self.national = {c: make(cc, None, self.language_arg[c], notes=notes) for c in self.cols}
+        self.national = {c: make(cc, None, self.language_arg[c], notes=notes, static=self.static) for c in self.cols}
         self.labels = {c: Labels(self.national[c]) for c in self.cols}
         for c in self.cols:
             tr = self.national[c].tr
@@ -573,7 +759,27 @@ class Country:
         return out
 
     def instances(self, library_code):
-        return {c: make(self.cc, library_code, self.language_arg[c], notes=self.notes) for c in self.cols}
+        return {c: make(self.cc, library_code, self.language_arg[c], notes=self.notes, static=self.static) for c in self.cols}
+
+    def check_supplement(self, national, workdays):
+        """The supplement's year as the data has it is the supplement as written: the same days off in
+        order, each with the supplement's name in the country's language and exactly its kind's
+        flags (so no estimate), and the same working weekends. Anything else stops: the library's
+        own part of that year (its lunar dates, its rule for observed days) must agree with the notice."""
+        sup = self.supplement
+        got = [(str(day), text, self.flags[nid]) for day in sorted(national) if day.year == sup.year
+               for text, nid, _ in national[day]]
+        want = [(str(day), name, SUPPLEMENT_KINDS[kind]) for day, name, kind in sup.days]
+        if got != want:
+            raise GenError(f"{self.cc} {sup.year}: the data with supplements/{sup.name} has "
+                           f"{[g for g in got if g not in want]} that the supplement has not, and not "
+                           f"{[w for w in want if w not in got]} (date, name, flags)")
+        have = [d for d in workdays if d.year == sup.year]
+        if have != sup.workdays:
+            raise GenError(f"{self.cc} {sup.year}: the working weekends are {[str(d) for d in have]}, "
+                           f"the supplement's {[str(d) for d in sup.workdays]}")
+        self.stats["days off from a supplement, checked day by day"] += len(got)
+        self.stats["working weekends from a supplement"] += len(have)
 
     def check_estimated(self, raw):
         """The estimate suffixes are taken off with the column's label (the flag must be kept, so the
@@ -584,7 +790,8 @@ class Country:
             return
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # the same warnings as the instance it is compared with
-            plain = klass(years=range(Y0, Y1 + 1), language=self.language_arg[self.d_col], islamic_show_estimated=False)
+            plain = klass(years=range(Y0, Y1 + 1), language=self.language_arg[self.d_col], islamic_show_estimated=False,
+                          **(self.static or {}))
         lab = self.labels[self.d_col]
         for day in sorted(set(raw) | {d for d in plain if Y0 <= d.year <= Y1}):
             names = [n for n in plain.get_list(day) if not (lab.rx_substituted and lab.rx_substituted.match(n))]
@@ -606,6 +813,10 @@ class Country:
         workdays = sorted(d for d in nat_default.weekend_workdays if Y0 <= d.year <= Y1)
         if self.notice and self.loy is not None and any(d.year > self.loy for d in workdays):
             raise GenError(f"{cc}: working weekends after the last official year {self.loy}")
+        source = f"python-holidays {holidays.__version__}"
+        if self.supplement is not None:
+            self.check_supplement(national, workdays)
+            source += f" + supplements/{self.supplement.name} ({self.supplement.notice['number']})"
 
         days, subst_from = [], []
         for day in sorted(national):
@@ -665,7 +876,7 @@ class Country:
         coverage = coverage_range(collections.Counter({y: len(v) for y, v in holidays_per_year.items()}))
 
         record = {
-            "format": FORMAT, "country": cc, "source": f"python-holidays {holidays.__version__}",
+            "format": FORMAT, "country": cc, "source": source,
             "years": [Y0, Y1], "epoch": EPOCH.isoformat(),
             "langs": self.cols,
             "ui": {ui: self.cols.index(c) for ui, c in sorted(self.ui_columns.items())},
@@ -761,6 +972,9 @@ def generate(outdir, previous=None, report=None, check_versions=True):
     codes = sorted(c for c in holidays.list_supported_countries() if len(c) == 2 and c in iso)
     if "UK" in codes:
         raise GenError("UK is in iso-regions.txt")
+    supplements = read_supplements()
+    if set(supplements) - set(codes):
+        raise GenError(f"supplements for countries this run does not write: {sorted(set(supplements) - set(codes))}")
 
     previous_index = {}
     prev_dir = previous if previous is not None else outdir
@@ -776,7 +990,7 @@ def generate(outdir, previous=None, report=None, check_versions=True):
     notes = set()
     files, index_rows, facts = {}, [], {}
     for cc in codes:
-        country = Country(cc, stats, notes)
+        country = Country(cc, stats, notes, supplements.get(cc))
         record, index, fact = country.build()
         index["renamed"] = renamed_codes(cc, previous_index.get(cc), index["subdivisions"],
                                          {d: country.aliases.get(l, []) for d, l in country.subdivisions})
@@ -804,6 +1018,8 @@ def generate(outdir, previous=None, report=None, check_versions=True):
         "licenses": {name: sha256(files[name]) for name in ("LICENSE-python-holidays.txt", "CONTRIBUTORS-python-holidays.txt")},
         "files": {name: sha256(data) for name, data in sorted(files.items())},
     }
+    if supplements:
+        source["supplements"] = {s.name: s.digest for _, s in sorted(supplements.items())}
     files["SOURCE.json"] = dump(source).encode("utf-8")
 
     os.makedirs(outdir, exist_ok=True)
