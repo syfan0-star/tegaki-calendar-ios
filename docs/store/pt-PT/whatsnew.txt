@@ -1,5 +1,5 @@
-• Foram adicionadas mais cores de caneta. Toque novamente no círculo de cor realçado (ou mantenha-o premido) para substituir a sua cor por uma das 12 cores ou por qualquer cor à sua escolha.
-• Foi adicionada aos Ajustes a opção “Papel das notas”. Para o papel das áreas “Notas” e “Notas livres”, pode escolher “Pautado”, “Grade de pontos” ou “Liso”. A sua escrita à mão mantém-se igual.
-• No modo escuro, os círculos de cores escuras na barra de ferramentas são agora mais fáceis de ver.
+• As páginas do mês e do ano passam também a estar unidas na horizontal às páginas anteriores e seguintes. Deslize o dedo na horizontal e o mês ou o ano ao lado aparece a seguir (quando “Usar o dedo” estiver ativado, deslize dois dedos na horizontal). Pode escrever diretamente atravessando a emenda: nas páginas do mês, na área de notas na parte de baixo; nas páginas do ano, de dezembro para janeiro do ano seguinte.
+• Tal como nas páginas do dia e da semana, também nas páginas do mês e do ano o botão com uma lupa e o número “1” passa a repor o zoom de forma a que uma página ocupe exatamente a largura do ecrã.
+• Atualize tanto o iPad como o iPhone para esta versão. Nas versões anteriores, os traços escritos entre duas páginas aparecem apenas numa delas (não foram eliminados). Se apagar um desses traços numa versão anterior, também é apagado nesta versão.
 
 As traduções foram feitas com IA e ainda não foram revistas por falantes nativos. Informe-nos sobre erros.

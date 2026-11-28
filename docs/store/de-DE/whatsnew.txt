@@ -1,5 +1,5 @@
-• Es gibt jetzt mehr Stiftfarben. Wenn Sie erneut auf den hervorgehobenen Farbpunkt tippen (oder ihn gedrückt halten), können Sie seine Farbe durch eine der 12 Farben oder eine beliebige Farbe Ihrer Wahl ersetzen.
-• In den Einstellungen gibt es jetzt die Option „Notizpapier“. Für das Papier der Bereiche „Notizen“ und „Freie Notizen“ können Sie „Liniert“, „Punktraster“ oder „Blanko“ wählen. Ihre Handschrift bleibt unverändert.
-• Im Dunkelmodus sind die dunklen Farbpunkte in der Werkzeugleiste jetzt besser zu sehen.
+• Auch Monats- und Jahresseiten sind jetzt seitlich mit der vorherigen und der nächsten Seite verbunden. Wenn Sie mit dem Finger seitwärts streichen, folgt der Monat bzw. das Jahr daneben (ist „Fingereingabe“ aktiviert, streichen Sie mit zwei Fingern seitwärts). Sie können direkt über den Übergang hinweg schreiben: auf Monatsseiten im Notizbereich unten, auf Jahresseiten vom Dezember in den Januar des nächsten Jahres.
+• Wie auf Tages- und Wochenseiten setzt die Schaltfläche mit der Lupe und der „1“ den Zoom jetzt auch auf Monats- und Jahresseiten so zurück, dass eine Seite genauso breit ist wie der Bildschirm.
+• Bitte aktualisieren Sie sowohl Ihr iPad als auch Ihr iPhone auf diese Version. In älteren Versionen erscheinen Striche, die über Seiten hinweg geschrieben wurden, nur auf einer der Seiten (sie wurden nicht gelöscht). Wenn Sie einen solchen Strich in einer älteren Version löschen, wird er auch in dieser Version gelöscht.
 
 Die Übersetzungen wurden mit KI erstellt und noch nicht von Muttersprachlern geprüft. Bitte teilen Sie uns Fehler mit.
