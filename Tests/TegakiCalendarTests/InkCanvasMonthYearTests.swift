@@ -1295,4 +1295,151 @@ final class InkCanvasMonthYearTests: XCTestCase {
         XCTAssertEqual(otherRig.canvas.contentOffset.y, 0, accuracy: 0.5, "another year opens at its top")
         XCTAssertEqual(middle(of: "y-2028", otherRig), area.width / 2, accuracy: 0.5, "the focus year in the middle")
     }
+
+    // MARK: ↶ ↷, the eraser and iCloud across years (§9.1, §9.3, §9.5; D1y review S4, the month's TEST-1)
+
+    /// §9.1, §9.3, §5.2 (D1y review S4): one history for the window of years. A line on the 20th's row (all rows 60 lu: its
+    /// top 1,140) from 2025's December into 2026's January — nine points from 60 lu left of 2026's left edge to 160 lu right
+    /// of it, its centre 50 lu right of the edge, in 2026's day-number column, whose cell is January's (§5.2) — belongs to
+    /// 2026's 1/20 with its points left of the page kept (x < −56 of the cell, which starts at 56). The eraser takes it away
+    /// (2026's delta, its name tombstoned in the file); ↶ brings it back as a copy under a fresh name (a tombstoned id never
+    /// comes back, 1.0's rule: the frozen `InkLedgerTests.testEraseMakesTombstoneAndUndoRestoresClone`), its cell's owner's
+    /// (`SpanSession.ownerId(for:)`): 2026's again, in 1/20, with the same points, saved; ↷ erases the copy again. 2025
+    /// never gets a file.
+    func testALineFromDecemberIntoJanuaryErasedComesBackWithUndo() async throws {
+        let session = try await open(.year)
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertNil(PaperSpan.window(for: session.layout, focus: session.focusSlot), "the year does not join: one page at a time")
+            return
+        }
+        let rig = await attach(session, size: CGSize(width: 834, height: 984))
+        XCTAssertEqual(session.pageIds, [y2024, y2025, y2026, y2027, y2028])
+        let edge = origin(y2026, session)
+        let january20 = CellKey.yearDay(month: 1, day: 20)
+        let target = cell(january20, of: y2026, session)
+        XCTAssertEqual(target.minX, edge + 56, accuracy: 0.001, "January's cell starts after the day-number column")
+        XCTAssertEqual(target.minY, 1_140, accuracy: 0.001, "row 20 (19 rows of 60 above)")
+        XCTAssertEqual(cell(.yearDay(month: 12, day: 20), of: y2025, session).maxX, edge, accuracy: 0.001,
+                       "2025's December ends at 2026's left edge")
+        let y = target.minY + 30
+        draw(makeStroke(through: (0...8).map { CGPoint(x: edge - 60 + CGFloat($0) * 27.5, y: y + CGFloat($0 % 2)) }), on: rig)
+        let written = try lastDrawn(on: rig)
+        XCTAssertTrue(written.hasPrefix(y2026), "its centre right of the edge: 2026's line")
+        let stroke = try XCTUnwrap(rig.ledger.page.strokes[written])
+        XCTAssertEqual(stroke.cell, SpanName.prefixed(january20, page: y2026), "in 2026's 1/20")
+        let xs = stroke.points.map(\.x)
+        XCTAssertLessThan(xs.min() ?? 0, -56, "the points left of 2026's page kept (\(xs.min() ?? 0))")
+        XCTAssertGreaterThan(xs.max() ?? 0, 0, "and the points in January (\(xs.max() ?? 0))")
+        let writtenPoints = stroke.points
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.live(y2026).count, 1)
+        XCTAssertFalse(bed.store.exists(y2025), "2025 holds none of it")
+
+        erase(written, on: rig)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "erased")
+        XCTAssertNil(shown(written, on: rig))
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [y2026], "2026's delta")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertTrue(rig.ledger.canUndo)
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        let writtenLocal = try XCTUnwrap(SpanName.split(written)?.local)
+        XCTAssertEqual(bed.live(y2026).count, 0, "2026's file without it")
+        XCTAssertNotNil(bed.store.load(y2026).deleted[writtenLocal], "its name tombstoned in the file")
+
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "the name the eraser tombstoned stays tombstoned")
+        let back = rig.ledger.page.liveStrokes
+        XCTAssertEqual(back.count, 1, "↶ brings the line back")
+        let copy = try XCTUnwrap(back.first)
+        XCTAssertNotEqual(copy.id, written, "as a copy under a fresh name")
+        XCTAssertEqual(SpanName.split(copy.id)?.page, y2026, "2026's name")
+        XCTAssertEqual(copy.cell, SpanName.prefixed(january20, page: y2026), "in 2026's 1/20")
+        XCTAssertEqual(copy.points, writtenPoints, "the same line")
+        XCTAssertNotNil(shown(copy.id, on: rig))
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [y2026], "↶'s delta 2026's")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertTrue(rig.ledger.canRedo)
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        let copyLocal = try XCTUnwrap(SpanName.split(copy.id)?.local)
+        XCTAssertEqual(bed.live(y2026), [copyLocal], "2026's file with it again, under its new name")
+        XCTAssertNotNil(bed.store.load(y2026).deleted[writtenLocal], "its first name still tombstoned")
+        XCTAssertFalse(bed.store.exists(y2025), "2025 untouched")
+
+        update(rig, undoTrigger: 1, redoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(copy.id), "↷ erases the copy again")
+        XCTAssertNil(shown(copy.id, on: rig))
+        XCTAssertEqual(rig.ledger.page.liveStrokes.count, 0)
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [y2026], "↷'s delta 2026's")
+        XCTAssertFalse(rig.ledger.canRedo)
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.live(y2026).count, 0, "2026's file without it again")
+        XCTAssertNotNil(bed.store.load(y2026).deleted[copyLocal], "the copy's name tombstoned too")
+        XCTAssertFalse(bed.store.exists(y2025))
+    }
+
+    /// §9.5 (D1y review S4; InkCanvasSpanTests.testARemoteDeletionDropsThatPagesUndoSteps' year): 2025 holds a stored line
+    /// (2/3); a line written on 2025's 3/10 and erased, then a line on 2027's 5/10, saved. Another device's 「全て消す」
+    /// deletes 2025 (its file goes, then the session hears of it): the canvas takes the window, 2025 is empty on it (its
+    /// stored line gone too), 2027's line stays and so does its step. ↶ takes 2027's line away and there is nothing more to
+    /// undo: 2025's steps went with the window taken after the deletion; a second ↶ puts no delta of 2025 and its erased
+    /// line does not come back. Saved, 2025's file is not made again.
+    func testAYearDeletedOutsideIsEmptiedAndLeavesTheUndo() async throws {
+        let session = try await open(.year, stored: [yearPage(y2025, [("old", 2, 3, 10)])])
+        guard SpanKinds.joined.contains(.year) else {
+            XCTAssertNil(PaperSpan.window(for: session.layout, focus: session.focusSlot), "the year does not join: one page at a time")
+            return
+        }
+        let rig = await attach(session, size: CGSize(width: 834, height: 984))
+        let old = SpanName.prefixed(id: "old", page: y2025)
+        XCTAssertNotNil(shown(old, on: rig), "2025's stored line is drawn")
+        let march10 = cell(.yearDay(month: 3, day: 10), of: y2025, session)
+        draw(shortStroke(at: march10.minX + 56, march10.minY + 30), on: rig)
+        let written = try lastDrawn(on: rig)
+        XCTAssertTrue(written.hasPrefix(y2025))
+        erase(written, on: rig)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "erased")
+        let may10 = cell(.yearDay(month: 5, day: 10), of: y2027, session)
+        draw(shortStroke(at: may10.minX + 56, may10.minY + 30), on: rig)
+        let later = try lastDrawn(on: rig)
+        XCTAssertTrue(later.hasPrefix(y2027))
+        await settle()
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertEqual(bed.store.load(y2025).liveStrokeCount, 1, "2025: its stored line")
+        XCTAssertEqual(bed.store.load(y2025).deleted.count, 1, "and the erased one's tombstone")
+        XCTAssertEqual(bed.live(y2027).count, 1)
+
+        // As `SyncEngine` applies a deleted record: the file goes, then the session hears of it.
+        try bed.store.remove(y2025)
+        session.remoteDeleted(y2025)
+        await settle()
+        XCTAssertEqual(rig.coordinator.spanAppliedWindowVersion, session.windowVersion, "the canvas took the window")
+        XCTAssertEqual(session.page(y2025)?.liveStrokeCount, 0, "2025 is empty")
+        XCTAssertFalse(rig.ledger.page.isLive(old), "its stored line is gone")
+        XCTAssertNil(shown(old, on: rig))
+        XCTAssertFalse(rig.canvas.drawing.strokes.contains { rig.ledger.id(of: $0)?.hasPrefix(y2025) == true }, "nothing of 2025 drawn")
+        XCTAssertFalse(rig.ledger.page.isLive(written))
+        XCTAssertTrue(rig.ledger.page.isLive(later))
+        XCTAssertTrue(rig.ledger.canUndo, "2027's later step stays")
+
+        update(rig, undoTrigger: 1)
+        XCTAssertFalse(rig.ledger.page.isLive(later), "↶ takes 2027's line away")
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [y2027])
+        XCTAssertFalse(rig.ledger.canUndo, "2025's steps went with the window taken after the deletion")
+        XCTAssertTrue(rig.ledger.canRedo, "the ↶ just made can be redone")
+        update(rig, undoTrigger: 2)
+        XCTAssertEqual(session.inbox.deltas.map(\.pageId), [y2027], "a second ↶ puts no delta of 2025")
+        XCTAssertTrue(session.inbox.unrouted.isEmpty)
+        XCTAssertFalse(rig.ledger.page.isLive(written), "the erased line does not come back")
+        XCTAssertNil(shown(written, on: rig))
+        XCTAssertFalse(rig.ledger.page.liveStrokes.contains { $0.id.hasPrefix(y2025) }, "nothing of 2025 is live")
+        await settle()
+        XCTAssertEqual(session.page(y2025)?.liveStrokeCount, 0)
+        XCTAssertEqual(session.saveAll(), [])
+        XCTAssertFalse(bed.store.exists(y2025), "its file is not made again")
+        XCTAssertEqual(bed.live(y2027).count, 0, "2027's ↶ is saved")
+    }
 }
