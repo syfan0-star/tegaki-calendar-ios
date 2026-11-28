@@ -232,6 +232,10 @@ final class ScreenPaths: ObservableObject {
     /// 1.4.3 (review UX-3): 「今日」's mark on a window of months (`TodayMark`): made by `today`, read by `carriedFocus`, let go
     /// by `forgetToday()`.
     private var todayMark: TodayMark?
+    /// 1.4.3 (review UX-2 (a)): the area, ratio and fit of the 「今日」 that answered `.reopen`, kept for the new window's
+    /// first-layout rect (`reopenedToday(now:)`, taken once), so that rect is made from the inputs the decision was made
+    /// from and the screen passes the fit once, to `today`. Every 「今日」 sets or clears it.
+    private var reopenInputs: (area: CGSize, ratio: CGFloat, fit: Bool)?
     /// `windowVersion` right after the window opened (stage 2 at a stop needs the reads done, C3-m6).
     private var openedVersion = 0
     /// `EventStoreModel.revision` when the events of the window were read (C3-m8).
@@ -1037,9 +1041,11 @@ final class ScreenPaths: ObservableObject {
     /// an edge column) — so the focus page becomes today's month and the stop there brings today.
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Today? {
         forgetToday()
+        reopenInputs = nil
         guard path == .joined, let session = span else { return nil }
         switch session.today(day) {
         case .reopen(let focus):
+            reopenInputs = (area, ratio, fit)
             return .reopen(focus)
         case .slide(let pages):
             let zoomed = session.layout.kind == .month
@@ -1122,6 +1128,14 @@ final class ScreenPaths: ObservableObject {
     /// (`zoomedPastFit`, as the window opens: the stored ratio or 1.4.1's `fit`) it is the cell; else
     /// `monthOpeningTodayRect`'s, whose x (the focus page's middle, no width) never moves the band. nil off the joined path,
     /// for a kind that is not the month (the week and the day are 1.3's) and when the focus page does not hold today.
+    /// The screen's call (goToday's `.reopen`, right after its `show`): the rect below from the inputs `today` kept with its
+    /// `.reopen` (`reopenInputs`), taken once. nil when the last 「今日」 did not answer `.reopen`.
+    func reopenedToday(now: Date) -> CGRect? {
+        guard let inputs = reopenInputs else { return nil }
+        reopenInputs = nil
+        return reopenedToday(now: now, area: inputs.area, ratio: inputs.ratio, fit: inputs.fit)
+    }
+
     func reopenedToday(now: Date, area: CGSize, ratio: CGFloat, fit: Bool = false) -> CGRect? {
         guard path == .joined, let session = span, session.layout.kind == .month else { return nil }
         let pastFit = Self.zoomedPastFit(layout: session.layout, viewport: nil, area: area, ratio: ratio, fit: fit)

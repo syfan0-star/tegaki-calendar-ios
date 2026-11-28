@@ -486,6 +486,7 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         let far = DayKey(year: 2027, month: 6, day: 30)
         let farNow = try at(6, 30, 10, year: 2027)
         let old = try await openWindow()
+        XCTAssertNil(paths.reopenedToday(now: farNow), "no 「今日」 yet")
         XCTAssertEqual(paths.today(far, now: farNow, viewport: nil, area: landscape, ratio: 1, fit: true), .reopen(far))
         XCTAssertNil(paths.reopenedToday(now: farNow, area: landscape, ratio: 1, fit: true), "the window shown does not hold today")
 
@@ -493,6 +494,14 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertNotEqual(session.id, old.id)
         let june = try month("m1-2027-06", of: session)
         let cell = try XCTUnwrap(june.page.cells[.day(far)])
+        // The screen's call: the inputs of the 「今日」 above (landscape, ratio 1, 等倍), kept across the screen's `show`, once.
+        let kept = try XCTUnwrap(paths.reopenedToday(now: farNow), "the inputs kept with .reopen")
+        XCTAssertEqual(kept, paths.reopenedToday(now: farNow, area: landscape, ratio: 1, fit: true))
+        XCTAssertNil(paths.reopenedToday(now: farNow), "taken once")
+        let again = paths.today(far, now: farNow, viewport: nil, area: landscape, ratio: 1, fit: true)
+        XCTAssertNotNil(again)
+        if case .reopen? = again { XCTFail("today's page is the focus now: not far") }
+        XCTAssertNil(paths.reopenedToday(now: farNow), "a 「今日」 that did not reopen keeps nothing")
         for (name, area, ratio, fit) in [("landscape 等倍", landscape, CGFloat(1), true), ("landscape open", landscape, 1, false),
                                          ("portrait", portrait, 1, false), ("portrait 等倍", portrait, 1, true)]
             as [(String, CGSize, CGFloat, Bool)] {
@@ -946,11 +955,11 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertEqual(count("paths.carriedFocus("), 1, "the stop's own call is ScreenPaths.stopped's")
         XCTAssertEqual(count("ScreenPaths.focus("), 0, "the screen never carries the focus itself")
 
-        // Review UX-2 (a)'s wire: far away, the new window's first layout gets `reopenedToday`'s rect with the fit and the ratio
-        // (read into constants: the frozen ZoomFitWiringTests counts exactly three `ratio: currentRatio, fit: currentFit)`).
-        XCTAssertTrue(goToday.contains("case .reopen(let day): show(kind: kind, focus: day) let ratio = currentRatio let fit = currentFit "
-                                       + "if let rect = paths.reopenedToday(now: ScreenshotMode.current?.today ?? Date(), area: paperArea, "
-                                       + "ratio: ratio, fit: fit) { revealRect = rect revealTrigger += 1 }"), "far away: \(goToday)")
+        // Review UX-2 (a)'s wire: far away, the new window's first layout gets `reopenedToday`'s rect, made from the inputs
+        // `paths.today` kept with its `.reopen` (the fit is passed once; the frozen ZoomFitWiringTests counts its three wires).
+        XCTAssertTrue(goToday.contains("case .reopen(let day): show(kind: kind, focus: day) "
+                                       + "if let rect = paths.reopenedToday(now: ScreenshotMode.current?.today ?? Date()) "
+                                       + "{ revealRect = rect revealTrigger += 1 }"), "far away: \(goToday)")
         XCTAssertEqual(count("paths.reopenedToday("), 1)
         XCTAssertEqual(count("ratio: currentRatio, fit: currentFit)"), 3, "ZoomFitWiringTests' count (frozen)")
     }
