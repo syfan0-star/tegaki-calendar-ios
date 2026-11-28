@@ -29,8 +29,9 @@ enum SpanGuide {
     /// The fixed text of §8.1: N-4 (week) and N-6 (day) with 「指でも書く」 off, where one finger slides the band;
     /// N-5 and N-7 with it on, where a finger writes and two fingers slide. nil for a kind that is not joined.
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §7.3, §13.1, 0g-33): the month's two cards (`span.guide.month.oneFinger` and
-    /// `.twoFingers`: the neighbouring month comes in, and the memo band below crosses the boundary); nil for a kind that is
-    /// not in `SpanKinds.joined`, and for the year until D1y adds its two.
+    /// `.twoFingers`: the neighbouring month comes in, and the memo band below crosses the boundary) and the year's two
+    /// (`span.guide.year.oneFinger` and `.twoFingers`: the neighbouring year comes in, and the boundary is crossed as the
+    /// week's and the day's, its rows running on to the next year); nil for a kind that is not in `SpanKinds.joined`.
     static func text(kind: PageKind, allowFinger: Bool) -> String? {
         guard SpanKinds.joined.contains(kind) else { return nil }
         switch (kind, allowFinger) {
@@ -40,7 +41,8 @@ enum SpanGuide {
         case (.day, true): return L.text("span.guide.day.twoFingers")
         case (.month, false): return L.text("span.guide.month.oneFinger")
         case (.month, true): return L.text("span.guide.month.twoFingers")
-        case (.year, _): return nil
+        case (.year, false): return L.text("span.guide.year.oneFinger")
+        case (.year, true): return L.text("span.guide.year.twoFingers")
         }
     }
 

@@ -23101,6 +23101,138 @@
         }
       }
     },
+    "span.guide.year.oneFinger" : {
+      "comment" : "初めての案内の札（1.4.3、年）。年のページを横につなげて初めて開いたときに、紙の上の端に 8 秒だけ（触れれば消える）、端末ごとに 1 回出る。「指でも書く」がオフのとき（iPad の既定）: 指 1 本で横にすべらせると、となりの年が出る。年の表は同じ日付の行が隣の年へ横一直線に続くので、週・日の札（N-4〜N-7）と同じく境目をまたいで書けると言う。月の札（span.guide.month.*）と同じ作り。文は docs/R1_4_3_CONTRACT.md §13.1（9 言語は仮の訳。D2 で GLOSSARY に照らして訳し直す）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriges und nächstes Jahr sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um das Jahr daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous and next years are now joined sideways. Slide your finger sideways to see the neighboring year. You can write straight across the boundary."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los años anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el año contiguo. Puede escribir directamente cruzando la unión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les années précédente et suivante sont désormais reliées côte à côte. Faites glisser le doigt sur le côté pour voir l’année voisine. Vous pouvez écrire directement à cheval sur la jonction."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli anni precedente e successivo ora sono uniti in orizzontale. Faccia scorrere il dito in orizzontale per vedere l’anno accanto. Può scrivere direttamente a cavallo del confine."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の年が横につながりました。指で横にすべらせると、となりの年が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 연도가 가로로 이어졌어요. 손가락으로 가로로 밀면 이웃한 연도가 나와요. 경계를 넘어 그대로 쓸 수 있어요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os anos anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o ano ao lado. Você pode escrever direto atravessando a emenda."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一年和后一年已横向相连。用手指横向滑动，就会出现相邻的一年。可以跨过交界处直接书写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一年和後一年已橫向相連。用手指橫向滑動，就會出現相鄰的一年。可以跨越交界處直接書寫。"
+          }
+        }
+      }
+    },
+    "span.guide.year.twoFingers" : {
+      "comment" : "初めての案内の札（1.4.3、年）。上（span.guide.year.oneFinger）と同じときに出る。「指でも書く」がオンのとき（iPhone の既定）: 指では線を書くので、横に動かすのは 2 本の指。文は docs/R1_4_3_CONTRACT.md §13.1（9 言語は仮の訳。D2 で GLOSSARY に照らして訳し直す）",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriges und nächstes Jahr sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um das Jahr daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The previous and next years are now joined sideways. Slide two fingers sideways to see the neighboring year. You can write straight across the boundary."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los años anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el año contiguo. Puede escribir directamente cruzando la unión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les années précédente et suivante sont désormais reliées côte à côte. Faites glisser deux doigts sur le côté pour voir l’année voisine. Vous pouvez écrire directement à cheval sur la jonction."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gli anni precedente e successivo ora sono uniti in orizzontale. Faccia scorrere due dita in orizzontale per vedere l’anno accanto. Può scrivere direttamente a cavallo del confine."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の年が横につながりました。2 本指で横にすべらせると、となりの年が出てきます。境目をまたいで、そのまま書けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앞뒤 연도가 가로로 이어졌어요. 두 손가락으로 가로로 밀면 이웃한 연도가 나와요. 경계를 넘어 그대로 쓸 수 있어요."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os anos anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o ano ao lado. Você pode escrever direto atravessando a emenda."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一年和后一年已横向相连。用双指横向滑动，就会出现相邻的一年。可以跨过交界处直接书写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前一年和後一年已橫向相連。用兩指橫向滑動，就會出現相鄰的一年。可以跨越交界處直接書寫。"
+          }
+        }
+      }
+    },
     "span.stageTwo.notice" : {
       "comment" : "案内のトースト（1.3、N-8。種類ごとに端末で 1 回だけ、4 行まで）。そのページと前後のページの線が多すぎて、その種類のページを横につなげずに 1 ページずつの表示に戻したとき。書いた線は消えていない。文は docs/M7C_CONTRACT.md §8.1（訳は §8.2）",
       "extractionState" : "manual",

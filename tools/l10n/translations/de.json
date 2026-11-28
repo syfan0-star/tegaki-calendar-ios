@@ -1585,6 +1585,14 @@
       "jaSha1": "c3ab28781e",
       "text": "Vorherige und nächste Woche sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um die Woche daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
     },
+    "span.guide.year.oneFinger": {
+      "jaSha1": "6c27c5f689",
+      "text": "Vorheriges und nächstes Jahr sind jetzt seitlich verbunden. Streichen Sie mit dem Finger seitwärts, um das Jahr daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
+    },
+    "span.guide.year.twoFingers": {
+      "jaSha1": "16d4f229ce",
+      "text": "Vorheriges und nächstes Jahr sind jetzt seitlich verbunden. Streichen Sie mit zwei Fingern seitwärts, um das Jahr daneben zu sehen. Über den Übergang hinweg können Sie direkt schreiben."
+    },
     "span.stageTwo.notice": {
       "jaSha1": "a8da928830",
       "text": "Diese Seite hat sehr viele Striche, daher werden die Seiten einzeln angezeigt statt seitlich verbunden. Was Sie geschrieben haben, bleibt erhalten."
