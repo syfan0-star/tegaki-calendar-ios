@@ -350,6 +350,9 @@ class Supplement:
             if flags != SUPPLEMENT_KINDS[kind]:
                 raise GenError(f"supplements/{self.name}: {day} {name!r} reads as flags {flags}, not as {kind!r}")
             if kind == "rest":
+                if day.weekday() >= 5:
+                    raise GenError(f"supplements/{self.name}: {day} is a weekend; a rest day swapped with a "
+                                   f"working weekend is always a weekday")
                 try:
                     weekend = dt.datetime.strptime(frm, labels.subst_format).date()
                 except ValueError:
@@ -866,7 +869,7 @@ class Country:
         # default language, without the substituted days off (an observed day has the short name
         # of its holiday, a three-day festival is one holiday). Counting days would end the
         # coverage of a notice country at its last official year (its working-weekend swaps are
-        # known only up to there, so CN 2027 would read "no data" instead of "before the notice",
+        # known only up to there, so CN 2028 would read "no data" instead of "before the notice",
         # 0-29) and of TW at 2021 (2022 simply had fewer swapped days).
         holidays_per_year = collections.defaultdict(set)
         for day, row in national.items():
