@@ -7,13 +7,16 @@ import XCTest
 /// - `testTheMonthSlidesOnceAndAMemoLineCrossesItsBoundary`: 「指でも書く」 off, one finger slides the month: the paper stops
 ///   on November, the title changes once (「2026年10月」 → 「2026年11月」) and stays so while the window shifts; 「前の月」 (‹)
 ///   brings October back on the same canvas. Then, launched again with 「指でも書く」 on and October's left boundary in the
-///   middle (`--screenshot-offset-x -0.5`: ‹ › slide by whole pages, a page's middle at the middle, so they cannot put a
-///   boundary there), one finger writes a line in the notes area across the boundary, 150 lu left of it to 190 lu right of
-///   it, 250 lu below the separator line. The window's newest stroke (`span.state`'s `last=`) is that line in its owner's
-///   `memo` with its points beyond the page (x < 0 when October holds it, x > 1,400 when September does: D15, the page of
-///   its centre, here 20 lu right of the boundary), whole. 「次の月」 (›) then slides one month on the same canvas: the
-///   session and the canvas's band id (`span~month~<session>`, the joined canvas is `.id(span.id)`) stay, one shift, the
-///   title 「2026年11月」, and the line is still the window's newest.
+///   middle (`--screenshot-offset-x -0.5`: ‹ › slide by exactly one page from where the paper is, `SpanPlan.shiftAmount`
+///   in `InkCanvasView.slide(byPages:)`, so from a page in the middle they cannot bring a boundary there), one finger
+///   writes a line in the notes area across the boundary, 150 lu left of it to 190 lu right of it, 250 lu below the
+///   separator line. The window's newest stroke (`span.state`'s `last=`) is that line in its owner's `memo` with its
+///   points beyond the page (x < 0 when October holds it, x > 1,400 when September does: D15, the page of its centre, here
+///   20 lu right of the boundary), whole. 「前の月」 (‹) then slides one month on the same canvas: the session and the
+///   canvas's band id (`span~month~<session>`, the joined canvas is `.id(span.id)`) stay, one shift, the title
+///   「2026年9月」, and the line is still the window's newest. ‹, not ›: the boundary stays in the middle, and › would
+///   bring October's right edge there, inside October's hysteresis (`SpanPlan.focus`: [X − 6 %, X + W + 6 %)), so the
+///   focus and the window would not move (D1b's run 46119423355); ‹ brings September's left edge, a page past it.
 /// - `testTheSettingSwitchesTheMonthBetweenOnePageAndTheJoinedMonths`: 設定 › ページ › 「前後のページを横につなげる」 off: the
 ///   month opens on one page (`path=one`, the canvas holds October itself, fewer strokes than the window); on again: the
 ///   joined window with the strokes it opened with. The switch is screenshot mode's memory only.
@@ -59,7 +62,6 @@ final class SpanMonthYearUITests: XCTestCase {
     /// How far (pt) one page across may be from the column's width at 等倍.
     private static let fitTolerance: CGFloat = 1.5
     private static let previousMonth = "前の月"
-    private static let nextMonth = "次の月"
     private static let resetIdentifier = "header.zoomReset"
     /// A gesture whose synthesis took longer than this (s) beyond its own length met an overloaded simulator
     /// (YearTapUITests): it is tried once more.
@@ -240,7 +242,8 @@ final class SpanMonthYearUITests: XCTestCase {
     }
 
     /// 「指でも書く」 on, October's left boundary in the middle: one finger from x −150 to +190 lu of October at 250 lu below
-    /// the separator line, the newest stroke read from `span.state`, then 「次の月」 on the same canvas.
+    /// the separator line, the newest stroke read from `span.state`, then 「前の月」 on the same canvas (the type's comment
+    /// says why not 「次の月」).
     private func lineAcrossTheBoundaryThenNext() {
         let name = "memo line"
         let app = launch(["--screenshot-offset-x", "-0.5"], fingerDraws: true, name)
@@ -293,27 +296,27 @@ final class SpanMonthYearUITests: XCTestCase {
         XCTAssertGreaterThan(last.maxX - last.minX, 250, "\(name): the whole line, not a part of it (\(last.minX) … \(last.maxX))")
         continueAfterFailure = false
 
-        let next = app.buttons[Self.nextMonth]
-        guard next.waitForExistence(timeout: 5) else { return XCTFail("\(name): no 「\(Self.nextMonth)」") }
-        waitUntilResponsive(next)
-        next.tap()
-        log("\(name): tapped 「\(Self.nextMonth)」")
-        guard let after = waitFor(app, timeout: 20, "\(name): November with the window shifted", until: {
-            $0.state["focus"] == Self.november && $0.shifts > drawn.shifts
+        let back = app.buttons[Self.previousMonth]
+        guard back.waitForExistence(timeout: 5) else { return XCTFail("\(name): no 「\(Self.previousMonth)」") }
+        waitUntilResponsive(back)
+        back.tap()
+        log("\(name): tapped 「\(Self.previousMonth)」")
+        guard let after = waitFor(app, timeout: 20, "\(name): September with the window shifted", until: {
+            $0.state["focus"] == Self.september && $0.shifts > drawn.shifts
         }) else {
-            return XCTFail("\(name): the window did not move to November and shift (span.state \(stateLabel(app)))")
+            return XCTFail("\(name): the window did not move to September and shift (span.state \(stateLabel(app)))")
         }
-        keepScreenshot(app, "\(name) — next month")
-        attach(after.stateRaw, "\(name) — span.state after ›")
+        keepScreenshot(app, "\(name) — previous month")
+        attach(after.stateRaw, "\(name) — span.state after ‹")
         let shown = titleElement(in: app).label
-        log("\(name): after ›: the title is 「\(shown)」; span.state \(after.stateRaw)")
+        log("\(name): after ‹: the title is 「\(shown)」; span.state \(after.stateRaw)")
         continueAfterFailure = true
         XCTAssertEqual(after.state["path"], "span", "\(name): still the joined path")
         XCTAssertEqual(after.state["session"], drawn.state["session"], "\(name): the same canvas (the session did not change)")
         XCTAssertEqual(after.probe.page, drawn.probe.page, "\(name): the canvas's band is the same (its id \(drawn.probe.page))")
         XCTAssertEqual(after.shifts, drawn.shifts + 1, "\(name): one shift after the stop")
         XCTAssertEqual(after.state["last"], drawn.state["last"], "\(name): the line is still the window's newest, kept by its page")
-        XCTAssertTrue(Self.isMonth(2026, 11, shown), "\(name): November's title (「\(shown)」)")
+        XCTAssertTrue(Self.isMonth(2026, 9, shown), "\(name): September's title (「\(shown)」)")
     }
 
     // MARK: - 等倍 and the turn
