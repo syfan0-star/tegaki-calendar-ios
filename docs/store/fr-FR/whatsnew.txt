@@ -1,5 +1,5 @@
-• De nouvelles couleurs de stylo ont été ajoutées. Touchez à nouveau la pastille de couleur en surbrillance (ou touchez-la de manière prolongée) pour remplacer sa couleur par l’une des 12 couleurs ou par la couleur de votre choix.
-• L’option « Papier des notes » a été ajoutée aux Réglages. Pour le papier des zones « Notes » et « Notes libres », vous pouvez choisir « Ligné », « Grille de points » ou « Uni ». Votre écriture manuscrite reste telle quelle.
-• En mode sombre, les pastilles aux couleurs foncées de la barre d’outils sont désormais plus faciles à voir.
+• Les pages du mois et de l’année sont désormais, elles aussi, reliées côte à côte aux pages précédentes et suivantes. Faites glisser le doigt sur le côté : le mois voisin, ou l’année voisine, apparaît à la suite (quand « Écrire au doigt » est activé, faites glisser deux doigts sur le côté). Vous pouvez écrire directement à cheval sur la jonction : sur les pages du mois, dans la zone de notes du bas ; sur les pages de l’année, de décembre à janvier de l’année suivante.
+• Sur les pages du mois et de l’année aussi, le bouton avec une loupe et un « 1 » réinitialise désormais le zoom de sorte qu’une page occupe exactement la largeur de l’écran, comme sur les pages du jour et de la semaine.
+• Mettez à jour à la fois votre iPad et votre iPhone vers cette version. Dans les versions précédentes, les traits écrits à cheval sur deux pages n’apparaissent que sur l’une d’elles (ils n’ont pas été supprimés). Si vous effacez un tel trait dans une version précédente, il est aussi effacé dans cette version.
 
 Les traductions ont été faites avec une IA et n’ont pas encore été relues par des locuteurs natifs. Signalez-nous les erreurs.

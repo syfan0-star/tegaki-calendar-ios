@@ -1,5 +1,5 @@
-• Sono stati aggiunti altri colori per la penna. Se tocca di nuovo il pallino colorato evidenziato (o lo tiene premuto), può sostituirne il colore con uno dei 12 colori o con un colore a Sua scelta.
-• Nelle Impostazioni è stata aggiunta l’opzione “Carta delle note”. Per la carta delle aree “Note” e “Note libere” può scegliere “A righe”, “Griglia a punti” o “Bianca”. La Sua scrittura a mano resta invariata.
-• In modalità scura, i pallini dei colori scuri nella barra degli strumenti ora si vedono meglio.
+• Anche le pagine del mese e dell’anno sono ora unite in orizzontale alle pagine precedenti e successive. Se fa scorrere il dito in orizzontale, compare il mese o l’anno accanto (quando “Scrivi con il dito” è attivo, faccia scorrere due dita in orizzontale). Può scrivere direttamente a cavallo del confine: nelle pagine del mese, nell’area delle note in basso; nelle pagine dell’anno, da dicembre a gennaio dell’anno successivo.
+• Come nelle pagine del giorno e della settimana, ora anche nelle pagine del mese e dell’anno il pulsante con la lente d’ingrandimento e il numero “1” reimposta lo zoom in modo che una pagina occupi esattamente la larghezza dello schermo.
+• Aggiorni a questa versione sia l’iPad sia l’iPhone. Nelle versioni precedenti, i tratti scritti a cavallo tra due pagine compaiono solo su una delle due (non sono stati eliminati). Se cancella uno di questi tratti in una versione precedente, viene cancellato anche in questa versione.
 
 Le traduzioni sono state fatte con l’IA e non sono ancora state riviste da madrelingua. La preghiamo di segnalarci gli errori.
