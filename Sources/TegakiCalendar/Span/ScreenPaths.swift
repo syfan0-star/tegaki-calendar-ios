@@ -97,6 +97,13 @@ final class ScreenPaths: ObservableObject {
         var visitEnded: SpanSession.Visit?
         /// The window became too heavy once its pages were read (stage 2): the screen opens this kind on one page.
         var fallBack: Bool
+        /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7; the lead's decision of 11/28, in place of review UX-2 (b)): the paper of
+        /// 「今日」's slide stopped on today's month or year (`todayArrival`): the y-only request a second 「今日」 would hand the
+        /// window's canvas there now (`todayRequest`: `monthTodayRequest`'s, or at the capped year `cappedTodayRect`'s; band
+        /// lu, no x), which the screen hands it once (`revealRect`, `revealTrigger`). The canvas moves y only when the bottom
+        /// of today's cell is off the screen. nil at every other stop. Its x is not a number, so a `Stopped` with one is never
+        /// equal to itself (as `Today.reveal`'s).
+        var reveal: CGRect? = nil
     }
 
     /// What 「今日」 does on the joined path (the plan §4.1, the lead's decision on the zoomed 「今日」).
@@ -149,6 +156,17 @@ final class ScreenPaths: ObservableObject {
         let to: Int
         /// `clock()` when it was made, then at each stop on the way (`todayStopped(on:)`): it holds `todayMarkGrace` from there.
         var since: Date
+        /// 1.4.3 (§3.7; the lead's decision of 11/28): a slide's (`today`'s `.slide`) — the now, the paper area, the ratio and
+        /// the fit that 「今日」 was given — so the stop on today's page makes the request a second 「今日」 would make there
+        /// (`todayArrival`), taken once; nil for the reveal past the fit (the canvas brought today's cell itself).
+        var arrival: Arrival?
+
+        struct Arrival {
+            let now: Date
+            let area: CGSize
+            let ratio: CGFloat
+            let fit: Bool
+        }
     }
 
     /// 1.4.3 (review UX-3): how long 「今日」's mark holds after it was made or after a stop on the way (`TodayMark.since`). The
@@ -1057,7 +1075,13 @@ final class ScreenPaths: ObservableObject {
     /// of an iPhone in landscape (P-B6 イ: the year's cap of 3 pages, `atCappedOverview`), where today's year already the focus
     /// is `cappedTodayRect`'s request as the capped week's: y alone, to two rows above today's (`PageNavigation.initialScrollY`),
     /// when the bottom of today's cell is off the screen. The capped overview is asked first for every kind (the month has no
-    /// cap, so its answers are the same; the week and the day have no `monthTodayRequest`, so theirs are the same too).
+    /// cap, so its answers are the same; the week and the day have no `monthTodayRequest`, so theirs are the same too):
+    /// `todayRequest`, the one rule of today's page already the focus.
+    /// 1.4.3 (§3.7: 「今日のマスが画面に入るように縦も合わせる」; the lead's decision of 11/28, in place of review UX-2 (b)): a slide
+    /// of a window of months or years keeps y (the canvas's now-line request does nothing while the band moves), so its mark
+    /// keeps the inputs given here (`TodayMark.arrival`), and the stop on today's month or year hands the screen the request
+    /// a second 「今日」 would give there (`stopped`'s `reveal`, `todayArrival`): y alone, only when the bottom of today's
+    /// cell is off the screen. The answers here are unchanged.
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Today? {
         forgetToday()
         reopenInputs = nil
@@ -1072,21 +1096,15 @@ final class ScreenPaths: ObservableObject {
                 ? Self.zoomedPastFit(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
                 : Self.zoomedIn(layout: session.layout, viewport: viewport, area: area, ratio: ratio, fit: fit)
             if !zoomed, pages != 0 {
-                markToday(day, pages: pages, in: session)
+                markToday(day, pages: pages, in: session, arrival: TodayMark.Arrival(now: now, area: area, ratio: ratio, fit: fit))
                 return .slide(pages)
             }
             let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
                 ?? Self.bandViewport(layout: session.layout, focusPageId: session.focusPageId, now: now,
                                      calendar: session.context.calendar, area: area, ratio: ratio, fit: fit)
             if !zoomed {
-                if Self.atCappedOverview(layout: session.layout, width: shown.width, zoom: shown.zoom),
-                   let rect = Self.cappedTodayRect(layout: session.layout, pageId: session.focusPageId, now: now,
-                                                   calendar: session.context.calendar, viewport: shown) {
-                    revealWindowId = session.id
-                    return .reveal(rect)
-                }
-                guard let rect = Self.monthTodayRequest(layout: session.layout, pageId: session.focusPageId, now: now,
-                                                        calendar: session.context.calendar, zoom: shown.zoom)
+                guard let rect = Self.todayRequest(layout: session.layout, pageId: session.focusPageId, now: now,
+                                                   calendar: session.context.calendar, shown: shown)
                 else { return .stay }
                 revealWindowId = session.id
                 return .reveal(rect)
@@ -1109,10 +1127,12 @@ final class ScreenPaths: ObservableObject {
 
     /// 1.4.3 (review UX-3): `today`'s mark on a window of months or years whose answer sends the paper `pages` pages away, to
     /// today's page (a slide, or zoomed in past the fit the reveal of the cell); nothing for the focus page itself
-    /// (`todayFocus`) and for the week and the day (their focus keeps 1.3's carry).
-    private func markToday(_ day: DayKey, pages: Int, in session: SpanSession) {
+    /// (`todayFocus`) and for the week and the day (their focus keeps 1.3's carry). A slide's mark keeps `arrival` (§3.7, the
+    /// lead's decision of 11/28: `todayArrival`).
+    private func markToday(_ day: DayKey, pages: Int, in session: SpanSession, arrival: TodayMark.Arrival? = nil) {
         guard session.kind == .month || session.kind == .year, pages != 0 else { return }
-        todayMark = TodayMark(windowId: session.id, today: day, from: session.focusIndex, to: session.focusIndex + pages, since: clock())
+        todayMark = TodayMark(windowId: session.id, today: day, from: session.focusIndex, to: session.focusIndex + pages,
+                              since: clock(), arrival: arrival)
     }
 
     /// 1.4.3 (review UX-3): 「今日」's mark goes — at every stop but one on the way (`todayStopped(on:)`), at ◀ ▶ (`move`), at
@@ -1329,6 +1349,19 @@ final class ScreenPaths: ObservableObject {
         return InkCanvasView.nowLineRevealRect(top: max(0, cell.minY - ZoomPolicy.revealMargin / zoom), nowLine: cell.maxY)
     }
 
+    /// The request 「今日」 hands the canvas for today's page `pageId` at or below 等倍 (`today`'s answer when it is the focus
+    /// page; since the lead's decision of 11/28 also the stop of 「今日」's slide on it, `todayArrival`), `shown` the screen's
+    /// viewport (the last one reported, or the first frame's): at the capped overview `cappedTodayRect`'s (the capped week's,
+    /// day's and, since D1y, year's), else `monthTodayRequest`'s (a month or a year page). nil for a week or a day page above
+    /// the cap (1.2.3's 「今日」 on the page shown: `.stay`) and for a page that does not hold today.
+    static func todayRequest(layout: SpanLayout, pageId: String, now: Date, calendar: Calendar, shown: PaperViewport) -> CGRect? {
+        if atCappedOverview(layout: layout, width: shown.width, zoom: shown.zoom),
+           let rect = cappedTodayRect(layout: layout, pageId: pageId, now: now, calendar: calendar, viewport: shown) {
+            return rect
+        }
+        return monthTodayRequest(layout: layout, pageId: pageId, now: now, calendar: calendar, zoom: shown.zoom)
+    }
+
     // MARK: The capped overview (P-B6 イ; the lead's decisions 6 and 7 of 11/18)
 
     /// Whether `zoom` is the capped overview of a paper area `width` pt wide: the iPhone's landscape overview of a window with
@@ -1403,11 +1436,15 @@ final class ScreenPaths: ObservableObject {
     /// them a placeholder: a shift's pages are read after its stop), a window over the cap falls back to one page.
     /// 1.4.3 (review UX-3): the focus is `carriedFocus`'s (on a window of months or years, today at the stop on today's month
     /// or year after 「今日」), and the stop lets 「今日」's mark go unless it is on the way (`todayStopped(on:)`).
+    /// 1.4.3 (§3.7; the lead's decision of 11/28): the stop of 「今日」's slide on today's month or year brings `reveal`
+    /// (`todayArrival`, asked before the mark goes), for the window on the screen still (a week start switched at the boundary
+    /// opened another) and not when the window falls back to one page.
     func stopped(_ stop: SpanSession.Stop, focus: DayKey, kind: PageKind, weekStart: WeekStart, focusMoved: (DayKey) -> Void = { _ in },
                  boundary: () -> Void) -> Stopped {
         stops += 1
         shotStateChanged()
         let next = carriedFocus(focus, kind: kind, weekStart: weekStart, movedTo: stop.focusDay)
+        let arrival = todayArrival(on: stop.focusDay)
         todayStopped(on: stop.focusDay)
         Self.remember(kind: kind, focus: next, screenshot: screenshot, defaults: defaults)
         focusMoved(next)
@@ -1422,7 +1459,11 @@ final class ScreenPaths: ObservableObject {
             heavy = true
             fallBack(kind)
         }
-        return Stopped(focus: next, visitEnded: stop.ended, fallBack: heavy)
+        guard !heavy, let arrival, arrival.windowId == span?.id else {
+            return Stopped(focus: next, visitEnded: stop.ended, fallBack: heavy)
+        }
+        revealWindowId = arrival.windowId
+        return Stopped(focus: next, visitEnded: stop.ended, fallBack: heavy, reveal: arrival.rect)
     }
 
     /// The screen's focus as the focus page moved to the page whose first day is `pageFirstDay`: the one rule of the stop
@@ -1441,6 +1482,36 @@ final class ScreenPaths: ObservableObject {
             return mark.today
         }
         return Self.focus(focus, kind: kind, weekStart: weekStart, movedTo: pageFirstDay)
+    }
+
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7: 「今日のページが窓の中なら滑って行き、今日のマスが画面に入るように縦も合わせる（今日の
+    /// マスがもう見えていれば縦は動かさない）」, and the capped year's 「今日の行が見えていなければ縦だけ動く」; the lead's decision of
+    /// 11/28, in place of review UX-2 (b)): the stop of the paper on the page whose first day is `pageFirstDay` and 「今日」's
+    /// slide. When the stop is on today's month or year (the mark's `to`) while the mark holds and was made by a slide
+    /// (`TodayMark.arrival`), the request a second 「今日」 would hand the canvas there now (`todayRequest` for today's page,
+    /// with the screen's last viewport, `heading`, or the first frame's from the area, ratio and fit 「今日」 was given):
+    /// `monthTodayRequest`'s y alone (the month and the year), at the capped year `cappedTodayRect`'s (two rows above today's
+    /// row, the line the bottom of today's cell). The slide kept y and the canvas's now-line request does nothing while the
+    /// band moves, so this is where today's cell comes on screen vertically. The screen does not know the paper's y
+    /// (`PaperViewport` has none), so the canvas decides as for a second 「今日」: y moves only when the bottom of today's cell
+    /// is off what the paper shows, and nothing while it is on screen. Taken once (and the stop on today's page lets the
+    /// mark go: `todayStopped(on:)`). nil at a stop on the way or elsewhere, for the reveal past the fit (no `arrival`), once
+    /// a pinch took the paper past the fit, for the week and the day (no mark) and when the page does not hold today.
+    private func todayArrival(on pageFirstDay: DayKey) -> (rect: CGRect, windowId: String)? {
+        guard let mark = heldTodayMark, let arrival = mark.arrival, let session = span,
+              session.plan.index(containing: pageFirstDay) == mark.to else { return nil }
+        todayMark?.arrival = nil
+        let viewport = heading?.viewport
+        guard !Self.zoomedPastFit(layout: session.layout, viewport: viewport, area: arrival.area, ratio: arrival.ratio,
+                                  fit: arrival.fit) else { return nil }
+        let calendar = session.context.calendar
+        let pageId = session.plan.pageId(at: mark.to)
+        let shown = viewport.flatMap { $0.width > 0 ? $0 : nil }
+            ?? Self.bandViewport(layout: session.layout, focusPageId: pageId, now: arrival.now, calendar: calendar,
+                                 area: arrival.area, ratio: arrival.ratio, fit: arrival.fit)
+        guard let rect = Self.todayRequest(layout: session.layout, pageId: pageId, now: arrival.now, calendar: calendar, shown: shown)
+        else { return nil }
+        return (rect, session.id)
     }
 
     /// 1.4.3 (review UX-3): a stop of the paper on the page whose first day is `pageFirstDay` and 「今日」's mark. A stop on

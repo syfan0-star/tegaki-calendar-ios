@@ -3369,6 +3369,9 @@ extension CalendarRootScreen {
 
     /// `onSpanStop` (§3.7, D20, C3-m6, C3-m7): the focus and `remember` (`ScreenPaths.stopped`), the week start's boundary
     /// as at `show`, a window that turned out too heavy opens on one page, and an ended visit is the rating prompt's ◀ ▶.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7; the lead's decision of 11/28): the stop of 「今日」's slide on today's month or year
+    /// hands the window's canvas the y-only request of today's cell once (`result.reveal`, as 「今日」's own `.reveal`): the
+    /// canvas moves y only when the bottom of today's cell is off the screen.
     func spanStopped(_ stop: SpanSession.Stop) {
         let result = paths.stopped(stop, focus: focus, kind: kind, weekStart: weekStart, focusMoved: { focus = $0 }, boundary: {
             if pendingAdoption, let adopted = runWeekStartCheck(atBoundary: true) { switchWeekStart(to: adopted) }
@@ -3376,6 +3379,10 @@ extension CalendarRootScreen {
         if result.fallBack {
             show(kind: kind, focus: result.focus)
             return
+        }
+        if let rect = result.reveal {
+            revealRect = rect
+            revealTrigger += 1
         }
         guard let visit = result.visitEnded else { return }
         // 1.2.1 (docs/R1_2_1.md §2.4) on the joined path: the page left was written on, so the rating prompt may follow a
