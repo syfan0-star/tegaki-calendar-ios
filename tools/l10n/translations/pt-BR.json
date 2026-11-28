@@ -1569,6 +1569,14 @@
       "jaSha1": "3eb73ecc0e",
       "text": "Os dias anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o dia ao lado. Você pode escrever direto atravessando a emenda."
     },
+    "span.guide.month.oneFinger": {
+      "jaSha1": "bd151700f0",
+      "text": "Os meses anterior e seguinte agora estão unidos na horizontal. Deslize o dedo na horizontal para ver o mês ao lado. Na área de notas abaixo, você pode escrever direto atravessando a emenda entre os meses."
+    },
+    "span.guide.month.twoFingers": {
+      "jaSha1": "eeebc6085c",
+      "text": "Os meses anterior e seguinte agora estão unidos na horizontal. Deslize dois dedos na horizontal para ver o mês ao lado. Na área de notas abaixo, você pode escrever direto atravessando a emenda entre os meses."
+    },
     "span.guide.week.oneFinger": {
       "jaSha1": "3e0865a2f2",
       "text": "As semanas anterior e seguinte agora estão unidas na horizontal. Deslize o dedo na horizontal para ver a semana ao lado. Você pode escrever direto atravessando a emenda."

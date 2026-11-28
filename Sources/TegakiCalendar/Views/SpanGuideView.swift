@@ -10,6 +10,9 @@ import SwiftUI
 // over it; the lead's decision 9 of wave C1). Never in screenshot mode (where `--screenshot-span-guide` shows it for the
 // photo, §3.12) nor with the setting off. Where the card sits and when a page counts as opened is the screen's
 // (`CalendarRootScreen`, S5's screen wave); this file holds the rules, the words and the card.
+// 1.4.3 (docs/R1_4_3_CONTRACT.md §7.3, §13.1, 0g-33): every kind of `SpanKinds.joined` has its card — the month's since
+// 1.4.3, whose words say the memo band below crosses the boundary (a month's grid does not run on from one table to the
+// next); the year's come with D1y.
 
 /// The first-time guide's rules and words (pure functions, fixed in SettingsPageSectionTests).
 enum SpanGuide {
@@ -19,17 +22,25 @@ enum SpanGuide {
 
     /// The kinds joined sideways in 1.3 (D2): week and day. Month (1.7) and year (1.8) stay one page at a time
     /// and have no guide yet.
-    static let joinedKinds: [PageKind] = [.week, .day]
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §2.1, §7.3, 0g-8): the kinds of `SpanKinds.joined` in their order (`SpanKinds.ordered`:
+    /// the week, the day, the month; the year once it joins with D1y).
+    static var joinedKinds: [PageKind] { SpanKinds.ordered }
 
     /// The fixed text of §8.1: N-4 (week) and N-6 (day) with 「指でも書く」 off, where one finger slides the band;
     /// N-5 and N-7 with it on, where a finger writes and two fingers slide. nil for a kind that is not joined.
+    /// 1.4.3 (docs/R1_4_3_CONTRACT.md §7.3, §13.1, 0g-33): the month's two cards (`span.guide.month.oneFinger` and
+    /// `.twoFingers`: the neighbouring month comes in, and the memo band below crosses the boundary); nil for a kind that is
+    /// not in `SpanKinds.joined`, and for the year until D1y adds its two.
     static func text(kind: PageKind, allowFinger: Bool) -> String? {
+        guard SpanKinds.joined.contains(kind) else { return nil }
         switch (kind, allowFinger) {
         case (.week, false): return L.text("span.guide.week.oneFinger")
         case (.week, true): return L.text("span.guide.week.twoFingers")
         case (.day, false): return L.text("span.guide.day.oneFinger")
         case (.day, true): return L.text("span.guide.day.twoFingers")
-        case (.month, _), (.year, _): return nil
+        case (.month, false): return L.text("span.guide.month.oneFinger")
+        case (.month, true): return L.text("span.guide.month.twoFingers")
+        case (.year, _): return nil
         }
     }
 

@@ -1569,6 +1569,14 @@
       "jaSha1": "3eb73ecc0e",
       "text": "Los días anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el día contiguo. Puede escribir directamente cruzando la unión."
     },
+    "span.guide.month.oneFinger": {
+      "jaSha1": "bd151700f0",
+      "text": "Los meses anterior y siguiente ya están unidos en horizontal. Deslice el dedo en horizontal para ver el mes contiguo. En la zona de notas de abajo, puede escribir directamente cruzando la unión entre meses."
+    },
+    "span.guide.month.twoFingers": {
+      "jaSha1": "eeebc6085c",
+      "text": "Los meses anterior y siguiente ya están unidos en horizontal. Deslice dos dedos en horizontal para ver el mes contiguo. En la zona de notas de abajo, puede escribir directamente cruzando la unión entre meses."
+    },
     "span.guide.week.oneFinger": {
       "jaSha1": "3e0865a2f2",
       "text": "Las semanas anterior y siguiente ya están unidas en horizontal. Deslice el dedo en horizontal para ver la semana contigua. Puede escribir directamente cruzando la unión."
