@@ -919,6 +919,34 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertEqual(faults, [])
     }
 
+    /// Reviews UX3-R2, T-1: the screen's half of UX-3. XCTest does not run the screen's View (C3-M3), so its wires are read
+    /// from the source in code only (`WeekMemoSpanTests.codeOnly`: comments and strings blanked), as ZoomFitWiringTests,
+    /// OnePageRevealTests and ScreenPathsSpanTests read theirs. The slide in between follows the stop's rule
+    /// (`spanFocusMoved` → `ScreenPaths.carriedFocus`); 「今日」's `.reveal` and `.stay` (today's month already the focus) make
+    /// today the focus and remember it (`focusOnToday`: `paths.todayFocus`, then `remember()`); and the screen never
+    /// carries the focus itself (`ScreenPaths.focus` is 0 in its code). The mid-slide half of case (1) and all of case (3)
+    /// rest on these lines: going back to `ScreenPaths.focus` in `spanFocusMoved`, dropping `focusOnToday(today)` from either
+    /// case or dropping `remember()` fails here.
+    func testTheScreenWiresTodaysFocus() throws {
+        let code = try Self.screenCode()
+        let flat = code.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        func count(_ text: String) -> Int { flat.components(separatedBy: text).count - 1 }
+
+        XCTAssertEqual(try Self.body(of: "func spanFocusMoved() {", in: code),
+                       "guard let span = paths.span else { return } let next = paths.carriedFocus(focus, kind: kind, weekStart: weekStart, "
+                       + "movedTo: span.focusDay) if next != focus { focus = next } }", "the slide in between: the stop's rule")
+        XCTAssertEqual(try Self.body(of: "private func focusOnToday(_ today: DayKey) {", in: code),
+                       "guard let day = paths.todayFocus(today) else { return } if day != focus { focus = day } remember() }",
+                       "today's month already the focus: today, remembered")
+        let goToday = try Self.body(of: "private func goToday() {", in: code)
+        XCTAssertTrue(goToday.contains("case .reveal(let rect): revealRect = rect revealTrigger += 1 focusOnToday(today) "
+                                       + "case .stay: focusOnToday(today) }"), "「今日」's .reveal and .stay: \(goToday)")
+        XCTAssertEqual(count("focusOnToday(today)"), 2, "only those two")
+        XCTAssertEqual(count("paths.todayFocus("), 1)
+        XCTAssertEqual(count("paths.carriedFocus("), 1, "the stop's own call is ScreenPaths.stopped's")
+        XCTAssertEqual(count("ScreenPaths.focus("), 0, "the screen never carries the focus itself")
+    }
+
     // MARK: §4.7 — the paper and the PDF; §3.8 — the heading
 
     /// §4.7, 0g-32, 0g-53: the paper of a window page (`ScreenPaths.paper(of:)`, one argument) is the month's, made by the one
@@ -1058,4 +1086,29 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertTrue(Set(week.liveStrokeIds).isSuperset(of: ScreenshotMode.crossingDemoStrokeIds(.week).focus))
         XCTAssertFalse(week.liveStrokeIds.contains(ids.focus), "the month's sample is the month's")
     }
+
+    // MARK: The source (the screen's wires)
+
+    /// CalendarRootScreen.swift in code only (comments and strings blanked, `WeekMemoSpanTests.codeOnly`).
+    private static func screenCode() throws -> String {
+        let url = repository.appendingPathComponent("Sources/TegakiCalendar/Views/CalendarRootScreen.swift")
+        return String(WeekMemoSpanTests.codeOnly(try String(contentsOf: url, encoding: .utf8)))
+    }
+
+    /// The body of the function of `code` whose head (to its "{") is `head`, to its closing "}", every run of white space one
+    /// space (the shape of ScreenPathsSpanTests' helper, which is private there).
+    private static func body(of head: String, in code: String) throws -> String {
+        let start = try XCTUnwrap(code.range(of: head), "\(head) is in CalendarRootScreen.swift")
+        XCTAssertNil(code.range(of: head, range: start.upperBound..<code.endIndex), "\(head) is there once")
+        var depth = 1
+        var end = start.upperBound
+        while end < code.endIndex, depth > 0 {
+            if code[end] == "{" { depth += 1 } else if code[end] == "}" { depth -= 1 }
+            end = code.index(after: end)
+        }
+        return code[start.upperBound..<end].split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    private static let repository = URL(fileURLWithPath: "\(#filePath)")
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
 }
