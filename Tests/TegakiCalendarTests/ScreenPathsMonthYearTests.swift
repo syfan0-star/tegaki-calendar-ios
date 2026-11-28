@@ -260,8 +260,9 @@ final class ScreenPathsMonthYearTests: XCTestCase {
 
     /// MS2, §3.6, 0g-18: a month window's focus moves to the page's month keeping the day of the month, or the month's last day
     /// (1.3's formula counted from the grid's first day and stayed in the same month: 10/31 → 12/4, 11/30 → 11/5); the week and
-    /// the day keep 1.3's formula, and the year keeps it until it joins (its rule, 2/29 → 2/28, comes with it). The screen's
-    /// stop on a month window gives the new focus and remembers it.
+    /// the day keep 1.3's formula, and the year has its own rule (D1y: the same month and day, 2/29 → 2/28), which is not
+    /// 1.3's formula (that counted the leap day: 2028-12-31 → 2028-01-01). The screen's stop on a month window gives the new
+    /// focus and remembers it.
     func testTheMonthsFocusKeepsTheDayOfTheMonth() async throws {
         let oct31 = DayKey(year: 2026, month: 10, day: 31)
         let nov1 = DayKey(year: 2026, month: 11, day: 1)
@@ -301,17 +302,16 @@ final class ScreenPathsMonthYearTests: XCTestCase {
             XCTAssertEqual(ScreenPaths.focus(focus, kind: kind, weekStart: weekStart, movedTo: moved),
                            formula(focus, kind, weekStart, movedTo: moved), "\(kind) \(focus) → \(moved)")
         }
-        // The year: its rule once it joins, 1.3's formula until then.
+        // The year: its rule (D1y, §3.6). `ScreenPaths.focus` is a pure function whose year case is the same whether the year
+        // joins or not (the fallback of 0g-3 takes the year out of `SpanKinds.joined` alone, and a one-page year carries no
+        // focus with it), so this is not read from the set: the D1b form (1.3's formula without the year) did not hold there.
         let y2027 = DayKey(year: 2027, month: 1, day: 1)
         for focus in [DayKey(year: 2028, month: 12, day: 31), DayKey(year: 2028, month: 2, day: 29), DayKey(year: 2028, month: 7, day: 14)] {
             let moved = ScreenPaths.focus(focus, kind: .year, weekStart: .monday, movedTo: y2027)
-            if SpanKinds.joined.contains(.year) {
-                XCTAssertEqual(moved.year, 2027, "\(focus)")
-                XCTAssertEqual(moved.month, focus.month, "\(focus): the same month")
-                XCTAssertEqual(moved.day, min(focus.day, DayKey.daysInMonth(year: 2027, month: focus.month)), "\(focus): the same day, 2/29 → 2/28")
-            } else {
-                XCTAssertEqual(moved, formula(focus, .year, .monday, movedTo: y2027), "\(focus): 1.3's formula until the year joins")
-            }
+            XCTAssertEqual(moved.year, 2027, "\(focus)")
+            XCTAssertEqual(moved.month, focus.month, "\(focus): the same month")
+            XCTAssertEqual(moved.day, min(focus.day, DayKey.daysInMonth(year: 2027, month: focus.month)), "\(focus): the same day, 2/29 → 2/28")
+            XCTAssertNotEqual(moved, formula(focus, .year, .monday, movedTo: y2027), "\(focus): not 1.3's formula")
         }
 
         // The screen's stop: a window opened at 10/31 slides to November.
