@@ -163,6 +163,17 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         return stopped
     }
 
+    /// Where the window's canvas takes the paper for 「今日」's `rect` (`InkCanvasView`'s `reveal`: 1.1.1's
+    /// `ZoomPolicy.revealOffset` from the screen's `viewport`, then the clamp to the band; past the fit nothing centres it):
+    /// the offset's x (pt) and the middle of the screen (band lu, what `SpanSession.scrolled` and `stopped` read).
+    private func canvasReveal(_ rect: CGRect, from viewport: PaperViewport, in session: SpanSession) -> (x: CGFloat, midX: CGFloat) {
+        let zoom = viewport.zoom
+        let offset = ZoomPolicy.revealOffset(rect: rect, zoom: zoom, viewport: CGSize(width: viewport.width, height: portrait.height),
+                                             current: CGPoint(x: viewport.offsetX, y: 0))
+        let x = min(max(offset.x, 0), max(0, session.layout.size.width * zoom - viewport.width))
+        return (x, (x + viewport.width / 2) / zoom)
+    }
+
     // MARK: §3.2 — the path
 
     /// MS1, §3.2, 0g-9: the month joins with the setting on (`SpanKinds.joined`), in screenshot mode only with its own setting
@@ -785,6 +796,55 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace + 1)
         followSlide(again, to: try middle(of: again, page: dec), focus: &shown)
         XCTAssertEqual(shown, DayKey(year: 2026, month: 12, day: 16), "after the grace: the carry")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review UX3-R1: zoomed in past the fit on the 11-inch iPad in portrait (fit 834 / 1,400), 「今日」 toward the month next
+    /// door with today in an edge column — Saturday 11/28 back from December, Monday 11/2 on from October, at zooms 0.7 and
+    /// 1.2. 1.1.1's least movement of the cell (the canvas's `reveal`: `ZoomPolicy.revealOffset`, the clamp to the band) puts
+    /// the cell at the edge of the screen it comes in from and leaves the middle of the screen within the old month's 6 %
+    /// (`SpanPlan.focus`), so no stop on November would come. The rect (`monthTodayRevealRect`) puts the middle on November
+    /// past the hysteresis, the cell still on screen with 1.1.1's margin and its y the cell's; the stop there brings today and
+    /// remembers it. A middle column keeps the cell's own rect (12/3: testTodayZoomedInPastTheFitTowardAnotherMonth).
+    func testTodayPastTheFitToAnEdgeColumnLandsOnTodaysMonth() async throws {
+        let nov2 = DayKey(year: 2026, month: 11, day: 2)
+        for (name, start, startPage, today, now) in [
+            ("back from December", DayKey(year: 2026, month: 12, day: 16), dec, nov28, try at(11, 28, 10)),
+            ("on from October", DayKey(year: 2026, month: 10, day: 16), oct, nov2, try at(11, 2, 10)),
+        ] as [(String, DayKey, String, DayKey, Date)] {
+            for zoom in [0.7, 1.2] as [CGFloat] {
+                let step = "\(name) at \(zoom)"
+                let session = try await openWindow(opening(focus: start))
+                let november = try month(nov, of: session)
+                let cell = try XCTUnwrap(november.page.cells[.day(today)], step).offsetBy(dx: november.origin, dy: 0)
+                let viewport = PaperViewport(offsetX: try month(startPage, of: session).origin * zoom, zoom: zoom, width: portrait.width)
+                XCTAssertTrue(ScreenPaths.zoomedPastFit(layout: session.layout, viewport: viewport, area: portrait, ratio: 1), step)
+
+                let least = canvasReveal(cell, from: viewport, in: session)
+                XCTAssertEqual(session.plan.focus(midX: least.midX, previous: session.focusSlot), session.focusSlot,
+                               "\(step): the cell's least movement leaves the old month the focus page")
+                guard case .reveal(let rect)? = paths.today(today, now: now, viewport: viewport, area: portrait, ratio: 1) else {
+                    return XCTFail("\(step): zoomed in past the fit, a reveal")
+                }
+                XCTAssertEqual(rect.minY, cell.minY, accuracy: 1e-9, "\(step): y as the cell's")
+                XCTAssertEqual(rect.height, cell.height, accuracy: 1e-9, step)
+                let shown = canvasReveal(rect, from: viewport, in: session)
+                let w = session.plan.pageWidth
+                XCTAssertGreaterThan(shown.midX, november.origin + SpanPlan.focusHysteresis * w, "\(step): past the hysteresis")
+                XCTAssertLessThan(shown.midX, november.origin + w - SpanPlan.focusHysteresis * w, step)
+                XCTAssertLessThanOrEqual(shown.x, cell.minX * zoom - ZoomPolicy.revealMargin + 1e-6, "\(step): the cell on screen")
+                XCTAssertGreaterThanOrEqual(shown.x + portrait.width, cell.maxX * zoom + ZoomPolicy.revealMargin - 1e-6, step)
+
+                var focus = start
+                followSlide(session, to: shown.midX, focus: &focus)
+                XCTAssertEqual(session.focusPageId, nov, step)
+                XCTAssertEqual(focus, today, "\(step): November the focus page, today")
+                let stopped = takeStop(session, at: shown.midX, focus: &focus)
+                XCTAssertEqual(stopped.focus, today, step)
+                XCTAssertEqual(stopped.visitEnded?.pageId, startPage, step)
+                XCTAssertEqual(scratch.string(forKey: AppSettings.lastFocusKey), today == nov28 ? "2026-11-28" : "2026-11-02", step)
+            }
+        }
         XCTAssertEqual(faults, [])
     }
 

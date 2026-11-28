@@ -108,8 +108,9 @@ final class ScreenPaths: ObservableObject {
         /// `revealRect(_:for:)`) on screen (`revealRect`). Also today's page already the focus at the capped overview (P-B6 イ,
         /// the lead's decision 7): the canvas's now-line request, a rect with no x (`cappedTodayRect`,
         /// `InkCanvasView.nowLineRevealRect`; its x is not a number, so the case is never equal to itself).
-        /// 1.4.3 (§3.7): on a window of months, today's cell past the fit, and at the overview or at 等倍 on today's page
-        /// already the focus `monthTodayRequest`'s request (no x).
+        /// 1.4.3 (§3.7): on a window of months, today's cell past the fit (toward another month a rect a screen wide when the
+        /// cell's would leave the middle of the screen on the old month: `monthTodayRevealRect`, review UX3-R1), and at the
+        /// overview or at 等倍 on today's page already the focus `monthTodayRequest`'s request (no x).
         case reveal(CGRect)
         /// Today's page is the focus at an overview that holds the whole day: nothing moves (1.2.3's 「今日」 on the page
         /// shown; review J7 — the screen does not know the paper's y, and a rect a whole page high would take the paper to
@@ -1030,7 +1031,10 @@ final class ScreenPaths: ObservableObject {
     /// 1.4.3 (review UX-3): every 「今日」 first lets the last one's mark go (`forgetToday()`); on a window of months a slide or
     /// a reveal toward another page leaves its own (`TodayMark`), so the focus becomes today once the paper is on today's
     /// month (`carriedFocus`, mid-slide and at the stop), and today's page already the focus makes today the focus at once
-    /// (`todayFocus`, the screen's). The answers here are unchanged.
+    /// (`todayFocus`, the screen's). The mark left the answers here as they were.
+    /// 1.4.3 (review UX3-R1): past the fit toward another month the rect is `monthTodayRevealRect`'s — the cell, or a rect
+    /// a screen wide when 1.1.1's least movement would leave the middle of the screen within the old month's 6 % (today in
+    /// an edge column) — so the focus page becomes today's month and the stop there brings today.
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Today? {
         forgetToday()
         guard path == .joined, let session = span else { return nil }
@@ -1061,9 +1065,15 @@ final class ScreenPaths: ObservableObject {
                 revealWindowId = session.id
                 return .reveal(rect)
             }
-            guard let rect = Self.todayRect(layout: session.layout, pageId: session.plan.pageId(at: session.plan.index(containing: day)),
-                                            now: now, calendar: session.context.calendar, viewport: shown, area: area)
+            let todayPage = session.plan.pageId(at: session.plan.index(containing: day))
+            guard let cell = Self.todayRect(layout: session.layout, pageId: todayPage, now: now, calendar: session.context.calendar,
+                                            viewport: shown, area: area)
             else { return nil }
+            // 1.4.3 (review UX3-R1): a window of months, toward another month, lands the middle of the screen on today's month.
+            let rect = session.layout.kind == .month
+                ? Self.monthTodayRevealRect(layout: session.layout, cell: cell, pageId: todayPage, focusSlot: session.focusSlot,
+                                            viewport: shown, area: area)
+                : cell
             revealWindowId = session.id
             markToday(day, pages: pages, in: session)
             return .reveal(rect)
@@ -1203,6 +1213,43 @@ final class ScreenPaths: ObservableObject {
         let height = area.height > 0 ? area.height / zoom : page.size.height
         return CGRect(x: column.minX, y: top + ZoomPolicy.revealMargin / zoom, width: column.width, height: height)
     }
+
+    /// 1.4.3 (review UX3-R1; docs/R1_4_3_CONTRACT.md §3.7): what 「今日」 zoomed in past the fit hands the canvas of a window of
+    /// months for today's `cell` (band lu, `todayRect`) on the page `pageId`. On the focus page (slot `focusSlot`) it is the
+    /// cell. On another month it is the cell too when 1.1.1's `reveal` of it (the canvas's: `ZoomPolicy.revealOffset` from
+    /// the screen's `viewport`, then the clamp to the band) leaves the middle of the screen on today's month at least
+    /// `monthTodayFocusMargin` past the 6 % hysteresis of `SpanPlan.focus`, so the focus page becomes today's and the paper's
+    /// stop there brings today (`carriedFocus`, review UX-3 (2)). Else — today in a column near the page's edge, the
+    /// least movement putting the cell at the edge of the screen it comes in from (Fri–Sun back from a later month, Mon–Tue
+    /// from an earlier one) and the middle of the screen still within the old month's 6 % — it is a rect a screen wide
+    /// (`viewport.width` in lu, with 1.1.1's margin), which the canvas lines up with the screen's left edge, so the middle
+    /// of the screen goes to the nearest point of today's month that far past the hysteresis. Its y and height are the
+    /// cell's, so y moves as before. The cell stays on screen with 1.1.1's margin (the margin is at most a column's 200 lu
+    /// less twice the hysteresis, halved); a cell wider than the screen covers it. A window that is not of months and a
+    /// viewport or a cell that is not usable: the cell.
+    static func monthTodayRevealRect(layout: SpanLayout, cell: CGRect, pageId: String, focusSlot: Int, viewport: PaperViewport,
+                                     area: CGSize) -> CGRect {
+        guard layout.kind == .month, let slot = layout.slot(ofPage: pageId), slot != focusSlot,
+              viewport.zoom.isFinite, viewport.zoom > 0, viewport.width.isFinite, viewport.width > 0,
+              viewport.offsetX.isFinite, cell.minX.isFinite, cell.width.isFinite else { return cell }
+        let zoom = viewport.zoom
+        let half = viewport.width / 2 / zoom
+        let screen = CGSize(width: viewport.width, height: area.height.isFinite && area.height > 0 ? area.height : 1)
+        let least = ZoomPolicy.revealOffset(rect: cell, zoom: zoom, viewport: screen, current: CGPoint(x: viewport.offsetX, y: 0)).x
+        let middle = min(max(least, 0), max(0, layout.size.width * zoom - viewport.width)) / zoom + half
+        let width = layout.plan.pageWidth
+        let inset = SpanPlan.focusHysteresis * width + monthTodayFocusMargin
+        let low = layout.origin(ofSlot: slot) + inset
+        let high = layout.origin(ofSlot: slot) + width - inset
+        guard low < high, middle < low || middle > high else { return cell }
+        let left = min(max(middle, low), high) - half
+        return CGRect(x: left + ZoomPolicy.revealMargin / zoom, y: cell.minY, width: viewport.width / zoom, height: cell.height)
+    }
+
+    /// 1.4.3 (review UX3-R1): how far (lu) past the 6 % hysteresis of `SpanPlan.focus` (84 lu of a month's 1,400)
+    /// `monthTodayRevealRect` puts the middle of the screen on today's month. At most 16 lu (a column's 200 less twice
+    /// the hysteresis, halved), so a cell in an edge column stays on screen with 1.1.1's margin.
+    static let monthTodayFocusMargin: CGFloat = 8
 
     /// 1.4.3 (docs/R1_4_3_CONTRACT.md §3.7, 0g-19): 「今日」 on a month window at the overview whose focus page `pageId` holds
     /// today (`now`): the request with no x the capped week's 「今日」 hands the canvas (`InkCanvasView.nowLineRevealRect`, band
