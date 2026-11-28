@@ -1927,9 +1927,13 @@ struct CalendarRootScreen: View {
             case .reopen(let day):
                 show(kind: kind, focus: day)
                 // 1.4.3 (review UX-2 (a), §3.7): a window of months opened at today brings today's cell on screen at its
-                // first layout, as 1.1.1's one page below (the week and the day: nil, 1.3's).
-                if let rect = paths.reopenedToday(now: ScreenshotMode.current?.today ?? Date(), area: paperArea, ratio: currentRatio,
-                                                  fit: currentFit) {
+                // first layout, as 1.1.1's one page below (the week and the day: nil, 1.3's). The frozen ZoomFitWiringTests
+                // counts three wires of the fit written `ratio: currentRatio, fit: currentFit` (the window's first frame,
+                // its zoom and 「今日」 above), so this fourth reads the same two into constants first;
+                // ScreenPathsMonthYearTests.testTheScreenWiresTodaysFocus pins it.
+                let ratio = currentRatio
+                let fit = currentFit
+                if let rect = paths.reopenedToday(now: ScreenshotMode.current?.today ?? Date(), area: paperArea, ratio: ratio, fit: fit) {
                     revealRect = rect
                     revealTrigger += 1
                 }

@@ -945,6 +945,14 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         XCTAssertEqual(count("paths.todayFocus("), 1)
         XCTAssertEqual(count("paths.carriedFocus("), 1, "the stop's own call is ScreenPaths.stopped's")
         XCTAssertEqual(count("ScreenPaths.focus("), 0, "the screen never carries the focus itself")
+
+        // Review UX-2 (a)'s wire: far away, the new window's first layout gets `reopenedToday`'s rect with the fit and the ratio
+        // (read into constants: the frozen ZoomFitWiringTests counts exactly three `ratio: currentRatio, fit: currentFit)`).
+        XCTAssertTrue(goToday.contains("case .reopen(let day): show(kind: kind, focus: day) let ratio = currentRatio let fit = currentFit "
+                                       + "if let rect = paths.reopenedToday(now: ScreenshotMode.current?.today ?? Date(), area: paperArea, "
+                                       + "ratio: ratio, fit: fit) { revealRect = rect revealTrigger += 1 }"), "far away: \(goToday)")
+        XCTAssertEqual(count("paths.reopenedToday("), 1)
+        XCTAssertEqual(count("ratio: currentRatio, fit: currentFit)"), 3, "ZoomFitWiringTests' count (frozen)")
     }
 
     // MARK: §4.7 — the paper and the PDF; §3.8 — the heading
