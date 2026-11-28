@@ -662,7 +662,9 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace + 1)
         followSlide(interrupted, to: try middle(of: interrupted, page: nov), focus: &held)
         XCTAssertEqual(held, nov15, "a later scroll by hand: the carry")
-        takeStop(interrupted, at: try middle(of: interrupted, page: nov), focus: &held)
+        // Review T-1 (§3.7, the lead's decision of 11/28): nor does the stop there bring the landing's request (y stays).
+        XCTAssertNil(takeStop(interrupted, at: try middle(of: interrupted, page: nov), focus: &held).reveal,
+                     "after the grace: no request")
         XCTAssertEqual(held, nov15)
 
         let dec31 = DayKey(year: 2026, month: 12, day: 31)
@@ -1075,6 +1077,109 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         let byHand = takeStop(away, at: try middle(of: away, page: nov), focus: &day)
         XCTAssertEqual(byHand.focus, DayKey(year: 2026, month: 11, day: 15), "the mark went: the carry")
         XCTAssertNil(byHand.reveal, "the mark went: none")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review F1 (§3.7, the lead's decision of 11/28): 「今日」 pressed twice quickly. The second press comes while the first
+    /// one's slide runs with the middle of the screen already 200 lu into today's month (past `SpanPlan.focus`'s 6 %, so the
+    /// focus page is today's and the screen's focus today), so it answers today's page's request (`.reveal` of
+    /// `monthTodayRequest`), which the canvas drops while the band moves (`revealNowLine`). The first press's mark stays, and
+    /// the slide's stop on today's month brings that request after all, once. The landscape iPad at 等倍 (12/31, 700–875 lu)
+    /// and, on a window of years, the portrait iPad at the overview (2027-12-28, 1,620–1,680 lu). A second press after the
+    /// grace (`todayMarkGrace`: a slide that waited under the pen) or after the stop keeps nothing: no request at the stop.
+    func testTodayAgainWhileItsSlideRunsStillLandsWithTheRequest() async throws {
+        let wide = ScreenPaths.Device(deviceClass: .iPad11, orientation: .landscape)
+        let dec31 = DayKey(year: 2026, month: 12, day: 31)
+        let decNow = try at(12, 31, 10)
+        let session = try await openWindow(opening(device: wide))
+        var focus = nov16
+        XCTAssertEqual(paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true), .slide(1))
+        let december = try month(dec, of: session)
+        followSlide(session, to: december.origin + 200, focus: &focus)
+        XCTAssertEqual(session.focusPageId, dec, "past the 6 %: December is the focus page")
+        XCTAssertEqual(focus, dec31)
+        guard case .reveal(let again)? = paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true) else {
+            return XCTFail("the second 「今日」: today's month's request")
+        }
+        let againLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(again))
+        XCTAssertEqual(againLines.top, 700 - 8 * 1_400 / 1_210, accuracy: 1e-9, "monthTodayRequest's at 等倍")
+        XCTAssertEqual(againLines.nowLine, 875, accuracy: 1e-9)
+        XCTAssertEqual(paths.todayFocus(dec31), dec31, "the screen's focusOnToday")
+        let landed = takeStop(session, at: december.origin + 700, focus: &focus)
+        XCTAssertEqual(landed.focus, dec31)
+        let request = try XCTUnwrap(landed.reveal, "the slide's stop brings the request the canvas dropped")
+        let lines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(request))
+        XCTAssertEqual(lines.top, againLines.top, accuracy: 1e-9, "the same request")
+        XCTAssertEqual(lines.nowLine, againLines.nowLine, accuracy: 1e-9)
+        XCTAssertNotNil(paths.revealRect(request, for: session), "for this window's canvas")
+        XCTAssertNil(takeStop(session, at: december.origin + 700, focus: &focus).reveal, "once")
+        guard case .reveal? = paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true) else {
+            return XCTFail("after the stop: today's month's request")
+        }
+        XCTAssertNil(takeStop(session, at: december.origin + 700, focus: &focus).reveal, "after the stop: its own request alone")
+
+        // The second press after the grace: the mark has gone, nothing comes back.
+        let late = try await openWindow(opening(device: wide))
+        var held = nov16
+        XCTAssertEqual(paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true), .slide(1))
+        let lateDecember = try month(dec, of: late)
+        followSlide(late, to: lateDecember.origin + 200, focus: &held)
+        bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace + 1)
+        guard case .reveal? = paths.today(dec31, now: decNow, viewport: nil, area: landscape, ratio: 1, fit: true) else {
+            return XCTFail("after the grace: today's month's request")
+        }
+        XCTAssertNil(takeStop(late, at: lateDecember.origin + 700, focus: &held).reveal, "after the grace: none at the stop")
+
+        guard SpanKinds.joined.contains(.year) else { return }
+        let dec28 = DayKey(year: 2027, month: 12, day: 28)
+        let yearNow = try at(12, 28, 10, year: 2027)
+        let open: CGFloat = 1_005.0 / 1_860
+        let years = try await openWindow(opening(.year))
+        var day = nov16
+        XCTAssertEqual(paths.today(dec28, now: yearNow, viewport: nil, area: portrait, ratio: 1), .slide(1))
+        let next = try year(y2027, of: years)
+        followSlide(years, to: next.origin + 200, focus: &day, kind: .year)
+        XCTAssertEqual(years.focusPageId, y2027, "past the 6 %: 2027 is the focus page")
+        guard case .reveal(let yearAgain)? = paths.today(dec28, now: yearNow, viewport: nil, area: portrait, ratio: 1) else {
+            return XCTFail("the second 「今日」: today's year's request")
+        }
+        let yearAgainLines = try XCTUnwrap(InkCanvasView.nowLineRevealLines(yearAgain))
+        XCTAssertEqual(yearAgainLines.top, 1_620 - 8 / open, accuracy: 1e-9, "monthTodayRequest's at the overview")
+        XCTAssertEqual(yearAgainLines.nowLine, 1_680, accuracy: 1e-9)
+        let yearLanded = takeStop(years, at: next.origin + 700, focus: &day, kind: .year)
+        XCTAssertEqual(yearLanded.focus, dec28)
+        let yearLines = try XCTUnwrap(yearLanded.reveal.flatMap { InkCanvasView.nowLineRevealLines($0) },
+                                      "the year: the slide's stop brings the request")
+        XCTAssertEqual(yearLines.top, yearAgainLines.top, accuracy: 1e-9)
+        XCTAssertEqual(yearLines.nowLine, yearAgainLines.nowLine, accuracy: 1e-9)
+        XCTAssertNil(takeStop(years, at: next.origin + 700, focus: &day, kind: .year).reveal, "the year: once")
+        XCTAssertEqual(faults, [])
+    }
+
+    /// Review N-1 (§3.7, the lead's decision of 11/28; C3-m6): a stop of 「今日」's slide on today's month whose window turned
+    /// out too heavy once its pages were read (stage 2: the screen opens the month on one page, `spanStopped`'s first branch)
+    /// brings no landing's request — the window it was made for is about to close.
+    func testAStopThatFallsBackToOnePageBringsNoRequest() async throws {
+        let iPhone = ScreenPaths.Device(deviceClass: .iPhone, orientation: .portrait)
+        let dec3 = DayKey(year: 2026, month: 12, day: 3)
+        let session = try await openWindow(opening(device: iPhone))
+        XCTAssertTrue(session.pageIds.contains(dec))
+        var focus = nov16
+        XCTAssertEqual(paths.today(dec3, now: try at(12, 3, 9), viewport: nil, area: CGSize(width: 402, height: 700), ratio: 1),
+                       .slide(1))
+        var heavy = InkPage.empty(pageId: dec)
+        for n in 0..<12_001 {
+            let point = InkPoint(x: CGFloat(n % 1000), y: CGFloat(n / 1000), dtMs: 0, sizeW: 1, sizeH: 1, opacity: 1, force: 0,
+                                 azimuth: 0, altitude: 0)
+            heavy.add(InkStroke(id: "h\(n)", cell: .grid, tool: .pen, color: "#000000", t: 1, points: [point]))
+        }
+        session.remoteUpdated(heavy)
+        XCTAssertTrue(session.fallsBackToOnePage)
+        let stopped = takeStop(session, at: try middle(of: session, page: dec), focus: &focus)
+        XCTAssertTrue(stopped.fallBack, "too heavy: one page")
+        XCTAssertEqual(stopped.focus, dec3, "today the focus (the mark)")
+        XCTAssertNil(stopped.reveal, "falling back: no request")
+        XCTAssertEqual(paths.fallenBack, [.month])
         XCTAssertEqual(faults, [])
     }
 
@@ -1645,6 +1750,10 @@ final class ScreenPathsMonthYearTests: XCTestCase {
         bed.now = bed.now.addingTimeInterval(ScreenPaths.todayMarkGrace + 1)
         followSlide(late, to: try middle(of: late, pageId: y2026), focus: &held, kind: .year)
         XCTAssertEqual(held, carried, "after the grace: the carry")
+        // Review T-1 (§3.7, the lead's decision of 11/28): and the stop there brings no landing's request (y stays).
+        let lateStop = takeStop(late, at: try middle(of: late, pageId: y2026), focus: &held, kind: .year)
+        XCTAssertEqual(lateStop.focus, carried)
+        XCTAssertNil(lateStop.reveal, "after the grace: no request")
         XCTAssertEqual(faults, [])
     }
 

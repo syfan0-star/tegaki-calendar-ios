@@ -1082,7 +1082,12 @@ final class ScreenPaths: ObservableObject {
     /// keeps the inputs given here (`TodayMark.arrival`), and the stop on today's month or year hands the screen the request
     /// a second 「今日」 would give there (`stopped`'s `reveal`, `todayArrival`): y alone, only when the bottom of today's
     /// cell is off the screen. The answers here are unchanged.
+    /// 1.4.3 (review F1 of that decision): 「今日」 pressed again while the last one's slide is on its way, the middle of the
+    /// screen already on today's page (the focus followed it, so the answer is today's page's request), keeps the last one's
+    /// mark: the canvas drops a request while the band moves (`revealNowLine`), and the mark's stop on today's page brings it
+    /// then (`todayArrival`, once). Every other 「今日」 lets the mark go as before.
     func today(_ day: DayKey, now: Date, viewport: PaperViewport?, area: CGSize, ratio: CGFloat, fit: Bool = false) -> Today? {
+        let running = heldTodayMark
         forgetToday()
         reopenInputs = nil
         guard path == .joined, let session = span else { return nil }
@@ -1106,6 +1111,10 @@ final class ScreenPaths: ObservableObject {
                 guard let rect = Self.todayRequest(layout: session.layout, pageId: session.focusPageId, now: now,
                                                    calendar: session.context.calendar, shown: shown)
                 else { return .stay }
+                // Review F1: the last 「今日」's slide still on its way here (its mark held, its stop on today's page not come).
+                if let running, running.arrival != nil, running.today == day, running.to == session.focusIndex {
+                    todayMark = running
+                }
                 revealWindowId = session.id
                 return .reveal(rect)
             }
@@ -1137,7 +1146,8 @@ final class ScreenPaths: ObservableObject {
 
     /// 1.4.3 (review UX-3): 「今日」's mark goes — at every stop but one on the way (`todayStopped(on:)`), at ◀ ▶ (`move`), at
     /// every opening (`open`: another page, a kind or a week start switched, far 「今日」's new window, an import, an
-    /// account's answer) and at the next 「今日」 (`today`, whatever it answers).
+    /// account's answer) and at the next 「今日」 (`today`, whatever it answers; review F1: a slide's mark comes back when that
+    /// 「今日」 answers today's page's request before the slide's stop there).
     private func forgetToday() {
         todayMark = nil
     }
