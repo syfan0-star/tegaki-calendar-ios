@@ -189,10 +189,26 @@ final class ScreenPathsSpanTests: XCTestCase {
     /// own memory-only setting (off by default: the photos stay 1.2.3's), and not after it fell back in this run (stage 2).
     /// `open` follows it.
     func testOnePagePathDecision() async throws {
-        for kind in [PageKind.month, .year] {
+        for kind in [PageKind.year] {
             XCTAssertFalse(ScreenPaths.joins(kind: kind, setting: true, screenshot: false, screenshotSpan: true, fallenBack: []), "\(kind)")
             XCTAssertFalse(ScreenPaths.joins(kind: kind, setting: true, screenshot: true, screenshotSpan: true, fallenBack: []), "\(kind)")
         }
+        // 1.4.3 (docs/R1_4_3_CONTRACT.md §3.2, §8.5 R0m): the month joins as the week and the day do — the two openings
+        // above, then the week's and the day's seven conditions below.
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: true, screenshot: false, screenshotSpan: true, fallenBack: []), "month")
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: true, screenshot: true, screenshotSpan: true, fallenBack: []), "month")
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: true, screenshot: false, screenshotSpan: false, fallenBack: []), "month")
+        XCTAssertFalse(ScreenPaths.joins(kind: .month, setting: false, screenshot: false, screenshotSpan: true, fallenBack: []), "month off")
+        XCTAssertFalse(ScreenPaths.joins(kind: .month, setting: true, screenshot: true, screenshotSpan: false, fallenBack: []),
+                       "month: screenshot mode's default")
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: false, screenshot: true, screenshotSpan: true, fallenBack: []),
+                      "month: screenshot mode's own setting")
+        XCTAssertFalse(ScreenPaths.joins(kind: .month, setting: true, screenshot: false, screenshotSpan: false, fallenBack: [.month]),
+                       "month: stage 2")
+        XCTAssertFalse(ScreenPaths.joins(kind: .month, setting: true, screenshot: true, screenshotSpan: true, singlePage: true, fallenBack: []),
+                       "month: --screenshot-single-page, the old versions' view")
+        XCTAssertTrue(ScreenPaths.joins(kind: .month, setting: true, screenshot: false, screenshotSpan: false, singlePage: true, fallenBack: []),
+                      "month: no screenshot argument outside screenshot mode")
         for kind in [PageKind.week, .day] {
             XCTAssertTrue(ScreenPaths.joins(kind: kind, setting: true, screenshot: false, screenshotSpan: false, fallenBack: []), "\(kind)")
             XCTAssertFalse(ScreenPaths.joins(kind: kind, setting: false, screenshot: false, screenshotSpan: true, fallenBack: []), "\(kind) off")
@@ -209,16 +225,20 @@ final class ScreenPathsSpanTests: XCTestCase {
         }
         XCTAssertTrue(ScreenPaths.joins(kind: .day, setting: true, screenshot: false, screenshotSpan: false, fallenBack: [.week]))
 
-        XCTAssertEqual(paths.open(opening(.month)), .onePage)
-        XCTAssertEqual(paths.path, .onePage)
-        XCTAssertNil(paths.span)
-        XCTAssertEqual(one.page.pageId, PageNavigation.pageId(.month, focus: nov16, weekStart: .monday))
+        XCTAssertEqual(paths.open(opening(.month)), .joined, "1.4.3: the month joins")
+        XCTAssertEqual(paths.path, .joined)
+        XCTAssertNotNil(paths.span)
+        XCTAssertEqual(paths.span?.kind, .month)
+        XCTAssertEqual(paths.span?.focusPageId, PageNavigation.pageId(.month, focus: nov16, weekStart: .monday))
         XCTAssertEqual(paths.open(opening(.year)), .onePage)
         XCTAssertEqual(paths.open(opening()), .joined)
         XCTAssertEqual(paths.path, .joined)
         setting = false
         XCTAssertEqual(paths.open(opening(.day)), .onePage)
         XCTAssertEqual(one.page.pageId, "d-2026-11-16")
+        XCTAssertEqual(paths.open(opening(.month)), .onePage, "1.4.3: the month with the setting off: one page")
+        XCTAssertNil(paths.span)
+        XCTAssertEqual(one.page.pageId, PageNavigation.pageId(.month, focus: nov16, weekStart: .monday))
 
         // Screenshot mode: the one page (the demo page) unless its own setting is on.
         let shot = makePaths(screenshot: true)
@@ -270,7 +290,12 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(paths.open(opening()), .joined)
         XCTAssertFalse(paths.waitingForScene)
         XCTAssertEqual(paths.span?.deviceClass, .iPad11)
-        XCTAssertEqual(paths.open(opening(.month, device: .some(nil))), .onePage)
+        XCTAssertEqual(paths.open(opening(.month, device: .some(nil))), .waiting, "1.4.3: a month waits for the window scene too")
+        XCTAssertTrue(paths.waitingForScene)
+        XCTAssertNil(paths.span)
+        XCTAssertEqual(paths.open(opening(.month)), .joined)
+        XCTAssertFalse(paths.waitingForScene)
+        XCTAssertEqual(paths.span?.kind, .month)
     }
 
     /// Review J5: the one page back from another path (the window, the desk) on the same page id is a new canvas: the screen
@@ -993,6 +1018,7 @@ final class ScreenPathsSpanTests: XCTestCase {
         await bed.startSynced()
         try bed.engine.save(bed.page(w1116, ["a"]))
         await bed.flushDebounce()
+        setting = false // 1.4.3 (§8.5 R0m): the month joins with the setting on; off, it is the one page this test starts from.
         XCTAssertEqual(paths.open(opening(.month)), .onePage)
         await bed.engine.waitUntilIdle()
         let checks = await accountChangedAndHeld()
@@ -1002,6 +1028,7 @@ final class ScreenPathsSpanTests: XCTestCase {
         XCTAssertEqual(paths.path, .onePage)
         await bed.yieldUntil { bed.db.calls.filter { $0 == .accountStatus }.count > checks }
         XCTAssertEqual(bed.store.allPageIds(), [])
+        setting = true // 1.4.3 (§8.5 R0m): the week while the engine waits, the setting on (as before).
         shown = .week
         let opened = paths.open(opening(.week))
         XCTAssertEqual(opened, .erasing, "no window while the engine waits: the desk")
@@ -1823,7 +1850,10 @@ final class ScreenPathsSpanTests: XCTestCase {
                                .card(allowFinger: finger), "\(kind): an unknown value")
             }
         }
-        XCTAssertNil(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "one"]), kind: .month, allowFinger: false), "no card of a month")
+        XCTAssertEqual(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "one"]), kind: .month, allowFinger: false),
+                       .card(allowFinger: false), "1.4.3: the month's card")
+        XCTAssertEqual(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "two"]), kind: .month, allowFinger: false),
+                       .card(allowFinger: true), "1.4.3: the month's card, two fingers")
         for kind in PageKind.allCases {
             XCTAssertEqual(ScreenPaths.photoGuide(try shotConfig(["--screenshot-span-guide", "stage-two"]), kind: kind, allowFinger: false),
                            .stageTwoNotice, "\(kind)")
